@@ -11,7 +11,7 @@ Implement the currently approved milestone in a greenfield strict-TypeScript mon
 Before editing:
 
 1. Inspect the repository, Git status, branches, remotes, package manager, runtime, and available tooling.
-2. Read `SOURCE-DESIGN-v1.0.md`.
+2. Read `README.md`.
 3. Read `.ai/ENGINEERING-CONTRACT.md`.
 4. Read `.ai/REQUIREMENTS.md` and applicable ADRs.
 5. Read the current approved milestone brief.

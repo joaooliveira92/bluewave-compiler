@@ -1,6 +1,6 @@
 # Bluewave Requirement Traceability Index
 
-This file is an initial index. During bootstrap, derive additional stable IDs from `SOURCE-DESIGN-v1.0.md` without changing its meaning or copying large sections.
+This file is an initial index. During bootstrap, derive additional stable IDs from `README.md` without changing its meaning or copying large sections.
 
 ## Initial requirements
 

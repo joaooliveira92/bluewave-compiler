@@ -6,7 +6,7 @@ Mandatory. This contract applies to every code, content, build, persistence, and
 
 ## Canonical authority
 
-`SOURCE-DESIGN-v1.0.md` is binding. Assign traceable requirement IDs without rewriting its meaning. Do not silently reinterpret gameplay rules, invent missing canonical content, or weaken production validation to accommodate fixtures. When two plausible interpretations produce different authoritative outcomes, stop and create a decision request.
+`README.md` is binding. Assign traceable requirement IDs without rewriting its meaning. Do not silently reinterpret gameplay rules, invent missing canonical content, or weaken production validation to accommodate fixtures. When two plausible interpretations produce different authoritative outcomes, stop and create a decision request.
 
 ## Technology and repository
 

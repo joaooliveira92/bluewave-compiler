@@ -4,7 +4,7 @@ Implement the approved milestone brief supplied with this prompt.
 
 ## Inputs
 
-- Canonical specification: `SOURCE-DESIGN-v1.0.md`
+- Canonical specification: `README.md`
 - Permanent contract: `.ai/ENGINEERING-CONTRACT.md`
 - Operating rules: `.ai/AUTONOMOUS-AGENT.md`
 - Requirement index: `.ai/REQUIREMENTS.md`

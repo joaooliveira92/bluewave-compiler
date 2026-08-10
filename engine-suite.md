@@ -6,7 +6,7 @@ This suite governs autonomous development of the Bluewave TypeScript engine and 
 
 The repository must contain:
 
-- `SOURCE-DESIGN-v1.0.md`, the binding canonical game-design baseline.
+- `README.md`, the binding canonical game-design baseline.
 - This `.ai/` prompt suite.
 - Approved ADRs and design amendments created during implementation.
 
