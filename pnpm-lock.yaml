@@ -26,6 +26,12 @@ importers:
 
   apps/compiler-cli:
     dependencies:
+      '@bluewave/campaign':
+        specifier: workspace:*
+        version: link:../../packages/campaign
+      '@bluewave/commands':
+        specifier: workspace:*
+        version: link:../../packages/commands
       '@bluewave/content-compiler':
         specifier: workspace:*
         version: link:../../packages/content-compiler
@@ -41,6 +47,72 @@ importers:
       '@bluewave/diagnostics':
         specifier: workspace:*
         version: link:../../packages/diagnostics
+      '@bluewave/persistence':
+        specifier: workspace:*
+        version: link:../../packages/persistence
+      '@bluewave/phase-engine':
+        specifier: workspace:*
+        version: link:../../packages/phase-engine
+      '@bluewave/random':
+        specifier: workspace:*
+        version: link:../../packages/random
+
+  packages/campaign:
+    dependencies:
+      '@bluewave/content-compiler':
+        specifier: workspace:*
+        version: link:../content-compiler
+      '@bluewave/content-schema':
+        specifier: workspace:*
+        version: link:../content-schema
+      '@bluewave/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@bluewave/deterministic':
+        specifier: workspace:*
+        version: link:../deterministic
+      '@bluewave/diagnostics':
+        specifier: workspace:*
+        version: link:../diagnostics
+      yaml:
+        specifier: ^2.7.0
+        version: 2.9.0
+
+  packages/combat:
+    dependencies:
+      '@bluewave/campaign':
+        specifier: workspace:*
+        version: link:../campaign
+      '@bluewave/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@bluewave/deterministic':
+        specifier: workspace:*
+        version: link:../deterministic
+      '@bluewave/diagnostics':
+        specifier: workspace:*
+        version: link:../diagnostics
+      '@bluewave/events':
+        specifier: workspace:*
+        version: link:../events
+      '@bluewave/random':
+        specifier: workspace:*
+        version: link:../random
+
+  packages/commands:
+    dependencies:
+      '@bluewave/campaign':
+        specifier: workspace:*
+        version: link:../campaign
+      '@bluewave/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@bluewave/deterministic':
+        specifier: workspace:*
+        version: link:../deterministic
+      '@bluewave/diagnostics':
+        specifier: workspace:*
+        version: link:../diagnostics
 
   packages/content-compiler:
     dependencies:
@@ -88,6 +160,78 @@ importers:
       '@bluewave/contracts':
         specifier: workspace:*
         version: link:../contracts
+
+  packages/events:
+    dependencies:
+      '@bluewave/campaign':
+        specifier: workspace:*
+        version: link:../campaign
+      '@bluewave/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@bluewave/deterministic':
+        specifier: workspace:*
+        version: link:../deterministic
+      '@bluewave/diagnostics':
+        specifier: workspace:*
+        version: link:../diagnostics
+
+  packages/persistence:
+    dependencies:
+      '@bluewave/campaign':
+        specifier: workspace:*
+        version: link:../campaign
+      '@bluewave/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@bluewave/deterministic':
+        specifier: workspace:*
+        version: link:../deterministic
+      '@bluewave/diagnostics':
+        specifier: workspace:*
+        version: link:../diagnostics
+
+  packages/phase-engine:
+    dependencies:
+      '@bluewave/campaign':
+        specifier: workspace:*
+        version: link:../campaign
+      '@bluewave/combat':
+        specifier: workspace:*
+        version: link:../combat
+      '@bluewave/commands':
+        specifier: workspace:*
+        version: link:../commands
+      '@bluewave/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@bluewave/deterministic':
+        specifier: workspace:*
+        version: link:../deterministic
+      '@bluewave/diagnostics':
+        specifier: workspace:*
+        version: link:../diagnostics
+      '@bluewave/events':
+        specifier: workspace:*
+        version: link:../events
+      '@bluewave/persistence':
+        specifier: workspace:*
+        version: link:../persistence
+      '@bluewave/random':
+        specifier: workspace:*
+        version: link:../random
+
+  packages/random:
+    dependencies:
+      '@bluewave/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@bluewave/deterministic':
+        specifier: workspace:*
+        version: link:../deterministic
+      '@bluewave/diagnostics':
+        specifier: workspace:*
+        version: link:../diagnostics
 
   packages/test-support:
     dependencies:
