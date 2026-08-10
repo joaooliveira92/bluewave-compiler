@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/contracts" },
+    { "path": "../../packages/diagnostics" },
+    { "path": "../../packages/deterministic" },
+    { "path": "../../packages/content-schema" },
+    { "path": "../../packages/content-compiler" }
+  ]
+}

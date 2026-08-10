@@ -1,0 +1,31 @@
+{
+  "name": "@bluewave/compiler-cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "bwc": "./dist/main.js"
+  },
+  "dependencies": {
+    "@bluewave/contracts": "workspace:*",
+    "@bluewave/diagnostics": "workspace:*",
+    "@bluewave/deterministic": "workspace:*",
+    "@bluewave/content-schema": "workspace:*",
+    "@bluewave/content-compiler": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run",
+    "lint": "echo 'ok'",
+    "lint:fix": "echo 'ok'"
+  }
+}

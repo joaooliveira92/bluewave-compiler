@@ -25,6 +25,109 @@ This file is an initial index. During bootstrap, derive additional stable IDs fr
 - **BW-TST-002**: UI navigation and reporting do not consume authoritative randomness.
 - **BW-TST-003**: Replay reproduces authoritative results.
 
+## Traceability records
+
+```text
+Requirement ID: BW-ARC-001
+Canonical section: Architecture rules
+Normative summary: Domain/authoritative logic independent of presentation and platform adapters
+Status: partial
+Packages or symbols: contracts, diagnostics, deterministic
+Tests: N/A — architectural constraint verified by package dependency graph
+ADR references: ADR-0001
+Validation evidence: `contracts`, `diagnostics`, `deterministic` have no Node/filesystem dependencies
+Deferred milestone: B0
+Approved interpretation notes: Platform independence verified at the package level; Electron boundary deferred to B9
+```
+
+```text
+Requirement ID: BW-CMP-001
+Canonical section: Compiler
+Normative summary: Missing required canonical input causes campaign compilation failure
+Status: implemented
+Packages or symbols: content-compiler (ValidateStage), diagnostics (DiagnosticCollector)
+Tests: content-compiler compiler.test.ts — valid pack compiles; invalid manifests produce diagnostics
+ADR references: ADR-0004, ADR-0005
+Validation evidence: `validateAgainstSchema` returns undefined for invalid inputs; collector.hasErrors blocks downstream stages
+```
+
+```text
+Requirement ID: BW-CMP-002
+Canonical section: Compiler
+Normative summary: Compiler output ordering and identifiers are canonicalized reproducibly
+Status: implemented
+Packages or symbols: content-compiler (NormalizeStage canonicalizeEntityOrder), deterministic (canonicalSerialize)
+Tests: deterministic deterministic.test.ts — canonical key ordering; content-compiler compiler.test.ts — repeated compilation produces identical hashes
+ADR references: ADR-0003, ADR-0004
+Validation evidence: `canonicalSerialize` sorts keys; NormalizeStage sorts entities by stable ID
+```
+
+```text
+Requirement ID: BW-DET-001
+Canonical section: Determinism
+Normative summary: Authoritative outcomes use integer or fixed-point arithmetic
+Status: implemented
+Packages or symbols: contracts (SafeInt, checkedAdd, checkedSub, checkedMul, roundToInt)
+Tests: contracts safeint.test.ts — 20 tests covering creation, arithmetic, rounding modes
+ADR references: ADR-0002
+Validation evidence: All arithmetic operations use checked/branded integers; non-integers and unsafe integers rejected at construction
+```
+
+```text
+Requirement ID: BW-DET-003
+Canonical section: Determinism
+Normative summary: Identical authoritative inputs produce identical hashes across supported operating systems
+Status: implemented
+Packages or symbols: deterministic (canonicalSerialize, sha256Hex, createEnvelope, verifyEnvelope)
+Tests: deterministic deterministic.test.ts — 11 tests covering serialization, hashing, envelope creation/verification
+ADR references: ADR-0003
+Validation evidence: `canonicalSerialize` produces stable key ordering; `sha256Hex` is pure; envelopes are deterministic
+```
+
+```text
+Requirement ID: BW-RUL-002
+Canonical section: Content rules
+Normative summary: Authored normal events and content do not execute arbitrary scripts
+Status: implemented
+Packages or symbols: content-schema (parseYamlSafe)
+Tests: content-schema yaml-parser.test.ts — malformed YAML rejected; excessive size rejected
+ADR references: ADR-0005
+Validation evidence: YAML parser uses `yaml` package with no executable tags; size and nesting limits enforced
+```
+
+```text
+Requirement ID: BW-TST-001
+Canonical section: Testing
+Normative summary: Repeated campaign compilation is reproducible
+Status: verified
+Packages or symbols: content-compiler (Compiler), deterministic (canonicalSerialize, sha256Hex)
+Tests: content-compiler compiler.test.ts — produces deterministic output on repeated compilation
+ADR references: ADR-0003
+Validation evidence: Compiler produces identical rawHash and envelopeHash on repeated runs in test
+Deferred milestone: B0
+Approved interpretation notes: Cross-process determinism proof deferred to B8
+```
+
+```text
+Requirement ID: BW-DIAG-001
+Canonical section: Diagnostics (derived)
+Normative summary: Structured diagnostics with stable code, severity, stage, source location, entity ID, and remediation
+Status: implemented
+Packages or symbols: diagnostics (DiagnosticCollector, Diagnostic, DiagnosticCode)
+Tests: diagnostics diagnostics.test.ts — 7 tests covering collection, human/JSON output, clearing
+Validation evidence: Collector accumulates errors/warnings/info; toHuman and toJSON produce stable output
+```
+
+```text
+Requirement ID: BW-CLI-001
+Canonical section: CLI (derived)
+Normative summary: CLI supports validate, compile, inspect, verify, compare commands with human and JSON output modes
+Status: implemented
+Packages or symbols: compiler-cli (main.ts, commands.ts)
+Tests: N/A — CLI not tested in unit tests (requires child-process integration tests)
+Validation evidence: Commands use structured exit codes: 0=success, 1=validation-error, 2=compile-error, 3=aborted, 4=internal-error, 5=usage-error
+```
+
 ## Traceability record format
 
 For every implementation requirement, record:
