@@ -4,12 +4,16 @@
 
 **Blocked by:** 06, 07
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] CLI `save` command
-- [ ] CLI `load` command
-- [ ] CLI `replay` command
-- [ ] Save/load preserves future outcomes (test)
-- [ ] Fresh-process replay reproduces all hashes (test)
-- [ ] Replay verification output
-- [ ] Tests: save/load cycle, replay identity, child-process determinism
+- [x] CLI `campaign:save` command
+- [x] CLI `campaign:load` command
+- [x] CLI `replay` command
+- [x] Save/load preserves future outcomes (test)
+- [x] Fresh-process replay reproduces all hashes (test)
+- [x] Replay verification output
+- [x] Tests: save/load cycle, replay identity, child-process determinism
+
+## Answer
+
+Implemented `ReplayVerifier` in phase-engine, CLI commands (campaign:compile, campaign:save, campaign:load, turn:execute, replay) in compiler-cli. 5 CLI tests pass covering replay match, mismatch detection, and determinism.

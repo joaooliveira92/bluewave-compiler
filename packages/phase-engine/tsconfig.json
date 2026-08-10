@@ -13,6 +13,7 @@
     { "path": "../commands" },
     { "path": "../random" },
     { "path": "../events" },
-    { "path": "../combat" }
+    { "path": "../combat" },
+    { "path": "../persistence" }
   ]
 }

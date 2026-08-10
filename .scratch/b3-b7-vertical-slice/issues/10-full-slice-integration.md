@@ -4,11 +4,15 @@
 
 **Blocked by:** 08, 09
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Integration test: compile fixture → initial snapshot hash
-- [ ] Integration test: execute one month → closing snapshot hash + all ledger hashes
-- [ ] Integration test: child-process replay reproduces all hashes
-- [ ] Invariant checks after every transition
-- [ ] Record all 8 hashes in validation output
-- [ ] Cross-process determinism evidence (same binary, same hashes)
+- [x] Integration test: compile fixture → initial snapshot hash
+- [x] Integration test: execute one month → closing snapshot hash + all ledger hashes
+- [x] Integration test: child-process replay reproduces all hashes
+- [x] Invariant checks after every transition
+- [x] Record all 8 hashes in validation output
+- [x] Cross-process determinism evidence (same binary, same hashes)
+
+## Answer
+
+Integration test file with 17 tests covering all B3-B7 acceptance criteria. All 154 tests pass across 14 packages: 20 (contracts) + 7 (diagnostics) + 11 (deterministic) + 3 (content-schema) + 5 (content-compiler) + 4 (campaign) + 16 (random) + 6 (commands) + 9 (events) + 14 (persistence) + 10 (combat) + 27 (phase-engine: 17 engine + 10 month) + 5 (cli) + 17 (integration).
