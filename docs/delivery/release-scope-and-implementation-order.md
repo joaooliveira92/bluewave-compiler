@@ -1,6 +1,6 @@
 # DESIGN-55: Release Scope And Implementation Order
 
-> **Canonical status:** Normative migration of `SOURCE-DESIGN-v1.0.md` v1.0.
+> **Canonical status:** Normative migration of `README.md`.
 > **Requirement language:** Existing source wording is preserved. Where the source uses mandatory language, it is normative. Ambiguities are tracked in `docs/OPEN-ISSUES.md`; implementations MUST NOT invent unresolved behavior.
 > **Stable document ID:** `DESIGN-55`
 
