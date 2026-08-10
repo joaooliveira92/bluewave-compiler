@@ -12,6 +12,7 @@ export class CompileStage implements CompilerStage<NormalizeOutput, CompilerOutp
     _collector: DiagnosticCollector,
   ): CompilerOutput {
     const artifact = {
+      manifest: input.manifest,
       rulesets: input.rulesets,
       countries: input.countries,
       areas: input.areas,

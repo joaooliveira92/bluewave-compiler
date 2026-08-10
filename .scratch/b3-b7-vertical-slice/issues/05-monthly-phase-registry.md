@@ -4,14 +4,18 @@
 
 **Blocked by:** 02, 03, 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `PhaseRegistry` — versioned ordered phases with read/write/RNG permissions
-- [ ] `PhaseContext` — phase cursor, permitted aggregates, RNG streams
-- [ ] Opening validation hook
-- [ ] Closing invariant checks
-- [ ] No-op phase evidence type
-- [ ] Deferred phases emit versioned no-op evidence and consume no randomness
-- [ ] Phase order, cursor, aggregate ownership, and permitted RNG families enforced
-- [ ] Tests: phase ordering, permission enforcement, no-op evidence
-- [ ] ADR for phase registry and engine architecture
+- [x] `PhaseRegistry` — versioned ordered phases with read/write/RNG permissions
+- [x] `PhaseContext` — phase cursor, permitted aggregates, RNG streams
+- [x] Opening validation hook
+- [x] Closing invariant checks
+- [x] No-op phase evidence type
+- [x] Deferred phases emit versioned no-op evidence and consume no randomness
+- [x] Phase order, cursor, aggregate ownership, and permitted RNG families enforced
+- [x] Tests: phase ordering, permission enforcement, no-op evidence
+- [x] ADR for phase registry and engine architecture
+
+## Answer
+
+Implemented `packages/phase-engine` with 8 hard-coded phases, `PhaseEngine` (initializeTurn/executePhase/executeTurn), opening validation (3 invariants), closing validation, no-op evidence. 17 tests pass.

@@ -3,6 +3,7 @@ import type { CompilerStage } from "../index.js";
 import type { ValidateOutput } from "./validate.js";
 
 export interface NormalizeOutput {
+  manifest: unknown;
   rulesets: Record<string, unknown>[];
   countries: Record<string, unknown>[];
   areas: Record<string, unknown>[];
@@ -32,6 +33,7 @@ export class NormalizeStage implements CompilerStage<ValidateOutput, NormalizeOu
     _collector: DiagnosticCollector,
   ): NormalizeOutput {
     return {
+      manifest: input.manifest,
       rulesets: sortById(input.rulesets as Record<string, unknown>[]),
       countries: sortById(input.countries as Record<string, unknown>[]),
       areas: sortById(input.areas as Record<string, unknown>[]),

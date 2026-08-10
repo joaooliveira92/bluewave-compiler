@@ -17,7 +17,12 @@
     "@bluewave/diagnostics": "workspace:*",
     "@bluewave/deterministic": "workspace:*",
     "@bluewave/content-schema": "workspace:*",
-    "@bluewave/content-compiler": "workspace:*"
+    "@bluewave/content-compiler": "workspace:*",
+    "@bluewave/campaign": "workspace:*",
+    "@bluewave/persistence": "workspace:*",
+    "@bluewave/phase-engine": "workspace:*",
+    "@bluewave/commands": "workspace:*",
+    "@bluewave/random": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

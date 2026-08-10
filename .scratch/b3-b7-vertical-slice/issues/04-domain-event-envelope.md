@@ -4,10 +4,14 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `DomainEventEnvelope` type with versioning
-- [ ] Structured `ExplanationTree` type using stable semantic terms (not localized strings)
-- [ ] `EventLedger` for append-only event recording
-- [ ] Tests: event structure, explanation tree format, envelope verification
-- [ ] ADR for domain event model
+- [x] `DomainEventEnvelope` type with versioning
+- [x] Structured `ExplanationTree` type using stable semantic terms (not localized strings)
+- [x] `EventLedger` for append-only event recording
+- [x] Tests: event structure, explanation tree format, envelope verification
+- [x] ADR for domain event model
+
+## Answer
+
+Implemented `packages/events` with `DomainEventEnvelope`, `DomainEventBody` (5 event types: NationBudgetChanged, ConstructionProgressed, ResearchProgressed, BattleInitiated, BattleResolved), `ExplanationTree`, `ExplanationBuilder`, `EventLedger`. 9 tests pass.

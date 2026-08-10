@@ -7,6 +7,10 @@
     { "path": "packages/content-schema" },
     { "path": "packages/content-compiler" },
     { "path": "packages/campaign" },
+    { "path": "packages/random" },
+    { "path": "packages/commands" },
+    { "path": "packages/events" },
+    { "path": "packages/persistence" },
     { "path": "packages/test-support" },
     { "path": "apps/compiler-cli" }
   ]

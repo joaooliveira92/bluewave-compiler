@@ -13,6 +13,8 @@ playwright-report/
 *.tgz
 .dev-data/
 
+.turbo
+
 # tsc -b emits alongside the sources it compiles
 *.tsbuildinfo
 apps/*/src/**/*.js

@@ -4,14 +4,18 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `CommandEnvelope` type with version, snapshot hash, idempotency key
-- [ ] Command lifecycle service (validate → authorize → reserve → accept/reject → lock → resolve → emit → produce)
-- [ ] `CommandOutcome` discriminated union (success, rejection, idempotency match, idempotency conflict)
-- [ ] Stale expected snapshot hash is rejected
-- [ ] Same idempotency key returns original result; different command returns `IDEMPOTENCY_CONFLICT`
-- [ ] An unlocked, invalid, or unreserved command cannot resolve
-- [ ] `CommandLedger` for append-only command recording
-- [ ] Tests: acceptance, rejection, idempotency, lock enforcement
-- [ ] ADR for command lifecycle and ledger design
+- [x] `CommandEnvelope` type with version, snapshot hash, idempotency key
+- [x] Command lifecycle service (validate → authorize → reserve → accept/reject → lock → resolve → emit → produce)
+- [x] `CommandOutcome` discriminated union (success, rejection, idempotency match, idempotency conflict)
+- [x] Stale expected snapshot hash is rejected
+- [x] Same idempotency key returns original result; different command returns `IDEMPOTENCY_CONFLICT`
+- [x] An unlocked, invalid, or unreserved command cannot resolve
+- [x] `CommandLedger` for append-only command recording
+- [x] Tests: acceptance, rejection, idempotency, lock enforcement
+- [x] ADR for command lifecycle and ledger design
+
+## Answer
+
+Implemented `packages/commands` with `CommandEnvelope`, `CommandLifecycle` (full 7-step lifecycle), `CommandIdempotencyMap`, `CommandLedger`. 6 tests pass covering envelope creation, success, idempotency match/conflict, stale hash rejection, and ledger determinism.

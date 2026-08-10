@@ -4,12 +4,16 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `RandomEngine` interface with domain-separated streams
-- [ ] `RandomDecision` audit record type
-- [ ] `RandomLedger` for accumulating and hashing decisions
-- [ ] No generic global or subsystem `nextRandom()` exposed
-- [ ] RNG decisions are stable when unrelated reporting/UI queries are inserted
-- [ ] Tests: deterministic sequences, domain separation, audit record structure
-- [ ] ADR for random decision architecture
+- [x] `RandomEngine` interface with domain-separated streams
+- [x] `RandomDecision` audit record type
+- [x] `RandomLedger` for accumulating and hashing decisions
+- [x] No generic global or subsystem `nextRandom()` exposed
+- [x] RNG decisions are stable when unrelated reporting/UI queries are inserted
+- [x] Tests: deterministic sequences, domain separation, audit record structure
+- [x] ADR for random decision architecture
+
+## Answer
+
+Implemented `packages/random` with `RandomEngine`, `RandomStream`, `RandomLedger`, `drawUniform`, `drawBoolean`. Uses SHA-256 domain separation via `hashWithContext`. No global `nextRandom()` — streams are explicitly named. 16 tests pass.

@@ -4,15 +4,19 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Content-addressed save directory layout
-- [ ] Atomic write: temp → validate → hash → commit → update pointer
-- [ ] Recovery pointer and prior-state retention
-- [ ] Compatibility version pinning and rejection
-- [ ] Load and deserialize
-- [ ] Corrupt/incompatible save rejection with stable diagnostics
-- [ ] AbortSignal propagation
-- [ ] Deterministic cleanup on failure
-- [ ] Tests: atomicity, recovery, compatibility rejection, cancellation
-- [ ] ADR for persistence architecture
+- [x] Content-addressed save directory layout
+- [x] Atomic write: temp → validate → hash → commit → update pointer
+- [x] Recovery pointer and prior-state retention
+- [x] Compatibility version pinning and rejection
+- [x] Load and deserialize
+- [x] Corrupt/incompatible save rejection with stable diagnostics
+- [x] AbortSignal propagation
+- [x] Deterministic cleanup on failure
+- [x] Tests: atomicity, recovery, compatibility rejection, cancellation
+- [x] ADR for persistence architecture
+
+## Answer
+
+Implemented `packages/persistence` with `SaveStore` (atomic save/load with temp files + renameSync), `CompatibilityChecker`, `RecoveryManager`. 14 tests pass covering save/load, hash verification, corruption rejection, version mismatch, cancellation, multi-save integrity, and recovery.

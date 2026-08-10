@@ -4,11 +4,15 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] 1880 fixture YAML files (scenario, nations, areas, routes, possessions, ports, tech, fleets, construction, economy, diplomacy)
-- [ ] Campaign state aggregate types in a new `packages/campaign` package
-- [ ] Campaign compiler stages producing state from fixture
-- [ ] Production validators remain strict — fixture-only constructs cannot appear in production packs
-- [ ] Repeated campaign compilation yields identical initial snapshot hash
-- [ ] ADR for campaign package boundaries and aggregate ownership
+- [x] 1880 fixture YAML files (scenario, nations, areas, routes, possessions, ports, tech, fleets, construction, economy, diplomacy)
+- [x] Campaign state aggregate types in `packages/campaign` package
+- [x] Campaign compiler stages producing state from fixture
+- [x] Production validators remain strict — fixture-only constructs cannot appear in production packs
+- [x] Repeated campaign compilation yields identical initial snapshot hash
+- [x] ADR for campaign package boundaries and aggregate ownership
+
+## Answer
+
+Implemented `packages/campaign` with `CampaignCompiler` class, 10 state aggregate types, and the 1880 fixture. The compiler wraps the content compiler and adds campaign-specific YAML parsing for fleets, economies, constructions, diplomacy, and research. All 4 tests pass (valid compilation, determinism, missing-nations error, cancellation). ADR-0006 created.

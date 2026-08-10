@@ -1,0 +1,350 @@
+import type { ContentPack } from "@bluewave/content-schema";
+import type { CampaignState, CampaignSlot, CampaignSnapshot } from "./state.js";
+import type { NationState, FleetState, Ship, ResearchState, TechnologyProgress, ConstructionProject } from "./state.js";
+import type { WorldState, AreaData, RouteData, PortData } from "./state.js";
+import type { WarState, WarDeclaration } from "./state.js";
+import type { PoliticalState, DiplomaticRelation } from "./state.js";
+import { DiagnosticCollector, type DiagnosticCollector as DiagnosticCollectorType } from "@bluewave/diagnostics";
+import { Compiler, type CompilerInput } from "@bluewave/content-compiler";
+import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
+import { SafeInt } from "@bluewave/contracts";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { parse } from "yaml";
+
+export interface CampaignCompilerInput {
+  compilerInput: CompilerInput;
+  campaignFiles: CampaignFiles;
+  rulesetVersion: string;
+  compatibilityVersion: string;
+}
+
+export interface CampaignFiles {
+  fleetFiles: string[];
+  economyFiles: string[];
+  constructionFiles: string[];
+  diplomacyFiles: string[];
+  researchFiles: string[];
+}
+
+export interface CampaignCompilerOutput {
+  state: CampaignState;
+  contentHash: string;
+}
+
+function toSafeInt(value: unknown): SafeInt {
+  if (typeof value === "number") return SafeInt(value);
+  return SafeInt(0);
+}
+
+function toSafeIntOpt(value: unknown, fallback: SafeInt): SafeInt {
+  if (typeof value === "number") return SafeInt(value);
+  return fallback;
+}
+
+function parseYamlFile(filePath: string, contentDir: string, collector: DiagnosticCollectorType): unknown[] | undefined {
+  const fullPath = resolve(contentDir, filePath);
+  try {
+    const content = readFileSync(fullPath, "utf8");
+    const doc = parse(content);
+    if (Array.isArray(doc)) return doc;
+    collector.addError("CAMPAIGN-PARSE", `Expected array in campaign file: ${filePath}`, { stage: "campaign-compile" });
+    return undefined;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    collector.addError("CAMPAIGN-READ", `Failed to read campaign file ${filePath}: ${msg}`, { stage: "campaign-compile" });
+    return undefined;
+  }
+}
+
+export class CampaignCompiler {
+  private contentCompiler: Compiler;
+
+  constructor() {
+    this.contentCompiler = new Compiler();
+  }
+
+  compile(
+    input: CampaignCompilerInput,
+    signal: AbortSignal,
+    collector: DiagnosticCollectorType,
+  ): CampaignCompilerOutput | undefined {
+    if (signal.aborted) {
+      collector.addInfo("ABORT", "Compilation aborted before content compilation");
+      return undefined;
+    }
+
+    // Step 1: Run content compiler
+    const contentCollector = new DiagnosticCollector();
+    const contentOutput = this.contentCompiler.compile(input.compilerInput, signal, contentCollector);
+
+    for (const d of contentCollector.all) {
+      collector.add(d);
+    }
+
+    if (!contentOutput) return undefined;
+    if (signal.aborted) return undefined;
+
+    const pack = contentOutput.pack;
+    const contentDir = input.compilerInput.contentDir;
+
+    // Step 2: Parse campaign-specific YAML
+    const fleetsData = this.loadCampaignFiles(input.campaignFiles.fleetFiles, contentDir, collector);
+    const economiesData = this.loadCampaignFiles(input.campaignFiles.economyFiles, contentDir, collector);
+    const constructionsData = this.loadCampaignFiles(input.campaignFiles.constructionFiles, contentDir, collector);
+    const diplomacyData = this.loadCampaignFiles(input.campaignFiles.diplomacyFiles, contentDir, collector);
+    const researchData = this.loadCampaignFiles(input.campaignFiles.researchFiles, contentDir, collector);
+
+    if (collector.hasErrors || signal.aborted) return undefined;
+
+    // Step 3: Build WorldState from content
+    const world = this.buildWorldState(pack);
+
+    // Step 4: Build nation states
+    const nations = this.buildNationStates(pack, fleetsData, economiesData, constructionsData, researchData, collector);
+    if (!nations || signal.aborted) return undefined;
+
+    // Step 5: Build war state
+    const wars = this.buildWarState();
+
+    // Step 6: Build political state
+    const politics = this.buildPoliticalState(diplomacyData);
+
+    // Step 7: Determine slots
+    const slots = this.buildSlots(pack);
+
+    // Step 8: Build intelligence shell
+    const intelligence = { shells: {} };
+
+    // Step 9: Build snapshot
+    const snapshot: CampaignSnapshot = {
+      version: "0.1.0",
+      turnNumber: SafeInt(0),
+      campaignId: `campaign-${String((pack.manifest as Record<string, unknown>)["name"] ?? "unknown")}`,
+      slots,
+      world,
+      nations,
+      wars,
+      politics,
+      intelligence,
+      rulesetVersion: input.rulesetVersion,
+      compatibilityVersion: input.compatibilityVersion,
+    };
+
+    if (signal.aborted) return undefined;
+
+    const rawJson = canonicalSerialize(snapshot);
+    const rawHash = sha256Hex(rawJson);
+    const envelope = createEnvelope("campaign-snapshot", input.compatibilityVersion, snapshot);
+
+    if (collector.hasErrors) return undefined;
+
+    return {
+      state: { snapshot, envelope, rawHash },
+      contentHash: contentOutput.rawHash,
+    };
+  }
+
+  private loadCampaignFiles(files: string[], contentDir: string, collector: DiagnosticCollectorType): unknown[] {
+    const all: unknown[] = [];
+    for (const file of files) {
+      const data = parseYamlFile(file, contentDir, collector);
+      if (data) all.push(...data);
+    }
+    return all;
+  }
+
+  private buildSlots(pack: ContentPack): CampaignSlot[] {
+    const slots: CampaignSlot[] = [];
+    for (const country of pack.countries) {
+      const countryRec = country as Record<string, unknown>;
+      const id = countryRec["id"];
+      if (typeof id === "string") {
+        slots.push({ nationId: id, type: id === "GBR" ? "playable" : "ai" });
+      }
+    }
+    return slots;
+  }
+
+  private buildWorldState(pack: ContentPack): WorldState {
+    const areas: AreaData[] = (pack.areas ?? []).map((a: Record<string, unknown>) => ({
+      id: String(a["id"] ?? ""),
+      name: String(a["name"] ?? ""),
+      type: (a["type"] as "land" | "sea" | "coastal") ?? "land",
+      controller: typeof a["controller"] === "string" ? a["controller"] : undefined,
+    }));
+
+    const routes: RouteData[] = (pack.routes ?? []).map((r: Record<string, unknown>) => ({
+      id: String(r["id"] ?? ""),
+      from: String(r["from"] ?? ""),
+      to: String(r["to"] ?? ""),
+      type: (r["type"] as "land" | "sea" | "rail") ?? "land",
+      distance: toSafeInt(r["distance"]),
+    }));
+
+    const ports: PortData[] = (pack.ports ?? []).map((p: Record<string, unknown>) => ({
+      id: String(p["id"] ?? ""),
+      name: String(p["name"] ?? ""),
+      areaId: String(p["areaId"] ?? ""),
+      nationId: String(p["countryId"] ?? ""),
+      level: toSafeIntOpt(p["level"], SafeInt(1)),
+    }));
+
+    return { areas, routes, ports };
+  }
+
+  private buildNationStates(
+    pack: ContentPack,
+    fleetsData: unknown[],
+    economiesData: unknown[],
+    constructionsData: unknown[],
+    researchData: unknown[],
+    collector: DiagnosticCollectorType,
+  ): Map<string, NationState> | undefined {
+    const nations = new Map<string, NationState>();
+
+    for (const country of pack.countries) {
+      const countryRec = country as Record<string, unknown>;
+      const id = String(countryRec["id"] ?? "");
+
+      const fleets = this.buildFleets(fleetsData, id);
+      const research = this.buildResearch(researchData, id);
+      const constructions = this.buildConstructions(constructionsData, id);
+
+      let treasury = SafeInt(500);
+      let income = SafeInt(100);
+      let expenses = SafeInt(50);
+
+      for (const eco of economiesData) {
+        const ecoRec = eco as Record<string, unknown>;
+        if (ecoRec["nationId"] === id) {
+          treasury = toSafeIntOpt(ecoRec["treasury"], SafeInt(500));
+          income = toSafeIntOpt(ecoRec["income"], SafeInt(100));
+          expenses = toSafeIntOpt(ecoRec["expenses"], SafeInt(50));
+        }
+      }
+
+      nations.set(id, {
+        id,
+        name: String(countryRec["name"] ?? ""),
+        tag: String(countryRec["tag"] ?? ""),
+        treasury,
+        income,
+        expenses,
+        fleets,
+        research,
+        constructionProjects: constructions,
+        isPlayable: id === "GBR",
+        isAI: id !== "GBR",
+      });
+    }
+
+    if (nations.size === 0) {
+      collector.addError("CAMPAIGN", "No nations found in content pack", { stage: "campaign-compile" });
+      return undefined;
+    }
+
+    return nations;
+  }
+
+  private buildFleets(fleetsData: unknown[], nationId: string): FleetState[] {
+    return fleetsData
+      .filter((f) => (f as Record<string, unknown>)["nationId"] === nationId)
+      .map((f) => {
+        const fRec = f as Record<string, unknown>;
+        return {
+          id: String(fRec["id"] ?? ""),
+          nationId: String(fRec["nationId"] ?? ""),
+          name: String(fRec["name"] ?? ""),
+          locationAreaId: String(fRec["locationAreaId"] ?? ""),
+          ships: this.buildShips(fRec),
+        };
+      });
+  }
+
+  private buildShips(fleet: Record<string, unknown>): Ship[] {
+    const shipsRaw = fleet["ships"];
+    if (!Array.isArray(shipsRaw)) return [];
+    const nationId = String(fleet["nationId"] ?? "");
+    const locationAreaId = String(fleet["locationAreaId"] ?? "");
+
+    return shipsRaw.map((s: Record<string, unknown>) => ({
+      id: String(s["id"] ?? ""),
+      name: String(s["name"] ?? ""),
+      classId: String(s["classId"] ?? ""),
+      nationId,
+      locationAreaId,
+      hitPoints: toSafeIntOpt(s["hitPoints"], SafeInt(100)),
+      maxHitPoints: toSafeIntOpt(s["maxHitPoints"], SafeInt(100)),
+      speed: toSafeIntOpt(s["speed"], SafeInt(10)),
+      firepower: toSafeIntOpt(s["firepower"], SafeInt(10)),
+      armor: toSafeIntOpt(s["armor"], SafeInt(10)),
+      isUnderConstruction: s["isUnderConstruction"] === true,
+      constructionProgress: toSafeIntOpt(s["constructionProgress"], SafeInt(0)),
+      constructionTotalWork: toSafeIntOpt(s["constructionTotalWork"], SafeInt(0)),
+      inBattleId: typeof s["inBattleId"] === "string" ? s["inBattleId"] : undefined,
+    }));
+  }
+
+  private buildResearch(researchData: unknown[], nationId: string): ResearchState {
+    const nationResearch = researchData.find(
+      (r) => (r as Record<string, unknown>)["nationId"] === nationId,
+    ) as Record<string, unknown> | undefined;
+
+    if (!nationResearch) return { nationId, technologies: [] };
+
+    const techs: TechnologyProgress[] = [];
+    const techsRaw = nationResearch["technologies"];
+    if (Array.isArray(techsRaw)) {
+      for (const t of techsRaw) {
+        const tRec = t as Record<string, unknown>;
+        techs.push({
+          techId: String(tRec["techId"] ?? ""),
+          investedPoints: toSafeIntOpt(tRec["investedPoints"], SafeInt(0)),
+          completed: tRec["completed"] === true,
+        });
+      }
+    }
+
+    return {
+      nationId,
+      technologies: techs,
+      currentProjectTechId: typeof nationResearch["currentProjectTechId"] === "string"
+        ? nationResearch["currentProjectTechId"]
+        : undefined,
+    };
+  }
+
+  private buildConstructions(constructionsData: unknown[], nationId: string): ConstructionProject[] {
+    return constructionsData
+      .filter((c) => (c as Record<string, unknown>)["nationId"] === nationId)
+      .map((c) => {
+        const cRec = c as Record<string, unknown>;
+        return {
+          id: String(cRec["id"] ?? ""),
+          type: (cRec["type"] as "ship" | "building" | "technology") ?? "ship",
+          targetId: String(cRec["targetId"] ?? ""),
+          totalWork: toSafeIntOpt(cRec["totalWork"], SafeInt(100)),
+          completedWork: toSafeIntOpt(cRec["completedWork"], SafeInt(0)),
+          startedAt: String(cRec["startedAt"] ?? "1880-01"),
+        };
+      });
+  }
+
+  private buildWarState(): WarState {
+    return { wars: [], battles: [] };
+  }
+
+  private buildPoliticalState(diplomacyData: unknown[]): PoliticalState {
+    const relations: DiplomaticRelation[] = diplomacyData.map((r) => {
+      const rRec = r as Record<string, unknown>;
+      return {
+        nationA: String(rRec["nationA"] ?? ""),
+        nationB: String(rRec["nationB"] ?? ""),
+        relation: (rRec["relation"] as DiplomaticRelation["relation"]) ?? "neutral",
+        since: String(rRec["since"] ?? "1880-01"),
+      };
+    });
+    return { relations, shells: {} };
+  }
+}

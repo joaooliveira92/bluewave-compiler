@@ -14,7 +14,8 @@
     "@bluewave/diagnostics": "workspace:*",
     "@bluewave/deterministic": "workspace:*",
     "@bluewave/content-schema": "workspace:*",
-    "@bluewave/content-compiler": "workspace:*"
+    "@bluewave/content-compiler": "workspace:*",
+    "yaml": "^2.7.0"
   },
   "scripts": {
     "build": "tsc -b",

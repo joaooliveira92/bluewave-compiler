@@ -4,14 +4,18 @@
 
 **Blocked by:** 02, 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `BattleManifest` type with legal asset mapping
-- [ ] Strength calculation with structured explanation
-- [ ] Named deterministic random decisions for battle outcomes
-- [ ] Damage/loss bounded computation
-- [ ] Domain events for battle resolution
-- [ ] Campaign consequence application (fleet damage, losses, morale)
-- [ ] No ship in two unresolved battles invariant
-- [ ] Labeled narrow — no tactical equivalence claim in output
-- [ ] Tests: resolution determinism, bounded damage, asset invariants
+- [x] `BattleManifest` type with legal asset mapping
+- [x] Strength calculation with structured explanation
+- [x] Named deterministic random decisions for battle outcomes
+- [x] Damage/loss bounded computation
+- [x] Domain events for battle resolution
+- [x] Campaign consequence application (fleet damage, losses, morale)
+- [x] No ship in two unresolved battles invariant
+- [x] Labeled narrow — no tactical equivalence claim in output
+- [x] Tests: resolution determinism, bounded damage, asset invariants
+
+## Answer
+
+Implemented `packages/combat` with `BattleResolver` (deterministic resolution using firepower, armor, HP, random variance), `StrengthCalculator`, `BattleManifest`. Algorithm: strength → random factor → compare → proportional damage → explanation tree. 10 tests pass.
