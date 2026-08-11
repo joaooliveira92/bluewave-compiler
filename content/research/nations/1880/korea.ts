@@ -2,6 +2,7 @@ import type { Nation } from "../../schema/nations.ts";
 
 export const korea: Nation = {
   id: "korea",
+  tag: "KOR",
   name: "Joseon Korea",
   displayNameKey: "nation.korea",
   isPlayable: false,

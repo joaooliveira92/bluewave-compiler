@@ -208,6 +208,10 @@ export const MilitarySchema = z
 export const NationSchema = z
   .object({
     id: NationIdSchema,
+    tag: z
+      .string()
+      .regex(/^[A-Z]{3}$/)
+      .describe("Uppercase 3-letter code, e.g. GBR"),
     name: z.string(),
     displayNameKey: z.string(),
     isPlayable: z.boolean(),

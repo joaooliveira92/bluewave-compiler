@@ -2,6 +2,7 @@ import type { Nation } from "../../schema/nations.ts";
 
 export const ottoman_empire: Nation = {
   id: "ottoman_empire",
+  tag: "OTT",
   name: "Ottoman Empire",
   displayNameKey: "nation.ottoman_empire",
   isPlayable: false,

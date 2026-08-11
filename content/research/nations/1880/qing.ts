@@ -2,6 +2,7 @@ import type { Nation } from "../../schema/nations.ts";
 
 export const qing: Nation = {
   id: "qing",
+  tag: "CHI",
   name: "Qing Dynasty",
   displayNameKey: "nation.qing",
   isPlayable: true,

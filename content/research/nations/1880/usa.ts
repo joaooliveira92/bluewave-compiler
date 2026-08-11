@@ -2,6 +2,7 @@ import type { Nation } from "../../schema/nations.ts";
 
 export const usa: Nation = {
   id: "usa",
+  tag: "USA",
   name: "United States",
   displayNameKey: "nation.usa",
   isPlayable: true,

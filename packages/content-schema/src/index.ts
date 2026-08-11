@@ -1,15 +1,23 @@
 export type { ContentPack, PackManifest, RulesetManifest } from "./manifest.js";
 export { PackManifestSchema, RulesetManifestSchema } from "./manifest.js";
+
+// Legacy Country entity — kept until the Nation contract lands (ticket 03).
 export type { Country } from "./country.js";
+export { CountrySchema, LogisticsProfileSchema } from "./country.js";
+export type { LogisticsProfile } from "./country.js";
+
+// Canonical Nation entity.
 export {
-  CountrySchema,
+  NationSchema,
+  NationIdSchema,
   RegimeTypeSchema,
   PoliticalSystemSchema,
   StabilityLevelSchema,
   NavalPurposeSchema,
-  LogisticsProfileSchema,
   IndustrialBaseSchema,
   SenioritySchema,
+  AiArchetypeSchema,
+  AiRoleSchema,
   CoreAnxietySchema,
   GameplayFeelSchema,
   GdpTierSchema,
@@ -19,6 +27,7 @@ export {
   PresentationSchema,
   NationSlotSchema,
   StabilityProfileSchema,
+  CanalDependencySchema,
   StrategicObjectivesSchema,
   BaseResourcesSchema,
   NavalAppropriationSchema,
@@ -30,22 +39,44 @@ export {
   ShipDesignSchema,
   AiSchema,
   MilitarySchema,
-} from "./country.js";
+  ProvenanceSchema,
+  NationsPackSchema,
+} from "./nation.js";
 export type {
+  Nation,
+  NationId,
   RegimeType,
   PoliticalSystem,
   StabilityLevel,
   NavalPurpose,
-  LogisticsProfile,
   IndustrialBase,
   Seniority,
+  AiArchetype,
+  AiRole,
   CoreAnxiety,
   GameplayFeel,
   GdpTier,
   IndustrializationLevel,
   NavalBudgetLevel,
   ArmyNavyBalance,
-} from "./country.js";
+  NationRegime,
+  NationSlot,
+  StabilityProfile,
+  CanalDependency,
+  Presentation,
+  Identity,
+  Economy,
+  NavalInstitution,
+  Doctrine,
+  ShipDesign,
+  Ai,
+  Military,
+  StrategicObjectives,
+  BaseResources,
+  NavalAppropriation,
+  NationsPack,
+} from "./nation.js";
+
 export type { Area } from "./area.js";
 export { AreaSchema } from "./area.js";
 export type { RouteEdge } from "./route.js";

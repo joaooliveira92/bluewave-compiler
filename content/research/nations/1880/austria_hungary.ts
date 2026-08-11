@@ -2,6 +2,7 @@ import type { Nation } from "../../schema/nations.ts";
 
 export const austria_hungary: Nation = {
   id: "austria_hungary",
+  tag: "AUT",
   name: "Austro-Hungarian Empire",
   displayNameKey: "nation.austria_hungary",
   isPlayable: true,
