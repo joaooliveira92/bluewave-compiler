@@ -1,3 +1,4 @@
+//packages/campaign/src/index.ts
 export type { CampaignState, CampaignSlot, CampaignSnapshot } from "./state.js";
 export type { WorldState } from "./state.js";
 export type { NationState } from "./state.js";

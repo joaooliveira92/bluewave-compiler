@@ -1,3 +1,4 @@
+// packages/campaign/src/compiler.ts
 import type { ContentPack } from "@bluewave/content-schema";
 import { DesignTemplateSchema, validateAgainstSchema } from "@bluewave/content-schema";
 import type { CampaignState, CampaignSlot, CampaignSnapshot } from "./state.js";
@@ -22,7 +23,7 @@ import { Compiler, type CompilerInput } from "@bluewave/content-compiler";
 import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
 import { SafeInt } from "@bluewave/contracts";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, relative, isAbsolute, sep } from "node:path";
 import { parse } from "yaml";
 
 export interface CampaignCompilerInput {
@@ -56,12 +57,30 @@ function toSafeIntOpt(value: unknown, fallback: SafeInt): SafeInt {
   return fallback;
 }
 
+function isInside(parentResolved: string, childResolved: string): boolean {
+  const rel = relative(parentResolved, childResolved);
+  if (!rel) return true; // same dir
+  if (isAbsolute(rel)) return false;
+  if (rel === ".." || rel.startsWith(`..${sep}`)) return false;
+  return childResolved === parentResolved || childResolved.startsWith(parentResolved + sep);
+}
+
 function parseYamlFile(
   filePath: string,
   contentDir: string,
   collector: DiagnosticCollectorType,
 ): unknown[] | undefined {
-  const fullPath = resolve(contentDir, filePath);
+  const contentDirResolved = resolve(contentDir);
+  const fullPath = resolve(contentDirResolved, filePath);
+
+  // secure: reject absolute escapes & traversal
+  if (!isInside(contentDirResolved, fullPath)) {
+    collector.addError("CAMPAIGN-PATH", `Path traversal rejected for campaign file: ${filePath}`, {
+      stage: "campaign-compile",
+    });
+    return undefined;
+  }
+
   try {
     const content = readFileSync(fullPath, "utf8");
     const doc = parse(content);
@@ -119,31 +138,37 @@ export class CampaignCompiler {
       input.campaignFiles.fleetFiles,
       contentDir,
       collector,
+      signal,
     );
     const economiesData = this.loadCampaignFiles(
       input.campaignFiles.economyFiles,
       contentDir,
       collector,
+      signal,
     );
     const constructionsData = this.loadCampaignFiles(
       input.campaignFiles.constructionFiles,
       contentDir,
       collector,
+      signal,
     );
     const diplomacyData = this.loadCampaignFiles(
       input.campaignFiles.diplomacyFiles,
       contentDir,
       collector,
+      signal,
     );
     const researchData = this.loadCampaignFiles(
       input.campaignFiles.researchFiles,
       contentDir,
       collector,
+      signal,
     );
     const designsData = this.loadCampaignFiles(
       input.campaignFiles.designFiles,
       contentDir,
       collector,
+      signal,
     );
 
     if (collector.hasErrors || signal.aborted) return undefined;
@@ -172,7 +197,25 @@ export class CampaignCompiler {
     const designs = this.buildDesignsFromData(designsData, collector);
     const designFamilies = this.buildDesignFamiliesFromData(designsData);
 
-    // Step 7: Determine slots
+    // Validate fleet -> design link (immutable reference)
+    if (designs.size > 0) {
+      for (const [, nation] of nations) {
+        for (const fleet of nation.fleets) {
+          for (const ship of fleet.ships) {
+            if (ship.designVersionId && !designs.has(ship.designVersionId)) {
+              collector.addError(
+                "CAMPAIGN-DESIGN",
+                `Ship ${ship.id} references unknown designVersionId ${ship.designVersionId}`,
+                { stage: "campaign-compile" },
+              );
+            }
+          }
+        }
+      }
+      if (collector.hasErrors) return undefined;
+    }
+
+    // Step 7: Determine slots - sorted for determinism
     const slots = this.buildSlots(pack);
 
     // Step 8: Build intelligence shell
@@ -213,9 +256,11 @@ export class CampaignCompiler {
     files: string[],
     contentDir: string,
     collector: DiagnosticCollectorType,
+    signal?: AbortSignal,
   ): unknown[] {
     const all: unknown[] = [];
     for (const file of files) {
+      if (signal?.aborted) break;
       const data = parseYamlFile(file, contentDir, collector);
       if (data) all.push(...data);
     }
@@ -231,32 +276,40 @@ export class CampaignCompiler {
         slots.push({ nationId: id, type: id === "GBR" ? "playable" : "ai" });
       }
     }
+    // deterministic: alphabetical, ensures FRA before GBR regardless of file order
+    slots.sort((a, b) => a.nationId.localeCompare(b.nationId));
     return slots;
   }
 
   private buildWorldState(pack: ContentPack): WorldState {
-    const areas: AreaData[] = (pack.areas ?? []).map((a: Record<string, unknown>) => ({
-      id: String(a["id"] ?? ""),
-      name: String(a["name"] ?? ""),
-      type: (a["type"] as "land" | "sea" | "coastal") ?? "land",
-      controller: typeof a["controller"] === "string" ? a["controller"] : undefined,
-    }));
+    const areas: AreaData[] = (pack.areas ?? [])
+      .map((a: Record<string, unknown>) => ({
+        id: String(a["id"] ?? ""),
+        name: String(a["name"] ?? ""),
+        type: (a["type"] as "land" | "sea" | "coastal") ?? "land",
+        controller: typeof a["controller"] === "string" ? a["controller"] : undefined,
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id));
 
-    const routes: RouteData[] = (pack.routes ?? []).map((r: Record<string, unknown>) => ({
-      id: String(r["id"] ?? ""),
-      from: String(r["from"] ?? ""),
-      to: String(r["to"] ?? ""),
-      type: (r["type"] as "land" | "sea" | "rail") ?? "land",
-      distance: toSafeInt(r["distance"]),
-    }));
+    const routes: RouteData[] = (pack.routes ?? [])
+      .map((r: Record<string, unknown>) => ({
+        id: String(r["id"] ?? ""),
+        from: String(r["from"] ?? ""),
+        to: String(r["to"] ?? ""),
+        type: (r["type"] as "land" | "sea" | "rail") ?? "land",
+        distance: toSafeInt(r["distance"]),
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id));
 
-    const ports: PortData[] = (pack.ports ?? []).map((p: Record<string, unknown>) => ({
-      id: String(p["id"] ?? ""),
-      name: String(p["name"] ?? ""),
-      areaId: String(p["areaId"] ?? ""),
-      nationId: String(p["countryId"] ?? ""),
-      level: toSafeIntOpt(p["level"], SafeInt(1)),
-    }));
+    const ports: PortData[] = (pack.ports ?? [])
+      .map((p: Record<string, unknown>) => ({
+        id: String(p["id"] ?? ""),
+        name: String(p["name"] ?? ""),
+        areaId: String(p["areaId"] ?? ""),
+        nationId: String(p["countryId"] ?? ""),
+        level: toSafeIntOpt(p["level"], SafeInt(1)),
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id));
 
     return { areas, routes, ports };
   }
@@ -271,7 +324,14 @@ export class CampaignCompiler {
   ): Map<string, NationState> | undefined {
     const nations = new Map<string, NationState>();
 
-    for (const country of pack.countries) {
+    // sort countries for deterministic Map insertion / rawHash
+    const sortedCountries = [...pack.countries].sort((a, b) =>
+      String((a as Record<string, unknown>)["id"] ?? "").localeCompare(
+        String((b as Record<string, unknown>)["id"] ?? ""),
+      ),
+    );
+
+    for (const country of sortedCountries) {
       const countryRec = country as Record<string, unknown>;
       const id = String(countryRec["id"] ?? "");
 
@@ -332,7 +392,8 @@ export class CampaignCompiler {
           locationAreaId: String(fRec["locationAreaId"] ?? ""),
           ships: this.buildShips(fRec),
         };
-      });
+      })
+      .sort((a, b) => a.id.localeCompare(b.id));
   }
 
   private buildShips(fleet: Record<string, unknown>): Ship[] {
@@ -341,23 +402,25 @@ export class CampaignCompiler {
     const nationId = String(fleet["nationId"] ?? "");
     const locationAreaId = String(fleet["locationAreaId"] ?? "");
 
-    return shipsRaw.map((s: Record<string, unknown>) => ({
-      id: String(s["id"] ?? ""),
-      name: String(s["name"] ?? ""),
-      classId: String(s["classId"] ?? ""),
-      nationId,
-      locationAreaId,
-      designVersionId: String(s["designVersionId"] ?? ""),
-      hitPoints: toSafeIntOpt(s["hitPoints"], SafeInt(100)),
-      maxHitPoints: toSafeIntOpt(s["maxHitPoints"], SafeInt(100)),
-      speed: toSafeIntOpt(s["speed"], SafeInt(10)),
-      firepower: toSafeIntOpt(s["firepower"], SafeInt(10)),
-      armor: toSafeIntOpt(s["armor"], SafeInt(10)),
-      isUnderConstruction: s["isUnderConstruction"] === true,
-      constructionProgress: toSafeIntOpt(s["constructionProgress"], SafeInt(0)),
-      constructionTotalWork: toSafeIntOpt(s["constructionTotalWork"], SafeInt(0)),
-      inBattleId: typeof s["inBattleId"] === "string" ? s["inBattleId"] : undefined,
-    }));
+    return shipsRaw
+      .map((s: Record<string, unknown>) => ({
+        id: String(s["id"] ?? ""),
+        name: String(s["name"] ?? ""),
+        classId: String(s["classId"] ?? ""),
+        nationId,
+        locationAreaId,
+        designVersionId: String(s["designVersionId"] ?? ""),
+        hitPoints: toSafeIntOpt(s["hitPoints"], SafeInt(100)),
+        maxHitPoints: toSafeIntOpt(s["maxHitPoints"], SafeInt(100)),
+        speed: toSafeIntOpt(s["speed"], SafeInt(10)),
+        firepower: toSafeIntOpt(s["firepower"], SafeInt(10)),
+        armor: toSafeIntOpt(s["armor"], SafeInt(10)),
+        isUnderConstruction: s["isUnderConstruction"] === true,
+        constructionProgress: toSafeIntOpt(s["constructionProgress"], SafeInt(0)),
+        constructionTotalWork: toSafeIntOpt(s["constructionTotalWork"], SafeInt(0)),
+        inBattleId: typeof s["inBattleId"] === "string" ? s["inBattleId"] : undefined,
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id));
   }
 
   private buildResearch(researchData: unknown[], nationId: string): ResearchState {
@@ -449,7 +512,8 @@ export class CampaignCompiler {
             (cRec["status"] as "PLANNED" | "AUTHORIZED" | "ACTIVE" | "COMPLETED") ?? "PLANNED",
           startedAt: String(cRec["startedAt"] ?? "1880-01"),
         };
-      });
+      })
+      .sort((a, b) => a.id.localeCompare(b.id));
   }
 
   private buildWarState(): WarState {
@@ -457,15 +521,17 @@ export class CampaignCompiler {
   }
 
   private buildPoliticalState(diplomacyData: unknown[]): PoliticalState {
-    const relations: DiplomaticRelation[] = diplomacyData.map((r) => {
-      const rRec = r as Record<string, unknown>;
-      return {
-        nationA: String(rRec["nationA"] ?? ""),
-        nationB: String(rRec["nationB"] ?? ""),
-        relation: (rRec["relation"] as DiplomaticRelation["relation"]) ?? "neutral",
-        since: String(rRec["since"] ?? "1880-01"),
-      };
-    });
+    const relations: DiplomaticRelation[] = diplomacyData
+      .map((r) => {
+        const rRec = r as Record<string, unknown>;
+        return {
+          nationA: String(rRec["nationA"] ?? ""),
+          nationB: String(rRec["nationB"] ?? ""),
+          relation: (rRec["relation"] as DiplomaticRelation["relation"]) ?? "neutral",
+          since: String(rRec["since"] ?? "1880-01"),
+        };
+      })
+      .sort((a, b) => (a.nationA + a.nationB).localeCompare(b.nationA + b.nationB));
     return { relations, shells: {} };
   }
 
@@ -575,6 +641,7 @@ export class CampaignCompiler {
     }
 
     for (const [familyId, data] of familyMap) {
+      data.members.sort((a, b) => a.localeCompare(b));
       families.set(familyId, {
         designFamilyId: familyId,
         nationId: String(data.rec["nationId"] ?? ""),

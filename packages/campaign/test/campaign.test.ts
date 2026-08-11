@@ -1,3 +1,4 @@
+//packages/campaign/test/campaign.test.ts
 import { describe, it, expect } from "vitest";
 import { CampaignCompiler } from "../src/index.js";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
