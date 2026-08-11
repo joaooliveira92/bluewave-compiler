@@ -1,0 +1,34 @@
+appId: com.bluewave.desktop
+productName: Bluewave
+directories:
+  buildResources: build
+  output: dist-electron
+files:
+  - "!**/.vscode/*"
+  - "!src/*"
+  - "!electron.vite.config.{js,ts,mjs,cjs}"
+  - "!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,CHANGELOG.md,README.md}"
+  - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
+  - "!{tsconfig.tsbuildinfo,.gitignore}"
+mac:
+  artifactName: ${name}-${version}-${arch}.${ext}
+  target:
+    - dmg
+    - zip
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.inherit.plist
+win:
+  artifactName: ${name}-${version}-setup.${ext}
+  target:
+    - nsis
+  executableName: bluewave
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+linux:
+  artifactName: ${name}-${version}.${ext}
+  target:
+    - AppImage
+  category: Utility
+  maintainer: bluewave@example.com
