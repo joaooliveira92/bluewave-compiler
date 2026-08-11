@@ -1,7 +1,11 @@
 .agents/
 .claude/
 .turbo/
-.turbo/
+docs/
+codefetch/
+golden/
+dist/
+out/
 pnpm-lock.yaml
 docs/audit/MANIFEST.json
 docs/contracts/

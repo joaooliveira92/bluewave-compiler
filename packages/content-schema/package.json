@@ -21,7 +21,7 @@
     "clean": "rimraf --glob dist *.tsbuildinfo",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "echo 'ok'",
+    "lint": "oxlint .",
     "lint:fix": "echo 'ok'"
   }
 }
