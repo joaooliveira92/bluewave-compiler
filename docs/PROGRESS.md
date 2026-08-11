@@ -74,14 +74,18 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 
 ### B10a — Economy & Construction
 
+> **Status (2026-08-11): ACCEPTED.** Acceptance evidence recorded
+> (`.ai/reports/a2-b10a-acceptance.md`). All 10 brief criteria pass. Added a
+> 3-nation full-turn economy test; 32 turbo tasks green.
+
 | Capability                    | Readiness         | Key decisions                                      |
 | ----------------------------- | ----------------- | -------------------------------------------------- |
-| Treasury + income             | Scope brief ready | Ledger-based                                       |
-| Maintenance costs             | Scope brief ready |                                                    |
-| Appropriation & obligation    | Scope brief ready |                                                    |
-| Ship construction (paid-work) | Scope brief ready | Completion promotes to FleetState                  |
-| Fixture                       | Scope brief ready | 3 nations (GBR, FRA, GER)                          |
-| Acceptance                    | —                 | Brief at `.ai/briefs/b10a-economy-construction.md` |
+| Treasury + income             | ACCEPTED          | Balanced hashed ledger per nation                  |
+| Maintenance costs             | ACCEPTED          | `MAINTENANCE_EXPENDITURE` per fleet                |
+| Appropriation & obligation    | ACCEPTED          | Proportional appropriation + obligation            |
+| Ship construction (paid-work) | ACCEPTED          | Completion promotes to FleetState                  |
+| Fixture                       | ACCEPTED          | 3 nations (GBR, FRA, GER)                          |
+| Acceptance                    | PASS              | `.ai/reports/a2-b10a-acceptance.md`                |
 
 ### B10b — Research & Ship Design
 
