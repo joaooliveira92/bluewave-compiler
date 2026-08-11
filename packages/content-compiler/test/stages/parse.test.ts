@@ -1,6 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-
 vi.mock("node:fs", () => ({
   readFileSync: vi.fn(),
 }));
@@ -55,9 +54,7 @@ describe("ParseStage", () => {
     );
 
     expect(result?.manifest).toEqual({ id: "manifest" });
-    expect(result?.collectionDocs.get("countries")).toEqual([
-      { id: "country-1" },
-    ]);
+    expect(result?.collectionDocs.get("countries")).toEqual([{ id: "country-1" }]);
   });
 
   it("returns undefined when aborted", () => {

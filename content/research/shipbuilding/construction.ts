@@ -89,11 +89,7 @@ export interface ConstructionDelayEvent {
   campaignTurnId: string;
   projectId: string;
   reason:
-    | "yard_overload"
-    | "funds_shortage"
-    | "accelerated_elsewhere"
-    | "random"
-    | "foreign_tension";
+    "yard_overload" | "funds_shortage" | "accelerated_elsewhere" | "random" | "foreign_tension";
   monthsAdded: number;
   costSkippedThisMonth: boolean; // RTW3: delayed ships do not deduct cost that month
 }

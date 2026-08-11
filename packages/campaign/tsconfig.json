@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"],
+    "types": ["node"]
   },
   "include": ["src"],
   "references": [
@@ -11,6 +11,6 @@
     { "path": "../diagnostics" },
     { "path": "../deterministic" },
     { "path": "../content-schema" },
-    { "path": "../content-compiler" },
-  ],
+    { "path": "../content-compiler" }
+  ]
 }
