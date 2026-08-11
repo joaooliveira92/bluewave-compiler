@@ -17,12 +17,12 @@ Complete the Bluewave engine and compiler through B9 (Electron desktop shell) an
 
 <!-- populated as tickets are resolved -->
 
+- [Electron Packaging Target Format](.scratch/engine-suite-roadmap/issues/01-electron-packaging-targets.md) — Use electron-builder with macOS dmg+zip, Windows nsis, Linux AppImage. Full research at `.scratch/engine-suite-roadmap/research/electron-packaging.md`.
+- [B9 Desktop Content Display: CLI-only vs Read-only Render](.scratch/engine-suite-roadmap/issues/02-b9-desktop-content-display.md) — CLI-only for B9. Read-only render deferred to later milestone.
+
 ## Not yet specified
 
 - Detailed scope boundaries between B10 sub-milestones (e.g., which economy features go in B10a vs deferred)
-- Whether B10a depends on B9 for desktop UX (e.g., CLI-only vs Electron-aware brief)
-- Electron packaging target format (dmg/zip for macOS, nsis/portable for Windows, AppImage/deb for Linux)
-- B9 brief should also cover: should the desktop app display compiled content (read-only render) or only CLI integration for now?
 
 ## Out of scope
 

@@ -28,11 +28,12 @@ export function runCompilation(
   contentDir: string,
   signal: AbortSignal,
 ): CompileResult {
-  if (!existsSync(contentDir)) {
-    return { success: false, diagnostics: [], error: `Directory not found: ${contentDir}` };
-  }
+  try {
+    if (!existsSync(contentDir)) {
+      return { success: false, diagnostics: [], error: `Directory not found: ${contentDir}` };
+    }
 
-  const packContent = readFileContent(contentDir, "pack.json");
+    const packContent = readFileContent(contentDir, "pack.json");
   const pack = JSON.parse(packContent) as { files?: Record<string, string[]> };
   const files = pack.files ?? {};
 
@@ -91,4 +92,8 @@ export function runCompilation(
     nations,
     diagnostics: [],
   };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return { success: false, diagnostics: [{ code: "COMPILE_ERROR", severity: "error", message }] };
+  }
 }
