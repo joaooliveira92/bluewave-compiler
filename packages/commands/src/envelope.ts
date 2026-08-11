@@ -23,4 +23,5 @@ export interface SetResearchPriorityCommand {
   type: "SetResearchPriority";
   nationId: string;
   fieldPriorities: Record<string, SafeInt>;
+  exactTechId?: string;
 }

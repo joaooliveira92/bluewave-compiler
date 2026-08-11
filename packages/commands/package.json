@@ -13,7 +13,8 @@
     "@bluewave/contracts": "workspace:*",
     "@bluewave/deterministic": "workspace:*",
     "@bluewave/diagnostics": "workspace:*",
-    "@bluewave/campaign": "workspace:*"
+    "@bluewave/campaign": "workspace:*",
+    "@bluewave/content-schema": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

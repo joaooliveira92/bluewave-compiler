@@ -9,7 +9,13 @@ import type {
   ResearchState,
   TechnologyProgress,
 } from "@bluewave/campaign";
-import type { CommandEnvelope, BudgetProjectCommand, SetResearchPriorityCommand } from "@bluewave/commands";
+import type {
+  CommandEnvelope,
+  BudgetProjectCommand,
+  CommandBody,
+  SetResearchPriorityCommand,
+} from "@bluewave/commands";
+import { CANONICAL_RESEARCH_FIELD_IDS as RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
 import { CommandLifecycle, CommandLedger, CommandIdempotencyMap } from "@bluewave/commands";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
@@ -300,24 +306,7 @@ function drawWeighted(stream: import("@bluewave/random").RandomStream, weights: 
 }
 
 const RESEARCH_RESOURCE_CONVERSION_BP = SafeInt(10_000);
-
-const CANONICAL_FIELD_IDS = [
-  "HULL_CONSTRUCTION",
-  "MACHINERY",
-  "SHIP_DESIGN",
-  "GUNNERY",
-  "FIRE_CONTROL",
-  "TORPEDOES",
-  "SUBMARINES",
-  "MINES_AND_ASW",
-  "AVIATION",
-  "CARRIER_OPERATIONS",
-  "RADAR_AND_ELECTRONICS",
-  "MISSILES",
-  "AMPHIBIOUS_OPERATIONS",
-  "INFRASTRUCTURE",
-  "DAMAGE_CONTROL",
-] as const;
+const CANONICAL_FIELD_IDS = RESEARCH_FIELD_IDS;
 
 function computeResearchResources(actualPaidExpenditure: SafeInt): SafeInt {
   if ((actualPaidExpenditure as number) <= 0) return SafeInt.ZERO;
@@ -421,6 +410,7 @@ function resolveResearchPhase(
     // Stage 3: Advance eligible technologies
     const activeCandidates = new Map(research["activeCandidates"]);
     const updatedTechs = [...techs];
+    const monthDiscoveredTechs = new Set(research["discoveredTechs"]);
 
     for (const [fieldId, allocation] of fieldAllocations) {
       if ((allocation as number) <= 0) continue;
@@ -429,21 +419,37 @@ function resolveResearchPhase(
 
       if (!activeTechId) {
         // Select eligible technology with highest discovery weight
-        const fieldTechs = findEligibleTechsForField(fieldId, updatedTechs, discoveredTechs, turnNumber);
-        if (fieldTechs.length === 0) continue;
+        const fieldTechs = findEligibleTechsForField(
+          fieldId,
+          updatedTechs,
+          [...monthDiscoveredTechs],
+          turnNumber,
+        );
+        if (fieldTechs.length === 0) {
+          collector.addInfo(
+            "NO_ELIGIBLE_TECHNOLOGY",
+            `Nation ${nationId} field ${fieldId} has no eligible technology`,
+            { stage: "resolve_research" },
+          );
+          continue;
+        }
 
-        // For deterministic selection without active candidate, pick the one with highest weight
-        // First discovery (no active candidate yet) - use deterministic selection
+        // Deterministic weighted selection keyed by research/month/{nation}/{field}
         const stream = new RandomEngine(randomSeed).stream(`research/month/${nationId}/${fieldId}`);
-        const weights: [string, SafeInt][] = fieldTechs.map((t) => [t.techId, t.discoveryWeight ?? SafeInt(1)] as [string, SafeInt]);
+        const weights: [string, SafeInt][] = fieldTechs.map((t) => [
+          t.techId,
+          applyHistoricalTimingModifier(t.discoveryWeight ?? SafeInt(1), t.availabilityMonth, turnNumber),
+        ] as [string, SafeInt]);
 
         // Record this selection in the random ledger
-        const inputHash = sha256Hex(canonicalSerialize({
-          nationId,
-          fieldId,
-          turnNumber,
-          eligibleTechs: fieldTechs.map((t) => t.techId),
-        }));
+        const inputHash = sha256Hex(
+          canonicalSerialize({
+            nationId,
+            fieldId,
+            turnNumber,
+            eligibleTechs: fieldTechs.map((t) => t.techId),
+          }),
+        );
 
         activeTechId = drawWeighted(stream, weights);
 
@@ -487,7 +493,21 @@ function resolveResearchPhase(
 
       // Stage 5: Check if discovered
       if ((clampedPoints as number) >= (cost as number)) {
-        const newDiscoveredTechs = [...discoveredTechs, activeTechId];
+        // Stage 7: revalidate prerequisites and availability before discovery.
+        const revalidated = findEligibleTechsForField(
+          fieldId,
+          updatedTechs,
+          [...monthDiscoveredTechs],
+          turnNumber,
+        ).some((t) => t.techId === activeTechId);
+        if (!revalidated) {
+          collector.addError(
+            "TECHNOLOGY_DISCOVERY_VALIDATION_FAILED",
+            `Discovery validation failed for ${activeTechId} (nation ${nationId})`,
+            { stage: "resolve_research" },
+          );
+          continue;
+        }
 
         // Mark as completed
         updatedTechs[techIdx] = {
@@ -495,11 +515,13 @@ function resolveResearchPhase(
           completed: true,
           investedPoints: cost,
         };
+        monthDiscoveredTechs.add(activeTechId);
 
         // Remove from active candidates
         activeCandidates.delete(fieldId);
 
-        // Apply IMMEDIATE_KNOWLEDGE effects
+        // Apply IMMEDIATE_KNOWLEDGE effects (only immediate-knowledge effects
+        // for B10b; adoption/production/refit branches are deferred).
         eventLedger.append({
           eventId: `TechnologyDiscovered-${nationId}-${activeTechId}-${String(nextSeq())}`,
           version: CURRENT_VERSION,
@@ -517,9 +539,6 @@ function resolveResearchPhase(
           },
           sequenceNumber: nextSeq(),
         });
-
-        // Update nation's discoveredTechs
-        nation["research"]["discoveredTechs"] = newDiscoveredTechs;
       }
     }
 
@@ -529,7 +548,7 @@ function resolveResearchPhase(
         ...research,
         technologies: updatedTechs,
         activeCandidates,
-        discoveredTechs: research["discoveredTechs"],
+        discoveredTechs: [...monthDiscoveredTechs],
         researchBudget: SafeInt.ZERO,
       },
     };
@@ -583,6 +602,44 @@ function resolveResearchPhase(
   return currentSnapshot;
 }
 
+/**
+ * DESIGN-20 §12.2 historical timing modifier. The modifier is applied to a
+ * candidate's base discovery weight based on how far the current month is from
+ * the technology's canonical historical availability. The final campaign
+ * availability month (availabilityMonth) remains a hard eligibility boundary
+ * enforced in findEligibleTechsForField; the modifier only distinguishes by
+ * how many months past availability a technology is.
+ *
+ * Shipped basis points: 5_000 (25-60 months before), 8_000 (1-24 months
+ * before), 10_000 (canonical through 60 months after), 12_500 (60+ months
+ * after). Months before availability are ineligible in this codebase
+ * (availabilityMonth is treated as the hard boundary), so pre-availability
+ * bands are expressed dutyfully but are unreachable.
+ */
+function applyHistoricalTimingModifier(
+  baseWeight: SafeInt,
+  availabilityMonth: SafeInt | undefined,
+  turnNumber: SafeInt,
+): SafeInt {
+  const monthId = turnNumber as number;
+  const availabilityDate = (availabilityMonth ?? SafeInt(0)) as number;
+  const monthsAfter = monthId - availabilityDate;
+
+  let modifierBp = SafeInt(10_000);
+  if (monthsAfter > 60) {
+    modifierBp = SafeInt(12_500);
+  } else if (monthsAfter >= 0) {
+    modifierBp = SafeInt(10_000);
+  } else if (monthsAfter >= -24) {
+    modifierBp = SafeInt(8_000);
+  } else if (monthsAfter >= -60) {
+    modifierBp = SafeInt(5_000);
+  }
+
+  const adjusted = SafeInt.div(SafeInt.mul(baseWeight, modifierBp), SafeInt(10_000), "floor");
+  return (adjusted as number) < 1 ? SafeInt.ONE : adjusted;
+}
+
 function findEligibleTech(
   fieldId: string,
   techs: TechnologyProgress[],
@@ -597,7 +654,7 @@ function findEligibleTechsForField(
   techs: TechnologyProgress[],
   discoveredTechs: string[],
   turnNumber: SafeInt,
-): (TechnologyProgress & { discoveryWeight: SafeInt })[] {
+): (TechnologyProgress & { discoveryWeight: SafeInt; availabilityMonth?: SafeInt })[] {
   const allDiscovered = new Set(discoveredTechs);
   return techs
     .filter((t) => {
@@ -620,7 +677,7 @@ function findEligibleTechsForField(
     })
     .map((t) => {
       const def = TECH_DEFINITIONS[t["techId"]]!;
-      return { ...t, discoveryWeight: def["discoveryWeight"] };
+      return { ...t, discoveryWeight: def["discoveryWeight"], availabilityMonth: def["availabilityMonth"] };
     });
 }
 
@@ -697,7 +754,7 @@ export class MonthExecutor {
 
   execute(
     snapshot: CampaignSnapshot,
-    commands: CommandEnvelope<BudgetProjectCommand>[],
+    commands: CommandEnvelope<CommandBody>[],
     randomSeed: string,
     collector: DiagnosticCollector,
   ): MonthResult {
@@ -793,6 +850,29 @@ export class MonthExecutor {
 
           if (outcome["type"] === "success") {
             const body = cmd["body"];
+
+            if (body["type"] === "SetResearchPriority") {
+              const priorityBody = body as SetResearchPriorityCommand;
+              const nation = currentSnapshot["nations"].get(priorityBody["nationId"]);
+              if (!nation) {
+                collector.addError("NATION_NOT_FOUND", `Nation ${priorityBody["nationId"]} not found`, {
+                  stage: "command-collection",
+                });
+                continue;
+              }
+              const updatedNation: NationState = {
+                ...nation,
+                research: {
+                  ...nation["research"],
+                  fieldPriorities: priorityBody["fieldPriorities"],
+                },
+              };
+              const updatedNations = new Map(currentSnapshot["nations"]);
+              updatedNations.set(priorityBody["nationId"], updatedNation);
+              currentSnapshot = { ...currentSnapshot, nations: updatedNations };
+              continue;
+            }
+
             const nation = currentSnapshot["nations"].get(body["nationId"]);
             if (!nation) {
               collector.addError("NATION_NOT_FOUND", `Nation ${body["nationId"]} not found`, {

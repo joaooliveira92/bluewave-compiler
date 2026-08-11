@@ -1,6 +1,11 @@
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { Diagnostic, DiagnosticCode } from "@bluewave/diagnostics";
 import type { CampaignSnapshot, CampaignSlot } from "@bluewave/campaign";
+import {
+  CANONICAL_RESEARCH_FIELD_IDS,
+  RESEARCH_FIELD_PRIORITY_WEIGHTS,
+  MAX_HIGH_PRIORITY_FIELDS,
+} from "@bluewave/content-schema";
 import type { CommandEnvelope, CommandBody, BudgetProjectCommand } from "./envelope.js";
 
 export type CommandOutcome =
@@ -63,6 +68,10 @@ export class CommandLifecycle {
       };
     }
 
+    if (envelope.body.type === "SetResearchPriority") {
+      return this.validateSetResearchPriority(envelope, snapshot);
+    }
+
     if (envelope.body.type !== "budget_project") {
       return {
         ok: false,
@@ -70,7 +79,7 @@ export class CommandLifecycle {
           envelope,
           snapshot,
           "UNKNOWN_COMMAND_TYPE",
-          `Unknown command type: ${envelope.body.type}`,
+          `Unknown command type: ${String((envelope.body as CommandBody).type)}`,
         ),
       };
     }
@@ -102,6 +111,75 @@ export class CommandLifecycle {
     return { ok: true };
   }
 
+  private validateSetResearchPriority(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as Extract<CommandBody, { type: "SetResearchPriority" }>;
+
+    if (typeof body.nationId !== "string" || body.nationId.length === 0) {
+      return {
+        ok: false,
+        outcome: this.makeRejected(
+          envelope,
+          snapshot,
+          "INVALID_NATION_ID",
+          "nationId must be a non-empty string",
+        ),
+      };
+    }
+
+    // DESIGN-20 §5: a command naming a specific technology as the next
+    // discovery MUST be rejected.
+    if (body.exactTechId !== undefined && typeof body.exactTechId === "string") {
+      return {
+        ok: false,
+        outcome: this.makeRejected(
+          envelope,
+          snapshot,
+          "EXACT_TECHNOLOGY_SELECTION_PROHIBITED",
+          `Exact technology selection is prohibited: ${body.exactTechId}`,
+        ),
+      };
+    }
+
+    const priorities = body.fieldPriorities ?? {};
+    const missingFields = CANONICAL_RESEARCH_FIELD_IDS.filter(
+      (fieldId) => priorities[fieldId] === undefined,
+    );
+    const validWeights = new Set<number>([
+      RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH,
+      RESEARCH_FIELD_PRIORITY_WEIGHTS.MEDIUM,
+      RESEARCH_FIELD_PRIORITY_WEIGHTS.LOW,
+    ]);
+    const invalidWeightFields = CANONICAL_RESEARCH_FIELD_IDS.filter(
+      (fieldId) =>
+        priorities[fieldId] !== undefined && !validWeights.has(priorities[fieldId] as number),
+    );
+    const highCount = CANONICAL_RESEARCH_FIELD_IDS.filter(
+      (fieldId) => priorities[fieldId] === RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH,
+    ).length;
+
+    if (
+      missingFields.length > 0 ||
+      invalidWeightFields.length > 0 ||
+      highCount < 1 ||
+      highCount > MAX_HIGH_PRIORITY_FIELDS
+    ) {
+      return {
+        ok: false,
+        outcome: this.makeRejected(
+          envelope,
+          snapshot,
+          "RESEARCH_PRIORITY_CONSTRAINT_VIOLATED",
+          `Invalid field priorities: missing=${missingFields.join(",")} invalidWeight=${invalidWeightFields.join(",")} highCount=${String(highCount)}`,
+        ),
+      };
+    }
+
+    return { ok: true };
+  }
+
   authorize(envelope: CommandEnvelope<CommandBody>, slot: CampaignSlot): LifecycleStepResult {
     if (envelope.body.nationId !== slot.nationId) {
       return {
@@ -123,7 +201,7 @@ export class CommandLifecycle {
   }
 
   reserve(envelope: CommandEnvelope<CommandBody>, snapshot: CampaignSnapshot): LifecycleStepResult {
-    const body = envelope.body as BudgetProjectCommand;
+    const body = envelope.body;
     const nation = snapshot.nations.get(body.nationId);
     if (!nation) {
       return {
@@ -142,7 +220,7 @@ export class CommandLifecycle {
       };
     }
 
-    if (nation.treasury < body.budget) {
+    if (body.type === "budget_project" && nation.treasury < body.budget) {
       return {
         ok: false,
         outcome: {
@@ -181,16 +259,28 @@ export class CommandLifecycle {
   lock(_envelope: CommandEnvelope<CommandBody>): void {}
 
   resolve(envelope: CommandEnvelope<CommandBody>, snapshot: CampaignSnapshot): CommandOutcome {
-    const body = envelope.body as BudgetProjectCommand;
+    const body = envelope.body;
     const snapshotHash = sha256Hex(canonicalSerialize(snapshot));
+    if (body.type === "SetResearchPriority") {
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: {
+          nationId: body.nationId,
+          fieldPriorities: body.fieldPriorities,
+        },
+      };
+    }
+    const budgetBody = body as BudgetProjectCommand;
     return {
       type: "success",
       commandId: envelope.commandId,
       snapshotHash,
       result: {
-        budget: body.budget,
-        nationId: body.nationId,
-        projectId: body.projectId,
+        budget: budgetBody.budget,
+        nationId: budgetBody.nationId,
+        projectId: budgetBody.projectId,
       },
     };
   }
