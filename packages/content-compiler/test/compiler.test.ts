@@ -321,4 +321,69 @@ describe("Compiler", () => {
       fixture.cleanup();
     }
   });
+
+  it("detects technology prerequisite cycle with TECHNOLOGY_PREREQUISITE_CYCLE", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({
+          name: "test-pack",
+          version: "0.1.0",
+          type: "fixture",
+          files: { technologies: ["technologies.yaml"] },
+        }),
+      );
+
+      writeFixture(
+        fixture.path,
+        "technologies.yaml",
+        `
+- id: "tech_a"
+  name: "Tech A"
+  category: "hull"
+  researchFieldId: "HULL_CONSTRUCTION"
+- id: "tech_b"
+  name: "Tech B"
+  category: "hull"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "tech_c" }
+- id: "tech_c"
+  name: "Tech C"
+  category: "hull"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "tech_b" }
+      `,
+      );
+
+      const compiler = new Compiler();
+      const collector = new DiagnosticCollector();
+      const signal = new AbortController().signal;
+
+      const output = compiler.compile(
+        {
+          manifestPath: "pack.json",
+          contentDir: fixture.path,
+          rulesetFiles: [],
+          countryFiles: [],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [resolve(fixture.path, "technologies.yaml")],
+        },
+        signal,
+        collector,
+      );
+
+      expect(output).toBeUndefined();
+      expect(collector.hasErrors).toBe(true);
+      expect(collector.errors.some((d) => d.code === "TECHNOLOGY_PREREQUISITE_CYCLE")).toBe(true);
+    } finally {
+      fixture.cleanup();
+    }
+  });
 });

@@ -474,4 +474,210 @@ describe("CampaignCompiler", () => {
       fixture.cleanup();
     }
   });
+
+  it("compiles design YAML templates into immutable CompiledDesignVersion records", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFile(fixture.path, "pack.json", FIXTURE.pack);
+      writeFile(fixture.path, "rulesets.yaml", FIXTURE.rulesets);
+      writeFile(fixture.path, "countries.yaml", FIXTURE.countries);
+      writeFile(fixture.path, "areas.yaml", FIXTURE.areas);
+      writeFile(fixture.path, "routes.yaml", FIXTURE.routes);
+      writeFile(fixture.path, "possessions.yaml", FIXTURE.possessions);
+      writeFile(fixture.path, "ports.yaml", FIXTURE.ports);
+      writeFile(fixture.path, "technologies.yaml", FIXTURE.technologies);
+      writeFile(fixture.path, "fleets.yaml", FIXTURE.fleets);
+      writeFile(fixture.path, "economies.yaml", FIXTURE.economies);
+      writeFile(fixture.path, "constructions.yaml", FIXTURE.constructions);
+      writeFile(fixture.path, "diplomacy.yaml", FIXTURE.diplomacy);
+      writeFile(fixture.path, "research.yaml", FIXTURE.research);
+      writeFile(
+        fixture.path,
+        "designs.yaml",
+        `
+- designId: "gbr-dreadnought-v1"
+  designFamilyId: "dreadnought"
+  nationId: "GBR"
+  className: "Dreadnought-class"
+  hullType: "battleship"
+  displacementKg: 18000
+  speedUms: 11
+  armorBeltUm: 300
+  mainGuns: { caliber: 305, count: 10, mounts: 5 }
+  machineryType: "steam_turbine"
+  hitPoints: 120
+  crewComplement: 800
+- designId: "fra-courbet-v1"
+  designFamilyId: "courbet"
+  nationId: "FRA"
+  className: "Courbet-class"
+  hullType: "battleship"
+  displacementKg: 23000
+  speedUms: 10
+  armorBeltUm: 280
+  mainGuns: { caliber: 305, count: 6, mounts: 6 }
+  machineryType: "steam_turbine"
+  hitPoints: 110
+  crewComplement: 1085
+        `,
+      );
+
+      const compiler = new CampaignCompiler();
+      const collector = new DiagnosticCollector();
+      const signal = new AbortController().signal;
+
+      const output = compiler.compile(
+        {
+          compilerInput: {
+            manifestPath: "pack.json",
+            contentDir: fixture.path,
+            rulesetFiles: ["rulesets.yaml"],
+            countryFiles: ["countries.yaml"],
+            areaFiles: ["areas.yaml"],
+            routeFiles: ["routes.yaml"],
+            possessionFiles: ["possessions.yaml"],
+            portFiles: ["ports.yaml"],
+            technologyFiles: ["technologies.yaml"],
+          },
+          campaignFiles: {
+            fleetFiles: ["fleets.yaml"],
+            economyFiles: ["economies.yaml"],
+            constructionFiles: ["constructions.yaml"],
+            diplomacyFiles: ["diplomacy.yaml"],
+            researchFiles: ["research.yaml"],
+            designFiles: ["designs.yaml"],
+          },
+          rulesetVersion: "1.0",
+          compatibilityVersion: "0.1.0",
+        },
+        signal,
+        collector,
+      );
+
+      expect(collector.hasErrors).toBe(false);
+      expect(output).toBeDefined();
+
+      const designs = output!.state.snapshot.designs;
+      expect(designs.size).toBe(2);
+
+      const dreadnought = designs.get("gbr-dreadnought-v1")!;
+      expect(dreadnought.className).toBe("Dreadnought-class");
+      expect(dreadnought.hullType).toBe("battleship");
+      expect(dreadnought.normalizedDisplacementKg).toBe(18000);
+      expect(dreadnought.normalizedSpeedUms).toBe(11);
+      expect(dreadnought.normalizedArmorUm).toBe(300);
+      expect(dreadnought.mainGunsCaliber).toBe(305);
+      expect(dreadnought.mainGunsCount).toBe(10);
+      expect(dreadnought.hitPoints).toBe(120);
+      // Deterministic compiled hash, not authored.
+      expect(dreadnought.compiledHash).toHaveLength(64);
+
+      // Immutability keyed by designVersionId.
+      expect(designs.get("fra-courbet-v1")!.nationId).toBe("FRA");
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("links initial fleet ships to compiled designs via designVersionId", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFile(fixture.path, "pack.json", FIXTURE.pack);
+      writeFile(fixture.path, "rulesets.yaml", FIXTURE.rulesets);
+      writeFile(fixture.path, "countries.yaml", FIXTURE.countries);
+      writeFile(fixture.path, "areas.yaml", FIXTURE.areas);
+      writeFile(fixture.path, "routes.yaml", FIXTURE.routes);
+      writeFile(fixture.path, "possessions.yaml", FIXTURE.possessions);
+      writeFile(fixture.path, "ports.yaml", FIXTURE.ports);
+      writeFile(fixture.path, "technologies.yaml", FIXTURE.technologies);
+      writeFile(fixture.path, "economies.yaml", FIXTURE.economies);
+      writeFile(fixture.path, "constructions.yaml", FIXTURE.constructions);
+      writeFile(fixture.path, "diplomacy.yaml", FIXTURE.diplomacy);
+      writeFile(fixture.path, "research.yaml", FIXTURE.research);
+      writeFile(
+        fixture.path,
+        "designs.yaml",
+        `
+- designId: "gbr-dreadnought-v1"
+  designFamilyId: "dreadnought"
+  nationId: "GBR"
+  className: "Dreadnought-class"
+  hullType: "battleship"
+  displacementKg: 18000
+  speedUms: 11
+  armorBeltUm: 300
+  mainGuns: { caliber: 305, count: 10, mounts: 5 }
+  machineryType: "steam_turbine"
+  hitPoints: 120
+  crewComplement: 800
+        `,
+      );
+      writeFile(
+        fixture.path,
+        "fleets.yaml",
+        `
+- id: "fleet-gbr-home"
+  nationId: "GBR"
+  name: "Home Fleet"
+  locationAreaId: "lon"
+  ships:
+    - id: "ship-hms-dreadnought"
+      name: "HMS Dreadnought"
+      designVersionId: "gbr-dreadnought-v1"
+      classId: "battleship"
+      hitPoints: 120
+      maxHitPoints: 120
+      speed: 11
+      firepower: 10
+      armor: 12
+      isUnderConstruction: false
+      constructionProgress: 0
+      constructionTotalWork: 0
+        `,
+      );
+
+      const compiler = new CampaignCompiler();
+      const collector = new DiagnosticCollector();
+      const signal = new AbortController().signal;
+
+      const output = compiler.compile(
+        {
+          compilerInput: {
+            manifestPath: "pack.json",
+            contentDir: fixture.path,
+            rulesetFiles: ["rulesets.yaml"],
+            countryFiles: ["countries.yaml"],
+            areaFiles: ["areas.yaml"],
+            routeFiles: ["routes.yaml"],
+            possessionFiles: ["possessions.yaml"],
+            portFiles: ["ports.yaml"],
+            technologyFiles: ["technologies.yaml"],
+          },
+          campaignFiles: {
+            fleetFiles: ["fleets.yaml"],
+            economyFiles: ["economies.yaml"],
+            constructionFiles: ["constructions.yaml"],
+            diplomacyFiles: ["diplomacy.yaml"],
+            researchFiles: ["research.yaml"],
+            designFiles: ["designs.yaml"],
+          },
+          rulesetVersion: "1.0",
+          compatibilityVersion: "0.1.0",
+        },
+        signal,
+        collector,
+      );
+
+      expect(collector.hasErrors).toBe(false);
+      expect(output).toBeDefined();
+
+      const gbr = output!.state.snapshot.nations.get("GBR")!;
+      const ship = gbr.fleets[0]!.ships[0]!;
+      // Links to the compiled design.
+      expect(ship.designVersionId).toBe("gbr-dreadnought-v1");
+      expect(output!.state.snapshot.designs.has("gbr-dreadnought-v1")).toBe(true);
+    } finally {
+      fixture.cleanup();
+    }
+  });
 });

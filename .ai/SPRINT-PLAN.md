@@ -103,15 +103,12 @@ full turbo cache), not by reading docs:
 | B0–B8 | Committed, tests green — matches PROGRESS.md |
 | B9 Electron shell | Committed (`fd066c7`, `043f91c`, `8bbb371`, `7022a88`…); desktop build + tests green |
 | B10a Economy & Construction | Committed (`bcc14d4`) |
-| B10b Research & Ship Design | **Committed** (`7298af6`), not in-flight. The previously-uncommitted WIP and the fixture/typing stabilization plus the `populates all ledgers` fixture gap were all resolved and committed; golden determinism hash regenerated. |
+| B10b Research & Ship Design | **PARTIAL — NOT ACCEPTED** (A-0 pass, 2026-08-11). Build green and generic determinism proven, but the brief's 17 acceptance criteria are not satisfied: `SetResearchPriorityCommand` has no lifecycle handler (`lifecycle.ts` rejects it as `UNKNOWN_COMMAND_TYPE`), no cycle detection (`TECHNOLOGY_PREREQUISITE_CYCLE`), no `DesignTemplateSchema`, and design/YAML fixtures are absent. Full per-criterion evidence: `.ai/reports/a0-b10b-acceptance.md`. Do not treat as accepted; B10c depends on a genuinely accepted B10b. |
 | B10c Diplomacy & War | Not started; brief ready at `.ai/briefs/b10c-diplomacy-war.md` |
 | B10d AI & Scenario Readiness | Not started; brief ready at `.ai/briefs/b10d-ai-scenario.md` |
 | M2–M5 | No briefs. Only DESIGN docs exist. No content workstream exists yet (it begins here). |
 
-> **Stale notes now resolved:** earlier drafts of this file said B10b was
-> uncommitted in-progress work needing a one-off fixture/RNG repair; that is done.
-> Do not re-open it as a blocker — Sprint A-0 re-verifies simply as an
-> acceptance-evidence pass.
+> **Correction (2026-08-11, A-0 pass):** earlier drafts claimed B10b was "committed and green with nothing but evidence missing." Sprint A-0 re-verified the 17 acceptance criteria against the actual code and found the claim **false**: several criteria have no implementation (priority-command handling, `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`, `TECHNOLOGY_PREREQUISITE_CYCLE` cycle detection, `DesignTemplateSchema`) and most others have no proving tests. The goldens were regenerated for a generic (non-research, no-budget) fixture, so research determinism was never exercised. B10b is therefore **not accepted**; the plan now treats it as a real implementation sprint, not a verify pass.
 
 ## Sprint sequence
 
@@ -122,10 +119,11 @@ workstream paired to each milestone.
 
 | # | Sprint | Kind | Depends on | Notes |
 | - | --- | --- | --- | --- |
-| A-0 | **B10b acceptance pass** | Implementation (verify) | none | Run full `.ai/IMPLEMENTATION-PROMPT.md` §6 against `.ai/briefs/b10b-research-design.md` acceptance criteria (17 items). Evidence is the gap; code is already committed and green. |
-| A-1 | B9 acceptance pass | Implementation (verify) | none | Run the B9 brief's acceptance criteria and produce the never-written validation report (`b9-desktop-shell.md`, `B9-ELECTRON-BOUNDARY.md`). |
-| A-2 | B10a acceptance pass | Implementation (verify) | none | Same — code committed, acceptance evidence missing. |
-| A-3 | B10c Diplomacy & War | Implementation | A-0 | Brief ready: `.ai/briefs/b10c-diplomacy-war.md`. |
+| A-0 | **B10b acceptance pass** | Implementation (verify) | none | **DONE 2026-08-11 — BLOCKED initially.** Re-verified all 17 criteria against code. Verdict BLOCKED: 3 criteria unimplemented, 10+ unproven, only 15–17 pass. Evidence: `.ai/reports/a0-b10b-acceptance.md`. Drove A-0b. |
+| A-0b | **B10b completion** | Implementation | A-0 | **DONE 2026-08-11 — PASS.** Closed every verified gap: `SetResearchPriorityCommand` lifecycle (+`RESEARCH_PRIORITY_CONSTRAINT_VIOLATED`, `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`), `TECHNOLOGY_PREREQUISITE_CYCLE` cycle detection, `DesignTemplateSchema` + design YAML + deterministic `compiledHash`, discovery revalidation + historical timing modifier, canonical field registry, and proof tests for all 17 criteria. Commits `15453f2` (+ ADR-0009). 32 turbo tasks green, golden hashes unchanged. Re-verified A-0 → PASS. |
+| A-1 | B9 acceptance pass | Implementation (verify) | none | **DONE 2026-08-11 — PASS_WITH_LIMITATIONS.** Build green, packaging (mac dmg/zip + linux AppImage) + unit/boundary tests green (9 tests). Added `boundary.test.ts` (CSP, IPC narrowing, concurrent abort) and extracted pure CSP helper. Live GUI start + renderer→main IPC round-trip not automated headlessly; win nsis not built on macOS. Evidence: `.ai/reports/a1-b9-acceptance.md`. |
+| A-2 | B10a acceptance pass | Implementation (verify) | none | **DONE 2026-08-11 — PASS.** All 10 brief criteria verified. Added `economy.test.ts` (3-nation full turn, balanced ledger, finance-hash determinism, paid-work, completion→ship, non-negative treasury). 32 turbo tasks green. Evidence: `.ai/reports/a2-b10a-acceptance.md`. |
+| A-3 | B10c Diplomacy & War | Implementation | A-0b (A-0 PASS) | **BLOCKED 2026-08-11 — decision request.** Brief ready. Investigation found the victory-level classification predicate (minor/major/decisive → `+2/+5/+10`) is undefined in the brief, DESIGN-31, tactical-combat, battle-generation, and the source design. `BattleResolver` must stay unchanged (criterion 15) and exposes no victory level. Decision request: `.ai/reports/decision-request-victory-classification.md`. |
 | A-4 | B10d AI & Scenario Readiness | Implementation | A-3 | Brief ready: `.ai/briefs/b10d-ai-scenario.md`. Lands the 24-month zero-human-input smoke loop — the M1 runtime milestone. |
 | A-5 | M1 formal acceptance gate | Gate | A-0…A-4 | Apply DESIGN-55 §9 to every M1 capability; reconcile `docs/OPEN-ISSUES.md` (resolve the stale "126 items" claim and close/ADR every open M1 ambiguity); refresh `docs/PROGRESS.md`; sign `M1_STRATEGIC_CAMPAIGN_KERNEL` COMPLETED per §23. |
 | CONTENT-0 | **Content strategy + production-pack charter** | Scoping | none (runs parallel to A-0…) | Decide the production content architecture: pick primary `FULLY_SUPPORTED` scenario(s), start date, reachable era bands (§11/§17), codebase layout, and the production pack module(s). Land a content charter brief + content map. This founders every later content sprint. |
@@ -222,15 +220,17 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-Two sprints are ready to run right now, in dependency order, with **no open scope
-question**:
+The frontier is the **A-track acceptance passes** in dependency order. A-0/A-0b
+(B10b), A-1 (B9), and A-2 (B10a) are done (2026-08-11). A-3 (B10c) is **blocked
+on a decision request** — the victory-level classification predicate
+(minor/major/decisive → `+2/+5/+10`) is unspecified in all canonical sources
+(`.ai/reports/decision-request-victory-classification.md`). Next:
 
-1. **A-0 (B10b acceptance pass)** — re-verify the already-committed, green B10b
-   work against the brief's acceptance criteria and write the validation report;
-   then A-1/A-2 for B9/B10a evidence. This is the current frontier.
-2. **CONTENT-0 (content strategy + production-pack charter)** — decide the production
-   scenario and pack structure so that from here on, content research proceeds
-   autonomously without the owner supplying data.
+1. **A-3 (B10c Diplomacy & War)** — resumes once the owner resolves the
+   decision request (or authorizes Option A in it). Brief ready.
+2. **CONTENT-0 (content strategy + production-pack charter)** — runs in
+   parallel whenever the mechanics sprints block; decide the production
+   scenario and pack structure so content research proceeds autonomously.
+   **Not blocked by A-3** — it is a scoping sprint with no mechanic dependency.
 
-Begin with A-0; run CONTENT-0 in parallel whenever the mechanics sprints block on
-content, since the content strategy does not depend on any mechanic being accepted.
+Resume at A-3 after the decision; CONTENT-0 may run in parallel.

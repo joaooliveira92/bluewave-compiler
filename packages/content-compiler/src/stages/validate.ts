@@ -99,6 +99,7 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
 
     validateDuplicateIds(validated, collector);
     validateMissingReferences(validated, collector);
+    validateTechnologyAcyclic(validated, collector);
 
     if (collector.hasErrors) return undefined;
 
@@ -112,6 +113,85 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
       ports: validated["ports"] ?? [],
       technologies: validated["technologies"] ?? [],
     };
+  }
+}
+
+/**
+ * Validates that the technology prerequisite graph is acyclic (DESIGN-20 §16)
+ * using Kahn's algorithm over canonical technology identifiers. A cycle fails
+ * with TECHNOLOGY_PREREQUISITE_CYCLE.
+ */
+function validateTechnologyAcyclic(
+  validated: Record<string, unknown[]>,
+  collector: DiagnosticCollector,
+): void {
+  const techs = validated["technologies"] ?? [];
+  if (techs.length === 0) return;
+
+  const byId = new Map<string, Record<string, unknown>>();
+  for (const t of techs) {
+    const tRecord = t as Record<string, unknown>;
+    const tId = tRecord["id"];
+    if (typeof tId === "string") byId.set(tId, tRecord);
+  }
+
+  const adjacency = new Map<string, string[]>();
+  const inDegree = new Map<string, number>();
+  for (const t of techs) {
+    const tRecord = t as Record<string, unknown>;
+    const tId = String(tRecord["id"]);
+    adjacency.set(tId, []);
+    inDegree.set(tId, 0);
+  }
+
+  for (const t of techs) {
+    const tRecord = t as Record<string, unknown>;
+    const tId = String(tRecord["id"]);
+    const prereqs = tRecord["prerequisites"];
+    if (Array.isArray(prereqs)) {
+      for (const prereq of prereqs) {
+        const prereqRecord = prereq as Record<string, unknown>;
+        const techId = prereqRecord["techId"];
+        if (typeof techId === "string" && techId !== tId && adjacency.has(techId)) {
+          adjacency.get(techId)!.push(tId);
+          inDegree.set(tId, (inDegree.get(tId) ?? 0) + 1);
+        }
+      }
+    }
+  }
+
+  const resolved: string[] = [];
+  const ready = [...inDegree.entries()]
+    .filter(([, d]) => d === 0)
+    .map(([id]) => id)
+    .sort();
+  while (ready.length > 0) {
+    const id = ready.shift()!;
+    resolved.push(id);
+    const next = adjacency.get(id) ?? [];
+    const newlyReady: string[] = [];
+    for (const dep of next) {
+      const deg = (inDegree.get(dep) ?? 1) - 1;
+      inDegree.set(dep, deg);
+      if (deg === 0) newlyReady.push(dep);
+    }
+    newlyReady.sort();
+    ready.push(...newlyReady);
+  }
+
+  if (resolved.length !== byId.size) {
+    const remaining = [...inDegree.entries()]
+      .filter(([, d]) => d > 0)
+      .map(([id]) => id)
+      .sort();
+    collector.addError(
+      "TECHNOLOGY_PREREQUISITE_CYCLE",
+      `Technology prerequisite cycle detected among: ${remaining.join(", ")}`,
+      {
+        stage: "validate",
+        entityId: remaining[0],
+      },
+    );
   }
 }
 

@@ -1,4 +1,5 @@
 import type { ContentPack } from "@bluewave/content-schema";
+import { DesignTemplateSchema, validateAgainstSchema } from "@bluewave/content-schema";
 import type { CampaignState, CampaignSlot, CampaignSnapshot } from "./state.js";
 import type {
   NationState,
@@ -168,7 +169,7 @@ export class CampaignCompiler {
     const politics = this.buildPoliticalState(diplomacyData);
 
     // Step 6b: Build designs from design data
-    const designs = this.buildDesignsFromData(designsData);
+    const designs = this.buildDesignsFromData(designsData, collector);
     const designFamilies = this.buildDesignFamiliesFromData(designsData);
 
     // Step 7: Determine slots
@@ -364,14 +365,15 @@ export class CampaignCompiler {
       (r) => (r as Record<string, unknown>)["nationId"] === nationId,
     ) as Record<string, unknown> | undefined;
 
-    if (!nationResearch) return {
-      nationId,
-      technologies: [],
-      fieldPriorities: {},
-      researchBudget: SafeInt(0),
-      activeCandidates: new Map(),
-      discoveredTechs: [],
-    };
+    if (!nationResearch)
+      return {
+        nationId,
+        technologies: [],
+        fieldPriorities: {},
+        researchBudget: SafeInt(0),
+        activeCandidates: new Map(),
+        discoveredTechs: [],
+      };
 
     const techs: TechnologyProgress[] = [];
     const techsRaw = nationResearch["technologies"];
@@ -467,7 +469,10 @@ export class CampaignCompiler {
     return { relations, shells: {} };
   }
 
-  private buildDesignsFromData(designsData: unknown[]): Map<string, CompiledDesignVersion> {
+  private buildDesignsFromData(
+    designsData: unknown[],
+    collector: DiagnosticCollectorType,
+  ): Map<string, CompiledDesignVersion> {
     const designs = new Map<string, CompiledDesignVersion>();
 
     if (!Array.isArray(designsData)) return designs;
@@ -476,28 +481,70 @@ export class CampaignCompiler {
       const rec = d as Record<string, unknown>;
       const designVersionId = String(rec["designVersionId"] ?? rec["designId"] ?? "");
 
+      const rawDesign = {
+        designId: designVersionId,
+        designFamilyId: rec["designFamilyId"],
+        nationId: rec["nationId"],
+        className: rec["className"],
+        hullType: rec["hullType"],
+        displacementKg: rec["displacementKg"],
+        speedUms: rec["speedUms"],
+        armorBeltUm: rec["armorBeltUm"],
+        mainGuns: rec["mainGuns"],
+        machineryType: rec["machineryType"],
+        hitPoints: rec["hitPoints"],
+        crewComplement: rec["crewComplement"],
+        contentVersion: rec["contentVersion"],
+      };
+
+      const validated = validateAgainstSchema(
+        rawDesign,
+        DesignTemplateSchema,
+        "DesignTemplate",
+        "designs.yaml",
+        collector,
+      );
+      if (!validated) continue;
+
       const design: CompiledDesignVersion = {
         designVersionId,
-        designFamilyId: String(rec["designFamilyId"] ?? ""),
-        className: String(rec["className"] ?? ""),
-        nationId: String(rec["nationId"] ?? ""),
-        hullType: String(rec["hullType"] ?? ""),
-        normalizedDisplacementKg: toSafeIntOpt(rec["normalizedDisplacementKg"] ?? rec["displacementKg"], SafeInt(0)),
-        normalizedSpeedUms: toSafeIntOpt(rec["normalizedSpeedUms"] ?? rec["speedUms"], SafeInt(0)),
-        normalizedArmorUm: toSafeIntOpt(rec["normalizedArmorUm"] ?? rec["armorBeltUm"], SafeInt(0)),
-        hitPoints: toSafeIntOpt(rec["hitPoints"], SafeInt(100)),
-        mainGunsCaliber: toSafeIntOpt(
-          rec["mainGunsCaliber"] ?? (rec["mainGuns"] as Record<string, unknown> | undefined)?.["caliber"],
+        designFamilyId: String(validated["designFamilyId"] ?? ""),
+        className: validated["className"],
+        nationId: validated["nationId"],
+        hullType: validated["hullType"],
+        normalizedDisplacementKg: toSafeIntOpt(
+          rec["normalizedDisplacementKg"] ?? validated["displacementKg"],
           SafeInt(0),
         ),
-        mainGunsCount: toSafeIntOpt(
-          rec["mainGunsCount"] ?? (rec["mainGuns"] as Record<string, unknown> | undefined)?.["count"],
+        normalizedSpeedUms: toSafeIntOpt(
+          rec["normalizedSpeedUms"] ?? validated["speedUms"],
           SafeInt(0),
         ),
-        machineryType: String(rec["machineryType"] ?? ""),
-        crewComplement: toSafeIntOpt(rec["crewComplement"], SafeInt(0)),
-        contentVersion: String(rec["contentVersion"] ?? "0.1.0"),
-        compiledHash: String(rec["compiledHash"] ?? ""),
+        normalizedArmorUm: toSafeIntOpt(
+          rec["normalizedArmorUm"] ?? validated["armorBeltUm"],
+          SafeInt(0),
+        ),
+        hitPoints: toSafeIntOpt(validated["hitPoints"], SafeInt(100)),
+        mainGunsCaliber: toSafeIntOpt(validated["mainGuns"]?.["caliber"], SafeInt(0)),
+        mainGunsCount: toSafeIntOpt(validated["mainGuns"]?.["count"], SafeInt(0)),
+        machineryType: validated["machineryType"],
+        crewComplement: toSafeIntOpt(validated["crewComplement"], SafeInt(0)),
+        contentVersion: String(validated["contentVersion"] ?? "0.1.0"),
+        compiledHash: sha256Hex(
+          canonicalSerialize({
+            designVersionId,
+            className: validated["className"],
+            nationId: validated["nationId"],
+            hullType: validated["hullType"],
+            displacementKg: validated["displacementKg"],
+            speedUms: validated["speedUms"],
+            armorBeltUm: validated["armorBeltUm"],
+            mainGuns: validated["mainGuns"],
+            machineryType: validated["machineryType"],
+            hitPoints: validated["hitPoints"],
+            crewComplement: validated["crewComplement"],
+          }),
+        ),
       };
 
       designs.set(designVersionId, design);

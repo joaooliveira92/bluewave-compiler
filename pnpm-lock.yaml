@@ -147,6 +147,9 @@ importers:
       '@bluewave/campaign':
         specifier: workspace:*
         version: link:../campaign
+      '@bluewave/content-schema':
+        specifier: workspace:*
+        version: link:../content-schema
       '@bluewave/contracts':
         specifier: workspace:*
         version: link:../contracts
@@ -284,6 +287,9 @@ importers:
       '@bluewave/commands':
         specifier: workspace:*
         version: link:../commands
+      '@bluewave/content-schema':
+        specifier: workspace:*
+        version: link:../content-schema
       '@bluewave/contracts':
         specifier: workspace:*
         version: link:../contracts

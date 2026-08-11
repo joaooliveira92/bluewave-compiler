@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { CANONICAL_RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
 import type { CampaignSnapshot, CampaignSlot } from "@bluewave/campaign";
 import type { CommandEnvelope, CommandBody } from "../src/index.js";
 import { CommandLifecycle, CommandIdempotencyMap, CommandLedger } from "../src/index.js";
@@ -137,6 +138,137 @@ describe("CommandLifecycle", () => {
     expect(outcome.type).toBe("rejected");
     if (outcome.type === "rejected") {
       expect(outcome.diagnostic.code).toBe("STALE_SNAPSHOT_HASH");
+    }
+  });
+});
+
+function makePriorityEnvelope(
+  fieldPriorities: Record<string, SafeInt>,
+  overrides: Partial<CommandEnvelope<CommandBody>> = {},
+): CommandEnvelope<CommandBody> {
+  const snapshot = makeTestSnapshot();
+  const hash = sha256Hex(canonicalSerialize(snapshot));
+  return {
+    commandId: "cmd-prio-1",
+    version: "0.1.0",
+    expectedSnapshotHash: hash,
+    idempotencyKey: "idem-prio-1",
+    timestamp: "2024-01-01T00:00:00Z",
+    body: { type: "SetResearchPriority", nationId: "GBR", fieldPriorities },
+    ...overrides,
+  };
+}
+
+function validPriorities(): Record<string, SafeInt> {
+  const priorities: Record<string, SafeInt> = {};
+  for (const fieldId of CANONICAL_RESEARCH_FIELD_IDS) {
+    priorities[fieldId] = SafeInt(1);
+  }
+  priorities["HULL_CONSTRUCTION"] = SafeInt(4);
+  priorities["MACHINERY"] = SafeInt(2);
+  return priorities;
+}
+
+describe("CommandLifecycle SetResearchPriority", () => {
+  const slot: CampaignSlot = { nationId: "GBR", type: "playable" };
+
+  it("accepts a valid priority command (1 high, weights 4/2/1)", () => {
+    const lifecycle = new CommandLifecycle();
+    const idempotencyMap = new CommandIdempotencyMap();
+    const outcome = lifecycle.process(
+      makePriorityEnvelope(validPriorities()),
+      makeTestSnapshot(),
+      slot,
+      idempotencyMap,
+    );
+    expect(outcome.type).toBe("success");
+  });
+
+  it("rejects a command with zero HIGH fields with RESEARCH_PRIORITY_CONSTRAINT_VIOLATED", () => {
+    const priorities = validPriorities();
+    priorities["HULL_CONSTRUCTION"] = SafeInt(1); // demote to MEDIUM? no -> LOW
+    const lifecycle = new CommandLifecycle();
+    const idempotencyMap = new CommandIdempotencyMap();
+    const outcome = lifecycle.process(
+      makePriorityEnvelope(priorities),
+      makeTestSnapshot(),
+      slot,
+      idempotencyMap,
+    );
+    expect(outcome.type).toBe("rejected");
+    if (outcome.type === "rejected") {
+      expect(outcome.diagnostic.code).toBe("RESEARCH_PRIORITY_CONSTRAINT_VIOLATED");
+    }
+  });
+
+  it("rejects a command with six HIGH fields with RESEARCH_PRIORITY_CONSTRAINT_VIOLATED", () => {
+    const priorities = validPriorities();
+    for (const fieldId of ["SHIP_DESIGN", "GUNNERY", "FIRE_CONTROL", "TORPEDOES", "SUBMARINES"]) {
+      priorities[fieldId] = SafeInt(4);
+    }
+    const lifecycle = new CommandLifecycle();
+    const idempotencyMap = new CommandIdempotencyMap();
+    const outcome = lifecycle.process(
+      makePriorityEnvelope(priorities),
+      makeTestSnapshot(),
+      slot,
+      idempotencyMap,
+    );
+    expect(outcome.type).toBe("rejected");
+    if (outcome.type === "rejected") {
+      expect(outcome.diagnostic.code).toBe("RESEARCH_PRIORITY_CONSTRAINT_VIOLATED");
+    }
+  });
+
+  it("rejects a command with a missing field priority with RESEARCH_PRIORITY_CONSTRAINT_VIOLATED", () => {
+    const priorities = validPriorities();
+    delete priorities["DAMAGE_CONTROL"];
+    const lifecycle = new CommandLifecycle();
+    const idempotencyMap = new CommandIdempotencyMap();
+    const outcome = lifecycle.process(
+      makePriorityEnvelope(priorities),
+      makeTestSnapshot(),
+      slot,
+      idempotencyMap,
+    );
+    expect(outcome.type).toBe("rejected");
+    if (outcome.type === "rejected") {
+      expect(outcome.diagnostic.code).toBe("RESEARCH_PRIORITY_CONSTRAINT_VIOLATED");
+    }
+  });
+
+  it("rejects a command naming an exact technology with EXACT_TECHNOLOGY_SELECTION_PROHIBITED", () => {
+    const lifecycle = new CommandLifecycle();
+    const idempotencyMap = new CommandIdempotencyMap();
+    const envelope = makePriorityEnvelope(validPriorities(), {
+      body: {
+        type: "SetResearchPriority",
+        nationId: "GBR",
+        fieldPriorities: validPriorities(),
+        exactTechId: "basic_steam",
+      },
+    });
+    const outcome = lifecycle.process(envelope, makeTestSnapshot(), slot, idempotencyMap);
+    expect(outcome.type).toBe("rejected");
+    if (outcome.type === "rejected") {
+      expect(outcome.diagnostic.code).toBe("EXACT_TECHNOLOGY_SELECTION_PROHIBITED");
+    }
+  });
+
+  it("rejects a command with an invalid priority weight", () => {
+    const priorities = validPriorities();
+    priorities["MACHINERY"] = SafeInt(3); // not in {4,2,1}
+    const lifecycle = new CommandLifecycle();
+    const idempotencyMap = new CommandIdempotencyMap();
+    const outcome = lifecycle.process(
+      makePriorityEnvelope(priorities),
+      makeTestSnapshot(),
+      slot,
+      idempotencyMap,
+    );
+    expect(outcome.type).toBe("rejected");
+    if (outcome.type === "rejected") {
+      expect(outcome.diagnostic.code).toBe("RESEARCH_PRIORITY_CONSTRAINT_VIOLATED");
     }
   });
 });

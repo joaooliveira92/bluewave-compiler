@@ -8,7 +8,7 @@
 | Milestone                    | B#     | Design                                  | Implementation     | Tests              | Notes            |
 | ---------------------------- | ------ | --------------------------------------- | ------------------ | ------------------ | ---------------- |
 | M1 Strategic Campaign Kernel | B0–B8  | Complete (57 docs)                      | Core pipeline done | ~154 tests passing | See below        |
-| M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready                      | Not yet started    | —                  | 4 sub-milestones |
+| M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready                      | B9/B10a/B10b done; B10c/B10d pending | —                  | B10b ACCEPTED (A-0/A-0b) |
 | M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | Not started        | —                  | Future           |
 | M3 Advanced Surface Warfare  | —      | Design docs exist (DESIGN-34–36, 39–42) | Not started        | —                  | Future           |
 | M4 Aviation                  | —      | Design docs exist (DESIGN-43–45)        | Not started        | —                  | Future           |
@@ -59,32 +59,51 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 
 ### B9 — Electron Desktop Shell
 
+> **Status (2026-08-11): PASS_WITH_LIMITATIONS.** Acceptance evidence recorded
+> (`.ai/reports/a1-b9-acceptance.md`). Build, packaging (mac dmg/zip + linux
+> AppImage), unit + boundary tests all green. CSP and IPC narrowing tested.
+> Limitations: live Electron GUI start and full renderer→main IPC round-trip
+> are not automated headlessly; Windows nsis not built on macOS.
+
 | Capability              | Readiness         | Key decisions                                 |
 | ----------------------- | ----------------- | --------------------------------------------- |
-| Electron packaging      | Scope brief ready | electron-builder, dmg+zip/nsis/AppImage       |
-| Desktop content display | Scope brief ready | CLI-only for B9 (read-only renderer deferred) |
-| Acceptance              | —                 | Brief at `.ai/briefs/b9-desktop-shell.md`     |
+| Electron packaging      | PASS_WITH_LIMITATIONS | dmg+zip/nsis/AppImage config; mac+linux built, win configured |
+| Desktop content display | CLI-only for B9   | read-only renderer deferred                   |
+| CSP / IPC boundary      | PASS              | `default-src 'self'`; single `compile` channel |
+| Acceptance              | PASS_WITH_LIMITATIONS | `.ai/reports/a1-b9-acceptance.md`           |
 
 ### B10a — Economy & Construction
 
+> **Status (2026-08-11): ACCEPTED.** Acceptance evidence recorded
+> (`.ai/reports/a2-b10a-acceptance.md`). All 10 brief criteria pass. Added a
+> 3-nation full-turn economy test; 32 turbo tasks green.
+
 | Capability                    | Readiness         | Key decisions                                      |
 | ----------------------------- | ----------------- | -------------------------------------------------- |
-| Treasury + income             | Scope brief ready | Ledger-based                                       |
-| Maintenance costs             | Scope brief ready |                                                    |
-| Appropriation & obligation    | Scope brief ready |                                                    |
-| Ship construction (paid-work) | Scope brief ready | Completion promotes to FleetState                  |
-| Fixture                       | Scope brief ready | 3 nations (GBR, FRA, GER)                          |
-| Acceptance                    | —                 | Brief at `.ai/briefs/b10a-economy-construction.md` |
+| Treasury + income             | ACCEPTED          | Balanced hashed ledger per nation                  |
+| Maintenance costs             | ACCEPTED          | `MAINTENANCE_EXPENDITURE` per fleet                |
+| Appropriation & obligation    | ACCEPTED          | Proportional appropriation + obligation            |
+| Ship construction (paid-work) | ACCEPTED          | Completion promotes to FleetState                  |
+| Fixture                       | ACCEPTED          | 3 nations (GBR, FRA, GER)                          |
+| Acceptance                    | PASS              | `.ai/reports/a2-b10a-acceptance.md`                |
 
 ### B10b — Research & Ship Design
 
+> **Status (2026-08-11): ACCEPTED.** The A-0 acceptance pass (`.ai/reports/a0-b10b-acceptance.md`)
+> originally returned BLOCKED because several brief criteria were unimplemented;
+> the A-0b completion sprint closed every gap. `SetResearchPriorityCommand`
+> validation, prerequisite-cycle detection, `DesignTemplateSchema` + design
+> YAML, discovery revalidation, and the historical timing modifier are now
+> implemented with proof tests for all 17 criteria. 32 turbo tasks green;
+> golden determinism hashes unchanged.
+
 | Capability                            | Readiness         | Key decisions                                                    |
 | ------------------------------------- | ----------------- | ---------------------------------------------------------------- |
-| Research (15-field, 8-stage pipeline) | Scope brief ready | Expenditure-driven, deterministic discovery selection            |
-| Ship design (YAML templates)          | Scope brief ready | `CompiledDesignVersion` immutable records, design-family lineage |
-| Integration with construction         | Scope brief ready |                                                                  |
-| Fixture                               | Scope brief ready | + tech tree and design templates                                 |
-| Acceptance                            | —                 | Brief at `.ai/briefs/b10b-research-design.md`                    |
+| Research (15-field, 8-stage pipeline) | ACCEPTED          | `resolveResearchPhase` + priority command; ADR-0009 phase-id      |
+| Ship design (YAML templates)          | ACCEPTED          | `DesignTemplateSchema` + deterministic compiledHash               |
+| Integration with construction         | ACCEPTED          | completion builds Ship from design attrs when `designVersionId` set |
+| Fixture                               | ACCEPTED          | 3-nation research + design templates proof tests                 |
+| Acceptance                            | PASS              | `.ai/reports/a0-b10b-acceptance.md`                               |
 
 ### B10c — Diplomacy & War
 
