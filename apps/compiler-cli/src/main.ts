@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+//apps/compiler-cli/src/main.ts
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import {

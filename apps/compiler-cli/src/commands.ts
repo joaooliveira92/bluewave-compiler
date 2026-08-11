@@ -1,3 +1,5 @@
+//apps/compiler-cli/src/commands.ts
+
 import { Compiler } from "@bluewave/content-compiler";
 import type { CompilerInput } from "@bluewave/content-compiler";
 import { DiagnosticCollector } from "@bluewave/diagnostics";

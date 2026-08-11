@@ -1,3 +1,4 @@
+//apps/compiler-cli/test/cli.test.ts
 import { describe, it, expect } from "vitest";
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
