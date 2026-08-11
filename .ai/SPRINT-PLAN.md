@@ -119,11 +119,11 @@ workstream paired to each milestone.
 
 | # | Sprint | Kind | Depends on | Notes |
 | - | --- | --- | --- | --- |
-| A-0 | **B10b acceptance pass** | Implementation (verify) | none | **DONE 2026-08-11 — BLOCKED.** Re-verified all 17 criteria against code. Verdict BLOCKED: 3 criteria unimplemented, 10+ unproven, only 15–17 pass. Evidence: `.ai/reports/a0-b10b-acceptance.md`. This is now the acceptance gate for a real B10b implementation sprint. |
-| A-0b | **B10b completion** | Implementation | A-0 | Close the verified acceptance gap: implement `SetResearchPriorityCommand` lifecycle (=B10c blocks on it), exact-tech rejection, prerequisite-cycle detection, `DesignTemplateSchema` + design YAML fixtures, `IMMEDIATE_KNOWLEDGE` handling, and add proof tests for every criterion 1–14. Then re-run A-0 to PASS. Introduce ADR for phase-id alias. |
+| A-0 | **B10b acceptance pass** | Implementation (verify) | none | **DONE 2026-08-11 — BLOCKED initially.** Re-verified all 17 criteria against code. Verdict BLOCKED: 3 criteria unimplemented, 10+ unproven, only 15–17 pass. Evidence: `.ai/reports/a0-b10b-acceptance.md`. Drove A-0b. |
+| A-0b | **B10b completion** | Implementation | A-0 | **DONE 2026-08-11 — PASS.** Closed every verified gap: `SetResearchPriorityCommand` lifecycle (+`RESEARCH_PRIORITY_CONSTRAINT_VIOLATED`, `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`), `TECHNOLOGY_PREREQUISITE_CYCLE` cycle detection, `DesignTemplateSchema` + design YAML + deterministic `compiledHash`, discovery revalidation + historical timing modifier, canonical field registry, and proof tests for all 17 criteria. Commits `15453f2` (+ ADR-0009). 32 turbo tasks green, golden hashes unchanged. Re-verified A-0 → PASS. |
 | A-1 | B9 acceptance pass | Implementation (verify) | none | Run the B9 brief's acceptance criteria and produce the never-written validation report (`b9-desktop-shell.md`, `B9-ELECTRON-BOUNDARY.md`). |
 | A-2 | B10a acceptance pass | Implementation (verify) | none | Same — code committed, acceptance evidence missing. |
-| A-3 | B10c Diplomacy & War | Implementation | A-0b | Brief ready: `.ai/briefs/b10c-diplomacy-war.md`. |
+| A-3 | B10c Diplomacy & War | Implementation | A-0b (A-0 PASS) | Brief ready: `.ai/briefs/b10c-diplomacy-war.md`. |
 | A-4 | B10d AI & Scenario Readiness | Implementation | A-3 | Brief ready: `.ai/briefs/b10d-ai-scenario.md`. Lands the 24-month zero-human-input smoke loop — the M1 runtime milestone. |
 | A-5 | M1 formal acceptance gate | Gate | A-0…A-4 | Apply DESIGN-55 §9 to every M1 capability; reconcile `docs/OPEN-ISSUES.md` (resolve the stale "126 items" claim and close/ADR every open M1 ambiguity); refresh `docs/PROGRESS.md`; sign `M1_STRATEGIC_CAMPAIGN_KERNEL` COMPLETED per §23. |
 | CONTENT-0 | **Content strategy + production-pack charter** | Scoping | none (runs parallel to A-0…) | Decide the production content architecture: pick primary `FULLY_SUPPORTED` scenario(s), start date, reachable era bands (§11/§17), codebase layout, and the production pack module(s). Land a content charter brief + content map. This founders every later content sprint. |
@@ -220,14 +220,12 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-The frontier is **A-0b (B10b completion)** — the A-0 acceptance pass (2026-08-11)
-proved the committed B10b code does **not** satisfy its 17-criteria brief. Close
-that acceptance gap first; nothing downstream (A-3 B10c, A-4 B10d) may start on
-an unaccepted B10b. Next in order once A-0b reaches `PASS` on the re-run:
+The frontier is the **A-track acceptance passes** in dependency order. A-0/A-0b
+(B10b) are done and re-verified PASS (2026-08-11). Next:
 
-1. Re-run the A-0 acceptance evidence against the completed B10b and record `PASS`.
-2. **CONTENT-0 (content strategy + production-pack charter)** — decide the
-   production scenario and pack structure so content research proceeds
-   autonomously; runs in parallel with the mechanics sprints.
+1. **A-1 (B9 desktop-shell acceptance evidence)** — independent; code committed; write the missing validation report.
+2. **A-2 (B10a economy/construction acceptance evidence)** — independent; code committed; write the missing validation report.
+3. **A-3 (B10c Diplomacy & War)** — implementation; depends on accepted B10b; brief ready.
+4. **CONTENT-0 (content strategy + production-pack charter)** — runs in parallel whenever the mechanics sprints block; decide the production scenario and pack structure so content research proceeds autonomously.
 
-Begin with A-0b.
+Begin with A-1.

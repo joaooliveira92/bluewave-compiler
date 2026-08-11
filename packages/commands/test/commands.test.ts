@@ -203,13 +203,7 @@ describe("CommandLifecycle SetResearchPriority", () => {
 
   it("rejects a command with six HIGH fields with RESEARCH_PRIORITY_CONSTRAINT_VIOLATED", () => {
     const priorities = validPriorities();
-    for (const fieldId of [
-      "SHIP_DESIGN",
-      "GUNNERY",
-      "FIRE_CONTROL",
-      "TORPEDOES",
-      "SUBMARINES",
-    ]) {
+    for (const fieldId of ["SHIP_DESIGN", "GUNNERY", "FIRE_CONTROL", "TORPEDOES", "SUBMARINES"]) {
       priorities[fieldId] = SafeInt(4);
     }
     const lifecycle = new CommandLifecycle();

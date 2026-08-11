@@ -293,7 +293,10 @@ function computeConstructionCap(nation: NationState): SafeInt {
   return SafeInt.div(SafeInt.div(base, SafeInt(12)), SafeInt(100), "floor");
 }
 
-function drawWeighted(stream: import("@bluewave/random").RandomStream, weights: [string, SafeInt][]): string {
+function drawWeighted(
+  stream: import("@bluewave/random").RandomStream,
+  weights: [string, SafeInt][],
+): string {
   const totalWeight = weights.reduce((sum, [, w]) => SafeInt.add(sum, w), SafeInt.ZERO);
   if ((totalWeight as number) <= 0) return weights[0]?.[0] ?? "";
   const draw = stream.next() * (totalWeight as number);
@@ -436,10 +439,17 @@ function resolveResearchPhase(
 
         // Deterministic weighted selection keyed by research/month/{nation}/{field}
         const stream = new RandomEngine(randomSeed).stream(`research/month/${nationId}/${fieldId}`);
-        const weights: [string, SafeInt][] = fieldTechs.map((t) => [
-          t.techId,
-          applyHistoricalTimingModifier(t.discoveryWeight ?? SafeInt(1), t.availabilityMonth, turnNumber),
-        ] as [string, SafeInt]);
+        const weights: [string, SafeInt][] = fieldTechs.map(
+          (t) =>
+            [
+              t.techId,
+              applyHistoricalTimingModifier(
+                t.discoveryWeight ?? SafeInt(1),
+                t.availabilityMonth,
+                turnNumber,
+              ),
+            ] as [string, SafeInt],
+        );
 
         // Record this selection in the random ledger
         const inputHash = sha256Hex(
@@ -670,14 +680,21 @@ function findEligibleTechsForField(
         if (!prereqTech || !prereqTech["completed"]) return false;
       }
       // Check availability month
-      if (def["availabilityMonth"] !== undefined && (turnNumber as number) < (def["availabilityMonth"] as number)) {
+      if (
+        def["availabilityMonth"] !== undefined &&
+        (turnNumber as number) < (def["availabilityMonth"] as number)
+      ) {
         return false;
       }
       return true;
     })
     .map((t) => {
       const def = TECH_DEFINITIONS[t["techId"]]!;
-      return { ...t, discoveryWeight: def["discoveryWeight"], availabilityMonth: def["availabilityMonth"] };
+      return {
+        ...t,
+        discoveryWeight: def["discoveryWeight"],
+        availabilityMonth: def["availabilityMonth"],
+      };
     });
 }
 
@@ -855,9 +872,13 @@ export class MonthExecutor {
               const priorityBody = body as SetResearchPriorityCommand;
               const nation = currentSnapshot["nations"].get(priorityBody["nationId"]);
               if (!nation) {
-                collector.addError("NATION_NOT_FOUND", `Nation ${priorityBody["nationId"]} not found`, {
-                  stage: "command-collection",
-                });
+                collector.addError(
+                  "NATION_NOT_FOUND",
+                  `Nation ${priorityBody["nationId"]} not found`,
+                  {
+                    stage: "command-collection",
+                  },
+                );
                 continue;
               }
               const updatedNation: NationState = {
@@ -1253,7 +1274,10 @@ export class MonthExecutor {
                 shipHitPoints = design["hitPoints"];
                 shipMaxHitPoints = design["hitPoints"];
                 shipSpeed = design["normalizedSpeedUms"];
-                shipFirepower = SafeInt.mul(design["mainGunsCount"], SafeInt.div(design["mainGunsCaliber"], SafeInt(100), "floor"));
+                shipFirepower = SafeInt.mul(
+                  design["mainGunsCount"],
+                  SafeInt.div(design["mainGunsCaliber"], SafeInt(100), "floor"),
+                );
                 shipArmor = design["normalizedArmorUm"];
                 shipClassName = design["className"];
               }

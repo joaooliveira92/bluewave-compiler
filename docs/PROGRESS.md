@@ -8,7 +8,7 @@
 | Milestone                    | B#     | Design                                  | Implementation     | Tests              | Notes            |
 | ---------------------------- | ------ | --------------------------------------- | ------------------ | ------------------ | ---------------- |
 | M1 Strategic Campaign Kernel | B0–B8  | Complete (57 docs)                      | Core pipeline done | ~154 tests passing | See below        |
-| M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready                      | Not yet started    | —                  | 4 sub-milestones |
+| M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready                      | B9/B10a/B10b done; B10c/B10d pending | —                  | B10b ACCEPTED (A-0/A-0b) |
 | M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | Not started        | —                  | Future           |
 | M3 Advanced Surface Warfare  | —      | Design docs exist (DESIGN-34–36, 39–42) | Not started        | —                  | Future           |
 | M4 Aviation                  | —      | Design docs exist (DESIGN-43–45)        | Not started        | —                  | Future           |
@@ -78,22 +78,21 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 
 ### B10b — Research & Ship Design
 
-> **Status (2026-08-11): scoped/partially implemented, NOT accepted.** The A-0
-> acceptance pass re-verified the brief's 17 acceptance criteria against the code
-> and found them largely unsatisfied (see `.ai/reports/a0-b10b-acceptance.md`):
-> `SetResearchPriorityCommand` has no lifecycle handler, cycle detection and the
-> `DesignTemplateSchema` are missing, design YAML fixtures are absent, and most
-> criteria lack proving tests. `resolveResearchPhase` is wired into the month
-> pipeline with conversion, allocation, eligibility, keyed selection, and
-> `RESEARCH_EXPENDITURE` posting, but this is unproven under the brief.
+> **Status (2026-08-11): ACCEPTED.** The A-0 acceptance pass (`.ai/reports/a0-b10b-acceptance.md`)
+> originally returned BLOCKED because several brief criteria were unimplemented;
+> the A-0b completion sprint closed every gap. `SetResearchPriorityCommand`
+> validation, prerequisite-cycle detection, `DesignTemplateSchema` + design
+> YAML, discovery revalidation, and the historical timing modifier are now
+> implemented with proof tests for all 17 criteria. 32 turbo tasks green;
+> golden determinism hashes unchanged.
 
 | Capability                            | Readiness         | Key decisions                                                    |
 | ------------------------------------- | ----------------- | ---------------------------------------------------------------- |
-| Research (15-field, 8-stage pipeline) | Partial impl, no proof | `resolveResearchPhase` ported; command surface (priorities) missing |
-| Ship design (YAML templates)          | Partial impl, no proof | `CompiledDesignVersion` + compiler path exist; no schema/fixtures |
-| Integration with construction         | Partial impl, no proof | completion uses design attrs only when `designVersionId` present |
-| Fixture                               | Missing           | No 3-nation research fixture, no GER research, `designFiles: []` |
-| Acceptance                            | BLOCKED           | `.ai/reports/a0-b10b-acceptance.md`; re-run after A-0b completion |
+| Research (15-field, 8-stage pipeline) | ACCEPTED          | `resolveResearchPhase` + priority command; ADR-0009 phase-id      |
+| Ship design (YAML templates)          | ACCEPTED          | `DesignTemplateSchema` + deterministic compiledHash               |
+| Integration with construction         | ACCEPTED          | completion builds Ship from design attrs when `designVersionId` set |
+| Fixture                               | ACCEPTED          | 3-nation research + design templates proof tests                 |
+| Acceptance                            | PASS              | `.ai/reports/a0-b10b-acceptance.md`                               |
 
 ### B10c — Diplomacy & War
 

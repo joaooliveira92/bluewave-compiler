@@ -73,7 +73,10 @@ function defaultPriorities(): Record<string, SafeInt> {
   return p;
 }
 
-function makeSnapshot(nations: Map<string, NationState>, designs = new Map<string, CompiledDesignVersion>()): CampaignSnapshot {
+function makeSnapshot(
+  nations: Map<string, NationState>,
+  designs = new Map<string, CompiledDesignVersion>(),
+): CampaignSnapshot {
   return {
     version: "0.1.0",
     turnNumber: SafeInt(1),
@@ -152,7 +155,13 @@ describe("B10b research acceptance (criteria 1-10)", () => {
       treasury: SafeInt(600),
     });
 
-    const snapshot = makeSnapshot(new Map([["GBR", gbr], ["FRA", fra], ["GER", ger]]));
+    const snapshot = makeSnapshot(
+      new Map([
+        ["GBR", gbr],
+        ["FRA", fra],
+        ["GER", ger],
+      ]),
+    );
     const { result, collector } = runMonth(snapshot, []);
 
     expect(result.success).toBe(true);
@@ -185,7 +194,7 @@ describe("B10b research acceptance (criteria 1-10)", () => {
     const { result } = runMonth(snapshot, []);
 
     const final = result.finalSnapshot.nations.get("GBR")!;
-    expect((final.treasury as number)).toBeLessThan(1000);
+    expect(final.treasury as number).toBeLessThan(1000);
 
     const spendEntries = result.financialLedger.all.filter(
       (e) => e.nationId === "GBR" && e.categoryId === "RESEARCH_EXPENDITURE",
@@ -261,7 +270,7 @@ describe("B10b research acceptance (criteria 1-10)", () => {
     // GUNNERY was high priority and received the largest allocation.
     const gunnery = final.research.technologies.find((t) => t.techId === "basic_gunnery")!;
     const machinery = final.research.technologies.find((t) => t.techId === "basic_steam")!;
-    expect((gunnery.investedPoints as number)).toBeGreaterThan(machinery.investedPoints as number);
+    expect(gunnery.investedPoints as number).toBeGreaterThan(machinery.investedPoints as number);
   });
 
   it("C6: eligible fields receive largest-remainder proportional allocation summing exactly to resources", () => {
@@ -370,12 +379,8 @@ describe("B10b research acceptance (criteria 1-10)", () => {
     const run1 = runMonth(snapshot, [], "keyed-seed").result;
     const run2 = runMonth(snapshot, [], "keyed-seed").result;
 
-    const streamIds = run1.randomLedger.all.map(
-      (r) => (r as { streamId?: string }).streamId ?? "",
-    );
-    expect(
-      streamIds.some((s) => s.startsWith("research/month/GBR/")),
-    ).toBe(true);
+    const streamIds = run1.randomLedger.all.map((r) => (r as { streamId?: string }).streamId ?? "");
+    expect(streamIds.some((s) => s.startsWith("research/month/GBR/"))).toBe(true);
 
     const hash1 = sha256Hex(canonicalSerialize(run1.finalSnapshot));
     const hash2 = sha256Hex(canonicalSerialize(run2.finalSnapshot));
@@ -469,7 +474,10 @@ describe("B10b design acceptance (criteria 12-13)", () => {
       treasury: SafeInt(10000),
       constructions: [construction],
     });
-    const snapshot = makeSnapshot(new Map([["GBR", gbr]]), new Map([["gbr-dreadnought-v1", design]]));
+    const snapshot = makeSnapshot(
+      new Map([["GBR", gbr]]),
+      new Map([["gbr-dreadnought-v1", design]]),
+    );
     const { result } = runMonth(snapshot, []);
 
     const final = result.finalSnapshot.nations.get("GBR")!;

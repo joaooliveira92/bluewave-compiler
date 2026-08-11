@@ -365,14 +365,15 @@ export class CampaignCompiler {
       (r) => (r as Record<string, unknown>)["nationId"] === nationId,
     ) as Record<string, unknown> | undefined;
 
-    if (!nationResearch) return {
-      nationId,
-      technologies: [],
-      fieldPriorities: {},
-      researchBudget: SafeInt(0),
-      activeCandidates: new Map(),
-      discoveredTechs: [],
-    };
+    if (!nationResearch)
+      return {
+        nationId,
+        technologies: [],
+        fieldPriorities: {},
+        researchBudget: SafeInt(0),
+        activeCandidates: new Map(),
+        discoveredTechs: [],
+      };
 
     const techs: TechnologyProgress[] = [];
     const techsRaw = nationResearch["technologies"];

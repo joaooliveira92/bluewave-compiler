@@ -14,7 +14,11 @@ export type { TechnologyPrerequisite } from "./technology.js";
 export { TechnologyPrerequisiteChainSchema } from "./technology.js";
 export type { DesignTemplate } from "./design.js";
 export { DesignTemplateSchema, MainGunsSchema } from "./design.js";
-export { CANONICAL_RESEARCH_FIELD_IDS, RESEARCH_FIELD_PRIORITY_WEIGHTS, MAX_HIGH_PRIORITY_FIELDS } from "./research-fields.js";
+export {
+  CANONICAL_RESEARCH_FIELD_IDS,
+  RESEARCH_FIELD_PRIORITY_WEIGHTS,
+  MAX_HIGH_PRIORITY_FIELDS,
+} from "./research-fields.js";
 export type { ResearchFieldId } from "./research-fields.js";
 export { parseYamlSafe, type SafeParseResult } from "./yaml-parser.js";
 export { validateAgainstSchema } from "./schema-validator.js";

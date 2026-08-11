@@ -2,9 +2,14 @@
 
 ## Outcome
 
-`BLOCKED`
+`PASS` (after A-0b completion, commit `15453f2` + formatting + ADR-0009)
 
-The B10b acceptance criteria in `.ai/briefs/b10b-research-design.md` are **not satisfied** by the current repository state. The build is green and generic determinism is proven, but the earlier baseline claim ("code is already committed and green; evidence is the gap") does not survive inspection: several brief acceptance criteria have **no implementation** and several more have **no proving test**. This report corrects the record.
+The original A-0 pass (this report) returned `BLOCKED`: the committed B10b code
+did not satisfy the brief's 17 acceptance criteria. The A-0b completion sprint
+then implemented the missing criteria and added proof tests. This report is
+updated to reflect the re-verified acceptance. The BLOCKED evidence below is
+retained verbatim for traceability; the new "Re-verification (A-0b)" section
+records the PASS result.
 
 ## Scope delivered
 
@@ -145,3 +150,86 @@ None.
 - Re-ran `pnpm test:cross-process` and diffed against `golden/hashes.json`: identical output. (Self-describing absence of secondary run — not claimed.)
 - Re-grepped the full repo (excluding node_modules) for the three unimplemented reason codes: source matches only in `docs/` design files, confirming no runtime emission.
 - Confirmed every `designFiles` invocation is `[]` and every research fixture lacks GER / design templates.
+
+---
+
+# Re-verification after A-0b (2026-08-11)
+
+## Outcome
+
+`PASS`
+
+A-0b implemented the missing acceptance criteria and added proof tests. All 17
+criteria now have implementation and/or direct proving tests. Full workspace
+validation is green (32 turbo tasks) and the golden cross-process determinism
+hashes are unchanged.
+
+## What A-0b delivered
+
+| Area | Implementation |
+| --- | --- |
+| `SetResearchPriorityCommand` | `CommandLifecycle` now validates: all 15 canonical fields present, weights in {4,2,1}, 1..5 HIGH (`RESEARCH_PRIORITY_CONSTRAINT_VIOLATED`), exact-tech naming rejected (`EXACT_TECHNOLOGY_SELECTION_PROHIBITED`). `MonthExecutor` consumes it in `command_collection`, effective next `RESOLVE_RESEARCH`. |
+| Cycle detection | `content-compiler` validate stage runs a topological sort and emits `TECHNOLOGY_PREREQUISITE_CYCLE`. |
+| Design templates | `DesignTemplateSchema` added; campaign compiler validates design YAML against it and derives a deterministic SHA-256 `compiledHash`. |
+| Canonical fields | `CANONICAL_RESEARCH_FIELD_IDS` + weights shared by commands and phase-engine (single source of truth). |
+| Discovery correctness | Revalidates prereqs/availability before discovery (`TECHNOLOGY_DISCOVERY_VALIDATION_FAILED`), emits `NO_ELIGIBLE_TECHNOLOGY`, applies historical timing modifier (DESIGN-20 §12.2), fixes same-month multi-field discovery state mutation. |
+| ADR | `ADR-0009` records the decision to keep working phase id `resolve_research` (golden-hash stability) with `RESOLVE_RESEARCH` as the canonical DESIGN-10 id. |
+
+## Criterion-by-criterion re-verification
+
+| # | Criterion | Proving test(s) (new) | Verdict |
+| - | - | - | - |
+| 1 | Full monthly turn, research for GBR/FRA/GER | `phase-engine/test/research-design.test.ts` "C1" | **PASS** |
+| 2 | Balanced `RESEARCH_EXPENDITURE` ledger + treasury deduction | "C2" | **PASS** |
+| 3 | Zero→zero; positive ∝ `10_000` bp | "C3" | **PASS** |
+| 4 | `SetResearchPriorityCommand`; 1..5 HIGH; `RESEARCH_PRIORITY_CONSTRAINT_VIOLATED` | "C4" + `commands/test/commands.test.ts` (5 tests) | **PASS** |
+| 5 | `EXACT_TECHNOLOGY_SELECTION_PROHIBITED` | `commands.test.ts` "rejects a command naming an exact technology" | **PASS** |
+| 6 | Largest-remainder allocation | "C6" (exact 57/29/14 split) | **PASS** |
+| 7 | ≤1 active candidate; progress ≤ cost | "C7" | **PASS** |
+| 8 | Discovery same phase + revalidation + `IMMEDIATE_KNOWLEDGE` | "C8" | **PASS** |
+| 9 | Keyed stream `research/month/{nation}/{field}` deterministic | "C9" | **PASS** |
+| 10 | Ineligible tech consumes no resources | "C10" | **PASS** |
+| 11 | `TECHNOLOGY_PREREQUISITE_CYCLE` at compile | `content-compiler/test/compiler.test.ts` cycle test | **PASS** |
+| 12 | Designs compiled from YAML → immutable `CompiledDesignVersion` | `campaign/test/campaign.test.ts` "compiles design YAML templates…" | **PASS** |
+| 13 | Construction references `designVersionId`; Ship from design attrs | `research-design.test.ts` "C12/C13" | **PASS** |
+| 14 | Initial fleet ships carry `designVersionId` | `campaign.test.ts` "links initial fleet ships…" | **PASS** |
+| 15 | Determinism (fixed seed → identical hashes) | "C15" + cross-process golden (unchanged) | **PASS** |
+| 16 | Existing suites pass | `pnpm -w turbo run build test` → 32 green | **PASS** |
+| 17 | `vitest run` across workspace | same run | **PASS** |
+
+## Commands and observed results (re-verification)
+
+```text
+$ pnpm -w turbo run build test
+  Tasks: 32 successful, 32 total
+  >>> FULL TURBO
+
+$ pnpm test:cross-process
+  ... all 7 hashes identical to golden/hashes.json, "success":true
+
+$ pnpm exec prettier --write <changed source/test files>  # formatting applied
+$ pnpm -w turbo run build test   # green after formatting
+```
+
+## Canonical artifact changes
+
+- Golden hashes: **unchanged** — no regeneration required.
+- `ADR-0009` records the deliberate decision not to rename the phase id (would
+  change hashed ledger strings and save compatibility).
+
+## Known limitations (unchanged from brief deferrals)
+
+- Education/national modifiers, intelligence insight, multiple discoveries,
+  mutual exclusion, adoption pipeline, variation, AI research behavior, and the
+  full 26-field `ResearchResolutionRecord` remain deferred per the brief.
+- Working phase id is `resolve_research`; canonical `RESOLVE_RESEARCH` alias is
+  tracked for a future compatibility pass (ADR-0009).
+
+## Git and remote status (re-verification)
+
+- Branch: `feat/a0-b10b-acceptance`
+- Commits: `334ad70` (A-0 BLOCKED evidence), `15453f2` (A-0b implementation)
+- Working tree: clean after formatting commit (pending)
+- Push status: local ahead of `origin/main`; push not performed (no remote
+  credentials exercised)
+- Merge performed: `no`
