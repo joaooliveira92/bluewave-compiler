@@ -1,0 +1,355 @@
+- id: "fleet_gbr_home"
+  nationId: "GBR"
+  name: "Home Fleet"
+  locationAreaId: "eng_home_coast"
+  ships:
+    - {
+        id: "gbr_inflexible",
+        name: "HMS Inflexible",
+        classId: "Inflexible",
+        hitPoints: 60,
+        maxHitPoints: 60,
+        speed: 15,
+        firepower: 24,
+        armor: 24,
+        isUnderConstruction: true,
+        constructionProgress: 60,
+        constructionTotalWork: 100,
+      }
+    - {
+        id: "gbr_dreadnought",
+        name: "HMS Dreadnought",
+        classId: "Dreadnought (1875)",
+        hitPoints: 44,
+        maxHitPoints: 44,
+        speed: 14,
+        firepower: 18,
+        armor: 20,
+        isUnderConstruction: false,
+        constructionProgress: 0,
+        constructionTotalWork: 0,
+      }
+    - {
+        id: "gbr_alyxandra",
+        name: "HMS Alexandra",
+        classId: "Alexandra",
+        hitPoints: 38,
+        maxHitPoints: 38,
+        speed: 15,
+        firepower: 16,
+        armor: 18,
+        isUnderConstruction: false,
+        constructionProgress: 0,
+        constructionTotalWork: 0,
+      }
+- id: "fleet_gbr_mediterranean"
+  nationId: "GBR"
+  name: "Mediterranean Fleet"
+  locationAreaId: "med_malta"
+  ships:
+    - {
+        id: "gbr_malta_temp",
+        name: "HMS Mediterranean (Temeraire)",
+        classId: "Temeraire",
+        hitPoints: 36,
+        maxHitPoints: 36,
+        speed: 15,
+        firepower: 16,
+        armor: 17,
+        isUnderConstruction: false,
+        constructionProgress: 0,
+        constructionTotalWork: 0,
+      }
+- id: "fleet_gbr_cape"
+  nationId: "GBR"
+  name: "Cape & East Indies Squadron"
+  locationAreaId: "africa_cape"
+  ships: []
+- id: "fleet_fra_med"
+  nationId: "FRA"
+  name: "Escadre de la Méditerranée"
+  locationAreaId: "fra_med_coast"
+  ships:
+    - {
+        id: "fra_redoutable",
+        name: "Redoutable",
+        classId: "Redoutable",
+        hitPoints: 40,
+        maxHitPoints: 40,
+        speed: 15,
+        firepower: 22,
+        armor: 20,
+        isUnderConstruction: false,
+        constructionProgress: 0,
+        constructionTotalWork: 0,
+      }
+    - {
+        id: "fra_devastation",
+        name: "Dévastation",
+        classId: "Dévastation",
+        hitPoints: 42,
+        maxHitPoints: 42,
+        speed: 15,
+        firepower: 20,
+        armor: 21,
+        isUnderConstruction: true,
+        constructionProgress: 50,
+        constructionTotalWork: 100,
+      }
+- id: "fleet_fra_chan"
+  nationId: "FRA"
+  name: "Escadre du Nord"
+  locationAreaId: "fra_chan_coast"
+  ships:
+    - {
+        id: "fra_courbet",
+        name: "Courbet",
+        classId: "Courbet",
+        hitPoints: 40,
+        maxHitPoints: 40,
+        speed: 15,
+        firepower: 20,
+        armor: 20,
+        isUnderConstruction: true,
+        constructionProgress: 60,
+        constructionTotalWork: 100,
+      }
+- id: "fleet_ger_home"
+  nationId: "GER"
+  name: "Deutsche Flotte"
+  locationAreaId: "ger_ndgermany_coast"
+  ships:
+    - {
+        id: "ger_kaiser",
+        name: "SMS Kaiser",
+        classId: "Kaiser",
+        hitPoints: 36,
+        maxHitPoints: 36,
+        speed: 14,
+        firepower: 18,
+        armor: 18,
+        isUnderConstruction: false,
+        constructionProgress: 0,
+        constructionTotalWork: 0,
+      }
+    - {
+        id: "ger_sachsen",
+        name: "SMS Sachsen",
+        classId: "Sachsen",
+        hitPoints: 34,
+        maxHitPoints: 34,
+        speed: 13,
+        firepower: 16,
+        armor: 17,
+        isUnderConstruction: true,
+        constructionProgress: 80,
+        constructionTotalWork: 100,
+      }
+- id: "fleet_rus_baltic"
+  nationId: "RUS"
+  name: "Baltic Fleet"
+  locationAreaId: "rus_baltic_coast"
+  ships:
+    - {
+        id: "rus_petrveliky",
+        name: "Petr Veliky",
+        classId: "Petr Veliky",
+        hitPoints: 42,
+        maxHitPoints: 42,
+        speed: 13,
+        firepower: 18,
+        armor: 20,
+        isUnderConstruction: false,
+        constructionProgress: 0,
+        constructionTotalWork: 0,
+      }
+- id: "fleet_rus_blacksea"
+  nationId: "RUS"
+  name: "Black Sea Fleet"
+  locationAreaId: "rus_blacksea_coast"
+  ships:
+    - {
+        id: "rus_sinop",
+        name: "Sinop",
+        classId: "Ekaterina II",
+        hitPoints: 44,
+        maxHitPoints: 44,
+        speed: 14,
+        firepower: 22,
+        armor: 20,
+        isUnderConstruction: true,
+        constructionProgress: 40,
+        constructionTotalWork: 100,
+      }
+- id: "fleet_aut_adriatic"
+  nationId: "AUT"
+  name: "Österreichische Flotte"
+  locationAreaId: "auh_adriatic_coast"
+  ships:
+    - {
+        id: "aut_tegetthoff",
+        name: "SMS Tegetthoff",
+        classId: "Tegetthoff",
+        hitPoints: 36,
+        maxHitPoints: 36,
+        speed: 14,
+        firepower: 16,
+        armor: 18,
+        isUnderConstruction: true,
+        constructionProgress: 85,
+        constructionTotalWork: 100,
+      }
+    - {
+        id: "aut_custoza",
+        name: "SMS Custoza",
+        classId: "Custoza",
+        hitPoints: 32,
+        maxHitPoints: 32,
+        speed: 14,
+        firepower: 15,
+        armor: 17,
+        isUnderConstruction: false,
+        constructionProgress: 0,
+        constructionTotalWork: 0,
+      }
+- id: "fleet_ita_home"
+  nationId: "ITA"
+  name: "Regia Marina"
+  locationAreaId: "ita_tyrrhenian_coast"
+  ships:
+    - {
+        id: "ita_duilio",
+        name: "Caio Duilio",
+        classId: "Duilio",
+        hitPoints: 52,
+        maxHitPoints: 52,
+        speed: 15,
+        firepower: 26,
+        armor: 20,
+        isUnderConstruction: false,
+        constructionProgress: 0,
+        constructionTotalWork: 0,
+      }
+    - {
+        id: "ita_italia",
+        name: "Italia",
+        classId: "Italia",
+        hitPoints: 44,
+        maxHitPoints: 44,
+        speed: 18,
+        firepower: 22,
+        armor: 16,
+        isUnderConstruction: true,
+        constructionProgress: 20,
+        constructionTotalWork: 100,
+      }
+- id: "fleet_usa_atlantic"
+  nationId: "USA"
+  name: "North Atlantic Squadron"
+  locationAreaId: "usa_atlantic_coast"
+  ships:
+    - {
+        id: "usa_amphitrite",
+        name: "USS Amphitrite",
+        classId: "Amphitrite",
+        hitPoints: 26,
+        maxHitPoints: 26,
+        speed: 12,
+        firepower: 18,
+        armor: 18,
+        isUnderConstruction: true,
+        constructionProgress: 10,
+        constructionTotalWork: 100,
+      }
+- id: "fleet_jpn_home"
+  nationId: "JPN"
+  name: "Teikoku Kaigun"
+  locationAreaId: "jpn_home_coast"
+  ships:
+    - {
+        id: "jpn_fuso",
+        name: "Fusō",
+        classId: "Fusō",
+        hitPoints: 22,
+        maxHitPoints: 22,
+        speed: 13,
+        firepower: 14,
+        armor: 15,
+        isUnderConstruction: false,
+        constructionProgress: 0,
+        constructionTotalWork: 0,
+      }
+- id: "fleet_ott_home"
+  nationId: "OTT"
+  name: "Osmanlı Donanması"
+  locationAreaId: "ott_marmara_coast"
+  ships:
+    - {
+        id: "ott_mesudiye",
+        name: "Mesudiye",
+        classId: "Mesudiye",
+        hitPoints: 34,
+        maxHitPoints: 34,
+        speed: 13,
+        firepower: 16,
+        armor: 17,
+        isUnderConstruction: false,
+        constructionProgress: 0,
+        constructionTotalWork: 0,
+      }
+- id: "fleet_esp_home"
+  nationId: "ESP"
+  name: "Armada Española"
+  locationAreaId: "spa_atlantic_coast"
+  ships:
+    - {
+        id: "esp_numancia",
+        name: "Numancia",
+        classId: "Numancia",
+        hitPoints: 30,
+        maxHitPoints: 30,
+        speed: 12,
+        firepower: 15,
+        armor: 16,
+        isUnderConstruction: false,
+        constructionProgress: 0,
+        constructionTotalWork: 0,
+      }
+- id: "fleet_nld_home"
+  nationId: "NLD"
+  name: "Koninklijke Marine"
+  locationAreaId: "ned_home_coast"
+  ships: []
+- id: "fleet_nld_dei"
+  nationId: "NLD"
+  name: "Indische Militaire Marine"
+  locationAreaId: "dei_java"
+  ships: []
+- id: "fleet_por_home"
+  nationId: "POR"
+  name: "Marinha Portuguesa"
+  locationAreaId: "por_home_coast"
+  ships: []
+- id: "fleet_chi_north"
+  nationId: "CHI"
+  name: "Beiyang Fleet"
+  locationAreaId: "chi_north_coast"
+  ships:
+    - {
+        id: "chi_dingyuan",
+        name: "Dingyuan",
+        classId: "Dingyuan",
+        hitPoints: 40,
+        maxHitPoints: 40,
+        speed: 15,
+        firepower: 20,
+        armor: 19,
+        isUnderConstruction: true,
+        constructionProgress: 30,
+        constructionTotalWork: 100,
+      }
+- id: "fleet_bra_home"
+  nationId: "BRA"
+  name: "Armada Imperial"
+  locationAreaId: "bra_rio_coast"
+  ships: []

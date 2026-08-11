@@ -13,7 +13,7 @@
     "pack:win": "pnpm build && electron-builder --win --config",
     "pack:linux": "pnpm build && electron-builder --linux --config",
     "clean": "rm -rf out dist *.tsbuildinfo",
-    "typecheck": "tsc -b --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "echo 'ok'",
     "lint:fix": "echo 'ok'"

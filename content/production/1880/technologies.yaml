@@ -1,0 +1,298 @@
+- id: "hc_wrought_iron_hull"
+  name: "Wrought Iron Hull Construction"
+  category: "EARLY"
+  researchFieldId: "HULL_CONSTRUCTION"
+  cost: 50
+  discoveryWeight: 1000
+  year: 1880
+- id: "hc_compound_armor"
+  name: "Compound Armor"
+  category: "EARLY"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "hc_wrought_iron_hull" }
+  cost: 120
+  discoveryWeight: 4000
+  year: 1886
+- id: "hc_all_steel_hull"
+  name: "All-Steel (Mild Steel) Hull"
+  category: "EARLY"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "hc_wrought_iron_hull" }
+  cost: 140
+  discoveryWeight: 4000
+  year: 1886
+- id: "hc_nickel_steel_armor"
+  name: "Nickel-Steel Armor"
+  category: "EARLY"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "hc_compound_armor" }
+  cost: 150
+  discoveryWeight: 5000
+  year: 1889
+- id: "hc_harvey_armor"
+  name: "Harvey Cemented Armor"
+  category: "EARLY"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "hc_nickel_steel_armor" }
+  cost: 260
+  discoveryWeight: 8000
+  year: 1892
+- id: "hc_steel_hull_standard"
+  name: "Standardized Steel Construction"
+  category: "EARLY"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "hc_all_steel_hull" }
+  cost: 200
+  discoveryWeight: 6000
+  year: 1892
+- id: "mac_compound_engine"
+  name: "Compound (Two-Stage) Engine"
+  category: "EARLY"
+  researchFieldId: "MACHINERY"
+  cost: 60
+  discoveryWeight: 1000
+  year: 1880
+- id: "mac_triple_expansion"
+  name: "Triple-Expansion Engine"
+  category: "EARLY"
+  researchFieldId: "MACHINERY"
+  prerequisites:
+    - { techId: "mac_compound_engine" }
+  cost: 130
+  discoveryWeight: 5000
+  year: 1881
+- id: "mac_forced_draft"
+  name: "Forced-Draft Boilers"
+  category: "EARLY"
+  researchFieldId: "MACHINERY"
+  prerequisites:
+    - { techId: "mac_triple_expansion" }
+  cost: 140
+  discoveryWeight: 5000
+  year: 1885
+- id: "mac_water_tube_boiler"
+  name: "Water-Tube Boilers (Belleville type)"
+  category: "EARLY"
+  researchFieldId: "MACHINERY"
+  prerequisites:
+    - { techId: "mac_forced_draft" }
+  cost: 300
+  discoveryWeight: 10000
+  year: 1894
+- id: "sd_ironclad_design"
+  name: "Modern Ironclad Design"
+  category: "EARLY"
+  researchFieldId: "SHIP_DESIGN"
+  cost: 55
+  discoveryWeight: 1000
+  year: 1880
+- id: "sd_protected_cruiser"
+  name: "Protected Cruiser Design"
+  category: "EARLY"
+  researchFieldId: "SHIP_DESIGN"
+  prerequisites:
+    - { techId: "sd_ironclad_design" }
+  cost: 160
+  discoveryWeight: 5000
+  year: 1885
+- id: "sd_torpedo_ram_design"
+  name: "Torpedo-Ship & Ram Design"
+  category: "EARLY"
+  researchFieldId: "SHIP_DESIGN"
+  prerequisites:
+    - { techId: "sd_ironclad_design" }
+  cost: 140
+  discoveryWeight: 4000
+  year: 1886
+- id: "sd_predreadnought_design"
+  name: "Pre-Dreadnought Design"
+  category: "EARLY"
+  researchFieldId: "SHIP_DESIGN"
+  prerequisites:
+    - { techId: "sd_protected_cruiser" }
+    - { techId: "hc_harvey_armor" }
+  cost: 350
+  discoveryWeight: 14000
+  year: 1893
+- id: "gun_breech_rifled"
+  name: "Breech-Loading Rifled Guns"
+  category: "EARLY"
+  researchFieldId: "GUNNERY"
+  cost: 60
+  discoveryWeight: 1000
+  year: 1880
+- id: "gun_qf_light"
+  name: "Quick-Firing Light Guns (Nordenfelt/Hotchkiss)"
+  category: "EARLY"
+  researchFieldId: "GUNNERY"
+  prerequisites:
+    - { techId: "gun_breech_rifled" }
+  cost: 150
+  discoveryWeight: 6000
+  year: 1886
+- id: "gun_qf_medium"
+  name: 'Quick-Firing Medium Guns (4.7"/6")'
+  category: "EARLY"
+  researchFieldId: "GUNNERY"
+  prerequisites:
+    - { techId: "gun_qf_light" }
+  cost: 220
+  discoveryWeight: 8000
+  year: 1889
+- id: "gun_smokeless_powder"
+  name: "Smokeless Propellant (Cordite/Poudre B)"
+  category: "EARLY"
+  researchFieldId: "GUNNERY"
+  prerequisites:
+    - { techId: "gun_qf_light" }
+  cost: 260
+  discoveryWeight: 9000
+  year: 1890
+- id: "gun_capped_ap_shell"
+  name: "Improved AP & Capped Shells"
+  category: "EARLY"
+  researchFieldId: "GUNNERY"
+  prerequisites:
+    - { techId: "gun_smokeless_powder" }
+    - { techId: "gun_qf_medium" }
+  cost: 300
+  discoveryWeight: 9000
+  year: 1895
+- id: "torp_whitehead_torpedo"
+  name: "Whitehead Self-Propelled Torpedo"
+  category: "EARLY"
+  researchFieldId: "TORPEDOES"
+  cost: 70
+  discoveryWeight: 1500
+  year: 1880
+- id: "torp_torpedo_boat"
+  name: "Torpedo Boat Development"
+  category: "EARLY"
+  researchFieldId: "TORPEDOES"
+  prerequisites:
+    - { techId: "torp_whitehead_torpedo" }
+  cost: 130
+  discoveryWeight: 5000
+  year: 1882
+- id: "torp_torpedo_gunnery"
+  name: "Torpedo Run Training & QF Defence Doctrine"
+  category: "EARLY"
+  researchFieldId: "TORPEDOES"
+  prerequisites:
+    - { techId: "torp_torpedo_boat" }
+  cost: 150
+  discoveryWeight: 4000
+  year: 1886
+- id: "torp_gyroscopic_steering"
+  name: "Gyroscopic Steering (Obry gear)"
+  category: "EARLY"
+  researchFieldId: "TORPEDOES"
+  prerequisites:
+    - { techId: "torp_whitehead_torpedo" }
+  cost: 260
+  discoveryWeight: 9000
+  year: 1896
+- id: "m_asw_contact_mine"
+  name: "Contact Mine (Horn/Mooring)"
+  category: "EARLY"
+  researchFieldId: "MINES_AND_ASW"
+  cost: 50
+  discoveryWeight: 800
+  year: 1880
+- id: "m_asw_spar_torpedo"
+  name: "Spar/Outrigger Torpedo"
+  category: "EARLY"
+  researchFieldId: "MINES_AND_ASW"
+  cost: 50
+  discoveryWeight: 800
+  year: 1880
+- id: "m_asw_mine_laying"
+  name: "Systematic Minefield Laying"
+  category: "EARLY"
+  researchFieldId: "MINES_AND_ASW"
+  prerequisites:
+    - { techId: "m_asw_contact_mine" }
+  cost: 110
+  discoveryWeight: 3500
+  year: 1885
+- id: "sub_experimental"
+  name: "Experimental Submersibles"
+  category: "EARLY"
+  researchFieldId: "SUBMARINES"
+  cost: 120
+  discoveryWeight: 3000
+  year: 1885
+- id: "sub_practical_military_design"
+  name: "Practical Military Submarine (Holland type)"
+  category: "EARLY"
+  researchFieldId: "SUBMARINES"
+  prerequisites:
+    - { techId: "sub_experimental" }
+    - { techId: "torp_whitehead_torpedo" }
+  cost: 320
+  discoveryWeight: 7000
+  year: 1897
+- id: "infra_dry_dock"
+  name: "Dry Docks & Repair Yards"
+  category: "EARLY"
+  researchFieldId: "INFRASTRUCTURE"
+  cost: 50
+  discoveryWeight: 800
+  year: 1880
+- id: "infra_coaling_station"
+  name: "Coaling Stations & Bases"
+  category: "EARLY"
+  researchFieldId: "INFRASTRUCTURE"
+  cost: 50
+  discoveryWeight: 800
+  year: 1880
+- id: "infra_coastal_fortification"
+  name: "Coastal Fortifications"
+  category: "EARLY"
+  researchFieldId: "INFRASTRUCTURE"
+  prerequisites:
+    - { techId: "m_asw_mine_laying" }
+  cost: 130
+  discoveryWeight: 3500
+  year: 1885
+- id: "infra_modern_dockyard"
+  name: "Modern Steel Dockyard"
+  category: "EARLY"
+  researchFieldId: "INFRASTRUCTURE"
+  prerequisites:
+    - { techId: "infra_dry_dock" }
+    - { techId: "hc_steel_hull_standard" }
+  cost: 260
+  discoveryWeight: 5000
+  year: 1893
+- id: "dc_iron_subdivision"
+  name: "Iron Hull Subdivision & Pumping"
+  category: "EARLY"
+  researchFieldId: "DAMAGE_CONTROL"
+  cost: 55
+  discoveryWeight: 900
+  year: 1880
+- id: "dc_watertight_bulkheads"
+  name: "Watertight Bulkhead Practice"
+  category: "EARLY"
+  researchFieldId: "DAMAGE_CONTROL"
+  prerequisites:
+    - { techId: "dc_iron_subdivision" }
+    - { techId: "hc_all_steel_hull" }
+  cost: 140
+  discoveryWeight: 4000
+  year: 1888
+- id: "fc_basic_rangefinding"
+  name: "Basic Rangefinding & Spotting"
+  category: "EARLY"
+  researchFieldId: "FIRE_CONTROL"
+  prerequisites:
+    - { techId: "gun_qf_medium" }
+  cost: 300
+  discoveryWeight: 8000
+  year: 1898

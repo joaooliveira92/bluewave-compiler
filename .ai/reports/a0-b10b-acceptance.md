@@ -43,25 +43,25 @@ Verified as **absent or unproven** (the gap):
 
 Evidence type: `OBSERVED` = directly read code/test; `PROVEN` = run and matched.
 
-| # | Criterion (brief) | Implementation evidence | Proving test | Verdict |
-| - | ------------------ | ----------------------- | ------------ | ------- |
-| 1 | Full monthly turn w/ research resolution for GBR, FRA, GER | `month.ts:1230-1243` wires phase; loops all playable/AI nations (`month.ts:381-382`) | No test runs research for all 3 nations; `month.test.ts` GER test (`:420`) uses `researchBudget 0`; integration fixture is GBR + FRA only | **UNPROVEN** |
-| 2 | Expenditure deducted + balanced `RESEARCH_EXPENDITURE` ledger posting | `month.ts:541-566` appends `RESEARCH_EXPENDITURE`; balance asserted only generically (`month.test.ts:262-287`, budget 0) | No research-specific assertion proving a balanced posting | **UNPROVEN** |
-| 3 | Zero spend → zero resources; positive ∝ `10_000` bp | `computeResearchResources` + constant (`month.ts:322-329`, `:302`) | No test | **UNPROVEN** |
-| 4 | `SetResearchPriorityCommand`; 1..5 HIGH; reject `RESEARCH_PRIORITY_CONSTRAINT_VIOLATED` | Type only; no handler (`lifecycle.ts:66-76` rejects as `UNKNOWN_COMMAND_TYPE`) | None | **NOT IMPLEMENTED** |
-| 5 | Command naming exact tech rejected `EXACT_TECHNOLOGY_SELECTION_PROHIBITED` | Not present anywhere (`rg` across repo: only design docs) | None | **NOT IMPLEMENTED** |
-| 6 | Largest-remainder allocation (DESIGN-20 §9) | `largestRemainderAllocation` (`month.ts:331-366`) | No direct test of allocation output | **UNPROVEN** |
-| 7 | ≤ 1 active candidate/field; progress ≤ cost | activeCandidates Map + clamp (`month.ts:422-475`) | No research-specific test (construction cap tests unrelated) | **UNPROVEN** |
-| 8 | Discovery same phase; prereqs/availability revalidated; `IMMEDIATE_KNOWLEDGE` applied | Discovery branch (`month.ts:488-523`) marks completed + event only; no `IMMEDIATE_KNOWLEDGE` handling | None | **PARTIAL / UNPROVEN** |
-| 9 | Keyed stream `research/month/nation/field`, deterministic weighted selection | `month.ts:437` stream key + `drawWeighted` | No direct assertion of stream key; generic determinism proven (`integration.test.ts:260,508`) but without research budget in golden fixture | **UNPROVEN (direct)** |
-| 10 | Not-yet-available tech ineligible, consumes nothing | `findEligibleTechsForField` availability + prereq checks (`month.ts:595-625`) | No availability/prereq-blocked test | **UNPROVEN** |
-| 11 | Cycle → `TECHNOLOGY_PREREQUISITE_CYCLE` at compile | No acyclicity check (`validate.ts:235-256` only ref checks) | None | **NOT IMPLEMENTED** |
-| 12 | Designs compiled from YAML → immutable `CompiledDesignVersion` | `buildDesignsFromData` (`compiler.ts:470-507`) wired; no `DesignTemplateSchema`; no YAML fixtures | None | **PARTIAL / UNPROVEN** |
-| 13 | Construction references `designVersionId`; completion builds Ship from design attrs | `month.ts:1162-1201`; test `month.test.ts:349` uses `designVersionId ""` and asserts `classId===targetId` only | No design-attribute test | **PARTIAL / UNPROVEN** |
-| 14 | Initial fleet ships carry `designVersionId` | `Ship.designVersionId` + compiler maps it (`compiler.ts:349`); fixture ships omit it | None | **UNPROVEN** |
-| 15 | Determinism: fixed seed → identical snapshots/hashes | `@bluewave/deterministic` + replay verifier + cross-process harness | `PROVEN` — `pnpm test:cross-process` matched all 7 golden hashes and `success:true` (generic, no research budget) | **PROVEN (generic)** |
-| 16 | Existing compiler/command/phase/persistence/determinism suites pass | All suites present | `PROVEN` — `pnpm -w turbo run build test` → 32 tasks green | **PROVEN** |
-| 17 | `vitest run` passes across workspace | All 19 test files present | `PROVEN` — same run green | **PROVEN** |
+| #   | Criterion (brief)                                                                       | Implementation evidence                                                                                                  | Proving test                                                                                                                                | Verdict                |
+| --- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| 1   | Full monthly turn w/ research resolution for GBR, FRA, GER                              | `month.ts:1230-1243` wires phase; loops all playable/AI nations (`month.ts:381-382`)                                     | No test runs research for all 3 nations; `month.test.ts` GER test (`:420`) uses `researchBudget 0`; integration fixture is GBR + FRA only   | **UNPROVEN**           |
+| 2   | Expenditure deducted + balanced `RESEARCH_EXPENDITURE` ledger posting                   | `month.ts:541-566` appends `RESEARCH_EXPENDITURE`; balance asserted only generically (`month.test.ts:262-287`, budget 0) | No research-specific assertion proving a balanced posting                                                                                   | **UNPROVEN**           |
+| 3   | Zero spend → zero resources; positive ∝ `10_000` bp                                     | `computeResearchResources` + constant (`month.ts:322-329`, `:302`)                                                       | No test                                                                                                                                     | **UNPROVEN**           |
+| 4   | `SetResearchPriorityCommand`; 1..5 HIGH; reject `RESEARCH_PRIORITY_CONSTRAINT_VIOLATED` | Type only; no handler (`lifecycle.ts:66-76` rejects as `UNKNOWN_COMMAND_TYPE`)                                           | None                                                                                                                                        | **NOT IMPLEMENTED**    |
+| 5   | Command naming exact tech rejected `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`              | Not present anywhere (`rg` across repo: only design docs)                                                                | None                                                                                                                                        | **NOT IMPLEMENTED**    |
+| 6   | Largest-remainder allocation (DESIGN-20 §9)                                             | `largestRemainderAllocation` (`month.ts:331-366`)                                                                        | No direct test of allocation output                                                                                                         | **UNPROVEN**           |
+| 7   | ≤ 1 active candidate/field; progress ≤ cost                                             | activeCandidates Map + clamp (`month.ts:422-475`)                                                                        | No research-specific test (construction cap tests unrelated)                                                                                | **UNPROVEN**           |
+| 8   | Discovery same phase; prereqs/availability revalidated; `IMMEDIATE_KNOWLEDGE` applied   | Discovery branch (`month.ts:488-523`) marks completed + event only; no `IMMEDIATE_KNOWLEDGE` handling                    | None                                                                                                                                        | **PARTIAL / UNPROVEN** |
+| 9   | Keyed stream `research/month/nation/field`, deterministic weighted selection            | `month.ts:437` stream key + `drawWeighted`                                                                               | No direct assertion of stream key; generic determinism proven (`integration.test.ts:260,508`) but without research budget in golden fixture | **UNPROVEN (direct)**  |
+| 10  | Not-yet-available tech ineligible, consumes nothing                                     | `findEligibleTechsForField` availability + prereq checks (`month.ts:595-625`)                                            | No availability/prereq-blocked test                                                                                                         | **UNPROVEN**           |
+| 11  | Cycle → `TECHNOLOGY_PREREQUISITE_CYCLE` at compile                                      | No acyclicity check (`validate.ts:235-256` only ref checks)                                                              | None                                                                                                                                        | **NOT IMPLEMENTED**    |
+| 12  | Designs compiled from YAML → immutable `CompiledDesignVersion`                          | `buildDesignsFromData` (`compiler.ts:470-507`) wired; no `DesignTemplateSchema`; no YAML fixtures                        | None                                                                                                                                        | **PARTIAL / UNPROVEN** |
+| 13  | Construction references `designVersionId`; completion builds Ship from design attrs     | `month.ts:1162-1201`; test `month.test.ts:349` uses `designVersionId ""` and asserts `classId===targetId` only           | No design-attribute test                                                                                                                    | **PARTIAL / UNPROVEN** |
+| 14  | Initial fleet ships carry `designVersionId`                                             | `Ship.designVersionId` + compiler maps it (`compiler.ts:349`); fixture ships omit it                                     | None                                                                                                                                        | **UNPROVEN**           |
+| 15  | Determinism: fixed seed → identical snapshots/hashes                                    | `@bluewave/deterministic` + replay verifier + cross-process harness                                                      | `PROVEN` — `pnpm test:cross-process` matched all 7 golden hashes and `success:true` (generic, no research budget)                           | **PROVEN (generic)**   |
+| 16  | Existing compiler/command/phase/persistence/determinism suites pass                     | All suites present                                                                                                       | `PROVEN` — `pnpm -w turbo run build test` → 32 tasks green                                                                                  | **PROVEN**             |
+| 17  | `vitest run` passes across workspace                                                    | All 19 test files present                                                                                                | `PROVEN` — same run green                                                                                                                   | **PROVEN**             |
 
 Only criteria 15–17 are satisfied. Criteria 4, 5, 11 are unimplemented. 1–3, 6–10, 12–14 lack proving tests (12–14 additionally lack schema/fixture wiring).
 
@@ -166,36 +166,36 @@ hashes are unchanged.
 
 ## What A-0b delivered
 
-| Area | Implementation |
-| --- | --- |
+| Area                         | Implementation                                                                                                                                                                                                                                                                                            |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `SetResearchPriorityCommand` | `CommandLifecycle` now validates: all 15 canonical fields present, weights in {4,2,1}, 1..5 HIGH (`RESEARCH_PRIORITY_CONSTRAINT_VIOLATED`), exact-tech naming rejected (`EXACT_TECHNOLOGY_SELECTION_PROHIBITED`). `MonthExecutor` consumes it in `command_collection`, effective next `RESOLVE_RESEARCH`. |
-| Cycle detection | `content-compiler` validate stage runs a topological sort and emits `TECHNOLOGY_PREREQUISITE_CYCLE`. |
-| Design templates | `DesignTemplateSchema` added; campaign compiler validates design YAML against it and derives a deterministic SHA-256 `compiledHash`. |
-| Canonical fields | `CANONICAL_RESEARCH_FIELD_IDS` + weights shared by commands and phase-engine (single source of truth). |
-| Discovery correctness | Revalidates prereqs/availability before discovery (`TECHNOLOGY_DISCOVERY_VALIDATION_FAILED`), emits `NO_ELIGIBLE_TECHNOLOGY`, applies historical timing modifier (DESIGN-20 §12.2), fixes same-month multi-field discovery state mutation. |
-| ADR | `ADR-0009` records the decision to keep working phase id `resolve_research` (golden-hash stability) with `RESOLVE_RESEARCH` as the canonical DESIGN-10 id. |
+| Cycle detection              | `content-compiler` validate stage runs a topological sort and emits `TECHNOLOGY_PREREQUISITE_CYCLE`.                                                                                                                                                                                                      |
+| Design templates             | `DesignTemplateSchema` added; campaign compiler validates design YAML against it and derives a deterministic SHA-256 `compiledHash`.                                                                                                                                                                      |
+| Canonical fields             | `CANONICAL_RESEARCH_FIELD_IDS` + weights shared by commands and phase-engine (single source of truth).                                                                                                                                                                                                    |
+| Discovery correctness        | Revalidates prereqs/availability before discovery (`TECHNOLOGY_DISCOVERY_VALIDATION_FAILED`), emits `NO_ELIGIBLE_TECHNOLOGY`, applies historical timing modifier (DESIGN-20 §12.2), fixes same-month multi-field discovery state mutation.                                                                |
+| ADR                          | `ADR-0009` records the decision to keep working phase id `resolve_research` (golden-hash stability) with `RESOLVE_RESEARCH` as the canonical DESIGN-10 id.                                                                                                                                                |
 
 ## Criterion-by-criterion re-verification
 
-| # | Criterion | Proving test(s) (new) | Verdict |
-| - | - | - | - |
-| 1 | Full monthly turn, research for GBR/FRA/GER | `phase-engine/test/research-design.test.ts` "C1" | **PASS** |
-| 2 | Balanced `RESEARCH_EXPENDITURE` ledger + treasury deduction | "C2" | **PASS** |
-| 3 | Zero→zero; positive ∝ `10_000` bp | "C3" | **PASS** |
-| 4 | `SetResearchPriorityCommand`; 1..5 HIGH; `RESEARCH_PRIORITY_CONSTRAINT_VIOLATED` | "C4" + `commands/test/commands.test.ts` (5 tests) | **PASS** |
-| 5 | `EXACT_TECHNOLOGY_SELECTION_PROHIBITED` | `commands.test.ts` "rejects a command naming an exact technology" | **PASS** |
-| 6 | Largest-remainder allocation | "C6" (exact 57/29/14 split) | **PASS** |
-| 7 | ≤1 active candidate; progress ≤ cost | "C7" | **PASS** |
-| 8 | Discovery same phase + revalidation + `IMMEDIATE_KNOWLEDGE` | "C8" | **PASS** |
-| 9 | Keyed stream `research/month/{nation}/{field}` deterministic | "C9" | **PASS** |
-| 10 | Ineligible tech consumes no resources | "C10" | **PASS** |
-| 11 | `TECHNOLOGY_PREREQUISITE_CYCLE` at compile | `content-compiler/test/compiler.test.ts` cycle test | **PASS** |
-| 12 | Designs compiled from YAML → immutable `CompiledDesignVersion` | `campaign/test/campaign.test.ts` "compiles design YAML templates…" | **PASS** |
-| 13 | Construction references `designVersionId`; Ship from design attrs | `research-design.test.ts` "C12/C13" | **PASS** |
-| 14 | Initial fleet ships carry `designVersionId` | `campaign.test.ts` "links initial fleet ships…" | **PASS** |
-| 15 | Determinism (fixed seed → identical hashes) | "C15" + cross-process golden (unchanged) | **PASS** |
-| 16 | Existing suites pass | `pnpm -w turbo run build test` → 32 green | **PASS** |
-| 17 | `vitest run` across workspace | same run | **PASS** |
+| #   | Criterion                                                                        | Proving test(s) (new)                                              | Verdict  |
+| --- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------ | -------- |
+| 1   | Full monthly turn, research for GBR/FRA/GER                                      | `phase-engine/test/research-design.test.ts` "C1"                   | **PASS** |
+| 2   | Balanced `RESEARCH_EXPENDITURE` ledger + treasury deduction                      | "C2"                                                               | **PASS** |
+| 3   | Zero→zero; positive ∝ `10_000` bp                                                | "C3"                                                               | **PASS** |
+| 4   | `SetResearchPriorityCommand`; 1..5 HIGH; `RESEARCH_PRIORITY_CONSTRAINT_VIOLATED` | "C4" + `commands/test/commands.test.ts` (5 tests)                  | **PASS** |
+| 5   | `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`                                          | `commands.test.ts` "rejects a command naming an exact technology"  | **PASS** |
+| 6   | Largest-remainder allocation                                                     | "C6" (exact 57/29/14 split)                                        | **PASS** |
+| 7   | ≤1 active candidate; progress ≤ cost                                             | "C7"                                                               | **PASS** |
+| 8   | Discovery same phase + revalidation + `IMMEDIATE_KNOWLEDGE`                      | "C8"                                                               | **PASS** |
+| 9   | Keyed stream `research/month/{nation}/{field}` deterministic                     | "C9"                                                               | **PASS** |
+| 10  | Ineligible tech consumes no resources                                            | "C10"                                                              | **PASS** |
+| 11  | `TECHNOLOGY_PREREQUISITE_CYCLE` at compile                                       | `content-compiler/test/compiler.test.ts` cycle test                | **PASS** |
+| 12  | Designs compiled from YAML → immutable `CompiledDesignVersion`                   | `campaign/test/campaign.test.ts` "compiles design YAML templates…" | **PASS** |
+| 13  | Construction references `designVersionId`; Ship from design attrs                | `research-design.test.ts` "C12/C13"                                | **PASS** |
+| 14  | Initial fleet ships carry `designVersionId`                                      | `campaign.test.ts` "links initial fleet ships…"                    | **PASS** |
+| 15  | Determinism (fixed seed → identical hashes)                                      | "C15" + cross-process golden (unchanged)                           | **PASS** |
+| 16  | Existing suites pass                                                             | `pnpm -w turbo run build test` → 32 green                          | **PASS** |
+| 17  | `vitest run` across workspace                                                    | same run                                                           | **PASS** |
 
 ## Commands and observed results (re-verification)
 

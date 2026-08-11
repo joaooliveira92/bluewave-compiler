@@ -98,15 +98,15 @@ Rules for every content sprint:
 Verified by running `pnpm -w turbo run build test` directly (32 tasks green,
 full turbo cache), not by reading docs:
 
-| Item | Actual state |
-| --- | --- |
-| B0–B8 | Committed, tests green — matches PROGRESS.md |
-| B9 Electron shell | Committed (`fd066c7`, `043f91c`, `8bbb371`, `7022a88`…); desktop build + tests green |
-| B10a Economy & Construction | Committed (`bcc14d4`) |
-| B10b Research & Ship Design | **PARTIAL — NOT ACCEPTED** (A-0 pass, 2026-08-11). Build green and generic determinism proven, but the brief's 17 acceptance criteria are not satisfied: `SetResearchPriorityCommand` has no lifecycle handler (`lifecycle.ts` rejects it as `UNKNOWN_COMMAND_TYPE`), no cycle detection (`TECHNOLOGY_PREREQUISITE_CYCLE`), no `DesignTemplateSchema`, and design/YAML fixtures are absent. Full per-criterion evidence: `.ai/reports/a0-b10b-acceptance.md`. Do not treat as accepted; B10c depends on a genuinely accepted B10b. |
-| B10c Diplomacy & War | Not started; brief ready at `.ai/briefs/b10c-diplomacy-war.md` |
-| B10d AI & Scenario Readiness | Not started; brief ready at `.ai/briefs/b10d-ai-scenario.md` |
-| M2–M5 | No briefs. Only DESIGN docs exist. No content workstream exists yet (it begins here). |
+| Item                         | Actual state                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B0–B8                        | Committed, tests green — matches PROGRESS.md                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| B9 Electron shell            | Committed (`fd066c7`, `043f91c`, `8bbb371`, `7022a88`…); desktop build + tests green                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| B10a Economy & Construction  | Committed (`bcc14d4`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| B10b Research & Ship Design  | **PARTIAL — NOT ACCEPTED** (A-0 pass, 2026-08-11). Build green and generic determinism proven, but the brief's 17 acceptance criteria are not satisfied: `SetResearchPriorityCommand` has no lifecycle handler (`lifecycle.ts` rejects it as `UNKNOWN_COMMAND_TYPE`), no cycle detection (`TECHNOLOGY_PREREQUISITE_CYCLE`), no `DesignTemplateSchema`, and design/YAML fixtures are absent. Full per-criterion evidence: `.ai/reports/a0-b10b-acceptance.md`. Do not treat as accepted; B10c depends on a genuinely accepted B10b. |
+| B10c Diplomacy & War         | Not started; brief ready at `.ai/briefs/b10c-diplomacy-war.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| B10d AI & Scenario Readiness | Not started; brief ready at `.ai/briefs/b10d-ai-scenario.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| M2–M5                        | No briefs. Only DESIGN docs exist. No content workstream exists yet (it begins here).                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 > **Correction (2026-08-11, A-0 pass):** earlier drafts claimed B10b was "committed and green with nothing but evidence missing." Sprint A-0 re-verified the 17 acceptance criteria against the actual code and found the claim **false**: several criteria have no implementation (priority-command handling, `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`, `TECHNOLOGY_PREREQUISITE_CYCLE` cycle detection, `DesignTemplateSchema`) and most others have no proving tests. The goldens were regenerated for a generic (non-research, no-budget) fixture, so research determinism was never exercised. B10b is therefore **not accepted**; the plan now treats it as a real implementation sprint, not a verify pass.
 
@@ -117,17 +117,17 @@ full turbo cache), not by reading docs:
 Numbers below continue the original A-track series. "C-" rows are the content
 workstream paired to each milestone.
 
-| # | Sprint | Kind | Depends on | Notes |
-| - | --- | --- | --- | --- |
-| A-0 | **B10b acceptance pass** | Implementation (verify) | none | **DONE 2026-08-11 — BLOCKED initially.** Re-verified all 17 criteria against code. Verdict BLOCKED: 3 criteria unimplemented, 10+ unproven, only 15–17 pass. Evidence: `.ai/reports/a0-b10b-acceptance.md`. Drove A-0b. |
-| A-0b | **B10b completion** | Implementation | A-0 | **DONE 2026-08-11 — PASS.** Closed every verified gap: `SetResearchPriorityCommand` lifecycle (+`RESEARCH_PRIORITY_CONSTRAINT_VIOLATED`, `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`), `TECHNOLOGY_PREREQUISITE_CYCLE` cycle detection, `DesignTemplateSchema` + design YAML + deterministic `compiledHash`, discovery revalidation + historical timing modifier, canonical field registry, and proof tests for all 17 criteria. Commits `15453f2` (+ ADR-0009). 32 turbo tasks green, golden hashes unchanged. Re-verified A-0 → PASS. |
-| A-1 | B9 acceptance pass | Implementation (verify) | none | **DONE 2026-08-11 — PASS_WITH_LIMITATIONS.** Build green, packaging (mac dmg/zip + linux AppImage) + unit/boundary tests green (9 tests). Added `boundary.test.ts` (CSP, IPC narrowing, concurrent abort) and extracted pure CSP helper. Live GUI start + renderer→main IPC round-trip not automated headlessly; win nsis not built on macOS. Evidence: `.ai/reports/a1-b9-acceptance.md`. |
-| A-2 | B10a acceptance pass | Implementation (verify) | none | **DONE 2026-08-11 — PASS.** All 10 brief criteria verified. Added `economy.test.ts` (3-nation full turn, balanced ledger, finance-hash determinism, paid-work, completion→ship, non-negative treasury). 32 turbo tasks green. Evidence: `.ai/reports/a2-b10a-acceptance.md`. |
-| A-3 | B10c Diplomacy & War | Implementation | A-0b (A-0 PASS) | **BLOCKED 2026-08-11 — decision request.** Brief ready. Investigation found the victory-level classification predicate (minor/major/decisive → `+2/+5/+10`) is undefined in the brief, DESIGN-31, tactical-combat, battle-generation, and the source design. `BattleResolver` must stay unchanged (criterion 15) and exposes no victory level. Decision request: `.ai/reports/decision-request-victory-classification.md`. |
-| A-4 | B10d AI & Scenario Readiness | Implementation | A-3 | Brief ready: `.ai/briefs/b10d-ai-scenario.md`. Lands the 24-month zero-human-input smoke loop — the M1 runtime milestone. |
-| A-5 | M1 formal acceptance gate | Gate | A-0…A-4 | Apply DESIGN-55 §9 to every M1 capability; reconcile `docs/OPEN-ISSUES.md` (resolve the stale "126 items" claim and close/ADR every open M1 ambiguity); refresh `docs/PROGRESS.md`; sign `M1_STRATEGIC_CAMPAIGN_KERNEL` COMPLETED per §23. |
-| CONTENT-0 | **Content strategy + production-pack charter** | Scoping | none (runs parallel to A-0…) | Decide the production content architecture: pick primary `FULLY_SUPPORTED` scenario(s), start date, reachable era bands (§11/§17), codebase layout, and the production pack module(s). Land a content charter brief + content map. This founders every later content sprint. |
-| CONTENT-1 | **M1-era production content** | Scoping/Impl | CONTENT-0 | Research + author the content M1 needs: world geography, nations/governments, initial fleets (real hulls/classes), economy constants, research tech tree, ship-design templates, battleground/mission content — for the era bands the M1 scenario reaches. Existing M1 fixtures stay non-production; the production pack is separate and validated. |
+| #         | Sprint                                         | Kind                    | Depends on                   | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------- | ---------------------------------------------- | ----------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A-0       | **B10b acceptance pass**                       | Implementation (verify) | none                         | **DONE 2026-08-11 — BLOCKED initially.** Re-verified all 17 criteria against code. Verdict BLOCKED: 3 criteria unimplemented, 10+ unproven, only 15–17 pass. Evidence: `.ai/reports/a0-b10b-acceptance.md`. Drove A-0b.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| A-0b      | **B10b completion**                            | Implementation          | A-0                          | **DONE 2026-08-11 — PASS.** Closed every verified gap: `SetResearchPriorityCommand` lifecycle (+`RESEARCH_PRIORITY_CONSTRAINT_VIOLATED`, `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`), `TECHNOLOGY_PREREQUISITE_CYCLE` cycle detection, `DesignTemplateSchema` + design YAML + deterministic `compiledHash`, discovery revalidation + historical timing modifier, canonical field registry, and proof tests for all 17 criteria. Commits `15453f2` (+ ADR-0009). 32 turbo tasks green, golden hashes unchanged. Re-verified A-0 → PASS.                                                                                                                                                                                                                                       |
+| A-1       | B9 acceptance pass                             | Implementation (verify) | none                         | **DONE 2026-08-11 — PASS_WITH_LIMITATIONS.** Build green, packaging (mac dmg/zip + linux AppImage) + unit/boundary tests green (9 tests). Added `boundary.test.ts` (CSP, IPC narrowing, concurrent abort) and extracted pure CSP helper. Live GUI start + renderer→main IPC round-trip not automated headlessly; win nsis not built on macOS. Evidence: `.ai/reports/a1-b9-acceptance.md`.                                                                                                                                                                                                                                                                                                                                                                                |
+| A-2       | B10a acceptance pass                           | Implementation (verify) | none                         | **DONE 2026-08-11 — PASS.** All 10 brief criteria verified. Added `economy.test.ts` (3-nation full turn, balanced ledger, finance-hash determinism, paid-work, completion→ship, non-negative treasury). 32 turbo tasks green. Evidence: `.ai/reports/a2-b10a-acceptance.md`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| A-3       | B10c Diplomacy & War                           | Implementation          | A-0b (A-0 PASS)              | **BLOCKED 2026-08-11 — decision request.** Brief ready. Investigation found the victory-level classification predicate (minor/major/decisive → `+2/+5/+10`) is undefined in the brief, DESIGN-31, tactical-combat, battle-generation, and the source design. `BattleResolver` must stay unchanged (criterion 15) and exposes no victory level. Decision request: `.ai/reports/decision-request-victory-classification.md`.                                                                                                                                                                                                                                                                                                                                                |
+| A-4       | B10d AI & Scenario Readiness                   | Implementation          | A-3                          | Brief ready: `.ai/briefs/b10d-ai-scenario.md`. Lands the 24-month zero-human-input smoke loop — the M1 runtime milestone.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| A-5       | M1 formal acceptance gate                      | Gate                    | A-0…A-4                      | Apply DESIGN-55 §9 to every M1 capability; reconcile `docs/OPEN-ISSUES.md` (resolve the stale "126 items" claim and close/ADR every open M1 ambiguity); refresh `docs/PROGRESS.md`; sign `M1_STRATEGIC_CAMPAIGN_KERNEL` COMPLETED per §23.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| CONTENT-0 | **Content strategy + production-pack charter** | Scoping                 | none (runs parallel to A-0…) | **DONE 2026-08-11.** Locked primary `FULLY_SUPPORTED` scenario `scen_1880` (Jan 1880), reachable era bands all five, max duration 1092 mo (sim end Dec 1970), pack layout `content/production/1880/` (`type: "production"`, zero compiler change), content map + DESIGN-55 §12 classification policy. Landed `.ai/briefs/content-0-production-pack-charter.md`, wayfinder map `.scratch/content-0-production-pack/` (tickets 01–05 resolved), research notes `docs/research/content-0-*.md`. This founders CONTENT-1 and the C-track.                                                                                                                                                                                                                                     |
+| CONTENT-1 | **M1-era production content**                  | Scoping/Impl            | CONTENT-0                    | **DONE 2026-08-11 — PASS.** Authored the first production pack at `content/production/1880/` (`type: "production"`, zero engine change): 14 countries, ~100 areas, 35+ routes, ~70 possessions, ~95 ports, 34 EARLY technologies (acyclic DAG), 16 designs, 22 fleets, 14 economies, 9 constructions, 14 research states — grounded in 4 research notes (`docs/research/content-1-*.md`). Diplomacy relations omitted (B10c blocked → §14 concern). Compiles deterministically via desktop `runCompilation` (content `44953238…`, snapshot `f3e72642…`); `production-pack.test.ts` locks it. Evidence: `.ai/reports/content-1-m1-production-content.md`. Brief + wayfinder: `.ai/briefs/content-1-m1-production-content.md`, `.scratch/content-1-m1-production-content/`. |
 
 ### Track B — M2 Surface Tactical Core
 
@@ -135,58 +135,58 @@ Depends on accepted M1 (DESIGN-55 §3). No briefs exist; every row needs a scopi
 sprint before an implementation sprint. Governing docs in parentheses. Each
 sprint also lands the tactical content its capability needs (continues CONTENT-1).
 
-| # | Sprint | Governing docs | Content deliverable |
-| - | --- | --- | --- |
-| B-1 | Battle generation & tactical setup scaffolding | DESIGN-37 (battle-generation.md, 931 lines — largest rules doc, likely splits further during scoping), DESIGN-26 (divisions-and-formations) | Ship data consumed by tactical battles (armor, guns, crew) promoted to reachable-format |
-| B-2 | Tactical movement, spotting, contact state | DESIGN-38 (tactical-combat.md) — movement/spotting subset only | Formation/movement constants |
-| B-3 | Gunnery | DESIGN-39 (gunnery.md) | Naval gun ballistics stats |
-| B-4 | Basic armor & damage | DESIGN-41 (damage-fire-and-flooding.md) — basic subset; detailed damage control deferred to M3 per DESIGN-55 §4 | Armor/damage tables |
-| B-5 | Tactical weather & visibility | DESIGN-42 (weather-visibility-and-smoke.md) — weather/visibility subset; smoke deferred to M3 | Weather/visibility constants |
-| B-6 | Battle results → campaign integration + M2 acceptance gate | ties back into `@bluewave/combat` and phase-engine `battle_resolution` | M2 content `SUPPORTED_MECHANICAL`; sign M2 COMPLETED |
+| #   | Sprint                                                     | Governing docs                                                                                                                              | Content deliverable                                                                     |
+| --- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| B-1 | Battle generation & tactical setup scaffolding             | DESIGN-37 (battle-generation.md, 931 lines — largest rules doc, likely splits further during scoping), DESIGN-26 (divisions-and-formations) | Ship data consumed by tactical battles (armor, guns, crew) promoted to reachable-format |
+| B-2 | Tactical movement, spotting, contact state                 | DESIGN-38 (tactical-combat.md) — movement/spotting subset only                                                                              | Formation/movement constants                                                            |
+| B-3 | Gunnery                                                    | DESIGN-39 (gunnery.md)                                                                                                                      | Naval gun ballistics stats                                                              |
+| B-4 | Basic armor & damage                                       | DESIGN-41 (damage-fire-and-flooding.md) — basic subset; detailed damage control deferred to M3 per DESIGN-55 §4                             | Armor/damage tables                                                                     |
+| B-5 | Tactical weather & visibility                              | DESIGN-42 (weather-visibility-and-smoke.md) — weather/visibility subset; smoke deferred to M3                                               | Weather/visibility constants                                                            |
+| B-6 | Battle results → campaign integration + M2 acceptance gate | ties back into `@bluewave/combat` and phase-engine `battle_resolution`                                                                      | M2 content `SUPPORTED_MECHANICAL`; sign M2 COMPLETED                                    |
 
 ### Track C — M3 Advanced Surface Warfare
 
 Depends on accepted M1 + M2 (DESIGN-55 §4).
 
-| # | Sprint | Governing docs | Content deliverable |
-| - | --- | --- | --- |
-| C-1 | Torpedoes | DESIGN-40 | Torpedo types/performance |
-| C-2 | Mine warfare | DESIGN-35 | Mine types/laying |
-| C-3 | Submarines | DESIGN-34 | Submarine classes |
-| C-4 | Coastal defenses | DESIGN-48 (short doc, 48 lines — may fold into C-3 during scoping) | Coastal-defense content |
-| C-5 | Smoke + detailed damage control | remainder of DESIGN-42, DESIGN-41 | Damage-control / smoke constants |
-| C-6 | M3 acceptance gate | | M3 content `SUPPORTED_MECHANICAL`; sign M3 COMPLETED |
+| #   | Sprint                          | Governing docs                                                     | Content deliverable                                  |
+| --- | ------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------- |
+| C-1 | Torpedoes                       | DESIGN-40                                                          | Torpedo types/performance                            |
+| C-2 | Mine warfare                    | DESIGN-35                                                          | Mine types/laying                                    |
+| C-3 | Submarines                      | DESIGN-34                                                          | Submarine classes                                    |
+| C-4 | Coastal defenses                | DESIGN-48 (short doc, 48 lines — may fold into C-3 during scoping) | Coastal-defense content                              |
+| C-5 | Smoke + detailed damage control | remainder of DESIGN-42, DESIGN-41                                  | Damage-control / smoke constants                     |
+| C-6 | M3 acceptance gate              |                                                                    | M3 content `SUPPORTED_MECHANICAL`; sign M3 COMPLETED |
 
 ### Track D — M4 Aviation
 
 Depends on accepted M1 + M2 always; any capability using torpedoes/mines/subs/smoke/
 detailed damage control also depends on the corresponding M3 capability (DESIGN-55 §5).
 
-| # | Sprint | Governing docs | Content deliverable |
-| - | --- | --- | --- |
-| D-1 | Aircraft development, squadrons, airbases | DESIGN-43 (768 lines) | Aircraft/squadron/airbase data |
-| D-2 | Carrier operations | DESIGN-44 | Carrier + airgroup content |
-| D-3 | CAP & strikes | DESIGN-43/44 integration | Mission/CAP constants |
-| D-4 | Air defense / AA | DESIGN-45 | AA gun/ship data |
-| D-5 | M4 acceptance gate | | M4 content `SUPPORTED_MECHANICAL`; sign M4 COMPLETED |
+| #   | Sprint                                    | Governing docs           | Content deliverable                                  |
+| --- | ----------------------------------------- | ------------------------ | ---------------------------------------------------- |
+| D-1 | Aircraft development, squadrons, airbases | DESIGN-43 (768 lines)    | Aircraft/squadron/airbase data                       |
+| D-2 | Carrier operations                        | DESIGN-44                | Carrier + airgroup content                           |
+| D-3 | CAP & strikes                             | DESIGN-43/44 integration | Mission/CAP constants                                |
+| D-4 | Air defense / AA                          | DESIGN-45                | AA gun/ship data                                     |
+| D-5 | M4 acceptance gate                        |                          | M4 content `SUPPORTED_MECHANICAL`; sign M4 COMPLETED |
 
 ### Track E — M5 Electronics and Missile Era
 
 Depends on all earlier accepted milestones plus full cross-domain integration
 (DESIGN-55 §6) — the heaviest dependency closure in the project.
 
-| # | Sprint | Governing docs | Content deliverable |
-| - | --- | --- | --- |
-| E-1 | Radar & electronic warfare | DESIGN-46 | Radar/EW equipment data |
-| E-2 | Data links & fighter direction | DESIGN-46 remainder | Data-link/FD content |
-| E-3 | Missiles, SAM, CIWS | DESIGN-47 | Missile/SAM/CIWS data |
-| E-4 | Jets & helicopters | cross-cutting update to DESIGN-43/44/45 for later eras | Jet/helo aircraft data |
-| E-5 | Full cross-domain integration + M5 acceptance gate | DESIGN-55 §6, §17 | All remaining content `SUPPORTED_MECHANICAL`; sign M5 COMPLETED |
+| #   | Sprint                                             | Governing docs                                         | Content deliverable                                             |
+| --- | -------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------- |
+| E-1 | Radar & electronic warfare                         | DESIGN-46                                              | Radar/EW equipment data                                         |
+| E-2 | Data links & fighter direction                     | DESIGN-46 remainder                                    | Data-link/FD content                                            |
+| E-3 | Missiles, SAM, CIWS                                | DESIGN-47                                              | Missile/SAM/CIWS data                                           |
+| E-4 | Jets & helicopters                                 | cross-cutting update to DESIGN-43/44/45 for later eras | Jet/helo aircraft data                                          |
+| E-5 | Full cross-domain integration + M5 acceptance gate | DESIGN-55 §6, §17                                      | All remaining content `SUPPORTED_MECHANICAL`; sign M5 COMPLETED |
 
 ### Release sprint (project completion)
 
-| # | Sprint | Kind | Depends on | Notes |
-| - | --- | --- | --- | --- |
+| #     | Sprint                      | Kind | Depends on           | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----- | --------------------------- | ---- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | REL-1 | **Full release validation** | Gate | all of A–E, C-tracks | Materialize the DESIGN-55 §15 scenario support manifest, §17 full-support predicate, §19 era coverage matrix, §18 capability closure, §14 unsupported-content isolation, and §29 release validation report for the production scenario; run the §22 packaged smoke suite (compile → 24 resolvable months → battle auto-resolve for every reachable mission family → save/restart/load → replay at strategic + tactical checkpoints → locked-content reachability → final hash verification). `finalDecision = PASS`. Refresh `docs/PROGRESS.md`, sign release, produce the §24 release support manifest. **This is the human-free completion gate.** |
 
 ## Cross-cutting domain docs not yet assigned to a track
@@ -221,16 +221,20 @@ ownership during the relevant scoping sprint rather than guessing now:
 ## Immediate next action
 
 The frontier is the **A-track acceptance passes** in dependency order. A-0/A-0b
-(B10b), A-1 (B9), and A-2 (B10a) are done (2026-08-11). A-3 (B10c) is **blocked
-on a decision request** — the victory-level classification predicate
-(minor/major/decisive → `+2/+5/+10`) is unspecified in all canonical sources
+(B10b), A-1 (B9), A-2 (B10a) are done, **CONTENT-0 (production content
+strategy charter) is DONE** (2026-08-11), and **CONTENT-1 (M1-era production
+pack) is DONE/PASS** (2026-08-11, `.ai/reports/content-1-m1-production-content.md`).
+A-3 (B10c) remains **blocked on a decision request** — the victory-level
+classification predicate (minor/major/decisive → `+2/+5/+10`) is unspecified in
+all canonical sources
 (`.ai/reports/decision-request-victory-classification.md`). Next:
 
 1. **A-3 (B10c Diplomacy & War)** — resumes once the owner resolves the
    decision request (or authorizes Option A in it). Brief ready.
-2. **CONTENT-0 (content strategy + production-pack charter)** — runs in
-   parallel whenever the mechanics sprints block; decide the production
-   scenario and pack structure so content research proceeds autonomously.
-   **Not blocked by A-3** — it is a scoping sprint with no mechanic dependency.
+2. **CONTENT-2 (M1 tactical / later-era production content)** — after
+   CONTENT-1, continue the production pack toward the M1/earlier-bands slice
+   (deployment, blockades, and PRE_WAR-band content), and/or land the M1-era
+   battleground/mission content flagged in the CONTENT-1 charter as later-band
+   work. Depends on CONTENT-1 (done). Not blocked by A-3.
 
-Resume at A-3 after the decision; CONTENT-0 may run in parallel.
+Resume at A-3 after the decision; CONTENT-2 may run in the meantime.
