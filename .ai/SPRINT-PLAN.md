@@ -103,15 +103,12 @@ full turbo cache), not by reading docs:
 | B0–B8 | Committed, tests green — matches PROGRESS.md |
 | B9 Electron shell | Committed (`fd066c7`, `043f91c`, `8bbb371`, `7022a88`…); desktop build + tests green |
 | B10a Economy & Construction | Committed (`bcc14d4`) |
-| B10b Research & Ship Design | **Committed** (`7298af6`), not in-flight. The previously-uncommitted WIP and the fixture/typing stabilization plus the `populates all ledgers` fixture gap were all resolved and committed; golden determinism hash regenerated. |
+| B10b Research & Ship Design | **PARTIAL — NOT ACCEPTED** (A-0 pass, 2026-08-11). Build green and generic determinism proven, but the brief's 17 acceptance criteria are not satisfied: `SetResearchPriorityCommand` has no lifecycle handler (`lifecycle.ts` rejects it as `UNKNOWN_COMMAND_TYPE`), no cycle detection (`TECHNOLOGY_PREREQUISITE_CYCLE`), no `DesignTemplateSchema`, and design/YAML fixtures are absent. Full per-criterion evidence: `.ai/reports/a0-b10b-acceptance.md`. Do not treat as accepted; B10c depends on a genuinely accepted B10b. |
 | B10c Diplomacy & War | Not started; brief ready at `.ai/briefs/b10c-diplomacy-war.md` |
 | B10d AI & Scenario Readiness | Not started; brief ready at `.ai/briefs/b10d-ai-scenario.md` |
 | M2–M5 | No briefs. Only DESIGN docs exist. No content workstream exists yet (it begins here). |
 
-> **Stale notes now resolved:** earlier drafts of this file said B10b was
-> uncommitted in-progress work needing a one-off fixture/RNG repair; that is done.
-> Do not re-open it as a blocker — Sprint A-0 re-verifies simply as an
-> acceptance-evidence pass.
+> **Correction (2026-08-11, A-0 pass):** earlier drafts claimed B10b was "committed and green with nothing but evidence missing." Sprint A-0 re-verified the 17 acceptance criteria against the actual code and found the claim **false**: several criteria have no implementation (priority-command handling, `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`, `TECHNOLOGY_PREREQUISITE_CYCLE` cycle detection, `DesignTemplateSchema`) and most others have no proving tests. The goldens were regenerated for a generic (non-research, no-budget) fixture, so research determinism was never exercised. B10b is therefore **not accepted**; the plan now treats it as a real implementation sprint, not a verify pass.
 
 ## Sprint sequence
 
@@ -122,10 +119,11 @@ workstream paired to each milestone.
 
 | # | Sprint | Kind | Depends on | Notes |
 | - | --- | --- | --- | --- |
-| A-0 | **B10b acceptance pass** | Implementation (verify) | none | Run full `.ai/IMPLEMENTATION-PROMPT.md` §6 against `.ai/briefs/b10b-research-design.md` acceptance criteria (17 items). Evidence is the gap; code is already committed and green. |
+| A-0 | **B10b acceptance pass** | Implementation (verify) | none | **DONE 2026-08-11 — BLOCKED.** Re-verified all 17 criteria against code. Verdict BLOCKED: 3 criteria unimplemented, 10+ unproven, only 15–17 pass. Evidence: `.ai/reports/a0-b10b-acceptance.md`. This is now the acceptance gate for a real B10b implementation sprint. |
+| A-0b | **B10b completion** | Implementation | A-0 | Close the verified acceptance gap: implement `SetResearchPriorityCommand` lifecycle (=B10c blocks on it), exact-tech rejection, prerequisite-cycle detection, `DesignTemplateSchema` + design YAML fixtures, `IMMEDIATE_KNOWLEDGE` handling, and add proof tests for every criterion 1–14. Then re-run A-0 to PASS. Introduce ADR for phase-id alias. |
 | A-1 | B9 acceptance pass | Implementation (verify) | none | Run the B9 brief's acceptance criteria and produce the never-written validation report (`b9-desktop-shell.md`, `B9-ELECTRON-BOUNDARY.md`). |
 | A-2 | B10a acceptance pass | Implementation (verify) | none | Same — code committed, acceptance evidence missing. |
-| A-3 | B10c Diplomacy & War | Implementation | A-0 | Brief ready: `.ai/briefs/b10c-diplomacy-war.md`. |
+| A-3 | B10c Diplomacy & War | Implementation | A-0b | Brief ready: `.ai/briefs/b10c-diplomacy-war.md`. |
 | A-4 | B10d AI & Scenario Readiness | Implementation | A-3 | Brief ready: `.ai/briefs/b10d-ai-scenario.md`. Lands the 24-month zero-human-input smoke loop — the M1 runtime milestone. |
 | A-5 | M1 formal acceptance gate | Gate | A-0…A-4 | Apply DESIGN-55 §9 to every M1 capability; reconcile `docs/OPEN-ISSUES.md` (resolve the stale "126 items" claim and close/ADR every open M1 ambiguity); refresh `docs/PROGRESS.md`; sign `M1_STRATEGIC_CAMPAIGN_KERNEL` COMPLETED per §23. |
 | CONTENT-0 | **Content strategy + production-pack charter** | Scoping | none (runs parallel to A-0…) | Decide the production content architecture: pick primary `FULLY_SUPPORTED` scenario(s), start date, reachable era bands (§11/§17), codebase layout, and the production pack module(s). Land a content charter brief + content map. This founders every later content sprint. |
@@ -222,15 +220,14 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-Two sprints are ready to run right now, in dependency order, with **no open scope
-question**:
+The frontier is **A-0b (B10b completion)** — the A-0 acceptance pass (2026-08-11)
+proved the committed B10b code does **not** satisfy its 17-criteria brief. Close
+that acceptance gap first; nothing downstream (A-3 B10c, A-4 B10d) may start on
+an unaccepted B10b. Next in order once A-0b reaches `PASS` on the re-run:
 
-1. **A-0 (B10b acceptance pass)** — re-verify the already-committed, green B10b
-   work against the brief's acceptance criteria and write the validation report;
-   then A-1/A-2 for B9/B10a evidence. This is the current frontier.
-2. **CONTENT-0 (content strategy + production-pack charter)** — decide the production
-   scenario and pack structure so that from here on, content research proceeds
-   autonomously without the owner supplying data.
+1. Re-run the A-0 acceptance evidence against the completed B10b and record `PASS`.
+2. **CONTENT-0 (content strategy + production-pack charter)** — decide the
+   production scenario and pack structure so content research proceeds
+   autonomously; runs in parallel with the mechanics sprints.
 
-Begin with A-0; run CONTENT-0 in parallel whenever the mechanics sprints block on
-content, since the content strategy does not depend on any mechanic being accepted.
+Begin with A-0b.

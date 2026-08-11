@@ -78,13 +78,22 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 
 ### B10b — Research & Ship Design
 
+> **Status (2026-08-11): scoped/partially implemented, NOT accepted.** The A-0
+> acceptance pass re-verified the brief's 17 acceptance criteria against the code
+> and found them largely unsatisfied (see `.ai/reports/a0-b10b-acceptance.md`):
+> `SetResearchPriorityCommand` has no lifecycle handler, cycle detection and the
+> `DesignTemplateSchema` are missing, design YAML fixtures are absent, and most
+> criteria lack proving tests. `resolveResearchPhase` is wired into the month
+> pipeline with conversion, allocation, eligibility, keyed selection, and
+> `RESEARCH_EXPENDITURE` posting, but this is unproven under the brief.
+
 | Capability                            | Readiness         | Key decisions                                                    |
 | ------------------------------------- | ----------------- | ---------------------------------------------------------------- |
-| Research (15-field, 8-stage pipeline) | Scope brief ready | Expenditure-driven, deterministic discovery selection            |
-| Ship design (YAML templates)          | Scope brief ready | `CompiledDesignVersion` immutable records, design-family lineage |
-| Integration with construction         | Scope brief ready |                                                                  |
-| Fixture                               | Scope brief ready | + tech tree and design templates                                 |
-| Acceptance                            | —                 | Brief at `.ai/briefs/b10b-research-design.md`                    |
+| Research (15-field, 8-stage pipeline) | Partial impl, no proof | `resolveResearchPhase` ported; command surface (priorities) missing |
+| Ship design (YAML templates)          | Partial impl, no proof | `CompiledDesignVersion` + compiler path exist; no schema/fixtures |
+| Integration with construction         | Partial impl, no proof | completion uses design attrs only when `designVersionId` present |
+| Fixture                               | Missing           | No 3-nation research fixture, no GER research, `designFiles: []` |
+| Acceptance                            | BLOCKED           | `.ai/reports/a0-b10b-acceptance.md`; re-run after A-0b completion |
 
 ### B10c — Diplomacy & War
 
