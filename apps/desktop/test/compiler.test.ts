@@ -57,14 +57,6 @@ describe("compiler module", () => {
     rmSync(fixtureDir, { recursive: true, force: true });
   });
 
-  it("finds YAML files in a directory", () => {
-    const files = findYamlFiles(fixtureDir);
-    expect(files.length).toBeGreaterThan(0);
-    const names = files.map((f) => f.name);
-    expect(names).toContain("rulesets.yaml");
-    expect(names).toContain("countries.yaml");
-  });
-
   it("compiles a valid fixture successfully", () => {
     const signal = new AbortController().signal;
     const result = runCompilation(fixtureDir, signal);

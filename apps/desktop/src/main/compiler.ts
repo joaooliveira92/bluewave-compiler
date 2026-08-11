@@ -1,5 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { CampaignCompiler } from "@bluewave/campaign";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
 
 export interface CompileResult {
   success: boolean;
