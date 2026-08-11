@@ -30,7 +30,7 @@ const FIXTURE = {
 
   rulesets: `- id: "core"\n  name: "Core Rules"\n  version: "1.0"\n`,
 
-  countries: `- id: "GBR"\n  name: "United Kingdom"\n  tag: "GBR"\n- id: "FRA"\n  name: "France"\n  tag: "FRA"\n`,
+  countries: `- id: "GBR"\n  name: "United Kingdom"\n  tag: "GBR"\n  isPlayable: true\n- id: "FRA"\n  name: "France"\n  tag: "FRA"\n  isPlayable: false\n`,
 
   areas: `- id: "lon"\n  name: "London"\n  type: "land"\n  controller: "GBR"\n- id: "par"\n  name: "Paris"\n  type: "land"\n  controller: "FRA"\n- id: "eng_ch"\n  name: "English Channel"\n  type: "sea"\n`,
 

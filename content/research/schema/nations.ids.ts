@@ -231,7 +231,7 @@ export const CoreAnxietySchema = z.enum([
 ]);
 export type CoreAnxiety = z.infer<typeof CoreAnxietySchema>;
 
-/** 24 distinct canonical gameplay feels (one per nation) */
+/** Canonical gameplay feels, one per nation (not all values distinct) */
 export const GameplayFeelSchema = z.enum([
   "manage_supremacy",
   "build_concentrated_relevance",

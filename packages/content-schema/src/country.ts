@@ -199,6 +199,7 @@ export const PresentationSchema = z
 
 export const NationSlotSchema = z
   .object({
+    id: z.string().optional(),
     order: z.number(),
     participation: z.enum(["active", "inactive", "conditional"]),
   })

@@ -179,7 +179,7 @@ export const CoreAnxietySchema = z.enum([
 ]);
 export type CoreAnxiety = z.infer<typeof CoreAnxietySchema>;
 
-/** 24 distinct canonical gameplay feels (one per nation) */
+/** Canonical gameplay feels, one per nation (not all values distinct) */
 export const GameplayFeelSchema = z.enum([
   "manage_supremacy",
   "build_concentrated_relevance",
@@ -281,13 +281,6 @@ export const StabilityProfileSchema = z
   })
   .strict()
   .describe("Domestic stability level and contributing factors");
-
-export const CanalDependencySchema = z
-  .object({
-    suez: z.string(),
-    panama: z.string(),
-  })
-  .strict();
 
 // ══════════════════════════════════════════════════════════════════════
 // Phase 1 additive fields — spec-driven
@@ -464,38 +457,13 @@ export const NationSchema = z
   .describe("Canonical nation definition, January 1880");
 
 // ══════════════════════════════════════════════════════════════════════
-// Pack envelope
-// ══════════════════════════════════════════════════════════════════════
-
-export const ProvenanceSchema = z.enum([
-  "CANONICAL_CONTENT",
-  "MANUAL_EXPLICIT",
-  "DESIGN_DECISION",
-  "GENERATED_CANONICAL",
-  "SCENARIO_OVERRIDE",
-  "RULESET_CONSTANT",
-  "DEPRECATED",
-]);
-
-export const NationsPackSchema = z
-  .object({
-    scenario: z.string(),
-    continuityMode: z.enum(["historical", "alternate_continuity_v1"]),
-    provenance: ProvenanceSchema,
-    nations: z.array(NationSchema),
-  })
-  .strict();
-
-// ══════════════════════════════════════════════════════════════════════
 // Inferred types
 // ══════════════════════════════════════════════════════════════════════
 
 export type NationRegime = z.infer<typeof NationRegimeSchema>;
 export type Nation = z.infer<typeof NationSchema>;
 export type NationSlot = z.infer<typeof NationSlotSchema>;
-export type NationsPack = z.infer<typeof NationsPackSchema>;
 export type StabilityProfile = z.infer<typeof StabilityProfileSchema>;
-export type CanalDependency = z.infer<typeof CanalDependencySchema>;
 export type Presentation = z.infer<typeof PresentationSchema>;
 export type Identity = z.infer<typeof IdentitySchema>;
 export type Economy = z.infer<typeof EconomySchema>;

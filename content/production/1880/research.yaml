@@ -1,4 +1,4 @@
-- nationId: "GBR"
+- nationId: "uk"
   researchBudget: 60
   currentProjectTechId: "mac_triple_expansion"
   fieldPriorities:
@@ -14,7 +14,7 @@
     - { techId: "infra_dry_dock", investedPoints: 50, completed: true }
     - { techId: "infra_coaling_station", investedPoints: 50, completed: true }
     - { techId: "dc_iron_subdivision", investedPoints: 55, completed: true }
-- nationId: "FRA"
+- nationId: "france"
   researchBudget: 55
   currentProjectTechId: "mac_triple_expansion"
   fieldPriorities:
@@ -26,7 +26,7 @@
     - { techId: "mac_compound_engine", investedPoints: 60, completed: true }
     - { techId: "sd_ironclad_design", investedPoints: 55, completed: true }
     - { techId: "gun_breech_rifled", investedPoints: 60, completed: true }
-- nationId: "GER"
+- nationId: "germany"
   researchBudget: 30
   currentProjectTechId: "gun_qf_light"
   fieldPriorities:
@@ -37,7 +37,7 @@
     - { techId: "mac_compound_engine", investedPoints: 60, completed: true }
     - { techId: "sd_ironclad_design", investedPoints: 55, completed: true }
     - { techId: "gun_breech_rifled", investedPoints: 60, completed: true }
-- nationId: "RUS"
+- nationId: "russia"
   researchBudget: 40
   currentProjectTechId: "mac_triple_expansion"
   fieldPriorities:
@@ -46,7 +46,7 @@
   technologies:
     - { techId: "hc_wrought_iron_hull", investedPoints: 50, completed: true }
     - { techId: "mac_compound_engine", investedPoints: 60, completed: true }
-- nationId: "ITA"
+- nationId: "italy"
   researchBudget: 30
   currentProjectTechId: "hc_compound_armor"
   fieldPriorities:
@@ -55,7 +55,7 @@
   technologies:
     - { techId: "hc_wrought_iron_hull", investedPoints: 50, completed: true }
     - { techId: "mac_compound_engine", investedPoints: 60, completed: true }
-- nationId: "AUT"
+- nationId: "austria_hungary"
   researchBudget: 20
   currentProjectTechId: "gun_qf_light"
   fieldPriorities:
@@ -63,44 +63,44 @@
     MACHINERY: 2
   technologies:
     - { techId: "hc_wrought_iron_hull", investedPoints: 50, completed: true }
-- nationId: "USA"
+- nationId: "usa"
   researchBudget: 20
   currentProjectTechId: "hc_compound_armor"
   fieldPriorities:
     HULL_CONSTRUCTION: 2
   technologies:
     - { techId: "hc_wrought_iron_hull", investedPoints: 50, completed: true }
-- nationId: "JPN"
+- nationId: "japan"
   researchBudget: 10
   fieldPriorities:
     GUNNERY: 2
   technologies:
     - { techId: "hc_wrought_iron_hull", investedPoints: 50, completed: true }
-- nationId: "OTT"
+- nationId: "ottoman_empire"
   researchBudget: 12
   fieldPriorities:
     GUNNERY: 2
   technologies: []
-- nationId: "ESP"
+- nationId: "spain"
   researchBudget: 12
   fieldPriorities:
     GUNNERY: 2
   technologies: []
-- nationId: "NLD"
+- nationId: "netherlands"
   researchBudget: 6
   fieldPriorities: {}
   technologies: []
-- nationId: "POR"
+- nationId: "portugal"
   researchBudget: 4
   fieldPriorities: {}
   technologies: []
-- nationId: "CHI"
+- nationId: "qing"
   researchBudget: 8
   fieldPriorities:
     GUNNERY: 2
   technologies:
     - { techId: "hc_wrought_iron_hull", investedPoints: 50, completed: true }
-- nationId: "BRA"
+- nationId: "brazil"
   researchBudget: 4
   fieldPriorities: {}
   technologies: []

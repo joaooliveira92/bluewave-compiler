@@ -216,7 +216,7 @@ export class CampaignCompiler {
     }
 
     // Step 7: Determine slots - sorted for determinism
-    const slots = this.buildSlots(pack);
+    const slots = this.buildSlots(nations);
 
     // Step 8: Build intelligence shell
     const intelligence = { shells: {} };
@@ -267,18 +267,31 @@ export class CampaignCompiler {
     return all;
   }
 
-  private buildSlots(pack: ContentPack): CampaignSlot[] {
+  private buildSlots(nations: Map<string, NationState>): CampaignSlot[] {
     const slots: CampaignSlot[] = [];
-    for (const country of pack.countries) {
-      const countryRec = country as Record<string, unknown>;
-      const id = countryRec["id"];
-      if (typeof id === "string") {
-        slots.push({ nationId: id, type: id === "GBR" ? "playable" : "ai" });
-      }
+    for (const [id, nation] of nations) {
+      slots.push({ nationId: id, type: nation.isPlayable ? "playable" : "ai" });
     }
-    // deterministic: alphabetical, ensures FRA before GBR regardless of file order
+    // deterministic: alphabetical nationId order regardless of file insertion order
     slots.sort((a, b) => a.nationId.localeCompare(b.nationId));
     return slots;
+  }
+
+  private isNationPlayable(
+    id: string,
+    countryRec: Record<string, unknown>,
+    collector: DiagnosticCollectorType,
+  ): boolean {
+    const flag = countryRec["isPlayable"];
+    if (typeof flag !== "boolean") {
+      collector.addError(
+        "CAMPAIGN-ISPLAYABLE",
+        `Nation '${id}' is missing the required isPlayable flag`,
+        { stage: "campaign-compile", entityId: id },
+      );
+      return false;
+    }
+    return flag;
   }
 
   private buildWorldState(pack: ContentPack): WorldState {
@@ -335,6 +348,8 @@ export class CampaignCompiler {
       const countryRec = country as Record<string, unknown>;
       const id = String(countryRec["id"] ?? "");
 
+      const isPlayable = this.isNationPlayable(id, countryRec, collector);
+
       const fleets = this.buildFleets(fleetsData, id);
       const research = this.buildResearch(researchData, id);
       const constructions = this.buildConstructions(constructionsData, id);
@@ -365,8 +380,8 @@ export class CampaignCompiler {
         fleets,
         research,
         constructionProjects: constructions,
-        isPlayable: id === "GBR",
-        isAI: id !== "GBR",
+        isPlayable,
+        isAI: !isPlayable,
       });
     }
 

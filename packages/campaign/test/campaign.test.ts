@@ -47,9 +47,11 @@ const FIXTURE = {
 - id: "GBR"
   name: "United Kingdom"
   tag: "GBR"
+  isPlayable: true
 - id: "FRA"
   name: "France"
   tag: "FRA"
+  isPlayable: false
 `,
 
   areas: `
@@ -307,6 +309,136 @@ describe("CampaignCompiler", () => {
 
       // Verify intelligence shell
       expect(output!.state.snapshot.intelligence.shells).toEqual({});
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("marks a nation playable from its data isPlayable flag, not its id", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFile(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({
+          name: "flag-drive",
+          version: "0.1.0",
+          type: "fixture",
+          files: { countries: ["countries.yaml"] },
+        }),
+      );
+      writeFile(
+        fixture.path,
+        "countries.yaml",
+        `
+- id: "FRA"
+  name: "France"
+  tag: "FRA"
+  isPlayable: true
+`,
+      );
+
+      const compiler = new CampaignCompiler();
+      const collector = new DiagnosticCollector();
+      const signal = new AbortController().signal;
+
+      const output = compiler.compile(
+        {
+          compilerInput: {
+            manifestPath: "pack.json",
+            contentDir: fixture.path,
+            rulesetFiles: [],
+            countryFiles: ["countries.yaml"],
+            areaFiles: [],
+            routeFiles: [],
+            possessionFiles: [],
+            portFiles: [],
+            technologyFiles: [],
+          },
+          campaignFiles: {
+            fleetFiles: [],
+            economyFiles: [],
+            constructionFiles: [],
+            diplomacyFiles: [],
+            researchFiles: [],
+            designFiles: [],
+          },
+          rulesetVersion: "1.0",
+          compatibilityVersion: "0.1.0",
+        },
+        signal,
+        collector,
+      );
+
+      expect(collector.hasErrors).toBe(false);
+      expect(output).toBeDefined();
+      expect(output!.state.snapshot.slots).toEqual([{ nationId: "FRA", type: "playable" }]);
+      const fra = output!.state.snapshot.nations.get("FRA")!;
+      expect(fra.isPlayable).toBe(true);
+      expect(fra.isAI).toBe(false);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("fails with a diagnostic when a nation is missing the isPlayable flag", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFile(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({
+          name: "missing-flag",
+          version: "0.1.0",
+          type: "fixture",
+          files: { countries: ["countries.yaml"] },
+        }),
+      );
+      writeFile(
+        fixture.path,
+        "countries.yaml",
+        `
+- id: "FRA"
+  name: "France"
+  tag: "FRA"
+`,
+      );
+
+      const compiler = new CampaignCompiler();
+      const collector = new DiagnosticCollector();
+      const signal = new AbortController().signal;
+
+      const output = compiler.compile(
+        {
+          compilerInput: {
+            manifestPath: "pack.json",
+            contentDir: fixture.path,
+            rulesetFiles: [],
+            countryFiles: ["countries.yaml"],
+            areaFiles: [],
+            routeFiles: [],
+            possessionFiles: [],
+            portFiles: [],
+            technologyFiles: [],
+          },
+          campaignFiles: {
+            fleetFiles: [],
+            economyFiles: [],
+            constructionFiles: [],
+            diplomacyFiles: [],
+            researchFiles: [],
+            designFiles: [],
+          },
+          rulesetVersion: "1.0",
+          compatibilityVersion: "0.1.0",
+        },
+        signal,
+        collector,
+      );
+
+      expect(output).toBeUndefined();
+      expect(collector.hasErrors).toBe(true);
+      expect(collector.errors.some((d) => d.code === "CAMPAIGN-ISPLAYABLE")).toBe(true);
     } finally {
       fixture.cleanup();
     }

@@ -19,9 +19,9 @@ describe("production pack (content/production/1880)", () => {
 
     const nations = result.nations ?? [];
     expect(nations.length).toBe(14);
-    expect(nations.some((n) => n.id === "GBR")).toBe(true);
-    expect(nations.some((n) => n.id === "FRA")).toBe(true);
-    expect(nations.some((n) => n.id === "CHI")).toBe(true);
+    expect(nations.some((n) => n.id === "uk")).toBe(true);
+    expect(nations.some((n) => n.id === "france")).toBe(true);
+    expect(nations.some((n) => n.id === "qing")).toBe(true);
 
     // Determinism: a second compile produces identical hashes.
     const second = runCompilation(PRODUCTION_PACK, signal);

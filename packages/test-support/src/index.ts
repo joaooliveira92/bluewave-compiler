@@ -42,12 +42,15 @@ export const VALID_COUNTRIES_YAML = `
 - id: "GBR"
   name: "United Kingdom"
   tag: "GBR"
+  isPlayable: true
 - id: "FRA"
   name: "France"
   tag: "FRA"
+  isPlayable: false
 - id: "DEU"
   name: "Germany"
   tag: "DEU"
+  isPlayable: false
 `;
 
 export const VALID_AREAS_YAML = `

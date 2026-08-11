@@ -25,7 +25,7 @@ const FIXTURE_FILES: Record<string, string> = {
     },
   }),
   "rulesets.yaml": `- id: "core"\n  name: "Core Rules"\n  version: "1.0"\n`,
-  "countries.yaml": `- id: "GBR"\n  name: "United Kingdom"\n  tag: "GBR"\n- id: "FRA"\n  name: "France"\n  tag: "FRA"\n`,
+  "countries.yaml": `- id: "GBR"\n  name: "United Kingdom"\n  tag: "GBR"\n  isPlayable: true\n- id: "FRA"\n  name: "France"\n  tag: "FRA"\n  isPlayable: false\n`,
   "areas.yaml": `- id: "lon"\n  name: "London"\n  type: "land"\n  controller: "GBR"\n- id: "par"\n  name: "Paris"\n  type: "land"\n  controller: "FRA"\n- id: "eng_ch"\n  name: "English Channel"\n  type: "sea"\n`,
   "routes.yaml": `- id: "lon-par"\n  from: "lon"\n  to: "par"\n  type: "sea"\n  distance: 300\n- id: "lon-eng_ch"\n  from: "lon"\n  to: "eng_ch"\n  type: "sea"\n  distance: 50\n- id: "par-eng_ch"\n  from: "par"\n  to: "eng_ch"\n  type: "sea"\n  distance: 100\n`,
   "possessions.yaml": `- id: "gbr-lon"\n  countryId: "GBR"\n  areaId: "lon"\n- id: "fra-par"\n  countryId: "FRA"\n  areaId: "par"\n`,

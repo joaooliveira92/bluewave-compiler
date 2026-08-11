@@ -27,7 +27,6 @@ export {
   PresentationSchema,
   NationSlotSchema,
   StabilityProfileSchema,
-  CanalDependencySchema,
   StrategicObjectivesSchema,
   BaseResourcesSchema,
   NavalAppropriationSchema,
@@ -39,8 +38,6 @@ export {
   ShipDesignSchema,
   AiSchema,
   MilitarySchema,
-  ProvenanceSchema,
-  NationsPackSchema,
 } from "./nation.js";
 export type {
   Nation,
@@ -62,7 +59,6 @@ export type {
   NationRegime,
   NationSlot,
   StabilityProfile,
-  CanalDependency,
   Presentation,
   Identity,
   Economy,
@@ -74,7 +70,6 @@ export type {
   StrategicObjectives,
   BaseResources,
   NavalAppropriation,
-  NationsPack,
 } from "./nation.js";
 
 export type { Area } from "./area.js";

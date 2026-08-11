@@ -1,5 +1,5 @@
 - id: "fleet_gbr_home"
-  nationId: "GBR"
+  nationId: "uk"
   name: "Home Fleet"
   locationAreaId: "eng_home_coast"
   ships:
@@ -43,7 +43,7 @@
         constructionTotalWork: 0,
       }
 - id: "fleet_gbr_mediterranean"
-  nationId: "GBR"
+  nationId: "uk"
   name: "Mediterranean Fleet"
   locationAreaId: "med_malta"
   ships:
@@ -61,12 +61,12 @@
         constructionTotalWork: 0,
       }
 - id: "fleet_gbr_cape"
-  nationId: "GBR"
+  nationId: "uk"
   name: "Cape & East Indies Squadron"
   locationAreaId: "africa_cape"
   ships: []
 - id: "fleet_fra_med"
-  nationId: "FRA"
+  nationId: "france"
   name: "Escadre de la Méditerranée"
   locationAreaId: "fra_med_coast"
   ships:
@@ -97,7 +97,7 @@
         constructionTotalWork: 100,
       }
 - id: "fleet_fra_chan"
-  nationId: "FRA"
+  nationId: "france"
   name: "Escadre du Nord"
   locationAreaId: "fra_chan_coast"
   ships:
@@ -115,7 +115,7 @@
         constructionTotalWork: 100,
       }
 - id: "fleet_ger_home"
-  nationId: "GER"
+  nationId: "germany"
   name: "Deutsche Flotte"
   locationAreaId: "ger_ndgermany_coast"
   ships:
@@ -146,7 +146,7 @@
         constructionTotalWork: 100,
       }
 - id: "fleet_rus_baltic"
-  nationId: "RUS"
+  nationId: "russia"
   name: "Baltic Fleet"
   locationAreaId: "rus_baltic_coast"
   ships:
@@ -164,7 +164,7 @@
         constructionTotalWork: 0,
       }
 - id: "fleet_rus_blacksea"
-  nationId: "RUS"
+  nationId: "russia"
   name: "Black Sea Fleet"
   locationAreaId: "rus_blacksea_coast"
   ships:
@@ -182,7 +182,7 @@
         constructionTotalWork: 100,
       }
 - id: "fleet_aut_adriatic"
-  nationId: "AUT"
+  nationId: "austria_hungary"
   name: "Österreichische Flotte"
   locationAreaId: "auh_adriatic_coast"
   ships:
@@ -213,7 +213,7 @@
         constructionTotalWork: 0,
       }
 - id: "fleet_ita_home"
-  nationId: "ITA"
+  nationId: "italy"
   name: "Regia Marina"
   locationAreaId: "ita_tyrrhenian_coast"
   ships:
@@ -244,7 +244,7 @@
         constructionTotalWork: 100,
       }
 - id: "fleet_usa_atlantic"
-  nationId: "USA"
+  nationId: "usa"
   name: "North Atlantic Squadron"
   locationAreaId: "usa_atlantic_coast"
   ships:
@@ -262,7 +262,7 @@
         constructionTotalWork: 100,
       }
 - id: "fleet_jpn_home"
-  nationId: "JPN"
+  nationId: "japan"
   name: "Teikoku Kaigun"
   locationAreaId: "jpn_home_coast"
   ships:
@@ -280,7 +280,7 @@
         constructionTotalWork: 0,
       }
 - id: "fleet_ott_home"
-  nationId: "OTT"
+  nationId: "ottoman_empire"
   name: "Osmanlı Donanması"
   locationAreaId: "ott_marmara_coast"
   ships:
@@ -298,7 +298,7 @@
         constructionTotalWork: 0,
       }
 - id: "fleet_esp_home"
-  nationId: "ESP"
+  nationId: "spain"
   name: "Armada Española"
   locationAreaId: "spa_atlantic_coast"
   ships:
@@ -316,22 +316,22 @@
         constructionTotalWork: 0,
       }
 - id: "fleet_nld_home"
-  nationId: "NLD"
+  nationId: "netherlands"
   name: "Koninklijke Marine"
   locationAreaId: "ned_home_coast"
   ships: []
 - id: "fleet_nld_dei"
-  nationId: "NLD"
+  nationId: "netherlands"
   name: "Indische Militaire Marine"
   locationAreaId: "dei_java"
   ships: []
 - id: "fleet_por_home"
-  nationId: "POR"
+  nationId: "portugal"
   name: "Marinha Portuguesa"
   locationAreaId: "por_home_coast"
   ships: []
 - id: "fleet_chi_north"
-  nationId: "CHI"
+  nationId: "qing"
   name: "Beiyang Fleet"
   locationAreaId: "chi_north_coast"
   ships:
@@ -349,7 +349,7 @@
         constructionTotalWork: 100,
       }
 - id: "fleet_bra_home"
-  nationId: "BRA"
+  nationId: "brazil"
   name: "Armada Imperial"
   locationAreaId: "bra_rio_coast"
   ships: []

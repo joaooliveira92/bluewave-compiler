@@ -1,7 +1,7 @@
 - designId: "des_gbr_inflexible"
   designVersionId: "des_gbr_inflexible"
   designFamilyId: "fam_gbr_inflexible"
-  nationId: "GBR"
+  nationId: "uk"
   className: "Inflexible"
   hullType: "ironclad_turret_ship"
   displacementKg: 11880000
@@ -18,7 +18,7 @@
 - designId: "des_gbr_dreadnought75"
   designVersionId: "des_gbr_dreadnought75"
   designFamilyId: "fam_gbr_dreadnought75"
-  nationId: "GBR"
+  nationId: "uk"
   className: "Dreadnought (1875)"
   hullType: "ironclad_turret_ship"
   displacementKg: 11060000
@@ -35,7 +35,7 @@
 - designId: "des_gbr_devastation"
   designVersionId: "des_gbr_devastation"
   designFamilyId: "fam_gbr_devastation"
-  nationId: "GBR"
+  nationId: "uk"
   className: "Devastation"
   hullType: "ironclad_turret_ship"
   displacementKg: 9400000
@@ -52,7 +52,7 @@
 - designId: "des_gbr_alexandra"
   designVersionId: "des_gbr_alexandra"
   designFamilyId: "fam_gbr_alexandra"
-  nationId: "GBR"
+  nationId: "uk"
   className: "Alexandra"
   hullType: "central_battery_ship"
   displacementKg: 9500000
@@ -69,7 +69,7 @@
 - designId: "des_fra_redoutable"
   designVersionId: "des_fra_redoutable"
   designFamilyId: "fam_fra_redoutable"
-  nationId: "FRA"
+  nationId: "france"
   className: "Redoutable"
   hullType: "central_battery_ship"
   displacementKg: 8860000
@@ -86,7 +86,7 @@
 - designId: "des_fra_amiral_duperre"
   designVersionId: "des_fra_amiral_duperre"
   designFamilyId: "fam_fra_amiral_duperre"
-  nationId: "FRA"
+  nationId: "france"
   className: "Amiral Duperré"
   hullType: "monitor"
   displacementKg: 11200000
@@ -103,7 +103,7 @@
 - designId: "des_ger_kaiser"
   designVersionId: "des_ger_kaiser"
   designFamilyId: "fam_ger_kaiser"
-  nationId: "GER"
+  nationId: "germany"
   className: "Kaiser"
   hullType: "central_battery_ship"
   displacementKg: 7650000
@@ -120,7 +120,7 @@
 - designId: "des_ger_sachsen"
   designVersionId: "des_ger_sachsen"
   designFamilyId: "fam_ger_sachsen"
-  nationId: "GER"
+  nationId: "germany"
   className: "Sachsen"
   hullType: "coast_defense_ship"
   displacementKg: 7640000
@@ -137,7 +137,7 @@
 - designId: "des_rus_petrveliky"
   designVersionId: "des_rus_petrveliky"
   designFamilyId: "fam_rus_petrveliky"
-  nationId: "RUS"
+  nationId: "russia"
   className: "Petr Veliky"
   hullType: "ironclad_turret_ship"
   displacementKg: 10570000
@@ -154,7 +154,7 @@
 - designId: "des_rus_ekaterina2"
   designVersionId: "des_rus_ekaterina2"
   designFamilyId: "fam_rus_ekaterina2"
-  nationId: "RUS"
+  nationId: "russia"
   className: "Ekaterina II"
   hullType: "ironclad_turret_ship"
   displacementKg: 10000000
@@ -171,7 +171,7 @@
 - designId: "des_aut_tegetthoff"
   designVersionId: "des_aut_tegetthoff"
   designFamilyId: "fam_aut_tegetthoff"
-  nationId: "AUT"
+  nationId: "austria_hungary"
   className: "Tegetthoff"
   hullType: "central_battery_ship"
   displacementKg: 7510000
@@ -188,7 +188,7 @@
 - designId: "des_ita_duilio"
   designVersionId: "des_ita_duilio"
   designFamilyId: "fam_ita_duilio"
-  nationId: "ITA"
+  nationId: "italy"
   className: "Duilio"
   hullType: "ironclad_turret_ship"
   displacementKg: 11140000
@@ -205,7 +205,7 @@
 - designId: "des_ita_italia"
   designVersionId: "des_ita_italia"
   designFamilyId: "fam_ita_italia"
-  nationId: "ITA"
+  nationId: "italy"
   className: "Italia"
   hullType: "monitor"
   displacementKg: 13900000
@@ -222,7 +222,7 @@
 - designId: "des_usa_amphitrite"
   designVersionId: "des_usa_amphitrite"
   designFamilyId: "fam_usa_amphitrite"
-  nationId: "USA"
+  nationId: "usa"
   className: "Amphitrite"
   hullType: "monitor"
   displacementKg: 4000000
@@ -239,7 +239,7 @@
 - designId: "des_jpn_fuso"
   designVersionId: "des_jpn_fuso"
   designFamilyId: "fam_jpn_fuso"
-  nationId: "JPN"
+  nationId: "japan"
   className: "Fusō"
   hullType: "central_battery_ship"
   displacementKg: 3720000
@@ -256,7 +256,7 @@
 - designId: "des_chi_dingyuan"
   designVersionId: "des_chi_dingyuan"
   designFamilyId: "fam_chi_dingyuan"
-  nationId: "CHI"
+  nationId: "qing"
   className: "Dingyuan"
   hullType: "ironclad_turret_ship"
   displacementKg: 7220000
