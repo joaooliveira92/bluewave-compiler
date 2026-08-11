@@ -8,7 +8,7 @@ export function applyContentSecurityPolicy(
   responseHeaders: Record<string, string[]> | undefined,
 ): Record<string, string[]> {
   return {
-    ...(responseHeaders ?? {}),
+    ...responseHeaders,
     "Content-Security-Policy": [CONTENT_SECURITY_POLICY],
   };
 }

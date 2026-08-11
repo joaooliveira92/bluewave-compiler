@@ -1,10 +1,4 @@
-- {
-    id: "gbr_portsmouth",
-    name: "Portsmouth",
-    areaId: "eng_home_coast",
-    nationId: "uk",
-    level: 10,
-  }
+- { id: "gbr_portsmouth", name: "Portsmouth", areaId: "eng_home_coast", nationId: "uk", level: 10 }
 - {
     id: "gbr_plymouth",
     name: "Plymouth (Devonport)",
@@ -27,26 +21,14 @@
     level: 8,
   }
 - { id: "gbr_calcutta", name: "Calcutta", areaId: "india_east_coast", nationId: "uk", level: 6 }
-- {
-    id: "gbr_colombo",
-    name: "Colombo (Ceylon)",
-    areaId: "indian_ceylon",
-    nationId: "uk",
-    level: 7,
-  }
+- { id: "gbr_colombo", name: "Colombo (Ceylon)", areaId: "indian_ceylon", nationId: "uk", level: 7 }
 - { id: "gbr_singapore", name: "Singapore", areaId: "sea_singapore", nationId: "uk", level: 7 }
 - { id: "gbr_hongkong", name: "Hong Kong", areaId: "sea_hong_kong", nationId: "uk", level: 7 }
 - { id: "gbr_capetown", name: "Cape Town", areaId: "africa_cape", nationId: "uk", level: 7 }
 - { id: "gbr_simonstown", name: "Simon's Town", areaId: "africa_cape", nationId: "uk", level: 7 }
 - { id: "gbr_adden", name: "Aden", areaId: "indian_adden", nationId: "uk", level: 6 }
 - { id: "gbr_sydney", name: "Sydney", areaId: "pacific_australia", nationId: "uk", level: 6 }
-- {
-    id: "gbr_melbourne",
-    name: "Melbourne",
-    areaId: "pacific_australia",
-    nationId: "uk",
-    level: 5,
-  }
+- { id: "gbr_melbourne", name: "Melbourne", areaId: "pacific_australia", nationId: "uk", level: 5 }
 - { id: "gbr_auckland", name: "Auckland", areaId: "pacific_australia", nationId: "uk", level: 5 }
 - { id: "fra_brest", name: "Brest", areaId: "fra_chan_coast", nationId: "france", level: 9 }
 - { id: "fra_toulon", name: "Toulon", areaId: "fra_med_coast", nationId: "france", level: 9 }
@@ -54,7 +36,13 @@
 - { id: "fra_rochefort", name: "Rochefort", areaId: "fra_chan_coast", nationId: "france", level: 6 }
 - { id: "fra_algiers", name: "Algiers", areaId: "africa_algeria", nationId: "france", level: 7 }
 - { id: "fra_oran", name: "Oran", areaId: "africa_algeria", nationId: "france", level: 6 }
-- { id: "fra_saigon", name: "Saigon", areaId: "indochina_cochinchina", nationId: "france", level: 5 }
+- {
+    id: "fra_saigon",
+    name: "Saigon",
+    areaId: "indochina_cochinchina",
+    nationId: "france",
+    level: 5,
+  }
 - { id: "fra_noumea", name: "Nouméa", areaId: "pacific_newcaledonia", nationId: "france", level: 5 }
 - {
     id: "fra_fortde_france",
@@ -72,8 +60,20 @@
     level: 8,
   }
 - { id: "ger_danzig", name: "Danzig", areaId: "ger_baltic_coast", nationId: "germany", level: 6 }
-- { id: "ger_stralsund", name: "Stralsund", areaId: "ger_baltic_coast", nationId: "germany", level: 4 }
-- { id: "rus_kronstadt", name: "Kronstadt", areaId: "rus_baltic_coast", nationId: "russia", level: 8 }
+- {
+    id: "ger_stralsund",
+    name: "Stralsund",
+    areaId: "ger_baltic_coast",
+    nationId: "germany",
+    level: 4,
+  }
+- {
+    id: "rus_kronstadt",
+    name: "Kronstadt",
+    areaId: "rus_baltic_coast",
+    nationId: "russia",
+    level: 8,
+  }
 - {
     id: "rus_stpetersburg",
     name: "St Petersburg",
@@ -110,9 +110,27 @@
     nationId: "russia",
     level: 5,
   }
-- { id: "auh_pola", name: "Pola (Pula)", areaId: "auh_adriatic_coast", nationId: "austria_hungary", level: 7 }
-- { id: "auh_trieste", name: "Trieste", areaId: "auh_adriatic_coast", nationId: "austria_hungary", level: 6 }
-- { id: "auh_fiume", name: "Fiume (Rijeka)", areaId: "auh_dalmatia", nationId: "austria_hungary", level: 4 }
+- {
+    id: "auh_pola",
+    name: "Pola (Pula)",
+    areaId: "auh_adriatic_coast",
+    nationId: "austria_hungary",
+    level: 7,
+  }
+- {
+    id: "auh_trieste",
+    name: "Trieste",
+    areaId: "auh_adriatic_coast",
+    nationId: "austria_hungary",
+    level: 6,
+  }
+- {
+    id: "auh_fiume",
+    name: "Fiume (Rijeka)",
+    areaId: "auh_dalmatia",
+    nationId: "austria_hungary",
+    level: 4,
+  }
 - {
     id: "ita_laspezia",
     name: "La Spezia",
@@ -174,8 +192,20 @@
     nationId: "ottoman_empire",
     level: 5,
   }
-- { id: "ott_sinope", name: "Sinope", areaId: "ott_blacksea_coast", nationId: "ottoman_empire", level: 4 }
-- { id: "ott_alexandria", name: "Alexandria", areaId: "ott_eg_coast", nationId: "ottoman_empire", level: 5 }
+- {
+    id: "ott_sinope",
+    name: "Sinope",
+    areaId: "ott_blacksea_coast",
+    nationId: "ottoman_empire",
+    level: 4,
+  }
+- {
+    id: "ott_alexandria",
+    name: "Alexandria",
+    areaId: "ott_eg_coast",
+    nationId: "ottoman_empire",
+    level: 5,
+  }
 - { id: "spa_ferrol", name: "Ferrol", areaId: "spa_atlantic_coast", nationId: "spain", level: 6 }
 - { id: "spa_cadiz", name: "Cadiz", areaId: "spa_atlantic_coast", nationId: "spain", level: 5 }
 - { id: "spa_cartagena", name: "Cartagena", areaId: "spa_med_coast", nationId: "spain", level: 6 }
@@ -196,7 +226,13 @@
     nationId: "netherlands",
     level: 5,
   }
-- { id: "ned_batavia", name: "Batavia (Jakarta)", areaId: "dei_java", nationId: "netherlands", level: 6 }
+- {
+    id: "ned_batavia",
+    name: "Batavia (Jakarta)",
+    areaId: "dei_java",
+    nationId: "netherlands",
+    level: 6,
+  }
 - { id: "ned_surabaya", name: "Surabaya", areaId: "dei_java", nationId: "netherlands", level: 6 }
 - { id: "por_lisbon", name: "Lisbon", areaId: "por_home_coast", nationId: "portugal", level: 5 }
 - { id: "por_luanda", name: "Luanda", areaId: "africa_angola", nationId: "portugal", level: 5 }
