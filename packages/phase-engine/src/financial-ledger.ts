@@ -47,7 +47,7 @@ export class FinancialLedger {
     const index = this.transactions.length;
     this.transactions.push(tx);
     this.transactions[index] = {
-      ...this.transactions[index],
+      ...tx,
       postTransactionHash: this.hash(),
     };
   }

@@ -21,6 +21,10 @@ function createSnapshot(): CampaignSnapshot {
       nationId: "GBR",
       technologies: [{ techId: "basic_steam", investedPoints: SafeInt(30), completed: false }],
       currentProjectTechId: "basic_steam",
+      fieldPriorities: {},
+      researchBudget: SafeInt(0),
+      activeCandidates: new Map(),
+      discoveredTechs: [],
     },
     constructionProjects: [
       {

@@ -5,8 +5,11 @@ import type {
   ConstructionProject,
   Ship,
   FleetState,
+  CompiledDesignVersion,
+  ResearchState,
+  TechnologyProgress,
 } from "@bluewave/campaign";
-import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
+import type { CommandEnvelope, BudgetProjectCommand, SetResearchPriorityCommand } from "@bluewave/commands";
 import { CommandLifecycle, CommandLedger, CommandIdempotencyMap } from "@bluewave/commands";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
@@ -52,6 +55,7 @@ function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
           classId: s["classId"],
           nationId: s["nationId"],
           locationAreaId: s["locationAreaId"],
+          designVersionId: s["designVersionId"],
           hitPoints: s["hitPoints"],
           maxHitPoints: s["maxHitPoints"],
           speed: s["speed"],
@@ -71,12 +75,17 @@ function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
           completed: t["completed"],
         })),
         currentProjectTechId: nation["research"]["currentProjectTechId"],
+        fieldPriorities: { ...nation["research"]["fieldPriorities"] },
+        researchBudget: nation["research"]["researchBudget"],
+        activeCandidates: new Map(nation["research"]["activeCandidates"]),
+        discoveredTechs: [...nation["research"]["discoveredTechs"]],
       },
       constructionProjects: nation["constructionProjects"].map((c) => ({
         id: c["id"],
         type: c["type"],
         projectType: c["projectType"],
         targetId: c["targetId"],
+        designVersionId: c["designVersionId"],
         totalWork: c["totalWork"],
         completedWork: c["completedWork"],
         paidWork: c["paidWork"],
@@ -108,6 +117,9 @@ function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
     defenderFleetIds: [...b["defenderFleetIds"]],
     result: b["result"],
   }));
+
+  const designs = new Map(snapshot["designs"]);
+  const designFamilies = new Map(snapshot["designFamilies"]);
 
   return {
     version: snapshot["version"],
@@ -152,6 +164,8 @@ function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
     intelligence: {
       shells: { ...snapshot["intelligence"]["shells"] },
     },
+    designs,
+    designFamilies,
     nations,
     rulesetVersion: snapshot["rulesetVersion"],
     compatibilityVersion: snapshot["compatibilityVersion"],
@@ -271,6 +285,411 @@ function computeMaintenanceCost(ship: Ship): SafeInt {
 function computeConstructionCap(nation: NationState): SafeInt {
   const base = nation["baseResources"] ?? (0 as SafeInt);
   return SafeInt.div(SafeInt.div(base, SafeInt(12)), SafeInt(100), "floor");
+}
+
+function drawWeighted(stream: import("@bluewave/random").RandomStream, weights: [string, SafeInt][]): string {
+  const totalWeight = weights.reduce((sum, [, w]) => SafeInt.add(sum, w), SafeInt.ZERO);
+  if ((totalWeight as number) <= 0) return weights[0]?.[0] ?? "";
+  const draw = stream.next() * (totalWeight as number);
+  let cumulative = 0;
+  for (const [id, weight] of weights) {
+    cumulative += weight as number;
+    if (draw <= cumulative) return id;
+  }
+  return weights[weights.length - 1]?.[0] ?? "";
+}
+
+const RESEARCH_RESOURCE_CONVERSION_BP = SafeInt(10_000);
+
+const CANONICAL_FIELD_IDS = [
+  "HULL_CONSTRUCTION",
+  "MACHINERY",
+  "SHIP_DESIGN",
+  "GUNNERY",
+  "FIRE_CONTROL",
+  "TORPEDOES",
+  "SUBMARINES",
+  "MINES_AND_ASW",
+  "AVIATION",
+  "CARRIER_OPERATIONS",
+  "RADAR_AND_ELECTRONICS",
+  "MISSILES",
+  "AMPHIBIOUS_OPERATIONS",
+  "INFRASTRUCTURE",
+  "DAMAGE_CONTROL",
+] as const;
+
+function computeResearchResources(actualPaidExpenditure: SafeInt): SafeInt {
+  if ((actualPaidExpenditure as number) <= 0) return SafeInt.ZERO;
+  return SafeInt.div(
+    SafeInt.mul(actualPaidExpenditure, RESEARCH_RESOURCE_CONVERSION_BP),
+    SafeInt(10_000),
+    "floor",
+  );
+}
+
+function largestRemainderAllocation(
+  resources: SafeInt,
+  weights: [string, SafeInt][],
+): Map<string, SafeInt> {
+  const allocation = new Map<string, SafeInt>();
+  if ((resources as number) <= 0 || weights.length === 0) return allocation;
+
+  const totalWeight = weights.reduce((sum, [, w]) => SafeInt.add(sum, w), SafeInt.ZERO);
+  if ((totalWeight as number) <= 0) return allocation;
+
+  // Proportional allocation with floor
+  let allocated = SafeInt.ZERO;
+  const remainders: [string, number][] = [];
+
+  for (const [fieldId, weight] of weights) {
+    const rawProportion = (weight as number) / (totalWeight as number);
+    const floorShare = SafeInt(Math.floor(rawProportion * (resources as number)));
+    allocation.set(fieldId, floorShare);
+    allocated = SafeInt.add(allocated, floorShare);
+    const remainder = rawProportion * (resources as number) - (floorShare as number);
+    remainders.push([fieldId, remainder]);
+  }
+
+  // Distribute remaining by largest remainder
+  let remaining = SafeInt.sub(resources, allocated);
+  remainders.sort((a, b) => b[1] - a[1]);
+
+  for (const [fieldId] of remainders) {
+    if ((remaining as number) <= 0) break;
+    const current = allocation.get(fieldId) ?? SafeInt.ZERO;
+    allocation.set(fieldId, SafeInt.add(current, SafeInt.ONE));
+    remaining = SafeInt.sub(remaining, SafeInt.ONE);
+  }
+
+  return allocation;
+}
+
+function resolveResearchPhase(
+  snapshot: CampaignSnapshot,
+  randomSeed: string,
+  turnNumber: SafeInt,
+  randomLedger: RandomLedger,
+  eventLedger: EventLedger,
+  financialLedger: FinancialLedger,
+  collector: DiagnosticCollector,
+  nextSeq: () => SafeInt,
+  campaignMonth: string,
+): CampaignSnapshot {
+  let currentSnapshot = snapshot;
+
+  for (const [nationId, nation] of currentSnapshot["nations"]) {
+    if (!nation["isPlayable"] && !nation["isAI"]) continue;
+
+    const research = nation["research"];
+
+    // Stage 1: Calculate paid research resources
+    const actualPaidExpenditure = research["researchBudget"];
+    const effectiveResources = computeResearchResources(actualPaidExpenditure);
+
+    if ((effectiveResources as number) <= 0) continue;
+
+    // Stage 2: Allocate by field priority
+    const priorities = research["fieldPriorities"];
+    const eligibleFields: [string, SafeInt][] = [];
+
+    const techs = research["technologies"];
+    const discoveredTechs = research["discoveredTechs"];
+
+    for (const fieldId of CANONICAL_FIELD_IDS) {
+      // Find eligible tech for this field
+      const eligibleTech = findEligibleTech(fieldId, techs, discoveredTechs, turnNumber);
+      if (!eligibleTech) continue;
+
+      const priority = priorities[fieldId] ?? SafeInt(1);
+      if ((priority as number) <= 0) continue;
+
+      eligibleFields.push([fieldId, priority]);
+    }
+
+    if (eligibleFields.length === 0) {
+      collector.addInfo(
+        "NO_ELIGIBLE_RESEARCH_FIELD",
+        `Nation ${nationId} has no eligible research fields`,
+        { stage: "resolve_research" },
+      );
+      continue;
+    }
+
+    const fieldAllocations = largestRemainderAllocation(effectiveResources, eligibleFields);
+
+    // Stage 3: Advance eligible technologies
+    const activeCandidates = new Map(research["activeCandidates"]);
+    const updatedTechs = [...techs];
+
+    for (const [fieldId, allocation] of fieldAllocations) {
+      if ((allocation as number) <= 0) continue;
+
+      let activeTechId = activeCandidates.get(fieldId);
+
+      if (!activeTechId) {
+        // Select eligible technology with highest discovery weight
+        const fieldTechs = findEligibleTechsForField(fieldId, updatedTechs, discoveredTechs, turnNumber);
+        if (fieldTechs.length === 0) continue;
+
+        // For deterministic selection without active candidate, pick the one with highest weight
+        // First discovery (no active candidate yet) - use deterministic selection
+        const stream = new RandomEngine(randomSeed).stream(`research/month/${nationId}/${fieldId}`);
+        const weights: [string, SafeInt][] = fieldTechs.map((t) => [t.techId, t.discoveryWeight ?? SafeInt(1)] as [string, SafeInt]);
+
+        // Record this selection in the random ledger
+        const inputHash = sha256Hex(canonicalSerialize({
+          nationId,
+          fieldId,
+          turnNumber,
+          eligibleTechs: fieldTechs.map((t) => t.techId),
+        }));
+
+        activeTechId = drawWeighted(stream, weights);
+
+        randomLedger.record({
+          streamId: `research/month/${nationId}/${fieldId}`,
+          entityKey: `${nationId}:${fieldId}`,
+          phase: "resolve_research",
+          rulesetVersion: CURRENT_VERSION,
+          inputHash,
+          draw: 0,
+          outcome: `selected_tech_${activeTechId}`,
+          reasonCode: "RESEARCH_SELECT_CANDIDATE",
+        });
+
+        activeCandidates.set(fieldId, activeTechId);
+      }
+
+      // Stage 4: Add progress to active candidate
+      const techIdx = updatedTechs.findIndex((t) => t["techId"] === activeTechId);
+      if (techIdx < 0) continue;
+
+      const tech = updatedTechs[techIdx]!;
+      const newPoints = SafeInt.add(tech["investedPoints"], allocation);
+      updatedTechs[techIdx] = { ...tech, investedPoints: newPoints };
+
+      // Calculate progress beyond cost
+      const cost = findTechCost(activeTechId);
+      const clampedPoints = (newPoints as number) > (cost as number) ? cost : newPoints;
+      updatedTechs[techIdx] = { ...updatedTechs[techIdx]!, investedPoints: clampedPoints };
+
+      eventLedger.append(
+        researchProgressedEvent(
+          nationId,
+          activeTechId,
+          tech["investedPoints"],
+          clampedPoints,
+          nextSeq(),
+          turnNumber,
+        ),
+      );
+
+      // Stage 5: Check if discovered
+      if ((clampedPoints as number) >= (cost as number)) {
+        const newDiscoveredTechs = [...discoveredTechs, activeTechId];
+
+        // Mark as completed
+        updatedTechs[techIdx] = {
+          ...updatedTechs[techIdx]!,
+          completed: true,
+          investedPoints: cost,
+        };
+
+        // Remove from active candidates
+        activeCandidates.delete(fieldId);
+
+        // Apply IMMEDIATE_KNOWLEDGE effects
+        eventLedger.append({
+          eventId: `TechnologyDiscovered-${nationId}-${activeTechId}-${String(nextSeq())}`,
+          version: CURRENT_VERSION,
+          aggregateType: "research" as const,
+          aggregateId: activeTechId,
+          eventType: "TechnologyDiscovered" as const,
+          timestamp: campaignMonth,
+          body: {
+            kind: "TechnologyDiscovered" as const,
+            nationId,
+            techId: activeTechId,
+            researchFieldId: fieldId,
+            discoveryMonth: campaignMonth,
+            cost,
+          },
+          sequenceNumber: nextSeq(),
+        });
+
+        // Update nation's discoveredTechs
+        nation["research"]["discoveredTechs"] = newDiscoveredTechs;
+      }
+    }
+
+    const updatedNation: NationState = {
+      ...nation,
+      research: {
+        ...research,
+        technologies: updatedTechs,
+        activeCandidates,
+        discoveredTechs: research["discoveredTechs"],
+        researchBudget: SafeInt.ZERO,
+      },
+    };
+
+    const updatedNations = new Map(currentSnapshot["nations"]);
+    updatedNations.set(nationId, updatedNation);
+    currentSnapshot = { ...currentSnapshot, nations: updatedNations };
+
+    // Record financial expenditure
+    const previousBalance = nation["treasury"];
+    const newBalance = SafeInt.sub(previousBalance, actualPaidExpenditure);
+    const safeNewBalance = newBalance < SafeInt.ZERO ? SafeInt.ZERO : newBalance;
+
+    const updatedTreasuryNation: NationState = {
+      ...updatedNation,
+      treasury: safeNewBalance,
+    };
+    const updatedTreasuryNations = new Map(currentSnapshot["nations"]);
+    updatedTreasuryNations.set(nationId, updatedTreasuryNation);
+    currentSnapshot = { ...currentSnapshot, nations: updatedTreasuryNations };
+
+    financialLedger.append(
+      makeLedgerEntry(
+        nationId,
+        "resolve_research",
+        "RESEARCH_EXPENDITURE",
+        actualPaidExpenditure,
+        actualPaidExpenditure,
+        previousBalance,
+        safeNewBalance,
+        "Research budget expenditure",
+        campaignMonth,
+      ),
+    );
+
+    if ((actualPaidExpenditure as number) > 0) {
+      eventLedger.append(
+        budgetChangedEvent(
+          nationId,
+          previousBalance,
+          safeNewBalance,
+          SafeInt.mul(actualPaidExpenditure, SafeInt(-1)),
+          "Research budget expenditure",
+          nextSeq(),
+          turnNumber,
+        ),
+      );
+    }
+  }
+
+  return currentSnapshot;
+}
+
+function findEligibleTech(
+  fieldId: string,
+  techs: TechnologyProgress[],
+  discoveredTechs: string[],
+  turnNumber: SafeInt,
+): TechnologyProgress | undefined {
+  return findEligibleTechsForField(fieldId, techs, discoveredTechs, turnNumber)[0] ?? undefined;
+}
+
+function findEligibleTechsForField(
+  fieldId: string,
+  techs: TechnologyProgress[],
+  discoveredTechs: string[],
+  turnNumber: SafeInt,
+): (TechnologyProgress & { discoveryWeight: SafeInt })[] {
+  const allDiscovered = new Set(discoveredTechs);
+  return techs
+    .filter((t) => {
+      const def = TECH_DEFINITIONS[t["techId"]];
+      if (!def) return false;
+      if (def["researchFieldId"] !== fieldId) return false;
+      if (t["completed"] || allDiscovered.has(t["techId"])) return false;
+      // Check if not already discovered
+      // Check prerequisites
+      const prereqs = def["prerequisites"] ?? [];
+      for (const prereqId of prereqs) {
+        const prereqTech = techs.find((pt) => pt["techId"] === prereqId);
+        if (!prereqTech || !prereqTech["completed"]) return false;
+      }
+      // Check availability month
+      if (def["availabilityMonth"] !== undefined && (turnNumber as number) < (def["availabilityMonth"] as number)) {
+        return false;
+      }
+      return true;
+    })
+    .map((t) => {
+      const def = TECH_DEFINITIONS[t["techId"]]!;
+      return { ...t, discoveryWeight: def["discoveryWeight"] };
+    });
+}
+
+interface TechDefinition {
+  techId: string;
+  researchFieldId: string;
+  cost: SafeInt;
+  discoveryWeight: SafeInt;
+  prerequisites: string[];
+  availabilityMonth?: SafeInt;
+}
+
+const TECH_DEFINITIONS: Record<string, TechDefinition> = {
+  basic_hull: {
+    techId: "basic_hull",
+    researchFieldId: "HULL_CONSTRUCTION",
+    cost: SafeInt(100),
+    discoveryWeight: SafeInt(10),
+    prerequisites: [],
+    availabilityMonth: SafeInt(0),
+  },
+  advanced_hull: {
+    techId: "advanced_hull",
+    researchFieldId: "HULL_CONSTRUCTION",
+    cost: SafeInt(200),
+    discoveryWeight: SafeInt(8),
+    prerequisites: ["basic_hull"],
+    availabilityMonth: SafeInt(0),
+  },
+  basic_steam: {
+    techId: "basic_steam",
+    researchFieldId: "MACHINERY",
+    cost: SafeInt(100),
+    discoveryWeight: SafeInt(10),
+    prerequisites: [],
+    availabilityMonth: SafeInt(0),
+  },
+  advanced_steam: {
+    techId: "advanced_steam",
+    researchFieldId: "MACHINERY",
+    cost: SafeInt(200),
+    discoveryWeight: SafeInt(8),
+    prerequisites: ["basic_steam"],
+    availabilityMonth: SafeInt(0),
+  },
+  basic_gunnery: {
+    techId: "basic_gunnery",
+    researchFieldId: "GUNNERY",
+    cost: SafeInt(100),
+    discoveryWeight: SafeInt(10),
+    prerequisites: [],
+    availabilityMonth: SafeInt(0),
+  },
+  advanced_gunnery: {
+    techId: "advanced_gunnery",
+    researchFieldId: "GUNNERY",
+    cost: SafeInt(200),
+    discoveryWeight: SafeInt(8),
+    prerequisites: ["basic_gunnery"],
+    availabilityMonth: SafeInt(0),
+  },
+};
+
+function findTechCost(techId: string): SafeInt {
+  return TECH_DEFINITIONS[techId]?.["cost"] ?? SafeInt(100);
+}
+
+function findTechDiscoveryWeight(techId: string): SafeInt {
+  return TECH_DEFINITIONS[techId]?.["discoveryWeight"] ?? SafeInt(10);
 }
 
 export class MonthExecutor {
@@ -740,17 +1159,38 @@ export class MonthExecutor {
             }
 
             // Create a new ship from the completed project
+            const designVersionId = project["designVersionId"] ?? "";
+            let shipHitPoints = SafeInt(100) as SafeInt;
+            let shipMaxHitPoints = SafeInt(100) as SafeInt;
+            let shipSpeed = SafeInt(10) as SafeInt;
+            let shipFirepower = SafeInt(10) as SafeInt;
+            let shipArmor = SafeInt(10) as SafeInt;
+            let shipClassName = project["targetId"];
+
+            if (designVersionId) {
+              const design = currentSnapshot["designs"]?.get(designVersionId);
+              if (design) {
+                shipHitPoints = design["hitPoints"];
+                shipMaxHitPoints = design["hitPoints"];
+                shipSpeed = design["normalizedSpeedUms"];
+                shipFirepower = SafeInt.mul(design["mainGunsCount"], SafeInt.div(design["mainGunsCaliber"], SafeInt(100), "floor"));
+                shipArmor = design["normalizedArmorUm"];
+                shipClassName = design["className"];
+              }
+            }
+
             const newShip: Ship = {
               id: `ship-${project["targetId"]}-${String(turnNumber)}`,
-              name: `Ship ${project["targetId"]}`,
-              classId: project["targetId"],
+              name: `Ship ${shipClassName}`,
+              classId: shipClassName,
               nationId,
               locationAreaId: fleet["locationAreaId"],
-              hitPoints: SafeInt(100),
-              maxHitPoints: SafeInt(100),
-              speed: SafeInt(10),
-              firepower: SafeInt(10),
-              armor: SafeInt(10),
+              designVersionId,
+              hitPoints: shipHitPoints,
+              maxHitPoints: shipMaxHitPoints,
+              speed: shipSpeed,
+              firepower: shipFirepower,
+              armor: shipArmor,
               isUnderConstruction: false,
               constructionProgress: project["totalWork"],
               constructionTotalWork: project["totalWork"],
@@ -787,58 +1227,19 @@ export class MonthExecutor {
       }
     }
 
-    // Phase 8: research_progress
+    // Phase 8: resolve_research
     {
-      const randomEngine = new RandomEngine(randomSeed);
-
-      for (const [nationId, nation] of currentSnapshot["nations"]) {
-        if (!nation["isPlayable"] && !nation["isAI"]) continue;
-        const techId = nation["research"]["currentProjectTechId"];
-        if (!techId) continue;
-
-        const tech = nation["research"]["technologies"].find((t) => t["techId"] === techId);
-        if (!tech || tech["completed"]) continue;
-
-        const stream = randomEngine.stream("research:progress");
-        const draw = drawUniform(stream, SafeInt(1), SafeInt(20));
-        const newPoints = SafeInt.add(tech["investedPoints"], draw);
-
-        const updatedTechs = nation["research"]["technologies"].map((t) =>
-          t["techId"] === techId ? { ...t, investedPoints: newPoints } : t,
-        );
-        const updatedNation: NationState = {
-          ...nation,
-          research: {
-            ...nation["research"],
-            technologies: updatedTechs,
-          },
-        };
-        const updatedNations = new Map(currentSnapshot["nations"]);
-        updatedNations.set(nationId, updatedNation);
-        currentSnapshot = { ...currentSnapshot, nations: updatedNations };
-
-        randomLedger.record({
-          streamId: "research:progress",
-          entityKey: `${nationId}:${techId}`,
-          phase: "research_progress",
-          rulesetVersion: CURRENT_VERSION,
-          inputHash: sha256Hex(canonicalSerialize({ nationId, techId, turnNumber })),
-          draw: draw as number,
-          outcome: `research_points_${String(draw)}`,
-          reasonCode: "RESEARCH_PROGRESS_DRAW",
-        });
-
-        eventLedger.append(
-          researchProgressedEvent(
-            nationId,
-            techId,
-            tech["investedPoints"],
-            newPoints,
-            nextSeq(),
-            turnNumber,
-          ),
-        );
-      }
+      currentSnapshot = resolveResearchPhase(
+        currentSnapshot,
+        randomSeed,
+        turnNumber,
+        randomLedger,
+        eventLedger,
+        financialLedger,
+        collector,
+        nextSeq,
+        campaignMonth,
+      );
     }
 
     // Phase 9: battle_resolution

@@ -7,6 +7,7 @@ export interface Ship {
   classId: string;
   nationId: string;
   locationAreaId: string;
+  designVersionId: string;
   hitPoints: SafeInt;
   maxHitPoints: SafeInt;
   speed: SafeInt;
@@ -36,6 +37,36 @@ export interface ResearchState {
   nationId: string;
   technologies: TechnologyProgress[];
   currentProjectTechId?: string;
+  fieldPriorities: Record<string, SafeInt>;
+  researchBudget: SafeInt;
+  activeCandidates: Map<string, string>;
+  discoveredTechs: string[];
+}
+
+export interface CompiledDesignVersion {
+  designVersionId: string;
+  designFamilyId: string;
+  className: string;
+  nationId: string;
+  hullType: string;
+  normalizedDisplacementKg: SafeInt;
+  normalizedSpeedUms: SafeInt;
+  normalizedArmorUm: SafeInt;
+  hitPoints: SafeInt;
+  mainGunsCaliber: SafeInt;
+  mainGunsCount: SafeInt;
+  machineryType: string;
+  crewComplement: SafeInt;
+  contentVersion: string;
+  compiledHash: string;
+}
+
+export interface DesignFamily {
+  designFamilyId: string;
+  nationId: string;
+  rootDesignVersionId: string;
+  memberDesignVersionIds: string[];
+  familyCreationMonth: string;
 }
 
 export interface DiplomaticRelation {
@@ -106,6 +137,7 @@ export interface ConstructionProject {
   type: "ship" | "building" | "technology";
   projectType: "NEW_CONSTRUCTION";
   targetId: string;
+  designVersionId: string;
   totalWork: SafeInt;
   completedWork: SafeInt;
   paidWork: SafeInt;
@@ -172,6 +204,8 @@ export interface CampaignSnapshot {
   wars: WarState;
   politics: PoliticalState;
   intelligence: IntelligenceState;
+  designs: Map<string, CompiledDesignVersion>;
+  designFamilies: Map<string, DesignFamily>;
   rulesetVersion: string;
   compatibilityVersion: string;
 }

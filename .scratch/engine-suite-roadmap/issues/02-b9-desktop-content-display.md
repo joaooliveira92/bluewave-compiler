@@ -10,6 +10,7 @@ Should the B9 Electron desktop app include a read-only render of compiled conten
 The settled B9 decisions are: electron-vite at `apps/desktop`, strict CSP, `compile` IPC channel only (MVP), process/IPC smoke test. The open question is whether the desktop window shows anything beyond a terminal/log view.
 
 Factors to consider:
+
 - MVP scope discipline
 - Whether a read-only render provides meaningful validation for the IPC architecture
 - How this affects the B10a brief (desktop UX dependency)

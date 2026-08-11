@@ -47,12 +47,22 @@ export interface BattleResolved {
   loserId: string;
 }
 
+export interface TechnologyDiscovered {
+  kind: "TechnologyDiscovered";
+  nationId: string;
+  techId: string;
+  researchFieldId: string;
+  discoveryMonth: string;
+  cost: SafeInt;
+}
+
 export type DomainEventBody =
   | NationBudgetChanged
   | ConstructionProgressed
   | ResearchProgressed
   | BattleInitiated
-  | BattleResolved;
+  | BattleResolved
+  | TechnologyDiscovered;
 
 export interface DomainEventEnvelope<TBody extends DomainEventBody = DomainEventBody> {
   eventId: string;

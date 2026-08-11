@@ -226,6 +226,7 @@ export function runCampaignCompile(options: CampaignCliOptions): ExitCategory {
       constructionFiles: [],
       diplomacyFiles: [],
       researchFiles: [],
+      designFiles: [],
     },
     rulesetVersion: "1.0.0",
     compatibilityVersion: "1.0.0",

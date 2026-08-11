@@ -7,6 +7,8 @@ import type {
   ResearchState,
   TechnologyProgress,
   ConstructionProject,
+  CompiledDesignVersion,
+  DesignFamily,
 } from "./state.js";
 import type { WorldState, AreaData, RouteData, PortData } from "./state.js";
 import type { WarState, WarDeclaration } from "./state.js";
@@ -35,6 +37,7 @@ export interface CampaignFiles {
   constructionFiles: string[];
   diplomacyFiles: string[];
   researchFiles: string[];
+  designFiles: string[];
 }
 
 export interface CampaignCompilerOutput {
@@ -136,6 +139,11 @@ export class CampaignCompiler {
       contentDir,
       collector,
     );
+    const designsData = this.loadCampaignFiles(
+      input.campaignFiles.designFiles,
+      contentDir,
+      collector,
+    );
 
     if (collector.hasErrors || signal.aborted) return undefined;
 
@@ -159,6 +167,10 @@ export class CampaignCompiler {
     // Step 6: Build political state
     const politics = this.buildPoliticalState(diplomacyData);
 
+    // Step 6b: Build designs from design data
+    const designs = this.buildDesignsFromData(designsData);
+    const designFamilies = this.buildDesignFamiliesFromData(designsData);
+
     // Step 7: Determine slots
     const slots = this.buildSlots(pack);
 
@@ -176,6 +188,8 @@ export class CampaignCompiler {
       wars,
       politics,
       intelligence,
+      designs,
+      designFamilies,
       rulesetVersion: input.rulesetVersion,
       compatibilityVersion: input.compatibilityVersion,
     };
@@ -332,6 +346,7 @@ export class CampaignCompiler {
       classId: String(s["classId"] ?? ""),
       nationId,
       locationAreaId,
+      designVersionId: String(s["designVersionId"] ?? ""),
       hitPoints: toSafeIntOpt(s["hitPoints"], SafeInt(100)),
       maxHitPoints: toSafeIntOpt(s["maxHitPoints"], SafeInt(100)),
       speed: toSafeIntOpt(s["speed"], SafeInt(10)),
@@ -349,7 +364,14 @@ export class CampaignCompiler {
       (r) => (r as Record<string, unknown>)["nationId"] === nationId,
     ) as Record<string, unknown> | undefined;
 
-    if (!nationResearch) return { nationId, technologies: [] };
+    if (!nationResearch) return {
+      nationId,
+      technologies: [],
+      fieldPriorities: {},
+      researchBudget: SafeInt(0),
+      activeCandidates: new Map(),
+      discoveredTechs: [],
+    };
 
     const techs: TechnologyProgress[] = [];
     const techsRaw = nationResearch["technologies"];
@@ -364,6 +386,32 @@ export class CampaignCompiler {
       }
     }
 
+    const fieldPriorities: Record<string, SafeInt> = {};
+    const fieldPrioritiesRaw = nationResearch["fieldPriorities"];
+    if (fieldPrioritiesRaw && typeof fieldPrioritiesRaw === "object") {
+      for (const [key, val] of Object.entries(fieldPrioritiesRaw as Record<string, unknown>)) {
+        fieldPriorities[key] = toSafeIntOpt(val, SafeInt(1));
+      }
+    }
+
+    const activeCandidatesRaw = nationResearch["activeCandidates"];
+    const activeCandidates = new Map<string, string>();
+    if (activeCandidatesRaw && typeof activeCandidatesRaw === "object") {
+      for (const [key, val] of Object.entries(activeCandidatesRaw as Record<string, unknown>)) {
+        if (typeof val === "string") {
+          activeCandidates.set(key, val);
+        }
+      }
+    }
+
+    const discoveredTechsRaw = nationResearch["discoveredTechs"];
+    const discoveredTechs: string[] = [];
+    if (Array.isArray(discoveredTechsRaw)) {
+      for (const t of discoveredTechsRaw) {
+        discoveredTechs.push(String(t));
+      }
+    }
+
     return {
       nationId,
       technologies: techs,
@@ -371,6 +419,10 @@ export class CampaignCompiler {
         typeof nationResearch["currentProjectTechId"] === "string"
           ? nationResearch["currentProjectTechId"]
           : undefined,
+      fieldPriorities,
+      researchBudget: toSafeIntOpt(nationResearch["researchBudget"], SafeInt(0)),
+      activeCandidates,
+      discoveredTechs,
     };
   }
 
@@ -387,6 +439,7 @@ export class CampaignCompiler {
           type: (cRec["type"] as "ship" | "building" | "technology") ?? "ship",
           projectType: "NEW_CONSTRUCTION" as const,
           targetId: String(cRec["targetId"] ?? ""),
+          designVersionId: String(cRec["designVersionId"] ?? ""),
           totalWork: toSafeIntOpt(cRec["totalWork"], SafeInt(100)),
           completedWork: toSafeIntOpt(cRec["completedWork"], SafeInt(0)),
           paidWork: toSafeIntOpt(cRec["paidWork"], SafeInt(0)),
@@ -412,5 +465,78 @@ export class CampaignCompiler {
       };
     });
     return { relations, shells: {} };
+  }
+
+  private buildDesignsFromData(designsData: unknown[]): Map<string, CompiledDesignVersion> {
+    const designs = new Map<string, CompiledDesignVersion>();
+
+    if (!Array.isArray(designsData)) return designs;
+
+    for (const d of designsData) {
+      const rec = d as Record<string, unknown>;
+      const designVersionId = String(rec["designVersionId"] ?? rec["designId"] ?? "");
+
+      const design: CompiledDesignVersion = {
+        designVersionId,
+        designFamilyId: String(rec["designFamilyId"] ?? ""),
+        className: String(rec["className"] ?? ""),
+        nationId: String(rec["nationId"] ?? ""),
+        hullType: String(rec["hullType"] ?? ""),
+        normalizedDisplacementKg: toSafeIntOpt(rec["normalizedDisplacementKg"] ?? rec["displacementKg"], SafeInt(0)),
+        normalizedSpeedUms: toSafeIntOpt(rec["normalizedSpeedUms"] ?? rec["speedUms"], SafeInt(0)),
+        normalizedArmorUm: toSafeIntOpt(rec["normalizedArmorUm"] ?? rec["armorBeltUm"], SafeInt(0)),
+        hitPoints: toSafeIntOpt(rec["hitPoints"], SafeInt(100)),
+        mainGunsCaliber: toSafeIntOpt(
+          rec["mainGunsCaliber"] ?? (rec["mainGuns"] as Record<string, unknown> | undefined)?.["caliber"],
+          SafeInt(0),
+        ),
+        mainGunsCount: toSafeIntOpt(
+          rec["mainGunsCount"] ?? (rec["mainGuns"] as Record<string, unknown> | undefined)?.["count"],
+          SafeInt(0),
+        ),
+        machineryType: String(rec["machineryType"] ?? ""),
+        crewComplement: toSafeIntOpt(rec["crewComplement"], SafeInt(0)),
+        contentVersion: String(rec["contentVersion"] ?? "0.1.0"),
+        compiledHash: String(rec["compiledHash"] ?? ""),
+      };
+
+      designs.set(designVersionId, design);
+    }
+
+    return designs;
+  }
+
+  private buildDesignFamiliesFromData(designsData: unknown[]): Map<string, DesignFamily> {
+    const families = new Map<string, DesignFamily>();
+
+    if (!Array.isArray(designsData)) return families;
+
+    // Group by designFamilyId
+    const familyMap = new Map<string, { rec: Record<string, unknown>; members: string[] }>();
+    for (const d of designsData) {
+      const rec = d as Record<string, unknown>;
+      const familyId = String(rec["designFamilyId"] ?? "");
+      if (!familyId) continue;
+      const designVersionId = String(rec["designVersionId"] ?? rec["designId"] ?? "");
+
+      if (!familyMap.has(familyId)) {
+        familyMap.set(familyId, { rec, members: [] });
+      }
+      if (designVersionId) {
+        familyMap.get(familyId)!.members.push(designVersionId);
+      }
+    }
+
+    for (const [familyId, data] of familyMap) {
+      families.set(familyId, {
+        designFamilyId: familyId,
+        nationId: String(data.rec["nationId"] ?? ""),
+        rootDesignVersionId: data.members[0] ?? "",
+        memberDesignVersionIds: data.members,
+        familyCreationMonth: String(data.rec["familyCreationMonth"] ?? "1880-01"),
+      });
+    }
+
+    return families;
   }
 }

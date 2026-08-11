@@ -1,21 +1,17 @@
 # 02 — B10a economy and construction scope
 
-## Question
+## Answer
 
-What exact scope does B10a (Milestone 1a: Economy + Construction) cover?
+B10a milestone brief produced at `.ai/briefs/b10a-economy-construction.md`.
 
-The ROADMAP.md says B10 includes "economy, research, design, construction, deployment, diplomacy, war and peace, AI legality, and full scenario readiness gates." This ticket defines the first sub-milestone: economy and construction.
+**Economy**: Treasury + monthly revenue (possession income), maintenance costs, financial ledger with balanced transactions, appropriation (DESIGN-13 navalAppropriationRateBp), obligation. Tax rates, resource extraction, trade income, arrears/insolvency deferred.
 
-Questions to resolve:
-- Which economy features are in scope? (tax rates, industrial capacity, resource extraction, trade income, maintenance costs?)
-- Which construction features are in scope? (ship construction, naval base construction, fortifications?)
-- Does the existing 1880 fixture need extension (more nations, areas, fleets)?
-- What are the explicit out-of-scope items (deferred to B10b or later)?
-- Acceptance criteria for B10a — what must be demonstrable?
-- Does B10a need any new packages or does it extend `campaign`/`phase-engine`?
-- Are there any canonical design docs that need extraction (new requirements)?
-- Does B10a depend on the Electron shell (B9) for any deliverable?
+**Construction**: Ship construction with paid-work rule (DESIGN-23 §7.4), project status lifecycle (PLANNED→AUTHORIZED→ACTIVE→COMPLETED), completion promotes ship to FleetState. Simple per-nation construction capacity. Repair/rebuild/conversion/scrapping deferred.
+
+**Fixture**: Extend to 3 nations (GBR, FRA, GER) for meaningful economic interaction.
+
+**Packages**: Extend existing `campaign`, `phase-engine`, `commands` — no new packages.
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: none

@@ -4,6 +4,7 @@ export type { NationState } from "./state.js";
 export type { FleetState, Ship } from "./state.js";
 export type { ConstructionProject } from "./state.js";
 export type { ResearchState, TechnologyProgress } from "./state.js";
+export type { CompiledDesignVersion, DesignFamily } from "./state.js";
 export type { WarState, BattleInstance, BattleResult } from "./state.js";
 export type { PersistenceManifest } from "./state.js";
 export type { PoliticalState, DiplomaticRelation } from "./state.js";

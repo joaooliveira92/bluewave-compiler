@@ -50,7 +50,7 @@ const FIXTURE = {
 
   diplomacy: `- nationA: "GBR"\n  nationB: "FRA"\n  relation: "neutral"\n  since: "1880-01"\n`,
 
-  research: `- nationId: "GBR"\n  currentProjectTechId: "basic_steam"\n  technologies:\n    - { techId: "basic_steam", investedPoints: 30, completed: false }\n- nationId: "FRA"\n  technologies: []\n`,
+  research: `- nationId: "GBR"\n  currentProjectTechId: "basic_steam"\n  researchBudget: 100\n  fieldPriorities:\n    MACHINERY: 4\n    HULL_CONSTRUCTION: 2\n    GUNNERY: 1\n  technologies:\n    - { techId: "basic_steam", investedPoints: 30, completed: false }\n- nationId: "FRA"\n  technologies: []\n`,
 };
 
 function createFixtureDir(): { path: string; cleanup: () => void } {
@@ -107,6 +107,7 @@ function compileCampaign(fixtureDir: string): CampaignState {
         constructionFiles: ["constructions.yaml"],
         diplomacyFiles: ["diplomacy.yaml"],
         researchFiles: ["research.yaml"],
+        designFiles: [],
       },
       rulesetVersion: "1.0",
       compatibilityVersion: "1.0.0",
@@ -438,12 +439,20 @@ describe("Full-slice integration", () => {
               isUnderConstruction: false,
               constructionProgress: SafeInt(0),
               constructionTotalWork: SafeInt(0),
+              designVersionId: "",
               inBattleId: "battle-1",
             },
           ],
         },
       ],
-      research: { nationId: "GBR", technologies: [] },
+      research: {
+        nationId: "GBR",
+        technologies: [],
+        fieldPriorities: {},
+        researchBudget: SafeInt(0),
+        activeCandidates: new Map(),
+        discoveredTechs: [],
+      },
       constructionProjects: [],
       isPlayable: true,
       isAI: false,
@@ -519,7 +528,7 @@ describe("Full-slice integration", () => {
     }
 
     const rngPhases = phases.filter((p) => p.rngAllowed);
-    expect(rngPhases.map((p) => p.id).sort()).toEqual(["battle_resolution", "research_progress"]);
+    expect(rngPhases.map((p) => p.id).sort()).toEqual(["battle_resolution", "resolve_research"]);
 
     const ctx = engine.initializeTurn(snapshot);
     expect(ctx.currentPhase.id).toBe("opening_validation");
@@ -655,7 +664,14 @@ describe("Full-slice integration", () => {
           ],
         },
       ],
-      research: { nationId: "GBR", technologies: [] },
+      research: {
+        nationId: "GBR",
+        technologies: [],
+        fieldPriorities: {},
+        researchBudget: SafeInt(0),
+        activeCandidates: new Map(),
+        discoveredTechs: [],
+      },
       constructionProjects: [],
       isPlayable: true,
       isAI: false,
@@ -693,7 +709,14 @@ describe("Full-slice integration", () => {
           ],
         },
       ],
-      research: { nationId: "FRA", technologies: [] },
+      research: {
+        nationId: "FRA",
+        technologies: [],
+        fieldPriorities: {},
+        researchBudget: SafeInt(0),
+        activeCandidates: new Map(),
+        discoveredTechs: [],
+      },
       constructionProjects: [],
       isPlayable: false,
       isAI: true,

@@ -78,7 +78,11 @@ describe("compiler module", () => {
   it("returns diagnostics for invalid fixture", () => {
     const badDir = mkdtempSync(resolve(tmpdir(), "bw-desktop-bad-"));
     mkdirSync(badDir, { recursive: true });
-    writeFileSync(resolve(badDir, "pack.json"), JSON.stringify({ name: "bad", version: "1", type: "fixture", files: {} }), "utf8");
+    writeFileSync(
+      resolve(badDir, "pack.json"),
+      JSON.stringify({ name: "bad", version: "1", type: "fixture", files: {} }),
+      "utf8",
+    );
 
     const signal = new AbortController().signal;
     const result = runCompilation(badDir, signal);

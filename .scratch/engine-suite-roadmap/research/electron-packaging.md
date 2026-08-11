@@ -2,14 +2,14 @@
 
 ## 1. Research Sources
 
-| Source | URL | What it covers |
-|--------|-----|----------------|
-| electron-vite Distribution Guide | https://electron-vite.org/guide/distribution.html | Official electron-vite docs on packaging; provides both electron-builder and Forge config stubs; explicitly recommends electron-builder as first option |
-| electron-builder Configuration | https://www.electron.build/docs/configuration | All config options, file macros, hooks |
-| electron-builder macOS Targets | https://www.electron.build/docs/mac | DMG, ZIP, PKG, MAS targets; default is `dmg` + `zip` |
-| electron-builder Windows Targets | https://www.electron.build/docs/win | NSIS (default), portable, AppX, MSIX, MSI; default is `nsis` |
-| electron-builder Linux Targets | https://www.electron.build/docs/linux | AppImage (default), deb, rpm, snap, flatpak, pacman, apk |
-| electron-builder Target Selection Guide | https://www.electron.build/docs/targets | Decision trees per platform, combining multiple targets |
+| Source                                  | URL                                               | What it covers                                                                                                                                          |
+| --------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| electron-vite Distribution Guide        | https://electron-vite.org/guide/distribution.html | Official electron-vite docs on packaging; provides both electron-builder and Forge config stubs; explicitly recommends electron-builder as first option |
+| electron-builder Configuration          | https://www.electron.build/docs/configuration     | All config options, file macros, hooks                                                                                                                  |
+| electron-builder macOS Targets          | https://www.electron.build/docs/mac               | DMG, ZIP, PKG, MAS targets; default is `dmg` + `zip`                                                                                                    |
+| electron-builder Windows Targets        | https://www.electron.build/docs/win               | NSIS (default), portable, AppX, MSIX, MSI; default is `nsis`                                                                                            |
+| electron-builder Linux Targets          | https://www.electron.build/docs/linux             | AppImage (default), deb, rpm, snap, flatpak, pacman, apk                                                                                                |
+| electron-builder Target Selection Guide | https://www.electron.build/docs/targets           | Decision trees per platform, combining multiple targets                                                                                                 |
 
 ## 2. Recommended Packaging Targets per Platform (MVP)
 
@@ -31,11 +31,11 @@
 
 ### Summary Table
 
-| Platform | Target(s) | Purpose |
-|----------|-----------|---------|
-| macOS | `dmg`, `zip` | User-facing installer + auto-update payload |
-| Windows | `nsis` | Standard `.exe` installer |
-| Linux | `AppImage` | Universal single-file portable |
+| Platform | Target(s)    | Purpose                                     |
+| -------- | ------------ | ------------------------------------------- |
+| macOS    | `dmg`, `zip` | User-facing installer + auto-update payload |
+| Windows  | `nsis`       | Standard `.exe` installer                   |
+| Linux    | `AppImage`   | Universal single-file portable              |
 
 ## 3. Recommended Tooling: `electron-builder`
 
@@ -53,11 +53,11 @@ Reasoning:
 
 ### Alternatives Considered
 
-| Tool | Pros | Cons |
-|------|------|------|
-| **electron-builder** | Single dependency, all platforms, no output-dir conflict with electron-vite, mature, auto-update built-in | YAML config can be verbose; some advanced options are opaque |
-| **Electron Forge** | Official Electron tooling, first-party support | Requires one `@electron-forge/maker-*` package per format; output-dir conflict with electron-vite; more boilerplate |
-| **electron-packager** | Simple, low-level | Only produces the raw app directory (`.app`/`win32`/`linux` dirs), not installers; must be combined with a separate installer tool |
+| Tool                  | Pros                                                                                                      | Cons                                                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **electron-builder**  | Single dependency, all platforms, no output-dir conflict with electron-vite, mature, auto-update built-in | YAML config can be verbose; some advanced options are opaque                                                                       |
+| **Electron Forge**    | Official Electron tooling, first-party support                                                            | Requires one `@electron-forge/maker-*` package per format; output-dir conflict with electron-vite; more boilerplate                |
+| **electron-packager** | Simple, low-level                                                                                         | Only produces the raw app directory (`.app`/`win32`/`linux` dirs), not installers; must be combined with a separate installer tool |
 
 ## 4. Minimal Config Stub
 
@@ -70,12 +70,12 @@ directories:
   buildResources: build
   output: dist-electron
 files:
-  - '!**/.vscode/*'
-  - '!src/*'
-  - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,CHANGELOG.md,README.md}'
-  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
-  - '!{tsconfig.tsbuildinfo,.gitignore}'
+  - "!**/.vscode/*"
+  - "!src/*"
+  - "!electron.vite.config.{js,ts,mjs,cjs}"
+  - "!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,CHANGELOG.md,README.md}"
+  - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
+  - "!{tsconfig.tsbuildinfo,.gitignore}"
 mac:
   artifactName: ${name}-${version}-${arch}.${ext}
   target:
@@ -115,13 +115,13 @@ linux:
 
 ### Required non-code files
 
-| File | Purpose |
-|------|---------|
-| `build/icon.icns` | macOS app icon |
-| `build/icon.ico` | Windows app icon |
-| `build/icons/256x256.png` | Linux app icon (PNG with size in filename) |
-| `build/entitlements.mac.plist` | macOS entitlements (minimal: JIT + unsigned-executable-memory) |
-| `build/entitlements.mac.inherit.plist` | macOS helper entitlements (same as above) |
+| File                                   | Purpose                                                        |
+| -------------------------------------- | -------------------------------------------------------------- |
+| `build/icon.icns`                      | macOS app icon                                                 |
+| `build/icon.ico`                       | Windows app icon                                               |
+| `build/icons/256x256.png`              | Linux app icon (PNG with size in filename)                     |
+| `build/entitlements.mac.plist`         | macOS entitlements (minimal: JIT + unsigned-executable-memory) |
+| `build/entitlements.mac.inherit.plist` | macOS helper entitlements (same as above)                      |
 
 ### Minimal entitlements for macOS (`build/entitlements.mac.plist`)
 

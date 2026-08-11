@@ -18,6 +18,7 @@ Produce a brief recommendation with pro/cons and a concrete `electron-builder` o
 ## Answer
 
 **Recommendation**: Use `electron-builder` as the packaging tool (electron-vite's primary documented option, no output-directory conflict). Targets per platform:
+
 - macOS: `dmg` + `zip` (both required for auto-update, `dmg` is standard consumer format)
 - Windows: `nsis` (default `.exe` installer, works with auto-update)
 - Linux: `AppImage` (universal, no-install, broadest compatibility)

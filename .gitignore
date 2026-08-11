@@ -14,7 +14,7 @@ playwright-report/
 .dev-data/
 
 .turbo
-
+apps/desktop/dist-electron/
 # tsc -b emits alongside the sources it compiles
 *.tsbuildinfo
 apps/*/src/**/*.js

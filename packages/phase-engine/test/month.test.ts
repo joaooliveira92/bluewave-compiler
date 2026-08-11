@@ -23,6 +23,10 @@ function createSnapshot(overrides?: Partial<CampaignSnapshot>): CampaignSnapshot
       nationId: "GBR",
       technologies: [{ techId: "basic_steam", investedPoints: SafeInt(30), completed: false }],
       currentProjectTechId: "basic_steam",
+      fieldPriorities: {},
+      researchBudget: SafeInt(0),
+      activeCandidates: new Map(),
+      discoveredTechs: [],
     },
     constructionProjects: [
       {
@@ -230,7 +234,14 @@ describe("MonthExecutor", () => {
       navalAppropriationRateBp: SafeInt(2000),
       maintenanceCost: SafeInt(0),
       fleets: [],
-      research: { nationId: "GBR", technologies: [] },
+      research: {
+        nationId: "GBR",
+        technologies: [],
+        fieldPriorities: {},
+        researchBudget: SafeInt(0),
+        activeCandidates: new Map(),
+        discoveredTechs: [],
+      },
       constructionProjects: [],
       isPlayable: true,
       isAI: false,
@@ -420,6 +431,10 @@ describe("MonthExecutor", () => {
       research: {
         nationId: "GER",
         technologies: [],
+        fieldPriorities: {},
+        researchBudget: SafeInt(0),
+        activeCandidates: new Map(),
+        discoveredTechs: [],
       },
       constructionProjects: [
         {

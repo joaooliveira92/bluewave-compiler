@@ -33,7 +33,14 @@ function createNationState(id: string, treasury: SafeInt): NationState {
     navalAppropriationRateBp: SafeInt(2000),
     maintenanceCost: SafeInt(0),
     fleets: [],
-    research: { nationId: id, technologies: [] },
+    research: {
+      nationId: id,
+      technologies: [],
+      fieldPriorities: {},
+      researchBudget: SafeInt(0),
+      activeCandidates: new Map(),
+      discoveredTechs: [],
+    },
     constructionProjects: [],
     isPlayable: true,
     isAI: false,
@@ -51,7 +58,7 @@ describe("PhaseRegistry", () => {
     expect(phases[4]!["id"]).toBe("maintenance");
     expect(phases[5]!["id"]).toBe("obligation");
     expect(phases[6]!["id"]).toBe("construction_processing");
-    expect(phases[7]!["id"]).toBe("research_progress");
+    expect(phases[7]!["id"]).toBe("resolve_research");
     expect(phases[8]!["id"]).toBe("battle_resolution");
     expect(phases[9]!["id"]).toBe("closing_validation");
 
@@ -67,7 +74,7 @@ describe("PhaseRegistry", () => {
 
     const byOrder = PhaseRegistry.getByOrder(7);
     expect(byOrder).toBeDefined();
-    expect(byOrder!["id"]).toBe("research_progress");
+    expect(byOrder!["id"]).toBe("resolve_research");
   });
 
   it("enforces read permissions", () => {
@@ -91,7 +98,7 @@ describe("PhaseRegistry", () => {
   });
 
   it("only rng phases allow randomness", () => {
-    const research = PhaseRegistry.getById("research_progress")!;
+    const research = PhaseRegistry.getById("resolve_research")!;
     const battle = PhaseRegistry.getById("battle_resolution")!;
     const collect = PhaseRegistry.getById("command_collection")!;
 
@@ -264,7 +271,7 @@ describe("PhaseEngine", () => {
     const researchPhase = result["phaseResults"][7]!;
     const battlePhase = result["phaseResults"][8]!;
 
-    expect(researchPhase["phaseId"]).toBe("research_progress");
+    expect(researchPhase["phaseId"]).toBe("resolve_research");
     expect(researchPhase["noOp"]).toBe(true);
     expect(battlePhase["phaseId"]).toBe("battle_resolution");
     expect(battlePhase["noOp"]).toBe(true);

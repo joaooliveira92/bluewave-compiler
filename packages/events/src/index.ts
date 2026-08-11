@@ -4,6 +4,7 @@ export type {
   NationBudgetChanged,
   ConstructionProgressed,
   ResearchProgressed,
+  TechnologyDiscovered,
   BattleInitiated,
   BattleResolved,
   EventVersion,

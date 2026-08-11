@@ -102,8 +102,8 @@ export class PhaseRegistry {
       rngAllowed: false,
     },
     {
-      id: "research_progress",
-      name: "Research Progress",
+      id: "resolve_research",
+      name: "Research Resolution",
       order: 7,
       readPermissions: ["research"],
       writePermissions: ["research"],

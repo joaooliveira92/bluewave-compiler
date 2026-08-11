@@ -11,12 +11,6 @@ interface ElectronAPI {
   compile: (dirPath?: string) => Promise<CompileResult>;
 }
 
-declare global {
-  interface Window {
-    electronAPI: ElectronAPI;
-  }
-}
-
 const compileBtn = document.getElementById("compileBtn") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLDivElement;
 const outputEl = document.getElementById("output") as HTMLDivElement;
@@ -29,7 +23,7 @@ async function handleCompile(): Promise<void> {
   outputEl.className = "";
 
   try {
-    const result = await window.electronAPI.compile();
+    const result = await (window as unknown as { electronAPI: ElectronAPI }).electronAPI.compile();
 
     if (result.success) {
       statusEl.textContent = "Compilation successful!";

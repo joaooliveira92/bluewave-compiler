@@ -123,7 +123,8 @@ export class CommandLifecycle {
   }
 
   reserve(envelope: CommandEnvelope<CommandBody>, snapshot: CampaignSnapshot): LifecycleStepResult {
-    const nation = snapshot.nations.get(envelope.body.nationId);
+    const body = envelope.body as BudgetProjectCommand;
+    const nation = snapshot.nations.get(body.nationId);
     if (!nation) {
       return {
         ok: false,
@@ -135,13 +136,13 @@ export class CommandLifecycle {
             code: "NATION_NOT_FOUND" as DiagnosticCode,
             severity: "error",
             stage: "reserve",
-            message: `Nation ${envelope.body.nationId} not found in snapshot`,
+            message: `Nation ${body.nationId} not found in snapshot`,
           },
         },
       };
     }
 
-    if (nation.treasury < envelope.body.budget) {
+    if (nation.treasury < body.budget) {
       return {
         ok: false,
         outcome: {
@@ -152,7 +153,7 @@ export class CommandLifecycle {
             code: "INSUFFICIENT_TREASURY" as DiagnosticCode,
             severity: "error",
             stage: "reserve",
-            message: `Insufficient treasury: ${String(nation.treasury)} < ${String(envelope.body.budget)}`,
+            message: `Insufficient treasury: ${String(nation.treasury)} < ${String(body.budget)}`,
           },
         },
       };
@@ -180,15 +181,16 @@ export class CommandLifecycle {
   lock(_envelope: CommandEnvelope<CommandBody>): void {}
 
   resolve(envelope: CommandEnvelope<CommandBody>, snapshot: CampaignSnapshot): CommandOutcome {
+    const body = envelope.body as BudgetProjectCommand;
     const snapshotHash = sha256Hex(canonicalSerialize(snapshot));
     return {
       type: "success",
       commandId: envelope.commandId,
       snapshotHash,
       result: {
-        budget: envelope.body.budget,
-        nationId: envelope.body.nationId,
-        projectId: envelope.body.projectId,
+        budget: body.budget,
+        nationId: body.nationId,
+        projectId: body.projectId,
       },
     };
   }

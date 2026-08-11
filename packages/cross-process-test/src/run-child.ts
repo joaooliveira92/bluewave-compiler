@@ -84,6 +84,7 @@ function compileCampaign(fixtureDir: string): { state: CampaignState; contentHas
         constructionFiles: ["constructions.yaml"],
         diplomacyFiles: ["diplomacy.yaml"],
         researchFiles: ["research.yaml"],
+        designFiles: [],
       },
       rulesetVersion: "1.0",
       compatibilityVersion: "1.0.0",

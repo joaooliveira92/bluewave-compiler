@@ -52,7 +52,7 @@ The repository implements B0-B8 with 154 passing tests, cross-process determinis
 - Uses `contextBridge.exposeInMainWorld` to expose:
   ```ts
   electronAPI: {
-    compile: () => Promise<CompileResult>
+    compile: () => Promise<CompileResult>;
   }
   ```
 - No other channels or capabilities exposed.
