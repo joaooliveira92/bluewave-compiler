@@ -26,7 +26,7 @@
   "scripts": {
     "build": "tsc -b",
     "dev": "tsc -b --watch",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "clean": "rimraf --glob dist *.tsbuildinfo",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:cross-process": "node dist/run-child.js",

@@ -12,7 +12,7 @@
     "pack:mac": "pnpm build && electron-builder --mac --config",
     "pack:win": "pnpm build && electron-builder --win --config",
     "pack:linux": "pnpm build && electron-builder --linux --config",
-    "clean": "rm -rf out dist *.tsbuildinfo",
+    "clean": "rimraf --glob out dist *.tsbuildinfo",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "echo 'ok'",

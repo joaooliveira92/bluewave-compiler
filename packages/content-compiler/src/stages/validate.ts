@@ -1,3 +1,4 @@
+//packages/content-compiler/src/stages/validate.ts
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import type { ZodSchema } from "zod";
 import {

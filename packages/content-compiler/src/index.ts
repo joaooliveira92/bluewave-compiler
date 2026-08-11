@@ -1,3 +1,4 @@
+//packages/content-compiler/src/index.ts
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import type { ContentPack, PackManifest } from "@bluewave/content-schema";
 

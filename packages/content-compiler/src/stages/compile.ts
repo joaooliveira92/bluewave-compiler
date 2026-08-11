@@ -1,3 +1,4 @@
+//packages/content-compiler/src/stages/compile.ts
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { CompilerStage, CompilerOutput } from "../index.js";

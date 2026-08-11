@@ -5,7 +5,7 @@
     "node": ">=24.0.0",
     "pnpm": ">=11.0.0"
   },
-  "packageManager": "pnpm@11.9.0",
+  "packageManager": "pnpm@11.21.0",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -17,14 +17,16 @@
     "test": "turbo run test",
     "test:run": "vitest run",
     "test:cross-process": "node packages/cross-process-test/dist/run-child.js",
-    "clean": "turbo run clean && rm -rf node_modules",
+    "clean": "turbo run clean && rimraf .turbo",
+    "clean:all": "pnpm clean && rimraf node_modules",
     "check": "pnpm format && pnpm lint && pnpm typecheck && pnpm build && pnpm test:run"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "prettier": "^3.5.0",
+    "rimraf": "6.0.1",
     "turbo": "^2.4.0",
-    "typescript": "^5.7.0",
+    "typescript": "7.0.2",
     "vitest": "^3.0.0"
   }
 }

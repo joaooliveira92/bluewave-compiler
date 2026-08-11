@@ -1,3 +1,4 @@
+//packages/content-compiler/src/compiler.ts
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import type { CompilerInput, CompilerOutput, CompilerStage } from "./index.js";
 import { ParseStage } from "./stages/parse.js";
