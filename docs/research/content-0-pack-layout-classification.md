@@ -7,12 +7,14 @@ AFK research into the repo's own code and canonical docs. Research-only; no file
 ### 1. How the content pipeline consumes a content directory
 
 **CLI entry (`apps/compiler-cli/src/main.ts`).** Default option values:
+
 - `--manifest` default `pack.json` (line 135)
 - `--content-dir` default `content` (line 136)
 - `--output-dir` default `out` (line 137); `--save-dir` default `saves` (line 138)
 - Documented in USAGE at lines 38–41. `parseOptions` maps `--manifest`/`--content-dir`/etc. (lines 144–163).
 
 **Input assembly (`apps/compiler-cli/src/commands.ts`).** `buildInput` (lines 540–580):
+
 - resolves `manifestPath` from `--manifest` and `contentDir` from `--content-dir` (544–545);
 - requires both to exist (547–555);
 - `JSON.parse`es the manifest as `{ files?: Record<string, string[]> }` (557–564);
@@ -42,7 +44,7 @@ Field names the CLI readers read from `manifest.files`: `rulesets`, `countries`,
 
 ### 3. DESIGN-05 (`docs/architecture/canonical-content-and-rulesets.md`)
 
-**Important correction on premise:** this file is only 68 lines and does **not** contain manifest requirements named "classification / roots / collections / versions / localization / fixture-or-production". Those requirements do not exist in any doc on disk; the manifold manifest schema lives in code (`content-schema/src/manifest.ts`) and ADR‑0005. What DESIGN-05 *does* say, normatively:
+**Important correction on premise:** this file is only 68 lines and does **not** contain manifest requirements named "classification / roots / collections / versions / localization / fixture-or-production". Those requirements do not exist in any doc on disk; the manifold manifest schema lives in code (`content-schema/src/manifest.ts`) and ADR‑0005. What DESIGN-05 _does_ say, normatively:
 
 - Content pack contents (lines 10–30): nations, regimes, scenario participation, world areas, adjacency, possessions, ports, canals, climate profiles, technologies, ship components, aircraft, missiles, submarines, coastal defenses, events, AI profiles, historical fleets, generation templates, balance constants.
 - Ruleset requirements (lines 32–41): "Every ruleset has: stable identifier; semantic version; content hash; formula version; RNG algorithm version; AI-policy version."
@@ -55,11 +57,13 @@ The `type: "production" | "fixture" | "mod"` classification requirement is satis
 ### 4. DESIGN-55 (`docs/delivery/release-scope-and-implementation-order.md`)
 
 **§12 Content Feature Classification (lines 184–200).** Exactly one release classification per canonical content feature (line 186): `SUPPORTED_MECHANICAL`, `CONTENT_ONLY_LOCKED`, `PRESENTATION_ONLY`, `MIGRATION_ONLY`, or `DEPRECATED` (188–192).
+
 - `SUPPORTED_MECHANICAL` "requires at least one accepted capability that implements it" (194).
 - `CONTENT_ONLY_LOCKED` "MAY exist in the canonical pack before its runtime system is accepted, but it MUST be unreachable in a fully supported scenario" (196).
 - `PRESENTATION_ONLY` "MUST NOT affect authoritative mechanics" (198); `MIGRATION_ONLY` "exists only to preserve historical save compatibility" (200).
 
 **§13 Later-Era Content Gate (lines 202–215).** Later-era content MAY be packaged before acceptance only when **all** conditions hold (205–213):
+
 - classified `CONTENT_ONLY_LOCKED`;
 - cannot be discovered/purchased/produced/installed/assigned/spawned/selected/granted/activated by any supported scenario path;
 - AI candidate generation excludes it;
@@ -100,6 +104,7 @@ Justification (against the compiler as written):
 - **Payload is fully enumerated in `files`** (nothing auto-discovered), so production packs and fixture packs keep identical structure — required by how `parse.ts` and the desktop compiler read them.
 
 Caveats:
+
 - Because the CLI default `--manifest` is `pack.json` at the CWD (main.ts:135), a production compile must pass both flags, e.g. `bwc compile --manifest content/production/1880/pack.json --content-dir content/production/1880`. Alternatively place a thin `pack.json` at repo root that points at the production pack.
 - Campaign-side collections (fleets/economies/constructions/diplomacy/research/designs) are only consumed by the desktop compiler today; CLI `campaign:compile` passes empty arrays (commands.ts:223–230). A production pack authoring all 14 collections should compile via the desktop path (or extend the CLI) until that gap closes.
 

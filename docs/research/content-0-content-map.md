@@ -22,20 +22,20 @@ constructions, diplomacy, research, designs.
 
 ## Required collections and coverage
 
-| Collection | What it must contain for the anchor pack | Classification rule |
-| --- | --- | --- |
-| countries (nations/governments) | Real nations + governments for the reachable era; canonical playable slots (DESIGN-04) | SUPPORTED_MECHANICAL for M1-accepted nations; CONTENT_ONLY_LOCKED if a mechanic is pending |
-| areas (world geography) | Real world geographic areas within reach | SUPPORTED_MECHANICAL (compiler-owned) |
-| routes | Sea/rail/land adjacency routes | SUPPORTED_MECHANICAL |
-| possessions | Territorial control per nation | SUPPORTED_MECHANICAL |
-| ports | Ports and levels | SUPPORTED_MECHANICAL |
-| technologies | Tech tree across era bands (per-field, availability) | SUPPORTED_MECHANICAL where M1 research accepted (HULL/MACHINERY/GUNNERY); CONTENT_ONLY_LOCKED where owning field unmet |
-| designs | Ship design templates (real hulls/classes) | SUPPORTED_MECHANICAL where M1 design accepted |
-| fleets | Historical starting fleets per nation | SUPPORTED_MECHANICAL (M1 fleet/construction) |
-| economies | Treasury/income/expenses per nation | SUPPORTED_MECHANICAL (M1 economy) |
-| constructions | Dockyard projects / starting builds | SUPPORTED_MECHANICAL (M1 construction) |
-| diplomacy | Initial relation pairs + tension | CONTENT_ONLY_LOCKED while B10c diplomatic state owner is pending (A-3 blocked) |
-| research | Initial per-nation research state | SUPPORTED_MECHANICAL (M1 research accepted) |
+| Collection                      | What it must contain for the anchor pack                                               | Classification rule                                                                                                    |
+| ------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| countries (nations/governments) | Real nations + governments for the reachable era; canonical playable slots (DESIGN-04) | SUPPORTED_MECHANICAL for M1-accepted nations; CONTENT_ONLY_LOCKED if a mechanic is pending                             |
+| areas (world geography)         | Real world geographic areas within reach                                               | SUPPORTED_MECHANICAL (compiler-owned)                                                                                  |
+| routes                          | Sea/rail/land adjacency routes                                                         | SUPPORTED_MECHANICAL                                                                                                   |
+| possessions                     | Territorial control per nation                                                         | SUPPORTED_MECHANICAL                                                                                                   |
+| ports                           | Ports and levels                                                                       | SUPPORTED_MECHANICAL                                                                                                   |
+| technologies                    | Tech tree across era bands (per-field, availability)                                   | SUPPORTED_MECHANICAL where M1 research accepted (HULL/MACHINERY/GUNNERY); CONTENT_ONLY_LOCKED where owning field unmet |
+| designs                         | Ship design templates (real hulls/classes)                                             | SUPPORTED_MECHANICAL where M1 design accepted                                                                          |
+| fleets                          | Historical starting fleets per nation                                                  | SUPPORTED_MECHANICAL (M1 fleet/construction)                                                                           |
+| economies                       | Treasury/income/expenses per nation                                                    | SUPPORTED_MECHANICAL (M1 economy)                                                                                      |
+| constructions                   | Dockyard projects / starting builds                                                    | SUPPORTED_MECHANICAL (M1 construction)                                                                                 |
+| diplomacy                       | Initial relation pairs + tension                                                       | CONTENT_ONLY_LOCKED while B10c diplomatic state owner is pending (A-3 blocked)                                         |
+| research                        | Initial per-nation research state                                                      | SUPPORTED_MECHANICAL (M1 research accepted)                                                                            |
 
 ## Classification promotion rule
 

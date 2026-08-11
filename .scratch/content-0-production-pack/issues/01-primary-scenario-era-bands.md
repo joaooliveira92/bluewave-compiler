@@ -33,7 +33,6 @@ None.
 
 ## Answer
 
-
 **Primary scenario: `scen_1880`, start January 1880.** The earliest canonical
 scenario is the natural acceptance anchor: it spans the game's full declared
 simulation scope (1880–Dec 1970, DESIGN-01 §1, DESIGN-03 §2), matches the 1880
@@ -55,4 +54,3 @@ and support checks.
 
 Sources: `docs/rules/campaign-configuration.md` §1–§2; `docs/delivery/release-scope-and-implementation-order.md` §11/§17/§20;
 `docs/vision/game-vision.md` §1; `docs/research/content-0-scenario-era-bands.md`.
-

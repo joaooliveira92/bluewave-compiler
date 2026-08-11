@@ -77,11 +77,11 @@ Era-band calendar spans: EARLY 1880–1899, PRE_WAR 1900–1919, INTERWAR 1920�
 MID_CENTURY 1940–1959, LATE 1960–1970.
 
 (a) Start Jan 1880 → run to Dec 1970 (simulation end): 91 years = **1092 strategic turns**.
-    Touches all five bands: EARLY (240 mo), PRE_WAR (240), INTERWAR (240), MID_CENTURY (240),
-    LATE (132). Reaches **all five era bands**.
+Touches all five bands: EARLY (240 mo), PRE_WAR (240), INTERWAR (240), MID_CENTURY (240),
+LATE (132). Reaches **all five era bands**.
 
 (b) Start Jan 1880 → exactly 120 months (long-form floor): 10 years, ending **December 1889**
-    (Jan 1880 + 119 months). Entirely inside EARLY; reaches **only `EARLY`**.
+(Jan 1880 + 119 months). Entirely inside EARLY; reaches **only `EARLY`**.
 
 ### 6. Content-schema manifest type + CLI default content dir
 

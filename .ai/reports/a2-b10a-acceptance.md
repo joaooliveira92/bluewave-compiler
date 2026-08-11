@@ -22,18 +22,18 @@ the criteria and added one missing proof test (a full 3-nation economy turn).
 
 ## Requirements evidence (criterion-by-criterion)
 
-| # | Criterion | Evidence | Verdict |
-| - | - | - | - |
-| 1 | Full monthly turn with GBR, FRA, GER | NEW `phase-engine/test/economy.test.ts` "C1" — all three nations run revenue and keep positive treasury | **PASS** |
-| 2 | Treasury updates via balanced postings (revenue, maintenance, construction) | "C2" — balanced ledger, NAVAL_APPROPRIATION + MAINTENANCE_EXPENDITURE present; existing `month.test.ts` "outputs FinancialLedger entries with correct shape" | **PASS** |
-| 3 | Financial ledger hash deterministic + equals canonical serialization | "C3" — hash stable across runs and equals `sha256(canonicalSerialize(entries))` | **PASS** |
-| 4 | Paid-work-only; zero payment → zero progress | "C4" + `month.test.ts` "zero payment produces zero progress (paid-work rule)" | **PASS** |
-| 5 | Completed project → commissioned ship in FleetState | "C5" + `month.test.ts` "promotes completed construction project to fleet ship" | **PASS** |
-| 6 | Treasury never negative at committed boundary | "C6" + `month.test.ts` "never produces negative treasury" + integration "Treasury never silently becomes negative" | **PASS** |
-| 7 | Determinism for fixed seed (replay identical snapshots/hashes) | "C7" + `month.test.ts` determinism + cross-process golden (unchanged) | **PASS** |
-| 8 | CommandLifecycle accepts/rejects with typed outcomes | `commands.test.ts` (success/idempotency_match/idempotency_conflict/rejected) + integration tests 5-7 (STALE_SNAPSHOT_HASH, UNAUTHORIZED, insufficient treasury) | **PASS** |
-| 9 | Existing compiler/command/phase/persistence/determinism suites pass | `pnpm -w turbo run build test` → 32 tasks green | **PASS** |
-| 10 | `vitest run` passes across workspace | same run | **PASS** |
+| #   | Criterion                                                                   | Evidence                                                                                                                                                        | Verdict  |
+| --- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 1   | Full monthly turn with GBR, FRA, GER                                        | NEW `phase-engine/test/economy.test.ts` "C1" — all three nations run revenue and keep positive treasury                                                         | **PASS** |
+| 2   | Treasury updates via balanced postings (revenue, maintenance, construction) | "C2" — balanced ledger, NAVAL_APPROPRIATION + MAINTENANCE_EXPENDITURE present; existing `month.test.ts` "outputs FinancialLedger entries with correct shape"    | **PASS** |
+| 3   | Financial ledger hash deterministic + equals canonical serialization        | "C3" — hash stable across runs and equals `sha256(canonicalSerialize(entries))`                                                                                 | **PASS** |
+| 4   | Paid-work-only; zero payment → zero progress                                | "C4" + `month.test.ts` "zero payment produces zero progress (paid-work rule)"                                                                                   | **PASS** |
+| 5   | Completed project → commissioned ship in FleetState                         | "C5" + `month.test.ts` "promotes completed construction project to fleet ship"                                                                                  | **PASS** |
+| 6   | Treasury never negative at committed boundary                               | "C6" + `month.test.ts` "never produces negative treasury" + integration "Treasury never silently becomes negative"                                              | **PASS** |
+| 7   | Determinism for fixed seed (replay identical snapshots/hashes)              | "C7" + `month.test.ts` determinism + cross-process golden (unchanged)                                                                                           | **PASS** |
+| 8   | CommandLifecycle accepts/rejects with typed outcomes                        | `commands.test.ts` (success/idempotency_match/idempotency_conflict/rejected) + integration tests 5-7 (STALE_SNAPSHOT_HASH, UNAUTHORIZED, insufficient treasury) | **PASS** |
+| 9   | Existing compiler/command/phase/persistence/determinism suites pass         | `pnpm -w turbo run build test` → 32 tasks green                                                                                                                 | **PASS** |
+| 10  | `vitest run` passes across workspace                                        | same run                                                                                                                                                        | **PASS** |
 
 ## Commands and observed results
 
