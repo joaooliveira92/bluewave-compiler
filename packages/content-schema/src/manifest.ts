@@ -17,7 +17,7 @@ export const RulesetManifestSchema = z.object({
 export interface ContentPack {
   manifest: PackManifest;
   rulesets: RulesetManifest[];
-  countries: Country[];
+  nations: Nation[];
   areas: Area[];
   routes: RouteEdge[];
   possessions: Possession[];
@@ -28,7 +28,7 @@ export interface ContentPack {
 export interface PackManifest extends z.infer<typeof PackManifestSchema> {}
 export interface RulesetManifest extends z.infer<typeof RulesetManifestSchema> {}
 
-import type { Country } from "./country.js";
+import type { Nation } from "./nation.js";
 import type { Area } from "./area.js";
 import type { RouteEdge } from "./route.js";
 import type { Possession } from "./possession.js";

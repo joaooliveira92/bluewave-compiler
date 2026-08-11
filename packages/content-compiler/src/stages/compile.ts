@@ -15,7 +15,7 @@ export class CompileStage implements CompilerStage<NormalizeOutput, CompilerOutp
     const artifact = {
       manifest: input.manifest,
       rulesets: input.rulesets,
-      countries: input.countries,
+      nations: input.countries,
       areas: input.areas,
       routes: input.routes,
       possessions: input.possessions,

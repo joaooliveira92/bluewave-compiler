@@ -1,11 +1,6 @@
 export type { ContentPack, PackManifest, RulesetManifest } from "./manifest.js";
 export { PackManifestSchema, RulesetManifestSchema } from "./manifest.js";
 
-// Legacy Country entity — kept until the Nation contract lands (ticket 03).
-export type { Country } from "./country.js";
-export { CountrySchema, LogisticsProfileSchema } from "./country.js";
-export type { LogisticsProfile } from "./country.js";
-
 // Canonical Nation entity.
 export {
   NationSchema,

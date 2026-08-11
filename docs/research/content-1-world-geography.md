@@ -7,11 +7,11 @@
 >
 > **Data model target (author-time schema):**
 >
-> - `countries`: `{id, name, tag(3-letter uppercase), color?}`
-> - `areas`: `{id, name, type: "land"|"sea"|"coastal", controller?(country id)}`
+> - `countries`: `{id, name, tag(3-letter uppercase), isPlayable, presentation, and the rich canon fields}`
+> - `areas`: `{id, name, type: "land"|"sea"|"coastal", controller?(nation id)}`
 > - `routes`: `{id, from(area id), to(area id), type: "land"|"sea"|"rail", distance(integer km)}`
-> - `possessions`: `{id, countryId(owner), areaId}`
-> - `ports`: `{id, name, areaId, countryId, level(1-10)}`
+> - `possessions`: `{id, nationId(owner), areaId}`
+> - `ports`: `{id, name, areaId, nationId, level(1-10)}`
 >
 > **Grounding rule:** Nothing below is invented. Each claim is anchored to
 > historically-attested 1880 conditions and cites a source (Wikipedia / Britannica
@@ -48,7 +48,7 @@ campaign physics (DESIGN-14 route edges, home/build-area assignments) reflect re
 
 ## 1. Major naval powers and their empire holdings (1880)
 
-### 1.1 Country registry (concrete IDs/tags)
+### 1.1 Nation registry (concrete IDs/tags)
 
 | id    | name             | tag   | colour (suggested) | Source             |
 | ----- | ---------------- | ----- | ------------------ | ------------------ |
@@ -307,167 +307,167 @@ possessions); land/coastal areas tied to a power set `controller`.
 
 ## 3. Major ports per power (1880 importance, level 1–10)
 
-Schema: `ports: {id, name, areaId, countryId, level(1-10)}`. Level weights strategic
+Schema: `ports: {id, name, areaId, nationId, level(1-10)}`. Level weights strategic
 value, size, and naval/coaling importance for a **1880** navy. Home dockyards of the
 great powers rate highest.
 
 ### 3.1 United Kingdom (level via Source: "List of Royal Navy shore establishments", "HMNB Portsmouth", "HMNB Devonport")
 
-| port id          | name                     | areaId            | countryId | level |
-| ---------------- | ------------------------ | ----------------- | --------- | ----- |
-| `gbr_portsmouth` | Portsmouth               | eng_home_coast    | gbr       | 10    |
-| `gbr_plymouth`   | Plymouth (Devonport)     | eng_home_coast    | gbr       | 10    |
-| `gbr_chatham`    | Chatham                  | eng_home_coast    | gbr       | 8     |
-| `gbr_sheerness`  | Sheerness                | eng_home_coast    | gbr       | 6     |
-| `gbr_gibraltar`  | Gibraltar                | med_gibraltar     | gbr       | 8     |
-| `gbr_valletta`   | Valletta (Malta)         | med_malta         | gbr       | 8     |
-| `gbr_cyprus`     | Famagusta/Limassol       | med_cyprus        | gbr       | 4     |
-| `gbr_halifax`    | Halifax                  | americas_halifax  | gbr       | 6     |
-| `gbr_bermuda`    | Bermuda                  | atlantic_bermuda  | gbr       | 7     |
-| `gbr_bombay`     | Bombay (Mumbai)          | india_west_coast  | gbr       | 8     |
-| `gbr_calcutta`   | Calcutta                 | india_east_coast  | gbr       | 6     |
-| `gbr_colombo`    | Colombo (Ceylon)         | indian_ceylon     | gbr       | 7     |
-| `gbr_singapore`  | Singapore                | sea_singapore     | gbr       | 7     |
-| `gbr_hongkong`   | Hong Kong                | sea_hong_kong     | gbr       | 7     |
-| `gbr_capetown`   | Cape Town (Simon's Town) | africa_cape       | gbr       | 7     |
-| `gbr_simonstown` | Simon's Town             | africa_cape       | gbr       | 7     |
-| `gbr_adden`      | Aden                     | indian_adden      | gbr       | 6     |
-| `gbr_sydney`     | Sydney                   | pacific_australia | gbr       | 6     |
-| `gbr_melbourne`  | Melbourne                | pacific_australia | gbr       | 5     |
-| `gbr_auckland`   | Auckland                 | pacific_australia | gbr       | 5     |
+| port id          | name                     | areaId            | nationId | level |
+| ---------------- | ------------------------ | ----------------- | -------- | ----- |
+| `gbr_portsmouth` | Portsmouth               | eng_home_coast    | gbr      | 10    |
+| `gbr_plymouth`   | Plymouth (Devonport)     | eng_home_coast    | gbr      | 10    |
+| `gbr_chatham`    | Chatham                  | eng_home_coast    | gbr      | 8     |
+| `gbr_sheerness`  | Sheerness                | eng_home_coast    | gbr      | 6     |
+| `gbr_gibraltar`  | Gibraltar                | med_gibraltar     | gbr      | 8     |
+| `gbr_valletta`   | Valletta (Malta)         | med_malta         | gbr      | 8     |
+| `gbr_cyprus`     | Famagusta/Limassol       | med_cyprus        | gbr      | 4     |
+| `gbr_halifax`    | Halifax                  | americas_halifax  | gbr      | 6     |
+| `gbr_bermuda`    | Bermuda                  | atlantic_bermuda  | gbr      | 7     |
+| `gbr_bombay`     | Bombay (Mumbai)          | india_west_coast  | gbr      | 8     |
+| `gbr_calcutta`   | Calcutta                 | india_east_coast  | gbr      | 6     |
+| `gbr_colombo`    | Colombo (Ceylon)         | indian_ceylon     | gbr      | 7     |
+| `gbr_singapore`  | Singapore                | sea_singapore     | gbr      | 7     |
+| `gbr_hongkong`   | Hong Kong                | sea_hong_kong     | gbr      | 7     |
+| `gbr_capetown`   | Cape Town (Simon's Town) | africa_cape       | gbr      | 7     |
+| `gbr_simonstown` | Simon's Town             | africa_cape       | gbr      | 7     |
+| `gbr_adden`      | Aden                     | indian_adden      | gbr      | 6     |
+| `gbr_sydney`     | Sydney                   | pacific_australia | gbr      | 6     |
+| `gbr_melbourne`  | Melbourne                | pacific_australia | gbr      | 5     |
+| `gbr_auckland`   | Auckland                 | pacific_australia | gbr      | 5     |
 
 ### 3.2 France (Source: "Arsenal de Brest", "Arsenal de Toulon", "Cherbourg-en-Cotentin")
 
-| port id             | name           | areaId                | countryId | level |
-| ------------------- | -------------- | --------------------- | --------- | ----- |
-| `fra_brest`         | Brest          | fra_chan_coast        | fra       | 9     |
-| `fra_toulon`        | Toulon         | fra_med_coast         | fra       | 9     |
-| `fra_cherbourg`     | Cherbourg      | fra_chan_coast        | fra       | 8     |
-| `fra_rochefort`     | Rochefort      | fra_chan_coast        | fra       | 6     |
-| `fra_algiers`       | Algiers        | africa_algeria        | fra       | 7     |
-| `fra_oran`          | Oran           | africa_algeria        | fra       | 6     |
-| `fra_saigon`        | Saigon         | indochina_cochinchina | fra       | 5     |
-| `fra_noumea`        | Nouméa         | pacific_newcaledonia  | fra       | 5     |
-| `fra_fortde_france` | Fort-de-France | americas_martinique   | fra       | 4     |
+| port id             | name           | areaId                | nationId | level |
+| ------------------- | -------------- | --------------------- | -------- | ----- |
+| `fra_brest`         | Brest          | fra_chan_coast        | fra      | 9     |
+| `fra_toulon`        | Toulon         | fra_med_coast         | fra      | 9     |
+| `fra_cherbourg`     | Cherbourg      | fra_chan_coast        | fra      | 8     |
+| `fra_rochefort`     | Rochefort      | fra_chan_coast        | fra      | 6     |
+| `fra_algiers`       | Algiers        | africa_algeria        | fra      | 7     |
+| `fra_oran`          | Oran           | africa_algeria        | fra      | 6     |
+| `fra_saigon`        | Saigon         | indochina_cochinchina | fra      | 5     |
+| `fra_noumea`        | Nouméa         | pacific_newcaledonia  | fra      | 5     |
+| `fra_fortde_france` | Fort-de-France | americas_martinique   | fra      | 4     |
 
 ### 3.3 Germany (source: "Kiel", "Wilhelmshaven", "Kaiserliche Marine")
 
-| port id             | name          | areaId              | countryId | level |
-| ------------------- | ------------- | ------------------- | --------- | ----- |
-| `ger_kiel`          | Kiel          | ger_baltic_coast    | ger       | 8     |
-| `ger_wilhelmshaven` | Wilhelmshaven | ger_ndgermany_coast | ger       | 8     |
-| `ger_danzig`        | Danzig        | ger_baltic_coast    | ger       | 6     |
-| `ger_stralsund`     | Stralsund     | ger_baltic_coast    | ger       | 4     |
+| port id             | name          | areaId              | nationId | level |
+| ------------------- | ------------- | ------------------- | -------- | ----- |
+| `ger_kiel`          | Kiel          | ger_baltic_coast    | ger      | 8     |
+| `ger_wilhelmshaven` | Wilhelmshaven | ger_ndgermany_coast | ger      | 8     |
+| `ger_danzig`        | Danzig        | ger_baltic_coast    | ger      | 6     |
+| `ger_stralsund`     | Stralsund     | ger_baltic_coast    | ger      | 4     |
 
 ### 3.4 Russia (source: "Kronstadt", "Sevastopol", "Vladivostok")
 
-| port id            | name            | areaId             | countryId | level |
-| ------------------ | --------------- | ------------------ | --------- | ----- |
-| `rus_kronstadt`    | Kronstadt       | rus_baltic_coast   | rus       | 8     |
-| `rus_stpetersburg` | St Petersburg   | rus_baltic_coast   | rus       | 7     |
-| `rus_reval`        | Reval (Tallinn) | rus_baltic_coast   | rus       | 5     |
-| `rus_sevastopol`   | Sevastopol      | rus_blacksea_coast | rus       | 8     |
-| `rus_nikolayev`    | Nikolayev       | rus_blacksea_coast | rus       | 6     |
-| `rus_odessa`       | Odessa          | rus_blacksea_coast | rus       | 5     |
-| `rus_vladivostok`  | Vladivostok     | rus_pacific_coast  | rus       | 5     |
+| port id            | name            | areaId             | nationId | level |
+| ------------------ | --------------- | ------------------ | -------- | ----- |
+| `rus_kronstadt`    | Kronstadt       | rus_baltic_coast   | rus      | 8     |
+| `rus_stpetersburg` | St Petersburg   | rus_baltic_coast   | rus      | 7     |
+| `rus_reval`        | Reval (Tallinn) | rus_baltic_coast   | rus      | 5     |
+| `rus_sevastopol`   | Sevastopol      | rus_blacksea_coast | rus      | 8     |
+| `rus_nikolayev`    | Nikolayev       | rus_blacksea_coast | rus      | 6     |
+| `rus_odessa`       | Odessa          | rus_blacksea_coast | rus      | 5     |
+| `rus_vladivostok`  | Vladivostok     | rus_pacific_coast  | rus      | 5     |
 
 ### 3.5 Austria-Hungary (source: "Pola (naval base)", "Trieste")
 
-| port id       | name           | areaId             | countryId | level |
-| ------------- | -------------- | ------------------ | --------- | ----- |
-| `auh_pola`    | Pola (Pula)    | auh_adriatic_coast | auh       | 7     |
-| `auh_trieste` | Trieste        | auh_adriatic_coast | auh       | 6     |
-| `auh_fiume`   | Fiume (Rijeka) | auh_dalmatia       | auh       | 4     |
+| port id       | name           | areaId             | nationId | level |
+| ------------- | -------------- | ------------------ | -------- | ----- |
+| `auh_pola`    | Pola (Pula)    | auh_adriatic_coast | auh      | 7     |
+| `auh_trieste` | Trieste        | auh_adriatic_coast | auh      | 6     |
+| `auh_fiume`   | Fiume (Rijeka) | auh_dalmatia       | auh      | 4     |
 
 ### 3.6 Italy (source: "La Spezia", "Taranto", "Regia Marina")
 
-| port id        | name      | areaId               | countryId | level |
-| -------------- | --------- | -------------------- | --------- | ----- |
-| `ita_laspezia` | La Spezia | ita_tyrrhenian_coast | ita       | 7     |
-| `ita_naples`   | Naples    | ita_tyrrhenian_coast | ita       | 5     |
-| `ita_taranto`  | Taranto   | ita_adriatic_coast   | ita       | 7     |
-| `ita_genoa`    | Genoa     | ita_tyrrhenian_coast | ita       | 5     |
-| `ita_venice`   | Venice    | ita_adriatic_coast   | ita       | 5     |
+| port id        | name      | areaId               | nationId | level |
+| -------------- | --------- | -------------------- | -------- | ----- |
+| `ita_laspezia` | La Spezia | ita_tyrrhenian_coast | ita      | 7     |
+| `ita_naples`   | Naples    | ita_tyrrhenian_coast | ita      | 5     |
+| `ita_taranto`  | Taranto   | ita_adriatic_coast   | ita      | 7     |
+| `ita_genoa`    | Genoa     | ita_tyrrhenian_coast | ita      | 5     |
+| `ita_venice`   | Venice    | ita_adriatic_coast   | ita      | 5     |
 
 ### 3.7 USA (source: "Brooklyn Navy Yard", "Norfolk Naval Shipyard", "Mare Island")
 
-| port id            | name                          | areaId             | countryId | level |
-| ------------------ | ----------------------------- | ------------------ | --------- | ----- |
-| `usa_norfolk`      | Norfolk                       | usa_atlantic_coast | usa       | 6     |
-| `usa_newyork`      | New York (Brooklyn Navy Yard) | usa_atlantic_coast | usa       | 6     |
-| `usa_boston`       | Boston                        | usa_atlantic_coast | usa       | 4     |
-| `usa_philadelphia` | Philadelphia                  | usa_atlantic_coast | usa       | 4     |
-| `usa_mare_island`  | Mare Island (SF)              | usa_pacific_coast  | usa       | 4     |
-| `usa_keywest`      | Key West                      | usa_gulf_coast     | usa       | 4     |
-| `usa_pensacola`    | Pensacola                     | usa_gulf_coast     | usa       | 4     |
+| port id            | name                          | areaId             | nationId | level |
+| ------------------ | ----------------------------- | ------------------ | -------- | ----- |
+| `usa_norfolk`      | Norfolk                       | usa_atlantic_coast | usa      | 6     |
+| `usa_newyork`      | New York (Brooklyn Navy Yard) | usa_atlantic_coast | usa      | 6     |
+| `usa_boston`       | Boston                        | usa_atlantic_coast | usa      | 4     |
+| `usa_philadelphia` | Philadelphia                  | usa_atlantic_coast | usa      | 4     |
+| `usa_mare_island`  | Mare Island (SF)              | usa_pacific_coast  | usa      | 4     |
+| `usa_keywest`      | Key West                      | usa_gulf_coast     | usa      | 4     |
+| `usa_pensacola`    | Pensacola                     | usa_gulf_coast     | usa      | 4     |
 
 ### 3.8 Japan (source: "Yokosuka Naval Arsenal", "Kure Naval Arsenal", "Sasebo Naval Arsenal")
 
-| port id        | name           | areaId           | countryId | level |
-| -------------- | -------------- | ---------------- | --------- | ----- |
-| `jpn_yokosuka` | Yokosuka       | jpn_home_coast   | jpn       | 6     |
-| `jpn_yokohama` | Yokohama/Tokyo | jpn_home_coast   | jpn       | 6     |
-| `jpn_kure`     | Kure           | jpn_inland_sea   | jpn       | 5     |
-| `jpn_sasebo`   | Sasebo         | jpn_kyushu_coast | jpn       | 5     |
-| `jpn_nagasaki` | Nagasaki       | jpn_kyushu_coast | jpn       | 5     |
+| port id        | name           | areaId           | nationId | level |
+| -------------- | -------------- | ---------------- | -------- | ----- |
+| `jpn_yokosuka` | Yokosuka       | jpn_home_coast   | jpn      | 6     |
+| `jpn_yokohama` | Yokohama/Tokyo | jpn_home_coast   | jpn      | 6     |
+| `jpn_kure`     | Kure           | jpn_inland_sea   | jpn      | 5     |
+| `jpn_sasebo`   | Sasebo         | jpn_kyushu_coast | jpn      | 5     |
+| `jpn_nagasaki` | Nagasaki       | jpn_kyushu_coast | jpn      | 5     |
 
 ### 3.9 Ottoman Empire (source: "Ottoman Navy", "Istanbul", "Izmir")
 
-| port id              | name                      | areaId             | countryId | level |
-| -------------------- | ------------------------- | ------------------ | --------- | ----- |
-| `ott_constantinople` | Constantinople (Istanbul) | ott_marmara_coast  | ott       | 7     |
-| `ott_smyrna`         | Smyrna (Izmir)            | ott_aegean_coast   | ott       | 5     |
-| `ott_sinope`         | Sinope                    | ott_blacksea_coast | ott       | 4     |
-| `ott_alexandria`     | Alexandria                | ott_eg_coast       | ott       | 5     |
+| port id              | name                      | areaId             | nationId | level |
+| -------------------- | ------------------------- | ------------------ | -------- | ----- |
+| `ott_constantinople` | Constantinople (Istanbul) | ott_marmara_coast  | ott      | 7     |
+| `ott_smyrna`         | Smyrna (Izmir)            | ott_aegean_coast   | ott      | 5     |
+| `ott_sinope`         | Sinope                    | ott_blacksea_coast | ott      | 4     |
+| `ott_alexandria`     | Alexandria                | ott_eg_coast       | ott      | 5     |
 
 ### 3.10 Spain (source: "Ferrol", "Cartagena", "Arsenal de la Carraca", "Manila")
 
-| port id         | name      | areaId             | countryId | level |
-| --------------- | --------- | ------------------ | --------- | ----- |
-| `spa_ferrol`    | Ferrol    | spa_atlantic_coast | spa       | 6     |
-| `spa_cadiz`     | Cadiz     | spa_atlantic_coast | spa       | 5     |
-| `spa_cartagena` | Cartagena | spa_med_coast      | spa       | 6     |
-| `spa_havana`    | Havana    | americas_cuba      | spa       | 6     |
-| `spa_manila`    | Manila    | philippines_luzon  | spa       | 5     |
-| `spa_cavite`    | Cavite    | philippines_luzon  | spa       | 5     |
+| port id         | name      | areaId             | nationId | level |
+| --------------- | --------- | ------------------ | -------- | ----- |
+| `spa_ferrol`    | Ferrol    | spa_atlantic_coast | spa      | 6     |
+| `spa_cadiz`     | Cadiz     | spa_atlantic_coast | spa      | 5     |
+| `spa_cartagena` | Cartagena | spa_med_coast      | spa      | 6     |
+| `spa_havana`    | Havana    | americas_cuba      | spa      | 6     |
+| `spa_manila`    | Manila    | philippines_luzon  | spa      | 5     |
+| `spa_cavite`    | Cavite    | philippines_luzon  | spa      | 5     |
 
 ### 3.11 Netherlands (source: "Den Helder", "Batavia", "Surabaya")
 
-| port id          | name                  | areaId         | countryId | level |
-| ---------------- | --------------------- | -------------- | --------- | ----- |
-| `ned_denhelder`  | Den Helder (Texel)    | ned_home_coast | ned       | 6     |
-| `ned_vlissingen` | Vlissingen (Flushing) | ned_home_coast | ned       | 5     |
-| `ned_batavia`    | Batavia (Jakarta)     | dei_java       | ned       | 6     |
-| `ned_surabaya`   | Surabaya              | dei_java       | ned       | 6     |
+| port id          | name                  | areaId         | nationId | level |
+| ---------------- | --------------------- | -------------- | -------- | ----- |
+| `ned_denhelder`  | Den Helder (Texel)    | ned_home_coast | ned      | 6     |
+| `ned_vlissingen` | Vlissingen (Flushing) | ned_home_coast | ned      | 5     |
+| `ned_batavia`    | Batavia (Jakarta)     | dei_java       | ned      | 6     |
+| `ned_surabaya`   | Surabaya              | dei_java       | ned      | 6     |
 
 ### 3.12 Portugal (source: "Lisbon", "Luanda", "Mozambique (city)")
 
-| port id                | name             | areaId            | countryId | level |
-| ---------------------- | ---------------- | ----------------- | --------- | ----- |
-| `por_lisbon`           | Lisbon           | por_home_coast    | por       | 5     |
-| `por_luanda`           | Luanda           | africa_angola     | por       | 5     |
-| `por_lourenco_marques` | Lourenço Marques | africa_mozambique | por       | 4     |
-| `por_macau`            | Macau            | asia_macau        | por       | 4     |
-| `por_goa`              | Goa              | asia_goa          | por       | 4     |
+| port id                | name             | areaId            | nationId | level |
+| ---------------------- | ---------------- | ----------------- | -------- | ----- |
+| `por_lisbon`           | Lisbon           | por_home_coast    | por      | 5     |
+| `por_luanda`           | Luanda           | africa_angola     | por      | 5     |
+| `por_lourenco_marques` | Lourenço Marques | africa_mozambique | por      | 4     |
+| `por_macau`            | Macau            | asia_macau        | por      | 4     |
+| `por_goa`              | Goa              | asia_goa          | por      | 4     |
 
 ### 3.13 China (source: "Beiyang Fleet", "Weihaiwei", "History of Shanghai")
 
-| port id           | name                 | areaId          | countryId | level |
-| ----------------- | -------------------- | --------------- | --------- | ----- |
-| `chi_taku`        | Taku (near Tianjin)  | chi_north_coast | chi       | 5     |
-| `chi_weihaiwei`   | Weihaiwei            | chi_weihaiwei   | chi       | 6     |
-| `chi_port_arthur` | Port Arthur (Lüshun) | chi_north_coast | chi       | 6     |
-| `chi_shanghai`    | Shanghai             | chi_yangtze     | chi       | 5     |
-| `chi_guangzhou`   | Guangzhou (Canton)   | chi_south_coast | chi       | 5     |
+| port id           | name                 | areaId          | nationId | level |
+| ----------------- | -------------------- | --------------- | -------- | ----- |
+| `chi_taku`        | Taku (near Tianjin)  | chi_north_coast | chi      | 5     |
+| `chi_weihaiwei`   | Weihaiwei            | chi_weihaiwei   | chi      | 6     |
+| `chi_port_arthur` | Port Arthur (Lüshun) | chi_north_coast | chi      | 6     |
+| `chi_shanghai`    | Shanghai             | chi_yangtze     | chi      | 5     |
+| `chi_guangzhou`   | Guangzhou (Canton)   | chi_south_coast | chi      | 5     |
 
 ### 3.14 Brazil (source: "Brazilian Navy", "Rio de Janeiro")
 
-| port id             | name                           | areaId        | countryId | level |
-| ------------------- | ------------------------------ | ------------- | --------- | ----- |
-| `bra_rio`           | Rio de Janeiro                 | bra_rio_coast | bra       | 6     |
-| `bra_salvador`      | Salvador (Bahia)               | bra_ne_coast  | bra       | 4     |
-| `bra_recife`        | Recife (Pernambuco)            | bra_ne_coast  | bra       | 4     |
-| `bra_ilhadascobras` | Ilha das Cobras (Rio dockyard) | bra_rio_coast | bra       | 5     |
+| port id             | name                           | areaId        | nationId | level |
+| ------------------- | ------------------------------ | ------------- | -------- | ----- |
+| `bra_rio`           | Rio de Janeiro                 | bra_rio_coast | bra      | 6     |
+| `bra_salvador`      | Salvador (Bahia)               | bra_ne_coast  | bra      | 4     |
+| `bra_recife`        | Recife (Pernambuco)            | bra_ne_coast  | bra      | 4     |
+| `bra_ilhadascobras` | Ilha das Cobras (Rio dockyard) | bra_rio_coast | bra      | 5     |
 
 ---
 
@@ -567,11 +567,11 @@ Reachability-friendly notes so CONTENT-1 can stay honest about anchor-start:
 
 ## 6. Suggested canonical ID conventions (author-time)
 
-- Country ids: 3-letter lowercase ISO-like (`gbr`, `fra`, …); `tag` = uppercase.
+- Nation ids: 3-letter lowercase ISO-like (`gbr`, `fra`, …); `tag` = uppercase.
 - Area ids: `<region>_<name>` snake_case, human-readable, globally unique.
 - Route ids: `r_<from>_<to>` (short, unique).
-- Possession ids: `poss_<country>_<area>`.
-- Port ids: `<country>_<city>`.
+- Possession ids: `poss_<nation>_<area>`.
+- Port ids: `<nation>_<city>`.
 
 ---
 

@@ -6,6 +6,13 @@ export interface FixtureDir {
   cleanup: () => void;
 }
 
+export interface NationFixtureSpec {
+  id: string;
+  tag: string;
+  name: string;
+  isPlayable?: boolean;
+}
+
 export function createFixtureDir(basePath: string): FixtureDir {
   mkdirSync(basePath, { recursive: true });
   return {
@@ -23,6 +30,63 @@ export function writeFixture(basePath: string, relativePath: string, content: st
   return fullPath;
 }
 
+/** A single valid, strict-NationSchema-compliant nation as a YAML list item. */
+export function nationYaml(spec: NationFixtureSpec): string {
+  const { id, tag, name, isPlayable = false } = spec;
+  return `
+- id: "${id}"
+  tag: "${tag}"
+  name: "${name}"
+  displayNameKey: "nation.${id}"
+  isPlayable: ${isPlayable}
+  slot: null
+  presentation: { colorBg: "#C8102E", colorFg: "#FFFFFF" }
+  identity:
+    oneSentence: "x"
+    fullIdentity: "x"
+    strategicProblem: "x"
+  regime:
+    type: "monarchy"
+    politicalSystem: "constitutional_monarchy"
+    headOfState: "x"
+    headOfGovernment: "x"
+    leaderTitle: "x"
+    navalPolicyActors: []
+    governmentModifiers: []
+    stabilityProfile: { level: "high", factors: [] }
+    description: "x"
+  strategicObjectives: { primary: "x", secondary: "x" }
+  baseResources:
+    gdpTier: "great_power"
+    gdpDescription: "x"
+    population: "x"
+    industrialization: "industrial"
+    industrializationDescription: "x"
+  navalAppropriation: { budgetLevel: "moderate", justification: "x" }
+  economy:
+    description: "x"
+    character: "x"
+    strengths: []
+    weaknesses: []
+    industrialBase: "mature_global"
+  navalInstitution:
+    description: "x"
+    character: []
+    seniority: "senior_service"
+  doctrine: { summary: "x", schools: [] }
+  shipDesign: { summary: "x", principles: [], favoredTypes: [] }
+  ai: { archetype: "status_quo_maritime_hegemon", behavior: [] }
+  navalPurpose: "sustain_global_empire"
+  coreAnxiety: "loss_of_sea_control_overstretch"
+  gameplayFeel: "manage_supremacy"
+  historicalAssumptions: []
+`;
+}
+
+export function nationsYaml(specs: NationFixtureSpec[]): string {
+  return specs.map(nationYaml).join("");
+}
+
 export const VALID_FIXTURE_MANIFEST = JSON.stringify({
   name: "test-pack",
   version: "0.1.0",
@@ -38,34 +102,25 @@ export const VALID_FIXTURE_MANIFEST = JSON.stringify({
   },
 });
 
-export const VALID_COUNTRIES_YAML = `
-- id: "GBR"
-  name: "United Kingdom"
-  tag: "GBR"
-  isPlayable: true
-- id: "FRA"
-  name: "France"
-  tag: "FRA"
-  isPlayable: false
-- id: "DEU"
-  name: "Germany"
-  tag: "DEU"
-  isPlayable: false
-`;
+export const VALID_NATIONS_YAML = nationsYaml([
+  { id: "uk", tag: "GBR", name: "United Kingdom", isPlayable: true },
+  { id: "france", tag: "FRA", name: "France" },
+  { id: "germany", tag: "GER", name: "Germany" },
+]);
 
 export const VALID_AREAS_YAML = `
 - id: "lon"
   name: "London"
   type: "land"
-  controller: "GBR"
+  controller: "uk"
 - id: "par"
   name: "Paris"
   type: "land"
-  controller: "FRA"
+  controller: "france"
 - id: "ber"
   name: "Berlin"
   type: "land"
-  controller: "DEU"
+  controller: "germany"
 - id: "eng_ch"
   name: "English Channel"
   type: "sea"
@@ -99,14 +154,14 @@ export const VALID_RULESETS_YAML = `
 `;
 
 export const VALID_POSSESSIONS_YAML = `
-- id: "gbr-lon"
-  countryId: "GBR"
+- id: "uk-lon"
+  nationId: "uk"
   areaId: "lon"
 - id: "fra-par"
-  countryId: "FRA"
+  nationId: "france"
   areaId: "par"
-- id: "deu-ber"
-  countryId: "DEU"
+- id: "ger-ber"
+  nationId: "germany"
   areaId: "ber"
 `;
 
@@ -114,12 +169,12 @@ export const VALID_PORTS_YAML = `
 - id: "port-lon"
   name: "Port of London"
   areaId: "lon"
-  countryId: "GBR"
+  nationId: "uk"
   level: 5
 - id: "port-par"
   name: "Port of Paris"
   areaId: "par"
-  countryId: "FRA"
+  nationId: "france"
   level: 3
 `;
 
@@ -158,7 +213,11 @@ export const INVALID_FIXTURES = {
       files: { countries: ["countries.yaml"] },
     }),
     files: {
-      "countries.yaml": '- id: "GBR"\n  name: "UK"\n  tag: "GBR"\n  unknownField: "something"\n',
+      "countries.yaml": `${nationYaml({
+        id: "uk",
+        tag: "GBR",
+        name: "United Kingdom",
+      })}  unknownField: "something"\n`,
     },
   },
   duplicateId: {
@@ -170,8 +229,10 @@ export const INVALID_FIXTURES = {
       files: { countries: ["countries.yaml"] },
     }),
     files: {
-      "countries.yaml":
-        '- id: "GBR"\n  name: "UK"\n  tag: "GBR"\n- id: "GBR"\n  name: "United Kingdom"\n  tag: "GBR"\n',
+      "countries.yaml": nationsYaml([
+        { id: "uk", tag: "GBR", name: "United Kingdom" },
+        { id: "uk", tag: "GBR", name: "United Kingdom" },
+      ]),
     },
   },
   missingReference: {
@@ -187,9 +248,9 @@ export const INVALID_FIXTURES = {
       },
     }),
     files: {
-      "countries.yaml": '- id: "GBR"\n  name: "UK"\n  tag: "GBR"\n',
+      "countries.yaml": nationYaml({ id: "uk", tag: "GBR", name: "United Kingdom" }),
       "areas.yaml": '- id: "lon"\n  name: "London"\n  type: "land"\n',
-      "possessions.yaml": '- id: "gbr-lon"\n  countryId: "GBR"\n  areaId: "nonexistent"\n',
+      "possessions.yaml": '- id: "uk-lon"\n  nationId: "uk"\n  areaId: "nonexistent"\n',
     },
   },
   excessiveSize: {
@@ -200,7 +261,9 @@ export const INVALID_FIXTURES = {
       type: "fixture",
       files: { countries: ["big.yaml"] },
     }),
-    files: { "big.yaml": `- id: "big"\n  name: ${"x".repeat(12 * 1024 * 1024)}\n  tag: "BIG"\n` },
+    files: {
+      "big.yaml": nationsYaml([{ id: "big", tag: "BIG", name: "x".repeat(12 * 1024 * 1024) }]),
+    },
   },
 };
 
@@ -208,7 +271,7 @@ export function createValidFixture(basePath: string): FixtureDir {
   const fixture = createFixtureDir(basePath);
   writeFixture(fixture.path, "pack.json", VALID_FIXTURE_MANIFEST);
   writeFixture(fixture.path, "rulesets.yaml", VALID_RULESETS_YAML);
-  writeFixture(fixture.path, "countries.yaml", VALID_COUNTRIES_YAML);
+  writeFixture(fixture.path, "countries.yaml", VALID_NATIONS_YAML);
   writeFixture(fixture.path, "areas.yaml", VALID_AREAS_YAML);
   writeFixture(fixture.path, "routes.yaml", VALID_ROUTES_YAML);
   writeFixture(fixture.path, "possessions.yaml", VALID_POSSESSIONS_YAML);

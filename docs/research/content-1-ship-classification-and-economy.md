@@ -17,7 +17,8 @@ Target content hooks:
 The economies schema lives in `packages/campaign/src/compiler.ts:282–311`
 (defaults `treasury=500, income=100, expenses=50`, plus a
 `navalAppropriationRateBp=2000` constant at :303). IDs in `countries.yaml` are
-ISO alpha-3-style tags (`GBR`, `FRA`, …) — matched by `nationId` at :288.
+lowercase canonical NationIds (`uk`, `france`, `qing`, …) — matched by
+`nationId` across the campaign collections.
 
 ---
 

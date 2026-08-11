@@ -20,3 +20,10 @@ _Avoid_: CountryId, 3-letter id
 The uppercase 3-letter presentation code carried by a Nation (e.g. `GBR`). It is a compact,
 legacy-compatible label, not an identity key.
 _Avoid_: country tag
+
+**ContentPack**:
+The compiled content artifact produced by the content compiler. It exposes the canonical
+`nations` collection together with areas, routes, possessions, ports, and technology chains.
+The on-disk surface for the nations collection (the YAML file name, the manifest key, and the
+compiler input field) intentionally keeps the legacy "countries" naming.
+_Avoid_: countries collection (only the on-disk name)

@@ -4,7 +4,7 @@ import type { ZodSchema } from "zod";
 import {
   PackManifestSchema,
   RulesetManifestSchema,
-  CountrySchema,
+  NationSchema,
   AreaSchema,
   RouteEdgeSchema,
   PossessionSchema,
@@ -63,7 +63,7 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
 
     const schemas: Record<string, { schema: ZodSchema<unknown>; label: string }> = {
       rulesets: { schema: RulesetManifestSchema, label: "RulesetManifest" },
-      countries: { schema: CountrySchema, label: "Country" },
+      countries: { schema: NationSchema, label: "Nation" },
       areas: { schema: AreaSchema, label: "Area" },
       routes: { schema: RouteEdgeSchema, label: "RouteEdge" },
       possessions: { schema: PossessionSchema, label: "Possession" },
@@ -246,19 +246,19 @@ function validateMissingReferences(
     }
   }
 
-  const countryIds = idMap.get("countries") ?? new Set();
+  const nationIds = idMap.get("countries") ?? new Set();
   const areaIds = idMap.get("areas") ?? new Set();
 
   const possessions = validated["possessions"] ?? [];
   for (const p of possessions) {
     const pRecord = p as Record<string, unknown>;
     const pId = pRecord["id"];
-    const countryId = pRecord["countryId"];
+    const nationId = pRecord["nationId"];
     const areaId = pRecord["areaId"];
-    if (typeof countryId === "string" && !countryIds.has(countryId)) {
+    if (typeof nationId === "string" && !nationIds.has(nationId)) {
       collector.addError(
         "REF",
-        `Possession '${String(pId)}' references unknown country '${countryId}'`,
+        `Possession '${String(pId)}' references unknown nation '${nationId}'`,
         {
           stage: "validate",
           entityId: typeof pId === "string" ? pId : undefined,
@@ -278,15 +278,15 @@ function validateMissingReferences(
     const pRecord = p as Record<string, unknown>;
     const pId = pRecord["id"];
     const areaId = pRecord["areaId"];
-    const countryId = pRecord["countryId"];
+    const nationId = pRecord["nationId"];
     if (typeof areaId === "string" && !areaIds.has(areaId)) {
       collector.addError("REF", `Port '${String(pId)}' references unknown area '${areaId}'`, {
         stage: "validate",
         entityId: typeof pId === "string" ? pId : undefined,
       });
     }
-    if (typeof countryId === "string" && !countryIds.has(countryId)) {
-      collector.addError("REF", `Port '${String(pId)}' references unknown country '${countryId}'`, {
+    if (typeof nationId === "string" && !nationIds.has(nationId)) {
+      collector.addError("REF", `Port '${String(pId)}' references unknown nation '${nationId}'`, {
         stage: "validate",
         entityId: typeof pId === "string" ? pId : undefined,
       });

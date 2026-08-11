@@ -21,6 +21,58 @@ function writeFixture(base: string, rel: string, content: string): string {
   return full;
 }
 
+/** A strict-NationSchema-compliant nation as a single YAML list item. */
+function nationYaml(id: string, tag: string, name: string, isPlayable = false): string {
+  return `
+- id: "${id}"
+  tag: "${tag}"
+  name: "${name}"
+  displayNameKey: "nation.${id}"
+  isPlayable: ${isPlayable}
+  slot: null
+  presentation: { colorBg: "#C8102E", colorFg: "#FFFFFF" }
+  identity:
+    oneSentence: "x"
+    fullIdentity: "x"
+    strategicProblem: "x"
+  regime:
+    type: "monarchy"
+    politicalSystem: "constitutional_monarchy"
+    headOfState: "x"
+    headOfGovernment: "x"
+    leaderTitle: "x"
+    navalPolicyActors: []
+    governmentModifiers: []
+    stabilityProfile: { level: "high", factors: [] }
+    description: "x"
+  strategicObjectives: { primary: "x", secondary: "x" }
+  baseResources:
+    gdpTier: "great_power"
+    gdpDescription: "x"
+    population: "x"
+    industrialization: "industrial"
+    industrializationDescription: "x"
+  navalAppropriation: { budgetLevel: "moderate", justification: "x" }
+  economy:
+    description: "x"
+    character: "x"
+    strengths: []
+    weaknesses: []
+    industrialBase: "mature_global"
+  navalInstitution:
+    description: "x"
+    character: []
+    seniority: "senior_service"
+  doctrine: { summary: "x", schools: [] }
+  shipDesign: { summary: "x", principles: [], favoredTypes: [] }
+  ai: { archetype: "status_quo_maritime_hegemon", behavior: [] }
+  navalPurpose: "sustain_global_empire"
+  coreAnxiety: "loss_of_sea_control_overstretch"
+  gameplayFeel: "manage_supremacy"
+  historicalAssumptions: []
+`;
+}
+
 describe("Compiler", () => {
   it("compiles a valid content pack", () => {
     const fixture = createFixtureDir();
@@ -40,15 +92,7 @@ describe("Compiler", () => {
         }),
       );
 
-      writeFixture(
-        fixture.path,
-        "countries.yaml",
-        `
-- id: "GBR"
-  name: "United Kingdom"
-  tag: "GBR"
-      `,
-      );
+      writeFixture(fixture.path, "countries.yaml", nationYaml("uk", "GBR", "United Kingdom", true));
 
       writeFixture(
         fixture.path,
@@ -57,7 +101,7 @@ describe("Compiler", () => {
 - id: "lon"
   name: "London"
   type: "land"
-  controller: "GBR"
+  controller: "uk"
       `,
       );
 
@@ -92,6 +136,8 @@ describe("Compiler", () => {
       );
 
       expect(output).toBeDefined();
+      expect(output!.pack.nations).toHaveLength(1);
+      expect(output!.pack.nations[0]?.id).toBe("uk");
       expect(output!.rawHash).toHaveLength(64);
       expect(output!.envelopeHash).toHaveLength(64);
       expect(collector.hasErrors).toBe(false);
@@ -117,14 +163,7 @@ describe("Compiler", () => {
       writeFixture(
         fixture.path,
         "countries.yaml",
-        `
-- id: "GBR"
-  name: "UK"
-  tag: "GBR"
-- id: "GBR"
-  name: "United Kingdom"
-  tag: "GBR"
-      `,
+        `${nationYaml("uk", "GBR", "United Kingdom")}${nationYaml("uk", "GBR", "United Kingdom")}`,
       );
 
       const compiler = new Compiler();
@@ -173,12 +212,12 @@ describe("Compiler", () => {
         }),
       );
 
-      writeFixture(fixture.path, "countries.yaml", `- id: "GBR"\n  name: "UK"\n  tag: "GBR"\n`);
+      writeFixture(fixture.path, "countries.yaml", nationYaml("uk", "GBR", "United Kingdom"));
       writeFixture(fixture.path, "areas.yaml", `- id: "lon"\n  name: "London"\n  type: "land"\n`);
       writeFixture(
         fixture.path,
         "possessions.yaml",
-        `- id: "gbr-lon"\n  countryId: "GBR"\n  areaId: "nonexistent"\n`,
+        `- id: "uk-lon"\n  nationId: "uk"\n  areaId: "nonexistent"\n`,
       );
 
       const compiler = new Compiler();
@@ -223,15 +262,7 @@ describe("Compiler", () => {
         }),
       );
 
-      writeFixture(
-        fixture.path,
-        "countries.yaml",
-        `
-- id: "GBR"
-  name: "United Kingdom"
-  tag: "GBR"
-      `,
-      );
+      writeFixture(fixture.path, "countries.yaml", nationYaml("uk", "GBR", "United Kingdom"));
 
       const compiler = new Compiler();
       const signal = new AbortController().signal;
@@ -293,7 +324,7 @@ describe("Compiler", () => {
         }),
       );
 
-      writeFixture(fixture.path, "countries.yaml", `- id: "GBR"\n  name: "UK"\n  tag: "GBR"\n`);
+      writeFixture(fixture.path, "countries.yaml", nationYaml("uk", "GBR", "United Kingdom"));
 
       const compiler = new Compiler();
       const collector = new DiagnosticCollector();
