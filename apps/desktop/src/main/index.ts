@@ -43,7 +43,7 @@ function createWindow(): void {
     width: 900,
     height: 700,
     webPreferences: {
-      preload: resolve(__dirname, "../preload/index.js"),
+      preload: resolve(__dirname, "../preload/index.mjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
