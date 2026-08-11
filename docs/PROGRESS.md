@@ -131,6 +131,26 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 | 2+ AI participants              | Scope brief ready |                                                                |
 | Acceptance                      | —                 | Brief at `.ai/briefs/b10d-ai-scenario.md`                      |
 
+### Workstream C — Production Content
+
+> **Status (2026-08-11): CONTENT-0 DONE (charter).** Production content
+> architecture locked: primary `FULLY_SUPPORTED` scenario `scen_1880`
+> (Jan 1880), reachable era bands all five, max duration 1092 mo (sim end
+> Dec 1970), pack layout `content/production/1880/` (`type: "production"`,
+> zero compiler change), content map + DESIGN-55 §12 classification policy.
+> Charter: `.ai/briefs/content-0-production-pack-charter.md`; wayfinder map
+> `.scratch/content-0-production-pack/`; research `docs/research/content-0-*.md`.
+> CONTENT-1 (M1-era production content) is the next content sprint.
+
+| Deliverable | Status | Notes |
+| --- | --- | --- |
+| Primary scenario + era bands | Locked | `scen_1880`, EARLY..LATE (sim end Dec 1970) |
+| Max campaign duration | Locked | 1092 completed months |
+| Pack layout | Locked | `content/production/<pack>/`, `type:"production"` |
+| Content map + classification | Locked | DESIGN-55 §12 policy; CONTENT_ONLY_LOCKED→promote |
+| Charter brief | Done | `.ai/briefs/content-0-production-pack-charter.md` |
+| CONTENT-1 (M1-era content) | Not started | next content sprint |
+
 ## 🔮 Not Yet Started (M2–M5)
 
 | Area                                 | Design coverage      |

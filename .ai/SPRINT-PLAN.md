@@ -126,7 +126,7 @@ workstream paired to each milestone.
 | A-3 | B10c Diplomacy & War | Implementation | A-0b (A-0 PASS) | **BLOCKED 2026-08-11 — decision request.** Brief ready. Investigation found the victory-level classification predicate (minor/major/decisive → `+2/+5/+10`) is undefined in the brief, DESIGN-31, tactical-combat, battle-generation, and the source design. `BattleResolver` must stay unchanged (criterion 15) and exposes no victory level. Decision request: `.ai/reports/decision-request-victory-classification.md`. |
 | A-4 | B10d AI & Scenario Readiness | Implementation | A-3 | Brief ready: `.ai/briefs/b10d-ai-scenario.md`. Lands the 24-month zero-human-input smoke loop — the M1 runtime milestone. |
 | A-5 | M1 formal acceptance gate | Gate | A-0…A-4 | Apply DESIGN-55 §9 to every M1 capability; reconcile `docs/OPEN-ISSUES.md` (resolve the stale "126 items" claim and close/ADR every open M1 ambiguity); refresh `docs/PROGRESS.md`; sign `M1_STRATEGIC_CAMPAIGN_KERNEL` COMPLETED per §23. |
-| CONTENT-0 | **Content strategy + production-pack charter** | Scoping | none (runs parallel to A-0…) | Decide the production content architecture: pick primary `FULLY_SUPPORTED` scenario(s), start date, reachable era bands (§11/§17), codebase layout, and the production pack module(s). Land a content charter brief + content map. This founders every later content sprint. |
+| CONTENT-0 | **Content strategy + production-pack charter** | Scoping | none (runs parallel to A-0…) | **DONE 2026-08-11.** Locked primary `FULLY_SUPPORTED` scenario `scen_1880` (Jan 1880), reachable era bands all five, max duration 1092 mo (sim end Dec 1970), pack layout `content/production/1880/` (`type: "production"`, zero compiler change), content map + DESIGN-55 §12 classification policy. Landed `.ai/briefs/content-0-production-pack-charter.md`, wayfinder map `.scratch/content-0-production-pack/` (tickets 01–05 resolved), research notes `docs/research/content-0-*.md`. This founders CONTENT-1 and the C-track. |
 | CONTENT-1 | **M1-era production content** | Scoping/Impl | CONTENT-0 | Research + author the content M1 needs: world geography, nations/governments, initial fleets (real hulls/classes), economy constants, research tech tree, ship-design templates, battleground/mission content — for the era bands the M1 scenario reaches. Existing M1 fixtures stay non-production; the production pack is separate and validated. |
 
 ### Track B — M2 Surface Tactical Core
@@ -221,16 +221,17 @@ ownership during the relevant scoping sprint rather than guessing now:
 ## Immediate next action
 
 The frontier is the **A-track acceptance passes** in dependency order. A-0/A-0b
-(B10b), A-1 (B9), and A-2 (B10a) are done (2026-08-11). A-3 (B10c) is **blocked
-on a decision request** — the victory-level classification predicate
+(B10b), A-1 (B9), A-2 (B10a) are done, and **CONTENT-0 (production content
+strategy charter) is DONE** (2026-08-11). A-3 (B10c) remains **blocked on a
+decision request** — the victory-level classification predicate
 (minor/major/decisive → `+2/+5/+10`) is unspecified in all canonical sources
 (`.ai/reports/decision-request-victory-classification.md`). Next:
 
 1. **A-3 (B10c Diplomacy & War)** — resumes once the owner resolves the
    decision request (or authorizes Option A in it). Brief ready.
-2. **CONTENT-0 (content strategy + production-pack charter)** — runs in
-   parallel whenever the mechanics sprints block; decide the production
-   scenario and pack structure so content research proceeds autonomously.
-   **Not blocked by A-3** — it is a scoping sprint with no mechanic dependency.
+2. **CONTENT-1 (M1-era production content)** — author the content the anchor
+   scenario (`scen_1880`) needs for the M1/EARLY slice, per the CONTENT-0
+   charter. **Not blocked by A-3** — it is content work grounded in the locked
+   charter. Depends on CONTENT-0 (done).
 
-Resume at A-3 after the decision; CONTENT-0 may run in parallel.
+Resume at A-3 after the decision; CONTENT-1 may run in the meantime.
