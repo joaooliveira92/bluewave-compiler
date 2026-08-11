@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, session } from "electron";
 import { resolve } from "node:path";
 import { runCompilation } from "./compiler.js";
+import { applyContentSecurityPolicy } from "./csp.js";
 
 let currentAbortController: AbortController | null = null;
 
@@ -52,10 +53,7 @@ function createWindow(): void {
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        "Content-Security-Policy": ["default-src 'self'"],
-      },
+      responseHeaders: applyContentSecurityPolicy(details.responseHeaders),
     });
   });
 

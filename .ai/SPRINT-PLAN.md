@@ -121,7 +121,7 @@ workstream paired to each milestone.
 | - | --- | --- | --- | --- |
 | A-0 | **B10b acceptance pass** | Implementation (verify) | none | **DONE 2026-08-11 — BLOCKED initially.** Re-verified all 17 criteria against code. Verdict BLOCKED: 3 criteria unimplemented, 10+ unproven, only 15–17 pass. Evidence: `.ai/reports/a0-b10b-acceptance.md`. Drove A-0b. |
 | A-0b | **B10b completion** | Implementation | A-0 | **DONE 2026-08-11 — PASS.** Closed every verified gap: `SetResearchPriorityCommand` lifecycle (+`RESEARCH_PRIORITY_CONSTRAINT_VIOLATED`, `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`), `TECHNOLOGY_PREREQUISITE_CYCLE` cycle detection, `DesignTemplateSchema` + design YAML + deterministic `compiledHash`, discovery revalidation + historical timing modifier, canonical field registry, and proof tests for all 17 criteria. Commits `15453f2` (+ ADR-0009). 32 turbo tasks green, golden hashes unchanged. Re-verified A-0 → PASS. |
-| A-1 | B9 acceptance pass | Implementation (verify) | none | Run the B9 brief's acceptance criteria and produce the never-written validation report (`b9-desktop-shell.md`, `B9-ELECTRON-BOUNDARY.md`). |
+| A-1 | B9 acceptance pass | Implementation (verify) | none | **DONE 2026-08-11 — PASS_WITH_LIMITATIONS.** Build green, packaging (mac dmg/zip + linux AppImage) + unit/boundary tests green (9 tests). Added `boundary.test.ts` (CSP, IPC narrowing, concurrent abort) and extracted pure CSP helper. Live GUI start + renderer→main IPC round-trip not automated headlessly; win nsis not built on macOS. Evidence: `.ai/reports/a1-b9-acceptance.md`. |
 | A-2 | B10a acceptance pass | Implementation (verify) | none | Same — code committed, acceptance evidence missing. |
 | A-3 | B10c Diplomacy & War | Implementation | A-0b (A-0 PASS) | Brief ready: `.ai/briefs/b10c-diplomacy-war.md`. |
 | A-4 | B10d AI & Scenario Readiness | Implementation | A-3 | Brief ready: `.ai/briefs/b10d-ai-scenario.md`. Lands the 24-month zero-human-input smoke loop — the M1 runtime milestone. |
@@ -221,11 +221,10 @@ ownership during the relevant scoping sprint rather than guessing now:
 ## Immediate next action
 
 The frontier is the **A-track acceptance passes** in dependency order. A-0/A-0b
-(B10b) are done and re-verified PASS (2026-08-11). Next:
+(B10b) and A-1 (B9) are done (2026-08-11). Next:
 
-1. **A-1 (B9 desktop-shell acceptance evidence)** — independent; code committed; write the missing validation report.
-2. **A-2 (B10a economy/construction acceptance evidence)** — independent; code committed; write the missing validation report.
-3. **A-3 (B10c Diplomacy & War)** — implementation; depends on accepted B10b; brief ready.
-4. **CONTENT-0 (content strategy + production-pack charter)** — runs in parallel whenever the mechanics sprints block; decide the production scenario and pack structure so content research proceeds autonomously.
+1. **A-2 (B10a economy/construction acceptance evidence)** — independent; code committed; write the missing validation report.
+2. **A-3 (B10c Diplomacy & War)** — implementation; depends on accepted B10b; brief ready.
+3. **CONTENT-0 (content strategy + production-pack charter)** — runs in parallel whenever the mechanics sprints block; decide the production scenario and pack structure so content research proceeds autonomously.
 
-Begin with A-1.
+Begin with A-2.

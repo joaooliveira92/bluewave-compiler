@@ -59,11 +59,18 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 
 ### B9 — Electron Desktop Shell
 
+> **Status (2026-08-11): PASS_WITH_LIMITATIONS.** Acceptance evidence recorded
+> (`.ai/reports/a1-b9-acceptance.md`). Build, packaging (mac dmg/zip + linux
+> AppImage), unit + boundary tests all green. CSP and IPC narrowing tested.
+> Limitations: live Electron GUI start and full renderer→main IPC round-trip
+> are not automated headlessly; Windows nsis not built on macOS.
+
 | Capability              | Readiness         | Key decisions                                 |
 | ----------------------- | ----------------- | --------------------------------------------- |
-| Electron packaging      | Scope brief ready | electron-builder, dmg+zip/nsis/AppImage       |
-| Desktop content display | Scope brief ready | CLI-only for B9 (read-only renderer deferred) |
-| Acceptance              | —                 | Brief at `.ai/briefs/b9-desktop-shell.md`     |
+| Electron packaging      | PASS_WITH_LIMITATIONS | dmg+zip/nsis/AppImage config; mac+linux built, win configured |
+| Desktop content display | CLI-only for B9   | read-only renderer deferred                   |
+| CSP / IPC boundary      | PASS              | `default-src 'self'`; single `compile` channel |
+| Acceptance              | PASS_WITH_LIMITATIONS | `.ai/reports/a1-b9-acceptance.md`           |
 
 ### B10a — Economy & Construction
 
