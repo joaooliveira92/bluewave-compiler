@@ -16,6 +16,9 @@ function createSnapshot(): CampaignSnapshot {
     treasury: SafeInt(500),
     income: SafeInt(150),
     expenses: SafeInt(50),
+    baseResources: SafeInt(0),
+    navalAppropriationRateBp: SafeInt(0),
+    maintenanceCost: SafeInt(0),
     fleets: [],
     research: {
       nationId: "GBR",
@@ -30,9 +33,13 @@ function createSnapshot(): CampaignSnapshot {
       {
         id: "proj-1",
         type: "ship",
+        projectType: "NEW_CONSTRUCTION",
         targetId: "ship-1",
+        designVersionId: "design-1",
         totalWork: SafeInt(200),
         completedWork: SafeInt(50),
+        paidWork: SafeInt(0),
+        status: "ACTIVE",
         startedAt: "1880-01",
       },
     ],

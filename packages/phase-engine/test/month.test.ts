@@ -164,6 +164,9 @@ describe("MonthExecutor", () => {
   it("populates all ledgers", () => {
     const executor = new MonthExecutor();
     const snapshot = createSnapshot();
+    const gbr = snapshot["nations"].get("GBR")!;
+    gbr.research.fieldPriorities = { MACHINERY: SafeInt(1) };
+    gbr.research.researchBudget = SafeInt(100);
     const collector = new DiagnosticCollector();
     const cmd = makeBudgetCommand("GBR", "proj-1", SafeInt(100), snapshot);
 
