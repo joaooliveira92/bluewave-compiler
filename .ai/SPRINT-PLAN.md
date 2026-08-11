@@ -123,7 +123,7 @@ workstream paired to each milestone.
 | A-0b | **B10b completion** | Implementation | A-0 | **DONE 2026-08-11 — PASS.** Closed every verified gap: `SetResearchPriorityCommand` lifecycle (+`RESEARCH_PRIORITY_CONSTRAINT_VIOLATED`, `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`), `TECHNOLOGY_PREREQUISITE_CYCLE` cycle detection, `DesignTemplateSchema` + design YAML + deterministic `compiledHash`, discovery revalidation + historical timing modifier, canonical field registry, and proof tests for all 17 criteria. Commits `15453f2` (+ ADR-0009). 32 turbo tasks green, golden hashes unchanged. Re-verified A-0 → PASS. |
 | A-1 | B9 acceptance pass | Implementation (verify) | none | **DONE 2026-08-11 — PASS_WITH_LIMITATIONS.** Build green, packaging (mac dmg/zip + linux AppImage) + unit/boundary tests green (9 tests). Added `boundary.test.ts` (CSP, IPC narrowing, concurrent abort) and extracted pure CSP helper. Live GUI start + renderer→main IPC round-trip not automated headlessly; win nsis not built on macOS. Evidence: `.ai/reports/a1-b9-acceptance.md`. |
 | A-2 | B10a acceptance pass | Implementation (verify) | none | **DONE 2026-08-11 — PASS.** All 10 brief criteria verified. Added `economy.test.ts` (3-nation full turn, balanced ledger, finance-hash determinism, paid-work, completion→ship, non-negative treasury). 32 turbo tasks green. Evidence: `.ai/reports/a2-b10a-acceptance.md`. |
-| A-3 | B10c Diplomacy & War | Implementation | A-0b (A-0 PASS) | Brief ready: `.ai/briefs/b10c-diplomacy-war.md`. |
+| A-3 | B10c Diplomacy & War | Implementation | A-0b (A-0 PASS) | **BLOCKED 2026-08-11 — decision request.** Brief ready. Investigation found the victory-level classification predicate (minor/major/decisive → `+2/+5/+10`) is undefined in the brief, DESIGN-31, tactical-combat, battle-generation, and the source design. `BattleResolver` must stay unchanged (criterion 15) and exposes no victory level. Decision request: `.ai/reports/decision-request-victory-classification.md`. |
 | A-4 | B10d AI & Scenario Readiness | Implementation | A-3 | Brief ready: `.ai/briefs/b10d-ai-scenario.md`. Lands the 24-month zero-human-input smoke loop — the M1 runtime milestone. |
 | A-5 | M1 formal acceptance gate | Gate | A-0…A-4 | Apply DESIGN-55 §9 to every M1 capability; reconcile `docs/OPEN-ISSUES.md` (resolve the stale "126 items" claim and close/ADR every open M1 ambiguity); refresh `docs/PROGRESS.md`; sign `M1_STRATEGIC_CAMPAIGN_KERNEL` COMPLETED per §23. |
 | CONTENT-0 | **Content strategy + production-pack charter** | Scoping | none (runs parallel to A-0…) | Decide the production content architecture: pick primary `FULLY_SUPPORTED` scenario(s), start date, reachable era bands (§11/§17), codebase layout, and the production pack module(s). Land a content charter brief + content map. This founders every later content sprint. |
@@ -221,9 +221,16 @@ ownership during the relevant scoping sprint rather than guessing now:
 ## Immediate next action
 
 The frontier is the **A-track acceptance passes** in dependency order. A-0/A-0b
-(B10b), A-1 (B9), and A-2 (B10a) are done (2026-08-11). Next:
+(B10b), A-1 (B9), and A-2 (B10a) are done (2026-08-11). A-3 (B10c) is **blocked
+on a decision request** — the victory-level classification predicate
+(minor/major/decisive → `+2/+5/+10`) is unspecified in all canonical sources
+(`.ai/reports/decision-request-victory-classification.md`). Next:
 
-1. **A-3 (B10c Diplomacy & War)** — implementation; depends on accepted B10b; brief ready.
-2. **CONTENT-0 (content strategy + production-pack charter)** — runs in parallel whenever the mechanics sprints block; decide the production scenario and pack structure so content research proceeds autonomously.
+1. **A-3 (B10c Diplomacy & War)** — resumes once the owner resolves the
+   decision request (or authorizes Option A in it). Brief ready.
+2. **CONTENT-0 (content strategy + production-pack charter)** — runs in
+   parallel whenever the mechanics sprints block; decide the production
+   scenario and pack structure so content research proceeds autonomously.
+   **Not blocked by A-3** — it is a scoping sprint with no mechanic dependency.
 
-Begin with A-3.
+Resume at A-3 after the decision; CONTENT-0 may run in parallel.
