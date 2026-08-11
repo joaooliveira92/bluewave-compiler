@@ -226,28 +226,32 @@ describe("CampaignCompiler", () => {
       const collector = new DiagnosticCollector();
       const signal = new AbortController().signal;
 
-      const output = compiler.compile({
-        compilerInput: {
-          manifestPath: "pack.json",
-          contentDir: fixture.path,
-          rulesetFiles: ["rulesets.yaml"],
-          countryFiles: ["countries.yaml"],
-          areaFiles: ["areas.yaml"],
-          routeFiles: ["routes.yaml"],
-          possessionFiles: ["possessions.yaml"],
-          portFiles: ["ports.yaml"],
-          technologyFiles: ["technologies.yaml"],
+      const output = compiler.compile(
+        {
+          compilerInput: {
+            manifestPath: "pack.json",
+            contentDir: fixture.path,
+            rulesetFiles: ["rulesets.yaml"],
+            countryFiles: ["countries.yaml"],
+            areaFiles: ["areas.yaml"],
+            routeFiles: ["routes.yaml"],
+            possessionFiles: ["possessions.yaml"],
+            portFiles: ["ports.yaml"],
+            technologyFiles: ["technologies.yaml"],
+          },
+          campaignFiles: {
+            fleetFiles: ["fleets.yaml"],
+            economyFiles: ["economies.yaml"],
+            constructionFiles: ["constructions.yaml"],
+            diplomacyFiles: ["diplomacy.yaml"],
+            researchFiles: ["research.yaml"],
+          },
+          rulesetVersion: "1.0",
+          compatibilityVersion: "0.1.0",
         },
-        campaignFiles: {
-          fleetFiles: ["fleets.yaml"],
-          economyFiles: ["economies.yaml"],
-          constructionFiles: ["constructions.yaml"],
-          diplomacyFiles: ["diplomacy.yaml"],
-          researchFiles: ["research.yaml"],
-        },
-        rulesetVersion: "1.0",
-        compatibilityVersion: "0.1.0",
-      }, signal, collector);
+        signal,
+        collector,
+      );
 
       expect(collector.hasErrors).toBe(false);
       expect(output).toBeDefined();
@@ -328,28 +332,32 @@ describe("CampaignCompiler", () => {
 
       const run = () => {
         const collector = new DiagnosticCollector();
-        return compiler.compile({
-          compilerInput: {
-            manifestPath: "pack.json",
-            contentDir: fixture.path,
-            rulesetFiles: ["rulesets.yaml"],
-            countryFiles: ["countries.yaml"],
-            areaFiles: ["areas.yaml"],
-            routeFiles: ["routes.yaml"],
-            possessionFiles: ["possessions.yaml"],
-            portFiles: ["ports.yaml"],
-            technologyFiles: ["technologies.yaml"],
+        return compiler.compile(
+          {
+            compilerInput: {
+              manifestPath: "pack.json",
+              contentDir: fixture.path,
+              rulesetFiles: ["rulesets.yaml"],
+              countryFiles: ["countries.yaml"],
+              areaFiles: ["areas.yaml"],
+              routeFiles: ["routes.yaml"],
+              possessionFiles: ["possessions.yaml"],
+              portFiles: ["ports.yaml"],
+              technologyFiles: ["technologies.yaml"],
+            },
+            campaignFiles: {
+              fleetFiles: ["fleets.yaml"],
+              economyFiles: ["economies.yaml"],
+              constructionFiles: ["constructions.yaml"],
+              diplomacyFiles: ["diplomacy.yaml"],
+              researchFiles: ["research.yaml"],
+            },
+            rulesetVersion: "1.0",
+            compatibilityVersion: "0.1.0",
           },
-          campaignFiles: {
-            fleetFiles: ["fleets.yaml"],
-            economyFiles: ["economies.yaml"],
-            constructionFiles: ["constructions.yaml"],
-            diplomacyFiles: ["diplomacy.yaml"],
-            researchFiles: ["research.yaml"],
-          },
-          rulesetVersion: "1.0",
-          compatibilityVersion: "0.1.0",
-        }, signal, collector);
+          signal,
+          collector,
+        );
       };
 
       const out1 = run();
@@ -367,39 +375,47 @@ describe("CampaignCompiler", () => {
   it("reports missing nations as error", () => {
     const fixture = createFixtureDir();
     try {
-      writeFile(fixture.path, "pack.json", JSON.stringify({
-        name: "empty-test",
-        version: "0.1.0",
-        type: "fixture",
-        files: {},
-      }));
+      writeFile(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({
+          name: "empty-test",
+          version: "0.1.0",
+          type: "fixture",
+          files: {},
+        }),
+      );
 
       const compiler = new CampaignCompiler();
       const collector = new DiagnosticCollector();
       const signal = new AbortController().signal;
 
-      const output = compiler.compile({
-        compilerInput: {
-          manifestPath: "pack.json",
-          contentDir: fixture.path,
-          rulesetFiles: [],
-          countryFiles: [],
-          areaFiles: [],
-          routeFiles: [],
-          possessionFiles: [],
-          portFiles: [],
-          technologyFiles: [],
+      const output = compiler.compile(
+        {
+          compilerInput: {
+            manifestPath: "pack.json",
+            contentDir: fixture.path,
+            rulesetFiles: [],
+            countryFiles: [],
+            areaFiles: [],
+            routeFiles: [],
+            possessionFiles: [],
+            portFiles: [],
+            technologyFiles: [],
+          },
+          campaignFiles: {
+            fleetFiles: [],
+            economyFiles: [],
+            constructionFiles: [],
+            diplomacyFiles: [],
+            researchFiles: [],
+          },
+          rulesetVersion: "1.0",
+          compatibilityVersion: "0.1.0",
         },
-        campaignFiles: {
-          fleetFiles: [],
-          economyFiles: [],
-          constructionFiles: [],
-          diplomacyFiles: [],
-          researchFiles: [],
-        },
-        rulesetVersion: "1.0",
-        compatibilityVersion: "0.1.0",
-      }, signal, collector);
+        signal,
+        collector,
+      );
 
       expect(output).toBeUndefined();
       // At minimum, the manifest should fail validation (no files)
@@ -422,28 +438,32 @@ describe("CampaignCompiler", () => {
       const controller = new AbortController();
       controller.abort();
 
-      const output = compiler.compile({
-        compilerInput: {
-          manifestPath: "pack.json",
-          contentDir: fixture.path,
-          rulesetFiles: [],
-          countryFiles: ["countries.yaml"],
-          areaFiles: ["areas.yaml"],
-          routeFiles: [],
-          possessionFiles: [],
-          portFiles: [],
-          technologyFiles: [],
+      const output = compiler.compile(
+        {
+          compilerInput: {
+            manifestPath: "pack.json",
+            contentDir: fixture.path,
+            rulesetFiles: [],
+            countryFiles: ["countries.yaml"],
+            areaFiles: ["areas.yaml"],
+            routeFiles: [],
+            possessionFiles: [],
+            portFiles: [],
+            technologyFiles: [],
+          },
+          campaignFiles: {
+            fleetFiles: ["fleets.yaml"],
+            economyFiles: ["economies.yaml"],
+            constructionFiles: [],
+            diplomacyFiles: [],
+            researchFiles: [],
+          },
+          rulesetVersion: "1.0",
+          compatibilityVersion: "0.1.0",
         },
-        campaignFiles: {
-          fleetFiles: ["fleets.yaml"],
-          economyFiles: ["economies.yaml"],
-          constructionFiles: [],
-          diplomacyFiles: [],
-          researchFiles: [],
-        },
-        rulesetVersion: "1.0",
-        compatibilityVersion: "0.1.0",
-      }, controller.signal, collector);
+        controller.signal,
+        collector,
+      );
 
       expect(output).toBeUndefined();
     } finally {

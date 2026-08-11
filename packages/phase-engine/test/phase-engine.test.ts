@@ -139,9 +139,7 @@ describe("PhaseEngine", () => {
 
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
-    const noOpPhases = result["phaseResults"].filter(
-      (p) => p["noOp"] === true && p["evidence"],
-    );
+    const noOpPhases = result["phaseResults"].filter((p) => p["noOp"] === true && p["evidence"]);
     // All phases except opening and closing are no-ops
     expect(noOpPhases.length).toBe(6);
 
@@ -186,9 +184,7 @@ describe("PhaseEngine", () => {
     expect(opening["diagnostics"]!.length).toBeGreaterThanOrEqual(1);
     expect(opening["diagnostics"]![0]).toContain("negative treasury");
 
-    const hasNegDiag = collector.errors.some(
-      (d) => d["code"] === "NEGATIVE_TREASURY",
-    );
+    const hasNegDiag = collector.errors.some((d) => d["code"] === "NEGATIVE_TREASURY");
     expect(hasNegDiag).toBe(true);
   });
 
@@ -233,9 +229,7 @@ describe("PhaseEngine", () => {
     expect(opening["diagnostics"]!.length).toBeGreaterThanOrEqual(1);
     expect(opening["diagnostics"]![0]).toContain("construction progress");
 
-    const hasConstDiag = collector.errors.some(
-      (d) => d["code"] === "CONSTRUCTION_OVERFLOW",
-    );
+    const hasConstDiag = collector.errors.some((d) => d["code"] === "CONSTRUCTION_OVERFLOW");
     expect(hasConstDiag).toBe(true);
   });
 
@@ -333,14 +327,10 @@ describe("PhaseEngine", () => {
 
     const opening = result["phaseResults"][0]!;
     expect(opening["success"]).toBe(false);
-    const shipDiag = opening["diagnostics"]!.filter((d) =>
-      d.includes("multiple battles"),
-    );
+    const shipDiag = opening["diagnostics"]!.filter((d) => d.includes("multiple battles"));
     expect(shipDiag.length).toBeGreaterThanOrEqual(1);
 
-    const hasShipDiag = collector.errors.some(
-      (d) => d["code"] === "SHIP_IN_MULTIPLE_BATTLES",
-    );
+    const hasShipDiag = collector.errors.some((d) => d["code"] === "SHIP_IN_MULTIPLE_BATTLES");
     expect(hasShipDiag).toBe(true);
   });
 

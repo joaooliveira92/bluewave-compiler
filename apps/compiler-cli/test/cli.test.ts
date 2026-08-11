@@ -19,9 +19,7 @@ function createSnapshot(): CampaignSnapshot {
     fleets: [],
     research: {
       nationId: "GBR",
-      technologies: [
-        { techId: "basic_steam", investedPoints: SafeInt(30), completed: false },
-      ],
+      technologies: [{ techId: "basic_steam", investedPoints: SafeInt(30), completed: false }],
       currentProjectTechId: "basic_steam",
     },
     constructionProjects: [
@@ -237,8 +235,22 @@ describe("ReplayVerifier", () => {
     const expectedFinalHash = hashSnapshot(result.finalSnapshot);
 
     const verifier = new ReplayVerifier();
-    const r1 = verifier.verify(snapshot, [cmd], originalLedger, expectedFinalHash, "deterministic-seed", new DiagnosticCollector());
-    const r2 = verifier.verify(snapshot, [cmd], originalLedger, expectedFinalHash, "deterministic-seed", new DiagnosticCollector());
+    const r1 = verifier.verify(
+      snapshot,
+      [cmd],
+      originalLedger,
+      expectedFinalHash,
+      "deterministic-seed",
+      new DiagnosticCollector(),
+    );
+    const r2 = verifier.verify(
+      snapshot,
+      [cmd],
+      originalLedger,
+      expectedFinalHash,
+      "deterministic-seed",
+      new DiagnosticCollector(),
+    );
 
     expect(r1.replayedFinalHash).toBe(r2.replayedFinalHash);
     expect(r1.match).toBe(r2.match);

@@ -41,7 +41,12 @@ export class CommandLifecycle {
     if (envelope.version !== this.currentVersion) {
       return {
         ok: false,
-        outcome: this.makeRejected(envelope, snapshot, "VERSION_MISMATCH", `Expected version ${this.currentVersion}, got ${envelope.version}`),
+        outcome: this.makeRejected(
+          envelope,
+          snapshot,
+          "VERSION_MISMATCH",
+          `Expected version ${this.currentVersion}, got ${envelope.version}`,
+        ),
       };
     }
 
@@ -49,14 +54,24 @@ export class CommandLifecycle {
     if (envelope.expectedSnapshotHash !== computedHash) {
       return {
         ok: false,
-        outcome: this.makeRejected(envelope, snapshot, "STALE_SNAPSHOT_HASH", "Expected snapshot hash does not match current snapshot"),
+        outcome: this.makeRejected(
+          envelope,
+          snapshot,
+          "STALE_SNAPSHOT_HASH",
+          "Expected snapshot hash does not match current snapshot",
+        ),
       };
     }
 
     if (envelope.body.type !== "budget_project") {
       return {
         ok: false,
-        outcome: this.makeRejected(envelope, snapshot, "UNKNOWN_COMMAND_TYPE", `Unknown command type: ${envelope.body.type}`),
+        outcome: this.makeRejected(
+          envelope,
+          snapshot,
+          "UNKNOWN_COMMAND_TYPE",
+          `Unknown command type: ${envelope.body.type}`,
+        ),
       };
     }
 
@@ -64,23 +79,30 @@ export class CommandLifecycle {
     if (typeof body.nationId !== "string" || body.nationId.length === 0) {
       return {
         ok: false,
-        outcome: this.makeRejected(envelope, snapshot, "INVALID_NATION_ID", "nationId must be a non-empty string"),
+        outcome: this.makeRejected(
+          envelope,
+          snapshot,
+          "INVALID_NATION_ID",
+          "nationId must be a non-empty string",
+        ),
       };
     }
     if (typeof body.projectId !== "string" || body.projectId.length === 0) {
       return {
         ok: false,
-        outcome: this.makeRejected(envelope, snapshot, "INVALID_PROJECT_ID", "projectId must be a non-empty string"),
+        outcome: this.makeRejected(
+          envelope,
+          snapshot,
+          "INVALID_PROJECT_ID",
+          "projectId must be a non-empty string",
+        ),
       };
     }
 
     return { ok: true };
   }
 
-  authorize(
-    envelope: CommandEnvelope<CommandBody>,
-    slot: CampaignSlot,
-  ): LifecycleStepResult {
+  authorize(envelope: CommandEnvelope<CommandBody>, slot: CampaignSlot): LifecycleStepResult {
     if (envelope.body.nationId !== slot.nationId) {
       return {
         ok: false,
@@ -100,10 +122,7 @@ export class CommandLifecycle {
     return { ok: true };
   }
 
-  reserve(
-    envelope: CommandEnvelope<CommandBody>,
-    snapshot: CampaignSnapshot,
-  ): LifecycleStepResult {
+  reserve(envelope: CommandEnvelope<CommandBody>, snapshot: CampaignSnapshot): LifecycleStepResult {
     const nation = snapshot.nations.get(envelope.body.nationId);
     if (!nation) {
       return {
@@ -142,13 +161,9 @@ export class CommandLifecycle {
     return { ok: true };
   }
 
-  accept(_envelope: CommandEnvelope<CommandBody>): void {
-  }
+  accept(_envelope: CommandEnvelope<CommandBody>): void {}
 
-  reject(
-    envelope: CommandEnvelope<CommandBody>,
-    reason: string,
-  ): CommandOutcome {
+  reject(envelope: CommandEnvelope<CommandBody>, reason: string): CommandOutcome {
     return {
       type: "rejected",
       commandId: envelope.commandId,
@@ -162,13 +177,9 @@ export class CommandLifecycle {
     };
   }
 
-  lock(_envelope: CommandEnvelope<CommandBody>): void {
-  }
+  lock(_envelope: CommandEnvelope<CommandBody>): void {}
 
-  resolve(
-    envelope: CommandEnvelope<CommandBody>,
-    snapshot: CampaignSnapshot,
-  ): CommandOutcome {
+  resolve(envelope: CommandEnvelope<CommandBody>, snapshot: CampaignSnapshot): CommandOutcome {
     const snapshotHash = sha256Hex(canonicalSerialize(snapshot));
     return {
       type: "success",
@@ -195,7 +206,10 @@ export class CommandLifecycle {
           type: "idempotency_match",
           commandId: envelope.commandId,
           snapshotHash: envelope.expectedSnapshotHash,
-          result: existing.type === "success" || existing.type === "idempotency_match" ? existing.result : undefined,
+          result:
+            existing.type === "success" || existing.type === "idempotency_match"
+              ? existing.result
+              : undefined,
         };
       }
       return {

@@ -77,11 +77,11 @@ Validation evidence: All arithmetic operations use checked/branded integers; non
 Requirement ID: BW-DET-003
 Canonical section: Determinism
 Normative summary: Identical authoritative inputs produce identical hashes across supported operating systems
-Status: implemented
-Packages or symbols: deterministic (canonicalSerialize, sha256Hex, createEnvelope, verifyEnvelope)
-Tests: deterministic deterministic.test.ts — 11 tests covering serialization, hashing, envelope creation/verification
-ADR references: ADR-0003
-Validation evidence: `canonicalSerialize` produces stable key ordering; `sha256Hex` is pure; envelopes are deterministic
+Status: verified
+Packages or symbols: deterministic (canonicalSerialize, sha256Hex, createEnvelope, verifyEnvelope), cross-process-test (run-child, cross-process.test)
+Tests: deterministic deterministic.test.ts — 11 tests covering serialization, hashing, envelope creation/verification; cross-process-test cross-process.test.ts — 2 cross-process child-process tests
+ADR references: ADR-0003, ADR-0007
+Validation evidence: Cross-process child-process test proves identical hashes across clean process restarts; CI matrix verifies Linux, Windows, and macOS; golden hash file committed
 ```
 
 ```text
@@ -100,12 +100,10 @@ Requirement ID: BW-TST-001
 Canonical section: Testing
 Normative summary: Repeated campaign compilation is reproducible
 Status: verified
-Packages or symbols: content-compiler (Compiler), deterministic (canonicalSerialize, sha256Hex)
-Tests: content-compiler compiler.test.ts — produces deterministic output on repeated compilation
-ADR references: ADR-0003
-Validation evidence: Compiler produces identical rawHash and envelopeHash on repeated runs in test
-Deferred milestone: B0
-Approved interpretation notes: Cross-process determinism proof deferred to B8
+Packages or symbols: content-compiler (Compiler), deterministic (canonicalSerialize, sha256Hex), cross-process-test (run-child, cross-process.test)
+Tests: content-compiler compiler.test.ts — produces deterministic output on repeated compilation; cross-process-test cross-process.test.ts — cross-process child-process determinism proof
+ADR references: ADR-0003, ADR-0007
+Validation evidence: Compiler produces identical rawHash and envelopeHash on repeated runs in test; cross-process child-process test proves identical hashes across clean process restarts; CI matrix verifies Linux, Windows, macOS
 ```
 
 ```text
@@ -126,6 +124,28 @@ Status: implemented
 Packages or symbols: compiler-cli (main.ts, commands.ts)
 Tests: N/A — CLI not tested in unit tests (requires child-process integration tests)
 Validation evidence: Commands use structured exit codes: 0=success, 1=validation-error, 2=compile-error, 3=aborted, 4=internal-error, 5=usage-error
+```
+
+```text
+Requirement ID: BW-TST-003
+Canonical section: Testing (derived)
+Normative summary: Replay reproduces authoritative results
+Status: verified
+Packages or symbols: phase-engine (ReplayVerifier), cross-process-test (run-child, cross-process.test)
+Tests: phase-engine integration.test.ts — replay reproduces hashes; cross-process-test cross-process.test.ts — cross-process replay verification
+ADR references: ADR-0007
+Validation evidence: ReplayVerifier test proves same-process replay; cross-process child-process test proves replay across process restarts
+```
+
+```text
+Requirement ID: BW-DET-004
+Canonical section: Determinism (derived)
+Normative summary: Domain packages do not import forbidden ambient input modules
+Status: verified
+Packages or symbols: cross-process-test (ambient-input.test)
+Tests: cross-process-test ambient-input.test.ts — 11 tests covering all domain packages
+ADR references: ADR-0007
+Validation evidence: Automated scan of all domain package source files verifies no imports of os, process, child_process, timers, perf_hooks
 ```
 
 ## Traceability record format

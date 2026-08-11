@@ -6,9 +6,7 @@ import type { CampaignSnapshot, NationState, ConstructionProject } from "@bluewa
 import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
 import { MonthExecutor, type MonthResult } from "../src/index.js";
 
-function createSnapshot(
-  overrides?: Partial<CampaignSnapshot>,
-): CampaignSnapshot {
+function createSnapshot(overrides?: Partial<CampaignSnapshot>): CampaignSnapshot {
   const nations = new Map<string, NationState>();
   nations.set("GBR", {
     id: "GBR",
@@ -18,10 +16,28 @@ function createSnapshot(
     income: SafeInt(150),
     expenses: SafeInt(50),
     fleets: [],
-    research: { nationId: "GBR", technologies: [{ techId: "basic_steam", investedPoints: SafeInt(30), completed: false }], currentProjectTechId: "basic_steam" },
+    research: {
+      nationId: "GBR",
+      technologies: [{ techId: "basic_steam", investedPoints: SafeInt(30), completed: false }],
+      currentProjectTechId: "basic_steam",
+    },
     constructionProjects: [
-      { id: "proj-1", type: "ship", targetId: "ship-1", totalWork: SafeInt(200), completedWork: SafeInt(50), startedAt: "1880-01" },
-      { id: "proj-2", type: "building", targetId: "bldg-1", totalWork: SafeInt(100), completedWork: SafeInt(0), startedAt: "1880-01" },
+      {
+        id: "proj-1",
+        type: "ship",
+        targetId: "ship-1",
+        totalWork: SafeInt(200),
+        completedWork: SafeInt(50),
+        startedAt: "1880-01",
+      },
+      {
+        id: "proj-2",
+        type: "building",
+        targetId: "bldg-1",
+        totalWork: SafeInt(100),
+        completedWork: SafeInt(0),
+        startedAt: "1880-01",
+      },
     ],
     isPlayable: true,
     isAI: false,
@@ -77,10 +93,10 @@ describe("MonthExecutor", () => {
     const budget = 100;
     const expenses = 50;
     // treasury = 500 - 100 (command) - appropriation amount - 50 (obligation)
-    expect((gbr["treasury"] as number)).toBeLessThan(initialTreasury);
+    expect(gbr["treasury"] as number).toBeLessThan(initialTreasury);
 
     const proj1 = gbr["constructionProjects"].find((p) => p["id"] === "proj-1")!;
-    expect((proj1["completedWork"] as number)).toBeGreaterThan(50);
+    expect(proj1["completedWork"] as number).toBeGreaterThan(50);
   });
 
   it("decreases treasury by at least the budget amount", () => {
@@ -107,8 +123,8 @@ describe("MonthExecutor", () => {
     const gbr = result["finalSnapshot"]["nations"].get("GBR")!;
     const proj1 = gbr["constructionProjects"].find((p) => p["id"] === "proj-1")!;
 
-    expect((proj1["completedWork"] as number)).toBeGreaterThan(50);
-    expect((proj1["completedWork"] as number)).toBeLessThanOrEqual(200);
+    expect(proj1["completedWork"] as number).toBeGreaterThan(50);
+    expect(proj1["completedWork"] as number).toBeLessThanOrEqual(200);
   });
 
   it("produces deterministic closing snapshot hash", () => {
@@ -157,7 +173,7 @@ describe("MonthExecutor", () => {
     const result = executor.execute(snapshot, [cmd], "test-seed", collector);
     const gbr = result["finalSnapshot"]["nations"].get("GBR")!;
 
-    expect((gbr["treasury"] as number)).toBeGreaterThanOrEqual(0);
+    expect(gbr["treasury"] as number).toBeGreaterThanOrEqual(0);
   });
 
   it("construction progress never exceeds total work", () => {
@@ -170,9 +186,7 @@ describe("MonthExecutor", () => {
     const gbr = result["finalSnapshot"]["nations"].get("GBR")!;
 
     for (const proj of gbr["constructionProjects"]) {
-      expect((proj["completedWork"] as number)).toBeLessThanOrEqual(
-        proj["totalWork"] as number,
-      );
+      expect(proj["completedWork"] as number).toBeLessThanOrEqual(proj["totalWork"] as number);
     }
   });
 
@@ -181,8 +195,7 @@ describe("MonthExecutor", () => {
     const snapshot = createSnapshot();
     const cmd = makeBudgetCommand("GBR", "proj-1", SafeInt(75), snapshot);
 
-    const run = () =>
-      executor.execute(snapshot, [cmd], "fixed-seed", new DiagnosticCollector());
+    const run = () => executor.execute(snapshot, [cmd], "fixed-seed", new DiagnosticCollector());
 
     const r1 = run();
     const r2 = run();

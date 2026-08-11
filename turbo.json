@@ -11,6 +11,9 @@
       "cache": false,
       "persistent": true
     },
+    "desktop#build": {
+      "outputs": ["out/**"]
+    },
     "lint": {},
     "lint:fix": {},
     "typecheck": {

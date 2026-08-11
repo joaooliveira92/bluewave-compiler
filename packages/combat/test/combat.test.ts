@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { SafeInt } from "@bluewave/contracts";
 import { RandomEngine } from "@bluewave/random";
-import type { BattleInstance, FleetState, NationState, Ship, BattleResult } from "@bluewave/campaign";
+import type {
+  BattleInstance,
+  FleetState,
+  NationState,
+  Ship,
+  BattleResult,
+} from "@bluewave/campaign";
 import { BattleResolver } from "../src/resolver.js";
 import { StrengthCalculator } from "../src/strength.js";
 
@@ -123,8 +129,7 @@ describe("combat (narrow)", () => {
     const engine = new RandomEngine("bounded-damage-seed");
     const result = resolver.resolve(battle, attackerNation, defenderNation, engine);
 
-    const totalLoserShips =
-      result.winnerId === "ATK" ? defenderShips.length : attackerShips.length;
+    const totalLoserShips = result.winnerId === "ATK" ? defenderShips.length : attackerShips.length;
     const totalLosses = result.attackerLosses.length + result.defenderLosses.length;
     expect(totalLosses).toBeLessThan(totalLoserShips);
   });
@@ -167,12 +172,8 @@ describe("combat (narrow)", () => {
   });
 
   it("explanation tree contains strength comparison", () => {
-    const shipsA = [
-      makeShip({ id: "xa1", firepower: SafeInt(14), armor: SafeInt(10) }),
-    ];
-    const shipsD = [
-      makeShip({ id: "xd1", firepower: SafeInt(6), armor: SafeInt(5) }),
-    ];
+    const shipsA = [makeShip({ id: "xa1", firepower: SafeInt(14), armor: SafeInt(10) })];
+    const shipsD = [makeShip({ id: "xd1", firepower: SafeInt(6), armor: SafeInt(5) })];
 
     const fA = makeFleet({ id: "fa", nationId: "ATK", ships: shipsA });
     const fD = makeFleet({ id: "fd", nationId: "DEF", ships: shipsD });
@@ -200,12 +201,8 @@ describe("combat (narrow)", () => {
   });
 
   it("deterministic: same seed + same fleets = same result", () => {
-    const shipsA = [
-      makeShip({ id: "da1", firepower: SafeInt(16), armor: SafeInt(12) }),
-    ];
-    const shipsD = [
-      makeShip({ id: "dd1", firepower: SafeInt(8), armor: SafeInt(6) }),
-    ];
+    const shipsA = [makeShip({ id: "da1", firepower: SafeInt(16), armor: SafeInt(12) })];
+    const shipsD = [makeShip({ id: "dd1", firepower: SafeInt(8), armor: SafeInt(6) })];
 
     const fA = makeFleet({ id: "dfa", nationId: "ATK", ships: shipsA });
     const fD = makeFleet({ id: "dfd", nationId: "DEF", ships: shipsD });
@@ -241,12 +238,8 @@ describe("combat (narrow)", () => {
   });
 
   it("different seeds can produce different outcomes", () => {
-    const shipsA = [
-      makeShip({ id: "rsa1", firepower: SafeInt(20), armor: SafeInt(10) }),
-    ];
-    const shipsD = [
-      makeShip({ id: "rsd1", firepower: SafeInt(19), armor: SafeInt(10) }),
-    ];
+    const shipsA = [makeShip({ id: "rsa1", firepower: SafeInt(20), armor: SafeInt(10) })];
+    const shipsD = [makeShip({ id: "rsd1", firepower: SafeInt(19), armor: SafeInt(10) })];
 
     const fA = makeFleet({ id: "rsfa", nationId: "ATK", ships: shipsA });
     const fD = makeFleet({ id: "rsfd", nationId: "DEF", ships: shipsD });
@@ -298,18 +291,14 @@ describe("StrengthCalculator", () => {
   });
 
   it("damagePotential uses firepower and armor", () => {
-    const ships = [
-      makeShip({ id: "s1", firepower: SafeInt(10), armor: SafeInt(20) }),
-    ];
+    const ships = [makeShip({ id: "s1", firepower: SafeInt(10), armor: SafeInt(20) })];
     const fleet = makeFleet({ id: "f", ships });
     const dp = StrengthCalculator.damagePotential(fleet);
     expect(dp).toBe(20); // 10 * (20/10) = 20
   });
 
   it("survivability returns ratio of current to max HP", () => {
-    const ships = [
-      makeShip({ id: "s1", hitPoints: SafeInt(50), maxHitPoints: SafeInt(100) }),
-    ];
+    const ships = [makeShip({ id: "s1", hitPoints: SafeInt(50), maxHitPoints: SafeInt(100) })];
     const fleet = makeFleet({ id: "f", ships });
     expect(StrengthCalculator.survivability(fleet)).toBe(0.5);
   });

@@ -47,11 +47,7 @@ interface SigFile {
 }
 
 export class SaveStore {
-  save(
-    state: CampaignState,
-    saveDir: string,
-    signal?: AbortSignal,
-  ): SaveResult {
+  save(state: CampaignState, saveDir: string, signal?: AbortSignal): SaveResult {
     if (signal?.aborted) {
       throw new Error("AbortError");
     }
@@ -141,9 +137,13 @@ export class SaveStore {
 
     const pointerPath = join(saveDir, "pointer.json");
     if (!existsSync(pointerPath)) {
-      diagnostics.addError(MISSING_SAVE_CODE, `No pointer file found in save directory: ${saveDir}`, {
-        stage: "persistence.load",
-      });
+      diagnostics.addError(
+        MISSING_SAVE_CODE,
+        `No pointer file found in save directory: ${saveDir}`,
+        {
+          stage: "persistence.load",
+        },
+      );
       return null;
     }
 
@@ -206,16 +206,24 @@ export class SaveStore {
     const { rawHash: _rawHash, ...stateForHash } = state;
     const computedRawHash = sha256Hex(canonicalSerialize(stateForHash));
     if (computedRawHash !== state.rawHash) {
-      diagnostics.addError(CORRUPT_SAVE_CODE, "Save data hash mismatch: content has been modified", {
-        stage: "persistence.load",
-      });
+      diagnostics.addError(
+        CORRUPT_SAVE_CODE,
+        "Save data hash mismatch: content has been modified",
+        {
+          stage: "persistence.load",
+        },
+      );
       return null;
     }
 
     if (!verifyEnvelope(state["envelope"], state["snapshot"])) {
-      diagnostics.addError(CORRUPT_SAVE_CODE, "Save envelope verification failed: snapshot does not match envelope", {
-        stage: "persistence.load",
-      });
+      diagnostics.addError(
+        CORRUPT_SAVE_CODE,
+        "Save envelope verification failed: snapshot does not match envelope",
+        {
+          stage: "persistence.load",
+        },
+      );
       return null;
     }
 

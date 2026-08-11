@@ -1,10 +1,20 @@
 import type { ContentPack } from "@bluewave/content-schema";
 import type { CampaignState, CampaignSlot, CampaignSnapshot } from "./state.js";
-import type { NationState, FleetState, Ship, ResearchState, TechnologyProgress, ConstructionProject } from "./state.js";
+import type {
+  NationState,
+  FleetState,
+  Ship,
+  ResearchState,
+  TechnologyProgress,
+  ConstructionProject,
+} from "./state.js";
 import type { WorldState, AreaData, RouteData, PortData } from "./state.js";
 import type { WarState, WarDeclaration } from "./state.js";
 import type { PoliticalState, DiplomaticRelation } from "./state.js";
-import { DiagnosticCollector, type DiagnosticCollector as DiagnosticCollectorType } from "@bluewave/diagnostics";
+import {
+  DiagnosticCollector,
+  type DiagnosticCollector as DiagnosticCollectorType,
+} from "@bluewave/diagnostics";
 import { Compiler, type CompilerInput } from "@bluewave/content-compiler";
 import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
 import { SafeInt } from "@bluewave/contracts";
@@ -42,17 +52,25 @@ function toSafeIntOpt(value: unknown, fallback: SafeInt): SafeInt {
   return fallback;
 }
 
-function parseYamlFile(filePath: string, contentDir: string, collector: DiagnosticCollectorType): unknown[] | undefined {
+function parseYamlFile(
+  filePath: string,
+  contentDir: string,
+  collector: DiagnosticCollectorType,
+): unknown[] | undefined {
   const fullPath = resolve(contentDir, filePath);
   try {
     const content = readFileSync(fullPath, "utf8");
     const doc = parse(content);
     if (Array.isArray(doc)) return doc;
-    collector.addError("CAMPAIGN-PARSE", `Expected array in campaign file: ${filePath}`, { stage: "campaign-compile" });
+    collector.addError("CAMPAIGN-PARSE", `Expected array in campaign file: ${filePath}`, {
+      stage: "campaign-compile",
+    });
     return undefined;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    collector.addError("CAMPAIGN-READ", `Failed to read campaign file ${filePath}: ${msg}`, { stage: "campaign-compile" });
+    collector.addError("CAMPAIGN-READ", `Failed to read campaign file ${filePath}: ${msg}`, {
+      stage: "campaign-compile",
+    });
     return undefined;
   }
 }
@@ -76,7 +94,11 @@ export class CampaignCompiler {
 
     // Step 1: Run content compiler
     const contentCollector = new DiagnosticCollector();
-    const contentOutput = this.contentCompiler.compile(input.compilerInput, signal, contentCollector);
+    const contentOutput = this.contentCompiler.compile(
+      input.compilerInput,
+      signal,
+      contentCollector,
+    );
 
     for (const d of contentCollector.all) {
       collector.add(d);
@@ -89,11 +111,31 @@ export class CampaignCompiler {
     const contentDir = input.compilerInput.contentDir;
 
     // Step 2: Parse campaign-specific YAML
-    const fleetsData = this.loadCampaignFiles(input.campaignFiles.fleetFiles, contentDir, collector);
-    const economiesData = this.loadCampaignFiles(input.campaignFiles.economyFiles, contentDir, collector);
-    const constructionsData = this.loadCampaignFiles(input.campaignFiles.constructionFiles, contentDir, collector);
-    const diplomacyData = this.loadCampaignFiles(input.campaignFiles.diplomacyFiles, contentDir, collector);
-    const researchData = this.loadCampaignFiles(input.campaignFiles.researchFiles, contentDir, collector);
+    const fleetsData = this.loadCampaignFiles(
+      input.campaignFiles.fleetFiles,
+      contentDir,
+      collector,
+    );
+    const economiesData = this.loadCampaignFiles(
+      input.campaignFiles.economyFiles,
+      contentDir,
+      collector,
+    );
+    const constructionsData = this.loadCampaignFiles(
+      input.campaignFiles.constructionFiles,
+      contentDir,
+      collector,
+    );
+    const diplomacyData = this.loadCampaignFiles(
+      input.campaignFiles.diplomacyFiles,
+      contentDir,
+      collector,
+    );
+    const researchData = this.loadCampaignFiles(
+      input.campaignFiles.researchFiles,
+      contentDir,
+      collector,
+    );
 
     if (collector.hasErrors || signal.aborted) return undefined;
 
@@ -101,7 +143,14 @@ export class CampaignCompiler {
     const world = this.buildWorldState(pack);
 
     // Step 4: Build nation states
-    const nations = this.buildNationStates(pack, fleetsData, economiesData, constructionsData, researchData, collector);
+    const nations = this.buildNationStates(
+      pack,
+      fleetsData,
+      economiesData,
+      constructionsData,
+      researchData,
+      collector,
+    );
     if (!nations || signal.aborted) return undefined;
 
     // Step 5: Build war state
@@ -145,7 +194,11 @@ export class CampaignCompiler {
     };
   }
 
-  private loadCampaignFiles(files: string[], contentDir: string, collector: DiagnosticCollectorType): unknown[] {
+  private loadCampaignFiles(
+    files: string[],
+    contentDir: string,
+    collector: DiagnosticCollectorType,
+  ): unknown[] {
     const all: unknown[] = [];
     for (const file of files) {
       const data = parseYamlFile(file, contentDir, collector);
@@ -240,7 +293,9 @@ export class CampaignCompiler {
     }
 
     if (nations.size === 0) {
-      collector.addError("CAMPAIGN", "No nations found in content pack", { stage: "campaign-compile" });
+      collector.addError("CAMPAIGN", "No nations found in content pack", {
+        stage: "campaign-compile",
+      });
       return undefined;
     }
 
@@ -309,13 +364,17 @@ export class CampaignCompiler {
     return {
       nationId,
       technologies: techs,
-      currentProjectTechId: typeof nationResearch["currentProjectTechId"] === "string"
-        ? nationResearch["currentProjectTechId"]
-        : undefined,
+      currentProjectTechId:
+        typeof nationResearch["currentProjectTechId"] === "string"
+          ? nationResearch["currentProjectTechId"]
+          : undefined,
     };
   }
 
-  private buildConstructions(constructionsData: unknown[], nationId: string): ConstructionProject[] {
+  private buildConstructions(
+    constructionsData: unknown[],
+    nationId: string,
+  ): ConstructionProject[] {
     return constructionsData
       .filter((c) => (c as Record<string, unknown>)["nationId"] === nationId)
       .map((c) => {

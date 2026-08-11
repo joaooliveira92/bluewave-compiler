@@ -148,7 +148,9 @@ export class PhaseEngine {
                   if (shipBattleMap.has(ship["id"])) {
                     const msg = `Ship ${ship["id"]} is assigned to multiple battles`;
                     diagnostics.push(msg);
-                    collector?.addError("SHIP_IN_MULTIPLE_BATTLES", msg, { stage: "opening-validation" });
+                    collector?.addError("SHIP_IN_MULTIPLE_BATTLES", msg, {
+                      stage: "opening-validation",
+                    });
                   }
                   shipBattleMap.set(ship["id"], battle["id"]);
                 }

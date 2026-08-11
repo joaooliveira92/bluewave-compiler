@@ -2,12 +2,21 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { canonicalSerialize, sha256Hex, createEnvelope, verifyEnvelope } from "@bluewave/deterministic";
+import {
+  canonicalSerialize,
+  sha256Hex,
+  createEnvelope,
+  verifyEnvelope,
+} from "@bluewave/deterministic";
 import { DiagnosticCollector, type DiagnosticCode } from "@bluewave/diagnostics";
 import { SafeInt } from "@bluewave/contracts";
 import type { CampaignState, CampaignSnapshot } from "@bluewave/campaign";
 import { SaveStore, CORRUPT_SAVE_CODE, MISSING_SAVE_CODE } from "../src/store.js";
-import { CompatibilityChecker, CURRENT_COMPATIBILITY_VERSION, COMPATIBILITY_MISMATCH_CODE } from "../src/compatibility.js";
+import {
+  CompatibilityChecker,
+  CURRENT_COMPATIBILITY_VERSION,
+  COMPATIBILITY_MISMATCH_CODE,
+} from "../src/compatibility.js";
 import { RecoveryManager, cleanup } from "../src/recovery.js";
 
 function createFixtureState(): CampaignState {
@@ -100,7 +109,9 @@ describe("SaveStore", () => {
     const state = createFixtureState();
     store.save(state, tmpDir);
 
-    const pointer = JSON.parse(readFileSync(join(tmpDir, "pointer.json"), "utf8")) as { activeSaveId: string };
+    const pointer = JSON.parse(readFileSync(join(tmpDir, "pointer.json"), "utf8")) as {
+      activeSaveId: string;
+    };
     const campaignPath = join(tmpDir, pointer["activeSaveId"], "campaign.json");
     writeFileSync(campaignPath, '{"corrupt": true}', "utf8");
 
@@ -170,12 +181,18 @@ describe("SaveStore", () => {
     const state = createFixtureState();
     store.save(state, tmpDir);
 
-    const pointer1 = JSON.parse(readFileSync(join(tmpDir, "pointer.json"), "utf8")) as { activeSaveId: string; previousSaveId?: string };
+    const pointer1 = JSON.parse(readFileSync(join(tmpDir, "pointer.json"), "utf8")) as {
+      activeSaveId: string;
+      previousSaveId?: string;
+    };
     const firstSaveId = pointer1["activeSaveId"];
 
     store.save(state, tmpDir);
 
-    const pointer2 = JSON.parse(readFileSync(join(tmpDir, "pointer.json"), "utf8")) as { activeSaveId: string; previousSaveId?: string };
+    const pointer2 = JSON.parse(readFileSync(join(tmpDir, "pointer.json"), "utf8")) as {
+      activeSaveId: string;
+      previousSaveId?: string;
+    };
     expect(pointer2["activeSaveId"]).not.toBe(firstSaveId);
     expect(pointer2["previousSaveId"]).toBe(firstSaveId);
   });
@@ -184,7 +201,9 @@ describe("SaveStore", () => {
     const state = createFixtureState();
     store.save(state, tmpDir);
 
-    const tmpFiles = require("node:fs").readdirSync(tmpDir).filter((f: string) => f.startsWith(".tmp_"));
+    const tmpFiles = require("node:fs")
+      .readdirSync(tmpDir)
+      .filter((f: string) => f.startsWith(".tmp_"));
     expect(tmpFiles).toHaveLength(0);
   });
 });

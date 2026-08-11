@@ -1,10 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { SafeInt } from "@bluewave/contracts";
-import type {
-  DomainEventEnvelope,
-  DomainEventBody,
-  NationBudgetChanged,
-} from "../src/index.js";
+import type { DomainEventEnvelope, DomainEventBody, NationBudgetChanged } from "../src/index.js";
 import { EventLedger, ExplanationBuilder, formatExplanation } from "../src/index.js";
 
 describe("DomainEventEnvelope", () => {

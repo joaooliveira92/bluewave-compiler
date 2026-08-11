@@ -366,7 +366,11 @@ export function runTurnExecute(
 
   const newState: CampaignState = {
     snapshot: result.finalSnapshot,
-    envelope: createEnvelope("campaign-snapshot", state.snapshot.compatibilityVersion, result.finalSnapshot),
+    envelope: createEnvelope(
+      "campaign-snapshot",
+      state.snapshot.compatibilityVersion,
+      result.finalSnapshot,
+    ),
     rawHash: snapshotHash(result.finalSnapshot),
   };
 
@@ -461,7 +465,9 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
 
   let commands: CommandEnvelope<BudgetProjectCommand>[];
   try {
-    commands = JSON.parse(readFileSync(commandsPath, "utf8")) as CommandEnvelope<BudgetProjectCommand>[];
+    commands = JSON.parse(
+      readFileSync(commandsPath, "utf8"),
+    ) as CommandEnvelope<BudgetProjectCommand>[];
   } catch {
     printResult(`Failed to parse commands file: ${commandsPath}`, "human");
     return "internal-error";
@@ -477,7 +483,9 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
 
   let expectedFinalHash: string;
   try {
-    const finalHashData = JSON.parse(readFileSync(finalHashPath, "utf8")) as { finalSnapshotHash: string };
+    const finalHashData = JSON.parse(readFileSync(finalHashPath, "utf8")) as {
+      finalSnapshotHash: string;
+    };
     expectedFinalHash = finalHashData.finalSnapshotHash;
   } catch {
     printResult(`Failed to parse final hash file: ${finalHashPath}`, "human");
@@ -492,7 +500,14 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
   const randomSeed = options.seed || "default-seed";
 
   const verifier = new ReplayVerifier();
-  const replayResult = verifier.verify(state.snapshot, commands, originalLedger, expectedFinalHash, randomSeed, collector);
+  const replayResult = verifier.verify(
+    state.snapshot,
+    commands,
+    originalLedger,
+    expectedFinalHash,
+    randomSeed,
+    collector,
+  );
 
   printDiagnostics(collector, options.outputMode);
 
@@ -511,7 +526,10 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
     }
     printResult(`  Replayed Final Hash: ${replayResult.replayedFinalHash}`, "human");
     printResult(`  Original Final Hash: ${replayResult.originalFinalHash}`, "human");
-    printResult(`  Steps: ${replayResult.steps.length}, Mismatches: ${replayResult.mismatches.length}`, "human");
+    printResult(
+      `  Steps: ${replayResult.steps.length}, Mismatches: ${replayResult.mismatches.length}`,
+      "human",
+    );
   }
 
   if (collector.hasErrors) return "validation-error";

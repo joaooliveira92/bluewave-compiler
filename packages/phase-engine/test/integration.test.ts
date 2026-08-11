@@ -88,28 +88,32 @@ function compileCampaign(fixtureDir: string): CampaignState {
   const compiler = new CampaignCompiler();
   const collector = new DiagnosticCollector();
   const signal = new AbortController().signal;
-  const output = compiler.compile({
-    compilerInput: {
-      manifestPath: "pack.json",
-      contentDir: fixtureDir,
-      rulesetFiles: ["rulesets.yaml"],
-      countryFiles: ["countries.yaml"],
-      areaFiles: ["areas.yaml"],
-      routeFiles: ["routes.yaml"],
-      possessionFiles: ["possessions.yaml"],
-      portFiles: ["ports.yaml"],
-      technologyFiles: ["technologies.yaml"],
+  const output = compiler.compile(
+    {
+      compilerInput: {
+        manifestPath: "pack.json",
+        contentDir: fixtureDir,
+        rulesetFiles: ["rulesets.yaml"],
+        countryFiles: ["countries.yaml"],
+        areaFiles: ["areas.yaml"],
+        routeFiles: ["routes.yaml"],
+        possessionFiles: ["possessions.yaml"],
+        portFiles: ["ports.yaml"],
+        technologyFiles: ["technologies.yaml"],
+      },
+      campaignFiles: {
+        fleetFiles: ["fleets.yaml"],
+        economyFiles: ["economies.yaml"],
+        constructionFiles: ["constructions.yaml"],
+        diplomacyFiles: ["diplomacy.yaml"],
+        researchFiles: ["research.yaml"],
+      },
+      rulesetVersion: "1.0",
+      compatibilityVersion: "1.0.0",
     },
-    campaignFiles: {
-      fleetFiles: ["fleets.yaml"],
-      economyFiles: ["economies.yaml"],
-      constructionFiles: ["constructions.yaml"],
-      diplomacyFiles: ["diplomacy.yaml"],
-      researchFiles: ["research.yaml"],
-    },
-rulesetVersion: "1.0",
-        compatibilityVersion: "1.0.0",
-      }, signal, collector);
+    signal,
+    collector,
+  );
 
   if (!output || collector.hasErrors) {
     throw new Error(`Compilation failed: ${diagnosticsSummary(collector)}`);
@@ -209,7 +213,8 @@ describe("Full-slice integration", () => {
     const executor = new MonthExecutor();
     const cmd = makeBudgetCommand(snapshot, "GBR", "con-gbr-ship-battleship2", SafeInt(100));
 
-    const run = () => executor.execute(snapshot, [cmd], "deterministic-seed", new DiagnosticCollector());
+    const run = () =>
+      executor.execute(snapshot, [cmd], "deterministic-seed", new DiagnosticCollector());
 
     const r1 = run();
     const r2 = run();
@@ -223,10 +228,13 @@ describe("Full-slice integration", () => {
     expect(r2.success).toBe(true);
   });
 
-// 3. Save/load before advancement preserves future outcomes
+  // 3. Save/load before advancement preserves future outcomes
   it("3. Save/load before advancement preserves snapshot hash", () => {
     const store = new SaveStore();
-    const saveDir = resolve(tmpdir(), `bw-save-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const saveDir = resolve(
+      tmpdir(),
+      `bw-save-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     mkdirSync(saveDir, { recursive: true });
 
     try {
@@ -305,7 +313,12 @@ describe("Full-slice integration", () => {
     const cmdConflict: CommandEnvelope<BudgetProjectCommand> = {
       ...cmd,
       commandId: "cmd-conflict-different",
-      body: { type: "budget_project", nationId: "GBR", projectId: "con-gbr-ship-battleship2", budget: SafeInt(999) },
+      body: {
+        type: "budget_project",
+        nationId: "GBR",
+        projectId: "con-gbr-ship-battleship2",
+        budget: SafeInt(999),
+      },
     };
     const conflictResult = lifecycle.process(cmdConflict, snapshot, slot, idempotencyMap);
     expect(conflictResult.type).toBe("idempotency_conflict");
@@ -317,20 +330,30 @@ describe("Full-slice integration", () => {
     const slot = snapshot.slots.find((s) => s.nationId === "GBR")!;
     const idempotencyMap = new CommandIdempotencyMap();
 
-    const cmdInvalidNation = makeBudgetCommand(snapshot, "NONEXISTENT", "con-gbr-ship-battleship2", SafeInt(10));
+    const cmdInvalidNation = makeBudgetCommand(
+      snapshot,
+      "NONEXISTENT",
+      "con-gbr-ship-battleship2",
+      SafeInt(10),
+    );
     const result = lifecycle.process(cmdInvalidNation, snapshot, slot, idempotencyMap);
     expect(result.type).toBe("rejected");
     expect(result.diagnostic.code).toBe("UNAUTHORIZED");
 
     const fraSlot = snapshot.slots.find((s) => s.nationId === "FRA")!;
-    const fraTreasury = (snapshot.nations.get("FRA")!.treasury as number);
+    const fraTreasury = snapshot.nations.get("FRA")!.treasury as number;
     const cmdFra: CommandEnvelope<BudgetProjectCommand> = {
       commandId: "cmd-fra-overbudget",
       version: "0.1.0",
       expectedSnapshotHash: sha256Hex(canonicalSerialize(snapshot)),
       idempotencyKey: "ik-fra-overbudget",
       timestamp: "integration-test",
-      body: { type: "budget_project", nationId: "FRA", projectId: "con-gbr-ship-battleship2", budget: SafeInt(fraTreasury + 100) },
+      body: {
+        type: "budget_project",
+        nationId: "FRA",
+        projectId: "con-gbr-ship-battleship2",
+        budget: SafeInt(fraTreasury + 100),
+      },
     };
     const fraResult = lifecycle.process(cmdFra, snapshot, fraSlot, idempotencyMap);
     expect(fraResult.type).toBe("rejected");
@@ -341,17 +364,22 @@ describe("Full-slice integration", () => {
     const executor = new MonthExecutor();
     const collector = new DiagnosticCollector();
 
-    const budgetCmd = makeBudgetCommand(snapshot, "GBR", "con-gbr-ship-battleship2", SafeInt(99999));
+    const budgetCmd = makeBudgetCommand(
+      snapshot,
+      "GBR",
+      "con-gbr-ship-battleship2",
+      SafeInt(99999),
+    );
     const result = executor.execute(snapshot, [budgetCmd], "treasury-test", collector);
 
     const gbr = result.finalSnapshot.nations.get("GBR")!;
-    expect((gbr.treasury as number)).toBeGreaterThanOrEqual(0);
+    expect(gbr.treasury as number).toBeGreaterThanOrEqual(0);
 
     const entries = result.financialLedger.all;
     const gbrEntries = entries.filter((e) => e.nationId === "GBR");
-    let runningBalance = (snapshot.nations.get("GBR")!.treasury as number);
+    let runningBalance = snapshot.nations.get("GBR")!.treasury as number;
     for (const entry of gbrEntries) {
-      expect((entry.newBalance as number)).toBeGreaterThanOrEqual(0);
+      expect(entry.newBalance as number).toBeGreaterThanOrEqual(0);
       runningBalance = entry.newBalance as number;
     }
   });
@@ -366,11 +394,13 @@ describe("Full-slice integration", () => {
 
     const gbr = result.finalSnapshot.nations.get("GBR")!;
     for (const project of gbr.constructionProjects) {
-      expect((project.completedWork as number)).toBeLessThanOrEqual(project.totalWork as number);
+      expect(project.completedWork as number).toBeLessThanOrEqual(project.totalWork as number);
     }
 
     const gbrInitial = snapshot.nations.get("GBR")!;
-    const initialProj = gbrInitial.constructionProjects.find((p) => p.id === "con-gbr-ship-battleship2")!;
+    const initialProj = gbrInitial.constructionProjects.find(
+      (p) => p.id === "con-gbr-ship-battleship2",
+    )!;
     const finalProj = gbr.constructionProjects.find((p) => p.id === "con-gbr-ship-battleship2")!;
     const workAdded = (finalProj.completedWork as number) - (initialProj.completedWork as number);
     expect(workAdded).toBeGreaterThanOrEqual(0);
@@ -387,28 +417,32 @@ describe("Full-slice integration", () => {
       treasury: SafeInt(500),
       income: SafeInt(150),
       expenses: SafeInt(75),
-      fleets: [{
-        id: "fleet-1",
-        nationId: "GBR",
-        name: "Test Fleet",
-        locationAreaId: "lon",
-        ships: [{
-          id: "ship-1",
-          name: "Test",
-          classId: "battleship",
+      fleets: [
+        {
+          id: "fleet-1",
           nationId: "GBR",
+          name: "Test Fleet",
           locationAreaId: "lon",
-          hitPoints: SafeInt(100),
-          maxHitPoints: SafeInt(100),
-          speed: SafeInt(10),
-          firepower: SafeInt(10),
-          armor: SafeInt(10),
-          isUnderConstruction: false,
-          constructionProgress: SafeInt(0),
-          constructionTotalWork: SafeInt(0),
-          inBattleId: "battle-1",
-        }],
-      }],
+          ships: [
+            {
+              id: "ship-1",
+              name: "Test",
+              classId: "battleship",
+              nationId: "GBR",
+              locationAreaId: "lon",
+              hitPoints: SafeInt(100),
+              maxHitPoints: SafeInt(100),
+              speed: SafeInt(10),
+              firepower: SafeInt(10),
+              armor: SafeInt(10),
+              isUnderConstruction: false,
+              constructionProgress: SafeInt(0),
+              constructionTotalWork: SafeInt(0),
+              inBattleId: "battle-1",
+            },
+          ],
+        },
+      ],
       research: { nationId: "GBR", technologies: [] },
       constructionProjects: [],
       isPlayable: true,
@@ -426,8 +460,24 @@ describe("Full-slice integration", () => {
       wars: {
         wars: [],
         battles: [
-          { id: "battle-1", phase: "pending", attackerId: "GBR", defenderId: "FRA", areaId: "eng_ch", attackerFleetIds: ["fleet-1"], defenderFleetIds: [] },
-          { id: "battle-2", phase: "pending", attackerId: "FRA", defenderId: "GBR", areaId: "eng_ch", attackerFleetIds: ["fleet-1"], defenderFleetIds: [] },
+          {
+            id: "battle-1",
+            phase: "pending",
+            attackerId: "GBR",
+            defenderId: "FRA",
+            areaId: "eng_ch",
+            attackerFleetIds: ["fleet-1"],
+            defenderFleetIds: [],
+          },
+          {
+            id: "battle-2",
+            phase: "pending",
+            attackerId: "FRA",
+            defenderId: "GBR",
+            areaId: "eng_ch",
+            attackerFleetIds: ["fleet-1"],
+            defenderFleetIds: [],
+          },
         ],
       },
       politics: { relations: [], shells: {} },
@@ -509,7 +559,10 @@ describe("Full-slice integration", () => {
   // 14. Corrupt save rejection
   it("14. Corrupt/incompatible saves rejected with stable diagnostics", () => {
     const store = new SaveStore();
-    const saveDir = resolve(tmpdir(), `bw-corrupt-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const saveDir = resolve(
+      tmpdir(),
+      `bw-corrupt-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     mkdirSync(saveDir, { recursive: true });
 
     try {
@@ -538,7 +591,10 @@ describe("Full-slice integration", () => {
   // 15. Cancellation
   it("15. Cancellation leaves save pointer and committed artifacts valid", () => {
     const store = new SaveStore();
-    const saveDir = resolve(tmpdir(), `bw-cancel-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const saveDir = resolve(
+      tmpdir(),
+      `bw-cancel-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     mkdirSync(saveDir, { recursive: true });
 
     try {
@@ -574,27 +630,31 @@ describe("Full-slice integration", () => {
       treasury: SafeInt(500),
       income: SafeInt(150),
       expenses: SafeInt(75),
-      fleets: [{
-        id: "fleet-gbr-home",
-        nationId: "GBR",
-        name: "Home Fleet",
-        locationAreaId: "eng_ch",
-        ships: [{
-          id: "ship-hms-dreadnought",
-          name: "HMS Dreadnought",
-          classId: "battleship",
+      fleets: [
+        {
+          id: "fleet-gbr-home",
           nationId: "GBR",
+          name: "Home Fleet",
           locationAreaId: "eng_ch",
-          hitPoints: SafeInt(100),
-          maxHitPoints: SafeInt(100),
-          speed: SafeInt(21),
-          firepower: SafeInt(10),
-          armor: SafeInt(12),
-          isUnderConstruction: false,
-          constructionProgress: SafeInt(0),
-          constructionTotalWork: SafeInt(0),
-        }],
-      }],
+          ships: [
+            {
+              id: "ship-hms-dreadnought",
+              name: "HMS Dreadnought",
+              classId: "battleship",
+              nationId: "GBR",
+              locationAreaId: "eng_ch",
+              hitPoints: SafeInt(100),
+              maxHitPoints: SafeInt(100),
+              speed: SafeInt(21),
+              firepower: SafeInt(10),
+              armor: SafeInt(12),
+              isUnderConstruction: false,
+              constructionProgress: SafeInt(0),
+              constructionTotalWork: SafeInt(0),
+            },
+          ],
+        },
+      ],
       research: { nationId: "GBR", technologies: [] },
       constructionProjects: [],
       isPlayable: true,
@@ -608,27 +668,31 @@ describe("Full-slice integration", () => {
       treasury: SafeInt(600),
       income: SafeInt(120),
       expenses: SafeInt(60),
-      fleets: [{
-        id: "fleet-fra-atlantic",
-        nationId: "FRA",
-        name: "Atlantic Fleet",
-        locationAreaId: "eng_ch",
-        ships: [{
-          id: "ship-fs-courbet",
-          name: "FS Courbet",
-          classId: "battleship",
+      fleets: [
+        {
+          id: "fleet-fra-atlantic",
           nationId: "FRA",
+          name: "Atlantic Fleet",
           locationAreaId: "eng_ch",
-          hitPoints: SafeInt(90),
-          maxHitPoints: SafeInt(90),
-          speed: SafeInt(20),
-          firepower: SafeInt(9),
-          armor: SafeInt(11),
-          isUnderConstruction: false,
-          constructionProgress: SafeInt(0),
-          constructionTotalWork: SafeInt(0),
-        }],
-      }],
+          ships: [
+            {
+              id: "ship-fs-courbet",
+              name: "FS Courbet",
+              classId: "battleship",
+              nationId: "FRA",
+              locationAreaId: "eng_ch",
+              hitPoints: SafeInt(90),
+              maxHitPoints: SafeInt(90),
+              speed: SafeInt(20),
+              firepower: SafeInt(9),
+              armor: SafeInt(11),
+              isUnderConstruction: false,
+              constructionProgress: SafeInt(0),
+              constructionTotalWork: SafeInt(0),
+            },
+          ],
+        },
+      ],
       research: { nationId: "FRA", technologies: [] },
       constructionProjects: [],
       isPlayable: false,
@@ -642,12 +706,33 @@ describe("Full-slice integration", () => {
       version: "0.1.0",
       turnNumber: SafeInt(1),
       campaignId: "test-battle-narrow",
-      slots: [{ nationId: "GBR", type: "playable" }, { nationId: "FRA", type: "ai" }],
+      slots: [
+        { nationId: "GBR", type: "playable" },
+        { nationId: "FRA", type: "ai" },
+      ],
       world: snapshot.world,
       nations,
       wars: {
-        wars: [{ id: "war-1", attackerId: "GBR", defenderId: "FRA", startDate: "1880-01", status: "active" }],
-        battles: [{ id: "battle-1", phase: "pending", attackerId: "GBR", defenderId: "FRA", areaId: "eng_ch", attackerFleetIds: ["fleet-gbr-home"], defenderFleetIds: ["fleet-fra-atlantic"] }],
+        wars: [
+          {
+            id: "war-1",
+            attackerId: "GBR",
+            defenderId: "FRA",
+            startDate: "1880-01",
+            status: "active",
+          },
+        ],
+        battles: [
+          {
+            id: "battle-1",
+            phase: "pending",
+            attackerId: "GBR",
+            defenderId: "FRA",
+            areaId: "eng_ch",
+            attackerFleetIds: ["fleet-gbr-home"],
+            defenderFleetIds: ["fleet-fra-atlantic"],
+          },
+        ],
       },
       politics: { relations: [], shells: {} },
       intelligence: { shells: {} },
@@ -682,10 +767,10 @@ describe("Full-slice integration", () => {
     expect(result.success).toBe(true);
 
     const gbr = result.finalSnapshot.nations.get("GBR")!;
-    expect((gbr.treasury as number)).toBeGreaterThanOrEqual(0);
+    expect(gbr.treasury as number).toBeGreaterThanOrEqual(0);
 
     for (const project of gbr.constructionProjects) {
-      expect((project.completedWork as number)).toBeLessThanOrEqual(project.totalWork as number);
+      expect(project.completedWork as number).toBeLessThanOrEqual(project.totalWork as number);
     }
 
     const engine = new PhaseEngine();

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { runCompilation, findYamlFiles } from "../src/main/compiler.js";
+import { runCompilation } from "../src/main/compiler.js";
 
 const FIXTURE_FILES: Record<string, string> = {
   "pack.json": JSON.stringify({

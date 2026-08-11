@@ -278,7 +278,9 @@ export class MonthExecutor {
             const body = cmd["body"];
             const nation = currentSnapshot["nations"].get(body["nationId"]);
             if (!nation) {
-              collector.addError("NATION_NOT_FOUND", `Nation ${body["nationId"]} not found`, { stage: "command-collection" });
+              collector.addError("NATION_NOT_FOUND", `Nation ${body["nationId"]} not found`, {
+                stage: "command-collection",
+              });
               continue;
             }
 
@@ -286,7 +288,9 @@ export class MonthExecutor {
               (p) => p["id"] === body["projectId"],
             );
             if (!project) {
-              collector.addError("PROJECT_NOT_FOUND", `Project ${body["projectId"]} not found`, { stage: "command-collection" });
+              collector.addError("PROJECT_NOT_FOUND", `Project ${body["projectId"]} not found`, {
+                stage: "command-collection",
+              });
               continue;
             }
 
@@ -294,17 +298,14 @@ export class MonthExecutor {
             const previousTreasury = nation["treasury"];
             const newTreasury = SafeInt.sub(previousTreasury, budget);
             const rawNewWork = SafeInt.add(project["completedWork"], budget);
-            const clampedWork = rawNewWork > project["totalWork"]
-              ? project["totalWork"]
-              : rawNewWork;
+            const clampedWork =
+              rawNewWork > project["totalWork"] ? project["totalWork"] : rawNewWork;
 
             const updatedNation: NationState = {
               ...nation,
               treasury: newTreasury,
               constructionProjects: nation["constructionProjects"].map((p) =>
-                p["id"] === body["projectId"]
-                  ? { ...p, completedWork: clampedWork }
-                  : p,
+                p["id"] === body["projectId"] ? { ...p, completedWork: clampedWork } : p,
               ),
             };
             const updatedNations = new Map(currentSnapshot["nations"]);
@@ -320,15 +321,17 @@ export class MonthExecutor {
               reason: `Player budget for project ${body["projectId"]}`,
             });
 
-            eventLedger.append(budgetChangedEvent(
-              body["nationId"],
-              previousTreasury,
-              newTreasury,
-              SafeInt.mul(budget, SafeInt(-1)),
-              `Player budget for project ${body["projectId"]}`,
-              nextSeq(),
-              turnNumber,
-            ));
+            eventLedger.append(
+              budgetChangedEvent(
+                body["nationId"],
+                previousTreasury,
+                newTreasury,
+                SafeInt.mul(budget, SafeInt(-1)),
+                `Player budget for project ${body["projectId"]}`,
+                nextSeq(),
+                turnNumber,
+              ),
+            );
           }
         }
       }
@@ -380,7 +383,10 @@ export class MonthExecutor {
             (p) => (p["completedWork"] as number) < (p["totalWork"] as number),
           );
           if (firstIncomplete) {
-            const remainingWork = SafeInt.sub(firstIncomplete["totalWork"], firstIncomplete["completedWork"]);
+            const remainingWork = SafeInt.sub(
+              firstIncomplete["totalWork"],
+              firstIncomplete["completedWork"],
+            );
             const extra = remainingFunds > remainingWork ? remainingWork : remainingFunds;
             totalDelta = SafeInt.add(totalDelta, extra);
 
@@ -414,15 +420,17 @@ export class MonthExecutor {
             reason: "Proportional appropriation to construction projects",
           });
 
-          eventLedger.append(budgetChangedEvent(
-            nationId,
-            previousTreasury,
-            newTreasury,
-            SafeInt.mul(totalDelta, SafeInt(-1)),
-            "Proportional appropriation to construction projects",
-            nextSeq(),
-            turnNumber,
-          ));
+          eventLedger.append(
+            budgetChangedEvent(
+              nationId,
+              previousTreasury,
+              newTreasury,
+              SafeInt.mul(totalDelta, SafeInt(-1)),
+              "Proportional appropriation to construction projects",
+              nextSeq(),
+              turnNumber,
+            ),
+          );
         }
       }
     }
@@ -437,7 +445,11 @@ export class MonthExecutor {
         const actualNew = newTreasury < (0 as SafeInt) ? (0 as SafeInt) : newTreasury;
 
         if ((newTreasury as number) < 0) {
-          collector.addError("NEGATIVE_TREASURY_OBLIGATION", `Nation ${nationId} would have negative treasury after obligation`, { stage: "obligation" });
+          collector.addError(
+            "NEGATIVE_TREASURY_OBLIGATION",
+            `Nation ${nationId} would have negative treasury after obligation`,
+            { stage: "obligation" },
+          );
         }
 
         const updatedNation: NationState = {
@@ -457,15 +469,17 @@ export class MonthExecutor {
           reason: "Mandatory fixed expenses",
         });
 
-        eventLedger.append(budgetChangedEvent(
-          nationId,
-          previousTreasury,
-          actualNew,
-          SafeInt.mul(expense, SafeInt(-1)),
-          "Mandatory fixed expenses",
-          nextSeq(),
-          turnNumber,
-        ));
+        eventLedger.append(
+          budgetChangedEvent(
+            nationId,
+            previousTreasury,
+            actualNew,
+            SafeInt.mul(expense, SafeInt(-1)),
+            "Mandatory fixed expenses",
+            nextSeq(),
+            turnNumber,
+          ),
+        );
       }
     }
 
@@ -476,18 +490,21 @@ export class MonthExecutor {
 
         for (const project of nation["constructionProjects"]) {
           if ((project["completedWork"] as number) > (project["totalWork"] as number)) {
-            collector.addError("CONSTRUCTION_OVERFLOW", `Project ${project["id"]} completedWork exceeds totalWork`, { stage: "construction-processing" });
+            collector.addError(
+              "CONSTRUCTION_OVERFLOW",
+              `Project ${project["id"]} completedWork exceeds totalWork`,
+              { stage: "construction-processing" },
+            );
           }
 
-          const clampedWork = project["completedWork"] > project["totalWork"]
-            ? project["totalWork"]
-            : project["completedWork"];
+          const clampedWork =
+            project["completedWork"] > project["totalWork"]
+              ? project["totalWork"]
+              : project["completedWork"];
 
           if ((clampedWork as number) !== (project["completedWork"] as number)) {
             const updatedProjects = nation["constructionProjects"].map((p) =>
-              p["id"] === project["id"]
-                ? { ...p, completedWork: clampedWork }
-                : p,
+              p["id"] === project["id"] ? { ...p, completedWork: clampedWork } : p,
             );
             const updatedNation: NationState = {
               ...nation,
@@ -498,15 +515,17 @@ export class MonthExecutor {
             currentSnapshot = { ...currentSnapshot, nations: updatedNations };
           }
 
-          eventLedger.append(constructionProgressedEvent(
-            project["id"],
-            nationId,
-            project["completedWork"],
-            clampedWork,
-            SafeInt.sub(clampedWork, project["completedWork"]),
-            nextSeq(),
-            turnNumber,
-          ));
+          eventLedger.append(
+            constructionProgressedEvent(
+              project["id"],
+              nationId,
+              project["completedWork"],
+              clampedWork,
+              SafeInt.sub(clampedWork, project["completedWork"]),
+              nextSeq(),
+              turnNumber,
+            ),
+          );
         }
       }
     }
@@ -528,9 +547,7 @@ export class MonthExecutor {
         const newPoints = SafeInt.add(tech["investedPoints"], draw);
 
         const updatedTechs = nation["research"]["technologies"].map((t) =>
-          t["techId"] === techId
-            ? { ...t, investedPoints: newPoints }
-            : t,
+          t["techId"] === techId ? { ...t, investedPoints: newPoints } : t,
         );
         const updatedNation: NationState = {
           ...nation,
@@ -554,14 +571,16 @@ export class MonthExecutor {
           reasonCode: "RESEARCH_PROGRESS_DRAW",
         });
 
-        eventLedger.append(researchProgressedEvent(
-          nationId,
-          techId,
-          tech["investedPoints"],
-          newPoints,
-          nextSeq(),
-          turnNumber,
-        ));
+        eventLedger.append(
+          researchProgressedEvent(
+            nationId,
+            techId,
+            tech["investedPoints"],
+            newPoints,
+            nextSeq(),
+            turnNumber,
+          ),
+        );
       }
     }
 
@@ -579,15 +598,17 @@ export class MonthExecutor {
           const attacker = currentSnapshot["nations"].get(battle["attackerId"]);
           const defender = currentSnapshot["nations"].get(battle["defenderId"]);
           if (!attacker || !defender) {
-            collector.addError("BATTLE_NATION_MISSING", `Nation not found for battle ${battle["id"]}`, { stage: "battle-resolution" });
+            collector.addError(
+              "BATTLE_NATION_MISSING",
+              `Nation not found for battle ${battle["id"]}`,
+              { stage: "battle-resolution" },
+            );
             continue;
           }
 
           const result = resolver.resolve(battle, attacker, defender, randomEngine);
           const updatedBattles = currentSnapshot["wars"]["battles"].map((b) =>
-            b["id"] === battle["id"]
-              ? { ...b, phase: "resolved" as const, result }
-              : b,
+            b["id"] === battle["id"] ? { ...b, phase: "resolved" as const, result } : b,
           );
           currentSnapshot = {
             ...currentSnapshot,
@@ -603,14 +624,24 @@ export class MonthExecutor {
 
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if ((nation["treasury"] as number) < 0) {
-          diagnostics.push(`Nation ${nationId} has negative treasury at closing: ${String(nation["treasury"])}`);
-          collector.addError("NEGATIVE_TREASURY", `Nation ${nationId} has negative treasury at closing`, { stage: "closing-validation" });
+          diagnostics.push(
+            `Nation ${nationId} has negative treasury at closing: ${String(nation["treasury"])}`,
+          );
+          collector.addError(
+            "NEGATIVE_TREASURY",
+            `Nation ${nationId} has negative treasury at closing`,
+            { stage: "closing-validation" },
+          );
         }
 
         for (const project of nation["constructionProjects"]) {
           if ((project["completedWork"] as number) > (project["totalWork"] as number)) {
             diagnostics.push(`Project ${project["id"]} completed work exceeds total`);
-            collector.addError("CONSTRUCTION_OVERFLOW", `Project ${project["id"]} completedWork ${String(project["completedWork"])} exceeds totalWork ${String(project["totalWork"])}`, { stage: "closing-validation" });
+            collector.addError(
+              "CONSTRUCTION_OVERFLOW",
+              `Project ${project["id"]} completedWork ${String(project["completedWork"])} exceeds totalWork ${String(project["totalWork"])}`,
+              { stage: "closing-validation" },
+            );
           }
         }
       }
@@ -635,13 +666,21 @@ export class MonthExecutor {
 
     for (const [nationId, nation] of snapshot["nations"]) {
       if ((nation["treasury"] as number) < 0) {
-        collector.addError("NEGATIVE_TREASURY", `Nation ${nationId} has negative treasury: ${String(nation["treasury"])}`, { stage: "opening-validation" });
+        collector.addError(
+          "NEGATIVE_TREASURY",
+          `Nation ${nationId} has negative treasury: ${String(nation["treasury"])}`,
+          { stage: "opening-validation" },
+        );
         valid = false;
       }
 
       for (const ship of nation["fleets"].flatMap((f) => f["ships"])) {
         if ((ship["constructionProgress"] as number) > (ship["constructionTotalWork"] as number)) {
-          collector.addError("CONSTRUCTION_OVERFLOW", `Ship ${ship["id"]} construction progress ${String(ship["constructionProgress"])} exceeds total work ${String(ship["constructionTotalWork"])}`, { stage: "opening-validation" });
+          collector.addError(
+            "CONSTRUCTION_OVERFLOW",
+            `Ship ${ship["id"]} construction progress ${String(ship["constructionProgress"])} exceeds total work ${String(ship["constructionTotalWork"])}`,
+            { stage: "opening-validation" },
+          );
           valid = false;
         }
       }
@@ -657,7 +696,11 @@ export class MonthExecutor {
               for (const ship of fleet["ships"]) {
                 if (ship["inBattleId"]) {
                   if (shipBattleMap.has(ship["id"])) {
-                    collector.addError("SHIP_IN_MULTIPLE_BATTLES", `Ship ${ship["id"]} is assigned to multiple battles`, { stage: "opening-validation" });
+                    collector.addError(
+                      "SHIP_IN_MULTIPLE_BATTLES",
+                      `Ship ${ship["id"]} is assigned to multiple battles`,
+                      { stage: "opening-validation" },
+                    );
                     valid = false;
                   }
                   shipBattleMap.set(ship["id"], battle["id"]);

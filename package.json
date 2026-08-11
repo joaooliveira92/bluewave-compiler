@@ -16,6 +16,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:run": "vitest run",
+    "test:cross-process": "node packages/cross-process-test/dist/run-child.js",
     "clean": "turbo run clean && rm -rf node_modules",
     "check": "pnpm format && pnpm lint && pnpm typecheck && pnpm build && pnpm test:run"
   },

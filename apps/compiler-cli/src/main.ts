@@ -55,7 +55,13 @@ function main(): void {
   const command = args[0] as string;
 
   const existingCommands = ["validate", "compile", "inspect", "verify", "compare"];
-  const newCommands = ["campaign:compile", "campaign:save", "campaign:load", "turn:execute", "replay"];
+  const newCommands = [
+    "campaign:compile",
+    "campaign:save",
+    "campaign:load",
+    "turn:execute",
+    "replay",
+  ];
   const allCommands = [...existingCommands, ...newCommands];
 
   if (!allCommands.includes(command)) {

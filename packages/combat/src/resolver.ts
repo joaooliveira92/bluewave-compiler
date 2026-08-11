@@ -1,5 +1,11 @@
 import { SafeInt } from "@bluewave/contracts";
-import type { BattleInstance, BattleResult, FleetState, NationState, Ship } from "@bluewave/campaign";
+import type {
+  BattleInstance,
+  BattleResult,
+  FleetState,
+  NationState,
+  Ship,
+} from "@bluewave/campaign";
 import { RandomEngine, RandomStream, drawUniform } from "@bluewave/random";
 import type { ExplanationTree } from "@bluewave/events";
 import { ExplanationBuilder, formatExplanation } from "@bluewave/events";
@@ -43,10 +49,14 @@ export class BattleResolver {
     const defenderFactor = 1 + ((defenderRandom as number) - 50) / 100;
 
     const attackerEffective = this.computeEffectiveStrength(
-      attackerStrength, defenderStrength, attackerFactor,
+      attackerStrength,
+      defenderStrength,
+      attackerFactor,
     );
     const defenderEffective = this.computeEffectiveStrength(
-      defenderStrength, attackerStrength, defenderFactor,
+      defenderStrength,
+      attackerStrength,
+      defenderFactor,
     );
 
     const attackerWins = attackerEffective >= defenderEffective;
@@ -54,7 +64,9 @@ export class BattleResolver {
     const loserId = attackerWins ? battle["defenderId"] : battle["attackerId"];
 
     const loserFleets = attackerWins ? defenderFleets : attackerFleets;
-    const allLoserShips = loserFleets.flatMap(f => f["ships"].filter(s => !s["isUnderConstruction"]));
+    const allLoserShips = loserFleets.flatMap((f) =>
+      f["ships"].filter((s) => !s["isUnderConstruction"]),
+    );
 
     const winnerEff = Math.max(attackerEffective, defenderEffective);
     const loserEff = Math.min(attackerEffective, defenderEffective);
@@ -65,7 +77,12 @@ export class BattleResolver {
 
     const explanationTree = this.createExplanation(
       { attacker: attackerStrength as number, defender: defenderStrength as number },
-      { attackerFactor, defenderFactor, attackerRandom: attackerRandom as number, defenderRandom: defenderRandom as number },
+      {
+        attackerFactor,
+        defenderFactor,
+        attackerRandom: attackerRandom as number,
+        defenderRandom: defenderRandom as number,
+      },
       { winnerId, loserId, losses, damageReport },
     );
 
@@ -83,7 +100,7 @@ export class BattleResolver {
 
   private resolveFleets(nation: NationState, fleetIds: string[]): FleetState[] {
     return fleetIds
-      .map(id => nation["fleets"].find(f => f["id"] === id))
+      .map((id) => nation["fleets"].find((f) => f["id"] === id))
       .filter((f): f is FleetState => f !== undefined);
   }
 
@@ -125,8 +142,18 @@ export class BattleResolver {
 
   createExplanation(
     strengthComparison: { attacker: number; defender: number },
-    randomFactors: { attackerFactor: number; defenderFactor: number; attackerRandom: number; defenderRandom: number },
-    outcome: { winnerId: string; loserId: string; losses: string[]; damageReport: Record<string, SafeInt> },
+    randomFactors: {
+      attackerFactor: number;
+      defenderFactor: number;
+      attackerRandom: number;
+      defenderRandom: number;
+    },
+    outcome: {
+      winnerId: string;
+      loserId: string;
+      losses: string[];
+      damageReport: Record<string, SafeInt>;
+    },
   ): ExplanationTree {
     const builder = new ExplanationBuilder("battle:resolve", "1.0.0")
       .withInput("attackerStrength", strengthComparison["attacker"])
@@ -135,8 +162,14 @@ export class BattleResolver {
       .withIntermediate("defenderRandomDraw", randomFactors["defenderRandom"])
       .withIntermediate("attackerRandomFactor", randomFactors["attackerFactor"])
       .withIntermediate("defenderRandomFactor", randomFactors["defenderFactor"])
-      .withIntermediate("attackerEffectiveStrength", strengthComparison["attacker"] * randomFactors["attackerFactor"])
-      .withIntermediate("defenderEffectiveStrength", strengthComparison["defender"] * randomFactors["defenderFactor"])
+      .withIntermediate(
+        "attackerEffectiveStrength",
+        strengthComparison["attacker"] * randomFactors["attackerFactor"],
+      )
+      .withIntermediate(
+        "defenderEffectiveStrength",
+        strengthComparison["defender"] * randomFactors["defenderFactor"],
+      )
       .withResult(strengthComparison["attacker"] * randomFactors["attackerFactor"]);
 
     const lossChild = new ExplanationBuilder("battle:losses", "1.0.0")

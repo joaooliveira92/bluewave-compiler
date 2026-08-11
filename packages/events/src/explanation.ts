@@ -13,10 +13,7 @@ export interface ExplanationTree {
 export class ExplanationBuilder {
   private tree: ExplanationTree;
 
-  constructor(
-    formulaId: string,
-    formulaVersion: string,
-  ) {
+  constructor(formulaId: string, formulaVersion: string) {
     this.tree = {
       formulaId,
       formulaVersion,

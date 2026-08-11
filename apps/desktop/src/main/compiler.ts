@@ -1,7 +1,5 @@
-import { readFileSync, existsSync, readdirSync } from "node:fs";
-import { resolve, extname } from "node:path";
-import { CampaignCompiler } from "@bluewave/campaign";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 export interface CompileResult {
   success: boolean;
@@ -24,19 +22,6 @@ function readFileContent(dir: string, filename: string): string {
   return readFileSync(fullPath, "utf8");
 }
 
-export function findYamlFiles(dir: string): { name: string; content: string }[] {
-  const entries = readdirSync(dir, { withFileTypes: true });
-  const yamlFiles: { name: string; content: string }[] = [];
-  for (const entry of entries) {
-    if (entry.isFile() && (extname(entry.name) === ".yaml" || extname(entry.name) === ".yml")) {
-      const fullPath = resolve(dir, entry.name);
-      const content = readFileSync(fullPath, "utf8");
-      yamlFiles.push({ name: entry.name, content });
-    }
-  }
-  return yamlFiles;
-}
-
 export function runCompilation(
   contentDir: string,
   signal: AbortSignal,
@@ -49,30 +34,8 @@ export function runCompilation(
   const pack = JSON.parse(packContent) as { files?: Record<string, string[]> };
   const files = pack.files ?? {};
 
-  const yamlFiles = findYamlFiles(contentDir);
-
-  function readYaml(name: string): string {
-    const found = yamlFiles.find((f) => f.name === name);
-    if (found) return found.content;
-    return readFileContent(contentDir, name);
-  }
-
   const compiler = new CampaignCompiler();
   const collector = new DiagnosticCollector();
-
-  const rulesetFiles = (files.rulesets ?? []).map(readYaml);
-  const countryFiles = (files.countries ?? []).map(readYaml);
-  const areaFiles = (files.areas ?? []).map(readYaml);
-  const routeFiles = (files.routes ?? []).map(readYaml);
-  const possessionFiles = (files.possessions ?? []).map(readYaml);
-  const portFiles = (files.ports ?? []).map(readYaml);
-  const technologyFiles = (files.technologies ?? []).map(readYaml);
-
-  const campaignFleetFiles = (files.fleets ?? []).map(readYaml);
-  const campaignEconomyFiles = (files.economies ?? []).map(readYaml);
-  const campaignConstructionFiles = (files.constructions ?? []).map(readYaml);
-  const campaignDiplomacyFiles = (files.diplomacy ?? []).map(readYaml);
-  const campaignResearchFiles = (files.research ?? []).map(readYaml);
 
   if (signal.aborted) {
     return { success: false, diagnostics: [], error: "Compilation aborted" };
@@ -81,22 +44,22 @@ export function runCompilation(
   const output = compiler.compile(
     {
       compilerInput: {
-        manifestPath: "pack.json",
+        manifestPath: resolve(contentDir, "pack.json"),
         contentDir,
-        rulesetFiles,
-        countryFiles,
-        areaFiles,
-        routeFiles,
-        possessionFiles,
-        portFiles,
-        technologyFiles,
+        rulesetFiles: (files.rulesets ?? []).map((f) => resolve(contentDir, f)),
+        countryFiles: (files.countries ?? []).map((f) => resolve(contentDir, f)),
+        areaFiles: (files.areas ?? []).map((f) => resolve(contentDir, f)),
+        routeFiles: (files.routes ?? []).map((f) => resolve(contentDir, f)),
+        possessionFiles: (files.possessions ?? []).map((f) => resolve(contentDir, f)),
+        portFiles: (files.ports ?? []).map((f) => resolve(contentDir, f)),
+        technologyFiles: (files.technologies ?? []).map((f) => resolve(contentDir, f)),
       },
       campaignFiles: {
-        fleetFiles: campaignFleetFiles,
-        economyFiles: campaignEconomyFiles,
-        constructionFiles: campaignConstructionFiles,
-        diplomacyFiles: campaignDiplomacyFiles,
-        researchFiles: campaignResearchFiles,
+        fleetFiles: (files.fleets ?? []).map((f) => resolve(contentDir, f)),
+        economyFiles: (files.economies ?? []).map((f) => resolve(contentDir, f)),
+        constructionFiles: (files.constructions ?? []).map((f) => resolve(contentDir, f)),
+        diplomacyFiles: (files.diplomacy ?? []).map((f) => resolve(contentDir, f)),
+        researchFiles: (files.research ?? []).map((f) => resolve(contentDir, f)),
       },
       rulesetVersion: "1.0",
       compatibilityVersion: "1.0.0",
