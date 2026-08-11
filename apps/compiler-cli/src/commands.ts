@@ -1,5 +1,3 @@
-//apps/compiler-cli/src/commands.ts
-
 import { Compiler } from "@bluewave/content-compiler";
 import type { CompilerInput } from "@bluewave/content-compiler";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
@@ -33,16 +31,12 @@ export function runValidate(options: CliOptions): ExitCategory {
   const collector = new DiagnosticCollector();
   const input = buildInput(options, collector);
   if (!input) return "usage-error";
-
   const compiler = new Compiler();
   const signal = new AbortController().signal;
   const output = compiler.compile(input, signal, collector);
-
   printDiagnostics(collector, options.outputMode);
-
   if (collector.hasErrors) return "validation-error";
   if (!output) return "compile-error";
-
   printResult("Validation passed", options.outputMode);
   return "success";
 }
@@ -51,34 +45,24 @@ export function runCompile(options: CliOptions): ExitCategory {
   const collector = new DiagnosticCollector();
   const input = buildInput(options, collector);
   if (!input) return "usage-error";
-
   const compiler = new Compiler();
   const signal = new AbortController().signal;
   const output = compiler.compile(input, signal, collector);
-
   printDiagnostics(collector, options.outputMode);
-
   if (collector.hasErrors) return "validation-error";
   if (!output) return "compile-error";
-
   const outDir = resolve(options.outputDir);
   mkdirSync(outDir, { recursive: true });
-
   const envelope = createEnvelope("content-pack", "0.1.0", output.pack);
-
   const artifactPath = resolve(outDir, "artifact.json");
   const envelopePath = resolve(outDir, "artifact.sig.json");
-
   const tempArtifact = artifactPath + ".tmp";
   const tempEnvelope = envelopePath + ".tmp";
-
   try {
     const artifactJson = canonicalSerialize(output.pack);
     const envelopeJson = canonicalSerialize(envelope);
-
     writeFileSync(tempArtifact, artifactJson, "utf8");
     writeFileSync(tempEnvelope, envelopeJson, "utf8");
-
     rmSync(artifactPath, { force: true });
     rmSync(envelopePath, { force: true });
     writeFileSync(artifactPath, artifactJson, "utf8");
@@ -87,7 +71,6 @@ export function runCompile(options: CliOptions): ExitCategory {
     rmSync(tempArtifact, { force: true });
     rmSync(tempEnvelope, { force: true });
   }
-
   if (options.outputMode === "json") {
     printResult(
       JSON.stringify({
@@ -103,32 +86,26 @@ export function runCompile(options: CliOptions): ExitCategory {
     printResult(`  Artifact: ${artifactPath} (SHA-256: ${output.rawHash})`, "human");
     printResult(`  Envelope: ${envelopePath} (SHA-256: ${output.envelopeHash})`, "human");
   }
-
   return "success";
 }
 
 export function runInspect(options: CliOptions): ExitCategory {
   const artifactPath = resolve(options.outputDir, "artifact.json");
   const envelopePath = resolve(options.outputDir, "artifact.sig.json");
-
   if (!existsSync(artifactPath)) {
     printResult(`Artifact not found at ${artifactPath}`, "human");
     return "usage-error";
   }
-
   if (!existsSync(envelopePath)) {
     printResult(`Envelope not found at ${envelopePath}`, "human");
     return "usage-error";
   }
-
   try {
     const artifactJson = readFileSync(artifactPath, "utf8");
     const envelopeJson = readFileSync(envelopePath, "utf8");
     const envelope = JSON.parse(envelopeJson);
-
     const computedHash = sha256Hex(artifactJson);
     const valid = computedHash === envelope.bodyHash;
-
     if (options.outputMode === "json") {
       printResult(
         JSON.stringify({ artifactHash: computedHash, envelope, valid }, null, 2),
@@ -146,7 +123,6 @@ export function runInspect(options: CliOptions): ExitCategory {
       printResult(`  Body Length: ${envelope.bodyLength}`, "human");
       printResult(`  Status: ${valid ? "VALID" : "INVALID - hash mismatch"}`, "human");
     }
-
     return valid ? "success" : "validation-error";
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -162,21 +138,17 @@ export function runVerify(options: CliOptions): ExitCategory {
 export function runCompare(options: CliOptions): ExitCategory {
   const artifactPath = resolve(options.outputDir, "artifact.json");
   const envelopePath = resolve(options.outputDir, "artifact.sig.json");
-
   if (!existsSync(artifactPath)) {
     printResult(`Artifact not found at ${artifactPath}`, "human");
     return "usage-error";
   }
-
   try {
     const artifactJson = readFileSync(artifactPath, "utf8");
     const envelopeJson = readFileSync(envelopePath, "utf8");
     const artifact = JSON.parse(artifactJson);
     const envelope = JSON.parse(envelopeJson);
-
     const computedHash = sha256Hex(artifactJson);
     const valid = verifyEnvelope(envelope, artifact);
-
     if (options.outputMode === "json") {
       printResult(
         JSON.stringify(
@@ -201,7 +173,6 @@ export function runCompare(options: CliOptions): ExitCategory {
       );
       printResult(`  Envelope valid:      ${valid ? "YES" : "NO"}`, "human");
     }
-
     return valid ? "success" : "validation-error";
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -219,7 +190,6 @@ export function runCampaignCompile(options: CampaignCliOptions): ExitCategory {
   const collector = new DiagnosticCollector();
   const compilerInput = buildInput(options, collector);
   if (!compilerInput) return "usage-error";
-
   const campaignInput: CampaignCompilerInput = {
     compilerInput,
     campaignFiles: {
@@ -233,22 +203,16 @@ export function runCampaignCompile(options: CampaignCliOptions): ExitCategory {
     rulesetVersion: "1.0.0",
     compatibilityVersion: "1.0.0",
   };
-
   const campaignCompiler = new CampaignCompiler();
   const signal = new AbortController().signal;
   const output = campaignCompiler.compile(campaignInput, signal, collector);
-
   printDiagnostics(collector, options.outputMode);
-
   if (collector.hasErrors) return "validation-error";
   if (!output) return "compile-error";
-
   const outDir = resolve(options.outputDir);
   mkdirSync(outDir, { recursive: true });
-
   const stateJson = canonicalSerialize(output.state);
   const statePath = resolve(outDir, "campaign-state.json");
-
   const tmpPath = statePath + ".tmp";
   try {
     writeFileSync(tmpPath, stateJson, "utf8");
@@ -257,7 +221,6 @@ export function runCampaignCompile(options: CampaignCliOptions): ExitCategory {
   } finally {
     rmSync(tmpPath, { force: true });
   }
-
   if (options.outputMode === "json") {
     printResult(
       JSON.stringify({
@@ -272,19 +235,16 @@ export function runCampaignCompile(options: CampaignCliOptions): ExitCategory {
     printResult(`  State: ${statePath} (SHA-256: ${output.state.rawHash})`, "human");
     printResult(`  Content hash: ${output.contentHash}`, "human");
   }
-
   return "success";
 }
 
 export function runCampaignSave(options: CampaignCliOptions, saveDir: string): ExitCategory {
   const collector = new DiagnosticCollector();
   const statePath = resolve(options.outputDir, "campaign-state.json");
-
   if (!existsSync(statePath)) {
     printResult(`Campaign state not found at ${statePath}`, "human");
     return "usage-error";
   }
-
   let state: CampaignState;
   try {
     state = JSON.parse(readFileSync(statePath, "utf8")) as CampaignState;
@@ -292,7 +252,6 @@ export function runCampaignSave(options: CampaignCliOptions, saveDir: string): E
     printResult(`Failed to parse campaign state at ${statePath}`, "human");
     return "internal-error";
   }
-
   const store = new SaveStore();
   try {
     const result = store.save(state, saveDir);
@@ -315,12 +274,9 @@ export function runCampaignSave(options: CampaignCliOptions, saveDir: string): E
 export function runCampaignLoad(options: CampaignCliOptions, saveDir: string): ExitCategory {
   const collector = new DiagnosticCollector();
   const store = new SaveStore();
-
   const state = store.load(saveDir, collector);
   printDiagnostics(collector, options.outputMode);
-
   if (!state) return "validation-error";
-
   if (options.outputMode === "json") {
     printResult(
       JSON.stringify({
@@ -338,7 +294,6 @@ export function runCampaignLoad(options: CampaignCliOptions, saveDir: string): E
     printResult(`  Raw Hash: ${state.rawHash}`, "human");
     printResult(`  Envelope verified: YES`, "human");
   }
-
   return "success";
 }
 
@@ -349,24 +304,18 @@ export function runTurnExecute(
 ): ExitCategory {
   const collector = new DiagnosticCollector();
   const store = new SaveStore();
-
   const state = store.load(saveDir, collector);
   if (!state) {
     printDiagnostics(collector, options.outputMode);
     return "validation-error";
   }
-
   const executor = new MonthExecutor();
   const randomSeed = options.seed || "default-seed";
   const cmdList = commands ?? [];
-
   const result = executor.execute(state.snapshot, cmdList, randomSeed, collector);
-
   printDiagnostics(collector, options.outputMode);
-
   if (collector.hasErrors) return "compile-error";
   if (!result.success) return "compile-error";
-
   const newState: CampaignState = {
     snapshot: result.finalSnapshot,
     envelope: createEnvelope(
@@ -376,14 +325,11 @@ export function runTurnExecute(
     ),
     rawHash: snapshotHash(result.finalSnapshot),
   };
-
   const saveResult = store.save(newState, saveDir);
-
   const commandsDir = join(saveResult.savePath, "..", saveResult.metadata.saveId);
   const commandsPath = join(commandsDir, "commands.json");
   const ledgerPath = join(commandsDir, "command-ledger.json");
   const finalHashPath = join(commandsDir, "final-hash.json");
-
   if (cmdList.length > 0) {
     const tmpCommands = commandsPath + ".tmp";
     try {
@@ -394,7 +340,6 @@ export function runTurnExecute(
       rmSync(tmpCommands, { force: true });
     }
   }
-
   const ledgerTmp = ledgerPath + ".tmp";
   try {
     writeFileSync(ledgerTmp, canonicalSerialize(result.commandLedger.all), "utf8");
@@ -403,7 +348,6 @@ export function runTurnExecute(
   } finally {
     rmSync(ledgerTmp, { force: true });
   }
-
   const finalHashTmp = finalHashPath + ".tmp";
   try {
     writeFileSync(finalHashTmp, JSON.stringify({ finalSnapshotHash: newState.rawHash }), "utf8");
@@ -412,7 +356,6 @@ export function runTurnExecute(
   } finally {
     rmSync(finalHashTmp, { force: true });
   }
-
   if (options.outputMode === "json") {
     printResult(
       JSON.stringify({
@@ -436,36 +379,30 @@ export function runTurnExecute(
     printResult(`  Financial Ledger Hash: ${result.financialLedger.hash()}`, "human");
     printResult(`  Save ID: ${saveResult.metadata.saveId}`, "human");
   }
-
   return "success";
 }
 
 export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCategory {
   const collector = new DiagnosticCollector();
   const store = new SaveStore();
-
   const state = store.load(saveDir, collector);
   if (!state) {
     printDiagnostics(collector, options.outputMode);
     return "validation-error";
   }
-
   const activeSaveId = store.getActiveSaveId(saveDir);
   if (!activeSaveId) {
     printResult(`No active save found in ${saveDir}`, "human");
     return "validation-error";
   }
-
   const savePath = join(saveDir, activeSaveId);
   const commandsPath = join(savePath, "commands.json");
   const ledgerPath = join(savePath, "command-ledger.json");
   const finalHashPath = join(savePath, "final-hash.json");
-
   if (!existsSync(commandsPath)) {
     printResult(`No commands found in save ${activeSaveId}`, "human");
     return "validation-error";
   }
-
   let commands: CommandEnvelope<BudgetProjectCommand>[];
   try {
     commands = JSON.parse(
@@ -475,7 +412,6 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
     printResult(`Failed to parse commands file: ${commandsPath}`, "human");
     return "internal-error";
   }
-
   let originalLedgerData: unknown[];
   try {
     originalLedgerData = JSON.parse(readFileSync(ledgerPath, "utf8")) as unknown[];
@@ -483,7 +419,6 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
     printResult(`Failed to parse command ledger file: ${ledgerPath}`, "human");
     return "internal-error";
   }
-
   let expectedFinalHash: string;
   try {
     const finalHashData = JSON.parse(readFileSync(finalHashPath, "utf8")) as {
@@ -494,14 +429,11 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
     printResult(`Failed to parse final hash file: ${finalHashPath}`, "human");
     return "internal-error";
   }
-
   const originalLedger = new CommandLedger();
   for (const outcome of originalLedgerData) {
     originalLedger.add(outcome as CommandOutcome);
   }
-
   const randomSeed = options.seed || "default-seed";
-
   const verifier = new ReplayVerifier();
   const replayResult = verifier.verify(
     state.snapshot,
@@ -511,9 +443,7 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
     randomSeed,
     collector,
   );
-
   printDiagnostics(collector, options.outputMode);
-
   if (options.outputMode === "json") {
     printResult(JSON.stringify(replayResult, null, 2), "human");
   } else {
@@ -534,28 +464,24 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
       "human",
     );
   }
-
   if (collector.hasErrors) return "validation-error";
   return replayResult.match ? "success" : "validation-error";
 }
 
-function buildInput(
+export function buildInput(
   options: CliOptions,
   collector: DiagnosticCollector,
 ): CompilerInput | undefined {
   const manifestPath = resolve(options.manifest);
   const contentDir = resolve(options.contentDir);
-
   if (!existsSync(manifestPath)) {
     collector.addError("USAGE", `Manifest not found: ${manifestPath}`);
     return undefined;
   }
-
   if (!existsSync(contentDir)) {
     collector.addError("USAGE", `Content directory not found: ${contentDir}`);
     return undefined;
   }
-
   let manifest: { files?: Record<string, string[]> };
   try {
     const manifestContent = readFileSync(manifestPath, "utf8");
@@ -564,26 +490,33 @@ function buildInput(
     collector.addError("USAGE", `Failed to parse manifest: ${manifestPath}`);
     return undefined;
   }
-
   const toAbsolute = (file: string) => resolve(contentDir, file);
+  const safeCheck = (file: string) => {
+    safePath(file);
+    return file;
+  };
   const files = manifest.files ?? {};
-
   return {
     manifestPath: "manifest",
     contentDir,
-    rulesetFiles: (files.rulesets ?? []).map(toAbsolute).map(safePath),
-    countryFiles: (files.countries ?? []).map(toAbsolute).map(safePath),
-    areaFiles: (files.areas ?? []).map(toAbsolute).map(safePath),
-    routeFiles: (files.routes ?? []).map(toAbsolute).map(safePath),
-    possessionFiles: (files.possessions ?? []).map(toAbsolute).map(safePath),
-    portFiles: (files.ports ?? []).map(toAbsolute).map(safePath),
-    technologyFiles: (files.technologies ?? []).map(toAbsolute).map(safePath),
+    rulesetFiles: (files.rulesets ?? []).map(safeCheck).map(toAbsolute).map(safePath),
+    countryFiles: (files.countries ?? []).map(safeCheck).map(toAbsolute).map(safePath),
+    areaFiles: (files.areas ?? []).map(safeCheck).map(toAbsolute).map(safePath),
+    routeFiles: (files.routes ?? []).map(safeCheck).map(toAbsolute).map(safePath),
+    possessionFiles: (files.possessions ?? []).map(safeCheck).map(toAbsolute).map(safePath),
+    portFiles: (files.ports ?? []).map(safeCheck).map(toAbsolute).map(safePath),
+    technologyFiles: (files.technologies ?? []).map(safeCheck).map(toAbsolute).map(safePath),
   };
 }
 
-function safePath(file: string): string {
+export function safePath(file: string): string {
+  // must check raw before normalize() collapses a/../b -> b
+  if (file.split(/[/\\]+/).includes("..")) {
+    throw new Error(`Path traversal detected: ${file}`);
+  }
   const normalized = normalize(file);
-  if (normalized.includes(`..${sep}`)) {
+  const segments = normalized.split(/[/\\]+/);
+  if (segments.includes("..")) {
     throw new Error(`Path traversal detected: ${file}`);
   }
   return normalized;
@@ -602,7 +535,7 @@ function printResult(message: string, _mode: OutputMode): void {
   process.stdout.write(message + "\n");
 }
 
-function snapshotHash(snapshot: CampaignSnapshot): string {
+export function snapshotHash(snapshot: CampaignSnapshot): string {
   const nations: Record<string, NationState> = {};
   for (const [id, nation] of snapshot.nations) {
     nations[id] = nation;

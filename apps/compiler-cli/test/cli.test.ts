@@ -1,4 +1,3 @@
-//apps/compiler-cli/test/cli.test.ts
 import { describe, it, expect } from "vitest";
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
@@ -47,7 +46,6 @@ function createSnapshot(): CampaignSnapshot {
     isPlayable: true,
     isAI: false,
   });
-
   return {
     version: "0.1.0",
     turnNumber: SafeInt(1),
@@ -127,13 +125,10 @@ describe("ReplayVerifier", () => {
     const snapshot = createSnapshot();
     const collector = new DiagnosticCollector();
     const cmd = makeBudgetCommand("GBR", "proj-1", SafeInt(100), snapshot);
-
     const executor = new MonthExecutor();
     const result = executor.execute(snapshot, [cmd], "test-seed", collector);
-
     const originalLedger = cloneLedger(result.commandLedger);
     const expectedFinalHash = hashSnapshot(result.finalSnapshot);
-
     const verifier = new ReplayVerifier();
     const replayResult = verifier.verify(
       snapshot,
@@ -143,25 +138,20 @@ describe("ReplayVerifier", () => {
       "test-seed",
       new DiagnosticCollector(),
     );
-
     expect(replayResult.match).toBe(true);
     expect(replayResult.mismatches.length).toBe(0);
     expect(replayResult.steps.length).toBeGreaterThan(0);
     expect(replayResult.steps.every((s) => s.match)).toBe(true);
   });
-
   it("replay with wrong command detects mismatch", () => {
     const snapshot = createSnapshot();
     const collector = new DiagnosticCollector();
     const cmd100 = makeBudgetCommand("GBR", "proj-1", SafeInt(100), snapshot);
     const cmd200 = makeBudgetCommand("GBR", "proj-1", SafeInt(200), snapshot);
-
     const executor = new MonthExecutor();
     const result = executor.execute(snapshot, [cmd100], "test-seed", collector);
-
     const originalLedger = cloneLedger(result.commandLedger);
     const expectedFinalHash = hashSnapshot(result.finalSnapshot);
-
     const verifier = new ReplayVerifier();
     const replayResult = verifier.verify(
       snapshot,
@@ -171,26 +161,20 @@ describe("ReplayVerifier", () => {
       "test-seed",
       new DiagnosticCollector(),
     );
-
     expect(replayResult.match).toBe(false);
     expect(replayResult.mismatches.length).toBeGreaterThan(0);
   });
-
   it("replay detects step-level hash mismatches with different initial state", () => {
     const snapshot = createSnapshot();
     const collector = new DiagnosticCollector();
     const cmd = makeBudgetCommand("GBR", "proj-1", SafeInt(100), snapshot);
-
     const executor = new MonthExecutor();
     const result = executor.execute(snapshot, [cmd], "test-seed", collector);
-
     const originalLedger = cloneLedger(result.commandLedger);
     const expectedFinalHash = hashSnapshot(result.finalSnapshot);
-
     const wrongSnapshot = createSnapshot();
     const gbr = wrongSnapshot.nations.get("GBR")!;
     gbr.treasury = SafeInt(999);
-
     const verifier = new ReplayVerifier();
     const replayResult = verifier.verify(
       wrongSnapshot,
@@ -200,7 +184,6 @@ describe("ReplayVerifier", () => {
       "test-seed",
       new DiagnosticCollector(),
     );
-
     expect(replayResult.match).toBe(false);
     expect(replayResult.mismatches.length).toBeGreaterThan(0);
     for (const m of replayResult.mismatches) {
@@ -208,15 +191,12 @@ describe("ReplayVerifier", () => {
       expect(m.diagnostic.length).toBeGreaterThan(0);
     }
   });
-
   it("replay with no commands matches trivially", () => {
     const snapshot = createSnapshot();
     const emptyLedger = new CommandLedger();
-
     const executor = new MonthExecutor();
     const result = executor.execute(snapshot, [], "test-seed", new DiagnosticCollector());
     const finalHash = hashSnapshot(result.finalSnapshot);
-
     const verifier = new ReplayVerifier();
     const replayResult = verifier.verify(
       snapshot,
@@ -226,15 +206,12 @@ describe("ReplayVerifier", () => {
       "test-seed",
       new DiagnosticCollector(),
     );
-
     expect(replayResult.match).toBe(true);
     expect(replayResult.mismatches.length).toBe(0);
   });
-
   it("replay preserves determinism across multiple calls", () => {
     const snapshot = createSnapshot();
     const cmd = makeBudgetCommand("GBR", "proj-1", SafeInt(100), snapshot);
-
     const executor = new MonthExecutor();
     const result = executor.execute(
       snapshot,
@@ -242,10 +219,8 @@ describe("ReplayVerifier", () => {
       "deterministic-seed",
       new DiagnosticCollector(),
     );
-
     const originalLedger = cloneLedger(result.commandLedger);
     const expectedFinalHash = hashSnapshot(result.finalSnapshot);
-
     const verifier = new ReplayVerifier();
     const r1 = verifier.verify(
       snapshot,
@@ -263,8 +238,36 @@ describe("ReplayVerifier", () => {
       "deterministic-seed",
       new DiagnosticCollector(),
     );
-
     expect(r1.replayedFinalHash).toBe(r2.replayedFinalHash);
     expect(r1.match).toBe(r2.match);
+  });
+  it("wrong seed still matches for budget_project (no RNG)", () => {
+    const snap = createSnapshot();
+    const cmd = makeBudgetCommand("GBR", "proj-1", SafeInt(100), snap);
+    const res = new MonthExecutor().execute(snap, [cmd], "seed-A", new DiagnosticCollector());
+    const verify = new ReplayVerifier().verify(
+      snap,
+      [cmd],
+      cloneLedger(res.commandLedger),
+      hashSnapshot(res.finalSnapshot),
+      "seed-B",
+      new DiagnosticCollector(),
+    );
+    expect(verify.match).toBe(true);
+  });
+  it("ledger hash must match", () => {
+    const snap = createSnapshot();
+    const cmd = makeBudgetCommand("GBR", "proj-1", SafeInt(100), snap);
+    const res = new MonthExecutor().execute(snap, [cmd], "s", new DiagnosticCollector());
+    const badLedger = new CommandLedger();
+    const v = new ReplayVerifier().verify(
+      snap,
+      [cmd],
+      badLedger,
+      hashSnapshot(res.finalSnapshot),
+      "s",
+      new DiagnosticCollector(),
+    );
+    expect(v.match).toBe(false);
   });
 });

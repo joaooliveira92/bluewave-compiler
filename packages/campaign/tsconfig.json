@@ -2,7 +2,8 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "types": ["node"],
   },
   "include": ["src"],
   "references": [
@@ -10,6 +11,6 @@
     { "path": "../diagnostics" },
     { "path": "../deterministic" },
     { "path": "../content-schema" },
-    { "path": "../content-compiler" }
-  ]
+    { "path": "../content-compiler" },
+  ],
 }
