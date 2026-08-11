@@ -1,3 +1,5 @@
+//packages/contracts/src/index.ts
+
 export type Brand<Base, BrandTag extends string> = Base & { readonly __brand: BrandTag };
 
 export type SafeInt = Brand<number, "SafeInt">;

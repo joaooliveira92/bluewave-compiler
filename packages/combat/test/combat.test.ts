@@ -1,3 +1,4 @@
+//packages/combat/test/combat.test.ts
 import { describe, it, expect } from "vitest";
 import { SafeInt } from "@bluewave/contracts";
 import { RandomEngine } from "@bluewave/random";

@@ -1,3 +1,5 @@
+//packages/events/src/explanation.ts
+
 import type { SafeInt } from "@bluewave/contracts";
 
 export interface ExplanationTree {

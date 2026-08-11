@@ -1,3 +1,4 @@
+//packages/combat/src/strength.ts
 import { SafeInt } from "@bluewave/contracts";
 import type { FleetState } from "@bluewave/campaign";
 

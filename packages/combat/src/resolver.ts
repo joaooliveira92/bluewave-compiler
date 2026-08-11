@@ -1,3 +1,4 @@
+//packages/combat/src/resolver.ts
 import { SafeInt } from "@bluewave/contracts";
 import type {
   BattleInstance,
