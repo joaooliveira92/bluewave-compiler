@@ -1,31 +1,62 @@
 import type { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 
-export interface FinancialEntry {
-  nationId: string;
+export interface LedgerTransaction {
+  transactionId: string;
+  campaignMonth: string;
   phaseId: string;
+  nationId: string;
+  categoryId: string;
+  debit: SafeInt;
+  credit: SafeInt;
   previousBalance: SafeInt;
-  delta: SafeInt;
   newBalance: SafeInt;
   reason: string;
+  preTransactionHash: string;
+  postTransactionHash: string;
 }
 
-export class FinancialLedger {
-  private entries: FinancialEntry[] = [];
+export type LedgerTransactionInput = Omit<
+  LedgerTransaction,
+  "transactionId" | "preTransactionHash" | "postTransactionHash"
+>;
 
-  get all(): readonly FinancialEntry[] {
-    return this.entries;
+export class FinancialLedger {
+  private transactions: LedgerTransaction[] = [];
+
+  get all(): readonly LedgerTransaction[] {
+    return this.transactions;
   }
 
-  append(entry: FinancialEntry): void {
-    this.entries.push(entry);
+  append(transaction: LedgerTransactionInput): void {
+    if (transaction.debit !== transaction.credit) {
+      throw new Error(
+        `Unbalanced ledger transaction: debit ${String(transaction.debit)} != credit ${String(transaction.credit)}`,
+      );
+    }
+
+    const preTransactionHash = this.hash();
+    const transactionId = `tx-${this.transactions.length}`;
+    const tx: LedgerTransaction = {
+      ...transaction,
+      transactionId,
+      preTransactionHash,
+      postTransactionHash: "",
+    };
+
+    const index = this.transactions.length;
+    this.transactions.push(tx);
+    this.transactions[index] = {
+      ...this.transactions[index],
+      postTransactionHash: this.hash(),
+    };
   }
 
   hash(): string {
-    return sha256Hex(canonicalSerialize(this.entries));
+    return sha256Hex(canonicalSerialize(this.transactions));
   }
 
   toJSON(): string {
-    return canonicalSerialize(this.entries);
+    return canonicalSerialize(this.transactions);
   }
 }

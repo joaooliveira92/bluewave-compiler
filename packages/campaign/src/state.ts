@@ -91,6 +91,9 @@ export interface NationState {
   treasury: SafeInt;
   income: SafeInt;
   expenses: SafeInt;
+  baseResources: SafeInt;
+  navalAppropriationRateBp: SafeInt;
+  maintenanceCost: SafeInt;
   fleets: FleetState[];
   research: ResearchState;
   constructionProjects: ConstructionProject[];
@@ -101,9 +104,12 @@ export interface NationState {
 export interface ConstructionProject {
   id: string;
   type: "ship" | "building" | "technology";
+  projectType: "NEW_CONSTRUCTION";
   targetId: string;
   totalWork: SafeInt;
   completedWork: SafeInt;
+  paidWork: SafeInt;
+  status: "PLANNED" | "AUTHORIZED" | "ACTIVE" | "COMPLETED";
   startedAt: string;
 }
 

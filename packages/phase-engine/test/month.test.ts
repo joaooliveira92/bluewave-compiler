@@ -15,6 +15,9 @@ function createSnapshot(overrides?: Partial<CampaignSnapshot>): CampaignSnapshot
     treasury: SafeInt(500),
     income: SafeInt(150),
     expenses: SafeInt(50),
+    baseResources: SafeInt(120000),
+    navalAppropriationRateBp: SafeInt(2000),
+    maintenanceCost: SafeInt(0),
     fleets: [],
     research: {
       nationId: "GBR",
@@ -25,17 +28,23 @@ function createSnapshot(overrides?: Partial<CampaignSnapshot>): CampaignSnapshot
       {
         id: "proj-1",
         type: "ship",
+        projectType: "NEW_CONSTRUCTION",
         targetId: "ship-1",
         totalWork: SafeInt(200),
         completedWork: SafeInt(50),
+        paidWork: SafeInt(0),
+        status: "ACTIVE",
         startedAt: "1880-01",
       },
       {
         id: "proj-2",
         type: "building",
+        projectType: "NEW_CONSTRUCTION",
         targetId: "bldg-1",
         totalWork: SafeInt(100),
         completedWork: SafeInt(0),
+        paidWork: SafeInt(0),
+        status: "PLANNED",
         startedAt: "1880-01",
       },
     ],
@@ -89,11 +98,8 @@ describe("MonthExecutor", () => {
     expect(result["success"]).toBe(true);
 
     const gbr = result["finalSnapshot"]["nations"].get("GBR")!;
-    const initialTreasury = 500;
-    const budget = 100;
-    const expenses = 50;
-    // treasury = 500 - 100 (command) - appropriation amount - 50 (obligation)
-    expect(gbr["treasury"] as number).toBeLessThan(initialTreasury);
+    // treasury = 500 + 2000 (revenue) - 100 (command) - appropriation - 50 (obligation)
+    expect(gbr["treasury"] as number).toBeLessThan(500 + 2000);
 
     const proj1 = gbr["constructionProjects"].find((p) => p["id"] === "proj-1")!;
     expect(proj1["completedWork"] as number).toBeGreaterThan(50);
@@ -109,7 +115,8 @@ describe("MonthExecutor", () => {
     const gbr = result["finalSnapshot"]["nations"].get("GBR")!;
 
     const treasury = gbr["treasury"] as number;
-    expect(treasury).toBeLessThanOrEqual(500 - 100);
+    // 500 + 2000 (revenue) - 100 (command) = 2400, then appropriation + obligation
+    expect(treasury).toBeLessThanOrEqual(500 + 2000 - 100);
     expect(treasury).toBeGreaterThanOrEqual(0);
   });
 
@@ -219,6 +226,9 @@ describe("MonthExecutor", () => {
       treasury: SafeInt(-10),
       income: SafeInt(0),
       expenses: SafeInt(0),
+      baseResources: SafeInt(0),
+      navalAppropriationRateBp: SafeInt(2000),
+      maintenanceCost: SafeInt(0),
       fleets: [],
       research: { nationId: "GBR", technologies: [] },
       constructionProjects: [],
@@ -249,10 +259,243 @@ describe("MonthExecutor", () => {
     for (const entry of entries) {
       expect(entry["nationId"]).toBe("GBR");
       expect(typeof entry["phaseId"]).toBe("string");
+      expect(typeof entry["categoryId"]).toBe("string");
+      expect(typeof (entry["debit"] as number)).toBe("number");
+      expect(typeof (entry["credit"] as number)).toBe("number");
       expect(typeof (entry["previousBalance"] as number)).toBe("number");
-      expect(typeof (entry["delta"] as number)).toBe("number");
       expect(typeof (entry["newBalance"] as number)).toBe("number");
       expect(typeof entry["reason"]).toBe("string");
+      expect(typeof entry["transactionId"]).toBe("string");
+      expect(typeof entry["preTransactionHash"]).toBe("string");
+      expect(typeof entry["postTransactionHash"]).toBe("string");
+      expect(entry["debit"]).toBe(entry["credit"]);
     }
+  });
+
+  // --- New B10a tests ---
+
+  it("credits monthly revenue from baseResources", () => {
+    const executor = new MonthExecutor();
+    const snapshot = createSnapshot();
+    const collector = new DiagnosticCollector();
+
+    const result = executor.execute(snapshot, [], "seed", collector);
+    const gbr = result["finalSnapshot"]["nations"].get("GBR")!;
+
+    // revenue = 120000 * 2000 / 10000 / 12 = 2000
+    // treasury = 500 + 2000 - 100 (appropriation cap) - 50 (obligation) = 2350
+    expect(gbr["treasury"] as number).toBe(2350);
+    expect(result["success"]).toBe(true);
+  });
+
+  it("deducts maintenance cost for ships in fleet", () => {
+    const executor = new MonthExecutor();
+    const snapshot = createSnapshot();
+    const gbr = snapshot["nations"].get("GBR")!;
+    gbr.baseResources = SafeInt(120000);
+    gbr.treasury = SafeInt(10000);
+    gbr.fleets = [
+      {
+        id: "fleet-gbr",
+        nationId: "GBR",
+        name: "Grand Fleet",
+        locationAreaId: "area-1",
+        ships: [
+          {
+            id: "ship-1",
+            name: "HMS Dreadnought",
+            classId: "dreadnought",
+            nationId: "GBR",
+            locationAreaId: "area-1",
+            hitPoints: SafeInt(100),
+            maxHitPoints: SafeInt(100),
+            speed: SafeInt(10),
+            firepower: SafeInt(10),
+            armor: SafeInt(10),
+            isUnderConstruction: false,
+            constructionProgress: SafeInt(100),
+            constructionTotalWork: SafeInt(100),
+          },
+        ],
+      },
+    ];
+    const collector = new DiagnosticCollector();
+
+    const result = executor.execute(snapshot, [], "seed", collector);
+    const finalGbr = result["finalSnapshot"]["nations"].get("GBR")!;
+
+    // maintenance = floor(100 * 10 / 100) = 10
+    // revenue = 120000 * 2000 / 10000 / 12 = 2000
+    // treasury = 10000 + 2000 - 100 (appropriation) - 10 (maintenance) - 50 (obligation) = 11840
+    expect(finalGbr["treasury"] as number).toBe(11840);
+    expect(finalGbr["maintenanceCost"] as number).toBe(10);
+    expect(result["success"]).toBe(true);
+  });
+
+  it("promotes completed construction project to fleet ship", () => {
+    const executor = new MonthExecutor();
+    const snapshot = createSnapshot();
+    const gbr = snapshot["nations"].get("GBR")!;
+    gbr.baseResources = SafeInt(120000);
+    gbr.treasury = SafeInt(10000);
+    gbr.constructionProjects = [
+      {
+        id: "proj-complete",
+        type: "ship",
+        projectType: "NEW_CONSTRUCTION",
+        targetId: "new-ship-1",
+        totalWork: SafeInt(100),
+        completedWork: SafeInt(100),
+        paidWork: SafeInt(100),
+        status: "ACTIVE",
+        startedAt: "1880-01",
+      },
+    ];
+    const collector = new DiagnosticCollector();
+
+    const result = executor.execute(snapshot, [], "seed", collector);
+    const finalGbr = result["finalSnapshot"]["nations"].get("GBR")!;
+
+    const completedProj = finalGbr["constructionProjects"].find(
+      (p) => p["id"] === "proj-complete",
+    )!;
+    expect(completedProj["status"]).toBe("COMPLETED");
+    expect(completedProj["completedWork"] as number).toBe(100);
+
+    // A fleet should have been created with the new ship
+    expect(finalGbr["fleets"].length).toBeGreaterThan(0);
+    const fleet = finalGbr["fleets"][0];
+    expect(fleet["ships"].length).toBe(1);
+    expect(fleet["ships"][0]["isUnderConstruction"]).toBe(false);
+    expect(fleet["ships"][0]["classId"]).toBe("new-ship-1");
+  });
+
+  it("zero payment produces zero progress (paid-work rule)", () => {
+    const executor = new MonthExecutor();
+    const snapshot = createSnapshot();
+    const gbr = snapshot["nations"].get("GBR")!;
+    // No base resources => no revenue => no appropriation
+    gbr.baseResources = SafeInt(0);
+    gbr.treasury = SafeInt(10000);
+    gbr.constructionProjects = [
+      {
+        id: "proj-no-funds",
+        type: "ship",
+        projectType: "NEW_CONSTRUCTION",
+        targetId: "ship-x",
+        totalWork: SafeInt(200),
+        completedWork: SafeInt(0),
+        paidWork: SafeInt(0),
+        status: "PLANNED",
+        startedAt: "1880-01",
+      },
+    ];
+    const collector = new DiagnosticCollector();
+
+    const result = executor.execute(snapshot, [], "seed", collector);
+    const finalGbr = result["finalSnapshot"]["nations"].get("GBR")!;
+
+    const project = finalGbr["constructionProjects"].find((p) => p["id"] === "proj-no-funds")!;
+    // No payment allocated => no progress
+    expect(project["completedWork"] as number).toBe(0);
+    expect(project["paidWork"] as number).toBe(0);
+    expect(project["status"]).toBe("PLANNED");
+    expect(result["success"]).toBe(true);
+  });
+
+  it("includes GER as a third nation with own economy", () => {
+    const executor = new MonthExecutor();
+    const snapshot = createSnapshot();
+    const gerNation: NationState = {
+      id: "GER",
+      name: "Germany",
+      tag: "GER",
+      treasury: SafeInt(300),
+      income: SafeInt(80),
+      expenses: SafeInt(20),
+      baseResources: SafeInt(60000),
+      navalAppropriationRateBp: SafeInt(2000),
+      maintenanceCost: SafeInt(0),
+      fleets: [],
+      research: {
+        nationId: "GER",
+        technologies: [],
+      },
+      constructionProjects: [
+        {
+          id: "ger-proj-1",
+          type: "ship",
+          projectType: "NEW_CONSTRUCTION",
+          targetId: "ger-ship-1",
+          totalWork: SafeInt(150),
+          completedWork: SafeInt(0),
+          paidWork: SafeInt(0),
+          status: "PLANNED",
+          startedAt: "1880-01",
+        },
+      ],
+      isPlayable: false,
+      isAI: true,
+    };
+    const nations = new Map(snapshot["nations"]);
+    nations.set("GER", gerNation);
+    snapshot["nations"] = nations;
+    snapshot["slots"] = [...snapshot["slots"], { nationId: "GER", type: "ai" }];
+    const collector = new DiagnosticCollector();
+
+    const result = executor.execute(snapshot, [], "seed", collector);
+    expect(result["success"]).toBe(true);
+
+    const ger = result["finalSnapshot"]["nations"].get("GER")!;
+    expect(ger).toBeDefined();
+    // GER revenue = 60000 * 2000 / 10000 / 12 = 1000
+    // treasury = 300 + 1000 - 50 (appropriation cap) - 20 (obligation) = 1230
+    expect(ger["treasury"] as number).toBe(1230);
+    expect(ger["constructionProjects"].length).toBe(1);
+  });
+
+  it("construction capacity cap limits total monthly work", () => {
+    const executor = new MonthExecutor();
+    const snapshot = createSnapshot();
+    const gbr = snapshot["nations"].get("GBR")!;
+    // baseResources = 12000 => cap = 12000 / 12 / 100 = 10
+    gbr.baseResources = SafeInt(12000);
+    gbr.treasury = SafeInt(10000);
+    gbr.constructionProjects = [
+      {
+        id: "proj-cap-1",
+        type: "ship",
+        projectType: "NEW_CONSTRUCTION",
+        targetId: "ship-cap-1",
+        totalWork: SafeInt(200),
+        completedWork: SafeInt(0),
+        paidWork: SafeInt(0),
+        status: "PLANNED",
+        startedAt: "1880-01",
+      },
+      {
+        id: "proj-cap-2",
+        type: "ship",
+        projectType: "NEW_CONSTRUCTION",
+        targetId: "ship-cap-2",
+        totalWork: SafeInt(200),
+        completedWork: SafeInt(0),
+        paidWork: SafeInt(0),
+        status: "PLANNED",
+        startedAt: "1880-01",
+      },
+    ];
+    const collector = new DiagnosticCollector();
+
+    const result = executor.execute(snapshot, [], "seed", collector);
+    const finalGbr = result["finalSnapshot"]["nations"].get("GBR")!;
+
+    const totalWork = finalGbr["constructionProjects"].reduce(
+      (sum, p) => sum + (p["completedWork"] as number),
+      0,
+    );
+    // cap = 12000 / 12 / 100 = 10, so total work across both projects <= 10
+    expect(totalWork).toBeLessThanOrEqual(10);
+    expect(result["success"]).toBe(true);
   });
 });

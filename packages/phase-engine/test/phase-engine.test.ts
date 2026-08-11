@@ -29,6 +29,9 @@ function createNationState(id: string, treasury: SafeInt): NationState {
     treasury,
     income: SafeInt(100),
     expenses: SafeInt(50),
+    baseResources: SafeInt(0),
+    navalAppropriationRateBp: SafeInt(2000),
+    maintenanceCost: SafeInt(0),
     fleets: [],
     research: { nationId: id, technologies: [] },
     constructionProjects: [],
@@ -40,15 +43,17 @@ function createNationState(id: string, treasury: SafeInt): NationState {
 describe("PhaseRegistry", () => {
   it("returns phases in correct order", () => {
     const phases = PhaseRegistry.all;
-    expect(phases.length).toBe(8);
+    expect(phases.length).toBe(10);
     expect(phases[0]!["id"]).toBe("opening_validation");
-    expect(phases[1]!["id"]).toBe("command_collection");
-    expect(phases[2]!["id"]).toBe("appropriation");
-    expect(phases[3]!["id"]).toBe("obligation");
-    expect(phases[4]!["id"]).toBe("construction_processing");
-    expect(phases[5]!["id"]).toBe("research_progress");
-    expect(phases[6]!["id"]).toBe("battle_resolution");
-    expect(phases[7]!["id"]).toBe("closing_validation");
+    expect(phases[1]!["id"]).toBe("monthly_revenue");
+    expect(phases[2]!["id"]).toBe("command_collection");
+    expect(phases[3]!["id"]).toBe("appropriation");
+    expect(phases[4]!["id"]).toBe("maintenance");
+    expect(phases[5]!["id"]).toBe("obligation");
+    expect(phases[6]!["id"]).toBe("construction_processing");
+    expect(phases[7]!["id"]).toBe("research_progress");
+    expect(phases[8]!["id"]).toBe("battle_resolution");
+    expect(phases[9]!["id"]).toBe("closing_validation");
 
     for (let i = 0; i < phases.length; i++) {
       expect(phases[i]!["order"]).toBe(i);
@@ -60,7 +65,7 @@ describe("PhaseRegistry", () => {
     expect(byId).toBeDefined();
     expect(byId!["name"]).toBe("Appropriation");
 
-    const byOrder = PhaseRegistry.getByOrder(5);
+    const byOrder = PhaseRegistry.getByOrder(7);
     expect(byOrder).toBeDefined();
     expect(byOrder!["id"]).toBe("research_progress");
   });
@@ -127,9 +132,9 @@ describe("PhaseEngine", () => {
 
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
-    expect(result["phaseResults"].length).toBe(8);
+    expect(result["phaseResults"].length).toBe(10);
     expect(result["phaseResults"][0]!["phaseId"]).toBe("opening_validation");
-    expect(result["phaseResults"][7]!["phaseId"]).toBe("closing_validation");
+    expect(result["phaseResults"][9]!["phaseId"]).toBe("closing_validation");
   });
 
   it("produces no-op evidence for deferred phases", () => {
@@ -140,8 +145,8 @@ describe("PhaseEngine", () => {
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
     const noOpPhases = result["phaseResults"].filter((p) => p["noOp"] === true && p["evidence"]);
-    // All phases except opening and closing are no-ops
-    expect(noOpPhases.length).toBe(6);
+    // All phases except opening and closing are no-ops (8 phases)
+    expect(noOpPhases.length).toBe(8);
 
     for (const phase of noOpPhases) {
       expect(phase["evidence"]!["version"]).toBe("0.1.0");
@@ -240,7 +245,7 @@ describe("PhaseEngine", () => {
 
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
-    const closing = result["phaseResults"][7]!;
+    const closing = result["phaseResults"][9]!;
     expect(closing["phaseId"]).toBe("closing_validation");
     expect(closing["success"]).toBe(true);
 
@@ -256,8 +261,8 @@ describe("PhaseEngine", () => {
 
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
-    const researchPhase = result["phaseResults"][5]!;
-    const battlePhase = result["phaseResults"][6]!;
+    const researchPhase = result["phaseResults"][7]!;
+    const battlePhase = result["phaseResults"][8]!;
 
     expect(researchPhase["phaseId"]).toBe("research_progress");
     expect(researchPhase["noOp"]).toBe(true);

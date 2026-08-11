@@ -1,5 +1,11 @@
 import { SafeInt } from "@bluewave/contracts";
-import type { CampaignSnapshot, NationState, ConstructionProject } from "@bluewave/campaign";
+import type {
+  CampaignSnapshot,
+  NationState,
+  ConstructionProject,
+  Ship,
+  FleetState,
+} from "@bluewave/campaign";
 import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
 import { CommandLifecycle, CommandLedger, CommandIdempotencyMap } from "@bluewave/commands";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
@@ -9,7 +15,7 @@ import type { DomainEventEnvelope } from "@bluewave/events";
 import { RandomEngine, RandomLedger, drawUniform } from "@bluewave/random";
 import { BattleResolver } from "@bluewave/combat";
 import { PhaseRegistry } from "./registry.js";
-import { FinancialLedger, type FinancialEntry } from "./financial-ledger.js";
+import { FinancialLedger, type LedgerTransactionInput } from "./financial-ledger.js";
 
 const CURRENT_VERSION = "0.1.0" as const;
 
@@ -32,6 +38,9 @@ function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
       treasury: nation["treasury"],
       income: nation["income"],
       expenses: nation["expenses"],
+      baseResources: nation["baseResources"],
+      navalAppropriationRateBp: nation["navalAppropriationRateBp"],
+      maintenanceCost: nation["maintenanceCost"],
       fleets: nation["fleets"].map((f) => ({
         id: f["id"],
         nationId: f["nationId"],
@@ -66,9 +75,12 @@ function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
       constructionProjects: nation["constructionProjects"].map((c) => ({
         id: c["id"],
         type: c["type"],
+        projectType: c["projectType"],
         targetId: c["targetId"],
         totalWork: c["totalWork"],
         completedWork: c["completedWork"],
+        paidWork: c["paidWork"],
+        status: c["status"],
         startedAt: c["startedAt"],
       })),
       isPlayable: nation["isPlayable"],
@@ -228,6 +240,39 @@ function researchProgressedEvent(
   };
 }
 
+function makeLedgerEntry(
+  nationId: string,
+  phaseId: string,
+  categoryId: string,
+  debit: SafeInt,
+  credit: SafeInt,
+  previousBalance: SafeInt,
+  newBalance: SafeInt,
+  reason: string,
+  campaignMonth: string,
+): LedgerTransactionInput {
+  return {
+    campaignMonth,
+    phaseId,
+    nationId,
+    categoryId,
+    debit,
+    credit,
+    previousBalance,
+    newBalance,
+    reason,
+  };
+}
+
+function computeMaintenanceCost(ship: Ship): SafeInt {
+  return SafeInt.div(SafeInt.mul(ship["hitPoints"], SafeInt(10)), SafeInt(100), "floor");
+}
+
+function computeConstructionCap(nation: NationState): SafeInt {
+  const base = nation["baseResources"] ?? (0 as SafeInt);
+  return SafeInt.div(SafeInt.div(base, SafeInt(12)), SafeInt(100), "floor");
+}
+
 export class MonthExecutor {
   private lifecycle = new CommandLifecycle();
 
@@ -243,6 +288,7 @@ export class MonthExecutor {
     const financialLedger = new FinancialLedger();
     let currentSnapshot = cloneSnapshot(snapshot);
     const turnNumber = snapshot["turnNumber"];
+    const campaignMonth = String(turnNumber);
 
     let eventSeq = 0;
     function nextSeq(): SafeInt {
@@ -266,7 +312,59 @@ export class MonthExecutor {
       }
     }
 
-    // Phase 2: command_collection
+    // Phase 2: monthly_revenue
+    {
+      for (const [nationId, nation] of currentSnapshot["nations"]) {
+        if (!nation["isPlayable"] && !nation["isAI"]) continue;
+        const baseResources = nation["baseResources"] ?? (0 as SafeInt);
+        const rateBp = nation["navalAppropriationRateBp"] ?? (0 as SafeInt);
+        const revenue = SafeInt.div(
+          SafeInt.div(SafeInt.mul(baseResources, rateBp), SafeInt(10000)),
+          SafeInt(12),
+          "floor",
+        );
+        if ((revenue as number) <= 0) continue;
+
+        const previousBalance = nation["treasury"];
+        const newBalance = SafeInt.add(previousBalance, revenue);
+
+        const updatedNation: NationState = {
+          ...nation,
+          treasury: newBalance,
+        };
+        const updatedNations = new Map(currentSnapshot["nations"]);
+        updatedNations.set(nationId, updatedNation);
+        currentSnapshot = { ...currentSnapshot, nations: updatedNations };
+
+        financialLedger.append(
+          makeLedgerEntry(
+            nationId,
+            "monthly_revenue",
+            "NAVAL_APPROPRIATION",
+            revenue,
+            revenue,
+            previousBalance,
+            newBalance,
+            "Monthly naval appropriation revenue",
+            campaignMonth,
+          ),
+        );
+
+        eventLedger.append(
+          budgetChangedEvent(
+            nationId,
+            previousBalance,
+            newBalance,
+            revenue,
+            "Monthly naval appropriation revenue",
+            nextSeq(),
+            turnNumber,
+          ),
+        );
+      }
+    }
+
+    // Phase 3: command_collection
     {
       const slot = snapshot["slots"][0];
       if (slot) {
@@ -305,21 +403,33 @@ export class MonthExecutor {
               ...nation,
               treasury: newTreasury,
               constructionProjects: nation["constructionProjects"].map((p) =>
-                p["id"] === body["projectId"] ? { ...p, completedWork: clampedWork } : p,
+                p["id"] === body["projectId"]
+                  ? {
+                      ...p,
+                      completedWork: clampedWork,
+                      paidWork: SafeInt.add(p["paidWork"], budget),
+                      status: "ACTIVE" as const,
+                    }
+                  : p,
               ),
             };
             const updatedNations = new Map(currentSnapshot["nations"]);
             updatedNations.set(body["nationId"], updatedNation);
             currentSnapshot = { ...currentSnapshot, nations: updatedNations };
 
-            financialLedger.append({
-              nationId: body["nationId"],
-              phaseId: "command_collection",
-              previousBalance: previousTreasury,
-              delta: SafeInt.mul(budget, SafeInt(-1)),
-              newBalance: newTreasury,
-              reason: `Player budget for project ${body["projectId"]}`,
-            });
+            financialLedger.append(
+              makeLedgerEntry(
+                body["nationId"],
+                "command_collection",
+                "CONSTRUCTION_BUDGET",
+                budget,
+                budget,
+                previousTreasury,
+                newTreasury,
+                `Player budget for project ${body["projectId"]}`,
+                campaignMonth,
+              ),
+            );
 
             eventLedger.append(
               budgetChangedEvent(
@@ -337,7 +447,7 @@ export class MonthExecutor {
       }
     }
 
-    // Phase 3: appropriation
+    // Phase 4: appropriation
     {
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if (!nation["isPlayable"] && !nation["isAI"]) continue;
@@ -346,7 +456,9 @@ export class MonthExecutor {
         if ((available as number) <= 0) continue;
 
         const projects = nation["constructionProjects"].filter(
-          (p) => (p["completedWork"] as number) < (p["totalWork"] as number),
+          (p) =>
+            (p["completedWork"] as number) < (p["totalWork"] as number) &&
+            p["status"] !== "COMPLETED",
         );
         if (projects.length === 0) continue;
 
@@ -356,31 +468,45 @@ export class MonthExecutor {
         );
         if ((totalRemainingWork as number) <= 0) continue;
 
+        const constructionCap = computeConstructionCap(nation);
         let remainingFunds = available;
+        let remainingCap = constructionCap;
         let updatedProjects = [...nation["constructionProjects"]];
         let totalDelta = SafeInt.ZERO;
 
         for (const project of projects) {
+          if ((remainingCap as number) <= 0) break;
+
           const remainingWork = SafeInt.sub(project["totalWork"], project["completedWork"]);
           const proportion = (remainingWork as number) / (totalRemainingWork as number);
           const alloc = SafeInt(Math.floor(proportion * (available as number)));
-          const clampedAlloc = alloc > remainingWork ? remainingWork : alloc;
+          const cappedAlloc =
+            (remainingCap as number) > 0 && alloc > remainingCap ? remainingCap : alloc;
+          const clampedAlloc = cappedAlloc > remainingWork ? remainingWork : cappedAlloc;
           if ((clampedAlloc as number) <= 0) continue;
 
           totalDelta = SafeInt.add(totalDelta, clampedAlloc);
           remainingFunds = SafeInt.sub(remainingFunds, clampedAlloc);
+          remainingCap = SafeInt.sub(remainingCap, clampedAlloc);
 
           updatedProjects = updatedProjects.map((p) =>
             p["id"] === project["id"]
-              ? { ...p, completedWork: SafeInt.add(p["completedWork"], clampedAlloc) }
+              ? {
+                  ...p,
+                  completedWork: SafeInt.add(p["completedWork"], clampedAlloc),
+                  paidWork: SafeInt.add(p["paidWork"], clampedAlloc),
+                  status: "ACTIVE" as const,
+                }
               : p,
           );
         }
 
-        // Apply leftover funds to first incomplete project
-        if ((remainingFunds as number) > 0) {
+        // Apply leftover funds to first incomplete project if within cap
+        if ((remainingFunds as number) > 0 && (remainingCap as number) > 0) {
           const firstIncomplete = updatedProjects.find(
-            (p) => (p["completedWork"] as number) < (p["totalWork"] as number),
+            (p) =>
+              (p["completedWork"] as number) < (p["totalWork"] as number) &&
+              p["status"] !== "COMPLETED",
           );
           if (firstIncomplete) {
             const remainingWork = SafeInt.sub(
@@ -388,13 +514,21 @@ export class MonthExecutor {
               firstIncomplete["completedWork"],
             );
             const extra = remainingFunds > remainingWork ? remainingWork : remainingFunds;
-            totalDelta = SafeInt.add(totalDelta, extra);
+            const cappedExtra = extra > remainingCap ? remainingCap : extra;
+            if ((cappedExtra as number) > 0) {
+              totalDelta = SafeInt.add(totalDelta, cappedExtra);
 
-            updatedProjects = updatedProjects.map((p) =>
-              p["id"] === firstIncomplete["id"]
-                ? { ...p, completedWork: SafeInt.add(p["completedWork"], extra) }
-                : p,
-            );
+              updatedProjects = updatedProjects.map((p) =>
+                p["id"] === firstIncomplete["id"]
+                  ? {
+                      ...p,
+                      completedWork: SafeInt.add(p["completedWork"], cappedExtra),
+                      paidWork: SafeInt.add(p["paidWork"], cappedExtra),
+                      status: "ACTIVE" as const,
+                    }
+                  : p,
+              );
+            }
           }
         }
 
@@ -411,14 +545,19 @@ export class MonthExecutor {
           updatedNations.set(nationId, updatedNation);
           currentSnapshot = { ...currentSnapshot, nations: updatedNations };
 
-          financialLedger.append({
-            nationId,
-            phaseId: "appropriation",
-            previousBalance: previousTreasury,
-            delta: SafeInt.mul(totalDelta, SafeInt(-1)),
-            newBalance: newTreasury,
-            reason: "Proportional appropriation to construction projects",
-          });
+          financialLedger.append(
+            makeLedgerEntry(
+              nationId,
+              "appropriation",
+              "APPROPRIATION",
+              totalDelta,
+              totalDelta,
+              previousTreasury,
+              newTreasury,
+              "Proportional appropriation to construction projects",
+              campaignMonth,
+            ),
+          );
 
           eventLedger.append(
             budgetChangedEvent(
@@ -435,7 +574,62 @@ export class MonthExecutor {
       }
     }
 
-    // Phase 4: obligation
+    // Phase 5: maintenance
+    {
+      for (const [nationId, nation] of currentSnapshot["nations"]) {
+        if (!nation["isPlayable"] && !nation["isAI"]) continue;
+
+        let totalMaintenance = SafeInt.ZERO;
+        for (const fleet of nation["fleets"]) {
+          for (const ship of fleet["ships"]) {
+            totalMaintenance = SafeInt.add(totalMaintenance, computeMaintenanceCost(ship));
+          }
+        }
+
+        if ((totalMaintenance as number) <= 0) continue;
+
+        const previousTreasury = nation["treasury"];
+        const newTreasury = SafeInt.sub(previousTreasury, totalMaintenance);
+        const actualNew = newTreasury < (0 as SafeInt) ? (0 as SafeInt) : newTreasury;
+
+        const updatedNation: NationState = {
+          ...nation,
+          treasury: actualNew,
+          maintenanceCost: totalMaintenance,
+        };
+        const updatedNations = new Map(currentSnapshot["nations"]);
+        updatedNations.set(nationId, updatedNation);
+        currentSnapshot = { ...currentSnapshot, nations: updatedNations };
+
+        financialLedger.append(
+          makeLedgerEntry(
+            nationId,
+            "maintenance",
+            "MAINTENANCE_EXPENDITURE",
+            totalMaintenance,
+            totalMaintenance,
+            previousTreasury,
+            actualNew,
+            "Monthly ship maintenance costs",
+            campaignMonth,
+          ),
+        );
+
+        eventLedger.append(
+          budgetChangedEvent(
+            nationId,
+            previousTreasury,
+            actualNew,
+            SafeInt.mul(totalMaintenance, SafeInt(-1)),
+            "Monthly ship maintenance costs",
+            nextSeq(),
+            turnNumber,
+          ),
+        );
+      }
+    }
+
+    // Phase 6: obligation
     {
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if (!nation["isPlayable"] && !nation["isAI"]) continue;
@@ -460,14 +654,19 @@ export class MonthExecutor {
         updatedNations.set(nationId, updatedNation);
         currentSnapshot = { ...currentSnapshot, nations: updatedNations };
 
-        financialLedger.append({
-          nationId,
-          phaseId: "obligation",
-          previousBalance: previousTreasury,
-          delta: SafeInt.mul(expense, SafeInt(-1)),
-          newBalance: actualNew,
-          reason: "Mandatory fixed expenses",
-        });
+        financialLedger.append(
+          makeLedgerEntry(
+            nationId,
+            "obligation",
+            "OBLIGATION",
+            expense,
+            expense,
+            previousTreasury,
+            actualNew,
+            "Mandatory fixed expenses",
+            campaignMonth,
+          ),
+        );
 
         eventLedger.append(
           budgetChangedEvent(
@@ -483,10 +682,14 @@ export class MonthExecutor {
       }
     }
 
-    // Phase 5: construction_processing
+    // Phase 7: construction_processing
     {
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if (!nation["isPlayable"] && !nation["isAI"]) continue;
+
+        let updatedProjects = [...nation["constructionProjects"]];
+        let updatedFleets = [...nation["fleets"]];
+        let hasChanges = false;
 
         for (const project of nation["constructionProjects"]) {
           if ((project["completedWork"] as number) > (project["totalWork"] as number)) {
@@ -503,16 +706,59 @@ export class MonthExecutor {
               : project["completedWork"];
 
           if ((clampedWork as number) !== (project["completedWork"] as number)) {
-            const updatedProjects = nation["constructionProjects"].map((p) =>
+            updatedProjects = updatedProjects.map((p) =>
               p["id"] === project["id"] ? { ...p, completedWork: clampedWork } : p,
             );
-            const updatedNation: NationState = {
-              ...nation,
-              constructionProjects: updatedProjects,
+            hasChanges = true;
+          }
+
+          // Check for completion
+          if (
+            project["status"] !== "COMPLETED" &&
+            (clampedWork as number) >= (project["totalWork"] as number) &&
+            (project["totalWork"] as number) > 0
+          ) {
+            updatedProjects = updatedProjects.map((p) =>
+              p["id"] === project["id"]
+                ? { ...p, status: "COMPLETED" as const, completedWork: project["totalWork"] }
+                : p,
+            );
+            hasChanges = true;
+
+            // Find or create a fleet for this nation
+            let fleet = updatedFleets.find((f) => f["nationId"] === nationId);
+            if (!fleet) {
+              const newFleet: FleetState = {
+                id: `fleet-${nationId}`,
+                nationId,
+                name: `${nation["name"]} Fleet`,
+                ships: [],
+                locationAreaId: "unknown",
+              };
+              updatedFleets = [...updatedFleets, newFleet];
+              fleet = newFleet;
+            }
+
+            // Create a new ship from the completed project
+            const newShip: Ship = {
+              id: `ship-${project["targetId"]}-${String(turnNumber)}`,
+              name: `Ship ${project["targetId"]}`,
+              classId: project["targetId"],
+              nationId,
+              locationAreaId: fleet["locationAreaId"],
+              hitPoints: SafeInt(100),
+              maxHitPoints: SafeInt(100),
+              speed: SafeInt(10),
+              firepower: SafeInt(10),
+              armor: SafeInt(10),
+              isUnderConstruction: false,
+              constructionProgress: project["totalWork"],
+              constructionTotalWork: project["totalWork"],
             };
-            const updatedNations = new Map(currentSnapshot["nations"]);
-            updatedNations.set(nationId, updatedNation);
-            currentSnapshot = { ...currentSnapshot, nations: updatedNations };
+
+            updatedFleets = updatedFleets.map((f) =>
+              f["id"] === fleet["id"] ? { ...f, ships: [...f["ships"], newShip] } : f,
+            );
           }
 
           eventLedger.append(
@@ -527,10 +773,21 @@ export class MonthExecutor {
             ),
           );
         }
+
+        if (hasChanges) {
+          const updatedNation: NationState = {
+            ...nation,
+            constructionProjects: updatedProjects,
+            fleets: updatedFleets,
+          };
+          const updatedNations = new Map(currentSnapshot["nations"]);
+          updatedNations.set(nationId, updatedNation);
+          currentSnapshot = { ...currentSnapshot, nations: updatedNations };
+        }
       }
     }
 
-    // Phase 6: research_progress
+    // Phase 8: research_progress
     {
       const randomEngine = new RandomEngine(randomSeed);
 
@@ -584,7 +841,7 @@ export class MonthExecutor {
       }
     }
 
-    // Phase 7: battle_resolution
+    // Phase 9: battle_resolution
     {
       const battles = currentSnapshot["wars"]["battles"].filter(
         (b) => b["phase"] === "pending" || b["phase"] === "resolving",
@@ -618,7 +875,7 @@ export class MonthExecutor {
       }
     }
 
-    // Phase 8: closing_validation
+    // Phase 10: closing_validation
     {
       const diagnostics: string[] = [];
 

@@ -284,6 +284,9 @@ export class CampaignCompiler {
         treasury,
         income,
         expenses,
+        baseResources: SafeInt(0),
+        navalAppropriationRateBp: SafeInt(2000),
+        maintenanceCost: SafeInt(0),
         fleets,
         research,
         constructionProjects: constructions,
@@ -382,9 +385,13 @@ export class CampaignCompiler {
         return {
           id: String(cRec["id"] ?? ""),
           type: (cRec["type"] as "ship" | "building" | "technology") ?? "ship",
+          projectType: "NEW_CONSTRUCTION" as const,
           targetId: String(cRec["targetId"] ?? ""),
           totalWork: toSafeIntOpt(cRec["totalWork"], SafeInt(100)),
           completedWork: toSafeIntOpt(cRec["completedWork"], SafeInt(0)),
+          paidWork: toSafeIntOpt(cRec["paidWork"], SafeInt(0)),
+          status:
+            (cRec["status"] as "PLANNED" | "AUTHORIZED" | "ACTIVE" | "COMPLETED") ?? "PLANNED",
           startedAt: String(cRec["startedAt"] ?? "1880-01"),
         };
       });
