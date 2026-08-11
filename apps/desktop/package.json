@@ -1,0 +1,33 @@
+{
+  "name": "@bluewave/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "clean": "rm -rf out dist *.tsbuildinfo",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run",
+    "lint": "echo 'ok'",
+    "lint:fix": "echo 'ok'"
+  },
+  "dependencies": {
+    "@bluewave/contracts": "workspace:*",
+    "@bluewave/diagnostics": "workspace:*",
+    "@bluewave/deterministic": "workspace:*",
+    "@bluewave/content-schema": "workspace:*",
+    "@bluewave/content-compiler": "workspace:*",
+    "@bluewave/campaign": "workspace:*"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-vite": "^3.1.0",
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^24.0.0"
+  }
+}

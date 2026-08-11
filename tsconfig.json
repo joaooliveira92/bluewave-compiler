@@ -12,6 +12,8 @@
     { "path": "packages/events" },
     { "path": "packages/persistence" },
     { "path": "packages/test-support" },
-    { "path": "apps/compiler-cli" }
+    { "path": "packages/cross-process-test" },
+    { "path": "apps/compiler-cli" },
+    { "path": "apps/desktop" }
   ]
 }
