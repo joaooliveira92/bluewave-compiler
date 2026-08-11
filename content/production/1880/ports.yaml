@@ -1,0 +1,256 @@
+- {
+    id: "gbr_portsmouth",
+    name: "Portsmouth",
+    areaId: "eng_home_coast",
+    countryId: "GBR",
+    level: 10,
+  }
+- {
+    id: "gbr_plymouth",
+    name: "Plymouth (Devonport)",
+    areaId: "eng_home_coast",
+    countryId: "GBR",
+    level: 10,
+  }
+- { id: "gbr_chatham", name: "Chatham", areaId: "eng_home_coast", countryId: "GBR", level: 8 }
+- { id: "gbr_sheerness", name: "Sheerness", areaId: "eng_home_coast", countryId: "GBR", level: 6 }
+- { id: "gbr_gibraltar", name: "Gibraltar", areaId: "med_gibraltar", countryId: "GBR", level: 8 }
+- { id: "gbr_valletta", name: "Valletta (Malta)", areaId: "med_malta", countryId: "GBR", level: 8 }
+- { id: "gbr_cyprus", name: "Famagusta/Limassol", areaId: "med_cyprus", countryId: "GBR", level: 4 }
+- { id: "gbr_halifax", name: "Halifax", areaId: "americas_halifax", countryId: "GBR", level: 6 }
+- { id: "gbr_bermuda", name: "Bermuda", areaId: "atlantic_bermuda", countryId: "GBR", level: 7 }
+- {
+    id: "gbr_bombay",
+    name: "Bombay (Mumbai)",
+    areaId: "india_west_coast",
+    countryId: "GBR",
+    level: 8,
+  }
+- { id: "gbr_calcutta", name: "Calcutta", areaId: "india_east_coast", countryId: "GBR", level: 6 }
+- {
+    id: "gbr_colombo",
+    name: "Colombo (Ceylon)",
+    areaId: "indian_ceylon",
+    countryId: "GBR",
+    level: 7,
+  }
+- { id: "gbr_singapore", name: "Singapore", areaId: "sea_singapore", countryId: "GBR", level: 7 }
+- { id: "gbr_hongkong", name: "Hong Kong", areaId: "sea_hong_kong", countryId: "GBR", level: 7 }
+- { id: "gbr_capetown", name: "Cape Town", areaId: "africa_cape", countryId: "GBR", level: 7 }
+- { id: "gbr_simonstown", name: "Simon's Town", areaId: "africa_cape", countryId: "GBR", level: 7 }
+- { id: "gbr_adden", name: "Aden", areaId: "indian_adden", countryId: "GBR", level: 6 }
+- { id: "gbr_sydney", name: "Sydney", areaId: "pacific_australia", countryId: "GBR", level: 6 }
+- {
+    id: "gbr_melbourne",
+    name: "Melbourne",
+    areaId: "pacific_australia",
+    countryId: "GBR",
+    level: 5,
+  }
+- { id: "gbr_auckland", name: "Auckland", areaId: "pacific_australia", countryId: "GBR", level: 5 }
+- { id: "fra_brest", name: "Brest", areaId: "fra_chan_coast", countryId: "FRA", level: 9 }
+- { id: "fra_toulon", name: "Toulon", areaId: "fra_med_coast", countryId: "FRA", level: 9 }
+- { id: "fra_cherbourg", name: "Cherbourg", areaId: "fra_chan_coast", countryId: "FRA", level: 8 }
+- { id: "fra_rochefort", name: "Rochefort", areaId: "fra_chan_coast", countryId: "FRA", level: 6 }
+- { id: "fra_algiers", name: "Algiers", areaId: "africa_algeria", countryId: "FRA", level: 7 }
+- { id: "fra_oran", name: "Oran", areaId: "africa_algeria", countryId: "FRA", level: 6 }
+- { id: "fra_saigon", name: "Saigon", areaId: "indochina_cochinchina", countryId: "FRA", level: 5 }
+- { id: "fra_noumea", name: "Nouméa", areaId: "pacific_newcaledonia", countryId: "FRA", level: 5 }
+- {
+    id: "fra_fortde_france",
+    name: "Fort-de-France",
+    areaId: "americas_martinique",
+    countryId: "FRA",
+    level: 4,
+  }
+- { id: "ger_kiel", name: "Kiel", areaId: "ger_baltic_coast", countryId: "GER", level: 8 }
+- {
+    id: "ger_wilhelmshaven",
+    name: "Wilhelmshaven",
+    areaId: "ger_ndgermany_coast",
+    countryId: "GER",
+    level: 8,
+  }
+- { id: "ger_danzig", name: "Danzig", areaId: "ger_baltic_coast", countryId: "GER", level: 6 }
+- { id: "ger_stralsund", name: "Stralsund", areaId: "ger_baltic_coast", countryId: "GER", level: 4 }
+- { id: "rus_kronstadt", name: "Kronstadt", areaId: "rus_baltic_coast", countryId: "RUS", level: 8 }
+- {
+    id: "rus_stpetersburg",
+    name: "St Petersburg",
+    areaId: "rus_baltic_coast",
+    countryId: "RUS",
+    level: 7,
+  }
+- {
+    id: "rus_reval",
+    name: "Reval (Tallinn)",
+    areaId: "rus_baltic_coast",
+    countryId: "RUS",
+    level: 5,
+  }
+- {
+    id: "rus_sevastopol",
+    name: "Sevastopol",
+    areaId: "rus_blacksea_coast",
+    countryId: "RUS",
+    level: 8,
+  }
+- {
+    id: "rus_nikolayev",
+    name: "Nikolayev",
+    areaId: "rus_blacksea_coast",
+    countryId: "RUS",
+    level: 6,
+  }
+- { id: "rus_odessa", name: "Odessa", areaId: "rus_blacksea_coast", countryId: "RUS", level: 5 }
+- {
+    id: "rus_vladivostok",
+    name: "Vladivostok",
+    areaId: "rus_pacific_coast",
+    countryId: "RUS",
+    level: 5,
+  }
+- { id: "auh_pola", name: "Pola (Pula)", areaId: "auh_adriatic_coast", countryId: "AUT", level: 7 }
+- { id: "auh_trieste", name: "Trieste", areaId: "auh_adriatic_coast", countryId: "AUT", level: 6 }
+- { id: "auh_fiume", name: "Fiume (Rijeka)", areaId: "auh_dalmatia", countryId: "AUT", level: 4 }
+- {
+    id: "ita_laspezia",
+    name: "La Spezia",
+    areaId: "ita_tyrrhenian_coast",
+    countryId: "ITA",
+    level: 7,
+  }
+- { id: "ita_naples", name: "Naples", areaId: "ita_tyrrhenian_coast", countryId: "ITA", level: 5 }
+- { id: "ita_taranto", name: "Taranto", areaId: "ita_adriatic_coast", countryId: "ITA", level: 7 }
+- { id: "ita_genoa", name: "Genoa", areaId: "ita_tyrrhenian_coast", countryId: "ITA", level: 5 }
+- { id: "ita_venice", name: "Venice", areaId: "ita_adriatic_coast", countryId: "ITA", level: 5 }
+- { id: "usa_norfolk", name: "Norfolk", areaId: "usa_atlantic_coast", countryId: "USA", level: 6 }
+- {
+    id: "usa_newyork",
+    name: "New York (Brooklyn)",
+    areaId: "usa_atlantic_coast",
+    countryId: "USA",
+    level: 6,
+  }
+- { id: "usa_boston", name: "Boston", areaId: "usa_atlantic_coast", countryId: "USA", level: 4 }
+- {
+    id: "usa_philadelphia",
+    name: "Philadelphia",
+    areaId: "usa_atlantic_coast",
+    countryId: "USA",
+    level: 4,
+  }
+- {
+    id: "usa_mare_island",
+    name: "Mare Island (SF)",
+    areaId: "usa_pacific_coast",
+    countryId: "USA",
+    level: 4,
+  }
+- { id: "usa_keywest", name: "Key West", areaId: "usa_gulf_coast", countryId: "USA", level: 4 }
+- { id: "usa_pensacola", name: "Pensacola", areaId: "usa_gulf_coast", countryId: "USA", level: 4 }
+- { id: "jpn_yokosuka", name: "Yokosuka", areaId: "jpn_home_coast", countryId: "JPN", level: 6 }
+- {
+    id: "jpn_yokohama",
+    name: "Yokohama/Tokyo",
+    areaId: "jpn_home_coast",
+    countryId: "JPN",
+    level: 6,
+  }
+- { id: "jpn_kure", name: "Kure", areaId: "jpn_inland_sea", countryId: "JPN", level: 5 }
+- { id: "jpn_sasebo", name: "Sasebo", areaId: "jpn_kyushu_coast", countryId: "JPN", level: 5 }
+- { id: "jpn_nagasaki", name: "Nagasaki", areaId: "jpn_kyushu_coast", countryId: "JPN", level: 5 }
+- {
+    id: "ott_constantinople",
+    name: "Constantinople (Istanbul)",
+    areaId: "ott_marmara_coast",
+    countryId: "OTT",
+    level: 7,
+  }
+- {
+    id: "ott_smyrna",
+    name: "Smyrna (Izmir)",
+    areaId: "ott_aegean_coast",
+    countryId: "OTT",
+    level: 5,
+  }
+- { id: "ott_sinope", name: "Sinope", areaId: "ott_blacksea_coast", countryId: "OTT", level: 4 }
+- { id: "ott_alexandria", name: "Alexandria", areaId: "ott_eg_coast", countryId: "OTT", level: 5 }
+- { id: "spa_ferrol", name: "Ferrol", areaId: "spa_atlantic_coast", countryId: "ESP", level: 6 }
+- { id: "spa_cadiz", name: "Cadiz", areaId: "spa_atlantic_coast", countryId: "ESP", level: 5 }
+- { id: "spa_cartagena", name: "Cartagena", areaId: "spa_med_coast", countryId: "ESP", level: 6 }
+- { id: "spa_havana", name: "Havana", areaId: "americas_cuba", countryId: "ESP", level: 6 }
+- { id: "spa_manila", name: "Manila", areaId: "philippines_luzon", countryId: "ESP", level: 5 }
+- { id: "spa_cavite", name: "Cavite", areaId: "philippines_luzon", countryId: "ESP", level: 5 }
+- {
+    id: "ned_denhelder",
+    name: "Den Helder (Texel)",
+    areaId: "ned_home_coast",
+    countryId: "NLD",
+    level: 6,
+  }
+- {
+    id: "ned_vlissingen",
+    name: "Vlissingen (Flushing)",
+    areaId: "ned_home_coast",
+    countryId: "NLD",
+    level: 5,
+  }
+- { id: "ned_batavia", name: "Batavia (Jakarta)", areaId: "dei_java", countryId: "NLD", level: 6 }
+- { id: "ned_surabaya", name: "Surabaya", areaId: "dei_java", countryId: "NLD", level: 6 }
+- { id: "por_lisbon", name: "Lisbon", areaId: "por_home_coast", countryId: "POR", level: 5 }
+- { id: "por_luanda", name: "Luanda", areaId: "africa_angola", countryId: "POR", level: 5 }
+- {
+    id: "por_lourenco_marques",
+    name: "Lourenço Marques",
+    areaId: "africa_mozambique",
+    countryId: "POR",
+    level: 4,
+  }
+- { id: "por_macau", name: "Macau", areaId: "asia_macau", countryId: "POR", level: 4 }
+- { id: "por_goa", name: "Goa", areaId: "asia_goa", countryId: "POR", level: 4 }
+- {
+    id: "chi_taku",
+    name: "Taku (near Tianjin)",
+    areaId: "chi_north_coast",
+    countryId: "CHI",
+    level: 5,
+  }
+- { id: "chi_weihaiwei", name: "Weihaiwei", areaId: "chi_weihaiwei", countryId: "CHI", level: 6 }
+- {
+    id: "chi_port_arthur",
+    name: "Port Arthur (Lüshun)",
+    areaId: "chi_north_coast",
+    countryId: "CHI",
+    level: 6,
+  }
+- { id: "chi_shanghai", name: "Shanghai", areaId: "chi_yangtze", countryId: "CHI", level: 5 }
+- {
+    id: "chi_guangzhou",
+    name: "Guangzhou (Canton)",
+    areaId: "chi_south_coast",
+    countryId: "CHI",
+    level: 5,
+  }
+- { id: "bra_rio", name: "Rio de Janeiro", areaId: "bra_rio_coast", countryId: "BRA", level: 6 }
+- {
+    id: "bra_salvador",
+    name: "Salvador (Bahia)",
+    areaId: "bra_ne_coast",
+    countryId: "BRA",
+    level: 4,
+  }
+- {
+    id: "bra_recife",
+    name: "Recife (Pernambuco)",
+    areaId: "bra_ne_coast",
+    countryId: "BRA",
+    level: 4,
+  }
+- {
+    id: "bra_ilhadascobras",
+    name: "Ilha das Cobras",
+    areaId: "bra_rio_coast",
+    countryId: "BRA",
+    level: 5,
+  }

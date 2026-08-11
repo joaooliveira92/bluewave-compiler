@@ -1,0 +1,19 @@
+{
+  "name": "bluewave-1880-production",
+  "version": "0.1.0",
+  "type": "production",
+  "files": {
+    "rulesets": ["rulesets.yaml"],
+    "countries": ["countries.yaml"],
+    "areas": ["areas.yaml"],
+    "routes": ["routes.yaml"],
+    "possessions": ["possessions.yaml"],
+    "ports": ["ports.yaml"],
+    "technologies": ["technologies.yaml"],
+    "fleets": ["fleets.yaml"],
+    "economies": ["economies.yaml"],
+    "constructions": ["constructions.yaml"],
+    "research": ["research.yaml"],
+    "designs": ["designs.yaml"]
+  }
+}
