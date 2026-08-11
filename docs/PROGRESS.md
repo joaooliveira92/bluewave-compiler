@@ -133,23 +133,42 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 
 ### Workstream C — Production Content
 
-> **Status (2026-08-11): CONTENT-0 DONE (charter).** Production content
+> **Status (2026-08-11): CONTENT-1 DONE/PASS (pack authored).** Production content
 > architecture locked: primary `FULLY_SUPPORTED` scenario `scen_1880`
 > (Jan 1880), reachable era bands all five, max duration 1092 mo (sim end
 > Dec 1970), pack layout `content/production/1880/` (`type: "production"`,
 > zero compiler change), content map + DESIGN-55 §12 classification policy.
 > Charter: `.ai/briefs/content-0-production-pack-charter.md`; wayfinder map
 > `.scratch/content-0-production-pack/`; research `docs/research/content-0-*.md`.
-> CONTENT-1 (M1-era production content) is the next content sprint.
+> **CONTENT-1 (M1-era production pack) is DONE (2026-08-11, PASS)** at
+> `content/production/1880/`, deterministically compiled; CONTENT-2
+> (tactical / later bands) is next.
 
-| Deliverable                  | Status      | Notes                                             |
-| ---------------------------- | ----------- | ------------------------------------------------- |
-| Primary scenario + era bands | Locked      | `scen_1880`, EARLY..LATE (sim end Dec 1970)       |
-| Max campaign duration        | Locked      | 1092 completed months                             |
-| Pack layout                  | Locked      | `content/production/<pack>/`, `type:"production"` |
-| Content map + classification | Locked      | DESIGN-55 §12 policy; CONTENT_ONLY_LOCKED→promote |
-| Charter brief                | Done        | `.ai/briefs/content-0-production-pack-charter.md` |
-| CONTENT-1 (M1-era content)   | Not started | next content sprint                               |
+| Deliverable                  | Status      | Notes                                                            |
+| ---------------------------- | ----------- | ---------------------------------------------------------------- |
+| Primary scenario + era bands | Locked      | `scen_1880`, EARLY..LATE (sim end Dec 1970)                      |
+| Max campaign duration        | Locked      | 1092 completed months                                            |
+| Pack layout                  | Locked      | `content/production/<pack>/`, `type:"production"`                |
+| Content map + classification | Locked      | DESIGN-55 §12 policy; CONTENT_ONLY_LOCKED→promote                |
+| Charter brief                | Done        | `.ai/briefs/content-0-production-pack-charter.md`                |
+| CONTENT-1 (M1-era content)   | Done — PASS | `content/production/1880/` authored + deterministically compiled |
+| CONTENT-2 (tactical / later) | Not started | next content sprint                                              |
+
+### CONTENT-1 — M1-Era Production Content Pack
+
+> **Status (2026-08-11): DONE/PASS.** Authored the first production content
+> pack at `content/production/1880/` (`type: "production"`, zero engine change)
+> for the `scen_1880` anchor: 14 countries, ~100 areas, 35+ routes, ~70
+> possessions, ~95 ports, 34 EARLY technologies (acyclic DAG), 16 ship
+> designs, 22 fleets, 14 economies, 9 constructions, 14 research states —
+> grounded in four research notes (`docs/research/content-1-*.md`). Compiles
+> deterministically via the desktop `runCompilation` path (content hash
+> `44953238…`, snapshot `f3e72642…`); `apps/desktop/test/production-pack.test.ts`
+> locks the compile + hashes. Diplomacy relations intentionally omitted (B10c
+> blocked → DESIGN-55 §14 reachable-locked concern). Evidence:
+> `.ai/reports/content-1-m1-production-content.md`; brief
+> `.ai/briefs/content-1-m1-production-content.md`; wayfinder
+> `.scratch/content-1-m1-production-content/`.
 
 ## 🔮 Not Yet Started (M2–M5)
 
