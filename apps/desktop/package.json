@@ -27,6 +27,7 @@
     "@bluewave/campaign": "workspace:*"
   },
   "devDependencies": {
+    "@bluewave/test-support": "workspace:*",
     "electron": "^35.0.0",
     "electron-builder": "^25.0.0",
     "electron-vite": "^3.1.0",

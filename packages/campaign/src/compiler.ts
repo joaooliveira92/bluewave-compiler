@@ -25,12 +25,20 @@ import { SafeInt } from "@bluewave/contracts";
 import { readFileSync } from "node:fs";
 import { resolve, relative, isAbsolute, sep } from "node:path";
 import { parse } from "yaml";
+import { validateCampaignPreconditions } from "./campaignSession.js";
 
 export interface CampaignCompilerInput {
   compilerInput: CompilerInput;
   campaignFiles: CampaignFiles;
   rulesetVersion: string;
   compatibilityVersion: string;
+  // DESIGN-03 §3 strict campaign-configuration inputs. When supplied they MUST be
+  // complete and valid before any RNG stream is derived (no inference/fallback).
+  // Omitted only by pre-DESIGN-03 content-pack compilation flows.
+  scenarios?: unknown;
+  campaignConfiguration?: unknown;
+  fleetSizeSettings?: unknown;
+  researchSpeedSettings?: unknown;
 }
 
 export interface CampaignFiles {
@@ -113,6 +121,16 @@ export class CampaignCompiler {
     if (signal.aborted) {
       collector.addInfo("ABORT", "Compilation aborted before content compilation");
       return undefined;
+    }
+
+    // DESIGN-03 §3 + §9.3/9.4: when a CampaignConfiguration is supplied it MUST be
+    // complete and valid BEFORE any campaign RNG stream derives. Invalid config MUST
+    // NOT create an active campaign. No inference, no fallback to canonical defaults.
+    if (input.campaignConfiguration !== undefined) {
+      if (!validateCampaignPreconditions(input as unknown, collector)) {
+        return undefined;
+      }
+      if (signal.aborted) return undefined;
     }
 
     // Step 1: Run content compiler
@@ -319,7 +337,7 @@ export class CampaignCompiler {
         id: String(p["id"] ?? ""),
         name: String(p["name"] ?? ""),
         areaId: String(p["areaId"] ?? ""),
-        nationId: String(p["countryId"] ?? ""),
+        nationId: String(p["nationId"] ?? ""),
         level: toSafeIntOpt(p["level"], SafeInt(1)),
       }))
       .sort((a, b) => a.id.localeCompare(b.id));
@@ -337,15 +355,15 @@ export class CampaignCompiler {
   ): Map<string, NationState> | undefined {
     const nations = new Map<string, NationState>();
 
-    // sort countries for deterministic Map insertion / rawHash
-    const sortedCountries = [...pack.countries].sort((a, b) =>
-      String((a as Record<string, unknown>)["id"] ?? "").localeCompare(
-        String((b as Record<string, unknown>)["id"] ?? ""),
-      ),
-    );
+    // sort nations by canonical id for deterministic Map insertion / rawHash
+    const sortedNations = [...(pack.nations ?? [])].sort((a, b) => {
+      const aId = String((a as Record<string, unknown>)["id"] ?? "");
+      const bId = String((b as Record<string, unknown>)["id"] ?? "");
+      return aId.localeCompare(bId);
+    });
 
-    for (const country of sortedCountries) {
-      const countryRec = country as Record<string, unknown>;
+    for (const nation of sortedNations) {
+      const countryRec = nation as Record<string, unknown>;
       const id = String(countryRec["id"] ?? "");
 
       const isPlayable = this.isNationPlayable(id, countryRec, collector);

@@ -5,10 +5,10 @@ export const CONTENT_SECURITY_POLICY = "default-src 'self'";
  * Pure and Electron-free so it can be unit tested without launching Electron.
  */
 export function applyContentSecurityPolicy(
-  responseHeaders: Record<string, string[]>,
+  responseHeaders: Record<string, string[]> | undefined,
 ): Record<string, string[]> {
   return {
-    ...responseHeaders,
+    ...(responseHeaders ?? {}),
     "Content-Security-Policy": [CONTENT_SECURITY_POLICY],
   };
 }

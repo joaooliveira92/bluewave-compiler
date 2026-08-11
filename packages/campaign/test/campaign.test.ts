@@ -5,6 +5,7 @@ import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { tmpdir } from "node:os";
+import { nationsYaml, nationYaml } from "@bluewave/test-support";
 
 function createFixtureDir(): { path: string; cleanup: () => void } {
   const dir = resolve(tmpdir(), `bw-campaign-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -20,6 +21,46 @@ function writeFile(base: string, rel: string, content: string): void {
   mkdirSync(resolve(full, ".."), { recursive: true });
   writeFileSync(full, content, "utf8");
 }
+
+function writeContentFixture(fixturePath: string): void {
+  writeFile(fixturePath, "pack.json", FIXTURE.pack);
+  writeFile(fixturePath, "rulesets.yaml", FIXTURE.rulesets);
+  writeFile(fixturePath, "countries.yaml", FIXTURE.countries);
+  writeFile(fixturePath, "areas.yaml", FIXTURE.areas);
+  writeFile(fixturePath, "routes.yaml", FIXTURE.routes);
+  writeFile(fixturePath, "possessions.yaml", FIXTURE.possessions);
+  writeFile(fixturePath, "ports.yaml", FIXTURE.ports);
+  writeFile(fixturePath, "technologies.yaml", FIXTURE.technologies);
+  writeFile(fixturePath, "fleets.yaml", FIXTURE.fleets);
+  writeFile(fixturePath, "economies.yaml", FIXTURE.economies);
+  writeFile(fixturePath, "constructions.yaml", FIXTURE.constructions);
+  writeFile(fixturePath, "diplomacy.yaml", FIXTURE.diplomacy);
+  writeFile(fixturePath, "research.yaml", FIXTURE.research);
+}
+
+const FULL_INPUT = {
+  compilerInput: {
+    manifestPath: "pack.json",
+    contentDir: "FIXTURE_DIR",
+    rulesetFiles: ["rulesets.yaml"],
+    countryFiles: ["countries.yaml"],
+    areaFiles: ["areas.yaml"],
+    routeFiles: ["routes.yaml"],
+    possessionFiles: ["possessions.yaml"],
+    portFiles: ["ports.yaml"],
+    technologyFiles: ["technologies.yaml"],
+  },
+  campaignFiles: {
+    fleetFiles: ["fleets.yaml"],
+    economyFiles: ["economies.yaml"],
+    constructionFiles: ["constructions.yaml"],
+    diplomacyFiles: ["diplomacy.yaml"],
+    researchFiles: ["research.yaml"],
+    designFiles: [],
+  },
+  rulesetVersion: "1.0",
+  compatibilityVersion: "0.1.0",
+};
 
 const FIXTURE = {
   pack: JSON.stringify({
@@ -43,26 +84,21 @@ const FIXTURE = {
   version: "1.0"
 `,
 
-  countries: `
-- id: "GBR"
-  name: "United Kingdom"
-  tag: "GBR"
-  isPlayable: true
-- id: "FRA"
-  name: "France"
-  tag: "FRA"
-  isPlayable: false
-`,
+  // canonical strict-NationSchema-compliant nations
+  countries: nationsYaml([
+    { id: "uk", tag: "GBR", name: "United Kingdom", isPlayable: true },
+    { id: "france", tag: "FRA", name: "France" },
+  ]),
 
   areas: `
 - id: "lon"
   name: "London"
   type: "land"
-  controller: "GBR"
+  controller: "uk"
 - id: "par"
   name: "Paris"
   type: "land"
-  controller: "FRA"
+  controller: "france"
 - id: "eng_ch"
   name: "English Channel"
   type: "sea"
@@ -87,11 +123,11 @@ const FIXTURE = {
 `,
 
   possessions: `
-- id: "gbr-lon"
-  countryId: "GBR"
+- id: "uk-lon"
+  nationId: "uk"
   areaId: "lon"
 - id: "fra-par"
-  countryId: "FRA"
+  nationId: "france"
   areaId: "par"
 `,
 
@@ -99,12 +135,12 @@ const FIXTURE = {
 - id: "port-lon"
   name: "Port of London"
   areaId: "lon"
-  countryId: "GBR"
+  nationId: "uk"
   level: 5
 - id: "port-par"
   name: "Port of Paris"
   areaId: "par"
-  countryId: "FRA"
+  nationId: "france"
   level: 3
 `,
 
@@ -124,8 +160,8 @@ const FIXTURE = {
 `,
 
   fleets: `
-- id: "fleet-gbr-home"
-  nationId: "GBR"
+- id: "fleet-uk-home"
+  nationId: "uk"
   name: "Home Fleet"
   locationAreaId: "lon"
   ships:
@@ -152,7 +188,7 @@ const FIXTURE = {
       constructionProgress: 0
       constructionTotalWork: 0
 - id: "fleet-fra-atlantic"
-  nationId: "FRA"
+  nationId: "france"
   name: "Atlantic Fleet"
   locationAreaId: "par"
   ships:
@@ -170,19 +206,19 @@ const FIXTURE = {
 `,
 
   economies: `
-- nationId: "GBR"
+- nationId: "uk"
   treasury: 800
   income: 150
   expenses: 75
-- nationId: "FRA"
+- nationId: "france"
   treasury: 600
   income: 120
   expenses: 60
 `,
 
   constructions: `
-- id: "con-gbr-ship-battleship2"
-  nationId: "GBR"
+- id: "con-uk-ship-battleship2"
+  nationId: "uk"
   type: "ship"
   targetId: "ship-hms-thunderer"
   totalWork: 200
@@ -191,71 +227,40 @@ const FIXTURE = {
 `,
 
   diplomacy: `
-- nationA: "GBR"
-  nationB: "FRA"
+- nationA: "uk"
+  nationB: "france"
   relation: "neutral"
   since: "1880-01"
 `,
 
   research: `
-- nationId: "GBR"
+- nationId: "uk"
   currentProjectTechId: "basic_steam"
   technologies:
     - { techId: "basic_steam", investedPoints: 30, completed: false }
-- nationId: "FRA"
+- nationId: "france"
   technologies: []
 `,
 };
+
+function minimalInput(fixturePath: string) {
+  return {
+    ...FULL_INPUT,
+    compilerInput: { ...FULL_INPUT.compilerInput, contentDir: fixturePath },
+  };
+}
 
 describe("CampaignCompiler", () => {
   it("compiles a valid 1880 campaign fixture", () => {
     const fixture = createFixtureDir();
     try {
-      writeFile(fixture.path, "pack.json", FIXTURE.pack);
-      writeFile(fixture.path, "rulesets.yaml", FIXTURE.rulesets);
-      writeFile(fixture.path, "countries.yaml", FIXTURE.countries);
-      writeFile(fixture.path, "areas.yaml", FIXTURE.areas);
-      writeFile(fixture.path, "routes.yaml", FIXTURE.routes);
-      writeFile(fixture.path, "possessions.yaml", FIXTURE.possessions);
-      writeFile(fixture.path, "ports.yaml", FIXTURE.ports);
-      writeFile(fixture.path, "technologies.yaml", FIXTURE.technologies);
-      writeFile(fixture.path, "fleets.yaml", FIXTURE.fleets);
-      writeFile(fixture.path, "economies.yaml", FIXTURE.economies);
-      writeFile(fixture.path, "constructions.yaml", FIXTURE.constructions);
-      writeFile(fixture.path, "diplomacy.yaml", FIXTURE.diplomacy);
-      writeFile(fixture.path, "research.yaml", FIXTURE.research);
+      writeContentFixture(fixture.path);
 
       const compiler = new CampaignCompiler();
       const collector = new DiagnosticCollector();
       const signal = new AbortController().signal;
 
-      const output = compiler.compile(
-        {
-          compilerInput: {
-            manifestPath: "pack.json",
-            contentDir: fixture.path,
-            rulesetFiles: ["rulesets.yaml"],
-            countryFiles: ["countries.yaml"],
-            areaFiles: ["areas.yaml"],
-            routeFiles: ["routes.yaml"],
-            possessionFiles: ["possessions.yaml"],
-            portFiles: ["ports.yaml"],
-            technologyFiles: ["technologies.yaml"],
-          },
-          campaignFiles: {
-            fleetFiles: ["fleets.yaml"],
-            economyFiles: ["economies.yaml"],
-            constructionFiles: ["constructions.yaml"],
-            diplomacyFiles: ["diplomacy.yaml"],
-            researchFiles: ["research.yaml"],
-            designFiles: [],
-          },
-          rulesetVersion: "1.0",
-          compatibilityVersion: "0.1.0",
-        },
-        signal,
-        collector,
-      );
+      const output = compiler.compile(minimalInput(fixture.path), signal, collector);
 
       expect(collector.hasErrors).toBe(false);
       expect(output).toBeDefined();
@@ -263,35 +268,38 @@ describe("CampaignCompiler", () => {
       expect(output!.state.rawHash).toHaveLength(64);
       expect(output!.state.snapshot.turnNumber).toBe(0);
       expect(output!.state.snapshot.slots).toHaveLength(2);
-      expect(output!.state.snapshot.slots[0]?.nationId).toBe("FRA");
+      // slots sorted by nation id: france (ai) before uk (playable)
+      expect(output!.state.snapshot.slots[0]?.nationId).toBe("france");
       expect(output!.state.snapshot.slots[0]?.type).toBe("ai");
-      expect(output!.state.snapshot.slots[1]?.nationId).toBe("GBR");
+      expect(output!.state.snapshot.slots[1]?.nationId).toBe("uk");
       expect(output!.state.snapshot.slots[1]?.type).toBe("playable");
 
       // Verify world state
       expect(output!.state.snapshot.world.areas).toHaveLength(3);
       expect(output!.state.snapshot.world.routes).toHaveLength(3);
       expect(output!.state.snapshot.world.ports).toHaveLength(2);
+      // Port nation identity maps to the canonical nation id
+      expect(output!.state.snapshot.world.ports[0]?.nationId).toBe("uk");
 
       // Verify nation states
       const nations = output!.state.snapshot.nations;
       expect(nations.size).toBe(2);
 
-      const gbr = nations.get("GBR");
-      expect(gbr).toBeDefined();
-      expect(gbr!.treasury).toBe(800);
-      expect(gbr!.income).toBe(150);
-      expect(gbr!.expenses).toBe(75);
-      expect(gbr!.fleets).toHaveLength(1);
-      expect(gbr!.fleets[0]?.ships).toHaveLength(2);
-      expect(gbr!.constructionProjects).toHaveLength(1);
-      expect(gbr!.research.currentProjectTechId).toBe("basic_steam");
-      expect(gbr!.research.technologies).toHaveLength(1);
-      expect(gbr!.research.technologies[0]?.investedPoints).toBe(30);
-      expect(gbr!.isPlayable).toBe(true);
-      expect(gbr!.isAI).toBe(false);
+      const uk = nations.get("uk");
+      expect(uk).toBeDefined();
+      expect(uk!.treasury).toBe(800);
+      expect(uk!.income).toBe(150);
+      expect(uk!.expenses).toBe(75);
+      expect(uk!.fleets).toHaveLength(1);
+      expect(uk!.fleets[0]?.ships).toHaveLength(2);
+      expect(uk!.constructionProjects).toHaveLength(1);
+      expect(uk!.research.currentProjectTechId).toBe("basic_steam");
+      expect(uk!.research.technologies).toHaveLength(1);
+      expect(uk!.research.technologies[0]!.investedPoints).toBe(30);
+      expect(uk!.isPlayable).toBe(true);
+      expect(uk!.isAI).toBe(false);
 
-      const fra = nations.get("FRA");
+      const fra = nations.get("france");
       expect(fra).toBeDefined();
       expect(fra!.treasury).toBe(600);
       expect(fra!.fleets).toHaveLength(1);
@@ -301,7 +309,7 @@ describe("CampaignCompiler", () => {
 
       // Verify political state
       expect(output!.state.snapshot.politics.relations).toHaveLength(1);
-      expect(output!.state.snapshot.politics.relations[0]?.relation).toBe("neutral");
+      expect(output!.state.snapshot.politics.relations[0]!.relation).toBe("neutral");
 
       // Verify war state is empty initially
       expect(output!.state.snapshot.wars.wars).toHaveLength(0);
@@ -330,12 +338,7 @@ describe("CampaignCompiler", () => {
       writeFile(
         fixture.path,
         "countries.yaml",
-        `
-- id: "FRA"
-  name: "France"
-  tag: "FRA"
-  isPlayable: true
-`,
+        nationYaml({ id: "france", tag: "FRA", name: "France", isPlayable: true }),
       );
 
       const compiler = new CampaignCompiler();
@@ -344,11 +347,11 @@ describe("CampaignCompiler", () => {
 
       const output = compiler.compile(
         {
+          ...FULL_INPUT,
           compilerInput: {
-            manifestPath: "pack.json",
+            ...FULL_INPUT.compilerInput,
             contentDir: fixture.path,
             rulesetFiles: [],
-            countryFiles: ["countries.yaml"],
             areaFiles: [],
             routeFiles: [],
             possessionFiles: [],
@@ -363,8 +366,6 @@ describe("CampaignCompiler", () => {
             researchFiles: [],
             designFiles: [],
           },
-          rulesetVersion: "1.0",
-          compatibilityVersion: "0.1.0",
         },
         signal,
         collector,
@@ -372,8 +373,8 @@ describe("CampaignCompiler", () => {
 
       expect(collector.hasErrors).toBe(false);
       expect(output).toBeDefined();
-      expect(output!.state.snapshot.slots).toEqual([{ nationId: "FRA", type: "playable" }]);
-      const fra = output!.state.snapshot.nations.get("FRA")!;
+      expect(output!.state.snapshot.slots).toEqual([{ nationId: "france", type: "playable" }]);
+      const fra = output!.state.snapshot.nations.get("france")!;
       expect(fra.isPlayable).toBe(true);
       expect(fra.isAI).toBe(false);
     } finally {
@@ -381,7 +382,7 @@ describe("CampaignCompiler", () => {
     }
   });
 
-  it("fails with a diagnostic when a nation is missing the isPlayable flag", () => {
+  it("fails when a nation is missing required content fields", () => {
     const fixture = createFixtureDir();
     try {
       writeFile(
@@ -394,13 +395,15 @@ describe("CampaignCompiler", () => {
           files: { countries: ["countries.yaml"] },
         }),
       );
+      // isPlayable (and other mandatory NationSchema fields) are missing -> content
+      // validation MUST reject the pack rather than fall back to inferred defaults.
       writeFile(
         fixture.path,
         "countries.yaml",
         `
-- id: "FRA"
-  name: "France"
+- id: "france"
   tag: "FRA"
+  name: "France"
 `,
       );
 
@@ -410,11 +413,11 @@ describe("CampaignCompiler", () => {
 
       const output = compiler.compile(
         {
+          ...FULL_INPUT,
           compilerInput: {
-            manifestPath: "pack.json",
+            ...FULL_INPUT.compilerInput,
             contentDir: fixture.path,
             rulesetFiles: [],
-            countryFiles: ["countries.yaml"],
             areaFiles: [],
             routeFiles: [],
             possessionFiles: [],
@@ -429,8 +432,6 @@ describe("CampaignCompiler", () => {
             researchFiles: [],
             designFiles: [],
           },
-          rulesetVersion: "1.0",
-          compatibilityVersion: "0.1.0",
         },
         signal,
         collector,
@@ -438,7 +439,6 @@ describe("CampaignCompiler", () => {
 
       expect(output).toBeUndefined();
       expect(collector.hasErrors).toBe(true);
-      expect(collector.errors.some((d) => d.code === "CAMPAIGN-ISPLAYABLE")).toBe(true);
     } finally {
       fixture.cleanup();
     }
@@ -447,52 +447,14 @@ describe("CampaignCompiler", () => {
   it("produces deterministic output on repeated compilation", () => {
     const fixture = createFixtureDir();
     try {
-      writeFile(fixture.path, "pack.json", FIXTURE.pack);
-      writeFile(fixture.path, "rulesets.yaml", FIXTURE.rulesets);
-      writeFile(fixture.path, "countries.yaml", FIXTURE.countries);
-      writeFile(fixture.path, "areas.yaml", FIXTURE.areas);
-      writeFile(fixture.path, "routes.yaml", FIXTURE.routes);
-      writeFile(fixture.path, "possessions.yaml", FIXTURE.possessions);
-      writeFile(fixture.path, "ports.yaml", FIXTURE.ports);
-      writeFile(fixture.path, "technologies.yaml", FIXTURE.technologies);
-      writeFile(fixture.path, "fleets.yaml", FIXTURE.fleets);
-      writeFile(fixture.path, "economies.yaml", FIXTURE.economies);
-      writeFile(fixture.path, "constructions.yaml", FIXTURE.constructions);
-      writeFile(fixture.path, "diplomacy.yaml", FIXTURE.diplomacy);
-      writeFile(fixture.path, "research.yaml", FIXTURE.research);
+      writeContentFixture(fixture.path);
 
       const compiler = new CampaignCompiler();
       const signal = new AbortController().signal;
 
       const run = () => {
         const collector = new DiagnosticCollector();
-        return compiler.compile(
-          {
-            compilerInput: {
-              manifestPath: "pack.json",
-              contentDir: fixture.path,
-              rulesetFiles: ["rulesets.yaml"],
-              countryFiles: ["countries.yaml"],
-              areaFiles: ["areas.yaml"],
-              routeFiles: ["routes.yaml"],
-              possessionFiles: ["possessions.yaml"],
-              portFiles: ["ports.yaml"],
-              technologyFiles: ["technologies.yaml"],
-            },
-            campaignFiles: {
-              fleetFiles: ["fleets.yaml"],
-              economyFiles: ["economies.yaml"],
-              constructionFiles: ["constructions.yaml"],
-              diplomacyFiles: ["diplomacy.yaml"],
-              researchFiles: ["research.yaml"],
-              designFiles: [],
-            },
-            rulesetVersion: "1.0",
-            compatibilityVersion: "0.1.0",
-          },
-          signal,
-          collector,
-        );
+        return compiler.compile(minimalInput(fixture.path), signal, collector);
       };
 
       const out1 = run();
@@ -527,8 +489,9 @@ describe("CampaignCompiler", () => {
 
       const output = compiler.compile(
         {
+          ...FULL_INPUT,
           compilerInput: {
-            manifestPath: "pack.json",
+            ...FULL_INPUT.compilerInput,
             contentDir: fixture.path,
             rulesetFiles: [],
             countryFiles: [],
@@ -546,15 +509,13 @@ describe("CampaignCompiler", () => {
             researchFiles: [],
             designFiles: [],
           },
-          rulesetVersion: "1.0",
-          compatibilityVersion: "0.1.0",
         },
         signal,
         collector,
       );
 
       expect(output).toBeUndefined();
-      // At minimum, the manifest should fail validation (no files)
+      expect(collector.hasErrors).toBe(true);
     } finally {
       fixture.cleanup();
     }
@@ -563,44 +524,14 @@ describe("CampaignCompiler", () => {
   it("supports cancellation", () => {
     const fixture = createFixtureDir();
     try {
-      writeFile(fixture.path, "pack.json", FIXTURE.pack);
-      writeFile(fixture.path, "countries.yaml", FIXTURE.countries);
-      writeFile(fixture.path, "areas.yaml", FIXTURE.areas);
-      writeFile(fixture.path, "fleets.yaml", FIXTURE.fleets);
-      writeFile(fixture.path, "economies.yaml", FIXTURE.economies);
+      writeContentFixture(fixture.path);
 
       const compiler = new CampaignCompiler();
       const collector = new DiagnosticCollector();
       const controller = new AbortController();
       controller.abort();
 
-      const output = compiler.compile(
-        {
-          compilerInput: {
-            manifestPath: "pack.json",
-            contentDir: fixture.path,
-            rulesetFiles: [],
-            countryFiles: ["countries.yaml"],
-            areaFiles: ["areas.yaml"],
-            routeFiles: [],
-            possessionFiles: [],
-            portFiles: [],
-            technologyFiles: [],
-          },
-          campaignFiles: {
-            fleetFiles: ["fleets.yaml"],
-            economyFiles: ["economies.yaml"],
-            constructionFiles: [],
-            diplomacyFiles: [],
-            researchFiles: [],
-            designFiles: [],
-          },
-          rulesetVersion: "1.0",
-          compatibilityVersion: "0.1.0",
-        },
-        controller.signal,
-        collector,
-      );
+      const output = compiler.compile(minimalInput(fixture.path), controller.signal, collector);
 
       expect(output).toBeUndefined();
     } finally {
@@ -611,26 +542,14 @@ describe("CampaignCompiler", () => {
   it("compiles design YAML templates into immutable CompiledDesignVersion records", () => {
     const fixture = createFixtureDir();
     try {
-      writeFile(fixture.path, "pack.json", FIXTURE.pack);
-      writeFile(fixture.path, "rulesets.yaml", FIXTURE.rulesets);
-      writeFile(fixture.path, "countries.yaml", FIXTURE.countries);
-      writeFile(fixture.path, "areas.yaml", FIXTURE.areas);
-      writeFile(fixture.path, "routes.yaml", FIXTURE.routes);
-      writeFile(fixture.path, "possessions.yaml", FIXTURE.possessions);
-      writeFile(fixture.path, "ports.yaml", FIXTURE.ports);
-      writeFile(fixture.path, "technologies.yaml", FIXTURE.technologies);
-      writeFile(fixture.path, "fleets.yaml", FIXTURE.fleets);
-      writeFile(fixture.path, "economies.yaml", FIXTURE.economies);
-      writeFile(fixture.path, "constructions.yaml", FIXTURE.constructions);
-      writeFile(fixture.path, "diplomacy.yaml", FIXTURE.diplomacy);
-      writeFile(fixture.path, "research.yaml", FIXTURE.research);
+      writeContentFixture(fixture.path);
       writeFile(
         fixture.path,
         "designs.yaml",
         `
-- designId: "gbr-dreadnought-v1"
+- designId: "uk-dreadnought-v1"
   designFamilyId: "dreadnought"
-  nationId: "GBR"
+  nationId: "uk"
   className: "Dreadnought-class"
   hullType: "battleship"
   displacementKg: 18000
@@ -642,7 +561,7 @@ describe("CampaignCompiler", () => {
   crewComplement: 800
 - designId: "fra-courbet-v1"
   designFamilyId: "courbet"
-  nationId: "FRA"
+  nationId: "france"
   className: "Courbet-class"
   hullType: "battleship"
   displacementKg: 23000
@@ -661,27 +580,11 @@ describe("CampaignCompiler", () => {
 
       const output = compiler.compile(
         {
-          compilerInput: {
-            manifestPath: "pack.json",
-            contentDir: fixture.path,
-            rulesetFiles: ["rulesets.yaml"],
-            countryFiles: ["countries.yaml"],
-            areaFiles: ["areas.yaml"],
-            routeFiles: ["routes.yaml"],
-            possessionFiles: ["possessions.yaml"],
-            portFiles: ["ports.yaml"],
-            technologyFiles: ["technologies.yaml"],
-          },
+          ...minimalInput(fixture.path),
           campaignFiles: {
-            fleetFiles: ["fleets.yaml"],
-            economyFiles: ["economies.yaml"],
-            constructionFiles: ["constructions.yaml"],
-            diplomacyFiles: ["diplomacy.yaml"],
-            researchFiles: ["research.yaml"],
+            ...minimalInput(fixture.path).campaignFiles,
             designFiles: ["designs.yaml"],
           },
-          rulesetVersion: "1.0",
-          compatibilityVersion: "0.1.0",
         },
         signal,
         collector,
@@ -693,7 +596,7 @@ describe("CampaignCompiler", () => {
       const designs = output!.state.snapshot.designs;
       expect(designs.size).toBe(2);
 
-      const dreadnought = designs.get("gbr-dreadnought-v1")!;
+      const dreadnought = designs.get("uk-dreadnought-v1")!;
       expect(dreadnought.className).toBe("Dreadnought-class");
       expect(dreadnought.hullType).toBe("battleship");
       expect(dreadnought.normalizedDisplacementKg).toBe(18000);
@@ -706,7 +609,7 @@ describe("CampaignCompiler", () => {
       expect(dreadnought.compiledHash).toHaveLength(64);
 
       // Immutability keyed by designVersionId.
-      expect(designs.get("fra-courbet-v1")!.nationId).toBe("FRA");
+      expect(designs.get("fra-courbet-v1")!.nationId).toBe("france");
     } finally {
       fixture.cleanup();
     }
@@ -731,9 +634,9 @@ describe("CampaignCompiler", () => {
         fixture.path,
         "designs.yaml",
         `
-- designId: "gbr-dreadnought-v1"
+- designId: "uk-dreadnought-v1"
   designFamilyId: "dreadnought"
-  nationId: "GBR"
+  nationId: "uk"
   className: "Dreadnought-class"
   hullType: "battleship"
   displacementKg: 18000
@@ -749,14 +652,14 @@ describe("CampaignCompiler", () => {
         fixture.path,
         "fleets.yaml",
         `
-- id: "fleet-gbr-home"
-  nationId: "GBR"
+- id: "fleet-uk-home"
+  nationId: "uk"
   name: "Home Fleet"
   locationAreaId: "lon"
   ships:
     - id: "ship-hms-dreadnought"
       name: "HMS Dreadnought"
-      designVersionId: "gbr-dreadnought-v1"
+      designVersionId: "uk-dreadnought-v1"
       classId: "battleship"
       hitPoints: 120
       maxHitPoints: 120
@@ -775,27 +678,12 @@ describe("CampaignCompiler", () => {
 
       const output = compiler.compile(
         {
-          compilerInput: {
-            manifestPath: "pack.json",
-            contentDir: fixture.path,
-            rulesetFiles: ["rulesets.yaml"],
-            countryFiles: ["countries.yaml"],
-            areaFiles: ["areas.yaml"],
-            routeFiles: ["routes.yaml"],
-            possessionFiles: ["possessions.yaml"],
-            portFiles: ["ports.yaml"],
-            technologyFiles: ["technologies.yaml"],
-          },
+          ...minimalInput(fixture.path),
           campaignFiles: {
+            ...minimalInput(fixture.path).campaignFiles,
             fleetFiles: ["fleets.yaml"],
-            economyFiles: ["economies.yaml"],
-            constructionFiles: ["constructions.yaml"],
-            diplomacyFiles: ["diplomacy.yaml"],
-            researchFiles: ["research.yaml"],
             designFiles: ["designs.yaml"],
           },
-          rulesetVersion: "1.0",
-          compatibilityVersion: "0.1.0",
         },
         signal,
         collector,
@@ -804,11 +692,11 @@ describe("CampaignCompiler", () => {
       expect(collector.hasErrors).toBe(false);
       expect(output).toBeDefined();
 
-      const gbr = output!.state.snapshot.nations.get("GBR")!;
-      const ship = gbr.fleets[0]!.ships[0]!;
+      const uk = output!.state.snapshot.nations.get("uk")!;
+      const ship = uk.fleets[0]!.ships[0]!;
       // Links to the compiled design.
-      expect(ship.designVersionId).toBe("gbr-dreadnought-v1");
-      expect(output!.state.snapshot.designs.has("gbr-dreadnought-v1")).toBe(true);
+      expect(ship.designVersionId).toBe("uk-dreadnought-v1");
+      expect(output!.state.snapshot.designs.has("uk-dreadnought-v1")).toBe(true);
     } finally {
       fixture.cleanup();
     }

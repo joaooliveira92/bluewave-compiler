@@ -17,6 +17,9 @@
     "@bluewave/content-compiler": "workspace:*",
     "yaml": "^2.7.0"
   },
+  "devDependencies": {
+    "@bluewave/test-support": "workspace:*"
+  },
   "scripts": {
     "build": "tsc -b",
     "dev": "tsc -b --watch",

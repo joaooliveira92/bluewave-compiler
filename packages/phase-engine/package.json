@@ -21,6 +21,9 @@
     "@bluewave/persistence": "workspace:*",
     "@bluewave/content-schema": "workspace:*"
   },
+  "devDependencies": {
+    "@bluewave/test-support": "workspace:*"
+  },
   "scripts": {
     "build": "tsc -b",
     "dev": "tsc -b --watch",

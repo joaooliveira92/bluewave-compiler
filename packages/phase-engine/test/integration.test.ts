@@ -11,6 +11,7 @@ import { MonthExecutor, ReplayVerifier, PhaseEngine, PhaseRegistry } from "../sr
 import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
+import { nationsYaml } from "@bluewave/test-support";
 
 const FIXTURE = {
   pack: JSON.stringify({
@@ -30,27 +31,30 @@ const FIXTURE = {
 
   rulesets: `- id: "core"\n  name: "Core Rules"\n  version: "1.0"\n`,
 
-  countries: `- id: "GBR"\n  name: "United Kingdom"\n  tag: "GBR"\n  isPlayable: true\n- id: "FRA"\n  name: "France"\n  tag: "FRA"\n  isPlayable: false\n`,
+  countries: nationsYaml([
+    { id: "uk", tag: "GBR", name: "United Kingdom", isPlayable: true },
+    { id: "france", tag: "FRA", name: "France" },
+  ]),
 
-  areas: `- id: "lon"\n  name: "London"\n  type: "land"\n  controller: "GBR"\n- id: "par"\n  name: "Paris"\n  type: "land"\n  controller: "FRA"\n- id: "eng_ch"\n  name: "English Channel"\n  type: "sea"\n`,
+  areas: `- id: "lon"\n  name: "London"\n  type: "land"\n  controller: "uk"\n- id: "par"\n  name: "Paris"\n  type: "land"\n  controller: "france"\n- id: "eng_ch"\n  name: "English Channel"\n  type: "sea"\n`,
 
   routes: `- id: "lon-par"\n  from: "lon"\n  to: "par"\n  type: "sea"\n  distance: 300\n- id: "lon-eng_ch"\n  from: "lon"\n  to: "eng_ch"\n  type: "sea"\n  distance: 50\n- id: "par-eng_ch"\n  from: "par"\n  to: "eng_ch"\n  type: "sea"\n  distance: 100\n`,
 
-  possessions: `- id: "gbr-lon"\n  countryId: "GBR"\n  areaId: "lon"\n- id: "fra-par"\n  countryId: "FRA"\n  areaId: "par"\n`,
+  possessions: `- id: "uk-lon"\n  nationId: "uk"\n  areaId: "lon"\n- id: "fra-par"\n  nationId: "france"\n  areaId: "par"\n`,
 
-  ports: `- id: "port-lon"\n  name: "Port of London"\n  areaId: "lon"\n  countryId: "GBR"\n  level: 5\n- id: "port-par"\n  name: "Port of Paris"\n  areaId: "par"\n  countryId: "FRA"\n  level: 3\n`,
+  ports: `- id: "port-lon"\n  name: "Port of London"\n  areaId: "lon"\n  nationId: "uk"\n  level: 5\n- id: "port-par"\n  name: "Port of Paris"\n  areaId: "par"\n  nationId: "france"\n  level: 3\n`,
 
   technologies: `- id: "basic_steam"\n  name: "Basic Steam Turbine"\n  category: "propulsion"\n  cost: 100\n  year: 1880\n- id: "advanced_steam"\n  name: "Advanced Steam Turbine"\n  category: "propulsion"\n  prerequisites:\n    - { techId: "basic_steam" }\n  cost: 200\n  year: 1900\n`,
 
-  fleets: `- id: "fleet-gbr-home"\n  nationId: "GBR"\n  name: "Home Fleet"\n  locationAreaId: "lon"\n  ships:\n    - id: "ship-hms-dreadnought"\n      name: "HMS Dreadnought"\n      classId: "battleship"\n      hitPoints: 100\n      maxHitPoints: 100\n      speed: 21\n      firepower: 10\n      armor: 12\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n    - id: "ship-hms-invincible"\n      name: "HMS Invincible"\n      classId: "battlecruiser"\n      hitPoints: 80\n      maxHitPoints: 80\n      speed: 25\n      firepower: 8\n      armor: 6\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n- id: "fleet-fra-atlantic"\n  nationId: "FRA"\n  name: "Atlantic Fleet"\n  locationAreaId: "par"\n  ships:\n    - id: "ship-fs-courbet"\n      name: "FS Courbet"\n      classId: "battleship"\n      hitPoints: 90\n      maxHitPoints: 90\n      speed: 20\n      firepower: 9\n      armor: 11\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n`,
+  fleets: `- id: "fleet-uk-home"\n  nationId: "uk"\n  name: "Home Fleet"\n  locationAreaId: "lon"\n  ships:\n    - id: "ship-hms-dreadnought"\n      name: "HMS Dreadnought"\n      classId: "battleship"\n      hitPoints: 100\n      maxHitPoints: 100\n      speed: 21\n      firepower: 10\n      armor: 12\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n    - id: "ship-hms-invincible"\n      name: "HMS Invincible"\n      classId: "battlecruiser"\n      hitPoints: 80\n      maxHitPoints: 80\n      speed: 25\n      firepower: 8\n      armor: 6\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n- id: "fleet-fra-atlantic"\n  nationId: "france"\n  name: "Atlantic Fleet"\n  locationAreaId: "par"\n  ships:\n    - id: "ship-fs-courbet"\n      name: "FS Courbet"\n      classId: "battleship"\n      hitPoints: 90\n      maxHitPoints: 90\n      speed: 20\n      firepower: 9\n      armor: 11\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n`,
 
-  economies: `- nationId: "GBR"\n  treasury: 800\n  income: 150\n  expenses: 75\n- nationId: "FRA"\n  treasury: 600\n  income: 120\n  expenses: 60\n`,
+  economies: `- nationId: "uk"\n  treasury: 800\n  income: 150\n  expenses: 75\n- nationId: "france"\n  treasury: 600\n  income: 120\n  expenses: 60\n`,
 
-  constructions: `- id: "con-gbr-ship-battleship2"\n  nationId: "GBR"\n  type: "ship"\n  targetId: "ship-hms-thunderer"\n  totalWork: 200\n  completedWork: 50\n  startedAt: "1880-01"\n`,
+  constructions: `- id: "con-gbr-ship-battleship2"\n  nationId: "uk"\n  type: "ship"\n  targetId: "ship-hms-thunderer"\n  totalWork: 200\n  completedWork: 50\n  startedAt: "1880-01"\n`,
 
-  diplomacy: `- nationA: "GBR"\n  nationB: "FRA"\n  relation: "neutral"\n  since: "1880-01"\n`,
+  diplomacy: `- nationA: "uk"\n  nationB: "france"\n  relation: "neutral"\n  since: "1880-01"\n`,
 
-  research: `- nationId: "GBR"\n  currentProjectTechId: "basic_steam"\n  researchBudget: 100\n  fieldPriorities:\n    MACHINERY: 4\n    HULL_CONSTRUCTION: 2\n    GUNNERY: 1\n  technologies:\n    - { techId: "basic_steam", investedPoints: 30, completed: false }\n- nationId: "FRA"\n  technologies: []\n`,
+  research: `- nationId: "uk"\n  currentProjectTechId: "basic_steam"\n  researchBudget: 100\n  fieldPriorities:\n    MACHINERY: 4\n    HULL_CONSTRUCTION: 2\n    GUNNERY: 1\n  technologies:\n    - { techId: "basic_steam", investedPoints: 30, completed: false }\n- nationId: "france"\n  technologies: []\n`,
 };
 
 function createFixtureDir(): { path: string; cleanup: () => void } {
@@ -209,10 +213,10 @@ describe("Full-slice integration", () => {
     expect(state1.rawHash).toHaveLength(64);
   });
 
-  // 2. Deterministic month — same seed/commands yields identical 5 ledger hashes
+  // 2. Deterministic month â€” same seed/commands yields identical 5 ledger hashes
   it("2. Same opening snapshot and commands yield identical closing snapshot, command, event, financial, and random-decision ledger hashes", () => {
     const executor = new MonthExecutor();
-    const cmd = makeBudgetCommand(snapshot, "GBR", "con-gbr-ship-battleship2", SafeInt(100));
+    const cmd = makeBudgetCommand(snapshot, "uk", "con-gbr-ship-battleship2", SafeInt(100));
 
     const run = () =>
       executor.execute(snapshot, [cmd], "deterministic-seed", new DiagnosticCollector());
@@ -259,7 +263,7 @@ describe("Full-slice integration", () => {
   // 4. Replay reproduces authoritative hashes
   it("4. Child-process replay reproduces all authoritative hashes", () => {
     const executor = new MonthExecutor();
-    const cmd = makeBudgetCommand(snapshot, "GBR", "con-gbr-ship-battleship2", SafeInt(100));
+    const cmd = makeBudgetCommand(snapshot, "uk", "con-gbr-ship-battleship2", SafeInt(100));
     const collector = new DiagnosticCollector();
 
     const original = executor.execute(snapshot, [cmd], "replay-seed", collector);
@@ -284,10 +288,10 @@ describe("Full-slice integration", () => {
   // 5. Stale expected snapshot hash is rejected
   it("5. Stale expected snapshot hash is rejected", () => {
     const lifecycle = new CommandLifecycle();
-    const slot = snapshot.slots.find((s) => s.nationId === "GBR")!;
+    const slot = snapshot.slots.find((s) => s.nationId === "uk")!;
     const idempotencyMap = new CommandIdempotencyMap();
 
-    const cmd = makeBudgetCommand(snapshot, "GBR", "con-gbr-ship-battleship2", SafeInt(50), {
+    const cmd = makeBudgetCommand(snapshot, "uk", "con-gbr-ship-battleship2", SafeInt(50), {
       expectedSnapshotHash: "0".repeat(64),
     });
 
@@ -299,10 +303,10 @@ describe("Full-slice integration", () => {
   // 6. Idempotency
   it("6. Same idempotency key and canonical command returns original result; different command returns IDEMPOTENCY_CONFLICT", () => {
     const lifecycle = new CommandLifecycle();
-    const slot = snapshot.slots.find((s) => s.nationId === "GBR")!;
+    const slot = snapshot.slots.find((s) => s.nationId === "uk")!;
     const idempotencyMap = new CommandIdempotencyMap();
 
-    const cmd = makeBudgetCommand(snapshot, "GBR", "con-gbr-ship-battleship2", SafeInt(50));
+    const cmd = makeBudgetCommand(snapshot, "uk", "con-gbr-ship-battleship2", SafeInt(50));
 
     const firstResult = lifecycle.process(cmd, snapshot, slot, idempotencyMap);
     expect(firstResult.type).toBe("success");
@@ -316,7 +320,7 @@ describe("Full-slice integration", () => {
       commandId: "cmd-conflict-different",
       body: {
         type: "budget_project",
-        nationId: "GBR",
+        nationId: "uk",
         projectId: "con-gbr-ship-battleship2",
         budget: SafeInt(999),
       },
@@ -328,7 +332,7 @@ describe("Full-slice integration", () => {
   // 7. Unlocked/invalid command
   it("7. An unlocked, invalid, or unreserved command cannot resolve", () => {
     const lifecycle = new CommandLifecycle();
-    const slot = snapshot.slots.find((s) => s.nationId === "GBR")!;
+    const slot = snapshot.slots.find((s) => s.nationId === "uk")!;
     const idempotencyMap = new CommandIdempotencyMap();
 
     const cmdInvalidNation = makeBudgetCommand(
@@ -341,8 +345,8 @@ describe("Full-slice integration", () => {
     expect(result.type).toBe("rejected");
     expect(result.diagnostic.code).toBe("UNAUTHORIZED");
 
-    const fraSlot = snapshot.slots.find((s) => s.nationId === "FRA")!;
-    const fraTreasury = snapshot.nations.get("FRA")!.treasury as number;
+    const fraSlot = snapshot.slots.find((s) => s.nationId === "france")!;
+    const fraTreasury = snapshot.nations.get("france")!.treasury as number;
     const cmdFra: CommandEnvelope<BudgetProjectCommand> = {
       commandId: "cmd-fra-overbudget",
       version: "0.1.0",
@@ -351,7 +355,7 @@ describe("Full-slice integration", () => {
       timestamp: "integration-test",
       body: {
         type: "budget_project",
-        nationId: "FRA",
+        nationId: "france",
         projectId: "con-gbr-ship-battleship2",
         budget: SafeInt(fraTreasury + 100),
       },
@@ -365,20 +369,15 @@ describe("Full-slice integration", () => {
     const executor = new MonthExecutor();
     const collector = new DiagnosticCollector();
 
-    const budgetCmd = makeBudgetCommand(
-      snapshot,
-      "GBR",
-      "con-gbr-ship-battleship2",
-      SafeInt(99999),
-    );
+    const budgetCmd = makeBudgetCommand(snapshot, "uk", "con-gbr-ship-battleship2", SafeInt(99999));
     const result = executor.execute(snapshot, [budgetCmd], "treasury-test", collector);
 
-    const gbr = result.finalSnapshot.nations.get("GBR")!;
+    const gbr = result.finalSnapshot.nations.get("uk")!;
     expect(gbr.treasury as number).toBeGreaterThanOrEqual(0);
 
     const entries = result.financialLedger.all;
-    const gbrEntries = entries.filter((e) => e.nationId === "GBR");
-    let runningBalance = snapshot.nations.get("GBR")!.treasury as number;
+    const gbrEntries = entries.filter((e) => e.nationId === "uk");
+    let runningBalance = snapshot.nations.get("uk")!.treasury as number;
     for (const entry of gbrEntries) {
       expect(entry.newBalance as number).toBeGreaterThanOrEqual(0);
       runningBalance = entry.newBalance as number;
@@ -390,15 +389,15 @@ describe("Full-slice integration", () => {
     const executor = new MonthExecutor();
     const collector = new DiagnosticCollector();
 
-    const cmd = makeBudgetCommand(snapshot, "GBR", "con-gbr-ship-battleship2", SafeInt(50));
+    const cmd = makeBudgetCommand(snapshot, "uk", "con-gbr-ship-battleship2", SafeInt(50));
     const result = executor.execute(snapshot, [cmd], "construction-test", collector);
 
-    const gbr = result.finalSnapshot.nations.get("GBR")!;
+    const gbr = result.finalSnapshot.nations.get("uk")!;
     for (const project of gbr.constructionProjects) {
       expect(project.completedWork as number).toBeLessThanOrEqual(project.totalWork as number);
     }
 
-    const gbrInitial = snapshot.nations.get("GBR")!;
+    const gbrInitial = snapshot.nations.get("uk")!;
     const initialProj = gbrInitial.constructionProjects.find(
       (p) => p.id === "con-gbr-ship-battleship2",
     )!;
@@ -507,7 +506,7 @@ describe("Full-slice integration", () => {
   // 11. RNG stability
   it("11. RNG decisions stable when unrelated queries inserted", () => {
     const executor = new MonthExecutor();
-    const cmd = makeBudgetCommand(snapshot, "GBR", "con-gbr-ship-battleship2", SafeInt(50));
+    const cmd = makeBudgetCommand(snapshot, "uk", "con-gbr-ship-battleship2", SafeInt(50));
 
     const result1 = executor.execute(snapshot, [cmd], "rng-stable-seed", new DiagnosticCollector());
     const hash1 = result1.randomLedger.hash();
@@ -782,14 +781,14 @@ describe("Full-slice integration", () => {
   // 17. Invariants run after every authoritative transition and at closing snapshot
   it("17. Invariants run after every authoritative transition and at closing snapshot", () => {
     const executor = new MonthExecutor();
-    const cmd = makeBudgetCommand(snapshot, "GBR", "con-gbr-ship-battleship2", SafeInt(100));
+    const cmd = makeBudgetCommand(snapshot, "uk", "con-gbr-ship-battleship2", SafeInt(100));
     const collector = new DiagnosticCollector();
 
     const result = executor.execute(snapshot, [cmd], "invariant-test", collector);
 
     expect(result.success).toBe(true);
 
-    const gbr = result.finalSnapshot.nations.get("GBR")!;
+    const gbr = result.finalSnapshot.nations.get("uk")!;
     expect(gbr.treasury as number).toBeGreaterThanOrEqual(0);
 
     for (const project of gbr.constructionProjects) {

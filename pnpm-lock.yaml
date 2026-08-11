@@ -81,6 +81,9 @@ importers:
         specifier: workspace:*
         version: link:../../packages/diagnostics
     devDependencies:
+      '@bluewave/test-support':
+        specifier: workspace:*
+        version: link:../../packages/test-support
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
@@ -123,6 +126,10 @@ importers:
       yaml:
         specifier: ^2.7.0
         version: 2.9.0
+    devDependencies:
+      '@bluewave/test-support':
+        specifier: workspace:*
+        version: link:../test-support
 
   packages/combat:
     dependencies:
@@ -240,6 +247,10 @@ importers:
       '@bluewave/random':
         specifier: workspace:*
         version: link:../random
+    devDependencies:
+      '@bluewave/test-support':
+        specifier: workspace:*
+        version: link:../test-support
 
   packages/deterministic:
     dependencies:
@@ -315,6 +326,10 @@ importers:
       '@bluewave/random':
         specifier: workspace:*
         version: link:../random
+    devDependencies:
+      '@bluewave/test-support':
+        specifier: workspace:*
+        version: link:../test-support
 
   packages/random:
     dependencies:

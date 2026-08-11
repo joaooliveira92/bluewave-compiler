@@ -9,6 +9,7 @@ import { MonthExecutor, ReplayVerifier } from "@bluewave/phase-engine";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
+import { nationsYaml } from "@bluewave/test-support";
 
 const FIXTURE = {
   pack: JSON.stringify({
@@ -26,17 +27,20 @@ const FIXTURE = {
     },
   }),
   rulesets: `- id: "core"\n  name: "Core Rules"\n  version: "1.0"\n`,
-  countries: `- id: "GBR"\n  name: "United Kingdom"\n  tag: "GBR"\n  isPlayable: true\n- id: "FRA"\n  name: "France"\n  tag: "FRA"\n  isPlayable: false\n`,
-  areas: `- id: "lon"\n  name: "London"\n  type: "land"\n  controller: "GBR"\n- id: "par"\n  name: "Paris"\n  type: "land"\n  controller: "FRA"\n- id: "eng_ch"\n  name: "English Channel"\n  type: "sea"\n`,
+  countries: nationsYaml([
+    { id: "uk", tag: "GBR", name: "United Kingdom", isPlayable: true },
+    { id: "france", tag: "FRA", name: "France" },
+  ]),
+  areas: `- id: "lon"\n  name: "London"\n  type: "land"\n  controller: "uk"\n- id: "par"\n  name: "Paris"\n  type: "land"\n  controller: "france"\n- id: "eng_ch"\n  name: "English Channel"\n  type: "sea"\n`,
   routes: `- id: "lon-par"\n  from: "lon"\n  to: "par"\n  type: "sea"\n  distance: 300\n- id: "lon-eng_ch"\n  from: "lon"\n  to: "eng_ch"\n  type: "sea"\n  distance: 50\n- id: "par-eng_ch"\n  from: "par"\n  to: "eng_ch"\n  type: "sea"\n  distance: 100\n`,
-  possessions: `- id: "gbr-lon"\n  countryId: "GBR"\n  areaId: "lon"\n- id: "fra-par"\n  countryId: "FRA"\n  areaId: "par"\n`,
-  ports: `- id: "port-lon"\n  name: "Port of London"\n  areaId: "lon"\n  countryId: "GBR"\n  level: 5\n- id: "port-par"\n  name: "Port of Paris"\n  areaId: "par"\n  countryId: "FRA"\n  level: 3\n`,
+  possessions: `- id: "gbr-lon"\n  nationId: "uk"\n  areaId: "lon"\n- id: "fra-par"\n  nationId: "france"\n  areaId: "par"\n`,
+  ports: `- id: "port-lon"\n  name: "Port of London"\n  areaId: "lon"\n  nationId: "uk"\n  level: 5\n- id: "port-par"\n  name: "Port of Paris"\n  areaId: "par"\n  nationId: "france"\n  level: 3\n`,
   technologies: `- id: "basic_steam"\n  name: "Basic Steam Turbine"\n  category: "propulsion"\n  cost: 100\n  year: 1880\n- id: "advanced_steam"\n  name: "Advanced Steam Turbine"\n  category: "propulsion"\n  prerequisites:\n    - { techId: "basic_steam" }\n  cost: 200\n  year: 1900\n`,
-  fleets: `- id: "fleet-gbr-home"\n  nationId: "GBR"\n  name: "Home Fleet"\n  locationAreaId: "lon"\n  ships:\n    - id: "ship-hms-dreadnought"\n      name: "HMS Dreadnought"\n      classId: "battleship"\n      hitPoints: 100\n      maxHitPoints: 100\n      speed: 21\n      firepower: 10\n      armor: 12\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n    - id: "ship-hms-invincible"\n      name: "HMS Invincible"\n      classId: "battlecruiser"\n      hitPoints: 80\n      maxHitPoints: 80\n      speed: 25\n      firepower: 8\n      armor: 6\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n- id: "fleet-fra-atlantic"\n  nationId: "FRA"\n  name: "Atlantic Fleet"\n  locationAreaId: "par"\n  ships:\n    - id: "ship-fs-courbet"\n      name: "FS Courbet"\n      classId: "battleship"\n      hitPoints: 90\n      maxHitPoints: 90\n      speed: 20\n      firepower: 9\n      armor: 11\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n`,
-  economies: `- nationId: "GBR"\n  treasury: 800\n  income: 150\n  expenses: 75\n- nationId: "FRA"\n  treasury: 600\n  income: 120\n  expenses: 60\n`,
-  constructions: `- id: "con-gbr-ship-battleship2"\n  nationId: "GBR"\n  type: "ship"\n  targetId: "ship-hms-thunderer"\n  totalWork: 200\n  completedWork: 50\n  startedAt: "1880-01"\n`,
-  diplomacy: `- nationA: "GBR"\n  nationB: "FRA"\n  relation: "neutral"\n  since: "1880-01"\n`,
-  research: `- nationId: "GBR"\n  currentProjectTechId: "basic_steam"\n  technologies:\n    - { techId: "basic_steam", investedPoints: 30, completed: false }\n- nationId: "FRA"\n  technologies: []\n`,
+  fleets: `- id: "fleet-gbr-home"\n  nationId: "uk"\n  name: "Home Fleet"\n  locationAreaId: "lon"\n  ships:\n    - id: "ship-hms-dreadnought"\n      name: "HMS Dreadnought"\n      classId: "battleship"\n      hitPoints: 100\n      maxHitPoints: 100\n      speed: 21\n      firepower: 10\n      armor: 12\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n    - id: "ship-hms-invincible"\n      name: "HMS Invincible"\n      classId: "battlecruiser"\n      hitPoints: 80\n      maxHitPoints: 80\n      speed: 25\n      firepower: 8\n      armor: 6\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n- id: "fleet-fra-atlantic"\n  nationId: "france"\n  name: "Atlantic Fleet"\n  locationAreaId: "par"\n  ships:\n    - id: "ship-fs-courbet"\n      name: "FS Courbet"\n      classId: "battleship"\n      hitPoints: 90\n      maxHitPoints: 90\n      speed: 20\n      firepower: 9\n      armor: 11\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n`,
+  economies: `- nationId: "uk"\n  treasury: 800\n  income: 150\n  expenses: 75\n- nationId: "france"\n  treasury: 600\n  income: 120\n  expenses: 60\n`,
+  constructions: `- id: "con-gbr-ship-battleship2"\n  nationId: "uk"\n  type: "ship"\n  targetId: "ship-hms-thunderer"\n  totalWork: 200\n  completedWork: 50\n  startedAt: "1880-01"\n`,
+  diplomacy: `- nationA: "uk"\n  nationB: "france"\n  relation: "neutral"\n  since: "1880-01"\n`,
+  research: `- nationId: "uk"\n  currentProjectTechId: "basic_steam"\n  technologies:\n    - { techId: "basic_steam", investedPoints: 30, completed: false }\n- nationId: "france"\n  technologies: []\n`,
 };
 
 function writeFile(base: string, rel: string, content: string): void {
@@ -174,7 +178,7 @@ function run(): void {
 
     // Step 2: Execute a month
     const executor = new MonthExecutor();
-    const cmd = makeBudgetCommand(snapshot, "GBR", "con-gbr-ship-battleship2", SafeInt(100));
+    const cmd = makeBudgetCommand(snapshot, "uk", "con-gbr-ship-battleship2", SafeInt(100));
     const collector = new DiagnosticCollector();
     const monthResult = executor.execute(snapshot, [cmd], "deterministic-seed", collector);
 
