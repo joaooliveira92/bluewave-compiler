@@ -7,11 +7,16 @@ Implement the approved milestone brief supplied with this prompt.
 - Canonical specification: `README.md`
 - Permanent contract: `.ai/ENGINEERING-CONTRACT.md`
 - Operating rules: `.ai/AUTONOMOUS-AGENT.md`
+- Orchestration pipeline: `.ai/ORCHESTRATION.md` (four subagent roles + validation gate)
 - Requirement index: `.ai/REQUIREMENTS.md`
 - Approved ADRs
 - One approved milestone brief based on `.ai/templates/milestone-brief.md`
 
 ## Procedure
+
+The orchestrator executes this procedure through the four subagent roles
+(`.opencode/agents/`: spec-creator → research → implementator → reviewer) and
+runs the orchestrator-owned validation gate (ORCHESTRATION.md) before committing.
 
 ### 1. Inspect
 
