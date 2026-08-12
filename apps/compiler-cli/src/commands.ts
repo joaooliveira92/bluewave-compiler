@@ -9,10 +9,14 @@ import {
   createEnvelope,
   verifyEnvelope,
 } from "@bluewave/deterministic";
-import { CampaignCompiler, type CampaignCompilerInput } from "@bluewave/campaign";
+import {
+  CampaignCompiler,
+  type CampaignCompilerInput,
+  type CampaignFiles,
+} from "@bluewave/campaign";
 import { SaveStore } from "@bluewave/persistence";
 import type { CampaignState, CampaignSnapshot, NationState } from "@bluewave/campaign";
-import type { CommandEnvelope, BudgetProjectCommand, CommandOutcome } from "@bluewave/commands";
+import type { CommandEnvelope, CommandBody, CommandOutcome } from "@bluewave/commands";
 import { CommandLedger } from "@bluewave/commands";
 import { MonthExecutor, ReplayVerifier } from "@bluewave/phase-engine";
 
@@ -189,22 +193,18 @@ export function runCompare(options: CliOptions): ExitCategory {
 export interface CampaignCliOptions extends CliOptions {
   saveDir: string;
   seed: string;
+  commandsPath?: string;
 }
 
 export function runCampaignCompile(options: CampaignCliOptions): ExitCategory {
   const collector = new DiagnosticCollector();
   const compilerInput = buildInput(options, collector);
   if (!compilerInput) return "usage-error";
+  const campaignFiles = buildCampaignFiles(options, collector);
+  if (!campaignFiles) return "usage-error";
   const campaignInput: CampaignCompilerInput = {
     compilerInput,
-    campaignFiles: {
-      fleetFiles: [],
-      economyFiles: [],
-      constructionFiles: [],
-      diplomacyFiles: [],
-      researchFiles: [],
-      designFiles: [],
-    },
+    campaignFiles,
     rulesetVersion: "1.0.0",
     compatibilityVersion: "1.0.0",
   };
@@ -216,7 +216,25 @@ export function runCampaignCompile(options: CampaignCliOptions): ExitCategory {
   if (!output) return "compile-error";
   const outDir = resolve(options.outputDir);
   mkdirSync(outDir, { recursive: true });
-  const stateJson = canonicalSerialize(output.state);
+  // canonicalSerialize (JSON.stringify) silently drops Map-typed fields
+  // (nations/designs/designFamilies) to `{}`, so they are converted to plain
+  // objects before anything is hashed or written. @bluewave/persistence's
+  // SaveStore also treats a save as corrupt unless
+  // rawHash === sha256(canonicalSerialize({snapshot, envelope})); the campaign
+  // compiler's own rawHash covers `snapshot` only, so both are recomputed here
+  // against the persistable snapshot to match what SaveStore verifies on load.
+  const persistableSnapshot = serializeCampaignSnapshot(output.state.snapshot);
+  const envelope = createEnvelope(
+    "campaign-snapshot",
+    campaignInput.compatibilityVersion,
+    persistableSnapshot,
+  );
+  const state: CampaignState = {
+    snapshot: persistableSnapshot,
+    envelope,
+    rawHash: persistedStateHash(persistableSnapshot, envelope),
+  };
+  const stateJson = canonicalSerialize(state);
   const statePath = resolve(outDir, "campaign-state.json");
   const tmpPath = statePath + ".tmp";
   try {
@@ -230,14 +248,14 @@ export function runCampaignCompile(options: CampaignCliOptions): ExitCategory {
     printResult(
       JSON.stringify({
         contentHash: output.contentHash,
-        rawHash: output.state.rawHash,
+        rawHash: state.rawHash,
         path: statePath,
       }),
       "human",
     );
   } else {
     printResult(`Campaign compiled successfully`, "human");
-    printResult(`  State: ${statePath} (SHA-256: ${output.state.rawHash})`, "human");
+    printResult(`  State: ${statePath} (SHA-256: ${state.rawHash})`, "human");
     printResult(`  Content hash: ${output.contentHash}`, "human");
   }
   return "success";
@@ -304,7 +322,7 @@ export function runCampaignLoad(options: CampaignCliOptions, saveDir: string): E
 export function runTurnExecute(
   options: CampaignCliOptions,
   saveDir: string,
-  commands?: CommandEnvelope<BudgetProjectCommand>[],
+  commands?: CommandEnvelope<CommandBody>[],
 ): ExitCategory {
   const collector = new DiagnosticCollector();
   const store = new SaveStore();
@@ -313,21 +331,28 @@ export function runTurnExecute(
     printDiagnostics(collector, options.outputMode);
     return "validation-error";
   }
+  const revivedSnapshot = reviveCampaignSnapshot(state.snapshot);
   const executor = new MonthExecutor();
   const randomSeed = options.seed || "default-seed";
   const cmdList = commands ?? [];
-  const result = executor.execute(state.snapshot, cmdList, randomSeed, collector);
+  const result = executor.execute(revivedSnapshot, cmdList, randomSeed, collector);
   printDiagnostics(collector, options.outputMode);
   if (collector.hasErrors) return "compile-error";
   if (!result.success) return "compile-error";
+  // ReplayVerifier independently recomputes this exact hash (Map-aware) from
+  // the live post-execution snapshot, so it must be captured before the
+  // Map->plain-object conversion below.
+  const finalSnapshotHash = snapshotHash(result.finalSnapshot);
+  const persistableSnapshot = serializeCampaignSnapshot(result.finalSnapshot);
+  const newEnvelope = createEnvelope(
+    "campaign-snapshot",
+    state.snapshot.compatibilityVersion,
+    persistableSnapshot,
+  );
   const newState: CampaignState = {
-    snapshot: result.finalSnapshot,
-    envelope: createEnvelope(
-      "campaign-snapshot",
-      state.snapshot.compatibilityVersion,
-      result.finalSnapshot,
-    ),
-    rawHash: snapshotHash(result.finalSnapshot),
+    snapshot: persistableSnapshot,
+    envelope: newEnvelope,
+    rawHash: persistedStateHash(persistableSnapshot, newEnvelope),
   };
   const saveResult = store.save(newState, saveDir);
   const commandsDir = join(saveResult.savePath, "..", saveResult.metadata.saveId);
@@ -354,16 +379,16 @@ export function runTurnExecute(
   }
   const finalHashTmp = finalHashPath + ".tmp";
   try {
-    writeFileSync(finalHashTmp, JSON.stringify({ finalSnapshotHash: newState.rawHash }), "utf8");
+    writeFileSync(finalHashTmp, JSON.stringify({ finalSnapshotHash }), "utf8");
     rmSync(finalHashPath, { force: true });
-    writeFileSync(finalHashPath, JSON.stringify({ finalSnapshotHash: newState.rawHash }), "utf8");
+    writeFileSync(finalHashPath, JSON.stringify({ finalSnapshotHash }), "utf8");
   } finally {
     rmSync(finalHashTmp, { force: true });
   }
   if (options.outputMode === "json") {
     printResult(
       JSON.stringify({
-        snapshotHash: newState.rawHash,
+        snapshotHash: finalSnapshotHash,
         commandLedgerHash: result.commandLedger.hash(),
         eventLedgerHash: result.eventLedger.hash(),
         randomLedgerHash: result.randomLedger.hash(),
@@ -376,7 +401,7 @@ export function runTurnExecute(
   } else {
     printResult(`Turn executed`, "human");
     printResult(`  Turn: ${String(result.finalSnapshot.turnNumber)}`, "human");
-    printResult(`  Snapshot Hash: ${newState.rawHash}`, "human");
+    printResult(`  Snapshot Hash: ${finalSnapshotHash}`, "human");
     printResult(`  Command Ledger Hash: ${result.commandLedger.hash()}`, "human");
     printResult(`  Event Ledger Hash: ${result.eventLedger.hash()}`, "human");
     printResult(`  Random Ledger Hash: ${result.randomLedger.hash()}`, "human");
@@ -389,14 +414,26 @@ export function runTurnExecute(
 export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCategory {
   const collector = new DiagnosticCollector();
   const store = new SaveStore();
-  const state = store.load(saveDir, collector);
-  if (!state) {
-    printDiagnostics(collector, options.outputMode);
-    return "validation-error";
-  }
   const activeSaveId = store.getActiveSaveId(saveDir);
   if (!activeSaveId) {
     printResult(`No active save found in ${saveDir}`, "human");
+    return "validation-error";
+  }
+  // commands.json/ledger/final-hash in the active save's directory describe
+  // the turn that produced *that* save; replaying them must start from the
+  // snapshot they were originally applied to — the *previous* save — not the
+  // active (already post-turn) one.
+  const previousSaveId = store.getPreviousSaveId(saveDir);
+  if (!previousSaveId) {
+    printResult(
+      `No previous save found for ${activeSaveId} in ${saveDir} (nothing to replay from)`,
+      "human",
+    );
+    return "validation-error";
+  }
+  const state = store.loadById(saveDir, previousSaveId, collector);
+  if (!state) {
+    printDiagnostics(collector, options.outputMode);
     return "validation-error";
   }
   const savePath = join(saveDir, activeSaveId);
@@ -407,11 +444,11 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
     printResult(`No commands found in save ${activeSaveId}`, "human");
     return "validation-error";
   }
-  let commands: CommandEnvelope<BudgetProjectCommand>[];
+  let commands: CommandEnvelope<CommandBody>[];
   try {
     commands = JSON.parse(
       readFileSync(commandsPath, "utf8"),
-    ) as CommandEnvelope<BudgetProjectCommand>[];
+    ) as CommandEnvelope<CommandBody>[];
   } catch {
     printResult(`Failed to parse commands file: ${commandsPath}`, "human");
     return "internal-error";
@@ -440,7 +477,7 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
   const randomSeed = options.seed || "default-seed";
   const verifier = new ReplayVerifier();
   const replayResult = verifier.verify(
-    state.snapshot,
+    reviveCampaignSnapshot(state.snapshot),
     commands,
     originalLedger,
     expectedFinalHash,
@@ -501,7 +538,7 @@ export function buildInput(
   };
   const files = manifest.files ?? {};
   return {
-    manifestPath: "manifest",
+    manifestPath,
     contentDir,
     rulesetFiles: (files.rulesets ?? []).map(safeCheck).map(toAbsolute).map(safePath),
     countryFiles: (files.countries ?? []).map(safeCheck).map(toAbsolute).map(safePath),
@@ -510,6 +547,40 @@ export function buildInput(
     possessionFiles: (files.possessions ?? []).map(safeCheck).map(toAbsolute).map(safePath),
     portFiles: (files.ports ?? []).map(safeCheck).map(toAbsolute).map(safePath),
     technologyFiles: (files.technologies ?? []).map(safeCheck).map(toAbsolute).map(safePath),
+  };
+}
+
+export function buildCampaignFiles(
+  options: CliOptions,
+  collector: DiagnosticCollector,
+): CampaignFiles | undefined {
+  const manifestPath = resolve(options.manifest);
+  const contentDir = resolve(options.contentDir);
+  if (!existsSync(manifestPath)) {
+    collector.addError("USAGE", `Manifest not found: ${manifestPath}`);
+    return undefined;
+  }
+  let manifest: { files?: Record<string, string[]> };
+  try {
+    const manifestContent = readFileSync(manifestPath, "utf8");
+    manifest = JSON.parse(manifestContent);
+  } catch {
+    collector.addError("USAGE", `Failed to parse manifest: ${manifestPath}`);
+    return undefined;
+  }
+  const toAbsolute = (file: string) => resolve(contentDir, file);
+  const safeCheck = (file: string) => {
+    safePath(file);
+    return file;
+  };
+  const files = manifest.files ?? {};
+  return {
+    fleetFiles: (files.fleets ?? []).map(safeCheck).map(toAbsolute).map(safePath),
+    economyFiles: (files.economies ?? []).map(safeCheck).map(toAbsolute).map(safePath),
+    constructionFiles: (files.constructions ?? []).map(safeCheck).map(toAbsolute).map(safePath),
+    diplomacyFiles: (files.diplomacy ?? []).map(safeCheck).map(toAbsolute).map(safePath),
+    researchFiles: (files.research ?? []).map(safeCheck).map(toAbsolute).map(safePath),
+    designFiles: (files.designs ?? []).map(safeCheck).map(toAbsolute).map(safePath),
   };
 }
 
@@ -571,4 +642,88 @@ export function snapshotHash(snapshot: CampaignSnapshot): string {
     compatibilityVersion: snapshot.compatibilityVersion,
   };
   return sha256Hex(canonicalSerialize(hashable));
+}
+
+/**
+ * Matches @bluewave/persistence's SaveStore self-consistency check, which
+ * hashes the full persisted state minus `rawHash` (i.e. `{snapshot, envelope}`
+ * verbatim). A `rawHash` computed any other way (e.g. over `snapshot` alone)
+ * is flagged PERSISTENCE_CORRUPT_SAVE on the very next load.
+ */
+export function persistedStateHash(
+  snapshot: CampaignSnapshot,
+  envelope: ReturnType<typeof createEnvelope>,
+): string {
+  return sha256Hex(canonicalSerialize({ snapshot, envelope }));
+}
+
+/**
+ * @bluewave/persistence stores state as JSON, so `Map`-typed CampaignSnapshot
+ * fields (nations, designs, designFamilies, and each nation's
+ * research.activeCandidates) come back from SaveStore.load() as plain objects,
+ * not Maps — @bluewave/phase-engine requires real Map instances. Revives them
+ * before handing a loaded snapshot to MonthExecutor/ReplayVerifier.
+ */
+export function reviveCampaignSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
+  const nations = toMap<NationState>(snapshot.nations).entries();
+  const revivedNations = new Map(
+    [...nations].map(([id, nation]) => [id, reviveNation(nation)] as const),
+  );
+  return {
+    ...snapshot,
+    nations: revivedNations,
+    designs: toMap(snapshot.designs),
+    designFamilies: toMap(snapshot.designFamilies),
+  };
+}
+
+function reviveNation(nation: NationState): NationState {
+  if (!nation.research) return nation;
+  return {
+    ...nation,
+    research: {
+      ...nation.research,
+      activeCandidates: toMap<string>(nation.research.activeCandidates),
+    },
+  };
+}
+
+function toMap<V>(value: Map<string, V> | Record<string, V> | undefined): Map<string, V> {
+  if (!value) return new Map();
+  if (value instanceof Map) return value;
+  return new Map(Object.entries(value));
+}
+
+/**
+ * Inverse of {@link reviveCampaignSnapshot}: converts Map-typed fields to
+ * plain objects so canonicalSerialize (plain JSON.stringify) can actually
+ * persist their contents instead of silently collapsing them to `{}`.
+ */
+export function serializeCampaignSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
+  const nations: Record<string, NationState> = {};
+  for (const [id, nation] of snapshot.nations) {
+    nations[id] = serializeNation(nation);
+  }
+  return {
+    ...snapshot,
+    nations: nations as unknown as Map<string, NationState>,
+    designs: fromMap(snapshot.designs),
+    designFamilies: fromMap(snapshot.designFamilies),
+  };
+}
+
+function serializeNation(nation: NationState): NationState {
+  if (!nation.research) return nation;
+  return {
+    ...nation,
+    research: {
+      ...nation.research,
+      activeCandidates: fromMap(nation.research.activeCandidates),
+    },
+  };
+}
+
+function fromMap<V>(value: Map<string, V> | undefined): Map<string, V> {
+  if (!value) return {} as unknown as Map<string, V>;
+  return Object.fromEntries(value) as unknown as Map<string, V>;
 }

@@ -163,7 +163,7 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 | Charter brief                | Done        | `.ai/briefs/content-0-production-pack-charter.md`                |
 | CONTENT-1 (M1-era content)   | Done — PASS | `content/production/1880/` authored + deterministically compiled |
 | CONTENT-2 (PRE_WAR tech/design) | Done — PASS | scoping + impl; 25 techs + 11 designs authored, pack `0.2.0` |
-| CONTENT-3 (INTERWAR tech/design) | Not started | scoping PASS 2026-08-12; 24 techs + 10 designs locked; impl next |
+| CONTENT-3 (INTERWAR tech/design) | Done — PASS | scoping PASS + impl PASS 2026-08-12; +24 techs +10 designs authored, pack `0.3.0` |
 
 ### CONTENT-1 — M1-Era Production Content Pack
 
@@ -200,19 +200,23 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 
 ### CONTENT-3 — INTERWAR-Band Technology & Ship-Design Continuation
 
-> **Status (2026-08-12): DONE/PASS (scoping).** Locked the INTERWAR-band
-> (Jan 1920 – Dec 1939) slice of `content/production/1880/`: 24 grounded research
-> techs across 10 supported fields (`category: INTERWAR`, acyclic, seeded on
-> PRE_WAR tails) and 10 real-class design templates (Nelson, King George V,
+> **Status (2026-08-12): DONE/PASS (scoping) → IMPLEMENTED (2026-08-12, PASS).**
+> Locked the INTERWAR-band (Jan 1920 – Dec 1939) slice of `content/production/1880/`:
+> 24 grounded research techs across 10 supported fields (`category: INTERWAR`,
+> acyclic, seeded on PRE_WAR tails) and 10 real-class design templates (Nelson, King George V,
 > North Carolina, Yamato, Bismarck, Scharnhorst, Littorio, Richelieu, Nagato,
 > Myōkō). All `SUPPORTED_MECHANICAL` (Research/Design `ACCEPTED`; no reachable-
 > locked content). Grounded in verified high-trust sources
 > (`docs/research/content-3-interwar-era-tech-and-design.md`; Nelson/NC/KGV/Yamato
 > verified). Deferred (DESIGN-55 §14): AVIATION, CARRIER_OPERATIONS,
 > RADAR_AND_ELECTRONICS, MISSILES, AMPHIBIOUS_OPERATIONS INTERWAR content
-> (M4/M5/$); deployment (DESIGN-25); blockades (B10c). Scoping-only — no engine
-> change, goldens untouched. Next: author the INTERWAR YAML records (impl sprint).
-> Brief `.ai/briefs/content-3-interwar-tech-design.md`; wayfinder
+> (M4/M5/$); deployment (DESIGN-25); blockades (B10c). **Implementation (2026-08-12,
+> PASS):** authored +24 techs +10 designs, pack `0.2.0`→`0.3.0`; production-pack
+> test PASS; compiles deterministically (content `190fa7a9…`, snapshot
+> `2ae3e505…`); full suite 410/410 green minus the pre-existing unrelated
+> `nation.test.ts` import; goldens 8/8 unchanged. Evidence:
+> `.ai/reports/content-3-interwar-tech-design-impl.md`. Brief
+> `.ai/briefs/content-3-interwar-tech-design.md`; wayfinder
 > `.scratch/content-3-interwar-tech-design/`.
 
 > **Status (2026-08-12): IMPLEMENTED — PASS.** Authored the PRE_WAR slice

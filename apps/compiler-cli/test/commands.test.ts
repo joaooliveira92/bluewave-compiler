@@ -50,13 +50,17 @@ const saveStoreMocks = vi.hoisted(() => ({
     hash: "h1",
   })),
   load: vi.fn(),
+  loadById: vi.fn(),
   getActiveSaveId: vi.fn<(saveDir: string) => string | null>(() => "save-1"),
+  getPreviousSaveId: vi.fn<(saveDir: string) => string | null>(() => "save-0"),
 }));
 vi.mock("@bluewave/persistence", () => ({
   SaveStore: class {
     save = saveStoreMocks.save;
     load = saveStoreMocks.load;
+    loadById = saveStoreMocks.loadById;
     getActiveSaveId = saveStoreMocks.getActiveSaveId;
+    getPreviousSaveId = saveStoreMocks.getPreviousSaveId;
   },
 }));
 
@@ -140,7 +144,7 @@ beforeEach(() => {
     envelopeHash: "eh",
   });
   campaignMocks.compile.mockReturnValue({
-    state: { ...campaignSnapshot, rawHash: "rh", envelope: { bodyHash: "eh" } },
+    state: { snapshot: campaignSnapshot, rawHash: "rh", envelope: { bodyHash: "eh" } },
     contentHash: "ch",
   } as any);
   phaseMocks.execute.mockReturnValue({
@@ -163,7 +167,13 @@ beforeEach(() => {
     envelope: { bodyHash: "eh" },
     rawHash: "rh",
   } as any);
+  saveStoreMocks.loadById.mockReturnValue({
+    snapshot: campaignSnapshot,
+    envelope: { bodyHash: "eh" },
+    rawHash: "rh",
+  } as any);
   saveStoreMocks.getActiveSaveId.mockReturnValue("save-1");
+  saveStoreMocks.getPreviousSaveId.mockReturnValue("save-0");
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -236,7 +246,7 @@ describe("buildInput / safePath via runValidate", () => {
     compilerMock.compile.mockImplementation((input: any) => {
       expect(input.rulesetFiles[0]).toContain("r.yaml");
       expect(input.technologyFiles[0]).toContain("t.yaml");
-      expect(input.manifestPath).toBe("manifest");
+      expect(input.manifestPath).toContain("pack.json");
       return { pack: {}, rawHash: "a", envelopeHash: "b" };
     });
     runValidate({
@@ -768,7 +778,12 @@ describe("runTurnExecute", () => {
     expect(detMocks.createEnvelope).toHaveBeenCalledWith(
       "campaign-snapshot",
       expect.anything(),
-      campaignSnapshot,
+      expect.objectContaining({
+        ...campaignSnapshot,
+        nations: {},
+        designs: {},
+        designFamilies: {},
+      }),
     );
     expect(fsMocks.writeFileSync).toHaveBeenCalledWith(
       expect.stringContaining("command-ledger.json"),
@@ -865,6 +880,45 @@ describe("runReplay", () => {
         "/s",
       ),
     ).toBe("validation-error");
+  });
+  it("validation-error no previous save (nothing to replay from)", () => {
+    saveStoreMocks.getPreviousSaveId.mockReturnValue(null);
+    expect(
+      runReplay(
+        {
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+          saveDir: "/s",
+          seed: "s",
+        },
+        "/s",
+      ),
+    ).toBe("validation-error");
+    expect(saveStoreMocks.loadById).not.toHaveBeenCalled();
+  });
+  it("replays from the previous save via loadById, not the active save", () => {
+    phaseMocks.verify.mockReturnValue({
+      match: true,
+      mismatches: [],
+      steps: [{ match: true }],
+      replayedFinalHash: "rh",
+      originalFinalHash: "rh",
+    });
+    runReplay(
+      {
+        manifest: "/p",
+        contentDir: "/c",
+        outputDir: "/tmp/out",
+        outputMode: "human",
+        saveDir: "/s",
+        seed: "s",
+      },
+      "/s",
+    );
+    expect(saveStoreMocks.loadById).toHaveBeenCalledWith("/s", "save-0", expect.anything());
+    expect(saveStoreMocks.load).not.toHaveBeenCalled();
   });
   it("validation-error no commands file", () => {
     fsMocks.existsSync.mockImplementation((p: string) => !String(p).includes("commands.json"));
@@ -1025,8 +1079,8 @@ describe("runReplay", () => {
   });
 });
 
-describe("snapshotHash", () => {
-  it("deterministic and isolates Map vs Record", async () => {
+describe("persistedStateHash", () => {
+  it("hashes {snapshot, envelope} so a save round-trips through SaveStore's self-check", async () => {
     const { canonicalSerialize: realCanon } = await vi.importActual<any>("@bluewave/deterministic");
     detMocks.canonicalSerialize.mockImplementation((v: any) => realCanon(v));
     detMocks.sha256Hex.mockImplementation((s: string) => `sha-${s.length}`);
@@ -1042,11 +1096,11 @@ describe("snapshotHash", () => {
       "/s",
       [],
     );
-    const snapCall = detMocks.canonicalSerialize.mock.calls.find(
-      ([a]: any) => a && a.nations && a.world && a.slots,
+    const rawHashCall = detMocks.canonicalSerialize.mock.calls.find(
+      ([a]: any) => a && a.snapshot && a.envelope,
     );
-    expect(snapCall).toBeDefined();
-    expect(snapCall![0].nations).toBeDefined();
-    expect(snapCall![0].world.areas).toBeDefined();
+    expect(rawHashCall).toBeDefined();
+    expect(rawHashCall![0].snapshot.nations).toBeDefined();
+    expect(rawHashCall![0].envelope).toBeDefined();
   });
 });

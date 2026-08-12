@@ -196,6 +196,57 @@ describe("SaveStore", () => {
     expect(pointer2["previousSaveId"]).toBe(firstSaveId);
   });
 
+  it("getPreviousSaveId returns null with only one save", () => {
+    const state = createFixtureState();
+    store.save(state, tmpDir);
+    expect(store.getPreviousSaveId(tmpDir)).toBeNull();
+  });
+
+  it("getPreviousSaveId returns the prior active save id after a second save", () => {
+    const state = createFixtureState();
+    store.save(state, tmpDir);
+    const firstSaveId = store.getActiveSaveId(tmpDir);
+
+    store.save(state, tmpDir);
+
+    expect(store.getPreviousSaveId(tmpDir)).toBe(firstSaveId);
+    expect(store.getActiveSaveId(tmpDir)).not.toBe(firstSaveId);
+  });
+
+  it("loadById loads a specific save by id, independent of the active pointer", () => {
+    const state = createFixtureState();
+    store.save(state, tmpDir);
+    const firstSaveId = store.getActiveSaveId(tmpDir)!;
+
+    const secondState = createFixtureState();
+    secondState.snapshot.turnNumber = SafeInt(2);
+    const secondEnvelope = createEnvelope(
+      "campaign-snapshot",
+      CURRENT_COMPATIBILITY_VERSION,
+      secondState.snapshot,
+    );
+    secondState.envelope = secondEnvelope;
+    secondState.rawHash = sha256Hex(
+      canonicalSerialize({ snapshot: secondState.snapshot, envelope: secondEnvelope }),
+    );
+    store.save(secondState, tmpDir);
+
+    expect(store.getActiveSaveId(tmpDir)).not.toBe(firstSaveId);
+
+    const diagnostics = new DiagnosticCollector();
+    const loaded = store.loadById(tmpDir, firstSaveId, diagnostics);
+
+    expect(diagnostics.hasErrors).toBe(false);
+    expect(loaded).not.toBeNull();
+    expect(loaded!["snapshot"]["turnNumber"]).toBe(1);
+  });
+
+  it("loadById reports a missing save distinctly from a missing directory", () => {
+    const diagnostics = new DiagnosticCollector();
+    expect(store.loadById(tmpDir, "does-not-exist", diagnostics)).toBeNull();
+    expect(diagnostics.hasErrors).toBe(true);
+  });
+
   it("cleans up temp files after successful save", () => {
     const state = createFixtureState();
     store.save(state, tmpDir);
