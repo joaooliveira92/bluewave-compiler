@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@bluewave/test-support": "workspace:*",
-    "electron": "^35.0.0",
+    "electron": "41.10.4",
     "electron-builder": "^25.0.0",
     "electron-vite": "^5.0.0",
     "vite": "catalog:",
