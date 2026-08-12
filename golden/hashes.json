@@ -6,5 +6,6 @@
   "eventLedgerHash": "b6a626ba84258da4165156c7f52e97b5ed5d323bbe78a6a0f676013c3387df9f",
   "financialLedgerHash": "6aa1199c9db94af15e331b0d27bf3e1ec8742c82770ebfc7e1c0d883ba44a5b8",
   "randomDecisionLedgerHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-  "replayVerificationHash": "64abef89144fa36c542f9104b6a39acafc7a5030594df92a83d248a3848b9bbc"
+  "replayVerificationHash": "64abef89144fa36c542f9104b6a39acafc7a5030594df92a83d248a3848b9bbc",
+  "battleGenerationHash": "53bfb35dac199dfcaf347f80967a6d04b2f70c641efd62e07f77bfafdf5e8a4e"
 }
