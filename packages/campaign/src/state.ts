@@ -1,6 +1,7 @@
 //packages/campaign/src/state.ts
 import type { SafeInt } from "@bluewave/contracts";
 import type { CanonicalEnvelope } from "@bluewave/deterministic";
+import type { PermanentDivision } from "./division.js";
 
 export interface Ship {
   id: string;
@@ -154,6 +155,7 @@ export interface NationState {
   navalAppropriationRateBp: SafeInt;
   maintenanceCost: SafeInt;
   fleets: FleetState[];
+  divisions: PermanentDivision[];
   research: ResearchState;
   constructionProjects: ConstructionProject[];
   isPlayable: boolean;

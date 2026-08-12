@@ -1,4 +1,4 @@
-//packages/combat/test/fixtures/unit-fixture.ts
+﻿//packages/combat/test/fixtures/unit-fixture.ts
 import type { CompiledDesignVersion, NationState, Ship } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
 
@@ -72,6 +72,7 @@ export function makeNation(
           },
         ]
       : [],
+    divisions: [],
     research: {
       nationId: id,
       technologies: [],

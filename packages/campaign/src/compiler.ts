@@ -402,6 +402,7 @@ export class CampaignCompiler {
         navalAppropriationRateBp: SafeInt(2000),
         maintenanceCost: SafeInt(0),
         fleets,
+        divisions: [],
         research,
         constructionProjects: constructions,
         isPlayable,

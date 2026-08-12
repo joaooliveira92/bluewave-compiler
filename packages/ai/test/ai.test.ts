@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vite-plus/test";
+﻿import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { CANONICAL_RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
@@ -24,6 +24,7 @@ function makeNation(id: string, treasury: SafeInt, projects: ConstructionProject
     navalAppropriationRateBp: SafeInt(0),
     maintenanceCost: SafeInt(0),
     fleets: [],
+    divisions: [],
     research: {
       nationId: id,
       technologies: [],

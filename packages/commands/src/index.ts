@@ -14,6 +14,11 @@ export type {
   FormNonAggressionPactCommand,
   BreakNonAggressionPactCommand,
   DeclareBlockadeCommand,
+  CreateDivisionCommand,
+  AddShipToDivisionCommand,
+  RemoveShipFromDivisionCommand,
+  DissolveDivisionCommand,
+  ChangeDivisionFlagshipCommand,
 } from "./envelope.js";
 export type { CommandOutcome } from "./lifecycle.js";
 export {

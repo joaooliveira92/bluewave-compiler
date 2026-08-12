@@ -1,10 +1,10 @@
 {
   "contentArtifactHash": "103c60d3f25d1f6ccf758416ef33754732f0f837ad8021d3985ee027d95bccd9",
   "initialSnapshotHash": "bc7dfc2cc7c0b132c98e5a1baacf5a18a12016e7b6b71f247d5b6df022818be9",
-  "closingSnapshotHash": "ccd0f8266ad3b9cc2136a0b0761d1385576338e1f13a0f250069392c4ec88043",
+  "closingSnapshotHash": "3b1be6ee35038fd6dcd55e55388c7db263bc8f11d46296bef27eb5e76780807b",
   "commandLedgerHash": "5c154b3dd3e17583febba4bc7a95036e483843f70a210851003dbdd0d32580bb",
   "eventLedgerHash": "b6a626ba84258da4165156c7f52e97b5ed5d323bbe78a6a0f676013c3387df9f",
   "financialLedgerHash": "6aa1199c9db94af15e331b0d27bf3e1ec8742c82770ebfc7e1c0d883ba44a5b8",
   "randomDecisionLedgerHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-  "replayVerificationHash": "1aa85ce2c7564e7a9fc9c477836347e1a220a94364756a252af4b3ee14d00725"
+  "replayVerificationHash": "64abef89144fa36c542f9104b6a39acafc7a5030594df92a83d248a3848b9bbc"
 }

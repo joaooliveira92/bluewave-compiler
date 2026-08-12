@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vite-plus/test";
+﻿import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
@@ -19,6 +19,7 @@ function createSnapshot(overrides?: Partial<CampaignSnapshot>): CampaignSnapshot
     navalAppropriationRateBp: SafeInt(2000),
     maintenanceCost: SafeInt(0),
     fleets: [],
+    divisions: [],
     research: {
       nationId: "GBR",
       technologies: [{ techId: "basic_steam", investedPoints: SafeInt(30), completed: false }],
@@ -241,6 +242,7 @@ describe("MonthExecutor", () => {
       navalAppropriationRateBp: SafeInt(2000),
       maintenanceCost: SafeInt(0),
       fleets: [],
+      divisions: [],
       research: {
         nationId: "GBR",
         technologies: [],
@@ -438,6 +440,7 @@ describe("MonthExecutor", () => {
       navalAppropriationRateBp: SafeInt(2000),
       maintenanceCost: SafeInt(0),
       fleets: [],
+      divisions: [],
       research: {
         nationId: "GER",
         technologies: [],

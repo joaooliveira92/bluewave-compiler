@@ -20,6 +20,7 @@ function createSnapshot(): CampaignSnapshot {
     navalAppropriationRateBp: SafeInt(0),
     maintenanceCost: SafeInt(0),
     fleets: [],
+    divisions: [],
     research: {
       nationId: "GBR",
       technologies: [{ techId: "basic_steam", investedPoints: SafeInt(30), completed: false }],

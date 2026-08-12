@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vite-plus/test";
+﻿import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
@@ -51,6 +51,7 @@ function makeNation(
         })),
       },
     ],
+    divisions: [],
     research: {
       nationId: id,
       technologies: [],
