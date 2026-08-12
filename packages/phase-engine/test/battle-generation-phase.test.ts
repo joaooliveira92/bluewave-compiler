@@ -37,7 +37,7 @@ function makeNation(
               hitPoints: SafeInt(100),
               maxHitPoints: SafeInt(100),
               speed: SafeInt(10),
-              firepower: SafeInt(30),
+              firepower: SafeInt(200),
               armor: SafeInt(10),
               isUnderConstruction: s.underConstruction ?? false,
               constructionProgress: SafeInt(0),

@@ -206,7 +206,7 @@ function battleGenerationHash(snapshot: CampaignSnapshot): string {
     formulaVersion: "1",
     rulesetVersion: "1",
     contentVersion: "0.1.0",
-    resolveStrength: () => 30,
+    resolveStrength: () => 300,
     resolveShipType: () => "BB",
     resolveReadiness: () => 80,
   });

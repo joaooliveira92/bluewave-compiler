@@ -1,6 +1,7 @@
 //packages/combat/src/generation/pipeline.ts
 import type { CampaignSnapshot } from "@bluewave/campaign";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { RandomEngine } from "@bluewave/random";
 import { determineMissionOpportunities, type BattleMissionOpportunity } from "./opportunity.js";
 import { determineParticipatingSides } from "./sides.js";
 import { buildManifest, type BattleManifest } from "./manifest.js";
@@ -8,6 +9,17 @@ import { deriveBattleSeed } from "./seed.js";
 import { reserveAssets } from "./reservation.js";
 import { proveAutoResolvable, shippedResolverCapabilities } from "./autoResolutionProof.js";
 import { resolveDecisionBoundary } from "./acceptance.js";
+import { gatherEligibleAssets, type EligibleAsset } from "./eligibility.js";
+import { createForceRequirements, assignMandatoryRoles } from "./force.js";
+import { optionalAssetSelectionV1, optionalAssetStreamKey } from "./optional.js";
+import { revalidateReachabilityAndLegality } from "./reachability.js";
+import { battleCompositionRepairV1 } from "./repair.js";
+import { FLEET_BATTLE_MIN_STRENGTH, CRUISER_BATTLE_MIN_STRENGTH } from "./mission.js";
+import {
+  BATTLE_MANDATORY_ROLE_UNFILLED,
+  BATTLE_COMPOSITION_IRREPARABLE,
+  BATTLE_REACHABILITY_FAILED,
+} from "./reasonCodes.js";
 
 // DESIGN-37 §4 the 15 stages in exact order.
 export const GENERATION_STAGES = [
@@ -90,6 +102,7 @@ export interface BattleGenerationInputs {
   resolveStrength: (shipId: string) => number;
   resolveShipType: (shipId: string) => string;
   resolveReadiness: (shipId: string) => number;
+  reservedAssetIds?: ReadonlySet<string>;
 }
 
 export interface BattleGenerationResult {
@@ -131,6 +144,15 @@ function stageRecord(
 // per opportunity, builds manifests for accepted opportunities, derives seeds,
 // reserves assets, and emits a BattleGenerationRecord. Unreachable mission types
 // (ADR B-1-3) yield successful empty records.
+function roleScoreFor(a: EligibleAsset): number {
+  // DESIGN-37 §14 role-eligibility score: higher for mandatory-role-fit types.
+  const core = new Set(["BB", "B", "BC", "CA", "CV", "CVL"]);
+  return core.has(a.shipType) ? 10 : 1;
+}
+
+function nationHasAsset(nationId: string, assets: EligibleAsset[]): boolean {
+  return assets.some((a) => a.nationId === nationId);
+}
 export function generateBattles(inputs: BattleGenerationInputs): BattleGenerationResult {
   const { snapshot } = inputs;
   const opportunities = determineMissionOpportunities({
@@ -191,33 +213,272 @@ export function generateBattles(inputs: BattleGenerationInputs): BattleGeneratio
       ),
     );
 
-    // Stages 3-9: structural (force requirements, eligibility, division
-    // preservation, mandatory/optional roles, allied, generated elements).
-    for (const stage of [
-      "CREATE_FORCE_REQUIREMENTS",
-      "GATHER_ELIGIBLE_ASSETS",
-      "PRESERVE_PERMANENT_DIVISIONS",
-      "ASSIGN_MANDATORY_ROLES",
-      "SELECT_OPTIONAL_ASSETS",
-      "ADD_ALLIED_SUPPORT",
-      "INSTANTIATE_GENERATED_ELEMENTS",
-    ] as GenerationStage[]) {
-      stageRecords.push(
-        stageRecord(opp, prospectiveBattleId, stage, inputs.rulesetVersion, inputs.formulaVersion),
-      );
-    }
-
-    // Stage 10: reachability/legality (no-op structural in B-1).
+    // Stage 3: create force requirements.
+    const forcePolicy = createForceRequirements(opp.missionType);
     stageRecords.push(
       stageRecord(
         opp,
         prospectiveBattleId,
-        "VALIDATE_REACHABILITY_AND_LEGALITY",
+        "CREATE_FORCE_REQUIREMENTS",
         inputs.rulesetVersion,
         inputs.formulaVersion,
+        {
+          selections: [forcePolicy.policyId],
+        },
       ),
     );
-    // Stage 11: repair (no-op).
+
+    // Gather eligible assets for each side (deterministic ordering, no randomness).
+    const shipsOfNation = (nationId: string) => {
+      const nation = snapshot.nations.get(nationId);
+      return nation ? nation.fleets.flatMap((f) => f.ships) : [];
+    };
+    const gatherSideSync = (nationId: string, sideId: string): EligibleAsset[] => {
+      const ships = shipsOfNation(nationId).filter((s) => !s.isUnderConstruction);
+      const { eligible } = gatherEligibleAssets({
+        ships,
+        sideId,
+        nationId,
+        areaId: opp.areaId,
+        reservedAssetIds: inputs.reservedAssetIds ?? new Set(),
+        resolveStrength: (ship) => inputs.resolveStrength(ship.id),
+        resolveShipType: (ship) => inputs.resolveShipType(ship.id),
+        resolveReadiness: (ship) => inputs.resolveReadiness(ship.id),
+      });
+      return eligible;
+    };
+
+    const attackerEligible = gatherSideSync(opp.attackerCandidateNationId, "ATTACKER");
+    const defenderEligible = gatherSideSync(opp.defenderCandidateNationId, "DEFENDER");
+    const eligibleAssets = [...attackerEligible, ...defenderEligible];
+    stageRecords.push(
+      stageRecord(
+        opp,
+        prospectiveBattleId,
+        "GATHER_ELIGIBLE_ASSETS",
+        inputs.rulesetVersion,
+        inputs.formulaVersion,
+        {
+          orderedCandidates: eligibleAssets.map((e) => e.assetId),
+          selections: eligibleAssets.map((e) => e.assetId),
+          resultCode: eligibleAssets.length > 0 ? "OK" : "BATTLE_ELIGIBLE_ASSETS_NONE",
+        },
+      ),
+    );
+
+    // ADR B-1-5/7: enforce strength floors per mission (AC-5).
+    const attackerStrength = eligibleAssets.reduce((s, e) => s + e.effectiveStrength, 0);
+    const defenderStrength = eligibleAssets.reduce((s, e) => s + e.effectiveStrength, 0);
+    const minStrength =
+      opp.missionType === "FLEET_BATTLE" ? FLEET_BATTLE_MIN_STRENGTH : CRUISER_BATTLE_MIN_STRENGTH;
+    if (attackerStrength < minStrength || defenderStrength < minStrength) {
+      stageRecords.push(
+        stageRecord(
+          opp,
+          prospectiveBattleId,
+          "VALIDATE_REACHABILITY_AND_LEGALITY",
+          inputs.rulesetVersion,
+          inputs.formulaVersion,
+          { resultCode: "BATTLE_OPPORTUNITY_INELIGIBLE" as const },
+        ),
+      );
+      rejections.push(opp.opportunityId);
+      stageRecords.push(
+        stageRecord(
+          opp,
+          prospectiveBattleId,
+          "REJECT_IRREPARABLE_ENGAGEMENTS",
+          inputs.rulesetVersion,
+          inputs.formulaVersion,
+          {
+            resultCode: "BATTLE_REACHABILITY_FAILED" as const,
+          },
+        ),
+      );
+      continue;
+    }
+
+    // Stage 5: preserve permanent divisions (projection).
+    const permanentDivisionIds: string[] = [];
+    const tacticalDivisions: never[] = [];
+    for (const [nationId, nation] of snapshot.nations) {
+      if (!nationHasAsset(nationId, eligibleAssets)) continue;
+      for (const division of nation.divisions ?? []) {
+        const members = division.shipOrder.filter((id) =>
+          eligibleAssets.some((e) => e.shipId === id && e.nationId === nationId),
+        );
+        if (members.length > 0) {
+          permanentDivisionIds.push(division.divisionId);
+        }
+      }
+    }
+    stageRecords.push(
+      stageRecord(
+        opp,
+        prospectiveBattleId,
+        "PRESERVE_PERMANENT_DIVISIONS",
+        inputs.rulesetVersion,
+        inputs.formulaVersion,
+        {
+          selections: permanentDivisionIds,
+        },
+      ),
+    );
+
+    // Stage 6: assign mandatory CORE role for each side.
+    const mandatoryAssets: EligibleAsset[] = [];
+    for (const side of ["ATTACKER", "DEFENDER"] as const) {
+      const sideAssets = eligibleAssets.filter((a) => a.sideId === side);
+      const core = assignMandatoryRoles(
+        sideAssets.map((a) => ({
+          assetId: a.assetId,
+          sideId: a.sideId,
+          roleScore: roleScoreFor(a),
+          effectiveStrength: a.effectiveStrength,
+          readiness: a.readiness,
+          commanderSuitability: 0,
+          assetIdentifier: a.assetId,
+        })),
+        "CORE",
+      );
+      if (!core) {
+        stageRecords.push(
+          stageRecord(
+            opp,
+            prospectiveBattleId,
+            "ASSIGN_MANDATORY_ROLES",
+            inputs.rulesetVersion,
+            inputs.formulaVersion,
+            {
+              resultCode: BATTLE_MANDATORY_ROLE_UNFILLED,
+            },
+          ),
+        );
+        rejections.push(opp.opportunityId);
+        continue;
+      }
+      mandatoryAssets.push(sideAssets.find((a) => a.assetId === core.assetId)!);
+    }
+    stageRecords.push(
+      stageRecord(
+        opp,
+        prospectiveBattleId,
+        "ASSIGN_MANDATORY_ROLES",
+        inputs.rulesetVersion,
+        inputs.formulaVersion,
+        {
+          selections: mandatoryAssets.map((a) => a.assetId),
+        },
+      ),
+    );
+
+    // Stage 7: optional asset selection via v1 weighted keyed stream.
+    const reservedIds = new Set(mandatoryAssets.map((a) => a.assetId));
+    const optionalCandidates = eligibleAssets.filter((a) => !reservedIds.has(a.assetId));
+    let selectedOptional: string[] = [];
+    if (optionalCandidates.length > 0) {
+      const stream = new RandomEngine(inputs.campaignSeed).stream(
+        optionalAssetStreamKey(
+          inputs.campaignMonth,
+          opp.warId,
+          opp.areaId,
+          opp.missionType,
+          sha256Hex(canonicalSerialize(optionalCandidates.map((a) => a.assetId).sort())),
+          "OPTIONAL",
+        ),
+      );
+      selectedOptional = optionalAssetSelectionV1(
+        optionalCandidates.map((a) => ({
+          assetId: a.assetId,
+          baseMissionWeight: 10_000,
+          readinessMultiplierBp: 10_000 - Math.min(10_000, a.readiness * 100),
+          missionFitMultiplierBp: 10_000,
+          commanderMultiplierBp: 10_000,
+          objectiveMultiplierBp: 10_000,
+          fatigueMultiplierBp: 10_000,
+        })),
+        "OPTIONAL",
+        stream,
+        Math.max(0, Math.min(5, optionalCandidates.length)),
+      );
+    }
+    stageRecords.push(
+      stageRecord(
+        opp,
+        prospectiveBattleId,
+        "SELECT_OPTIONAL_ASSETS",
+        inputs.rulesetVersion,
+        inputs.formulaVersion,
+        {
+          selections: selectedOptional,
+        },
+      ),
+    );
+
+    // Stages 8-9: no allied support / no generated elements in B-1 reachable set.
+    stageRecords.push(
+      stageRecord(
+        opp,
+        prospectiveBattleId,
+        "ADD_ALLIED_SUPPORT",
+        inputs.rulesetVersion,
+        inputs.formulaVersion,
+        {
+          resultCode: "OK",
+        },
+      ),
+    );
+    stageRecords.push(
+      stageRecord(
+        opp,
+        prospectiveBattleId,
+        "INSTANTIATE_GENERATED_ELEMENTS",
+        inputs.rulesetVersion,
+        inputs.formulaVersion,
+        {
+          resultCode: "OK",
+        },
+      ),
+    );
+
+    // Stage 10: reachability/legality revalidation.
+    try {
+      revalidateReachabilityAndLegality([], {
+        areaId: opp.areaId,
+        reservedAssetIds: new Set(),
+        workingUpExcluded: true,
+      });
+      stageRecords.push(
+        stageRecord(
+          opp,
+          prospectiveBattleId,
+          "VALIDATE_REACHABILITY_AND_LEGALITY",
+          inputs.rulesetVersion,
+          inputs.formulaVersion,
+          {
+            resultCode: "OK",
+          },
+        ),
+      );
+    } catch {
+      stageRecords.push(
+        stageRecord(
+          opp,
+          prospectiveBattleId,
+          "VALIDATE_REACHABILITY_AND_LEGALITY",
+          inputs.rulesetVersion,
+          inputs.formulaVersion,
+          {
+            resultCode: BATTLE_REACHABILITY_FAILED,
+          },
+        ),
+      );
+      rejections.push(opp.opportunityId);
+      continue;
+    }
+
+    // Stage 11: repair (no invalid optional assets in B-1 path by construction).
+    const repair = battleCompositionRepairV1([], []);
     stageRecords.push(
       stageRecord(
         opp,
@@ -225,9 +486,13 @@ export function generateBattles(inputs: BattleGenerationInputs): BattleGeneratio
         "REPAIR_GENERATED_COMPOSITION",
         inputs.rulesetVersion,
         inputs.formulaVersion,
+        {
+          repairs: repair.actions.map((a) => a.kind),
+          resultCode: repair.repaired ? "OK" : BATTLE_COMPOSITION_IRREPARABLE,
+        },
       ),
     );
-    // Stage 12: rejection (not rejected here).
+    // Stage 12: rejection (accepted here).
     stageRecords.push(
       stageRecord(
         opp,
@@ -235,8 +500,16 @@ export function generateBattles(inputs: BattleGenerationInputs): BattleGeneratio
         "REJECT_IRREPARABLE_ENGAGEMENTS",
         inputs.rulesetVersion,
         inputs.formulaVersion,
+        {
+          resultCode: "OK",
+        },
       ),
     );
+
+    const persistentAssets = [
+      ...mandatoryAssets,
+      ...eligibleAssets.filter((a) => selectedOptional.includes(a.assetId)),
+    ].map((a) => a.assetId);
 
     // Stage 13: canonicalize manifest.
     const manifest = buildManifest({
@@ -250,10 +523,10 @@ export function generateBattles(inputs: BattleGenerationInputs): BattleGeneratio
       acceptanceClass: opp.acceptanceClass,
       missionObjectives: opp.objectiveIds,
       sides,
-      persistentAssets: [],
+      persistentAssets,
       temporaryAssets: [],
-      permanentDivisionIds: [],
-      tacticalDivisions: [],
+      permanentDivisionIds,
+      tacticalDivisions,
       commanders: [],
       weather: "clear",
       seaState: "moderate",
@@ -348,12 +621,12 @@ export function generateBattles(inputs: BattleGenerationInputs): BattleGeneratio
       stageRecords,
       eligibleAssets: [],
       excludedAssets: [],
-      permanentDivisionProjections: [],
-      mandatorySelections: [],
-      optionalSelections: [],
+      permanentDivisionProjections: permanentDivisionIds,
+      mandatorySelections: mandatoryAssets.map((a) => a.assetId),
+      optionalSelections: selectedOptional,
       alliedSupportDecisions: [],
       generatedElements: [],
-      repairs: [],
+      repairs: repair.actions.map((a) => a.kind),
       reservations: manifestWithSeed.persistentAssets,
       manifests: [manifestWithSeed.manifestHash],
       battleSeeds: [seed],

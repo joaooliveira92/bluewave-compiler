@@ -16,7 +16,7 @@ function inputs(snapshot: ReturnType<typeof defaultTwoNationFixture>) {
     formulaVersion: "1",
     rulesetVersion: "1",
     contentVersion: "0.3.0",
-    resolveStrength: () => 30,
+    resolveStrength: () => 200,
     resolveShipType: () => "BB",
     resolveReadiness: () => 80,
   };
@@ -39,7 +39,14 @@ describe("BattleGenerator / generateBattles (AC-12 / INC-5)", () => {
     expect(manifest.manifestHash).toBeTruthy();
     expect(manifest.battleSeed).toBeTruthy();
     expect(manifest.sides.map((s) => s.sideId)).toEqual(["ATTACKER", "DEFENDER"]);
+    // Real composition: co-located ships are gathered, CORE-assigned, and reserved.
+    expect(manifest.persistentAssets.length).toBeGreaterThan(0);
+    expect(manifest.persistentAssets.length).toBeLessThanOrEqual(5);
     expect(result.records[0]!.recordHash).toBeTruthy();
+    expect(result.records[0]!.reservations).toEqual(manifest.persistentAssets);
+    // At least the mandatory CORE assets were selected for each side.
+    const mandatory = result.records[0]!.mandatorySelections;
+    expect(mandatory.length).toBeGreaterThanOrEqual(1);
   });
 
   it("is deterministic across two engine instances", () => {

@@ -1147,6 +1147,16 @@ function applySetNap(
   return updateRelation(snapshot, nationId, partnerNationId, { nap, tension: TENSION_PEACE });
 }
 
+function resolveShipStrength(snapshot: CampaignSnapshot, shipId: string): number {
+  for (const [, nation] of snapshot["nations"]) {
+    for (const fleet of nation["fleets"]) {
+      const ship = fleet["ships"].find((s) => s["id"] === shipId);
+      if (ship) return ship["firepower"] as number;
+    }
+  }
+  return 0;
+}
+
 function divisionAssetsFor(
   snapshot: CampaignSnapshot,
   nationId: string,
@@ -2256,7 +2266,7 @@ export class MonthExecutor {
           formulaVersion: "1",
           rulesetVersion: currentSnapshot["rulesetVersion"],
           contentVersion: "0.1.0",
-          resolveStrength: () => 30,
+          resolveStrength: (shipId) => resolveShipStrength(currentSnapshot, shipId),
           resolveShipType: () => "BB",
           resolveReadiness: () => 80,
         });
