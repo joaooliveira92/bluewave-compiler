@@ -6,12 +6,14 @@ export type { FleetState, Ship } from "./state.js";
 export type { ConstructionProject } from "./state.js";
 export type { ResearchState, TechnologyProgress } from "./state.js";
 export type { CompiledDesignVersion, DesignFamily } from "./state.js";
-export type { WarState, BattleInstance, BattleResult } from "./state.js";
+export type { WarState, BattleInstance, BattleResult, WarDeclaration, WarParticipantMembership, BlockadeState } from "./state.js";
 export type { PersistenceManifest } from "./state.js";
 export type { PoliticalState, DiplomaticRelation } from "./state.js";
 export type { IntelligenceState } from "./state.js";
 export type { CampaignCompilerInput, CampaignCompilerOutput, CampaignFiles } from "./compiler.js";
 export { CampaignCompiler } from "./compiler.js";
+
+export * from "./warConstants.js";
 
 // DESIGN-03 Campaign Configuration surface
 export * from "./scenario.js";

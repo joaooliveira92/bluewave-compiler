@@ -102,6 +102,14 @@ export class PhaseRegistry {
       rngAllowed: false,
     },
     {
+      id: "resolve_diplomacy",
+      name: "Diplomacy Resolution",
+      order: 6.5,
+      readPermissions: ["wars", "politics", "fleets"],
+      writePermissions: ["wars", "politics"],
+      rngAllowed: false,
+    },
+    {
       id: "resolve_research",
       name: "Research Resolution",
       order: 7,

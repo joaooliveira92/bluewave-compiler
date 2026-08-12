@@ -8,7 +8,7 @@
 | Milestone                    | B#     | Design                                  | Implementation                       | Tests              | Notes                    |
 | ---------------------------- | ------ | --------------------------------------- | ------------------------------------ | ------------------ | ------------------------ |
 | M1 Strategic Campaign Kernel | B0–B8  | Complete (57 docs)                      | Core pipeline done                   | ~154 tests passing | See below                |
-| M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready                      | B9/B10a/B10b done; B10c/B10d pending | —                  | B10b ACCEPTED (A-0/A-0b) |
+| M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready          | B9/B10a/B10b/B10c done; B10d pending | —                  | B10b/B10a/B10c ACCEPTED; B10d next |
 | M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | Not started                          | —                  | Future                   |
 | M3 Advanced Surface Warfare  | —      | Design docs exist (DESIGN-34–36, 39–42) | Not started                          | —                  | Future                   |
 | M4 Aviation                  | —      | Design docs exist (DESIGN-43–45)        | Not started                          | —                  | Future                   |
@@ -107,17 +107,25 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 
 ### B10c — Diplomacy & War
 
+> **Status (2026-08-12): ACCEPTED.** A-3 completed; victory-level classification
+> resolved via Option A (ADR-0010 + `warConstants.ts`). 7 commands (DeclareWar,
+> AcceptPeace, FormAlliance, BreakAlliance, FormNonAggressionPact,
+> BreakNonAggressionPact, DeclareBlockade), `RESOLVE_DIPLOMACY` phase (order 6.5),
+> war side/score model, alliance auto-entry, blockade +2/mo, NAP penalty,
+> surrender (score≥80), peace settlement. `BattleResolver` unchanged. 16/16 build;
+> 400/401 tests (only the pre-existing `nation.test.ts` import fails); goldens
+> regenerated per ADR-0007. Evidence: `.ai/reports/a3-b10c-diplomacy-war.md`.
+
 | Capability                           | Readiness           | Key decisions                               |
 | ------------------------------------ | ------------------- | ------------------------------------------- |
-| Declare war, peace treaties          | Scope brief ready   | War lifecycle with side model               |
-| Alliances, NAPs, trade agreements    | Scope brief ready   | Single-scalar tension                       |
-| War score from battles               | Scope brief ready   | Surrender at score >= 80                    |
-| Basic blockade (+2/mo)               | Scope brief ready   |                                             |
-| Mutual-defense alliance auto-entry   | Scope brief ready   |                                             |
-| New `RESOLVE_DIPLOMACY` phase        | Scope brief ready   |                                             |
+| Declare war, peace treaties          | ACCEPTED            | War lifecycle with side model; surrender ≥80|
+| Alliances, NAPs, trade agreements    | ACCEPTED            | Pair registry; alliance auto-entry; NAP −50 |
+| War score from battles               | ACCEPTED            | ADR-0010 Option A classification; ±2/5/10   |
+| Blockade (+2/mo)                     | ACCEPTED            | DeclareBlockade, blockadeState              |
+| `RESOLVE_DIPLOMACY` phase            | ACCEPTED            | order 6.5, rng false                        |
 | All treaties (DESIGN-30) deferred    | Scope decision made | Out of scope for B10c                       |
-| No settlement terms / separate peace | Scope decision made | Out of scope for B10c                       |
-| Acceptance                           | —                   | Brief at `.ai/briefs/b10c-diplomacy-war.md` |
+| No settlement / separate peace       | Scope decision made | Out of scope for B10c                       |
+| Acceptance                           | PASS               | `.ai/reports/a3-b10c-diplomacy-war.md`      |
 
 ### B10d — AI & Scenario Readiness
 

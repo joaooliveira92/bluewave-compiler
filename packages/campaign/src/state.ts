@@ -74,6 +74,8 @@ export interface DiplomaticRelation {
   nationA: string;
   nationB: string;
   relation: "neutral" | "allied" | "at_war" | "trade_agreement";
+  tension: number; // 0..10
+  nap: boolean;    // non-aggression pact active
   since: string;
 }
 
@@ -105,15 +107,40 @@ export interface BattleResult {
 export interface WarState {
   wars: WarDeclaration[];
   battles: BattleInstance[];
+  participantMemberships: WarParticipantMembership[];
+  blockadeState: BlockadeState[];
 }
 
 export interface WarDeclaration {
   id: string;
-  attackerId: string;
-  defenderId: string;
+  attackerSideId: string;
+  defenderSideId: string;
+  attackerSideMembers: string[]; // nation ids, includes attackerId first
+  defenderSideMembers: string[]; // includes defenderId
+  attackerWarScore: number; // -100..100
+  defenderWarScore: number;
+  attackerId: string; // root primary attacker
+  defenderId: string; // root primary defender
   startDate: string;
-  status: "active" | "ended";
+  status: "DECLARED_NOT_ACTIVE" | "ACTIVE" | "ENDED";
   endDate?: string;
+}
+
+export interface WarParticipantMembership {
+  warId: string;
+  nationId: string;
+  sideId: string;
+  entryMonth: string;
+  exitMonth?: string;
+  status: "ACTIVE" | "EXITED";
+  nationalContributionPoints: number;
+}
+
+export interface BlockadeState {
+  blockaderId: string;
+  blockadedNationId: string;
+  areaId: string;
+  establishedMonth: string;
 }
 
 export interface NationState {

@@ -1,5 +1,5 @@
 import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
-import type { CommandEnvelope, BudgetProjectCommand, CommandLedger } from "@bluewave/commands";
+import type { CommandEnvelope, CommandBody, CommandLedger } from "@bluewave/commands";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { MonthExecutor } from "./month.js";
@@ -38,6 +38,8 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
   const wars = {
     wars: snapshot.wars.wars.map((w) => ({ ...w })),
     battles: snapshot.wars.battles.map((b) => ({ ...b })),
+    participantMemberships: snapshot.wars.participantMemberships.map((m) => ({ ...m })),
+    blockadeState: snapshot.wars.blockadeState.map((b) => ({ ...b })),
   };
   return {
     version: snapshot.version,
@@ -70,7 +72,7 @@ function hashSnapshot(snapshot: CampaignSnapshot): string {
 export class ReplayVerifier {
   verify(
     snapshot: CampaignSnapshot,
-    commands: CommandEnvelope<BudgetProjectCommand>[],
+    commands: CommandEnvelope<CommandBody>[],
     originalCommandLedger: CommandLedger,
     expectedFinalSnapshotHash: string,
     randomSeed: string,
