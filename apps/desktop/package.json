@@ -24,7 +24,8 @@
     "@bluewave/deterministic": "workspace:*",
     "@bluewave/content-schema": "workspace:*",
     "@bluewave/content-compiler": "workspace:*",
-    "@bluewave/campaign": "workspace:*"
+    "@bluewave/campaign": "workspace:*",
+    "@bluewave/combat": "workspace:*"
   },
   "devDependencies": {
     "@bluewave/test-support": "workspace:*",

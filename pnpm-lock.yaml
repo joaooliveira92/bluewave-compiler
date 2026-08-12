@@ -77,6 +77,9 @@ importers:
       '@bluewave/campaign':
         specifier: workspace:*
         version: link:../../packages/campaign
+      '@bluewave/combat':
+        specifier: workspace:*
+        version: link:../../packages/combat
       '@bluewave/content-compiler':
         specifier: workspace:*
         version: link:../../packages/content-compiler

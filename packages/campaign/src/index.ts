@@ -43,3 +43,7 @@ export {
   assertCampaignStateImmutability,
   hashConfiguration,
 } from "./campaignSession.js";
+
+// DESIGN-26 divisions (types + constants; the NationState `divisions` field and
+// command surface land in INC-2).
+export * from "./division.js";
