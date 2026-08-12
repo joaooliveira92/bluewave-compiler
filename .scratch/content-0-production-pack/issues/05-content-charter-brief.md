@@ -14,7 +14,7 @@ task
 
 ## Status
 
-claimed
+resolved
 
 ## Notes
 

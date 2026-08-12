@@ -15,7 +15,7 @@ research
 
 ## Status
 
-claimed
+resolved
 
 ## Notes
 

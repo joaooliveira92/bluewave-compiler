@@ -37,6 +37,10 @@ the acceptance anchor used by all later content/support checks.
 - [04-content-map-classification](issues/04-content-map-classification.md) — Content map + DESIGN-55 §12 classification policy; CONTENT_ONLY_LOCKED until owning mechanic accepted.
 - [05-content-charter-brief](issues/05-content-charter-brief.md) — Charter brief landed at `.ai/briefs/content-0-production-pack-charter.md`.
 
+All tickets 01–05 resolved; the CONTENT-0 scoping sprint is landed (commit
+`281f1ed`, "docs(content): land CONTENT-0 production content charter"). The
+charter brief founders CONTENT-1 (landed via PR #2) and the C-track.
+
 ## Not yet specified
 
 - Exact list of production nations/playable slots and their starting fleets
