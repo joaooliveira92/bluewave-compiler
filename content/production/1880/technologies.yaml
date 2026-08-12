@@ -296,3 +296,230 @@
   cost: 300
   discoveryWeight: 8000
   year: 1898
+- id: "hc_krupp_cemented_armor"
+  name: "Krupp Cemented Armor (KCA)"
+  category: "PRE_WAR"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "hc_harvey_armor" }
+  cost: 250
+  discoveryWeight: 12000
+  year: 1900
+- id: "hc_all_or_nothing_armor"
+  name: "All-Or-Nothing Armor Scheme"
+  category: "PRE_WAR"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "hc_krupp_cemented_armor" }
+  cost: 400
+  discoveryWeight: 18000
+  year: 1910
+- id: "hc_high_tensile_structural_steel"
+  name: "High-Tensile Structural Steel"
+  category: "PRE_WAR"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "hc_steel_hull_standard" }
+  cost: 200
+  discoveryWeight: 10000
+  year: 1905
+- id: "mac_steam_turbine"
+  name: "Steam Turbine Machinery (Capital Ships)"
+  category: "PRE_WAR"
+  researchFieldId: "MACHINERY"
+  prerequisites:
+    - { techId: "mac_water_tube_boiler" }
+  cost: 320
+  discoveryWeight: 14000
+  year: 1906
+- id: "mac_oil_fired_boilers"
+  name: "Oil-Fired Boilers"
+  category: "PRE_WAR"
+  researchFieldId: "MACHINERY"
+  prerequisites:
+    - { techId: "mac_steam_turbine" }
+  cost: 380
+  discoveryWeight: 15000
+  year: 1911
+- id: "mac_geared_turbines"
+  name: "Geared Turbines"
+  category: "PRE_WAR"
+  researchFieldId: "MACHINERY"
+  prerequisites:
+    - { techId: "mac_steam_turbine" }
+  cost: 400
+  discoveryWeight: 16000
+  year: 1915
+- id: "sd_dreadnought_design"
+  name: "Dreadnought (All-Big-Gun) Design"
+  category: "PRE_WAR"
+  researchFieldId: "SHIP_DESIGN"
+  prerequisites:
+    - { techId: "sd_predreadnought_design" }
+    - { techId: "hc_krupp_cemented_armor" }
+  cost: 450
+  discoveryWeight: 18000
+  year: 1906
+- id: "sd_battlecruiser_design"
+  name: "Battlecruiser Design"
+  category: "PRE_WAR"
+  researchFieldId: "SHIP_DESIGN"
+  prerequisites:
+    - { techId: "sd_dreadnought_design" }
+  cost: 350
+  discoveryWeight: 15000
+  year: 1908
+- id: "sd_super_dreadnought_design"
+  name: "Super-Dreadnought Design"
+  category: "PRE_WAR"
+  researchFieldId: "SHIP_DESIGN"
+  prerequisites:
+    - { techId: "sd_dreadnought_design" }
+  cost: 400
+  discoveryWeight: 16000
+  year: 1912
+- id: "gun_big_gun_12in"
+  name: "Standardized 12-inch (305mm) Heavy Guns"
+  category: "PRE_WAR"
+  researchFieldId: "GUNNERY"
+  prerequisites:
+    - { techId: "gun_capped_ap_shell" }
+  cost: 300
+  discoveryWeight: 12000
+  year: 1905
+- id: "gun_superfiring_turret"
+  name: "Superfiring Turret Arrangement"
+  category: "PRE_WAR"
+  researchFieldId: "GUNNERY"
+  prerequisites:
+    - { techId: "gun_big_gun_12in" }
+  cost: 250
+  discoveryWeight: 11000
+  year: 1910
+- id: "gun_135in_heavy_guns"
+  name: "13.5-inch (343mm) Heavy Guns"
+  category: "PRE_WAR"
+  researchFieldId: "GUNNERY"
+  prerequisites:
+    - { techId: "gun_big_gun_12in" }
+  cost: 330
+  discoveryWeight: 13000
+  year: 1912
+- id: "gun_15in_heavy_guns"
+  name: "15-inch (381mm) Heavy Guns"
+  category: "PRE_WAR"
+  researchFieldId: "GUNNERY"
+  prerequisites:
+    - { techId: "gun_135in_heavy_guns" }
+  cost: 420
+  discoveryWeight: 15000
+  year: 1915
+- id: "fc_coincidence_rangefinder"
+  name: "Coincidence Rangefinder (9-ft Barr & Stroud)"
+  category: "PRE_WAR"
+  researchFieldId: "FIRE_CONTROL"
+  prerequisites:
+    - { techId: "fc_basic_rangefinding" }
+  cost: 280
+  discoveryWeight: 11000
+  year: 1905
+- id: "fc_mechanical_gun_direktor"
+  name: "Mechanical Gunnery Direction (Dumaresq/Dreyer)"
+  category: "PRE_WAR"
+  researchFieldId: "FIRE_CONTROL"
+  prerequisites:
+    - { techId: "fc_coincidence_rangefinder" }
+  cost: 320
+  discoveryWeight: 12000
+  year: 1910
+- id: "fc_director_firing"
+  name: "Director-Controlled Firing"
+  category: "PRE_WAR"
+  researchFieldId: "FIRE_CONTROL"
+  prerequisites:
+    - { techId: "fc_mechanical_gun_direktor" }
+  cost: 360
+  discoveryWeight: 13000
+  year: 1913
+- id: "torp_long_range_18in"
+  name: "Long-Range 18-inch Torpedo"
+  category: "PRE_WAR"
+  researchFieldId: "TORPEDOES"
+  prerequisites:
+    - { techId: "torp_gyroscopic_steering" }
+  cost: 260
+  discoveryWeight: 10000
+  year: 1904
+- id: "torp_21in_ww1"
+  name: "WWI 21-inch (533mm) Torpedo"
+  category: "PRE_WAR"
+  researchFieldId: "TORPEDOES"
+  prerequisites:
+    - { techId: "torp_long_range_18in" }
+  cost: 340
+  discoveryWeight: 12000
+  year: 1912
+- id: "m_asw_automatic_contact_mine"
+  name: "Automatic (Moored) Contact Mine"
+  category: "PRE_WAR"
+  researchFieldId: "MINES_AND_ASW"
+  prerequisites:
+    - { techId: "m_asw_mine_laying" }
+  cost: 200
+  discoveryWeight: 9000
+  year: 1906
+- id: "m_asw_depth_charge_1916"
+  name: "Depth Charge (WWI)"
+  category: "PRE_WAR"
+  researchFieldId: "MINES_AND_ASW"
+  prerequisites:
+    - { techId: "m_asw_automatic_contact_mine" }
+  cost: 300
+  discoveryWeight: 11000
+  year: 1916
+- id: "sub_diesel_electric"
+  name: "Diesel-Electric Submarine Propulsion"
+  category: "PRE_WAR"
+  researchFieldId: "SUBMARINES"
+  prerequisites:
+    - { techId: "sub_practical_military_design" }
+  cost: 350
+  discoveryWeight: 12000
+  year: 1910
+- id: "sub_ww1_ocean_boat"
+  name: "Ocean-Going WWI Submarine"
+  category: "PRE_WAR"
+  researchFieldId: "SUBMARINES"
+  prerequisites:
+    - { techId: "sub_diesel_electric" }
+    - { techId: "torp_long_range_18in" }
+  cost: 420
+  discoveryWeight: 13000
+  year: 1915
+- id: "infra_dreadnought_drydock"
+  name: "Dreadnought-Scale Drydocks"
+  category: "PRE_WAR"
+  researchFieldId: "INFRASTRUCTURE"
+  prerequisites:
+    - { techId: "infra_modern_dockyard" }
+  cost: 300
+  discoveryWeight: 9000
+  year: 1906
+- id: "infra_oil_basing"
+  name: "Oil Bunkering & Bases"
+  category: "PRE_WAR"
+  researchFieldId: "INFRASTRUCTURE"
+  prerequisites:
+    - { techId: "infra_coaling_station" }
+  cost: 250
+  discoveryWeight: 8000
+  year: 1912
+- id: "dc_torpedo_bulkhead"
+  name: "Torpedo Bulkhead Protection"
+  category: "PRE_WAR"
+  researchFieldId: "DAMAGE_CONTROL"
+  prerequisites:
+    - { techId: "dc_watertight_bulkheads" }
+  cost: 280
+  discoveryWeight: 10000
+  year: 1908
