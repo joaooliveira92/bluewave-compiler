@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { validateParticipationRecord, resolveParticipation } from "../src/continuity.js";
 function collector() {

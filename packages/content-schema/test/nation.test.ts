@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { NationSchema, NationIdSchema, type Nation, type NationId } from "../src/index.js";
 import { CANON_NATIONS_1880 } from "../../../content/research/nations/1880/index.ts";
 
@@ -94,7 +94,7 @@ describe("NationSchema", () => {
 
   it("requires the rich canon fields", () => {
     const base = corpusNations()[0]!;
-    const { identity, ...withoutIdentity } = base;
+    const { identity: _identity, ...withoutIdentity } = base;
     expect(NationSchema.safeParse(withoutIdentity).success).toBe(false);
   });
 
@@ -115,7 +115,7 @@ describe("NationSchema", () => {
       // Ignore nations that already omit military.
       return;
     }
-    const { military, ...withoutMilitary } = nation;
+    const { military: _military, ...withoutMilitary } = nation;
     expect(NationSchema.safeParse(withoutMilitary).success).toBe(true);
   });
 });

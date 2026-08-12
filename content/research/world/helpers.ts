@@ -7,7 +7,6 @@ import type {
   TerritoryCategory,
   SovereignId,
 } from "./identifiers/index.ts";
-import type { NationId } from "../nations/shared.ts";
 import { AREAS } from "./areas.ts";
 import { PORTS, CANALS } from "./ports-canals.ts";
 

@@ -1,9 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { CampaignSnapshot, NationState, ConstructionProject } from "@bluewave/campaign";
-import type { CommandEnvelope, CommandBody } from "@bluewave/commands";
 import { MonthExecutor } from "../src/index.js";
 
 function makeNation(
@@ -40,6 +39,7 @@ function makeNation(
           classId: "battleship",
           nationId: id,
           locationAreaId: "a-1",
+          designVersionId: "",
           hitPoints: SafeInt(100),
           maxHitPoints: SafeInt(100),
           speed: SafeInt(10),
@@ -127,6 +127,7 @@ describe("B10a economy & construction acceptance (criteria 1-7)", () => {
           type: "ship",
           projectType: "NEW_CONSTRUCTION",
           targetId: "ship-x",
+          designVersionId: "",
           totalWork: SafeInt(500),
           completedWork: SafeInt(0),
           paidWork: SafeInt(0),
@@ -162,6 +163,7 @@ describe("B10a economy & construction acceptance (criteria 1-7)", () => {
           type: "ship",
           projectType: "NEW_CONSTRUCTION",
           targetId: "ship-x",
+          designVersionId: "",
           totalWork: SafeInt(200),
           completedWork: SafeInt(0),
           paidWork: SafeInt(0),
@@ -192,6 +194,7 @@ describe("B10a economy & construction acceptance (criteria 1-7)", () => {
           type: "ship",
           projectType: "NEW_CONSTRUCTION",
           targetId: "ship-x",
+          designVersionId: "",
           totalWork: SafeInt(200),
           completedWork: SafeInt(0),
           paidWork: SafeInt(0),
@@ -217,6 +220,7 @@ describe("B10a economy & construction acceptance (criteria 1-7)", () => {
           type: "ship",
           projectType: "NEW_CONSTRUCTION",
           targetId: "new-ship",
+          designVersionId: "",
           totalWork: SafeInt(100),
           completedWork: SafeInt(100),
           paidWork: SafeInt(100),
@@ -258,6 +262,7 @@ describe("B10a economy & construction acceptance (criteria 1-7)", () => {
           type: "ship",
           projectType: "NEW_CONSTRUCTION",
           targetId: "ship-x",
+          designVersionId: "",
           totalWork: SafeInt(500),
           completedWork: SafeInt(0),
           paidWork: SafeInt(0),

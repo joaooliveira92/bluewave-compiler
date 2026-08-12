@@ -16,7 +16,12 @@ export type IndustrialDependence =
   | "dependent_on_imports"
   | "dependent_on_foreign_expertise";
 export type StandardizationCulture =
-  "high" | "moderate_to_high" | "moderate" | "low_to_moderate" | "low" | "fragmented";
+  | "high"
+  | "moderate_to_high"
+  | "moderate"
+  | "low_to_moderate"
+  | "low"
+  | "fragmented";
 export type DesignPriority =
   | "endurance"
   | "armor"

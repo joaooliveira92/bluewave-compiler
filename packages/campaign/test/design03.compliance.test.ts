@@ -1,6 +1,6 @@
 // packages/campaign/test/design03.test.ts
 // DESIGN-03 Campaign Configuration - Validation and Acceptance §9 1..21
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import {
   CANONICAL_SCENARIOS,
@@ -16,8 +16,6 @@ import {
   isBeyondEnd,
   canAdvance,
   assertCanAdvance,
-  SIMULATION_END_YEAR,
-  SIMULATION_END_MONTH,
 } from "../src/timeline.js";
 import {
   FLEET_SIZE_IDS,
@@ -28,11 +26,8 @@ import {
   scaleValue,
   allocateIndivisible,
   checkFleetSizeTacticalViolation,
-  FLEET_MIN,
-  FLEET_MAX,
 } from "../src/fleetSize.js";
 import {
-  RESEARCH_IDS,
   RESEARCH_BPS,
   CANONICAL_RESEARCH_SPEED_SETTINGS,
   validateResearchSpeedSettings,
@@ -54,9 +49,6 @@ import {
   type NationIdentityDefinition,
   type ContinuationDefinition,
 } from "../src/continuity.js";
-import { sha256Hex, canonicalSerialize } from "@bluewave/deterministic";
-import { CANONICAL_FLEET_SIZE_SETTINGS } from "../src/fleetSize.js";
-import { CANONICAL_RESEARCH_SPEED_SETTINGS } from "../src/researchSpeed.js";
 import { CampaignCompiler } from "../src/index.js";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
@@ -709,7 +701,6 @@ describe("§9.17-9.20 continuity", () => {
     expect(hasCode(c2, "AI_POWER_PLAYABLE_SLOT_SUBSTITUTION")).toBe(true);
   });
   it("§9.20 deterministic no RNG, duplicate/missing fails", () => {
-    const c = collector();
     const rec: ScenarioParticipationRecord = {
       scenarioId: "scen_1880",
       playableSlotId: "gbr",

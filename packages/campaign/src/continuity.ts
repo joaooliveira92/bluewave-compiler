@@ -8,8 +8,8 @@ export interface ScenarioParticipationRecord {
   playableSlotId: string;
   continuityModeId: ContinuityMode;
   participationStatus: ParticipationStatus;
-  scenarioNationInstanceId: string | "NONE";
-  continuationDefinitionId: string | "NONE";
+  scenarioNationInstanceId: string;
+  continuationDefinitionId: string;
   reasonCode: string;
   contentHash: string;
 }

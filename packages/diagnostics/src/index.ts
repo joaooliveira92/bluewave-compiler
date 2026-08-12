@@ -109,7 +109,7 @@ export class DiagnosticCollector {
     return JSON.stringify(this.diagnostics, null, 2);
   }
 
-  toHuman(options?: { color?: boolean }): string {
+  toHuman(_options?: { color?: boolean }): string {
     return this.diagnostics
       .map((d) => {
         const severity = d.severity.toUpperCase().padEnd(7);

@@ -139,7 +139,7 @@ export function validateScenarios(
     if (r["startYear"] !== exp || r["startMonth"] !== 1) {
       c.addError(
         "INVALID_SCENARIO_DEFINITION",
-        `Scenario ${id} must start January ${exp}, got ${r["startYear"]}-${r["startMonth"]}`,
+        `Scenario ${id} must start January ${exp}, got ${String(r["startYear"])}-${String(r["startMonth"])}`,
         { stage: "scenario-validation" },
       );
       ok = false;
@@ -147,7 +147,7 @@ export function validateScenarios(
     if (r["endYear"] !== 1970 || r["endMonth"] !== 12) {
       c.addError(
         "INVALID_SCENARIO_DEFINITION",
-        `Scenario ${id} must end December 1970, got ${r["endYear"]}-${r["endMonth"]}`,
+        `Scenario ${id} must end December 1970, got ${String(r["endYear"])}-${String(r["endMonth"])}`,
         { stage: "scenario-validation" },
       );
       ok = false;

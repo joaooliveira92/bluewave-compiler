@@ -1,6 +1,5 @@
 import { BluewaveError } from "@bluewave/contracts";
 import type { RandomEngine } from "@bluewave/random";
-import { drawUniform, splitSeed } from "@bluewave/random";
 
 export const CommandReachPolicyId = "tactical_command_reach_v1" as const;
 export type PathKind = "flag" | "lamp" | "early_radio" | "mature_radio" | "data_link" | "relay";

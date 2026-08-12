@@ -1,7 +1,9 @@
 //packages/content-compiler/src/stages/compile.ts
-import type { DiagnosticCollector } from "@bluewave/diagnostics";
+
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import type { CompilerStage, CompilerOutput } from "../index.js";
+import type { DiagnosticCollector } from "@bluewave/diagnostics";
+
+import type { CompilerOutput, CompilerStage } from "../index.js";
 import type { NormalizeOutput } from "./normalize.js";
 
 export class CompileStage implements CompilerStage<NormalizeOutput, CompilerOutput> {

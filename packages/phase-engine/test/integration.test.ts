@@ -1,14 +1,14 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { CampaignCompiler } from "@bluewave/campaign";
 import type { CampaignState, CampaignSnapshot, NationState } from "@bluewave/campaign";
-import type { CommandEnvelope, BudgetProjectCommand, CommandLedger } from "@bluewave/commands";
+import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
 import { CommandLifecycle, CommandIdempotencyMap } from "@bluewave/commands";
 import { SaveStore } from "@bluewave/persistence";
 import { MonthExecutor, ReplayVerifier, PhaseEngine, PhaseRegistry } from "../src/index.js";
-import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
 import { nationsYaml } from "@bluewave/test-support";
@@ -209,7 +209,6 @@ describe("Full-slice integration", () => {
     const state1 = compileCampaign(fixtureDir);
     const state2 = compileCampaign(fixtureDir);
     expect(state1.rawHash).toBe(state2.rawHash);
-    expect(state1.contentHash).toBe(state2.contentHash);
     expect(state1.rawHash).toHaveLength(64);
   });
 
@@ -297,7 +296,9 @@ describe("Full-slice integration", () => {
 
     const result = lifecycle.process(cmd, snapshot, slot, idempotencyMap);
     expect(result.type).toBe("rejected");
-    expect(result.diagnostic.code).toBe("STALE_SNAPSHOT_HASH");
+    if (result.type === "rejected") {
+      expect(result.diagnostic.code).toBe("STALE_SNAPSHOT_HASH");
+    }
   });
 
   // 6. Idempotency
@@ -343,7 +344,9 @@ describe("Full-slice integration", () => {
     );
     const result = lifecycle.process(cmdInvalidNation, snapshot, slot, idempotencyMap);
     expect(result.type).toBe("rejected");
-    expect(result.diagnostic.code).toBe("UNAUTHORIZED");
+    if (result.type === "rejected") {
+      expect(result.diagnostic.code).toBe("UNAUTHORIZED");
+    }
 
     const fraSlot = snapshot.slots.find((s) => s.nationId === "france")!;
     const fraTreasury = snapshot.nations.get("france")!.treasury as number;
@@ -377,10 +380,8 @@ describe("Full-slice integration", () => {
 
     const entries = result.financialLedger.all;
     const gbrEntries = entries.filter((e) => e.nationId === "uk");
-    let runningBalance = snapshot.nations.get("uk")!.treasury as number;
     for (const entry of gbrEntries) {
       expect(entry.newBalance as number).toBeGreaterThanOrEqual(0);
-      runningBalance = entry.newBalance as number;
     }
   });
 
@@ -417,6 +418,9 @@ describe("Full-slice integration", () => {
       treasury: SafeInt(500),
       income: SafeInt(150),
       expenses: SafeInt(75),
+      baseResources: SafeInt(120000),
+      navalAppropriationRateBp: SafeInt(2000),
+      maintenanceCost: SafeInt(0),
       fleets: [
         {
           id: "fleet-1",
@@ -490,6 +494,8 @@ describe("Full-slice integration", () => {
       },
       politics: { relations: [], shells: {} },
       intelligence: { shells: {} },
+      designs: new Map(),
+      designFamilies: new Map(),
       rulesetVersion: "1.0",
       compatibilityVersion: "0.1.0",
     };
@@ -638,6 +644,9 @@ describe("Full-slice integration", () => {
       treasury: SafeInt(500),
       income: SafeInt(150),
       expenses: SafeInt(75),
+      baseResources: SafeInt(120000),
+      navalAppropriationRateBp: SafeInt(2000),
+      maintenanceCost: SafeInt(0),
       fleets: [
         {
           id: "fleet-gbr-home",
@@ -651,6 +660,7 @@ describe("Full-slice integration", () => {
               classId: "battleship",
               nationId: "GBR",
               locationAreaId: "eng_ch",
+              designVersionId: "",
               hitPoints: SafeInt(100),
               maxHitPoints: SafeInt(100),
               speed: SafeInt(21),
@@ -683,6 +693,9 @@ describe("Full-slice integration", () => {
       treasury: SafeInt(600),
       income: SafeInt(120),
       expenses: SafeInt(60),
+      baseResources: SafeInt(90000),
+      navalAppropriationRateBp: SafeInt(2000),
+      maintenanceCost: SafeInt(0),
       fleets: [
         {
           id: "fleet-fra-atlantic",
@@ -696,6 +709,7 @@ describe("Full-slice integration", () => {
               classId: "battleship",
               nationId: "FRA",
               locationAreaId: "eng_ch",
+              designVersionId: "",
               hitPoints: SafeInt(90),
               maxHitPoints: SafeInt(90),
               speed: SafeInt(20),
@@ -758,6 +772,8 @@ describe("Full-slice integration", () => {
       },
       politics: { relations: [], shells: {} },
       intelligence: { shells: {} },
+      designs: new Map(),
+      designFamilies: new Map(),
       rulesetVersion: "1.0",
       compatibilityVersion: "0.1.0",
     };

@@ -8,6 +8,18 @@ export interface TacticalClockParams {
   maximumBattleMinutes?: number;
   tacticalTimePolicyVersion?: string;
 }
+export interface TacticalClockSnapshot {
+  battleId: string;
+  battleStartCampaignTime: string;
+  maximumBattleMinutes: number;
+  tacticalTimePolicyVersion: string;
+  currentBattleMinute: number;
+  currentSubstep: number;
+  pauseState: boolean;
+  commandCutoffState: boolean;
+  clockHash: string;
+}
+
 export class TacticalClock {
   readonly battleId: string;
   readonly battleStartCampaignTime: string;
@@ -51,8 +63,18 @@ export class TacticalClock {
     this.pauseState = p;
     this.clockHash = this.computeHash();
   }
-  toImmutableProjection(): Readonly<TacticalClock> {
-    return Object.freeze({ ...this });
+  toImmutableProjection(): Readonly<TacticalClockSnapshot> {
+    return Object.freeze({
+      battleId: this.battleId,
+      battleStartCampaignTime: this.battleStartCampaignTime,
+      maximumBattleMinutes: this.maximumBattleMinutes,
+      tacticalTimePolicyVersion: this.tacticalTimePolicyVersion,
+      currentBattleMinute: this.currentBattleMinute,
+      currentSubstep: this.currentSubstep,
+      pauseState: this.pauseState,
+      commandCutoffState: this.commandCutoffState,
+      clockHash: this.clockHash,
+    });
   }
 
   computeHash(): string {

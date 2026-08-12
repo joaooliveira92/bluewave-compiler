@@ -2,28 +2,19 @@ import { SafeInt } from "@bluewave/contracts";
 import type {
   CampaignSnapshot,
   NationState,
-  ConstructionProject,
   Ship,
   FleetState,
-  CompiledDesignVersion,
-  ResearchState,
   TechnologyProgress,
 } from "@bluewave/campaign";
-import type {
-  CommandEnvelope,
-  BudgetProjectCommand,
-  CommandBody,
-  SetResearchPriorityCommand,
-} from "@bluewave/commands";
+import type { CommandEnvelope, CommandBody, SetResearchPriorityCommand } from "@bluewave/commands";
 import { CANONICAL_RESEARCH_FIELD_IDS as RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
 import { CommandLifecycle, CommandLedger, CommandIdempotencyMap } from "@bluewave/commands";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { EventLedger } from "@bluewave/events";
 import type { DomainEventEnvelope } from "@bluewave/events";
-import { RandomEngine, RandomLedger, drawUniform } from "@bluewave/random";
+import { RandomEngine, RandomLedger } from "@bluewave/random";
 import { BattleResolver } from "@bluewave/combat";
-import { PhaseRegistry } from "./registry.js";
 import { FinancialLedger, type LedgerTransactionInput } from "./financial-ledger.js";
 
 const CURRENT_VERSION = "0.1.0" as const;
@@ -760,10 +751,6 @@ const TECH_DEFINITIONS: Record<string, TechDefinition> = {
 
 function findTechCost(techId: string): SafeInt {
   return TECH_DEFINITIONS[techId]?.["cost"] ?? SafeInt(100);
-}
-
-function findTechDiscoveryWeight(techId: string): SafeInt {
-  return TECH_DEFINITIONS[techId]?.["discoveryWeight"] ?? SafeInt(10);
 }
 
 export class MonthExecutor {

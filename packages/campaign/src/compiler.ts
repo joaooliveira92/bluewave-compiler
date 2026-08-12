@@ -12,8 +12,7 @@ import type {
   CompiledDesignVersion,
   DesignFamily,
 } from "./state.js";
-import type { WorldState, AreaData, RouteData, PortData } from "./state.js";
-import type { WarState, WarDeclaration } from "./state.js";
+import type { WorldState, AreaData, RouteData, PortData, WarState } from "./state.js";
 import type { PoliticalState, DiplomaticRelation } from "./state.js";
 import {
   DiagnosticCollector,
@@ -65,6 +64,13 @@ function toSafeIntOpt(value: unknown, fallback: SafeInt): SafeInt {
   return fallback;
 }
 
+function toStr(value: unknown, fallback = ""): string {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return fallback;
+}
+
 function isInside(parentResolved: string, childResolved: string): boolean {
   const rel = relative(parentResolved, childResolved);
   if (!rel) return true; // same dir
@@ -98,7 +104,7 @@ function parseYamlFile(
     });
     return undefined;
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = err instanceof Error ? err.message : toStr(err);
     collector.addError("CAMPAIGN-READ", `Failed to read campaign file ${filePath}: ${msg}`, {
       stage: "campaign-compile",
     });
@@ -243,7 +249,7 @@ export class CampaignCompiler {
     const snapshot: CampaignSnapshot = {
       version: "0.1.0",
       turnNumber: SafeInt(0),
-      campaignId: `campaign-${String((pack.manifest as Record<string, unknown>)["name"] ?? "unknown")}`,
+      campaignId: `campaign-${toStr((pack.manifest as Record<string, unknown>)["name"], "unknown")}`,
       slots,
       world,
       nations,
@@ -315,8 +321,8 @@ export class CampaignCompiler {
   private buildWorldState(pack: ContentPack): WorldState {
     const areas: AreaData[] = (pack.areas ?? [])
       .map((a: Record<string, unknown>) => ({
-        id: String(a["id"] ?? ""),
-        name: String(a["name"] ?? ""),
+        id: toStr(a["id"], ""),
+        name: toStr(a["name"], ""),
         type: (a["type"] as "land" | "sea" | "coastal") ?? "land",
         controller: typeof a["controller"] === "string" ? a["controller"] : undefined,
       }))
@@ -324,9 +330,9 @@ export class CampaignCompiler {
 
     const routes: RouteData[] = (pack.routes ?? [])
       .map((r: Record<string, unknown>) => ({
-        id: String(r["id"] ?? ""),
-        from: String(r["from"] ?? ""),
-        to: String(r["to"] ?? ""),
+        id: toStr(r["id"], ""),
+        from: toStr(r["from"], ""),
+        to: toStr(r["to"], ""),
         type: (r["type"] as "land" | "sea" | "rail") ?? "land",
         distance: toSafeInt(r["distance"]),
       }))
@@ -334,10 +340,10 @@ export class CampaignCompiler {
 
     const ports: PortData[] = (pack.ports ?? [])
       .map((p: Record<string, unknown>) => ({
-        id: String(p["id"] ?? ""),
-        name: String(p["name"] ?? ""),
-        areaId: String(p["areaId"] ?? ""),
-        nationId: String(p["nationId"] ?? ""),
+        id: toStr(p["id"], ""),
+        name: toStr(p["name"], ""),
+        areaId: toStr(p["areaId"], ""),
+        nationId: toStr(p["nationId"], ""),
         level: toSafeIntOpt(p["level"], SafeInt(1)),
       }))
       .sort((a, b) => a.id.localeCompare(b.id));
@@ -357,14 +363,14 @@ export class CampaignCompiler {
 
     // sort nations by canonical id for deterministic Map insertion / rawHash
     const sortedNations = [...(pack.nations ?? [])].sort((a, b) => {
-      const aId = String((a as Record<string, unknown>)["id"] ?? "");
-      const bId = String((b as Record<string, unknown>)["id"] ?? "");
+      const aId = toStr((a as Record<string, unknown>)["id"], "");
+      const bId = toStr((b as Record<string, unknown>)["id"], "");
       return aId.localeCompare(bId);
     });
 
     for (const nation of sortedNations) {
       const countryRec = nation as Record<string, unknown>;
-      const id = String(countryRec["id"] ?? "");
+      const id = toStr(countryRec["id"], "");
 
       const isPlayable = this.isNationPlayable(id, countryRec, collector);
 
@@ -387,8 +393,8 @@ export class CampaignCompiler {
 
       nations.set(id, {
         id,
-        name: String(countryRec["name"] ?? ""),
-        tag: String(countryRec["tag"] ?? ""),
+        name: toStr(countryRec["name"], ""),
+        tag: toStr(countryRec["tag"], ""),
         treasury,
         income,
         expenses,
@@ -419,10 +425,10 @@ export class CampaignCompiler {
       .map((f) => {
         const fRec = f as Record<string, unknown>;
         return {
-          id: String(fRec["id"] ?? ""),
-          nationId: String(fRec["nationId"] ?? ""),
-          name: String(fRec["name"] ?? ""),
-          locationAreaId: String(fRec["locationAreaId"] ?? ""),
+          id: toStr(fRec["id"], ""),
+          nationId: toStr(fRec["nationId"], ""),
+          name: toStr(fRec["name"], ""),
+          locationAreaId: toStr(fRec["locationAreaId"], ""),
           ships: this.buildShips(fRec),
         };
       })
@@ -432,17 +438,17 @@ export class CampaignCompiler {
   private buildShips(fleet: Record<string, unknown>): Ship[] {
     const shipsRaw = fleet["ships"];
     if (!Array.isArray(shipsRaw)) return [];
-    const nationId = String(fleet["nationId"] ?? "");
-    const locationAreaId = String(fleet["locationAreaId"] ?? "");
+    const nationId = toStr(fleet["nationId"], "");
+    const locationAreaId = toStr(fleet["locationAreaId"], "");
 
     return shipsRaw
       .map((s: Record<string, unknown>) => ({
-        id: String(s["id"] ?? ""),
-        name: String(s["name"] ?? ""),
-        classId: String(s["classId"] ?? ""),
+        id: toStr(s["id"], ""),
+        name: toStr(s["name"], ""),
+        classId: toStr(s["classId"], ""),
         nationId,
         locationAreaId,
-        designVersionId: String(s["designVersionId"] ?? ""),
+        designVersionId: toStr(s["designVersionId"], ""),
         hitPoints: toSafeIntOpt(s["hitPoints"], SafeInt(100)),
         maxHitPoints: toSafeIntOpt(s["maxHitPoints"], SafeInt(100)),
         speed: toSafeIntOpt(s["speed"], SafeInt(10)),
@@ -477,7 +483,7 @@ export class CampaignCompiler {
       for (const t of techsRaw) {
         const tRec = t as Record<string, unknown>;
         techs.push({
-          techId: String(tRec["techId"] ?? ""),
+          techId: toStr(tRec["techId"], ""),
           investedPoints: toSafeIntOpt(tRec["investedPoints"], SafeInt(0)),
           completed: tRec["completed"] === true,
         });
@@ -506,7 +512,7 @@ export class CampaignCompiler {
     const discoveredTechs: string[] = [];
     if (Array.isArray(discoveredTechsRaw)) {
       for (const t of discoveredTechsRaw) {
-        discoveredTechs.push(String(t));
+        discoveredTechs.push(toStr(t));
       }
     }
 
@@ -533,17 +539,17 @@ export class CampaignCompiler {
       .map((c) => {
         const cRec = c as Record<string, unknown>;
         return {
-          id: String(cRec["id"] ?? ""),
+          id: toStr(cRec["id"], ""),
           type: (cRec["type"] as "ship" | "building" | "technology") ?? "ship",
           projectType: "NEW_CONSTRUCTION" as const,
-          targetId: String(cRec["targetId"] ?? ""),
-          designVersionId: String(cRec["designVersionId"] ?? ""),
+          targetId: toStr(cRec["targetId"], ""),
+          designVersionId: toStr(cRec["designVersionId"], ""),
           totalWork: toSafeIntOpt(cRec["totalWork"], SafeInt(100)),
           completedWork: toSafeIntOpt(cRec["completedWork"], SafeInt(0)),
           paidWork: toSafeIntOpt(cRec["paidWork"], SafeInt(0)),
           status:
             (cRec["status"] as "PLANNED" | "AUTHORIZED" | "ACTIVE" | "COMPLETED") ?? "PLANNED",
-          startedAt: String(cRec["startedAt"] ?? "1880-01"),
+          startedAt: toStr(cRec["startedAt"], "1880-01"),
         };
       })
       .sort((a, b) => a.id.localeCompare(b.id));
@@ -558,10 +564,10 @@ export class CampaignCompiler {
       .map((r) => {
         const rRec = r as Record<string, unknown>;
         return {
-          nationA: String(rRec["nationA"] ?? ""),
-          nationB: String(rRec["nationB"] ?? ""),
+          nationA: toStr(rRec["nationA"], ""),
+          nationB: toStr(rRec["nationB"], ""),
           relation: (rRec["relation"] as DiplomaticRelation["relation"]) ?? "neutral",
-          since: String(rRec["since"] ?? "1880-01"),
+          since: toStr(rRec["since"], "1880-01"),
         };
       })
       .sort((a, b) => (a.nationA + a.nationB).localeCompare(b.nationA + b.nationB));
@@ -578,7 +584,7 @@ export class CampaignCompiler {
 
     for (const d of designsData) {
       const rec = d as Record<string, unknown>;
-      const designVersionId = String(rec["designVersionId"] ?? rec["designId"] ?? "");
+      const designVersionId = toStr(rec["designVersionId"], toStr(rec["designId"]));
 
       const rawDesign = {
         designId: designVersionId,
@@ -607,7 +613,7 @@ export class CampaignCompiler {
 
       const design: CompiledDesignVersion = {
         designVersionId,
-        designFamilyId: String(validated["designFamilyId"] ?? ""),
+        designFamilyId: toStr(validated["designFamilyId"], ""),
         className: validated["className"],
         nationId: validated["nationId"],
         hullType: validated["hullType"],
@@ -628,7 +634,7 @@ export class CampaignCompiler {
         mainGunsCount: toSafeIntOpt(validated["mainGuns"]?.["count"], SafeInt(0)),
         machineryType: validated["machineryType"],
         crewComplement: toSafeIntOpt(validated["crewComplement"], SafeInt(0)),
-        contentVersion: String(validated["contentVersion"] ?? "0.1.0"),
+        contentVersion: toStr(validated["contentVersion"], "0.1.0"),
         compiledHash: sha256Hex(
           canonicalSerialize({
             designVersionId,
@@ -661,9 +667,9 @@ export class CampaignCompiler {
     const familyMap = new Map<string, { rec: Record<string, unknown>; members: string[] }>();
     for (const d of designsData) {
       const rec = d as Record<string, unknown>;
-      const familyId = String(rec["designFamilyId"] ?? "");
+      const familyId = toStr(rec["designFamilyId"], "");
       if (!familyId) continue;
-      const designVersionId = String(rec["designVersionId"] ?? rec["designId"] ?? "");
+      const designVersionId = toStr(rec["designVersionId"], toStr(rec["designId"]));
 
       if (!familyMap.has(familyId)) {
         familyMap.set(familyId, { rec, members: [] });
@@ -677,10 +683,10 @@ export class CampaignCompiler {
       data.members.sort((a, b) => a.localeCompare(b));
       families.set(familyId, {
         designFamilyId: familyId,
-        nationId: String(data.rec["nationId"] ?? ""),
+        nationId: toStr(data.rec["nationId"], ""),
         rootDesignVersionId: data.members[0] ?? "",
         memberDesignVersionIds: data.members,
-        familyCreationMonth: String(data.rec["familyCreationMonth"] ?? "1880-01"),
+        familyCreationMonth: toStr(data.rec["familyCreationMonth"], "1880-01"),
       });
     }
 

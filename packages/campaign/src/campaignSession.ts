@@ -5,7 +5,7 @@
 // the strategic timeline for a single campaign run.
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { CANONICAL_SCENARIOS, validateScenarios, type ScenarioDefinition } from "./scenario.js";
+import { CANONICAL_SCENARIOS, validateScenarios } from "./scenario.js";
 import { validateFleetSizeSettings } from "./fleetSize.js";
 import { validateResearchSpeedSettings } from "./researchSpeed.js";
 import { assertCanAdvance, isAtEnd, isBeyondEnd, toLinear, fromLinear } from "./timeline.js";

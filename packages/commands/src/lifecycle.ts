@@ -7,26 +7,88 @@ import {
   MAX_HIGH_PRIORITY_FIELDS,
 } from "@bluewave/content-schema";
 import type { CommandEnvelope, CommandBody, BudgetProjectCommand } from "./envelope.js";
+import type {
+  CommandStatus,
+  CommandStatusTransitionRecord,
+  CommandRecord,
+  CommandTypeDefinition,
+  CommandResult,
+} from "./types.js";
+import { TERMINAL_STATUSES } from "./types.js";
+import { hashCommandRecord } from "./canonicalization.js";
+import { AuditChain } from "./audit.js";
 
+// --- Permitted transitions per §5 ---
+export const PERMITTED_TRANSITIONS: Record<CommandStatus, CommandStatus[]> = {
+  SUBMITTED: ["VALIDATED", "REJECTED", "CANCELLED"],
+  VALIDATED: ["AUTHORIZED", "REJECTED", "CANCELLED"],
+  AUTHORIZED: ["RESERVED", "ACCEPTED", "REJECTED", "CANCELLED"],
+  RESERVED: ["ACCEPTED", "REJECTED", "CANCELLED"],
+  ACCEPTED: ["LOCKED", "CANCELLED", "SUPERSEDED"],
+  LOCKED: ["RESOLVING", "SUPERSEDED"],
+  RESOLVING: ["COMPLETED", "PARTIALLY_COMPLETED", "REJECTED", "CANCELLED", "SUPERSEDED"],
+  COMPLETED: [],
+  PARTIALLY_COMPLETED: [],
+  REJECTED: [],
+  CANCELLED: [],
+  SUPERSEDED: [],
+};
+
+export function canTransition(
+  from: CommandStatus,
+  to: CommandStatus,
+  def?: CommandTypeDefinition,
+): boolean {
+  const allowed = PERMITTED_TRANSITIONS[from] ?? [];
+  if (!allowed.includes(to)) return false;
+  // LOCKED -> SUPERSEDED only when explicitly permitted
+  if (from === "LOCKED" && to === "SUPERSEDED") {
+    if (!def?.supersessionPolicy || def.supersessionPolicy.lockBoundaryBehavior !== "ALLOW_LOCKED")
+      return false;
+  }
+  // RESOLVING -> REJECTED only when no effect applied (caller must enforce)
+  // RESOLVING -> CANCELLED only before irreversible phase (caller must enforce)
+  return true;
+}
+
+export function transitionRecord(
+  rec: CommandRecord,
+  to: CommandStatus,
+  phaseId: string,
+  actorId: string,
+  reasonCode: string,
+  previousHash: string,
+): CommandStatusTransitionRecord {
+  if (!canTransition(rec.status, to)) {
+    throw Object.assign(new Error(`INVALID_COMMAND_STATUS_TRANSITION: ${rec.status} -> ${to}`), {
+      code: "INVALID_COMMAND_STATUS_TRANSITION",
+    });
+  }
+  if (TERMINAL_STATUSES.has(rec.status)) {
+    throw Object.assign(
+      new Error(`INVALID_COMMAND_STATUS_TRANSITION: terminal ${rec.status} cannot transition`),
+      { code: "INVALID_COMMAND_STATUS_TRANSITION" },
+    );
+  }
+  const tr: CommandStatusTransitionRecord = {
+    commandId: rec.commandId,
+    fromStatus: rec.status,
+    toStatus: to,
+    phaseId,
+    actorId,
+    reasonCode,
+    previousHash,
+    recordHash: "",
+    timestamp: new Date().toISOString(),
+  };
+  return { ...tr, recordHash: sha256Hex(canonicalSerialize(tr)) };
+}
+
+// --- Legacy CommandOutcome for backward compat ---
 export type CommandOutcome =
-  | {
-      type: "success";
-      commandId: string;
-      snapshotHash: string;
-      result?: unknown;
-    }
-  | {
-      type: "rejected";
-      commandId: string;
-      snapshotHash: string;
-      diagnostic: Diagnostic;
-    }
-  | {
-      type: "idempotency_match";
-      commandId: string;
-      snapshotHash: string;
-      result?: unknown;
-    }
+  | { type: "success"; commandId: string; snapshotHash: string; result?: unknown }
+  | { type: "rejected"; commandId: string; snapshotHash: string; diagnostic: Diagnostic }
+  | { type: "idempotency_match"; commandId: string; snapshotHash: string; result?: unknown }
   | {
       type: "idempotency_conflict";
       commandId: string;
@@ -38,6 +100,7 @@ type LifecycleStepResult = { ok: true } | { ok: false; outcome: CommandOutcome }
 
 export class CommandLifecycle {
   private currentVersion = "0.1.0" as const;
+  private audit = new AuditChain();
 
   validate(
     envelope: CommandEnvelope<CommandBody>,
@@ -54,7 +117,6 @@ export class CommandLifecycle {
         ),
       };
     }
-
     const computedHash = sha256Hex(canonicalSerialize(snapshot));
     if (envelope.expectedSnapshotHash !== computedHash) {
       return {
@@ -67,11 +129,8 @@ export class CommandLifecycle {
         ),
       };
     }
-
-    if (envelope.body.type === "SetResearchPriority") {
+    if (envelope.body.type === "SetResearchPriority")
       return this.validateSetResearchPriority(envelope, snapshot);
-    }
-
     if (envelope.body.type !== "budget_project") {
       return {
         ok: false,
@@ -83,9 +142,8 @@ export class CommandLifecycle {
         ),
       };
     }
-
     const body = envelope.body as BudgetProjectCommand;
-    if (typeof body.nationId !== "string" || body.nationId.length === 0) {
+    if (typeof body.nationId !== "string" || body.nationId.length === 0)
       return {
         ok: false,
         outcome: this.makeRejected(
@@ -95,8 +153,7 @@ export class CommandLifecycle {
           "nationId must be a non-empty string",
         ),
       };
-    }
-    if (typeof body.projectId !== "string" || body.projectId.length === 0) {
+    if (typeof body.projectId !== "string" || body.projectId.length === 0)
       return {
         ok: false,
         outcome: this.makeRejected(
@@ -106,8 +163,6 @@ export class CommandLifecycle {
           "projectId must be a non-empty string",
         ),
       };
-    }
-
     return { ok: true };
   }
 
@@ -116,8 +171,7 @@ export class CommandLifecycle {
     snapshot: CampaignSnapshot,
   ): LifecycleStepResult {
     const body = envelope.body as Extract<CommandBody, { type: "SetResearchPriority" }>;
-
-    if (typeof body.nationId !== "string" || body.nationId.length === 0) {
+    if (typeof body.nationId !== "string" || body.nationId.length === 0)
       return {
         ok: false,
         outcome: this.makeRejected(
@@ -127,10 +181,6 @@ export class CommandLifecycle {
           "nationId must be a non-empty string",
         ),
       };
-    }
-
-    // DESIGN-20 §5: a command naming a specific technology as the next
-    // discovery MUST be rejected.
     if (body.exactTechId !== undefined && typeof body.exactTechId === "string") {
       return {
         ok: false,
@@ -142,24 +192,19 @@ export class CommandLifecycle {
         ),
       };
     }
-
     const priorities = body.fieldPriorities ?? {};
-    const missingFields = CANONICAL_RESEARCH_FIELD_IDS.filter(
-      (fieldId) => priorities[fieldId] === undefined,
-    );
+    const missingFields = CANONICAL_RESEARCH_FIELD_IDS.filter((f) => priorities[f] === undefined);
     const validWeights = new Set<number>([
       RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH,
       RESEARCH_FIELD_PRIORITY_WEIGHTS.MEDIUM,
       RESEARCH_FIELD_PRIORITY_WEIGHTS.LOW,
     ]);
     const invalidWeightFields = CANONICAL_RESEARCH_FIELD_IDS.filter(
-      (fieldId) =>
-        priorities[fieldId] !== undefined && !validWeights.has(priorities[fieldId] as number),
+      (f) => priorities[f] !== undefined && !validWeights.has(priorities[f] as number),
     );
     const highCount = CANONICAL_RESEARCH_FIELD_IDS.filter(
-      (fieldId) => priorities[fieldId] === RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH,
+      (f) => priorities[f] === RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH,
     ).length;
-
     if (
       missingFields.length > 0 ||
       invalidWeightFields.length > 0 ||
@@ -176,7 +221,6 @@ export class CommandLifecycle {
         ),
       };
     }
-
     return { ok: true };
   }
 
@@ -203,7 +247,7 @@ export class CommandLifecycle {
   reserve(envelope: CommandEnvelope<CommandBody>, snapshot: CampaignSnapshot): LifecycleStepResult {
     const body = envelope.body;
     const nation = snapshot.nations.get(body.nationId);
-    if (!nation) {
+    if (!nation)
       return {
         ok: false,
         outcome: {
@@ -214,12 +258,10 @@ export class CommandLifecycle {
             code: "NATION_NOT_FOUND" as DiagnosticCode,
             severity: "error",
             stage: "reserve",
-            message: `Nation ${body.nationId} not found in snapshot`,
+            message: `Nation ${body.nationId} not found`,
           },
         },
       };
-    }
-
     if (body.type === "budget_project" && nation.treasury < body.budget) {
       return {
         ok: false,
@@ -236,12 +278,10 @@ export class CommandLifecycle {
         },
       };
     }
-
     return { ok: true };
   }
 
   accept(_envelope: CommandEnvelope<CommandBody>): void {}
-
   reject(envelope: CommandEnvelope<CommandBody>, reason: string): CommandOutcome {
     return {
       type: "rejected",
@@ -255,33 +295,23 @@ export class CommandLifecycle {
       },
     };
   }
-
   lock(_envelope: CommandEnvelope<CommandBody>): void {}
-
   resolve(envelope: CommandEnvelope<CommandBody>, snapshot: CampaignSnapshot): CommandOutcome {
     const body = envelope.body;
     const snapshotHash = sha256Hex(canonicalSerialize(snapshot));
-    if (body.type === "SetResearchPriority") {
+    if (body.type === "SetResearchPriority")
       return {
         type: "success",
         commandId: envelope.commandId,
         snapshotHash,
-        result: {
-          nationId: body.nationId,
-          fieldPriorities: body.fieldPriorities,
-        },
+        result: { nationId: body.nationId, fieldPriorities: body.fieldPriorities },
       };
-    }
-    const budgetBody = body as BudgetProjectCommand;
+    const b = body as BudgetProjectCommand;
     return {
       type: "success",
       commandId: envelope.commandId,
       snapshotHash,
-      result: {
-        budget: budgetBody.budget,
-        nationId: budgetBody.nationId,
-        projectId: budgetBody.projectId,
-      },
+      result: { budget: b.budget, nationId: b.nationId, projectId: b.projectId },
     };
   }
 
@@ -293,7 +323,7 @@ export class CommandLifecycle {
   ): CommandOutcome {
     const existing = idempotencyMap.get(envelope.idempotencyKey);
     if (existing) {
-      if (existing.commandId === envelope.commandId) {
+      if (existing.commandId === envelope.commandId)
         return {
           type: "idempotency_match",
           commandId: envelope.commandId,
@@ -303,7 +333,6 @@ export class CommandLifecycle {
               ? existing.result
               : undefined,
         };
-      }
       return {
         type: "idempotency_conflict",
         commandId: envelope.commandId,
@@ -316,31 +345,36 @@ export class CommandLifecycle {
         },
       };
     }
-
     const validation = this.validate(envelope, snapshot);
     if (!validation.ok) {
       idempotencyMap.set(envelope.idempotencyKey, validation.outcome);
       return validation.outcome;
     }
-
     const auth = this.authorize(envelope, slot);
     if (!auth.ok) {
       idempotencyMap.set(envelope.idempotencyKey, auth.outcome);
       return auth.outcome;
     }
-
     const reserveResult = this.reserve(envelope, snapshot);
     if (!reserveResult.ok) {
       idempotencyMap.set(envelope.idempotencyKey, reserveResult.outcome);
       return reserveResult.outcome;
     }
-
     this.accept(envelope);
     this.lock(envelope);
-
     const outcome = this.resolve(envelope, snapshot);
     idempotencyMap.set(envelope.idempotencyKey, outcome);
-
+    this.audit.append(
+      snapshot.campaignId,
+      envelope.commandId,
+      "process",
+      slot.nationId,
+      envelope.expectedSnapshotHash,
+      sha256Hex(canonicalSerialize(outcome)),
+      "0.1.0",
+      "0.1.0",
+      [outcome.type],
+    );
     return outcome;
   }
 
@@ -355,27 +389,226 @@ export class CommandLifecycle {
       type: "rejected",
       commandId: envelope.commandId,
       snapshotHash,
-      diagnostic: {
-        code: code as DiagnosticCode,
-        severity: "error",
-        stage: "validate",
-        message,
-      },
+      diagnostic: { code: code as DiagnosticCode, severity: "error", stage: "validate", message },
     };
+  }
+
+  // --- New spec-compliant helpers ---
+
+  createCommandRecord(
+    envelope: CommandEnvelope<CommandBody>,
+    definition: CommandTypeDefinition,
+    campaignId: string,
+    campaignMonth: string,
+    issuerClass: CommandRecord["issuerClass"],
+    issuerParticipantId: string,
+    targetAggregateId: string,
+    submissionPhaseId: string,
+    submissionOrdinal: number,
+    snapshotHash: string,
+  ): CommandRecord {
+    const canonicalPayloadHash = sha256Hex(canonicalSerialize(envelope.body));
+    const rec: CommandRecord = {
+      commandId: envelope.commandId,
+      commandTypeId: definition.commandTypeId,
+      commandSchemaVersion: definition.commandSchemaVersion,
+      campaignId,
+      campaignMonth,
+      issuerClass,
+      issuerParticipantId,
+      targetAggregateType: definition.targetAggregateType,
+      targetAggregateId,
+      submissionPhaseId,
+      submissionOrdinal,
+      idempotencyKey: envelope.idempotencyKey,
+      canonicalPayload: envelope.body,
+      canonicalPayloadHash,
+      declaredPreconditions: {},
+      status: "SUBMITTED",
+      authorizationRecord: "NONE",
+      validationRecord: "NONE",
+      reservationRecordIds: [],
+      cancellationRequestId: "NONE",
+      resolutionRecord: "NONE",
+      settlementRecord: "NONE",
+      resultRecord: "NONE",
+      createdFromSnapshotHash: snapshotHash,
+      lastTransitionAtPhaseId: submissionPhaseId,
+      causalRecordId: `causal-${envelope.commandId}`,
+      commandHash: "",
+    };
+    return { ...rec, commandHash: hashCommandRecord(rec) };
+  }
+
+  enforceLockImmutability(rec: CommandRecord, attemptedMutation: string): never {
+    if (rec.status === "LOCKED" || rec.status === "RESOLVING") {
+      throw Object.assign(
+        new Error(
+          `LOCKED_COMMAND_IMMUTABLE: cannot ${attemptedMutation} on ${rec.status} command ${rec.commandId}`,
+        ),
+        { code: "LOCKED_COMMAND_IMMUTABLE" },
+      );
+    }
+    throw Object.assign(new Error(`LOCKED_COMMAND_IMMUTABLE`), {
+      code: "LOCKED_COMMAND_IMMUTABLE",
+    });
+  }
+
+  checkCancellationWindow(
+    rec: CommandRecord,
+    def: CommandTypeDefinition,
+    currentPhaseId: string,
+    currentStatus: CommandStatus,
+  ): { allowed: boolean; reasonCode: string } {
+    if (TERMINAL_STATUSES.has(currentStatus))
+      return { allowed: false, reasonCode: "CANCELLATION_NOT_ALLOWED" };
+    if (def.cancellationPolicyId === "NOT_CANCELLABLE")
+      return { allowed: false, reasonCode: "CANCELLATION_NOT_ALLOWED" };
+    if (def.cancellationPolicyId === "UNTIL_LOCK") {
+      const allowedStatuses: CommandStatus[] = [
+        "SUBMITTED",
+        "VALIDATED",
+        "AUTHORIZED",
+        "RESERVED",
+        "ACCEPTED",
+      ];
+      if (!allowedStatuses.includes(currentStatus))
+        return { allowed: false, reasonCode: "CANCELLATION_WINDOW_CLOSED" };
+      return { allowed: true, reasonCode: "COMMAND_CANCELLED" };
+    }
+    if (def.cancellationPolicyId === "UNTIL_IRREVERSIBLE_PHASE") {
+      if (currentPhaseId === def.irreversiblePhaseId)
+        return { allowed: false, reasonCode: "IRREVERSIBLE_EFFECT_ALREADY_APPLIED" };
+      // also check status
+      const allowed: CommandStatus[] = [
+        "SUBMITTED",
+        "VALIDATED",
+        "AUTHORIZED",
+        "RESERVED",
+        "ACCEPTED",
+        "LOCKED",
+        "RESOLVING",
+      ];
+      if (!allowed.includes(currentStatus))
+        return { allowed: false, reasonCode: "CANCELLATION_WINDOW_CLOSED" };
+      return { allowed: true, reasonCode: "COMMAND_CANCELLED" };
+    }
+    // CUSTOM_EXPLICIT - delegate to handler branch (here we allow but require explicit)
+    return { allowed: false, reasonCode: "CANCELLATION_NOT_ALLOWED" };
+  }
+
+  produceResult(
+    commandId: string,
+    terminalStatus: CommandStatus,
+    primaryReasonCode: string,
+    preHash: string,
+    postHash: string,
+    settlementIds: string[],
+  ): CommandResult {
+    const res: CommandResult = {
+      commandId,
+      terminalStatus,
+      primaryReasonCode,
+      diagnosticReasonCodes: [],
+      appliedEffectRecordIds: [],
+      reservationSettlementIds: settlementIds,
+      refundAmountByResource: {},
+      consumedAmountByResource: {},
+      lostAmountByResource: {},
+      domainEventIds: [],
+      randomDecisionRecordIds: [],
+      preResolutionStateHash: preHash,
+      postResolutionStateHash: postHash,
+      explanationTrace: [primaryReasonCode],
+      resultHash: "",
+    };
+    return { ...res, resultHash: sha256Hex(canonicalSerialize(res)) };
+  }
+
+  handleImpossibility(
+    command: CommandRecord,
+    failedPredicateIds: string[],
+    inputSnapshotHash: string,
+    effectsApplied: string[],
+    def: CommandTypeDefinition,
+  ): { outcome: import("./types.js").CommandImpossibilityOutcome; terminalStatus: CommandStatus } {
+    const allowsPartial = def.partialCompletionAllowed === true && effectsApplied.length > 0;
+    const terminalStatus: CommandStatus =
+      effectsApplied.length === 0 ? "REJECTED" : allowsPartial ? "PARTIALLY_COMPLETED" : "REJECTED";
+    const outcome: import("./types.js").CommandImpossibilityOutcome = {
+      commandId: command.commandId,
+      failedPredicateIds,
+      primaryReasonCode: "VOLATILE_PRECONDITION_FAILED",
+      diagnosticReasonCodes: failedPredicateIds,
+      inputSnapshotHash,
+      effectsAlreadyApplied: effectsApplied,
+      reservedResourceDisposition: {},
+      refundCalculation: {},
+      lostCostCalculation: {},
+      resultingTerminalStatus: terminalStatus,
+      explanationTrace: [`Volatile precondition failed: ${failedPredicateIds.join(",")}`],
+    };
+    return { outcome, terminalStatus };
+  }
+
+  // Architecture validation: direct mutation prohibited
+  assertNoDirectMutation(caller: string): void {
+    const prohibited = [
+      "DTO",
+      "UI handler",
+      "AI planner",
+      "preload bridge",
+      "renderer",
+      "IPC handler",
+      "CommandEnvelope",
+    ];
+    if (prohibited.some((p) => caller.includes(p))) {
+      throw Object.assign(
+        new Error(
+          `DIRECT_COMMAND_STATE_MUTATION_PROHIBITED: ${caller} must not mutate authoritative state`,
+        ),
+        { code: "DIRECT_COMMAND_STATE_MUTATION_PROHIBITED" },
+      );
+    }
+  }
+
+  // Failure atomicity
+  handleInternalFailure(command: CommandRecord, preHash: string, _error: unknown): CommandResult {
+    // roll back is caller's responsibility; here we produce result
+    return this.produceResult(
+      command.commandId,
+      "REJECTED",
+      "COMMAND_RESOLUTION_INTERNAL_FAILURE",
+      preHash,
+      preHash,
+      [],
+    );
+  }
+
+  // Replay verification
+  verifyReplay(expected: CommandResult, actual: CommandResult): void {
+    if (
+      expected.resultHash !== actual.resultHash ||
+      expected.terminalStatus !== actual.terminalStatus
+    ) {
+      throw Object.assign(
+        new Error(
+          `COMMAND_REPLAY_MISMATCH: expected ${expected.resultHash} got ${actual.resultHash}`,
+        ),
+        { code: "COMMAND_REPLAY_MISMATCH" },
+      );
+    }
   }
 }
 
 export class CommandIdempotencyMap {
   private map = new Map<string, CommandOutcome>();
-
   has(key: string): boolean {
     return this.map.has(key);
   }
-
   get(key: string): CommandOutcome | undefined {
     return this.map.get(key);
   }
-
   set(key: string, outcome: CommandOutcome): void {
     this.map.set(key, outcome);
   }
@@ -383,16 +616,49 @@ export class CommandIdempotencyMap {
 
 export class CommandLedger {
   private records: CommandOutcome[] = [];
-
   add(outcome: CommandOutcome): void {
     this.records.push(outcome);
   }
-
   get all(): readonly CommandOutcome[] {
     return this.records;
   }
-
   hash(): string {
     return sha256Hex(canonicalSerialize(this.records));
+  }
+}
+
+// Scoped idempotency per §4
+export class ScopedIdempotencyStore {
+  private store = new Map<string, CommandRecord>(); // scopeKey -> record
+  private keyFor(def: CommandTypeDefinition, idempotencyKey: string): string {
+    return `${def.idempotencyScope}:${def.commandTypeId}:${idempotencyKey}`;
+  }
+  get(def: CommandTypeDefinition, idempotencyKey: string): CommandRecord | undefined {
+    return this.store.get(this.keyFor(def, idempotencyKey));
+  }
+  set(def: CommandTypeDefinition, rec: CommandRecord): void {
+    const k = this.keyFor(def, rec.idempotencyKey);
+    if (this.store.has(k)) {
+      const existing = this.store.get(k)!;
+      if (existing.commandId !== rec.commandId) {
+        throw Object.assign(
+          new Error(`Idempotency key ${rec.idempotencyKey} already used by ${existing.commandId}`),
+          { code: "IDEMPOTENCY_CONFLICT" },
+        );
+      }
+      return; // idempotent return existing
+    }
+    this.store.set(k, rec);
+  }
+  // duplicate must return existing result and not submit second
+  checkDuplicate(
+    def: CommandTypeDefinition,
+    idempotencyKey: string,
+    commandId: string,
+  ): CommandRecord | undefined {
+    const existing = this.get(def, idempotencyKey);
+    if (existing && existing.commandId !== commandId) return existing;
+    if (existing && existing.commandId === commandId) return existing;
+    return undefined;
   }
 }

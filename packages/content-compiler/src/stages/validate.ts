@@ -1,17 +1,19 @@
 //packages/content-compiler/src/stages/validate.ts
-import type { DiagnosticCollector } from "@bluewave/diagnostics";
-import type { ZodSchema } from "zod";
+
 import {
-  PackManifestSchema,
-  RulesetManifestSchema,
-  NationSchema,
   AreaSchema,
-  RouteEdgeSchema,
-  PossessionSchema,
+  NationSchema,
+  PackManifestSchema,
   PortSchema,
+  PossessionSchema,
+  RouteEdgeSchema,
+  RulesetManifestSchema,
   TechnologyPrerequisiteChainSchema,
   validateAgainstSchema,
 } from "@bluewave/content-schema";
+import type { DiagnosticCollector } from "@bluewave/diagnostics";
+import type { ZodSchema } from "zod";
+
 import type { CompilerStage } from "../index.js";
 import type { ParseOutput } from "./parse.js";
 

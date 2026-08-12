@@ -58,14 +58,14 @@ function createWindow(): void {
   });
 
   if (process.env.NODE_ENV === "development" || process.argv.includes("--dev")) {
-    win.loadURL("http://localhost:5173");
+    void win.loadURL("http://localhost:5173");
     win.webContents.openDevTools();
   } else {
-    win.loadFile(resolve(__dirname, "../renderer/index.html"));
+    void win.loadFile(resolve(__dirname, "../renderer/index.html"));
   }
 }
 
-app.whenReady().then(() => {
+void app.whenReady().then(() => {
   ipcMain.handle("compile", handleCompile);
   createWindow();
 

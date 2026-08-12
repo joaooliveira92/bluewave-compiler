@@ -1,9 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
-import type { CommandEnvelope, BudgetProjectCommand, CommandOutcome } from "@bluewave/commands";
+import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
 import { CommandLedger } from "@bluewave/commands";
 import { MonthExecutor, ReplayVerifier } from "@bluewave/phase-engine";
 
@@ -56,6 +56,8 @@ function createSnapshot(): CampaignSnapshot {
     wars: { wars: [], battles: [] },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
+    designs: new Map(),
+    designFamilies: new Map(),
     rulesetVersion: "0.1.0",
     compatibilityVersion: "0.1.0",
   };

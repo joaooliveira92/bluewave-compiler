@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { SafeInt, BluewaveError } from "@bluewave/contracts";
 import { RandomEngine, RandomStream } from "@bluewave/random";
 import type { BattleInstance, FleetState, NationState, Ship } from "@bluewave/campaign";
@@ -226,8 +226,6 @@ describe("combat (narrow) - preserved", () => {
   it("deterministic: same seed + same fleets (cloned) = same result", () => {
     const shipsA = [makeShip({ id: "da1", firepower: SafeInt(16), armor: SafeInt(12) })];
     const shipsD = [makeShip({ id: "dd1", firepower: SafeInt(8), armor: SafeInt(6) })];
-    const fA = makeFleet({ id: "dfa", nationId: "ATK", ships: shipsA });
-    const fD = makeFleet({ id: "dfd", nationId: "DEF", ships: shipsD });
     const makeState = () => ({
       attackerNation: makeNation(
         "ATK",
@@ -350,18 +348,8 @@ describe("combat (narrow) - preserved", () => {
       attackerFleetIds: ["iso-fa"],
       defenderFleetIds: ["iso-fd"],
     };
-    const b2: BattleInstance = {
-      id: "iso-2",
-      phase: "pending",
-      attackerId: "ATK",
-      defenderId: "DEF",
-      areaId: "area-1",
-      attackerFleetIds: ["iso-fa"],
-      defenderFleetIds: ["iso-fd"],
-    };
     const engine = new RandomEngine("iso-seed");
     const r1 = resolver.resolve(b1, cloneNation(atk), cloneNation(def), engine);
-    const r2 = resolver.resolve(b2, cloneNation(atk), cloneNation(def), engine);
     // with per-battle domain they are independent, not sequential draws of same stream
     // at least they both succeed and are deterministic if replayed with fresh engine
     const engine2 = new RandomEngine("iso-seed");

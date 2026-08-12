@@ -1,17 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vite-plus/test";
 import { mkdtempSync, rmSync, existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import {
-  canonicalSerialize,
-  sha256Hex,
-  createEnvelope,
-  verifyEnvelope,
-} from "@bluewave/deterministic";
-import { DiagnosticCollector, type DiagnosticCode } from "@bluewave/diagnostics";
+import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SafeInt } from "@bluewave/contracts";
 import type { CampaignState, CampaignSnapshot } from "@bluewave/campaign";
-import { SaveStore, CORRUPT_SAVE_CODE, MISSING_SAVE_CODE } from "../src/store.js";
+import { SaveStore } from "../src/store.js";
 import {
   CompatibilityChecker,
   CURRENT_COMPATIBILITY_VERSION,
@@ -34,6 +29,8 @@ function createFixtureState(): CampaignState {
     wars: { wars: [], battles: [] },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
+    designs: new Map(),
+    designFamilies: new Map(),
     rulesetVersion: "1.0.0",
     compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
   };
@@ -133,6 +130,8 @@ describe("SaveStore", () => {
       wars: { wars: [], battles: [] },
       politics: { relations: [], shells: {} },
       intelligence: { shells: {} },
+      designs: new Map(),
+      designFamilies: new Map(),
       rulesetVersion: "1.0.0",
       compatibilityVersion: "0.0.0",
     };

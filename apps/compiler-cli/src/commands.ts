@@ -2,7 +2,7 @@ import { Compiler } from "@bluewave/content-compiler";
 import type { CompilerInput } from "@bluewave/content-compiler";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
-import { resolve, dirname, sep, normalize, join } from "node:path";
+import { resolve, normalize, join } from "node:path";
 import {
   canonicalSerialize,
   sha256Hex,
@@ -18,7 +18,12 @@ import { MonthExecutor, ReplayVerifier } from "@bluewave/phase-engine";
 
 export type OutputMode = "human" | "json";
 export type ExitCategory =
-  "success" | "validation-error" | "compile-error" | "aborted" | "internal-error" | "usage-error";
+  | "success"
+  | "validation-error"
+  | "compile-error"
+  | "aborted"
+  | "internal-error"
+  | "usage-error";
 
 export interface CliOptions {
   manifest: string;
@@ -239,7 +244,6 @@ export function runCampaignCompile(options: CampaignCliOptions): ExitCategory {
 }
 
 export function runCampaignSave(options: CampaignCliOptions, saveDir: string): ExitCategory {
-  const collector = new DiagnosticCollector();
   const statePath = resolve(options.outputDir, "campaign-state.json");
   if (!existsSync(statePath)) {
     printResult(`Campaign state not found at ${statePath}`, "human");

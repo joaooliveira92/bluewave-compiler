@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import type { DomainEventEnvelope, DomainEventBody, NationBudgetChanged } from "../src/index.js";
 import { EventLedger, ExplanationBuilder, formatExplanation } from "../src/index.js";
@@ -27,7 +27,9 @@ describe("DomainEventEnvelope", () => {
 
     expect(envelope["eventId"]).toBe("evt-001");
     expect(envelope["body"]["kind"]).toBe("NationBudgetChanged");
-    expect(envelope["body"]["delta"]).toBe(SafeInt(100));
+    if (envelope["body"].kind === "NationBudgetChanged") {
+      expect(envelope["body"].delta).toBe(SafeInt(100));
+    }
     expect(envelope["sequenceNumber"]).toBe(SafeInt(1));
   });
 

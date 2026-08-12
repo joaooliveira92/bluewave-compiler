@@ -1,8 +1,8 @@
 const { execFileSync } = require("child_process");
 const { readFileSync } = require("fs");
-const { resolve } = require("path");
+const path = require("path");
 
-const childScript = resolve(
+const childScript = path.resolve(
   __dirname,
   "..",
   "packages",
@@ -10,7 +10,7 @@ const childScript = resolve(
   "dist",
   "run-child.js",
 );
-const goldenPath = resolve(__dirname, "..", "golden", "hashes.json");
+const goldenPath = path.resolve(__dirname, "..", "golden", "hashes.json");
 
 const stdout = execFileSync(process.execPath, [childScript], {
   encoding: "utf8",

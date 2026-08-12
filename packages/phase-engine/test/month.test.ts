@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import type { CampaignSnapshot, NationState, ConstructionProject } from "@bluewave/campaign";
+import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
 import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
-import { MonthExecutor, type MonthResult } from "../src/index.js";
+import { MonthExecutor } from "../src/index.js";
 
 function createSnapshot(overrides?: Partial<CampaignSnapshot>): CampaignSnapshot {
   const nations = new Map<string, NationState>();
@@ -34,6 +34,7 @@ function createSnapshot(overrides?: Partial<CampaignSnapshot>): CampaignSnapshot
         type: "ship",
         projectType: "NEW_CONSTRUCTION",
         targetId: "ship-1",
+        designVersionId: "",
         totalWork: SafeInt(200),
         completedWork: SafeInt(50),
         paidWork: SafeInt(0),
@@ -45,6 +46,7 @@ function createSnapshot(overrides?: Partial<CampaignSnapshot>): CampaignSnapshot
         type: "building",
         projectType: "NEW_CONSTRUCTION",
         targetId: "bldg-1",
+        designVersionId: "",
         totalWork: SafeInt(100),
         completedWork: SafeInt(0),
         paidWork: SafeInt(0),
@@ -66,6 +68,8 @@ function createSnapshot(overrides?: Partial<CampaignSnapshot>): CampaignSnapshot
     wars: { wars: [], battles: [] },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
+    designs: new Map(),
+    designFamilies: new Map(),
     rulesetVersion: "0.1.0",
     compatibilityVersion: "0.1.0",
   };
@@ -321,6 +325,7 @@ describe("MonthExecutor", () => {
             classId: "dreadnought",
             nationId: "GBR",
             locationAreaId: "area-1",
+            designVersionId: "",
             hitPoints: SafeInt(100),
             maxHitPoints: SafeInt(100),
             speed: SafeInt(10),
@@ -358,6 +363,7 @@ describe("MonthExecutor", () => {
         type: "ship",
         projectType: "NEW_CONSTRUCTION",
         targetId: "new-ship-1",
+        designVersionId: "",
         totalWork: SafeInt(100),
         completedWork: SafeInt(100),
         paidWork: SafeInt(100),
@@ -397,6 +403,7 @@ describe("MonthExecutor", () => {
         type: "ship",
         projectType: "NEW_CONSTRUCTION",
         targetId: "ship-x",
+        designVersionId: "",
         totalWork: SafeInt(200),
         completedWork: SafeInt(0),
         paidWork: SafeInt(0),
@@ -445,6 +452,7 @@ describe("MonthExecutor", () => {
           type: "ship",
           projectType: "NEW_CONSTRUCTION",
           targetId: "ger-ship-1",
+          designVersionId: "",
           totalWork: SafeInt(150),
           completedWork: SafeInt(0),
           paidWork: SafeInt(0),
@@ -485,6 +493,7 @@ describe("MonthExecutor", () => {
         type: "ship",
         projectType: "NEW_CONSTRUCTION",
         targetId: "ship-cap-1",
+        designVersionId: "",
         totalWork: SafeInt(200),
         completedWork: SafeInt(0),
         paidWork: SafeInt(0),
@@ -496,6 +505,7 @@ describe("MonthExecutor", () => {
         type: "ship",
         projectType: "NEW_CONSTRUCTION",
         targetId: "ship-cap-2",
+        designVersionId: "",
         totalWork: SafeInt(200),
         completedWork: SafeInt(0),
         paidWork: SafeInt(0),

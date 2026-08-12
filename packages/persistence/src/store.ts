@@ -317,7 +317,7 @@ function updatePointer(saveDir: string, activeSaveId: string): void {
   renameSync(tmpPath, pointerPath);
 }
 
-function pointerSaveRollback(saveDir: string, newSavePath: string): void {
+function pointerSaveRollback(saveDir: string, _newSavePath: string): void {
   const pointerPath = join(saveDir, "pointer.json");
   if (!existsSync(pointerPath)) return;
 

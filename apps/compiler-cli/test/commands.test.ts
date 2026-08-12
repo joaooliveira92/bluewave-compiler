@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { sep } from "node:path";
 import { SafeInt } from "@bluewave/contracts";
 
@@ -50,7 +50,7 @@ const saveStoreMocks = vi.hoisted(() => ({
     hash: "h1",
   })),
   load: vi.fn(),
-  getActiveSaveId: vi.fn(() => "save-1"),
+  getActiveSaveId: vi.fn<(saveDir: string) => string | null>(() => "save-1"),
 }));
 vi.mock("@bluewave/persistence", () => ({
   SaveStore: class {
@@ -607,7 +607,7 @@ describe("Campaign", () => {
   it("runCampaignSave internal-error on save throw", () => {
     fsMocks.existsSync.mockReturnValue(true);
     fsMocks.readFileSync.mockReturnValue(JSON.stringify(campaignSnapshot));
-    saveStoreMocks.save.mockImplementation(() => {
+    saveStoreMocks.save.mockImplementationOnce(() => {
       throw new Error("disk full");
     });
     expect(
@@ -851,7 +851,7 @@ describe("runReplay", () => {
     saveStoreMocks.getActiveSaveId.mockReturnValue("save-1");
   });
   it("validation-error no active save", () => {
-    saveStoreMocks.getActiveSaveId.mockReturnValue(undefined);
+    saveStoreMocks.getActiveSaveId.mockReturnValue(null);
     expect(
       runReplay(
         {

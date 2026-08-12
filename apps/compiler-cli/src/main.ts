@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
 import {
   runValidate,
   runCompile,

@@ -1,5 +1,5 @@
 import { NormalizeStage } from "@bluewave/content-compiler";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 describe("NormalizeStage", () => {
   it("sorts all collections by id", () => {

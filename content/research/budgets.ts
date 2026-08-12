@@ -299,7 +299,7 @@ export const getEffectiveNavalFunds = (nation: PlayableNationId): number => {
 };
 
 export const isFiscallyConstrained = (nation: PlayableNationId): boolean => {
-  const s = BUDGETS[nation].fiscalStability;
+  const s = BUDGETS[nation].fiscalStability as FiscalStability;
   return s === "strained" || s === "fragile" || s === "crisis";
 };
 

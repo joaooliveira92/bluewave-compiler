@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { CANONICAL_RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
@@ -23,8 +23,18 @@ function makeTestSnapshot(treasury: SafeInt = SafeInt(1000)): CampaignSnapshot {
           treasury,
           income: SafeInt(100),
           expenses: SafeInt(50),
+          baseResources: SafeInt(120000),
+          navalAppropriationRateBp: SafeInt(2000),
+          maintenanceCost: SafeInt(0),
           fleets: [],
-          research: { nationId: "GBR", technologies: [] },
+          research: {
+            nationId: "GBR",
+            technologies: [],
+            fieldPriorities: {},
+            researchBudget: SafeInt(0),
+            activeCandidates: new Map(),
+            discoveredTechs: [],
+          },
           constructionProjects: [],
           isPlayable: true,
           isAI: false,
@@ -34,6 +44,8 @@ function makeTestSnapshot(treasury: SafeInt = SafeInt(1000)): CampaignSnapshot {
     wars: { wars: [], battles: [] },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
+    designs: new Map(),
+    designFamilies: new Map(),
     rulesetVersion: "0.1.0",
     compatibilityVersion: "0.1.0",
   };
@@ -70,7 +82,9 @@ describe("CommandEnvelope", () => {
     expect(envelope.commandId).toBe("cmd-1");
     expect(envelope.body.type).toBe("budget_project");
     expect(envelope.body.nationId).toBe("GBR");
-    expect(envelope.body.budget).toBe(SafeInt(100));
+    if (envelope.body.type === "budget_project") {
+      expect(envelope.body.budget).toBe(SafeInt(100));
+    }
   });
 });
 

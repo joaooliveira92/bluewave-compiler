@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vite-plus/test";
 import { ParseStage } from "@bluewave/content-compiler";
 
 vi.mock("node:fs", () => ({

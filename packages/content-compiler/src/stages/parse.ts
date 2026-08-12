@@ -1,9 +1,10 @@
 //packages/content-compiler/src/stages/parse.ts
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { parseYamlSafe } from "@bluewave/content-schema";
-import type { CompilerStage, CompilerInput } from "../index.js";
+import type { DiagnosticCollector } from "@bluewave/diagnostics";
+
+import type { CompilerInput, CompilerStage } from "../index.js";
 
 export interface ParseOutput {
   manifest: unknown;

@@ -1,5 +1,6 @@
 //packages/content-compiler/src/stages/normalize.ts
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
+
 import type { CompilerStage } from "../index.js";
 import type { ValidateOutput } from "./validate.js";
 

@@ -40,8 +40,8 @@ export const MONTHLY_RULES = {
 } as const;
 
 export const processMonth = (
-  input: MonthlyProcessorInput,
-  projects: ConstructionProject[],
+  _input: MonthlyProcessorInput,
+  _projects: ConstructionProject[],
 ): MonthlyProcessorOutput => {
   // Stub - implement steps 1-10
   return {

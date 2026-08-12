@@ -8,7 +8,6 @@ import {
   GdpTierSchema,
   IndustrialBaseSchema,
   IndustrializationLevelSchema,
-  LogisticsProfileSchema,
   NationIdSchema,
   NavalBudgetLevelSchema,
   NavalPurposeSchema,

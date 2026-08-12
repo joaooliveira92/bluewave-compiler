@@ -1,4 +1,3 @@
-import { BluewaveError } from "@bluewave/contracts";
 import type { RandomEngine } from "@bluewave/random";
 
 export const FULL_SPEED_STRESS_BP = 9_500 as const;

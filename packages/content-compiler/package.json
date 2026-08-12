@@ -21,8 +21,8 @@
     "dev": "tsc -b --watch",
     "clean": "rimraf --glob dist *.tsbuildinfo",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "lint": "oxlint .",
+    "test": "vp test run",
+    "lint": "vp lint .",
     "lint:fix": "echo 'ok'"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 //packages/contracts/test/safeint.test.ts
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { SafeInt, checkedAdd, checkedSub, checkedMul, roundToInt } from "../src/index.js";
 
 describe("SafeInt", () => {

@@ -1,10 +1,11 @@
 //packages/content-compiler/src/compiler.ts
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import type { CompilerInput, CompilerOutput, CompilerStage } from "./index.js";
+
+import { CompileStage } from "./stages/compile.js";
+import { NormalizeStage } from "./stages/normalize.js";
 import { ParseStage } from "./stages/parse.js";
 import { ValidateStage } from "./stages/validate.js";
-import { NormalizeStage } from "./stages/normalize.js";
-import { CompileStage } from "./stages/compile.js";
 
 export class Compiler {
   private stages: CompilerStage<unknown, unknown>[];

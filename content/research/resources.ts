@@ -10,7 +10,12 @@ import type { NationId, PlayableNationId } from "./nations/shared.ts";
 // ============================================================================
 
 export type ResourceId =
-  "naval_coal" | "industrial_coal" | "iron_ore" | "alloy_metals" | "rubber" | "petroleum";
+  | "naval_coal"
+  | "industrial_coal"
+  | "iron_ore"
+  | "alloy_metals"
+  | "rubber"
+  | "petroleum";
 export type ResourceStatus = "active" | "future_placeholder";
 
 export interface ResourceDef {
@@ -100,7 +105,11 @@ export const ACTIVE_RESOURCES: ActiveResourceId[] = [
 export type Abundance = "absent" | "minor" | "moderate" | "major" | "exceptional";
 export type Quality = "poor" | "standard" | "high" | "first_class";
 export type Availability =
-  "developed" | "partially_developed" | "undeveloped" | "imported_stockpile" | "absent";
+  | "developed"
+  | "partially_developed"
+  | "undeveloped"
+  | "imported_stockpile"
+  | "absent";
 
 // Architectural Rules - must be enforced by all consumers
 export const RESOURCE_RULES = {

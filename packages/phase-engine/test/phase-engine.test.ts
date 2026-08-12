@@ -1,9 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
-import { PhaseRegistry, PhaseEngine, type PhaseResult } from "../src/index.js";
+import { PhaseRegistry, PhaseEngine } from "../src/index.js";
 
 function createEmptySnapshot(turn?: SafeInt): CampaignSnapshot {
   return {
@@ -16,6 +16,8 @@ function createEmptySnapshot(turn?: SafeInt): CampaignSnapshot {
     wars: { wars: [], battles: [] },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
+    designs: new Map(),
+    designFamilies: new Map(),
     rulesetVersion: "0.1.0",
     compatibilityVersion: "0.1.0",
   };
@@ -217,6 +219,7 @@ describe("PhaseEngine", () => {
             classId: "class-1",
             nationId: "GBR",
             locationAreaId: "area-1",
+            designVersionId: "",
             hitPoints: SafeInt(100),
             maxHitPoints: SafeInt(100),
             speed: SafeInt(10),
@@ -256,7 +259,7 @@ describe("PhaseEngine", () => {
     expect(closing["phaseId"]).toBe("closing_validation");
     expect(closing["success"]).toBe(true);
 
-    const expectedHash = sha256Hex(canonicalSerialize(snapshot));
+    const _expectedHash = sha256Hex(canonicalSerialize(snapshot));
     // closing validation runs and succeeds
     expect(closing["success"]).toBe(true);
   });
@@ -294,6 +297,7 @@ describe("PhaseEngine", () => {
             classId: "class-1",
             nationId: "GBR",
             locationAreaId: "area-1",
+            designVersionId: "",
             hitPoints: SafeInt(100),
             maxHitPoints: SafeInt(100),
             speed: SafeInt(10),

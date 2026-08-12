@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { CANONICAL_SCENARIOS } from "../src/scenario.js";
 import { CANONICAL_FLEET_SIZE_SETTINGS } from "../src/fleetSize.js";
@@ -8,7 +8,6 @@ import {
   createInitialCampaignState,
   canAdvanceCampaign,
   advanceCampaignMonth,
-  hashConfiguration,
   assertCampaignStateImmutability,
 } from "../src/campaignSession.js";
 

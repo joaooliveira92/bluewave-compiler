@@ -31,9 +31,9 @@
     "dev": "tsc -b --watch",
     "clean": "rimraf --glob dist *.tsbuildinfo",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vp test run",
     "test:cross-process": "node dist/run-child.js",
-    "lint": "oxlint .",
+    "lint": "vp lint .",
     "lint:fix": "echo 'ok'"
   }
 }
