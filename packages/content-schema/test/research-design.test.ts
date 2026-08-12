@@ -1,9 +1,9 @@
-import { describe, it, expect } from "vite-plus/test";
+import { describe, expect, it } from "vite-plus/test";
 import {
-  DesignTemplateSchema,
-  TechnologyPrerequisiteChainSchema,
   CANONICAL_RESEARCH_FIELD_IDS,
+  DesignTemplateSchema,
   RESEARCH_FIELD_PRIORITY_WEIGHTS,
+  TechnologyPrerequisiteChainSchema,
 } from "../src/index.js";
 
 describe("DesignTemplateSchema", () => {

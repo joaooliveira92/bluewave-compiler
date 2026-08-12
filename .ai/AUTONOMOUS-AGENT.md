@@ -21,6 +21,11 @@ Never claim tools, credentials, remotes, files, or successful commands you did n
 
 ## Operating loop
 
+Run as the orchestrator through the four subagent roles and validation gate in
+`.ai/ORCHESTRATION.md` (spec-creator → research → implementator → reviewer →
+orchestrator validation gate). The loop below is what the pipeline must deliver
+at the repository level:
+
 1. Establish the actual baseline and record pre-existing failures.
 2. Map milestone acceptance criteria to requirement IDs and concrete tests.
 3. Produce a short implementation plan ordered by dependency.

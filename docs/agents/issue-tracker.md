@@ -10,6 +10,11 @@ Issues and specs for this repo live as markdown files in `.scratch/`.
 - Triage state is recorded as a `Status:` line near the top of each issue file (see `triage-labels.md` for the role strings)
 - Comments and conversation history append to the bottom of the file under a `## Comments` heading
 
+> `.ai/specs/` is a **pointer index only** — canonical specs live here under
+> `.scratch/<feature-slug>/spec.md`. New specs are produced by the **spec-creator**
+> role with the **`to-spec`** skill and sliced into implementation tickets by
+> **`to-tickets`** (frontier-ordered vertical slices with blocking edges).
+
 ## When a skill says "publish to the issue tracker"
 
 Create a new file under `.scratch/<feature-slug>/` (creating the directory if needed).

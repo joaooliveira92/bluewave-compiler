@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vite-plus/test";
-import { NationSchema, NationIdSchema, type Nation, type NationId } from "../src/index.js";
 import { CANON_NATIONS_1880 } from "../../../content/research/nations/1880/index.ts";
+import { type Nation, type NationId, NationIdSchema, NationSchema } from "../src/index.js";
 
 const EXPECTED_TAGS: Record<NationId, string> = {
   uk: "GBR",
