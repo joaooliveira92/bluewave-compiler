@@ -29,9 +29,8 @@ function makeRelations(ids: string[]): CampaignSnapshot["politics"]["relations"]
 function findRelation(snapshot: CampaignSnapshot, a: string, b: string) {
   const key = [a, b].sort().join("\u0000");
   return (
-    snapshot.politics.relations.find(
-      (r) => [r.nationA, r.nationB].sort().join("\u0000") === key,
-    ) ?? null
+    snapshot.politics.relations.find((r) => [r.nationA, r.nationB].sort().join("\u0000") === key) ??
+    null
   );
 }
 
@@ -156,8 +155,6 @@ function withWar(
     defenderSideMembers: [war.defenderId],
     attackerWarScore: 0,
     defenderWarScore: 0,
-    attackerId: war.attackerId,
-    defenderId: war.defenderId,
     startDate: "1",
     status: "ACTIVE",
     ...war,
@@ -178,7 +175,8 @@ function warpParticipants(
 ): CampaignSnapshot["wars"]["participantMemberships"] {
   const results: CampaignSnapshot["wars"]["participantMemberships"] = [];
   for (const sideMembers of [war.attackerSideMembers, war.defenderSideMembers]) {
-    const sideId = sideMembers === war.attackerSideMembers ? war.attackerSideId : war.defenderSideId;
+    const sideId =
+      sideMembers === war.attackerSideMembers ? war.attackerSideId : war.defenderSideId;
     for (const nationId of sideMembers) {
       results.push({
         warId: war.id,
@@ -278,8 +276,12 @@ describe("B10c diplomacy & war acceptance (criteria 1-14)", () => {
       nationId: "FRA",
       partnerNationId: "GER",
     });
-    snapshot = new MonthExecutor()
-      .execute(snapshot, [formCmd], "seed", new DiagnosticCollector()).finalSnapshot;
+    snapshot = new MonthExecutor().execute(
+      snapshot,
+      [formCmd],
+      "seed",
+      new DiagnosticCollector(),
+    ).finalSnapshot;
 
     // GBR declares war on FRA and a battle occurs
     snapshot = {
@@ -395,7 +397,12 @@ describe("B10c diplomacy & war acceptance (criteria 1-14)", () => {
       targetNationId: "RUS",
     });
     const lifecycle = new CommandLifecycle();
-    const outcome = lifecycle.process(cmd, snapshot, { nationId: "GBR", type: "playable" }, new CommandIdempotencyMap());
+    const outcome = lifecycle.process(
+      cmd,
+      snapshot,
+      { nationId: "GBR", type: "playable" },
+      new CommandIdempotencyMap(),
+    );
     expect(outcome.type).toBe("rejected");
     if (outcome.type === "rejected") {
       expect(outcome.diagnostic.code).toBe("MAXIMUM_CONCURRENT_WARS_REACHED");
@@ -478,7 +485,11 @@ describe("B10c diplomacy & war acceptance (criteria 1-14)", () => {
 
   it("C10: BreakAlliance is rejected during an active shared war (ALLIANCE_LOCKED_BY_WAR)", () => {
     let snapshot = makeSnapshot(threeNations());
-    snapshot = withWar(snapshot, { attackerId: "GBR", defenderId: "FRA", defenderSideMembers: ["FRA", "GER"] });
+    snapshot = withWar(snapshot, {
+      attackerId: "GBR",
+      defenderId: "FRA",
+      defenderSideMembers: ["FRA", "GER"],
+    });
     snapshot = {
       ...snapshot,
       politics: {

@@ -86,9 +86,9 @@ describe("AiCommandGenerator", () => {
     expect(gen.idempotencyKey("camp", SafeInt(1), "GBR", AI_COMMAND_TYPE_BUDGET)).toBe(
       "camp/1/GBR/budget_project",
     );
-    expect(
-      gen.idempotencyKey("camp", SafeInt(7), "FRA", AI_COMMAND_TYPE_RESEARCH),
-    ).toBe("camp/7/FRA/SetResearchPriority");
+    expect(gen.idempotencyKey("camp", SafeInt(7), "FRA", AI_COMMAND_TYPE_RESEARCH)).toBe(
+      "camp/7/FRA/SetResearchPriority",
+    );
   });
 
   it("is deterministic for same inputs", () => {
@@ -159,9 +159,7 @@ describe("AiPlanner", () => {
     expect(budget).toBeDefined();
     const b = budget!.body as { projectId: string; budget: SafeInt };
     expect(["p1", "p2"]).toContain(b.projectId);
-    const p = snapshot.nations.get("GBR")!.constructionProjects.find(
-      (x) => x.id === b.projectId,
-    )!;
+    const p = snapshot.nations.get("GBR")!.constructionProjects.find((x) => x.id === b.projectId)!;
     const maxAmount = Math.min(100, (p.totalWork as number) - (p.completedWork as number));
     expect(b.budget as number).toBeGreaterThanOrEqual(1);
     expect(b.budget as number).toBeLessThanOrEqual(maxAmount);
@@ -183,7 +181,8 @@ describe("AiPlanner", () => {
   });
 
   it("is deterministic for a fixed seed", () => {
-    const mk = () => makeSnapshot([["GER", makeNation("GER", SafeInt(100), [project("p", 20, 0)])]]);
+    const mk = () =>
+      makeSnapshot([["GER", makeNation("GER", SafeInt(100), [project("p", 20, 0)])]]);
     const run = () => {
       const snapshot = mk();
       const planner = new AiPlanner();

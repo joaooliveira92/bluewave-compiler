@@ -7,8 +7,8 @@
 
 | Milestone                    | B#     | Design                                  | Implementation                       | Tests              | Notes                    |
 | ---------------------------- | ------ | --------------------------------------- | ------------------------------------ | ------------------ | ------------------------ |
-| M1 Strategic Campaign Kernel | B0–B8  | Complete (57 docs)                      | Core pipeline done                   | ~154 tests passing | See below                |
-| M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready          | B9/B10a/B10b/B10c/B10d done | —                  | B10a/B10b/B10c/B10d ACCEPTED |
+| M1 Strategic Campaign Kernel | B0–B8  | Complete (57 docs)                      | Core pipeline done                   | ~154 tests passing | ACCEPTED               |
+| M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready          | B9/B10a/B10b/B10c/B10d done | 410 passing | **M1 COMPLETED (A-5 gate, 2026-08-12)** — see `docs/acceptance/m1-capability-registry.md` |
 | M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | Not started                          | —                  | Future                   |
 | M3 Advanced Surface Warfare  | —      | Design docs exist (DESIGN-34–36, 39–42) | Not started                          | —                  | Future                   |
 | M4 Aviation                  | —      | Design docs exist (DESIGN-43–45)        | Not started                          | —                  | Future                   |
@@ -245,7 +245,12 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 
 ## 🎯 Open Design Decisions
 
-See [`docs/OPEN-ISSUES.md`](OPEN-ISSUES.md) — 126 open ambiguity candidates from the source migration. Implementations **MUST NOT** silently resolve an open decision.
+See [`docs/OPEN-ISSUES.md`](OPEN-ISSUES.md) — reconciled at the M1 gate
+(2026-08-12): the prior "126 open ambiguity candidates" figure was a stale
+migration-time lexical audit snapshot; zero `OPEN DECISION` markers remain in the
+canonical docs and no M1 ambiguity is blocking (all closed by ADR-0001…0011 or
+per-sprint records). Genuinely new decisions are tracked as individual items
+there. Implementations **MUST NOT** silently resolve an open decision.
 
 ## 📐 Implementation Approach
 
@@ -266,3 +271,28 @@ See [`docs/OPEN-ISSUES.md`](OPEN-ISSUES.md) — 126 open ambiguity candidates fr
 | Reuses CommandLifecycle | ACCEPTED | budget + SetResearchPriority |
 | 24-mo zero-human smoke | PASS | deterministic replay |
 | Acceptance | PASS | `.ai/reports/a4-b10d-ai-scenario.md` |
+
+### M1 — Strategic Campaign Kernel (A-5 acceptance gate)
+
+> **Status (2026-08-12): COMPLETED.** Formal M1 acceptance gate applied
+> DESIGN-55 §9 to every M1 capability and signed the milestone COMPLETED per §23
+> (scoped closure; deployment/DESIGN-25 deferred per ADR-0011). Full validate run:
+> clean uncached build 17/17, `tsc -b` clean, 410 tests pass (sole failure = the
+> pre-existing `content-schema/test/nation.test.ts` broken import), two
+> child-process runs byte-identical, golden hashes 8/8. Registry + per-capability
+> evidence: `docs/acceptance/m1-capability-registry.md`; gate report:
+> `.ai/reports/a5-m1-acceptance-gate.md`.
+
+| §2 capability            | State        | Evidence |
+| ------------------------ | ------------ | -------- |
+| Campaign compiler        | ACCEPTED     | B0–B8    |
+| Nations and world        | ACCEPTED     | B0–B8    |
+| Economy                  | ACCEPTED     | B10a     |
+| Research                 | ACCEPTED     | B10b     |
+| Ship design & construction | ACCEPTED   | B10a+B10b|
+| Deployment (DESIGN-25)   | `CONTENT_ONLY` (deferred) | ADR-0011 |
+| Diplomacy                | ACCEPTED     | B10c     |
+| War and peace            | ACCEPTED     | B10c     |
+| Monthly phase pipeline   | ACCEPTED     | B0–B8    |
+| Save/load/replay/hashes  | ACCEPTED     | B0–B8    |
+| Deterministic auto-resolution | ACCEPTED | B0–B8+B10d |

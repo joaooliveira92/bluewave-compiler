@@ -70,10 +70,10 @@ check). Captured current hashes:
 
 ## Canonical artifact changes
 
-| Artifact | Old hash | New hash | Cause | Version impact | Migration |
-|---|---|---|---|---|---|
+| Artifact                   | Old hash                                                           | New hash                                                           | Cause                                                     | Version impact                                       | Migration               |
+| -------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ | --------------------------------------------------------- | ---------------------------------------------------- | ----------------------- |
 | Content artifact (`0.1.0`) | `449532384b604c69dd9740bd92b3357e05f62a98fbdde9bcea36a0e409275f0f` | `c3be5604fc403399cba0338807fbca83c3e77e6d2bf9a0dcbdfca94a7cf6696f` | Added 25 PRE_WAR techs + 11 designs; pack `0.1.0`→`0.2.0` | New content version `0.2.0`, ruleset `1.0` unchanged | None (additive content) |
-| Snapshot (`0.1.0`) | `f3e72642371e5a112f5ed8ec99778e763386ccd1024352d4228f6055c375d3f3` | `cb1f149769b0d3a6807a2d098d4a6fba8780f1f6161b67f76c661df9d5f279aa` | Added designs into the snapshot (designs/designFamilies) | — | None |
+| Snapshot (`0.1.0`)         | `f3e72642371e5a112f5ed8ec99778e763386ccd1024352d4228f6055c375d3f3` | `cb1f149769b0d3a6807a2d098d4a6fba8780f1f6161b67f76c661df9d5f279aa` | Added designs into the snapshot (designs/designFamilies)  | —                                                    | None                    |
 
 Cause is an intended authoritative content addition (new era-band slice), not a
 test/golden workaround. Regeneration command: desktop `runCompilation(content/production/1880)`.

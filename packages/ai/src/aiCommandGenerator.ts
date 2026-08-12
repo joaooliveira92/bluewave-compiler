@@ -62,7 +62,12 @@ export class AiCommandGenerator {
     projectId: string,
     amount: SafeInt,
   ): CommandEnvelope<BudgetProjectCommand> {
-    const key = this.idempotencyKey(this.campaignId, this.turnNumber, nationId, AI_COMMAND_TYPE_BUDGET);
+    const key = this.idempotencyKey(
+      this.campaignId,
+      this.turnNumber,
+      nationId,
+      AI_COMMAND_TYPE_BUDGET,
+    );
     return {
       commandId: this.commandIdFromKey(key),
       version: AI_ENVELOPE_VERSION,
@@ -79,7 +84,12 @@ export class AiCommandGenerator {
     nationId: string,
     fieldPriorities: Record<string, SafeInt>,
   ): CommandEnvelope<SetResearchPriorityCommand> {
-    const key = this.idempotencyKey(this.campaignId, this.turnNumber, nationId, AI_COMMAND_TYPE_RESEARCH);
+    const key = this.idempotencyKey(
+      this.campaignId,
+      this.turnNumber,
+      nationId,
+      AI_COMMAND_TYPE_RESEARCH,
+    );
     return {
       commandId: this.commandIdFromKey(key),
       version: AI_ENVELOPE_VERSION,

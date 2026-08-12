@@ -1,12 +1,5 @@
-import {
-  readFileSync,
-  writeFileSync,
-  mkdirSync,
-  existsSync,
-  rmSync,
-  renameSync,
-} from "node:fs";
-import { join, resolve, normalize, isAbsolute } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, renameSync } from "node:fs";
+import { resolve, normalize, isAbsolute } from "node:path";
 import { canonicalSerialize } from "@bluewave/deterministic";
 
 export const PROJECT_FILE_EXT = ".bluewave";

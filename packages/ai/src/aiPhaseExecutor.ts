@@ -1,7 +1,4 @@
-import type {
-  CampaignSnapshot,
-  CampaignSlot,
-} from "@bluewave/campaign";
+import type { CampaignSnapshot, CampaignSlot } from "@bluewave/campaign";
 import type {
   CommandEnvelope,
   CommandBody,

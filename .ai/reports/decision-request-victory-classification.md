@@ -11,7 +11,6 @@ predicate derives from exposed `BattleResult.damageReport` + `loserId` + the
 battle's committed loser fleets. Shipped in B10c (`packages/phase-engine/src/month.ts`
 battle-resolved victory block). Acceptance evidence: `.ai/reports/a3-b10c-diplomacy-war.md`.
 
-
 ## Trigger
 
 Sprint A-3 (B10c Diplomacy & War), `.ai/briefs/b10c-diplomacy-war.md`, requires

@@ -623,7 +623,7 @@ export class CampaignCompiler {
     relations: DiplomaticRelation[],
     seen: Set<string>,
     nations: Map<string, NationState>,
-    collector: DiagnosticCollectorType,
+    _collector: DiagnosticCollectorType,
   ): void {
     const nationIds = [...nations.keys()].sort((a, b) => a.localeCompare(b));
     for (let i = 0; i < nationIds.length; i++) {

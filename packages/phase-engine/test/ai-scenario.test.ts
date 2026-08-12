@@ -2,7 +2,7 @@ import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { CANONICAL_RESEARCH_FIELD_IDS, RESEARCH_FIELD_PRIORITY_WEIGHTS } from "@bluewave/content-schema";
+import { RESEARCH_FIELD_PRIORITY_WEIGHTS } from "@bluewave/content-schema";
 import type { CampaignSnapshot, NationState, ConstructionProject } from "@bluewave/campaign";
 import { MonthExecutor } from "../src/index.js";
 
