@@ -36,6 +36,14 @@ button:disabled {
   font-style: italic;
   color: #a8d8ea;
 }
+#fileActions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+#fileActions button {
+  margin-bottom: 0;
+}
 #output {
   background: #16213e;
   border: 1px solid #0f3460;

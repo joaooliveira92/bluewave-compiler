@@ -12,8 +12,13 @@
   </head>
   <body>
     <h1>Bluewave Campaign Compiler</h1>
-    <button id="compileBtn">Compile Campaign</button>
-    <div id="status">Ready. Click "Compile Campaign" to select a content directory.</div>
+    <div id="fileActions">
+      <button id="openBtn">Open Project</button>
+      <button id="saveBtn" disabled>Save Project</button>
+      <button id="saveAsBtn" disabled>Save Project As</button>
+      <button id="compileBtn" disabled>Compile Campaign</button>
+    </div>
+    <div id="status">Welcome. Click "Open Project" to load a .bluewave project, or compile picks a directory.</div>
     <div id="output"></div>
     <script type="module" src="./src/main.ts"></script>
   </body>

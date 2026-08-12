@@ -12,22 +12,37 @@ describe("B9 Electron boundary (criteria 4-6)", () => {
     expect(headers["X-Frame-Options"]).toEqual(["DENY"]);
   });
 
-  it("registers the narrow `compile` IPC handler in the main process (criterion 4)", () => {
-    // The main process source must register exactly one IPC channel: `compile`.
+  it("registers only the allow-listed IPC handlers in the main process (criterion 4)", () => {
+    // The main process source must register exactly the allow-listed channels.
     const mainSource = readFileSync(resolve(__dirname, "../src/main/index.ts"), "utf8");
-    expect(mainSource).toContain('ipcMain.handle("compile"');
-    // No arbitrary IPC channels may be exposed.
-    expect(mainSource.match(/ipcMain\.handle\(/g)?.length ?? 0).toBe(1);
+    const allowed = [
+      'ipcMain.handle("compile"',
+      'ipcMain.handle("project:open"',
+      'ipcMain.handle("project:save"',
+      'ipcMain.handle("project:save-as"',
+    ];
+    for (const handler of allowed) {
+      expect(mainSource).toContain(handler);
+    }
+    // No IPC channels beyond the allow-list may be registered.
+    const registered = mainSource.match(/ipcMain\.handle\("[^"]+"/g) ?? [];
+    expect(registered.length).toBe(allowed.length);
   });
 
-  it("narrows the preload bridge to only the compile method (criterion 4)", () => {
+  it("narrows the preload bridge to only the allow-listed methods (criterion 4)", () => {
     const preloadSource = readFileSync(resolve(__dirname, "../src/preload/index.ts"), "utf8");
     expect(preloadSource).toContain("contextBridge.exposeInMainWorld");
-    expect(preloadSource).toContain("compile: (");
-    expect(preloadSource).toContain('ipcRenderer.invoke("compile"');
-    // Only a single exposed method.
-    const exposed = preloadSource.match(/(\w+):\s*\(/g) ?? [];
-    expect(exposed.filter((s) => s.includes("compile"))).toHaveLength(1);
+    const exposed = preloadSource.match(/([a-zA-Z]+):\s*\(/g) ?? [];
+    const allowed = [
+      "compile:",
+      "openProject:",
+      "saveProject:",
+      "saveProjectAs:",
+    ];
+    expect(exposed.length).toBe(allowed.length);
+    for (const method of allowed) {
+      expect(exposed.some((s) => s.startsWith(method))).toBe(true);
+    }
   });
 
   it("aborts an in-flight compilation on a new concurrent request (criterion 7)", () => {

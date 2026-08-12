@@ -7,27 +7,105 @@ interface CompileResult {
   error?: string;
 }
 
-interface ElectronAPI {
-  compile: (dirPath?: string) => Promise<CompileResult>;
+interface ProjectResult {
+  ok: boolean;
+  canceled?: boolean;
+  name?: string;
+  path?: string;
+  error?: string;
 }
 
+interface ElectronAPI {
+  compile: (dirPath?: string) => Promise<CompileResult>;
+  openProject: () => Promise<ProjectResult>;
+  saveProject: () => Promise<ProjectResult>;
+  saveProjectAs: () => Promise<ProjectResult>;
+}
+
+const api = (window as unknown as { electronAPI: ElectronAPI }).electronAPI;
+
+const openBtn = document.getElementById("openBtn") as HTMLButtonElement;
+const saveBtn = document.getElementById("saveBtn") as HTMLButtonElement;
+const saveAsBtn = document.getElementById("saveAsBtn") as HTMLButtonElement;
 const compileBtn = document.getElementById("compileBtn") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLDivElement;
 const outputEl = document.getElementById("output") as HTMLDivElement;
 
+let projectName: string | null = null;
+
+function setStatus(text: string, className = ""): void {
+  statusEl.textContent = text;
+  statusEl.className = className;
+}
+
+function setError(err: string): void {
+  setStatus(err, "error");
+}
+
+function setProjectUi(name: string | null): void {
+  projectName = name;
+  const hasProject = name !== null;
+  saveBtn.disabled = !hasProject;
+  saveAsBtn.disabled = !hasProject;
+  compileBtn.disabled = !hasProject;
+}
+
+async function handleOpen(): Promise<void> {
+  try {
+    const result = await api.openProject();
+    if (result.canceled) return;
+    if (!result.ok) {
+      setError(`Could not open project: ${result.error ?? "unknown error"}`);
+      return;
+    }
+    setProjectUi(result.name ?? null);
+    setStatus(`Opened project "${result.name}" (${result.path})`, "success");
+    outputEl.className = "";
+    outputEl.textContent = "";
+  } catch (err) {
+    setError(err instanceof Error ? err.message : String(err));
+  }
+}
+
+async function handleSave(): Promise<void> {
+  try {
+    const result = await api.saveProject();
+    if (result.canceled) return;
+    if (!result.ok) {
+      setError(`Could not save project: ${result.error ?? "unknown error"}`);
+      return;
+    }
+    setStatus(`Saved project "${result.name}" (${result.path})`, "success");
+  } catch (err) {
+    setError(err instanceof Error ? err.message : String(err));
+  }
+}
+
+async function handleSaveAs(): Promise<void> {
+  try {
+    const result = await api.saveProjectAs();
+    if (result.canceled) return;
+    if (!result.ok) {
+      setError(`Could not save project: ${result.error ?? "unknown error"}`);
+      return;
+    }
+    setStatus(`Saved project as "${result.name}" (${result.path})`, "success");
+  } catch (err) {
+    setError(err instanceof Error ? err.message : String(err));
+  }
+}
+
 async function handleCompile(): Promise<void> {
   compileBtn.disabled = true;
-  statusEl.textContent = "Compiling...";
+  setStatus("Compiling...");
   outputEl.textContent = "";
-  statusEl.className = "";
   outputEl.className = "";
 
   try {
-    const result = await (window as unknown as { electronAPI: ElectronAPI }).electronAPI.compile();
+    const result = await api.compile();
 
     if (result.success) {
-      statusEl.textContent = "Compilation successful!";
-      statusEl.className = "success";
+      setStatus("Compilation successful!", "success");
       outputEl.className = "success";
       outputEl.textContent = JSON.stringify(
         {
@@ -39,8 +117,7 @@ async function handleCompile(): Promise<void> {
         2,
       );
     } else {
-      statusEl.textContent = "Compilation failed";
-      statusEl.className = "error";
+      setStatus("Compilation failed", "error");
       outputEl.className = "error";
       const lines: string[] = [];
       if (result.error) {
@@ -52,13 +129,15 @@ async function handleCompile(): Promise<void> {
       outputEl.textContent = lines.join("\n");
     }
   } catch (err) {
-    statusEl.textContent = "Unexpected error";
-    statusEl.className = "error";
+    setStatus("Unexpected error", "error");
     outputEl.className = "error";
     outputEl.textContent = err instanceof Error ? err.message : String(err);
   } finally {
-    compileBtn.disabled = false;
+    compileBtn.disabled = projectName === null;
   }
 }
 
+openBtn.addEventListener("click", handleOpen);
+saveBtn.addEventListener("click", handleSave);
+saveAsBtn.addEventListener("click", handleSaveAs);
 compileBtn.addEventListener("click", handleCompile);
