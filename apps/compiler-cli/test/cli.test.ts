@@ -53,7 +53,7 @@ function createSnapshot(): CampaignSnapshot {
     slots: [{ nationId: "GBR", type: "playable" }],
     world: { areas: [], routes: [], ports: [] },
     nations,
-    wars: { wars: [], battles: [] },
+    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [] },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
     designs: new Map(),
@@ -96,6 +96,8 @@ function hashSnapshot(snapshot: CampaignSnapshot): string {
   const wars = {
     wars: snapshot.wars.wars.map((w) => ({ ...w })),
     battles: snapshot.wars.battles.map((b) => ({ ...b })),
+    participantMemberships: snapshot.wars.participantMemberships.map((m) => ({ ...m })),
+    blockadeState: snapshot.wars.blockadeState.map((b) => ({ ...b })),
   };
   const hashable = {
     version: snapshot.version,

@@ -13,7 +13,7 @@ function createEmptySnapshot(turn?: SafeInt): CampaignSnapshot {
     slots: [],
     world: { areas: [], routes: [], ports: [] },
     nations: new Map(),
-    wars: { wars: [], battles: [] },
+    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [] },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
     designs: new Map(),
@@ -52,7 +52,7 @@ function createNationState(id: string, treasury: SafeInt): NationState {
 describe("PhaseRegistry", () => {
   it("returns phases in correct order", () => {
     const phases = PhaseRegistry.all;
-    expect(phases.length).toBe(10);
+    expect(phases.length).toBe(11);
     expect(phases[0]!["id"]).toBe("opening_validation");
     expect(phases[1]!["id"]).toBe("monthly_revenue");
     expect(phases[2]!["id"]).toBe("command_collection");
@@ -60,13 +60,20 @@ describe("PhaseRegistry", () => {
     expect(phases[4]!["id"]).toBe("maintenance");
     expect(phases[5]!["id"]).toBe("obligation");
     expect(phases[6]!["id"]).toBe("construction_processing");
-    expect(phases[7]!["id"]).toBe("resolve_research");
-    expect(phases[8]!["id"]).toBe("battle_resolution");
-    expect(phases[9]!["id"]).toBe("closing_validation");
+    expect(phases[7]!["id"]).toBe("resolve_diplomacy");
+    expect(phases[8]!["id"]).toBe("resolve_research");
+    expect(phases[9]!["id"]).toBe("battle_resolution");
+    expect(phases[10]!["id"]).toBe("closing_validation");
 
-    for (let i = 0; i < phases.length; i++) {
-      expect(phases[i]!["order"]).toBe(i);
+    for (let i = 0; i < phases.length - 1; i++) {
+      expect(phases[i]!["order"]).toBeLessThan(phases[i + 1]!["order"]);
     }
+    expect(PhaseRegistry.getById("resolve_diplomacy")!["order"]).toBe(6.5);
+    const constructionIdx = phases.findIndex((p) => p["id"] === "construction_processing")!;
+    const diplomacyIdx = phases.findIndex((p) => p["id"] === "resolve_diplomacy")!;
+    const researchIdx = phases.findIndex((p) => p["id"] === "resolve_research")!;
+    expect(diplomacyIdx).toBeGreaterThan(constructionIdx);
+    expect(diplomacyIdx).toBeLessThan(researchIdx);
   });
 
   it("can retrieve phase by id and order", () => {
@@ -141,9 +148,9 @@ describe("PhaseEngine", () => {
 
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
-    expect(result["phaseResults"].length).toBe(10);
+    expect(result["phaseResults"].length).toBe(11);
     expect(result["phaseResults"][0]!["phaseId"]).toBe("opening_validation");
-    expect(result["phaseResults"][9]!["phaseId"]).toBe("closing_validation");
+    expect(result["phaseResults"][10]!["phaseId"]).toBe("closing_validation");
   });
 
   it("produces no-op evidence for deferred phases", () => {
@@ -154,8 +161,8 @@ describe("PhaseEngine", () => {
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
     const noOpPhases = result["phaseResults"].filter((p) => p["noOp"] === true && p["evidence"]);
-    // All phases except opening and closing are no-ops (8 phases)
-    expect(noOpPhases.length).toBe(8);
+    // All phases except opening and closing are no-ops (9 phases)
+    expect(noOpPhases.length).toBe(9);
 
     for (const phase of noOpPhases) {
       expect(phase["evidence"]!["version"]).toBe("0.1.0");
@@ -255,7 +262,7 @@ describe("PhaseEngine", () => {
 
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
-    const closing = result["phaseResults"][9]!;
+    const closing = result["phaseResults"][10]!;
     expect(closing["phaseId"]).toBe("closing_validation");
     expect(closing["success"]).toBe(true);
 
@@ -271,8 +278,8 @@ describe("PhaseEngine", () => {
 
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
-    const researchPhase = result["phaseResults"][7]!;
-    const battlePhase = result["phaseResults"][8]!;
+    const researchPhase = result["phaseResults"][8]!;
+    const battlePhase = result["phaseResults"][9]!;
 
     expect(researchPhase["phaseId"]).toBe("resolve_research");
     expect(researchPhase["noOp"]).toBe(true);
@@ -336,6 +343,8 @@ describe("PhaseEngine", () => {
           defenderFleetIds: [],
         },
       ],
+      participantMemberships: [],
+      blockadeState: [],
     };
     const collector = new DiagnosticCollector();
 

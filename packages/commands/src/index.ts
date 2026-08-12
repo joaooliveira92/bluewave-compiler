@@ -7,6 +7,13 @@ export type {
   CommandBody,
   CommandEnvelope,
   SetResearchPriorityCommand,
+  DeclareWarCommand,
+  AcceptPeaceCommand,
+  FormAllianceCommand,
+  BreakAllianceCommand,
+  FormNonAggressionPactCommand,
+  BreakNonAggressionPactCommand,
+  DeclareBlockadeCommand,
 } from "./envelope.js";
 export type { CommandOutcome } from "./lifecycle.js";
 export {

@@ -77,7 +77,7 @@ function makeSnapshot(nations: Array<[string, NationState]>): CampaignSnapshot {
     })),
     world: { areas: [], routes: [], ports: [] },
     nations: map,
-    wars: { wars: [], battles: [] },
+    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [] },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
     designs: new Map(),

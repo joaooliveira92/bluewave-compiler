@@ -5,8 +5,37 @@ import type {
   Ship,
   FleetState,
   TechnologyProgress,
+  WarDeclaration,
+  WarParticipantMembership,
+  BlockadeState,
 } from "@bluewave/campaign";
-import type { CommandEnvelope, CommandBody, SetResearchPriorityCommand } from "@bluewave/commands";
+import {
+  WAR_SCORE_MINOR,
+  WAR_SCORE_MAJOR,
+  WAR_SCORE_DECISIVE,
+  VICTORY_MINOR_MAX_FRACTION,
+  VICTORY_MAJOR_MAX_FRACTION,
+  MAXIMUM_CONCURRENT_WARS,
+  NAP_VIOLATION_PENALTY,
+  SURRENDER_SCORE,
+  BLOCKADE_WAR_SCORE_PER_MONTH,
+  TENSION_WAR,
+  TENSION_PEACE,
+  TENSION_ALLIANCE,
+} from "@bluewave/campaign";
+import type {
+  CommandEnvelope,
+  CommandBody,
+  SetResearchPriorityCommand,
+  DeclareWarCommand,
+  AcceptPeaceCommand,
+  FormAllianceCommand,
+  BreakAllianceCommand,
+  FormNonAggressionPactCommand,
+  BreakNonAggressionPactCommand,
+  DeclareBlockadeCommand,
+  BudgetProjectCommand,
+} from "@bluewave/commands";
 import { CANONICAL_RESEARCH_FIELD_IDS as RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
 import { CommandLifecycle, CommandLedger, CommandIdempotencyMap } from "@bluewave/commands";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
@@ -97,11 +126,34 @@ function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
 
   const warsArr = snapshot["wars"]["wars"].map((w) => ({
     id: w["id"],
+    attackerSideId: w["attackerSideId"],
+    defenderSideId: w["defenderSideId"],
+    attackerSideMembers: [...w["attackerSideMembers"]],
+    defenderSideMembers: [...w["defenderSideMembers"]],
+    attackerWarScore: w["attackerWarScore"],
+    defenderWarScore: w["defenderWarScore"],
     attackerId: w["attackerId"],
     defenderId: w["defenderId"],
     startDate: w["startDate"],
     status: w["status"],
     endDate: w["endDate"],
+  }));
+
+  const participantMembershipsArr = snapshot["wars"]["participantMemberships"].map((m) => ({
+    warId: m["warId"],
+    nationId: m["nationId"],
+    sideId: m["sideId"],
+    entryMonth: m["entryMonth"],
+    exitMonth: m["exitMonth"],
+    status: m["status"],
+    nationalContributionPoints: m["nationalContributionPoints"],
+  }));
+
+  const blockadeStateArr = snapshot["wars"]["blockadeState"].map((b) => ({
+    blockaderId: b["blockaderId"],
+    blockadedNationId: b["blockadedNationId"],
+    areaId: b["areaId"],
+    establishedMonth: b["establishedMonth"],
   }));
 
   const battlesArr = snapshot["wars"]["battles"].map((b) => ({
@@ -148,12 +200,16 @@ function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
     wars: {
       wars: warsArr,
       battles: battlesArr,
+      participantMemberships: participantMembershipsArr,
+      blockadeState: blockadeStateArr,
     },
     politics: {
       relations: snapshot["politics"]["relations"].map((r) => ({
         nationA: r["nationA"],
         nationB: r["nationB"],
         relation: r["relation"],
+        tension: r["tension"],
+        nap: r["nap"],
         since: r["since"],
       })),
       shells: { ...snapshot["politics"]["shells"] },
@@ -753,6 +809,425 @@ function findTechCost(techId: string): SafeInt {
   return TECH_DEFINITIONS[techId]?.["cost"] ?? SafeInt(100);
 }
 
+function pairKey(a: string, b: string): string {
+  return [a, b].sort().join("\u0000");
+}
+
+function getPairRelation(snapshot: CampaignSnapshot, a: string, b: string) {
+  const key = pairKey(a, b);
+  return (
+    snapshot["politics"]["relations"].find((r) => pairKey(r["nationA"], r["nationB"]) === key) ??
+    null
+  );
+}
+
+function updateRelation(
+  snapshot: CampaignSnapshot,
+  a: string,
+  b: string,
+  patch: Partial<{ relation: "neutral" | "allied" | "at_war" | "trade_agreement"; tension: number; nap: boolean }>,
+): CampaignSnapshot {
+  const key = pairKey(a, b);
+  const relations = snapshot["politics"]["relations"].map((r) =>
+    pairKey(r["nationA"], r["nationB"]) === key
+      ? {
+          ...r,
+          ...patch,
+          relation: patch["relation"] ?? r["relation"],
+        }
+      : r,
+  );
+  return {
+    ...snapshot,
+    politics: { ...snapshot["politics"], relations },
+  };
+}
+
+function applyDeclareWar(
+  snapshot: CampaignSnapshot,
+  body: DeclareWarCommand,
+  campaignMonth: string,
+): CampaignSnapshot {
+  const declarer = body["nationId"];
+  const target = body["targetNationId"];
+  const warId = `war_${declarer}_${target}_${campaignMonth}`;
+  const attackerSideId = `side_${declarer}`;
+  const defenderSideId = `side_${target}`;
+
+  // Non-aggression pact violation: deduct penalty from the violator's treasury.
+  const pair = getPairRelation(snapshot, declarer, target);
+  let napPenaltyNations = snapshot["nations"];
+  if (pair && pair["nap"]) {
+    const current = snapshot["nations"].get(declarer);
+    if (current) {
+      const penalty = NAP_VIOLATION_PENALTY as number;
+      const newTreasury = Math.max(0, (current["treasury"] as number) - penalty);
+      const updatedNation: NationState = { ...current, treasury: SafeInt(newTreasury) };
+      napPenaltyNations = new Map(snapshot["nations"]);
+      napPenaltyNations.set(declarer, updatedNation);
+    }
+  }
+
+  const war: WarDeclaration = {
+    id: warId,
+    attackerSideId,
+    defenderSideId,
+    attackerSideMembers: [declarer],
+    defenderSideMembers: [target],
+    attackerWarScore: 0,
+    defenderWarScore: 0,
+    attackerId: declarer,
+    defenderId: target,
+    startDate: campaignMonth,
+    status: "DECLARED_NOT_ACTIVE",
+  };
+
+  const attackerMembership: WarParticipantMembership = {
+    warId,
+    nationId: declarer,
+    sideId: attackerSideId,
+    entryMonth: campaignMonth,
+    status: "ACTIVE",
+    nationalContributionPoints: 0,
+  };
+  const defenderMembership: WarParticipantMembership = {
+    warId,
+    nationId: target,
+    sideId: defenderSideId,
+    entryMonth: campaignMonth,
+    status: "ACTIVE",
+    nationalContributionPoints: 0,
+  };
+
+  let baseSnapshot = { ...snapshot, nations: napPenaltyNations };
+
+  let next = {
+    ...baseSnapshot,
+    wars: {
+      ...baseSnapshot["wars"],
+      wars: [...baseSnapshot["wars"]["wars"], war],
+      participantMemberships: [
+        ...baseSnapshot["wars"]["participantMemberships"],
+        attackerMembership,
+        defenderMembership,
+      ],
+    },
+  };
+
+  next = updateRelation(next, declarer, target, {
+    relation: "at_war",
+    tension: TENSION_WAR,
+    nap: false,
+  });
+
+  return next;
+}
+
+function applyAcceptPeace(
+  snapshot: CampaignSnapshot,
+  body: AcceptPeaceCommand,
+  campaignMonth: string,
+): CampaignSnapshot {
+  const war = snapshot["wars"]["wars"].find((w) => w["id"] === body["warId"]);
+  if (!war) return snapshot;
+
+  const wars = snapshot["wars"]["wars"].map((w) =>
+    w["id"] === war["id"] ? { ...w, status: "ENDED" as const, endDate: campaignMonth } : w,
+  );
+
+  const participantMemberships = snapshot["wars"]["participantMemberships"].map((m) =>
+    m["warId"] === war["id"] && m["status"] === "ACTIVE"
+      ? { ...m, status: "EXITED" as const, exitMonth: campaignMonth }
+      : m,
+  );
+
+  let next = {
+    ...snapshot,
+    wars: { ...snapshot["wars"], wars, participantMemberships },
+  };
+
+  next = updateRelation(next, war["attackerId"], war["defenderId"], {
+    relation: "neutral",
+    tension: TENSION_PEACE,
+    nap: false,
+  });
+
+  return next;
+}
+
+function applySetRelation(
+  snapshot: CampaignSnapshot,
+  nationId: string,
+  partnerNationId: string,
+  relation: "allied" | "neutral",
+  tension: number,
+): CampaignSnapshot {
+  return updateRelation(snapshot, nationId, partnerNationId, { relation, tension });
+}
+
+function applySetNap(
+  snapshot: CampaignSnapshot,
+  nationId: string,
+  partnerNationId: string,
+  nap: boolean,
+): CampaignSnapshot {
+  return updateRelation(snapshot, nationId, partnerNationId, { nap, tension: TENSION_PEACE });
+}
+
+function applyDeclareBlockade(
+  snapshot: CampaignSnapshot,
+  body: DeclareBlockadeCommand,
+  campaignMonth: string,
+): CampaignSnapshot {
+  const blockade: BlockadeState = {
+    blockaderId: body["nationId"],
+    blockadedNationId: body["targetNationId"],
+    areaId: body["areaId"],
+    establishedMonth: campaignMonth,
+  };
+  return {
+    ...snapshot,
+    wars: {
+      ...snapshot["wars"],
+      blockadeState: [...snapshot["wars"]["blockadeState"], blockade],
+    },
+  };
+}
+
+function resolveDiplomacyPhase(
+  snapshot: CampaignSnapshot,
+  campaignMonth: string,
+): CampaignSnapshot {
+  let wars = snapshot["wars"]["wars"];
+  let changed = false;
+
+  const atWarWars = new Set(wars.filter((w) => w["status"] !== "ENDED").map((w) => w["id"]));
+
+  for (const blockade of snapshot["wars"]["blockadeState"]) {
+    if (blockade["establishedMonth"] > campaignMonth) continue;
+    const war = wars.find(
+      (w) =>
+        atWarWars.has(w["id"]) &&
+        (w["status"] === "ACTIVE" || w["status"] === "DECLARED_NOT_ACTIVE") &&
+        w["attackerSideMembers"].includes(blockade["blockaderId"]),
+    );
+    if (!war) continue;
+    const side = war["attackerSideMembers"].includes(blockade["blockaderId"])
+      ? "attacker"
+      : "defender";
+    const gain = BLOCKADE_WAR_SCORE_PER_MONTH as number;
+    const increment = (current: number) =>
+      Math.max(-100, Math.min(100, current + gain));
+    const updated =
+      side === "attacker"
+        ? { ...war, attackerWarScore: increment(war["attackerWarScore"] as number) }
+        : { ...war, defenderWarScore: increment(war["defenderWarScore"] as number) };
+    wars = wars.map((w) => (w["id"] === war["id"] ? updated : w));
+    changed = true;
+  }
+
+  if (!changed) return snapshot;
+  return { ...snapshot, wars: { ...snapshot["wars"], wars } };
+}
+
+function applyBattleResult(
+  snapshot: CampaignSnapshot,
+  battle: {
+    attackerId: string;
+    defenderId: string;
+    attackerFleetIds: string[];
+    defenderFleetIds: string[];
+  },
+  result: { winnerId: string; loserId: string; damageReport: Record<string, SafeInt> },
+  campaignMonth: string,
+  _collector: DiagnosticCollector,
+): CampaignSnapshot {
+  let wars = snapshot["wars"]["wars"];
+  let participantMemberships = snapshot["wars"]["participantMemberships"];
+
+  // Find and promote the involved war.
+  const warIdx = wars.findIndex(
+    (w) =>
+      (w["attackerId"] === battle["attackerId"] &&
+        w["defenderId"] === battle["defenderId"]) ||
+      (w["attackerId"] === battle["defenderId"] &&
+        w["defenderId"] === battle["attackerId"]),
+  );
+
+  if (warIdx === -1) return snapshot;
+
+  let war = wars[warIdx]!;
+  if (war["status"] === "DECLARED_NOT_ACTIVE") {
+    war = { ...war, status: "ACTIVE" as const };
+  }
+
+  // Alliance / mutual-defense auto-entry for defender & attacker sides.
+  let attackerSideMembers = [...war["attackerSideMembers"]];
+  let defenderSideMembers = [...war["defenderSideMembers"]];
+
+  for (const [sideNationId, sideMembers, targetMembers] of [
+    [battle["defenderId"], defenderSideMembers, attackerSideMembers] as const,
+    [battle["attackerId"], attackerSideMembers, defenderSideMembers] as const,
+  ]) {
+    void sideNationId;
+    for (const memberNationId of sideMembers) {
+      const allies = snapshot["politics"]["relations"]
+        .filter(
+          (r) =>
+            (r["nationA"] === memberNationId || r["nationB"] === memberNationId) &&
+            r["relation"] === "allied",
+        )
+        .map((r) => (r["nationA"] === memberNationId ? r["nationB"] : r["nationA"]));
+      for (const ally of allies) {
+        if (targetMembers.includes(ally) || sideMembers.includes(ally)) continue;
+        if (sideMembers.length + targetMembers.length >= MAXIMUM_CONCURRENT_WARS * 2) continue;
+        if (countActiveWarsFor(snapshot, ally) >= MAXIMUM_CONCURRENT_WARS) continue;
+        // add to the current side
+        const warId = war["id"];
+        if (sideMembers === defenderSideMembers) {
+          defenderSideMembers = [...defenderSideMembers, ally];
+        } else {
+          attackerSideMembers = [...attackerSideMembers, ally];
+        }
+        participantMemberships = [
+          ...participantMemberships,
+          {
+            warId,
+            nationId: ally,
+            sideId: sideMembers === defenderSideMembers ? war["defenderSideId"] : war["attackerSideId"],
+            entryMonth: campaignMonth,
+            status: "ACTIVE" as const,
+            nationalContributionPoints: 0,
+          },
+        ];
+      }
+    }
+  }
+
+  war = {
+    ...war,
+    attackerSideMembers,
+    defenderSideMembers,
+    status: war["status"],
+  };
+
+  // Victory classification + war score.
+  const loserId = result["loserId"];
+  const attackerWins = result["winnerId"] === battle["attackerId"];
+  const loserIsAttacker = loserId === battle["attackerId"];
+  const loserFleetIds = loserIsAttacker ? battle["attackerFleetIds"] : battle["defenderFleetIds"];
+  const loserNation = snapshot["nations"].get(loserId);
+  const loserShips = loserNation
+    ? loserNation["fleets"]
+        .filter((f) => loserFleetIds.includes(f["id"]))
+        .flatMap((f) => f["ships"])
+        .filter((s) => !s["isUnderConstruction"])
+    : [];
+
+  const totalHp = loserShips.reduce((sum, s) => sum + (s["hitPoints"] as number), 0);
+  const lossHp = loserShips.reduce(
+    (sum, s) => sum + Number(result["damageReport"][s["id"]] ?? 0),
+    0,
+  );
+  const lossFraction = totalHp > 0 ? lossHp / totalHp : 1;
+
+  const level =
+    lossFraction >= VICTORY_MAJOR_MAX_FRACTION
+      ? "decisive"
+      : lossFraction >= VICTORY_MINOR_MAX_FRACTION
+        ? "major"
+        : "minor";
+  const magnitude =
+    level === "decisive"
+      ? (WAR_SCORE_DECISIVE as number)
+      : level === "major"
+        ? (WAR_SCORE_MAJOR as number)
+        : (WAR_SCORE_MINOR as number);
+
+  const winnerSide = attackerWins ? "attacker" : "defender";
+  const clamp = (v: number) => Math.max(-100, Math.min(100, v));
+
+  const winnerScore =
+    winnerSide === "attacker" ? war["attackerWarScore"] : war["defenderWarScore"];
+  const loserScore =
+    winnerSide === "attacker" ? war["defenderWarScore"] : war["attackerWarScore"];
+  const newWinnerScore = clamp((winnerScore as number) + magnitude);
+  const newLoserScore = clamp((loserScore as number) - magnitude);
+
+  war = {
+    ...war,
+    attackerWarScore:
+      winnerSide === "attacker" ? newWinnerScore : newLoserScore,
+    defenderWarScore:
+      winnerSide === "defender" ? newWinnerScore : newLoserScore,
+  };
+
+  // nationalContributionPoints for participating nations on the winning side.
+  const contributionDelta = Math.floor(lossHp / 1000);
+  const winnerMembers = winnerSide === "attacker" ? war["attackerSideMembers"] : war["defenderSideMembers"];
+  if (contributionDelta > 0) {
+    participantMemberships = participantMemberships.map((m) =>
+      m["warId"] === war["id"] && winnerMembers.includes(m["nationId"])
+        ? {
+            ...m,
+            nationalContributionPoints: (m["nationalContributionPoints"] as number) + contributionDelta,
+          }
+        : m,
+    );
+  }
+
+  wars = wars.map((w) => (w["id"] === war["id"] ? war : w));
+
+  let next: CampaignSnapshot = {
+    ...snapshot,
+    wars: { ...snapshot["wars"], wars, participantMemberships },
+  };
+
+  // Surrender auto-check.
+  const attackerScore = war["attackerWarScore"] as number;
+  const defenderScore = war["defenderWarScore"] as number;
+  if (attackerScore >= SURRENDER_SCORE || defenderScore >= SURRENDER_SCORE) {
+    next = settleWar(next, war["id"], campaignMonth);
+  }
+
+  return next;
+}
+
+function countActiveWarsFor(snapshot: CampaignSnapshot, nationId: string): number {
+  return snapshot["wars"]["wars"].filter(
+    (w) =>
+      w["status"] !== "ENDED" &&
+      (w["attackerSideMembers"].includes(nationId) || w["defenderSideMembers"].includes(nationId)),
+  ).length;
+}
+
+function settleWar(
+  snapshot: CampaignSnapshot,
+  warId: string,
+  campaignMonth: string,
+): CampaignSnapshot {
+  const war = snapshot["wars"]["wars"].find((w) => w["id"] === warId);
+  if (!war) return snapshot;
+  const wars = snapshot["wars"]["wars"].map((w) =>
+    w["id"] === warId ? { ...w, status: "ENDED" as const, endDate: campaignMonth } : w,
+  );
+  const participantMemberships = snapshot["wars"]["participantMemberships"].map((m) =>
+    m["warId"] === warId && m["status"] === "ACTIVE"
+      ? { ...m, status: "EXITED" as const, exitMonth: campaignMonth }
+      : m,
+  );
+  let next = {
+    ...snapshot,
+    wars: { ...snapshot["wars"], wars, participantMemberships },
+  };
+  next = updateRelation(next, war["attackerId"], war["defenderId"], {
+    relation: "neutral",
+    tension: TENSION_PEACE,
+    nap: false,
+  });
+  return next;
+}
+
 export class MonthExecutor {
   private lifecycle = new CommandLifecycle();
 
@@ -878,6 +1353,75 @@ export class MonthExecutor {
               const updatedNations = new Map(currentSnapshot["nations"]);
               updatedNations.set(priorityBody["nationId"], updatedNation);
               currentSnapshot = { ...currentSnapshot, nations: updatedNations };
+              continue;
+            }
+
+            if (body["type"] === "DeclareWar") {
+              currentSnapshot = applyDeclareWar(
+                currentSnapshot,
+                body as DeclareWarCommand,
+                campaignMonth,
+              );
+              continue;
+            }
+
+            if (body["type"] === "AcceptPeace") {
+              currentSnapshot = applyAcceptPeace(
+                currentSnapshot,
+                body as AcceptPeaceCommand,
+                campaignMonth,
+              );
+              continue;
+            }
+
+            if (body["type"] === "FormAlliance") {
+              currentSnapshot = applySetRelation(
+                currentSnapshot,
+                (body as FormAllianceCommand)["nationId"],
+                (body as FormAllianceCommand)["partnerNationId"],
+                "allied",
+                TENSION_ALLIANCE,
+              );
+              continue;
+            }
+
+            if (body["type"] === "BreakAlliance") {
+              currentSnapshot = applySetRelation(
+                currentSnapshot,
+                (body as BreakAllianceCommand)["nationId"],
+                (body as BreakAllianceCommand)["partnerNationId"],
+                "neutral",
+                TENSION_PEACE,
+              );
+              continue;
+            }
+
+            if (body["type"] === "FormNonAggressionPact") {
+              currentSnapshot = applySetNap(
+                currentSnapshot,
+                (body as FormNonAggressionPactCommand)["nationId"],
+                (body as FormNonAggressionPactCommand)["partnerNationId"],
+                true,
+              );
+              continue;
+            }
+
+            if (body["type"] === "BreakNonAggressionPact") {
+              currentSnapshot = applySetNap(
+                currentSnapshot,
+                (body as BreakNonAggressionPactCommand)["nationId"],
+                (body as BreakNonAggressionPactCommand)["partnerNationId"],
+                false,
+              );
+              continue;
+            }
+
+            if (body["type"] === "DeclareBlockade") {
+              currentSnapshot = applyDeclareBlockade(
+                currentSnapshot,
+                body as DeclareBlockadeCommand,
+                campaignMonth,
+              );
               continue;
             }
 
@@ -1318,7 +1862,12 @@ export class MonthExecutor {
       }
     }
 
-    // Phase 8: resolve_research
+    // Phase 8: resolve_diplomacy
+    {
+      currentSnapshot = resolveDiplomacyPhase(currentSnapshot, campaignMonth);
+    }
+
+    // Phase 9: resolve_research
     {
       currentSnapshot = resolveResearchPhase(
         currentSnapshot,
@@ -1333,7 +1882,7 @@ export class MonthExecutor {
       );
     }
 
-    // Phase 9: battle_resolution
+    // Phase 10: battle_resolution
     {
       const battles = currentSnapshot["wars"]["battles"].filter(
         (b) => b["phase"] === "pending" || b["phase"] === "resolving",
@@ -1356,6 +1905,15 @@ export class MonthExecutor {
           }
 
           const result = resolver.resolve(battle, attacker, defender, randomEngine);
+
+          currentSnapshot = applyBattleResult(
+            currentSnapshot,
+            battle,
+            result,
+            campaignMonth,
+            collector,
+          );
+
           const updatedBattles = currentSnapshot["wars"]["battles"].map((b) =>
             b["id"] === battle["id"] ? { ...b, phase: "resolved" as const, result } : b,
           );
@@ -1367,7 +1925,7 @@ export class MonthExecutor {
       }
     }
 
-    // Phase 10: closing_validation
+    // Phase 11: closing_validation
     {
       const diagnostics: string[] = [];
 

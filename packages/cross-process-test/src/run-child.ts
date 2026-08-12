@@ -122,6 +122,8 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
     wars: {
       wars: snapshot.wars.wars.map((w) => ({ ...w })),
       battles: snapshot.wars.battles.map((b) => ({ ...b })),
+      participantMemberships: snapshot.wars.participantMemberships.map((m) => ({ ...m })),
+      blockadeState: snapshot.wars.blockadeState.map((b) => ({ ...b })),
     },
     politics: {
       relations: snapshot.politics.relations.map((r) => ({ ...r })),

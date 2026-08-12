@@ -8,6 +8,16 @@ import {
 } from "@bluewave/content-schema";
 import type { CommandEnvelope, CommandBody, BudgetProjectCommand } from "./envelope.js";
 import type {
+  DeclareWarCommand,
+  AcceptPeaceCommand,
+  FormAllianceCommand,
+  BreakAllianceCommand,
+  FormNonAggressionPactCommand,
+  BreakNonAggressionPactCommand,
+  DeclareBlockadeCommand,
+} from "./envelope.js";
+import { MAXIMUM_CONCURRENT_WARS } from "@bluewave/campaign";
+import type {
   CommandStatus,
   CommandStatusTransitionRecord,
   CommandRecord,
@@ -131,6 +141,20 @@ export class CommandLifecycle {
     }
     if (envelope.body.type === "SetResearchPriority")
       return this.validateSetResearchPriority(envelope, snapshot);
+    if (envelope.body.type === "DeclareWar")
+      return this.validateDeclareWar(envelope, snapshot);
+    if (envelope.body.type === "AcceptPeace")
+      return this.validateAcceptPeace(envelope, snapshot);
+    if (envelope.body.type === "FormAlliance")
+      return this.validateFormAlliance(envelope, snapshot);
+    if (envelope.body.type === "BreakAlliance")
+      return this.validateBreakAlliance(envelope, snapshot);
+    if (envelope.body.type === "FormNonAggressionPact")
+      return this.validateFormNap(envelope, snapshot);
+    if (envelope.body.type === "BreakNonAggressionPact")
+      return this.validateBreakNap(envelope, snapshot);
+    if (envelope.body.type === "DeclareBlockade")
+      return this.validateDeclareBlockade(envelope, snapshot);
     if (envelope.body.type !== "budget_project") {
       return {
         ok: false,
@@ -224,6 +248,260 @@ export class CommandLifecycle {
     return { ok: true };
   }
 
+  // --- B10c diplomacy & war validators ---
+
+  private pairKey(a: string, b: string): string {
+    return [a, b].sort().join("\u0000");
+  }
+
+  private findRelation(snapshot: CampaignSnapshot, a: string, b: string) {
+    const key = this.pairKey(a, b);
+    return (
+      snapshot.politics.relations.find(
+        (r) => this.pairKey(r.nationA, r.nationB) === key,
+      ) ?? null
+    );
+  }
+
+  private activeWarsFor(snapshot: CampaignSnapshot, nationId: string) {
+    return snapshot.wars.wars.filter(
+      (w) =>
+        w.status !== "ENDED" &&
+        (w.attackerSideMembers.includes(nationId) ||
+          w.defenderSideMembers.includes(nationId)),
+    );
+  }
+
+  private isActiveSharedWar(
+    snapshot: CampaignSnapshot,
+    a: string,
+    b: string,
+  ): boolean {
+    return snapshot.wars.wars.some(
+      (w) =>
+        (w.status === "ACTIVE" || w.status === "DECLARED_NOT_ACTIVE") &&
+        (w.attackerSideMembers.includes(a) || w.defenderSideMembers.includes(a)) &&
+        (w.attackerSideMembers.includes(b) || w.defenderSideMembers.includes(b)),
+    );
+  }
+
+  private validateDeclareWar(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as DeclareWarCommand;
+    if (typeof body.nationId !== "string" || body.nationId.length === 0)
+      return this.rejectValidate(envelope, snapshot, "INVALID_NATION_ID", "nationId must be non-empty");
+    if (typeof body.targetNationId !== "string" || body.targetNationId.length === 0)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DECLARE_WAR_INVALID_TARGET",
+        "targetNationId must be non-empty",
+      );
+    if (body.nationId === body.targetNationId)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DECLARE_WAR_INVALID_TARGET",
+        "Cannot declare war on yourself",
+      );
+    if (!snapshot.nations.has(body.targetNationId))
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DECLARE_WAR_INVALID_TARGET",
+        `Target nation ${body.targetNationId} does not exist`,
+      );
+    if (!snapshot.nations.has(body.nationId))
+      return this.rejectValidate(envelope, snapshot, "INVALID_NATION_ID", `Nation ${body.nationId} not found`);
+    const relation = this.findRelation(snapshot, body.nationId, body.targetNationId);
+    if (relation && relation.relation === "at_war")
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "ALREADY_AT_WAR",
+        `${body.nationId} is already at war with ${body.targetNationId}`,
+      );
+    if (this.activeWarsFor(snapshot, body.nationId).length >= MAXIMUM_CONCURRENT_WARS)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "MAXIMUM_CONCURRENT_WARS_REACHED",
+        `${body.nationId} already at maximum concurrent wars`,
+      );
+    return { ok: true };
+  }
+
+  private validateAcceptPeace(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as AcceptPeaceCommand;
+    if (typeof body.warId !== "string" || body.warId.length === 0)
+      return this.rejectValidate(envelope, snapshot, "PEACE_INVALID", "warId must be non-empty");
+    const war = snapshot.wars.wars.find((w) => w.id === body.warId);
+    if (!war)
+      return this.rejectValidate(envelope, snapshot, "PEACE_INVALID", `War ${body.warId} not found`);
+    if (war.status !== "ACTIVE")
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "PEACE_NO_ACTIVE_WAR",
+        `War ${body.warId} is not active`,
+      );
+    const isMember =
+      war.attackerSideMembers.includes(body.nationId) ||
+      war.defenderSideMembers.includes(body.nationId);
+    if (!isMember)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "PEACE_NO_ACTIVE_WAR",
+        `${body.nationId} is not a member of war ${body.warId}`,
+      );
+    return { ok: true };
+  }
+
+  private validateFormAlliance(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as FormAllianceCommand;
+    if (body.nationId === body.partnerNationId)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "ALLIANCE_FORMATION_INELIGIBLE",
+        "Cannot ally with yourself",
+      );
+    const relation = this.findRelation(snapshot, body.nationId, body.partnerNationId);
+    if (relation && relation.relation === "allied")
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "ALLIANCE_ALREADY_EXISTS",
+        `${body.nationId} is already allied with ${body.partnerNationId}`,
+      );
+    if (relation && relation.relation !== "neutral")
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "ALLIANCE_TARGET_NOT_NEUTRAL",
+        `Relation must be neutral to form alliance`,
+      );
+    return { ok: true };
+  }
+
+  private validateBreakAlliance(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as BreakAllianceCommand;
+    const relation = this.findRelation(snapshot, body.nationId, body.partnerNationId);
+    if (!relation || relation.relation !== "allied")
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "ALLIANCE_ALREADY_EXISTS",
+        `${body.nationId} is not allied with ${body.partnerNationId}`,
+      );
+    if (this.isActiveSharedWar(snapshot, body.nationId, body.partnerNationId))
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "ALLIANCE_LOCKED_BY_WAR",
+        `Alliance cannot be broken during an active shared war`,
+      );
+    return { ok: true };
+  }
+
+  private validateFormNap(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as FormNonAggressionPactCommand;
+    if (body.nationId === body.partnerNationId)
+      return this.rejectValidate(envelope, snapshot, "NAP_ALREADY_EXISTS", "Cannot NAP with yourself");
+    const relation = this.findRelation(snapshot, body.nationId, body.partnerNationId);
+    if (relation && relation.nap)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "NAP_ALREADY_EXISTS",
+        `A NAP already exists between ${body.nationId} and ${body.partnerNationId}`,
+      );
+    return { ok: true };
+  }
+
+  private validateBreakNap(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as BreakNonAggressionPactCommand;
+    const relation = this.findRelation(snapshot, body.nationId, body.partnerNationId);
+    if (!relation || !relation.nap)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "NAP_ALREADY_EXISTS",
+        `No NAP exists between ${body.nationId} and ${body.partnerNationId}`,
+      );
+    return { ok: true };
+  }
+
+  private validateDeclareBlockade(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as DeclareBlockadeCommand;
+    if (body.nationId === body.targetNationId)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "BLOCKADE_INVALID_TARGET",
+        "Cannot blockade yourself",
+      );
+    const relation = this.findRelation(snapshot, body.nationId, body.targetNationId);
+    if (!relation || relation.relation !== "at_war")
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "BLOCKADE_NOT_AT_WAR",
+        `${body.nationId} is not at war with ${body.targetNationId}`,
+      );
+    if (typeof body.areaId !== "string" || body.areaId.length === 0)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "BLOCKADE_INVALID_TARGET",
+        "areaId must be non-empty",
+      );
+    const existing = snapshot.wars.blockadeState.some(
+      (b) =>
+        b.blockaderId === body.nationId &&
+        b.blockadedNationId === body.targetNationId &&
+        b.areaId === body.areaId,
+    );
+    if (existing)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "BLOCKADE_ALREADY_EXISTS",
+        `A blockade already exists for ${body.nationId} on ${body.targetNationId} in area ${body.areaId}`,
+      );
+    return { ok: true };
+  }
+
+  private rejectValidate(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+    code: string,
+    message: string,
+  ): LifecycleStepResult {
+    return { ok: false, outcome: this.makeRejected(envelope, snapshot, code, message) };
+  }
+
   authorize(envelope: CommandEnvelope<CommandBody>, slot: CampaignSlot): LifecycleStepResult {
     if (envelope.body.nationId !== slot.nationId) {
       return {
@@ -305,6 +583,45 @@ export class CommandLifecycle {
         commandId: envelope.commandId,
         snapshotHash,
         result: { nationId: body.nationId, fieldPriorities: body.fieldPriorities },
+      };
+    if (body.type === "DeclareWar")
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: { nationId: body.nationId, targetNationId: body.targetNationId },
+      };
+    if (body.type === "AcceptPeace")
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: { nationId: body.nationId, warId: body.warId },
+      };
+    if (body.type === "FormAlliance" || body.type === "BreakAlliance")
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: { nationId: body.nationId, partnerNationId: body.partnerNationId },
+      };
+    if (body.type === "FormNonAggressionPact" || body.type === "BreakNonAggressionPact")
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: { nationId: body.nationId, partnerNationId: body.partnerNationId },
+      };
+    if (body.type === "DeclareBlockade")
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: {
+          nationId: body.nationId,
+          targetNationId: body.targetNationId,
+          areaId: body.areaId,
+        },
       };
     const b = body as BudgetProjectCommand;
     return {

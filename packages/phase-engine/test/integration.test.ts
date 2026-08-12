@@ -168,6 +168,8 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
     wars: {
       wars: snapshot.wars.wars.map((w) => ({ ...w })),
       battles: snapshot.wars.battles.map((b) => ({ ...b })),
+      participantMemberships: snapshot.wars.participantMemberships.map((m) => ({ ...m })),
+      blockadeState: snapshot.wars.blockadeState.map((b) => ({ ...b })),
     },
     politics: {
       relations: snapshot.politics.relations.map((r) => ({ ...r })),
@@ -491,6 +493,8 @@ describe("Full-slice integration", () => {
             defenderFleetIds: [],
           },
         ],
+        participantMemberships: [],
+        blockadeState: [],
       },
       politics: { relations: [], shells: {} },
       intelligence: { shells: {} },
@@ -528,8 +532,8 @@ describe("Full-slice integration", () => {
     const engine = new PhaseEngine();
     const phases = PhaseRegistry.all;
 
-    for (let i = 0; i < phases.length; i++) {
-      expect(phases[i]!.order).toBe(i);
+    for (let i = 0; i < phases.length - 1; i++) {
+      expect(phases[i]!.order).toBeLessThan(phases[i + 1]!.order);
     }
 
     const rngPhases = phases.filter((p) => p.rngAllowed);
@@ -752,10 +756,16 @@ describe("Full-slice integration", () => {
         wars: [
           {
             id: "war-1",
+            attackerSideId: "side_GBR",
+            defenderSideId: "side_FRA",
+            attackerSideMembers: ["GBR"],
+            defenderSideMembers: ["FRA"],
+            attackerWarScore: 0,
+            defenderWarScore: 0,
             attackerId: "GBR",
             defenderId: "FRA",
             startDate: "1880-01",
-            status: "active",
+            status: "ACTIVE",
           },
         ],
         battles: [
@@ -769,6 +779,8 @@ describe("Full-slice integration", () => {
             defenderFleetIds: ["fleet-fra-atlantic"],
           },
         ],
+        participantMemberships: [],
+        blockadeState: [],
       },
       politics: { relations: [], shells: {} },
       intelligence: { shells: {} },

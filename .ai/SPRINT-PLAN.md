@@ -123,7 +123,7 @@ workstream paired to each milestone.
 | A-0b      | **B10b completion**                            | Implementation          | A-0                          | **DONE 2026-08-11 — PASS.** Closed every verified gap: `SetResearchPriorityCommand` lifecycle (+`RESEARCH_PRIORITY_CONSTRAINT_VIOLATED`, `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`), `TECHNOLOGY_PREREQUISITE_CYCLE` cycle detection, `DesignTemplateSchema` + design YAML + deterministic `compiledHash`, discovery revalidation + historical timing modifier, canonical field registry, and proof tests for all 17 criteria. Commits `15453f2` (+ ADR-0009). 32 turbo tasks green, golden hashes unchanged. Re-verified A-0 → PASS.                                                                                                                                                                                                                                       |
 | A-1       | B9 acceptance pass                             | Implementation (verify) | none                         | **DONE 2026-08-11 — PASS_WITH_LIMITATIONS.** Build green, packaging (mac dmg/zip + linux AppImage) + unit/boundary tests green (9 tests). Added `boundary.test.ts` (CSP, IPC narrowing, concurrent abort) and extracted pure CSP helper. Live GUI start + renderer→main IPC round-trip not automated headlessly; win nsis not built on macOS. Evidence: `.ai/reports/a1-b9-acceptance.md`.                                                                                                                                                                                                                                                                                                                                                                                |
 | A-2       | B10a acceptance pass                           | Implementation (verify) | none                         | **DONE 2026-08-11 — PASS.** All 10 brief criteria verified. Added `economy.test.ts` (3-nation full turn, balanced ledger, finance-hash determinism, paid-work, completion→ship, non-negative treasury). 32 turbo tasks green. Evidence: `.ai/reports/a2-b10a-acceptance.md`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| A-3       | B10c Diplomacy & War                           | Implementation          | A-0b (A-0 PASS)              | **BLOCKED 2026-08-11 — decision request.** Brief ready. Investigation found the victory-level classification predicate (minor/major/decisive → `+2/+5/+10`) is undefined in the brief, DESIGN-31, tactical-combat, battle-generation, and the source design. `BattleResolver` must stay unchanged (criterion 15) and exposes no victory level. Decision request: `.ai/reports/decision-request-victory-classification.md`.                                                                                                                                                                                                                                                                                                                                                |
+| A-3       | B10c Diplomacy & War                           | Implementation          | A-0b (A-0 PASS)              | **DONE 2026-08-12 — PASS.** Resolved the victory-classification decision request via Option A (ADR-0010, `warConstants.ts`); implemented 7 commands, `RESOLVE_DIPLOMACY` (order 6.5), war side/score model, alliance auto-entry, blockade +2/mo, surrender, NAP penalty, peace settlement. `BattleResolver` unchanged. 16/16 build; 400/401 tests (only pre-existing `nation.test.ts` fails); golden regenerated per ADR-0007, cross-process green. Evidence: `.ai/reports/a3-b10c-diplomacy-war.md`. |
 | A-4       | B10d AI & Scenario Readiness                   | Implementation          | A-3                          | Brief ready: `.ai/briefs/b10d-ai-scenario.md`. Lands the 24-month zero-human-input smoke loop — the M1 runtime milestone.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | A-5       | M1 formal acceptance gate                      | Gate                    | A-0…A-4                      | Apply DESIGN-55 §9 to every M1 capability; reconcile `docs/OPEN-ISSUES.md` (resolve the stale "126 items" claim and close/ADR every open M1 ambiguity); refresh `docs/PROGRESS.md`; sign `M1_STRATEGIC_CAMPAIGN_KERNEL` COMPLETED per §23.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | CONTENT-0 | **Content strategy + production-pack charter** | Scoping                 | none (runs parallel to A-0…) | **DONE 2026-08-11.** Locked primary `FULLY_SUPPORTED` scenario `scen_1880` (Jan 1880), reachable era bands all five, max duration 1092 mo (sim end Dec 1970), pack layout `content/production/1880/` (`type: "production"`, zero compiler change), content map + DESIGN-55 §12 classification policy. Landed `.ai/briefs/content-0-production-pack-charter.md`, wayfinder map `.scratch/content-0-production-pack/` (tickets 01–05 resolved), research notes `docs/research/content-0-*.md`. This founders CONTENT-1 and the C-track.                                                                                                                                                                                                                                     |
@@ -223,26 +223,18 @@ ownership during the relevant scoping sprint rather than guessing now:
 ## Immediate next action
 
 The frontier is the **A-track acceptance passes** in dependency order. A-0/A-0b
-(B10b), A-1 (B9), A-2 (B10a) are done, **CONTENT-0 (production content
-strategy charter) is DONE** (2026-08-11), **CONTENT-1 (M1-era production
-pack) is DONE/PASS** (2026-08-11, `.ai/reports/content-1-m1-production-content.md`),
-and **CONTENT-2 (PRE_WAR tech + ship-design) is DONE — scoping PASS (2026-08-11)
-+ implementation PASS (2026-08-12)** (`.ai/reports/content-2-prewar-tech-design.md`),
-and **CONTENT-3 (INTERWAR tech + ship-design) is DONE — scoping PASS (2026-08-12)**
-(`.ai/briefs/content-3-interwar-tech-design.md`).
-A-3 (B10c) remains **blocked on a decision request** — the victory-level
-classification predicate (minor/major/decisive → `+2/+5/+10`) is unspecified in
-all canonical sources
-(`.ai/reports/decision-request-victory-classification.md`). Next:
+(B10b), A-1 (B9), A-2 (B10a), **A-3 (B10c Diplomacy & War) is DONE — PASS
+(2026-08-12,** `.ai/reports/a3-b10c-diplomacy-war.md`, victory classification
+resolved via ADR-0010**), CONTENT-0/1/2/3 are DONE, and the remaining frontier is
+**A-4 (B10d AI & Scenario Readiness)** — now unblocked (its dependency A-3 is
+accepted). Next:
 
-1. **A-3 (B10c Diplomacy & War)** — resumes once the owner resolves the
-   decision request (or authorizes Option A in it). Brief ready.
-2. **CONTENT-3 IMPL (INTERWAR tech/design YAML)** — author the 24 `category: INTERWAR`
-   techs + 10 design templates locked by `.ai/briefs/content-3-interwar-tech-design.md`
-   into `content/production/1880/`, bump pack to `0.3.0`, refresh hashes.
-3. **Repair `content-schema/test/nation.test.ts`** — pre-existing broken import
-   (`content/research/nations/1880/index.ts` deleted on main in `2b3d925`);
-   point it at the surviving canonical nation corpus (tracked, not guessed).
-
-Resume at A-3 after the decision; the CONTENT-3 implementation and the nation-test
-repair may run in the meantime.
+1. **A-4 (B10d AI & Scenario Readiness)** — implement the `@bluewave/ai` package,
+   `AI_PLANNING` phase, and the 24-month zero-human-input smoke loop (brief ready:
+   `.ai/briefs/b10d-ai-scenario.md`). This is the M1 runtime milestone.
+2. **A-5 (M1 formal acceptance gate)** — apply DESIGN-55 §9 to every M1 capability,
+   reconcile `docs/OPEN-ISSUES.md`, sign `M1_STRATEGIC_CAMPAIGN_KERNEL` COMPLETED.
+3. **CONTENT-3 IMPL (INTERWAR YAML)** — author the locked 24 INTERWAR techs + 10
+   designs into `content/production/1880/`.
+4. **Repair `content-schema/test/nation.test.ts`** — pre-existing broken import
+   (canonical nation-corpus ambiguity; needs a corpus-home decision).

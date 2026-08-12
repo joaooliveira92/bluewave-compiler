@@ -2,7 +2,15 @@
 
 ## Status
 
-Blocked pending owner decision.
+**RESOLVED 2026-08-12 — Option A (owner-delegated autonomy).** Implemented as
+ADR-0010: classify by the losing side's damaged-hitpoint fraction of its committed
+HP (`>= 0.50` decisive, `>= 0.25` major, else minor) → `+10`/`+5`/`+2` (+/-) to
+war score, via versioned `WAR_SCORE_*`/`VICTORY_*` ruleset constants in
+`packages/campaign/src/warConstants.ts`. `BattleResolver` unchanged (criterion 15);
+predicate derives from exposed `BattleResult.damageReport` + `loserId` + the
+battle's committed loser fleets. Shipped in B10c (`packages/phase-engine/src/month.ts`
+battle-resolved victory block). Acceptance evidence: `.ai/reports/a3-b10c-diplomacy-war.md`.
+
 
 ## Trigger
 
