@@ -128,6 +128,7 @@ workstream paired to each milestone.
 | A-5       | M1 formal acceptance gate                      | Gate                    | A-0…A-4                      | Apply DESIGN-55 §9 to every M1 capability; reconcile `docs/OPEN-ISSUES.md` (resolve the stale "126 items" claim and close/ADR every open M1 ambiguity); refresh `docs/PROGRESS.md`; sign `M1_STRATEGIC_CAMPAIGN_KERNEL` COMPLETED per §23.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | CONTENT-0 | **Content strategy + production-pack charter** | Scoping                 | none (runs parallel to A-0…) | **DONE 2026-08-11.** Locked primary `FULLY_SUPPORTED` scenario `scen_1880` (Jan 1880), reachable era bands all five, max duration 1092 mo (sim end Dec 1970), pack layout `content/production/1880/` (`type: "production"`, zero compiler change), content map + DESIGN-55 §12 classification policy. Landed `.ai/briefs/content-0-production-pack-charter.md`, wayfinder map `.scratch/content-0-production-pack/` (tickets 01–05 resolved), research notes `docs/research/content-0-*.md`. This founders CONTENT-1 and the C-track.                                                                                                                                                                                                                                     |
 | CONTENT-1 | **M1-era production content**                  | Scoping/Impl            | CONTENT-0                    | **DONE 2026-08-11 — PASS.** Authored the first production pack at `content/production/1880/` (`type: "production"`, zero engine change): 14 countries, ~100 areas, 35+ routes, ~70 possessions, ~95 ports, 34 EARLY technologies (acyclic DAG), 16 designs, 22 fleets, 14 economies, 9 constructions, 14 research states — grounded in 4 research notes (`docs/research/content-1-*.md`). Diplomacy relations omitted (B10c blocked → §14 concern). Compiles deterministically via desktop `runCompilation` (content `44953238…`, snapshot `f3e72642…`); `production-pack.test.ts` locks it. Evidence: `.ai/reports/content-1-m1-production-content.md`. Brief + wayfinder: `.ai/briefs/content-1-m1-production-content.md`, `.scratch/content-1-m1-production-content/`. |
+| CONTENT-2 | **PRE_WAR tech + ship-design continuation**    | Scoping                 | CONTENT-1 (done)             | **DONE 2026-08-11 — scoping PASS.** Locked the PRE_WAR-band (Jan 1900–Dec 1919) slice of `content/production/1880/`: 25 research techs across 10 fields + 11 real-class design templates, all `SUPPORTED_MECHANICAL` (Research/Design accepted; acyclic DAG seeded on CONTENT-1 tails). **Deferred (mechanics-gated, not descended into):** deployment (DESIGN-25, unassigned), blockades (B10c, blocked), AVIATION/CARRIER PRE_WAR techs (M4 unit mechanic unaccepted → §14). Grounded in `docs/research/content-2-prewar-era-tech-and-design.md` (verified sources: HMS Dreadnought 1906, Fire-control system, Krupp armour). No engine change; scoping-only, goldens untouched. Brief + wayfinder: `.ai/briefs/content-2-prewar-tech-design.md`, `.scratch/content-2-prewar-tech-design/`. Implementation of the YAML records is the next C-track sprint (foundered by this brief). |
 
 ### Track B — M2 Surface Tactical Core
 
@@ -222,8 +223,10 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 The frontier is the **A-track acceptance passes** in dependency order. A-0/A-0b
 (B10b), A-1 (B9), A-2 (B10a) are done, **CONTENT-0 (production content
-strategy charter) is DONE** (2026-08-11), and **CONTENT-1 (M1-era production
-pack) is DONE/PASS** (2026-08-11, `.ai/reports/content-1-m1-production-content.md`).
+strategy charter) is DONE** (2026-08-11), **CONTENT-1 (M1-era production
+pack) is DONE/PASS** (2026-08-11, `.ai/reports/content-1-m1-production-content.md`),
+and **CONTENT-2 (PRE_WAR tech + ship-design scoping) is DONE/PASS**
+(2026-08-11, `.ai/briefs/content-2-prewar-tech-design.md`).
 A-3 (B10c) remains **blocked on a decision request** — the victory-level
 classification predicate (minor/major/decisive → `+2/+5/+10`) is unspecified in
 all canonical sources
@@ -231,10 +234,11 @@ all canonical sources
 
 1. **A-3 (B10c Diplomacy & War)** — resumes once the owner resolves the
    decision request (or authorizes Option A in it). Brief ready.
-2. **CONTENT-2 (M1 tactical / later-era production content)** — after
-   CONTENT-1, continue the production pack toward the M1/earlier-bands slice
-   (deployment, blockades, and PRE_WAR-band content), and/or land the M1-era
-   battleground/mission content flagged in the CONTENT-1 charter as later-band
-   work. Depends on CONTENT-1 (done). Not blocked by A-3.
+2. **CONTENT-2 IMPL (PRE_WAR tech/design YAML)** — author the records locked by
+   the CONTENT-2 scoping brief (`.ai/briefs/content-2-prewar-tech-design.md`):
+   the 25 `category: PRE_WAR` techs and 11 real-class design templates into
+   `content/production/1880/`, update `pack.json`, and refresh the
+   production-pack golden hashes with the intended content cause.
 
-Resume at A-3 after the decision; CONTENT-2 may run in the meantime.
+Resume at A-3 after the decision; the CONTENT-2 implementation may run in the
+meantime.

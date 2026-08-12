@@ -141,8 +141,10 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 > Charter: `.ai/briefs/content-0-production-pack-charter.md`; wayfinder map
 > `.scratch/content-0-production-pack/`; research `docs/research/content-0-*.md`.
 > **CONTENT-1 (M1-era production pack) is DONE (2026-08-11, PASS)** at
-> `content/production/1880/`, deterministically compiled; CONTENT-2
-> (tactical / later bands) is next.
+> `content/production/1880/`, deterministically compiled; **CONTENT-2 (PRE_WAR
+> tech/design scoping) is DONE (2026-08-11, scoping PASS)** at
+> `.ai/briefs/content-2-prewar-tech-design.md` — the PRE_WAR-band YAML authoring
+> is the next C-track implementation sprint.
 
 | Deliverable                  | Status      | Notes                                                            |
 | ---------------------------- | ----------- | ---------------------------------------------------------------- |
@@ -152,7 +154,7 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 | Content map + classification | Locked      | DESIGN-55 §12 policy; CONTENT_ONLY_LOCKED→promote                |
 | Charter brief                | Done        | `.ai/briefs/content-0-production-pack-charter.md`                |
 | CONTENT-1 (M1-era content)   | Done — PASS | `content/production/1880/` authored + deterministically compiled |
-| CONTENT-2 (tactical / later) | Not started | next content sprint                                              |
+| CONTENT-2 (PRE_WAR tech/design scoping) | Done — PASS | `.ai/briefs/content-2-prewar-tech-design.md`; 25 techs + 11 designs locked; impl next |
 
 ### CONTENT-1 — M1-Era Production Content Pack
 
@@ -169,6 +171,23 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 > `.ai/reports/content-1-m1-production-content.md`; brief
 > `.ai/briefs/content-1-m1-production-content.md`; wayfinder
 > `.scratch/content-1-m1-production-content/`.
+
+### CONTENT-2 — PRE_WAR-Band Technology & Ship-Design Continuation
+
+> **Status (2026-08-11): DONE/PASS (scoping).** Locked the PRE_WAR-band
+> (Jan 1900 – Dec 1919) slice of `content/production/1880/`: 25 research techs
+> across 10 fields (`category: PRE_WAR`, acyclic, seeded on CONTENT-1 tails) and
+> 11 real-class ship-design templates (Dreadnought, Invincible, Orion, Queen
+> Elizabeth, South Carolina, Nassau, Kōnig, Kongō, Fuso, Courbet, Dante
+> Alighieri). All `SUPPORTED_MECHANICAL` (Research/Design `ACCEPTED`, no
+> reachable-locked content). Research grounded in verified high-trust sources
+> (`docs/research/content-2-prewar-era-tech-and-design.md`: HMS Dreadnought 1906,
+> Fire-control system, Krupp armour). Deferred (not descended into): deployment
+> (DESIGN-25, unassigned), blockades (B10c, blocked), AVIATION/CARRIER PRE_WAR
+> techs (M4 unit mechanic unaccepted → DESIGN-55 §14). Scoping-only — no engine
+> change, goldens untouched. Next: author the PRE_WAR YAML records (impl sprint).
+> Brief `.ai/briefs/content-2-prewar-tech-design.md`; wayfinder
+> `.scratch/content-2-prewar-tech-design/`.
 
 ## 🔮 Not Yet Started (M2–M5)
 
