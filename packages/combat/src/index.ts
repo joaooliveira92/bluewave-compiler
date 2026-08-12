@@ -20,3 +20,4 @@ export * from "./battleEnd.js";
 export * from "./battleLedger.js";
 export * from "./autoResolution.js";
 export * from "./tactical/index.js";
+export * from "./generation/index.js";
