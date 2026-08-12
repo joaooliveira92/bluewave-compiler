@@ -6,7 +6,7 @@ Scope and then author the next slice of the `scen_1880` production pack:
 the **PRE_WAR era band (Jan 1900 – Dec 1919)** research-technology tree and
 ship-design templates, continuing the EARLY DAG written in CONTENT-1
 (`content/production/1880/`), with **zero engine change**. This sprint lands the
-scoping brief + research + wayfinder; the *implementation* of the YAML records
+scoping brief + research + wayfinder; the _implementation_ of the YAML records
 (techs + designs + pack manifest update) is the follow-up CONTENT-2
 implementation sprint this brief founders.
 

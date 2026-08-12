@@ -100,6 +100,10 @@ describe("project module", () => {
   it("rejects path traversal filenames when serializing", () => {
     const project = buildProject({ name: "evil", files: {} }, {});
     expect(() => loadProjectFileJson(serializeProject(project))).not.toThrow();
-    expect(() => loadProjectFileJson('{"format":"bluewave-project","version":1,"name":"x","manifest":{},"files":{"..\\..\\x.yaml":"data"}}')).toThrow();
+    expect(() =>
+      loadProjectFileJson(
+        '{"format":"bluewave-project","version":1,"name":"x","manifest":{},"files":{"..\\..\\x.yaml":"data"}}',
+      ),
+    ).toThrow();
   });
 });

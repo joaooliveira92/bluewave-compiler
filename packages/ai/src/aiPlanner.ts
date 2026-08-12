@@ -149,11 +149,7 @@ export class AiPlanner {
     generator: AiCommandGenerator,
   ): CommandEnvelope<CommandBody> {
     const stream = engine.stream(`${AI_RNG_STREAM_PREFIX}${nationId}:${AI_COMMAND_TYPE_RESEARCH}`);
-    const highCount = drawUniform(
-      stream,
-      SafeInt.ONE,
-      SafeInt(MAX_HIGH_PRIORITY_FIELDS),
-    ) as number;
+    const highCount = drawUniform(stream, SafeInt.ONE, SafeInt(MAX_HIGH_PRIORITY_FIELDS)) as number;
 
     const fields: string[] = [...CANONICAL_RESEARCH_FIELD_IDS];
     const n = fields.length;
@@ -177,7 +173,7 @@ export class AiPlanner {
 }
 
 function SafeIntSub(a: SafeInt, b: SafeInt): SafeInt {
-  return (a as number) - (b as number) as SafeInt;
+  return ((a as number) - (b as number)) as SafeInt;
 }
 
 function minSafeInt(a: SafeInt, b: SafeInt): SafeInt {

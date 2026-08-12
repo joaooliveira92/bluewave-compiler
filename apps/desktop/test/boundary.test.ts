@@ -33,12 +33,7 @@ describe("B9 Electron boundary (criteria 4-6)", () => {
     const preloadSource = readFileSync(resolve(__dirname, "../src/preload/index.ts"), "utf8");
     expect(preloadSource).toContain("contextBridge.exposeInMainWorld");
     const exposed = preloadSource.match(/([a-zA-Z]+):\s*\(/g) ?? [];
-    const allowed = [
-      "compile:",
-      "openProject:",
-      "saveProject:",
-      "saveProjectAs:",
-    ];
+    const allowed = ["compile:", "openProject:", "saveProject:", "saveProjectAs:"];
     expect(exposed.length).toBe(allowed.length);
     for (const method of allowed) {
       expect(exposed.some((s) => s.startsWith(method))).toBe(true);

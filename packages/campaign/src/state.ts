@@ -75,7 +75,7 @@ export interface DiplomaticRelation {
   nationB: string;
   relation: "neutral" | "allied" | "at_war" | "trade_agreement";
   tension: number; // 0..10
-  nap: boolean;    // non-aggression pact active
+  nap: boolean; // non-aggression pact active
   since: string;
 }
 

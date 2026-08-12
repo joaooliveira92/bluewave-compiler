@@ -394,9 +394,7 @@ function applyBudgetProject(
     return currentSnapshot;
   }
 
-  const project = nation["constructionProjects"].find(
-    (p) => p["id"] === body["projectId"],
-  );
+  const project = nation["constructionProjects"].find((p) => p["id"] === body["projectId"]);
   if (!project) {
     collector.addError("PROJECT_NOT_FOUND", `Project ${body["projectId"]} not found`, {
       stage: "command_collection",
@@ -408,8 +406,7 @@ function applyBudgetProject(
   const previousTreasury = nation["treasury"];
   const newTreasury = SafeInt.sub(previousTreasury, budget);
   const rawNewWork = SafeInt.add(project["completedWork"], budget);
-  const clampedWork =
-    rawNewWork > project["totalWork"] ? project["totalWork"] : rawNewWork;
+  const clampedWork = rawNewWork > project["totalWork"] ? project["totalWork"] : rawNewWork;
 
   const updatedNation: NationState = {
     ...nation,
@@ -457,7 +454,6 @@ function applyBudgetProject(
 
   return next;
 }
-
 
 function drawWeighted(
   stream: import("@bluewave/random").RandomStream,
@@ -944,7 +940,11 @@ function updateRelation(
   snapshot: CampaignSnapshot,
   a: string,
   b: string,
-  patch: Partial<{ relation: "neutral" | "allied" | "at_war" | "trade_agreement"; tension: number; nap: boolean }>,
+  patch: Partial<{
+    relation: "neutral" | "allied" | "at_war" | "trade_agreement";
+    tension: number;
+    nap: boolean;
+  }>,
 ): CampaignSnapshot {
   const key = pairKey(a, b);
   const relations = snapshot["politics"]["relations"].map((r) =>
@@ -1135,8 +1135,7 @@ function resolveDiplomacyPhase(
       ? "attacker"
       : "defender";
     const gain = BLOCKADE_WAR_SCORE_PER_MONTH as number;
-    const increment = (current: number) =>
-      Math.max(-100, Math.min(100, current + gain));
+    const increment = (current: number) => Math.max(-100, Math.min(100, current + gain));
     const updated =
       side === "attacker"
         ? { ...war, attackerWarScore: increment(war["attackerWarScore"] as number) }
@@ -1167,10 +1166,8 @@ function applyBattleResult(
   // Find and promote the involved war.
   const warIdx = wars.findIndex(
     (w) =>
-      (w["attackerId"] === battle["attackerId"] &&
-        w["defenderId"] === battle["defenderId"]) ||
-      (w["attackerId"] === battle["defenderId"] &&
-        w["defenderId"] === battle["attackerId"]),
+      (w["attackerId"] === battle["attackerId"] && w["defenderId"] === battle["defenderId"]) ||
+      (w["attackerId"] === battle["defenderId"] && w["defenderId"] === battle["attackerId"]),
   );
 
   if (warIdx === -1) return snapshot;
@@ -1213,7 +1210,8 @@ function applyBattleResult(
           {
             warId,
             nationId: ally,
-            sideId: sideMembers === defenderSideMembers ? war["defenderSideId"] : war["attackerSideId"],
+            sideId:
+              sideMembers === defenderSideMembers ? war["defenderSideId"] : war["attackerSideId"],
             entryMonth: campaignMonth,
             status: "ACTIVE" as const,
             nationalContributionPoints: 0,
@@ -1266,30 +1264,28 @@ function applyBattleResult(
   const winnerSide = attackerWins ? "attacker" : "defender";
   const clamp = (v: number) => Math.max(-100, Math.min(100, v));
 
-  const winnerScore =
-    winnerSide === "attacker" ? war["attackerWarScore"] : war["defenderWarScore"];
-  const loserScore =
-    winnerSide === "attacker" ? war["defenderWarScore"] : war["attackerWarScore"];
+  const winnerScore = winnerSide === "attacker" ? war["attackerWarScore"] : war["defenderWarScore"];
+  const loserScore = winnerSide === "attacker" ? war["defenderWarScore"] : war["attackerWarScore"];
   const newWinnerScore = clamp((winnerScore as number) + magnitude);
   const newLoserScore = clamp((loserScore as number) - magnitude);
 
   war = {
     ...war,
-    attackerWarScore:
-      winnerSide === "attacker" ? newWinnerScore : newLoserScore,
-    defenderWarScore:
-      winnerSide === "defender" ? newWinnerScore : newLoserScore,
+    attackerWarScore: winnerSide === "attacker" ? newWinnerScore : newLoserScore,
+    defenderWarScore: winnerSide === "defender" ? newWinnerScore : newLoserScore,
   };
 
   // nationalContributionPoints for participating nations on the winning side.
   const contributionDelta = Math.floor(lossHp / 1000);
-  const winnerMembers = winnerSide === "attacker" ? war["attackerSideMembers"] : war["defenderSideMembers"];
+  const winnerMembers =
+    winnerSide === "attacker" ? war["attackerSideMembers"] : war["defenderSideMembers"];
   if (contributionDelta > 0) {
     participantMemberships = participantMemberships.map((m) =>
       m["warId"] === war["id"] && winnerMembers.includes(m["nationId"])
         ? {
             ...m,
-            nationalContributionPoints: (m["nationalContributionPoints"] as number) + contributionDelta,
+            nationalContributionPoints:
+              (m["nationalContributionPoints"] as number) + contributionDelta,
           }
         : m,
     );

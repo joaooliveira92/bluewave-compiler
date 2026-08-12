@@ -141,12 +141,9 @@ export class CommandLifecycle {
     }
     if (envelope.body.type === "SetResearchPriority")
       return this.validateSetResearchPriority(envelope, snapshot);
-    if (envelope.body.type === "DeclareWar")
-      return this.validateDeclareWar(envelope, snapshot);
-    if (envelope.body.type === "AcceptPeace")
-      return this.validateAcceptPeace(envelope, snapshot);
-    if (envelope.body.type === "FormAlliance")
-      return this.validateFormAlliance(envelope, snapshot);
+    if (envelope.body.type === "DeclareWar") return this.validateDeclareWar(envelope, snapshot);
+    if (envelope.body.type === "AcceptPeace") return this.validateAcceptPeace(envelope, snapshot);
+    if (envelope.body.type === "FormAlliance") return this.validateFormAlliance(envelope, snapshot);
     if (envelope.body.type === "BreakAlliance")
       return this.validateBreakAlliance(envelope, snapshot);
     if (envelope.body.type === "FormNonAggressionPact")
@@ -257,9 +254,7 @@ export class CommandLifecycle {
   private findRelation(snapshot: CampaignSnapshot, a: string, b: string) {
     const key = this.pairKey(a, b);
     return (
-      snapshot.politics.relations.find(
-        (r) => this.pairKey(r.nationA, r.nationB) === key,
-      ) ?? null
+      snapshot.politics.relations.find((r) => this.pairKey(r.nationA, r.nationB) === key) ?? null
     );
   }
 
@@ -267,16 +262,11 @@ export class CommandLifecycle {
     return snapshot.wars.wars.filter(
       (w) =>
         w.status !== "ENDED" &&
-        (w.attackerSideMembers.includes(nationId) ||
-          w.defenderSideMembers.includes(nationId)),
+        (w.attackerSideMembers.includes(nationId) || w.defenderSideMembers.includes(nationId)),
     );
   }
 
-  private isActiveSharedWar(
-    snapshot: CampaignSnapshot,
-    a: string,
-    b: string,
-  ): boolean {
+  private isActiveSharedWar(snapshot: CampaignSnapshot, a: string, b: string): boolean {
     return snapshot.wars.wars.some(
       (w) =>
         (w.status === "ACTIVE" || w.status === "DECLARED_NOT_ACTIVE") &&
@@ -291,7 +281,12 @@ export class CommandLifecycle {
   ): LifecycleStepResult {
     const body = envelope.body as DeclareWarCommand;
     if (typeof body.nationId !== "string" || body.nationId.length === 0)
-      return this.rejectValidate(envelope, snapshot, "INVALID_NATION_ID", "nationId must be non-empty");
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "INVALID_NATION_ID",
+        "nationId must be non-empty",
+      );
     if (typeof body.targetNationId !== "string" || body.targetNationId.length === 0)
       return this.rejectValidate(
         envelope,
@@ -314,7 +309,12 @@ export class CommandLifecycle {
         `Target nation ${body.targetNationId} does not exist`,
       );
     if (!snapshot.nations.has(body.nationId))
-      return this.rejectValidate(envelope, snapshot, "INVALID_NATION_ID", `Nation ${body.nationId} not found`);
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "INVALID_NATION_ID",
+        `Nation ${body.nationId} not found`,
+      );
     const relation = this.findRelation(snapshot, body.nationId, body.targetNationId);
     if (relation && relation.relation === "at_war")
       return this.rejectValidate(
@@ -342,7 +342,12 @@ export class CommandLifecycle {
       return this.rejectValidate(envelope, snapshot, "PEACE_INVALID", "warId must be non-empty");
     const war = snapshot.wars.wars.find((w) => w.id === body.warId);
     if (!war)
-      return this.rejectValidate(envelope, snapshot, "PEACE_INVALID", `War ${body.warId} not found`);
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "PEACE_INVALID",
+        `War ${body.warId} not found`,
+      );
     if (war.status !== "ACTIVE")
       return this.rejectValidate(
         envelope,
@@ -422,7 +427,12 @@ export class CommandLifecycle {
   ): LifecycleStepResult {
     const body = envelope.body as FormNonAggressionPactCommand;
     if (body.nationId === body.partnerNationId)
-      return this.rejectValidate(envelope, snapshot, "NAP_ALREADY_EXISTS", "Cannot NAP with yourself");
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "NAP_ALREADY_EXISTS",
+        "Cannot NAP with yourself",
+      );
     const relation = this.findRelation(snapshot, body.nationId, body.partnerNationId);
     if (relation && relation.nap)
       return this.rejectValidate(

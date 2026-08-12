@@ -70,13 +70,13 @@ pnpm exec vp test run packages/cross-process-test/test/cross-process.test.ts
 
 ## Canonical artifact changes
 
-| Artifact | Old → New | Cause | Migration |
-|---|---|---|---|
-| initialSnapshotHash | `4f604f3c…`→`bc7dfc2c…` | New tension/nap on relations; new Wars fields | golden regen (ADR-0007) |
-| closingSnapshotHash | `62762a34…`→`f4ea276b…` | New war lifecycle state | golden regen |
-| commandLedgerHash | `af437dfe…`→`5c154b3d…` | New commands in ledger | golden regen |
-| replayVerificationHash | `85994802…`→`105a503e…` | New state/commands in replay | golden regen |
-| content/event/financial/random | unchanged | — | — |
+| Artifact                       | Old → New               | Cause                                         | Migration               |
+| ------------------------------ | ----------------------- | --------------------------------------------- | ----------------------- |
+| initialSnapshotHash            | `4f604f3c…`→`bc7dfc2c…` | New tension/nap on relations; new Wars fields | golden regen (ADR-0007) |
+| closingSnapshotHash            | `62762a34…`→`f4ea276b…` | New war lifecycle state                       | golden regen            |
+| commandLedgerHash              | `af437dfe…`→`5c154b3d…` | New commands in ledger                        | golden regen            |
+| replayVerificationHash         | `85994802…`→`105a503e…` | New state/commands in replay                  | golden regen            |
+| content/event/financial/random | unchanged               | —                                             | —                       |
 
 ## Tests added
 
