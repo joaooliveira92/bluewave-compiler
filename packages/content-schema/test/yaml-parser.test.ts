@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vite-plus/test";
-import { parseYamlSafe } from "../src/index.js";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
+import { parseYamlSafe } from "../src/index.js";
 
 describe("parseYamlSafe", () => {
   it("parses valid YAML", () => {
