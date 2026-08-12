@@ -129,6 +129,7 @@ workstream paired to each milestone.
 | CONTENT-0 | **Content strategy + production-pack charter** | Scoping                 | none (runs parallel to A-0…) | **DONE 2026-08-11.** Locked primary `FULLY_SUPPORTED` scenario `scen_1880` (Jan 1880), reachable era bands all five, max duration 1092 mo (sim end Dec 1970), pack layout `content/production/1880/` (`type: "production"`, zero compiler change), content map + DESIGN-55 §12 classification policy. Landed `.ai/briefs/content-0-production-pack-charter.md`, wayfinder map `.scratch/content-0-production-pack/` (tickets 01–05 resolved), research notes `docs/research/content-0-*.md`. This founders CONTENT-1 and the C-track.                                                                                                                                                                                                                                     |
 | CONTENT-1 | **M1-era production content**                  | Scoping/Impl            | CONTENT-0                    | **DONE 2026-08-11 — PASS.** Authored the first production pack at `content/production/1880/` (`type: "production"`, zero engine change): 14 countries, ~100 areas, 35+ routes, ~70 possessions, ~95 ports, 34 EARLY technologies (acyclic DAG), 16 designs, 22 fleets, 14 economies, 9 constructions, 14 research states — grounded in 4 research notes (`docs/research/content-1-*.md`). Diplomacy relations omitted (B10c blocked → §14 concern). Compiles deterministically via desktop `runCompilation` (content `44953238…`, snapshot `f3e72642…`); `production-pack.test.ts` locks it. Evidence: `.ai/reports/content-1-m1-production-content.md`. Brief + wayfinder: `.ai/briefs/content-1-m1-production-content.md`, `.scratch/content-1-m1-production-content/`. |
 | CONTENT-2 | **PRE_WAR tech + ship-design continuation**    | Scoping/Impl            | CONTENT-1 (done)             | **DONE — scoping 2026-08-11 PASS + implementation 2026-08-12 PASS.** Locked and authored the PRE_WAR-band (Jan 1900–Dec 1919) slice of `content/production/1880/`: 25 research techs across 10 fields + 11 real-class design templates, all `SUPPORTED_MECHANICAL` (Research/Design accepted; acyclic DAG seeded on CONTENT-1 tails). Pack `0.1.0`→`0.2.0`. Production-pack test PASS; compiles deterministically (content `c3be5604…`, snapshot `cb1f1497…`). **Deferred (mechanics-gated):** deployment (DESIGN-25, unassigned), blockades (B10c, blocked), AVIATION/CARRIER PRE_WAR techs (M4, §14). Grounded in `docs/research/content-2-prewar-era-tech-and-design.md`. Pre-existing unrelated defect surfaced: `content-schema/test/nation.test.ts` broken import (see PROGRESS). Brief/wayfinder: `.ai/briefs/content-2-prewar-tech-design.md`, `.scratch/content-2-prewar-tech-design/`. Evidence: `.ai/reports/content-2-prewar-tech-design.md`. |
+| CONTENT-3 | **INTERWAR tech + ship-design continuation**  | Scoping                 | CONTENT-2 (done)             | **DONE 2026-08-12 — scoping PASS.** Locked the INTERWAR-band (Jan 1920–Dec 1939) slice of `content/production/1880/`: 24 grounded research techs across 10 supported fields + 10 real-class design templates (Nelson, King George V, North Carolina, Yamato, Bismarck, Scharnhorst, Littorio, Richelieu, Nagato, Myōkō), all `SUPPORTED_MECHANICAL` (Research/Design accepted; acyclic, seeded on PRE_WAR tails). **Deferred (DESIGN-55 §14 / unaccepted unit families):** AVIATION, CARRIER_OPERATIONS, RADAR_AND_ELECTRONICS, MISSILES, AMPHIBIOUS_OPERATIONS INTERWAR content (M4/M5), plus deployment (DESIGN-25) & blockades (B10c). Grounded: `docs/research/content-3-interwar-era-tech-and-design.md` (Nelson/NC/KGV/Yamato verified). No engine change; scoping-only, goldens untouched. Brief + wayfinder: `.ai/briefs/content-3-interwar-tech-design.md`, `.scratch/content-3-interwar-tech-design/`. Implementation of the YAML is the next C-track sprint. |
 
 ### Track B — M2 Surface Tactical Core
 
@@ -226,7 +227,9 @@ The frontier is the **A-track acceptance passes** in dependency order. A-0/A-0b
 strategy charter) is DONE** (2026-08-11), **CONTENT-1 (M1-era production
 pack) is DONE/PASS** (2026-08-11, `.ai/reports/content-1-m1-production-content.md`),
 and **CONTENT-2 (PRE_WAR tech + ship-design) is DONE — scoping PASS (2026-08-11)
-+ implementation PASS (2026-08-12)** (`.ai/reports/content-2-prewar-tech-design.md`).
++ implementation PASS (2026-08-12)** (`.ai/reports/content-2-prewar-tech-design.md`),
+and **CONTENT-3 (INTERWAR tech + ship-design) is DONE — scoping PASS (2026-08-12)**
+(`.ai/briefs/content-3-interwar-tech-design.md`).
 A-3 (B10c) remains **blocked on a decision request** — the victory-level
 classification predicate (minor/major/decisive → `+2/+5/+10`) is unspecified in
 all canonical sources
@@ -234,13 +237,12 @@ all canonical sources
 
 1. **A-3 (B10c Diplomacy & War)** — resumes once the owner resolves the
    decision request (or authorizes Option A in it). Brief ready.
-2. **CONTENT-3 (INTERWAR / later-band content)** — continue the production pack
-   into the next era band(s), same `SUPPORTED_MECHANICAL` pattern, once an
-   owning capability for that band's novel content is accepted; otherwise scope a
-   mechanics-gated deferral. Depends on CONTENT-2 (done). Not blocked by A-3.
+2. **CONTENT-3 IMPL (INTERWAR tech/design YAML)** — author the 24 `category: INTERWAR`
+   techs + 10 design templates locked by `.ai/briefs/content-3-interwar-tech-design.md`
+   into `content/production/1880/`, bump pack to `0.3.0`, refresh hashes.
 3. **Repair `content-schema/test/nation.test.ts`** — pre-existing broken import
    (`content/research/nations/1880/index.ts` deleted on main in `2b3d925`);
    point it at the surviving canonical nation corpus (tracked, not guessed).
 
-Resume at A-3 after the decision; CONTENT-3 and the nation-test repair may run in
-the meantime.
+Resume at A-3 after the decision; the CONTENT-3 implementation and the nation-test
+repair may run in the meantime.
