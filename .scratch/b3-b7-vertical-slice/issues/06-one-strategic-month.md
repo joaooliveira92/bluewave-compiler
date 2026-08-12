@@ -4,17 +4,17 @@
 
 **Blocked by:** 05
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Player command: one budget/project command
-- [ ] Appropriation phase
-- [ ] Mandatory obligation phase
-- [ ] Paid construction work phase
-- [ ] Named research/project random decision (using engine from 02)
-- [ ] Financial ledger with balance invariants
-- [ ] Treasury negative-balance enforcement
-- [ ] Construction progress capped at total work
-- [ ] Closing invariants for all aggregates
-- [ ] Closing snapshot hash
-- [ ] Same opening snapshot and commands yield identical closing hashes
-- [ ] Tests: full month execution, treasury invariants, progress cap, hash determinism
+- [x] Player command: one budget/project command
+- [x] Appropriation phase
+- [x] Mandatory obligation phase
+- [x] Paid construction work phase
+- [x] Named research/project random decision (using engine from 02)
+- [x] Financial ledger with balance invariants
+- [x] Treasury negative-balance enforcement
+- [x] Construction progress capped at total work
+- [x] Closing invariants for all aggregates
+- [x] Closing snapshot hash
+- [x] Same opening snapshot and commands yield identical closing hashes
+- [x] Tests: full month execution, treasury invariants, progress cap, hash determinism
