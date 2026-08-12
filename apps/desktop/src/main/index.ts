@@ -44,7 +44,7 @@ function createWindow(): void {
     width: 900,
     height: 700,
     webPreferences: {
-      preload: resolve(__dirname, "../preload/index.mjs"),
+      preload: resolve(import.meta.dirname, "../preload/index.js"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -61,7 +61,7 @@ function createWindow(): void {
     void win.loadURL("http://localhost:5173");
     win.webContents.openDevTools();
   } else {
-    void win.loadFile(resolve(__dirname, "../renderer/index.html"));
+    void win.loadFile(resolve(import.meta.dirname, "../renderer/index.html"));
   }
 }
 
