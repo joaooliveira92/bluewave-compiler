@@ -118,10 +118,28 @@ export interface BattleManifest {
   attackerId: string;
   defenderId: string;
   acceptanceClass: string;
-  battleSeed: string;
-  manifestHash: string;
-  persistentAssets: string[];
+  missionObjectives: string[];
   sides: Array<{ sideId: string; participantIds: string[] }>;
+  persistentAssets: string[];
+  temporaryAssets: string[];
+  permanentDivisionIds: string[];
+  tacticalDivisions: unknown[];
+  commanders: string[];
+  weather: string;
+  seaState: string;
+  visibility: string;
+  environment: string;
+  sourceStateHashes: Record<string, string>;
+  reservations: string[];
+  autoResolutionProof: string;
+  provenanceRecords: string[];
+  battleSeed: string;
+  rulesetVersion: string;
+  formulaVersion: string;
+  aiPolicyVersion: string;
+  rngVersion: string;
+  contentVersion: string;
+  manifestHash: string;
 }
 
 export interface WarState {

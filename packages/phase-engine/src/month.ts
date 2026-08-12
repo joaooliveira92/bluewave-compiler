@@ -204,17 +204,16 @@ function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
   }));
 
   const battleManifestsArr = (snapshot["wars"]["battleManifests"] ?? []).map((m) => ({
-    battleId: m["battleId"],
-    opportunityId: m["opportunityId"],
-    warId: m["warId"],
-    areaId: m["areaId"],
-    missionType: m["missionType"],
-    attackerId: m["attackerId"],
-    defenderId: m["defenderId"],
-    acceptanceClass: m["acceptanceClass"],
-    battleSeed: m["battleSeed"],
-    manifestHash: m["manifestHash"],
+    ...m,
+    missionObjectives: [...m["missionObjectives"]],
     persistentAssets: [...m["persistentAssets"]],
+    temporaryAssets: [...m["temporaryAssets"]],
+    permanentDivisionIds: [...m["permanentDivisionIds"]],
+    tacticalDivisions: m["tacticalDivisions"].map((td) => ({ ...(td as object) })),
+    commanders: [...m["commanders"]],
+    reservations: [...m["reservations"]],
+    provenanceRecords: [...m["provenanceRecords"]],
+    sourceStateHashes: { ...m["sourceStateHashes"] },
     sides: m["sides"].map((s: { sideId: string; participantIds: string[] }) => ({
       sideId: s["sideId"],
       participantIds: [...s["participantIds"]],
