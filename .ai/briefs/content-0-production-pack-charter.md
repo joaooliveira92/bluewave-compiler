@@ -84,7 +84,7 @@ the decision map and research notes, not engine code.
   plus resolved issue tickets `01`–`05`, and research notes under
   `docs/research/content-0-*.md` citing file:line sources.
 - Every era-band reach claim is reproducible from canonical calendar math
-  (1892/1092-month span → all five bands).
+  (the 1092-month span Jan 1880 → Dec 1970 → all five bands).
 - The pack-layout decision is consistent with the compiler as written (zero
   engine change); a follow-on compile smoke of a minimal production pack is
   deferred to CONTENT-1.

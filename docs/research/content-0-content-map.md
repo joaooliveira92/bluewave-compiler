@@ -24,14 +24,14 @@ constructions, diplomacy, research, designs.
 
 | Collection                      | What it must contain for the anchor pack                                               | Classification rule                                                                                                    |
 | ------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| countries (nations/governments) | Real nations + governments for the reachable era; canonical playable slots (DESIGN-04) | SUPPORTED_MECHANICAL for M1-accepted nations; CONTENT_ONLY_LOCKED if a mechanic is pending                             |
-| areas (world geography)         | Real world geographic areas within reach                                               | SUPPORTED_MECHANICAL (compiler-owned)                                                                                  |
-| routes                          | Sea/rail/land adjacency routes                                                         | SUPPORTED_MECHANICAL                                                                                                   |
-| possessions                     | Territorial control per nation                                                         | SUPPORTED_MECHANICAL                                                                                                   |
-| ports                           | Ports and levels                                                                       | SUPPORTED_MECHANICAL                                                                                                   |
+| countries (nations/governments) | Real nations + governments for the reachable era; canonical playable slots (DESIGN-04) | SUPPORTED_MECHANICAL once an owning capability is accepted; CONTENT_ONLY_LOCKED until then |
+| areas (world geography)         | Real world geographic areas within reach                                               | CONTENT_ONLY_LOCKED (no accepted owning capability yet)                                     |
+| routes                          | Sea/rail/land adjacency routes                                                         | CONTENT_ONLY_LOCKED (no accepted owning capability yet)                                     |
+| possessions                     | Territorial control per nation                                                         | CONTENT_ONLY_LOCKED (no accepted owning capability yet)                                     |
+| ports                           | Ports and levels                                                                       | CONTENT_ONLY_LOCKED (no accepted owning capability yet)                                     |
 | technologies                    | Tech tree across era bands (per-field, availability)                                   | SUPPORTED_MECHANICAL where M1 research accepted (HULL/MACHINERY/GUNNERY); CONTENT_ONLY_LOCKED where owning field unmet |
 | designs                         | Ship design templates (real hulls/classes)                                             | SUPPORTED_MECHANICAL where M1 design accepted                                                                          |
-| fleets                          | Historical starting fleets per nation                                                  | SUPPORTED_MECHANICAL (M1 fleet/construction)                                                                           |
+| fleets                          | Historical starting fleets per nation                                                  | CONTENT_ONLY_LOCKED (no accepted owning capability yet)                                                                 |
 | economies                       | Treasury/income/expenses per nation                                                    | SUPPORTED_MECHANICAL (M1 economy)                                                                                      |
 | constructions                   | Dockyard projects / starting builds                                                    | SUPPORTED_MECHANICAL (M1 construction)                                                                                 |
 | diplomacy                       | Initial relation pairs + tension                                                       | CONTENT_ONLY_LOCKED while B10c diplomatic state owner is pending (A-3 blocked)                                         |
@@ -43,8 +43,10 @@ Every authored feature declares exactly one DESIGN-55 §12 classification at
 author time. `CONTENT_ONLY_LOCKED` items are authored when their governing
 mechanic is not `ACCEPTED`; they are promoted to `SUPPORTED_MECHANICAL` only
 when the owning capability lands, and must remain provably unreachable until
-then (§13/§14). M1-era content slated for CONTENT-1 is expected to be largely
-`SUPPORTED_MECHANICAL` (strategic staples accepted) except diplomacy (B10c).
+then (§13/§14). At CONTENT-0 the only accepted owning capabilities are the M1
+strategic staples (economy/research/design/construction); M1-era content
+scheduled for CONTENT-1 is therefore expected to be largely
+`CONTENT_ONLY_LOCKED` except those staples, promoted as each mechanic lands.
 
 ## Unreachability proof (deferred to author time)
 
