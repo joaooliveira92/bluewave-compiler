@@ -62,6 +62,14 @@ export class PhaseRegistry {
       rngAllowed: false,
     },
     {
+      id: "ai_planning",
+      name: "AI Planning",
+      order: 1.5,
+      readPermissions: ["nations", "constructions", "research", "treasury"],
+      writePermissions: [],
+      rngAllowed: true,
+    },
+    {
       id: "command_collection",
       name: "Command Collection",
       order: 2,

@@ -537,7 +537,11 @@ describe("Full-slice integration", () => {
     }
 
     const rngPhases = phases.filter((p) => p.rngAllowed);
-    expect(rngPhases.map((p) => p.id).sort()).toEqual(["battle_resolution", "resolve_research"]);
+    expect(rngPhases.map((p) => p.id).sort()).toEqual([
+      "ai_planning",
+      "battle_resolution",
+      "resolve_research",
+    ]);
 
     const ctx = engine.initializeTurn(snapshot);
     expect(ctx.currentPhase.id).toBe("opening_validation");

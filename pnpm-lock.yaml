@@ -118,6 +118,30 @@ importers:
         specifier: 'catalog:'
         version: 0.2.8(@types/node@24.13.3)(@voidzero-dev/vite-plus-core@0.2.8(@types/node@24.13.3)(esbuild@0.28.2)(typescript@5.9.3)(yaml@2.9.0))(esbuild@0.28.2)(typescript@5.9.3)(yaml@2.9.0)
 
+  packages/ai:
+    dependencies:
+      '@bluewave/campaign':
+        specifier: workspace:*
+        version: link:../campaign
+      '@bluewave/commands':
+        specifier: workspace:*
+        version: link:../commands
+      '@bluewave/content-schema':
+        specifier: workspace:*
+        version: link:../content-schema
+      '@bluewave/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@bluewave/deterministic':
+        specifier: workspace:*
+        version: link:../deterministic
+      '@bluewave/diagnostics':
+        specifier: workspace:*
+        version: link:../diagnostics
+      '@bluewave/random':
+        specifier: workspace:*
+        version: link:../random
+
   packages/campaign:
     dependencies:
       '@bluewave/content-compiler':
@@ -308,6 +332,9 @@ importers:
 
   packages/phase-engine:
     dependencies:
+      '@bluewave/ai':
+        specifier: workspace:*
+        version: link:../ai
       '@bluewave/campaign':
         specifier: workspace:*
         version: link:../campaign
