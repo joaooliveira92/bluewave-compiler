@@ -14,21 +14,28 @@
   dependency order, auto-advancing until the project is complete or the session
   budget is exhausted. Do not stop after a single sprint if an unblocked sprint
   remains.
-- **Orchestrator + 4 subagent roles:** operate as an orchestrator (see
-  `.ai/ORCHESTRATION.md`) that drives every sprint through four focused subagents
-  defined in `.opencode/agents/`, in order:
-  1. **spec-creator** (read-only) — turns the brief into `.ai/specs/<slug>.md`:
-     acceptance criteria→requirement IDs, dependency-ordered plan, exact
-     symbols/files, test list, validation commands, and a definition of done.
-  2. **research** (read-only) — grounds content/data decisions in high-trust
-     sources, writing notes under `docs/research/` (used for content/spec-heavy
-     sprints).
-  3. **implementator** (edit+run) — executes the spec per
-     `.ai/ENGINEERING-CONTRACT.md`, writes code + tests, runs focused validation,
-     and returns exact commands + results + changed-file list.
-  4. **reviewer** (read-only) — adversarial pass per `.ai/REVIEW-PROMPT.md`
-     against spec + contract + repo standards, returning severity-tagged findings
-     and an APPROVE / NEEDS_REWORK verdict.
+- **Orchestrator + 4 subagent roles, skill-driven + ticket-driven:** operate as an
+  orchestrator (see `.ai/ORCHESTRATION.md`) that drives every sprint through the
+  four focused subagents in `.opencode/agents/`, using four repo skills
+  (`disable-model-invocation` ignored — invoke by name through the skill tool):
+  1. **`wayfinder`** (chart) — huge/foggy efforts become a `map.md` + decision
+     tickets on the `.scratch/` tracker, worked one decision ticket per session.
+  2. **spec-creator** (read-only, uses **`to-spec`**) — turns the brief/
+     conversation into `.scratch/<slug>/spec.md` (acceptance criteria→requirement
+     IDs, user stories, decisions, tests, definition of done) with a
+     `ready-for-agent` pointer; `.ai/specs/` is an index, not a store.
+  3. **research** (read-only, uses **`research`**) — grounds content/data
+     decisions in high-trust primary sources, writing `docs/research/` notes.
+  4. **`to-tickets`** (slice) — breaks an approved spec into frontier-ordered
+     **vertical implementation tickets** (`.scratch/<slug>/issues/`) with blocking
+     edges.
+  5. **implementator** (edit+run) — works the **frontier** (open, unblocked,
+     `ready-for-agent`) ticket one at a time per `.ai/ENGINEERING-CONTRACT.md`,
+     writes code + tests, runs focused validation, returns exact commands + results
+     - changed-file list.
+  6. **reviewer** (read-only) — adversarial pass per `.ai/REVIEW-PROMPT.md`
+     against the ticket's acceptance criteria + spec + contract + repo standards,
+     returning severity-tagged findings and an APPROVE / NEEDS_REWORK verdict.
      The orchestrator runs an **own validation gate before every commit** (clean
      uncached build, typecheck, lint, format, full tests, cross-process determinism,
      golden verification) and owns Git, traceability, and ADRs. Re-read files

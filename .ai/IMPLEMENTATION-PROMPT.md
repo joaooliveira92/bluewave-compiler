@@ -7,7 +7,7 @@ Implement the approved milestone brief supplied with this prompt.
 - Canonical specification: `README.md`
 - Permanent contract: `.ai/ENGINEERING-CONTRACT.md`
 - Operating rules: `.ai/AUTONOMOUS-AGENT.md`
-- Orchestration pipeline: `.ai/ORCHESTRATION.md` (four subagent roles + validation gate)
+- Orchestration pipeline: `.ai/ORCHESTRATION.md` (four subagent roles + validation gate, built on the `wayfinder`/`to-spec`/`to-tickets`/`research` skills)
 - Requirement index: `.ai/REQUIREMENTS.md`
 - Approved ADRs
 - One approved milestone brief based on `.ai/templates/milestone-brief.md`
@@ -15,8 +15,12 @@ Implement the approved milestone brief supplied with this prompt.
 ## Procedure
 
 The orchestrator executes this procedure through the four subagent roles
-(`.opencode/agents/`: spec-creator → research → implementator → reviewer) and
-runs the orchestrator-owned validation gate (ORCHESTRATION.md) before committing.
+(`.opencode/agents/`) and the skill pipeline in ORCHESTRATION.md — **chart**
+(`wayfinder`) → **ground** (`research`) → **spec** (`to-spec` / spec-creator) →
+**slice** (`to-tickets`) → **implement** → **review** → **orchestrator
+validation gate** → commit. Approved specs are sliced into vertical implementation
+tickets (`.scratch/<slug>/issues/`) and the implementator works the frontier one
+ticket at a time.
 
 ### 1. Inspect
 

@@ -2,32 +2,68 @@
 
 The orchestrator (the sprint/primary agent, launched by `.opencode/command/sprint.md`)
 drives every sprint through four subagent roles plus an orchestrator-owned
-validation gate. Subagents are defined in `.opencode/agents/`.
+validation gate. Subagents live in `.opencode/agents/`. The pipeline is
+**ticket-driven** and built on four repo skills:
+
+| Skill        | Where                       | Phase                                                   |
+| ------------ | --------------------------- | ------------------------------------------------------- |
+| `wayfinder`  | `.agents/skills/wayfinder`  | **chart** (huge/foggy efforts → map + decision tickets) |
+| `to-spec`    | `.agents/skills/to-spec`    | **spec** (conversation → spec, `ready-for-agent`)       |
+| `to-tickets` | `.agents/skills/to-tickets` | **slice** (spec → vertical implementation tickets)      |
+| `research`   | `.agents/skills/research`   | **ground** (source-grounded notes)                      |
+
+> These skills' `disable-model-invocation: true` is ignored: the orchestrator and
+> roles invoke them by name through the `skill` tool regardless.
+
+## Phases
+
+1. **Chart (wayfinder)** — when an effort spans more than one session or the way
+   is foggy, run **wayfinder**: name the destination, map the frontier, create a
+   `map.md` + decision tickets (`research`/`prototype`/`grilling`/`task`) on the
+   `.scratch/` issue tracker, wire blocking edges, and work it one ticket per
+   session. If the way is already clear and fits one session, skip straight to Spec.
+2. **Ground (research)** — for content/spec-heavy sprints, the **research** role
+   spins up a background agent against primary sources and writes
+   `docs/research/<slug>-<topic>.md`.
+3. **Spec (spec-creator)** — the **spec-creator** role synthesizes a spec in the
+   **to-spec** format (Problem/Solution/User Stories/Implementation Decisions/
+   Testing/Out of Scope), writes it to `.scratch/<slug>/spec.md`, and registers a
+   `ready-for-agent` pointer (`.ai/specs/` is an index, not a store).
+4. **Slice (to-tickets)** — once a spec is approved, **to-tickets** breaks it into
+   **tracer-bullet vertical slices**, each declaring its blocking edges, published
+   as `.scratch/<slug>/issues/<NN>-<name>.md` (frontier-ordered; blockers first).
+5. **Execute (implementator)** — the **implementator** works the **frontier**
+   (open, unblocked, `ready-for-agent`) tickets, one at a time, per
+   ENGINEERING-CONTRACT.
+6. **Verify (reviewer)** — the **reviewer** adversarial-checks each ticket/batch
+   against its acceptance criteria + the spec + contract + repo standards.
+7. **Gate + commit (orchestrator)** — orchestrator runs the validation gate, owns
+   git/traceability/ADRs, and auto-advances.
 
 ## Roles
 
-| Role              | `.opencode/agents/` | Permissions         | Output                                                                                 |
-| ----------------- | ------------------- | ------------------- | -------------------------------------------------------------------------------------- |
-| 1. spec-creator   | `spec-creator.md`   | read-only           | `.ai/specs/<slug>.md` (criteria→req-ids, plan, symbols, tests, definition of done)     |
-| 2. research       | `research.md`       | read-only           | `docs/research/<slug>-<topic>.md` (grounded data; used for content/spec-heavy sprints) |
-| 3. implementator  | `implementator.md`  | edit+run            | code + tests + exact validation results + changed-file list                            |
-| 4. reviewer       | `reviewer.md`       | read-only           | severity-tagged findings + APPROVE / NEEDS_REWORK verdict                              |
-| orchestrator (me) | —                   | owns git/validation | full validation gate, git/traceability, ADRs, auto-advance                             |
+| Role              | `.opencode/agents/` | Skill                       | Permissions         | Output                                                                  |
+| ----------------- | ------------------- | --------------------------- | ------------------- | ----------------------------------------------------------------------- |
+| 1. spec-creator   | `spec-creator.md`   | `to-spec`                   | read-only           | `.scratch/<slug>/spec.md` + `.ai/specs/` pointer                        |
+| 2. research       | `research.md`       | `research`                  | read-only           | `docs/research/<slug>-<topic>.md`                                       |
+| 3. implementator  | `implementator.md`  | `to-tickets` (works slices) | edit+run            | frontier ticket done + code + tests + exact results + changed-file list |
+| 4. reviewer       | `reviewer.md`       | —                           | read-only           | severity-tagged findings + APPROVE / NEEDS_REWORK                       |
+| orchestrator (me) | —                   | `wayfinder` (chart)         | owns git/validation | map + gate + git/traceability/ADRs                                      |
 
-Ordering: **spec-creator → research (when content/data is involved) →
-implementator → reviewer → (repair loop) → orchestrator validation gate →
-commit**.
+Ordering: **chart/research → spec → slice → implement → review → (repair loop) →
+validation gate → commit**.
 
 ## Handoff contract
 
 - Each subagent's final report is a **spec for the next step, not the source of
   truth**. The orchestrator re-reads files before editing and independently
   verifies claimed results.
-- The implementator works only from the spec; the reviewer checks only against
-  the spec + contract + repo standards.
-- On review verdict `NEEDS_REWORK` (blocker/high findings), the orchestrator
-  sends the implementator back to repair, then re-reviews — never merging a
-  failing review.
+- The implementator works one **frontier ticket** (from to-tickets); the reviewer
+  checks that ticket against its acceptance criteria + the spec + contract.
+- On `NEEDS_REWORK` (blocker/high), the orchestrator sends the implementator back
+  to repair that ticket, then re-reviews — never merging a failing review.
+- One decision ticket per session (wayfinder rule); multiple small implementation
+  tickets can close in one session only when each passes the gate.
 
 ## Orchestrator-owned validation gate (mandatory, before any commit)
 
@@ -46,9 +82,11 @@ the sprint's validation report (`.ai/reports/<slug>.md`):
 
 - Pick the sprint from `.ai/SPRINT-PLAN.md`; optionally override with
   `$ARGUMENTS`; auto-advance per plan dependency order.
+- For huge/foggy efforts, chart via **wayfinder** (`map.md` + decision tickets on
+  `.scratch/`); otherwise go spec → slice → implement directly.
 - Own all Git: small Conventional Commits on `dev`, no self-merge, clean tree.
 - Update traceability (SPRINT-PLAN row done + pointer, PROGRESS.md, reports).
 - Resolve routine decisions as ADRs; stop only on a genuine decision-request /
   stop condition.
-- Keep the three/four roles tiny and focused so no single subagent accumulates
-  the whole project context.
+- Keep the roles tiny and focused so no single subagent accumulates the whole
+  project context.
