@@ -44,6 +44,7 @@ import { EventLedger } from "@bluewave/events";
 import type { DomainEventEnvelope } from "@bluewave/events";
 import { RandomEngine, RandomLedger } from "@bluewave/random";
 import { BattleResolver } from "@bluewave/combat";
+import { AiPhaseExecutor } from "@bluewave/ai";
 import { FinancialLedger, type LedgerTransactionInput } from "./financial-ledger.js";
 
 const CURRENT_VERSION = "0.1.0" as const;
@@ -339,6 +340,124 @@ function computeConstructionCap(nation: NationState): SafeInt {
   const base = nation["baseResources"] ?? (0 as SafeInt);
   return SafeInt.div(SafeInt.div(base, SafeInt(12)), SafeInt(100), "floor");
 }
+
+/**
+ * Shared canonical application of a SetResearchPriority command. Used by both
+ * the human command_collection path and the AI_PLANNING path so behavior is
+ * byte-identical.
+ */
+function applySetResearchPriority(
+  currentSnapshot: CampaignSnapshot,
+  nationId: string,
+  fieldPriorities: Record<string, SafeInt>,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const nation = currentSnapshot["nations"].get(nationId);
+  if (!nation) {
+    collector.addError("NATION_NOT_FOUND", `Nation ${nationId} not found`, {
+      stage: "command_collection",
+    });
+    return currentSnapshot;
+  }
+  const updatedNation: NationState = {
+    ...nation,
+    research: {
+      ...nation["research"],
+      fieldPriorities,
+    },
+  };
+  const updatedNations = new Map(currentSnapshot["nations"]);
+  updatedNations.set(nationId, updatedNation);
+  return { ...currentSnapshot, nations: updatedNations };
+}
+
+/**
+ * Shared canonical application of a budget_project command. Used by both the
+ * human command_collection path and the AI_PLANNING path so behavior is
+ * byte-identical.
+ */
+function applyBudgetProject(
+  currentSnapshot: CampaignSnapshot,
+  body: BudgetProjectCommand,
+  campaignMonth: string,
+  turnNumber: SafeInt,
+  nextSeq: () => SafeInt,
+  financialLedger: FinancialLedger,
+  eventLedger: EventLedger,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const nation = currentSnapshot["nations"].get(body["nationId"]);
+  if (!nation) {
+    collector.addError("NATION_NOT_FOUND", `Nation ${body["nationId"]} not found`, {
+      stage: "command_collection",
+    });
+    return currentSnapshot;
+  }
+
+  const project = nation["constructionProjects"].find(
+    (p) => p["id"] === body["projectId"],
+  );
+  if (!project) {
+    collector.addError("PROJECT_NOT_FOUND", `Project ${body["projectId"]} not found`, {
+      stage: "command_collection",
+    });
+    return currentSnapshot;
+  }
+
+  const budget = body["budget"];
+  const previousTreasury = nation["treasury"];
+  const newTreasury = SafeInt.sub(previousTreasury, budget);
+  const rawNewWork = SafeInt.add(project["completedWork"], budget);
+  const clampedWork =
+    rawNewWork > project["totalWork"] ? project["totalWork"] : rawNewWork;
+
+  const updatedNation: NationState = {
+    ...nation,
+    treasury: newTreasury,
+    constructionProjects: nation["constructionProjects"].map((p) =>
+      p["id"] === body["projectId"]
+        ? {
+            ...p,
+            completedWork: clampedWork,
+            paidWork: SafeInt.add(p["paidWork"], budget),
+            status: "ACTIVE" as const,
+          }
+        : p,
+    ),
+  };
+  const updatedNations = new Map(currentSnapshot["nations"]);
+  updatedNations.set(body["nationId"], updatedNation);
+  const next = { ...currentSnapshot, nations: updatedNations };
+
+  financialLedger.append(
+    makeLedgerEntry(
+      body["nationId"],
+      "command_collection",
+      "CONSTRUCTION_BUDGET",
+      budget,
+      budget,
+      previousTreasury,
+      newTreasury,
+      `Player budget for project ${body["projectId"]}`,
+      campaignMonth,
+    ),
+  );
+
+  eventLedger.append(
+    budgetChangedEvent(
+      body["nationId"],
+      previousTreasury,
+      newTreasury,
+      SafeInt.mul(budget, SafeInt(-1)),
+      `Player budget for project ${body["projectId"]}`,
+      nextSeq(),
+      turnNumber,
+    ),
+  );
+
+  return next;
+}
+
 
 function drawWeighted(
   stream: import("@bluewave/random").RandomStream,
@@ -1332,27 +1451,12 @@ export class MonthExecutor {
 
             if (body["type"] === "SetResearchPriority") {
               const priorityBody = body as SetResearchPriorityCommand;
-              const nation = currentSnapshot["nations"].get(priorityBody["nationId"]);
-              if (!nation) {
-                collector.addError(
-                  "NATION_NOT_FOUND",
-                  `Nation ${priorityBody["nationId"]} not found`,
-                  {
-                    stage: "command-collection",
-                  },
-                );
-                continue;
-              }
-              const updatedNation: NationState = {
-                ...nation,
-                research: {
-                  ...nation["research"],
-                  fieldPriorities: priorityBody["fieldPriorities"],
-                },
-              };
-              const updatedNations = new Map(currentSnapshot["nations"]);
-              updatedNations.set(priorityBody["nationId"], updatedNation);
-              currentSnapshot = { ...currentSnapshot, nations: updatedNations };
+              currentSnapshot = applySetResearchPriority(
+                currentSnapshot,
+                priorityBody["nationId"],
+                priorityBody["fieldPriorities"],
+                collector,
+              );
               continue;
             }
 
@@ -1443,55 +1547,64 @@ export class MonthExecutor {
               continue;
             }
 
-            const budget = body["budget"];
-            const previousTreasury = nation["treasury"];
-            const newTreasury = SafeInt.sub(previousTreasury, budget);
-            const rawNewWork = SafeInt.add(project["completedWork"], budget);
-            const clampedWork =
-              rawNewWork > project["totalWork"] ? project["totalWork"] : rawNewWork;
-
-            const updatedNation: NationState = {
-              ...nation,
-              treasury: newTreasury,
-              constructionProjects: nation["constructionProjects"].map((p) =>
-                p["id"] === body["projectId"]
-                  ? {
-                      ...p,
-                      completedWork: clampedWork,
-                      paidWork: SafeInt.add(p["paidWork"], budget),
-                      status: "ACTIVE" as const,
-                    }
-                  : p,
-              ),
-            };
-            const updatedNations = new Map(currentSnapshot["nations"]);
-            updatedNations.set(body["nationId"], updatedNation);
-            currentSnapshot = { ...currentSnapshot, nations: updatedNations };
-
-            financialLedger.append(
-              makeLedgerEntry(
-                body["nationId"],
-                "command_collection",
-                "CONSTRUCTION_BUDGET",
-                budget,
-                budget,
-                previousTreasury,
-                newTreasury,
-                `Player budget for project ${body["projectId"]}`,
+            currentSnapshot =
+              // Apply via the shared helper (kept inline in command_collection
+              // for exact parity with the AI path).
+              applyBudgetProject(
+                currentSnapshot,
+                body as BudgetProjectCommand,
                 campaignMonth,
-              ),
-            );
-
-            eventLedger.append(
-              budgetChangedEvent(
-                body["nationId"],
-                previousTreasury,
-                newTreasury,
-                SafeInt.mul(budget, SafeInt(-1)),
-                `Player budget for project ${body["projectId"]}`,
-                nextSeq(),
                 turnNumber,
-              ),
+                nextSeq,
+                financialLedger,
+                eventLedger,
+                collector,
+              );
+          }
+        }
+      }
+    }
+
+    // Phase 3.5: ai_planning
+    {
+      const idempotencyMap = new CommandIdempotencyMap();
+      const aiExecutor = new AiPhaseExecutor();
+      const aiEngine = new RandomEngine(randomSeed);
+      for (const slot of snapshot["slots"]) {
+        if (slot["type"] !== "ai") continue;
+        const { commands, diagnostics } = aiExecutor.run(
+          slot,
+          currentSnapshot,
+          aiEngine,
+          this.lifecycle,
+          idempotencyMap,
+        );
+        for (const diagnostic of diagnostics) {
+          collector.addError(diagnostic.code, diagnostic.message, {
+            stage: diagnostic.stage ?? "ai_planning",
+            entityId: diagnostic.entityId,
+          });
+        }
+        for (const cmd of commands) {
+          const body = cmd["body"];
+          if (body["type"] === "SetResearchPriority") {
+            const priorityBody = body as SetResearchPriorityCommand;
+            currentSnapshot = applySetResearchPriority(
+              currentSnapshot,
+              priorityBody["nationId"],
+              priorityBody["fieldPriorities"],
+              collector,
+            );
+          } else if (body["type"] === "budget_project") {
+            currentSnapshot = applyBudgetProject(
+              currentSnapshot,
+              body as BudgetProjectCommand,
+              campaignMonth,
+              turnNumber,
+              nextSeq,
+              financialLedger,
+              eventLedger,
+              collector,
             );
           }
         }

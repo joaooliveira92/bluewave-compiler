@@ -475,8 +475,10 @@ describe("MonthExecutor", () => {
     const ger = result["finalSnapshot"]["nations"].get("GER")!;
     expect(ger).toBeDefined();
     // GER revenue = 60000 * 2000 / 10000 / 12 = 1000
-    // treasury = 300 + 1000 - 50 (appropriation cap) - 20 (obligation) = 1230
-    expect(ger["treasury"] as number).toBe(1230);
+    // AI planning budgets 46 to ger-proj-1 (deterministic from seed), then
+    // appropriation caps at 50 and obligation subtracts 20:
+    // treasury = 300 + 1000 - 46 (AI budget) - 50 (appropriation) - 20 (obligation) = 1184
+    expect(ger["treasury"] as number).toBe(1184);
     expect(ger["constructionProjects"].length).toBe(1);
   });
 

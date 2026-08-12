@@ -52,22 +52,24 @@ function createNationState(id: string, treasury: SafeInt): NationState {
 describe("PhaseRegistry", () => {
   it("returns phases in correct order", () => {
     const phases = PhaseRegistry.all;
-    expect(phases.length).toBe(11);
+    expect(phases.length).toBe(12);
     expect(phases[0]!["id"]).toBe("opening_validation");
     expect(phases[1]!["id"]).toBe("monthly_revenue");
-    expect(phases[2]!["id"]).toBe("command_collection");
-    expect(phases[3]!["id"]).toBe("appropriation");
-    expect(phases[4]!["id"]).toBe("maintenance");
-    expect(phases[5]!["id"]).toBe("obligation");
-    expect(phases[6]!["id"]).toBe("construction_processing");
-    expect(phases[7]!["id"]).toBe("resolve_diplomacy");
-    expect(phases[8]!["id"]).toBe("resolve_research");
-    expect(phases[9]!["id"]).toBe("battle_resolution");
-    expect(phases[10]!["id"]).toBe("closing_validation");
+    expect(phases[2]!["id"]).toBe("ai_planning");
+    expect(phases[3]!["id"]).toBe("command_collection");
+    expect(phases[4]!["id"]).toBe("appropriation");
+    expect(phases[5]!["id"]).toBe("maintenance");
+    expect(phases[6]!["id"]).toBe("obligation");
+    expect(phases[7]!["id"]).toBe("construction_processing");
+    expect(phases[8]!["id"]).toBe("resolve_diplomacy");
+    expect(phases[9]!["id"]).toBe("resolve_research");
+    expect(phases[10]!["id"]).toBe("battle_resolution");
+    expect(phases[11]!["id"]).toBe("closing_validation");
 
     for (let i = 0; i < phases.length - 1; i++) {
       expect(phases[i]!["order"]).toBeLessThan(phases[i + 1]!["order"]);
     }
+    expect(PhaseRegistry.getById("ai_planning")!["order"]).toBe(1.5);
     expect(PhaseRegistry.getById("resolve_diplomacy")!["order"]).toBe(6.5);
     const constructionIdx = phases.findIndex((p) => p["id"] === "construction_processing")!;
     const diplomacyIdx = phases.findIndex((p) => p["id"] === "resolve_diplomacy")!;
@@ -113,6 +115,8 @@ describe("PhaseRegistry", () => {
 
     expect(research["rngAllowed"]).toBe(true);
     expect(battle["rngAllowed"]).toBe(true);
+    const aiPlan = PhaseRegistry.getById("ai_planning")!;
+    expect(aiPlan["rngAllowed"]).toBe(true);
     expect(collect["rngAllowed"]).toBe(false);
   });
 });
@@ -148,9 +152,9 @@ describe("PhaseEngine", () => {
 
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
-    expect(result["phaseResults"].length).toBe(11);
+    expect(result["phaseResults"].length).toBe(12);
     expect(result["phaseResults"][0]!["phaseId"]).toBe("opening_validation");
-    expect(result["phaseResults"][10]!["phaseId"]).toBe("closing_validation");
+    expect(result["phaseResults"][11]!["phaseId"]).toBe("closing_validation");
   });
 
   it("produces no-op evidence for deferred phases", () => {
@@ -161,8 +165,8 @@ describe("PhaseEngine", () => {
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
     const noOpPhases = result["phaseResults"].filter((p) => p["noOp"] === true && p["evidence"]);
-    // All phases except opening and closing are no-ops (9 phases)
-    expect(noOpPhases.length).toBe(9);
+    // All phases except opening and closing are no-ops (10 phases, incl. ai_planning)
+    expect(noOpPhases.length).toBe(10);
 
     for (const phase of noOpPhases) {
       expect(phase["evidence"]!["version"]).toBe("0.1.0");
@@ -262,7 +266,7 @@ describe("PhaseEngine", () => {
 
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
-    const closing = result["phaseResults"][10]!;
+    const closing = result["phaseResults"][11]!;
     expect(closing["phaseId"]).toBe("closing_validation");
     expect(closing["success"]).toBe(true);
 
@@ -278,8 +282,8 @@ describe("PhaseEngine", () => {
 
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
-    const researchPhase = result["phaseResults"][8]!;
-    const battlePhase = result["phaseResults"][9]!;
+    const researchPhase = result["phaseResults"][9]!;
+    const battlePhase = result["phaseResults"][10]!;
 
     expect(researchPhase["phaseId"]).toBe("resolve_research");
     expect(researchPhase["noOp"]).toBe(true);

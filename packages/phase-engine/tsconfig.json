@@ -12,6 +12,7 @@
     { "path": "../campaign" },
     { "path": "../commands" },
     { "path": "../random" },
+    { "path": "../ai" },
     { "path": "../events" },
     { "path": "../combat" },
     { "path": "../persistence" }

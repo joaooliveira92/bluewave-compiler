@@ -16,6 +16,7 @@
     "@bluewave/campaign": "workspace:*",
     "@bluewave/commands": "workspace:*",
     "@bluewave/random": "workspace:*",
+    "@bluewave/ai": "workspace:*",
     "@bluewave/events": "workspace:*",
     "@bluewave/combat": "workspace:*",
     "@bluewave/persistence": "workspace:*",

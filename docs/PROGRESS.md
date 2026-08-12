@@ -8,7 +8,7 @@
 | Milestone                    | B#     | Design                                  | Implementation                       | Tests              | Notes                    |
 | ---------------------------- | ------ | --------------------------------------- | ------------------------------------ | ------------------ | ------------------------ |
 | M1 Strategic Campaign Kernel | B0–B8  | Complete (57 docs)                      | Core pipeline done                   | ~154 tests passing | See below                |
-| M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready          | B9/B10a/B10b/B10c done; B10d pending | —                  | B10b/B10a/B10c ACCEPTED; B10d next |
+| M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready          | B9/B10a/B10b/B10c/B10d done | —                  | B10a/B10b/B10c/B10d ACCEPTED |
 | M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | Not started                          | —                  | Future                   |
 | M3 Advanced Surface Warfare  | —      | Design docs exist (DESIGN-34–36, 39–42) | Not started                          | —                  | Future                   |
 | M4 Aviation                  | —      | Design docs exist (DESIGN-43–45)        | Not started                          | —                  | Future                   |
@@ -254,3 +254,15 @@ See [`docs/OPEN-ISSUES.md`](OPEN-ISSUES.md) — 126 open ambiguity candidates fr
 - **Testing**: Unit tests per package + integration tests + cross-process determinism proof
 - **Packaging**: electron-builder (dmg+zip / nsis / AppImage)
 - **Traceability**: Each capability maps to DESIGN-* documents in `docs/`
+
+### B10d — AI & Scenario Readiness
+
+> **Status (2026-08-12): ACCEPTED.** New `@bluewave/ai` package (legal-only, uniform-random AI via keyed RNG), `AI_PLANNING` phase (order 1.5), 3-nation 24-month zero-human-input smoke with deterministic replay. 17/17 build; full suite pass (only pre-existing `nation.test.ts` import fails); goldens regenerated (closingSnapshot+replay only). Evidence: `.ai/reports/a4-b10d-ai-scenario.md`.
+
+| Capability | Readiness | Key decisions |
+| ---------- | --------- | ------------- |
+| Legal-only AI | ACCEPTED | uniform random; `ai/planning:<nation>/<type>` streams |
+| AI_PLANNING phase | ACCEPTED | order 1.5, rngAllowed |
+| Reuses CommandLifecycle | ACCEPTED | budget + SetResearchPriority |
+| 24-mo zero-human smoke | PASS | deterministic replay |
+| Acceptance | PASS | `.ai/reports/a4-b10d-ai-scenario.md` |
