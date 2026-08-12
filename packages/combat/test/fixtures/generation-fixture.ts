@@ -112,6 +112,7 @@ export function buildGenerationSnapshot(
       battles: [],
       participantMemberships: [],
       blockadeState: [],
+      battleManifests: [],
     },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },

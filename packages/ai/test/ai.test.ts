@@ -54,7 +54,7 @@ function makeSnapshot(
     })),
     world: { areas: [], routes: [], ports: [] },
     nations: map,
-    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [] },
+    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [], battleManifests: [] },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
     designs: new Map(),

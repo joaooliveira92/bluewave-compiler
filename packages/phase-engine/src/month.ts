@@ -9,6 +9,7 @@ import type {
   WarParticipantMembership,
   BlockadeState,
   PermanentDivision,
+  BattleInstance,
   DivisionAssetView,
   CanonicalShipType,
 } from "@bluewave/campaign";
@@ -58,7 +59,7 @@ import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { EventLedger } from "@bluewave/events";
 import type { DomainEventEnvelope } from "@bluewave/events";
 import { RandomEngine, RandomLedger } from "@bluewave/random";
-import { BattleResolver } from "@bluewave/combat";
+import { BattleResolver, generateBattles } from "@bluewave/combat";
 import { classifyShip } from "@bluewave/combat";
 import { AiPhaseExecutor } from "@bluewave/ai";
 import { FinancialLedger, type LedgerTransactionInput } from "./financial-ledger.js";
@@ -198,7 +199,26 @@ function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
     areaId: b["areaId"],
     attackerFleetIds: [...b["attackerFleetIds"]],
     defenderFleetIds: [...b["defenderFleetIds"]],
+    manifestHash: b["manifestHash"],
     result: b["result"],
+  }));
+
+  const battleManifestsArr = (snapshot["wars"]["battleManifests"] ?? []).map((m) => ({
+    battleId: m["battleId"],
+    opportunityId: m["opportunityId"],
+    warId: m["warId"],
+    areaId: m["areaId"],
+    missionType: m["missionType"],
+    attackerId: m["attackerId"],
+    defenderId: m["defenderId"],
+    acceptanceClass: m["acceptanceClass"],
+    battleSeed: m["battleSeed"],
+    manifestHash: m["manifestHash"],
+    persistentAssets: [...m["persistentAssets"]],
+    sides: m["sides"].map((s: { sideId: string; participantIds: string[] }) => ({
+      sideId: s["sideId"],
+      participantIds: [...s["participantIds"]],
+    })),
   }));
 
   const designs = new Map(snapshot["designs"]);
@@ -236,6 +256,7 @@ function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
       battles: battlesArr,
       participantMemberships: participantMembershipsArr,
       blockadeState: blockadeStateArr,
+      battleManifests: battleManifestsArr,
     },
     politics: {
       relations: snapshot["politics"]["relations"].map((r) => ({
@@ -2215,6 +2236,91 @@ export class MonthExecutor {
         nextSeq,
         campaignMonth,
       );
+    }
+
+    // Phase 9.5: battle_generation (order 7.5). Generates BattleInstances +
+    // manifests for reachable missions from committed post-construction state;
+    // feeds battle_resolution (phase 10) unchanged. No-op path keeps the new
+    // collections ABSENT so a no-war month's final-state hash is unchanged
+    // (AC-12 pin). Uses no randomness for reachable missions in B-1.
+    {
+      const hadWars = (currentSnapshot["wars"]["wars"] ?? []).some(
+        (w) => w["status"] === "ACTIVE" || w["status"] === "DECLARED_NOT_ACTIVE",
+      );
+      if (hadWars) {
+        const generationResult = generateBattles({
+          snapshot: currentSnapshot,
+          campaignMonth,
+          campaignSeed: randomSeed,
+          rngVersion: "1",
+          formulaVersion: "1",
+          rulesetVersion: currentSnapshot["rulesetVersion"],
+          contentVersion: "0.1.0",
+          resolveStrength: () => 30,
+          resolveShipType: () => "BB",
+          resolveReadiness: () => 80,
+        });
+
+        if (generationResult.battleIds.length > 0) {
+          const fleetsInArea = (nationId: string, areaId: string): string[] => {
+            const nation = currentSnapshot["nations"].get(nationId);
+            if (!nation) return [];
+            return nation["fleets"]
+              .filter((f) => f["locationAreaId"] === areaId)
+              .map((f) => f["id"]);
+          };
+
+          const newBattles: BattleInstance[] = generationResult.battleIds.map((battleId, i) => {
+            const manifest = generationResult.manifests[i]!;
+            const attackerFleetIds = fleetsInArea(manifest.attackerId, manifest.areaId);
+            const defenderFleetIds = fleetsInArea(manifest.defenderId, manifest.areaId);
+            return {
+              id: battleId,
+              phase: "pending" as const,
+              attackerId: manifest.attackerId,
+              defenderId: manifest.defenderId,
+              areaId: manifest.areaId,
+              attackerFleetIds,
+              defenderFleetIds,
+              manifestHash: manifest.manifestHash,
+            };
+          });
+
+          // Apply reservations: mark ships in battle.
+          const reservedShipIds = new Set(
+            generationResult.manifests.flatMap((m) => m["persistentAssets"]),
+          );
+          const updatedNations = new Map<string, NationState>();
+          for (const [nid, nation] of currentSnapshot["nations"]) {
+            if (reservedShipIds.size === 0) {
+              updatedNations.set(nid, nation);
+              continue;
+            }
+            const fleets = nation["fleets"].map((f) => ({
+              ...f,
+              ships: f["ships"].map((s) =>
+                reservedShipIds.has(s["id"])
+                  ? { ...s, inBattleId: generationResult.battleIds[0] }
+                  : s,
+              ),
+            }));
+            updatedNations.set(nid, { ...nation, fleets });
+          }
+
+          currentSnapshot = {
+            ...currentSnapshot,
+            nations: updatedNations,
+            wars: {
+              ...currentSnapshot["wars"],
+              battleManifests: [
+                ...(currentSnapshot["wars"]["battleManifests"] ?? []),
+                ...generationResult.manifests,
+              ],
+              battles: [...currentSnapshot["wars"]["battles"], ...newBattles],
+            },
+          };
+        }
+      }
     }
 
     // Phase 10: battle_resolution

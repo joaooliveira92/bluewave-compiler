@@ -42,7 +42,7 @@ function makeTestSnapshot(treasury: SafeInt = SafeInt(1000)): CampaignSnapshot {
         },
       ],
     ]),
-    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [] },
+    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [], battleManifests: [] },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
     designs: new Map(),

@@ -66,7 +66,7 @@ function createSnapshot(overrides?: Partial<CampaignSnapshot>): CampaignSnapshot
     slots: [{ nationId: "GBR", type: "playable" }],
     world: { areas: [], routes: [], ports: [] },
     nations,
-    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [] },
+    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [], battleManifests: [] },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
     designs: new Map(),

@@ -557,7 +557,13 @@ export class CampaignCompiler {
   }
 
   private buildWarState(): WarState {
-    return { wars: [], battles: [], participantMemberships: [], blockadeState: [] };
+    return {
+      wars: [],
+      battles: [],
+      participantMemberships: [],
+      blockadeState: [],
+      battleManifests: [],
+    };
   }
 
   private buildPoliticalState(

@@ -125,6 +125,7 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
       battles: snapshot.wars.battles.map((b) => ({ ...b })),
       participantMemberships: snapshot.wars.participantMemberships.map((m) => ({ ...m })),
       blockadeState: snapshot.wars.blockadeState.map((b) => ({ ...b })),
+      battleManifests: (snapshot.wars.battleManifests ?? []).map((m) => ({ ...m })),
     },
     politics: {
       relations: snapshot.politics.relations.map((r) => ({ ...r })),
@@ -194,6 +195,7 @@ function battleGenerationHash(snapshot: CampaignSnapshot): string {
       battles: [],
       participantMemberships: [],
       blockadeState: [],
+      battleManifests: [],
     },
   };
   const result = generateBattles({

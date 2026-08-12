@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vite-plus/test";
+﻿import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
@@ -54,7 +54,13 @@ function createSnapshot(): CampaignSnapshot {
     slots: [{ nationId: "GBR", type: "playable" }],
     world: { areas: [], routes: [], ports: [] },
     nations,
-    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [] },
+    wars: {
+      wars: [],
+      battles: [],
+      participantMemberships: [],
+      blockadeState: [],
+      battleManifests: [],
+    },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
     designs: new Map(),
@@ -99,6 +105,7 @@ function hashSnapshot(snapshot: CampaignSnapshot): string {
     battles: snapshot.wars.battles.map((b) => ({ ...b })),
     participantMemberships: snapshot.wars.participantMemberships.map((m) => ({ ...m })),
     blockadeState: snapshot.wars.blockadeState.map((b) => ({ ...b })),
+    battleManifests: (snapshot.wars.battleManifests ?? []).map((m) => ({ ...m })),
   };
   const hashable = {
     version: snapshot.version,

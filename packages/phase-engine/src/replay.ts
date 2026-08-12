@@ -37,9 +37,10 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
   }
   const wars = {
     wars: snapshot.wars.wars.map((w) => ({ ...w })),
-    battles: snapshot.wars.battles.map((b) => ({ ...b })),
+    battles: snapshot.wars.battles.map((b) => ({ ...b, manifestHash: b.manifestHash })),
     participantMemberships: snapshot.wars.participantMemberships.map((m) => ({ ...m })),
     blockadeState: snapshot.wars.blockadeState.map((b) => ({ ...b })),
+    battleManifests: (snapshot.wars.battleManifests ?? []).map((m) => ({ ...m })),
   };
   return {
     version: snapshot.version,

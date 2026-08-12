@@ -170,6 +170,7 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
       battles: snapshot.wars.battles.map((b) => ({ ...b })),
       participantMemberships: snapshot.wars.participantMemberships.map((m) => ({ ...m })),
       blockadeState: snapshot.wars.blockadeState.map((b) => ({ ...b })),
+      battleManifests: (snapshot.wars.battleManifests ?? []).map((m) => ({ ...m })),
     },
     politics: {
       relations: snapshot.politics.relations.map((r) => ({ ...r })),
@@ -496,6 +497,7 @@ describe("Full-slice integration", () => {
         ],
         participantMemberships: [],
         blockadeState: [],
+        battleManifests: [],
       },
       politics: { relations: [], shells: {} },
       intelligence: { shells: {} },
@@ -540,6 +542,7 @@ describe("Full-slice integration", () => {
     const rngPhases = phases.filter((p) => p.rngAllowed);
     expect(rngPhases.map((p) => p.id).sort()).toEqual([
       "ai_planning",
+      "battle_generation",
       "battle_resolution",
       "resolve_research",
     ]);
@@ -788,6 +791,7 @@ describe("Full-slice integration", () => {
         ],
         participantMemberships: [],
         blockadeState: [],
+        battleManifests: [],
       },
       politics: { relations: [], shells: {} },
       intelligence: { shells: {} },

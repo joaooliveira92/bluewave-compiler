@@ -93,6 +93,7 @@ export interface BattleInstance {
   areaId: string;
   attackerFleetIds: string[];
   defenderFleetIds: string[];
+  manifestHash?: string;
   result?: BattleResult;
 }
 
@@ -105,11 +106,30 @@ export interface BattleResult {
   explanation: string[];
 }
 
+// Canonical battle manifest stored on the snapshot (populated by the
+// battle_generation phase). Structurally defined here so campaign stays
+// dependency-free; @bluewave/combat produces it via generation/manifest.ts.
+export interface BattleManifest {
+  battleId: string;
+  opportunityId: string;
+  warId: string;
+  areaId: string;
+  missionType: string;
+  attackerId: string;
+  defenderId: string;
+  acceptanceClass: string;
+  battleSeed: string;
+  manifestHash: string;
+  persistentAssets: string[];
+  sides: Array<{ sideId: string; participantIds: string[] }>;
+}
+
 export interface WarState {
   wars: WarDeclaration[];
   battles: BattleInstance[];
   participantMemberships: WarParticipantMembership[];
   blockadeState: BlockadeState[];
+  battleManifests: BattleManifest[];
 }
 
 export interface WarDeclaration {
