@@ -158,7 +158,34 @@ export class SaveStore {
       return null;
     }
 
-    const saveId = pointer["activeSaveId"];
+    return this.loadById(saveDir, pointer["activeSaveId"], diagnostics, signal);
+  }
+
+  /**
+   * Loads a specific save by id, bypassing the active pointer. Lets callers
+   * (e.g. replay verification) reach a save's *predecessor* — the snapshot a
+   * turn was executed against — rather than only ever the current active save.
+   */
+  loadById(
+    saveDir: string,
+    saveId: string,
+    diagnostics: DiagnosticCollector,
+    signal?: AbortSignal,
+  ): CampaignState | null {
+    if (signal?.aborted) {
+      diagnostics.addError(CANCELLED_CODE, "Load operation was cancelled", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+
+    if (!existsSync(saveDir)) {
+      diagnostics.addError(MISSING_SAVE_CODE, `Save directory not found: ${saveDir}`, {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+
     const savePath = join(saveDir, saveId);
     const campaignPath = join(savePath, "campaign.json");
 
@@ -292,6 +319,23 @@ export class SaveStore {
     try {
       const pointer: PointerFile = JSON.parse(readFileSync(pointerPath, "utf8")) as PointerFile;
       return pointer["activeSaveId"];
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * The save id that was active immediately before the current one — i.e.
+   * the snapshot the active save's turn was executed against. `null` if the
+   * active save is the first save in this directory (no predecessor) or the
+   * pointer is missing/corrupt.
+   */
+  getPreviousSaveId(saveDir: string): string | null {
+    const pointerPath = join(saveDir, "pointer.json");
+    if (!existsSync(pointerPath)) return null;
+    try {
+      const pointer: PointerFile = JSON.parse(readFileSync(pointerPath, "utf8")) as PointerFile;
+      return pointer["previousSaveId"] ?? null;
     } catch {
       return null;
     }

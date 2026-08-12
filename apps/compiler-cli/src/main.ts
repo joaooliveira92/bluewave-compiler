@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
+import type { CommandEnvelope, CommandBody } from "@bluewave/commands";
 import {
   runValidate,
   runCompile,
@@ -23,7 +25,8 @@ Commands:
   inspect            Inspect compiled artifact and envelope
   verify             Verify compiled artifact against envelope
   compare            Compare compiled artifact hash against envelope
-  campaign:compile   Compile 1880 fixture to campaign state
+  campaign:compile   Compile content pack (incl. fleets/economy/construction/
+                      diplomacy/research/designs) to campaign state
   campaign:save      Save campaign state to persistence store
   campaign:load      Load and verify campaign state from persistence store
   turn:execute       Execute one month, save new state
@@ -34,6 +37,9 @@ General options:
   --output-dir <path>   Output directory (default: out/)
   --save-dir <path>     Save directory (default: saves/)
   --seed <string>       Random seed for deterministic RNG (default: "default-seed")
+  --commands <path>     Path to a JSON file of CommandEnvelope[] to submit for
+                         turn:execute (budget, research priority, design,
+                         diplomacy/war, AI, etc.)
   --json                Output in JSON format
   --help                Show this help`;
 
@@ -103,7 +109,13 @@ function main(): void {
     }
     case "turn:execute": {
       const co = options as CampaignCliOptions;
-      exitCategory = runTurnExecute(co, co.saveDir);
+      const commands = loadCommandsFile(co.commandsPath);
+      if (commands === "error") {
+        process.stderr.write(`Failed to parse commands file: ${co.commandsPath}\n`);
+        exitCategory = "usage-error";
+        break;
+      }
+      exitCategory = runTurnExecute(co, co.saveDir, commands);
       break;
     }
     case "replay": {
@@ -123,6 +135,7 @@ export function parseOptions(argv: string[], extended = false): CliOptions | Cam
   let outputDir = "out";
   let saveDir = "saves";
   let seed = "default-seed";
+  let commandsPath: string | undefined;
   let outputMode: OutputMode = "human";
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -142,15 +155,30 @@ export function parseOptions(argv: string[], extended = false): CliOptions | Cam
       case "--seed":
         seed = argv[++i] ?? seed;
         break;
+      case "--commands":
+        commandsPath = argv[++i] ?? commandsPath;
+        break;
       case "--json":
         outputMode = "json";
         break;
     }
   }
   if (extended) {
-    return { manifest, contentDir, outputDir, outputMode, saveDir, seed };
+    return { manifest, contentDir, outputDir, outputMode, saveDir, seed, commandsPath };
   }
   return { manifest, contentDir, outputDir, outputMode };
+}
+
+function loadCommandsFile(
+  path: string | undefined,
+): CommandEnvelope<CommandBody>[] | undefined | "error" {
+  if (!path) return undefined;
+  try {
+    const raw = readFileSync(path, "utf8");
+    return JSON.parse(raw) as CommandEnvelope<CommandBody>[];
+  } catch {
+    return "error";
+  }
 }
 
 // prevent auto-run when imported in vitest
