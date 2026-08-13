@@ -2,6 +2,8 @@
 import type { SafeInt } from "@bluewave/contracts";
 import type { TacticalShipUnit } from "./unit.js";
 import type { TacticalDivision } from "./division.js";
+import type { TacticalContact } from "../contact/lifecycle.js";
+import type { MovementState } from "../movement.js";
 
 // DESIGN-38 §8 core tactical state scaffolding. B-1 carries typed placeholders
 // only — movement/spotting/weather mechanics land in B-2/B-4/B-5.
@@ -36,6 +38,11 @@ export interface BattleContact {
   confidenceBp: SafeInt;
 }
 
+// ADR-0019: the authoritative contact shape is unified on the rich TacticalContact
+// (extends DESIGN-38 ContactTrack: identity/position/course/speed/confidence/
+// observation time/source/uncertainty + stable key). BattleContact above is kept
+// as a minimal projection for compatibility.
+
 export interface TacticalBattleEvent {
   eventId: string;
   battleId: string;
@@ -51,7 +58,8 @@ export interface TacticalBattleState {
   forces: Record<string, string[]>;
   divisions: TacticalDivision[];
   units: TacticalShipUnit[];
-  contacts: BattleContact[];
+  contacts: TacticalContact[];
+  movementStates?: Record<string, MovementState>;
   objectives: ObjectiveRecord[];
   weather: WeatherVisibilityPlaceholder;
   exitZones: ExitZoneTactical[];
