@@ -9,7 +9,7 @@
 | ---------------------------- | ------ | --------------------------------------- | ------------------------------------ | ------------------ | ------------------------ |
 | M1 Strategic Campaign Kernel | B0–B8  | Complete (57 docs)                      | Core pipeline done                   | ~154 tests passing | ACCEPTED               |
 | M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready          | B9/B10a/B10b/B10c/B10d done | 410 passing | **M1 COMPLETED (A-5 gate, 2026-08-12)** — see `docs/acceptance/m1-capability-registry.md` |
-| M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | B-1 IMPL + B-2-IMPL DONE (2026-08-12) | 568 tests pass* | B-1 battle-gen + tactical setup; B-2 movement/spotting/contact engine (AC-1..15 PASS, ADR-0018/0019). B-3..B-6 next (gunnery, armor, weather, results→campaign). |
+| M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | B-1 IMPL + B-2 IMPL + **B-3 IMPL DONE (2026-08-13)** | 330 combat tests pass* | B-1 battle-gen + tactical setup; B-2 movement/spotting/contact engine (AC-1..15, ADR-0018/19); **B-3 gunnery core fire-resolution DONE (AC-1..15, ADR-0020)**. B-4..B-6 next (armor, weather, results→campaign). |
 | M3 Advanced Surface Warfare  | —      | Design docs exist (DESIGN-34–36, 39–42) | Not started                          | —                  | Future                   |
 | M4 Aviation                  | —      | Design docs exist (DESIGN-43–45)        | Not started                          | —                  | Future                   |
 | M5 Electronics & Missile Era | —      | Design docs exist (DESIGN-46–48)        | Not started                          | —                  | Future                   |

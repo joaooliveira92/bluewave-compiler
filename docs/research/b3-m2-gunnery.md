@@ -38,7 +38,7 @@ Sources (verified directly):
 **scen_1880 (EARLY) reality — heavy guns are slow muzzle loaders.** The production-pack capital
 ships are 1880-ERA RML heavy guns (12 in/305 RML, 16 in/406 RML, up to 17.7 in/450 RML) per
 `docs/research/content-1-fleets-and-ship-classes.md`. Large muzzle-loading rifles required
-intrinsically slow load-at-the-muzzle cycles — of order **1–5 minutes per round**, heavily
+intrinsically slow load-at-the-muzzle cycles — of order **2–5 minutes per round**, heavily
 crew-dependent; the giant 100-ton guns were slower still. **No single primary table pins a precise
 integer** for 1880s RML reload, so B-3 should author the scen_1880 heavy-gun `baseReloadMilliseconds`
 as a **BALANCE TARGET** grounded in the 120 000–300 000 ms (2–5 min) range, and flag it (never
