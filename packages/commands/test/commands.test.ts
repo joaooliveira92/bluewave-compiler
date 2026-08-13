@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vite-plus/test";
+﻿import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { CANONICAL_RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
@@ -27,6 +27,7 @@ function makeTestSnapshot(treasury: SafeInt = SafeInt(1000)): CampaignSnapshot {
           navalAppropriationRateBp: SafeInt(2000),
           maintenanceCost: SafeInt(0),
           fleets: [],
+          divisions: [],
           research: {
             nationId: "GBR",
             technologies: [],
@@ -41,7 +42,7 @@ function makeTestSnapshot(treasury: SafeInt = SafeInt(1000)): CampaignSnapshot {
         },
       ],
     ]),
-    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [] },
+    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [], battleManifests: [] },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
     designs: new Map(),
@@ -284,6 +285,233 @@ describe("CommandLifecycle SetResearchPriority", () => {
     if (outcome.type === "rejected") {
       expect(outcome.diagnostic.code).toBe("RESEARCH_PRIORITY_CONSTRAINT_VIOLATED");
     }
+  });
+});
+
+describe("division commands (AC-3)", () => {
+  function makeDivisionEnvelope(
+    body: CommandBody,
+    snapshot: CampaignSnapshot,
+  ): CommandEnvelope<CommandBody> {
+    return {
+      commandId: `cmd-${body.type}`,
+      version: "0.1.0",
+      expectedSnapshotHash: sha256Hex(canonicalSerialize(snapshot)),
+      idempotencyKey: `ik-${body.type}`,
+      timestamp: "test",
+      body,
+    };
+  }
+
+  function snapshotWithShip(shipId = "ship-1"): CampaignSnapshot {
+    const s = makeTestSnapshot();
+    const nation = s.nations.get("GBR")!;
+    const next: CampaignSnapshot = {
+      ...s,
+      nations: new Map(s.nations).set("GBR", {
+        ...nation,
+        fleets: [
+          {
+            id: "fleet-1",
+            nationId: "GBR",
+            name: "Fleet",
+            locationAreaId: "lon",
+            ships: [
+              {
+                id: shipId,
+                name: "Ship",
+                classId: "battleship",
+                nationId: "GBR",
+                locationAreaId: "lon",
+                designVersionId: "des-dreadnought",
+                hitPoints: SafeInt(100),
+                maxHitPoints: SafeInt(100),
+                speed: SafeInt(10),
+                firepower: SafeInt(10),
+                armor: SafeInt(10),
+                isUnderConstruction: false,
+                constructionProgress: SafeInt(0),
+                constructionTotalWork: SafeInt(0),
+              },
+            ],
+          },
+        ],
+      }),
+    };
+    return next;
+  }
+
+  const slot: CampaignSlot = { nationId: "GBR", type: "playable" };
+
+  it("CreateDivision succeeds and is atomic", () => {
+    const snapshot = snapshotWithShip();
+    const envelope = makeDivisionEnvelope(
+      {
+        type: "CreateDivision",
+        nationId: "GBR",
+        divisionId: "div-1",
+        shipOrder: ["ship-1"],
+        divisionRole: "CORE",
+        preferredFormation: "LINE_AHEAD",
+      },
+      snapshot,
+    );
+    const lifecycle = new CommandLifecycle();
+    const outcome = lifecycle.process(envelope, snapshot, slot, new CommandIdempotencyMap());
+    expect(outcome.type).toBe("success");
+  });
+
+  it("CreateDivision rejects duplicate id", () => {
+    const snapshot = snapshotWithShip();
+    const nation = snapshot.nations.get("GBR")!;
+    const withDiv: CampaignSnapshot = {
+      ...snapshot,
+      nations: new Map(snapshot.nations).set("GBR", {
+        ...nation,
+        divisions: [
+          {
+            divisionId: "div-1",
+            nationId: "GBR",
+            shipOrder: ["ship-1"],
+            flagshipShipId: "ship-1",
+            commanderOfficerId: "VACANT",
+            divisionRole: "CORE",
+            preferredFormation: "LINE_AHEAD",
+            experience: SafeInt(20),
+            cohesion: SafeInt(30),
+            locationAreaId: "lon",
+            creationMonth: "1880-01",
+            lastReorganizationMonth: "1880-01",
+            provenanceRefs: [],
+            rulesetVersion: "0.1.0",
+            aggregateHash: "x",
+          },
+        ],
+      }),
+    };
+    const lifecycle = new CommandLifecycle();
+    const outcome = lifecycle.process(
+      makeDivisionEnvelope(
+        {
+          type: "CreateDivision",
+          nationId: "GBR",
+          divisionId: "div-1",
+          shipOrder: ["ship-1"],
+          divisionRole: "CORE",
+          preferredFormation: "LINE_AHEAD",
+        },
+        withDiv,
+      ),
+      withDiv,
+      slot,
+      new CommandIdempotencyMap(),
+    );
+    expect(outcome.type).toBe("rejected");
+    if (outcome.type === "rejected")
+      expect(outcome.diagnostic.code).toBe("DIVISION_ALREADY_EXISTS");
+  });
+
+  it("CreateDivision rejects ship already in another division", () => {
+    const snapshot = snapshotWithShip();
+    const nation = snapshot.nations.get("GBR")!;
+    const withDiv: CampaignSnapshot = {
+      ...snapshot,
+      nations: new Map(snapshot.nations).set("GBR", {
+        ...nation,
+        divisions: [
+          {
+            divisionId: "div-other",
+            nationId: "GBR",
+            shipOrder: ["ship-1"],
+            flagshipShipId: "ship-1",
+            commanderOfficerId: "VACANT",
+            divisionRole: "CORE",
+            preferredFormation: "LINE_AHEAD",
+            experience: SafeInt(20),
+            cohesion: SafeInt(30),
+            locationAreaId: "lon",
+            creationMonth: "1880-01",
+            lastReorganizationMonth: "1880-01",
+            provenanceRefs: [],
+            rulesetVersion: "0.1.0",
+            aggregateHash: "x",
+          },
+        ],
+      }),
+    };
+    const lifecycle = new CommandLifecycle();
+    const outcome = lifecycle.process(
+      makeDivisionEnvelope(
+        {
+          type: "CreateDivision",
+          nationId: "GBR",
+          divisionId: "div-1",
+          shipOrder: ["ship-1"],
+          divisionRole: "CORE",
+          preferredFormation: "LINE_AHEAD",
+        },
+        withDiv,
+      ),
+      withDiv,
+      slot,
+      new CommandIdempotencyMap(),
+    );
+    expect(outcome.type).toBe("rejected");
+    if (outcome.type === "rejected")
+      expect(outcome.diagnostic.code).toBe("DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE");
+  });
+
+  it("DissolveDivision validates division existence", () => {
+    const snapshot = snapshotWithShip();
+    const lifecycle = new CommandLifecycle();
+    const missing = lifecycle.process(
+      makeDivisionEnvelope(
+        { type: "DissolveDivision", nationId: "GBR", divisionId: "div-ghost" },
+        snapshot,
+      ),
+      snapshot,
+      slot,
+      new CommandIdempotencyMap(),
+    );
+    expect(missing.type).toBe("rejected");
+    if (missing.type === "rejected")
+      expect(missing.diagnostic.code).toBe("DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE");
+
+    const withDiv: CampaignSnapshot = {
+      ...snapshot,
+      nations: new Map(snapshot.nations).set("GBR", {
+        ...snapshot.nations.get("GBR")!,
+        divisions: [
+          {
+            divisionId: "div-1",
+            nationId: "GBR",
+            shipOrder: ["ship-1"],
+            flagshipShipId: "ship-1",
+            commanderOfficerId: "VACANT",
+            divisionRole: "CORE",
+            preferredFormation: "LINE_AHEAD",
+            experience: SafeInt(20),
+            cohesion: SafeInt(30),
+            locationAreaId: "lon",
+            creationMonth: "1880-01",
+            lastReorganizationMonth: "1880-01",
+            provenanceRefs: [],
+            rulesetVersion: "0.1.0",
+            aggregateHash: "x",
+          },
+        ],
+      }),
+    };
+    const ok = lifecycle.process(
+      makeDivisionEnvelope(
+        { type: "DissolveDivision", nationId: "GBR", divisionId: "div-1" },
+        withDiv,
+      ),
+      withDiv,
+      slot,
+      new CommandIdempotencyMap(),
+    );
+    expect(ok.type).toBe("success");
   });
 });
 

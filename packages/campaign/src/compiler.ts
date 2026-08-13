@@ -402,6 +402,7 @@ export class CampaignCompiler {
         navalAppropriationRateBp: SafeInt(2000),
         maintenanceCost: SafeInt(0),
         fleets,
+        divisions: [],
         research,
         constructionProjects: constructions,
         isPlayable,
@@ -556,7 +557,13 @@ export class CampaignCompiler {
   }
 
   private buildWarState(): WarState {
-    return { wars: [], battles: [], participantMemberships: [], blockadeState: [] };
+    return {
+      wars: [],
+      battles: [],
+      participantMemberships: [],
+      blockadeState: [],
+      battleManifests: [],
+    };
   }
 
   private buildPoliticalState(

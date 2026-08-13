@@ -20,7 +20,12 @@ export type CommandBody =
   | BreakAllianceCommand
   | FormNonAggressionPactCommand
   | BreakNonAggressionPactCommand
-  | DeclareBlockadeCommand;
+  | DeclareBlockadeCommand
+  | CreateDivisionCommand
+  | AddShipToDivisionCommand
+  | RemoveShipFromDivisionCommand
+  | DissolveDivisionCommand
+  | ChangeDivisionFlagshipCommand;
 export interface BudgetProjectCommand {
   type: "budget_project";
   nationId: string;
@@ -69,4 +74,35 @@ export interface DeclareBlockadeCommand {
   nationId: string;
   targetNationId: string;
   areaId: string;
+}
+export interface CreateDivisionCommand {
+  type: "CreateDivision";
+  nationId: string;
+  divisionId: string;
+  shipOrder: string[];
+  divisionRole: string;
+  preferredFormation: string;
+}
+export interface AddShipToDivisionCommand {
+  type: "AddShipToDivision";
+  nationId: string;
+  divisionId: string;
+  shipId: string;
+}
+export interface RemoveShipFromDivisionCommand {
+  type: "RemoveShipFromDivision";
+  nationId: string;
+  divisionId: string;
+  shipId: string;
+}
+export interface DissolveDivisionCommand {
+  type: "DissolveDivision";
+  nationId: string;
+  divisionId: string;
+}
+export interface ChangeDivisionFlagshipCommand {
+  type: "ChangeDivisionFlagship";
+  nationId: string;
+  divisionId: string;
+  newFlagshipShipId: string;
 }

@@ -9,7 +9,7 @@
 | ---------------------------- | ------ | --------------------------------------- | ------------------------------------ | ------------------ | ------------------------ |
 | M1 Strategic Campaign Kernel | B0–B8  | Complete (57 docs)                      | Core pipeline done                   | ~154 tests passing | ACCEPTED               |
 | M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready          | B9/B10a/B10b/B10c/B10d done | 410 passing | **M1 COMPLETED (A-5 gate, 2026-08-12)** — see `docs/acceptance/m1-capability-registry.md` |
-| M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | B-1 SCOPED (2026-08-12)          | —                  | B-1 spec+brief+wayfinder done; IMPL next |
+| M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | B-1 IMPL + B-2-IMPL DONE (2026-08-12) | 568 tests pass* | B-1 battle-gen + tactical setup; B-2 movement/spotting/contact engine (AC-1..15 PASS, ADR-0018/0019). B-3..B-6 next (gunnery, armor, weather, results→campaign). |
 | M3 Advanced Surface Warfare  | —      | Design docs exist (DESIGN-34–36, 39–42) | Not started                          | —                  | Future                   |
 | M4 Aviation                  | —      | Design docs exist (DESIGN-43–45)        | Not started                          | —                  | Future                   |
 | M5 Electronics & Missile Era | —      | Design docs exist (DESIGN-46–48)        | Not started                          | —                  | Future                   |
@@ -275,6 +275,38 @@ there. Implementations **MUST NOT** silently resolve an open decision.
 | Reuses CommandLifecycle | ACCEPTED | budget + SetResearchPriority |
 | 24-mo zero-human smoke | PASS | deterministic replay |
 | Acceptance | PASS | `.ai/reports/a4-b10d-ai-scenario.md` |
+
+### B-1 — M2 Battle Generation & Tactical Setup Scaffolding
+
+> **Status (2026-08-12): IMPLEMENTED — PASS_WITH_LIMITATIONS.** INC-1..INC-6 through
+> the orchestrator pipeline; reviewer BLOCKER (real composition) + HIGH-4 (manifest
+> clone) + MEDIUM-8 (division predicates) repaired. Commits `282f21d..41c2b0e`.
+> Evidence: `.ai/reports/b1-m2-battle-scaffolding-impl.md`.
+
+| Deliverable | Readiness | Key decisions |
+| ----------- | --------- | ------------- |
+| Tactical-unit promotion + ship type | ACCEPTED | `promoteTacticalUnit`, `ship_type_classifier_v1` (ADR-0013) |
+| Permanent divisions + commands | ACCEPTED | `NationState.divisions`; 5 division commands (ADR-0012) |
+| Mission registry (9) + reachable subset | ACCEPTED | `opportunity_reachability_v1` (ADR-0014/0015) |
+| Composition (gather/roles/optional/repair) | ACCEPTED | keyed streams, ≤3 repair passes |
+| Manifest + seed + reservations | ACCEPTED | `manifest_hash_v1`, `battle/battle_id/root` (ADR-0016) |
+| Auto-resolution proof | ACCEPTED | declared surface (ADR-0017) |
+| `battle_generation` phase (order 7.5) | ACCEPTED | before `battle_resolution`, no-op keeps collections absent |
+| AC-14 production ship→design linkage | **PARTIAL** (deferred) | production `fleets.yaml` ships lack `designVersionId`; CONTENT-track to author grounded links; not fabricated |
+| `BattleResolver`/`StrengthCalculator` | Unmodified | resolved via M1 strength path |
+
+### B-2 — M2 Tactical Movement, Spotting & Contact State
+
+> **Status (2026-08-12): SCOPING DONE — PASS.** Scoped the DESIGN-38 movement/
+> spotting/contact subset as an engine-only deterministic minute-advance tactical
+> simulation in `@bluewave/combat` (no phase/snapshot change; `BattleResolver`
+> unmodified; goldens unchanged). Wayfinder map + decision tickets 01–06 resolved;
+> ADR-0018; research `docs/research/b2-m2-movement-spotting.md`; spec
+> `.scratch/b2-m2-movement-spotting/spec.md` (AC-1..15, INC-1..5); brief
+> `.ai/briefs/b2-m2-movement-spotting.md`. Reviewer APPROVE (MEDIUM repairs applied).
+> **Next: B-2-IMPL** — movement kinematics, spotting/sensor model, contact lifecycle,
+> minute-advance simulation engine, versioned constants/reason codes/content
+> constants (INC-1..5).
 
 ### M1 — Strategic Campaign Kernel (A-5 acceptance gate)
 

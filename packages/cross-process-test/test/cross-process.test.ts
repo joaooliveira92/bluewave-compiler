@@ -16,6 +16,7 @@ interface ChildOutput {
   financialLedgerHash: string;
   randomDecisionLedgerHash: string;
   replayVerificationHash: string;
+  battleGenerationHash: string;
   success: boolean;
 }
 
@@ -46,6 +47,7 @@ describe("Cross-process determinism", () => {
     expect(r1.financialLedgerHash).toBe(r2.financialLedgerHash);
     expect(r1.randomDecisionLedgerHash).toBe(r2.randomDecisionLedgerHash);
     expect(r1.replayVerificationHash).toBe(r2.replayVerificationHash);
+    expect(r1.battleGenerationHash).toBe(r2.battleGenerationHash);
   });
 
   it("Hashes match golden reference", () => {

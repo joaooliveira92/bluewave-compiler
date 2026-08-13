@@ -15,7 +15,13 @@ import type {
   FormNonAggressionPactCommand,
   BreakNonAggressionPactCommand,
   DeclareBlockadeCommand,
+  CreateDivisionCommand,
+  AddShipToDivisionCommand,
+  RemoveShipFromDivisionCommand,
+  DissolveDivisionCommand,
+  ChangeDivisionFlagshipCommand,
 } from "./envelope.js";
+import { DIVISION_ROLES, DIVISION_FORMATIONS, DIVISION_MAX_SHIPS } from "@bluewave/campaign";
 import { MAXIMUM_CONCURRENT_WARS } from "@bluewave/campaign";
 import type {
   CommandStatus,
@@ -152,6 +158,16 @@ export class CommandLifecycle {
       return this.validateBreakNap(envelope, snapshot);
     if (envelope.body.type === "DeclareBlockade")
       return this.validateDeclareBlockade(envelope, snapshot);
+    if (envelope.body.type === "CreateDivision")
+      return this.validateCreateDivision(envelope, snapshot);
+    if (envelope.body.type === "AddShipToDivision")
+      return this.validateAddShipToDivision(envelope, snapshot);
+    if (envelope.body.type === "RemoveShipFromDivision")
+      return this.validateRemoveShipFromDivision(envelope, snapshot);
+    if (envelope.body.type === "DissolveDivision")
+      return this.validateDissolveDivision(envelope, snapshot);
+    if (envelope.body.type === "ChangeDivisionFlagship")
+      return this.validateChangeDivisionFlagship(envelope, snapshot);
     if (envelope.body.type !== "budget_project") {
       return {
         ok: false,
@@ -503,6 +519,208 @@ export class CommandLifecycle {
     return { ok: true };
   }
 
+  private divisionById(snapshot: CampaignSnapshot, nationId: string, divisionId: string) {
+    const nation = snapshot["nations"].get(nationId);
+    if (!nation) return undefined;
+    return nation["divisions"].find((d) => d["divisionId"] === divisionId);
+  }
+
+  private shipsOf(nationId: string, snapshot: CampaignSnapshot, shipIds: string[]) {
+    const nation = snapshot["nations"].get(nationId);
+    if (!nation) return [];
+    const all = nation["fleets"].flatMap((f) => f["ships"]);
+    const byId = new Map(all.map((s) => [s["id"], s]));
+    return shipIds.map((id) => byId.get(id)).filter((s): s is NonNullable<typeof s> => !!s);
+  }
+
+  private validateCreateDivision(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as CreateDivisionCommand;
+    if (typeof body.divisionId !== "string" || body.divisionId.length === 0)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_INVALID_ID",
+        "divisionId must be non-empty",
+      );
+    if (this.divisionById(snapshot, body.nationId, body.divisionId))
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_ALREADY_EXISTS",
+        `Division ${body.divisionId} already exists`,
+      );
+    if (!Array.isArray(body.shipOrder) || body.shipOrder.length === 0)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_SIZE_LIMIT_EXCEEDED",
+        "A division must contain 1..5 commissioned ships",
+      );
+    if (!DIVISION_ROLES.includes(body.divisionRole as any))
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_ROLE_INELIGIBLE",
+        `Invalid role ${body.divisionRole}`,
+      );
+    if (!DIVISION_FORMATIONS.includes(body.preferredFormation as any))
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_FORMATION_INELIGIBLE",
+        `Invalid formation ${body.preferredFormation}`,
+      );
+    if (new Set(body.shipOrder).size !== body.shipOrder.length)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_SHIP_TYPE_INCOMPATIBLE",
+        "Duplicate ship in division",
+      );
+    const ships = this.shipsOf(body.nationId, snapshot, body.shipOrder);
+    if (ships.length !== body.shipOrder.length)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE",
+        "One or more ships not found in nation fleets",
+      );
+    const anyInDivision = ships.filter((s) =>
+      (snapshot["nations"].get(body.nationId)?.divisions ?? []).some((d) =>
+        d["shipOrder"].includes(s.id),
+      ),
+    );
+    if (anyInDivision.length > 0)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE",
+        `Ship already in another division: ${anyInDivision[0]!.id}`,
+      );
+    return { ok: true };
+  }
+
+  private validateAddShipToDivision(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as AddShipToDivisionCommand;
+    const division = this.divisionById(snapshot, body.nationId, body.divisionId);
+    if (!division)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE",
+        `Division ${body.divisionId} not found`,
+      );
+    if (division["shipOrder"].includes(body.shipId))
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_SHIP_TYPE_INCOMPATIBLE",
+        `Ship ${body.shipId} already in division`,
+      );
+    const ships = this.shipsOf(body.nationId, snapshot, [body.shipId]);
+    if (ships.length === 0)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE",
+        `Ship ${body.shipId} not found`,
+      );
+    if (
+      (snapshot["nations"].get(body.nationId)?.divisions ?? []).some(
+        (d) => d.divisionId !== body.divisionId && d.shipOrder.includes(body.shipId),
+      )
+    )
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE",
+        `Ship ${body.shipId} in another division`,
+      );
+    if (division["shipOrder"].length >= DIVISION_MAX_SHIPS)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_SIZE_LIMIT_EXCEEDED",
+        `Division ${body.divisionId} is full`,
+      );
+    return { ok: true };
+  }
+
+  private validateRemoveShipFromDivision(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as RemoveShipFromDivisionCommand;
+    const division = this.divisionById(snapshot, body.nationId, body.divisionId);
+    if (!division)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE",
+        `Division ${body.divisionId} not found`,
+      );
+    if (!division["shipOrder"].includes(body.shipId))
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE",
+        `Ship ${body.shipId} not in division`,
+      );
+    if (division["shipOrder"].length === 1)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_SIZE_LIMIT_EXCEEDED",
+        "Removing the final ship requires DissolveDivisionCommand",
+      );
+    return { ok: true };
+  }
+
+  private validateDissolveDivision(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as DissolveDivisionCommand;
+    const division = this.divisionById(snapshot, body.nationId, body.divisionId);
+    if (!division)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE",
+        `Division ${body.divisionId} not found`,
+      );
+    return { ok: true };
+  }
+
+  private validateChangeDivisionFlagship(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as ChangeDivisionFlagshipCommand;
+    const division = this.divisionById(snapshot, body.nationId, body.divisionId);
+    if (!division)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_FLAGSHIP_INVALID",
+        `Division ${body.divisionId} not found`,
+      );
+    if (!division["shipOrder"].includes(body.newFlagshipShipId))
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_FLAGSHIP_INVALID",
+        `Ship ${body.newFlagshipShipId} not in division`,
+      );
+    return { ok: true };
+  }
+
   private rejectValidate(
     envelope: CommandEnvelope<CommandBody>,
     snapshot: CampaignSnapshot,
@@ -632,6 +850,19 @@ export class CommandLifecycle {
           targetNationId: body.targetNationId,
           areaId: body.areaId,
         },
+      };
+    if (
+      body.type === "CreateDivision" ||
+      body.type === "AddShipToDivision" ||
+      body.type === "RemoveShipFromDivision" ||
+      body.type === "DissolveDivision" ||
+      body.type === "ChangeDivisionFlagship"
+    )
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: { nationId: body.nationId, divisionId: body.divisionId },
       };
     const b = body as BudgetProjectCommand;
     return {

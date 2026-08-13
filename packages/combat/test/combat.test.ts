@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vite-plus/test";
+﻿import { describe, it, expect } from "vite-plus/test";
 import { SafeInt, BluewaveError } from "@bluewave/contracts";
 import { RandomEngine, RandomStream } from "@bluewave/random";
 import type { BattleInstance, FleetState, NationState, Ship } from "@bluewave/campaign";
@@ -49,6 +49,7 @@ function makeNation(
     navalAppropriationRateBp: SafeInt(100),
     maintenanceCost: SafeInt(10),
     fleets,
+    divisions: [],
     research: {
       nationId: id,
       technologies: [],
@@ -68,6 +69,7 @@ function cloneNation(n: NationState): NationState {
   return {
     ...n,
     fleets: n.fleets.map((f) => ({ ...f, ships: f.ships.map((s) => ({ ...s })) })),
+    divisions: [],
     research: { ...n.research, activeCandidates: new Map(n.research.activeCandidates) },
   };
 }

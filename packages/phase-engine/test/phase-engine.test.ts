@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vite-plus/test";
+﻿import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
@@ -13,7 +13,13 @@ function createEmptySnapshot(turn?: SafeInt): CampaignSnapshot {
     slots: [],
     world: { areas: [], routes: [], ports: [] },
     nations: new Map(),
-    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [] },
+    wars: {
+      wars: [],
+      battles: [],
+      participantMemberships: [],
+      blockadeState: [],
+      battleManifests: [],
+    },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
     designs: new Map(),
@@ -35,6 +41,7 @@ function createNationState(id: string, treasury: SafeInt): NationState {
     navalAppropriationRateBp: SafeInt(2000),
     maintenanceCost: SafeInt(0),
     fleets: [],
+    divisions: [],
     research: {
       nationId: id,
       technologies: [],
@@ -52,7 +59,7 @@ function createNationState(id: string, treasury: SafeInt): NationState {
 describe("PhaseRegistry", () => {
   it("returns phases in correct order", () => {
     const phases = PhaseRegistry.all;
-    expect(phases.length).toBe(12);
+    expect(phases.length).toBe(13);
     expect(phases[0]!["id"]).toBe("opening_validation");
     expect(phases[1]!["id"]).toBe("monthly_revenue");
     expect(phases[2]!["id"]).toBe("ai_planning");
@@ -63,19 +70,25 @@ describe("PhaseRegistry", () => {
     expect(phases[7]!["id"]).toBe("construction_processing");
     expect(phases[8]!["id"]).toBe("resolve_diplomacy");
     expect(phases[9]!["id"]).toBe("resolve_research");
-    expect(phases[10]!["id"]).toBe("battle_resolution");
-    expect(phases[11]!["id"]).toBe("closing_validation");
+    expect(phases[10]!["id"]).toBe("battle_generation");
+    expect(phases[11]!["id"]).toBe("battle_resolution");
+    expect(phases[12]!["id"]).toBe("closing_validation");
 
     for (let i = 0; i < phases.length - 1; i++) {
       expect(phases[i]!["order"]).toBeLessThan(phases[i + 1]!["order"]);
     }
     expect(PhaseRegistry.getById("ai_planning")!["order"]).toBe(1.5);
     expect(PhaseRegistry.getById("resolve_diplomacy")!["order"]).toBe(6.5);
+    expect(PhaseRegistry.getById("battle_generation")!["order"]).toBe(7.5);
     const constructionIdx = phases.findIndex((p) => p["id"] === "construction_processing")!;
     const diplomacyIdx = phases.findIndex((p) => p["id"] === "resolve_diplomacy")!;
     const researchIdx = phases.findIndex((p) => p["id"] === "resolve_research")!;
+    const battleGenIdx = phases.findIndex((p) => p["id"] === "battle_generation")!;
+    const battleResIdx = phases.findIndex((p) => p["id"] === "battle_resolution")!;
     expect(diplomacyIdx).toBeGreaterThan(constructionIdx);
     expect(diplomacyIdx).toBeLessThan(researchIdx);
+    expect(battleGenIdx).toBeGreaterThan(researchIdx);
+    expect(battleGenIdx).toBeLessThan(battleResIdx);
   });
 
   it("can retrieve phase by id and order", () => {
@@ -111,10 +124,12 @@ describe("PhaseRegistry", () => {
   it("only rng phases allow randomness", () => {
     const research = PhaseRegistry.getById("resolve_research")!;
     const battle = PhaseRegistry.getById("battle_resolution")!;
+    const battleGen = PhaseRegistry.getById("battle_generation")!;
     const collect = PhaseRegistry.getById("command_collection")!;
 
     expect(research["rngAllowed"]).toBe(true);
     expect(battle["rngAllowed"]).toBe(true);
+    expect(battleGen["rngAllowed"]).toBe(true);
     const aiPlan = PhaseRegistry.getById("ai_planning")!;
     expect(aiPlan["rngAllowed"]).toBe(true);
     expect(collect["rngAllowed"]).toBe(false);
@@ -152,9 +167,9 @@ describe("PhaseEngine", () => {
 
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
-    expect(result["phaseResults"].length).toBe(12);
+    expect(result["phaseResults"].length).toBe(13);
     expect(result["phaseResults"][0]!["phaseId"]).toBe("opening_validation");
-    expect(result["phaseResults"][11]!["phaseId"]).toBe("closing_validation");
+    expect(result["phaseResults"][12]!["phaseId"]).toBe("closing_validation");
   });
 
   it("produces no-op evidence for deferred phases", () => {
@@ -165,8 +180,8 @@ describe("PhaseEngine", () => {
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
     const noOpPhases = result["phaseResults"].filter((p) => p["noOp"] === true && p["evidence"]);
-    // All phases except opening and closing are no-ops (10 phases, incl. ai_planning)
-    expect(noOpPhases.length).toBe(10);
+    // All phases except opening and closing are no-ops (11 phases, incl. ai_planning + battle_generation)
+    expect(noOpPhases.length).toBe(11);
 
     for (const phase of noOpPhases) {
       expect(phase["evidence"]!["version"]).toBe("0.1.0");
@@ -266,7 +281,7 @@ describe("PhaseEngine", () => {
 
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
-    const closing = result["phaseResults"][11]!;
+    const closing = result["phaseResults"][12]!;
     expect(closing["phaseId"]).toBe("closing_validation");
     expect(closing["success"]).toBe(true);
 
@@ -283,10 +298,13 @@ describe("PhaseEngine", () => {
     const result = engine.executeTurn(snapshot, [], "test-seed", collector);
 
     const researchPhase = result["phaseResults"][9]!;
-    const battlePhase = result["phaseResults"][10]!;
+    const battleGenPhase = result["phaseResults"][10]!;
+    const battlePhase = result["phaseResults"][11]!;
 
     expect(researchPhase["phaseId"]).toBe("resolve_research");
     expect(researchPhase["noOp"]).toBe(true);
+    expect(battleGenPhase["phaseId"]).toBe("battle_generation");
+    expect(battleGenPhase["noOp"]).toBe(true);
     expect(battlePhase["phaseId"]).toBe("battle_resolution");
     expect(battlePhase["noOp"]).toBe(true);
   });
@@ -349,6 +367,7 @@ describe("PhaseEngine", () => {
       ],
       participantMemberships: [],
       blockadeState: [],
+      battleManifests: [],
     };
     const collector = new DiagnosticCollector();
 

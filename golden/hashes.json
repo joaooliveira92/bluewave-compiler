@@ -1,10 +1,11 @@
 {
   "contentArtifactHash": "103c60d3f25d1f6ccf758416ef33754732f0f837ad8021d3985ee027d95bccd9",
-  "initialSnapshotHash": "bc7dfc2cc7c0b132c98e5a1baacf5a18a12016e7b6b71f247d5b6df022818be9",
-  "closingSnapshotHash": "ccd0f8266ad3b9cc2136a0b0761d1385576338e1f13a0f250069392c4ec88043",
-  "commandLedgerHash": "5c154b3dd3e17583febba4bc7a95036e483843f70a210851003dbdd0d32580bb",
+  "initialSnapshotHash": "7ca7e5742fd3c05213da4bdb503901a03f28fc35d94e0739b679c607713fcbdc",
+  "closingSnapshotHash": "d8fd207583fdbc79219be4255eb26f6b81313d72c64993b295d31135b7b95359",
+  "commandLedgerHash": "f489269f493660832e713adbef7cc4f6048a5f17251c33987e108bc03721849d",
   "eventLedgerHash": "b6a626ba84258da4165156c7f52e97b5ed5d323bbe78a6a0f676013c3387df9f",
   "financialLedgerHash": "6aa1199c9db94af15e331b0d27bf3e1ec8742c82770ebfc7e1c0d883ba44a5b8",
   "randomDecisionLedgerHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-  "replayVerificationHash": "1aa85ce2c7564e7a9fc9c477836347e1a220a94364756a252af4b3ee14d00725"
+  "replayVerificationHash": "d889d477c7efbcc246bda28e1c4322ed3b59cf48200bb0762314136704af22d7",
+  "battleGenerationHash": "dcdb85c43321b44523b881ccd12623d1689455f060b5d98487850184bbdcb9b6"
 }

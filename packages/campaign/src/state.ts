@@ -1,6 +1,7 @@
 //packages/campaign/src/state.ts
 import type { SafeInt } from "@bluewave/contracts";
 import type { CanonicalEnvelope } from "@bluewave/deterministic";
+import type { PermanentDivision } from "./division.js";
 
 export interface Ship {
   id: string;
@@ -92,6 +93,7 @@ export interface BattleInstance {
   areaId: string;
   attackerFleetIds: string[];
   defenderFleetIds: string[];
+  manifestHash?: string;
   result?: BattleResult;
 }
 
@@ -104,11 +106,48 @@ export interface BattleResult {
   explanation: string[];
 }
 
+// Canonical battle manifest stored on the snapshot (populated by the
+// battle_generation phase). Structurally defined here so campaign stays
+// dependency-free; @bluewave/combat produces it via generation/manifest.ts.
+export interface BattleManifest {
+  battleId: string;
+  opportunityId: string;
+  warId: string;
+  areaId: string;
+  missionType: string;
+  attackerId: string;
+  defenderId: string;
+  acceptanceClass: string;
+  missionObjectives: string[];
+  sides: Array<{ sideId: string; participantIds: string[] }>;
+  persistentAssets: string[];
+  temporaryAssets: string[];
+  permanentDivisionIds: string[];
+  tacticalDivisions: unknown[];
+  commanders: string[];
+  weather: string;
+  seaState: string;
+  visibility: string;
+  environment: string;
+  sourceStateHashes: Record<string, string>;
+  reservations: string[];
+  autoResolutionProof: string;
+  provenanceRecords: string[];
+  battleSeed: string;
+  rulesetVersion: string;
+  formulaVersion: string;
+  aiPolicyVersion: string;
+  rngVersion: string;
+  contentVersion: string;
+  manifestHash: string;
+}
+
 export interface WarState {
   wars: WarDeclaration[];
   battles: BattleInstance[];
   participantMemberships: WarParticipantMembership[];
   blockadeState: BlockadeState[];
+  battleManifests: BattleManifest[];
 }
 
 export interface WarDeclaration {
@@ -154,6 +193,7 @@ export interface NationState {
   navalAppropriationRateBp: SafeInt;
   maintenanceCost: SafeInt;
   fleets: FleetState[];
+  divisions: PermanentDivision[];
   research: ResearchState;
   constructionProjects: ConstructionProject[];
   isPlayable: boolean;

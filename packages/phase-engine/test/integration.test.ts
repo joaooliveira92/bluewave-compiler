@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vite-plus/test";
+﻿import { describe, it, expect, beforeAll, afterAll } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
@@ -170,6 +170,7 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
       battles: snapshot.wars.battles.map((b) => ({ ...b })),
       participantMemberships: snapshot.wars.participantMemberships.map((m) => ({ ...m })),
       blockadeState: snapshot.wars.blockadeState.map((b) => ({ ...b })),
+      battleManifests: (snapshot.wars.battleManifests ?? []).map((m) => ({ ...m })),
     },
     politics: {
       relations: snapshot.politics.relations.map((r) => ({ ...r })),
@@ -214,7 +215,7 @@ describe("Full-slice integration", () => {
     expect(state1.rawHash).toHaveLength(64);
   });
 
-  // 2. Deterministic month â€” same seed/commands yields identical 5 ledger hashes
+  // 2. Deterministic month Ã¢â‚¬â€ same seed/commands yields identical 5 ledger hashes
   it("2. Same opening snapshot and commands yield identical closing snapshot, command, event, financial, and random-decision ledger hashes", () => {
     const executor = new MonthExecutor();
     const cmd = makeBudgetCommand(snapshot, "uk", "con-gbr-ship-battleship2", SafeInt(100));
@@ -450,6 +451,7 @@ describe("Full-slice integration", () => {
           ],
         },
       ],
+      divisions: [],
       research: {
         nationId: "GBR",
         technologies: [],
@@ -495,6 +497,7 @@ describe("Full-slice integration", () => {
         ],
         participantMemberships: [],
         blockadeState: [],
+        battleManifests: [],
       },
       politics: { relations: [], shells: {} },
       intelligence: { shells: {} },
@@ -539,6 +542,7 @@ describe("Full-slice integration", () => {
     const rngPhases = phases.filter((p) => p.rngAllowed);
     expect(rngPhases.map((p) => p.id).sort()).toEqual([
       "ai_planning",
+      "battle_generation",
       "battle_resolution",
       "resolve_research",
     ]);
@@ -681,6 +685,7 @@ describe("Full-slice integration", () => {
           ],
         },
       ],
+      divisions: [],
       research: {
         nationId: "GBR",
         technologies: [],
@@ -730,6 +735,7 @@ describe("Full-slice integration", () => {
           ],
         },
       ],
+      divisions: [],
       research: {
         nationId: "FRA",
         technologies: [],
@@ -785,6 +791,7 @@ describe("Full-slice integration", () => {
         ],
         participantMemberships: [],
         blockadeState: [],
+        battleManifests: [],
       },
       politics: { relations: [], shells: {} },
       intelligence: { shells: {} },

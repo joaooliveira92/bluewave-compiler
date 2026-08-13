@@ -43,3 +43,6 @@ export {
   assertCampaignStateImmutability,
   hashConfiguration,
 } from "./campaignSession.js";
+
+// DESIGN-26 divisions (types + constants + aggregate commands).
+export * from "./division.js";

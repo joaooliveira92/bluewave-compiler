@@ -126,6 +126,14 @@ export class PhaseRegistry {
       rngAllowed: true,
     },
     {
+      id: "battle_generation",
+      name: "Battle Generation",
+      order: 7.5,
+      readPermissions: ["wars", "fleets", "politics"],
+      writePermissions: ["wars"],
+      rngAllowed: true,
+    },
+    {
       id: "battle_resolution",
       name: "Battle Resolution",
       order: 8,

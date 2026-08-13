@@ -6,6 +6,7 @@ import type { CampaignState, CampaignSnapshot, NationState } from "@bluewave/cam
 import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
 import { SaveStore } from "@bluewave/persistence";
 import { MonthExecutor, ReplayVerifier } from "@bluewave/phase-engine";
+import { generateBattles } from "@bluewave/combat";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -124,6 +125,7 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
       battles: snapshot.wars.battles.map((b) => ({ ...b })),
       participantMemberships: snapshot.wars.participantMemberships.map((m) => ({ ...m })),
       blockadeState: snapshot.wars.blockadeState.map((b) => ({ ...b })),
+      battleManifests: (snapshot.wars.battleManifests ?? []).map((m) => ({ ...m })),
     },
     politics: {
       relations: snapshot.politics.relations.map((r) => ({ ...r })),
@@ -156,6 +158,66 @@ function makeBudgetCommand(
     timestamp: "cross-process-test",
     body: { type: "budget_project", nationId, projectId, budget },
   };
+}
+
+// Deterministic battle-generation scenario: co-located opposing active-war
+// surface presence (ADR B-1-7) produces a manifest + battle seed. Hash the
+// resulting seeds to prove cross-process byte-identical generation.
+function battleGenerationHash(snapshot: CampaignSnapshot): string {
+  const nations = new Map<string, NationState>();
+  for (const [id, nation] of snapshot.nations) {
+    const fleets = nation.fleets.map((f) => ({
+      ...f,
+      locationAreaId: "eng_ch",
+      ships: f.ships.map((s) => ({ ...s, locationAreaId: "eng_ch" })),
+    }));
+    nations.set(id, { ...nation, fleets });
+  }
+  const genSnapshot: CampaignSnapshot = {
+    ...snapshot,
+    nations,
+    wars: {
+      wars: [
+        {
+          id: "war_1",
+          attackerSideId: "side_a",
+          defenderSideId: "side_d",
+          attackerSideMembers: ["uk"],
+          defenderSideMembers: ["france"],
+          attackerWarScore: 0,
+          defenderWarScore: 0,
+          attackerId: "uk",
+          defenderId: "france",
+          startDate: "1880-01",
+          status: "ACTIVE",
+        },
+      ],
+      battles: [],
+      participantMemberships: [],
+      blockadeState: [],
+      battleManifests: [],
+    },
+  };
+  const result = generateBattles({
+    snapshot: genSnapshot,
+    campaignMonth: "1880-02",
+    campaignSeed: "deterministic-seed",
+    rngVersion: "1",
+    formulaVersion: "1",
+    rulesetVersion: "1",
+    contentVersion: "0.1.0",
+    resolveStrength: () => 300,
+    resolveShipType: () => "BB",
+    resolveReadiness: () => 80,
+  });
+  return sha256Hex(
+    canonicalSerialize({
+      accepted: result.battleIds,
+      seeds: result.manifests.map((m) => m.battleSeed),
+      hashes: result.manifests.map((m) => m.manifestHash),
+      rejections: result.rejections,
+    }),
+  );
 }
 
 function run(): void {
@@ -229,6 +291,8 @@ function run(): void {
         )
       : "REPLAY_MISMATCH";
 
+    const generatedBattleHash = battleGenerationHash(snapshot);
+
     // Output all hashes as JSON
     const output = {
       contentArtifactHash,
@@ -239,6 +303,7 @@ function run(): void {
       financialLedgerHash,
       randomDecisionLedgerHash,
       replayVerificationHash,
+      battleGenerationHash: generatedBattleHash,
       success: monthResult.success && replayResult.match,
     };
 
