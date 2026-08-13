@@ -19,7 +19,7 @@
 | INC-2 accuracy resolution (17-factor, floor-once, keyed hit-draw) | `e85efb9` |
 | INC-3 rate-of-fire/reload (ceil) + gun-quality table | `33e721e` |
 | INC-4 salvo/event + ordering + atomic ammo + resolveGunnery + determinism | `7cc73f8` |
-| INC-5 contracts rollup (AC-10/14) + ballistics constants + ADR-0020 + gate  | *(this commit)* |
+| INC-5 contracts rollup (AC-10/14) + ballistics constants + ADR-0020 + gate  | `f42e9d9`, `d9fe4f8`, `bb26609` (fix(ai) gate repair / feat(combat) INC-5 / docs ADR+report+traceability) |
 
 Note: external commits `b65154f` ("adjusted import order") and `d1e5403` ("adjusted imports from ai") appeared mid-sprint from another actor (see Caveat) and are not B-3 deliverables.
 
