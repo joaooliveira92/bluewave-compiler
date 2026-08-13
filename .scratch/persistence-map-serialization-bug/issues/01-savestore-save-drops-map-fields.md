@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: resolved
 
 # `SaveStore.save` silently drops `Map`-valued fields on serialize
 
@@ -60,3 +60,22 @@ centrally, rather than patching `store.ts` alone.
   call during implementation).
 - No change to `CampaignState`'s public TypeScript shape (`Map` in memory is
   preserved) — only the on-disk serialization changes.
+
+## Resolution
+
+Fixed in `d72438c`. New `packages/persistence/src/snapshotSerialization.ts`
+(`toStorableSnapshot`/`fromStorableSnapshot`) converts `nations`/`designs`/
+`designFamilies`/`activeCandidates` between `Map` and plain `Record` at the
+`SaveStore.save`/`loadById` I/O boundary only. `canonicalSerialize` in
+`@bluewave/deterministic` was deliberately left untouched — fixing Map handling
+there would change every existing hash that serializes a Map-bearing structure
+(campaign compiler's `rawHash`, envelopes, any golden hash touching Maps),
+which is a much larger blast radius than this bug warrants. Hash/envelope
+verification in `load()` now runs after Maps are reconstituted, so it stays
+bit-identical to what the campaign compiler already computes.
+
+Round-trip test added in `packages/persistence/test/persistence.test.ts`
+covering all four fields. `apps/desktop`'s `mapsToPlainObjects` workaround in
+`campaignSave.ts` was left in place (untouched, still needed independently for
+the renderer's JSON-display boundary) — confirmed still passing
+(`apps/desktop/test/campaignSave.test.ts`, 6/6).
