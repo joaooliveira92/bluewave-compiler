@@ -165,13 +165,15 @@ function createWindow(): void {
     },
   });
 
+  const isDev = process.env.NODE_ENV === "development" || process.argv.includes("--dev");
+
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
-      responseHeaders: applyContentSecurityPolicy(details.responseHeaders),
+      responseHeaders: applyContentSecurityPolicy(details.responseHeaders, isDev),
     });
   });
 
-  if (process.env.NODE_ENV === "development" || process.argv.includes("--dev")) {
+  if (isDev) {
     void win.loadURL("http://localhost:5173");
     win.webContents.openDevTools();
   } else {

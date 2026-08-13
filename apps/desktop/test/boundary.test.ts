@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vite-plus/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { applyContentSecurityPolicy, CONTENT_SECURITY_POLICY } from "../src/main/csp.js";
+import {
+  applyContentSecurityPolicy,
+  CONTENT_SECURITY_POLICY,
+  DEV_CONTENT_SECURITY_POLICY,
+} from "../src/main/csp.js";
 
 describe("B9 Electron boundary (criteria 4-6)", () => {
   it("applies `default-src 'self'` CSP to renderer responses (criterion 6)", () => {
@@ -10,6 +14,22 @@ describe("B9 Electron boundary (criteria 4-6)", () => {
     expect(CONTENT_SECURITY_POLICY).toBe("default-src 'self'");
     // Pre-existing headers are preserved.
     expect(headers["X-Frame-Options"]).toEqual(["DENY"]);
+  });
+
+  it("defaults to the strict CSP when isDev is omitted", () => {
+    const headers = applyContentSecurityPolicy({});
+    expect(headers["Content-Security-Policy"]).toEqual([CONTENT_SECURITY_POLICY]);
+  });
+
+  it("relaxes CSP only for the dev server origin when isDev is true, never in production", () => {
+    const headers = applyContentSecurityPolicy({}, true);
+    expect(headers["Content-Security-Policy"]).toEqual([DEV_CONTENT_SECURITY_POLICY]);
+    // The relaxation is scoped to Vite's dev server, not a blanket unsafe-inline/eval grant.
+    expect(DEV_CONTENT_SECURITY_POLICY).toContain("http://localhost:5173");
+    expect(DEV_CONTENT_SECURITY_POLICY).not.toBe(CONTENT_SECURITY_POLICY);
+
+    const prodHeaders = applyContentSecurityPolicy({}, false);
+    expect(prodHeaders["Content-Security-Policy"]).toEqual([CONTENT_SECURITY_POLICY]);
   });
 
   it("registers only the allow-listed IPC handlers in the main process (criterion 4)", () => {
