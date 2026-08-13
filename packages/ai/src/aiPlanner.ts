@@ -1,24 +1,26 @@
-import type { CampaignSnapshot, CampaignSlot, NationState } from "@bluewave/campaign";
+
+//packages/ai/src/aiPlanner.ts
+import type { CampaignSlot, CampaignSnapshot, NationState } from "@bluewave/campaign";
 import type {
-  CommandEnvelope,
   CommandBody,
-  CommandLifecycle,
+  CommandEnvelope,
   CommandIdempotencyMap,
+  CommandLifecycle,
 } from "@bluewave/commands";
-import type { RandomEngine } from "@bluewave/random";
-import { drawUniform } from "@bluewave/random";
-import type { Diagnostic, DiagnosticCode } from "@bluewave/diagnostics";
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { SafeInt } from "@bluewave/contracts";
 import {
   CANONICAL_RESEARCH_FIELD_IDS,
-  RESEARCH_FIELD_PRIORITY_WEIGHTS,
   MAX_HIGH_PRIORITY_FIELDS,
+  RESEARCH_FIELD_PRIORITY_WEIGHTS,
 } from "@bluewave/content-schema";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import type { Diagnostic, DiagnosticCode } from "@bluewave/diagnostics";
+import type { RandomEngine } from "@bluewave/random";
+import { drawUniform } from "@bluewave/random";
 import {
-  AiCommandGenerator,
   AI_COMMAND_TYPE_BUDGET,
   AI_COMMAND_TYPE_RESEARCH,
+  AiCommandGenerator,
 } from "./aiCommandGenerator.js";
 
 /**

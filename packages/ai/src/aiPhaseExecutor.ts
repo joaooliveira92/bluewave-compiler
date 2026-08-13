@@ -1,12 +1,14 @@
-import type { CampaignSnapshot, CampaignSlot } from "@bluewave/campaign";
+
+//packages/ai/src/aiPhaseExecutor.ts
+import type { CampaignSlot, CampaignSnapshot } from "@bluewave/campaign";
 import type {
-  CommandEnvelope,
   CommandBody,
-  CommandLifecycle,
+  CommandEnvelope,
   CommandIdempotencyMap,
+  CommandLifecycle,
 } from "@bluewave/commands";
-import type { RandomEngine } from "@bluewave/random";
 import type { Diagnostic } from "@bluewave/diagnostics";
+import type { RandomEngine } from "@bluewave/random";
 import { AiPlanner } from "./aiPlanner.js";
 
 export interface AiExecutionResult {

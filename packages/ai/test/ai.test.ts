@@ -1,15 +1,17 @@
-﻿import { describe, it, expect } from "vite-plus/test";
+﻿
+//packages/ai/test/ai.test.ts
+import type { CampaignSnapshot, ConstructionProject, NationState } from "@bluewave/campaign";
+import { type CommandEnvelope, CommandIdempotencyMap, CommandLifecycle } from "@bluewave/commands";
+import { CANONICAL_RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { CANONICAL_RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
-import type { CampaignSnapshot, NationState, ConstructionProject } from "@bluewave/campaign";
-import { CommandLifecycle, CommandIdempotencyMap, type CommandEnvelope } from "@bluewave/commands";
 import { RandomEngine } from "@bluewave/random";
+import { describe, expect, it } from "vite-plus/test";
 import {
-  AiCommandGenerator,
-  AiPlanner,
   AI_COMMAND_TYPE_BUDGET,
   AI_COMMAND_TYPE_RESEARCH,
+  AiCommandGenerator,
+  AiPlanner,
 } from "../src/index.js";
 
 function makeNation(id: string, treasury: SafeInt, projects: ConstructionProject[]): NationState {

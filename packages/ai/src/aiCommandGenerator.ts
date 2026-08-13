@@ -1,10 +1,12 @@
-import { sha256Hex } from "@bluewave/deterministic";
-import type { SafeInt } from "@bluewave/contracts";
+
+//packages/ai/src/aiCommandGenerator.ts
 import type {
-  CommandEnvelope,
   BudgetProjectCommand,
+  CommandEnvelope,
   SetResearchPriorityCommand,
 } from "@bluewave/commands";
+import type { SafeInt } from "@bluewave/contracts";
+import { sha256Hex } from "@bluewave/deterministic";
 
 export const AI_ENVELOPE_VERSION = "0.1.0" as const;
 export const AI_COMMAND_TYPE_BUDGET = "budget_project" as const;
