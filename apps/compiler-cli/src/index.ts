@@ -11,6 +11,9 @@ export {
   runCampaignLoad,
   runTurnExecute,
   runReplay,
+  runBattleGenerate,
+  runBattleAdvanceMinute,
+  runGunneryResolveShot,
   safePath,
   buildInput,
   buildCampaignFiles,
@@ -19,4 +22,14 @@ export {
   reviveCampaignSnapshot,
   serializeCampaignSnapshot,
 } from "./commands.js";
-export type { CliOptions, CampaignCliOptions, OutputMode, ExitCategory } from "./commands.js";
+export type {
+  CliOptions,
+  CampaignCliOptions,
+  BattleGenerateCliOptions,
+  BattleAdvanceMinuteCliOptions,
+  GunneryResolveShotCliOptions,
+  OutputMode,
+  ExitCategory,
+} from "./commands.js";
+export { reportBluewaveError, runCombatOperation } from "./combatDiagnostics.js";
+export type { CombatOperationResult } from "./combatDiagnostics.js";

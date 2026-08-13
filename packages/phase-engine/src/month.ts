@@ -1146,7 +1146,7 @@ function applySetNap(
   return updateRelation(snapshot, nationId, partnerNationId, { nap, tension: TENSION_PEACE });
 }
 
-function resolveShipStrength(snapshot: CampaignSnapshot, shipId: string): number {
+export function resolveShipStrength(snapshot: CampaignSnapshot, shipId: string): number {
   for (const [, nation] of snapshot["nations"]) {
     for (const fleet of nation["fleets"]) {
       const ship = fleet["ships"].find((s) => s["id"] === shipId);
