@@ -52,6 +52,71 @@ export type FireMode = (typeof FIRE_MODES)[number];
 export const GUNNERY_RULESET_VERSION = "gunnery_ruleset_v1" as const;
 export const GUNNERY_FORMULA_VERSION = "gunnery_formula_v1" as const;
 
+// ---------------------------------------------------------------------------
+// DESIGN-39 §3 Accuracy factor manifest (INC-2). The 16 multiplier factors form
+// the exact basis-point product below baseAccuracyBp, divided once by 10_000^16
+// and floored once (not truncated) at the final accuracy check. Every factor
+// MUST be explicit + versioned; a missing/undefined factor fails with
+// GUNNERY_ACCURACY_FACTOR_MISSING (never a silent 10_000 fallback). Non-slice
+// factors (range/visibility/radar/etc.) are pinned to neutral 10_000 as authored
+// constants until their owning modifier track lands — not invented behavior.
+export const gunneryAccuracyPolicyId = "gunnery_accuracy_v1" as const;
+
+// Ordered canonical multiplier factor manifest (DESIGN-39 §3 order, 16 factors,
+// excluding base accuracy). base + these 16 = 17 named factors overall.
+export const GUNNERY_ACCURACY_FACTOR_KEYS = [
+  "fireControl",
+  "crew",
+  "officer",
+  "training",
+  "range",
+  "visibility",
+  "radar",
+  "ownManeuver",
+  "targetManeuver",
+  "previousSalvo",
+  "seaState",
+  "smoke",
+  "damage",
+  "multipleAttacker",
+  "glare",
+  "targetEvasion",
+] as const;
+export type GunneryAccuracyFactorKey = (typeof GUNNERY_ACCURACY_FACTOR_KEYS)[number];
+
+// Neutral multiplier for every factor in this slice (1.0 basis-point scale).
+export const NEUTRAL_ACCURACY_MULTIPLIER_BP = 10_000 as const;
+
+// Final accuracy bounds (basis points) and the §3 exponent (16 multipliers).
+export const GUNNERY_ACCURACY_FINAL_MIN_BP = 0 as const;
+export const GUNNERY_ACCURACY_FINAL_MAX_BP = 10_000 as const;
+export const GUNNERY_ACCURACY_SCALE_EXPONENT = 16 as const;
+export const GUNNERY_ACCURACY_ROUNDING = "floor" as const;
+
+// Authored neutral constants for the non-slice factors pinned until their owning
+// modifier track lands. Explicit names (not invented behavior); all neutral 10_000.
+export const GUNNERY_ACCURACY_NEUTRAL_FACTORS: Record<
+  GunneryAccuracyFactorKey,
+  number
+> = {
+  fireControl: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  crew: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  officer: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  training: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  range: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  visibility: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  radar: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  ownManeuver: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  targetManeuver: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  previousSalvo: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  seaState: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  smoke: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  damage: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  multipleAttacker: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  glare: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  targetEvasion: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+};
+
 export interface GunneryContract {
   policyId: string;
   basisPointsPerUnit: number;
@@ -117,4 +182,66 @@ export function validateGunneryContract(
     throwMismatch(c, "gunnery_v1 ammunition types");
   if (!c.fireModes || !arrayEquals(c.fireModes, FIRE_MODES))
     throwMismatch(c, "gunnery_v1 fire modes");
+}
+
+// DESIGN-39 §3 accuracy manifest contract (INC-2). Ships *_v1 policy id +
+// factor manifest + scale bounds + rounding, fail-closed on any drift, mirroring
+// the SHIPPED_*_CONTRACT + validate guard pattern above.
+export interface GunneryAccuracyContract {
+  policyId: string;
+  basisPointsPerUnit: number;
+  factorKeys: readonly GunneryAccuracyFactorKey[];
+  neutralMultiplierBp: number;
+  finalMinBp: number;
+  finalMaxBp: number;
+  scaleExponent: number;
+  rounding: string;
+  rulesetVersion: string;
+  formulaVersion: string;
+}
+
+export const SHIPPED_GUNNERY_ACCURACY_CONTRACT: GunneryAccuracyContract = {
+  policyId: gunneryAccuracyPolicyId,
+  basisPointsPerUnit: BASIS_POINTS_PER_UNIT,
+  factorKeys: GUNNERY_ACCURACY_FACTOR_KEYS,
+  neutralMultiplierBp: NEUTRAL_ACCURACY_MULTIPLIER_BP,
+  finalMinBp: GUNNERY_ACCURACY_FINAL_MIN_BP,
+  finalMaxBp: GUNNERY_ACCURACY_FINAL_MAX_BP,
+  scaleExponent: GUNNERY_ACCURACY_SCALE_EXPONENT,
+  rounding: GUNNERY_ACCURACY_ROUNDING,
+  rulesetVersion: GUNNERY_RULESET_VERSION,
+  formulaVersion: GUNNERY_FORMULA_VERSION,
+};
+
+function throwAccuracyMismatch(contract: unknown, reason: string): never {
+  throw new BluewaveError(GUNNERY_STATE_INVARIANT_FAILED, {
+    code: GUNNERY_STATE_INVARIANT_FAILED,
+    contract,
+    reason,
+  });
+}
+
+export function validateGunneryAccuracyContract(
+  c: Partial<GunneryAccuracyContract> | null | undefined,
+): asserts c is GunneryAccuracyContract {
+  if (!c) throwAccuracyMismatch(c, "gunnery_accuracy_v1 missing contract");
+  if (c.policyId !== gunneryAccuracyPolicyId)
+    throwAccuracyMismatch(c, "gunnery_accuracy_v1 expectant policy id");
+  if (c.basisPointsPerUnit !== BASIS_POINTS_PER_UNIT)
+    throwAccuracyMismatch(c, "gunnery_accuracy_v1 basis-point scale");
+  if (!c.factorKeys || !arrayEquals(c.factorKeys, GUNNERY_ACCURACY_FACTOR_KEYS))
+    throwAccuracyMismatch(c, "gunnery_accuracy_v1 factor manifest");
+  if (c.neutralMultiplierBp !== NEUTRAL_ACCURACY_MULTIPLIER_BP)
+    throwAccuracyMismatch(c, "gunnery_accuracy_v1 neutral multiplier");
+  if (
+    c.finalMinBp !== GUNNERY_ACCURACY_FINAL_MIN_BP ||
+    c.finalMaxBp !== GUNNERY_ACCURACY_FINAL_MAX_BP
+  )
+    throwAccuracyMismatch(c, "gunnery_accuracy_v1 final bounds");
+  if (c.scaleExponent !== GUNNERY_ACCURACY_SCALE_EXPONENT)
+    throwAccuracyMismatch(c, "gunnery_accuracy_v1 scale exponent");
+  if (c.rounding !== GUNNERY_ACCURACY_ROUNDING)
+    throwAccuracyMismatch(c, "gunnery_accuracy_v1 rounding mode");
+  if (c.rulesetVersion !== GUNNERY_RULESET_VERSION || c.formulaVersion !== GUNNERY_FORMULA_VERSION)
+    throwAccuracyMismatch(c, "gunnery_accuracy_v1 ruleset/formula versions");
 }

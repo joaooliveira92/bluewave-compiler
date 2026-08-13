@@ -8,15 +8,15 @@
 import { BluewaveError } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
 import {
-  gunneryPolicyId,
-  AMMUNITION_TYPES,
-  FIRE_MODES,
-  ACQUISITION_PROGRESS_MIN_BP,
   ACQUISITION_PROGRESS_MAX_BP,
-  FIRE_CONTROL_SOLUTION_MIN_BP,
-  FIRE_CONTROL_SOLUTION_MAX_BP,
+  ACQUISITION_PROGRESS_MIN_BP,
+  AMMUNITION_TYPES,
   type AmmunitionType,
+  FIRE_CONTROL_SOLUTION_MAX_BP,
+  FIRE_CONTROL_SOLUTION_MIN_BP,
+  FIRE_MODES,
   type FireMode,
+  gunneryPolicyId,
 } from "./constants.js";
 import { GUNNERY_STATE_INVARIANT_FAILED } from "./reasonCodes.js";
 

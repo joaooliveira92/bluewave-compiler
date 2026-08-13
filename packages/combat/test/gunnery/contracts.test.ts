@@ -1,12 +1,13 @@
-import { describe, it, expect } from "vite-plus/test";
 import { BluewaveError } from "@bluewave/contracts";
+import { describe, expect, it } from "vite-plus/test";
 import {
-  gunneryPolicyId,
-  SHIPPED_GUNNERY_CONTRACT,
-  validateGunneryContract,
-  GUNNERY_STATE_INVARIANT_FAILED,
   AMMUNITION_TYPES,
   FIRE_MODES,
+  GUNNERY_STATE_INVARIANT_FAILED,
+  gunneryPolicyId,
+  SHIPPED_GUNNERY_CONTRACT,
+  type AmmunitionType,
+  validateGunneryContract,
 } from "../../src/gunnery/index.js";
 
 describe("AC-14 seed: gunnery_v1 base contract + validate guard (fail closed)", () => {
@@ -44,7 +45,10 @@ describe("AC-14 seed: gunnery_v1 base contract + validate guard (fail closed)", 
 
   it("fails closed on a tampered ammunition-type set", () => {
     expect(() =>
-      validateGunneryContract({ ...SHIPPED_GUNNERY_CONTRACT, ammunitionTypes: ["HE"] }),
+      validateGunneryContract({
+        ...SHIPPED_GUNNERY_CONTRACT,
+        ammunitionTypes: ["HE" as AmmunitionType],
+      }),
     ).toThrow(BluewaveError);
   });
 
