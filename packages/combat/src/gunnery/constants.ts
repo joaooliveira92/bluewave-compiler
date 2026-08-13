@@ -28,11 +28,7 @@ export const SURFACE_FIRE_CONTROL_MINIMUM_BP = 2_000 as const;
 
 // Canonial ammunition types tracked by exact integer count (DESIGN-39 §28). Seed
 // set for this slice; a future ammunition slice may extend under a new version.
-export const AMMUNITION_TYPES = [
-  "ARMOR_PIERCING",
-  "COMMON",
-  "HIGH_EXPLOSIVE",
-] as const;
+export const AMMUNITION_TYPES = ["ARMOR_PIERCING", "COMMON", "HIGH_EXPLOSIVE"] as const;
 export type AmmunitionType = (typeof AMMUNITION_TYPES)[number];
 
 // The seven canonical fire modes (DESIGN-39 §2). Closed union; see modes.ts for the
@@ -95,10 +91,7 @@ export const GUNNERY_ACCURACY_ROUNDING = "floor" as const;
 
 // Authored neutral constants for the non-slice factors pinned until their owning
 // modifier track lands. Explicit names (not invented behavior); all neutral 10_000.
-export const GUNNERY_ACCURACY_NEUTRAL_FACTORS: Record<
-  GunneryAccuracyFactorKey,
-  number
-> = {
+export const GUNNERY_ACCURACY_NEUTRAL_FACTORS: Record<GunneryAccuracyFactorKey, number> = {
   fireControl: NEUTRAL_ACCURACY_MULTIPLIER_BP,
   crew: NEUTRAL_ACCURACY_MULTIPLIER_BP,
   officer: NEUTRAL_ACCURACY_MULTIPLIER_BP,
@@ -344,8 +337,7 @@ export function validateGunneryRateContract(
     throwRateMismatch(c, "gunnery_rate_v1 neutral multiplier");
   if (c.scaleExponent !== GUNNERY_RATE_SCALE_EXPONENT)
     throwRateMismatch(c, "gunnery_rate_v1 scale exponent");
-  if (c.rounding !== GUNNERY_RATE_ROUNDING)
-    throwRateMismatch(c, "gunnery_rate_v1 rounding mode");
+  if (c.rounding !== GUNNERY_RATE_ROUNDING) throwRateMismatch(c, "gunnery_rate_v1 rounding mode");
   if (c.rulesetVersion !== GUNNERY_RULESET_VERSION || c.formulaVersion !== GUNNERY_FORMULA_VERSION)
     throwRateMismatch(c, "gunnery_rate_v1 ruleset/formula versions");
 }
@@ -437,4 +429,94 @@ export function validateGunQualityContract(
     throwGunQualityMismatch(c, "gun_quality_v1 shipped multiplier table");
   if (c.rulesetVersion !== GUNNERY_RULESET_VERSION || c.formulaVersion !== GUNNERY_FORMULA_VERSION)
     throwGunQualityMismatch(c, "gun_quality_v1 ruleset/formula versions");
+}
+
+// ---------------------------------------------------------------------------
+// DESIGN-39 §4 base-reload-by-caliber ballistics constants (INC-5 content
+// deliverable). Research-grounded in docs/research/b3-m2-gunnery.md §1: each
+// broad-caliber grounded cyclic rate is converted to an integer
+// baseReloadMilliseconds (per-shot reload work) for the *v1 ruleset. These are
+// BALANCE TARGET values (grounded, not primary-sourced exact integers) authored
+// as versioned constants per the B-3 ADR (ADR-0020). Keyed by caliber mm; values
+// are integer tactical-milliseconds.
+export const gunneryBallisticsPolicyId = "gunnery_ballistics_v1" as const;
+
+export const GUNNERY_BASE_RELOAD_BY_CALIBER_MM = {
+  // 6 in / 152 mm — 8-10 rpm (US 6"/47 Mk16, 1937): 6.0-7.5 s/round.
+  152: 7_000,
+  // 8 in / 203 mm — 3-4 rpm (US 8"/55 Mk9/11/13/14, 1927): 15-20 s/round.
+  203: 18_000,
+  // 12 in / 305 mm — 2-3 rpm (US 12"/50 Mk7, 1912/1944): 20-30 s/round.
+  305: 25_000,
+  // 14 in / 356 mm — 1.25-2 rpm (US 14"/45, 14"/50): 30-48 s/round.
+  356: 36_000,
+  // 15 in / 381 mm — 2 rpm nominal (RN 15"/42 Mk1): ~30-36 s/round.
+  381: 35_000,
+  // 16 in / 406 mm — ~1.5 rpm (US 16"/45 Mk1, 1921): ~40 s/round.
+  406: 40_000,
+} as const satisfies Record<number, number>;
+
+// scen_1880 (EARLY) reality — 1880s RML heavy guns (12-17.7 in muzzle-loading
+// rifles) are intrinsically slow load-at-the-muzzle cycles of order 2-5 minutes
+// per round (120 000-300 000 ms). No single primary table pins a precise integer,
+// so this is recorded as a documented BALANCE TARGET lower bound (per
+// docs/research/b3-m2-gunnery.md §1, "NOT fully grounded -> needs owner/ADR"),
+// NOT silently pinned as a primary fact. The exact scen_1880 RML constant is an
+// OPEN DECISION for the content owner (recorded, not fabricated).
+export const GUNNERY_SCEN1880_RML_HEAVY_BASE_RELOAD_MIN_MS = 120_000 as const;
+
+export interface GunneryBallisticsContract {
+  policyId: string;
+  baseReloadByCaliberMm: Record<number, number>;
+  scen1880RmlHeavyBaseReloadMinMs: number;
+  rulesetVersion: string;
+  formulaVersion: string;
+}
+
+export const SHIPPED_GUNNERY_BALLISTICS_CONTRACT: GunneryBallisticsContract = {
+  policyId: gunneryBallisticsPolicyId,
+  baseReloadByCaliberMm: GUNNERY_BASE_RELOAD_BY_CALIBER_MM,
+  scen1880RmlHeavyBaseReloadMinMs: GUNNERY_SCEN1880_RML_HEAVY_BASE_RELOAD_MIN_MS,
+  rulesetVersion: GUNNERY_RULESET_VERSION,
+  formulaVersion: GUNNERY_FORMULA_VERSION,
+};
+
+function throwBallisticsMismatch(contract: unknown, reason: string): never {
+  throw new BluewaveError(GUNNERY_STATE_INVARIANT_FAILED, {
+    code: GUNNERY_STATE_INVARIANT_FAILED,
+    contract,
+    reason,
+  });
+}
+
+function reloadMapEquals(a: Record<number, number>, b: Record<number, number>): boolean {
+  const aKeys = Object.keys(a)
+    .map(Number)
+    .sort((x, y) => x - y);
+  const bKeys = Object.keys(b)
+    .map(Number)
+    .sort((x, y) => x - y);
+  if (!arrayEquals(aKeys, bKeys)) return false;
+  return aKeys.every((k) => {
+    const av = a[k];
+    const bv = b[k];
+    return av !== undefined && bv !== undefined && av === bv;
+  });
+}
+
+export function validateGunneryBallisticsContract(
+  c: Partial<GunneryBallisticsContract> | null | undefined,
+): asserts c is GunneryBallisticsContract {
+  if (!c) throwBallisticsMismatch(c, "gunnery_ballistics_v1 missing contract");
+  if (c.policyId !== gunneryBallisticsPolicyId)
+    throwBallisticsMismatch(c, "gunnery_ballistics_v1 expectant policy id");
+  if (
+    !c.baseReloadByCaliberMm ||
+    !reloadMapEquals(c.baseReloadByCaliberMm, GUNNERY_BASE_RELOAD_BY_CALIBER_MM)
+  )
+    throwBallisticsMismatch(c, "gunnery_ballistics_v1 base-reload-by-caliber table");
+  if (c.scen1880RmlHeavyBaseReloadMinMs !== GUNNERY_SCEN1880_RML_HEAVY_BASE_RELOAD_MIN_MS)
+    throwBallisticsMismatch(c, "gunnery_ballistics_v1 1880 RML balance-target lower bound");
+  if (c.rulesetVersion !== GUNNERY_RULESET_VERSION || c.formulaVersion !== GUNNERY_FORMULA_VERSION)
+    throwBallisticsMismatch(c, "gunnery_ballistics_v1 ruleset/formula versions");
 }
