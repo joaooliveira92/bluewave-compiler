@@ -15,10 +15,34 @@ import {
   type CampaignFiles,
 } from "@bluewave/campaign";
 import { SaveStore } from "@bluewave/persistence";
-import type { CampaignState, CampaignSnapshot, NationState } from "@bluewave/campaign";
+import type {
+  CampaignState,
+  CampaignSnapshot,
+  NationState,
+  BattleInstance,
+  BattleManifest,
+} from "@bluewave/campaign";
 import type { CommandEnvelope, CommandBody, CommandOutcome } from "@bluewave/commands";
 import { CommandLedger } from "@bluewave/commands";
-import { MonthExecutor, ReplayVerifier } from "@bluewave/phase-engine";
+import { MonthExecutor, ReplayVerifier, resolveShipStrength } from "@bluewave/phase-engine";
+import {
+  generateBattles,
+  advanceMinute,
+  resolveAccuracy,
+  resolveHit,
+  reserveAndConsumeAmmunition,
+  type BattleGenerationResult,
+  type MinuteResult,
+  type TacticalBattleState,
+  type UnitOrders,
+  type GunneryAccuracyFactors,
+  type AmmunitionType,
+  type AccuracyResolution,
+  type KeyedHitDraw,
+  type AmmunitionReserve,
+} from "@bluewave/combat";
+import { RandomEngine } from "@bluewave/random";
+import { runCombatOperation } from "./combatDiagnostics.js";
 
 export type OutputMode = "human" | "json";
 export type ExitCategory =
@@ -196,6 +220,65 @@ export interface CampaignCliOptions extends CliOptions {
   commandsPath?: string;
 }
 
+export interface BattleGenerateCliOptions extends CampaignCliOptions {
+  campaignMonth?: string;
+  rngVersion: string;
+  formulaVersion: string;
+  rulesetVersion?: string;
+  contentVersion: string;
+}
+
+export interface BattleAdvanceMinuteCliOptions {
+  outputMode: OutputMode;
+  statePath?: string;
+  minute: number;
+  observationTime: string;
+}
+
+/**
+ * File shape read from `--state <path>` for `battle:advance-minute`: the
+ * hand-authored TacticalBattleState plus the two optional AdvanceMinuteInput
+ * fields (`orders`, `attackRangeUm`) that are keyed/structured enough to
+ * belong in the JSON rather than on the command line. `minute` and
+ * `observationTime` are simple scalars and live as CLI flags instead, so a
+ * caller can re-run the same state file at different minutes without
+ * editing it. `engine`/`gunnery` are intentionally unsupported in v1 — this
+ * command exercises movement/spotting only, matching the map's scope
+ * (gunnery gets its own bundled `gunnery:resolve-shot` command).
+ */
+interface BattleAdvanceMinuteFile {
+  state: TacticalBattleState;
+  orders?: Record<string, UnitOrders>;
+  attackRangeUm?: number;
+}
+
+export interface GunneryResolveShotCliOptions {
+  outputMode: OutputMode;
+  inputPath?: string;
+  seed: string;
+}
+
+/**
+ * File shape read from `--input <path>` for `gunnery:resolve-shot`. Gunnery
+ * has no single `resolveGunnery` entry point — only composable primitives —
+ * so this bundles the "what happens on one shot" subset (§3 accuracy, §3
+ * hit check, §28 ammunition) into one scenario file. `identity` (battle/
+ * battery/minute/substep) is nested here rather than split across CLI flags
+ * since it's one cohesive object the keyed hit-draw stream id is derived
+ * from; only `--seed` (the RandomEngine master seed) is a flag, mirroring
+ * this CLI's existing `--seed` convention.
+ */
+interface GunneryResolveShotFile {
+  identity: { battleId: string; batteryId: string; minute: number; substep: number };
+  accuracyFactors: GunneryAccuracyFactors;
+  salvo: {
+    count: number;
+    ammunition: Record<AmmunitionType, number>;
+    preferredType: AmmunitionType;
+    permittedTypes?: AmmunitionType[];
+  };
+}
+
 export function runCampaignCompile(options: CampaignCliOptions): ExitCategory {
   const collector = new DiagnosticCollector();
   const compilerInput = buildInput(options, collector);
@@ -319,6 +402,269 @@ export function runCampaignLoad(options: CampaignCliOptions, saveDir: string): E
   return "success";
 }
 
+/**
+ * Runs `generateBattles` (`@bluewave/combat`) against a saved campaign
+ * snapshot in isolation, without running a full turn — useful for debugging
+ * mission-opportunity/eligibility/reachability/manifest-hashing logic
+ * without economy/research/diplomacy noise from `turn:execute`. The
+ * resolver callbacks and version defaults mirror
+ * `phase-engine/src/month.ts`'s battle_generation phase exactly, so results
+ * here match what a real turn would produce for the same snapshot/month.
+ */
+export function runBattleGenerate(options: BattleGenerateCliOptions, saveDir: string): ExitCategory {
+  const collector = new DiagnosticCollector();
+  const store = new SaveStore();
+  const state = store.load(saveDir, collector);
+  if (!state) {
+    printDiagnostics(collector, options.outputMode);
+    return "validation-error";
+  }
+  const snapshot = reviveCampaignSnapshot(state.snapshot);
+  const campaignMonth = options.campaignMonth ?? String(snapshot.turnNumber);
+  const rulesetVersion = options.rulesetVersion ?? snapshot.rulesetVersion;
+  const result = runCombatOperation(
+    () =>
+      generateBattles({
+        snapshot,
+        campaignMonth,
+        campaignSeed: options.seed,
+        rngVersion: options.rngVersion,
+        formulaVersion: options.formulaVersion,
+        rulesetVersion,
+        contentVersion: options.contentVersion,
+        resolveStrength: (shipId) => resolveShipStrength(snapshot, shipId),
+        resolveShipType: () => "BB",
+        resolveReadiness: () => 80,
+      }),
+    collector,
+    "battle:generate",
+  );
+  printDiagnostics(collector, options.outputMode);
+  if (result.outcome !== "success") return result.outcome;
+  printBattleGenerationResult(result.value, options.outputMode);
+  return "success";
+}
+
+function printBattleGenerationResult(result: BattleGenerationResult, mode: OutputMode): void {
+  if (mode === "json") {
+    printResult(JSON.stringify(result), "human");
+    return;
+  }
+  printResult(`Battle generation complete`, "human");
+  printResult(`  Records: ${result.records.length}`, "human");
+  printResult(`  Battles: ${result.battleIds.length}`, "human");
+  result.battleIds.forEach((battleId, i) => {
+    const manifest = result.manifests[i];
+    printResult(
+      `    ${battleId} — ${manifest?.attackerId ?? "?"} vs ${manifest?.defenderId ?? "?"} @ ${manifest?.areaId ?? "?"} (manifestHash: ${manifest?.manifestHash ?? "?"})`,
+      "human",
+    );
+  });
+  if (result.rejections.length > 0) {
+    printResult(`  Rejections: ${result.rejections.join(", ")}`, "human");
+  }
+}
+
+/**
+ * Runs one `advanceMinute` call (`@bluewave/combat`'s DESIGN-38 §3 tactical
+ * minute-advance engine — steps 4-8: contact aging, movement intent,
+ * propulsion/turning/position, collision stub, spotting) against a
+ * hand-authored `TacticalBattleState` — the tactical layer has no CLI reach
+ * at all today, and no fixture builder exists to scaffold one, so v1
+ * requires the state file to be hand-authored (see `--help`).
+ */
+export function runBattleAdvanceMinute(options: BattleAdvanceMinuteCliOptions): ExitCategory {
+  const collector = new DiagnosticCollector();
+  if (!options.statePath) {
+    collector.addError("USAGE", "Missing required --state <path>");
+    printDiagnostics(collector, options.outputMode);
+    return "usage-error";
+  }
+  const resolvedPath = resolve(options.statePath);
+  if (!existsSync(resolvedPath)) {
+    collector.addError("USAGE", `State file not found: ${resolvedPath}`);
+    printDiagnostics(collector, options.outputMode);
+    return "usage-error";
+  }
+  let parsed: BattleAdvanceMinuteFile;
+  try {
+    parsed = JSON.parse(readFileSync(resolvedPath, "utf8")) as BattleAdvanceMinuteFile;
+  } catch {
+    collector.addError("USAGE", `Failed to parse state file: ${resolvedPath}`);
+    printDiagnostics(collector, options.outputMode);
+    return "usage-error";
+  }
+  const result = runCombatOperation(
+    () =>
+      advanceMinute({
+        state: parsed.state,
+        minute: options.minute,
+        observationTime: options.observationTime,
+        orders: parsed.orders,
+        attackRangeUm: parsed.attackRangeUm,
+      }),
+    collector,
+    "battle:advance-minute",
+  );
+  printDiagnostics(collector, options.outputMode);
+  if (result.outcome !== "success") return result.outcome;
+  printMinuteResult(result.value, options.outputMode);
+  return "success";
+}
+
+function printMinuteResult(result: MinuteResult, mode: OutputMode): void {
+  if (mode === "json") {
+    printResult(JSON.stringify(result), "human");
+    return;
+  }
+  printResult(`Minute ${result.minute} advanced`, "human");
+  printResult(`  Minute hash: ${result.minuteHash}`, "human");
+  printResult(`  Units:`, "human");
+  for (const [assetId, m] of Object.entries(result.movementStates)) {
+    printResult(
+      `    ${assetId} — pos [${m.position[0]}, ${m.position[1]}] heading ${m.heading} speed ${m.currentSpeed}bp`,
+      "human",
+    );
+  }
+  printResult(`  Contacts: ${result.contacts.length}`, "human");
+  for (const c of result.contacts) {
+    printResult(`    ${c.contactId} — asset ${c.assetId} pos [${c.position[0]}, ${c.position[1]}]`, "human");
+  }
+  printResult(`  Events: ${result.events.length}`, "human");
+  for (const e of result.events) {
+    printResult(`    [${e.substep}] ${e.eventType} (${e.actorId}${e.targetId ? ` -> ${e.targetId}` : ""})`, "human");
+  }
+}
+
+/**
+ * Sequences the "what happens on one shot" gunnery primitives
+ * (`@bluewave/combat`) the way a real salvo resolves: §3 accuracy
+ * (`resolveAccuracy`) -> keyed hit draw (`resolveHit`) -> §28 ammunition
+ * consumption (`reserveAndConsumeAmmunition`) — surfacing each stage's
+ * result, not just hit/miss, so a caller can see *why* (which factor drove
+ * the accuracy number, what the draw was against what threshold). Gunnery
+ * has no single `resolveGunnery` entry point; this bundles the curated
+ * subset rather than exposing one command per primitive.
+ */
+export function runGunneryResolveShot(options: GunneryResolveShotCliOptions): ExitCategory {
+  const collector = new DiagnosticCollector();
+  if (!options.inputPath) {
+    collector.addError("USAGE", "Missing required --input <path>");
+    printDiagnostics(collector, options.outputMode);
+    return "usage-error";
+  }
+  const resolvedPath = resolve(options.inputPath);
+  if (!existsSync(resolvedPath)) {
+    collector.addError("USAGE", `Input file not found: ${resolvedPath}`);
+    printDiagnostics(collector, options.outputMode);
+    return "usage-error";
+  }
+  let parsed: GunneryResolveShotFile;
+  try {
+    parsed = JSON.parse(readFileSync(resolvedPath, "utf8")) as GunneryResolveShotFile;
+  } catch {
+    collector.addError("USAGE", `Failed to parse input file: ${resolvedPath}`);
+    printDiagnostics(collector, options.outputMode);
+    return "usage-error";
+  }
+  const result = runCombatOperation(
+    (): GunneryResolveShotResult => {
+      const accuracy = resolveAccuracy(parsed.accuracyFactors);
+      const engine = new RandomEngine(options.seed);
+      const hit = resolveHit(engine, parsed.identity, accuracy.finalAccuracyBp);
+      const ammunition = reserveAndConsumeAmmunition(
+        parsed.salvo.ammunition,
+        parsed.salvo.count,
+        parsed.salvo.preferredType,
+        parsed.salvo.permittedTypes,
+      );
+      return { accuracy, hit, ammunition };
+    },
+    collector,
+    "gunnery:resolve-shot",
+  );
+  printDiagnostics(collector, options.outputMode);
+  if (result.outcome !== "success") return result.outcome;
+  printGunneryResolveShotResult(result.value, options.outputMode);
+  return "success";
+}
+
+interface GunneryResolveShotResult {
+  accuracy: AccuracyResolution;
+  hit: KeyedHitDraw;
+  ammunition: AmmunitionReserve;
+}
+
+function printGunneryResolveShotResult(result: GunneryResolveShotResult, mode: OutputMode): void {
+  if (mode === "json") {
+    printResult(JSON.stringify(result), "human");
+    return;
+  }
+  printResult(`Accuracy factors:`, "human");
+  printResult(`    baseAccuracyBp: ${result.accuracy.factors.baseAccuracyBp}`, "human");
+  for (const key of result.accuracy.factorKeys) {
+    printResult(`    ${key}: ${result.accuracy.factors[key]}`, "human");
+  }
+  printResult(`  Final accuracy: ${result.accuracy.finalAccuracyBp}bp`, "human");
+  printResult(`  Draw: ${result.hit.draw} (need < ${result.hit.finalAccuracyBp})`, "human");
+  printResult(`  Result: ${result.hit.isHit ? "HIT" : "MISS"}`, "human");
+  printResult(
+    `  Ammunition: consumed ${result.ammunition.account.count} x ${result.ammunition.account.type} (${result.ammunition.account.before} -> ${result.ammunition.account.after})`,
+    "human",
+  );
+}
+
+/**
+ * `generateBattles`/`BattleResolver` already run inside `turn:execute`'s
+ * MonthExecutor pipeline (battle_generation + battle_resolution phases,
+ * packages/phase-engine/src/month.ts) and persist their output straight onto
+ * the snapshot (`wars.battleManifests`, `wars.battles[].result`) — no new
+ * combat call is needed here, just surfacing data that already exists.
+ * Returns undefined when no battles occurred this turn/replay, so callers
+ * can omit the section entirely rather than print an empty one.
+ */
+function extractBattleSummary(
+  snapshot: CampaignSnapshot,
+): { manifests: BattleManifest[]; battles: BattleInstance[] } | undefined {
+  const battles = snapshot.wars.battles ?? [];
+  const manifests = snapshot.wars.battleManifests ?? [];
+  if (battles.length === 0 && manifests.length === 0) return undefined;
+  return { manifests, battles };
+}
+
+function printBattleSummary(
+  summary: { manifests: BattleManifest[]; battles: BattleInstance[] } | undefined,
+): void {
+  if (!summary) return;
+  printResult(`  Battles:`, "human");
+  printResult(`    Generated manifests: ${summary.manifests.length}`, "human");
+  for (const battle of summary.battles) {
+    if (battle.result) {
+      const r = battle.result;
+      printResult(
+        `    ${battle.id} (${battle.attackerId} vs ${battle.defenderId} @ ${battle.areaId}): ${r.winnerId} defeated ${r.loserId}`,
+        "human",
+      );
+      printResult(
+        `      Losses — attacker: ${r.attackerLosses.join(", ") || "none"}; defender: ${r.defenderLosses.join(", ") || "none"}`,
+        "human",
+      );
+      const damageEntries = Object.entries(r.damageReport);
+      if (damageEntries.length > 0) {
+        printResult(
+          `      Damage: ${damageEntries.map(([id, dmg]) => `${id}=${String(dmg)}`).join(", ")}`,
+          "human",
+        );
+      }
+    } else {
+      printResult(
+        `    ${battle.id} (${battle.attackerId} vs ${battle.defenderId} @ ${battle.areaId}): ${battle.phase}`,
+        "human",
+      );
+    }
+  }
+}
+
 export function runTurnExecute(
   options: CampaignCliOptions,
   saveDir: string,
@@ -343,6 +689,7 @@ export function runTurnExecute(
   // the live post-execution snapshot, so it must be captured before the
   // Map->plain-object conversion below.
   const finalSnapshotHash = snapshotHash(result.finalSnapshot);
+  const battles = extractBattleSummary(result.finalSnapshot);
   const persistableSnapshot = serializeCampaignSnapshot(result.finalSnapshot);
   const newEnvelope = createEnvelope(
     "campaign-snapshot",
@@ -395,6 +742,7 @@ export function runTurnExecute(
         financialLedgerHash: result.financialLedger.hash(),
         savePath: saveResult.savePath,
         saveId: saveResult.metadata.saveId,
+        battles,
       }),
       "human",
     );
@@ -407,6 +755,7 @@ export function runTurnExecute(
     printResult(`  Random Ledger Hash: ${result.randomLedger.hash()}`, "human");
     printResult(`  Financial Ledger Hash: ${result.financialLedger.hash()}`, "human");
     printResult(`  Save ID: ${saveResult.metadata.saveId}`, "human");
+    printBattleSummary(battles);
   }
   return "success";
 }
@@ -485,8 +834,35 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
     collector,
   );
   printDiagnostics(collector, options.outputMode);
+  // ReplayVerifier.verify's finalSnapshot is the replayed post-execution
+  // snapshot (already computed internally to derive replayedFinalHash) —
+  // same battle data surfaced from turn:execute, extracted here rather than
+  // dumped wholesale: finalSnapshot.nations is a Map, and JSON.stringify-ing
+  // it directly (as the old `JSON.stringify(replayResult, ...)` would) would
+  // silently collapse it to `{}` (the same Map-serialization gap documented
+  // elsewhere in this file), plus bloat routine replay output with the full
+  // snapshot on every call.
+  const battles = replayResult.finalSnapshot
+    ? extractBattleSummary(replayResult.finalSnapshot)
+    : undefined;
   if (options.outputMode === "json") {
-    printResult(JSON.stringify(replayResult, null, 2), "human");
+    printResult(
+      JSON.stringify(
+        {
+          match: replayResult.match,
+          replayedFinalHash: replayResult.replayedFinalHash,
+          originalFinalHash: replayResult.originalFinalHash,
+          replayedCommandLedgerHash: replayResult.replayedCommandLedgerHash,
+          originalCommandLedgerHash: replayResult.originalCommandLedgerHash,
+          steps: replayResult.steps,
+          mismatches: replayResult.mismatches,
+          battles,
+        },
+        null,
+        2,
+      ),
+      "human",
+    );
   } else {
     if (replayResult.match) {
       printResult(`Replay verification: PASSED`, "human");
@@ -504,6 +880,7 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
       `  Steps: ${replayResult.steps.length}, Mismatches: ${replayResult.mismatches.length}`,
       "human",
     );
+    printBattleSummary(battles);
   }
   if (collector.hasErrors) return "validation-error";
   return replayResult.match ? "success" : "validation-error";

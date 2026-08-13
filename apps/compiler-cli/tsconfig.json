@@ -16,6 +16,7 @@
     { "path": "../../packages/persistence" },
     { "path": "../../packages/phase-engine" },
     { "path": "../../packages/commands" },
-    { "path": "../../packages/random" }
+    { "path": "../../packages/random" },
+    { "path": "../../packages/combat" }
   ]
 }

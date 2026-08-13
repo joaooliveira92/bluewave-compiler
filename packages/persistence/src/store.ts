@@ -15,6 +15,11 @@ import { DiagnosticCollector } from "@bluewave/diagnostics";
 import type { DiagnosticCode } from "@bluewave/diagnostics";
 import { CompatibilityChecker } from "./compatibility.js";
 import { cleanup } from "./recovery.js";
+import {
+  fromStorableSnapshot,
+  toStorableSnapshot,
+  type StorableCampaignSnapshot,
+} from "./snapshotSerialization.js";
 
 export const CORRUPT_SAVE_CODE = "PERSISTENCE_CORRUPT_SAVE" as DiagnosticCode;
 export const MISSING_SAVE_CODE = "PERSISTENCE_MISSING_SAVE" as DiagnosticCode;
@@ -57,7 +62,13 @@ export class SaveStore {
     const tmpDir = join(saveDir, `.tmp_${saveId}`);
 
     const { rawHash: _rh, ...stateForHash } = state;
-    const serialized = canonicalSerialize(state);
+    // Written form only: state's Map-valued snapshot fields (nations, designs,
+    // designFamilies, activeCandidates) convert to plain Records so they survive
+    // JSON.stringify. The hash below stays over the original `state`/`stateForHash`
+    // (real Maps) so it matches the rawHash the campaign compiler already computed
+    // and what load() recomputes after reconstituting Maps from disk.
+    const storableState = { ...state, snapshot: toStorableSnapshot(state.snapshot) };
+    const serialized = canonicalSerialize(storableState);
     const hash = sha256Hex(canonicalSerialize(stateForHash));
     const sig: SigFile = {
       hash,
@@ -213,9 +224,13 @@ export class SaveStore {
       return null;
     }
 
-    let state: CampaignState;
+    type StorableCampaignState = Omit<CampaignState, "snapshot"> & {
+      snapshot: StorableCampaignSnapshot;
+    };
+
+    let parsed: StorableCampaignState;
     try {
-      state = JSON.parse(campaignJson) as CampaignState;
+      parsed = JSON.parse(campaignJson) as StorableCampaignState;
     } catch {
       diagnostics.addError(CORRUPT_SAVE_CODE, "Save data file contains invalid JSON", {
         stage: "persistence.load",
@@ -223,8 +238,22 @@ export class SaveStore {
       return null;
     }
 
-    if (!state.snapshot || !state.envelope || !state.rawHash) {
+    if (!parsed.snapshot || !parsed.envelope || !parsed.rawHash) {
       diagnostics.addError(CORRUPT_SAVE_CODE, "Save data is missing required fields", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+
+    // Reconstitute the Records written by toStorableSnapshot back into real Maps
+    // (nations, designs, designFamilies, activeCandidates) before any hash/envelope
+    // verification below, so those checks run over the same shape (real Maps) the
+    // campaign compiler used when it originally computed rawHash/envelope.
+    let state: CampaignState;
+    try {
+      state = { ...parsed, snapshot: fromStorableSnapshot(parsed.snapshot) };
+    } catch {
+      diagnostics.addError(CORRUPT_SAVE_CODE, "Save data snapshot is malformed", {
         stage: "persistence.load",
       });
       return null;

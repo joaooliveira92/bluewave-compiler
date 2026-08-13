@@ -12,8 +12,14 @@ import {
   runCampaignLoad,
   runTurnExecute,
   runReplay,
+  runBattleGenerate,
+  runBattleAdvanceMinute,
+  runGunneryResolveShot,
   type CliOptions,
   type CampaignCliOptions,
+  type BattleGenerateCliOptions,
+  type BattleAdvanceMinuteCliOptions,
+  type GunneryResolveShotCliOptions,
   type OutputMode,
   type ExitCategory,
 } from "./commands.js";
@@ -31,6 +37,16 @@ Commands:
   campaign:load      Load and verify campaign state from persistence store
   turn:execute       Execute one month, save new state
   replay             Replay all commands from a save and verify hashes
+  battle:generate    Run battle generation (@bluewave/combat) against a saved
+                      snapshot in isolation, without running a full turn
+  battle:advance-minute
+                      Run one tactical minute-advance (@bluewave/combat,
+                      DESIGN-38 movement/spotting) against a hand-authored
+                      TacticalBattleState JSON file
+  gunnery:resolve-shot
+                      Resolve one gunnery shot (@bluewave/combat, DESIGN-39
+                      §3/§28 accuracy + hit + ammunition) against a
+                      hand-authored scenario JSON file
 General options:
   --manifest <path>     Path to pack manifest (default: pack.json)
   --content-dir <path>  Content directory (default: content/)
@@ -41,7 +57,54 @@ General options:
                          turn:execute (budget, research priority, design,
                          diplomacy/war, AI, etc.)
   --json                Output in JSON format
-  --help                Show this help`;
+  --help                Show this help
+battle:generate options:
+  --campaign-month <string>   Month to generate battles for (default: the
+                               loaded snapshot's turnNumber)
+  --ruleset-version <string>  Ruleset version passed to generateBattles
+                               (default: the loaded snapshot's rulesetVersion)
+  --rng-version <string>      RNG version passed to generateBattles
+                               (default: "1", matching turn:execute)
+  --formula-version <string>  Formula version passed to generateBattles
+                               (default: "1", matching turn:execute)
+  --content-version <string>  Content version passed to generateBattles
+                               (default: "0.1.0", matching turn:execute)
+battle:advance-minute options:
+  --state <path>              Required. Path to a JSON file with shape
+                               { state: TacticalBattleState, orders?:
+                               Record<assetId, { orderedHeading: number,
+                               orderedSpeedBp: number, attainableMaxBp?:
+                               number }>, attackRangeUm?: number }. There is
+                               no fixture generator yet — hand-author this
+                               file against @bluewave/combat's
+                               TacticalBattleState/MovementState/
+                               TacticalContact types (see
+                               packages/combat/src/tactical/state.ts and
+                               packages/combat/test/simulation/advance.test.ts
+                               for a worked example). Movement/spotting only
+                               (steps 4-8) — no gunnery in this command.
+  --minute <number>            Minute number to advance (default: 1)
+  --observation-time <string>  ISO timestamp passed to spotting resolution
+                               (default: "1900-01-01T00:00:00.000Z")
+gunnery:resolve-shot options:
+  --input <path>        Required. Path to a JSON file with shape
+                         { identity: { battleId, batteryId, minute, substep },
+                         accuracyFactors: { baseAccuracyBp, fireControl, crew,
+                         officer, training, range, visibility, radar,
+                         ownManeuver, targetManeuver, previousSalvo, seaState,
+                         smoke, damage, multipleAttacker, glare,
+                         targetEvasion } (all integer basis points; see
+                         packages/combat/src/gunnery/constants.ts for the
+                         canonical factor list), salvo: { count, ammunition:
+                         { ARMOR_PIERCING, COMMON, HIGH_EXPLOSIVE },
+                         preferredType, permittedTypes? } }. There is no
+                         fixture generator yet — hand-author against
+                         @bluewave/combat's GunneryAccuracyFactors/
+                         AmmunitionType types (see
+                         packages/combat/test/gunnery/accuracy.test.ts and
+                         ammunition.test.ts for worked examples).
+  --seed <string>        RandomEngine master seed for the keyed hit draw
+                         (default: "default-seed")`;
 
 export const exitCodes: Record<ExitCategory, number> = {
   success: 0,
@@ -67,14 +130,32 @@ function main(): void {
     "turn:execute",
     "replay",
   ];
-  const allCommands = [...existingCommands, ...newCommands];
+  const battleGenerateCommands = ["battle:generate"];
+  const battleAdvanceMinuteCommands = ["battle:advance-minute"];
+  const gunneryResolveShotCommands = ["gunnery:resolve-shot"];
+  const allCommands = [
+    ...existingCommands,
+    ...newCommands,
+    ...battleGenerateCommands,
+    ...battleAdvanceMinuteCommands,
+    ...gunneryResolveShotCommands,
+  ];
   if (!allCommands.includes(command)) {
     process.stderr.write(`Unknown command: ${command}\n`);
     process.stderr.write(USAGE);
     process.exit(1);
   }
-  const isNew = newCommands.includes(command);
-  const options = parseOptions(args.slice(1), isNew);
+  if (battleAdvanceMinuteCommands.includes(command)) {
+    const bo = parseBattleAdvanceMinuteOptions(args.slice(1));
+    process.exit(exitCodes[runBattleAdvanceMinute(bo)]);
+  }
+  if (gunneryResolveShotCommands.includes(command)) {
+    const go = parseGunneryResolveShotOptions(args.slice(1));
+    process.exit(exitCodes[runGunneryResolveShot(go)]);
+  }
+  const isBattleGenerate = battleGenerateCommands.includes(command);
+  const isNew = newCommands.includes(command) || isBattleGenerate;
+  const options = parseOptions(args.slice(1), isNew, isBattleGenerate);
   let exitCategory: ExitCategory;
   switch (command) {
     case "validate":
@@ -123,13 +204,22 @@ function main(): void {
       exitCategory = runReplay(co, co.saveDir);
       break;
     }
+    case "battle:generate": {
+      const bo = options as BattleGenerateCliOptions;
+      exitCategory = runBattleGenerate(bo, bo.saveDir);
+      break;
+    }
     default:
       exitCategory = "usage-error";
   }
   process.exit(exitCodes[exitCategory]);
 }
 
-export function parseOptions(argv: string[], extended = false): CliOptions | CampaignCliOptions {
+export function parseOptions(
+  argv: string[],
+  extended = false,
+  battleGenerate = false,
+): CliOptions | CampaignCliOptions | BattleGenerateCliOptions {
   let manifest = "pack.json";
   let contentDir = "content";
   let outputDir = "out";
@@ -137,6 +227,11 @@ export function parseOptions(argv: string[], extended = false): CliOptions | Cam
   let seed = "default-seed";
   let commandsPath: string | undefined;
   let outputMode: OutputMode = "human";
+  let campaignMonth: string | undefined;
+  let rngVersion = "1";
+  let formulaVersion = "1";
+  let rulesetVersion: string | undefined;
+  let contentVersion = "0.1.0";
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     switch (arg) {
@@ -158,15 +253,94 @@ export function parseOptions(argv: string[], extended = false): CliOptions | Cam
       case "--commands":
         commandsPath = argv[++i] ?? commandsPath;
         break;
+      case "--campaign-month":
+        campaignMonth = argv[++i] ?? campaignMonth;
+        break;
+      case "--rng-version":
+        rngVersion = argv[++i] ?? rngVersion;
+        break;
+      case "--formula-version":
+        formulaVersion = argv[++i] ?? formulaVersion;
+        break;
+      case "--ruleset-version":
+        rulesetVersion = argv[++i] ?? rulesetVersion;
+        break;
+      case "--content-version":
+        contentVersion = argv[++i] ?? contentVersion;
+        break;
       case "--json":
         outputMode = "json";
         break;
     }
   }
+  if (battleGenerate) {
+    return {
+      manifest,
+      contentDir,
+      outputDir,
+      outputMode,
+      saveDir,
+      seed,
+      commandsPath,
+      campaignMonth,
+      rngVersion,
+      formulaVersion,
+      rulesetVersion,
+      contentVersion,
+    };
+  }
   if (extended) {
     return { manifest, contentDir, outputDir, outputMode, saveDir, seed, commandsPath };
   }
   return { manifest, contentDir, outputDir, outputMode };
+}
+
+export function parseBattleAdvanceMinuteOptions(argv: string[]): BattleAdvanceMinuteCliOptions {
+  let statePath: string | undefined;
+  let minute = 1;
+  let observationTime = "1900-01-01T00:00:00.000Z";
+  let outputMode: OutputMode = "human";
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    switch (arg) {
+      case "--state":
+        statePath = argv[++i] ?? statePath;
+        break;
+      case "--minute": {
+        const value = argv[++i];
+        if (value !== undefined) minute = Number(value);
+        break;
+      }
+      case "--observation-time":
+        observationTime = argv[++i] ?? observationTime;
+        break;
+      case "--json":
+        outputMode = "json";
+        break;
+    }
+  }
+  return { statePath, minute, observationTime, outputMode };
+}
+
+export function parseGunneryResolveShotOptions(argv: string[]): GunneryResolveShotCliOptions {
+  let inputPath: string | undefined;
+  let seed = "default-seed";
+  let outputMode: OutputMode = "human";
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    switch (arg) {
+      case "--input":
+        inputPath = argv[++i] ?? inputPath;
+        break;
+      case "--seed":
+        seed = argv[++i] ?? seed;
+        break;
+      case "--json":
+        outputMode = "json";
+        break;
+    }
+  }
+  return { inputPath, seed, outputMode };
 }
 
 function loadCommandsFile(

@@ -1,33 +1,66 @@
-import { sha256Hex } from "@bluewave/deterministic";
-import type { SafeInt } from "@bluewave/contracts";
 import type {
-  CommandEnvelope,
   BudgetProjectCommand,
+  CommandEnvelope,
   SetResearchPriorityCommand,
 } from "@bluewave/commands";
+import type { SafeInt } from "@bluewave/contracts";
+import { sha256Hex } from "@bluewave/deterministic";
 
 export const AI_ENVELOPE_VERSION = "0.1.0" as const;
 export const AI_COMMAND_TYPE_BUDGET = "budget_project" as const;
 export const AI_COMMAND_TYPE_RESEARCH = "SetResearchPriority" as const;
 
-/**
- * Context needed to build deterministic AI command envelopes.
- *
- * `expectedSnapshotHash` is the canonical hash of the snapshot the commands
- * are validated against, so replay produces byte-identical commands and the
- * CommandLifecycle's STALE_SNAPSHOT_HASH check passes.
- */
+export type AiCommandType =
+  | typeof AI_COMMAND_TYPE_BUDGET
+  | typeof AI_COMMAND_TYPE_RESEARCH;
+
 export interface AiCommandContext {
-  campaignId: string;
-  turnNumber: SafeInt;
-  expectedSnapshotHash: string;
+  readonly campaignId: string;
+  readonly turnNumber: SafeInt;
+  readonly expectedSnapshotHash: string; // 64 hex chars
+}
+
+function assertNonEmptyString(value: string, name: string): void {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`${name} must be non-empty string`);
+  }
+}
+
+function assertSafeInt(value: unknown, name: string): asserts value is SafeInt {
+  // SafeInt is branded number in contracts; also handle object-branded future-proof
+  const n =
+    typeof value === "number"
+      ? value
+      : typeof (value as { valueOf?: unknown })?.valueOf === "function"
+        ? Number((value as { valueOf(): unknown }).valueOf())
+        : NaN;
+  if (!Number.isSafeInteger(n)) {
+    throw new Error(`${name} must be SafeInt (safe integer), got ${String(value)}`);
+  }
+}
+
+function toNumber(s: SafeInt): number {
+  if (typeof s === "number") return s;
+  // future-proof: SafeInt as object with valueOf
+  const v = (s as unknown as { valueOf(): number }).valueOf();
+  if (typeof v === "number" && Number.isSafeInteger(v)) return v;
+  throw new Error(`Invalid SafeInt: ${String(s)}`);
+}
+
+function encodePart(s: string): string {
+  // encodeURIComponent prevents "/" and ":" collisions in idempotencyKey
+  return encodeURIComponent(s);
+}
+
+function isHex64(s: string): boolean {
+  return /^[0-9a-f]{64}$/i.test(s);
 }
 
 /**
- * Builds deterministic command envelopes for AI nations. Every field,
- * including commandId and timestamp, is derived solely from
- * (campaignId, turnNumber, nationId, commandType) so a given input state
- * always produces the same envelope.
+ * Deterministic, replay-safe envelope factory.
+ * Every field including commandId and timestamp is derived solely from
+ * (campaignId, turnNumber, nationId, commandType) + expectedSnapshotHash.
+ * No IO, no Math.random(), no Date.now().
  */
 export class AiCommandGenerator {
   private readonly campaignId: string;
@@ -35,26 +68,52 @@ export class AiCommandGenerator {
   private readonly expectedSnapshotHash: string;
 
   constructor(context: AiCommandContext) {
+    assertNonEmptyString(context.campaignId, "campaignId");
+    assertSafeInt(context.turnNumber, "turnNumber");
+    assertNonEmptyString(context.expectedSnapshotHash, "expectedSnapshotHash");
+    if (!isHex64(context.expectedSnapshotHash)) {
+      throw new Error(`expectedSnapshotHash must be 64 hex chars`);
+    }
     this.campaignId = context.campaignId;
     this.turnNumber = context.turnNumber;
-    this.expectedSnapshotHash = context.expectedSnapshotHash;
+    this.expectedSnapshotHash = context.expectedSnapshotHash.toLowerCase();
+    Object.freeze(this);
   }
 
-  idempotencyKey(
+  /** Canonical idempotency key. Private — use build* methods to ensure consistency. */
+  private idempotencyKey(nationId: string, commandType: AiCommandType): string {
+    assertNonEmptyString(nationId, "nationId");
+    // turnNumber as decimal string via integer conversion (no [object Object])
+    const turnStr = String(toNumber(this.turnNumber));
+    return `${encodePart(this.campaignId)}/${turnStr}/${encodePart(nationId)}/${encodePart(commandType)}`;
+  }
+
+  /** Exposed for testing / diagnostics only — deterministic. */
+  static buildIdempotencyKey(
     campaignId: string,
     turnNumber: SafeInt,
     nationId: string,
-    commandType: string,
+    commandType: AiCommandType,
   ): string {
-    return `${campaignId}/${String(turnNumber)}/${nationId}/${commandType}`;
+    assertNonEmptyString(campaignId, "campaignId");
+    assertSafeInt(turnNumber, "turnNumber");
+    assertNonEmptyString(nationId, "nationId");
+    return `${encodePart(campaignId)}/${String(toNumber(turnNumber))}/${encodePart(nationId)}/${encodePart(commandType)}`;
   }
 
   private commandIdFromKey(key: string): string {
-    return `ai-${sha256Hex(key).slice(0, 40)}`;
+    // domain-separated hash: ai:v0:<sha256> truncated to 160 bits (40 hex) for brevity
+    // full 64 hex available via sha256Hex if needed; 160 bits still > UUID entropy
+    return `ai-${sha256Hex(`v0:${key}`).slice(0, 40)}`;
   }
 
   private deterministicTimestamp(): string {
-    return new Date(Date.UTC(1910, 0, 1 + ((this.turnNumber as number) % 365))).toISOString();
+    // Pure integer arithmetic, UTC, handles negative turnNumber deterministically.
+    // Turn 0 => 1910-01-01T00:00:00.000Z, wraps every 365 days (no leap drift).
+    const daysOffset = ((toNumber(this.turnNumber) % 365) + 365) % 365;
+    const baseMs = Date.UTC(1910, 0, 1); // 1910-01-01 UTC
+    const ms = baseMs + daysOffset * 24 * 60 * 60 * 1000;
+    return new Date(ms).toISOString(); // toISOString is always UTC, deterministic
   }
 
   buildBudgetCommand(
@@ -62,43 +121,62 @@ export class AiCommandGenerator {
     projectId: string,
     amount: SafeInt,
   ): CommandEnvelope<BudgetProjectCommand> {
-    const key = this.idempotencyKey(
-      this.campaignId,
-      this.turnNumber,
-      nationId,
-      AI_COMMAND_TYPE_BUDGET,
-    );
-    return {
+    assertNonEmptyString(nationId, "nationId");
+    assertNonEmptyString(projectId, "projectId");
+    assertSafeInt(amount, "amount");
+    if (toNumber(amount) < 1) throw new Error(`budget amount must be >=1`);
+
+    const key = this.idempotencyKey(nationId, AI_COMMAND_TYPE_BUDGET);
+    const envelope: CommandEnvelope<BudgetProjectCommand> = {
       commandId: this.commandIdFromKey(key),
       version: AI_ENVELOPE_VERSION,
       expectedSnapshotHash: this.expectedSnapshotHash,
       idempotencyKey: key,
       timestamp: this.deterministicTimestamp(),
-      body: { type: AI_COMMAND_TYPE_BUDGET, nationId, projectId, budget: amount },
+      body: {
+        type: AI_COMMAND_TYPE_BUDGET,
+        nationId,
+        projectId,
+        budget: amount,
+      },
       issuerClass: "AI",
       issuerParticipantId: nationId,
     };
+    return Object.freeze(envelope) as CommandEnvelope<BudgetProjectCommand>;
   }
 
   buildResearchPriorityCommand(
     nationId: string,
     fieldPriorities: Record<string, SafeInt>,
   ): CommandEnvelope<SetResearchPriorityCommand> {
-    const key = this.idempotencyKey(
-      this.campaignId,
-      this.turnNumber,
-      nationId,
-      AI_COMMAND_TYPE_RESEARCH,
-    );
-    return {
+    assertNonEmptyString(nationId, "nationId");
+    if (typeof fieldPriorities !== "object" || fieldPriorities === null) {
+      throw new Error(`fieldPriorities must be object`);
+    }
+    // validate each priority is SafeInt and freeze copy
+    const copy: Record<string, SafeInt> = {};
+    for (const [k, v] of Object.entries(fieldPriorities)) {
+      assertNonEmptyString(k, "fieldPriorities key");
+      assertSafeInt(v, `fieldPriorities[${k}]`);
+      copy[k] = v;
+    }
+    Object.freeze(copy);
+
+    const key = this.idempotencyKey(nationId, AI_COMMAND_TYPE_RESEARCH);
+    const envelope: CommandEnvelope<SetResearchPriorityCommand> = {
       commandId: this.commandIdFromKey(key),
       version: AI_ENVELOPE_VERSION,
       expectedSnapshotHash: this.expectedSnapshotHash,
       idempotencyKey: key,
       timestamp: this.deterministicTimestamp(),
-      body: { type: AI_COMMAND_TYPE_RESEARCH, nationId, fieldPriorities },
+      body: {
+        type: AI_COMMAND_TYPE_RESEARCH,
+        nationId,
+        fieldPriorities: copy,
+      },
       issuerClass: "AI",
       issuerParticipantId: nationId,
     };
+    return Object.freeze(envelope) as CommandEnvelope<SetResearchPriorityCommand>;
   }
 }

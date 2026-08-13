@@ -1,30 +1,30 @@
-import type { CampaignSnapshot, CampaignSlot } from "@bluewave/campaign";
+import type { CampaignSlot, CampaignSnapshot } from "@bluewave/campaign";
 import type {
-  CommandEnvelope,
   CommandBody,
-  CommandLifecycle,
+  CommandEnvelope,
   CommandIdempotencyMap,
+  CommandLifecycle,
 } from "@bluewave/commands";
-import type { RandomEngine } from "@bluewave/random";
 import type { Diagnostic } from "@bluewave/diagnostics";
+import type { RandomEngine } from "@bluewave/random";
 import { AiPlanner } from "./aiPlanner.js";
 
 export interface AiExecutionResult {
-  /** The accepted AI command envelopes to apply through the canonical path. */
-  commands: CommandEnvelope<CommandBody>[];
-  /** Diagnostics for any rejected AI command. */
-  diagnostics: Diagnostic[];
+  readonly commands: readonly CommandEnvelope<CommandBody>[];
+  readonly diagnostics: readonly Diagnostic[];
 }
 
 /**
- * Thin per-nation wrapper around {@link AiPlanner} so the phase engine can
- * drive a single AI slot without knowing the planning details.
+ * Thin per-nation wrapper around AiPlanner so the phase engine can
+ * drive a single AI slot without knowing planning details.
+ * Stateless, deterministic, never mutates snapshot.
  */
 export class AiPhaseExecutor {
-  private planner: AiPlanner;
+  private readonly planner: AiPlanner;
 
   constructor(planner: AiPlanner = new AiPlanner()) {
     this.planner = planner;
+    Object.freeze(this);
   }
 
   run(
@@ -34,10 +34,22 @@ export class AiPhaseExecutor {
     lifecycle: CommandLifecycle,
     idempotencyMap: CommandIdempotencyMap,
   ): AiExecutionResult {
-    const result = this.planner.generate(snapshot, engine, lifecycle, slot, idempotencyMap);
-    return {
-      commands: result.accepted,
-      diagnostics: result.diagnostics,
-    };
+    try {
+      const result = this.planner.generate(snapshot, engine, lifecycle, slot, idempotencyMap);
+      // Defensive copy + freeze to prevent caller mutation leaking back
+      return {
+        commands: Object.freeze([...result.accepted]),
+        diagnostics: Object.freeze([...result.diagnostics]),
+      };
+    } catch (e) {
+      const diag: Diagnostic = {
+        code: "AI_EXECUTOR_CRASH" as Diagnostic["code"],
+        severity: "error",
+        stage: "ai_planning",
+        message: `AiPhaseExecutor crashed: ${e instanceof Error ? e.message : String(e)}`,
+        entityId: (slot as { nationId?: string }).nationId ?? "unknown",
+      };
+      return { commands: [], diagnostics: [diag] };
+    }
   }
 }

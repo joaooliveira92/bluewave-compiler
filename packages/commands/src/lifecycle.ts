@@ -1,38 +1,35 @@
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import type { Diagnostic, DiagnosticCode } from "@bluewave/diagnostics";
-import type { CampaignSnapshot, CampaignSlot } from "@bluewave/campaign";
+import type { CampaignSlot, CampaignSnapshot } from "@bluewave/campaign";
+import { DIVISION_FORMATIONS, DIVISION_MAX_SHIPS, DIVISION_ROLES, MAXIMUM_CONCURRENT_WARS } from "@bluewave/campaign";
 import {
   CANONICAL_RESEARCH_FIELD_IDS,
-  RESEARCH_FIELD_PRIORITY_WEIGHTS,
   MAX_HIGH_PRIORITY_FIELDS,
+  RESEARCH_FIELD_PRIORITY_WEIGHTS,
 } from "@bluewave/content-schema";
-import type { CommandEnvelope, CommandBody, BudgetProjectCommand } from "./envelope.js";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import type { Diagnostic, DiagnosticCode } from "@bluewave/diagnostics";
+import { AuditChain } from "./audit.js";
+import { hashCommandRecord } from "./canonicalization.js";
 import type {
-  DeclareWarCommand,
   AcceptPeaceCommand,
-  FormAllianceCommand,
-  BreakAllianceCommand,
-  FormNonAggressionPactCommand,
-  BreakNonAggressionPactCommand,
-  DeclareBlockadeCommand,
-  CreateDivisionCommand,
   AddShipToDivisionCommand,
-  RemoveShipFromDivisionCommand,
+  BreakAllianceCommand,
+  BreakNonAggressionPactCommand,BudgetProjectCommand,
+  ChangeDivisionFlagshipCommand,CommandBody, CommandEnvelope,
+  CreateDivisionCommand,
+  DeclareBlockadeCommand,
+  DeclareWarCommand,
   DissolveDivisionCommand,
-  ChangeDivisionFlagshipCommand,
-} from "./envelope.js";
-import { DIVISION_ROLES, DIVISION_FORMATIONS, DIVISION_MAX_SHIPS } from "@bluewave/campaign";
-import { MAXIMUM_CONCURRENT_WARS } from "@bluewave/campaign";
+  FormAllianceCommand,
+  FormNonAggressionPactCommand,
+  RemoveShipFromDivisionCommand,} from "./envelope.js";
 import type {
+  CommandRecord,
+  CommandResult,
   CommandStatus,
   CommandStatusTransitionRecord,
-  CommandRecord,
   CommandTypeDefinition,
-  CommandResult,
 } from "./types.js";
 import { TERMINAL_STATUSES } from "./types.js";
-import { hashCommandRecord } from "./canonicalization.js";
-import { AuditChain } from "./audit.js";
 
 // --- Permitted transitions per §5 ---
 export const PERMITTED_TRANSITIONS: Record<CommandStatus, CommandStatus[]> = {

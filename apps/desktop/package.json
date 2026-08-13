@@ -13,7 +13,7 @@
     "pack:win": "pnpm build && electron-builder --win --config",
     "pack:linux": "pnpm build && electron-builder --linux --config",
     "clean": "rimraf --glob out dist *.tsbuildinfo",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b",
     "test": "vp test run",
     "lint": "vp lint .",
     "lint:fix": "echo 'ok'"
@@ -25,7 +25,18 @@
     "@bluewave/content-schema": "workspace:*",
     "@bluewave/content-compiler": "workspace:*",
     "@bluewave/campaign": "workspace:*",
-    "@bluewave/combat": "workspace:*"
+    "@bluewave/combat": "workspace:*",
+    "@bluewave/persistence": "workspace:*",
+    "zod": "^3.24.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "@base-ui/react": "^1.7.0",
+    "class-variance-authority": "^0.7.1",
+    "cmdk": "^1.1.1",
+    "lucide-react": "^1.31.0",
+    "motion": "^13.1.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
     "@bluewave/test-support": "workspace:*",
@@ -35,6 +46,12 @@
     "vite": "catalog:",
     "typescript": "^5.7.0",
     "@types/node": "^24.0.0",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "tailwindcss": "^4.1.15",
+    "@tailwindcss/vite": "^4.1.15",
+    "jsdom": "^30.0.1"
   }
 }

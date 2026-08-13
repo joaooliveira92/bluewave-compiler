@@ -13,6 +13,7 @@ export * from "./realism.js";
 export * from "./commandReach.js";
 export * from "./targeting.js";
 export * from "./movement/index.js";
+export * from "./gunnery/index.js";
 export * from "./spotting/index.js";
 export * from "./contact/index.js";
 export * from "./simulation/engine.js";

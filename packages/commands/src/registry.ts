@@ -1,6 +1,6 @@
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-import type { CommandTypeDefinition } from "./types.js";
 import { validateCommandTypeDefinition } from "./definition.js";
+import type { CommandTypeDefinition } from "./types.js";
 
 export class CommandRegistry {
   private defs = new Map<string, CommandTypeDefinition>();

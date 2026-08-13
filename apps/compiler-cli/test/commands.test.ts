@@ -852,6 +852,139 @@ describe("runTurnExecute", () => {
       expect.anything(),
     );
   });
+  it("prints a battle summary (human) when the turn produced a battle", () => {
+    const snapshotWithBattle = {
+      ...campaignSnapshot,
+      wars: {
+        wars: [],
+        battles: [
+          {
+            id: "battle-1",
+            phase: "resolved",
+            attackerId: "GBR",
+            defenderId: "FRA",
+            areaId: "area1",
+            attackerFleetIds: [],
+            defenderFleetIds: [],
+            result: {
+              winnerId: "GBR",
+              loserId: "FRA",
+              attackerLosses: [],
+              defenderLosses: ["fra_bb1"],
+              damageReport: { fra_bb1: SafeInt(42) },
+              explanation: ["GBR overwhelming strength"],
+            },
+          },
+        ],
+        battleManifests: [{ battleId: "battle-1" }],
+      },
+    };
+    phaseMocks.execute.mockReturnValue({
+      success: true,
+      finalSnapshot: snapshotWithBattle,
+      commandLedger: { all: [], hash: () => "ch" },
+      eventLedger: { hash: () => "eh" },
+      randomLedger: { hash: () => "rh" },
+      financialLedger: { hash: () => "fh" },
+    } as any);
+    const spy = stdoutSpy();
+    expect(
+      runTurnExecute(
+        {
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+          saveDir: "/s",
+          seed: "s",
+        },
+        "/s",
+      ),
+    ).toBe("success");
+    const output = spy.mock.calls.map((c) => c[0]).join("");
+    expect(output).toContain("Battles:");
+    expect(output).toContain("Generated manifests: 1");
+    expect(output).toContain("battle-1 (GBR vs FRA @ area1): GBR defeated FRA");
+    expect(output).toContain("defender: fra_bb1");
+    expect(output).toContain("fra_bb1=42");
+  });
+  it("emits a battles key with generation/outcome data in --json mode", () => {
+    const snapshotWithBattle = {
+      ...campaignSnapshot,
+      wars: {
+        wars: [],
+        battles: [
+          {
+            id: "battle-1",
+            phase: "resolved",
+            attackerId: "GBR",
+            defenderId: "FRA",
+            areaId: "area1",
+            attackerFleetIds: [],
+            defenderFleetIds: [],
+            result: {
+              winnerId: "GBR",
+              loserId: "FRA",
+              attackerLosses: [],
+              defenderLosses: ["fra_bb1"],
+              damageReport: { fra_bb1: SafeInt(42) },
+              explanation: [],
+            },
+          },
+        ],
+        battleManifests: [{ battleId: "battle-1" }],
+      },
+    };
+    phaseMocks.execute.mockReturnValue({
+      success: true,
+      finalSnapshot: snapshotWithBattle,
+      commandLedger: { all: [], hash: () => "ch" },
+      eventLedger: { hash: () => "eh" },
+      randomLedger: { hash: () => "rh" },
+      financialLedger: { hash: () => "fh" },
+    } as any);
+    const spy = stdoutSpy();
+    runTurnExecute(
+      {
+        manifest: "/p",
+        contentDir: "/c",
+        outputDir: "/tmp/out",
+        outputMode: "json",
+        saveDir: "/s",
+        seed: "s",
+      },
+      "/s",
+    );
+    const output = spy.mock.calls.map((c) => c[0]).join("");
+    const jsonLine = output.split("\n").find((line) => line.includes("battles"));
+    const parsed = JSON.parse(jsonLine!);
+    expect(parsed.battles.manifests).toHaveLength(1);
+    expect(parsed.battles.battles[0].result.winnerId).toBe("GBR");
+  });
+  it("omits the battles section entirely when no battles occurred", () => {
+    phaseMocks.execute.mockReturnValue({
+      success: true,
+      finalSnapshot: campaignSnapshot,
+      commandLedger: { all: [], hash: () => "ch" },
+      eventLedger: { hash: () => "eh" },
+      randomLedger: { hash: () => "rh" },
+      financialLedger: { hash: () => "fh" },
+    } as any);
+    const spy = stdoutSpy();
+    runTurnExecute(
+      {
+        manifest: "/p",
+        contentDir: "/c",
+        outputDir: "/tmp/out",
+        outputMode: "human",
+        saveDir: "/s",
+        seed: "s",
+      },
+      "/s",
+    );
+    const output = spy.mock.calls.map((c) => c[0]).join("");
+    expect(output).not.toContain("Battles:");
+  });
 });
 
 describe("runReplay", () => {
@@ -1076,6 +1209,135 @@ describe("runReplay", () => {
         "/s",
       ),
     ).toBe("validation-error");
+  });
+  it("prints a battle summary (human) when the replayed snapshot carries a battle", () => {
+    phaseMocks.verify.mockReturnValue({
+      match: true,
+      mismatches: [],
+      steps: [],
+      replayedFinalHash: "rh",
+      originalFinalHash: "rh",
+      replayedCommandLedgerHash: "cl",
+      originalCommandLedgerHash: "cl",
+      finalSnapshot: {
+        ...campaignSnapshot,
+        wars: {
+          wars: [],
+          battles: [
+            {
+              id: "battle-1",
+              phase: "resolved",
+              attackerId: "GBR",
+              defenderId: "FRA",
+              areaId: "area1",
+              attackerFleetIds: [],
+              defenderFleetIds: [],
+              result: {
+                winnerId: "FRA",
+                loserId: "GBR",
+                attackerLosses: ["gb_bb1"],
+                defenderLosses: [],
+                damageReport: { gb_bb1: SafeInt(7) },
+                explanation: [],
+              },
+            },
+          ],
+          battleManifests: [{ battleId: "battle-1" }],
+        },
+      },
+    });
+    const spy = stdoutSpy();
+    runReplay(
+      {
+        manifest: "/p",
+        contentDir: "/c",
+        outputDir: "/tmp/out",
+        outputMode: "human",
+        saveDir: "/s",
+        seed: "s",
+      },
+      "/s",
+    );
+    const output = spy.mock.calls.map((c) => c[0]).join("");
+    expect(output).toContain("Battles:");
+    expect(output).toContain("battle-1 (GBR vs FRA @ area1): FRA defeated GBR");
+  });
+  it("emits a battles key in --json mode without dumping the raw finalSnapshot", () => {
+    phaseMocks.verify.mockReturnValue({
+      match: true,
+      mismatches: [],
+      steps: [],
+      replayedFinalHash: "rh",
+      originalFinalHash: "rh",
+      replayedCommandLedgerHash: "cl",
+      originalCommandLedgerHash: "cl",
+      finalSnapshot: {
+        ...campaignSnapshot,
+        wars: {
+          wars: [],
+          battles: [
+            {
+              id: "battle-1",
+              phase: "resolved",
+              attackerId: "GBR",
+              defenderId: "FRA",
+              areaId: "area1",
+              attackerFleetIds: [],
+              defenderFleetIds: [],
+              result: {
+                winnerId: "GBR",
+                loserId: "FRA",
+                attackerLosses: [],
+                defenderLosses: [],
+                damageReport: {},
+                explanation: [],
+              },
+            },
+          ],
+          battleManifests: [{ battleId: "battle-1" }],
+        },
+      },
+    });
+    const spy = stdoutSpy();
+    runReplay(
+      {
+        manifest: "/p",
+        contentDir: "/c",
+        outputDir: "/tmp/out",
+        outputMode: "json",
+        saveDir: "/s",
+        seed: "s",
+      },
+      "/s",
+    );
+    const output = spy.mock.calls.map((c) => c[0]).join("");
+    expect(output).not.toContain("finalSnapshot");
+    const parsed = JSON.parse(output.slice(output.indexOf("{")));
+    expect(parsed.battles.battles[0].result.winnerId).toBe("GBR");
+    expect(parsed.replayedFinalHash).toBe("rh");
+  });
+  it("omits the battles section when the mocked verify result has no finalSnapshot", () => {
+    phaseMocks.verify.mockReturnValue({
+      match: true,
+      mismatches: [],
+      steps: [],
+      replayedFinalHash: "rh",
+      originalFinalHash: "rh",
+    });
+    const spy = stdoutSpy();
+    runReplay(
+      {
+        manifest: "/p",
+        contentDir: "/c",
+        outputDir: "/tmp/out",
+        outputMode: "human",
+        saveDir: "/s",
+        seed: "s",
+      },
+      "/s",
+    );
+    const output = spy.mock.calls.map((c) => c[0]).join("");
+    expect(output).not.toContain("Battles:");
   });
 });
 

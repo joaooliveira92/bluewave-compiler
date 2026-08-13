@@ -28,6 +28,10 @@ export interface ReplayResult {
   originalCommandLedgerHash: string;
   steps: ReplayStepResult[];
   mismatches: ReplayMismatch[];
+  // The replayed post-execution snapshot (already computed internally to
+  // derive replayedFinalHash) — exposed so callers can inspect battle
+  // outcomes/generation records without re-running the replay themselves.
+  finalSnapshot: CampaignSnapshot;
 }
 
 function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
@@ -155,6 +159,7 @@ export class ReplayVerifier {
       originalCommandLedgerHash: originalCommandLedger.hash(),
       steps,
       mismatches,
+      finalSnapshot: result.finalSnapshot,
     };
   }
 }

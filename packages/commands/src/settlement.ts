@@ -1,4 +1,4 @@
-import { sha256Hex, canonicalSerialize } from "@bluewave/deterministic";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type {
   CommandSettlementBranch,
   CommandSettlementRecord,

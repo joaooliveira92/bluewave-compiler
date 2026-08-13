@@ -1,48 +1,66 @@
-import type { CampaignSnapshot, CampaignSlot, NationState } from "@bluewave/campaign";
+import type { CampaignSlot, CampaignSnapshot, NationState } from "@bluewave/campaign";
 import type {
-  CommandEnvelope,
   CommandBody,
-  CommandLifecycle,
+  CommandEnvelope,
   CommandIdempotencyMap,
+  CommandLifecycle,
 } from "@bluewave/commands";
-import type { RandomEngine } from "@bluewave/random";
-import { drawUniform } from "@bluewave/random";
-import type { Diagnostic, DiagnosticCode } from "@bluewave/diagnostics";
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { SafeInt } from "@bluewave/contracts";
 import {
   CANONICAL_RESEARCH_FIELD_IDS,
-  RESEARCH_FIELD_PRIORITY_WEIGHTS,
   MAX_HIGH_PRIORITY_FIELDS,
+  RESEARCH_FIELD_PRIORITY_WEIGHTS,
 } from "@bluewave/content-schema";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import type { Diagnostic } from "@bluewave/diagnostics";
+import type { RandomEngine } from "@bluewave/random";
+import { drawUniform } from "@bluewave/random";
 import {
-  AiCommandGenerator,
   AI_COMMAND_TYPE_BUDGET,
   AI_COMMAND_TYPE_RESEARCH,
+  AiCommandGenerator,
 } from "./aiCommandGenerator.js";
 
-/**
- * RNG stream key prefix. The deterministic AI stream per (nation, command
- * type) is derived from the master seed via splitSeed(master, domain), so the
- * same input seed always yields the same stream regardless of how many engine
- * instances are created.
- */
-export const AI_RNG_STREAM_PREFIX = "ai/planning:";
+export const AI_RNG_STREAM_PREFIX = "ai/planning:" as const;
 
 export interface AiPlanningResult {
-  /** Every generated envelope, accepted or not, so callers can report diagnostics. */
-  envelopes: CommandEnvelope<CommandBody>[];
-  /** Only the envelopes whose lifecycle process returned `type: "success"`. */
-  accepted: CommandEnvelope<CommandBody>[];
-  /** Diagnostics for rejected envelopes (one per rejected command, no retry). */
-  diagnostics: Diagnostic[];
+  readonly envelopes: readonly CommandEnvelope<CommandBody>[];
+  readonly accepted: readonly CommandEnvelope<CommandBody>[];
+  readonly diagnostics: readonly Diagnostic[];
+}
+
+function toNumber(s: SafeInt): number {
+  if (typeof s === "number") return s;
+  const v = (s as unknown as { valueOf(): number }).valueOf();
+  if (typeof v === "number" && Number.isSafeInteger(v)) return v;
+  throw new Error(`Invalid SafeInt`);
+}
+
+function assertSafeInt(n: unknown): number {
+  const v = toNumber(n as SafeInt);
+  if (!Number.isSafeInteger(v)) throw new Error(`Not SafeInt`);
+  return v;
+}
+
+function safeSub(a: SafeInt, b: SafeInt): SafeInt {
+  const av = toNumber(a);
+  const bv = toNumber(b);
+  const r = av - bv;
+  if (!Number.isSafeInteger(r)) throw new Error(`SafeInt overflow sub`);
+  return r as unknown as SafeInt;
+}
+
+function safeMin(a: SafeInt, b: SafeInt): SafeInt {
+  return toNumber(a) <= toNumber(b) ? a : b;
+}
+
+function encodeStreamPart(s: string): string {
+  return encodeURIComponent(s);
 }
 
 /**
  * Generates legal, deterministic AI commands for a single AI nation and runs
- * each through the CommandLifecycle. State mutation happens ONLY through the
- * canonical application path in the phase engine; the planner never mutates
- * the snapshot.
+ * each through the CommandLifecycle. Never mutates snapshot.
  */
 export class AiPlanner {
   generate(
@@ -52,130 +70,257 @@ export class AiPlanner {
     slot: CampaignSlot,
     idempotencyMap: CommandIdempotencyMap,
   ): AiPlanningResult {
-    const nationId = slot.nationId;
     const envelopes: CommandEnvelope<CommandBody>[] = [];
     const accepted: CommandEnvelope<CommandBody>[] = [];
     const diagnostics: Diagnostic[] = [];
 
-    const nation = snapshot.nations.get(nationId);
+    // Fail-closed: slot must be AI
+    const slotType = (slot as { type?: string }).type;
+    // Some CampaignSlot shapes use `kind` or `controller`; be permissive but guard
+    if (
+      slotType !== undefined &&
+      slotType !== "AI" &&
+      (slot as unknown as { controller?: string }).controller !== "AI"
+    ) {
+      // If slot explicitly marks non-AI, do not plan
+      if (slotType === "HUMAN" || slotType === "PLAYER") {
+        return { envelopes, accepted, diagnostics };
+      }
+    }
+
+    const nationId = (slot as { nationId: string }).nationId;
+    if (typeof nationId !== "string" || nationId.length === 0) {
+      diagnostics.push({
+        code: "AI_SLOT_INVALID" as Diagnostic["code"],
+        severity: "error",
+        stage: "ai_planning",
+        message: `Invalid slot.nationId`,
+        entityId: String(nationId),
+      });
+      return { envelopes, accepted, diagnostics };
+    }
+
+    const nations = (snapshot as unknown as { nations: Map<string, NationState> }).nations;
+    if (!(nations instanceof Map)) {
+      diagnostics.push({
+        code: "AI_SNAPSHOT_INVALID" as Diagnostic["code"],
+        severity: "error",
+        stage: "ai_planning",
+        message: `Snapshot nations is not a Map`,
+        entityId: nationId,
+      });
+      return { envelopes, accepted, diagnostics };
+    }
+
+    const nation = nations.get(nationId);
     if (!nation) {
-      return {
-        envelopes,
-        accepted,
-        diagnostics: [
-          {
-            code: "AI_NATION_MISSING" as DiagnosticCode,
-            severity: "error",
-            stage: "ai_planning",
-            message: `Nation ${nationId} not found for AI planning`,
-            entityId: nationId,
-          },
-        ],
-      };
+      diagnostics.push({
+        code: "AI_NATION_MISSING" as Diagnostic["code"],
+        severity: "error",
+        stage: "ai_planning",
+        message: `Nation ${nationId} not found for AI planning`,
+        entityId: nationId,
+      });
+      return { envelopes, accepted, diagnostics };
     }
 
-    const generator = new AiCommandGenerator({
-      campaignId: snapshot.campaignId,
-      turnNumber: snapshot.turnNumber,
-      expectedSnapshotHash: sha256Hex(canonicalSerialize(snapshot)),
-    });
-
-    const budgetCommand = this.buildBudgetCommand(nationId, nation, engine, generator);
-    if (budgetCommand) {
-      envelopes.push(budgetCommand);
-      const outcome = lifecycle.process(budgetCommand, snapshot, slot, idempotencyMap);
-      if (outcome.type === "success") {
-        accepted.push(budgetCommand);
-      } else if (outcome.type === "rejected" || outcome.type === "idempotency_conflict") {
-        diagnostics.push(outcome.diagnostic);
-      }
+    let generator: AiCommandGenerator;
+    try {
+      generator = new AiCommandGenerator({
+        campaignId: snapshot.campaignId,
+        turnNumber: snapshot.turnNumber,
+        expectedSnapshotHash: sha256Hex(canonicalSerialize(snapshot)),
+      });
+    } catch (e) {
+      diagnostics.push({
+        code: "AI_HASH_FAILED" as Diagnostic["code"],
+        severity: "error",
+        stage: "ai_planning",
+        message: `Failed to hash snapshot: ${e instanceof Error ? e.message : String(e)}`,
+        entityId: nationId,
+      });
+      return { envelopes, accepted, diagnostics };
     }
 
-    const researchCommand = this.buildResearchPriorityCommand(nationId, engine, generator);
-    if (researchCommand) {
-      envelopes.push(researchCommand);
-      const outcome = lifecycle.process(researchCommand, snapshot, slot, idempotencyMap);
-      if (outcome.type === "success") {
-        accepted.push(researchCommand);
-      } else if (outcome.type === "rejected" || outcome.type === "idempotency_conflict") {
-        diagnostics.push(outcome.diagnostic);
+    // Budget command — may be undefined if no legal options
+    try {
+      const budgetCommand = this.buildBudgetCommand(nationId, nation, engine, generator);
+      if (budgetCommand) {
+        envelopes.push(budgetCommand);
+        const outcome = lifecycle.process(budgetCommand, snapshot, slot, idempotencyMap);
+        if (outcome.type === "success") {
+          accepted.push(budgetCommand);
+        } else {
+          // Exhaustive: any non-success carries diagnostic per contract
+          const diag = (outcome as { diagnostic?: Diagnostic }).diagnostic;
+          if (diag) diagnostics.push(diag);
+          else
+            diagnostics.push({
+              code: "AI_UNKNOWN_REJECTION" as Diagnostic["code"],
+              severity: "error",
+              stage: "ai_planning",
+              message: `Budget command rejected without diagnostic: ${outcome.type}`,
+              entityId: nationId,
+            });
+        }
       }
+    } catch (e) {
+      diagnostics.push({
+        code: "AI_BUDGET_FAILED" as Diagnostic["code"],
+        severity: "error",
+        stage: "ai_planning",
+        message: `Budget planning failed: ${e instanceof Error ? e.message : String(e)}`,
+        entityId: nationId,
+      });
+    }
+
+    // Research command — always legal if fields exist
+    try {
+      const researchCommand = this.buildResearchPriorityCommand(nationId, engine, generator);
+      if (researchCommand) {
+        envelopes.push(researchCommand);
+        const outcome = lifecycle.process(researchCommand, snapshot, slot, idempotencyMap);
+        if (outcome.type === "success") {
+          accepted.push(researchCommand);
+        } else {
+          const diag = (outcome as { diagnostic?: Diagnostic }).diagnostic;
+          if (diag) diagnostics.push(diag);
+          else
+            diagnostics.push({
+              code: "AI_UNKNOWN_REJECTION" as Diagnostic["code"],
+              severity: "error",
+              stage: "ai_planning",
+              message: `Research command rejected without diagnostic: ${outcome.type}`,
+              entityId: nationId,
+            });
+        }
+      }
+    } catch (e) {
+      diagnostics.push({
+        code: "AI_RESEARCH_FAILED" as Diagnostic["code"],
+        severity: "error",
+        stage: "ai_planning",
+        message: `Research planning failed: ${e instanceof Error ? e.message : String(e)}`,
+        entityId: nationId,
+      });
     }
 
     return { envelopes, accepted, diagnostics };
   }
 
-  /**
-   * Enumerates legal budget_project options: for every incomplete construction
-   * project (completedWork < totalWork, status !== COMPLETED) with
-   * treasury >= 0 and remainingWork > 0, the legal budget is any integer in
-   * [1, min(treasury, remainingWork)]. Picks ONE project uniformly and ONE
-   * amount uniformly from its legal range, then builds the envelope.
-   */
   private buildBudgetCommand(
     nationId: string,
     nation: NationState,
     engine: RandomEngine,
     generator: AiCommandGenerator,
   ): CommandEnvelope<CommandBody> | undefined {
-    const legal: Array<{ projectId: string; maxAmount: SafeInt }> = [];
-    for (const project of nation.constructionProjects) {
-      if (project.status === "COMPLETED") continue;
-      const remainingWork = SafeIntSub(project.totalWork, project.completedWork);
-      if ((remainingWork as number) <= 0) continue;
-      if ((nation.treasury as number) < 0) continue;
-      const maxAmount = minSafeInt(nation.treasury, remainingWork);
-      if ((maxAmount as number) < 1) continue;
-      legal.push({ projectId: project.id, maxAmount });
+    const projects = (nation as { constructionProjects?: unknown }).constructionProjects;
+    if (!Array.isArray(projects)) return undefined;
+
+    const treasury = (nation as { treasury: SafeInt }).treasury;
+    let treasuryNum: number;
+    try {
+      treasuryNum = toNumber(treasury);
+    } catch {
+      return undefined;
     }
+    if (!Number.isSafeInteger(treasuryNum) || treasuryNum < 0) return undefined;
+    if (treasuryNum < 1) return undefined;
+
+    const legal: Array<{ projectId: string; maxAmount: SafeInt }> = [];
+    for (const p of projects) {
+      const proj = p as {
+        id?: unknown;
+        status?: unknown;
+        totalWork?: unknown;
+        completedWork?: unknown;
+      };
+      if (typeof proj.id !== "string" || proj.id.length === 0) continue;
+      if (proj.status === "COMPLETED") continue;
+      try {
+        const totalWork = proj.totalWork as SafeInt;
+        const completedWork = proj.completedWork as SafeInt;
+        assertSafeInt(totalWork);
+        assertSafeInt(completedWork);
+        const remainingWork = safeSub(totalWork, completedWork);
+        if (toNumber(remainingWork) <= 0) continue;
+        const maxAmount = safeMin(treasury, remainingWork);
+        if (toNumber(maxAmount) < 1) continue;
+        legal.push({ projectId: proj.id, maxAmount });
+      } catch {
+        continue; // skip malformed project fail-closed
+      }
+    }
+
     if (legal.length === 0) return undefined;
 
-    const stream = engine.stream(`${AI_RNG_STREAM_PREFIX}${nationId}:${AI_COMMAND_TYPE_BUDGET}`);
-    const index = drawUniform(stream, SafeInt.ZERO, SafeInt(legal.length - 1)) as number;
-    const chosen = legal[index]!;
+    // Deterministic canonical order — sort by projectId
+    legal.sort((a, b) => (a.projectId < b.projectId ? -1 : a.projectId > b.projectId ? 1 : 0));
+
+    let stream: ReturnType<RandomEngine["stream"]>;
+    try {
+      stream = engine.stream(
+        `${AI_RNG_STREAM_PREFIX}${encodeStreamPart(nationId)}:${AI_COMMAND_TYPE_BUDGET}`,
+      );
+    } catch {
+      return undefined;
+    }
+
+    const indexSafe = drawUniform(stream, SafeInt.ZERO, SafeInt(legal.length - 1) as SafeInt);
+    const index = toNumber(indexSafe);
+    const chosen = legal[index];
+    if (!chosen) return undefined;
+
     const amount = drawUniform(stream, SafeInt.ONE, chosen.maxAmount);
     return generator.buildBudgetCommand(nationId, chosen.projectId, amount);
   }
 
-  /**
-   * Builds ONE valid SetResearchPriority assignment: chooses a high-count in
-   * [1, MAX_HIGH_PRIORITY_FIELDS] and selects that many distinct fields
-   * uniformly (partial Fisher-Yates over the canonical field order), grading
-   * them HIGH and the rest MEDIUM so the lifecycle validator accepts it.
-   */
   private buildResearchPriorityCommand(
     nationId: string,
     engine: RandomEngine,
     generator: AiCommandGenerator,
-  ): CommandEnvelope<CommandBody> {
-    const stream = engine.stream(`${AI_RNG_STREAM_PREFIX}${nationId}:${AI_COMMAND_TYPE_RESEARCH}`);
-    const highCount = drawUniform(stream, SafeInt.ONE, SafeInt(MAX_HIGH_PRIORITY_FIELDS)) as number;
-
-    const fields: string[] = [...CANONICAL_RESEARCH_FIELD_IDS];
+  ): CommandEnvelope<CommandBody> | undefined {
+    const fields = CANONICAL_RESEARCH_FIELD_IDS;
     const n = fields.length;
-    for (let i = 0; i < highCount; i++) {
-      const j = Math.floor(stream.next() * (n - i)) + i;
-      const tmp = fields[i]!;
-      fields[i] = fields[j]!;
-      fields[j] = tmp;
+    const maxHigh = Math.min(
+      toNumber(SafeInt(MAX_HIGH_PRIORITY_FIELDS) as unknown as SafeInt) ||
+        (MAX_HIGH_PRIORITY_FIELDS as unknown as number),
+      n,
+    );
+    // MAX_HIGH_PRIORITY_FIELDS is number constant; handle both SafeInt and number
+    const maxHighClamped = Math.max(1, Math.min(maxHigh, n));
+
+    let stream: ReturnType<RandomEngine["stream"]>;
+    try {
+      stream = engine.stream(
+        `${AI_RNG_STREAM_PREFIX}${encodeStreamPart(nationId)}:${AI_COMMAND_TYPE_RESEARCH}`,
+      );
+    } catch {
+      return undefined;
     }
-    const highSet = new Set(fields.slice(0, highCount));
+
+    // highCount in [1, maxHighClamped] inclusive, integer
+    const highCountSafe = drawUniform(stream, SafeInt.ONE, SafeInt(maxHighClamped) as SafeInt);
+    const highCount = toNumber(highCountSafe);
+
+    // Partial Fisher-Yates using integer drawUniform (no floats)
+    const shuffled: string[] = [...fields];
+    for (let i = 0; i < highCount; i++) {
+      const jSafe = drawUniform(stream, SafeInt(i) as SafeInt, SafeInt(n - 1) as SafeInt);
+      const j = toNumber(jSafe);
+      const tmp = shuffled[i]!;
+      shuffled[i] = shuffled[j]!;
+      shuffled[j] = tmp;
+    }
+    const highSet = new Set(shuffled.slice(0, highCount));
 
     const fieldPriorities: Record<string, SafeInt> = {};
-    for (const field of CANONICAL_RESEARCH_FIELD_IDS) {
+    for (const field of fields) {
       fieldPriorities[field] = highSet.has(field)
-        ? SafeInt(RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH)
-        : SafeInt(RESEARCH_FIELD_PRIORITY_WEIGHTS.MEDIUM);
+        ? (SafeInt(RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH) as SafeInt)
+        : (SafeInt(RESEARCH_FIELD_PRIORITY_WEIGHTS.MEDIUM) as SafeInt);
     }
 
     return generator.buildResearchPriorityCommand(nationId, fieldPriorities);
   }
-}
-
-function SafeIntSub(a: SafeInt, b: SafeInt): SafeInt {
-  return ((a as number) - (b as number)) as SafeInt;
-}
-
-function minSafeInt(a: SafeInt, b: SafeInt): SafeInt {
-  return (a as number) <= (b as number) ? a : b;
 }
