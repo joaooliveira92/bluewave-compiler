@@ -276,8 +276,8 @@ export class AiPlanner {
     engine: RandomEngine,
     generator: AiCommandGenerator,
   ): CommandEnvelope<CommandBody> | undefined {
-    const fields = CANONICAL_RESEARCH_FIELD_IDS;
-    if (!Array.isArray(fields) || fields.length === 0) return undefined;
+    const fields: readonly string[] = CANONICAL_RESEARCH_FIELD_IDS;
+    if (fields.length === 0) return undefined;
 
     const n = fields.length;
     const maxHigh = Math.min(toNumber(SafeInt(MAX_HIGH_PRIORITY_FIELDS) as unknown as SafeInt) || MAX_HIGH_PRIORITY_FIELDS as unknown as number, n);
