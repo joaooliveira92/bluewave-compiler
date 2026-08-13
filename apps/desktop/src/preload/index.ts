@@ -21,6 +21,19 @@ export interface ProjectResult {
   error?: string;
 }
 
+export interface LoadSaveResult {
+  success: boolean;
+  snapshot?: Record<string, unknown>;
+  envelope?: Record<string, unknown>;
+  rawHash?: string;
+  diagnostics: Array<{
+    code: string;
+    severity: string;
+    message: string;
+  }>;
+  error?: string;
+}
+
 contextBridge.exposeInMainWorld("electronAPI", {
   compile: (dirPath?: string): Promise<CompileResult> => {
     return ipcRenderer.invoke("compile", dirPath);
@@ -33,5 +46,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   saveProjectAs: (): Promise<ProjectResult> => {
     return ipcRenderer.invoke("project:save-as");
+  },
+  loadCampaignSave: (saveDir?: string): Promise<LoadSaveResult> => {
+    return ipcRenderer.invoke("campaign:load-save", saveDir);
   },
 });

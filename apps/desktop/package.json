@@ -25,7 +25,9 @@
     "@bluewave/content-schema": "workspace:*",
     "@bluewave/content-compiler": "workspace:*",
     "@bluewave/campaign": "workspace:*",
-    "@bluewave/combat": "workspace:*"
+    "@bluewave/combat": "workspace:*",
+    "@bluewave/persistence": "workspace:*",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@bluewave/test-support": "workspace:*",

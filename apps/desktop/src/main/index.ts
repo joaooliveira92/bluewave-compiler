@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { runCompilation } from "./compiler.js";
+import { loadCampaignSave } from "./campaignSave.js";
+import { LoadSaveRequestSchema, LoadSaveResultSchema } from "./campaignSaveSchema.js";
 import { applyContentSecurityPolicy } from "./csp.js";
 import {
   extractProject,
@@ -94,6 +96,27 @@ async function handleSaveProject(
   }
 }
 
+async function handleLoadCampaignSave(
+  _event: Electron.IpcMainInvokeEvent,
+  rawSaveDir?: string,
+): Promise<ReturnType<typeof loadCampaignSave>> {
+  const parsedRequest = LoadSaveRequestSchema.safeParse(rawSaveDir);
+  if (!parsedRequest.success) {
+    return LoadSaveResultSchema.parse({ success: false, diagnostics: [], error: "Invalid request" });
+  }
+
+  const dir = parsedRequest.data ?? (await openDirectoryDialog());
+  if (!dir) {
+    return LoadSaveResultSchema.parse({
+      success: false,
+      diagnostics: [],
+      error: "No directory selected",
+    });
+  }
+
+  return LoadSaveResultSchema.parse(loadCampaignSave(dir));
+}
+
 interface ProjectResult {
   ok: boolean;
   canceled?: boolean;
@@ -144,6 +167,7 @@ void app.whenReady().then(() => {
   ipcMain.handle("project:open", handleOpenProject);
   ipcMain.handle("project:save", (_e) => handleSaveProject(_e, "save"));
   ipcMain.handle("project:save-as", (_e) => handleSaveProject(_e, "save-as"));
+  ipcMain.handle("campaign:load-save", handleLoadCampaignSave);
   createWindow();
 
   app.on("activate", () => {
