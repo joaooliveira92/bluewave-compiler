@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SafeInt } from "@bluewave/contracts";
-import type { CampaignState, CampaignSnapshot } from "@bluewave/campaign";
+import type { CampaignState, CampaignSnapshot, NationState } from "@bluewave/campaign";
 import { SaveStore } from "../src/store.js";
 import {
   CompatibilityChecker,
@@ -82,6 +82,97 @@ describe("SaveStore", () => {
     expect(diagnostics.hasErrors).toBe(false);
 
     expect(loaded!["envelope"]["bodyHash"]).toBe(state.envelope.bodyHash);
+  });
+
+  it("round-trips Map-valued snapshot fields (nations, designs, designFamilies, activeCandidates)", () => {
+    const nation: NationState = {
+      id: "nation-a",
+      name: "Nation A",
+      tag: "NAT",
+      treasury: SafeInt(1000),
+      income: SafeInt(100),
+      expenses: SafeInt(50),
+      baseResources: SafeInt(10),
+      navalAppropriationRateBp: SafeInt(500),
+      maintenanceCost: SafeInt(20),
+      fleets: [],
+      divisions: [],
+      research: {
+        nationId: "nation-a",
+        technologies: [],
+        fieldPriorities: {},
+        researchBudget: SafeInt(0),
+        activeCandidates: new Map([
+          ["tech-1", "candidate-1"],
+          ["tech-2", "candidate-2"],
+        ]),
+        discoveredTechs: [],
+      },
+      constructionProjects: [],
+      isPlayable: true,
+      isAI: false,
+    };
+
+    const state = createFixtureState();
+    state.snapshot.nations = new Map([["nation-a", nation]]);
+    state.snapshot.designs = new Map([
+      [
+        "design-1",
+        {
+          designVersionId: "design-1",
+          designFamilyId: "family-1",
+          blockadedNationId: "nation-a",
+          areaId: "area-1",
+          establishedMonth: "1900-01",
+        },
+      ],
+    ]);
+    state.snapshot.designFamilies = new Map([
+      [
+        "family-1",
+        {
+          designFamilyId: "family-1",
+          nationId: "nation-a",
+          rootDesignVersionId: "design-1",
+          memberDesignVersionIds: ["design-1"],
+          familyCreationMonth: "1900-01",
+        },
+      ],
+    ]);
+    const envelope = createEnvelope(
+      "campaign-snapshot",
+      CURRENT_COMPATIBILITY_VERSION,
+      state.snapshot,
+    );
+    state.envelope = envelope;
+    state.rawHash = sha256Hex(canonicalSerialize({ snapshot: state.snapshot, envelope }));
+
+    store.save(state, tmpDir);
+
+    const diagnostics = new DiagnosticCollector();
+    const loaded = store.load(tmpDir, diagnostics);
+
+    expect(diagnostics.hasErrors).toBe(false);
+    expect(loaded).not.toBeNull();
+
+    expect(loaded!.snapshot.nations).toBeInstanceOf(Map);
+    expect(loaded!.snapshot.nations.size).toBe(1);
+    expect(loaded!.snapshot.nations.get("nation-a")).toEqual(nation);
+
+    expect(loaded!.snapshot.designs).toBeInstanceOf(Map);
+    expect(loaded!.snapshot.designs.get("design-1")).toEqual(
+      state.snapshot.designs.get("design-1"),
+    );
+
+    expect(loaded!.snapshot.designFamilies).toBeInstanceOf(Map);
+    expect(loaded!.snapshot.designFamilies.get("family-1")).toEqual(
+      state.snapshot.designFamilies.get("family-1"),
+    );
+
+    const loadedNation = loaded!.snapshot.nations.get("nation-a")!;
+    expect(loadedNation.research.activeCandidates).toBeInstanceOf(Map);
+    expect(loadedNation.research.activeCandidates.get("tech-1")).toBe("candidate-1");
+    expect(loadedNation.research.activeCandidates.get("tech-2")).toBe("candidate-2");
   });
 
   it("verifies hash matches between save and load", () => {
