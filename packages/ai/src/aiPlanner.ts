@@ -77,7 +77,11 @@ export class AiPlanner {
     // Fail-closed: slot must be AI
     const slotType = (slot as { type?: string }).type;
     // Some CampaignSlot shapes use `kind` or `controller`; be permissive but guard
-    if (slotType !== undefined && slotType !== "AI" && (slot as unknown as { controller?: string }).controller !== "AI") {
+    if (
+      slotType !== undefined &&
+      slotType !== "AI" &&
+      (slot as unknown as { controller?: string }).controller !== "AI"
+    ) {
       // If slot explicitly marks non-AI, do not plan
       if (slotType === "HUMAN" || slotType === "PLAYER") {
         return { envelopes, accepted, diagnostics };
@@ -277,10 +281,12 @@ export class AiPlanner {
     generator: AiCommandGenerator,
   ): CommandEnvelope<CommandBody> | undefined {
     const fields = CANONICAL_RESEARCH_FIELD_IDS;
-    if (!Array.isArray(fields) || fields.length === 0) return undefined;
-
     const n = fields.length;
-    const maxHigh = Math.min(toNumber(SafeInt(MAX_HIGH_PRIORITY_FIELDS) as unknown as SafeInt) || MAX_HIGH_PRIORITY_FIELDS as unknown as number, n);
+    const maxHigh = Math.min(
+      toNumber(SafeInt(MAX_HIGH_PRIORITY_FIELDS) as unknown as SafeInt) ||
+        (MAX_HIGH_PRIORITY_FIELDS as unknown as number),
+      n,
+    );
     // MAX_HIGH_PRIORITY_FIELDS is number constant; handle both SafeInt and number
     const maxHighClamped = Math.max(1, Math.min(maxHigh, n));
 
