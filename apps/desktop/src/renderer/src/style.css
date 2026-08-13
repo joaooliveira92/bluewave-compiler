@@ -44,7 +44,8 @@ button:disabled {
 #fileActions button {
   margin-bottom: 0;
 }
-#output {
+#output,
+#saveOutput {
   background: #16213e;
   border: 1px solid #0f3460;
   border-radius: 4px;
@@ -55,6 +56,12 @@ button:disabled {
   word-break: break-all;
   max-height: 500px;
   overflow-y: auto;
+}
+#saveStatus {
+  margin-top: 16px;
+  margin-bottom: 12px;
+  font-style: italic;
+  color: #a8d8ea;
 }
 .error {
   color: #e74c3c;
