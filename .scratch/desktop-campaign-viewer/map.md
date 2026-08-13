@@ -58,6 +58,25 @@ diagnostics-list/JSON-dump rendering pattern already used by `compile`. This is 
   `@bluewave/persistence` and `zod` as `apps/desktop` dependencies. Surfaced but
   did not fix: `SaveStore.save` silently drops Map-valued fields on serialize
   (pre-existing bug in `@bluewave/persistence`, separate from this track).
+- Ticket 02 (`issues/02-rendered-snapshot-shape.md`, resolved): MVP renders a
+  curated subset only — `{ turnNumber, campaignId, nations, wars, diplomacy:
+  politics.relations }` — omitting `world`, `intelligence`, `designs`,
+  `designFamilies`, and `politics.shells` (still-unmodeled stub bags). Strictly
+  `JSON.stringify(subset, null, 2)`, no formatting/summarization. Rendered into a
+  dedicated `#saveStatus`/`#saveOutput` pair, not the shared `compile` output.
+- Ticket 03 (`issues/03-load-save-ui-placement.md`, resolved): tabbed "Editor" /
+  "Campaign Save Viewer" split (Variant C, chosen live over the initially-favored
+  Variant A after prototype comparison). Action labeled "Load Campaign Save";
+  tabs are not mutually exclusive — a project can stay open on Editor while a
+  save is loaded on Viewer. Folded directly into production (`index.html`,
+  `main.ts`), prototype lived on `prototype/desktop-load-save-ui-placement`.
+- Ticket 04 (`issues/04-savestore-map-serialization-bug.md`, resolved): the
+  `SaveStore.save` Map-dropping bug (surfaced by ticket 01) is deferred, not
+  fixed on this map — it's a `@bluewave/persistence` data-integrity defect, not
+  a viewer defect. The milestone brief must carry a "Known Limitations" section
+  stating that saves written before persistence is fixed will render with an
+  empty `nations`/`designs`/`designFamilies` block. Follow-up bug ticket against
+  `@bluewave/persistence` is separate, not chartered here.
 
 ## Not yet specified
 
@@ -74,3 +93,6 @@ diagnostics-list/JSON-dump rendering pattern already used by `compile`. This is 
 - Running/advancing the campaign engine (turns) from the desktop app, and writing
   new saves from the UI — read-only means loading existing `SaveStore` saves only,
   not producing them.
+- Fixing `SaveStore.save`'s Map-serialization bug (ticket 04) — a
+  `@bluewave/persistence` data-integrity defect, not something this `apps/desktop`
+  side track owns. Tracked as a known limitation in the milestone brief instead.
