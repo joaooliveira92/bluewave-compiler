@@ -11,7 +11,8 @@ export const GUNNERY_FIRE_CONTROL_SOLUTION_INSUFFICIENT =
 export const GUNNERY_ACCURACY_FACTOR_MISSING = "GUNNERY_ACCURACY_FACTOR_MISSING" as const;
 export const GUNNERY_RATE_FACTOR_MISSING = "GUNNERY_RATE_FACTOR_MISSING" as const;
 export const GUN_QUALITY_OUT_OF_RANGE = "GUN_QUALITY_OUT_OF_RANGE" as const;
-// GUNNERY_AMMUNITION_UNAVAILABLE (INC-4) ships in its owning increment.
+// AC-7 (§28): a salvo cannot be fully reserved from any permitted ammunition type.
+export const GUNNERY_AMMUNITION_UNAVAILABLE = "GUNNERY_AMMUNITION_UNAVAILABLE" as const;
 // RAPID / AA_TRACKING / AA_BARRAGE eligibility predicates are DEFERRED to a later
 // slice (DESIGN-39 §2, spec §3 straddle/AA). A firing guard reports this deferred
 // predicate rather than fabricating one (AC-2).
@@ -25,5 +26,6 @@ export const GUNNERY_REASON_CODES = {
   GUNNERY_ACCURACY_FACTOR_MISSING,
   GUNNERY_RATE_FACTOR_MISSING,
   GUN_QUALITY_OUT_OF_RANGE,
+  GUNNERY_AMMUNITION_UNAVAILABLE,
   GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED,
 } as const;

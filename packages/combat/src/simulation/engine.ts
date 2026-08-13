@@ -28,8 +28,10 @@ import {
   type TacticalContact,
 } from "../contact/lifecycle.js";
 import { BattleLedger, type BattleEvent } from "../battleLedger.js";
+import { resolveGunnery, type GunneryBattery } from "../gunnery/index.js";
 import { SUBSTEPS_PER_MINUTE } from "../movement/constants.js";
 import type { TacticalBattleState } from "../tactical/index.js";
+import type { GunneryState } from "../gunnery/index.js";
 
 export interface UnitOrders {
   orderedHeading: number;
@@ -44,6 +46,10 @@ export interface AdvanceMinuteInput {
   orders?: Record<string, UnitOrders>;
   attackRangeUm?: number;
   engine?: RandomEngine;
+  // Optional surface-gunnery batteries (DESIGN-39 / B-3 INC-4) to resolve after
+  // spotting (step 8). When absent or empty, gunnery resolution is a strict no-op:
+  // zero events appended, minute snapshot/minuteHash byte-identical to the baseline.
+  gunnery?: GunneryBattery[];
 }
 
 export interface MinuteResult {
@@ -52,6 +58,9 @@ export interface MinuteResult {
   contacts: TacticalContact[];
   events: BattleEvent[];
   minuteHash: string;
+  // Updated per-battery GunneryState (batteryId -> state) after this minute's
+  // gunnery stage. Present only when gunnery batteries were supplied.
+  gunneryStates?: Record<string, GunneryState>;
 }
 
 // atomic mutable snapshot used through one minute.
@@ -234,6 +243,24 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
   const afterContacts = [...byKey.values()];
   ledger.append(evt(minute, 0, "resolve_sensors_spotting", 8, "pipeline", battleId));
 
+  // Step 8.5 (DESIGN-39 / B-3 INC-4): surface-gunnery resolution AFTER spotting,
+  // using the just-updated legal contact tracks. Strict no-op when no batteries are
+  // supplied (no gunneryState on any unit) -> zero events appended, so the minute
+  // snapshot/minuteHash remain byte-identical to the pre-INC-4 output (AC-15).
+  let gunneryStates: Record<string, GunneryState> | undefined;
+  const gunneryBatteries = input.gunnery ?? [];
+  if (gunneryBatteries.length > 0) {
+    const gres = resolveGunnery({
+      battleId,
+      minute,
+      batteries: gunneryBatteries,
+      contacts: afterContacts,
+      engine: input.engine,
+    });
+    for (const ge of gres.events) ledger.append(ge);
+    gunneryStates = gres.nextStates;
+  }
+
   const events = ledger.sorted();
   const snapshot = {
     battleId,
@@ -271,6 +298,7 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     contacts: afterContacts,
     events: ledger.sorted(),
     minuteHash,
+    ...(gunneryStates ? { gunneryStates } : {}),
   };
 }
 
@@ -283,6 +311,7 @@ export interface AdvanceMinutesInput {
   orders?: Record<string, UnitOrders>;
   attackRangeUm?: number;
   engine?: RandomEngine;
+  gunnery?: GunneryBattery[];
 }
 export interface AdvanceMinutesResult {
   results: MinuteResult[];
@@ -291,6 +320,7 @@ export interface AdvanceMinutesResult {
 }
 export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult {
   const results: MinuteResult[] = [];
+  let gunnery = input.gunnery;
   let state: TacticalBattleState = {
     ...input.state,
     contacts: [...(input.state.contacts ?? [])],
@@ -304,6 +334,7 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
       orders: input.orders,
       attackRangeUm: input.attackRangeUm,
       engine: input.engine,
+      gunnery,
     });
     results.push(res);
     state = {
@@ -313,6 +344,14 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
         Object.entries(res.movementStates).map(([k, v]) => [k, { ...v }]),
       ),
     };
+    // Thread the updated battery states into the next minute so ammunition/reload
+    // progress persists deterministically across minutes.
+    if (res.gunneryStates && gunnery) {
+      gunnery = gunnery.map((b) => {
+        const ns = res.gunneryStates![b.id];
+        return ns ? { ...b, state: ns } : b;
+      });
+    }
   }
   return {
     results,
