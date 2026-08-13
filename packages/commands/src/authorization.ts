@@ -1,5 +1,5 @@
-import { sha256Hex, canonicalSerialize } from "@bluewave/deterministic";
-import type { CommandRecord, CommandTypeDefinition, CommandAuthorizationRecord } from "./types.js";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import type { CommandAuthorizationRecord, CommandRecord, CommandTypeDefinition } from "./types.js";
 
 export interface AuthorizationContext {
   ownershipValid: boolean;

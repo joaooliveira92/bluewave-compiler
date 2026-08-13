@@ -1,15 +1,9 @@
-//packages/combat/src/gunnery/modes.ts
-// DESIGN-39 §2 canonical fire modes as a closed union with a per-mode record. Each
-// mode declares ammunition use, reload behavior, accuracy behavior, target
-// eligibility, fire-control requirements, and cancellation behavior. RAPID /
-// AA_TRACKING / AA_BARRAGE are DEFINED but their eligibility predicates are DEFERRED
-// to a later slice — a firing guard reports the deferred predicate (via
-// GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED) rather than fabricating one (AC-2).
+// packages/combat/src/gunnery/modes.ts
 import { BluewaveError } from "@bluewave/contracts";
 import {
   FIRE_MODES,
-  SURFACE_FIRE_CONTROL_MINIMUM_BP,
   type FireMode,
+  SURFACE_FIRE_CONTROL_MINIMUM_BP,
 } from "./constants.js";
 import {
   GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED,
@@ -19,30 +13,28 @@ import {
 import { assertFixedPointGunnery, type GunneryState } from "./state.js";
 
 export interface FireModeDefinition {
-  mode: FireMode;
-  ammunitionUse: string;
-  reloadBehavior: string;
-  accuracyBehavior: string;
-  targetEligibility: string;
-  fireControlRequirements: string;
-  cancellationBehavior: string;
-  /** true when the mode's eligibility predicate is deferred to a later slice. */
-  eligibilityPredicateDeferred: boolean;
-  /** reason code reported by the firing guard when the predicate is deferred. */
-  deferredReason: string | null;
+  readonly mode: FireMode;
+  readonly ammunitionUse: string;
+  readonly reloadBehavior: string;
+  readonly accuracyBehavior: string;
+  readonly targetEligibility: string;
+  readonly fireControlRequirements: string;
+  readonly cancellationBehavior: string;
+  readonly eligibilityPredicateDeferred: boolean;
+  readonly deferredReason: string | null;
 }
 
-const DEFERRED = {
+const DEFERRED = Object.freeze({
   eligibilityPredicateDeferred: true,
   deferredReason: GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED,
-} as const;
-const IMPLEMENTED = {
+} as const);
+const IMPLEMENTED = Object.freeze({
   eligibilityPredicateDeferred: false,
   deferredReason: null,
-} as const;
+} as const);
 
-export const FIRE_MODE_DEFINITIONS: Record<FireMode, FireModeDefinition> = {
-  CEASE_FIRE: {
+export const FIRE_MODE_DEFINITIONS: Record<FireMode, FireModeDefinition> = Object.freeze({
+  CEASE_FIRE: Object.freeze({
     mode: "CEASE_FIRE",
     ammunitionUse: "none — no salvo may fire.",
     reloadBehavior: "reload progress is preserved (no advance, no decay).",
@@ -51,8 +43,8 @@ export const FIRE_MODE_DEFINITIONS: Record<FireMode, FireModeDefinition> = {
     fireControlRequirements: "none required (cease-fire suppresses engagement).",
     cancellationBehavior: "immediately cancels any pending salvo; overrides all other modes.",
     ...IMPLEMENTED,
-  },
-  RANGING: {
+  }),
+  RANGING: Object.freeze({
     mode: "RANGING",
     ammunitionUse: "spotting/common shell only; conserves heavy ammunition.",
     reloadBehavior: "standard reload cycle.",
@@ -62,8 +54,8 @@ export const FIRE_MODE_DEFINITIONS: Record<FireMode, FireModeDefinition> = {
       "minimum surface fire-control solution (SURFACE_FIRE_CONTROL_MINIMUM_BP).",
     cancellationBehavior: "cancelled on target loss, solution loss, or mode change.",
     ...IMPLEMENTED,
-  },
-  NORMAL: {
+  }),
+  NORMAL: Object.freeze({
     mode: "NORMAL",
     ammunitionUse: "standard mixed salvo per ammunition policy.",
     reloadBehavior: "standard reload cycle.",
@@ -73,8 +65,8 @@ export const FIRE_MODE_DEFINITIONS: Record<FireMode, FireModeDefinition> = {
       "minimum surface fire-control solution (SURFACE_FIRE_CONTROL_MINIMUM_BP).",
     cancellationBehavior: "cancelled on target loss, solution loss, or mode change.",
     ...IMPLEMENTED,
-  },
-  RAPID: {
+  }),
+  RAPID: Object.freeze({
     mode: "RAPID",
     ammunitionUse: "accelerated ammunition expenditure (autoloader policy §7).",
     reloadBehavior: "rapid reload cycle only while eligible (§7).",
@@ -85,8 +77,8 @@ export const FIRE_MODE_DEFINITIONS: Record<FireMode, FireModeDefinition> = {
     cancellationBehavior:
       "ends immediately on target loss/change, solution loss, mode change, autoloader damage, or feed interruption (§7).",
     ...DEFERRED,
-  },
-  AA_TRACKING: {
+  }),
+  AA_TRACKING: Object.freeze({
     mode: "AA_TRACKING",
     ammunitionUse: "AA-compatible ammunition only (§9).",
     reloadBehavior: "sustained AA reload multiplier (§9).",
@@ -96,8 +88,8 @@ export const FIRE_MODE_DEFINITIONS: Record<FireMode, FireModeDefinition> = {
     fireControlRequirements: "AA fire-control solution (§9) — DEFERRED.",
     cancellationBehavior: "cancelled on target loss, AA solution loss, or role switch (§15).",
     ...DEFERRED,
-  },
-  AA_BARRAGE: {
+  }),
+  AA_BARRAGE: Object.freeze({
     mode: "AA_BARRAGE",
     ammunitionUse:
       "heavy AA-compatible ammunition expenditure; short-burst limit of 2 tactical minutes (§9).",
@@ -108,8 +100,8 @@ export const FIRE_MODE_DEFINITIONS: Record<FireMode, FireModeDefinition> = {
     fireControlRequirements: "AA fire-control solution (§9) — DEFERRED.",
     cancellationBehavior: "cancelled on target loss, burst-window expiry, or role switch.",
     ...DEFERRED,
-  },
-  LOCAL_CONTROL: {
+  }),
+  LOCAL_CONTROL: Object.freeze({
     mode: "LOCAL_CONTROL",
     ammunitionUse: "standard selection at crew discretion within command-legal ammo.",
     reloadBehavior: "standard reload cycle.",
@@ -119,11 +111,11 @@ export const FIRE_MODE_DEFINITIONS: Record<FireMode, FireModeDefinition> = {
       "minimum surface fire-control solution (SURFACE_FIRE_CONTROL_MINIMUM_BP).",
     cancellationBehavior: "cancelled on target loss, solution loss, or return to central control.",
     ...IMPLEMENTED,
-  },
-};
+  }),
+} as Record<FireMode, FireModeDefinition>);
 
 export function assertFireModeClosed(mode: string): asserts mode is FireMode {
-  if (!(FIRE_MODES as readonly string[]).includes(mode)) {
+  if (typeof mode !== "string" || !(FIRE_MODES as readonly string[]).includes(mode)) {
     throw new BluewaveError(INVALID_GUNNERY_STATE, {
       code: INVALID_GUNNERY_STATE,
       mode,
@@ -133,6 +125,7 @@ export function assertFireModeClosed(mode: string): asserts mode is FireMode {
 }
 
 export function getFireModeDefinition(mode: FireMode): FireModeDefinition {
+  assertFireModeClosed(mode);
   return FIRE_MODE_DEFINITIONS[mode];
 }
 
@@ -144,10 +137,19 @@ export function getFireModeDefinition(mode: FireMode): FireModeDefinition {
 // no-fire mode and passes trivially.
 export function assertFireModeEligible(mode: FireMode, state: GunneryState): void {
   assertFixedPointGunnery(state);
+  assertFireModeClosed(mode);
   const def = FIRE_MODE_DEFINITIONS[mode];
+  if (!def) {
+    throw new BluewaveError(INVALID_GUNNERY_STATE, {
+      code: INVALID_GUNNERY_STATE,
+      mode,
+      reason: "not a canonical DESIGN-39 §2 fire mode",
+    });
+  }
   if (def.eligibilityPredicateDeferred) {
-    throw new BluewaveError(def.deferredReason!, {
-      code: def.deferredReason!,
+    const reason = def.deferredReason ?? GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED;
+    throw new BluewaveError(reason, {
+      code: reason,
       mode,
       reason: "eligibility predicate deferred to a later slice (never fabricated)",
     });

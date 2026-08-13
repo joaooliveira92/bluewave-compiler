@@ -1,6 +1,6 @@
-import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import type { CommandTypeDefinition, CancellationPolicy } from "./types.js";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import type { CancellationPolicy, CommandTypeDefinition } from "./types.js";
 import { ISSUER_CLASSES } from "./types.js";
 
 const REQUIRED_FIELDS: (keyof CommandTypeDefinition)[] = [
