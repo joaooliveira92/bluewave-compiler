@@ -308,6 +308,37 @@ there. Implementations **MUST NOT** silently resolve an open decision.
 > minute-advance simulation engine, versioned constants/reason codes/content
 > constants (INC-1..5).
 
+### B-3 — M2 Gunnery (core surface fire-resolution)
+
+> **Status (2026-08-13): SCOPING DONE + IMPL INC-1..4 DONE — PASS.** Scoped DESIGN-39
+> (`docs/rules/gunnery.md`) to an engine-only deterministic surface gunnery
+> fire-resolution slice (committed `fd3fabe`): map `.scratch/b3-m2-gunnery/map.md`,
+> decision tickets `issues/01..06`, spec (AC-1..15, INC-1..5), brief
+> `.ai/briefs/b3-m2-gunnery.md`, research `docs/research/b3-m2-gunnery.md`
+> (naval gun ballistics), `.ai/specs/b3-m2-gunnery.md`. **INC-1..4 committed
+> (`9777180`, `e85efb9`, `33e721e`, `7cc73f8`):** `GunneryState` + 7 fire modes +
+> fixed-point guards + `gunnery_v1` contract; accuracy (17-factor manifest, exact
+> integer product, one FLOOR, `GUNNERY_ACCURACY_FACTOR_MISSING`, keyed hit-draw);
+> rate-of-fire/reload (integer ms, CEIL, §4 order 1-11) + gun-quality -3..+2 table;
+> salvo/event → immutable `GunneryEventRecord` + §31 canonical ordering + atomic
+> ammunition (`GUNNERY_AMMUNITION_UNAVAILABLE`) + `resolveGunnery` wired after
+> spotting in the minute-advance simulation (**strict no-op when no batteries → B-2
+> hashes unchanged**) + fog-of-war target legality + two-process determinism.
+> Combat suite 43 files / 297 tests green; tsc + lint clean; goldens 9/9 unchanged;
+> `BattleResolver`/`StrengthCalculator` unmodified. **IMPL STATUS: INC-5 pending** —
+> reason-code set-equality vs §32 + catalog, `*_v1` contracts rollup, ADR-0020
+> (scope boundary + in-slice constant/reason-code policy incl.
+> `SURFACE_FIRE_CONTROL_MINIMUM_BP=2_000`, seeded ammo set, new
+> `GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED`), full orchestrator gate + report
+> `.ai/reports/b3-m2-gunnery-impl.md`. **CAVEAT:** concurrent external commits
+> (`b65154f`, `d1e5403`) + uncommitted `packages/ai/*` edits appeared during the
+> sprint; reconcile the ai working tree before the full-repo gate.
+>
+> **Deferred (recorded, not dropped):** autoloaders (§6-10), dual-purpose (§11-15) —
+> later gunnery slices; armor zones/thickness/penetration (§16-24) → **B-4**
+> armor-and-damage; straddle (§25) + RAPID/AA eligibility predicates; target
+> allocation (§26-27); damage effects (§29) → B-4/DAMAGE; phase wiring (B-6).
+
 ### M1 — Strategic Campaign Kernel (A-5 acceptance gate)
 
 > **Status (2026-08-12): COMPLETED.** Formal M1 acceptance gate applied
