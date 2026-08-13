@@ -4,7 +4,7 @@
 // mirroring packages/combat/src/movement/constants.ts. Fail-closed on mismatch.
 // Grounded in docs/research/b3-m2-gunnery.md and recorded in the B-3 ADR (INC-5).
 import { BluewaveError } from "@bluewave/contracts";
-import { GUNNERY_STATE_INVARIANT_FAILED } from "./reasonCodes.js";
+import { GUNNERY_RATE_FACTOR_MISSING, GUNNERY_STATE_INVARIANT_FAILED } from "./reasonCodes.js";
 
 export const gunneryPolicyId = "gunnery_v1" as const;
 
@@ -28,11 +28,7 @@ export const SURFACE_FIRE_CONTROL_MINIMUM_BP = 2_000 as const;
 
 // Canonial ammunition types tracked by exact integer count (DESIGN-39 §28). Seed
 // set for this slice; a future ammunition slice may extend under a new version.
-export const AMMUNITION_TYPES = [
-  "ARMOR_PIERCING",
-  "COMMON",
-  "HIGH_EXPLOSIVE",
-] as const;
+export const AMMUNITION_TYPES = ["ARMOR_PIERCING", "COMMON", "HIGH_EXPLOSIVE"] as const;
 export type AmmunitionType = (typeof AMMUNITION_TYPES)[number];
 
 // The seven canonical fire modes (DESIGN-39 §2). Closed union; see modes.ts for the
@@ -95,10 +91,7 @@ export const GUNNERY_ACCURACY_ROUNDING = "floor" as const;
 
 // Authored neutral constants for the non-slice factors pinned until their owning
 // modifier track lands. Explicit names (not invented behavior); all neutral 10_000.
-export const GUNNERY_ACCURACY_NEUTRAL_FACTORS: Record<
-  GunneryAccuracyFactorKey,
-  number
-> = {
+export const GUNNERY_ACCURACY_NEUTRAL_FACTORS: Record<GunneryAccuracyFactorKey, number> = {
   fireControl: NEUTRAL_ACCURACY_MULTIPLIER_BP,
   crew: NEUTRAL_ACCURACY_MULTIPLIER_BP,
   officer: NEUTRAL_ACCURACY_MULTIPLIER_BP,
@@ -344,8 +337,7 @@ export function validateGunneryRateContract(
     throwRateMismatch(c, "gunnery_rate_v1 neutral multiplier");
   if (c.scaleExponent !== GUNNERY_RATE_SCALE_EXPONENT)
     throwRateMismatch(c, "gunnery_rate_v1 scale exponent");
-  if (c.rounding !== GUNNERY_RATE_ROUNDING)
-    throwRateMismatch(c, "gunnery_rate_v1 rounding mode");
+  if (c.rounding !== GUNNERY_RATE_ROUNDING) throwRateMismatch(c, "gunnery_rate_v1 rounding mode");
   if (c.rulesetVersion !== GUNNERY_RULESET_VERSION || c.formulaVersion !== GUNNERY_FORMULA_VERSION)
     throwRateMismatch(c, "gunnery_rate_v1 ruleset/formula versions");
 }
@@ -437,4 +429,103 @@ export function validateGunQualityContract(
     throwGunQualityMismatch(c, "gun_quality_v1 shipped multiplier table");
   if (c.rulesetVersion !== GUNNERY_RULESET_VERSION || c.formulaVersion !== GUNNERY_FORMULA_VERSION)
     throwGunQualityMismatch(c, "gun_quality_v1 ruleset/formula versions");
+}
+
+// ---------------------------------------------------------------------------
+// Naval gun ballistics constant set (INC-5 content deliverable). baseReloadMs
+// by broad caliber, research-grounded in docs/research/b3-m2-gunnery.md §1
+// (NavWeaps-compiled per-gun cyclic-rate figures). Six calibers are directly
+// grounded; the 1880s RML heavy-gun caliber has no primary-sourced precise
+// integer (source: "1-5 min/round", no single table pins one figure) and is
+// authored as an explicit BALANCE TARGET at the midpoint of the research-
+// recommended 120_000-300_000 ms range — recorded in ADR-0020, never silently
+// invented (ENGINEERING-CONTRACT failure policy).
+export const gunneryBallisticsPolicyId = "gunnery_ballistics_v1" as const;
+
+export const GUNNERY_CALIBERS = [
+  "CAL_6IN_152MM",
+  "CAL_8IN_203MM",
+  "CAL_12IN_305MM",
+  "CAL_14IN_356MM",
+  "CAL_15IN_381MM",
+  "CAL_16IN_406MM",
+  "CAL_RML_HEAVY_1880",
+] as const;
+export type GunneryCaliber = (typeof GUNNERY_CALIBERS)[number];
+
+// DESIGN-39 §4 baseReloadMilliseconds by broad caliber (research doc §1 table).
+export const BASE_RELOAD_MS_BY_CALIBER: Record<GunneryCaliber, number> = {
+  CAL_6IN_152MM: 7_000,
+  CAL_8IN_203MM: 18_000,
+  CAL_12IN_305MM: 25_000,
+  CAL_14IN_356MM: 36_000,
+  CAL_15IN_381MM: 35_000,
+  CAL_16IN_406MM: 40_000,
+  // BALANCE TARGET (ADR-0020): 1880s scen_1880 muzzle-loading heavy guns have no
+  // primary-sourced precise integer; authored at the midpoint of the grounded
+  // 120_000-300_000 ms (2-5 min/round) range.
+  CAL_RML_HEAVY_1880: 210_000,
+};
+
+export interface GunneryBallisticsContract {
+  policyId: string;
+  calibers: readonly GunneryCaliber[];
+  baseReloadMsByCaliber: Record<GunneryCaliber, number>;
+  rulesetVersion: string;
+  formulaVersion: string;
+}
+
+export const SHIPPED_GUNNERY_BALLISTICS_CONTRACT: GunneryBallisticsContract = {
+  policyId: gunneryBallisticsPolicyId,
+  calibers: GUNNERY_CALIBERS,
+  baseReloadMsByCaliber: BASE_RELOAD_MS_BY_CALIBER,
+  rulesetVersion: GUNNERY_RULESET_VERSION,
+  formulaVersion: GUNNERY_FORMULA_VERSION,
+};
+
+function throwBallisticsMismatch(contract: unknown, reason: string): never {
+  throw new BluewaveError(GUNNERY_STATE_INVARIANT_FAILED, {
+    code: GUNNERY_STATE_INVARIANT_FAILED,
+    contract,
+    reason,
+  });
+}
+
+function baseReloadTableEquals(
+  a: Record<GunneryCaliber, number>,
+  b: Record<GunneryCaliber, number>,
+): boolean {
+  return GUNNERY_CALIBERS.every((c) => a[c] === b[c]);
+}
+
+export function validateGunneryBallisticsContract(
+  c: Partial<GunneryBallisticsContract> | null | undefined,
+): asserts c is GunneryBallisticsContract {
+  if (!c) throwBallisticsMismatch(c, "gunnery_ballistics_v1 missing contract");
+  if (c.policyId !== gunneryBallisticsPolicyId)
+    throwBallisticsMismatch(c, "gunnery_ballistics_v1 expectant policy id");
+  if (!c.calibers || !arrayEquals(c.calibers, GUNNERY_CALIBERS))
+    throwBallisticsMismatch(c, "gunnery_ballistics_v1 caliber set");
+  if (
+    !c.baseReloadMsByCaliber ||
+    !baseReloadTableEquals(c.baseReloadMsByCaliber, BASE_RELOAD_MS_BY_CALIBER)
+  )
+    throwBallisticsMismatch(c, "gunnery_ballistics_v1 base reload ms table");
+  if (c.rulesetVersion !== GUNNERY_RULESET_VERSION || c.formulaVersion !== GUNNERY_FORMULA_VERSION)
+    throwBallisticsMismatch(c, "gunnery_ballistics_v1 ruleset/formula versions");
+}
+
+// Fail-closed lookup: baseReloadMilliseconds for a shipped caliber. An unknown
+// caliber fails with GUNNERY_RATE_FACTOR_MISSING (never a silent default),
+// mirroring the "no silent fallback" policy for every other §4 rate factor.
+export function baseReloadMsForCaliber(caliber: string): number {
+  if (!(GUNNERY_CALIBERS as readonly string[]).includes(caliber)) {
+    throw new BluewaveError(GUNNERY_RATE_FACTOR_MISSING, {
+      code: GUNNERY_RATE_FACTOR_MISSING,
+      factorKey: "baseReloadMs",
+      reason: "unknown gunnery caliber — no shipped baseReloadMilliseconds for this caliber",
+      value: caliber,
+    });
+  }
+  return BASE_RELOAD_MS_BY_CALIBER[caliber as GunneryCaliber];
 }
