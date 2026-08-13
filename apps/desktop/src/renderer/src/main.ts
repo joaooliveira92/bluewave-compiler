@@ -45,6 +45,10 @@ const statusEl = document.getElementById("status") as HTMLDivElement;
 const outputEl = document.getElementById("output") as HTMLDivElement;
 const saveStatusEl = document.getElementById("saveStatus") as HTMLDivElement;
 const saveOutputEl = document.getElementById("saveOutput") as HTMLDivElement;
+const editorTabBtn = document.getElementById("editorTabBtn") as HTMLButtonElement;
+const viewerTabBtn = document.getElementById("viewerTabBtn") as HTMLButtonElement;
+const editorTab = document.getElementById("editorTab") as HTMLDivElement;
+const viewerTab = document.getElementById("viewerTab") as HTMLDivElement;
 
 let projectName: string | null = null;
 
@@ -229,9 +233,25 @@ async function handleLoadCampaignSave(): Promise<void> {
   }
 }
 
+function showEditorTab(): void {
+  editorTabBtn.classList.add("active");
+  viewerTabBtn.classList.remove("active");
+  editorTab.classList.remove("hidden");
+  viewerTab.classList.add("hidden");
+}
+
+function showViewerTab(): void {
+  viewerTabBtn.classList.add("active");
+  editorTabBtn.classList.remove("active");
+  viewerTab.classList.remove("hidden");
+  editorTab.classList.add("hidden");
+}
+
 newBtn.addEventListener("click", handleNew);
 openBtn.addEventListener("click", handleOpen);
 saveBtn.addEventListener("click", handleSave);
 saveAsBtn.addEventListener("click", handleSaveAs);
 compileBtn.addEventListener("click", handleCompile);
 loadSaveBtn.addEventListener("click", handleLoadCampaignSave);
+editorTabBtn.addEventListener("click", showEditorTab);
+viewerTabBtn.addEventListener("click", showViewerTab);

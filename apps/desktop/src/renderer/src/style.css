@@ -72,3 +72,33 @@ button:disabled {
 .info {
   color: #3498db;
 }
+.hidden {
+  display: none;
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #0f3460;
+}
+.tabs .tab {
+  margin-bottom: 0;
+  border-radius: 4px 4px 0 0;
+  background: transparent;
+  border: 1px solid transparent;
+}
+.tabs .tab.active {
+  background: #16213e;
+  border-color: #0f3460;
+  border-bottom-color: #16213e;
+  color: #a8d8ea;
+}
+.banner-info {
+  background: #16213e;
+  border: 1px solid #0f3460;
+  color: #a8d8ea;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+}
