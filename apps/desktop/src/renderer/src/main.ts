@@ -18,12 +18,14 @@ interface ProjectResult {
 interface ElectronAPI {
   compile: (dirPath?: string) => Promise<CompileResult>;
   openProject: () => Promise<ProjectResult>;
+  newProject: () => Promise<ProjectResult>;
   saveProject: () => Promise<ProjectResult>;
   saveProjectAs: () => Promise<ProjectResult>;
 }
 
 const api = (window as unknown as { electronAPI: ElectronAPI }).electronAPI;
 
+const newBtn = document.getElementById("newBtn") as HTMLButtonElement;
 const openBtn = document.getElementById("openBtn") as HTMLButtonElement;
 const saveBtn = document.getElementById("saveBtn") as HTMLButtonElement;
 const saveAsBtn = document.getElementById("saveAsBtn") as HTMLButtonElement;
@@ -60,6 +62,23 @@ async function handleOpen(): Promise<void> {
     }
     setProjectUi(result.name ?? null);
     setStatus(`Opened project "${result.name}" (${result.path})`, "success");
+    outputEl.className = "";
+    outputEl.textContent = "";
+  } catch (err) {
+    setError(err instanceof Error ? err.message : String(err));
+  }
+}
+
+async function handleNew(): Promise<void> {
+  try {
+    const result = await api.newProject();
+    if (result.canceled) return;
+    if (!result.ok) {
+      setError(`Could not create project: ${result.error ?? "unknown error"}`);
+      return;
+    }
+    setProjectUi(result.name ?? null);
+    setStatus(`Created project "${result.name}" from ${result.path}`, "success");
     outputEl.className = "";
     outputEl.textContent = "";
   } catch (err) {
@@ -137,6 +156,7 @@ async function handleCompile(): Promise<void> {
   }
 }
 
+newBtn.addEventListener("click", handleNew);
 openBtn.addEventListener("click", handleOpen);
 saveBtn.addEventListener("click", handleSave);
 saveAsBtn.addEventListener("click", handleSaveAs);

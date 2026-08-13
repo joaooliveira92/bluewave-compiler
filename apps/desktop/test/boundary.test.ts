@@ -18,6 +18,7 @@ describe("B9 Electron boundary (criteria 4-6)", () => {
     const allowed = [
       'ipcMain.handle("compile"',
       'ipcMain.handle("project:open"',
+      'ipcMain.handle("project:new"',
       'ipcMain.handle("project:save"',
       'ipcMain.handle("project:save-as"',
       'ipcMain.handle("campaign:load-save"',
@@ -37,6 +38,7 @@ describe("B9 Electron boundary (criteria 4-6)", () => {
     const allowed = [
       "compile:",
       "openProject:",
+      "newProject:",
       "saveProject:",
       "saveProjectAs:",
       "loadCampaignSave:",

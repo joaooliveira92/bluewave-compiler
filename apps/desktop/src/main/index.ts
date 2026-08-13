@@ -65,6 +65,23 @@ async function handleOpenProject(_event: Electron.IpcMainInvokeEvent): Promise<P
   }
 }
 
+async function handleNewProject(_event: Electron.IpcMainInvokeEvent): Promise<ProjectResult> {
+  const dir = await openDirectoryDialog();
+  if (!dir) {
+    return { ok: false, canceled: true };
+  }
+  try {
+    const project = loadContentDirectory(dir);
+    openProject = project;
+    openProjectPath = null;
+    workingDir = dir;
+    return { ok: true, name: project.name, path: dir };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: message };
+  }
+}
+
 async function handleSaveProject(
   _event: Electron.IpcMainInvokeEvent,
   mode: "save" | "save-as",
@@ -165,6 +182,7 @@ function createWindow(): void {
 void app.whenReady().then(() => {
   ipcMain.handle("compile", handleCompile);
   ipcMain.handle("project:open", handleOpenProject);
+  ipcMain.handle("project:new", handleNewProject);
   ipcMain.handle("project:save", (_e) => handleSaveProject(_e, "save"));
   ipcMain.handle("project:save-as", (_e) => handleSaveProject(_e, "save-as"));
   ipcMain.handle("campaign:load-save", handleLoadCampaignSave);

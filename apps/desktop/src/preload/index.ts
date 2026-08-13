@@ -41,6 +41,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openProject: (): Promise<ProjectResult> => {
     return ipcRenderer.invoke("project:open");
   },
+  newProject: (): Promise<ProjectResult> => {
+    return ipcRenderer.invoke("project:new");
+  },
   saveProject: (): Promise<ProjectResult> => {
     return ipcRenderer.invoke("project:save");
   },
