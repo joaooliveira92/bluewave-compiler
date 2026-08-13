@@ -245,3 +245,196 @@ export function validateGunneryAccuracyContract(
   if (c.rulesetVersion !== GUNNERY_RULESET_VERSION || c.formulaVersion !== GUNNERY_FORMULA_VERSION)
     throwAccuracyMismatch(c, "gunnery_accuracy_v1 ruleset/formula versions");
 }
+
+// ---------------------------------------------------------------------------
+// DESIGN-39 §4 Rate-of-fire factor manifest (INC-3). The 11 multiplier factors
+// apply in the §4 order 1-11 (gun-quality → mount → autoloader → crew →
+// technology → turn-state → sea-state → smoke → damage → range/fire-control-cycle
+// → ammunition-state). effectiveReloadMs = ceil(baseReloadMs * 10_000^n /
+// Π rateMultipliersBp) where n = number of applied rate multipliers. Every factor
+// MUST be explicit + versioned; a missing/undefined factor (other than gun-quality,
+// which a definition MAY legally omit via a no-rate-effect declaration, DESIGN-39
+// §5) fails with GUNNERY_RATE_FACTOR_MISSING (never a silent 10_000 fallback).
+// Deferred factors (mount/autoloader/turn-state/sea-state/smoke/damage/
+// range-cycle/ammunition-state) are pinned to neutral 10_000 as authored constants
+// until their owning modifier track lands — not invented behavior.
+export const gunneryRatePolicyId = "gunnery_rate_v1" as const;
+
+// Ordered canonical rate multiplier factor manifest (DESIGN-39 §4 order 1-11).
+export const GUNNERY_RATE_FACTOR_KEYS = [
+  "gunQuality",
+  "mount",
+  "autoloader",
+  "crew",
+  "technology",
+  "turnState",
+  "seaState",
+  "smoke",
+  "damage",
+  "rangeOrFireControlCycle",
+  "ammunitionState",
+] as const;
+export type GunneryRateFactorKey = (typeof GUNNERY_RATE_FACTOR_KEYS)[number];
+
+// Neutral multiplier for each factor (1.0 basis-point scale).
+export const NEUTRAL_RATE_MULTIPLIER_BP = 10_000 as const;
+
+// The §4 exponent (11 multipliers) and rounding mode (CEIL, contrasting accuracy's FLOOR).
+export const GUNNERY_RATE_SCALE_EXPONENT = 11 as const;
+export const GUNNERY_RATE_ROUNDING = "ceil" as const;
+
+// Authored neutral constants for the deferred factors pinned until their owning
+// modifier track lands. All neural 10_000; gun-quality and crew/technology are the
+// shipped real surface exercised by rateOfFire.ts.
+export const GUNNERY_RATE_NEUTRAL_FACTORS: Record<GunneryRateFactorKey, number> = {
+  gunQuality: NEUTRAL_RATE_MULTIPLIER_BP,
+  mount: NEUTRAL_RATE_MULTIPLIER_BP,
+  autoloader: NEUTRAL_RATE_MULTIPLIER_BP,
+  crew: NEUTRAL_RATE_MULTIPLIER_BP,
+  technology: NEUTRAL_RATE_MULTIPLIER_BP,
+  turnState: NEUTRAL_RATE_MULTIPLIER_BP,
+  seaState: NEUTRAL_RATE_MULTIPLIER_BP,
+  smoke: NEUTRAL_RATE_MULTIPLIER_BP,
+  damage: NEUTRAL_RATE_MULTIPLIER_BP,
+  rangeOrFireControlCycle: NEUTRAL_RATE_MULTIPLIER_BP,
+  ammunitionState: NEUTRAL_RATE_MULTIPLIER_BP,
+};
+
+export interface GunneryRateContract {
+  policyId: string;
+  basisPointsPerUnit: number;
+  factorKeys: readonly GunneryRateFactorKey[];
+  neutralMultiplierBp: number;
+  scaleExponent: number; // 11 = number of rate multipliers in the §4 product
+  rounding: string; // "ceil"
+  rulesetVersion: string;
+  formulaVersion: string;
+}
+
+export const SHIPPED_GUNNERY_RATE_CONTRACT: GunneryRateContract = {
+  policyId: gunneryRatePolicyId,
+  basisPointsPerUnit: BASIS_POINTS_PER_UNIT,
+  factorKeys: GUNNERY_RATE_FACTOR_KEYS,
+  neutralMultiplierBp: NEUTRAL_RATE_MULTIPLIER_BP,
+  scaleExponent: GUNNERY_RATE_SCALE_EXPONENT,
+  rounding: GUNNERY_RATE_ROUNDING,
+  rulesetVersion: GUNNERY_RULESET_VERSION,
+  formulaVersion: GUNNERY_FORMULA_VERSION,
+};
+
+function throwRateMismatch(contract: unknown, reason: string): never {
+  throw new BluewaveError(GUNNERY_STATE_INVARIANT_FAILED, {
+    code: GUNNERY_STATE_INVARIANT_FAILED,
+    contract,
+    reason,
+  });
+}
+
+export function validateGunneryRateContract(
+  c: Partial<GunneryRateContract> | null | undefined,
+): asserts c is GunneryRateContract {
+  if (!c) throwRateMismatch(c, "gunnery_rate_v1 missing contract");
+  if (c.policyId !== gunneryRatePolicyId)
+    throwRateMismatch(c, "gunnery_rate_v1 expectant policy id");
+  if (c.basisPointsPerUnit !== BASIS_POINTS_PER_UNIT)
+    throwRateMismatch(c, "gunnery_rate_v1 basis-point scale");
+  if (!c.factorKeys || !arrayEquals(c.factorKeys, GUNNERY_RATE_FACTOR_KEYS))
+    throwRateMismatch(c, "gunnery_rate_v1 factor manifest (§4 order 1-11)");
+  if (c.neutralMultiplierBp !== NEUTRAL_RATE_MULTIPLIER_BP)
+    throwRateMismatch(c, "gunnery_rate_v1 neutral multiplier");
+  if (c.scaleExponent !== GUNNERY_RATE_SCALE_EXPONENT)
+    throwRateMismatch(c, "gunnery_rate_v1 scale exponent");
+  if (c.rounding !== GUNNERY_RATE_ROUNDING)
+    throwRateMismatch(c, "gunnery_rate_v1 rounding mode");
+  if (c.rulesetVersion !== GUNNERY_RULESET_VERSION || c.formulaVersion !== GUNNERY_FORMULA_VERSION)
+    throwRateMismatch(c, "gunnery_rate_v1 ruleset/formula versions");
+}
+
+// ---------------------------------------------------------------------------
+// DESIGN-39 §5 Gun quality (INC-3). Integer -3..+2 inclusive, each with shipped
+// range/penetration/rate multipliers in basis points (§5): -3 → 8_500, -2 →
+// 9_000, -1 → 9_500, 0 → 10_000, +1 → 10_500, +2 → 11_000. Out-of-range quality
+// fails with GUN_QUALITY_OUT_OF_RANGE. A gun/mount definition MAY declare quality
+// does not affect rate of fire (the rate multiplier is then omitted from the §4
+// product; rateOfFire.ts handles that).
+export const gunneryGunQualityPolicyId = "gun_quality_v1" as const;
+
+export const GUN_QUALITY_MIN = -3 as const;
+export const GUN_QUALITY_MAX = 2 as const;
+
+export interface GunQualityMultipliers {
+  rangeBp: number;
+  penetrationBp: number;
+  rateBp: number;
+}
+
+// Shipped §5 table keyed by integer gun quality.
+export const GUN_QUALITY_TABLE = {
+  "-3": { rangeBp: 8_500, penetrationBp: 8_500, rateBp: 8_500 },
+  "-2": { rangeBp: 9_000, penetrationBp: 9_000, rateBp: 9_000 },
+  "-1": { rangeBp: 9_500, penetrationBp: 9_500, rateBp: 9_500 },
+  "0": { rangeBp: 10_000, penetrationBp: 10_000, rateBp: 10_000 },
+  "1": { rangeBp: 10_500, penetrationBp: 10_500, rateBp: 10_500 },
+  "2": { rangeBp: 11_000, penetrationBp: 11_000, rateBp: 11_000 },
+} as const satisfies Record<string, Readonly<GunQualityMultipliers>>;
+
+export interface GunQualityContract {
+  policyId: string;
+  minQuality: number;
+  maxQuality: number;
+  // Serialized body: table entries keyed by integer quality string.
+  table: Record<string, Readonly<GunQualityMultipliers>>;
+  rulesetVersion: string;
+  formulaVersion: string;
+}
+
+export const SHIPPED_GUN_QUALITY_CONTRACT: GunQualityContract = {
+  policyId: gunneryGunQualityPolicyId,
+  minQuality: GUN_QUALITY_MIN,
+  maxQuality: GUN_QUALITY_MAX,
+  table: GUN_QUALITY_TABLE,
+  rulesetVersion: GUNNERY_RULESET_VERSION,
+  formulaVersion: GUNNERY_FORMULA_VERSION,
+};
+
+function throwGunQualityMismatch(contract: unknown, reason: string): never {
+  throw new BluewaveError(GUNNERY_STATE_INVARIANT_FAILED, {
+    code: GUNNERY_STATE_INVARIANT_FAILED,
+    contract,
+    reason,
+  });
+}
+
+function tableEquals(
+  a: Record<string, Readonly<GunQualityMultipliers>>,
+  b: Record<string, Readonly<GunQualityMultipliers>>,
+): boolean {
+  const aKeys = Object.keys(a).sort();
+  const bKeys = Object.keys(b).sort();
+  if (!arrayEquals(aKeys, bKeys)) return false;
+  return aKeys.every((k) => {
+    const am = a[k];
+    const bm = b[k];
+    return (
+      am !== undefined &&
+      bm !== undefined &&
+      am.rangeBp === bm.rangeBp &&
+      am.penetrationBp === bm.penetrationBp &&
+      am.rateBp === bm.rateBp
+    );
+  });
+}
+
+export function validateGunQualityContract(
+  c: Partial<GunQualityContract> | null | undefined,
+): asserts c is GunQualityContract {
+  if (!c) throwGunQualityMismatch(c, "gun_quality_v1 missing contract");
+  if (c.policyId !== gunneryGunQualityPolicyId)
+    throwGunQualityMismatch(c, "gun_quality_v1 expectant policy id");
+  if (c.minQuality !== GUN_QUALITY_MIN || c.maxQuality !== GUN_QUALITY_MAX)
+    throwGunQualityMismatch(c, "gun_quality_v1 bounds (-3..+2)");
+  if (!c.table || !tableEquals(c.table, GUN_QUALITY_TABLE))
+    throwGunQualityMismatch(c, "gun_quality_v1 shipped multiplier table");
+  if (c.rulesetVersion !== GUNNERY_RULESET_VERSION || c.formulaVersion !== GUNNERY_FORMULA_VERSION)
+    throwGunQualityMismatch(c, "gun_quality_v1 ruleset/formula versions");
+}
