@@ -1,7 +1,7 @@
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { describe, expect, it } from "vite-plus/test";
-import { AiCommandGenerator } from "../src/aiCommandGenerator";
+import { AI_ENVELOPE_VERSION, AiCommandGenerator } from "../src/aiCommandGenerator";
 
 const ctx = {
   campaignId: "camp-1",

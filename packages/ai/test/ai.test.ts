@@ -66,6 +66,8 @@ function makeSnapshot(
   };
 }
 
+const testHash = sha256Hex(canonicalSerialize({ fixture: "ai" }));
+
 const project = (id: string, total: number, completed: number): ConstructionProject => ({
   id,
   type: "ship",
@@ -84,12 +86,12 @@ describe("AiCommandGenerator", () => {
     const gen = new AiCommandGenerator({
       campaignId: "camp",
       turnNumber: SafeInt(1),
-      expectedSnapshotHash: "abc",
+      expectedSnapshotHash: testHash,
     });
-    expect(gen.idempotencyKey("camp", SafeInt(1), "GBR", AI_COMMAND_TYPE_BUDGET)).toBe(
+    expect(AiCommandGenerator.buildIdempotencyKey("camp", SafeInt(1), "GBR", AI_COMMAND_TYPE_BUDGET)).toBe(
       "camp/1/GBR/budget_project",
     );
-    expect(gen.idempotencyKey("camp", SafeInt(7), "FRA", AI_COMMAND_TYPE_RESEARCH)).toBe(
+    expect(AiCommandGenerator.buildIdempotencyKey("camp", SafeInt(7), "FRA", AI_COMMAND_TYPE_RESEARCH)).toBe(
       "camp/7/FRA/SetResearchPriority",
     );
   });
@@ -98,7 +100,7 @@ describe("AiCommandGenerator", () => {
     const gen = new AiCommandGenerator({
       campaignId: "camp",
       turnNumber: SafeInt(1),
-      expectedSnapshotHash: "abc",
+      expectedSnapshotHash: testHash,
     });
     const a = gen.buildBudgetCommand("GBR", "proj-1", SafeInt(50));
     const b = gen.buildBudgetCommand("GBR", "proj-1", SafeInt(50));
@@ -112,7 +114,7 @@ describe("AiCommandGenerator", () => {
     const gen = new AiCommandGenerator({
       campaignId: "camp",
       turnNumber: SafeInt(1),
-      expectedSnapshotHash: "abc",
+      expectedSnapshotHash: testHash,
     });
     const priorities: Record<string, SafeInt> = {};
     for (const f of CANONICAL_RESEARCH_FIELD_IDS) priorities[f] = SafeInt(1);
@@ -127,7 +129,7 @@ describe("AiCommandGenerator", () => {
     const gen = new AiCommandGenerator({
       campaignId: "camp",
       turnNumber: SafeInt(2),
-      expectedSnapshotHash: "abc",
+      expectedSnapshotHash: testHash,
     });
     const budget = gen.buildBudgetCommand("GBR", "proj-1", SafeInt(10));
     const research = gen.buildResearchPriorityCommand("GBR", {
