@@ -6,7 +6,11 @@ import type { ArchetypeSelection } from "@bluewave/campaign-engine";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vite-plus/test";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
-import type { CampaignCommandClient } from "../../shared/campaign-command-contract.js";
+import type {
+  CampaignCommandClient,
+  CompileCampaignResult,
+} from "../../shared/campaign-command-contract.js";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type { NewGameOptions } from "../../shared/new-game-contract.js";
 import type { DraftPreferences } from "../screens/new-game/new-game-preferences-screen-state.js";
 import { useNewGameFlow } from "./useNewGameFlow.js";
@@ -24,7 +28,7 @@ const config = {
   tacticalRealism: "admiral",
   difficulty: "standard",
   campaignSeed: "TEST",
-} as CampaignConfiguration;
+} as unknown as CampaignConfiguration;
 
 const preferences = { scenarioId: "scen_1900" } as DraftPreferences;
 const options = {
@@ -114,7 +118,7 @@ describe("useNewGameFlow", () => {
       outcome: "rejected" as const,
       reason: "UNSUPPORTED_CONFIGURATION",
       diagnostics: ["difficulty is invalid"],
-    })) as CampaignExecute;
+    })) as unknown as CampaignExecute;
     const { result, openCampaign, selectScreen } = setup(execute);
 
     await act(() => result.current.actions.launch(config));
@@ -133,12 +137,12 @@ describe("useNewGameFlow", () => {
 
   it("exposes starting state while compilation is unresolved", async () => {
     let resolveCompilation: (
-      value: Awaited<ReturnType<CampaignExecute>>,
+      value: BridgeResult<CompileCampaignResult>,
     ) => void = () => undefined;
     const execute = (() =>
-      new Promise<Awaited<ReturnType<CampaignExecute>>>((resolve) => {
+      new Promise<BridgeResult<CompileCampaignResult>>((resolve) => {
         resolveCompilation = resolve;
-      })) as CampaignExecute;
+      })) as unknown as CampaignExecute;
     const { result } = setup(execute);
 
     let launchPromise: Promise<void> = Promise.resolve();
@@ -150,6 +154,7 @@ describe("useNewGameFlow", () => {
     resolveCompilation({
       outcome: "success",
       value: { sessionId: "ses-created" },
+      diagnostics: [],
     });
     await act(() => launchPromise);
     expect(result.current.state.status).toBe("ready");

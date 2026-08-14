@@ -81,7 +81,7 @@ function prepared(
   return {
     kind,
     context: { expectedRevision: 0, transportRequestId },
-    send: async () => ({ outcome: "success", value: undefined }),
+    send: async () => ({ outcome: "success", value: undefined, diagnostics: [] }),
   };
 }
 
@@ -233,7 +233,7 @@ describe("construction screen state", () => {
 
   it("creates a distinct transport request identity per attempt", () => {
     const send = async () =>
-      ({ outcome: "success", value: undefined }) as const;
+      ({ outcome: "success", value: undefined, diagnostics: [] }) as const;
     const first = prepareCommand("submit", 0, send);
     const second = prepareCommand("submit", 0, send);
 

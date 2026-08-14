@@ -1,22 +1,22 @@
-import type { MediaAsset } from "./mediaAsset.ts";
+import type { MediaAsset } from "./mediaAsset.js";
 import {
   PLAYABLE_SLOT_COUNTRY_IDS,
   type PlayableSlotCountryId,
-} from "./nationAssetManifest.ts";
+} from "./nationAssetManifest.js";
 import {
   NATION_COORDINATES,
   type NationCoordinates,
-} from "./nationCoordinates.ts";
+} from "./nationCoordinates.js";
 import {
   NATION_FLAVOR_TEXT,
   type NationFlavorText,
-} from "./nationFlavorText.ts";
+} from "./nationFlavorText.js";
 import {
   type NationAssetManifest,
   type NationAssetRequest,
   type ResolvedNationAsset,
   resolveNationAsset,
-} from "./resolveNationAsset.ts";
+} from "./resolveNationAsset.js";
 
 /** Presentation-only marker colours used by the globe and nation-selection views. */
 export const NATION_MARKER_COLOURS: Readonly<

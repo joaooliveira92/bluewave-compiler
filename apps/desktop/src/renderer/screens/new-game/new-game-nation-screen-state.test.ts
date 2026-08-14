@@ -94,8 +94,18 @@ describe("new-game-nation-screen-state", () => {
     );
     expect(isReadyToStart(state)).toBe(true);
     expect(buildCampaignConfiguration(state)).toEqual({
-      ...preferences,
+      scenarioId: preferences.scenarioId,
       playerSlotId: "nation_germany",
+      continuityModeId: preferences.continuityMode,
+      fleetSizeSettingId: preferences.fleetSize,
+      researchSpeedSettingId: preferences.researchSpeed,
+      technologyVariationSettingId: preferences.technologyVariation,
+      historicalBudgetOptionId: preferences.historicalBudget,
+      legacyFleetModeId: preferences.legacyFleetMode,
+      tacticalRealismModeId: preferences.tacticalRealism,
+      difficultyProfileId: preferences.difficulty,
+      campaignSeed: preferences.campaignSeed,
+      configurationSchemaVersion: preferences.version,
     });
   });
 });

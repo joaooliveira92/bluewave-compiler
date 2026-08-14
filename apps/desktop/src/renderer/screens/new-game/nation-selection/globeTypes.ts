@@ -1,4 +1,4 @@
-import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.ts";
+import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 
 export type GlobePoint = {
   countryId: PlayableSlotCountryId;

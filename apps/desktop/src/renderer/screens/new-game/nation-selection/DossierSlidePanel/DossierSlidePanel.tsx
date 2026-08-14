@@ -1,11 +1,11 @@
 import type { JSX } from "react";
-import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.ts";
-import { NATION_FLAVOR_TEXT } from "@/content/nationFlavorText.ts";
-import { cn } from "@/lib/utils.ts";
-import { DossierAccordion } from "./DossierAccordion/index.ts";
-import { DossierCover } from "./DossierCover.tsx";
-import { DossierHeader } from "./DossierHeader.tsx";
-import { useSlideVisibility } from "./useSlideVisibility.ts";
+import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
+import { NATION_FLAVOR_TEXT } from "@/content/nationFlavorText.js";
+import { cn } from "@/lib/utils.js";
+import { DossierAccordion } from "./DossierAccordion/index.js";
+import { DossierCover } from "./DossierCover.js";
+import { DossierHeader } from "./DossierHeader.js";
+import { useSlideVisibility } from "./useSlideVisibility.js";
 
 export interface DossierSlidePanelProps {
   countryId: PlayableSlotCountryId;

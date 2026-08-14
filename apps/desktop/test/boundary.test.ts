@@ -7,11 +7,11 @@ import {
   DEV_CONTENT_SECURITY_POLICY,
 } from "../src/main/csp.js";
 
-describe("B9 Electron boundary (criteria 4-6)", () => {
-  it("applies `default-src 'self'` CSP to renderer responses (criterion 6)", () => {
+describe("Electron boundary", () => {
+  it("applies `default-src 'self'` CSP to renderer responses", () => {
     const headers = applyContentSecurityPolicy({ "X-Frame-Options": ["DENY"] });
     expect(headers["Content-Security-Policy"]).toEqual([CONTENT_SECURITY_POLICY]);
-    expect(CONTENT_SECURITY_POLICY).toBe("default-src 'self'");
+    expect(CONTENT_SECURITY_POLICY).toBe("default-src 'self'; img-src 'self' data:");
     // Pre-existing headers are preserved.
     expect(headers["X-Frame-Options"]).toEqual(["DENY"]);
   });
@@ -32,47 +32,59 @@ describe("B9 Electron boundary (criteria 4-6)", () => {
     expect(prodHeaders["Content-Security-Policy"]).toEqual([CONTENT_SECURITY_POLICY]);
   });
 
-  it("registers only the allow-listed IPC handlers in the main process (criterion 4)", () => {
-    // The main process source must register exactly the allow-listed channels.
+  /**
+   * Desktop-mvp ticket 11 retired the old compile/project/campaign-save-file
+   * IPC surface (superseded by `compiler-cli`) and replaced it with the
+   * `campaign:execute` bridge plus frameless-window controls. These tests
+   * assert the new allow-list the same way the old ones asserted B9's.
+   */
+  it("registers only the allow-listed IPC handlers in the main process", () => {
     const mainSource = readFileSync(resolve(__dirname, "../src/main/index.ts"), "utf8");
-    const allowed = [
-      'ipcMain.handle("compile"',
-      'ipcMain.handle("project:open"',
-      'ipcMain.handle("project:new"',
-      'ipcMain.handle("project:save"',
-      'ipcMain.handle("project:save-as"',
-      'ipcMain.handle("campaign:load-save"',
+    const allowedHandle = [
+      'ipcMain.handle("campaign:execute"',
+      'ipcMain.handle("window:get-state"',
     ];
-    for (const handler of allowed) {
+    const allowedOn = [
+      'ipcMain.on("window:minimize"',
+      'ipcMain.on("window:maximize-toggle"',
+      'ipcMain.on("window:close"',
+    ];
+    for (const handler of [...allowedHandle, ...allowedOn]) {
       expect(mainSource).toContain(handler);
     }
-    // No IPC channels beyond the allow-list may be registered.
-    const registered = mainSource.match(/ipcMain\.handle\("[^"]+"/g) ?? [];
-    expect(registered.length).toBe(allowed.length);
+    const registeredHandle = mainSource.match(/ipcMain\.handle\("[^"]+"/g) ?? [];
+    const registeredOn = mainSource.match(/ipcMain\.on\("[^"]+"/g) ?? [];
+    expect(registeredHandle.length).toBe(allowedHandle.length);
+    expect(registeredOn.length).toBe(allowedOn.length);
   });
 
-  it("narrows the preload bridge to only the allow-listed methods (criterion 4)", () => {
+  it("narrows the preload bridge to only the allow-listed top-level members", () => {
     const preloadSource = readFileSync(resolve(__dirname, "../src/preload/index.ts"), "utf8");
     expect(preloadSource).toContain("contextBridge.exposeInMainWorld");
-    const exposed = preloadSource.match(/([a-zA-Z]+):\s*\(/g) ?? [];
+    const exposed = preloadSource.match(/^\s{2}([a-zA-Z]+):/gm) ?? [];
     const allowed = [
-      "compile:",
-      "openProject:",
-      "newProject:",
-      "saveProject:",
-      "saveProjectAs:",
-      "loadCampaignSave:",
+      "campaign:",
+      "platform:",
+      "getWindowState:",
+      "windowMinimize:",
+      "windowMaximizeToggle:",
+      "windowClose:",
     ];
     expect(exposed.length).toBe(allowed.length);
     for (const method of allowed) {
-      expect(exposed.some((s) => s.startsWith(method))).toBe(true);
+      expect(exposed.some((s) => s.trim().startsWith(method))).toBe(true);
     }
   });
 
-  it("aborts an in-flight compilation on a new concurrent request (criterion 7)", () => {
+  it("dispatches every command through the single campaign:execute channel, none directly", () => {
     const mainSource = readFileSync(resolve(__dirname, "../src/main/index.ts"), "utf8");
-    // The main handler aborts the previous AbortController before starting a new compile.
-    expect(mainSource).toContain("currentAbortController.abort()");
-    expect(mainSource).toContain("new AbortController()");
+    // Individual campaign commands (compileCampaign, commitMonth, etc.) must
+    // never get their own ipcMain.handle/on registration — they're all
+    // dispatched through dispatchCampaignCommand's registry
+    // (src/main/campaignBridge.ts), keeping the IPC surface fixed as the
+    // command set grows.
+    expect(mainSource).toContain("dispatchCampaignCommand");
+    const registered = mainSource.match(/ipcMain\.(handle|on)\("([^"]+)"/g) ?? [];
+    expect(registered.every((r) => /"(campaign:execute|window:[a-z-]+)"/.test(r))).toBe(true);
   });
 });

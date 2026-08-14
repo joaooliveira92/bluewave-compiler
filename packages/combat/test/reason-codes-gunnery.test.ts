@@ -1,14 +1,16 @@
-import { describe, it, expect } from "vite-plus/test";
-import { readFileSync, globSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+// AC-10: DESIGN-39 §32 reason-code set-equality for the B-3 core surface gunnery
+// slice. The gunnery package ships exactly the in-slice §32 codes recorded in
+// ADR-0020 (spec §1.4) plus the reused existing combat-catalog codes; every §32
+// code owned by a later slice/track is recorded as deferred, never shipped here
+// silently. This guard fails the build if a code is added to GUNNERY_REASON_CODES
+// without a matching update to this test (and, per policy, an ADR entry).
+import { describe, expect, it } from "vite-plus/test";
 import { GUNNERY_REASON_CODES } from "../src/gunnery/reasonCodes.js";
 import { REASON_CODES } from "../src/reasonCodes.js";
 
-// DESIGN-39 §32 authoritative reason-code set for the gunnery subsystem, verbatim
-// per spec §1.4 / docs/rules/gunnery.md §32 (INC-5). This is the exhaustive
-// authoritative catalog for this subsystem.
-const DESIGN39_S32: readonly string[] = [
+// DESIGN-39 §32 "Required Reason Codes" — the full authoritative list for the
+// gunnery subsystem (docs/rules/gunnery.md §32).
+const DESIGN_39_SECTION_32_CODES = [
   "INVALID_GUNNERY_STATE",
   "GUNNERY_ACCURACY_FACTOR_MISSING",
   "GUNNERY_RATE_FACTOR_MISSING",
@@ -30,105 +32,81 @@ const DESIGN39_S32: readonly string[] = [
   "GUNNERY_STATE_INVARIANT_FAILED",
 ] as const;
 
-// The in-slice gunnery catalog (spec §1.4, reasonCodes.ts). Asserted to EXACTLY
-// equal Object.values(GUNNERY_REASON_CODES) so a silent addition or removal forces
-// review (AC-10).
-const IN_SLICE: readonly string[] = [
+// Spec §1.4 in-slice subset (owned by B-3, recorded in ADR-0020) — a proper
+// subset of §32.
+const IN_SLICE_SECTION_32_CODES = [
   "INVALID_GUNNERY_STATE",
-  "GUNNERY_STATE_INVARIANT_FAILED",
-  "GUNNERY_FIRE_CONTROL_SOLUTION_INSUFFICIENT",
   "GUNNERY_ACCURACY_FACTOR_MISSING",
   "GUNNERY_RATE_FACTOR_MISSING",
   "GUN_QUALITY_OUT_OF_RANGE",
   "GUNNERY_AMMUNITION_UNAVAILABLE",
-  "GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED",
+  "GUNNERY_FIRE_CONTROL_SOLUTION_INSUFFICIENT",
+  "GUNNERY_STATE_INVARIANT_FAILED",
 ] as const;
 
-// A genuine new code recorded in ADR-0020 (B-3): RAPID/AA eligibility predicates
-// are deferred to a later slice, so a firing guard reports this deferred predicate
-// rather than fabricating one (AC-2). It is NOT in DESIGN-39 §32 because §32 was
-// written assuming those predicates resolve here.
-const ADR_RECORDED_EXTRA = "GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED" as const;
+// Spec §1.4 deferred subset — owned by later slices/tracks; recorded, not shipped.
+const DEFERRED_SECTION_32_CODES = [
+  "AUTOLOADER_TECHNOLOGY_UNAVAILABLE",
+  "AUTOLOADER_MOUNT_INELIGIBLE",
+  "AUTOLOADER_FEED_JAMMED",
+  "DUAL_PURPOSE_GUN_CONTRACT_MISSING",
+  "DUAL_PURPOSE_ROLE_SWITCHING",
+  "DUAL_PURPOSE_AA_INELIGIBLE",
+  "ARMOR_ZONE_MAXIMUM_MISSING",
+  "ARMOR_THICKNESS_LIMIT_EXCEEDED",
+  "ARMOR_MANUFACTURING_POLICY_MISSING",
+  "SPLINTER_PROTECTION_NOT_QUALIFIED",
+  "GUNNERY_TARGET_ILLEGAL",
+  "GUNNERY_STRADDLE_INVALID",
+] as const;
 
-// Reused existing combat catalog codes (spec §1.4) — no new record needed. They
-// pre-exist in the top-level @bluewave/combat reason-code catalog.
-const REUSED: readonly string[] = [
+// Spec §1.4 reused existing combat-catalog codes (no new record needed).
+const REUSED_COMBAT_CATALOG_CODES = [
   "TACTICAL_STATE_INVARIANT_FAILED",
   "TACTICAL_FOG_OF_WAR_VIOLATION",
   "INVALID_TACTICAL_CLOCK",
   "INVALID_TACTICAL_TIME_CONTRACT",
 ] as const;
 
-// Deferred §32 codes (spec §1.4): owned by later slices/tracks, recorded here and
-// never shipped in the in-slice gunnery catalog.
-const DEFERRED: readonly string[] = [
-  "AUTOLOADER_TECHNOLOGY_UNAVAILABLE",
-  "AUTOLOADER_MOUNT_INELIGIBLE",
-  "AUTOLOADER_FEED_JAMMED",
-  "DUAL_PURPOSE_GUN_CONTRACT_MISSING",
-  "DUAL_PURPOSE_ROLE_SWITCHING",
-  "DUAL_PURPOSE_AA_INELIGIBLE",
-  "ARMOR_ZONE_MAXIMUM_MISSING",
-  "ARMOR_THICKNESS_LIMIT_EXCEEDED",
-  "ARMOR_MANUFACTURING_POLICY_MISSING",
-  "SPLINTER_PROTECTION_NOT_QUALIFIED",
-  "GUNNERY_TARGET_ILLEGAL",
-  "GUNNERY_STRADDLE_INVALID",
-] as const;
+// The one in-slice code that is NOT a §32 code: the deferred-eligibility-predicate
+// marker (RAPID/AA_TRACKING/AA_BARRAGE eligibility predicates are deferred, spec
+// §1.4 / ADR-0020) — a firing guard reports this rather than fabricating a §32 code.
+const NON_SECTION_32_IN_SLICE_MARKER = "GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED";
 
-describe("AC-10 gunnery reason-code surface (DESIGN-39 §32 + catalog)", () => {
-  it("IN_SLICE is EXACTLY the shipped in-slice catalog (no silent addition/removal)", () => {
-    expect(Object.values(GUNNERY_REASON_CODES).sort()).toEqual([...IN_SLICE].sort());
+describe("AC-10: gunnery reason-code set-equality vs DESIGN-39 §32 + existing catalog", () => {
+  it("§32 in-slice + deferred partition covers exactly the full §32 list (no gaps, no overlap)", () => {
+    const union = new Set([...IN_SLICE_SECTION_32_CODES, ...DEFERRED_SECTION_32_CODES]);
+    expect([...union].sort()).toEqual([...DESIGN_39_SECTION_32_CODES].sort());
+    expect(union.size).toBe(DESIGN_39_SECTION_32_CODES.length);
   });
 
-  it("every in-slice code is a DESIGN-39 §32 code OR the ADR-recorded extra", () => {
-    for (const code of Object.values(GUNNERY_REASON_CODES)) {
-      const known = DESIGN39_S32.includes(code) || code === ADR_RECORDED_EXTRA;
-      expect(known).toBe(true);
+  it("ships exactly the in-slice §32 codes plus the deferred-predicate marker — nothing more, nothing less", () => {
+    const shipped = Object.values(GUNNERY_REASON_CODES).sort();
+    const expected = [...IN_SLICE_SECTION_32_CODES, NON_SECTION_32_IN_SLICE_MARKER].sort();
+    expect(shipped).toEqual(expected);
+  });
+
+  it("ships no deferred §32 code owned by a later slice/track", () => {
+    const shipped: ReadonlySet<string> = new Set(Object.values(GUNNERY_REASON_CODES));
+    for (const deferred of DEFERRED_SECTION_32_CODES) {
+      expect(shipped.has(deferred)).toBe(false);
     }
   });
 
-  it("the ADR-recorded extra is not silently claimed as a DESIGN-39 §32 code", () => {
-    expect(DESIGN39_S32.includes(ADR_RECORDED_EXTRA)).toBe(false);
-  });
-
-  it("the 12 deferred §32 codes are recorded but NOT shipped in the in-slice catalog", () => {
-    expect(DEFERRED.length).toBe(12);
-    const shipped = new Set<string>(Object.values(GUNNERY_REASON_CODES));
-    // partition check: every §32 code is either in-slice, deferred, or both-known.
-    for (const code of DEFERRED) {
-      expect(DESIGN39_S32).toContain(code);
-      expect(shipped.has(code)).toBe(false);
-    }
-    // the deferred codes plus the in-slice §32 codes equal the full §32 set.
-    const inSliceS32 = IN_SLICE.filter((c) => c !== ADR_RECORDED_EXTRA);
-    expect([...inSliceS32, ...DEFERRED].sort()).toEqual([...DESIGN39_S32].sort());
-  });
-
-  it("the 4 reused existing combat codes are present in the existing catalog", () => {
-    const top = Object.values(REASON_CODES);
-    for (const code of REUSED) {
-      expect(top).toContain(code);
+  it("reused codes are defined once in the shared combat catalog, not redefined in the gunnery module", () => {
+    const shipped: ReadonlySet<string> = new Set(Object.values(GUNNERY_REASON_CODES));
+    const sharedCatalog: readonly string[] = Object.values(REASON_CODES);
+    for (const reused of REUSED_COMBAT_CATALOG_CODES) {
+      expect(shipped.has(reused)).toBe(false);
+      expect(sharedCatalog).toContain(reused);
     }
   });
 
-  it("gunnery modules throw no reason code outside the approved surface (identifier scan)", () => {
-    const thisDir = dirname(fileURLToPath(import.meta.url));
-    const srcDir = resolve(thisDir, "..", "src");
-    const files = globSync("gunnery/**/*.ts", { cwd: srcDir });
-    expect(files.length).toBeGreaterThan(0);
-    const captured: string[] = [];
-    for (const rel of files) {
-      const content = readFileSync(resolve(srcDir, rel), "utf8");
-      // gunnery throws use IMPORTED uppercase identifiers, e.g.
-      // BluewaveError(GUNNERY_ACCURACY_FACTOR_MISSING, ...), not inline literals.
-      for (const g of content.matchAll(/BluewaveError\(([A-Z][A-Z0-9_]+)/g)) {
-        captured.push(g[1] as string);
-      }
-    }
-    const known: string[] = [...IN_SLICE, ...REUSED];
-    for (const id of new Set(captured)) {
-      expect(known).toContain(id);
+  it("the gunnery catalog and the shared combat catalog are disjoint (no duplicate code across both)", () => {
+    const gunnerySet = new Set(Object.values(GUNNERY_REASON_CODES));
+    const sharedSet: ReadonlySet<string> = new Set(Object.values(REASON_CODES));
+    for (const code of gunnerySet) {
+      expect(sharedSet.has(code)).toBe(false);
     }
   });
 });

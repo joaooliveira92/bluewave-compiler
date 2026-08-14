@@ -1,4 +1,10 @@
-export const CONTENT_SECURITY_POLICY = "default-src 'self'";
+/**
+ * `img-src` allows `data:` in addition to `self` because the shader
+ * background components (@paper-design/shaders-react) load their
+ * placeholder/unset image uniforms from an inline `data:image/gif` pixel,
+ * not just same-origin files.
+ */
+export const CONTENT_SECURITY_POLICY = "default-src 'self'; img-src 'self' data:";
 
 /**
  * Vite's React-refresh preamble (injected by @vitejs/plugin-react for HMR)
@@ -12,6 +18,7 @@ export const DEV_CONTENT_SECURITY_POLICY = [
   "default-src 'self' http://localhost:5173",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173",
   "style-src 'self' 'unsafe-inline' http://localhost:5173",
+  "img-src 'self' data: http://localhost:5173",
   "connect-src 'self' ws://localhost:5173 http://localhost:5173",
 ].join("; ");
 

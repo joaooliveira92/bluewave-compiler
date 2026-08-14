@@ -1,4 +1,4 @@
-import type { PlayableSlotCountryId } from "./nationAssetManifest.ts";
+import type { PlayableSlotCountryId } from "./nationAssetManifest.js";
 
 /**
  * Presentation-only flavor text for each canonical playable slot (CONTEXT.md §4).

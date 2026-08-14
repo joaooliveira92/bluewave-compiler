@@ -215,7 +215,7 @@ export function useCommandScreenWorkflow<
           describeRejection(
             result.reason,
             result.diagnostics,
-            result.currentRevision,
+            result.outcome === "rejected" ? result.currentRevision : undefined,
           ),
         );
         return;
@@ -250,6 +250,15 @@ export function useCommandScreenWorkflow<
       unresolvedCommand.current = null;
       if (result.outcome === "rejected") {
         setState((currentState) => applyRejection(currentState, result));
+      } else if (result.outcome === "error") {
+        setOutcomeUnknown(false);
+        setState((currentState) =>
+          applyRejection(currentState, {
+            outcome: "rejected",
+            reason: result.reason,
+            diagnostics: result.diagnostics,
+          }),
+        );
       } else {
         const { patch, notice } = adapterRef.current.accept(result.value);
         setState((currentState) => acceptCommand(currentState, patch, notice));

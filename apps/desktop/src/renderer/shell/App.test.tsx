@@ -320,7 +320,7 @@ function createCampaignClient(
       (vi.fn(async (_name: string) => ({
         outcome: "success" as const,
         value: { sessionId: "ses-created" },
-      })) as CampaignCommandClient["execute"]),
+      })) as unknown as CampaignCommandClient["execute"]),
   };
 }
 
@@ -448,12 +448,12 @@ describe("App", () => {
     const execute = vi.fn(async () => ({
       outcome: "success" as const,
       value: { sessionId: "ses-created" },
-    })) as CampaignCommandClient["execute"];
+    })) as unknown as CampaignCommandClient["execute"];
     window.bluewave = createBridge({ campaign: createCampaignClient(execute) });
 
     const { rerender } = render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-nation");
+    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-archetype");
 
     testState.shell = createShell({
       ...shell,
@@ -480,7 +480,7 @@ describe("App", () => {
       outcome: "rejected" as const,
       reason: "UNSUPPORTED_CONFIGURATION",
       diagnostics: ["difficulty is invalid"],
-    })) as CampaignCommandClient["execute"];
+    })) as unknown as CampaignCommandClient["execute"];
     window.bluewave = createBridge({ campaign: createCampaignClient(execute) });
 
     const { rerender } = render(<App />);

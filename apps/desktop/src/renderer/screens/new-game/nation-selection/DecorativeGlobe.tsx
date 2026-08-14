@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 
-import { GlobeShell } from "./GlobeShell.tsx";
-import { useSvgGlobe } from "./useSvgGlobe.ts";
+import { GlobeShell } from "./GlobeShell.js";
+import { useSvgGlobe } from "./useSvgGlobe.js";
 
 // The menu/launch backdrop globe — a spinning sphere with zero pointer
 // interaction. Identical output to the old decorative mode: no pins, no

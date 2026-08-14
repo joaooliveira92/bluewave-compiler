@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useId, useRef } from "react";
-import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.ts";
-import { NATION_COORDINATES } from "@/content/nationCoordinates.ts";
-import { playMechanicalAcoustic } from "@/shell/controller/mechanicalAcoustic.ts";
-import { FleetDispatchBoard } from "./FleetDispatchBoard.tsx";
-import { GlobePanel } from "./GlobePanel.tsx";
-import { TelemetryBar } from "./TelemetryBar.tsx";
+import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
+import { NATION_COORDINATES } from "@/content/nationCoordinates.js";
+import { playMechanicalAcoustic } from "@/shell/controller/mechanicalAcoustic.js";
+import { FleetDispatchBoard } from "./FleetDispatchBoard.js";
+import { GlobePanel } from "./GlobePanel.js";
+import { TelemetryBar } from "./TelemetryBar.js";
 
 // Hoisted static formatting utilities to prevent inline recreation
 function formatCoord(decimal: number, posDir: string, negDir: string): string {

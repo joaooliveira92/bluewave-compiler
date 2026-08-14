@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { cn } from "../../lib/utils.ts";
+import { cn } from "../../lib/utils.js";
 import { hexToNormalizedRgb, normalizeHexColor } from "./shader-color.js";
 import { createShaderProgram } from "./shader-program.js";
 

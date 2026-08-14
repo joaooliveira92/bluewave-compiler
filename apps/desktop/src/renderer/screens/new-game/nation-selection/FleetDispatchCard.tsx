@@ -1,13 +1,13 @@
 import { Check } from "lucide-react";
 import { type CSSProperties, type MouseEvent, useMemo, useState } from "react";
-import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.ts";
+import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 import {
   type CardPalette,
   getCountryCode,
   getCountryName,
   resolveNationShip,
   type StackPosition,
-} from "./fleetDispatchUtils.ts";
+} from "./fleetDispatchUtils.js";
 
 interface FleetDispatchCardProps {
   countryId: PlayableSlotCountryId;

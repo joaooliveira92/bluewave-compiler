@@ -4,7 +4,7 @@
 // mirroring packages/combat/src/movement/constants.ts. Fail-closed on mismatch.
 // Grounded in docs/research/b3-m2-gunnery.md and recorded in the B-3 ADR (INC-5).
 import { BluewaveError } from "@bluewave/contracts";
-import { GUNNERY_STATE_INVARIANT_FAILED } from "./reasonCodes.js";
+import { GUNNERY_RATE_FACTOR_MISSING, GUNNERY_STATE_INVARIANT_FAILED } from "./reasonCodes.js";
 
 export const gunneryPolicyId = "gunnery_v1" as const;
 
@@ -432,51 +432,53 @@ export function validateGunQualityContract(
 }
 
 // ---------------------------------------------------------------------------
-// DESIGN-39 §4 base-reload-by-caliber ballistics constants (INC-5 content
-// deliverable). Research-grounded in docs/research/b3-m2-gunnery.md §1: each
-// broad-caliber grounded cyclic rate is converted to an integer
-// baseReloadMilliseconds (per-shot reload work) for the *v1 ruleset. These are
-// BALANCE TARGET values (grounded, not primary-sourced exact integers) authored
-// as versioned constants per the B-3 ADR (ADR-0020). Keyed by caliber mm; values
-// are integer tactical-milliseconds.
+// Naval gun ballistics constant set (INC-5 content deliverable). baseReloadMs
+// by broad caliber, research-grounded in docs/research/b3-m2-gunnery.md §1
+// (NavWeaps-compiled per-gun cyclic-rate figures). Six calibers are directly
+// grounded; the 1880s RML heavy-gun caliber has no primary-sourced precise
+// integer (source: "1-5 min/round", no single table pins one figure) and is
+// authored as an explicit BALANCE TARGET at the midpoint of the research-
+// recommended 120_000-300_000 ms range — recorded in ADR-0020, never silently
+// invented (ENGINEERING-CONTRACT failure policy).
 export const gunneryBallisticsPolicyId = "gunnery_ballistics_v1" as const;
 
-export const GUNNERY_BASE_RELOAD_BY_CALIBER_MM = {
-  // 6 in / 152 mm — 8-10 rpm (US 6"/47 Mk16, 1937): 6.0-7.5 s/round.
-  152: 7_000,
-  // 8 in / 203 mm — 3-4 rpm (US 8"/55 Mk9/11/13/14, 1927): 15-20 s/round.
-  203: 18_000,
-  // 12 in / 305 mm — 2-3 rpm (US 12"/50 Mk7, 1912/1944): 20-30 s/round.
-  305: 25_000,
-  // 14 in / 356 mm — 1.25-2 rpm (US 14"/45, 14"/50): 30-48 s/round.
-  356: 36_000,
-  // 15 in / 381 mm — 2 rpm nominal (RN 15"/42 Mk1): ~30-36 s/round.
-  381: 35_000,
-  // 16 in / 406 mm — ~1.5 rpm (US 16"/45 Mk1, 1921): ~40 s/round.
-  406: 40_000,
-} as const satisfies Record<number, number>;
+export const GUNNERY_CALIBERS = [
+  "CAL_6IN_152MM",
+  "CAL_8IN_203MM",
+  "CAL_12IN_305MM",
+  "CAL_14IN_356MM",
+  "CAL_15IN_381MM",
+  "CAL_16IN_406MM",
+  "CAL_RML_HEAVY_1880",
+] as const;
+export type GunneryCaliber = (typeof GUNNERY_CALIBERS)[number];
 
-// scen_1880 (EARLY) reality — 1880s RML heavy guns (12-17.7 in muzzle-loading
-// rifles) are intrinsically slow load-at-the-muzzle cycles of order 2-5 minutes
-// per round (120 000-300 000 ms). No single primary table pins a precise integer,
-// so this is recorded as a documented BALANCE TARGET lower bound (per
-// docs/research/b3-m2-gunnery.md §1, "NOT fully grounded -> needs owner/ADR"),
-// NOT silently pinned as a primary fact. The exact scen_1880 RML constant is an
-// OPEN DECISION for the content owner (recorded, not fabricated).
-export const GUNNERY_SCEN1880_RML_HEAVY_BASE_RELOAD_MIN_MS = 120_000 as const;
+// DESIGN-39 §4 baseReloadMilliseconds by broad caliber (research doc §1 table).
+export const BASE_RELOAD_MS_BY_CALIBER: Record<GunneryCaliber, number> = {
+  CAL_6IN_152MM: 7_000,
+  CAL_8IN_203MM: 18_000,
+  CAL_12IN_305MM: 25_000,
+  CAL_14IN_356MM: 36_000,
+  CAL_15IN_381MM: 35_000,
+  CAL_16IN_406MM: 40_000,
+  // BALANCE TARGET (ADR-0020): 1880s scen_1880 muzzle-loading heavy guns have no
+  // primary-sourced precise integer; authored at the midpoint of the grounded
+  // 120_000-300_000 ms (2-5 min/round) range.
+  CAL_RML_HEAVY_1880: 210_000,
+};
 
 export interface GunneryBallisticsContract {
   policyId: string;
-  baseReloadByCaliberMm: Record<number, number>;
-  scen1880RmlHeavyBaseReloadMinMs: number;
+  calibers: readonly GunneryCaliber[];
+  baseReloadMsByCaliber: Record<GunneryCaliber, number>;
   rulesetVersion: string;
   formulaVersion: string;
 }
 
 export const SHIPPED_GUNNERY_BALLISTICS_CONTRACT: GunneryBallisticsContract = {
   policyId: gunneryBallisticsPolicyId,
-  baseReloadByCaliberMm: GUNNERY_BASE_RELOAD_BY_CALIBER_MM,
-  scen1880RmlHeavyBaseReloadMinMs: GUNNERY_SCEN1880_RML_HEAVY_BASE_RELOAD_MIN_MS,
+  calibers: GUNNERY_CALIBERS,
+  baseReloadMsByCaliber: BASE_RELOAD_MS_BY_CALIBER,
   rulesetVersion: GUNNERY_RULESET_VERSION,
   formulaVersion: GUNNERY_FORMULA_VERSION,
 };
@@ -489,19 +491,11 @@ function throwBallisticsMismatch(contract: unknown, reason: string): never {
   });
 }
 
-function reloadMapEquals(a: Record<number, number>, b: Record<number, number>): boolean {
-  const aKeys = Object.keys(a)
-    .map(Number)
-    .sort((x, y) => x - y);
-  const bKeys = Object.keys(b)
-    .map(Number)
-    .sort((x, y) => x - y);
-  if (!arrayEquals(aKeys, bKeys)) return false;
-  return aKeys.every((k) => {
-    const av = a[k];
-    const bv = b[k];
-    return av !== undefined && bv !== undefined && av === bv;
-  });
+function baseReloadTableEquals(
+  a: Record<GunneryCaliber, number>,
+  b: Record<GunneryCaliber, number>,
+): boolean {
+  return GUNNERY_CALIBERS.every((c) => a[c] === b[c]);
 }
 
 export function validateGunneryBallisticsContract(
@@ -510,13 +504,28 @@ export function validateGunneryBallisticsContract(
   if (!c) throwBallisticsMismatch(c, "gunnery_ballistics_v1 missing contract");
   if (c.policyId !== gunneryBallisticsPolicyId)
     throwBallisticsMismatch(c, "gunnery_ballistics_v1 expectant policy id");
+  if (!c.calibers || !arrayEquals(c.calibers, GUNNERY_CALIBERS))
+    throwBallisticsMismatch(c, "gunnery_ballistics_v1 caliber set");
   if (
-    !c.baseReloadByCaliberMm ||
-    !reloadMapEquals(c.baseReloadByCaliberMm, GUNNERY_BASE_RELOAD_BY_CALIBER_MM)
+    !c.baseReloadMsByCaliber ||
+    !baseReloadTableEquals(c.baseReloadMsByCaliber, BASE_RELOAD_MS_BY_CALIBER)
   )
-    throwBallisticsMismatch(c, "gunnery_ballistics_v1 base-reload-by-caliber table");
-  if (c.scen1880RmlHeavyBaseReloadMinMs !== GUNNERY_SCEN1880_RML_HEAVY_BASE_RELOAD_MIN_MS)
-    throwBallisticsMismatch(c, "gunnery_ballistics_v1 1880 RML balance-target lower bound");
+    throwBallisticsMismatch(c, "gunnery_ballistics_v1 base reload ms table");
   if (c.rulesetVersion !== GUNNERY_RULESET_VERSION || c.formulaVersion !== GUNNERY_FORMULA_VERSION)
     throwBallisticsMismatch(c, "gunnery_ballistics_v1 ruleset/formula versions");
+}
+
+// Fail-closed lookup: baseReloadMilliseconds for a shipped caliber. An unknown
+// caliber fails with GUNNERY_RATE_FACTOR_MISSING (never a silent default),
+// mirroring the "no silent fallback" policy for every other §4 rate factor.
+export function baseReloadMsForCaliber(caliber: string): number {
+  if (!(GUNNERY_CALIBERS as readonly string[]).includes(caliber)) {
+    throw new BluewaveError(GUNNERY_RATE_FACTOR_MISSING, {
+      code: GUNNERY_RATE_FACTOR_MISSING,
+      factorKey: "baseReloadMs",
+      reason: "unknown gunnery caliber — no shipped baseReloadMilliseconds for this caliber",
+      value: caliber,
+    });
+  }
+  return BASE_RELOAD_MS_BY_CALIBER[caliber as GunneryCaliber];
 }

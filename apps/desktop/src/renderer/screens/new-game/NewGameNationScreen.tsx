@@ -69,8 +69,22 @@ export function NewGameNationScreen({
       const nationId = countryIdToNationId(countryId);
       if (nationId === null) return null;
       return {
-        ...preferences,
+        scenarioId: preferences.scenarioId as CampaignConfiguration["scenarioId"],
         playerSlotId: nationId,
+        continuityModeId:
+          preferences.continuityMode as CampaignConfiguration["continuityModeId"],
+        fleetSizeSettingId:
+          preferences.fleetSize as CampaignConfiguration["fleetSizeSettingId"],
+        researchSpeedSettingId:
+          preferences.researchSpeed as CampaignConfiguration["researchSpeedSettingId"],
+        technologyVariationSettingId:
+          preferences.technologyVariation as CampaignConfiguration["technologyVariationSettingId"],
+        historicalBudgetOptionId: preferences.historicalBudget,
+        legacyFleetModeId: preferences.legacyFleetMode,
+        tacticalRealismModeId: preferences.tacticalRealism,
+        difficultyProfileId: preferences.difficulty,
+        campaignSeed: preferences.campaignSeed,
+        configurationSchemaVersion: preferences.version,
         archetype: archetypeToken,
       };
     },

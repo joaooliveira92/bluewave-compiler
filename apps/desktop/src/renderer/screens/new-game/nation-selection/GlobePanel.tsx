@@ -1,12 +1,12 @@
 import type { JSX } from "react";
-import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.ts";
+import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 
-import { DossierSlidePanel } from "./DossierSlidePanel/index.ts";
+import { DossierSlidePanel } from "./DossierSlidePanel/index.js";
 import {
   GLOBE_TRANSITION_MS,
   useArmedAfterMount,
-} from "./globeHandoffTransition.ts";
-import { InteractiveGlobe } from "./InteractiveGlobe.tsx";
+} from "./globeHandoffTransition.js";
+import { InteractiveGlobe } from "./InteractiveGlobe.js";
 
 interface GlobePanelProps {
   focusedSlotId: PlayableSlotCountryId;

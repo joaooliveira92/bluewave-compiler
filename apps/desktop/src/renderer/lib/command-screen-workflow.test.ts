@@ -21,6 +21,7 @@ describe("command screen workflow lifecycle", () => {
     const send = vi.fn(async () => ({
       outcome: "success" as const,
       value: "ok",
+      diagnostics: [],
     }));
     const command = prepareCommand("replace", 3, send, "tx-1");
 
@@ -39,7 +40,7 @@ describe("command screen workflow lifecycle", () => {
     const command = prepareCommand(
       "replace",
       3,
-      async () => ({ outcome: "success", value: null }),
+      async () => ({ outcome: "success", value: null, diagnostics: [] }),
       "tx-1",
     );
     const pending = beginRequest(state, command);
@@ -53,7 +54,7 @@ describe("command screen workflow lifecycle", () => {
     const command = prepareCommand(
       "submit",
       3,
-      async () => ({ outcome: "success", value: null }),
+      async () => ({ outcome: "success", value: null, diagnostics: [] }),
       "tx-2",
     );
     expect(
@@ -83,7 +84,7 @@ describe("command screen workflow lifecycle", () => {
       {
         kind: "submit",
         context: { expectedRevision: 3, transportRequestId: "tx-9" },
-        send: async () => ({ outcome: "success", value: null }),
+        send: async () => ({ outcome: "success", value: null, diagnostics: [] }),
       },
     );
 
@@ -109,7 +110,7 @@ describe("command screen workflow lifecycle", () => {
         {
           kind: "submit",
           context: { expectedRevision: 3, transportRequestId: "tx-10" },
-          send: async () => ({ outcome: "success", value: null }),
+          send: async () => ({ outcome: "success", value: null, diagnostics: [] }),
         },
       ),
       { extra: "kept" },

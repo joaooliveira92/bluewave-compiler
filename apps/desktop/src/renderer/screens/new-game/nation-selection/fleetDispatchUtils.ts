@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
-import type { MediaAsset } from "@/content/mediaAsset.ts";
-import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.ts";
-import { getNationPresentation } from "@/content/nationPresentationCatalog.ts";
+import type { MediaAsset } from "@/content/mediaAsset.js";
+import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
+import { getNationPresentation } from "@/content/nationPresentationCatalog.js";
 
 export const MAX_VISIBLE_DISTANCE = 4;
 

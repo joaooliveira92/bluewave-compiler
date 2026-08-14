@@ -1,9 +1,9 @@
-import { PLAYABLE_SLOT_COUNTRY_IDS } from "@/content/nationAssetManifest.ts";
+import { PLAYABLE_SLOT_COUNTRY_IDS } from "@/content/nationAssetManifest.js";
 import {
   getNationPresentation,
   NATION_MARKER_COLOURS,
-} from "@/content/nationPresentationCatalog.ts";
-import type { GlobePoint } from "./globeTypes.ts";
+} from "@/content/nationPresentationCatalog.js";
+import type { GlobePoint } from "./globeTypes.js";
 
 /** Compatibility export; marker colours are authored by the nation presentation catalog. */
 export const DOMINANT_FLAG_COLORS: Readonly<Record<string, string>> =

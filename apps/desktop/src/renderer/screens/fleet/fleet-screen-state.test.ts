@@ -58,6 +58,7 @@ const projection: FleetScreenProjection = {
       id: "port_portsmouth",
       name: "Portsmouth",
       areaId: "area_northern_europe",
+      capacity: 40,
     },
   ],
   movementCommands: [movementCommand],
@@ -85,7 +86,7 @@ function prepared(
   return {
     kind,
     context: { expectedRevision: 0, transportRequestId },
-    send: async () => ({ outcome: "success", value: undefined }),
+    send: async () => ({ outcome: "success", value: undefined, diagnostics: [] }),
   };
 }
 

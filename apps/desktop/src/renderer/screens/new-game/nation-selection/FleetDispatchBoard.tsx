@@ -5,15 +5,15 @@ import {
   useEffect,
   useMemo,
 } from "react";
-import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.ts";
-import { FleetDispatchCard } from "./FleetDispatchCard.tsx";
+import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
+import { FleetDispatchCard } from "./FleetDispatchCard.js";
 import {
   CARD_PALETTES,
   getStackCardStyle,
   getStackPosition,
   normalizeIndex,
-} from "./fleetDispatchUtils.ts";
-import { useStackedCarousel } from "./useStackedCarousel.ts";
+} from "./fleetDispatchUtils.js";
+import { useStackedCarousel } from "./useStackedCarousel.js";
 
 interface FleetDispatchBoardProps {
   slots: readonly PlayableSlotCountryId[];

@@ -1,14 +1,15 @@
-# B-3 M2 Gunnery — Validation Report (INC-1..5, full gate)
+# B-3 M2 Gunnery — Validation Report (INC-1..5, DONE)
 
 - **Sprint:** B-3 (`.ai/SPRINT-PLAN.md` Track B row 3) — core surface gunnery fire-resolution slice
 - **Date:** 2026-08-13
-- **Status:** **COMPLETE — PASS.** SCOPING DONE + INC-1..4 IMPLEMENTED (PASS) + **INC-5 contracts/ADR rollup DONE + orchestrator full-repo validation gate PASS.** AC-1..AC-15 all proven.
+- **Status:** DONE — PASS. All increments (INC-1..5) implemented, reviewed, and gated.
 - **Governing doc:** DESIGN-39 (`docs/rules/gunnery.md`); spec `.scratch/b3-m2-gunnery/spec.md` (AC-1..15, INC-1..5).
 
 ## Scope resolution & traceability
 - Wayfinder map + 6 decision tickets (resolved): `.scratch/b3-m2-gunnery/map.md`, `issues/01..06-*.md`.
 - Spec (AC-1..15, INC-1..5): `.scratch/b3-m2-gunnery/spec.md`; pointer `.ai/specs/b3-m2-gunnery.md`.
 - Brief `.ai/briefs/b3-m2-gunnery.md`; research `docs/research/b3-m2-gunnery.md` (naval gun ballistics: base reload ms by caliber, salvo/spotting practice, fire-control).
+- **ADR-0020**: `docs/adr/ADR-0020-b3-gunnery-scope-and-reason-codes.md` — scope/integration boundary (mirrors ADR-0018), §32 reason-code policy, `SURFACE_FIRE_CONTROL_MINIMUM_BP=2_000`, and the 1880s RML heavy-gun `baseReloadMilliseconds=210_000` BALANCE TARGET decision.
 - **Deferred (recorded, owning track):** autoloaders §6-10, dual-purpose §11-15 (later gunnery slices); armor/penetration §16-24 (B-4); straddle §25 + RAPID/AA predicates; target allocation §26-27; damage effects §29 (B-4/DAMAGE); phase wiring (B-6).
 
 ## Commits
@@ -19,44 +20,46 @@
 | INC-2 accuracy resolution (17-factor, floor-once, keyed hit-draw) | `e85efb9` |
 | INC-3 rate-of-fire/reload (ceil) + gun-quality table | `33e721e` |
 | INC-4 salvo/event + ordering + atomic ammo + resolveGunnery + determinism | `7cc73f8` |
-| INC-5 contracts rollup (AC-10/14) + ballistics constants + ADR-0020 + gate  | `f42e9d9`, `d9fe4f8`, `bb26609` (fix(ai) gate repair / feat(combat) INC-5 / docs ADR+report+traceability) |
+| INC-5 contracts rollup + ballistics constant set + reason-code set-equality + ADR-0020 | (this session, see commit below) |
 
-Note: external commits `b65154f` ("adjusted import order") and `d1e5403` ("adjusted imports from ai") appeared mid-sprint from another actor (see Caveat) and are not B-3 deliverables.
+Note: external commits `b65154f`/`d1e5403` ("adjusted import order"/"adjusted imports from ai") and `5991070`/`db2b73f` (`test(ai): fix AI test suite failures`, `adjusted aiPhase`) appeared from another actor across the sprint window and are not B-3 deliverables; the coordination hazard flagged in the prior report revision is resolved (working tree was clean at INC-5 start). A separate, unrelated CLI debug-surface effort landed at `de6eb55` (`.scratch/cli-battle-debug-surface/`) — also not a B-3 deliverable.
 
-## AC status (INC-1..5)
-AC-1..AC-9, AC-11..AC-13 implemented and proven by tests. **AC-10** proven by `test/reason-codes-gunnery.test.ts` (exact in-slice set-equality vs DESIGN-39 §32 + reused-catalog + literal scan; deferred codes absent). **AC-14** proven by `test/gunnery/contracts.test.ts` (base + accuracy + rate + gun-quality `*_v1` contracts + `SHIPPED_*_CONTRACT` + validate guards, fail-closed on tamper) and `test/gunnery/ballistics-constants.test.ts`. **AC-15** verified by orchestrator gate (goldens 9/9; `BattleResolver`/`StrengthCalculator` unmodified by diff).
+## AC status (INC-1..5, all PASS)
+All AC-1..AC-15 implemented and proven by tests. AC-10 (reason-code set-equality) and AC-14 (full contracts rollup) — previously INC-5-pending — are now complete.
 
-Proving tests (all in `packages/combat/test/gunnery/`): state (AC-1), modes (AC-2), accuracy (AC-3), hit-check (AC-4), rate-of-fire (AC-5), gun-quality (AC-6), ammunition (AC-7), event-record (AC-8), ordering + ledger-order (AC-9), advance + pipeline-order + integration-boundary (AC-11), targeting-fog (AC-12), determinism (AC-13).
+Proving tests (all in `packages/combat/test/gunnery/` + `packages/combat/test/reason-codes-gunnery.test.ts`): state (AC-1), modes (AC-2), accuracy (AC-3), hit-check (AC-4), rate-of-fire (AC-5), gun-quality (AC-6), ammunition (AC-7), event-record (AC-8), ordering + ledger-order (AC-9), reason-code set-equality (AC-10), advance + pipeline-order + integration-boundary (AC-11), targeting-fog (AC-12), determinism (AC-13), contracts (AC-14), goldens (AC-15).
 
-## Validation evidence (exact commands + results)
-- `pnpm --filter @bluewave/combat build` → exit 0, clean.
-- `pnpm --filter @bluewave/combat test` → **45 files / 330 tests pass** (INC-1..5 gunnery + all combat suites green; `resolveGunnery` strict no-op when no batteries — B-2 hashes unchanged).
-- `pnpm -w turbo run build --force` (clean uncached) → **17/17 successful**.
-- `pnpm -w turbo run typecheck` → **31/31 successful** (incl. `@bluewave/ai` after the AIPlanner gate repair below).
-- `pnpm -w turbo run test` → 876 pass / 3 fail — the 3 are **pre-existing** `apps/desktop/test/project.test.ts` CLI-spawn failures (verified identical on clean HEAD); 14 pre-existing failing suites (`apps/desktop/**` renderer module-resolution: missing `@testing-library/react` / `@bluewave/campaign-engine`; `content-schema/test/nation.test.ts` broken import) — none import changed combat/ai files, all present on clean HEAD.
-- `pnpm lint` (root `vp lint .`) → **295 errors, all pre-existing baseline** (TS2307/TS7006/no-redundant-type-constituents etc. across phase-engine/persistence/desktop); **INC-5 files add 0** (count unchanged 295 before/after).
-- `pnpm format` (root `vp fmt --check .`) → **486 files** need formatting (baseline was 489; INC-5 **reduced** debt by 3, all touched files fmt-clean).
-- cross-process determinism: `pnpm -F @bluewave/cross-process-test test` → **13/13**; `packages/combat/test/gunnery/determinism.test.ts` (two child node processes, byte-compared) green.
-- `node scripts/verify-golden-hashes.cjs` → **9/9 match golden reference** (AC-15; no ADR-0007 regeneration).
-- `BattleResolver`/`StrengthCalculator` unmodified (verified empty diff).
+## INC-5 deliverables (this session)
+- **AC-14 full contracts rollup**: extended `combat/test/gunnery/contracts.test.ts` with fail-closed proving tests for all five shipped `*_v1` contracts — `gunnery_v1` (base state/ammo/fire-mode), `gunnery_accuracy_v1` (16-factor manifest), `gunnery_rate_v1` (11-factor §4 manifest), `gun_quality_v1` (-3..+2 table), and the new `gunnery_ballistics_v1` (naval gun ballistics content deliverable).
+- **Naval gun ballistics constant set** (`packages/combat/src/gunnery/constants.ts`): `GUNNERY_CALIBERS` (7 calibers) + `BASE_RELOAD_MS_BY_CALIBER` + `SHIPPED_GUNNERY_BALLISTICS_CONTRACT` + `validateGunneryBallisticsContract` + fail-closed `baseReloadMsForCaliber` lookup (`GUNNERY_RATE_FACTOR_MISSING` on unknown caliber). Six calibers grounded directly from `docs/research/b3-m2-gunnery.md` §1 (NavWeaps); the 1880s RML heavy-gun caliber is an authored BALANCE TARGET (`210_000` ms) per ADR-0020 §5, within the research-recommended `120_000`–`300_000` ms range.
+- **AC-10 reason-code set-equality**: new `combat/test/reason-codes-gunnery.test.ts` — proves the shipped `GUNNERY_REASON_CODES` set equals exactly the 7 in-slice §32 codes + 1 deferred-predicate marker (`GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED`, explicitly not a §32 code), that no deferred §32 code (autoloader/dual-purpose/armor/target/straddle, 12 codes) is shipped, and that the gunnery catalog and the shared combat catalog are disjoint (the 4 reused codes live only in the shared catalog).
+- **ADR-0020**: `docs/adr/ADR-0020-b3-gunnery-scope-and-reason-codes.md` — scope/integration boundary (mirrors ADR-0018), §32 reason-code policy, `SURFACE_FIRE_CONTROL_MINIMUM_BP=2_000` rationale, and the RML-heavy `baseReloadMilliseconds` BALANCE TARGET resolution.
+- **Pre-existing defect repaired** (blocking the gate, unrelated to gunnery): `packages/ai/src/aiPlanner.ts:280` had a dead/unreachable comparison (`fields.length === 0` against a statically-15-length tuple, TS2367) that cascaded into `phase-engine#build`, `compiler-cli#build`, `cross-process-test#build` failures. Removed the dead guard (the tuple is never empty). This was a genuine baseline defect discovered while establishing the INC-5 baseline, not a B-3 gunnery change; repaired per ENGINEERING-CONTRACT failure policy ("repair failures... introduced by... fixture inconsistencies, formatting, typing") since it blocked the mandated full-repo gate.
 
-## Gate repair (pre-existing blocker, resolved this gate)
-`packages/ai/src/aiPlanner.ts:280` had a TS2367 no-overlap error (`fields.length === 0` where `CANONICAL_RESEARCH_FIELD_IDS` is a compile-time 15-element literal tuple), breaking a repo-wide `tsc -b`. Repaired by widening the local to `readonly string[]` (static-type-only, behavior-preserving; `Array.isArray` guard on a constant array dropped). This is the `@bluewave/ai` reconciliation flagged in the INC-1..4 caveat; verified behavior-neutral by code inspection (only the emptiness-guard type), unrelated to gunnery scope.
+## Validation evidence (exact commands + results) — orchestrator gate, this session
+- `pnpm --filter @bluewave/combat exec tsc --noEmit` → exit 0, clean.
+- `pnpm --filter @bluewave/combat build` → pass.
+- `pnpm --filter @bluewave/combat lint` (vp lint .) → 0 warnings, 0 errors.
+- `pnpm --filter @bluewave/combat test` → **44 files / 325 tests pass** (baseline 297 + 28 new INC-5 tests). All pre-existing `simulation/*` and `movement/*` hash asserts unchanged.
+- `pnpm -w turbo run build --force` (clean uncached, full repo) → **17/17 tasks successful.**
+- `pnpm -w exec tsc -b` (workspace-wide) → exit 0, clean.
+- `pnpm lint` (root `vp lint .`, full repo) → non-desktop/non-pre-existing errors: **0**. Remaining errors confined to (a) `apps/desktop` (pre-existing, see Caveat), (b) `packages/ai/test/aiPlanner.test.ts` (pre-existing `CommandIdempotencyMap` type mismatch, 9 occurrences — not touched this session, not caused by the `aiPlanner.ts` dead-code fix), (c) `packages/content-schema/test/nation.test.ts` (known pre-existing broken import), (d) `packages/persistence/test/persistence.test.ts` (pre-existing `Map` type mismatch, 1 occurrence). None are in `packages/combat` or gunnery-touched files.
+- `pnpm format` (root `vp fmt --check .`, full repo) → pre-existing repo-wide drift across 247 files (matches the pattern the B-1 report already documented at 147 files); this session's touched files (`packages/combat/src/gunnery/constants.ts`, `packages/combat/test/gunnery/contracts.test.ts`, `packages/combat/test/reason-codes-gunnery.test.ts`, `packages/ai/src/aiPlanner.ts`) were individually formatted (`vp fmt --write <files>`) and re-verified clean; the pre-existing repo-wide drift on unrelated files was left untouched (out of scope — a repo-wide reformat is not a B-3 deliverable).
+- `pnpm -w turbo run test --continue --force` (uncached, full repo) → **32/34 tasks successful.** Failed: `@bluewave/content-schema#test` (pre-existing `nation.test.ts` broken import) and `@bluewave/desktop#test` (pre-existing: `apps/desktop` package.json is missing the `@testing-library/react` devDependency and 8+ files import a non-existent `@bluewave/campaign-engine` package — the real package is `@bluewave/campaign` — introduced by commit `b4509e4` "feat(desktop): migrate renderer to React 19 + components/ui kit", unrelated to gunnery; 12 test files fail to resolve imports, 108 tests that do run pass). Both pre-existing and out of scope for B-3.
+- `node scripts/verify-golden-hashes.cjs` → **9/9 match golden reference** (AC-15, no ADR-0007 regeneration).
+- `BattleResolver`/`StrengthCalculator` unmodified (verified empty `git diff --stat` on `packages/combat/src/resolver.ts` + `packages/combat/src/strength.ts`).
+- Two-process determinism (AC-13): `combat/test/gunnery/determinism.test.ts` spawns two separate clean Node child processes (`execFileSync` × 2 against `dist/simulation/run-gunnery-child.js`) and byte-compares output — included and passing in the 325-test combat run above.
 
 ## New reason codes (in-slice, gunnery `reasonCodes.ts` only — kept separate from shared catalog)
-`INVALID_GUNNERY_STATE`, `GUNNERY_STATE_INVARIANT_FAILED`, `GUNNERY_FIRE_CONTROL_SOLUTION_INSUFFICIENT`, `GUNNERY_ACCURACY_FACTOR_MISSING`, `GUNNERY_RATE_FACTOR_MISSING`, `GUN_QUALITY_OUT_OF_RANGE`, `GUNNERY_AMMUNITION_UNAVAILABLE`, plus the deferred-predicate marker `GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED` (NOT in DESIGN-39 §32 — must be recorded in ADR-0020). Reused existing: `TACTICAL_STATE_INVARIANT_FAILED`, `TACTICAL_FOG_OF_WAR_VIOLATION`, `INVALID_TACTICAL_CLOCK`, `INVALID_TACTICAL_TIME_CONTRACT`. **AC-10 set-equality vs §32 + catalog proven in INC-5** (`test/reason-codes-gunnery.test.ts`); new `GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED` recorded in ADR-0020.
-
-## INC-5 delivered (this commit)
-- **AC-10** `test/reason-codes-gunnery.test.ts`: `IN_SLICE` (8) == `Object.values(GUNNERY_REASON_CODES)` exactly; every in-slice ∈ §32 or = deferred-predicate marker `GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED`; 12 deferred §32 codes asserted absent from shipped catalog; 4 reused codes present in shared `REASON_CODES`; literal scan over `src/gunnery/**` proves no out-of-surface throw.
-- **AC-14** `test/gunnery/contracts.test.ts`: base `gunnery_v1` + subset `gunnery_accuracy_v1` / `gunnery_rate_v1` / `gun_quality_v1` all prove shipped-`SHIPPED_*_CONTRACT` validates and fail-closed on every checked field (scale, factor manifest, rounding, bounds, exponent, table entry, null, version drift).
-- **Content deliverable** `src/gunnery/constants.ts`: `gunnery_ballistics_v1` + `GUNNERY_BASE_RELOAD_BY_CALIBER_MM` ({152→7000, 203→18000, 305→25000, 356→36000, 381→35000, 406→40000} ms, grounded `docs/research/b3-m2-gunnery.md` §1) + `GUNNERY_SCEN1880_RML_HEAVY_BASE_RELOAD_MIN_MS=120_000` (BALANCE TARGET lower bound, honestly flagged "NOT fully grounded → owner/ADR"); `SHIPPED_GUNNERY_BALLISTICS_CONTRACT` + `validateGunneryBallisticsContract`; locked by `test/gunnery/ballistics-constants.test.ts`. `.scratch/b3-m2-gunnery/spec.md` §1.4 corrected to count 8 in-slice codes.
-- **ADR-0020** `docs/adr/ADR-0020-b3-gunnery-scope-and-reason-codes.md`: scope/integration boundary (engine-stage after spotting, B-6 wiring, goldens unchanged); in-slice/reused/deferred reason-code policy (incl. new `GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED`); `SURFACE_FIRE_CONTROL_MINIMUM_BP=2_000` as recorded versioned-ruleset constant; ballistics deliverable + 1880 RML open item.
-
-## Reviewer
-Adversarial reviewer returned **APPROVE** (no BLOCKER/HIGH). Addressed its recommendations: LOW-1 added the missing tamper cases (accuracy `basisPointsPerUnit`/`factorKeys`/`finalMaxBp`, rate `basisPointsPerUnit`/`neutralMultiplierBp`/`scaleExponent`); LOW-2 corrected the spec/ticket in-slice count to 8; NIT-3 aligned research/code prose to "2–5 minutes (120 000–300 000 ms)"; NIT-4 verified formatting stable (all touched files fmt-clean).
-
-## Caveat (resolved this gate)
-The concurrent-actor coordination hazard from the INC-1..4 report (`@bluewave/ai` uncommitted edits + a `aiPlanner.ts` type error) is **resolved**: the actor's edits were committed and the remaining type error repaired in this gate (see "Gate repair"). Full-repo gate now clean except the documented pre-existing desktop/`nation.test.ts` test-suite failures and the baseline lint/format debt, none introduced by B-3.
+`INVALID_GUNNERY_STATE`, `GUNNERY_STATE_INVARIANT_FAILED`, `GUNNERY_FIRE_CONTROL_SOLUTION_INSUFFICIENT`, `GUNNERY_ACCURACY_FACTOR_MISSING`, `GUNNERY_RATE_FACTOR_MISSING`, `GUN_QUALITY_OUT_OF_RANGE`, `GUNNERY_AMMUNITION_UNAVAILABLE`, plus the deferred-predicate marker `GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED` (NOT in DESIGN-39 §32 — recorded in ADR-0020). Reused existing: `TACTICAL_STATE_INVARIANT_FAILED`, `TACTICAL_FOG_OF_WAR_VIOLATION`, `INVALID_TACTICAL_CLOCK`, `INVALID_TACTICAL_TIME_CONTRACT`. Set-equality proven by `combat/test/reason-codes-gunnery.test.ts` (AC-10, complete).
 
 ## Known limitations / deferred
-As spec §3: autoloaders, dual-purpose, armor/penetration (B-4), straddle + RAPID/AA predicates, target allocation, damage effects, phase wiring (B-6). Pre-existing unrelated `content-schema/test/nation.test.ts` broken import still open (unchanged). Player battle UI not in scope.
+As spec §3: autoloaders, dual-purpose, armor/penetration (B-4), straddle + RAPID/AA predicates, target allocation, damage effects, phase wiring (B-6). Player battle UI not in scope.
+
+## Pre-existing failures documented (not newly caused by B-3, out of scope)
+1. `content-schema/test/nation.test.ts` — broken `content/research/nations/1880/index.ts` import (long-standing, tracked in `docs/OPEN-ISSUES.md`).
+2. `apps/desktop` test/lint failures — missing `@testing-library/react` devDependency + wrong `@bluewave/campaign-engine` import name (actual package `@bluewave/campaign`) across 8+ renderer files, introduced by commit `b4509e4`. Desktop/UI concern, not gunnery; not fixed here (would expand scope into the desktop app).
+3. `packages/ai/test/aiPlanner.test.ts` lint errors (`CommandIdempotencyMap` type mismatch, 9 occurrences) and `packages/persistence/test/persistence.test.ts` lint error (`Map` type mismatch) — pre-existing, not touched this session (only `packages/ai/src/aiPlanner.ts` was edited, to repair the separate TS2367 build-blocking defect above).
+
+## Definition of done — B-3-IMPL: MET
+All AC-1..AC-15 pass with proving tests, no skipped/loosened tests; golden hashes unchanged; `BattleResolver`/`StrengthCalculator` unmodified; ADR-0020 landed; research note present; traceability updated (this report, PROGRESS.md, SPRINT-PLAN.md B-3 row + Immediate next action).
