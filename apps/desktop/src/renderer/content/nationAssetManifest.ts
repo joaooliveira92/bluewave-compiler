@@ -1,27 +1,27 @@
-import austrianFlag from "../../assets/flags/austria_hungary_flag.png";
-import frenchFlag from "../../assets/flags/french_tricolor.png";
-import germanFlag from "../../assets/flags/german_imperial_tricolor.png";
-import italianFlag from "../../assets/flags/italian_savoy_flag.png";
-import japanFlag from "../../assets/flags/japan_rising_sun.png";
-import qingFlag from "../../assets/flags/qing_dragon_flag.png";
-import russianFlag from "../../assets/flags/russia_imperial_flag.png";
-import spanishFlag from "../../assets/flags/spain_flag_1880.png";
+import austrianFlag from "../assets/flags/austria_hungary_flag.png";
+import frenchFlag from "../assets/flags/french_tricolor.png";
+import germanFlag from "../assets/flags/german_imperial_tricolor.png";
+import italianFlag from "../assets/flags/italian_savoy_flag.png";
+import japanFlag from "../assets/flags/japan_rising_sun.png";
+import qingFlag from "../assets/flags/qing_dragon_flag.png";
+import russianFlag from "../assets/flags/russia_imperial_flag.png";
+import spanishFlag from "../assets/flags/spain_flag_1880.png";
 // The bundler owns the emitted URLs; these imports are the *only* place asset
 // filenames appear. Components reach art through `resolveNationAsset`, keyed by
 // stable id, so renaming a file can never break a screen.
-import ukEnsign from "../../assets/flags/uk_white_ensign_1880.png";
-import usFlag from "../../assets/flags/us_flag_44_stars.png";
-import usShip from "../../assets/ships/1880-naval-american-ship.png";
-import austrianShip from "../../assets/ships/1880-naval-austro-hungarian-ship.png";
+import ukEnsign from "../assets/flags/uk_white_ensign_1880.png";
+import usFlag from "../assets/flags/us_flag_44_stars.png";
+import usShip from "../assets/ships/1880-naval-american-ship.png";
+import austrianShip from "../assets/ships/1880-naval-austro-hungarian-ship.png";
 
-import ukShip from "../../assets/ships/1880-naval-british-ship.png";
-import qingShip from "../../assets/ships/1880-naval-chinese-ship.png";
-import frenchShip from "../../assets/ships/1880-naval-french-ship.png";
-import germanShip from "../../assets/ships/1880-naval-german-ship.png";
-import italianShip from "../../assets/ships/1880-naval-italian-ship.png";
-import japanShip from "../../assets/ships/1880-naval-japanese-ship.png";
-import russianShip from "../../assets/ships/1880-naval-russian-ship.png";
-import spanishShip from "../../assets/ships/1880-naval-spanish-ship.png";
+import ukShip from "../assets/ships/1880-naval-british-ship.png";
+import qingShip from "../assets/ships/1880-naval-chinese-ship.png";
+import frenchShip from "../assets/ships/1880-naval-french-ship.png";
+import germanShip from "../assets/ships/1880-naval-german-ship.png";
+import italianShip from "../assets/ships/1880-naval-italian-ship.png";
+import japanShip from "../assets/ships/1880-naval-japanese-ship.png";
+import russianShip from "../assets/ships/1880-naval-russian-ship.png";
+import spanishShip from "../assets/ships/1880-naval-spanish-ship.png";
 import type { MediaAsset } from "./mediaAsset.js";
 import type { NationAssetManifest } from "./resolveNationAsset.js";
 

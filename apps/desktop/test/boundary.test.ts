@@ -11,7 +11,7 @@ describe("Electron boundary", () => {
   it("applies `default-src 'self'` CSP to renderer responses", () => {
     const headers = applyContentSecurityPolicy({ "X-Frame-Options": ["DENY"] });
     expect(headers["Content-Security-Policy"]).toEqual([CONTENT_SECURITY_POLICY]);
-    expect(CONTENT_SECURITY_POLICY).toBe("default-src 'self'");
+    expect(CONTENT_SECURITY_POLICY).toBe("default-src 'self'; img-src 'self' data:");
     // Pre-existing headers are preserved.
     expect(headers["X-Frame-Options"]).toEqual(["DENY"]);
   });
