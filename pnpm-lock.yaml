@@ -274,12 +274,6 @@ importers:
       '@bluewave/campaign':
         specifier: workspace:*
         version: link:../campaign
-      '@bluewave/diagnostics':
-        specifier: workspace:*
-        version: link:../diagnostics
-      '@bluewave/persistence':
-        specifier: workspace:*
-        version: link:../persistence
 
   packages/combat:
     dependencies:

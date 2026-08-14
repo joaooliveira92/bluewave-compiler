@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./shell/App.js";
+import { BackgroundProvider } from "./shell/BackgroundContext.js";
+import { ThemeProvider } from "./shell/ThemeContext.js";
 import "./styles/globals.css";
 
 const container = document.getElementById("root");
@@ -11,6 +13,10 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <App />
+    <ThemeProvider>
+      <BackgroundProvider>
+        <App />
+      </BackgroundProvider>
+    </ThemeProvider>
   </StrictMode>,
 );

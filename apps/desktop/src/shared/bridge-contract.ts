@@ -11,6 +11,19 @@
  * optimistic-concurrency conflict, so the client can refresh and retry).
  * `"error"` (transport/unexpected failure) never carries a revision.
  */
+/**
+ * The `{sessionId, expectedRevision, transportRequestId}` triple travels
+ * together on every optimistic-concurrency command (construction and
+ * fleet submit/replace/cancel payloads) — grounded in
+ * `command-screen-workflow.ts`'s `CommandExecutionContext`. Extend this
+ * rather than repeating the three fields.
+ */
+export interface CommandEnvelope {
+  readonly sessionId: string;
+  readonly expectedRevision: number;
+  readonly transportRequestId: string;
+}
+
 /** Grounded in `WindowContext.tsx`/`App.tsx` — the shell renders its own
  * frameless-window titlebar controls, backed by these IPC calls. */
 export interface WindowState {

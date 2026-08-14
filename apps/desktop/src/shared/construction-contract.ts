@@ -2,6 +2,7 @@ import type {
   CompiledDesignVersion,
   ConstructionCommand,
 } from "@bluewave/campaign-engine";
+import type { CommandEnvelope } from "./bridge-contract.js";
 
 /**
  * Grounded in `construction-screen-state.ts`, `StatsPanel.tsx`, and
@@ -29,11 +30,8 @@ export interface ConstructionCommandOutcome {
   readonly command: { readonly commandId: string; readonly status: string };
 }
 
-export interface SubmitConstructionCommandPayload {
-  readonly sessionId: string;
+export interface SubmitConstructionCommandPayload extends CommandEnvelope {
   readonly designId: string;
-  readonly expectedRevision: number;
-  readonly transportRequestId: string;
 }
 
 export interface ReplaceConstructionCommandPayload
@@ -41,9 +39,6 @@ export interface ReplaceConstructionCommandPayload
   readonly commandId: string;
 }
 
-export interface CancelConstructionCommandPayload {
-  readonly sessionId: string;
+export interface CancelConstructionCommandPayload extends CommandEnvelope {
   readonly commandId: string;
-  readonly expectedRevision: number;
-  readonly transportRequestId: string;
 }

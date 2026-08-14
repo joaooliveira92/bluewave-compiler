@@ -1,4 +1,5 @@
 import type { MovementCommand } from "@bluewave/campaign-engine";
+import type { CommandEnvelope } from "./bridge-contract.js";
 
 /**
  * Read-only for MVP (desktop-mvp map, Construction & Fleet Contract
@@ -37,6 +38,7 @@ export interface FleetPort {
   readonly id: string;
   readonly name: string;
   readonly areaId: string;
+  readonly capacity: number;
 }
 
 export interface FleetScreenProjection {
@@ -55,13 +57,10 @@ export interface MovementCommandOutcome {
   readonly command: { readonly commandId: string; readonly status: string };
 }
 
-export interface SubmitMovementCommandPayload {
-  readonly sessionId: string;
+export interface SubmitMovementCommandPayload extends CommandEnvelope {
   readonly divisionId: string;
   readonly fromAreaId: string;
   readonly toAreaId: string;
-  readonly expectedRevision: number;
-  readonly transportRequestId: string;
 }
 
 export interface ReplaceMovementCommandPayload
@@ -69,9 +68,6 @@ export interface ReplaceMovementCommandPayload
   readonly commandId: string;
 }
 
-export interface CancelMovementCommandPayload {
-  readonly sessionId: string;
+export interface CancelMovementCommandPayload extends CommandEnvelope {
   readonly commandId: string;
-  readonly expectedRevision: number;
-  readonly transportRequestId: string;
 }

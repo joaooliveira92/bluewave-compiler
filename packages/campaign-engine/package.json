@@ -10,9 +10,7 @@
     }
   },
   "dependencies": {
-    "@bluewave/diagnostics": "workspace:*",
-    "@bluewave/campaign": "workspace:*",
-    "@bluewave/persistence": "workspace:*"
+    "@bluewave/campaign": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

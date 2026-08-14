@@ -9,7 +9,7 @@ import type {
   ReplayBattleBoundaryResponse,
   TacticalBattleOutcome,
 } from "@bluewave/campaign-engine";
-import type { BridgeResult } from "./bridge-contract.js";
+import type { BridgeResult, CommandEnvelope } from "./bridge-contract.js";
 import type {
   LoadCampaignResponse,
   RecoverCampaignResponse,
@@ -38,11 +38,7 @@ import type {
  * screen usage per ticket 09's addendum).
  */
 
-export interface CommitMonthPayload {
-  readonly sessionId: string;
-  readonly expectedRevision: number;
-  readonly transportRequestId: string;
-}
+export type CommitMonthPayload = CommandEnvelope;
 
 export interface GenerateBattlePayload {
   readonly sessionId: string;
@@ -91,6 +87,39 @@ export interface InspectCampaignResult {
 export interface SaveCampaignResult {
   readonly revision: number;
 }
+
+/**
+ * Single source of truth for the command name set — `campaignBridge.ts`'s
+ * runtime registry derives from this instead of hand-duplicating the list.
+ * TypeScript can't generate overload signatures from a runtime tuple, so
+ * `CampaignCommandClient` below must still list each command by hand; keep
+ * the two in sync when adding a command (a mismatch fails
+ * `campaignBridge.test.ts`).
+ */
+export const CAMPAIGN_COMMAND_NAMES = [
+  "listNewGameOptions",
+  "compileCampaign",
+  "inspectCampaign",
+  "closeCampaign",
+  "saveCampaign",
+  "commitMonth",
+  "generateBattle",
+  "resolveBattle",
+  "resolveTacticalBattle",
+  "replayBattleBoundary",
+  "loadCampaign",
+  "verifyCampaign",
+  "replayCampaign",
+  "recoverCampaign",
+  "inspectConstructionScreen",
+  "submitConstructionCommand",
+  "replaceConstructionCommand",
+  "cancelConstructionCommand",
+  "inspectFleetScreen",
+  "submitMovementCommand",
+  "replaceMovementCommand",
+  "cancelMovementCommand",
+] as const;
 
 /**
  * The full `bridge.campaign` surface — one overload per command, grounded

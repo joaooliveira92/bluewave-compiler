@@ -58,6 +58,7 @@ const projection: FleetScreenProjection = {
       id: "port_portsmouth",
       name: "Portsmouth",
       areaId: "area_northern_europe",
+      capacity: 40,
     },
   ],
   movementCommands: [movementCommand],
