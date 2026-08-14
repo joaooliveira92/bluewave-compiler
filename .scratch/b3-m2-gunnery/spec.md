@@ -101,6 +101,11 @@ recorded, not dropped. **In-slice (new, recorded in ADR-0020):**
   surface solution threshold is a versioned-ruleset constant documented in ADR-0020 — not
   fabricated)
 - `GUNNERY_STATE_INVARIANT_FAILED`
+- `GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED` (new, non-§32 marker code: `RAPID`/`AA_TRACKING`/
+  `AA_BARRAGE` eligibility predicates are deferred to the straddle/AA slice; a firing guard
+  reports this rather than fabricating a predicate, AC-2)
+
+These form the 8-code in-slice surface shipped as `GUNNERY_REASON_CODES`.
 
 **Reused existing combat catalog codes** (no new record needed): `TACTICAL_STATE_INVARIANT_FAILED`
 (state-invariant guard), `TACTICAL_FOG_OF_WAR_VIOLATION` (targeting legality via reused
