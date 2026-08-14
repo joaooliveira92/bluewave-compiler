@@ -1,6 +1,6 @@
 import { type JSX, useEffect, useMemo, useState } from "react";
-import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.ts";
-import { getCountryCode, resolveNationShip } from "./nationArtwork.ts";
+import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
+import { getCountryCode, resolveNationShip } from "./nationArtwork.js";
 
 export function DossierCover({
   countryId,

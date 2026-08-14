@@ -13,8 +13,8 @@ import {
   useMemo,
   useState,
 } from "react";
-import { EASE_OUT } from "../../lib/ease.ts";
-import { cn } from "../../lib/utils.ts";
+import { EASE_OUT } from "../../lib/ease.js";
+import { cn } from "../../lib/utils.js";
 
 type Variant = "pill" | "underline" | "segment";
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { PANEL_TRANSITION_MS } from "./constants.ts";
+import { PANEL_TRANSITION_MS } from "./constants.js";
 
 export interface SlideVisibility {
   mounted: boolean;

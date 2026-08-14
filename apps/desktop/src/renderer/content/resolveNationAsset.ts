@@ -1,5 +1,5 @@
-import type { MediaAsset, NationAssetKind } from "./mediaAsset.ts";
-import { NATION_ASSET_MANIFEST } from "./nationAssetManifest.ts";
+import type { MediaAsset, NationAssetKind } from "./mediaAsset.js";
+import { NATION_ASSET_MANIFEST } from "./nationAssetManifest.js";
 
 /**
  * The nation identity layers an asset may be bound to, most specific first

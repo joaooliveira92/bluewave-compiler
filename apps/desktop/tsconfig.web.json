@@ -10,7 +10,26 @@
     "composite": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/renderer/*"]
+    },
+    "resolveJsonModule": true
   },
-  "include": ["src/renderer/src/**/*.ts", "src/renderer/src/**/*.tsx", "src/renderer/index.html"]
+  "include": [
+    "src/preload/**/*.ts",
+    "src/renderer/shell/**/*.ts",
+    "src/renderer/shell/**/*.tsx",
+    "src/renderer/screens/**/*.ts",
+    "src/renderer/screens/**/*.tsx",
+    "src/renderer/components/**/*.ts",
+    "src/renderer/components/**/*.tsx",
+    "src/renderer/content/**/*.ts",
+    "src/renderer/content/**/*.json",
+    "src/renderer/lib/**/*.ts",
+    "src/shared/**/*.ts",
+    "src/renderer/main.tsx",
+    "src/renderer/index.html"
+  ]
 }

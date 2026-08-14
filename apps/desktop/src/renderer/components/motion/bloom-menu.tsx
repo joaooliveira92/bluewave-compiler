@@ -21,8 +21,8 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { EASE_OUT } from "../../lib/ease.ts";
-import { cn } from "../../lib/utils.ts";
+import { EASE_OUT } from "../../lib/ease.js";
+import { cn } from "../../lib/utils.js";
 
 type MenuItem = { label: string; icon: ComponentType<{ className?: string }> };
 

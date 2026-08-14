@@ -1,7 +1,7 @@
 import type { JSX } from "react";
-import { cn } from "@/lib/utils.ts";
-import { ACCENT_STYLES } from "./DossierAccordion/constants.ts";
-import type { FlavorSummaryProps } from "./types.ts";
+import { cn } from "@/lib/utils.js";
+import { ACCENT_STYLES } from "./DossierAccordion/constants.js";
+import type { FlavorSummaryProps } from "./types.js";
 
 export function FlavorSummary({
   icon: Icon,

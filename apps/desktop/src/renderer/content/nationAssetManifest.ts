@@ -22,8 +22,8 @@ import italianShip from "../../assets/ships/1880-naval-italian-ship.png";
 import japanShip from "../../assets/ships/1880-naval-japanese-ship.png";
 import russianShip from "../../assets/ships/1880-naval-russian-ship.png";
 import spanishShip from "../../assets/ships/1880-naval-spanish-ship.png";
-import type { MediaAsset } from "./mediaAsset.ts";
-import type { NationAssetManifest } from "./resolveNationAsset.ts";
+import type { MediaAsset } from "./mediaAsset.js";
+import type { NationAssetManifest } from "./resolveNationAsset.js";
 
 /**
  * The country-identity id of each canonical playable slot, in CONTEXT.md §4

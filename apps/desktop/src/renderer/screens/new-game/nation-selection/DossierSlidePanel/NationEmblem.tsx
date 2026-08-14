@@ -1,6 +1,6 @@
 import { type JSX, useEffect, useMemo, useState } from "react";
-import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.ts";
-import { resolveNationColours } from "./nationArtwork.ts";
+import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
+import { resolveNationColours } from "./nationArtwork.js";
 
 export function NationEmblem({
   countryId,

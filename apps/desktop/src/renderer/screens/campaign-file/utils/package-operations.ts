@@ -42,7 +42,7 @@ export function recoveryResultFromBridge(
 
 function operationError(
   label: string,
-  result: Extract<BridgeResult<never>, { outcome: "rejected" }>,
+  result: Exclude<BridgeResult<never>, { outcome: "success" }>,
 ): OperationResult {
   const diagnostics =
     result.diagnostics.length > 0 ? ` — ${result.diagnostics.join("; ")}` : "";

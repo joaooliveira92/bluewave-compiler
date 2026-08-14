@@ -85,7 +85,7 @@ function prepared(
   return {
     kind,
     context: { expectedRevision: 0, transportRequestId },
-    send: async () => ({ outcome: "success", value: undefined }),
+    send: async () => ({ outcome: "success", value: undefined, diagnostics: [] }),
   };
 }
 

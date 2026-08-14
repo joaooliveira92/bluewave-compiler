@@ -1,2 +1,2 @@
-export type { DossierSlidePanelProps } from "./DossierSlidePanel.tsx";
-export { DossierSlidePanel } from "./DossierSlidePanel.tsx";
+export type { DossierSlidePanelProps } from "./DossierSlidePanel.js";
+export { DossierSlidePanel } from "./DossierSlidePanel.js";

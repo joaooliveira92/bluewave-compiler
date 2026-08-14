@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 
-import type { SvgGlobeRefs } from "./useSvgGlobe.ts";
+import type { SvgGlobeRefs } from "./useSvgGlobe.js";
 
 export interface GlobeShellProps {
   readonly refs: SvgGlobeRefs;

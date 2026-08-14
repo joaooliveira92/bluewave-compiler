@@ -1,9 +1,9 @@
 import { Check, ShipWheel } from "lucide-react";
 import type { JSX } from "react";
-import { Button } from "@/components/ui/button.tsx";
-import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.ts";
-import { NationEmblem } from "./NationEmblem.tsx";
-import { getCountryCode } from "./nationArtwork.ts";
+import { Button } from "@/components/ui/button.js";
+import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
+import { NationEmblem } from "./NationEmblem.js";
+import { getCountryCode } from "./nationArtwork.js";
 
 interface DossierHeaderProps {
   countryId: PlayableSlotCountryId;

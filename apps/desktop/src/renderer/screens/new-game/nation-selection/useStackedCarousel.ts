@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { normalizeIndex } from "./fleetDispatchUtils.ts";
+import { normalizeIndex } from "./fleetDispatchUtils.js";
 
 const SWIPE_THRESHOLD_PX = 44;
 const WHEEL_THRESHOLD_PX = 32;
