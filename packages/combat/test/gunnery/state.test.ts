@@ -113,7 +113,9 @@ describe("AC-1 GunneryState invariant", () => {
   });
 
   it("rejects a negative ammunition count", () => {
-    const s = base({ ammunition: ammo({ HIGH_EXPLOSIVE: -5 }) as Record<string, any> }) as GunneryState;
+    const s = base({
+      ammunition: ammo({ HIGH_EXPLOSIVE: -5 }) as Record<string, any>,
+    }) as GunneryState;
     let err: BluewaveError | undefined;
     try {
       assertFixedPointGunnery(s);
@@ -136,7 +138,9 @@ describe("AC-1 GunneryState invariant", () => {
     expect(err).toBeDefined();
     expect(err!.context.code).toBe("GUNNERY_STATE_INVARIANT_FAILED");
 
-    const extra = base({ ammunition: { ...ammo(), EXTRA: 1 } } as any as { ammunition: Record<string, number> });
+    const extra = base({ ammunition: { ...ammo(), EXTRA: 1 } } as any as {
+      ammunition: Record<string, number>;
+    });
     expect(() => assertFixedPointGunnery(extra as unknown as GunneryState)).toThrow(
       "GUNNERY_STATE_INVARIANT_FAILED",
     );
@@ -209,10 +213,6 @@ describe("AC-1 authoritative state hash (deterministic)", () => {
 
 describe("AC-1 GunneryState numeric surface ships the canonical ammo type set", () => {
   it("ammunition types are the base canonical seed set", () => {
-    expect([...AMMUNITION_TYPES]).toEqual([
-      "ARMOR_PIERCING",
-      "COMMON",
-      "HIGH_EXPLOSIVE",
-    ]);
+    expect([...AMMUNITION_TYPES]).toEqual(["ARMOR_PIERCING", "COMMON", "HIGH_EXPLOSIVE"]);
   });
 });

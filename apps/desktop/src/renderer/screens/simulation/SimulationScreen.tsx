@@ -5,12 +5,7 @@ import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
 import { Button } from "../../components/ui/button.js";
 import { Spinner } from "../../components/ui/spinner.js";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "../../components/ui/tabs.js";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { BattleArenaTab } from "./components/BattleArenaTab.js";
 import { ErrorAlert } from "./components/ErrorAlert.js";
@@ -23,10 +18,7 @@ export interface SimulationScreenProps {
   readonly onPrimaryActionChange: SetPrimaryAction;
 }
 
-export function SimulationScreen({
-  sessionId,
-  onPrimaryActionChange,
-}: SimulationScreenProps) {
+export function SimulationScreen({ sessionId, onPrimaryActionChange }: SimulationScreenProps) {
   const {
     loading,
     error,
@@ -64,17 +56,8 @@ export function SimulationScreen({
         title="Strategic Turn & Simulation Desk"
         description="Advance campaign months, inspect turn events, balance ledgers, and resolve battles."
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadSnapshotData}
-            disabled={loading}
-          >
-            {loading ? (
-              <Spinner className="h-3.5 w-3.5" />
-            ) : (
-              <RefreshCw className="h-3.5 w-3.5" />
-            )}
+          <Button variant="outline" size="sm" onClick={loadSnapshotData} disabled={loading}>
+            {loading ? <Spinner className="h-3.5 w-3.5" /> : <RefreshCw className="h-3.5 w-3.5" />}
             Refresh View
           </Button>
         }
@@ -88,10 +71,7 @@ export function SimulationScreen({
           <TabsTrigger value="report">
             Turn Report
             {commitResult !== null && (
-              <Badge
-                variant="secondary"
-                className="ml-1.5 px-1.5 py-0 text-[11px]"
-              >
+              <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[11px]">
                 new
               </Badge>
             )}

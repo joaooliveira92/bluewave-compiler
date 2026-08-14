@@ -15,10 +15,7 @@ export interface TelemetryEventSheetProps {
   readonly onClose: () => void;
 }
 
-export function TelemetryEventSheet({
-  event,
-  onClose,
-}: TelemetryEventSheetProps) {
+export function TelemetryEventSheet({ event, onClose }: TelemetryEventSheetProps) {
   return (
     <Sheet open={event !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent className="flex flex-col gap-4 sm:max-w-lg">
@@ -28,17 +25,15 @@ export function TelemetryEventSheet({
               <SheetTitle className="flex items-center gap-2 font-mono text-base">
                 {event.action}
                 <Badge
-                  variant={
-                    event.outcome === "success" ? "default" : "destructive"
-                  }
+                  variant={event.outcome === "success" ? "default" : "destructive"}
                   className="text-[11px] uppercase"
                 >
                   {event.outcome}
                 </Badge>
               </SheetTitle>
               <SheetDescription>
-                {formatEventDateTime(event.timestamp)} · {event.duration_ms}ms ·
-                session {event.sessionId}
+                {formatEventDateTime(event.timestamp)} · {event.duration_ms}ms · session{" "}
+                {event.sessionId}
               </SheetDescription>
             </SheetHeader>
 
@@ -47,16 +42,11 @@ export function TelemetryEventSheet({
                 Diagnostics
               </h4>
               {event.diagnostics.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  No diagnostics reported.
-                </p>
+                <p className="text-xs text-muted-foreground">No diagnostics reported.</p>
               ) : (
                 <ul className="space-y-1 rounded-md border bg-muted/20 p-2 font-mono text-[11px]">
                   {event.diagnostics.map((diagnostic, idx) => (
-                    <li
-                      key={idx}
-                      className="border-b pb-1 last:border-0 last:pb-0"
-                    >
+                    <li key={idx} className="border-b pb-1 last:border-0 last:pb-0">
                       {diagnostic}
                     </li>
                   ))}
@@ -70,9 +60,7 @@ export function TelemetryEventSheet({
               </h4>
               <ScrollArea className="min-h-0 flex-1 rounded-md border bg-zinc-950">
                 <pre className="whitespace-pre-wrap break-words p-2 font-mono text-[12px] text-zinc-50">
-                  {event.payload !== undefined
-                    ? JSON.stringify(event.payload, null, 2)
-                    : "—"}
+                  {event.payload !== undefined ? JSON.stringify(event.payload, null, 2) : "—"}
                 </pre>
               </ScrollArea>
             </div>

@@ -86,8 +86,8 @@ export const OrderSection = memo(function OrderSection({
                 </>
               ) : (
                 <>
-                  <strong>{selectedDivision.divisionId}</strong> has a pending
-                  route <strong>{areaName(pendingRoute.fromAreaId)}</strong> →{" "}
+                  <strong>{selectedDivision.divisionId}</strong> has a pending route{" "}
+                  <strong>{areaName(pendingRoute.fromAreaId)}</strong> →{" "}
                   <strong>{areaName(pendingRoute.toAreaId)}</strong>.
                 </>
               )}
@@ -97,11 +97,7 @@ export const OrderSection = memo(function OrderSection({
               <Button
                 variant="default"
                 onClick={onSubmit}
-                disabled={
-                  busy ||
-                  selectedDivision === null ||
-                  destinationAreaId === null
-                }
+                disabled={busy || selectedDivision === null || destinationAreaId === null}
               >
                 Submit movement command
               </Button>
@@ -138,9 +134,7 @@ export const OrderSection = memo(function OrderSection({
 
       {notice !== null && (
         <Alert>
-          <AlertDescription className="whitespace-pre-line">
-            {notice}
-          </AlertDescription>
+          <AlertDescription className="whitespace-pre-line">{notice}</AlertDescription>
         </Alert>
       )}
     </>

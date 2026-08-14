@@ -63,8 +63,7 @@ export interface SubmitMovementCommandPayload extends CommandEnvelope {
   readonly toAreaId: string;
 }
 
-export interface ReplaceMovementCommandPayload
-  extends SubmitMovementCommandPayload {
+export interface ReplaceMovementCommandPayload extends SubmitMovementCommandPayload {
   readonly commandId: string;
 }
 

@@ -107,15 +107,15 @@ describe("AC-5 rate-of-fire / reload (DESIGN-39 §4, INC-3)", () => {
   });
 
   it("rejects a non-positive / non-integer baseReloadMs", () => {
-    expect(() =>
-      computeEffectiveReloadMs(0, neutralRateFactors()),
-    ).toThrow(GUNNERY_RATE_FACTOR_MISSING);
-    expect(() =>
-      computeEffectiveReloadMs(-5, neutralRateFactors()),
-    ).toThrow(GUNNERY_RATE_FACTOR_MISSING);
-    expect(() =>
-      computeEffectiveReloadMs(1_000.5, neutralRateFactors()),
-    ).toThrow(GUNNERY_RATE_FACTOR_MISSING);
+    expect(() => computeEffectiveReloadMs(0, neutralRateFactors())).toThrow(
+      GUNNERY_RATE_FACTOR_MISSING,
+    );
+    expect(() => computeEffectiveReloadMs(-5, neutralRateFactors())).toThrow(
+      GUNNERY_RATE_FACTOR_MISSING,
+    );
+    expect(() => computeEffectiveReloadMs(1_000.5, neutralRateFactors())).toThrow(
+      GUNNERY_RATE_FACTOR_MISSING,
+    );
   });
 });
 

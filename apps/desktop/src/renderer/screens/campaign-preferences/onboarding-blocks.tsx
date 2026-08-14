@@ -1,11 +1,4 @@
-import {
-  Anchor,
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Globe,
-  SlidersHorizontal,
-} from "lucide-react";
+import { Anchor, ArrowLeft, ArrowRight, Check, Globe, SlidersHorizontal } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { NewGameOptions } from "../../../shared/new-game-contract.js";
 import { Badge } from "../../components/ui/badge.js";
@@ -38,10 +31,7 @@ const STEPS = [
 
 export interface CampaignPreferencesOnboardingProps {
   readonly onCancel: () => void;
-  readonly onNext: (
-    preferences: DraftPreferences,
-    options: NewGameOptions,
-  ) => void;
+  readonly onNext: (preferences: DraftPreferences, options: NewGameOptions) => void;
 }
 
 export function CampaignPreferencesOnboarding({
@@ -57,22 +47,15 @@ export function CampaignPreferencesOnboarding({
   useEffect(() => {
     async function loadOptions(): Promise<void> {
       if (bridge === undefined) {
-        setState((current) =>
-          applyOptionsFailed(current, "Bluewave bridge not available"),
-        );
+        setState((current) => applyOptionsFailed(current, "Bluewave bridge not available"));
         return;
       }
-      const result = await bridge.campaign.execute(
-        "listNewGameOptions",
-        undefined,
-      );
+      const result = await bridge.campaign.execute("listNewGameOptions", undefined);
       if (result.outcome !== "success") {
         setState((current) => applyOptionsFailed(current, result.reason));
         return;
       }
-      setState((current) =>
-        applyOptionsLoaded(current, result.value, defaultCampaignSeed()),
-      );
+      setState((current) => applyOptionsLoaded(current, result.value, defaultCampaignSeed()));
     }
     void loadOptions();
   }, [bridge]);
@@ -82,12 +65,9 @@ export function CampaignPreferencesOnboarding({
   const options = state.options;
   const preferences = state.preferences;
 
-  const handlePreferenceChange = useCallback(
-    (field: keyof DraftPreferences, value: string) => {
-      setState((current) => updatePreference(current, field, value));
-    },
-    [],
-  );
+  const handlePreferenceChange = useCallback((field: keyof DraftPreferences, value: string) => {
+    setState((current) => updatePreference(current, field, value));
+  }, []);
 
   const onScenarioChange = useCallback((value: string) => {
     setState((current) => updatePreference(current, "scenarioId", value));
@@ -118,11 +98,7 @@ export function CampaignPreferencesOnboarding({
 
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-4">
-          <Progress
-            value={progress}
-            aria-label={`Step ${step} of ${total}`}
-            className="flex-1"
-          />
+          <Progress value={progress} aria-label={`Step ${step} of ${total}`} className="flex-1" />
           <Badge variant="secondary" className="shrink-0">
             Step {step} of {total}
           </Badge>
@@ -143,8 +119,7 @@ export function CampaignPreferencesOnboarding({
                   <span
                     className={cn(
                       "flex size-8 items-center justify-center rounded-full border text-xs font-medium transition-colors",
-                      active &&
-                        "border-primary bg-primary text-primary-foreground",
+                      active && "border-primary bg-primary text-primary-foreground",
                       done && "border-primary/40 bg-primary/10 text-primary",
                       !active &&
                         !done &&
@@ -175,9 +150,7 @@ export function CampaignPreferencesOnboarding({
       {state.loading && <LoadingState message="Loading campaign options…" />}
 
       {state.error !== null && (
-        <ErrorState
-          message={`Failed to load campaign options: ${state.error}`}
-        />
+        <ErrorState message={`Failed to load campaign options: ${state.error}`} />
       )}
 
       {options !== null && step === 1 && (
@@ -200,11 +173,7 @@ export function CampaignPreferencesOnboarding({
       )}
 
       <div className="flex justify-between">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={step === 1 ? onCancel : goToPreviousStep}
-        >
+        <Button type="button" variant="outline" onClick={step === 1 ? onCancel : goToPreviousStep}>
           <ArrowLeft className="h-3.5 w-3.5" />
           {step === 1 ? "Cancel" : "Back"}
         </Button>
@@ -214,11 +183,7 @@ export function CampaignPreferencesOnboarding({
             <Check className="h-3.5 w-3.5" />
           </Button>
         ) : (
-          <Button
-            type="button"
-            onClick={goToNextStep}
-            disabled={options === null}
-          >
+          <Button type="button" onClick={goToNextStep} disabled={options === null}>
             Next
             <ArrowRight className="h-3.5 w-3.5" />
           </Button>

@@ -2,10 +2,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vite-plus/test";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
-import {
-  CampaignShellProvider,
-  useCampaignShellContext,
-} from "./CampaignShellContext.js";
+import { CampaignShellProvider, useCampaignShellContext } from "./CampaignShellContext.js";
 import { useCampaignShell } from "./useCampaignShell.js";
 
 vi.mock("./useCampaignShell.js", () => ({
@@ -38,9 +35,7 @@ function Consumer() {
     <div>
       <span>{context.state.mode.kind}</span>
       <span>{context.meta.bridgeAvailable ? "bridge" : "no bridge"}</span>
-      <button onClick={() => context.actions.selectScreen("overview")}>
-        Navigate
-      </button>
+      <button onClick={() => context.actions.selectScreen("overview")}>Navigate</button>
     </div>
   );
 }
@@ -74,9 +69,7 @@ describe("CampaignShellProvider", () => {
   });
 
   it("rejects consumers outside the provider boundary", () => {
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     expect(() => render(<Consumer />)).toThrow(
       "useCampaignShellContext must be used within CampaignShellProvider",
     );

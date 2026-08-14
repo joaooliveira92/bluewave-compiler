@@ -129,10 +129,7 @@ export const CAMPAIGN_COMMAND_NAMES = [
  * matching how every screen already calls it.
  */
 export interface CampaignCommandClient {
-  execute(
-    command: "listNewGameOptions",
-    payload: undefined,
-  ): Promise<BridgeResult<NewGameOptions>>;
+  execute(command: "listNewGameOptions", payload: undefined): Promise<BridgeResult<NewGameOptions>>;
   execute(
     command: "compileCampaign",
     payload: CampaignConfiguration,
@@ -141,14 +138,8 @@ export interface CampaignCommandClient {
     command: "inspectCampaign",
     payload: string,
   ): Promise<BridgeResult<InspectCampaignResult>>;
-  execute(
-    command: "closeCampaign",
-    payload: string,
-  ): Promise<BridgeResult<unknown>>;
-  execute(
-    command: "saveCampaign",
-    payload: string,
-  ): Promise<BridgeResult<SaveCampaignResult>>;
+  execute(command: "closeCampaign", payload: string): Promise<BridgeResult<unknown>>;
+  execute(command: "saveCampaign", payload: string): Promise<BridgeResult<SaveCampaignResult>>;
   execute(
     command: "commitMonth",
     payload: CommitMonthPayload,
@@ -169,10 +160,7 @@ export interface CampaignCommandClient {
     command: "replayBattleBoundary",
     payload: ReplayBattleBoundaryPayload,
   ): Promise<BridgeResult<ReplayBattleBoundaryResponse>>;
-  execute(
-    command: "loadCampaign",
-    payload: undefined,
-  ): Promise<BridgeResult<LoadCampaignResponse>>;
+  execute(command: "loadCampaign", payload: undefined): Promise<BridgeResult<LoadCampaignResponse>>;
   execute(
     command: "verifyCampaign",
     payload: undefined,

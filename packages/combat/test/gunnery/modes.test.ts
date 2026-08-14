@@ -133,13 +133,18 @@ describe("AC-2 deferred eligibility predicates report rather than fabricate", ()
 
   it("the deferred predicate is re-checked even for an otherwise valid state", () => {
     const s = base({ fireMode: "RAPID", fireControlSolutionQualityBp: 10_000 });
-    expect(() => assertFireModeEligible("RAPID", s)).toThrow(GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED);
+    expect(() => assertFireModeEligible("RAPID", s)).toThrow(
+      GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED,
+    );
   });
 });
 
 describe("AC-2 implemented surface-mode firing guard", () => {
   it("NORMAL fires when the fire-control solution is at/above the threshold", () => {
-    const s = base({ fireMode: "NORMAL", fireControlSolutionQualityBp: SURFACE_FIRE_CONTROL_MINIMUM_BP });
+    const s = base({
+      fireMode: "NORMAL",
+      fireControlSolutionQualityBp: SURFACE_FIRE_CONTROL_MINIMUM_BP,
+    });
     expect(() => assertFireModeEligible("NORMAL", s)).not.toThrow();
   });
 

@@ -1,7 +1,4 @@
-import {
-  ARCHETYPE_PRESETS,
-  type ArchetypeAllocation,
-} from "@bluewave/campaign-engine";
+import { ARCHETYPE_PRESETS, type ArchetypeAllocation } from "@bluewave/campaign-engine";
 
 export type NationArchetypeAffinity = "strong" | "neutral" | "weak";
 
@@ -15,10 +12,7 @@ export interface NationArchetypeSynergy {
  * playstyle. This is flavour content shown on the nation-selection step; it never
  * changes campaign authority. Keyed by stable nation id like `nation_uk`.
  */
-const NATION_ARCHETYPE_SYNERGY: Record<
-  string,
-  Partial<Record<string, NationArchetypeSynergy>>
-> = {
+const NATION_ARCHETYPE_SYNERGY: Record<string, Partial<Record<string, NationArchetypeSynergy>>> = {
   nation_uk: {
     merchant_prince: {
       affinity: "strong",

@@ -1,8 +1,4 @@
-import type {
-  DomainEvent,
-  FinancialLedgerEntry,
-  RandomDecisionRecord,
-} from "./simulation.js";
+import type { DomainEvent, FinancialLedgerEntry, RandomDecisionRecord } from "./simulation.js";
 
 /**
  * Dev-tool-only types backing the Debugging & Telemetry and Tactical
@@ -57,10 +53,7 @@ export function formatEngineAudit(input: EngineAuditInput): EngineAuditReport {
   };
 }
 
-export function renderEngineAuditText(
-  report: EngineAuditReport,
-  title: string,
-): string {
+export function renderEngineAuditText(report: EngineAuditReport, title: string): string {
   const lines = [
     title,
     `${report.counts.decisions} decisions, ${report.counts.domainEvents} events, ${report.counts.ledgerEntries} ledger entries`,

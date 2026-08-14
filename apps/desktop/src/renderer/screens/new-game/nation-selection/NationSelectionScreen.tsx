@@ -87,9 +87,7 @@ export function NationSelectionScreen({
     [handleSlotSelect, slots],
   );
 
-  const handleListboxKeyDown = (
-    e: React.KeyboardEvent<HTMLDivElement>,
-  ): void => {
+  const handleListboxKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
     switch (e.key) {
       case "ArrowDown":
       case "ArrowRight":

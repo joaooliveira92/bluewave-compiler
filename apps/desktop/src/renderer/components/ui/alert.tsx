@@ -9,8 +9,7 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: "bg-card text-foreground",
-        destructive:
-          "border-destructive/50 text-destructive [&>svg]:text-destructive",
+        destructive: "border-destructive/50 text-destructive [&>svg]:text-destructive",
       },
     },
     defaultVariants: {
@@ -20,19 +19,12 @@ const alertVariants = cva(
 );
 
 interface AlertProps
-  extends
-    React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof alertVariants> {
+  extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof alertVariants> {
   ref?: React.Ref<HTMLDivElement> | undefined;
 }
 
 const Alert = ({ className, variant, ref, ...props }: AlertProps) => (
-  <div
-    ref={ref}
-    role="alert"
-    className={cn(alertVariants({ variant }), className)}
-    {...props}
-  />
+  <div ref={ref} role="alert" className={cn(alertVariants({ variant }), className)} {...props} />
 );
 Alert.displayName = "Alert";
 
@@ -53,16 +45,8 @@ interface AlertDescriptionProps extends React.HTMLAttributes<HTMLParagraphElemen
   ref?: React.Ref<HTMLParagraphElement> | undefined;
 }
 
-const AlertDescription = ({
-  className,
-  ref,
-  ...props
-}: AlertDescriptionProps) => (
-  <div
-    ref={ref}
-    className={cn("text-sm [&_p]:leading-relaxed", className)}
-    {...props}
-  />
+const AlertDescription = ({ className, ref, ...props }: AlertDescriptionProps) => (
+  <div ref={ref} className={cn("text-sm [&_p]:leading-relaxed", className)} {...props} />
 );
 AlertDescription.displayName = "AlertDescription";
 

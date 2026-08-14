@@ -9,10 +9,7 @@ import {
   describeRejection,
   prepareCommand,
 } from "../../lib/command-screen-workflow.js";
-import type {
-  PreparedCommand,
-  RequestKind,
-} from "../../lib/command-screen-workflow.js";
+import type { PreparedCommand, RequestKind } from "../../lib/command-screen-workflow.js";
 import type { ConstructionScreenState } from "./construction-screen-state.js";
 import {
   acceptConstructionCommand,
@@ -74,10 +71,7 @@ function loadedState(): ConstructionScreenState {
   );
 }
 
-function prepared(
-  kind: RequestKind,
-  transportRequestId: string,
-): PreparedCommand<unknown> {
+function prepared(kind: RequestKind, transportRequestId: string): PreparedCommand<unknown> {
   return {
     kind,
     context: { expectedRevision: 0, transportRequestId },
@@ -131,17 +125,12 @@ describe("construction screen state", () => {
   });
 
   it("adopts the engine current revision on a stale rejection instead of retrying", () => {
-    const state = applyRejection(
-      beginRequest(loadedState(), prepared("submit", "tx-1")),
-      {
-        outcome: "rejected",
-        reason: "STALE_REVISION",
-        diagnostics: [
-          "STALE_REVISION: Expected revision 0, current revision is 3",
-        ],
-        currentRevision: 3,
-      },
-    );
+    const state = applyRejection(beginRequest(loadedState(), prepared("submit", "tx-1")), {
+      outcome: "rejected",
+      reason: "STALE_REVISION",
+      diagnostics: ["STALE_REVISION: Expected revision 0, current revision is 3"],
+      currentRevision: 3,
+    });
 
     expect(state.revision).toBe(3);
     expect(state.pendingRequest).toBeNull();
@@ -150,15 +139,12 @@ describe("construction screen state", () => {
   });
 
   it("clears the refresh requirement once a fresh projection arrives", () => {
-    const stale = applyRejection(
-      beginRequest(loadedState(), prepared("submit", "tx-1")),
-      {
-        outcome: "rejected",
-        reason: "STALE_REVISION",
-        diagnostics: [],
-        currentRevision: 3,
-      },
-    );
+    const stale = applyRejection(beginRequest(loadedState(), prepared("submit", "tx-1")), {
+      outcome: "rejected",
+      reason: "STALE_REVISION",
+      diagnostics: [],
+      currentRevision: 3,
+    });
 
     const refreshed = applyProjection(
       stale,
@@ -171,14 +157,11 @@ describe("construction screen state", () => {
   });
 
   it("keeps the previous revision when a rejection carries no revision", () => {
-    const state = applyRejection(
-      beginRequest(loadedState(), prepared("cancel", "tx-2")),
-      {
-        outcome: "rejected",
-        reason: "CANCEL_FAILED",
-        diagnostics: ["COMMAND_NOT_FOUND: No command with ID 'cmd_9'"],
-      },
-    );
+    const state = applyRejection(beginRequest(loadedState(), prepared("cancel", "tx-2")), {
+      outcome: "rejected",
+      reason: "CANCEL_FAILED",
+      diagnostics: ["COMMAND_NOT_FOUND: No command with ID 'cmd_9'"],
+    });
 
     expect(state.revision).toBe(0);
     expect(state.notice).toContain("CANCEL_FAILED");
@@ -205,15 +188,9 @@ describe("construction screen state", () => {
       describeRejection("VALIDATION_FAILED", [
         "INSUFFICIENT_TREASURY: Need 32000 but only 100 available",
       ]),
-    ).toBe(
-      "VALIDATION_FAILED: INSUFFICIENT_TREASURY: Need 32000 but only 100 available",
-    );
-    expect(describeRejection("SESSION_NOT_FOUND", [])).toBe(
-      "SESSION_NOT_FOUND",
-    );
-    expect(describeRejection("STALE_REVISION", [], 4)).toContain(
-      "current revision 4",
-    );
+    ).toBe("VALIDATION_FAILED: INSUFFICIENT_TREASURY: Need 32000 but only 100 available");
+    expect(describeRejection("SESSION_NOT_FOUND", [])).toBe("SESSION_NOT_FOUND");
+    expect(describeRejection("STALE_REVISION", [], 4)).toContain("current revision 4");
   });
 
   it("lists several diagnostics instead of running them into one line", () => {
@@ -232,14 +209,11 @@ describe("construction screen state", () => {
   });
 
   it("creates a distinct transport request identity per attempt", () => {
-    const send = async () =>
-      ({ outcome: "success", value: undefined, diagnostics: [] }) as const;
+    const send = async () => ({ outcome: "success", value: undefined, diagnostics: [] }) as const;
     const first = prepareCommand("submit", 0, send);
     const second = prepareCommand("submit", 0, send);
 
-    expect(first.context.transportRequestId).not.toBe(
-      second.context.transportRequestId,
-    );
+    expect(first.context.transportRequestId).not.toBe(second.context.transportRequestId);
     expect(first.context.transportRequestId.startsWith("submit-")).toBe(true);
   });
 });

@@ -103,9 +103,7 @@ export function parseScriptedOrders(text: string): ParseScriptedOrdersResult {
   return { ok: true, orders: parsed as readonly RawScriptedForceOrder[] };
 }
 
-export function beginRequest(
-  state: TacticalSandboxScreenState,
-): TacticalSandboxScreenState {
+export function beginRequest(state: TacticalSandboxScreenState): TacticalSandboxScreenState {
   return { ...state, busy: true };
 }
 

@@ -74,10 +74,7 @@ export function VariantAChart({
           .map((flat) => {
             const ring: Point[] = [];
             for (let i = 0; i < flat.length; i += 2) {
-              ring.push([
-                (flat[i] as number) - state.centre,
-                flat[i + 1] as number,
-              ]);
+              ring.push([(flat[i] as number) - state.centre, flat[i + 1] as number]);
             }
             return ringToPath(ring, projection);
           })
@@ -90,10 +87,7 @@ export function VariantAChart({
     () => projectAreas(AREAS, projection, state.centre),
     [projection, state.centre],
   );
-  const areasById = useMemo(
-    () => new Map(areas.map((area) => [area.id, area])),
-    [areas],
-  );
+  const areasById = useMemo(() => new Map(areas.map((area) => [area.id, area])), [areas]);
 
   const graticule = useMemo(() => {
     const lines: string[] = [];
@@ -109,8 +103,7 @@ export function VariantAChart({
     return lines.join("");
   }, [projection]);
 
-  const summary =
-    state.selected === null ? null : summariseArea(state.selected);
+  const summary = state.selected === null ? null : summariseArea(state.selected);
   const routeSet = new Set(route?.path ?? []);
 
   const routePath = useMemo(() => {
@@ -162,12 +155,7 @@ export function VariantAChart({
               splitting, and markers wrap with the polygons they belong to. */}
           {WORLD_WRAP_TURNS.map((turn) => (
             <g key={turn} transform={`translate(${turn * projection.width} 0)`}>
-              <path
-                d={graticule}
-                stroke={CHART.graticule}
-                strokeWidth={1}
-                fill="none"
-              />
+              <path d={graticule} stroke={CHART.graticule} strokeWidth={1} fill="none" />
 
               {/* Layer: base map. 125 paths, one per landmass. */}
               {coastline.map((d, index) => (
@@ -206,13 +194,9 @@ export function VariantAChart({
                           : "oklch(0.75 0.02 240 / 0.35)"
                     }
                     strokeWidth={selected ? 2.5 : onRouteLeg ? 2 : 0.9}
-                    strokeDasharray={
-                      held?.contested === true ? "6 4" : undefined
-                    }
+                    strokeDasharray={held?.contested === true ? "6 4" : undefined}
                     className="cursor-pointer transition-[fill] duration-150"
-                    onClick={(event) =>
-                      handleAreaClick(area.id, event.shiftKey)
-                    }
+                    onClick={(event) => handleAreaClick(area.id, event.shiftKey)}
                   />
                 );
               })}
@@ -240,73 +224,52 @@ export function VariantAChart({
 
               {/* Layer: passages. Drawn at the midpoint of the edge they gate. */}
               {state.layers.passages &&
-                EDGES.filter((edge) => edge.passage !== undefined).map(
-                  (edge) => {
-                    const from = areasById.get(edge.a)?.label;
-                    const to = areasById.get(edge.b)?.label;
-                    const passage = PASSAGES_BY_ID.get(edge.passage as string);
-                    if (
-                      from === undefined ||
-                      to === undefined ||
-                      passage === undefined
-                    )
-                      return null;
-                    const mx = (from[0] + to[0]) / 2;
-                    const my = (from[1] + to[1]) / 2;
-                    return (
-                      <g key={passage.id}>
-                        <line
-                          x1={from[0]}
-                          y1={from[1]}
-                          x2={to[0]}
-                          y2={to[1]}
-                          stroke={
-                            passage.open
-                              ? "oklch(0.75 0.02 240 / 0.3)"
-                              : "oklch(0.65 0.2 25 / 0.55)"
-                          }
-                          strokeWidth={1.5}
-                          strokeDasharray={passage.open ? undefined : "5 4"}
-                        />
-                        <circle
-                          cx={mx}
-                          cy={my}
-                          r={7}
-                          fill={
-                            passage.open
-                              ? "oklch(0.28 0.03 245)"
-                              : "oklch(0.36 0.11 25)"
-                          }
-                          stroke={
-                            passage.open
-                              ? "oklch(0.8 0.02 240)"
-                              : "oklch(0.72 0.2 25)"
-                          }
-                          strokeWidth={1.6}
-                        />
-                        <text
-                          x={mx}
-                          y={my + 3.2}
-                          textAnchor="middle"
-                          fontSize={9}
-                          fill={CHART.ink}
-                          style={{ pointerEvents: "none" }}
-                        >
-                          {passage.kind === "canal" ? "C" : "S"}
-                        </text>
-                      </g>
-                    );
-                  },
-                )}
+                EDGES.filter((edge) => edge.passage !== undefined).map((edge) => {
+                  const from = areasById.get(edge.a)?.label;
+                  const to = areasById.get(edge.b)?.label;
+                  const passage = PASSAGES_BY_ID.get(edge.passage as string);
+                  if (from === undefined || to === undefined || passage === undefined) return null;
+                  const mx = (from[0] + to[0]) / 2;
+                  const my = (from[1] + to[1]) / 2;
+                  return (
+                    <g key={passage.id}>
+                      <line
+                        x1={from[0]}
+                        y1={from[1]}
+                        x2={to[0]}
+                        y2={to[1]}
+                        stroke={
+                          passage.open ? "oklch(0.75 0.02 240 / 0.3)" : "oklch(0.65 0.2 25 / 0.55)"
+                        }
+                        strokeWidth={1.5}
+                        strokeDasharray={passage.open ? undefined : "5 4"}
+                      />
+                      <circle
+                        cx={mx}
+                        cy={my}
+                        r={7}
+                        fill={passage.open ? "oklch(0.28 0.03 245)" : "oklch(0.36 0.11 25)"}
+                        stroke={passage.open ? "oklch(0.8 0.02 240)" : "oklch(0.72 0.2 25)"}
+                        strokeWidth={1.6}
+                      />
+                      <text
+                        x={mx}
+                        y={my + 3.2}
+                        textAnchor="middle"
+                        fontSize={9}
+                        fill={CHART.ink}
+                        style={{ pointerEvents: "none" }}
+                      >
+                        {passage.kind === "canal" ? "C" : "S"}
+                      </text>
+                    </g>
+                  );
+                })}
 
               {/* Layer: possessions. */}
               {state.layers.possessions &&
                 POSSESSIONS.map((possession) => {
-                  const [x, y] = projectPoint(
-                    possession.at,
-                    projection,
-                    state.centre,
-                  );
+                  const [x, y] = projectPoint(possession.at, projection, state.centre);
                   const major = possession.base === "major";
                   return (
                     <g key={possession.id}>
@@ -419,14 +382,8 @@ export function VariantAChart({
               title={option.note}
               className="rounded px-2 py-1 text-[11px]"
               style={{
-                background:
-                  state.projection === option.id
-                    ? "oklch(0.7 0.12 240)"
-                    : "transparent",
-                color:
-                  state.projection === option.id
-                    ? "oklch(0.15 0.02 245)"
-                    : CHART.inkDim,
+                background: state.projection === option.id ? "oklch(0.7 0.12 240)" : "transparent",
+                color: state.projection === option.id ? "oklch(0.15 0.02 245)" : CHART.inkDim,
               }}
             >
               {option.name}
@@ -441,9 +398,7 @@ export function VariantAChart({
               onClick={() => onToggleLayer(layer.id)}
               className="rounded px-2 py-1 text-[11px]"
               style={{
-                background: state.layers[layer.id]
-                  ? "oklch(0.35 0.03 245)"
-                  : "transparent",
+                background: state.layers[layer.id] ? "oklch(0.35 0.03 245)" : "transparent",
                 color: state.layers[layer.id] ? CHART.ink : CHART.inkDim,
                 border: "1px solid oklch(0.4 0.02 245)",
               }}
@@ -452,10 +407,7 @@ export function VariantAChart({
             </button>
           ))}
         </div>
-        <label
-          className="flex items-center gap-2 text-[11px]"
-          style={{ color: CHART.inkDim }}
-        >
+        <label className="flex items-center gap-2 text-[11px]" style={{ color: CHART.inkDim }}>
           Centre
           <input
             type="range"
@@ -501,32 +453,22 @@ export function VariantAChart({
         ) : (
           <div className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-medium tracking-wide uppercase">
-                {summary.name}
-              </span>
-              <button
-                type="button"
-                onClick={() => onSelect(null)}
-                style={{ color: CHART.inkDim }}
-              >
+              <span className="text-sm font-medium tracking-wide uppercase">{summary.name}</span>
+              <button type="button" onClick={() => onSelect(null)} style={{ color: CHART.inkDim }}>
                 ×
               </button>
             </div>
             <div style={{ color: CHART.inkDim }}>
               {nationName(summary.control.owner)}
-              {summary.control.contested ? " · contested" : ""} ·{" "}
-              {summary.possessions.length} possessions · {summary.fleets.length}{" "}
-              fleets
+              {summary.control.contested ? " · contested" : ""} · {summary.possessions.length}{" "}
+              possessions · {summary.fleets.length} fleets
             </div>
             {summary.fleets.length > 0 && (
               <ul className="m-0 list-none p-0">
                 {summary.fleets.map((fleet) => (
                   <li key={fleet.id} className="flex justify-between">
                     <span>{fleet.name}</span>
-                    <span
-                      className="tabular-nums"
-                      style={{ color: CHART.inkDim }}
-                    >
+                    <span className="tabular-nums" style={{ color: CHART.inkDim }}>
                       {fleet.ships}
                     </span>
                   </li>
@@ -546,9 +488,7 @@ export function VariantAChart({
                     {neighbour.passage !== null && (
                       <span
                         style={{
-                          color: neighbour.open
-                            ? CHART.inkDim
-                            : "oklch(0.72 0.2 25)",
+                          color: neighbour.open ? CHART.inkDim : "oklch(0.72 0.2 25)",
                         }}
                       >
                         {" "}
@@ -574,9 +514,7 @@ export function VariantAChart({
         }}
       >
         {route === null ? (
-          <span style={{ color: CHART.inkDim }}>
-            Shift-click two areas for a route reading
-          </span>
+          <span style={{ color: CHART.inkDim }}>Shift-click two areas for a route reading</span>
         ) : (
           <div className="flex items-center gap-4">
             <span>
@@ -597,9 +535,7 @@ export function VariantAChart({
               className="rounded border px-2 py-0.5"
               style={{ borderColor: "oklch(0.4 0.02 245)" }}
             >
-              {state.respectClosedPassages
-                ? "avoiding closures"
-                : "ignoring closures"}
+              {state.respectClosedPassages ? "avoiding closures" : "ignoring closures"}
             </button>
           </div>
         )}

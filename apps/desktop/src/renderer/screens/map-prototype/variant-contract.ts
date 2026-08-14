@@ -6,11 +6,7 @@
  */
 
 import type { ProjectionId } from "./prototype-projection.js";
-import type {
-  LayerId,
-  MapPrototypeState,
-  RouteReading,
-} from "./map-prototype-screen-state.js";
+import type { LayerId, MapPrototypeState, RouteReading } from "./map-prototype-screen-state.js";
 import type { AreaId } from "./prototype-world.js";
 
 export interface MapVariantProps {

@@ -10,10 +10,7 @@
  */
 
 /** The named asset kinds (CONTEXT.md §5 "Media Asset"). */
-export type NationAssetKind =
-  | "nation_flag"
-  | "nation_ensign"
-  | "ship_silhouette";
+export type NationAssetKind = "nation_flag" | "nation_ensign" | "ship_silhouette";
 
 /** Provenance labels from CONTEXT.md §5 that presentation assets may carry. */
 export type ProvenanceLabel =

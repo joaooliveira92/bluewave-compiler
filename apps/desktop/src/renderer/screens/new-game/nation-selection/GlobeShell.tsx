@@ -44,12 +44,7 @@ export function GlobeShell({ refs }: GlobeShellProps): JSX.Element {
           strokeWidth={0.6}
           strokeDasharray="2 3"
         />
-        <g
-          ref={refs.landRef}
-          fill="#1d2b20"
-          stroke="#c89b3c"
-          strokeWidth={1.25}
-        />
+        <g ref={refs.landRef} fill="#1d2b20" stroke="#c89b3c" strokeWidth={1.25} />
         <g ref={refs.pinRef} />
         <g ref={refs.ringRef} className="svg-globe-ring-group" />
       </svg>

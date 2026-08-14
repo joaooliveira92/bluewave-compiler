@@ -66,7 +66,11 @@ describe("AC-11 gunnery-in-minute-advance (INC-4)", () => {
   });
 
   it("with batteries the minute pipeline yields gunnery events included in the minute hash", () => {
-    const res = advanceMinutes({ ...input, engine: new RandomEngine("g1"), gunnery: [battery("d1")] });
+    const res = advanceMinutes({
+      ...input,
+      engine: new RandomEngine("g1"),
+      gunnery: [battery("d1")],
+    });
     const minute = res.results[0]!;
     const gunneryEvents = minute.events.filter((e) => e.eventType === "gunnery_salvo");
     expect(gunneryEvents).toHaveLength(1);
@@ -82,7 +86,11 @@ describe("AC-11 gunnery-in-minute-advance (INC-4)", () => {
   });
 
   it("resolveGunnery runs AFTER spotting in the DESIGN-38 pipeline (substep > spotting)", () => {
-    const res = advanceMinutes({ ...input, engine: new RandomEngine("g2"), gunnery: [battery("d1")] });
+    const res = advanceMinutes({
+      ...input,
+      engine: new RandomEngine("g2"),
+      gunnery: [battery("d1")],
+    });
     const events = res.results[0]!.events;
     const spottingIdx = events.findIndex((e) => e.eventType === "resolve_sensors_spotting");
     const gunneryIdx = events.findIndex((e) => e.eventType === "gunnery_salvo");

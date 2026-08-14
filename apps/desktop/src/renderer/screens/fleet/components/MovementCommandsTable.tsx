@@ -1,12 +1,7 @@
 import { memo } from "react";
 import type { MovementCommand } from "@bluewave/campaign-engine";
 import { Badge } from "../../../components/ui/badge.js";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyIcon,
-  EmptyTitle,
-} from "../../../components/ui/empty.js";
+import { Empty, EmptyDescription, EmptyIcon, EmptyTitle } from "../../../components/ui/empty.js";
 import {
   Table,
   TableBody,
@@ -37,9 +32,7 @@ export const MovementCommandsTable = memo(function MovementCommandsTable({
         <Empty>
           <EmptyIcon />
           <EmptyTitle>No movement commands</EmptyTitle>
-          <EmptyDescription>
-            No movement command has been submitted this month.
-          </EmptyDescription>
+          <EmptyDescription>No movement command has been submitted this month.</EmptyDescription>
         </Empty>
       ) : (
         <div className="rounded-md border">
@@ -57,12 +50,8 @@ export const MovementCommandsTable = memo(function MovementCommandsTable({
             <TableBody>
               {commands.map((command) => (
                 <TableRow key={command.commandId}>
-                  <TableCell className="font-mono text-xs">
-                    {command.commandId}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {command.divisionId}
-                  </TableCell>
+                  <TableCell className="font-mono text-xs">{command.commandId}</TableCell>
+                  <TableCell className="font-medium">{command.divisionId}</TableCell>
                   <TableCell>{areaName(command.fromAreaId)}</TableCell>
                   <TableCell>{areaName(command.toAreaId)}</TableCell>
                   <TableCell>

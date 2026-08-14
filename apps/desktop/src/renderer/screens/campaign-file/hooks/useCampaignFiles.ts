@@ -3,11 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { BridgeResult } from "../../../../shared/bridge-contract.js";
 import type { LoadCampaignResponse } from "../../../../shared/continuity-contract.js";
 import type { OperationKind, OperationResult, RecentFile } from "../types.js";
-import {
-  loadRecentFiles,
-  removeRecentFile,
-  saveRecentFile,
-} from "../utils/recent-files.js";
+import { loadRecentFiles, removeRecentFile, saveRecentFile } from "../utils/recent-files.js";
 import {
   operationPendingLabel,
   recoveryResultFromBridge,
@@ -35,11 +31,9 @@ export function useCampaignFiles({
   onOpenCampaign,
 }: UseCampaignFilesOptions): UseCampaignFilesResult {
   const bridge = window.bluewave;
-  const [recentFiles, setRecentFiles] =
-    useState<readonly RecentFile[]>(loadRecentFiles);
+  const [recentFiles, setRecentFiles] = useState<readonly RecentFile[]>(loadRecentFiles);
   const [result, setResult] = useState<OperationResult | null>(null);
-  const [pendingOperation, setPendingOperation] =
-    useState<OperationKind | null>(null);
+  const [pendingOperation, setPendingOperation] = useState<OperationKind | null>(null);
   const [pendingLabel, setPendingLabel] = useState<string | null>(null);
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -59,10 +53,7 @@ export function useCampaignFiles({
   const recordLoadedCampaign = useCallback(
     (
       path: string,
-      loadResult: Extract<
-        BridgeResult<LoadCampaignResponse>,
-        { outcome: "success" }
-      >,
+      loadResult: Extract<BridgeResult<LoadCampaignResponse>, { outcome: "success" }>,
     ) => {
       saveRecentFile({
         path,
@@ -84,9 +75,7 @@ export function useCampaignFiles({
 
     if (loadResult.outcome !== "success") {
       const diagnostics =
-        loadResult.diagnostics.length > 0
-          ? ` — ${loadResult.diagnostics.join("; ")}`
-          : "";
+        loadResult.diagnostics.length > 0 ? ` — ${loadResult.diagnostics.join("; ")}` : "";
       showResult({
         kind: "error",
         message: `Load failed: ${loadResult.reason}${diagnostics}`,
@@ -118,16 +107,10 @@ export function useCampaignFiles({
       setPendingLabel(operationPendingLabel(kind));
       const operationResult =
         kind === "verify"
-          ? verificationResultFromBridge(
-              await bridge.campaign.execute("verifyCampaign", undefined),
-            )
+          ? verificationResultFromBridge(await bridge.campaign.execute("verifyCampaign", undefined))
           : kind === "replay"
-            ? replayResultFromBridge(
-                await bridge.campaign.execute("replayCampaign", undefined),
-              )
-            : recoveryResultFromBridge(
-                await bridge.campaign.execute("recoverCampaign", undefined),
-              );
+            ? replayResultFromBridge(await bridge.campaign.execute("replayCampaign", undefined))
+            : recoveryResultFromBridge(await bridge.campaign.execute("recoverCampaign", undefined));
 
       setPendingOperation(null);
       setPendingLabel(null);

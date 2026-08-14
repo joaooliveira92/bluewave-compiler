@@ -1,11 +1,6 @@
 import { Code } from "lucide-react";
 import { Badge } from "../../../components/ui/badge.js";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyIcon,
-  EmptyTitle,
-} from "../../../components/ui/empty.js";
+import { Empty, EmptyDescription, EmptyIcon, EmptyTitle } from "../../../components/ui/empty.js";
 import { ScrollArea } from "../../../components/ui/scroll-area.js";
 import {
   Table,
@@ -56,22 +51,16 @@ export function TelemetryTable({ events, onSelectEvent }: TelemetryTableProps) {
                 <TableCell className="p-2 text-muted-foreground">
                   {formatEventTime(event.timestamp)}
                 </TableCell>
-                <TableCell className="p-2 font-medium">
-                  {event.action}
-                </TableCell>
+                <TableCell className="p-2 font-medium">{event.action}</TableCell>
                 <TableCell className="p-2">
                   <Badge
-                    variant={
-                      event.outcome === "success" ? "default" : "destructive"
-                    }
+                    variant={event.outcome === "success" ? "default" : "destructive"}
                     className="px-1 text-[11px] uppercase"
                   >
                     {event.outcome}
                   </Badge>
                 </TableCell>
-                <TableCell className="p-2 text-right">
-                  {event.duration_ms}
-                </TableCell>
+                <TableCell className="p-2 text-right">{event.duration_ms}</TableCell>
               </TableRow>
             ))}
           </TableBody>

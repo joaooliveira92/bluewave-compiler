@@ -2,10 +2,7 @@ import type { JSX } from "react";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 
 import { DossierSlidePanel } from "./DossierSlidePanel/index.js";
-import {
-  GLOBE_TRANSITION_MS,
-  useArmedAfterMount,
-} from "./globeHandoffTransition.js";
+import { GLOBE_TRANSITION_MS, useArmedAfterMount } from "./globeHandoffTransition.js";
 import { InteractiveGlobe } from "./InteractiveGlobe.js";
 
 interface GlobePanelProps {
@@ -50,19 +47,12 @@ export function GlobePanel({
           className={`absolute inset-0 transition-opacity ease-out ${globeVisible ? "opacity-100" : "opacity-0"}`}
           style={{ transitionDuration: `${GLOBE_TRANSITION_MS}ms` }}
         >
-          <InteractiveGlobe
-            focusedCountryId={focusedSlotId}
-            onNationClick={onNationClick}
-          />
+          <InteractiveGlobe focusedCountryId={focusedSlotId} onNationClick={onNationClick} />
         </div>
       </div>
 
       {/* Dossier remains pinned to this panel at every width */}
-      <DossierSlidePanel
-        countryId={focusedSlotId}
-        isOpen
-        onConfirm={onConfirm}
-      />
+      <DossierSlidePanel countryId={focusedSlotId} isOpen onConfirm={onConfirm} />
     </section>
   );
 }

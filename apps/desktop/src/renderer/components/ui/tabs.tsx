@@ -5,9 +5,7 @@ import { cn } from "../../lib/utils.js";
 
 const Tabs = TabsPrimitive.Root;
 
-interface TabsListProps extends React.ComponentPropsWithoutRef<
-  typeof TabsPrimitive.List
-> {
+interface TabsListProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> {
   ref?: React.Ref<React.ComponentRef<typeof TabsPrimitive.List>> | undefined;
 }
 
@@ -23,9 +21,7 @@ const TabsList = ({ className, ref, ...props }: TabsListProps) => (
 );
 TabsList.displayName = TabsPrimitive.List.displayName;
 
-interface TabsTriggerProps extends React.ComponentPropsWithoutRef<
-  typeof TabsPrimitive.Tab
-> {
+interface TabsTriggerProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.Tab> {
   ref?: React.Ref<React.ComponentRef<typeof TabsPrimitive.Tab>> | undefined;
 }
 
@@ -44,9 +40,7 @@ const TabsTrigger = ({ className, ref, ...props }: TabsTriggerProps) => (
 );
 TabsTrigger.displayName = TabsPrimitive.Tab.displayName;
 
-interface TabsContentProps extends React.ComponentPropsWithoutRef<
-  typeof TabsPrimitive.Panel
-> {
+interface TabsContentProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.Panel> {
   ref?: React.Ref<React.ComponentRef<typeof TabsPrimitive.Panel>> | undefined;
 }
 

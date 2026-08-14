@@ -41,10 +41,7 @@ export const GeographyCard = memo(function GeographyCard({
             <p className="text-sm">
               {areaEdges.length > 0
                 ? areaEdges
-                    .map(
-                      (edge) =>
-                        `${areaName(edge.fromAreaId)} ↔ ${areaName(edge.toAreaId)}`,
-                    )
+                    .map((edge) => `${areaName(edge.fromAreaId)} ↔ ${areaName(edge.toAreaId)}`)
                     .join(" · ")
                 : "none"}
             </p>
@@ -55,9 +52,7 @@ export const GeographyCard = memo(function GeographyCard({
             </p>
             <p className="text-sm">
               {ports.length > 0
-                ? ports
-                    .map((port) => `${port.name} (${areaName(port.areaId)})`)
-                    .join(" · ")
+                ? ports.map((port) => `${port.name} (${areaName(port.areaId)})`).join(" · ")
                 : "none"}
             </p>
           </div>

@@ -25,10 +25,7 @@ import {
   toggleLayer,
   type LayerId,
 } from "./map-prototype-screen-state.js";
-import {
-  PrototypeSwitcher,
-  readVariantFromLocation,
-} from "./PrototypeSwitcher.js";
+import { PrototypeSwitcher, readVariantFromLocation } from "./PrototypeSwitcher.js";
 import type { ProjectionId } from "./prototype-projection.js";
 import type { AreaId } from "./prototype-world.js";
 import type { VariantDefinition } from "./variant-contract.js";
@@ -62,9 +59,7 @@ const VARIANTS: readonly VariantDefinition[] = [
 
 export function MapPrototypeScreen() {
   const [state, setState] = useState(initialMapPrototypeState);
-  const [variantKey, setVariantKey] = useState(() =>
-    readVariantFromLocation("A"),
-  );
+  const [variantKey, setVariantKey] = useState(() => readVariantFromLocation("A"));
 
   const onSelect = useCallback(
     (area: AreaId | null) => setState((current) => selectArea(current, area)),
@@ -79,8 +74,7 @@ export function MapPrototypeScreen() {
     [],
   );
   const onSetProjection = useCallback(
-    (projection: ProjectionId) =>
-      setState((current) => ({ ...current, projection })),
+    (projection: ProjectionId) => setState((current) => ({ ...current, projection })),
     [],
   );
   const onSetCentre = useCallback(
@@ -97,8 +91,7 @@ export function MapPrototypeScreen() {
   );
 
   const active =
-    VARIANTS.find((variant) => variant.key === variantKey) ??
-    (VARIANTS[0] as VariantDefinition);
+    VARIANTS.find((variant) => variant.key === variantKey) ?? (VARIANTS[0] as VariantDefinition);
   const route = readRoute(state);
   const Variant = active.Component;
 
@@ -120,11 +113,7 @@ export function MapPrototypeScreen() {
         onToggleClosedPassages={onToggleClosedPassages}
       />
 
-      <PrototypeSwitcher
-        variants={VARIANTS}
-        current={active.key}
-        onChange={setVariantKey}
-      />
+      <PrototypeSwitcher variants={VARIANTS} current={active.key} onChange={setVariantKey} />
     </div>
   );
 }

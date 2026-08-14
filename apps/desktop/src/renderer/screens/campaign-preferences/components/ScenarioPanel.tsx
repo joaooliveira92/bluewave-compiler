@@ -42,8 +42,7 @@ export const ScenarioPanel = memo(function ScenarioPanel({
           Scenario
         </CardTitle>
         <CardDescription>
-          Session{" "}
-          <span className="font-mono">{sessionId.slice(0, 16)}&hellip;</span>
+          Session <span className="font-mono">{sessionId.slice(0, 16)}&hellip;</span>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -52,17 +51,14 @@ export const ScenarioPanel = memo(function ScenarioPanel({
             <p className="text-[12px] uppercase tracking-wider text-muted-foreground">
               Current Date
             </p>
-            <p className="font-mono text-sm font-medium">
-              {formatDate(projection.month)}
-            </p>
+            <p className="font-mono text-sm font-medium">{formatDate(projection.month)}</p>
           </div>
           <div className="space-y-1">
             <p className="text-[12px] uppercase tracking-wider text-muted-foreground">
               Turn / Revision
             </p>
             <p className="font-mono text-sm font-medium">
-              Turn {Number(projection.revision) + 1} &middot; r
-              {String(projection.revision)}
+              Turn {Number(projection.revision) + 1} &middot; r{String(projection.revision)}
             </p>
           </div>
           <div className="space-y-1 col-span-2">
@@ -88,9 +84,7 @@ export const ScenarioPanel = memo(function ScenarioPanel({
                     <Copy className="h-3 w-3" />
                   </TooltipTrigger>
                   <TooltipContent side="top">
-                    <p className="text-[12px]">
-                      {copied ? "Copied!" : "Copy full ID"}
-                    </p>
+                    <p className="text-[12px]">{copied ? "Copied!" : "Copy full ID"}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

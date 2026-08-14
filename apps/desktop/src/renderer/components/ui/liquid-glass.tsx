@@ -139,178 +139,164 @@ export type LiquidGlassProps = HTMLAttributes<HTMLDivElement> & {
   saturation?: number;
 };
 
-export const LiquidGlass = forwardRef<HTMLDivElement, LiquidGlassProps>(
-  function LiquidGlass(
-    {
-      blur = 2,
-      refraction = 15,
-      mapSize: _mapSize,
-      bezel = 0.34,
-      saturation = 1.28,
-      className,
-      style,
-      children,
-      ...props
+export const LiquidGlass = forwardRef<HTMLDivElement, LiquidGlassProps>(function LiquidGlass(
+  {
+    blur = 2,
+    refraction = 15,
+    mapSize: _mapSize,
+    bezel = 0.34,
+    saturation = 1.28,
+    className,
+    style,
+    children,
+    ...props
+  },
+  ref,
+) {
+  const rawId = useId();
+  const filterId = useMemo(() => `liquid-glass-${rawId.replace(/:/g, "")}`, [rawId]);
+
+  // -------------------------------------------------------------------------
+  // Ref merge — we need the DOM node to measure geometry while still
+  // forwarding the ref to the consumer.
+  // -------------------------------------------------------------------------
+
+  const localRef = useRef<HTMLDivElement | null>(null);
+  const setRefs = useCallback(
+    (node: HTMLDivElement | null) => {
+      localRef.current = node;
+      if (typeof ref === "function") ref(node);
+      else if (ref) ref.current = node;
     },
-    ref,
-  ) {
-    const rawId = useId();
-    const filterId = useMemo(
-      () => `liquid-glass-${rawId.replace(/:/g, "")}`,
-      [rawId],
-    );
+    [ref],
+  );
 
-    // -------------------------------------------------------------------------
-    // Ref merge — we need the DOM node to measure geometry while still
-    // forwarding the ref to the consumer.
-    // -------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // Geometry measurement via ResizeObserver
+  // -------------------------------------------------------------------------
 
-    const localRef = useRef<HTMLDivElement | null>(null);
-    const setRefs = useCallback(
-      (node: HTMLDivElement | null) => {
-        localRef.current = node;
-        if (typeof ref === "function") ref(node);
-        else if (ref) ref.current = node;
-      },
-      [ref],
-    );
+  const [geometry, setGeometry] = useState<MapGeometry | null>(null);
 
-    // -------------------------------------------------------------------------
-    // Geometry measurement via ResizeObserver
-    // -------------------------------------------------------------------------
+  useEffect(() => {
+    const el = localRef.current;
+    if (!el) return;
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      const width = Math.round(rect.width);
+      const height = Math.round(rect.height);
+      if (!width || !height) return;
+      const parsed = Number.parseFloat(getComputedStyle(el).borderTopLeftRadius);
+      const radius = Math.min(
+        Number.isFinite(parsed) ? parsed : Math.min(width, height) / 2,
+        width / 2,
+        height / 2,
+      );
+      setGeometry((prev) =>
+        prev &&
+        prev.width === width &&
+        prev.height === height &&
+        prev.radius === radius &&
+        prev.bezel === bezel
+          ? prev
+          : { width, height, radius, bezel },
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [bezel]);
 
-    const [geometry, setGeometry] = useState<MapGeometry | null>(null);
+  const mapUrl = useMemo(() => (geometry ? createDisplacementMap(geometry) : ""), [geometry]);
 
-    useEffect(() => {
-      const el = localRef.current;
-      if (!el) return;
-      const measure = () => {
-        const rect = el.getBoundingClientRect();
-        const width = Math.round(rect.width);
-        const height = Math.round(rect.height);
-        if (!width || !height) return;
-        const parsed = Number.parseFloat(
-          getComputedStyle(el).borderTopLeftRadius,
-        );
-        const radius = Math.min(
-          Number.isFinite(parsed) ? parsed : Math.min(width, height) / 2,
-          width / 2,
-          height / 2,
-        );
-        setGeometry((prev) =>
-          prev &&
-          prev.width === width &&
-          prev.height === height &&
-          prev.radius === radius &&
-          prev.bezel === bezel
-            ? prev
-            : { width, height, radius, bezel },
-        );
-      };
-      measure();
-      const observer = new ResizeObserver(measure);
-      observer.observe(el);
-      return () => observer.disconnect();
-    }, [bezel]);
+  // -------------------------------------------------------------------------
+  // Browser capability gate
+  //
+  // Both SSR and the first client render take the fallback branch so hydration
+  // never mismatches. The state is set in an effect (client-only).
+  // -------------------------------------------------------------------------
 
-    const mapUrl = useMemo(
-      () => (geometry ? createDisplacementMap(geometry) : ""),
-      [geometry],
-    );
+  const [supported, setSupported] = useState(false);
 
-    // -------------------------------------------------------------------------
-    // Browser capability gate
-    //
-    // Both SSR and the first client render take the fallback branch so hydration
-    // never mismatches. The state is set in an effect (client-only).
-    // -------------------------------------------------------------------------
+  useEffect(() => {
+    setSupported(supportsSvgBackdropFilter());
+  }, []);
 
-    const [supported, setSupported] = useState(false);
+  const refractionActive = supported && mapUrl !== "";
+  const backdropFilter = refractionActive
+    ? `url(#${filterId}) blur(${blur}px) saturate(${saturation})`
+    : `blur(${blur + 2}px) saturate(${saturation})`;
 
-    useEffect(() => {
-      setSupported(supportsSvgBackdropFilter());
-    }, []);
+  return (
+    <>
+      <div
+        ref={setRefs}
+        className={cn("relative overflow-hidden rounded-full bg-white/8", className)}
+        style={
+          {
+            ...style,
+            backdropFilter,
+            WebkitBackdropFilter: backdropFilter,
+          } as CSSProperties
+        }
+        {...props}
+      >
+        {children}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-[inherit]"
+          style={{
+            // Rim thickness, overridable per-consumer via --liquid-glass-rim-width.
+            padding: "var(--liquid-glass-rim-width, 0.5px)",
+            background:
+              // iOS 27 liquid-glass rim. Each gradient runs ALONG its edges and
+              // fades to nothing at the corners, uniform in between:
+              //   - to right  → white streak on the top + bottom runs
+              //   - to bottom → dark streak on the left + right runs
+              // Streak colors are overridable per-consumer via the
+              // --liquid-glass-rim-light / --liquid-glass-rim-dark variables;
+              // --liquid-glass-rim-fade sets how far from each corner the
+              // streak takes to reach full strength (smaller = longer streak).
+              "linear-gradient(to right, rgba(255,255,255,0), var(--liquid-glass-rim-light, rgba(255,255,255,0.25)) var(--liquid-glass-rim-fade, 18%), var(--liquid-glass-rim-light, rgba(255,255,255,0.25)) calc(100% - var(--liquid-glass-rim-fade, 18%)), rgba(255,255,255,0)), " +
+              "linear-gradient(to bottom, rgba(0,0,0,0), var(--liquid-glass-rim-dark, rgba(0,0,0,0.2)) var(--liquid-glass-rim-fade, 18%), var(--liquid-glass-rim-dark, rgba(0,0,0,0.2)) calc(100% - var(--liquid-glass-rim-fade, 18%)), rgba(0,0,0,0))",
+            WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+            WebkitMaskComposite: "xor",
+            mask: "linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)",
+          }}
+        />
+      </div>
 
-    const refractionActive = supported && mapUrl !== "";
-    const backdropFilter = refractionActive
-      ? `url(#${filterId}) blur(${blur}px) saturate(${saturation})`
-      : `blur(${blur + 2}px) saturate(${saturation})`;
-
-    return (
-      <>
-        <div
-          ref={setRefs}
-          className={cn(
-            "relative overflow-hidden rounded-full bg-white/8",
-            className,
-          )}
-          style={
-            {
-              ...style,
-              backdropFilter,
-              WebkitBackdropFilter: backdropFilter,
-            } as CSSProperties
-          }
-          {...props}
-        >
-          {children}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-[inherit]"
-            style={{
-              // Rim thickness, overridable per-consumer via --liquid-glass-rim-width.
-              padding: "var(--liquid-glass-rim-width, 0.5px)",
-              background:
-                // iOS 27 liquid-glass rim. Each gradient runs ALONG its edges and
-                // fades to nothing at the corners, uniform in between:
-                //   - to right  → white streak on the top + bottom runs
-                //   - to bottom → dark streak on the left + right runs
-                // Streak colors are overridable per-consumer via the
-                // --liquid-glass-rim-light / --liquid-glass-rim-dark variables;
-                // --liquid-glass-rim-fade sets how far from each corner the
-                // streak takes to reach full strength (smaller = longer streak).
-                "linear-gradient(to right, rgba(255,255,255,0), var(--liquid-glass-rim-light, rgba(255,255,255,0.25)) var(--liquid-glass-rim-fade, 18%), var(--liquid-glass-rim-light, rgba(255,255,255,0.25)) calc(100% - var(--liquid-glass-rim-fade, 18%)), rgba(255,255,255,0)), " +
-                "linear-gradient(to bottom, rgba(0,0,0,0), var(--liquid-glass-rim-dark, rgba(0,0,0,0.2)) var(--liquid-glass-rim-fade, 18%), var(--liquid-glass-rim-dark, rgba(0,0,0,0.2)) calc(100% - var(--liquid-glass-rim-fade, 18%)), rgba(0,0,0,0))",
-              WebkitMask:
-                "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-              WebkitMaskComposite: "xor",
-              mask: "linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)",
-            }}
-          />
-        </div>
-
-        {refractionActive && (
-          <svg className="absolute size-0 overflow-hidden" aria-hidden>
-            <filter
-              id={filterId}
+      {refractionActive && (
+        <svg className="absolute size-0 overflow-hidden" aria-hidden>
+          <filter
+            id={filterId}
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            colorInterpolationFilters="sRGB"
+          >
+            <feImage
+              href={mapUrl}
               x="0"
               y="0"
               width="100%"
               height="100%"
-              colorInterpolationFilters="sRGB"
-            >
-              <feImage
-                href={mapUrl}
-                x="0"
-                y="0"
-                width="100%"
-                height="100%"
-                preserveAspectRatio="none"
-                result="map"
-              />
-              <feDisplacementMap
-                in="SourceGraphic"
-                in2="map"
-                scale={refraction}
-                xChannelSelector="R"
-                yChannelSelector="G"
-                result="displaced"
-              />
-              <feGaussianBlur in="displaced" stdDeviation="0.15" />
-            </filter>
-          </svg>
-        )}
-      </>
-    );
-  },
-);
+              preserveAspectRatio="none"
+              result="map"
+            />
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="map"
+              scale={refraction}
+              xChannelSelector="R"
+              yChannelSelector="G"
+              result="displaced"
+            />
+            <feGaussianBlur in="displaced" stdDeviation="0.15" />
+          </filter>
+        </svg>
+      )}
+    </>
+  );
+});

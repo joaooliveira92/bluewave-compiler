@@ -38,18 +38,16 @@ import { GUN_QUALITY_OUT_OF_RANGE, GUNNERY_RATE_FACTOR_MISSING } from "./reasonC
 
 // Exact denominator 10_000^11 (bigint; 10^44 — within bigint, not Number range).
 const RATE_SCALE_N = 10_000n;
-export const GUNNERY_RATE_DENOMINATOR: bigint =
-  RATE_SCALE_N ** BigInt(GUNNERY_RATE_SCALE_EXPONENT);
+export const GUNNERY_RATE_DENOMINATOR: bigint = RATE_SCALE_N ** BigInt(GUNNERY_RATE_SCALE_EXPONENT);
 
 // gun-quality is the ONLY factor a definition MAY legally omit (no-rate-effect,
 // DESIGN-39 §5). Every other factor MUST be present + integer.
 const OPTIONAL_RATE_FACTOR_KEY: GunneryRateFactorKey = "gunQuality";
 
 // All 11 factors present for the default (gun-quality affects rate) path.
-export type GunneryRateFactors = Record<
-  Exclude<GunneryRateFactorKey, "gunQuality">,
-  number
-> & { gunQuality?: number };
+export type GunneryRateFactors = Record<Exclude<GunneryRateFactorKey, "gunQuality">, number> & {
+  gunQuality?: number;
+};
 
 // Build a fully-neutral factor set (all 11 multipliers = 10_000, gun-quality
 // included). Helpful for callers/tests that only meaningfully vary a subset; the

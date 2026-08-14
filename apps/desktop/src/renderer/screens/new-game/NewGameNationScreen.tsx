@@ -10,10 +10,7 @@ import type { NewGameOptions } from "../../../shared/new-game-contract.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { nationArchetypeSynergy } from "./nation-selection/archetypeNationSynergy.js";
 import { NationSelectionScreen } from "./nation-selection/NationSelectionScreen.js";
-import {
-  countryIdToNationId,
-  nationIdToCountryId,
-} from "./nation-selection/slotBridge.js";
+import { countryIdToNationId, nationIdToCountryId } from "./nation-selection/slotBridge.js";
 import type { DraftPreferences } from "./new-game-preferences-screen-state.js";
 import { selectableNations } from "./new-game-nation-screen-state.js";
 
@@ -50,9 +47,7 @@ export function NewGameNationScreen({
     () =>
       nations
         .map((nation) => nationIdToCountryId(nation.id))
-        .filter(
-          (countryId): countryId is PlayableSlotCountryId => countryId !== null,
-        ),
+        .filter((countryId): countryId is PlayableSlotCountryId => countryId !== null),
     [nations],
   );
 
@@ -71,10 +66,8 @@ export function NewGameNationScreen({
       return {
         scenarioId: preferences.scenarioId as CampaignConfiguration["scenarioId"],
         playerSlotId: nationId,
-        continuityModeId:
-          preferences.continuityMode as CampaignConfiguration["continuityModeId"],
-        fleetSizeSettingId:
-          preferences.fleetSize as CampaignConfiguration["fleetSizeSettingId"],
+        continuityModeId: preferences.continuityMode as CampaignConfiguration["continuityModeId"],
+        fleetSizeSettingId: preferences.fleetSize as CampaignConfiguration["fleetSizeSettingId"],
         researchSpeedSettingId:
           preferences.researchSpeed as CampaignConfiguration["researchSpeedSettingId"],
         technologyVariationSettingId:
@@ -93,8 +86,7 @@ export function NewGameNationScreen({
 
   const focusedSynergy = useMemo(() => {
     const countryId = slots[focusedIndex];
-    const nationId =
-      countryId === undefined ? null : countryIdToNationId(countryId);
+    const nationId = countryId === undefined ? null : countryIdToNationId(countryId);
     if (nationId === null || archetype === null) return null;
     return {
       nationId,
@@ -122,14 +114,7 @@ export function NewGameNationScreen({
       disabled: launching || config === null,
       onTrigger: triggerStart,
     });
-  }, [
-    focusedIndex,
-    slots,
-    launching,
-    buildConfigFor,
-    onPrimaryActionChange,
-    triggerStart,
-  ]);
+  }, [focusedIndex, slots, launching, buildConfigFor, onPrimaryActionChange, triggerStart]);
 
   useEffect(() => () => onPrimaryActionChange(null), [onPrimaryActionChange]);
 
@@ -144,10 +129,7 @@ export function NewGameNationScreen({
 
   return (
     <div className="relative h-full flex flex-col">
-      <ArchetypeSummaryBanner
-        archetype={archetype}
-        focusedSynergy={focusedSynergy}
-      />
+      <ArchetypeSummaryBanner archetype={archetype} focusedSynergy={focusedSynergy} />
       <div className="min-h-0 flex-1">
         <NationSelectionScreen
           slots={slots}
@@ -174,10 +156,7 @@ function ArchetypeSummaryBanner({
 }) {
   if (archetype === null) return null;
   const { economy, industry, combat } = archetype.allocation;
-  const label =
-    archetype.kind === "preset"
-      ? `Archetype: ${archetype.id}`
-      : "Archetype: Custom";
+  const label = archetype.kind === "preset" ? `Archetype: ${archetype.id}` : "Archetype: Custom";
   const synergy = focusedSynergy?.synergy ?? null;
   const synergyClass =
     synergy?.affinity === "strong"
@@ -192,9 +171,7 @@ function ArchetypeSummaryBanner({
         E {economy} / I {industry} / C {combat}
       </span>
       {synergy !== null ? (
-        <span className={`ml-auto flex items-center gap-2 ${synergyClass}`}>
-          {synergy.note}
-        </span>
+        <span className={`ml-auto flex items-center gap-2 ${synergyClass}`}>{synergy.note}</span>
       ) : null}
     </div>
   );

@@ -1,12 +1,7 @@
 import { X } from "lucide-react";
 
 import { Button } from "../../../components/ui/button.js";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../../components/ui/card.js";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card.js";
 import { Item, ItemActions, ItemContent } from "../../../components/ui/item.js";
 import type { RecentFile } from "../types.js";
 import { campaignFileName } from "../utils/recent-files.js";
@@ -18,12 +13,7 @@ interface RecentCampaignsProps {
   readonly onRemove: (path: string) => void;
 }
 
-export function RecentCampaigns({
-  files,
-  disabled,
-  onOpen,
-  onRemove,
-}: RecentCampaignsProps) {
+export function RecentCampaigns({ files, disabled, onOpen, onRemove }: RecentCampaignsProps) {
   if (files.length === 0) return null;
 
   return (
@@ -45,9 +35,7 @@ export function RecentCampaigns({
               </button>
             </ItemContent>
             <ItemActions>
-              <span className="text-[12px] text-muted-foreground">
-                Rev {file.activeRevision}
-              </span>
+              <span className="text-[12px] text-muted-foreground">Rev {file.activeRevision}</span>
               <Button
                 variant="ghost"
                 size="icon"

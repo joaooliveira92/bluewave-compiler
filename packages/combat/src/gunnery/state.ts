@@ -64,9 +64,19 @@ export function assertFixedPointGunnery(s: GunneryState): void {
   if (typeof s.ownerShipId !== "string" || s.ownerShipId.length === 0)
     invariant(s, "ownerShipId", s.ownerShipId, "ownerShipId must be a non-empty string");
   if (typeof s.gunDefinitionId !== "string" || s.gunDefinitionId.length === 0)
-    invariant(s, "gunDefinitionId", s.gunDefinitionId, "gunDefinitionId must be a non-empty string");
+    invariant(
+      s,
+      "gunDefinitionId",
+      s.gunDefinitionId,
+      "gunDefinitionId must be a non-empty string",
+    );
   if (typeof s.mountDefinitionId !== "string" || s.mountDefinitionId.length === 0)
-    invariant(s, "mountDefinitionId", s.mountDefinitionId, "mountDefinitionId must be a non-empty string");
+    invariant(
+      s,
+      "mountDefinitionId",
+      s.mountDefinitionId,
+      "mountDefinitionId must be a non-empty string",
+    );
   if (typeof s.targetContactId !== "string" || s.targetContactId.length === 0)
     invariant(s, "targetContactId", s.targetContactId, "targetContactId must be a string or NONE");
   if (!(FIRE_MODES as readonly string[]).includes(s.fireMode))
@@ -74,24 +84,58 @@ export function assertFixedPointGunnery(s: GunneryState): void {
 
   if (!Number.isInteger(s.acquisitionProgressBp))
     invariant(s, "acquisitionProgressBp", s.acquisitionProgressBp, "integer basis points");
-  if (s.acquisitionProgressBp < ACQUISITION_PROGRESS_MIN_BP || s.acquisitionProgressBp > ACQUISITION_PROGRESS_MAX_BP)
-    invariant(s, "acquisitionProgressBp", s.acquisitionProgressBp, "acquisition basis points outside [0,10_000]");
+  if (
+    s.acquisitionProgressBp < ACQUISITION_PROGRESS_MIN_BP ||
+    s.acquisitionProgressBp > ACQUISITION_PROGRESS_MAX_BP
+  )
+    invariant(
+      s,
+      "acquisitionProgressBp",
+      s.acquisitionProgressBp,
+      "acquisition basis points outside [0,10_000]",
+    );
 
-  if (!Number.isInteger(s.rangeEstimateUm)) invariant(s, "rangeEstimateUm", s.rangeEstimateUm, "integer micrometres");
-  if (s.rangeEstimateUm < 0) invariant(s, "rangeEstimateUm", s.rangeEstimateUm, "range must be non-negative micrometres");
-  if (!Number.isInteger(s.rangeUncertaintyUm)) invariant(s, "rangeUncertaintyUm", s.rangeUncertaintyUm, "integer micrometres");
-  if (s.rangeUncertaintyUm < 0) invariant(s, "rangeUncertaintyUm", s.rangeUncertaintyUm, "range uncertainty must be non-negative micrometres");
+  if (!Number.isInteger(s.rangeEstimateUm))
+    invariant(s, "rangeEstimateUm", s.rangeEstimateUm, "integer micrometres");
+  if (s.rangeEstimateUm < 0)
+    invariant(s, "rangeEstimateUm", s.rangeEstimateUm, "range must be non-negative micrometres");
+  if (!Number.isInteger(s.rangeUncertaintyUm))
+    invariant(s, "rangeUncertaintyUm", s.rangeUncertaintyUm, "integer micrometres");
+  if (s.rangeUncertaintyUm < 0)
+    invariant(
+      s,
+      "rangeUncertaintyUm",
+      s.rangeUncertaintyUm,
+      "range uncertainty must be non-negative micrometres",
+    );
 
   if (!Number.isInteger(s.fireControlSolutionQualityBp))
-    invariant(s, "fireControlSolutionQualityBp", s.fireControlSolutionQualityBp, "integer basis points");
-  if (s.fireControlSolutionQualityBp < FIRE_CONTROL_SOLUTION_MIN_BP || s.fireControlSolutionQualityBp > FIRE_CONTROL_SOLUTION_MAX_BP)
-    invariant(s, "fireControlSolutionQualityBp", s.fireControlSolutionQualityBp, "fire-control solution outside [0,10_000]");
+    invariant(
+      s,
+      "fireControlSolutionQualityBp",
+      s.fireControlSolutionQualityBp,
+      "integer basis points",
+    );
+  if (
+    s.fireControlSolutionQualityBp < FIRE_CONTROL_SOLUTION_MIN_BP ||
+    s.fireControlSolutionQualityBp > FIRE_CONTROL_SOLUTION_MAX_BP
+  )
+    invariant(
+      s,
+      "fireControlSolutionQualityBp",
+      s.fireControlSolutionQualityBp,
+      "fire-control solution outside [0,10_000]",
+    );
 
-  if (!Number.isInteger(s.reloadProgressMs)) invariant(s, "reloadProgressMs", s.reloadProgressMs, "integer tactical milliseconds");
-  if (s.reloadProgressMs < 0) invariant(s, "reloadProgressMs", s.reloadProgressMs, "reload progress must be non-negative ms");
+  if (!Number.isInteger(s.reloadProgressMs))
+    invariant(s, "reloadProgressMs", s.reloadProgressMs, "integer tactical milliseconds");
+  if (s.reloadProgressMs < 0)
+    invariant(s, "reloadProgressMs", s.reloadProgressMs, "reload progress must be non-negative ms");
 
-  if (!Number.isInteger(s.lastSalvoMinute)) invariant(s, "lastSalvoMinute", s.lastSalvoMinute, "integer minute");
-  if (s.lastSalvoMinute < -1) invariant(s, "lastSalvoMinute", s.lastSalvoMinute, "lastSalvoMinute must be -1 (none) or >= 0");
+  if (!Number.isInteger(s.lastSalvoMinute))
+    invariant(s, "lastSalvoMinute", s.lastSalvoMinute, "integer minute");
+  if (s.lastSalvoMinute < -1)
+    invariant(s, "lastSalvoMinute", s.lastSalvoMinute, "lastSalvoMinute must be -1 (none) or >= 0");
   if (!Number.isInteger(s.lastSalvoSubstep) || s.lastSalvoSubstep < 0)
     invariant(s, "lastSalvoSubstep", s.lastSalvoSubstep, "integer non-negative substep");
 
@@ -101,11 +145,21 @@ export function assertFixedPointGunnery(s: GunneryState): void {
     keys.length !== AMMUNITION_TYPES.length ||
     !AMMUNITION_TYPES.every((t) => Object.prototype.hasOwnProperty.call(s.ammunition, t))
   )
-    invariant(s, "ammunition", s.ammunition, "ammunition must have exactly the canonical ammo-type key set");
+    invariant(
+      s,
+      "ammunition",
+      s.ammunition,
+      "ammunition must have exactly the canonical ammo-type key set",
+    );
   for (const t of AMMUNITION_TYPES) {
     const count = s.ammunition[t];
     if (!Number.isInteger(count) || (count as number) < 0)
-      invariant(s, `ammunition[${t}]`, count, "per-type ammunition count must be a non-negative integer");
+      invariant(
+        s,
+        `ammunition[${t}]`,
+        count,
+        "per-type ammunition count must be a non-negative integer",
+      );
   }
 }
 

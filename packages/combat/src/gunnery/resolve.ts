@@ -36,7 +36,12 @@ import {
   type GunneryRateFactors,
 } from "./rateOfFire.js";
 import type { BattleEvent } from "../battleLedger.js";
-import { NO_TARGET, type GunneryState, withGunneryStateHash, assertFixedPointGunnery } from "./state.js";
+import {
+  NO_TARGET,
+  type GunneryState,
+  withGunneryStateHash,
+  assertFixedPointGunnery,
+} from "./state.js";
 import { getFireModeDefinition } from "./modes.js";
 import { reserveAndConsumeAmmunition } from "./salvo.js";
 import {

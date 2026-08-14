@@ -3,18 +3,11 @@ import * as React from "react";
 
 import { cn } from "../../lib/utils.js";
 
-interface SeparatorProps extends React.ComponentPropsWithoutRef<
-  typeof BaseSeparator
-> {
+interface SeparatorProps extends React.ComponentPropsWithoutRef<typeof BaseSeparator> {
   ref?: React.Ref<React.ComponentRef<typeof BaseSeparator>> | undefined;
 }
 
-const Separator = ({
-  className,
-  orientation = "horizontal",
-  ref,
-  ...props
-}: SeparatorProps) => (
+const Separator = ({ className, orientation = "horizontal", ref, ...props }: SeparatorProps) => (
   <BaseSeparator
     ref={ref}
     orientation={orientation}

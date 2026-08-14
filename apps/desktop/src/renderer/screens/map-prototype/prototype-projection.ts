@@ -61,10 +61,7 @@ export const PROJECTIONS: readonly Projection[] = [
     note: "Latitude spacing is even. High-latitude areas are stretched sideways — the Barents looks three times its width.",
     width: WORLD_WIDTH,
     height: WORLD_WIDTH / 2,
-    project: (lon, lat) => [
-      (lon + 180) * (WORLD_WIDTH / 360),
-      (90 - lat) * (WORLD_WIDTH / 360),
-    ],
+    project: (lon, lat) => [(lon + 180) * (WORLD_WIDTH / 360), (90 - lat) * (WORLD_WIDTH / 360)],
   },
   {
     id: "miller",
@@ -94,10 +91,7 @@ export function wrapLongitude(lon: number, centre: number): number {
  * can sit outside [-180, 180); the three-copy draw below is what puts it back
  * on screen.
  */
-export function continuousRing(
-  ring: readonly Point[],
-  centre: number,
-): readonly Point[] {
+export function continuousRing(ring: readonly Point[], centre: number): readonly Point[] {
   const out: Point[] = [];
   let previous: number | null = null;
   for (const [lon, lat] of ring) {
@@ -112,10 +106,7 @@ export function continuousRing(
   return out;
 }
 
-export function ringToPath(
-  ring: readonly Point[],
-  projection: Projection,
-): string {
+export function ringToPath(ring: readonly Point[], projection: Projection): string {
   let path = "";
   for (let i = 0; i < ring.length; i += 1) {
     const vertex = ring[i];
@@ -157,10 +148,7 @@ export function ringCentroid(ring: readonly Point[]): Point {
     y += (current[1] + next[1]) * cross;
   }
   if (Math.abs(twiceArea) < 1e-9) {
-    const sum = ring.reduce<Point>(
-      (acc, p) => [acc[0] + p[0], acc[1] + p[1]],
-      [0, 0],
-    );
+    const sum = ring.reduce<Point>((acc, p) => [acc[0] + p[0], acc[1] + p[1]], [0, 0]);
     return [sum[0] / ring.length, sum[1] / ring.length];
   }
   return [x / (3 * twiceArea), y / (3 * twiceArea)];
@@ -185,10 +173,7 @@ export function projectAreas(
     return {
       id: area.id,
       path: ringToPath(ring, projection),
-      label: projection.project(
-        wrapLongitude(area.label[0], centre),
-        area.label[1],
-      ),
+      label: projection.project(wrapLongitude(area.label[0], centre), area.label[1]),
       centroid: projection.project(centroidLonLat[0], centroidLonLat[1]),
       bounds: {
         width: Math.max(...xs) - Math.min(...xs),
@@ -198,11 +183,7 @@ export function projectAreas(
   });
 }
 
-export function projectPoint(
-  point: Point,
-  projection: Projection,
-  centre: number,
-): Point {
+export function projectPoint(point: Point, projection: Projection, centre: number): Point {
   return projection.project(wrapLongitude(point[0], centre), point[1]);
 }
 
@@ -218,8 +199,6 @@ export function nauticalMiles(from: Point, to: Point): number {
   const dLon = (lon2 - lon1) * DEGREES;
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * DEGREES) *
-      Math.cos(lat2 * DEGREES) *
-      Math.sin(dLon / 2) ** 2;
+    Math.cos(lat1 * DEGREES) * Math.cos(lat2 * DEGREES) * Math.sin(dLon / 2) ** 2;
   return 3440.065 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }

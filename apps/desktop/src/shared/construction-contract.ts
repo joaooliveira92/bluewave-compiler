@@ -1,7 +1,4 @@
-import type {
-  CompiledDesignVersion,
-  ConstructionCommand,
-} from "@bluewave/campaign-engine";
+import type { CompiledDesignVersion, ConstructionCommand } from "@bluewave/campaign-engine";
 import type { CommandEnvelope } from "./bridge-contract.js";
 
 /**
@@ -34,8 +31,7 @@ export interface SubmitConstructionCommandPayload extends CommandEnvelope {
   readonly designId: string;
 }
 
-export interface ReplaceConstructionCommandPayload
-  extends SubmitConstructionCommandPayload {
+export interface ReplaceConstructionCommandPayload extends SubmitConstructionCommandPayload {
   readonly commandId: string;
 }
 

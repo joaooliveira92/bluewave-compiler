@@ -44,10 +44,7 @@ export function DossierAccordionItem({
             onKeyDown={onKeyDown}
             className="flex min-h-12 w-full items-center gap-2 px-3 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#d4a359] sm:px-5"
           >
-            <Icon
-              className={cn("h-4 w-4 shrink-0", accent.text)}
-              aria-hidden="true"
-            />
+            <Icon className={cn("h-4 w-4 shrink-0", accent.text)} aria-hidden="true" />
             <span
               className={cn(
                 "font-mono text-[0.75rem] font-black uppercase tracking-[0.16em]",
@@ -66,9 +63,7 @@ export function DossierAccordionItem({
               accent.border,
             )}
           >
-            <p className="whitespace-normal font-mono break-words text-[.85rem]">
-              {section.text}
-            </p>
+            <p className="whitespace-normal font-mono break-words text-[.85rem]">{section.text}</p>
           </section>
         </div>
       ) : (
@@ -84,10 +79,7 @@ export function DossierAccordionItem({
           onKeyDown={onKeyDown}
           className="flex h-full w-full items-center justify-center p-0 outline-none hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#d4a359]"
         >
-          <Icon
-            className={cn("h-5 w-5 shrink-0", accent.text)}
-            aria-hidden="true"
-          />
+          <Icon className={cn("h-5 w-5 shrink-0", accent.text)} aria-hidden="true" />
         </button>
       )}
     </article>

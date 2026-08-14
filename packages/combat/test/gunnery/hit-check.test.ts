@@ -42,9 +42,7 @@ describe("AC-4 keyed hit draw (domain-separated @bluewave/random stream)", () =>
   const identity = { battleId: "battle-1", batteryId: "BAT-7", minute: 12, substep: 3 };
 
   it("builds a stable domain-separated stream id", () => {
-    expect(gunneryHitStreamId(identity)).toBe(
-      "gunnery/accuracy/hit:battle-1:BAT-7:12:3",
-    );
+    expect(gunneryHitStreamId(identity)).toBe("gunnery/accuracy/hit:battle-1:BAT-7:12:3");
     expect(gunneryHitStreamId(identity)).toBe(
       gunneryHitStreamId({ ...identity, minute: 12, substep: 3 }),
     );

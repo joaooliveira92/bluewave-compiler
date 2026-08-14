@@ -10,9 +10,7 @@ export const LoadingState = memo(function LoadingState({
 }: LoadingStateProps) {
   return (
     <Card role="status" aria-live="polite">
-      <CardContent className="p-4 text-sm text-muted-foreground">
-        {message}
-      </CardContent>
+      <CardContent className="p-4 text-sm text-muted-foreground">{message}</CardContent>
     </Card>
   );
 });

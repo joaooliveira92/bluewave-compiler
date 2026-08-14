@@ -15,9 +15,7 @@ export interface UseEngineAuditInspectorReturn {
 export function useEngineAuditInspector(): UseEngineAuditInspectorReturn {
   const initial = useMemo(() => getRecordedEngineAudits(), []);
   const [audits, setAudits] = useState<readonly StoredEngineAudit[]>(initial);
-  const [selectedAudit, setSelectedAudit] = useState<StoredEngineAudit | null>(
-    null,
-  );
+  const [selectedAudit, setSelectedAudit] = useState<StoredEngineAudit | null>(null);
 
   const clearAudits = useCallback(() => {
     clearEngineAudits();

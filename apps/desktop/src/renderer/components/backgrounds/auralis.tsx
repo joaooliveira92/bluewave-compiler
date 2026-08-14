@@ -111,20 +111,13 @@ const Auralis = ({
 
     const program = gl.createProgram()!;
     gl.attachShader(program, createShader(gl.VERTEX_SHADER, vertexShaderGLSL));
-    gl.attachShader(
-      program,
-      createShader(gl.FRAGMENT_SHADER, fragmentShaderGLSL),
-    );
+    gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, fragmentShaderGLSL));
     gl.linkProgram(program);
     gl.useProgram(program);
 
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
-      gl.STATIC_DRAW,
-    );
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
 
     const pos = gl.getAttribLocation(program, "position");
     gl.enableVertexAttribArray(pos);
@@ -157,10 +150,7 @@ const Auralis = ({
         colors
           .slice(0, 3)
           .flatMap((color, index) =>
-            hexToNormalizedRgb(
-              color,
-              DEFAULT_COLORS[index] ?? DEFAULT_COLORS[0] ?? color,
-            ),
+            hexToNormalizedRgb(color, DEFAULT_COLORS[index] ?? DEFAULT_COLORS[0] ?? color),
           ),
       );
       gl.uniform3fv(locs.colors, flat);
@@ -183,10 +173,7 @@ const Auralis = ({
       style={{ height }}
       className={cn("relative w-full overflow-hidden bg-[#010103]", className)}
     >
-      <canvas
-        ref={canvasRef}
-        className="pointer-events-none absolute inset-0 h-full w-full"
-      />
+      <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
       <div className="relative z-10 flex h-full w-full flex-col items-center justify-center" />
     </div>
   );

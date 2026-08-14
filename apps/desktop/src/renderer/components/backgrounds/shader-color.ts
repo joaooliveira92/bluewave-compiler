@@ -8,10 +8,7 @@ export function normalizeHexColor(value: string, fallback: string): string {
 }
 
 /** Converts a six-digit hex color into WebGL-normalized RGB components. */
-export function hexToNormalizedRgb(
-  value: string,
-  fallback: string,
-): [number, number, number] {
+export function hexToNormalizedRgb(value: string, fallback: string): [number, number, number] {
   const normalized = normalizeHexColor(value, fallback).slice(1);
   return [
     Number.parseInt(normalized.slice(0, 2), 16) / 255,

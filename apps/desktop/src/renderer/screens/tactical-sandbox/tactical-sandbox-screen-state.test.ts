@@ -1,7 +1,4 @@
-import type {
-  BattleManifest,
-  TacticalBattleOutcome,
-} from "@bluewave/campaign-engine";
+import type { BattleManifest, TacticalBattleOutcome } from "@bluewave/campaign-engine";
 import { describe, expect, it } from "vite-plus/test";
 import {
   applyGenerateFailed,
@@ -90,10 +87,7 @@ describe("tactical-sandbox-screen-state", () => {
   });
 
   it("records a generated manifest and clears prior resolution results", () => {
-    const state = applyManifestGenerated(
-      initialTacticalSandboxScreenState(),
-      manifest,
-    );
+    const state = applyManifestGenerated(initialTacticalSandboxScreenState(), manifest);
     expect(state.manifest).toBe(manifest);
     expect(state.generateError).toBeNull();
     expect(state.autoResolution).toBeNull();
@@ -101,10 +95,7 @@ describe("tactical-sandbox-screen-state", () => {
   });
 
   it("records a generation failure and clears any prior manifest", () => {
-    const state = applyGenerateFailed(
-      initialTacticalSandboxScreenState(),
-      "WAR_NOT_FOUND",
-    );
+    const state = applyGenerateFailed(initialTacticalSandboxScreenState(), "WAR_NOT_FOUND");
     expect(state.generateError).toBe("WAR_NOT_FOUND");
     expect(state.manifest).toBeNull();
   });
@@ -127,19 +118,13 @@ describe("tactical-sandbox-screen-state", () => {
   });
 
   it("updates the scripted orders text field verbatim", () => {
-    const state = updateScriptedOrdersText(
-      initialTacticalSandboxScreenState(),
-      "[]",
-    );
+    const state = updateScriptedOrdersText(initialTacticalSandboxScreenState(), "[]");
     expect(state.scriptedOrdersText).toBe("[]");
   });
 
   it("records a tactical outcome", () => {
     const outcome = { turnsResolved: 12 } as unknown as TacticalBattleOutcome;
-    const state = applyTacticalOutcome(
-      initialTacticalSandboxScreenState(),
-      outcome,
-    );
+    const state = applyTacticalOutcome(initialTacticalSandboxScreenState(), outcome);
     expect(state.tacticalOutcome).toBe(outcome);
     expect(state.resolveError).toBeNull();
   });

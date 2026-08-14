@@ -46,9 +46,11 @@ describe("findPreset", () => {
 
 describe("differenceFromBalanced", () => {
   it("matches the pinned merchant_prince delta", () => {
-    expect(
-      differenceFromBalanced({ economy: 10, industry: 5, combat: 5 }),
-    ).toEqual({ economy: 3, industry: -2, combat: -1 });
+    expect(differenceFromBalanced({ economy: 10, industry: 5, combat: 5 })).toEqual({
+      economy: 3,
+      industry: -2,
+      combat: -1,
+    });
   });
 });
 

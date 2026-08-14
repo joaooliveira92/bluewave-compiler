@@ -40,8 +40,7 @@ function schedulePersistence(): void {
       console.error("Failed to save telemetry event", error);
     }
   };
-  const requestIdleCallback = (window as Partial<typeof window>)
-    .requestIdleCallback;
+  const requestIdleCallback = (window as Partial<typeof window>).requestIdleCallback;
   if (requestIdleCallback) requestIdleCallback(persist);
   else window.setTimeout(persist, 0);
 }

@@ -44,9 +44,7 @@ describe("AC-3 accuracy formula exactness (DESIGN-39 §3, INC-2)", () => {
     expect(res.rounding.rawFlooredBp).toBe(370);
     expect(res.rounding.mode).toBe("floor");
     // cross-check against the exact bigint rational outlined in the return.
-    const exactFloor = Number(
-      (BigInt(res.rounding.numerator) / BigInt(res.rounding.denominator)),
-    );
+    const exactFloor = Number(BigInt(res.rounding.numerator) / BigInt(res.rounding.denominator));
     expect(res.rounding.rawFlooredBp).toBe(exactFloor);
     expect(GUNNERY_ACCURACY_DENOMINATOR.toString()).toBe(res.rounding.denominator);
   });
@@ -63,17 +61,15 @@ describe("AC-3 accuracy formula exactness (DESIGN-39 §3, INC-2)", () => {
 
   it("clamps at the 10_000 upper bound", () => {
     // one factor above neutral pushes the floored result to 12_000 -> clamp 10_000.
-    expect(
-      resolveAccuracy(factorsWith(10_000, { fireControl: 12_000 })).finalAccuracyBp,
-    ).toBe(10_000);
+    expect(resolveAccuracy(factorsWith(10_000, { fireControl: 12_000 })).finalAccuracyBp).toBe(
+      10_000,
+    );
   });
 
   it("clamps at the 0 lower bound", () => {
     expect(resolveAccuracy(neutralAccuracyFactors(0)).finalAccuracyBp).toBe(0);
     // any factor at 0 makes the exact product 0.
-    expect(
-      resolveAccuracy(factorsWith(10_000, { range: 0 })).finalAccuracyBp,
-    ).toBe(0);
+    expect(resolveAccuracy(factorsWith(10_000, { range: 0 })).finalAccuracyBp).toBe(0);
   });
 
   it("returns the 17 named factors and the floor rounding detail", () => {
@@ -82,9 +78,7 @@ describe("AC-3 accuracy formula exactness (DESIGN-39 §3, INC-2)", () => {
     expect(res.factorKeys).toEqual([...GUNNERY_ACCURACY_FACTOR_KEYS]);
     expect(res.factors.baseAccuracyBp).toBe(5_000);
     expect(res.rounding.mode).toBe("floor");
-    expect(Number(res.rounding.numerator)).toBeGreaterThanOrEqual(
-      Number(res.rounding.denominator),
-    );
+    expect(Number(res.rounding.numerator)).toBeGreaterThanOrEqual(Number(res.rounding.denominator));
     expect(res.finalAccuracyBp).toBe(5_000);
   });
 });

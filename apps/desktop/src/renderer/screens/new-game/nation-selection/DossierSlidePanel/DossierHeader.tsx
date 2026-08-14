@@ -22,10 +22,7 @@ export function DossierHeader({
         <NationEmblem countryId={countryId} />
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <ShipWheel
-              className="h-3.5 w-3.5 shrink-0 text-[#d4a359]"
-              aria-hidden="true"
-            />
+            <ShipWheel className="h-3.5 w-3.5 shrink-0 text-[#d4a359]" aria-hidden="true" />
             <p className="truncate font-mono text-[0.55rem] uppercase tracking-[0.2em] text-[#7d91a7] sm:text-[0.6rem] sm:tracking-[0.28em]">
               Admiralty Intelligence Dossier
             </p>

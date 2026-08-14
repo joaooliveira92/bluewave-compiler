@@ -1,8 +1,5 @@
 import type { CampaignConfiguration } from "@bluewave/campaign-engine";
-import type {
-  NewGameNation,
-  NewGameOptions,
-} from "../../../shared/new-game-contract.js";
+import type { NewGameNation, NewGameOptions } from "../../../shared/new-game-contract.js";
 import type { DraftPreferences } from "./new-game-preferences-screen-state.js";
 
 export interface NewGameNationScreenState {
@@ -19,9 +16,7 @@ export function initialNewGameNationScreenState(
 }
 
 /** Nations both fielded by the chosen scenario and playable per engine-supported configuration. */
-export function selectableNations(
-  state: NewGameNationScreenState,
-): readonly NewGameNation[] {
+export function selectableNations(state: NewGameNationScreenState): readonly NewGameNation[] {
   const scenario = state.options.scenarios.find(
     (candidate) => candidate.id === state.preferences.scenarioId,
   );
@@ -29,14 +24,11 @@ export function selectableNations(
 
   // Two independent gates: the scenario says which slots it activates, the
   // engine says which slots it can currently run.
-  const supportedPlayerSlotIds = new Set(
-    state.options.supportedValues.playerSlotId,
-  );
+  const supportedPlayerSlotIds = new Set(state.options.supportedValues.playerSlotId);
   const playableIds = new Set(scenario.playableNationIds);
 
   return state.options.nations.filter(
-    (nation) =>
-      playableIds.has(nation.id) && supportedPlayerSlotIds.has(nation.id),
+    (nation) => playableIds.has(nation.id) && supportedPlayerSlotIds.has(nation.id),
   );
 }
 
@@ -65,10 +57,8 @@ export function buildCampaignConfiguration(
   return {
     scenarioId: preferences.scenarioId as CampaignConfiguration["scenarioId"],
     playerSlotId: state.selectedNationId,
-    continuityModeId:
-      preferences.continuityMode as CampaignConfiguration["continuityModeId"],
-    fleetSizeSettingId:
-      preferences.fleetSize as CampaignConfiguration["fleetSizeSettingId"],
+    continuityModeId: preferences.continuityMode as CampaignConfiguration["continuityModeId"],
+    fleetSizeSettingId: preferences.fleetSize as CampaignConfiguration["fleetSizeSettingId"],
     researchSpeedSettingId:
       preferences.researchSpeed as CampaignConfiguration["researchSpeedSettingId"],
     technologyVariationSettingId:

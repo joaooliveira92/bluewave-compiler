@@ -21,11 +21,7 @@ export interface GlobalSearchProps {
 }
 
 /** Jumps to any campaign screen by name via a Ctrl/Cmd+F command palette. Renders nothing when there is nowhere to search. */
-export function GlobalSearch({
-  className,
-  targets,
-  onNavigate,
-}: GlobalSearchProps) {
+export function GlobalSearch({ className, targets, onNavigate }: GlobalSearchProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -74,16 +70,10 @@ export function GlobalSearch({
         description="Jump to any campaign screen"
       >
         <Command shouldFilter={false}>
-          <CommandInput
-            placeholder="Search screens…"
-            value={query}
-            onValueChange={setQuery}
-          />
+          <CommandInput placeholder="Search screens…" value={query} onValueChange={setQuery} />
           <CommandList>
             <CommandEmpty>
-              {query.trim().length === 0
-                ? "Type to search screens…"
-                : "No screens found."}
+              {query.trim().length === 0 ? "Type to search screens…" : "No screens found."}
             </CommandEmpty>
             {matches.length > 0 && (
               <CommandGroup heading="Screens">

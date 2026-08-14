@@ -6,9 +6,7 @@ import * as React from "react";
 import { cn } from "../../lib/utils.js";
 import { toggleVariants } from "./toggle.js";
 
-const ToggleGroupContext = React.createContext<
-  VariantProps<typeof toggleVariants>
->({
+const ToggleGroupContext = React.createContext<VariantProps<typeof toggleVariants>>({
   size: "default",
   variant: "default",
 });
@@ -20,25 +18,13 @@ interface ToggleGroupProps
   ref?: React.Ref<React.ComponentRef<typeof ToggleGroupPrimitive>> | undefined;
 }
 
-const ToggleGroup = ({
-  className,
-  variant,
-  size,
-  children,
-  ref,
-  ...props
-}: ToggleGroupProps) => (
+const ToggleGroup = ({ className, variant, size, children, ref, ...props }: ToggleGroupProps) => (
   <ToggleGroupPrimitive
     ref={ref}
-    className={cn(
-      "flex items-center justify-center gap-1 rounded-md bg-muted p-1",
-      className,
-    )}
+    className={cn("flex items-center justify-center gap-1 rounded-md bg-muted p-1", className)}
     {...props}
   >
-    <ToggleGroupContext.Provider value={{ variant, size }}>
-      {children}
-    </ToggleGroupContext.Provider>
+    <ToggleGroupContext.Provider value={{ variant, size }}>{children}</ToggleGroupContext.Provider>
   </ToggleGroupPrimitive>
 );
 ToggleGroup.displayName = "ToggleGroup";

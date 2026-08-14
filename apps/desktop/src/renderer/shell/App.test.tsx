@@ -1,30 +1,12 @@
 /* @vitest-environment jsdom */
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vite-plus/test";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { CampaignCommandClient } from "../../shared/campaign-command-contract.js";
 import type { Screen } from "./campaign-screen-registry.js";
 
 const testState = vi.hoisted(() => ({
-  background: "none" as
-    | "none"
-    | "water"
-    | "stars"
-    | "mesh-citrus"
-    | "mesh-lagoon",
+  background: "none" as "none" | "water" | "stars" | "mesh-citrus" | "mesh-lagoon",
   resolvedTheme: "light" as "light" | "dark",
   shell: {} as Record<string, unknown>,
 }));
@@ -64,11 +46,7 @@ vi.mock("../components/ui/sidebar.js", async () => {
   const React = await import("react");
   return {
     SidebarProvider: ({ children }: { children: React.ReactNode }) =>
-      React.createElement(
-        "div",
-        { "data-testid": "sidebar-provider" },
-        children,
-      ),
+      React.createElement("div", { "data-testid": "sidebar-provider" }, children),
     SidebarInset: ({ children }: { children: React.ReactNode }) =>
       React.createElement("main", null, children),
   };
@@ -87,8 +65,7 @@ vi.mock("../components/ui/alert.js", async () => {
 vi.mock("../components/backgrounds/starts.tsx", async () => {
   const React = await import("react");
   return {
-    StarsBackground: () =>
-      React.createElement("div", { "data-testid": "stars-background" }),
+    StarsBackground: () => React.createElement("div", { "data-testid": "stars-background" }),
   };
 });
 
@@ -122,11 +99,7 @@ vi.mock("../screens/campaign-file/CampaignFileScreen.js", async () => {
           { onClick: () => void onOpenCampaign("ses-open") },
           "Open campaign",
         ),
-        React.createElement(
-          "button",
-          { onClick: onStartNewGame },
-          "Start new game",
-        ),
+        React.createElement("button", { onClick: onStartNewGame }, "Start new game"),
       ),
   };
 });
@@ -179,9 +152,7 @@ vi.mock("../screens/new-game/NewGameNationScreen.js", async () => {
         "section",
         null,
         React.createElement("h1", null, "Choose nation"),
-        status === "launching"
-          ? React.createElement("p", null, "Starting…")
-          : null,
+        status === "launching" ? React.createElement("p", null, "Starting…") : null,
         error ? React.createElement("p", { role: "alert" }, error) : null,
         React.createElement("button", { onClick: onBack }, "Back"),
         React.createElement(
@@ -225,11 +196,7 @@ vi.mock("./campaign-screen-registry.js", async () => {
       { id: "fleet", label: "Fleet" },
     ],
     CampaignScreenOutlet: ({ screen: activeScreen }: { screen: string }) =>
-      React.createElement(
-        "section",
-        { "data-testid": "campaign-outlet" },
-        activeScreen,
-      ),
+      React.createElement("section", { "data-testid": "campaign-outlet" }, activeScreen),
   };
 });
 
@@ -260,9 +227,7 @@ vi.mock("./SiteHeader.js", async () => {
           "data-search-target-count": String(searchTargets.length),
         },
         title,
-        continueAction
-          ? React.createElement("span", null, continueAction.label)
-          : null,
+        continueAction ? React.createElement("span", null, continueAction.label) : null,
       ),
   };
 });
@@ -311,9 +276,7 @@ function createShell(overrides: Record<string, unknown> = {}) {
   return { ...shell, mode };
 }
 
-function createCampaignClient(
-  execute?: CampaignCommandClient["execute"],
-): CampaignCommandClient {
+function createCampaignClient(execute?: CampaignCommandClient["execute"]): CampaignCommandClient {
   return {
     execute:
       execute ??
@@ -324,9 +287,7 @@ function createCampaignClient(
   };
 }
 
-function createBridge(
-  overrides: Partial<BluewaveDesktopBridge> = {},
-): BluewaveDesktopBridge {
+function createBridge(overrides: Partial<BluewaveDesktopBridge> = {}): BluewaveDesktopBridge {
   return {
     applicationName: "Bluewave",
     engineContract: "CampaignEngine",
@@ -356,14 +317,10 @@ describe("App", () => {
   it("renders the file variant when no campaign is open", () => {
     render(<App />);
 
-    expect(
-      screen.getByRole("heading", { name: "Campaign files" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Campaign files" })).toBeTruthy();
     expect(screen.queryByRole("complementary")).toBeNull();
     expect(screen.getByTestId("site-header").dataset.activeView).toBe("menu");
-    expect(screen.getByTestId("site-header").dataset.searchTargetCount).toBe(
-      "0",
-    );
+    expect(screen.getByTestId("site-header").dataset.searchTargetCount).toBe("0");
   });
 
   it("renders a dedicated loading variant", () => {
@@ -372,9 +329,7 @@ describe("App", () => {
     render(<App />);
 
     expect(screen.getByText("Loading campaign…")).toBeTruthy();
-    expect(
-      screen.queryByRole("heading", { name: "Campaign files" }),
-    ).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Campaign files" })).toBeNull();
   });
 
   it("renders the file variant together with the opening error", () => {
@@ -382,9 +337,7 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(
-      screen.getByRole("heading", { name: "Campaign files" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Campaign files" })).toBeTruthy();
     expect(screen.getByText("Inspection failed")).toBeTruthy();
   });
 
@@ -419,13 +372,9 @@ describe("App", () => {
     expect(screen.getByText("Sidebar ses-1")).toBeTruthy();
     expect(screen.getByTestId("campaign-outlet").textContent).toBe("overview");
     expect(screen.getByRole("alert").textContent).toContain("Campaign saved");
-    expect(screen.getByTestId("site-header").dataset.activeView).toBe(
-      "playing",
-    );
+    expect(screen.getByTestId("site-header").dataset.activeView).toBe("playing");
     expect(screen.getByTestId("site-header").dataset.canContinue).toBe("true");
-    expect(screen.getByTestId("site-header").dataset.searchTargetCount).toBe(
-      "2",
-    );
+    expect(screen.getByTestId("site-header").dataset.searchTargetCount).toBe("2");
     expect(screen.getByText("Advance turn")).toBeTruthy();
   });
 
@@ -437,9 +386,7 @@ describe("App", () => {
 
     testState.background = "water";
     rerender(<App />);
-    expect(screen.getByTestId("shader-background").dataset.variant).toBe(
-      "water",
-    );
+    expect(screen.getByTestId("shader-background").dataset.variant).toBe("water");
   });
 
   it("compiles a campaign and opens the returned session", async () => {
@@ -462,15 +409,8 @@ describe("App", () => {
     rerender(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Launch campaign" }));
 
-    await waitFor(() =>
-      expect(execute).toHaveBeenCalledWith(
-        "compileCampaign",
-        expect.anything(),
-      ),
-    );
-    await waitFor(() =>
-      expect(shell.openCampaign).toHaveBeenCalledWith("ses-created"),
-    );
+    await waitFor(() => expect(execute).toHaveBeenCalledWith("compileCampaign", expect.anything()));
+    await waitFor(() => expect(shell.openCampaign).toHaveBeenCalledWith("ses-created"));
   });
 
   it("shows a compilation rejection and does not open a campaign", async () => {
@@ -490,9 +430,7 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Launch campaign" }));
 
     expect(
-      await screen.findByText(
-        "UNSUPPORTED_CONFIGURATION. difficulty is invalid",
-      ),
+      await screen.findByText("UNSUPPORTED_CONFIGURATION. difficulty is invalid"),
     ).toBeTruthy();
     expect(shell.openCampaign).not.toHaveBeenCalled();
   });

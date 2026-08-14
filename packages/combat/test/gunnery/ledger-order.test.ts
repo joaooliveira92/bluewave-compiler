@@ -1,11 +1,7 @@
 import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { RandomEngine } from "@bluewave/random";
-import {
-  BattleLedger,
-  canonicalEventOrder,
-  type BattleEvent,
-} from "../../src/battleLedger.js";
+import { BattleLedger, canonicalEventOrder, type BattleEvent } from "../../src/battleLedger.js";
 import {
   resolveGunnery,
   GUNNERY_EVENT_PRIORITY,
@@ -63,10 +59,7 @@ describe("AC-9 gunnery events via BattleLedger + canonicalEventOrder (INC-4)", (
     const out = resolveGunnery({
       battleId: BATTLE_ID,
       minute: 3,
-      batteries: [
-        battery("BAT-B", "SHIP-ZULU", "d1"),
-        battery("BAT-A", "SHIP-ALPHA", "d2"),
-      ],
+      batteries: [battery("BAT-B", "SHIP-ZULU", "d1"), battery("BAT-A", "SHIP-ALPHA", "d2")],
       contacts: [
         { contactId: `${BATTLE_ID}:d1` } as TacticalContact,
         { contactId: `${BATTLE_ID}:d2` } as TacticalContact,

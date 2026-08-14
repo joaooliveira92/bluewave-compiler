@@ -1,5 +1,4 @@
-﻿
-//packages/ai/test/ai.test.ts
+﻿//packages/ai/test/ai.test.ts
 import type { CampaignSnapshot, ConstructionProject, NationState } from "@bluewave/campaign";
 import { type CommandEnvelope, CommandIdempotencyMap, CommandLifecycle } from "@bluewave/commands";
 import { CANONICAL_RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
@@ -56,7 +55,13 @@ function makeSnapshot(
     })),
     world: { areas: [], routes: [], ports: [] },
     nations: map,
-    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [], battleManifests: [] },
+    wars: {
+      wars: [],
+      battles: [],
+      participantMemberships: [],
+      blockadeState: [],
+      battleManifests: [],
+    },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
     designs: new Map(),
@@ -88,12 +93,12 @@ describe("AiCommandGenerator", () => {
       turnNumber: SafeInt(1),
       expectedSnapshotHash: testHash,
     });
-    expect(AiCommandGenerator.buildIdempotencyKey("camp", SafeInt(1), "GBR", AI_COMMAND_TYPE_BUDGET)).toBe(
-      "camp/1/GBR/budget_project",
-    );
-    expect(AiCommandGenerator.buildIdempotencyKey("camp", SafeInt(7), "FRA", AI_COMMAND_TYPE_RESEARCH)).toBe(
-      "camp/7/FRA/SetResearchPriority",
-    );
+    expect(
+      AiCommandGenerator.buildIdempotencyKey("camp", SafeInt(1), "GBR", AI_COMMAND_TYPE_BUDGET),
+    ).toBe("camp/1/GBR/budget_project");
+    expect(
+      AiCommandGenerator.buildIdempotencyKey("camp", SafeInt(7), "FRA", AI_COMMAND_TYPE_RESEARCH),
+    ).toBe("camp/7/FRA/SetResearchPriority");
   });
 
   it("is deterministic for same inputs", () => {

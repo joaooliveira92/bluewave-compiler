@@ -151,11 +151,7 @@ function polygonsFromTopoJson(topology: Topology): Ring[][] {
   for (const geometry of topology.objects.land.geometries) {
     // land-*m is a single MultiPolygon: polygon -> rings -> arc indices.
     for (const polygon of geometry.arcs) {
-      polygons.push(
-        polygon.map((ring) =>
-          stitch(ring as unknown as readonly number[], arcs),
-        ),
-      );
+      polygons.push(polygon.map((ring) => stitch(ring as unknown as readonly number[], arcs)));
     }
   }
   return polygons;
@@ -196,9 +192,7 @@ function extentOf(flatRing: readonly number[]): number {
 async function main(): Promise<void> {
   const requested = process.argv[2] ?? DEFAULT_TIER;
   if (!(requested in TIERS))
-    throw new Error(
-      `unknown tier ${requested}; expected one of ${Object.keys(TIERS).join(", ")}`,
-    );
+    throw new Error(`unknown tier ${requested}; expected one of ${Object.keys(TIERS).join(", ")}`);
   const tier = TIERS[requested as TierId];
   const decimals = Math.max(0, -Math.floor(Math.log10(tier.quantize)));
 
@@ -213,9 +207,7 @@ async function main(): Promise<void> {
 
   const polygons: number[][][] = [];
   for (const ringsIn of raw) {
-    const rings = ringsIn.map((ring) =>
-      quantize(ring, tier.quantize, decimals),
-    );
+    const rings = ringsIn.map((ring) => quantize(ring, tier.quantize, decimals));
     const exterior = rings[0];
     // Ring 0 is the exterior; a polygon too small to draw takes its holes with it.
     if (exterior === undefined || exterior.length < 6) continue;
@@ -224,15 +216,12 @@ async function main(): Promise<void> {
   }
 
   const pointCount = polygons.reduce(
-    (total, rings) =>
-      total + rings.reduce((sum, ring) => sum + ring.length / 2, 0),
+    (total, rings) => total + rings.reduce((sum, ring) => sum + ring.length / 2, 0),
     0,
   );
 
   const body = polygons
-    .map(
-      (rings) => `  [${rings.map((ring) => `[${ring.join(",")}]`).join(",")}]`,
-    )
+    .map((rings) => `  [${rings.map((ring) => `[${ring.join(",")}]`).join(",")}]`)
     .join(",\n");
 
   const output = `/**
@@ -255,14 +244,9 @@ ${body},
 ];
 `;
 
-  const target = join(
-    dirname(fileURLToPath(import.meta.url)),
-    "prototype-coastline.ts",
-  );
+  const target = join(dirname(fileURLToPath(import.meta.url)), "prototype-coastline.ts");
   await writeFile(target, output, "utf8");
-  process.stdout.write(
-    `wrote ${target}\n${polygons.length} polygons, ${pointCount} points\n`,
-  );
+  process.stdout.write(`wrote ${target}\n${polygons.length} polygons, ${pointCount} points\n`);
 }
 
 await main();

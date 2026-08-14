@@ -68,20 +68,14 @@ describe("overview-screen-state", () => {
   });
 
   it("applies a loaded projection and clears prior errors", () => {
-    const failed = applyLoadFailed(
-      initialOverviewScreenState(),
-      "SESSION_NOT_FOUND",
-    );
+    const failed = applyLoadFailed(initialOverviewScreenState(), "SESSION_NOT_FOUND");
     const loaded = applyProjectionLoaded(failed, projection);
     expect(loaded.projection).toBe(projection);
     expect(loaded.loadError).toBeNull();
   });
 
   it("records a load failure", () => {
-    const state = applyLoadFailed(
-      initialOverviewScreenState(),
-      "SESSION_NOT_FOUND",
-    );
+    const state = applyLoadFailed(initialOverviewScreenState(), "SESSION_NOT_FOUND");
     expect(state.loadError).toBe("SESSION_NOT_FOUND");
   });
 

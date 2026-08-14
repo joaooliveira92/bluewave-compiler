@@ -7,9 +7,7 @@ export function filterRecords(
 ): readonly CompiledRecord[] {
   const term = searchTerm.toLowerCase();
   return records.filter(
-    (record) =>
-      record.id.toLowerCase().includes(term) ||
-      record.kind.toLowerCase().includes(term),
+    (record) => record.id.toLowerCase().includes(term) || record.kind.toLowerCase().includes(term),
   );
 }
 

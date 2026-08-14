@@ -17,17 +17,11 @@ export function SandboxEventLedger() {
     <Card>
       <CardHeader>
         <CardTitle className="text-sm font-medium">Full Event Ledger</CardTitle>
-        <CardDescription>
-          Every mechanic that fired this battle, by event type
-        </CardDescription>
+        <CardDescription>Every mechanic that fired this battle, by event type</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
         {groupEventsByType(outcome).map((group) => (
-          <Badge
-            key={group.eventType}
-            variant="secondary"
-            className="font-mono text-[12px]"
-          >
+          <Badge key={group.eventType} variant="secondary" className="font-mono text-[12px]">
             {group.eventType} × {group.count}
           </Badge>
         ))}

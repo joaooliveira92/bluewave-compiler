@@ -1,7 +1,4 @@
-  import type {
-  ArchetypeSelection,
-  CampaignConfiguration,
-} from "@bluewave/campaign-engine";
+import type { ArchetypeSelection, CampaignConfiguration } from "@bluewave/campaign-engine";
 import { useEffect, useMemo, useState } from "react";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { WindowState } from "../../shared/bridge-contract.js";
@@ -19,10 +16,7 @@ import { NewGameNationScreen } from "../screens/new-game/NewGameNationScreen.js"
 import type { DraftPreferences } from "../screens/new-game/new-game-preferences-screen-state.js";
 import { AppSidebar } from "./AppSidebar.js";
 import { useBackground } from "./BackgroundContext.js";
-import {
-  CampaignShellProvider,
-  useCampaignShellContext,
-} from "./CampaignShellContext.js";
+import { CampaignShellProvider, useCampaignShellContext } from "./CampaignShellContext.js";
 import {
   CAMPAIGN_SCREEN_SEARCH_TARGETS,
   CampaignScreenOutlet,
@@ -31,11 +25,7 @@ import {
 import type { CampaignShellMode } from "./campaign-shell-state.js";
 import type { PrimaryAction } from "./primary-action.js";
 import { SiteHeader } from "./SiteHeader.js";
-import {
-  type ActiveView,
-  type HeaderCampaign,
-  headerTitleFor,
-} from "./site-header-state.js";
+import { type ActiveView, type HeaderCampaign, headerTitleFor } from "./site-header-state.js";
 import { useTheme } from "./ThemeContext.js";
 import { type NewGameDraft, useNewGameFlow } from "./useNewGameFlow.js";
 import { WindowContextProvider } from "./WindowContext.js";
@@ -137,10 +127,7 @@ interface CampaignUnavailableViewProps {
   readonly onOpenCampaign: (sessionId: string) => Promise<void>;
   readonly onStartNewGame: () => void;
   readonly onCancelPreferences: () => void;
-  readonly onPreferencesNext: (
-    preferences: DraftPreferences,
-    options: NewGameOptions,
-  ) => void;
+  readonly onPreferencesNext: (preferences: DraftPreferences, options: NewGameOptions) => void;
   readonly onBackToPreferences: () => void;
   readonly onArchetypeNext: (archetype: ArchetypeSelection) => void;
   readonly onBackToArchetype: () => void;
@@ -222,16 +209,8 @@ interface CampaignFileViewProps {
   readonly onStartNewGame: () => void;
 }
 
-function CampaignFileView({
-  onOpenCampaign,
-  onStartNewGame,
-}: CampaignFileViewProps) {
-  return (
-    <CampaignFileScreen
-      onOpenCampaign={onOpenCampaign}
-      onStartNewGame={onStartNewGame}
-    />
-  );
+function CampaignFileView({ onOpenCampaign, onStartNewGame }: CampaignFileViewProps) {
+  return <CampaignFileScreen onOpenCampaign={onOpenCampaign} onStartNewGame={onStartNewGame} />;
 }
 
 function CampaignOpenErrorView({
@@ -241,10 +220,7 @@ function CampaignOpenErrorView({
 }: CampaignFileViewProps & { readonly message: string }) {
   return (
     <div className="p-8">
-      <CampaignFileView
-        onOpenCampaign={onOpenCampaign}
-        onStartNewGame={onStartNewGame}
-      />
+      <CampaignFileView onOpenCampaign={onOpenCampaign} onStartNewGame={onStartNewGame} />
       <div className="mt-4 rounded-md border border-destructive/50 bg-destructive/10 p-4">
         <p className="m-0 text-destructive">{message}</p>
       </div>
@@ -254,16 +230,10 @@ function CampaignOpenErrorView({
 
 interface CampaignPreferencesViewProps {
   readonly onCancel: () => void;
-  readonly onNext: (
-    preferences: DraftPreferences,
-    options: NewGameOptions,
-  ) => void;
+  readonly onNext: (preferences: DraftPreferences, options: NewGameOptions) => void;
 }
 
-function CampaignPreferencesView({
-  onCancel,
-  onNext,
-}: CampaignPreferencesViewProps) {
+function CampaignPreferencesView({ onCancel, onNext }: CampaignPreferencesViewProps) {
   return (
     <div className="p-8">
       <CampaignPreferencesOnboarding onCancel={onCancel} onNext={onNext} />
@@ -301,11 +271,7 @@ function AppFrame({
       {header}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {campaignSessionId !== null && (
-          <AppSidebar
-            screen={screen}
-            onSelect={onSelectScreen}
-            footer={campaignSessionId}
-          />
+          <AppSidebar screen={screen} onSelect={onSelectScreen} footer={campaignSessionId} />
         )}
         <SidebarInset className="relative min-h-0 overflow-auto bg-transparent">
           {saveMessage !== null && (
@@ -393,9 +359,7 @@ function CampaignShellApplication({
         : "menu";
 
   const searchTargets =
-    shell.state.campaign === null
-      ? EMPTY_SEARCH_TARGETS
-      : CAMPAIGN_SCREEN_SEARCH_TARGETS;
+    shell.state.campaign === null ? EMPTY_SEARCH_TARGETS : CAMPAIGN_SCREEN_SEARCH_TARGETS;
 
   const header = (
     <SiteHeader
@@ -410,9 +374,7 @@ function CampaignShellApplication({
         disabled: !shell.state.canGoForward,
         onTrigger: shell.actions.goForward,
       }}
-      {...(shell.state.primaryAction !== null
-        ? { continueAction: shell.state.primaryAction }
-        : {})}
+      {...(shell.state.primaryAction !== null ? { continueAction: shell.state.primaryAction } : {})}
       searchTargets={searchTargets}
       onSearchNavigate={(id) => shell.actions.selectScreen(id as Screen)}
     />

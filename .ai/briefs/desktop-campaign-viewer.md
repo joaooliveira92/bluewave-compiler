@@ -9,7 +9,7 @@ existing content-authoring/compile flow, without introducing any command-issuing
 or turn-advancing capability. This is the "later milestone" B9 deferred read-only
 render to (see `.ai/briefs/b9-desktop-shell.md`, In scope: "MVP uses vanilla
 HTML/JS"; Out of scope: "File save/load, turn execution, or replay from the
-desktop app" — this milestone adds save *loading* only, still no turn execution).
+desktop app" — this milestone adds save _loading_ only, still no turn execution).
 
 Charted and scoped via `/wayfinder` — see `.scratch/desktop-campaign-viewer/map.md`
 for the full decision trail.
@@ -35,13 +35,13 @@ a dependency of `apps/desktop`. `SaveStore.load` returns a `CampaignState` whose
 ## In scope
 
 - New `campaign:load-save` IPC channel: dialog-fallback `saveDir?` request (mirrors
-  `compile`), always loads the *active* save via `SaveStore.load`. `loadById`/`list`
+  `compile`), always loads the _active_ save via `SaveStore.load`. `loadById`/`list`
   (a save picker) explicitly deferred.
 - Main-process handler (`src/main/campaignSave.ts`) recursively converts every `Map`
   in the returned snapshot to a plain object (`mapsToPlainObjects`, including the
   nested `activeCandidates` Map inside each nation's `research`) before returning it.
 - Renderer displays a curated subset only: `{ turnNumber, campaignId, nations, wars,
-  diplomacy: politics.relations }`, rendered as plain `JSON.stringify(subset, null, 2)`
+diplomacy: politics.relations }`, rendered as plain `JSON.stringify(subset, null, 2)`
   — no reordering, no summarization — into a dedicated `#saveStatus`/`#saveOutput`
   pair, separate from the `compile` output panel.
 - Diagnostics reuse the existing `diagnostics: [...]` shape (`CompileResult`'s
@@ -50,7 +50,7 @@ a dependency of `apps/desktop`. `SaveStore.load` returns a `CampaignState` whose
 - Zod validation of the IPC envelope (`src/main/campaignSaveSchema.ts`):
   `LoadSaveRequestSchema` (`z.string().optional()`), `LoadSaveResultSchema`
   (envelope-level; `snapshot`'s deep contents stay `z.record(z.string(),
-  z.unknown())` rather than re-deriving `CampaignSnapshot`'s ~20 interfaces, since
+z.unknown())` rather than re-deriving `CampaignSnapshot`'s ~20 interfaces, since
   correctness there is already guaranteed by `SaveStore`'s own hash/envelope
   verification).
 - Renderer UI: tabbed "Editor" / "Campaign Save Viewer" split (`#tabs`,
@@ -131,7 +131,7 @@ and do not contain.
 empty `nations` block in this viewer**, even though `nations` is exactly the field
 this milestone's curated subset is built around.
 
-This is a save-*writing* defect in `@bluewave/persistence`, not a defect in this
+This is a save-_writing_ defect in `@bluewave/persistence`, not a defect in this
 viewer or its `campaign:load-save` channel (which correctly displays whatever a
 save actually contains). It was deliberately left out of this milestone's scope
 (`.scratch/desktop-campaign-viewer/issues/04-savestore-map-serialization-bug.md`)

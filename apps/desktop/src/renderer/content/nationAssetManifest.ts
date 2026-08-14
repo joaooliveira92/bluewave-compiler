@@ -46,12 +46,7 @@ export const PLAYABLE_SLOT_COUNTRY_IDS = [
 export type PlayableSlotCountryId = (typeof PLAYABLE_SLOT_COUNTRY_IDS)[number];
 
 /** Terse constructor keeping the manifest table readable. */
-function asset(
-  assetId: string,
-  kind: MediaAsset["kind"],
-  url: string,
-  label: string,
-): MediaAsset {
+function asset(assetId: string, kind: MediaAsset["kind"], url: string, label: string): MediaAsset {
   return { assetId, kind, url, label, provenance: "CANONICAL_CONTENT" };
 }
 
@@ -66,74 +61,24 @@ function asset(
 export const NATION_ASSET_MANIFEST: NationAssetManifest = {
   countries: {
     gb: {
-      nation_ensign: asset(
-        "gb.ensign.1880",
-        "nation_ensign",
-        ukEnsign,
-        "White Ensign",
-      ),
-      ship_silhouette: asset(
-        "gb.ship.1880",
-        "ship_silhouette",
-        ukShip,
-        "British ironclad",
-      ),
+      nation_ensign: asset("gb.ensign.1880", "nation_ensign", ukEnsign, "White Ensign"),
+      ship_silhouette: asset("gb.ship.1880", "ship_silhouette", ukShip, "British ironclad"),
     },
     de: {
-      nation_flag: asset(
-        "de.flag.1880",
-        "nation_flag",
-        germanFlag,
-        "Imperial German tricolour",
-      ),
-      ship_silhouette: asset(
-        "de.ship.1880",
-        "ship_silhouette",
-        germanShip,
-        "German ironclad",
-      ),
+      nation_flag: asset("de.flag.1880", "nation_flag", germanFlag, "Imperial German tricolour"),
+      ship_silhouette: asset("de.ship.1880", "ship_silhouette", germanShip, "German ironclad"),
     },
     us: {
-      nation_flag: asset(
-        "us.flag.1880",
-        "nation_flag",
-        usFlag,
-        "United States flag, 44 stars",
-      ),
-      ship_silhouette: asset(
-        "us.ship.1880",
-        "ship_silhouette",
-        usShip,
-        "American ironclad",
-      ),
+      nation_flag: asset("us.flag.1880", "nation_flag", usFlag, "United States flag, 44 stars"),
+      ship_silhouette: asset("us.ship.1880", "ship_silhouette", usShip, "American ironclad"),
     },
     jp: {
-      nation_flag: asset(
-        "jp.flag.1880",
-        "nation_flag",
-        japanFlag,
-        "Rising Sun flag",
-      ),
-      ship_silhouette: asset(
-        "jp.ship.1880",
-        "ship_silhouette",
-        japanShip,
-        "Japanese ironclad",
-      ),
+      nation_flag: asset("jp.flag.1880", "nation_flag", japanFlag, "Rising Sun flag"),
+      ship_silhouette: asset("jp.ship.1880", "ship_silhouette", japanShip, "Japanese ironclad"),
     },
     fr: {
-      nation_flag: asset(
-        "fr.flag.1880",
-        "nation_flag",
-        frenchFlag,
-        "French tricolour",
-      ),
-      ship_silhouette: asset(
-        "fr.ship.1880",
-        "ship_silhouette",
-        frenchShip,
-        "French ironclad",
-      ),
+      nation_flag: asset("fr.flag.1880", "nation_flag", frenchFlag, "French tricolour"),
+      ship_silhouette: asset("fr.ship.1880", "ship_silhouette", frenchShip, "French ironclad"),
     },
     it: {
       nation_flag: asset(
@@ -142,34 +87,14 @@ export const NATION_ASSET_MANIFEST: NationAssetManifest = {
         italianFlag,
         "Italian flag with Savoy arms",
       ),
-      ship_silhouette: asset(
-        "it.ship.1880",
-        "ship_silhouette",
-        italianShip,
-        "Italian ironclad",
-      ),
+      ship_silhouette: asset("it.ship.1880", "ship_silhouette", italianShip, "Italian ironclad"),
     },
     ru: {
-      nation_flag: asset(
-        "ru.flag.1880",
-        "nation_flag",
-        russianFlag,
-        "Russian imperial flag",
-      ),
-      ship_silhouette: asset(
-        "ru.ship.1880",
-        "ship_silhouette",
-        russianShip,
-        "Russian ironclad",
-      ),
+      nation_flag: asset("ru.flag.1880", "nation_flag", russianFlag, "Russian imperial flag"),
+      ship_silhouette: asset("ru.ship.1880", "ship_silhouette", russianShip, "Russian ironclad"),
     },
     ah: {
-      nation_flag: asset(
-        "ah.flag.1880",
-        "nation_flag",
-        austrianFlag,
-        "Austro-Hungarian flag",
-      ),
+      nation_flag: asset("ah.flag.1880", "nation_flag", austrianFlag, "Austro-Hungarian flag"),
       ship_silhouette: asset(
         "ah.ship.1880",
         "ship_silhouette",
@@ -178,32 +103,12 @@ export const NATION_ASSET_MANIFEST: NationAssetManifest = {
       ),
     },
     es: {
-      nation_flag: asset(
-        "es.flag.1880",
-        "nation_flag",
-        spanishFlag,
-        "Spanish flag",
-      ),
-      ship_silhouette: asset(
-        "es.ship.1880",
-        "ship_silhouette",
-        spanishShip,
-        "Spanish ironclad",
-      ),
+      nation_flag: asset("es.flag.1880", "nation_flag", spanishFlag, "Spanish flag"),
+      ship_silhouette: asset("es.ship.1880", "ship_silhouette", spanishShip, "Spanish ironclad"),
     },
     qing: {
-      nation_flag: asset(
-        "qing.flag.1880",
-        "nation_flag",
-        qingFlag,
-        "Qing dragon flag",
-      ),
-      ship_silhouette: asset(
-        "qing.ship.1880",
-        "ship_silhouette",
-        qingShip,
-        "Chinese ironclad",
-      ),
+      nation_flag: asset("qing.flag.1880", "nation_flag", qingFlag, "Qing dragon flag"),
+      ship_silhouette: asset("qing.ship.1880", "ship_silhouette", qingShip, "Chinese ironclad"),
     },
   },
   regimes: {},

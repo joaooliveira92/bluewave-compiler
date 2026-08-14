@@ -11,16 +11,10 @@ const PopoverAnchor = PopoverPrimitive.Trigger;
 interface PopoverContentProps extends React.ComponentPropsWithoutRef<
   typeof PopoverPrimitive.Popup
 > {
-  align?: React.ComponentPropsWithoutRef<
-    typeof PopoverPrimitive.Positioner
-  >["align"];
-  side?: React.ComponentPropsWithoutRef<
-    typeof PopoverPrimitive.Positioner
-  >["side"];
+  align?: React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Positioner>["align"];
+  side?: React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Positioner>["side"];
   sideOffset?: number;
-  ref?:
-    | React.Ref<React.ComponentRef<typeof PopoverPrimitive.Popup>>
-    | undefined;
+  ref?: React.Ref<React.ComponentRef<typeof PopoverPrimitive.Popup>> | undefined;
 }
 
 const PopoverContent = ({
@@ -32,11 +26,7 @@ const PopoverContent = ({
   ...props
 }: PopoverContentProps) => (
   <PopoverPrimitive.Portal>
-    <PopoverPrimitive.Positioner
-      align={align}
-      side={side}
-      sideOffset={sideOffset}
-    >
+    <PopoverPrimitive.Positioner align={align} side={side} sideOffset={sideOffset}>
       <PopoverPrimitive.Popup
         ref={ref}
         className={cn(

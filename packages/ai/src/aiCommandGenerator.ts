@@ -10,9 +10,7 @@ export const AI_ENVELOPE_VERSION = "0.1.0" as const;
 export const AI_COMMAND_TYPE_BUDGET = "budget_project" as const;
 export const AI_COMMAND_TYPE_RESEARCH = "SetResearchPriority" as const;
 
-export type AiCommandType =
-  | typeof AI_COMMAND_TYPE_BUDGET
-  | typeof AI_COMMAND_TYPE_RESEARCH;
+export type AiCommandType = typeof AI_COMMAND_TYPE_BUDGET | typeof AI_COMMAND_TYPE_RESEARCH;
 
 export interface AiCommandContext {
   readonly campaignId: string;

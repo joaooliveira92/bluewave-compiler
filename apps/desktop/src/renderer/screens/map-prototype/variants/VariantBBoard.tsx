@@ -94,10 +94,7 @@ export function VariantBBoard({
   const possessionsByArea = useMemo(() => {
     const map = new Map<string, typeof POSSESSIONS>();
     for (const possession of POSSESSIONS) {
-      map.set(possession.area, [
-        ...(map.get(possession.area) ?? []),
-        possession,
-      ]);
+      map.set(possession.area, [...(map.get(possession.area) ?? []), possession]);
     }
     return map;
   }, []);
@@ -122,8 +119,7 @@ export function VariantBBoard({
     return legs;
   }, [route]);
 
-  const summary =
-    state.selected === null ? null : summariseArea(state.selected);
+  const summary = state.selected === null ? null : summariseArea(state.selected);
 
   function handleTileClick(id: string, shiftKey: boolean) {
     if (camera.isDraggingRef.current) return;
@@ -161,12 +157,7 @@ export function VariantBBoard({
               {layer.label}
             </Button>
           ))}
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={camera.reset}
-          >
+          <Button type="button" size="sm" variant="ghost" onClick={camera.reset}>
             Reset view
           </Button>
           <span
@@ -192,11 +183,8 @@ export function VariantBBoard({
               const to = boxes.get(edge.b);
               if (from === undefined || to === undefined) return null;
               const passage =
-                edge.passage === undefined
-                  ? null
-                  : (PASSAGES_BY_ID.get(edge.passage) ?? null);
-              const key =
-                edge.a < edge.b ? `${edge.a}|${edge.b}` : `${edge.b}|${edge.a}`;
+                edge.passage === undefined ? null : (PASSAGES_BY_ID.get(edge.passage) ?? null);
+              const key = edge.a < edge.b ? `${edge.a}|${edge.b}` : `${edge.b}|${edge.a}`;
               const onRouteLeg = routeLegs.has(key);
               const stroke =
                 passage !== null && !passage.open
@@ -261,9 +249,7 @@ export function VariantBBoard({
                     stroke={stroke}
                     strokeWidth={width}
                     strokeLinecap="round"
-                    strokeDasharray={
-                      passage !== null && !passage.open ? "10 7" : undefined
-                    }
+                    strokeDasharray={passage !== null && !passage.open ? "10 7" : undefined}
                   />
                   {state.layers.passages && passage !== null && (
                     <g>
@@ -274,9 +260,7 @@ export function VariantBBoard({
                         height={26}
                         rx={13}
                         fill="var(--card)"
-                        stroke={
-                          passage.open ? "var(--border)" : "var(--destructive)"
-                        }
+                        stroke={passage.open ? "var(--border)" : "var(--destructive)"}
                         strokeWidth={2}
                       />
                       <text
@@ -285,11 +269,7 @@ export function VariantBBoard({
                         textAnchor="middle"
                         fontSize={12}
                         fontWeight={600}
-                        fill={
-                          passage.open
-                            ? "var(--foreground)"
-                            : "var(--destructive)"
-                        }
+                        fill={passage.open ? "var(--foreground)" : "var(--destructive)"}
                         style={{ pointerEvents: "none" }}
                       >
                         {passage.kind === "canal" ? "⚓" : "⌁"}
@@ -339,11 +319,7 @@ export function VariantBBoard({
                         : "var(--card)"
                     }
                     stroke={
-                      selected
-                        ? "var(--ring)"
-                        : onRouteLeg
-                          ? "var(--warning)"
-                          : "var(--border)"
+                      selected ? "var(--ring)" : onRouteLeg ? "var(--warning)" : "var(--border)"
                     }
                     strokeWidth={selected || onRouteLeg ? 3 : 1.5}
                   />
@@ -369,9 +345,7 @@ export function VariantBBoard({
                       fill="var(--muted-foreground)"
                       style={{ pointerEvents: "none" }}
                     >
-                      {held?.owner == null
-                        ? "unclaimed"
-                        : nationName(held.owner)}
+                      {held?.owner == null ? "unclaimed" : nationName(held.owner)}
                       {held?.contested === true ? " · contested" : ""}
                     </text>
                   )}
@@ -432,25 +406,18 @@ export function VariantBBoard({
                 {summary.control.contested ? " · contested" : ""}
               </Badge>
               <span className="text-xs text-muted-foreground">
-                {summary.possessions.map((p) => p.name).join(", ") ||
-                  "no possessions"}
+                {summary.possessions.map((p) => p.name).join(", ") || "no possessions"}
               </span>
               {summary.fleets.length > 0 && (
                 <span className="text-xs text-muted-foreground">
-                  {summary.fleets
-                    .map((f) => `${f.name} (${f.ships})`)
-                    .join(" · ")}
+                  {summary.fleets.map((f) => `${f.name} (${f.ships})`).join(" · ")}
                 </span>
               )}
               <div className="ml-auto flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">
                   {summary.neighbours.length} adjacent
                 </span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onSelect(null)}
-                >
+                <Button size="sm" variant="ghost" onClick={() => onSelect(null)}>
                   Close
                 </Button>
               </div>
@@ -461,9 +428,7 @@ export function VariantBBoard({
 
       <div className="flex items-center gap-4 rounded-lg border bg-card px-4 py-2.5 text-xs">
         {route === null ? (
-          <span className="text-muted-foreground">
-            Shift-click two tiles for a route reading
-          </span>
+          <span className="text-muted-foreground">Shift-click two tiles for a route reading</span>
         ) : (
           <>
             <span>
@@ -479,21 +444,12 @@ export function VariantBBoard({
               ≈{route.months} months at 3,100 nm/month
             </span>
             {route.passages.length > 0 && (
-              <span className="text-muted-foreground">
-                via {route.passages.join(", ")}
-              </span>
+              <span className="text-muted-foreground">via {route.passages.join(", ")}</span>
             )}
           </>
         )}
-        <Button
-          className="ml-auto"
-          size="sm"
-          variant="outline"
-          onClick={onToggleClosedPassages}
-        >
-          {state.respectClosedPassages
-            ? "Avoiding closed passages"
-            : "Ignoring closed passages"}
+        <Button className="ml-auto" size="sm" variant="outline" onClick={onToggleClosedPassages}>
+          {state.respectClosedPassages ? "Avoiding closed passages" : "Ignoring closed passages"}
         </Button>
       </div>
     </div>

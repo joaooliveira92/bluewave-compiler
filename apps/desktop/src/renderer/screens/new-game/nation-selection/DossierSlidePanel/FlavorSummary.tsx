@@ -33,9 +33,7 @@ export function FlavorSummary({
           {label}
         </span>
       </div>
-      <p className="line-clamp-3 text-[0.7rem] leading-relaxed text-[#9aabba] sm:text-xs">
-        {text}
-      </p>
+      <p className="line-clamp-3 text-[0.7rem] leading-relaxed text-[#9aabba] sm:text-xs">{text}</p>
     </article>
   );
 }

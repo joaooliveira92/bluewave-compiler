@@ -1,12 +1,7 @@
 import { useCallback } from "react";
 import { FileText, Settings2 } from "lucide-react";
 import { PageHeader } from "../../components/shared/PageHeader.js";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "../../components/ui/tabs.js";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs.js";
 import { PreferencesLoadingState } from "./components/PreferencesLoadingState.js";
 import { PreferencesErrorState } from "./components/PreferencesErrorState.js";
 import { ScenarioPanel } from "./components/ScenarioPanel.js";
@@ -28,8 +23,7 @@ export function CampaignPreferencesScreen({
   sessionId,
   onCloseCampaign,
 }: CampaignPreferencesScreenProps) {
-  const { projection, loadError, loadProjection } =
-    useCampaignProjection(sessionId);
+  const { projection, loadError, loadProjection } = useCampaignProjection(sessionId);
   const { displayPrefs, togglePref } = useDisplayPreferences();
   const { copied, copy } = useClipboardCopy();
 
@@ -43,9 +37,7 @@ export function CampaignPreferencesScreen({
   }, [projection, sessionId]);
 
   if (loadError !== null) {
-    return (
-      <PreferencesErrorState message={loadError} onRetry={loadProjection} />
-    );
+    return <PreferencesErrorState message={loadError} onRetry={loadProjection} />;
   }
 
   if (projection === null) {
@@ -63,8 +55,7 @@ export function CampaignPreferencesScreen({
         actions={
           <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
             <FileText className="h-3 w-3" />
-            Display settings are stored locally and won&apos;t affect other
-            players.
+            Display settings are stored locally and won&apos;t affect other players.
           </div>
         }
       />
@@ -92,10 +83,7 @@ export function CampaignPreferencesScreen({
         </TabsContent>
 
         <TabsContent value="display">
-          <DisplayPreferencesPanel
-            displayPrefs={displayPrefs}
-            onTogglePref={togglePref}
-          />
+          <DisplayPreferencesPanel displayPrefs={displayPrefs} onTogglePref={togglePref} />
         </TabsContent>
 
         <TabsContent value="danger">

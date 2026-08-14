@@ -85,9 +85,7 @@ export function allocationTotal(allocation: ArchetypeAllocation): number {
   return allocation.economy + allocation.industry + allocation.combat;
 }
 
-export function differenceFromBalanced(
-  allocation: ArchetypeAllocation,
-): ArchetypeAllocation {
+export function differenceFromBalanced(allocation: ArchetypeAllocation): ArchetypeAllocation {
   return {
     economy: allocation.economy - BALANCED_ALLOCATION.economy,
     industry: allocation.industry - BALANCED_ALLOCATION.industry,
@@ -95,9 +93,10 @@ export function differenceFromBalanced(
   };
 }
 
-export function validateArchetypeAllocation(
-  allocation: ArchetypeAllocation,
-): { readonly ok: boolean; readonly diagnostics: readonly string[] } {
+export function validateArchetypeAllocation(allocation: ArchetypeAllocation): {
+  readonly ok: boolean;
+  readonly diagnostics: readonly string[];
+} {
   const diagnostics: string[] = [];
 
   for (const dimension of ARCHETYPE_DIMENSIONS) {
@@ -111,9 +110,7 @@ export function validateArchetypeAllocation(
 
   const total = allocationTotal(allocation);
   if (total !== ARCHETYPE_POINT_TOTAL) {
-    diagnostics.push(
-      `allocation totals ${total}, expected ${ARCHETYPE_POINT_TOTAL}.`,
-    );
+    diagnostics.push(`allocation totals ${total}, expected ${ARCHETYPE_POINT_TOTAL}.`);
   }
 
   return { ok: diagnostics.length === 0, diagnostics };
@@ -137,9 +134,7 @@ export interface ArchetypeEffects {
   readonly doctrineBonus: number;
 }
 
-export function archetypeEffects(
-  allocation: ArchetypeAllocation,
-): ArchetypeEffects {
+export function archetypeEffects(allocation: ArchetypeAllocation): ArchetypeEffects {
   const delta = differenceFromBalanced(allocation);
   return {
     treasuryMultiplier: 1 + ECONOMY_MULTIPLIER_STEP * delta.economy,
@@ -154,8 +149,6 @@ export function defaultArchetypeSelection(): ArchetypeSelection {
   return { kind: "custom", allocation: BALANCED_ALLOCATION };
 }
 
-export function serializeArchetypeSelection(
-  selection: ArchetypeSelection,
-): string {
+export function serializeArchetypeSelection(selection: ArchetypeSelection): string {
   return JSON.stringify(selection);
 }

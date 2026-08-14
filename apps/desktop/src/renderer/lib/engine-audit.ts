@@ -1,7 +1,4 @@
-import type {
-  EngineAuditInput,
-  RandomDecisionRecord,
-} from "@bluewave/campaign-engine";
+import type { EngineAuditInput, RandomDecisionRecord } from "@bluewave/campaign-engine";
 
 /**
  * Persists engine audit trails (the authoritative RandomDecisionRecord set
@@ -40,24 +37,17 @@ function schedulePersistence(): void {
   const persist = () => {
     persistenceScheduled = false;
     try {
-      localStorage.setItem(
-        ENGINE_AUDIT_STORAGE_KEY,
-        JSON.stringify(cachedAudits ?? []),
-      );
+      localStorage.setItem(ENGINE_AUDIT_STORAGE_KEY, JSON.stringify(cachedAudits ?? []));
     } catch (error) {
       console.error("Failed to save engine audit", error);
     }
   };
-  const requestIdleCallback = (window as Partial<typeof window>)
-    .requestIdleCallback;
+  const requestIdleCallback = (window as Partial<typeof window>).requestIdleCallback;
   if (requestIdleCallback) requestIdleCallback(persist);
   else window.setTimeout(persist, 0);
 }
 
-export function recordEngineAudit(
-  action: string,
-  input: EngineAuditInput,
-): StoredEngineAudit {
+export function recordEngineAudit(action: string, input: EngineAuditInput): StoredEngineAudit {
   const audit: StoredEngineAudit = {
     action,
     timestamp: new Date().toISOString(),

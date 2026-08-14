@@ -20,17 +20,13 @@ export interface UseConstructionScreenReturn {
     readonly retry: () => void;
   };
   readonly loadScreen: () => Promise<void>;
-  readonly setSelectedDesignId: React.Dispatch<
-    React.SetStateAction<string | null>
-  >;
+  readonly setSelectedDesignId: React.Dispatch<React.SetStateAction<string | null>>;
   readonly submit: () => void;
   readonly replace: (commandId: string) => void;
   readonly cancel: (commandId: string) => void;
 }
 
-export function useConstructionScreen(
-  sessionId: string,
-): UseConstructionScreenReturn {
+export function useConstructionScreen(sessionId: string): UseConstructionScreenReturn {
   const [selectedDesignId, setSelectedDesignId] = useState<string | null>(null);
   const bridge = window.bluewave;
   const workflow = useCommandScreenWorkflow<
@@ -46,9 +42,7 @@ export function useConstructionScreen(
     project: projectConstructionScreen,
     accept: acceptConstructionCommand,
     onProjection: (projection) =>
-      setSelectedDesignId(
-        (current) => current ?? projection.designs[0]?.designId ?? null,
-      ),
+      setSelectedDesignId((current) => current ?? projection.designs[0]?.designId ?? null),
   });
   function submit(): void {
     if (!bridge || selectedDesignId === null) return;

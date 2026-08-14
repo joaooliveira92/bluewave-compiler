@@ -1,10 +1,6 @@
 import { memo } from "react";
 import type { SupportedConfigurationValues } from "@bluewave/campaign-engine";
-import {
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../../components/ui/card.js";
+import { CardContent, CardHeader, CardTitle } from "../../../components/ui/card.js";
 import { Field, FieldGroup, FieldLabel } from "../../../components/ui/field.js";
 import {
   Select,
@@ -33,10 +29,7 @@ const FIELD_LABELS: Record<
 export interface RulesetOptionsSectionProps {
   readonly preferences: DraftPreferences;
   readonly supportedValues: SupportedConfigurationValues;
-  readonly onPreferenceChange: (
-    field: keyof DraftPreferences,
-    value: string,
-  ) => void;
+  readonly onPreferenceChange: (field: keyof DraftPreferences, value: string) => void;
 }
 
 export const RulesetOptionsSection = memo(function RulesetOptionsSection({
@@ -51,32 +44,30 @@ export const RulesetOptionsSection = memo(function RulesetOptionsSection({
       </CardHeader>
       <CardContent className="pt-0">
         <FieldGroup className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {(Object.keys(FIELD_LABELS) as (keyof typeof FIELD_LABELS)[]).map(
-            (field) => {
-              const values = supportedValues[field] ?? [];
-              return (
-                <Field key={field}>
-                  <FieldLabel>{FIELD_LABELS[field]}</FieldLabel>
-                  <Select
-                    value={preferences[field]}
-                    onValueChange={(value) => onPreferenceChange(field, value)}
-                    disabled={values.length <= 1}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {values.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {value}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              );
-            },
-          )}
+          {(Object.keys(FIELD_LABELS) as (keyof typeof FIELD_LABELS)[]).map((field) => {
+            const values = supportedValues[field] ?? [];
+            return (
+              <Field key={field}>
+                <FieldLabel>{FIELD_LABELS[field]}</FieldLabel>
+                <Select
+                  value={preferences[field]}
+                  onValueChange={(value) => onPreferenceChange(field, value)}
+                  disabled={values.length <= 1}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {values.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            );
+          })}
         </FieldGroup>
       </CardContent>
     </GlassCard>

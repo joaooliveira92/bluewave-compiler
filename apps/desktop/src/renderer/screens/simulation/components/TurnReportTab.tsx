@@ -15,12 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card.js";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyIcon,
-  EmptyTitle,
-} from "../../../components/ui/empty.js";
+import { Empty, EmptyDescription, EmptyIcon, EmptyTitle } from "../../../components/ui/empty.js";
 import { ScrollArea } from "../../../components/ui/scroll-area.js";
 import {
   Table,
@@ -81,10 +76,7 @@ export function TurnReportTab({ commitResult }: TurnReportTabProps) {
                       className="flex items-center justify-between border-b p-1 font-mono text-[11px] last:border-0"
                     >
                       <span className="text-foreground">{evt.kind}</span>
-                      <Badge
-                        variant="secondary"
-                        className="scale-90 text-[11px] uppercase"
-                      >
+                      <Badge variant="secondary" className="scale-90 text-[11px] uppercase">
                         {evt.phase}
                       </Badge>
                     </div>
@@ -112,18 +104,12 @@ export function TurnReportTab({ commitResult }: TurnReportTabProps) {
                   <TableBody>
                     {commitResult.financialLedger.map((entry, idx) => (
                       <TableRow key={idx} className="h-8">
-                        <TableCell className="p-1 text-muted-foreground">
-                          {entry.phase}
-                        </TableCell>
-                        <TableCell className="p-1">
-                          {entry.description}
-                        </TableCell>
+                        <TableCell className="p-1 text-muted-foreground">{entry.phase}</TableCell>
+                        <TableCell className="p-1">{entry.description}</TableCell>
                         <TableCell
                           className={cn(
                             "p-1 text-right font-semibold",
-                            entry.amount < 0
-                              ? "text-destructive"
-                              : "text-success",
+                            entry.amount < 0 ? "text-destructive" : "text-success",
                           )}
                         >
                           {entry.amount}

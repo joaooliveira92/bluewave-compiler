@@ -26,16 +26,11 @@ export function WindowContextProvider({
   children: ReactNode;
   value: WindowContextValue;
 }) {
-  return (
-    <WindowContext.Provider value={value}>{children}</WindowContext.Provider>
-  );
+  return <WindowContext.Provider value={value}>{children}</WindowContext.Provider>;
 }
 
 export function useWindowContext(): WindowContextValue {
   const ctx = use(WindowContext);
-  if (ctx === null)
-    throw new Error(
-      "useWindowContext must be used within WindowContextProvider",
-    );
+  if (ctx === null) throw new Error("useWindowContext must be used within WindowContextProvider");
   return ctx;
 }

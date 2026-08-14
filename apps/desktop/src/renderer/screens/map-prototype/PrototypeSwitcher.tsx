@@ -19,9 +19,7 @@ export const VARIANT_PARAM = "variant";
 
 export function readVariantFromLocation(fallback: string): string {
   if (typeof window === "undefined") return fallback;
-  return (
-    new URLSearchParams(window.location.search).get(VARIANT_PARAM) ?? fallback
-  );
+  return new URLSearchParams(window.location.search).get(VARIANT_PARAM) ?? fallback;
 }
 
 function writeVariantToLocation(key: string): void {
@@ -36,11 +34,7 @@ export interface PrototypeSwitcherProps {
   readonly onChange: (key: string) => void;
 }
 
-export function PrototypeSwitcher({
-  variants,
-  current,
-  onChange,
-}: PrototypeSwitcherProps) {
+export function PrototypeSwitcher({ variants, current, onChange }: PrototypeSwitcherProps) {
   const index = Math.max(
     0,
     variants.findIndex((variant) => variant.key === current),
@@ -56,9 +50,7 @@ export function PrototypeSwitcher({
       const target = event.target;
       if (
         target instanceof HTMLElement &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
       ) {
         return;
       }

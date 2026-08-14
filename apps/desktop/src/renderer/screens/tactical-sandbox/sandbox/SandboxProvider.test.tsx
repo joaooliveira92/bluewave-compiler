@@ -1,25 +1,12 @@
 /* @vitest-environment jsdom */
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type {
   BattleManifest,
   BattleResolution,
   ReplayBattleBoundaryResponse,
   TacticalBattleOutcome,
 } from "@bluewave/campaign-engine";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { BluewaveDesktopBridge } from "../../../../preload/index.js";
 import { SandboxProvider, useSandbox } from "./SandboxProvider.js";
 
@@ -66,37 +53,21 @@ function Probe() {
       <span data-testid="warId">{state.warId}</span>
       <span data-testid="turnCount">{state.turnCount}</span>
       <span data-testid="manifest">{state.manifest?.battleId ?? "none"}</span>
-      <span data-testid="autoResolution">
-        {state.autoResolution?.battleId ?? "none"}
-      </span>
-      <span data-testid="tacticalOutcome">
-        {state.tacticalOutcome?.battleId ?? "none"}
-      </span>
+      <span data-testid="autoResolution">{state.autoResolution?.battleId ?? "none"}</span>
+      <span data-testid="tacticalOutcome">{state.tacticalOutcome?.battleId ?? "none"}</span>
       <span data-testid="boundaryReplay">
-        {state.boundaryReplay === null
-          ? "none"
-          : String(state.boundaryReplay.matches)}
+        {state.boundaryReplay === null ? "none" : String(state.boundaryReplay.matches)}
       </span>
       <span data-testid="generateError">{state.generateError ?? "none"}</span>
       <span data-testid="resolveError">{state.resolveError ?? "none"}</span>
-      <span data-testid="boundaryReplayError">
-        {state.boundaryReplayError ?? "none"}
-      </span>
+      <span data-testid="boundaryReplayError">{state.boundaryReplayError ?? "none"}</span>
       <button onClick={() => void actions.generateBattle()}>generate</button>
       <button onClick={() => void actions.autoResolve()}>auto-resolve</button>
-      <button onClick={() => void actions.tacticalResolve()}>
-        tactical-resolve
-      </button>
-      <button onClick={() => void actions.replayBoundary()}>
-        replay-boundary
-      </button>
-      <button onClick={() => actions.updateWarId("war_custom")}>
-        update-war
-      </button>
+      <button onClick={() => void actions.tacticalResolve()}>tactical-resolve</button>
+      <button onClick={() => void actions.replayBoundary()}>replay-boundary</button>
+      <button onClick={() => actions.updateWarId("war_custom")}>update-war</button>
       <button onClick={() => actions.updateTurnCount(50)}>update-turns</button>
-      <button onClick={() => actions.updateScriptedOrdersText("not json")}>
-        invalid-orders
-      </button>
+      <button onClick={() => actions.updateScriptedOrdersText("not json")}>invalid-orders</button>
     </div>
   );
 }
@@ -149,9 +120,7 @@ describe("SandboxProvider", () => {
     });
     renderProvider();
     fireEvent.click(screen.getByRole("button", { name: "generate" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("manifest").textContent).toBe("battle_1"),
-    );
+    await waitFor(() => expect(screen.getByTestId("manifest").textContent).toBe("battle_1"));
     expect(generateBattle).toHaveBeenCalledWith({
       sessionId: "session-1",
       warId: "war_uk_germany",
@@ -168,9 +137,7 @@ describe("SandboxProvider", () => {
     renderProvider();
     fireEvent.click(screen.getByRole("button", { name: "generate" }));
     await waitFor(() =>
-      expect(screen.getByTestId("generateError").textContent).toBe(
-        "WAR_NOT_FOUND",
-      ),
+      expect(screen.getByTestId("generateError").textContent).toBe("WAR_NOT_FOUND"),
     );
     expect(screen.getByTestId("manifest").textContent).toBe("none");
   });
@@ -186,13 +153,9 @@ describe("SandboxProvider", () => {
     });
     renderProvider();
     fireEvent.click(screen.getByRole("button", { name: "generate" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("manifest").textContent).toBe("battle_1"),
-    );
+    await waitFor(() => expect(screen.getByTestId("manifest").textContent).toBe("battle_1"));
     fireEvent.click(screen.getByRole("button", { name: "auto-resolve" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("autoResolution").textContent).toBe("battle_1"),
-    );
+    await waitFor(() => expect(screen.getByTestId("autoResolution").textContent).toBe("battle_1"));
     expect(resolveBattle).toHaveBeenCalledWith({
       sessionId: "session-1",
       battleId: "battle_1",
@@ -210,15 +173,9 @@ describe("SandboxProvider", () => {
     });
     renderProvider();
     fireEvent.click(screen.getByRole("button", { name: "generate" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("manifest").textContent).toBe("battle_1"),
-    );
+    await waitFor(() => expect(screen.getByTestId("manifest").textContent).toBe("battle_1"));
     fireEvent.click(screen.getByRole("button", { name: "tactical-resolve" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("tacticalOutcome").textContent).toBe(
-        "battle_1",
-      ),
-    );
+    await waitFor(() => expect(screen.getByTestId("tacticalOutcome").textContent).toBe("battle_1"));
     expect(resolveTacticalBattle).toHaveBeenCalledWith({
       sessionId: "session-1",
       battleId: "battle_1",
@@ -241,14 +198,10 @@ describe("SandboxProvider", () => {
     });
     renderProvider();
     fireEvent.click(screen.getByRole("button", { name: "generate" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("manifest").textContent).toBe("battle_1"),
-    );
+    await waitFor(() => expect(screen.getByTestId("manifest").textContent).toBe("battle_1"));
     fireEvent.click(screen.getByRole("button", { name: "invalid-orders" }));
     fireEvent.click(screen.getByRole("button", { name: "tactical-resolve" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("resolveError").textContent).not.toBe("none"),
-    );
+    await waitFor(() => expect(screen.getByTestId("resolveError").textContent).not.toBe("none"));
     expect(resolveTacticalBattle).not.toHaveBeenCalled();
   });
 
@@ -263,13 +216,9 @@ describe("SandboxProvider", () => {
     });
     renderProvider();
     fireEvent.click(screen.getByRole("button", { name: "generate" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("manifest").textContent).toBe("battle_1"),
-    );
+    await waitFor(() => expect(screen.getByTestId("manifest").textContent).toBe("battle_1"));
     fireEvent.click(screen.getByRole("button", { name: "replay-boundary" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("boundaryReplay").textContent).toBe("true"),
-    );
+    await waitFor(() => expect(screen.getByTestId("boundaryReplay").textContent).toBe("true"));
     expect(replayBattleBoundary).toHaveBeenCalledWith({
       sessionId: "session-1",
       battleId: "battle_1",
@@ -288,14 +237,10 @@ describe("SandboxProvider", () => {
     });
     renderProvider();
     fireEvent.click(screen.getByRole("button", { name: "generate" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("manifest").textContent).toBe("battle_1"),
-    );
+    await waitFor(() => expect(screen.getByTestId("manifest").textContent).toBe("battle_1"));
     fireEvent.click(screen.getByRole("button", { name: "replay-boundary" }));
     await waitFor(() =>
-      expect(screen.getByTestId("boundaryReplayError").textContent).toBe(
-        "REPLAY_DIVERGED",
-      ),
+      expect(screen.getByTestId("boundaryReplayError").textContent).toBe("REPLAY_DIVERGED"),
     );
     expect(screen.getByTestId("boundaryReplay").textContent).toBe("none");
   });
@@ -312,16 +257,10 @@ describe("SandboxProvider", () => {
     renderProvider();
     const generate = screen.getByRole("button", { name: "generate" });
     fireEvent.click(generate);
-    await waitFor(() =>
-      expect(screen.getByTestId("manifest").textContent).toBe("battle_1"),
-    );
+    await waitFor(() => expect(screen.getByTestId("manifest").textContent).toBe("battle_1"));
     fireEvent.click(screen.getByRole("button", { name: "auto-resolve" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("autoResolution").textContent).toBe("battle_1"),
-    );
+    await waitFor(() => expect(screen.getByTestId("autoResolution").textContent).toBe("battle_1"));
     fireEvent.click(generate);
-    await waitFor(() =>
-      expect(screen.getByTestId("autoResolution").textContent).toBe("none"),
-    );
+    await waitFor(() => expect(screen.getByTestId("autoResolution").textContent).toBe("none"));
   });
 });

@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import {
-  ARCHETYPE_PRESETS,
-  type ArchetypeSelection,
-} from "@bluewave/campaign-engine";
+import { ARCHETYPE_PRESETS, type ArchetypeSelection } from "@bluewave/campaign-engine";
 import {
   allocationErrors,
   createCustomArchetype,
@@ -22,8 +19,7 @@ const merchantPrincess: ArchetypeSelection = {
   allocation: { ...ARCHETYPE_PRESETS[0]!.allocation },
 };
 
-const state = (): ArchetypeEditorState =>
-  restoreArchetypeEditorState(merchantPrincess);
+const state = (): ArchetypeEditorState => restoreArchetypeEditorState(merchantPrincess);
 
 describe("new-game archetype screen state", () => {
   it("restores a preset selection into preset mode", () => {
@@ -58,9 +54,7 @@ describe("new-game archetype screen state", () => {
 
   it("setDimension is ignored outside custom mode", () => {
     const editor = setDimension(state(), "economy", 9);
-    expect(editor.allocation.economy).toBe(
-      ARCHETYPE_PRESETS[0]!.allocation.economy,
-    );
+    expect(editor.allocation.economy).toBe(ARCHETYPE_PRESETS[0]!.allocation.economy);
   });
 
   it("reports an invalid total allocation", () => {

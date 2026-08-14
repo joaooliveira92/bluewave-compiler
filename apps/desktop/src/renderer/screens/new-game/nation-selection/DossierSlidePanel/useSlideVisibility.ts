@@ -30,9 +30,7 @@ export function useSlideVisibility(isOpen: boolean): SlideVisibility {
     };
 
     clearPendingWork();
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (isOpen) {
       setMounted(true);

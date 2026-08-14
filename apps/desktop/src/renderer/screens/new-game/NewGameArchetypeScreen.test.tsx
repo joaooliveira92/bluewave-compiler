@@ -11,8 +11,7 @@ beforeAll(() => {
       unobserve(): void {}
       disconnect(): void {}
     }
-    (globalThis as { ResizeObserver?: unknown }).ResizeObserver =
-      ResizeObserverStub;
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver = ResizeObserverStub;
   }
 });
 
@@ -31,9 +30,11 @@ function setupUi(initialArchetype = null) {
   return { ...utils, onNext, onBack, onPrimaryActionChange };
 }
 
-function lastPrimary(
-  onPrimaryActionChange: ReturnType<typeof setupUi>["onPrimaryActionChange"],
-): { label?: string; disabled?: boolean; onTrigger?: () => void } {
+function lastPrimary(onPrimaryActionChange: ReturnType<typeof setupUi>["onPrimaryActionChange"]): {
+  label?: string;
+  disabled?: boolean;
+  onTrigger?: () => void;
+} {
   const calls = vi
     .mocked(onPrimaryActionChange)
     .mock.calls.map((call) => call[0])
@@ -55,9 +56,7 @@ describe("NewGameArchetypeScreen", () => {
     expect(screen.getByText("Merchant Prince")).toBeTruthy();
     expect(screen.getByText("Shipyard Baron")).toBeTruthy();
     expect(screen.getByText("Grand Admiral")).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: /Create Your Own/ }),
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Create Your Own/ })).toBeTruthy();
   });
 
   it("does not enable the primary action until an archetype is selected", () => {
@@ -82,9 +81,7 @@ describe("NewGameArchetypeScreen", () => {
 
   it("shows an empty placeholder before any selection", () => {
     setupUi();
-    expect(
-      screen.getByText("Select an archetype to see its consequences."),
-    ).toBeTruthy();
+    expect(screen.getByText("Select an archetype to see its consequences.")).toBeTruthy();
   });
 
   it("opens a modal with three editable sliders on create-your-own", () => {
@@ -99,14 +96,8 @@ describe("NewGameArchetypeScreen", () => {
   it("provides accessible labelled steppers in the editor", () => {
     setupUi();
     click("Create Your Own");
-    const sliderNames = screen
-      .getAllByRole("slider")
-      .map((el) => el.getAttribute("aria-label"));
-    expect(sliderNames).toEqual([
-      "Economy allocation",
-      "Industry allocation",
-      "Combat allocation",
-    ]);
+    const sliderNames = screen.getAllByRole("slider").map((el) => el.getAttribute("aria-label"));
+    expect(sliderNames).toEqual(["Economy allocation", "Industry allocation", "Combat allocation"]);
   });
 
   it("blocks confirming an invalid allocation", () => {
@@ -144,9 +135,7 @@ describe("NewGameArchetypeScreen", () => {
     click("Create Your Own");
     click("Increase Combat");
     click("Reset");
-    const values = screen
-      .getAllByRole("slider")
-      .map((el) => (el as HTMLInputElement).value);
+    const values = screen.getAllByRole("slider").map((el) => (el as HTMLInputElement).value);
     expect(values).toEqual(["7", "7", "6"]);
   });
 

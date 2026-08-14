@@ -73,9 +73,7 @@ describe("command screen workflow lifecycle", () => {
   });
 
   it("formats multiple diagnostics as independent failures", () => {
-    expect(describeRejection("INVALID", ["first", "second"])).toBe(
-      "INVALID:\n• first\n• second",
-    );
+    expect(describeRejection("INVALID", ["first", "second"])).toBe("INVALID:\n• first\n• second");
   });
 
   it("adopts the projection revision and clears all request markers", () => {

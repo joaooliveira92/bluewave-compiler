@@ -41,10 +41,7 @@ export function restoreArchetypeEditorState(
   };
 }
 
-export function selectPreset(
-  state: ArchetypeEditorState,
-  presetId: string,
-): ArchetypeEditorState {
+export function selectPreset(state: ArchetypeEditorState, presetId: string): ArchetypeEditorState {
   const preset = findPreset(presetId);
   if (preset === undefined) return state;
   return {
@@ -55,9 +52,7 @@ export function selectPreset(
 }
 
 /** Copies the current selection into the custom editor, keeping the allocation editable. */
-export function customizeSelection(
-  state: ArchetypeEditorState,
-): ArchetypeEditorState {
+export function customizeSelection(state: ArchetypeEditorState): ArchetypeEditorState {
   return {
     mode: "custom",
     selectedPresetId: state.selectedPresetId,
@@ -86,35 +81,25 @@ export function setDimension(
 }
 
 /** Returns the custom editor to the neutral balanced baseline. */
-export function resetCustomAllocation(
-  state: ArchetypeEditorState,
-): ArchetypeEditorState {
+export function resetCustomAllocation(state: ArchetypeEditorState): ArchetypeEditorState {
   if (state.mode !== "custom") return state;
   return { ...state, allocation: { ...BALANCED_ALLOCATION } };
 }
 
 export function usedPoints(state: ArchetypeEditorState): number {
-  return (
-    state.allocation.economy +
-    state.allocation.industry +
-    state.allocation.combat
-  );
+  return state.allocation.economy + state.allocation.industry + state.allocation.combat;
 }
 
 export function isAllocationValid(state: ArchetypeEditorState): boolean {
   return validateArchetypeAllocation(state.allocation).ok;
 }
 
-export function allocationErrors(
-  state: ArchetypeEditorState,
-): readonly string[] {
+export function allocationErrors(state: ArchetypeEditorState): readonly string[] {
   const result = validateArchetypeAllocation(state.allocation);
   return result.ok ? [] : result.diagnostics;
 }
 
-export function editorToSelection(
-  state: ArchetypeEditorState,
-): ArchetypeSelection {
+export function editorToSelection(state: ArchetypeEditorState): ArchetypeSelection {
   if (state.mode === "preset" && state.selectedPresetId !== null) {
     const preset = findPreset(state.selectedPresetId);
     if (preset !== undefined) {

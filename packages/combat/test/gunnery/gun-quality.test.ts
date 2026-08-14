@@ -33,9 +33,7 @@ describe("AC-6 gun quality (DESIGN-39 §5, INC-3)", () => {
     };
     // The table's key SET covers exactly all six canonical qualities (-3..+2).
     // Object integer-key ordering is not canonical, so compare the sorted set.
-    expect(Object.keys(GUN_QUALITY_TABLE).sort()).toEqual(
-      ["-3", "-2", "-1", "0", "1", "2"].sort(),
-    );
+    expect(Object.keys(GUN_QUALITY_TABLE).sort()).toEqual(["-3", "-2", "-1", "0", "1", "2"].sort());
     for (let q = GUN_QUALITY_MIN; q <= GUN_QUALITY_MAX; q++) {
       const m = gunQualityMultipliers(q);
       expect([m.rangeBp, m.penetrationBp, m.rateBp]).toEqual(expected[String(q)]);
@@ -90,7 +88,7 @@ describe("AC-6 gun quality (DESIGN-39 §5, INC-3)", () => {
       const factors = neutralRateFactors();
       factors.gunQuality = gunQualityMultipliers(q).rateBp;
       const res = computeEffectiveReloadMs(1_000, factors);
-      const ratio = 1_000 * gunQualityMultipliers(q).rateBp / 10_000;
+      const ratio = (1_000 * gunQualityMultipliers(q).rateBp) / 10_000;
       expect(res.effectiveReloadMs).toBe(Math.ceil(ratio));
     }
   });
@@ -111,7 +109,10 @@ describe("AC-14 seed: gun_quality_v1 contract + validate guard (fail closed)", (
     try {
       validateGunQualityContract({
         ...SHIPPED_GUN_QUALITY_CONTRACT,
-        table: { ...SHIPPED_GUN_QUALITY_CONTRACT.table, "0": { rangeBp: 9_999, penetrationBp: 10_000, rateBp: 10_000 } },
+        table: {
+          ...SHIPPED_GUN_QUALITY_CONTRACT.table,
+          "0": { rangeBp: 9_999, penetrationBp: 10_000, rateBp: 10_000 },
+        },
       });
     } catch (e) {
       err = e as BluewaveError;

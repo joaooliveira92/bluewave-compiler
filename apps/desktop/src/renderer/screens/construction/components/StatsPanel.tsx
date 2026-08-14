@@ -59,8 +59,7 @@ function UtilizationBar({
   readonly reserved: number;
   readonly total: number;
 }) {
-  const pct =
-    total > 0 ? Math.min(100, Math.round((reserved / total) * 1000) / 10) : 0;
+  const pct = total > 0 ? Math.min(100, Math.round((reserved / total) * 1000) / 10) : 0;
   const overCommitted = reserved > total;
   return (
     <div className="space-y-1.5">
@@ -69,42 +68,25 @@ function UtilizationBar({
           <Icon className="h-3.5 w-3.5 text-primary" />
           {label}
         </span>
-        <span
-          className={`font-mono ${overCommitted ? "text-destructive" : "text-foreground"}`}
-        >
+        <span className={`font-mono ${overCommitted ? "text-destructive" : "text-foreground"}`}>
           {reserved.toLocaleString()} / {total.toLocaleString()}
         </span>
       </div>
-      <Progress
-        value={pct}
-        className={overCommitted ? "[&>*>*]:bg-destructive" : undefined}
-      />
+      <Progress value={pct} className={overCommitted ? "[&>*>*]:bg-destructive" : undefined} />
       <p className="text-right text-[11px] text-muted-foreground">
-        {pct}% committed · {Math.max(0, total - reserved).toLocaleString()}{" "}
-        available
+        {pct}% committed · {Math.max(0, total - reserved).toLocaleString()} available
       </p>
     </div>
   );
 }
 
-export const StatsPanel = memo(function StatsPanel({
-  economy,
-  workspace,
-}: StatsPanelProps) {
+export const StatsPanel = memo(function StatsPanel({ economy, workspace }: StatsPanelProps) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <KpiCard icon={Banknote} label="Treasury" value={economy.treasury} />
-        <KpiCard
-          icon={Coins}
-          label="Monthly Appropriation"
-          value={economy.monthlyAppropriation}
-        />
-        <KpiCard
-          icon={Hammer}
-          label="Shipyard Capacity"
-          value={economy.shipyardCapacity}
-        />
+        <KpiCard icon={Coins} label="Monthly Appropriation" value={economy.monthlyAppropriation} />
+        <KpiCard icon={Hammer} label="Shipyard Capacity" value={economy.shipyardCapacity} />
       </div>
       <Card>
         <CardHeader className="pb-2">

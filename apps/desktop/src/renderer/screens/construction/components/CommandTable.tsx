@@ -1,10 +1,7 @@
 import { memo } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Ban, CheckCircle2, Clock, RefreshCwOff } from "lucide-react";
-import type {
-  ConstructionCommand,
-  ConstructionCommandStatus,
-} from "@bluewave/campaign-engine";
+import type { ConstructionCommand, ConstructionCommandStatus } from "@bluewave/campaign-engine";
 import { Badge } from "../../../components/ui/badge.js";
 import { Button } from "../../../components/ui/button.js";
 import { ButtonGroup } from "../../../components/ui/button-group.js";
@@ -15,12 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card.js";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyIcon,
-  EmptyTitle,
-} from "../../../components/ui/empty.js";
+import { Empty, EmptyDescription, EmptyIcon, EmptyTitle } from "../../../components/ui/empty.js";
 import {
   Table,
   TableBody,
@@ -63,9 +55,7 @@ export const CommandTable = memo(function CommandTable({
     <Card>
       <CardHeader>
         <CardTitle className="text-sm font-medium">Command Ledger</CardTitle>
-        <CardDescription>
-          Construction commands submitted this month.
-        </CardDescription>
+        <CardDescription>Construction commands submitted this month.</CardDescription>
       </CardHeader>
       <CardContent>
         {commands.length === 0 ? (

@@ -10,7 +10,5 @@ export function filterSearchTargets(
 ): readonly SearchTarget[] {
   const trimmed = query.trim().toLowerCase();
   if (trimmed.length === 0) return [];
-  return targets.filter((target) =>
-    target.label.toLowerCase().includes(trimmed),
-  );
+  return targets.filter((target) => target.label.toLowerCase().includes(trimmed));
 }

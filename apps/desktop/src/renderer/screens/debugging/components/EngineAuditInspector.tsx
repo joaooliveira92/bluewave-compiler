@@ -1,7 +1,4 @@
-import {
-  formatEngineAudit,
-  renderEngineAuditText,
-} from "@bluewave/campaign-engine";
+import { formatEngineAudit, renderEngineAuditText } from "@bluewave/campaign-engine";
 import { Database, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 import {
@@ -23,12 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card.js";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyIcon,
-  EmptyTitle,
-} from "../../../components/ui/empty.js";
+import { Empty, EmptyDescription, EmptyIcon, EmptyTitle } from "../../../components/ui/empty.js";
 import { ScrollArea } from "../../../components/ui/scroll-area.js";
 import {
   Sheet,
@@ -74,8 +66,8 @@ export function EngineAuditInspector({
                 Engine Audit Trail
               </CardTitle>
               <CardDescription className="text-xs">
-                The authoritative, replayable record of simulation decisions
-                returned at the engine boundary.
+                The authoritative, replayable record of simulation decisions returned at the engine
+                boundary.
               </CardDescription>
             </div>
             <AlertDialog>
@@ -96,15 +88,13 @@ export function EngineAuditInspector({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Clear engine audit log?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This permanently removes all {audits.length} recorded engine
-                    audits from local storage. This cannot be undone.
+                    This permanently removes all {audits.length} recorded engine audits from local
+                    storage. This cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={onClearAudits}>
-                    Clear log
-                  </AlertDialogAction>
+                  <AlertDialogAction onClick={onClearAudits}>Clear log</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -123,8 +113,8 @@ export function EngineAuditInspector({
                 </EmptyIcon>
                 <EmptyTitle>No engine audits recorded</EmptyTitle>
                 <EmptyDescription>
-                  Run a month or battle in the simulation screen to capture the
-                  deterministic audit trail.
+                  Run a month or battle in the simulation screen to capture the deterministic audit
+                  trail.
                 </EmptyDescription>
               </Empty>
             ) : (
@@ -151,12 +141,8 @@ export function EngineAuditInspector({
                         <TableCell className="p-2 text-muted-foreground">
                           {formatEventDateTime(audit.timestamp)}
                         </TableCell>
-                        <TableCell className="p-2 font-medium">
-                          {audit.action}
-                        </TableCell>
-                        <TableCell className="p-2 text-right">
-                          {decisionCount}
-                        </TableCell>
+                        <TableCell className="p-2 font-medium">{audit.action}</TableCell>
+                        <TableCell className="p-2 text-right">{decisionCount}</TableCell>
                         <TableCell className="p-2 text-right">
                           {report.counts.domainEvents}
                         </TableCell>
@@ -173,10 +159,7 @@ export function EngineAuditInspector({
         </CardContent>
       </Card>
 
-      <Sheet
-        open={selectedAudit !== null}
-        onOpenChange={(open) => !open && onCloseAudit()}
-      >
+      <Sheet open={selectedAudit !== null} onOpenChange={(open) => !open && onCloseAudit()}>
         <SheetContent className="flex flex-col gap-4 sm:max-w-2xl">
           {selectedAudit !== null && <AuditDetail audit={selectedAudit} />}
         </SheetContent>
@@ -196,9 +179,8 @@ function AuditDetail({ audit }: { readonly audit: StoredEngineAudit }) {
       <SheetHeader>
         <SheetTitle className="font-mono text-base">{audit.action}</SheetTitle>
         <SheetDescription>
-          {formatEventDateTime(audit.timestamp)} · {report.counts.decisions}{" "}
-          decisions · {report.counts.domainEvents} events ·{" "}
-          {report.counts.ledgerEntries} ledger entries
+          {formatEventDateTime(audit.timestamp)} · {report.counts.decisions} decisions ·{" "}
+          {report.counts.domainEvents} events · {report.counts.ledgerEntries} ledger entries
         </SheetDescription>
       </SheetHeader>
       <ScrollArea className="min-h-0 flex-1 rounded-md border bg-zinc-950">
@@ -227,12 +209,8 @@ function AuditDetail({ audit }: { readonly audit: StoredEngineAudit }) {
                   <TableRow key={idx} className="h-7">
                     <TableCell className="p-1.5">{decision.purpose}</TableCell>
                     <TableCell className="p-1.5">{decision.phase}</TableCell>
-                    <TableCell className="p-1.5">
-                      {decision.entityKey}
-                    </TableCell>
-                    <TableCell className="p-1.5 text-right">
-                      {decision.value}
-                    </TableCell>
+                    <TableCell className="p-1.5">{decision.entityKey}</TableCell>
+                    <TableCell className="p-1.5 text-right">{decision.value}</TableCell>
                     <TableCell className="p-1.5">{decision.outcome}</TableCell>
                   </TableRow>
                 ))}

@@ -34,9 +34,7 @@ export interface CampaignShellContextValue {
   };
 }
 
-const CampaignShellContext = createContext<CampaignShellContextValue | null>(
-  null,
-);
+const CampaignShellContext = createContext<CampaignShellContextValue | null>(null);
 
 export function CampaignShellProvider({
   bridge,
@@ -74,19 +72,13 @@ export function CampaignShellProvider({
     [bridge, shell],
   );
 
-  return (
-    <CampaignShellContext.Provider value={value}>
-      {children}
-    </CampaignShellContext.Provider>
-  );
+  return <CampaignShellContext.Provider value={value}>{children}</CampaignShellContext.Provider>;
 }
 
 export function useCampaignShellContext(): CampaignShellContextValue {
   const context = use(CampaignShellContext);
   if (context === null) {
-    throw new Error(
-      "useCampaignShellContext must be used within CampaignShellProvider",
-    );
+    throw new Error("useCampaignShellContext must be used within CampaignShellProvider");
   }
   return context;
 }

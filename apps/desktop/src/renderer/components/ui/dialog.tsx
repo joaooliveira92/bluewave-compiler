@@ -12,9 +12,7 @@ const DialogClose = DialogPrimitive.Close;
 interface DialogOverlayProps extends React.ComponentPropsWithoutRef<
   typeof DialogPrimitive.Backdrop
 > {
-  ref?:
-    | React.Ref<React.ComponentRef<typeof DialogPrimitive.Backdrop>>
-    | undefined;
+  ref?: React.Ref<React.ComponentRef<typeof DialogPrimitive.Backdrop>> | undefined;
 }
 
 const DialogOverlay = ({ className, ref, ...props }: DialogOverlayProps) => (
@@ -29,18 +27,11 @@ const DialogOverlay = ({ className, ref, ...props }: DialogOverlayProps) => (
 );
 DialogOverlay.displayName = "DialogOverlay";
 
-interface DialogContentProps extends React.ComponentPropsWithoutRef<
-  typeof DialogPrimitive.Popup
-> {
+interface DialogContentProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Popup> {
   ref?: React.Ref<React.ComponentRef<typeof DialogPrimitive.Popup>> | undefined;
 }
 
-const DialogContent = ({
-  className,
-  children,
-  ref,
-  ...props
-}: DialogContentProps) => (
+const DialogContent = ({ className, children, ref, ...props }: DialogContentProps) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Popup
@@ -62,62 +53,35 @@ const DialogContent = ({
 );
 DialogContent.displayName = "DialogContent";
 
-const DialogHeader = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cn(
-      "flex flex-col space-y-1.5 text-center sm:text-left",
-      className,
-    )}
-    {...props}
-  />
+const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />
 );
 DialogHeader.displayName = "DialogHeader";
 
-const DialogFooter = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
-      className,
-    )}
+    className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
     {...props}
   />
 );
 DialogFooter.displayName = "DialogFooter";
 
-interface DialogTitleProps extends React.ComponentPropsWithoutRef<
-  typeof DialogPrimitive.Title
-> {
+interface DialogTitleProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title> {
   ref?: React.Ref<React.ComponentRef<typeof DialogPrimitive.Title>> | undefined;
 }
 
 const DialogTitle = ({ className, ref, ...props }: DialogTitleProps) => (
-  <DialogPrimitive.Title
-    ref={ref}
-    className={cn("text-lg font-semibold", className)}
-    {...props}
-  />
+  <DialogPrimitive.Title ref={ref} className={cn("text-lg font-semibold", className)} {...props} />
 );
 DialogTitle.displayName = DialogPrimitive.Title.displayName;
 
 interface DialogDescriptionProps extends React.ComponentPropsWithoutRef<
   typeof DialogPrimitive.Description
 > {
-  ref?:
-    | React.Ref<React.ComponentRef<typeof DialogPrimitive.Description>>
-    | undefined;
+  ref?: React.Ref<React.ComponentRef<typeof DialogPrimitive.Description>> | undefined;
 }
 
-const DialogDescription = ({
-  className,
-  ref,
-  ...props
-}: DialogDescriptionProps) => (
+const DialogDescription = ({ className, ref, ...props }: DialogDescriptionProps) => (
   <DialogPrimitive.Description
     ref={ref}
     className={cn("text-sm text-muted-foreground", className)}

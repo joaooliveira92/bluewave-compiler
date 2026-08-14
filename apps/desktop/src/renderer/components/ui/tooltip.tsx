@@ -11,12 +11,8 @@ interface TooltipContentProps extends React.ComponentPropsWithoutRef<
   typeof TooltipPrimitive.Popup
 > {
   sideOffset?: number;
-  side?: React.ComponentPropsWithoutRef<
-    typeof TooltipPrimitive.Positioner
-  >["side"];
-  ref?:
-    | React.Ref<React.ComponentRef<typeof TooltipPrimitive.Popup>>
-    | undefined;
+  side?: React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Positioner>["side"];
+  ref?: React.Ref<React.ComponentRef<typeof TooltipPrimitive.Popup>> | undefined;
 }
 
 const TooltipContent = ({

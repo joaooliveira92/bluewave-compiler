@@ -1,16 +1,7 @@
 import type { MediaAsset } from "./mediaAsset.js";
-import {
-  PLAYABLE_SLOT_COUNTRY_IDS,
-  type PlayableSlotCountryId,
-} from "./nationAssetManifest.js";
-import {
-  NATION_COORDINATES,
-  type NationCoordinates,
-} from "./nationCoordinates.js";
-import {
-  NATION_FLAVOR_TEXT,
-  type NationFlavorText,
-} from "./nationFlavorText.js";
+import { PLAYABLE_SLOT_COUNTRY_IDS, type PlayableSlotCountryId } from "./nationAssetManifest.js";
+import { NATION_COORDINATES, type NationCoordinates } from "./nationCoordinates.js";
+import { NATION_FLAVOR_TEXT, type NationFlavorText } from "./nationFlavorText.js";
 import {
   type NationAssetManifest,
   type NationAssetRequest,
@@ -19,20 +10,20 @@ import {
 } from "./resolveNationAsset.js";
 
 /** Presentation-only marker colours used by the globe and nation-selection views. */
-export const NATION_MARKER_COLOURS: Readonly<
-  Record<PlayableSlotCountryId, string>
-> = Object.freeze({
-  gb: "#c8102e",
-  fr: "#00209f",
-  ru: "#0039a6",
-  de: "#111111",
-  it: "#008c45",
-  us: "#b22234",
-  ah: "#c8102e",
-  jp: "#bc002d",
-  es: "#f1bf00",
-  qing: "#ffde00",
-});
+export const NATION_MARKER_COLOURS: Readonly<Record<PlayableSlotCountryId, string>> = Object.freeze(
+  {
+    gb: "#c8102e",
+    fr: "#00209f",
+    ru: "#0039a6",
+    de: "#111111",
+    it: "#008c45",
+    us: "#b22234",
+    ah: "#c8102e",
+    jp: "#bc002d",
+    es: "#f1bf00",
+    qing: "#ffde00",
+  },
+);
 
 export type NationColours =
   | {
@@ -95,14 +86,10 @@ export function resolveNationPresentation(
   };
 }
 
-export function getNationPresentation(
-  countryId: PlayableSlotCountryId,
-): NationPresentation {
+export function getNationPresentation(countryId: PlayableSlotCountryId): NationPresentation {
   const result = resolveNationPresentation({ countryId });
   if (result.status === "unavailable") {
-    throw new Error(
-      `Missing presentation content for playable nation: ${countryId}`,
-    );
+    throw new Error(`Missing presentation content for playable nation: ${countryId}`);
   }
   return result.nation;
 }
@@ -112,16 +99,11 @@ export const NATION_PRESENTATION_CATALOG: Readonly<
   Record<PlayableSlotCountryId, NationPresentation>
 > = Object.freeze(
   Object.fromEntries(
-    PLAYABLE_SLOT_COUNTRY_IDS.map((countryId) => [
-      countryId,
-      getNationPresentation(countryId),
-    ]),
+    PLAYABLE_SLOT_COUNTRY_IDS.map((countryId) => [countryId, getNationPresentation(countryId)]),
   ) as Record<PlayableSlotCountryId, NationPresentation>,
 );
 
-export function isPlayableSlotCountryId(
-  value: string,
-): value is PlayableSlotCountryId {
+export function isPlayableSlotCountryId(value: string): value is PlayableSlotCountryId {
   return (PLAYABLE_SLOT_COUNTRY_IDS as readonly string[]).includes(value);
 }
 

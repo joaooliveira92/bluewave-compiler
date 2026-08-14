@@ -9,9 +9,7 @@ const Accordion = AccordionPrimitive.Root;
 interface AccordionItemProps extends React.ComponentPropsWithoutRef<
   typeof AccordionPrimitive.Item
 > {
-  ref?:
-    | React.Ref<React.ComponentRef<typeof AccordionPrimitive.Item>>
-    | undefined;
+  ref?: React.Ref<React.ComponentRef<typeof AccordionPrimitive.Item>> | undefined;
 }
 
 const AccordionItem = ({ className, ref, ...props }: AccordionItemProps) => (
@@ -26,17 +24,10 @@ AccordionItem.displayName = "AccordionItem";
 interface AccordionTriggerProps extends React.ComponentPropsWithoutRef<
   typeof AccordionPrimitive.Trigger
 > {
-  ref?:
-    | React.Ref<React.ComponentRef<typeof AccordionPrimitive.Trigger>>
-    | undefined;
+  ref?: React.Ref<React.ComponentRef<typeof AccordionPrimitive.Trigger>> | undefined;
 }
 
-const AccordionTrigger = ({
-  className,
-  children,
-  ref,
-  ...props
-}: AccordionTriggerProps) => (
+const AccordionTrigger = ({ className, children, ref, ...props }: AccordionTriggerProps) => (
   <AccordionPrimitive.Header className="flex">
     <AccordionPrimitive.Trigger
       ref={ref}
@@ -57,17 +48,10 @@ AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName;
 interface AccordionContentProps extends React.ComponentPropsWithoutRef<
   typeof AccordionPrimitive.Panel
 > {
-  ref?:
-    | React.Ref<React.ComponentRef<typeof AccordionPrimitive.Panel>>
-    | undefined;
+  ref?: React.Ref<React.ComponentRef<typeof AccordionPrimitive.Panel>> | undefined;
 }
 
-const AccordionContent = ({
-  className,
-  children,
-  ref,
-  ...props
-}: AccordionContentProps) => (
+const AccordionContent = ({ className, children, ref, ...props }: AccordionContentProps) => (
   <AccordionPrimitive.Panel
     ref={ref}
     className="overflow-hidden text-sm data-closed:animate-accordion-up data-open:animate-accordion-down"

@@ -1,7 +1,4 @@
-import type {
-  BattleResolution,
-  TacticalBattleOutcome,
-} from "@bluewave/campaign-engine";
+import type { BattleResolution, TacticalBattleOutcome } from "@bluewave/campaign-engine";
 import { Award, Info, Layers } from "lucide-react";
 
 import {
@@ -41,8 +38,7 @@ export function BattleResolutionPanel({
             <div className="space-y-2 rounded-md border border-success/30 bg-success/5 p-3 font-mono text-xs">
               <div className="flex items-center justify-between border-b pb-1">
                 <span className="font-semibold">
-                  WINNER:{" "}
-                  {autoResolution.missionOutcome.winner || "INCONCLUSIVE"}
+                  WINNER: {autoResolution.missionOutcome.winner || "INCONCLUSIVE"}
                 </span>
                 <Badge variant="outline" className="text-[12px]">
                   {autoResolution.missionOutcome.outcomeKind}
@@ -59,34 +55,20 @@ export function BattleResolutionPanel({
               </div>
               <div className="grid grid-cols-2 gap-2 text-[12px]">
                 <div>
-                  <span className="font-semibold text-muted-foreground">
-                    ATTACKER SHIPS:
-                  </span>
+                  <span className="font-semibold text-muted-foreground">ATTACKER SHIPS:</span>
                   {autoResolution.attacker.ships.map((s, idx) => (
-                    <div
-                      key={idx}
-                      className="flex justify-between border-b py-0.5 last:border-0"
-                    >
+                    <div key={idx} className="flex justify-between border-b py-0.5 last:border-0">
                       <span>{s.shipId}</span>
-                      <span className="font-semibold text-foreground">
-                        {s.outcome}
-                      </span>
+                      <span className="font-semibold text-foreground">{s.outcome}</span>
                     </div>
                   ))}
                 </div>
                 <div>
-                  <span className="font-semibold text-muted-foreground">
-                    DEFENDER SHIPS:
-                  </span>
+                  <span className="font-semibold text-muted-foreground">DEFENDER SHIPS:</span>
                   {autoResolution.defender.ships.map((s, idx) => (
-                    <div
-                      key={idx}
-                      className="flex justify-between border-b py-0.5 last:border-0"
-                    >
+                    <div key={idx} className="flex justify-between border-b py-0.5 last:border-0">
                       <span>{s.shipId}</span>
-                      <span className="font-semibold text-foreground">
-                        {s.outcome}
-                      </span>
+                      <span className="font-semibold text-foreground">{s.outcome}</span>
                     </div>
                   ))}
                 </div>
@@ -110,16 +92,11 @@ export function BattleResolutionPanel({
                 <div className="flex items-center justify-between text-[12px] text-muted-foreground">
                   <span>Turns resolved</span>
                   <span>
-                    {tacticalOutcome.turnsResolved} /{" "}
-                    {TACTICAL_RESOLVER_MAX_TURNS}
+                    {tacticalOutcome.turnsResolved} / {TACTICAL_RESOLVER_MAX_TURNS}
                   </span>
                 </div>
                 <Progress
-                  value={
-                    (tacticalOutcome.turnsResolved /
-                      TACTICAL_RESOLVER_MAX_TURNS) *
-                    100
-                  }
+                  value={(tacticalOutcome.turnsResolved / TACTICAL_RESOLVER_MAX_TURNS) * 100}
                 />
               </div>
               <div className="text-[11px]">
@@ -130,8 +107,7 @@ export function BattleResolutionPanel({
               </div>
               <div className="flex items-center gap-1 text-[11px] font-semibold text-destructive">
                 <Info className="h-3.5 w-3.5" />
-                Rejected Orders: {tacticalOutcome.rejectedOrders.length}{" "}
-                (ADMIRAL RULE TESTPASSED)
+                Rejected Orders: {tacticalOutcome.rejectedOrders.length} (ADMIRAL RULE TESTPASSED)
               </div>
               <div className="mt-2 text-[12px] font-semibold text-muted-foreground">
                 TACTICAL EVENT LEDGER:
@@ -140,8 +116,7 @@ export function BattleResolutionPanel({
                 <div className="space-y-1 text-[11px]">
                   {tacticalOutcome.battleEventLedger.events.map((evt, idx) => (
                     <div key={idx} className="border-b pb-1 last:border-0">
-                      [{evt.turn}]{" "}
-                      <span className="text-foreground">{evt.eventType}</span> —{" "}
+                      [{evt.turn}] <span className="text-foreground">{evt.eventType}</span> —{" "}
                       {JSON.stringify(evt.data)}
                     </div>
                   ))}

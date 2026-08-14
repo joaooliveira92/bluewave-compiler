@@ -47,7 +47,15 @@ function makeNation(id: string, ships: Ship[]): NationState {
     baseResources: SafeInt(0),
     navalAppropriationRateBp: SafeInt(2000),
     maintenanceCost: SafeInt(0),
-    fleets: [{ id: `${id}_fleet`, nationId: id, name: `${id} Fleet`, locationAreaId: "area_battle", ships }],
+    fleets: [
+      {
+        id: `${id}_fleet`,
+        nationId: id,
+        name: `${id} Fleet`,
+        locationAreaId: "area_battle",
+        ships,
+      },
+    ],
     divisions: [],
     research: {
       nationId: id,
@@ -65,7 +73,10 @@ function makeNation(id: string, ships: Ship[]): NationState {
 
 function fixtureSnapshot(): CampaignSnapshot {
   const nations = new Map<string, NationState>();
-  nations.set("GBR", makeNation("GBR", [makeShip("gb_bb1", "GBR", 300), makeShip("gb_bb2", "GBR", 300)]));
+  nations.set(
+    "GBR",
+    makeNation("GBR", [makeShip("gb_bb1", "GBR", 300), makeShip("gb_bb2", "GBR", 300)]),
+  );
   nations.set("FRA", makeNation("FRA", [makeShip("fra_bb1", "FRA", 300)]));
   return {
     version: "0.1.0",

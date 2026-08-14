@@ -1,4 +1,7 @@
-import type { CampaignConfiguration as EngineCampaignConfiguration } from "@bluewave/campaign";
+import type {
+  CampaignConfiguration as EngineCampaignConfiguration,
+  CampaignSnapshot,
+} from "@bluewave/campaign";
 
 /**
  * The real engine type, plus an optional `archetype` field — grounded in
@@ -40,4 +43,37 @@ export interface SupportedConfigurationValues {
    * zero-content nations per the desktop-mvp map's empty-nation-content-gap
    * decision. */
   readonly playerSlotId: readonly string[];
+}
+
+/**
+ * A nation with zero ship designs *and* zero construction projects of its
+ * own leaves the player with nothing to build on the Construction screen
+ * (desktop-mvp map, Empty-Nation Content Gap ticket 06 — e.g. Spain in
+ * `content/production/1880`). Computed from the compiled snapshot rather
+ * than a hardcoded nation list, so it tracks whatever content pack is
+ * actually loaded.
+ */
+export function hasOwnContent(snapshot: CampaignSnapshot, nationId: string): boolean {
+  const nation = snapshot.nations.get(nationId);
+  if (nation === undefined) return false;
+  if (nation.constructionProjects.length > 0) return true;
+  for (const design of snapshot.designs.values()) {
+    if (design.nationId === nationId) return true;
+  }
+  return false;
+}
+
+/**
+ * `SupportedConfigurationValues.playerSlotId` — every playable nation in the
+ * compiled snapshot that also has its own content (ticket 06's gate).
+ * Sorted for deterministic UI ordering.
+ */
+export function supportedPlayerSlotIds(snapshot: CampaignSnapshot): readonly string[] {
+  const ids: string[] = [];
+  for (const [nationId, nation] of snapshot.nations) {
+    if (!nation.isPlayable) continue;
+    if (!hasOwnContent(snapshot, nationId)) continue;
+    ids.push(nationId);
+  }
+  return ids.sort((a, b) => a.localeCompare(b));
 }

@@ -89,9 +89,7 @@ export function updatePreference<K extends keyof DraftPreferences>(
   return { ...state, preferences: { ...state.preferences, [field]: value } };
 }
 
-export function isReadyToProceed(
-  state: NewGamePreferencesScreenState,
-): boolean {
+export function isReadyToProceed(state: NewGamePreferencesScreenState): boolean {
   return (
     state.options !== null &&
     state.preferences.scenarioId.trim().length > 0 &&
@@ -101,8 +99,7 @@ export function isReadyToProceed(
 
 export function selectedScenario(state: NewGamePreferencesScreenState) {
   return (
-    state.options?.scenarios.find(
-      (scenario) => scenario.id === state.preferences.scenarioId,
-    ) ?? null
+    state.options?.scenarios.find((scenario) => scenario.id === state.preferences.scenarioId) ??
+    null
   );
 }

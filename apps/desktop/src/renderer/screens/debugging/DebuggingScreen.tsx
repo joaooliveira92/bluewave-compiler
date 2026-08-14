@@ -2,12 +2,7 @@ import { useState } from "react";
 import { Terminal } from "lucide-react";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "../../components/ui/tabs.js";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs.js";
 import { AstInspector } from "./components/AstInspector.js";
 import { EngineAuditInspector } from "./components/EngineAuditInspector.js";
 import { TelemetryInspector } from "./components/TelemetryInspector.js";
@@ -40,10 +35,7 @@ export function DebuggingScreen({ sessionId }: DebuggingScreenProps) {
           <TabsTrigger value="telemetry">
             Wide Event Telemetry
             {telemetry.events.length > 0 && (
-              <Badge
-                variant="secondary"
-                className="ml-1.5 px-1.5 py-0 text-[11px]"
-              >
+              <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[11px]">
                 {telemetry.events.length}
               </Badge>
             )}

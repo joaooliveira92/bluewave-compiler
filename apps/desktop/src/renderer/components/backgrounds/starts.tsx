@@ -207,9 +207,4 @@ function StarsBackground({
   );
 }
 
-export {
-  StarLayer,
-  type StarLayerProps,
-  StarsBackground,
-  type StarsBackgroundProps,
-};
+export { StarLayer, type StarLayerProps, StarsBackground, type StarsBackgroundProps };

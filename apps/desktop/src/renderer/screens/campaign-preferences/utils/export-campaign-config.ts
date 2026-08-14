@@ -1,9 +1,6 @@
 import type { PlayerProjection } from "@bluewave/campaign-engine";
 
-export function downloadCampaignConfig(
-  sessionId: string,
-  projection: PlayerProjection,
-): void {
+export function downloadCampaignConfig(sessionId: string, projection: PlayerProjection): void {
   const data = JSON.stringify(
     {
       sessionId,

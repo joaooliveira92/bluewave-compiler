@@ -107,12 +107,18 @@ importers:
       '@bluewave/diagnostics':
         specifier: workspace:*
         version: link:../../packages/diagnostics
+      '@bluewave/events':
+        specifier: workspace:*
+        version: link:../../packages/events
       '@bluewave/persistence':
         specifier: workspace:*
         version: link:../../packages/persistence
       '@bluewave/phase-engine':
         specifier: workspace:*
         version: link:../../packages/phase-engine
+      '@bluewave/random':
+        specifier: workspace:*
+        version: link:../../packages/random
       '@paper-design/shaders-react':
         specifier: ^0.0.62
         version: 0.0.62(@types/react@19.2.18)(react@19.2.8)
@@ -277,6 +283,10 @@ importers:
       '@bluewave/campaign':
         specifier: workspace:*
         version: link:../campaign
+    devDependencies:
+      '@bluewave/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
   packages/combat:
     dependencies:

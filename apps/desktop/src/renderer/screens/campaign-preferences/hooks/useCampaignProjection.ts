@@ -7,9 +7,7 @@ export interface UseCampaignProjectionReturn {
   readonly loadProjection: () => Promise<void>;
 }
 
-export function useCampaignProjection(
-  sessionId: string,
-): UseCampaignProjectionReturn {
+export function useCampaignProjection(sessionId: string): UseCampaignProjectionReturn {
   const [projection, setProjection] = useState<PlayerProjection | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const bridge = window.bluewave;

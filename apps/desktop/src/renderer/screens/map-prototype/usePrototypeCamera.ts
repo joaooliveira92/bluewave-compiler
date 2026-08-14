@@ -124,10 +124,7 @@ export function usePrototypeCamera(
       // (-span, 0] rather than [-span, 0) is what keeps a fresh camera at 0.
       current.x = -(((-current.x % span) + span) % span);
     } else {
-      current.x = Math.min(
-        0,
-        Math.max(Math.min(0, visible.width - span), current.x),
-      );
+      current.x = Math.min(0, Math.max(Math.min(0, visible.width - span), current.x));
     }
     const scaledHeight = worldHeight * current.scale;
     const minY = Math.min(0, visible.height - scaledHeight);
@@ -173,10 +170,7 @@ export function usePrototypeCamera(
       const py = (clientY - rect.top) / unitScale;
       const current = camera.current;
       const before = current.scale;
-      current.scale = Math.min(
-        MAX_SCALE,
-        Math.max(MIN_SCALE, current.scale * factor),
-      );
+      current.scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, current.scale * factor));
       const ratio = current.scale / before;
       current.x = px - (px - current.x) * ratio;
       current.y = py - (py - current.y) * ratio;

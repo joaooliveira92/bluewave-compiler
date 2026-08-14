@@ -9,11 +9,7 @@ export interface AstRecordPreviewProps {
   readonly onCopy: () => void;
 }
 
-export function AstRecordPreview({
-  record,
-  copied,
-  onCopy,
-}: AstRecordPreviewProps) {
+export function AstRecordPreview({ record, copied, onCopy }: AstRecordPreviewProps) {
   return (
     <div className="relative col-span-3 overflow-hidden rounded-md border bg-zinc-950 text-zinc-50">
       {record === null ? (
@@ -28,11 +24,7 @@ export function AstRecordPreview({
             onClick={onCopy}
             className="absolute right-1.5 top-1.5 h-7 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-50"
           >
-            {copied ? (
-              <Check className="h-3.5 w-3.5" />
-            ) : (
-              <Copy className="h-3.5 w-3.5" />
-            )}
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? "Copied" : "Copy"}
           </Button>
           <ScrollArea className="h-full">

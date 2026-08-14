@@ -29,9 +29,9 @@ const SimulationScreen = lazy(() =>
   })),
 );
 const TacticalSandboxScreen = lazy(() =>
-  import("../screens/tactical-sandbox/TacticalSandboxScreen.js").then(
-    (module) => ({ default: module.TacticalSandboxScreen }),
-  ),
+  import("../screens/tactical-sandbox/TacticalSandboxScreen.js").then((module) => ({
+    default: module.TacticalSandboxScreen,
+  })),
 );
 // PROTOTYPE — throwaway, ticket 06. Dev-only; see
 // screens/map-prototype/README.md. Delete this and its folder once the
@@ -77,9 +77,7 @@ export interface CampaignScreenDefinition {
 
 function OverviewRoute({ sessionId }: CampaignScreenRouteProps) {
   const { actions } = useCampaignShellContext();
-  return (
-    <OverviewScreen sessionId={sessionId} onNavigate={actions.selectScreen} />
-  );
+  return <OverviewScreen sessionId={sessionId} onNavigate={actions.selectScreen} />;
 }
 
 function ConstructionRoute({ sessionId }: CampaignScreenRouteProps) {
@@ -93,10 +91,7 @@ function FleetRoute({ sessionId }: CampaignScreenRouteProps) {
 function SimulationRoute({ sessionId }: CampaignScreenRouteProps) {
   const { actions } = useCampaignShellContext();
   return (
-    <SimulationScreen
-      sessionId={sessionId}
-      onPrimaryActionChange={actions.setPrimaryAction}
-    />
+    <SimulationScreen sessionId={sessionId} onPrimaryActionChange={actions.setPrimaryAction} />
   );
 }
 
@@ -115,10 +110,7 @@ function MapPrototypeRoute() {
 function CampaignPreferencesRoute({ sessionId }: CampaignScreenRouteProps) {
   const { actions } = useCampaignShellContext();
   return (
-    <CampaignPreferencesScreen
-      sessionId={sessionId}
-      onCloseCampaign={actions.closeCampaign}
-    />
+    <CampaignPreferencesScreen sessionId={sessionId} onCloseCampaign={actions.closeCampaign} />
   );
 }
 
@@ -236,11 +228,7 @@ export function CampaignScreenOutlet({ screen }: CampaignScreenOutletProps) {
   const Route = CAMPAIGN_SCREEN_ROUTES.get(screen as CampaignScreen);
   if (Route === undefined) return null;
   return (
-    <Suspense
-      fallback={
-        <div className="text-sm text-muted-foreground">Loading screen…</div>
-      }
-    >
+    <Suspense fallback={<div className="text-sm text-muted-foreground">Loading screen…</div>}>
       <Route sessionId={state.mode.campaign.sessionId} />
     </Suspense>
   );

@@ -57,10 +57,7 @@ export function SiteHeader({
         <Header.Title title={title} />
 
         <div className="ml-auto flex items-center gap-2" style={NO_DRAG}>
-          <Header.Search
-            targets={searchTargets}
-            onNavigate={(id) => onSearchNavigate?.(id)}
-          />
+          <Header.Search targets={searchTargets} onNavigate={(id) => onSearchNavigate?.(id)} />
 
           {continueAction !== undefined && (
             <Button

@@ -1,5 +1,10 @@
 import type { CampaignSlot, CampaignSnapshot } from "@bluewave/campaign";
-import { DIVISION_FORMATIONS, DIVISION_MAX_SHIPS, DIVISION_ROLES, MAXIMUM_CONCURRENT_WARS } from "@bluewave/campaign";
+import {
+  DIVISION_FORMATIONS,
+  DIVISION_MAX_SHIPS,
+  DIVISION_ROLES,
+  MAXIMUM_CONCURRENT_WARS,
+} from "@bluewave/campaign";
 import {
   CANONICAL_RESEARCH_FIELD_IDS,
   MAX_HIGH_PRIORITY_FIELDS,
@@ -13,15 +18,19 @@ import type {
   AcceptPeaceCommand,
   AddShipToDivisionCommand,
   BreakAllianceCommand,
-  BreakNonAggressionPactCommand,BudgetProjectCommand,
-  ChangeDivisionFlagshipCommand,CommandBody, CommandEnvelope,
+  BreakNonAggressionPactCommand,
+  BudgetProjectCommand,
+  ChangeDivisionFlagshipCommand,
+  CommandBody,
+  CommandEnvelope,
   CreateDivisionCommand,
   DeclareBlockadeCommand,
   DeclareWarCommand,
   DissolveDivisionCommand,
   FormAllianceCommand,
   FormNonAggressionPactCommand,
-  RemoveShipFromDivisionCommand,} from "./envelope.js";
+  RemoveShipFromDivisionCommand,
+} from "./envelope.js";
 import type {
   CommandRecord,
   CommandResult,

@@ -52,6 +52,11 @@ export interface CampaignFiles {
 export interface CampaignCompilerOutput {
   state: CampaignState;
   contentHash: string;
+  // The validated content pack the campaign was compiled against (nation
+  // identity/regime, areas, ports, etc.) — exposed so consumers that need
+  // display-only content-catalog data (e.g. the desktop app's New Game
+  // nation list) don't have to run the content compiler a second time.
+  pack: ContentPack;
 }
 
 function toSafeInt(value: unknown): SafeInt {
@@ -273,6 +278,7 @@ export class CampaignCompiler {
     return {
       state: { snapshot, envelope, rawHash },
       contentHash: contentOutput.rawHash,
+      pack,
     };
   }
 

@@ -7,11 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card.js";
-import {
-  Field,
-  FieldDescription,
-  FieldLabel,
-} from "../../../components/ui/field.js";
+import { Field, FieldDescription, FieldLabel } from "../../../components/ui/field.js";
 import { Toggle } from "../../../components/ui/toggle.js";
 import type { DisplayPreferences } from "../types.js";
 
@@ -60,9 +56,7 @@ export const DisplayPreferencesPanel = memo(function DisplayPreferencesPanel({
           <Eye className="h-4 w-4 text-muted-foreground" />
           Display Preferences
         </CardTitle>
-        <CardDescription>
-          Local settings for how information is presented.
-        </CardDescription>
+        <CardDescription>Local settings for how information is presented.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-1">
         {DISPLAY_PREFERENCE_OPTIONS.map(({ key, label, description }) => (

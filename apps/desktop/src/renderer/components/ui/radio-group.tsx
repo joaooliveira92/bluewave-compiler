@@ -4,24 +4,16 @@ import * as React from "react";
 
 import { cn } from "../../lib/utils.js";
 
-interface RadioGroupProps extends React.ComponentPropsWithoutRef<
-  typeof RadioGroupPrimitive
-> {
+interface RadioGroupProps extends React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive> {
   ref?: React.Ref<React.ComponentRef<typeof RadioGroupPrimitive>> | undefined;
 }
 
 const RadioGroup = ({ className, ref, ...props }: RadioGroupProps) => (
-  <RadioGroupPrimitive
-    ref={ref}
-    className={cn("grid gap-4", className)}
-    {...props}
-  />
+  <RadioGroupPrimitive ref={ref} className={cn("grid gap-4", className)} {...props} />
 );
 RadioGroup.displayName = "RadioGroup";
 
-interface RadioGroupItemProps extends React.ComponentPropsWithoutRef<
-  typeof RadioPrimitive.Root
-> {
+interface RadioGroupItemProps extends React.ComponentPropsWithoutRef<typeof RadioPrimitive.Root> {
   ref?: React.Ref<React.ComponentRef<typeof RadioPrimitive.Root>> | undefined;
 }
 

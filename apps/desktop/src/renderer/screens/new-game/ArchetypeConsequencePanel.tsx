@@ -1,7 +1,4 @@
-import {
-  BALANCED_ALLOCATION,
-  type ArchetypeDimension,
-} from "@bluewave/campaign-engine";
+import { BALANCED_ALLOCATION, type ArchetypeDimension } from "@bluewave/campaign-engine";
 import {
   ArrowDown,
   ArrowUp,
@@ -16,22 +13,9 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { Badge } from "../../components/ui/badge.js";
-import {
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card.js";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "../../components/ui/hover-card.js";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../../components/ui/popover.js";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card.js";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "../../components/ui/hover-card.js";
+import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover.js";
 import { Progress } from "../../components/ui/progress.js";
 import {
   Tooltip,
@@ -39,10 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../../components/ui/tooltip.js";
-import {
-  type ArchetypeNumericEffect,
-  type ArchetypeConsequence,
-} from "./archetype-consequence.js";
+import { type ArchetypeNumericEffect, type ArchetypeConsequence } from "./archetype-consequence.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
 
 const DIMENSION_ICONS: Record<ArchetypeDimension, typeof Coins> = {
@@ -51,10 +32,7 @@ const DIMENSION_ICONS: Record<ArchetypeDimension, typeof Coins> = {
   combat: Swords,
 };
 
-const EFFECT_META: Record<
-  string,
-  { readonly icon: typeof Coins; readonly description: string }
-> = {
+const EFFECT_META: Record<string, { readonly icon: typeof Coins; readonly description: string }> = {
   "Starting treasury": {
     icon: Coins,
     description:
@@ -62,23 +40,19 @@ const EFFECT_META: Record<
   },
   "Monthly appropriation": {
     icon: TrendingUp,
-    description:
-      "A multiplier on each month's appropriation relative to the balanced baseline.",
+    description: "A multiplier on each month's appropriation relative to the balanced baseline.",
   },
   "Shipyard capacity": {
     icon: Factory,
-    description:
-      "A multiplier on the construction throughput your shipyards can sustain.",
+    description: "A multiplier on the construction throughput your shipyards can sustain.",
   },
   "Commander bonus in battle": {
     icon: ShieldCheck,
-    description:
-      "A flat bonus to commander effectiveness when battle is resolved.",
+    description: "A flat bonus to commander effectiveness when battle is resolved.",
   },
   "Doctrine bonus in battle": {
     icon: Swords,
-    description:
-      "A flat bonus to doctrine effectiveness when battle is resolved.",
+    description: "A flat bonus to doctrine effectiveness when battle is resolved.",
   },
 };
 
@@ -94,16 +68,11 @@ export function ArchetypeConsequencePanel({
       <CardHeader className="flex flex-col gap-4 space-y-0 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1.5">
           <CardTitle className="flex items-center gap-2">
-            <Target
-              aria-hidden="true"
-              className="h-4 w-4 shrink-0 text-muted-foreground"
-            />
+            <Target aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span>Consequences</span>
           </CardTitle>
 
-          <CardDescription>
-            How this allocation shapes your campaign.
-          </CardDescription>
+          <CardDescription>How this allocation shapes your campaign.</CardDescription>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -131,23 +100,14 @@ export function ArchetypeConsequencePanel({
   );
 }
 
-function DimensionDeltas({
-  consequence,
-}: {
-  consequence: ArchetypeConsequence;
-}) {
+function DimensionDeltas({ consequence }: { consequence: ArchetypeConsequence }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       {consequence.dimensionDeltas.map((delta) => {
         const Icon = DIMENSION_ICONS[delta.dimension];
-        const DeltaIcon =
-          delta.delta > 0 ? TrendingUp : delta.delta < 0 ? TrendingDown : Minus;
+        const DeltaIcon = delta.delta > 0 ? TrendingUp : delta.delta < 0 ? TrendingDown : Minus;
         const variance =
-          delta.delta > 0
-            ? "default"
-            : delta.delta < 0
-              ? "destructive"
-              : "secondary";
+          delta.delta > 0 ? "default" : delta.delta < 0 ? "destructive" : "secondary";
         return (
           <TooltipProvider key={delta.dimension}>
             <div className="rounded-lg border p-3">
@@ -184,11 +144,7 @@ function DimensionDeltas({
   );
 }
 
-function NumericEffects({
-  consequence,
-}: {
-  consequence: ArchetypeConsequence;
-}) {
+function NumericEffects({ consequence }: { consequence: ArchetypeConsequence }) {
   return (
     <div>
       <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -211,9 +167,7 @@ function EffectTile({ effect }: { effect: ArchetypeNumericEffect }) {
       <HoverCardTrigger render={<div />} className="h-full">
         <div className="flex h-full flex-col gap-1 rounded-lg border bg-muted/40 p-3">
           <Icon className="h-4 w-4 text-muted-foreground" />
-          <span className="text-base font-semibold tabular-nums">
-            {effect.value}
-          </span>
+          <span className="text-base font-semibold tabular-nums">{effect.value}</span>
           <span className="text-xs text-muted-foreground">{effect.label}</span>
         </div>
       </HoverCardTrigger>
@@ -258,11 +212,7 @@ function Strengths({ consequence }: { consequence: ArchetypeConsequence }) {
   );
 }
 
-function OpportunityCosts({
-  consequence,
-}: {
-  consequence: ArchetypeConsequence;
-}) {
+function OpportunityCosts({ consequence }: { consequence: ArchetypeConsequence }) {
   return (
     <div>
       <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-destructive">
@@ -309,11 +259,7 @@ function Systems({ consequence }: { consequence: ArchetypeConsequence }) {
   );
 }
 
-function ScoringPopover({
-  consequence,
-}: {
-  consequence: ArchetypeConsequence;
-}) {
+function ScoringPopover({ consequence }: { consequence: ArchetypeConsequence }) {
   return (
     <Popover>
       <PopoverTrigger
@@ -331,8 +277,8 @@ function ScoringPopover({
             </p>
           ))}
           <p className="text-xs text-muted-foreground">
-            Balanced reference: {BALANCED_ALLOCATION.economy} /{" "}
-            {BALANCED_ALLOCATION.industry} / {BALANCED_ALLOCATION.combat}.
+            Balanced reference: {BALANCED_ALLOCATION.economy} / {BALANCED_ALLOCATION.industry} /{" "}
+            {BALANCED_ALLOCATION.combat}.
           </p>
         </div>
       </PopoverContent>

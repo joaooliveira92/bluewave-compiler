@@ -15,12 +15,7 @@ const section: DossierSection = {
 
 function renderItem(state: "expanded" | "collapsed") {
   return render(
-    <DossierAccordionItem
-      section={section}
-      state={state}
-      onSelect={vi.fn()}
-      onKeyDown={vi.fn()}
-    />,
+    <DossierAccordionItem section={section} state={state} onSelect={vi.fn()} onKeyDown={vi.fn()} />,
   );
 }
 
@@ -34,9 +29,7 @@ describe("DossierAccordionItem", () => {
 
     const trigger = screen.getByRole("button", { name: "Economy" });
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
-    expect(
-      screen.getByText("The Admiralty funds ship construction."),
-    ).toBeTruthy();
+    expect(screen.getByText("The Admiralty funds ship construction.")).toBeTruthy();
   });
 
   it("renders the collapsed tab variant without the panel text", () => {
@@ -44,8 +37,6 @@ describe("DossierAccordionItem", () => {
 
     const trigger = screen.getByRole("button", { name: "Economy" });
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
-    expect(
-      screen.queryByText("The Admiralty funds ship construction."),
-    ).toBeNull();
+    expect(screen.queryByText("The Admiralty funds ship construction.")).toBeNull();
   });
 });

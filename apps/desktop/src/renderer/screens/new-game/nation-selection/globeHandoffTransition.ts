@@ -6,9 +6,7 @@ import { useEffect, useState } from "react";
 export const GLOBE_TRANSITION_MS = 650;
 
 export function prefersReducedMotion(): boolean {
-  return (
-    window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false
-  );
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
 }
 
 /**

@@ -28,10 +28,7 @@ export interface NewGameFlow {
   readonly actions: {
     readonly start: () => void;
     readonly cancel: () => void;
-    readonly acceptPreferences: (
-      preferences: DraftPreferences,
-      options: NewGameOptions,
-    ) => void;
+    readonly acceptPreferences: (preferences: DraftPreferences, options: NewGameOptions) => void;
     readonly backToPreferences: () => void;
     readonly acceptArchetype: (archetype: ArchetypeSelection) => void;
     readonly backToArchetype: () => void;
@@ -80,9 +77,7 @@ export function useNewGameFlow(
 
   const acceptArchetype = useCallback(
     (archetype: ArchetypeSelection) => {
-      setDraft((current) =>
-        current === null ? null : { ...current, archetype },
-      );
+      setDraft((current) => (current === null ? null : { ...current, archetype }));
       navigation.selectScreen("new-game-nation");
     },
     [navigation],
@@ -101,9 +96,7 @@ export function useNewGameFlow(
         const result = await bridge.campaign.execute("compileCampaign", config);
         if (result.outcome !== "success") {
           const diagnostics =
-            result.diagnostics.length > 0
-              ? ` ${result.diagnostics.join("; ")}`
-              : "";
+            result.diagnostics.length > 0 ? ` ${result.diagnostics.join("; ")}` : "";
           setError(`${result.reason}.${diagnostics}`);
           return;
         }

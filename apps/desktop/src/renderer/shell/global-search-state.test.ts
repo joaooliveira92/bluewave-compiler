@@ -16,9 +16,7 @@ describe("filterSearchTargets", () => {
   });
 
   it("matches case-insensitively on a substring", () => {
-    expect(filterSearchTargets(targets, "fleet")).toEqual([
-      { id: "fleet", label: "Fleet" },
-    ]);
+    expect(filterSearchTargets(targets, "fleet")).toEqual([{ id: "fleet", label: "Fleet" }]);
     expect(filterSearchTargets(targets, "SAND")).toEqual([
       { id: "tactical-sandbox", label: "Tactical Sandbox" },
     ]);

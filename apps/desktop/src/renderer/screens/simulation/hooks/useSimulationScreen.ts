@@ -10,10 +10,7 @@ import type {
 import { useCallback, useEffect, useState } from "react";
 
 import { emitWideEvent } from "../../../lib/telemetry.js";
-import {
-  auditInputFromDecisions,
-  recordEngineAudit,
-} from "../../../lib/engine-audit.js";
+import { auditInputFromDecisions, recordEngineAudit } from "../../../lib/engine-audit.js";
 
 export interface UseSimulationScreenReturn {
   readonly loading: boolean;
@@ -36,39 +33,24 @@ export interface UseSimulationScreenReturn {
   readonly handleTacticalResolve: () => Promise<void>;
 }
 
-export function useSimulationScreen(
-  sessionId: string,
-): UseSimulationScreenReturn {
+export function useSimulationScreen(sessionId: string): UseSimulationScreenReturn {
   const bridge = window.bluewave;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
 
   const [revision, setRevision] = useState<number>(0);
-  const [_month, setMonth] = useState<{ year: number; month: number } | null>(
-    null,
-  );
-  const [submarinePools, setSubmarinePools] = useState<
-    readonly SubmarinePool[]
-  >([]);
+  const [_month, setMonth] = useState<{ year: number; month: number } | null>(null);
+  const [submarinePools, setSubmarinePools] = useState<readonly SubmarinePool[]>([]);
   const [minePressure, setMinePressure] = useState<readonly MinePressure[]>([]);
-  const [landTargetDamage, setLandTargetDamage] = useState<
-    readonly LandTargetDamage[]
-  >([]);
+  const [landTargetDamage, setLandTargetDamage] = useState<readonly LandTargetDamage[]>([]);
   const [_activeWars, setActiveWars] = useState<readonly unknown[]>([]);
 
-  const [commitResult, setCommitResult] = useState<CommitMonthResponse | null>(
-    null,
-  );
+  const [commitResult, setCommitResult] = useState<CommitMonthResponse | null>(null);
 
-  const [battleManifest, setBattleManifest] = useState<BattleManifest | null>(
-    null,
-  );
-  const [autoResolution, setAutoResolution] = useState<BattleResolution | null>(
-    null,
-  );
-  const [tacticalOutcome, setTacticalOutcome] =
-    useState<TacticalBattleOutcome | null>(null);
+  const [battleManifest, setBattleManifest] = useState<BattleManifest | null>(null);
+  const [autoResolution, setAutoResolution] = useState<BattleResolution | null>(null);
+  const [tacticalOutcome, setTacticalOutcome] = useState<TacticalBattleOutcome | null>(null);
   const [battleLoading, setBattleLoading] = useState(false);
   const [battleError, setBattleError] = useState<string | null>(null);
 
@@ -76,13 +58,16 @@ export function useSimulationScreen(
     if (bridge === undefined) return;
     try {
       setLoading(true);
-      const res = await bridge.campaign.execute(
-        "inspectConstructionScreen",
-        sessionId,
-      );
+      // `inspectCampaign` (not `inspectConstructionScreen` — that's ticket
+      // 10's still-unimplemented stub) is the real source of the session's
+      // current `revision`/`month`, needed so the very first `commitMonth`
+      // call (ticket 13) sends a correct `expectedRevision` even when this
+      // screen is opened after a save was loaded partway through a
+      // campaign, not just right after `compileCampaign`.
+      const res = await bridge.campaign.execute("inspectCampaign", sessionId);
       if (res.outcome === "success") {
-        setRevision(res.value.revision);
-        setMonth(res.value.month);
+        setRevision(res.value.projection.revision);
+        setMonth(res.value.projection.month);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to inspect state");
@@ -127,17 +112,12 @@ export function useSimulationScreen(
         setTacticalOutcome(null);
         setActiveTab("report");
       } else {
-        emitWideEvent("month_commit", sessionId, duration, "rejected", [
-          res.reason,
-        ]);
-        setError(
-          `Failed to advance turn: ${res.reason}. ${res.diagnostics.join("; ")}`,
-        );
+        emitWideEvent("month_commit", sessionId, duration, "rejected", [res.reason]);
+        setError(`Failed to advance turn: ${res.reason}. ${res.diagnostics.join("; ")}`);
       }
     } catch (err) {
       const duration = Math.round(performance.now() - startTime);
-      const errMsg =
-        err instanceof Error ? err.message : "Error committing turn";
+      const errMsg = err instanceof Error ? err.message : "Error committing turn";
       emitWideEvent("month_commit", sessionId, duration, "rejected", [errMsg]);
       setError(errMsg);
     } finally {
@@ -167,20 +147,15 @@ export function useSimulationScreen(
         );
         setBattleManifest(res.value.manifest);
       } else {
-        emitWideEvent("battle_generate", sessionId, duration, "rejected", [
-          res.reason,
-        ]);
+        emitWideEvent("battle_generate", sessionId, duration, "rejected", [res.reason]);
         setBattleError(
           `Failed to generate battle: ${res.reason}. ${res.diagnostics?.join("; ") || ""}`,
         );
       }
     } catch (err) {
       const duration = Math.round(performance.now() - startTime);
-      const errMsg =
-        err instanceof Error ? err.message : "Error generating battle";
-      emitWideEvent("battle_generate", sessionId, duration, "rejected", [
-        errMsg,
-      ]);
+      const errMsg = err instanceof Error ? err.message : "Error generating battle";
+      emitWideEvent("battle_generate", sessionId, duration, "rejected", [errMsg]);
       setBattleError(errMsg);
     } finally {
       setBattleLoading(false);
@@ -202,18 +177,13 @@ export function useSimulationScreen(
         emitWideEvent("battle_resolve", sessionId, duration, "success");
         setAutoResolution(res.value.resolution);
       } else {
-        emitWideEvent("battle_resolve", sessionId, duration, "rejected", [
-          res.reason,
-        ]);
+        emitWideEvent("battle_resolve", sessionId, duration, "rejected", [res.reason]);
         setBattleError(`Failed to resolve: ${res.reason}`);
       }
     } catch (err) {
       const duration = Math.round(performance.now() - startTime);
-      const errMsg =
-        err instanceof Error ? err.message : "Error resolving battle";
-      emitWideEvent("battle_resolve", sessionId, duration, "rejected", [
-        errMsg,
-      ]);
+      const errMsg = err instanceof Error ? err.message : "Error resolving battle";
+      emitWideEvent("battle_resolve", sessionId, duration, "rejected", [errMsg]);
       setBattleError(errMsg);
     } finally {
       setBattleLoading(false);
@@ -265,38 +235,20 @@ export function useSimulationScreen(
       });
       const duration = Math.round(performance.now() - startTime);
       if (res.outcome === "success") {
-        emitWideEvent(
-          "battle_resolve_tactical",
-          sessionId,
-          duration,
-          "success",
-        );
+        emitWideEvent("battle_resolve_tactical", sessionId, duration, "success");
         recordEngineAudit(
           "battle_resolve_tactical",
           auditInputFromDecisions(res.value.randomDecisions ?? []),
         );
         setTacticalOutcome(res.value.outcome);
       } else {
-        emitWideEvent(
-          "battle_resolve_tactical",
-          sessionId,
-          duration,
-          "rejected",
-          [res.reason],
-        );
+        emitWideEvent("battle_resolve_tactical", sessionId, duration, "rejected", [res.reason]);
         setBattleError(`Failed to resolve tactically: ${res.reason}`);
       }
     } catch (err) {
       const duration = Math.round(performance.now() - startTime);
-      const errMsg =
-        err instanceof Error ? err.message : "Error resolving tactical battle";
-      emitWideEvent(
-        "battle_resolve_tactical",
-        sessionId,
-        duration,
-        "rejected",
-        [errMsg],
-      );
+      const errMsg = err instanceof Error ? err.message : "Error resolving tactical battle";
+      emitWideEvent("battle_resolve_tactical", sessionId, duration, "rejected", [errMsg]);
       setBattleError(errMsg);
     } finally {
       setBattleLoading(false);

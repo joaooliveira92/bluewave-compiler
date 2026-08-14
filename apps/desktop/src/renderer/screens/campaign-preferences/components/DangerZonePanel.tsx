@@ -1,11 +1,5 @@
 import { memo } from "react";
-import {
-  AlertTriangle,
-  Download,
-  RefreshCw,
-  RotateCcw,
-  Save,
-} from "lucide-react";
+import { AlertTriangle, Download, RefreshCw, RotateCcw, Save } from "lucide-react";
 import { Button } from "../../../components/ui/button.js";
 import {
   Card,
@@ -34,9 +28,7 @@ export const DangerZonePanel = memo(function DangerZonePanel({
           <AlertTriangle className="h-4 w-4" />
           Danger Zone
         </CardTitle>
-        <CardDescription>
-          Irreversible actions that affect the campaign.
-        </CardDescription>
+        <CardDescription>Irreversible actions that affect the campaign.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-center justify-between gap-3">

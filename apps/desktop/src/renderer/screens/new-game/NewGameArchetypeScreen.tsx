@@ -8,16 +8,7 @@ import {
   type ArchetypeSelection,
   type ArchetypePreset,
 } from "@bluewave/campaign-engine";
-import {
-  Coins,
-  Factory,
-  Gauge,
-  Minus,
-  Plus,
-  RotateCcw,
-  Swords,
-  Wand2,
-} from "lucide-react";
+import { Coins, Factory, Gauge, Minus, Plus, RotateCcw, Swords, Wand2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "../../components/ui/badge.js";
 import { Button } from "../../components/ui/button.js";
@@ -30,11 +21,7 @@ import {
   DialogTitle,
 } from "../../components/ui/dialog.js";
 import { Progress } from "../../components/ui/progress.js";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../../components/ui/popover.js";
+import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover.js";
 import {
   Tooltip,
   TooltipContent,
@@ -97,9 +84,7 @@ export function NewGameArchetypeScreen({
     restoreArchetypeEditorState(initialArchetype),
   );
   const [modalOpen, setModalOpen] = useState(false);
-  const [draft, setDraft] = useState<ArchetypeEditorState>(() =>
-    createCustomArchetype(),
-  );
+  const [draft, setDraft] = useState<ArchetypeEditorState>(() => createCustomArchetype());
 
   const consequence = useMemo(
     () => buildArchetypeConsequence(state.allocation),
@@ -110,8 +95,7 @@ export function NewGameArchetypeScreen({
     [draft.allocation],
   );
 
-  const hasSelection =
-    state.mode === "preset" ? state.selectedPresetId !== null : true;
+  const hasSelection = state.mode === "preset" ? state.selectedPresetId !== null : true;
 
   const stateRef = useRef(state);
   const onNextRef = useRef(onNext);
@@ -174,8 +158,7 @@ export function NewGameArchetypeScreen({
       <header>
         <h2 className="text-2xl font-semibold">Choose your archetype</h2>
         <p className="text-sm text-muted-foreground">
-          Pick a playstyle, or build your own with 20 points across three
-          engine-backed attributes.
+          Pick a playstyle, or build your own with 20 points across three engine-backed attributes.
         </p>
       </header>
 
@@ -185,9 +168,7 @@ export function NewGameArchetypeScreen({
             <PresetCard
               key={preset.id}
               preset={preset}
-              active={
-                state.mode === "preset" && state.selectedPresetId === preset.id
-              }
+              active={state.mode === "preset" && state.selectedPresetId === preset.id}
               onSelect={() => handlePresetClick(preset.id)}
             />
           ))}
@@ -199,15 +180,8 @@ export function NewGameArchetypeScreen({
         </div>
       </section>
 
-      <section
-        aria-label="Consequence preview"
-        className="min-h-0 flex-1 content-start"
-      >
-        {hasSelection ? (
-          <ArchetypeConsequencePanel consequence={consequence} />
-        ) : (
-          <EmptyPreview />
-        )}
+      <section aria-label="Consequence preview" className="min-h-0 flex-1 content-start">
+        {hasSelection ? <ArchetypeConsequencePanel consequence={consequence} /> : <EmptyPreview />}
       </section>
 
       <div className="flex justify-between">
@@ -226,8 +200,7 @@ export function NewGameArchetypeScreen({
               <div className="space-y-1.5">
                 <DialogTitle>Create your own archetype</DialogTitle>
                 <DialogDescription>
-                  Distribute exactly 20 points across economy, industry, and
-                  combat.
+                  Distribute exactly 20 points across economy, industry, and combat.
                 </DialogDescription>
               </div>
             </div>
@@ -252,19 +225,12 @@ export function NewGameArchetypeScreen({
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Live preview
               </p>
-              <ArchetypeConsequencePanel
-                consequence={draftConsequence}
-                compact
-              />
+              <ArchetypeConsequencePanel consequence={draftConsequence} compact />
             </div>
           </div>
 
           <DialogFooter className="sticky bottom-0 -mx-6 -mb-6 flex-row border-t bg-background px-6 py-4 sm:justify-end sm:space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setModalOpen(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
             <Button type="button" onClick={commitCustom} disabled={!draftValid}>
@@ -292,9 +258,7 @@ function PresetCard({
       onClick={onSelect}
       aria-pressed={active}
       className={`flex flex-col gap-2 rounded-lg border p-4 text-left transition-colors ${
-        active
-          ? "border-primary bg-primary/5"
-          : "border-border hover:border-primary/40"
+        active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
       }`}
     >
       <div className="flex items-center justify-between">
@@ -303,8 +267,7 @@ function PresetCard({
       </div>
       <p className="text-xs text-muted-foreground">{preset.description}</p>
       <p className="text-xs tabular-nums text-muted-foreground">
-        {preset.allocation.economy} / {preset.allocation.industry} /{" "}
-        {preset.allocation.combat}
+        {preset.allocation.economy} / {preset.allocation.industry} / {preset.allocation.combat}
       </p>
     </button>
   );
@@ -325,9 +288,7 @@ function CreateCard({
       onClick={onSelect}
       aria-pressed={selected}
       className={`flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-4 text-center transition-colors ${
-        selected
-          ? "border-primary bg-primary/5"
-          : "border-border hover:border-primary/40"
+        selected ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
       }`}
     >
       <Plus className="h-6 w-6 text-muted-foreground" />
@@ -337,9 +298,7 @@ function CreateCard({
           {allocation.economy} / {allocation.industry} / {allocation.combat}
         </span>
       ) : (
-        <span className="text-xs text-muted-foreground">
-          Build a custom split
-        </span>
+        <span className="text-xs text-muted-foreground">Build a custom split</span>
       )}
     </button>
   );
@@ -361,29 +320,20 @@ function AllocationEditor({
         <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
           <Tooltip>
             <TooltipTrigger
-              render={
-                <span className="flex items-center gap-2 text-sm text-muted-foreground" />
-              }
+              render={<span className="flex items-center gap-2 text-sm text-muted-foreground" />}
             >
               <Gauge className="h-4 w-4" />
               Points
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">
-              Each dimension is between {ARCHETYPE_DIMENSION_MIN} and{" "}
-              {ARCHETYPE_DIMENSION_MAX}; the total must equal{" "}
-              {ARCHETYPE_POINT_TOTAL}.
+              Each dimension is between {ARCHETYPE_DIMENSION_MIN} and {ARCHETYPE_DIMENSION_MAX}; the
+              total must equal {ARCHETYPE_POINT_TOTAL}.
             </TooltipContent>
           </Tooltip>
           {errors.length > 0 ? (
             <Popover>
-              <PopoverTrigger
-                render={<span className="inline-flex" />}
-                nativeButton={false}
-              >
-                <Badge
-                  variant="destructive"
-                  className="cursor-pointer tabular-nums"
-                >
+              <PopoverTrigger render={<span className="inline-flex" />} nativeButton={false}>
+                <Badge variant="destructive" className="cursor-pointer tabular-nums">
                   {points} / {ARCHETYPE_POINT_TOTAL}
                 </Badge>
               </PopoverTrigger>
@@ -421,10 +371,7 @@ function AllocationEditor({
           const value = draft.allocation[dimension];
           const { icon: Icon, accent } = DIMENSION_STYLE[dimension];
           return (
-            <div
-              key={dimension}
-              className="rounded-lg border bg-muted/20 p-2.5"
-            >
+            <div key={dimension} className="rounded-lg border bg-muted/20 p-2.5">
               <div className="flex items-center justify-between">
                 <label
                   className="flex items-center gap-2 text-sm font-medium"
@@ -433,11 +380,7 @@ function AllocationEditor({
                   <Icon className={`h-4 w-4 ${accent}`} />
                   {label}
                 </label>
-                <span
-                  className={`text-sm font-semibold tabular-nums ${accent}`}
-                >
-                  {value}
-                </span>
+                <span className={`text-sm font-semibold tabular-nums ${accent}`}>{value}</span>
               </div>
               <div className="mt-2 flex items-center gap-1.5">
                 <Button
@@ -447,9 +390,7 @@ function AllocationEditor({
                   className="h-6 w-6 shrink-0 [&_svg]:size-3.5"
                   aria-label={`Decrease ${label}`}
                   disabled={value <= ARCHETYPE_DIMENSION_MIN}
-                  onClick={() =>
-                    setDimensionState(onDraftChange, dimension, value - 1)
-                  }
+                  onClick={() => setDimensionState(onDraftChange, dimension, value - 1)}
                 >
                   <Minus />
                 </Button>
@@ -462,11 +403,7 @@ function AllocationEditor({
                   value={value}
                   aria-label={`${label} allocation`}
                   onChange={(event) =>
-                    setDimensionState(
-                      onDraftChange,
-                      dimension,
-                      Number(event.target.value),
-                    )
+                    setDimensionState(onDraftChange, dimension, Number(event.target.value))
                   }
                   className="flex-1"
                 />
@@ -477,9 +414,7 @@ function AllocationEditor({
                   className="h-6 w-6 shrink-0 [&_svg]:size-3.5"
                   aria-label={`Increase ${label}`}
                   disabled={value >= ARCHETYPE_DIMENSION_MAX}
-                  onClick={() =>
-                    setDimensionState(onDraftChange, dimension, value + 1)
-                  }
+                  onClick={() => setDimensionState(onDraftChange, dimension, value + 1)}
                 >
                   <Plus />
                 </Button>
@@ -503,9 +438,7 @@ function AllocationEditor({
 function EmptyPreview() {
   return (
     <div className="flex h-full min-h-40 flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
-      <p className="text-sm text-muted-foreground">
-        Select an archetype to see its consequences.
-      </p>
+      <p className="text-sm text-muted-foreground">Select an archetype to see its consequences.</p>
     </div>
   );
 }
@@ -515,20 +448,12 @@ function setDimensionState(
   dimension: ArchetypeDimension,
   value: number,
 ): void {
-  const clamped = Math.max(
-    ARCHETYPE_DIMENSION_MIN,
-    Math.min(ARCHETYPE_DIMENSION_MAX, value),
-  );
+  const clamped = Math.max(ARCHETYPE_DIMENSION_MIN, Math.min(ARCHETYPE_DIMENSION_MAX, value));
   setState((current) => setDimension(current, dimension, clamped));
 }
 
 function AllocationBar({ allocation }: { allocation: ArchetypeAllocation }) {
-  const max = Math.max(
-    allocation.economy,
-    allocation.industry,
-    allocation.combat,
-    1,
-  );
+  const max = Math.max(allocation.economy, allocation.industry, allocation.combat, 1);
   const segments = [
     { label: "Economy", value: allocation.economy, color: "bg-sky-500" },
     { label: "Industry", value: allocation.industry, color: "bg-amber-500" },

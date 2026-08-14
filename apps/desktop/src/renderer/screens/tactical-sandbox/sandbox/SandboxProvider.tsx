@@ -50,9 +50,7 @@ export function SandboxProvider({
       warId: state.warId,
     });
     if (result.outcome === "success") {
-      setState((current) =>
-        applyManifestGenerated(current, result.value.manifest),
-      );
+      setState((current) => applyManifestGenerated(current, result.value.manifest));
     } else {
       setState((current) => applyGenerateFailed(current, result.reason));
     }
@@ -66,9 +64,7 @@ export function SandboxProvider({
       battleId: state.manifest.battleId,
     });
     if (result.outcome === "success") {
-      setState((current) =>
-        applyAutoResolution(current, result.value.resolution),
-      );
+      setState((current) => applyAutoResolution(current, result.value.resolution));
     } else {
       setState((current) => applyResolveFailed(current, result.reason));
     }
@@ -89,19 +85,11 @@ export function SandboxProvider({
       scriptedOrders: parsed.orders,
     });
     if (result.outcome === "success") {
-      setState((current) =>
-        applyTacticalOutcome(current, result.value.outcome),
-      );
+      setState((current) => applyTacticalOutcome(current, result.value.outcome));
     } else {
       setState((current) => applyResolveFailed(current, result.reason));
     }
-  }, [
-    bridge,
-    sessionId,
-    state.manifest,
-    state.scriptedOrdersText,
-    state.turnCount,
-  ]);
+  }, [bridge, sessionId, state.manifest, state.scriptedOrdersText, state.turnCount]);
 
   const replayBoundary = useCallback(async () => {
     if (bridge === undefined || state.manifest === null) return;
@@ -121,10 +109,8 @@ export function SandboxProvider({
     () => ({
       state,
       actions: {
-        updateWarId: (warId) =>
-          setState((current) => updateWarId(current, warId)),
-        updateTurnCount: (turnCount) =>
-          setState((current) => updateTurnCount(current, turnCount)),
+        updateWarId: (warId) => setState((current) => updateWarId(current, warId)),
+        updateTurnCount: (turnCount) => setState((current) => updateTurnCount(current, turnCount)),
         updateScriptedOrdersText: (text) =>
           setState((current) => updateScriptedOrdersText(current, text)),
         generateBattle: () => void generateBattle(),
@@ -136,9 +122,7 @@ export function SandboxProvider({
     [state, generateBattle, autoResolve, tacticalResolve, replayBoundary],
   );
 
-  return (
-    <SandboxContext.Provider value={value}>{children}</SandboxContext.Provider>
-  );
+  return <SandboxContext.Provider value={value}>{children}</SandboxContext.Provider>;
 }
 
 export function useSandbox(): SandboxContextValue {

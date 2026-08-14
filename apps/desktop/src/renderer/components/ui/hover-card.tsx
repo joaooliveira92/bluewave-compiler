@@ -9,16 +9,10 @@ const HoverCardTrigger = HoverCardPrimitive.Trigger;
 interface HoverCardContentProps extends React.ComponentPropsWithoutRef<
   typeof HoverCardPrimitive.Popup
 > {
-  align?: React.ComponentPropsWithoutRef<
-    typeof HoverCardPrimitive.Positioner
-  >["align"];
-  side?: React.ComponentPropsWithoutRef<
-    typeof HoverCardPrimitive.Positioner
-  >["side"];
+  align?: React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Positioner>["align"];
+  side?: React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Positioner>["side"];
   sideOffset?: number;
-  ref?:
-    | React.Ref<React.ComponentRef<typeof HoverCardPrimitive.Popup>>
-    | undefined;
+  ref?: React.Ref<React.ComponentRef<typeof HoverCardPrimitive.Popup>> | undefined;
 }
 
 const HoverCardContent = ({
@@ -30,11 +24,7 @@ const HoverCardContent = ({
   ...props
 }: HoverCardContentProps) => (
   <HoverCardPrimitive.Portal>
-    <HoverCardPrimitive.Positioner
-      align={align}
-      side={side}
-      sideOffset={sideOffset}
-    >
+    <HoverCardPrimitive.Positioner align={align} side={side} sideOffset={sideOffset}>
       <HoverCardPrimitive.Popup
         ref={ref}
         className={cn(

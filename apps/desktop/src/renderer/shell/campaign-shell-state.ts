@@ -132,9 +132,7 @@ export function currentShellScreen(state: CampaignShellState): Screen {
  * switch on `kind` instead of interpreting combinations of campaign, loading,
  * error, and route state independently.
  */
-export function campaignShellMode(
-  state: CampaignShellState,
-): CampaignShellMode {
+export function campaignShellMode(state: CampaignShellState): CampaignShellMode {
   const screen = currentShellScreen(state);
   if (state.loading) return { kind: "opening", screen };
   if (state.error !== null) {

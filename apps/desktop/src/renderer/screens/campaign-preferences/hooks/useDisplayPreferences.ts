@@ -26,9 +26,7 @@ export interface UseDisplayPreferencesReturn {
 }
 
 export function useDisplayPreferences(): UseDisplayPreferencesReturn {
-  const [displayPrefs, setDisplayPrefs] = useState<DisplayPreferences>(
-    loadDisplayPreferences,
-  );
+  const [displayPrefs, setDisplayPrefs] = useState<DisplayPreferences>(loadDisplayPreferences);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(displayPrefs));

@@ -33,12 +33,7 @@ export const PageHeader = memo(function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <div
-      className={cn(
-        "flex flex-wrap items-center justify-between gap-4",
-        className,
-      )}
-    >
+    <div className={cn("flex flex-wrap items-center justify-between gap-4", className)}>
       <div className="flex items-center gap-2">
         {onBack !== undefined && (
           <Button
@@ -84,9 +79,7 @@ export const PageHeader = memo(function PageHeader({
           )}
         </div>
       </div>
-      {actions !== undefined && (
-        <div className="flex shrink-0 items-center gap-2">{actions}</div>
-      )}
+      {actions !== undefined && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </div>
   );
 });

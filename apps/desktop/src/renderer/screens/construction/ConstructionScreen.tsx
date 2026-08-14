@@ -4,23 +4,14 @@ import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
 import { Kbd } from "../../components/ui/kbd.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "../../components/ui/tabs.js";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs.js";
 import { StatsPanel } from "./components/StatsPanel.js";
 import { DesignPicker } from "./components/DesignPicker.js";
 import { CommandTable } from "./components/CommandTable.js";
 import { LoadErrorCard } from "./components/LoadErrorCard.js";
 import { useConstructionScreen } from "./hooks/useConstructionScreen.js";
 
-export function ConstructionScreen({
-  sessionId,
-}: {
-  readonly sessionId: string;
-}) {
+export function ConstructionScreen({ sessionId }: { readonly sessionId: string }) {
   const {
     state,
     loadError,
@@ -35,9 +26,7 @@ export function ConstructionScreen({
   const [activeTab, setActiveTab] = useState("overview");
 
   if (loadError !== null) {
-    return (
-      <LoadErrorCard message={loadError} onReload={() => void loadScreen()} />
-    );
+    return <LoadErrorCard message={loadError} onReload={() => void loadScreen()} />;
   }
 
   if (state.workspace === null || state.economy === null) {
@@ -80,10 +69,7 @@ export function ConstructionScreen({
           <TabsTrigger value="commands">
             Command Ledger
             {submittedCount > 0 && (
-              <Badge
-                variant="secondary"
-                className="ml-1.5 px-1.5 py-0 text-[11px]"
-              >
+              <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[11px]">
                 {submittedCount}
               </Badge>
             )}

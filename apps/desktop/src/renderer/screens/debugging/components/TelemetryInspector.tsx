@@ -60,8 +60,7 @@ export function TelemetryInspector({
                 Wide Event Telemetry Inspector
               </CardTitle>
               <CardDescription className="text-xs">
-                Audit the canonical user action telemetries following Wide Event
-                principles.
+                Audit the canonical user action telemetries following Wide Event principles.
               </CardDescription>
             </div>
             <AlertDialog>
@@ -82,15 +81,13 @@ export function TelemetryInspector({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Clear telemetry log?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This permanently removes all {events.length} recorded wide
-                    events from local storage. This cannot be undone.
+                    This permanently removes all {events.length} recorded wide events from local
+                    storage. This cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={onClearEvents}>
-                    Clear log
-                  </AlertDialogAction>
+                  <AlertDialogAction onClick={onClearEvents}>Clear log</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -111,10 +108,7 @@ export function TelemetryInspector({
             <span>Click a row for full diagnostics & payload</span>
           </div>
 
-          <TelemetryTable
-            events={filteredEvents}
-            onSelectEvent={onSelectEvent}
-          />
+          <TelemetryTable events={filteredEvents} onSelectEvent={onSelectEvent} />
         </CardContent>
       </Card>
 

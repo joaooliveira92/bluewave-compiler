@@ -42,9 +42,7 @@ export function useStackedCarousel({
   const suppressClickRef = useRef(false);
   const wheelAccumulatorRef = useRef(0);
   const wheelLockedRef = useRef(false);
-  const wheelUnlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const wheelUnlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const selectPrevious = useCallback(() => {
@@ -77,11 +75,7 @@ export function useStackedCarousel({
 
     const handleWheel = (event: Event) => {
       const wheelEvent = event as WheelEvent;
-      if (
-        itemCount <= 1 ||
-        Math.abs(wheelEvent.deltaX) > Math.abs(wheelEvent.deltaY)
-      )
-        return;
+      if (itemCount <= 1 || Math.abs(wheelEvent.deltaX) > Math.abs(wheelEvent.deltaY)) return;
 
       wheelEvent.preventDefault();
       if (wheelLockedRef.current) return;
@@ -108,11 +102,7 @@ export function useStackedCarousel({
       const deltaY = pointerEvent.clientY - state.startY;
       state.lastY = pointerEvent.clientY;
 
-      if (
-        !state.dragging &&
-        Math.abs(deltaY) > 6 &&
-        Math.abs(deltaY) > Math.abs(deltaX)
-      ) {
+      if (!state.dragging && Math.abs(deltaY) > 6 && Math.abs(deltaY) > Math.abs(deltaX)) {
         state.dragging = true;
         suppressClickRef.current = true;
         setIsDragging(true);
@@ -162,37 +152,26 @@ export function useStackedCarousel({
           onUnhandledKeyDown(event);
       }
     },
-    [
-      focusedIndex,
-      itemCount,
-      onConfirm,
-      onSelect,
-      onUnhandledKeyDown,
-      selectNext,
-      selectPrevious,
-    ],
+    [focusedIndex, itemCount, onConfirm, onSelect, onUnhandledKeyDown, selectNext, selectPrevious],
   );
 
-  const handlePointerDown = useCallback(
-    (event: PointerEvent<HTMLDivElement>) => {
-      if (event.pointerType === "mouse" && event.button !== 0) return;
+  const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
 
-      // Options use tabIndex=-1 with roving aria-activedescendant focus; without
-      // this, Chrome moves real DOM focus onto the clicked card, which can then
-      // go aria-hidden while still focused as the carousel rotates.
-      event.preventDefault();
-      suppressClickRef.current = false;
-      pointerStateRef.current = {
-        pointerId: event.pointerId,
-        startX: event.clientX,
-        startY: event.clientY,
-        lastY: event.clientY,
-        dragging: false,
-      };
-      event.currentTarget.setPointerCapture(event.pointerId);
-    },
-    [],
-  );
+    // Options use tabIndex=-1 with roving aria-activedescendant focus; without
+    // this, Chrome moves real DOM focus onto the clicked card, which can then
+    // go aria-hidden while still focused as the carousel rotates.
+    event.preventDefault();
+    suppressClickRef.current = false;
+    pointerStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastY: event.clientY,
+      dragging: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
 
   const finishPointerInteraction = useCallback(
     (event: PointerEvent<HTMLDivElement>, cancelled = false) => {
@@ -212,8 +191,7 @@ export function useStackedCarousel({
       setDragOffset(0);
       setIsDragging(false);
 
-      if (cancelled || !state.dragging || Math.abs(deltaY) < SWIPE_THRESHOLD_PX)
-        return;
+      if (cancelled || !state.dragging || Math.abs(deltaY) < SWIPE_THRESHOLD_PX) return;
       if (deltaY < 0) selectNext();
       else selectPrevious();
     },
@@ -227,8 +205,7 @@ export function useStackedCarousel({
     containerRef,
     handleKeyDown,
     handlePointerDown,
-    handlePointerUp: (event: PointerEvent<HTMLDivElement>) =>
-      finishPointerInteraction(event),
+    handlePointerUp: (event: PointerEvent<HTMLDivElement>) => finishPointerInteraction(event),
     handlePointerCancel: (event: PointerEvent<HTMLDivElement>) =>
       finishPointerInteraction(event, true),
   };

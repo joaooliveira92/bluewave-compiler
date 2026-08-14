@@ -17,9 +17,7 @@ export const ScreenHeader = memo(function ScreenHeader({
         {icon}
       </span>
       <div>
-        <h1 className="text-xl font-medium tracking-tight text-pretty">
-          {title}
-        </h1>
+        <h1 className="text-xl font-medium tracking-tight text-pretty">{title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
     </div>

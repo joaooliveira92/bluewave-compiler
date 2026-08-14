@@ -41,9 +41,7 @@ export function initialFleetScreenState(): FleetScreenState {
  * Map a fleet projection's domain fields into the state. The command screen
  * module owns the lifecycle fields (revision, pending, refresh, notice).
  */
-export function projectFleetScreen(
-  projection: FleetScreenProjection,
-): Partial<FleetScreenState> {
+export function projectFleetScreen(projection: FleetScreenProjection): Partial<FleetScreenState> {
   return {
     month: projection.month,
     playerNationId: projection.playerNationId,
@@ -65,8 +63,7 @@ export function pendingRouteFor(
 ): MovementCommand | null {
   return (
     state.movementCommands.find(
-      (command) =>
-        command.divisionId === divisionId && command.status === "submitted",
+      (command) => command.divisionId === divisionId && command.status === "submitted",
     ) ?? null
   );
 }

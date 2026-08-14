@@ -14,9 +14,7 @@ export interface RulesetPanelProps {
   readonly config: CampaignConfigDisplay;
 }
 
-export const RulesetPanel = memo(function RulesetPanel({
-  config,
-}: RulesetPanelProps) {
+export const RulesetPanel = memo(function RulesetPanel({ config }: RulesetPanelProps) {
   const entries: ReadonlyArray<readonly [string, string]> = [
     ["Continuity Mode", config.continuityMode],
     ["Fleet Size", config.fleetSize],
@@ -34,9 +32,7 @@ export const RulesetPanel = memo(function RulesetPanel({
           <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
           Ruleset Options
         </CardTitle>
-        <CardDescription>
-          Set at campaign creation &mdash; read-only during play.
-        </CardDescription>
+        <CardDescription>Set at campaign creation &mdash; read-only during play.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">

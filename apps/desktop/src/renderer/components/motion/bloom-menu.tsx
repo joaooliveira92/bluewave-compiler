@@ -1,25 +1,9 @@
 "use client";
 // beui.dev/components/blocks/bloom-menu
 
-import {
-  Bell,
-  FileText,
-  FolderClosed,
-  LayoutGrid,
-  Link,
-  Plus,
-  Table,
-  X,
-} from "lucide-react";
+import { Bell, FileText, FolderClosed, LayoutGrid, Link, Plus, Table, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import {
-  type ComponentType,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ComponentType, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { EASE_OUT } from "../../lib/ease.js";
 import { cn } from "../../lib/utils.js";
@@ -77,10 +61,7 @@ export function BloomMenu({
     };
     const onPointer = (e: PointerEvent) => {
       const target = e.target as Node;
-      if (
-        !ref.current?.contains(target) &&
-        !portalRef.current?.contains(target)
-      ) {
+      if (!ref.current?.contains(target) && !portalRef.current?.contains(target)) {
         setOpen(false);
       }
     };
@@ -159,9 +140,7 @@ export function BloomMenu({
                   >
                     {/* header */}
                     <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        {title}
-                      </span>
+                      <span className="text-sm font-medium text-muted-foreground">{title}</span>
                       <button
                         type="button"
                         onClick={() => setOpen(false)}
@@ -177,9 +156,7 @@ export function BloomMenu({
                       // Iris reveal: start as a small box at the grid center and open
                       // outward to all four corners, so the menu grows from the middle
                       // in every direction instead of wiping top-down.
-                      initial={
-                        reduce ? false : { clipPath: "inset(45% 34% 45% 34%)" }
-                      }
+                      initial={reduce ? false : { clipPath: "inset(45% 34% 45% 34%)" }}
                       animate={{ clipPath: "inset(0% 0% 0% 0%)" }}
                       transition={{
                         delay: reduce ? 0 : 0.08,
@@ -196,10 +173,7 @@ export function BloomMenu({
                         const rows = Math.ceil(items.length / cols);
                         const col = i % cols;
                         const row = Math.floor(i / cols);
-                        const dist = Math.hypot(
-                          col - (cols - 1) / 2,
-                          row - (rows - 1) / 2,
-                        );
+                        const dist = Math.hypot(col - (cols - 1) / 2, row - (rows - 1) / 2);
                         return (
                           <button
                             key={item.label}
@@ -243,9 +217,7 @@ export function BloomMenu({
                               className="flex flex-col items-center gap-2"
                             >
                               <item.icon className="h-5 w-5" />
-                              <span className="text-sm font-medium">
-                                {item.label}
-                              </span>
+                              <span className="text-sm font-medium">{item.label}</span>
                             </motion.span>
                           </button>
                         );
@@ -268,10 +240,7 @@ export function BloomMenu({
                 >
                   {/* own `layout` counter-scales the label so it stays crisp while the
                   button box morphs, instead of stretching with it */}
-                  <motion.span
-                    layout
-                    className="inline-flex items-center gap-2 whitespace-nowrap"
-                  >
+                  <motion.span layout className="inline-flex items-center gap-2 whitespace-nowrap">
                     {title}
                     <TriggerIcon className="h-4 w-4" />
                   </motion.span>

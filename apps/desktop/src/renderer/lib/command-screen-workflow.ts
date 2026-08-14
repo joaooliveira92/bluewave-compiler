@@ -71,8 +71,7 @@ export function describeRejection(
         ? [`${reason}: ${diagnostics[0]}`]
         : [`${reason}:`, ...diagnostics.map((diagnostic) => `• ${diagnostic}`)];
 
-  if (currentRevision !== undefined)
-    lines.push(`current revision ${currentRevision}`);
+  if (currentRevision !== undefined) lines.push(`current revision ${currentRevision}`);
   return lines.join("\n");
 }
 
@@ -99,11 +98,7 @@ export function applyRejection<State extends RequestLifecycle>(
     revision: rejection.currentRevision ?? state.revision,
     pendingRequest: null,
     requiresRefresh: rejection.currentRevision !== undefined,
-    notice: describeRejection(
-      rejection.reason,
-      rejection.diagnostics,
-      rejection.currentRevision,
-    ),
+    notice: describeRejection(rejection.reason, rejection.diagnostics, rejection.currentRevision),
   };
 }
 
@@ -190,9 +185,7 @@ export function useCommandScreenWorkflow<
   State extends RequestLifecycle,
   Projection extends { readonly revision: number },
   Value,
->(
-  adapter: CommandScreenAdapter<State, Projection, Value>,
-): CommandScreenWorkflow<State, Value> {
+>(adapter: CommandScreenAdapter<State, Projection, Value>): CommandScreenWorkflow<State, Value> {
   const [state, setState] = useState<State>(adapter.initialState);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [outcomeUnknown, setOutcomeUnknown] = useState(false);
@@ -222,11 +215,7 @@ export function useCommandScreenWorkflow<
       }
       setLoadError(null);
       setState((currentState) =>
-        applyProjection(
-          currentState,
-          result.value,
-          current.project(result.value),
-        ),
+        applyProjection(currentState, result.value, current.project(result.value)),
       );
       current.onProjection?.(result.value);
     } catch (error) {
@@ -293,7 +282,6 @@ export function useCommandScreenWorkflow<
     loadError,
     request: { outcomeUnknown, retry },
     loadScreen,
-    execute: (kind, send) =>
-      void run(prepareCommand(kind, revisionRef.current, send)),
+    execute: (kind, send) => void run(prepareCommand(kind, revisionRef.current, send)),
   };
 }

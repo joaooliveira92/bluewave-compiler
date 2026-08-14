@@ -5,20 +5,9 @@ import * as React from "react";
 import { Button } from "./button.js";
 import { Input } from "./input.js";
 import { Separator } from "./separator.js";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "./sheet.js";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "./sheet.js";
 import { Skeleton } from "./skeleton.js";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./tooltip.js";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip.js";
 import { useIsMobile } from "../../lib/use-mobile.js";
 import { cn } from "../../lib/utils.js";
 
@@ -41,8 +30,7 @@ const SidebarContext = React.createContext<SidebarContextValue | null>(null);
 
 export function useSidebar(): SidebarContextValue {
   const context = React.use(SidebarContext);
-  if (context === null)
-    throw new Error("useSidebar must be used within a SidebarProvider.");
+  if (context === null) throw new Error("useSidebar must be used within a SidebarProvider.");
   return context;
 }
 
@@ -83,10 +71,7 @@ const SidebarProvider = ({
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
-        (event.metaKey || event.ctrlKey)
-      ) {
+      if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         toggleSidebar();
       }
@@ -121,10 +106,7 @@ const SidebarProvider = ({
               ...style,
             } as React.CSSProperties
           }
-          className={cn(
-            "group/sidebar-wrapper flex min-h-svh w-full",
-            className,
-          )}
+          className={cn("group/sidebar-wrapper flex min-h-svh w-full", className)}
           {...props}
         >
           {children}
@@ -176,9 +158,7 @@ const Sidebar = ({
           data-mobile="true"
           side={side}
           className="w-(--sidebar-width) bg-sidebar/70 p-0 text-sidebar-foreground backdrop-blur-md [&>button]:hidden supports-[backdrop-filter]:bg-sidebar/60"
-          style={
-            { "--sidebar-width": SIDEBAR_WIDTH_MOBILE } as React.CSSProperties
-          }
+          style={{ "--sidebar-width": SIDEBAR_WIDTH_MOBILE } as React.CSSProperties}
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Sidebar</SheetTitle>
@@ -238,12 +218,7 @@ interface SidebarTriggerProps extends React.ComponentProps<typeof Button> {
   ref?: React.Ref<React.ComponentRef<typeof Button>> | undefined;
 }
 
-const SidebarTrigger = ({
-  className,
-  onClick,
-  ref,
-  ...props
-}: SidebarTriggerProps) => {
+const SidebarTrigger = ({ className, onClick, ref, ...props }: SidebarTriggerProps) => {
   const { toggleSidebar } = useSidebar();
 
   return (
@@ -299,10 +274,7 @@ interface SidebarInsetProps extends React.ComponentProps<"main"> {
 const SidebarInset = ({ className, ref, ...props }: SidebarInsetProps) => (
   <main
     ref={ref}
-    className={cn(
-      "relative flex min-h-svh w-full flex-1 flex-col bg-background",
-      className,
-    )}
+    className={cn("relative flex min-h-svh w-full flex-1 flex-col bg-background", className)}
     {...props}
   />
 );
@@ -350,11 +322,7 @@ interface SidebarSeparatorProps extends React.ComponentProps<typeof Separator> {
   ref?: React.Ref<React.ComponentRef<typeof Separator>> | undefined;
 }
 
-const SidebarSeparator = ({
-  className,
-  ref,
-  ...props
-}: SidebarSeparatorProps) => (
+const SidebarSeparator = ({ className, ref, ...props }: SidebarSeparatorProps) => (
   <Separator
     ref={ref}
     data-sidebar="separator"
@@ -450,11 +418,7 @@ interface SidebarMenuItemProps extends React.ComponentProps<"li"> {
   ref?: React.Ref<HTMLLIElement> | undefined;
 }
 
-const SidebarMenuItem = ({
-  className,
-  ref,
-  ...props
-}: SidebarMenuItemProps) => (
+const SidebarMenuItem = ({ className, ref, ...props }: SidebarMenuItemProps) => (
   <li
     ref={ref}
     data-sidebar="menu-item"
@@ -556,16 +520,8 @@ const SidebarMenuSkeleton = ({
     className={cn("flex h-8 items-center gap-2 rounded-md px-2", className)}
     {...props}
   >
-    {showIcon && (
-      <Skeleton
-        className="size-4 rounded-md"
-        data-sidebar="menu-skeleton-icon"
-      />
-    )}
-    <Skeleton
-      className="h-4 max-w-(--skeleton-width) flex-1"
-      data-sidebar="menu-skeleton-text"
-    />
+    {showIcon && <Skeleton className="size-4 rounded-md" data-sidebar="menu-skeleton-icon" />}
+    <Skeleton className="h-4 max-w-(--skeleton-width) flex-1" data-sidebar="menu-skeleton-text" />
   </div>
 );
 SidebarMenuSkeleton.displayName = "SidebarMenuSkeleton";

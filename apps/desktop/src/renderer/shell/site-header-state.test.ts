@@ -40,9 +40,7 @@ describe("formatTreasury", () => {
 describe("formatCampaignMonth", () => {
   it("names the month", () => {
     expect(formatCampaignMonth({ year: 1900, month: 1 })).toBe("January 1900");
-    expect(formatCampaignMonth({ year: 1906, month: 12 })).toBe(
-      "December 1906",
-    );
+    expect(formatCampaignMonth({ year: 1906, month: 12 })).toBe("December 1906");
   });
 
   it("falls back to a numeric form for an out-of-range month", () => {
@@ -90,10 +88,7 @@ describe("describeSecondaryRow", () => {
     if (row.kind !== "campaign") throw new Error("expected a campaign row");
 
     const unbacked = row.metrics.filter((metric) => metric.placeholder);
-    expect(unbacked.map((metric) => metric.icon)).toEqual([
-      "prestige",
-      "tension",
-    ]);
+    expect(unbacked.map((metric) => metric.icon)).toEqual(["prestige", "tension"]);
   });
 
   it("shows a dash for the budget when the campaign has not loaded", () => {

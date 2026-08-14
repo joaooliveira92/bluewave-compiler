@@ -15,7 +15,12 @@ export default defineConfig({
     environment: "jsdom",
     // e2e/ holds Playwright specs (run via `playwright test`, not vitest) —
     // excluded explicitly since Playwright's own test() throws when picked
-    // up by another runner.
-    exclude: ["**/node_modules/**", "e2e/**"],
+    // up by another runner. dist/ is gitignored `tsc -b` output; its
+    // `.test.jsx` emits reference sibling `.js` imports that don't exist
+    // (tsconfig emits `.jsx` under `"jsx": "preserve"`, not `.js`), so
+    // running `pnpm typecheck` before `pnpm test` in the same tree would
+    // otherwise surface phantom import-resolution failures unrelated to
+    // any real test.
+    exclude: ["**/node_modules/**", "e2e/**", "dist/**"],
   },
 });

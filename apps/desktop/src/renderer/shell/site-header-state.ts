@@ -149,9 +149,7 @@ export function describeSecondaryRow(
   }
 }
 
-function campaignMetrics(
-  campaign: HeaderCampaign | null,
-): readonly HeaderMetric[] {
+function campaignMetrics(campaign: HeaderCampaign | null): readonly HeaderMetric[] {
   return [
     {
       icon: "budget",

@@ -19,18 +19,13 @@ export function SandboxResolveCard() {
       <CardHeader>
         <CardTitle className="text-sm font-medium">Resolve</CardTitle>
         <CardDescription>
-          Auto-resolve for a single deterministic outcome, or run the
-          turn-by-turn tactical resolver with scripted Admiral-mode orders.
+          Auto-resolve for a single deterministic outcome, or run the turn-by-turn tactical resolver
+          with scripted Admiral-mode orders.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={actions.autoResolve}
-            disabled={state.busy}
-          >
+          <Button variant="outline" size="sm" onClick={actions.autoResolve} disabled={state.busy}>
             Auto-Resolve
           </Button>
           <Button
@@ -61,9 +56,7 @@ export function SandboxResolveCard() {
             id="scriptedOrders"
             rows={8}
             value={state.scriptedOrdersText}
-            onChange={(event) =>
-              actions.updateScriptedOrdersText(event.target.value)
-            }
+            onChange={(event) => actions.updateScriptedOrdersText(event.target.value)}
           />
         </Field>
 
@@ -87,13 +80,7 @@ export function SandboxResolveCard() {
                 : "border-destructive/30 bg-destructive/5"
             }`}
           >
-            <p
-              className={
-                state.boundaryReplay.matches
-                  ? "text-success"
-                  : "text-destructive"
-              }
-            >
+            <p className={state.boundaryReplay.matches ? "text-success" : "text-destructive"}>
               Boundary {state.boundaryReplay.matches ? "MATCHES" : "DIVERGED"}
             </p>
             {state.boundaryReplay.diagnostics.map((diagnostic, idx) => (

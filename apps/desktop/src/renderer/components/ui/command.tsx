@@ -5,9 +5,7 @@ import * as React from "react";
 
 import { cn } from "../../lib/utils.js";
 
-interface CommandProps extends React.ComponentPropsWithoutRef<
-  typeof CommandPrimitive
-> {
+interface CommandProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive> {
   ref?: React.Ref<React.ComponentRef<typeof CommandPrimitive>> | undefined;
 }
 
@@ -48,9 +46,7 @@ const CommandDialog = ({
           "data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95",
         )}
       >
-        <CommandDialogPrimitive.Title className="sr-only">
-          {title}
-        </CommandDialogPrimitive.Title>
+        <CommandDialogPrimitive.Title className="sr-only">{title}</CommandDialogPrimitive.Title>
         <CommandDialogPrimitive.Description className="sr-only">
           {description}
         </CommandDialogPrimitive.Description>
@@ -62,12 +58,8 @@ const CommandDialog = ({
   </CommandDialogPrimitive.Root>
 );
 
-interface CommandInputProps extends React.ComponentPropsWithoutRef<
-  typeof CommandPrimitive.Input
-> {
-  ref?:
-    | React.Ref<React.ComponentRef<typeof CommandPrimitive.Input>>
-    | undefined;
+interface CommandInputProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input> {
+  ref?: React.Ref<React.ComponentRef<typeof CommandPrimitive.Input>> | undefined;
 }
 
 const CommandInput = ({ className, ref, ...props }: CommandInputProps) => (
@@ -85,9 +77,7 @@ const CommandInput = ({ className, ref, ...props }: CommandInputProps) => (
 );
 CommandInput.displayName = CommandPrimitive.Input.displayName;
 
-interface CommandListProps extends React.ComponentPropsWithoutRef<
-  typeof CommandPrimitive.List
-> {
+interface CommandListProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.List> {
   ref?: React.Ref<React.ComponentRef<typeof CommandPrimitive.List>> | undefined;
 }
 
@@ -100,12 +90,8 @@ const CommandList = ({ className, ref, ...props }: CommandListProps) => (
 );
 CommandList.displayName = CommandPrimitive.List.displayName;
 
-interface CommandEmptyProps extends React.ComponentPropsWithoutRef<
-  typeof CommandPrimitive.Empty
-> {
-  ref?:
-    | React.Ref<React.ComponentRef<typeof CommandPrimitive.Empty>>
-    | undefined;
+interface CommandEmptyProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.Empty> {
+  ref?: React.Ref<React.ComponentRef<typeof CommandPrimitive.Empty>> | undefined;
 }
 
 const CommandEmpty = ({ ref, ...props }: CommandEmptyProps) => (
@@ -117,12 +103,8 @@ const CommandEmpty = ({ ref, ...props }: CommandEmptyProps) => (
 );
 CommandEmpty.displayName = CommandPrimitive.Empty.displayName;
 
-interface CommandGroupProps extends React.ComponentPropsWithoutRef<
-  typeof CommandPrimitive.Group
-> {
-  ref?:
-    | React.Ref<React.ComponentRef<typeof CommandPrimitive.Group>>
-    | undefined;
+interface CommandGroupProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.Group> {
+  ref?: React.Ref<React.ComponentRef<typeof CommandPrimitive.Group>> | undefined;
 }
 
 const CommandGroup = ({ className, ref, ...props }: CommandGroupProps) => (
@@ -137,16 +119,10 @@ CommandGroup.displayName = CommandPrimitive.Group.displayName;
 interface CommandSeparatorProps extends React.ComponentPropsWithoutRef<
   typeof CommandPrimitive.Separator
 > {
-  ref?:
-    | React.Ref<React.ComponentRef<typeof CommandPrimitive.Separator>>
-    | undefined;
+  ref?: React.Ref<React.ComponentRef<typeof CommandPrimitive.Separator>> | undefined;
 }
 
-const CommandSeparator = ({
-  className,
-  ref,
-  ...props
-}: CommandSeparatorProps) => (
+const CommandSeparator = ({ className, ref, ...props }: CommandSeparatorProps) => (
   <CommandPrimitive.Separator
     ref={ref}
     className={cn("-mx-1 h-px bg-border", className)}
@@ -155,9 +131,7 @@ const CommandSeparator = ({
 );
 CommandSeparator.displayName = CommandPrimitive.Separator.displayName;
 
-interface CommandItemProps extends React.ComponentPropsWithoutRef<
-  typeof CommandPrimitive.Item
-> {
+interface CommandItemProps extends React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item> {
   ref?: React.Ref<React.ComponentRef<typeof CommandPrimitive.Item>> | undefined;
 }
 
@@ -174,15 +148,9 @@ const CommandItem = ({ className, ref, ...props }: CommandItemProps) => (
 );
 CommandItem.displayName = CommandPrimitive.Item.displayName;
 
-const CommandShortcut = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLSpanElement>) => (
+const CommandShortcut = ({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) => (
   <span
-    className={cn(
-      "ml-auto text-xs tracking-widest text-muted-foreground",
-      className,
-    )}
+    className={cn("ml-auto text-xs tracking-widest text-muted-foreground", className)}
     {...props}
   />
 );

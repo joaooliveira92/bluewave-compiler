@@ -55,32 +55,21 @@ const BACKGROUND_OPTIONS: {
   { label: "None", value: "none", icon: Ban },
 ];
 
-export function OptionsScreen({
-  saving,
-  onSave,
-  onCloseCampaign,
-}: OptionsScreenProps) {
+export function OptionsScreen({ saving, onSave, onCloseCampaign }: OptionsScreenProps) {
   const { background, setBackground } = useBackground();
   const activeOption =
-    BACKGROUND_OPTIONS.find((option) => option.value === background) ??
-    BACKGROUND_OPTIONS[0];
+    BACKGROUND_OPTIONS.find((option) => option.value === background) ?? BACKGROUND_OPTIONS[0];
   const activeLabel = activeOption?.label ?? "Background";
   const activeIcon = activeOption?.icon ?? Palette;
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        icon={Settings}
-        title="Options"
-        description="Campaign-level actions."
-      />
+      <PageHeader icon={Settings} title="Options" description="Campaign-level actions." />
 
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium">Background</CardTitle>
-          <CardDescription>
-            Choose the animated backdrop behind the app.
-          </CardDescription>
+          <CardDescription>Choose the animated backdrop behind the app.</CardDescription>
         </CardHeader>
         <CardContent>
           <BloomMenu
@@ -92,9 +81,7 @@ export function OptionsScreen({
               icon: option.icon,
             }))}
             onSelect={(label) => {
-              const option = BACKGROUND_OPTIONS.find(
-                (candidate) => candidate.label === label,
-              );
+              const option = BACKGROUND_OPTIONS.find((candidate) => candidate.label === label);
               if (option !== undefined) setBackground(option.value);
             }}
           />
@@ -104,9 +91,7 @@ export function OptionsScreen({
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium">Save Campaign</CardTitle>
-          <CardDescription>
-            Write the current campaign state to its package file.
-          </CardDescription>
+          <CardDescription>Write the current campaign state to its package file.</CardDescription>
         </CardHeader>
         <CardContent>
           <Button variant="default" onClick={onSave} disabled={saving}>
@@ -135,15 +120,12 @@ export function OptionsScreen({
               <AlertDialogHeader>
                 <AlertDialogTitle>Close this campaign?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  You will be returned to the campaign file screen. Unsaved
-                  progress may be lost.
+                  You will be returned to the campaign file screen. Unsaved progress may be lost.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={onCloseCampaign}>
-                  Close Campaign
-                </AlertDialogAction>
+                <AlertDialogAction onClick={onCloseCampaign}>Close Campaign</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

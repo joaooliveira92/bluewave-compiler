@@ -44,11 +44,7 @@ export function loadRecentFiles(): RecentFile[] {
     }
 
     if (!isRecord(parsed)) return [];
-    if (
-      parsed.version !== RECENT_FILES_SCHEMA_VERSION ||
-      !Array.isArray(parsed.files)
-    )
-      return [];
+    if (parsed.version !== RECENT_FILES_SCHEMA_VERSION || !Array.isArray(parsed.files)) return [];
     return parsed.files.filter(isRecentFile);
   } catch {
     return [];

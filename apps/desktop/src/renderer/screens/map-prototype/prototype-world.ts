@@ -1239,12 +1239,8 @@ export const FLEETS: readonly PrototypeFleet[] = [
 ];
 
 export const AREAS_BY_ID = new Map(AREAS.map((area) => [area.id, area]));
-export const NATIONS_BY_ID = new Map(
-  NATIONS.map((nation) => [nation.id, nation]),
-);
-export const PASSAGES_BY_ID = new Map(
-  PASSAGES.map((passage) => [passage.id, passage]),
-);
+export const NATIONS_BY_ID = new Map(NATIONS.map((nation) => [nation.id, nation]));
+export const PASSAGES_BY_ID = new Map(PASSAGES.map((passage) => [passage.id, passage]));
 
 /**
  * Ownership is derived, not authored: an area is "held" by whoever owns the
@@ -1297,14 +1293,10 @@ export function routeBetween(
     const forward = neighbours.get(edge.a) ?? [];
     const backward = neighbours.get(edge.b) ?? [];
     forward.push(
-      edge.passage === undefined
-        ? { id: edge.b }
-        : { id: edge.b, passage: edge.passage },
+      edge.passage === undefined ? { id: edge.b } : { id: edge.b, passage: edge.passage },
     );
     backward.push(
-      edge.passage === undefined
-        ? { id: edge.a }
-        : { id: edge.a, passage: edge.passage },
+      edge.passage === undefined ? { id: edge.a } : { id: edge.a, passage: edge.passage },
     );
     neighbours.set(edge.a, forward);
     neighbours.set(edge.b, backward);

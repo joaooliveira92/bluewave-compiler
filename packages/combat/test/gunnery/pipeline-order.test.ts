@@ -60,7 +60,9 @@ describe("AC-11 resolveGunnery pipeline order (INC-4)", () => {
     });
     for (const minute of res.results) {
       const gunneryIdx = minute.events.findIndex((e) => e.eventType === "gunnery_salvo");
-      const spottingIdx = minute.events.findIndex((e) => e.eventType === "resolve_sensors_spotting");
+      const spottingIdx = minute.events.findIndex(
+        (e) => e.eventType === "resolve_sensors_spotting",
+      );
       expect(gunneryIdx).toBeGreaterThan(spottingIdx);
       // every minute's events are fully canonically sorted (existing ledger order)
       expect(minute.events).toEqual([...minute.events].sort(canonicalEventOrder));
@@ -80,9 +82,7 @@ describe("AC-11 resolveGunnery pipeline order (INC-4)", () => {
     expect(gunneryEvents).toHaveLength(2);
     // canonical order: identical eventIds would be the same battery; distinct batteries
     // keep distinct ids. Both sorted.
-    expect(res.results[0]!.events).toEqual(
-      [...res.results[0]!.events].sort(canonicalEventOrder),
-    );
+    expect(res.results[0]!.events).toEqual([...res.results[0]!.events].sort(canonicalEventOrder));
   });
 
   it("gunnery events carry the post-spotting substep (2) and priority (9)", () => {

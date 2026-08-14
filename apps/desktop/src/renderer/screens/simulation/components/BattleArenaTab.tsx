@@ -14,12 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card.js";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyIcon,
-  EmptyTitle,
-} from "../../../components/ui/empty.js";
+import { Empty, EmptyDescription, EmptyIcon, EmptyTitle } from "../../../components/ui/empty.js";
 import { Spinner } from "../../../components/ui/spinner.js";
 import { BattleManifestView } from "./BattleManifestView.js";
 import { BattleResolutionPanel } from "./BattleResolutionPanel.js";
@@ -60,12 +55,7 @@ export function BattleArenaTab({
       </CardHeader>
       <CardContent className="space-y-4">
         <ButtonGroup>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onGenerateBattle}
-            disabled={battleLoading}
-          >
+          <Button variant="secondary" size="sm" onClick={onGenerateBattle} disabled={battleLoading}>
             Generate Engagement
           </Button>
           <Button
@@ -106,15 +96,10 @@ export function BattleArenaTab({
             </EmptyDescription>
           </Empty>
         ) : (
-          battleManifest !== null && (
-            <BattleManifestView manifest={battleManifest} />
-          )
+          battleManifest !== null && <BattleManifestView manifest={battleManifest} />
         )}
 
-        <BattleResolutionPanel
-          autoResolution={autoResolution}
-          tacticalOutcome={tacticalOutcome}
-        />
+        <BattleResolutionPanel autoResolution={autoResolution} tacticalOutcome={tacticalOutcome} />
       </CardContent>
     </Card>
   );

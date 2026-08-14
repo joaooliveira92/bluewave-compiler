@@ -63,9 +63,7 @@ export function InteractiveGlobe({
     const pinSel = d3Selection.select(globe.pinRef.current);
     const ringSel = d3Selection.select(globe.ringRef.current);
     const focused = (): (typeof POINTS_DATA)[number] | undefined =>
-      focusedRef.current
-        ? POINTS_DATA.find((p) => p.countryId === focusedRef.current)
-        : undefined;
+      focusedRef.current ? POINTS_DATA.find((p) => p.countryId === focusedRef.current) : undefined;
 
     const baseScale = projection.scale();
     const extentWidth = globe.containerRef.current?.clientWidth ?? 800;
@@ -101,17 +99,12 @@ export function InteractiveGlobe({
           (exit) => exit.remove(),
         )
         .attr("data-country-id", (d) => d.countryId)
-        .style("display", (d) =>
-          isVisible(projection, d.lat, d.lng) ? null : "none",
-        )
+        .style("display", (d) => (isVisible(projection, d.lat, d.lng) ? null : "none"))
         .style("cursor", "pointer")
         .each(function (d) {
           const [x, y] = projection([d.lng, d.lat]) ?? [0, 0];
           const g = d3Selection.select(this);
-          g.select(".pin-hit-target")
-            .attr("cx", x)
-            .attr("cy", y)
-            .attr("r", PIN_HIT_RADIUS_PX);
+          g.select(".pin-hit-target").attr("cx", x).attr("cy", y).attr("r", PIN_HIT_RADIUS_PX);
           g.select(".pin-h")
             .attr("x1", x - pixelRadius * 2)
             .attr("y1", y)
@@ -133,11 +126,7 @@ export function InteractiveGlobe({
       const ringHalf = RING_BASE_HALF_PX;
       ringSel
         .selectAll<SVGRectElement, (typeof POINTS_DATA)[number]>("rect")
-        .data(
-          ringPoint && isVisible(projection, ringPoint.lat, ringPoint.lng)
-            ? [ringPoint]
-            : [],
-        )
+        .data(ringPoint && isVisible(projection, ringPoint.lat, ringPoint.lng) ? [ringPoint] : [])
         .join(
           (enter) =>
             enter
@@ -169,25 +158,20 @@ export function InteractiveGlobe({
       // rotation drag on one of the two touch points, fighting d3-zoom's
       // pinch handling below. Multi-touch starts are zoom's job only.
       .filter(
-        (event: Event) =>
-          event.type !== "touchstart" ||
-          (event as TouchEvent).touches.length === 1,
+        (event: Event) => event.type !== "touchstart" || (event as TouchEvent).touches.length === 1,
       )
       .on("start", () => {
         globe.setDragging(true);
         globe.rotationAnimRef.current = null;
       })
-      .on(
-        "drag",
-        (event: d3Drag.D3DragEvent<SVGSVGElement, unknown, unknown>) => {
-          const [lambda, phi] = projection.rotate();
-          const nextPhi = Math.max(
-            MIN_PHI_DEG,
-            Math.min(MAX_PHI_DEG, phi - event.dy * ROTATE_SENSITIVITY),
-          );
-          projection.rotate([lambda + event.dx * ROTATE_SENSITIVITY, nextPhi]);
-        },
-      )
+      .on("drag", (event: d3Drag.D3DragEvent<SVGSVGElement, unknown, unknown>) => {
+        const [lambda, phi] = projection.rotate();
+        const nextPhi = Math.max(
+          MIN_PHI_DEG,
+          Math.min(MAX_PHI_DEG, phi - event.dy * ROTATE_SENSITIVITY),
+        );
+        projection.rotate([lambda + event.dx * ROTATE_SENSITIVITY, nextPhi]);
+      })
       .on("end", () => {
         globe.setDragging(false);
       });
@@ -205,8 +189,7 @@ export function InteractiveGlobe({
       ])
       .filter((event: Event) => {
         if (event.type === "wheel") return true;
-        if (event.type === "touchstart")
-          return (event as TouchEvent).touches.length > 1;
+        if (event.type === "touchstart") return (event as TouchEvent).touches.length > 1;
         return false;
       })
       .on("zoom", (event: d3Zoom.D3ZoomEvent<SVGSVGElement, unknown>) => {
@@ -217,9 +200,7 @@ export function InteractiveGlobe({
     svg.call(drag);
 
     svg.on("click", (event: MouseEvent) => {
-      const target = (event.target as Element).closest(
-        ".svg-globe-pin",
-      ) as SVGGElement | null;
+      const target = (event.target as Element).closest(".svg-globe-pin") as SVGGElement | null;
       if (target?.dataset.countryId) {
         onNationClickRef.current?.(target.dataset.countryId);
       }
@@ -230,12 +211,7 @@ export function InteractiveGlobe({
     // the current scale rather than a stale pre-resize one — otherwise the
     // globe jumps).
     const unregisterResize = globe.registerResizeHandler(
-      ({
-        width,
-        height,
-        baseScale: newBase,
-        projection: proj,
-      }: SvgGlobeResizeContext) => {
+      ({ width, height, baseScale: newBase, projection: proj }: SvgGlobeResizeContext) => {
         zoom.scaleExtent([newBase, newBase * MAX_ZOOM_MULTIPLIER]).extent([
           [0, 0],
           [width, height],

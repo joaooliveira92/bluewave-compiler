@@ -21,24 +21,16 @@ export interface UseFleetScreenReturn {
     readonly retry: () => void;
   };
   readonly loadScreen: () => Promise<void>;
-  readonly setSelectedDivisionId: React.Dispatch<
-    React.SetStateAction<string | null>
-  >;
-  readonly setDestinationAreaId: React.Dispatch<
-    React.SetStateAction<string | null>
-  >;
+  readonly setSelectedDivisionId: React.Dispatch<React.SetStateAction<string | null>>;
+  readonly setDestinationAreaId: React.Dispatch<React.SetStateAction<string | null>>;
   readonly submit: () => void;
   readonly replace: (commandId: string) => void;
   readonly cancel: (commandId: string) => void;
 }
 
 export function useFleetScreen(sessionId: string): UseFleetScreenReturn {
-  const [selectedDivisionId, setSelectedDivisionId] = useState<string | null>(
-    null,
-  );
-  const [destinationAreaId, setDestinationAreaId] = useState<string | null>(
-    null,
-  );
+  const [selectedDivisionId, setSelectedDivisionId] = useState<string | null>(null);
+  const [destinationAreaId, setDestinationAreaId] = useState<string | null>(null);
   const bridge = window.bluewave;
   const workflow = useCommandScreenWorkflow<
     FleetScreenState,
@@ -53,18 +45,12 @@ export function useFleetScreen(sessionId: string): UseFleetScreenReturn {
     project: projectFleetScreen,
     accept: acceptMovementCommand,
     onProjection: (projection) => {
-      setSelectedDivisionId(
-        (current) => current ?? projection.divisions[0]?.divisionId ?? null,
-      );
-      setDestinationAreaId(
-        (current) => current ?? projection.areas[0]?.id ?? null,
-      );
+      setSelectedDivisionId((current) => current ?? projection.divisions[0]?.divisionId ?? null);
+      setDestinationAreaId((current) => current ?? projection.areas[0]?.id ?? null);
     },
   });
   function selectedDivision() {
-    return workflow.state.divisions.find(
-      (division) => division.divisionId === selectedDivisionId,
-    );
+    return workflow.state.divisions.find((division) => division.divisionId === selectedDivisionId);
   }
 
   function submit(): void {

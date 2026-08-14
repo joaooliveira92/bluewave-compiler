@@ -10,10 +10,7 @@ export interface CampaignFileScreenProps {
   readonly onStartNewGame: () => void;
 }
 
-export function CampaignFileScreen({
-  onOpenCampaign,
-  onStartNewGame,
-}: CampaignFileScreenProps) {
+export function CampaignFileScreen({ onOpenCampaign, onStartNewGame }: CampaignFileScreenProps) {
   const {
     recentFiles,
     result,
@@ -40,15 +37,8 @@ export function CampaignFileScreen({
         onOpen={openRecentCampaign}
         onRemove={removeRecentCampaign}
       />
-      <PackageOperations
-        pendingOperation={pendingOperation}
-        onRun={runPackageOperation}
-      />
-      <OperationStatus
-        pendingLabel={pendingLabel}
-        result={result}
-        onDismiss={dismissResult}
-      />
+      <PackageOperations pendingOperation={pendingOperation} onRun={runPackageOperation} />
+      <OperationStatus pendingLabel={pendingLabel} result={result} onDismiss={dismissResult} />
     </div>
   );
 }

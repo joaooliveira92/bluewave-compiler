@@ -1,11 +1,5 @@
 import { Anchor, Coins, Scroll } from "lucide-react";
-import {
-  type CSSProperties,
-  type KeyboardEvent,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type CSSProperties, type KeyboardEvent, useMemo, useRef, useState } from "react";
 import { DossierAccordionItem } from "./DossierAccordionItem.js";
 import type { DossierSection, DossierSectionId } from "./types.js";
 
@@ -19,9 +13,7 @@ const COLLAPSED_TAB_WIDTH = "clamp(2.75rem, 5vw, 3.5rem)";
 
 function getGridTemplate(expandedIndex: number): string {
   return [0, 1, 2]
-    .map((index) =>
-      index === expandedIndex ? "minmax(0, 1fr)" : COLLAPSED_TAB_WIDTH,
-    )
+    .map((index) => (index === expandedIndex ? "minmax(0, 1fr)" : COLLAPSED_TAB_WIDTH))
     .join(" ");
 }
 
@@ -60,18 +52,13 @@ export function DossierAccordion({
     [economy, military, diplomacy],
   );
 
-  const expandedIndex = sections.findIndex(
-    (section) => section.id === expanded,
-  );
+  const expandedIndex = sections.findIndex((section) => section.id === expanded);
 
   const gridStyle = {
     gridTemplateColumns: getGridTemplate(expandedIndex),
   } satisfies CSSProperties;
 
-  const handleKeyDown = (
-    event: KeyboardEvent<HTMLButtonElement>,
-    index: number,
-  ): void => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number): void => {
     let target: number | null = null;
 
     if (event.key === "ArrowRight" || event.key === "ArrowDown") {
@@ -92,10 +79,7 @@ export function DossierAccordion({
   };
 
   return (
-    <div
-      className="grid h-[15rem] min-h-0 w-full overflow-hidden sm:h-[10rem]"
-      style={gridStyle}
-    >
+    <div className="grid h-[15rem] min-h-0 w-full overflow-hidden sm:h-[10rem]" style={gridStyle}>
       {sections.map((section, index) => (
         <DossierAccordionItem
           key={section.id}

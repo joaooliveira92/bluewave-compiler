@@ -16,12 +16,7 @@ interface FieldProps extends React.HTMLAttributes<HTMLDivElement> {
   ref?: React.Ref<HTMLDivElement> | undefined;
 }
 
-const Field = ({
-  className,
-  orientation = "vertical",
-  ref,
-  ...props
-}: FieldProps) => (
+const Field = ({ className, orientation = "vertical", ref, ...props }: FieldProps) => (
   <div
     ref={ref}
     className={cn(
@@ -53,16 +48,8 @@ interface FieldDescriptionProps extends React.HTMLAttributes<HTMLParagraphElemen
   ref?: React.Ref<HTMLParagraphElement> | undefined;
 }
 
-const FieldDescription = ({
-  className,
-  ref,
-  ...props
-}: FieldDescriptionProps) => (
-  <p
-    ref={ref}
-    className={cn("text-xs text-muted-foreground", className)}
-    {...props}
-  />
+const FieldDescription = ({ className, ref, ...props }: FieldDescriptionProps) => (
+  <p ref={ref} className={cn("text-xs text-muted-foreground", className)} {...props} />
 );
 FieldDescription.displayName = "FieldDescription";
 

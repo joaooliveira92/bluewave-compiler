@@ -9,9 +9,7 @@ export interface UseAstInspectorReturn {
   readonly copied: boolean;
   readonly searchRef: React.RefObject<HTMLInputElement | null>;
   readonly setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
-  readonly setSelectedRecord: React.Dispatch<
-    React.SetStateAction<CompiledRecord | null>
-  >;
+  readonly setSelectedRecord: React.Dispatch<React.SetStateAction<CompiledRecord | null>>;
   readonly copyRecord: () => void;
 }
 
@@ -19,9 +17,7 @@ export function useAstInspector(sessionId: string): UseAstInspectorReturn {
   const bridge = window.bluewave;
   const [records, setRecords] = useState<readonly CompiledRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRecord, setSelectedRecord] = useState<CompiledRecord | null>(
-    null,
-  );
+  const [selectedRecord, setSelectedRecord] = useState<CompiledRecord | null>(null);
   const [copied, setCopied] = useState(false);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
@@ -32,10 +28,7 @@ export function useAstInspector(sessionId: string): UseAstInspectorReturn {
     async function loadContentPackRecords(): Promise<void> {
       if (bridge === undefined) return;
       try {
-        const designsRes = await bridge.campaign.execute(
-          "inspectConstructionScreen",
-          sessionId,
-        );
+        const designsRes = await bridge.campaign.execute("inspectConstructionScreen", sessionId);
         if (!cancelled && designsRes.outcome === "success") {
           const designs = designsRes.value.designs.map((d) => ({
             id: d.designId || d.className,
@@ -60,11 +53,7 @@ export function useAstInspector(sessionId: string): UseAstInspectorReturn {
     function onKeyDown(event: KeyboardEvent): void {
       if (event.key !== "/") return;
       const target = event.target as HTMLElement | null;
-      if (
-        target !== null &&
-        (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
-      )
-        return;
+      if (target !== null && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
       event.preventDefault();
       searchRef.current?.focus();
     }
@@ -74,9 +63,7 @@ export function useAstInspector(sessionId: string): UseAstInspectorReturn {
 
   const copyRecord = useCallback(() => {
     if (selectedRecord === null) return;
-    void navigator.clipboard.writeText(
-      JSON.stringify(selectedRecord.data, null, 2),
-    );
+    void navigator.clipboard.writeText(JSON.stringify(selectedRecord.data, null, 2));
     setCopied(true);
     if (copyTimerRef.current !== null) clearTimeout(copyTimerRef.current);
     copyTimerRef.current = setTimeout(() => setCopied(false), 1_500);
@@ -89,10 +76,7 @@ export function useAstInspector(sessionId: string): UseAstInspectorReturn {
     [],
   );
 
-  const filteredRecords = useMemo(
-    () => filterRecords(records, searchTerm),
-    [records, searchTerm],
-  );
+  const filteredRecords = useMemo(() => filterRecords(records, searchTerm), [records, searchTerm]);
 
   return {
     filteredRecords,

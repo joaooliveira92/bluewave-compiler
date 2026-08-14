@@ -88,13 +88,7 @@ interface LumaDriftProps extends React.HTMLAttributes<HTMLDivElement> {
   height?: string;
 }
 
-const LumaDrift = ({
-  speed = 1,
-  height = "100vh",
-  className,
-  style,
-  ...props
-}: LumaDriftProps) => {
+const LumaDrift = ({ speed = 1, height = "100vh", className, style, ...props }: LumaDriftProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
 
@@ -121,10 +115,7 @@ const LumaDrift = ({
 
     const program = gl.createProgram()!;
     gl.attachShader(program, compileShader(gl.VERTEX_SHADER, vertexShaderGLSL));
-    gl.attachShader(
-      program,
-      compileShader(gl.FRAGMENT_SHADER, fragmentShaderGLSL),
-    );
+    gl.attachShader(program, compileShader(gl.FRAGMENT_SHADER, fragmentShaderGLSL));
     gl.linkProgram(program);
     gl.useProgram(program);
 
@@ -176,10 +167,7 @@ const LumaDrift = ({
   return (
     <div
       ref={hostRef}
-      className={cn(
-        "relative flex w-full items-center overflow-hidden bg-black",
-        className,
-      )}
+      className={cn("relative flex w-full items-center overflow-hidden bg-black", className)}
       style={{ height, ...style }}
       {...props}
     >

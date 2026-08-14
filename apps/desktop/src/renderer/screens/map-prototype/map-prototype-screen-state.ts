@@ -23,13 +23,7 @@ import {
 } from "./prototype-world.js";
 import { nauticalMiles, type ProjectionId } from "./prototype-projection.js";
 
-export type LayerId =
-  | "ownership"
-  | "passages"
-  | "possessions"
-  | "fleets"
-  | "labels"
-  | "routes";
+export type LayerId = "ownership" | "passages" | "possessions" | "fleets" | "labels" | "routes";
 
 export const LAYERS: readonly { id: LayerId; label: string }[] = [
   { id: "ownership", label: "Ownership" },
@@ -67,28 +61,19 @@ export const initialMapPrototypeState: MapPrototypeState = {
   respectClosedPassages: true,
 };
 
-export function selectArea(
-  state: MapPrototypeState,
-  area: AreaId | null,
-): MapPrototypeState {
+export function selectArea(state: MapPrototypeState, area: AreaId | null): MapPrototypeState {
   return { ...state, selected: state.selected === area ? null : area };
 }
 
 /** Clicking with the ruler active sets `from`, then `to`, then starts over. */
-export function pushRuler(
-  state: MapPrototypeState,
-  area: AreaId,
-): MapPrototypeState {
+export function pushRuler(state: MapPrototypeState, area: AreaId): MapPrototypeState {
   if (state.rulerFrom === null || state.rulerTo !== null) {
     return { ...state, rulerFrom: area, rulerTo: null };
   }
   return { ...state, rulerTo: area };
 }
 
-export function toggleLayer(
-  state: MapPrototypeState,
-  layer: LayerId,
-): MapPrototypeState {
+export function toggleLayer(state: MapPrototypeState, layer: LayerId): MapPrototypeState {
   return {
     ...state,
     layers: { ...state.layers, [layer]: !state.layers[layer] },
@@ -172,21 +157,16 @@ export function areaControl(): ReadonlyMap<AreaId, AreaControl> {
 export function summariseArea(id: AreaId): AreaSummary | null {
   const area = AREAS_BY_ID.get(id);
   if (area === undefined) return null;
-  const neighbours = EDGES.filter((edge) => edge.a === id || edge.b === id).map(
-    (edge) => {
-      const otherId = edge.a === id ? edge.b : edge.a;
-      const passage =
-        edge.passage === undefined
-          ? null
-          : (PASSAGES_BY_ID.get(edge.passage) ?? null);
-      return {
-        id: otherId,
-        name: AREAS_BY_ID.get(otherId)?.name ?? otherId,
-        passage: passage?.name ?? null,
-        open: passage?.open ?? true,
-      };
-    },
-  );
+  const neighbours = EDGES.filter((edge) => edge.a === id || edge.b === id).map((edge) => {
+    const otherId = edge.a === id ? edge.b : edge.a;
+    const passage = edge.passage === undefined ? null : (PASSAGES_BY_ID.get(edge.passage) ?? null);
+    return {
+      id: otherId,
+      name: AREAS_BY_ID.get(otherId)?.name ?? otherId,
+      passage: passage?.name ?? null,
+      open: passage?.open ?? true,
+    };
+  });
   return {
     id,
     name: area.name,

@@ -238,11 +238,7 @@ export interface ReplayBattleBoundaryResponse {
 
 // --- Construction commands (real, MVP scope per ticket 10) ---
 
-export type ConstructionCommandStatus =
-  | "submitted"
-  | "accepted"
-  | "superseded"
-  | "cancelled";
+export type ConstructionCommandStatus = "submitted" | "accepted" | "superseded" | "cancelled";
 
 export interface ConstructionCommand {
   readonly commandId: string;

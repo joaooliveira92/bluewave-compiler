@@ -109,11 +109,7 @@ interface NebuloreProps extends React.HTMLAttributes<HTMLDivElement> {
   height?: string;
 }
 
-const DEFAULT_COLORS: readonly [string, string, string] = [
-  "#312e81",
-  "#9333ea",
-  "#22d3ee",
-];
+const DEFAULT_COLORS: readonly [string, string, string] = ["#312e81", "#9333ea", "#22d3ee"];
 
 const Nebulore = ({
   colors = DEFAULT_COLORS,
@@ -153,41 +149,20 @@ const Nebulore = ({
       return;
     }
 
-    const shaderProgram = createShaderProgram(
-      gl,
-      vertexShaderGLSL,
-      fragmentShaderGLSL,
-    );
+    const shaderProgram = createShaderProgram(gl, vertexShaderGLSL, fragmentShaderGLSL);
     if (shaderProgram === null) return;
 
     const glProgram = shaderProgram.program;
     gl.useProgram(glProgram);
 
-    const vertexPositionAttribLocation = gl.getAttribLocation(
-      glProgram,
-      "position",
-    );
+    const vertexPositionAttribLocation = gl.getAttribLocation(glProgram, "position");
     const screenQuadVertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, screenQuadVertexBuffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
-      gl.STATIC_DRAW,
-    );
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(vertexPositionAttribLocation);
-    gl.vertexAttribPointer(
-      vertexPositionAttribLocation,
-      2,
-      gl.FLOAT,
-      false,
-      0,
-      0,
-    );
+    gl.vertexAttribPointer(vertexPositionAttribLocation, 2, gl.FLOAT, false, 0, 0);
 
-    const resolutionUniformLocation = gl.getUniformLocation(
-      glProgram,
-      "u_resolution",
-    );
+    const resolutionUniformLocation = gl.getUniformLocation(glProgram, "u_resolution");
     const timeUniformLocation = gl.getUniformLocation(glProgram, "u_time");
     const speedUniformLocation = gl.getUniformLocation(glProgram, "u_speed");
     const grainUniformLocation = gl.getUniformLocation(glProgram, "u_grain");
@@ -253,10 +228,7 @@ const Nebulore = ({
   return (
     <div
       ref={hostRef}
-      className={cn(
-        "relative flex w-full items-center overflow-hidden bg-[#010103]",
-        className,
-      )}
+      className={cn("relative flex w-full items-center overflow-hidden bg-[#010103]", className)}
       style={{ height, containerType: "size", ...style }}
       {...props}
     >

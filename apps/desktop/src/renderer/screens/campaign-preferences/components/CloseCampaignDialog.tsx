@@ -30,15 +30,12 @@ export const CloseCampaignDialog = memo(function CloseCampaignDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Close this campaign?</AlertDialogTitle>
           <AlertDialogDescription>
-            You will be returned to the campaign file screen. Unsaved progress
-            may be lost.
+            You will be returned to the campaign file screen. Unsaved progress may be lost.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onCloseCampaign}>
-            Close Campaign
-          </AlertDialogAction>
+          <AlertDialogAction onClick={onCloseCampaign}>Close Campaign</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

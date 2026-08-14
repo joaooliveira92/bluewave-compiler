@@ -1,15 +1,6 @@
 import { memo } from "react";
 import type { LucideIcon } from "lucide-react";
-import {
-  Anchor,
-  Check,
-  Plane,
-  RefreshCw,
-  Send,
-  Ship,
-  Sailboat,
-  Waves,
-} from "lucide-react";
+import { Anchor, Check, Plane, RefreshCw, Send, Ship, Sailboat, Waves } from "lucide-react";
 import type { CompiledDesignVersion } from "@bluewave/campaign-engine";
 import { Alert, AlertDescription } from "../../../components/ui/alert.js";
 import { Badge } from "../../../components/ui/badge.js";
@@ -22,16 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card.js";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyIcon,
-  EmptyTitle,
-} from "../../../components/ui/empty.js";
-import {
-  RadioGroup,
-  RadioGroupItem,
-} from "../../../components/ui/radio-group.js";
+import { Empty, EmptyDescription, EmptyIcon, EmptyTitle } from "../../../components/ui/empty.js";
+import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio-group.js";
 import {
   Tooltip,
   TooltipContent,
@@ -88,9 +71,7 @@ export const DesignPicker = memo(function DesignPicker({
           <Empty>
             <EmptyIcon />
             <EmptyTitle>No approved designs</EmptyTitle>
-            <EmptyDescription>
-              No approved design is available for this campaign.
-            </EmptyDescription>
+            <EmptyDescription>No approved design is available for this campaign.</EmptyDescription>
           </Empty>
         ) : (
           <TooltipProvider>
@@ -128,22 +109,13 @@ export const DesignPicker = memo(function DesignPicker({
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        <Badge
-                          variant="outline"
-                          className="font-mono text-[11px] font-normal"
-                        >
+                        <Badge variant="outline" className="font-mono text-[11px] font-normal">
                           {design.year}
                         </Badge>
-                        <Badge
-                          variant="outline"
-                          className="font-mono text-[11px] font-normal"
-                        >
+                        <Badge variant="outline" className="font-mono text-[11px] font-normal">
                           {design.mass.toLocaleString()}t
                         </Badge>
-                        <Badge
-                          variant="outline"
-                          className="font-mono text-[11px] font-normal"
-                        >
+                        <Badge variant="outline" className="font-mono text-[11px] font-normal">
                           {design.speed}kt
                         </Badge>
                         {design.carrierAttributes !== undefined && (
@@ -158,15 +130,10 @@ export const DesignPicker = memo(function DesignPicker({
                       </div>
                       {design.requiredTechnologyIds.length > 0 && (
                         <Tooltip>
-                          <TooltipTrigger
-                            render={<span className="inline-flex" />}
-                          >
+                          <TooltipTrigger render={<span className="inline-flex" />}>
                             <Badge variant="secondary" className="text-[11px]">
-                              {design.requiredTechnologyIds.length} required
-                              tech
-                              {design.requiredTechnologyIds.length === 1
-                                ? ""
-                                : "s"}
+                              {design.requiredTechnologyIds.length} required tech
+                              {design.requiredTechnologyIds.length === 1 ? "" : "s"}
                             </Badge>
                           </TooltipTrigger>
                           <TooltipContent side="top">
@@ -207,9 +174,7 @@ export const DesignPicker = memo(function DesignPicker({
 
         {notice !== null && (
           <Alert>
-            <AlertDescription className="whitespace-pre-line">
-              {notice}
-            </AlertDescription>
+            <AlertDescription className="whitespace-pre-line">{notice}</AlertDescription>
           </Alert>
         )}
       </CardContent>

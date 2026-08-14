@@ -1,13 +1,6 @@
 /* @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { WindowState } from "../../shared/bridge-contract.js";
 import { SidebarProvider } from "../components/ui/sidebar.js";
 import { SiteHeader, type SiteHeaderProps } from "./SiteHeader.js";
@@ -61,10 +54,7 @@ describe("SiteHeader", () => {
     cleanup();
   });
 
-  function renderHeader(
-    platform: NodeJS.Platform = "linux",
-    props: SiteHeaderProps = {},
-  ) {
+  function renderHeader(platform: NodeJS.Platform = "linux", props: SiteHeaderProps = {}) {
     windowCtx = windowContext(platform);
     return render(
       <SidebarProvider>
@@ -100,14 +90,10 @@ describe("SiteHeader", () => {
     });
 
     expect(
-      screen
-        .getByRole("button", { name: "Go back" })
-        .attributes.getNamedItem("disabled"),
+      screen.getByRole("button", { name: "Go back" }).attributes.getNamedItem("disabled"),
     ).toBeNull();
     expect(
-      screen
-        .getByRole("button", { name: "Go forward" })
-        .attributes.getNamedItem("disabled"),
+      screen.getByRole("button", { name: "Go forward" }).attributes.getNamedItem("disabled"),
     ).not.toBeNull();
   });
 
@@ -181,9 +167,7 @@ describe("SiteHeader", () => {
 
     renderHeader("linux", { activeView: "editor", onActionClick });
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Validate parameters" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Validate parameters" }));
     expect(onActionClick).toHaveBeenCalledWith("validate");
   });
 

@@ -2,16 +2,8 @@ import { memo } from "react";
 import type { FleetDivisionView } from "../../../../shared/fleet-contract.js";
 import { Badge } from "../../../components/ui/badge.js";
 import { CardContent } from "../../../components/ui/card.js";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyIcon,
-  EmptyTitle,
-} from "../../../components/ui/empty.js";
-import {
-  RadioGroup,
-  RadioGroupItem,
-} from "../../../components/ui/radio-group.js";
+import { Empty, EmptyDescription, EmptyIcon, EmptyTitle } from "../../../components/ui/empty.js";
+import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio-group.js";
 
 export interface DivisionPickerProps {
   readonly divisions: readonly FleetDivisionView[];
@@ -38,9 +30,7 @@ export const DivisionPicker = memo(function DivisionPicker({
         <Empty>
           <EmptyIcon />
           <EmptyTitle>No player division</EmptyTitle>
-          <EmptyDescription>
-            This campaign has no player division.
-          </EmptyDescription>
+          <EmptyDescription>This campaign has no player division.</EmptyDescription>
         </Empty>
       ) : (
         <RadioGroup
@@ -49,10 +39,7 @@ export const DivisionPicker = memo(function DivisionPicker({
           className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
         >
           {divisions.map((division) => (
-            <RadioGroupItem
-              key={division.divisionId}
-              value={division.divisionId}
-            >
+            <RadioGroupItem key={division.divisionId} value={division.divisionId}>
               <CardContent className="p-4">
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{division.divisionId}</p>

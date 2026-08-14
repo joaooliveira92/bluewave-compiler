@@ -11,7 +11,12 @@ import type { MovementState } from "../movement.js";
 import type { TacticalContact } from "../contact/lifecycle.js";
 import { computeInitialMovementStates } from "./spawn.js";
 import { advanceMinutes } from "./engine.js";
-import { neutralAccuracyFactors, neutralRateFactors, type GunneryBattery, withGunneryStateHash } from "../gunnery/index.js";
+import {
+  neutralAccuracyFactors,
+  neutralRateFactors,
+  type GunneryBattery,
+  withGunneryStateHash,
+} from "../gunnery/index.js";
 
 function unit(id: string, sideId: "ATTACKER" | "DEFENDER", className: string): TacticalShipUnit {
   return {

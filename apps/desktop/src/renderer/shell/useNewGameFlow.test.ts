@@ -47,13 +47,8 @@ const compiledSuccess = vi.fn(async () => ({
 function setup(execute: CampaignExecute = compiledSuccess) {
   const selectScreen = vi.fn();
   const openCampaign = vi.fn(async () => undefined);
-  const bridge = { campaign: { execute } } as Pick<
-    BluewaveDesktopBridge,
-    "campaign"
-  >;
-  const rendered = renderHook(() =>
-    useNewGameFlow(bridge, { selectScreen, openCampaign }),
-  );
+  const bridge = { campaign: { execute } } as Pick<BluewaveDesktopBridge, "campaign">;
+  const rendered = renderHook(() => useNewGameFlow(bridge, { selectScreen, openCampaign }));
   return { ...rendered, selectScreen, openCampaign, execute };
 }
 
@@ -124,9 +119,7 @@ describe("useNewGameFlow", () => {
     await act(() => result.current.actions.launch(config));
 
     expect(openCampaign).not.toHaveBeenCalled();
-    expect(result.current.state.error).toBe(
-      "UNSUPPORTED_CONFIGURATION. difficulty is invalid",
-    );
+    expect(result.current.state.error).toBe("UNSUPPORTED_CONFIGURATION. difficulty is invalid");
     expect(result.current.state.status).toBe("ready");
 
     act(() => result.current.actions.backToPreferences());
@@ -136,9 +129,7 @@ describe("useNewGameFlow", () => {
   });
 
   it("exposes starting state while compilation is unresolved", async () => {
-    let resolveCompilation: (
-      value: BridgeResult<CompileCampaignResult>,
-    ) => void = () => undefined;
+    let resolveCompilation: (value: BridgeResult<CompileCampaignResult>) => void = () => undefined;
     const execute = (() =>
       new Promise<BridgeResult<CompileCampaignResult>>((resolve) => {
         resolveCompilation = resolve;

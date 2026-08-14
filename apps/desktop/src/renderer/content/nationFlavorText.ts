@@ -20,10 +20,7 @@ export type NationFlavorText = {
   diplomacy: string;
 };
 
-export const NATION_FLAVOR_TEXT: Record<
-  PlayableSlotCountryId,
-  NationFlavorText
-> = {
+export const NATION_FLAVOR_TEXT: Record<PlayableSlotCountryId, NationFlavorText> = {
   gb: {
     name: "United Kingdom",
     economy:

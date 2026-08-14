@@ -16,10 +16,7 @@ export function applyProjectionLoaded(
   return { projection, loadError: null };
 }
 
-export function applyLoadFailed(
-  state: OverviewScreenState,
-  error: string,
-): OverviewScreenState {
+export function applyLoadFailed(state: OverviewScreenState, error: string): OverviewScreenState {
   return { ...state, loadError: error };
 }
 

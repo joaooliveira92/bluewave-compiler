@@ -66,9 +66,7 @@ function signedNumber(value: number): string {
  * Builds the concrete consequence preview for an allocation. Every numeric effect is
  * derived from the engine's authoritative calculators; React only renders it.
  */
-export function buildArchetypeConsequence(
-  allocation: ArchetypeAllocation,
-): ArchetypeConsequence {
+export function buildArchetypeConsequence(allocation: ArchetypeAllocation): ArchetypeConsequence {
   const effects = archetypeEffects(allocation);
   const difference = differenceFromBalanced(allocation);
   const totalPoints = allocationTotal(allocation);
@@ -86,9 +84,7 @@ export function buildArchetypeConsequence(
 
   for (const dimension of dimensionDeltas) {
     if (dimension.delta > 0) {
-      strengths.push(
-        `${dimension.label}: ${signedNumber(dimension.delta)} points above balanced`,
-      );
+      strengths.push(`${dimension.label}: ${signedNumber(dimension.delta)} points above balanced`);
     } else if (dimension.delta < 0) {
       opportunityCosts.push(
         `${dimension.label}: ${signedNumber(dimension.delta)} points below balanced`,
@@ -97,8 +93,7 @@ export function buildArchetypeConsequence(
   }
 
   const systems = ARCHETYPE_DIMENSIONS.map(
-    (dimension) =>
-      `${DIMENSION_LABELS[dimension]} — ${DIMENSION_SYSTEMS[dimension]}`,
+    (dimension) => `${DIMENSION_LABELS[dimension]} — ${DIMENSION_SYSTEMS[dimension]}`,
   );
 
   const numericEffects: ArchetypeNumericEffect[] = [
@@ -136,10 +131,7 @@ export function buildArchetypeConsequence(
 
   return {
     totalPoints,
-    isBalanced:
-      difference.economy === 0 &&
-      difference.industry === 0 &&
-      difference.combat === 0,
+    isBalanced: difference.economy === 0 && difference.industry === 0 && difference.combat === 0,
     effects,
     difference,
     dimensionDeltas,

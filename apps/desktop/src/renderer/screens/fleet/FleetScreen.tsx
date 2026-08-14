@@ -27,19 +27,14 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
     cancel,
   } = useFleetScreen(sessionId);
 
-  const areaNameMap = useMemo(
-    () => new Map(state.areas.map((a) => [a.id, a.name])),
-    [state.areas],
-  );
+  const areaNameMap = useMemo(() => new Map(state.areas.map((a) => [a.id, a.name])), [state.areas]);
 
   function areaName(areaId: string): string {
     return areaNameMap.get(areaId) ?? areaId;
   }
 
   if (loadError !== null) {
-    return (
-      <LoadErrorCard message={loadError} onReload={() => void loadScreen()} />
-    );
+    return <LoadErrorCard message={loadError} onReload={() => void loadScreen()} />;
   }
 
   if (state.playerNationId === null) {
@@ -48,24 +43,16 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
 
   const busy = state.pendingRequest !== null || state.requiresRefresh;
   const selectedDivision =
-    state.divisions.find(
-      (division) => division.divisionId === selectedDivisionId,
-    ) ?? null;
+    state.divisions.find((division) => division.divisionId === selectedDivisionId) ?? null;
   const pendingRoute =
-    selectedDivision === null
-      ? null
-      : pendingRouteFor(state, selectedDivision.divisionId);
+    selectedDivision === null ? null : pendingRouteFor(state, selectedDivision.divisionId);
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Ship}
         title="Fleet Movement"
-        description={
-          state.month !== null
-            ? `${state.month.month}/${state.month.year}`
-            : undefined
-        }
+        description={state.month !== null ? `${state.month.month}/${state.month.year}` : undefined}
         actions={
           <Badge variant="outline" className="font-mono text-xs">
             Rev {state.revision}
@@ -103,10 +90,7 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
         areaName={areaName}
       />
       <Separator />
-      <MovementCommandsTable
-        commands={state.movementCommands}
-        areaName={areaName}
-      />
+      <MovementCommandsTable commands={state.movementCommands} areaName={areaName} />
     </div>
   );
 }

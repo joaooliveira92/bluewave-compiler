@@ -1,13 +1,6 @@
 /* @vitest-environment jsdom */
 import { cleanup, render, screen } from "@testing-library/react";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { Screen } from "./campaign-screen-registry.js";
 
 const shell = vi.hoisted(() => ({
@@ -53,11 +46,7 @@ vi.mock("../screens/overview/OverviewScreen.js", async () => {
         "section",
         { "data-testid": "overview-screen" },
         React.createElement("span", null, sessionId),
-        React.createElement(
-          "button",
-          { onClick: () => onNavigate("fleet") },
-          "Open fleet",
-        ),
+        React.createElement("button", { onClick: () => onNavigate("fleet") }, "Open fleet"),
       ),
   };
 });
@@ -65,22 +54,14 @@ vi.mock("../screens/construction/ConstructionScreen.js", async () => {
   const React = await import("react");
   return {
     ConstructionScreen: ({ sessionId }: { sessionId: string }) =>
-      React.createElement(
-        "section",
-        { "data-testid": "construction-screen" },
-        sessionId,
-      ),
+      React.createElement("section", { "data-testid": "construction-screen" }, sessionId),
   };
 });
 vi.mock("../screens/fleet/FleetScreen.js", async () => {
   const React = await import("react");
   return {
     FleetScreen: ({ sessionId }: { sessionId: string }) =>
-      React.createElement(
-        "section",
-        { "data-testid": "fleet-screen" },
-        sessionId,
-      ),
+      React.createElement("section", { "data-testid": "fleet-screen" }, sessionId),
   };
 });
 vi.mock("../screens/simulation/SimulationScreen.js", async () => {
@@ -116,49 +97,34 @@ vi.mock("../screens/tactical-sandbox/TacticalSandboxScreen.js", async () => {
   const React = await import("react");
   return {
     TacticalSandboxScreen: ({ sessionId }: { sessionId: string }) =>
-      React.createElement(
-        "section",
-        { "data-testid": "tactical-sandbox-screen" },
-        sessionId,
-      ),
+      React.createElement("section", { "data-testid": "tactical-sandbox-screen" }, sessionId),
   };
 });
 vi.mock("../screens/debugging/DebuggingScreen.js", async () => {
   const React = await import("react");
   return {
     DebuggingScreen: ({ sessionId }: { sessionId: string }) =>
+      React.createElement("section", { "data-testid": "debugging-screen" }, sessionId),
+  };
+});
+vi.mock("../screens/campaign-preferences/CampaignPreferencesScreen.js", async () => {
+  const React = await import("react");
+  return {
+    CampaignPreferencesScreen: ({
+      sessionId,
+      onCloseCampaign,
+    }: {
+      sessionId: string;
+      onCloseCampaign: () => void;
+    }) =>
       React.createElement(
         "section",
-        { "data-testid": "debugging-screen" },
-        sessionId,
+        { "data-testid": "campaign-preferences-screen" },
+        React.createElement("span", null, sessionId),
+        React.createElement("button", { onClick: onCloseCampaign }, "Close campaign"),
       ),
   };
 });
-vi.mock(
-  "../screens/campaign-preferences/CampaignPreferencesScreen.js",
-  async () => {
-    const React = await import("react");
-    return {
-      CampaignPreferencesScreen: ({
-        sessionId,
-        onCloseCampaign,
-      }: {
-        sessionId: string;
-        onCloseCampaign: () => void;
-      }) =>
-        React.createElement(
-          "section",
-          { "data-testid": "campaign-preferences-screen" },
-          React.createElement("span", null, sessionId),
-          React.createElement(
-            "button",
-            { onClick: onCloseCampaign },
-            "Close campaign",
-          ),
-        ),
-    };
-  },
-);
 vi.mock("../screens/options/OptionsScreen.js", async () => {
   const React = await import("react");
   return {
@@ -176,11 +142,7 @@ vi.mock("../screens/options/OptionsScreen.js", async () => {
         { "data-testid": "options-screen" },
         React.createElement("span", null, saving ? "Saving" : "Idle"),
         React.createElement("button", { onClick: onSave }, "Save"),
-        React.createElement(
-          "button",
-          { onClick: onCloseCampaign },
-          "Close campaign",
-        ),
+        React.createElement("button", { onClick: onCloseCampaign }, "Close campaign"),
       ),
   };
 });
@@ -216,14 +178,11 @@ describe("CampaignScreenOutlet", () => {
     ["tactical-sandbox", "tactical-sandbox-screen"],
     ["debugging", "debugging-screen"],
     ["campaign-preferences", "campaign-preferences-screen"],
-  ] as const)(
-    "renders the connected %s route",
-    async (activeScreen, testId) => {
-      render(<CampaignScreenOutlet screen={activeScreen} />);
-      expect(await screen.findByTestId(testId)).toBeTruthy();
-      expect(screen.getByText("ses-1")).toBeTruthy();
-    },
-  );
+  ] as const)("renders the connected %s route", async (activeScreen, testId) => {
+    render(<CampaignScreenOutlet screen={activeScreen} />);
+    expect(await screen.findByTestId(testId)).toBeTruthy();
+    expect(screen.getByText("ses-1")).toBeTruthy();
+  });
 
   it("connects overview navigation to shell actions", async () => {
     render(<CampaignScreenOutlet screen="overview" />);
@@ -252,9 +211,7 @@ describe("CampaignScreenOutlet", () => {
   it.each(["file", "new-game-preferences", "new-game-nation"] as const)(
     "renders no route for shell-only screen %s",
     (activeScreen) => {
-      const { container } = render(
-        <CampaignScreenOutlet screen={activeScreen} />,
-      );
+      const { container } = render(<CampaignScreenOutlet screen={activeScreen} />);
       expect(container.textContent).toBe("");
     },
   );
@@ -264,11 +221,7 @@ describe("campaign screen registry", () => {
   it("defines every campaign screen once with an executable route", () => {
     const ids = CAMPAIGN_SCREEN_REGISTRY.map(({ id }) => id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(
-      CAMPAIGN_SCREEN_REGISTRY.every(
-        ({ route }) => typeof route === "function",
-      ),
-    ).toBe(true);
+    expect(CAMPAIGN_SCREEN_REGISTRY.every(({ route }) => typeof route === "function")).toBe(true);
   });
 
   it("derives navigation groups and search targets from one registry", () => {
@@ -276,9 +229,10 @@ describe("campaign screen registry", () => {
       CAMPAIGN_SCREEN_REGISTRY.length,
     );
     expect(CAMPAIGN_SCREEN_SEARCH_TARGETS).toEqual(
-      CAMPAIGN_SCREEN_REGISTRY.filter(({ searchable }) => searchable).map(
-        ({ id, label }) => ({ id, label }),
-      ),
+      CAMPAIGN_SCREEN_REGISTRY.filter(({ searchable }) => searchable).map(({ id, label }) => ({
+        id,
+        label,
+      })),
     );
   });
 });

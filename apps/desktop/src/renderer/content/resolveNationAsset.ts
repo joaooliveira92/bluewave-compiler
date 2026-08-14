@@ -7,10 +7,7 @@ import { NATION_ASSET_MANIFEST } from "./nationAssetManifest.js";
  * rather than through the stable `playable_slot`, so one slot can show
  * era- and regime-specific art without its selection identity changing.
  */
-export type NationAssetLayer =
-  | "scenario_nation_instance"
-  | "political_regime"
-  | "country_identity";
+export type NationAssetLayer = "scenario_nation_instance" | "political_regime" | "country_identity";
 
 /**
  * Which nation to resolve art for. Only `countryId` is required; the upper
@@ -54,14 +51,9 @@ export function resolveNationAsset(
   const chain: [NationAssetLayer, MediaAsset | undefined][] = [
     [
       "scenario_nation_instance",
-      request.instanceId
-        ? manifest.instances[request.instanceId]?.[kind]
-        : undefined,
+      request.instanceId ? manifest.instances[request.instanceId]?.[kind] : undefined,
     ],
-    [
-      "political_regime",
-      request.regimeId ? manifest.regimes[request.regimeId]?.[kind] : undefined,
-    ],
+    ["political_regime", request.regimeId ? manifest.regimes[request.regimeId]?.[kind] : undefined],
     ["country_identity", manifest.countries[request.countryId]?.[kind]],
   ];
 

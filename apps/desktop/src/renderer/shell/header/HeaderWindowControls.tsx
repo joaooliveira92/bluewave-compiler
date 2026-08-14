@@ -9,8 +9,7 @@ const WINDOW_CONTROL_PATHS = {
 } as const;
 
 export function HeaderWindowControls() {
-  const { platform, windowMinimize, windowMaximizeToggle, windowClose } =
-    useWindowContext();
+  const { platform, windowMinimize, windowMaximizeToggle, windowClose } = useWindowContext();
 
   // macOS draws its own window controls; the custom controls are only shown on
   // platforms that opt into them.

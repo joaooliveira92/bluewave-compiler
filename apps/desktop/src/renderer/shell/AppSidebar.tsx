@@ -14,11 +14,7 @@ import {
   SidebarRail,
 } from "../components/ui/sidebar.js";
 
-import {
-  CAMPAIGN_SCREENS,
-  SETTINGS_SCREENS,
-  type Screen,
-} from "./campaign-screen-registry.js";
+import { CAMPAIGN_SCREENS, SETTINGS_SCREENS, type Screen } from "./campaign-screen-registry.js";
 export type { Screen } from "./campaign-screen-registry.js";
 export interface AppSidebarProps {
   readonly screen: Screen;
@@ -38,9 +34,7 @@ export function AppSidebar({ screen, onSelect, footer }: AppSidebarProps) {
         <SidebarHeader>
           <div className="flex items-center gap-2 px-2 py-1">
             <Anchor className="size-4 shrink-0" />
-            <span className="truncate text-xs font-medium tracking-wider uppercase">
-              Bluewave
-            </span>
+            <span className="truncate text-xs font-medium tracking-wider uppercase">Bluewave</span>
           </div>
         </SidebarHeader>
         <SidebarContent />
@@ -54,9 +48,7 @@ export function AppSidebar({ screen, onSelect, footer }: AppSidebarProps) {
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1">
           <Anchor className="size-4 shrink-0" />
-          <span className="truncate text-xs font-medium tracking-wider uppercase">
-            Bluewave
-          </span>
+          <span className="truncate text-xs font-medium tracking-wider uppercase">Bluewave</span>
         </div>
       </SidebarHeader>
 

@@ -18,9 +18,7 @@ function systemPrefersDark(): boolean {
 
 export function readStoredTheme(): Theme {
   const stored = localStorage.getItem(THEME_STORAGE_KEY);
-  return stored === "light" || stored === "dark" || stored === "system"
-    ? stored
-    : "system";
+  return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
 }
 
 export function resolveTheme(theme: Theme): "light" | "dark" {
@@ -29,9 +27,7 @@ export function resolveTheme(theme: Theme): "light" | "dark" {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(readStoredTheme);
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() =>
-    resolveTheme(theme),
-  );
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() => resolveTheme(theme));
 
   useEffect(() => {
     setResolvedTheme(resolveTheme(theme));
@@ -61,7 +57,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme(): ThemeContextValue {
   const ctx = use(ThemeContext);
-  if (ctx === null)
-    throw new Error("useTheme must be used within ThemeProvider");
+  if (ctx === null) throw new Error("useTheme must be used within ThemeProvider");
   return ctx;
 }

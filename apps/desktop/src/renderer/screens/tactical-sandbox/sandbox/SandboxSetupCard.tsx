@@ -38,9 +38,7 @@ export function SandboxSetupCard() {
               type="number"
               min={1}
               value={state.turnCount}
-              onChange={(event) =>
-                actions.updateTurnCount(Number(event.target.value))
-              }
+              onChange={(event) => actions.updateTurnCount(Number(event.target.value))}
             />
           </Field>
         </FieldGroup>
@@ -63,9 +61,7 @@ export function SandboxSetupCard() {
         {state.manifest !== null && (
           <div className="space-y-2 rounded-md border bg-muted/10 p-3 font-mono text-xs">
             <div className="flex items-center justify-between border-b pb-1">
-              <span className="font-medium">
-                BATTLE: {state.manifest.battleId}
-              </span>
+              <span className="font-medium">BATTLE: {state.manifest.battleId}</span>
               <Badge variant="outline" className="font-mono text-[12px]">
                 {state.manifest.missionType}
               </Badge>
@@ -78,8 +74,7 @@ export function SandboxSetupCard() {
                   </div>
                   {side.participants.map((participant, idx) => (
                     <div key={idx} className="text-[12px]">
-                      • {participant.shipId} (
-                      {participant.divisionId ?? "unassigned"})
+                      • {participant.shipId} ({participant.divisionId ?? "unassigned"})
                     </div>
                   ))}
                 </div>

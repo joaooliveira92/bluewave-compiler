@@ -1,10 +1,4 @@
-import {
-  type KeyboardEvent,
-  type MouseEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-} from "react";
+import { type KeyboardEvent, type MouseEvent, useCallback, useEffect, useMemo } from "react";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 import { FleetDispatchCard } from "./FleetDispatchCard.js";
 import {
@@ -37,10 +31,7 @@ export function FleetDispatchBoard({
   const focusedCountryId = SLOTS[normalizedFocusedIndex];
 
   const positions = useMemo(
-    () =>
-      SLOTS.map((_, index) =>
-        getStackPosition(index, normalizedFocusedIndex, SLOTS.length),
-      ),
+    () => SLOTS.map((_, index) => getStackPosition(index, normalizedFocusedIndex, SLOTS.length)),
     [normalizedFocusedIndex, SLOTS],
   );
 
@@ -121,8 +112,7 @@ export function FleetDispatchBoard({
             id={`${listboxId}-instructions`}
             className="mt-1 max-w-sm text-sm leading-relaxed text-muted-foreground"
           >
-            Scroll or use the up and down arrow keys to inspect each nation.
-            Press Enter to confirm.
+            Scroll or use the up and down arrow keys to inspect each nation. Press Enter to confirm.
           </p>
         </div>
       </header>
@@ -148,9 +138,7 @@ export function FleetDispatchBoard({
           />
 
           {SLOTS.map((countryId, index) => {
-            const position = positions[index] as ReturnType<
-              typeof getStackPosition
-            >;
+            const position = positions[index] as ReturnType<typeof getStackPosition>;
             const palette = CARD_PALETTES[
               index % CARD_PALETTES.length
             ] as (typeof CARD_PALETTES)[number];
@@ -162,11 +150,7 @@ export function FleetDispatchBoard({
                 index={index}
                 position={position}
                 palette={palette}
-                style={getStackCardStyle(
-                  position,
-                  carousel.dragOffset,
-                  SLOTS.length,
-                )}
+                style={getStackCardStyle(position, carousel.dragOffset, SLOTS.length)}
                 listboxId={listboxId}
                 dragState={carousel.isDragging ? "dragging" : "idle"}
                 onClick={handleCardClick}

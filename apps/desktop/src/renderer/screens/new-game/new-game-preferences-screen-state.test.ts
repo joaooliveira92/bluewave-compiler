@@ -50,11 +50,7 @@ describe("new-game-preferences-screen-state", () => {
   });
 
   it("seeds defaults from loaded options", () => {
-    const loaded = applyOptionsLoaded(
-      initialNewGamePreferencesScreenState(),
-      options,
-      "SEED-1",
-    );
+    const loaded = applyOptionsLoaded(initialNewGamePreferencesScreenState(), options, "SEED-1");
     expect(loaded.loading).toBe(false);
     expect(loaded.preferences.scenarioId).toBe("scen_1900");
     expect(loaded.preferences.difficulty).toBe("standard");
@@ -74,21 +70,13 @@ describe("new-game-preferences-screen-state", () => {
   });
 
   it("rejects an empty campaign seed", () => {
-    const loaded = applyOptionsLoaded(
-      initialNewGamePreferencesScreenState(),
-      options,
-      "SEED-1",
-    );
+    const loaded = applyOptionsLoaded(initialNewGamePreferencesScreenState(), options, "SEED-1");
     const cleared = updatePreference(loaded, "campaignSeed", "   ");
     expect(isReadyToProceed(cleared)).toBe(false);
   });
 
   it("updates a single preference field", () => {
-    const loaded = applyOptionsLoaded(
-      initialNewGamePreferencesScreenState(),
-      options,
-      "SEED-1",
-    );
+    const loaded = applyOptionsLoaded(initialNewGamePreferencesScreenState(), options, "SEED-1");
     const updated = updatePreference(loaded, "campaignSeed", "CUSTOM-SEED");
     expect(updated.preferences.campaignSeed).toBe("CUSTOM-SEED");
     expect(loaded.preferences.campaignSeed).toBe("SEED-1");

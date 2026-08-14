@@ -32,8 +32,7 @@ export function readStoredBackground(): BackgroundStyle {
 }
 
 export function BackgroundProvider({ children }: { children: ReactNode }) {
-  const [background, setBackgroundState] =
-    useState<BackgroundStyle>(readStoredBackground);
+  const [background, setBackgroundState] = useState<BackgroundStyle>(readStoredBackground);
 
   const setBackground = (next: BackgroundStyle) => {
     localStorage.setItem(BACKGROUND_STORAGE_KEY, next);

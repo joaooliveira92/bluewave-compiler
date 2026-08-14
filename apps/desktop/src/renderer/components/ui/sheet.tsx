@@ -10,12 +10,8 @@ const SheetTrigger = SheetPrimitive.Trigger;
 const SheetClose = SheetPrimitive.Close;
 const SheetPortal = SheetPrimitive.Portal;
 
-interface SheetOverlayProps extends React.ComponentPropsWithoutRef<
-  typeof SheetPrimitive.Backdrop
-> {
-  ref?:
-    | React.Ref<React.ComponentRef<typeof SheetPrimitive.Backdrop>>
-    | undefined;
+interface SheetOverlayProps extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Backdrop> {
+  ref?: React.Ref<React.ComponentRef<typeof SheetPrimitive.Backdrop>> | undefined;
 }
 
 const SheetOverlay = ({ className, ref, ...props }: SheetOverlayProps) => (
@@ -63,11 +59,7 @@ const SheetContent = ({
 }: SheetContentProps) => (
   <SheetPortal>
     <SheetOverlay />
-    <SheetPrimitive.Popup
-      ref={ref}
-      className={cn(sheetVariants({ side }), className)}
-      {...props}
-    >
+    <SheetPrimitive.Popup ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
       {children}
       <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring disabled:pointer-events-none">
         <X className="h-4 w-4" />
@@ -78,23 +70,12 @@ const SheetContent = ({
 );
 SheetContent.displayName = "SheetContent";
 
-const SheetHeader = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cn(
-      "flex flex-col space-y-2 text-center sm:text-left",
-      className,
-    )}
-    {...props}
-  />
+const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn("flex flex-col space-y-2 text-center sm:text-left", className)} {...props} />
 );
 SheetHeader.displayName = "SheetHeader";
 
-interface SheetTitleProps extends React.ComponentPropsWithoutRef<
-  typeof SheetPrimitive.Title
-> {
+interface SheetTitleProps extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title> {
   ref?: React.Ref<React.ComponentRef<typeof SheetPrimitive.Title>> | undefined;
 }
 
@@ -110,16 +91,10 @@ SheetTitle.displayName = SheetPrimitive.Title.displayName;
 interface SheetDescriptionProps extends React.ComponentPropsWithoutRef<
   typeof SheetPrimitive.Description
 > {
-  ref?:
-    | React.Ref<React.ComponentRef<typeof SheetPrimitive.Description>>
-    | undefined;
+  ref?: React.Ref<React.ComponentRef<typeof SheetPrimitive.Description>> | undefined;
 }
 
-const SheetDescription = ({
-  className,
-  ref,
-  ...props
-}: SheetDescriptionProps) => (
+const SheetDescription = ({ className, ref, ...props }: SheetDescriptionProps) => (
   <SheetPrimitive.Description
     ref={ref}
     className={cn("text-sm text-muted-foreground", className)}

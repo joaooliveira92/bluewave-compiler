@@ -11,18 +11,12 @@ interface OperationStatusProps {
   readonly onDismiss: () => void;
 }
 
-export function OperationStatus({
-  pendingLabel,
-  result,
-  onDismiss,
-}: OperationStatusProps) {
+export function OperationStatus({ pendingLabel, result, onDismiss }: OperationStatusProps) {
   return (
     <>
       {pendingLabel !== null ? (
         <Card>
-          <CardContent className="p-4 text-sm text-muted-foreground">
-            {pendingLabel}
-          </CardContent>
+          <CardContent className="p-4 text-sm text-muted-foreground">{pendingLabel}</CardContent>
         </Card>
       ) : null}
       <OperationResultAlert result={result} onDismiss={onDismiss} />
@@ -41,10 +35,7 @@ function OperationResultAlert({
 
   if (result.kind === "error") {
     return (
-      <Alert
-        variant="destructive"
-        className="flex items-start justify-between gap-2"
-      >
+      <Alert variant="destructive" className="flex items-start justify-between gap-2">
         <AlertDescription>{result.message}</AlertDescription>
         <DismissButton onDismiss={onDismiss} />
       </Alert>
@@ -70,11 +61,8 @@ function OperationResultMessage({
     return (
       <span>
         Package verified — campaign{" "}
-        <span className="font-mono">
-          {result.response.campaignIdentity.slice(0, 12)}
-        </span>
-        , active revision{" "}
-        <span className="font-mono">{result.response.activeRevision}</span>
+        <span className="font-mono">{result.response.campaignIdentity.slice(0, 12)}</span>, active
+        revision <span className="font-mono">{result.response.activeRevision}</span>
       </span>
     );
   }

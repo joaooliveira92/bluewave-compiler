@@ -11,9 +11,7 @@ export interface TacticalSandboxScreenProps {
  * straight from resolveTacticalBattle's response — nothing here re-derives
  * combat outcomes.
  */
-export function TacticalSandboxScreen({
-  sessionId,
-}: TacticalSandboxScreenProps) {
+export function TacticalSandboxScreen({ sessionId }: TacticalSandboxScreenProps) {
   return (
     <Sandbox.Provider sessionId={sessionId}>
       <Sandbox.Body />

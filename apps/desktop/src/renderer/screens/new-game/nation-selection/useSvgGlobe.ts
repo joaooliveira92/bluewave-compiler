@@ -45,9 +45,7 @@ const worldTopologyTyped = worldTopology as unknown as Topology<{
 }>;
 const COUNTRIES = feature(
   worldTopologyTyped as unknown as Parameters<typeof feature>[0],
-  worldTopologyTyped.objects.countries as unknown as Parameters<
-    typeof feature
-  >[1],
+  worldTopologyTyped.objects.countries as unknown as Parameters<typeof feature>[1],
 ) as unknown as {
   features: Array<{ type: "Feature"; properties: Record<string, unknown> }>;
 };
@@ -60,11 +58,7 @@ function easeCubicInOut(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 }
 
-export function isVisible(
-  projection: d3Geo.GeoProjection,
-  lat: number,
-  lng: number,
-): boolean {
+export function isVisible(projection: d3Geo.GeoProjection, lat: number, lng: number): boolean {
   const [rlambda, rphi] = projection.rotate();
   return d3Geo.geoDistance([lng, lat], [-rlambda, -rphi]) < Math.PI / 2;
 }
@@ -101,9 +95,7 @@ export interface SvgGlobeHandles extends SvgGlobeRefs {
   projection: () => d3Geo.GeoProjection | undefined;
   rotationAnimRef: ElementRef<RotationAnim>;
   registerFrameRenderer: (renderFn: () => void) => () => void;
-  registerResizeHandler: (
-    handler: (context: SvgGlobeResizeContext) => void,
-  ) => () => void;
+  registerResizeHandler: (handler: (context: SvgGlobeResizeContext) => void) => () => void;
   setDragging: (dragging: boolean) => void;
 }
 
@@ -125,9 +117,7 @@ export function useSvgGlobe(): SvgGlobeHandles {
   const rotationAnimRef = useRef<RotationAnim | null>(null);
   const projectionRef = useRef<d3Geo.GeoProjection | undefined>(undefined);
   const frameRenderersRef = useRef<Array<() => void>>([]);
-  const resizeHandlersRef = useRef<
-    Array<(context: SvgGlobeResizeContext) => void>
-  >([]);
+  const resizeHandlersRef = useRef<Array<(context: SvgGlobeResizeContext) => void>>([]);
   const draggingRef = useRef(false);
 
   useEffect(() => {
@@ -268,20 +258,14 @@ export function useSvgGlobe(): SvgGlobeHandles {
   function registerFrameRenderer(renderFn: () => void): () => void {
     frameRenderersRef.current.push(renderFn);
     return () => {
-      frameRenderersRef.current = frameRenderersRef.current.filter(
-        (fn) => fn !== renderFn,
-      );
+      frameRenderersRef.current = frameRenderersRef.current.filter((fn) => fn !== renderFn);
     };
   }
 
-  function registerResizeHandler(
-    handler: (context: SvgGlobeResizeContext) => void,
-  ): () => void {
+  function registerResizeHandler(handler: (context: SvgGlobeResizeContext) => void): () => void {
     resizeHandlersRef.current.push(handler);
     return () => {
-      resizeHandlersRef.current = resizeHandlersRef.current.filter(
-        (fn) => fn !== handler,
-      );
+      resizeHandlersRef.current = resizeHandlersRef.current.filter((fn) => fn !== handler);
     };
   }
 

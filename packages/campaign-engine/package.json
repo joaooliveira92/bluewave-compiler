@@ -12,6 +12,9 @@
   "dependencies": {
     "@bluewave/campaign": "workspace:*"
   },
+  "devDependencies": {
+    "@bluewave/contracts": "workspace:*"
+  },
   "scripts": {
     "build": "tsc -b",
     "dev": "tsc -b --watch",

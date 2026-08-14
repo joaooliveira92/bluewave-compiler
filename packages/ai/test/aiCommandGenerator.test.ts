@@ -61,6 +61,8 @@ describe("AiCommandGenerator determinism", () => {
 
   it("version pinned", () => {
     const g = new AiCommandGenerator(ctx);
-    expect(g.buildBudgetCommand("usa", "p", SafeInt(1) as SafeInt).version).toBe(AI_ENVELOPE_VERSION);
+    expect(g.buildBudgetCommand("usa", "p", SafeInt(1) as SafeInt).version).toBe(
+      AI_ENVELOPE_VERSION,
+    );
   });
 });

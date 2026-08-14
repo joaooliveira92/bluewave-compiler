@@ -61,11 +61,7 @@ export function AstInspector({
             selectedRecord={selectedRecord}
             onSelectRecord={onSelectRecord}
           />
-          <AstRecordPreview
-            record={selectedRecord}
-            copied={copied}
-            onCopy={onCopy}
-          />
+          <AstRecordPreview record={selectedRecord} copied={copied} onCopy={onCopy} />
         </div>
       </CardContent>
     </Card>

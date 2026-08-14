@@ -1,12 +1,4 @@
-import {
-  AlertTriangle,
-  Database,
-  DollarSign,
-  Gauge,
-  Play,
-  Save,
-  TrendingUp,
-} from "lucide-react";
+import { AlertTriangle, Database, DollarSign, Gauge, Play, Save, TrendingUp } from "lucide-react";
 
 import { Button } from "../../components/ui/button.js";
 import { Separator } from "../../components/ui/separator.js";
@@ -64,9 +56,7 @@ function SecondaryRowContent({
           <div className="flex items-center gap-1.5" style={NO_DRAG}>
             {row.actions.map((action, index) => (
               <div key={action.code} className="flex items-center gap-1.5">
-                {index > 0 && (
-                  <Separator orientation="vertical" className="h-3" />
-                )}
+                {index > 0 && <Separator orientation="vertical" className="h-3" />}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -92,9 +82,7 @@ function SecondaryRowContent({
           <div className="flex items-center gap-4">
             {row.metrics.map((metric, index) => (
               <div key={metric.icon} className="flex items-center gap-4">
-                {index > 0 && (
-                  <Separator orientation="vertical" className="h-3" />
-                )}
+                {index > 0 && <Separator orientation="vertical" className="h-3" />}
                 <Metric metric={metric} />
               </div>
             ))}
@@ -141,20 +129,12 @@ function Metric({ metric }: { readonly metric: HeaderMetric }) {
 
   return (
     <div
-      className={cn(
-        "flex items-center gap-1.5",
-        metric.placeholder && "text-muted-foreground",
-      )}
-      title={
-        metric.placeholder
-          ? `${metric.label} is not reported by the engine yet`
-          : undefined
-      }
+      className={cn("flex items-center gap-1.5", metric.placeholder && "text-muted-foreground")}
+      title={metric.placeholder ? `${metric.label} is not reported by the engine yet` : undefined}
     >
       <Icon className="h-3 w-3" />
       <span className="text-xs tabular-nums">
-        <span className="text-muted-foreground">{metric.label}:</span>{" "}
-        {metric.value}
+        <span className="text-muted-foreground">{metric.label}:</span> {metric.value}
       </span>
     </div>
   );

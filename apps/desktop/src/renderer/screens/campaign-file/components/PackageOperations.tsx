@@ -8,10 +8,7 @@ interface PackageOperationsProps {
   readonly onRun: (kind: OperationKind) => void;
 }
 
-export function PackageOperations({
-  pendingOperation,
-  onRun,
-}: PackageOperationsProps) {
+export function PackageOperations({ pendingOperation, onRun }: PackageOperationsProps) {
   const disabled = pendingOperation !== null;
 
   return (

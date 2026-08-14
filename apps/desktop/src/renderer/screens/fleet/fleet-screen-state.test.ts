@@ -14,10 +14,7 @@ import {
   applyTransportFailure,
   beginRequest,
 } from "../../lib/command-screen-workflow.js";
-import type {
-  PreparedCommand,
-  RequestKind,
-} from "../../lib/command-screen-workflow.js";
+import type { PreparedCommand, RequestKind } from "../../lib/command-screen-workflow.js";
 
 const movementCommand = {
   commandId: "mcmd_1",
@@ -50,9 +47,7 @@ const projection: FleetScreenProjection = {
     { id: "area_northern_europe", name: "Northern Europe" },
     { id: "area_mediterranean", name: "Mediterranean" },
   ],
-  areaEdges: [
-    { fromAreaId: "area_northern_europe", toAreaId: "area_mediterranean" },
-  ],
+  areaEdges: [{ fromAreaId: "area_northern_europe", toAreaId: "area_mediterranean" }],
   ports: [
     {
       id: "port_portsmouth",
@@ -72,17 +67,10 @@ const workspace = {
 };
 
 function loaded(): FleetScreenState {
-  return applyProjection(
-    initialFleetScreenState(),
-    projection,
-    projectFleetScreen(projection),
-  );
+  return applyProjection(initialFleetScreenState(), projection, projectFleetScreen(projection));
 }
 
-function prepared(
-  kind: RequestKind,
-  transportRequestId: string,
-): PreparedCommand<unknown> {
+function prepared(kind: RequestKind, transportRequestId: string): PreparedCommand<unknown> {
   return {
     kind,
     context: { expectedRevision: 0, transportRequestId },
@@ -157,11 +145,7 @@ describe("fleet screen state", () => {
       command: movementCommand,
       workspace,
     });
-    const state = acceptCommand(
-      beginRequest(loaded(), prepared("submit", "tx-1")),
-      patch,
-      notice,
-    );
+    const state = acceptCommand(beginRequest(loaded(), prepared("submit", "tx-1")), patch, notice);
 
     expect(state.movementCommands).toEqual([movementCommand]);
     expect(state.pendingRequest).toBeNull();
@@ -170,14 +154,11 @@ describe("fleet screen state", () => {
   });
 
   it("shows the engine reason code and diagnostics for an illegal route", () => {
-    const state = applyRejection(
-      beginRequest(loaded(), prepared("submit", "tx-1")),
-      {
-        outcome: "rejected",
-        reason: "VALIDATION_FAILED",
-        diagnostics: ["NON_ADJACENT: No area edge connecting 'a' to 'b'"],
-      },
-    );
+    const state = applyRejection(beginRequest(loaded(), prepared("submit", "tx-1")), {
+      outcome: "rejected",
+      reason: "VALIDATION_FAILED",
+      diagnostics: ["NON_ADJACENT: No area edge connecting 'a' to 'b'"],
+    });
 
     expect(state.notice).toContain("VALIDATION_FAILED");
     expect(state.notice).toContain("NON_ADJACENT");
@@ -186,15 +167,12 @@ describe("fleet screen state", () => {
   });
 
   it("marks the projection as stale when the engine reports a newer revision", () => {
-    const state = applyRejection(
-      beginRequest(loaded(), prepared("replace", "tx-2")),
-      {
-        outcome: "rejected",
-        reason: "STALE_REVISION",
-        diagnostics: [],
-        currentRevision: 5,
-      },
-    );
+    const state = applyRejection(beginRequest(loaded(), prepared("replace", "tx-2")), {
+      outcome: "rejected",
+      reason: "STALE_REVISION",
+      diagnostics: [],
+      currentRevision: 5,
+    });
 
     expect(state.revision).toBe(5);
     expect(state.requiresRefresh).toBe(true);

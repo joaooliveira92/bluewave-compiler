@@ -69,10 +69,7 @@ export function VariantCGraph({
           .map((flat) => {
             const ring: Point[] = [];
             for (let i = 0; i < flat.length; i += 2) {
-              ring.push([
-                (flat[i] as number) - state.centre,
-                flat[i + 1] as number,
-              ]);
+              ring.push([(flat[i] as number) - state.centre, flat[i + 1] as number]);
             }
             return ringToPath(ring, projection);
           })
@@ -109,8 +106,7 @@ export function VariantCGraph({
     return legs;
   }, [route]);
 
-  const summary =
-    state.selected === null ? null : summariseArea(state.selected);
+  const summary = state.selected === null ? null : summariseArea(state.selected);
   const neighbourIds = new Set(summary?.neighbours.map((n) => n.id) ?? []);
 
   const listed = AREAS.filter((area) =>
@@ -175,8 +171,7 @@ export function VariantCGraph({
             </div>
             <div className="mt-2 text-muted-foreground">
               {summary.neighbours.length} edges,{" "}
-              {summary.neighbours.filter((n) => n.passage !== null).length}{" "}
-              gated
+              {summary.neighbours.filter((n) => n.passage !== null).length} gated
             </div>
           </div>
         )}
@@ -193,19 +188,11 @@ export function VariantCGraph({
         >
           <g ref={camera.worldRef}>
             {WORLD_WRAP_TURNS.map((turn) => (
-              <g
-                key={turn}
-                transform={`translate(${turn * projection.width} 0)`}
-              >
+              <g key={turn} transform={`translate(${turn * projection.width} 0)`}>
                 {/* Geography demoted to a wash. It orients; it does not inform. */}
                 {coastline.map((d, index) => (
                   // eslint-disable-next-line react/no-array-index-key
-                  <path
-                    key={index}
-                    d={d}
-                    fill="var(--muted)"
-                    fillRule="evenodd"
-                  />
+                  <path key={index} d={d} fill="var(--muted)" fillRule="evenodd" />
                 ))}
 
                 {/* Edges are the primary object here. */}
@@ -213,22 +200,16 @@ export function VariantCGraph({
                   const from = nodes.get(edge.a);
                   const to = nodes.get(edge.b);
                   if (from === undefined || to === undefined) return null;
-                  const key =
-                    edge.a < edge.b
-                      ? `${edge.a}|${edge.b}`
-                      : `${edge.b}|${edge.a}`;
+                  const key = edge.a < edge.b ? `${edge.a}|${edge.b}` : `${edge.b}|${edge.a}`;
                   const passage =
-                    edge.passage === undefined
-                      ? null
-                      : (PASSAGES_BY_ID.get(edge.passage) ?? null);
+                    edge.passage === undefined ? null : (PASSAGES_BY_ID.get(edge.passage) ?? null);
                   const onRouteLeg = routeLegs.has(key);
                   const incident =
                     state.selected !== null &&
                     (edge.a === state.selected || edge.b === state.selected);
                   // Long spans are the Pacific wrapping. Drawn dimmed rather than
                   // hidden, so the seam is visible instead of quietly missing.
-                  const wraps =
-                    Math.abs(from[0] - to[0]) > projection.width * 0.55;
+                  const wraps = Math.abs(from[0] - to[0]) > projection.width * 0.55;
                   return (
                     <g key={key}>
                       <line
@@ -245,13 +226,9 @@ export function VariantCGraph({
                                 ? "var(--foreground)"
                                 : "var(--muted-foreground)"
                         }
-                        strokeOpacity={
-                          wraps ? 0.18 : onRouteLeg || incident ? 0.95 : 0.4
-                        }
+                        strokeOpacity={wraps ? 0.18 : onRouteLeg || incident ? 0.95 : 0.4}
                         strokeWidth={onRouteLeg ? 5 : incident ? 3 : 1.8}
-                        strokeDasharray={
-                          passage !== null && !passage.open ? "8 6" : undefined
-                        }
+                        strokeDasharray={passage !== null && !passage.open ? "8 6" : undefined}
                         strokeLinecap="round"
                       />
                       {state.layers.passages && passage !== null && !wraps && (
@@ -265,11 +242,7 @@ export function VariantCGraph({
                             height={18}
                             rx={4}
                             fill="var(--background)"
-                            stroke={
-                              passage.open
-                                ? "var(--muted-foreground)"
-                                : "var(--destructive)"
-                            }
+                            stroke={passage.open ? "var(--muted-foreground)" : "var(--destructive)"}
                             strokeWidth={2}
                           />
                           <text
@@ -277,11 +250,7 @@ export function VariantCGraph({
                             textAnchor="middle"
                             fontSize={11}
                             fontWeight={700}
-                            fill={
-                              passage.open
-                                ? "var(--foreground)"
-                                : "var(--destructive)"
-                            }
+                            fill={passage.open ? "var(--foreground)" : "var(--destructive)"}
                             style={{ pointerEvents: "none" }}
                           >
                             {passage.kind === "canal" ? "C" : "S"}
@@ -305,9 +274,7 @@ export function VariantCGraph({
                       key={area.id}
                       transform={`translate(${node[0]} ${node[1]})`}
                       className="cursor-pointer"
-                      onClick={(event) =>
-                        handleNodeClick(area.id, event.shiftKey)
-                      }
+                      onClick={(event) => handleNodeClick(area.id, event.shiftKey)}
                     >
                       <circle
                         r={radius}
@@ -320,9 +287,7 @@ export function VariantCGraph({
                               : nationStroke(held?.owner ?? null)
                         }
                         strokeWidth={selected || onRouteLeg ? 5 : 3.5}
-                        strokeDasharray={
-                          held?.contested === true ? "5 4" : undefined
-                        }
+                        strokeDasharray={held?.contested === true ? "5 4" : undefined}
                       />
                       <text
                         y={4}
@@ -360,24 +325,20 @@ export function VariantCGraph({
 
         <div className="absolute bottom-3 left-3 flex items-center gap-3 rounded-md border bg-card/95 px-3 py-2 text-xs backdrop-blur">
           {route === null ? (
-            <span className="text-muted-foreground">
-              Shift-click two nodes for a route reading
-            </span>
+            <span className="text-muted-foreground">Shift-click two nodes for a route reading</span>
           ) : (
             <>
               <span>
                 <strong className="tabular-nums">{route.hops}</strong> hops
               </span>
               <span className="tabular-nums text-muted-foreground">
-                {route.nauticalMiles.toLocaleString()} nm ·{" "}
-                {route.perHop.toLocaleString()} nm/hop · ≈{route.months} months
+                {route.nauticalMiles.toLocaleString()} nm · {route.perHop.toLocaleString()} nm/hop ·
+                ≈{route.months} months
               </span>
             </>
           )}
           <Button size="sm" variant="ghost" onClick={onToggleClosedPassages}>
-            {state.respectClosedPassages
-              ? "avoiding closures"
-              : "ignoring closures"}
+            {state.respectClosedPassages ? "avoiding closures" : "ignoring closures"}
           </Button>
           <Button size="sm" variant="ghost" onClick={camera.reset}>
             Reset

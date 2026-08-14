@@ -119,54 +119,24 @@ const Cloudscape = ({
       return;
     }
 
-    const shaderProgram = createShaderProgram(
-      gl,
-      vertexShaderGLSL,
-      fragmentShaderGLSL,
-    );
+    const shaderProgram = createShaderProgram(gl, vertexShaderGLSL, fragmentShaderGLSL);
     if (shaderProgram === null) return;
 
     const glProgram = shaderProgram.program;
     gl.useProgram(glProgram);
 
-    const vertexPositionAttribLocation = gl.getAttribLocation(
-      glProgram,
-      "position",
-    );
+    const vertexPositionAttribLocation = gl.getAttribLocation(glProgram, "position");
     const screenQuadVertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, screenQuadVertexBuffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
-      gl.STATIC_DRAW,
-    );
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(vertexPositionAttribLocation);
-    gl.vertexAttribPointer(
-      vertexPositionAttribLocation,
-      2,
-      gl.FLOAT,
-      false,
-      0,
-      0,
-    );
+    gl.vertexAttribPointer(vertexPositionAttribLocation, 2, gl.FLOAT, false, 0, 0);
 
-    const resolutionUniformLocation = gl.getUniformLocation(
-      glProgram,
-      "u_resolution",
-    );
+    const resolutionUniformLocation = gl.getUniformLocation(glProgram, "u_resolution");
     const timeUniformLocation = gl.getUniformLocation(glProgram, "u_time");
-    const colorBottomUniformLocation = gl.getUniformLocation(
-      glProgram,
-      "u_colorBottom",
-    );
-    const colorMidUniformLocation = gl.getUniformLocation(
-      glProgram,
-      "u_colorMid",
-    );
-    const colorTopUniformLocation = gl.getUniformLocation(
-      glProgram,
-      "u_colorTop",
-    );
+    const colorBottomUniformLocation = gl.getUniformLocation(glProgram, "u_colorBottom");
+    const colorMidUniformLocation = gl.getUniformLocation(glProgram, "u_colorMid");
+    const colorTopUniformLocation = gl.getUniformLocation(glProgram, "u_colorTop");
     const speedUniformLocation = gl.getUniformLocation(glProgram, "u_speed");
 
     if (
@@ -201,10 +171,7 @@ const Cloudscape = ({
     const render = (now: number) => {
       const elapsedSec = (now - start) / 1000;
 
-      const colorBottom = hexToNormalizedRgb(
-        settings.colorBottom,
-        DEFAULT_COLOR,
-      );
+      const colorBottom = hexToNormalizedRgb(settings.colorBottom, DEFAULT_COLOR);
       const colorMid = hexToNormalizedRgb(settings.colorMid, DEFAULT_COLOR);
       const colorTop = hexToNormalizedRgb(settings.colorTop, DEFAULT_COLOR);
 
@@ -212,24 +179,9 @@ const Cloudscape = ({
       gl.clear(gl.COLOR_BUFFER_BIT);
 
       gl.uniform1f(timeUniformLocation, elapsedSec);
-      gl.uniform3f(
-        colorBottomUniformLocation,
-        colorBottom[0],
-        colorBottom[1],
-        colorBottom[2],
-      );
-      gl.uniform3f(
-        colorMidUniformLocation,
-        colorMid[0],
-        colorMid[1],
-        colorMid[2],
-      );
-      gl.uniform3f(
-        colorTopUniformLocation,
-        colorTop[0],
-        colorTop[1],
-        colorTop[2],
-      );
+      gl.uniform3f(colorBottomUniformLocation, colorBottom[0], colorBottom[1], colorBottom[2]);
+      gl.uniform3f(colorMidUniformLocation, colorMid[0], colorMid[1], colorMid[2]);
+      gl.uniform3f(colorTopUniformLocation, colorTop[0], colorTop[1], colorTop[2]);
       gl.uniform1f(speedUniformLocation, settings.speed);
 
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -250,10 +202,7 @@ const Cloudscape = ({
   return (
     <div
       ref={hostRef}
-      className={cn(
-        "relative flex w-full items-center overflow-hidden bg-black",
-        className,
-      )}
+      className={cn("relative flex w-full items-center overflow-hidden bg-black", className)}
       style={{ height, containerType: "size", ...style }}
       {...props}
     >

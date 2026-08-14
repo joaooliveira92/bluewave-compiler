@@ -17,9 +17,7 @@ export const LoadErrorCard = memo(function LoadErrorCard({
         <h2 className="text-lg font-semibold">Fleet Movement</h2>
       </div>
       <Alert variant="destructive">
-        <AlertDescription className="whitespace-pre-line">
-          {message}
-        </AlertDescription>
+        <AlertDescription className="whitespace-pre-line">{message}</AlertDescription>
       </Alert>
       <Button variant="outline" onClick={onReload}>
         Reload

@@ -146,11 +146,7 @@ export function resolveHit(
 ): KeyedHitDraw {
   const streamId = gunneryHitStreamId(identity);
   const stream = engine.stream(streamId);
-  const safeDraw = drawUniform(
-    stream,
-    SafeInt(HIT_DRAW_MIN),
-    SafeInt(HIT_DRAW_MAX),
-  );
+  const safeDraw = drawUniform(stream, SafeInt(HIT_DRAW_MIN), SafeInt(HIT_DRAW_MAX));
   const draw = safeDraw as number;
   const inputHash = sha256Hex(
     canonicalSerialize({

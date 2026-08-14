@@ -17,8 +17,7 @@ export function initialHistory<T>(entry: T): NavigationHistory<T> {
 
 export function currentEntry<T>(history: NavigationHistory<T>): T {
   const entry = history.entries[history.index];
-  if (entry === undefined)
-    throw new Error("Navigation history index is out of range.");
+  if (entry === undefined) throw new Error("Navigation history index is out of range.");
   return entry;
 }
 
@@ -30,10 +29,7 @@ export function canGoForward<T>(history: NavigationHistory<T>): boolean {
   return history.index < history.entries.length - 1;
 }
 
-export function visit<T>(
-  history: NavigationHistory<T>,
-  entry: T,
-): NavigationHistory<T> {
+export function visit<T>(history: NavigationHistory<T>, entry: T): NavigationHistory<T> {
   if (currentEntry(history) === entry) return history;
 
   const kept = history.entries.slice(0, history.index + 1);
@@ -45,9 +41,7 @@ export function goBack<T>(history: NavigationHistory<T>): NavigationHistory<T> {
   return { entries: history.entries, index: history.index - 1 };
 }
 
-export function goForward<T>(
-  history: NavigationHistory<T>,
-): NavigationHistory<T> {
+export function goForward<T>(history: NavigationHistory<T>): NavigationHistory<T> {
   if (!canGoForward(history)) return history;
   return { entries: history.entries, index: history.index + 1 };
 }

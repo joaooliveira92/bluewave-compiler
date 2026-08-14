@@ -7,7 +7,9 @@ import {
   type AmmunitionType,
 } from "../../src/gunnery/index.js";
 
-function ammo(overrides: Partial<Record<AmmunitionType, number>> = {}): Record<AmmunitionType, number> {
+function ammo(
+  overrides: Partial<Record<AmmunitionType, number>> = {},
+): Record<AmmunitionType, number> {
   return {
     ARMOR_PIERCING: 120,
     COMMON: 80,
@@ -87,12 +89,10 @@ describe("AC-7 atomic ammunition reserve + consume (DESIGN-39 §28)", () => {
 
   it("respects a restricted permitted-type policy when selecting a substitute", () => {
     const state = batteryState(ammo({ ARMOR_PIERCING: 2, COMMON: 80, HIGH_EXPLOSIVE: 40 }));
-    const { account } = reserveAndConsumeAmmunition(
-      state.ammunition,
-      4,
+    const { account } = reserveAndConsumeAmmunition(state.ammunition, 4, "ARMOR_PIERCING", [
       "ARMOR_PIERCING",
-      ["ARMOR_PIERCING", "HIGH_EXPLOSIVE"],
-    );
+      "HIGH_EXPLOSIVE",
+    ]);
     // COMMON is not permitted; with AP insufficient it must fall through to HE.
     expect(account.type).toBe("HIGH_EXPLOSIVE");
     expect(account.after).toBe(36);

@@ -411,7 +411,10 @@ export function runCampaignLoad(options: CampaignCliOptions, saveDir: string): E
  * `phase-engine/src/month.ts`'s battle_generation phase exactly, so results
  * here match what a real turn would produce for the same snapshot/month.
  */
-export function runBattleGenerate(options: BattleGenerateCliOptions, saveDir: string): ExitCategory {
+export function runBattleGenerate(
+  options: BattleGenerateCliOptions,
+  saveDir: string,
+): ExitCategory {
   const collector = new DiagnosticCollector();
   const store = new SaveStore();
   const state = store.load(saveDir, collector);
@@ -528,11 +531,17 @@ function printMinuteResult(result: MinuteResult, mode: OutputMode): void {
   }
   printResult(`  Contacts: ${result.contacts.length}`, "human");
   for (const c of result.contacts) {
-    printResult(`    ${c.contactId} — asset ${c.assetId} pos [${c.position[0]}, ${c.position[1]}]`, "human");
+    printResult(
+      `    ${c.contactId} — asset ${c.assetId} pos [${c.position[0]}, ${c.position[1]}]`,
+      "human",
+    );
   }
   printResult(`  Events: ${result.events.length}`, "human");
   for (const e of result.events) {
-    printResult(`    [${e.substep}] ${e.eventType} (${e.actorId}${e.targetId ? ` -> ${e.targetId}` : ""})`, "human");
+    printResult(
+      `    [${e.substep}] ${e.eventType} (${e.actorId}${e.targetId ? ` -> ${e.targetId}` : ""})`,
+      "human",
+    );
   }
 }
 
@@ -795,9 +804,7 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
   }
   let commands: CommandEnvelope<CommandBody>[];
   try {
-    commands = JSON.parse(
-      readFileSync(commandsPath, "utf8"),
-    ) as CommandEnvelope<CommandBody>[];
+    commands = JSON.parse(readFileSync(commandsPath, "utf8")) as CommandEnvelope<CommandBody>[];
   } catch {
     printResult(`Failed to parse commands file: ${commandsPath}`, "human");
     return "internal-error";

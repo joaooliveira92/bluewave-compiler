@@ -79,13 +79,11 @@ const motionStyle: React.CSSProperties = {
 };
 
 const rimLightStyle: React.CSSProperties = {
-  background:
-    "linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)",
+  background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)",
 };
 
 const rimShadowStyle: React.CSSProperties = {
-  background:
-    "linear-gradient(90deg, transparent, rgba(0,0,0,0.4), transparent)",
+  background: "linear-gradient(90deg, transparent, rgba(0,0,0,0.4), transparent)",
 };
 
 const ORB_CLASS =
@@ -101,15 +99,9 @@ const GradientBackgroundText = memo(function GradientBackgroundText({
 }: GradientTextProps) {
   const MotionComponent = useMemo(() => motion.create(Component), [Component]);
 
-  const colorArray = useMemo(
-    () => colors.split(",").map((c) => c.trim()),
-    [colors],
-  );
+  const colorArray = useMemo(() => colors.split(",").map((c) => c.trim()), [colors]);
 
-  const mergedMotionStyle = useMemo(
-    () => ({ ...motionStyle, ...style }),
-    [style],
-  );
+  const mergedMotionStyle = useMemo(() => ({ ...motionStyle, ...style }), [style]);
 
   return (
     <span style={perspectiveStyle}>

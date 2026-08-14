@@ -1,7 +1,4 @@
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "../../../components/ui/toggle-group.js";
+import { ToggleGroup, ToggleGroupItem } from "../../../components/ui/toggle-group.js";
 import type { OutcomeFilter } from "../types.js";
 import { SearchInput } from "./SearchInput.js";
 

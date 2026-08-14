@@ -44,23 +44,23 @@ not compile; ran the orchestrator pipeline: implementator → reviewer (NEEDS_RE
 
 ## Requirements evidence
 
-| AC | Proving test | Result |
-|----|--------------|--------|
-| AC-1 | `test/movement/movement.test.ts` | ✅ |
-| AC-2 | `test/movement/position.test.ts` (also propulsion/turning/hook) | ✅ |
-| AC-3 | `position.test.ts` propulsion block | ✅ |
-| AC-4 | `position.test.ts` turning + `reciprocalCourse` | ✅ |
-| AC-5 | `test/movement/formation-station.test.ts` | ✅ |
-| AC-6 | `position.test.ts` collisions/grounding hook | ✅ |
-| AC-7 | `test/spotting/detection.test.ts` (+ safe-integer + boundary) | ✅ |
-| AC-8 | `detection.test.ts` LOS | ✅ |
-| AC-9 | `test/spotting/resolve.test.ts` | ✅ |
-| AC-10 | `test/contact/contact-lifecycle.test.ts` | ✅ |
-| AC-11 | `test/contact/fog-of-war.test.ts` | ✅ |
-| AC-12 | `test/simulation/{advance,pipeline-order,ledger-order}.test.ts` | ✅ |
-| AC-13 | `test/simulation/determinism.test.ts` (two child processes, byte-compare) | ✅ |
-| AC-14 | `test/contracts.test.ts` + `test/reason-codes.test.ts` | ✅ |
-| AC-15 | `verify-golden-hashes.cjs` 9/9 unchanged | ✅ |
+| AC    | Proving test                                                              | Result |
+| ----- | ------------------------------------------------------------------------- | ------ |
+| AC-1  | `test/movement/movement.test.ts`                                          | ✅     |
+| AC-2  | `test/movement/position.test.ts` (also propulsion/turning/hook)           | ✅     |
+| AC-3  | `position.test.ts` propulsion block                                       | ✅     |
+| AC-4  | `position.test.ts` turning + `reciprocalCourse`                           | ✅     |
+| AC-5  | `test/movement/formation-station.test.ts`                                 | ✅     |
+| AC-6  | `position.test.ts` collisions/grounding hook                              | ✅     |
+| AC-7  | `test/spotting/detection.test.ts` (+ safe-integer + boundary)             | ✅     |
+| AC-8  | `detection.test.ts` LOS                                                   | ✅     |
+| AC-9  | `test/spotting/resolve.test.ts`                                           | ✅     |
+| AC-10 | `test/contact/contact-lifecycle.test.ts`                                  | ✅     |
+| AC-11 | `test/contact/fog-of-war.test.ts`                                         | ✅     |
+| AC-12 | `test/simulation/{advance,pipeline-order,ledger-order}.test.ts`           | ✅     |
+| AC-13 | `test/simulation/determinism.test.ts` (two child processes, byte-compare) | ✅     |
+| AC-14 | `test/contracts.test.ts` + `test/reason-codes.test.ts`                    | ✅     |
+| AC-15 | `verify-golden-hashes.cjs` 9/9 unchanged                                  | ✅     |
 
 ## Commands and observed results
 
