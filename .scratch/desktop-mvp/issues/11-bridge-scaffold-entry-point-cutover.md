@@ -1,5 +1,7 @@
 # 11 — Bridge Scaffold & Entry-Point Cutover
 
+Status: resolved
+
 **What to build:** `packages/campaign-engine` exists with the types resolved
 in [Campaign-Engine Projection Package Shape](07-campaign-engine-projection-shape.md);
 all six `apps/desktop/src/shared/*-contract.ts` files

@@ -1,5 +1,7 @@
 # 12 — New Game → Overview
 
+Status: resolved
+
 **What to build:** `listNewGameOptions`, `compileCampaign`, and
 `inspectCampaign` implemented for real against `@bluewave/campaign`
 (`CampaignCompiler`, `createInitialCampaignState`) and `@bluewave/persistence`
