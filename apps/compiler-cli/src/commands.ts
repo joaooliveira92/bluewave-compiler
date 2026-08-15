@@ -650,8 +650,10 @@ function printBattleSummary(
   for (const battle of summary.battles) {
     if (battle.result) {
       const r = battle.result;
+      const verdict =
+        r.winnerId && r.loserId ? `${r.winnerId} defeated ${r.loserId}` : "inconclusive (no winner)";
       printResult(
-        `    ${battle.id} (${battle.attackerId} vs ${battle.defenderId} @ ${battle.areaId}): ${r.winnerId} defeated ${r.loserId}`,
+        `    ${battle.id} (${battle.attackerId} vs ${battle.defenderId} @ ${battle.areaId}): ${verdict}`,
         "human",
       );
       printResult(

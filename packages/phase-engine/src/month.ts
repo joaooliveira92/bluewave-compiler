@@ -1,4 +1,5 @@
 import { SafeInt } from "@bluewave/contracts";
+import { BluewaveError } from "@bluewave/contracts";
 import type {
   CampaignSnapshot,
   NationState,
@@ -10,6 +11,7 @@ import type {
   BlockadeState,
   PermanentDivision,
   BattleInstance,
+  BattleResult,
   DivisionAssetView,
   CanonicalShipType,
   CampaignWeatherState,
@@ -61,6 +63,10 @@ import { EventLedger } from "@bluewave/events";
 import type { DomainEventEnvelope } from "@bluewave/events";
 import { RandomEngine, RandomLedger } from "@bluewave/random";
 import { BattleResolver, generateBattles } from "@bluewave/combat";
+import { resolveBattleAuto } from "@bluewave/combat";
+import type { BattleResolutionResult } from "@bluewave/combat";
+import { BATTLE_AUTO_RESOLUTION_FAILED } from "@bluewave/combat";
+import { INVALID_BATTLE_WEATHER_INITIALIZATION } from "@bluewave/combat";
 import { classifyShip } from "@bluewave/combat";
 import { generateStrategicWeather, defaultClimateProfile_v1 } from "@bluewave/combat";
 import { WEATHER_PROFILE_INCOMPLETE } from "@bluewave/combat";
@@ -70,6 +76,12 @@ import { AiPhaseExecutor } from "@bluewave/ai";
 import { FinancialLedger, type LedgerTransactionInput } from "./financial-ledger.js";
 
 const CURRENT_VERSION = "0.1.0" as const;
+
+// B-6 INC-3: the battle manifest shape `resolveBattleAuto` consumes. The
+// snapshot stores manifests structurally (campaign-side mirror); the combat
+// generation manifest is the authoritative runtime shape — the phase casts at
+// the single lookup seam (never a deep cross-package import).
+type AutoResolutionManifest = Parameters<typeof resolveBattleAuto>[0]["manifest"];
 
 export interface MonthResult {
   finalSnapshot: CampaignSnapshot;
@@ -1607,6 +1619,155 @@ function settleWar(
   return next;
 }
 
+// ---------------------------------------------------------------------------
+// B-6 INC-3: battle_resolution phase helpers (AC-8/AC-9). The tactical
+// auto-resolution result (@bluewave/combat resolveBattleAuto, INC-2) is
+// applied to the campaign through these pure, deterministic helpers. Never
+// mutate a ship in place; every transition builds a new snapshot.
+// ---------------------------------------------------------------------------
+
+/**
+ * Locate the accepted battle manifest for a battle instance. The canonical
+ * match is by `manifestHash` (the battle's pre-seed content hash — DESIGN-37
+ * §32); a battle with a `manifestHash` for which the snapshot carries NO
+ * matching manifest is a corrupted/inconsistent state and fails closed (the
+ * caller records a stable diagnostic and applies NO mutation).
+ */
+function resolveBattleManifest(
+  snapshot: CampaignSnapshot,
+  battle: BattleInstance,
+): AutoResolutionManifest | null {
+  if (battle["manifestHash"] === undefined) return null;
+  const manifests = snapshot["wars"]["battleManifests"] ?? [];
+  const found = manifests.find((m) => m["manifestHash"] === battle["manifestHash"]);
+  // The snapshot's manifests are produced by @bluewave/combat's generateBattles
+  // (structurally identical); the cast only reconciles the campaign-side mirror
+  // type with the combat manifest type at this single lookup seam.
+  return found ? (found as unknown as AutoResolutionManifest) : null;
+}
+
+/**
+ * Apply the tactical battle outcome to the campaign (AC-9): per-ship
+ * accumulated battle hp loss (ADR-0026 damageReport mapping) applied to
+ * `fleets[].ships[].hitPoints` clamped >= 0; terminal ships (in the result's
+ * sunk lists OR derived hp == 0) REMOVED from their fleet; `inBattleId`
+ * reservations cleared on every ship that fought (the battle's fleets).
+ * Deterministic: ships iterate in fleet order (canonical id-sorted in the
+ * battle generation); untouched ships keep their object identity.
+ */
+export function applyBattleConsequences(
+  snapshot: CampaignSnapshot,
+  battle: BattleInstance,
+  result: Pick<BattleResolutionResult, "damageReport" | "attackerSunkIds" | "defenderSunkIds">,
+): CampaignSnapshot {
+  const sunkIds = new Set<string>([...result.attackerSunkIds, ...result.defenderSunkIds]);
+  const battleFleetIds = new Set<string>([...battle.attackerFleetIds, ...battle.defenderFleetIds]);
+  const updatedNations = new Map<string, NationState>();
+  let changed = false;
+
+  for (const [nationId, nation] of snapshot["nations"]) {
+    let fleetsChanged = false;
+    const fleets = nation["fleets"].map((fleet) => {
+      if (!battleFleetIds.has(fleet["id"])) return fleet;
+      const ships: Ship[] = [];
+      let fleetChanged = false;
+      for (const ship of fleet["ships"]) {
+        const loss = Number(result.damageReport[ship["id"]] ?? 0);
+        const newHp = Math.max(0, (ship["hitPoints"] as number) - loss);
+        const isSunk = sunkIds.has(ship["id"]) || newHp <= 0;
+        if (isSunk) {
+          // Authoritative loss (DESIGN-37 §19/§20): the ship is gone from its
+          // fleet; survivors keep their damage (readiness harm is real).
+          fleetChanged = true;
+          continue;
+        }
+        if (newHp === (ship["hitPoints"] as number) && ship["inBattleId"] === undefined) {
+          ships.push(ship); // untouched
+          continue;
+        }
+        fleetChanged = true;
+        // Clear the battle reservation; hitPoints carry the clamped loss.
+        const { inBattleId: _reservation, ...rest } = ship;
+        ships.push({ ...rest, hitPoints: SafeInt(newHp) });
+      }
+      if (fleetChanged) fleetsChanged = true;
+      return fleetChanged ? { ...fleet, ships } : fleet;
+    });
+    if (fleetsChanged) {
+      changed = true;
+      updatedNations.set(nationId, { ...nation, fleets });
+    } else {
+      updatedNations.set(nationId, nation);
+    }
+  }
+
+  return changed ? { ...snapshot, nations: updatedNations } : snapshot;
+}
+
+/**
+ * Map the tactical auto-resolution result onto the campaign `BattleResult`
+ * shape (the shape `applyBattleResult` consumes for the DECIDED path and the
+ * shape persisted on `BattleInstance.result`). Ties / time-limit battles carry
+ * null winner/loser (ADR-0026 §7); sunk ids are canonical id-sorted.
+ */
+function toCampaignBattleResult(auto: BattleResolutionResult): BattleResult {
+  return {
+    winnerId: auto.winnerId,
+    loserId: auto.loserId,
+    attackerLosses: [...auto.attackerSunkIds].sort(),
+    defenderLosses: [...auto.defenderSunkIds].sort(),
+    damageReport: auto.damageReport,
+    explanation: [
+      `auto-resolved (${auto.battleEndReason}) after ${String(auto.elapsedMinutes)} battle minutes`,
+    ],
+  };
+}
+
+/** Mark a battle resolved with its recorded campaign result (battles keep
+ *  their canonical snapshot order — the array is mapped in place). */
+function recordResolvedBattle(
+  snapshot: CampaignSnapshot,
+  battle: BattleInstance,
+  result: BattleResult,
+): CampaignSnapshot {
+  const battles = snapshot["wars"]["battles"].map((b) =>
+    b["id"] === battle["id"] ? { ...b, phase: "resolved" as const, result } : b,
+  );
+  return { ...snapshot, wars: { ...snapshot["wars"], battles } };
+}
+
+/**
+ * The M1 legacy battle-resolution path (strength-based, UNCHANGED): resolves
+ * the battle via `BattleResolver`, feeds the A-3 `applyBattleResult`
+ * (war score / ADR-0010 victory classification / nationalContributionPoints),
+ * and records the legacy `BattleResult` with phase "resolved".
+ */
+function resolveLegacyBattle(
+  snapshot: CampaignSnapshot,
+  battle: BattleInstance,
+  attacker: NationState,
+  defender: NationState,
+  randomEngine: import("@bluewave/random").RandomEngine,
+  resolver: BattleResolver,
+  campaignMonth: string,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const result = resolver.resolve(battle, attacker, defender, randomEngine);
+  // The M1 BattleResolver ALWAYS decides (winner/loser non-null) — the A-3
+  // war-score path keeps its exact `{ winnerId: string; loserId: string }`
+  // contract; the nullable campaign BattleResult fields only carry null on the
+  // auto-resolution tie/time-limit path.
+  let next = applyBattleResult(
+    snapshot,
+    battle,
+    { winnerId: result.winnerId!, loserId: result.loserId!, damageReport: result.damageReport },
+    campaignMonth,
+    collector,
+  );
+  next = recordResolvedBattle(next, battle, result);
+  return next;
+}
+
 export class MonthExecutor {
   private lifecycle = new CommandLifecycle();
 
@@ -2416,7 +2577,28 @@ export class MonthExecutor {
       }
     }
 
-    // Phase 10: battle_resolution
+    // Phase 10: battle_resolution (registry order 8). B-6 INC-3 (AC-8):
+    // manifest-carrying pending/resolving battles resolve deterministically via
+    // `resolveBattleAuto` (@bluewave/combat, INC-2) with the campaign's
+    // committed ships/divisions/weather for that battle; the result feeds the
+    // UNCHANGED A-3 `applyBattleResult` (war score / ADR-0010 victory
+    // classification / nationalContributionPoints) for DECIDED battles, applies
+    // per-ship damage/loss + reservation clearing (AC-9), and records
+    // `BattleInstance.result` + phase "resolved".
+    //
+    // - A battle WITHOUT a manifest keeps the M1 `BattleResolver` strength path
+    //   exactly as today (unchanged; the accepted M1 auto-resolution).
+    // - A manifest battle whose auto-resolution fails closed (missing committed
+    //   weather / missing design / malformed manifest — INC-2 throws a stable
+    //   BluewaveError BEFORE any consequence) records the stable diagnostic and
+    //   falls back to the same legacy path: never crashes, never a partial
+    //   mutation.
+    // - A battle whose `manifestHash` matches NO stored manifest is a broken
+    //   invariant: stable diagnostic + NO mutation (battle stays pending).
+    // - Null winner/loser (time_limit / both-non-viable tie, ADR-0026 §7):
+    //   `applyBattleResult` is called ONLY for decided battles; a tie applies
+    //   no war score / victory class / contribution delta but still records
+    //   damage/loss, the battle result, and reservation clearing (INC-3 ADR).
     {
       const battles = currentSnapshot["wars"]["battles"].filter(
         (b) => b["phase"] === "pending" || b["phase"] === "resolving",
@@ -2438,23 +2620,139 @@ export class MonthExecutor {
             continue;
           }
 
-          const result = resolver.resolve(battle, attacker, defender, randomEngine);
+          const manifest = resolveBattleManifest(currentSnapshot, battle);
+          const hasManifestHash = battle["manifestHash"] !== undefined;
 
-          currentSnapshot = applyBattleResult(
-            currentSnapshot,
-            battle,
-            result,
-            campaignMonth,
-            collector,
-          );
+          // Two fail-fast branches, then `manifest` is guaranteed non-null for
+          // the tactical auto-resolution path below (narrowed by the union):
+          //  - no manifestHash -> M1 legacy strength path, unchanged;
+          //  - manifestHash with NO matching stored manifest -> corrupted
+          //    invariant: stable diagnostic, never a partial/silent resolution.
+          if (!hasManifestHash || manifest === null) {
+            if (hasManifestHash) {
+              collector.addError(
+                BATTLE_AUTO_RESOLUTION_FAILED,
+                `Battle ${battle["id"]} declares manifestHash ${battle["manifestHash"]} but no matching battle manifest exists in the snapshot`,
+                { stage: "battle-resolution", entityId: battle["id"] },
+              );
+              continue;
+            }
+            // M1 legacy strength path — unchanged (no manifest -> no tactical
+            // auto-resolution available).
+            currentSnapshot = resolveLegacyBattle(
+              currentSnapshot,
+              battle,
+              attacker,
+              defender,
+              randomEngine,
+              resolver,
+              campaignMonth,
+              collector,
+            );
+            continue;
+          }
 
-          const updatedBattles = currentSnapshot["wars"]["battles"].map((b) =>
-            b["id"] === battle["id"] ? { ...b, phase: "resolved" as const, result } : b,
+          // Tactical auto-resolution (AC-3 fail-closed: the battle area MUST
+          // have committed strategic weather from the weather_generation phase).
+          const strategicWeather = currentSnapshot["strategicWeather"].find(
+            (s) => s["areaId"] === battle["areaId"],
           );
-          currentSnapshot = {
-            ...currentSnapshot,
-            wars: { ...currentSnapshot["wars"], battles: updatedBattles },
-          };
+          if (!strategicWeather) {
+            collector.addError(
+              INVALID_BATTLE_WEATHER_INITIALIZATION,
+              `Battle ${battle["id"]} has a manifest but no committed strategic weather for area ${battle["areaId"]} — resolving via the legacy strength path`,
+              { stage: "battle-resolution", entityId: battle["id"] },
+            );
+            currentSnapshot = resolveLegacyBattle(
+              currentSnapshot,
+              battle,
+              attacker,
+              defender,
+              randomEngine,
+              resolver,
+              campaignMonth,
+              collector,
+            );
+            continue;
+          }
+
+          try {
+            const autoResult = resolveBattleAuto({
+              battleId: battle["id"],
+              areaId: battle["areaId"],
+              campaignMonth,
+              manifest,
+              attacker: {
+                nationId: attacker["id"],
+                ships: attacker["fleets"].flatMap((f) => f["ships"]),
+                designs: currentSnapshot["designs"],
+                divisions: attacker["divisions"],
+              },
+              defender: {
+                nationId: defender["id"],
+                ships: defender["fleets"].flatMap((f) => f["ships"]),
+                designs: currentSnapshot["designs"],
+                divisions: defender["divisions"],
+              },
+              strategicWeather,
+              campaignSeed: randomSeed,
+              rulesetVersion: currentSnapshot["rulesetVersion"],
+              formulaVersion: manifest["formulaVersion"],
+              rngVersion: manifest["rngVersion"],
+              randomLedger,
+            });
+
+            // A-3 war-score path, UNCHANGED — but only for DECIDED battles. A
+            // tie / time-limit end (both winnerId and loserId null, ADR-0026
+            // §7) contributes NO war score, NO victory class, NO contribution
+            // delta; it still applies ship damage/loss, records the battle
+            // result, and clears reservations below.
+            if (autoResult.winnerId !== null && autoResult.loserId !== null) {
+              currentSnapshot = applyBattleResult(
+                currentSnapshot,
+                battle,
+                {
+                  winnerId: autoResult.winnerId,
+                  loserId: autoResult.loserId,
+                  damageReport: autoResult.damageReport,
+                },
+                campaignMonth,
+                collector,
+              );
+            }
+
+            currentSnapshot = applyBattleConsequences(currentSnapshot, battle, autoResult);
+            currentSnapshot = recordResolvedBattle(
+              currentSnapshot,
+              battle,
+              toCampaignBattleResult(autoResult),
+            );
+          } catch (e) {
+            // Fail-closed auto-resolution: INC-2 throws a stable BluewaveError
+            // code BEFORE any consequence is applied. Record the diagnostic and
+            // resolve via the accepted M1 legacy path — never crash, never a
+            // partial tactical mutation.
+            const ctxCode =
+              e instanceof BluewaveError && typeof e.context?.["code"] === "string"
+                ? (e.context["code"] as string)
+                : "";
+            const code = ctxCode.length > 0 ? ctxCode : BATTLE_AUTO_RESOLUTION_FAILED;
+            collector.addError(
+              code,
+              `Battle auto-resolution failed for ${battle["id"]}: ${(e as Error).message ?? String(e)}`,
+              { stage: "battle-resolution", entityId: battle["id"] },
+            );
+            currentSnapshot = resolveLegacyBattle(
+              currentSnapshot,
+              battle,
+              attacker,
+              defender,
+              randomEngine,
+              resolver,
+              campaignMonth,
+              collector,
+            );
+          }
         }
       }
     }

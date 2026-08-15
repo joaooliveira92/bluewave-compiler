@@ -98,8 +98,14 @@ export interface BattleInstance {
 }
 
 export interface BattleResult {
-  winnerId: string;
-  loserId: string;
+  // B-6 INC-3/ADR-0026 §7: a tie / time-limit battle ends with BOTH null
+  // (neither side eliminated) — such a battle contributes no war score, no
+  // victory class, and no contribution delta, but still records ship damage/
+  // loss and the battle result. Decided battles always carry both ids (the M1
+  // BattleResolver always decides; the auto-resolution path only records a
+  // null pair for a §32 non-decided end).
+  winnerId: string | null;
+  loserId: string | null;
   attackerLosses: string[];
   defenderLosses: string[];
   damageReport: Record<string, SafeInt>;
