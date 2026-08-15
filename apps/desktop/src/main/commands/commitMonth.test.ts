@@ -219,10 +219,14 @@ describe("commitMonth", () => {
               classId: "battleship",
               nationId: id,
               locationAreaId: s.loc,
-              designVersionId: "",
+              // B-6 INC-2 tactical auto-resolution promotes ships via their
+              // compiled design (matching `battle-fixtures.ts`); an empty
+              // designVersionId throws TACTICAL_UNIT_PROMOTION_INVALID and
+              // falls back to the legacy path, which the test does not want.
+              designVersionId: `dv-${s.id}`,
               hitPoints: SafeInt(100),
               maxHitPoints: SafeInt(100),
-              speed: SafeInt(10),
+              speed: SafeInt(30),
               firepower: SafeInt(200),
               armor: SafeInt(10),
               isUnderConstruction: false,
@@ -263,6 +267,34 @@ describe("commitMonth", () => {
         ]),
       );
       const slot: CampaignSlot = { nationId: "GBR", type: "playable" };
+      const UMS_PER_KNOT = 514_444;
+      // Compiled designs for every promoted ship so the B-6 INC-2 tactical
+      // auto-resolution path succeeds (mirrors `battle-fixtures.ts`'s
+      // `makeDesign`); without these, promotion throws
+      // TACTICAL_UNIT_PROMOTION_INVALID and the battle falls back to the
+      // legacy strength path instead of exercising the tactical engine.
+      const designs = new Map(
+        ["g1", "g2", "f1", "f2"].map((shipId) => [
+          `dv-${shipId}`,
+          {
+            designVersionId: `dv-${shipId}`,
+            designFamilyId: `dv-${shipId}-family`,
+            className: `Class dv-${shipId}`,
+            nationId: shipId.startsWith("g") ? "GBR" : "FRA",
+            hullType: "battleship",
+            normalizedDisplacementKg: SafeInt(30_000_000),
+            normalizedSpeedUms: SafeInt(Math.floor(30 * UMS_PER_KNOT)),
+            normalizedArmorUm: SafeInt(305_000_000),
+            hitPoints: SafeInt(100),
+            mainGunsCaliber: SafeInt(343_000_000),
+            mainGunsCount: SafeInt(10),
+            machineryType: "steam_triple_expansion",
+            crewComplement: SafeInt(1_000),
+            contentVersion: "fixture_v1",
+            compiledHash: `compiled-dv-${shipId}`,
+          } as import("@bluewave/campaign").CompiledDesignVersion,
+        ]),
+      );
       return {
         version: "0.1.0",
         turnNumber: SafeInt(0),
@@ -271,7 +303,10 @@ describe("commitMonth", () => {
         startMonth: 1,
         strategicWeather: [],
         slots: [slot],
-        world: { areas: [], routes: [], ports: [] },
+        // `weather_generation` (B-6 INC-1) commits strategic weather only for
+        // areas present in `world.areas`; the battle's co-located area must be
+        // listed or the auto-resolution fail-closed guard trips.
+        world: { areas: [{ id: "a-1", name: "a-1", type: "sea" }], routes: [], ports: [] },
         nations,
         wars: {
           wars: [
@@ -296,7 +331,7 @@ describe("commitMonth", () => {
         },
         politics: { relations: [], shells: {} },
         intelligence: { shells: {} },
-        designs: new Map(),
+        designs,
         designFamilies: new Map(),
         rulesetVersion: "1.0",
         compatibilityVersion: "1.1.0",
