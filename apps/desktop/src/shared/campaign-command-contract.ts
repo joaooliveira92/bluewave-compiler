@@ -31,6 +31,11 @@ import type {
   ReplaceMovementCommandPayload,
   SubmitMovementCommandPayload,
 } from "./fleet-contract.js";
+import type {
+  ResearchPriorityOutcome,
+  ResearchScreenProjection,
+  SetResearchPriorityCommandPayload,
+} from "./research-contract.js";
 
 /**
  * Request payloads for the simulation domain (battle-related types live in
@@ -119,6 +124,8 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "submitMovementCommand",
   "replaceMovementCommand",
   "cancelMovementCommand",
+  "inspectResearchScreen",
+  "setResearchPriorityCommand",
 ] as const;
 
 /**
@@ -205,4 +212,12 @@ export interface CampaignCommandClient {
     command: "cancelMovementCommand",
     payload: CancelMovementCommandPayload,
   ): Promise<BridgeResult<MovementCommandOutcome>>;
+  execute(
+    command: "inspectResearchScreen",
+    payload: string,
+  ): Promise<BridgeResult<ResearchScreenProjection>>;
+  execute(
+    command: "setResearchPriorityCommand",
+    payload: SetResearchPriorityCommandPayload,
+  ): Promise<BridgeResult<ResearchPriorityOutcome>>;
 }

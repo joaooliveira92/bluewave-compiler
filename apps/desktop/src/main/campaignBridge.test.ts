@@ -12,6 +12,8 @@ const IMPLEMENTED_COMMANDS = new Set([
   "replaceConstructionCommand",
   "cancelConstructionCommand",
   "inspectFleetScreen",
+  "inspectResearchScreen",
+  "setResearchPriorityCommand",
   "loadCampaign",
   "verifyCampaign",
   "replayCampaign",
@@ -129,6 +131,43 @@ describe("dispatchCampaignCommand", () => {
 
   it("returns SESSION_NOT_FOUND for inspectConstructionScreen without a session", async () => {
     const result = await dispatchCampaignCommand("inspectConstructionScreen", "no-such-session");
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("rejects a structurally invalid setResearchPriorityCommand payload before touching the handler", async () => {
+    for (const payload of [
+      { sessionId: "s" },
+      {
+        sessionId: "s",
+        expectedRevision: 0,
+        transportRequestId: "r",
+        fieldPriorities: { GUNNERY: 1.5 },
+      },
+      { sessionId: "s", expectedRevision: 0, transportRequestId: "r", fieldPriorities: "high" },
+    ]) {
+      const result = await dispatchCampaignCommand("setResearchPriorityCommand", payload);
+      expect(result.outcome).toBe("error");
+      if (result.outcome !== "error") return;
+      expect(result.reason).toBe("INVALID_PAYLOAD");
+    }
+  });
+
+  it("returns SESSION_NOT_FOUND for a well-formed setResearchPriorityCommand against an unknown session", async () => {
+    const result = await dispatchCampaignCommand("setResearchPriorityCommand", {
+      sessionId: "no-such-session",
+      expectedRevision: 0,
+      transportRequestId: "req-1",
+      fieldPriorities: { GUNNERY: 4 },
+    });
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("returns SESSION_NOT_FOUND for inspectResearchScreen without a session", async () => {
+    const result = await dispatchCampaignCommand("inspectResearchScreen", "no-such-session");
     expect(result.outcome).toBe("error");
     if (result.outcome !== "error") return;
     expect(result.reason).toBe("SESSION_NOT_FOUND");

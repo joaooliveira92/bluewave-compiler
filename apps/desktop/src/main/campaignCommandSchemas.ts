@@ -1,4 +1,5 @@
 import { CANONICAL_SCENARIO_IDS, FLEET_SIZE_IDS, RESEARCH_IDS } from "@bluewave/campaign";
+import { CANONICAL_RESEARCH_FIELD_IDS } from "@bluewave/campaign-engine";
 import { z } from "zod";
 
 /**
@@ -60,4 +61,27 @@ export const ReplaceConstructionOrderPayloadSchema = ConstructionOrderPayloadSch
 
 export const CancelConstructionOrderPayloadSchema = CommandEnvelopePayloadSchema.extend({
   commandId: z.string().min(1),
+});
+
+/**
+ * Wire shape for `setResearchPriorityCommand` (desktop-engine-feature-gate
+ * INC-2): the `CommandEnvelope` triple plus strict field priorities. The wire
+ * boundary enforces integer values and caps the record at the canonical field
+ * set (source-size limit per ENGINEERING-CONTRACT "Security"). Deeper checks
+ * (field ids valid, all fields present, every weight in the DESIGN-20 scale,
+ * 1..MAX high fields) are a desktop-side mirror of
+ * `packages/commands/src/lifecycle.ts`'s `validateSetResearchPriority`, kept
+ * in `researchCommands.ts` so invalid input is surfaced with the engine's own
+ * stable code (`RESEARCH_PRIORITY_CONSTRAINT_VIOLATED`) — see spec D4. (The
+ * engine itself does not reject unknown field keys; the desktop mirror is
+ * intentionally stricter, recorded in the feature-gate ticket trail.)
+ */
+export const SetResearchPriorityCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  fieldPriorities: z
+    .record(z.string().min(1), z.number().int().nonnegative())
+    .refine(
+      (record) => Object.keys(record).length <= CANONICAL_RESEARCH_FIELD_IDS.length,
+      "fieldPriorities cannot exceed the canonical research field set",
+    ),
+  exactTechId: z.string().min(1).optional(),
 });

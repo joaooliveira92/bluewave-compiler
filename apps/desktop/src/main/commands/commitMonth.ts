@@ -12,6 +12,7 @@ import type { RandomDecision } from "@bluewave/random";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type { CommitMonthPayload } from "../../shared/campaign-command-contract.js";
 import { getCampaignSession, registerCampaignSession } from "../campaignSessions.js";
+import { clearResearchEnvelopes, researchEnvelopesForExecution } from "../researchWorkspace.js";
 import { toSaveableState } from "../saveHelpers.js";
 
 /**
@@ -86,7 +87,28 @@ export async function commitMonth(
 
   const executor = new MonthExecutor();
   const collector = new DiagnosticCollector();
-  const result = executor.execute(record.state.snapshot, [], randomSeed, collector);
+  // The session's queued research-priority envelopes (INC-2): drained only
+  // NOW, after every revision/end-of-simulation check and BEFORE the month
+  // executes, so a rejected commit leaves the queue fully intact. When no
+  // research command was ever issued the list is `[]` — byte-identical
+  // behavior to the pre-research pipeline. The engine (command_collection)
+  // stays the sole mutator of `nation.research`.
+  //
+  // `MonthExecutor`'s command_collection authorizes human commands against
+  // `snapshot.slots[0]` only (month.ts), while the desktop lets the player
+  // pick ANY playable nation. Present the engine with the player's slot FIRST
+  // for the execute() call — nothing else reads the slot array's order except
+  // the AI-planning loop (which skips playable slots and keeps every AI slot
+  // in its relative order), so the final content is unaffected — and restore
+  // the canonical compiled slot order before persisting, keeping the save
+  // byte-identical for campaigns that never issue research commands.
+  const originalSlots = record.state.snapshot.slots;
+  const executionSnapshot = promotePlayerSlotForExecution(
+    record.state.snapshot,
+    record.playerSlotId,
+  );
+  const researchCommands = researchEnvelopesForExecution(payload.sessionId, executionSnapshot);
+  const result = executor.execute(executionSnapshot, researchCommands, randomSeed, collector);
 
   if (!result.success) {
     return {
@@ -121,7 +143,13 @@ export async function commitMonth(
   ]);
 
   const nextTurnNumber = SafeInt.add(result.finalSnapshot.turnNumber, SafeInt.ONE);
-  const nextSnapshot = { ...result.finalSnapshot, turnNumber: nextTurnNumber };
+  // Restore the canonical compiled slot order on the persisted snapshot (the
+  // player-slot-first layout was execution-only; see the execute call above).
+  const nextSnapshot = {
+    ...result.finalSnapshot,
+    turnNumber: nextTurnNumber,
+    slots: originalSlots,
+  };
   const nextMonth = advanceMonth(record.month.year, record.month.month, 1);
 
   // `record.state.envelope` was computed by `CampaignCompiler.compile()`
@@ -158,6 +186,13 @@ export async function commitMonth(
     state: nextState,
   });
 
+  // The queued research envelopes were handed to MonthExecutor above and the
+  // new state is persisted + registered — drop them. This runs only after a
+  // successful execute + save; every earlier `return` (MONTH_EXECUTION_FAILED,
+  // SAVE_FAILED, revision/end checks) leaves the queue intact so a retry
+  // re-delivers the player's priorities (INC-2).
+  clearResearchEnvelopes(payload.sessionId);
+
   const activeWars = result.finalSnapshot.wars.wars.filter((war) => war.status !== "ENDED");
 
   const response: CommitMonthResponse = {
@@ -191,6 +226,31 @@ function sumByCategory(
   return entries
     .filter((entry) => categoryIds.includes(entry.categoryId))
     .reduce((sum, entry) => sum + Number(entry.debit), 0);
+}
+
+/**
+ * A copy of `snapshot` with the player's slot promoted to index 0, keeping
+ * every other slot (including all AI slots) in its original relative order.
+ * `MonthExecutor`'s command_collection authorizes human commands against
+ * `slots[0]` only, so this is the delivery-seam fix for the desktop's
+ * any-nation player choice. Returns the SAME snapshot when the player is
+ * already first (no-op), and never mutates the input.
+ */
+function promotePlayerSlotForExecution(
+  snapshot: import("@bluewave/campaign").CampaignSnapshot,
+  playerSlotId: string,
+): import("@bluewave/campaign").CampaignSnapshot {
+  const playerIndex = snapshot.slots.findIndex((slot) => slot.nationId === playerSlotId);
+  if (playerIndex <= 0) return snapshot;
+  const playerSlot = snapshot.slots[playerIndex]!;
+  return {
+    ...snapshot,
+    slots: [
+      playerSlot,
+      ...snapshot.slots.slice(0, playerIndex),
+      ...snapshot.slots.slice(playerIndex + 1),
+    ],
+  };
 }
 
 function toFinancialLedgerEntries(entries: readonly LedgerTransaction[]): FinancialLedgerEntry[] {

@@ -8,6 +8,7 @@ import {
   ConstructionOrderPayloadSchema,
   ReplaceConstructionOrderPayloadSchema,
   SessionIdPayloadSchema,
+  SetResearchPriorityCommandPayloadSchema,
 } from "./campaignCommandSchemas.js";
 import { commitMonth } from "./commands/commitMonth.js";
 import { compileCampaign, defaultCompileCampaignDeps } from "./commands/compileCampaign.js";
@@ -27,6 +28,7 @@ import {
 import { inspectFleetScreen } from "./commands/fleetCommands.js";
 import { inspectCampaign } from "./commands/inspectCampaign.js";
 import { listNewGameOptions } from "./commands/listNewGameOptions.js";
+import { inspectResearchScreen, setResearchPriorityCommand } from "./commands/researchCommands.js";
 
 /**
  * The `campaign:execute` command registry. Every command documented across
@@ -109,6 +111,22 @@ export async function dispatchCampaignCommand(
         return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
       }
       return inspectFleetScreen(parsedPayload.data);
+    }
+
+    case "inspectResearchScreen": {
+      const parsedPayload = SessionIdPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return inspectResearchScreen(parsedPayload.data);
+    }
+
+    case "setResearchPriorityCommand": {
+      const parsedPayload = SetResearchPriorityCommandPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return setResearchPriorityCommand(parsedPayload.data);
     }
 
     // The four Campaign File continuance commands (ticket 16) take an
