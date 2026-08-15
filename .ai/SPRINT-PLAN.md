@@ -226,6 +226,19 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
+**B-6 SCOPING: DONE (2026-08-15).** Wayfinder map `.scratch/b6-m2-battle-results/`:
+destination (campaign-integrate B-1..B-5 + sign M2 COMPLETED), 6 decision
+tickets resolved (scope boundary; `resolveBattleAuto` auto-resolution path;
+strategic-weather snapshot shape; campaign consequences reusing `applyBattleResult`;
+ADR-0007 goldens regen + two-process; M2 §9/§23 gate), research
+`docs/research/b6-m2-battle-results.md`, spec (AC-1..14, INC-1..5), brief
+`.ai/briefs/b6-m2-battle-results.md`, `.ai/specs/` pointer. **Next: B-6-IMPL.**
+
+**B-6-IMPL frontier (INC-1 first):** `.scratch/b6-m2-battle-results/issues/INC-1-*.md`
+(strategic-weather snapshot + `weather_generation` wiring) → INC-2
+(`resolveBattleAuto`) → INC-3 (`battle_resolution` phase + consequences) → INC-4
+(determinism/contracts/goldens) → INC-5 (M2 acceptance gate).
+
 **B-5-IMPL (INC-1..6) is DONE — PASS (2026-08-15).** M2 tactical weather &
 visibility: `StrategicWeatherState` + `weather_generation` phase (order 0.5),
 battle-weather init, 12 tactical components, 30-min progression, visibility /
