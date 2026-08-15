@@ -96,6 +96,30 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 > Diplomacy & War screen (B10c), tactical battle-outcome surfacing (B-6
 > follow-up).
 
+### Desktop Diplomacy & War screen
+
+> **Status (2026-08-15): DONE — PASS.** Second gate-queue desktop surface:
+> B10c surfaced end to end (`.scratch/desktop-diplomacy-war/`). `@bluewave/campaign-engine`
+> gains a pure `diplomacy.ts` projection (known nations, player relations
+> kind/tension/nap/since, player-membered wars w/ war scores + player side,
+> blockades, world areas); the bridge grows to 26 commands
+> (`inspectDiplomacyScreen`, `submitDiplomacyCommand` — a Zod-discriminated
+> union over the 7 B10c command bodies). The per-session command queue is
+> generalized (`pendingCommands.ts`, with `researchWorkspace.ts` as a facade)
+> so research + diplomacy share one `commitMonth` drain seam; the desktop
+> issues envelopes only — `MonthExecutor`'s command_collection (order 2) +
+> `resolveDiplomacyPhase` (order 6.5) are the sole mutators of
+> politics/wars/blockades, and issue-time validity comes from the engine's own
+> public `CommandLifecycle.validate` (codes surfaced verbatim). Renderer:
+> Relations / Wars / Blockades cards with honest copy + engine rejection
+> notices. Goldens 10/10 unchanged; cross-process 14/14; desktop 343;
+> campaign-engine 46. Report: `.ai/reports/desktop-diplomacy-war.md`.
+> **Known limitations recorded:** DeclareBlockade `areaId` membership is an
+> upstream engine gap (unreachable via the honest picker); during-drain
+> same-batch rejection is silent-by-design (future: surface per-envelope drain
+> outcomes). **Next queued: tactical battle-outcome surfacing (B-6
+> follow-up).**
+
 ### B9 — Electron Desktop Shell
 
 > **Status (2026-08-11): PASS_WITH_LIMITATIONS.** Acceptance evidence recorded
