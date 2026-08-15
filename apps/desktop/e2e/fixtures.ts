@@ -94,6 +94,9 @@ export async function copyFixturePackage(scratchRoot: string): Promise<string> {
 type HarnessFixtures = { e2e: E2EHarness };
 
 export const test = base.extend<HarnessFixtures>({
+  // Playwright requires the object-destructuring form for a fixture's first
+  // argument; this fixture has no sibling dependencies to draw on.
+  // eslint-disable-next-line no-empty-pattern
   e2e: async ({}, use) => {
     const harness = await launchHarness();
     try {

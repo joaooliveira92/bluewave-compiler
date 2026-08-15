@@ -49,3 +49,26 @@ test("row 1: New Game compiles a fresh campaign onto Overview", async ({ e2e }) 
     e2e.page.getByText("campaign-bluewave-1880-production"),
   ).toBeVisible();
 });
+
+test("row 2: Advance Month moves the calendar into the following month", async ({ e2e }) => {
+  // Boot #2 opens the file-scoped shared save row 1 compiled (same fixed
+  // seed => the same deterministic month outcomes).
+  await e2e.retargetDialog(sharedSaveDir);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+
+  await expect(
+    e2e.page.getByRole("heading", { name: "Campaign Overview" }),
+  ).toBeVisible({ timeout: 30_000 });
+
+  // Committed start-of-campaign state: turn 0, January 1880 in the header.
+  await expect(e2e.page.getByText("Revision 0")).toBeVisible();
+  await expect(e2e.page.getByText("Bluewave — January 1880")).toBeVisible();
+
+  // Header's advance action drives the month forward (deterministic seed).
+  await e2e.page.getByRole("button", { name: "Advance Month" }).click();
+
+  // User-visible advancement past the starting month, with an honest notice.
+  await expect(e2e.page.getByText("Bluewave — February 1880")).toBeVisible();
+  await expect(e2e.page.getByText("Month advanced to February 1880.")).toBeVisible();
+  await expect(e2e.page.getByText(/Could not advance month/)).not.toBeVisible();
+});
