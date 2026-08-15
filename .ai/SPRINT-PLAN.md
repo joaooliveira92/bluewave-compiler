@@ -262,7 +262,16 @@ spec (17 ACs, 6 INC slices), brief, and `.ai/specs/` pointer at
    AC-14 production ship→design linkage**.
 4. **Repair `content-schema/test/nation.test.ts`** — pre-existing broken import
    (canonical nation-corpus-home decision; defer to owner at final validation).
-5. **Repair `apps/desktop` test/lint failures** — missing `@testing-library/react`
+5. **Desktop engine-feature gate FOLLOW-UP (queued, not dropped):** the
+   desktop-engine-feature-gate effort delivered the Research & Technology
+   screen (bzn done **PASS 2026-08-15**, `.scratch/desktop-engine-feature-gate/`,
+   report `.ai/reports/desktop-engine-feature-gate.md`; `@bluewave/campaign-engine`
+   `research.ts` projection + 24 `campaign:execute` commands + engine-authoritative
+   `SetResearchPriorityCommand` issue via `MonthExecutor`). **Next candidate in
+   the gate queue: Diplomacy & War screen (B10c — relations matrix + the 7
+   issueable commands + war-score view)**, then tactical battle-outcome
+   surfacing (B-6 follow-up).
+6. **Repair `apps/desktop` test/lint failures** — missing `@testing-library/react`
    devDependency + wrong `@bluewave/campaign-engine` import name (actual package
    `@bluewave/campaign`) across 8+ renderer files, introduced by commit `b4509e4`
    (React 19 renderer migration); desktop/UI scope, needs its own pass.

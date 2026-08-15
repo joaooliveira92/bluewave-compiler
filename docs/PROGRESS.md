@@ -35,7 +35,7 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 | `@bluewave/cross-process-test` | ACCEPTED                | Cross-process determinism proof harness                                                                             |
 | `@bluewave/test-support`       | ACCEPTED                | Shared test utilities                                                                                               |
 | `compiler-cli`                 | INTEGRATED_NOT_ACCEPTED | CLI (bwc): validate, compile, inspect, verify, compare, campaign:_, turn:_, replay                                  |
-| `desktop`                      | VERIFIED_NOT_INTEGRATED | Electron shell with CSP, compile IPC, CLI-only renderer                                                             |
+| `desktop`                      | VERIFIED_NOT_INTEGRATED | Electron shell with CSP, compile IPC, CLI-only renderer; playable MVP loop + Research & Technology screen (see below) |
 
 ### Phase Registry (8 ordered phases)
 
@@ -76,6 +76,25 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 > `OperationStatus.tsx` success-copy and Construction `projects` render are
 > screen follow-ups (map "Out of scope"); pre-existing `content-schema`
 > `nation.test.ts` import is broken (unrelated).
+
+### Desktop Engine-Feature Gate — Research & Technology screen
+
+> **Status (2026-08-15): DONE — PASS.** The desktop-engine-feature-gate effort
+> (`.scratch/desktop-engine-feature-gate/`) gated engine-built-but-desktop-missing
+> capabilities and delivered the **Research & Technology** screen as its
+> frontier. `@bluewave/campaign-engine` gains a pure
+> `research.ts` projection (budget, field priorities, in-progress tech work,
+> discovered techs, current project — one-to-one with `nation.research`); the
+> bridge grows to 24 `campaign:execute` commands
+> (`inspectResearchScreen`, `setResearchPriorityCommand`); the desktop queues a
+> real `SetResearchPriorityCommand` envelope and `commitMonth` drains it into
+> `MonthExecutor`'s command_collection — the engine stays the only writer of
+> `nation.research`. Deterministic envelope scheme mirrors `@bluewave/ai`;
+> two-process issue+commit child is byte-identical. Desktop 298 tests,
+> campaign-engine 40, goldens 10/10 unchanged. Report:
+> `.ai/reports/desktop-engine-feature-gate.md`. **Queued next (not dropped):**
+> Diplomacy & War screen (B10c), tactical battle-outcome surfacing (B-6
+> follow-up).
 
 ### B9 — Electron Desktop Shell
 

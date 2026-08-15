@@ -12,4 +12,6 @@ Current specs:
 - B-2 (M2 movement, spotting, contact) → `.scratch/b2-m2-movement-spotting/` (spec.md)
 - B-3 (M2 gunnery core surface fire-resolution) → `.scratch/b3-m2-gunnery/` (spec.md)
 - B-4 (M2 basic armor & damage-resolution) → `.scratch/b4-m2-armor-damage/` (spec.md, AC-1..16 / INC-1..6)
+- B-5 (M2 tactical weather & visibility) → `.scratch/b5-m2-weather-visibility/` (spec.md, AC-1..17 / INC-1..6)
 - B-6 (M2 battle results → campaign integration + M2 gate) → `.scratch/b6-m2-battle-results/` (spec.md, AC-1..14 / INC-1..5)
+- Desktop engine-feature gate (Research & Technology screen) → `.scratch/desktop-engine-feature-gate/` (spec.md, AC-1..7 / INC-1..4)
