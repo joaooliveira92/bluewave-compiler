@@ -148,7 +148,7 @@ sprint also lands the tactical content its capability needs (continues CONTENT-1
 |     | **B-3 SCOPING + IMPL (core surface fire-resolution slice): DONE 2026-08-13 — PASS.** Scoping DONE + committed (`fd3fabe`): wayfinder map `.scratch/b3-m2-gunnery/map.md` + decision tickets `issues/01..06`, spec `.scratch/b3-m2-gunnery/spec.md` (AC-1..15, INC-1..5), brief `.ai/briefs/b3-m2-gunnery.md`, research `docs/research/b3-m2-gunnery.md`, `.ai/specs/b3-m2-gunnery.md`. **INC-1..4 IMPL DONE + committed (9777180, e85efb9, 33e721e, 7cc73f8)** — gunnery state/modes/guards/constants, accuracy (17-factor, floor-once, keyed hit-draw), rate-of-fire/reload (ceil) + gun-quality, salvo/event/ordering + atomic ammo + `resolveGunnery` wired after spotting in minute-advance (strict no-op when no batteries → B-2 hashes unchanged) + fog-of-war targeting + two-process determinism. **INC-5 DONE** — full `*_v1` contracts rollup (5 contracts, AC-14), reason-code set-equality vs DESIGN-39 §32 + catalog (AC-10), research-grounded naval gun ballistics constant set (`gunnery_ballistics_v1`, 6 grounded calibers + 1880s RML heavy-gun BALANCE TARGET), **ADR-0020** (scope/integration boundary + in-slice reason-code/constant policy incl. `SURFACE_FIRE_CONTROL_MINIMUM_BP=2_000`, seeded ammo set, `GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED`, RML ballistics decision). Combat suite 44 files / 325 tests green; full-repo orchestrator gate PASS (uncached build 17/17, `tsc -b` clean, lint clean outside pre-existing unrelated failures, full test suite 32/34 — only the two documented pre-existing unrelated failures, golden verify 9/9, two-process determinism); `BattleResolver`/`StrengthCalculator` unmodified. A pre-existing unrelated `packages/ai/src/aiPlanner.ts` build defect (TS2367) blocking the repo-wide gate was repaired en route (dead unreachable comparison, not a gunnery change). Evidence: `.ai/reports/b3-m2-gunnery-impl.md`. **Next: B-4** (armor & damage). |                                                                                                                                             |                                                                                         |
 | B-4 | Basic armor & damage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | DESIGN-41 (damage-fire-and-flooding.md) — basic subset; detailed damage control deferred to M3 per DESIGN-55 §4                             | Armor/damage tables                                                                     |
 | B-5 | Tactical weather & visibility                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | DESIGN-42 (weather-visibility-and-smoke.md) — weather/visibility subset; smoke deferred to M3                                               | Weather/visibility constants                                                            |
-| B-6 | Battle results → campaign integration + M2 acceptance gate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | ties back into `@bluewave/combat` and phase-engine `battle_resolution`                                                                      | M2 content `SUPPORTED_MECHANICAL`; sign M2 COMPLETED                                    |
+| B-6 | **Battle results → campaign integration + M2 acceptance gate: DONE 2026-08-15 — M2 COMPLETED.** Wayfinder scoping (commit `bf77843`), research `docs/research/b6-m2-battle-results.md`, spec `.scratch/b6-m2-battle-results/spec.md`, brief `.ai/briefs/b6-m2-battle-results.md`. IMPL: INC-1 (`62fba1d`) authoritative `weather_generation` + per-area strategic weather on snapshot (ADR-0025); INC-2 (`405bace`) `resolveBattleAuto` deterministic tactical auto-resolver + gunnery→damage seam, DESIGN-38 §32 battle end (ADR-0026); INC-3 (`1c7b76a`) `battle_resolution` phase wiring + war-score/ship-loss/reservation consequences, A-3 `applyBattleResult` unchanged (ADR-0027); INC-4 folded (contracts/reason-codes/goldens two-process); INC-5 M2 §9/§23 gate. Goldens 10/10 (INC-1 regen under ADR-0007, documented). Registry `docs/acceptance/m2-capability-registry.md`; report `.ai/reports/b6-m2-battle-results-impl.md`. `BattleResolver`/`StrengthCalculator` unmodified. Next: **M3 (Track C).** | ties back into `@bluewave/combat` and phase-engine `battle_resolution` | M2 content `SUPPORTED_MECHANICAL`; **sign M2 COMPLETED** |
 
 ### Track C — M3 Advanced Surface Warfare
 
@@ -226,48 +226,43 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-**B-6 SCOPING: DONE (2026-08-15).** Wayfinder map `.scratch/b6-m2-battle-results/`:
-destination (campaign-integrate B-1..B-5 + sign M2 COMPLETED), 6 decision
-tickets resolved (scope boundary; `resolveBattleAuto` auto-resolution path;
-strategic-weather snapshot shape; campaign consequences reusing `applyBattleResult`;
-ADR-0007 goldens regen + two-process; M2 §9/§23 gate), research
-`docs/research/b6-m2-battle-results.md`, spec (AC-1..14, INC-1..5), brief
-`.ai/briefs/b6-m2-battle-results.md`, `.ai/specs/` pointer. **Next: B-6-IMPL.**
+**B-6: DONE 2026-08-15 — M2 COMPLETED.** Battle results → campaign integration
++ M2 acceptance gate landed (commits `bf77843` scoping, `62fba1d` INC-1,
+`405bace` INC-2, `1c7b76a` INC-3; INC-4 folded; INC-5 gate). Authoritative
+`weather_generation` + per-area strategic weather on snapshot (ADR-0025),
+`resolveBattleAuto` deterministic auto-resolver (ADR-0026), `battle_resolution`
+phase wiring + consequences (ADR-0027). `M2_SURFACE_TACTICAL_CORE` **COMPLETED**
+(§23) — registry `docs/acceptance/m2-capability-registry.md`, report
+`.ai/reports/b6-m2-battle-results-impl.md`. Goldens 10/10.
 
-**B-6-IMPL frontier (INC-1 first):** `.scratch/b6-m2-battle-results/issues/INC-1-*.md`
-(strategic-weather snapshot + `weather_generation` wiring) → INC-2
-(`resolveBattleAuto`) → INC-3 (`battle_resolution` phase + consequences) → INC-4
-(determinism/contracts/goldens) → INC-5 (M2 acceptance gate).
+**Next: Track C — M3 Advanced Surface Warfare.** First scoping sprint is **C-1
+Torpedoes** (DESIGN-40) — depends on accepted M1+M2 (both now COMPLETED).
+Candidate parallel work recorded: content climate-profile YAML (CONTENT-track),
+DESIGN-38 §34 statistical study (REL-1), repair `content-schema/nation.test.ts`.
 
-**B-5-IMPL (INC-1..6) is DONE — PASS (2026-08-15).** M2 tactical weather &
+**Previous: B-5-IMPL (INC-1..6) DONE — PASS (2026-08-15).** M2 tactical weather &
 visibility: `StrategicWeatherState` + `weather_generation` phase (order 0.5),
 battle-weather init, 12 tactical components, 30-min progression, visibility /
 glare / fog / precipitation / night-twilight, `resolveWeather` engine stage
 (step 7.5, strict no-op), `WeatherEventRecord` + ordering, random-ledger port,
-4 `*_v1` contracts, reason-code set-equality, ADR-0022. Reviewer NEEDS_REWORK →
-repaired → APPROVE (+ follow-up pass). Goldens 9/9 unchanged;
-`BattleResolver`/`StrengthCalculator` unmodified. Evidence:
+4 `*_v1` contracts, reason-code set-equality, ADR-0022. Evidence:
 `.ai/reports/b5-m2-weather-visibility-impl.md`.
 
 **Previous: B-5 SCOPING DONE (2026-08-15).** Wayfinder map, decision tickets,
 spec (17 ACs, 6 INC slices), brief, and `.ai/specs/` pointer at
 `.scratch/b5-m2-weather-visibility/`.
 
-**Next after B-5:
+**Backlog after M2 (recorded deferrals / order):**
 
-1. **B-6 (M2 battle results → campaign integration + acceptance gate)** — ties
-   `@bluewave/combat` into the phase-engine `battle_resolution` phase.
-2. **Content C-track at B-5 closure** — a content-constant climate-profile
-   delivery may be coupled to the B-6 campaign-battle integration instead of a
-   standalone sprint; confirm during B-6 scoping (DESIGN-55 §3 follows the
-   weather mechanic being ACCEPTED).
-3. **Content C-track continuation** — MID_CENTURY + LATE-era content (M4/M5) as the
-   corresponding mechanics land; deployment (DESIGN-25) scoping; the **B-1 AC-14
-   production ship→design linkage**.
+1. **C-1 Torpedoes (DESIGN-40)** — next scoping+impl sprint (M3).
+2. **Content C-track climate-profile YAML** — CONTENT-track; confirm coupling
+   to the M3 weather-mechanic acceptance rather than standalone.
+3. **Content C-track continuation** — MID_CENTURY + LATE-era content (M4/M5) as
+   the corresponding mechanics land; deployment (DESIGN-25) scoping; the **B-1
+   AC-14 production ship→design linkage**.
 4. **Repair `content-schema/test/nation.test.ts`** — pre-existing broken import
    (canonical nation-corpus-home decision; defer to owner at final validation).
 5. **Repair `apps/desktop` test/lint failures** — missing `@testing-library/react`
    devDependency + wrong `@bluewave/campaign-engine` import name (actual package
    `@bluewave/campaign`) across 8+ renderer files, introduced by commit `b4509e4`
-   (React 19 renderer migration); discovered during the B-3 INC-5 gate, unrelated
-   to gunnery, not yet fixed (desktop/UI scope, needs its own pass).
+   (React 19 renderer migration); desktop/UI scope, needs its own pass.

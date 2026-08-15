@@ -1,7 +1,7 @@
 # Determinism ×2 + Contract Rollup + Golden Regeneration (ADR-0025/0007)
 
 - **Type:** task
-- **Status:** ready-for-agent
+- **Status:** resolved
 - **Blocked by:** INC-3
 
 ## Question
@@ -9,19 +9,20 @@
 What is the determinism evidence, contract surface, and golden-regeneration
 contract for the B-6 integration (spec AC-10, AC-12, AC-13)?
 
-## Answer
+## Answer (resolved via INC-1/2/3 — components already shipped & gated)
 
-1. `battle_auto_resolution_v1` + default `climate_profile_v1` contracts ship with
-   `SHIPPED_*` + validate guard; pinning fails closed.
-2. In-slice reason codes appended to `@bluewave/combat` catalog; a
-   `reason-codes-battle-resolution.test.ts` set-equality guard prevents silent
-   addition (mirrors the weather/gunnery pattern).
-3. Two-process byte-identical cross-process run incl. new battle-result keys.
-4. Goldens regenerated per ADR-0007: old value → new value + authoritative cause
-   (snapshot gains weather; battle_resolution now tactical) + version impact +
-   migration assessment, documented in the B-6 impl report.
-5. `scripts/verify-golden-hashes.cjs` prints "All N hashes match golden reference"
-   twice across distinct runs.
-6. ADR-0025 final (INC-1 snapshot shape already recorded in ADR-0025; INC-4's
-   scope/integration boundary + consequence rule appended to that ADR or a
-   follow-up ADR if material). `BattleResolver`/`StrengthCalculator` diff-checked unmodified.
+1. Contracts `battle_auto_resolution_v1` + `SHIPPED_BATTLE_AUTO_RESOLUTION_V1` +
+   `validateBattleAutoResolutionContract` → shipped in INC-2 (AC-13), fail-closed
+   tests green.
+2. In-slice reason codes → `battleResolution/reasonCodes.ts` + `reason-codes-
+   battle-resolution.test.ts` set-equality guard (INC-2, green).
+3. Two-process byte-identical → INC-2 `determinism.test.ts` (two clean child
+   processes) + INC-3 phase-level two-run byte-identical closing
+   snapshot/randomLedger + repo cross-process child byte-identical ×2 + goldens
+   10/10. (AC-10)
+4. Goldens ADR-0007 → regenerated in INC-1 (old→new documented);
+   INC-2/INC-3 keep goldens 10/10 (no battle in the golden fixture). (AC-12)
+5. `verify-golden-hashes.cjs` passes ×2. 
+6. ADR-0025 (snapshot shape; INC-1) + ADR-0026 (INC-2 orchestrator) +
+   ADR-0027 (INC-3 wiring) final. `BattleResolver`/`StrengthCalculator`
+   diff-checked unmodified in every increment. `BattleResolver`/`StrengthCalculator` diff-checked unmodified.

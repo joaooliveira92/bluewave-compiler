@@ -1,5 +1,5 @@
 - **Type:** task
-- **Status:** ready-for-agent
+- **Status:** resolved
 - **Blocked by:**
 
 # INC-1: StrategicWeather snapshot + `weather_generation` wiring

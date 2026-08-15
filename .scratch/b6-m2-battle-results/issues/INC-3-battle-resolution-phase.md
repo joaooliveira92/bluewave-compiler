@@ -1,5 +1,5 @@
 - **Type:** task
-- **Status:** ready-for-agent
+- **Status:** resolved
 - **Blocked by:** INC-2
 
 # INC-3: `battle_resolution` phase wiring + campaign consequences
