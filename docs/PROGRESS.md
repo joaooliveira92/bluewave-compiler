@@ -9,7 +9,7 @@
 | ---------------------------- | ------ | --------------------------------------- | ------------------------------------ | ------------------ | ------------------------ |
 | M1 Strategic Campaign Kernel | B0–B8  | Complete (57 docs)                      | Core pipeline done                   | ~154 tests passing | ACCEPTED               |
 | M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready          | B9/B10a/B10b/B10c/B10d done | 410 passing | **M1 COMPLETED (A-5 gate, 2026-08-12)** — see `docs/acceptance/m1-capability-registry.md` |
-| M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | B-1 IMPL + B-2-IMPL + B-3-IMPL + B-4 IMPL DONE (2026-08-14) | 613 tests pass* | B-1 battle-gen + tactical setup; B-2 movement/spotting/contact engine (AC-1..15 PASS, ADR-0018/0019); B-3 core surface gunnery fire-resolution (AC-1..15 PASS, ADR-0020); B-4 basic armor & damage (AC-1..16 PASS, ADR-0021). B-5..B-6 next (armor, weather, results→campaign). |
+| M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | B-1 IMPL + B-2-IMPL + B-3-IMPL + B-4 IMPL + B-5-IMPL DONE (2026-08-15) | 847 combat tests pass | B-1 battle-gen + tactical setup; B-2 movement/spotting/contact engine (AC-1..15 PASS, ADR-0018/0019); B-3 core surface gunnery fire-resolution (AC-1..15 PASS, ADR-0020); B-4 basic armor & damage (AC-1..16 PASS, ADR-0021); **B-5 tactical weather & visibility (AC-1..17 PASS, ADR-0022)** — StrategicWeatherState + `weather_generation` phase, battle-weather init, 12 components, 30-min progression, visibility/glare/fog/precipitation/night-twilight, `resolveWeather` stage (no-op), `BattleLedger` canonical ordering, random-ledger audit port. B-6 next (battle results → campaign integration). |
 | M3 Advanced Surface Warfare  | —      | Design docs exist (DESIGN-34–36, 39–42) | Not started                          | —                  | Future                   |
 | M4 Aviation                  | —      | Design docs exist (DESIGN-43–45)        | Not started                          | —                  | Future                   |
 | M5 Electronics & Missile Era | —      | Design docs exist (DESIGN-46–48)        | Not started                          | —                  | Future                   |
@@ -232,12 +232,14 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 
 | Area                                 | Design coverage      |
 | ------------------------------------ | -------------------- |
-| Tactical movement, spotting, contact | DESIGN-37, DESIGN-38 |
-| Tactical gunnery + armor/damage      | DESIGN-39            |
+| ~~Tactical movement, spotting, contact~~ | DESIGN-37, DESIGN-38 — **DONE (B-2)** |
+| ~~Tactical gunnery~~                  | DESIGN-39 — **core fire-resolution DONE (B-3)** |
+| ~~Basic armor & damage~~              | DESIGN-41 — **basic subset DONE (B-4)** |
+| ~~Tactical weather, visibility~~      | DESIGN-42 — **weather/visibility DONE (B-5); smoke deferred to M3** |
 | Torpedoes                            | DESIGN-40            |
-| Damage, fire, flooding               | DESIGN-41            |
-| Tactical weather, visibility, smoke  | DESIGN-42            |
+| Smoke (drift, decay, screens)        | DESIGN-42 §§7-23 — deferred to M3 (C-5) |
 | Aircraft, squadrons, airbases        | DESIGN-43            |
+| Torpedoes                            | DESIGN-40            |
 | Carrier operations (CAP, strikes)    | DESIGN-44            |
 | Anti-aircraft defense                | DESIGN-45            |
 | Radar, electronics, EW               | DESIGN-46            |
@@ -368,6 +370,35 @@ there. Implementations **MUST NOT** silently resolve an open decision.
 | Event record + ordering + engine wiring | ACCEPTED | §45+§46; resolveDamage after gunnery; strict no-op |
 | Contracts + reason codes + ADR-0021 | ACCEPTED | fail-closed; set-equality guard |
 | Golden hashes | UNCHANGED | 9/9; strict no-op preserves B-2/B-3 |
+
+### B-5 — M2 Tactical Weather & Visibility
+
+> **Status (2026-08-15): IMPLEMENTED — PASS.** All AC-1..AC-17 criteria pass through
+> 6 increments. `StrategicWeatherState` + invariant + `weather_generation` phase
+> (order 0.5, keyed RNG `campaign/weather/<areaId>/<month>`) (INC-1); battle-weather
+> init with area-consistency + `INVALID_BATTLE_WEATHER_INITIALIZATION` fail-closed +
+> 12 tactical components (INC-2); 30-min progression (per-interval stream
+> `battle/weather/interval/<n>`, ±1 sea-state clamp, fail-closed table validation) +
+> visibility formula (BigInt, one FLOOR) (INC-3); glare / fog / precipitation /
+> night-twilight with shipped multiplier bands (INC-4); `resolveWeather` engine
+> stage (step 7.5, strict no-op) + `WeatherEventRecord` (§28) + canonical ordering
+> (§29) + two-process determinism + random-ledger audit port (INC-5); 4 `*_v1`
+> contracts + reason-code set-equality (§30 weather subset + 3 documented markers) +
+> ADR-0022 (INC-6). 16 weather test files + 182 tests green; combat suite 84 files /
+> 847 tests. `BattleResolver`/`StrengthCalculator` unmodified. Reviewer NEEDS_REWORK
+> (H1 stale hashes) → repaired → APPROVE; follow-up pass closed a dormant
+> solar-bearing −1 schema-vs-guard gap.
+
+| Deliverable | Readiness | Key decisions |
+|------------|-----------|---------------|
+| `StrategicWeatherState` + weather phase | ACCEPTED | `weather_generation` order 0.5 (ADR-0022 §2) |
+| Battle-weather initialization + components | ACCEPTED | 12 §3 components; area-consistency assert (ADR-0022 §3) |
+| Tactical progression (30-min) | ACCEPTED | per-interval streams; ±1 sea-state law (ADR-0022 §5) |
+| Visibility formula + one FLOOR | ACCEPTED | BigInt documented bound; `WEATHER_VISIBILITY_FORMULA_MISSING` |
+| Glare / fog / precipitation / night-twilight | ACCEPTED | §24–27 shipped bands; fail-closed daylight profile (ADR-0022 §9) |
+| `resolveWeather` stage + records + ordering | ACCEPTED | step 7.5 before spotting; strict no-op (ADR-0022 §6) |
+| Contracts + reason codes + ADR-0022 | ACCEPTED | fail-closed; §30 set-equality; random-ledger port ≥ B-3/B-4 |
+| Golden hashes | UNCHANGED | 9/9; no-op preserves B-2/B-3/B-4 |
 
 ### M1 — Strategic Campaign Kernel (A-5 acceptance gate)
 

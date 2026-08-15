@@ -226,15 +226,28 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-**B-4-IMPL (INC-1..6) is DONE — PASS (2026-08-14).** M1 signed `COMPLETED`
-(A-5 gate); B-1/B-2/B-3/B-4 IMPL DONE — PASS.
+**B-5-IMPL (INC-1..6) is DONE — PASS (2026-08-15).** M2 tactical weather &
+visibility: `StrategicWeatherState` + `weather_generation` phase (order 0.5),
+battle-weather init, 12 tactical components, 30-min progression, visibility /
+glare / fog / precipitation / night-twilight, `resolveWeather` engine stage
+(step 7.5, strict no-op), `WeatherEventRecord` + ordering, random-ledger port,
+4 `*_v1` contracts, reason-code set-equality, ADR-0022. Reviewer NEEDS_REWORK →
+repaired → APPROVE (+ follow-up pass). Goldens 9/9 unchanged;
+`BattleResolver`/`StrengthCalculator` unmodified. Evidence:
+`.ai/reports/b5-m2-weather-visibility-impl.md`.
 
-Next:
+**Previous: B-5 SCOPING DONE (2026-08-15).** Wayfinder map, decision tickets,
+spec (17 ACs, 6 INC slices), brief, and `.ai/specs/` pointer at
+`.scratch/b5-m2-weather-visibility/`.
 
-1. **B-5 (M2 tactical weather & visibility)** — DESIGN-42 basic subset; needs
-   its own scoping sprint (no brief exists yet).
-2. **B-6 (M2 battle results → campaign integration + acceptance gate)** — ties
+**Next after B-5:
+
+1. **B-6 (M2 battle results → campaign integration + acceptance gate)** — ties
    `@bluewave/combat` into the phase-engine `battle_resolution` phase.
+2. **Content C-track at B-5 closure** — a content-constant climate-profile
+   delivery may be coupled to the B-6 campaign-battle integration instead of a
+   standalone sprint; confirm during B-6 scoping (DESIGN-55 §3 follows the
+   weather mechanic being ACCEPTED).
 3. **Content C-track continuation** — MID_CENTURY + LATE-era content (M4/M5) as the
    corresponding mechanics land; deployment (DESIGN-25) scoping; the **B-1 AC-14
    production ship→design linkage**.
