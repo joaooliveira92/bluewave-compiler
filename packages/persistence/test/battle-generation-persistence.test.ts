@@ -17,6 +17,9 @@ function makeManifestSnapshot(): CampaignSnapshot {
     version: "0.1.0",
     turnNumber: SafeInt(1),
     campaignId: "battle-gen-persistence",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: [
       { nationId: "GBR", type: "playable" },
       { nationId: "FRA", type: "ai" },
@@ -172,6 +175,6 @@ describe("battle-generation persistence (AC-13)", () => {
   });
 
   it("schema version is pinned and recorded", () => {
-    expect(CURRENT_COMPATIBILITY_VERSION).toBe("1.0.0");
+    expect(CURRENT_COMPATIBILITY_VERSION).toBe("1.1.0");
   });
 });

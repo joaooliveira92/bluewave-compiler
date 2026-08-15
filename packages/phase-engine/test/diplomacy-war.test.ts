@@ -102,6 +102,9 @@ function makeSnapshot(
     version: "0.1.0",
     turnNumber: SafeInt(1),
     campaignId: "diplomacy-acceptance",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: nations.map(([nationId]) => ({
       nationId,
       type: nationId === "GBR" ? ("playable" as const) : ("ai" as const),
@@ -225,7 +228,9 @@ describe("B10c diplomacy & war acceptance (criteria 1-14)", () => {
     expect(war!.status).toBe("DECLARED_NOT_ACTIVE");
     expect(war!.attackerId).toBe("GBR");
     expect(war!.defenderId).toBe("FRA");
-    expect(war!.id).toBe("war_GBR_FRA_1");
+    // campaignMonth is derived from the snapshot start (1880-01) + turn 1 ->
+    // 1880-02 (B-6/ADR-0025); war ids embed the month id.
+    expect(war!.id).toBe("war_GBR_FRA_1880-02");
 
     const rel = findRelation(result.finalSnapshot, "GBR", "FRA")!;
     expect(rel.relation).toBe("at_war");

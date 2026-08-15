@@ -1,6 +1,11 @@
 import { DiagnosticCollector, type DiagnosticCode } from "@bluewave/diagnostics";
 
-export const CURRENT_COMPATIBILITY_VERSION = "1.0.0";
+// B-6/ADR-0025: bumped 1.0.0 -> 1.1.0 because the campaign snapshot schema
+// gains authoritative startYear/startMonth + the per-area strategicWeather
+// collection. Old 1.0.0 saves are REJECTED with
+// PERSISTENCE_COMPATIBILITY_MISMATCH (stable diagnostic, spec §1.4 migration
+// stance: no silent continuation with mismatched shapes).
+export const CURRENT_COMPATIBILITY_VERSION = "1.1.0";
 
 export const COMPATIBILITY_MISMATCH_CODE = "PERSISTENCE_COMPATIBILITY_MISMATCH" as DiagnosticCode;
 

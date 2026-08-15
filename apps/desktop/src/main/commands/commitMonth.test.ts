@@ -267,6 +267,9 @@ describe("commitMonth", () => {
         version: "0.1.0",
         turnNumber: SafeInt(0),
         campaignId: "commit-month-battle-fixture",
+        startYear: 1880,
+        startMonth: 1,
+        strategicWeather: [],
         slots: [slot],
         world: { areas: [], routes: [], ports: [] },
         nations,
@@ -296,7 +299,7 @@ describe("commitMonth", () => {
         designs: new Map(),
         designFamilies: new Map(),
         rulesetVersion: "1.0",
-        compatibilityVersion: "1.0.0",
+        compatibilityVersion: "1.1.0",
       };
     }
 

@@ -89,6 +89,9 @@ function makeSnapshot(turn: SafeInt): CampaignSnapshot {
     version: "0.1.0",
     turnNumber: turn,
     campaignId: "ai-scenario",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: nations.map(([nationId]) => ({
       nationId,
       type: nationId === "GBR" ? ("playable" as const) : ("ai" as const),

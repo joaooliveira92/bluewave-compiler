@@ -485,6 +485,11 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
     version: snapshot["version"],
     turnNumber: snapshot["turnNumber"],
     campaignId: snapshot["campaignId"],
+    // B-6/ADR-0025: start date + current-month per-area weather are part of
+    // the authoritative snapshot surface (parity with ReplayVerifier).
+    startYear: snapshot["startYear"],
+    startMonth: snapshot["startMonth"],
+    strategicWeather: (snapshot["strategicWeather"] ?? []).map((s) => ({ ...s })),
     slots: snapshot["slots"].map((s) => ({ ...s })),
     world: {
       areas: snapshot["world"]["areas"].map((a) => ({ ...a })),

@@ -49,6 +49,9 @@ function makeSnapshot(
     version: "0.1.0",
     turnNumber: turn,
     campaignId: "ai-test-campaign",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: nations.map(([nationId]) => ({
       nationId,
       type: "ai" as const,

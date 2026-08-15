@@ -65,6 +65,7 @@ vi.mock("@bluewave/persistence", () => ({
     getActiveSaveId = saveStoreMocks.getActiveSaveId;
     getPreviousSaveId = saveStoreMocks.getPreviousSaveId;
   },
+  CURRENT_COMPATIBILITY_VERSION: "1.1.0",
 }));
 
 const phaseMocks = vi.hoisted(() => ({

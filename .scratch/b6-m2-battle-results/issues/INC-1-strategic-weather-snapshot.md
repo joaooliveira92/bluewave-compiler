@@ -16,7 +16,7 @@
 - `cloneSnapshot` + `cross-process-test` child + persistence serialize the new
   field; save→load→replay round-trips; goldens regenerate under ADR-0007 with
   documented old/new + cause.
-- ADR-0023 records the snapshot shape + default climate profile + compatibility
+- ADR-0025 records the snapshot shape + default climate profile + compatibility
   bump/migration stance.
 
 ## Tests
@@ -30,4 +30,4 @@
 `@bluewave/campaign` (state), `@bluewave/combat` (climate profile default +
 generateStrategicWeather export surface), `@bluewave/phase-engine` (month.ts +
 registry wiring), `@bluewave/persistence` iff schema touches, cross-process child,
-tests, `scripts/verify-golden-hashes.cjs` if key set changes, ADR-0023.
+tests, `scripts/verify-golden-hashes.cjs` if key set changes, ADR-0025.

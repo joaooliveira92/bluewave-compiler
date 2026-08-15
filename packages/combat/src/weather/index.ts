@@ -4,6 +4,7 @@ export * from "./reasonCodes.js";
 export * from "./contractRollup.js";
 export * from "./strategic-state.js";
 export * from "./climate.js";
+export * from "./default-climate-profile.js";
 export * from "./components.js";
 export * from "./battle-init.js";
 export * from "./progression.js";

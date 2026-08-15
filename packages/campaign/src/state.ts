@@ -262,10 +262,67 @@ export interface CampaignSlot {
   type: "playable" | "ai";
 }
 
+// Canonical current-month per-area strategic weather state (DESIGN-42 §1, B-6
+// INC-1/ADR-0025). Structurally defined here so campaign stays dependency-free
+// (the same precedent as BattleManifest above); @bluewave/combat's
+// `generateStrategicWeather` produces it via the structurally-identical
+// `StrategicWeatherState`. Every numeric field is integer fixed-point with the
+// bounds enforced by @bluewave/combat's `assertFixedPointStrategicWeather`.
+export interface CampaignWeatherState {
+  /** Stable strategic-area identifier. */
+  areaId: string;
+  /** Campaign month identifier (e.g. "1880-02" — `campaignMonthId` derives it). */
+  month: string;
+  /** Climate-profile identifier the state was generated from. */
+  climateProfileId: string;
+  /** Season identifier resolved from the calendar month (climate profile). */
+  seasonId: string;
+  /** Identifier of the prior persistent weather state ("" when none). */
+  persistentWeatherStateId: string;
+  /** Sea state, integer 0..9. */
+  seaState: number;
+  /** Wind direction in canonical angular units (integer degrees 0..359). */
+  windDirectionDeg: number;
+  /** Wind speed in integer micrometres per second. */
+  windSpeedUmPerSec: number;
+  /** Precipitation type (NONE | RAIN | SNOW). */
+  precipitationType: "NONE" | "RAIN" | "SNOW";
+  /** Precipitation intensity in basis points 0..10_000. */
+  precipitationIntensityBp: number;
+  /** Fog or mist density in basis points 0..10_000. */
+  fogMistDensityBp: number;
+  /** Cloud cover in basis points 0..10_000. */
+  cloudCoverBp: number;
+  /** Daylight-profile identifier. */
+  daylightProfileId: string;
+  /** Whether the area is eligible for directional glare effects. */
+  glareEligible: boolean;
+  /** Base visibility distance in integer micrometres. */
+  baseVisibilityUm: number;
+  /** Phase id the state was generated in ("weather_generation"). */
+  generatedAtPhase: string;
+  /** Ruleset version. */
+  rulesetVersion: string;
+  /** Climate-profile version. */
+  climateVersion: string;
+  /** Formula version. */
+  formulaVersion: string;
+  /** RNG version. */
+  rngVersion: string;
+  /** Authoritative state hash (deterministic). */
+  stateHash: string;
+}
+
 export interface CampaignSnapshot {
   version: string;
   turnNumber: SafeInt;
   campaignId: string;
+  // The campaign's start calendar date (DESIGN-03 §2 timeline anchor, B-6
+  // ADR-0025). The compiled snapshot derives it from the scenario /
+  // `campaignStart` input; the phase engine derives every campaign month id
+  // from it via `campaignMonthId` (never wall-clock/env/locale).
+  startYear: number;
+  startMonth: number;
   slots: CampaignSlot[];
   world: WorldState;
   nations: Map<string, NationState>;
@@ -274,6 +331,10 @@ export interface CampaignSnapshot {
   intelligence: IntelligenceState;
   designs: Map<string, CompiledDesignVersion>;
   designFamilies: Map<string, DesignFamily>;
+  // Current-month per-area StrategicWeatherState collection (DESIGN-42 §1 /
+  // ADR-0025). Canonically ordered by areaId (stable serializer order; only the
+  // CURRENT campaign month is stored — no unbounded growth). Empty at compile.
+  strategicWeather: CampaignWeatherState[];
   rulesetVersion: string;
   compatibilityVersion: string;
 }

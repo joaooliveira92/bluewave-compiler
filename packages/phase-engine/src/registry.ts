@@ -56,13 +56,14 @@ export class PhaseRegistry {
     {
       id: "weather_generation",
       name: "Strategic Weather Generation",
-      // B-5/ADR-0022: monthly per-area StrategicWeatherState generation
-      // (DESIGN-42 §1), ordered after opening_validation and before
+      // B-5/ADR-0022 + B-6/ADR-0025: monthly per-area StrategicWeatherState
+      // generation (DESIGN-42 §1), ordered after opening_validation and before
       // command_collection. The pure generation engine lives in
       // @bluewave/combat (generateStrategicWeather, keyed stream
-      // `campaign/weather/<areaId>/<month>`); campaign-snapshot wiring
-      // (climate profiles + weather state persistence) is B-6, so this phase
-      // executes as a strict no-op until then.
+      // `campaign/weather/<areaId>/<month>`); MonthExecutor wires it
+      // authoritatively into the campaign snapshot (default climate profile
+      // `defaultClimateProfile_v1`; committed per-area states before
+      // command_collection).
       order: 0.5,
       readPermissions: ["all"],
       writePermissions: [],

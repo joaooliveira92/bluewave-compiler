@@ -19,7 +19,7 @@
   M2 sprint: campaign snapshot gains per-area `StrategicWeatherState`, so
   **goldens change** (ADR-0007 regeneration with documented old/new + cause).
 - **Delivery contract:** ENGINEERING-CONTRACT binding. `BattleResolver`/
-  `StrengthCalculator` unmodified. Two-process determinism. ADR-0023.
+  `StrengthCalculator` unmodified. Two-process determinism. ADR-0025.
 
 ---
 
@@ -55,7 +55,7 @@
    `applyBattleResult` reuse, ship damage/loss application + reservation
    clearing; ship removal on terminal; `BattleInstance.result` recording.
 4. **Determinism + contracts + goldens** (INC-4): two-process ×2 prove,
-   `*_v1` contracts rollup + set-equality, ADR-0023, goldens ADR-0007 regen.
+   `*_v1` contracts rollup + set-equality (INC-1 recorded as ADR-0025), goldens ADR-0007 regen.
 5. **M2 acceptance gate + traceability** (INC-5): registry, sign-off, plan/
    PROGRESS/report, roadmap advance pointer.
 

@@ -5,6 +5,7 @@ import { CampaignCompiler } from "@bluewave/campaign/compiler";
 import type { CampaignState, CampaignSnapshot, NationState } from "@bluewave/campaign";
 import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
 import { SaveStore } from "@bluewave/persistence";
+import { CURRENT_COMPATIBILITY_VERSION } from "@bluewave/persistence";
 import { MonthExecutor, ReplayVerifier } from "@bluewave/phase-engine";
 import { generateBattles } from "@bluewave/combat";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
@@ -92,7 +93,7 @@ function compileCampaign(fixtureDir: string): { state: CampaignState; contentHas
         designFiles: [],
       },
       rulesetVersion: "1.0",
-      compatibilityVersion: "1.0.0",
+      compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
     },
     signal,
     collector,
@@ -113,6 +114,12 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
     version: snapshot.version,
     turnNumber: snapshot.turnNumber,
     campaignId: snapshot.campaignId,
+    // B-6/ADR-0025: canonical start date + current-month per-area weather are
+    // part of the authoritative snapshot surface (golden keys must prove the
+    // schema carries them — hash parity with ReplayVerifier's subset hash).
+    startYear: snapshot.startYear,
+    startMonth: snapshot.startMonth,
+    strategicWeather: (snapshot.strategicWeather ?? []).map((s) => ({ ...s })),
     slots: snapshot.slots.map((s) => ({ nationId: s.nationId, type: s.type })),
     world: {
       areas: snapshot.world.areas.map((a) => ({ ...a })),

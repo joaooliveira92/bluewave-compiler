@@ -12,6 +12,7 @@ import type {
   BattleInstance,
   DivisionAssetView,
   CanonicalShipType,
+  CampaignWeatherState,
 } from "@bluewave/campaign";
 import {
   WAR_SCORE_MINOR,
@@ -61,6 +62,10 @@ import type { DomainEventEnvelope } from "@bluewave/events";
 import { RandomEngine, RandomLedger } from "@bluewave/random";
 import { BattleResolver, generateBattles } from "@bluewave/combat";
 import { classifyShip } from "@bluewave/combat";
+import { generateStrategicWeather, defaultClimateProfile_v1 } from "@bluewave/combat";
+import { WEATHER_PROFILE_INCOMPLETE } from "@bluewave/combat";
+import type { ClimateProfile } from "@bluewave/combat";
+import { campaignMonthId } from "@bluewave/campaign";
 import { AiPhaseExecutor } from "@bluewave/ai";
 import { FinancialLedger, type LedgerTransactionInput } from "./financial-ledger.js";
 
@@ -73,6 +78,20 @@ export interface MonthResult {
   randomLedger: RandomLedger;
   financialLedger: FinancialLedger;
   success: boolean;
+}
+
+/**
+ * B-6/ADR-0025: per-area climate source for the `weather_generation` phase.
+ * The engine default `defaultClimateProfile_v1` is the canonical source until
+ * the CONTENT-track supplies region climate-profile YAML (spec §1.3 deferral):
+ * when `climateProfiles` is undefined every world area uses
+ * `defaultClimateProfile_v1` (never a silent fallback — the default IS the
+ * canonical source). When a caller supplies an explicit area->profile map, an
+ * area missing from the map fails closed with a WEATHER_PROFILE_INCOMPLETE
+ * diagnostic (no area is silently skipped without a record).
+ */
+export interface StrategicWeatherPhaseOptions {
+  readonly climateProfiles?: ReadonlyMap<string, ClimateProfile>;
 }
 
 function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
@@ -227,6 +246,8 @@ function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
     version: snapshot["version"],
     turnNumber: snapshot["turnNumber"],
     campaignId: snapshot["campaignId"],
+    startYear: snapshot["startYear"],
+    startMonth: snapshot["startMonth"],
     slots: snapshot["slots"].map((s) => ({ nationId: s["nationId"], type: s["type"] })),
     world: {
       areas: snapshot["world"]["areas"].map((a) => ({
@@ -274,6 +295,9 @@ function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
     designs,
     designFamilies,
     nations,
+    // Deep-clone the canonical current-month per-area weather collection
+    // (array of immutable state records; ordering by areaId is preserved).
+    strategicWeather: (snapshot["strategicWeather"] ?? []).map((s) => ({ ...s })),
     rulesetVersion: snapshot["rulesetVersion"],
     compatibilityVersion: snapshot["compatibilityVersion"],
   };
@@ -1591,6 +1615,7 @@ export class MonthExecutor {
     commands: CommandEnvelope<CommandBody>[],
     randomSeed: string,
     collector: DiagnosticCollector,
+    options?: StrategicWeatherPhaseOptions,
   ): MonthResult {
     const commandLedger = new CommandLedger();
     const eventLedger = new EventLedger();
@@ -1598,7 +1623,14 @@ export class MonthExecutor {
     const financialLedger = new FinancialLedger();
     let currentSnapshot = cloneSnapshot(snapshot);
     const turnNumber = snapshot["turnNumber"];
-    const campaignMonth = String(turnNumber);
+    // DESIGN-03 §2 / ADR-0025: the authoritative campaign month id is derived
+    // from the snapshot's compiled start date + turn number (integer calendar
+    // arithmetic only — never wall-clock/env/locale).
+    const campaignMonth = campaignMonthId(
+      snapshot["startYear"],
+      snapshot["startMonth"],
+      turnNumber as number,
+    );
 
     let eventSeq = 0;
     function nextSeq(): SafeInt {
@@ -1619,6 +1651,58 @@ export class MonthExecutor {
           financialLedger,
           success: false,
         };
+      }
+    }
+
+    // Phase 1.5: weather_generation (registry order 0.5; DESIGN-42 §1 /
+    // ADR-0025). Authoritative per-area current-month StrategicWeatherState
+    // from the canonical default climate profile over the keyed stream
+    // `campaign/weather/<areaId>/<month>`; committed into the snapshot before
+    // command_collection. rngAllowed: true — the ONLY randomness is the keyed
+    // stream inside generateStrategicWeather (recorded in the randomLedger).
+    {
+      const areas = [...currentSnapshot["world"]["areas"]].sort((a, b) =>
+        a["id"] < b["id"] ? -1 : a["id"] > b["id"] ? 1 : 0,
+      );
+      const priorByArea = new Map(
+        (currentSnapshot["strategicWeather"] ?? []).map((s) => [s["areaId"], s] as const),
+      );
+      const climateSource = options?.["climateProfiles"];
+      const profileFor = (areaId: string): ClimateProfile | undefined =>
+        climateSource === undefined ? defaultClimateProfile_v1 : climateSource.get(areaId);
+
+      const nextWeather: CampaignWeatherState[] = [];
+      for (const area of areas) {
+        const profile = profileFor(area["id"]);
+        if (!profile) {
+          collector.addError(
+            WEATHER_PROFILE_INCOMPLETE,
+            `No climate profile for strategic area ${area["id"]}`,
+            { stage: "weather_generation", entityId: area["id"] },
+          );
+          continue; // fail-closed: recorded, area simply not committed this month
+        }
+        try {
+          nextWeather.push(
+            generateStrategicWeather({
+              areaId: area["id"],
+              month: campaignMonth,
+              climateProfile: profile,
+              campaignSeed: randomSeed,
+              priorState: priorByArea.get(area["id"]),
+              randomLedger,
+            }),
+          );
+        } catch (e) {
+          collector.addError(
+            WEATHER_PROFILE_INCOMPLETE,
+            `Strategic weather generation failed for area ${area["id"]}: ${(e as Error).message}`,
+            { stage: "weather_generation", entityId: area["id"] },
+          );
+        }
+      }
+      if (nextWeather.length > 0 || (currentSnapshot["strategicWeather"] ?? []).length > 0) {
+        currentSnapshot = { ...currentSnapshot, strategicWeather: nextWeather };
       }
     }
 

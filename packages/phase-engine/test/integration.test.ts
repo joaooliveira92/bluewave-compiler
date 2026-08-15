@@ -114,7 +114,7 @@ function compileCampaign(fixtureDir: string): CampaignState {
         designFiles: [],
       },
       rulesetVersion: "1.0",
-      compatibilityVersion: "1.0.0",
+      compatibilityVersion: "1.1.0",
     },
     signal,
     collector,
@@ -158,6 +158,12 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
     version: snapshot.version,
     turnNumber: snapshot.turnNumber,
     campaignId: snapshot.campaignId,
+    // B-6/ADR-0025: start date + current-month weather are part of the
+    // authoritative snapshot surface (hash parity with ReplayVerifier /
+    // run-child).
+    startYear: snapshot.startYear,
+    startMonth: snapshot.startMonth,
+    strategicWeather: (snapshot.strategicWeather ?? []).map((s) => ({ ...s })),
     slots: snapshot.slots.map((s) => ({ nationId: s.nationId, type: s.type })),
     world: {
       areas: snapshot.world.areas.map((a) => ({ ...a })),
@@ -470,6 +476,9 @@ describe("Full-slice integration", () => {
       version: "0.1.0",
       turnNumber: SafeInt(1),
       campaignId: "test-ship-battles",
+      startYear: 1880,
+      startMonth: 1,
+      strategicWeather: [],
       slots: [{ nationId: "GBR", type: "playable" }],
       world: { areas: [], routes: [], ports: [] },
       nations,
@@ -757,6 +766,9 @@ describe("Full-slice integration", () => {
       version: "0.1.0",
       turnNumber: SafeInt(1),
       campaignId: "test-battle-narrow",
+      startYear: 1880,
+      startMonth: 1,
+      strategicWeather: [],
       slots: [
         { nationId: "GBR", type: "playable" },
         { nationId: "FRA", type: "ai" },

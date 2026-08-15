@@ -31,7 +31,7 @@ unmodified. Must be re-verified by the implementation (never assumed).
 - `battle_resolution` phase wiring + campaign consequences (war score via
   existing `applyBattleResult`, ship HP damage/loss, sink removal, reservation
   clearing, `BattleInstance.result` recording).
-- Determinism ×2, `*_v1` contract rollup, ADR-0023, golden regeneration per
+- Determinism ×2, `*_v1` contract rollup, ADR-0025, golden regeneration per
   ADR-0007 with documented cause.
 - M2 acceptance gate: `docs/acceptance/m2-capability-registry.md`, §23 sign-off,
   traceability refresh.
@@ -79,6 +79,6 @@ requires inventing crew/officer/of sort beyond hp remove, defer & record; if the
 
 ## Required delivery
 
-- code + tests; traceability (SPRINT-PLAN row, PROGRESS); ADR-0023; validation
+- code + tests; traceability (SPRINT-PLAN row, PROGRESS); ADR-0025; validation
   report `.ai/reports/b6-m2-battle-results-impl.md`; changed-file summary; small
   Conventional Commits on `dev`; PR description only if remote push available.

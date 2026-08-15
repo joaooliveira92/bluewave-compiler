@@ -66,7 +66,13 @@ export async function compileCampaign(
   const compileCollector = new DiagnosticCollector();
   let output: ReturnType<typeof compileProductionCampaign>;
   try {
-    output = compileProductionCampaign(deps.contentDir, signal, compileCollector);
+    // B-6/ADR-0025: thread the scenario's start calendar date into the compile
+    // so the snapshot stamps authoritative startYear/startMonth (the month ids
+    // every later campaign month — incl. the weather stream — derive from).
+    output = compileProductionCampaign(deps.contentDir, signal, compileCollector, {
+      startYear: session.currentYear,
+      startMonth: session.currentMonth,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { outcome: "error", reason: "COMPILE_FAILED", diagnostics: [message] };

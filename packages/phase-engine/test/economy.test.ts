@@ -72,6 +72,9 @@ function makeSnapshot(nations: Array<[string, NationState]>): CampaignSnapshot {
     version: "0.1.0",
     turnNumber: SafeInt(1),
     campaignId: "economy-acceptance",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: nations.map(([nationId]) => ({
       nationId,
       type: nationId === "GBR" ? ("playable" as const) : ("ai" as const),
