@@ -57,6 +57,26 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 
 ## 🔜 In Progress / Planned (B9–B10)
 
+### Desktop MVP — playable campaign loop (`apps/desktop`)
+
+> **Status (2026-08-15): IMPLEMENTATION COMPLETE — READY FOR PLAYTEST.** The
+> desktop-mvp wayfinder effort (`.scratch/desktop-mvp/`) delivered the
+> reversed-scope game-client shell on `dev`: `@bluewave/campaign-engine`
+> projection package, single `campaign:execute` bridge (22 commands, 1 IPC
+> channel), renderer boots `shell/App.tsx`, and all 16 tickets resolved.
+> New Game (archetype → nation → preferences) → compile real campaign →
+> Overview → Simulation (advance a month vs `MonthExecutor`, battles
+> auto-resolved) → Construction (submit/replace/cancel, real
+> `packages/commands` lifecycle) → Fleet (read-only) → Save/Load/Verify/
+> Replay/Recover all real against `content/production/1880`. Distribution
+> via `pnpm dev` (no packaging). Commits: `db1e6e1`, `18ce4b3` (+ ticket
+> 11–13 work in prior commits). Known caveats: `SaveStore` envelope hash
+> doesn't cover Map-backed state (ADR-0024, replay is the strong integrity
+> check; serializer migration deferred to the persistence track);
+> `OperationStatus.tsx` success-copy and Construction `projects` render are
+> screen follow-ups (map "Out of scope"); pre-existing `content-schema`
+> `nation.test.ts` import is broken (unrelated).
+
 ### B9 — Electron Desktop Shell
 
 > **Status (2026-08-11): PASS_WITH_LIMITATIONS.** Acceptance evidence recorded
