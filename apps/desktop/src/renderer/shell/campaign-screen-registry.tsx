@@ -1,6 +1,7 @@
 import {
   Activity,
   Crosshair,
+  FlaskConical,
   Hammer,
   LayoutDashboard,
   Map as MapIcon,
@@ -26,6 +27,11 @@ const DebuggingScreen = lazy(() =>
 const SimulationScreen = lazy(() =>
   import("../screens/simulation/SimulationScreen.js").then((module) => ({
     default: module.SimulationScreen,
+  })),
+);
+const ResearchScreen = lazy(() =>
+  import("../screens/research/ResearchScreen.js").then((module) => ({
+    default: module.ResearchScreen,
   })),
 );
 const TacticalSandboxScreen = lazy(() =>
@@ -54,6 +60,7 @@ export type CampaignScreen =
   | "construction"
   | "fleet"
   | "simulation"
+  | "research"
   | "tactical-sandbox"
   | "debugging"
   | "map-prototype"
@@ -93,6 +100,10 @@ function SimulationRoute({ sessionId }: CampaignScreenRouteProps) {
   return (
     <SimulationScreen sessionId={sessionId} onPrimaryActionChange={actions.setPrimaryAction} />
   );
+}
+
+function ResearchRoute({ sessionId }: CampaignScreenRouteProps) {
+  return <ResearchScreen sessionId={sessionId} />;
 }
 
 function TacticalSandboxRoute({ sessionId }: CampaignScreenRouteProps) {
@@ -168,6 +179,14 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
     group: "campaign",
     searchable: true,
     route: SimulationRoute,
+  },
+  {
+    id: "research",
+    label: "Research & Technology",
+    icon: FlaskConical,
+    group: "campaign",
+    searchable: true,
+    route: ResearchRoute,
   },
   {
     id: "tactical-sandbox",

@@ -93,6 +93,13 @@ vi.mock("../screens/simulation/SimulationScreen.js", async () => {
       ),
   };
 });
+vi.mock("../screens/research/ResearchScreen.js", async () => {
+  const React = await import("react");
+  return {
+    ResearchScreen: ({ sessionId }: { sessionId: string }) =>
+      React.createElement("section", { "data-testid": "research-screen" }, sessionId),
+  };
+});
 vi.mock("../screens/tactical-sandbox/TacticalSandboxScreen.js", async () => {
   const React = await import("react");
   return {
@@ -175,6 +182,7 @@ describe("CampaignScreenOutlet", () => {
     ["construction", "construction-screen"],
     ["fleet", "fleet-screen"],
     ["simulation", "simulation-screen"],
+    ["research", "research-screen"],
     ["tactical-sandbox", "tactical-sandbox-screen"],
     ["debugging", "debugging-screen"],
     ["campaign-preferences", "campaign-preferences-screen"],
