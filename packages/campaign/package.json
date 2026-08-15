@@ -7,6 +7,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./compiler": {
+      "types": "./src/compiler-public.ts",
+      "default": "./dist/compiler-public.js"
     }
   },
   "dependencies": {

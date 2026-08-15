@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { sha256 } from "@noble/hashes/sha2.js";
 
 export interface CanonicalEnvelope {
   algorithm: string;
@@ -37,8 +37,20 @@ function stableKeySort(_key: string, value: unknown): unknown {
   return value;
 }
 
+function bytes(data: string): Uint8Array {
+  return new TextEncoder().encode(data);
+}
+
+function hex(bytes: Uint8Array): string {
+  let out = "";
+  for (const b of bytes) {
+    out += b.toString(16).padStart(2, "0");
+  }
+  return out;
+}
+
 export function sha256Hex(data: string): string {
-  return createHash("sha256").update(data, "utf8").digest("hex");
+  return hex(sha256(bytes(data)));
 }
 
 export function createEnvelope(
@@ -53,7 +65,7 @@ export function createEnvelope(
     artifactKind,
     compatibilityVersion,
     bodyHash,
-    bodyLength: Buffer.byteLength(bodyJson, "utf8"),
+    bodyLength: bytes(bodyJson).length,
   };
 }
 
@@ -62,14 +74,11 @@ export function verifyEnvelope(envelope: CanonicalEnvelope, body: unknown): bool
   const computedHash = sha256Hex(bodyJson);
   return (
     computedHash === envelope.bodyHash &&
-    Buffer.byteLength(bodyJson, "utf8") === envelope.bodyLength
+    bytes(bodyJson).length === envelope.bodyLength
   );
 }
 
 export function hashWithContext(data: string, context: string): string {
-  const hash = createHash("sha256");
-  hash.update(context, "utf8");
-  hash.update("\0", "utf8");
-  hash.update(data, "utf8");
-  return hash.digest("hex");
+  const ctx = new TextEncoder().encode(context + "\0" + data);
+  return hex(sha256(ctx));
 }

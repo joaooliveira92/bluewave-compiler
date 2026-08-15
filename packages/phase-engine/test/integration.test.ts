@@ -2,7 +2,7 @@
 import { SafeInt } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { CampaignCompiler } from "@bluewave/campaign";
+import { CampaignCompiler } from "@bluewave/campaign/compiler";
 import type { CampaignState, CampaignSnapshot, NationState } from "@bluewave/campaign";
 import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
 import { CommandLifecycle, CommandIdempotencyMap } from "@bluewave/commands";

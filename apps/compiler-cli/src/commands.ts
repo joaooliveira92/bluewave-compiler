@@ -13,7 +13,7 @@ import {
   CampaignCompiler,
   type CampaignCompilerInput,
   type CampaignFiles,
-} from "@bluewave/campaign";
+} from "@bluewave/campaign/compiler";
 import { SaveStore } from "@bluewave/persistence";
 import type {
   CampaignState,

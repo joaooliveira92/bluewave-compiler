@@ -1,6 +1,6 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { CampaignCompiler, type CampaignCompilerOutput } from "@bluewave/campaign";
+import { CampaignCompiler, type CampaignCompilerOutput } from "@bluewave/campaign/compiler";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 
 export interface CompileResult {

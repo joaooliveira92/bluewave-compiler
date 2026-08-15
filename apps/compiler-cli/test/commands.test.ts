@@ -37,11 +37,14 @@ vi.mock("@bluewave/campaign", async (importOriginal) => {
   const a: any = await importOriginal();
   return {
     ...a,
-    CampaignCompiler: class {
-      compile = campaignMocks.compile;
-    },
   };
 });
+
+vi.mock("@bluewave/campaign/compiler", () => ({
+  CampaignCompiler: class {
+    compile = campaignMocks.compile;
+  },
+}));
 
 const saveStoreMocks = vi.hoisted(() => ({
   save: vi.fn(() => ({

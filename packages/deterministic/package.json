@@ -10,7 +10,8 @@
     }
   },
   "dependencies": {
-    "@bluewave/contracts": "workspace:*"
+    "@bluewave/contracts": "workspace:*",
+    "@noble/hashes": "^2.3.0"
   },
   "scripts": {
     "build": "tsc -b",
