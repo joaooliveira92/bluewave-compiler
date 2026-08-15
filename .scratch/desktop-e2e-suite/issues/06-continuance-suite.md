@@ -12,6 +12,15 @@ tree is never mutated.
 is not a prerequisite — this file is independent, but the fixture-copy
 helper from the harness is).
 
+**Fixture sourcing (updated — the previously-shipped package is gone):** the
+`content/production/1880/bluewave-austria_hungary-scen_1880/` package that the
+coverage matrix pointed at was untracked and is **no longer in the working
+tree** (recorded by ticket 02). Continuance fixture options to resolve:
+(a) generate the package via the create-side compile flow (ticket 02's
+spec already produces an on-disk SaveStore package with the fixed seed) and
+copy it; or (b) regenerate + commit a pristine fixture package in the repo.
+Pick (a) unless the committed fixture is wanted for CI immutability.
+
 **Status:** ready-for-agent
 
 - [ ] Spec file (`continuance` suite) with exclusive paths to a fresh copy of

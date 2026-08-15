@@ -33,42 +33,48 @@ export async function launchHarness(opts: { saveDir?: string } = {}): Promise<E2
     );
   }
   const scratch = await mkdtemp(join(tmpdir(), "bluewave-e2e-"));
-  const userDataDir = join(scratch, "userdata");
-  const saveDir = opts.saveDir ?? join(scratch, "save");
-  await mkdir(saveDir, { recursive: true });
+  try {
+    const userDataDir = join(scratch, "userdata");
+    const saveDir = opts.saveDir ?? join(scratch, "save");
+    await mkdir(saveDir, { recursive: true });
 
-  const app = await electron.launch({
-    args: [OUT_MAIN, `--user-data-dir=${userDataDir}`],
-    env: { ...process.env, ELECTRON_RUN_AS_NODE: "" },
-    timeout: 60_000,
-  });
+    const app = await electron.launch({
+      args: [OUT_MAIN, `--user-data-dir=${userDataDir}`],
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: "" },
+      timeout: 60_000,
+    });
 
-  await app.evaluate(({ dialog }, dir) => {
-    // Mutate methods, never replace the module. Save dialog (compile) returns
-    // `filePath`; open dialog (continuance) returns `filePaths`. Runs in the
-    // Electron main process — no outer helpers in scope.
-    dialog.showSaveDialog = async () => ({ canceled: false, filePath: dir });
-    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
-  }, saveDir);
+    await app.evaluate(({ dialog }, dir) => {
+      // Mutate methods, never replace the module. Save dialog (compile) returns
+      // `filePath`; open dialog (continuance) returns `filePaths`. Runs in the
+      // Electron main process — no outer helpers in scope.
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath: dir });
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
+    }, saveDir);
 
-  const window = await app.waitForEvent("window", {
-    predicate: (win) => !win.url().startsWith("devtools://"),
-  });
-  await window.waitForLoadState("load");
-  await window.getByText(LANDING_TEXT).waitFor({ timeout: 15_000 });
+    const window = await app.waitForEvent("window", {
+      predicate: (win) => !win.url().startsWith("devtools://"),
+    });
+    await window.waitForLoadState("load");
+    await window.getByText(LANDING_TEXT).waitFor({ timeout: 15_000 });
 
-  return {
-    app,
-    page: window,
-    scratch,
-    userDataDir,
-    saveDir,
-    retargetDialog: (dir) =>
-      app.evaluate(({ dialog }, d) => {
-        dialog.showSaveDialog = async () => ({ canceled: false, filePath: d });
-        dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [d] });
-      }, dir),
-  };
+    return {
+      app,
+      page: window,
+      scratch,
+      userDataDir,
+      saveDir,
+      retargetDialog: (dir) =>
+        app.evaluate(({ dialog }, d) => {
+          dialog.showSaveDialog = async () => ({ canceled: false, filePath: d });
+          dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [d] });
+        }, dir),
+    };
+  } catch (error) {
+    // Launch or boot failed mid-way — never leak the scratch tree.
+    await rm(scratch, { recursive: true, force: true }).catch(() => {});
+    throw error;
+  }
 }
 
 export async function teardownHarness(h: E2EHarness): Promise<void> {

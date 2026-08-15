@@ -10,7 +10,7 @@ on — the harness contract and config spec are already ratified by the map.
 `pnpm install --frozen-lockfile` first; the working tree's `@playwright/test`
 symlink is incomplete).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] `@playwright/test` resolves from `apps/desktop` after (re)install —
       a trivial spec currently fails with MODULE_NOT_FOUND, and does after
@@ -31,3 +31,37 @@ symlink is incomplete).
       `electron-vite build` — exact commands + results recorded.
 - [ ] No authoritative package, content pack, or shipped fixture touched;
       clean working tree; small conventional commit(s).
+
+## Answer
+
+Resolved. Harness scaffold green:
+
+- Wrote `apps/desktop/e2e/fixtures.ts` — the ratified contract: hermetic boot
+  (`out/main/index.js`, no `--dev`), per-test `--user-data-dir` + `mkdtemp`
+  scratch, dialog stubs for BOTH call sites (`showSaveDialog` → `filePath` for
+  compile; `showOpenDialog` → `filePaths` for continuance) via `app.evaluate`
+  (inlined — outer helpers aren't in the Electron main-process scope),
+  `retargetDialog`, `copyFixturePackage`, serial fixture `test.extend`,
+  fail-fast when `out/main/index.js` is missing, `test-results` output.
+- `apps/desktop/e2e/smoke.spec.ts` — hermetic boot/landing spec on the
+  harness (no `--dev`; asserts the URL is not localhost ⇒ prod `loadFile`).
+- Import with `.js` extension (repo ESM convention); playwright resolves it.
+- `test-results/` is gitignored; `out/` rebuilt via `pnpm build`.
+
+Validation (exact commands + results):
+- `pnpm install --frozen-lockfile` → repaired the broken `@playwright/test`
+  symlink (resolves, `_electron` present).
+- `pnpm --filter @bluewave/desktop build` → `✓ built in 642ms`.
+- `pnpm --filter @bluewave/desktop test:e2e` → `1 passed (1.7s)` hermetic.
+- Standalone `tsc --noEmit` on the two e2e files → clean. (`pnpm --filter
+  @bluewave/desktop typecheck` surfaces two pre-existing errors in
+  `packages/combat` from the in-progress b6 sprint work — not this effort's
+  files; untouched.)
+
+Known surface for later tickets: this harness only asserts boot/landing.
+The dialog stub now intercepts real calls, but no spec has exercised a
+full campaign flow yet — that's tickets 02–06.
+
+Commits: `test(desktop): hermetic Playwright harness scaffold + config (boot
+green)` (ac12c5a). Working tree contains only the b6 sprint's own
+in-progress files (unrelated, untouched).

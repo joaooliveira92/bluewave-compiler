@@ -24,6 +24,11 @@ ambiguous. Labels below are the current real copy — verify at build time.
 - Continuance fixture: `copyFixturePackage()` —
   `content/production/1880/bluewave-austria_hungary-scen_1880/` copied to a
   scratch tree; the shipped tree is never mutated.
+  **UPDATE (ticket 02):** the shipped package is currently **absent** from
+  the worktree (it was untracked). The continuance suite will source its
+  fixture from the create-side compile flow (a fixed-seed compile produces
+  the same SaveStore shape) or a committed pristine fixture — resolution
+  tracked on suite ticket 06.
 
 ## Specs
 
