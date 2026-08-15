@@ -283,6 +283,9 @@ importers:
       '@bluewave/campaign':
         specifier: workspace:*
         version: link:../campaign
+      '@bluewave/content-schema':
+        specifier: workspace:*
+        version: link:../content-schema
     devDependencies:
       '@bluewave/contracts':
         specifier: workspace:*
