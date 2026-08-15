@@ -55,6 +55,7 @@ const projection = {
     shipyardCapacity: 50,
   },
   designs: [design],
+  projects: [],
   workspace: {
     commands: [],
     movementCommands: [],

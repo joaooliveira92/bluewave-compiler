@@ -1,5 +1,19 @@
-import type { MovementCommand } from "@bluewave/campaign-engine";
+import type {
+  FleetArea,
+  FleetAreaEdge,
+  FleetDivisionView,
+  FleetPort,
+  MovementCommand,
+} from "@bluewave/campaign-engine";
 import type { CommandEnvelope } from "./bridge-contract.js";
+
+export type {
+  FleetArea,
+  FleetAreaEdge,
+  FleetDivisionView,
+  FleetPort,
+  FleetShipView,
+} from "@bluewave/campaign-engine";
 
 /**
  * Read-only for MVP (desktop-mvp map, Construction & Fleet Contract
@@ -8,38 +22,11 @@ import type { CommandEnvelope } from "./bridge-contract.js";
  * accessible, or otherwise legal. `submitMovementCommand`/
  * `replaceMovementCommand`/`cancelMovementCommand` stay unimplemented.
  * Shapes grounded in `DivisionPicker.tsx`, `OrderSection.tsx`, and
- * `fleet-screen-state.test.ts`.
+ * `fleet-screen-state.test.ts`; the view types themselves
+ * (`FleetDivisionView`/`FleetArea`/`FleetAreaEdge`/`FleetPort`) are owned by
+ * `@bluewave/campaign-engine`'s fleet projection (ticket 15) and re-exported
+ * here so renderer imports keep working.
  */
-
-export interface FleetShipView {
-  readonly name: string;
-  readonly designId: string;
-  readonly status: string;
-}
-
-export interface FleetDivisionView {
-  readonly divisionId: string;
-  readonly fleetName: string;
-  readonly areaId: string;
-  readonly ships: readonly FleetShipView[];
-}
-
-export interface FleetArea {
-  readonly id: string;
-  readonly name: string;
-}
-
-export interface FleetAreaEdge {
-  readonly fromAreaId: string;
-  readonly toAreaId: string;
-}
-
-export interface FleetPort {
-  readonly id: string;
-  readonly name: string;
-  readonly areaId: string;
-  readonly capacity: number;
-}
 
 export interface FleetScreenProjection {
   readonly revision: number;

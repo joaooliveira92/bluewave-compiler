@@ -204,6 +204,34 @@ describe("SaveStore", () => {
     expect(saves[0]!.turnNumber).toBe(1);
   });
 
+  it("lists equal-timestamp saves by the save chain, never the OS directory order (F6)", () => {
+    const state = createFixtureState();
+    store.save(state, tmpDir);
+    const firstSaveId = store.getActiveSaveId(tmpDir)!;
+    store.save(state, tmpDir);
+    const secondSaveId = store.getActiveSaveId(tmpDir)!;
+    expect(firstSaveId).not.toBe(secondSaveId);
+
+    // Force both saves onto an identical millisecond so the only remaining
+    // ordering signal is the pointer chain (the second save is the active /
+    // truly-newest one). Without the tie-break, `list()` would fall back to
+    // `readdirSync` order, which is platform-dependent.
+    const sharedTimestamp = "1970-01-01T00:00:00.000Z";
+    for (const saveId of [firstSaveId, secondSaveId]) {
+      const metaPath = join(tmpDir, saveId, "metadata.json");
+      const meta = JSON.parse(readFileSync(metaPath, "utf8")) as { timestamp: string };
+      meta.timestamp = sharedTimestamp;
+      writeFileSync(metaPath, JSON.stringify(meta, null, 2), "utf8");
+    }
+
+    const saves = store.list(tmpDir);
+    expect(saves).toHaveLength(2);
+    // Newest first, deterministically: the second save is the active one.
+    expect(saves[0]!.saveId).toBe(secondSaveId);
+    expect(saves[0]!.timestamp).toBe(sharedTimestamp);
+    expect(saves[1]!.saveId).toBe(firstSaveId);
+  });
+
   it("rejects corrupt saves on load", () => {
     const state = createFixtureState();
     store.save(state, tmpDir);

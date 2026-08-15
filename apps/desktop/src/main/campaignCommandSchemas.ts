@@ -42,3 +42,22 @@ export const CommandEnvelopePayloadSchema = z.object({
   expectedRevision: z.number().int().nonnegative(),
   transportRequestId: z.string().min(1),
 });
+
+/**
+ * Wire shapes for the Construction screen commands (ticket 14) — the
+ * `CommandEnvelope` triple plus the command-specific fields. Deeper checks
+ * (design exists, design belongs to the player, command in flight) live in
+ * `commands/constructionCommands.ts`, matching the wire-shape/semantics split
+ * used everywhere else.
+ */
+export const ConstructionOrderPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  designId: z.string().min(1),
+});
+
+export const ReplaceConstructionOrderPayloadSchema = ConstructionOrderPayloadSchema.extend({
+  commandId: z.string().min(1),
+});
+
+export const CancelConstructionOrderPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  commandId: z.string().min(1),
+});

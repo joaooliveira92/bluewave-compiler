@@ -338,7 +338,28 @@ export class SaveStore {
       }
     }
 
-    saves.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+    // Deterministic newest-first ordering. Primary key is the wall-clock
+    // timestamp, but equal timestamps (two saves written within the same
+    // millisecond — construction commands write extra saves at the same
+    // revision) must NOT fall back to the OS `readdirSync` order, which is
+    // platform-dependent. Tie-break by the save chain: the active save is
+    // the truly-newest, its (immediate) predecessor second, orphans last —
+    // then saveId descending as the final total order (saveId embeds the
+    // creation timestamp), so the result is identical on every platform for
+    // the same package (F6).
+    const chainRank = new Map<string, number>();
+    const activeSaveId = this.getActiveSaveId(saveDir);
+    if (activeSaveId !== null) chainRank.set(activeSaveId, 0);
+    const previousSaveId = this.getPreviousSaveId(saveDir);
+    if (previousSaveId !== null && !chainRank.has(previousSaveId)) chainRank.set(previousSaveId, 1);
+
+    saves.sort((a, b) => {
+      const byTimestamp = b.timestamp.localeCompare(a.timestamp);
+      if (byTimestamp !== 0) return byTimestamp;
+      const byChain = (chainRank.get(a.saveId) ?? 2) - (chainRank.get(b.saveId) ?? 2);
+      if (byChain !== 0) return byChain;
+      return b.saveId.localeCompare(a.saveId);
+    });
     return saves;
   }
 
