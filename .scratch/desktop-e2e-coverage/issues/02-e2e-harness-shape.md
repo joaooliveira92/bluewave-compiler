@@ -1,35 +1,25 @@
 # Desktop E2E Coverage — 02: E2E Harness Shape
 
 Type: prototype
-Status: open
+Status: resolved
 Blocked by: 01
 
-## Question
+## Answer
 
-What should the E2E-suite shared harness look like — the `@playwright/test`
-fixture(s) every spec builds on?
+Harness contract settled and ratifiable by the user (approved). Prototype
+asset: `prototype/desktop-e2e-harness/` — `README.md` (contract),
+`fixtures.draft.ts` (skeleton), `exemplar.draft.spec.ts` (narrative).
 
-Candidate shape to react to (raise fidelity, don't finalize):
+Locked decisions:
 
-- A `test` extension in `apps/desktop/e2e/fixtures.ts` that, per test:
-  - builds nothing (build is a CI/manual prerequisite — hermetic run) but
-    launches the built app via the pattern from ticket 01;
-  - provisions a per-test scratch `userData` dir + scratch save-dir,
-  - installs the `dialog.showOpenDialog` stub wired to a per-test
-    fixture/save-dir,
-  - returns the page + typed helpers (wait-for-route assertions, the shell's
-    "primary action" button, etc.);
-  - tears down in `finally` (close app, empty scratch dirs, kill orphans).
-- A tiny `e2e/fixtures` tree: the production package
-  (`content/production/1880/bluewave-austria_hungary-scen_1880/`) copied to a
-  writable location so `Load/Verify/Replay/Recover` never mutate the shipped
-  package.
-- A `test.describe` per MVP flow, sharing one compiled campaign where the
-  specs within a file are order-dependent, opposed to the strict per-test
-  isolation of `worker: 1`.
+- **Hermetic boot**: `_electron.launch({ args: [<desktop>/out/main/index.js, "--user-data-dir=<scratch>"] })`, no `--dev` (prod `loadFile`); `ELECTRON_RUN_AS_NODE: ""`; fail fast if `out/main/index.js` is missing.
+- **Per-test isolation**: `--user-data-dir=<scratch>/userdata` launch arg (research 01 verified — never `evaluate`→`setPath`); `mkdtemp` scratch tree per test, removed in `finally`.
+- **Dialog stub**: `app.evaluate(({ dialog }, p) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [p] }); }, saveDir)` — mutate method, never replace module.
+- **saveDir by flow**: create-side = scratch (fresh compile); continuance = `copyFixturePackage()` — a copied shipped package (never mutate the shipped tree).
+- **Seed**: `SEED = "ba44581c2f1d8e5c9753ffc80be8e6a0"` (valid u128 hex, the fixture package's own) typed into preferences → deterministic `commitMonth`.
+- **Isolation vs sharing (user-ratified judgment call)**: default one fresh app per test; serial spec files (`mode: "serial"`) share one compiled campaign via a file-scoped save dir for the create-side narrative (compile → advance → construction → fleet). Strict per-test isolation across files; `workers: 1`.
+- **Assertions**: user-visible only (getByRole/text; `data-testid` only where ambiguous — deferred to ticket 04).
 
-Decide the harness contract precisely enough that the follow-up
-implementation effort can build the suite to it without re-litigating:
-exact helper names/shapes, how a spec expresses "boot a fresh campaign",
-"open save X", and where teardown lives. Link the prototype/stub outline as
-an asset from this ticket.
+`playwright.config.ts` shape (projects/reporter/traces/build-prerequisite) is
+ticket 04's decision, documented as such in the prototype. Selector plumbing
+is a ticket-04 concern; the exemplar's `getByTestId` names are placeholders.

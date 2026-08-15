@@ -1,37 +1,34 @@
 # Desktop E2E Coverage — 03: Spec Decomposition & Coverage Matrix
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: (none)
 
-## Question
+## Answer
 
-What exactly does the suite contain — the decomposition of the approved
-scope (the full MVP critical path, user-visible behavior assertions) into
-individual Playwright specs, and each spec's definition of done?
+Coverage matrix produced as the handoff deliverable:
+`coverage-matrix.md` (in this effort directory). Decomposition:
 
-Walk the playable loop and decide, one flow at a time:
+- **`e2e/mvp-loop.spec.ts`** (serial) — one compiled campaign, chained
+  narrative over the create-side loop — rows 1–6: New Game compiles (fixed
+  `SEED`, nation Austria-Hungary, turn 0 Overview) → Advance a month →
+  Construction submit / replace / cancel → Fleet visibility (honest empty
+  divisions state, movement surface disabled).
+- **`e2e/continuance.spec.ts`** (serial) — rows 7–11 against fresh copies of
+  the shipped production package (never the shipped tree): Load restores
+  (nation, turn 0) → Verify OK → Replay deterministic → Recover repairs a
+  tampered copy (optional row) → tamper/verify mismatch (optional row).
+- **Deliberately not in the matrix**: settings + dev screens (per map
+  scope); movement ordering and save/close (bridge `NOT_IMPLEMENTED` — the
+  matrix asserts the honest disabled surface, never fabricated success);
+  Battle Arena e2e graduates when the M2 engine lands battle commands.
 
-- **New Game**: one spec for archetype → nation → preferences, or split per
-  step? Which inputs are typed (fixed `campaignSeed`, a nation, an archetype
-  preset) and what visible state confirms compile landed (post-open landing
-  on Overview with the right month/treasury/nation)?
-- **Advance a month** (`commitMonth`): what does a passing advance assert —
-  the turn/calendar change, a battle auto-resolving inline (per desktop-mvp
-  ticket 09), the Turn Report tab reflecting the month?
-- **Construction ordering**: submit/replace/cancel — does one spec cover the
-  three, and what does the `CommandTable` must render after each?
-- **Fleet visibility**: read-only — what does the Fleet screen render for a
-  compiled campaign (an empty divergences list is honest — `FleetState` is
-  the source; `compiler` emits no divisions)?
-- **Save/Load and continuity**: one spec or four (load / verify / replay /
-  recover)? Which runs against the shipped production package and what does
-  each assert (state restored, report integrity OK, tamper → mismatch visible,
-  recovery restores a corrupted package)?
-- Recording `NOT_IMPLEMENTED` stubs that the UI still exposes (movement
-  ordering, save/close): do specs assert their disabled/error state (so
-  coverage doesn't silently claim what isn't there)?
+Suite definition of done: every matrix row has a passing hermetic spec in
+the macOS CI gate; assertions are user-visible only (no envelope/hash
+re-checks — those live in unit + cross-process tests). Selector plumbing
+(`data-testid` only where ambiguous) is implementer choice; real current
+copy labels embedded in the matrix (verify at build time).
 
-Deliverable: a coverage matrix (spec → flow buttons → seed/save → key
-assertions → blocked-by/status) captured on this ticket, ready to hand to the
-follow-up implementation effort.
+Key charting context preserved: scope = full MVP playable loop; dev/settings
+screens out; continuance = copied production package, never the shipped
+tree; determinism via typed fixed u128 seed.

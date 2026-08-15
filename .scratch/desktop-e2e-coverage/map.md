@@ -1,5 +1,12 @@
 # Wayfinder Map: Desktop E2E Coverage
 
+> **MAP COMPLETE — destination reached (no live tickets).** The way is clear:
+> the follow-up suite implementation is the only remaining work, chartered
+> as a fresh effort (`.scratch/desktop-e2e-suite/`) from the three handoff
+> artifacts this map produced — `coverage-matrix.md` (what to cover), the
+> harness prototype (`prototype/desktop-e2e-harness/`, what to build), and
+> the config/CI spec (ticket 04, how to run it).
+
 ## Destination
 
 A decision map finding its way to a **handoff plan** for a hermetic,
@@ -72,24 +79,52 @@ map (plan-don't-do override NOT in force — user confirmed).
   arg (never `evaluate`→`setPath`, it's too late); `pnpm install` must re-run
   (broken symlink) before any spec. Full note:
   [`docs/research/desktop-1-e2e-playwright-api-facts.md`](../../docs/research/desktop-1-e2e-playwright-api-facts.md).
+- [E2E Harness Shape](issues/02-e2e-harness-shape.md) — the shared harness
+  contract, ratified: hermetic boot (`out/main/index.js`, no `--dev`),
+  per-test `--user-data-dir` scratch + `mkdtemp`, one `dialog.showOpenDialog`
+  stub via `app.evaluate` returning the per-test `saveDir` (create-side =
+  scratch fresh compile; continuance = copied shipped package — never
+  mutate the shipped tree), fixed u128 hex `SEED="ba44581c2f1d8e5c9753ffc80be8e6a0"`
+  for deterministic months, serial files share one compiled campaign.
+  Prototype asset: `prototype/desktop-e2e-harness/`; `playwright.config.ts`
+  decisions delegated to ticket 04.
+- [Spec Decomposition & Coverage Matrix](issues/03-spec-decomposition-coverage-matrix.md) —
+  the handoff matrix (`coverage-matrix.md`): `e2e/mvp-loop.spec.ts` serial
+  narrative rows 1–6 (new game → advance → construction submit/replace/cancel
+  → fleet read-only honest empty), `e2e/continuance.spec.ts` rows 7–11
+  (load/verify/replay/recover against fresh copies of the shipped package;
+  recover + tamper-mismatch optional). Not in matrix: settings/dev screens,
+  movement + save/close stubs (assert honest disabled surface), Battle Arena
+  (graduates with M2 engine). DoD: every row passes hermetically in the
+  macOS CI gate.
+- [Config & Flake Guardrails](issues/04-config-flake-guardrails.md) — the
+  config/CI invocation spec: single project, `testDir: "e2e"`, `workers: 1`,
+  `timeout: 120_000`/`expect.timeout: 15_000`, `outputDir: "test-results"`,
+  `reporter: CI ? "github" : "list"`, `retries: CI ? 2 : 0` +
+  `trace: "on-first-retry"` (isolation makes retries safe); `test:e2e` stays
+  `playwright test` (hermetic harness fails fast) with the gate running
+  `pnpm build` first, no turbo wiring; new `desktop-e2e.yml` on
+  `macos-latest`, `push: [dev, main]` + PR paths-filtered to
+  `apps/desktop/**`, the production package, and the workflow file, mirroring
+  the existing gates' setup steps; upload `test-results/` on failure.
+  `--disable-gpu` kept as a documented CI-flake fallback, off by default.
 
 ## Not yet specified
 
-- Battle Arena / tactical play inside the Simulation screen's `BattleArenaTab`
-  — the battle commands (`generateBattle`, `resolveBattle`, ...) are
-  `NOT_IMPLEMENTED` stubs today; e2e for the battle tab graduates once the
-  M2 tactical-combat engine track lands them in the bridge.
-- Settings-screen flows (Campaign Preferences / Options, e.g. save-on-close,
-  display preferences persistence) as E2E specs — deferred unless exercising
-  the critical path surfaces them as load-bearing.
+<!-- cleared at map completion — see Out of scope for where each patch landed -->
 
 ## Out of scope
 
 - Dev/prototype screens: Tactical Sandbox, Debugging & Telemetry, Map
   Prototype — throwaway/dev tooling, unit-covered; not part of the playable
   loop.
-- Settings screens (Campaign Preferences, Options) E2E — not on the critical
-  path.
+- Settings screens (Campaign Preferences, Options) E2E including save-on-close
+  and display-preference persistence (previously "Not yet specified") — the
+  critical path never surfaced them as load-bearing; graduates only via a
+  fresh redrawn-destination effort.
+- Battle Arena / tactical play e2e (previously "Not yet specified") — battle
+  commands are `NOT_IMPLEMENTED`; graduates when the M2 tactical-combat track
+  lands them in the bridge, as a future effort.
 - Windows/Linux E2E (including xvfb concerns) — macOS-only app per the
   Desktop MVP map's distribution call; CI gate is `macos-latest` only.
 - Asserting golden hashes / replay hash files inside E2E — owned by
