@@ -6,7 +6,6 @@ import {
   evaluateTerminalSeam,
   computeSinkingDuration,
   type TerminalInput,
-  type TerminalTransition,
 } from "../../src/damage/index.js";
 import { SHIP_SINKING, SHIP_FOUNDERED } from "../../src/damage/reasonCodes.js";
 

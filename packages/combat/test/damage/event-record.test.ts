@@ -5,7 +5,6 @@ import { describe, it, expect } from "vite-plus/test";
 import {
   createDamageEventRecord,
   computeDamageEventHash,
-  type DamageEventRecord,
   type DamageEventRecordBody,
 } from "../../src/damage/index.js";
 

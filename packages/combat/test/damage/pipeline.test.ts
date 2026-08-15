@@ -6,14 +6,11 @@ import {
   runDamagePipeline,
   type DamagePipelineStage,
   type ShipDamageState,
-  type DamageEventEffect,
   type StageRunner,
   type PipelineContext,
   wrapSimpleRunner,
   type SimpleStageRunner,
 } from "../../src/damage/index.js";
-import { type HitInput } from "../../src/damage/hitLocation.js";
-import { type ProtectionInput } from "../../src/damage/protectionInteraction.js";
 import { type CompartmentDef, type ArmorZoneDef } from "../../src/damage/shipLayout.js";
 
 function baseState(overrides: Partial<ShipDamageState> = {}): ShipDamageState {
@@ -52,7 +49,9 @@ function defaultContext(): PipelineContext {
     flotationDamage: 2_000,
     createdFireSources: [],
     createdFloodingSources: [],
+    magazineHazardResult: null,
     terminalTransition: null,
+    terminalResult: null,
     battleMinute: 10,
     substep: 2,
     sourceId: "BATTERY-1",
@@ -152,7 +151,7 @@ describe("AC-3: Stage failure rolls back the transaction", () => {
     const originalState = baseState({ structuralIntegrity: 99_999 });
     const failingRunner: StageRunner = (stage, _state, _idx, _ctx) => {
       if (stage === "PROTECTION_INTERACTION") {
-        return { ok: false, description: "simulated failure", errorCode: "DAMAGE_RESOLUTION_FAILED" };
+        return { ok: false, description: "simulated failure", errorCode: DAMAGE_RESOLUTION_FAILED };
       }
       return { ok: true, description: "empty (no-op) stage" };
     };
@@ -167,14 +166,14 @@ describe("AC-3: Stage failure rolls back the transaction", () => {
   it("propagates DAMAGE_RESOLUTION_FAILED as error on rollback", () => {
     const failingRunner: StageRunner = (stage, _state, _idx, _ctx) => {
       if (stage === "LOCAL_COMPONENT_DAMAGE") {
-        return { ok: false, description: "component out of scope", errorCode: "DAMAGE_RESOLUTION_FAILED" };
+        return { ok: false, description: "component out of scope", errorCode: DAMAGE_RESOLUTION_FAILED };
       }
       return { ok: true, description: "empty (no-op) stage" };
     };
 
     const result = orchestrateDamagePipeline(baseState(), defaultContext(), failingRunner);
     expect(result.success).toBe(false);
-    expect(result.error).toBe("DAMAGE_RESOLUTION_FAILED");
+    expect(result.error).toBe(DAMAGE_RESOLUTION_FAILED);
   });
 
   it("stops executing stages after a failure", () => {
@@ -182,7 +181,7 @@ describe("AC-3: Stage failure rolls back the transaction", () => {
     const failingRunner: StageRunner = (stage, _state, _idx, _ctx) => {
       visited.push(stage);
       if (stage === "STRUCTURE_FLOTATION") {
-        return { ok: false, description: "failure", errorCode: "DAMAGE_RESOLUTION_FAILED" };
+        return { ok: false, description: "failure", errorCode: DAMAGE_RESOLUTION_FAILED };
       }
       return { ok: true, description: "empty (no-op) stage" };
     };

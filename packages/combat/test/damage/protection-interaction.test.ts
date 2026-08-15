@@ -5,7 +5,6 @@ import { BluewaveError } from "@bluewave/contracts";
 import {
   resolveProtectionInteraction,
   type ProtectionInput,
-  type ProtectionResult,
 } from "../../src/damage/protectionInteraction.js";
 import {
   ARMOR_THICKNESS_LIMIT_EXCEEDED,

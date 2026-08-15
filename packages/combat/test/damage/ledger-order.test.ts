@@ -10,7 +10,6 @@ import {
 import {
   damageEventOrder,
   createDamageEventRecord,
-  type DamageEventRecord,
 } from "../../src/damage/index.js";
 
 // ---------------------------------------------------------------------------

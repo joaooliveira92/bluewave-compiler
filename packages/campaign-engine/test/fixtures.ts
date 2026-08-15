@@ -15,7 +15,7 @@ import type {
  */
 
 export function fixtureNation(overrides: Partial<NationState> & { id: string }): NationState {
-  const { id } = overrides;
+  const { id, ...rest } = overrides;
   return {
     id,
     name: id,
@@ -39,7 +39,7 @@ export function fixtureNation(overrides: Partial<NationState> & { id: string }):
     constructionProjects: [],
     isPlayable: true,
     isAI: false,
-    ...overrides,
+    ...rest,
   };
 }
 

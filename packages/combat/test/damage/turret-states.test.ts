@@ -5,7 +5,6 @@ import { describe, it, expect } from "vite-plus/test";
 import {
   applyTurretDamage,
   type TurretComponent,
-  type TurretState,
 } from "../../src/damage/index.js";
 import { type ComponentOutcome } from "../../src/damage/index.js";
 

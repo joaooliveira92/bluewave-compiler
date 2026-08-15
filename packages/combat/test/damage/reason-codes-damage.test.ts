@@ -74,7 +74,7 @@ describe("AC-13: reason-code set-equality vs DESIGN-41 §47 + DESIGN-39 §32", (
 
   it("shipped damage codes are disjoint from the shared combat catalog (REASON_CODES)", () => {
     const damageSet = new Set(Object.values(DAMAGE_REASON_CODES) as readonly string[]);
-    const sharedSet = new Set(Object.values(REASON_CODES));
+    const sharedSet: ReadonlySet<string> = new Set<string>(Object.values(REASON_CODES));
     for (const code of damageSet) {
       expect(sharedSet.has(code)).toBe(false);
     }

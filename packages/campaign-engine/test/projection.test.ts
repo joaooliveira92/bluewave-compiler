@@ -1,5 +1,5 @@
 import { SafeInt } from "@bluewave/contracts";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { buildPlayerProjection } from "../src/projection.js";
 import { fixtureNation, fixtureSnapshot, fixtureState } from "./fixtures.js";
 

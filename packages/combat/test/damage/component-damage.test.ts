@@ -4,12 +4,10 @@
 import { describe, it, expect } from "vite-plus/test";
 import {
   resolveComponentDamage,
+  type ArmorZoneType,
   type ComponentState,
   type ComponentOutcome,
-  type ComponentDamageResult,
-  type SplinterIntensity,
 } from "../../src/damage/index.js";
-import { type PenetrationOutcome } from "../../src/damage/index.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -20,7 +18,7 @@ function makeComponent(
   locationId: string,
   armorZoneType?: string,
 ): ComponentState {
-  return { id, componentType, locationId, armorZoneType };
+  return { id, componentType, locationId, armorZoneType: armorZoneType as ArmorZoneType | undefined };
 }
 
 const EXPOSED_ZONES = ["SUPERSTRUCTURE", "DECK", "CASEMATE", "SPLINTER_DECK"];

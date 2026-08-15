@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SafeInt } from "@bluewave/contracts";
-import type { CampaignState, CampaignSnapshot, NationState } from "@bluewave/campaign";
+import type { CampaignState, CampaignSnapshot, NationState, CompiledDesignVersion } from "@bluewave/campaign";
 import { SaveStore } from "../src/store.js";
 import {
   CompatibilityChecker,
@@ -115,7 +115,7 @@ describe("SaveStore", () => {
 
     const state = createFixtureState();
     state.snapshot.nations = new Map([["nation-a", nation]]);
-    state.snapshot.designs = new Map([
+    state.snapshot.designs = new Map<string, CompiledDesignVersion>([
       [
         "design-1",
         {
@@ -124,7 +124,7 @@ describe("SaveStore", () => {
           blockadedNationId: "nation-a",
           areaId: "area-1",
           establishedMonth: "1900-01",
-        },
+        } as unknown as CompiledDesignVersion,
       ],
     ]);
     state.snapshot.designFamilies = new Map([

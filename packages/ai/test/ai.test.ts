@@ -88,7 +88,7 @@ const project = (id: string, total: number, completed: number): ConstructionProj
 
 describe("AiCommandGenerator", () => {
   it("produces the deterministic idempotency key shape", () => {
-    const gen = new AiCommandGenerator({
+    const _gen = new AiCommandGenerator({
       campaignId: "camp",
       turnNumber: SafeInt(1),
       expectedSnapshotHash: testHash,

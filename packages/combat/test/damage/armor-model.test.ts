@@ -10,7 +10,6 @@ import {
 
   // Zone
   ARMOR_ZONE_TYPES,
-  type ArmorZoneType,
   ZONE_MAXIMUM_BELT_UM,
   ZONE_MAXIMUM_TURRET_FACE_BARBETTE_CONNING_TOWER_UM,
   ZONE_MAXIMA_UM,
@@ -38,18 +37,15 @@ import {
   // Splinter
   SPLINTER_THRESHOLD_UM,
   SPLINTER_CLASSES,
-  type SplinterClass,
   splinterProtectionLevel,
 
   // Penetration outcomes
   PENETRATION_OUTCOMES,
-  type PenetrationOutcome,
   determinePenetrationOutcome,
 
   // Contract
   SHIPPED_ARMOR_CONTRACT,
   validateArmorContract,
-  type ArmorContract,
 
   // Reason codes
   DAMAGE_STATE_INVARIANT_FAILED,

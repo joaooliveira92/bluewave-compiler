@@ -67,7 +67,7 @@ function createImpact(overrides: Partial<GunneryImpact> = {}): GunneryImpact {
     targetShipId: "SHIP-DET",
     hitLocation: "COMP-1",
     penetrationOutcome: "FULL_PENETRATION",
-    splinterIntensity: "LOW",
+    splinterIntensity: "LIGHT",
     effectiveResistanceUm: 300_000,
     penetrationMargin: 75_000,
     structuralDamage: 12_000,

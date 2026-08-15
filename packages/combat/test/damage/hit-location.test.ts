@@ -5,7 +5,6 @@ import { BluewaveError } from "@bluewave/contracts";
 import {
   resolveHitLocation,
   type HitInput,
-  type HitResult,
 } from "../../src/damage/hitLocation.js";
 import { DAMAGE_HIT_LOCATION_INVALID } from "../../src/damage/reasonCodes.js";
 import { type CompartmentDef, type ArmorZoneDef } from "../../src/damage/shipLayout.js";

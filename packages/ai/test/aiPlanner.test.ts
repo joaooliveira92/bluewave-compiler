@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { canonicalSerialize } from "@bluewave/deterministic";
+import { CommandIdempotencyMap } from "@bluewave/commands";
 
 import { RandomEngine } from "@bluewave/random";
 import {
@@ -50,7 +51,7 @@ describe("AiPlanner", () => {
       engine,
       lifecycle,
       { nationId: "usa", type: "AI" } as any,
-      new Map(),
+      new CommandIdempotencyMap(),
     );
     const engine2 = new RandomEngine("seed");
     const r2 = planner.generate(
@@ -58,7 +59,7 @@ describe("AiPlanner", () => {
       engine2,
       lifecycle,
       { nationId: "usa", type: "AI" } as any,
-      new Map(),
+      new CommandIdempotencyMap(),
     );
     expect(r1.envelopes.map((e) => e.body)).toEqual(r2.envelopes.map((e) => e.body));
     // legal sorted => with same seed, chosen project is deterministic regardless of insertion order
@@ -91,7 +92,7 @@ describe("AiPlanner", () => {
       new RandomEngine("seed"),
       lifecycle,
       { nationId: "usa", type: "AI" } as any,
-      new Map(),
+      new CommandIdempotencyMap(),
     );
     expect(r1.envelopes[0]!.body).toEqual(r3.envelopes[0]!.body);
   });
@@ -103,7 +104,7 @@ describe("AiPlanner", () => {
       new RandomEngine("s"),
       { process: vi.fn() } as any,
       { nationId: "missing", type: "AI" } as any,
-      new Map(),
+      new CommandIdempotencyMap(),
     );
     expect(res.diagnostics[0]!.code).toBe("AI_NATION_MISSING");
     expect(res.accepted.length).toBe(0);
@@ -134,7 +135,7 @@ describe("AiPlanner", () => {
       new RandomEngine("s"),
       { process: vi.fn(() => ({ type: "success" })) } as any,
       { nationId: "usa", type: "AI" } as any,
-      new Map(),
+      new CommandIdempotencyMap(),
     );
     expect(res.envelopes.filter((e) => (e.body as any).type === "budget_project").length).toBe(0);
   });
@@ -147,7 +148,7 @@ describe("AiPlanner", () => {
       new RandomEngine("seed2"),
       lifecycle,
       { nationId: "usa", type: "AI" } as any,
-      new Map(),
+      new CommandIdempotencyMap(),
     );
     const research = res.envelopes.find((e) => (e.body as any).type === "SetResearchPriority")!;
     expect(research).toBeDefined();
@@ -176,7 +177,7 @@ describe("AiPlanner", () => {
       new RandomEngine("s"),
       lifecycle,
       { nationId: "usa", type: "AI" } as any,
-      new Map(),
+      new CommandIdempotencyMap(),
     );
     expect(res.accepted.length).toBe(0);
     expect(res.diagnostics.length).toBe(2); // budget + research both rejected
@@ -209,7 +210,7 @@ describe("AiPlanner", () => {
       engine,
       { process: () => ({ type: "success" }) } as any,
       { nationId: "a:b", type: "AI" } as any,
-      new Map(),
+      new CommandIdempotencyMap(),
     );
     expect(engine.stream).toHaveBeenCalledWith(expect.stringContaining(encodeURIComponent("a:b")));
   });
@@ -223,7 +224,7 @@ describe("AiPlanner", () => {
       new RandomEngine("x"),
       { process: () => ({ type: "success" }) } as any,
       { nationId: "usa", type: "AI" } as any,
-      new Map(),
+      new CommandIdempotencyMap(),
     );
     expect(canonicalSerialize(s)).toBe(before);
   });
