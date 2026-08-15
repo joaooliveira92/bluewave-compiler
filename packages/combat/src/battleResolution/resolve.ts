@@ -1,0 +1,467 @@
+//packages/combat/src/battleResolution/resolve.ts
+// B-6 INC-2 (AC-5/AC-6/AC-7/AC-10): `resolveBattleAuto` — the pure,
+// deterministic auto-resolution orchestrator.
+//
+// Consumes the SAME manifest, campaign asset state, battle seed, weather,
+// objectives (none in this slice), realism-independent stats, and ruleset/
+// formula/RNG versions as tactical play (DESIGN-38 §33; DESIGN-37 §32 seed
+// family battle/battle_id/root). Never ambient clock/random/env/fs.
+//
+// Per resolved minute the full DESIGN-38 step pipeline applies (steps 4-8,
+// 7.5 weather, 8.5 gunnery, 9-10 damage), then `decideBattleEnd` runs (§32
+// precedence incl. the time-limit cap; terminating-minute effects are part of
+// the ending minute — a side's last ship counted sunk in the minute the battle
+// ends). The result carries the exact §32 reason id, elapsed minutes,
+// winner/loser, survivor/sunk per side, the per-ship accumulated-loss
+// damageReport, the canonical event-ledger hash, per-minute hashes, and a
+// domain-separated result hash.
+//
+// Fail-closed: a missing/undefined manifest -> AUTO_RESOLUTION_UNAVAILABLE;
+// every other malformed input -> a stable diagnostic; never a partial result.
+import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { createEnvelope } from "@bluewave/deterministic";
+import { RandomEngine, type RandomLedger } from "@bluewave/random";
+import { BattleLedger, type BattleEvent } from "../battleLedger.js";
+import { advanceMinute } from "../simulation/engine.js";
+import {
+  assertManifestValid,
+  computeManifestHash,
+  type BattleManifest,
+} from "../generation/manifest.js";
+import { BATTLE_SEED_FORMULA_VERSION, deriveBattleSeed } from "../generation/seed.js";
+import type { GunneryBattery } from "../gunnery/resolve.js";
+import { NO_TARGET, withGunneryStateHash } from "../gunnery/index.js";
+import type { TacticalBattleState } from "../tactical/state.js";
+import type { TacticalShipUnit } from "../tactical/unit.js";
+import type { ShipDamageState } from "../damage/state.js";
+import type { StrategicWeatherState } from "../weather/strategic-state.js";
+import { AUTO_RESOLUTION_UNAVAILABLE } from "../generation/reasonCodes.js";
+import { BATTLE_AUTO_RESOLUTION_FAILED } from "./reasonCodes.js";
+import { type AutoResolverNation, projectBattle, type ProjectBattleOutput } from "./project.js";
+import { buildBattleWeather } from "./weather.js";
+import {
+  battleLoss,
+  initialDamageState,
+  type DamageContext,
+  type DamageTargetContext,
+} from "./damage.js";
+import { decideBattleEnd, type BattleSide, type ShipViability } from "./viability.js";
+import {
+  AUTO_RESOLUTION_MAX_MINUTES,
+  battleAutoResolutionPolicyId,
+  BATTLE_AUTO_RESOLUTION_RULESET_VERSION,
+  BATTLE_AUTO_RESOLUTION_FORMULA_VERSION,
+} from "./constants.js";
+
+export interface ResolveBattleAutoInput {
+  battleId: string;
+  areaId: string;
+  /** Campaign month id (e.g. "1880-02" — DESIGN-42 stream domain). */
+  campaignMonth: string;
+  /** The accepted immutable B-1 manifest (mandatory; missing -> AUTO_RESOLUTION_UNAVAILABLE). */
+  manifest: BattleManifest;
+  attacker: AutoResolverNation;
+  defender: AutoResolverNation;
+  /** The battle area's committed strategic weather state (AC-3). */
+  strategicWeather: StrategicWeatherState;
+  /** The campaign random seed (never a save-derived value). */
+  campaignSeed: string;
+  rulesetVersion: string;
+  formulaVersion: string;
+  rngVersion: string;
+  /** Battle-duration cap; default DESIGN-38 §32 360 minutes. */
+  maxMinutes?: number;
+  /** Optional ledger recording every keyed random decision (port pattern). */
+  randomLedger?: RandomLedger;
+}
+
+export interface BattleResolutionResult {
+  battleId: string;
+  /** Exact §32 reason id. */
+  battleEndReason: string;
+  /** Number of fully-resolved minutes. */
+  elapsedMinutes: number;
+  /** Nation id of the winner; null for ties / non-decided ends per §32
+   *  precedence (time_limit without an eliminated side, mutual_disengagement). */
+  winnerId: string | null;
+  loserId: string | null;
+  attackerSurvivorIds: string[];
+  defenderSurvivorIds: string[];
+  attackerSunkIds: string[];
+  defenderSunkIds: string[];
+  /** shipId -> accumulated battle hp loss (integer >= 0, ADR-0026 mapping). */
+  damageReport: Record<string, SafeInt>;
+  /** sha256 of the canonicalized battle-event ledger (sorted, §35). */
+  eventLedgerHash: string;
+  /** Per-minute authoritative hash list (byte-stable across processes). */
+  minuteHashes: string[];
+  /** Domain-separated envelope hash over the result surface. */
+  resultHash: string;
+  provenance: {
+    battleId: string;
+    manifestHash: string;
+    campaignAssetIds: string[];
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Targeting: nearest legal enemy contact per battery (tie-break by asset id).
+
+function squaredDistance(
+  a: readonly [number, number] | undefined,
+  b: readonly [number, number] | undefined,
+): number {
+  if (!a || !b) return Number.POSITIVE_INFINITY;
+  const dx = a[0]! - b[0]!;
+  const dy = a[1]! - b[1]!;
+  return dx * dx + dy * dy;
+}
+
+/** Assign each battery its target contact id this minute: nearest viable enemy
+ *  with a legal contact track; NO_TARGET when none. */
+function assignTargetContactIds(
+  batteries: readonly GunneryBattery[],
+  battleState: TacticalBattleState,
+  damage: DamageContext,
+  battleId: string,
+  units: readonly TacticalShipUnit[],
+): Record<string, string> {
+  const contacts = new Set(battleState.contacts?.map((c) => c.contactId) ?? []);
+  const movement = battleState.movementStates ?? {};
+  const out: Record<string, string> = {};
+  for (const b of batteries) {
+    const shooterPos = movement[b.ownerShipId]?.position;
+    let best: { assetId: string; key: string; d2: number } | null = null;
+    for (const enemy of units) {
+      if (enemy.sideId === b.sideId) continue;
+      const key = `${battleId}:${enemy.assetId}`;
+      if (!contacts.has(key)) continue;
+      const state = damage.targets[enemy.assetId]?.state;
+      // skip enemies already terminally non-viable: focus remaining firepower
+      if (state && state.terminalStatus !== "NORMAL") continue;
+      const d2 = squaredDistance(shooterPos, movement[enemy.assetId]?.position);
+      if (!best || d2 < best.d2 || (d2 === best.d2 && enemy.assetId < best.assetId)) {
+        best = { assetId: enemy.assetId, key, d2 };
+      }
+    }
+    out[b.id] = best?.key ?? NO_TARGET;
+  }
+  return out;
+}
+
+/** Thread the post-minute damage states back into the context targets. */
+function mergeTargetStates(
+  targets: Record<string, DamageTargetContext>,
+  states: Record<string, ShipDamageState>,
+): Record<string, DamageTargetContext> {
+  const out: Record<string, DamageTargetContext> = { ...targets };
+  for (const [shipId, state] of Object.entries(states)) {
+    const t = out[shipId];
+    if (t) out[shipId] = { ...t, state };
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+
+export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResolutionResult {
+  // ---- fail-closed validation ---------------------------------------------
+  if (!input.manifest) {
+    throw new BluewaveError(AUTO_RESOLUTION_UNAVAILABLE, {
+      code: AUTO_RESOLUTION_UNAVAILABLE,
+      reason: "battle auto-resolution requires a battle manifest",
+      battleId: input.battleId,
+    });
+  }
+  assertManifestValid(input.manifest, { battleId: input.battleId });
+  if (input.battleId !== input.manifest.battleId) {
+    throw new BluewaveError(AUTO_RESOLUTION_UNAVAILABLE, {
+      code: AUTO_RESOLUTION_UNAVAILABLE,
+      battleId: input.battleId,
+      manifestBattleId: input.manifest.battleId,
+      reason: "input battleId must equal the manifest battleId",
+    });
+  }
+  if (!input.attacker || !input.defender) {
+    throw new BluewaveError(AUTO_RESOLUTION_UNAVAILABLE, {
+      code: AUTO_RESOLUTION_UNAVAILABLE,
+      battleId: input.battleId,
+      reason: "auto-resolution requires both combatant nation states",
+    });
+  }
+  const attackerParticipants = input.manifest.sides.find(
+    (s) => s.sideId === "ATTACKER",
+  )?.participantIds;
+  const defenderParticipants = input.manifest.sides.find(
+    (s) => s.sideId === "DEFENDER",
+  )?.participantIds;
+  if (!attackerParticipants || !defenderParticipants) {
+    throw new BluewaveError(AUTO_RESOLUTION_UNAVAILABLE, {
+      code: AUTO_RESOLUTION_UNAVAILABLE,
+      reason: "manifest sides must declare ATTACKER and DEFENDER participant lists",
+    });
+  }
+  if (
+    !attackerParticipants.includes(input.attacker.nationId) ||
+    !defenderParticipants.includes(input.defender.nationId)
+  ) {
+    throw new BluewaveError(BATTLE_AUTO_RESOLUTION_FAILED, {
+      code: BATTLE_AUTO_RESOLUTION_FAILED,
+      attackerNationId: input.attacker.nationId,
+      defenderNationId: input.defender.nationId,
+      reason: "combatant nation not listed on its manifest side participant list",
+    });
+  }
+  const maxMinutes: number = input.maxMinutes ?? AUTO_RESOLUTION_MAX_MINUTES;
+  if (!Number.isInteger(maxMinutes) || maxMinutes <= 0) {
+    throw new BluewaveError(AUTO_RESOLUTION_UNAVAILABLE, {
+      code: AUTO_RESOLUTION_UNAVAILABLE,
+      maxMinutes,
+      reason: "maxMinutes must be a positive integer",
+    });
+  }
+
+  // ---- deterministic battle seed (DESIGN-37 §32) --------------------------
+  const battleSeed = deriveBattleSeed(
+    {
+      rngVersion: input.rngVersion,
+      campaignSeed: input.campaignSeed,
+      campaignMonth: input.campaignMonth,
+      warId: input.manifest.warId,
+      areaId: input.areaId,
+      missionType: input.manifest.missionType,
+      opportunityId: input.manifest.opportunityId,
+      battleGenerationFormulaVersion: BATTLE_SEED_FORMULA_VERSION,
+    },
+    input.manifest,
+  );
+  const manifestHash = computeManifestHash(input.manifest);
+  const engine = new RandomEngine(battleSeed);
+
+  // ---- projection (AC-4) ---------------------------------------------------
+  const projected: ProjectBattleOutput = projectBattle({
+    manifest: input.manifest,
+    areaId: input.areaId,
+    campaignMonth: input.campaignMonth,
+    attacker: input.attacker,
+    defender: input.defender,
+    rulesetVersion: input.rulesetVersion,
+  });
+  const attackerCount = unitsOf(projected, "ATTACKER").length;
+  const defenderCount = unitsOf(projected, "DEFENDER").length;
+  if (attackerCount === 0 || defenderCount === 0) {
+    throw new BluewaveError(BATTLE_AUTO_RESOLUTION_FAILED, {
+      code: BATTLE_AUTO_RESOLUTION_FAILED,
+      attackerCount,
+      defenderCount,
+      reason: "both sides require at least one committed, promotable ship",
+    });
+  }
+
+  // ---- battle weather (AC-3) -----------------------------------------------
+  const weather = buildBattleWeather({
+    battleId: input.manifest.battleId,
+    areaId: input.areaId,
+    campaignMonth: input.campaignMonth,
+    strategicWeather: input.strategicWeather,
+    battleSeed,
+    randomLedger: input.randomLedger,
+  });
+
+  // ---- minute loop ----------------------------------------------------------
+  let battleState: TacticalBattleState = {
+    ...projected.state,
+    contacts: [...(projected.state.contacts ?? [])],
+    movementStates: { ...projected.state.movementStates },
+  };
+  let gunnery: GunneryBattery[] = [...projected.batteries];
+  let damage: DamageContext = { ...projected.damage, engine, randomLedger: input.randomLedger };
+  let weatherCtx = weather.context;
+
+  const allEvents: BattleEvent[] = [];
+  const minuteHashes: string[] = [];
+  let endReason = "";
+  let eliminatedSide: BattleSide | null = null;
+  const observationTime = `${weather.battleDate}T06:00:00.000Z`;
+  let elapsedMinutes = 0;
+
+  for (let minute = 1; minute <= maxMinutes; minute++) {
+    // 1. targeting: nearest legal enemy for each battery (pre-minute state)
+    const targets = assignTargetContactIds(
+      gunnery,
+      battleState,
+      damage,
+      projected.state.battleId,
+      projected.units,
+    );
+    gunnery = gunnery.map((b) => {
+      const t = targets[b.id];
+      return t !== undefined
+        ? { ...b, state: withGunneryStateHash({ ...b.state, targetContactId: t }) }
+        : b;
+    });
+
+    // 2. one fully-resolved tactical minute (steps 4-8 + 7.5 + 8.5 + 9-10)
+    const res = advanceMinute({
+      state: battleState,
+      minute,
+      observationTime,
+      orders: projected.orders,
+      engine,
+      gunnery,
+      weather: weatherCtx,
+      damage,
+    });
+
+    allEvents.push(...res.events);
+    minuteHashes.push(res.minuteHash);
+    elapsedMinutes = minute;
+
+    // 3. thread per-minute state forward
+    battleState = {
+      ...battleState,
+      contacts: res.contacts.map((c) => ({ ...c })),
+      movementStates: Object.fromEntries(
+        Object.entries(res.movementStates).map(([k, v]) => [k, { ...v }]),
+      ),
+    };
+    if (res.gunneryStates) {
+      gunnery = gunnery.map((b) => {
+        const ns = res.gunneryStates![b.id];
+        return ns ? { ...b, state: ns } : b;
+      });
+    }
+    if (res.weatherComponents) {
+      weatherCtx = { ...weatherCtx, components: res.weatherComponents };
+    }
+    if (res.damageStates) {
+      damage = { ...damage, targets: mergeTargetStates(damage.targets, res.damageStates) };
+    }
+
+    // 4. §32 battle end (terminating-minute effects already applied)
+    const viabilities: ShipViability[] = projected.units.map((u) => ({
+      assetId: u.assetId,
+      sideId: u.sideId as BattleSide,
+      damageState: damage.targets[u.assetId]?.state ?? initialDamageState(u.assetId),
+    }));
+    const decision = decideBattleEnd(viabilities, minute, maxMinutes);
+    if (decision.ended) {
+      endReason = decision.reason!;
+      eliminatedSide = decision.eliminatedSide ?? null;
+      break;
+    }
+  }
+
+  if (endReason === "") {
+    throw new BluewaveError(BATTLE_AUTO_RESOLUTION_FAILED, {
+      code: BATTLE_AUTO_RESOLUTION_FAILED,
+      battleId: input.manifest.battleId,
+      reason: "minute loop exhausted without a §32 battle-end decision",
+    });
+  }
+
+  // ---- result assembly -----------------------------------------------------
+  const attackerShips = unitsOf(projected, "ATTACKER");
+  const defenderShips = unitsOf(projected, "DEFENDER");
+  const sunkOf = (ships: readonly TacticalShipUnit[]): string[] =>
+    ships
+      .filter((u) => {
+        // Fail-closed: every projected unit MUST have a damage target (the
+        // projector creates one per promoted unit). A missing target is a
+        // wiring defect, never a silent "sunk".
+        const st = damage.targets[u.assetId]?.state;
+        if (!st) {
+          throw new BluewaveError(BATTLE_AUTO_RESOLUTION_FAILED, {
+            code: BATTLE_AUTO_RESOLUTION_FAILED,
+            battleId: input.manifest.battleId,
+            shipId: u.assetId,
+            reason: "projected unit has no damage target at result assembly",
+          });
+        }
+        return st.terminalStatus !== "NORMAL";
+      })
+      .map((u) => u.assetId)
+      .sort();
+
+  const attackerSunkIds = sunkOf(attackerShips);
+  const defenderSunkIds = sunkOf(defenderShips);
+  const attackerSurvivorIds = attackerShips
+    .map((u) => u.assetId)
+    .sort()
+    .filter((id) => !attackerSunkIds.includes(id));
+  const defenderSurvivorIds = defenderShips
+    .map((u) => u.assetId)
+    .sort()
+    .filter((id) => !defenderSunkIds.includes(id));
+
+  const damageReport: Record<string, SafeInt> = {};
+  for (const u of projected.units) {
+    const st = damage.targets[u.assetId]?.state;
+    if (!st) continue;
+    damageReport[u.assetId] = battleLoss(u.hitPoints as number, st, u.maxHitPoints as number);
+  }
+
+  // winner/loser per §32 precedence (ties and time_limit -> both null)
+  let winnerId: string | null = null;
+  let loserId: string | null = null;
+  if (endReason === "no_viable_combatants") {
+    if (eliminatedSide === "ATTACKER") {
+      winnerId = input.defender.nationId;
+      loserId = input.attacker.nationId;
+    } else if (eliminatedSide === "DEFENDER") {
+      winnerId = input.attacker.nationId;
+      loserId = input.defender.nationId;
+    }
+    // eliminatedSide === null (both non-viable tie): winner/loser remain null (ADR-0026)
+  }
+
+  // canonical event ledger hash (§35 ordering)
+  const ledger = new BattleLedger();
+  for (const e of allEvents) ledger.append(e);
+
+  const campaignAssetIds = [...new Set(projected.units.map((u) => u.assetId))].sort();
+  const provenance = {
+    battleId: input.manifest.battleId,
+    manifestHash,
+    campaignAssetIds,
+  };
+
+  const result: BattleResolutionResult = {
+    battleId: input.manifest.battleId,
+    battleEndReason: endReason,
+    elapsedMinutes,
+    winnerId,
+    loserId,
+    attackerSurvivorIds,
+    defenderSurvivorIds,
+    attackerSunkIds,
+    defenderSunkIds,
+    damageReport,
+    eventLedgerHash: ledger.hash(),
+    minuteHashes,
+    resultHash: "",
+    provenance,
+  };
+  // resultHash: domain-separated envelope over the whole non-hash surface
+  const { resultHash: _hash, ...hashBody } = result;
+  result.resultHash = createEnvelope(
+    "battle-auto-resolution-result",
+    battleAutoResolutionPolicyId,
+    {
+      ...hashBody,
+      rulesetVersion: BATTLE_AUTO_RESOLUTION_RULESET_VERSION,
+      formulaVersion: BATTLE_AUTO_RESOLUTION_FORMULA_VERSION,
+      inputFormulaVersion: input.formulaVersion,
+      inputRngVersion: input.rngVersion,
+      inputRulesetVersion: input.rulesetVersion,
+    },
+  ).bodyHash;
+
+  return result;
+}
+
+// ---- small helpers ----------------------------------------------------------
+
+function unitsOf(p: ProjectBattleOutput, sideId: string): TacticalShipUnit[] {
+  return p.units.filter((u) => u.sideId === sideId);
+}

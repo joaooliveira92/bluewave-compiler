@@ -28,12 +28,14 @@ import {
   type TacticalContact,
 } from "../contact/lifecycle.js";
 import { BattleLedger, type BattleEvent } from "../battleLedger.js";
-import { resolveGunnery, type GunneryBattery } from "../gunnery/index.js";
+import { resolveGunnery, type GunneryBattery, type GunneryEventRecord } from "../gunnery/index.js";
 import { resolveWeather, type WeatherEngineContext } from "../weather/engine.js";
 import type { BattleWeatherComponents } from "../weather/components.js";
 import { SUBSTEPS_PER_MINUTE } from "../movement/constants.js";
 import type { TacticalBattleState } from "../tactical/index.js";
 import type { GunneryState } from "../gunnery/index.js";
+import type { ShipDamageState } from "../damage/state.js";
+import { resolveMinuteDamage, type DamageContext } from "../battleResolution/damage.js";
 
 export interface UnitOrders {
   orderedHeading: number;
@@ -55,6 +57,11 @@ export interface AdvanceMinuteInput {
   // Optional weather-engine context (B-5 / INC-5). When absent, weather resolution
   // is a strict no-op: zero events appended, hashes unchanged.
   weather?: WeatherEngineContext;
+  // Optional damage context (B-4/B-6 INC-2). When absent, damage resolution is a
+  // strict no-op: zero events appended, minute snapshot/minuteHash byte-identical
+  // to the B-2..B-5 baseline. When present, every HIT gunnery salvo is converted
+  // into damage impacts and applied via resolveDamage at step 9-10 (substep 3).
+  damage?: DamageContext;
 }
 
 export interface MinuteResult {
@@ -69,6 +76,9 @@ export interface MinuteResult {
   // Updated weather components after this minute's weather stage. Present only
   // when weather context was supplied.
   weatherComponents?: BattleWeatherComponents;
+  // Updated per-ship ShipDamageState (shipId -> state) after this minute's
+  // damage stage. Present only when damage context was supplied.
+  damageStates?: Record<string, ShipDamageState>;
 }
 
 // atomic mutable snapshot used through one minute.
@@ -271,6 +281,7 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
   // snapshot/minuteHash remain byte-identical to the pre-INC-4 output (AC-15).
   let gunneryStates: Record<string, GunneryState> | undefined;
   const gunneryBatteries = input.gunnery ?? [];
+  let salvos: readonly GunneryEventRecord[] = [];
   if (gunneryBatteries.length > 0) {
     const gres = resolveGunnery({
       battleId,
@@ -281,6 +292,26 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     });
     for (const ge of gres.events) ledger.append(ge);
     gunneryStates = gres.nextStates;
+    salvos = gres.salvos;
+  }
+
+  // Step 9-10 (DESIGN-38 §3 / B-4 / B-6 INC-2): apply damage from gunnery HIT
+  // events — each HIT becomes a GunneryImpact applied via resolveDamage, and the
+  // damage events are appended here (after gunnery at substep 3). Strict no-op
+  // when no damage context is supplied (zero events; hashes unchanged).
+  let damageStates: Record<string, ShipDamageState> | undefined;
+  if (input.damage) {
+    const dmgResult = resolveMinuteDamage({
+      battleId,
+      minute,
+      salvos,
+      contacts: afterContacts,
+      targets: input.damage.targets,
+      engine: input.damage.engine,
+      randomLedger: input.damage.randomLedger,
+    });
+    for (const de of dmgResult.events) ledger.append(de);
+    if (Object.keys(dmgResult.states).length > 0) damageStates = dmgResult.states;
   }
 
   const events = ledger.sorted();
@@ -322,6 +353,7 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     minuteHash,
     ...(gunneryStates ? { gunneryStates } : {}),
     ...(weatherComponents ? { weatherComponents } : {}),
+    ...(damageStates ? { damageStates } : {}),
   };
 }
 
@@ -338,16 +370,22 @@ export interface AdvanceMinutesInput {
   /** Optional weather-engine context (B-5 / INC-5). When absent, weather
    *  resolution is a strict no-op across all minutes. */
   weather?: WeatherEngineContext;
+  /** Optional damage context (B-4 / B-6 INC-2). When absent, damage resolution
+   *  is a strict no-op across all minutes. */
+  damage?: DamageContext;
 }
 export interface AdvanceMinutesResult {
   results: MinuteResult[];
   hashes: string[];
   finalState: TacticalBattleState;
+  /** Per-minute damage states (mirrors results[i].damageStates). */
+  damageStates?: Record<string, ShipDamageState>[];
 }
 export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult {
   const results: MinuteResult[] = [];
   let gunnery = input.gunnery;
   let weather = input.weather;
+  let damage = input.damage;
   let state: TacticalBattleState = {
     ...input.state,
     contacts: [...(input.state.contacts ?? [])],
@@ -363,6 +401,7 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
       engine: input.engine,
       gunnery,
       weather,
+      damage,
     });
     results.push(res);
     state = {
@@ -384,10 +423,19 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
     if (res.weatherComponents && weather) {
       weather = { ...weather, components: res.weatherComponents };
     }
+    // Thread the updated damage states into the context targets for the next
+    // minute (immutable copy-out pattern).
+    if (res.damageStates && damage) {
+      damage = { ...damage, targets: { ...damage.targets } };
+      for (const [sid, st] of Object.entries(res.damageStates)) {
+        if (damage.targets[sid]) damage.targets[sid] = { ...damage.targets[sid]!, state: st };
+      }
+    }
   }
   return {
     results,
     hashes: results.map((r) => r.minuteHash),
     finalState: state,
+    ...(input.damage ? { damageStates: results.map((r) => r.damageStates ?? {}) } : {}),
   };
 }
