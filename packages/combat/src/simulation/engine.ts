@@ -29,6 +29,8 @@ import {
 } from "../contact/lifecycle.js";
 import { BattleLedger, type BattleEvent } from "../battleLedger.js";
 import { resolveGunnery, type GunneryBattery } from "../gunnery/index.js";
+import { resolveWeather, type WeatherEngineContext } from "../weather/engine.js";
+import type { BattleWeatherComponents } from "../weather/components.js";
 import { SUBSTEPS_PER_MINUTE } from "../movement/constants.js";
 import type { TacticalBattleState } from "../tactical/index.js";
 import type { GunneryState } from "../gunnery/index.js";
@@ -50,6 +52,9 @@ export interface AdvanceMinuteInput {
   // spotting (step 8). When absent or empty, gunnery resolution is a strict no-op:
   // zero events appended, minute snapshot/minuteHash byte-identical to the baseline.
   gunnery?: GunneryBattery[];
+  // Optional weather-engine context (B-5 / INC-5). When absent, weather resolution
+  // is a strict no-op: zero events appended, hashes unchanged.
+  weather?: WeatherEngineContext;
 }
 
 export interface MinuteResult {
@@ -61,6 +66,9 @@ export interface MinuteResult {
   // Updated per-battery GunneryState (batteryId -> state) after this minute's
   // gunnery stage. Present only when gunnery batteries were supplied.
   gunneryStates?: Record<string, GunneryState>;
+  // Updated weather components after this minute's weather stage. Present only
+  // when weather context was supplied.
+  weatherComponents?: BattleWeatherComponents;
 }
 
 // atomic mutable snapshot used through one minute.
@@ -184,6 +192,20 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
   const collisionRecord = resolveCollisionsGrounding();
   ledger.append(evt(minute, 0, "resolve_collisions_grounding", 7, "pipeline", battleId));
 
+  // Step 7.5 (B-5 / INC-5): resolve weather — time-of-day, progression,
+  // and visibility before spotting. Strict no-op when no weather context is
+  // supplied (zero events -> minute hash byte-identical to B-2/B-3/B-4).
+  let weatherComponents: BattleWeatherComponents | undefined;
+  if (input.weather) {
+    const weatherResult = resolveWeather({
+      context: input.weather,
+      battleId,
+      minute,
+    });
+    for (const we of weatherResult.ledgerEvents) ledger.append(we);
+    weatherComponents = weatherResult.nextComponents;
+  }
+
   // Step 8: resolve sensor and spotting updates.
   const observers: SensorObserver[] = units.map((u) => ({
     observerId: `obs-${u.assetId}`,
@@ -299,6 +321,7 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     events: ledger.sorted(),
     minuteHash,
     ...(gunneryStates ? { gunneryStates } : {}),
+    ...(weatherComponents ? { weatherComponents } : {}),
   };
 }
 
@@ -312,6 +335,9 @@ export interface AdvanceMinutesInput {
   attackRangeUm?: number;
   engine?: RandomEngine;
   gunnery?: GunneryBattery[];
+  /** Optional weather-engine context (B-5 / INC-5). When absent, weather
+   *  resolution is a strict no-op across all minutes. */
+  weather?: WeatherEngineContext;
 }
 export interface AdvanceMinutesResult {
   results: MinuteResult[];
@@ -321,6 +347,7 @@ export interface AdvanceMinutesResult {
 export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult {
   const results: MinuteResult[] = [];
   let gunnery = input.gunnery;
+  let weather = input.weather;
   let state: TacticalBattleState = {
     ...input.state,
     contacts: [...(input.state.contacts ?? [])],
@@ -335,6 +362,7 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
       attackRangeUm: input.attackRangeUm,
       engine: input.engine,
       gunnery,
+      weather,
     });
     results.push(res);
     state = {
@@ -351,6 +379,10 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
         const ns = res.gunneryStates![b.id];
         return ns ? { ...b, state: ns } : b;
       });
+    }
+    // Thread the updated weather components into the next minute.
+    if (res.weatherComponents && weather) {
+      weather = { ...weather, components: res.weatherComponents };
     }
   }
   return {

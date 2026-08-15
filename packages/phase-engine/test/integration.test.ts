@@ -545,6 +545,7 @@ describe("Full-slice integration", () => {
       "battle_generation",
       "battle_resolution",
       "resolve_research",
+      "weather_generation",
     ]);
 
     const ctx = engine.initializeTurn(snapshot);

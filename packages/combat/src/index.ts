@@ -16,6 +16,7 @@ export * from "./movement/index.js";
 export * from "./gunnery/index.js";
 export * from "./spotting/index.js";
 export * from "./damage/index.js";
+export * from "./weather/index.js";
 export * from "./contact/index.js";
 export * from "./simulation/engine.js";
 export * from "./simulation/spawn.js";

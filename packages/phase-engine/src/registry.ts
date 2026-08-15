@@ -54,6 +54,21 @@ export class PhaseRegistry {
       rngAllowed: false,
     },
     {
+      id: "weather_generation",
+      name: "Strategic Weather Generation",
+      // B-5/ADR-0022: monthly per-area StrategicWeatherState generation
+      // (DESIGN-42 §1), ordered after opening_validation and before
+      // command_collection. The pure generation engine lives in
+      // @bluewave/combat (generateStrategicWeather, keyed stream
+      // `campaign/weather/<areaId>/<month>`); campaign-snapshot wiring
+      // (climate profiles + weather state persistence) is B-6, so this phase
+      // executes as a strict no-op until then.
+      order: 0.5,
+      readPermissions: ["all"],
+      writePermissions: [],
+      rngAllowed: true,
+    },
+    {
       id: "monthly_revenue",
       name: "Monthly Revenue",
       order: 1,
@@ -169,7 +184,9 @@ export class PhaseRegistry {
     accessType: "read" | "write",
   ): boolean {
     const permissions =
-      accessType === "read" ? phase["readPermissions"] : phase["writePermissions"];
+      accessType === "read"
+        ? phase["readPermissions"]
+        : phase["writePermissions"];
     return permissions.includes("all") || permissions.includes(resource);
   }
 }
