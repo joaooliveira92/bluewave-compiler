@@ -9,7 +9,7 @@
 | ---------------------------- | ------ | --------------------------------------- | ------------------------------------ | ------------------ | ------------------------ |
 | M1 Strategic Campaign Kernel | B0–B8  | Complete (57 docs)                      | Core pipeline done                   | ~154 tests passing | ACCEPTED               |
 | M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready          | B9/B10a/B10b/B10c/B10d done | 410 passing | **M1 COMPLETED (A-5 gate, 2026-08-12)** — see `docs/acceptance/m1-capability-registry.md` |
-| M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | B-1 IMPL + B-2-IMPL + B-3-IMPL DONE (2026-08-13) | 596 tests pass* | B-1 battle-gen + tactical setup; B-2 movement/spotting/contact engine (AC-1..15 PASS, ADR-0018/0019); B-3 core surface gunnery fire-resolution (AC-1..15 PASS, ADR-0020). B-4..B-6 next (armor, weather, results→campaign). |
+| M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | B-1 IMPL + B-2-IMPL + B-3-IMPL + B-4 IMPL DONE (2026-08-14) | 613 tests pass* | B-1 battle-gen + tactical setup; B-2 movement/spotting/contact engine (AC-1..15 PASS, ADR-0018/0019); B-3 core surface gunnery fire-resolution (AC-1..15 PASS, ADR-0020); B-4 basic armor & damage (AC-1..16 PASS, ADR-0021). B-5..B-6 next (armor, weather, results→campaign). |
 | M3 Advanced Surface Warfare  | —      | Design docs exist (DESIGN-34–36, 39–42) | Not started                          | —                  | Future                   |
 | M4 Aviation                  | —      | Design docs exist (DESIGN-43–45)        | Not started                          | —                  | Future                   |
 | M5 Electronics & Missile Era | —      | Design docs exist (DESIGN-46–48)        | Not started                          | —                  | Future                   |
@@ -345,6 +345,29 @@ there. Implementations **MUST NOT** silently resolve an open decision.
 > armor-and-damage; straddle (§25) + RAPID/AA eligibility predicates; target
 > allocation (§26-27); damage effects (§29) → B-4/DAMAGE; phase wiring (B-6).
 > **Next: B-4** (armor & damage).
+
+### B-4 — M2 Basic Armor & Damage
+
+> **Status (2026-08-14): IMPLEMENTED — PASS.** All AC-1..AC-16 criteria pass through
+> 6 increments. ShipDamageState invariant + pipeline skeleton (INC-1); armor model
+> with zone maxima, quality families, thick-armor manufacturing, splinter threshold,
+> 7 penetration outcomes (INC-2); hit location + protection interaction (INC-3);
+> component damage + turret states + structure/flotation + event record + ordering +
+> engine wiring (INC-4); immediate fire/flooding creation + magazine secondary hazard +
+> SINKING/FOUNDERED terminal detection + two-process determinism (INC-5); full contract
+> rollup + reason-code set-equality + ADR-0021 (INC-6). 16 damage test files, 265 tests
+> green. BattleResolver/StrengthCalculator unmodified.
+
+| Deliverable | Readiness | Key decisions |
+|------------|-----------|---------------|
+| ShipDamageState + pipeline skeleton | ACCEPTED | 10-stage no-skip pipeline; transaction rollback (ADR-0021 §1) |
+| Armor model (DESIGN-39 §§16-24) | ACCEPTED | Zone maxima: belt 20in, turret-face 26in; quality families (ADR-0021 §6) |
+| Hit location + protection interaction | ACCEPTED | AABB geometry; simplified linear penetration (ADR-0021 §4) |
+| Component damage + turret states + structure/flotation | ACCEPTED | 8 outcomes + 5 turret states + capped structure/flotation |
+| Immediate fire/flooding + magazine hazard + terminal seam | ACCEPTED | Creation-only; SINKING/FOUNDERED detection |
+| Event record + ordering + engine wiring | ACCEPTED | §45+§46; resolveDamage after gunnery; strict no-op |
+| Contracts + reason codes + ADR-0021 | ACCEPTED | fail-closed; set-equality guard |
+| Golden hashes | UNCHANGED | 9/9; strict no-op preserves B-2/B-3 |
 
 ### M1 — Strategic Campaign Kernel (A-5 acceptance gate)
 

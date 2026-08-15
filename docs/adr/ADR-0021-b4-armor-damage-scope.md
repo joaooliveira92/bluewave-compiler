@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted 2026-08-14
 
 ## Context
 
@@ -35,12 +35,13 @@ quality families) are recorded rather than fabricated.
    Stage 1 hit location (§4), Stage 2 protection interaction (§5, using the armor
    model), Stage 3 local component damage incl. §7 turret states (§6), Stage 4
    structure & flotation (§8), Stage 5 immediate fire/flooding **creation only** (§9),
-   immutable `DamageEventRecord`s (§45), canonical ordering (§46), the in-slice §47
-   reason codes, and §48 validation items for the incorporated stages. The engine
-   runs as a new stage `resolveDamage` in the B-2 minute-advance simulation **after**
-   `resolveGunnery` (step 8) each minute, emitting through the existing `BattleLedger`
-   + `canonicalEventOrder`. **`BattleResolver` and `StrengthCalculator` remain
-   unmodified.** Phase-pipeline wiring that replaces the strategic auto-resolution
+   Stage 6 magazine secondary hazard (no other hazards), immutable `DamageEventRecord`s
+   (§45), canonical ordering (§46), basic SINKING/FOUNDERED terminal detection,
+   the in-slice §47 reason codes, and §48 validation items for the incorporated stages.
+   The engine runs as a new stage `resolveDamage` in the B-2 minute-advance simulation
+   **after** `resolveGunnery` (step 8) each minute, emitting through the existing
+   `BattleLedger` + `canonicalEventOrder`. **`BattleResolver` and `StrengthCalculator`
+   remain unmodified.** Phase-pipeline wiring that replaces the strategic auto-resolution
    path is **B-6**; **no snapshot schema / phase change** and **no golden hash change**
    (no ADR-0007 regeneration). When no impact/hazard is presented in a minute,
    `resolveDamage` is a strict no-op (B-2/B-3 hashes preserved).
@@ -55,7 +56,9 @@ quality families) are recorded rather than fabricated.
    §44 fire/flooding persistence → **M3/C-5**; secondary hazards beyond the magazine
    reaction (§10 items 2–9) → M3/C-5; torpedo/mine/bomb/missile weapon contracts
    feeding Stage 2 → their owning M3/M4 contracts; weather/visibility damage
-   modifiers → B-5; smoke → M3/C-5.
+   modifiers → B-5; smoke → M3/C-5; ALUMINUM_SUPERSTRUCTURE → deferred; damage
+   control, stabilization/abandonment/scuttling/capture/recovery, survivors/rescue,
+   post-battle survival → M3/C-5.
 3. **In-slice reason-code policy (recorded, versioned).** The in-slice damage
    catalog ships exactly: `INVALID_SHIP_DAMAGE_STATE`, `DAMAGE_RESOLUTION_FAILED`,
    `DAMAGE_HIT_LOCATION_INVALID`, `DAMAGE_PROTECTION_INTERACTION_INVALID`,
@@ -70,20 +73,35 @@ quality families) are recorded rather than fabricated.
    codes (flooding/fire-resolution, terminal/survivor/rescue/scoring) are **recorded
    as deferred** to M3/C-5. A `reason-codes-damage.test.ts` set-equality check against
    DESIGN-41 §47 + DESIGN-39 §32 + the existing catalog prevents silent addition.
-4. **Armor/§18–19 and §17 constants are normative (shipped verbatim).** Zone maxima
+4. **Penetration model**: Simplified linear penetration formula
+   (caliber × velocity / 1000) as a deterministic first approximation. A more
+   sophisticated naval penetration model (De Marre, Thompson F) is deferred to a
+   later ticket.
+
+5. **Armor/§18–19 and §17 constants are normative (shipped verbatim).** Zone maxima
    (belt 508 000 µm, turret face/barbette/conning-tower 660 400 µm), the 304 800 µm
    thick-armor threshold, the 7 500 bp excess-effectiveness, the 50 800 µm splinter
    threshold, and the §15/§20 fire/flooding creation-type tables are shipped exactly
    as DESIGN-41/39 mandate (pre-declared maxima; above-max → `ARMOR_THICKNESS_LIMIT_EXCEEDED`;
    missing zone maximum → `ARMOR_ZONE_MAXIMUM_MISSING`).
-5. **Armor-technology quality families are recorded BALANCE TARGETs.** The active
+
+6. **Armor-technology quality families are recorded BALANCE TARGETs.** The active
    armor technology's quality multiplier (§20) is authored as a versioned-ruleset
    constant — `armor_v1` family table (wrought-iron → compound → Harvey → Krupp
-   cemented → post-KC, era-ordered quality 9 800..11 000 bp) — grounded in
+   cemented → post-KC, era-ordered quality 8_000..11_000 bp) — grounded in
    `docs/research/b4-m2-armor-damage.md` §3 as a *qualitative historical ordering*
-   (not primary-sourced exact integers). Tuning within the recorded range is a
-   balance-bound decision, not a decision-request. Exact production-class family
-   assignment is a content-track (CONTENT) concern, deferred and recorded.
+   (not primary-sourced exact integers). Shipped bp multipliers: iron=8_000,
+   compound=9_000, Harvey=10_000, Krupp/KC=10_500, post-KC=11_000. Tuning within
+   the recorded range is a balance-bound decision, not a decision-request. Exact
+   production-class family assignment is a content-track (CONTENT) concern, deferred
+   and recorded.
+
+7. **Design-41 §2 category difference**: The spec uses a 7-category model
+   (PENETRATION, NON_PENETRATION, SPLINTER, FIRE, FLOODING, SECONDARY_HAZARD,
+   NO_EFFECT) while DESIGN-41 §2 defines a different 7-category set
+   (LOCAL_COMPONENT_DAMAGE, STRUCTURE_DAMAGE, etc.). The pipeline-stage design
+   treats the spec's packages as resolution output that maps into the §2 categories
+   at the event-record boundary.
 
 ## Consequences
 
@@ -104,6 +122,10 @@ quality families) are recorded rather than fabricated.
   here as versioned-ruleset decisions, satisfying the ENGINEERING-CONTRACT ADR +
   traceability rule. Armor-quality family multipliers are BALANCE TARGETs; the only
   flagged open item is the production-class armor-family mapping (content track).
+- The §2 category mapping (spec's 7 packages → DESIGN-41 §2 categories) is
+  resolved at the event-record boundary without requiring a spec amendment.
+- All shipped values (contract rollup, armor constants, reason codes) are under
+  set-equality guard in `reason-codes-damage.test.ts` to prevent silent drift.
 
 ## Related requirements
 

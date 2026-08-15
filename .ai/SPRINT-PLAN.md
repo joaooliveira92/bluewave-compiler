@@ -226,16 +226,15 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-**B-3-IMPL (INC-1..5) is DONE — PASS (2026-08-13).** M1 signed `COMPLETED`
-(A-5 gate); B-1/B-2/B-3 IMPL DONE — PASS.
+**B-4-IMPL (INC-1..6) is DONE — PASS (2026-08-14).** M1 signed `COMPLETED`
+(A-5 gate); B-1/B-2/B-3/B-4 IMPL DONE — PASS.
 
 Next:
 
-1. **B-4 (M2 armor & damage)** — DESIGN-41 basic subset + the DESIGN-39 §16-24 armor/
-   penetration content deferred from B-3; depends on accepted M1 + B-1/B-2/B-3
-   (all now DONE). Needs its own scoping sprint (no brief exists yet).
-2. **Remaining M2 (B-5, B-6)** — weather/visibility modifiers; battle results →
-   campaign integration + M2 acceptance gate (DESIGN-55 §3).
+1. **B-5 (M2 tactical weather & visibility)** — DESIGN-42 basic subset; needs
+   its own scoping sprint (no brief exists yet).
+2. **B-6 (M2 battle results → campaign integration + acceptance gate)** — ties
+   `@bluewave/combat` into the phase-engine `battle_resolution` phase.
 3. **Content C-track continuation** — MID_CENTURY + LATE-era content (M4/M5) as the
    corresponding mechanics land; deployment (DESIGN-25) scoping; the **B-1 AC-14
    production ship→design linkage**.
