@@ -11,42 +11,49 @@ All 6 increments (INC-1..INC-6) implemented across 20 damage test files with 658
 ## Validation evidence
 
 ### Build (uncached)
+
 ```bash
 $ pnpm -w turbo run build --force
 # 18 successful, 18 total
 ```
 
 ### TypeScript
+
 ```bash
 $ pnpm -w tsc -b
 # Clean (only pre-existing apps/desktop errors remain)
 ```
 
 ### Lint
+
 ```bash
 $ pnpm -w lint
 # 0 warnings, 50 errors — all pre-existing (test file type imports, desktop)
 ```
 
 ### Full test suite
+
 ```bash
 $ pnpm -w exec vitest run --exclude='**/.claude/**'
 # 178 files, 1442 passed, 6 failed (all pre-existing ballistics)
 ```
 
 ### Damage module tests
+
 ```bash
 $ pnpm --filter @bluewave/combat exec vitest run test/damage/
 # 20 files, 658 passed, 0 failed
 ```
 
 ### Golden hashes
+
 ```bash
 $ node scripts/verify-golden-hashes.cjs
 # All 9 hashes match golden reference
 ```
 
 ### BattleResolver/StrengthCalculator unmodified
+
 ```bash
 $ git diff packages/combat/src/resolver.ts packages/combat/src/strength.ts
 # (no output — unmodified)
@@ -55,6 +62,7 @@ $ git diff packages/combat/src/resolver.ts packages/combat/src/strength.ts
 ## Changed files
 
 ### New source files (17)
+
 - packages/combat/src/damage/constants.ts (INC-1)
 - packages/combat/src/damage/reasonCodes.ts (INC-1)
 - packages/combat/src/damage/state.ts (INC-1)
@@ -75,6 +83,7 @@ $ git diff packages/combat/src/resolver.ts packages/combat/src/strength.ts
 - packages/combat/src/damage/contractRollup.ts (INC-6)
 
 ### New test files (20)
+
 - packages/combat/test/damage/state.test.ts (INC-1)
 - packages/combat/test/damage/categories.test.ts (INC-1)
 - packages/combat/test/damage/contracts.test.ts (INC-1)
@@ -97,6 +106,7 @@ $ git diff packages/combat/src/resolver.ts packages/combat/src/strength.ts
 - packages/combat/test/damage/reason-codes-damage.test.ts (INC-6)
 
 ### Modified files (4)
+
 - packages/combat/src/index.ts — added damage barrel export
 - docs/PROGRESS.md — B-4 status + M2 update
 - docs/adr/ADR-0021-b4-armor-damage-scope.md — updated decisions
@@ -111,11 +121,13 @@ $ git diff packages/combat/src/resolver.ts packages/combat/src/strength.ts
 - docs/research/b4-m2-armor-damage.md: armor quality families grounded
 
 ## Pre-existing unrelated failures (unchanged)
+
 1. packages/combat/test/gunnery/ballistics-constants.test.ts (6 tests — gunnery ballistics API refactored)
 2. packages/content-schema/test/nation.test.ts (broken import)
 3. apps/desktop/* (renderer test failures)
 4. apps/desktop tsc errors (baseUrl removed in tsconfig.web.json)
 
 ## Determinism
+
 - Golden hashes 9/9 unchanged (strict no-op path preserves B-2/B-3)
 - Two-process determinism proven via spawn + byte-compare

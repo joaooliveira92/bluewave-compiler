@@ -6,10 +6,7 @@
 // ambient I/O/clock/random. A reversible-to-invariant guard never mutates its input.
 import { BluewaveError } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
-import {
-  TERMINAL_STATUSES,
-  type TerminalStatus,
-} from "./constants.js";
+import { TERMINAL_STATUSES, type TerminalStatus } from "./constants.js";
 import { DAMAGE_STATE_INVARIANT_FAILED } from "./reasonCodes.js";
 
 // ---- Damage packages (DESIGN-41 §2: seven canonical categories) ----
@@ -157,7 +154,12 @@ export function assertFixedPointDamage(s: ShipDamageState): void {
   if (!Number.isInteger(s.structuralIntegrity))
     invariant(s, "structuralIntegrity", s.structuralIntegrity, "integer structural-integrity");
   if (s.structuralIntegrity < 0)
-    invariant(s, "structuralIntegrity", s.structuralIntegrity, "structuralIntegrity must be non-negative");
+    invariant(
+      s,
+      "structuralIntegrity",
+      s.structuralIntegrity,
+      "structuralIntegrity must be non-negative",
+    );
 
   if (!Number.isInteger(s.flotationReserve))
     invariant(s, "flotationReserve", s.flotationReserve, "integer flotation-reserve");
@@ -188,7 +190,12 @@ export function assertFixedPointDamage(s: ShipDamageState): void {
   for (let i = 0; i < s.floodingRecords.length; i++) {
     const r = s.floodingRecords[i];
     if (typeof r.compartmentId !== "string" || r.compartmentId.length === 0)
-      invariant(s, `floodingRecords[${i}].compartmentId`, r.compartmentId, "non-empty compartment id");
+      invariant(
+        s,
+        `floodingRecords[${i}].compartmentId`,
+        r.compartmentId,
+        "non-empty compartment id",
+      );
     if (!Number.isInteger(r.rateKgMin))
       invariant(s, `floodingRecords[${i}].rateKgMin`, r.rateKgMin, "integer rate kg/min");
     if (r.rateKgMin < 0)
@@ -198,12 +205,27 @@ export function assertFixedPointDamage(s: ShipDamageState): void {
   }
 
   if (!Number.isInteger(s.progressiveFloodingTotal))
-    invariant(s, "progressiveFloodingTotal", s.progressiveFloodingTotal, "integer progressive flooding total");
+    invariant(
+      s,
+      "progressiveFloodingTotal",
+      s.progressiveFloodingTotal,
+      "integer progressive flooding total",
+    );
   if (s.progressiveFloodingTotal < 0)
-    invariant(s, "progressiveFloodingTotal", s.progressiveFloodingTotal, "progressive flooding total must be non-negative");
+    invariant(
+      s,
+      "progressiveFloodingTotal",
+      s.progressiveFloodingTotal,
+      "progressive flooding total must be non-negative",
+    );
 
   if (typeof s.performanceModifiers !== "object" || s.performanceModifiers === null)
-    invariant(s, "performanceModifiers", s.performanceModifiers, "performanceModifiers must be a record");
+    invariant(
+      s,
+      "performanceModifiers",
+      s.performanceModifiers,
+      "performanceModifiers must be a record",
+    );
   for (const [key, val] of Object.entries(s.performanceModifiers)) {
     if (!Number.isInteger(val))
       invariant(s, `performanceModifiers[${key}]`, val, "integer modifier value");

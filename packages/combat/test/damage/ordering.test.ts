@@ -66,11 +66,15 @@ describe("AC-4: Canonical ordering (§46)", () => {
 
   it("orders by targetShipId lexicographic when earlier fields equal", () => {
     const a = makeRecord({
-      battleMinute: 10, substep: 2, sourceId: "BATTERY-A",
+      battleMinute: 10,
+      substep: 2,
+      sourceId: "BATTERY-A",
       targetShipId: "SHIP-001",
     });
     const b = makeRecord({
-      battleMinute: 10, substep: 2, sourceId: "BATTERY-A",
+      battleMinute: 10,
+      substep: 2,
+      sourceId: "BATTERY-A",
       targetShipId: "SHIP-002",
     });
     expect(damageEventOrder(a, b)).toBeLessThan(0);
@@ -79,12 +83,18 @@ describe("AC-4: Canonical ordering (§46)", () => {
 
   it("orders by causalWeaponId lexicographic when earlier fields equal", () => {
     const a = makeRecord({
-      battleMinute: 10, substep: 2, sourceId: "BATTERY-A",
-      targetShipId: "SHIP-001", causalWeaponId: "AP-1",
+      battleMinute: 10,
+      substep: 2,
+      sourceId: "BATTERY-A",
+      targetShipId: "SHIP-001",
+      causalWeaponId: "AP-1",
     });
     const b = makeRecord({
-      battleMinute: 10, substep: 2, sourceId: "BATTERY-A",
-      targetShipId: "SHIP-001", causalWeaponId: "AP-2",
+      battleMinute: 10,
+      substep: 2,
+      sourceId: "BATTERY-A",
+      targetShipId: "SHIP-001",
+      causalWeaponId: "AP-2",
     });
     expect(damageEventOrder(a, b)).toBeLessThan(0);
     expect(damageEventOrder(b, a)).toBeGreaterThan(0);
@@ -92,13 +102,19 @@ describe("AC-4: Canonical ordering (§46)", () => {
 
   it("orders by hitLocation lexicographic when earlier fields equal", () => {
     const a = makeRecord({
-      battleMinute: 10, substep: 2, sourceId: "BATTERY-A",
-      targetShipId: "SHIP-001", causalWeaponId: "AP-1",
+      battleMinute: 10,
+      substep: 2,
+      sourceId: "BATTERY-A",
+      targetShipId: "SHIP-001",
+      causalWeaponId: "AP-1",
       hitLocation: "BELT-1",
     });
     const b = makeRecord({
-      battleMinute: 10, substep: 2, sourceId: "BATTERY-A",
-      targetShipId: "SHIP-001", causalWeaponId: "AP-1",
+      battleMinute: 10,
+      substep: 2,
+      sourceId: "BATTERY-A",
+      targetShipId: "SHIP-001",
+      causalWeaponId: "AP-1",
       hitLocation: "BELT-2",
     });
     expect(damageEventOrder(a, b)).toBeLessThan(0);
@@ -107,14 +123,20 @@ describe("AC-4: Canonical ordering (§46)", () => {
 
   it("tiebreaker uses recordHash lexicographic", () => {
     const a = makeRecord({
-      battleMinute: 10, substep: 2, sourceId: "BATTERY-A",
-      targetShipId: "SHIP-001", causalWeaponId: "AP-1",
+      battleMinute: 10,
+      substep: 2,
+      sourceId: "BATTERY-A",
+      targetShipId: "SHIP-001",
+      causalWeaponId: "AP-1",
       hitLocation: "BELT-1",
       componentEffects: [{ componentId: "TURRET-1", outcome: "DEGRADED", locationId: "TURRET-1" }],
     });
     const b = makeRecord({
-      battleMinute: 10, substep: 2, sourceId: "BATTERY-A",
-      targetShipId: "SHIP-001", causalWeaponId: "AP-1",
+      battleMinute: 10,
+      substep: 2,
+      sourceId: "BATTERY-A",
+      targetShipId: "SHIP-001",
+      causalWeaponId: "AP-1",
       hitLocation: "BELT-1",
       componentEffects: [{ componentId: "TURRET-2", outcome: "DESTROYED", locationId: "TURRET-2" }],
     });

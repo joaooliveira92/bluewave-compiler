@@ -62,9 +62,7 @@ export type DamageEventRecordBody = Omit<DamageEventRecord, "recordHash">;
  * @param body - The record body (all fields except recordHash).
  * @returns The sha256 hex digest from the canonical envelope.
  */
-export function computeDamageEventHash(
-  body: DamageEventRecordBody,
-): string {
+export function computeDamageEventHash(body: DamageEventRecordBody): string {
   return createEnvelope("damage-event", "damage_v1", body).bodyHash;
 }
 
@@ -78,9 +76,7 @@ export function computeDamageEventHash(
  * @param params - All fields except recordHash.
  * @returns A frozen DamageEventRecord with recordHash set.
  */
-export function createDamageEventRecord(
-  params: DamageEventRecordBody,
-): DamageEventRecord {
+export function createDamageEventRecord(params: DamageEventRecordBody): DamageEventRecord {
   const recordHash = computeDamageEventHash(params);
   const record: DamageEventRecord = { ...params, recordHash };
   return deepFreeze(record);

@@ -28,11 +28,11 @@ import {
  *   effectiveResistance = floor(320_040 * 10_000 / 10_000) = 320_040
  */
 const BELT_BASELINE: ProtectionInput = {
-  projectileCaliberUm: 304_800,     // 12-inch
+  projectileCaliberUm: 304_800, // 12-inch
   projectileVelocityMs: 400,
   projectileMass: 400,
   hitZoneType: "BELT",
-  armorThicknessUm: 304_800,        // 12-inch
+  armorThicknessUm: 304_800, // 12-inch
   armorQualityFamily: "KRUPP_KC",
   armorSlopeDeg: 0,
   impactAngleDeg: 0,

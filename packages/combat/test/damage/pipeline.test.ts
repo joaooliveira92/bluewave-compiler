@@ -138,7 +138,8 @@ describe("AC-3: Empty stage produces successful empty record (no-skip rule)", ()
         stage === "DAMAGE_EVENT_RECORD" ||
         stage === "LOCAL_COMPONENT_DAMAGE" ||
         stage === "STRUCTURE_FLOTATION"
-      ) continue;
+      )
+        continue;
       // Wired stages in INC-5 produce descriptions that start with the stage purpose
       expect(result.stageEffects[stage]).toBeDefined();
       expect(result.stageEffects[stage]!.ok).toBe(true);
@@ -166,7 +167,11 @@ describe("AC-3: Stage failure rolls back the transaction", () => {
   it("propagates DAMAGE_RESOLUTION_FAILED as error on rollback", () => {
     const failingRunner: StageRunner = (stage, _state, _idx, _ctx) => {
       if (stage === "LOCAL_COMPONENT_DAMAGE") {
-        return { ok: false, description: "component out of scope", errorCode: DAMAGE_RESOLUTION_FAILED };
+        return {
+          ok: false,
+          description: "component out of scope",
+          errorCode: DAMAGE_RESOLUTION_FAILED,
+        };
       }
       return { ok: true, description: "empty (no-op) stage" };
     };
@@ -203,7 +208,12 @@ describe("AC-3: runDamagePipeline default runner", () => {
   it("returns ok for every stage", () => {
     const ctx = defaultContext();
     for (const stage of DAMAGE_PIPELINE_STAGES) {
-      const effect = runDamagePipeline(stage, baseState(), DAMAGE_PIPELINE_STAGES.indexOf(stage), ctx);
+      const effect = runDamagePipeline(
+        stage,
+        baseState(),
+        DAMAGE_PIPELINE_STAGES.indexOf(stage),
+        ctx,
+      );
       expect(effect.ok).toBe(true);
     }
   });
@@ -227,9 +237,12 @@ describe("AC-3: wrapSimpleRunner preserves backward compat", () => {
 const PIPE_COMPARTMENTS: readonly CompartmentDef[] = [
   {
     id: "COMP-1",
-    zMinMm: 0, zMaxMm: 5000,
-    xMinMm: 0, xMaxMm: 10000,
-    altitudeMinMm: 0, altitudeMaxMm: 5000,
+    zMinMm: 0,
+    zMaxMm: 5000,
+    xMinMm: 0,
+    xMaxMm: 10000,
+    altitudeMinMm: 0,
+    altitudeMaxMm: 5000,
   },
 ];
 

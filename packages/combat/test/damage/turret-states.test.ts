@@ -2,10 +2,7 @@
 // INC-4 — Turret states (DESIGN-41 §7).
 // Proves: 5 states, jam duration, no elapsed-time restoration.
 import { describe, it, expect } from "vite-plus/test";
-import {
-  applyTurretDamage,
-  type TurretComponent,
-} from "../../src/damage/index.js";
+import { applyTurretDamage, type TurretComponent } from "../../src/damage/index.js";
 import { type ComponentOutcome } from "../../src/damage/index.js";
 
 // ---------------------------------------------------------------------------
@@ -162,8 +159,14 @@ describe("AC-4: Edge cases", () => {
 
   it("all component outcomes have a defined mapping", () => {
     const outcomes: ComponentOutcome[] = [
-      "UNAFFECTED", "DEGRADED", "JAMMED", "DISABLED",
-      "DESTROYED", "BURNED_OUT", "FLOODED", "ISOLATED",
+      "UNAFFECTED",
+      "DEGRADED",
+      "JAMMED",
+      "DISABLED",
+      "DESTROYED",
+      "BURNED_OUT",
+      "FLOODED",
+      "ISOLATED",
     ];
     for (const outcome of outcomes) {
       const result = applyTurretDamage(operational(), outcome);

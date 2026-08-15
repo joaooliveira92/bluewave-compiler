@@ -10,12 +10,7 @@ import { type ComponentOutcome } from "./componentDamage.js";
 // ---------------------------------------------------------------------------
 // Five canonical turret states (§7)
 
-export type TurretState =
-  | "OPERATIONAL"
-  | "JAMMED"
-  | "DISABLED"
-  | "DESTROYED"
-  | "BURNED_OUT";
+export type TurretState = "OPERATIONAL" | "JAMMED" | "DISABLED" | "DESTROYED" | "BURNED_OUT";
 
 export interface TurretComponent {
   id: string;
@@ -75,8 +70,7 @@ export function applyTurretDamage(
     return turret;
   }
 
-  const jamDurationMinutes =
-    newState === "JAMMED" ? 5 : undefined;
+  const jamDurationMinutes = newState === "JAMMED" ? 5 : undefined;
 
   return {
     id: turret.id,

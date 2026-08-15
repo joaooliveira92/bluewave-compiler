@@ -18,7 +18,12 @@ function makeComponent(
   locationId: string,
   armorZoneType?: string,
 ): ComponentState {
-  return { id, componentType, locationId, armorZoneType: armorZoneType as ArmorZoneType | undefined };
+  return {
+    id,
+    componentType,
+    locationId,
+    armorZoneType: armorZoneType as ArmorZoneType | undefined,
+  };
 }
 
 const EXPOSED_ZONES = ["SUPERSTRUCTURE", "DECK", "CASEMATE", "SPLINTER_DECK"];
@@ -38,7 +43,12 @@ describe("AC-4: Component eligibility (§6)", () => {
       makeComponent("DIRECTOR-1", "DIRECTOR", "SUPERSTRUCTURE-1", "SUPERSTRUCTURE"),
       makeComponent("PUMP-1", "PUMP", "SUPERSTRUCTURE-1"), // internal, no armor zone
     ];
-    const result = resolveComponentDamage(components, "SUPERSTRUCTURE-1", "FULL_PENETRATION", "LIGHT");
+    const result = resolveComponentDamage(
+      components,
+      "SUPERSTRUCTURE-1",
+      "FULL_PENETRATION",
+      "LIGHT",
+    );
     expect(result).toHaveLength(2);
     // All components affected
     expect(result.map((r) => r.componentId).sort()).toEqual(["DIRECTOR-1", "PUMP-1"]);
@@ -49,7 +59,12 @@ describe("AC-4: Component eligibility (§6)", () => {
       makeComponent("DIRECTOR-1", "DIRECTOR", "SUPERSTRUCTURE-1", "SUPERSTRUCTURE"),
       makeComponent("PUMP-1", "PUMP", "SUPERSTRUCTURE-1"), // internal
     ];
-    const result = resolveComponentDamage(components, "SUPERSTRUCTURE-1", "SPLINTER_EFFECT", "MEDIUM");
+    const result = resolveComponentDamage(
+      components,
+      "SUPERSTRUCTURE-1",
+      "SPLINTER_EFFECT",
+      "MEDIUM",
+    );
     expect(result).toHaveLength(1);
     expect(result[0].componentId).toBe("DIRECTOR-1");
   });
@@ -64,9 +79,7 @@ describe("AC-4: Component eligibility (§6)", () => {
 
   it("exposed component with armor zone type is eligible for non-penetrating hits", () => {
     for (const zoneType of EXPOSED_ZONES) {
-      const components = [
-        makeComponent(`DIRECTOR-${zoneType}`, "DIRECTOR", "ZONE-1", zoneType),
-      ];
+      const components = [makeComponent(`DIRECTOR-${zoneType}`, "DIRECTOR", "ZONE-1", zoneType)];
       const result = resolveComponentDamage(components, "ZONE-1", "SPLINTER_EFFECT", "LIGHT");
       expect(result).toHaveLength(1);
       expect(result[0].componentId).toBe(`DIRECTOR-${zoneType}`);
@@ -79,63 +92,49 @@ describe("AC-4: Component eligibility (§6)", () => {
 
 describe("AC-4: Component outcomes (§6)", () => {
   it("UNAFFECTED: DUD penetration, any splinter level", () => {
-    const components = [
-      makeComponent("DIRECTOR-1", "DIRECTOR", "ZONE-1", "SUPERSTRUCTURE"),
-    ];
+    const components = [makeComponent("DIRECTOR-1", "DIRECTOR", "ZONE-1", "SUPERSTRUCTURE")];
     const result = resolveComponentDamage(components, "ZONE-1", "DUD", "HEAVY");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("UNAFFECTED");
   });
 
   it("UNAFFECTED: NO_EFFECT penetration, any splinter level", () => {
-    const components = [
-      makeComponent("DIRECTOR-1", "DIRECTOR", "ZONE-1", "SUPERSTRUCTURE"),
-    ];
+    const components = [makeComponent("DIRECTOR-1", "DIRECTOR", "ZONE-1", "SUPERSTRUCTURE")];
     const result = resolveComponentDamage(components, "ZONE-1", "NO_EFFECT", "LIGHT");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("UNAFFECTED");
   });
 
   it("DEGRADED: full penetration, no splinters", () => {
-    const components = [
-      makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE"),
-    ];
+    const components = [makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE")];
     const result = resolveComponentDamage(components, "TURRET-1", "FULL_PENETRATION", "NONE");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("DEGRADED");
   });
 
   it("JAMMED: full penetration, LIGHT splinters", () => {
-    const components = [
-      makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE"),
-    ];
+    const components = [makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE")];
     const result = resolveComponentDamage(components, "TURRET-1", "FULL_PENETRATION", "LIGHT");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("JAMMED");
   });
 
   it("DISABLED: full penetration, MEDIUM splinters", () => {
-    const components = [
-      makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE"),
-    ];
+    const components = [makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE")];
     const result = resolveComponentDamage(components, "TURRET-1", "FULL_PENETRATION", "MEDIUM");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("DISABLED");
   });
 
   it("DESTROYED: full penetration, HEAVY splinters", () => {
-    const components = [
-      makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE"),
-    ];
+    const components = [makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE")];
     const result = resolveComponentDamage(components, "TURRET-1", "FULL_PENETRATION", "HEAVY");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("DESTROYED");
   });
 
   it("BURNED_OUT: full penetration, EXTREME splinters", () => {
-    const components = [
-      makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE"),
-    ];
+    const components = [makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE")];
     const result = resolveComponentDamage(components, "TURRET-1", "FULL_PENETRATION", "EXTREME");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("BURNED_OUT");
@@ -158,36 +157,28 @@ describe("AC-4: Component outcomes (§6)", () => {
   });
 
   it("SPLINTER_EFFECT on exposed component with LIGHT splinters → DEGRADED", () => {
-    const components = [
-      makeComponent("DIRECTOR-1", "DIRECTOR", "ZONE-1", "SUPERSTRUCTURE"),
-    ];
+    const components = [makeComponent("DIRECTOR-1", "DIRECTOR", "ZONE-1", "SUPERSTRUCTURE")];
     const result = resolveComponentDamage(components, "ZONE-1", "SPLINTER_EFFECT", "LIGHT");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("DEGRADED");
   });
 
   it("SPLINTER_EFFECT on exposed component with MEDIUM splinters → JAMMED", () => {
-    const components = [
-      makeComponent("DIRECTOR-1", "DIRECTOR", "ZONE-1", "SUPERSTRUCTURE"),
-    ];
+    const components = [makeComponent("DIRECTOR-1", "DIRECTOR", "ZONE-1", "SUPERSTRUCTURE")];
     const result = resolveComponentDamage(components, "ZONE-1", "SPLINTER_EFFECT", "MEDIUM");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("JAMMED");
   });
 
   it("SPLINTER_EFFECT on exposed component with HEAVY splinters → DISABLED", () => {
-    const components = [
-      makeComponent("DIRECTOR-1", "DIRECTOR", "ZONE-1", "SUPERSTRUCTURE"),
-    ];
+    const components = [makeComponent("DIRECTOR-1", "DIRECTOR", "ZONE-1", "SUPERSTRUCTURE")];
     const result = resolveComponentDamage(components, "ZONE-1", "SPLINTER_EFFECT", "HEAVY");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("DISABLED");
   });
 
   it("SPLINTER_EFFECT on exposed component with EXTREME splinters → DESTROYED", () => {
-    const components = [
-      makeComponent("DIRECTOR-1", "DIRECTOR", "ZONE-1", "SUPERSTRUCTURE"),
-    ];
+    const components = [makeComponent("DIRECTOR-1", "DIRECTOR", "ZONE-1", "SUPERSTRUCTURE")];
     const result = resolveComponentDamage(components, "ZONE-1", "SPLINTER_EFFECT", "EXTREME");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("DESTROYED");
@@ -229,27 +220,21 @@ describe("AC-4: Spatial ordering by stable component id (§6)", () => {
 
 describe("AC-4: Edge cases", () => {
   it("CRITICAL_PENETRATION behaves like full penetration for component damage", () => {
-    const components = [
-      makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE"),
-    ];
+    const components = [makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE")];
     const result = resolveComponentDamage(components, "TURRET-1", "CRITICAL_PENETRATION", "LIGHT");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("JAMMED");
   });
 
   it("PASS_THROUGH behaves like full penetration for component damage", () => {
-    const components = [
-      makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE"),
-    ];
+    const components = [makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE")];
     const result = resolveComponentDamage(components, "TURRET-1", "PASS_THROUGH", "MEDIUM");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("DISABLED");
   });
 
   it("PARTIAL_PENETRATION behaves like full penetration for component damage", () => {
-    const components = [
-      makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE"),
-    ];
+    const components = [makeComponent("TURRET-1", "TURRET", "TURRET-1", "TURRET_FACE")];
     const result = resolveComponentDamage(components, "TURRET-1", "PARTIAL_PENETRATION", "HEAVY");
     expect(result).toHaveLength(1);
     expect(result[0].outcome).toBe("DESTROYED");

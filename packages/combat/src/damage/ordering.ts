@@ -20,10 +20,7 @@ import { type DamageEventRecord } from "./eventRecord.js";
  *
  * Returns negative if a < b, positive if a > b, 0 if equal.
  */
-export function damageEventOrder(
-  a: DamageEventRecord,
-  b: DamageEventRecord,
-): number {
+export function damageEventOrder(a: DamageEventRecord, b: DamageEventRecord): number {
   return (
     a.battleMinute - b.battleMinute ||
     a.substep - b.substep ||

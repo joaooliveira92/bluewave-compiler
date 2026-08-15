@@ -40,11 +40,7 @@ export const DAMAGE_CATEGORIES = [
 export type DamageCategory = (typeof DAMAGE_CATEGORIES)[number];
 
 // Terminal status values.
-export const TERMINAL_STATUSES = [
-  "NORMAL",
-  "SINKING",
-  "FOUNDERED",
-] as const;
+export const TERMINAL_STATUSES = ["NORMAL", "SINKING", "FOUNDERED"] as const;
 export type TerminalStatus = (typeof TERMINAL_STATUSES)[number];
 
 // ---------------------------------------------------------------------------

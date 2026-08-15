@@ -32,10 +32,7 @@ import {
 } from "./eventRecord.js";
 import { type PenetrationOutcome, type ArmorZoneType } from "./armorModel.js";
 import { resolveHitLocation, type HitInput } from "./hitLocation.js";
-import {
-  resolveProtectionInteraction,
-  type ProtectionInput,
-} from "./protectionInteraction.js";
+import { resolveProtectionInteraction, type ProtectionInput } from "./protectionInteraction.js";
 import {
   evaluateFireCreation,
   evaluateFloodingCreation,
@@ -47,11 +44,7 @@ import {
   type MagazineHazardInput,
   type MagazineHazardResult,
 } from "./magazineHazard.js";
-import {
-  evaluateTerminalSeam,
-  type TerminalInput,
-  type TerminalResult,
-} from "./terminalSeam.js";
+import { evaluateTerminalSeam, type TerminalInput, type TerminalResult } from "./terminalSeam.js";
 
 // ---------------------------------------------------------------------------
 // Pipeline context — the broader input needed by wired stages beyond state.
@@ -287,18 +280,23 @@ export function runDamagePipeline(
 
       // Flooding creation
       if (context.floodingCreationInput) {
-        const floodingSource = evaluateFloodingCreation(context.floodingCreationInput, context.keyedRng);
+        const floodingSource = evaluateFloodingCreation(
+          context.floodingCreationInput,
+          context.keyedRng,
+        );
         if (floodingSource) {
           context.createdFloodingSources = [floodingSource];
         }
       }
 
-      const fireDesc = context.createdFireSources.length > 0
-        ? `fire created at ${context.createdFireSources[0]!.locationId}`
-        : "no fire";
-      const floodDesc = context.createdFloodingSources.length > 0
-        ? `flooding created at ${context.createdFloodingSources[0]!.compartmentId}`
-        : "no flooding";
+      const fireDesc =
+        context.createdFireSources.length > 0
+          ? `fire created at ${context.createdFireSources[0]!.locationId}`
+          : "no fire";
+      const floodDesc =
+        context.createdFloodingSources.length > 0
+          ? `flooding created at ${context.createdFloodingSources[0]!.compartmentId}`
+          : "no flooding";
 
       return {
         ok: true,
@@ -443,12 +441,7 @@ export function orchestrateDamagePipeline(
   let lastEventRecord: DamageEventRecord | undefined;
 
   for (const stage of DAMAGE_PIPELINE_STAGES) {
-    const effect = stageRunner(
-      stage,
-      state,
-      DAMAGE_PIPELINE_STAGES.indexOf(stage),
-      context,
-    );
+    const effect = stageRunner(stage, state, DAMAGE_PIPELINE_STAGES.indexOf(stage), context);
 
     if (!effect.ok) {
       // Full transaction rollback — return the original state unchanged.
@@ -481,9 +474,7 @@ export function orchestrateDamagePipeline(
 /**
  * Build component state array from a list of component ids.
  */
-function buildComponentStateFromIds(
-  componentIds: readonly string[],
-): ComponentState[] {
+function buildComponentStateFromIds(componentIds: readonly string[]): ComponentState[] {
   return componentIds.map((id) => ({
     id,
     componentType: inferComponentType(id),
@@ -532,9 +523,6 @@ export type SimpleStageRunner = (
  * Wrap a SimpleStageRunner into a StageRunner by ignoring context.
  * Used for backward compatibility with non-wired stage runners.
  */
-export function wrapSimpleRunner(
-  simple: SimpleStageRunner,
-): StageRunner {
-  return (stage, state, stageIndex, _context) =>
-    simple(stage, state, stageIndex);
+export function wrapSimpleRunner(simple: SimpleStageRunner): StageRunner {
+  return (stage, state, stageIndex, _context) => simple(stage, state, stageIndex);
 }

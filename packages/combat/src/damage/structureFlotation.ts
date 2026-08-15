@@ -51,22 +51,12 @@ export interface StructureFlotationResult {
 export function resolveStructureFlotation(
   input: StructureFlotationInput,
 ): StructureFlotationResult {
-  const {
-    structuralDamage,
-    flotationDamage,
-    currentStructuralIntegrity,
-    currentFlotationReserve,
-  } = input;
+  const { structuralDamage, flotationDamage, currentStructuralIntegrity, currentFlotationReserve } =
+    input;
 
   // Floor at 0 per §8
-  const structuralIntegrityAfter = Math.max(
-    0,
-    currentStructuralIntegrity - structuralDamage,
-  );
-  const flotationReserveAfter = Math.max(
-    0,
-    currentFlotationReserve - flotationDamage,
-  );
+  const structuralIntegrityAfter = Math.max(0, currentStructuralIntegrity - structuralDamage);
+  const flotationReserveAfter = Math.max(0, currentFlotationReserve - flotationDamage);
 
   // Unaffected: raw damage amounts (may exceed current values)
   const uncappedStructuralDamage = structuralDamage;

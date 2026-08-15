@@ -24,9 +24,7 @@ function sampleBody(overrides: Partial<DamageEventRecordBody> = {}): DamageEvent
       penetrationMargin: 50_000,
       outcome: "FULL_PENETRATION",
     },
-    componentEffects: [
-      { componentId: "TURRET-1", outcome: "DEGRADED", locationId: "TURRET-1" },
-    ],
+    componentEffects: [{ componentId: "TURRET-1", outcome: "DEGRADED", locationId: "TURRET-1" }],
     structureFlotationEffects: {
       structuralIntegrityAfter: 95_000,
       flotationReserveAfter: 48_000,
@@ -93,9 +91,7 @@ describe("AC-4: Record completeness (§45)", () => {
   it("createdFireSources can be populated", () => {
     const record = createDamageEventRecord(
       sampleBody({
-        createdFireSources: [
-          { locationId: "COMP-1", intensityBp: 5_000, cause: "penetration" },
-        ],
+        createdFireSources: [{ locationId: "COMP-1", intensityBp: 5_000, cause: "penetration" }],
       }),
     );
     expect(record.createdFireSources).toHaveLength(1);
@@ -105,9 +101,7 @@ describe("AC-4: Record completeness (§45)", () => {
   it("createdFloodingSources can be populated", () => {
     const record = createDamageEventRecord(
       sampleBody({
-        createdFloodingSources: [
-          { compartmentId: "COMP-1", rateKgMin: 500, cause: "penetration" },
-        ],
+        createdFloodingSources: [{ compartmentId: "COMP-1", rateKgMin: 500, cause: "penetration" }],
       }),
     );
     expect(record.createdFloodingSources).toHaveLength(1);
@@ -136,13 +130,13 @@ describe("AC-4: Hash computation (§45)", () => {
     expect(base).not.toBe(changedMinute);
 
     const changedOutcome = computeDamageEventHash(
-      sampleBody({ protectionInteraction: { ...sampleBody().protectionInteraction, outcome: "DUD" } }),
+      sampleBody({
+        protectionInteraction: { ...sampleBody().protectionInteraction, outcome: "DUD" },
+      }),
     );
     expect(base).not.toBe(changedOutcome);
 
-    const changedComponent = computeDamageEventHash(
-      sampleBody({ componentEffects: [] }),
-    );
+    const changedComponent = computeDamageEventHash(sampleBody({ componentEffects: [] }));
     expect(base).not.toBe(changedComponent);
   });
 

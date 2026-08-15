@@ -15,7 +15,11 @@
 import { type ShipDamageState, computeDamageStateHash, assertFixedPointDamage } from "./state.js";
 import { type PenetrationOutcome, type ArmorZoneType } from "./armorModel.js";
 import { type SplinterIntensity } from "./componentDamage.js";
-import { resolveComponentDamage, type ComponentDamageResult, type ComponentState } from "./componentDamage.js";
+import {
+  resolveComponentDamage,
+  type ComponentDamageResult,
+  type ComponentState,
+} from "./componentDamage.js";
 import {
   resolveStructureFlotation,
   type StructureFlotationResult,
@@ -30,14 +34,8 @@ import {
   type FireCreationInput,
   type FloodingCreationInput,
 } from "./immediateFireFlooding.js";
-import {
-  evaluateMagazineHazard,
-  type MagazineHazardInput,
-} from "./magazineHazard.js";
-import {
-  evaluateTerminalSeam,
-  type TerminalInput,
-} from "./terminalSeam.js";
+import { evaluateMagazineHazard, type MagazineHazardInput } from "./magazineHazard.js";
+import { evaluateTerminalSeam, type TerminalInput } from "./terminalSeam.js";
 
 // ---------------------------------------------------------------------------
 // GunneryImpact — the damage-relevant surface from a gunnery hit
@@ -169,8 +167,7 @@ export function resolveDamage(
       currentStructuralIntegrity: currentState.structuralIntegrity,
       currentFlotationReserve: currentState.flotationReserve,
     };
-    const sfResult: StructureFlotationResult =
-      resolveStructureFlotation(sfInput);
+    const sfResult: StructureFlotationResult = resolveStructureFlotation(sfInput);
 
     // Update current state with structure/flotation effects
     currentState = {
@@ -229,7 +226,10 @@ export function resolveDamage(
         // Apply secondary damage to state
         currentState = {
           ...currentState,
-          structuralIntegrity: Math.max(0, currentState.structuralIntegrity - secondaryStructuralDamage),
+          structuralIntegrity: Math.max(
+            0,
+            currentState.structuralIntegrity - secondaryStructuralDamage,
+          ),
           flotationReserve: Math.max(0, currentState.flotationReserve - secondaryFlotationDamage),
         };
       }
@@ -244,12 +244,14 @@ export function resolveDamage(
     if (currentState.terminalStatus === "NORMAL") {
       if (keyedRng) {
         // Compute flotation and stability percentages as bp of design values
-        const flotationPct = impact.designFlotationReserve > 0
-          ? Math.floor((currentState.flotationReserve * 10_000) / impact.designFlotationReserve)
-          : 0;
-        const stabilityPct = impact.designStabilityScore > 0
-          ? Math.floor((currentState.stabilityScore * 10_000) / impact.designStabilityScore)
-          : 0;
+        const flotationPct =
+          impact.designFlotationReserve > 0
+            ? Math.floor((currentState.flotationReserve * 10_000) / impact.designFlotationReserve)
+            : 0;
+        const stabilityPct =
+          impact.designStabilityScore > 0
+            ? Math.floor((currentState.stabilityScore * 10_000) / impact.designStabilityScore)
+            : 0;
 
         const terminalInput: TerminalInput = {
           flotationReserveAfter: currentState.flotationReserve,
@@ -313,9 +315,7 @@ export function resolveDamage(
  * prefix convention (e.g., "TURRET-1" → location "TURRET-1").
  * In a full implementation, component states would be stored explicitly.
  */
-function buildComponentState(
-  state: ShipDamageState,
-): ComponentState[] {
+function buildComponentState(state: ShipDamageState): ComponentState[] {
   return state.components.map((id) => ({
     id,
     componentType: inferComponentType(id),

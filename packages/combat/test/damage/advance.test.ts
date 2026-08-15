@@ -115,9 +115,7 @@ describe("AC-4: resolveDamage integration", () => {
     // TURRET-1 is in zone TURRET-1 (same id)
     // With full penetration, NONE splinters → DEGRADED
     expect(event.componentEffects.length).toBeGreaterThan(0);
-    const turretEffect = event.componentEffects.find(
-      (ce) => ce.componentId === "TURRET-1",
-    );
+    const turretEffect = event.componentEffects.find((ce) => ce.componentId === "TURRET-1");
     expect(turretEffect).toBeDefined();
     expect(turretEffect!.outcome).toBe("DEGRADED");
   });

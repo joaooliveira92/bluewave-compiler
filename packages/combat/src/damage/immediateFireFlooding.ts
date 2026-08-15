@@ -19,10 +19,7 @@
 // A single hit may create neither, one, or both effects.
 // Pure/deterministic: uses keyed RNG function, no ambient I/O/clock/random.
 
-import {
-  FIRE_SOURCE_CREATED,
-  FLOODING_SOURCE_CREATED,
-} from "./reasonCodes.js";
+import { FIRE_SOURCE_CREATED, FLOODING_SOURCE_CREATED } from "./reasonCodes.js";
 import type { FireSourceRecord, FloodingSourceRecord } from "./state.js";
 
 // ---------------------------------------------------------------------------

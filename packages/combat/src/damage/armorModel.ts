@@ -345,9 +345,10 @@ export function validateArmorContract(
   if (c.policyId !== armorPolicyId) throwMismatch(c, "armor_v1 expectant policy id");
   if (c.rulesetVersion !== ARMOR_RULESET_VERSION || c.formulaVersion !== ARMOR_FORMULA_VERSION)
     throwMismatch(c, "armor_v1 ruleset/formula versions");
-  if (c.beltMaximumUm !== ZONE_MAXIMUM_BELT_UM)
-    throwMismatch(c, "armor_v1 belt maximum");
-  if (c.turretFaceBarbetteConningTowerMaximumUm !== ZONE_MAXIMUM_TURRET_FACE_BARBETTE_CONNING_TOWER_UM)
+  if (c.beltMaximumUm !== ZONE_MAXIMUM_BELT_UM) throwMismatch(c, "armor_v1 belt maximum");
+  if (
+    c.turretFaceBarbetteConningTowerMaximumUm !== ZONE_MAXIMUM_TURRET_FACE_BARBETTE_CONNING_TOWER_UM
+  )
     throwMismatch(c, "armor_v1 turret-face/barbette/conning-tower maximum");
   if (c.thickArmorThresholdUm !== THICK_ARMOR_THRESHOLD_UM)
     throwMismatch(c, "armor_v1 thick-armor threshold");

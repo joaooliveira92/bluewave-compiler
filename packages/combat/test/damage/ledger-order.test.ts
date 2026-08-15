@@ -2,15 +2,8 @@
 // INC-4 — BattleLedger + canonicalEventOrder integration.
 // Tests that damage events integrate correctly with the BattleLedger.
 import { describe, it, expect } from "vite-plus/test";
-import {
-  BattleLedger,
-  canonicalEventOrder,
-  type BattleEvent,
-} from "../../src/battleLedger.js";
-import {
-  damageEventOrder,
-  createDamageEventRecord,
-} from "../../src/damage/index.js";
+import { BattleLedger, canonicalEventOrder, type BattleEvent } from "../../src/battleLedger.js";
+import { damageEventOrder, createDamageEventRecord } from "../../src/damage/index.js";
 
 // ---------------------------------------------------------------------------
 // BattleLedger integration
@@ -62,16 +55,34 @@ describe("AC-4: BattleLedger integration", () => {
   it("canonicalEventOrder sorts damage events correctly alongside other events", () => {
     const events: BattleEvent[] = [
       {
-        battleId: "B-1", minute: 10, substep: 1, eventPriority: 9,
-        actorId: "BATTERY-A", targetId: "SHIP-002", eventId: "gunnery:1", eventType: "gunnery_salvo",
+        battleId: "B-1",
+        minute: 10,
+        substep: 1,
+        eventPriority: 9,
+        actorId: "BATTERY-A",
+        targetId: "SHIP-002",
+        eventId: "gunnery:1",
+        eventType: "gunnery_salvo",
       },
       {
-        battleId: "B-1", minute: 10, substep: 2, eventPriority: 8,
-        actorId: "BATTERY-A", targetId: "SHIP-001", eventId: "damage:1", eventType: "damage_event",
+        battleId: "B-1",
+        minute: 10,
+        substep: 2,
+        eventPriority: 8,
+        actorId: "BATTERY-A",
+        targetId: "SHIP-001",
+        eventId: "damage:1",
+        eventType: "damage_event",
       },
       {
-        battleId: "B-1", minute: 10, substep: 3, eventPriority: 7,
-        actorId: "SPOTTING-1", targetId: "SHIP-001", eventId: "spotting:1", eventType: "spotting",
+        battleId: "B-1",
+        minute: 10,
+        substep: 3,
+        eventPriority: 7,
+        actorId: "SPOTTING-1",
+        targetId: "SHIP-001",
+        eventId: "spotting:1",
+        eventType: "spotting",
       },
     ];
 
@@ -87,12 +98,24 @@ describe("AC-4: BattleLedger integration", () => {
   it("canonicalEventOrder orders same-substep events by eventPriority", () => {
     const events: BattleEvent[] = [
       {
-        battleId: "B-1", minute: 10, substep: 2, eventPriority: 9,
-        actorId: "BATTERY-A", targetId: "SHIP-001", eventId: "g:1", eventType: "gunnery",
+        battleId: "B-1",
+        minute: 10,
+        substep: 2,
+        eventPriority: 9,
+        actorId: "BATTERY-A",
+        targetId: "SHIP-001",
+        eventId: "g:1",
+        eventType: "gunnery",
       },
       {
-        battleId: "B-1", minute: 10, substep: 2, eventPriority: 8,
-        actorId: "DAMAGE", targetId: "SHIP-001", eventId: "d:1", eventType: "damage",
+        battleId: "B-1",
+        minute: 10,
+        substep: 2,
+        eventPriority: 8,
+        actorId: "DAMAGE",
+        targetId: "SHIP-001",
+        eventId: "d:1",
+        eventType: "damage",
       },
     ];
 
@@ -104,22 +127,50 @@ describe("AC-4: BattleLedger integration", () => {
 
   it("damageEventOrder and canonicalEventOrder agree on field ordering", () => {
     const a = createDamageEventRecord({
-      battleMinute: 10, substep: 2,
-      sourceId: "BATTERY-A", targetShipId: "SHIP-001",
-      causalWeaponId: "AP-1", hitLocation: "BELT-1",
-      protectionInteraction: { effectiveResistanceUm: 300_000, penetrationMargin: 50_000, outcome: "FULL_PENETRATION" },
+      battleMinute: 10,
+      substep: 2,
+      sourceId: "BATTERY-A",
+      targetShipId: "SHIP-001",
+      causalWeaponId: "AP-1",
+      hitLocation: "BELT-1",
+      protectionInteraction: {
+        effectiveResistanceUm: 300_000,
+        penetrationMargin: 50_000,
+        outcome: "FULL_PENETRATION",
+      },
       componentEffects: [],
-      structureFlotationEffects: { structuralIntegrityAfter: 95_000, flotationReserveAfter: 48_000, uncappedStructuralDamage: 5_000, uncappedFlotationDamage: 2_000 },
-      createdFireSources: [], createdFloodingSources: [], terminalTransition: null,
+      structureFlotationEffects: {
+        structuralIntegrityAfter: 95_000,
+        flotationReserveAfter: 48_000,
+        uncappedStructuralDamage: 5_000,
+        uncappedFlotationDamage: 2_000,
+      },
+      createdFireSources: [],
+      createdFloodingSources: [],
+      terminalTransition: null,
     });
     const b = createDamageEventRecord({
-      battleMinute: 10, substep: 2,
-      sourceId: "BATTERY-A", targetShipId: "SHIP-001",
-      causalWeaponId: "AP-1", hitLocation: "BELT-2",
-      protectionInteraction: { effectiveResistanceUm: 300_000, penetrationMargin: 50_000, outcome: "FULL_PENETRATION" },
+      battleMinute: 10,
+      substep: 2,
+      sourceId: "BATTERY-A",
+      targetShipId: "SHIP-001",
+      causalWeaponId: "AP-1",
+      hitLocation: "BELT-2",
+      protectionInteraction: {
+        effectiveResistanceUm: 300_000,
+        penetrationMargin: 50_000,
+        outcome: "FULL_PENETRATION",
+      },
       componentEffects: [],
-      structureFlotationEffects: { structuralIntegrityAfter: 95_000, flotationReserveAfter: 48_000, uncappedStructuralDamage: 5_000, uncappedFlotationDamage: 2_000 },
-      createdFireSources: [], createdFloodingSources: [], terminalTransition: null,
+      structureFlotationEffects: {
+        structuralIntegrityAfter: 95_000,
+        flotationReserveAfter: 48_000,
+        uncappedStructuralDamage: 5_000,
+        uncappedFlotationDamage: 2_000,
+      },
+      createdFireSources: [],
+      createdFloodingSources: [],
+      terminalTransition: null,
     });
 
     // damageEventOrder should give a non-zero result (hitLocation differs)

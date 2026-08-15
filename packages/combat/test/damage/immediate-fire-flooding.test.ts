@@ -66,18 +66,12 @@ describe("AC-5: Fire creation (§9)", () => {
   });
 
   it("returns null when no combustible material", () => {
-    const result = evaluateFireCreation(
-      { ...validFireInput, hasCombustible: false },
-      rngThat({}),
-    );
+    const result = evaluateFireCreation({ ...validFireInput, hasCombustible: false }, rngThat({}));
     expect(result).toBeNull();
   });
 
   it("returns null when no oxygen", () => {
-    const result = evaluateFireCreation(
-      { ...validFireInput, hasOxygen: false },
-      rngThat({}),
-    );
+    const result = evaluateFireCreation({ ...validFireInput, hasOxygen: false }, rngThat({}));
     expect(result).toBeNull();
   });
 
@@ -174,10 +168,7 @@ describe("AC-5: Flooding creation (§9)", () => {
   });
 
   it("returns null when no hull breach", () => {
-    const result = evaluateFloodingCreation(
-      { ...validFloodInput, hullBreach: false },
-      rngThat({}),
-    );
+    const result = evaluateFloodingCreation({ ...validFloodInput, hullBreach: false }, rngThat({}));
     expect(result).toBeNull();
   });
 

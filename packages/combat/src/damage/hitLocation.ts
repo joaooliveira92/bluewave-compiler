@@ -75,7 +75,10 @@ function compartmentsAreAdjacent(a: CompartmentDef, b: CompartmentDef): boolean 
   // Non-touching dimensions must overlap (including at boundaries)
   if (!zTouch && !intervalsOverlap(a.zMinMm, a.zMaxMm, b.zMinMm, b.zMaxMm)) return false;
   if (!xTouch && !intervalsOverlap(a.xMinMm, a.xMaxMm, b.xMinMm, b.xMaxMm)) return false;
-  if (!altTouch && !intervalsOverlap(a.altitudeMinMm, a.altitudeMaxMm, b.altitudeMinMm, b.altitudeMaxMm))
+  if (
+    !altTouch &&
+    !intervalsOverlap(a.altitudeMinMm, a.altitudeMaxMm, b.altitudeMinMm, b.altitudeMaxMm)
+  )
     return false;
 
   return true;
@@ -118,8 +121,7 @@ export function resolveHitLocation(input: HitInput): HitResult {
   // Step 2: Determine the armor zone for this compartment.
   // Convention: the caller sets zone.id to match the compartment's id, or the
   // first matching zone by id. If no zone matches, fall back to the first zone.
-  const hitZone =
-    input.zones.find((z) => z.id === hitCompartment.id) ?? input.zones[0] ?? null;
+  const hitZone = input.zones.find((z) => z.id === hitCompartment.id) ?? input.zones[0] ?? null;
 
   if (!hitZone) {
     throw new BluewaveError(DAMAGE_HIT_LOCATION_INVALID, {

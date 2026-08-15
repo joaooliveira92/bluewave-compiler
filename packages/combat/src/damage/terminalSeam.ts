@@ -77,17 +77,12 @@ function clamp(value: number, min: number, max: number): number {
  * @param stabilityPct - Residual stability as bp of design value [0, 10_000].
  * @returns Sinking duration in minutes.
  */
-export function computeSinkingDuration(
-  flotationPct: number,
-  stabilityPct: number,
-): number {
+export function computeSinkingDuration(flotationPct: number, stabilityPct: number): number {
   // Ensure inputs are in valid range
   const fPct = Math.min(Math.max(Math.floor(flotationPct), 0), 10_000);
   const sPct = Math.min(Math.max(Math.floor(stabilityPct), 0), 10_000);
 
-  const rawDuration = Math.floor(
-    (BASE_SURVIVAL_MINUTES * fPct * sPct) / (10_000 * 10_000),
-  );
+  const rawDuration = Math.floor((BASE_SURVIVAL_MINUTES * fPct * sPct) / (10_000 * 10_000));
   return clamp(rawDuration, MIN_SINKING_DURATION, MAX_SINKING_DURATION);
 }
 

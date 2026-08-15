@@ -36,13 +36,7 @@ export interface ComponentDamageResult {
 // ---------------------------------------------------------------------------
 // Splinter intensity levels
 
-export const SPLINTER_INTENSITIES = [
-  "NONE",
-  "LIGHT",
-  "MEDIUM",
-  "HEAVY",
-  "EXTREME",
-] as const;
+export const SPLINTER_INTENSITIES = ["NONE", "LIGHT", "MEDIUM", "HEAVY", "EXTREME"] as const;
 export type SplinterIntensity = (typeof SPLINTER_INTENSITIES)[number];
 
 // ---------------------------------------------------------------------------
@@ -100,11 +94,7 @@ export function resolveComponentDamage(
   // Step 3: assign outcomes
   const results: ComponentDamageResult[] = eligible.map((c) => ({
     componentId: c.id,
-    outcome: resolveSingleComponentOutcome(
-      c,
-      penetrationOutcome,
-      splinterIntensity,
-    ),
+    outcome: resolveSingleComponentOutcome(c, penetrationOutcome, splinterIntensity),
     locationId: c.locationId,
   }));
 
@@ -188,13 +178,7 @@ function resolveSingleComponentOutcome(
 
   if (isFullPenetration(penetrationOutcome)) {
     // Full penetration table (affects all eligible components)
-    const table: ComponentOutcome[] = [
-      "DEGRADED",
-      "JAMMED",
-      "DISABLED",
-      "DESTROYED",
-      "BURNED_OUT",
-    ];
+    const table: ComponentOutcome[] = ["DEGRADED", "JAMMED", "DISABLED", "DESTROYED", "BURNED_OUT"];
     return table[severity] ?? "UNAFFECTED";
   }
 

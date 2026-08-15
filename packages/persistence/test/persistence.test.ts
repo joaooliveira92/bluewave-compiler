@@ -5,7 +5,12 @@ import { tmpdir } from "node:os";
 import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SafeInt } from "@bluewave/contracts";
-import type { CampaignState, CampaignSnapshot, NationState, CompiledDesignVersion } from "@bluewave/campaign";
+import type {
+  CampaignState,
+  CampaignSnapshot,
+  NationState,
+  CompiledDesignVersion,
+} from "@bluewave/campaign";
 import { SaveStore } from "../src/store.js";
 import {
   CompatibilityChecker,

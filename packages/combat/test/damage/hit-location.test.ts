@@ -2,10 +2,7 @@
 // INC-3 — Hit location resolution (Stage 1). Proves AC-4.
 import { describe, it, expect } from "vite-plus/test";
 import { BluewaveError } from "@bluewave/contracts";
-import {
-  resolveHitLocation,
-  type HitInput,
-} from "../../src/damage/hitLocation.js";
+import { resolveHitLocation, type HitInput } from "../../src/damage/hitLocation.js";
 import { DAMAGE_HIT_LOCATION_INVALID } from "../../src/damage/reasonCodes.js";
 import { type CompartmentDef, type ArmorZoneDef } from "../../src/damage/shipLayout.js";
 
@@ -23,21 +20,30 @@ import { type CompartmentDef, type ArmorZoneDef } from "../../src/damage/shipLay
 const COMPARTMENTS: readonly CompartmentDef[] = [
   {
     id: "COMP-1",
-    zMinMm: 0, zMaxMm: 4000,
-    xMinMm: 5000, xMaxMm: 15000,
-    altitudeMinMm: 0, altitudeMaxMm: 6000,
+    zMinMm: 0,
+    zMaxMm: 4000,
+    xMinMm: 5000,
+    xMaxMm: 15000,
+    altitudeMinMm: 0,
+    altitudeMaxMm: 6000,
   },
   {
     id: "COMP-2",
-    zMinMm: 0, zMaxMm: 4000,
-    xMinMm: 0, xMaxMm: 5000,
-    altitudeMinMm: 0, altitudeMaxMm: 6000,
+    zMinMm: 0,
+    zMaxMm: 4000,
+    xMinMm: 0,
+    xMaxMm: 5000,
+    altitudeMinMm: 0,
+    altitudeMaxMm: 6000,
   },
   {
     id: "COMP-3",
-    zMinMm: 4000, zMaxMm: 8000,
-    xMinMm: 2000, xMaxMm: 12000,
-    altitudeMinMm: 6000, altitudeMaxMm: 12000,
+    zMinMm: 4000,
+    zMaxMm: 8000,
+    xMinMm: 2000,
+    xMaxMm: 12000,
+    altitudeMinMm: 6000,
+    altitudeMaxMm: 12000,
   },
 ];
 
@@ -71,9 +77,9 @@ const ZONES: readonly ArmorZoneDef[] = [
 describe("INC-3: Hit location resolution (AC-4)", () => {
   it("hit lands in compartment → correct primary compartment returned", () => {
     const input: HitInput = {
-      impactVerticalMm: 2000,      // inside COMP-1 z range [0, 4000]
+      impactVerticalMm: 2000, // inside COMP-1 z range [0, 4000]
       impactLongitudinalMm: 10000, // inside COMP-1 x range [5000, 15000]
-      impactAltitudeMm: 3000,      // inside COMP-1 alt range [0, 6000]
+      impactAltitudeMm: 3000, // inside COMP-1 alt range [0, 6000]
       projectileTrajectoryDeg: 15,
       compartments: COMPARTMENTS,
       zones: ZONES,
@@ -141,9 +147,9 @@ describe("INC-3: Hit location resolution (AC-4)", () => {
     // Hit at (z=4001, x=5000, alt=3000): z=4001 is just above COMP-1's zMaxMm=4000
     // and just below COMP-3's zMinMm=4001 — still outside everything.
     const input: HitInput = {
-      impactVerticalMm: 4001,  // Outside COMP-1 (zMaxMm=4000); would need zMinMm 4001 for COMP-3
+      impactVerticalMm: 4001, // Outside COMP-1 (zMaxMm=4000); would need zMinMm 4001 for COMP-3
       impactLongitudinalMm: 5000,
-      impactAltitudeMm: 3000,  // Outside COMP-3 (altMinMm=6001)
+      impactAltitudeMm: 3000, // Outside COMP-3 (altMinMm=6001)
       projectileTrajectoryDeg: 15,
       compartments: COMPARTMENTS,
       zones: ZONES,
@@ -197,9 +203,9 @@ describe("INC-3: Hit location resolution (AC-4)", () => {
 
   it("hit in COMP-3 returns correct deck zone", () => {
     const input: HitInput = {
-      impactVerticalMm: 6000,      // Inside COMP-3 z range [4001, 8000]
+      impactVerticalMm: 6000, // Inside COMP-3 z range [4001, 8000]
       impactLongitudinalMm: 10000, // Inside COMP-3 x range [2000, 12000]
-      impactAltitudeMm: 9000,      // Inside COMP-3 alt range [6001, 12000]
+      impactAltitudeMm: 9000, // Inside COMP-3 alt range [6001, 12000]
       projectileTrajectoryDeg: 60,
       compartments: COMPARTMENTS,
       zones: ZONES,

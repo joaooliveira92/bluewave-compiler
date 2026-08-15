@@ -112,15 +112,15 @@ describe("AC-1: ShipDamageState invariant (assertFixedPointDamage)", () => {
   });
 
   it("rejects a non-integer progressiveFloodingTotal", () => {
-    expect(() =>
-      assertFixedPointDamage(base({ progressiveFloodingTotal: 2_000.5 })),
-    ).toThrow(BluewaveError);
+    expect(() => assertFixedPointDamage(base({ progressiveFloodingTotal: 2_000.5 }))).toThrow(
+      BluewaveError,
+    );
   });
 
   it("rejects a negative progressiveFloodingTotal", () => {
-    expect(() =>
-      assertFixedPointDamage(base({ progressiveFloodingTotal: -1 })),
-    ).toThrow(BluewaveError);
+    expect(() => assertFixedPointDamage(base({ progressiveFloodingTotal: -1 }))).toThrow(
+      BluewaveError,
+    );
   });
 
   it("rejects a non-integer fire record intensityBp", () => {

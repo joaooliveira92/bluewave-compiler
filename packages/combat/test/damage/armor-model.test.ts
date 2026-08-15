@@ -402,9 +402,7 @@ describe("AC-5: SHIPPED_ARMOR_CONTRACT + validate guard (fail closed)", () => {
   it("ships quality families and multipliers", () => {
     expect([...SHIPPED_ARMOR_CONTRACT.qualityFamilies]).toEqual([...ARMOR_QUALITY_FAMILIES]);
     for (const f of ARMOR_QUALITY_FAMILIES) {
-      expect(SHIPPED_ARMOR_CONTRACT.qualityMultipliersBp[f]).toBe(
-        ARMOR_QUALITY_MULTIPLIERS_BP[f],
-      );
+      expect(SHIPPED_ARMOR_CONTRACT.qualityMultipliersBp[f]).toBe(ARMOR_QUALITY_MULTIPLIERS_BP[f]);
     }
   });
 
