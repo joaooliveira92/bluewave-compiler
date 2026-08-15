@@ -6,6 +6,8 @@ import type { Screen } from "./AppSidebar.js";
 export interface CampaignOverview {
   readonly month: { readonly year: number; readonly month: number };
   readonly treasury: number;
+  /** The snapshot's optimistic-concurrency revision (turn number). */
+  readonly revision: number;
   readonly sessionId: string;
 }
 
@@ -17,6 +19,7 @@ export interface CampaignShellState {
   readonly saving: boolean;
   readonly saveMessage: string | null;
   readonly primaryAction: PrimaryAction | null;
+  readonly committing: boolean;
 }
 
 export type CampaignShellMode =
@@ -58,7 +61,10 @@ export type CampaignShellEvent =
   | {
       readonly type: "primary-action-changed";
       readonly action: PrimaryAction | null;
-    };
+    }
+  | { readonly type: "month-commit-started" }
+  | { readonly type: "month-committed"; readonly campaign: CampaignOverview }
+  | { readonly type: "month-commit-failed"; readonly message: string };
 
 export function initialCampaignShellState(): CampaignShellState {
   return {
@@ -69,6 +75,7 @@ export function initialCampaignShellState(): CampaignShellState {
     saving: false,
     saveMessage: null,
     primaryAction: null,
+    committing: false,
   };
 }
 
@@ -120,6 +127,12 @@ export function reduceCampaignShell(
       }
       return { ...state, primaryAction: next };
     }
+    case "month-commit-started":
+      return { ...state, committing: true, saveMessage: null };
+    case "month-committed":
+      return { ...state, committing: false, campaign: event.campaign };
+    case "month-commit-failed":
+      return { ...state, committing: false, saveMessage: event.message };
   }
 }
 

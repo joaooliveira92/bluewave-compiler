@@ -377,6 +377,8 @@ function CampaignShellApplication({
       {...(shell.state.primaryAction !== null ? { continueAction: shell.state.primaryAction } : {})}
       searchTargets={searchTargets}
       onSearchNavigate={(id) => shell.actions.selectScreen(id as Screen)}
+      onAdvanceMonth={shell.actions.advanceMonth}
+      advancingMonth={shell.state.committing}
     />
   );
 

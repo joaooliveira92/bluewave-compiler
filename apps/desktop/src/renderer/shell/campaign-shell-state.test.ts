@@ -10,6 +10,7 @@ import {
 const campaign = {
   month: { year: 1900, month: 1 },
   treasury: 50_000,
+  revision: 1,
   sessionId: "ses_1",
 };
 
@@ -156,6 +157,30 @@ describe("campaign shell state", () => {
       action: { label: "Start Campaign", disabled: true, onTrigger },
     });
     expect(changed).not.toBe(state);
+  });
+
+  it("guards against a stale commit before the shell is open", () => {
+    const started = reduceCampaignShell(initialCampaignShellState(), {
+      type: "month-commit-started",
+    });
+    expect(started.committing).toBe(true);
+    expect(started.saveMessage).toBeNull();
+
+    const committed = reduceCampaignShell(started, {
+      type: "month-committed",
+      campaign: { ...campaign, revision: 2 },
+    });
+    expect(committed.committing).toBe(false);
+    expect(committed.campaign?.revision).toBe(2);
+  });
+
+  it("reports a failed commit and leaves the shell ready to retry", () => {
+    const state = reduceCampaignShell(initialCampaignShellState(), {
+      type: "month-commit-failed",
+      message: "SIMULATION_END_REACHED",
+    });
+    expect(state.committing).toBe(false);
+    expect(state.saveMessage).toBe("SIMULATION_END_REACHED");
   });
 
   it("derives explicit variants for file, new-game, opening, error, and campaign modes", () => {
