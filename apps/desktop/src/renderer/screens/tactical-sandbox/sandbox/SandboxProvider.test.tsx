@@ -61,10 +61,10 @@ function Probe() {
       <span data-testid="generateError">{state.generateError ?? "none"}</span>
       <span data-testid="resolveError">{state.resolveError ?? "none"}</span>
       <span data-testid="boundaryReplayError">{state.boundaryReplayError ?? "none"}</span>
-      <button onClick={() => void actions.generateBattle()}>generate</button>
-      <button onClick={() => void actions.autoResolve()}>auto-resolve</button>
-      <button onClick={() => void actions.tacticalResolve()}>tactical-resolve</button>
-      <button onClick={() => void actions.replayBoundary()}>replay-boundary</button>
+      <button onClick={() => actions.generateBattle()}>generate</button>
+      <button onClick={() => actions.autoResolve()}>auto-resolve</button>
+      <button onClick={() => actions.tacticalResolve()}>tactical-resolve</button>
+      <button onClick={() => actions.replayBoundary()}>replay-boundary</button>
       <button onClick={() => actions.updateWarId("war_custom")}>update-war</button>
       <button onClick={() => actions.updateTurnCount(50)}>update-turns</button>
       <button onClick={() => actions.updateScriptedOrdersText("not json")}>invalid-orders</button>

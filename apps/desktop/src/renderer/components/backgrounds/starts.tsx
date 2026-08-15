@@ -14,10 +14,10 @@ import * as React from "react";
 import { cn } from "../../lib/utils.js";
 
 type StarLayerProps = HTMLMotionProps<"div"> & {
-  count: number;
-  size: number;
-  transition: Transition;
-  starColor: string;
+  count?: number;
+  size?: number;
+  transition?: Transition;
+  starColor?: string;
 };
 
 function generateStars(count: number, starColor: string) {
