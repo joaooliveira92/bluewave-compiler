@@ -11,14 +11,8 @@ import { withTacticalWeatherComponentsHash } from "./components.js";
 import type { BattleWeatherComponents } from "./components.js";
 import type { ClimateProfile } from "./climate.js";
 import type { DaylightProfile } from "./night-twilight.js";
-import {
-  resolveTimeAndSolarGeometry,
-  daylightVisibilityMultiplierBp,
-} from "./night-twilight.js";
-import {
-  progressBattleWeatherComponents,
-  type WeatherTransitionRecord,
-} from "./progression.js";
+import { resolveTimeAndSolarGeometry, daylightVisibilityMultiplierBp } from "./night-twilight.js";
+import { progressBattleWeatherComponents, type WeatherTransitionRecord } from "./progression.js";
 import { computeEffectiveVisibility } from "./visibility.js";
 import { computeFogVisibilityMultiplierBp } from "./fog.js";
 import { computePrecipitationVisibilityMultiplierBp } from "./precipitation.js";
@@ -95,17 +89,9 @@ function evt(
  * visibility result creates a record). Time-of-day changes and progression
  * transitions emit additional records.
  */
-export function resolveWeather(
-  input: ResolveWeatherInput,
-): ResolveWeatherResult {
+export function resolveWeather(input: ResolveWeatherInput): ResolveWeatherResult {
   const { context, battleId, minute } = input;
-  const {
-    daylightProfile,
-    climateProfile,
-    seasonId,
-    battleStartMinutes,
-    battleSeed,
-  } = context;
+  const { daylightProfile, climateProfile, seasonId, battleStartMinutes, battleSeed } = context;
   let components = context.components;
 
   // Pre-TOD hash: the state the TOD update departs from (authoritative for the
@@ -115,11 +101,7 @@ export function resolveWeather(
   const weatherRecords: ReturnType<typeof makeWeatherEventRecord>[] = [];
 
   // --- Step 1: Time-of-day resolution (every minute) ---
-  const solarResult = resolveTimeAndSolarGeometry(
-    minute,
-    battleStartMinutes,
-    daylightProfile,
-  );
+  const solarResult = resolveTimeAndSolarGeometry(minute, battleStartMinutes, daylightProfile);
 
   const timeOfDayChanged = solarResult.timeOfDay !== components.timeOfDay;
 
@@ -206,12 +188,8 @@ export function resolveWeather(
 
   // --- Step 3: Visibility distance computation (every minute — §28: every
   // visibility result creates an immutable record). ---
-  const daylightMultiplierBp = daylightVisibilityMultiplierBp(
-    components.timeOfDay,
-  );
-  const fogMultiplierBp = computeFogVisibilityMultiplierBp(
-    components.fogMistDensityBp,
-  );
+  const daylightMultiplierBp = daylightVisibilityMultiplierBp(components.timeOfDay);
+  const fogMultiplierBp = computeFogVisibilityMultiplierBp(components.fogMistDensityBp);
   const precipMultiplierBp = computePrecipitationVisibilityMultiplierBp(
     components.precipitationType,
     components.precipitationIntensityBp,

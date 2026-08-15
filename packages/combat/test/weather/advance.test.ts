@@ -100,9 +100,7 @@ function weatherComponents(): BattleWeatherComponents {
   });
 }
 
-function weatherContext(
-  overrides: Partial<WeatherEngineContext> = {},
-): WeatherEngineContext {
+function weatherContext(overrides: Partial<WeatherEngineContext> = {}): WeatherEngineContext {
   return {
     components: weatherComponents(),
     daylightProfile: noonProfile(),
@@ -137,9 +135,7 @@ describe("AC-13: weather in minute-advance", () => {
     expect(res.hashes).toEqual([...BASELINE_MINUTE_HASHES]);
     // And zero weather events are ever emitted on the no-context path.
     for (const r of res.results) {
-      const weatherEvents = r.events.filter((e) =>
-        e.eventType.startsWith("weather_"),
-      );
+      const weatherEvents = r.events.filter((e) => e.eventType.startsWith("weather_"));
       expect(weatherEvents).toHaveLength(0);
     }
   });
@@ -156,9 +152,7 @@ describe("AC-13: weather in minute-advance", () => {
 
     // Check that weather events appear in the results
     for (const r of res.results) {
-      const weatherEvents = r.events.filter((e) =>
-        e.eventType.startsWith("weather_"),
-      );
+      const weatherEvents = r.events.filter((e) => e.eventType.startsWith("weather_"));
       expect(weatherEvents.length).toBeGreaterThanOrEqual(1);
 
       // Weather events have priority 7.5, between collision (7) and spotting (8)
@@ -179,12 +173,8 @@ describe("AC-13: weather in minute-advance", () => {
     });
 
     const events = res.results[0]!.events;
-    const weatherIdx = events.findIndex((e) =>
-      e.eventType.startsWith("weather_"),
-    );
-    const spottingIdx = events.findIndex(
-      (e) => e.eventType === "resolve_sensors_spotting",
-    );
+    const weatherIdx = events.findIndex((e) => e.eventType.startsWith("weather_"));
+    const spottingIdx = events.findIndex((e) => e.eventType === "resolve_sensors_spotting");
     expect(weatherIdx).toBeGreaterThan(-1);
     expect(spottingIdx).toBeGreaterThan(-1);
     // Weather must sort before spotting

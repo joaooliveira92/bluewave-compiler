@@ -4,10 +4,7 @@
 // canonical inputs, formulas/multipliers, RNG decisions, pre/post state hashes,
 // version IDs, record hash.
 import { describe, it, expect } from "vite-plus/test";
-import {
-  makeWeatherEventRecord,
-  weatherEventId,
-} from "../../src/weather/event-record.js";
+import { makeWeatherEventRecord, weatherEventId } from "../../src/weather/event-record.js";
 
 describe("AC-11: WeatherEventRecord completeness (§28)", () => {
   const record = makeWeatherEventRecord({
@@ -21,10 +18,8 @@ describe("AC-11: WeatherEventRecord completeness (§28)", () => {
     minute: 30,
     substep: 0,
     eventType: "weather_time_of_day",
-    preStateHash:
-      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    postStateHash:
-      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    preStateHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    postStateHash: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     visibilityUm: 45_000_000_000,
     timeOfDay: "TWILIGHT_DAY",
     solarBearingDeg: 280,

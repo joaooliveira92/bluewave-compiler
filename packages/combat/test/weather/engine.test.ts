@@ -5,10 +5,7 @@
 // pre/postStateHash must be the components hash at that stage — never a stale
 // pre-TOD hash (reviewer H1, MUST FIX).
 import { describe, it, expect } from "vite-plus/test";
-import {
-  resolveWeather,
-  type WeatherEngineContext,
-} from "../../src/weather/engine.js";
+import { resolveWeather, type WeatherEngineContext } from "../../src/weather/engine.js";
 import {
   withTacticalWeatherComponentsHash,
   computeTacticalWeatherComponentsHash,
@@ -79,9 +76,7 @@ function bareClimate(): ClimateProfile {
   };
 }
 
-function components(
-  overrides: Partial<BattleWeatherComponents> = {},
-): BattleWeatherComponents {
+function components(overrides: Partial<BattleWeatherComponents> = {}): BattleWeatherComponents {
   return withTacticalWeatherComponentsHash({
     battleId: "battle-001",
     seaState: 3,
@@ -103,9 +98,7 @@ function components(
   });
 }
 
-function ctx(
-  overrides: Partial<WeatherEngineContext> = {},
-): WeatherEngineContext {
+function ctx(overrides: Partial<WeatherEngineContext> = {}): WeatherEngineContext {
   return {
     components: components(),
     daylightProfile: daylightProfile(),
@@ -207,9 +200,7 @@ describe("H1: resolveWeather canonical state-hash discipline", () => {
   it("weather_time_of_day record: pre = pre-TOD hash, post = post-TOD hash", () => {
     const initial = components();
     const res = resolveWeather({ context: ctx(), battleId: "b1", minute: 0 });
-    const tod = res.weatherRecords.find(
-      (r) => r.eventType === "weather_time_of_day",
-    );
+    const tod = res.weatherRecords.find((r) => r.eventType === "weather_time_of_day");
     expect(tod).toBeDefined();
     // pre is the hash of the components the TOD update departed from...
     expect(tod!.preStateHash).toBe(initial.stateHash);
@@ -221,9 +212,7 @@ describe("H1: resolveWeather canonical state-hash discipline", () => {
 
   it("weather_visibility record: pre/post are the stage components hash (never stale)", () => {
     const res = resolveWeather({ context: ctx(), battleId: "b1", minute: 0 });
-    const vis = res.weatherRecords.find(
-      (r) => r.eventType === "weather_visibility",
-    );
+    const vis = res.weatherRecords.find((r) => r.eventType === "weather_visibility");
     expect(vis).toBeDefined();
     expect(vis!.preStateHash).toBe(res.nextComponents.stateHash);
     expect(vis!.postStateHash).toBe(res.nextComponents.stateHash);
@@ -239,9 +228,7 @@ describe("H1: resolveWeather canonical state-hash discipline", () => {
       battleId: "b1",
       minute: 30,
     });
-    expect(
-      res.weatherRecords.some((r) => r.eventType === "weather_progression"),
-    ).toBe(true);
+    expect(res.weatherRecords.some((r) => r.eventType === "weather_progression")).toBe(true);
     expect(res.nextComponents.stateHash).toBe(
       computeTacticalWeatherComponentsHash(res.nextComponents),
     );

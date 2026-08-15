@@ -6,8 +6,7 @@ import { createEnvelope } from "@bluewave/deterministic";
 import { weatherPolicyId } from "./constants.js";
 import type { WeatherTransitionRecord } from "./progression.js";
 
-export type WeatherEventType =
-  "weather_time_of_day" | "weather_progression" | "weather_visibility";
+export type WeatherEventType = "weather_time_of_day" | "weather_progression" | "weather_visibility";
 
 export interface WeatherEventRecord {
   /** Stable event identifier (derived from battle, minute, substep, type). */
@@ -53,9 +52,7 @@ export function computeWeatherEventHash(body: WeatherEventRecordBody): string {
   return createEnvelope("weather-event", weatherPolicyId, body).bodyHash;
 }
 
-export function makeWeatherEventRecord(
-  seed: WeatherEventRecordBody,
-): WeatherEventRecord {
+export function makeWeatherEventRecord(seed: WeatherEventRecordBody): WeatherEventRecord {
   const eventHash = computeWeatherEventHash(seed);
   return { ...seed, eventHash };
 }

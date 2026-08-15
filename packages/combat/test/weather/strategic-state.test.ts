@@ -14,9 +14,7 @@ import { INVALID_STRATEGIC_WEATHER_STATE } from "../../src/weather/reasonCodes.j
 
 // ---------------------------------------------------------------------------
 // Helper — minimal valid state seed (all fields canonical-integer)
-function seed(
-  overrides: Partial<StrategicWeatherState> = {},
-): StrategicWeatherState {
+function seed(overrides: Partial<StrategicWeatherState> = {}): StrategicWeatherState {
   return {
     areaId: "area-eng-ch",
     month: "1880-06",
@@ -87,9 +85,7 @@ describe("AC-1: StrategicWeatherState invariant", () => {
   it("rejects non-integer seaState with INVALID_STRATEGIC_WEATHER_STATE", () => {
     const s = seed({ seaState: 3.5 } as unknown as StrategicWeatherState);
     expect(() => assertFixedPointStrategicWeather(s)).toThrow(BluewaveError);
-    expect(codeOf(() => assertFixedPointStrategicWeather(s))).toBe(
-      INVALID_STRATEGIC_WEATHER_STATE,
-    );
+    expect(codeOf(() => assertFixedPointStrategicWeather(s))).toBe(INVALID_STRATEGIC_WEATHER_STATE);
   });
 
   it("rejects non-integer windDirectionDeg with INVALID_STRATEGIC_WEATHER_STATE", () => {
@@ -97,9 +93,7 @@ describe("AC-1: StrategicWeatherState invariant", () => {
       windDirectionDeg: NaN,
     } as unknown as StrategicWeatherState);
     expect(() => assertFixedPointStrategicWeather(s)).toThrow(BluewaveError);
-    expect(codeOf(() => assertFixedPointStrategicWeather(s))).toBe(
-      INVALID_STRATEGIC_WEATHER_STATE,
-    );
+    expect(codeOf(() => assertFixedPointStrategicWeather(s))).toBe(INVALID_STRATEGIC_WEATHER_STATE);
   });
 
   it("rejects non-boolean glareEligible with INVALID_STRATEGIC_WEATHER_STATE", () => {
@@ -107,54 +101,44 @@ describe("AC-1: StrategicWeatherState invariant", () => {
       glareEligible: "yes",
     } as unknown as StrategicWeatherState);
     expect(() => assertFixedPointStrategicWeather(s)).toThrow(BluewaveError);
-    expect(codeOf(() => assertFixedPointStrategicWeather(s))).toBe(
-      INVALID_STRATEGIC_WEATHER_STATE,
-    );
+    expect(codeOf(() => assertFixedPointStrategicWeather(s))).toBe(INVALID_STRATEGIC_WEATHER_STATE);
   });
 
   it("rejects non-string areaId with INVALID_STRATEGIC_WEATHER_STATE", () => {
     const s = seed({ areaId: "" });
     expect(() => assertFixedPointStrategicWeather(s)).toThrow(BluewaveError);
-    expect(codeOf(() => assertFixedPointStrategicWeather(s))).toBe(
-      INVALID_STRATEGIC_WEATHER_STATE,
-    );
+    expect(codeOf(() => assertFixedPointStrategicWeather(s))).toBe(INVALID_STRATEGIC_WEATHER_STATE);
   });
 
   // ---- Range violations (WEATHER_STATE_INVARIANT_FAILED) ----
   it("rejects seaState 10 (out of 0..9) with WEATHER_STATE_INVARIANT_FAILED", () => {
-    expect(() => withStrategicWeatherStateHash(seed({ seaState: 10 }))).toThrow(
-      BluewaveError,
-    );
+    expect(() => withStrategicWeatherStateHash(seed({ seaState: 10 }))).toThrow(BluewaveError);
   });
 
   it("rejects seaState -1 with WEATHER_STATE_INVARIANT_FAILED", () => {
-    expect(() => withStrategicWeatherStateHash(seed({ seaState: -1 }))).toThrow(
+    expect(() => withStrategicWeatherStateHash(seed({ seaState: -1 }))).toThrow(BluewaveError);
+  });
+
+  it("rejects windDirectionDeg 360 with WEATHER_STATE_INVARIANT_FAILED", () => {
+    expect(() => withStrategicWeatherStateHash(seed({ windDirectionDeg: 360 }))).toThrow(
       BluewaveError,
     );
   });
 
-  it("rejects windDirectionDeg 360 with WEATHER_STATE_INVARIANT_FAILED", () => {
-    expect(() =>
-      withStrategicWeatherStateHash(seed({ windDirectionDeg: 360 })),
-    ).toThrow(BluewaveError);
-  });
-
   it("rejects fogMistDensityBp 10_001 with WEATHER_STATE_INVARIANT_FAILED", () => {
-    expect(() =>
-      withStrategicWeatherStateHash(seed({ fogMistDensityBp: 10_001 })),
-    ).toThrow(BluewaveError);
+    expect(() => withStrategicWeatherStateHash(seed({ fogMistDensityBp: 10_001 }))).toThrow(
+      BluewaveError,
+    );
   });
 
   it("rejects cloudCoverBp -1 with WEATHER_STATE_INVARIANT_FAILED", () => {
-    expect(() =>
-      withStrategicWeatherStateHash(seed({ cloudCoverBp: -1 })),
-    ).toThrow(BluewaveError);
+    expect(() => withStrategicWeatherStateHash(seed({ cloudCoverBp: -1 }))).toThrow(BluewaveError);
   });
 
   it("rejects precipitationIntensityBp 15_000 with WEATHER_STATE_INVARIANT_FAILED", () => {
-    expect(() =>
-      withStrategicWeatherStateHash(seed({ precipitationIntensityBp: 15_000 })),
-    ).toThrow(BluewaveError);
+    expect(() => withStrategicWeatherStateHash(seed({ precipitationIntensityBp: 15_000 }))).toThrow(
+      BluewaveError,
+    );
   });
 
   it("rejects non-canonical precipitationType", () => {
@@ -165,9 +149,9 @@ describe("AC-1: StrategicWeatherState invariant", () => {
   });
 
   it("rejects windSpeedUmPerSec negative", () => {
-    expect(() =>
-      withStrategicWeatherStateHash(seed({ windSpeedUmPerSec: -1 })),
-    ).toThrow(BluewaveError);
+    expect(() => withStrategicWeatherStateHash(seed({ windSpeedUmPerSec: -1 }))).toThrow(
+      BluewaveError,
+    );
   });
 
   it("rejects generatedAtPhase not 'weather_generation'", () => {

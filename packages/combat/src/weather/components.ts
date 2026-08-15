@@ -30,10 +30,7 @@ import {
   GLARE_INTENSITY_MIN_BP,
   GLARE_INTENSITY_MAX_BP,
 } from "./constants.js";
-import {
-  INVALID_TACTICAL_WEATHER_STATE,
-  WEATHER_STATE_INVARIANT_FAILED,
-} from "./reasonCodes.js";
+import { INVALID_TACTICAL_WEATHER_STATE, WEATHER_STATE_INVARIANT_FAILED } from "./reasonCodes.js";
 
 /** Stable identifier of a local smoke field. Smoke (§§7–23) is deferred to M3;
  *  the component slot exists per §3 and is an ordered empty list this slice. */
@@ -148,9 +145,7 @@ function requireNonNegativeInteger(
 // BattleWeatherComponents surface with INVALID_TACTICAL_WEATHER_STATE (type
 // violations) or WEATHER_STATE_INVARIANT_FAILED (range violations). Reversible
 // to invariant: a failure leaves the supplied components untouched.
-export function assertFixedPointTacticalWeather(
-  c: BattleWeatherComponents,
-): void {
+export function assertFixedPointTacticalWeather(c: BattleWeatherComponents): void {
   requireString(c, "battleId", c.battleId);
 
   requireInteger(c, "seaState", c.seaState, SEA_STATE_MIN, SEA_STATE_MAX);
@@ -163,9 +158,7 @@ export function assertFixedPointTacticalWeather(
   );
   requireNonNegativeInteger(c, "windSpeedUmPerSec", c.windSpeedUmPerSec);
 
-  if (
-    !(PRECIPITATION_TYPES as readonly string[]).includes(c.precipitationType)
-  ) {
+  if (!(PRECIPITATION_TYPES as readonly string[]).includes(c.precipitationType)) {
     invariantError(
       c,
       "precipitationType",
@@ -187,21 +180,10 @@ export function assertFixedPointTacticalWeather(
     FOG_MIST_DENSITY_MIN_BP,
     FOG_MIST_DENSITY_MAX_BP,
   );
-  requireInteger(
-    c,
-    "cloudCoverBp",
-    c.cloudCoverBp,
-    CLOUD_COVER_MIN_BP,
-    CLOUD_COVER_MAX_BP,
-  );
+  requireInteger(c, "cloudCoverBp", c.cloudCoverBp, CLOUD_COVER_MIN_BP, CLOUD_COVER_MAX_BP);
 
   if (!(TIME_OF_DAY_STATES as readonly string[]).includes(c.timeOfDay)) {
-    invariantError(
-      c,
-      "timeOfDay",
-      c.timeOfDay,
-      "must be a canonical time-of-day state",
-    );
+    invariantError(c, "timeOfDay", c.timeOfDay, "must be a canonical time-of-day state");
   }
   requireInteger(
     c,
@@ -248,9 +230,7 @@ export function assertFixedPointTacticalWeather(
 // Authoritative deterministic component hash: canonicalSerialize + sha256 over
 // the non-hash surface, domain-separated with the weather_components_v1
 // compatibility version. Any provided stateHash is ignored.
-export function computeTacticalWeatherComponentsHash(
-  c: BattleWeatherComponents,
-): string {
+export function computeTacticalWeatherComponentsHash(c: BattleWeatherComponents): string {
   const surface = {
     battleId: c.battleId,
     seaState: c.seaState,
@@ -269,11 +249,7 @@ export function computeTacticalWeatherComponentsHash(
     rulesetVersion: c.rulesetVersion,
     formulaVersion: c.formulaVersion,
   };
-  return createEnvelope(
-    "tactical-weather-components",
-    weatherComponentsPolicyId,
-    surface,
-  ).bodyHash;
+  return createEnvelope("tactical-weather-components", weatherComponentsPolicyId, surface).bodyHash;
 }
 
 // Build fully-invariant BattleWeatherComponents with its authoritative hash.

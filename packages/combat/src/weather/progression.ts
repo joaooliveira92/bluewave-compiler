@@ -11,12 +11,7 @@
 // closed with WEATHER_PROFILE_INCOMPLETE (never a silent no-op). Pure/
 // deterministic: no ambient I/O/clock/random.
 import { BluewaveError } from "@bluewave/contracts";
-import {
-  RandomEngine,
-  drawUniform,
-  type RandomLedger,
-  type RandomStream,
-} from "@bluewave/random";
+import { RandomEngine, drawUniform, type RandomLedger, type RandomStream } from "@bluewave/random";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import {
@@ -33,10 +28,7 @@ import {
   WEATHER_TACTICAL_PROGRESSION_PHASE,
   type PrecipitationType,
 } from "./constants.js";
-import {
-  type BattleWeatherComponents,
-  withTacticalWeatherComponentsHash,
-} from "./components.js";
+import { type BattleWeatherComponents, withTacticalWeatherComponentsHash } from "./components.js";
 import {
   type ClimateProfile,
   type SeasonClimateProfile,
@@ -90,13 +82,8 @@ function applyDrift(
   maxAbsDelta?: number,
 ): { value: number; driftDraw: number } {
   if (driftRange === undefined) return { value: base, driftDraw: 0 };
-  const drift = drawUniform(
-    stream,
-    SafeInt(driftRange.min),
-    SafeInt(driftRange.max),
-  ) as number;
-  const delta =
-    maxAbsDelta === undefined ? drift : clamp(drift, -maxAbsDelta, maxAbsDelta);
+  const drift = drawUniform(stream, SafeInt(driftRange.min), SafeInt(driftRange.max)) as number;
+  const delta = maxAbsDelta === undefined ? drift : clamp(drift, -maxAbsDelta, maxAbsDelta);
   return { value: clamp(base + delta, absMin, absMax), driftDraw: drift };
 }
 
@@ -148,9 +135,7 @@ function applyWindTransition(
   stream: RandomStream,
   currentBandId: string,
   bands: readonly { bandId: string; directionDeg: number }[],
-  windTransitions:
-    | Record<string, { reachableBandIds: string[]; weights: number[] }>
-    | undefined,
+  windTransitions: Record<string, { reachableBandIds: string[]; weights: number[] }> | undefined,
 ): { bandId: string; directionDeg: number; bandIndex: number } | null {
   if (!windTransitions || !windTransitions[currentBandId]) return null;
   const entry = windTransitions[currentBandId]!;
@@ -202,17 +187,15 @@ export interface ProgressWeatherResult {
 export function progressBattleWeatherComponents(
   input: ProgressWeatherInput,
 ): ProgressWeatherResult {
-  const { components, climateProfile, seasonId, tacticalMinute, battleSeed } =
-    input;
-  const intervalIndex = Math.floor(
-    tacticalMinute / TACTICAL_WEATHER_PROGRESSION_INTERVAL_MINUTES,
-  );
+  const { components, climateProfile, seasonId, tacticalMinute, battleSeed } = input;
+  const intervalIndex = Math.floor(tacticalMinute / TACTICAL_WEATHER_PROGRESSION_INTERVAL_MINUTES);
 
   // Find the season profile. A missing season is a profile-incomplete failure
   // (DESIGN-42 §1: "A missing climate or transition policy MUST fail with
   // WEATHER_PROFILE_INCOMPLETE") — never a silent no-op.
   const season = climateProfile.seasons.find((s) => s.seasonId === seasonId) as
-    SeasonClimateProfile | undefined;
+    | SeasonClimateProfile
+    | undefined;
   if (!season) {
     throw new BluewaveError(WEATHER_PROFILE_INCOMPLETE, {
       code: WEATHER_PROFILE_INCOMPLETE,
@@ -222,11 +205,7 @@ export function progressBattleWeatherComponents(
     });
   }
   // Malformed transition tables fail closed at first use (M3).
-  validateSeasonTransitionTables(
-    season,
-    climateProfile.climateProfileId,
-    seasonId,
-  );
+  validateSeasonTransitionTables(season, climateProfile.climateProfileId, seasonId);
 
   // Per-interval keyed stream (ADR-0022 §8): `battle/weather/interval/<n>`.
   // Rooted in the battle seed so different battles produce different
@@ -248,11 +227,7 @@ export function progressBattleWeatherComponents(
       battleSeed,
     }),
   );
-  const recordDraw = (
-    draw: number,
-    outcome: string,
-    reasonCode: string,
-  ): void => {
+  const recordDraw = (draw: number, outcome: string, reasonCode: string): void => {
     if (!input.randomLedger) return;
     input.randomLedger.record({
       streamId,
@@ -280,11 +255,7 @@ export function progressBattleWeatherComponents(
       /* maxAbsDelta */ 1 /* §4: at most one level per interval */,
     );
     nextSeaState = driftResult.value;
-    recordDraw(
-      driftResult.driftDraw,
-      `sea_state_${String(nextSeaState)}`,
-      "SEA_STATE_DRIFT_DRAW",
-    );
+    recordDraw(driftResult.driftDraw, `sea_state_${String(nextSeaState)}`, "SEA_STATE_DRIFT_DRAW");
   }
 
   // 2. Precipitation type + intensity drift (2 draws only when a table entry
@@ -304,11 +275,7 @@ export function progressBattleWeatherComponents(
         PRECIPITATION_INTENSITY_MIN_BP,
         PRECIPITATION_INTENSITY_MAX_BP,
       );
-      recordDraw(
-        result.typeIndex,
-        `precipitation_type_${result.type}`,
-        "PRECIPITATION_TYPE_DRAW",
-      );
+      recordDraw(result.typeIndex, `precipitation_type_${result.type}`, "PRECIPITATION_TYPE_DRAW");
       recordDraw(
         result.driftDraw,
         `precipitation_intensity_bp_${String(nextPrecipIntensity)}`,
@@ -332,11 +299,7 @@ export function progressBattleWeatherComponents(
       );
       if (result) {
         nextWindDirectionDeg = result.directionDeg;
-        recordDraw(
-          result.bandIndex,
-          `wind_band_${result.bandId}`,
-          "WIND_BAND_DRAW",
-        );
+        recordDraw(result.bandIndex, `wind_band_${result.bandId}`, "WIND_BAND_DRAW");
       }
     }
   }
@@ -352,11 +315,7 @@ export function progressBattleWeatherComponents(
       Number.MAX_SAFE_INTEGER,
     );
     nextWindSpeed = driftResult.value;
-    recordDraw(
-      driftResult.driftDraw,
-      `wind_speed_ums_${String(nextWindSpeed)}`,
-      "WIND_SPEED_DRAW",
-    );
+    recordDraw(driftResult.driftDraw, `wind_speed_ums_${String(nextWindSpeed)}`, "WIND_SPEED_DRAW");
   }
 
   // 5. Fog density drift.
@@ -388,11 +347,7 @@ export function progressBattleWeatherComponents(
       CLOUD_COVER_MAX_BP,
     );
     nextCloud = driftResult.value;
-    recordDraw(
-      driftResult.driftDraw,
-      `cloud_cover_bp_${String(nextCloud)}`,
-      "CLOUD_COVER_DRAW",
-    );
+    recordDraw(driftResult.driftDraw, `cloud_cover_bp_${String(nextCloud)}`, "CLOUD_COVER_DRAW");
   }
 
   // 7. Base-visibility drift (consumed only when the season declares a range).
@@ -444,12 +399,7 @@ export function progressBattleWeatherComponents(
     });
   };
   if (nextSeaState !== components.seaState)
-    recordTransition(
-      "seaState",
-      components.seaState,
-      nextSeaState,
-      "sea_state_drift",
-    );
+    recordTransition("seaState", components.seaState, nextSeaState, "sea_state_drift");
   if (
     nextPrecipType !== components.precipitationType ||
     nextPrecipIntensity !== components.precipitationIntensityBp
@@ -478,19 +428,9 @@ export function progressBattleWeatherComponents(
     );
   }
   if (nextFog !== components.fogMistDensityBp)
-    recordTransition(
-      "fogMistDensityBp",
-      components.fogMistDensityBp,
-      nextFog,
-      "fog_drift",
-    );
+    recordTransition("fogMistDensityBp", components.fogMistDensityBp, nextFog, "fog_drift");
   if (nextCloud !== components.cloudCoverBp)
-    recordTransition(
-      "cloudCoverBp",
-      components.cloudCoverBp,
-      nextCloud,
-      "cloud_drift",
-    );
+    recordTransition("cloudCoverBp", components.cloudCoverBp, nextCloud, "cloud_drift");
   if (nextVisibility !== components.baseVisibilityUm)
     recordTransition(
       "baseVisibilityUm",

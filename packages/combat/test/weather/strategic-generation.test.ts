@@ -11,10 +11,7 @@ import {
   type ClimateProfile,
   type StrategicWeatherGenerationInput,
 } from "../../src/weather/climate.js";
-import {
-  WEATHER_GENERATION_PHASE,
-  WEATHER_RULESET_VERSION,
-} from "../../src/weather/constants.js";
+import { WEATHER_GENERATION_PHASE, WEATHER_RULESET_VERSION } from "../../src/weather/constants.js";
 
 // ---------------------------------------------------------------------------
 // Fixture climate profile — authored test surface (not production YAML;
@@ -170,20 +167,18 @@ describe("AC-2: strategic weather generation", () => {
   });
 
   it("missing climate profile throws WEATHER_PROFILE_INCOMPLETE", () => {
-    expect(() =>
-      generateStrategicWeather(makeInput({ climateProfile: undefined })),
-    ).toThrow(BluewaveError);
-    expect(() =>
-      generateStrategicWeather(makeInput({ climateProfile: null })),
-    ).toThrow(BluewaveError);
+    expect(() => generateStrategicWeather(makeInput({ climateProfile: undefined }))).toThrow(
+      BluewaveError,
+    );
+    expect(() => generateStrategicWeather(makeInput({ climateProfile: null }))).toThrow(
+      BluewaveError,
+    );
   });
 
   it("missing month in seasonAssignment throws WEATHER_PROFILE_INCOMPLETE", () => {
     const profile = temperateClimate();
     expect(() =>
-      generateStrategicWeather(
-        makeInput({ month: "1880-03", climateProfile: profile }),
-      ),
+      generateStrategicWeather(makeInput({ month: "1880-03", climateProfile: profile })),
     ).toThrow(BluewaveError);
   });
 
@@ -200,9 +195,9 @@ describe("AC-2: strategic weather generation", () => {
       ],
     };
     // This profile's season has empty wind bands
-    expect(() =>
-      generateStrategicWeather(makeInput({ climateProfile: broken })),
-    ).toThrow(BluewaveError);
+    expect(() => generateStrategicWeather(makeInput({ climateProfile: broken }))).toThrow(
+      BluewaveError,
+    );
   });
 
   it("empty precipitation options throws WEATHER_PROFILE_INCOMPLETE", () => {
@@ -217,9 +212,9 @@ describe("AC-2: strategic weather generation", () => {
         },
       ],
     };
-    expect(() =>
-      generateStrategicWeather(makeInput({ climateProfile: broken })),
-    ).toThrow(BluewaveError);
+    expect(() => generateStrategicWeather(makeInput({ climateProfile: broken }))).toThrow(
+      BluewaveError,
+    );
   });
 
   it("seaState is always within 0..9", () => {

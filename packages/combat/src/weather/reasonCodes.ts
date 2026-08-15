@@ -9,22 +9,17 @@
 export const WEATHER_PROFILE_INCOMPLETE = "WEATHER_PROFILE_INCOMPLETE" as const;
 export const INVALID_BATTLE_WEATHER_INITIALIZATION =
   "INVALID_BATTLE_WEATHER_INITIALIZATION" as const;
-export const WEATHER_VISIBILITY_FORMULA_MISSING =
-  "WEATHER_VISIBILITY_FORMULA_MISSING" as const;
-export const WEATHER_SMOKE_STATE_INVARIANT_FAILED =
-  "WEATHER_SMOKE_STATE_INVARIANT_FAILED" as const;
+export const WEATHER_VISIBILITY_FORMULA_MISSING = "WEATHER_VISIBILITY_FORMULA_MISSING" as const;
+export const WEATHER_SMOKE_STATE_INVARIANT_FAILED = "WEATHER_SMOKE_STATE_INVARIANT_FAILED" as const;
 
 // ---- Non-§30 in-slice markers (INC-1/INC-2, recorded in ADR-0022) ----
 // AC-1/AC-4 construction-boundary + invariant-guard codes. Analogous to B-3's
 // GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED: they are not DESIGN-42 §30 codes but
 // are required entry points, so the INC-6 set-equality test enumerates them as
 // explicit non-§30 in-slice markers (never silent additions).
-export const INVALID_STRATEGIC_WEATHER_STATE =
-  "INVALID_STRATEGIC_WEATHER_STATE" as const;
-export const INVALID_TACTICAL_WEATHER_STATE =
-  "INVALID_TACTICAL_WEATHER_STATE" as const;
-export const WEATHER_STATE_INVARIANT_FAILED =
-  "WEATHER_STATE_INVARIANT_FAILED" as const;
+export const INVALID_STRATEGIC_WEATHER_STATE = "INVALID_STRATEGIC_WEATHER_STATE" as const;
+export const INVALID_TACTICAL_WEATHER_STATE = "INVALID_TACTICAL_WEATHER_STATE" as const;
+export const WEATHER_STATE_INVARIANT_FAILED = "WEATHER_STATE_INVARIANT_FAILED" as const;
 
 // ---- Collected catalog (set-equality checked in INC-6) ----
 export const WEATHER_REASON_CODES = {

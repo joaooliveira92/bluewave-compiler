@@ -79,18 +79,18 @@ $ pnpm -w turbo run test --force
 
 Downstream packages run individually (skipped by turbo fail-fast):
 
-| Package | Result |
-|---------|--------|
-| content-compiler | 4 files / 14 tests PASS |
-| campaign | 8 files / 100 tests PASS |
-| events | 1 file / 9 tests PASS |
-| commands | 1 file / 16 tests PASS |
-| phase-engine | 8 files / 88 tests PASS |
-| persistence | 2 files / 22 tests PASS |
-| combat | 84 files / 847 tests PASS |
-| cross-process-test | 3 files / 14 tests PASS |
-| ai | 3 files / 22 tests PASS |
-| contracts/diagnostics/deterministic/random | 20/7/11/16 PASS |
+| Package                                    | Result                    |
+| ------------------------------------------ | ------------------------- |
+| content-compiler                           | 4 files / 14 tests PASS   |
+| campaign                                   | 8 files / 100 tests PASS  |
+| events                                     | 1 file / 9 tests PASS     |
+| commands                                   | 1 file / 16 tests PASS    |
+| phase-engine                               | 8 files / 88 tests PASS   |
+| persistence                                | 2 files / 22 tests PASS   |
+| combat                                     | 84 files / 847 tests PASS |
+| cross-process-test                         | 3 files / 14 tests PASS   |
+| ai                                         | 3 files / 22 tests PASS   |
+| contracts/diagnostics/deterministic/random | 20/7/11/16 PASS           |
 
 ### Golden hashes
 

@@ -10,17 +10,8 @@
 // no ambient I/O/clock/random; the only randomness enters through the battle
 // seed via the keyed stream.
 import { BluewaveError } from "@bluewave/contracts";
-import {
-  canonicalSerialize,
-  createEnvelope,
-  sha256Hex,
-} from "@bluewave/deterministic";
-import {
-  RandomEngine,
-  drawUniform,
-  type RandomLedger,
-  type RandomStream,
-} from "@bluewave/random";
+import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
+import { RandomEngine, drawUniform, type RandomLedger, type RandomStream } from "@bluewave/random";
 import { SafeInt } from "@bluewave/contracts";
 import {
   type TimeOfDayState,
@@ -43,14 +34,8 @@ import {
   CLOUD_COVER_MAX_BP,
 } from "./constants.js";
 import { INVALID_BATTLE_WEATHER_INITIALIZATION } from "./reasonCodes.js";
-import {
-  assertFixedPointStrategicWeather,
-  type StrategicWeatherState,
-} from "./strategic-state.js";
-import {
-  type BattleWeatherComponents,
-  withTacticalWeatherComponentsHash,
-} from "./components.js";
+import { assertFixedPointStrategicWeather, type StrategicWeatherState } from "./strategic-state.js";
+import { type BattleWeatherComponents, withTacticalWeatherComponentsHash } from "./components.js";
 
 /** Battle location within the strategic area (canonical integer µm). */
 export interface BattleLocation {
@@ -172,26 +157,15 @@ export function initializeBattleWeather(
   // an area mismatch between the battle declaration, the location, and the
   // committed strategic source — fail with INVALID_BATTLE_WEATHER_INITIALIZATION
   // (M5), never a generic invariant code.
-  if (
-    !(LOCAL_VARIATION_POLICIES as readonly string[]).includes(
-      seed.localVariationPolicyId,
-    )
-  ) {
+  if (!(LOCAL_VARIATION_POLICIES as readonly string[]).includes(seed.localVariationPolicyId)) {
     initError(
       "localVariationPolicyId",
       seed.localVariationPolicyId,
       "unknown local-variation policy — no silent fallback",
     );
   }
-  if (
-    !Number.isInteger(seed.location.xUm) ||
-    !Number.isInteger(seed.location.yUm)
-  ) {
-    initError(
-      "location",
-      seed.location,
-      "location coordinates must be integer micrometres",
-    );
+  if (!Number.isInteger(seed.location.xUm) || !Number.isInteger(seed.location.yUm)) {
+    initError("location", seed.location, "location coordinates must be integer micrometres");
   }
   if (seed.areaId !== strategic.areaId) {
     initError(
@@ -349,14 +323,10 @@ export function initializeBattleWeather(
   };
 
   const inputHash = sha256Hex(canonicalSerialize(base));
-  const initializationHash = createEnvelope(
-    "battle-weather-initialization",
-    weatherPolicyId,
-    {
-      ...base,
-      inputHash,
-    },
-  ).bodyHash;
+  const initializationHash = createEnvelope("battle-weather-initialization", weatherPolicyId, {
+    ...base,
+    inputHash,
+  }).bodyHash;
 
   return deepFreeze({ ...base, initializationHash });
 }

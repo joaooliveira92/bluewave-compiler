@@ -184,9 +184,7 @@ export class PhaseRegistry {
     accessType: "read" | "write",
   ): boolean {
     const permissions =
-      accessType === "read"
-        ? phase["readPermissions"]
-        : phase["writePermissions"];
+      accessType === "read" ? phase["readPermissions"] : phase["writePermissions"];
     return permissions.includes("all") || permissions.includes(resource);
   }
 }

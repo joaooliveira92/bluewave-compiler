@@ -27,19 +27,15 @@ describe("AC-15: weather contracts (*_v1 + SHIPPED + validate guard)", () => {
   it("weather_v1 contract ships *_v1 policy and validates", () => {
     expect(weatherPolicyId).toBe("weather_v1");
     expect(SHIPPED_WEATHER_CONTRACT.policyId).toBe("weather_v1");
-    expect(() =>
-      validateWeatherContract(SHIPPED_WEATHER_CONTRACT),
-    ).not.toThrow();
-    expect(() =>
-      validateWeatherContract({ ...SHIPPED_WEATHER_CONTRACT, policyId: "x" }),
-    ).toThrow(BluewaveError);
+    expect(() => validateWeatherContract(SHIPPED_WEATHER_CONTRACT)).not.toThrow();
+    expect(() => validateWeatherContract({ ...SHIPPED_WEATHER_CONTRACT, policyId: "x" })).toThrow(
+      BluewaveError,
+    );
   });
 
   it("weather_components_v1 contract ships *_v1 policy and validates", () => {
     expect(weatherComponentsPolicyId).toBe("weather_components_v1");
-    expect(SHIPPED_WEATHER_COMPONENTS_CONTRACT.policyId).toBe(
-      "weather_components_v1",
-    );
+    expect(SHIPPED_WEATHER_COMPONENTS_CONTRACT.policyId).toBe("weather_components_v1");
     expect(() =>
       validateWeatherComponentsContract(SHIPPED_WEATHER_COMPONENTS_CONTRACT),
     ).not.toThrow();
@@ -53,9 +49,7 @@ describe("AC-15: weather contracts (*_v1 + SHIPPED + validate guard)", () => {
 
   it("weather_visibility_v1 contract ships *_v1 policy and validates", () => {
     expect(weatherVisibilityPolicyId).toBe("weather_visibility_v1");
-    expect(SHIPPED_WEATHER_VISIBILITY_CONTRACT.policyId).toBe(
-      "weather_visibility_v1",
-    );
+    expect(SHIPPED_WEATHER_VISIBILITY_CONTRACT.policyId).toBe("weather_visibility_v1");
     expect(() =>
       validateWeatherVisibilityContract(SHIPPED_WEATHER_VISIBILITY_CONTRACT),
     ).not.toThrow();
@@ -69,9 +63,7 @@ describe("AC-15: weather contracts (*_v1 + SHIPPED + validate guard)", () => {
 
   it("weather_environment_v1 contract ships *_v1 policy and validates", () => {
     expect(weatherEnvironmentPolicyId).toBe("weather_environment_v1");
-    expect(SHIPPED_WEATHER_ENVIRONMENT_CONTRACT.policyId).toBe(
-      "weather_environment_v1",
-    );
+    expect(SHIPPED_WEATHER_ENVIRONMENT_CONTRACT.policyId).toBe("weather_environment_v1");
     expect(() =>
       validateWeatherEnvironmentContract(SHIPPED_WEATHER_ENVIRONMENT_CONTRACT),
     ).not.toThrow();
@@ -85,15 +77,9 @@ describe("AC-15: weather contracts (*_v1 + SHIPPED + validate guard)", () => {
 
   it("null contract fails closed", () => {
     expect(() => validateWeatherContract(null)).toThrow(BluewaveError);
-    expect(() => validateWeatherComponentsContract(null)).toThrow(
-      BluewaveError,
-    );
-    expect(() => validateWeatherVisibilityContract(null)).toThrow(
-      BluewaveError,
-    );
-    expect(() => validateWeatherEnvironmentContract(null)).toThrow(
-      BluewaveError,
-    );
+    expect(() => validateWeatherComponentsContract(null)).toThrow(BluewaveError);
+    expect(() => validateWeatherVisibilityContract(null)).toThrow(BluewaveError);
+    expect(() => validateWeatherEnvironmentContract(null)).toThrow(BluewaveError);
   });
 
   it("validateAllWeatherContracts passes all four shipped contracts (rollup)", () => {
@@ -102,14 +88,8 @@ describe("AC-15: weather contracts (*_v1 + SHIPPED + validate guard)", () => {
 
   it("WEATHER_V1_CONTRACTS frozen object contains all four contracts", () => {
     expect(WEATHER_V1_CONTRACTS.weather.policyId).toBe("weather_v1");
-    expect(WEATHER_V1_CONTRACTS.components.policyId).toBe(
-      "weather_components_v1",
-    );
-    expect(WEATHER_V1_CONTRACTS.visibility.policyId).toBe(
-      "weather_visibility_v1",
-    );
-    expect(WEATHER_V1_CONTRACTS.environment.policyId).toBe(
-      "weather_environment_v1",
-    );
+    expect(WEATHER_V1_CONTRACTS.components.policyId).toBe("weather_components_v1");
+    expect(WEATHER_V1_CONTRACTS.visibility.policyId).toBe("weather_visibility_v1");
+    expect(WEATHER_V1_CONTRACTS.environment.policyId).toBe("weather_environment_v1");
   });
 });

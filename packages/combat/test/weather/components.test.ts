@@ -15,9 +15,7 @@ import {
 } from "../../src/weather/reasonCodes.js";
 import { TIME_OF_DAY_STATES } from "../../src/weather/constants.js";
 
-function seed(
-  overrides: Partial<BattleWeatherComponents> = {},
-): BattleWeatherComponents {
+function seed(overrides: Partial<BattleWeatherComponents> = {}): BattleWeatherComponents {
   return {
     battleId: "battle-001",
     seaState: 4,
@@ -125,77 +123,65 @@ describe("AC-4: twelve tactical weather components", () => {
   // ---- Non-integer type violations (INVALID_TACTICAL_WEATHER_STATE) ----
   it("rejects non-integer seaState with INVALID_TACTICAL_WEATHER_STATE", () => {
     const c = seed({ seaState: 4.5 } as unknown as BattleWeatherComponents);
-    expect(codeOf(() => assertFixedPointTacticalWeather(c))).toBe(
-      INVALID_TACTICAL_WEATHER_STATE,
-    );
+    expect(codeOf(() => assertFixedPointTacticalWeather(c))).toBe(INVALID_TACTICAL_WEATHER_STATE);
   });
 
   it("rejects non-integer fogMistDensityBp with INVALID_TACTICAL_WEATHER_STATE", () => {
     const c = seed({
       fogMistDensityBp: 1_000.5,
     } as unknown as BattleWeatherComponents);
-    expect(codeOf(() => assertFixedPointTacticalWeather(c))).toBe(
-      INVALID_TACTICAL_WEATHER_STATE,
-    );
+    expect(codeOf(() => assertFixedPointTacticalWeather(c))).toBe(INVALID_TACTICAL_WEATHER_STATE);
   });
 
   it("rejects non-integer windDirectionDeg with INVALID_TACTICAL_WEATHER_STATE", () => {
     const c = seed({
       windDirectionDeg: NaN,
     } as unknown as BattleWeatherComponents);
-    expect(codeOf(() => assertFixedPointTacticalWeather(c))).toBe(
-      INVALID_TACTICAL_WEATHER_STATE,
-    );
+    expect(codeOf(() => assertFixedPointTacticalWeather(c))).toBe(INVALID_TACTICAL_WEATHER_STATE);
   });
 
   it("rejects non-string localSmokeFields with INVALID_TACTICAL_WEATHER_STATE", () => {
     const c = seed({
       localSmokeFields: [42],
     } as unknown as BattleWeatherComponents);
-    expect(codeOf(() => assertFixedPointTacticalWeather(c))).toBe(
-      INVALID_TACTICAL_WEATHER_STATE,
-    );
+    expect(codeOf(() => assertFixedPointTacticalWeather(c))).toBe(INVALID_TACTICAL_WEATHER_STATE);
   });
 
   // ---- Range violations (WEATHER_STATE_INVARIANT_FAILED) ----
   it("rejects out-of-range seaState 10", () => {
-    expect(() =>
-      withTacticalWeatherComponentsHash(seed({ seaState: 10 })),
-    ).toThrow(WEATHER_STATE_INVARIANT_FAILED);
+    expect(() => withTacticalWeatherComponentsHash(seed({ seaState: 10 }))).toThrow(
+      WEATHER_STATE_INVARIANT_FAILED,
+    );
   });
 
   it("rejects out-of-range windDirectionDeg 360", () => {
-    expect(() =>
-      withTacticalWeatherComponentsHash(seed({ windDirectionDeg: 360 })),
-    ).toThrow(WEATHER_STATE_INVARIANT_FAILED);
+    expect(() => withTacticalWeatherComponentsHash(seed({ windDirectionDeg: 360 }))).toThrow(
+      WEATHER_STATE_INVARIANT_FAILED,
+    );
   });
 
   it("rejects out-of-range solarElevationDeg 91", () => {
-    expect(() =>
-      withTacticalWeatherComponentsHash(seed({ solarElevationDeg: 91 })),
-    ).toThrow(WEATHER_STATE_INVARIANT_FAILED);
+    expect(() => withTacticalWeatherComponentsHash(seed({ solarElevationDeg: 91 }))).toThrow(
+      WEATHER_STATE_INVARIANT_FAILED,
+    );
   });
 
   it("rejects out-of-range glareIntensityBp 10_001", () => {
-    expect(() =>
-      withTacticalWeatherComponentsHash(seed({ glareIntensityBp: 10_001 })),
-    ).toThrow(WEATHER_STATE_INVARIANT_FAILED);
+    expect(() => withTacticalWeatherComponentsHash(seed({ glareIntensityBp: 10_001 }))).toThrow(
+      WEATHER_STATE_INVARIANT_FAILED,
+    );
   });
 
   it("rejects non-canonical timeOfDay state", () => {
     const c = seed({
       timeOfDay: "MIDNIGHT",
     } as unknown as BattleWeatherComponents);
-    expect(() => assertFixedPointTacticalWeather(c)).toThrow(
-      WEATHER_STATE_INVARIANT_FAILED,
-    );
+    expect(() => assertFixedPointTacticalWeather(c)).toThrow(WEATHER_STATE_INVARIANT_FAILED);
   });
 
   it("assertFixedPointWeather passes for valid components", () => {
     expect(() =>
-      assertFixedPointTacticalWeather(
-        withTacticalWeatherComponentsHash(seed()),
-      ),
+      assertFixedPointTacticalWeather(withTacticalWeatherComponentsHash(seed())),
     ).not.toThrow();
   });
 });

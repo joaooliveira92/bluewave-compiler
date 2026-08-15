@@ -112,10 +112,7 @@ export function resolveTimeAndSolarGeometry(
     profileError(daylightProfile.daylightProfileId, "empty daylight profile");
   }
   // Structural malformation checks: coverage + ordering + field validity.
-  if (
-    entries[0]!.minuteOfDay !== 0 ||
-    entries[entries.length - 1]!.minuteOfDay !== 1440
-  ) {
+  if (entries[0]!.minuteOfDay !== 0 || entries[entries.length - 1]!.minuteOfDay !== 1440) {
     profileError(
       daylightProfile.daylightProfileId,
       "daylight profile must start at minuteOfDay 0 and end at the 1440 wrap sentinel",
@@ -123,21 +120,11 @@ export function resolveTimeAndSolarGeometry(
   }
   for (let i = 0; i < entries.length; i++) {
     const e = entries[i]!;
-    if (
-      !Number.isInteger(e.minuteOfDay) ||
-      e.minuteOfDay < 0 ||
-      e.minuteOfDay > 1440
-    ) {
-      profileError(
-        daylightProfile.daylightProfileId,
-        `entry ${i} has an invalid minuteOfDay`,
-      );
+    if (!Number.isInteger(e.minuteOfDay) || e.minuteOfDay < 0 || e.minuteOfDay > 1440) {
+      profileError(daylightProfile.daylightProfileId, `entry ${i} has an invalid minuteOfDay`);
     }
     if (i > 0 && entries[i - 1]!.minuteOfDay >= e.minuteOfDay) {
-      profileError(
-        daylightProfile.daylightProfileId,
-        "entries must be strictly ascending",
-      );
+      profileError(daylightProfile.daylightProfileId, "entries must be strictly ascending");
     }
     if (!(TIME_OF_DAY_STATES as readonly string[]).includes(e.state)) {
       profileError(
@@ -145,14 +132,8 @@ export function resolveTimeAndSolarGeometry(
         `entry ${i} has an unknown time-of-day state`,
       );
     }
-    if (
-      !Number.isFinite(e.solarBearingDeg) ||
-      !Number.isFinite(e.solarElevationDeg)
-    ) {
-      profileError(
-        daylightProfile.daylightProfileId,
-        `entry ${i} has a non-finite solar field`,
-      );
+    if (!Number.isFinite(e.solarBearingDeg) || !Number.isFinite(e.solarElevationDeg)) {
+      profileError(daylightProfile.daylightProfileId, `entry ${i} has a non-finite solar field`);
     }
     if (
       !Number.isInteger(e.solarBearingDeg) ||
@@ -200,10 +181,7 @@ export function resolveTimeAndSolarGeometry(
   const next = entries[nextIdx]!;
 
   // If we're before the first entry or past the last entry, wrap.
-  if (
-    currentMinute < curr.minuteOfDay ||
-    (nextIdx === 0 && currentMinute >= curr.minuteOfDay)
-  ) {
+  if (currentMinute < curr.minuteOfDay || (nextIdx === 0 && currentMinute >= curr.minuteOfDay)) {
     return {
       timeOfDay: curr.state,
       solarBearingDeg: curr.solarBearingDeg,
@@ -213,8 +191,7 @@ export function resolveTimeAndSolarGeometry(
 
   // Linear interpolation between curr and next.
   const segLength = next.minuteOfDay - curr.minuteOfDay;
-  const frac =
-    segLength > 0 ? (currentMinute - curr.minuteOfDay) / segLength : 0;
+  const frac = segLength > 0 ? (currentMinute - curr.minuteOfDay) / segLength : 0;
 
   const interpolate = (a: number, b: number): number => {
     // ANGULAR (bearing) interpolation — the only interpolant that needs the
@@ -231,8 +208,7 @@ export function resolveTimeAndSolarGeometry(
   };
 
   // Elevation interpolation is plain linear (no angular wrap).
-  const interpolateElevation = (a: number, b: number): number =>
-    Math.round(a + frac * (b - a));
+  const interpolateElevation = (a: number, b: number): number => Math.round(a + frac * (b - a));
 
   // For state, pick the closer entry (first/last segment boundary).
   const state = frac < 0.5 ? curr.state : next.state;
@@ -244,10 +220,7 @@ export function resolveTimeAndSolarGeometry(
   return {
     timeOfDay: state,
     solarBearingDeg: interpolate(curr.solarBearingDeg, next.solarBearingDeg),
-    solarElevationDeg: interpolateElevation(
-      curr.solarElevationDeg,
-      next.solarElevationDeg,
-    ),
+    solarElevationDeg: interpolateElevation(curr.solarElevationDeg, next.solarElevationDeg),
   };
 }
 
@@ -262,10 +235,7 @@ export interface DaylightPolicyTable {
 }
 
 // Shipped versioned per-state policy table (weather_environment_v1).
-export const DAYLIGHT_POLICY_TABLE: Record<
-  TimeOfDayState,
-  DaylightPolicyTable
-> = {
+export const DAYLIGHT_POLICY_TABLE: Record<TimeOfDayState, DaylightPolicyTable> = {
   DAY: {
     visibilityMultiplierBp: DAYLIGHT_VIS_DAY_BP,
     identificationMultiplierBp: DAYLIGHT_IDENTIFICATION_DAY_BP,
@@ -309,8 +279,6 @@ export function daylightVisibilityMultiplierBp(state: TimeOfDayState): number {
 }
 
 /** Look up the per-state daylight policy for identification multiplier. */
-export function daylightIdentificationMultiplierBp(
-  state: TimeOfDayState,
-): number {
+export function daylightIdentificationMultiplierBp(state: TimeOfDayState): number {
   return DAYLIGHT_POLICY_TABLE[state].identificationMultiplierBp;
 }

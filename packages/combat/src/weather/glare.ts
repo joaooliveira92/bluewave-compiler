@@ -64,9 +64,7 @@ export function computeGlareMultiplierBp(input: GlareInput): GlareResult {
   }
 
   // Compute angular separation between observer-to-target bearing and solar bearing.
-  const diff = Math.abs(
-    input.observerToTargetBearingDeg - input.solarBearingDeg,
-  );
+  const diff = Math.abs(input.observerToTargetBearingDeg - input.solarBearingDeg);
   // Handle wrap-around (e.g., bearing 350° vs 10° → separation 20°).
   const separation = diff <= 180 ? diff : 360 - diff;
 

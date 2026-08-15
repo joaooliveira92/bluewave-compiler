@@ -42,17 +42,13 @@ const DEFERRED_SECTION_30_SMOKE_CODES = [
 
 describe("AC-16: weather reason-code set-equality (§30 + non-§30 markers)", () => {
   it("the shipped WEATHER_REASON_CODES set exactly matches IN_SLICE_CODES", () => {
-    const shippedCodes = Object.values(
-      WEATHER_REASON_CODES,
-    ).sort() as readonly string[];
+    const shippedCodes = Object.values(WEATHER_REASON_CODES).sort() as readonly string[];
     const expectedCodes = [...IN_SLICE_CODES].sort();
     expect(shippedCodes).toEqual(expectedCodes);
   });
 
   it("every shipped code is unique (no duplicate values)", () => {
-    const shippedCodes = Object.values(
-      WEATHER_REASON_CODES,
-    ) as readonly string[];
+    const shippedCodes = Object.values(WEATHER_REASON_CODES) as readonly string[];
     expect(new Set(shippedCodes).size).toBe(shippedCodes.length);
   });
 
@@ -64,30 +60,22 @@ describe("AC-16: weather reason-code set-equality (§30 + non-§30 markers)", ()
   });
 
   it("no deferred §30 smoke code is shipped", () => {
-    const shippedSet = new Set(
-      Object.values(WEATHER_REASON_CODES) as readonly string[],
-    );
+    const shippedSet = new Set(Object.values(WEATHER_REASON_CODES) as readonly string[]);
     for (const deferred of DEFERRED_SECTION_30_SMOKE_CODES) {
       expect(shippedSet.has(deferred)).toBe(false);
     }
   });
 
   it("shipped weather codes are disjoint from the shared combat catalog (REASON_CODES)", () => {
-    const weatherSet = new Set(
-      Object.values(WEATHER_REASON_CODES) as readonly string[],
-    );
-    const sharedSet: ReadonlySet<string> = new Set<string>(
-      Object.values(REASON_CODES),
-    );
+    const weatherSet = new Set(Object.values(WEATHER_REASON_CODES) as readonly string[]);
+    const sharedSet: ReadonlySet<string> = new Set<string>(Object.values(REASON_CODES));
     for (const code of weatherSet) {
       expect(sharedSet.has(code)).toBe(false);
     }
   });
 
   it("reused combat catalog codes are not in weather's set (weather owns its codes)", () => {
-    const weatherSet = new Set(
-      Object.values(WEATHER_REASON_CODES) as readonly string[],
-    );
+    const weatherSet = new Set(Object.values(WEATHER_REASON_CODES) as readonly string[]);
     // Weather does not reuse any combat codes (all weather codes are new)
     // Reused codes would be: TACTICAL_STATE_INVARIANT_FAILED, etc.
     // Weather's invariant guard is WEATHER_STATE_INVARIANT_FAILED — a new code.
@@ -95,9 +83,7 @@ describe("AC-16: weather reason-code set-equality (§30 + non-§30 markers)", ()
   });
 
   it("strat and tact construction-boundary codes are in the shipped set", () => {
-    const shippedSet = new Set(
-      Object.values(WEATHER_REASON_CODES) as readonly string[],
-    );
+    const shippedSet = new Set(Object.values(WEATHER_REASON_CODES) as readonly string[]);
     expect(shippedSet.has("INVALID_STRATEGIC_WEATHER_STATE")).toBe(true);
     expect(shippedSet.has("INVALID_TACTICAL_WEATHER_STATE")).toBe(true);
   });

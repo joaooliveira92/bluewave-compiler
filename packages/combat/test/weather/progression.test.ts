@@ -23,9 +23,7 @@ import { WEATHER_PROFILE_INCOMPLETE } from "../../src/weather/reasonCodes.js";
 
 // ---------------------------------------------------------------------------
 // Helper — valid battle components (spring/summer baseline)
-function components(
-  overrides: Partial<BattleWeatherComponents> = {},
-): BattleWeatherComponents {
+function components(overrides: Partial<BattleWeatherComponents> = {}): BattleWeatherComponents {
   return withTacticalWeatherComponentsHash({
     battleId: "battle-001",
     seaState: 3,
@@ -117,9 +115,7 @@ function transitionProfile(): ClimateProfile {
   };
 }
 
-function makeInput(
-  overrides: Partial<ProgressWeatherInput> = {},
-): ProgressWeatherInput {
+function makeInput(overrides: Partial<ProgressWeatherInput> = {}): ProgressWeatherInput {
   return {
     components: components(),
     climateProfile: transitionProfile(),
@@ -133,9 +129,7 @@ function makeInput(
 describe("AC-5: tactical weather progression", () => {
   it("progresses at the 30-minute interval boundary", () => {
     // The progression should fire at minute 30, 60, 90, etc.
-    const result30 = progressBattleWeatherComponents(
-      makeInput({ tacticalMinute: 30 }),
-    );
+    const result30 = progressBattleWeatherComponents(makeInput({ tacticalMinute: 30 }));
     expect(result30.nextComponents.stateHash).toMatch(/^[0-9a-f]{64}$/);
     expect(typeof result30.nextComponents.seaState).toBe("number");
     // Draw consumption is VARIABLE, 0..8 per interval (ADR-0022 §8): each
@@ -179,17 +173,12 @@ describe("AC-5: tactical weather progression", () => {
   });
 
   it("different battle seeds produce different outcomes", () => {
-    const a = progressBattleWeatherComponents(
-      makeInput({ battleSeed: "seed-x" }),
-    );
-    const b = progressBattleWeatherComponents(
-      makeInput({ battleSeed: "seed-y" }),
-    );
+    const a = progressBattleWeatherComponents(makeInput({ battleSeed: "seed-x" }));
+    const b = progressBattleWeatherComponents(makeInput({ battleSeed: "seed-y" }));
     // Overwhelmingly likely the state differs
     const allEqual =
       a.nextComponents.seaState === b.nextComponents.seaState &&
-      a.nextComponents.precipitationType ===
-        b.nextComponents.precipitationType &&
+      a.nextComponents.precipitationType === b.nextComponents.precipitationType &&
       a.nextComponents.fogMistDensityBp === b.nextComponents.fogMistDensityBp;
     // Very low collision probability
     expect(allEqual).toBe(false);
@@ -206,9 +195,7 @@ describe("AC-5: tactical weather progression", () => {
           seaStateRange: { min: 3, max: 3 },
           windBands: [{ bandId: "W", directionDeg: 270, weight: 1 }],
           windSpeedRangeUmPerSec: { min: 8_000_000, max: 8_000_000 },
-          precipitationOptions: [
-            { type: "NONE", weight: 1, intensityRangeBp: { min: 0, max: 0 } },
-          ],
+          precipitationOptions: [{ type: "NONE", weight: 1, intensityRangeBp: { min: 0, max: 0 } }],
           fogMistDensityRangeBp: { min: 1_200, max: 1_200 },
           cloudCoverRangeBp: { min: 5_500, max: 5_500 },
           daylightProfileId: "dp",
@@ -238,18 +225,13 @@ describe("AC-5: tactical weather progression", () => {
     const results = [30, 60, 90, 120].map((m) =>
       progressBattleWeatherComponents(makeInput({ tacticalMinute: m })),
     );
-    const distinct = new Set(results.map((r) => r.nextComponents.stateHash))
-      .size;
+    const distinct = new Set(results.map((r) => r.nextComponents.stateHash)).size;
     expect(distinct).toBeGreaterThan(1);
   });
 
   it("same interval + same seed is deterministic", () => {
-    const a = progressBattleWeatherComponents(
-      makeInput({ tacticalMinute: 60 }),
-    );
-    const b = progressBattleWeatherComponents(
-      makeInput({ tacticalMinute: 60 }),
-    );
+    const a = progressBattleWeatherComponents(makeInput({ tacticalMinute: 60 }));
+    const b = progressBattleWeatherComponents(makeInput({ tacticalMinute: 60 }));
     expect(a.nextComponents.stateHash).toBe(b.nextComponents.stateHash);
     expect(a.transitions).toEqual(b.transitions);
   });
@@ -338,9 +320,7 @@ describe("AC-5: tactical weather progression", () => {
           seaStateRange: { min: 3, max: 3 },
           windBands: [{ bandId: "W", directionDeg: 270, weight: 1 }],
           windSpeedRangeUmPerSec: { min: 8_000_000, max: 8_000_000 },
-          precipitationOptions: [
-            { type: "NONE", weight: 1, intensityRangeBp: { min: 0, max: 0 } },
-          ],
+          precipitationOptions: [{ type: "NONE", weight: 1, intensityRangeBp: { min: 0, max: 0 } }],
           fogMistDensityRangeBp: { min: 1_200, max: 1_200 },
           cloudCoverRangeBp: { min: 5_500, max: 5_500 },
           daylightProfileId: "dp",

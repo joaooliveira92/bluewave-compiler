@@ -29,10 +29,8 @@ export const WEATHER_GENERATION_PHASE = "weather_generation" as const;
 // 30-minute tactical progression draws. These are canonical decision-phase ids
 // (not registered strategic phases and not reason codes); the strategic registry
 // phase remains `weather_generation`.
-export const WEATHER_BATTLE_INITIALIZATION_PHASE =
-  "battle_weather_initialization" as const;
-export const WEATHER_TACTICAL_PROGRESSION_PHASE =
-  "battle_weather_progression" as const;
+export const WEATHER_BATTLE_INITIALIZATION_PHASE = "battle_weather_initialization" as const;
+export const WEATHER_TACTICAL_PROGRESSION_PHASE = "battle_weather_progression" as const;
 
 // DESIGN-42 §1/§3 canonical integer bounds. Sea state is 0..9; every basis-point
 // quantity (precipitation intensity, fog/mist density, cloud cover) is 0..10_000;
@@ -85,10 +83,8 @@ export const GLARE_INTENSITY_MAX_BP = 10_000 as const;
 // Sea state, wind, precipitation type, and base visibility are never jittered
 // at initialization: the committed strategic state is authoritative for them
 // until tactical progression (INC-3) advances them.
-export const LOCAL_VARIATION_POLICY_NONE =
-  "weather_local_variation_none_v1" as const;
-export const LOCAL_VARIATION_POLICY_LIGHT =
-  "weather_local_variation_light_v1" as const;
+export const LOCAL_VARIATION_POLICY_NONE = "weather_local_variation_none_v1" as const;
+export const LOCAL_VARIATION_POLICY_LIGHT = "weather_local_variation_light_v1" as const;
 export const LOCAL_VARIATION_POLICIES = [
   LOCAL_VARIATION_POLICY_NONE,
   LOCAL_VARIATION_POLICY_LIGHT,
@@ -241,8 +237,7 @@ export function validateWeatherContract(
   c: Partial<WeatherContract> | null | undefined,
 ): asserts c is WeatherContract {
   if (!c) throwMismatch(c, "weather_v1 missing contract");
-  if (c.policyId !== weatherPolicyId)
-    throwMismatch(c, "weather_v1 expected policy id");
+  if (c.policyId !== weatherPolicyId) throwMismatch(c, "weather_v1 expected policy id");
   if (c.basisPointsPerUnit !== WEATHER_BASIS_POINTS_PER_UNIT)
     throwMismatch(c, "weather_v1 basis-point scale");
   if (c.seaStateMin !== SEA_STATE_MIN || c.seaStateMax !== SEA_STATE_MAX)
@@ -262,10 +257,7 @@ export function validateWeatherContract(
     c.fogMistDensityMaxBp !== FOG_MIST_DENSITY_MAX_BP
   )
     throwMismatch(c, "weather_v1 fog/mist-density bounds");
-  if (
-    c.cloudCoverMinBp !== CLOUD_COVER_MIN_BP ||
-    c.cloudCoverMaxBp !== CLOUD_COVER_MAX_BP
-  )
+  if (c.cloudCoverMinBp !== CLOUD_COVER_MIN_BP || c.cloudCoverMaxBp !== CLOUD_COVER_MAX_BP)
     throwMismatch(c, "weather_v1 cloud-cover bounds");
   if (
     c.rulesetVersion !== WEATHER_RULESET_VERSION ||
@@ -364,19 +356,13 @@ export function validateWeatherComponentsContract(
     c.precipitationIntensityMinBp !== PRECIPITATION_INTENSITY_MIN_BP ||
     c.precipitationIntensityMaxBp !== PRECIPITATION_INTENSITY_MAX_BP
   )
-    throwComponentsMismatch(
-      c,
-      "weather_components_v1 precipitation-intensity bounds",
-    );
+    throwComponentsMismatch(c, "weather_components_v1 precipitation-intensity bounds");
   if (
     c.fogMistDensityMinBp !== FOG_MIST_DENSITY_MIN_BP ||
     c.fogMistDensityMaxBp !== FOG_MIST_DENSITY_MAX_BP
   )
     throwComponentsMismatch(c, "weather_components_v1 fog/mist-density bounds");
-  if (
-    c.cloudCoverMinBp !== CLOUD_COVER_MIN_BP ||
-    c.cloudCoverMaxBp !== CLOUD_COVER_MAX_BP
-  )
+  if (c.cloudCoverMinBp !== CLOUD_COVER_MIN_BP || c.cloudCoverMaxBp !== CLOUD_COVER_MAX_BP)
     throwComponentsMismatch(c, "weather_components_v1 cloud-cover bounds");
   if (
     c.solarBearingMinDeg !== SOLAR_BEARING_MIN_DEG ||
@@ -387,10 +373,7 @@ export function validateWeatherComponentsContract(
     c.solarElevationMinDeg !== SOLAR_ELEVATION_MIN_DEG ||
     c.solarElevationMaxDeg !== SOLAR_ELEVATION_MAX_DEG
   )
-    throwComponentsMismatch(
-      c,
-      "weather_components_v1 solar-elevation bounds (-90..90)",
-    );
+    throwComponentsMismatch(c, "weather_components_v1 solar-elevation bounds (-90..90)");
   if (
     c.glareIntensityMinBp !== GLARE_INTENSITY_MIN_BP ||
     c.glareIntensityMaxBp !== GLARE_INTENSITY_MAX_BP
@@ -398,22 +381,10 @@ export function validateWeatherComponentsContract(
     throwComponentsMismatch(c, "weather_components_v1 glare-intensity bounds");
   if (!c.timeOfDayStates || !arrayEquals(c.timeOfDayStates, TIME_OF_DAY_STATES))
     throwComponentsMismatch(c, "weather_components_v1 time-of-day states");
-  if (
-    !c.localVariationPolicies ||
-    !arrayEquals(c.localVariationPolicies, LOCAL_VARIATION_POLICIES)
-  )
-    throwComponentsMismatch(
-      c,
-      "weather_components_v1 local-variation policies",
-    );
-  if (
-    c.rulesetVersion !== WEATHER_RULESET_VERSION ||
-    c.formulaVersion !== WEATHER_FORMULA_VERSION
-  )
-    throwComponentsMismatch(
-      c,
-      "weather_components_v1 ruleset/formula versions",
-    );
+  if (!c.localVariationPolicies || !arrayEquals(c.localVariationPolicies, LOCAL_VARIATION_POLICIES))
+    throwComponentsMismatch(c, "weather_components_v1 local-variation policies");
+  if (c.rulesetVersion !== WEATHER_RULESET_VERSION || c.formulaVersion !== WEATHER_FORMULA_VERSION)
+    throwComponentsMismatch(c, "weather_components_v1 ruleset/formula versions");
 }
 
 // ---------------------------------------------------------------------------
@@ -459,14 +430,8 @@ export function validateWeatherVisibilityContract(
     throwVisibilityMismatch(c, "weather_visibility_v1 scale exponent");
   if (c.rounding !== VISIBILITY_ROUNDING)
     throwVisibilityMismatch(c, "weather_visibility_v1 rounding mode");
-  if (
-    c.rulesetVersion !== WEATHER_RULESET_VERSION ||
-    c.formulaVersion !== WEATHER_FORMULA_VERSION
-  )
-    throwVisibilityMismatch(
-      c,
-      "weather_visibility_v1 ruleset/formula versions",
-    );
+  if (c.rulesetVersion !== WEATHER_RULESET_VERSION || c.formulaVersion !== WEATHER_FORMULA_VERSION)
+    throwVisibilityMismatch(c, "weather_visibility_v1 ruleset/formula versions");
 }
 
 // ---------------------------------------------------------------------------
@@ -517,46 +482,43 @@ export interface WeatherEnvironmentContract {
   formulaVersion: string;
 }
 
-export const SHIPPED_WEATHER_ENVIRONMENT_CONTRACT: WeatherEnvironmentContract =
-  {
-    policyId: weatherEnvironmentPolicyId,
-    basisPointsPerUnit: WEATHER_BASIS_POINTS_PER_UNIT,
-    glareAngleBandBelow10Deg: GLARE_ANGLE_BAND_10_DEG,
-    glareMultiplierBelow10DegBp: GLARE_MULTIPLIER_BELOW_10_DEG_BP,
-    glareMultiplier10to20DegBp: GLARE_MULTIPLIER_10_TO_20_DEG_BP,
-    glareMultiplier20to30DegBp: GLARE_MULTIPLIER_20_TO_30_DEG_BP,
-    glareMultiplierGe30DegBp: GLARE_MULTIPLIER_GE_30_DEG_BP,
-    glareCloudDisableThresholdBp: GLARE_CLOUD_DISABLE_THRESHOLD_BP,
-    fogVisBandNoneBp: FOG_VIS_BAND_NONE_BP,
-    fogVisBandLightBp: FOG_VIS_BAND_LIGHT_BP,
-    fogVisBandModerateBp: FOG_VIS_BAND_MODERATE_BP,
-    fogVisBandHeavyBp: FOG_VIS_BAND_HEAVY_BP,
-    fogVisBandExtremeBp: FOG_VIS_BAND_EXTREME_BP,
-    precipVisNoneBp: PRECIP_VIS_NONE_BP,
-    precipVisLightBp: PRECIP_VIS_LIGHT_BP,
-    precipVisModerateBp: PRECIP_VIS_MODERATE_BP,
-    precipVisHeavyBp: PRECIP_VIS_HEAVY_BP,
-    precipVisExtremeBp: PRECIP_VIS_EXTREME_BP,
-    daylightVisDayBp: DAYLIGHT_VIS_DAY_BP,
-    daylightVisTwilightDayBp: DAYLIGHT_VIS_TWILIGHT_DAY_BP,
-    daylightVisTwilightNightBp: DAYLIGHT_VIS_TWILIGHT_NIGHT_BP,
-    daylightVisNightBp: DAYLIGHT_VIS_NIGHT_BP,
-    daylightVisDuskDawnBp: DAYLIGHT_VIS_DUSK_DAWN_BP,
-    daylightIdentificationDayBp: DAYLIGHT_IDENTIFICATION_DAY_BP,
-    daylightIdentificationTwilightDayBp:
-      DAYLIGHT_IDENTIFICATION_TWILIGHT_DAY_BP,
-    daylightIdentificationTwilightNightBp:
-      DAYLIGHT_IDENTIFICATION_TWILIGHT_NIGHT_BP,
-    daylightIdentificationNightBp: DAYLIGHT_IDENTIFICATION_NIGHT_BP,
-    daylightIdentificationDuskDawnBp: DAYLIGHT_IDENTIFICATION_DUSK_DAWN_BP,
-    daylightGunneryDayBp: DAYLIGHT_GUNNERY_DAY_BP,
-    daylightGunneryTwilightDayBp: DAYLIGHT_GUNNERY_TWILIGHT_DAY_BP,
-    daylightGunneryTwilightNightBp: DAYLIGHT_GUNNERY_TWILIGHT_NIGHT_BP,
-    daylightGunneryNightBp: DAYLIGHT_GUNNERY_NIGHT_BP,
-    daylightGunneryDuskDawnBp: DAYLIGHT_GUNNERY_DUSK_DAWN_BP,
-    rulesetVersion: WEATHER_RULESET_VERSION,
-    formulaVersion: WEATHER_FORMULA_VERSION,
-  };
+export const SHIPPED_WEATHER_ENVIRONMENT_CONTRACT: WeatherEnvironmentContract = {
+  policyId: weatherEnvironmentPolicyId,
+  basisPointsPerUnit: WEATHER_BASIS_POINTS_PER_UNIT,
+  glareAngleBandBelow10Deg: GLARE_ANGLE_BAND_10_DEG,
+  glareMultiplierBelow10DegBp: GLARE_MULTIPLIER_BELOW_10_DEG_BP,
+  glareMultiplier10to20DegBp: GLARE_MULTIPLIER_10_TO_20_DEG_BP,
+  glareMultiplier20to30DegBp: GLARE_MULTIPLIER_20_TO_30_DEG_BP,
+  glareMultiplierGe30DegBp: GLARE_MULTIPLIER_GE_30_DEG_BP,
+  glareCloudDisableThresholdBp: GLARE_CLOUD_DISABLE_THRESHOLD_BP,
+  fogVisBandNoneBp: FOG_VIS_BAND_NONE_BP,
+  fogVisBandLightBp: FOG_VIS_BAND_LIGHT_BP,
+  fogVisBandModerateBp: FOG_VIS_BAND_MODERATE_BP,
+  fogVisBandHeavyBp: FOG_VIS_BAND_HEAVY_BP,
+  fogVisBandExtremeBp: FOG_VIS_BAND_EXTREME_BP,
+  precipVisNoneBp: PRECIP_VIS_NONE_BP,
+  precipVisLightBp: PRECIP_VIS_LIGHT_BP,
+  precipVisModerateBp: PRECIP_VIS_MODERATE_BP,
+  precipVisHeavyBp: PRECIP_VIS_HEAVY_BP,
+  precipVisExtremeBp: PRECIP_VIS_EXTREME_BP,
+  daylightVisDayBp: DAYLIGHT_VIS_DAY_BP,
+  daylightVisTwilightDayBp: DAYLIGHT_VIS_TWILIGHT_DAY_BP,
+  daylightVisTwilightNightBp: DAYLIGHT_VIS_TWILIGHT_NIGHT_BP,
+  daylightVisNightBp: DAYLIGHT_VIS_NIGHT_BP,
+  daylightVisDuskDawnBp: DAYLIGHT_VIS_DUSK_DAWN_BP,
+  daylightIdentificationDayBp: DAYLIGHT_IDENTIFICATION_DAY_BP,
+  daylightIdentificationTwilightDayBp: DAYLIGHT_IDENTIFICATION_TWILIGHT_DAY_BP,
+  daylightIdentificationTwilightNightBp: DAYLIGHT_IDENTIFICATION_TWILIGHT_NIGHT_BP,
+  daylightIdentificationNightBp: DAYLIGHT_IDENTIFICATION_NIGHT_BP,
+  daylightIdentificationDuskDawnBp: DAYLIGHT_IDENTIFICATION_DUSK_DAWN_BP,
+  daylightGunneryDayBp: DAYLIGHT_GUNNERY_DAY_BP,
+  daylightGunneryTwilightDayBp: DAYLIGHT_GUNNERY_TWILIGHT_DAY_BP,
+  daylightGunneryTwilightNightBp: DAYLIGHT_GUNNERY_TWILIGHT_NIGHT_BP,
+  daylightGunneryNightBp: DAYLIGHT_GUNNERY_NIGHT_BP,
+  daylightGunneryDuskDawnBp: DAYLIGHT_GUNNERY_DUSK_DAWN_BP,
+  rulesetVersion: WEATHER_RULESET_VERSION,
+  formulaVersion: WEATHER_FORMULA_VERSION,
+};
 
 function throwEnvironmentMismatch(contract: unknown, reason: string): never {
   throw new BluewaveError(WEATHER_STATE_INVARIANT_FAILED, {
@@ -569,8 +531,7 @@ function throwEnvironmentMismatch(contract: unknown, reason: string): never {
 export function validateWeatherEnvironmentContract(
   c: Partial<WeatherEnvironmentContract> | null | undefined,
 ): asserts c is WeatherEnvironmentContract {
-  if (!c)
-    throwEnvironmentMismatch(c, "weather_environment_v1 missing contract");
+  if (!c) throwEnvironmentMismatch(c, "weather_environment_v1 missing contract");
   if (c.policyId !== weatherEnvironmentPolicyId)
     throwEnvironmentMismatch(c, "weather_environment_v1 expected policy id");
   if (c.basisPointsPerUnit !== WEATHER_BASIS_POINTS_PER_UNIT)
@@ -580,22 +541,13 @@ export function validateWeatherEnvironmentContract(
   if (c.glareMultiplierBelow10DegBp !== GLARE_MULTIPLIER_BELOW_10_DEG_BP)
     throwEnvironmentMismatch(c, "weather_environment_v1 glare <10° multiplier");
   if (c.glareMultiplier10to20DegBp !== GLARE_MULTIPLIER_10_TO_20_DEG_BP)
-    throwEnvironmentMismatch(
-      c,
-      "weather_environment_v1 glare 10-20° multiplier",
-    );
+    throwEnvironmentMismatch(c, "weather_environment_v1 glare 10-20° multiplier");
   if (c.glareMultiplier20to30DegBp !== GLARE_MULTIPLIER_20_TO_30_DEG_BP)
-    throwEnvironmentMismatch(
-      c,
-      "weather_environment_v1 glare 20-30° multiplier",
-    );
+    throwEnvironmentMismatch(c, "weather_environment_v1 glare 20-30° multiplier");
   if (c.glareMultiplierGe30DegBp !== GLARE_MULTIPLIER_GE_30_DEG_BP)
     throwEnvironmentMismatch(c, "weather_environment_v1 glare ≥30° multiplier");
   if (c.glareCloudDisableThresholdBp !== GLARE_CLOUD_DISABLE_THRESHOLD_BP)
-    throwEnvironmentMismatch(
-      c,
-      "weather_environment_v1 glare cloud disable threshold",
-    );
+    throwEnvironmentMismatch(c, "weather_environment_v1 glare cloud disable threshold");
   // Fog multipliers
   if (c.fogVisBandNoneBp !== FOG_VIS_BAND_NONE_BP)
     throwEnvironmentMismatch(c, "weather_environment_v1 fog none band");
@@ -619,35 +571,14 @@ export function validateWeatherEnvironmentContract(
   if (c.precipVisExtremeBp !== PRECIP_VIS_EXTREME_BP)
     throwEnvironmentMismatch(c, "weather_environment_v1 precip extreme");
   // Night/twilight visibility multipliers
-  if (
-    c.daylightVisDayBp !== DAYLIGHT_VIS_DAY_BP ||
-    c.daylightVisNightBp !== DAYLIGHT_VIS_NIGHT_BP
-  )
-    throwEnvironmentMismatch(
-      c,
-      "weather_environment_v1 daylight visibility day/night",
-    );
+  if (c.daylightVisDayBp !== DAYLIGHT_VIS_DAY_BP || c.daylightVisNightBp !== DAYLIGHT_VIS_NIGHT_BP)
+    throwEnvironmentMismatch(c, "weather_environment_v1 daylight visibility day/night");
   if (c.daylightVisTwilightDayBp !== DAYLIGHT_VIS_TWILIGHT_DAY_BP)
-    throwEnvironmentMismatch(
-      c,
-      "weather_environment_v1 daylight visibility twilight_day",
-    );
+    throwEnvironmentMismatch(c, "weather_environment_v1 daylight visibility twilight_day");
   if (c.daylightVisTwilightNightBp !== DAYLIGHT_VIS_TWILIGHT_NIGHT_BP)
-    throwEnvironmentMismatch(
-      c,
-      "weather_environment_v1 daylight visibility twilight_night",
-    );
+    throwEnvironmentMismatch(c, "weather_environment_v1 daylight visibility twilight_night");
   if (c.daylightVisDuskDawnBp !== DAYLIGHT_VIS_DUSK_DAWN_BP)
-    throwEnvironmentMismatch(
-      c,
-      "weather_environment_v1 daylight visibility dusk_dawn",
-    );
-  if (
-    c.rulesetVersion !== WEATHER_RULESET_VERSION ||
-    c.formulaVersion !== WEATHER_FORMULA_VERSION
-  )
-    throwEnvironmentMismatch(
-      c,
-      "weather_environment_v1 ruleset/formula versions",
-    );
+    throwEnvironmentMismatch(c, "weather_environment_v1 daylight visibility dusk_dawn");
+  if (c.rulesetVersion !== WEATHER_RULESET_VERSION || c.formulaVersion !== WEATHER_FORMULA_VERSION)
+    throwEnvironmentMismatch(c, "weather_environment_v1 ruleset/formula versions");
 }

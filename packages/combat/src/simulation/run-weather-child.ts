@@ -5,21 +5,14 @@
 // from the B-2 fixture plus a minimal climate/daylight profile.
 import { canonicalSerialize } from "@bluewave/deterministic";
 import { SafeInt } from "@bluewave/contracts";
-import type {
-  TacticalBattleState,
-  TacticalShipUnit,
-} from "../tactical/index.js";
+import type { TacticalBattleState, TacticalShipUnit } from "../tactical/index.js";
 import type { MovementState } from "../movement.js";
 import { computeInitialMovementStates } from "./spawn.js";
 import { advanceMinutes } from "./engine.js";
 import { withTacticalWeatherComponentsHash } from "../weather/components.js";
 import type { WeatherEngineContext } from "../weather/engine.js";
 
-function unit(
-  id: string,
-  sideId: "ATTACKER" | "DEFENDER",
-  className: string,
-): TacticalShipUnit {
+function unit(id: string, sideId: "ATTACKER" | "DEFENDER", className: string): TacticalShipUnit {
   return {
     assetId: id,
     campaignShipId: id,
@@ -59,17 +52,16 @@ const units: TacticalShipUnit[] = [
   unit("d2", "DEFENDER", "Cruiser"),
 ];
 
-const movementStates: Record<string, MovementState> =
-  computeInitialMovementStates(
-    { minX: 0, minY: 0, maxX: 20_000_000_000, maxY: 10_000_000_000 },
-    units.map((u) => ({
-      assetId: u.assetId,
-      sideId: u.sideId as "ATTACKER" | "DEFENDER",
-      orderedSpeedBpKnots: 10_000,
-      designedSpeedBpKnots: 20_000,
-      turningRateMdegS: 1_000,
-    })),
-  );
+const movementStates: Record<string, MovementState> = computeInitialMovementStates(
+  { minX: 0, minY: 0, maxX: 20_000_000_000, maxY: 10_000_000_000 },
+  units.map((u) => ({
+    assetId: u.assetId,
+    sideId: u.sideId as "ATTACKER" | "DEFENDER",
+    orderedSpeedBpKnots: 10_000,
+    designedSpeedBpKnots: 20_000,
+    turningRateMdegS: 1_000,
+  })),
+);
 
 const state: TacticalBattleState = {
   battleId: "b5-weather-determinism",

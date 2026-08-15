@@ -42,9 +42,7 @@ function factorError(factorKey: string, value: unknown): never {
 // AC-6: compute the effective visibility distance. Every multiplier MUST be
 // explicit (>= 0 integer basis-point value). A missing (undefined/null) factor
 // fails with WEATHER_VISIBILITY_FORMULA_MISSING.
-export function computeEffectiveVisibility(
-  input: VisibilityFormulaInput,
-): VisibilityFormulaResult {
+export function computeEffectiveVisibility(input: VisibilityFormulaInput): VisibilityFormulaResult {
   const {
     baseVisibilityUm,
     precipitationMultiplierBp,

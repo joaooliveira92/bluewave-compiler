@@ -97,15 +97,9 @@ describe("AC-3: BattleWeatherInitialization", () => {
   it("same area + overlapping tactical time uses the same strategic weather source", () => {
     // Two battles in the same area/month draw from the SAME committed strategic
     // state; the initialization records that source by hash.
-    const initA = initializeBattleWeather(
-      makeSeed({ battleId: "battle-001", battleSeed: "s1" }),
-    );
-    const initB = initializeBattleWeather(
-      makeSeed({ battleId: "battle-002", battleSeed: "s2" }),
-    );
-    expect(initA.strategicWeatherStateHash).toBe(
-      initB.strategicWeatherStateHash,
-    );
+    const initA = initializeBattleWeather(makeSeed({ battleId: "battle-001", battleSeed: "s1" }));
+    const initB = initializeBattleWeather(makeSeed({ battleId: "battle-002", battleSeed: "s2" }));
+    expect(initA.strategicWeatherStateHash).toBe(initB.strategicWeatherStateHash);
     expect(sameStrategicWeatherSource(initA, initB)).toBe(true);
   });
 
@@ -117,9 +111,7 @@ describe("AC-3: BattleWeatherInitialization", () => {
         strategicWeatherState: strategicState({ seaState: 7 }),
       }),
     );
-    expect(initA.strategicWeatherStateHash).not.toBe(
-      initB.strategicWeatherStateHash,
-    );
+    expect(initA.strategicWeatherStateHash).not.toBe(initB.strategicWeatherStateHash);
     expect(sameStrategicWeatherSource(initA, initB)).toBe(false);
   });
 
@@ -199,9 +191,7 @@ describe("AC-3: BattleWeatherInitialization", () => {
 
   it("unknown local-variation policy fails closed", () => {
     expect(() =>
-      initializeBattleWeather(
-        makeSeed({ localVariationPolicyId: "bogus_policy_v9" }),
-      ),
+      initializeBattleWeather(makeSeed({ localVariationPolicyId: "bogus_policy_v9" })),
     ).toThrow(BluewaveError);
   });
 
@@ -225,16 +215,12 @@ describe("AC-3: BattleWeatherInitialization", () => {
   it("unknown local-variation policy fails with INVALID_BATTLE_WEATHER_INITIALIZATION", () => {
     let caught: unknown;
     try {
-      initializeBattleWeather(
-        makeSeed({ localVariationPolicyId: "bogus_policy_v9" }),
-      );
+      initializeBattleWeather(makeSeed({ localVariationPolicyId: "bogus_policy_v9" }));
     } catch (e) {
       caught = e;
     }
     expect(caught).toBeInstanceOf(BluewaveError);
-    expect((caught as BluewaveError).message).toBe(
-      INVALID_BATTLE_WEATHER_INITIALIZATION,
-    );
+    expect((caught as BluewaveError).message).toBe(INVALID_BATTLE_WEATHER_INITIALIZATION);
   });
 
   it("non-integer location fails with INVALID_BATTLE_WEATHER_INITIALIZATION", () => {
@@ -249,9 +235,7 @@ describe("AC-3: BattleWeatherInitialization", () => {
       caught = e;
     }
     expect(caught).toBeInstanceOf(BluewaveError);
-    expect((caught as BluewaveError).message).toBe(
-      INVALID_BATTLE_WEATHER_INITIALIZATION,
-    );
+    expect((caught as BluewaveError).message).toBe(INVALID_BATTLE_WEATHER_INITIALIZATION);
   });
 
   it("battle area id must match the strategic weather source area (cross-area mismatch)", () => {
@@ -262,9 +246,7 @@ describe("AC-3: BattleWeatherInitialization", () => {
       caught = e;
     }
     expect(caught).toBeInstanceOf(BluewaveError);
-    expect((caught as BluewaveError).message).toBe(
-      INVALID_BATTLE_WEATHER_INITIALIZATION,
-    );
+    expect((caught as BluewaveError).message).toBe(INVALID_BATTLE_WEATHER_INITIALIZATION);
   });
 
   it("location area id must match the battle area id", () => {
@@ -283,9 +265,7 @@ describe("AC-3: BattleWeatherInitialization", () => {
       caught = e;
     }
     expect(caught).toBeInstanceOf(BluewaveError);
-    expect((caught as BluewaveError).message).toBe(
-      INVALID_BATTLE_WEATHER_INITIALIZATION,
-    );
+    expect((caught as BluewaveError).message).toBe(INVALID_BATTLE_WEATHER_INITIALIZATION);
   });
 
   // ---- M6: local-variation jitter draws recorded through the RandomLedger port ----

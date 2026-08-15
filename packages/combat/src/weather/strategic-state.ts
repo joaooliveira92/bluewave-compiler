@@ -23,10 +23,7 @@ import {
   CLOUD_COVER_MIN_BP,
   CLOUD_COVER_MAX_BP,
 } from "./constants.js";
-import {
-  INVALID_STRATEGIC_WEATHER_STATE,
-  WEATHER_STATE_INVARIANT_FAILED,
-} from "./reasonCodes.js";
+import { INVALID_STRATEGIC_WEATHER_STATE, WEATHER_STATE_INVARIANT_FAILED } from "./reasonCodes.js";
 
 export interface StrategicWeatherState {
   /** Stable strategic-area identifier. */
@@ -75,12 +72,7 @@ export interface StrategicWeatherState {
 
 // ---- Guard helpers ----
 
-function typeError(
-  s: StrategicWeatherState,
-  field: string,
-  value: unknown,
-  reason: string,
-): never {
+function typeError(s: StrategicWeatherState, field: string, value: unknown, reason: string): never {
   throw new BluewaveError(INVALID_STRATEGIC_WEATHER_STATE, {
     code: INVALID_STRATEGIC_WEATHER_STATE,
     field,
@@ -145,9 +137,7 @@ function requireNonNegativeInteger(
 // StrategicWeatherState surface with INVALID_STRATEGIC_WEATHER_STATE (type
 // violations) or WEATHER_STATE_INVARIANT_FAILED (range violations). Reversible
 // to invariant: a failure leaves the supplied state untouched.
-export function assertFixedPointStrategicWeather(
-  s: StrategicWeatherState,
-): void {
+export function assertFixedPointStrategicWeather(s: StrategicWeatherState): void {
   requireString(s, "areaId", s.areaId);
   requireString(s, "month", s.month);
   requireString(s, "climateProfileId", s.climateProfileId);
@@ -156,12 +146,7 @@ export function assertFixedPointStrategicWeather(
   // "no prior persistent state" (DESIGN-42 §1 permits the reference; an empty id
   // is the canonical none-marker recorded in ADR-0022).
   if (typeof s.persistentWeatherStateId !== "string") {
-    typeError(
-      s,
-      "persistentWeatherStateId",
-      s.persistentWeatherStateId,
-      "must be a string",
-    );
+    typeError(s, "persistentWeatherStateId", s.persistentWeatherStateId, "must be a string");
   }
 
   requireInteger(s, "seaState", s.seaState, SEA_STATE_MIN, SEA_STATE_MAX);
@@ -174,9 +159,7 @@ export function assertFixedPointStrategicWeather(
   );
   requireNonNegativeInteger(s, "windSpeedUmPerSec", s.windSpeedUmPerSec);
 
-  if (
-    !(PRECIPITATION_TYPES as readonly string[]).includes(s.precipitationType)
-  ) {
+  if (!(PRECIPITATION_TYPES as readonly string[]).includes(s.precipitationType)) {
     invariantError(
       s,
       "precipitationType",
@@ -198,22 +181,11 @@ export function assertFixedPointStrategicWeather(
     FOG_MIST_DENSITY_MIN_BP,
     FOG_MIST_DENSITY_MAX_BP,
   );
-  requireInteger(
-    s,
-    "cloudCoverBp",
-    s.cloudCoverBp,
-    CLOUD_COVER_MIN_BP,
-    CLOUD_COVER_MAX_BP,
-  );
+  requireInteger(s, "cloudCoverBp", s.cloudCoverBp, CLOUD_COVER_MIN_BP, CLOUD_COVER_MAX_BP);
 
   requireString(s, "daylightProfileId", s.daylightProfileId);
   if (typeof s.glareEligible !== "boolean") {
-    typeError(
-      s,
-      "glareEligible",
-      s.glareEligible,
-      "glareEligible must be a boolean",
-    );
+    typeError(s, "glareEligible", s.glareEligible, "glareEligible must be a boolean");
   }
   requireNonNegativeInteger(s, "baseVisibilityUm", s.baseVisibilityUm);
 
@@ -237,9 +209,7 @@ export function assertFixedPointStrategicWeather(
 // Authoritative deterministic state hash: canonicalSerialize + sha256 over the
 // non-hash surface, domain-separated with the weather_v1 compatibility version.
 // Any provided stateHash is ignored so the hash depends only on the state fields.
-export function computeStrategicWeatherStateHash(
-  s: StrategicWeatherState,
-): string {
+export function computeStrategicWeatherStateHash(s: StrategicWeatherState): string {
   const surface = {
     areaId: s.areaId,
     month: s.month,
@@ -262,8 +232,7 @@ export function computeStrategicWeatherStateHash(
     formulaVersion: s.formulaVersion,
     rngVersion: s.rngVersion,
   };
-  return createEnvelope("strategic-weather-state", weatherPolicyId, surface)
-    .bodyHash;
+  return createEnvelope("strategic-weather-state", weatherPolicyId, surface).bodyHash;
 }
 
 // Build a fully-invariant StrategicWeatherState with its authoritative hash.

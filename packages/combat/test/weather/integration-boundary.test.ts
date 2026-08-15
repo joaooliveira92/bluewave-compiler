@@ -67,9 +67,7 @@ describe("AC-13: no-weather strict no-op (pinned byte-identical baseline)", () =
       orders: ORDER,
     });
     for (const r of res.results) {
-      expect(
-        r.events.filter((e) => e.eventType.startsWith("weather_")),
-      ).toHaveLength(0);
+      expect(r.events.filter((e) => e.eventType.startsWith("weather_"))).toHaveLength(0);
     }
   });
 });

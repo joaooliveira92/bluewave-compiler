@@ -233,9 +233,7 @@ describe("AC-10: night/twilight model (§27)", () => {
         // no 1440 wrap sentinel
       ],
     };
-    expect(() => resolveTimeAndSolarGeometry(0, 720, partial)).toThrow(
-      BluewaveError,
-    );
+    expect(() => resolveTimeAndSolarGeometry(0, 720, partial)).toThrow(BluewaveError);
   });
 
   it("descending/unsorted entries fail closed", () => {
@@ -262,9 +260,7 @@ describe("AC-10: night/twilight model (§27)", () => {
         },
       ],
     };
-    expect(() => resolveTimeAndSolarGeometry(0, 720, bad)).toThrow(
-      BluewaveError,
-    );
+    expect(() => resolveTimeAndSolarGeometry(0, 720, bad)).toThrow(BluewaveError);
   });
 
   it("'not applicable' bearing (-1) fails closed with WEATHER_PROFILE_INCOMPLETE", () => {

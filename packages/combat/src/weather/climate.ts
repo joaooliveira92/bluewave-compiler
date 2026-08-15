@@ -24,10 +24,7 @@ import {
   type PrecipitationType,
 } from "./constants.js";
 import { WEATHER_PROFILE_INCOMPLETE } from "./reasonCodes.js";
-import {
-  type StrategicWeatherState,
-  withStrategicWeatherStateHash,
-} from "./strategic-state.js";
+import { type StrategicWeatherState, withStrategicWeatherStateHash } from "./strategic-state.js";
 
 // ---- Authored climate surface ----
 
@@ -80,10 +77,7 @@ export interface SeasonClimateProfile {
   /** Per-interval wind-speed drift range in µm/s. */
   windSpeedDriftRangeUmPerSec?: IntegerRange;
   /** Per-band wind direction transitions: maps bandId → reachable bands + weights. */
-  windTransitions?: Record<
-    string,
-    { reachableBandIds: string[]; weights: number[] }
-  >;
+  windTransitions?: Record<string, { reachableBandIds: string[]; weights: number[] }>;
   /** Precipitation transitions per type: maps PrecipitationType-string → reachable options. */
   precipitationTransitions?: Record<
     string,
@@ -142,10 +136,7 @@ function drawWeightedId(
   return options.length - 1;
 }
 
-function profileError(
-  input: StrategicWeatherGenerationInput,
-  reason: string,
-): never {
+function profileError(input: StrategicWeatherGenerationInput, reason: string): never {
   throw new BluewaveError(WEATHER_PROFILE_INCOMPLETE, {
     code: WEATHER_PROFILE_INCOMPLETE,
     areaId: input.areaId,
@@ -154,11 +145,7 @@ function profileError(
   });
 }
 
-function transitionError(
-  climateProfileId: string,
-  seasonId: string,
-  reason: string,
-): never {
+function transitionError(climateProfileId: string, seasonId: string, reason: string): never {
   throw new BluewaveError(WEATHER_PROFILE_INCOMPLETE, {
     code: WEATHER_PROFILE_INCOMPLETE,
     climateProfileId,
@@ -226,9 +213,7 @@ export function validateSeasonTransitionTables(
   }
   if (season.precipitationTransitions) {
     const canonical = new Set<string>(["NONE", "RAIN", "SNOW"]);
-    for (const [type, options] of Object.entries(
-      season.precipitationTransitions,
-    )) {
+    for (const [type, options] of Object.entries(season.precipitationTransitions)) {
       if (!canonical.has(type)) {
         transitionError(
           climateProfileId,
@@ -281,10 +266,7 @@ export function validateSeasonTransitionTables(
 // missing or malformed policy fails closed (DESIGN-42 §1: "A missing climate or
 // transition policy MUST fail with WEATHER_PROFILE_INCOMPLETE"), never silently
 // skipping a drawn field.
-function assertProfileComplete(
-  input: StrategicWeatherGenerationInput,
-  p: ClimateProfile,
-): void {
+function assertProfileComplete(input: StrategicWeatherGenerationInput, p: ClimateProfile): void {
   const seasonAssigned = p.seasonAssignment[input.month];
   if (seasonAssigned === undefined) {
     profileError(input, `no season assignment for month ${input.month}`);
@@ -296,10 +278,7 @@ function assertProfileComplete(
   // declared table/policy element is a profile-incomplete failure.
   const season = p.seasons.find((s) => s.seasonId === seasonAssigned);
   if (!season) {
-    profileError(
-      input,
-      `season ${seasonAssigned} not declared in climate profile`,
-    );
+    profileError(input, `season ${seasonAssigned} not declared in climate profile`);
   }
   const ranges: [string, IntegerRange][] = [
     ["seaStateRange", season.seaStateRange],
@@ -309,51 +288,30 @@ function assertProfileComplete(
     ["baseVisibilityRangeUm", season.baseVisibilityRangeUm],
   ];
   for (const [name, r] of ranges) {
-    if (
-      !Number.isInteger(r.min) ||
-      !Number.isInteger(r.max) ||
-      r.min < 0 ||
-      r.min > r.max
-    ) {
-      profileError(
-        input,
-        `season ${seasonAssigned} ${name} is not a valid integer range`,
-      );
+    if (!Number.isInteger(r.min) || !Number.isInteger(r.max) || r.min < 0 || r.min > r.max) {
+      profileError(input, `season ${seasonAssigned} ${name} is not a valid integer range`);
     }
   }
   if (season.windBands.length === 0) {
     profileError(input, `season ${seasonAssigned} declares no wind bands`);
   }
   for (const band of season.windBands) {
-    if (
-      !Number.isInteger(band.directionDeg) ||
-      band.directionDeg < 0 ||
-      band.directionDeg > 359
-    ) {
+    if (!Number.isInteger(band.directionDeg) || band.directionDeg < 0 || band.directionDeg > 359) {
       profileError(
         input,
         `season ${seasonAssigned} wind band ${band.bandId} has invalid direction`,
       );
     }
     if (!Number.isInteger(band.weight) || band.weight < 1) {
-      profileError(
-        input,
-        `season ${seasonAssigned} wind band ${band.bandId} has invalid weight`,
-      );
+      profileError(input, `season ${seasonAssigned} wind band ${band.bandId} has invalid weight`);
     }
   }
   if (season.precipitationOptions.length === 0) {
-    profileError(
-      input,
-      `season ${seasonAssigned} declares no precipitation options`,
-    );
+    profileError(input, `season ${seasonAssigned} declares no precipitation options`);
   }
   for (const opt of season.precipitationOptions) {
     if (!Number.isInteger(opt.weight) || opt.weight < 1) {
-      profileError(
-        input,
-        `season ${seasonAssigned} precipitation option has invalid weight`,
-      );
+      profileError(input, `season ${seasonAssigned} precipitation option has invalid weight`);
     }
     if (
       !Number.isInteger(opt.intensityRangeBp.min) ||
@@ -362,10 +320,7 @@ function assertProfileComplete(
       opt.intensityRangeBp.max > 10_000 ||
       opt.intensityRangeBp.min > opt.intensityRangeBp.max
     ) {
-      profileError(
-        input,
-        `season ${seasonAssigned} precipitation option intensity range invalid`,
-      );
+      profileError(input, `season ${seasonAssigned} precipitation option intensity range invalid`);
     }
   }
   // INC-3/§4 transition tables are part of the declared policy surface too:
@@ -386,9 +341,7 @@ export function generateStrategicWeather(
   assertProfileComplete(input, profile);
 
   const seasonId = profile.seasonAssignment[input.month] as string;
-  const season = profile.seasons.find(
-    (s) => s.seasonId === seasonId,
-  ) as SeasonClimateProfile;
+  const season = profile.seasons.find((s) => s.seasonId === seasonId) as SeasonClimateProfile;
 
   // Keyed, domain-separated stream (DESIGN-42 §1 / ADR-0022): campaign-level
   // weather decisions derive from the campaign seed + area + month, so the same
@@ -426,9 +379,7 @@ export function generateStrategicWeather(
   );
 
   const precipIdx = drawWeightedId(stream, season.precipitationOptions);
-  const precipOption = season.precipitationOptions[
-    precipIdx
-  ] as PrecipitationOption;
+  const precipOption = season.precipitationOptions[precipIdx] as PrecipitationOption;
 
   const precipitationIntensityBp = drawUniform(
     stream,
@@ -459,12 +410,7 @@ export function generateStrategicWeather(
   // phase, ruleset version, input hash, draw/derived value, outcome, reason).
   const ledger = input.randomLedger;
   if (ledger) {
-    const record = (
-      outcome: string,
-      draw: number,
-      entityKey: string,
-      reasonCode: string,
-    ) => {
+    const record = (outcome: string, draw: number, entityKey: string, reasonCode: string) => {
       ledger.record({
         streamId: `campaign/weather/${input.areaId}/${input.month}`,
         entityKey,

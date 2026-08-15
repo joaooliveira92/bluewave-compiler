@@ -21,9 +21,7 @@ import {
  * @param fogMistDensityBp Fog or mist density in basis points 0..10_000.
  * @returns Basis-point multiplier for the visibility formula.
  */
-export function computeFogVisibilityMultiplierBp(
-  fogMistDensityBp: number,
-): number {
+export function computeFogVisibilityMultiplierBp(fogMistDensityBp: number): number {
   if (fogMistDensityBp < FOG_VIS_BAND_LIGHT_MIN_BP) {
     return FOG_VIS_BAND_NONE_BP; // 10_000 — no fog effect
   }
