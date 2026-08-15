@@ -22,7 +22,8 @@
     "@bluewave/persistence": "workspace:*",
     "@bluewave/phase-engine": "workspace:*",
     "@bluewave/commands": "workspace:*",
-    "@bluewave/random": "workspace:*"
+    "@bluewave/random": "workspace:*",
+    "@bluewave/combat": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

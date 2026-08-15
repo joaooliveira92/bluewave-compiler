@@ -3,25 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; style-src 'self' 'unsafe-inline'"
-    />
-    <link rel="stylesheet" href="./src/style.css" />
+    <!--
+      CSP is enforced via the main process's response-header injection
+      (src/main/csp.ts), not a meta tag here: a baked-in meta tag can't vary
+      between dev (Vite's React-refresh preamble needs 'unsafe-inline'
+      script-src) and production (strict default-src 'self'), and multiple
+      CSP sources combine as their intersection — a stray meta tag would
+      silently re-impose the strict policy even when the header relaxes it.
+    -->
     <title>Bluewave Campaign Compiler</title>
   </head>
   <body>
-    <h1>Bluewave Campaign Compiler</h1>
-    <div id="fileActions">
-      <button id="openBtn">Open Project</button>
-      <button id="saveBtn" disabled>Save Project</button>
-      <button id="saveAsBtn" disabled>Save Project As</button>
-      <button id="compileBtn" disabled>Compile Campaign</button>
-    </div>
-    <div id="status">
-      Welcome. Click "Open Project" to load a .bluewave project, or compile picks a directory.
-    </div>
-    <div id="output"></div>
-    <script type="module" src="./src/main.ts"></script>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
   </body>
 </html>

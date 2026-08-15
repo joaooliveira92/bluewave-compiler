@@ -2,7 +2,7 @@ import { describe, it, expect } from "vite-plus/test";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
-import { CampaignCompiler } from "@bluewave/campaign";
+import { CampaignCompiler } from "@bluewave/campaign/compiler";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { promoteTacticalUnit } from "@bluewave/combat";
 

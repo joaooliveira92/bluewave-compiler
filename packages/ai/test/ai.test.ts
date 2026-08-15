@@ -1,15 +1,16 @@
-﻿import { describe, it, expect } from "vite-plus/test";
+﻿//packages/ai/test/ai.test.ts
+import type { CampaignSnapshot, ConstructionProject, NationState } from "@bluewave/campaign";
+import { type CommandEnvelope, CommandIdempotencyMap, CommandLifecycle } from "@bluewave/commands";
+import { CANONICAL_RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { CANONICAL_RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
-import type { CampaignSnapshot, NationState, ConstructionProject } from "@bluewave/campaign";
-import { CommandLifecycle, CommandIdempotencyMap, type CommandEnvelope } from "@bluewave/commands";
 import { RandomEngine } from "@bluewave/random";
+import { describe, expect, it } from "vite-plus/test";
 import {
-  AiCommandGenerator,
-  AiPlanner,
   AI_COMMAND_TYPE_BUDGET,
   AI_COMMAND_TYPE_RESEARCH,
+  AiCommandGenerator,
+  AiPlanner,
 } from "../src/index.js";
 
 function makeNation(id: string, treasury: SafeInt, projects: ConstructionProject[]): NationState {
@@ -54,7 +55,13 @@ function makeSnapshot(
     })),
     world: { areas: [], routes: [], ports: [] },
     nations: map,
-    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [], battleManifests: [] },
+    wars: {
+      wars: [],
+      battles: [],
+      participantMemberships: [],
+      blockadeState: [],
+      battleManifests: [],
+    },
     politics: { relations: [], shells: {} },
     intelligence: { shells: {} },
     designs: new Map(),
@@ -63,6 +70,8 @@ function makeSnapshot(
     compatibilityVersion: "0.1.0",
   };
 }
+
+const testHash = sha256Hex(canonicalSerialize({ fixture: "ai" }));
 
 const project = (id: string, total: number, completed: number): ConstructionProject => ({
   id,
@@ -82,21 +91,21 @@ describe("AiCommandGenerator", () => {
     const gen = new AiCommandGenerator({
       campaignId: "camp",
       turnNumber: SafeInt(1),
-      expectedSnapshotHash: "abc",
+      expectedSnapshotHash: testHash,
     });
-    expect(gen.idempotencyKey("camp", SafeInt(1), "GBR", AI_COMMAND_TYPE_BUDGET)).toBe(
-      "camp/1/GBR/budget_project",
-    );
-    expect(gen.idempotencyKey("camp", SafeInt(7), "FRA", AI_COMMAND_TYPE_RESEARCH)).toBe(
-      "camp/7/FRA/SetResearchPriority",
-    );
+    expect(
+      AiCommandGenerator.buildIdempotencyKey("camp", SafeInt(1), "GBR", AI_COMMAND_TYPE_BUDGET),
+    ).toBe("camp/1/GBR/budget_project");
+    expect(
+      AiCommandGenerator.buildIdempotencyKey("camp", SafeInt(7), "FRA", AI_COMMAND_TYPE_RESEARCH),
+    ).toBe("camp/7/FRA/SetResearchPriority");
   });
 
   it("is deterministic for same inputs", () => {
     const gen = new AiCommandGenerator({
       campaignId: "camp",
       turnNumber: SafeInt(1),
-      expectedSnapshotHash: "abc",
+      expectedSnapshotHash: testHash,
     });
     const a = gen.buildBudgetCommand("GBR", "proj-1", SafeInt(50));
     const b = gen.buildBudgetCommand("GBR", "proj-1", SafeInt(50));
@@ -110,7 +119,7 @@ describe("AiCommandGenerator", () => {
     const gen = new AiCommandGenerator({
       campaignId: "camp",
       turnNumber: SafeInt(1),
-      expectedSnapshotHash: "abc",
+      expectedSnapshotHash: testHash,
     });
     const priorities: Record<string, SafeInt> = {};
     for (const f of CANONICAL_RESEARCH_FIELD_IDS) priorities[f] = SafeInt(1);
@@ -125,7 +134,7 @@ describe("AiCommandGenerator", () => {
     const gen = new AiCommandGenerator({
       campaignId: "camp",
       turnNumber: SafeInt(2),
-      expectedSnapshotHash: "abc",
+      expectedSnapshotHash: testHash,
     });
     const budget = gen.buildBudgetCommand("GBR", "proj-1", SafeInt(10));
     const research = gen.buildResearchPriorityCommand("GBR", {

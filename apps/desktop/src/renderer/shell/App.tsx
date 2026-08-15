@@ -1,0 +1,427 @@
+import type { ArchetypeSelection, CampaignConfiguration } from "@bluewave/campaign-engine";
+import { useEffect, useMemo, useState } from "react";
+import type { BluewaveDesktopBridge } from "../../preload/index.js";
+import type { WindowState } from "../../shared/bridge-contract.js";
+import type { NewGameOptions } from "../../shared/new-game-contract.js";
+import Auralis from "../components/backgrounds/auralis.js";
+import Nebulore from "../components/backgrounds/nebulore.js";
+import { StarsBackground } from "../components/backgrounds/starts.js";
+import { ShaderBackground } from "../components/motion/shader-background.js";
+import { Alert, AlertDescription } from "../components/ui/alert.js";
+import { SidebarInset, SidebarProvider } from "../components/ui/sidebar.js";
+import { CampaignFileScreen } from "../screens/campaign-file/CampaignFileScreen.js";
+import { CampaignPreferencesOnboarding } from "../screens/campaign-preferences/onboarding-blocks.js";
+import { NewGameArchetypeScreen } from "../screens/new-game/NewGameArchetypeScreen.js";
+import { NewGameNationScreen } from "../screens/new-game/NewGameNationScreen.js";
+import type { DraftPreferences } from "../screens/new-game/new-game-preferences-screen-state.js";
+import { AppSidebar } from "./AppSidebar.js";
+import { useBackground } from "./BackgroundContext.js";
+import { CampaignShellProvider, useCampaignShellContext } from "./CampaignShellContext.js";
+import {
+  CAMPAIGN_SCREEN_SEARCH_TARGETS,
+  CampaignScreenOutlet,
+  type Screen,
+} from "./campaign-screen-registry.js";
+import type { CampaignShellMode } from "./campaign-shell-state.js";
+import type { PrimaryAction } from "./primary-action.js";
+import { SiteHeader } from "./SiteHeader.js";
+import { type ActiveView, type HeaderCampaign, headerTitleFor } from "./site-header-state.js";
+import { useTheme } from "./ThemeContext.js";
+import { type NewGameDraft, useNewGameFlow } from "./useNewGameFlow.js";
+import { WindowContextProvider } from "./WindowContext.js";
+
+const EMPTY_SEARCH_TARGETS: readonly {
+  readonly id: Screen;
+  readonly label: string;
+}[] = [];
+
+declare global {
+  interface Window {
+    bluewave?: BluewaveDesktopBridge;
+  }
+}
+
+interface BackgroundLayerProps {
+  readonly background: ReturnType<typeof useBackground>["background"];
+  readonly resolvedTheme: ReturnType<typeof useTheme>["resolvedTheme"];
+}
+
+function BackgroundLayer({ background, resolvedTheme }: BackgroundLayerProps) {
+  switch (background) {
+    case "water":
+      return (
+        <ShaderBackground
+          variant="water"
+          className="fixed inset-0 -z-10"
+          colorBack={resolvedTheme === "dark" ? "#010101" : "#dbe9f4"}
+          colorHighlight={resolvedTheme === "dark" ? "#121212" : "#ffffff"}
+          speed={0.125}
+        />
+      );
+    case "stars":
+      return <StarsBackground className="fixed inset-0 -z-10" />;
+    case "mesh-citrus":
+      return (
+        <ShaderBackground
+          variant="mesh-gradient"
+          className="fixed inset-0 -z-10"
+          colors={
+            resolvedTheme === "dark"
+              ? ["#020202", "#2b1400", "#0f1a05", "#402008"]
+              : ["#fff8e8", "#ffd166", "#d4f0a0", "#ffb84d"]
+          }
+          distortion={0.8}
+          swirl={0.4}
+          speed={0.125}
+        />
+      );
+    case "mesh-lagoon":
+      return (
+        <ShaderBackground
+          variant="mesh-gradient"
+          className="fixed inset-0 -z-10"
+          colors={
+            resolvedTheme === "dark"
+              ? ["#020a0a", "#0a2e2e", "#042a40", "#1a0a40"]
+              : ["#f0fffa", "#5eead4", "#38bdf8", "#a78bfa"]
+          }
+          distortion={0.8}
+          swirl={0.4}
+          speed={0.15}
+        />
+      );
+    case "auralis":
+      return (
+        <Auralis
+          className="fixed inset-0 -z-10"
+          speed={0.03}
+          colors={
+            resolvedTheme === "dark"
+              ? ["#ef4444", "#dc2626", "#b91c1c"]
+              : ["#ffb3b3", "#ff8a8a", "#ff6b6b"]
+          }
+        />
+      );
+    case "nebulore":
+      return (
+        <Nebulore
+          className="fixed inset-0 -z-10"
+          speed={0.025}
+          colors={
+            resolvedTheme === "dark"
+              ? ["#312e81", "#9333ea", "#22d3ee"]
+              : ["#c7d2fe", "#d8b4fe", "#a5f3fc"]
+          }
+        />
+      );
+    case "none":
+      return null;
+  }
+}
+
+interface CampaignUnavailableViewProps {
+  readonly mode: Exclude<CampaignShellMode, { readonly kind: "campaign" }>;
+  readonly draft: NewGameDraft | null;
+  readonly newGameStatus: "ready" | "launching";
+  readonly newGameError: string | null;
+  readonly onOpenCampaign: (sessionId: string) => Promise<void>;
+  readonly onStartNewGame: () => void;
+  readonly onCancelPreferences: () => void;
+  readonly onPreferencesNext: (preferences: DraftPreferences, options: NewGameOptions) => void;
+  readonly onBackToPreferences: () => void;
+  readonly onArchetypeNext: (archetype: ArchetypeSelection) => void;
+  readonly onBackToArchetype: () => void;
+  readonly onStartCampaign: (config: CampaignConfiguration) => Promise<void>;
+  readonly onPrimaryActionChange: (action: PrimaryAction | null) => void;
+}
+
+function CampaignUnavailableView(props: CampaignUnavailableViewProps) {
+  switch (props.mode.kind) {
+    case "opening":
+      return <CampaignLoadingView />;
+    case "open-error":
+      return (
+        <CampaignOpenErrorView
+          message={props.mode.message}
+          onOpenCampaign={props.onOpenCampaign}
+          onStartNewGame={props.onStartNewGame}
+        />
+      );
+    case "new-game-preferences":
+      return (
+        <CampaignPreferencesView
+          onCancel={props.onCancelPreferences}
+          onNext={props.onPreferencesNext}
+        />
+      );
+    case "new-game-archetype":
+      return props.draft === null ? (
+        <CampaignFileView
+          onOpenCampaign={props.onOpenCampaign}
+          onStartNewGame={props.onStartNewGame}
+        />
+      ) : (
+        <NewGameArchetypeScreen
+          initialArchetype={props.draft.archetype}
+          onBack={props.onBackToPreferences}
+          onNext={props.onArchetypeNext}
+          onPrimaryActionChange={props.onPrimaryActionChange}
+        />
+      );
+    case "new-game-nation":
+      return props.draft === null ? (
+        <CampaignFileView
+          onOpenCampaign={props.onOpenCampaign}
+          onStartNewGame={props.onStartNewGame}
+        />
+      ) : (
+        <NewGameNationScreen
+          preferences={props.draft.preferences}
+          options={props.draft.options}
+          archetype={props.draft.archetype}
+          status={props.newGameStatus}
+          error={props.newGameError}
+          onBack={props.onBackToArchetype}
+          onStart={props.onStartCampaign}
+          onPrimaryActionChange={props.onPrimaryActionChange}
+        />
+      );
+    case "file":
+      return (
+        <CampaignFileView
+          onOpenCampaign={props.onOpenCampaign}
+          onStartNewGame={props.onStartNewGame}
+        />
+      );
+  }
+}
+
+function CampaignLoadingView() {
+  return (
+    <div className="p-8">
+      <p>Loading campaign…</p>
+    </div>
+  );
+}
+
+interface CampaignFileViewProps {
+  readonly onOpenCampaign: (sessionId: string) => Promise<void>;
+  readonly onStartNewGame: () => void;
+}
+
+function CampaignFileView({ onOpenCampaign, onStartNewGame }: CampaignFileViewProps) {
+  return <CampaignFileScreen onOpenCampaign={onOpenCampaign} onStartNewGame={onStartNewGame} />;
+}
+
+function CampaignOpenErrorView({
+  message,
+  onOpenCampaign,
+  onStartNewGame,
+}: CampaignFileViewProps & { readonly message: string }) {
+  return (
+    <div className="p-8">
+      <CampaignFileView onOpenCampaign={onOpenCampaign} onStartNewGame={onStartNewGame} />
+      <div className="mt-4 rounded-md border border-destructive/50 bg-destructive/10 p-4">
+        <p className="m-0 text-destructive">{message}</p>
+      </div>
+    </div>
+  );
+}
+
+interface CampaignPreferencesViewProps {
+  readonly onCancel: () => void;
+  readonly onNext: (preferences: DraftPreferences, options: NewGameOptions) => void;
+}
+
+function CampaignPreferencesView({ onCancel, onNext }: CampaignPreferencesViewProps) {
+  return (
+    <div className="p-8">
+      <CampaignPreferencesOnboarding onCancel={onCancel} onNext={onNext} />
+    </div>
+  );
+}
+
+function ActiveCampaignView({ screen }: { readonly screen: Screen }) {
+  return (
+    <div className="p-8 font-sans">
+      <CampaignScreenOutlet screen={screen} />
+    </div>
+  );
+}
+
+interface AppFrameProps {
+  readonly campaignSessionId: string | null;
+  readonly screen: Screen;
+  readonly saveMessage: string | null;
+  readonly header: React.ReactNode;
+  readonly children: React.ReactNode;
+  readonly onSelectScreen: (screen: Screen) => void;
+}
+
+function AppFrame({
+  campaignSessionId,
+  screen,
+  saveMessage,
+  header,
+  children,
+  onSelectScreen,
+}: AppFrameProps) {
+  return (
+    <SidebarProvider className="h-svh flex-col overflow-hidden bg-transparent">
+      {header}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {campaignSessionId !== null && (
+          <AppSidebar screen={screen} onSelect={onSelectScreen} footer={campaignSessionId} />
+        )}
+        <SidebarInset className="relative min-h-0 overflow-auto bg-transparent">
+          {saveMessage !== null && (
+            <Alert
+              variant="default"
+              className="absolute left-4 right-4 top-2 z-50 border backdrop-blur-sm"
+            >
+              <AlertDescription>{saveMessage}</AlertDescription>
+            </Alert>
+          )}
+          {children}
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  );
+}
+
+function CampaignShellApplication({
+  bridge,
+}: {
+  readonly bridge: BluewaveDesktopBridge | undefined;
+}) {
+  const { resolvedTheme } = useTheme();
+  const { background } = useBackground();
+  const shell = useCampaignShellContext();
+  const [windowState, setWindowState] = useState<WindowState | null>(null);
+  const newGame = useNewGameFlow(bridge, {
+    openCampaign: shell.actions.openCampaign,
+    selectScreen: shell.actions.selectScreen,
+  });
+
+  useEffect(() => {
+    let active = true;
+    async function loadWindowState(): Promise<void> {
+      if (bridge === undefined) return;
+      try {
+        const state = await bridge.getWindowState();
+        if (active) setWindowState(state);
+      } catch {
+        // Keep the platform-derived fallback when IPC is temporarily unavailable.
+      }
+    }
+    void loadWindowState();
+    return () => {
+      active = false;
+    };
+  }, [bridge]);
+
+  const platform = bridge?.platform ?? "darwin";
+  const headerCampaign: HeaderCampaign | null = useMemo(
+    () =>
+      shell.state.campaign === null
+        ? null
+        : {
+            month: shell.state.campaign.month,
+            treasury: shell.state.campaign.treasury,
+          },
+    [shell.state.campaign],
+  );
+
+  const windowContextValue = useMemo(
+    () => ({
+      platform,
+      windowState: windowState ?? {
+        platform,
+        isMaximized: false,
+        maximizable: true,
+        minimizable: true,
+      },
+      titlebar: { title: headerTitleFor(headerCampaign) },
+      windowMinimize: () => bridge?.windowMinimize(),
+      windowMaximizeToggle: () => bridge?.windowMaximizeToggle(),
+      windowClose: () => bridge?.windowClose(),
+    }),
+    [bridge, headerCampaign, platform, windowState],
+  );
+
+  const activeView: ActiveView =
+    shell.state.mode.kind === "campaign"
+      ? "playing"
+      : shell.state.mode.kind === "new-game-preferences" ||
+          shell.state.mode.kind === "new-game-archetype" ||
+          shell.state.mode.kind === "new-game-nation"
+        ? "new_game"
+        : "menu";
+
+  const searchTargets =
+    shell.state.campaign === null ? EMPTY_SEARCH_TARGETS : CAMPAIGN_SCREEN_SEARCH_TARGETS;
+
+  const header = (
+    <SiteHeader
+      title={headerTitleFor(headerCampaign)}
+      activeView={activeView}
+      campaign={headerCampaign}
+      back={{
+        disabled: !shell.state.canGoBack,
+        onTrigger: shell.actions.goBack,
+      }}
+      forward={{
+        disabled: !shell.state.canGoForward,
+        onTrigger: shell.actions.goForward,
+      }}
+      {...(shell.state.primaryAction !== null ? { continueAction: shell.state.primaryAction } : {})}
+      searchTargets={searchTargets}
+      onSearchNavigate={(id) => shell.actions.selectScreen(id as Screen)}
+    />
+  );
+
+  const content =
+    shell.state.mode.kind !== "campaign" ? (
+      <CampaignUnavailableView
+        mode={shell.state.mode}
+        draft={newGame.state.draft}
+        newGameStatus={newGame.state.status}
+        newGameError={newGame.state.error}
+        onOpenCampaign={shell.actions.openCampaign}
+        onStartNewGame={newGame.actions.start}
+        onCancelPreferences={newGame.actions.cancel}
+        onPreferencesNext={newGame.actions.acceptPreferences}
+        onBackToPreferences={newGame.actions.backToPreferences}
+        onArchetypeNext={newGame.actions.acceptArchetype}
+        onBackToArchetype={newGame.actions.backToArchetype}
+        onStartCampaign={newGame.actions.launch}
+        onPrimaryActionChange={shell.actions.setPrimaryAction}
+      />
+    ) : (
+      <ActiveCampaignView screen={shell.state.screen} />
+    );
+
+  return (
+    <WindowContextProvider value={windowContextValue}>
+      <BackgroundLayer background={background} resolvedTheme={resolvedTheme} />
+      <AppFrame
+        campaignSessionId={shell.state.campaign?.sessionId ?? null}
+        screen={shell.state.screen}
+        saveMessage={shell.state.saveMessage}
+        header={header}
+        onSelectScreen={shell.actions.selectScreen}
+      >
+        {content}
+      </AppFrame>
+    </WindowContextProvider>
+  );
+}
+
+export function App() {
+  const bridge = window.bluewave;
+  return (
+    <CampaignShellProvider bridge={bridge}>
+      <CampaignShellApplication bridge={bridge} />
+    </CampaignShellProvider>
+  );
+}

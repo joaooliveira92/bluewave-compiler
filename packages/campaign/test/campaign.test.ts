@@ -1,6 +1,6 @@
 //packages/campaign/test/campaign.test.ts
 import { describe, it, expect } from "vite-plus/test";
-import { CampaignCompiler } from "../src/index.js";
+import { CampaignCompiler } from "../src/compiler-public.js";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";

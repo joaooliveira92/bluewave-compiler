@@ -3,22 +3,22 @@ export * from "./authorization.js";
 export * from "./canonicalization.js";
 export * from "./definition.js";
 export type {
+  AcceptPeaceCommand,
+  AddShipToDivisionCommand,
+  BreakAllianceCommand,
+  BreakNonAggressionPactCommand,
   BudgetProjectCommand,
+  ChangeDivisionFlagshipCommand,
   CommandBody,
   CommandEnvelope,
-  SetResearchPriorityCommand,
-  DeclareWarCommand,
-  AcceptPeaceCommand,
-  FormAllianceCommand,
-  BreakAllianceCommand,
-  FormNonAggressionPactCommand,
-  BreakNonAggressionPactCommand,
-  DeclareBlockadeCommand,
   CreateDivisionCommand,
-  AddShipToDivisionCommand,
-  RemoveShipFromDivisionCommand,
+  DeclareBlockadeCommand,
+  DeclareWarCommand,
   DissolveDivisionCommand,
-  ChangeDivisionFlagshipCommand,
+  FormAllianceCommand,
+  FormNonAggressionPactCommand,
+  RemoveShipFromDivisionCommand,
+  SetResearchPriorityCommand,
 } from "./envelope.js";
 export type { CommandOutcome } from "./lifecycle.js";
 export {

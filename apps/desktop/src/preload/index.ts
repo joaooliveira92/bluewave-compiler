@@ -1,37 +1,41 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { CampaignCommandClient } from "../shared/campaign-command-contract.js";
+import type { WindowState } from "../shared/bridge-contract.js";
 
-export interface CompileResult {
-  success: boolean;
-  snapshotHash?: string;
-  contentArtifactHash?: string;
-  nations?: Array<{ id: string; name: string }>;
-  diagnostics: Array<{
-    code: string;
-    severity: string;
-    message: string;
-  }>;
-  error?: string;
+/**
+ * The desktop app's IPC bridge, exposed on `window.bluewave`. Grounded in
+ * every screen's actual import path (`../../preload/index.js`) — see the
+ * desktop-mvp map, tickets 07/11. `campaign.execute` dispatches all 22
+ * commands documented across tickets 07-10 (see `CAMPAIGN_COMMAND_NAMES`
+ * in `shared/campaign-command-contract.ts`) through a single
+ * `campaign:execute` channel; `src/main/campaignBridge.ts` owns the
+ * per-command implementations. Window-chrome methods back the shell's custom,
+ * frameless-window titlebar (`WindowContext.tsx`).
+ */
+export interface BluewaveDesktopBridge {
+  readonly campaign: CampaignCommandClient;
+  readonly platform: NodeJS.Platform;
+  getWindowState(): Promise<WindowState>;
+  windowMinimize(): void;
+  windowMaximizeToggle(): void;
+  windowClose(): void;
 }
 
-export interface ProjectResult {
-  ok: boolean;
-  canceled?: boolean;
-  name?: string;
-  path?: string;
-  error?: string;
+declare global {
+  interface Window {
+    bluewave?: BluewaveDesktopBridge;
+  }
 }
 
-contextBridge.exposeInMainWorld("electronAPI", {
-  compile: (dirPath?: string): Promise<CompileResult> => {
-    return ipcRenderer.invoke("compile", dirPath);
+contextBridge.exposeInMainWorld("bluewave", {
+  campaign: {
+    execute: (command: string, payload: unknown) => {
+      return ipcRenderer.invoke("campaign:execute", command, payload);
+    },
   },
-  openProject: (): Promise<ProjectResult> => {
-    return ipcRenderer.invoke("project:open");
-  },
-  saveProject: (): Promise<ProjectResult> => {
-    return ipcRenderer.invoke("project:save");
-  },
-  saveProjectAs: (): Promise<ProjectResult> => {
-    return ipcRenderer.invoke("project:save-as");
-  },
-});
+  platform: process.platform,
+  getWindowState: () => ipcRenderer.invoke("window:get-state"),
+  windowMinimize: () => ipcRenderer.send("window:minimize"),
+  windowMaximizeToggle: () => ipcRenderer.send("window:maximize-toggle"),
+  windowClose: () => ipcRenderer.send("window:close"),
+} satisfies BluewaveDesktopBridge);

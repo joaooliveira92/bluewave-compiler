@@ -9,7 +9,7 @@
 | ---------------------------- | ------ | --------------------------------------- | ------------------------------------ | ------------------ | ------------------------ |
 | M1 Strategic Campaign Kernel | B0–B8  | Complete (57 docs)                      | Core pipeline done                   | ~154 tests passing | ACCEPTED               |
 | M1 Strategic Campaign Kernel | B9–B10 | Scope briefs ready          | B9/B10a/B10b/B10c/B10d done | 410 passing | **M1 COMPLETED (A-5 gate, 2026-08-12)** — see `docs/acceptance/m1-capability-registry.md` |
-| M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | B-1 IMPL + B-2-IMPL DONE (2026-08-12) | 568 tests pass* | B-1 battle-gen + tactical setup; B-2 movement/spotting/contact engine (AC-1..15 PASS, ADR-0018/0019). B-3..B-6 next (gunnery, armor, weather, results→campaign). |
+| M2 Surface Tactical Core     | —      | Design docs exist (DESIGN-38–42)        | B-1 IMPL + B-2-IMPL + B-3-IMPL DONE (2026-08-13) | 596 tests pass* | B-1 battle-gen + tactical setup; B-2 movement/spotting/contact engine (AC-1..15 PASS, ADR-0018/0019); B-3 core surface gunnery fire-resolution (AC-1..15 PASS, ADR-0020). B-4..B-6 next (armor, weather, results→campaign). |
 | M3 Advanced Surface Warfare  | —      | Design docs exist (DESIGN-34–36, 39–42) | Not started                          | —                  | Future                   |
 | M4 Aviation                  | —      | Design docs exist (DESIGN-43–45)        | Not started                          | —                  | Future                   |
 | M5 Electronics & Missile Era | —      | Design docs exist (DESIGN-46–48)        | Not started                          | —                  | Future                   |
@@ -307,6 +307,44 @@ there. Implementations **MUST NOT** silently resolve an open decision.
 > **Next: B-2-IMPL** — movement kinematics, spotting/sensor model, contact lifecycle,
 > minute-advance simulation engine, versioned constants/reason codes/content
 > constants (INC-1..5).
+
+### B-3 — M2 Gunnery (core surface fire-resolution)
+
+> **Status (2026-08-13): DONE — PASS.** Scoped DESIGN-39 (`docs/rules/gunnery.md`)
+> to an engine-only deterministic surface gunnery fire-resolution slice (committed
+> `fd3fabe`): map `.scratch/b3-m2-gunnery/map.md`, decision tickets `issues/01..06`,
+> spec (AC-1..15, INC-1..5), brief `.ai/briefs/b3-m2-gunnery.md`, research
+> `docs/research/b3-m2-gunnery.md` (naval gun ballistics), `.ai/specs/b3-m2-gunnery.md`.
+> **INC-1..4 committed (`9777180`, `e85efb9`, `33e721e`, `7cc73f8`):** `GunneryState` +
+> 7 fire modes + fixed-point guards + `gunnery_v1` contract; accuracy (17-factor
+> manifest, exact integer product, one FLOOR, `GUNNERY_ACCURACY_FACTOR_MISSING`,
+> keyed hit-draw); rate-of-fire/reload (integer ms, CEIL, §4 order 1-11) +
+> gun-quality -3..+2 table; salvo/event → immutable `GunneryEventRecord` + §31
+> canonical ordering + atomic ammunition (`GUNNERY_AMMUNITION_UNAVAILABLE`) +
+> `resolveGunnery` wired after spotting in the minute-advance simulation (**strict
+> no-op when no batteries → B-2 hashes unchanged**) + fog-of-war target legality +
+> two-process determinism. **INC-5 DONE:** full `*_v1` contracts rollup (all five
+> shipped contracts — base/accuracy/rate/gun-quality/ballistics — fail-closed
+> proving tests, AC-14); `reason-codes-gunnery.test.ts` set-equality vs DESIGN-39
+> §32 + shared catalog (AC-10); research-grounded naval gun ballistics constant set
+> (`gunnery_ballistics_v1`, 6 grounded calibers + 1880s RML heavy-gun BALANCE
+> TARGET `210_000` ms); **ADR-0020** (scope boundary + §32 reason-code policy +
+> `SURFACE_FIRE_CONTROL_MINIMUM_BP=2_000` + RML ballistics decision). Combat suite
+> 44 files / 325 tests green; tsc + lint clean; goldens 9/9 unchanged;
+> `BattleResolver`/`StrengthCalculator` unmodified. Full orchestrator gate PASS
+> (uncached build 17/17, `tsc -b` clean, full test suite 32/34 — only the two
+> documented pre-existing unrelated failures — golden verify 9/9, two-process
+> determinism). A pre-existing unrelated `packages/ai/src/aiPlanner.ts` build
+> defect (TS2367, blocking the repo-wide gate) was repaired en route. Evidence:
+> `.ai/reports/b3-m2-gunnery-impl.md`. The concurrent-actor coordination hazard
+> flagged mid-sprint (`b65154f`/`d1e5403` + uncommitted `packages/ai/*`) was
+> already resolved (committed as `5991070`/`db2b73f`) by the time INC-5 started.
+>
+> **Deferred (recorded, not dropped):** autoloaders (§6-10), dual-purpose (§11-15) —
+> later gunnery slices; armor zones/thickness/penetration (§16-24) → **B-4**
+> armor-and-damage; straddle (§25) + RAPID/AA eligibility predicates; target
+> allocation (§26-27); damage effects (§29) → B-4/DAMAGE; phase wiring (B-6).
+> **Next: B-4** (armor & damage).
 
 ### M1 — Strategic Campaign Kernel (A-5 acceptance gate)
 

@@ -49,7 +49,7 @@ import {
   type NationIdentityDefinition,
   type ContinuationDefinition,
 } from "../src/continuity.js";
-import { CampaignCompiler } from "../src/index.js";
+import { CampaignCompiler } from "../src/compiler-public.js";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { tmpdir } from "node:os";

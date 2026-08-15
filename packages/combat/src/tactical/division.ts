@@ -5,12 +5,13 @@ import type {
   DivisionRole,
   PermanentDivision,
 } from "@bluewave/campaign";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError, type SafeInt } from "@bluewave/contracts";
+import { DIVISION_FORMATION_INELIGIBLE, DIVISION_ROLE_INELIGIBLE } from "./reasonCodes.js";
 import type { TacticalShipUnit } from "./unit.js";
-import { DIVISION_ROLE_INELIGIBLE, DIVISION_FORMATION_INELIGIBLE } from "./reasonCodes.js";
 
-export { DIVISION_ROLES, DIVISION_FORMATIONS } from "@bluewave/campaign";
 export type { DivisionFormation, DivisionRole, PermanentDivision } from "@bluewave/campaign";
+export { DIVISION_FORMATIONS, DIVISION_ROLES } from "@bluewave/campaign";
+
 import type { CanonicalShipType } from "./shipType.js";
 
 export const DIVISION_EFFECTS_VERSION = "division_effects_v1" as const;

@@ -47,22 +47,22 @@ ship→design content linkage (deferred, not fabricated).
 
 ## Requirements evidence
 
-| Criterion | Implementation | Proving test |
-| --------- | -------------- | ------------ |
-| AC-1 | `tactical/unit.ts promoteTacticalUnit`, `tactical/shipType.ts classifyShip` | `combat/test/tactical/unit.test.ts`, `shipType.test.ts` |
-| AC-2 | `campaign/src/division.ts assertDivisionInvariants` | `campaign/test/division.test.ts` |
-| AC-3 | `commands/src/lifecycle.ts` division validators | `commands/test/commands.test.ts` |
-| AC-4 | `generation/mission.ts MISSION_REGISTRY`, `assertPrioritiesUnique` | `combat/test/generation/mission.test.ts` |
-| AC-5 | `generation/opportunity.ts determineMissionOpportunities` (ADR-0015) | `combat/test/generation/opportunity.test.ts`, `pipeline.test.ts` |
-| AC-6 | `generation/eligibility.ts gatherEligibleAssets` | `combat/test/generation/eligibility.test.ts` |
-| AC-7 | `tactical/division.ts projectPermanentDivision` | `combat/test/tactical/projection.test.ts` |
-| AC-8 | `generation/force.ts`, `generation/optional.ts` | `combat/test/generation/roles-optional.test.ts` |
-| AC-9 | `generation/repair.ts battleCompositionRepairV1` | `combat/test/generation/repair.test.ts` |
-| AC-10 | `generation/manifest.ts`, `generation/seed.ts` | `combat/test/generation/seed-manifest.test.ts` |
-| AC-11 | `generation/reservation.ts`, `generation/autoResolutionProof.ts` | `combat/test/generation/reservation.test.ts` |
-| AC-12 | `phase-engine/src/registry.ts` order 7.5 + `month.ts` phase | `phase-engine/test/battle-generation-phase.test.ts` |
-| AC-13 | persistence + replay field propagation | `persistence/test/battle-generation-persistence.test.ts` |
-| AC-14 | reachable-subset isolation (deferred missions unreachable) | `combat/test/generation/mission.test.ts` (deferred half); per-ship promotion mechanism in `desktop/test/production-promotion.test.ts` |
+| Criterion | Implementation                                                              | Proving test                                                                                                                          |
+| --------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1      | `tactical/unit.ts promoteTacticalUnit`, `tactical/shipType.ts classifyShip` | `combat/test/tactical/unit.test.ts`, `shipType.test.ts`                                                                               |
+| AC-2      | `campaign/src/division.ts assertDivisionInvariants`                         | `campaign/test/division.test.ts`                                                                                                      |
+| AC-3      | `commands/src/lifecycle.ts` division validators                             | `commands/test/commands.test.ts`                                                                                                      |
+| AC-4      | `generation/mission.ts MISSION_REGISTRY`, `assertPrioritiesUnique`          | `combat/test/generation/mission.test.ts`                                                                                              |
+| AC-5      | `generation/opportunity.ts determineMissionOpportunities` (ADR-0015)        | `combat/test/generation/opportunity.test.ts`, `pipeline.test.ts`                                                                      |
+| AC-6      | `generation/eligibility.ts gatherEligibleAssets`                            | `combat/test/generation/eligibility.test.ts`                                                                                          |
+| AC-7      | `tactical/division.ts projectPermanentDivision`                             | `combat/test/tactical/projection.test.ts`                                                                                             |
+| AC-8      | `generation/force.ts`, `generation/optional.ts`                             | `combat/test/generation/roles-optional.test.ts`                                                                                       |
+| AC-9      | `generation/repair.ts battleCompositionRepairV1`                            | `combat/test/generation/repair.test.ts`                                                                                               |
+| AC-10     | `generation/manifest.ts`, `generation/seed.ts`                              | `combat/test/generation/seed-manifest.test.ts`                                                                                        |
+| AC-11     | `generation/reservation.ts`, `generation/autoResolutionProof.ts`            | `combat/test/generation/reservation.test.ts`                                                                                          |
+| AC-12     | `phase-engine/src/registry.ts` order 7.5 + `month.ts` phase                 | `phase-engine/test/battle-generation-phase.test.ts`                                                                                   |
+| AC-13     | persistence + replay field propagation                                      | `persistence/test/battle-generation-persistence.test.ts`                                                                              |
+| AC-14     | reachable-subset isolation (deferred missions unreachable)                  | `combat/test/generation/mission.test.ts` (deferred half); per-ship promotion mechanism in `desktop/test/production-promotion.test.ts` |
 
 ## Commands and observed results
 
@@ -102,13 +102,13 @@ workspace packages), so no save migration is required; a schema-version bump was
 considered but the compatibility string remains `1.0.0` (all current builds share
 one version).
 
-| Artifact | Old → New | Cause |
-| -------- | --------- | ----- |
-| initialSnapshotHash | `bc7dfc2c…`→`7ca7e574…` | `WarState.battleManifests` field in compiled snapshot |
-| closingSnapshotHash | `3b1be6ee…`→`d8fd2075…` | new fields + `battle_generation` phase in month pipeline |
-| commandLedgerHash | `5c154b3d…`→`f489269f…` | budget command envelope over new snapshot |
-| replayVerificationHash | `64abef89…`→`d889d477…` | new phase/snapshot surface |
-| battleGenerationHash | `53bfb35d…`→`dcdb85c4…` | real battle composition consumes co-located assets |
+| Artifact               | Old → New               | Cause                                                    |
+| ---------------------- | ----------------------- | -------------------------------------------------------- |
+| initialSnapshotHash    | `bc7dfc2c…`→`7ca7e574…` | `WarState.battleManifests` field in compiled snapshot    |
+| closingSnapshotHash    | `3b1be6ee…`→`d8fd2075…` | new fields + `battle_generation` phase in month pipeline |
+| commandLedgerHash      | `5c154b3d…`→`f489269f…` | budget command envelope over new snapshot                |
+| replayVerificationHash | `64abef89…`→`d889d477…` | new phase/snapshot surface                               |
+| battleGenerationHash   | `53bfb35d…`→`dcdb85c4…` | real battle composition consumes co-located assets       |
 
 INC-2 also changed `closingSnapshotHash` `ccd0f826→3b1be6ee` + `replayVerificationHash`
 `1aa85ce2→64abef89` (cause: `NationState.divisions`). All regeneration was via
@@ -153,7 +153,7 @@ acceptance criterion.
 
 - **AC-14 per-ship production promotion** is **PARTIAL**: the promotion mechanism
   is proven by fixtures (AC-1) and the deferred-missions-unreachable half passes;
-  the *content* linkage (production `fleets.yaml` ships carrying a
+  the _content_ linkage (production `fleets.yaml` ships carrying a
   `designVersionId`) is **deferred to the CONTENT-track** and not fabricated —
   the pack's `classId`s do not cleanly or uniquely map to `designs.yaml` (some
   classes, e.g. Temeraire, Custoza, have no design; mojibake in names), so

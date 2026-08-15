@@ -7,6 +7,7 @@
     { "path": "packages/content-schema" },
     { "path": "packages/content-compiler" },
     { "path": "packages/campaign" },
+    { "path": "packages/campaign-engine" },
     { "path": "packages/random" },
     { "path": "packages/commands" },
     { "path": "packages/events" },

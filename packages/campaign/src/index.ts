@@ -10,6 +10,7 @@ export type {
   WarState,
   BattleInstance,
   BattleResult,
+  BattleManifest,
   WarDeclaration,
   WarParticipantMembership,
   BlockadeState,
@@ -17,9 +18,6 @@ export type {
 export type { PersistenceManifest } from "./state.js";
 export type { PoliticalState, DiplomaticRelation } from "./state.js";
 export type { IntelligenceState } from "./state.js";
-export type { CampaignCompilerInput, CampaignCompilerOutput, CampaignFiles } from "./compiler.js";
-export { CampaignCompiler } from "./compiler.js";
-
 export * from "./warConstants.js";
 
 // DESIGN-03 Campaign Configuration surface

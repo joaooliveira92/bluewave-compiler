@@ -72,11 +72,11 @@ node packages/cross-process-test/dist/run-child.js (twice)
 
 ## Canonical artifact changes
 
-| Artifact | Old → New | Cause | Migration |
-|---|---|---|---|
+| Artifact            | Old → New                 | Cause                                                  | Migration           |
+| ------------------- | ------------------------- | ------------------------------------------------------ | ------------------- |
 | contentArtifactHash | `c3be5604…` → `190fa7a9…` | 24 INTERWAR techs + 10 designs added; pack 0.2.0→0.3.0 | none (content-only) |
-| snapshotHash | `cb1f1497…` → `2ae3e505…` | same compilation change | none |
-| golden/hashes.json | unchanged | separate fixture | — |
+| snapshotHash        | `cb1f1497…` → `2ae3e505…` | same compilation change                                | none                |
+| golden/hashes.json  | unchanged                 | separate fixture                                       | —                   |
 
 No format / formula / RNG / command / event / save schema change.
 
