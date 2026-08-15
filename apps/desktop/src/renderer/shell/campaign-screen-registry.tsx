@@ -3,6 +3,7 @@ import {
   Crosshair,
   FlaskConical,
   Hammer,
+  Handshake,
   LayoutDashboard,
   Map as MapIcon,
   Settings,
@@ -34,6 +35,11 @@ const ResearchScreen = lazy(() =>
     default: module.ResearchScreen,
   })),
 );
+const DiplomacyScreen = lazy(() =>
+  import("../screens/diplomacy/DiplomacyScreen.js").then((module) => ({
+    default: module.DiplomacyScreen,
+  })),
+);
 const TacticalSandboxScreen = lazy(() =>
   import("../screens/tactical-sandbox/TacticalSandboxScreen.js").then((module) => ({
     default: module.TacticalSandboxScreen,
@@ -61,6 +67,7 @@ export type CampaignScreen =
   | "fleet"
   | "simulation"
   | "research"
+  | "diplomacy"
   | "tactical-sandbox"
   | "debugging"
   | "map-prototype"
@@ -104,6 +111,10 @@ function SimulationRoute({ sessionId }: CampaignScreenRouteProps) {
 
 function ResearchRoute({ sessionId }: CampaignScreenRouteProps) {
   return <ResearchScreen sessionId={sessionId} />;
+}
+
+function DiplomacyRoute({ sessionId }: CampaignScreenRouteProps) {
+  return <DiplomacyScreen sessionId={sessionId} />;
 }
 
 function TacticalSandboxRoute({ sessionId }: CampaignScreenRouteProps) {
@@ -187,6 +198,14 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
     group: "campaign",
     searchable: true,
     route: ResearchRoute,
+  },
+  {
+    id: "diplomacy",
+    label: "Diplomacy & War",
+    icon: Handshake,
+    group: "campaign",
+    searchable: true,
+    route: DiplomacyRoute,
   },
   {
     id: "tactical-sandbox",

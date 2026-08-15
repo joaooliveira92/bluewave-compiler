@@ -100,6 +100,13 @@ vi.mock("../screens/research/ResearchScreen.js", async () => {
       React.createElement("section", { "data-testid": "research-screen" }, sessionId),
   };
 });
+vi.mock("../screens/diplomacy/DiplomacyScreen.js", async () => {
+  const React = await import("react");
+  return {
+    DiplomacyScreen: ({ sessionId }: { sessionId: string }) =>
+      React.createElement("section", { "data-testid": "diplomacy-screen" }, sessionId),
+  };
+});
 vi.mock("../screens/tactical-sandbox/TacticalSandboxScreen.js", async () => {
   const React = await import("react");
   return {
@@ -183,6 +190,7 @@ describe("CampaignScreenOutlet", () => {
     ["fleet", "fleet-screen"],
     ["simulation", "simulation-screen"],
     ["research", "research-screen"],
+    ["diplomacy", "diplomacy-screen"],
     ["tactical-sandbox", "tactical-sandbox-screen"],
     ["debugging", "debugging-screen"],
     ["campaign-preferences", "campaign-preferences-screen"],
