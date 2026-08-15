@@ -12,7 +12,7 @@ import type { RandomDecision } from "@bluewave/random";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type { CommitMonthPayload } from "../../shared/campaign-command-contract.js";
 import { getCampaignSession, registerCampaignSession } from "../campaignSessions.js";
-import { clearResearchEnvelopes, researchEnvelopesForExecution } from "../researchWorkspace.js";
+import { clearPendingEnvelopes, pendingEnvelopesForExecution } from "../pendingCommands.js";
 import { toSaveableState } from "../saveHelpers.js";
 
 /**
@@ -87,12 +87,14 @@ export async function commitMonth(
 
   const executor = new MonthExecutor();
   const collector = new DiagnosticCollector();
-  // The session's queued research-priority envelopes (INC-2): drained only
-  // NOW, after every revision/end-of-simulation check and BEFORE the month
-  // executes, so a rejected commit leaves the queue fully intact. When no
-  // research command was ever issued the list is `[]` — byte-identical
-  // behavior to the pre-research pipeline. The engine (command_collection)
-  // stays the sole mutator of `nation.research`.
+  // The session's queued player command envelopes — research priorities AND
+  // diplomacy commands (desktop-diplomacy-war INC-2: one shared queue, one
+  // drain seam). Drained only NOW, after every revision/end-of-simulation
+  // check and BEFORE the month executes, so a rejected commit leaves the
+  // queue fully intact. When no command was ever issued the list is `[]` —
+  // byte-identical behavior to the pre-queue pipeline. The engine
+  // (command_collection) stays the sole mutator of
+  // politics/wars/blockades/research.
   //
   // `MonthExecutor`'s command_collection authorizes human commands against
   // `snapshot.slots[0]` only (month.ts), while the desktop lets the player
@@ -101,14 +103,14 @@ export async function commitMonth(
   // the AI-planning loop (which skips playable slots and keeps every AI slot
   // in its relative order), so the final content is unaffected — and restore
   // the canonical compiled slot order before persisting, keeping the save
-  // byte-identical for campaigns that never issue research commands.
+  // byte-identical for campaigns that never issue commands.
   const originalSlots = record.state.snapshot.slots;
   const executionSnapshot = promotePlayerSlotForExecution(
     record.state.snapshot,
     record.playerSlotId,
   );
-  const researchCommands = researchEnvelopesForExecution(payload.sessionId, executionSnapshot);
-  const result = executor.execute(executionSnapshot, researchCommands, randomSeed, collector);
+  const pendingCommands = pendingEnvelopesForExecution(payload.sessionId, executionSnapshot);
+  const result = executor.execute(executionSnapshot, pendingCommands, randomSeed, collector);
 
   if (!result.success) {
     return {
@@ -186,12 +188,12 @@ export async function commitMonth(
     state: nextState,
   });
 
-  // The queued research envelopes were handed to MonthExecutor above and the
+  // The queued player envelopes were handed to MonthExecutor above and the
   // new state is persisted + registered — drop them. This runs only after a
   // successful execute + save; every earlier `return` (MONTH_EXECUTION_FAILED,
   // SAVE_FAILED, revision/end checks) leaves the queue intact so a retry
-  // re-delivers the player's priorities (INC-2).
-  clearResearchEnvelopes(payload.sessionId);
+  // re-delivers the player's commands (INC-2).
+  clearPendingEnvelopes(payload.sessionId);
 
   const activeWars = result.finalSnapshot.wars.wars.filter((war) => war.status !== "ENDED");
 

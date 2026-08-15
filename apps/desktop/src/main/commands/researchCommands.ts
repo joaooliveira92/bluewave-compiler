@@ -20,6 +20,7 @@ import {
   queueResearchEnvelope,
   type PendingResearchCommand,
 } from "../researchWorkspace.js";
+import { fingerprintOfBody } from "../pendingCommands.js";
 
 /**
  * The Research & Technology screen's two bridge commands
@@ -100,12 +101,16 @@ export async function setResearchPriorityCommand(
   });
   const exactTechId = payload.exactTechId;
 
-  // Idempotent retry: the same transportRequestId was already processed —
-  // replay its outcome instead of double-queueing. A different payload under
-  // the same id is an IDEMPOTENCY_CONFLICT, exactly like construction.
+  // Build the deterministic envelope first: the idempotency comparison then
+  // runs on the shared canonical body fingerprint (pendingCommands.ts), so
+  // re-issuing the same transportRequestId with the same payload replays the
+  // prior outcome while a different payload under the same id is an
+  // IDEMPOTENCY_CONFLICT — the research slice's exact behavior (INC-2
+  // generalization; no per-family payload equality anymore).
+  const envelope = buildResearchEnvelope(record, frozenPriorities, exactTechId);
   const prior = lookupQueuedResearchCommand(payload.sessionId, payload.transportRequestId);
   if (prior) {
-    if (!samePayload(prior, frozenPriorities, exactTechId)) {
+    if (prior.payloadFingerprint !== fingerprintOfBody(envelope.body)) {
       return {
         outcome: "rejected",
         reason: "IDEMPOTENCY_CONFLICT",
@@ -117,12 +122,9 @@ export async function setResearchPriorityCommand(
     return replayOutcome(prior);
   }
 
-  const envelope = buildResearchEnvelope(record, frozenPriorities, exactTechId);
   queueResearchEnvelope(payload.sessionId, {
     transportRequestId: payload.transportRequestId,
     envelope,
-    fieldPriorities: frozenPriorities,
-    ...(exactTechId !== undefined ? { exactTechId } : {}),
   });
 
   return { outcome: "success", value: outcomeFor(envelope), diagnostics: [] };
@@ -273,23 +275,6 @@ function assertSafeInteger(value: number, field: string): void {
   if (!Number.isSafeInteger(value)) {
     throw new Error(`fieldPriorities[${field}] must be a safe integer, got ${String(value)}`);
   }
-}
-
-function samePayload(
-  prior: PendingResearchCommand,
-  fieldPriorities: Readonly<Record<string, number>>,
-  exactTechId: string | undefined,
-): boolean {
-  if (prior.exactTechId !== exactTechId) return false;
-  const priorEntries = Object.entries(prior.fieldPriorities).sort((a, b) =>
-    a[0].localeCompare(b[0]),
-  );
-  const nextEntries = Object.entries(fieldPriorities).sort((a, b) => a[0].localeCompare(b[0]));
-  if (priorEntries.length !== nextEntries.length) return false;
-  return priorEntries.every(([field, weight], index) => {
-    const next = nextEntries[index]!;
-    return next[0] === field && next[1] === weight;
-  });
 }
 
 function outcomeFor(envelope: {
