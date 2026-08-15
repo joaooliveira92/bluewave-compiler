@@ -32,6 +32,11 @@ import type {
   SubmitMovementCommandPayload,
 } from "./fleet-contract.js";
 import type {
+  DiplomacyCommandOutcome,
+  DiplomacyScreenProjection,
+  SubmitDiplomacyCommandPayload,
+} from "./diplomacy-contract.js";
+import type {
   ResearchPriorityOutcome,
   ResearchScreenProjection,
   SetResearchPriorityCommandPayload,
@@ -126,6 +131,8 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "cancelMovementCommand",
   "inspectResearchScreen",
   "setResearchPriorityCommand",
+  "inspectDiplomacyScreen",
+  "submitDiplomacyCommand",
 ] as const;
 
 /**
@@ -220,4 +227,12 @@ export interface CampaignCommandClient {
     command: "setResearchPriorityCommand",
     payload: SetResearchPriorityCommandPayload,
   ): Promise<BridgeResult<ResearchPriorityOutcome>>;
+  execute(
+    command: "inspectDiplomacyScreen",
+    payload: string,
+  ): Promise<BridgeResult<DiplomacyScreenProjection>>;
+  execute(
+    command: "submitDiplomacyCommand",
+    payload: SubmitDiplomacyCommandPayload,
+  ): Promise<BridgeResult<DiplomacyCommandOutcome>>;
 }

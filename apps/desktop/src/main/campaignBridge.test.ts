@@ -14,6 +14,8 @@ const IMPLEMENTED_COMMANDS = new Set([
   "inspectFleetScreen",
   "inspectResearchScreen",
   "setResearchPriorityCommand",
+  "inspectDiplomacyScreen",
+  "submitDiplomacyCommand",
   "loadCampaign",
   "verifyCampaign",
   "replayCampaign",
@@ -161,6 +163,54 @@ describe("dispatchCampaignCommand", () => {
       transportRequestId: "req-1",
       fieldPriorities: { GUNNERY: 4 },
     });
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("rejects a structurally invalid submitDiplomacyCommand payload before touching the handler", async () => {
+    for (const payload of [
+      { sessionId: "s" },
+      {
+        sessionId: "s",
+        expectedRevision: 0,
+        transportRequestId: "r",
+        command: { type: "DeclareWar" }, // missing targetNationId
+      },
+      {
+        sessionId: "s",
+        expectedRevision: 0,
+        transportRequestId: "r",
+        command: { type: "NotACommand", targetNationId: "fra" },
+      },
+      {
+        sessionId: "s",
+        expectedRevision: 0,
+        transportRequestId: "r",
+        command: { type: "DeclareBlockade", targetNationId: "fra" }, // missing areaId
+      },
+    ]) {
+      const result = await dispatchCampaignCommand("submitDiplomacyCommand", payload);
+      expect(result.outcome).toBe("error");
+      if (result.outcome !== "error") return;
+      expect(result.reason).toBe("INVALID_PAYLOAD");
+    }
+  });
+
+  it("returns SESSION_NOT_FOUND for a well-formed submitDiplomacyCommand against an unknown session", async () => {
+    const result = await dispatchCampaignCommand("submitDiplomacyCommand", {
+      sessionId: "no-such-session",
+      expectedRevision: 0,
+      transportRequestId: "req-1",
+      command: { type: "DeclareWar", targetNationId: "france" },
+    });
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("returns SESSION_NOT_FOUND for inspectDiplomacyScreen without a session", async () => {
+    const result = await dispatchCampaignCommand("inspectDiplomacyScreen", "no-such-session");
     expect(result.outcome).toBe("error");
     if (result.outcome !== "error") return;
     expect(result.reason).toBe("SESSION_NOT_FOUND");

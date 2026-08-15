@@ -85,3 +85,41 @@ export const SetResearchPriorityCommandPayloadSchema = CommandEnvelopePayloadSch
     ),
   exactTechId: z.string().min(1).optional(),
 });
+
+/**
+ * Wire shape of one of the 7 B10c diplomacy command bodies
+ * (desktop-diplomacy-war INC-2). `nationId` is intentionally absent — it is
+ * always the session's player slot, filled in by the handler. Deeper checks
+ * (target exists, not already at war, …) are the ENGINE's own
+ * `CommandLifecycle.validate()` at issue time — never a desktop mirror (spec
+ * D1/D2).
+ */
+export const DiplomacyCommandBodySchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("DeclareWar"),
+    targetNationId: z.string().min(1),
+    warGoalsId: z.string().min(1).optional(),
+  }),
+  z.object({ type: z.literal("AcceptPeace"), warId: z.string().min(1) }),
+  z.object({ type: z.literal("FormAlliance"), partnerNationId: z.string().min(1) }),
+  z.object({ type: z.literal("BreakAlliance"), partnerNationId: z.string().min(1) }),
+  z.object({
+    type: z.literal("FormNonAggressionPact"),
+    partnerNationId: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("BreakNonAggressionPact"),
+    partnerNationId: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("DeclareBlockade"),
+    targetNationId: z.string().min(1),
+    areaId: z.string().min(1),
+  }),
+]);
+
+/** Wire shape for `submitDiplomacyCommand` — the `CommandEnvelope` triple plus
+ * the discriminated command body. */
+export const SubmitDiplomacyCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  command: DiplomacyCommandBodySchema,
+});

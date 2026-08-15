@@ -9,6 +9,7 @@ import {
   ReplaceConstructionOrderPayloadSchema,
   SessionIdPayloadSchema,
   SetResearchPriorityCommandPayloadSchema,
+  SubmitDiplomacyCommandPayloadSchema,
 } from "./campaignCommandSchemas.js";
 import { commitMonth } from "./commands/commitMonth.js";
 import { compileCampaign, defaultCompileCampaignDeps } from "./commands/compileCampaign.js";
@@ -26,6 +27,7 @@ import {
   verifyCampaign,
 } from "./commands/continuityCommands.js";
 import { inspectFleetScreen } from "./commands/fleetCommands.js";
+import { inspectDiplomacyScreen, submitDiplomacyCommand } from "./commands/diplomacyCommands.js";
 import { inspectCampaign } from "./commands/inspectCampaign.js";
 import { listNewGameOptions } from "./commands/listNewGameOptions.js";
 import { inspectResearchScreen, setResearchPriorityCommand } from "./commands/researchCommands.js";
@@ -127,6 +129,22 @@ export async function dispatchCampaignCommand(
         return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
       }
       return setResearchPriorityCommand(parsedPayload.data);
+    }
+
+    case "inspectDiplomacyScreen": {
+      const parsedPayload = SessionIdPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return inspectDiplomacyScreen(parsedPayload.data);
+    }
+
+    case "submitDiplomacyCommand": {
+      const parsedPayload = SubmitDiplomacyCommandPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return submitDiplomacyCommand(parsedPayload.data);
     }
 
     // The four Campaign File continuance commands (ticket 16) take an
