@@ -156,12 +156,7 @@ function isInt(v: unknown): v is number {
 }
 
 function isPosition(v: unknown): v is Position {
-  return (
-    Array.isArray(v) &&
-    v.length === 2 &&
-    isInt(v[0]) &&
-    isInt(v[1])
-  );
+  return Array.isArray(v) && v.length === 2 && isInt(v[0]) && isInt(v[1]);
 }
 
 // Full-circle milli-degree fold: any integer -> [0, 360_000).
@@ -198,7 +193,12 @@ export function assertTorpedoTrackSurface(t: TorpedoTrack): void {
   if (!isNonEmptyString(t.torpedoModelId))
     invariant(t, "torpedoModelId", t.torpedoModelId, "torpedoModelId must be a non-empty string");
   if (!isNonEmptyString(t.selectedSettingId))
-    invariant(t, "selectedSettingId", t.selectedSettingId, "selectedSettingId must be a non-empty string");
+    invariant(
+      t,
+      "selectedSettingId",
+      t.selectedSettingId,
+      "selectedSettingId must be a non-empty string",
+    );
   if (!isInt(t.launchMinute) || t.launchMinute < 0)
     invariant(t, "launchMinute", t.launchMinute, "launch minute must be a non-negative integer");
   if (!isInt(t.launchSubstep) || t.launchSubstep < 1)
@@ -206,9 +206,19 @@ export function assertTorpedoTrackSurface(t: TorpedoTrack): void {
   if (!isPosition(t.launchPosition))
     invariant(t, "launchPosition", t.launchPosition, "launch position must be an integer µm pair");
   if (!isInt(t.launchHeadingMdeg))
-    invariant(t, "launchHeadingMdeg", t.launchHeadingMdeg, "launch heading must be an integer milli-degrees");
+    invariant(
+      t,
+      "launchHeadingMdeg",
+      t.launchHeadingMdeg,
+      "launch heading must be an integer milli-degrees",
+    );
   if (!isInt(t.orderedGyroAngleMdeg))
-    invariant(t, "orderedGyroAngleMdeg", t.orderedGyroAngleMdeg, "gyro angle must be integer milli-degrees");
+    invariant(
+      t,
+      "orderedGyroAngleMdeg",
+      t.orderedGyroAngleMdeg,
+      "gyro angle must be integer milli-degrees",
+    );
   // §13 guidance invariant: while the torpedo runs its ordered gyro angle must
   // equal the launch heading (the run projects along launchHeadingMdeg only) —
   // fail closed rather than carry an internally inconsistent track.
@@ -220,21 +230,67 @@ export function assertTorpedoTrackSurface(t: TorpedoTrack): void {
       "a gyro-guided torpedo's ordered course must equal its launch heading while running",
     );
   if (!isInt(t.speedKnotsBp) || t.speedKnotsBp <= 0)
-    invariant(t, "speedKnotsBp", t.speedKnotsBp, "speed must be a positive integer basis-point knots");
+    invariant(
+      t,
+      "speedKnotsBp",
+      t.speedKnotsBp,
+      "speed must be a positive integer basis-point knots",
+    );
   if (!isInt(t.maxRunDistanceM) || t.maxRunDistanceM <= 0)
-    invariant(t, "maxRunDistanceM", t.maxRunDistanceM, "max run distance must be a positive integer metres");
+    invariant(
+      t,
+      "maxRunDistanceM",
+      t.maxRunDistanceM,
+      "max run distance must be a positive integer metres",
+    );
   if (!isInt(t.armingDistanceM) || t.armingDistanceM < 0)
-    invariant(t, "armingDistanceM", t.armingDistanceM, "arming distance must be a non-negative integer metres");
+    invariant(
+      t,
+      "armingDistanceM",
+      t.armingDistanceM,
+      "arming distance must be a non-negative integer metres",
+    );
   if (!isInt(t.depthSettingM) || t.depthSettingM < 0)
-    invariant(t, "depthSettingM", t.depthSettingM, "depth setting must be a non-negative integer metres");
+    invariant(
+      t,
+      "depthSettingM",
+      t.depthSettingM,
+      "depth setting must be a non-negative integer metres",
+    );
   const rel = t.reliabilityState;
-  if (typeof rel !== "object" || rel === null || !isInt(rel.reliabilityBp) || rel.reliabilityBp < 0 || rel.reliabilityBp > 10_000)
-    invariant(t, "reliabilityState", rel, "reliability state must carry a normalized integer [0, 10_000] bp");
+  if (
+    typeof rel !== "object" ||
+    rel === null ||
+    !isInt(rel.reliabilityBp) ||
+    rel.reliabilityBp < 0 ||
+    rel.reliabilityBp > 10_000
+  )
+    invariant(
+      t,
+      "reliabilityState",
+      rel,
+      "reliability state must carry a normalized integer [0, 10_000] bp",
+    );
   const g = t.guidanceState;
-  if (typeof g !== "object" || g === null || !isNonEmptyString(g.capabilityId) || !isInt(g.orderedGyroAngleMdeg))
-    invariant(t, "guidanceState", g, "guidance state must carry a capability id and integer gyro angle");
+  if (
+    typeof g !== "object" ||
+    g === null ||
+    !isNonEmptyString(g.capabilityId) ||
+    !isInt(g.orderedGyroAngleMdeg)
+  )
+    invariant(
+      t,
+      "guidanceState",
+      g,
+      "guidance state must carry a capability id and integer gyro angle",
+    );
   const d = t.detectionState;
-  if (typeof d !== "object" || d === null || typeof d.detectedByParticipant !== "object" || d.detectedByParticipant === null)
+  if (
+    typeof d !== "object" ||
+    d === null ||
+    typeof d.detectedByParticipant !== "object" ||
+    d.detectedByParticipant === null
+  )
     invariant(t, "detectionState", d, "detection state must be a record keyed by participant id");
   for (const [participantId, status] of Object.entries(d.detectedByParticipant)) {
     if (participantId.length === 0)
@@ -245,15 +301,37 @@ export function assertTorpedoTrackSurface(t: TorpedoTrack): void {
       invariant(t, "detectionState", d, "detection confidence must be integer bp [0, 10_000]");
   }
   if (!isPosition(t.currentPosition))
-    invariant(t, "currentPosition", t.currentPosition, "current position must be an integer µm pair");
+    invariant(
+      t,
+      "currentPosition",
+      t.currentPosition,
+      "current position must be an integer µm pair",
+    );
   if (!isInt(t.distanceTraveledUm) || t.distanceTraveledUm < 0)
-    invariant(t, "distanceTraveledUm", t.distanceTraveledUm, "distance traveled must be a non-negative integer µm");
+    invariant(
+      t,
+      "distanceTraveledUm",
+      t.distanceTraveledUm,
+      "distance traveled must be a non-negative integer µm",
+    );
   if (!isInt(t.runDistanceRemainingM) || t.runDistanceRemainingM < 0)
-    invariant(t, "runDistanceRemainingM", t.runDistanceRemainingM, "remaining run distance must be a non-negative integer metres");
-  if (typeof t.armed !== "boolean")
-    invariant(t, "armed", t.armed, "armed must be a boolean");
-  if (t.terminalResult !== null && !(TORPEDO_TERMINAL_RESULTS as readonly string[]).includes(t.terminalResult))
-    invariant(t, "terminalResult", t.terminalResult, "terminal result must be a canonical §13 outcome or null");
+    invariant(
+      t,
+      "runDistanceRemainingM",
+      t.runDistanceRemainingM,
+      "remaining run distance must be a non-negative integer metres",
+    );
+  if (typeof t.armed !== "boolean") invariant(t, "armed", t.armed, "armed must be a boolean");
+  if (
+    t.terminalResult !== null &&
+    !(TORPEDO_TERMINAL_RESULTS as readonly string[]).includes(t.terminalResult)
+  )
+    invariant(
+      t,
+      "terminalResult",
+      t.terminalResult,
+      "terminal result must be a canonical §13 outcome or null",
+    );
 }
 
 // AC-13: full guard incl. the trackHash presence requirement.
@@ -438,9 +516,19 @@ export function setTorpedoTerminalResult(
 ): TorpedoTrack {
   assertAuthoritativeTorpedoTrack(t);
   if (t.terminalResult !== null)
-    invariant(t, "terminalResult", t.terminalResult, "a terminal torpedo track cannot transition again");
+    invariant(
+      t,
+      "terminalResult",
+      t.terminalResult,
+      "a terminal torpedo track cannot transition again",
+    );
   if (!(TORPEDO_TERMINAL_RESULTS as readonly string[]).includes(terminalResult))
-    invariant(t, "terminalResult", terminalResult, "terminal result must be a canonical §13 outcome");
+    invariant(
+      t,
+      "terminalResult",
+      terminalResult,
+      "terminal result must be a canonical §13 outcome",
+    );
   const terminal: TorpedoTrack = { ...t, terminalResult, trackHash: "" };
   const hash = computeTorpedoTrackHash(terminal);
   const full: TorpedoTrack = { ...terminal, trackHash: hash };

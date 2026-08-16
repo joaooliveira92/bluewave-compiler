@@ -14,3 +14,5 @@ export * from "./friendly-fire.js";
 export * from "./salvo.js";
 export * from "./launch-failure.js";
 export * from "./track.js";
+export * from "./hit-resolution.js";
+export * from "./detonation.js";

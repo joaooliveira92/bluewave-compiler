@@ -6,9 +6,11 @@
 // INC-2 (launch legality) ships the §5/§6/§7/§8 in-slice codes; INC-3 (fire
 // solution + salvo + friendly-fire) ships the §10/§24 in-slice codes; INC-4
 // (launch + track) ships the §12 codes (TORPEDO_LAUNCH_FAILURE from the §29
-// list + the §12-named TORPEDO_STUCK_IN_TUBE outcome code). The remaining §29
-// in-slice codes are owned by INC-5..INC-6 and are recorded below, never
-// shipped here. The full partition (in-slice / deferred / reused combat
+// list + the §12-named TORPEDO_STUCK_IN_TUBE outcome code); INC-5 (hit +
+// detonation) ships the §14/§15 codes TORPEDO_HIT_RESOLVED + TORPEDO_DUD
+// (both §29-listed in-slice codes, recorded in the INC-5 report + ADR-0029).
+// The remaining §29 in-slice codes are owned by INC-6 and are recorded below,
+// never shipped here. The full partition (in-slice / deferred / reused combat
 // catalog, disjointness) is verified by INC-8's set-equality test.
 
 // ---- In-slice codes (INC-1) ----
@@ -69,7 +71,16 @@ export const TORPEDO_STUCK_IN_TUBE = "TORPEDO_STUCK_IN_TUBE" as const;
 // The marker is removed from the catalog and NOT re-added by any later
 // increment — the full §29 partition is verified by INC-8's set-equality test.
 
-// ---- Collected catalog (INC-1..INC-4 shipped set; set-equality checked in INC-8) ----
+// ---- In-slice codes (INC-5: hit resolution + detonation outcomes, §14/§15) ----
+// §14: every RESOLVED hit reports this code — the hit-resolution success marker
+// (the §29-listed in-slice code; contact itself never guarantees detonation).
+export const TORPEDO_HIT_RESOLVED = "TORPEDO_HIT_RESOLVED" as const;
+// §15: a functioning contact whose warhead/fuze fails to detonate — the keyed
+// reliability draw landed at/above the composed detonation probability
+// (the §29-listed in-slice code; research §3.6: Mk 14 contact-exploder duds).
+export const TORPEDO_DUD = "TORPEDO_DUD" as const;
+
+// ---- Collected catalog (INC-1..INC-5 shipped set; set-equality checked in INC-8) ----
 export const TORPEDO_REASON_CODES = {
   INVALID_TORPEDO_MODEL_DEFINITION,
   INVALID_TORPEDO_LAUNCHER_STATE,
@@ -87,12 +98,13 @@ export const TORPEDO_REASON_CODES = {
   TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED,
   TORPEDO_LAUNCH_FAILURE,
   TORPEDO_STUCK_IN_TUBE,
+  TORPEDO_HIT_RESOLVED,
+  TORPEDO_DUD,
 } as const;
 
 export type TorpedoReasonCode = (typeof TORPEDO_REASON_CODES)[keyof typeof TORPEDO_REASON_CODES];
 
 // ---- Recorded §29 in-slice codes owned by later increments (never shipped here) ----
-// INC-5 (hit + detonation): TORPEDO_DUD, TORPEDO_HIT_RESOLVED.
 // INC-6 (damage package): TORPEDO_PROGRESSIVE_FLOODING_CREATED,
 //   TORPEDO_MACHINERY_DAMAGE_CREATED, TORPEDO_SYSTEM_SHOCK_DAMAGE_CREATED,
 //   UNDERWATER_TUBE_SEVERE_FLOODING, TORPEDO_CHAIN_REACTION.

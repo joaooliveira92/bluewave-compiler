@@ -15,6 +15,7 @@ import {
   OXYGEN_RANGE_MULTIPLIER_BP,
   resolvedAboveWaterMaxLaunchSpeedKnots,
   SHIPPED_TORPEDO_CONTRACT,
+  SHIPPED_TORPEDO_DETONATION_CONTRACT,
   SHIPPED_TORPEDO_MODELS,
   TORPEDO_DANGER_SECTOR_RAD_TO_MDEG,
   TORPEDO_FRIENDLY_DANGER_SECTOR_MINIMUM_BP,
@@ -47,6 +48,7 @@ import {
   UNDERWATER_TUBE_MAX_SPEED_UM_S,
   UNIDENTIFIED_CONTACT_IDENTITY,
   validateTorpedoContract,
+  validateTorpedoDetonationContract,
   validateTorpedoLauncherDefinition,
   type TorpedoLauncherDefinition,
 } from "../../src/torpedoes/index.js";
@@ -207,6 +209,125 @@ describe("AC-24: torpedo_v1 contract + validate guard (fail closed)", () => {
   });
 });
 
+describe("AC-14/AC-24 (INC-5): the shipped torpedo detonation constant contract (MEDIUM-3)", () => {
+  it("ships SHIPPED_TORPEDO_DETONATION_CONTRACT and validates without throwing", () => {
+    expect(SHIPPED_TORPEDO_DETONATION_CONTRACT.fullFunctionMinDepthM).toBe(3);
+    expect(() =>
+      validateTorpedoDetonationContract(SHIPPED_TORPEDO_DETONATION_CONTRACT),
+    ).not.toThrow();
+  });
+
+  it("pins the exact INC-5 detonation constants in the contract", () => {
+    expect(SHIPPED_TORPEDO_DETONATION_CONTRACT.fuzePolicies).toEqual(["CONTACT", "MAGNETIC"]);
+    expect(SHIPPED_TORPEDO_DETONATION_CONTRACT.fuzeFunctionMultiplierBp).toEqual({
+      CONTACT: 10_000,
+      MAGNETIC: 9_000,
+    });
+    expect(SHIPPED_TORPEDO_DETONATION_CONTRACT.targetProtectionLevels).toEqual([
+      "NONE",
+      "WEAK",
+      "STANDARD",
+      "STRONG",
+      "ADVANCED",
+    ]);
+    expect(SHIPPED_TORPEDO_DETONATION_CONTRACT.protectionFunctionMultiplierBp).toEqual({
+      NONE: 10_000,
+      WEAK: 9_500,
+      STANDARD: 9_000,
+      STRONG: 8_500,
+      ADVANCED: 8_000,
+    });
+    expect(SHIPPED_TORPEDO_DETONATION_CONTRACT.damageStateFunctionMultiplierBp).toEqual({
+      CLEAN: 10_000,
+      DAMAGED: 9_500,
+    });
+    expect(SHIPPED_TORPEDO_DETONATION_CONTRACT.fullFunctionMaxDeviationMdeg).toBe(60_000);
+    expect(SHIPPED_TORPEDO_DETONATION_CONTRACT.modelFuzePolicy["ger_533mm_g7a_1934"]).toBe(
+      "MAGNETIC",
+    );
+    expect(SHIPPED_TORPEDO_DETONATION_CONTRACT.modelFuzePolicy["whitehead_18in_1894"]).toBe(
+      "CONTACT",
+    );
+  });
+
+  it("fails closed on a tampered INC-5 detonation constant", () => {
+    expect(() =>
+      validateTorpedoDetonationContract({
+        ...SHIPPED_TORPEDO_DETONATION_CONTRACT,
+        fullFunctionMinDepthM: 2,
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoDetonationContract({
+        ...SHIPPED_TORPEDO_DETONATION_CONTRACT,
+        fullFunctionMaxDeviationMdeg: 59_999,
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoDetonationContract({
+        ...SHIPPED_TORPEDO_DETONATION_CONTRACT,
+        fuzeFunctionMultiplierBp: {
+          ...SHIPPED_TORPEDO_DETONATION_CONTRACT.fuzeFunctionMultiplierBp,
+          MAGNETIC: 9_001,
+        },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoDetonationContract({
+        ...SHIPPED_TORPEDO_DETONATION_CONTRACT,
+        protectionFunctionMultiplierBp: {
+          ...SHIPPED_TORPEDO_DETONATION_CONTRACT.protectionFunctionMultiplierBp,
+          ADVANCED: 7_999,
+        },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoDetonationContract({
+        ...SHIPPED_TORPEDO_DETONATION_CONTRACT,
+        damageStateFunctionMultiplierBp: {
+          ...SHIPPED_TORPEDO_DETONATION_CONTRACT.damageStateFunctionMultiplierBp,
+          DAMAGED: 9_499,
+        },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoDetonationContract({
+        ...SHIPPED_TORPEDO_DETONATION_CONTRACT,
+        fuzePolicies: [...SHIPPED_TORPEDO_DETONATION_CONTRACT.fuzePolicies, "PI" as never],
+      }),
+    ).toThrow(BluewaveError);
+  });
+
+  it("fails closed on a tampered/missing/extra model->fuze mapping (no silent fuze default)", () => {
+    expect(() =>
+      validateTorpedoDetonationContract({
+        ...SHIPPED_TORPEDO_DETONATION_CONTRACT,
+        modelFuzePolicy: {},
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoDetonationContract({
+        ...SHIPPED_TORPEDO_DETONATION_CONTRACT,
+        modelFuzePolicy: {
+          ...SHIPPED_TORPEDO_DETONATION_CONTRACT.modelFuzePolicy,
+          ger_533mm_g7a_1934: "CONTACT",
+        },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoDetonationContract({
+        ...SHIPPED_TORPEDO_DETONATION_CONTRACT,
+        modelFuzePolicy: {
+          ...SHIPPED_TORPEDO_DETONATION_CONTRACT.modelFuzePolicy,
+          bogus_model: "CONTACT",
+        },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() => validateTorpedoDetonationContract(null)).toThrow(BluewaveError);
+    expect(() => validateTorpedoDetonationContract(undefined)).toThrow(BluewaveError);
+  });
+});
+
 describe("AC-24: exact shipped constant surface", () => {
   it("ships the closed §2 mount-type enum with exactly five values", () => {
     expect([...TORPEDO_MOUNT_TYPES]).toEqual([
@@ -295,8 +416,8 @@ describe("AC-24: exact shipped constant surface", () => {
   });
 });
 
-describe("AC-21 seeds: INC-1 + INC-2 + INC-3 + INC-4 reason-code catalog shape", () => {
-  it("ships exactly the INC-1 + INC-2 + INC-3 + INC-4 §29 codes — nothing more, nothing less (the INC-2 DEFERRED marker is retired)", () => {
+describe("AC-21 seeds: INC-1..INC-5 reason-code catalog shape", () => {
+  it("ships exactly the INC-1 + INC-2 + INC-3 + INC-4 + INC-5 §29 codes — nothing more, nothing less (the INC-2 DEFERRED marker is retired)", () => {
     const shipped = Object.values(TORPEDO_REASON_CODES).sort();
     expect(shipped).toEqual(
       [
@@ -316,6 +437,8 @@ describe("AC-21 seeds: INC-1 + INC-2 + INC-3 + INC-4 reason-code catalog shape",
         "TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED",
         "TORPEDO_LAUNCH_FAILURE",
         "TORPEDO_STUCK_IN_TUBE",
+        "TORPEDO_HIT_RESOLVED",
+        "TORPEDO_DUD",
       ].sort(),
     );
     // the retired marker is gone from the catalog and no longer a shipped code
@@ -363,11 +486,13 @@ describe("AC-21 seeds: INC-1 + INC-2 + INC-3 + INC-4 reason-code catalog shape",
     for (const code of ["TORPEDO_LAUNCH_FAILURE", "TORPEDO_STUCK_IN_TUBE"]) {
       expect(shipped.has(code)).toBe(true);
     }
-    // the codes owned by INC-5+ (hit/detonation, damage package, tube hazard,
-    // chain reaction) must NOT be shipped yet
+    // the INC-5 §14/§15 codes ARE shipped (this increment resolved them)
+    for (const code of ["TORPEDO_HIT_RESOLVED", "TORPEDO_DUD"]) {
+      expect(shipped.has(code)).toBe(true);
+    }
+    // the codes owned by INC-6+ (damage package, tube hazard, chain reaction)
+    // MUST NOT be shipped yet
     const laterIncrementCodes = [
-      "TORPEDO_DUD",
-      "TORPEDO_HIT_RESOLVED",
       "TORPEDO_PROGRESSIVE_FLOODING_CREATED",
       "TORPEDO_MACHINERY_DAMAGE_CREATED",
       "TORPEDO_SYSTEM_SHOCK_DAMAGE_CREATED",

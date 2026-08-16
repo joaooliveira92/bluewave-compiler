@@ -86,7 +86,10 @@ function invariant(field: string, value: unknown, reason: string): never {
 // Closed per-tube launch outcome. The failure outcomes are exactly the two
 // shipped §12 codes (TORPEDO_STUCK_IN_TUBE consumes; TORPEDO_LAUNCH_FAILURE
 // consumes nothing).
-export type TorpedoTubeLaunchOutcome = "SUCCESS" | "TORPEDO_STUCK_IN_TUBE" | "TORPEDO_LAUNCH_FAILURE";
+export type TorpedoTubeLaunchOutcome =
+  | "SUCCESS"
+  | "TORPEDO_STUCK_IN_TUBE"
+  | "TORPEDO_LAUNCH_FAILURE";
 
 // Per-tube launch record — every attempted tube is recorded separately (§12
 // "every result is recorded separately").
@@ -200,7 +203,11 @@ export function computeLaunchFailureChanceBp(input: TorpedoLaunchModifierInputs)
   }
 
   const raw =
-    TORPEDO_LAUNCH_FAILURE_BASE_BP + modelAdjustment + damageAdjustment + crewAdjustment + bandAdjustment;
+    TORPEDO_LAUNCH_FAILURE_BASE_BP +
+    modelAdjustment +
+    damageAdjustment +
+    crewAdjustment +
+    bandAdjustment;
   return Math.min(TORPEDO_LAUNCH_FAILURE_MAX_BP, Math.max(TORPEDO_LAUNCH_FAILURE_MIN_BP, raw));
 }
 
@@ -216,7 +223,11 @@ export function evaluateTubeLaunchDraw(o: {
 }): { outcome: TorpedoTubeLaunchOutcome; drawBp: number; stuckBoundaryBp: number } {
   const stuckShare = o.stuckShareBp ?? TORPEDO_STUCK_IN_TUBE_SHARE_BP;
   if (!Number.isInteger(o.failureChanceBp) || o.failureChanceBp < 0)
-    invariant("failureChanceBp", o.failureChanceBp, "failure chance must be a non-negative integer");
+    invariant(
+      "failureChanceBp",
+      o.failureChanceBp,
+      "failure chance must be a non-negative integer",
+    );
   if (typeof o.draw !== "number" || o.draw < 0 || o.draw >= 1)
     invariant("draw", o.draw, "the keyed draw must be a float within [0, 1)");
   if (!Number.isInteger(stuckShare) || stuckShare < 0 || stuckShare > TORPEDO_BASIS_POINTS_PER_UNIT)
@@ -226,9 +237,10 @@ export function evaluateTubeLaunchDraw(o: {
       `stuck share must be an integer basis point within [0, ${TORPEDO_BASIS_POINTS_PER_UNIT}]`,
     );
   const drawBp = Math.floor(o.draw * TORPEDO_BASIS_POINTS_PER_UNIT);
-  const stuckBoundaryBp = Math.floor((o.failureChanceBp * stuckShare) / TORPEDO_BASIS_POINTS_PER_UNIT);
-  if (drawBp >= o.failureChanceBp)
-    return { outcome: "SUCCESS", drawBp, stuckBoundaryBp };
+  const stuckBoundaryBp = Math.floor(
+    (o.failureChanceBp * stuckShare) / TORPEDO_BASIS_POINTS_PER_UNIT,
+  );
+  if (drawBp >= o.failureChanceBp) return { outcome: "SUCCESS", drawBp, stuckBoundaryBp };
   if (drawBp < stuckBoundaryBp)
     return { outcome: "TORPEDO_STUCK_IN_TUBE", drawBp, stuckBoundaryBp };
   return { outcome: "TORPEDO_LAUNCH_FAILURE", drawBp, stuckBoundaryBp };
@@ -341,7 +353,11 @@ export function resolveTubeLaunches(o: {
       firingSubstep,
       outcome: evaluated.outcome,
       reasonCode:
-        evaluated.outcome === "SUCCESS" ? null : evaluated.outcome === "TORPEDO_STUCK_IN_TUBE" ? TORPEDO_STUCK_IN_TUBE : TORPEDO_LAUNCH_FAILURE,
+        evaluated.outcome === "SUCCESS"
+          ? null
+          : evaluated.outcome === "TORPEDO_STUCK_IN_TUBE"
+            ? TORPEDO_STUCK_IN_TUBE
+            : TORPEDO_LAUNCH_FAILURE,
       failureChanceBp,
       stuckBoundaryBp: evaluated.stuckBoundaryBp,
       drawBp: evaluated.drawBp,
@@ -380,11 +396,13 @@ export function resolveTubeLaunches(o: {
     if (evaluated.outcome === "TORPEDO_LAUNCH_FAILURE") {
       restoredTubes.set(tubeId, accountByTube.get(tubeId)!);
     }
-    if (!salvoContinuesAfterFailure({
-      salvoPolicy: o.salvoPolicy,
-      acceptedTubeCount: fireOrder.length,
-      successfulLaunchesSoFar,
-    })) {
+    if (
+      !salvoContinuesAfterFailure({
+        salvoPolicy: o.salvoPolicy,
+        acceptedTubeCount: fireOrder.length,
+        successfulLaunchesSoFar,
+      })
+    ) {
       skippedTubeIds = fireOrder.filter((t) => t > tubeId);
     }
   }
