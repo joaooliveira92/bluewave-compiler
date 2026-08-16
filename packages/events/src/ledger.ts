@@ -1,23 +1,43 @@
+import type { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import type { DomainEventEnvelope, DomainEventBody } from "./envelope.js";
+import type { DomainEventBody, DomainEventEnvelope } from "./envelope.js";
+import { parseDomainEventEnvelope } from "./validation.js";
+
+function aggregateKey(event: DomainEventEnvelope): string {
+  return `${event.aggregateType}\u0000${event.aggregateId}`;
+}
 
 export class EventLedger {
-  private events: DomainEventEnvelope[] = [];
+  private readonly events: DomainEventEnvelope[] = [];
+  private readonly eventIds = new Set<string>();
+  private readonly lastSequenceByAggregate = new Map<string, SafeInt>();
 
   get all(): readonly DomainEventEnvelope[] {
-    return this.events;
+    return Object.freeze([...this.events]);
   }
 
   append(event: DomainEventEnvelope<DomainEventBody>): void {
-    this.events.push(event);
+    const validated = parseDomainEventEnvelope(event);
+    if (this.eventIds.has(validated.eventId)) {
+      throw new Error(`Duplicate eventId: ${validated.eventId}`);
+    }
+
+    const key = aggregateKey(validated);
+    const previousSequence = this.lastSequenceByAggregate.get(key);
+    if (previousSequence !== undefined && validated.sequenceNumber <= previousSequence) {
+      throw new Error(
+        `sequenceNumber must increase for ${validated.aggregateType}/${validated.aggregateId}: ` +
+          `${String(validated.sequenceNumber)} <= ${String(previousSequence)}`,
+      );
+    }
+
+    this.events.push(validated);
+    this.eventIds.add(validated.eventId);
+    this.lastSequenceByAggregate.set(key, validated.sequenceNumber);
   }
 
   hash(): string {
-    if (this.events.length === 0) {
-      return sha256Hex(canonicalSerialize([]));
-    }
-    const serialized = canonicalSerialize(this.events);
-    return sha256Hex(serialized);
+    return sha256Hex(canonicalSerialize(this.events));
   }
 
   toJSON(): string {
