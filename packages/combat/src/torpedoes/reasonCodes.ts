@@ -3,8 +3,9 @@
 // top-level combat catalog (src/reasonCodes.ts) so the C-1 set-equality guard
 // (reason-codes-torpedoes.test.ts, INC-8 deliverable) is not grown without
 // review. Per spec §1.4 INC-1 ships the five §29 codes its increment exercises;
-// INC-2 (launch legality) ships the §5/§6/§7/§8 in-slice codes below. The
-// remaining §29 in-slice codes are owned by INC-3..INC-6 and are recorded
+// INC-2 (launch legality) ships the §5/§6/§7/§8 in-slice codes; INC-3 (fire
+// solution + salvo + friendly-fire) ships the §10/§24 in-slice codes below. The
+// remaining §29 in-slice codes are owned by INC-4..INC-6 and are recorded
 // below, never shipped here. The full partition (in-slice / deferred / reused
 // combat catalog, disjointness) is verified by INC-8's set-equality test.
 
@@ -36,16 +37,25 @@ export const TORPEDO_LAUNCH_SPEED_LIMIT_MISSING = "TORPEDO_LAUNCH_SPEED_LIMIT_MI
 // validation or at the exact firing substep.
 export const UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED = "UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED" as const;
 
-// ---- Documented in-slice marker (spec §1.4, B-3 GUNNERY_ELIGIBILITY_PREDICATE_DEFERRED
-// precedent). INC-2 reports this marker for §6 predicates whose full semantics
-// ship in a later increment — the §24 friendly-fire family (target-not-friendly
-// identification + danger sector), whose natural failure code
-// TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED is owned by INC-3. Never a fabricated
-// rule: the predicate is reported as deferred, not invented.
-export const TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED =
-  "TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED" as const;
+// ---- In-slice codes (INC-3: fire solution + salvo + friendly-fire, §10/§24) ----
+// §10: a fire-solution factor is missing/undefined/non-integer — the 11-factor
+// manifest NEVER falls back to a silent neutral 10_000 (gunnery precedent).
+export const TORPEDO_FIRE_SOLUTION_FACTOR_MISSING = "TORPEDO_FIRE_SOLUTION_FACTOR_MISSING" as const;
+// §24: a confirmed friendly contact is inside the launch danger sector with a
+// predicted minimum separation below 1_000 m — the launch is PROHIBITED
+// (manual launch does NOT waive it). Also the §6 target-not-friendly code: a
+// launch aimed at a confirmed-friendly target reports this same family code.
+export const TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED =
+  "TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED" as const;
 
-// ---- Collected catalog (INC-1 + INC-2 shipped set; set-equality checked in INC-8) ----
+// ---- RETIRED marker (INC-2 -> INC-3) ----
+// The INC-2 deferred marker TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED is retired:
+// INC-3 ships the REAL §24 friendly-fire family, so no shipped predicate
+// reports "DEFERRED" any more (EligibilityPredicateResult is a plain boolean).
+// The marker is removed from the catalog and NOT re-added by any later
+// increment — the full §29 partition is verified by INC-8's set-equality test.
+
+// ---- Collected catalog (INC-1 + INC-2 + INC-3 shipped set; set-equality checked in INC-8) ----
 export const TORPEDO_REASON_CODES = {
   INVALID_TORPEDO_MODEL_DEFINITION,
   INVALID_TORPEDO_LAUNCHER_STATE,
@@ -59,16 +69,13 @@ export const TORPEDO_REASON_CODES = {
   TORPEDO_LAUNCH_ARC_INVALID,
   TORPEDO_LAUNCH_SPEED_LIMIT_MISSING,
   UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED,
-  TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED,
+  TORPEDO_FIRE_SOLUTION_FACTOR_MISSING,
+  TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED,
 } as const;
 
 export type TorpedoReasonCode = (typeof TORPEDO_REASON_CODES)[keyof typeof TORPEDO_REASON_CODES];
 
 // ---- Recorded §29 in-slice codes owned by later increments (never shipped here) ----
-// INC-3 (fire solution + salvo + friendly-fire): TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED
-//   (§24 — INC-2 reports the §24 family through TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED
-//   instead; the danger sector + 1_000 m threshold ship with INC-3),
-//   TORPEDO_FIRE_SOLUTION_FACTOR_MISSING (§10 factor-missing failure).
 // INC-4 (launch + track): TORPEDO_LAUNCH_FAILURE.
 // INC-5 (hit + detonation): TORPEDO_DUD, TORPEDO_HIT_RESOLVED.
 // INC-6 (damage package): TORPEDO_PROGRESSIVE_FLOODING_CREATED,

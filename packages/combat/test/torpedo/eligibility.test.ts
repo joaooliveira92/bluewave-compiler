@@ -3,20 +3,23 @@
 // code through the structured verdict. The reused validateTargetOrder fog gate
 // throws the combat-catalog TACTICAL_FOG_OF_WAR_VIOLATION for unknown /
 // zero-confidence contacts; known contacts below 4_000 bp fail with
-// TORPEDO_TARGET_CONTACT_INSUFFICIENT. The §24 friendly-fire family is the
-// INC-2 stub (friendlyFireSafety "DEFERRED"; a confirmed-friendly target
-// reports the marker, not the INC-3-owned risk code). Seams: fire-solution
-// quality is an INC-3-computed input; the §6 sea-state ceiling is the authored
-// TORPEDO_MAX_LAUNCH_SEA_STATE constant.
+// TORPEDO_TARGET_CONTACT_INSUFFICIENT. INC-3 makes the §24 friendly-fire family
+// REAL (friendly-fire.ts): a confirmed-friendly target or a §24 danger-sector
+// prohibition reports TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED and the INC-2
+// DEFERRED marker is retired (every predicate is a plain boolean). Seams:
+// fire-solution quality is an INC-3-computed input (fire-solution.ts); the §6
+// sea-state ceiling is the authored TORPEDO_MAX_LAUNCH_SEA_STATE constant.
 import { describe, expect, it } from "vite-plus/test";
 import { BluewaveError } from "@bluewave/contracts";
 import { TACTICAL_FOG_OF_WAR_VIOLATION } from "../../src/reasonCodes.js";
 import {
   ammunitionReservationSucceeds,
   armingDistanceSatisfiable,
+  assessFriendlyFireRisk,
   EMPTY_TUBE,
   evaluateLaunchEligibility,
   fireSolutionQualitySufficient,
+  friendlyFireSafetyVerdict,
   INVALID_TORPEDO_LAUNCHER_STATE,
   launcherAndTubesOperational,
   NO_RELOAD_IN_PROGRESS,
@@ -29,8 +32,8 @@ import {
   targetWithinLaunchArc,
   torpedoLaunchAuthorityPolicyId,
   TORPEDO_AMMUNITION_UNAVAILABLE,
-  TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED,
   TORPEDO_FIRE_SOLUTION_INSUFFICIENT,
+  TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED,
   TORPEDO_LAUNCH_ARC_INVALID,
   TORPEDO_LAUNCH_AUTHORITY_DENIED,
   TORPEDO_MANUAL_LAUNCH_MODE_PROHIBITED,
@@ -41,6 +44,7 @@ import {
   UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED,
   withTorpedoLauncherStateHash,
   type AuthorityGrant,
+  type FriendlyTrack,
   type LaunchEligibilityInputs,
   type TorpedoLauncherDefinition,
   type TorpedoLauncherState,
@@ -134,6 +138,17 @@ function grant(overrides: Partial<AuthorityGrant> = {}): AuthorityGrant {
   };
 }
 
+function friendlyTrack(overrides: Partial<FriendlyTrack> = {}): FriendlyTrack {
+  return {
+    contactId: "FRIEND-1",
+    estimatedIdentity: "rn_cl_arethusa",
+    relativeBearingMdeg: 0,
+    rangeM: 5_000,
+    confidenceBp: 5_000,
+    ...overrides,
+  };
+}
+
 function inputs(overrides: Partial<LaunchEligibilityInputs> = {}): LaunchEligibilityInputs {
   return {
     state: baseLauncher(),
@@ -152,23 +167,23 @@ function inputs(overrides: Partial<LaunchEligibilityInputs> = {}): LaunchEligibi
     ownSpeedMicrometresPerSecond: 12_000_000,
     ownManeuverWithinFireControlLimit: true,
     seaState: 4,
+    friendlyTracks: [],
+    solutionUncertaintyM: 0,
+    spreadHalfAngleMdeg: 0,
     ...overrides,
   };
 }
 
 describe("AC-6: a fully-eligible launch passes every §6 predicate", () => {
-  it("returns eligible with every predicate true, the §24 stub DEFERRED, no torpedo consumed", () => {
+  it("returns eligible with every predicate a plain boolean true, no torpedo consumed", () => {
     const verdict = evaluateLaunchEligibility(inputs());
     expect(verdict.eligible).toBe(true);
     expect(verdict.failingPredicate).toBeNull();
     expect(verdict.reasonCode).toBeNull();
     expect(verdict.consumedTorpedo).toBe(false);
     for (const [predicate, result] of Object.entries(verdict.predicateResults)) {
-      if (predicate === "friendlyFireSafety") {
-        expect(result).toBe("DEFERRED"); // the §24 stub — never fabricated
-      } else {
-        expect(result).toBe(true);
-      }
+      expect(result).toBe(true); // INC-3 retires the DEFERRED marker: all booleans
+      void predicate;
     }
   });
 
@@ -285,12 +300,117 @@ describe("AC-6: every §6 predicate fails with EXACTLY one explicit reason code 
     expect(err!.message).toBe(TACTICAL_FOG_OF_WAR_VIOLATION);
   });
 
-  it("target not friendly: a confirmed-friendly target reports the §24 stub marker (INC-3 owns the family code)", () => {
+  it("target not friendly: a confirmed-friendly target reports the §24 family code TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED", () => {
     const knownTracks = new Map([["CONTACT-1", track({ estimatedIdentity: "rn_cl_arethusa" })]]);
     const verdict = evaluateLaunchEligibility(inputs({ knownTracks }));
     expect(verdict.failingPredicate).toBe("targetNotFriendly");
-    expect(verdict.reasonCode).toBe(TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED);
-    expect(verdict.predicateResults.friendlyFireSafety).toBe("DEFERRED");
+    expect(verdict.reasonCode).toBe(TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED);
+    expect(verdict.predicateResults.targetNotFriendly).toBe(false);
+    expect(verdict.predicateResults.friendlyFireSafety).toBe(true); // the target itself is not the §24 danger-sector check
+  });
+
+  it("friendly-fire safety: a confirmed friendly inside the danger sector below 1_000 m predicted separation is PROHIBITED", () => {
+    // Friendly dead-on the launch bearing line (bearing diff 0 -> cross-track 0 m).
+    // Quality is at the §24-friendly minimum so predicate 10 passes and the
+    // prohibition is the (only) failing predicate.
+    const verdict = evaluateLaunchEligibility(
+      inputs({
+        friendlyTracks: [friendlyTrack({ relativeBearingMdeg: 0, rangeM: 5_000 })],
+        fireSolutionQualityBp: 7_500,
+      }),
+    );
+    expect(verdict.failingPredicate).toBe("friendlyFireSafety");
+    expect(verdict.reasonCode).toBe(TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED);
+    expect(verdict.predicateResults.friendlyFireSafety).toBe(false);
+  });
+
+  it("friendly-fire safety: manual launch does NOT waive the §24 prohibition", () => {
+    const verdict = evaluateLaunchEligibility(
+      inputs({
+        manualLaunch: true,
+        friendlyTracks: [friendlyTrack({ relativeBearingMdeg: 0, rangeM: 5_000 })],
+        fireSolutionQualityBp: 7_500,
+      }),
+    );
+    expect(verdict.failingPredicate).toBe("friendlyFireSafety");
+    expect(verdict.reasonCode).toBe(TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED);
+  });
+
+  it("predicate order: with a friendly in the sector AND low quality, predicate 10 (quality) fires FIRST per §6 order", () => {
+    // The §24 prohibition backstop is predicate 14; §6 evaluates predicate 10
+    // first, so a quality failure below the 7_500 raise reports
+    // TORPEDO_FIRE_SOLUTION_INSUFFICIENT — deterministic first-failing-predicate.
+    const verdict = evaluateLaunchEligibility(
+      inputs({
+        friendlyTracks: [friendlyTrack({ relativeBearingMdeg: 0, rangeM: 5_000 })],
+        fireSolutionQualityBp: 7_499,
+      }),
+    );
+    expect(verdict.failingPredicate).toBe("fireSolutionQuality");
+    expect(verdict.reasonCode).toBe(TORPEDO_FIRE_SOLUTION_INSUFFICIENT);
+    expect(verdict.predicateResults.friendlyFireSafety).toBe(true); // not reached
+  });
+
+  it("friendly-fire safety: a confirmed friendly inside the sector at exactly 1_000 m predicted separation is NOT prohibited", () => {
+    // diff 5_000 mdeg at range 11_460 m -> cross-track floor(11_460*5_000/57_296) = 1_000.
+    // In sector with quality at the raised minimum -> fully eligible.
+    const verdict = evaluateLaunchEligibility(
+      inputs({
+        friendlyTracks: [friendlyTrack({ relativeBearingMdeg: 5_000, rangeM: 11_460 })],
+        spreadHalfAngleMdeg: 6_000,
+        targetEstimatedRangeM: 11_460,
+        selectedSetting: { settingId: "30kn", speedKnotsBp: 30_000, rangeM: 14_000 },
+        fireSolutionQualityBp: 7_500,
+      }),
+    );
+    expect(verdict.eligible).toBe(true);
+    expect(verdict.predicateResults.friendlyFireSafety).toBe(true);
+  });
+
+  it("fire solution: a friendly in the danger sector raises the §10 minimum to 7_500 bp", () => {
+    // Unidentified contact inside the sector (spread covers the 500 mdeg offset):
+    // quality 7_499 fails predicate 10, 7_500 passes.
+    const friendlyTracks = [
+      friendlyTrack({
+        contactId: "GHOST-1",
+        estimatedIdentity: "UNIDENTIFIED",
+        relativeBearingMdeg: 500,
+        rangeM: 4_000,
+      }),
+    ];
+    const below = evaluateLaunchEligibility(
+      inputs({ friendlyTracks, spreadHalfAngleMdeg: 1_000, fireSolutionQualityBp: 7_499 }),
+    );
+    expect(below.failingPredicate).toBe("fireSolutionQuality");
+    expect(below.reasonCode).toBe(TORPEDO_FIRE_SOLUTION_INSUFFICIENT);
+    const at = evaluateLaunchEligibility(
+      inputs({ friendlyTracks, spreadHalfAngleMdeg: 1_000, fireSolutionQualityBp: 7_500 }),
+    );
+    expect(at.eligible).toBe(true);
+  });
+
+  it("fire solution: a confirmed friendly in the sector raises the §10 minimum even when NOT prohibited", () => {
+    // 1_047 m cross-track (>= 1_000 m -> not prohibited) but inside the sector ->
+    // the friendly minimum still applies.
+    const friendlyTracks = [friendlyTrack({ relativeBearingMdeg: 5_000, rangeM: 12_000 })];
+    const below = evaluateLaunchEligibility(
+      inputs({ friendlyTracks, spreadHalfAngleMdeg: 6_000, fireSolutionQualityBp: 7_499 }),
+    );
+    expect(below.failingPredicate).toBe("fireSolutionQuality");
+    expect(below.reasonCode).toBe(TORPEDO_FIRE_SOLUTION_INSUFFICIENT);
+    expect(below.predicateResults.friendlyFireSafety).toBe(true); // not prohibited
+  });
+
+  it("fire solution: a track outside the danger sector neither raises the minimum nor prohibits", () => {
+    const friendlyTracks = [
+      friendlyTrack({ relativeBearingMdeg: 45_000, rangeM: 5_000, confidenceBp: 1_000 }),
+    ];
+    const verdict = evaluateLaunchEligibility(
+      inputs({ friendlyTracks, spreadHalfAngleMdeg: 1_000, fireSolutionQualityBp: 4_999 }),
+    );
+    // quality 4_999 with no sector contact: the normal AUTOMATED 5_000 minimum fails
+    expect(verdict.failingPredicate).toBe("fireSolutionQuality");
+    expect(verdict.predicateResults.friendlyFireSafety).toBe(true);
   });
 
   it("launch arc: bearing outside the training limits -> TORPEDO_LAUNCH_ARC_INVALID", () => {
@@ -439,6 +559,43 @@ describe("AC-6: shape-guards fail closed — never a raw TypeError (hardening it
     );
   });
 
+  it("rejects a malformed friendlyTracks surface (non-array, bad bearing/range/confidence)", () => {
+    expect(() => evaluateLaunchEligibility(inputs({ friendlyTracks: 42 as never }))).toThrow(
+      BluewaveError,
+    );
+    expect(() => evaluateLaunchEligibility(inputs({ friendlyTracks: [null] as never }))).toThrow(
+      BluewaveError,
+    );
+    expect(() =>
+      evaluateLaunchEligibility(
+        inputs({ friendlyTracks: [friendlyTrack({ relativeBearingMdeg: 0.5 })] }),
+      ),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      evaluateLaunchEligibility(inputs({ friendlyTracks: [friendlyTrack({ rangeM: -1 })] })),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      evaluateLaunchEligibility(
+        inputs({ friendlyTracks: [friendlyTrack({ confidenceBp: 10_001 })] }),
+      ),
+    ).toThrow(BluewaveError);
+  });
+
+  it("rejects non-integer solutionUncertaintyM or spreadHalfAngleMdeg", () => {
+    expect(() => evaluateLaunchEligibility(inputs({ solutionUncertaintyM: 0.5 }))).toThrow(
+      BluewaveError,
+    );
+    expect(() => evaluateLaunchEligibility(inputs({ solutionUncertaintyM: -1 }))).toThrow(
+      BluewaveError,
+    );
+    expect(() => evaluateLaunchEligibility(inputs({ spreadHalfAngleMdeg: 0.5 }))).toThrow(
+      BluewaveError,
+    );
+    expect(() => evaluateLaunchEligibility(inputs({ spreadHalfAngleMdeg: -1 }))).toThrow(
+      BluewaveError,
+    );
+  });
+
   it("rejects a malformed selectedSetting surface (missing range, non-integer speed, empty id)", () => {
     expect(() =>
       evaluateLaunchEligibility(
@@ -498,6 +655,17 @@ describe("AC-6: per-predicate functions (boundary cases)", () => {
     expect(fireSolutionQualitySufficient(3_000, "AREA_DENIAL")).toBe(true);
     expect(fireSolutionQualitySufficient(3_000, "SPREAD")).toBe(true);
     expect(fireSolutionQualitySufficient(2_999, "SPREAD")).toBe(false);
+  });
+
+  it("fire-solution thresholds: the §24 friendly-danger-sector raise applies to EVERY launch kind", () => {
+    // 7_500 bp is the highest §10 threshold; a friendly in the danger sector
+    // raises even the low AREA_DENIAL minimum up to it.
+    expect(fireSolutionQualitySufficient(7_499, "AUTOMATED", true)).toBe(false);
+    expect(fireSolutionQualitySufficient(7_500, "AUTOMATED", true)).toBe(true);
+    expect(fireSolutionQualitySufficient(7_499, "AREA_DENIAL", true)).toBe(false);
+    expect(fireSolutionQualitySufficient(7_500, "AREA_DENIAL", true)).toBe(true);
+    // without the raise, AREA_DENIAL keeps its 3_000 bp minimum
+    expect(fireSolutionQualitySufficient(3_000, "AREA_DENIAL", false)).toBe(true);
   });
 
   it("sea-state gate: the authored ceiling 5 permits, 6 does not", () => {
@@ -579,5 +747,35 @@ describe("AC-6: per-predicate functions (boundary cases)", () => {
     narrow.aboveWaterMaxLaunchSpeedKnots = 28;
     expect(ownSpeedWithinLauncherLimits(aboveWaterState(), narrow, 14_404_432).passes).toBe(true);
     expect(ownSpeedWithinLauncherLimits(aboveWaterState(), narrow, 14_404_433).passes).toBe(false);
+  });
+});
+
+describe("AC-19: friendlyFireSafetyVerdict is the single source of truth for §6 predicate 14", () => {
+  it("passes when the assessment is not prohibited and fails exactly when it is", () => {
+    const safe = assessFriendlyFireRisk({
+      targetRelativeBearingMdeg: 0,
+      targetEstimatedRangeM: 5_000,
+      solutionUncertaintyM: 0,
+      spreadHalfAngleMdeg: 0,
+      friendlyTracks: [],
+      friendlyIdentities: ["rn_cl_arethusa"],
+      manualLaunch: false,
+    });
+    expect(safe.prohibited).toBe(false);
+    expect(friendlyFireSafetyVerdict(safe)).toBe(true);
+
+    const dangerous = assessFriendlyFireRisk({
+      targetRelativeBearingMdeg: 0,
+      targetEstimatedRangeM: 5_000,
+      solutionUncertaintyM: 0,
+      spreadHalfAngleMdeg: 0,
+      friendlyTracks: [
+        friendlyTrack({ relativeBearingMdeg: 0, rangeM: 5_000 }), // dead on the line
+      ],
+      friendlyIdentities: ["rn_cl_arethusa"],
+      manualLaunch: true,
+    });
+    expect(dangerous.prohibited).toBe(true);
+    expect(friendlyFireSafetyVerdict(dangerous)).toBe(false); // manualLaunch does NOT waive
   });
 });

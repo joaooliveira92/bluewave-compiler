@@ -1,8 +1,10 @@
-// AC-24 seeds (INC-1): `torpedo_v1` SHIPPED_TORPEDO_CONTRACT + validate guard
-// fail-closed on tampering; exact shipped §7/§8/§23 integers; the grounded
-// seed model set; the INC-1 reason-code catalog (exactly the five INC-1 §29
-// codes, disjoint from the top-level combat catalog — the full §29 partition
-// set-equality test is the INC-8 deliverable).
+// AC-24 seeds (INC-1 + INC-2 + INC-3): `torpedo_v1` SHIPPED_TORPEDO_CONTRACT +
+// validate guard fail-closed on tampering; exact shipped §7/§8/§10/§11/§23/§24
+// integers; the grounded seed model set; the in-slice reason-code catalog
+// (exactly the INC-1 + INC-2 + INC-3 §29 codes, disjoint from the top-level
+// combat catalog — the full §29 partition set-equality test is the INC-8
+// deliverable). The INC-2 DEFERRED marker is RETIRED in INC-3: no shipped
+// predicate reports it and it is absent from the catalog.
 import { describe, expect, it } from "vite-plus/test";
 import { BluewaveError } from "@bluewave/contracts";
 import { REASON_CODES } from "../../src/reasonCodes.js";
@@ -14,10 +16,28 @@ import {
   resolvedAboveWaterMaxLaunchSpeedKnots,
   SHIPPED_TORPEDO_CONTRACT,
   SHIPPED_TORPEDO_MODELS,
+  TORPEDO_DANGER_SECTOR_RAD_TO_MDEG,
+  TORPEDO_FRIENDLY_DANGER_SECTOR_MINIMUM_BP,
+  TORPEDO_FRIENDLY_FIRE_LOW_CONFIDENCE_BP,
+  TORPEDO_FRIENDLY_FIRE_MIN_SEPARATION_M,
   TORPEDO_MAX_LAUNCH_SEA_STATE,
+  TORPEDO_MISSION_OBJECTIVES,
   TORPEDO_MOUNT_TYPES,
   TORPEDO_REASON_CODES,
+  TORPEDO_SALVO_AMMO_SCARCITY_BP_TABLE,
+  TORPEDO_SALVO_BASE_TUBES,
+  TORPEDO_SALVO_BP_PER_TUBE,
+  TORPEDO_SALVO_FACTOR_WEIGHTS_BP,
+  TORPEDO_SALVO_FRIENDLY_LAUNCHER_PRESSURE_BP_TABLE,
+  TORPEDO_SALVO_MIN_TUBES,
+  TORPEDO_SALVO_RANGE_PRESSURE_BP_TABLE,
+  TORPEDO_SALVO_WITHDRAWAL_MODIFIER_TUBES,
+  TORPEDO_SOLUTION_FACTOR_KEYS,
+  TORPEDO_SOLUTION_FINAL_MAX_BP,
+  TORPEDO_SOLUTION_FINAL_MIN_BP,
   TORPEDO_SOLUTION_MINIMUM_BP,
+  TORPEDO_SOLUTION_ROUNDING,
+  TORPEDO_SOLUTION_SCALE_EXPONENT,
   TORPEDO_STATE_INVARIANT_FAILED,
   TORPEDO_TARGET_CONTACT_MINIMUM_BP,
   torpedoModelsContentVersion,
@@ -25,6 +45,7 @@ import {
   torpedoSpeedBpKnotsToUmS,
   UNDERWATER_TUBE_MAX_SPEED_KNOTS,
   UNDERWATER_TUBE_MAX_SPEED_UM_S,
+  UNIDENTIFIED_CONTACT_IDENTITY,
   validateTorpedoContract,
   validateTorpedoLauncherDefinition,
   type TorpedoLauncherDefinition,
@@ -105,6 +126,78 @@ describe("AC-24: torpedo_v1 contract + validate guard (fail closed)", () => {
   it("fails closed on a tampered shipped-model-id list", () => {
     expect(() =>
       validateTorpedoContract({ ...SHIPPED_TORPEDO_CONTRACT, shippedModelIds: [] }),
+    ).toThrow(BluewaveError);
+  });
+
+  it("fails closed on a tampered §10 solution factor manifest or scale", () => {
+    expect(() =>
+      validateTorpedoContract({
+        ...SHIPPED_TORPEDO_CONTRACT,
+        solutionFactorKeys: [...TORPEDO_SOLUTION_FACTOR_KEYS, "magic"],
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoContract({ ...SHIPPED_TORPEDO_CONTRACT, solutionScaleExponent: 9 }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoContract({ ...SHIPPED_TORPEDO_CONTRACT, solutionRounding: "ceil" }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoContract({ ...SHIPPED_TORPEDO_CONTRACT, solutionFinalMaxBp: 9_999 }),
+    ).toThrow(BluewaveError);
+  });
+
+  it("fails closed on a tampered §24 friendly-fire constant", () => {
+    expect(() =>
+      validateTorpedoContract({
+        ...SHIPPED_TORPEDO_CONTRACT,
+        friendlyDangerSectorMinimumBp: 7_499,
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoContract({ ...SHIPPED_TORPEDO_CONTRACT, friendlyFireMinSeparationM: 999 }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoContract({ ...SHIPPED_TORPEDO_CONTRACT, dangerSectorRadToMdeg: 57_295 }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoContract({ ...SHIPPED_TORPEDO_CONTRACT, unidentifiedContactIdentity: "?" }),
+    ).toThrow(BluewaveError);
+  });
+
+  it("fails closed on a tampered §11 salvo policy constant", () => {
+    expect(() =>
+      validateTorpedoContract({
+        ...SHIPPED_TORPEDO_CONTRACT,
+        salvoBaseTubes: { ...SHIPPED_TORPEDO_CONTRACT.salvoBaseTubes, ATTACK: 3 },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoContract({
+        ...SHIPPED_TORPEDO_CONTRACT,
+        salvoFactorWeightsBp: { ...SHIPPED_TORPEDO_CONTRACT.salvoFactorWeightsBp, overkill: 999 },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoContract({
+        ...SHIPPED_TORPEDO_CONTRACT,
+        salvoRangePressureBpTable: [...SHIPPED_TORPEDO_CONTRACT.salvoRangePressureBpTable],
+      }),
+    ).not.toThrow(); // the unmodified copy still validates
+    expect(() =>
+      validateTorpedoContract({
+        ...SHIPPED_TORPEDO_CONTRACT,
+        salvoRangePressureBpTable: [
+          { maxRangeM: 2_000, pressureBp: 1 },
+          ...SHIPPED_TORPEDO_CONTRACT.salvoRangePressureBpTable.slice(1),
+        ],
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoContract({
+        ...SHIPPED_TORPEDO_CONTRACT,
+        missionObjectives: [...TORPEDO_MISSION_OBJECTIVES, "RANDOM"],
+      }),
     ).toThrow(BluewaveError);
   });
 
@@ -202,8 +295,8 @@ describe("AC-24: exact shipped constant surface", () => {
   });
 });
 
-describe("AC-21 seeds: INC-1 + INC-2 reason-code catalog shape", () => {
-  it("ships exactly the INC-1 + INC-2 §29 codes + the deferred marker — nothing more, nothing less", () => {
+describe("AC-21 seeds: INC-1 + INC-2 + INC-3 reason-code catalog shape", () => {
+  it("ships exactly the INC-1 + INC-2 + INC-3 §29 codes — nothing more, nothing less (the INC-2 DEFERRED marker is retired)", () => {
     const shipped = Object.values(TORPEDO_REASON_CODES).sort();
     expect(shipped).toEqual(
       [
@@ -219,8 +312,13 @@ describe("AC-21 seeds: INC-1 + INC-2 reason-code catalog shape", () => {
         "TORPEDO_LAUNCH_ARC_INVALID",
         "TORPEDO_LAUNCH_SPEED_LIMIT_MISSING",
         "UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED",
-        "TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED",
+        "TORPEDO_FIRE_SOLUTION_FACTOR_MISSING",
+        "TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED",
       ].sort(),
+    );
+    // the retired marker is gone from the catalog and no longer a shipped code
+    expect(Object.values(TORPEDO_REASON_CODES)).not.toContain(
+      "TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED",
     );
   });
 
@@ -241,9 +339,9 @@ describe("AC-21 seeds: INC-1 + INC-2 reason-code catalog shape", () => {
     }
   });
 
-  it("ships the INC-2 launch-legality codes and does NOT ship §29 codes owned by later increments", () => {
+  it("ships the INC-2 + INC-3 in-slice codes and does NOT ship §29 codes owned by later increments", () => {
     const shipped: ReadonlySet<string> = new Set(Object.values(TORPEDO_REASON_CODES));
-    // the INC-2 codes (shipped by this increment)
+    // the INC-2 launch-legality codes + the INC-3 fire-solution/friendly-fire codes
     for (const code of [
       "TORPEDO_MANUAL_LAUNCH_MODE_PROHIBITED",
       "TORPEDO_LAUNCH_AUTHORITY_DENIED",
@@ -252,13 +350,15 @@ describe("AC-21 seeds: INC-1 + INC-2 reason-code catalog shape", () => {
       "TORPEDO_LAUNCH_ARC_INVALID",
       "TORPEDO_LAUNCH_SPEED_LIMIT_MISSING",
       "UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED",
-      "TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED",
+      "TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED",
+      "TORPEDO_FIRE_SOLUTION_FACTOR_MISSING",
     ]) {
       expect(shipped.has(code)).toBe(true);
     }
-    // the codes owned by INC-3+ must NOT be shipped yet
+    // the retired INC-2 marker must NOT be shipped (its §24 family code now is)
+    expect(shipped.has("TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED")).toBe(false);
+    // the codes owned by INC-4+ must NOT be shipped yet
     const laterIncrementCodes = [
-      "TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED",
       "TORPEDO_LAUNCH_FAILURE",
       "TORPEDO_DUD",
       "TORPEDO_HIT_RESOLVED",
@@ -267,7 +367,6 @@ describe("AC-21 seeds: INC-1 + INC-2 reason-code catalog shape", () => {
       "TORPEDO_SYSTEM_SHOCK_DAMAGE_CREATED",
       "UNDERWATER_TUBE_SEVERE_FLOODING",
       "TORPEDO_CHAIN_REACTION",
-      "TORPEDO_FIRE_SOLUTION_FACTOR_MISSING",
     ];
     for (const code of laterIncrementCodes) {
       expect(shipped.has(code)).toBe(false);
@@ -281,5 +380,78 @@ describe("AC-21 seeds: INC-1 + INC-2 reason-code catalog shape", () => {
 
   it("OXYGEN_RANGE_MULTIPLIER_BP pins the shipped §23 value", () => {
     expect(OXYGEN_RANGE_MULTIPLIER_BP).toBe(15_000);
+  });
+});
+
+describe("AC-9/AC-11/AC-19 (INC-3): exact shipped §10/§11/§24 constant surface", () => {
+  it("ships the exact §10 fire-solution manifest (10 factors, scale 10, floor, [0, 10_000])", () => {
+    expect([...TORPEDO_SOLUTION_FACTOR_KEYS]).toEqual([
+      "range",
+      "bearing",
+      "targetMotion",
+      "ownManeuver",
+      "crew",
+      "training",
+      "seaState",
+      "visibility",
+      "technology",
+      "damage",
+    ]);
+    expect(TORPEDO_SOLUTION_SCALE_EXPONENT).toBe(10);
+    expect(TORPEDO_SOLUTION_ROUNDING).toBe("floor");
+    expect(TORPEDO_SOLUTION_FINAL_MIN_BP).toBe(0);
+    expect(TORPEDO_SOLUTION_FINAL_MAX_BP).toBe(10_000);
+    expect(TORPEDO_FRIENDLY_DANGER_SECTOR_MINIMUM_BP).toBe(7_500);
+    expect(SHIPPED_TORPEDO_CONTRACT.solutionFactorKeys).toEqual(TORPEDO_SOLUTION_FACTOR_KEYS);
+    expect(SHIPPED_TORPEDO_CONTRACT.friendlyDangerSectorMinimumBp).toBe(7_500);
+  });
+
+  it("ships the exact §24 friendly-fire geometry constants", () => {
+    expect(TORPEDO_FRIENDLY_FIRE_MIN_SEPARATION_M).toBe(1_000);
+    expect(TORPEDO_DANGER_SECTOR_RAD_TO_MDEG).toBe(57_296);
+    expect(TORPEDO_FRIENDLY_FIRE_LOW_CONFIDENCE_BP).toBe(4_000);
+    expect(UNIDENTIFIED_CONTACT_IDENTITY).toBe("UNIDENTIFIED");
+    expect(SHIPPED_TORPEDO_CONTRACT.friendlyFireMinSeparationM).toBe(1_000);
+    expect(SHIPPED_TORPEDO_CONTRACT.dangerSectorRadToMdeg).toBe(57_296);
+  });
+
+  it("ships the exact §11 salvo policy surface (enums, base/withdrawal tables, weights, bands)", () => {
+    expect([...TORPEDO_MISSION_OBJECTIVES]).toEqual([
+      "ATTACK",
+      "DEFENSE",
+      "AREA_DENIAL",
+      "BREAKTHROUGH",
+    ]);
+    expect(TORPEDO_SALVO_BASE_TUBES).toEqual({
+      ATTACK: 2,
+      DEFENSE: 1,
+      AREA_DENIAL: 4,
+      BREAKTHROUGH: 3,
+    });
+    expect(TORPEDO_SALVO_WITHDRAWAL_MODIFIER_TUBES).toEqual({ NORMAL: 0, WITHDRAWING: 1 });
+    expect(TORPEDO_SALVO_FACTOR_WEIGHTS_BP).toEqual({
+      targetCombatValue: 1_500,
+      targetSize: 500,
+      rangePressure: 1_000,
+      solutionQualityDeficit: 1_000,
+      ammoScarcity: 1_500,
+      friendlyCoveragePressure: 1_000,
+      overkill: 1_000,
+    });
+    expect(TORPEDO_SALVO_BP_PER_TUBE).toBe(1_000);
+    expect(TORPEDO_SALVO_MIN_TUBES).toBe(1);
+    expect(TORPEDO_SALVO_RANGE_PRESSURE_BP_TABLE[0]).toEqual({ maxRangeM: 2_000, pressureBp: 0 });
+    expect(TORPEDO_SALVO_RANGE_PRESSURE_BP_TABLE[4]).toEqual({
+      maxRangeM: Number.MAX_SAFE_INTEGER,
+      pressureBp: 8_000,
+    });
+    expect(TORPEDO_SALVO_AMMO_SCARCITY_BP_TABLE[0]).toEqual({ minAmmo: 12, scarcityBp: 0 });
+    expect(TORPEDO_SALVO_AMMO_SCARCITY_BP_TABLE[5]).toEqual({ minAmmo: 0, scarcityBp: 10_000 });
+    expect(TORPEDO_SALVO_FRIENDLY_LAUNCHER_PRESSURE_BP_TABLE[0]).toEqual({
+      maxCount: 0,
+      pressureBp: 10_000,
+    });
+    expect(SHIPPED_TORPEDO_CONTRACT.salvoBaseTubes).toEqual(TORPEDO_SALVO_BASE_TUBES);
+    expect(SHIPPED_TORPEDO_CONTRACT.salvoBpPerTube).toBe(TORPEDO_SALVO_BP_PER_TUBE);
   });
 });

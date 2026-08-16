@@ -9,3 +9,6 @@ export * from "./compatibility.js";
 export * from "./authority.js";
 export * from "./launch-speed.js";
 export * from "./eligibility.js";
+export * from "./fire-solution.js";
+export * from "./friendly-fire.js";
+export * from "./salvo.js";

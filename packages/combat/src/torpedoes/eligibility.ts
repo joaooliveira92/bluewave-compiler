@@ -7,37 +7,39 @@
 //
 // Reason-code mapping (documented best-fit where DESIGN-40 §29 names no
 // predicate-specific code — each is one of the shipped in-slice codes):
-//   authority (no/unknown grant)          -> TORPEDO_LAUNCH_AUTHORITY_DENIED
-//   authority (manual in ADMIRAL/REAR)    -> TORPEDO_MANUAL_LAUNCH_MODE_PROHIBITED
-//   launcher/tubes not operational        -> INVALID_TORPEDO_LAUNCHER_STATE (best-fit)
-//   tube empty                            -> TORPEDO_AMMUNITION_UNAVAILABLE
-//   loaded model incompatible             -> TORPEDO_MODEL_INCOMPATIBLE
-//   reload/safety interlock open          -> INVALID_TORPEDO_LAUNCHER_STATE (best-fit)
-//   contact confidence < 4_000 bp         -> TORPEDO_TARGET_CONTACT_INSUFFICIENT
-//   unknown/zero-confidence contact       -> TACTICAL_FOG_OF_WAR_VIOLATION (thrown, reused gate)
-//   confirmed friendly target             -> TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED
-//                                            (§24 family code TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED
-//                                            is INC-3-owned; the INC-2 stub reports the marker)
-//   arc/bearing outside limits            -> TORPEDO_LAUNCH_ARC_INVALID
-//   range outside selected setting        -> TORPEDO_TARGET_CONTACT_INSUFFICIENT (best-fit)
-//   arming distance not satisfiable       -> TORPEDO_TARGET_CONTACT_INSUFFICIENT (best-fit)
-//   solution quality below §10 minimum    -> TORPEDO_FIRE_SOLUTION_INSUFFICIENT
-//   §7 underwater speed exceeded          -> UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED
-//   §8 above-water speed exceeded         -> UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED (best-fit §29 reuse)
+//   authority (no/unknown grant)        -> TORPEDO_LAUNCH_AUTHORITY_DENIED
+//   authority (manual in ADMIRAL/REAR)  -> TORPEDO_MANUAL_LAUNCH_MODE_PROHIBITED
+//   launcher/tubes not operational      -> INVALID_TORPEDO_LAUNCHER_STATE (best-fit)
+//   tube empty                          -> TORPEDO_AMMUNITION_UNAVAILABLE
+//   loaded model incompatible           -> TORPEDO_MODEL_INCOMPATIBLE
+//   reload/safety interlock open        -> INVALID_TORPEDO_LAUNCHER_STATE (best-fit)
+//   contact confidence < 4_000 bp       -> TORPEDO_TARGET_CONTACT_INSUFFICIENT
+//   unknown/zero-confidence contact     -> TACTICAL_FOG_OF_WAR_VIOLATION (thrown, reused gate)
+//   confirmed friendly target / §24     -> TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED (§24 family,
+//                                          INC-3 — the INC-2 DEFERRED marker is RETIRED)
+//   arc/bearing outside limits          -> TORPEDO_LAUNCH_ARC_INVALID
+//   range outside selected setting      -> TORPEDO_TARGET_CONTACT_INSUFFICIENT (best-fit)
+//   arming distance not satisfiable     -> TORPEDO_TARGET_CONTACT_INSUFFICIENT (best-fit)
+//   solution quality below §10 minimum  -> TORPEDO_FIRE_SOLUTION_INSUFFICIENT
+//   §7 underwater speed exceeded        -> UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED
+//   §8 above-water speed exceeded       -> UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED (best-fit §29 reuse)
 //   §8 above-water speed metadata missing -> TORPEDO_LAUNCH_SPEED_LIMIT_MISSING
 //   maneuver violates fire-control limit  -> TORPEDO_FIRE_SOLUTION_INSUFFICIENT (§9 own-maneuver input)
 //   sea state above the launched ceiling  -> TORPEDO_FIRE_SOLUTION_INSUFFICIENT (§9 sea-state input)
 //   ammunition reservation would fail     -> TORPEDO_AMMUNITION_UNAVAILABLE
 //
 // Seams (recorded, not fabricated):
-//   - fire-solution QUALITY is computed by INC-3's §10 11-factor formula; INC-2
-//     ships the pure threshold check over an already-computed integer bp value.
+//   - fire-solution QUALITY is computed by INC-3's §10 11-factor formula
+//     (fire-solution.ts computeTorpedoSolutionQuality); the aggregate takes the
+//     already-computed integer bp value as the §6 predicate-10 input and applies
+//     the §24 friendly-danger-sector raise via assessFriendlyFireRisk.
 //   - the §6 sea-state rule is not pinned by DESIGN-40; the shipped ceiling is
 //     the authored versioned-ruleset constant TORPEDO_MAX_LAUNCH_SEA_STATE on
 //     the B-5 integer scale 0..9, decoupled from the B-5 module.
-//   - the §24 friendly-fire family (danger sector, 1_000 m separation, §10
-//     quality raise) is the INC-2 stub -> TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED;
-//     SUBMARINE_INTERNAL model-specific speed limits -> C-3 (recorded).
+//   - the §24 friendly-fire family is REAL in INC-3 (danger sector, 1_000 m
+//     separation, §10 quality raise — friendly-fire.ts). The INC-2 DEFERRED
+//     marker is retired; every predicate now reports a plain boolean.
+//   - SUBMARINE_INTERNAL model-specific speed limits -> C-3 (recorded).
 // Pure/deterministic: no ambient I/O/clock/random.
 import { BluewaveError } from "@bluewave/contracts";
 import {
@@ -45,7 +47,6 @@ import {
   TORPEDO_LAUNCH_KINDS,
   type TorpedoLaunchKind,
   TORPEDO_MAX_LAUNCH_SEA_STATE,
-  TORPEDO_SOLUTION_MINIMUM_BP,
   TORPEDO_TARGET_CONTACT_MINIMUM_BP,
 } from "./constants.js";
 import {
@@ -65,8 +66,8 @@ import { torpedoModelById, type TorpedoModelDefinition, type TorpedoSetting } fr
 import {
   INVALID_TORPEDO_LAUNCHER_STATE,
   TORPEDO_AMMUNITION_UNAVAILABLE,
-  TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED,
   TORPEDO_FIRE_SOLUTION_INSUFFICIENT,
+  TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED,
   TORPEDO_LAUNCH_ARC_INVALID,
   TORPEDO_MODEL_INCOMPATIBLE,
   TORPEDO_STATE_INVARIANT_FAILED,
@@ -80,6 +81,12 @@ import {
   validateUnderwaterTubeSpeedLimit,
 } from "./launch-speed.js";
 import { type ContactTrack, validateTargetOrder } from "../targeting.js";
+import { solutionMeetsMinimum } from "./fire-solution.js";
+import {
+  assessFriendlyFireRisk,
+  type FriendlyFireRiskAssessment,
+  type FriendlyTrack,
+} from "./friendly-fire.js";
 
 // B-5 weather integer sea-state scale (weather/constants.ts SEA_STATE_MIN 0 ..
 // SEA_STATE_MAX 9), mirrored locally so this gate stays decoupled from the B-5
@@ -104,13 +111,13 @@ export type TorpedoEligibilityPredicate =
   | "friendlyFireSafety"
   | "ammunitionReservation";
 
-export type EligibilityPredicateResult = boolean | "DEFERRED";
+export type EligibilityPredicateResult = boolean;
 
 export interface LaunchEligibilityVerdict {
   eligible: boolean;
-  // Every §6 predicate, in DESIGN-40 §6 order. "DEFERRED" marks a documented
-  // INC-2 stub (the §24 friendly-fire safety predicate) that was NOT evaluated
-  // — its full semantics ship in INC-3. Never fabricated.
+  // Every §6 predicate, in DESIGN-40 §6 order, as a plain boolean — INC-3
+  // retires the INC-2 "DEFERRED" marker: every predicate is now REAL (the §24
+  // friendly-fire family ships with friendly-fire.ts).
   predicateResults: Record<TorpedoEligibilityPredicate, EligibilityPredicateResult>;
   failingPredicate: TorpedoEligibilityPredicate | null;
   reasonCode: TorpedoReasonCode | null; // exactly one explicit §29 code when not eligible
@@ -137,6 +144,13 @@ export interface LaunchEligibilityInputs {
   ownSpeedMicrometresPerSecond: number; // integer µm/s (B-2 movement speed model surface)
   ownManeuverWithinFireControlLimit: boolean; // §6 maneuver predicate (fire-control limit)
   seaState: number; // integer 0..9 (B-5 scale; decoupled input)
+  // §24 friendly-fire inputs (INC-3): the firing side's RELATIVE friendly
+  // tracks + solution uncertainty + salvo spread. The engine stage INC-7
+  // computes the relative tracks from positions; eligibility consumes the
+  // pure assessment (friendly-fire.ts).
+  friendlyTracks: readonly FriendlyTrack[];
+  solutionUncertaintyM: number; // integer metres (§9 target-contact uncertainty)
+  spreadHalfAngleMdeg: number; // integer milli-degrees (salvo spread half-angle)
 }
 
 function invariant(field: string, value: unknown, reason: string): never {
@@ -212,6 +226,62 @@ function assertEligibilityInputs(inputs: LaunchEligibilityInputs): void {
         "every friendly identity must be a non-empty string",
       );
   }
+  if (!Array.isArray(inputs.friendlyTracks))
+    invariant(
+      "friendlyTracks",
+      inputs.friendlyTracks,
+      "friendlyTracks must be an array of relative friendly tracks",
+    );
+  for (const track of inputs.friendlyTracks) {
+    if (typeof track !== "object" || track === null)
+      invariant("friendlyTracks", inputs.friendlyTracks, "every friendly track must be a record");
+    if (typeof track.contactId !== "string" || track.contactId.length === 0)
+      invariant(
+        "friendlyTracks.contactId",
+        track.contactId,
+        "every friendly track needs a non-empty contact id",
+      );
+    if (typeof track.estimatedIdentity !== "string" || track.estimatedIdentity.length === 0)
+      invariant(
+        "friendlyTracks.estimatedIdentity",
+        track.estimatedIdentity,
+        "every friendly track needs a non-empty estimated identity",
+      );
+    if (!Number.isInteger(track.relativeBearingMdeg))
+      invariant(
+        "friendlyTracks.relativeBearingMdeg",
+        track.relativeBearingMdeg,
+        "friendly track bearing must be an integer milli-degrees",
+      );
+    if (!Number.isInteger(track.rangeM) || track.rangeM < 0)
+      invariant(
+        "friendlyTracks.rangeM",
+        track.rangeM,
+        "friendly track range must be a non-negative integer metres",
+      );
+    if (
+      !Number.isInteger(track.confidenceBp) ||
+      track.confidenceBp < 0 ||
+      track.confidenceBp > 10_000
+    )
+      invariant(
+        "friendlyTracks.confidenceBp",
+        track.confidenceBp,
+        "friendly track confidence must be an integer basis points within [0, 10_000]",
+      );
+  }
+  if (!Number.isInteger(inputs.solutionUncertaintyM) || inputs.solutionUncertaintyM < 0)
+    invariant(
+      "solutionUncertaintyM",
+      inputs.solutionUncertaintyM,
+      "solution uncertainty must be a non-negative integer metres",
+    );
+  if (!Number.isInteger(inputs.spreadHalfAngleMdeg) || inputs.spreadHalfAngleMdeg < 0)
+    invariant(
+      "spreadHalfAngleMdeg",
+      inputs.spreadHalfAngleMdeg,
+      "spread half-angle must be a non-negative integer milli-degrees",
+    );
   const setting = inputs.selectedSetting;
   if (typeof setting !== "object" || setting === null)
     invariant("selectedSetting", setting, "selectedSetting must be a speed/range setting record");
@@ -361,7 +431,10 @@ export function targetContactConfidenceSufficient(track: ContactTrack): boolean 
 // §6: the target is not identified as a confirmed friendly. An UNIDENTIFIED
 // identity is not *identified* as friendly and passes this predicate — the §24
 // danger-sector family (which also raises the §10 minimum for unidentified or
-// low-confidence contacts) is the INC-3-owned friendlyFireSafety predicate.
+// low-confidence contacts) is the REAL friendlyFireSafety predicate below.
+// A launch aimed at a confirmed-friendly target reports the §24 family code
+// TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED (INC-3 — the INC-2 DEFERRED marker is
+// retired).
 export function targetNotIdentifiedFriendly(
   track: ContactTrack,
   friendlyIdentities: readonly string[],
@@ -401,15 +474,19 @@ export function armingDistanceSatisfiable(
 }
 
 // §6/§10 (seam): fire-solution quality meets the shipped §10 minimum for the
-// launch kind. The QUALITY VALUE is computed by INC-3's §10 11-factor formula;
-// this slice ships the pure threshold check over the already-computed integer
-// basis-point value. Friendly-in-danger-sector minimum 7_500 / prohibited is
-// the INC-3 §24 family.
+// launch kind. The QUALITY VALUE is computed by INC-3's §10 11-factor formula
+// (fire-solution.ts); this predicate applies the pure threshold check over the
+// already-computed integer basis-point value. When the §24 assessment finds a
+// friendly/unidentified/low-confidence contact inside the launch danger sector,
+// the minimum rises to the 7_500 bp §24 threshold (never waivable by manual
+// launch; the Captain-mode manual override only lowers a NON-friendly threshold
+// down to 4_000 bp — command-layer seam).
 export function fireSolutionQualitySufficient(
   fireSolutionQualityBp: number,
   launchKind: TorpedoLaunchKind,
+  friendlyInDangerSector: boolean = false,
 ): boolean {
-  return fireSolutionQualityBp >= TORPEDO_SOLUTION_MINIMUM_BP[launchKind];
+  return solutionMeetsMinimum(fireSolutionQualityBp, launchKind, friendlyInDangerSector);
 }
 
 // §6: own-ship speed satisfies launcher limits — the §7/§8 pure gates.
@@ -459,14 +536,17 @@ export function ammunitionReservationSucceeds(
   });
 }
 
-// §24 (stub): the friendly-fire safety predicate. DESIGN-40 §24 requires a
-// danger-sector computation (contact estimate, solution uncertainty, spread,
-// range, friendly tracks, 1_000 m minimum separation, §10 quality raise) — the
-// full semantics ship in INC-3 with TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED.
-// INC-2 reports this predicate as "DEFERRED" in every verdict and never
-// fabricates a danger sector; the only friendly-fire family check INC-2 CAN
-// evaluate is the targetNotIdentifiedFriendly predicate above (a confirmed-
-// friendly target reports the DEFERRED marker, not the INC-3-owned risk code).
+// §24 (REAL, INC-3): the friendly-fire safety predicate. The pure
+// assessFriendlyFireRisk (friendly-fire.ts) computes the launch danger sector
+// (target bearing ± spread half-angle ± solution-uncertainty angle) over the
+// firing side's RELATIVE friendly tracks. §24 PROHIBITS the launch when a
+// confirmed friendly is inside the sector with a predicted minimum separation
+// below 1_000 m (manual launch does NOT waive it); an unidentified or
+// low-confidence contact inside the sector raises the §10 minimum via
+// raisesMinimumSolutionQuality (consumed by predicate 10).
+export function friendlyFireSafetyVerdict(assessment: FriendlyFireRiskAssessment): boolean {
+  return !assessment.prohibited;
+}
 
 // ---- Aggregate (AC-6) ---------------------------------------------------------
 
@@ -501,7 +581,7 @@ export function evaluateLaunchEligibility(
         ownSpeedWithinLauncherLimits: true,
         ownManeuverWithinFireControlLimit: true,
         seaStatePermitsLaunch: true,
-        friendlyFireSafety: "DEFERRED",
+        friendlyFireSafety: true,
         ammunitionReservation: true,
       },
       failingPredicate: "authority",
@@ -524,7 +604,7 @@ export function evaluateLaunchEligibility(
     ownSpeedWithinLauncherLimits: true,
     ownManeuverWithinFireControlLimit: true,
     seaStatePermitsLaunch: true,
-    friendlyFireSafety: "DEFERRED",
+    friendlyFireSafety: true,
     ammunitionReservation: true,
   };
 
@@ -580,13 +660,24 @@ export function evaluateLaunchEligibility(
     });
   }
 
-  // §6 predicate 6 — target not identified as friendly (§24 family stub).
+  // §24 friendly-fire assessment (INC-3, real): computed ONCE here, consumed by
+  // predicate 10 (quality raise) and predicate 14 (prohibition). Pure and
+  // deterministic; the input seam (relative friendly tracks) is documented.
+  const friendlyFire = assessFriendlyFireRisk({
+    targetRelativeBearingMdeg: inputs.targetRelativeBearingMdeg,
+    targetEstimatedRangeM: inputs.targetEstimatedRangeM,
+    solutionUncertaintyM: inputs.solutionUncertaintyM,
+    spreadHalfAngleMdeg: inputs.spreadHalfAngleMdeg,
+    friendlyTracks: inputs.friendlyTracks,
+    friendlyIdentities: inputs.friendlyIdentities,
+    manualLaunch: inputs.manualLaunch,
+  });
+
+  // §6 predicate 6 — target not identified as friendly (§24 family code).
   if (!targetNotIdentifiedFriendly(track, inputs.friendlyIdentities)) {
-    return fail(
-      "targetNotFriendly",
-      TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED, // the family code is INC-3-owned
-      { targetNotFriendly: false, friendlyFireSafety: "DEFERRED" },
-    );
+    return fail("targetNotFriendly", TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED, {
+      targetNotFriendly: false,
+    });
   }
 
   // §6 predicate 7 — arc/bearing within training limits.
@@ -612,8 +703,15 @@ export function evaluateLaunchEligibility(
     );
   }
 
-  // §6 predicate 10 — fire-solution quality meets §10 (seam: value computed by INC-3).
-  if (!fireSolutionQualitySufficient(inputs.fireSolutionQualityBp, launchKind)) {
+  // §6 predicate 10 — fire-solution quality meets §10 (seam: value computed by
+  // INC-3 fire-solution.ts; the §24 danger-sector raise applies here).
+  if (
+    !fireSolutionQualitySufficient(
+      inputs.fireSolutionQualityBp,
+      launchKind,
+      friendlyFire.raisesMinimumSolutionQuality,
+    )
+  ) {
     return fail("fireSolutionQuality", TORPEDO_FIRE_SOLUTION_INSUFFICIENT, {
       fireSolutionQuality: false,
     });
@@ -651,7 +749,17 @@ export function evaluateLaunchEligibility(
     );
   }
 
-  // §6 predicate 14 — friendly-fire safety (§24 stub, DEFERRED in INC-2).
+  // §6 predicate 14 — friendly-fire safety (§24, REAL): a confirmed friendly
+  // inside the danger sector below 1_000 m predicted separation PROHIBITS the
+  // launch with TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED (never waived by manual
+  // launch — friendlyFire.manualLaunch is echoed but the verdict is fixed).
+  // friendlyFireSafetyVerdict is the single source of truth for the predicate.
+  if (!friendlyFireSafetyVerdict(friendlyFire)) {
+    return fail("friendlyFireSafety", TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED, {
+      friendlyFireSafety: false,
+    });
+  }
+
   // §6 predicate 15 — ammunition reservation succeeds (checked above; a launch
   // may only reserve ammunition that exists).
 

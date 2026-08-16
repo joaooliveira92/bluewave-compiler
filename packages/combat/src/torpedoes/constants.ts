@@ -141,6 +141,155 @@ export const TORPEDO_SOLUTION_MINIMUM_BP: Record<TorpedoLaunchKind, number> = {
 // surface-ship gate.
 export const TORPEDO_MAX_LAUNCH_SEA_STATE = 5 as const;
 
+// ---- DESIGN-40 §10 fire-solution manifest (INC-3) ------------------------------
+// The shipped 11-factor versioned manifest: baseSolutionBp × the ten multiplier
+// factors below, each an integer basis-point multiplier. The §9 knowledge inputs
+// feed the manifest factors as documented in fire-solution.ts (the engine
+// computes each multiplier from those inputs in INC-7; this slice ships the
+// manifest + exact product formula + the authored neutral factor set). A missing
+// factor fails with TORPEDO_FIRE_SOLUTION_FACTOR_MISSING — never a silent 10_000.
+export const TORPEDO_SOLUTION_FACTOR_KEYS = [
+  "range",
+  "bearing",
+  "targetMotion",
+  "ownManeuver",
+  "crew",
+  "training",
+  "seaState",
+  "visibility",
+  "technology",
+  "damage",
+] as const;
+export type TorpedoSolutionFactorKey = (typeof TORPEDO_SOLUTION_FACTOR_KEYS)[number];
+// Neutral multiplier (10_000 bp = x1.00): the authored value for a factor the
+// firing side cannot meaningfully assess, and the neutral factor-set builder.
+export const NEUTRAL_TORPEDO_SOLUTION_MULTIPLIER_BP = 10_000 as const;
+export const TORPEDO_SOLUTION_FINAL_MIN_BP = 0 as const;
+export const TORPEDO_SOLUTION_FINAL_MAX_BP = 10_000 as const;
+// Denominator exponent: 10_000^10 = 10^40 (bigint; the raw numerator reaches
+// ~10^44 > Number.MAX_SAFE_INTEGER — bigint intermediate is REQUIRED).
+export const TORPEDO_SOLUTION_SCALE_EXPONENT = 10 as const;
+export const TORPEDO_SOLUTION_ROUNDING = "floor" as const;
+// §10/§24: a friendly/unidentified/low-confidence contact inside the launch
+// danger sector raises the minimum required solution quality to 7_500 bp
+// (highest of the §10 thresholds; the §24 prohibition overrides at 1_000 m).
+export const TORPEDO_FRIENDLY_DANGER_SECTOR_MINIMUM_BP = 7_500 as const;
+
+// ---- DESIGN-40 §24 friendly-fire danger sector (INC-3) -------------------------
+// §24 prohibits a launch when a confirmed friendly is inside the danger sector
+// with a predicted minimum separation below 1_000 m. Authored integer geometry
+// (no floating point, ENGINEERING-CONTRACT): the sector half-angle is the salvo
+// spread half-angle plus the target-contact uncertainty angle; the uncertainty
+// angle is the small-angle approximation
+//   floor(uncertaintyM * 57_296 / max(rangeM, 1)) mdeg
+// and the minimum predicted separation of a friendly is its cross-track distance
+// from the launch bearing line:
+//   floor(friendlyRangeM * bearingDifferenceMdeg / 57_296) m
+// with RAD_TO_MDEG = 57_296 the integer milli-degrees per radian (authoring
+// constant; documented approximation — the exact trig would require
+// floating point, which the contract forbids for authoritative arithmetic).
+export const TORPEDO_FRIENDLY_FIRE_MIN_SEPARATION_M = 1_000 as const;
+export const TORPEDO_DANGER_SECTOR_RAD_TO_MDEG = 57_296 as const;
+// §24: a contact below this basis-point confidence counts as "low-confidence"
+// for the §10 quality raise. Authored at the §6 gate value (4_000 bp) so the
+// two gates share one published threshold; recorded, not silently tuned.
+export const TORPEDO_FRIENDLY_FIRE_LOW_CONFIDENCE_BP = 4_000 as const;
+// §24: identity marker for a contact that has NOT been identified — inside the
+// danger sector it raises the §10 minimum (the §24 "unidentified contact" arm).
+export const UNIDENTIFIED_CONTACT_IDENTITY = "UNIDENTIFIED" as const;
+
+// ---- DESIGN-40 §11 salvo policy (INC-3, authored BALANCE TARGET) ---------------
+// Deterministic policy over the nine §11 factors: mission objective, withdrawal
+// state, target combat value, target size, range, solution quality, remaining
+// ammunition, friendly launcher count, overkill estimate. Every numeric
+// contribution is an integer basis-point term floored once
+// (floor(bpInput * weightBp / 10_000)); the recommended salvo size is
+// clamp(1, floor(scoreBp / BP_PER_TUBE), maxTubes). Directions are authored
+// (documented in salvo.ts): high-value/large/long-range/poor-solution targets
+// and lone-firing ships receive MORE tubes; scarce ammunition, strong friendly
+// launcher coverage, and estimated overkill receive FEWER.
+export const TORPEDO_MISSION_OBJECTIVES = [
+  "ATTACK",
+  "DEFENSE",
+  "AREA_DENIAL",
+  "BREAKTHROUGH",
+] as const;
+export type TorpedoMissionObjective = (typeof TORPEDO_MISSION_OBJECTIVES)[number];
+export const TORPEDO_WITHDRAWAL_STATES = ["NORMAL", "WITHDRAWING"] as const;
+export type TorpedoWithdrawalState = (typeof TORPEDO_WITHDRAWAL_STATES)[number];
+// Base salvo size by mission objective (tubes), before any factor adjustment.
+export const TORPEDO_SALVO_BASE_TUBES: Record<TorpedoMissionObjective, number> = {
+  ATTACK: 2,
+  DEFENSE: 1,
+  AREA_DENIAL: 4,
+  BREAKTHROUGH: 3,
+};
+// WITHDRAWING adds a parting salvo tube (authorized §11 withdrawal modifier).
+export const TORPEDO_SALVO_WITHDRAWAL_MODIFIER_TUBES: Record<TorpedoWithdrawalState, number> = {
+  NORMAL: 0,
+  WITHDRAWING: 1,
+};
+export const TORPEDO_SALVO_FACTOR_KEYS = [
+  "targetCombatValue",
+  "targetSize",
+  "rangePressure",
+  "solutionQualityDeficit",
+  "ammoScarcity",
+  "friendlyCoveragePressure",
+  "overkill",
+] as const;
+export type TorpedoSalvoFactorKey = (typeof TORPEDO_SALVO_FACTOR_KEYS)[number];
+// Weight of each factor in the basis-point score (authored; sums document the
+// relative importance — combat value and ammo conservation weigh most).
+export const TORPEDO_SALVO_FACTOR_WEIGHTS_BP: Record<TorpedoSalvoFactorKey, number> = {
+  targetCombatValue: 1_500,
+  targetSize: 500,
+  rangePressure: 1_000,
+  solutionQualityDeficit: 1_000,
+  ammoScarcity: 1_500,
+  friendlyCoveragePressure: 1_000,
+  overkill: 1_000,
+};
+export const TORPEDO_SALVO_BP_PER_TUBE = 1_000 as const;
+export const TORPEDO_SALVO_MIN_TUBES = 1 as const;
+// Range pressure (0..10_000 bp, HIGHER at longer range — dispersion demands
+// more tubes): authored bands over the shipped setting ranges.
+export const TORPEDO_SALVO_RANGE_PRESSURE_BP_TABLE: readonly {
+  maxRangeM: number;
+  pressureBp: number;
+}[] = [
+  { maxRangeM: 2_000, pressureBp: 0 },
+  { maxRangeM: 5_000, pressureBp: 2_000 },
+  { maxRangeM: 8_000, pressureBp: 4_000 },
+  { maxRangeM: 12_000, pressureBp: 6_000 },
+  { maxRangeM: Number.MAX_SAFE_INTEGER, pressureBp: 8_000 },
+];
+// Ammo scarcity (0..10_000 bp, HIGHER when fewer torpedoes remain — conserve):
+// `minAmmo` is the smallest remaining-total count in the band.
+export const TORPEDO_SALVO_AMMO_SCARCITY_BP_TABLE: readonly {
+  minAmmo: number;
+  scarcityBp: number;
+}[] = [
+  { minAmmo: 12, scarcityBp: 0 },
+  { minAmmo: 8, scarcityBp: 2_000 },
+  { minAmmo: 4, scarcityBp: 4_000 },
+  { minAmmo: 2, scarcityBp: 6_000 },
+  { minAmmo: 1, scarcityBp: 8_000 },
+  { minAmmo: 0, scarcityBp: 10_000 },
+];
+// Friendly launcher coverage pressure (0..10_000 bp, HIGHER when fewer friendly
+// launchers can cover — a lone ship must provide the coverage itself): `maxCount`
+// is the largest friendly-launcher count in the band.
+export const TORPEDO_SALVO_FRIENDLY_LAUNCHER_PRESSURE_BP_TABLE: readonly {
+  maxCount: number;
+  pressureBp: number;
+}[] = [
+  { maxCount: 0, pressureBp: 10_000 },
+  { maxCount: 1, pressureBp: 7_000 },
+  { maxCount: 2, pressureBp: 5_000 },
+  { maxCount: Number.MAX_SAFE_INTEGER, pressureBp: 3_000 },
+];
+
 // DESIGN-40 §23 shipped oxygen-torpedo effects (declared per oxygen model in
 // OxygenTorpedoState; mechanics resolve in INC-6). BALANCE TARGET: oxygen
 // wake-detection 7_500 vs near-invisible wake evidence (research §4.4) — the
@@ -196,6 +345,30 @@ export interface TorpedoContract {
   oxygenWakeDetectionMultiplierBp: number;
   oxygenTubeHitSevereFloodingMultiplierBp: number;
   oxygenChainReactionBaseBp: number;
+  // INC-3 (fire solution + salvo + friendly-fire): §10 manifest, §24 geometry,
+  // §11 salvo policy.
+  solutionFactorKeys: readonly string[];
+  solutionScaleExponent: number;
+  solutionRounding: string;
+  neutralSolutionMultiplierBp: number;
+  solutionFinalMinBp: number;
+  solutionFinalMaxBp: number;
+  friendlyDangerSectorMinimumBp: number;
+  friendlyFireMinSeparationM: number;
+  dangerSectorRadToMdeg: number;
+  friendlyFireLowConfidenceBp: number;
+  unidentifiedContactIdentity: string;
+  missionObjectives: readonly string[];
+  withdrawalStates: readonly string[];
+  salvoBaseTubes: Record<string, number>;
+  salvoWithdrawalModifierTubes: Record<string, number>;
+  salvoFactorKeys: readonly string[];
+  salvoFactorWeightsBp: Record<string, number>;
+  salvoBpPerTube: number;
+  salvoMinTubes: number;
+  salvoRangePressureBpTable: readonly { maxRangeM: number; pressureBp: number }[];
+  salvoAmmoScarcityBpTable: readonly { minAmmo: number; scarcityBp: number }[];
+  salvoFriendlyLauncherPressureBpTable: readonly { maxCount: number; pressureBp: number }[];
   shippedModelIds: readonly string[];
 }
 
@@ -226,6 +399,28 @@ export const SHIPPED_TORPEDO_CONTRACT: TorpedoContract = {
   oxygenWakeDetectionMultiplierBp: OXYGEN_WAKE_DETECTION_MULTIPLIER_BP,
   oxygenTubeHitSevereFloodingMultiplierBp: OXYGEN_TUBE_HIT_SEVERE_FLOODING_MULTIPLIER_BP,
   oxygenChainReactionBaseBp: OXYGEN_CHAIN_REACTION_BASE_BP,
+  solutionFactorKeys: TORPEDO_SOLUTION_FACTOR_KEYS,
+  solutionScaleExponent: TORPEDO_SOLUTION_SCALE_EXPONENT,
+  solutionRounding: TORPEDO_SOLUTION_ROUNDING,
+  neutralSolutionMultiplierBp: NEUTRAL_TORPEDO_SOLUTION_MULTIPLIER_BP,
+  solutionFinalMinBp: TORPEDO_SOLUTION_FINAL_MIN_BP,
+  solutionFinalMaxBp: TORPEDO_SOLUTION_FINAL_MAX_BP,
+  friendlyDangerSectorMinimumBp: TORPEDO_FRIENDLY_DANGER_SECTOR_MINIMUM_BP,
+  friendlyFireMinSeparationM: TORPEDO_FRIENDLY_FIRE_MIN_SEPARATION_M,
+  dangerSectorRadToMdeg: TORPEDO_DANGER_SECTOR_RAD_TO_MDEG,
+  friendlyFireLowConfidenceBp: TORPEDO_FRIENDLY_FIRE_LOW_CONFIDENCE_BP,
+  unidentifiedContactIdentity: UNIDENTIFIED_CONTACT_IDENTITY,
+  missionObjectives: TORPEDO_MISSION_OBJECTIVES,
+  withdrawalStates: TORPEDO_WITHDRAWAL_STATES,
+  salvoBaseTubes: TORPEDO_SALVO_BASE_TUBES,
+  salvoWithdrawalModifierTubes: TORPEDO_SALVO_WITHDRAWAL_MODIFIER_TUBES,
+  salvoFactorKeys: TORPEDO_SALVO_FACTOR_KEYS,
+  salvoFactorWeightsBp: TORPEDO_SALVO_FACTOR_WEIGHTS_BP,
+  salvoBpPerTube: TORPEDO_SALVO_BP_PER_TUBE,
+  salvoMinTubes: TORPEDO_SALVO_MIN_TUBES,
+  salvoRangePressureBpTable: TORPEDO_SALVO_RANGE_PRESSURE_BP_TABLE,
+  salvoAmmoScarcityBpTable: TORPEDO_SALVO_AMMO_SCARCITY_BP_TABLE,
+  salvoFriendlyLauncherPressureBpTable: TORPEDO_SALVO_FRIENDLY_LAUNCHER_PRESSURE_BP_TABLE,
   shippedModelIds: SEED_TORPEDO_MODEL_IDS,
 };
 
@@ -239,6 +434,33 @@ function throwMismatch(contract: unknown, reason: string): never {
 
 function arrayEquals(a: readonly unknown[], b: readonly unknown[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+// Deep equality for the contract's authored integer-keyed tables: the key set
+// must match exactly and every value must match exactly.
+function recordEquals(
+  a: Record<string, number> | null | undefined,
+  b: Record<string, number>,
+): boolean {
+  if (!a) return false;
+  const aKeys = Object.keys(a).sort();
+  const bKeys = Object.keys(b).sort();
+  if (!arrayEquals(aKeys, bKeys)) return false;
+  return bKeys.every((k) => a[k] === b[k]);
+}
+
+// Deep equality for the contract's authored integer band tables: same length,
+// same fields, same values, in the same order.
+function bandTableEquals<T extends Record<string, number>>(
+  a: readonly T[] | null | undefined,
+  b: readonly T[],
+): boolean {
+  if (!a || a.length !== b.length) return false;
+  return a.every((band, i) => {
+    const expected = b[i];
+    if (expected === undefined) return false;
+    return Object.keys(expected).every((k) => band[k] === expected[k]);
+  });
 }
 
 export function validateTorpedoContract(
@@ -303,6 +525,60 @@ export function validateTorpedoContract(
     c.oxygenChainReactionBaseBp !== OXYGEN_CHAIN_REACTION_BASE_BP
   )
     throwMismatch(c, "torpedo_v1 §23 oxygen effects");
+  // INC-3 §10 fire-solution manifest: closed factor list (ordered), exact scale
+  // exponent/rounding, exact final clamp, exact neutral multiplier.
+  if (!c.solutionFactorKeys || !arrayEquals(c.solutionFactorKeys, TORPEDO_SOLUTION_FACTOR_KEYS))
+    throwMismatch(c, "torpedo_v1 §10 solution factor manifest");
+  if (c.solutionScaleExponent !== TORPEDO_SOLUTION_SCALE_EXPONENT)
+    throwMismatch(c, "torpedo_v1 §10 solution scale exponent");
+  if (c.solutionRounding !== TORPEDO_SOLUTION_ROUNDING)
+    throwMismatch(c, "torpedo_v1 §10 solution rounding");
+  if (c.neutralSolutionMultiplierBp !== NEUTRAL_TORPEDO_SOLUTION_MULTIPLIER_BP)
+    throwMismatch(c, "torpedo_v1 §10 neutral solution multiplier");
+  if (c.solutionFinalMinBp !== TORPEDO_SOLUTION_FINAL_MIN_BP)
+    throwMismatch(c, "torpedo_v1 §10 solution final min");
+  if (c.solutionFinalMaxBp !== TORPEDO_SOLUTION_FINAL_MAX_BP)
+    throwMismatch(c, "torpedo_v1 §10 solution final max");
+  if (c.friendlyDangerSectorMinimumBp !== TORPEDO_FRIENDLY_DANGER_SECTOR_MINIMUM_BP)
+    throwMismatch(c, "torpedo_v1 §10/§24 friendly danger-sector minimum");
+  // INC-3 §24 friendly-fire geometry + the retired-marker surface.
+  if (c.friendlyFireMinSeparationM !== TORPEDO_FRIENDLY_FIRE_MIN_SEPARATION_M)
+    throwMismatch(c, "torpedo_v1 §24 friendly-fire minimum separation");
+  if (c.dangerSectorRadToMdeg !== TORPEDO_DANGER_SECTOR_RAD_TO_MDEG)
+    throwMismatch(c, "torpedo_v1 §24 danger-sector rad-to-mdeg");
+  if (c.friendlyFireLowConfidenceBp !== TORPEDO_FRIENDLY_FIRE_LOW_CONFIDENCE_BP)
+    throwMismatch(c, "torpedo_v1 §24 friendly-fire low-confidence gate");
+  if (c.unidentifiedContactIdentity !== UNIDENTIFIED_CONTACT_IDENTITY)
+    throwMismatch(c, "torpedo_v1 §24 unidentified identity marker");
+  // INC-3 §11 salvo policy: closed enums, base/withdrawal tables, weights, and
+  // the authored band tables (exact deep equality).
+  if (!c.missionObjectives || !arrayEquals(c.missionObjectives, TORPEDO_MISSION_OBJECTIVES))
+    throwMismatch(c, "torpedo_v1 §11 mission-objective closed enum");
+  if (!c.withdrawalStates || !arrayEquals(c.withdrawalStates, TORPEDO_WITHDRAWAL_STATES))
+    throwMismatch(c, "torpedo_v1 §11 withdrawal-state closed enum");
+  if (!recordEquals(c.salvoBaseTubes, TORPEDO_SALVO_BASE_TUBES))
+    throwMismatch(c, "torpedo_v1 §11 salvo base tubes");
+  if (!recordEquals(c.salvoWithdrawalModifierTubes, TORPEDO_SALVO_WITHDRAWAL_MODIFIER_TUBES))
+    throwMismatch(c, "torpedo_v1 §11 salvo withdrawal modifier");
+  if (!c.salvoFactorKeys || !arrayEquals(c.salvoFactorKeys, TORPEDO_SALVO_FACTOR_KEYS))
+    throwMismatch(c, "torpedo_v1 §11 salvo factor manifest");
+  if (!recordEquals(c.salvoFactorWeightsBp, TORPEDO_SALVO_FACTOR_WEIGHTS_BP))
+    throwMismatch(c, "torpedo_v1 §11 salvo factor weights");
+  if (c.salvoBpPerTube !== TORPEDO_SALVO_BP_PER_TUBE)
+    throwMismatch(c, "torpedo_v1 §11 salvo bp per tube");
+  if (c.salvoMinTubes !== TORPEDO_SALVO_MIN_TUBES)
+    throwMismatch(c, "torpedo_v1 §11 salvo minimum tubes");
+  if (!bandTableEquals(c.salvoRangePressureBpTable, TORPEDO_SALVO_RANGE_PRESSURE_BP_TABLE))
+    throwMismatch(c, "torpedo_v1 §11 salvo range-pressure bands");
+  if (!bandTableEquals(c.salvoAmmoScarcityBpTable, TORPEDO_SALVO_AMMO_SCARCITY_BP_TABLE))
+    throwMismatch(c, "torpedo_v1 §11 salvo ammo-scarcity bands");
+  if (
+    !bandTableEquals(
+      c.salvoFriendlyLauncherPressureBpTable,
+      TORPEDO_SALVO_FRIENDLY_LAUNCHER_PRESSURE_BP_TABLE,
+    )
+  )
+    throwMismatch(c, "torpedo_v1 §11 salvo friendly-launcher pressure bands");
   // Fail closed on the shipped-model-id list: exact (ordered) equality with the
   // INC-1 seed ids. A tampered/empty/extra list never passes — the full
   // research-grounded rollup lands in INC-8 under the same fail-closed check.
