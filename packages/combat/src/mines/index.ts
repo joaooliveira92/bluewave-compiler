@@ -10,3 +10,5 @@ export * from "./sweeping-base-values.js";
 export * from "./dual-equipment.js";
 export * from "./effective-sweeping.js";
 export * from "./sweeping-aggregation.js";
+export * from "./defensive-standoff.js";
+export * from "./route-risk.js";

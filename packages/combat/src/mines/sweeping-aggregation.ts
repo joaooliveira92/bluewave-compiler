@@ -33,15 +33,20 @@
 // allocation is emitted per record — a record never receives the full regional
 // value on top of another record receiving it too.
 //
-// STRIKE-RISK SEAM (vs INC-5): §13 route-risk (INC-5) ships a value-only formula
-// and does not yet track live per-record strike risk. This increment therefore
-// orders by an explicit `strikeRiskPriority` accessor (higher number = higher
-// current strike risk = earlier). When the caller does not supply one, every
-// record defaults to the same highest priority (documented below) so the order
-// falls through to key 3 (pressure) deterministically. INC-5 wires the real
-// §13 value into this accessor WITHOUT changing the comparator contract — the
-// comparator already names "highest risk first" structurally. No route-risk value
-// is fabricated here.
+// STRIKE-RISK SEAM (wired by INC-5): §13 route-risk (route-risk.ts) now ships the
+// real `computeRouteRiskBp` VALUE. Its `routeRiskBp` (0..10_000) is exactly the
+// "highest current strike risk = earlier" key-2 priority: routeRiskBpToAllocationPriority
+// (route-risk.ts) maps it order-preservingly, so the §13 value ties into this
+// accessor as `recordRiskPriority: (record) =>
+//   routeRiskBpToAllocationPriority(computeRouteRiskBp(record.pressure, ...).routeRiskBp)`.
+// THE COMPARATOR CONTRACT IS UNCHANGED (§10 key 2 already names "highest risk
+// first" structurally) and INC-4's DEFAULT_STRIKE_RISK_PRIORITY remains the
+// production default today — INC-5 DOES NOT alter INC-4's comparator or default.
+// The actual per-record call-site (computing routeRisk per record in the sweep
+// allocation loop) belongs to INC-8's records/ordering assembler, which wires the
+// live §13 value into this accessor. No route-risk value is fabricated here, and
+// DISCLAIMER: a routeRiskBp does NOT auto-deny movement (DESIGN-25 blocks §14–15
+// route-strike consumption; blocked on ticket 03).
 //
 // CLEARANCE SEAM (vs INC-7): applySweptPressure reduces pressure and recomputes
 // the record hash. When a record is swept to pressure 0 it is the CLEARED
