@@ -6,6 +6,7 @@ const IMPLEMENTED_COMMANDS = new Set([
   "listNewGameOptions",
   "compileCampaign",
   "inspectCampaign",
+  "inspectMap",
   "commitMonth",
   "inspectConstructionScreen",
   "submitConstructionCommand",
@@ -62,6 +63,20 @@ describe("dispatchCampaignCommand", () => {
 
   it("returns SESSION_NOT_FOUND for a well-formed but unknown inspectCampaign session id", async () => {
     const result = await dispatchCampaignCommand("inspectCampaign", "no-such-session");
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("rejects a non-string inspectMap payload", async () => {
+    const result = await dispatchCampaignCommand("inspectMap", { sessionId: 123 });
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("INVALID_PAYLOAD");
+  });
+
+  it("returns SESSION_NOT_FOUND for a well-formed but unknown inspectMap session id", async () => {
+    const result = await dispatchCampaignCommand("inspectMap", "no-such-session");
     expect(result.outcome).toBe("error");
     if (result.outcome !== "error") return;
     expect(result.reason).toBe("SESSION_NOT_FOUND");

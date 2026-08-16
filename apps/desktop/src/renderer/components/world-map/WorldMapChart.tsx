@@ -39,6 +39,13 @@ import {
   nationStroke,
   summariseArea,
 } from "../../screens/map-prototype/map-prototype-screen-state.js";
+import {
+  EMPTY_LIVE_OVERLAY,
+  campaignNationHue,
+  campaignNationLabel,
+  fixtureAnchor,
+  type LiveWorldMapOverlay,
+} from "../../screens/map-prototype/campaign-map-join.js";
 import { usePrototypeCamera } from "../../screens/map-prototype/usePrototypeCamera.js";
 import type { MapVariantProps } from "../../screens/map-prototype/variant-contract.js";
 import { cn } from "../../lib/utils.js";
@@ -55,6 +62,8 @@ const CHART = {
 
 export interface WorldMapChartProps extends MapVariantProps {
   readonly className?: string;
+  /** Optional live campaign overlay; defaults to the static prototype fixture. */
+  readonly overlay?: LiveWorldMapOverlay;
 }
 
 export function WorldMapChart({
@@ -66,11 +75,56 @@ export function WorldMapChart({
   onSetProjection,
   onSetCentre,
   onToggleClosedPassages,
+  overlay = EMPTY_LIVE_OVERLAY,
   className,
 }: WorldMapChartProps) {
   const projection = projectionById(state.projection);
   const camera = usePrototypeCamera(projection.width, projection.height);
-  const control = areaControl();
+  const live = overlay.source === "campaign";
+
+  /** Ownership: live overlay overrides the fixture wherever the campaign maps one. */
+  const control = useMemo(() => {
+    const merged = new Map(areaControl());
+    if (!live) return merged;
+    for (const [area, owner] of overlay.ownership) {
+      merged.set(area, {
+        owner,
+        contested: false,
+        possessions: 0,
+      });
+    }
+    return merged;
+  }, [live, overlay]);
+
+  /** The possessions/ports to draw: live campaign ports when active, else fixture. */
+  const drawnPorts = useMemo(() => {
+    if (!live) return POSSESSIONS;
+    return overlay.ports
+      .map((port) => {
+        const at = fixtureAnchor(port.area);
+        if (at === null) return null;
+        return {
+          id: port.id,
+          name: port.name,
+          at,
+          owner: port.nation,
+          base: (port.level >= 7 ? "major" : "minor") as "major" | "minor",
+        };
+      })
+      .filter((p): p is NonNullable<typeof p> => p !== null);
+  }, [live, overlay]);
+
+  /** The fleets to draw: live campaign fleets when active, else fixture. */
+  const drawnFleets = useMemo(() => {
+    if (!live) return FLEETS;
+    return overlay.fleets
+      .map((fleet) => {
+        const anchor = fixtureAnchor(fleet.area);
+        if (anchor === null) return null;
+        return { id: fleet.id, name: fleet.name, area: fleet.area, owner: fleet.nation, ships: fleet.ships };
+      })
+      .filter((f): f is NonNullable<typeof f> => f !== null);
+  }, [live, overlay]);
 
   const coastline = useMemo(
     () =>
@@ -108,8 +162,47 @@ export function WorldMapChart({
     return lines.join("");
   }, [projection]);
 
-  const summary = state.selected === null ? null : summariseArea(state.selected);
   const routeSet = new Set(route?.path ?? []);
+
+  /** Selected-area inspector: live overlay data when active, else the fixture. */
+  const summary = useMemo(() => {
+    if (state.selected === null) return null;
+    const fixture = summariseArea(state.selected);
+    if (fixture === null) return null;
+    if (!live) return fixture;
+
+    const owner = overlay.ownership.get(state.selected) ?? null;
+    const ports = overlay.ports.filter((p) => p.area === state.selected);
+    const fleets = overlay.fleets.filter((f) => f.area === state.selected);
+    return {
+      id: state.selected,
+      name: fixture.name,
+      control: { owner, contested: false, possessions: 0 },
+      possessions: ports.map((p) => ({ id: p.id, name: p.name, owner: p.nation })),
+      fleets: fleets.map((f) => ({ id: f.id, name: f.name, owner: f.nation, ships: f.ships })),
+      neighbours: fixture.neighbours,
+    };
+  }, [live, overlay, state.selected]);
+
+  /** Colour a nation (campaign id or fixture id) for the wash. */
+  function fillFor(nation: string | null, alpha: number): string {
+    if (nation === null) return `oklch(0.55 0 0 / ${alpha * 0.35})`;
+    if (live) return `oklch(0.66 0.15 ${campaignNationHue(nation)} / ${alpha})`;
+    return nationFill(nation, alpha);
+  }
+
+  /** Colour a nation's marker stroke (campaign id or fixture id). */
+  function strokeFor(nation: string): string {
+    if (live) return `oklch(0.74 0.17 ${campaignNationHue(nation)})`;
+    return nationStroke(nation);
+  }
+
+  /** Display name for a nation (campaign id or fixture id). */
+  function nameFor(nation: string | null): string {
+    if (nation === null) return "Unclaimed";
+    if (live) return campaignNationLabel(nation);
+    return nationName(nation);
+  }
 
   const routePath = useMemo(() => {
     if (route === null || !state.layers.routes) return "";
@@ -186,7 +279,7 @@ export function WorldMapChart({
                     d={area.path}
                     fill={
                       state.layers.ownership
-                        ? nationFill(held?.owner ?? null, selected ? 0.42 : 0.2)
+                        ? fillFor(held?.owner ?? null, selected ? 0.42 : 0.2)
                         : selected
                           ? "oklch(0.7 0.02 240 / 0.25)"
                           : "oklch(0.7 0.02 240 / 0.06)"
@@ -273,7 +366,7 @@ export function WorldMapChart({
 
               {/* Layer: possessions. */}
               {state.layers.possessions &&
-                POSSESSIONS.map((possession) => {
+                drawnPorts.map((possession) => {
                   const [x, y] = projectPoint(possession.at, projection, state.centre);
                   const major = possession.base === "major";
                   return (
@@ -282,7 +375,7 @@ export function WorldMapChart({
                         cx={x}
                         cy={y}
                         r={major ? 5 : 3.5}
-                        fill={nationStroke(possession.owner)}
+                        fill={strokeFor(possession.owner)}
                         stroke="oklch(0.15 0.02 245)"
                         strokeWidth={1.4}
                       />
@@ -303,7 +396,7 @@ export function WorldMapChart({
 
               {/* Layer: fleets. */}
               {state.layers.fleets &&
-                FLEETS.map((fleet, index) => {
+                drawnFleets.map((fleet, index) => {
                   const anchor = areasById.get(fleet.area)?.label;
                   if (anchor === undefined) return null;
                   const offset = (index % 3) * 16 - 16;
@@ -318,7 +411,7 @@ export function WorldMapChart({
                         width={22}
                         height={16}
                         rx={3}
-                        fill={nationStroke(fleet.owner)}
+                        fill={strokeFor(fleet.owner)}
                         stroke="oklch(0.15 0.02 245)"
                         strokeWidth={1.4}
                       />
@@ -478,7 +571,7 @@ export function WorldMapChart({
               </button>
             </div>
             <div style={{ color: CHART.inkDim }}>
-              {nationName(summary.control.owner)}
+              {nameFor(summary.control.owner)}
               {summary.control.contested ? " · contested" : ""} · {summary.possessions.length}{" "}
               possessions · {summary.fleets.length} fleets
             </div>

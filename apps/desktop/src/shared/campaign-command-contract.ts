@@ -9,6 +9,7 @@ import type {
   ReplayBattleBoundaryResponse,
   TacticalBattleOutcome,
 } from "@bluewave/campaign-engine";
+import type { WorldMapView } from "@bluewave/campaign-engine";
 import type { BridgeResult, CommandEnvelope } from "./bridge-contract.js";
 import type {
   LoadCampaignResponse,
@@ -94,6 +95,12 @@ export interface InspectCampaignResult {
   readonly projection: PlayerProjection;
 }
 
+export interface InspectMapResult {
+  readonly revision: number;
+  readonly month: { readonly month: number; readonly year: number };
+  readonly world: WorldMapView;
+}
+
 export interface SaveCampaignResult {
   readonly revision: number;
 }
@@ -110,6 +117,7 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "listNewGameOptions",
   "compileCampaign",
   "inspectCampaign",
+  "inspectMap",
   "closeCampaign",
   "saveCampaign",
   "commitMonth",
@@ -152,6 +160,7 @@ export interface CampaignCommandClient {
     command: "inspectCampaign",
     payload: string,
   ): Promise<BridgeResult<InspectCampaignResult>>;
+  execute(command: "inspectMap", payload: string): Promise<BridgeResult<InspectMapResult>>;
   execute(command: "closeCampaign", payload: string): Promise<BridgeResult<unknown>>;
   execute(command: "saveCampaign", payload: string): Promise<BridgeResult<SaveCampaignResult>>;
   execute(

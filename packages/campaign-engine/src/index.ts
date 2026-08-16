@@ -8,3 +8,4 @@ export * from "./fleet.js";
 export * from "./projection.js";
 export * from "./research.js";
 export * from "./simulation.js";
+export * from "./world-map.js";
