@@ -428,6 +428,17 @@ export interface TorpedoDamageApplicationInput {
   designFlotationReserve: number; // design (max) flotation reserve
   designStabilityScore: number; // design stability bp
   keyedRng: (stream: string) => number;
+  // MEDIUM-6 (reviewer): the engine pre-evaluates §19/§20 to populate the
+  // package fields; WITHOUT this option applyTorpedoDamagePackage re-evaluates
+  // the SAME keyed streams, which is only correct because `keyedRng` re-seeds
+  // per stream (a fragile invariant). When present, the caller's single
+  // evaluation is threaded in and the internal re-evaluation is skipped, so
+  // each stream draw is consumed EXACTLY once. Optional — the public API and the
+  // standalone call path (e.g. applyTorpedoChainReactionPackage) are unchanged.
+  precomputedEffect?: {
+    machinery: TorpedoMachineryEffect | null;
+    systemShock: TorpedoSystemShockResult | null;
+  };
 }
 
 export interface TorpedoDamageEventRecord {
@@ -503,31 +514,39 @@ export function applyTorpedoDamagePackage(
   const createdFloodingSources = resolveTorpedoFloodingCreation({ compartments: o.flooding });
 
   // ---- stage 3: §19 machinery (keyed weighted severity) -------------------
+  // MEDIUM-6: use the caller's single pre-computed evaluation when supplied
+  // (the engine pre-evaluates to populate the package fields) — otherwise
+  // evaluate here exactly as before. Either way the stream draw is consumed
+  // exactly once.
   const machineryEffect =
-    o.machinery !== undefined
-      ? evaluateTorpedoMachineryDamage({
-          battleId: battleIdFromPackage(o.pkg.packageId),
-          impactMinute: o.pkg.battleMinute,
-          impactSubstep: o.pkg.substep,
-          torpedoTrackId: o.pkg.torpedoTrackId,
-          zone: o.machinery.zone,
-          machineryComponents: o.machinery.machineryComponents,
-          keyedRng: o.keyedRng,
-        })
-      : null;
+    o.precomputedEffect?.machinery !== undefined
+      ? o.precomputedEffect.machinery
+      : o.machinery !== undefined
+        ? evaluateTorpedoMachineryDamage({
+            battleId: battleIdFromPackage(o.pkg.packageId),
+            impactMinute: o.pkg.battleMinute,
+            impactSubstep: o.pkg.substep,
+            torpedoTrackId: o.pkg.torpedoTrackId,
+            zone: o.machinery.zone,
+            machineryComponents: o.machinery.machineryComponents,
+            keyedRng: o.keyedRng,
+          })
+        : null;
 
   // ---- stage 4: §20 nearby-system shock (keyed weighted selection) -------
   const systemShockResult =
-    o.shockCandidates !== undefined
-      ? evaluateTorpedoSystemShock({
-          battleId: battleIdFromPackage(o.pkg.packageId),
-          impactMinute: o.pkg.battleMinute,
-          impactSubstep: o.pkg.substep,
-          entityId: o.pkg.torpedoTrackId,
-          candidates: o.shockCandidates,
-          keyedRng: o.keyedRng,
-        })
-      : null;
+    o.precomputedEffect?.systemShock !== undefined
+      ? o.precomputedEffect.systemShock
+      : o.shockCandidates !== undefined
+        ? evaluateTorpedoSystemShock({
+            battleId: battleIdFromPackage(o.pkg.packageId),
+            impactMinute: o.pkg.battleMinute,
+            impactSubstep: o.pkg.substep,
+            entityId: o.pkg.torpedoTrackId,
+            candidates: o.shockCandidates,
+            keyedRng: o.keyedRng,
+          })
+        : null;
   // The reuse seam: only the SELECTED (eligible) turret may transition.
   const appliedTurrets =
     o.turretComponents !== undefined

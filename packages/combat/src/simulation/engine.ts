@@ -19,6 +19,7 @@ import {
   resolveSensorsSpotting,
   type SensorObserver,
   type TrueAsset,
+  type Position,
 } from "../spotting/detection.js";
 import {
   ageContact,
@@ -36,6 +37,13 @@ import type { TacticalBattleState } from "../tactical/index.js";
 import type { GunneryState } from "../gunnery/index.js";
 import type { ShipDamageState } from "../damage/state.js";
 import { resolveMinuteDamage, type DamageContext } from "../battleResolution/damage.js";
+import {
+  resolveTorpedoes,
+  type TorpedoContext,
+  type TorpedoLauncherState,
+  type TorpedoTrack,
+  type TorpedoRecord,
+} from "../torpedoes/index.js";
 
 export interface UnitOrders {
   orderedHeading: number;
@@ -62,6 +70,12 @@ export interface AdvanceMinuteInput {
   // to the B-2..B-5 baseline. When present, every HIT gunnery salvo is converted
   // into damage impacts and applied via resolveDamage at step 9-10 (substep 3).
   damage?: DamageContext;
+  // Optional torpedo stage input (C-1 / INC-7 — DESIGN-40 §12–§22). When
+  // absent, the torpedo stage is a strict no-op: zero events appended, minute
+  // snapshot/minuteHash byte-identical to the B-2..B-6 baseline. When present,
+  // resolveTorpedoes runs AFTER the damage stage and its records/states are
+  // threaded (torpedoStates/torpedoTracks) exactly like gunneryStates.
+  torpedoes?: TorpedoContext;
 }
 
 export interface MinuteResult {
@@ -79,6 +93,15 @@ export interface MinuteResult {
   // Updated per-ship ShipDamageState (shipId -> state) after this minute's
   // damage stage. Present only when damage context was supplied.
   damageStates?: Record<string, ShipDamageState>;
+  // Updated torpedo launcher states (launcherId -> state) after this minute's
+  // torpedo stage. Present only when launchers actually fired.
+  torpedoStates?: Record<string, TorpedoLauncherState>;
+  // The RUNNING torpedo tracks after this minute's torpedo stage. Present only
+  // when the stage resolved a live torpedo entity.
+  torpedoTracks?: readonly TorpedoTrack[];
+  // The §27 torpedo records emitted this minute. Present only when the stage
+  // produced records.
+  torpedoRecords?: readonly TorpedoRecord[];
 }
 
 // atomic mutable snapshot used through one minute.
@@ -314,7 +337,69 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     if (Object.keys(dmgResult.states).length > 0) damageStates = dmgResult.states;
   }
 
+  // Step 10.5 (DESIGN-40 / C-1 INC-7): torpedo fire resolution AFTER the damage
+  // stage, using the same legal contact surface. Strict no-op when no torpedo
+  // context is supplied (zero events appended, minute snapshot/minuteHash
+  // byte-identical to the B-2..B-6 baseline). When a context is supplied but
+  // nothing resolves, the same byte-identical guarantee holds (the stage emits
+  // nothing until there is a launcher with a command or a running track).
+  let torpedoStates: Record<string, TorpedoLauncherState> | undefined;
+  let torpedoTracks: readonly TorpedoTrack[] | undefined;
+  let torpedoRecords: readonly TorpedoRecord[] | undefined;
+  if (input.torpedoes) {
+    const shipPositions: Record<string, Position> = {};
+    const shipHeadings: Record<string, number> = {};
+    const shipSpeedsUmS: Record<string, number> = {};
+    for (const u of units) {
+      const m = resolvedMovements[u.assetId];
+      if (!m) continue;
+      shipPositions[u.assetId] = m.position;
+      shipHeadings[u.assetId] = m.heading;
+      shipSpeedsUmS[u.assetId] = m.currentSpeed;
+    }
+    // AC-22 composition (reviewer BLOCKER-2): the torpedo stage runs AFTER the
+    // damage stage in the same minute, so it must resolve against the ship's
+    // POST-damage state — not the caller's PRE-damage target input. Thread the
+    // damage stage's per-ship `damageStates` into the torpedo target contexts
+    // (same immutable copy-out as the next-minute threading below) so gunnery
+    // damage applied this minute is NOT silently discarded: the torpedo
+    // damage accumulates on top of it, and the merge below keeps the combined
+    // (gunnery + torpedo) state rather than replacing per-ship states.
+    let torpedoContext = input.torpedoes;
+    if (damageStates && Object.keys(damageStates).length > 0) {
+      torpedoContext = { ...input.torpedoes, targets: { ...input.torpedoes.targets } };
+      for (const [sid, st] of Object.entries(damageStates)) {
+        const tgt = torpedoContext.targets[sid];
+        if (tgt) torpedoContext.targets[sid] = { ...tgt, damageState: st };
+      }
+    }
+    const torpedoResult = resolveTorpedoes({
+      battleId,
+      minute,
+      context: torpedoContext,
+      contacts: afterContacts,
+      shipPositions,
+      shipHeadings,
+      shipSpeedsUmS,
+      engine: input.engine,
+    });
+    if (torpedoResult.changed) {
+      for (const te of torpedoResult.events) ledger.append(te);
+      torpedoRecords = torpedoResult.records.length > 0 ? torpedoResult.records : undefined;
+      torpedoTracks = torpedoResult.tracks.length > 0 ? torpedoResult.tracks : undefined;
+      if (Object.keys(torpedoResult.launcherStates).length > 0)
+        torpedoStates = torpedoResult.launcherStates;
+      // COMPOSE (AC-22): keep every pre-torpedo damage state and let the torpedo
+      // result overwrite ONLY the ships it damaged (which, thanks to the
+      // threading above, already carry the accumulated gunnery + torpedo damage).
+      if (Object.keys(torpedoResult.damageStates).length > 0)
+        damageStates = { ...damageStates, ...torpedoResult.damageStates };
+    }
+  }
+
   const events = ledger.sorted();
+  const hasTorpedoSurface =
+    torpedoTracks !== undefined || (torpedoRecords !== undefined && torpedoRecords.length > 0);
   const snapshot = {
     battleId,
     minute,
@@ -342,6 +427,46 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
       eventType: e.eventType,
       eventId: e.eventId,
     })),
+    // The torpedo minute-state surface (INC-7): present ONLY when the stage
+    // resolved state — absent context or an empty stage keeps the snapshot
+    // byte-identical to the B-2..B-6 baseline (the strict no-op guarantee).
+    ...(hasTorpedoSurface
+      ? {
+          torpedo: {
+            tracks: (torpedoTracks ?? []).map((t) => ({
+              torpedoTrackId: t.torpedoTrackId,
+              currentPosition: t.currentPosition,
+              distanceTraveledUm: t.distanceTraveledUm,
+              armed: t.armed,
+              terminalResult: t.terminalResult,
+              trackHash: t.trackHash,
+            })),
+            ...(torpedoStates
+              ? {
+                  launchers: Object.keys(torpedoStates)
+                    .sort()
+                    .map((launcherId) => {
+                      const st = torpedoStates![launcherId]!;
+                      return {
+                        launcherId,
+                        loadedPerTube: st.loadedPerTube,
+                        stateHash: st.stateHash,
+                      };
+                    }),
+                }
+              : {}),
+            ...(torpedoRecords && torpedoRecords.length > 0
+              ? {
+                  records: torpedoRecords.map((r) => ({
+                    recordId: r.recordId,
+                    kind: r.kind,
+                    recordHash: r.recordHash,
+                  })),
+                }
+              : {}),
+          },
+        }
+      : {}),
   };
   const minuteHash = sha256Hex(canonicalSerialize(snapshot));
 
@@ -354,6 +479,9 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     ...(gunneryStates ? { gunneryStates } : {}),
     ...(weatherComponents ? { weatherComponents } : {}),
     ...(damageStates ? { damageStates } : {}),
+    ...(torpedoStates ? { torpedoStates } : {}),
+    ...(torpedoTracks ? { torpedoTracks } : {}),
+    ...(torpedoRecords ? { torpedoRecords } : {}),
   };
 }
 
@@ -373,6 +501,9 @@ export interface AdvanceMinutesInput {
   /** Optional damage context (B-4 / B-6 INC-2). When absent, damage resolution
    *  is a strict no-op across all minutes. */
   damage?: DamageContext;
+  /** Optional torpedo stage context (C-1 / INC-7). When absent, the torpedo
+   *  stage is a strict no-op across all minutes. */
+  torpedoes?: TorpedoContext;
 }
 export interface AdvanceMinutesResult {
   results: MinuteResult[];
@@ -380,12 +511,15 @@ export interface AdvanceMinutesResult {
   finalState: TacticalBattleState;
   /** Per-minute damage states (mirrors results[i].damageStates). */
   damageStates?: Record<string, ShipDamageState>[];
+  /** Per-minute torpedo tracks (mirrors results[i].torpedoTracks). */
+  torpedoTracks?: (readonly TorpedoTrack[])[];
 }
 export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult {
   const results: MinuteResult[] = [];
   let gunnery = input.gunnery;
   let weather = input.weather;
   let damage = input.damage;
+  let torpedoes = input.torpedoes;
   let state: TacticalBattleState = {
     ...input.state,
     contacts: [...(input.state.contacts ?? [])],
@@ -402,6 +536,7 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
       gunnery,
       weather,
       damage,
+      torpedoes,
     });
     results.push(res);
     state = {
@@ -431,11 +566,38 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
         if (damage.targets[sid]) damage.targets[sid] = { ...damage.targets[sid]!, state: st };
       }
     }
+    // Thread the updated torpedo launcher states + running tracks + target
+    // damage states into the next minute (GunneryState idiom).
+    if (torpedoes) {
+      if (res.torpedoStates) {
+        torpedoes = {
+          ...torpedoes,
+          launchers: torpedoes.launchers.map((wiring) => {
+            const next = res.torpedoStates![wiring.launcher.launcherId];
+            return next ? { ...wiring, launcher: next } : wiring;
+          }),
+        };
+      }
+      if (res.torpedoTracks) {
+        torpedoes = {
+          ...torpedoes,
+          tracks: res.torpedoTracks.map((t) => ({ ...t })),
+        };
+      }
+      if (res.damageStates) {
+        torpedoes = { ...torpedoes, targets: { ...torpedoes.targets } };
+        for (const [sid, st] of Object.entries(res.damageStates)) {
+          const tgt = torpedoes.targets[sid];
+          if (tgt) torpedoes.targets[sid] = { ...tgt, damageState: st };
+        }
+      }
+    }
   }
   return {
     results,
     hashes: results.map((r) => r.minuteHash),
     finalState: state,
     ...(input.damage ? { damageStates: results.map((r) => r.damageStates ?? {}) } : {}),
+    ...(input.torpedoes ? { torpedoTracks: results.map((r) => r.torpedoTracks ?? []) } : {}),
   };
 }

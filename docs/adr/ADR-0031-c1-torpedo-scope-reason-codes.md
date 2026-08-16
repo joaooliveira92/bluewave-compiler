@@ -123,19 +123,60 @@ boundary). This renumbering is recorded here once.
     explicitly (fail-closed, no silent default). All re-tunable via a version bump
     under the same contract, never silently.
 
+11. **§22 chain-reaction modifiers collapse to neutral in the engine stage
+    (INC-7).** `resolveTorpedoes` (the minute-advance stage) hard-codes all five
+    §22 modifiers to neutral 10_000 and fires the chain only on a **severe** §21
+    tube hit; a `MAGAZINE`-zone chain reaction (which `detonation.ts` selects via
+    the `MAGAZINE_OR_TUBE_CHAIN_REACTION` outcome class) is not wired into the
+    stage. This is an explicit deferral of the finer damage-control surface the
+    stage does not yet expose; the INC-6 `chainReaction.ts` explicit-modifier
+    contract is unchanged (a caller that supplies real modifiers still gets the
+    full §22 composition). Recorded here; resolved when the stage exposes
+    scene/damage-derived modifiers (before INC-8 phase wiring relies on chain
+    probabilities).
+
+12. **Engine-stage authored defaults (INC-7, recorded).** `resolveTorpedoes`
+    defaults command-supplied torpedo inputs where DESIGN-40 leaves them open:
+    `TORPEDO_RESOLUTION_DEFAULT_DEPTH_M = 5` (attack depth when a command omits
+    it), `deviationMdeg = 0` (straight-on impact), `wakeIntercept = false`, and
+    the §13 gyro-guide default (unset `orderedGyroAngleMdeg` = launch heading,
+    consistent with the running-gyro invariant). The `target.scene` fields
+    (impact side / longitudinal / breach / fire / casualties / accessibility /
+    isolation) are **required caller inputs** (the engine has no ship-design
+    knowledge) — never silently defaulted.
+
+13. **Whole-minute track-sampling approximation (INC-7, recorded).** The stage
+    advances each torpedo as a single end-of-minute jump and evaluates the §14
+    collision at only the sampled end position; a torpedo that crosses the target
+    circle mid-minute and ends beyond it MISSES. End-of-minute sampling is a
+    documented approximation, not DESIGN-40-authorized; reviewed before phase
+    wiring (INC-8/battle-results) relies on it.
+
+14. **`battleLedger` ordering tie-break locale-independent (INC-7).**
+    `canonicalEventOrder`'s `localeCompare` tie-break was replaced with a plain
+    `<`/`>` comparator, removing locale/ICU dependence from cross-process
+    determinism (§28/AC-23). Verified byte-identical against the committed
+    B-2..B-6 no-context golden hashes (0 ordering diffs) and the existing
+    `test/simulation/` suite.
+
 ## Consequences
 
 - INC-5's detonation resolver is fully determined by the track + model id:
   identical inputs ⇒ identical hit verdict / detonation outcome / probability
   / provenance, cross-process.
-- Torpedo suite grew to 350 tests; full combat suite 1364/1364 green; goldens
-  unchanged 10/10; `BattleResolver`/`StrengthCalculator` unmodified.
+- Torpedo suite: 504 tests; full combat suite green except concurrent-session
+  C-2 mines mid-edit; goldens unchanged 10/10; `BattleResolver`/
+  `StrengthCalculator` unmodified.
 - INC-6 (chain-reaction §22) MUST preserve the reliability draw as the sole/
   stable draw in the detonation evaluation so draw consumption and save
   continuity do not shift (documented in `detonation.ts`).
+- INC-7 engine stage: strict no-op path (absent torpedo context) keeps B-2..B-6
+  per-minute hashes byte-identical (proven); same-minute gunnery→damage→torpedo
+  state composes (BLOCKER-2 fixed); §22 chain records/events are unique
+  (BLOCKER-1 fixed); machinery/shock evaluated once (single-eval).
 - INC-8 folds the full `*_v1` contracts rollup (INCLUDING the torpedo
-  detonation contract) and the `reason-codes-torpedoes.test.ts` set-equality
-  partition; ADR numbers referenced from INC-5's code headers.
+  detonation + damage contracts) and the `reason-codes-torpedoes.test.ts`
+  set-equality partition; ADR numbers referenced from INC-5..INC-7 code headers.
 
 ## Related requirements
 

@@ -20,9 +20,9 @@ export function canonicalEventOrder(a: BattleEvent, b: BattleEvent): number {
     a.minute - b.minute ||
     a.substep - b.substep ||
     a.eventPriority - b.eventPriority ||
-    a.actorId.localeCompare(b.actorId) ||
-    a.targetId.localeCompare(b.targetId) ||
-    a.eventId.localeCompare(b.eventId)
+    (a.actorId < b.actorId ? -1 : a.actorId > b.actorId ? 1 : 0) ||
+    (a.targetId < b.targetId ? -1 : a.targetId > b.targetId ? 1 : 0) ||
+    (a.eventId < b.eventId ? -1 : a.eventId > b.eventId ? 1 : 0)
   );
 }
 export class BattleLedger {
