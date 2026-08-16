@@ -4,10 +4,12 @@
 // (reason-codes-torpedoes.test.ts, INC-8 deliverable) is not grown without
 // review. Per spec §1.4 INC-1 ships the five §29 codes its increment exercises;
 // INC-2 (launch legality) ships the §5/§6/§7/§8 in-slice codes; INC-3 (fire
-// solution + salvo + friendly-fire) ships the §10/§24 in-slice codes below. The
-// remaining §29 in-slice codes are owned by INC-4..INC-6 and are recorded
-// below, never shipped here. The full partition (in-slice / deferred / reused
-// combat catalog, disjointness) is verified by INC-8's set-equality test.
+// solution + salvo + friendly-fire) ships the §10/§24 in-slice codes; INC-4
+// (launch + track) ships the §12 codes (TORPEDO_LAUNCH_FAILURE from the §29
+// list + the §12-named TORPEDO_STUCK_IN_TUBE outcome code). The remaining §29
+// in-slice codes are owned by INC-5..INC-6 and are recorded below, never
+// shipped here. The full partition (in-slice / deferred / reused combat
+// catalog, disjointness) is verified by INC-8's set-equality test.
 
 // ---- In-slice codes (INC-1) ----
 export const INVALID_TORPEDO_MODEL_DEFINITION = "INVALID_TORPEDO_MODEL_DEFINITION" as const;
@@ -48,6 +50,18 @@ export const TORPEDO_FIRE_SOLUTION_FACTOR_MISSING = "TORPEDO_FIRE_SOLUTION_FACTO
 export const TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED =
   "TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED" as const;
 
+// ---- In-slice codes (INC-4: launch timing/failure + track, §12) ----
+// §12: a per-tube MECHANICAL launch failure that is NOT stuck-in-tube — the
+// torpedo never leaves the tube and consumes NO torpedo (the tube stays
+// loaded). This is the §29-listed generic launch-failure code.
+export const TORPEDO_LAUNCH_FAILURE = "TORPEDO_LAUNCH_FAILURE" as const;
+// §12: the mechanical failure outcome that DOES consume the torpedo — the
+// torpedo is stuck in the tube (wedged; a physical hazard the INC-6 §21
+// tube-hit hazard resolves). Named in the §12 text; shipped as a documented
+// in-slice outcome code (like TORPEDO_FIRE_SOLUTION_FACTOR_MISSING, it is not
+// itself in the §29 required list but is authoritative for this slice).
+export const TORPEDO_STUCK_IN_TUBE = "TORPEDO_STUCK_IN_TUBE" as const;
+
 // ---- RETIRED marker (INC-2 -> INC-3) ----
 // The INC-2 deferred marker TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED is retired:
 // INC-3 ships the REAL §24 friendly-fire family, so no shipped predicate
@@ -55,7 +69,7 @@ export const TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED =
 // The marker is removed from the catalog and NOT re-added by any later
 // increment — the full §29 partition is verified by INC-8's set-equality test.
 
-// ---- Collected catalog (INC-1 + INC-2 + INC-3 shipped set; set-equality checked in INC-8) ----
+// ---- Collected catalog (INC-1..INC-4 shipped set; set-equality checked in INC-8) ----
 export const TORPEDO_REASON_CODES = {
   INVALID_TORPEDO_MODEL_DEFINITION,
   INVALID_TORPEDO_LAUNCHER_STATE,
@@ -71,12 +85,13 @@ export const TORPEDO_REASON_CODES = {
   UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED,
   TORPEDO_FIRE_SOLUTION_FACTOR_MISSING,
   TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED,
+  TORPEDO_LAUNCH_FAILURE,
+  TORPEDO_STUCK_IN_TUBE,
 } as const;
 
 export type TorpedoReasonCode = (typeof TORPEDO_REASON_CODES)[keyof typeof TORPEDO_REASON_CODES];
 
 // ---- Recorded §29 in-slice codes owned by later increments (never shipped here) ----
-// INC-4 (launch + track): TORPEDO_LAUNCH_FAILURE.
 // INC-5 (hit + detonation): TORPEDO_DUD, TORPEDO_HIT_RESOLVED.
 // INC-6 (damage package): TORPEDO_PROGRESSIVE_FLOODING_CREATED,
 //   TORPEDO_MACHINERY_DAMAGE_CREATED, TORPEDO_SYSTEM_SHOCK_DAMAGE_CREATED,

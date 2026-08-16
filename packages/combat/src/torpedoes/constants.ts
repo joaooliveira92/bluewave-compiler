@@ -6,6 +6,7 @@
 // Grounded in docs/research/c1-m3-torpedoes.md and recorded in the C-1 ADR
 // (ADR-0029, INC-8). Pure/deterministic: fixed integer constants only.
 import { BluewaveError } from "@bluewave/contracts";
+import { SUBSTEP_SECONDS, SUBSTEPS_PER_MINUTE } from "../movement/constants.js";
 import { TORPEDO_STATE_INVARIANT_FAILED } from "./reasonCodes.js";
 
 export const torpedoPolicyId = "torpedo_v1" as const;
@@ -301,6 +302,103 @@ export const OXYGEN_WAKE_DETECTION_MULTIPLIER_BP = 7_500 as const;
 export const OXYGEN_TUBE_HIT_SEVERE_FLOODING_MULTIPLIER_BP = 15_000 as const;
 export const OXYGEN_CHAIN_REACTION_BASE_BP = 3_000 as const;
 
+// ---- DESIGN-40 §12 launch timing/failure (INC-4) ------------------------------
+// §12 pins the base launch-failure probability EXACTLY: 100 basis points per
+// tube before model, damage, crew, and reliability modifiers (1% on the
+// standard 10_000 bp roll scale — 100 bp per percent). The final per-tube
+// failure chance is the deterministic sequence of signed basis-point
+// adjustments documented in launch-failure.ts:
+//   failureChanceBp = clamp(0, 10_000, 100 + ΔmodelReliability + Δdamage
+//                                       + Δcrew + ΔreliabilityBand)
+// and the failure outcome is the keyed per-tube draw: drawBp < failureChanceBp.
+// DESIGN-40 pins ONLY the 100 bp base + the four modifier categories; the
+// adjustment values are authored versioned-ruleset constants (BALANCE TARGET,
+// recorded for the C-1 ADR).
+export const TORPEDO_LAUNCH_FAILURE_BASE_BP = 100 as const;
+export const TORPEDO_LAUNCH_FAILURE_MIN_BP = 0 as const;
+export const TORPEDO_LAUNCH_FAILURE_MAX_BP = TORPEDO_SOLUTION_FINAL_MAX_BP; // 10_000
+// §12 "at its declared firing substep": the torpedo stage substep. The B-3
+// gunnery stage runs at substep 2 and the B-4 damage stage at substep 3, so the
+// torpedo stage (INC-7) runs at substep 4. The resolver ACCEPTS the declared
+// substep as an input and defaults to this shipped constant.
+export const TORPEDO_LAUNCH_SUBSTEP = 4 as const;
+// §12 "model" modifier: the per-model reliabilityBp (100_000 scale) enters the
+// failure composition normalized to the 10_000 bp roll scale
+// (floor(reliabilityBp / 10), 1% = 100 bp — the constants note below
+// TORPEDO_RELIABILITY_SCALE). ΔmodelReliability =
+//   floor((TORPEDO_RELIABILITY_SCALE - reliabilityBp) / 250)
+// — each percent of model unreliability adds 4 bp to the failure chance (a
+// launch failure is a mechanical tube/impeller/pistol event, deliberately a
+// small share of the detonation-scale unreliability; authored BALANCE TARGET).
+export const TORPEDO_LAUNCH_FAILURE_MODEL_RELIABILITY_DIVISOR = 250 as const;
+// §12 "damage" modifier: launcher damage state. A DESTROYED launcher never
+// launches (the eligibility launcherAndTubesOperational predicate rejects it
+// and the resolver fails closed defensively); the table pins DAMAGED at +75 bp
+// (authored BALANCE TARGET). DESTROYED is pinned at 10_000 bp (certain) as the
+// unreachable-but-pinned table entry.
+export const TORPEDO_LAUNCH_FAILURE_DAMAGE_ADJUSTMENT_BP: Record<LauncherDamageState, number> = {
+  OPERATIONAL: 0,
+  DAMAGED: 75,
+  DESTROYED: TORPEDO_LAUNCH_FAILURE_MAX_BP,
+};
+// §12 "crew" modifier: crew skill/experience as an integer basis-point input
+// [0, 10_000] (0 = green, 10_000 = elite). Δcrew =
+//   floor((TORPEDO_LAUNCH_FAILURE_CREW_NEUTRAL_BP - crewQualityBp) / 100)
+// — neutral (5_000) adds 0; elite subtracts 50 bp; green adds 50 bp (authored
+// BALANCE TARGET).
+export const TORPEDO_LAUNCH_FAILURE_CREW_NEUTRAL_BP = 5_000 as const;
+export const TORPEDO_LAUNCH_FAILURE_CREW_ADJUSTMENT_DIVISOR = 100 as const;
+// §12 "reliability band" modifier: a coarse tiering of the per-model
+// reliabilityBp (100_000 scale), first band whose minReliabilityBp is met
+// (descending). Authored BALANCE TARGET — a band credit for the most reliable
+// models, a penalty for the poorest.
+export const TORPEDO_LAUNCH_FAILURE_RELIABILITY_BAND_TABLE: readonly {
+  minReliabilityBp: number;
+  adjustmentBp: number;
+}[] = [
+  { minReliabilityBp: 95_000, adjustmentBp: -25 },
+  { minReliabilityBp: 92_000, adjustmentBp: 0 },
+  { minReliabilityBp: 90_000, adjustmentBp: 25 },
+  { minReliabilityBp: 0, adjustmentBp: 50 },
+];
+// §12 outcome split: of the mechanical failures, the share that is
+// TORPEDO_STUCK_IN_TUBE (the CONSUMING outcome — the torpedo is wedged in the
+// tube). Within the failure band [0, failureChanceBp) the first
+// floor(failureChanceBp * share / 10_000) bp are stuck-in-tube and the
+// remainder is the non-consuming TORPEDO_LAUNCH_FAILURE. Authored BALANCE
+// TARGET: 3_000 bp = 30% of mechanical failures are stuck-in-tube.
+export const TORPEDO_STUCK_IN_TUBE_SHARE_BP = 3_000 as const;
+// §13 "target contact identifier or NONE for area fire" marker (distinct from
+// the §2 NO_FIRE_SOLUTION marker — different semantic surface).
+export const NO_TARGET_CONTACT = "NONE" as const;
+// §13 lifecycle: the closed union of terminal outcomes. A torpedo remains an
+// authoritative entity until one of these is set (actual hit/detonation
+// resolution is INC-5; this slice ships the type + the lifecycle state machine
+// with terminalResult: null until then).
+export const TORPEDO_TERMINAL_RESULTS = [
+  "HIT",
+  "DETONATION",
+  "DUD",
+  "GROUNDING",
+  "EXHAUSTION",
+  "DESTRUCTION",
+  "BATTLE_END",
+] as const;
+export type TorpedoTerminalResult = (typeof TORPEDO_TERMINAL_RESULTS)[number];
+// §13 advance quantum: the torpedo track advances per tactical minute
+// (SUBSTEPS_PER_MINUTE 60 × SUBSTEP_SECONDS 1 = 60_000 ms, the movement minute
+// precedent — single source of truth via movement/constants.js). The resolver
+// accepts an explicit dtMs; this is the shipped default.
+export const TORPEDO_MINUTE_MS = SUBSTEPS_PER_MINUTE * SUBSTEP_SECONDS * 1_000;
+// §13 position/heading projection: the track stores heading as integer
+// milli-degrees (full circle 360_000 — the torpedo module's angular convention,
+// §24 friendly-fire geometry) and projects displacement along the nearest-lower
+// integer degree through the movement module's authored per-degree direction
+// table (exported directionBp; single source of truth, no duplicated table).
+// The mdeg -> degree fold is an explicit authored approximation (1° granularity
+// on a 360_000 mdeg circle; far below the arming-distance quantum).
+export const TORPEDO_TRACK_MDEG_PER_DEGREE = 1_000;
+
 // INC-1 grounded seed model set (docs/research/c1-m3-torpedoes.md §4.1). The
 // FULL research-grounded `torpedo_models_v1` model/content constant set rolls up
 // in INC-8; INC-1 seeds 5 representative models covering every propulsion type
@@ -369,6 +467,22 @@ export interface TorpedoContract {
   salvoRangePressureBpTable: readonly { maxRangeM: number; pressureBp: number }[];
   salvoAmmoScarcityBpTable: readonly { minAmmo: number; scarcityBp: number }[];
   salvoFriendlyLauncherPressureBpTable: readonly { maxCount: number; pressureBp: number }[];
+  // INC-4 (launch timing/failure + track): §12 failure composition, §12 firing
+  // substep, §12 stuck share, §13 terminal-result union + area-fire marker.
+  launchFailureBaseBp: number;
+  launchFailureMinBp: number;
+  launchFailureMaxBp: number;
+  launchSubstep: number;
+  launchFailureModelReliabilityDivisor: number;
+  launchFailureDamageAdjustmentBp: Record<LauncherDamageState, number>;
+  launchFailureCrewNeutralBp: number;
+  launchFailureCrewAdjustmentDivisor: number;
+  launchFailureReliabilityBandTable: readonly { minReliabilityBp: number; adjustmentBp: number }[];
+  stuckInTubeShareBp: number;
+  terminalResults: readonly string[];
+  noTargetContact: string;
+  torpedoMinuteMs: number;
+  trackMdegPerDegree: number;
   shippedModelIds: readonly string[];
 }
 
@@ -421,6 +535,20 @@ export const SHIPPED_TORPEDO_CONTRACT: TorpedoContract = {
   salvoRangePressureBpTable: TORPEDO_SALVO_RANGE_PRESSURE_BP_TABLE,
   salvoAmmoScarcityBpTable: TORPEDO_SALVO_AMMO_SCARCITY_BP_TABLE,
   salvoFriendlyLauncherPressureBpTable: TORPEDO_SALVO_FRIENDLY_LAUNCHER_PRESSURE_BP_TABLE,
+  launchFailureBaseBp: TORPEDO_LAUNCH_FAILURE_BASE_BP,
+  launchFailureMinBp: TORPEDO_LAUNCH_FAILURE_MIN_BP,
+  launchFailureMaxBp: TORPEDO_LAUNCH_FAILURE_MAX_BP,
+  launchSubstep: TORPEDO_LAUNCH_SUBSTEP,
+  launchFailureModelReliabilityDivisor: TORPEDO_LAUNCH_FAILURE_MODEL_RELIABILITY_DIVISOR,
+  launchFailureDamageAdjustmentBp: TORPEDO_LAUNCH_FAILURE_DAMAGE_ADJUSTMENT_BP,
+  launchFailureCrewNeutralBp: TORPEDO_LAUNCH_FAILURE_CREW_NEUTRAL_BP,
+  launchFailureCrewAdjustmentDivisor: TORPEDO_LAUNCH_FAILURE_CREW_ADJUSTMENT_DIVISOR,
+  launchFailureReliabilityBandTable: TORPEDO_LAUNCH_FAILURE_RELIABILITY_BAND_TABLE,
+  stuckInTubeShareBp: TORPEDO_STUCK_IN_TUBE_SHARE_BP,
+  terminalResults: TORPEDO_TERMINAL_RESULTS,
+  noTargetContact: NO_TARGET_CONTACT,
+  torpedoMinuteMs: TORPEDO_MINUTE_MS,
+  trackMdegPerDegree: TORPEDO_TRACK_MDEG_PER_DEGREE,
   shippedModelIds: SEED_TORPEDO_MODEL_IDS,
 };
 
@@ -579,6 +707,44 @@ export function validateTorpedoContract(
     )
   )
     throwMismatch(c, "torpedo_v1 §11 salvo friendly-launcher pressure bands");
+  // INC-4 §12 launch timing/failure: exact base, clamp, firing substep, the
+  // authored modifier composition (divisors + damage/crew/band tables), and the
+  // stuck-in-tube share of mechanical failures.
+  if (c.launchFailureBaseBp !== TORPEDO_LAUNCH_FAILURE_BASE_BP)
+    throwMismatch(c, "torpedo_v1 §12 launch-failure base (100 bp)");
+  if (c.launchFailureMinBp !== TORPEDO_LAUNCH_FAILURE_MIN_BP)
+    throwMismatch(c, "torpedo_v1 §12 launch-failure min");
+  if (c.launchFailureMaxBp !== TORPEDO_LAUNCH_FAILURE_MAX_BP)
+    throwMismatch(c, "torpedo_v1 §12 launch-failure max");
+  if (c.launchSubstep !== TORPEDO_LAUNCH_SUBSTEP)
+    throwMismatch(c, "torpedo_v1 §12 declared firing substep");
+  if (c.launchFailureModelReliabilityDivisor !== TORPEDO_LAUNCH_FAILURE_MODEL_RELIABILITY_DIVISOR)
+    throwMismatch(c, "torpedo_v1 §12 model-reliability modifier divisor");
+  if (!recordEquals(c.launchFailureDamageAdjustmentBp, TORPEDO_LAUNCH_FAILURE_DAMAGE_ADJUSTMENT_BP))
+    throwMismatch(c, "torpedo_v1 §12 launcher-damage modifier table");
+  if (c.launchFailureCrewNeutralBp !== TORPEDO_LAUNCH_FAILURE_CREW_NEUTRAL_BP)
+    throwMismatch(c, "torpedo_v1 §12 crew modifier neutral point");
+  if (c.launchFailureCrewAdjustmentDivisor !== TORPEDO_LAUNCH_FAILURE_CREW_ADJUSTMENT_DIVISOR)
+    throwMismatch(c, "torpedo_v1 §12 crew modifier divisor");
+  if (
+    !bandTableEquals(
+      c.launchFailureReliabilityBandTable,
+      TORPEDO_LAUNCH_FAILURE_RELIABILITY_BAND_TABLE,
+    )
+  )
+    throwMismatch(c, "torpedo_v1 §12 reliability-band modifier table");
+  if (c.stuckInTubeShareBp !== TORPEDO_STUCK_IN_TUBE_SHARE_BP)
+    throwMismatch(c, "torpedo_v1 §12 stuck-in-tube share of failures");
+  // INC-4 §13 track: closed terminal-result union, area-fire marker, minute
+  // quantum, and the mdeg -> degree projection fold.
+  if (!c.terminalResults || !arrayEquals(c.terminalResults, TORPEDO_TERMINAL_RESULTS))
+    throwMismatch(c, "torpedo_v1 §13 terminal-result closed union");
+  if (c.noTargetContact !== NO_TARGET_CONTACT)
+    throwMismatch(c, "torpedo_v1 §13 area-fire target marker");
+  if (c.torpedoMinuteMs !== TORPEDO_MINUTE_MS)
+    throwMismatch(c, "torpedo_v1 §13 track minute quantum");
+  if (c.trackMdegPerDegree !== TORPEDO_TRACK_MDEG_PER_DEGREE)
+    throwMismatch(c, "torpedo_v1 §13 mdeg-to-degree projection fold");
   // Fail closed on the shipped-model-id list: exact (ordered) equality with the
   // INC-1 seed ids. A tampered/empty/extra list never passes — the full
   // research-grounded rollup lands in INC-8 under the same fail-closed check.
