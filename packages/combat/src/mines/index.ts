@@ -12,3 +12,5 @@ export * from "./effective-sweeping.js";
 export * from "./sweeping-aggregation.js";
 export * from "./defensive-standoff.js";
 export * from "./route-risk.js";
+export * from "./mine-report.js";
+export * from "./misidentification.js";

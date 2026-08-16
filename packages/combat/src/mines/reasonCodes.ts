@@ -17,7 +17,7 @@
 // MINE_STRIKE_RESOLUTION_DEFERRED (mirrors C-1's TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED
 // precedent — a local marker a later increment fires if any caller reaches a
 // would-be-strike boundary; it is NOT one of §30's required codes). The
-// remaining in-slice codes are owned by INC-6/INC-7 and recorded below, never
+// remaining in-slice codes are owned by INC-7/INC-8 and recorded below, never
 // shipped here. The full partition (in-slice / deferred / reused combat
 // catalog, disjointness) is verified by INC-8's set-equality test.
 
@@ -77,7 +77,20 @@ export const MINE_ROUTE_RISK_CREATED = "MINE_ROUTE_RISK_CREATED" as const;
 // route-risk value) and reaches no would-be-strike boundary.
 export const MINE_STRIKE_RESOLUTION_DEFERRED = "MINE_STRIKE_RESOLUTION_DEFERRED" as const;
 
-// ---- Collected catalog (INC-1..INC-5 shipped set; grows through INC-7,
+// ---- In-slice codes (INC-6: mine report + misidentification, §19 + §20) ----
+// §19/§20: cause estimation produced a report/classification whose confidence is
+// BELOW the certain threshold (§20 runs a probabilistic classifier that is
+// inherently a guess). DESIGN-35 does NOT ship a numeric certain threshold, so
+// it is an AUTHORED constant (MINE_REPORT_CAUSE_CERTAIN_CONFIDENCE_BP = 10_000:
+// only fully-certain confidence is "certain"; see mine-report.ts /
+// misidentification.ts for the comment-logged authored-vs-shipped decision).
+// Emitted as (a) the report's causeUncertain flag when confidenceBp < 10_000 and
+// (b) the classifier's decision reasonCode (a weight-based classification is
+// ALWAYS a guess — all three §20 outcomes keep positive weight, see
+// misidentification.ts).
+export const MINE_REPORT_CAUSE_UNCERTAIN = "MINE_REPORT_CAUSE_UNCERTAIN" as const;
+
+// ---- Collected catalog (INC-1..INC-6 shipped set; grows through INC-7,
 // set-equality checked in INC-8) ----
 export const MINE_REASON_CODES = {
   INVALID_MINE_TYPE_DEFINITION,
@@ -91,12 +104,12 @@ export const MINE_REASON_CODES = {
   MINE_DEFENSIVE_STANDOFF_ACTIVE,
   MINE_ROUTE_RISK_CREATED,
   MINE_STRIKE_RESOLUTION_DEFERRED,
+  MINE_REPORT_CAUSE_UNCERTAIN,
 } as const;
 
 export type MineReasonCode = (typeof MINE_REASON_CODES)[keyof typeof MINE_REASON_CODES];
 
 // ---- Recorded §30 in-slice codes owned by later increments (never shipped here) ----
-// INC-6 (report/misidentification): MINE_REPORT_CAUSE_UNCERTAIN.
 // INC-7 (decay/persistence/knowledge/clearance): MINE_DECAY_POLICY_MISSING,
 //   CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING, MINEFIELD_CLEARED.
 // INC-8 (records/ordering/contracts/ADR): MINE_WARFARE_INVARIANT_FAILED (also

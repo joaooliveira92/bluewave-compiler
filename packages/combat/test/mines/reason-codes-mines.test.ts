@@ -16,14 +16,15 @@ import {
   MINE_LAYING_SOURCE_INELIGIBLE,
   MINE_PRESSURE_REDUCED,
   MINE_REASON_CODES,
+  MINE_REPORT_CAUSE_UNCERTAIN,
   MINE_ROUTE_RISK_CREATED,
   MINE_STRIKE_RESOLUTION_DEFERRED,
   MINESWEEPING_SHIP_INELIGIBLE,
   MINE_SWEEP_RESISTANCE_MISSING,
 } from "../../src/mines/index.js";
 
-describe("AC-21: mine reason-code catalog shape (INC-1..INC-5)", () => {
-  it("ships exactly the INC-1..INC-5 §30 codes + INC-5 marker — nothing more, nothing less", () => {
+describe("AC-21: mine reason-code catalog shape (INC-1..INC-6)", () => {
+  it("ships exactly the INC-1..INC-6 §30 codes + INC-5 marker — nothing more, nothing less", () => {
     const shipped = Object.values(MINE_REASON_CODES).sort();
     expect(shipped).toEqual(
       [
@@ -34,13 +35,14 @@ describe("AC-21: mine reason-code catalog shape (INC-1..INC-5)", () => {
         "MINE_INVENTORY_INSUFFICIENT",
         "MINE_LAYING_SOURCE_INELIGIBLE",
         "MINE_PRESSURE_REDUCED",
+        "MINE_REPORT_CAUSE_UNCERTAIN",
         "MINE_ROUTE_RISK_CREATED",
         "MINE_STRIKE_RESOLUTION_DEFERRED",
         "MINE_SWEEP_RESISTANCE_MISSING",
         "MINESWEEPING_SHIP_INELIGIBLE",
       ].sort(),
     );
-    expect(Object.values(MINE_REASON_CODES).length).toBe(11);
+    expect(Object.values(MINE_REASON_CODES).length).toBe(12);
   });
 
   it("every shipped code is a non-empty string literal (no duplicates)", () => {
@@ -71,6 +73,7 @@ describe("AC-21: mine reason-code catalog shape (INC-1..INC-5)", () => {
     expect(MINE_DEFENSIVE_STANDOFF_ACTIVE).toBe("MINE_DEFENSIVE_STANDOFF_ACTIVE");
     expect(MINE_ROUTE_RISK_CREATED).toBe("MINE_ROUTE_RISK_CREATED");
     expect(MINE_STRIKE_RESOLUTION_DEFERRED).toBe("MINE_STRIKE_RESOLUTION_DEFERRED");
+    expect(MINE_REPORT_CAUSE_UNCERTAIN).toBe("MINE_REPORT_CAUSE_UNCERTAIN");
   });
 
   it("ships the INC-5 marker MINE_STRIKE_RESOLUTION_DEFERRED — a documented NON-§30 local marker", () => {
@@ -84,7 +87,6 @@ describe("AC-21: mine reason-code catalog shape (INC-1..INC-5)", () => {
   it("does NOT ship §30 codes owned by later increments", () => {
     const shipped: ReadonlySet<string> = new Set(Object.values(MINE_REASON_CODES));
     const laterIncrementCodes = [
-      "MINE_REPORT_CAUSE_UNCERTAIN",
       "MINE_DECAY_POLICY_MISSING",
       "CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING",
       "MINEFIELD_CLEARED",
