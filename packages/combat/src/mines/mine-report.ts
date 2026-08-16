@@ -35,8 +35,8 @@
 // shipped — not a silent invention of gameplay semantics.
 //
 // Full knowledge-state machinery (the INC-7 knowledge store) is deferred; this
-// increment ships the MINIMAL MineKnowledgeAssertion shape (the seed record)
-// that INC-7's store will ingest.
+// increment ships the MINIMAL MineReportGeneratedKnowledgeAssertion seed shape
+// (the generated-knowledge assertion record) that INC-7's store ingests.
 //
 // Pure/deterministic: no I/O/clock/random.
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
@@ -71,22 +71,24 @@ export const MINE_REPORT_CAUSE_CERTAIN_CONFIDENCE_BP = MINE_BASIS_POINTS_PER_UNI
 export const MINE_REPORT_UNKNOWN = "UNKNOWN" as const;
 
 // Minimal §19 "generated knowledge assertions" record. The full per-participant
-// knowledge store belongs to INC-7 (AC-18 / §24); this is the SEED SHAPE that
-// INC-7's store ingests — kept to the fields §19's report actually references
-// (who is being told which kind of fact) plus a deterministic serialized detail.
+// knowledge store belongs to INC-7 (AC-18 / §24) and ships as `MineKnowledgeAssertion`
+// in knowledge.ts — this is the SEED SHAPE that INC-7's store ingests, kept to the
+// fields §19's report actually references (who is being told which kind of fact)
+// plus a deterministic serialized detail. Named `MineReportGeneratedKnowledgeAssertion`
+// (not `MineKnowledgeAssertion`) so the authoritative §24 record owns that name.
 export const MINE_KNOWLEDGE_ASSERTION_KINDS = [
   "SUSPECTED_MINE_PRESSURE",
   "SUSPECTED_MINE_TYPE",
   "SUSPECTED_LAYING_PARTICIPANT",
   "SUSPECTED_LOCATION",
 ] as const;
-export type MineKnowledgeAssertionKind = (typeof MINE_KNOWLEDGE_ASSERTION_KINDS)[number];
+export type MineReportKnowledgeAssertionKind = (typeof MINE_KNOWLEDGE_ASSERTION_KINDS)[number];
 
-export interface MineKnowledgeAssertion {
+export interface MineReportGeneratedKnowledgeAssertion {
   knowledgeAssertionId: string;
   /** participant to whom the assertion is addressed. */
   participantId: string;
-  kind: MineKnowledgeAssertionKind;
+  kind: MineReportKnowledgeAssertionKind;
   /** Deterministic serialized detail (canonical-serializer friendly string). */
   detail: string;
 }
@@ -122,7 +124,7 @@ export interface MineIncidentReport {
   /** §19 possible deception. */
   possibleDeception: boolean;
   /** §19 generated knowledge assertions (seed shape; INC-7 stores them). */
-  generatedKnowledgeAssertions: readonly MineKnowledgeAssertion[];
+  generatedKnowledgeAssertions: readonly MineReportGeneratedKnowledgeAssertion[];
   rulesetVersion: string;
   formulaVersion: string;
   /** The §20 report-signature policy id that classifies this report's cause. */

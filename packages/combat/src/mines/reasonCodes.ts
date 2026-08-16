@@ -16,9 +16,13 @@
 // route-risk boundaries exercise, PLUS the documented in-slice NON-§30 marker
 // MINE_STRIKE_RESOLUTION_DEFERRED (mirrors C-1's TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED
 // precedent — a local marker a later increment fires if any caller reaches a
-// would-be-strike boundary; it is NOT one of §30's required codes). The
-// remaining in-slice codes are owned by INC-7/INC-8 and recorded below, never
-// shipped here. The full partition (in-slice / deferred / reused combat
+// would-be-strike boundary; it is NOT one of §30's required codes). INC-6 ships
+// MINE_REPORT_CAUSE_UNCERTAIN. INC-7 ships the §21/§23/§27 codes its decay /
+// ownership/clearance boundaries exercise (MINE_DECAY_POLICY_MISSING,
+// CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING, MINEFIELD_CLEARED), and uses
+// MINE_WARFARE_INVARIANT_FAILED as the AMBIENT fail-closed invariant /
+// peace-settlement-term code (a standalone export, formalized into the shipped
+// map by INC-8). The full partition (in-slice / deferred / reused combat
 // catalog, disjointness) is verified by INC-8's set-equality test.
 
 // ---- In-slice codes (INC-1) ----
@@ -90,7 +94,32 @@ export const MINE_STRIKE_RESOLUTION_DEFERRED = "MINE_STRIKE_RESOLUTION_DEFERRED"
 // misidentification.ts).
 export const MINE_REPORT_CAUSE_UNCERTAIN = "MINE_REPORT_CAUSE_UNCERTAIN" as const;
 
-// ---- Collected catalog (INC-1..INC-6 shipped set; grows through INC-7,
+// ---- In-slice codes (INC-7: decay/persistence/ownership/knowledge/clearance,
+//   §21/§22/§23/§24/§27) ----
+// §21: a scenario-special minefield with NO decay metadata reached a decay
+// boundary — decay policy is definition-required for that type; fail closed,
+// never a fabricated multiplier (see decay.ts).
+export const MINE_DECAY_POLICY_MISSING = "MINE_DECAY_POLICY_MISSING" as const;
+// §23: an ownership/control-change transition reached a controlled-defensive
+// mine-pressure record WITHOUT declaring one of the six closed dispositions —
+// §23 requires an explicit disposition per affected record; fail closed, never a
+// silent default neutralize/delete (see ownership-transitions.ts).
+export const CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING =
+  "CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING" as const;
+// §27: a mine-pressure record reached the minefield-cleared transition (pressure
+// reached 0 after sweeping or decay) and was closed. Emitted in the clearance
+// result (see clearance.ts); distinct from the §10 reduction event
+// MINE_PRESSURE_REDUCED.
+export const MINEFIELD_CLEARED = "MINEFIELD_CLEARED" as const;
+
+// ---- Ambient (NOT in the shipped map yet): fail-closed invariant code, §30 ----
+// MINE_WARFARE_INVARIANT_FAILED is the §30 fail-closed invariant code used
+// AMBIENTLY by INC-7's fail-closed boundaries (peace-settlement term rejection,
+// invariant guards) exactly as the INC-6 header documents; it is formalized into
+// the shipped catalog by INC-8 (ticket 05), mirroring TORPEDO_STATE_INVARIANT_FAILED.
+export const MINE_WARFARE_INVARIANT_FAILED = "MINE_WARFARE_INVARIANT_FAILED" as const;
+
+// ---- Collected catalog (INC-1..INC-7 shipped set; grows through INC-8,
 // set-equality checked in INC-8) ----
 export const MINE_REASON_CODES = {
   INVALID_MINE_TYPE_DEFINITION,
@@ -105,16 +134,19 @@ export const MINE_REASON_CODES = {
   MINE_ROUTE_RISK_CREATED,
   MINE_STRIKE_RESOLUTION_DEFERRED,
   MINE_REPORT_CAUSE_UNCERTAIN,
+  MINE_DECAY_POLICY_MISSING,
+  CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING,
+  MINEFIELD_CLEARED,
 } as const;
 
 export type MineReasonCode = (typeof MINE_REASON_CODES)[keyof typeof MINE_REASON_CODES];
 
-// ---- Recorded §30 in-slice codes owned by later increments (never shipped here) ----
-// INC-7 (decay/persistence/knowledge/clearance): MINE_DECAY_POLICY_MISSING,
-//   CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING, MINEFIELD_CLEARED.
-// INC-8 (records/ordering/contracts/ADR): MINE_WARFARE_INVARIANT_FAILED (also
-//   used ambiently as the fail-closed contract-mismatch code, mirroring
-//   TORPEDO_STATE_INVARIANT_FAILED — INC-8 formalizes it in the catalog).
+// ---- Recorded §30 in-slice codes owned by INC-8 (never shipped here) ----
+// INC-8 (records/ordering/contracts/ADR): MINE_WARFARE_INVARIANT_FAILED (already
+//   used AMBIENTLY by INC-7's fail-closed boundaries as the contract-mismatch /
+//   settlement-term rejection code, mirroring TORPEDO_STATE_INVARIANT_FAILED — a
+//   standalone export above, deliberately NOT in the shipped map until INC-8
+//   formalizes the catalog + set-equality partition).
 
 // ---- Deferred §30 codes (recorded, never shipped this sprint — C-2
 // continuation owns strike resolution, per ticket 03/05) ----

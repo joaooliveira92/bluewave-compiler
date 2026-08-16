@@ -1,16 +1,19 @@
 // AC-21 seeds (INC-1..INC-5): mine reason-code catalog shape. The
 // full §30 partition (in-slice / deferred / set-equality) is the INC-8
 // deliverable (ticket 05); this increment proves the module ships exactly the
-// INC-1..INC-5 codes (INC-4 ships MINE_PRESSURE_REDUCED, its §10 code; INC-5
-// ships the §16/§13 value-only codes MINE_DEFENSIVE_STANDOFF_ACTIVE +
-// MINE_ROUTE_RISK_CREATED plus the documented NON-§30 in-slice marker
-// MINE_STRIKE_RESOLUTION_DEFERRED — 11 shipped total).
+// INC-1..INC-7 codes. INC-7 ships the §21/§23/§27 codes its boundaries exercise
+// (MINE_DECAY_POLICY_MISSING, CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING,
+// MINEFIELD_CLEARED) — 15 shipped total (14 §30 direct/value + the INC-5
+// NON-§30 marker). MINE_WARFARE_INVARIANT_FAILED remains an ambient standalone
+// export (NOT in the shipped map), formalized by INC-8.
 import { describe, expect, it } from "vite-plus/test";
 import { REASON_CODES } from "../../src/reasonCodes.js";
 import {
+  CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING,
   DUAL_EQUIPMENT_MODE_MISSING,
   INVALID_MINE_PRESSURE_STATE,
   INVALID_MINE_TYPE_DEFINITION,
+  MINE_DECAY_POLICY_MISSING,
   MINE_DEFENSIVE_STANDOFF_ACTIVE,
   MINE_INVENTORY_INSUFFICIENT,
   MINE_LAYING_SOURCE_INELIGIBLE,
@@ -19,18 +22,21 @@ import {
   MINE_REPORT_CAUSE_UNCERTAIN,
   MINE_ROUTE_RISK_CREATED,
   MINE_STRIKE_RESOLUTION_DEFERRED,
+  MINEFIELD_CLEARED,
   MINESWEEPING_SHIP_INELIGIBLE,
   MINE_SWEEP_RESISTANCE_MISSING,
 } from "../../src/mines/index.js";
 
-describe("AC-21: mine reason-code catalog shape (INC-1..INC-6)", () => {
-  it("ships exactly the INC-1..INC-6 §30 codes + INC-5 marker — nothing more, nothing less", () => {
+describe("AC-21: mine reason-code catalog shape (INC-1..INC-7)", () => {
+  it("ships exactly the INC-1..INC-7 §30 codes + INC-5 marker — nothing more, nothing less", () => {
     const shipped = Object.values(MINE_REASON_CODES).sort();
     expect(shipped).toEqual(
       [
+        "CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING",
         "DUAL_EQUIPMENT_MODE_MISSING",
         "INVALID_MINE_PRESSURE_STATE",
         "INVALID_MINE_TYPE_DEFINITION",
+        "MINE_DECAY_POLICY_MISSING",
         "MINE_DEFENSIVE_STANDOFF_ACTIVE",
         "MINE_INVENTORY_INSUFFICIENT",
         "MINE_LAYING_SOURCE_INELIGIBLE",
@@ -39,10 +45,11 @@ describe("AC-21: mine reason-code catalog shape (INC-1..INC-6)", () => {
         "MINE_ROUTE_RISK_CREATED",
         "MINE_STRIKE_RESOLUTION_DEFERRED",
         "MINE_SWEEP_RESISTANCE_MISSING",
+        "MINEFIELD_CLEARED",
         "MINESWEEPING_SHIP_INELIGIBLE",
       ].sort(),
     );
-    expect(Object.values(MINE_REASON_CODES).length).toBe(12);
+    expect(Object.values(MINE_REASON_CODES).length).toBe(15);
   });
 
   it("every shipped code is a non-empty string literal (no duplicates)", () => {
@@ -74,6 +81,11 @@ describe("AC-21: mine reason-code catalog shape (INC-1..INC-6)", () => {
     expect(MINE_ROUTE_RISK_CREATED).toBe("MINE_ROUTE_RISK_CREATED");
     expect(MINE_STRIKE_RESOLUTION_DEFERRED).toBe("MINE_STRIKE_RESOLUTION_DEFERRED");
     expect(MINE_REPORT_CAUSE_UNCERTAIN).toBe("MINE_REPORT_CAUSE_UNCERTAIN");
+    expect(MINE_DECAY_POLICY_MISSING).toBe("MINE_DECAY_POLICY_MISSING");
+    expect(CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING).toBe(
+      "CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING",
+    );
+    expect(MINEFIELD_CLEARED).toBe("MINEFIELD_CLEARED");
   });
 
   it("ships the INC-5 marker MINE_STRIKE_RESOLUTION_DEFERRED — a documented NON-§30 local marker", () => {
@@ -84,13 +96,13 @@ describe("AC-21: mine reason-code catalog shape (INC-1..INC-6)", () => {
     expect(MINE_ROUTE_RISK_CREATED).toContain("ROUTE_RISK");
   });
 
-  it("does NOT ship §30 codes owned by later increments", () => {
+  it("does NOT ship §30 codes owned by INC-8 or the deferred strike continuation", () => {
     const shipped: ReadonlySet<string> = new Set(Object.values(MINE_REASON_CODES));
     const laterIncrementCodes = [
-      "MINE_DECAY_POLICY_MISSING",
-      "CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING",
-      "MINEFIELD_CLEARED",
+      // INC-8 owns MINE_WARFARE_INVARIANT_FAILED (shipped ambiently as a standalone
+      // export by INC-7, but NOT in the shipped map until INC-8 formalizes it).
       "MINE_WARFARE_INVARIANT_FAILED",
+      // Deferred strike-resolution continuation (ticket 03/05).
       "MINE_BATTLE_HAZARD_GENERATED",
       "MINE_STRIKE_OCCURRED",
       "FRIENDLY_MINE_STRIKE_OCCURRED",

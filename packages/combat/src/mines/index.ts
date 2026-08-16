@@ -14,3 +14,8 @@ export * from "./defensive-standoff.js";
 export * from "./route-risk.js";
 export * from "./mine-report.js";
 export * from "./misidentification.js";
+export * from "./decay.js";
+export * from "./post-war-persistence.js";
+export * from "./ownership-transitions.js";
+export * from "./knowledge.js";
+export * from "./clearance.js";
