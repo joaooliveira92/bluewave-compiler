@@ -1,8 +1,8 @@
-// AC-21 seeds (INC-1 + INC-2 + INC-3): mine reason-code catalog shape. The
+// AC-21 seeds (INC-1..INC-4): mine reason-code catalog shape. The
 // full §30 partition (in-slice / deferred / set-equality) is the INC-8
 // deliverable (ticket 05); this increment proves the module ships exactly the
-// INC-1 + INC-2 + INC-3 codes (INC-3 ships the §6/§7/§8/§9 codes its sweeping
-// boundaries exercise).
+// INC-1 + INC-2 + INC-3 + INC-4 codes (INC-4 ships MINE_PRESSURE_REDUCED, the
+// §10 code its aggregation/allocation boundaries exercise).
 import { describe, expect, it } from "vite-plus/test";
 import { REASON_CODES } from "../../src/reasonCodes.js";
 import {
@@ -11,13 +11,14 @@ import {
   INVALID_MINE_TYPE_DEFINITION,
   MINE_INVENTORY_INSUFFICIENT,
   MINE_LAYING_SOURCE_INELIGIBLE,
+  MINE_PRESSURE_REDUCED,
   MINE_REASON_CODES,
   MINESWEEPING_SHIP_INELIGIBLE,
   MINE_SWEEP_RESISTANCE_MISSING,
 } from "../../src/mines/index.js";
 
-describe("AC-21: mine reason-code catalog shape (INC-1 + INC-2 + INC-3)", () => {
-  it("ships exactly the INC-1 + INC-2 + INC-3 §30 codes — nothing more, nothing less", () => {
+describe("AC-21: mine reason-code catalog shape (INC-1..INC-4)", () => {
+  it("ships exactly the INC-1..INC-4 §30 codes — nothing more, nothing less", () => {
     const shipped = Object.values(MINE_REASON_CODES).sort();
     expect(shipped).toEqual(
       [
@@ -26,6 +27,7 @@ describe("AC-21: mine reason-code catalog shape (INC-1 + INC-2 + INC-3)", () => 
         "INVALID_MINE_TYPE_DEFINITION",
         "MINE_INVENTORY_INSUFFICIENT",
         "MINE_LAYING_SOURCE_INELIGIBLE",
+        "MINE_PRESSURE_REDUCED",
         "MINE_SWEEP_RESISTANCE_MISSING",
         "MINESWEEPING_SHIP_INELIGIBLE",
       ].sort(),
@@ -49,19 +51,19 @@ describe("AC-21: mine reason-code catalog shape (INC-1 + INC-2 + INC-3)", () => 
     }
   });
 
-  it("ships each INC-2/INC-3 code under its exported literal name", () => {
+  it("ships each INC-2/INC-3/INC-4 code under its exported literal name", () => {
     expect(INVALID_MINE_PRESSURE_STATE).toBe("INVALID_MINE_PRESSURE_STATE");
     expect(MINE_LAYING_SOURCE_INELIGIBLE).toBe("MINE_LAYING_SOURCE_INELIGIBLE");
     expect(MINE_INVENTORY_INSUFFICIENT).toBe("MINE_INVENTORY_INSUFFICIENT");
     expect(MINESWEEPING_SHIP_INELIGIBLE).toBe("MINESWEEPING_SHIP_INELIGIBLE");
     expect(DUAL_EQUIPMENT_MODE_MISSING).toBe("DUAL_EQUIPMENT_MODE_MISSING");
     expect(MINE_SWEEP_RESISTANCE_MISSING).toBe("MINE_SWEEP_RESISTANCE_MISSING");
+    expect(MINE_PRESSURE_REDUCED).toBe("MINE_PRESSURE_REDUCED");
   });
 
   it("does NOT ship §30 codes owned by later increments", () => {
     const shipped: ReadonlySet<string> = new Set(Object.values(MINE_REASON_CODES));
     const laterIncrementCodes = [
-      "MINE_PRESSURE_REDUCED",
       "MINE_ROUTE_RISK_CREATED",
       "MINE_DEFENSIVE_STANDOFF_ACTIVE",
       "MINE_REPORT_CAUSE_UNCERTAIN",

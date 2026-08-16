@@ -10,7 +10,8 @@
 // exercises. INC-3 ships the sweeping
 // eligibility/base-value/dual-equipment/resistance codes (MINESWEEPING_SHIP_INELIGIBLE,
 // DUAL_EQUIPMENT_MODE_MISSING, MINE_SWEEP_RESISTANCE_MISSING) that its §6/§7/§8/§9
-// boundaries exercise. The remaining in-slice codes are owned by INC-4..INC-7 and
+// boundaries exercise. INC-4 ships the sweeping-aggregation/allocation code
+// (MINE_PRESSURE_REDUCED). The remaining in-slice codes are owned by INC-5..INC-7 and
 // recorded below, never shipped here. The full partition (in-slice / deferred /
 // reused combat catalog, disjointness) is verified by INC-8's set-equality test.
 
@@ -41,6 +42,13 @@ export const DUAL_EQUIPMENT_MODE_MISSING = "DUAL_EQUIPMENT_MODE_MISSING" as cons
 // types are definition-required; no definition is shipped this sprint).
 export const MINE_SWEEP_RESISTANCE_MISSING = "MINE_SWEEP_RESISTANCE_MISSING" as const;
 
+// ---- In-slice codes (INC-4: regional sweeping aggregation/allocation, §10) ----
+// §10: a mine-pressure record's pressure is reduced by the swept amount. Emitted
+// whenever a sweeping allocation consumes positive pressure from a record. INC-7
+// owns the MINEFIELD_CLEARED transition at pressure 0; this code is the reduction
+// event, distinct from clearance.
+export const MINE_PRESSURE_REDUCED = "MINE_PRESSURE_REDUCED" as const;
+
 // ---- Collected catalog (INC-1..INC-3 shipped set; grows through INC-7,
 // set-equality checked in INC-8) ----
 export const MINE_REASON_CODES = {
@@ -51,12 +59,12 @@ export const MINE_REASON_CODES = {
   MINESWEEPING_SHIP_INELIGIBLE,
   DUAL_EQUIPMENT_MODE_MISSING,
   MINE_SWEEP_RESISTANCE_MISSING,
+  MINE_PRESSURE_REDUCED,
 } as const;
 
 export type MineReasonCode = (typeof MINE_REASON_CODES)[keyof typeof MINE_REASON_CODES];
 
 // ---- Recorded §30 in-slice codes owned by later increments (never shipped here) ----
-// INC-4 (sweeping aggregation): MINE_PRESSURE_REDUCED.
 // INC-5 (standoff/route risk): MINE_ROUTE_RISK_CREATED (value-only per ticket
 //   01), MINE_DEFENSIVE_STANDOFF_ACTIVE (value-only).
 // INC-6 (report/misidentification): MINE_REPORT_CAUSE_UNCERTAIN.
