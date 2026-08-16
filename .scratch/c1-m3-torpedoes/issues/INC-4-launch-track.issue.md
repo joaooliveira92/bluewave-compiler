@@ -1,7 +1,9 @@
-# INC-4 — Launch Timing/Failure + TorpedoTrack
+# INC-4: Launch Timing/Failure + TorpedoTrack
 
 **Type:** implementation
-**Status:** open
+**Status:** done (2026-08-16, orchestrator pipeline, commit `ffa65ea`) — AC-12 + AC-13 part 1
+green (`launch-failure.test.ts` + `track.test.ts`, 289/289 torpedo suite); reviewer APPROVE;
+report `.ai/reports/c1-m3-torpedoes-inc4-launch-track.md`.
 **Blocked by:** INC-3
 **Frontier:** no
 
