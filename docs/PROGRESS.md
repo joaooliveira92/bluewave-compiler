@@ -11,7 +11,7 @@
 | M1 Strategic Campaign Kernel | B9–B10  | Scope briefs ready                      | B9/B10a/B10b/B10c/B10d done          | 410 passing                    | **M1 COMPLETED (A-5 gate, 2026-08-12)** — `docs/acceptance/m1-capability-registry.md` |
 | M2 Surface Tactical Core     | —       | Design docs exist (DESIGN-34–42)        | B-1..B-6 IMPL DONE (2026-08-15)      | 900 combat tests pass          | **M2 COMPLETED (B-6 gate, 2026-08-15)** — see M2 section below |
 | Desktop & CLI surfaces       | —       | —                                       | MVP + 3 screens + CLI debug DONE     | desktop 353, campaign-engine 49 | Surfaces PASS (2026-08-15); debug-mode gating (ADR-0029); E2E suite in progress |
-| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | C-1 scoping DONE (2026-08-16)        | —                              | C-1-IMPL (torpedoes) is the current frontier |
+| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | C-1 scoping DONE; C-2 scoping DONE (2026-08-16) | —                    | C-1-IMPL (torpedoes) is the current frontier; C-2-IMPL (mines) queued after |
 | M4 Aviation                  | —       | Design docs exist (DESIGN-43–45)        | Not started                          | —                              | Future                   |
 | M5 Electronics & Missile Era | —       | Design docs exist (DESIGN-46–48)        | Not started                          | —                              | Future                   |
 
