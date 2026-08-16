@@ -12,6 +12,7 @@ export type {
   BattleInstance,
   BattleResult,
   BattleManifest,
+  BattleManifestSide,
   WarDeclaration,
   WarParticipantMembership,
   BlockadeState,

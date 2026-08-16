@@ -112,6 +112,11 @@ export interface BattleResult {
   explanation: string[];
 }
 
+export interface BattleManifestSide {
+  sideId: string;
+  participantIds: string[];
+}
+
 // Canonical battle manifest stored on the snapshot (populated by the
 // battle_generation phase). Structurally defined here so campaign stays
 // dependency-free; @bluewave/combat produces it via generation/manifest.ts.
@@ -125,7 +130,7 @@ export interface BattleManifest {
   defenderId: string;
   acceptanceClass: string;
   missionObjectives: string[];
-  sides: Array<{ sideId: string; participantIds: string[] }>;
+  sides: BattleManifestSide[];
   persistentAssets: string[];
   temporaryAssets: string[];
   permanentDivisionIds: string[];
