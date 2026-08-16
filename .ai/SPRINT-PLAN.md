@@ -168,7 +168,7 @@ current track; C-1 is in flight.**
 | --- | ------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------- |
 | C-1 | Torpedoes                       | DESIGN-40                                                          | Torpedo types/performance                            |
 |     | **C-1 SCOPING: DONE 2026-08-16 — PASS (committed `dddb11d`).** Scoped the torpedo **fire-resolution** vertical slice of DESIGN-40 as an engine-only, deterministic, minute-advancing resolution in `@bluewave/combat` (model → launcher → ammunition → launch legality → launch → track → hit → detonation → damage package; no campaign snapshot schema change; goldens must remain unchanged). Wayfinder map `.scratch/c1-m3-torpedoes/map.md` + decision tickets `01..06` (resolved), spec (AC-1..25, INC-1..8), brief `.ai/briefs/c1-m3-torpedoes.md`, research `docs/research/c1-m3-torpedoes.md`. **Deferred:** manual-launch command + tactical AI authority, §18 progressive-flooding resolution (C-5), §25 evasion, §26 persistence, submarine launch (C-3), aerial torpedoes (D-track). **Next: C-1-IMPL (INC-1..8).** |
-|     | **C-1 IMPL: INC-1..INC-6 DONE (2026-08-16).** INC-1 (`1777312`, repairs `c075170`, `6688ca2`): model/launcher/ammunition/compatibility/reason codes/constants (AC-1..4). INC-2 (`5a6944e`): launch legality/eligibility/speed limits (AC-5..8). INC-3 (`f97a3c9`): fire solution/salvo/friendly-fire (AC-9..11, AC-19). **INC-4 (`ffa65ea`): launch timing/failure + TorpedoTrack (AC-12, AC-13 p1)**. **INC-5 (`a2ed7c3`): hit resolution + detonation outcomes (AC-13 p2, AC-14)** — ADR-0031. **INC-6 (`072b704`): TorpedoDamagePackage (AC-15..AC-18)** — §16 atomic package + §17 flotation + §18 flooding creation + §19 machinery + §20 shock + §21 tube hazard + §22 chain reaction + §23 oxygen; B-4 seams reused by import; contract-pinned authored BALANCE TARGETs + TUBE_BAY + §21 reserve-loss decision in ADR-0031 (entries 8–10); reviewer NEEDS_REWORK fully resolved; reports `.ai/reports/c1-m3-torpedoes-inc{4,5,6}-*.md`; torpedo 453/453, combat 1522/1523 (only concurrent C-2 mines mid-edit fails), goldens 10/10 unchanged. **Next: INC-7 (engine stage + records/ordering + two-process determinism, AC-20/22/23).** |
+|     | **C-1 IMPL: INC-1..INC-7 DONE (2026-08-16).** INC-1 (`1777312`, repairs `c075170`, `6688ca2`): model/launcher/ammunition/compatibility/reason codes/constants (AC-1..4). INC-2 (`5a6944e`): launch legality/eligibility/speed limits (AC-5..8). INC-3 (`f97a3c9`): fire solution/salvo/friendly-fire (AC-9..11, AC-19). **INC-4 (`ffa65ea`): launch timing/failure + TorpedoTrack (AC-12, AC-13 p1)**. **INC-5 (`a2ed7c3`): hit resolution + detonation outcomes (AC-13 p2, AC-14)**. **INC-6 (`072b704`): TorpedoDamagePackage (AC-15..AC-18)** — ADR-0031 entries 1–10. **INC-7 (`db840c7`): engine stage + records/ordering + two-process determinism (AC-20/22/23)** — optional torpedo context in `advanceMinute` after damage, strict no-op keeps B-2..B-6 hashes byte-identical, §27 records + §28 locale-free ordering, `run-torpedo-child` AC-23; reviewer NEEDS_REWORK resolved (chain id uniqueness, same-minute damage composition, battleLedger locale); reports `.ai/reports/c1-m3-torpedoes-inc{4..7}-*.md`; torpedo 504/504, simulation 19/19, goldens 10/10 unchanged. **Next: INC-8 (contracts rollup + reason-codes set-equality + ADR + traceability + gate, AC-21/24/25).** |
 | C-2 | Mine warfare                    | DESIGN-35                                                          | Mine types/laying                                    |
 |     | **C-2 SCOPING: DONE 2026-08-16 — PASS (committed `2ad7f1c`).** Scoped the mine-pressure **lifecycle** vertical slice of DESIGN-35 as pure functions in `@bluewave/combat` (`packages/combat/src/mines/`; no phase/snapshot wiring this sprint, mirrors B-5-before-B-6): mine types/pressure record (§1–2), sources/laying value/pressure increase (§3–5), sweeping eligibility/base values/dual-purpose equipment/effective value/regional aggregation (§6–10), defensive standoff + route risk as value-only (§13, §16), report/misidentification (§19–20), decay/post-war persistence/ownership dispositions/knowledge/clearance (§21–24, §27), records/ordering/reason codes (§28–30). Wayfinder map + decision tickets `01..06` (resolved), spec (AC-1..25, INC-1..8), brief `.ai/briefs/c2-m3-mine-warfare.md`, research note `docs/research/c2-m3-mine-warfare.md` (no primary-source grounding required — DESIGN-35 ships exact constants). **Deferred in full to a C-2 continuation:** all mine-strike resolution (§11, §14–15, §17–18, §25–26) — blocked on either a not-yet-built tactical battle-hazard engine stage or DESIGN-25 (deployment/logistics, still unassigned/`CONTENT_ONLY` per ADR-0011). Scoped in parallel with C-1-IMPL (disjoint file paths). **Next: C-2-IMPL (INC-1..8), after C-1-IMPL completes.** |
 | C-3 | Submarines                      | DESIGN-34                                                          | Submarine classes                                    |
@@ -249,16 +249,16 @@ phase wiring + consequences (ADR-0027). `M2_SURFACE_TACTICAL_CORE` **COMPLETED**
 (§23) — registry `docs/acceptance/m2-capability-registry.md`, report
 `.ai/reports/b6-m2-battle-results-impl.md`. Goldens 10/10.
 
-**Next: Track C — M3 Advanced Surface Warfare.** **C-1 IMPL INC-1..INC-6 DONE
+**Next: Track C — M3 Advanced Surface Warfare.** **C-1 IMPL INC-1..INC-7 DONE
 (2026-08-16):** INC-1 (`1777312`/`c075170`/`6688ca2`), INC-2 (`5a6944e`),
-INC-3 (`f97a3c9`), INC-4 (`ffa65ea`), INC-5 (`a2ed7c3`), INC-6 (`072b704`) —
-fire solution → salvo → launch/track → hit/detonation → torque damage package
-all green (453/453 torpedo, goldens 10/10, ADR-0031). **Next: C-1 INC-7 —
-engine stage `resolveTorpedoes` (records/ordering + two-process determinism,
-AC-20/22/23); then INC-8 contracts rollup/ADR/gate.** Candidate parallel work
-recorded: content climate-profile YAML (CONTENT-track), DESIGN-38 §34 statistical
-study (REL-1), repair `content-schema/nation.test.ts`, C-2-IMPL (mines) queued
-after C-1.
+INC-3 (`f97a3c9`), INC-4 (`ffa65ea`), INC-5 (`a2ed7c3`), INC-6 (`072b704`),
+INC-7 (`db840c7`) — fire solution → salvo → launch/track → hit/detonation →
+damage package → engine stage all green (504/504 torpedo, goldens 10/10,
+ADR-0031). **Next: C-1 INC-8 — contracts rollup + reason-codes set-equality +
+ADR + traceability + gate (AC-21/24/25).** Candidate parallel work recorded:
+content climate-profile YAML (CONTENT-track), DESIGN-38 §34 statistical study
+(REL-1), repair `content-schema/nation.test.ts`, C-2-IMPL (mines) queued after
+C-1.
 
 **Previous: B-5-IMPL (INC-1..6) DONE — PASS (2026-08-15).** M2 tactical weather &
 visibility: `StrategicWeatherState` + `weather_generation` phase (order 0.5),
@@ -275,8 +275,8 @@ spec (17 ACs, 6 INC slices), brief, and `.ai/specs/` pointer at
 **Backlog after M2 (recorded deferrals / order):**
 
 1. **C-1 Torpedoes (DESIGN-40)** — scoping DONE (2026-08-16, `dddb11d`);
-   **implementation INC-1..INC-6 DONE (`072b704`); INC-7 (engine stage +
-   records/ordering) is the current frontier** (M3).
+   **implementation INC-1..INC-7 DONE (`db840c7`); INC-8 (contracts rollup +
+   reason-code set-equality + ADR + gate) is the current frontier** (M3).
 2. **Content C-track climate-profile YAML** — CONTENT-track; confirm coupling
    to the M3 weather-mechanic acceptance rather than standalone.
 3. **Content C-track continuation** — MID_CENTURY + LATE-era content (M4/M5) as

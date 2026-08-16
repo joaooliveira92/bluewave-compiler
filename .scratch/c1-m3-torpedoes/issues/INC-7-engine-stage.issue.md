@@ -1,9 +1,12 @@
 # INC-7 — Engine Stage + Records/Ordering + Two-Process Determinism
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** INC-6
-**Frontier:** no
+**Status:** done (2026-08-16, orchestrator pipeline, commit `db840c7`) — AC-20/22/23 green
+(`records`/`ordering`/`advance`/`integration-boundary`/`determinism` tests, 504/504 torpedo,
+simulation 19/19 no-op invariance); reviewer NEEDS_REWORK resolved (BLOCKER-1 chain id
+uniqueness, BLOCKER-2 same-minute damage composition, HIGH-3 lint, HIGH-4 ADR-0031-11,
+MEDIUM-5 battleLedger locale, MEDIUM-6 single-eval, LOW-8/9); report
+`.ai/reports/c1-m3-torpedoes-inc7-engine-stage.md`; ADR-0031 entries 11–14.
 
 ## Acceptance (spec AC-20, AC-22, AC-23)
 
