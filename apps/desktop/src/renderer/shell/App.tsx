@@ -23,6 +23,7 @@ import {
   type Screen,
 } from "./campaign-screen-registry.js";
 import type { CampaignShellMode } from "./campaign-shell-state.js";
+import { MapSheet } from "./MapSheet.js";
 import type { PrimaryAction } from "./primary-action.js";
 import { SiteHeader } from "./SiteHeader.js";
 import { type ActiveView, type HeaderCampaign, headerTitleFor } from "./site-header-state.js";
@@ -415,6 +416,7 @@ function CampaignShellApplication({
       >
         {content}
       </AppFrame>
+      <MapSheet />
     </WindowContextProvider>
   );
 }
