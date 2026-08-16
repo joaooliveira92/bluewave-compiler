@@ -161,6 +161,18 @@ describe("useNewGameFlow", () => {
     expect(result.current.state.status).toBe("ready");
   });
 
+  it("sends the fleet-method screen's selected legacyFleetModeId, not the preferences default", async () => {
+    const { result, execute } = setup();
+    advanceToFleetMethod(result.current.actions);
+
+    await act(() => result.current.actions.launch({ legacyFleetModeId: "disabled" }));
+
+    expect(execute).toHaveBeenCalledWith(
+      "compileCampaign",
+      expect.objectContaining({ legacyFleetModeId: "disabled" }),
+    );
+  });
+
   it("keeps navigation outside the workflow and reports compilation rejection", async () => {
     const execute = (async () => ({
       outcome: "rejected" as const,

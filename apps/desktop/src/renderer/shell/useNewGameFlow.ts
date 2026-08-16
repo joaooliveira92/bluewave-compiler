@@ -168,7 +168,11 @@ export function useNewGameFlow(
           draft.archetype ?? defaultArchetypeSelection(),
         );
         const config = {
-          ...buildCampaignConfiguration(draft.nationId, draft.preferences),
+          ...buildCampaignConfiguration(
+            draft.nationId,
+            draft.preferences,
+            fleetMethod.legacyFleetModeId,
+          ),
           archetype: archetypeToken,
         };
         const result = await bridge.campaign.execute("compileCampaign", config);

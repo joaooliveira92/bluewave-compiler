@@ -6,10 +6,16 @@ import type { DraftPreferences } from "./new-game-preferences-screen-state.js";
  * (re-exported unchanged from `@bluewave/campaign`, DESIGN-03) uses the
  * canonical `*Id`-suffixed names. This maps one to the other explicitly
  * rather than spreading, since the names don't match 1:1.
+ *
+ * `legacyFleetModeId` is taken as its own parameter rather than read off
+ * `preferences.legacyFleetMode` (a silent first-supported-value default from
+ * the Preferences screen) — the real, user-chosen value lives in the
+ * fleet-method screen's draft (spec §5), so callers supply it directly.
  */
 export function buildCampaignConfiguration(
   nationId: string,
   preferences: DraftPreferences,
+  legacyFleetModeId: string,
 ): CampaignConfiguration {
   return {
     scenarioId: preferences.scenarioId as CampaignConfiguration["scenarioId"],
@@ -21,7 +27,7 @@ export function buildCampaignConfiguration(
     technologyVariationSettingId:
       preferences.technologyVariation as CampaignConfiguration["technologyVariationSettingId"],
     historicalBudgetOptionId: preferences.historicalBudget,
-    legacyFleetModeId: preferences.legacyFleetMode,
+    legacyFleetModeId,
     tacticalRealismModeId: preferences.tacticalRealism,
     difficultyProfileId: preferences.difficulty,
     campaignSeed: preferences.campaignSeed,

@@ -18,7 +18,7 @@ const preferences: DraftPreferences = {
 
 describe("new-game-nation-screen-state", () => {
   it("builds the final configuration from preferences plus the confirmed nation", () => {
-    expect(buildCampaignConfiguration("nation_germany", preferences)).toEqual({
+    expect(buildCampaignConfiguration("nation_germany", preferences, "historical")).toEqual({
       scenarioId: preferences.scenarioId,
       playerSlotId: "nation_germany",
       continuityModeId: preferences.continuityMode,
@@ -26,7 +26,7 @@ describe("new-game-nation-screen-state", () => {
       researchSpeedSettingId: preferences.researchSpeed,
       technologyVariationSettingId: preferences.technologyVariation,
       historicalBudgetOptionId: preferences.historicalBudget,
-      legacyFleetModeId: preferences.legacyFleetMode,
+      legacyFleetModeId: "historical",
       tacticalRealismModeId: preferences.tacticalRealism,
       difficultyProfileId: preferences.difficulty,
       campaignSeed: preferences.campaignSeed,
