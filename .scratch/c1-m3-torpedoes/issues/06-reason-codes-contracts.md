@@ -1,7 +1,7 @@
 # Ticket 06 — Reason Codes & Contracts
 
 **Type:** decision
-**State:** RESOLVED
+**Status:** resolved
 **Blocked by:** 01-scope-boundary
 
 ## Question

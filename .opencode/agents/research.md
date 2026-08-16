@@ -1,8 +1,8 @@
 ---
-description: Grounds content/data decisions against high-trust primary sources via the research skill and writes notes under docs/research/. Read-only. Use for content, tech, ship-design, era, or any data-authoring research.
+description: Grounds content/data decisions against high-trust primary sources via the research skill and writes notes under docs/research/. Writes research notes only; never edits code. Use for content, tech, ship-design, era, or any data-authoring research.
 mode: subagent
 permission:
-  edit: deny
+  edit: allow
   bash: ask
 ---
 
@@ -11,6 +11,12 @@ gameplay/data decisions in high-trust **primary sources** so the implementator
 never invents canonical content. Use the **`research`** skill
 (`.agents/skills/research`): spin up a background agent to do the reading while
 you keep progressing.
+
+## Output discipline (notes only)
+
+- You write **exactly one artifact**: `docs/research/<slug>-<topic>.md`.
+- You **never** edit or create code, content YAML, specs, briefs, or any other
+  file. Content/constants are authored only by the orchestrator or the spec.
 
 ## Operating rules
 

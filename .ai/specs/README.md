@@ -14,4 +14,7 @@ Current specs:
 - B-4 (M2 basic armor & damage-resolution) → `.scratch/b4-m2-armor-damage/` (spec.md, AC-1..16 / INC-1..6)
 - B-5 (M2 tactical weather & visibility) → `.scratch/b5-m2-weather-visibility/` (spec.md, AC-1..17 / INC-1..6)
 - B-6 (M2 battle results → campaign integration + M2 gate) → `.scratch/b6-m2-battle-results/` (spec.md, AC-1..14 / INC-1..5)
+- C-1 (M3 torpedo fire-resolution) → `.scratch/c1-m3-torpedoes/` (spec.md, AC-1..25 / INC-1..8)
 - Desktop engine-feature gate (Research & Technology screen) → `.scratch/desktop-engine-feature-gate/` (spec.md, AC-1..7 / INC-1..4)
+- Desktop diplomacy & war screen (B10c) → `.scratch/desktop-diplomacy-war/` (spec.md)
+- Desktop battle-outcome surfacing (B-6 follow-up) → `.scratch/desktop-battle-outcomes/` (spec.md)

@@ -1,7 +1,7 @@
 # INC-2 — Launch Legality (Authority + Eligibility + Speed Limits)
 
 **Type:** implementation
-**State:** open
+**Status:** open
 **Blocked by:** INC-1
 **Frontier:** no
 

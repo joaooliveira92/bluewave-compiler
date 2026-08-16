@@ -1,7 +1,7 @@
 # Ticket 02 — Integration Boundary
 
 **Type:** decision
-**State:** RESOLVED
+**Status:** resolved
 **Blocked by:** 01-scope-boundary
 
 ## Question

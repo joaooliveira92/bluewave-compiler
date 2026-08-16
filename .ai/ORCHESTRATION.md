@@ -8,7 +8,7 @@ validation gate. Subagents live in `.opencode/agents/`. The pipeline is
 | Skill        | Where                       | Phase                                                   |
 | ------------ | --------------------------- | ------------------------------------------------------- |
 | `wayfinder`  | `.agents/skills/wayfinder`  | **chart** (huge/foggy efforts → map + decision tickets) |
-| `to-spec`    | `.agents/skills/to-spec`    | **spec** (conversation → spec, `ready-for-agent`)       |
+| `to-spec`    | `.agents/skills/to-spec`    | **spec** (conversation → spec, ready for slicing)       |
 | `to-tickets` | `.agents/skills/to-tickets` | **slice** (spec → vertical implementation tickets)      |
 | `research`   | `.agents/skills/research`   | **ground** (source-grounded notes)                      |
 
@@ -28,12 +28,12 @@ validation gate. Subagents live in `.opencode/agents/`. The pipeline is
 3. **Spec (spec-creator)** — the **spec-creator** role synthesizes a spec in the
    **to-spec** format (Problem/Solution/User Stories/Implementation Decisions/
    Testing/Out of Scope), writes it to `.scratch/<slug>/spec.md`, and registers a
-   `ready-for-agent` pointer (`.ai/specs/` is an index, not a store).
+   pointer marking it ready for slicing (`.ai/specs/` is an index, not a store).
 4. **Slice (to-tickets)** — once a spec is approved, **to-tickets** breaks it into
    **tracer-bullet vertical slices**, each declaring its blocking edges, published
    as `.scratch/<slug>/issues/<NN>-<name>.md` (frontier-ordered; blockers first).
 5. **Execute (implementator)** — the **implementator** works the **frontier**
-   (open, unblocked, `ready-for-agent`) tickets, one at a time, per
+   (open, unblocked, `Frontier: yes`) tickets, one at a time, per
    ENGINEERING-CONTRACT.
 6. **Verify (reviewer)** — the **reviewer** adversarial-checks each ticket/batch
    against its acceptance criteria + the spec + contract + repo standards.
@@ -42,13 +42,13 @@ validation gate. Subagents live in `.opencode/agents/`. The pipeline is
 
 ## Roles
 
-| Role              | `.opencode/agents/` | Skill                       | Permissions         | Output                                                                  |
-| ----------------- | ------------------- | --------------------------- | ------------------- | ----------------------------------------------------------------------- |
-| 1. spec-creator   | `spec-creator.md`   | `to-spec`                   | read-only           | `.scratch/<slug>/spec.md` + `.ai/specs/` pointer                        |
-| 2. research       | `research.md`       | `research`                  | read-only           | `docs/research/<slug>-<topic>.md`                                       |
-| 3. implementator  | `implementator.md`  | `to-tickets` (works slices) | edit+run            | frontier ticket done + code + tests + exact results + changed-file list |
-| 4. reviewer       | `reviewer.md`       | —                           | read-only           | severity-tagged findings + APPROVE / NEEDS_REWORK                       |
-| orchestrator (me) | —                   | `wayfinder` (chart)         | owns git/validation | map + gate + git/traceability/ADRs                                      |
+| Role              | `.opencode/agents/` | Skill                       | Permissions                | Output                                                                  |
+| ----------------- | ------------------- | --------------------------- | -------------------------- | ----------------------------------------------------------------------- |
+| 1. spec-creator   | `spec-creator.md`   | `to-spec`                   | write spec only            | `.scratch/<slug>/spec.md` + `.ai/specs/` pointer                        |
+| 2. research       | `research.md`       | `research`                  | write notes only           | `docs/research/<slug>-<topic>.md`                                       |
+| 3. implementator  | `implementator.md`  | — (works `to-tickets` output) | edit+run                 | frontier ticket done + code + tests + exact results + changed-file list |
+| 4. reviewer       | `reviewer.md`       | —                           | read-only                  | severity-tagged findings + APPROVE / NEEDS_REWORK                       |
+| orchestrator (me) | —                   | `wayfinder` (chart), `to-tickets` (slice) | owns git/validation | map + gate + git/traceability/ADRs                                      |
 
 Ordering: **chart/research → spec → slice → implement → review → (repair loop) →
 validation gate → commit**.
@@ -58,6 +58,10 @@ validation gate → commit**.
 - Each subagent's final report is a **spec for the next step, not the source of
   truth**. The orchestrator re-reads files before editing and independently
   verifies claimed results.
+- Write scope is role-locked: spec-creator writes only
+  `.scratch/<slug>/spec.md` + its `.ai/specs/` pointer; research writes only
+  `docs/research/<slug>-<topic>.md`; the reviewer writes nothing. The
+  orchestrator re-reads those files (not the reports) before acting on them.
 - The implementator works one **frontier ticket** (from to-tickets); the reviewer
   checks that ticket against its acceptance criteria + the spec + contract.
 - On `NEEDS_REWORK` (blocker/high), the orchestrator sends the implementator back

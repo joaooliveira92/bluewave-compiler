@@ -1,7 +1,7 @@
 # INC-8 — Contracts Rollup + Research Constants + ADR + Traceability + Gate
 
 **Type:** implementation
-**State:** open
+**Status:** open
 **Blocked by:** INC-7
 **Frontier:** no
 

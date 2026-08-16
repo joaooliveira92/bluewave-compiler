@@ -1,7 +1,7 @@
 # INC-3 — Fire Solution + Salvo + Friendly-Fire Safety
 
 **Type:** implementation
-**State:** open
+**Status:** open
 **Blocked by:** INC-2
 **Frontier:** no
 

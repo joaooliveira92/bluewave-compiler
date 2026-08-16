@@ -1,7 +1,7 @@
 # INC-5 — Hit Resolution + Detonation Outcomes
 
 **Type:** implementation
-**State:** open
+**Status:** open
 **Blocked by:** INC-4
 **Frontier:** no
 

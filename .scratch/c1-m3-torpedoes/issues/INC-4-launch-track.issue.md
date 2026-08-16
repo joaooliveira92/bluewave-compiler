@@ -1,7 +1,7 @@
 # INC-4 — Launch Timing/Failure + TorpedoTrack
 
 **Type:** implementation
-**State:** open
+**Status:** open
 **Blocked by:** INC-3
 **Frontier:** no
 

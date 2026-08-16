@@ -1,7 +1,7 @@
 # INC-7 — Engine Stage + Records/Ordering + Two-Process Determinism
 
 **Type:** implementation
-**State:** open
+**Status:** open
 **Blocked by:** INC-6
 **Frontier:** no
 

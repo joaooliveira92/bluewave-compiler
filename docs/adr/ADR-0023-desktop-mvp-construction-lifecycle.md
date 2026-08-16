@@ -89,6 +89,6 @@ undocumented:
 
 ## Related ADRs
 
-- ADR-0021 (desktop-mvp bridge boundary — the `campaign:execute` IPC and
+- ADR-0030 (desktop-mvp bridge boundary — the `campaign:execute` IPC and
   `@bluewave/campaign-engine` package boundary), ADR-0007 (cross-process
   determinism).

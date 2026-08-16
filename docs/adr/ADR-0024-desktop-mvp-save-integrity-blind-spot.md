@@ -79,4 +79,4 @@ the integrity envelope, unauthenticated. A tampered seed is accepted silently.
 ## Related ADRs
 
 - ADR-0007 (cross-process determinism), ADR-0023 (construction lifecycle +
-  projected-cost formula), ADR-0021 (desktop-mvp bridge boundary).
+  projected-cost formula), ADR-0030 (desktop-mvp bridge boundary).

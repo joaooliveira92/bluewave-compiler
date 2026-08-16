@@ -1,7 +1,7 @@
 # Ticket 05 — Damage Seams
 
 **Type:** decision
-**State:** RESOLVED
+**Status:** resolved
 **Blocked by:** 01-scope-boundary
 
 ## Question

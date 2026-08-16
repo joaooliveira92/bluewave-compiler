@@ -1,7 +1,7 @@
 # Ticket 01 — Scope Boundary
 
 **Type:** decision
-**State:** RESOLVED
+**Status:** resolved
 **Blocked by:** none
 
 ## Question

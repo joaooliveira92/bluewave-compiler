@@ -1,5 +1,9 @@
 # Bluewave Engine and Compiler Roadmap
 
+> **Superseded (2026-08-16).** This file describes the original B0–B10 bootstrap
+> roadmap (Milestone 1). The living backlog is `.ai/SPRINT-PLAN.md` (Tracks A–E,
+> CONTENT, REL). Kept for historical reference only.
+
 ## B0: Repository and governance
 
 Create the workspace, strict TypeScript policies, package boundaries, CI entry points, ADR framework, traceability index, Git rules, and agent material.

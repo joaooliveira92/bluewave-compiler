@@ -1,7 +1,7 @@
 # INC-1 — Model + Launcher + Ammunition + Compatibility + Reason Codes + Constants
 
 **Type:** implementation
-**State:** open
+**Status:** open
 **Blocked by:** scoping (issues 01–06 resolved)
 **Frontier:** yes (first)
 

@@ -1,7 +1,7 @@
 # INC-6 — TorpedoDamagePackage (Flotation, Flooding, Machinery, Shock, Tube Hazard, Chain Reaction, Oxygen)
 
 **Type:** implementation
-**State:** open
+**Status:** open
 **Blocked by:** INC-5
 **Frontier:** no
 
