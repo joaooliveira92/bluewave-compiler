@@ -104,15 +104,16 @@ vi.mock("../screens/campaign-file/CampaignFileScreen.js", async () => {
   };
 });
 
-vi.mock("../screens/campaign-preferences/onboarding-blocks.js", async () => {
+vi.mock("../screens/new-game/RulesOfTheNavalAgeScreen.js", async () => {
   const React = await import("react");
   return {
-    CampaignPreferencesOnboarding: ({
+    RulesOfTheNavalAgeScreen: ({
       onCancel,
       onNext,
     }: {
       onCancel: () => void;
       onNext: (preferences: Record<string, string>, options: unknown) => void;
+      recommendedPreset: unknown;
     }) =>
       React.createElement(
         "section",

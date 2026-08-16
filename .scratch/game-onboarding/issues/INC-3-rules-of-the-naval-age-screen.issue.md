@@ -15,19 +15,19 @@ numeric ship-count ranges.
 
 **Blocked by:** INC-1
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Preset picker applies the exact six-setting bundles from the spec's
+- [x] Preset picker applies the exact six-setting bundles from the spec's
       table for Cadet/Admiral/Naval Historian/Alternate History
-- [ ] Editing any of the six settings after selecting a named preset reverts
+- [x] Editing any of the six settings after selecting a named preset reverts
       the picker to "Custom," with no confirmation dialog
-- [ ] Era & Scale card shows scenario/era select + fleet size
-- [ ] Historical Uncertainty card shows all five settings, each with a
+- [x] Era & Scale card shows scenario/era select + fleet size
+- [x] Historical Uncertainty card shows all five settings, each with a
       hand-authored 1–2 line blurb per value (~15–18 blurbs total)
-- [ ] Qualitative fleet-size readout shown (e.g. "Reduced fleet — faster
+- [x] Qualitative fleet-size readout shown (e.g. "Reduced fleet — faster
       turns, fewer ships to manage" for `small`), no numeric ship-count
       ranges and no nation+fleet-size low-budget warning anywhere
-- [ ] No Aviation Development toggle or any of the doc's other
+- [x] No Aviation Development toggle or any of the doc's other
       unbacked "clone-friendly options" present
-- [ ] Component tests cover preset selection, revert-to-Custom-on-edit, and
+- [x] Component tests cover preset selection, revert-to-Custom-on-edit, and
       the qualitative readout for each fleet size value

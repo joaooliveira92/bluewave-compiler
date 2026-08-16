@@ -11,36 +11,43 @@ import {
   SelectValue,
 } from "../../../components/ui/select.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
+import { fleetSizeLabel, fleetSizeReadout } from "../rules-of-the-naval-age-content.js";
 
-export interface ScenarioSectionProps {
+export interface EraScaleSectionProps {
   readonly scenarioId: string;
   readonly campaignSeed: string;
+  readonly fleetSize: string;
   readonly scenarios: readonly NewGameScenario[];
   readonly selectedScenario: NewGameScenario | null;
+  readonly fleetSizeOptions: readonly string[];
   readonly onScenarioChange: (id: string) => void;
+  readonly onFleetSizeChange: (value: string) => void;
   readonly onSeedChange: (seed: string) => void;
 }
 
-export const ScenarioSection = memo(function ScenarioSection({
+export const EraScaleSection = memo(function EraScaleSection({
   scenarioId,
   campaignSeed,
+  fleetSize,
   scenarios,
   selectedScenario,
+  fleetSizeOptions,
   onScenarioChange,
+  onFleetSizeChange,
   onSeedChange,
-}: ScenarioSectionProps) {
+}: EraScaleSectionProps) {
   return (
     <GlassCard glassVariant="liquid-refract">
       <CardHeader>
-        <CardTitle className="text-sm font-medium">Scenario</CardTitle>
+        <CardTitle className="text-sm font-medium">Era &amp; Scale</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
         <FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field>
-            <FieldLabel htmlFor="scenario">Starting Scenario</FieldLabel>
+            <FieldLabel htmlFor="scenario">Starting Era</FieldLabel>
             <Select value={scenarioId} onValueChange={onScenarioChange} className="w-full">
-              <SelectTrigger>
-                <SelectValue placeholder="Select a scenario" />
+              <SelectTrigger id="scenario">
+                <SelectValue placeholder="Select an era" />
               </SelectTrigger>
               <SelectContent>
                 {scenarios.map((option) => (
@@ -56,6 +63,28 @@ export const ScenarioSection = memo(function ScenarioSection({
                 {selectedScenario.participantNationIds.length} nations
               </FieldDescription>
             )}
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="fleetSize">Fleet Size</FieldLabel>
+            <Select
+              value={fleetSize}
+              onValueChange={onFleetSizeChange}
+              className="w-full"
+              disabled={fleetSizeOptions.length <= 1}
+            >
+              <SelectTrigger id="fleetSize">
+                <SelectValue placeholder="Select fleet size" />
+              </SelectTrigger>
+              <SelectContent>
+                {fleetSizeOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {fleetSizeLabel(option)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {fleetSize !== "" && <FieldDescription>{fleetSizeReadout(fleetSize)}</FieldDescription>}
           </Field>
 
           <Field>

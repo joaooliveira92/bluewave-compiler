@@ -81,4 +81,32 @@ describe("new-game-preferences-screen-state", () => {
     expect(updated.preferences.campaignSeed).toBe("CUSTOM-SEED");
     expect(loaded.preferences.campaignSeed).toBe("SEED-1");
   });
+
+  it("seeds the six preset-covered fields from a recommended preset instead of the first supported value", () => {
+    const wideOptions: NewGameOptions = {
+      ...options,
+      supportedValues: {
+        ...options.supportedValues,
+        fleetSize: ["small", "standard"],
+        difficulty: ["easy", "normal"],
+      },
+    };
+    const loaded = applyOptionsLoaded(
+      initialNewGamePreferencesScreenState(),
+      wideOptions,
+      "SEED-1",
+      {
+        fleetSize: "standard",
+        researchSpeed: "standard",
+        technologyVariation: "none",
+        historicalBudget: "canonical",
+        tacticalRealism: "admiral",
+        difficulty: "normal",
+      },
+    );
+    expect(loaded.preferences.fleetSize).toBe("standard");
+    expect(loaded.preferences.difficulty).toBe("normal");
+    // Non-preset fields still fall back to the first supported value.
+    expect(loaded.preferences.scenarioId).toBe("scen_1900");
+  });
 });

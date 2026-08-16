@@ -10,11 +10,12 @@ import { ShaderBackground } from "../components/motion/shader-background.js";
 import { Alert, AlertDescription } from "../components/ui/alert.js";
 import { SidebarInset, SidebarProvider } from "../components/ui/sidebar.js";
 import { CampaignFileScreen } from "../screens/campaign-file/CampaignFileScreen.js";
-import { CampaignPreferencesOnboarding } from "../screens/campaign-preferences/onboarding-blocks.js";
 import { NewGameArchetypeScreen } from "../screens/new-game/NewGameArchetypeScreen.js";
 import { NewGameFleetMethodScreen } from "../screens/new-game/NewGameFleetMethodScreen.js";
 import { NewGameIdentityScreen } from "../screens/new-game/NewGameIdentityScreen.js";
 import { NewGameNationScreen } from "../screens/new-game/NewGameNationScreen.js";
+import { RulesOfTheNavalAgeScreen } from "../screens/new-game/RulesOfTheNavalAgeScreen.js";
+import type { AdmiralPresetValues } from "../screens/new-game/admiral-preset.js";
 import {
   defaultFleetMethod,
   type FleetMethodDraft,
@@ -175,7 +176,11 @@ function CampaignUnavailableView(props: CampaignUnavailableViewProps) {
       );
     case "new-game-preferences":
       return (
-        <CampaignPreferencesView onCancel={props.onBackToNation} onNext={props.onPreferencesNext} />
+        <CampaignPreferencesView
+          onCancel={props.onBackToNation}
+          onNext={props.onPreferencesNext}
+          recommendedPreset={props.draft?.recommendedPreset ?? null}
+        />
       );
     case "new-game-archetype":
       return props.draft === null ? (
@@ -256,12 +261,21 @@ function CampaignOpenErrorView({
 interface CampaignPreferencesViewProps {
   readonly onCancel: () => void;
   readonly onNext: (preferences: DraftPreferences, options: NewGameOptions) => void;
+  readonly recommendedPreset: AdmiralPresetValues | null;
 }
 
-function CampaignPreferencesView({ onCancel, onNext }: CampaignPreferencesViewProps) {
+function CampaignPreferencesView({
+  onCancel,
+  onNext,
+  recommendedPreset,
+}: CampaignPreferencesViewProps) {
   return (
     <div className="p-8">
-      <CampaignPreferencesOnboarding onCancel={onCancel} onNext={onNext} />
+      <RulesOfTheNavalAgeScreen
+        onCancel={onCancel}
+        onNext={onNext}
+        recommendedPreset={recommendedPreset}
+      />
     </div>
   );
 }

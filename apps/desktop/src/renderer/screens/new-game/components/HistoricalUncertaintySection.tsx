@@ -1,7 +1,7 @@
 import { memo } from "react";
 import type { SupportedConfigurationValues } from "@bluewave/campaign-engine";
 import { CardContent, CardHeader, CardTitle } from "../../../components/ui/card.js";
-import { Field, FieldGroup, FieldLabel } from "../../../components/ui/field.js";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "../../../components/ui/field.js";
 import {
   Select,
   SelectContent,
@@ -9,62 +9,59 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select.js";
-import type { DraftPreferences } from "../new-game-preferences-screen-state.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
+import type { DraftPreferences } from "../new-game-preferences-screen-state.js";
+import {
+  UNCERTAINTY_FIELD_LABELS,
+  UNCERTAINTY_FIELDS,
+  uncertaintyValueContent,
+  type UncertaintyField,
+} from "../rules-of-the-naval-age-content.js";
 
-const FIELD_LABELS: Record<
-  Exclude<keyof DraftPreferences, "version" | "scenarioId" | "campaignSeed">,
-  string
-> = {
-  continuityMode: "Continuity Mode",
-  fleetSize: "Fleet Size",
-  researchSpeed: "Research Speed",
-  technologyVariation: "Technology Variation",
-  historicalBudget: "Historical Budget",
-  legacyFleetMode: "Legacy Fleet Mode",
-  tacticalRealism: "Tactical Realism",
-  difficulty: "Difficulty",
-};
-
-export interface RulesetOptionsSectionProps {
+export interface HistoricalUncertaintySectionProps {
   readonly preferences: DraftPreferences;
   readonly supportedValues: SupportedConfigurationValues;
-  readonly onPreferenceChange: (field: keyof DraftPreferences, value: string) => void;
+  readonly onPreferenceChange: (field: UncertaintyField, value: string) => void;
 }
 
-export const RulesetOptionsSection = memo(function RulesetOptionsSection({
+export const HistoricalUncertaintySection = memo(function HistoricalUncertaintySection({
   preferences,
   supportedValues,
   onPreferenceChange,
-}: RulesetOptionsSectionProps) {
+}: HistoricalUncertaintySectionProps) {
   return (
     <GlassCard glassVariant="liquid-refract">
       <CardHeader>
-        <CardTitle className="text-sm font-medium">Ruleset Options</CardTitle>
+        <CardTitle className="text-sm font-medium">Historical Uncertainty</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <FieldGroup className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {(Object.keys(FIELD_LABELS) as (keyof typeof FIELD_LABELS)[]).map((field) => {
+        <FieldGroup className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {UNCERTAINTY_FIELDS.map((field) => {
             const values = supportedValues[field] ?? [];
+            const currentValue = preferences[field];
             return (
               <Field key={field}>
-                <FieldLabel>{FIELD_LABELS[field]}</FieldLabel>
+                <FieldLabel htmlFor={field}>{UNCERTAINTY_FIELD_LABELS[field]}</FieldLabel>
                 <Select
-                  value={preferences[field]}
+                  value={currentValue}
                   onValueChange={(value) => onPreferenceChange(field, value)}
                   disabled={values.length <= 1}
+                  className="w-full"
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={field}>
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
                     {values.map((value) => (
                       <SelectItem key={value} value={value}>
-                        {value}
+                        {uncertaintyValueContent(field, value).label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {currentValue !== "" && (
+                  <FieldDescription>{uncertaintyValueContent(field, currentValue).blurb}</FieldDescription>
+                )}
               </Field>
             );
           })}
