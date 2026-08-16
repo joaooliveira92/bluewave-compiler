@@ -158,6 +158,37 @@ const MAP_PROTOTYPE_SCREEN: CampaignScreenDefinition = {
   route: MapPrototypeRoute,
 };
 
+// Debug-only tooling. Deliberately mirrors the `import.meta.env.DEV` guard used
+// for MAP_PROTOTYPE_SCREEN and the pure rule in debug-mode.ts (`isDebugMode`), so
+// the bundler folds the whole branch to nothing in a production build and the
+// debug screens (and their lazy chunks) never ship to players.
+const DEBUG_MODE = import.meta.env.DEV || import.meta.env.VITE_BLUEWAVE_DEBUG === "true";
+
+const SIMULATION_SCREEN: CampaignScreenDefinition = {
+  id: "simulation",
+  label: "Simulation & Turn",
+  icon: Activity,
+  group: "campaign",
+  searchable: true,
+  route: SimulationRoute,
+};
+const TACTICAL_SANDBOX_SCREEN: CampaignScreenDefinition = {
+  id: "tactical-sandbox",
+  label: "Tactical Sandbox",
+  icon: Crosshair,
+  group: "campaign",
+  searchable: true,
+  route: TacticalSandboxRoute,
+};
+const DEBUGGING_SCREEN: CampaignScreenDefinition = {
+  id: "debugging",
+  label: "Debugging & Telemetry",
+  icon: Terminal,
+  group: "campaign",
+  searchable: true,
+  route: DebuggingRoute,
+};
+
 export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "overview",
@@ -183,14 +214,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
     searchable: true,
     route: FleetRoute,
   },
-  {
-    id: "simulation",
-    label: "Simulation & Turn",
-    icon: Activity,
-    group: "campaign",
-    searchable: true,
-    route: SimulationRoute,
-  },
+  ...(DEBUG_MODE ? [SIMULATION_SCREEN] : []),
   {
     id: "research",
     label: "Research & Technology",
@@ -207,22 +231,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
     searchable: true,
     route: DiplomacyRoute,
   },
-  {
-    id: "tactical-sandbox",
-    label: "Tactical Sandbox",
-    icon: Crosshair,
-    group: "campaign",
-    searchable: true,
-    route: TacticalSandboxRoute,
-  },
-  {
-    id: "debugging",
-    label: "Debugging & Telemetry",
-    icon: Terminal,
-    group: "campaign",
-    searchable: true,
-    route: DebuggingRoute,
-  },
+  ...(DEBUG_MODE ? [TACTICAL_SANDBOX_SCREEN, DEBUGGING_SCREEN] : []),
   ...(import.meta.env.DEV ? [MAP_PROTOTYPE_SCREEN] : []),
   {
     id: "campaign-preferences",

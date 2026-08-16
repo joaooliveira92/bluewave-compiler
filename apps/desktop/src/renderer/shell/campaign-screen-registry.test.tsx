@@ -251,4 +251,15 @@ describe("campaign screen registry", () => {
       })),
     );
   });
+
+  // Debug-only screens are registered in a developer build (jsdom/vitest runs
+  // with import.meta.env.DEV true). Their exclusion from production is a
+  // compile-time fold verified by the production bundle (labels absent), and
+  // the enabling rule itself is covered by debug-mode.test.ts.
+  it.each(["simulation", "tactical-sandbox", "debugging"] as const)(
+    "registers the developer-only screen %s in a dev build",
+    (id) => {
+      expect(CAMPAIGN_SCREEN_REGISTRY.some((screen) => screen.id === id)).toBe(true);
+    },
+  );
 });
