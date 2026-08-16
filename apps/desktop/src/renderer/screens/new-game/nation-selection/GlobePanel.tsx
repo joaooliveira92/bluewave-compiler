@@ -7,8 +7,11 @@ import { InteractiveGlobe } from "./InteractiveGlobe.js";
 
 interface GlobePanelProps {
   focusedSlotId: PlayableSlotCountryId;
+  isDossierOpen: boolean;
   onNationClick: (countryId: string) => void;
+  onChangeNation: () => void;
   onConfirm: (countryId: PlayableSlotCountryId) => void;
+  onRecommendedSetup: (countryId: PlayableSlotCountryId) => void;
 }
 
 const TARGETING_BEZEL = (
@@ -22,8 +25,11 @@ const TARGETING_BEZEL = (
 
 export function GlobePanel({
   focusedSlotId,
+  isDossierOpen,
   onNationClick,
+  onChangeNation,
   onConfirm,
+  onRecommendedSetup,
 }: GlobePanelProps): JSX.Element {
   // Fades in over the same window CampaignLaunchGate's departing decorative
   // globe fades out, so the handoff reads as one continuous transition.
@@ -52,7 +58,13 @@ export function GlobePanel({
       </div>
 
       {/* Dossier remains pinned to this panel at every width */}
-      <DossierSlidePanel countryId={focusedSlotId} isOpen onConfirm={onConfirm} />
+      <DossierSlidePanel
+        countryId={focusedSlotId}
+        isOpen={isDossierOpen}
+        onChangeNation={onChangeNation}
+        onConfirm={onConfirm}
+        onRecommendedSetup={onRecommendedSetup}
+      />
     </section>
   );
 }

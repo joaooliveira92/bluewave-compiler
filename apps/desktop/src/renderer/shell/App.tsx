@@ -139,6 +139,7 @@ interface CampaignUnavailableViewProps {
   readonly onStartNewGame: () => void;
   readonly onCancelToFile: () => void;
   readonly onConfirmNation: (nationId: string) => void;
+  readonly onRecommendedSetup: (nationId: string) => void;
   readonly onBackToNation: () => void;
   readonly onPreferencesNext: (preferences: DraftPreferences, options: NewGameOptions) => void;
   readonly onBackToPreferences: () => void;
@@ -168,15 +169,13 @@ function CampaignUnavailableView(props: CampaignUnavailableViewProps) {
           error={props.newGameError}
           onCancel={props.onCancelToFile}
           onConfirm={props.onConfirmNation}
+          onRecommendedSetup={props.onRecommendedSetup}
           onPrimaryActionChange={props.onPrimaryActionChange}
         />
       );
     case "new-game-preferences":
       return (
-        <CampaignPreferencesView
-          onCancel={props.onBackToNation}
-          onNext={props.onPreferencesNext}
-        />
+        <CampaignPreferencesView onCancel={props.onBackToNation} onNext={props.onPreferencesNext} />
       );
     case "new-game-archetype":
       return props.draft === null ? (
@@ -421,6 +420,7 @@ function CampaignShellApplication({
         onStartNewGame={newGame.actions.start}
         onCancelToFile={newGame.actions.cancel}
         onConfirmNation={newGame.actions.confirmNation}
+        onRecommendedSetup={newGame.actions.applyRecommendedSetup}
         onBackToNation={newGame.actions.backToNation}
         onPreferencesNext={newGame.actions.acceptPreferences}
         onBackToPreferences={newGame.actions.backToPreferences}

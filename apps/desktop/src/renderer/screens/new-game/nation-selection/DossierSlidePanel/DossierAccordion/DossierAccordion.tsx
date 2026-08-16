@@ -1,12 +1,19 @@
 import { Anchor, Coins, Scroll } from "lucide-react";
-import { type CSSProperties, type KeyboardEvent, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { DossierAccordionItem } from "./DossierAccordionItem.js";
 import type { DossierSection, DossierSectionId } from "./types.js";
 
 interface DossierAccordionProps {
-  economy: string;
-  military: string;
-  diplomacy: string;
+  economy: ReactNode;
+  military: ReactNode;
+  diplomacy: ReactNode;
 }
 
 const COLLAPSED_TAB_WIDTH = "clamp(2.75rem, 5vw, 3.5rem)";

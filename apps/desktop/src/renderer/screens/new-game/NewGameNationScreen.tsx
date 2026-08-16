@@ -11,6 +11,7 @@ export interface NewGameNationScreenProps {
   readonly error: string | null;
   readonly onCancel: () => void;
   readonly onConfirm: (nationId: string) => void;
+  readonly onRecommendedSetup: (nationId: string) => void;
   readonly onPrimaryActionChange: SetPrimaryAction;
 }
 
@@ -25,6 +26,7 @@ export function NewGameNationScreen({
   error,
   onCancel,
   onConfirm,
+  onRecommendedSetup,
   onPrimaryActionChange,
 }: NewGameNationScreenProps) {
   const [focusedIndex, setFocusedIndex] = useState(0);
@@ -56,6 +58,14 @@ export function NewGameNationScreen({
     [onConfirm],
   );
 
+  const handleRecommendedSetup = useCallback(
+    (countryId: string) => {
+      const nationId = countryIdToNationId(countryId as PlayableSlotCountryId);
+      if (nationId !== null) onRecommendedSetup(nationId);
+    },
+    [onRecommendedSetup],
+  );
+
   return (
     <div className="relative h-full flex flex-col">
       <div className="min-h-0 flex-1">
@@ -63,6 +73,7 @@ export function NewGameNationScreen({
           slots={slots}
           onConfirm={handleConfirm}
           onCancel={onCancel}
+          onRecommendedSetup={handleRecommendedSetup}
           focusedIndex={focusedIndex}
           onFocusChange={setFocusedIndex}
           failure={error}

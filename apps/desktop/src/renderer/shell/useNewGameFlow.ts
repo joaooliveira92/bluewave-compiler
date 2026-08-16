@@ -6,6 +6,11 @@ import {
 import { useCallback, useMemo, useState } from "react";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { NewGameOptions } from "../../shared/new-game-contract.js";
+import {
+  ADMIRAL_PRESET_VALUES,
+  RECOMMENDED_FLEET_METHOD_ID,
+  type AdmiralPresetValues,
+} from "../screens/new-game/admiral-preset.js";
 import type { FleetMethodDraft } from "../screens/new-game/new-game-fleet-method-screen-state.js";
 import type { CampaignIdentityDraft } from "../screens/new-game/new-game-identity-screen-state.js";
 import { buildCampaignConfiguration } from "../screens/new-game/new-game-nation-screen-state.js";
@@ -19,6 +24,7 @@ export interface NewGameDraft {
   readonly archetype: ArchetypeSelection | null;
   readonly identity: CampaignIdentityDraft | null;
   readonly fleetMethod: FleetMethodDraft | null;
+  readonly recommendedPreset: AdmiralPresetValues | null;
 }
 
 type NewGameBridge = Pick<BluewaveDesktopBridge, "campaign">;
@@ -38,6 +44,7 @@ export interface NewGameFlow {
     readonly start: () => void;
     readonly cancel: () => void;
     readonly confirmNation: (nationId: string) => void;
+    readonly applyRecommendedSetup: (nationId: string) => void;
     readonly backToNation: () => void;
     readonly acceptPreferences: (preferences: DraftPreferences, options: NewGameOptions) => void;
     readonly backToPreferences: () => void;
@@ -46,6 +53,19 @@ export interface NewGameFlow {
     readonly acceptIdentity: (identity: CampaignIdentityDraft) => void;
     readonly backToIdentity: () => void;
     readonly launch: (fleetMethod: FleetMethodDraft) => Promise<void>;
+  };
+}
+
+/** Carries a `NewGameDraft`'s other fields forward while swapping in `nationId`. */
+function draftWithNation(current: NewGameDraft | null, nationId: string): NewGameDraft {
+  return {
+    nationId,
+    preferences: current?.preferences ?? null,
+    options: current?.options ?? null,
+    archetype: current?.archetype ?? null,
+    identity: current?.identity ?? null,
+    fleetMethod: current?.fleetMethod ?? null,
+    recommendedPreset: current?.recommendedPreset ?? null,
   };
 }
 
@@ -77,18 +97,25 @@ export function useNewGameFlow(
 
   const confirmNation = useCallback(
     (nationId: string) => {
-      setDraft((current) => ({
-        nationId,
-        preferences: current?.preferences ?? null,
-        options: current?.options ?? null,
-        archetype: current?.archetype ?? null,
-        identity: current?.identity ?? null,
-        fleetMethod: current?.fleetMethod ?? null,
-      }));
+      setDraft((current) => draftWithNation(current, nationId));
       navigation.selectScreen("new-game-preferences");
     },
     [navigation],
   );
+
+  /**
+   * Nation confirmation's "Recommended Setup" control (spec §1) — pre-fills
+   * the Admiral preset + default fleet method directly into the draft,
+   * without navigating away, so downstream screens (not yet built) can start
+   * from these values while staying fully editable.
+   */
+  const applyRecommendedSetup = useCallback((nationId: string) => {
+    setDraft((current) => ({
+      ...draftWithNation(current, nationId),
+      fleetMethod: { legacyFleetModeId: RECOMMENDED_FLEET_METHOD_ID },
+      recommendedPreset: ADMIRAL_PRESET_VALUES,
+    }));
+  }, []);
 
   const backToNation = useCallback(() => {
     navigation.selectScreen("new-game-nation");
@@ -96,9 +123,7 @@ export function useNewGameFlow(
 
   const acceptPreferences = useCallback(
     (preferences: DraftPreferences, options: NewGameOptions) => {
-      setDraft((current) =>
-        current === null ? null : { ...current, preferences, options },
-      );
+      setDraft((current) => (current === null ? null : { ...current, preferences, options }));
       navigation.selectScreen("new-game-archetype");
     },
     [navigation],
@@ -169,6 +194,7 @@ export function useNewGameFlow(
         start,
         cancel,
         confirmNation,
+        applyRecommendedSetup,
         backToNation,
         acceptPreferences,
         backToPreferences,
@@ -183,6 +209,7 @@ export function useNewGameFlow(
       acceptArchetype,
       acceptIdentity,
       acceptPreferences,
+      applyRecommendedSetup,
       backToArchetype,
       backToIdentity,
       backToNation,

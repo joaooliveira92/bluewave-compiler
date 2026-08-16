@@ -57,9 +57,7 @@ const preferenceArchetype: ArchetypeSelection = {
 };
 
 /** Drives the flow forward to (but not through) the fleet-method step. */
-function advanceToFleetMethod(
-  actions: ReturnType<typeof setup>["result"]["current"]["actions"],
-) {
+function advanceToFleetMethod(actions: ReturnType<typeof setup>["result"]["current"]["actions"]) {
   act(() => actions.confirmNation("nation_uk"));
   act(() => actions.acceptPreferences(preferences, options));
   act(() => actions.acceptArchetype(preferenceArchetype));
@@ -81,6 +79,7 @@ describe("useNewGameFlow", () => {
       archetype: null,
       identity: null,
       fleetMethod: null,
+      recommendedPreset: null,
     });
     expect(selectScreen).toHaveBeenLastCalledWith("new-game-preferences");
 
@@ -96,6 +95,30 @@ describe("useNewGameFlow", () => {
     act(() => result.current.actions.acceptIdentity(identity));
     expect(result.current.state.draft?.identity).toEqual(identity);
     expect(selectScreen).toHaveBeenLastCalledWith("new-game-fleet-method");
+  });
+
+  it("applies the recommended setup into the draft without navigating away", () => {
+    const { result, selectScreen } = setup();
+
+    act(() => result.current.actions.applyRecommendedSetup("nation_uk"));
+
+    expect(result.current.state.draft).toEqual({
+      nationId: "nation_uk",
+      preferences: null,
+      options: null,
+      archetype: null,
+      identity: null,
+      fleetMethod: { legacyFleetModeId: "generated" },
+      recommendedPreset: {
+        fleetSize: "standard",
+        researchSpeed: "standard",
+        technologyVariation: "some",
+        historicalBudget: "standard",
+        tacticalRealism: "standard",
+        difficulty: "normal",
+      },
+    });
+    expect(selectScreen).not.toHaveBeenCalled();
   });
 
   it("preserves the archetype and nation when navigating backward and forward", () => {

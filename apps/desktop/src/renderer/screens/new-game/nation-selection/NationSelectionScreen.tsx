@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 import { NATION_COORDINATES } from "@/content/nationCoordinates.js";
 import { playMechanicalAcoustic } from "@/shell/controller/mechanicalAcoustic.js";
@@ -28,6 +28,7 @@ export function NationSelectionScreen({
   slots,
   onConfirm,
   onCancel,
+  onRecommendedSetup,
   focusedIndex,
   onFocusChange,
   failure,
@@ -35,11 +36,13 @@ export function NationSelectionScreen({
   slots: readonly PlayableSlotCountryId[];
   onConfirm: (countryId: string) => void;
   onCancel: () => void;
+  onRecommendedSetup: (countryId: string) => void;
   focusedIndex: number;
   onFocusChange: (index: number) => void;
   failure: string | null;
 }): React.JSX.Element {
   const listboxId = useId();
+  const [isDossierOpen, setDossierOpen] = useState(true);
 
   const slotCount = slots.length;
   const normalizedFocusedIndex =
@@ -74,6 +77,7 @@ export function NationSelectionScreen({
   const handleSlotSelect = useCallback(
     (index: number) => {
       onFocusChange(index);
+      setDossierOpen(true);
       playMechanicalAcoustic("click");
     },
     [onFocusChange],
@@ -86,6 +90,10 @@ export function NationSelectionScreen({
     },
     [handleSlotSelect, slots],
   );
+
+  const handleChangeNation = useCallback(() => {
+    setDossierOpen(false);
+  }, []);
 
   const handleListboxKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
     switch (e.key) {
@@ -163,8 +171,11 @@ export function NationSelectionScreen({
         {/* ── Right Panel: Globe + Dossier ── */}
         <GlobePanel
           focusedSlotId={focusedSlotId}
+          isDossierOpen={isDossierOpen}
           onNationClick={handleNationClick}
+          onChangeNation={handleChangeNation}
           onConfirm={onConfirm}
+          onRecommendedSetup={onRecommendedSetup}
         />
 
         {/* ── Failure Notice: surfaces a rejected campaign start (e.g. an

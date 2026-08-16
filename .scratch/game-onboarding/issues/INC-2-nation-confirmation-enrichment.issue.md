@@ -18,19 +18,19 @@ to exist yet.
 
 **Blocked by:** INC-1
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Header shows "You have been appointed [Appointment Title]" / "[Nation
+- [x] Header shows "You have been appointed [Appointment Title]" / "[Nation
       Name]", no date/era shown
-- [ ] All 10 nations have their full field set (appointment title, doctrine,
+- [x] All 10 nations have their full field set (appointment title, doctrine,
       regions, budget category, shipbuilding capacity, research
       strengths/weaknesses, characteristics, rivals, difficulty 1–5) authored
       per the spec's table and rendered in the correct existing tabs
-- [ ] "Change Nation" collapses the panel back to grid focus
-- [ ] "Continue as [Nation]" advances the flow with the confirmed nation id
-- [ ] "Recommended Setup" sets the Admiral preset's six draft values and the
+- [x] "Change Nation" collapses the panel back to grid focus
+- [x] "Continue as [Nation]" advances the flow with the confirmed nation id
+- [x] "Recommended Setup" sets the Admiral preset's six draft values and the
       `generated` fleet-method id, verifiable even though downstream screens
       may still be stubs
-- [ ] "Compare Nations" is not present anywhere on this screen
-- [ ] Component/screen tests cover all 10 nations' content rendering and the
+- [x] "Compare Nations" is not present anywhere on this screen
+- [x] Component/screen tests cover all 10 nations' content rendering and the
       three button behaviors

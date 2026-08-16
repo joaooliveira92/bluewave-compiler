@@ -63,7 +63,9 @@ export function DossierAccordionItem({
               accent.border,
             )}
           >
-            <p className="whitespace-normal font-mono break-words text-[.85rem]">{section.text}</p>
+            <div className="whitespace-normal font-mono break-words text-[.85rem]">
+              {section.text}
+            </div>
           </section>
         </div>
       ) : (
