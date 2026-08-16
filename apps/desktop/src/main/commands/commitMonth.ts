@@ -1,8 +1,4 @@
-import type {
-  BattleInstance,
-  CampaignSnapshot,
-  CampaignState,
-} from "@bluewave/campaign";
+import type { BattleInstance, CampaignSnapshot, CampaignState } from "@bluewave/campaign";
 import {
   advanceMonth,
   canAdvance,
@@ -272,14 +268,10 @@ function collectBattleOutcomes(
     (b) =>
       b.phase === "resolved" &&
       b.result !== undefined &&
-      !preSnapshot.wars.battles.some(
-        (prev) => prev.id === b.id && prev.phase === "resolved",
-      ),
+      !preSnapshot.wars.battles.some((prev) => prev.id === b.id && prev.phase === "resolved"),
   );
 
-  return resolvedThisMonth.map((battle) =>
-    mapBattleOutcome(battle, preSnapshot, postSnapshot),
-  );
+  return resolvedThisMonth.map((battle) => mapBattleOutcome(battle, preSnapshot, postSnapshot));
 }
 
 /**
@@ -354,10 +346,7 @@ export function mapBattleOutcome(
         .filter((s) => !s.isUnderConstruction)
     : [];
   const totalHp = loserShips.reduce((sum, s) => sum + Number(s.hitPoints), 0);
-  const lossHp = loserShips.reduce(
-    (sum, s) => sum + Number(result.damageReport[s.id] ?? 0),
-    0,
-  );
+  const lossHp = loserShips.reduce((sum, s) => sum + Number(result.damageReport[s.id] ?? 0), 0);
   // INC-2 fallback: a genuinely unavailable loser nation / no fleet ships
   // cannot yield a real class — report 0 and why, never a fabricated +10.
   if (loserNation === undefined || loserShips.length === 0 || totalHp <= 0) {

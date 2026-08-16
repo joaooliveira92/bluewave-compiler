@@ -432,7 +432,7 @@ describe("commitMonth", () => {
       expect(scoreChanged).toBe(true);
     });
 
-    it("populates closingSnapshot.battleOutcomes accurately from the engine's BattleResolved ledgers (INC-2)", async () => {
+    it("populates closingSnapshot.battleOutcomes accurately from the engine's resolved battles (INC-2)", async () => {
       const saveDir = resolve(saveRoot, "save-war-outcomes");
       const preSnapshot = registerWarSession("session-war-outcomes", saveDir);
 
@@ -450,6 +450,13 @@ describe("commitMonth", () => {
       );
       // The war fixture co-locates two navies, so at least one battle resolves.
       expect(resolved.length).toBeGreaterThan(0);
+      // The INDEPENDENT oracle (engineAppliedWarScoreDelta) reads the whole-war
+      // pre→post delta, which only equals ONE battle's magnitude. So this
+      // assertion is valid only when the fixture resolves at most one battle per
+      // (attacker, defender) war pair — enforce that precondition rather than
+      // assume it (ADR-0028 §Consequences multi-battle cascade residual).
+      const resolvedKeys = resolved.map((b) => `${b.attackerId}|${b.defenderId}`);
+      expect(new Set(resolvedKeys).size).toBe(resolvedKeys.length);
 
       // One accurate flat BattleOutcome per resolved battle this month.
       expect(result.value.closingSnapshot.battleOutcomes).toHaveLength(resolved.length);
@@ -688,7 +695,13 @@ describe("mapBattleOutcome (pre-battle-snapshot war-score re-derivation, INC-2 f
   it("re-derives the engine's ±10 DECISIVE class off the PRE-battle snapshot (sunk ship + survivors at full HP)", () => {
     // PRE: the losing attacker (GBR) has g1(100 HP) + g2(100 HP) intact.
     const preNations = new Map<string, import("@bluewave/campaign").NationState>();
-    preNations.set("GBR", makeNation("GBR", "fleet-GBR", [{ id: "g1", hitPoints: 100 }, { id: "g2", hitPoints: 100 }]));
+    preNations.set(
+      "GBR",
+      makeNation("GBR", "fleet-GBR", [
+        { id: "g1", hitPoints: 100 },
+        { id: "g2", hitPoints: 100 },
+      ]),
+    );
     preNations.set("FRA", makeNation("FRA", "fleet-FRA", [{ id: "f1", hitPoints: 100 }]));
     const pre = makeSnapshot(preNations, 0, 0);
 
@@ -784,7 +797,11 @@ describe("mapBattleOutcome (pre-battle-snapshot war-score re-derivation, INC-2 f
         explanation: [],
       },
     };
-    const outcome = mapBattleOutcome(battle, makeSnapshot(new Map(), 0, 0), makeSnapshot(new Map(), 0, 0));
+    const outcome = mapBattleOutcome(
+      battle,
+      makeSnapshot(new Map(), 0, 0),
+      makeSnapshot(new Map(), 0, 0),
+    );
     expect(outcome.warScoreDelta).toBe(0);
   });
 });

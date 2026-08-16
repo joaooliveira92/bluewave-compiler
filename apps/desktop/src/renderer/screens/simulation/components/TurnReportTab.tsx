@@ -193,13 +193,12 @@ function BattleOutcomeRow({ battle }: { readonly battle: BattleOutcome }) {
 
       <div className="flex items-center justify-between">
         <span className="text-[10px] uppercase text-muted-foreground">War score delta</span>
-        <span
-          className={cn(
-            "font-semibold",
-            decided ? "text-success" : "text-muted-foreground",
-          )}
-        >
-          {decided ? `+${battle.warScoreDelta}` : "0 (non-decided)"}
+        <span className={cn("font-semibold", decided ? "text-success" : "text-muted-foreground")}>
+          {decided
+            ? battle.warScoreDelta === 0
+              ? "n/a (not re-derived)"
+              : `+${battle.warScoreDelta}`
+            : "0 (non-decided)"}
         </span>
       </div>
 

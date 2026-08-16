@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type {
-  BattleOutcome,
-  ClosingSnapshotSummary,
-} from "../src/simulation.js";
+import type { BattleOutcome, ClosingSnapshotSummary } from "../src/simulation.js";
 
 /**
  * Type/canary test for the web-facing flat `BattleOutcome` surface added to
