@@ -103,6 +103,44 @@ export const UNDERWATER_TUBE_MAX_SPEED_UM_S = 12_861_100 as const;
 export const ABOVE_WATER_FIXED_MAX_LAUNCH_SPEED_KNOTS = 30 as const;
 export const ABOVE_WATER_TRAINABLE_MAX_LAUNCH_SPEED_KNOTS = 35 as const;
 
+// DESIGN-40 §6: target contact confidence gate. The reused validateTargetOrder
+// fog gate (TACTICAL_FOG_OF_WAR_VIOLATION) runs first; a KNOWN contact below
+// this basis-point confidence fails with TORPEDO_TARGET_CONTACT_INSUFFICIENT.
+// (Gunnery precedent: SURFACE_FIRE_CONTROL_MINIMUM_BP = 2_000 in
+// gunnery/constants.ts — the torpedo gate is the higher §6-pinned 4_000 bp.)
+export const TORPEDO_TARGET_CONTACT_MINIMUM_BP = 4_000 as const;
+
+// DESIGN-40 §10 shipped minimum launch solution quality by launch kind. INC-3
+// computes the solution quality (§10 11-factor formula); INC-2 ships the
+// threshold table + the pure threshold check that takes an already-computed
+// integer solution-quality value (basis points [0, 10_000]) — the seam is
+// documented in eligibility.ts. The §24 friendly-in-danger-sector minimum
+// (7_500 bp or launch prohibited) is part of the INC-3 friendly-fire family.
+export const TORPEDO_LAUNCH_KINDS = [
+  "AUTOMATED",
+  "MANUAL_CAPTAIN",
+  "AREA_DENIAL",
+  "SPREAD",
+] as const;
+export type TorpedoLaunchKind = (typeof TORPEDO_LAUNCH_KINDS)[number];
+export const TORPEDO_SOLUTION_MINIMUM_BP: Record<TorpedoLaunchKind, number> = {
+  AUTOMATED: 5_000,
+  MANUAL_CAPTAIN: 4_000,
+  AREA_DENIAL: 3_000,
+  SPREAD: 3_000,
+};
+
+// DESIGN-40 §6 "sea state permits launch": DESIGN-40 does not pin a concrete
+// sea-state rule, so this is an authored versioned-ruleset constant on the B-5
+// weather integer scale (SEA_STATE_MIN 0 .. SEA_STATE_MAX 9,
+// packages/combat/src/weather/constants.ts) — decoupled from the B-5 module
+// (the eligibility gate takes a plain integer sea-state value). BALANCE TARGET:
+// surface-ship torpedo launch is unsafe in heavy seas; the shipped ceiling is
+// authored at 5 (rough sea) and recorded in the INC-2 report — never silently
+// tuned. SUBMARINE_INTERNAL tube launches (C-3) are not governed by this
+// surface-ship gate.
+export const TORPEDO_MAX_LAUNCH_SEA_STATE = 5 as const;
+
 // DESIGN-40 §23 shipped oxygen-torpedo effects (declared per oxygen model in
 // OxygenTorpedoState; mechanics resolve in INC-6). BALANCE TARGET: oxygen
 // wake-detection 7_500 vs near-invisible wake evidence (research §4.4) — the
@@ -150,6 +188,9 @@ export interface TorpedoContract {
   underwaterTubeMaxSpeedUmS: number;
   aboveWaterFixedMaxLaunchSpeedKnots: number;
   aboveWaterTrainableMaxLaunchSpeedKnots: number;
+  targetContactMinimumBp: number;
+  solutionMinimumBp: Record<TorpedoLaunchKind, number>;
+  maxLaunchSeaState: number;
   oxygenRangeMultiplierBp: number;
   oxygenSpeedMultiplierBp: number;
   oxygenWakeDetectionMultiplierBp: number;
@@ -177,6 +218,9 @@ export const SHIPPED_TORPEDO_CONTRACT: TorpedoContract = {
   underwaterTubeMaxSpeedUmS: UNDERWATER_TUBE_MAX_SPEED_UM_S,
   aboveWaterFixedMaxLaunchSpeedKnots: ABOVE_WATER_FIXED_MAX_LAUNCH_SPEED_KNOTS,
   aboveWaterTrainableMaxLaunchSpeedKnots: ABOVE_WATER_TRAINABLE_MAX_LAUNCH_SPEED_KNOTS,
+  targetContactMinimumBp: TORPEDO_TARGET_CONTACT_MINIMUM_BP,
+  solutionMinimumBp: TORPEDO_SOLUTION_MINIMUM_BP,
+  maxLaunchSeaState: TORPEDO_MAX_LAUNCH_SEA_STATE,
   oxygenRangeMultiplierBp: OXYGEN_RANGE_MULTIPLIER_BP,
   oxygenSpeedMultiplierBp: OXYGEN_SPEED_MULTIPLIER_BP,
   oxygenWakeDetectionMultiplierBp: OXYGEN_WAKE_DETECTION_MULTIPLIER_BP,
@@ -240,6 +284,17 @@ export function validateTorpedoContract(
     c.aboveWaterTrainableMaxLaunchSpeedKnots !== ABOVE_WATER_TRAINABLE_MAX_LAUNCH_SPEED_KNOTS
   )
     throwMismatch(c, "torpedo_v1 §8 above-water launch speed defaults");
+  if (c.targetContactMinimumBp !== TORPEDO_TARGET_CONTACT_MINIMUM_BP)
+    throwMismatch(c, "torpedo_v1 §6 target contact minimum");
+  if (!c.solutionMinimumBp) throwMismatch(c, "torpedo_v1 §10 solution minimums missing");
+  if (!arrayEquals(Object.keys(c.solutionMinimumBp).sort(), [...TORPEDO_LAUNCH_KINDS].sort()))
+    throwMismatch(c, "torpedo_v1 §10 solution-minimum launch-kind set");
+  for (const kind of TORPEDO_LAUNCH_KINDS) {
+    if (c.solutionMinimumBp[kind] !== TORPEDO_SOLUTION_MINIMUM_BP[kind])
+      throwMismatch(c, `torpedo_v1 §10 solution minimum for launch kind ${kind}`);
+  }
+  if (c.maxLaunchSeaState !== TORPEDO_MAX_LAUNCH_SEA_STATE)
+    throwMismatch(c, "torpedo_v1 §6 sea-state launch ceiling");
   if (
     c.oxygenRangeMultiplierBp !== OXYGEN_RANGE_MULTIPLIER_BP ||
     c.oxygenSpeedMultiplierBp !== OXYGEN_SPEED_MULTIPLIER_BP ||

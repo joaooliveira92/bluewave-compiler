@@ -113,8 +113,12 @@ export function validateTorpedoLauncherDefinition(d: TorpedoLauncherDefinition):
 
 // DESIGN-40 §8 resolution: the exact maximum launch speed (integer knots) for an
 // above-water launcher — a declared narrower value wins, else the shipped
-// fixed 30 kn / trainable 35 kn default. Returns null when §8 does not apply
-// (underwater/submarine mounts are governed by §7 / model-specific limits).
+// fixed 30 kn / trainable 35 kn default (DESIGN-40 §8: "The shipped default
+// is …" — DEFAULTS APPLY WHEN UNSPECIFIED; a null declared value on an
+// above-water mount is NOT missing metadata). Returns null when §8 does not
+// apply (underwater/submarine mounts are governed by §7 / model-specific
+// limits) — that null reaching the §8 gate fails closed with
+// TORPEDO_LAUNCH_SPEED_LIMIT_MISSING (never silently unlimited).
 export function resolvedAboveWaterMaxLaunchSpeedKnots(d: TorpedoLauncherDefinition): number | null {
   if (d.aboveWaterMaxLaunchSpeedKnots !== null) return d.aboveWaterMaxLaunchSpeedKnots;
   if (d.mountType === "ABOVE_WATER_FIXED") return ABOVE_WATER_FIXED_MAX_LAUNCH_SPEED_KNOTS;

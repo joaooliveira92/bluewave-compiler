@@ -6,3 +6,6 @@ export * from "./launcher.js";
 export * from "./state.js";
 export * from "./ammunition.js";
 export * from "./compatibility.js";
+export * from "./authority.js";
+export * from "./launch-speed.js";
+export * from "./eligibility.js";

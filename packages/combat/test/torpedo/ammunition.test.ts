@@ -282,6 +282,41 @@ describe("AC-3: reload completion — no creation, no substitution", () => {
   });
 });
 
+describe("AC-3 (NF-1): a missing reloadState fails closed — never a raw TypeError", () => {
+  // The construction boundary (withTorpedoLauncherStateHash -> state.ts F3)
+  // already rejects a null reloadState; these tests exercise the ammunition
+  // module's own guards on a DESERIALIZED/engine-mutated state that bypassed
+  // construction (the NF-1 scenario) — the spread preserves the authoritative
+  // fields while nulling reloadState.
+  it("reserveForReload rejects a null reloadState with TORPEDO_STATE_INVARIANT_FAILED", () => {
+    const state = baseLauncher();
+    const raw = { ...state, reloadState: null } as unknown as TorpedoLauncherState;
+    const err = expectCode(
+      () =>
+        reserveForReload(raw, {
+          tubeIndex: 2,
+          modelId: G7A,
+          compatible: true,
+          requiredReloadTimeMs: RELOAD_MS,
+        }),
+      TORPEDO_STATE_INVARIANT_FAILED,
+    );
+    expect(err.context.field).toBe("reloadState");
+    // atomic: nothing reserved, tube untouched
+    expect(raw.reserveAmmunition[G7A]).toBe(6);
+    expect(raw.loadedPerTube[2]).toBe(EMPTY_TUBE);
+  });
+
+  it("completeTorpedoReload rejects a missing reloadState with TORPEDO_STATE_INVARIANT_FAILED", () => {
+    const state = baseLauncher();
+    const raw = { ...state, reloadState: undefined } as unknown as TorpedoLauncherState;
+    const err = expectCode(() => completeTorpedoReload(raw), TORPEDO_STATE_INVARIANT_FAILED);
+    expect(err.context.field).toBe("reloadState");
+    // atomic: tube untouched
+    expect(raw.loadedPerTube).toEqual([G7A, G7A, EMPTY_TUBE, G7A]);
+  });
+});
+
 describe("AC-3: inventory conservation across consume/reload cycles", () => {
   it("never creates ammunition: every transition either conserves or strictly decreases the total", () => {
     let state = baseLauncher();

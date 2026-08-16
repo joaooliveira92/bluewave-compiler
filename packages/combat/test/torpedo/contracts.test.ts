@@ -14,9 +14,12 @@ import {
   resolvedAboveWaterMaxLaunchSpeedKnots,
   SHIPPED_TORPEDO_CONTRACT,
   SHIPPED_TORPEDO_MODELS,
+  TORPEDO_MAX_LAUNCH_SEA_STATE,
   TORPEDO_MOUNT_TYPES,
   TORPEDO_REASON_CODES,
+  TORPEDO_SOLUTION_MINIMUM_BP,
   TORPEDO_STATE_INVARIANT_FAILED,
+  TORPEDO_TARGET_CONTACT_MINIMUM_BP,
   torpedoModelsContentVersion,
   torpedoPolicyId,
   torpedoSpeedBpKnotsToUmS,
@@ -69,6 +72,30 @@ describe("AC-24: torpedo_v1 contract + validate guard (fail closed)", () => {
     ).toThrow(BluewaveError);
   });
 
+  it("fails closed on a tampered §6 target-contact minimum", () => {
+    expect(() =>
+      validateTorpedoContract({ ...SHIPPED_TORPEDO_CONTRACT, targetContactMinimumBp: 4_001 }),
+    ).toThrow(BluewaveError);
+  });
+
+  it("fails closed on a tampered §10 solution minimum (single kind or missing kinds)", () => {
+    expect(() =>
+      validateTorpedoContract({
+        ...SHIPPED_TORPEDO_CONTRACT,
+        solutionMinimumBp: { ...SHIPPED_TORPEDO_CONTRACT.solutionMinimumBp, AUTOMATED: 5_001 },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoContract({ ...SHIPPED_TORPEDO_CONTRACT, solutionMinimumBp: {} as never }),
+    ).toThrow(BluewaveError);
+  });
+
+  it("fails closed on a tampered §6 sea-state launch ceiling", () => {
+    expect(() =>
+      validateTorpedoContract({ ...SHIPPED_TORPEDO_CONTRACT, maxLaunchSeaState: 6 }),
+    ).toThrow(BluewaveError);
+  });
+
   it("fails closed on a tampered §23 oxygen constant", () => {
     expect(() =>
       validateTorpedoContract({ ...SHIPPED_TORPEDO_CONTRACT, oxygenRangeMultiplierBp: 9_999 }),
@@ -107,6 +134,12 @@ describe("AC-24: exact shipped constant surface", () => {
   it("ships the exact §8 above-water defaults (fixed 30 kn / trainable 35 kn)", () => {
     expect(ABOVE_WATER_FIXED_MAX_LAUNCH_SPEED_KNOTS).toBe(30);
     expect(ABOVE_WATER_TRAINABLE_MAX_LAUNCH_SPEED_KNOTS).toBe(35);
+  });
+
+  it("pins the §6 contact minimum, §10 solution minimums, and §6 sea-state ceiling in the contract", () => {
+    expect(SHIPPED_TORPEDO_CONTRACT.targetContactMinimumBp).toBe(TORPEDO_TARGET_CONTACT_MINIMUM_BP);
+    expect(SHIPPED_TORPEDO_CONTRACT.solutionMinimumBp).toEqual(TORPEDO_SOLUTION_MINIMUM_BP);
+    expect(SHIPPED_TORPEDO_CONTRACT.maxLaunchSeaState).toBe(TORPEDO_MAX_LAUNCH_SEA_STATE);
   });
 
   it("resolvedAboveWaterMaxLaunchSpeedKnots applies defaults and a narrower declared value", () => {
@@ -169,8 +202,8 @@ describe("AC-24: exact shipped constant surface", () => {
   });
 });
 
-describe("AC-21 seeds: INC-1 reason-code catalog shape", () => {
-  it("ships exactly the five INC-1 §29 codes — nothing more, nothing less", () => {
+describe("AC-21 seeds: INC-1 + INC-2 reason-code catalog shape", () => {
+  it("ships exactly the INC-1 + INC-2 §29 codes + the deferred marker — nothing more, nothing less", () => {
     const shipped = Object.values(TORPEDO_REASON_CODES).sort();
     expect(shipped).toEqual(
       [
@@ -179,6 +212,14 @@ describe("AC-21 seeds: INC-1 reason-code catalog shape", () => {
         "TORPEDO_MODEL_INCOMPATIBLE",
         "TORPEDO_AMMUNITION_UNAVAILABLE",
         "TORPEDO_STATE_INVARIANT_FAILED",
+        "TORPEDO_MANUAL_LAUNCH_MODE_PROHIBITED",
+        "TORPEDO_LAUNCH_AUTHORITY_DENIED",
+        "TORPEDO_TARGET_CONTACT_INSUFFICIENT",
+        "TORPEDO_FIRE_SOLUTION_INSUFFICIENT",
+        "TORPEDO_LAUNCH_ARC_INVALID",
+        "TORPEDO_LAUNCH_SPEED_LIMIT_MISSING",
+        "UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED",
+        "TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED",
       ].sort(),
     );
   });
@@ -200,9 +241,10 @@ describe("AC-21 seeds: INC-1 reason-code catalog shape", () => {
     }
   });
 
-  it("does NOT ship §29 codes owned by later increments (INC-2+ own the rest)", () => {
+  it("ships the INC-2 launch-legality codes and does NOT ship §29 codes owned by later increments", () => {
     const shipped: ReadonlySet<string> = new Set(Object.values(TORPEDO_REASON_CODES));
-    const laterIncrementCodes = [
+    // the INC-2 codes (shipped by this increment)
+    for (const code of [
       "TORPEDO_MANUAL_LAUNCH_MODE_PROHIBITED",
       "TORPEDO_LAUNCH_AUTHORITY_DENIED",
       "TORPEDO_TARGET_CONTACT_INSUFFICIENT",
@@ -210,6 +252,12 @@ describe("AC-21 seeds: INC-1 reason-code catalog shape", () => {
       "TORPEDO_LAUNCH_ARC_INVALID",
       "TORPEDO_LAUNCH_SPEED_LIMIT_MISSING",
       "UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED",
+      "TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED",
+    ]) {
+      expect(shipped.has(code)).toBe(true);
+    }
+    // the codes owned by INC-3+ must NOT be shipped yet
+    const laterIncrementCodes = [
       "TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED",
       "TORPEDO_LAUNCH_FAILURE",
       "TORPEDO_DUD",
@@ -219,7 +267,6 @@ describe("AC-21 seeds: INC-1 reason-code catalog shape", () => {
       "TORPEDO_SYSTEM_SHOCK_DAMAGE_CREATED",
       "UNDERWATER_TUBE_SEVERE_FLOODING",
       "TORPEDO_CHAIN_REACTION",
-      "TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED",
       "TORPEDO_FIRE_SOLUTION_FACTOR_MISSING",
     ];
     for (const code of laterIncrementCodes) {

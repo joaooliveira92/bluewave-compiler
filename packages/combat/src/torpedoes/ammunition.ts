@@ -151,6 +151,10 @@ export function reserveForReload(
       state.loadedPerTube[tubeIndex],
       "reload into a loaded tube would exceed tube capacity (over-capacity)",
     );
+  // NF-1: a missing reloadState must fail closed — never dereference .status on
+  // null/undefined (same guard style as state.ts F3; a raw TypeError would leak).
+  if (typeof state.reloadState !== "object" || state.reloadState === null)
+    invariant(state, "reloadState", state.reloadState, "reloadState must be a record");
   if (state.reloadState.status !== "NO_RELOAD_IN_PROGRESS")
     invariant(
       state,
@@ -200,6 +204,10 @@ export function reserveForReload(
 // substitution) and the reload state resets. Not-yet-complete or absent reloads
 // fail with TORPEDO_STATE_INVARIANT_FAILED.
 export function completeTorpedoReload(state: TorpedoLauncherState): TorpedoLauncherState {
+  // NF-1: a missing reloadState must fail closed — never dereference .status on
+  // null/undefined (same guard style as state.ts F3).
+  if (typeof state.reloadState !== "object" || state.reloadState === null)
+    invariant(state, "reloadState", state.reloadState, "reloadState must be a record");
   if (state.reloadState.status !== "RELOAD_IN_PROGRESS")
     invariant(state, "reloadState", state.reloadState, "no reload is in progress to complete");
   const r = state.reloadState;

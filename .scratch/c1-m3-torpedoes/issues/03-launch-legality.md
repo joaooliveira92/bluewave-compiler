@@ -30,8 +30,9 @@ limits), plus the `torpedo_launch_authority_v1` policy:
 - **§7:** `currentSpeedMicrometresPerSecond <= 12_861_100` (== 25 kn legal, > 25 kn
   illegal) for `UNDERWATER_FIXED`/`UNDERWATER_TRAINABLE`; checked at command
   validation AND at the exact firing substep; post-issuance acceleration →
-  `UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED`, torpedo consumed, command completed with
-  a failed-launch outcome. `SUBMARINE_INTERNAL` uses model-specific limits (C-3).
+  `UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED`, no torpedo consumed, command completed
+  with a failed-launch outcome (DESIGN-40 §7 governs). `SUBMARINE_INTERNAL` uses
+  model-specific limits (C-3).
 - **§8:** above-water defaults — fixed tube `30` kn, trainable mount `35` kn —
   exact integers; a launcher definition MAY supply a narrower value; missing
   metadata → `TORPEDO_LAUNCH_SPEED_LIMIT_MISSING`.
