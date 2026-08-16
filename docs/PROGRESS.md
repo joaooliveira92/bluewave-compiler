@@ -11,7 +11,7 @@
 | M1 Strategic Campaign Kernel | B9–B10  | Scope briefs ready                      | B9/B10a/B10b/B10c/B10d done          | 410 passing                    | **M1 COMPLETED (A-5 gate, 2026-08-12)** — `docs/acceptance/m1-capability-registry.md` |
 | M2 Surface Tactical Core     | —       | Design docs exist (DESIGN-34–42)        | B-1..B-6 IMPL DONE (2026-08-15)      | 900 combat tests pass          | **M2 COMPLETED (B-6 gate, 2026-08-15)** — see M2 section below |
 | Desktop & CLI surfaces       | —       | —                                       | MVP + 3 screens + CLI debug DONE     | desktop 353, campaign-engine 49 | Surfaces PASS (2026-08-15); debug-mode gating (ADR-0029); E2E suite in progress |
-| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | C-1 IMPL INC-1..INC-4 DONE (2026-08-16); C-2 scoping DONE | 289 torpedo tests pass | C-1 INC-5 (hit + detonation) is the current frontier; C-2-IMPL (mines) queued after |
+| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | C-1 IMPL INC-1..INC-5 DONE (2026-08-16); C-2 scoping DONE | 350 torpedo tests pass | C-1 INC-6 (TorpedoDamagePackage) is the current frontier; C-2-IMPL (mines) queued after |
 | M4 Aviation                  | —       | Design docs exist (DESIGN-43–45)        | Not started                          | —                              | Future                   |
 | M5 Electronics & Missile Era | —       | Design docs exist (DESIGN-46–48)        | Not started                          | —                              | Future                   |
 
@@ -516,8 +516,8 @@ Depends on accepted M1 + M2 (DESIGN-55 §4) — both COMPLETED. **C-1 scoping is
 DONE (2026-08-16, committed `dddb11d`)** — torpedo fire-resolution vertical
 slice of DESIGN-40 (map + decision tickets 01–06 resolved, spec AC-1..25 /
 INC-1..8, brief `.ai/briefs/c1-m3-torpedoes.md`, research
-`docs/research/c1-m3-torpedoes.md`). **C-1 IMPL INC-1..INC-4 DONE
-(2026-08-16); INC-5 (hit + detonation, AC-13 p2 / AC-14) is the current
+`docs/research/c1-m3-torpedoes.md`). **C-1 IMPL INC-1..INC-5 DONE
+(2026-08-16); INC-6 (TorpedoDamagePackage, AC-15..AC-18) is the current
 frontier.** See `.ai/SPRINT-PLAN.md` Track C for the full sprint order.
 
 | Area                                  | Design coverage |
