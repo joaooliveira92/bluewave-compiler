@@ -295,8 +295,8 @@ describe("AC-24: exact shipped constant surface", () => {
   });
 });
 
-describe("AC-21 seeds: INC-1 + INC-2 + INC-3 reason-code catalog shape", () => {
-  it("ships exactly the INC-1 + INC-2 + INC-3 §29 codes — nothing more, nothing less (the INC-2 DEFERRED marker is retired)", () => {
+describe("AC-21 seeds: INC-1 + INC-2 + INC-3 + INC-4 reason-code catalog shape", () => {
+  it("ships exactly the INC-1 + INC-2 + INC-3 + INC-4 §29 codes — nothing more, nothing less (the INC-2 DEFERRED marker is retired)", () => {
     const shipped = Object.values(TORPEDO_REASON_CODES).sort();
     expect(shipped).toEqual(
       [
@@ -314,6 +314,8 @@ describe("AC-21 seeds: INC-1 + INC-2 + INC-3 reason-code catalog shape", () => {
         "UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED",
         "TORPEDO_FIRE_SOLUTION_FACTOR_MISSING",
         "TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED",
+        "TORPEDO_LAUNCH_FAILURE",
+        "TORPEDO_STUCK_IN_TUBE",
       ].sort(),
     );
     // the retired marker is gone from the catalog and no longer a shipped code
@@ -339,7 +341,7 @@ describe("AC-21 seeds: INC-1 + INC-2 + INC-3 reason-code catalog shape", () => {
     }
   });
 
-  it("ships the INC-2 + INC-3 in-slice codes and does NOT ship §29 codes owned by later increments", () => {
+  it("ships the INC-2 + INC-3 + INC-4 in-slice codes and does NOT ship §29 codes owned by later increments", () => {
     const shipped: ReadonlySet<string> = new Set(Object.values(TORPEDO_REASON_CODES));
     // the INC-2 launch-legality codes + the INC-3 fire-solution/friendly-fire codes
     for (const code of [
@@ -357,9 +359,13 @@ describe("AC-21 seeds: INC-1 + INC-2 + INC-3 reason-code catalog shape", () => {
     }
     // the retired INC-2 marker must NOT be shipped (its §24 family code now is)
     expect(shipped.has("TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED")).toBe(false);
-    // the codes owned by INC-4+ must NOT be shipped yet
+    // the INC-4 §12 launch-failure codes ARE shipped (INC-4 resolved them)
+    for (const code of ["TORPEDO_LAUNCH_FAILURE", "TORPEDO_STUCK_IN_TUBE"]) {
+      expect(shipped.has(code)).toBe(true);
+    }
+    // the codes owned by INC-5+ (hit/detonation, damage package, tube hazard,
+    // chain reaction) must NOT be shipped yet
     const laterIncrementCodes = [
-      "TORPEDO_LAUNCH_FAILURE",
       "TORPEDO_DUD",
       "TORPEDO_HIT_RESOLVED",
       "TORPEDO_PROGRESSIVE_FLOODING_CREATED",

@@ -390,10 +390,16 @@ export function resolveTubeLaunches(o: {
   }
 
   // Rebuild the launcher state: the reservation consumed every selected tube;
-  // restore the non-stuck-failed tubes (their torpedoes were "not consumed").
+  // restore BOTH the non-stuck-failed tubes (their torpedoes were "not
+  // consumed") AND the skipped tubes — a tube the abort stops before it fires
+  // never expended its atomically-reserved torpedo, so its load is restored
+  // too. Success and stuck-in-tube keep the tube consumed.
   const loadedPerTube = [...o.reservation.state.loadedPerTube];
   for (const [tubeId, modelId] of restoredTubes) {
     loadedPerTube[tubeId] = modelId;
+  }
+  for (const tubeId of skippedTubeIds) {
+    loadedPerTube[tubeId] = accountByTube.get(tubeId)!;
   }
   const state = withTorpedoLauncherStateHash({
     ...o.reservation.state,

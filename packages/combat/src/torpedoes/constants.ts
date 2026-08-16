@@ -30,10 +30,12 @@ export const TORPEDO_KNOTS_TO_UM_S = 514_444 as const;
 // research note (docs/research/c1-m3-torpedoes.md §4.5) authors reliability on
 // a per-100_000 scale (96_000 = 96.0%), finer-grained than 10_000 bp; the model
 // constant set keeps those integers verbatim with this explicit scale.
-// NOTE (INC-1 record — F8): DESIGN-40 §12 launch-failure roll normalizes on a
-// 100-bp unit scale (100_000 / 1_000 = 100 bp per percent). INC-4 (launch
-// legality) MUST normalize reliabilityBp -> the §12 100-bp roll scale
-// explicitly; the two scales are intentionally not conflated here.
+// NOTE (INC-1 record — F8): DESIGN-40 §12 launch-failure roll normalizes the
+// per-model reliability to the standard 10_000 bp roll scale with the explicit
+// integer division floor(reliabilityBp / 10) — 100_000 / 10 = 10_000 bp scale
+// (1% = 100 bp). INC-4 performs that normalization at the use site (track.ts
+// createTorpedoTrack); this constant ships the 100_000-scale value verbatim and
+// the two scales are intentionally not conflated here.
 export const TORPEDO_RELIABILITY_SCALE = 100_000 as const;
 
 // DESIGN-40 §2 closed mount-type enum — exactly these five values.

@@ -29,10 +29,20 @@
 //     the track is still running; the transition is one-way (a terminal track
 //     cannot be re-opened or re-terminalized).
 //
+// §13 guidance invariant: while the torpedo runs, its ordered course — the
+// guidanceState.orderedGyroAngleMdeg carried on the run — MUST equal the launch
+// heading it projects along (launchHeadingMdeg; a gyro-guided torpedo's ordered
+// course is its launch heading). The run projects along launchHeadingMdeg only,
+// so divergent fields would make the track internally inconsistent (an INC-5
+// hit-resolution seam). assertTorpedoTrackSurface fails closed
+// (TORPEDO_STATE_INVARIANT_FAILED) if the two ever diverge; the duplicate field
+// can never drift from the projection source.
+//
 // All arithmetic is integer fixed-point; no floating point, I/O, clock, or
 // ambient randomness.
 import { BluewaveError } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
+import { DIRECTION_FIXED } from "../movement/constants.js";
 import { directionBp } from "../movement/kinematics.js";
 import {
   NO_TARGET_CONTACT,
@@ -199,6 +209,16 @@ export function assertTorpedoTrackSurface(t: TorpedoTrack): void {
     invariant(t, "launchHeadingMdeg", t.launchHeadingMdeg, "launch heading must be an integer milli-degrees");
   if (!isInt(t.orderedGyroAngleMdeg))
     invariant(t, "orderedGyroAngleMdeg", t.orderedGyroAngleMdeg, "gyro angle must be integer milli-degrees");
+  // §13 guidance invariant: while the torpedo runs its ordered gyro angle must
+  // equal the launch heading (the run projects along launchHeadingMdeg only) —
+  // fail closed rather than carry an internally inconsistent track.
+  if (t.orderedGyroAngleMdeg !== t.launchHeadingMdeg)
+    invariant(
+      t,
+      "orderedGyroAngleMdeg",
+      t.orderedGyroAngleMdeg,
+      "a gyro-guided torpedo's ordered course must equal its launch heading while running",
+    );
   if (!isInt(t.speedKnotsBp) || t.speedKnotsBp <= 0)
     invariant(t, "speedKnotsBp", t.speedKnotsBp, "speed must be a positive integer basis-point knots");
   if (!isInt(t.maxRunDistanceM) || t.maxRunDistanceM <= 0)
@@ -354,7 +374,8 @@ export function verifyTorpedoTrackHash(t: TorpedoTrack): boolean {
 
 // Project an integer µm displacement along an integer milli-degree heading:
 // fold to the nearest-lower integer degree and reuse the movement module's
-// authored per-degree direction table (single source of truth). Explicit FLOOR
+// authored per-degree direction table (single source of truth; the cos/sin
+// components are on the module's DIRECTION_FIXED 10_000 scale). Explicit FLOOR
 // rounding on both components (the torpedo module's arithmetic convention).
 export function projectAlongHeading(
   origin: Position,
@@ -365,8 +386,8 @@ export function projectAlongHeading(
     invariantField("distanceUm", distanceUm, "displacement must be a non-negative integer µm");
   const degree = Math.floor(foldMdeg(headingMdeg) / TORPEDO_TRACK_MDEG_PER_DEGREE);
   const { cosBp, sinBp } = directionBp(degree);
-  const dX = Math.floor((distanceUm * cosBp) / 10_000);
-  const dY = Math.floor((distanceUm * sinBp) / 10_000);
+  const dX = Math.floor((distanceUm * cosBp) / DIRECTION_FIXED);
+  const dY = Math.floor((distanceUm * sinBp) / DIRECTION_FIXED);
   return [origin[0] + dX, origin[1] + dY];
 }
 
