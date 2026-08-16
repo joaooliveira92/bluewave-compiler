@@ -3,13 +3,39 @@ import { Button } from "../../components/ui/button.js";
 import { Field, FieldGroup, FieldLabel } from "../../components/ui/field.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
 import { Input } from "../../components/ui/input.js";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import {
   type CampaignIdentityDraft,
+  type MeasurementSystem,
+  type NamingConvention,
+  type ShipNameReuse,
   isCampaignIdentityValid,
   updateCampaignIdentity,
 } from "./new-game-identity-screen-state.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
+
+const NAMING_CONVENTION_OPTIONS: ReadonlyArray<{ value: NamingConvention; label: string }> = [
+  { value: "historical", label: "Historical" },
+  { value: "generated", label: "Generated" },
+  { value: "custom", label: "Custom" },
+];
+
+const SHIP_NAME_REUSE_OPTIONS: ReadonlyArray<{ value: ShipNameReuse; label: string }> = [
+  { value: "disabled", label: "Disabled" },
+  { value: "allowed", label: "Allowed" },
+];
+
+const MEASUREMENT_SYSTEM_OPTIONS: ReadonlyArray<{ value: MeasurementSystem; label: string }> = [
+  { value: "imperial", label: "Imperial" },
+  { value: "metric", label: "Metric" },
+];
 
 export interface NewGameIdentityScreenProps {
   readonly initialIdentity: CampaignIdentityDraft;
@@ -18,12 +44,6 @@ export interface NewGameIdentityScreenProps {
   readonly onPrimaryActionChange: SetPrimaryAction;
 }
 
-/**
- * Minimal pass-through stub (INC-1): only the two required fields — the
- * naming-convention/ship-name-reuse/measurement-system enums already carry
- * spec-correct defaults and aren't exposed here. INC-4 builds the real
- * screen (enum pickers, full layout).
- */
 export function NewGameIdentityScreen({
   initialIdentity,
   onBack,
@@ -88,6 +108,82 @@ export function NewGameIdentityScreen({
                 )
               }
             />
+          </Field>
+        </FieldGroup>
+      </GlassCard>
+
+      <GlassCard glassVariant="liquid-refract">
+        <FieldGroup className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-3">
+          <Field>
+            <FieldLabel htmlFor="naming-convention">Naming convention</FieldLabel>
+            <Select
+              value={identity.namingConvention}
+              onValueChange={(value) =>
+                setIdentity((current) =>
+                  updateCampaignIdentity(current, "namingConvention", value as NamingConvention),
+                )
+              }
+              className="w-full"
+            >
+              <SelectTrigger id="naming-convention">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                {NAMING_CONVENTION_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="ship-name-reuse">Ship name reuse</FieldLabel>
+            <Select
+              value={identity.shipNameReuse}
+              onValueChange={(value) =>
+                setIdentity((current) =>
+                  updateCampaignIdentity(current, "shipNameReuse", value as ShipNameReuse),
+                )
+              }
+              className="w-full"
+            >
+              <SelectTrigger id="ship-name-reuse">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                {SHIP_NAME_REUSE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="measurement-system">Measurement system</FieldLabel>
+            <Select
+              value={identity.measurementSystem}
+              onValueChange={(value) =>
+                setIdentity((current) =>
+                  updateCampaignIdentity(current, "measurementSystem", value as MeasurementSystem),
+                )
+              }
+              className="w-full"
+            >
+              <SelectTrigger id="measurement-system">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                {MEASUREMENT_SYSTEM_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
         </FieldGroup>
       </GlassCard>
