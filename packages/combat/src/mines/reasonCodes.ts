@@ -7,10 +7,12 @@
 // continuation (strike resolution). INC-1
 // ships the module plus INVALID_MINE_TYPE_DEFINITION, the one code it exercises.
 // INC-2 ships the sources/laying/pressure codes it
-// exercises. The remaining in-slice codes are owned by INC-3..INC-7 and
-// recorded below, never shipped here. The full partition (in-slice / deferred
-// / reused combat catalog, disjointness) is verified by INC-8's set-equality
-// test.
+// exercises. INC-3 ships the sweeping
+// eligibility/base-value/dual-equipment/resistance codes (MINESWEEPING_SHIP_INELIGIBLE,
+// DUAL_EQUIPMENT_MODE_MISSING, MINE_SWEEP_RESISTANCE_MISSING) that its §6/§7/§8/§9
+// boundaries exercise. The remaining in-slice codes are owned by INC-4..INC-7 and
+// recorded below, never shipped here. The full partition (in-slice / deferred /
+// reused combat catalog, disjointness) is verified by INC-8's set-equality test.
 
 // ---- In-slice codes (INC-1) ----
 export const INVALID_MINE_TYPE_DEFINITION = "INVALID_MINE_TYPE_DEFINITION" as const;
@@ -24,20 +26,36 @@ export const MINE_LAYING_SOURCE_INELIGIBLE = "MINE_LAYING_SOURCE_INELIGIBLE" as 
 // §4: inventory consumption exceeding the source's exact on-hand count.
 export const MINE_INVENTORY_INSUFFICIENT = "MINE_INVENTORY_INSUFFICIENT" as const;
 
-// ---- Collected catalog (INC-1..INC-2 shipped set; grows through INC-7,
+// ---- In-slice codes (INC-3: sweeping eligibility/values, §6/§7/§8/§9) ----
+// §6: a sweeping ship failing any §6 predicate, or a §7 base-value lookup with
+// no shipped equipment definition. Raised by the CALLER of
+// minesweepingShipEligible (the eligibility verdict itself returns a reason
+// string, never this code, keeping the predicate never-throwing); the
+// fail-closed §7/§9 value lookups throw it directly.
+export const MINESWEEPING_SHIP_INELIGIBLE = "MINESWEEPING_SHIP_INELIGIBLE" as const;
+// §8: a dual-ASW/mine-equipment configuration that is missing or contradicts
+// the shipped dual_asw_mine_equipment_v1 modes (e.g. single-purpose equipment
+// claiming a mode, or an unknown mode) — fail closed, never a silent default.
+export const DUAL_EQUIPMENT_MODE_MISSING = "DUAL_EQUIPMENT_MODE_MISSING" as const;
+// §9: mine-type resistance metadata is required but missing (scenario-special
+// types are definition-required; no definition is shipped this sprint).
+export const MINE_SWEEP_RESISTANCE_MISSING = "MINE_SWEEP_RESISTANCE_MISSING" as const;
+
+// ---- Collected catalog (INC-1..INC-3 shipped set; grows through INC-7,
 // set-equality checked in INC-8) ----
 export const MINE_REASON_CODES = {
   INVALID_MINE_TYPE_DEFINITION,
   INVALID_MINE_PRESSURE_STATE,
   MINE_LAYING_SOURCE_INELIGIBLE,
   MINE_INVENTORY_INSUFFICIENT,
+  MINESWEEPING_SHIP_INELIGIBLE,
+  DUAL_EQUIPMENT_MODE_MISSING,
+  MINE_SWEEP_RESISTANCE_MISSING,
 } as const;
 
 export type MineReasonCode = (typeof MINE_REASON_CODES)[keyof typeof MINE_REASON_CODES];
 
 // ---- Recorded §30 in-slice codes owned by later increments (never shipped here) ----
-// INC-3 (sweeping eligibility/values): MINESWEEPING_SHIP_INELIGIBLE,
-//   DUAL_EQUIPMENT_MODE_MISSING, MINE_SWEEP_RESISTANCE_MISSING.
 // INC-4 (sweeping aggregation): MINE_PRESSURE_REDUCED.
 // INC-5 (standoff/route risk): MINE_ROUTE_RISK_CREATED (value-only per ticket
 //   01), MINE_DEFENSIVE_STANDOFF_ACTIVE (value-only).
@@ -57,5 +75,5 @@ export type MineReasonCode = (typeof MINE_REASON_CODES)[keyof typeof MINE_REASON
 // TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED precedent).
 
 // ---- Reused existing combat-catalog codes (no new record needed) ----
-// None referenced by this increment; INC-2+ may reuse existing damage/tactical
+// None referenced by this increment; INC-4+ may reuse existing damage/tactical
 // catalog codes per their own scoping.

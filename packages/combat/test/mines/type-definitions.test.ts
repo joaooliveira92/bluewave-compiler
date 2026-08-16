@@ -187,11 +187,16 @@ describe("AC-2: missing or invalid fields fail with INVALID_MINE_TYPE_DEFINITION
   });
 
   it("rejects empty or unknown eligibleLayingSourceKinds", () => {
-    expectInvalid(() => validDefinition({ eligibleLayingSourceKinds: [] }), "eligibleLayingSourceKinds");
+    expectInvalid(
+      () => validDefinition({ eligibleLayingSourceKinds: [] }),
+      "eligibleLayingSourceKinds",
+    );
     expectInvalid(
       () =>
         validDefinition({
-          eligibleLayingSourceKinds: ["UNKNOWN_SOURCE"] as unknown as Partial<MineTypeDefinition>["eligibleLayingSourceKinds"],
+          eligibleLayingSourceKinds: [
+            "UNKNOWN_SOURCE",
+          ] as unknown as Partial<MineTypeDefinition>["eligibleLayingSourceKinds"],
         }),
       "eligibleLayingSourceKinds",
     );
@@ -227,7 +232,9 @@ describe("AC-2: missing or invalid fields fail with INVALID_MINE_TYPE_DEFINITION
     expectInvalid(
       () =>
         validDefinition({
-          targetEligibility: ["AIRCRAFT"] as unknown as Partial<MineTypeDefinition>["targetEligibility"],
+          targetEligibility: [
+            "AIRCRAFT",
+          ] as unknown as Partial<MineTypeDefinition>["targetEligibility"],
         }),
       "targetEligibility",
     );
@@ -269,8 +276,14 @@ describe("AC-2: missing or invalid fields fail with INVALID_MINE_TYPE_DEFINITION
 
   it("rejects a mismatched friendly-fire/battle-generation/report-signature policy id", () => {
     expectInvalid(() => validDefinition({ friendlyFirePolicyId: "x" }), "friendlyFirePolicyId");
-    expectInvalid(() => validDefinition({ battleGenerationPolicyId: "x" }), "battleGenerationPolicyId");
-    expectInvalid(() => validDefinition({ reportSignaturePolicyId: "x" }), "reportSignaturePolicyId");
+    expectInvalid(
+      () => validDefinition({ battleGenerationPolicyId: "x" }),
+      "battleGenerationPolicyId",
+    );
+    expectInvalid(
+      () => validDefinition({ reportSignaturePolicyId: "x" }),
+      "reportSignaturePolicyId",
+    );
   });
 
   it("rejects a missing contentVersion and a missing contentHash", () => {

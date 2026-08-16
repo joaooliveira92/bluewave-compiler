@@ -37,7 +37,9 @@ export const mineTypeDefinitionsContentVersion = "mine_type_definitions_v1" as c
 // shipped base weights. Strike resolution itself is deferred (ticket 03); this
 // is a pure data shape.
 export interface MineStrikeProfile {
-  baseSeverityWeightsBp: Readonly<Record<Exclude<MineStrikeOutcome, "IMMOBILIZED_FOR_TOW">, number>>;
+  baseSeverityWeightsBp: Readonly<
+    Record<Exclude<MineStrikeOutcome, "IMMOBILIZED_FOR_TOW">, number>
+  >;
 }
 
 export interface MineTypeDefinition {
@@ -56,12 +58,7 @@ export interface MineTypeDefinition {
   contentHash: string; // deterministic SHA-256 over the non-hash surface
 }
 
-function invariant(
-  m: MineTypeDefinition,
-  field: string,
-  value: unknown,
-  reason: string,
-): never {
+function invariant(m: MineTypeDefinition, field: string, value: unknown, reason: string): never {
   throw new BluewaveError(INVALID_MINE_TYPE_DEFINITION, {
     code: INVALID_MINE_TYPE_DEFINITION,
     field,
@@ -117,12 +114,18 @@ export function assertMineTypeDefinitionSurface(m: MineTypeDefinition): void {
     );
 
   if (!isInt(m.baseLayingValue) || m.baseLayingValue <= 0)
-    invariant(m, "baseLayingValue", m.baseLayingValue, "baseLayingValue must be a positive integer");
+    invariant(
+      m,
+      "baseLayingValue",
+      m.baseLayingValue,
+      "baseLayingValue must be a positive integer",
+    );
 
   if (!m.strikeProfile || typeof m.strikeProfile !== "object")
     invariant(m, "strikeProfile", m.strikeProfile, "strikeProfile is required");
   const weights = m.strikeProfile?.baseSeverityWeightsBp;
-  if (!weights) invariant(m, "strikeProfile.baseSeverityWeightsBp", weights, "base severity weights required");
+  if (!weights)
+    invariant(m, "strikeProfile.baseSeverityWeightsBp", weights, "base severity weights required");
   let total = 0;
   for (const outcome of MINE_STRIKE_OUTCOMES) {
     if (outcome === "IMMOBILIZED_FOR_TOW") continue;
@@ -137,10 +140,20 @@ export function assertMineTypeDefinitionSurface(m: MineTypeDefinition): void {
     total += w;
   }
   if (total !== MINE_BASIS_POINTS_PER_UNIT)
-    invariant(m, "strikeProfile.baseSeverityWeightsBp", total, "§15 base severity weights must total 10_000");
+    invariant(
+      m,
+      "strikeProfile.baseSeverityWeightsBp",
+      total,
+      "§15 base severity weights must total 10_000",
+    );
 
   if (!Array.isArray(m.targetEligibility) || m.targetEligibility.length === 0)
-    invariant(m, "targetEligibility", m.targetEligibility, "at least one eligible target class is required");
+    invariant(
+      m,
+      "targetEligibility",
+      m.targetEligibility,
+      "at least one eligible target class is required",
+    );
   if (!m.targetEligibility.every((c) => (MINE_TARGET_CLASSES as readonly string[]).includes(c)))
     invariant(
       m,
@@ -153,7 +166,12 @@ export function assertMineTypeDefinitionSurface(m: MineTypeDefinition): void {
   assertDecayPolicy(m);
 
   if (m.friendlyFirePolicyId !== MINE_FRIENDLY_FIRE_POLICY_ID)
-    invariant(m, "friendlyFirePolicyId", m.friendlyFirePolicyId, "§25 shipped friendly-fire policy id");
+    invariant(
+      m,
+      "friendlyFirePolicyId",
+      m.friendlyFirePolicyId,
+      "§25 shipped friendly-fire policy id",
+    );
   if (m.battleGenerationPolicyId !== MINE_BATTLE_GENERATION_POLICY_ID)
     invariant(
       m,
@@ -179,7 +197,12 @@ function assertSweepResistance(m: MineTypeDefinition): void {
     invariant(m, "sweepResistance", r, "§9 sweep resistance is required");
   if (r.kind === "FLAT") {
     if (!isBp(r.valueBp))
-      invariant(m, "sweepResistance.valueBp", r.valueBp, "§9 flat resistance must be basis points [0, 10_000]");
+      invariant(
+        m,
+        "sweepResistance.valueBp",
+        r.valueBp,
+        "§9 flat resistance must be basis points [0, 10_000]",
+      );
   } else if (r.kind === "CAPABILITY_GATED") {
     if (!isBp(r.withCapabilityBp))
       invariant(
@@ -196,7 +219,12 @@ function assertSweepResistance(m: MineTypeDefinition): void {
         "§9 capability-gated resistance must be basis points [0, 10_000]",
       );
   } else if (r.kind !== "DEFINITION_REQUIRED") {
-    invariant(m, "sweepResistance.kind", r.kind, "§9 sweep-resistance kind must be FLAT, CAPABILITY_GATED, or DEFINITION_REQUIRED");
+    invariant(
+      m,
+      "sweepResistance.kind",
+      r.kind,
+      "§9 sweep-resistance kind must be FLAT, CAPABILITY_GATED, or DEFINITION_REQUIRED",
+    );
   }
 }
 
@@ -205,7 +233,12 @@ function assertDecayPolicy(m: MineTypeDefinition): void {
   if (!d || typeof d !== "object") invariant(m, "decayPolicy", d, "§21 decay policy is required");
   if (d.kind === "FLAT") {
     if (!isBp(d.retentionBp))
-      invariant(m, "decayPolicy.retentionBp", d.retentionBp, "§21 flat retention must be basis points [0, 10_000]");
+      invariant(
+        m,
+        "decayPolicy.retentionBp",
+        d.retentionBp,
+        "§21 flat retention must be basis points [0, 10_000]",
+      );
     if (d.freshnessRetentionBp !== null && !isBp(d.freshnessRetentionBp))
       invariant(
         m,
@@ -236,7 +269,12 @@ function assertDecayPolicy(m: MineTypeDefinition): void {
         "§21 freshness retention override must be null or basis points [0, 10_000]",
       );
   } else if (d.kind !== "DEFINITION_REQUIRED") {
-    invariant(m, "decayPolicy.kind", d.kind, "§21 decay-policy kind must be FLAT, INFRASTRUCTURE_GATED, or DEFINITION_REQUIRED");
+    invariant(
+      m,
+      "decayPolicy.kind",
+      d.kind,
+      "§21 decay-policy kind must be FLAT, INFRASTRUCTURE_GATED, or DEFINITION_REQUIRED",
+    );
   }
 }
 
@@ -253,7 +291,8 @@ export function computeMineTypeDefinitionContentHash(
   m: Omit<MineTypeDefinition, "contentHash">,
 ): string {
   const { contentHash: _ignored, ...surface } = m as MineTypeDefinition;
-  return createEnvelope("mine-type-definition", mineTypeDefinitionsContentVersion, surface).bodyHash;
+  return createEnvelope("mine-type-definition", mineTypeDefinitionsContentVersion, surface)
+    .bodyHash;
 }
 
 // Build a fully-validated definition with its authoritative content hash computed.
@@ -328,7 +367,11 @@ export const SHIPPED_MINE_TYPE_DEFINITIONS: readonly MineTypeDefinition[] = [
     baseLayingValue: DEFAULT_BASE_LAYING_VALUE,
     strikeProfile: sharedStrikeProfile(),
     targetEligibility: ALL_TARGET_CLASSES,
-    sweepResistance: { kind: "CAPABILITY_GATED", withCapabilityBp: 10_000, withoutCapabilityBp: 7_500 }, // §9
+    sweepResistance: {
+      kind: "CAPABILITY_GATED",
+      withCapabilityBp: 10_000,
+      withoutCapabilityBp: 7_500,
+    }, // §9
     decayPolicy: { kind: "FLAT", retentionBp: 9_500, freshnessRetentionBp: null }, // §21
     friendlyFirePolicyId: MINE_FRIENDLY_FIRE_POLICY_ID,
     battleGenerationPolicyId: MINE_BATTLE_GENERATION_POLICY_ID,
@@ -342,7 +385,11 @@ export const SHIPPED_MINE_TYPE_DEFINITIONS: readonly MineTypeDefinition[] = [
     baseLayingValue: DEFAULT_BASE_LAYING_VALUE,
     strikeProfile: sharedStrikeProfile(),
     targetEligibility: ALL_TARGET_CLASSES,
-    sweepResistance: { kind: "CAPABILITY_GATED", withCapabilityBp: 10_000, withoutCapabilityBp: 7_500 }, // §9
+    sweepResistance: {
+      kind: "CAPABILITY_GATED",
+      withCapabilityBp: 10_000,
+      withoutCapabilityBp: 7_500,
+    }, // §9
     decayPolicy: { kind: "FLAT", retentionBp: 9_250, freshnessRetentionBp: null }, // §21
     friendlyFirePolicyId: MINE_FRIENDLY_FIRE_POLICY_ID,
     battleGenerationPolicyId: MINE_BATTLE_GENERATION_POLICY_ID,

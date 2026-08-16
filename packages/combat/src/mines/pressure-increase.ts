@@ -91,7 +91,8 @@ export function reinforcePressureRecord(
     throw new BluewaveError(INVALID_MINE_PRESSURE_STATE, {
       code: INVALID_MINE_PRESSURE_STATE,
       field: "effectiveLayingValue",
-      reason: "a zero or negative laying value means no laying (§4); reinforcement requires a positive value",
+      reason:
+        "a zero or negative laying value means no laying (§4); reinforcement requires a positive value",
       value: effectiveLayingValue,
     });
 
