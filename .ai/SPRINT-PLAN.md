@@ -272,8 +272,19 @@ spec (17 ACs, 6 INC slices), brief, and `.ai/specs/` pointer at
    `diplomacy.ts` projection + 26 commands (`inspectDiplomacyScreen`,
    `submitDiplomacyCommand` over the 7 B10c bodies) + shared command queue
    (`pendingCommands.ts`) + relations/wars/blockades renderer. Report:
-   `.ai/reports/desktop-diplomacy-war.md`. **Next candidate in the desktop
-   gate queue: tactical battle-outcome surfacing (B-6 follow-up).**
+`.ai/reports/desktop-diplomacy-war.md`. **Tactical battle-outcome surfacing
+    (B-6 follow-up) is DONE — PASS (2026-08-15, `.scratch/desktop-battle-outcomes/`):**
+    flat `BattleOutcome` + `ClosingSnapshotSummary.battleOutcomes` (campaign-engine,
+    type-only) + `commitMonth` hydration (pre→post resolved-set delta;
+    `warScoreDelta` re-derived from `month.ts:1508-1538` over the pre-battle snapshot,
+    ADR-0028; `0` when undecided/loser-unavailable — never fabricated) + Turn-Report
+    "Battle Outcomes" accordion (honest tie/empty copy). Fully read-only over the
+    engine; goldens 10/10 unchanged; desktop 353, campaign-engine 49, cross-process
+    14/14. Report: `.ai/reports/desktop-battle-outcomes.md`. **Next candidates in the
+    desktop gate queue (`.scratch/desktop-feature-gate/`):** strategic weather
+    surfacing (B-5/ADR-0025), AI-plan read-only, design-template catalog (candidate
+    2–5).**Follow-up (deferred, engine-sprint): persist war-score delta on
+    `BattleResult`.**
 6. **Repair `apps/desktop` test/lint failures** — missing `@testing-library/react`
    devDependency + wrong `@bluewave/campaign-engine` import name (actual package
    `@bluewave/campaign`) across 8+ renderer files, introduced by commit `b4509e4`

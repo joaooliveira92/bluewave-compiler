@@ -120,6 +120,26 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 > outcomes). **Next queued: tactical battle-outcome surfacing (B-6
 > follow-up).**
 
+### Desktop battle-outcome surfacing
+
+> **Status (2026-08-15): DONE — PASS.** Third gate-queue desktop surface
+> (`.scratch/desktop-battle-outcomes/`, the recorded B-6 "tactical battle-outcome
+> surfacing" follow-up). `@bluewave/campaign-engine` gains a flat
+> `BattleOutcome` type + `ClosingSnapshotSummary.battleOutcomes` (type-only, no
+> hash impact); `commitMonth` hydrates one outcome per battle resolved THIS
+> month (pre→post resolved-set delta — the engine never emits `BattleResolved`
+> events) with `warScoreDelta` re-derived from the engine's own victory rule
+> (`month.ts:1508-1538`) over the **pre-battle** snapshot (ADR-0028; `0` when
+> undecided or the loser is unavailable — never fabricated). Renderer adds a
+> "Battle Outcomes" accordion to the Turn Report (sides, winner/loser honest
+> tie copy, war-score delta, ship losses, engine explanation; honest empty
+> state). Fully read-only over the engine — no phase-engine/combat/content
+> change, goldens 10/10 unchanged, `BattleResolver`/`StrengthCalculator`
+> untouched. Desktop 353, campaign-engine 49; cross-process 14/14. Report:
+> `.ai/reports/desktop-battle-outcomes.md`. Follow-up (deferred, engine-sprint):
+> persist the war-score delta on `BattleResult`. **Next queued:** candidate 2+ of
+> `.scratch/desktop-feature-gate/` (weather / AI-plan / design-template surfaces).
+
 ### B9 — Electron Desktop Shell
 
 > **Status (2026-08-11): PASS_WITH_LIMITATIONS.** Acceptance evidence recorded
