@@ -198,7 +198,7 @@ vi.mock("../screens/new-game/NewGameFleetMethodScreen.js", async () => {
     }: {
       status: "ready" | "launching";
       error: string | null;
-      onNext: (fleetMethod: Record<string, string>) => Promise<void>;
+      onNext: (fleetMethod: Record<string, string>) => void;
     }) =>
       React.createElement(
         "section",
@@ -208,9 +208,32 @@ vi.mock("../screens/new-game/NewGameFleetMethodScreen.js", async () => {
         error ? React.createElement("p", { role: "alert" }, error) : null,
         React.createElement(
           "button",
-          { onClick: () => void onNext({ legacyFleetModeId: "generated" }) },
-          "Launch campaign",
+          { onClick: () => onNext({ legacyFleetModeId: "generated" }) },
+          "Continue to review",
         ),
+      ),
+  };
+});
+
+vi.mock("../screens/new-game/NewGameCommissioningReviewScreen.js", async () => {
+  const React = await import("react");
+  return {
+    NewGameCommissioningReviewScreen: ({
+      status,
+      error,
+      onBeginCommission,
+    }: {
+      status: "ready" | "launching";
+      error: string | null;
+      onBeginCommission: () => Promise<void>;
+    }) =>
+      React.createElement(
+        "section",
+        null,
+        React.createElement("h1", null, "Final commissioning review"),
+        status === "launching" ? React.createElement("p", null, "Commissioning…") : null,
+        error ? React.createElement("p", { role: "alert" }, error) : null,
+        React.createElement("button", { onClick: () => void onBeginCommission() }, "Begin Commission"),
       ),
   };
 });
@@ -313,7 +336,9 @@ function createShell(overrides: Record<string, unknown> = {}) {
                 ? { kind: "new-game-identity" as const, screen: shell.screen }
                 : shell.screen === "new-game-fleet-method"
                   ? { kind: "new-game-fleet-method" as const, screen: shell.screen }
-                  : { kind: "file" as const, screen: "file" as const };
+                  : shell.screen === "new-game-review"
+                    ? { kind: "new-game-review" as const, screen: shell.screen }
+                    : { kind: "file" as const, screen: "file" as const };
   return { ...shell, mode };
 }
 
@@ -455,7 +480,12 @@ describe("App", () => {
 
     testState.shell = createShell({ ...shell, screen: "new-game-fleet-method" });
     rerender(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "Launch campaign" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue to review" }));
+    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-review");
+
+    testState.shell = createShell({ ...shell, screen: "new-game-review" });
+    rerender(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Begin Commission" }));
 
     await waitFor(() => expect(execute).toHaveBeenCalledWith("compileCampaign", expect.anything()));
     await waitFor(() => expect(shell.openCampaign).toHaveBeenCalledWith("ses-created"));
@@ -484,7 +514,11 @@ describe("App", () => {
 
     testState.shell = createShell({ ...shell, screen: "new-game-fleet-method" });
     rerender(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "Launch campaign" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue to review" }));
+
+    testState.shell = createShell({ ...shell, screen: "new-game-review" });
+    rerender(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Begin Commission" }));
 
     expect(
       await screen.findByText("UNSUPPORTED_CONFIGURATION. difficulty is invalid"),

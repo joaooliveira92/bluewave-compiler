@@ -64,6 +64,15 @@ function advanceToFleetMethod(actions: ReturnType<typeof setup>["result"]["curre
   act(() => actions.acceptIdentity(defaultCampaignIdentity()));
 }
 
+/** Drives the flow forward through the fleet-method and review steps, ready to launch. */
+function advanceToReview(
+  actions: ReturnType<typeof setup>["result"]["current"]["actions"],
+  fleetMethod = defaultFleetMethod(),
+) {
+  advanceToFleetMethod(actions);
+  act(() => actions.acceptFleetMethod(fleetMethod));
+}
+
 describe("useNewGameFlow", () => {
   it("moves nation first, then through preferences, archetype, identity, and fleet method", () => {
     const { result, selectScreen } = setup();
@@ -95,6 +104,10 @@ describe("useNewGameFlow", () => {
     act(() => result.current.actions.acceptIdentity(identity));
     expect(result.current.state.draft?.identity).toEqual(identity);
     expect(selectScreen).toHaveBeenLastCalledWith("new-game-fleet-method");
+
+    act(() => result.current.actions.acceptFleetMethod(defaultFleetMethod()));
+    expect(result.current.state.draft?.fleetMethod).toEqual(defaultFleetMethod());
+    expect(selectScreen).toHaveBeenLastCalledWith("new-game-review");
   });
 
   it("applies the recommended setup into the draft without navigating away", () => {
@@ -144,9 +157,9 @@ describe("useNewGameFlow", () => {
 
   it("opens the compiled campaign and clears the completed draft", async () => {
     const { result, execute, openCampaign } = setup();
-    advanceToFleetMethod(result.current.actions);
+    advanceToReview(result.current.actions);
 
-    await act(() => result.current.actions.launch(defaultFleetMethod()));
+    await act(() => result.current.actions.launch());
 
     expect(execute).toHaveBeenCalledWith(
       "compileCampaign",
@@ -163,9 +176,9 @@ describe("useNewGameFlow", () => {
 
   it("sends the fleet-method screen's selected legacyFleetModeId, not the preferences default", async () => {
     const { result, execute } = setup();
-    advanceToFleetMethod(result.current.actions);
+    advanceToReview(result.current.actions, { legacyFleetModeId: "disabled" });
 
-    await act(() => result.current.actions.launch({ legacyFleetModeId: "disabled" }));
+    await act(() => result.current.actions.launch());
 
     expect(execute).toHaveBeenCalledWith(
       "compileCampaign",
@@ -180,9 +193,9 @@ describe("useNewGameFlow", () => {
       diagnostics: ["difficulty is invalid"],
     })) as unknown as CampaignExecute;
     const { result, openCampaign, selectScreen } = setup(execute);
-    advanceToFleetMethod(result.current.actions);
+    advanceToReview(result.current.actions);
 
-    await act(() => result.current.actions.launch(defaultFleetMethod()));
+    await act(() => result.current.actions.launch());
 
     expect(openCampaign).not.toHaveBeenCalled();
     expect(result.current.state.error).toBe("UNSUPPORTED_CONFIGURATION. difficulty is invalid");
@@ -201,11 +214,11 @@ describe("useNewGameFlow", () => {
         resolveCompilation = resolve;
       })) as unknown as CampaignExecute;
     const { result } = setup(execute);
-    advanceToFleetMethod(result.current.actions);
+    advanceToReview(result.current.actions);
 
     let launchPromise: Promise<void> = Promise.resolve();
     act(() => {
-      launchPromise = result.current.actions.launch(defaultFleetMethod());
+      launchPromise = result.current.actions.launch();
     });
     await waitFor(() => expect(result.current.state.status).toBe("launching"));
 

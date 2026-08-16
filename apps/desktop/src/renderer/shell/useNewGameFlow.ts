@@ -52,7 +52,9 @@ export interface NewGameFlow {
     readonly backToArchetype: () => void;
     readonly acceptIdentity: (identity: CampaignIdentityDraft) => void;
     readonly backToIdentity: () => void;
-    readonly launch: (fleetMethod: FleetMethodDraft) => Promise<void>;
+    readonly acceptFleetMethod: (fleetMethod: FleetMethodDraft) => void;
+    readonly backToFleetMethod: () => void;
+    readonly launch: () => Promise<void>;
   };
 }
 
@@ -157,39 +159,54 @@ export function useNewGameFlow(
     navigation.selectScreen("new-game-identity");
   }, [navigation]);
 
-  const launch = useCallback(
-    async (fleetMethod: FleetMethodDraft) => {
-      if (bridge === undefined || draft === null || draft.preferences === null) return;
+  const acceptFleetMethod = useCallback(
+    (fleetMethod: FleetMethodDraft) => {
       setDraft((current) => (current === null ? null : { ...current, fleetMethod }));
-      setStatus("launching");
-      setError(null);
-      try {
-        const archetypeToken = serializeArchetypeSelection(
-          draft.archetype ?? defaultArchetypeSelection(),
-        );
-        const config = {
-          ...buildCampaignConfiguration(
-            draft.nationId,
-            draft.preferences,
-            fleetMethod.legacyFleetModeId,
-          ),
-          archetype: archetypeToken,
-        };
-        const result = await bridge.campaign.execute("compileCampaign", config);
-        if (result.outcome !== "success") {
-          const diagnostics =
-            result.diagnostics.length > 0 ? ` ${result.diagnostics.join("; ")}` : "";
-          setError(`${result.reason}.${diagnostics}`);
-          return;
-        }
-        setDraft(null);
-        await navigation.openCampaign(result.value.sessionId);
-      } finally {
-        setStatus("ready");
-      }
+      navigation.selectScreen("new-game-review");
     },
-    [bridge, draft, navigation],
+    [navigation],
   );
+
+  const backToFleetMethod = useCallback(() => {
+    navigation.selectScreen("new-game-fleet-method");
+  }, [navigation]);
+
+  const launch = useCallback(async () => {
+    if (
+      bridge === undefined ||
+      draft === null ||
+      draft.preferences === null ||
+      draft.fleetMethod === null
+    ) {
+      return;
+    }
+    setStatus("launching");
+    setError(null);
+    try {
+      const archetypeToken = serializeArchetypeSelection(
+        draft.archetype ?? defaultArchetypeSelection(),
+      );
+      const config = {
+        ...buildCampaignConfiguration(
+          draft.nationId,
+          draft.preferences,
+          draft.fleetMethod.legacyFleetModeId,
+        ),
+        archetype: archetypeToken,
+      };
+      const result = await bridge.campaign.execute("compileCampaign", config);
+      if (result.outcome !== "success") {
+        const diagnostics =
+          result.diagnostics.length > 0 ? ` ${result.diagnostics.join("; ")}` : "";
+        setError(`${result.reason}.${diagnostics}`);
+        return;
+      }
+      setDraft(null);
+      await navigation.openCampaign(result.value.sessionId);
+    } finally {
+      setStatus("ready");
+    }
+  }, [bridge, draft, navigation]);
 
   return useMemo(
     () => ({
@@ -206,15 +223,19 @@ export function useNewGameFlow(
         backToArchetype,
         acceptIdentity,
         backToIdentity,
+        acceptFleetMethod,
+        backToFleetMethod,
         launch,
       },
     }),
     [
       acceptArchetype,
+      acceptFleetMethod,
       acceptIdentity,
       acceptPreferences,
       applyRecommendedSetup,
       backToArchetype,
+      backToFleetMethod,
       backToIdentity,
       backToNation,
       backToPreferences,

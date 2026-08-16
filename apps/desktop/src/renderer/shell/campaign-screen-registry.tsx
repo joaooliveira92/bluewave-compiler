@@ -62,6 +62,7 @@ export type Screen =
   | "new-game-archetype"
   | "new-game-identity"
   | "new-game-fleet-method"
+  | "new-game-review"
   | CampaignScreen;
 
 export type CampaignScreen =
