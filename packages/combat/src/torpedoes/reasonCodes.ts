@@ -7,11 +7,13 @@
 // solution + salvo + friendly-fire) ships the §10/§24 in-slice codes; INC-4
 // (launch + track) ships the §12 codes (TORPEDO_LAUNCH_FAILURE from the §29
 // list + the §12-named TORPEDO_STUCK_IN_TUBE outcome code); INC-5 (hit +
-// detonation) ships the §14/§15 codes TORPEDO_HIT_RESOLVED + TORPEDO_DUD
-// (both §29-listed in-slice codes, recorded in the INC-5 report + ADR-0029).
-// The remaining §29 in-slice codes are owned by INC-6 and are recorded below,
-// never shipped here. The full partition (in-slice / deferred / reused combat
-// catalog, disjointness) is verified by INC-8's set-equality test.
+// detonation) ships the §14/§15 codes TORPEDO_HIT_RESOLVED + TORPEDO_DUD;
+// INC-6 (damage package) ships the §16–§23 damage codes
+// TORPEDO_PROGRESSIVE_FLOODING_CREATED / TORPEDO_MACHINERY_DAMAGE_CREATED /
+// TORPEDO_SYSTEM_SHOCK_DAMAGE_CREATED / UNDERWATER_TUBE_SEVERE_FLOODING /
+// TORPEDO_CHAIN_REACTION (all §29-listed in-slice codes, recorded in the
+// INC-6 report + ADR-0029). The full partition (in-slice / deferred / reused
+// combat catalog, disjointness) is verified by INC-8's set-equality test.
 
 // ---- In-slice codes (INC-1) ----
 export const INVALID_TORPEDO_MODEL_DEFINITION = "INVALID_TORPEDO_MODEL_DEFINITION" as const;
@@ -80,7 +82,24 @@ export const TORPEDO_HIT_RESOLVED = "TORPEDO_HIT_RESOLVED" as const;
 // (the §29-listed in-slice code; research §3.6: Mk 14 contact-exploder duds).
 export const TORPEDO_DUD = "TORPEDO_DUD" as const;
 
-// ---- Collected catalog (INC-1..INC-5 shipped set; set-equality checked in INC-8) ----
+// ---- In-slice codes (INC-6: torpedo damage package, §16–§23) ----
+// §18: every created progressive-flooding source records this cause — the
+// flooding-creation marker (a torpedo's flooding is creation-only in this
+// slice; per-minute resolution is C-5).
+export const TORPEDO_PROGRESSIVE_FLOODING_CREATED = "TORPEDO_PROGRESSIVE_FLOODING_CREATED" as const;
+// §19: the machinery-damage evaluation that selected a non-NO_EFFECT severity
+// records this cause.
+export const TORPEDO_MACHINERY_DAMAGE_CREATED = "TORPEDO_MACHINERY_DAMAGE_CREATED" as const;
+// §20: a system-shock check that damaged a nearby system records this cause.
+export const TORPEDO_SYSTEM_SHOCK_DAMAGE_CREATED = "TORPEDO_SYSTEM_SHOCK_DAMAGE_CREATED" as const;
+// §21: a severe underwater-tube hit (base hazard roll succeeded) records this
+// code on its immediate flooding / extra source / casualty-shock result.
+export const UNDERWATER_TUBE_SEVERE_FLOODING = "UNDERWATER_TUBE_SEVERE_FLOODING" as const;
+// §22: a chain reaction that detonated a loaded torpedo records this code on
+// the chain-reaction result (and its separate explosion damage package).
+export const TORPEDO_CHAIN_REACTION = "TORPEDO_CHAIN_REACTION" as const;
+
+// ---- Collected catalog (INC-1..INC-6 shipped set; set-equality checked in INC-8) ----
 export const TORPEDO_REASON_CODES = {
   INVALID_TORPEDO_MODEL_DEFINITION,
   INVALID_TORPEDO_LAUNCHER_STATE,
@@ -100,14 +119,14 @@ export const TORPEDO_REASON_CODES = {
   TORPEDO_STUCK_IN_TUBE,
   TORPEDO_HIT_RESOLVED,
   TORPEDO_DUD,
+  TORPEDO_PROGRESSIVE_FLOODING_CREATED,
+  TORPEDO_MACHINERY_DAMAGE_CREATED,
+  TORPEDO_SYSTEM_SHOCK_DAMAGE_CREATED,
+  UNDERWATER_TUBE_SEVERE_FLOODING,
+  TORPEDO_CHAIN_REACTION,
 } as const;
 
 export type TorpedoReasonCode = (typeof TORPEDO_REASON_CODES)[keyof typeof TORPEDO_REASON_CODES];
-
-// ---- Recorded §29 in-slice codes owned by later increments (never shipped here) ----
-// INC-6 (damage package): TORPEDO_PROGRESSIVE_FLOODING_CREATED,
-//   TORPEDO_MACHINERY_DAMAGE_CREATED, TORPEDO_SYSTEM_SHOCK_DAMAGE_CREATED,
-//   UNDERWATER_TUBE_SEVERE_FLOODING, TORPEDO_CHAIN_REACTION.
 
 // ---- Recorded deferred §29 ownership (owned by other tracks, never dropped) ----
 // Submarine-launch speed/hazard codes (→ C-3), aerial-torpedo codes (→ D-track),

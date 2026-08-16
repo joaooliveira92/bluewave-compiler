@@ -145,7 +145,9 @@ describe("AC-13p2: §14(1) collision geometry — exact integer circle test", ()
 
   it("rejects malformed geometry inputs (TORPEDO_STATE_INVARIANT_FAILED)", () => {
     expect(() => intersectsCollisionGeometry([0, 0.5], [0, 0], 100)).toThrow(BluewaveError);
-    expect(() => intersectsCollisionGeometry([0, 0] as never, [0] as never, 100)).toThrow(BluewaveError);
+    expect(() => intersectsCollisionGeometry([0, 0] as never, [0] as never, 100)).toThrow(
+      BluewaveError,
+    );
     expect(() => intersectsCollisionGeometry([0, 0], [0, 0], 0)).toThrow(BluewaveError);
     expect(() => intersectsCollisionGeometry([0, 0], [0, 0], 100.5)).toThrow(BluewaveError);
   });

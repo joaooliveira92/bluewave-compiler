@@ -31,8 +31,12 @@ boundary). This renumbering is recorded here once.
    `BattleResolver`/`StrengthCalculator` modification. The engine stage wiring
    (`resolveTorpedoes` after damage, strict no-op) is INC-7; phase-engine
    integration and `resolveBattleAuto` torpedo wiring is a later battle-results
-   slice (mirrors B-3 gunnery → B-6 deferral). Goldens unchanged (AC-25,
-   verified 10/10).
+   slice (mirrors B-3 gunnery → B-6 deferral). INC-6 reuses the B-4 damage seams
+   by import only (`resolveStructureFlotation`, `applyTurretDamage`,
+   `ComponentOutcome`, `evaluateMagazineHazard` shape, `evaluateTerminalSeam`,
+   the deepFreeze+envelope record pattern); `src/damage/` and
+   `src/battleResolution/` are unmodified (diff-verified). Goldens unchanged
+   (AC-25, verified 10/10).
 
 2. **§14 collision geometry (INC-5).** No production target geometry exists in
    the codebase; DESIGN-40 pins the predicate, not the shape. The hit resolver
@@ -85,6 +89,39 @@ boundary). This renumbering is recorded here once.
    versioned model→fuze mapping already carries it authoritatively. If DESIGN is
    later amended to require per-model fuze on the model, it is a content-hash
    change versioned under the model contract, not a silent edit.
+
+8. **§17 TUBE_BAY impact-zone flotation multiplier = 12_500 (INC-6).** DESIGN-40
+   §17 ships exactly five impact-zone rows (extremity / machinery / magazine /
+   central / breached); the engine zone enum adds `TUBE_BAY` (INC-5,
+   `detonation.ts`), which §21/§22 hit-hazard mechanics require. The authored
+   12_500 ordnance-class interior multiplier is a new canonical constant DESIGN-40
+   did not anticipate; it is contract-pinned (`TorpedoDamageContract`) and clearly
+   marked BALANCE TARGET. Forward/lower displacement than a magazine (which
+   DESIGN-40 sets at 12_500 and the torpedo convention of an underwater-tube
+   bay near the hull's waterline makes the ordnance-class 12_500 a defensible
+   judgment). This is recorded here as an explicit decision rather than a silent
+   constant; a future DESIGN amendment for TUBE_BAY supersedes it under the same
+   contract, never silently.
+
+9. **§21 severe "immediate flooding" is flotation-reserve loss (INC-6).** DESIGN-40
+   §16 separates an *immediate flooding* field from a *progressive-flooding source
+   rate*; §21's "immediate additional flooding equal to `5_000` bp of remaining
+   reserve (capped)" is therefore immediate flotation loss per §17 semantics,
+   applied as a deduction from the flotation reserve (floor-at-0, capped by
+   remaining reserve) flowing through `evaluateTerminalSeam` (can reach SINKING/
+   SUNK). It is NOT summed into `progressiveFloodingTotal`. The 15_000 bp
+   `extraFloodingSource` flooding record remains the separate C-5 progressive
+   source (creation-only; per-minute resolution C-5).
+
+10. **INC-6 authored BALANCE TARGET integers (recorded, never silent).** Where
+    DESIGN-40 leaves magnitudes open, INC-6 authors integer values all pinned in
+    `TorpedoDamageContract` and marked in code: base flotation rate 16
+    reserve-units/kg-equivalent, structural rate 48 (×3 of flotation), base
+    breach rate 1_000 kg/min·m², immediate-flooding seawater density 1_000 kg/m³
+    + min-depth floor 1 m, tube-crew casualty base 5_000 bp / 2_500 bp at-risk
+    share; the §22 five-modifier manifest requires neutral 10_000 passed
+    explicitly (fail-closed, no silent default). All re-tunable via a version bump
+    under the same contract, never silently.
 
 ## Consequences
 

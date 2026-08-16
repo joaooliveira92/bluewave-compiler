@@ -51,6 +51,24 @@ import {
   validateTorpedoDetonationContract,
   validateTorpedoLauncherDefinition,
   type TorpedoLauncherDefinition,
+  // INC-6 (damage package): §16-§23 contracts + guards
+  SHIPPED_TORPEDO_DAMAGE_CONTRACT,
+  validateTorpedoDamageContract,
+  SHIPPED_UNDERWATER_TUBE_HIT_HAZARD_CONTRACT,
+  validateUnderwaterTubeHitHazardContract,
+  underwaterTubeHitHazardPolicyId,
+  TORPEDO_TUBE_HAZARD_BASE_BP,
+  TORPEDO_MACHINERY_SEVERITY_WEIGHTS_BP,
+  TORPEDO_NON_MACHINERY_ELIGIBILITY_BP,
+  TORPEDO_PROTECTION_LEAK_MULTIPLIER_BP,
+  TORPEDO_IMPACT_ZONE_FLOTATION_MULTIPLIER_BP,
+  TORPEDO_FLOODING_ISOLATION_MULTIPLIER_BP,
+  TORPEDO_BASE_FLOTATION_DAMAGE_PER_KG_EQ,
+  TORPEDO_STRUCTURAL_DAMAGE_PER_KG_EQ,
+  TORPEDO_TUBE_CREW_CASUALTY_BASE_BP,
+  TORPEDO_TUBE_CREW_CASUALTY_SHARE_BP,
+  TORPEDO_SEAWATER_DENSITY_KG_PER_M3,
+  TORPEDO_IMMEDIATE_FLOODING_MIN_DEPTH_M,
 } from "../../src/torpedoes/index.js";
 
 describe("AC-24: torpedo_v1 contract + validate guard (fail closed)", () => {
@@ -416,8 +434,8 @@ describe("AC-24: exact shipped constant surface", () => {
   });
 });
 
-describe("AC-21 seeds: INC-1..INC-5 reason-code catalog shape", () => {
-  it("ships exactly the INC-1 + INC-2 + INC-3 + INC-4 + INC-5 §29 codes — nothing more, nothing less (the INC-2 DEFERRED marker is retired)", () => {
+describe("AC-21 seeds: INC-1..INC-6 reason-code catalog shape", () => {
+  it("ships exactly the INC-1 + INC-2 + INC-3 + INC-4 + INC-5 + INC-6 §29 codes — nothing more, nothing less (the INC-2 DEFERRED marker is retired)", () => {
     const shipped = Object.values(TORPEDO_REASON_CODES).sort();
     expect(shipped).toEqual(
       [
@@ -439,6 +457,12 @@ describe("AC-21 seeds: INC-1..INC-5 reason-code catalog shape", () => {
         "TORPEDO_STUCK_IN_TUBE",
         "TORPEDO_HIT_RESOLVED",
         "TORPEDO_DUD",
+        // INC-6 (damage package): the §16-§23 in-slice codes
+        "TORPEDO_PROGRESSIVE_FLOODING_CREATED",
+        "TORPEDO_MACHINERY_DAMAGE_CREATED",
+        "TORPEDO_SYSTEM_SHOCK_DAMAGE_CREATED",
+        "UNDERWATER_TUBE_SEVERE_FLOODING",
+        "TORPEDO_CHAIN_REACTION",
       ].sort(),
     );
     // the retired marker is gone from the catalog and no longer a shipped code
@@ -464,7 +488,7 @@ describe("AC-21 seeds: INC-1..INC-5 reason-code catalog shape", () => {
     }
   });
 
-  it("ships the INC-2 + INC-3 + INC-4 in-slice codes and does NOT ship §29 codes owned by later increments", () => {
+  it("ships the INC-2 + INC-3 + INC-4 in-slice codes and does NOT ship §29 codes owned by other tracks", () => {
     const shipped: ReadonlySet<string> = new Set(Object.values(TORPEDO_REASON_CODES));
     // the INC-2 launch-legality codes + the INC-3 fire-solution/friendly-fire codes
     for (const code of [
@@ -490,18 +514,19 @@ describe("AC-21 seeds: INC-1..INC-5 reason-code catalog shape", () => {
     for (const code of ["TORPEDO_HIT_RESOLVED", "TORPEDO_DUD"]) {
       expect(shipped.has(code)).toBe(true);
     }
-    // the codes owned by INC-6+ (damage package, tube hazard, chain reaction)
-    // MUST NOT be shipped yet
-    const laterIncrementCodes = [
+    // the §16-§23 damage codes ARE shipped — INC-6 (this increment) owns them
+    for (const code of [
       "TORPEDO_PROGRESSIVE_FLOODING_CREATED",
       "TORPEDO_MACHINERY_DAMAGE_CREATED",
       "TORPEDO_SYSTEM_SHOCK_DAMAGE_CREATED",
       "UNDERWATER_TUBE_SEVERE_FLOODING",
       "TORPEDO_CHAIN_REACTION",
-    ];
-    for (const code of laterIncrementCodes) {
-      expect(shipped.has(code)).toBe(false);
+    ]) {
+      expect(shipped.has(code)).toBe(true);
     }
+    // every DESIGN-40 §29 in-slice code is now shipped; the remaining §29
+    // ownership (submarine launch, aerial tubes, supply, command layer) is
+    // OTHER-track code — none may be shipped here (INC-8's partition test).
     // and the INC-1 codes themselves are present
     expect(shipped.has("INVALID_TORPEDO_MODEL_DEFINITION")).toBe(true);
     expect(shipped.has(INVALID_TORPEDO_MODEL_DEFINITION)).toBe(true);
@@ -584,5 +609,177 @@ describe("AC-9/AC-11/AC-19 (INC-3): exact shipped §10/§11/§24 constant surfac
     });
     expect(SHIPPED_TORPEDO_CONTRACT.salvoBaseTubes).toEqual(TORPEDO_SALVO_BASE_TUBES);
     expect(SHIPPED_TORPEDO_CONTRACT.salvoBpPerTube).toBe(TORPEDO_SALVO_BP_PER_TUBE);
+  });
+});
+
+describe("AC-15/AC-16/AC-17/AC-24 (INC-6): torpedo damage constant contract + guard", () => {
+  it("ships SHIPPED_TORPEDO_DAMAGE_CONTRACT and validates without throwing", () => {
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.policyId).toBe("torpedo_damage_v1");
+    expect(() => validateTorpedoDamageContract(SHIPPED_TORPEDO_DAMAGE_CONTRACT)).not.toThrow();
+  });
+
+  it("pins the exact shipped §17 flotation tables in the contract", () => {
+    expect(TORPEDO_PROTECTION_LEAK_MULTIPLIER_BP).toEqual({
+      NONE: 15_000,
+      WEAK: 12_500,
+      STANDARD: 10_000,
+      STRONG: 7_500,
+      ADVANCED: 5_000,
+    });
+    expect(TORPEDO_IMPACT_ZONE_FLOTATION_MULTIPLIER_BP).toEqual({
+      EXTREMITY: 7_500,
+      MACHINERY: 12_500,
+      MAGAZINE: 12_500,
+      TUBE_BAY: 12_500, // authored BALANCE TARGET (INC-6 record for ADR-0029)
+      CENTRAL: 10_000,
+      BREACHED: 15_000,
+    });
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.protectionLeakMultiplierBp).toEqual(
+      TORPEDO_PROTECTION_LEAK_MULTIPLIER_BP,
+    );
+  });
+
+  it("pins the exact shipped §18 isolation / §19 machinery / §20 shock surfaces", () => {
+    expect(TORPEDO_FLOODING_ISOLATION_MULTIPLIER_BP).toEqual({
+      INTACT: 5_000,
+      DEGRADED: 10_000,
+      FAILED: 15_000,
+    });
+    expect(TORPEDO_MACHINERY_SEVERITY_WEIGHTS_BP).toEqual({
+      NO_EFFECT: 1_000,
+      DEGRADED_PROPULSION: 4_000,
+      MAJOR_PROPULSION_LOSS: 3_000,
+      DEAD_IN_WATER: 1_500,
+      CATASTROPHIC_MACHINERY_LOSS: 500,
+    });
+    expect(TORPEDO_NON_MACHINERY_ELIGIBILITY_BP).toBe(2_500);
+  });
+
+  it("fails closed on tampered INC-6 damage constants", () => {
+    expect(() =>
+      validateTorpedoDamageContract({
+        ...SHIPPED_TORPEDO_DAMAGE_CONTRACT,
+        flotationScaleExponent: 2,
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoDamageContract({
+        ...SHIPPED_TORPEDO_DAMAGE_CONTRACT,
+        protectionLeakMultiplierBp: { ...TORPEDO_PROTECTION_LEAK_MULTIPLIER_BP, NONE: 14_999 },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoDamageContract({
+        ...SHIPPED_TORPEDO_DAMAGE_CONTRACT,
+        impactZoneFlotationMultiplierBp: {
+          ...TORPEDO_IMPACT_ZONE_FLOTATION_MULTIPLIER_BP,
+          MAGAZINE: 12_499,
+        },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoDamageContract({
+        ...SHIPPED_TORPEDO_DAMAGE_CONTRACT,
+        floodingIsolationMultiplierBp: {
+          ...TORPEDO_FLOODING_ISOLATION_MULTIPLIER_BP,
+          FAILED: 14_999,
+        },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoDamageContract({
+        ...SHIPPED_TORPEDO_DAMAGE_CONTRACT,
+        machinerySeverityWeightsBp: { ...TORPEDO_MACHINERY_SEVERITY_WEIGHTS_BP, NO_EFFECT: 999 },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() => validateTorpedoDamageContract(null)).toThrow(BluewaveError);
+  });
+
+  it("CONTRACT-PINS the highest-leverage authored constants (HIGH-1: base flotation + structural rates, severe-tube casualty base + share, immediate-flooding density + depth)", () => {
+    // exact shipped values in the contract
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.baseFlotationDamagePerKgEq).toBe(16);
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.structuralDamagePerKgEq).toBe(48);
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.tubeCrewCasualtyBaseBp).toBe(5_000);
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.tubeCrewCasualtyShareBp).toBe(2_500);
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.seawaterDensityKgPerM3).toBe(1_000);
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.immediateFloodingMinDepthM).toBe(1);
+    // the shipped constants match the contract (no drift)
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.baseFlotationDamagePerKgEq).toBe(
+      TORPEDO_BASE_FLOTATION_DAMAGE_PER_KG_EQ,
+    );
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.structuralDamagePerKgEq).toBe(
+      TORPEDO_STRUCTURAL_DAMAGE_PER_KG_EQ,
+    );
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.tubeCrewCasualtyBaseBp).toBe(
+      TORPEDO_TUBE_CREW_CASUALTY_BASE_BP,
+    );
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.tubeCrewCasualtyShareBp).toBe(
+      TORPEDO_TUBE_CREW_CASUALTY_SHARE_BP,
+    );
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.seawaterDensityKgPerM3).toBe(
+      TORPEDO_SEAWATER_DENSITY_KG_PER_M3,
+    );
+    expect(SHIPPED_TORPEDO_DAMAGE_CONTRACT.immediateFloodingMinDepthM).toBe(
+      TORPEDO_IMMEDIATE_FLOODING_MIN_DEPTH_M,
+    );
+  });
+
+  it("FAILS CLOSED when any CONTRACT-PINNED authored constant is tampered (HIGH-1)", () => {
+    const tampered = {
+      baseFlotationDamagePerKgEq: 17,
+      structuralDamagePerKgEq: 47,
+      tubeCrewCasualtyBaseBp: 5_001,
+      tubeCrewCasualtyShareBp: 2_499,
+      seawaterDensityKgPerM3: 999,
+      immediateFloodingMinDepthM: 2,
+    } as const;
+    for (const [field, value] of Object.entries(tampered)) {
+      expect(() =>
+        validateTorpedoDamageContract({
+          ...SHIPPED_TORPEDO_DAMAGE_CONTRACT,
+          [field]: value,
+        }),
+      ).toThrow(BluewaveError);
+    }
+    // the intact contract still validates
+    expect(() => validateTorpedoDamageContract(SHIPPED_TORPEDO_DAMAGE_CONTRACT)).not.toThrow();
+  });
+});
+
+describe("AC-18/AC-24 (INC-6): the underwater_tube_hit_hazard_v1 name-branded contract + guard", () => {
+  it("ships the spec-named hazard policy + exact §21 base and validates the contract", () => {
+    expect(underwaterTubeHitHazardPolicyId).toBe("underwater_tube_hit_hazard_v1");
+    expect(TORPEDO_TUBE_HAZARD_BASE_BP).toBe(5_000);
+    expect(SHIPPED_UNDERWATER_TUBE_HIT_HAZARD_CONTRACT.baseSevereFloodingBp).toBe(5_000);
+    expect(SHIPPED_UNDERWATER_TUBE_HIT_HAZARD_CONTRACT.loadedTubeMultiplierBp).toEqual({
+      NO_LOADED_TORPEDO: 2_500,
+      ONE_LOADED_TUBE: 10_000,
+      TWO_OR_MORE_LOADED_TUBES: 12_500,
+    });
+    expect(() =>
+      validateUnderwaterTubeHitHazardContract(SHIPPED_UNDERWATER_TUBE_HIT_HAZARD_CONTRACT),
+    ).not.toThrow();
+  });
+
+  it("fails closed on tampered §21 hazard constants", () => {
+    expect(() =>
+      validateUnderwaterTubeHitHazardContract({
+        ...SHIPPED_UNDERWATER_TUBE_HIT_HAZARD_CONTRACT,
+        baseSevereFloodingBp: 4_999,
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateUnderwaterTubeHitHazardContract({
+        ...SHIPPED_UNDERWATER_TUBE_HIT_HAZARD_CONTRACT,
+        floodingIsolationMultiplierBp: { INTACT: 7_501, DEGRADED: 10_000, FAILED: 15_000 },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateUnderwaterTubeHitHazardContract({
+        ...SHIPPED_UNDERWATER_TUBE_HIT_HAZARD_CONTRACT,
+        protectionMultiplierBp: { NONE: 12_499, STANDARD: 10_000, IMPROVED: 7_500 },
+      }),
+    ).toThrow(BluewaveError);
+    expect(() => validateUnderwaterTubeHitHazardContract(null)).toThrow(BluewaveError);
   });
 });

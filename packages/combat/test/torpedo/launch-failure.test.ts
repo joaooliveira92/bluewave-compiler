@@ -411,7 +411,7 @@ describe("AC-12: later tubes continue only per the salvo policy", () => {
       keyedRng: tubeDraws({ 0: 0.5, 1: 0.005 }),
     });
     expect(r.salvo.recommendedSize).toBe(1);
-expect(r.skippedTubeIds).toEqual([3]);
+    expect(r.skippedTubeIds).toEqual([3]);
     expect(r.attempts.map((a) => a.tubeId)).toEqual([0, 1]);
     expect(r.attempts[1].outcome).toBe("TORPEDO_LAUNCH_FAILURE");
     // the mechanical-failure tube is restored
