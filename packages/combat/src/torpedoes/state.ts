@@ -77,14 +77,21 @@ function invariant(s: TorpedoLauncherState, field: string, value: unknown, reaso
   });
 }
 
-// AC-2: reject any non-integer / out-of-bound / malformed field in the
-// authoritative TorpedoLauncherState with TORPEDO_STATE_INVARIANT_FAILED.
-// Reversible-to-invariant: a failure leaves the supplied state untouched.
-export function assertFixedPointTorpedo(s: TorpedoLauncherState): void {
+// AC-2: surface guard — rejects any non-integer / out-of-bound / malformed
+// field with TORPEDO_STATE_INVARIANT_FAILED, EXCEPT the stateHash presence (a
+// hash-less surface is validated before hashing). Mirrors
+// assertTorpedoModelSurface in model.ts. Reversible-to-invariant: a failure
+// leaves the supplied state untouched.
+export function assertTorpedoLauncherSurface(s: TorpedoLauncherState): void {
   if (typeof s.launcherId !== "string" || s.launcherId.length === 0)
     invariant(s, "launcherId", s.launcherId, "launcherId must be a non-empty string");
   if (typeof s.ownerPlatformId !== "string" || s.ownerPlatformId.length === 0)
-    invariant(s, "ownerPlatformId", s.ownerPlatformId, "ownerPlatformId must be a non-empty string");
+    invariant(
+      s,
+      "ownerPlatformId",
+      s.ownerPlatformId,
+      "ownerPlatformId must be a non-empty string",
+    );
   if (typeof s.launcherFamilyId !== "string" || s.launcherFamilyId.length === 0)
     invariant(
       s,
@@ -116,7 +123,12 @@ export function assertFixedPointTorpedo(s: TorpedoLauncherState): void {
   }
 
   if (typeof s.reserveAmmunition !== "object" || s.reserveAmmunition === null)
-    invariant(s, "reserveAmmunition", s.reserveAmmunition, "reserveAmmunition must be a record keyed by model id");
+    invariant(
+      s,
+      "reserveAmmunition",
+      s.reserveAmmunition,
+      "reserveAmmunition must be a record keyed by model id",
+    );
   for (const [modelId, count] of Object.entries(s.reserveAmmunition)) {
     if (modelId.length === 0)
       invariant(s, "reserveAmmunition", s.reserveAmmunition, "reserve model id must be non-empty");
@@ -129,6 +141,11 @@ export function assertFixedPointTorpedo(s: TorpedoLauncherState): void {
       );
   }
 
+  // F3: a missing reloadState must fail closed — never dereference .status on
+  // null/undefined (which would surface as a raw TypeError).
+  if (typeof s.reloadState !== "object" || s.reloadState === null)
+    invariant(s, "reloadState", s.reloadState, "reloadState must be a record");
+
   // The reload state is a closed two-member union; the status check uses a
   // widened view so a malformed runtime status value is caught here (the union
   // narrowing alone would make the invalid branch statically unreachable).
@@ -136,12 +153,26 @@ export function assertFixedPointTorpedo(s: TorpedoLauncherState): void {
   if (reloadStatus === "RELOAD_IN_PROGRESS") {
     const r = s.reloadState as Extract<TorpedoReloadState, { status: "RELOAD_IN_PROGRESS" }>;
     if (!Number.isInteger(r.tubeIndex) || r.tubeIndex < 0 || r.tubeIndex >= s.tubeCount)
-      invariant(s, "reloadState.tubeIndex", r.tubeIndex, "reload tubeIndex must be within [0, tubeCount)");
+      invariant(
+        s,
+        "reloadState.tubeIndex",
+        r.tubeIndex,
+        "reload tubeIndex must be within [0, tubeCount)",
+      );
     if (typeof r.modelId !== "string" || r.modelId.length === 0)
       invariant(s, "reloadState.modelId", r.modelId, "reload model id must be non-empty");
     if (!Number.isInteger(r.requiredReloadTimeMs) || r.requiredReloadTimeMs <= 0)
-      invariant(s, "reloadState.requiredReloadTimeMs", r.requiredReloadTimeMs, "required reload time must be a positive integer ms");
-    if (!Number.isInteger(r.progressMs) || r.progressMs < 0 || r.progressMs > r.requiredReloadTimeMs)
+      invariant(
+        s,
+        "reloadState.requiredReloadTimeMs",
+        r.requiredReloadTimeMs,
+        "required reload time must be a positive integer ms",
+      );
+    if (
+      !Number.isInteger(r.progressMs) ||
+      r.progressMs < 0 ||
+      r.progressMs > r.requiredReloadTimeMs
+    )
       invariant(
         s,
         "reloadState.progressMs",
@@ -173,18 +204,36 @@ export function assertFixedPointTorpedo(s: TorpedoLauncherState): void {
   if (!(LAUNCHER_DAMAGE_STATES as readonly string[]).includes(s.damageState))
     invariant(s, "damageState", s.damageState, "damage state must be canonical");
   if (!(FLOODING_ISOLATION_STATES as readonly string[]).includes(s.floodingIsolationState))
-    invariant(s, "floodingIsolationState", s.floodingIsolationState, "flooding-isolation state must be canonical");
+    invariant(
+      s,
+      "floodingIsolationState",
+      s.floodingIsolationState,
+      "flooding-isolation state must be canonical",
+    );
 
   if (s.activeFireSolution === NO_FIRE_SOLUTION) {
     // valid
   } else if (typeof s.activeFireSolution !== "string" || s.activeFireSolution.length === 0) {
-    invariant(s, "activeFireSolution", s.activeFireSolution, "active fire solution must be an id or NONE");
+    invariant(
+      s,
+      "activeFireSolution",
+      s.activeFireSolution,
+      "active fire solution must be an id or NONE",
+    );
   }
 
   if (typeof s.rulesetVersion !== "string" || s.rulesetVersion.length === 0)
     invariant(s, "rulesetVersion", s.rulesetVersion, "rulesetVersion must be a non-empty string");
   if (typeof s.formulaVersion !== "string" || s.formulaVersion.length === 0)
     invariant(s, "formulaVersion", s.formulaVersion, "formulaVersion must be a non-empty string");
+}
+
+// AC-2 (F6): full guard — the surface checks PLUS the stateHash presence
+// requirement. A TorpedoLauncherState is only authoritative with its hash.
+export function assertFixedPointTorpedo(s: TorpedoLauncherState): void {
+  assertTorpedoLauncherSurface(s);
+  if (typeof s.stateHash !== "string" || s.stateHash.length === 0)
+    invariant(s, "stateHash", s.stateHash, "stateHash must be a non-empty string");
 }
 
 // Authoritative deterministic state hash: canonicalSerialize + sha256 over the
@@ -213,11 +262,23 @@ export function computeTorpedoLauncherStateHash(s: TorpedoLauncherState): string
   return createEnvelope("torpedo-launcher-state", torpedoPolicyId, surface).bodyHash;
 }
 
-// Build a fully-invariant TorpedoLauncherState with its authoritative hash.
+// Build a fully-invariant TorpedoLauncherState with its authoritative hash:
+// validate the hash-less surface, compute the hash, then enforce the full
+// guard (incl. the stateHash presence requirement) on the completed state.
 export function withTorpedoLauncherStateHash(
   s: Omit<TorpedoLauncherState, "stateHash">,
 ): TorpedoLauncherState {
-  const full = s as TorpedoLauncherState;
+  const surface = s as TorpedoLauncherState;
+  assertTorpedoLauncherSurface(surface);
+  const stateHash = computeTorpedoLauncherStateHash(surface);
+  const full: TorpedoLauncherState = { ...surface, stateHash };
   assertFixedPointTorpedo(full);
-  return { ...full, stateHash: computeTorpedoLauncherStateHash(full) };
+  return full;
+}
+
+// Fail-closed verification mirroring verifyTorpedoModelContentHash: recompute
+// the authoritative hash and compare. Any tampered field produces a mismatch
+// (never silently accepted).
+export function verifyTorpedoLauncherStateHash(s: TorpedoLauncherState): boolean {
+  return computeTorpedoLauncherStateHash(s) === s.stateHash;
 }

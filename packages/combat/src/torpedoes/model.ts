@@ -72,7 +72,12 @@ export interface TorpedoModelDefinition {
   contentHash: string; // deterministic SHA-256 over the non-hash surface
 }
 
-function invariant(m: TorpedoModelDefinition, field: string, value: unknown, reason: string): never {
+function invariant(
+  m: TorpedoModelDefinition,
+  field: string,
+  value: unknown,
+  reason: string,
+): never {
   throw new BluewaveError(INVALID_TORPEDO_MODEL_DEFINITION, {
     code: INVALID_TORPEDO_MODEL_DEFINITION,
     field,
@@ -97,9 +102,19 @@ export function assertTorpedoModelSurface(m: TorpedoModelDefinition): void {
     invariant(m, "torpedoModelId", m.torpedoModelId, "torpedoModelId must be a non-empty string");
 
   if (!Array.isArray(m.ownerNationIds) || m.ownerNationIds.length === 0)
-    invariant(m, "ownerNationIds", m.ownerNationIds, "at least one owner/licensing nation is required");
+    invariant(
+      m,
+      "ownerNationIds",
+      m.ownerNationIds,
+      "at least one owner/licensing nation is required",
+    );
   if (!m.ownerNationIds.every(isNonEmptyString))
-    invariant(m, "ownerNationIds", m.ownerNationIds, "every owner nation must be a non-empty string");
+    invariant(
+      m,
+      "ownerNationIds",
+      m.ownerNationIds,
+      "every owner nation must be a non-empty string",
+    );
 
   if (!Array.isArray(m.technologyPrerequisiteIds))
     invariant(m, "technologyPrerequisiteIds", m.technologyPrerequisiteIds, "must be an array");
@@ -142,10 +157,20 @@ export function assertTorpedoModelSurface(m: TorpedoModelDefinition): void {
     );
 
   if (!(TORPEDO_PROPULSION_TYPES as readonly string[]).includes(m.propulsionType))
-    invariant(m, "propulsionType", m.propulsionType, "propulsionType must be a canonical propulsion type");
+    invariant(
+      m,
+      "propulsionType",
+      m.propulsionType,
+      "propulsionType must be a canonical propulsion type",
+    );
 
   if (!Array.isArray(m.orderedSettings) || m.orderedSettings.length === 0)
-    invariant(m, "orderedSettings", m.orderedSettings, "at least one ordered speed/range setting is required");
+    invariant(
+      m,
+      "orderedSettings",
+      m.orderedSettings,
+      "at least one ordered speed/range setting is required",
+    );
   for (let i = 0; i < m.orderedSettings.length; i++) {
     const setting = m.orderedSettings[i];
     if (!isNonEmptyString(setting.settingId))
@@ -183,9 +208,19 @@ export function assertTorpedoModelSurface(m: TorpedoModelDefinition): void {
     );
 
   if (!isNonEmptyString(m.depthKeepingProfile))
-    invariant(m, "depthKeepingProfile", m.depthKeepingProfile, "depth-keeping profile must be a non-empty id");
+    invariant(
+      m,
+      "depthKeepingProfile",
+      m.depthKeepingProfile,
+      "depth-keeping profile must be a non-empty id",
+    );
   if (!isNonEmptyString(m.guidanceCapability))
-    invariant(m, "guidanceCapability", m.guidanceCapability, "guidance capability must be a non-empty id");
+    invariant(
+      m,
+      "guidanceCapability",
+      m.guidanceCapability,
+      "guidance capability must be a non-empty id",
+    );
 
   if (!Array.isArray(m.compatibleLauncherFamilyIds) || m.compatibleLauncherFamilyIds.length === 0)
     invariant(
@@ -204,12 +239,27 @@ export function assertTorpedoModelSurface(m: TorpedoModelDefinition): void {
 
   if (m.propulsionType === "OXYGEN") {
     if (m.oxygenState === null || typeof m.oxygenState !== "object")
-      invariant(m, "oxygenState", m.oxygenState, "an OXYGEN model MUST declare its §23 oxygen state");
+      invariant(
+        m,
+        "oxygenState",
+        m.oxygenState,
+        "an OXYGEN model MUST declare its §23 oxygen state",
+      );
     const o = m.oxygenState as OxygenTorpedoState;
     if (o.oxygenRangeMultiplierBp !== OXYGEN_RANGE_MULTIPLIER_BP)
-      invariant(m, "oxygenState.oxygenRangeMultiplierBp", o.oxygenRangeMultiplierBp, "shipped §23 range multiplier 15_000");
+      invariant(
+        m,
+        "oxygenState.oxygenRangeMultiplierBp",
+        o.oxygenRangeMultiplierBp,
+        "shipped §23 range multiplier 15_000",
+      );
     if (o.oxygenSpeedMultiplierBp !== OXYGEN_SPEED_MULTIPLIER_BP)
-      invariant(m, "oxygenState.oxygenSpeedMultiplierBp", o.oxygenSpeedMultiplierBp, "shipped §23 speed multiplier 11_000");
+      invariant(
+        m,
+        "oxygenState.oxygenSpeedMultiplierBp",
+        o.oxygenSpeedMultiplierBp,
+        "shipped §23 speed multiplier 11_000",
+      );
     if (o.oxygenWakeDetectionMultiplierBp !== OXYGEN_WAKE_DETECTION_MULTIPLIER_BP)
       invariant(
         m,
@@ -225,8 +275,17 @@ export function assertTorpedoModelSurface(m: TorpedoModelDefinition): void {
         "shipped §23 tube-hit severe-flooding multiplier 15_000",
       );
     if (o.chainReactionBaseBp !== OXYGEN_CHAIN_REACTION_BASE_BP)
-      invariant(m, "oxygenState.chainReactionBaseBp", o.chainReactionBaseBp, "shipped §23 chain-reaction base 3_000");
-    if (!isInt(o.wakeVisibilityModifierBp) || o.wakeVisibilityModifierBp < 0 || o.wakeVisibilityModifierBp > 10_000)
+      invariant(
+        m,
+        "oxygenState.chainReactionBaseBp",
+        o.chainReactionBaseBp,
+        "shipped §23 chain-reaction base 3_000",
+      );
+    if (
+      !isInt(o.wakeVisibilityModifierBp) ||
+      o.wakeVisibilityModifierBp < 0 ||
+      o.wakeVisibilityModifierBp > 10_000
+    )
       invariant(
         m,
         "oxygenState.wakeVisibilityModifierBp",
@@ -235,11 +294,21 @@ export function assertTorpedoModelSurface(m: TorpedoModelDefinition): void {
       );
   } else {
     if (m.oxygenState !== null)
-      invariant(m, "oxygenState", m.oxygenState, "oxygen state is only valid for OXYGEN propulsion");
+      invariant(
+        m,
+        "oxygenState",
+        m.oxygenState,
+        "oxygen state is only valid for OXYGEN propulsion",
+      );
   }
 
   if (!(TUBE_HIT_HAZARD_POLICIES as readonly string[]).includes(m.tubeHitHazardPolicyId))
-    invariant(m, "tubeHitHazardPolicyId", m.tubeHitHazardPolicyId, "tube-hit-hazard policy must be canonical");
+    invariant(
+      m,
+      "tubeHitHazardPolicyId",
+      m.tubeHitHazardPolicyId,
+      "tube-hit-hazard policy must be canonical",
+    );
 
   if (!isNonEmptyString(m.contentVersion))
     invariant(m, "contentVersion", m.contentVersion, "content version must be a non-empty string");

@@ -11,6 +11,7 @@ import {
   completeTorpedoReload,
   consumeForLaunch,
   EMPTY_TUBE,
+  INVALID_TORPEDO_MODEL_DEFINITION,
   NO_RELOAD_IN_PROGRESS,
   reserveForReload,
   TORPEDO_AMMUNITION_UNAVAILABLE,
@@ -85,7 +86,17 @@ describe("AC-3: consumeForLaunch consumes exactly one torpedo per fired tube", (
     expect(err.context.tubeIndex).toBe(2);
     // the original state is untouched — tube 1 was never consumed
     expect(state.loadedPerTube).toEqual([G7A, G7A, EMPTY_TUBE, G7A]);
-    expect(totalInventory(state)).toBe(totalInventory(state));
+    // concrete expected total: 3 loaded + 6 G7a + 3 G7e reserve = 12
+    expect(totalInventory(state)).toBe(12);
+  });
+
+  it("rejects duplicate tube indexes in one salvo — a tube fires at most once (F4)", () => {
+    const state = baseLauncher();
+    expectCode(() => consumeForLaunch(state, [0, 0]), TORPEDO_STATE_INVARIANT_FAILED);
+    // atomic: nothing was consumed
+    expect(state.loadedPerTube).toEqual([G7A, G7A, EMPTY_TUBE, G7A]);
+    expect(state.reserveAmmunition).toEqual({ [G7A]: 6, [G7E]: 3 });
+    expect(totalInventory(state)).toBe(12);
   });
 
   it("fails with TORPEDO_AMMUNITION_UNAVAILABLE on an empty tube", () => {
@@ -167,6 +178,25 @@ describe("AC-3: reserveForReload reserves + consumes one compatible reserve", ()
         }),
       TORPEDO_AMMUNITION_UNAVAILABLE,
     );
+  });
+
+  it("rejects a modelId NOT in the shipped catalog — a caller-supplied compatible flag is never trusted for unknown models (F5)", () => {
+    const state = baseLauncher();
+    const err = expectCode(
+      () =>
+        reserveForReload(state, {
+          tubeIndex: 2,
+          modelId: "ger_533mm_g7a_2040", // never shipped
+          compatible: true, // caller asserts compatibility — must still fail closed
+          requiredReloadTimeMs: RELOAD_MS,
+        }),
+      INVALID_TORPEDO_MODEL_DEFINITION,
+    );
+    expect(err.context.value).toBe("ger_533mm_g7a_2040");
+    // atomic: no reserve consumed, no reload record started
+    expect(state.reserveAmmunition).toEqual({ [G7A]: 6, [G7E]: 3 });
+    expect(state.loadedPerTube[2]).toBe(EMPTY_TUBE);
+    expect(state.reloadState).toEqual(NO_RELOAD_IN_PROGRESS);
   });
 
   it("never exceeds tube capacity: reload into a LOADED tube fails closed", () => {

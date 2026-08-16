@@ -100,7 +100,10 @@ describe("AC-1: missing or invalid fields fail with INVALID_TORPEDO_MODEL_DEFINI
   });
 
   it("rejects a missing productionRequirementId", () => {
-    expectInvalid(() => brokenModel((m) => delete m.productionRequirementId), "productionRequirementId");
+    expectInvalid(
+      () => brokenModel((m) => delete m.productionRequirementId),
+      "productionRequirementId",
+    );
   });
 
   it("rejects a non-integer or non-positive diameterMm", () => {
@@ -155,7 +158,10 @@ describe("AC-1: missing or invalid fields fail with INVALID_TORPEDO_MODEL_DEFINI
   });
 
   it("rejects empty compatibleLauncherFamilyIds", () => {
-    expectInvalid(() => validModel({ compatibleLauncherFamilyIds: [] }), "compatibleLauncherFamilyIds");
+    expectInvalid(
+      () => validModel({ compatibleLauncherFamilyIds: [] }),
+      "compatibleLauncherFamilyIds",
+    );
   });
 
   it("rejects an OXYGEN model without its §23 oxygen state", () => {
@@ -199,7 +205,10 @@ describe("AC-1: missing or invalid fields fail with INVALID_TORPEDO_MODEL_DEFINI
 
   it("rejects an unknown tube-hit-hazard policy", () => {
     expectInvalid(
-      () => validModel({ tubeHitHazardPolicyId: "RADIOACTIVE" } as unknown as Partial<TorpedoModelDefinition>),
+      () =>
+        validModel({
+          tubeHitHazardPolicyId: "RADIOACTIVE",
+        } as unknown as Partial<TorpedoModelDefinition>),
       "tubeHitHazardPolicyId",
     );
   });

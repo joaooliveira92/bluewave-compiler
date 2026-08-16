@@ -10,6 +10,7 @@
 // Pure/deterministic: no ambient I/O/clock/random.
 import { BluewaveError } from "@bluewave/contracts";
 import { EMPTY_TUBE } from "./constants.js";
+import { torpedoModelById } from "./model.js";
 import {
   TORPEDO_AMMUNITION_UNAVAILABLE,
   TORPEDO_MODEL_INCOMPATIBLE,
@@ -55,6 +56,15 @@ export function consumeForLaunch(
 ): TorpedoConsumeResult {
   if (!Array.isArray(tubeIndexes) || tubeIndexes.length === 0)
     invariant(state, "tubeIndexes", tubeIndexes, "a launch must fire at least one tube");
+  // F4: a tube may be fired at most once per launch — duplicate indexes would
+  // double-count the same torpedo (atomic: nothing is consumed on rejection).
+  if (new Set(tubeIndexes).size !== tubeIndexes.length)
+    invariant(
+      state,
+      "tubeIndexes",
+      tubeIndexes,
+      "each tube may be fired at most once per launch (duplicate indexes)",
+    );
 
   const accounts: TorpedoTubeConsumptionAccount[] = [];
   for (const tubeIndex of tubeIndexes) {
@@ -87,6 +97,8 @@ export function consumeForLaunch(
 // Reserve + consume one compatible reserve torpedo for a reload of `tubeIndex`.
 // Preconditions (fail-closed, in order):
 //   - tubeIndex within [0, tubeCount)                -> TORPEDO_STATE_INVARIANT_FAILED
+//   - modelId is a shipped catalog model (F5: never trust a caller-supplied
+//     compatibility flag for an unknown model)       -> INVALID_TORPEDO_MODEL_DEFINITION
 //   - the tube is EMPTY (no over-capacity reload)    -> TORPEDO_STATE_INVARIANT_FAILED
 //   - no reload already in progress for the launcher -> TORPEDO_STATE_INVARIANT_FAILED
 //   - the model is compatible with the launcher      -> TORPEDO_MODEL_INCOMPATIBLE
@@ -113,9 +125,24 @@ export function reserveForReload(
   if (typeof modelId !== "string" || modelId.length === 0)
     invariant(state, "modelId", modelId, "reload model id must be a non-empty string");
   if (!Number.isInteger(requiredReloadTimeMs) || requiredReloadTimeMs <= 0)
-    invariant(state, "requiredReloadTimeMs", requiredReloadTimeMs, "required reload time must be a positive integer ms");
+    invariant(
+      state,
+      "requiredReloadTimeMs",
+      requiredReloadTimeMs,
+      "required reload time must be a positive integer ms",
+    );
   if (!Number.isInteger(progressMs) || progressMs < 0 || progressMs > requiredReloadTimeMs)
-    invariant(state, "progressMs", progressMs, "reload progress must be an integer within [0, requiredReloadTimeMs]");
+    invariant(
+      state,
+      "progressMs",
+      progressMs,
+      "reload progress must be an integer within [0, requiredReloadTimeMs]",
+    );
+
+  // F5: the modelId must exist in the shipped model catalog — a caller-supplied
+  // `compatible: true` must never open a consumption path for an unknown model
+  // (fail-closed with INVALID_TORPEDO_MODEL_DEFINITION, mirroring torpedoModelById).
+  torpedoModelById(modelId);
 
   if (state.loadedPerTube[tubeIndex] !== EMPTY_TUBE)
     invariant(

@@ -2,7 +2,12 @@
 // mount-type enum with exactly five values, integer/fixed-point guards via
 // assertFixedPointTorpedo (TORPEDO_STATE_INVARIANT_FAILED), structural rejection
 // at the construction boundary (INVALID_TORPEDO_LAUNCHER_STATE), and an
-// authoritative deterministic state hash.
+// authoritative deterministic state hash. The guard is split like model.ts: the
+// surface guard (assertTorpedoLauncherSurface) validates a hash-less state, the
+// full guard (assertFixedPointTorpedo) additionally requires the stateHash.
+// NOTE: a tampered surface throws the same TORPEDO_STATE_INVARIANT_FAILED from
+// assertFixedPointTorpedo — expectInvariant takes a THUNK so that throw is
+// caught and asserted here, not reported as an uncaught failure.
 import { describe, expect, it } from "vite-plus/test";
 import { BluewaveError } from "@bluewave/contracts";
 import {
@@ -15,10 +20,15 @@ import {
   TORPEDO_MOUNT_TYPES,
   TORPEDO_STATE_INVARIANT_FAILED,
   type TorpedoLauncherState,
+  verifyTorpedoLauncherStateHash,
   withTorpedoLauncherStateHash,
 } from "../../src/torpedoes/index.js";
 
-function baseLauncher(overrides: Partial<TorpedoLauncherState> = {}): TorpedoLauncherState {
+// A hash-less, fully-valid state surface derived from the shipped launcher
+// surface. Tests tamper individual fields to prove the fail-closed guard.
+function surface(
+  overrides: Partial<TorpedoLauncherState> = {},
+): Omit<TorpedoLauncherState, "stateHash"> {
   return {
     launcherId: "LCH-1",
     ownerPlatformId: "SHIP-ALPHA",
@@ -27,7 +37,7 @@ function baseLauncher(overrides: Partial<TorpedoLauncherState> = {}): TorpedoLau
     mountType: "UNDERWATER_TRAINABLE",
     tubeCount: 4,
     loadedPerTube: ["ger_533mm_g7a_1934", "ger_533mm_g7a_1934", EMPTY_TUBE, "ger_533mm_g7a_1934"],
-    reserveAmmunition: { "ger_533mm_g7a_1934": 6, "jpn_61cm_type93_1935": 2 },
+    reserveAmmunition: { ger_533mm_g7a_1934: 6, jpn_61cm_type93_1935: 2 },
     reloadState: NO_RELOAD_IN_PROGRESS,
     trainingLimitsMdeg: { min: -45_000, max: 45_000 },
     underwaterLaunchCapability: true,
@@ -37,15 +47,22 @@ function baseLauncher(overrides: Partial<TorpedoLauncherState> = {}): TorpedoLau
     activeFireSolution: "SOL-1",
     rulesetVersion: "torpedo_ruleset_v1",
     formulaVersion: "torpedo_formula_v1",
-    stateHash: "",
     ...overrides,
   };
 }
 
-function expectInvariant(s: TorpedoLauncherState, field: string): BluewaveError {
+// A fully-invariant state with the authoritative hash computed.
+function validState(overrides: Partial<TorpedoLauncherState> = {}): TorpedoLauncherState {
+  return withTorpedoLauncherStateHash(surface(overrides));
+}
+
+function expectInvariant(
+  build: () => TorpedoLauncherState | Omit<TorpedoLauncherState, "stateHash">,
+  field: string,
+): BluewaveError {
   let err: BluewaveError | undefined;
   try {
-    assertFixedPointTorpedo(s);
+    assertFixedPointTorpedo(build() as TorpedoLauncherState);
   } catch (e) {
     err = e as BluewaveError;
   }
@@ -68,150 +85,168 @@ describe("AC-2: closed mount-type enum (exactly the five DESIGN-40 §2 values)",
 
   it("rejects a sixth, non-canonical mount type", () => {
     expectInvariant(
-      baseLauncher({ mountType: "SURFACE_TRAINABLE" } as unknown as Partial<TorpedoLauncherState>),
+      () => surface({ mountType: "SURFACE_TRAINABLE" } as unknown as Partial<TorpedoLauncherState>),
       "mountType",
     );
   });
 });
 
 describe("AC-2: assertFixedPointTorpedo invariant guard (TORPEDO_STATE_INVARIANT_FAILED)", () => {
-  it("accepts a fully-valid TorpedoLauncherState", () => {
-    expect(() => assertFixedPointTorpedo(baseLauncher())).not.toThrow();
+  it("accepts a fully-valid, hash-computed TorpedoLauncherState", () => {
+    expect(() => assertFixedPointTorpedo(validState())).not.toThrow();
   });
 
   it("rejects a missing launcherId", () => {
-    expectInvariant(baseLauncher({ launcherId: "" }), "launcherId");
+    expectInvariant(() => surface({ launcherId: "" }), "launcherId");
   });
 
   it("rejects a non-integer tube count", () => {
-    expectInvariant(baseLauncher({ tubeCount: 4.5 } as Partial<TorpedoLauncherState>), "tubeCount");
+    expectInvariant(() => surface({ tubeCount: 4.5 }), "tubeCount");
   });
 
   it("rejects a zero tube count", () => {
-    expectInvariant(baseLauncher({ tubeCount: 0 } as Partial<TorpedoLauncherState>), "tubeCount");
+    expectInvariant(() => surface({ tubeCount: 0 }), "tubeCount");
   });
 
   it("rejects loadedPerTube whose length mismatches tubeCount", () => {
-    expectInvariant(
-      baseLauncher({ loadedPerTube: ["ger_533mm_g7a_1934"] } as Partial<TorpedoLauncherState>),
-      "loadedPerTube",
-    );
+    expectInvariant(() => surface({ loadedPerTube: ["ger_533mm_g7a_1934"] }), "loadedPerTube");
   });
 
   it("accepts EMPTY entries and rejects empty-string / malformed loaded entries", () => {
     expect(() =>
       assertFixedPointTorpedo(
-        baseLauncher({ loadedPerTube: [EMPTY_TUBE, "ger_533mm_g7a_1934", EMPTY_TUBE, "ger_533mm_g7a_1934"] }),
+        validState({
+          loadedPerTube: [EMPTY_TUBE, "ger_533mm_g7a_1934", EMPTY_TUBE, "ger_533mm_g7a_1934"],
+        }),
       ),
     ).not.toThrow();
     expectInvariant(
-      baseLauncher({ loadedPerTube: ["", "ger_533mm_g7a_1934", EMPTY_TUBE, "ger_533mm_g7a_1934"] } as Partial<TorpedoLauncherState>),
+      () =>
+        surface({ loadedPerTube: ["", "ger_533mm_g7a_1934", EMPTY_TUBE, "ger_533mm_g7a_1934"] }),
       "loadedPerTube[0]",
     );
   });
 
   it("rejects non-integer or negative reserve counts", () => {
     expectInvariant(
-      baseLauncher({
-        reserveAmmunition: { "ger_533mm_g7a_1934": 6.5 },
-      } as Partial<TorpedoLauncherState>),
+      () => surface({ reserveAmmunition: { ger_533mm_g7a_1934: 6.5 } }),
       "reserveAmmunition[ger_533mm_g7a_1934]",
     );
     expectInvariant(
-      baseLauncher({
-        reserveAmmunition: { "ger_533mm_g7a_1934": -1 },
-      } as Partial<TorpedoLauncherState>),
+      () => surface({ reserveAmmunition: { ger_533mm_g7a_1934: -1 } }),
       "reserveAmmunition[ger_533mm_g7a_1934]",
+    );
+  });
+
+  it("rejects a null/undefined reloadState with TORPEDO_STATE_INVARIANT_FAILED — never a raw TypeError (F3)", () => {
+    expectInvariant(
+      () => surface({ reloadState: null as unknown as TorpedoLauncherState["reloadState"] }),
+      "reloadState",
+    );
+    expectInvariant(
+      () => surface({ reloadState: undefined as unknown as TorpedoLauncherState["reloadState"] }),
+      "reloadState",
     );
   });
 
   it("rejects a reload record with an out-of-range tube index", () => {
     expectInvariant(
-      baseLauncher({
-        reloadState: {
-          status: "RELOAD_IN_PROGRESS",
-          tubeIndex: 7,
-          modelId: "ger_533mm_g7a_1934",
-          requiredReloadTimeMs: 120_000,
-          progressMs: 0,
-        },
-      }),
+      () =>
+        surface({
+          reloadState: {
+            status: "RELOAD_IN_PROGRESS",
+            tubeIndex: 7,
+            modelId: "ger_533mm_g7a_1934",
+            requiredReloadTimeMs: 120_000,
+            progressMs: 0,
+          },
+        }),
       "reloadState.tubeIndex",
     );
   });
 
   it("rejects reload progress beyond the required reload time", () => {
     expectInvariant(
-      baseLauncher({
-        reloadState: {
-          status: "RELOAD_IN_PROGRESS",
-          tubeIndex: 2,
-          modelId: "ger_533mm_g7a_1934",
-          requiredReloadTimeMs: 120_000,
-          progressMs: 120_001,
-        },
-      }),
+      () =>
+        surface({
+          reloadState: {
+            status: "RELOAD_IN_PROGRESS",
+            tubeIndex: 2,
+            modelId: "ger_533mm_g7a_1934",
+            requiredReloadTimeMs: 120_000,
+            progressMs: 120_001,
+          },
+        }),
       "reloadState.progressMs",
     );
   });
 
   it("rejects a non-integer required reload time", () => {
     expectInvariant(
-      baseLauncher({
-        reloadState: {
-          status: "RELOAD_IN_PROGRESS",
-          tubeIndex: 2,
-          modelId: "ger_533mm_g7a_1934",
-          requiredReloadTimeMs: 120_000.5,
-          progressMs: 0,
-        },
-      } as Partial<TorpedoLauncherState>),
+      () =>
+        surface({
+          reloadState: {
+            status: "RELOAD_IN_PROGRESS",
+            tubeIndex: 2,
+            modelId: "ger_533mm_g7a_1934",
+            requiredReloadTimeMs: 120_000.5,
+            progressMs: 0,
+          },
+        } as Partial<TorpedoLauncherState>),
       "reloadState.requiredReloadTimeMs",
     );
   });
 
   it("rejects training limits where min exceeds max", () => {
     expectInvariant(
-      baseLauncher({ trainingLimitsMdeg: { min: 45_000, max: -45_000 } }),
+      () => surface({ trainingLimitsMdeg: { min: 45_000, max: -45_000 } }),
       "trainingLimitsMdeg",
     );
   });
 
   it("rejects a non-boolean underwater-launch capability", () => {
     expectInvariant(
-      baseLauncher({ underwaterLaunchCapability: "yes" } as unknown as Partial<TorpedoLauncherState>),
+      () =>
+        surface({ underwaterLaunchCapability: "yes" } as unknown as Partial<TorpedoLauncherState>),
       "underwaterLaunchCapability",
     );
   });
 
   it("rejects non-canonical fire-control connection / damage / isolation states", () => {
     expectInvariant(
-      baseLauncher({ fireControlConnectionState: "LINKED" } as unknown as Partial<TorpedoLauncherState>),
+      () =>
+        surface({
+          fireControlConnectionState: "LINKED",
+        } as unknown as Partial<TorpedoLauncherState>),
       "fireControlConnectionState",
     );
     expectInvariant(
-      baseLauncher({ damageState: "SCRAPPED" } as unknown as Partial<TorpedoLauncherState>),
+      () => surface({ damageState: "SCRAPPED" } as unknown as Partial<TorpedoLauncherState>),
       "damageState",
     );
     expectInvariant(
-      baseLauncher({ floodingIsolationState: "LEAKY" } as unknown as Partial<TorpedoLauncherState>),
+      () =>
+        surface({ floodingIsolationState: "LEAKY" } as unknown as Partial<TorpedoLauncherState>),
       "floodingIsolationState",
     );
   });
 
   it("rejects an empty-string active fire solution", () => {
-    expectInvariant(baseLauncher({ activeFireSolution: "" }), "activeFireSolution");
+    expectInvariant(() => surface({ activeFireSolution: "" }), "activeFireSolution");
   });
 
   it("accepts the NONE fire-solution marker", () => {
-    expect(() =>
-      assertFixedPointTorpedo(baseLauncher({ activeFireSolution: "NONE" })),
-    ).not.toThrow();
+    expect(() => assertFixedPointTorpedo(validState({ activeFireSolution: "NONE" }))).not.toThrow();
   });
 
   it("rejects missing ruleset/formula versions", () => {
-    expectInvariant(baseLauncher({ rulesetVersion: "" }), "rulesetVersion");
-    expectInvariant(baseLauncher({ formulaVersion: "" }), "formulaVersion");
+    expectInvariant(() => surface({ rulesetVersion: "" }), "rulesetVersion");
+    expectInvariant(() => surface({ formulaVersion: "" }), "formulaVersion");
+  });
+
+  it("requires a non-empty stateHash on the full state — a hash-less surface fails closed (F6)", () => {
+    expectInvariant(() => surface(), "stateHash");
+    expectInvariant(() => ({ ...surface(), stateHash: "" }), "stateHash");
   });
 });
 
@@ -219,9 +254,11 @@ describe("AC-2: construction boundary (INVALID_TORPEDO_LAUNCHER_STATE) + state h
   it("rejects a structurally-missing field with INVALID_TORPEDO_LAUNCHER_STATE", () => {
     let err: BluewaveError | undefined;
     try {
-      const { launcherId: _omit, ...partial } = baseLauncher();
+      const { launcherId: _omit, ...partial } = validState();
       void _omit;
-      createTorpedoLauncherState(partial as unknown as Parameters<typeof createTorpedoLauncherState>[0]);
+      createTorpedoLauncherState(
+        partial as unknown as Parameters<typeof createTorpedoLauncherState>[0],
+      );
     } catch (e) {
       err = e as BluewaveError;
     }
@@ -231,24 +268,31 @@ describe("AC-2: construction boundary (INVALID_TORPEDO_LAUNCHER_STATE) + state h
   });
 
   it("builds a fully-invariant state with a computed hash", () => {
-    const built = createTorpedoLauncherState(baseLauncher());
+    const built = createTorpedoLauncherState(surface());
     expect(built.stateHash).toMatch(/^[0-9a-f]{64}$/);
     expect(() => assertFixedPointTorpedo(built)).not.toThrow();
   });
 
   it("withTorpedoLauncherStateHash computes the authoritative hash", () => {
-    const { stateHash: _omit, ...surface } = baseLauncher();
-    void _omit;
-    const full = withTorpedoLauncherStateHash(surface);
+    const full = withTorpedoLauncherStateHash(surface());
     expect(full.stateHash).toBe(computeTorpedoLauncherStateHash(full));
     expect(full.stateHash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("the state hash is deterministic and depends on every state field", () => {
-    const a = withTorpedoLauncherStateHash(baseLauncher());
-    const b = withTorpedoLauncherStateHash(baseLauncher());
+    const a = validState();
+    const b = validState();
     expect(a.stateHash).toBe(b.stateHash);
-    const c = withTorpedoLauncherStateHash(baseLauncher({ damageState: "DAMAGED" }));
+    const c = validState({ damageState: "DAMAGED" });
     expect(c.stateHash).not.toBe(a.stateHash);
+  });
+
+  it("verifyTorpedoLauncherStateHash recomputes and compares — tampered fields fail (F6)", () => {
+    const a = validState();
+    expect(verifyTorpedoLauncherStateHash(a)).toBe(true);
+    const tampered = { ...a, damageState: "DAMAGED" } as TorpedoLauncherState;
+    expect(verifyTorpedoLauncherStateHash(tampered)).toBe(false);
+    const stripped = { ...a, stateHash: "" } as TorpedoLauncherState;
+    expect(verifyTorpedoLauncherStateHash(stripped)).toBe(false);
   });
 });

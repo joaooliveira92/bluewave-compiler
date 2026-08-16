@@ -29,6 +29,10 @@ export const TORPEDO_KNOTS_TO_UM_S = 514_444 as const;
 // research note (docs/research/c1-m3-torpedoes.md §4.5) authors reliability on
 // a per-100_000 scale (96_000 = 96.0%), finer-grained than 10_000 bp; the model
 // constant set keeps those integers verbatim with this explicit scale.
+// NOTE (INC-1 record — F8): DESIGN-40 §12 launch-failure roll normalizes on a
+// 100-bp unit scale (100_000 / 1_000 = 100 bp per percent). INC-4 (launch
+// legality) MUST normalize reliabilityBp -> the §12 100-bp roll scale
+// explicitly; the two scales are intentionally not conflated here.
 export const TORPEDO_RELIABILITY_SCALE = 100_000 as const;
 
 // DESIGN-40 §2 closed mount-type enum — exactly these five values.
@@ -70,11 +74,7 @@ export const TUBE_HIT_HAZARD_POLICIES = ["ORDINARY", "OXYGEN", "ELECTRIC"] as co
 export type TubeHitHazardPolicy = (typeof TUBE_HIT_HAZARD_POLICIES)[number];
 
 // DESIGN-40 §2 fire-control connection state (launcher state surface).
-export const FIRE_CONTROL_CONNECTION_STATES = [
-  "CONNECTED",
-  "DEGRADED",
-  "DISCONNECTED",
-] as const;
+export const FIRE_CONTROL_CONNECTION_STATES = ["CONNECTED", "DEGRADED", "DISCONNECTED"] as const;
 export type FireControlConnectionState = (typeof FIRE_CONTROL_CONNECTION_STATES)[number];
 
 // DESIGN-40 §2 damage state; §21 severe underwater-tube flooding sets DESTROYED.
@@ -225,7 +225,10 @@ export function validateTorpedoContract(
     throwMismatch(c, "torpedo_v1 fire-control connection states");
   if (!c.launcherDamageStates || !arrayEquals(c.launcherDamageStates, LAUNCHER_DAMAGE_STATES))
     throwMismatch(c, "torpedo_v1 launcher damage states");
-  if (!c.floodingIsolationStates || !arrayEquals(c.floodingIsolationStates, FLOODING_ISOLATION_STATES))
+  if (
+    !c.floodingIsolationStates ||
+    !arrayEquals(c.floodingIsolationStates, FLOODING_ISOLATION_STATES)
+  )
     throwMismatch(c, "torpedo_v1 flooding-isolation states");
   if (
     c.underwaterTubeMaxSpeedKnots !== UNDERWATER_TUBE_MAX_SPEED_KNOTS ||

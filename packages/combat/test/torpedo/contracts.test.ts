@@ -122,7 +122,11 @@ describe("AC-24: exact shipped constant surface", () => {
       requiredReloadTimeMs: 120_000,
       aboveWaterMaxLaunchSpeedKnots: null,
     };
-    const trainable = { ...fixed, launcherFamilyId: "t", mountType: "ABOVE_WATER_TRAINABLE" as const };
+    const trainable = {
+      ...fixed,
+      launcherFamilyId: "t",
+      mountType: "ABOVE_WATER_TRAINABLE" as const,
+    };
     const narrower = { ...fixed, launcherFamilyId: "n", aboveWaterMaxLaunchSpeedKnots: 28 };
     const underwater = { ...fixed, launcherFamilyId: "u", mountType: "UNDERWATER_FIXED" as const };
     expect(resolvedAboveWaterMaxLaunchSpeedKnots(fixed)).toBe(30);

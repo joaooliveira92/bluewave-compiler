@@ -14,8 +14,11 @@ import type { TorpedoLauncherDefinition } from "./launcher.js";
 import type { TorpedoModelDefinition } from "./model.js";
 import { TORPEDO_MODEL_INCOMPATIBLE } from "./reasonCodes.js";
 
-// The seven §4 compatibility predicates, in DESIGN-40 §4 declaration order.
+// The §4 compatibility predicates, in DESIGN-40 §4 declaration order, plus the
+// §1/§2 launcher-family membership gate (a model may only be installed into a
+// launcher whose family id the model declares in compatibleLauncherFamilyIds).
 export type TorpedoCompatibilityPredicate =
+  | "launcherFamily"
   | "diameter"
   | "mass"
   | "propulsionAndSafety"
@@ -25,7 +28,10 @@ export type TorpedoCompatibilityPredicate =
   | "treatyOrScenario";
 
 // The mechanical predicates a supply/administrative action can never bypass.
+// launcherFamily is mechanical: a family mismatch is a physical non-fit that no
+// supply/administrative action may waive.
 export const MECHANICAL_COMPATIBILITY_PREDICATES: readonly TorpedoCompatibilityPredicate[] = [
+  "launcherFamily",
   "diameter",
   "mass",
   "propulsionAndSafety",
@@ -48,6 +54,20 @@ export interface TorpedoCompatibilityVerdict {
    *  handling limits. The refit mechanic is deferred to the supply/DESIGN-23
    *  track (recorded, never fabricated here). */
   requiresRefit: boolean;
+}
+
+// F2: the launcher family id must be one of the families the model declares
+// compatible (§1 compatibleLauncherFamilyIds × §2 launcherFamilyId). A model
+// that never declares the launcher's family fails closed — e.g. the G7e
+// (compatible with 533mm_above_water_trainable / 533mm_submarine_internal)
+// can never be installed into a 533mm_underwater_trainable launcher.
+export function launcherFamilyMatches(
+  model: TorpedoModelDefinition,
+  launcher: TorpedoLauncherDefinition,
+): boolean {
+  return (model.compatibleLauncherFamilyIds as readonly string[]).includes(
+    launcher.launcherFamilyId,
+  );
 }
 
 export function diameterFitsLauncher(
@@ -108,14 +128,16 @@ export function treatyOrScenarioPermits(
 }
 
 // AC-4: full §4 verdict — every predicate evaluated, compatible = AND of all
-// seven; requiresRefit surfaces when the model exceeds mass/handling limits
-// (DESIGN-23 refit recorded as deferred).
+// eight (incl. the launcher-family membership gate); requiresRefit surfaces
+// when the model exceeds mass/handling limits (DESIGN-23 refit recorded as
+// deferred).
 export function evaluateInstallCompatibility(
   model: TorpedoModelDefinition,
   launcher: TorpedoLauncherDefinition,
   platform: TorpedoPlatformCapabilities,
 ): TorpedoCompatibilityVerdict {
   const predicateResults: Record<TorpedoCompatibilityPredicate, boolean> = {
+    launcherFamily: launcherFamilyMatches(model, launcher),
     diameter: diameterFitsLauncher(model, launcher),
     mass: massWithinLimits(model, launcher),
     propulsionAndSafety: propulsionAndSafetySupported(model, launcher),
@@ -168,9 +190,7 @@ export function assertMechanicalCompatibility(
   platform: TorpedoPlatformCapabilities,
 ): void {
   const verdict = evaluateInstallCompatibility(model, launcher, platform);
-  const failing = MECHANICAL_COMPATIBILITY_PREDICATES.filter(
-    (p) => !verdict.predicateResults[p],
-  );
+  const failing = MECHANICAL_COMPATIBILITY_PREDICATES.filter((p) => !verdict.predicateResults[p]);
   if (failing.length > 0) incompatible(model, launcher, failing);
 }
 
@@ -188,6 +208,7 @@ export function administrativeInstall(
   return {
     compatible: true,
     predicateResults: {
+      launcherFamily: mechanical.launcherFamily,
       diameter: mechanical.diameter,
       mass: mechanical.mass,
       propulsionAndSafety: mechanical.propulsionAndSafety,

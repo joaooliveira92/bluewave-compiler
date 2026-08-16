@@ -15,6 +15,7 @@ import {
   evaluateInstallCompatibility,
   fireControlSupportsModel,
   inventoryAvailable,
+  launcherFamilyMatches,
   massWithinLimits,
   platformTechnologyAndAdoption,
   propulsionAndSafetySupported,
@@ -29,7 +30,9 @@ import {
 const G7A = "ger_533mm_g7a_1934";
 const G7E = "ger_533mm_g7e_1936";
 
-function launcher533(overrides: Partial<TorpedoLauncherDefinition> = {}): TorpedoLauncherDefinition {
+function launcher533(
+  overrides: Partial<TorpedoLauncherDefinition> = {},
+): TorpedoLauncherDefinition {
   return {
     launcherFamilyId: "533mm_underwater_trainable",
     mountType: "UNDERWATER_TRAINABLE",
@@ -45,7 +48,9 @@ function launcher533(overrides: Partial<TorpedoLauncherDefinition> = {}): Torped
   };
 }
 
-function platform(overrides: Partial<TorpedoPlatformCapabilities> = {}): TorpedoPlatformCapabilities {
+function platform(
+  overrides: Partial<TorpedoPlatformCapabilities> = {},
+): TorpedoPlatformCapabilities {
   return {
     technologyPrerequisiteIds: ["wet_heater_engine", "electric_propulsion"],
     adoptedModelIds: [G7A, G7E],
@@ -99,7 +104,9 @@ describe("AC-4: §4 predicates evaluate individually", () => {
     const l = launcher533({ supportedPropulsionTypes: ["WET_HEATER"] });
     expect(propulsionAndSafetySupported(g7e, l)).toBe(false);
     expect(propulsionAndSafetySupported(torpedoModelById(G7A), l)).toBe(true);
-    expect(evaluateInstallCompatibility(g7e, l, platform()).predicateResults.propulsionAndSafety).toBe(false);
+    expect(
+      evaluateInstallCompatibility(g7e, l, platform()).predicateResults.propulsionAndSafety,
+    ).toBe(false);
   });
 
   it("fire control fails when it does not support the model's guidance capability", () => {
@@ -123,12 +130,7 @@ describe("AC-4: §4 predicates evaluate individually", () => {
         platform({ technologyPrerequisiteIds: ["electric_propulsion"] }),
       ),
     ).toBe(false);
-    expect(
-      platformTechnologyAndAdoption(
-        g7a,
-        platform({ adoptedModelIds: [G7E] }),
-      ),
-    ).toBe(false);
+    expect(platformTechnologyAndAdoption(g7a, platform({ adoptedModelIds: [G7E] }))).toBe(false);
   });
 
   it("inventory + treaty predicates gate installation", () => {
@@ -136,7 +138,46 @@ describe("AC-4: §4 predicates evaluate individually", () => {
     expect(inventoryAvailable(g7a, platform())).toBe(true);
     expect(inventoryAvailable(g7a, platform({ availableInventoryModelIds: [G7E] }))).toBe(false);
     expect(treatyOrScenarioPermits(g7a, platform())).toBe(true);
-    expect(treatyOrScenarioPermits(g7a, platform({ treatyOrScenarioRestrictedModelIds: [G7A] }))).toBe(false);
+    expect(
+      treatyOrScenarioPermits(g7a, platform({ treatyOrScenarioRestrictedModelIds: [G7A] })),
+    ).toBe(false);
+  });
+});
+
+describe("F2: launcher-family membership is enforced (launcherFamilyId must be declared compatible by the model)", () => {
+  it("rejects a G7e install into a 533mm_underwater_trainable launcher the model never declares (TORPEDO_MODEL_INCOMPATIBLE)", () => {
+    const g7e = torpedoModelById(G7E); // families: 533mm_above_water_trainable, 533mm_submarine_internal
+    const l = launcher533({
+      launcherFamilyId: "533mm_underwater_trainable", // NOT in G7e's compatible families
+      supportedPropulsionTypes: ["WET_HEATER", "ELECTRIC"],
+    });
+    const p = platform({ adoptedModelIds: [G7A, G7E], availableInventoryModelIds: [G7A, G7E] });
+
+    expect(launcherFamilyMatches(g7e, l)).toBe(false);
+    const verdict = evaluateInstallCompatibility(g7e, l, p);
+    expect(verdict.compatible).toBe(false);
+    expect(verdict.predicateResults.launcherFamily).toBe(false);
+    // propulsion/safety passes here — the family gate is the ONLY failure, so the
+    // predicate is proven to matter on its own
+    expect(verdict.predicateResults.propulsionAndSafety).toBe(true);
+    expect(verdict.predicateResults.fireControl).toBe(true);
+    expect(verdict.predicateResults.platformTechnologyAndAdoption).toBe(true);
+    expect(canInstallTorpedo(g7e, l, p)).toBe(false);
+    // a supply/administrative action cannot bypass the family mismatch
+    expect(() => assertMechanicalCompatibility(g7e, l, p)).toThrow(BluewaveError);
+    expect(() => administrativeInstall(g7e, l, p)).toThrow(BluewaveError);
+  });
+
+  it("accepts the model when the launcher family IS declared compatible", () => {
+    const g7e = torpedoModelById(G7E);
+    const l = launcher533({
+      launcherFamilyId: "533mm_submarine_internal", // declared by G7e
+      supportedPropulsionTypes: ["WET_HEATER", "ELECTRIC"],
+      handlingMassLimitKg: 1_700, // G7e is 1_603 kg — isolate the family gate
+    });
+    const p = platform({ adoptedModelIds: [G7A, G7E], availableInventoryModelIds: [G7A, G7E] });
+    expect(launcherFamilyMatches(g7e, l)).toBe(true);
+    expect(canInstallTorpedo(g7e, l, p)).toBe(true);
   });
 });
 

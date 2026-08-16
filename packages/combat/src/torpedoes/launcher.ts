@@ -58,31 +58,64 @@ export function validateTorpedoLauncherDefinition(d: TorpedoLauncherDefinition):
   if (!Number.isInteger(d.tubeCount) || d.tubeCount < 1)
     throwInvalid(d, "tubeCount", d.tubeCount, "tubeCount must be an integer >= 1");
   if (!Number.isInteger(d.boreDiameterMm) || d.boreDiameterMm <= 0)
-    throwInvalid(d, "boreDiameterMm", d.boreDiameterMm, "bore diameter must be a positive integer mm");
+    throwInvalid(
+      d,
+      "boreDiameterMm",
+      d.boreDiameterMm,
+      "bore diameter must be a positive integer mm",
+    );
   if (!Number.isInteger(d.handlingMassLimitKg) || d.handlingMassLimitKg <= 0)
-    throwInvalid(d, "handlingMassLimitKg", d.handlingMassLimitKg, "handling mass limit must be a positive integer kg");
+    throwInvalid(
+      d,
+      "handlingMassLimitKg",
+      d.handlingMassLimitKg,
+      "handling mass limit must be a positive integer kg",
+    );
   if (!Array.isArray(d.supportedPropulsionTypes) || d.supportedPropulsionTypes.length === 0)
-    throwInvalid(d, "supportedPropulsionTypes", d.supportedPropulsionTypes, "at least one supported propulsion type is required");
+    throwInvalid(
+      d,
+      "supportedPropulsionTypes",
+      d.supportedPropulsionTypes,
+      "at least one supported propulsion type is required",
+    );
   if (!Array.isArray(d.fireControlSupportedGuidance) || d.fireControlSupportedGuidance.length === 0)
-    throwInvalid(d, "fireControlSupportedGuidance", d.fireControlSupportedGuidance, "at least one supported guidance capability is required");
+    throwInvalid(
+      d,
+      "fireControlSupportedGuidance",
+      d.fireControlSupportedGuidance,
+      "at least one supported guidance capability is required",
+    );
   if (typeof d.underwaterLaunchCapability !== "boolean")
-    throwInvalid(d, "underwaterLaunchCapability", d.underwaterLaunchCapability, "must be a boolean");
+    throwInvalid(
+      d,
+      "underwaterLaunchCapability",
+      d.underwaterLaunchCapability,
+      "must be a boolean",
+    );
   if (!Number.isInteger(d.requiredReloadTimeMs) || d.requiredReloadTimeMs <= 0)
-    throwInvalid(d, "requiredReloadTimeMs", d.requiredReloadTimeMs, "required reload time must be a positive integer ms");
+    throwInvalid(
+      d,
+      "requiredReloadTimeMs",
+      d.requiredReloadTimeMs,
+      "required reload time must be a positive integer ms",
+    );
   if (
     d.aboveWaterMaxLaunchSpeedKnots !== null &&
     (!Number.isInteger(d.aboveWaterMaxLaunchSpeedKnots) || d.aboveWaterMaxLaunchSpeedKnots <= 0)
   )
-    throwInvalid(d, "aboveWaterMaxLaunchSpeedKnots", d.aboveWaterMaxLaunchSpeedKnots, "narrower §8 speed must be a positive integer knots or null");
+    throwInvalid(
+      d,
+      "aboveWaterMaxLaunchSpeedKnots",
+      d.aboveWaterMaxLaunchSpeedKnots,
+      "narrower §8 speed must be a positive integer knots or null",
+    );
 }
 
 // DESIGN-40 §8 resolution: the exact maximum launch speed (integer knots) for an
 // above-water launcher — a declared narrower value wins, else the shipped
 // fixed 30 kn / trainable 35 kn default. Returns null when §8 does not apply
 // (underwater/submarine mounts are governed by §7 / model-specific limits).
-export function resolvedAboveWaterMaxLaunchSpeedKnots(
-  d: TorpedoLauncherDefinition,
-): number | null {
+export function resolvedAboveWaterMaxLaunchSpeedKnots(d: TorpedoLauncherDefinition): number | null {
   if (d.aboveWaterMaxLaunchSpeedKnots !== null) return d.aboveWaterMaxLaunchSpeedKnots;
   if (d.mountType === "ABOVE_WATER_FIXED") return ABOVE_WATER_FIXED_MAX_LAUNCH_SPEED_KNOTS;
   if (d.mountType === "ABOVE_WATER_TRAINABLE") return ABOVE_WATER_TRAINABLE_MAX_LAUNCH_SPEED_KNOTS;
@@ -142,10 +175,25 @@ export function createTorpedoLauncherState(input: {
   if (!Array.isArray(input.loadedPerTube))
     throwInvalid(input, "loadedPerTube", input.loadedPerTube, "loadedPerTube must be an array");
   if (typeof input.reserveAmmunition !== "object" || input.reserveAmmunition === null)
-    throwInvalid(input, "reserveAmmunition", input.reserveAmmunition, "reserveAmmunition must be a record");
+    throwInvalid(
+      input,
+      "reserveAmmunition",
+      input.reserveAmmunition,
+      "reserveAmmunition must be a record",
+    );
   const train = input.trainingLimitsMdeg;
-  if (typeof train !== "object" || train === null || typeof train.min !== "number" || typeof train.max !== "number")
-    throwInvalid(input, "trainingLimitsMdeg", train, "trainingLimitsMdeg must be { min, max } numbers");
+  if (
+    typeof train !== "object" ||
+    train === null ||
+    typeof train.min !== "number" ||
+    typeof train.max !== "number"
+  )
+    throwInvalid(
+      input,
+      "trainingLimitsMdeg",
+      train,
+      "trainingLimitsMdeg must be { min, max } numbers",
+    );
   const reloadState: TorpedoReloadState = input.reloadState ?? NO_RELOAD_IN_PROGRESS;
   return withTorpedoLauncherStateHash({
     ...s,
