@@ -29,12 +29,16 @@ changed.
    (replacing the dead `activeWars: readonly unknown[]` — kept non-breaking by
    deriving `activeWars`), typed flatly (vanilla-safe) so the renderer can show
    it.
-2. **desktop `commitMonth`**: after execute, collect the battleIds from
-   `BattleResolved` domain events in `result.eventLedger`, hydrate each from
-   `result.finalSnapshot.wars.battles[]` (`BattleInstance.result`), and map to
-   the web `BattleOutcome` shape (battleId, areaId, attackerId, defenderId,
-   winnerId, loserId, warScoreDelta, attackerLosses[], defenderLosses[],
-   explanation[]). No battle → empty array (byte-identical to today).
+2. **desktop `commitMonth`**: after execute, derive "resolved this month" as
+   the pre→post resolved-set delta over `result.finalSnapshot.wars.battles[]`
+   (the engine's `battle_resolution` phase does not emit `BattleResolved`
+   events — ADR-0028 §Decision; battle states only ever append, `month.ts:2573`),
+   hydrate each `BattleInstance.result` (battleId, areaId, attackerId,
+   defenderId, winnerId, loserId, attackerLosses[], defenderLosses[],
+   explanation[]) and re-derive `warScoreDelta` from the **PRE-month**
+   snapshot (the same ship-set/HP basis `applyBattleResult` computed over,
+   `month.ts:1507-1538`); uncertain → 0 + recorded reason, never fabricated.
+   No battle → empty array (byte-identical to today).
 3. **renderer**: add a "Battle Outcomes" card/accordion to `TurnReportTab`
    listing each resolved battle: sides, winner/loser, war-score delta, and
    ship losses (count + ids), with an honest empty state.

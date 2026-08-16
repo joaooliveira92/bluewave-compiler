@@ -284,7 +284,11 @@ spec (17 ACs, 6 INC slices), brief, and `.ai/specs/` pointer at
     desktop gate queue (`.scratch/desktop-feature-gate/`):** strategic weather
     surfacing (B-5/ADR-0025), AI-plan read-only, design-template catalog (candidate
     2–5).**Follow-up (deferred, engine-sprint): persist war-score delta on
-    `BattleResult`.**
+    `BattleResult`.** Reviewer follow-up repair (same session): honest `n/a
+    (not re-derived)` war-score label (AC-4; decided-battle fallback no longer
+    shown as `+0`), spec/pointer corrected to the resolved-set-delta approach
+    (was `BattleResolved`-event), and the oracle test's single-battle-per-war
+    precondition enforced — committed as a small follow-up.
 6. **Repair `apps/desktop` test/lint failures** — missing `@testing-library/react`
    devDependency + wrong `@bluewave/campaign-engine` import name (actual package
    `@bluewave/campaign`) across 8+ renderer files, introduced by commit `b4509e4`
