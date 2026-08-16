@@ -2,28 +2,40 @@
 // DESIGN-35 §30 subset relevant to the mine module, kept separate from the
 // top-level combat catalog (src/reasonCodes.ts) so the C-2 set-equality guard
 // (reason-codes-mines.test.ts, INC-8 deliverable, per ticket 05) is not grown
-// without review. Per ticket 05, all 18 §30 codes are in-slice for this sprint
-// (mine warfare's catalog is lifecycle-dominated, not strike-dominated); INC-1
-// ships the module plus the one code its own increment exercises
-// (INVALID_MINE_TYPE_DEFINITION). The remaining in-slice codes are owned by
-// INC-2..INC-7 and recorded below, never shipped here. The full partition
-// (in-slice / deferred / reused combat catalog, disjointness) is verified by
-// INC-8's set-equality test.
+// without review. Per spec §1.4, DESIGN-35 §30 is authoritative: 15 direct +
+// 2 value-only codes are in-slice for this sprint, and 3 are owned by the C-2
+// continuation (strike resolution). INC-1
+// ships the module plus INVALID_MINE_TYPE_DEFINITION, the one code it exercises.
+// INC-2 ships the sources/laying/pressure codes it
+// exercises. The remaining in-slice codes are owned by INC-3..INC-7 and
+// recorded below, never shipped here. The full partition (in-slice / deferred
+// / reused combat catalog, disjointness) is verified by INC-8's set-equality
+// test.
 
 // ---- In-slice codes (INC-1) ----
 export const INVALID_MINE_TYPE_DEFINITION = "INVALID_MINE_TYPE_DEFINITION" as const;
 
-// ---- Collected catalog (INC-1 shipped set; grows through INC-7, set-equality
-// checked in INC-8) ----
+// ---- In-slice codes (INC-2: sources/laying/pressure, DESIGN-35 §1/§3/§4/§5) ----
+// §1: any violated AreaMinePressureRecord invariant (guard + builders).
+export const INVALID_MINE_PRESSURE_STATE = "INVALID_MINE_PRESSURE_STATE" as const;
+// §3: a laying source missing required technology, inventory, access, control,
+// or mission (an ineligible source NEVER gets a silent default).
+export const MINE_LAYING_SOURCE_INELIGIBLE = "MINE_LAYING_SOURCE_INELIGIBLE" as const;
+// §4: inventory consumption exceeding the source's exact on-hand count.
+export const MINE_INVENTORY_INSUFFICIENT = "MINE_INVENTORY_INSUFFICIENT" as const;
+
+// ---- Collected catalog (INC-1..INC-2 shipped set; grows through INC-7,
+// set-equality checked in INC-8) ----
 export const MINE_REASON_CODES = {
   INVALID_MINE_TYPE_DEFINITION,
+  INVALID_MINE_PRESSURE_STATE,
+  MINE_LAYING_SOURCE_INELIGIBLE,
+  MINE_INVENTORY_INSUFFICIENT,
 } as const;
 
 export type MineReasonCode = (typeof MINE_REASON_CODES)[keyof typeof MINE_REASON_CODES];
 
 // ---- Recorded §30 in-slice codes owned by later increments (never shipped here) ----
-// INC-2 (sources/laying/pressure): INVALID_MINE_PRESSURE_STATE,
-//   MINE_LAYING_SOURCE_INELIGIBLE, MINE_INVENTORY_INSUFFICIENT.
 // INC-3 (sweeping eligibility/values): MINESWEEPING_SHIP_INELIGIBLE,
 //   DUAL_EQUIPMENT_MODE_MISSING, MINE_SWEEP_RESISTANCE_MISSING.
 // INC-4 (sweeping aggregation): MINE_PRESSURE_REDUCED.
