@@ -19,6 +19,7 @@ import { FleetScreen } from "../screens/fleet/FleetScreen.js";
 import { OptionsScreen } from "../screens/options/OptionsScreen.js";
 import { OverviewScreen } from "../screens/overview/OverviewScreen.js";
 import { useCampaignShellContext } from "./CampaignShellContext.js";
+import { isDebugMode } from "./debug-mode.js";
 
 const DebuggingScreen = lazy(() =>
   import("../screens/debugging/DebuggingScreen.js").then((module) => ({
@@ -158,11 +159,11 @@ const MAP_PROTOTYPE_SCREEN: CampaignScreenDefinition = {
   route: MapPrototypeRoute,
 };
 
-// Debug-only tooling. Deliberately mirrors the `import.meta.env.DEV` guard used
-// for MAP_PROTOTYPE_SCREEN and the pure rule in debug-mode.ts (`isDebugMode`), so
-// the bundler folds the whole branch to nothing in a production build and the
-// debug screens (and their lazy chunks) never ship to players.
-const DEBUG_MODE = import.meta.env.DEV || import.meta.env.VITE_BLUEWAVE_DEBUG === "true";
+// Debug-only tooling, gated by the pure rule in debug-mode.ts (`isDebugMode`).
+// Only set via `pnpm dev:debug` (or VITE_BLUEWAVE_DEBUG=true in a build) — a
+// plain `pnpm dev` does not enable it, so these screens (and their lazy
+// chunks) stay out of the sidebar unless debug mode is explicitly requested.
+const DEBUG_MODE = isDebugMode({ flag: import.meta.env.VITE_BLUEWAVE_DEBUG });
 
 const SIMULATION_SCREEN: CampaignScreenDefinition = {
   id: "simulation",

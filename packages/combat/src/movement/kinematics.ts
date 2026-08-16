@@ -399,7 +399,9 @@ const DIRECTION_TABLE: ReadonlyArray<readonly [number, number]> = [
 
 // direction basis-points for a heading (fixed DIRECTION_FIXED scale), from the
 // authored integer table. Returns { cosBp, sinBp } for a folded [0,359] heading.
-function directionBp(heading: number): { cosBp: number; sinBp: number } {
+// Exported so peer modules project along the same authored direction table
+// (INC-4 torpedo tracks reuse the single source of truth — no duplicated table).
+export function directionBp(heading: number): { cosBp: number; sinBp: number } {
   const h = foldHeading(heading);
   const entry = DIRECTION_TABLE[h % 360] ?? ([0, 0] as readonly [number, number]);
   return { cosBp: entry[0], sinBp: entry[1] };
