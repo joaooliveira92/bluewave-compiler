@@ -1,9 +1,12 @@
 # INC-6 — TorpedoDamagePackage (Flotation, Flooding, Machinery, Shock, Tube Hazard, Chain Reaction, Oxygen)
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** INC-5
-**Frontier:** no
+**Status:** done (2026-08-16, orchestrator pipeline, commit `072b704`) — AC-15..AC-18 green
+(`damage-package/flotation/flooding-creation/machinery/system-shock/tube-hazard/chain-reaction/
+oxygen` tests, 453/453 torpedo); reviewer NEEDS_REWORK resolved (HIGH-1 constants pin,
+MEDIUM-1 §21 reserve-loss interpretation, MEDIUM-2 citation fix, MEDIUM-3 ADR-0031 TUBE_BAY,
+MEDIUM-4 chain-package helper, LOW-1/2); report
+`.ai/reports/c1-m3-torpedoes-inc6-damage-package.md`; ADR-0031 entries 8–10.
 
 ## Acceptance (spec AC-15..AC-18)
 
