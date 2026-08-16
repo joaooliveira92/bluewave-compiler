@@ -224,4 +224,33 @@ describe("campaign shell state", () => {
       campaign,
     });
   });
+
+  it("derives explicit variants for nation, identity, and fleet-method modes", () => {
+    const nation = reduceCampaignShell(initialCampaignShellState(), {
+      type: "visit",
+      screen: "new-game-nation",
+    });
+    expect(campaignShellMode(nation)).toEqual({
+      kind: "new-game-nation",
+      screen: "new-game-nation",
+    });
+
+    const identity = reduceCampaignShell(initialCampaignShellState(), {
+      type: "visit",
+      screen: "new-game-identity",
+    });
+    expect(campaignShellMode(identity)).toEqual({
+      kind: "new-game-identity",
+      screen: "new-game-identity",
+    });
+
+    const fleetMethod = reduceCampaignShell(initialCampaignShellState(), {
+      type: "visit",
+      screen: "new-game-fleet-method",
+    });
+    expect(campaignShellMode(fleetMethod)).toEqual({
+      kind: "new-game-fleet-method",
+      screen: "new-game-fleet-method",
+    });
+  });
 });

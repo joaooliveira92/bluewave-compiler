@@ -1,6 +1,5 @@
 /* @vitest-environment jsdom */
 
-import type { CampaignConfiguration } from "@bluewave/campaign-engine";
 import { ARCHETYPE_PRESETS } from "@bluewave/campaign-engine";
 import type { ArchetypeSelection } from "@bluewave/campaign-engine";
 import { act, renderHook, waitFor } from "@testing-library/react";
@@ -12,13 +11,14 @@ import type {
 } from "../../shared/campaign-command-contract.js";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type { NewGameOptions } from "../../shared/new-game-contract.js";
+import { defaultFleetMethod } from "../screens/new-game/new-game-fleet-method-screen-state.js";
+import { defaultCampaignIdentity } from "../screens/new-game/new-game-identity-screen-state.js";
 import type { DraftPreferences } from "../screens/new-game/new-game-preferences-screen-state.js";
 import { useNewGameFlow } from "./useNewGameFlow.js";
 
-const config = {
+const preferences = {
   version: "campaign_configuration_v1",
   scenarioId: "scen_1900",
-  playerSlotId: "nation_uk",
   continuityMode: "historical",
   fleetSize: "standard",
   researchSpeed: "standard",
@@ -28,9 +28,7 @@ const config = {
   tacticalRealism: "admiral",
   difficulty: "standard",
   campaignSeed: "TEST",
-} as unknown as CampaignConfiguration;
-
-const preferences = { scenarioId: "scen_1900" } as DraftPreferences;
+} as DraftPreferences;
 const options = {
   scenarios: [],
   nations: [],
@@ -58,29 +56,52 @@ const preferenceArchetype: ArchetypeSelection = {
   allocation: { ...ARCHETYPE_PRESETS[0]!.allocation },
 };
 
+/** Drives the flow forward to (but not through) the fleet-method step. */
+function advanceToFleetMethod(
+  actions: ReturnType<typeof setup>["result"]["current"]["actions"],
+) {
+  act(() => actions.confirmNation("nation_uk"));
+  act(() => actions.acceptPreferences(preferences, options));
+  act(() => actions.acceptArchetype(preferenceArchetype));
+  act(() => actions.acceptIdentity(defaultCampaignIdentity()));
+}
+
 describe("useNewGameFlow", () => {
-  it("moves from preferences to archetype to nation while retaining the draft", () => {
+  it("moves nation first, then through preferences, archetype, identity, and fleet method", () => {
     const { result, selectScreen } = setup();
 
     act(() => result.current.actions.start());
+    expect(selectScreen).toHaveBeenLastCalledWith("new-game-nation");
+
+    act(() => result.current.actions.confirmNation("nation_uk"));
+    expect(result.current.state.draft).toEqual({
+      nationId: "nation_uk",
+      preferences: null,
+      options: null,
+      archetype: null,
+      identity: null,
+      fleetMethod: null,
+    });
     expect(selectScreen).toHaveBeenLastCalledWith("new-game-preferences");
 
     act(() => result.current.actions.acceptPreferences(preferences, options));
-    expect(result.current.state.draft).toEqual({
-      preferences,
-      options,
-      archetype: null,
-    });
+    expect(result.current.state.draft?.preferences).toEqual(preferences);
     expect(selectScreen).toHaveBeenLastCalledWith("new-game-archetype");
 
     act(() => result.current.actions.acceptArchetype(preferenceArchetype));
     expect(result.current.state.draft?.archetype).toEqual(preferenceArchetype);
-    expect(selectScreen).toHaveBeenLastCalledWith("new-game-nation");
+    expect(selectScreen).toHaveBeenLastCalledWith("new-game-identity");
+
+    const identity = defaultCampaignIdentity();
+    act(() => result.current.actions.acceptIdentity(identity));
+    expect(result.current.state.draft?.identity).toEqual(identity);
+    expect(selectScreen).toHaveBeenLastCalledWith("new-game-fleet-method");
   });
 
-  it("preserves the archetype when navigating backward and forward", () => {
+  it("preserves the archetype and nation when navigating backward and forward", () => {
     const { result, selectScreen } = setup();
 
+    act(() => result.current.actions.confirmNation("nation_uk"));
     act(() => result.current.actions.acceptPreferences(preferences, options));
     act(() => result.current.actions.acceptArchetype(preferenceArchetype));
     expect(result.current.state.draft?.archetype).toEqual(preferenceArchetype);
@@ -89,19 +110,28 @@ describe("useNewGameFlow", () => {
     expect(selectScreen).toHaveBeenLastCalledWith("new-game-archetype");
     act(() => result.current.actions.backToPreferences());
     expect(selectScreen).toHaveBeenLastCalledWith("new-game-preferences");
+    act(() => result.current.actions.backToNation());
+    expect(selectScreen).toHaveBeenLastCalledWith("new-game-nation");
 
-    // Moving forward again keeps the already-chosen archetype in the draft.
+    // Moving forward again keeps the already-chosen nation and archetype.
     act(() => result.current.actions.acceptPreferences(preferences, options));
+    expect(result.current.state.draft?.nationId).toBe("nation_uk");
     expect(result.current.state.draft?.archetype).toEqual(preferenceArchetype);
   });
 
   it("opens the compiled campaign and clears the completed draft", async () => {
     const { result, execute, openCampaign } = setup();
-    act(() => result.current.actions.acceptPreferences(preferences, options));
+    advanceToFleetMethod(result.current.actions);
 
-    await act(() => result.current.actions.launch(config));
+    await act(() => result.current.actions.launch(defaultFleetMethod()));
 
-    expect(execute).toHaveBeenCalledWith("compileCampaign", config);
+    expect(execute).toHaveBeenCalledWith(
+      "compileCampaign",
+      expect.objectContaining({
+        scenarioId: preferences.scenarioId,
+        playerSlotId: "nation_uk",
+      }),
+    );
     expect(openCampaign).toHaveBeenCalledWith("ses-created");
     expect(result.current.state.draft).toBeNull();
     expect(result.current.state.error).toBeNull();
@@ -115,15 +145,16 @@ describe("useNewGameFlow", () => {
       diagnostics: ["difficulty is invalid"],
     })) as unknown as CampaignExecute;
     const { result, openCampaign, selectScreen } = setup(execute);
+    advanceToFleetMethod(result.current.actions);
 
-    await act(() => result.current.actions.launch(config));
+    await act(() => result.current.actions.launch(defaultFleetMethod()));
 
     expect(openCampaign).not.toHaveBeenCalled();
     expect(result.current.state.error).toBe("UNSUPPORTED_CONFIGURATION. difficulty is invalid");
     expect(result.current.state.status).toBe("ready");
 
-    act(() => result.current.actions.backToPreferences());
-    expect(selectScreen).toHaveBeenLastCalledWith("new-game-preferences");
+    act(() => result.current.actions.backToIdentity());
+    expect(selectScreen).toHaveBeenLastCalledWith("new-game-identity");
     act(() => result.current.actions.cancel());
     expect(selectScreen).toHaveBeenLastCalledWith("file");
   });
@@ -135,10 +166,11 @@ describe("useNewGameFlow", () => {
         resolveCompilation = resolve;
       })) as unknown as CampaignExecute;
     const { result } = setup(execute);
+    advanceToFleetMethod(result.current.actions);
 
     let launchPromise: Promise<void> = Promise.resolve();
     act(() => {
-      launchPromise = result.current.actions.launch(config);
+      launchPromise = result.current.actions.launch(defaultFleetMethod());
     });
     await waitFor(() => expect(result.current.state.status).toBe("launching"));
 

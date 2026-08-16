@@ -24,6 +24,7 @@ export interface CampaignShellState {
 
 export type CampaignShellMode =
   | { readonly kind: "file"; readonly screen: "file" }
+  | { readonly kind: "new-game-nation"; readonly screen: "new-game-nation" }
   | {
       readonly kind: "new-game-preferences";
       readonly screen: "new-game-preferences";
@@ -32,7 +33,14 @@ export type CampaignShellMode =
       readonly kind: "new-game-archetype";
       readonly screen: "new-game-archetype";
     }
-  | { readonly kind: "new-game-nation"; readonly screen: "new-game-nation" }
+  | {
+      readonly kind: "new-game-identity";
+      readonly screen: "new-game-identity";
+    }
+  | {
+      readonly kind: "new-game-fleet-method";
+      readonly screen: "new-game-fleet-method";
+    }
   | { readonly kind: "opening"; readonly screen: Screen }
   | {
       readonly kind: "open-error";
@@ -154,14 +162,20 @@ export function campaignShellMode(state: CampaignShellState): CampaignShellMode 
   if (state.campaign !== null) {
     return { kind: "campaign", screen, campaign: state.campaign };
   }
+  if (screen === "new-game-nation") {
+    return { kind: "new-game-nation", screen };
+  }
   if (screen === "new-game-preferences") {
     return { kind: "new-game-preferences", screen };
   }
   if (screen === "new-game-archetype") {
     return { kind: "new-game-archetype", screen };
   }
-  if (screen === "new-game-nation") {
-    return { kind: "new-game-nation", screen };
+  if (screen === "new-game-identity") {
+    return { kind: "new-game-identity", screen };
+  }
+  if (screen === "new-game-fleet-method") {
+    return { kind: "new-game-fleet-method", screen };
   }
   return { kind: "file", screen: "file" };
 }

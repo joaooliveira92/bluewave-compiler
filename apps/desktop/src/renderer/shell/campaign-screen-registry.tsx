@@ -57,9 +57,11 @@ const MapPrototypeScreen = lazy(() =>
 
 export type Screen =
   | "file"
+  | "new-game-nation"
   | "new-game-preferences"
   | "new-game-archetype"
-  | "new-game-nation"
+  | "new-game-identity"
+  | "new-game-fleet-method"
   | CampaignScreen;
 
 export type CampaignScreen =

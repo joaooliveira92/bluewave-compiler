@@ -1,4 +1,4 @@
-import type { ArchetypeSelection, CampaignConfiguration } from "@bluewave/campaign-engine";
+import type { ArchetypeSelection } from "@bluewave/campaign-engine";
 import { useEffect, useMemo, useState } from "react";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { WindowState } from "../../shared/bridge-contract.js";
@@ -12,7 +12,17 @@ import { SidebarInset, SidebarProvider } from "../components/ui/sidebar.js";
 import { CampaignFileScreen } from "../screens/campaign-file/CampaignFileScreen.js";
 import { CampaignPreferencesOnboarding } from "../screens/campaign-preferences/onboarding-blocks.js";
 import { NewGameArchetypeScreen } from "../screens/new-game/NewGameArchetypeScreen.js";
+import { NewGameFleetMethodScreen } from "../screens/new-game/NewGameFleetMethodScreen.js";
+import { NewGameIdentityScreen } from "../screens/new-game/NewGameIdentityScreen.js";
 import { NewGameNationScreen } from "../screens/new-game/NewGameNationScreen.js";
+import {
+  defaultFleetMethod,
+  type FleetMethodDraft,
+} from "../screens/new-game/new-game-fleet-method-screen-state.js";
+import {
+  defaultCampaignIdentity,
+  type CampaignIdentityDraft,
+} from "../screens/new-game/new-game-identity-screen-state.js";
 import type { DraftPreferences } from "../screens/new-game/new-game-preferences-screen-state.js";
 import { AppSidebar } from "./AppSidebar.js";
 import { useBackground } from "./BackgroundContext.js";
@@ -127,12 +137,16 @@ interface CampaignUnavailableViewProps {
   readonly newGameError: string | null;
   readonly onOpenCampaign: (sessionId: string) => Promise<void>;
   readonly onStartNewGame: () => void;
-  readonly onCancelPreferences: () => void;
+  readonly onCancelToFile: () => void;
+  readonly onConfirmNation: (nationId: string) => void;
+  readonly onBackToNation: () => void;
   readonly onPreferencesNext: (preferences: DraftPreferences, options: NewGameOptions) => void;
   readonly onBackToPreferences: () => void;
   readonly onArchetypeNext: (archetype: ArchetypeSelection) => void;
   readonly onBackToArchetype: () => void;
-  readonly onStartCampaign: (config: CampaignConfiguration) => Promise<void>;
+  readonly onIdentityNext: (identity: CampaignIdentityDraft) => void;
+  readonly onBackToIdentity: () => void;
+  readonly onLaunch: (fleetMethod: FleetMethodDraft) => Promise<void>;
   readonly onPrimaryActionChange: (action: PrimaryAction | null) => void;
 }
 
@@ -148,10 +162,19 @@ function CampaignUnavailableView(props: CampaignUnavailableViewProps) {
           onStartNewGame={props.onStartNewGame}
         />
       );
+    case "new-game-nation":
+      return (
+        <NewGameNationScreen
+          error={props.newGameError}
+          onCancel={props.onCancelToFile}
+          onConfirm={props.onConfirmNation}
+          onPrimaryActionChange={props.onPrimaryActionChange}
+        />
+      );
     case "new-game-preferences":
       return (
         <CampaignPreferencesView
-          onCancel={props.onCancelPreferences}
+          onCancel={props.onBackToNation}
           onNext={props.onPreferencesNext}
         />
       );
@@ -169,21 +192,23 @@ function CampaignUnavailableView(props: CampaignUnavailableViewProps) {
           onPrimaryActionChange={props.onPrimaryActionChange}
         />
       );
-    case "new-game-nation":
-      return props.draft === null ? (
-        <CampaignFileView
-          onOpenCampaign={props.onOpenCampaign}
-          onStartNewGame={props.onStartNewGame}
+    case "new-game-identity":
+      return (
+        <NewGameIdentityScreen
+          initialIdentity={props.draft?.identity ?? defaultCampaignIdentity()}
+          onBack={props.onBackToArchetype}
+          onNext={props.onIdentityNext}
+          onPrimaryActionChange={props.onPrimaryActionChange}
         />
-      ) : (
-        <NewGameNationScreen
-          preferences={props.draft.preferences}
-          options={props.draft.options}
-          archetype={props.draft.archetype}
+      );
+    case "new-game-fleet-method":
+      return (
+        <NewGameFleetMethodScreen
+          initialFleetMethod={props.draft?.fleetMethod ?? defaultFleetMethod()}
           status={props.newGameStatus}
           error={props.newGameError}
-          onBack={props.onBackToArchetype}
-          onStart={props.onStartCampaign}
+          onBack={props.onBackToIdentity}
+          onNext={props.onLaunch}
           onPrimaryActionChange={props.onPrimaryActionChange}
         />
       );
@@ -353,9 +378,11 @@ function CampaignShellApplication({
   const activeView: ActiveView =
     shell.state.mode.kind === "campaign"
       ? "playing"
-      : shell.state.mode.kind === "new-game-preferences" ||
+      : shell.state.mode.kind === "new-game-nation" ||
+          shell.state.mode.kind === "new-game-preferences" ||
           shell.state.mode.kind === "new-game-archetype" ||
-          shell.state.mode.kind === "new-game-nation"
+          shell.state.mode.kind === "new-game-identity" ||
+          shell.state.mode.kind === "new-game-fleet-method"
         ? "new_game"
         : "menu";
 
@@ -392,12 +419,16 @@ function CampaignShellApplication({
         newGameError={newGame.state.error}
         onOpenCampaign={shell.actions.openCampaign}
         onStartNewGame={newGame.actions.start}
-        onCancelPreferences={newGame.actions.cancel}
+        onCancelToFile={newGame.actions.cancel}
+        onConfirmNation={newGame.actions.confirmNation}
+        onBackToNation={newGame.actions.backToNation}
         onPreferencesNext={newGame.actions.acceptPreferences}
         onBackToPreferences={newGame.actions.backToPreferences}
         onArchetypeNext={newGame.actions.acceptArchetype}
         onBackToArchetype={newGame.actions.backToArchetype}
-        onStartCampaign={newGame.actions.launch}
+        onIdentityNext={newGame.actions.acceptIdentity}
+        onBackToIdentity={newGame.actions.backToIdentity}
+        onLaunch={newGame.actions.launch}
         onPrimaryActionChange={shell.actions.setPrimaryAction}
       />
     ) : (

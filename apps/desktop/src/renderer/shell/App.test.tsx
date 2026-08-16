@@ -138,42 +138,76 @@ vi.mock("../screens/new-game/NewGameNationScreen.js", async () => {
   const React = await import("react");
   return {
     NewGameNationScreen: ({
-      status,
       error,
-      onBack,
-      onStart,
+      onCancel,
+      onConfirm,
     }: {
-      status: "ready" | "launching";
       error: string | null;
-      onBack: () => void;
-      onStart: (config: Record<string, string>) => Promise<void>;
+      onCancel: () => void;
+      onConfirm: (nationId: string) => void;
     }) =>
       React.createElement(
         "section",
         null,
         React.createElement("h1", null, "Choose nation"),
-        status === "launching" ? React.createElement("p", null, "Starting…") : null,
         error ? React.createElement("p", { role: "alert" }, error) : null,
-        React.createElement("button", { onClick: onBack }, "Back"),
+        React.createElement("button", { onClick: onCancel }, "Back"),
+        React.createElement(
+          "button",
+          { onClick: () => onConfirm("nation_uk") },
+          "Confirm nation",
+        ),
+      ),
+  };
+});
+
+vi.mock("../screens/new-game/NewGameIdentityScreen.js", async () => {
+  const React = await import("react");
+  return {
+    NewGameIdentityScreen: ({ onNext }: { onNext: (identity: Record<string, string>) => void }) =>
+      React.createElement(
+        "section",
+        null,
+        React.createElement("h1", null, "Admiral & campaign identity"),
         React.createElement(
           "button",
           {
             onClick: () =>
-              void onStart({
-                version: "campaign_configuration_v1",
-                scenarioId: "scen_1900",
-                playerSlotId: "nation_uk",
-                continuityMode: "historical",
-                fleetSize: "standard",
-                researchSpeed: "standard",
-                technologyVariation: "none",
-                historicalBudget: "canonical",
-                legacyFleetMode: "canonical_fixture",
-                tacticalRealism: "admiral",
-                difficulty: "standard",
-                campaignSeed: "TEST",
+              onNext({
+                admiralName: "John Fisher",
+                campaignName: "Britannia Ascendant",
+                namingConvention: "historical",
+                shipNameReuse: "disabled",
+                measurementSystem: "imperial",
               }),
           },
+          "Next",
+        ),
+      ),
+  };
+});
+
+vi.mock("../screens/new-game/NewGameFleetMethodScreen.js", async () => {
+  const React = await import("react");
+  return {
+    NewGameFleetMethodScreen: ({
+      status,
+      error,
+      onNext,
+    }: {
+      status: "ready" | "launching";
+      error: string | null;
+      onNext: (fleetMethod: Record<string, string>) => Promise<void>;
+    }) =>
+      React.createElement(
+        "section",
+        null,
+        React.createElement("h1", null, "Starting-fleet method"),
+        status === "launching" ? React.createElement("p", null, "Starting…") : null,
+        error ? React.createElement("p", { role: "alert" }, error) : null,
+        React.createElement(
+          "button",
+          { onClick: () => void onNext({ legacyFleetModeId: "generated" }) },
           "Launch campaign",
         ),
       ),
@@ -268,11 +302,17 @@ function createShell(overrides: Record<string, unknown> = {}) {
             screen: shell.screen,
             campaign: shell.campaign,
           }
-        : shell.screen === "new-game-preferences"
-          ? { kind: "new-game-preferences" as const, screen: shell.screen }
-          : shell.screen === "new-game-nation"
-            ? { kind: "new-game-nation" as const, screen: shell.screen }
-            : { kind: "file" as const, screen: "file" as const };
+        : shell.screen === "new-game-nation"
+          ? { kind: "new-game-nation" as const, screen: shell.screen }
+          : shell.screen === "new-game-preferences"
+            ? { kind: "new-game-preferences" as const, screen: shell.screen }
+            : shell.screen === "new-game-archetype"
+              ? { kind: "new-game-archetype" as const, screen: shell.screen }
+              : shell.screen === "new-game-identity"
+                ? { kind: "new-game-identity" as const, screen: shell.screen }
+                : shell.screen === "new-game-fleet-method"
+                  ? { kind: "new-game-fleet-method" as const, screen: shell.screen }
+                  : { kind: "file" as const, screen: "file" as const };
   return { ...shell, mode };
 }
 
@@ -341,14 +381,14 @@ describe("App", () => {
     expect(screen.getByText("Inspection failed")).toBeTruthy();
   });
 
-  it("moves from file selection to the explicit preferences variant", () => {
+  it("moves from file selection to the nation-confirmation variant", () => {
     const shell = createShell();
     testState.shell = shell;
 
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Start new game" }));
 
-    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-preferences");
+    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-nation");
   });
 
   it("composes the active campaign shell, sidebar, outlet, search, and primary action", () => {
@@ -390,7 +430,7 @@ describe("App", () => {
   });
 
   it("compiles a campaign and opens the returned session", async () => {
-    const shell = createShell({ screen: "new-game-preferences" });
+    const shell = createShell({ screen: "new-game-nation" });
     testState.shell = shell;
     const execute = vi.fn(async () => ({
       outcome: "success" as const,
@@ -399,13 +439,20 @@ describe("App", () => {
     window.bluewave = createBridge({ campaign: createCampaignClient(execute) });
 
     const { rerender } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm nation" }));
+    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-preferences");
+
+    testState.shell = createShell({ ...shell, screen: "new-game-preferences" });
+    rerender(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(shell.selectScreen).toHaveBeenCalledWith("new-game-archetype");
 
-    testState.shell = createShell({
-      ...shell,
-      screen: "new-game-nation",
-    });
+    testState.shell = createShell({ ...shell, screen: "new-game-identity" });
+    rerender(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-fleet-method");
+
+    testState.shell = createShell({ ...shell, screen: "new-game-fleet-method" });
     rerender(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Launch campaign" }));
 
@@ -414,7 +461,7 @@ describe("App", () => {
   });
 
   it("shows a compilation rejection and does not open a campaign", async () => {
-    const shell = createShell({ screen: "new-game-preferences" });
+    const shell = createShell({ screen: "new-game-nation" });
     testState.shell = shell;
     const execute = vi.fn(async () => ({
       outcome: "rejected" as const,
@@ -424,8 +471,17 @@ describe("App", () => {
     window.bluewave = createBridge({ campaign: createCampaignClient(execute) });
 
     const { rerender } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm nation" }));
+
+    testState.shell = createShell({ ...shell, screen: "new-game-preferences" });
+    rerender(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    testState.shell = createShell({ ...shell, screen: "new-game-nation" });
+
+    testState.shell = createShell({ ...shell, screen: "new-game-identity" });
+    rerender(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    testState.shell = createShell({ ...shell, screen: "new-game-fleet-method" });
     rerender(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Launch campaign" }));
 
