@@ -11,10 +11,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export const SEED = "ba44581c2f1d8e5c9753ffc80be8e6a0";
 
 const OUT_MAIN = resolve(__dirname, "..", "out", "main", "index.js");
-const FIXTURE_PACKAGE = resolve(
-  __dirname, "..", "..", "..", "content", "production", "1880",
-  "bluewave-austria_hungary-scen_1880",
-);
 const LANDING_TEXT = "Bluewave Naval Staff";
 
 export interface E2EHarness {
@@ -26,7 +22,9 @@ export interface E2EHarness {
   retargetDialog(dir: string): Promise<void>;
 }
 
-export async function launchHarness(opts: { saveDir?: string } = {}): Promise<E2EHarness> {
+export async function launchHarness(
+  opts: { saveDir?: string } = {},
+): Promise<E2EHarness> {
   if (!existsSync(OUT_MAIN)) {
     throw new Error(
       `out/main/index.js missing — run "pnpm build" (electron-vite build) in apps/desktop first`,
@@ -49,7 +47,10 @@ export async function launchHarness(opts: { saveDir?: string } = {}): Promise<E2
       // `filePath`; open dialog (continuance) returns `filePaths`. Runs in the
       // Electron main process — no outer helpers in scope.
       dialog.showSaveDialog = async () => ({ canceled: false, filePath: dir });
-      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
+      dialog.showOpenDialog = async () => ({
+        canceled: false,
+        filePaths: [dir],
+      });
     }, saveDir);
 
     const window = await app.waitForEvent("window", {
@@ -66,8 +67,14 @@ export async function launchHarness(opts: { saveDir?: string } = {}): Promise<E2
       saveDir,
       retargetDialog: (dir) =>
         app.evaluate(({ dialog }, d) => {
-          dialog.showSaveDialog = async () => ({ canceled: false, filePath: d });
-          dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [d] });
+          dialog.showSaveDialog = async () => ({
+            canceled: false,
+            filePath: d,
+          });
+          dialog.showOpenDialog = async () => ({
+            canceled: false,
+            filePaths: [d],
+          });
         }, dir),
     };
   } catch (error) {
@@ -85,9 +92,18 @@ export async function teardownHarness(h: E2EHarness): Promise<void> {
   }
 }
 
-export async function copyFixturePackage(scratchRoot: string): Promise<string> {
+/**
+ * Copies a compiled SaveStore package into a fresh, disposable location so a
+ * continuance spec never mutates its source (the master fixture package, or
+ * the shipped tree). `sourceDir` is the package to copy; `scratchRoot` is
+ * typically the per-test `e2e.scratch` tree.
+ */
+export async function copyFixturePackage(
+  sourceDir: string,
+  scratchRoot: string,
+): Promise<string> {
   const target = join(scratchRoot, "package");
-  await cp(FIXTURE_PACKAGE, target, { recursive: true });
+  await cp(sourceDir, target, { recursive: true });
   return target;
 }
 
