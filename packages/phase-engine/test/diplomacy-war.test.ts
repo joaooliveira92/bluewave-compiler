@@ -1,10 +1,10 @@
-﻿import { describe, it, expect } from "vite-plus/test";
+﻿import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
+import type { CommandBody, CommandEnvelope } from "@bluewave/commands";
+import { CommandIdempotencyMap, CommandLifecycle } from "@bluewave/commands";
 import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
-import type { CommandEnvelope, CommandBody } from "@bluewave/commands";
-import { CommandLifecycle, CommandIdempotencyMap } from "@bluewave/commands";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
 import { MonthExecutor, PhaseRegistry } from "../src/index.js";
 
 const NATIONS = ["GBR", "FRA", "GER"];

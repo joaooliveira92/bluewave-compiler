@@ -1,8 +1,8 @@
-﻿import { describe, it, expect } from "vite-plus/test";
+﻿import type { CampaignSnapshot, ConstructionProject, NationState } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import type { CampaignSnapshot, NationState, ConstructionProject } from "@bluewave/campaign";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
 import { MonthExecutor } from "../src/index.js";
 
 function makeNation(

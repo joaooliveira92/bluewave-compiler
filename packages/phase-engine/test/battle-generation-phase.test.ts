@@ -1,10 +1,10 @@
 //packages/phase-engine/test/battle-generation-phase.test.ts
-import { describe, it, expect } from "vite-plus/test";
+
+import type { BattleInstance, CampaignSlot, CampaignSnapshot } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
-import type { CampaignSnapshot, CampaignSlot } from "@bluewave/campaign";
-import { MonthExecutor } from "../src/index.js";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { BattleInstance } from "@bluewave/campaign";
+import { describe, expect, it } from "vite-plus/test";
+import { MonthExecutor } from "../src/index.js";
 
 function makeNation(
   id: string,

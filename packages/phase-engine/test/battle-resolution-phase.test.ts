@@ -7,19 +7,19 @@
 // battles keep the M1 `BattleResolver` strength path exactly as today.
 // Fail-closed: missing manifest / missing committed weather -> stable
 // diagnostic; never a crash, never a partial mutation.
-import { describe, it, expect } from "vite-plus/test";
-import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+
 import type { CampaignSnapshot, Ship } from "@bluewave/campaign";
-import { resolveBattleAuto, BATTLE_AUTO_RESOLUTION_FAILED } from "@bluewave/combat";
-import { INVALID_BATTLE_WEATHER_INITIALIZATION } from "@bluewave/combat";
+import { BATTLE_AUTO_RESOLUTION_FAILED, INVALID_BATTLE_WEATHER_INITIALIZATION, resolveBattleAuto } from "@bluewave/combat";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
 import { MonthExecutor } from "../src/index.js";
 import {
   ATTACKER_NATION,
+  buildBattleManifest,
   CAMPAIGN_SEED,
   DEFENDER_NATION,
-  buildBattleManifest,
   makeBattle,
   makeBattleSnapshot,
   makeDesign,

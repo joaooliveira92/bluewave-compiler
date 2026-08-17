@@ -2,7 +2,7 @@
 import type { Brand } from "@bluewave/contracts";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { splitSeed, drawFromSeed } from "./seeded-prng.js";
+import { drawFromSeed, splitSeed } from "./seeded-prng.js";
 
 export type RandomSeed = Brand<string, "RandomSeed">;
 

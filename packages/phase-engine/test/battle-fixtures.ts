@@ -5,7 +5,7 @@
 // hand-constructed (controlled manifests / manifest-less legacy battles /
 // broken-invariant failures). Deterministic; no ambient clock/random/env
 // (the only randomness is the keyed campaign seed).
-import { SafeInt } from "@bluewave/contracts";
+
 import type {
   BattleInstance,
   BattleManifest,
@@ -17,6 +17,7 @@ import type {
   WarDeclaration,
 } from "@bluewave/campaign";
 import { buildManifest } from "@bluewave/combat";
+import { SafeInt } from "@bluewave/contracts";
 
 export const BATTLE_AREA = "a-1";
 export const ATTACKER_NATION = "GBR";

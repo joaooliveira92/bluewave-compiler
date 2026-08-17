@@ -1,17 +1,17 @@
-﻿import { describe, it, expect, beforeAll, afterAll } from "vite-plus/test";
-import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { CampaignCompiler } from "@bluewave/campaign/compiler";
-import type { CampaignState, CampaignSnapshot, NationState } from "@bluewave/campaign";
-import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
-import { CommandLifecycle, CommandIdempotencyMap } from "@bluewave/commands";
-import { SaveStore } from "@bluewave/persistence";
-import { MonthExecutor, ReplayVerifier, PhaseRegistry } from "../src/index.js";
-import { mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
-import { resolve, join } from "node:path";
+﻿import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import type { CampaignSnapshot, CampaignState, NationState } from "@bluewave/campaign";
+import { CampaignCompiler } from "@bluewave/campaign/compiler";
+import type { BudgetProjectCommand, CommandEnvelope } from "@bluewave/commands";
+import { CommandIdempotencyMap, CommandLifecycle } from "@bluewave/commands";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { SaveStore } from "@bluewave/persistence";
 import { nationsYaml } from "@bluewave/test-support";
+import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
+import { MonthExecutor, PhaseRegistry, ReplayVerifier } from "../src/index.js";
 
 const FIXTURE = {
   pack: JSON.stringify({

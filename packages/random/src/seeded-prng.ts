@@ -1,4 +1,4 @@
-import { sha256Hex, hashWithContext } from "@bluewave/deterministic";
+import { hashWithContext, sha256Hex } from "@bluewave/deterministic";
 
 export function splitSeed(seed: string, domain: string): string {
   return hashWithContext(domain, seed);

@@ -234,7 +234,7 @@ describe("AC-22 — torpedo context threads across minutes", () => {
     const state = {
       ...scene.state,
       movementStates: {
-        ...scene.state.movementStates ?? {},
+        ...scene.state.movementStates,
         d1: { ...scene.state.movementStates?.d1 ?? buildTorpedoScene().state.movementStates!.d1, position: farPos },
       },
       contacts: [{ ...scene.contact, position: farPos }],

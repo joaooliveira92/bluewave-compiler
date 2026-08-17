@@ -1,21 +1,23 @@
-// PROTOTYPE DRAFT — not the implementation. Tune against the real types on
-// compile (playwright @1.62, Electron 41). Contract described in README.md.
-import { test as base, expect, _electron as electron } from "@playwright/test";
-import type { ElectronApplication, Page } from "@playwright/test";
-import { mkdtemp, rm, rmSync, mkdir, cp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { resolve, join } from "node:path";
+// PROTOTYPE DRAFT — synced against the real implementation in
+// apps/desktop/e2e/fixtures.ts (playwright, Electron 41.10.4). Contract in
+// README.md.
+
 import { existsSync } from "node:fs";
+import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { ElectronApplication, Page } from "@playwright/test";
+import { test as base, _electron as electron, expect } from "@playwright/test";
 
 /** Canonical deterministic seed (valid u128 hex; the shipped package's own). */
 export const SEED = "ba44581c2f1d8e5c9753ffc80be8e6a0";
 
-const DESKTOP_ROOT = resolve(import.meta.dirname, "..");
+// import.meta.dirname (Node 20.11+) is unavailable in the bundled main
+// context; resolve from import.meta.url for portability (mirrors fixtures.ts).
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const DESKTOP_ROOT = resolve(__dirname, "..");
 const OUT_MAIN = resolve(DESKTOP_ROOT, "out", "main", "index.js");
-const FIXTURE_PACKAGE = resolve(
-  DESKTOP_ROOT, "..", "..", "content", "production", "1880",
-  "bluewave-austria_hungary-scen_1880",
-);
 
 export interface E2EHarness {
   app: ElectronApplication;
@@ -26,8 +28,6 @@ export interface E2EHarness {
   userDataDir: string;
   /** dir the stubbed dialog returns — fresh-compile target or fixture copy */
   saveDir: string;
-  /** preflight: fail fast with a readable message when the build is stale */
-  assertBuilt(): void;
   /** point the stubbed dialog at a different dir (e.g. shared campaign) */
   retargetDialog(dir: string): Promise<void>;
 }
@@ -40,48 +40,65 @@ export type BootOptions = {
 const LANDING_TEXT = "Bluewave Naval Staff";
 
 async function launchHarness(opts: BootOptions = {}): Promise<E2EHarness> {
-  const scratch = await mkdtemp(join(tmpdir(), "bluewave-e2e-"));
-  const userDataDir = join(scratch, "userdata");
-  const saveDir = opts.saveDir ?? join(scratch, "save");
-  await mkdir(saveDir, { recursive: true });
-
   if (!existsSync(OUT_MAIN)) {
-    throw new Error(`out/main/index.js missing — run "pnpm build" (electron-vite build) first`);
+    throw new Error(
+      `out/main/index.js missing — run "pnpm build" (electron-vite build) in apps/desktop first`,
+    );
   }
 
-  const app = await electron.launch({
-    args: [OUT_MAIN, `--user-data-dir=${userDataDir}`], // no --dev => prod loadFile
-    env: { ...process.env, ELECTRON_RUN_AS_NODE: "" },
-  });
+  const scratch = await mkdtemp(join(tmpdir(), "bluewave-e2e-"));
+  try {
+    const userDataDir = join(scratch, "userdata");
+    const saveDir = opts.saveDir ?? join(scratch, "save");
+    await mkdir(saveDir, { recursive: true });
 
-  await app.evaluate(({ dialog }, dir) => {
-    // Mutate the method, never replace the module (dialog prop is
-    // configurable:false). Works on Electron 41.10.4 (research 01).
-    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
-  }, saveDir);
+    const app = await electron.launch({
+      args: [OUT_MAIN, `--user-data-dir=${userDataDir}`], // no --dev => prod loadFile
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: "" },
+      timeout: 60_000,
+    });
 
-  const window = await app.waitForEvent("window", {
-    predicate: (win) => !win.url().startsWith("devtools://"),
-  });
-  await window.waitForLoadState("load");
-  await window.getByText(LANDING_TEXT).waitFor({ timeout: 15000 });
+    // Mutate methods, never replace the module (dialog prop is
+    // configurable:false). Works on Electron 41.10.4 (research 01). Stub BOTH
+    // dialogs: save dialog (compile) returns `filePath`; open dialog
+    // (continuance) returns `filePaths`.
+    await app.evaluate(({ dialog }, dir) => {
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath: dir });
+      dialog.showOpenDialog = async () => ({
+        canceled: false,
+        filePaths: [dir],
+      });
+    }, saveDir);
 
-  return {
-    app,
-    page: window,
-    scratch,
-    userDataDir,
-    saveDir,
-    assertBuilt: () => {
-      if (!existsSync(OUT_MAIN)) {
-        throw new Error(`out/main/index.js missing — run "pnpm build" first`);
-      }
-    },
-    retargetDialog: (dir) =>
-      app.evaluate(({ dialog }, p) => {
-        dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [p] });
-      }, dir),
-  };
+    const window = await app.waitForEvent("window", {
+      predicate: (win) => !win.url().startsWith("devtools://"),
+    });
+    await window.waitForLoadState("load");
+    await window.getByText(LANDING_TEXT).waitFor({ timeout: 15000 });
+
+    return {
+      app,
+      page: window,
+      scratch,
+      userDataDir,
+      saveDir,
+      retargetDialog: (dir) =>
+        app.evaluate(({ dialog }, p) => {
+          dialog.showSaveDialog = async () => ({
+            canceled: false,
+            filePath: p,
+          });
+          dialog.showOpenDialog = async () => ({
+            canceled: false,
+            filePaths: [p],
+          });
+        }, dir),
+    };
+  } catch (error) {
+    // Launch or boot failed mid-way — never leak the scratch tree.
+    await rm(scratch, { recursive: true, force: true }).catch(() => {});
+    throw error;
+  }
 }
 
 async function teardown(h: E2EHarness): Promise<void> {
@@ -92,11 +109,18 @@ async function teardown(h: E2EHarness): Promise<void> {
   }
 }
 
-/** Copy the shipped production package to a writable scratch location. */
-export async function copyFixturePackage(scratchRoot: string): Promise<string> {
-  const target = join(scratchRoot, "pkg-copy");
-  await mkdir(target, { recursive: true });
-  await cp(FIXTURE_PACKAGE, target, { recursive: true });
+/**
+ * Copy the shipped production package (or a compiled master fixture package)
+ * to a writable scratch location so continuance specs never mutate the source
+ * tree. Mirrors fixtures.ts: `sourceDir` is the package, `scratchRoot` the
+ * per-test scratch tree.
+ */
+export async function copyFixturePackage(
+  sourceDir: string,
+  scratchRoot: string,
+): Promise<string> {
+  const target = join(scratchRoot, "package");
+  await cp(sourceDir, target, { recursive: true });
   return target;
 }
 

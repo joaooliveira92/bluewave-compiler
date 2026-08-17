@@ -5,12 +5,13 @@
 // Proves the consequence application directly (unit) and through the phase on
 // a real deterministic tactical result (two identical runs -> byte-identical
 // closing snapshot hash).
-import { describe, it, expect } from "vite-plus/test";
-import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+
 import type { CampaignSnapshot, Ship } from "@bluewave/campaign";
-import { MonthExecutor, applyBattleConsequences } from "../src/index.js";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
+import { applyBattleConsequences, MonthExecutor } from "../src/index.js";
 import {
   ATTACKER_NATION,
   CAMPAIGN_SEED,

@@ -4,7 +4,7 @@ import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { describe, expect, it } from "vite-plus/test";
-import { MonthExecutor, PhaseGuard, PhaseRegistry, PHASE_FOOTPRINTS } from "../src/index.js";
+import { MonthExecutor, PHASE_FOOTPRINTS, PhaseGuard, PhaseRegistry } from "../src/index.js";
 
 function createSnapshot(overrides?: Partial<CampaignSnapshot>): CampaignSnapshot {
   const nations = new Map<string, NationState>();
