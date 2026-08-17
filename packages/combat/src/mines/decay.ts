@@ -34,15 +34,126 @@
 // NOT delete it — full closure is §27/INC-7 part D (clearance.ts). A decay applied
 // to an already-absent (pressure-0) record is a graceful no-op.
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
-import { MINE_BASIS_POINTS_PER_UNIT, type MineDecayPolicy } from "./constants.js";
-import { mineTypeDefinitionById } from "./model.js";
+import {
+  MINE_BASIS_POINTS_PER_UNIT,
+  MINE_FORMULA_VERSION,
+  MINE_RULESET_VERSION,
+  type MineDecayPolicy,
+  type MineType,
+} from "./constants.js";
+import { mineTypeDefinitionById, SHIPPED_MINE_TYPE_DEFINITIONS } from "./model.js";
 import {
   MINE_PRESSURE_MIN,
   type AreaMinePressureRecord,
   computeAreaPressureRecordHash,
   withAreaMinePressureRecordHash,
 } from "./pressure-record.js";
-import { MINE_DECAY_POLICY_MISSING, INVALID_MINE_PRESSURE_STATE } from "./reasonCodes.js";
+import {
+  MINE_DECAY_POLICY_MISSING,
+  INVALID_MINE_PRESSURE_STATE,
+  MINE_WARFARE_INVARIANT_FAILED,
+} from "./reasonCodes.js";
+
+// ---- mine_decay_v1 contract (INC-8 AC-24 rollup) ----
+// The dedicated §21 decay contract. DESIGN-35 §21 ships exact retention
+// multipliers per canonical mine type (9_750/9_500/9_250/9_900-9_000/9_500 and
+// definition-required for SCENARIO_SPECIAL); those values are carried
+// AUTHORITATIVELY on each MineTypeDefinition.decayPolicy (model.ts — the §21
+// carrier, since no dedicated decay table existed before INC-8; the contract is
+// a pinned VIEW over the shipped definitions — single source of truth). The
+// carrier decision is documented for the C-2 ADR.
+export const mineDecayPolicyId = "mine_decay_v1" as const;
+
+export interface MineDecayRetentionDatum {
+  mineTypeId: MineType;
+  /** FLAT: number | INFRASTRUCTURE_GATED: [operational, nonOperational] | DEFINITION_REQUIRED: null */
+  retention: number | readonly [number, number] | null;
+}
+
+export interface MineDecayContract {
+  policyId: string;
+  rulesetVersion: string;
+  formulaVersion: string;
+  basisPointsPerUnit: number;
+  /** Every shipped type's §21 retention fact (null = definition-required). */
+  retentionByType: readonly MineDecayRetentionDatum[];
+  /** §21: freshness retention uses the SAME multiplier unless a narrower explicit value exists. */
+  freshnessUsesSameMultiplierUnlessNarrowerExplicit: boolean;
+}
+
+/** Exact §21 retention facts derived from the SHIPPED MineTypeDefinition set
+ *  (model.ts is the authoritative surface; this mirrors the definitions). */
+export const SHIPPED_MINE_DECAY_RETENTION_BY_TYPE: readonly MineDecayRetentionDatum[] =
+  SHIPPED_MINE_TYPE_DEFINITIONS.map((def) => {
+    const policy: MineDecayPolicy = def.decayPolicy;
+    if (policy.kind === "FLAT")
+      return { mineTypeId: def.mineTypeId, retention: policy.retentionBp };
+    if (policy.kind === "INFRASTRUCTURE_GATED")
+      return {
+        mineTypeId: def.mineTypeId,
+        retention: [policy.operationalRetentionBp, policy.nonOperationalRetentionBp] as const,
+      };
+    return { mineTypeId: def.mineTypeId, retention: null };
+  });
+
+export const SHIPPED_MINE_DECAY_CONTRACT: MineDecayContract = {
+  policyId: mineDecayPolicyId,
+  rulesetVersion: MINE_RULESET_VERSION,
+  formulaVersion: MINE_FORMULA_VERSION,
+  basisPointsPerUnit: MINE_BASIS_POINTS_PER_UNIT,
+  retentionByType: SHIPPED_MINE_DECAY_RETENTION_BY_TYPE,
+  freshnessUsesSameMultiplierUnlessNarrowerExplicit: true,
+};
+
+function mineDecayContractMismatch(contract: unknown, reason: string): never {
+  // A tampered mine_decay_v1 contract is a §21 decay-fact violation — the
+  // fail-closed invariant code is semantically correct here (a §1 pressure-state
+  // code would mislabel a decay-contract defect).
+  throw new BluewaveError(MINE_WARFARE_INVARIANT_FAILED, {
+    code: MINE_WARFARE_INVARIANT_FAILED,
+    contract,
+    reason,
+  });
+}
+
+function retentionMatches(
+  a: number | readonly [number, number] | null,
+  b: number | readonly [number, number] | null,
+): boolean {
+  if (Array.isArray(a) && Array.isArray(b)) return a[0] === b[0] && a[1] === b[1];
+  return a === b;
+}
+
+// AC-24: fail-closed guard over the mine_decay_v1 contract. Tampering any
+// shipped type's retention fact (or the version/policy/bp surface) fails.
+export function validateMineDecayContract(
+  c: Partial<MineDecayContract> | null | undefined,
+): asserts c is MineDecayContract {
+  if (!c) mineDecayContractMismatch(c, "mine_decay_v1 missing contract");
+  if (c.policyId !== mineDecayPolicyId)
+    mineDecayContractMismatch(c, "mine_decay_v1 expected policy id");
+  if (c.rulesetVersion !== MINE_RULESET_VERSION || c.formulaVersion !== MINE_FORMULA_VERSION)
+    mineDecayContractMismatch(c, "mine_decay_v1 ruleset/formula versions");
+  if (c.basisPointsPerUnit !== MINE_BASIS_POINTS_PER_UNIT)
+    mineDecayContractMismatch(c, "mine_decay_v1 basis-point scale");
+  if (
+    !c.retentionByType ||
+    c.retentionByType.length !== SHIPPED_MINE_DECAY_RETENTION_BY_TYPE.length
+  )
+    mineDecayContractMismatch(c, "mine_decay_v1 retention-by-type list length");
+  for (let i = 0; i < SHIPPED_MINE_DECAY_RETENTION_BY_TYPE.length; i++) {
+    const shipped = SHIPPED_MINE_DECAY_RETENTION_BY_TYPE[i]!;
+    const given = c.retentionByType[i];
+    if (
+      !given ||
+      given.mineTypeId !== shipped.mineTypeId ||
+      !retentionMatches(given.retention, shipped.retention)
+    )
+      mineDecayContractMismatch(c, `mine_decay_v1 §21 retention for type ${shipped.mineTypeId}`);
+  }
+  if (c.freshnessUsesSameMultiplierUnlessNarrowerExplicit !== true)
+    mineDecayContractMismatch(c, "mine_decay_v1 §21 same-multiplier-unless-narrower fact");
+}
 
 export interface DecayedPressure {
   /** The retention multiplier resolved from the type's decay policy (§21). */

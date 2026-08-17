@@ -3,9 +3,18 @@
 // top-level combat catalog (src/reasonCodes.ts) so the C-2 set-equality guard
 // (reason-codes-mines.test.ts, INC-8 deliverable, per ticket 05) is not grown
 // without review. Per spec §1.4, DESIGN-35 §30 is authoritative: 15 direct +
-// 2 value-only codes are in-slice for this sprint, and 3 are owned by the C-2
-// continuation (strike resolution). INC-1
-// ships the module plus INVALID_MINE_TYPE_DEFINITION, the one code it exercises.
+// 2 value-only codes are in-slice for this sprint, plus the documented in-slice
+// NON-§30 marker MINE_STRIKE_RESOLUTION_DEFERRED (mirrors C-1's
+// TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED precedent — a local marker a later
+// increment fires if any caller reaches a would-be-strike boundary), and
+// MINE_WARFARE_INVARIANT_FAILED (the §30 fail-closed invariant code used
+// AMBIENTLY by INC-7's fail-closed boundaries and FORMALIZED into the shipped
+// catalog by INC-8, mirroring TORPEDO_STATE_INVARIANT_FAILED). The FULL shipped
+// catalog is therefore 16 codes:
+//   14 §30 direct/value codes,
+//   + MINE_STRIKE_RESOLUTION_DEFERRED (documented in-slice marker, NOT a §30 code),
+//   + MINE_WARFARE_INVARIANT_FAILED (§30).
+// INC-1 ships the module plus INVALID_MINE_TYPE_DEFINITION, the one code it exercises.
 // INC-2 ships the sources/laying/pressure codes it
 // exercises. INC-3 ships the sweeping
 // eligibility/base-value/dual-equipment/resistance codes (MINESWEEPING_SHIP_INELIGIBLE,
@@ -112,15 +121,19 @@ export const CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING =
 // MINE_PRESSURE_REDUCED.
 export const MINEFIELD_CLEARED = "MINEFIELD_CLEARED" as const;
 
-// ---- Ambient (NOT in the shipped map yet): fail-closed invariant code, §30 ----
-// MINE_WARFARE_INVARIANT_FAILED is the §30 fail-closed invariant code used
-// AMBIENTLY by INC-7's fail-closed boundaries (peace-settlement term rejection,
-// invariant guards) exactly as the INC-6 header documents; it is formalized into
-// the shipped catalog by INC-8 (ticket 05), mirroring TORPEDO_STATE_INVARIANT_FAILED.
+// ---- In-slice code (INC-8: records/ordering/contracts/ADR formalization,
+//   §30) ----
+// §30: the sub-closed fail-closed invariant code MINE_WARFARE_INVARIANT_FAILED.
+// INC-7 already used it AMBIENTLY at its fail-closed boundaries (peace-settlement
+// term rejection, invariant guards, clearance preconditions, ownership invariant),
+// exactly as its INC-6 header documented. INC-8 FORMALIZES it into the shipped
+// catalog (mirroring C-1's TORPEDO_STATE_INVARIANT_FAILED formalization) and it
+// is now the exclusive carrier of the module's invariant failures; the
+// set-equality partition (reason-codes-mines.test.ts, AC-21) locks the shipped set.
 export const MINE_WARFARE_INVARIANT_FAILED = "MINE_WARFARE_INVARIANT_FAILED" as const;
 
-// ---- Collected catalog (INC-1..INC-7 shipped set; grows through INC-8,
-// set-equality checked in INC-8) ----
+// ---- Collected catalog (INC-1..INC-8 shipped set; set-equality checked in
+// INC-8's reason-codes-mines.test.ts) ----
 export const MINE_REASON_CODES = {
   INVALID_MINE_TYPE_DEFINITION,
   INVALID_MINE_PRESSURE_STATE,
@@ -137,16 +150,10 @@ export const MINE_REASON_CODES = {
   MINE_DECAY_POLICY_MISSING,
   CONTROLLED_MINE_TRANSFER_DISPOSITION_MISSING,
   MINEFIELD_CLEARED,
+  MINE_WARFARE_INVARIANT_FAILED,
 } as const;
 
 export type MineReasonCode = (typeof MINE_REASON_CODES)[keyof typeof MINE_REASON_CODES];
-
-// ---- Recorded §30 in-slice codes owned by INC-8 (never shipped here) ----
-// INC-8 (records/ordering/contracts/ADR): MINE_WARFARE_INVARIANT_FAILED (already
-//   used AMBIENTLY by INC-7's fail-closed boundaries as the contract-mismatch /
-//   settlement-term rejection code, mirroring TORPEDO_STATE_INVARIANT_FAILED — a
-//   standalone export above, deliberately NOT in the shipped map until INC-8
-//   formalizes the catalog + set-equality partition).
 
 // ---- Deferred §30 codes (recorded, never shipped this sprint — C-2
 // continuation owns strike resolution, per ticket 03/05) ----

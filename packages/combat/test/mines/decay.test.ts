@@ -11,7 +11,6 @@ import {
   INVALID_MINE_PRESSURE_STATE,
   MINE_DECAY_POLICY_MISSING,
   MINE_FORMULA_VERSION,
-  MINE_PRESSURE_MIN,
   MINE_RULESET_VERSION,
   type AreaMinePressureRecord,
   withAreaMinePressureRecordHash,

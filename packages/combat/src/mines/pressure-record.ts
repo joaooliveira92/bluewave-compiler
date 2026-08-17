@@ -28,8 +28,62 @@ export const MINE_FRESHNESS_MIN_BP = 0 as const;
 export const MINE_FRESHNESS_MAX_BP = MINE_BASIS_POINTS_PER_UNIT;
 
 // Content version of the record hash envelope (mine_pressure_v1 naming
-// convention; the same string will back the mine_pressure_v1 contract, INC-8).
+// convention; the same string backs the mine_pressure_v1 contract below).
 export const minePressureRecordContentVersion = "mine_pressure_v1" as const;
+
+// ---- mine_pressure_v1 contract (INC-8 AC-24 rollup) ----
+// The §1 record surface contract: the closed pressure/freshness bounds + the
+// version riders every §1 record carries. Additive (INC-8) — nothing here
+// changed from INC-2's shipped record shape; the contract only pins the facts.
+export const MINE_PRESSURE_POLICY_ID = minePressureRecordContentVersion;
+
+export interface MinePressureContract {
+  policyId: string;
+  rulesetVersion: string;
+  formulaVersion: string;
+  basisPointsPerUnit: number;
+  pressureMin: number;
+  pressureMax: number;
+  freshnessMinBp: number;
+  freshnessMaxBp: number;
+}
+
+export const SHIPPED_MINE_PRESSURE_CONTRACT: MinePressureContract = {
+  policyId: MINE_PRESSURE_POLICY_ID,
+  rulesetVersion: MINE_RULESET_VERSION,
+  formulaVersion: MINE_FORMULA_VERSION,
+  basisPointsPerUnit: MINE_BASIS_POINTS_PER_UNIT,
+  pressureMin: MINE_PRESSURE_MIN,
+  pressureMax: MINE_PRESSURE_MAX,
+  freshnessMinBp: MINE_FRESHNESS_MIN_BP,
+  freshnessMaxBp: MINE_FRESHNESS_MAX_BP,
+};
+
+function minePressureContractMismatch(contract: unknown, reason: string): never {
+  throw new BluewaveError(INVALID_MINE_PRESSURE_STATE, {
+    code: INVALID_MINE_PRESSURE_STATE,
+    contract,
+    reason,
+  });
+}
+
+// AC-24: fail-closed guard over the §1 pressure contract. A tampered bound,
+// version, policy id, or basis-point scale never passes.
+export function validateMinePressureContract(
+  c: Partial<MinePressureContract> | null | undefined,
+): asserts c is MinePressureContract {
+  if (!c) minePressureContractMismatch(c, "mine_pressure_v1 missing contract");
+  if (c.policyId !== MINE_PRESSURE_POLICY_ID)
+    minePressureContractMismatch(c, "mine_pressure_v1 expected policy id");
+  if (c.rulesetVersion !== MINE_RULESET_VERSION || c.formulaVersion !== MINE_FORMULA_VERSION)
+    minePressureContractMismatch(c, "mine_pressure_v1 ruleset/formula versions");
+  if (c.basisPointsPerUnit !== MINE_BASIS_POINTS_PER_UNIT)
+    minePressureContractMismatch(c, "mine_pressure_v1 basis-point scale");
+  if (c.pressureMin !== MINE_PRESSURE_MIN || c.pressureMax !== MINE_PRESSURE_MAX)
+    minePressureContractMismatch(c, "mine_pressure_v1 §1 pressure bounds");
+  if (c.freshnessMinBp !== MINE_FRESHNESS_MIN_BP || c.freshnessMaxBp !== MINE_FRESHNESS_MAX_BP)
+    minePressureContractMismatch(c, "mine_pressure_v1 §1 freshness bounds");
+}
 
 export interface OrderedSourceCompositionItem {
   layingSourceId: string;
