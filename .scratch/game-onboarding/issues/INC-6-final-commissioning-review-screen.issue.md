@@ -15,17 +15,17 @@ nation×era combination. Only two buttons: Back, Begin Commission.
 
 **Status:** done
 
-- [ ] Summary table shows exactly the rows listed in spec §6, with no
+- [x] Summary table shows exactly the rows listed in spec §6, with no
       Aviation development / Tutorial adviser / Economic model / "Campaign
       scale" rows anywhere
-- [ ] Active preset name (or "Custom") shown as an annotation, not a
+- [x] Active preset name (or "Custom") shown as an annotation, not a
       duplicate row
-- [ ] Strategic forecast panel renders for all 10 nations × 5 eras without
+- [x] Strategic forecast panel renders for all 10 nations × 5 eras without
       any new per-combination authoring — verify by spot-checking at least 3
       nation/era combinations produce sensible, non-empty text
-- [ ] No "Save as Preset" or "Generate Another Starting Fleet" button
+- [x] No "Save as Preset" or "Generate Another Starting Fleet" button
       present anywhere on this screen, not even disabled
-- [ ] "Begin Commission" triggers the `compileCampaign` call (wired to
+- [x] "Begin Commission" triggers the `compileCampaign` call (wired to
       INC-7 in that ticket)
-- [ ] Component tests cover table row rendering from draft state and the
+- [x] Component tests cover table row rendering from draft state and the
       forecast panel's templating logic

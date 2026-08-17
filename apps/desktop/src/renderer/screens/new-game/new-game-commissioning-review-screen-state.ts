@@ -8,7 +8,13 @@ import { NATION_PRESENTATION_CATALOG } from "../../content/nationPresentationCat
 import type { NewGameOptions } from "../../../shared/new-game-contract.js";
 import type { FleetMethodDraft } from "./new-game-fleet-method-screen-state.js";
 import { FLEET_METHOD_CARDS } from "./fleet-method-content.js";
-import type { CampaignIdentityDraft } from "./new-game-identity-screen-state.js";
+import {
+  type CampaignIdentityDraft,
+  type IdentityFieldOption,
+  MEASUREMENT_SYSTEM_OPTIONS,
+  NAMING_CONVENTION_OPTIONS,
+  SHIP_NAME_REUSE_OPTIONS,
+} from "./new-game-identity-screen-state.js";
 import type { DraftPreferences } from "./new-game-preferences-screen-state.js";
 import {
   fleetSizeLabel,
@@ -41,26 +47,15 @@ export interface SummaryRow {
   readonly value: string;
 }
 
-const NAMING_CONVENTION_LABELS: Record<CampaignIdentityDraft["namingConvention"], string> = {
-  historical: "Historical",
-  generated: "Generated",
-  custom: "Custom",
-};
-
-const SHIP_NAME_REUSE_LABELS: Record<CampaignIdentityDraft["shipNameReuse"], string> = {
-  disabled: "Disabled",
-  allowed: "Allowed",
-};
-
-const MEASUREMENT_SYSTEM_LABELS: Record<CampaignIdentityDraft["measurementSystem"], string> = {
-  imperial: "Imperial",
-  metric: "Metric",
-};
+function identityLabel<V extends string>(
+  options: ReadonlyArray<IdentityFieldOption<V>>,
+  value: V,
+): string {
+  return options.find((option) => option.value === value)?.label ?? value;
+}
 
 function nationLabel(nationId: string): string {
-  return isPlayableSlotCountryId(nationId)
-    ? NATION_PRESENTATION_CATALOG[nationId].name
-    : nationId;
+  return isPlayableSlotCountryId(nationId) ? NATION_PRESENTATION_CATALOG[nationId].name : nationId;
 }
 
 function eraLabel(options: NewGameOptions | null, scenarioId: string): string {
@@ -68,7 +63,9 @@ function eraLabel(options: NewGameOptions | null, scenarioId: string): string {
 }
 
 function fleetMethodLabel(legacyFleetModeId: string): string {
-  return FLEET_METHOD_CARDS.find((card) => card.id === legacyFleetModeId)?.title ?? legacyFleetModeId;
+  return (
+    FLEET_METHOD_CARDS.find((card) => card.id === legacyFleetModeId)?.title ?? legacyFleetModeId
+  );
 }
 
 function archetypeLabel(archetype: ArchetypeSelection): string {
@@ -90,9 +87,18 @@ export function buildSummaryRows(input: CommissioningReviewInput): readonly Summ
     ...uncertaintyRows,
     { label: "Starting fleet method", value: fleetMethodLabel(fleetMethod.legacyFleetModeId) },
     { label: "Archetype", value: archetypeLabel(archetype) },
-    { label: "Naming convention", value: NAMING_CONVENTION_LABELS[identity.namingConvention] },
-    { label: "Ship name reuse", value: SHIP_NAME_REUSE_LABELS[identity.shipNameReuse] },
-    { label: "Measurement system", value: MEASUREMENT_SYSTEM_LABELS[identity.measurementSystem] },
+    {
+      label: "Naming convention",
+      value: identityLabel(NAMING_CONVENTION_OPTIONS, identity.namingConvention),
+    },
+    {
+      label: "Ship name reuse",
+      value: identityLabel(SHIP_NAME_REUSE_OPTIONS, identity.shipNameReuse),
+    },
+    {
+      label: "Measurement system",
+      value: identityLabel(MEASUREMENT_SYSTEM_OPTIONS, identity.measurementSystem),
+    },
     { label: "Admiral", value: identity.admiralName },
     { label: "Campaign name", value: identity.campaignName },
   ];
@@ -134,7 +140,9 @@ export function buildStrategicForecast(
   if (!isPlayableSlotCountryId(nationId)) return null;
   const dossier: NationDossierFields = NATION_DOSSIER_FIELDS[nationId];
   const expectedPressures = SIX_SETTING_FIELDS.map((field) =>
-    field === "fleetSize" ? fleetSizeReadout(preferences.fleetSize) : uncertaintyBlurb(field, preferences),
+    field === "fleetSize"
+      ? fleetSizeReadout(preferences.fleetSize)
+      : uncertaintyBlurb(field, preferences),
   ).filter((blurb) => blurb.length > 0);
 
   return {

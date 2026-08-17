@@ -2,6 +2,28 @@ export type NamingConvention = "historical" | "generated" | "custom";
 export type ShipNameReuse = "allowed" | "disabled";
 export type MeasurementSystem = "imperial" | "metric";
 
+export interface IdentityFieldOption<V extends string> {
+  readonly value: V;
+  readonly label: string;
+}
+
+/** Single settled source of the §4 identity enums' {value → label} vocabulary (spec §4/§6). */
+export const NAMING_CONVENTION_OPTIONS: ReadonlyArray<IdentityFieldOption<NamingConvention>> = [
+  { value: "historical", label: "Historical" },
+  { value: "generated", label: "Generated" },
+  { value: "custom", label: "Custom" },
+];
+
+export const SHIP_NAME_REUSE_OPTIONS: ReadonlyArray<IdentityFieldOption<ShipNameReuse>> = [
+  { value: "disabled", label: "Disabled" },
+  { value: "allowed", label: "Allowed" },
+];
+
+export const MEASUREMENT_SYSTEM_OPTIONS: ReadonlyArray<IdentityFieldOption<MeasurementSystem>> = [
+  { value: "imperial", label: "Imperial" },
+  { value: "metric", label: "Metric" },
+];
+
 export interface CampaignIdentityDraft {
   readonly admiralName: string;
   readonly campaignName: string;

@@ -59,7 +59,14 @@ export function NewGameCommissioningReviewScreen({
     return () => onPrimaryActionChange(null);
   }, [launching, triggerBegin, onPrimaryActionChange]);
 
-  const rows = buildSummaryRows({ nationId, options, preferences, archetype, identity, fleetMethod });
+  const rows = buildSummaryRows({
+    nationId,
+    options,
+    preferences,
+    archetype,
+    identity,
+    fleetMethod,
+  });
   const presetLabel = activePresetAnnotation(preferences);
   const forecast = buildStrategicForecast(nationId, preferences);
 
@@ -94,7 +101,9 @@ export function NewGameCommissioningReviewScreen({
       {forecast !== null && (
         <GlassCard glassVariant="liquid-refract">
           <div className="flex flex-col gap-3 p-4">
-            <h2 className="text-sm font-semibold">Strategic forecast — {forecast.appointmentTitle}</h2>
+            <h2 className="text-sm font-semibold">
+              Strategic forecast — {forecast.appointmentTitle}
+            </h2>
             <p className="text-sm text-muted-foreground">{forecast.doctrine}</p>
             <p className="text-sm text-muted-foreground">{forecast.strategicRegions}</p>
             <p className="text-sm text-muted-foreground">{forecast.nationalCharacteristics}</p>

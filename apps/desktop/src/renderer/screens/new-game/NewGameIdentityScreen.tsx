@@ -17,25 +17,12 @@ import {
   type NamingConvention,
   type ShipNameReuse,
   isCampaignIdentityValid,
+  MEASUREMENT_SYSTEM_OPTIONS,
+  NAMING_CONVENTION_OPTIONS,
+  SHIP_NAME_REUSE_OPTIONS,
   updateCampaignIdentity,
 } from "./new-game-identity-screen-state.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
-
-const NAMING_CONVENTION_OPTIONS: ReadonlyArray<{ value: NamingConvention; label: string }> = [
-  { value: "historical", label: "Historical" },
-  { value: "generated", label: "Generated" },
-  { value: "custom", label: "Custom" },
-];
-
-const SHIP_NAME_REUSE_OPTIONS: ReadonlyArray<{ value: ShipNameReuse; label: string }> = [
-  { value: "disabled", label: "Disabled" },
-  { value: "allowed", label: "Allowed" },
-];
-
-const MEASUREMENT_SYSTEM_OPTIONS: ReadonlyArray<{ value: MeasurementSystem; label: string }> = [
-  { value: "imperial", label: "Imperial" },
-  { value: "metric", label: "Metric" },
-];
 
 export interface NewGameIdentityScreenProps {
   readonly initialIdentity: CampaignIdentityDraft;

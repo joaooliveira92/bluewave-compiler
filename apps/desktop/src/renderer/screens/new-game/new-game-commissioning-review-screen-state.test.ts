@@ -11,6 +11,14 @@ import {
 } from "./new-game-commissioning-review-screen-state.js";
 import type { DraftPreferences } from "./new-game-preferences-screen-state.js";
 
+const CANONICAL_SCENARIO_IDS = [
+  "scen_1880",
+  "scen_1900",
+  "scen_1920",
+  "scen_1935",
+  "scen_1960",
+] as const;
+
 const preferences: DraftPreferences = {
   version: "campaign_configuration_v1",
   scenarioId: "scen_1900",
@@ -123,6 +131,19 @@ describe("buildStrategicForecast", () => {
       expect(forecast?.expectedPressures.length).toBeGreaterThan(0);
       for (const pressure of forecast?.expectedPressures ?? []) {
         expect(pressure.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("templates a non-empty forecast for every playable nation × canonical era (spec §6 DoD spot-check)", () => {
+    for (const scenarioId of CANONICAL_SCENARIO_IDS) {
+      const eraPreferences: DraftPreferences = { ...preferences, scenarioId };
+      for (const nationId of PLAYABLE_SLOT_COUNTRY_IDS) {
+        const forecast = buildStrategicForecast(nationId, eraPreferences);
+        expect(forecast).not.toBeNull();
+        expect(forecast?.appointmentTitle.length).toBeGreaterThan(0);
+        expect(forecast?.doctrine.length).toBeGreaterThan(0);
+        expect(forecast?.expectedPressures.length).toBeGreaterThan(0);
       }
     }
   });
