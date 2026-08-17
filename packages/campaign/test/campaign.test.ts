@@ -601,9 +601,10 @@ describe("CampaignCompiler", () => {
       expect(dreadnought.className).toBe("Dreadnought-class");
       expect(dreadnought.hullType).toBe("battleship");
       expect(dreadnought.normalizedDisplacementKg).toBe(18000);
-      expect(dreadnought.normalizedSpeedUms).toBe(11);
-      expect(dreadnought.normalizedArmorUm).toBe(300);
-      expect(dreadnought.mainGunsCaliber).toBe(305);
+      // ADR-0037: authored knots/mm are normalized to canonical µm/µm·s⁻¹.
+      expect(dreadnought.normalizedSpeedUms).toBe(11 * 514_444);
+      expect(dreadnought.normalizedArmorUm).toBe(300 * 1000);
+      expect(dreadnought.mainGunsCaliber).toBe(305 * 1000);
       expect(dreadnought.mainGunsCount).toBe(10);
       expect(dreadnought.hitPoints).toBe(120);
       // Deterministic compiled hash, not authored.

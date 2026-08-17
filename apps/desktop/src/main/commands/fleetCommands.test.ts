@@ -106,13 +106,12 @@ describe("fleet commands", () => {
     // Real compiled ship names/designs, with status derived from the real
     // isUnderConstruction flag (HMS Inflexible is under construction in the
     // production pack; HMS Dreadnought/Alexandra are commissioned).
-    // designId is the compiled ship's designVersionId verbatim — the 1880
-    // pack's ships all lack one (ticket 02's tracked pre-existing gap), so
-    // the honest value is the same empty string the snapshot carries.
+    // designId is the compiled ship's designVersionId verbatim — HMS Inflexible
+    // is linked to its real compiled design (des_gbr_inflexible).
     const inflexible = homeView!.ships.find((s) => s.name === "HMS Inflexible");
     expect(inflexible).toBeDefined();
     const compiledInflexible = homeFleet!.ships.find((s) => s.id === "gbr_inflexible")!;
-    expect(compiledInflexible.designVersionId).toBe("");
+    expect(compiledInflexible.designVersionId).toBe("des_gbr_inflexible");
     expect(inflexible!.designId).toBe(compiledInflexible.designVersionId);
     expect(inflexible!.status).toBe("under_construction");
     const dreadnought = homeView!.ships.find((s) => s.name === "HMS Dreadnought");

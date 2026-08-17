@@ -24,7 +24,9 @@ import {
   DIVISION_STATE_INVARIANT_FAILED,
   INITIAL_DIVISION_COHESION,
   INITIAL_DIVISION_EXPERIENCE,
+  KNOTS_TO_UMS,
   MAXIMUM_CONCURRENT_WARS,
+  MM_TO_UM,
   NAP_VIOLATION_PENALTY,
   SURRENDER_SCORE,
   TENSION_ALLIANCE,
@@ -2308,12 +2310,15 @@ export class MonthExecutor {
               if (design) {
                 shipHitPoints = design["hitPoints"];
                 shipMaxHitPoints = design["hitPoints"];
-                shipSpeed = design["normalizedSpeedUms"];
+                // ADR-0037: compiled design fields are canonical µm / µm·s⁻¹;
+                // the abstracted Ship stats are knots / mm (and a coarse
+                // firepower heuristic), so convert back for display/balance.
+                shipSpeed = SafeInt.div(design["normalizedSpeedUms"], SafeInt(KNOTS_TO_UMS), "floor");
                 shipFirepower = SafeInt.mul(
                   design["mainGunsCount"],
-                  SafeInt.div(design["mainGunsCaliber"], SafeInt(100), "floor"),
+                  SafeInt.div(design["mainGunsCaliber"], SafeInt(100_000), "floor"),
                 );
-                shipArmor = design["normalizedArmorUm"];
+                shipArmor = SafeInt.div(design["normalizedArmorUm"], SafeInt(MM_TO_UM), "floor");
                 shipClassName = design["className"];
               }
             }

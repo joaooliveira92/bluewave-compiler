@@ -37,7 +37,7 @@ describe("buildConstructionDesignCatalog", () => {
           className: "Inflexible",
           hullType: "ironclad_turret_ship",
           normalizedDisplacementKg: SafeInt(11_880_000),
-          normalizedSpeedUms: SafeInt(8),
+          normalizedSpeedUms: SafeInt(8 * 514_444),
           machineryType: "reciprocating_compound",
         }),
       ],
@@ -47,7 +47,8 @@ describe("buildConstructionDesignCatalog", () => {
     expect(design.shipType).toBe("ironclad");
     // 11 880 t → mass 11 880, cost 119 (kg/100 000), capacity 12 (kt).
     expect(design.mass).toBe(11_880);
-    expect(design.speed).toBe(16); // 8 m/s ≈ 15.55 kt, rounded
+    // ADR-0037: compiled speed is µm/s; catalog converts back to knots.
+    expect(design.speed).toBe(8); // 8 kt
     expect(design.machineryType).toBe("reciprocating_compound");
     // No authored tech links in the compiled content — honest empty list.
     expect(design.requiredTechnologyIds).toEqual([]);

@@ -16,6 +16,8 @@ export {
 export * from "./continuity.js";
 // DESIGN-26 divisions (types + constants + aggregate commands).
 export * from "./division.js";
+// ADR-0037: compiled design-unit conversions (mm/knots authoring -> µm/µm·s⁻¹).
+export * from "./designUnits.js";
 export * from "./fleetSize.js";
 export * from "./researchSpeed.js";
 // DESIGN-03 Campaign Configuration surface

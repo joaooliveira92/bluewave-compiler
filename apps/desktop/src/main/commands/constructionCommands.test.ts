@@ -187,7 +187,7 @@ describe("construction commands", () => {
     expect(inflexible!.className).toBe("Inflexible");
     expect(inflexible!.year).toBe(1880); // familyCreatedMonth 1880-01
     expect(inflexible!.mass).toBe(11_880);
-    expect(inflexible!.speed).toBe(16); // 8 m/s ≈ 15.55 kt
+    expect(inflexible!.speed).toBe(8); // ADR-0037: compiled µm/s -> knots (8 kt)
     expect(inflexible!.machineryType).toBe("reciprocating_compound");
 
     // Empty workspace before any command.

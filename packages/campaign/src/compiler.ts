@@ -13,6 +13,7 @@ import {
 } from "@bluewave/diagnostics";
 import { parse } from "yaml";
 import { validateCampaignPreconditions } from "./campaignSession.js";
+import { knotsToUms, mmToUm } from "./designUnits.js";
 import { getScenarioById, type ScenarioId } from "./scenario.js";
 import type { AreaData, CampaignSlot, CampaignSnapshot, CampaignState,
   CompiledDesignVersion,
@@ -739,16 +740,26 @@ export class CampaignCompiler {
           rec["normalizedDisplacementKg"] ?? validated["displacementKg"],
           SafeInt(0),
         ),
+        // ADR-0037: design YAML authors speed in knots and armor/caliber in
+        // millimetres (human-friendly, matches DESIGN-22 §1's authored style);
+        // the compiled design carries canonical engine units (µm/s, µm) that
+        // the tactical classifier and combat layer consume (DESIGN-22 §2).
         normalizedSpeedUms: toSafeIntOpt(
-          rec["normalizedSpeedUms"] ?? validated["speedUms"],
+          rec["normalizedSpeedUms"] ??
+            knotsToUms(validated["speedUms"] as number),
           SafeInt(0),
         ),
         normalizedArmorUm: toSafeIntOpt(
-          rec["normalizedArmorUm"] ?? validated["armorBeltUm"],
+          rec["normalizedArmorUm"] ?? mmToUm(validated["armorBeltUm"] as number),
           SafeInt(0),
         ),
         hitPoints: toSafeIntOpt(validated["hitPoints"], SafeInt(100)),
-        mainGunsCaliber: toSafeIntOpt(validated["mainGuns"]?.["caliber"], SafeInt(0)),
+        mainGunsCaliber: toSafeIntOpt(
+          validated["mainGuns"]?.["caliber"] === undefined
+            ? undefined
+            : mmToUm(validated["mainGuns"]?.["caliber"] as number),
+          SafeInt(0),
+        ),
         mainGunsCount: toSafeIntOpt(validated["mainGuns"]?.["count"], SafeInt(0)),
         machineryType: validated["machineryType"],
         crewComplement: toSafeIntOpt(validated["crewComplement"], SafeInt(0)),

@@ -1,7 +1,8 @@
-import type {
-  CampaignSnapshot,
-  CompiledDesignVersion as CompiledEngineDesignVersion,
-  ConstructionProject,
+import {
+  umsToKnots,
+  type CampaignSnapshot,
+  type CompiledDesignVersion as CompiledEngineDesignVersion,
+  type ConstructionProject,
 } from "@bluewave/campaign";
 import type { CompiledDesignVersion } from "./design.js";
 
@@ -118,7 +119,7 @@ export function buildConstructionDesignCatalog(
       nationId: design.nationId,
       year: parseInt(familyMonth.slice(0, 4), 10) || 0,
       mass: Math.round(Number(design.normalizedDisplacementKg) / KILOGRAMS_PER_TON),
-      speed: Math.round((Number(design.normalizedSpeedUms) * 1_000_000) / 514_444),
+      speed: Math.round(umsToKnots(Number(design.normalizedSpeedUms))),
       machineryType: design.machineryType,
       requiredTechnologyIds: [],
     });
