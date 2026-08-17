@@ -31,6 +31,59 @@ export type DiplomacyRelationKind = "neutral" | "allied" | "at_war" | "trade_agr
 
 export type DiplomacyWarStatus = "DECLARED_NOT_ACTIVE" | "ACTIVE" | "ENDED";
 
+/**
+ * Qualitative tension taxonomy (DESIGN/first-month charting, ticket 11).
+ * The engine's real tension is a 0..10 integer (campaign compiler validates
+ * the authored range as 0..10; `@bluewave/campaign` exports `TENSION_PEACE =
+ * 5` and `TENSION_WAR = 10`). This ticket owns the ONE engine-side mapping
+ * from that numeric tension to a qualitative label and the ONE "high tension"
+ * threshold, so the Foreign Relations page and the Immediate Priorities
+ * engine share a single interpretation instead of each re-deriving it
+ * (the diagnosis doc §7.4/§13.3 explicitly forbids renderer-invented
+ * thresholds). Pure, deterministic, no React/Electron dependency.
+ */
+export type TensionLabel = "cordial" | "neutral" | "strained" | "hostile" | "war_imminent";
+
+export const TENSION_LABELS: readonly TensionLabel[] = [
+  "cordial",
+  "neutral",
+  "strained",
+  "hostile",
+  "war_imminent",
+] as const;
+
+/** Entering `hostile` (>= 8) counts as "high foreign tension" for the
+ * priority engine's `high_foreign_tension` trigger and for Foreign Relations'
+ * warning treatment. Well short of `TENSION_WAR` (10), so it flags a
+ * deteriorating relationship before war-imminent. */
+export const HIGH_TENSION_THRESHOLD = 8;
+
+/** Band lower bounds, checked high-to-low, over the real 0..10 tension scale:
+ * 10+ war_imminent, 8+ hostile, 6+ strained, 3+ neutral, <3 cordial. */
+export const TENSION_LABEL_BANDS: readonly {
+  readonly label: TensionLabel;
+  readonly min: number;
+}[] = [
+  { label: "war_imminent", min: 10 },
+  { label: "hostile", min: 8 },
+  { label: "strained", min: 6 },
+  { label: "neutral", min: 3 },
+  { label: "cordial", min: 0 },
+];
+
+/** The qualitative label for a numeric tension score (0..10). */
+export function tensionLabel(tension: number): TensionLabel {
+  for (const band of TENSION_LABEL_BANDS) {
+    if (tension >= band.min) return band.label;
+  }
+  return "cordial";
+}
+
+/** True when a tension score reaches the "high foreign tension" threshold. */
+export function isHighTension(tension: number): boolean {
+  return tension >= HIGH_TENSION_THRESHOLD;
+}
+
 export interface DiplomacyKnownNation {
   readonly nationId: string;
   readonly name: string;
