@@ -18,7 +18,8 @@ import type {
 import {
   applyDivisionCommand,
   assertDivisionInvariants,
-  BLOCKADE_WAR_SCORE_PER_MONTH,campaignMonthId,
+  BLOCKADE_WAR_SCORE_PER_MONTH,
+  campaignMonthId,
   DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE,
   DIVISION_STATE_INVARIANT_FAILED,
   INITIAL_DIVISION_COHESION,
@@ -34,10 +35,20 @@ import {
   VICTORY_MINOR_MAX_FRACTION,
   WAR_SCORE_DECISIVE,
   WAR_SCORE_MAJOR,
-  WAR_SCORE_MINOR
+  WAR_SCORE_MINOR,
 } from "@bluewave/campaign";
 import type { BattleResolutionResult, ClimateProfile } from "@bluewave/combat";
-import { BATTLE_AUTO_RESOLUTION_FAILED, BattleResolver, classifyShip, defaultClimateProfile_v1, generateBattles, generateStrategicWeather, INVALID_BATTLE_WEATHER_INITIALIZATION, resolveBattleAuto, WEATHER_PROFILE_INCOMPLETE } from "@bluewave/combat";
+import {
+  BATTLE_AUTO_RESOLUTION_FAILED,
+  BattleResolver,
+  classifyShip,
+  defaultClimateProfile_v1,
+  generateBattles,
+  generateStrategicWeather,
+  INVALID_BATTLE_WEATHER_INITIALIZATION,
+  resolveBattleAuto,
+  WEATHER_PROFILE_INCOMPLETE,
+} from "@bluewave/combat";
 import type {
   AcceptPeaceCommand,
   AddShipToDivisionCommand,
@@ -65,6 +76,8 @@ import type { DomainEventEnvelope } from "@bluewave/events";
 import { EventLedger } from "@bluewave/events";
 import { RandomEngine, RandomLedger } from "@bluewave/random";
 import { FinancialLedger, type LedgerTransactionInput } from "./financial-ledger.js";
+import { PhaseGuard, PHASE_ACCESS_DENIED, PHASE_FOOTPRINTS } from "./phase-guard.js";
+import type { PhaseDefinition } from "./registry.js";
 import { cloneSnapshot } from "./snapshotClone.js";
 
 const CURRENT_VERSION = "0.1.0" as const;
@@ -98,6 +111,15 @@ export interface StrategicWeatherPhaseOptions {
   readonly climateProfiles?: ReadonlyMap<string, ClimateProfile>;
 }
 
+/**
+ * Engine-level options. `phaseOverrides` substitutes a phase's registry
+ * definition at runtime (used by tests to exercise the fail-closed guard for a
+ * specific phase). ADR-0036.
+ */
+export interface MonthExecutorEngineOptions {
+  readonly phaseOverrides?: ReadonlyMap<string, PhaseDefinition>;
+}
+
 function budgetChangedEvent(
   nationId: string,
   previousTreasury: SafeInt,
@@ -105,7 +127,7 @@ function budgetChangedEvent(
   delta: SafeInt,
   reason: string,
   seq: SafeInt,
-  turnNumber: SafeInt,
+  campaignMonth: string,
 ): DomainEventEnvelope {
   return {
     eventId: `NationBudgetChanged-${nationId}-${String(seq)}`,
@@ -113,7 +135,11 @@ function budgetChangedEvent(
     aggregateType: "nation",
     aggregateId: nationId,
     eventType: "NationBudgetChanged",
-    timestamp: `turn-${String(turnNumber)}`,
+    // ADR-0035: domain events carry a deterministic ISO-8601 timestamp derived
+    // from the campaign month (the validated DomainEventEnvelope schema
+    // requires z.string().datetime). The first day of the month at UTC keeps
+    // it wall-clock/locale-free and turn-distinct.
+    timestamp: `${campaignMonth}-01T00:00:00.000Z`,
     body: {
       kind: "NationBudgetChanged",
       nationId,
@@ -133,7 +159,7 @@ function constructionProgressedEvent(
   newWork: SafeInt,
   workAdded: SafeInt,
   seq: SafeInt,
-  turnNumber: SafeInt,
+  campaignMonth: string,
 ): DomainEventEnvelope {
   return {
     eventId: `ConstructionProgressed-${projectId}-${String(seq)}`,
@@ -141,7 +167,8 @@ function constructionProgressedEvent(
     aggregateType: "construction",
     aggregateId: projectId,
     eventType: "ConstructionProgressed",
-    timestamp: `turn-${String(turnNumber)}`,
+    // ADR-0035: deterministic ISO-8601 timestamp from the campaign month.
+    timestamp: `${campaignMonth}-01T00:00:00.000Z`,
     body: {
       kind: "ConstructionProgressed",
       projectId,
@@ -160,7 +187,7 @@ function researchProgressedEvent(
   previousPoints: SafeInt,
   newPoints: SafeInt,
   seq: SafeInt,
-  turnNumber: SafeInt,
+  campaignMonth: string,
 ): DomainEventEnvelope {
   return {
     eventId: `ResearchProgressed-${nationId}-${String(seq)}`,
@@ -168,7 +195,8 @@ function researchProgressedEvent(
     aggregateType: "research",
     aggregateId: techId,
     eventType: "ResearchProgressed",
-    timestamp: `turn-${String(turnNumber)}`,
+    // ADR-0035: deterministic ISO-8601 timestamp from the campaign month.
+    timestamp: `${campaignMonth}-01T00:00:00.000Z`,
     body: {
       kind: "ResearchProgressed",
       nationId,
@@ -320,7 +348,7 @@ function applyBudgetProject(
       SafeInt.mul(budget, SafeInt(-1)),
       `Player budget for project ${body["projectId"]}`,
       nextSeq(),
-      turnNumber,
+      campaignMonth,
     ),
   );
 
@@ -531,7 +559,7 @@ function resolveResearchPhase(
           tech["investedPoints"],
           clampedPoints,
           nextSeq(),
-          turnNumber,
+          campaignMonth,
         ),
       );
 
@@ -572,7 +600,7 @@ function resolveResearchPhase(
           aggregateType: "research" as const,
           aggregateId: activeTechId,
           eventType: "TechnologyDiscovered" as const,
-          timestamp: campaignMonth,
+          timestamp: `${campaignMonth}-01T00:00:00.000Z`,
           body: {
             kind: "TechnologyDiscovered" as const,
             nationId,
@@ -637,7 +665,7 @@ function resolveResearchPhase(
           SafeInt.mul(actualPaidExpenditure, SafeInt(-1)),
           "Research budget expenditure",
           nextSeq(),
-          turnNumber,
+          campaignMonth,
         ),
       );
     }
@@ -1560,11 +1588,13 @@ export class MonthExecutor {
     randomSeed: string,
     collector: DiagnosticCollector,
     options?: StrategicWeatherPhaseOptions,
+    engineOptions?: MonthExecutorEngineOptions,
   ): MonthResult {
     const commandLedger = new CommandLedger();
     const eventLedger = new EventLedger();
     const randomLedger = new RandomLedger();
     const financialLedger = new FinancialLedger();
+    const phaseGuard = new PhaseGuard(engineOptions?.phaseOverrides);
     let currentSnapshot = cloneSnapshot(snapshot);
     const turnNumber = snapshot["turnNumber"];
     // DESIGN-03 §2 / ADR-0025: the authoritative campaign month id is derived
@@ -1585,6 +1615,15 @@ export class MonthExecutor {
 
     // Phase 1: opening_validation
     {
+      if (!this.assertPhase(phaseGuard, "opening_validation", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       const ok = this.runOpeningValidation(currentSnapshot, collector);
       if (!ok) {
         return {
@@ -1605,6 +1644,15 @@ export class MonthExecutor {
     // command_collection. rngAllowed: true — the ONLY randomness is the keyed
     // stream inside generateStrategicWeather (recorded in the randomLedger).
     {
+      if (!this.assertPhase(phaseGuard, "weather_generation", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       const areas = [...currentSnapshot["world"]["areas"]].sort((a, b) =>
         a["id"] < b["id"] ? -1 : a["id"] > b["id"] ? 1 : 0,
       );
@@ -1652,6 +1700,15 @@ export class MonthExecutor {
 
     // Phase 2: monthly_revenue
     {
+      if (!this.assertPhase(phaseGuard, "monthly_revenue", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if (!nation["isPlayable"] && !nation["isAI"]) continue;
         const baseResources = nation["baseResources"] ?? (0 as SafeInt);
@@ -1696,7 +1753,7 @@ export class MonthExecutor {
             revenue,
             "Monthly naval appropriation revenue",
             nextSeq(),
-            turnNumber,
+            campaignMonth,
           ),
         );
       }
@@ -1704,6 +1761,15 @@ export class MonthExecutor {
 
     // Phase 3: command_collection
     {
+      if (!this.assertPhase(phaseGuard, "command_collection", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       const slot = snapshot["slots"][0];
       if (slot) {
         for (const cmd of commands) {
@@ -1847,9 +1913,18 @@ export class MonthExecutor {
 
     // Phase 3.5: ai_planning
     {
+      if (!this.assertPhase(phaseGuard, "ai_planning", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       const idempotencyMap = new CommandIdempotencyMap();
       const aiExecutor = new AiPhaseExecutor();
-      const aiEngine = new RandomEngine(randomSeed);
+      const aiEngine = phaseGuard.rng("ai_planning", randomSeed)!;
       for (const slot of snapshot["slots"]) {
         if (slot["type"] !== "ai") continue;
         const { commands, diagnostics } = aiExecutor.run(
@@ -1893,6 +1968,15 @@ export class MonthExecutor {
 
     // Phase 4: appropriation
     {
+      if (!this.assertPhase(phaseGuard, "appropriation", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if (!nation["isPlayable"] && !nation["isAI"]) continue;
         const expenseReserve = nation["expenses"];
@@ -2011,7 +2095,7 @@ export class MonthExecutor {
               SafeInt.mul(totalDelta, SafeInt(-1)),
               "Proportional appropriation to construction projects",
               nextSeq(),
-              turnNumber,
+              campaignMonth,
             ),
           );
         }
@@ -2020,6 +2104,15 @@ export class MonthExecutor {
 
     // Phase 5: maintenance
     {
+      if (!this.assertPhase(phaseGuard, "maintenance", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if (!nation["isPlayable"] && !nation["isAI"]) continue;
 
@@ -2067,7 +2160,7 @@ export class MonthExecutor {
             SafeInt.mul(totalMaintenance, SafeInt(-1)),
             "Monthly ship maintenance costs",
             nextSeq(),
-            turnNumber,
+            campaignMonth,
           ),
         );
       }
@@ -2075,6 +2168,15 @@ export class MonthExecutor {
 
     // Phase 6: obligation
     {
+      if (!this.assertPhase(phaseGuard, "obligation", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if (!nation["isPlayable"] && !nation["isAI"]) continue;
         const expense = nation["expenses"];
@@ -2120,7 +2222,7 @@ export class MonthExecutor {
             SafeInt.mul(expense, SafeInt(-1)),
             "Mandatory fixed expenses",
             nextSeq(),
-            turnNumber,
+            campaignMonth,
           ),
         );
       }
@@ -2128,6 +2230,15 @@ export class MonthExecutor {
 
     // Phase 7: construction_processing
     {
+      if (!this.assertPhase(phaseGuard, "construction_processing", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if (!nation["isPlayable"] && !nation["isAI"]) continue;
 
@@ -2237,7 +2348,7 @@ export class MonthExecutor {
               clampedWork,
               SafeInt.sub(clampedWork, project["completedWork"]),
               nextSeq(),
-              turnNumber,
+              campaignMonth,
             ),
           );
         }
@@ -2257,11 +2368,29 @@ export class MonthExecutor {
 
     // Phase 8: resolve_diplomacy
     {
+      if (!this.assertPhase(phaseGuard, "resolve_diplomacy", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       currentSnapshot = resolveDiplomacyPhase(currentSnapshot, campaignMonth);
     }
 
     // Phase 9: resolve_research
     {
+      if (!this.assertPhase(phaseGuard, "resolve_research", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       currentSnapshot = resolveResearchPhase(
         currentSnapshot,
         randomSeed,
@@ -2281,6 +2410,15 @@ export class MonthExecutor {
     // collections ABSENT so a no-war month's final-state hash is unchanged
     // (AC-12 pin). Uses no randomness for reachable missions in B-1.
     {
+      if (!this.assertPhase(phaseGuard, "battle_generation", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       const hadWars = (currentSnapshot["wars"]["wars"] ?? []).some(
         (w) => w["status"] === "ACTIVE" || w["status"] === "DECLARED_NOT_ACTIVE",
       );
@@ -2383,12 +2521,21 @@ export class MonthExecutor {
     //   no war score / victory class / contribution delta but still records
     //   damage/loss, the battle result, and reservation clearing (INC-3 ADR).
     {
+      if (!this.assertPhase(phaseGuard, "battle_resolution", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       const battles = currentSnapshot["wars"]["battles"].filter(
         (b) => b["phase"] === "pending" || b["phase"] === "resolving",
       );
 
       if (battles.length > 0) {
-        const randomEngine = new RandomEngine(randomSeed);
+        const randomEngine = phaseGuard.rng("battle_resolution", randomSeed)!;
         const resolver = new BattleResolver();
 
         for (const battle of battles) {
@@ -2542,6 +2689,15 @@ export class MonthExecutor {
 
     // Phase 11: closing_validation
     {
+      if (!this.assertPhase(phaseGuard, "closing_validation", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       const diagnostics: string[] = [];
 
       for (const [nationId, nation] of currentSnapshot["nations"]) {
@@ -2578,6 +2734,42 @@ export class MonthExecutor {
         success: !hasErrors,
       };
     }
+  }
+
+  /**
+   * ADR-0036: enforce the phase registry contract at runtime. Asserts the
+   * phase's authoritative footprint against its registry-declared
+   * read/writePermissions + rngAllowed. On any violation, records a stable
+   * PHASE_ACCESS_DENIED diagnostic and returns false — the caller fails the
+   * phase closed (the phase body does not run).
+   */
+  private assertPhase(guard: PhaseGuard, phaseId: string, collector: DiagnosticCollector): boolean {
+    const footprint = PHASE_FOOTPRINTS[phaseId];
+    const violations =
+      footprint === undefined
+        ? [`phase "${phaseId}" has no registered runtime footprint`]
+        : guard.assert(phaseId, footprint);
+    for (const message of violations) {
+      collector.addError(PHASE_ACCESS_DENIED, message, { stage: phaseId });
+    }
+    return violations.length === 0;
+  }
+
+  private failClosed(
+    finalSnapshot: CampaignSnapshot,
+    commandLedger: CommandLedger,
+    eventLedger: EventLedger,
+    randomLedger: RandomLedger,
+    financialLedger: FinancialLedger,
+  ): MonthResult {
+    return {
+      finalSnapshot,
+      commandLedger,
+      eventLedger,
+      randomLedger,
+      financialLedger,
+      success: false,
+    };
   }
 
   private runOpeningValidation(

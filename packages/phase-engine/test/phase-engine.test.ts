@@ -3,7 +3,7 @@ import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { describe, expect, it } from "vite-plus/test";
-import { PhaseEngine, PhaseRegistry } from "../src/index.js";
+import { MonthExecutor, PhaseGuard, PhaseRegistry } from "../src/index.js";
 
 function createEmptySnapshot(turn?: SafeInt): CampaignSnapshot {
   return {
@@ -150,17 +150,6 @@ describe("PhaseRegistry", () => {
 });
 
 describe("PhaseContext", () => {
-  it("initializeTurn creates context with first phase", () => {
-    const engine = new PhaseEngine();
-    const snapshot = createEmptySnapshot();
-    const ctx = engine.initializeTurn(snapshot);
-
-    expect(ctx["currentPhaseIndex"]).toBe(0 as SafeInt);
-    expect(ctx["currentPhase"]["id"]).toBe("opening_validation");
-    expect(ctx["turnNumber"]).toBe(0 as SafeInt);
-    expect(ctx["snapshot"]).toBe(snapshot);
-  });
-
   it("permissions are enforced through access checks", () => {
     const phase = PhaseRegistry.getById("construction_processing")!;
     expect(PhaseRegistry.hasAccess(phase, "constructions", "read")).toBe(true);
@@ -172,78 +161,72 @@ describe("PhaseContext", () => {
   });
 });
 
-describe("PhaseEngine", () => {
-  it("executeTurn runs all phases in sequence", () => {
-    const engine = new PhaseEngine();
-    const snapshot = createEmptySnapshot();
-    const collector = new DiagnosticCollector();
-
-    const result = engine.executeTurn(snapshot, [], "test-seed", collector);
-
-    expect(result["phaseResults"].length).toBe(14);
-    expect(result["phaseResults"][0]!["phaseId"]).toBe("opening_validation");
-    expect(result["phaseResults"][13]!["phaseId"]).toBe("closing_validation");
+describe("PhaseGuard", () => {
+  it("passes a footprint fully within declared permissions", () => {
+    const guard = new PhaseGuard();
+    const app = PhaseRegistry.getById("appropriation")!;
+    const violations = guard.assert(app.id, {
+      reads: ["treasury", "constructions"],
+      writes: ["treasury", "constructions"],
+      usesRng: false,
+    });
+    expect(violations).toEqual([]);
   });
 
-  it("produces no-op evidence for deferred phases", () => {
-    const engine = new PhaseEngine();
-    const snapshot = createEmptySnapshot(SafeInt(3));
-    const collector = new DiagnosticCollector();
-
-    const result = engine.executeTurn(snapshot, [], "test-seed", collector);
-
-    const noOpPhases = result["phaseResults"].filter((p) => p["noOp"] === true && p["evidence"]);
-    // All phases except opening and closing are no-ops (12 phases, incl.
-    // weather_generation, ai_planning + battle_generation)
-    expect(noOpPhases.length).toBe(12);
-
-    for (const phase of noOpPhases) {
-      expect(phase["evidence"]!["version"]).toBe("0.1.0");
-      expect(phase["evidence"]!["turnNumber"]).toBe(3);
-      expect(phase["success"]).toBe(true);
-    }
+  it("fails closed when a phase writes a resource it lacks permission for", () => {
+    const guard = new PhaseGuard();
+    const app = PhaseRegistry.getById("appropriation")!;
+    const violations = guard.assert(app.id, {
+      reads: [],
+      writes: ["fleets"],
+      usesRng: false,
+    });
+    expect(violations.length).toBe(1);
+    expect(violations[0]).toContain('writes resource "fleets" without write permission');
   });
 
-  it("no-op evidence is versioned and deterministic", () => {
-    const engine1 = new PhaseEngine();
-    const engine2 = new PhaseEngine();
-    const snapshot = createEmptySnapshot(SafeInt(5));
-    const collector1 = new DiagnosticCollector();
-    const collector2 = new DiagnosticCollector();
-
-    const result1 = engine1.executeTurn(snapshot, [], "seed-a", collector1);
-    const result2 = engine2.executeTurn(snapshot, [], "seed-b", collector2);
-
-    for (let i = 0; i < result1["phaseResults"].length; i++) {
-      const p1 = result1["phaseResults"][i]!;
-      const p2 = result2["phaseResults"][i]!;
-      if (p1["evidence"]) {
-        expect(p1["evidence"]).toEqual(p2["evidence"]);
-      }
-    }
+  it("fails closed when a phase reads a resource it lacks permission for", () => {
+    const guard = new PhaseGuard();
+    const maintenance = PhaseRegistry.getById("maintenance")!;
+    const violations = guard.assert(maintenance.id, {
+      reads: ["research"],
+      writes: [],
+      usesRng: false,
+    });
+    expect(violations.length).toBe(1);
+    expect(violations[0]).toContain('reads resource "research" without read permission');
   });
 
-  it("opening validation rejects negative treasury", () => {
-    const engine = new PhaseEngine();
-    const nations = new Map<string, NationState>();
-    nations.set("GBR", createNationState("GBR", SafeInt(-50)));
-    const snapshot = createEmptySnapshot();
-    snapshot["nations"] = nations;
-    const collector = new DiagnosticCollector();
-
-    const result = engine.executeTurn(snapshot, [], "test-seed", collector);
-
-    const opening = result["phaseResults"][0]!;
-    expect(opening["success"]).toBe(false);
-    expect(opening["diagnostics"]!.length).toBeGreaterThanOrEqual(1);
-    expect(opening["diagnostics"]![0]).toContain("negative treasury");
-
-    const hasNegDiag = collector.errors.some((d) => d["code"] === "NEGATIVE_TREASURY");
-    expect(hasNegDiag).toBe(true);
+  it("fails closed when a non-rngAllowed phase declares randomness", () => {
+    const guard = new PhaseGuard();
+    const obligation = PhaseRegistry.getById("obligation")!;
+    expect(obligation.rngAllowed).toBe(false);
+    const violations = guard.assert(obligation.id, {
+      reads: [],
+      writes: [],
+      usesRng: true,
+    });
+    expect(violations.length).toBe(1);
+    expect(violations[0]).toContain("draws randomness but rngAllowed=false");
   });
 
-  it("opening validation rejects construction progress overflow", () => {
-    const engine = new PhaseEngine();
+  it("honors a phase definition override (used to exercise fail-closed)", () => {
+    const overrides = new Map([
+      ["monthly_revenue", { ...PhaseRegistry.getById("monthly_revenue")!, writePermissions: [] }],
+    ]);
+    const guard = new PhaseGuard(overrides);
+    const violations = guard.assert("monthly_revenue", {
+      reads: ["treasury"],
+      writes: ["treasury"],
+      usesRng: false,
+    });
+    expect(violations.length).toBe(1);
+    expect(violations[0]).toContain('writes resource "treasury" without write permission');
+  });
+});
+
+describe("Opening/closing validation via MonthExecutor", () => {
+  it("opening validation rejects construction progress overflow via MonthExecutor", () => {
     const nations = new Map<string, NationState>();
     const nation = createNationState("GBR", SafeInt(100));
     nation["fleets"] = [
@@ -277,54 +260,14 @@ describe("PhaseEngine", () => {
     snapshot["nations"] = nations;
     const collector = new DiagnosticCollector();
 
-    const result = engine.executeTurn(snapshot, [], "test-seed", collector);
+    const result = new MonthExecutor().execute(snapshot, [], "test-seed", collector);
 
-    const opening = result["phaseResults"][0]!;
-    expect(opening["success"]).toBe(false);
-    expect(opening["diagnostics"]!.length).toBeGreaterThanOrEqual(1);
-    expect(opening["diagnostics"]![0]).toContain("construction progress");
-
+    expect(result["success"]).toBe(false);
     const hasConstDiag = collector.errors.some((d) => d["code"] === "CONSTRUCTION_OVERFLOW");
     expect(hasConstDiag).toBe(true);
   });
 
-  it("closing invariants run and produce hash", () => {
-    const engine = new PhaseEngine();
-    const snapshot = createEmptySnapshot(SafeInt(1));
-    const collector = new DiagnosticCollector();
-
-    const result = engine.executeTurn(snapshot, [], "test-seed", collector);
-
-    const closing = result["phaseResults"][13]!;
-    expect(closing["phaseId"]).toBe("closing_validation");
-    expect(closing["success"]).toBe(true);
-
-    const _expectedHash = sha256Hex(canonicalSerialize(snapshot));
-    // closing validation runs and succeeds
-    expect(closing["success"]).toBe(true);
-  });
-
-  it("rng-allowed phases are tracked", () => {
-    const engine = new PhaseEngine();
-    const snapshot = createEmptySnapshot();
-    const collector = new DiagnosticCollector();
-
-    const result = engine.executeTurn(snapshot, [], "test-seed", collector);
-
-    const researchPhase = result["phaseResults"][10]!;
-    const battleGenPhase = result["phaseResults"][11]!;
-    const battlePhase = result["phaseResults"][12]!;
-
-    expect(researchPhase["phaseId"]).toBe("resolve_research");
-    expect(researchPhase["noOp"]).toBe(true);
-    expect(battleGenPhase["phaseId"]).toBe("battle_generation");
-    expect(battleGenPhase["noOp"]).toBe(true);
-    expect(battlePhase["phaseId"]).toBe("battle_resolution");
-    expect(battlePhase["noOp"]).toBe(true);
-  });
-
-  it("opening validation rejects ship in multiple battles", () => {
-    const engine = new PhaseEngine();
+  it("opening validation rejects ship in multiple battles via MonthExecutor", () => {
     const nations = new Map<string, NationState>();
     const nation = createNationState("GBR", SafeInt(100));
     nation["fleets"] = [
@@ -385,27 +328,21 @@ describe("PhaseEngine", () => {
     };
     const collector = new DiagnosticCollector();
 
-    const result = engine.executeTurn(snapshot, [], "test-seed", collector);
+    const result = new MonthExecutor().execute(snapshot, [], "test-seed", collector);
 
-    const opening = result["phaseResults"][0]!;
-    expect(opening["success"]).toBe(false);
-    const shipDiag = opening["diagnostics"]!.filter((d) => d.includes("multiple battles"));
-    expect(shipDiag.length).toBeGreaterThanOrEqual(1);
-
+    expect(result["success"]).toBe(false);
     const hasShipDiag = collector.errors.some((d) => d["code"] === "SHIP_IN_MULTIPLE_BATTLES");
     expect(hasShipDiag).toBe(true);
   });
 
-  it("turn result includes empty ledger and eventLedger", () => {
-    const engine = new PhaseEngine();
-    const snapshot = createEmptySnapshot();
+  it("closing invariants run and succeed via MonthExecutor", () => {
+    const snapshot = createEmptySnapshot(SafeInt(1));
     const collector = new DiagnosticCollector();
 
-    const result = engine.executeTurn(snapshot, [], "test-seed", collector);
+    const result = new MonthExecutor().execute(snapshot, [], "test-seed", collector);
 
-    expect(result["ledger"]).toBeDefined();
-    expect(result["ledger"]["all"].length).toBe(0);
-    expect(result["eventLedger"]).toBeDefined();
-    expect(result["eventLedger"]["all"].length).toBe(0);
+    expect(result["success"]).toBe(true);
+    const _expectedHash = sha256Hex(canonicalSerialize(snapshot));
+    expect(result["success"]).toBe(true);
   });
 });

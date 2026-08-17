@@ -1,8 +1,3 @@
-import type { CampaignSnapshot } from "@bluewave/campaign";
-import type { CommandLedger } from "@bluewave/commands";
-import type { SafeInt } from "@bluewave/contracts";
-import type { DomainEventEnvelope, EventLedger } from "@bluewave/events";
-
 export interface PhaseDefinition {
   id: string;
   name: string;
@@ -10,36 +5,6 @@ export interface PhaseDefinition {
   readPermissions: string[];
   writePermissions: string[];
   rngAllowed: boolean;
-}
-
-export interface PhaseContext {
-  currentPhaseIndex: SafeInt;
-  currentPhase: PhaseDefinition;
-  turnNumber: SafeInt;
-  snapshot: CampaignSnapshot;
-}
-
-export interface NoOpEvidence {
-  version: string;
-  phaseId: string;
-  turnNumber: number;
-}
-
-export interface PhaseResult {
-  phaseId: string;
-  success: boolean;
-  stateChanges?: Partial<CampaignSnapshot>;
-  events?: DomainEventEnvelope[];
-  diagnostics?: string[];
-  noOp?: boolean;
-  evidence?: NoOpEvidence;
-}
-
-export interface TurnResult {
-  finalSnapshot: CampaignSnapshot;
-  ledger: CommandLedger;
-  eventLedger: EventLedger;
-  phaseResults: PhaseResult[];
 }
 
 export class PhaseRegistry {
@@ -65,7 +30,9 @@ export class PhaseRegistry {
       // command_collection).
       order: 0.5,
       readPermissions: ["all"],
-      writePermissions: [],
+      // ADR-0036: weather_generation commits per-area StrategicWeatherState into
+      // the snapshot (DESIGN-42 §1), so it writes the strategicWeather resource.
+      writePermissions: ["strategicWeather"],
       rngAllowed: true,
     },
     {
@@ -81,7 +48,9 @@ export class PhaseRegistry {
       name: "AI Planning",
       order: 1.5,
       readPermissions: ["nations", "constructions", "research", "treasury"],
-      writePermissions: [],
+      // ADR-0036: the AI path applies SetResearchPriority and budget_project,
+      // so it writes research/treasury/constructions.
+      writePermissions: ["research", "treasury", "constructions"],
       rngAllowed: true,
     },
     {
@@ -89,15 +58,19 @@ export class PhaseRegistry {
       name: "Command Collection",
       order: 2,
       readPermissions: ["all"],
-      writePermissions: [],
+      // ADR-0036: command_collection authoritatively applies player commands,
+      // mutating treasury/constructions/research/wars/politics/fleets.
+      writePermissions: ["treasury", "constructions", "research", "wars", "politics", "fleets"],
       rngAllowed: false,
     },
     {
       id: "appropriation",
       name: "Appropriation",
       order: 3,
-      readPermissions: ["treasury", "budget"],
-      writePermissions: ["treasury"],
+      // ADR-0036: appropriation reads and advances constructionProjects, so the
+      // "budget" resource is expressed as constructions.
+      readPermissions: ["treasury", "constructions"],
+      writePermissions: ["treasury", "constructions"],
       rngAllowed: false,
     },
     {
@@ -136,24 +109,32 @@ export class PhaseRegistry {
       id: "resolve_research",
       name: "Research Resolution",
       order: 7,
-      readPermissions: ["research"],
-      writePermissions: ["research"],
+      // ADR-0036: resolve_research also spends the research budget from treasury,
+      // so it reads/writes treasury in addition to research.
+      readPermissions: ["research", "treasury"],
+      writePermissions: ["research", "treasury"],
       rngAllowed: true,
     },
     {
       id: "battle_generation",
       name: "Battle Generation",
       order: 7.5,
-      readPermissions: ["wars", "fleets", "politics"],
-      writePermissions: ["wars"],
+      // ADR-0036: battle_generation reads the nations map (ship strength/
+      // readiness) and writes wars (battles + manifests) plus nations (ship
+      // inBattleId reservations).
+      readPermissions: ["wars", "fleets", "politics", "nations"],
+      writePermissions: ["wars", "nations"],
       rngAllowed: true,
     },
     {
       id: "battle_resolution",
       name: "Battle Resolution",
       order: 8,
-      readPermissions: ["wars", "fleets"],
-      writePermissions: ["wars", "fleets"],
+      // ADR-0036: battle_resolution reads committed strategic weather + the
+      // nations map and writes wars + fleets + nations (per-ship damage/loss
+      // and reservation clearing).
+      readPermissions: ["wars", "fleets", "nations", "strategicWeather"],
+      writePermissions: ["wars", "fleets", "nations"],
       rngAllowed: true,
     },
     {

@@ -181,8 +181,9 @@ function makeRichSnapshot(): CampaignSnapshot {
     discoveredTechs: [],
   };
 
-  snapshot.wars.wars = [makeWar()];
+  snapshot.wars.wars = [{ ...makeWar(), endDate: "1881-01" }];
   const battle = makeBattle();
+  battle.manifestHash = "manifest-hash";
   battle.result = {
     winnerId: DEFENDER_NATION,
     loserId: ATTACKER_NATION,

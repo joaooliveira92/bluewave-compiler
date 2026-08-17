@@ -5,7 +5,7 @@ import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
 import type { CommandEnvelope, CommandBody } from "@bluewave/commands";
 import { CommandLifecycle, CommandIdempotencyMap } from "@bluewave/commands";
-import { MonthExecutor, PhaseEngine } from "../src/index.js";
+import { MonthExecutor, PhaseRegistry } from "../src/index.js";
 
 const NATIONS = ["GBR", "FRA", "GER"];
 
@@ -203,11 +203,7 @@ function warpParticipants(
 
 describe("B10c diplomacy & war acceptance (criteria 1-14)", () => {
   it("C1: full turn includes the resolve_diplomacy phase", () => {
-    const snapshot = makeSnapshot(threeNations());
-    const engine = new PhaseEngine();
-    const collector = new DiagnosticCollector();
-    const result = engine.executeTurn(snapshot, [], "diplo-seed", collector);
-    const ids = result.phaseResults.map((p) => p.phaseId);
+    const ids = PhaseRegistry.all.map((p) => p.id);
     expect(ids).toContain("resolve_diplomacy");
     const idx = ids.indexOf("resolve_diplomacy");
     expect(idx).toBeGreaterThan(ids.indexOf("construction_processing"));
