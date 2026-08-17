@@ -14,12 +14,12 @@ name-generation logic consumes them.
 
 **Status:** done
 
-- [ ] All five fields render with the specified defaults
-- [ ] Next is disabled until both admiral name and campaign name are
+- [x] All five fields render with the specified defaults
+- [x] Next is disabled until both admiral name and campaign name are
       non-empty after trimming
-- [ ] The three enum fields never block progress (always have a valid
+- [x] The three enum fields never block progress (always have a valid
       default)
-- [ ] Back returns to Archetype preserving its selection
-- [ ] Field values are readable from draft state by later screens (INC-6's
+- [x] Back returns to Archetype preserving its selection
+- [x] Field values are readable from draft state by later screens (INC-6's
       review) but are not part of the `compileCampaign` payload
-- [ ] Component tests cover validation gating and default values
+- [x] Component tests cover validation gating and default values
