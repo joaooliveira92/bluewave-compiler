@@ -1,4 +1,4 @@
-import { DiagnosticCollector, type DiagnosticCode } from "@bluewave/diagnostics";
+import type { DiagnosticCode, DiagnosticCollector } from "@bluewave/diagnostics";
 
 // B-6/ADR-0025: bumped 1.0.0 -> 1.1.0 because the campaign snapshot schema
 // gains authoritative startYear/startMonth + the per-area strategicWeather
@@ -26,13 +26,16 @@ export class CompatibilityChecker {
   }
 }
 
-export class CompatibilityError {
+export class CompatibilityError extends Error {
   readonly code: DiagnosticCode = COMPATIBILITY_MISMATCH_CODE;
   readonly severity = "error" as const;
   readonly stage = "persistence.load";
   constructor(
-    public readonly message: string,
+    message: string,
     public readonly saveVersion: string,
     public readonly currentVersion: string,
-  ) {}
+  ) {
+    super(message);
+    this.name = "CompatibilityError";
+  }
 }

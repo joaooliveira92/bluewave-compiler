@@ -1,23 +1,23 @@
-import { describe, it, expect, beforeEach, afterEach } from "vite-plus/test";
-import { mkdtempSync, rmSync, existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { SafeInt } from "@bluewave/contracts";
+import { join } from "node:path";
 import type {
-  CampaignState,
   CampaignSnapshot,
-  NationState,
+  CampaignState,
   CompiledDesignVersion,
+  NationState,
 } from "@bluewave/campaign";
-import { SaveStore } from "../src/store.js";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import {
+  COMPATIBILITY_MISMATCH_CODE,
   CompatibilityChecker,
   CURRENT_COMPATIBILITY_VERSION,
-  COMPATIBILITY_MISMATCH_CODE,
 } from "../src/compatibility.js";
-import { RecoveryManager, cleanup } from "../src/recovery.js";
+import { cleanup, RecoveryManager } from "../src/recovery.js";
+import { SaveStore } from "../src/store.js";
 
 function createFixtureState(): CampaignState {
   const snapshot: CampaignSnapshot = {
@@ -299,9 +299,13 @@ describe("SaveStore", () => {
     const controller = new AbortController();
     controller.abort();
 
-    expect(() => {
+    let thrown: unknown;
+    try {
       store.save(state, tmpDir, controller.signal);
-    }).toThrow("AbortError");
+    } catch (err) {
+      thrown = err;
+    }
+    expect((thrown as Error).name).toBe("AbortError");
   });
 
   it("handles cancellation via AbortSignal during load", () => {

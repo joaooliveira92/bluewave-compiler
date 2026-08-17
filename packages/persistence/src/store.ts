@@ -1,39 +1,40 @@
-import {
-  readFileSync,
-  writeFileSync,
-  renameSync,
-  mkdirSync,
-  existsSync,
-  readdirSync,
-  rmSync,
-} from "node:fs";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { canonicalSerialize, sha256Hex, verifyEnvelope } from "@bluewave/deterministic";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { isAbsolute, join, relative } from "node:path";
 import type { CampaignState } from "@bluewave/campaign";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import type { DiagnosticCode } from "@bluewave/diagnostics";
+import { canonicalSerialize, sha256Hex, verifyEnvelope } from "@bluewave/deterministic";
+import type { DiagnosticCode, DiagnosticCollector } from "@bluewave/diagnostics";
 import { CompatibilityChecker } from "./compatibility.js";
 import { cleanup } from "./recovery.js";
 import {
+  PointerFileSchema,
+  SaveHeaderSchema,
+  SaveMetadataSchema,
+  SigFileSchema,
+  StorableCampaignStateSchema,
+  type PointerFile,
+  type SaveMetadata,
+  type SigFile,
+} from "./schemas.js";
+import {
   fromStorableSnapshot,
-  toStorableSnapshot,
   type StorableCampaignSnapshot,
+  toStorableSnapshot,
 } from "./snapshotSerialization.js";
 
 export const CORRUPT_SAVE_CODE = "PERSISTENCE_CORRUPT_SAVE" as DiagnosticCode;
 export const MISSING_SAVE_CODE = "PERSISTENCE_MISSING_SAVE" as DiagnosticCode;
 export const CANCELLED_CODE = "PERSISTENCE_CANCELLED" as DiagnosticCode;
 
-export interface SaveMetadata {
-  saveId: string;
-  timestamp: string;
-  turnNumber: number;
-  campaignId: string;
-  snapshotHash: string;
-  compatibilityVersion: string;
-  contentArtifactHash: string;
-}
+export type { SaveMetadata } from "./schemas.js";
 
 export interface SaveResult {
   savePath: string;
@@ -41,20 +42,35 @@ export interface SaveResult {
   metadata: SaveMetadata;
 }
 
-interface PointerFile {
-  activeSaveId: string;
-  previousSaveId?: string;
+// Save ids are created by `save()` as `<epochMs>-<uuid>`; treat any inbound id
+// as opaque and validate it before it touches the filesystem (TODO #3).
+const SAVE_ID_PATTERN =
+  /^\d{13}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidSaveId(saveId: string): boolean {
+  return SAVE_ID_PATTERN.test(saveId);
 }
 
-interface SigFile {
-  hash: string;
-  compatibilityVersion: string;
+// Defense-in-depth containment: the resolved save path must remain inside
+// `saveDir` so an ID like an absolute path or `..` can never escape it.
+function isContainedIn(parent: string, child: string): boolean {
+  const rel = relative(parent, child);
+  return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+}
+
+// A cancellation that crosses an IPC/async boundary is detected by
+// `error.name === "AbortError"`; a bare `new Error("AbortError")` has name
+// "Error" and misses that check (TODO #13).
+function createAbortError(): Error {
+  const error = new Error("Save operation was cancelled");
+  error.name = "AbortError";
+  return error;
 }
 
 export class SaveStore {
   save(state: CampaignState, saveDir: string, signal?: AbortSignal): SaveResult {
     if (signal?.aborted) {
-      throw new Error("AbortError");
+      throw createAbortError();
     }
 
     const saveId = `${Date.now()}-${randomUUID()}`;
@@ -64,63 +80,68 @@ export class SaveStore {
     const { rawHash: _rh, ...stateForHash } = state;
     // Written form only: state's Map-valued snapshot fields (nations, designs,
     // designFamilies, activeCandidates) convert to plain Records so they survive
-    // JSON.stringify. The hash below stays over the original `state`/`stateForHash`
-    // (real Maps) so it matches the rawHash the campaign compiler already computed
-    // and what load() recomputes after reconstituting Maps from disk.
+    // JSON.stringify. The stateHash below stays over the original `state`/
+    // `stateForHash` (real Maps) so it matches the rawHash the campaign compiler
+    // already computed and what load() recomputes after reconstituting Maps.
     const storableState = { ...state, snapshot: toStorableSnapshot(state.snapshot) };
     const serialized = canonicalSerialize(storableState);
-    const hash = sha256Hex(canonicalSerialize(stateForHash));
+    const stateHash = sha256Hex(canonicalSerialize(stateForHash));
+    const serializedHash = sha256Hex(serialized);
+    const snapshotHash = sha256Hex(canonicalSerialize(toStorableSnapshot(state.snapshot)));
+    const previousSaveId = this.getActiveSaveId(saveDir) ?? undefined;
+
     const sig: SigFile = {
-      hash,
+      serializedHash,
+      stateHash,
       compatibilityVersion: state.snapshot.compatibilityVersion,
     };
     const metadata: SaveMetadata = {
       saveId,
+      previousSaveId,
       timestamp: new Date().toISOString(),
-      turnNumber: state.snapshot.turnNumber as number,
+      turnNumber: state.snapshot.turnNumber,
       campaignId: state.snapshot.campaignId,
-      snapshotHash: state.snapshot.campaignId,
+      snapshotHash,
       compatibilityVersion: state.snapshot.compatibilityVersion,
-      contentArtifactHash: hash,
+      // The hash of the serialized on-disk artifact, matching the name.
+      contentArtifactHash: serializedHash,
     };
 
+    // `published` guards the outer catch: once the directory has been renamed
+    // to savePath, tmpDir no longer exists (cleanup is a no-op) and a failure
+    // must remove the published-but-not-yet-active save instead.
+    let published = false;
     try {
       mkdirSync(tmpDir, { recursive: true });
-
       writeFileSync(join(tmpDir, "campaign.json"), serialized, "utf8");
       writeFileSync(join(tmpDir, "campaign.sig.json"), JSON.stringify(sig, null, 2), "utf8");
       writeFileSync(join(tmpDir, "metadata.json"), JSON.stringify(metadata, null, 2), "utf8");
 
       if (signal?.aborted) {
         cleanup(tmpDir);
-        throw new Error("AbortError");
+        throw createAbortError();
       }
 
-      const campaignTmp = join(tmpDir, "campaign.json");
-      const campaignFinal = join(savePath, "campaign.json");
-      const sigTmp = join(tmpDir, "campaign.sig.json");
-      const sigFinal = join(savePath, "campaign.sig.json");
-      const metaTmp = join(tmpDir, "metadata.json");
-      const metaFinal = join(savePath, "metadata.json");
-
-      mkdirSync(savePath, { recursive: true });
-      renameSync(campaignTmp, campaignFinal);
-      renameSync(sigTmp, sigFinal);
-      renameSync(metaTmp, metaFinal);
-
-      cleanup(tmpDir);
+      // Atomic publication as a complete unit (TODO #4): build every artifact
+      // inside tmpDir, then rename the whole directory. tmpDir and savePath
+      // share saveDir as parent, so the rename never crosses filesystems.
+      renameSync(tmpDir, savePath);
+      published = true;
 
       if (signal?.aborted) {
-        pointerSaveRollback(saveDir, savePath);
-        throw new Error("AbortError");
+        // The save is fully written but is not yet the active save. Remove it
+        // and leave the pointer untouched — never roll a pointer back that we
+        // never advanced (TODO #5/#6).
+        rmSync(savePath, { recursive: true, force: true });
+        throw createAbortError();
       }
 
-      updatePointer(saveDir, saveId);
+      updatePointer(saveDir, saveId, previousSaveId);
 
-      return { savePath, hash, metadata };
+      return { savePath, hash: stateHash, metadata };
     } catch (err) {
       cleanup(tmpDir);
-      if (existsSync(savePath)) {
+      if (published && existsSync(savePath)) {
         rmSync(savePath, { recursive: true, force: true });
       }
       throw err;
@@ -158,10 +179,16 @@ export class SaveStore {
       return null;
     }
 
+    if (signal?.aborted) {
+      diagnostics.addError(CANCELLED_CODE, "Load operation was cancelled", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+
     let pointer: PointerFile;
     try {
-      const pointerContent = readFileSync(pointerPath, "utf8");
-      pointer = JSON.parse(pointerContent) as PointerFile;
+      pointer = PointerFileSchema.parse(JSON.parse(readFileSync(pointerPath, "utf8")));
     } catch {
       diagnostics.addError(CORRUPT_SAVE_CODE, "Pointer file is corrupt or unreadable", {
         stage: "persistence.load",
@@ -169,7 +196,7 @@ export class SaveStore {
       return null;
     }
 
-    return this.loadById(saveDir, pointer["activeSaveId"], diagnostics, signal);
+    return this.loadById(saveDir, pointer.activeSaveId, diagnostics, signal);
   }
 
   /**
@@ -190,6 +217,15 @@ export class SaveStore {
       return null;
     }
 
+    // Reject any id that could escape saveDir before a single fs operation
+    // (TODO #3).
+    if (!isValidSaveId(saveId)) {
+      diagnostics.addError(CORRUPT_SAVE_CODE, "Save id is not a valid identifier", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+
     if (!existsSync(saveDir)) {
       diagnostics.addError(MISSING_SAVE_CODE, `Save directory not found: ${saveDir}`, {
         stage: "persistence.load",
@@ -198,7 +234,15 @@ export class SaveStore {
     }
 
     const savePath = join(saveDir, saveId);
+    if (!isContainedIn(saveDir, savePath)) {
+      diagnostics.addError(CORRUPT_SAVE_CODE, "Save id escapes the save directory", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+
     const campaignPath = join(savePath, "campaign.json");
+    const sigPath = join(savePath, "campaign.sig.json");
 
     if (!existsSync(campaignPath)) {
       diagnostics.addError(CORRUPT_SAVE_CODE, `Save data file not found: ${campaignPath}`, {
@@ -224,13 +268,21 @@ export class SaveStore {
       return null;
     }
 
-    type StorableCampaignState = Omit<CampaignState, "snapshot"> & {
-      snapshot: StorableCampaignSnapshot;
-    };
+    if (signal?.aborted) {
+      diagnostics.addError(CANCELLED_CODE, "Load operation was cancelled", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
 
-    let parsed: StorableCampaignState;
+    // Stage 1 — parse as `unknown` and validate only the minimal header, so the
+    // compatibility version can be checked BEFORE materializing the
+    // version-specific schema. This guarantees structurally-obsolete saves get
+    // the stable compatibility diagnostic rather than a mislabeled corruption
+    // diagnostic (TODO #14).
+    let raw: unknown;
     try {
-      parsed = JSON.parse(campaignJson) as StorableCampaignState;
+      raw = JSON.parse(campaignJson);
     } catch {
       diagnostics.addError(CORRUPT_SAVE_CODE, "Save data file contains invalid JSON", {
         stage: "persistence.load",
@@ -238,20 +290,58 @@ export class SaveStore {
       return null;
     }
 
-    if (!parsed.snapshot || !parsed.envelope || !parsed.rawHash) {
+    const headerResult = SaveHeaderSchema.safeParse(raw);
+    if (!headerResult.success) {
       diagnostics.addError(CORRUPT_SAVE_CODE, "Save data is missing required fields", {
         stage: "persistence.load",
       });
       return null;
     }
 
-    // Reconstitute the Records written by toStorableSnapshot back into real Maps
-    // (nations, designs, designFamilies, activeCandidates) before any hash/envelope
-    // verification below, so those checks run over the same shape (real Maps) the
-    // campaign compiler used when it originally computed rawHash/envelope.
+    if (
+      !CompatibilityChecker.check(headerResult.data.snapshot.compatibilityVersion, diagnostics)
+    ) {
+      return null;
+    }
+
+    if (signal?.aborted) {
+      diagnostics.addError(CANCELLED_CODE, "Load operation was cancelled", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+
+    // Stage 2 — runtime-structural validation of the accepted compatibility
+    // version (TODO #9). The deep value-fidelity is then enforced by the
+    // envelope + rawHash checks below.
+    const parsedResult = StorableCampaignStateSchema.safeParse(raw);
+    if (!parsedResult.success) {
+      diagnostics.addError(CORRUPT_SAVE_CODE, "Save data is structurally invalid", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+
+    if (signal?.aborted) {
+      diagnostics.addError(CANCELLED_CODE, "Load operation was cancelled", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+
+    // Stage 3 — reconstitute the Records written by toStorableSnapshot back into
+    // real Maps (nations, designs, designFamilies, activeCandidates) before any
+    // hash/envelope verification below, so those checks run over the same shape
+    // (real Maps) the campaign compiler used when it originally computed
+    // rawHash/envelope.
     let state: CampaignState;
     try {
-      state = { ...parsed, snapshot: fromStorableSnapshot(parsed.snapshot) };
+      state = {
+        ...parsedResult.data,
+        snapshot: fromStorableSnapshot(
+          parsedResult.data.snapshot as unknown as StorableCampaignSnapshot,
+        ),
+      };
     } catch {
       diagnostics.addError(CORRUPT_SAVE_CODE, "Save data snapshot is malformed", {
         stage: "persistence.load",
@@ -259,6 +349,14 @@ export class SaveStore {
       return null;
     }
 
+    if (signal?.aborted) {
+      diagnostics.addError(CANCELLED_CODE, "Load operation was cancelled", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+
+    // Integrity gate A — semantic state hash must equal the persisted rawHash.
     const { rawHash: _rawHash, ...stateForHash } = state;
     const computedRawHash = sha256Hex(canonicalSerialize(stateForHash));
     if (computedRawHash !== state.rawHash) {
@@ -272,6 +370,48 @@ export class SaveStore {
       return null;
     }
 
+    // Integrity gate B — the signature file is now validated, never trusted
+    // blindly (TODO #1/#5). Its serialized hash must match the on-disk bytes and
+    // its state hash the semantic state.
+    const rawSerializedHash = sha256Hex(campaignJson);
+    let sig: SigFile;
+    if (!existsSync(sigPath)) {
+      diagnostics.addError(CORRUPT_SAVE_CODE, "Save signature file not found", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+    try {
+      sig = SigFileSchema.parse(JSON.parse(readFileSync(sigPath, "utf8")));
+    } catch {
+      diagnostics.addError(CORRUPT_SAVE_CODE, "Save signature file is invalid", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+    if (sig.serializedHash !== rawSerializedHash) {
+      diagnostics.addError(
+        CORRUPT_SAVE_CODE,
+        "Save signature does not match serialized content",
+        {
+          stage: "persistence.load",
+        },
+      );
+      return null;
+    }
+    if (sig.stateHash !== state.rawHash) {
+      diagnostics.addError(CORRUPT_SAVE_CODE, "Save signature does not match state", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+    if (sig.compatibilityVersion !== state.snapshot.compatibilityVersion) {
+      diagnostics.addError(CORRUPT_SAVE_CODE, "Save signature version does not match state", {
+        stage: "persistence.load",
+      });
+      return null;
+    }
+
     if (!verifyEnvelope(state["envelope"], state["snapshot"])) {
       diagnostics.addError(
         CORRUPT_SAVE_CODE,
@@ -280,17 +420,6 @@ export class SaveStore {
           stage: "persistence.load",
         },
       );
-      return null;
-    }
-
-    if (signal?.aborted) {
-      diagnostics.addError(CANCELLED_CODE, "Load operation was cancelled", {
-        stage: "persistence.load",
-      });
-      return null;
-    }
-
-    if (!CompatibilityChecker.check(state.snapshot.compatibilityVersion, diagnostics)) {
       return null;
     }
 
@@ -314,26 +443,32 @@ export class SaveStore {
       const metaPath = join(saveDir, dirName, "metadata.json");
       const sigPath = join(saveDir, dirName, "campaign.sig.json");
 
+      // Metadata and signature fallback are independent gates (TODO #11): a
+      // directory with no/invalid metadata but a valid signature still lists.
       if (existsSync(metaPath)) {
         try {
-          const meta: SaveMetadata = JSON.parse(readFileSync(metaPath, "utf8")) as SaveMetadata;
+          const meta = SaveMetadataSchema.parse(JSON.parse(readFileSync(metaPath, "utf8")));
           saves.push(meta);
+          continue;
         } catch {
-          try {
-            const sigContent = readFileSync(sigPath, "utf8");
-            const sig: SigFile = JSON.parse(sigContent) as SigFile;
-            saves.push({
-              saveId: dirName,
-              timestamp: "",
-              turnNumber: 0,
-              campaignId: "",
-              snapshotHash: "",
-              compatibilityVersion: sig.compatibilityVersion,
-              contentArtifactHash: sig.hash,
-            });
-          } catch {
-            // Skip corrupt save dirs
-          }
+          // Fall through to the signature fallback.
+        }
+      }
+
+      if (existsSync(sigPath)) {
+        try {
+          const sig = SigFileSchema.parse(JSON.parse(readFileSync(sigPath, "utf8")));
+          saves.push({
+            saveId: dirName,
+            timestamp: "",
+            turnNumber: 0,
+            campaignId: "",
+            snapshotHash: sig.stateHash,
+            compatibilityVersion: sig.compatibilityVersion,
+            contentArtifactHash: sig.serializedHash,
+          });
+        } catch {
+          // Skip invalid save directories.
         }
       }
     }
@@ -367,8 +502,8 @@ export class SaveStore {
     const pointerPath = join(saveDir, "pointer.json");
     if (!existsSync(pointerPath)) return null;
     try {
-      const pointer: PointerFile = JSON.parse(readFileSync(pointerPath, "utf8")) as PointerFile;
-      return pointer["activeSaveId"];
+      const pointer = PointerFileSchema.parse(JSON.parse(readFileSync(pointerPath, "utf8")));
+      return pointer.activeSaveId;
     } catch {
       return null;
     }
@@ -384,48 +519,26 @@ export class SaveStore {
     const pointerPath = join(saveDir, "pointer.json");
     if (!existsSync(pointerPath)) return null;
     try {
-      const pointer: PointerFile = JSON.parse(readFileSync(pointerPath, "utf8")) as PointerFile;
-      return pointer["previousSaveId"] ?? null;
+      const pointer = PointerFileSchema.parse(JSON.parse(readFileSync(pointerPath, "utf8")));
+      return pointer.previousSaveId ?? null;
     } catch {
       return null;
     }
   }
 }
 
-function updatePointer(saveDir: string, activeSaveId: string): void {
+// `previousSaveId` is read once at the start of save() so that the pointer and
+// the save's own metadata record the same predecessor (TODO #7). The update is
+// a single write+atomic-rename; within a single synchronous process two saves
+// cannot interleave here. Cross-process safety is handled by the app-level
+// persistence owner (single IPC queue) per ADR-….
+function updatePointer(saveDir: string, activeSaveId: string, previousSaveId?: string): void {
   const pointerPath = join(saveDir, "pointer.json");
-  let previousSaveId: string | undefined;
-
-  if (existsSync(pointerPath)) {
-    try {
-      const existing: PointerFile = JSON.parse(readFileSync(pointerPath, "utf8")) as PointerFile;
-      previousSaveId = existing["activeSaveId"];
-    } catch {
-      // Ignore corrupt existing pointer
-    }
-  }
-
-  const pointer: PointerFile = { activeSaveId, previousSaveId };
+  const pointer: PointerFile = {
+    activeSaveId,
+    ...(previousSaveId !== undefined ? { previousSaveId } : {}),
+  };
   const tmpPath = `${pointerPath}.tmp`;
   writeFileSync(tmpPath, JSON.stringify(pointer, null, 2), "utf8");
   renameSync(tmpPath, pointerPath);
 }
-
-function pointerSaveRollback(saveDir: string, _newSavePath: string): void {
-  const pointerPath = join(saveDir, "pointer.json");
-  if (!existsSync(pointerPath)) return;
-
-  try {
-    const pointer: PointerFile = JSON.parse(readFileSync(pointerPath, "utf8")) as PointerFile;
-    if (pointer["previousSaveId"]) {
-      const revertedPointer: PointerFile = { activeSaveId: pointer["previousSaveId"] };
-      const tmpPath = `${pointerPath}.tmp`;
-      writeFileSync(tmpPath, JSON.stringify(revertedPointer, null, 2), "utf8");
-      renameSync(tmpPath, pointerPath);
-    }
-  } catch {
-    // Best-effort rollback
-  }
-}
-
-export { cleanup } from "./recovery.js";

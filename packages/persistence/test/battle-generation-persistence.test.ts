@@ -1,14 +1,15 @@
 //packages/persistence/test/battle-generation-persistence.test.ts
-import { describe, it, expect, beforeEach, afterEach } from "vite-plus/test";
+
 import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { join } from "node:path";
+import type { CampaignSnapshot, CampaignState } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
-import type { CampaignState, CampaignSnapshot } from "@bluewave/campaign";
-import { SaveStore } from "../src/store.js";
+import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { CURRENT_COMPATIBILITY_VERSION } from "../src/compatibility.js";
+import { SaveStore } from "../src/store.js";
 
 // Builds a snapshot carrying the new B-1 snapshot fields (battleManifests,
 // divisions, manifestHash) so save/load round-trips them (AC-13).

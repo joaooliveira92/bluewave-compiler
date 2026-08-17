@@ -4,16 +4,17 @@
 // save -> load -> replay round trips. strategicWeather is a plain canonically
 // ordered array (JSON-native, no Map/Record conversion needed), so the existing
 // storable snapshot shape carries it automatically.
-import { describe, it, expect, beforeEach, afterEach } from "vite-plus/test";
-import { mkdtempSync, rmSync, existsSync } from "node:fs";
-import { join } from "node:path";
+
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { join } from "node:path";
+import type { CampaignSnapshot, CampaignState, CampaignWeatherState } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
-import type { CampaignState, CampaignSnapshot, CampaignWeatherState } from "@bluewave/campaign";
-import { SaveStore } from "../src/store.js";
+import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { CURRENT_COMPATIBILITY_VERSION } from "../src/compatibility.js";
+import { SaveStore } from "../src/store.js";
 
 function makeWeatherState(areaId: string, month: string, salt: number): CampaignWeatherState {
   return {
