@@ -119,9 +119,14 @@ are recorded, not dropped.
 `TORPEDO_MACHINERY_DAMAGE_CREATED`, `TORPEDO_SYSTEM_SHOCK_DAMAGE_CREATED`,
 `UNDERWATER_TUBE_SEVERE_FLOODING`, `TORPEDO_CHAIN_REACTION`,
 `TORPEDO_STATE_INVARIANT_FAILED`. Plus documented in-slice markers:
-`TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED` (per B-3 precedent — e.g. §5 command-layer
-eligibility that the policy guard defers), `TORPEDO_FIRE_SOLUTION_FACTOR_MISSING`
-(§10 factor-missing failure, never a silent 10_000 fallback).
+`TORPEDO_FIRE_SOLUTION_FACTOR_MISSING` (§10 factor-missing failure, never a silent
+10_000 fallback) and `TORPEDO_STUCK_IN_TUBE` (§12 mechanical-failure outcome that
+consumes the torpedo, named in the §12 text; shipped as an authoritative outcome
+code like the §10 marker). The INC-2 marker `TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED`
+is **retired** (INC-3 ships the real §24 friendly-fire family, so no shipped
+predicate reports "DEFERRED" any more); its authoritative successor is
+`TORPEDO_FRIENDLY_FIRE_RISK_PROHIBITED` and it is never re-added to the catalog
+(verified by the AC-21 set-equality test).
 
 **Reused existing combat catalog codes** (no new record needed):
 `TACTICAL_STATE_INVARIANT_FAILED`, `TACTICAL_FOG_OF_WAR_VIOLATION` (target legality

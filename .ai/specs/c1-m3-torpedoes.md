@@ -9,5 +9,5 @@
 - **Sprint:** C-1 (Track C — M3 Advanced Surface Warfare)
 - **Kind:** scoping → implementation
 - **Governing doc:** DESIGN-40 (`docs/rules/torpedoes.md`)
-- **Status:** scoping RESOLVED (2026-08-16) — `ready-for-agent` (INC-1 frontier open)
-- **DoD:** spec §5 (AC-1..AC-25, goldens 10/10, ADR-0029)
+- **Status:** implementation COMPLETE (2026-08-16) — INC-1..INC-8 all landed; AC-1..AC-25 pass; goldens 10/10; ADR-0031
+- **DoD:** spec §5 (AC-1..AC-25, goldens 10/10, ADR-0031)

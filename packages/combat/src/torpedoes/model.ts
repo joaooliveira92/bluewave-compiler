@@ -12,6 +12,7 @@ import {
   OXYGEN_SPEED_MULTIPLIER_BP,
   OXYGEN_TUBE_HIT_SEVERE_FLOODING_MULTIPLIER_BP,
   OXYGEN_WAKE_DETECTION_MULTIPLIER_BP,
+  SEED_TORPEDO_MODEL_IDS,
   TORPEDO_PROPULSION_TYPES,
   type TorpedoPropulsionType,
   TORPEDO_RELIABILITY_SCALE,
@@ -20,10 +21,14 @@ import {
   TUBE_HIT_HAZARD_POLICIES,
   type TubeHitHazardPolicy,
 } from "./constants.js";
-import { INVALID_TORPEDO_MODEL_DEFINITION } from "./reasonCodes.js";
+import {
+  INVALID_TORPEDO_MODEL_DEFINITION,
+  TORPEDO_STATE_INVARIANT_FAILED,
+} from "./reasonCodes.js";
 
-// Content version of the research-grounded model set (INC-1 seeds a subset; the
-// FULL torpedo_models_v1 set rolls up in INC-8).
+// Content version of the research-grounded model set (INC-1 seeded a subset;
+// INC-8 rolls up the FULL torpedo_models_v1 set — 8 models, see the shipped
+// set below).
 export const torpedoModelsContentVersion = "torpedo_models_v1" as const;
 
 // DESIGN-40 §1 ordered speed/range setting: integer basis-point knots
@@ -350,10 +355,14 @@ export function verifyTorpedoModelContentHash(m: TorpedoModelDefinition): boolea
 }
 
 // ---------------------------------------------------------------------------
-// INC-1 grounded seed model set (docs/research/c1-m3-torpedoes.md §4.1-§4.5).
-// BALANCE TARGET items are authored with provenance comments and never claimed
-// as grounded (research note §4 / spec §1.3). The FULL torpedo_models_v1 set
-// (including the remaining research-table models) rolls up in INC-8.
+// INC-1 grounded seed model set (docs/research/c1-m3-torpedoes.md §4.1-§4.5),
+// rolled up to the FULL research-grounded `torpedo_models_v1` set by INC-8
+// (8 historical models 1880-1945: Whitehead 14-in/18-in, RN 21-in Mk IV/Mk VIII,
+// USN 21-in Mk 14, G7a/G7e, Type 93). BALANCE TARGET items are authored with
+// provenance comments and never claimed as grounded (research note §4 / spec
+// §1.3). The set ships as SHIPPED_TORPEDO_MODELS + the torpedo_models_v1
+// contract surface (SHIPPED_TORPEDO_MODELS_CONTRACT + validateTorpedoModelsContract)
+// that fails closed on any tampering (AC-24).
 // ---------------------------------------------------------------------------
 
 export const SHIPPED_TORPEDO_MODELS: readonly TorpedoModelDefinition[] = [
@@ -506,6 +515,105 @@ export const SHIPPED_TORPEDO_MODELS: readonly TorpedoModelDefinition[] = [
     tubeHitHazardPolicyId: "OXYGEN",
     contentVersion: torpedoModelsContentVersion,
   }),
+  withTorpedoModelContentHash({
+    torpedoModelId: "whitehead_14in_1886",
+    ownerNationIds: ["rn"],
+    technologyPrerequisiteIds: [],
+    productionRequirementId: "prod_whitehead_14in_1886",
+    diameterMm: 356,
+    massKg: 300,
+    warheadType: "WET_GUNCOTTON",
+    // 60 lb (27 kg) wet guncotton (research §3.1/§4.1); TNT-equivalence ~1.0
+    // (research §3.5).
+    warheadExplosiveMassKg: 27,
+    warheadExplosiveEquivalentMassKg: 27,
+    propulsionType: "COMPRESSED_AIR",
+    orderedSettings: [
+      // BALANCE TARGET: research §3.1/§4.1 grounds only a band (18-25 kn /
+      // 26-60 lb; Armstrong 1896 24-kn redesign); the 25 kn @ 550 m entry is
+      // authored at the band's top (research §4.2), never claimed as a single
+      // pinned figure.
+      { settingId: "25kn", speedKnotsBp: 25_000, rangeM: 550 },
+    ],
+    // BALANCE TARGET (research §4.3): "n/a (contact)" — no run-based arming
+    // captured; 20-30 m nominal band, authored at 25 m like the 18-in.
+    minimumArmingDistanceM: 25,
+    reliabilityBp: 88_000,
+    depthKeepingProfile: "primitive",
+    guidanceCapability: "none",
+    compatibleLauncherFamilyIds: ["14in_above_water_fixed", "14in_above_water_trainable"],
+    oxygenState: null,
+    tubeHitHazardPolicyId: "ORDINARY",
+    contentVersion: torpedoModelsContentVersion,
+  }),
+  withTorpedoModelContentHash({
+    torpedoModelId: "rn_21in_mk_viii_1927",
+    ownerNationIds: ["rn"],
+    technologyPrerequisiteIds: ["wet_heater_engine"],
+    productionRequirementId: "prod_rn_21in_mk_viii_1927",
+    diameterMm: 533,
+    massKg: 1_566,
+    warheadType: "TNT",
+    // Mk VIII base: 750 lb (340 kg) TNT, TNT-equivalence 1.0 (research §3.1/§4.1).
+    // The VIII** variant (805 lb / 365 kg Torpex, eq ~548) is recorded in the
+    // research note (§4.1), not shipped as a separate model.
+    warheadExplosiveMassKg: 340,
+    warheadExplosiveEquivalentMassKg: 340,
+    propulsionType: "WET_HEATER",
+    orderedSettings: [
+      // Mk VIII base: 5,000 yd (4,572 m) @ 40 kn (research §3.1/§4.2). The
+      // VIII** high-speed rows (45.5 kn @ 4,572 m / 41 kn @ 6,401 m) belong to
+      // the later production variant and are recorded, not shipped here.
+      { settingId: "40kn", speedKnotsBp: 40_000, rangeM: 4_572 },
+    ],
+    // BALANCE TARGET (research §3.1/§4.3): "~100 m" — no primary source pinned.
+    minimumArmingDistanceM: 100,
+    reliabilityBp: 95_500,
+    depthKeepingProfile: "standard",
+    guidanceCapability: "gyro",
+    compatibleLauncherFamilyIds: [
+      "21in_above_water_trainable",
+      "21in_underwater_fixed",
+      "21in_underwater_trainable",
+    ],
+    oxygenState: null,
+    tubeHitHazardPolicyId: "ORDINARY",
+    contentVersion: torpedoModelsContentVersion,
+  }),
+  withTorpedoModelContentHash({
+    torpedoModelId: "usn_21in_mk14_1931",
+    ownerNationIds: ["us"],
+    technologyPrerequisiteIds: ["wet_heater_engine"],
+    productionRequirementId: "prod_usn_21in_mk14_1931",
+    diameterMm: 533,
+    massKg: 1_361,
+    warheadType: "TNT",
+    // Mk 14 Mod 0: 507 lb (230 kg) TNT, TNT-equivalence 1.0 (research §3.1/§4.1).
+    // The Mod 3 variant (668 lb / 303 kg TPX, eq ~394) is recorded in the
+    // research note (§4.1), not shipped as a separate model.
+    warheadExplosiveMassKg: 230,
+    warheadExplosiveEquivalentMassKg: 230,
+    propulsionType: "WET_HEATER",
+    orderedSettings: [
+      // 4,500 yd (4,115 m) @ 46 kn; 9,000 yd (8,230 m) @ 31 kn (research §4.2).
+      { settingId: "46kn", speedKnotsBp: 46_000, rangeM: 4_115 },
+      { settingId: "31kn", speedKnotsBp: 31_000, rangeM: 8_230 },
+    ],
+    // GROUNDED: 450 yd = 410 m (research §4.3 — USNI technical report via
+    // subsim; BuOrd later recommended 700 yd for stabilization).
+    minimumArmingDistanceM: 410,
+    reliabilityBp: 94_000,
+    depthKeepingProfile: "standard",
+    guidanceCapability: "gyro",
+    compatibleLauncherFamilyIds: [
+      "21in_underwater_fixed",
+      "21in_underwater_trainable",
+      "21in_above_water_trainable",
+    ],
+    oxygenState: null,
+    tubeHitHazardPolicyId: "ORDINARY",
+    contentVersion: torpedoModelsContentVersion,
+  }),
 ];
 
 // Fail-closed lookup: a shipped torpedo model by id. An unknown model id fails
@@ -521,4 +629,60 @@ export function torpedoModelById(modelId: string): TorpedoModelDefinition {
     });
   }
   return model;
+}
+
+// ---------------------------------------------------------------------------
+// torpedo_models_v1 contract (INC-8, AC-24) — the full research-grounded model
+// set as a fail-closed contract surface. `torpedoModelsContentVersion` is the
+// `torpedo_models_v1` policy id; SHIPPED_TORPEDO_MODELS is the shipped set
+// (8 models, deterministic content hashes). The guard pins the exact ordered
+// model-id list + per-model content hash + definition validity; any tampering
+// (added/removed/reordered/edited model) fails closed with
+// TORPEDO_STATE_INVARIANT_FAILED — the same fail-closed idiom as the
+// detonation/damage/tube-hazard contracts (never a silent default).
+// ---------------------------------------------------------------------------
+export interface TorpedoModelsContract {
+  policyId: string;
+  modelIds: readonly string[];
+  models: readonly TorpedoModelDefinition[];
+}
+
+export const SHIPPED_TORPEDO_MODELS_CONTRACT: TorpedoModelsContract = {
+  policyId: torpedoModelsContentVersion,
+  modelIds: SEED_TORPEDO_MODEL_IDS,
+  models: SHIPPED_TORPEDO_MODELS,
+};
+
+function throwModelsMismatch(contract: unknown, reason: string): never {
+  throw new BluewaveError(TORPEDO_STATE_INVARIANT_FAILED, {
+    code: TORPEDO_STATE_INVARIANT_FAILED,
+    contract,
+    reason,
+  });
+}
+
+export function validateTorpedoModelsContract(
+  c: Partial<TorpedoModelsContract> | null | undefined,
+): asserts c is TorpedoModelsContract {
+  if (!c) throwModelsMismatch(c, "torpedo_models_v1 missing contract");
+  if (c.policyId !== torpedoModelsContentVersion)
+    throwModelsMismatch(c, "torpedo_models_v1 expectant policy id");
+  // The model-id list is pinned EXACTLY (ordered) to the shipped id set.
+  if (
+    !c.modelIds ||
+    c.modelIds.length !== SEED_TORPEDO_MODEL_IDS.length ||
+    !c.modelIds.every((id, i) => id === SEED_TORPEDO_MODEL_IDS[i])
+  )
+    throwModelsMismatch(c, "torpedo_models_v1 shipped model id list");
+  if (!c.models || c.models.length !== SHIPPED_TORPEDO_MODELS.length)
+    throwModelsMismatch(c, "torpedo_models_v1 model definition set size");
+  // Every shipped model validates and its deterministic content hash verifies —
+  // a tampered/edited model never passes (never silently accepted).
+  for (const model of c.models) {
+    validateTorpedoModelDefinition(model);
+    if (model.contentVersion !== torpedoModelsContentVersion)
+      throwModelsMismatch(c, "torpedo_models_v1 model content version");
+    if (!verifyTorpedoModelContentHash(model))
+      throwModelsMismatch(c, `torpedo_models_v1 content hash mismatch: ${model.torpedoModelId}`);
+  }
 }

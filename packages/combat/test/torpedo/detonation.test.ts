@@ -240,6 +240,12 @@ describe("HIGH-1: the authoritative model->fuze mapping pins the §15 fuze (neve
     expect(TORPEDO_MODEL_FUZE_POLICY["ger_533mm_g7e_1936"]).toBe("MAGNETIC");
     // Type 93 magnetic/oxygen premature-detonation issue -> MAGNETIC (§3.1/§3.6)
     expect(TORPEDO_MODEL_FUZE_POLICY["jpn_61cm_type93_1935"]).toBe("MAGNETIC");
+    // Whitehead 14-in (1886) contact pistol -> CONTACT (§3.1/§4.3)
+    expect(TORPEDO_MODEL_FUZE_POLICY["whitehead_14in_1886"]).toBe("CONTACT");
+    // RN 21-in Mk VIII (1927) contact exploder family -> CONTACT (§3.1/§4.3)
+    expect(TORPEDO_MODEL_FUZE_POLICY["rn_21in_mk_viii_1927"]).toBe("CONTACT");
+    // USN 21-in Mk 14 (1931) Mk 6 magnetic-influence exploder -> MAGNETIC (§3.1/§3.6)
+    expect(TORPEDO_MODEL_FUZE_POLICY["usn_21in_mk14_1931"]).toBe("MAGNETIC");
     // the mapping carries exactly the shipped model ids (ordered)
     expect(Object.keys(TORPEDO_MODEL_FUZE_POLICY)).toEqual([
       "whitehead_18in_1894",
@@ -247,6 +253,9 @@ describe("HIGH-1: the authoritative model->fuze mapping pins the §15 fuze (neve
       "ger_533mm_g7a_1934",
       "ger_533mm_g7e_1936",
       "jpn_61cm_type93_1935",
+      "whitehead_14in_1886",
+      "rn_21in_mk_viii_1927",
+      "usn_21in_mk14_1931",
     ]);
   });
 

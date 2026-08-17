@@ -74,8 +74,8 @@ boundary). This renumbering is recorded here once.
 6. **Reason-code partition (per spec §1.4 + AC-21).** The C-1 slice ships the
    DESIGN §29 in-slice reason codes only (`INVALID_TORPEDO_MODEL_DEFINITION` …
    `TORPEDO_LAUNCH_FAILURE`, `TORPEDO_HIT_RESOLVED`, `TORPEDO_DUD`, etc.) plus
-   documented in-slice markers (`TORPEDO_ELIGIBILITY_PREDICATE_DEFERRED`,
-   `TORPEDO_FIRE_SOLUTION_FACTOR_MISSING`, `TORPEDO_STUCK_IN_TUBE`),
+   documented in-slice markers (`TORPEDO_FIRE_SOLUTION_FACTOR_MISSING`,
+   `TORPEDO_STUCK_IN_TUBE`),
    reusing existing combat catalog codes (`TORPEDO_STATE_INVARIANT_FAILED`,
    fog-of-war, damage pipeline) — the set-equality partition
    (`reason-codes-torpedoes.test.ts`, AC-21) prevents silent addition; deferred

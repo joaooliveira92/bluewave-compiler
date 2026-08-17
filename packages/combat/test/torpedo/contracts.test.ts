@@ -16,7 +16,9 @@ import {
   resolvedAboveWaterMaxLaunchSpeedKnots,
   SHIPPED_TORPEDO_CONTRACT,
   SHIPPED_TORPEDO_DETONATION_CONTRACT,
+  SHIPPED_TORPEDO_LAUNCH_AUTHORITY_CONTRACT,
   SHIPPED_TORPEDO_MODELS,
+  SHIPPED_TORPEDO_MODELS_CONTRACT,
   TORPEDO_DANGER_SECTOR_RAD_TO_MDEG,
   TORPEDO_FRIENDLY_DANGER_SECTOR_MINIMUM_BP,
   TORPEDO_FRIENDLY_FIRE_LOW_CONFIDENCE_BP,
@@ -33,6 +35,7 @@ import {
   TORPEDO_SALVO_MIN_TUBES,
   TORPEDO_SALVO_RANGE_PRESSURE_BP_TABLE,
   TORPEDO_SALVO_WITHDRAWAL_MODIFIER_TUBES,
+  SEED_TORPEDO_MODEL_IDS,
   TORPEDO_SOLUTION_FACTOR_KEYS,
   TORPEDO_SOLUTION_FINAL_MAX_BP,
   TORPEDO_SOLUTION_FINAL_MIN_BP,
@@ -50,6 +53,8 @@ import {
   validateTorpedoContract,
   validateTorpedoDetonationContract,
   validateTorpedoLauncherDefinition,
+  validateTorpedoLaunchAuthorityContract,
+  validateTorpedoModelsContract,
   type TorpedoLauncherDefinition,
   // INC-6 (damage package): §16-§23 contracts + guards
   SHIPPED_TORPEDO_DAMAGE_CONTRACT,
@@ -417,10 +422,23 @@ describe("AC-24: exact shipped constant surface", () => {
     ).toThrow(BluewaveError);
   });
 
-  it("ships the grounded seed model set under torpedo_models_v1 with deterministic hashes", () => {
+  it("ships the research-grounded torpedo_models_v1 model set (8 models, 1880-1945) with deterministic hashes", () => {
     expect(SHIPPED_TORPEDO_CONTRACT.shippedModelIds).toEqual(
       SHIPPED_TORPEDO_MODELS.map((m) => m.torpedoModelId),
     );
+    // INC-8 rollup: the full research-grounded set (~6-8 models across 1880-1945,
+    // docs/research/c1-m3-torpedoes.md §4.1) — nothing more, nothing less.
+    expect(SHIPPED_TORPEDO_MODELS.length).toBe(8);
+    expect(SHIPPED_TORPEDO_MODELS.map((m) => m.torpedoModelId)).toEqual([
+      "whitehead_18in_1894",
+      "rn_21in_mk_iv_1916",
+      "ger_533mm_g7a_1934",
+      "ger_533mm_g7e_1936",
+      "jpn_61cm_type93_1935",
+      "whitehead_14in_1886",
+      "rn_21in_mk_viii_1927",
+      "usn_21in_mk14_1931",
+    ]);
     for (const model of SHIPPED_TORPEDO_MODELS) {
       expect(model.contentVersion).toBe(torpedoModelsContentVersion);
       expect(model.contentHash).toMatch(/^[0-9a-f]{64}$/);
@@ -431,6 +449,86 @@ describe("AC-24: exact shipped constant surface", () => {
     expect(torpedoSpeedBpKnotsToUmS(44_000)).toBe(22_635_536); // 44 kn (G7a high)
     expect(() => torpedoSpeedBpKnotsToUmS(44_000.5)).toThrow(BluewaveError);
     expect(() => torpedoSpeedBpKnotsToUmS(0)).toThrow(BluewaveError);
+  });
+});
+
+describe("AC-24 (INC-8): the torpedo_models_v1 contract + validate guard (fail closed)", () => {
+  it("ships the *_v1 policy id and SHIPPED_TORPEDO_MODELS_CONTRACT", () => {
+    expect(torpedoModelsContentVersion).toBe("torpedo_models_v1");
+    expect(SHIPPED_TORPEDO_MODELS_CONTRACT.policyId).toBe("torpedo_models_v1");
+    expect(SHIPPED_TORPEDO_MODELS_CONTRACT.modelIds).toEqual(SEED_TORPEDO_MODEL_IDS);
+    expect(SHIPPED_TORPEDO_MODELS_CONTRACT.models).toEqual(SHIPPED_TORPEDO_MODELS);
+  });
+
+  it("validates the shipped contract without throwing", () => {
+    expect(() => validateTorpedoModelsContract(SHIPPED_TORPEDO_MODELS_CONTRACT)).not.toThrow();
+  });
+
+  it("fails closed on a tampered model-id list (added/removed/reordered)", () => {
+    expect(() =>
+      validateTorpedoModelsContract({
+        ...SHIPPED_TORPEDO_MODELS_CONTRACT,
+        modelIds: [...SEED_TORPEDO_MODEL_IDS, "bogus_model"],
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoModelsContract({
+        ...SHIPPED_TORPEDO_MODELS_CONTRACT,
+        modelIds: [...SEED_TORPEDO_MODEL_IDS].reverse(),
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoModelsContract({
+        ...SHIPPED_TORPEDO_MODELS_CONTRACT,
+        modelIds: [],
+      }),
+    ).toThrow(BluewaveError);
+  });
+
+  it("fails closed on a tampered/edited model definition (content hash mismatch)", () => {
+    const [first, ...rest] = SHIPPED_TORPEDO_MODELS;
+    const tampered = { ...first, massKg: first.massKg + 1 }; // hash no longer verifies
+    expect(() =>
+      validateTorpedoModelsContract({
+        ...SHIPPED_TORPEDO_MODELS_CONTRACT,
+        models: [tampered, ...rest],
+      }),
+    ).toThrow(BluewaveError);
+  });
+
+  it("fails closed on a null/missing contract and a mismatched policy id", () => {
+    expect(() => validateTorpedoModelsContract(null)).toThrow(BluewaveError);
+    expect(() => validateTorpedoModelsContract(undefined)).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoModelsContract({ ...SHIPPED_TORPEDO_MODELS_CONTRACT, policyId: "x" }),
+    ).toThrow(BluewaveError);
+  });
+});
+
+describe("AC-24 (INC-8): the torpedo_launch_authority_v1 contract in the full *_v1 rollup (fail closed)", () => {
+  it("ships the *_v1 policy id + SHIPPED_TORPEDO_LAUNCH_AUTHORITY_CONTRACT and validates", () => {
+    expect(SHIPPED_TORPEDO_LAUNCH_AUTHORITY_CONTRACT.policyId).toBe(
+      "torpedo_launch_authority_v1",
+    );
+    expect(() =>
+      validateTorpedoLaunchAuthorityContract(SHIPPED_TORPEDO_LAUNCH_AUTHORITY_CONTRACT),
+    ).not.toThrow();
+  });
+
+  it("fails closed on a tampered authority contract", () => {
+    expect(() =>
+      validateTorpedoLaunchAuthorityContract({
+        ...SHIPPED_TORPEDO_LAUNCH_AUTHORITY_CONTRACT,
+        modes: [...SHIPPED_TORPEDO_LAUNCH_AUTHORITY_CONTRACT.modes, "COMMODORE" as never],
+      }),
+    ).toThrow(BluewaveError);
+    expect(() =>
+      validateTorpedoLaunchAuthorityContract({
+        ...SHIPPED_TORPEDO_LAUNCH_AUTHORITY_CONTRACT,
+        manualLaunchProhibitedModes: [],
+      }),
+    ).toThrow(BluewaveError);
+    expect(() => validateTorpedoLaunchAuthorityContract(null)).toThrow(BluewaveError);
   });
 });
 

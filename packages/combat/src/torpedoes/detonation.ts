@@ -162,6 +162,13 @@ export type TorpedoFuzePolicy = (typeof TORPEDO_FUZE_POLICIES)[number];
 //     pistols")
 //   - jpn_61cm_type93_1935 -> MAGNETIC (§3.1 line 97 / §3.6 line 246 — Java Sea
 //     premature/wake detonations, fuze sensitivity)
+//   - whitehead_14in_1886  -> CONTACT  (§3.1 line 88 / §4.3 line 309 — contact
+//     pistol, no run-based arming captured)
+//   - rn_21in_mk_viii_1927 -> CONTACT  (§3.1 line 92 / §4.3 line 311 — RN
+//     workhorse; RN WW2 fleet torpedoes used contact exploders — the same
+//     contact-exploder family as the Mk IV row's "no magnetic pistol" note)
+//   - usn_21in_mk14_1931   -> MAGNETIC (§3.1 line 93 / §3.6 line 242 — the
+//     Mk 6 exploder's magnetic-influence arm: 1941-43 premature/depth fiasco)
 // Unknown model ids FAIL CLOSED (TORPEDO_STATE_INVARIANT_FAILED) — never a
 // silent default (HIGH-1). Keyed by the §13 track.torpedoModelId carrier.
 export const TORPEDO_MODEL_FUZE_POLICY: Record<string, TorpedoFuzePolicy> = {
@@ -170,6 +177,9 @@ export const TORPEDO_MODEL_FUZE_POLICY: Record<string, TorpedoFuzePolicy> = {
   ger_533mm_g7a_1934: "MAGNETIC",
   ger_533mm_g7e_1936: "MAGNETIC",
   jpn_61cm_type93_1935: "MAGNETIC",
+  whitehead_14in_1886: "CONTACT",
+  rn_21in_mk_viii_1927: "CONTACT",
+  usn_21in_mk14_1931: "MAGNETIC",
 };
 
 // Fail-closed lookup: the authoritative fuze for a shipped torpedo model id.

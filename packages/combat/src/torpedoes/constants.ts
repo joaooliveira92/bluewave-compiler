@@ -401,23 +401,30 @@ export const TORPEDO_MINUTE_MS = SUBSTEPS_PER_MINUTE * SUBSTEP_SECONDS * 1_000;
 // on a 360_000 mdeg circle; far below the arming-distance quantum).
 export const TORPEDO_TRACK_MDEG_PER_DEGREE = 1_000;
 
-// INC-1 grounded seed model set (docs/research/c1-m3-torpedoes.md §4.1). The
-// FULL research-grounded `torpedo_models_v1` model/content constant set rolls up
-// in INC-8; INC-1 seeds 5 representative models covering every propulsion type
-// and era band EARLY/PRE_WAR/INTERWAR.
+// The full research-grounded `torpedo_models_v1` shipped model-id set
+// (docs/research/c1-m3-torpedoes.md §4.1): 8 historical models across 1880-1945.
+// INC-1 seeded the first five (covering every propulsion type and era band
+// EARLY/PRE_WAR/INTERWAR); INC-8 rolls up the remaining research-table models
+// (Whitehead 14-in 1886, RN 21-in Mk VIII 1927, USN 21-in Mk 14 1931). This
+// ordered list is the authoritative id surface for the torpedo_models_v1
+// contract, the torpedo_v1 shippedModelIds pin, and the model->fuze key set.
 export const SEED_TORPEDO_MODEL_IDS = [
   "whitehead_18in_1894",
   "rn_21in_mk_iv_1916",
   "ger_533mm_g7a_1934",
   "ger_533mm_g7e_1936",
   "jpn_61cm_type93_1935",
+  "whitehead_14in_1886",
+  "rn_21in_mk_viii_1927",
+  "usn_21in_mk14_1931",
 ] as const;
 export type SeedTorpedoModelId = (typeof SEED_TORPEDO_MODEL_IDS)[number];
 
 // ---------------------------------------------------------------------------
-// TorpedoContract — ships the INC-1 authored constant surface. The full
-// research-grounded `torpedo_models_v1` model/content set rolls up in INC-8;
-// INC-1 seeds the model contract + the grounded seed-model ids.
+// TorpedoContract — ships the INC-1 authored constant surface. INC-8 rolls the
+// FULL research-grounded `torpedo_models_v1` set into SEED_TORPEDO_MODEL_IDS
+// (8 models, docs/research/c1-m3-torpedoes.md §4.1); INC-1 seeded the model
+// contract + the first five grounded ids.
 export interface TorpedoContract {
   policyId: string;
   rulesetVersion: string;

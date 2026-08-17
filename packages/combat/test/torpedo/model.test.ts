@@ -55,7 +55,7 @@ describe("AC-1: TorpedoModelDefinition accepts every fully-specified model", () 
     }
   });
 
-  it("ships a grounded seed set covering every propulsion type and era band", () => {
+  it("ships the full research-grounded set covering every propulsion type and era band", () => {
     const ids = SHIPPED_TORPEDO_MODELS.map((m) => m.torpedoModelId).sort();
     expect(ids).toEqual(
       [
@@ -64,6 +64,9 @@ describe("AC-1: TorpedoModelDefinition accepts every fully-specified model", () 
         "ger_533mm_g7a_1934",
         "ger_533mm_g7e_1936",
         "jpn_61cm_type93_1935",
+        "whitehead_14in_1886",
+        "rn_21in_mk_viii_1927",
+        "usn_21in_mk14_1931",
       ].sort(),
     );
     const propulsion = new Set(SHIPPED_TORPEDO_MODELS.map((m) => m.propulsionType));
