@@ -1,8 +1,7 @@
-import { SafeInt } from "@bluewave/contracts";
 import type { CampaignSnapshot } from "@bluewave/campaign";
-import type { DomainEventEnvelope } from "@bluewave/events";
 import type { CommandLedger } from "@bluewave/commands";
-import type { EventLedger } from "@bluewave/events";
+import type { SafeInt } from "@bluewave/contracts";
+import type { DomainEventEnvelope, EventLedger } from "@bluewave/events";
 
 export interface PhaseDefinition {
   id: string;

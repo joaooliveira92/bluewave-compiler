@@ -15,6 +15,7 @@ import type { FleetMethodDraft } from "../screens/new-game/new-game-fleet-method
 import type { CampaignIdentityDraft } from "../screens/new-game/new-game-identity-screen-state.js";
 import { buildCampaignConfiguration } from "../screens/new-game/new-game-nation-screen-state.js";
 import type { DraftPreferences } from "../screens/new-game/new-game-preferences-screen-state.js";
+import { COSMETIC_MINIMUM_DURATION_MS } from "../screens/new-game/world-generation-presentation.js";
 import type { Screen } from "./campaign-screen-registry.js";
 
 export interface NewGameDraft {
@@ -28,6 +29,17 @@ export interface NewGameDraft {
 }
 
 type NewGameBridge = Pick<BluewaveDesktopBridge, "campaign">;
+
+/**
+ * The one `compileCampaign` rejection reason that isn't a failure (spec §7)
+ * — the player hit Cancel on the native save-location dialog. Handled
+ * silently: back to the review screen, selections intact, no error banner.
+ */
+const SAVE_LOCATION_CANCELLED = "SAVE_LOCATION_CANCELLED";
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export interface NewGameNavigation {
   readonly openCampaign: (sessionId: string) => Promise<void>;
@@ -55,6 +67,7 @@ export interface NewGameFlow {
     readonly acceptFleetMethod: (fleetMethod: FleetMethodDraft) => void;
     readonly backToFleetMethod: () => void;
     readonly launch: () => Promise<void>;
+    readonly backToReviewFromLaunch: () => void;
   };
 }
 
@@ -171,6 +184,16 @@ export function useNewGameFlow(
     navigation.selectScreen("new-game-fleet-method");
   }, [navigation]);
 
+  /**
+   * Navigates to the "Establishing the Naval Order" presentation (spec §7)
+   * before starting the real, untouched `compileCampaign` call — the
+   * presentation screen paces its own cosmetic checklist independently, but
+   * on success we still wait out `COSMETIC_MINIMUM_DURATION_MS` here so a
+   * fast resolution doesn't cut the sequence short. `SAVE_LOCATION_CANCELLED`
+   * returns silently to the review screen with no minimum wait; the other
+   * five rejection/error reasons surface immediately as `error` for the
+   * presentation screen's dedicated error state to show.
+   */
   const launch = useCallback(async () => {
     if (
       bridge === undefined ||
@@ -180,8 +203,10 @@ export function useNewGameFlow(
     ) {
       return;
     }
+    navigation.selectScreen("new-game-launching");
     setStatus("launching");
     setError(null);
+    const minimumElapsed = delay(COSMETIC_MINIMUM_DURATION_MS);
     try {
       const archetypeToken = serializeArchetypeSelection(
         draft.archetype ?? defaultArchetypeSelection(),
@@ -196,17 +221,27 @@ export function useNewGameFlow(
       };
       const result = await bridge.campaign.execute("compileCampaign", config);
       if (result.outcome !== "success") {
+        if (result.reason === SAVE_LOCATION_CANCELLED) {
+          navigation.selectScreen("new-game-review");
+          return;
+        }
         const diagnostics =
           result.diagnostics.length > 0 ? ` ${result.diagnostics.join("; ")}` : "";
         setError(`${result.reason}.${diagnostics}`);
         return;
       }
+      await minimumElapsed;
       setDraft(null);
       await navigation.openCampaign(result.value.sessionId);
     } finally {
       setStatus("ready");
     }
   }, [bridge, draft, navigation]);
+
+  const backToReviewFromLaunch = useCallback(() => {
+    setError(null);
+    navigation.selectScreen("new-game-review");
+  }, [navigation]);
 
   return useMemo(
     () => ({
@@ -226,6 +261,7 @@ export function useNewGameFlow(
         acceptFleetMethod,
         backToFleetMethod,
         launch,
+        backToReviewFromLaunch,
       },
     }),
     [
@@ -239,6 +275,7 @@ export function useNewGameFlow(
       backToIdentity,
       backToNation,
       backToPreferences,
+      backToReviewFromLaunch,
       cancel,
       confirmNation,
       draft,

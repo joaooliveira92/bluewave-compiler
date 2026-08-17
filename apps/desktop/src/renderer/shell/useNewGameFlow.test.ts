@@ -2,7 +2,7 @@
 
 import { ARCHETYPE_PRESETS } from "@bluewave/campaign-engine";
 import type { ArchetypeSelection } from "@bluewave/campaign-engine";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vite-plus/test";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type {
@@ -14,6 +14,7 @@ import type { NewGameOptions } from "../../shared/new-game-contract.js";
 import { defaultFleetMethod } from "../screens/new-game/new-game-fleet-method-screen-state.js";
 import { defaultCampaignIdentity } from "../screens/new-game/new-game-identity-screen-state.js";
 import type { DraftPreferences } from "../screens/new-game/new-game-preferences-screen-state.js";
+import { COSMETIC_MINIMUM_DURATION_MS } from "../screens/new-game/world-generation-presentation.js";
 import { useNewGameFlow } from "./useNewGameFlow.js";
 
 const preferences = {
@@ -156,10 +157,21 @@ describe("useNewGameFlow", () => {
   });
 
   it("opens the compiled campaign and clears the completed draft", async () => {
-    const { result, execute, openCampaign } = setup();
+    const { result, execute, openCampaign, selectScreen } = setup();
     advanceToReview(result.current.actions);
 
-    await act(() => result.current.actions.launch());
+    vi.useFakeTimers();
+    try {
+      let launchPromise: Promise<void> = Promise.resolve();
+      act(() => {
+        launchPromise = result.current.actions.launch();
+      });
+      expect(selectScreen).toHaveBeenLastCalledWith("new-game-launching");
+      await vi.advanceTimersByTimeAsync(COSMETIC_MINIMUM_DURATION_MS);
+      await act(() => launchPromise);
+    } finally {
+      vi.useRealTimers();
+    }
 
     expect(execute).toHaveBeenCalledWith(
       "compileCampaign",
@@ -178,7 +190,17 @@ describe("useNewGameFlow", () => {
     const { result, execute } = setup();
     advanceToReview(result.current.actions, { legacyFleetModeId: "disabled" });
 
-    await act(() => result.current.actions.launch());
+    vi.useFakeTimers();
+    try {
+      let launchPromise: Promise<void> = Promise.resolve();
+      act(() => {
+        launchPromise = result.current.actions.launch();
+      });
+      await vi.advanceTimersByTimeAsync(COSMETIC_MINIMUM_DURATION_MS);
+      await act(() => launchPromise);
+    } finally {
+      vi.useRealTimers();
+    }
 
     expect(execute).toHaveBeenCalledWith(
       "compileCampaign",
@@ -186,7 +208,7 @@ describe("useNewGameFlow", () => {
     );
   });
 
-  it("keeps navigation outside the workflow and reports compilation rejection", async () => {
+  it("keeps navigation outside the workflow and reports compilation rejection, without waiting out the cosmetic timer", async () => {
     const execute = (async () => ({
       outcome: "rejected" as const,
       reason: "UNSUPPORTED_CONFIGURATION",
@@ -197,14 +219,40 @@ describe("useNewGameFlow", () => {
 
     await act(() => result.current.actions.launch());
 
+    expect(selectScreen).toHaveBeenCalledWith("new-game-launching");
     expect(openCampaign).not.toHaveBeenCalled();
     expect(result.current.state.error).toBe("UNSUPPORTED_CONFIGURATION. difficulty is invalid");
     expect(result.current.state.status).toBe("ready");
+
+    // Stays on the launching screen's error state until the player backs out.
+    expect(selectScreen).toHaveBeenLastCalledWith("new-game-launching");
+    act(() => result.current.actions.backToReviewFromLaunch());
+    expect(selectScreen).toHaveBeenLastCalledWith("new-game-review");
+    expect(result.current.state.error).toBeNull();
 
     act(() => result.current.actions.backToIdentity());
     expect(selectScreen).toHaveBeenLastCalledWith("new-game-identity");
     act(() => result.current.actions.cancel());
     expect(selectScreen).toHaveBeenLastCalledWith("file");
+  });
+
+  it("returns silently to the review screen on SAVE_LOCATION_CANCELLED, without an error or waiting out the cosmetic timer", async () => {
+    const execute = (async () => ({
+      outcome: "rejected" as const,
+      reason: "SAVE_LOCATION_CANCELLED",
+      diagnostics: [],
+    })) as unknown as CampaignExecute;
+    const { result, openCampaign, selectScreen } = setup(execute);
+    advanceToReview(result.current.actions);
+
+    await act(() => result.current.actions.launch());
+
+    expect(selectScreen).toHaveBeenCalledWith("new-game-launching");
+    expect(selectScreen).toHaveBeenLastCalledWith("new-game-review");
+    expect(openCampaign).not.toHaveBeenCalled();
+    expect(result.current.state.error).toBeNull();
+    expect(result.current.state.status).toBe("ready");
+    expect(result.current.state.draft).not.toBeNull();
   });
 
   it("exposes starting state while compilation is unresolved", async () => {
@@ -216,18 +264,24 @@ describe("useNewGameFlow", () => {
     const { result } = setup(execute);
     advanceToReview(result.current.actions);
 
-    let launchPromise: Promise<void> = Promise.resolve();
-    act(() => {
-      launchPromise = result.current.actions.launch();
-    });
-    await waitFor(() => expect(result.current.state.status).toBe("launching"));
+    vi.useFakeTimers();
+    try {
+      let launchPromise: Promise<void> = Promise.resolve();
+      act(() => {
+        launchPromise = result.current.actions.launch();
+      });
+      expect(result.current.state.status).toBe("launching");
 
-    resolveCompilation({
-      outcome: "success",
-      value: { sessionId: "ses-created" },
-      diagnostics: [],
-    });
-    await act(() => launchPromise);
+      resolveCompilation({
+        outcome: "success",
+        value: { sessionId: "ses-created" },
+        diagnostics: [],
+      });
+      await vi.advanceTimersByTimeAsync(COSMETIC_MINIMUM_DURATION_MS);
+      await act(() => launchPromise);
+    } finally {
+      vi.useRealTimers();
+    }
     expect(result.current.state.status).toBe("ready");
   });
 });

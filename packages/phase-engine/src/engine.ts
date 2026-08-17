@@ -1,18 +1,18 @@
-import { SafeInt } from "@bluewave/contracts";
 import type { CampaignSnapshot } from "@bluewave/campaign";
-import type { CommandEnvelope, CommandBody } from "@bluewave/commands";
+import type { CommandBody, CommandEnvelope } from "@bluewave/commands";
 import { CommandLedger } from "@bluewave/commands";
-import type { DiagnosticCollector } from "@bluewave/diagnostics";
+import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { EventLedger } from "@bluewave/events";
 import { RandomEngine } from "@bluewave/random";
 import {
-  PhaseRegistry,
-  type PhaseDefinition,
+  type NoOpEvidence,
   type PhaseContext,
+  type PhaseDefinition,
+  PhaseRegistry,
   type PhaseResult,
   type TurnResult,
-  type NoOpEvidence,
 } from "./registry.js";
 
 export class PhaseEngine {

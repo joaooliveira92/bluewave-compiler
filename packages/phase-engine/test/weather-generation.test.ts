@@ -8,15 +8,14 @@
 // WEATHER_PROFILE_INCOMPLETE (fail-closed), determinism, prior-state linkage,
 // battle_generation being unaffected (no battles in a no-war month), and
 // replay reproduction of the identical strategicWeather on the closed snapshot.
-import { describe, it, expect } from "vite-plus/test";
-import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+
 import type { CampaignSnapshot, CampaignWeatherState, NationState } from "@bluewave/campaign";
 import type { ClimateProfile } from "@bluewave/combat";
-import { defaultClimateProfile_v1 } from "@bluewave/combat";
-import { WEATHER_GENERATION_PHASE } from "@bluewave/combat";
-import { WEATHER_PROFILE_INCOMPLETE } from "@bluewave/combat";
+import { defaultClimateProfile_v1, WEATHER_GENERATION_PHASE, WEATHER_PROFILE_INCOMPLETE } from "@bluewave/combat";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
 import { MonthExecutor, ReplayVerifier } from "../src/index.js";
 
 function makeNation(id: string, treasury = 500): NationState {

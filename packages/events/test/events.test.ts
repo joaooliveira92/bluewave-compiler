@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
-import type { DomainEventEnvelope, DomainEventBody, NationBudgetChanged } from "../src/index.js";
+import { describe, expect, it } from "vite-plus/test";
+import type { DomainEventBody, DomainEventEnvelope, NationBudgetChanged } from "../src/index.js";
 import { EventLedger, ExplanationBuilder, formatExplanation } from "../src/index.js";
 
 describe("DomainEventEnvelope", () => {

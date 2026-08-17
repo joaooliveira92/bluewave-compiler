@@ -1,78 +1,69 @@
-import { SafeInt } from "@bluewave/contracts";
-import { BluewaveError } from "@bluewave/contracts";
+import { AiPhaseExecutor } from "@bluewave/ai";
 import type {
+  BattleInstance,
+  BattleResult,
+  BlockadeState,
   CampaignSnapshot,
-  NationState,
-  Ship,
+  CampaignWeatherState,
+  CanonicalShipType,
+  DivisionAssetView,
   FleetState,
+  NationState,
+  PermanentDivision,
+  Ship,
   TechnologyProgress,
   WarDeclaration,
   WarParticipantMembership,
-  BlockadeState,
-  PermanentDivision,
-  BattleInstance,
-  BattleResult,
-  DivisionAssetView,
-  CanonicalShipType,
-  CampaignWeatherState,
 } from "@bluewave/campaign";
 import {
-  WAR_SCORE_MINOR,
-  WAR_SCORE_MAJOR,
-  WAR_SCORE_DECISIVE,
-  VICTORY_MINOR_MAX_FRACTION,
-  VICTORY_MAJOR_MAX_FRACTION,
+  applyDivisionCommand,
+  assertDivisionInvariants,
+  BLOCKADE_WAR_SCORE_PER_MONTH,campaignMonthId,
+  DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE,
+  DIVISION_STATE_INVARIANT_FAILED,
+  INITIAL_DIVISION_COHESION,
+  INITIAL_DIVISION_EXPERIENCE,
   MAXIMUM_CONCURRENT_WARS,
   NAP_VIOLATION_PENALTY,
   SURRENDER_SCORE,
-  BLOCKADE_WAR_SCORE_PER_MONTH,
-  TENSION_WAR,
-  TENSION_PEACE,
   TENSION_ALLIANCE,
+  TENSION_PEACE,
+  TENSION_WAR,
   VACANT,
-  applyDivisionCommand,
-  assertDivisionInvariants,
-  INITIAL_DIVISION_EXPERIENCE,
-  INITIAL_DIVISION_COHESION,
-  DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE,
-  DIVISION_STATE_INVARIANT_FAILED,
+  VICTORY_MAJOR_MAX_FRACTION,
+  VICTORY_MINOR_MAX_FRACTION,
+  WAR_SCORE_DECISIVE,
+  WAR_SCORE_MAJOR,
+  WAR_SCORE_MINOR
 } from "@bluewave/campaign";
+import type { BattleResolutionResult, ClimateProfile } from "@bluewave/combat";
+import { BATTLE_AUTO_RESOLUTION_FAILED, BattleResolver, classifyShip, defaultClimateProfile_v1, generateBattles, generateStrategicWeather, INVALID_BATTLE_WEATHER_INITIALIZATION, resolveBattleAuto, WEATHER_PROFILE_INCOMPLETE } from "@bluewave/combat";
 import type {
-  CommandEnvelope,
-  CommandBody,
-  SetResearchPriorityCommand,
-  DeclareWarCommand,
   AcceptPeaceCommand,
-  FormAllianceCommand,
-  BreakAllianceCommand,
-  FormNonAggressionPactCommand,
-  BreakNonAggressionPactCommand,
-  DeclareBlockadeCommand,
-  BudgetProjectCommand,
-  CreateDivisionCommand,
   AddShipToDivisionCommand,
-  RemoveShipFromDivisionCommand,
-  DissolveDivisionCommand,
+  BreakAllianceCommand,
+  BreakNonAggressionPactCommand,
+  BudgetProjectCommand,
   ChangeDivisionFlagshipCommand,
+  CommandBody,
+  CommandEnvelope,
+  CreateDivisionCommand,
+  DeclareBlockadeCommand,
+  DeclareWarCommand,
+  DissolveDivisionCommand,
+  FormAllianceCommand,
+  FormNonAggressionPactCommand,
+  RemoveShipFromDivisionCommand,
+  SetResearchPriorityCommand,
 } from "@bluewave/commands";
+import { CommandIdempotencyMap, CommandLedger, CommandLifecycle } from "@bluewave/commands";
 import { CANONICAL_RESEARCH_FIELD_IDS as RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
-import { CommandLifecycle, CommandLedger, CommandIdempotencyMap } from "@bluewave/commands";
-import type { DiagnosticCollector } from "@bluewave/diagnostics";
+import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { EventLedger } from "@bluewave/events";
+import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import type { DomainEventEnvelope } from "@bluewave/events";
+import { EventLedger } from "@bluewave/events";
 import { RandomEngine, RandomLedger } from "@bluewave/random";
-import { BattleResolver, generateBattles } from "@bluewave/combat";
-import { resolveBattleAuto } from "@bluewave/combat";
-import type { BattleResolutionResult } from "@bluewave/combat";
-import { BATTLE_AUTO_RESOLUTION_FAILED } from "@bluewave/combat";
-import { INVALID_BATTLE_WEATHER_INITIALIZATION } from "@bluewave/combat";
-import { classifyShip } from "@bluewave/combat";
-import { generateStrategicWeather, defaultClimateProfile_v1 } from "@bluewave/combat";
-import { WEATHER_PROFILE_INCOMPLETE } from "@bluewave/combat";
-import type { ClimateProfile } from "@bluewave/combat";
-import { campaignMonthId } from "@bluewave/campaign";
-import { AiPhaseExecutor } from "@bluewave/ai";
 import { FinancialLedger, type LedgerTransactionInput } from "./financial-ledger.js";
 import { cloneSnapshot } from "./snapshotClone.js";
 

@@ -1,16 +1,15 @@
-import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { CampaignCompiler } from "@bluewave/campaign/compiler";
-import type { CampaignState, CampaignSnapshot, NationState } from "@bluewave/campaign";
-import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
-import { SaveStore } from "@bluewave/persistence";
-import { CURRENT_COMPATIBILITY_VERSION } from "@bluewave/persistence";
-import { MonthExecutor, ReplayVerifier } from "@bluewave/phase-engine";
-import { generateBattles } from "@bluewave/combat";
-import { mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import type { CampaignSnapshot, CampaignState, NationState } from "@bluewave/campaign";
+import { CampaignCompiler } from "@bluewave/campaign/compiler";
+import { generateBattles } from "@bluewave/combat";
+import type { BudgetProjectCommand, CommandEnvelope } from "@bluewave/commands";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { CURRENT_COMPATIBILITY_VERSION, SaveStore } from "@bluewave/persistence";
+import { MonthExecutor, ReplayVerifier } from "@bluewave/phase-engine";
 import { nationsYaml } from "@bluewave/test-support";
 
 const FIXTURE = {

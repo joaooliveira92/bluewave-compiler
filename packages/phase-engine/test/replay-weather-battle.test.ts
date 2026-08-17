@@ -6,20 +6,21 @@
 // same closing hash. Mirrors the cross-process child's save/load/replay flow
 // (SaveStore + ReplayVerifier) with a war-carrying campaign whose battle
 // resolves through the tactical auto-resolution path.
-import { describe, it, expect } from "vite-plus/test";
+
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
 import type { CampaignSnapshot, CampaignState, NationState } from "@bluewave/campaign";
+import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
+import { describe, expect, it } from "vite-plus/test";
 import { MonthExecutor, ReplayVerifier } from "../src/index.js";
 import {
   ATTACKER_NATION,
+  buildBattleManifest,
   CAMPAIGN_SEED,
   DEFENDER_NATION,
-  buildBattleManifest,
   makeBattle,
   makeBattleSnapshot,
   makeDesign,

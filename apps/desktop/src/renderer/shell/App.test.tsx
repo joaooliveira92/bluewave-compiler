@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { CampaignCommandClient } from "../../shared/campaign-command-contract.js";
+import { COSMETIC_MINIMUM_DURATION_MS } from "../screens/new-game/world-generation-presentation.js";
 import type { Screen } from "./campaign-screen-registry.js";
 
 const testState = vi.hoisted(() => ({
@@ -238,6 +239,28 @@ vi.mock("../screens/new-game/NewGameCommissioningReviewScreen.js", async () => {
   };
 });
 
+vi.mock("../screens/new-game/NewGameLaunchingScreen.js", async () => {
+  const React = await import("react");
+  return {
+    NewGameLaunchingScreen: ({
+      error,
+      onBackToReview,
+    }: {
+      error: string | null;
+      onBackToReview: () => void;
+    }) =>
+      React.createElement(
+        "section",
+        null,
+        React.createElement("h1", null, "Establishing the Naval Order"),
+        error ? React.createElement("p", { role: "alert" }, error) : null,
+        error
+          ? React.createElement("button", { onClick: onBackToReview }, "Back to Commissioning Review")
+          : null,
+      ),
+  };
+});
+
 vi.mock("./AppSidebar.js", async () => {
   const React = await import("react");
   return {
@@ -338,7 +361,9 @@ function createShell(overrides: Record<string, unknown> = {}) {
                   ? { kind: "new-game-fleet-method" as const, screen: shell.screen }
                   : shell.screen === "new-game-review"
                     ? { kind: "new-game-review" as const, screen: shell.screen }
-                    : { kind: "file" as const, screen: "file" as const };
+                    : shell.screen === "new-game-launching"
+                      ? { kind: "new-game-launching" as const, screen: shell.screen }
+                      : { kind: "file" as const, screen: "file" as const };
   return { ...shell, mode };
 }
 
@@ -485,10 +510,19 @@ describe("App", () => {
 
     testState.shell = createShell({ ...shell, screen: "new-game-review" });
     rerender(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "Begin Commission" }));
 
-    await waitFor(() => expect(execute).toHaveBeenCalledWith("compileCampaign", expect.anything()));
-    await waitFor(() => expect(shell.openCampaign).toHaveBeenCalledWith("ses-created"));
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Begin Commission" }));
+      expect(shell.selectScreen).toHaveBeenCalledWith("new-game-launching");
+
+      await vi.advanceTimersByTimeAsync(COSMETIC_MINIMUM_DURATION_MS);
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(execute).toHaveBeenCalledWith("compileCampaign", expect.anything());
+    expect(shell.openCampaign).toHaveBeenCalledWith("ses-created");
   });
 
   it("shows a compilation rejection and does not open a campaign", async () => {
@@ -519,10 +553,20 @@ describe("App", () => {
     testState.shell = createShell({ ...shell, screen: "new-game-review" });
     rerender(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Begin Commission" }));
+    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-launching");
 
     expect(
       await screen.findByText("UNSUPPORTED_CONFIGURATION. difficulty is invalid"),
     ).toBeTruthy();
     expect(shell.openCampaign).not.toHaveBeenCalled();
+
+    // Landing directly on the launching screen (as the real navigation would
+    // have done) shows the dedicated error state with a working way back.
+    testState.shell = createShell({ ...shell, screen: "new-game-launching" });
+    rerender(<App />);
+    expect(screen.getByRole("heading", { name: "Establishing the Naval Order" })).toBeTruthy();
+    expect(screen.getByText("UNSUPPORTED_CONFIGURATION. difficulty is invalid")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Back to Commissioning Review" }));
+    expect(shell.selectScreen).toHaveBeenLastCalledWith("new-game-review");
   });
 });

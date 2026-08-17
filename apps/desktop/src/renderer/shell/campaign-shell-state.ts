@@ -45,6 +45,10 @@ export type CampaignShellMode =
       readonly kind: "new-game-review";
       readonly screen: "new-game-review";
     }
+  | {
+      readonly kind: "new-game-launching";
+      readonly screen: "new-game-launching";
+    }
   | { readonly kind: "opening"; readonly screen: Screen }
   | {
       readonly kind: "open-error";
@@ -183,6 +187,9 @@ export function campaignShellMode(state: CampaignShellState): CampaignShellMode 
   }
   if (screen === "new-game-review") {
     return { kind: "new-game-review", screen };
+  }
+  if (screen === "new-game-launching") {
+    return { kind: "new-game-launching", screen };
   }
   return { kind: "file", screen: "file" };
 }

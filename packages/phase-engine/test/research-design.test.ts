@@ -1,14 +1,14 @@
-﻿import { describe, it, expect } from "vite-plus/test";
-import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import type {
+﻿import type {
   CampaignSnapshot,
-  NationState,
-  ConstructionProject,
   CompiledDesignVersion,
+  ConstructionProject,
+  NationState,
 } from "@bluewave/campaign";
-import type { CommandEnvelope, CommandBody } from "@bluewave/commands";
+import type { CommandBody, CommandEnvelope } from "@bluewave/commands";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
 import { MonthExecutor } from "../src/index.js";
 
 function makeResearchNation(

@@ -1,21 +1,21 @@
-import { describe, it, expect } from "vite-plus/test";
 import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { canonicalSerialize } from "@bluewave/deterministic";
 import type { CampaignSnapshot, Ship } from "@bluewave/campaign";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
 import { MonthExecutor } from "../src/index.js";
-import { cloneSnapshot, CLONE_COVERAGE } from "../src/snapshotClone.js";
+import { CLONE_COVERAGE, cloneSnapshot } from "../src/snapshotClone.js";
 import {
-  makeBattleSnapshot,
+  ATTACKER_NATION,
+  DEFENDER_NATION,
   makeBattle,
+  makeBattleSnapshot,
   makeDesign,
   makeShip,
   makeWar,
-  ATTACKER_NATION,
-  DEFENDER_NATION,
 } from "./battle-fixtures.js";
 
 const STATE_PATH = resolve(

@@ -14,6 +14,7 @@ import { NewGameArchetypeScreen } from "../screens/new-game/NewGameArchetypeScre
 import { NewGameCommissioningReviewScreen } from "../screens/new-game/NewGameCommissioningReviewScreen.js";
 import { NewGameFleetMethodScreen } from "../screens/new-game/NewGameFleetMethodScreen.js";
 import { NewGameIdentityScreen } from "../screens/new-game/NewGameIdentityScreen.js";
+import { NewGameLaunchingScreen } from "../screens/new-game/NewGameLaunchingScreen.js";
 import { NewGameNationScreen } from "../screens/new-game/NewGameNationScreen.js";
 import { RulesOfTheNavalAgeScreen } from "../screens/new-game/RulesOfTheNavalAgeScreen.js";
 import type { AdmiralPresetValues } from "../screens/new-game/admiral-preset.js";
@@ -152,6 +153,7 @@ interface CampaignUnavailableViewProps {
   readonly onFleetMethodNext: (fleetMethod: FleetMethodDraft) => void;
   readonly onBackToFleetMethod: () => void;
   readonly onLaunch: () => Promise<void>;
+  readonly onBackToReviewFromLaunch: () => void;
   readonly onPrimaryActionChange: (action: PrimaryAction | null) => void;
 }
 
@@ -241,6 +243,13 @@ function CampaignUnavailableView(props: CampaignUnavailableViewProps) {
           onBack={props.onBackToFleetMethod}
           onBeginCommission={props.onLaunch}
           onPrimaryActionChange={props.onPrimaryActionChange}
+        />
+      );
+    case "new-game-launching":
+      return (
+        <NewGameLaunchingScreen
+          error={props.newGameError}
+          onBackToReview={props.onBackToReviewFromLaunch}
         />
       );
     case "file":
@@ -423,7 +432,8 @@ function CampaignShellApplication({
           shell.state.mode.kind === "new-game-archetype" ||
           shell.state.mode.kind === "new-game-identity" ||
           shell.state.mode.kind === "new-game-fleet-method" ||
-          shell.state.mode.kind === "new-game-review"
+          shell.state.mode.kind === "new-game-review" ||
+          shell.state.mode.kind === "new-game-launching"
         ? "new_game"
         : "menu";
 
@@ -473,6 +483,7 @@ function CampaignShellApplication({
         onFleetMethodNext={newGame.actions.acceptFleetMethod}
         onBackToFleetMethod={newGame.actions.backToFleetMethod}
         onLaunch={newGame.actions.launch}
+        onBackToReviewFromLaunch={newGame.actions.backToReviewFromLaunch}
         onPrimaryActionChange={shell.actions.setPrimaryAction}
       />
     ) : (

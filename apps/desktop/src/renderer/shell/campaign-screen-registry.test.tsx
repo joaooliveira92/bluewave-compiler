@@ -162,10 +162,12 @@ vi.mock("../screens/options/OptionsScreen.js", async () => {
 });
 
 import {
+  ALL_CAMPAIGN_SCREEN_REGISTRY,
   CAMPAIGN_SCREEN_REGISTRY,
   CAMPAIGN_SCREEN_SEARCH_TARGETS,
   CAMPAIGN_SCREENS,
   CampaignScreenOutlet,
+  selectVisibleScreens,
   SETTINGS_SCREENS,
 } from "./campaign-screen-registry.js";
 
