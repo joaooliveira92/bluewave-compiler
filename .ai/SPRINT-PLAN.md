@@ -242,6 +242,22 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
+**ACTIVE CHARTING (spec-writing): M2 "First Month at the Admiralty"
+(`.scratch/game-onboarding-first-month/`) — IN PROGRESS 2026-08-17.** A
+wayfinder effort producing the Milestone 2 strategic-loop spec (Take command
+→ Overview → priorities → Treasury/Research/Construction/Fleet/Diplomacy
+inspection → Advance Month → Monthly Naval Estimates → save/load). This
+session resolved the frontier decision tickets **07 (research)**, **08
+(fleet)**, **09 (construction)**, **11 (diplomacy tension-threshold policy —
+implemented in `campaign-engine/src/diplomacy.ts`, `tensionLabel`/
+`isHighTension`/`HIGH_TENSION_THRESHOLD=8`, + test)**, **16 (save/load &
+campaign-list)**, **18 (guided-inspection spotlight model)**. 12/18 tickets
+resolved. **Next frontier (open, unblocked): 13 Advance Month flow** → then
+04 (blocked by 11, now unblocked), 10 (blocked by 09), 12 (blocked by 11),
+14 & 15 (blocked by 13). Once all 18 resolve, assemble the single M2 spec per
+`map.md`. C-3-IMPL (submarines, queued below) remains on the implementation
+track, not dropped.
+
 **B-6: DONE 2026-08-15 — M2 COMPLETED.** Battle results → campaign integration
 + M2 acceptance gate landed (commits `bf77843` scoping, `62fba1d` INC-1,
 `405bace` INC-2, `1c7b76a` INC-3; INC-4 folded; INC-5 gate). Authoritative
