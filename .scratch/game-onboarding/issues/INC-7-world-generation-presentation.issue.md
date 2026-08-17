@@ -18,19 +18,19 @@ message + "Back to Commissioning Review" action) in place of the checklist.
 
 **Status:** done
 
-- [ ] All 9 checklist lines and all 4 flavor-text messages match the spec
+- [x] All 9 checklist lines and all 4 flavor-text messages match the spec
       verbatim, checklist reveals over the paced minimum duration
-- [ ] `compileCampaign`'s bridge contract/signature is unchanged — no new
+- [x] `compileCampaign`'s bridge contract/signature is unchanged — no new
       progress-reporting mechanism added
-- [ ] If `compileCampaign` resolves after the cosmetic minimum has elapsed,
+- [x] If `compileCampaign` resolves after the cosmetic minimum has elapsed,
       the screen holds on the final checklist line (still revealed, flavor
       text still rotating) until resolution
-- [ ] Successful resolution auto-advances to the Opening Strategic Briefing
+- [x] Successful resolution auto-advances to the Opening Strategic Briefing
       with no button click required
-- [ ] `SAVE_LOCATION_CANCELLED` returns silently to the Commissioning Review
+- [x] `SAVE_LOCATION_CANCELLED` returns silently to the Commissioning Review
       screen with no error banner and all prior selections intact
-- [ ] The other five failure reasons show a distinct error state with a
+- [x] The other five failure reasons show a distinct error state with a
       working "Back to Commissioning Review" action
-- [ ] Tests cover both the cancel path and at least one real-failure path
+- [x] Tests cover both the cancel path and at least one real-failure path
       without needing to wait out the full cosmetic timer (fake timers/mocked
       bridge call)
