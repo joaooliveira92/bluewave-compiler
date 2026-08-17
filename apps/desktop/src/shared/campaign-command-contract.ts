@@ -3,6 +3,7 @@ import type {
   BattleResolution,
   CampaignConfiguration,
   CommitMonthResponse,
+  OpeningBriefingProjection,
   PlayerProjection,
   RandomDecisionRecord,
   RawScriptedForceOrder,
@@ -95,6 +96,10 @@ export interface InspectCampaignResult {
   readonly projection: PlayerProjection;
 }
 
+export interface InspectOpeningBriefingResult {
+  readonly projection: OpeningBriefingProjection;
+}
+
 export interface InspectMapResult {
   readonly revision: number;
   readonly month: { readonly month: number; readonly year: number };
@@ -117,6 +122,7 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "listNewGameOptions",
   "compileCampaign",
   "inspectCampaign",
+  "inspectOpeningBriefing",
   "inspectMap",
   "closeCampaign",
   "saveCampaign",
@@ -160,6 +166,10 @@ export interface CampaignCommandClient {
     command: "inspectCampaign",
     payload: string,
   ): Promise<BridgeResult<InspectCampaignResult>>;
+  execute(
+    command: "inspectOpeningBriefing",
+    payload: string,
+  ): Promise<BridgeResult<InspectOpeningBriefingResult>>;
   execute(command: "inspectMap", payload: string): Promise<BridgeResult<InspectMapResult>>;
   execute(command: "closeCampaign", payload: string): Promise<BridgeResult<unknown>>;
   execute(command: "saveCampaign", payload: string): Promise<BridgeResult<SaveCampaignResult>>;

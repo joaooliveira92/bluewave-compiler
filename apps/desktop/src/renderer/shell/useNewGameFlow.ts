@@ -51,6 +51,7 @@ export interface NewGameFlow {
     readonly draft: NewGameDraft | null;
     readonly status: "ready" | "launching";
     readonly error: string | null;
+    readonly briefingSessionId: string | null;
   };
   readonly actions: {
     readonly start: () => void;
@@ -68,6 +69,7 @@ export interface NewGameFlow {
     readonly backToFleetMethod: () => void;
     readonly launch: () => Promise<void>;
     readonly backToReviewFromLaunch: () => void;
+    readonly takeCommand: () => Promise<void>;
   };
 }
 
@@ -99,10 +101,12 @@ export function useNewGameFlow(
   const [draft, setDraft] = useState<NewGameDraft | null>(null);
   const [status, setStatus] = useState<"ready" | "launching">("ready");
   const [error, setError] = useState<string | null>(null);
+  const [briefingSessionId, setBriefingSessionId] = useState<string | null>(null);
 
   const start = useCallback(() => {
     setDraft(null);
     setError(null);
+    setBriefingSessionId(null);
     navigation.selectScreen("new-game-nation");
   }, [navigation]);
 
@@ -232,7 +236,8 @@ export function useNewGameFlow(
       }
       await minimumElapsed;
       setDraft(null);
-      await navigation.openCampaign(result.value.sessionId);
+      setBriefingSessionId(result.value.sessionId);
+      navigation.selectScreen("opening-briefing");
     } finally {
       setStatus("ready");
     }
@@ -243,9 +248,22 @@ export function useNewGameFlow(
     navigation.selectScreen("new-game-review");
   }, [navigation]);
 
+  /**
+   * The Opening Strategic Briefing's closing "Take command" action (spec §8):
+   * transitions into the existing, unchanged Overview dashboard for the
+   * compiled session. Runs only once the world-gen presentation has handed off
+   * a real session id; clears it on success so the flow can start fresh.
+   */
+  const takeCommand = useCallback(async () => {
+    if (briefingSessionId === null) return;
+    const sessionId = briefingSessionId;
+    await navigation.openCampaign(sessionId);
+    setBriefingSessionId(null);
+  }, [briefingSessionId, navigation]);
+
   return useMemo(
     () => ({
-      state: { draft, status, error },
+      state: { draft, status, error, briefingSessionId },
       actions: {
         start,
         cancel,
@@ -262,6 +280,7 @@ export function useNewGameFlow(
         backToFleetMethod,
         launch,
         backToReviewFromLaunch,
+        takeCommand,
       },
     }),
     [
@@ -276,6 +295,7 @@ export function useNewGameFlow(
       backToNation,
       backToPreferences,
       backToReviewFromLaunch,
+      briefingSessionId,
       cancel,
       confirmNation,
       draft,
@@ -283,6 +303,7 @@ export function useNewGameFlow(
       launch,
       start,
       status,
+      takeCommand,
     ],
   );
 }

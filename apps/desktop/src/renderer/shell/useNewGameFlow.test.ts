@@ -156,7 +156,7 @@ describe("useNewGameFlow", () => {
     expect(result.current.state.draft?.archetype).toEqual(preferenceArchetype);
   });
 
-  it("opens the compiled campaign and clears the completed draft", async () => {
+  it("compiles the campaign then hands off to the opening briefing, not the dashboard", async () => {
     const { result, execute, openCampaign, selectScreen } = setup();
     advanceToReview(result.current.actions);
 
@@ -180,10 +180,36 @@ describe("useNewGameFlow", () => {
         playerSlotId: "nation_uk",
       }),
     );
-    expect(openCampaign).toHaveBeenCalledWith("ses-created");
+    // World generation auto-advances into the briefing, not straight to the
+    // dashboard (spec §7 -> §8). The dashboard opens only on "Take command".
+    expect(openCampaign).not.toHaveBeenCalled();
+    expect(selectScreen).toHaveBeenLastCalledWith("opening-briefing");
+    expect(result.current.state.briefingSessionId).toBe("ses-created");
     expect(result.current.state.draft).toBeNull();
     expect(result.current.state.error).toBeNull();
     expect(result.current.state.status).toBe("ready");
+  });
+
+  it("takes command from the briefing into the existing Overview dashboard and clears the handoff", async () => {
+    const { result, openCampaign, selectScreen } = setup();
+    advanceToReview(result.current.actions);
+
+    vi.useFakeTimers();
+    try {
+      let launchPromise: Promise<void> = Promise.resolve();
+      act(() => {
+        launchPromise = result.current.actions.launch();
+      });
+      await vi.advanceTimersByTimeAsync(COSMETIC_MINIMUM_DURATION_MS);
+      await act(() => launchPromise);
+    } finally {
+      vi.useRealTimers();
+    }
+
+    await act(() => result.current.actions.takeCommand());
+    expect(openCampaign).toHaveBeenCalledWith("ses-created");
+    expect(result.current.state.briefingSessionId).toBeNull();
+    expect(selectScreen).not.toHaveBeenLastCalledWith("new-game-launching");
   });
 
   it("sends the fleet-method screen's selected legacyFleetModeId, not the preferences default", async () => {

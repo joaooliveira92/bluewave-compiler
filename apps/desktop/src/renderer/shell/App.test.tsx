@@ -1,10 +1,21 @@
 /* @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { CampaignCommandClient } from "../../shared/campaign-command-contract.js";
 import { COSMETIC_MINIMUM_DURATION_MS } from "../screens/new-game/world-generation-presentation.js";
 import type { Screen } from "./campaign-screen-registry.js";
+
+beforeAll(() => {
+  if (typeof globalThis.ResizeObserver === "undefined") {
+    class ResizeObserverStub {
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    }
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver = ResizeObserverStub;
+  }
+});
 
 const testState = vi.hoisted(() => ({
   background: "none" as "none" | "water" | "stars" | "mesh-citrus" | "mesh-lagoon",
@@ -154,11 +165,7 @@ vi.mock("../screens/new-game/NewGameNationScreen.js", async () => {
         React.createElement("h1", null, "Choose nation"),
         error ? React.createElement("p", { role: "alert" }, error) : null,
         React.createElement("button", { onClick: onCancel }, "Back"),
-        React.createElement(
-          "button",
-          { onClick: () => onConfirm("nation_uk") },
-          "Confirm nation",
-        ),
+        React.createElement("button", { onClick: () => onConfirm("nation_uk") }, "Confirm nation"),
       ),
   };
 });
@@ -234,7 +241,11 @@ vi.mock("../screens/new-game/NewGameCommissioningReviewScreen.js", async () => {
         React.createElement("h1", null, "Final commissioning review"),
         status === "launching" ? React.createElement("p", null, "Commissioning…") : null,
         error ? React.createElement("p", { role: "alert" }, error) : null,
-        React.createElement("button", { onClick: () => void onBeginCommission() }, "Begin Commission"),
+        React.createElement(
+          "button",
+          { onClick: () => void onBeginCommission() },
+          "Begin Commission",
+        ),
       ),
   };
 });
@@ -255,7 +266,11 @@ vi.mock("../screens/new-game/NewGameLaunchingScreen.js", async () => {
         React.createElement("h1", null, "Establishing the Naval Order"),
         error ? React.createElement("p", { role: "alert" }, error) : null,
         error
-          ? React.createElement("button", { onClick: onBackToReview }, "Back to Commissioning Review")
+          ? React.createElement(
+              "button",
+              { onClick: onBackToReview },
+              "Back to Commissioning Review",
+            )
           : null,
       ),
   };
@@ -363,7 +378,9 @@ function createShell(overrides: Record<string, unknown> = {}) {
                     ? { kind: "new-game-review" as const, screen: shell.screen }
                     : shell.screen === "new-game-launching"
                       ? { kind: "new-game-launching" as const, screen: shell.screen }
-                      : { kind: "file" as const, screen: "file" as const };
+                      : shell.screen === "opening-briefing"
+                        ? { kind: "opening-briefing" as const, screen: shell.screen }
+                        : { kind: "file" as const, screen: "file" as const };
   return { ...shell, mode };
 }
 
@@ -480,13 +497,46 @@ describe("App", () => {
     expect(screen.getByTestId("shader-background").dataset.variant).toBe("water");
   });
 
-  it("compiles a campaign and opens the returned session", async () => {
+  it("compiles a campaign, shows the briefing, and opens the session on Take command", async () => {
     const shell = createShell({ screen: "new-game-nation" });
     testState.shell = shell;
-    const execute = vi.fn(async () => ({
-      outcome: "success" as const,
-      value: { sessionId: "ses-created" },
-    })) as unknown as CampaignCommandClient["execute"];
+    const execute = vi.fn(async (command: string) => {
+      if (command === "inspectOpeningBriefing") {
+        return {
+          outcome: "success" as const,
+          value: {
+            projection: {
+              nationId: "gb",
+              nationName: "United Kingdom",
+              month: { month: 1, year: 1880 },
+              stateOfTheNavy: {
+                shipClassCounts: [{ label: "battleship", count: 2 }],
+                shipsUnderConstruction: 1,
+                mostExpensiveActiveClass: null,
+                largestDockCapacity: 30,
+                totalMaintenance: 1_200,
+                constructionCommitted: 400,
+              },
+              treasury: {
+                governmentAllocation: 2_000,
+                fleetMaintenance: 1_000,
+                constructionCommitted: 400,
+                researchExpenditure: 500,
+                projectedSurplus: 100,
+                status: "narrow",
+              },
+              foreignIntelligence: { relations: [] },
+              immediateConcerns: [],
+            },
+          },
+          diagnostics: [],
+        };
+      }
+      return {
+        outcome: "success" as const,
+        value: { sessionId: "ses-created" },
+      };
+    }) as unknown as CampaignCommandClient["execute"];
     window.bluewave = createBridge({ campaign: createCampaignClient(execute) });
 
     const { rerender } = render(<App />);
@@ -522,6 +572,22 @@ describe("App", () => {
     }
 
     expect(execute).toHaveBeenCalledWith("compileCampaign", expect.anything());
+    // World generation auto-advances into the briefing, not the dashboard.
+    expect(shell.openCampaign).not.toHaveBeenCalled();
+    expect(shell.selectScreen).toHaveBeenLastCalledWith("opening-briefing");
+
+    testState.shell = createShell({ ...shell, screen: "opening-briefing" });
+    rerender(<App />);
+    // The briefing is a 5-page sequence starting at Appointment; walk to the
+    // closing page to reach "Take command".
+    expect(
+      await screen.findByText(/You have been appointed First Sea Lord — United Kingdom/),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Review Naval Estimates" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Take command" }));
     expect(shell.openCampaign).toHaveBeenCalledWith("ses-created");
   });
 

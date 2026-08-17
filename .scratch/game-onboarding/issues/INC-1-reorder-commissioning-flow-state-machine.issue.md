@@ -15,7 +15,7 @@ their real content lands in later tickets. See
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] `NewGameDraft` (or equivalent draft state shape) carries a nation field
       populated at step 1, before preferences/archetype are touched

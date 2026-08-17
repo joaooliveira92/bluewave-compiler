@@ -408,6 +408,32 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 > new-game-compile, advance-month); 4–7 ready-for-agent (construction,
 > fleet/honest-stub surface, continuance, CI gate `desktop-e2e.yml`).
 
+### Campaign commissioning flow (game-onboarding)
+
+> **Status (2026-08-16): COMPLETE (INC-1..INC-8).** `.scratch/game-onboarding/`
+> (wayfinder map + 8 resolved decision tickets + assembled spec). Reorders and
+> enriches the new-game flow into the spec's 9-step commissioning sequence
+> (Nation confirmation → Rules of the Naval Age → Archetype → Admiral &
+> Campaign Identity → Starting Fleet Method → Final Commissioning Review →
+> World-generation presentation → Opening Strategic Briefing → Overview
+> dashboard). INC-2 (nation dossier enrichment), INC-3 (Rules of the Naval
+> Age presets), INC-4 (identity step), INC-5 (fleet-method screen), INC-6
+> (commissioning review) landed in earlier commits; **INC-1** (state-machine
+> reorder) and **INC-7** (world-generation presentation) verified done;
+> **INC-8 (Opening Strategic Briefing)** implemented this session — a new
+> `@bluewave/campaign-engine` read-only projection
+> (`buildOpeningBriefingProjection`, `src/opening-briefing.ts`), a new
+> `inspectOpeningBriefing` bridge command, the 5-page briefing screen
+> (Appointment / State of the Navy / Treasury / Foreign Intelligence /
+> Immediate Concerns), and the world-gen → briefing → dashboard handoff.
+> Every page derives from real snapshot data (design-catalog hullType tally,
+> construction-queue paid-work, port-level dock, income×appropriation
+> allocation, research budget, diplomacy relations+tension); nothing is
+> fabricated and no new domain concept is introduced. Component/engine tests
+> cover the derivation and the Back/Next/Take-command path. All data-backed
+> decision tickets recorded as ADR-less documented judgment calls in the
+> projection's header.
+
 ### CLI battle/gunnery debug surface
 
 > **Status (2026-08-16): DONE.** `.scratch/cli-battle-debug-surface/` (all 5

@@ -12,7 +12,7 @@ name-generation logic consumes them.
 
 **Blocked by:** INC-1
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] All five fields render with the specified defaults
 - [ ] Next is disabled until both admiral name and campaign name are

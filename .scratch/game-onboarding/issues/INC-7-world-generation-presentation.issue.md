@@ -16,7 +16,7 @@ message + "Back to Commissioning Review" action) in place of the checklist.
 
 **Blocked by:** INC-6
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] All 9 checklist lines and all 4 flavor-text messages match the spec
       verbatim, checklist reveals over the paced minimum duration

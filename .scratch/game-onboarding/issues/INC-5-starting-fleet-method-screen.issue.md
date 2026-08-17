@@ -12,7 +12,7 @@ or omitted.
 
 **Blocked by:** INC-1
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Three cards render with the copy mapping from spec §5a (note the
       `historical` = curated, not manual-build, naming trap)

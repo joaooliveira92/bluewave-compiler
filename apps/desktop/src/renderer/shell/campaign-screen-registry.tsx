@@ -64,6 +64,7 @@ export type Screen =
   | "new-game-fleet-method"
   | "new-game-review"
   | "new-game-launching"
+  | "opening-briefing"
   | CampaignScreen;
 
 export type CampaignScreen =

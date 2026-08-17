@@ -2,6 +2,8 @@ import { defaultArchetypeSelection, type ArchetypeSelection } from "@bluewave/ca
 import { useEffect, useMemo, useState } from "react";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { WindowState } from "../../shared/bridge-contract.js";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
+import type { InspectOpeningBriefingResult } from "../../shared/campaign-command-contract.js";
 import type { NewGameOptions } from "../../shared/new-game-contract.js";
 import Auralis from "../components/backgrounds/auralis.js";
 import Nebulore from "../components/backgrounds/nebulore.js";
@@ -11,6 +13,7 @@ import { Alert, AlertDescription } from "../components/ui/alert.js";
 import { SidebarInset, SidebarProvider } from "../components/ui/sidebar.js";
 import { CampaignFileScreen } from "../screens/campaign-file/CampaignFileScreen.js";
 import { NewGameArchetypeScreen } from "../screens/new-game/NewGameArchetypeScreen.js";
+import { NewGameBriefingScreen } from "../screens/new-game/NewGameBriefingScreen.js";
 import { NewGameCommissioningReviewScreen } from "../screens/new-game/NewGameCommissioningReviewScreen.js";
 import { NewGameFleetMethodScreen } from "../screens/new-game/NewGameFleetMethodScreen.js";
 import { NewGameIdentityScreen } from "../screens/new-game/NewGameIdentityScreen.js";
@@ -154,6 +157,11 @@ interface CampaignUnavailableViewProps {
   readonly onBackToFleetMethod: () => void;
   readonly onLaunch: () => Promise<void>;
   readonly onBackToReviewFromLaunch: () => void;
+  readonly onTakeCommand: () => Promise<void>;
+  readonly onInspectOpeningBriefing: (
+    sessionId: string,
+  ) => Promise<BridgeResult<InspectOpeningBriefingResult>>;
+  readonly briefingSessionId: string | null;
   readonly onPrimaryActionChange: (action: PrimaryAction | null) => void;
 }
 
@@ -250,6 +258,19 @@ function CampaignUnavailableView(props: CampaignUnavailableViewProps) {
         <NewGameLaunchingScreen
           error={props.newGameError}
           onBackToReview={props.onBackToReviewFromLaunch}
+        />
+      );
+    case "opening-briefing":
+      return props.briefingSessionId === null ? (
+        <CampaignFileView
+          onOpenCampaign={props.onOpenCampaign}
+          onStartNewGame={props.onStartNewGame}
+        />
+      ) : (
+        <NewGameBriefingScreen
+          sessionId={props.briefingSessionId}
+          onInspectOpeningBriefing={props.onInspectOpeningBriefing}
+          onTakeCommand={props.onTakeCommand}
         />
       );
     case "file":
@@ -433,7 +454,8 @@ function CampaignShellApplication({
           shell.state.mode.kind === "new-game-identity" ||
           shell.state.mode.kind === "new-game-fleet-method" ||
           shell.state.mode.kind === "new-game-review" ||
-          shell.state.mode.kind === "new-game-launching"
+          shell.state.mode.kind === "new-game-launching" ||
+          shell.state.mode.kind === "opening-briefing"
         ? "new_game"
         : "menu";
 
@@ -484,6 +506,18 @@ function CampaignShellApplication({
         onBackToFleetMethod={newGame.actions.backToFleetMethod}
         onLaunch={newGame.actions.launch}
         onBackToReviewFromLaunch={newGame.actions.backToReviewFromLaunch}
+        onTakeCommand={newGame.actions.takeCommand}
+        onInspectOpeningBriefing={async (sessionId) => {
+          if (bridge === undefined) {
+            return {
+              outcome: "error",
+              reason: "BRIDGE_UNAVAILABLE",
+              diagnostics: ["The desktop bridge is unavailable."],
+            };
+          }
+          return bridge.campaign.execute("inspectOpeningBriefing", sessionId);
+        }}
+        briefingSessionId={newGame.state.briefingSessionId}
         onPrimaryActionChange={shell.actions.setPrimaryAction}
       />
     ) : (

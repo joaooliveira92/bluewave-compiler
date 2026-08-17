@@ -30,6 +30,7 @@ import { inspectFleetScreen } from "./commands/fleetCommands.js";
 import { inspectDiplomacyScreen, submitDiplomacyCommand } from "./commands/diplomacyCommands.js";
 import { inspectCampaign } from "./commands/inspectCampaign.js";
 import { inspectMap } from "./commands/inspectMap.js";
+import { inspectOpeningBriefing } from "./commands/inspectOpeningBriefing.js";
 import { listNewGameOptions } from "./commands/listNewGameOptions.js";
 import { inspectResearchScreen, setResearchPriorityCommand } from "./commands/researchCommands.js";
 
@@ -98,6 +99,14 @@ export async function dispatchCampaignCommand(
         return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
       }
       return inspectMap(parsedPayload.data);
+    }
+
+    case "inspectOpeningBriefing": {
+      const parsedPayload = SessionIdPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return inspectOpeningBriefing(parsedPayload.data);
     }
 
     case "commitMonth": {

@@ -26,20 +26,20 @@ Next/Back on pages 2–4, "Take command" as page 5's closing action.
 
 **Blocked by:** INC-7
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] All 5 pages render in the correct order with working Back/Next
+- [x] All 5 pages render in the correct order with working Back/Next
       navigation and no skip logic
-- [ ] Page 2's six fields are computed via the real joins (design catalog
+- [x] Page 2's six fields are computed via the real joins (design catalog
       hullType lookup, construction queue, port capacity, month report) —
       no hard-coded or fabricated values
-- [ ] Page 3's qualitative status is computed from the real projected
+- [x] Page 3's qualitative status is computed from the real projected
       surplus number, not hard-coded
-- [ ] Page 4 shows only relations + tension per rival — verify no ship-count
+- [x] Page 4 shows only relations + tension per rival — verify no ship-count
       or intel-quality field is rendered anywhere
-- [ ] Page 5 shows only the four specified categories with working
+- [x] Page 5 shows only the four specified categories with working
       (even if simple) trigger logic — no "understaffed region" category
-- [ ] "Take command" transitions into the existing, unchanged Overview
+- [x] "Take command" transitions into the existing, unchanged Overview
       dashboard with no other closing option present
-- [ ] Component tests cover each page's data derivation and the full
+- [x] Component tests cover each page's data derivation and the full
       Back/Next/Take-command navigation path

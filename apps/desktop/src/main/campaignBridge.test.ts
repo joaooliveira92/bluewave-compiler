@@ -6,6 +6,7 @@ const IMPLEMENTED_COMMANDS = new Set([
   "listNewGameOptions",
   "compileCampaign",
   "inspectCampaign",
+  "inspectOpeningBriefing",
   "inspectMap",
   "commitMonth",
   "inspectConstructionScreen",
@@ -233,6 +234,22 @@ describe("dispatchCampaignCommand", () => {
 
   it("returns SESSION_NOT_FOUND for inspectResearchScreen without a session", async () => {
     const result = await dispatchCampaignCommand("inspectResearchScreen", "no-such-session");
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("rejects a non-string inspectOpeningBriefing payload", async () => {
+    const result = await dispatchCampaignCommand("inspectOpeningBriefing", {
+      sessionId: 123,
+    });
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("INVALID_PAYLOAD");
+  });
+
+  it("returns SESSION_NOT_FOUND for inspectOpeningBriefing without a session", async () => {
+    const result = await dispatchCampaignCommand("inspectOpeningBriefing", "no-such-session");
     expect(result.outcome).toBe("error");
     if (result.outcome !== "error") return;
     expect(result.reason).toBe("SESSION_NOT_FOUND");

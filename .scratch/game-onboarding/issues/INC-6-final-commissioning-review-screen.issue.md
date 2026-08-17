@@ -13,7 +13,7 @@ nation×era combination. Only two buttons: Back, Begin Commission.
 
 **Blocked by:** INC-2, INC-3, INC-4, INC-5
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Summary table shows exactly the rows listed in spec §6, with no
       Aviation development / Tutorial adviser / Economic model / "Campaign

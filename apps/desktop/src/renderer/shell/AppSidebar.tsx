@@ -30,7 +30,8 @@ export function AppSidebar({ screen, onSelect, footer }: AppSidebarProps) {
     screen === "new-game-archetype" ||
     screen === "new-game-identity" ||
     screen === "new-game-fleet-method" ||
-    screen === "new-game-review"
+    screen === "new-game-review" ||
+    screen === "opening-briefing"
   ) {
     return (
       <Sidebar collapsible="icon">
