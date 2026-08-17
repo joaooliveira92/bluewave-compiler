@@ -21,7 +21,7 @@ not broken.
 - [x] Tamper test: modify `campaign.json`, recompute its stored `rawHash`/envelope only, and confirm load is refused on signature mismatch.
 - [x] Legacy-compat test: a save without a signature file still loads, carrying a validation diagnostic.
 - [x] Round-trip test: a normally saved campaign loads under the new check (no false rejections).
-- [x] Full repo gate green: uncached build, `tsc -b`, lint, all per-package tests, goldens unchanged, two-process determinism byte-identical.
+- [ ] Full repo gate green: uncached build, `tsc -b`, lint, all per-package tests, goldens unchanged, two-process determinism byte-identical. — **Blocked at baseline by unrelated uncommitted WIP** (desktop `campaign-screen-registry` typecheck; `events`-ledger `Invalid datetime` breaking the two-process gate; combat/content-schema/campaign/commands/ai test failures). Re-run once that WIP lands; see Resolution.
 
 ## Resolution
 
@@ -31,7 +31,10 @@ signature file (gate B, from ADR-0032); this ticket closed the remaining gap: a
 save whose `campaign.sig.json` is **absent** is now a legacy save that still
 loads, but emits a `PERSISTENCE_UNSIGNED_SAVE` warning instead of being hard
 rejected (a present-but-invalid/mismatching signature is still a
-`PERSISTENCE_CORRUPT_SAVE` error). New tests in
+`PERSISTENCE_CORRUPT_SAVE` error). Gate B is extracted into a
+`SaveStore.validateSignature` helper. The independent-tamper guarantee is scoped
+to saves that still *carry* a signature (signature deletion degrades to the
+legacy warn path — documented in ADR-0032). New tests in
 `packages/persistence/test/remediation.test.ts`: (a) the independent-tamper case
 — the attacker edits `campaign.json` and recomputes the in-file `rawHash` +
 envelope so the in-file gates would pass, and load is still refused because the

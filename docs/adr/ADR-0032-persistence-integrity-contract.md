@@ -50,6 +50,14 @@ signature file that is *present but invalid* (unparseable, or mismatching any of
 the three checks) is still a hard corruption error. New saves always write a
 signature, so this carve-out only grandfathers pre-existing data.
 
+Note on scope: because signature *deletion* is indistinguishable from a true
+legacy save, the independent-tamper guarantee (catching a modified body whose
+in-file hashes were recomputed) holds only for a save that still **carries** a
+signature. A save whose signature was deleted degrades to the legacy path
+(loaded with a warning, integrity enforced only by the in-file `rawHash` +
+envelope). This is the deliberate price of not breaking pre-existing saves, and
+is accepted for the same reason legacy saves are accepted.
+
 ### 2. Save-id validation + path containment
 
 The save id is an opaque `<epochMs>-<uuid>`. `loadById` validates it against a
