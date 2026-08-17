@@ -23,6 +23,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { CURRENT_COMPATIBILITY_VERSION } from "../src/compatibility.js";
 import { RecoveryManager } from "../src/recovery.js";
 import type { SigFile } from "../src/schemas.js";
+import { toStorableSnapshot } from "../src/snapshotSerialization.js";
 import { SaveStore } from "../src/store.js";
 
 function fixture(): CampaignState {
@@ -178,12 +179,58 @@ describe("persistence remediation", () => {
     it("snapshotHash is a real snapshot hash, not the campaign id", () => {
       store.save(fixture(), tmpDir);
       const id = store.getActiveSaveId(tmpDir)!;
-      const meta = JSON.parse(
-        readFileSync(join(tmpDir, id, "metadata.json"), "utf8"),
-      ) as { campaignId: string; snapshotHash: string; contentArtifactHash: string };
+      const meta = JSON.parse(readFileSync(join(tmpDir, id, "metadata.json"), "utf8")) as {
+        campaignId: string;
+        snapshotHash: string;
+        contentArtifactHash: string;
+      };
 
       expect(meta.snapshotHash).not.toBe(meta.campaignId);
       expect(meta.snapshotHash).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    it("snapshotHash equals sha256 of the storable snapshot, matching its name", () => {
+      const state = fixture();
+      store.save(state, tmpDir);
+      const id = store.getActiveSaveId(tmpDir)!;
+      const meta = JSON.parse(readFileSync(join(tmpDir, id, "metadata.json"), "utf8")) as {
+        snapshotHash: string;
+      };
+      const expected = sha256Hex(canonicalSerialize(toStorableSnapshot(state.snapshot)));
+      expect(meta.snapshotHash).toBe(expected);
+    });
+
+    it("contentArtifactHash equals sha256 of the exact on-disk campaign.json bytes", () => {
+      const state = fixture();
+      store.save(state, tmpDir);
+      const id = store.getActiveSaveId(tmpDir)!;
+      const meta = JSON.parse(readFileSync(join(tmpDir, id, "metadata.json"), "utf8")) as {
+        contentArtifactHash: string;
+      };
+      const onDisk = readFileSync(join(tmpDir, id, "campaign.json"), "utf8");
+      expect(meta.contentArtifactHash).toBe(sha256Hex(onDisk));
+    });
+
+    it("re-saving an identical state yields identical metadata hash values", () => {
+      const state = fixture();
+      store.save(state, tmpDir);
+      store.save(state, tmpDir);
+      const saves = store.list(tmpDir);
+      expect(saves).toHaveLength(2);
+      expect(saves[0]!.snapshotHash).toBe(saves[1]!.snapshotHash);
+      expect(saves[0]!.contentArtifactHash).toBe(saves[1]!.contentArtifactHash);
+    });
+
+    it("re-loading a save recomputes the same snapshot hash it was saved with", () => {
+      const state = fixture();
+      store.save(state, tmpDir);
+      const id = store.getActiveSaveId(tmpDir)!;
+      const meta = JSON.parse(readFileSync(join(tmpDir, id, "metadata.json"), "utf8")) as {
+        snapshotHash: string;
+      };
+      const loaded = store.loadById(tmpDir, id, new DiagnosticCollector())!;
+      const recomputed = sha256Hex(canonicalSerialize(toStorableSnapshot(loaded.snapshot)));
+      expect(recomputed).toBe(meta.snapshotHash);
     });
 
     it("metadata records the save's predecessor", () => {
@@ -191,9 +238,9 @@ describe("persistence remediation", () => {
       const first = store.getActiveSaveId(tmpDir)!;
       store.save(fixture(), tmpDir);
       const second = store.getActiveSaveId(tmpDir)!;
-      const meta = JSON.parse(
-        readFileSync(join(tmpDir, second, "metadata.json"), "utf8"),
-      ) as { previousSaveId?: string };
+      const meta = JSON.parse(readFileSync(join(tmpDir, second, "metadata.json"), "utf8")) as {
+        previousSaveId?: string;
+      };
       expect(meta.previousSaveId).toBe(first);
     });
   });
@@ -247,6 +294,23 @@ describe("persistence remediation", () => {
       expect(saves[0]!.saveId).toBe(id);
       expect(saves[0]!.compatibilityVersion).toBe(CURRENT_COMPATIBILITY_VERSION);
     });
+
+    it("does not mislabel snapshotHash with the whole-campaign state hash in the fallback", () => {
+      store.save(fixture(), tmpDir);
+      const id = store.getActiveSaveId(tmpDir)!;
+      writeFileSync(join(tmpDir, id, "metadata.json"), "corrupt", "utf8");
+      const sig = JSON.parse(
+        readFileSync(join(tmpDir, id, "campaign.sig.json"), "utf8"),
+      ) as SigFile;
+
+      const saves = store.list(tmpDir);
+      expect(saves).toHaveLength(1);
+      // The degraded fallback record cannot reconstruct a genuine snapshot hash
+      // (the sig file carries no such field), so it must be empty — not the
+      // whole-campaign state hash that ticket 03 removed from the save path.
+      expect(saves[0]!.snapshotHash).toBe("");
+      expect(saves[0]!.snapshotHash).not.toBe(sig.stateHash);
+    });
   });
 
   describe("recovery preserves the chain (TODO #7/#8)", () => {
@@ -267,7 +331,7 @@ describe("persistence remediation", () => {
     });
   });
 
-describe("shutdown-crash resilience (TODO cleanup)", () => {
+  describe("shutdown-crash resilience (TODO cleanup)", () => {
     it("stale temp directories are ignored by list()", () => {
       store.save(fixture(), tmpDir);
       mkdirSync(join(tmpDir, ".tmp_stale"), { recursive: true });

@@ -45,8 +45,7 @@ export interface SaveResult {
 
 // Save ids are created by `save()` as `<epochMs>-<uuid>`; treat any inbound id
 // as opaque and validate it before it touches the filesystem (TODO #3).
-const SAVE_ID_PATTERN =
-  /^\d{13}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SAVE_ID_PATTERN = /^\d{13}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isValidSaveId(saveId: string): boolean {
   return SAVE_ID_PATTERN.test(saveId);
@@ -299,9 +298,7 @@ export class SaveStore {
       return null;
     }
 
-    if (
-      !CompatibilityChecker.check(headerResult.data.snapshot.compatibilityVersion, diagnostics)
-    ) {
+    if (!CompatibilityChecker.check(headerResult.data.snapshot.compatibilityVersion, diagnostics)) {
       return null;
     }
 
@@ -429,13 +426,9 @@ export class SaveStore {
       return false;
     }
     if (sig.serializedHash !== rawSerializedHash) {
-      diagnostics.addError(
-        CORRUPT_SAVE_CODE,
-        "Save signature does not match serialized content",
-        {
-          stage: "persistence.load",
-        },
-      );
+      diagnostics.addError(CORRUPT_SAVE_CODE, "Save signature does not match serialized content", {
+        stage: "persistence.load",
+      });
       return false;
     }
     if (sig.stateHash !== state.rawHash) {
@@ -490,7 +483,12 @@ export class SaveStore {
             timestamp: "",
             turnNumber: 0,
             campaignId: "",
-            snapshotHash: sig.stateHash,
+            // The signature file does not carry a snapshot hash (only the
+            // on-disk serialized hash and the whole-campaign state hash), so a
+            // degraded record that lacks metadata cannot honestly report one.
+            // Leave it empty rather than mislabel it with the state hash (the
+            // exact wrong value ticket 03 eliminated from the save path).
+            snapshotHash: "",
             compatibilityVersion: sig.compatibilityVersion,
             contentArtifactHash: sig.serializedHash,
           });
