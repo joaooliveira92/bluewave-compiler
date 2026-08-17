@@ -14,14 +14,14 @@ or omitted.
 
 **Status:** done
 
-- [ ] Three cards render with the copy mapping from spec §5a (note the
+- [x] Three cards render with the copy mapping from spec §5a (note the
       `historical` = curated, not manual-build, naming trap)
-- [ ] `generated` is the default selection on first visit
-- [ ] All three cards are selectable in every scenario/era, with no
+- [x] `generated` is the default selection on first visit
+- [x] All three cards are selectable in every scenario/era, with no
       conditional hiding or disabling based on era
-- [ ] No numeric allocation figures, ship counts, or Phase 1/Phase 2
+- [x] No numeric allocation figures, ship counts, or Phase 1/Phase 2
       breakdown appear on any card
-- [ ] Manual-build card shows the "not yet available in detail" note
-- [ ] Selected mode is readable from draft state as the real
+- [x] Manual-build card shows the "not yet available in detail" note
+- [x] Selected mode is readable from draft state as the real
       `legacyFleetModeId` value sent to `compileCampaign`
-- [ ] Component tests cover default selection and card content per mode
+- [x] Component tests cover default selection and card content per mode
