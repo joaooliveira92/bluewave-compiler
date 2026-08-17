@@ -234,10 +234,10 @@ describe("useNewGameFlow", () => {
     );
   });
 
-  it("keeps navigation outside the workflow and reports compilation rejection, without waiting out the cosmetic timer", async () => {
+  it("reports one of the five real compilation failures as a rejection, without waiting out the cosmetic timer", async () => {
     const execute = (async () => ({
       outcome: "rejected" as const,
-      reason: "UNSUPPORTED_CONFIGURATION",
+      reason: "INVALID_CAMPAIGN_CONFIGURATION",
       diagnostics: ["difficulty is invalid"],
     })) as unknown as CampaignExecute;
     const { result, openCampaign, selectScreen } = setup(execute);
@@ -247,7 +247,9 @@ describe("useNewGameFlow", () => {
 
     expect(selectScreen).toHaveBeenCalledWith("new-game-launching");
     expect(openCampaign).not.toHaveBeenCalled();
-    expect(result.current.state.error).toBe("UNSUPPORTED_CONFIGURATION. difficulty is invalid");
+    expect(result.current.state.error).toBe(
+      "INVALID_CAMPAIGN_CONFIGURATION. difficulty is invalid",
+    );
     expect(result.current.state.status).toBe("ready");
 
     // Stays on the launching screen's error state until the player backs out.
@@ -260,6 +262,24 @@ describe("useNewGameFlow", () => {
     expect(selectScreen).toHaveBeenLastCalledWith("new-game-identity");
     act(() => result.current.actions.cancel());
     expect(selectScreen).toHaveBeenLastCalledWith("file");
+  });
+
+  it("routes a spec'd error-outcome failure (COMPILE_FAILED) to the launching error state, immediately and without a session", async () => {
+    const execute = (async () => ({
+      outcome: "error" as const,
+      reason: "COMPILE_FAILED",
+      diagnostics: [],
+    })) as unknown as CampaignExecute;
+    const { result, openCampaign, selectScreen } = setup(execute);
+    advanceToReview(result.current.actions);
+
+    await act(() => result.current.actions.launch());
+
+    expect(selectScreen).toHaveBeenCalledWith("new-game-launching");
+    expect(openCampaign).not.toHaveBeenCalled();
+    expect(result.current.state.error).toBe("COMPILE_FAILED.");
+    expect(result.current.state.status).toBe("ready");
+    expect(selectScreen).toHaveBeenLastCalledWith("new-game-launching");
   });
 
   it("returns silently to the review screen on SAVE_LOCATION_CANCELLED, without an error or waiting out the cosmetic timer", async () => {

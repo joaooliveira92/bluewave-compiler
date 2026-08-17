@@ -238,6 +238,8 @@ export function useNewGameFlow(
       setDraft(null);
       setBriefingSessionId(result.value.sessionId);
       navigation.selectScreen("opening-briefing");
+    } catch {
+      setError("COMPILE_FAILED.");
     } finally {
       setStatus("ready");
     }
