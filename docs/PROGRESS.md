@@ -11,7 +11,7 @@
 | M1 Strategic Campaign Kernel | B9–B10  | Scope briefs ready                      | B9/B10a/B10b/B10c/B10d done          | 410 passing                    | **M1 COMPLETED (A-5 gate, 2026-08-12)** — `docs/acceptance/m1-capability-registry.md` |
 | M2 Surface Tactical Core     | —       | Design docs exist (DESIGN-34–42)        | B-1..B-6 IMPL DONE (2026-08-15)      | 900 combat tests pass          | **M2 COMPLETED (B-6 gate, 2026-08-15)** — see M2 section below |
 | Desktop & CLI surfaces       | —       | —                                       | MVP + 3 screens + CLI debug DONE     | desktop 353, campaign-engine 49 | Surfaces PASS (2026-08-15); debug-mode gating (ADR-0029); E2E suite in progress |
-| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | C-1 IMPL INC-1..INC-7 DONE (2026-08-16); C-2 scoping DONE | 504 torpedo tests pass | C-1 INC-8 (contracts + gate) is the current frontier; C-2-IMPL (mines) queued after |
+| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | **C-2-IMPL DONE (2026-08-16, INC-1..8, PASS)**; C-1 IMPL INC-1..INC-7 DONE | mines 357 tests pass; torpedo 504 | **C-2 COMPLETE (AC-1..25, ADR-0033)**; C-1 INC-8 (contracts + gate) is its frontier; C-2 frontier now C-3 (Submarines, not scoped) |
 | M4 Aviation                  | —       | Design docs exist (DESIGN-43–45)        | Not started                          | —                              | Future                   |
 | M5 Electronics & Missile Era | —       | Design docs exist (DESIGN-46–48)        | Not started                          | —                              | Future                   |
 
@@ -518,14 +518,21 @@ slice of DESIGN-40 (map + decision tickets 01–06 resolved, spec AC-1..25 /
 INC-1..8, brief `.ai/briefs/c1-m3-torpedoes.md`, research
 `docs/research/c1-m3-torpedoes.md`). **C-1 IMPL INC-1..INC-7 DONE
 (2026-08-16); INC-8 (contracts rollup + reason-code set-equality + ADR + gate,
-AC-21/24/25) is the current frontier.** See `.ai/SPRINT-PLAN.md` Track C for the
-full sprint order.
+AC-21/24/25) is the C-1 frontier.** **C-2-IMPL (mines) COMPLETE (2026-08-16) —
+PASS, all 25 ACs:** mine-pressure lifecycle in `packages/combat/src/mines/`
+(types, sources, laying value, pressure increase, sweeping eligibility/values/
+dual-equipment/effective value, aggregation + §10 allocation, standoff/route-risk
+values, report/classifier, decay, post-war, ownership, knowledge, clearance,
+§28 records + §29 ordering, contracts rollup, two-process determinism); mines 26
+files / 357 tests green; ADR-0033; report `.ai/reports/c2-m3-mine-warfare-impl.md`.
+**Strike resolution + phase/snapshot wiring + route-strike application deferred
+to a C-2 continuation.** See `.ai/SPRINT-PLAN.md` Track C for the full sprint order.
 
 | Area                                  | Design coverage |
 | ------------------------------------- | --------------- |
-| Torpedoes (C-1)                       | DESIGN-40 — scoping DONE, impl in progress |
-| Mine warfare (C-2)                    | DESIGN-35       |
-| Submarines (C-3)                      | DESIGN-34       |
+| Torpedoes (C-1)                       | DESIGN-40 — impl INC-1..7 DONE; INC-8 (contracts + gate) current |
+| Mine warfare (C-2)                    | DESIGN-35 — **COMPLETE** (INC-1..8 PASS, AC-1..25, ADR-0033) |
+| Submarines (C-3)                      | DESIGN-34 — next C-2 frontier (not scoped) |
 | Coastal defenses (C-4)                | DESIGN-48       |
 | Smoke (drift, decay, screens) (C-5)   | DESIGN-42 §§7-23 |
 | Detailed damage control (C-5)         | DESIGN-41 remainder |

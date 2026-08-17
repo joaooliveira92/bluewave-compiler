@@ -171,6 +171,7 @@ current track; C-1 is in flight.**
 |     | **C-1 IMPL: INC-1..INC-7 DONE (2026-08-16).** INC-1 (`1777312`, repairs `c075170`, `6688ca2`): model/launcher/ammunition/compatibility/reason codes/constants (AC-1..4). INC-2 (`5a6944e`): launch legality/eligibility/speed limits (AC-5..8). INC-3 (`f97a3c9`): fire solution/salvo/friendly-fire (AC-9..11, AC-19). **INC-4 (`ffa65ea`): launch timing/failure + TorpedoTrack (AC-12, AC-13 p1)**. **INC-5 (`a2ed7c3`): hit resolution + detonation outcomes (AC-13 p2, AC-14)**. **INC-6 (`072b704`): TorpedoDamagePackage (AC-15..AC-18)** — ADR-0031 entries 1–10. **INC-7 (`db840c7`): engine stage + records/ordering + two-process determinism (AC-20/22/23)** — optional torpedo context in `advanceMinute` after damage, strict no-op keeps B-2..B-6 hashes byte-identical, §27 records + §28 locale-free ordering, `run-torpedo-child` AC-23; reviewer NEEDS_REWORK resolved (chain id uniqueness, same-minute damage composition, battleLedger locale); reports `.ai/reports/c1-m3-torpedoes-inc{4..7}-*.md`; torpedo 504/504, simulation 19/19, goldens 10/10 unchanged. **Next: INC-8 (contracts rollup + reason-codes set-equality + ADR + traceability + gate, AC-21/24/25).** |
 | C-2 | Mine warfare                    | DESIGN-35                                                          | Mine types/laying                                    |
 |     | **C-2 SCOPING: DONE 2026-08-16 — PASS (committed `2ad7f1c`).** Scoped the mine-pressure **lifecycle** vertical slice of DESIGN-35 as pure functions in `@bluewave/combat` (`packages/combat/src/mines/`; no phase/snapshot wiring this sprint, mirrors B-5-before-B-6): mine types/pressure record (§1–2), sources/laying value/pressure increase (§3–5), sweeping eligibility/base values/dual-purpose equipment/effective value/regional aggregation (§6–10), defensive standoff + route risk as value-only (§13, §16), report/misidentification (§19–20), decay/post-war persistence/ownership dispositions/knowledge/clearance (§21–24, §27), records/ordering/reason codes (§28–30). Wayfinder map + decision tickets `01..06` (resolved), spec (AC-1..25, INC-1..8), brief `.ai/briefs/c2-m3-mine-warfare.md`, research note `docs/research/c2-m3-mine-warfare.md` (no primary-source grounding required — DESIGN-35 ships exact constants). **Deferred in full to a C-2 continuation:** all mine-strike resolution (§11, §14–15, §17–18, §25–26) — blocked on either a not-yet-built tactical battle-hazard engine stage or DESIGN-25 (deployment/logistics, still unassigned/`CONTENT_ONLY` per ADR-0011). Scoped in parallel with C-1-IMPL (disjoint file paths). **Next: C-2-IMPL (INC-1..8), after C-1-IMPL completes.** |
+|     | **C-2 IMPL: DONE 2026-08-16 — PASS (orchestrator pipeline, INC-1..INC-8).** Mine-pressure lifecycle fully implemented in `packages/combat/src/mines/` (25 ACs, all green; mines suite 26 files / 357 tests). INC-1 (`4b5dde3`): MineTypeDefinition + contracts + reason codes (AC-2/21/24 seed). INC-2 (`fc769e4`): sources + §4 laying value (bigint one-FLOOR) + §5 pressure increase (weighted-freshness law) (AC-1/3/4/5). INC-3 (`4792bad`): sweeping eligibility/base values/dual-equipment/effective value (AC-6..9). INC-4 (`3ed06b8`): regional aggregation + §10 allocation; localeCompare→codepoint determinism repair (AC-10). INC-5 (`6af47d9`): defensive standoff + route risk value-only + NON-§30 marker (AC-11/12). INC-6 (`398ed2b`): mine report + underwater-explosion classifier (AC-13/14). INC-7 (`705f401`): decay/post-war/ownership/knowledge/clearance (AC-15..19). INC-8 (`d1ac1e2`): §28 records + §29 ordering (codepoint, `warIds` + §10 allocation order regression fixes), contracts rollup (`validateAllMineContracts`), two-process determinism child (`run-mines-child.ts`, AC-23), integration-boundary proof (AC-22), goldens 10/10 at INC-2..INC-7 gates. **ADR-0033** (scope/integration + strike deferral + reason-code/constant policy: 16 shipped incl. marker + `MINE_WARFARE_INVARIANT_FAILED`; 3 deferred §30 strike codes). Report: `.ai/reports/c2-m3-mine-warfare-impl.md`. `BattleResolver`/`StrengthCalculator` unmodified throughout. **Deferred (recorded):** strike resolution + phase/snapshot wiring + route-strike application (DESIGN-25) → C-2 continuation. **Environment note:** the INC-8 golden gate was blocked mid-sprint by the concurrent C-1 agent's in-flight `phase-engine`/`events`/`cross-process-test` hardening edits in the same working tree (Zod `datetime` on their envelope; no mines frame, AC-22 proves zero wiring) — recorded, not repaired here. **Next: C-3 (Submarines).** |
 | C-3 | Submarines                      | DESIGN-34                                                          | Submarine classes                                    |
 | C-4 | Coastal defenses                | DESIGN-48 (short doc, 48 lines — may fold into C-3 during scoping) | Coastal-defense content                              |
 | C-5 | Smoke + detailed damage control | remainder of DESIGN-42, DESIGN-41                                  | Damage-control / smoke constants                     |
@@ -254,11 +255,15 @@ phase wiring + consequences (ADR-0027). `M2_SURFACE_TACTICAL_CORE` **COMPLETED**
 INC-3 (`f97a3c9`), INC-4 (`ffa65ea`), INC-5 (`a2ed7c3`), INC-6 (`072b704`),
 INC-7 (`db840c7`) — fire solution → salvo → launch/track → hit/detonation →
 damage package → engine stage all green (504/504 torpedo, goldens 10/10,
-ADR-0031). **Next: C-1 INC-8 — contracts rollup + reason-codes set-equality +
-ADR + traceability + gate (AC-21/24/25).** Candidate parallel work recorded:
-content climate-profile YAML (CONTENT-track), DESIGN-38 §34 statistical study
-(REL-1), repair `content-schema/nation.test.ts`, C-2-IMPL (mines) queued after
-C-1.
+ADR-0031). **C-2-IMPL (mines) DONE 2026-08-16 — PASS:** INC-1..INC-8 all landed
+(`4b5dde3`, `fc769e4`, `4792bad`, `3ed06b8`, `6af47d9`, `398ed2b`, `705f401`,
+`d1ac1e2`), mines 26 files / 357 tests green, ADR-0033 (scope/integration +
+strike deferral + reason-code/constant policy), report
+`.ai/reports/c2-m3-mine-warfare-impl.md`. **Next C-1 frontier: INC-8 (contracts
+rollup + reason-codes set-equality + ADR + traceability + gate, AC-21/24/25).**
+**Next C-2 frontier: C-3 (Submarines, DESIGN-34 — not scoped).** Candidate
+parallel work recorded: content climate-profile YAML (CONTENT-track), DESIGN-38
+§34 statistical study (REL-1), repair `content-schema/nation.test.ts`.
 
 **Previous: B-5-IMPL (INC-1..6) DONE — PASS (2026-08-15).** M2 tactical weather &
 visibility: `StrategicWeatherState` + `weather_generation` phase (order 0.5),
@@ -277,12 +282,16 @@ spec (17 ACs, 6 INC slices), brief, and `.ai/specs/` pointer at
 1. **C-1 Torpedoes (DESIGN-40)** — scoping DONE (2026-08-16, `dddb11d`);
    **implementation INC-1..INC-7 DONE (`db840c7`); INC-8 (contracts rollup +
    reason-code set-equality + ADR + gate) is the current frontier** (M3).
-2. **Content C-track climate-profile YAML** — CONTENT-track; confirm coupling
+2. **C-2 Mine warfare (DESIGN-35) — DONE 2026-08-16 (INC-1..INC-8, all green;
+   ADR-0033).** Deferred to a **C-2 continuation**: mine-strike resolution
+   (§11/§14–15/§17–18/§25–26), phase/snapshot wiring, route-strike application
+   (blocked on DESIGN-25). **Next C-2 frontier: C-3 Submarines (DESIGN-34).**
+3. **Content C-track climate-profile YAML** — CONTENT-track; confirm coupling
    to the M3 weather-mechanic acceptance rather than standalone.
-3. **Content C-track continuation** — MID_CENTURY + LATE-era content (M4/M5) as
+4. **Content C-track continuation** — MID_CENTURY + LATE-era content (M4/M5) as
    the corresponding mechanics land; deployment (DESIGN-25) scoping; the **B-1
    AC-14 production ship→design linkage**.
-4. **Repair `content-schema/test/nation.test.ts`** — pre-existing broken import
+5. **Repair `content-schema/test/nation.test.ts`** — pre-existing broken import
    (canonical nation-corpus-home decision; defer to owner at final validation).
 **Side-track desktop / CLI surface work (recorded, not dropped):**
 
