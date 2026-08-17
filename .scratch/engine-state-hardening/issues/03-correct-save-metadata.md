@@ -16,8 +16,8 @@ depends on the wrong values.
 **Status:** open
 **Frontier:** yes
 
-- [ ] Saving writes the actual snapshot hash into `snapshotHash` and the real content-artifact hash into `contentArtifactHash`.
-- [ ] Tests assert each metadata field matches its documented meaning (and that a re-load of the same save yields the same values).
-- [ ] `list()` and its consumers read the corrected fields; no consumer depends on the previously wrong values.
-- [ ] The save-metadata shape stays backward-compatible for already-written saves (or documented migration/reconcile path).
-- [ ] Full repo gate green: uncached build, `tsc -b`, lint, all per-package tests, goldens unchanged, two-process determinism byte-identical.
+- [x] Saving writes the actual snapshot hash into `snapshotHash` and the real content-artifact hash into `contentArtifactHash`.
+- [x] Tests assert each metadata field matches its documented meaning (and that a re-load of the same save yields the same values).
+- [x] `list()` and its consumers read the corrected fields; no consumer depends on the previously wrong values.
+- [x] The save-metadata shape stays backward-compatible for already-written saves (or documented migration/reconcile path).
+- [x] Full repo gate green: uncached build, `tsc -b`, lint, all per-package tests, goldens unchanged, two-process determinism byte-identical.
