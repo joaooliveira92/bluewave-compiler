@@ -125,12 +125,23 @@ persisted aggregate and needs no save path. Rationale:
   checkpoints are **optional** acceleration (§27 "optional periodic minute
   checkpoints and hashes"), and §31 trusts a checkpoint only after verifying its
   chain from the replay initial state. There is no requirement to persist the
-  mid-battle minute state as the replay source.
+  mid-battle minute state as the replay source. The §27 MUST (every battle has a
+  `TacticalReplayManifest`) is satisfied at re-derivation time: the "immutable
+  initial battle snapshot" the replay reconstructs is fully determined by the
+  persisted manifest + seed + committed strategic weather, so the §28 replay
+  procedure (load initial, restore RNG, resolve, compare) runs from the campaign
+  save; only the *materialized* manifest object is deferred with the full
+  save-package model (below).
 - **Campaign-save-alone replay is acceptable and authoritative.** The final
   `BattleInstance.result` on the campaign snapshot is re-verified by re-running
   `resolveBattleAuto` from the manifest + seed and comparing the recomputed
-  `resultHash`/result. This closes REL-1 §22 "replay at strategic + tactical
-  checkpoints" at the re-derivation level.
+  outcome against the recorded `BattleInstance.result` — its persisted surface
+  `winnerId`/`loserId`, per-side losses, and `damageReport` (ADR-0027). `resultHash`
+  is a field of the transient `BattleResolutionResult` (ADR-0026 §8), not a
+  persisted field on the snapshot's `BattleInstance`, so the comparison is at the
+  semantic outcome level; a hash-level check would require persisting the battle's
+  result hash (a follow-on option in ticket 07). This closes REL-1 §22 "replay at
+  strategic + tactical checkpoints" at the re-derivation level.
 
 ## Consequences
 
@@ -149,8 +160,8 @@ persisted aggregate and needs no save path. Rationale:
   not a replay-*correctness* requirement, and is out of scope here.
 - **Code follow-on (this decision's actionable output):** a tactical replay
   verification that re-resolves each resolved battle from its manifest + seed
-  (via `resolveBattleAuto`) and compares against the recorded
-  `BattleInstance.result`/`resultHash`, closing REL-1 §22's tactical-checkpoint
+  (via `resolveBattleAuto`) and compares the recomputed outcome against the
+  recorded `BattleInstance.result`, closing REL-1 §22's tactical-checkpoint
   replay. Tracked as ticket
   `.scratch/engine-state-hardening/issues/07-tactical-replay-verification.md`.
 

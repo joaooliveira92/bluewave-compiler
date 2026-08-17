@@ -63,7 +63,9 @@ re-derivation from manifest + seed.** The minute-by-minute tactical state is
 weather + version pins. DESIGN-52 §27/§28 define tactical replay as re-resolution
 from the *initial* battle snapshot + manifest + seed + ledger; minute checkpoints
 are optional acceleration (§31). A campaign-save-alone replay that re-runs
-`resolveBattleAuto` and compares the recorded `BattleInstance.result`/`resultHash`
+`resolveBattleAuto` and compares the recomputed outcome against the recorded
+`BattleInstance.result` (its persisted `winnerId`/`loserId`, losses, and
+`damageReport`; `resultHash` is transient, not persisted on the `BattleInstance`)
 is authoritative and closes REL-1 §22's tactical-checkpoint replay. Battle
 autosaves at minute boundaries for crash recovery and the full DESIGN-52
 save-package model are recorded as deferred (REL-1, out of scope).
@@ -74,4 +76,5 @@ save-package model are recorded as deferred (REL-1, out of scope).
 **Follow-on code ticket created and linked:**
 `.scratch/engine-state-hardening/issues/07-tactical-replay-verification.md` —
 implements the tactical replay verification (re-resolve each resolved battle from
-manifest + seed and compare result/resultHash).
+manifest + seed and compare the recomputed outcome against the recorded
+`BattleInstance.result`).
