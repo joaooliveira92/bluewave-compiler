@@ -11,7 +11,7 @@
 | M1 Strategic Campaign Kernel | B9–B10  | Scope briefs ready                      | B9/B10a/B10b/B10c/B10d done          | 410 passing                    | **M1 COMPLETED (A-5 gate, 2026-08-12)** — `docs/acceptance/m1-capability-registry.md` |
 | M2 Surface Tactical Core     | —       | Design docs exist (DESIGN-34–42)        | B-1..B-6 IMPL DONE (2026-08-15)      | 900 combat tests pass          | **M2 COMPLETED (B-6 gate, 2026-08-15)** — see M2 section below |
 | Desktop & CLI surfaces       | —       | —                                       | MVP + 3 screens + CLI debug DONE     | desktop 353, campaign-engine 49 | Surfaces PASS (2026-08-15); debug-mode gating (ADR-0029); E2E suite in progress |
-| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | **C-1 COMPLETE (INC-1..8, AC-1..25) + C-2-IMPL DONE (INC-1..8, PASS)** | torpedo 517, mines 357 tests pass | **C-1 COMPLETE (2026-08-16, ADR-0031)**; C-2 COMPLETE (AC-1..25, ADR-0033); next frontier C-3 (Submarines, not scoped) |
+| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | **C-1 COMPLETE (INC-1..8, AC-1..25) + C-2-IMPL DONE (INC-1..8, PASS) + C-3 SCOPED (AC-1..22 / INC-1..8)** | torpedo 517, mines 357 tests pass | **C-1 COMPLETE (2026-08-16, ADR-0031)**; C-2 COMPLETE (AC-1..25, ADR-0033); C-3 SCOPED 2026-08-17; next frontier C-3-IMPL |
 | M4 Aviation                  | —       | Design docs exist (DESIGN-43–45)        | Not started                          | —                              | Future                   |
 | M5 Electronics & Missile Era | —       | Design docs exist (DESIGN-46–48)        | Not started                          | —                              | Future                   |
 
@@ -552,13 +552,21 @@ values, report/classifier, decay, post-war, ownership, knowledge, clearance,
 §28 records + §29 ordering, contracts rollup, two-process determinism); mines 26
 files / 357 tests green; ADR-0033; report `.ai/reports/c2-m3-mine-warfare-impl.md`.
 **Strike resolution + phase/snapshot wiring + route-strike application deferred
-to a C-2 continuation.** See `.ai/SPRINT-PLAN.md` Track C for the full sprint order.
+to a C-2 continuation.** **C-3 SCOPING DONE (2026-08-17):** strategic
+submarine-operations lifecycle slice of DESIGN-34 scoped (map
+`.scratch/c3-m3-submarines/map.md` + decision tickets 01–06 resolved, spec
+AC-1..22 / INC-1..8, brief `.ai/briefs/c3-m3-submarines.md`, research
+`docs/research/c3-m3-submarines.md`). Tactical allocation/loss (§2–3),
+returning-ship interception (§21), ASW resolution application (§22),
+friendly-fire risk/outcome (§23–24), and strategic attack loss application (§19)
+deferred (battle machinery / DESIGN-29 unassigned). **C-3-IMPL (INC-1..INC-8) is
+the current M3 frontier.** See `.ai/SPRINT-PLAN.md` Track C for the full sprint order.
 
 | Area                                  | Design coverage |
 | ------------------------------------- | --------------- |
 | Torpedoes (C-1)                       | DESIGN-40 — **COMPLETE** (INC-1..8, AC-1..25, ADR-0031) |
 | Mine warfare (C-2)                    | DESIGN-35 — **COMPLETE** (INC-1..8 PASS, AC-1..25, ADR-0033) |
-| Submarines (C-3)                      | DESIGN-34 — next C-2 frontier (not scoped) |
+| Submarines (C-3)                      | DESIGN-34 — **SCOPED 2026-08-17** (AC-1..22 / INC-1..8); C-3-IMPL queued |
 | Coastal defenses (C-4)                | DESIGN-48       |
 | Smoke (drift, decay, screens) (C-5)   | DESIGN-42 §§7-23 |
 | Detailed damage control (C-5)         | DESIGN-41 remainder |
