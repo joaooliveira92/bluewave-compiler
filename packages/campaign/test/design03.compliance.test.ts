@@ -1,59 +1,60 @@
 // packages/campaign/test/design03.test.ts
 // DESIGN-03 Campaign Configuration - Validation and Acceptance §9 1..21
-import { describe, it, expect } from "vite-plus/test";
+
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { nationYaml } from "@bluewave/test-support";
+import { describe, expect, it } from "vite-plus/test";
+import { CampaignCompiler } from "../src/compiler-public.js";
 import {
-  CANONICAL_SCENARIOS,
-  CANONICAL_SCENARIO_IDS,
-  validateScenarios,
-  getScenarioById,
-} from "../src/scenario.js";
-import {
-  toLinear,
-  fromLinear,
-  advanceMonth,
-  isAtEnd,
-  isBeyondEnd,
-  canAdvance,
-  assertCanAdvance,
-} from "../src/timeline.js";
-import {
-  FLEET_SIZE_IDS,
-  FLEET_SIZE_BPS,
-  CANONICAL_FLEET_SIZE_SETTINGS,
-  validateFleetSizeSettings,
-  validateFleetSizeSetting,
-  scaleValue,
-  allocateIndivisible,
-  checkFleetSizeTacticalViolation,
-} from "../src/fleetSize.js";
-import {
-  RESEARCH_BPS,
-  CANONICAL_RESEARCH_SPEED_SETTINGS,
-  validateResearchSpeedSettings,
-  scaledResearchProgress,
-} from "../src/researchSpeed.js";
-import {
-  CANONICAL_TECH_PROFILES,
-  validateTechnologyVariationProfile,
-  validateTechnologyVariationProfiles,
-  materializeTechnologyVariation,
-  verifyTechnologyManifest,
-  STREAM_FAMILY,
-  RNG_ALGORITHM_VERSION,
-  type TechnologyDefinition,
-} from "../src/technologyVariation.js";
-import {
+  type ContinuationDefinition,
+  type NationIdentityDefinition,
   resolveParticipation,
   type ScenarioParticipationRecord,
-  type NationIdentityDefinition,
-  type ContinuationDefinition,
 } from "../src/continuity.js";
-import { CampaignCompiler } from "../src/compiler-public.js";
-import { mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
-import { tmpdir } from "node:os";
-import { nationYaml } from "@bluewave/test-support";
+import {
+  allocateIndivisible,
+  CANONICAL_FLEET_SIZE_SETTINGS,
+  checkFleetSizeTacticalViolation,
+  FLEET_SIZE_BPS,
+  FLEET_SIZE_IDS,
+  scaleValue,
+  validateFleetSizeSetting,
+  validateFleetSizeSettings,
+} from "../src/fleetSize.js";
+import {
+  CANONICAL_RESEARCH_SPEED_SETTINGS,
+  RESEARCH_BPS,
+  scaledResearchProgress,
+  validateResearchSpeedSettings,
+} from "../src/researchSpeed.js";
+import {
+  CANONICAL_SCENARIO_IDS,
+  CANONICAL_SCENARIOS,
+  getScenarioById,
+  validateScenarios,
+} from "../src/scenario.js";
+import {
+  CANONICAL_TECH_PROFILES,
+  materializeTechnologyVariation,
+  RNG_ALGORITHM_VERSION,
+  STREAM_FAMILY,
+  type TechnologyDefinition,
+  validateTechnologyVariationProfile,
+  validateTechnologyVariationProfiles,
+  verifyTechnologyManifest,
+} from "../src/technologyVariation.js";
+import {
+  advanceMonth,
+  assertCanAdvance,
+  canAdvance,
+  fromLinear,
+  isAtEnd,
+  isBeyondEnd,
+  toLinear,
+} from "../src/timeline.js";
 
 // ---------------------------------------------------------------------------
 // Helpers

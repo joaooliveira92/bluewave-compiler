@@ -1,11 +1,12 @@
 //packages/campaign/test/campaign.test.ts
-import { describe, it, expect } from "vite-plus/test";
-import { CampaignCompiler } from "../src/compiler-public.js";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
+
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { nationsYaml, nationYaml } from "@bluewave/test-support";
+import { describe, expect, it } from "vite-plus/test";
+import { CampaignCompiler } from "../src/compiler-public.js";
 
 function createFixtureDir(): { path: string; cleanup: () => void } {
   const dir = resolve(tmpdir(), `bw-campaign-${Date.now()}-${Math.random().toString(36).slice(2)}`);

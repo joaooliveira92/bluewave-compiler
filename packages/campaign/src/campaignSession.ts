@@ -3,27 +3,28 @@
 // Validates before RNG, enforces Scenario §1, Timeline §2, Configuration §3, Immutability §8.
 // Kept separate from state.ts (compiled world snapshot) - a session tracks configuration +
 // the strategic timeline for a single campaign run.
-import type { DiagnosticCollector } from "@bluewave/diagnostics";
+
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { CANONICAL_SCENARIOS, validateScenarios } from "./scenario.js";
+import type { DiagnosticCollector } from "@bluewave/diagnostics";
+import {
+  assertConfigurationImmutability,
+  CAMPAIGN_CONFIGURATION_FIELDS,
+  type CampaignConfiguration,
+  validateCampaignConfiguration,
+} from "./campaignConfiguration.js";
 import { validateFleetSizeSettings } from "./fleetSize.js";
 import { validateResearchSpeedSettings } from "./researchSpeed.js";
-import { assertCanAdvance, isAtEnd, isBeyondEnd, toLinear, fromLinear } from "./timeline.js";
+import { CANONICAL_SCENARIOS, validateScenarios } from "./scenario.js";
 import type { CampaignTechnologyManifest } from "./technologyVariation.js";
-import {
-  CAMPAIGN_CONFIGURATION_FIELDS,
-  type CampaignConfiguration,
-  validateCampaignConfiguration,
-  assertConfigurationImmutability,
-} from "./campaignConfiguration.js";
+import { assertCanAdvance, fromLinear, isAtEnd, isBeyondEnd, toLinear } from "./timeline.js";
 
+export { validateCampaignSeed } from "./campaignConfiguration.js";
 export {
+  assertConfigurationImmutability,
   CAMPAIGN_CONFIGURATION_FIELDS,
   type CampaignConfiguration,
   validateCampaignConfiguration,
-  assertConfigurationImmutability,
 };
-export { validateCampaignSeed } from "./campaignConfiguration.js";
 
 export function hashConfiguration(cfg: CampaignConfiguration): string {
   return sha256Hex(canonicalSerialize(cfg));

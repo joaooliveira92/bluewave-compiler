@@ -1,48 +1,34 @@
 //packages/campaign/src/index.ts
-export type { CampaignState, CampaignSlot, CampaignSnapshot } from "./state.js";
-export type { CampaignWeatherState } from "./state.js";
-export type { WorldState } from "./state.js";
-export type { NationState } from "./state.js";
-export type { FleetState, Ship } from "./state.js";
-export type { ConstructionProject } from "./state.js";
-export type { ResearchState, TechnologyProgress } from "./state.js";
-export type { CompiledDesignVersion, DesignFamily } from "./state.js";
-export type {
-  WarState,
-  BattleInstance,
-  BattleResult,
-  BattleManifest,
-  BattleManifestSide,
-  WarDeclaration,
-  WarParticipantMembership,
-  BlockadeState,
-} from "./state.js";
-export type { PersistenceManifest } from "./state.js";
-export type { PoliticalState, DiplomaticRelation } from "./state.js";
-export type { IntelligenceState } from "./state.js";
-export * from "./warConstants.js";
 
-// DESIGN-03 Campaign Configuration surface
-export * from "./scenario.js";
-export * from "./timeline.js";
-export * from "./fleetSize.js";
-export * from "./researchSpeed.js";
-export * from "./technologyVariation.js";
-export * from "./continuity.js";
 export * from "./campaignConfiguration.js";
-
 // DESIGN-03 session state + preconditions (renamed type to avoid clashing with
 // the compiled-world CampaignState from ./state.js)
 export {
-  type CampaignSessionState,
-  validateCampaignPreconditions,
-  createInitialCampaignState,
-  canAdvanceCampaign,
   advanceCampaignMonth,
-  verifyCampaignTechnologyManifest,
   assertCampaignStateImmutability,
+  type CampaignSessionState,
+  canAdvanceCampaign,
+  createInitialCampaignState,
   hashConfiguration,
+  validateCampaignPreconditions,
+  verifyCampaignTechnologyManifest,
 } from "./campaignSession.js";
-
+export * from "./continuity.js";
 // DESIGN-26 divisions (types + constants + aggregate commands).
 export * from "./division.js";
+export * from "./fleetSize.js";
+export * from "./researchSpeed.js";
+// DESIGN-03 Campaign Configuration surface
+export * from "./scenario.js";
+export type {
+  BattleInstance,
+  BattleManifest,
+  BattleManifestSide,
+  BattleResult,
+  BlockadeState,CampaignSlot, CampaignSnapshot, CampaignState, CampaignWeatherState, CompiledDesignVersion, ConstructionProject, DesignFamily, DiplomaticRelation, FleetState, IntelligenceState, NationState, PersistenceManifest, PoliticalState, ResearchState, Ship, TechnologyProgress,
+  WarDeclaration,
+  WarParticipantMembership,
+  WarState, WorldState } from "./state.js";
+export * from "./technologyVariation.js";
+export * from "./timeline.js";
+export * from "./warConstants.js";

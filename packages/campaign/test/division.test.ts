@@ -1,27 +1,28 @@
 //packages/campaign/test/division.test.ts
-import { describe, it, expect } from "vite-plus/test";
-import { SafeInt, BluewaveError } from "@bluewave/contracts";
+
+import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { describe, expect, it } from "vite-plus/test";
 import {
-  PermanentDivision,
-  DIVISION_ROLES,
-  DIVISION_FORMATIONS,
-  INITIAL_DIVISION_EXPERIENCE,
-  INITIAL_DIVISION_COHESION,
-  DIVISION_MAX_SHIPS,
-  DD_DIVISION_MAX_SHIPS,
-  DIVISION_PENALTIES,
-  VACANT,
-  assertDivisionInvariants,
   applyDivisionCommand,
-  divisionCanonicalType,
-  isDivisionTypeCompatible,
-  DIVISION_SIZE_LIMIT_EXCEEDED,
-  DIVISION_SHIP_TYPE_INCOMPATIBLE,
-  DIVISION_LOCATION_CONFLICT,
+  assertDivisionInvariants,
+  type CanonicalShipType,
+  DD_DIVISION_MAX_SHIPS,
   DIVISION_FLAGSHIP_INVALID,
+  DIVISION_FORMATIONS,
+  DIVISION_LOCATION_CONFLICT,
+  DIVISION_MAX_SHIPS,
+  DIVISION_PENALTIES,
+  DIVISION_ROLES,
+  DIVISION_SHIP_TYPE_INCOMPATIBLE,
+  DIVISION_SIZE_LIMIT_EXCEEDED,
   DIVISION_STATE_INVARIANT_FAILED,
   type DivisionAssetView,
-  type CanonicalShipType,
+  divisionCanonicalType,
+  INITIAL_DIVISION_COHESION,
+  INITIAL_DIVISION_EXPERIENCE,
+  isDivisionTypeCompatible,
+  type PermanentDivision,
+  VACANT,
 } from "../src/division.js";
 
 function makeDivision(overrides: Partial<PermanentDivision> = {}): PermanentDivision {

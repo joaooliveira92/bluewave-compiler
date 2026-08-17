@@ -1,32 +1,29 @@
 // packages/campaign/src/compiler.ts
+
+import { readFileSync } from "node:fs";
+import { isAbsolute, relative, resolve, sep } from "node:path";
+import { Compiler, type CompilerInput } from "@bluewave/content-compiler";
 import type { ContentPack } from "@bluewave/content-schema";
 import { DesignTemplateSchema, validateAgainstSchema } from "@bluewave/content-schema";
-import type { CampaignState, CampaignSlot, CampaignSnapshot } from "./state.js";
-import type {
-  NationState,
-  FleetState,
-  Ship,
-  ResearchState,
-  TechnologyProgress,
-  ConstructionProject,
-  CompiledDesignVersion,
-  DesignFamily,
-} from "./state.js";
-import type { WorldState, AreaData, RouteData, PortData, WarState } from "./state.js";
-import type { PoliticalState, DiplomaticRelation } from "./state.js";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
 import {
   DiagnosticCollector,
   type DiagnosticCollector as DiagnosticCollectorType,
 } from "@bluewave/diagnostics";
-import { Compiler, type CompilerInput } from "@bluewave/content-compiler";
-import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
-import { SafeInt } from "@bluewave/contracts";
-import { readFileSync } from "node:fs";
-import { resolve, relative, isAbsolute, sep } from "node:path";
 import { parse } from "yaml";
 import { validateCampaignPreconditions } from "./campaignSession.js";
-import { DEFAULT_CAMPAIGN_START_YEAR, DEFAULT_CAMPAIGN_START_MONTH } from "./timeline.js";
 import { getScenarioById, type ScenarioId } from "./scenario.js";
+import type { AreaData, CampaignSlot, CampaignSnapshot, CampaignState,
+  CompiledDesignVersion,
+  ConstructionProject,
+  DesignFamily,DiplomaticRelation,
+  FleetState,
+  NationState,PoliticalState, PortData,
+  ResearchState,RouteData,
+  Ship,
+  TechnologyProgress,WarState, WorldState } from "./state.js";
+import { DEFAULT_CAMPAIGN_START_MONTH, DEFAULT_CAMPAIGN_START_YEAR } from "./timeline.js";
 
 export interface CampaignCompilerInput {
   compilerInput: CompilerInput;

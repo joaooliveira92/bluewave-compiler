@@ -4,13 +4,14 @@
 // strategicWeather collection; the campaign month id helper derives YYYY-MM
 // ids deterministically; the compiled snapshot hash is deterministic and
 // sensitive to the area set (serializer canonically ordered).
-import { describe, it, expect } from "vite-plus/test";
-import { mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
+
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { resolve } from "node:path";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { nationsYaml } from "@bluewave/test-support";
+import { describe, expect, it } from "vite-plus/test";
 import { CampaignCompiler } from "../src/compiler-public.js";
 import type { CampaignSnapshot } from "../src/state.js";
 import { campaignMonthId, monthId } from "../src/timeline.js";
