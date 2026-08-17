@@ -1,70 +1,94 @@
-import { SafeInt } from "@bluewave/contracts";
+import { AiPhaseExecutor } from "@bluewave/ai";
 import type {
+  BattleInstance,
+  BattleResult,
+  BlockadeState,
   CampaignSnapshot,
-  NationState,
-  Ship,
+  CampaignWeatherState,
+  CanonicalShipType,
+  DivisionAssetView,
   FleetState,
+  NationState,
+  PermanentDivision,
+  Ship,
   TechnologyProgress,
   WarDeclaration,
   WarParticipantMembership,
-  BlockadeState,
-  PermanentDivision,
-  BattleInstance,
-  DivisionAssetView,
-  CanonicalShipType,
 } from "@bluewave/campaign";
 import {
-  WAR_SCORE_MINOR,
-  WAR_SCORE_MAJOR,
-  WAR_SCORE_DECISIVE,
-  VICTORY_MINOR_MAX_FRACTION,
-  VICTORY_MAJOR_MAX_FRACTION,
-  MAXIMUM_CONCURRENT_WARS,
-  NAP_VIOLATION_PENALTY,
-  SURRENDER_SCORE,
-  BLOCKADE_WAR_SCORE_PER_MONTH,
-  TENSION_WAR,
-  TENSION_PEACE,
-  TENSION_ALLIANCE,
-  VACANT,
   applyDivisionCommand,
   assertDivisionInvariants,
-  INITIAL_DIVISION_EXPERIENCE,
-  INITIAL_DIVISION_COHESION,
+  BLOCKADE_WAR_SCORE_PER_MONTH,
+  campaignMonthId,
   DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE,
   DIVISION_STATE_INVARIANT_FAILED,
+  INITIAL_DIVISION_COHESION,
+  INITIAL_DIVISION_EXPERIENCE,
+  KNOTS_TO_UMS,
+  MAXIMUM_CONCURRENT_WARS,
+  MM_TO_UM,
+  NAP_VIOLATION_PENALTY,
+  SURRENDER_SCORE,
+  TENSION_ALLIANCE,
+  TENSION_PEACE,
+  TENSION_WAR,
+  VACANT,
+  VICTORY_MAJOR_MAX_FRACTION,
+  VICTORY_MINOR_MAX_FRACTION,
+  WAR_SCORE_DECISIVE,
+  WAR_SCORE_MAJOR,
+  WAR_SCORE_MINOR,
 } from "@bluewave/campaign";
+import type { BattleResolutionResult, ClimateProfile } from "@bluewave/combat";
+import {
+  BATTLE_AUTO_RESOLUTION_FAILED,
+  BattleResolver,
+  classifyShip,
+  defaultClimateProfile_v1,
+  generateBattles,
+  generateStrategicWeather,
+  INVALID_BATTLE_WEATHER_INITIALIZATION,
+  resolveBattleAuto,
+  WEATHER_PROFILE_INCOMPLETE,
+} from "@bluewave/combat";
 import type {
-  CommandEnvelope,
-  CommandBody,
-  SetResearchPriorityCommand,
-  DeclareWarCommand,
   AcceptPeaceCommand,
-  FormAllianceCommand,
-  BreakAllianceCommand,
-  FormNonAggressionPactCommand,
-  BreakNonAggressionPactCommand,
-  DeclareBlockadeCommand,
-  BudgetProjectCommand,
-  CreateDivisionCommand,
   AddShipToDivisionCommand,
-  RemoveShipFromDivisionCommand,
-  DissolveDivisionCommand,
+  BreakAllianceCommand,
+  BreakNonAggressionPactCommand,
+  BudgetProjectCommand,
   ChangeDivisionFlagshipCommand,
+  CommandBody,
+  CommandEnvelope,
+  CreateDivisionCommand,
+  DeclareBlockadeCommand,
+  DeclareWarCommand,
+  DissolveDivisionCommand,
+  FormAllianceCommand,
+  FormNonAggressionPactCommand,
+  RemoveShipFromDivisionCommand,
+  SetResearchPriorityCommand,
 } from "@bluewave/commands";
+import { CommandIdempotencyMap, CommandLedger, CommandLifecycle } from "@bluewave/commands";
 import { CANONICAL_RESEARCH_FIELD_IDS as RESEARCH_FIELD_IDS } from "@bluewave/content-schema";
-import { CommandLifecycle, CommandLedger, CommandIdempotencyMap } from "@bluewave/commands";
-import type { DiagnosticCollector } from "@bluewave/diagnostics";
+import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { EventLedger } from "@bluewave/events";
+import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import type { DomainEventEnvelope } from "@bluewave/events";
+import { EventLedger } from "@bluewave/events";
 import { RandomEngine, RandomLedger } from "@bluewave/random";
-import { BattleResolver, generateBattles } from "@bluewave/combat";
-import { classifyShip } from "@bluewave/combat";
-import { AiPhaseExecutor } from "@bluewave/ai";
 import { FinancialLedger, type LedgerTransactionInput } from "./financial-ledger.js";
+import { PhaseGuard, PHASE_ACCESS_DENIED, PHASE_FOOTPRINTS } from "./phase-guard.js";
+import type { PhaseDefinition } from "./registry.js";
+import { cloneSnapshot } from "./snapshotClone.js";
 
 const CURRENT_VERSION = "0.1.0" as const;
+
+// B-6 INC-3: the battle manifest shape `resolveBattleAuto` consumes. The
+// snapshot stores manifests structurally (campaign-side mirror); the combat
+// generation manifest is the authoritative runtime shape — the phase casts at
+// the single lookup seam (never a deep cross-package import).
+type AutoResolutionManifest = Parameters<typeof resolveBattleAuto>[0]["manifest"];
 
 export interface MonthResult {
   finalSnapshot: CampaignSnapshot;
@@ -75,208 +99,27 @@ export interface MonthResult {
   success: boolean;
 }
 
-function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
-  const nations = new Map<string, NationState>();
-  for (const [id, nation] of snapshot["nations"]) {
-    const clonedNation: NationState = {
-      id: nation["id"],
-      name: nation["name"],
-      tag: nation["tag"],
-      treasury: nation["treasury"],
-      income: nation["income"],
-      expenses: nation["expenses"],
-      baseResources: nation["baseResources"],
-      navalAppropriationRateBp: nation["navalAppropriationRateBp"],
-      maintenanceCost: nation["maintenanceCost"],
-      fleets: nation["fleets"].map((f) => ({
-        id: f["id"],
-        nationId: f["nationId"],
-        name: f["name"],
-        locationAreaId: f["locationAreaId"],
-        ships: f["ships"].map((s) => ({
-          id: s["id"],
-          name: s["name"],
-          classId: s["classId"],
-          nationId: s["nationId"],
-          locationAreaId: s["locationAreaId"],
-          designVersionId: s["designVersionId"],
-          hitPoints: s["hitPoints"],
-          maxHitPoints: s["maxHitPoints"],
-          speed: s["speed"],
-          firepower: s["firepower"],
-          armor: s["armor"],
-          isUnderConstruction: s["isUnderConstruction"],
-          constructionProgress: s["constructionProgress"],
-          constructionTotalWork: s["constructionTotalWork"],
-          inBattleId: s["inBattleId"],
-        })),
-      })),
-      research: {
-        nationId: nation["research"]["nationId"],
-        technologies: nation["research"]["technologies"].map((t) => ({
-          techId: t["techId"],
-          investedPoints: t["investedPoints"],
-          completed: t["completed"],
-        })),
-        currentProjectTechId: nation["research"]["currentProjectTechId"],
-        fieldPriorities: { ...nation["research"]["fieldPriorities"] },
-        researchBudget: nation["research"]["researchBudget"],
-        activeCandidates: new Map(nation["research"]["activeCandidates"]),
-        discoveredTechs: [...nation["research"]["discoveredTechs"]],
-      },
-      divisions: nation["divisions"].map((d) => ({
-        divisionId: d["divisionId"],
-        nationId: d["nationId"],
-        shipOrder: [...d["shipOrder"]],
-        flagshipShipId: d["flagshipShipId"],
-        commanderOfficerId: d["commanderOfficerId"],
-        divisionRole: d["divisionRole"],
-        preferredFormation: d["preferredFormation"],
-        experience: d["experience"],
-        cohesion: d["cohesion"],
-        locationAreaId: d["locationAreaId"],
-        creationMonth: d["creationMonth"],
-        lastReorganizationMonth: d["lastReorganizationMonth"],
-        provenanceRefs: [...d["provenanceRefs"]],
-        rulesetVersion: d["rulesetVersion"],
-        aggregateHash: d["aggregateHash"],
-      })),
-      constructionProjects: nation["constructionProjects"].map((c) => ({
-        id: c["id"],
-        type: c["type"],
-        projectType: c["projectType"],
-        targetId: c["targetId"],
-        designVersionId: c["designVersionId"],
-        totalWork: c["totalWork"],
-        completedWork: c["completedWork"],
-        paidWork: c["paidWork"],
-        status: c["status"],
-        startedAt: c["startedAt"],
-      })),
-      isPlayable: nation["isPlayable"],
-      isAI: nation["isAI"],
-    };
-    nations.set(id, clonedNation);
-  }
+/**
+ * B-6/ADR-0025: per-area climate source for the `weather_generation` phase.
+ * The engine default `defaultClimateProfile_v1` is the canonical source until
+ * the CONTENT-track supplies region climate-profile YAML (spec §1.3 deferral):
+ * when `climateProfiles` is undefined every world area uses
+ * `defaultClimateProfile_v1` (never a silent fallback — the default IS the
+ * canonical source). When a caller supplies an explicit area->profile map, an
+ * area missing from the map fails closed with a WEATHER_PROFILE_INCOMPLETE
+ * diagnostic (no area is silently skipped without a record).
+ */
+export interface StrategicWeatherPhaseOptions {
+  readonly climateProfiles?: ReadonlyMap<string, ClimateProfile>;
+}
 
-  const warsArr = snapshot["wars"]["wars"].map((w) => ({
-    id: w["id"],
-    attackerSideId: w["attackerSideId"],
-    defenderSideId: w["defenderSideId"],
-    attackerSideMembers: [...w["attackerSideMembers"]],
-    defenderSideMembers: [...w["defenderSideMembers"]],
-    attackerWarScore: w["attackerWarScore"],
-    defenderWarScore: w["defenderWarScore"],
-    attackerId: w["attackerId"],
-    defenderId: w["defenderId"],
-    startDate: w["startDate"],
-    status: w["status"],
-    endDate: w["endDate"],
-  }));
-
-  const participantMembershipsArr = snapshot["wars"]["participantMemberships"].map((m) => ({
-    warId: m["warId"],
-    nationId: m["nationId"],
-    sideId: m["sideId"],
-    entryMonth: m["entryMonth"],
-    exitMonth: m["exitMonth"],
-    status: m["status"],
-    nationalContributionPoints: m["nationalContributionPoints"],
-  }));
-
-  const blockadeStateArr = snapshot["wars"]["blockadeState"].map((b) => ({
-    blockaderId: b["blockaderId"],
-    blockadedNationId: b["blockadedNationId"],
-    areaId: b["areaId"],
-    establishedMonth: b["establishedMonth"],
-  }));
-
-  const battlesArr = snapshot["wars"]["battles"].map((b) => ({
-    id: b["id"],
-    phase: b["phase"],
-    attackerId: b["attackerId"],
-    defenderId: b["defenderId"],
-    areaId: b["areaId"],
-    attackerFleetIds: [...b["attackerFleetIds"]],
-    defenderFleetIds: [...b["defenderFleetIds"]],
-    manifestHash: b["manifestHash"],
-    result: b["result"],
-  }));
-
-  const battleManifestsArr = (snapshot["wars"]["battleManifests"] ?? []).map((m) => ({
-    ...m,
-    missionObjectives: [...m["missionObjectives"]],
-    persistentAssets: [...m["persistentAssets"]],
-    temporaryAssets: [...m["temporaryAssets"]],
-    permanentDivisionIds: [...m["permanentDivisionIds"]],
-    tacticalDivisions: m["tacticalDivisions"].map((td) => ({ ...(td as object) })),
-    commanders: [...m["commanders"]],
-    reservations: [...m["reservations"]],
-    provenanceRecords: [...m["provenanceRecords"]],
-    sourceStateHashes: { ...m["sourceStateHashes"] },
-    sides: m["sides"].map((s: { sideId: string; participantIds: string[] }) => ({
-      sideId: s["sideId"],
-      participantIds: [...s["participantIds"]],
-    })),
-  }));
-
-  const designs = new Map(snapshot["designs"]);
-  const designFamilies = new Map(snapshot["designFamilies"]);
-
-  return {
-    version: snapshot["version"],
-    turnNumber: snapshot["turnNumber"],
-    campaignId: snapshot["campaignId"],
-    slots: snapshot["slots"].map((s) => ({ nationId: s["nationId"], type: s["type"] })),
-    world: {
-      areas: snapshot["world"]["areas"].map((a) => ({
-        id: a["id"],
-        name: a["name"],
-        type: a["type"],
-        controller: a["controller"],
-      })),
-      routes: snapshot["world"]["routes"].map((r) => ({
-        id: r["id"],
-        from: r["from"],
-        to: r["to"],
-        type: r["type"],
-        distance: r["distance"],
-      })),
-      ports: snapshot["world"]["ports"].map((p) => ({
-        id: p["id"],
-        name: p["name"],
-        areaId: p["areaId"],
-        nationId: p["nationId"],
-        level: p["level"],
-      })),
-    },
-    wars: {
-      wars: warsArr,
-      battles: battlesArr,
-      participantMemberships: participantMembershipsArr,
-      blockadeState: blockadeStateArr,
-      battleManifests: battleManifestsArr,
-    },
-    politics: {
-      relations: snapshot["politics"]["relations"].map((r) => ({
-        nationA: r["nationA"],
-        nationB: r["nationB"],
-        relation: r["relation"],
-        tension: r["tension"],
-        nap: r["nap"],
-        since: r["since"],
-      })),
-      shells: { ...snapshot["politics"]["shells"] },
-    },
-    intelligence: {
-      shells: { ...snapshot["intelligence"]["shells"] },
-    },
-    designs,
-    designFamilies,
-    nations,
-    rulesetVersion: snapshot["rulesetVersion"],
-    compatibilityVersion: snapshot["compatibilityVersion"],
-  };
+/**
+ * Engine-level options. `phaseOverrides` substitutes a phase's registry
+ * definition at runtime (used by tests to exercise the fail-closed guard for a
+ * specific phase). ADR-0036.
+ */
+export interface MonthExecutorEngineOptions {
+  readonly phaseOverrides?: ReadonlyMap<string, PhaseDefinition>;
 }
 
 function budgetChangedEvent(
@@ -286,7 +129,7 @@ function budgetChangedEvent(
   delta: SafeInt,
   reason: string,
   seq: SafeInt,
-  turnNumber: SafeInt,
+  campaignMonth: string,
 ): DomainEventEnvelope {
   return {
     eventId: `NationBudgetChanged-${nationId}-${String(seq)}`,
@@ -294,7 +137,11 @@ function budgetChangedEvent(
     aggregateType: "nation",
     aggregateId: nationId,
     eventType: "NationBudgetChanged",
-    timestamp: `turn-${String(turnNumber)}`,
+    // ADR-0035: domain events carry a deterministic ISO-8601 timestamp derived
+    // from the campaign month (the validated DomainEventEnvelope schema
+    // requires z.string().datetime). The first day of the month at UTC keeps
+    // it wall-clock/locale-free and turn-distinct.
+    timestamp: `${campaignMonth}-01T00:00:00.000Z`,
     body: {
       kind: "NationBudgetChanged",
       nationId,
@@ -314,7 +161,7 @@ function constructionProgressedEvent(
   newWork: SafeInt,
   workAdded: SafeInt,
   seq: SafeInt,
-  turnNumber: SafeInt,
+  campaignMonth: string,
 ): DomainEventEnvelope {
   return {
     eventId: `ConstructionProgressed-${projectId}-${String(seq)}`,
@@ -322,7 +169,8 @@ function constructionProgressedEvent(
     aggregateType: "construction",
     aggregateId: projectId,
     eventType: "ConstructionProgressed",
-    timestamp: `turn-${String(turnNumber)}`,
+    // ADR-0035: deterministic ISO-8601 timestamp from the campaign month.
+    timestamp: `${campaignMonth}-01T00:00:00.000Z`,
     body: {
       kind: "ConstructionProgressed",
       projectId,
@@ -341,7 +189,7 @@ function researchProgressedEvent(
   previousPoints: SafeInt,
   newPoints: SafeInt,
   seq: SafeInt,
-  turnNumber: SafeInt,
+  campaignMonth: string,
 ): DomainEventEnvelope {
   return {
     eventId: `ResearchProgressed-${nationId}-${String(seq)}`,
@@ -349,7 +197,8 @@ function researchProgressedEvent(
     aggregateType: "research",
     aggregateId: techId,
     eventType: "ResearchProgressed",
-    timestamp: `turn-${String(turnNumber)}`,
+    // ADR-0035: deterministic ISO-8601 timestamp from the campaign month.
+    timestamp: `${campaignMonth}-01T00:00:00.000Z`,
     body: {
       kind: "ResearchProgressed",
       nationId,
@@ -501,7 +350,7 @@ function applyBudgetProject(
       SafeInt.mul(budget, SafeInt(-1)),
       `Player budget for project ${body["projectId"]}`,
       nextSeq(),
-      turnNumber,
+      campaignMonth,
     ),
   );
 
@@ -712,7 +561,7 @@ function resolveResearchPhase(
           tech["investedPoints"],
           clampedPoints,
           nextSeq(),
-          turnNumber,
+          campaignMonth,
         ),
       );
 
@@ -753,7 +602,7 @@ function resolveResearchPhase(
           aggregateType: "research" as const,
           aggregateId: activeTechId,
           eventType: "TechnologyDiscovered" as const,
-          timestamp: campaignMonth,
+          timestamp: `${campaignMonth}-01T00:00:00.000Z`,
           body: {
             kind: "TechnologyDiscovered" as const,
             nationId,
@@ -818,7 +667,7 @@ function resolveResearchPhase(
           SafeInt.mul(actualPaidExpenditure, SafeInt(-1)),
           "Research budget expenditure",
           nextSeq(),
-          turnNumber,
+          campaignMonth,
         ),
       );
     }
@@ -1583,6 +1432,155 @@ function settleWar(
   return next;
 }
 
+// ---------------------------------------------------------------------------
+// B-6 INC-3: battle_resolution phase helpers (AC-8/AC-9). The tactical
+// auto-resolution result (@bluewave/combat resolveBattleAuto, INC-2) is
+// applied to the campaign through these pure, deterministic helpers. Never
+// mutate a ship in place; every transition builds a new snapshot.
+// ---------------------------------------------------------------------------
+
+/**
+ * Locate the accepted battle manifest for a battle instance. The canonical
+ * match is by `manifestHash` (the battle's pre-seed content hash — DESIGN-37
+ * §32); a battle with a `manifestHash` for which the snapshot carries NO
+ * matching manifest is a corrupted/inconsistent state and fails closed (the
+ * caller records a stable diagnostic and applies NO mutation).
+ */
+function resolveBattleManifest(
+  snapshot: CampaignSnapshot,
+  battle: BattleInstance,
+): AutoResolutionManifest | null {
+  if (battle["manifestHash"] === undefined) return null;
+  const manifests = snapshot["wars"]["battleManifests"] ?? [];
+  const found = manifests.find((m) => m["manifestHash"] === battle["manifestHash"]);
+  // The snapshot's manifests are produced by @bluewave/combat's generateBattles
+  // (structurally identical); the cast only reconciles the campaign-side mirror
+  // type with the combat manifest type at this single lookup seam.
+  return found ? (found as unknown as AutoResolutionManifest) : null;
+}
+
+/**
+ * Apply the tactical battle outcome to the campaign (AC-9): per-ship
+ * accumulated battle hp loss (ADR-0026 damageReport mapping) applied to
+ * `fleets[].ships[].hitPoints` clamped >= 0; terminal ships (in the result's
+ * sunk lists OR derived hp == 0) REMOVED from their fleet; `inBattleId`
+ * reservations cleared on every ship that fought (the battle's fleets).
+ * Deterministic: ships iterate in fleet order (canonical id-sorted in the
+ * battle generation); untouched ships keep their object identity.
+ */
+export function applyBattleConsequences(
+  snapshot: CampaignSnapshot,
+  battle: BattleInstance,
+  result: Pick<BattleResolutionResult, "damageReport" | "attackerSunkIds" | "defenderSunkIds">,
+): CampaignSnapshot {
+  const sunkIds = new Set<string>([...result.attackerSunkIds, ...result.defenderSunkIds]);
+  const battleFleetIds = new Set<string>([...battle.attackerFleetIds, ...battle.defenderFleetIds]);
+  const updatedNations = new Map<string, NationState>();
+  let changed = false;
+
+  for (const [nationId, nation] of snapshot["nations"]) {
+    let fleetsChanged = false;
+    const fleets = nation["fleets"].map((fleet) => {
+      if (!battleFleetIds.has(fleet["id"])) return fleet;
+      const ships: Ship[] = [];
+      let fleetChanged = false;
+      for (const ship of fleet["ships"]) {
+        const loss = Number(result.damageReport[ship["id"]] ?? 0);
+        const newHp = Math.max(0, (ship["hitPoints"] as number) - loss);
+        const isSunk = sunkIds.has(ship["id"]) || newHp <= 0;
+        if (isSunk) {
+          // Authoritative loss (DESIGN-37 §19/§20): the ship is gone from its
+          // fleet; survivors keep their damage (readiness harm is real).
+          fleetChanged = true;
+          continue;
+        }
+        if (newHp === (ship["hitPoints"] as number) && ship["inBattleId"] === undefined) {
+          ships.push(ship); // untouched
+          continue;
+        }
+        fleetChanged = true;
+        // Clear the battle reservation; hitPoints carry the clamped loss.
+        const { inBattleId: _reservation, ...rest } = ship;
+        ships.push({ ...rest, hitPoints: SafeInt(newHp) });
+      }
+      if (fleetChanged) fleetsChanged = true;
+      return fleetChanged ? { ...fleet, ships } : fleet;
+    });
+    if (fleetsChanged) {
+      changed = true;
+      updatedNations.set(nationId, { ...nation, fleets });
+    } else {
+      updatedNations.set(nationId, nation);
+    }
+  }
+
+  return changed ? { ...snapshot, nations: updatedNations } : snapshot;
+}
+
+/**
+ * Map the tactical auto-resolution result onto the campaign `BattleResult`
+ * shape (the shape `applyBattleResult` consumes for the DECIDED path and the
+ * shape persisted on `BattleInstance.result`). Ties / time-limit battles carry
+ * null winner/loser (ADR-0026 §7); sunk ids are canonical id-sorted.
+ */
+function toCampaignBattleResult(auto: BattleResolutionResult): BattleResult {
+  return {
+    winnerId: auto.winnerId,
+    loserId: auto.loserId,
+    attackerLosses: [...auto.attackerSunkIds].sort(),
+    defenderLosses: [...auto.defenderSunkIds].sort(),
+    damageReport: auto.damageReport,
+    explanation: [
+      `auto-resolved (${auto.battleEndReason}) after ${String(auto.elapsedMinutes)} battle minutes`,
+    ],
+  };
+}
+
+/** Mark a battle resolved with its recorded campaign result (battles keep
+ *  their canonical snapshot order — the array is mapped in place). */
+function recordResolvedBattle(
+  snapshot: CampaignSnapshot,
+  battle: BattleInstance,
+  result: BattleResult,
+): CampaignSnapshot {
+  const battles = snapshot["wars"]["battles"].map((b) =>
+    b["id"] === battle["id"] ? { ...b, phase: "resolved" as const, result } : b,
+  );
+  return { ...snapshot, wars: { ...snapshot["wars"], battles } };
+}
+
+/**
+ * The M1 legacy battle-resolution path (strength-based, UNCHANGED): resolves
+ * the battle via `BattleResolver`, feeds the A-3 `applyBattleResult`
+ * (war score / ADR-0010 victory classification / nationalContributionPoints),
+ * and records the legacy `BattleResult` with phase "resolved".
+ */
+function resolveLegacyBattle(
+  snapshot: CampaignSnapshot,
+  battle: BattleInstance,
+  attacker: NationState,
+  defender: NationState,
+  randomEngine: import("@bluewave/random").RandomEngine,
+  resolver: BattleResolver,
+  campaignMonth: string,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const result = resolver.resolve(battle, attacker, defender, randomEngine);
+  // The M1 BattleResolver ALWAYS decides (winner/loser non-null) — the A-3
+  // war-score path keeps its exact `{ winnerId: string; loserId: string }`
+  // contract; the nullable campaign BattleResult fields only carry null on the
+  // auto-resolution tie/time-limit path.
+  let next = applyBattleResult(
+    snapshot,
+    battle,
+    { winnerId: result.winnerId!, loserId: result.loserId!, damageReport: result.damageReport },
+    campaignMonth,
+    collector,
+  );
+  next = recordResolvedBattle(next, battle, result);
+  return next;
+}
+
 export class MonthExecutor {
   private lifecycle = new CommandLifecycle();
 
@@ -1591,14 +1589,24 @@ export class MonthExecutor {
     commands: CommandEnvelope<CommandBody>[],
     randomSeed: string,
     collector: DiagnosticCollector,
+    options?: StrategicWeatherPhaseOptions,
+    engineOptions?: MonthExecutorEngineOptions,
   ): MonthResult {
     const commandLedger = new CommandLedger();
     const eventLedger = new EventLedger();
     const randomLedger = new RandomLedger();
     const financialLedger = new FinancialLedger();
+    const phaseGuard = new PhaseGuard(engineOptions?.phaseOverrides);
     let currentSnapshot = cloneSnapshot(snapshot);
     const turnNumber = snapshot["turnNumber"];
-    const campaignMonth = String(turnNumber);
+    // DESIGN-03 §2 / ADR-0025: the authoritative campaign month id is derived
+    // from the snapshot's compiled start date + turn number (integer calendar
+    // arithmetic only — never wall-clock/env/locale).
+    const campaignMonth = campaignMonthId(
+      snapshot["startYear"],
+      snapshot["startMonth"],
+      turnNumber as number,
+    );
 
     let eventSeq = 0;
     function nextSeq(): SafeInt {
@@ -1609,6 +1617,15 @@ export class MonthExecutor {
 
     // Phase 1: opening_validation
     {
+      if (!this.assertPhase(phaseGuard, "opening_validation", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       const ok = this.runOpeningValidation(currentSnapshot, collector);
       if (!ok) {
         return {
@@ -1622,8 +1639,78 @@ export class MonthExecutor {
       }
     }
 
+    // Phase 1.5: weather_generation (registry order 0.5; DESIGN-42 §1 /
+    // ADR-0025). Authoritative per-area current-month StrategicWeatherState
+    // from the canonical default climate profile over the keyed stream
+    // `campaign/weather/<areaId>/<month>`; committed into the snapshot before
+    // command_collection. rngAllowed: true — the ONLY randomness is the keyed
+    // stream inside generateStrategicWeather (recorded in the randomLedger).
+    {
+      if (!this.assertPhase(phaseGuard, "weather_generation", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
+      const areas = [...currentSnapshot["world"]["areas"]].sort((a, b) =>
+        a["id"] < b["id"] ? -1 : a["id"] > b["id"] ? 1 : 0,
+      );
+      const priorByArea = new Map(
+        (currentSnapshot["strategicWeather"] ?? []).map((s) => [s["areaId"], s] as const),
+      );
+      const climateSource = options?.["climateProfiles"];
+      const profileFor = (areaId: string): ClimateProfile | undefined =>
+        climateSource === undefined ? defaultClimateProfile_v1 : climateSource.get(areaId);
+
+      const nextWeather: CampaignWeatherState[] = [];
+      for (const area of areas) {
+        const profile = profileFor(area["id"]);
+        if (!profile) {
+          collector.addError(
+            WEATHER_PROFILE_INCOMPLETE,
+            `No climate profile for strategic area ${area["id"]}`,
+            { stage: "weather_generation", entityId: area["id"] },
+          );
+          continue; // fail-closed: recorded, area simply not committed this month
+        }
+        try {
+          nextWeather.push(
+            generateStrategicWeather({
+              areaId: area["id"],
+              month: campaignMonth,
+              climateProfile: profile,
+              campaignSeed: randomSeed,
+              priorState: priorByArea.get(area["id"]),
+              randomLedger,
+            }),
+          );
+        } catch (e) {
+          collector.addError(
+            WEATHER_PROFILE_INCOMPLETE,
+            `Strategic weather generation failed for area ${area["id"]}: ${(e as Error).message}`,
+            { stage: "weather_generation", entityId: area["id"] },
+          );
+        }
+      }
+      if (nextWeather.length > 0 || (currentSnapshot["strategicWeather"] ?? []).length > 0) {
+        currentSnapshot = { ...currentSnapshot, strategicWeather: nextWeather };
+      }
+    }
+
     // Phase 2: monthly_revenue
     {
+      if (!this.assertPhase(phaseGuard, "monthly_revenue", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if (!nation["isPlayable"] && !nation["isAI"]) continue;
         const baseResources = nation["baseResources"] ?? (0 as SafeInt);
@@ -1668,7 +1755,7 @@ export class MonthExecutor {
             revenue,
             "Monthly naval appropriation revenue",
             nextSeq(),
-            turnNumber,
+            campaignMonth,
           ),
         );
       }
@@ -1676,6 +1763,15 @@ export class MonthExecutor {
 
     // Phase 3: command_collection
     {
+      if (!this.assertPhase(phaseGuard, "command_collection", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       const slot = snapshot["slots"][0];
       if (slot) {
         for (const cmd of commands) {
@@ -1819,9 +1915,18 @@ export class MonthExecutor {
 
     // Phase 3.5: ai_planning
     {
+      if (!this.assertPhase(phaseGuard, "ai_planning", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       const idempotencyMap = new CommandIdempotencyMap();
       const aiExecutor = new AiPhaseExecutor();
-      const aiEngine = new RandomEngine(randomSeed);
+      const aiEngine = phaseGuard.rng("ai_planning", randomSeed)!;
       for (const slot of snapshot["slots"]) {
         if (slot["type"] !== "ai") continue;
         const { commands, diagnostics } = aiExecutor.run(
@@ -1865,6 +1970,15 @@ export class MonthExecutor {
 
     // Phase 4: appropriation
     {
+      if (!this.assertPhase(phaseGuard, "appropriation", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if (!nation["isPlayable"] && !nation["isAI"]) continue;
         const expenseReserve = nation["expenses"];
@@ -1983,7 +2097,7 @@ export class MonthExecutor {
               SafeInt.mul(totalDelta, SafeInt(-1)),
               "Proportional appropriation to construction projects",
               nextSeq(),
-              turnNumber,
+              campaignMonth,
             ),
           );
         }
@@ -1992,6 +2106,15 @@ export class MonthExecutor {
 
     // Phase 5: maintenance
     {
+      if (!this.assertPhase(phaseGuard, "maintenance", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if (!nation["isPlayable"] && !nation["isAI"]) continue;
 
@@ -2039,7 +2162,7 @@ export class MonthExecutor {
             SafeInt.mul(totalMaintenance, SafeInt(-1)),
             "Monthly ship maintenance costs",
             nextSeq(),
-            turnNumber,
+            campaignMonth,
           ),
         );
       }
@@ -2047,6 +2170,15 @@ export class MonthExecutor {
 
     // Phase 6: obligation
     {
+      if (!this.assertPhase(phaseGuard, "obligation", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if (!nation["isPlayable"] && !nation["isAI"]) continue;
         const expense = nation["expenses"];
@@ -2092,7 +2224,7 @@ export class MonthExecutor {
             SafeInt.mul(expense, SafeInt(-1)),
             "Mandatory fixed expenses",
             nextSeq(),
-            turnNumber,
+            campaignMonth,
           ),
         );
       }
@@ -2100,6 +2232,15 @@ export class MonthExecutor {
 
     // Phase 7: construction_processing
     {
+      if (!this.assertPhase(phaseGuard, "construction_processing", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       for (const [nationId, nation] of currentSnapshot["nations"]) {
         if (!nation["isPlayable"] && !nation["isAI"]) continue;
 
@@ -2169,12 +2310,15 @@ export class MonthExecutor {
               if (design) {
                 shipHitPoints = design["hitPoints"];
                 shipMaxHitPoints = design["hitPoints"];
-                shipSpeed = design["normalizedSpeedUms"];
+                // ADR-0037: compiled design fields are canonical µm / µm·s⁻¹;
+                // the abstracted Ship stats are knots / mm (and a coarse
+                // firepower heuristic), so convert back for display/balance.
+                shipSpeed = SafeInt.div(design["normalizedSpeedUms"], SafeInt(KNOTS_TO_UMS), "floor");
                 shipFirepower = SafeInt.mul(
                   design["mainGunsCount"],
-                  SafeInt.div(design["mainGunsCaliber"], SafeInt(100), "floor"),
+                  SafeInt.div(design["mainGunsCaliber"], SafeInt(100_000), "floor"),
                 );
-                shipArmor = design["normalizedArmorUm"];
+                shipArmor = SafeInt.div(design["normalizedArmorUm"], SafeInt(MM_TO_UM), "floor");
                 shipClassName = design["className"];
               }
             }
@@ -2209,7 +2353,7 @@ export class MonthExecutor {
               clampedWork,
               SafeInt.sub(clampedWork, project["completedWork"]),
               nextSeq(),
-              turnNumber,
+              campaignMonth,
             ),
           );
         }
@@ -2229,11 +2373,29 @@ export class MonthExecutor {
 
     // Phase 8: resolve_diplomacy
     {
+      if (!this.assertPhase(phaseGuard, "resolve_diplomacy", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       currentSnapshot = resolveDiplomacyPhase(currentSnapshot, campaignMonth);
     }
 
     // Phase 9: resolve_research
     {
+      if (!this.assertPhase(phaseGuard, "resolve_research", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       currentSnapshot = resolveResearchPhase(
         currentSnapshot,
         randomSeed,
@@ -2253,6 +2415,15 @@ export class MonthExecutor {
     // collections ABSENT so a no-war month's final-state hash is unchanged
     // (AC-12 pin). Uses no randomness for reachable missions in B-1.
     {
+      if (!this.assertPhase(phaseGuard, "battle_generation", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       const hadWars = (currentSnapshot["wars"]["wars"] ?? []).some(
         (w) => w["status"] === "ACTIVE" || w["status"] === "DECLARED_NOT_ACTIVE",
       );
@@ -2332,14 +2503,44 @@ export class MonthExecutor {
       }
     }
 
-    // Phase 10: battle_resolution
+    // Phase 10: battle_resolution (registry order 8). B-6 INC-3 (AC-8):
+    // manifest-carrying pending/resolving battles resolve deterministically via
+    // `resolveBattleAuto` (@bluewave/combat, INC-2) with the campaign's
+    // committed ships/divisions/weather for that battle; the result feeds the
+    // UNCHANGED A-3 `applyBattleResult` (war score / ADR-0010 victory
+    // classification / nationalContributionPoints) for DECIDED battles, applies
+    // per-ship damage/loss + reservation clearing (AC-9), and records
+    // `BattleInstance.result` + phase "resolved".
+    //
+    // - A battle WITHOUT a manifest keeps the M1 `BattleResolver` strength path
+    //   exactly as today (unchanged; the accepted M1 auto-resolution).
+    // - A manifest battle whose auto-resolution fails closed (missing committed
+    //   weather / missing design / malformed manifest — INC-2 throws a stable
+    //   BluewaveError BEFORE any consequence) records the stable diagnostic and
+    //   falls back to the same legacy path: never crashes, never a partial
+    //   mutation.
+    // - A battle whose `manifestHash` matches NO stored manifest is a broken
+    //   invariant: stable diagnostic + NO mutation (battle stays pending).
+    // - Null winner/loser (time_limit / both-non-viable tie, ADR-0026 §7):
+    //   `applyBattleResult` is called ONLY for decided battles; a tie applies
+    //   no war score / victory class / contribution delta but still records
+    //   damage/loss, the battle result, and reservation clearing (INC-3 ADR).
     {
+      if (!this.assertPhase(phaseGuard, "battle_resolution", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       const battles = currentSnapshot["wars"]["battles"].filter(
         (b) => b["phase"] === "pending" || b["phase"] === "resolving",
       );
 
       if (battles.length > 0) {
-        const randomEngine = new RandomEngine(randomSeed);
+        const randomEngine = phaseGuard.rng("battle_resolution", randomSeed)!;
         const resolver = new BattleResolver();
 
         for (const battle of battles) {
@@ -2354,29 +2555,154 @@ export class MonthExecutor {
             continue;
           }
 
-          const result = resolver.resolve(battle, attacker, defender, randomEngine);
+          const manifest = resolveBattleManifest(currentSnapshot, battle);
+          const hasManifestHash = battle["manifestHash"] !== undefined;
 
-          currentSnapshot = applyBattleResult(
-            currentSnapshot,
-            battle,
-            result,
-            campaignMonth,
-            collector,
-          );
+          // Two fail-fast branches, then `manifest` is guaranteed non-null for
+          // the tactical auto-resolution path below (narrowed by the union):
+          //  - no manifestHash -> M1 legacy strength path, unchanged;
+          //  - manifestHash with NO matching stored manifest -> corrupted
+          //    invariant: stable diagnostic, never a partial/silent resolution.
+          if (!hasManifestHash || manifest === null) {
+            if (hasManifestHash) {
+              collector.addError(
+                BATTLE_AUTO_RESOLUTION_FAILED,
+                `Battle ${battle["id"]} declares manifestHash ${battle["manifestHash"]} but no matching battle manifest exists in the snapshot`,
+                { stage: "battle-resolution", entityId: battle["id"] },
+              );
+              continue;
+            }
+            // M1 legacy strength path — unchanged (no manifest -> no tactical
+            // auto-resolution available).
+            currentSnapshot = resolveLegacyBattle(
+              currentSnapshot,
+              battle,
+              attacker,
+              defender,
+              randomEngine,
+              resolver,
+              campaignMonth,
+              collector,
+            );
+            continue;
+          }
 
-          const updatedBattles = currentSnapshot["wars"]["battles"].map((b) =>
-            b["id"] === battle["id"] ? { ...b, phase: "resolved" as const, result } : b,
+          // Tactical auto-resolution (AC-3 fail-closed: the battle area MUST
+          // have committed strategic weather from the weather_generation phase).
+          const strategicWeather = currentSnapshot["strategicWeather"].find(
+            (s) => s["areaId"] === battle["areaId"],
           );
-          currentSnapshot = {
-            ...currentSnapshot,
-            wars: { ...currentSnapshot["wars"], battles: updatedBattles },
-          };
+          if (!strategicWeather) {
+            collector.addError(
+              INVALID_BATTLE_WEATHER_INITIALIZATION,
+              `Battle ${battle["id"]} has a manifest but no committed strategic weather for area ${battle["areaId"]} — resolving via the legacy strength path`,
+              { stage: "battle-resolution", entityId: battle["id"] },
+            );
+            currentSnapshot = resolveLegacyBattle(
+              currentSnapshot,
+              battle,
+              attacker,
+              defender,
+              randomEngine,
+              resolver,
+              campaignMonth,
+              collector,
+            );
+            continue;
+          }
+
+          try {
+            const autoResult = resolveBattleAuto({
+              battleId: battle["id"],
+              areaId: battle["areaId"],
+              campaignMonth,
+              manifest,
+              attacker: {
+                nationId: attacker["id"],
+                ships: attacker["fleets"].flatMap((f) => f["ships"]),
+                designs: currentSnapshot["designs"],
+                divisions: attacker["divisions"],
+              },
+              defender: {
+                nationId: defender["id"],
+                ships: defender["fleets"].flatMap((f) => f["ships"]),
+                designs: currentSnapshot["designs"],
+                divisions: defender["divisions"],
+              },
+              strategicWeather,
+              campaignSeed: randomSeed,
+              rulesetVersion: currentSnapshot["rulesetVersion"],
+              formulaVersion: manifest["formulaVersion"],
+              rngVersion: manifest["rngVersion"],
+              randomLedger,
+            });
+
+            // A-3 war-score path, UNCHANGED — but only for DECIDED battles. A
+            // tie / time-limit end (both winnerId and loserId null, ADR-0026
+            // §7) contributes NO war score, NO victory class, NO contribution
+            // delta; it still applies ship damage/loss, records the battle
+            // result, and clears reservations below.
+            if (autoResult.winnerId !== null && autoResult.loserId !== null) {
+              currentSnapshot = applyBattleResult(
+                currentSnapshot,
+                battle,
+                {
+                  winnerId: autoResult.winnerId,
+                  loserId: autoResult.loserId,
+                  damageReport: autoResult.damageReport,
+                },
+                campaignMonth,
+                collector,
+              );
+            }
+
+            currentSnapshot = applyBattleConsequences(currentSnapshot, battle, autoResult);
+            currentSnapshot = recordResolvedBattle(
+              currentSnapshot,
+              battle,
+              toCampaignBattleResult(autoResult),
+            );
+          } catch (e) {
+            // Fail-closed auto-resolution: INC-2 throws a stable BluewaveError
+            // code BEFORE any consequence is applied. Record the diagnostic and
+            // resolve via the accepted M1 legacy path — never crash, never a
+            // partial tactical mutation.
+            const ctxCode =
+              e instanceof BluewaveError && typeof e.context?.["code"] === "string"
+                ? (e.context["code"] as string)
+                : "";
+            const code = ctxCode.length > 0 ? ctxCode : BATTLE_AUTO_RESOLUTION_FAILED;
+            collector.addError(
+              code,
+              `Battle auto-resolution failed for ${battle["id"]}: ${(e as Error).message ?? String(e)}`,
+              { stage: "battle-resolution", entityId: battle["id"] },
+            );
+            currentSnapshot = resolveLegacyBattle(
+              currentSnapshot,
+              battle,
+              attacker,
+              defender,
+              randomEngine,
+              resolver,
+              campaignMonth,
+              collector,
+            );
+          }
         }
       }
     }
 
     // Phase 11: closing_validation
     {
+      if (!this.assertPhase(phaseGuard, "closing_validation", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
       const diagnostics: string[] = [];
 
       for (const [nationId, nation] of currentSnapshot["nations"]) {
@@ -2413,6 +2739,42 @@ export class MonthExecutor {
         success: !hasErrors,
       };
     }
+  }
+
+  /**
+   * ADR-0036: enforce the phase registry contract at runtime. Asserts the
+   * phase's authoritative footprint against its registry-declared
+   * read/writePermissions + rngAllowed. On any violation, records a stable
+   * PHASE_ACCESS_DENIED diagnostic and returns false — the caller fails the
+   * phase closed (the phase body does not run).
+   */
+  private assertPhase(guard: PhaseGuard, phaseId: string, collector: DiagnosticCollector): boolean {
+    const footprint = PHASE_FOOTPRINTS[phaseId];
+    const violations =
+      footprint === undefined
+        ? [`phase "${phaseId}" has no registered runtime footprint`]
+        : guard.assert(phaseId, footprint);
+    for (const message of violations) {
+      collector.addError(PHASE_ACCESS_DENIED, message, { stage: phaseId });
+    }
+    return violations.length === 0;
+  }
+
+  private failClosed(
+    finalSnapshot: CampaignSnapshot,
+    commandLedger: CommandLedger,
+    eventLedger: EventLedger,
+    randomLedger: RandomLedger,
+    financialLedger: FinancialLedger,
+  ): MonthResult {
+    return {
+      finalSnapshot,
+      commandLedger,
+      eventLedger,
+      randomLedger,
+      financialLedger,
+      success: false,
+    };
   }
 
   private runOpeningValidation(

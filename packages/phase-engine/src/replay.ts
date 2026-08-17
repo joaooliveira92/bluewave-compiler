@@ -1,7 +1,7 @@
 import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
-import type { CommandEnvelope, CommandBody, CommandLedger } from "@bluewave/commands";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
+import type { CommandBody, CommandEnvelope, CommandLedger } from "@bluewave/commands";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { MonthExecutor } from "./month.js";
 
 export interface ReplayStepResult {
@@ -50,6 +50,12 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
     version: snapshot.version,
     turnNumber: snapshot.turnNumber,
     campaignId: snapshot.campaignId,
+    // B-6/ADR-0025: canonical start date + current-month per-area weather are
+    // part of the authoritative snapshot surface (hash parity with the
+    // cross-process child's snapshotToHashable).
+    startYear: snapshot.startYear,
+    startMonth: snapshot.startMonth,
+    strategicWeather: (snapshot.strategicWeather ?? []).map((s) => ({ ...s })),
     slots: snapshot.slots.map((s) => ({ ...s })),
     world: {
       areas: snapshot.world.areas.map((a) => ({ ...a })),

@@ -20,17 +20,18 @@
   (`disable-model-invocation` ignored — invoke by name through the skill tool):
   1. **`wayfinder`** (chart) — huge/foggy efforts become a `map.md` + decision
      tickets on the `.scratch/` tracker, worked one decision ticket per session.
-  2. **spec-creator** (read-only, uses **`to-spec`**) — turns the brief/
-     conversation into `.scratch/<slug>/spec.md` (acceptance criteria→requirement
-     IDs, user stories, decisions, tests, definition of done) with a
-     `ready-for-agent` pointer; `.ai/specs/` is an index, not a store.
-  3. **research** (read-only, uses **`research`**) — grounds content/data
-     decisions in high-trust primary sources, writing `docs/research/` notes.
+  2. **spec-creator** (writes the spec only, uses **`to-spec`**) — turns the
+     brief/conversation into `.scratch/<slug>/spec.md` (acceptance criteria→requirement
+     IDs, user stories, decisions, tests, definition of done) with a pointer in
+     `.ai/specs/` (an index, not a store); never edits code.
+  3. **research** (writes research notes only, uses **`research`**) — grounds
+     content/data decisions in high-trust primary sources, writing
+     `docs/research/` notes; never edits code.
   4. **`to-tickets`** (slice) — breaks an approved spec into frontier-ordered
      **vertical implementation tickets** (`.scratch/<slug>/issues/`) with blocking
      edges.
   5. **implementator** (edit+run) — works the **frontier** (open, unblocked,
-     `ready-for-agent`) ticket one at a time per `.ai/ENGINEERING-CONTRACT.md`,
+     `Frontier: yes`) ticket one at a time per `.ai/ENGINEERING-CONTRACT.md`,
      writes code + tests, runs focused validation, returns exact commands + results
      - changed-file list.
   6. **reviewer** (read-only) — adversarial pass per `.ai/REVIEW-PROMPT.md`

@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { CampaignCompiler, type CampaignCompilerOutput } from "@bluewave/campaign/compiler";
+import { CURRENT_COMPATIBILITY_VERSION } from "@bluewave/persistence";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 
 export interface CompileResult {
@@ -63,7 +64,7 @@ export function runCompilation(contentDir: string, signal: AbortSignal): Compile
           designFiles: (files.designs ?? []).map((f) => resolve(contentDir, f)),
         },
         rulesetVersion: "1.0",
-        compatibilityVersion: "1.0.0",
+        compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
       },
       signal,
       collector,
@@ -110,6 +111,7 @@ export function compileProductionCampaign(
   contentDir: string,
   signal: AbortSignal,
   collector: DiagnosticCollector,
+  campaignStart?: { startYear: number; startMonth: number },
 ): CampaignCompilerOutput | undefined {
   if (!existsSync(contentDir)) {
     collector.addError("CAMPAIGN-PATH", `Directory not found: ${contentDir}`, {
@@ -151,7 +153,12 @@ export function compileProductionCampaign(
         designFiles: (files.designs ?? []).map((f) => resolve(contentDir, f)),
       },
       rulesetVersion: "1.0",
-      compatibilityVersion: "1.0.0",
+      compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
+      // B-6/ADR-0025: the selected scenario's start date anchors every derived
+      // campaign month id; the compiled snapshot stamps it authoritatively.
+      // When absent the compiler falls back to the canonical default
+      // (scen_1880: January 1880).
+      campaignStart,
     },
     signal,
     collector,

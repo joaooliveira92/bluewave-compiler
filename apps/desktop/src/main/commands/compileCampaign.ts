@@ -6,6 +6,7 @@ import { SaveStore } from "@bluewave/persistence";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type { CompileCampaignResult } from "../../shared/campaign-command-contract.js";
 import { registerCampaignSession } from "../campaignSessions.js";
+import { writeSessionMetadata } from "../campaignSessionMetadata.js";
 import { compileProductionCampaign } from "../compiler.js";
 import { resolveProductionPackDir } from "../contentPack.js";
 import { toSaveableState } from "../saveHelpers.js";
@@ -65,7 +66,13 @@ export async function compileCampaign(
   const compileCollector = new DiagnosticCollector();
   let output: ReturnType<typeof compileProductionCampaign>;
   try {
-    output = compileProductionCampaign(deps.contentDir, signal, compileCollector);
+    // B-6/ADR-0025: thread the scenario's start calendar date into the compile
+    // so the snapshot stamps authoritative startYear/startMonth (the month ids
+    // every later campaign month — incl. the weather stream — derive from).
+    output = compileProductionCampaign(deps.contentDir, signal, compileCollector, {
+      startYear: session.currentYear,
+      startMonth: session.currentMonth,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { outcome: "error", reason: "COMPILE_FAILED", diagnostics: [message] };
@@ -119,6 +126,30 @@ export async function compileCampaign(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { outcome: "error", reason: "SAVE_FAILED", diagnostics: [message] };
+  }
+
+  // Ticket 16: the continuance sidecar. `SaveStore`'s package stores the
+  // authoritative `CampaignState`, but a session restored on load also needs
+  // the player's slot, seed, and scenario — none of which live in the
+  // snapshot. This app-owned file (invisible to SaveStore, outside its
+  // integrity envelope) is what makes a later `loadCampaign`/
+  // `replayCampaign` able to restore the real campaign instead of a hollow
+  // shell. `writeSessionMetadata` is atomic (tmp+rename); a failure here
+  // means the package is incomplete and the command reports SAVE_FAILED.
+  try {
+    writeSessionMetadata(saveDir, {
+      schemaVersion: "session_meta_v1",
+      scenarioId: configuration.scenarioId,
+      playerSlotId: configuration.playerSlotId,
+      campaignSeed: configuration.campaignSeed,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      outcome: "error",
+      reason: "SAVE_FAILED",
+      diagnostics: [`Package saved but session metadata could not be written: ${message}`],
+    };
   }
 
   const sessionId = deps.generateSessionId();

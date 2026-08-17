@@ -1,17 +1,17 @@
-﻿import { describe, it, expect, beforeAll, afterAll } from "vite-plus/test";
-import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { CampaignCompiler } from "@bluewave/campaign/compiler";
-import type { CampaignState, CampaignSnapshot, NationState } from "@bluewave/campaign";
-import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
-import { CommandLifecycle, CommandIdempotencyMap } from "@bluewave/commands";
-import { SaveStore } from "@bluewave/persistence";
-import { MonthExecutor, ReplayVerifier, PhaseEngine, PhaseRegistry } from "../src/index.js";
-import { mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
-import { resolve, join } from "node:path";
+﻿import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import type { CampaignSnapshot, CampaignState, NationState } from "@bluewave/campaign";
+import { CampaignCompiler } from "@bluewave/campaign/compiler";
+import type { BudgetProjectCommand, CommandEnvelope } from "@bluewave/commands";
+import { CommandIdempotencyMap, CommandLifecycle } from "@bluewave/commands";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { SaveStore } from "@bluewave/persistence";
 import { nationsYaml } from "@bluewave/test-support";
+import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
+import { MonthExecutor, PhaseRegistry, ReplayVerifier } from "../src/index.js";
 
 const FIXTURE = {
   pack: JSON.stringify({
@@ -114,7 +114,7 @@ function compileCampaign(fixtureDir: string): CampaignState {
         designFiles: [],
       },
       rulesetVersion: "1.0",
-      compatibilityVersion: "1.0.0",
+      compatibilityVersion: "1.1.0",
     },
     signal,
     collector,
@@ -158,6 +158,12 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
     version: snapshot.version,
     turnNumber: snapshot.turnNumber,
     campaignId: snapshot.campaignId,
+    // B-6/ADR-0025: start date + current-month weather are part of the
+    // authoritative snapshot surface (hash parity with ReplayVerifier /
+    // run-child).
+    startYear: snapshot.startYear,
+    startMonth: snapshot.startMonth,
+    strategicWeather: (snapshot.strategicWeather ?? []).map((s) => ({ ...s })),
     slots: snapshot.slots.map((s) => ({ nationId: s.nationId, type: s.type })),
     world: {
       areas: snapshot.world.areas.map((a) => ({ ...a })),
@@ -412,7 +418,7 @@ describe("Full-slice integration", () => {
 
   // 10. No ship in two unresolved battles
   it("10. No ship in two unresolved battles", () => {
-    const engine = new PhaseEngine();
+    const executor = new MonthExecutor();
     const nations = new Map<string, NationState>();
     const gbrNation = {
       id: "GBR",
@@ -470,6 +476,9 @@ describe("Full-slice integration", () => {
       version: "0.1.0",
       turnNumber: SafeInt(1),
       campaignId: "test-ship-battles",
+      startYear: 1880,
+      startMonth: 1,
+      strategicWeather: [],
       slots: [{ nationId: "GBR", type: "playable" }],
       world: { areas: [], routes: [], ports: [] },
       nations,
@@ -508,11 +517,10 @@ describe("Full-slice integration", () => {
     };
 
     const collector = new DiagnosticCollector();
-    const result = engine.executeTurn(testSnapshot, [], "test-seed", collector);
+    const result = executor.execute(testSnapshot, [], "test-seed", collector);
 
-    const opening = result.phaseResults[0]!;
-    expect(opening.success).toBe(false);
-    const shipDiag = opening.diagnostics!.filter((d) => d.includes("multiple battles"));
+    expect(result.success).toBe(false);
+    const shipDiag = collector.errors.filter((d) => d.code === "SHIP_IN_MULTIPLE_BATTLES");
     expect(shipDiag.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -531,8 +539,7 @@ describe("Full-slice integration", () => {
   });
 
   // 12. Phase order enforced
-  it("12. Phase order, cursor, aggregate ownership, and permitted RNG families enforced", () => {
-    const engine = new PhaseEngine();
+  it("12. Phase order, aggregate ownership, and permitted RNG families enforced", () => {
     const phases = PhaseRegistry.all;
 
     for (let i = 0; i < phases.length - 1; i++) {
@@ -545,11 +552,8 @@ describe("Full-slice integration", () => {
       "battle_generation",
       "battle_resolution",
       "resolve_research",
+      "weather_generation",
     ]);
-
-    const ctx = engine.initializeTurn(snapshot);
-    expect(ctx.currentPhase.id).toBe("opening_validation");
-    expect(ctx.currentPhaseIndex).toBe(0 as SafeInt);
 
     const openingPhase = PhaseRegistry.getByOrder(0)!;
     expect(openingPhase.rngAllowed).toBe(false);
@@ -559,27 +563,48 @@ describe("Full-slice integration", () => {
     expect(commandCollectPhase.rngAllowed).toBe(false);
   });
 
-  // 13. No-op evidence
-  it("13. Deferred phases emit versioned no-op evidence, consume no randomness", () => {
-    const engine = new PhaseEngine();
-    const emptyNations = new Map<string, NationState>();
-    const emptySnapshot: CampaignSnapshot = {
-      ...snapshot,
-      nations: emptyNations,
-      turnNumber: SafeInt(3),
-    };
-
+  // 13. Registry access rules enforced at runtime (fails closed)
+  it("13. A phase that writes a resource it lacks permission for fails closed with a diagnostic", () => {
+    const executor = new MonthExecutor();
     const collector = new DiagnosticCollector();
-    const result = engine.executeTurn(emptySnapshot, [], "seed", collector);
+    const overrides = new Map([
+      ["monthly_revenue", { ...PhaseRegistry.getById("monthly_revenue")!, writePermissions: [] }],
+    ]);
 
-    const noOpPhases = result.phaseResults.filter((p) => p.noOp === true && p.evidence);
-    expect(noOpPhases.length).toBeGreaterThanOrEqual(1);
+    const result = executor.execute(snapshot, [], "seed", collector, undefined, {
+      phaseOverrides: overrides,
+    });
 
-    for (const phase of noOpPhases) {
-      expect(phase.evidence!.version).toBe("0.1.0");
-      expect(phase.evidence!.turnNumber).toBe(3);
-      expect(phase.success).toBe(true);
-    }
+    expect(result.success).toBe(false);
+    const denied = collector.errors.filter((d) => d.code === "PHASE_ACCESS_DENIED");
+    expect(denied.length).toBeGreaterThanOrEqual(1);
+    expect(denied[0]!.message).toContain('phase "monthly_revenue"');
+  });
+
+  it("13b. A phase whose registry denies randomness fails closed at runtime", () => {
+    const executor = new MonthExecutor();
+    const collector = new DiagnosticCollector();
+    // resolve_research normally draws randomness; override it to rngAllowed=false.
+    const overrides = new Map([
+      [
+        "resolve_research",
+        {
+          ...PhaseRegistry.getById("resolve_research")!,
+          readPermissions: ["research", "treasury"],
+          writePermissions: ["research", "treasury"],
+          rngAllowed: false,
+        },
+      ],
+    ]);
+
+    const result = executor.execute(snapshot, [], "seed", collector, undefined, {
+      phaseOverrides: overrides,
+    });
+
+    expect(result.success).toBe(false);
+    const denied = collector.errors.filter((d) => d.code === "PHASE_ACCESS_DENIED");
+    expect(denied.length).toBeGreaterThanOrEqual(1);
+    expect(denied[0]!.message).toContain('phase "resolve_research"');
   });
 
   // 14. Corrupt save rejection
@@ -756,6 +781,9 @@ describe("Full-slice integration", () => {
       version: "0.1.0",
       turnNumber: SafeInt(1),
       campaignId: "test-battle-narrow",
+      startYear: 1880,
+      startMonth: 1,
+      strategicWeather: [],
       slots: [
         { nationId: "GBR", type: "playable" },
         { nationId: "FRA", type: "ai" },
@@ -834,18 +862,20 @@ describe("Full-slice integration", () => {
       expect(project.completedWork as number).toBeLessThanOrEqual(project.totalWork as number);
     }
 
-    const engine = new PhaseEngine();
-    const emptyNations = new Map<string, NationState>();
-    const emptySnapshot: CampaignSnapshot = {
-      ...snapshot,
-      nations: emptyNations,
-      turnNumber: SafeInt(1),
-    };
+    // Closing validation still runs to completion on an empty month via the
+    // single MonthExecutor path (no alternate engine facade).
     const phaseCollector = new DiagnosticCollector();
-    const phaseResult = engine.executeTurn(emptySnapshot, [], "seed", phaseCollector);
-
-    const closing = phaseResult.phaseResults[phaseResult.phaseResults.length - 1]!;
-    expect(closing.phaseId).toBe("closing_validation");
-    expect(closing.success).toBe(true);
+    const phaseResult = executor.execute(
+      {
+        ...snapshot,
+        nations: new Map<string, NationState>(),
+        slots: [],
+        turnNumber: SafeInt(1),
+      },
+      [],
+      "seed",
+      phaseCollector,
+    );
+    expect(phaseResult.success).toBe(true);
   });
 });

@@ -11,6 +11,9 @@ function makeTestSnapshot(treasury: SafeInt = SafeInt(1000)): CampaignSnapshot {
     version: "0.1.0",
     turnNumber: SafeInt(1),
     campaignId: "test-campaign",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: [{ nationId: "GBR", type: "playable" }],
     world: { areas: [], routes: [], ports: [] },
     nations: new Map([

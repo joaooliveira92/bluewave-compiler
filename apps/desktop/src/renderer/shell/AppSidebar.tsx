@@ -25,9 +25,13 @@ export interface AppSidebarProps {
 export function AppSidebar({ screen, onSelect, footer }: AppSidebarProps) {
   if (
     screen === "file" ||
+    screen === "new-game-nation" ||
     screen === "new-game-preferences" ||
     screen === "new-game-archetype" ||
-    screen === "new-game-nation"
+    screen === "new-game-identity" ||
+    screen === "new-game-fleet-method" ||
+    screen === "new-game-review" ||
+    screen === "opening-briefing"
   ) {
     return (
       <Sidebar collapsible="icon">

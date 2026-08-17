@@ -1,10 +1,10 @@
-﻿import { describe, it, expect } from "vite-plus/test";
+﻿import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
+import type { BudgetProjectCommand, CommandEnvelope } from "@bluewave/commands";
 import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
-import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
-import { MonthExecutor } from "../src/index.js";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
+import { MonthExecutor, PHASE_FOOTPRINTS, PhaseGuard, PhaseRegistry } from "../src/index.js";
 
 function createSnapshot(overrides?: Partial<CampaignSnapshot>): CampaignSnapshot {
   const nations = new Map<string, NationState>();
@@ -63,6 +63,9 @@ function createSnapshot(overrides?: Partial<CampaignSnapshot>): CampaignSnapshot
     version: "0.1.0",
     turnNumber: SafeInt(1),
     campaignId: "test-campaign-06",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: [{ nationId: "GBR", type: "playable" }],
     world: { areas: [], routes: [], ports: [] },
     nations,
@@ -396,6 +399,44 @@ describe("MonthExecutor", () => {
     expect(fleet["ships"].length).toBe(1);
     expect(fleet["ships"][0]["isUnderConstruction"]).toBe(false);
     expect(fleet["ships"][0]["classId"]).toBe("new-ship-1");
+  });
+
+  it("registry access rules enforced at runtime: a denied write fails closed without mutating", () => {
+    const executor = new MonthExecutor();
+    const snapshot = createSnapshot();
+    const collector = new DiagnosticCollector();
+    // Deny monthly_revenue its treasury write; its runtime footprint requires it.
+    const overrides = new Map([
+      ["monthly_revenue", { ...PhaseRegistry.getById("monthly_revenue")!, writePermissions: [] }],
+    ]);
+
+    const result = executor.execute(snapshot, [], "seed", collector, undefined, {
+      phaseOverrides: overrides,
+    });
+
+    expect(result.success).toBe(false);
+    expect(collector.errors.some((d) => d.code === "PHASE_ACCESS_DENIED")).toBe(true);
+    // Fail-closed: the denied phase did not run, so revenue was never applied.
+    const gbr = result.finalSnapshot.nations.get("GBR")!;
+    expect(gbr.treasury as number).toBe(500);
+  });
+
+  it("registry access rules enforced at runtime: a well-formed run is never denied", () => {
+    const executor = new MonthExecutor();
+    const snapshot = createSnapshot();
+    const collector = new DiagnosticCollector();
+    const guard = new PhaseGuard();
+    const result = executor.execute(snapshot, [], "seed", collector);
+
+    expect(result.success).toBe(true);
+    expect(collector.errors.some((d) => d.code === "PHASE_ACCESS_DENIED")).toBe(false);
+    // Every phase's authoritative footprint sits within its declared permissions,
+    // so a well-formed run is never denied at runtime.
+    for (const phase of PhaseRegistry.all) {
+      const footprint = PHASE_FOOTPRINTS[phase.id];
+      expect(footprint, phase.id).toBeDefined();
+      expect(guard.assert(phase.id, footprint), phase.id).toEqual([]);
+    }
   });
 
   it("zero payment produces zero progress (paid-work rule)", () => {

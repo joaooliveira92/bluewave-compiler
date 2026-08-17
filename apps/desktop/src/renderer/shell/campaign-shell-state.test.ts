@@ -10,6 +10,7 @@ import {
 const campaign = {
   month: { year: 1900, month: 1 },
   treasury: 50_000,
+  revision: 1,
   sessionId: "ses_1",
 };
 
@@ -158,6 +159,30 @@ describe("campaign shell state", () => {
     expect(changed).not.toBe(state);
   });
 
+  it("guards against a stale commit before the shell is open", () => {
+    const started = reduceCampaignShell(initialCampaignShellState(), {
+      type: "month-commit-started",
+    });
+    expect(started.committing).toBe(true);
+    expect(started.saveMessage).toBeNull();
+
+    const committed = reduceCampaignShell(started, {
+      type: "month-committed",
+      campaign: { ...campaign, revision: 2 },
+    });
+    expect(committed.committing).toBe(false);
+    expect(committed.campaign?.revision).toBe(2);
+  });
+
+  it("reports a failed commit and leaves the shell ready to retry", () => {
+    const state = reduceCampaignShell(initialCampaignShellState(), {
+      type: "month-commit-failed",
+      message: "SIMULATION_END_REACHED",
+    });
+    expect(state.committing).toBe(false);
+    expect(state.saveMessage).toBe("SIMULATION_END_REACHED");
+  });
+
   it("derives explicit variants for file, new-game, opening, error, and campaign modes", () => {
     const file = initialCampaignShellState();
     expect(campaignShellMode(file)).toEqual({ kind: "file", screen: "file" });
@@ -197,6 +222,35 @@ describe("campaign shell state", () => {
       kind: "campaign",
       screen: "overview",
       campaign,
+    });
+  });
+
+  it("derives explicit variants for nation, identity, and fleet-method modes", () => {
+    const nation = reduceCampaignShell(initialCampaignShellState(), {
+      type: "visit",
+      screen: "new-game-nation",
+    });
+    expect(campaignShellMode(nation)).toEqual({
+      kind: "new-game-nation",
+      screen: "new-game-nation",
+    });
+
+    const identity = reduceCampaignShell(initialCampaignShellState(), {
+      type: "visit",
+      screen: "new-game-identity",
+    });
+    expect(campaignShellMode(identity)).toEqual({
+      kind: "new-game-identity",
+      screen: "new-game-identity",
+    });
+
+    const fleetMethod = reduceCampaignShell(initialCampaignShellState(), {
+      type: "visit",
+      screen: "new-game-fleet-method",
+    });
+    expect(campaignShellMode(fleetMethod)).toEqual({
+      kind: "new-game-fleet-method",
+      screen: "new-game-fleet-method",
     });
   });
 });

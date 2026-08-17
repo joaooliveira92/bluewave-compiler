@@ -1,6 +1,13 @@
 Type: task
-Status: open
+Status: resolved
 Blocked by: 07, 08, 09, 10
+
+## Answer
+
+Superseded by [Bridge Scaffold & Entry-Point Cutover](11-bridge-scaffold-entry-point-cutover.md)
+(ticket 11): the campaign-engine package, the six `shared/*-contract.ts`
+files, and the full `campaign.execute` bridge wiring (all 22 commands) were
+implemented as a single cutover ticket. See 11's resolution notes.
 
 ## Question
 

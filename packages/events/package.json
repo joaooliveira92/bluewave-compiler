@@ -10,10 +10,11 @@
     }
   },
   "dependencies": {
+    "@bluewave/campaign": "workspace:*",
     "@bluewave/contracts": "workspace:*",
     "@bluewave/deterministic": "workspace:*",
     "@bluewave/diagnostics": "workspace:*",
-    "@bluewave/campaign": "workspace:*"
+    "zod": "^3.25.76"
   },
   "scripts": {
     "build": "tsc -b",

@@ -178,6 +178,36 @@ describe("SiteHeader", () => {
     expect(screen.getByText(/£24,500k/)).toBeTruthy();
   });
 
+  it("renders the advance-month button on the right for an active campaign", () => {
+    const onAdvanceMonth = vi.fn();
+    renderHeader("linux", { activeView: "playing", campaign, onAdvanceMonth });
+
+    const advance = screen.getByRole("button", { name: "Advance month" });
+    expect(advance.attributes.getNamedItem("disabled")).toBeNull();
+
+    fireEvent.click(advance);
+    expect(onAdvanceMonth).toHaveBeenCalledOnce();
+  });
+
+  it("disables the advance-month button while a commit is running", () => {
+    renderHeader("linux", {
+      activeView: "playing",
+      campaign,
+      onAdvanceMonth: vi.fn(),
+      advancingMonth: true,
+    });
+
+    expect(screen.getByText("Advancing…")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Advance month" }).attributes.getNamedItem("disabled"),
+    ).not.toBeNull();
+  });
+
+  it("omits the advance-month button without an active campaign", () => {
+    renderHeader("linux", { activeView: "playing", onAdvanceMonth: vi.fn() });
+    expect(screen.queryByRole("button", { name: "Advance month" })).toBeNull();
+  });
+
   it("renders the remaining adaptive secondary-row views", () => {
     renderHeader("linux", { activeView: "new_game" });
     expect(screen.getByText("Campaign setup assistant")).toBeTruthy();

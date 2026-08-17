@@ -1,5 +1,5 @@
-import { parse } from "yaml";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
+import { parse } from "yaml";
 
 export interface SafeParseResult {
   success: boolean;

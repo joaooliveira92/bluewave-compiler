@@ -1,0 +1,41 @@
+name: Desktop E2E Gate
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - "apps/desktop/**"
+      - "content/production/1880/**"
+      - ".github/workflows/desktop-e2e.yml"
+  pull_request:
+    paths:
+      - "apps/desktop/**"
+      - "content/production/1880/**"
+      - ".github/workflows/desktop-e2e.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: desktop-e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  desktop-e2e:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.0.0"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm --filter @bluewave/desktop test:e2e
+      - name: Upload test-results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-e2e-test-results
+          path: apps/desktop/test-results

@@ -196,7 +196,8 @@ export function InteractiveGlobe({
         projection.scale(event.transform.k);
       });
 
-    svg.call(zoom).call(zoom.transform, d3Zoom.zoomIdentity.scale(baseScale));
+    const zoomTransform = zoom.transform.bind(zoom);
+    svg.call(zoom).call(zoomTransform, d3Zoom.zoomIdentity.scale(baseScale));
     svg.call(drag);
 
     svg.on("click", (event: MouseEvent) => {
@@ -220,7 +221,7 @@ export function InteractiveGlobe({
           newBase,
           Math.min(proj.scale(), newBase * MAX_ZOOM_MULTIPLIER),
         );
-        svg.call(zoom.transform, d3Zoom.zoomIdentity.scale(clampedScale));
+        svg.call(zoomTransform, d3Zoom.zoomIdentity.scale(clampedScale));
       },
     );
 

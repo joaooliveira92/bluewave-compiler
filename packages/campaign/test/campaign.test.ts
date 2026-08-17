@@ -1,11 +1,12 @@
 //packages/campaign/test/campaign.test.ts
-import { describe, it, expect } from "vite-plus/test";
-import { CampaignCompiler } from "../src/compiler-public.js";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
+
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { nationsYaml, nationYaml } from "@bluewave/test-support";
+import { describe, expect, it } from "vite-plus/test";
+import { CampaignCompiler } from "../src/compiler-public.js";
 
 function createFixtureDir(): { path: string; cleanup: () => void } {
   const dir = resolve(tmpdir(), `bw-campaign-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -600,9 +601,10 @@ describe("CampaignCompiler", () => {
       expect(dreadnought.className).toBe("Dreadnought-class");
       expect(dreadnought.hullType).toBe("battleship");
       expect(dreadnought.normalizedDisplacementKg).toBe(18000);
-      expect(dreadnought.normalizedSpeedUms).toBe(11);
-      expect(dreadnought.normalizedArmorUm).toBe(300);
-      expect(dreadnought.mainGunsCaliber).toBe(305);
+      // ADR-0037: authored knots/mm are normalized to canonical µm/µm·s⁻¹.
+      expect(dreadnought.normalizedSpeedUms).toBe(11 * 514_444);
+      expect(dreadnought.normalizedArmorUm).toBe(300 * 1000);
+      expect(dreadnought.mainGunsCaliber).toBe(305 * 1000);
       expect(dreadnought.mainGunsCount).toBe(10);
       expect(dreadnought.hitPoints).toBe(120);
       // Deterministic compiled hash, not authored.

@@ -14,7 +14,7 @@ import {
   type CampaignCompilerInput,
   type CampaignFiles,
 } from "@bluewave/campaign/compiler";
-import { SaveStore } from "@bluewave/persistence";
+import { SaveStore, CURRENT_COMPATIBILITY_VERSION } from "@bluewave/persistence";
 import type {
   CampaignState,
   CampaignSnapshot,
@@ -289,7 +289,7 @@ export function runCampaignCompile(options: CampaignCliOptions): ExitCategory {
     compilerInput,
     campaignFiles,
     rulesetVersion: "1.0.0",
-    compatibilityVersion: "1.0.0",
+    compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
   };
   const campaignCompiler = new CampaignCompiler();
   const signal = new AbortController().signal;
@@ -650,8 +650,10 @@ function printBattleSummary(
   for (const battle of summary.battles) {
     if (battle.result) {
       const r = battle.result;
+      const verdict =
+        r.winnerId && r.loserId ? `${r.winnerId} defeated ${r.loserId}` : "inconclusive (no winner)";
       printResult(
-        `    ${battle.id} (${battle.attackerId} vs ${battle.defenderId} @ ${battle.areaId}): ${r.winnerId} defeated ${r.loserId}`,
+        `    ${battle.id} (${battle.attackerId} vs ${battle.defenderId} @ ${battle.areaId}): ${verdict}`,
         "human",
       );
       printResult(

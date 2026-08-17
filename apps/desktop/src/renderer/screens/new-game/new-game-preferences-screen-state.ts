@@ -1,4 +1,6 @@
+import type { SupportedConfigurationValues } from "@bluewave/campaign-engine";
 import type { NewGameOptions } from "../../../shared/new-game-contract.js";
+import type { AdmiralPresetValues } from "./admiral-preset.js";
 
 export type DraftPreferences = {
   readonly version: string;
@@ -48,10 +50,42 @@ export function initialNewGamePreferencesScreenState(): NewGamePreferencesScreen
   };
 }
 
+const SIX_SETTING_FIELDS = [
+  "fleetSize",
+  "researchSpeed",
+  "technologyVariation",
+  "historicalBudget",
+  "tacticalRealism",
+  "difficulty",
+] as const satisfies readonly (keyof AdmiralPresetValues)[];
+
+/**
+ * The six preset-covered fields (spec §2) each fall back from a recommended
+ * preset to the first supported value, in that order — shared by every
+ * field so the fallback shape isn't repeated six times inline.
+ */
+function seedSixSettingFields(
+  supported: SupportedConfigurationValues,
+  recommendedPreset: AdmiralPresetValues | null,
+): AdmiralPresetValues {
+  const result = {} as Record<string, string>;
+  for (const field of SIX_SETTING_FIELDS) {
+    result[field] = recommendedPreset?.[field] ?? supported[field][0] ?? "";
+  }
+  return result as unknown as AdmiralPresetValues;
+}
+
+/**
+ * Seeds draft preferences from the loaded options. When a "Recommended
+ * Setup" preset (spec §1) was applied on the nation-confirmation screen, its
+ * six values pre-fill in place of the first supported value — still fully
+ * editable, matching the preset picker's pre-fill-not-lock behavior (§2).
+ */
 export function applyOptionsLoaded(
   state: NewGamePreferencesScreenState,
   options: NewGameOptions,
   defaultSeed: string,
+  recommendedPreset: AdmiralPresetValues | null = null,
 ): NewGamePreferencesScreenState {
   const supported = options.supportedValues;
   return {
@@ -62,14 +96,9 @@ export function applyOptionsLoaded(
       version: CONFIGURATION_VERSION,
       scenarioId: options.scenarios[0]?.id ?? "",
       continuityMode: supported.continuityMode[0] ?? "",
-      fleetSize: supported.fleetSize[0] ?? "",
-      researchSpeed: supported.researchSpeed[0] ?? "",
-      technologyVariation: supported.technologyVariation[0] ?? "",
-      historicalBudget: supported.historicalBudget[0] ?? "",
       legacyFleetMode: supported.legacyFleetMode[0] ?? "",
-      tacticalRealism: supported.tacticalRealism[0] ?? "",
-      difficulty: supported.difficulty[0] ?? "",
       campaignSeed: defaultSeed,
+      ...seedSixSettingFields(supported, recommendedPreset),
     },
   };
 }

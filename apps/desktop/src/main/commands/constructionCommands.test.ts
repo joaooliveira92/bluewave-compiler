@@ -1,0 +1,691 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { CampaignState } from "@bluewave/campaign";
+import type { CampaignConfiguration } from "@bluewave/campaign-engine";
+import { SafeInt } from "@bluewave/contracts";
+import { createEnvelope } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { SaveStore } from "@bluewave/persistence";
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+import {
+  clearCampaignSessionsForTest,
+  getCampaignSession,
+  registerCampaignSession,
+} from "../campaignSessions.js";
+import { compileProductionCampaign } from "../compiler.js";
+import { clearConstructionWorkspacesForTest } from "../constructionWorkspace.js";
+import { toSaveableState } from "../saveHelpers.js";
+import {
+  cancelConstructionCommand,
+  inspectConstructionScreen,
+  replaceConstructionCommand,
+  submitConstructionCommand,
+} from "./constructionCommands.js";
+import { commitMonth } from "./commitMonth.js";
+import { compileCampaign, type CompileCampaignDeps } from "./compileCampaign.js";
+import { loadCampaign, type ContinuityDeps } from "./continuityCommands.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(__dirname, "../../../../..");
+const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
+
+/**
+ * Desktop-mvp ticket 14 acceptance tests: the four construction commands
+ * against the real production pack (uk has authored designs + an in-progress
+ * project). Each test compiles the pack once per fixture (same cost pattern
+ * as commitMonth.test.ts).
+ */
+
+describe("construction commands", () => {
+  let saveRoot: string;
+
+  beforeEach(() => {
+    saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-construction-"));
+  });
+
+  afterEach(() => {
+    rmSync(saveRoot, { recursive: true, force: true });
+    clearCampaignSessionsForTest();
+    clearConstructionWorkspacesForTest();
+  });
+
+  function registerProductionSession(sessionId: string, saveDir: string): CampaignState {
+    const signal = new AbortController().signal;
+    const collector = new DiagnosticCollector();
+    const output = compileProductionCampaign(PRODUCTION_PACK, signal, collector);
+    expect(collector.hasErrors).toBe(false);
+    if (!output) throw new Error("production pack failed to compile");
+
+    const state = toSaveableState(output.state);
+    new SaveStore().save(state, saveDir);
+    registerCampaignSession({
+      sessionId,
+      saveDir,
+      playerSlotId: "uk",
+      campaignSeed: "a".repeat(32),
+      month: { month: 1, year: 1880 },
+      state,
+    });
+    return state;
+  }
+
+  function ukDesignIds(state: CampaignState): string[] {
+    return [...state.snapshot.designs.values()]
+      .filter((design) => design.nationId === "uk")
+      .map((design) => design.designVersionId)
+      .sort();
+  }
+
+  function requireSessionState(sessionId: string): CampaignState {
+    const record = getCampaignSession(sessionId);
+    if (!record) throw new Error(`session ${sessionId} missing`);
+    return record.state;
+  }
+
+  function loadSavedState(saveDir: string): CampaignState | null {
+    return new SaveStore().load(saveDir, new DiagnosticCollector());
+  }
+
+  function baseConfiguration(
+    overrides: Partial<CampaignConfiguration> = {},
+  ): CampaignConfiguration {
+    return {
+      scenarioId: "scen_1880",
+      playerSlotId: "uk",
+      continuityModeId: "historical",
+      fleetSizeSettingId: "standard",
+      researchSpeedSettingId: "standard",
+      technologyVariationSettingId: "none",
+      historicalBudgetOptionId: "standard",
+      legacyFleetModeId: "historical",
+      tacticalRealismModeId: "standard",
+      difficultyProfileId: "easy",
+      campaignSeed: "a".repeat(32),
+      configurationSchemaVersion: "campaign_configuration_v1",
+      ...overrides,
+    } as CampaignConfiguration;
+  }
+
+  function compileDeps(saveDir: string): CompileCampaignDeps {
+    return {
+      contentDir: PRODUCTION_PACK,
+      chooseSaveDirectory: async () => saveDir,
+      generateSessionId: () => "compile-restart-test",
+    };
+  }
+
+  function continuityDeps(saveDir: string): ContinuityDeps {
+    return {
+      choosePackageDirectory: async () => saveDir,
+      generateSessionId: () => "loaded-restart-test",
+    };
+  }
+
+  it("returns SESSION_NOT_FOUND for an unregistered session on every command", async () => {
+    const inspect = await inspectConstructionScreen("no-such-session");
+    expect(inspect.outcome).toBe("error");
+    if (inspect.outcome === "error") expect(inspect.reason).toBe("SESSION_NOT_FOUND");
+
+    const submit = await submitConstructionCommand({
+      sessionId: "no-such-session",
+      designId: "des_gbr_inflexible",
+      expectedRevision: 0,
+      transportRequestId: "req-0",
+    });
+    expect(submit.outcome).toBe("error");
+    if (submit.outcome === "error") expect(submit.reason).toBe("SESSION_NOT_FOUND");
+
+    const replace = await replaceConstructionCommand({
+      sessionId: "no-such-session",
+      commandId: "cmd-x",
+      designId: "des_gbr_inflexible",
+      expectedRevision: 0,
+      transportRequestId: "req-0",
+    });
+    expect(replace.outcome).toBe("error");
+    if (replace.outcome === "error") expect(replace.reason).toBe("SESSION_NOT_FOUND");
+
+    const cancel = await cancelConstructionCommand({
+      sessionId: "no-such-session",
+      commandId: "cmd-x",
+      expectedRevision: 0,
+      transportRequestId: "req-0",
+    });
+    expect(cancel.outcome).toBe("error");
+    if (cancel.outcome === "error") expect(cancel.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("shows real available designs and the nation's real economy/workspace on inspect", async () => {
+    const saveDir = resolve(saveRoot, "save-inspect");
+    const state = registerProductionSession("session-inspect", saveDir);
+
+    const result = await inspectConstructionScreen("session-inspect");
+    expect(result.outcome).toBe("success");
+    if (result.outcome !== "success") return;
+
+    const projection = result.value;
+    expect(projection.revision).toBe(0);
+    expect(projection.month).toEqual({ month: 1, year: 1880 });
+
+    // Real compiled treasury/appropriation/capacity — cross-checked against
+    // the independently compiled snapshot, not hardcoded numbers.
+    const uk = state.snapshot.nations.get("uk")!;
+    expect(projection.economy.treasury).toBe(Number(uk.treasury));
+    const ports = state.snapshot.world.ports.filter((p) => p.nationId === "uk");
+    expect(projection.economy.shipyardCapacity).toBe(
+      ports.reduce((sum, port) => sum + Number(port.level), 0),
+    );
+
+    // Real available designs: exactly the nation's own compiled designs,
+    // UI-shaped with real catalog data.
+    expect(projection.designs).toHaveLength(ukDesignIds(state).length);
+    expect(ukDesignIds(state).length).toBeGreaterThan(0);
+    const inflexible = projection.designs.find((d) => d.designId === "des_gbr_inflexible");
+    expect(inflexible).toBeDefined();
+    expect(inflexible!.className).toBe("Inflexible");
+    expect(inflexible!.year).toBe(1880); // familyCreatedMonth 1880-01
+    expect(inflexible!.mass).toBe(11_880);
+    expect(inflexible!.speed).toBe(8); // ADR-0037: compiled µm/s -> knots (8 kt)
+    expect(inflexible!.machineryType).toBe("reciprocating_compound");
+
+    // Empty workspace before any command.
+    expect(projection.workspace.commands).toEqual([]);
+    expect(projection.workspace.treasuryReserved).toBe(0);
+    expect(projection.workspace.capacityReserved).toBe(0);
+  });
+
+  it("submitting against a real design queues a real project, visible on next inspect and round-tripped through save/load", async () => {
+    const saveDir = resolve(saveRoot, "save-submit");
+    const state = registerProductionSession("session-submit", saveDir);
+    const projectsBefore = state.snapshot.nations.get("uk")!.constructionProjects.length;
+
+    const submit = await submitConstructionCommand({
+      sessionId: "session-submit",
+      designId: "des_gbr_inflexible",
+      expectedRevision: 0,
+      transportRequestId: "req-submit-1",
+    });
+    expect(submit.outcome).toBe("success");
+    if (submit.outcome !== "success") return;
+
+    const { command, workspace: afterWorkspace } = submit.value;
+    expect(command.status).toBe("submitted");
+    // commandId = cmd-<transportRequestId>-<8-hex payload fingerprint>.
+    expect(command.commandId.startsWith("cmd-req-submit-1-")).toBe(true);
+    expect(afterWorkspace.commands).toHaveLength(1);
+    expect(afterWorkspace.commands[0]!.commandId).toBe(command.commandId);
+    expect(afterWorkspace.treasuryReserved).toBeGreaterThan(0);
+    expect(afterWorkspace.capacityReserved).toBeGreaterThan(0);
+
+    // The authoritative snapshot gained a real ConstructionProject for the
+    // real design, with status PLANNED and its work/cost derived from the
+    // design's real displacement. Project id mirrors the command id
+    // (`project-<commandId minus cmd->`).
+    const projectId = `project-${command.commandId.replace(/^cmd-/, "")}`;
+    const saved = loadSavedState(saveDir);
+    expect(saved).not.toBeNull();
+    if (!saved) return;
+    const nationAfter = saved.snapshot.nations.get("uk")!;
+    expect(nationAfter.constructionProjects.length).toBe(projectsBefore + 1);
+    const queued = nationAfter.constructionProjects.find((p) => p.id === projectId);
+    expect(queued).toBeDefined();
+    expect(queued!.designVersionId).toBe("des_gbr_inflexible");
+    expect(queued!.status).toBe("PLANNED");
+    expect(Number(queued!.totalWork)).toBeGreaterThan(0);
+
+    // Visible on the next inspect — the command ledger reflects the order.
+    const inspect = await inspectConstructionScreen("session-submit");
+    expect(inspect.outcome).toBe("success");
+    if (inspect.outcome !== "success") return;
+    expect(inspect.value.workspace.commands).toHaveLength(1);
+    expect(inspect.value.workspace.commands[0]!.commandId).toBe(command.commandId);
+    expect(inspect.value.workspace.treasuryReserved).toBe(afterWorkspace.treasuryReserved);
+  });
+
+  it("rejects a stale expectedRevision without mutating the session or writing a new save", async () => {
+    const saveDir = resolve(saveRoot, "save-stale");
+    registerProductionSession("session-stale", saveDir);
+
+    const result = await submitConstructionCommand({
+      sessionId: "session-stale",
+      designId: "des_gbr_inflexible",
+      expectedRevision: 5,
+      transportRequestId: "req-stale-1",
+    });
+    expect(result.outcome).toBe("rejected");
+    if (result.outcome !== "rejected") return;
+    expect(result.reason).toBe("REVISION_MISMATCH");
+    expect(result.currentRevision).toBe(0);
+  });
+
+  it("rejects a pre-commit expectedRevision after the world advanced a month — nothing is silently applied", async () => {
+    const saveDir = resolve(saveRoot, "save-stale-after-commit");
+    registerProductionSession("session-stale-commit", saveDir);
+
+    // The world advances (commitMonth): revision 0 -> 1. The renderer's
+    // workflow still holds revision 0 from its last projection.
+    const month = await commitMonth({
+      sessionId: "session-stale-commit",
+      expectedRevision: 0,
+      transportRequestId: "req-global",
+    });
+    expect(month.outcome).toBe("success");
+
+    const staleSubmit = await submitConstructionCommand({
+      sessionId: "session-stale-commit",
+      designId: "des_gbr_inflexible",
+      expectedRevision: 0, // stale: session is now at revision 1
+      transportRequestId: "req-stale-after",
+    });
+    expect(staleSubmit.outcome).toBe("rejected");
+    if (staleSubmit.outcome !== "rejected") return;
+    expect(staleSubmit.reason).toBe("REVISION_MISMATCH");
+    expect(staleSubmit.currentRevision).toBe(1);
+
+    // Nothing was applied: the session is exactly the post-month state, and
+    // the workspace gained no command.
+    const updated = requireSessionState("session-stale-commit");
+    expect(Number(updated.snapshot.turnNumber)).toBe(1);
+    const replay = await inspectConstructionScreen("session-stale-commit");
+    expect(replay.outcome).toBe("success");
+    if (replay.outcome !== "success") return;
+    expect(replay.value.workspace.commands).toEqual([]);
+  });
+
+  it("rejects an unknown or foreign design before touching state", async () => {
+    registerProductionSession("session-design", resolve(saveRoot, "save-design"));
+
+    const unknown = await submitConstructionCommand({
+      sessionId: "session-design",
+      designId: "design_that_never_existed",
+      expectedRevision: 0,
+      transportRequestId: "req-unknown",
+    });
+    expect(unknown.outcome).toBe("rejected");
+    if (unknown.outcome === "rejected") expect(unknown.reason).toBe("UNKNOWN_DESIGN");
+
+    const foreign = await submitConstructionCommand({
+      sessionId: "session-design",
+      designId: "des_fra_redoutable", // belongs to france, not the uk player slot
+      expectedRevision: 0,
+      transportRequestId: "req-french",
+    });
+    expect(foreign.outcome).toBe("rejected");
+    if (foreign.outcome === "rejected") expect(foreign.reason).toBe("DESIGN_NOT_FOR_PLAYER");
+  });
+
+  it("rejects an order when treasury cannot cover it, without reservation or project", async () => {
+    const saveDir = resolve(saveRoot, "save-poor");
+    registerProductionSession("session-poor", saveDir);
+    // Shrink the uk treasury below the Inflexible's ~119 cost so the reserve
+    // step has a real INSUFFICIENT_FUNDS path (uk's authored designs top out
+    // around 370, so a second-order trick cannot force the failure with real
+    // starting wealth). Everything else stays production data.
+    const record = getCampaignSession("session-poor")!;
+    const snapshot = record.state.snapshot;
+    const uk = snapshot.nations.get("uk")!;
+    const poorNation = { ...uk, treasury: SafeInt(100) };
+    const poorSnapshot = { ...snapshot, nations: new Map(snapshot.nations).set("uk", poorNation) };
+    const poorEnvelope = createEnvelope(
+      "campaign-snapshot",
+      poorSnapshot.compatibilityVersion,
+      poorSnapshot,
+    );
+    const poorState = toSaveableState({
+      snapshot: poorSnapshot,
+      envelope: poorEnvelope,
+      rawHash: "",
+    });
+    new SaveStore().save(poorState, saveDir);
+    registerCampaignSession({ ...record, state: poorState });
+
+    const projectsBefore = poorSnapshot.nations.get("uk")!.constructionProjects.length;
+    expect(Number(poorNation.treasury)).toBe(100);
+
+    const result = await submitConstructionCommand({
+      sessionId: "session-poor",
+      designId: "des_gbr_inflexible", // projected cost ~119 > 100 treasury
+      expectedRevision: 0,
+      transportRequestId: "req-poor",
+    });
+    expect(result.outcome).toBe("rejected");
+    if (result.outcome !== "rejected") return;
+    expect(result.reason).toBe("INSUFFICIENT_FUNDS");
+
+    const updated = requireSessionState("session-poor");
+    expect(updated.snapshot.nations.get("uk")!.constructionProjects.length).toBe(projectsBefore);
+    expect(updated.snapshot.nations.get("uk")!.treasury).toBe(100);
+  });
+
+  it("is idempotent under the same transportRequestId (retry) — no double order", async () => {
+    const saveDir = resolve(saveRoot, "save-idem");
+    const state = registerProductionSession("session-idem", saveDir);
+    const projectsBefore = state.snapshot.nations.get("uk")!.constructionProjects.length;
+
+    const first = await submitConstructionCommand({
+      sessionId: "session-idem",
+      designId: "des_gbr_inflexible",
+      expectedRevision: 0,
+      transportRequestId: "tx-same",
+    });
+    expect(first.outcome).toBe("success");
+    if (first.outcome !== "success") return;
+
+    const retry = await submitConstructionCommand({
+      sessionId: "session-idem",
+      designId: "des_gbr_inflexible",
+      expectedRevision: 0,
+      transportRequestId: "tx-same",
+    });
+    expect(retry.outcome).toBe("success");
+    if (retry.outcome !== "success") return;
+    expect(retry.value.command.commandId).toBe(first.value.command.commandId);
+
+    const updated = requireSessionState("session-idem");
+    expect(updated.snapshot.nations.get("uk")!.constructionProjects.length).toBe(
+      projectsBefore + 1,
+    );
+  });
+
+  it("IDEMPOTENCY_CONFLICTs when the same transportRequestId is reused for a different command", async () => {
+    registerProductionSession("session-conflict", resolve(saveRoot, "save-conflict"));
+    await submitConstructionCommand({
+      sessionId: "session-conflict",
+      designId: "des_gbr_inflexible",
+      expectedRevision: 0,
+      transportRequestId: "tx-shared",
+    });
+
+    const conflict = await submitConstructionCommand({
+      sessionId: "session-conflict",
+      designId: "des_gbr_alexandra",
+      expectedRevision: 0,
+      transportRequestId: "tx-shared",
+    });
+    expect(conflict.outcome).toBe("rejected");
+    if (conflict.outcome === "rejected") expect(conflict.reason).toBe("IDEMPOTENCY_CONFLICT");
+  });
+
+  it("cancels an in-flight command: releases reservations, drops the project, reports cancelled", async () => {
+    const saveDir = resolve(saveRoot, "save-cancel");
+    const state = registerProductionSession("session-cancel", saveDir);
+    const projectsBefore = state.snapshot.nations.get("uk")!.constructionProjects.length;
+
+    const submit = await submitConstructionCommand({
+      sessionId: "session-cancel",
+      designId: "des_gbr_inflexible",
+      expectedRevision: 0,
+      transportRequestId: "req-cancel-1",
+    });
+    expect(submit.outcome).toBe("success");
+    if (submit.outcome !== "success") return;
+    const commandId = submit.value.command.commandId;
+
+    const cancel = await cancelConstructionCommand({
+      sessionId: "session-cancel",
+      commandId,
+      expectedRevision: 0,
+      transportRequestId: "cancel-1",
+    });
+    expect(cancel.outcome).toBe("success");
+    if (cancel.outcome !== "success") return;
+    expect(cancel.value.command.commandId).toBe(commandId);
+    expect(cancel.value.command.status).toBe("cancelled");
+
+    // Workspace: reservation released, command still listed (cancelled).
+    expect(cancel.value.workspace.commands).toHaveLength(1);
+    expect(cancel.value.workspace.commands[0]!.status).toBe("cancelled");
+    expect(cancel.value.workspace.treasuryReserved).toBe(0);
+
+    // Authoritative: the queued project is gone.
+    const updated = requireSessionState("session-cancel");
+    const projects = updated.snapshot.nations.get("uk")!.constructionProjects;
+    expect(projects.length).toBe(projectsBefore);
+    expect(projects.some((p) => p.id === `project-${commandId.replace(/^cmd-/, "")}`)).toBe(false);
+  });
+
+  it("rejects cancel/replace of a command that is not in flight", async () => {
+    registerProductionSession("session-notflight", resolve(saveRoot, "save-notflight"));
+
+    const missing = await cancelConstructionCommand({
+      sessionId: "session-notflight",
+      commandId: "cmd-does-not-exist",
+      expectedRevision: 0,
+      transportRequestId: "req-missing",
+    });
+    expect(missing.outcome).toBe("rejected");
+    if (missing.outcome === "rejected") expect(missing.reason).toBe("COMMAND_NOT_FOUND");
+
+    const submit = await submitConstructionCommand({
+      sessionId: "session-notflight",
+      designId: "des_gbr_inflexible",
+      expectedRevision: 0,
+      transportRequestId: "req-flight-1",
+    });
+    expect(submit.outcome).toBe("success");
+    if (submit.outcome !== "success") return;
+    const flightCommandId = submit.value.command.commandId;
+
+    const cancelled = await cancelConstructionCommand({
+      sessionId: "session-notflight",
+      commandId: flightCommandId,
+      expectedRevision: 0,
+      transportRequestId: "cancel-2",
+    });
+    expect(cancelled.outcome).toBe("success");
+
+    // Second cancel of the same command is now terminal.
+    const second = await cancelConstructionCommand({
+      sessionId: "session-notflight",
+      commandId: flightCommandId,
+      expectedRevision: 0,
+      transportRequestId: "cancel-3",
+    });
+    expect(second.outcome).toBe("rejected");
+    if (second.outcome === "rejected") expect(second.reason).toBe("COMMAND_NOT_IN_FLIGHT");
+  });
+
+  it("replace supersedes the in-flight command and queues the replacement design's project", async () => {
+    const saveDir = resolve(saveRoot, "save-replace");
+    const state = registerProductionSession("session-replace", saveDir);
+    const projectsBefore = state.snapshot.nations.get("uk")!.constructionProjects.length;
+
+    const submit = await submitConstructionCommand({
+      sessionId: "session-replace",
+      designId: "des_gbr_inflexible",
+      expectedRevision: 0,
+      transportRequestId: "req-original",
+    });
+    expect(submit.outcome).toBe("success");
+    if (submit.outcome !== "success") return;
+    const originalCommandId = submit.value.command.commandId;
+
+    const replaced = await replaceConstructionCommand({
+      sessionId: "session-replace",
+      commandId: originalCommandId,
+      designId: "des_pw_uk_dreadnought",
+      expectedRevision: 0,
+      transportRequestId: "req-replacement",
+    });
+    expect(replaced.outcome).toBe("success");
+    if (replaced.outcome !== "success") return;
+
+    // The response reports the new (in-flight) command.
+    expect(replaced.value.command.status).toBe("submitted");
+    expect(replaced.value.command.commandId.startsWith("cmd-req-replacement-")).toBe(true);
+    const replacementCommandId = replaced.value.command.commandId;
+    expect(replaced.value.workspace.commands).toHaveLength(2);
+    const original = replaced.value.workspace.commands.find(
+      (c) => c.commandId === originalCommandId,
+    );
+    expect(original!.status).toBe("superseded");
+    expect(
+      replaced.value.workspace.commands.find((c) => c.commandId === replacementCommandId),
+    ).toBeDefined();
+
+    // Authoritative: original's project dropped, replacement's project queued.
+    const updated = requireSessionState("session-replace");
+    const projects = updated.snapshot.nations.get("uk")!.constructionProjects;
+    expect(projects.length).toBe(projectsBefore + 1);
+    expect(projects.some((p) => p.id === `project-${originalCommandId.replace(/^cmd-/, "")}`)).toBe(
+      false,
+    );
+    const replacement = projects.find(
+      (p) => p.id === `project-${replacementCommandId.replace(/^cmd-/, "")}`,
+    );
+    expect(replacement).toBeDefined();
+    expect(replacement!.designVersionId).toBe("des_pw_uk_dreadnought");
+  });
+
+  it("F1: after a restart, the loaded package still shows the order — project visible, cancel works on the reconstructed record", async () => {
+    const saveDir = resolve(saveRoot, "save-restart");
+    // Compile through the REAL commands so the package carries the
+    // session.json sidecar `loadCampaign` requires (mirrors the
+    // continuityCommands.test.ts `restartApp()` pattern).
+    const compile = await compileCampaign(baseConfiguration(), compileDeps(saveDir));
+    expect(compile.outcome).toBe("success");
+    if (compile.outcome !== "success") return;
+    const compiledSessionId = compile.value.sessionId;
+
+    const submit = await submitConstructionCommand({
+      sessionId: compiledSessionId,
+      designId: "des_gbr_inflexible",
+      expectedRevision: 0,
+      transportRequestId: "req-restart-1",
+    });
+    expect(submit.outcome).toBe("success");
+    if (submit.outcome !== "success") return;
+    const commandId = submit.value.command.commandId;
+
+    // "Close and reopen the app": wipe the in-memory session + workspace
+    // registries; the SaveStore package on disk is untouched.
+    clearCampaignSessionsForTest();
+    clearConstructionWorkspacesForTest();
+
+    const load = await loadCampaign(continuityDeps(saveDir));
+    expect(load.outcome).toBe("success");
+    if (load.outcome !== "success") return;
+    const loadedSessionId = load.value.sessionId;
+
+    // The Construction screen shows the order (reconstructed from the
+    // snapshot's queued project) AND the nation's authored starting project.
+    const inspect = await inspectConstructionScreen(loadedSessionId);
+    expect(inspect.outcome).toBe("success");
+    if (inspect.outcome !== "success") return;
+    expect(inspect.value.workspace.commands).toHaveLength(1);
+    expect(inspect.value.workspace.commands[0]!.commandId).toBe(commandId);
+    expect(inspect.value.workspace.commands[0]!.status).toBe("submitted");
+    const queuedProject = inspect.value.projects.find((p) => p.commandId === commandId);
+    expect(queuedProject).toBeDefined();
+    expect(queuedProject!.designVersionId).toBe("des_gbr_inflexible");
+    expect(
+      inspect.value.projects.some(
+        (p) => p.projectId === "con_gbr_inflexible" && p.commandId === null,
+      ),
+    ).toBe(true);
+
+    // The reconstructed order is fully actionable: cancel succeeds against
+    // the re-built record (the stale pre-restart revision still rejects).
+    const stale = await cancelConstructionCommand({
+      sessionId: loadedSessionId,
+      commandId,
+      expectedRevision: 5,
+      transportRequestId: "cancel-stale-after-restart",
+    });
+    expect(stale.outcome).toBe("rejected");
+    if (stale.outcome === "rejected") expect(stale.reason).toBe("REVISION_MISMATCH");
+
+    const cancel = await cancelConstructionCommand({
+      sessionId: loadedSessionId,
+      commandId,
+      expectedRevision: 0,
+      transportRequestId: "cancel-after-restart",
+    });
+    expect(cancel.outcome).toBe("success");
+    if (cancel.outcome !== "success") return;
+    expect(cancel.value.command.commandId).toBe(commandId);
+    expect(cancel.value.command.status).toBe("cancelled");
+
+    // Authoritative: the order's queued project is gone from the snapshot.
+    const updated = getCampaignSession(loadedSessionId)!;
+    const projects = updated.state.snapshot.nations.get("uk")!.constructionProjects;
+    expect(projects.some((p) => p.id === `project-${commandId.replace(/^cmd-/, "")}`)).toBe(false);
+  });
+
+  it("F2: replace is failure-atomic — an unaffordable replacement is rejected and the original order survives intact", async () => {
+    const saveDir = resolve(saveRoot, "save-atomic");
+    registerProductionSession("session-atomic", saveDir);
+    // Treasury 150 covers the Inflexible's ~119 order but not the
+    // dreadnought's ~184 replacement.
+    const record = getCampaignSession("session-atomic")!;
+    const snapshot = record.state.snapshot;
+    const uk = snapshot.nations.get("uk")!;
+    const poorNation = { ...uk, treasury: SafeInt(150) };
+    const poorSnapshot = { ...snapshot, nations: new Map(snapshot.nations).set("uk", poorNation) };
+    const poorEnvelope = createEnvelope(
+      "campaign-snapshot",
+      poorSnapshot.compatibilityVersion,
+      poorSnapshot,
+    );
+    const poorState = toSaveableState({
+      snapshot: poorSnapshot,
+      envelope: poorEnvelope,
+      rawHash: "",
+    });
+    new SaveStore().save(poorState, saveDir);
+    registerCampaignSession({ ...record, state: poorState });
+
+    const submitted = await submitConstructionCommand({
+      sessionId: "session-atomic",
+      designId: "des_gbr_inflexible",
+      expectedRevision: 0,
+      transportRequestId: "req-atomic-1",
+    });
+    expect(submitted.outcome).toBe("success");
+    if (submitted.outcome !== "success") return;
+    const originalCommandId = submitted.value.command.commandId;
+    const projectsAfterSubmit =
+      getCampaignSession("session-atomic")!.state.snapshot.nations.get("uk")!.constructionProjects
+        .length;
+
+    const saveCountBefore = new SaveStore().list(saveDir).length;
+
+    const rejected = await replaceConstructionCommand({
+      sessionId: "session-atomic",
+      commandId: originalCommandId,
+      designId: "des_pw_uk_dreadnought",
+      expectedRevision: 0,
+      transportRequestId: "req-atomic-replace",
+    });
+    expect(rejected.outcome).toBe("rejected");
+    if (rejected.outcome !== "rejected") return;
+    expect(rejected.reason).toBe("INSUFFICIENT_FUNDS");
+
+    // The original is untouched: still in flight, project still queued, no
+    // extra save written by the rejected replace.
+    const after = getCampaignSession("session-atomic")!;
+    expect(after.state.snapshot.nations.get("uk")!.constructionProjects.length).toBe(
+      projectsAfterSubmit,
+    );
+    expect(new SaveStore().list(saveDir).length).toBe(saveCountBefore);
+
+    const inspect = await inspectConstructionScreen("session-atomic");
+    expect(inspect.outcome).toBe("success");
+    if (inspect.outcome !== "success") return;
+    expect(inspect.value.workspace.commands[0]!.commandId).toBe(originalCommandId);
+    expect(inspect.value.workspace.commands[0]!.status).toBe("submitted");
+
+    // And the original remains fully actionable: cancel still works.
+    const cancel = await cancelConstructionCommand({
+      sessionId: "session-atomic",
+      commandId: originalCommandId,
+      expectedRevision: 0,
+      transportRequestId: "cancel-after-reject",
+    });
+    expect(cancel.outcome).toBe("success");
+    if (cancel.outcome !== "success") return;
+    expect(cancel.value.command.status).toBe("cancelled");
+  });
+});

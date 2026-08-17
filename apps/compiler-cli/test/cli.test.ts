@@ -51,6 +51,9 @@ function createSnapshot(): CampaignSnapshot {
     version: "0.1.0",
     turnNumber: SafeInt(1),
     campaignId: "replay-test",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: [{ nationId: "GBR", type: "playable" }],
     world: { areas: [], routes: [], ports: [] },
     nations,
@@ -111,6 +114,11 @@ function hashSnapshot(snapshot: CampaignSnapshot): string {
     version: snapshot.version,
     turnNumber: snapshot.turnNumber,
     campaignId: snapshot.campaignId,
+    // B-6/ADR-0025: start date + per-area weather are part of the
+    // authoritative snapshot surface (parity with ReplayVerifier's subset).
+    startYear: snapshot.startYear,
+    startMonth: snapshot.startMonth,
+    strategicWeather: (snapshot.strategicWeather ?? []).map((s) => ({ ...s })),
     slots: snapshot.slots.map((s) => ({ ...s })),
     world: {
       areas: snapshot.world.areas.map((a) => ({ ...a })),

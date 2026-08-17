@@ -5,5 +5,5 @@
     "rootDir": "src"
   },
   "include": ["src"],
-  "references": [{ "path": "../campaign" }]
+  "references": [{ "path": "../campaign" }, { "path": "../content-schema" }]
 }

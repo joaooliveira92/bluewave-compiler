@@ -132,22 +132,66 @@ below) — confirmed explicitly by the user, not a silent override.
   existing test exercises compile→advance-month→save→load against this
   pack specifically (new gap — see ticket 05). Full findings:
   [docs/research/content-4-desktop-mvp-pack-readiness.md](../../docs/research/content-4-desktop-mvp-pack-readiness.md).
+- [Bridge Scaffold & Entry-Point Cutover](issues/11-bridge-scaffold-entry-point-cutover.md) —
+  execution ticket (this effort MAY carry execution): `@bluewave/campaign-engine`
+  package, all six `shared/*-contract.ts` files, and the full `campaign.execute`
+  bridge (22 commands, one `ipcMain` channel) wired end to end through
+  `src/preload` + `src/main`; renderer boots `shell/App.tsx`; old
+  Editor/Campaign Save Viewer entry + its IPC handlers retired
+  (superseding tickets 03 and 04). Live-boot verification found & fixed
+  `index.html` root path (added `renderer/main.tsx`), missing global CSS,
+  missing `ThemeProvider`/`BackgroundProvider`, and a 20-image missing
+  content-asset gap (1×1 placeholder PNGs added at `assets/` paths so New
+  Game doesn't crash; real flag/ship artwork deferred).
+- [New Game → Overview](issues/12-new-game-to-overview.md) —
+  `listNewGameOptions`, `compileCampaign`, `inspectCampaign` real against
+  `CampaignCompiler`/`SaveStore`. Map-serialization fix proved, not written
+  (pre-existing commit); found + fixed a second hash mismatch (`rawHash`
+  over snapshot vs whole-state) at the call site via the extracted
+  `toSaveableState` helper (now in `saveHelpers.ts`); `scenarioId` narrowed
+  to `scen_1880`; `regimeName` sourced from validated `pack.nations`;
+  `shipyardCapacity` proxied by summed port levels (judgment call,
+  documented).
+- [Advance a Month](issues/13-advance-a-month.md) — `commitMonth` wired to
+  the real `MonthExecutor.execute`; battle phases 9.5/10 inside
+  `execute()` were already auto-resolving (ticket 09's premise reversed —
+  `autoResolution.ts` was validation guards, not a per-battle gate). Fixed a
+  latent envelope bug (`bodyHash` over pre-month snapshot would fail every
+  load) by recomputing the envelope post-month; added `campaignSeed` to
+  `CampaignSessionRecord` so month seeds derive as
+  `` `${seed}:month:${turnNumber}` ``; `turnNumber`/calendar advance left to
+  the caller per `execute()`'s contract.
+- [Construction Ordering](issues/14-construction-ordering.md) — all four
+  construction commands real against `packages/commands`' `CommandRegistry`/
+  reservation-settlement (per ticket 10; lifecycle-subset + projected-cost
+  formula `construction_order_v1` recorded in ADR-0023). Reviewer-driven
+  repairs: replace is now failure-atomic (preflight reserve before
+  supersede; rollback on save failure), and the projection + workspace
+  surface snapshot `constructionProjects` (authored starts + pre-restart
+  orders) by rebuilding the workspace from the snapshot on load.
+- [Fleet Visibility](issues/15-fleet-visibility.md) — `inspectFleetScreen`
+  read-only, real divisions/ships/ports from compiled `FleetState`/`Ship`
+  (compiler always emits `divisions: []`, so FleetState is the real source).
+  Movement commands stay `NOT_IMPLEMENTED` stubs; `FleetScreenView` lives in
+  `packages/campaign-engine/src/fleet.ts`.
+- [Save, Load & Continuity](issues/16-save-load-continuity.md) —
+  `loadCampaign`/`verifyCampaign`/`replayCampaign`/`recoverCampaign` real
+  against `SaveStore`/`CompatibilityChecker`/`RecoveryManager`/`ReplayVerifier`,
+  proven on real production saves (close→reopen→load restores state; replay
+  deterministic hash incl. tamper→mismatch; recover reverts a corrupted
+  package). New atomic `session.json` sidecar (seed/slot/scenario) written by
+  `compileCampaign`; construction workspace deliberately not persisted
+  (snapshot is the authority, workspace rebuilt from it). Deterministic
+  newest-save tie-break added to `SaveStore.list` (reviewer F6).
+  **Known caveat:** `SaveStore`'s envelope hash doesn't cover Map-backed
+  state (ADR-0024) — replay is the strong integrity check; serializer
+  migration deferred to the persistence track.
 
 ## Not yet specified
 
-- Per-screen MVP-readiness for the critical-path screens (New Game
-  archetype/nation/preferences, Overview, Simulation & Turn, Fleet,
-  Construction, Campaign File save/load) once the IPC bridge exists — can't
-  ticket precisely until the bridge's command surface (ticket 01) and
-  implementation (ticket 03) land and each screen can actually be exercised
-  against real data.
 - Whether Campaign Preferences or Options turn out to be load-bearing for
   the critical path (e.g., save-on-close) once the above is exercised —
   deferred unless this surfaces.
-- How the current Editor + Campaign Save Viewer (the `desktop-ui-kit-migration`
-  / `desktop-campaign-viewer` product) relates to the new game-client shell
-  once it's wired up — coexist, get subsumed, or get retired — graduates
-  once ticket 04 is reached and the shell is proven to cover its use cases.
 - Real mechanical effects for the archetype system (how a point allocation
   across economy/industry/combat actually changes a compiled campaign's
   starting conditions) — deliberately deferred past this MVP (ticket 07);
@@ -165,3 +209,19 @@ below) — confirmed explicitly by the user, not a silent override.
   required for the MVP loop.
 - Packaged `.dmg` / cross-platform distribution — `pnpm dev` is sufficient;
   Windows/Linux packaging not pursued.
+- The `SaveStore` serializer hash-integrity migration (`canonicalSerialize`
+  collapses Maps to `{}`, so envelope hashes don't cover Map-backed state) —
+  closed as past this map's destination in
+  [17-serializer-hash-integrity](issues/17-serializer-hash-integrity.md);
+  recorded in ADR-0024 and owned by the persistence track. This MVP ships
+  replay as the strong integrity check.
+- Real flag/ship artwork for the New Game nation-selection screen — ticket 11
+  added 1×1 placeholders so the screen doesn't crash; real art is separate
+  content work (a missing `assets/` content-asset gap), out of this effort.
+- The currently-open missing `renderer`-side wiring of the new `projects`
+  field on `ConstructionScreenProjection` (the contract field landed with
+  ticket 14; the screen's own render of it and its component test are
+  follow-up UI work, not the command-surface slice).
+- `OperationStatus.tsx` rendering success copy regardless of
+  `valid`/`matched`/`recovered` on the Campaign File screen — correct
+  data already returned; copy is a screen follow-up.

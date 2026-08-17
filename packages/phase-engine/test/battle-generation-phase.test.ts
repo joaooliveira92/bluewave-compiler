@@ -1,10 +1,10 @@
 //packages/phase-engine/test/battle-generation-phase.test.ts
-import { describe, it, expect } from "vite-plus/test";
+
+import type { BattleInstance, CampaignSlot, CampaignSnapshot } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
-import type { CampaignSnapshot, CampaignSlot } from "@bluewave/campaign";
-import { MonthExecutor } from "../src/index.js";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { BattleInstance } from "@bluewave/campaign";
+import { describe, expect, it } from "vite-plus/test";
+import { MonthExecutor } from "../src/index.js";
 
 function makeNation(
   id: string,
@@ -90,6 +90,9 @@ function makeSnapshot(warActive = true, coLocated = true): CampaignSnapshot {
     version: "0.1.0",
     turnNumber: SafeInt(1),
     campaignId: "phase-gen-test",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: [slot],
     world: { areas: [], routes: [], ports: [] },
     nations,
@@ -121,7 +124,7 @@ function makeSnapshot(warActive = true, coLocated = true): CampaignSnapshot {
     designs: new Map(),
     designFamilies: new Map(),
     rulesetVersion: "1.0",
-    compatibilityVersion: "1.0.0",
+    compatibilityVersion: "1.1.0",
   };
 }
 

@@ -1,5 +1,7 @@
 # 13 — Advance a Month
 
+Status: resolved
+
 **What to build:** `commitMonth` wired to `MonthExecutor`
 (`packages/phase-engine/src/month.ts`), with any triggered battle
 auto-resolved inline via `packages/combat/src/autoResolution.ts`, per

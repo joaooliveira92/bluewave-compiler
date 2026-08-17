@@ -34,6 +34,11 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
     version: snapshot.version,
     turnNumber: snapshot.turnNumber,
     campaignId: snapshot.campaignId,
+    // B-6/ADR-0025: start date + current-month per-area weather are part of the
+    // authoritative snapshot surface (hash parity with ReplayVerifier).
+    startYear: snapshot.startYear,
+    startMonth: snapshot.startMonth,
+    strategicWeather: (snapshot.strategicWeather ?? []).map((s) => ({ ...s })),
     slots: snapshot.slots.map((s) => ({ ...s })),
     world: {
       areas: snapshot.world.areas.map((a) => ({ ...a })),
@@ -100,7 +105,7 @@ function compileProductionPack(): { state: CampaignState; contentHash: string } 
         designFiles: (files.designs ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
       },
       rulesetVersion: "1.0",
-      compatibilityVersion: "1.0.0",
+      compatibilityVersion: "1.1.0",
     },
     signal,
     collector,

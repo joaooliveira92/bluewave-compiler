@@ -3,57 +3,57 @@ import type { SafeInt } from "@bluewave/contracts";
 export type EventVersion = string;
 export type AggregateType = string;
 export type AggregateId = string;
-export type EventType = string;
+export type EventType = DomainEventBody["kind"];
 export type Reason = string;
 
 export interface NationBudgetChanged {
-  kind: "NationBudgetChanged";
-  nationId: string;
-  previousTreasury: SafeInt;
-  newTreasury: SafeInt;
-  delta: SafeInt;
-  reason: Reason;
+  readonly kind: "NationBudgetChanged";
+  readonly nationId: string;
+  readonly previousTreasury: SafeInt;
+  readonly newTreasury: SafeInt;
+  readonly delta: SafeInt;
+  readonly reason: Reason;
 }
 
 export interface ConstructionProgressed {
-  kind: "ConstructionProgressed";
-  projectId: string;
-  nationId: string;
-  previousWork: SafeInt;
-  newWork: SafeInt;
-  workAdded: SafeInt;
+  readonly kind: "ConstructionProgressed";
+  readonly projectId: string;
+  readonly nationId: string;
+  readonly previousWork: SafeInt;
+  readonly newWork: SafeInt;
+  readonly workAdded: SafeInt;
 }
 
 export interface ResearchProgressed {
-  kind: "ResearchProgressed";
-  nationId: string;
-  techId: string;
-  previousPoints: SafeInt;
-  newPoints: SafeInt;
+  readonly kind: "ResearchProgressed";
+  readonly nationId: string;
+  readonly techId: string;
+  readonly previousPoints: SafeInt;
+  readonly newPoints: SafeInt;
 }
 
 export interface BattleInitiated {
-  kind: "BattleInitiated";
-  battleId: string;
-  attackerId: string;
-  defenderId: string;
-  areaId: string;
+  readonly kind: "BattleInitiated";
+  readonly battleId: string;
+  readonly attackerId: string;
+  readonly defenderId: string;
+  readonly areaId: string;
 }
 
 export interface BattleResolved {
-  kind: "BattleResolved";
-  battleId: string;
-  winnerId: string;
-  loserId: string;
+  readonly kind: "BattleResolved";
+  readonly battleId: string;
+  readonly winnerId: string;
+  readonly loserId: string;
 }
 
 export interface TechnologyDiscovered {
-  kind: "TechnologyDiscovered";
-  nationId: string;
-  techId: string;
-  researchFieldId: string;
-  discoveryMonth: string;
-  cost: SafeInt;
+  readonly kind: "TechnologyDiscovered";
+  readonly nationId: string;
+  readonly techId: string;
+  readonly researchFieldId: string;
+  readonly discoveryMonth: string;
+  readonly cost: SafeInt;
 }
 
 export type DomainEventBody =
@@ -65,12 +65,12 @@ export type DomainEventBody =
   | TechnologyDiscovered;
 
 export interface DomainEventEnvelope<TBody extends DomainEventBody = DomainEventBody> {
-  eventId: string;
-  version: EventVersion;
-  aggregateType: AggregateType;
-  aggregateId: AggregateId;
-  eventType: EventType;
-  timestamp: string;
-  body: TBody;
-  sequenceNumber: SafeInt;
+  readonly eventId: string;
+  readonly version: EventVersion;
+  readonly aggregateType: AggregateType;
+  readonly aggregateId: AggregateId;
+  readonly eventType: TBody["kind"];
+  readonly timestamp: string;
+  readonly body: TBody;
+  readonly sequenceNumber: SafeInt;
 }

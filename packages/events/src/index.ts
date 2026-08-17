@@ -1,19 +1,30 @@
 export type {
-  DomainEventEnvelope,
-  DomainEventBody,
-  NationBudgetChanged,
-  ConstructionProgressed,
-  ResearchProgressed,
-  TechnologyDiscovered,
+  AggregateId,
+  AggregateType,
   BattleInitiated,
   BattleResolved,
-  EventVersion,
-  AggregateType,
-  AggregateId,
+  ConstructionProgressed,
+  DomainEventBody,
+  DomainEventEnvelope,
   EventType,
+  EventVersion,
+  NationBudgetChanged,
   Reason,
+  ResearchProgressed,
+  TechnologyDiscovered,
 } from "./envelope.js";
-
-export { EventLedger } from "./ledger.js";
 export type { ExplanationTree } from "./explanation.js";
 export { ExplanationBuilder, formatExplanation } from "./explanation.js";
+export { EventLedger } from "./ledger.js";
+export {
+  BattleInitiatedSchema,
+  BattleResolvedSchema,
+  ConstructionProgressedSchema,
+  DomainEventBodySchema,
+  DomainEventEnvelopeSchema,
+  NationBudgetChangedSchema,
+  parseDomainEventBody,
+  parseDomainEventEnvelope,
+  ResearchProgressedSchema,
+  TechnologyDiscoveredSchema,
+} from "./validation.js";

@@ -1,16 +1,24 @@
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 
 /**
- * Bridges the game's nation-record ids (e.g. `nation_uk`) to the presentation
+ * Bridges the game's nation-record ids (e.g. `uk`) to the presentation
  * catalog's country ids (e.g. `gb`). Nation identity is authoritative state;
  * the catalog keys presentation art/flavor/coordinates by stable country id
- * (ADR-0003). Only nations that exist in the campaign content are mapped.
+ * (ADR-0003). Keys mirror the compiled content pack's country ids
+ * (content/production/1880/countries.yaml). Only nations that exist in the
+ * campaign content are mapped.
  */
 export const NATION_ID_TO_COUNTRY_ID: Readonly<Record<string, PlayableSlotCountryId>> = {
-  nation_uk: "gb",
-  nation_germany: "de",
-  nation_france: "fr",
-  nation_italy: "it",
+  uk: "gb",
+  germany: "de",
+  france: "fr",
+  italy: "it",
+  usa: "us",
+  japan: "jp",
+  russia: "ru",
+  austria_hungary: "ah",
+  spain: "es",
+  qing: "qing",
 };
 
 export function nationIdToCountryId(nationId: string): PlayableSlotCountryId | null {

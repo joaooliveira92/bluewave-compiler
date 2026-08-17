@@ -1,30 +1,30 @@
 // packages/campaign/src/compiler.ts
+
+import { readFileSync } from "node:fs";
+import { isAbsolute, relative, resolve, sep } from "node:path";
+import { Compiler, type CompilerInput } from "@bluewave/content-compiler";
 import type { ContentPack } from "@bluewave/content-schema";
 import { DesignTemplateSchema, validateAgainstSchema } from "@bluewave/content-schema";
-import type { CampaignState, CampaignSlot, CampaignSnapshot } from "./state.js";
-import type {
-  NationState,
-  FleetState,
-  Ship,
-  ResearchState,
-  TechnologyProgress,
-  ConstructionProject,
-  CompiledDesignVersion,
-  DesignFamily,
-} from "./state.js";
-import type { WorldState, AreaData, RouteData, PortData, WarState } from "./state.js";
-import type { PoliticalState, DiplomaticRelation } from "./state.js";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
 import {
   DiagnosticCollector,
   type DiagnosticCollector as DiagnosticCollectorType,
 } from "@bluewave/diagnostics";
-import { Compiler, type CompilerInput } from "@bluewave/content-compiler";
-import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
-import { SafeInt } from "@bluewave/contracts";
-import { readFileSync } from "node:fs";
-import { resolve, relative, isAbsolute, sep } from "node:path";
 import { parse } from "yaml";
 import { validateCampaignPreconditions } from "./campaignSession.js";
+import { knotsToUms, mmToUm } from "./designUnits.js";
+import { getScenarioById, type ScenarioId } from "./scenario.js";
+import type { AreaData, CampaignSlot, CampaignSnapshot, CampaignState,
+  CompiledDesignVersion,
+  ConstructionProject,
+  DesignFamily,DiplomaticRelation,
+  FleetState,
+  NationState,PoliticalState, PortData,
+  ResearchState,RouteData,
+  Ship,
+  TechnologyProgress,WarState, WorldState } from "./state.js";
+import { DEFAULT_CAMPAIGN_START_MONTH, DEFAULT_CAMPAIGN_START_YEAR } from "./timeline.js";
 
 export interface CampaignCompilerInput {
   compilerInput: CompilerInput;
@@ -38,6 +38,13 @@ export interface CampaignCompilerInput {
   campaignConfiguration?: unknown;
   fleetSizeSettings?: unknown;
   researchSpeedSettings?: unknown;
+  // B-6/ADR-0025: the compiled snapshot's authoritative campaign start calendar
+  // date. Resolution order: campaignConfiguration.scenarioId -> its canonical
+  // scenario start (DESIGN-03 §1); else this explicit campaignStart; else the
+  // canonical DEFAULT_CAMPAIGN_START (scen_1880: January 1880). Determines the
+  // month ids every later campaign month derives (`campaignMonthId`); never read
+  // from wall-clock/env/locale.
+  campaignStart?: { startYear: number; startMonth: number };
 }
 
 export interface CampaignFiles {
@@ -132,6 +139,29 @@ export class CampaignCompiler {
     if (signal.aborted) {
       collector.addInfo("ABORT", "Compilation aborted before content compilation");
       return undefined;
+    }
+
+    // B-6/ADR-0025: validate the explicit campaignStart input up front so a
+    // malformed value fails the compile with a stable diagnostic (never a
+    // silent default or a runtime half-stamped snapshot).
+    let campaignStart: { startYear: number; startMonth: number } | undefined;
+    if (input.campaignStart !== undefined) {
+      const s = input.campaignStart;
+      if (
+        !Number.isInteger(s?.startYear) ||
+        (s?.startYear ?? 0) < 1800 ||
+        !Number.isInteger(s?.startMonth) ||
+        (s?.startMonth ?? 0) < 1 ||
+        (s?.startMonth ?? 0) > 12
+      ) {
+        collector.addError(
+          INVALID_CAMPAIGN_START,
+          `Invalid campaignStart ${String(s?.startYear)}-${String(s?.startMonth)}: year must be an integer >= 1800 and month an integer 1..12`,
+          { stage: "campaign-compile" },
+        );
+        return undefined;
+      }
+      campaignStart = { startYear: s.startYear, startMonth: s.startMonth };
     }
 
     // DESIGN-03 §3 + §9.3/9.4: when a CampaignConfiguration is supplied it MUST be
@@ -251,10 +281,13 @@ export class CampaignCompiler {
     const intelligence = { shells: {} };
 
     // Step 9: Build snapshot
+    const campaignStartResolved = resolveCampaignStart(input, campaignStart);
     const snapshot: CampaignSnapshot = {
       version: "0.1.0",
       turnNumber: SafeInt(0),
       campaignId: `campaign-${toStr((pack.manifest as Record<string, unknown>)["name"], "unknown")}`,
+      startYear: campaignStartResolved.startYear,
+      startMonth: campaignStartResolved.startMonth,
       slots,
       world,
       nations,
@@ -263,6 +296,7 @@ export class CampaignCompiler {
       intelligence,
       designs,
       designFamilies,
+      strategicWeather: [],
       rulesetVersion: input.rulesetVersion,
       compatibilityVersion: input.compatibilityVersion,
     };
@@ -706,16 +740,26 @@ export class CampaignCompiler {
           rec["normalizedDisplacementKg"] ?? validated["displacementKg"],
           SafeInt(0),
         ),
+        // ADR-0037: design YAML authors speed in knots and armor/caliber in
+        // millimetres (human-friendly, matches DESIGN-22 §1's authored style);
+        // the compiled design carries canonical engine units (µm/s, µm) that
+        // the tactical classifier and combat layer consume (DESIGN-22 §2).
         normalizedSpeedUms: toSafeIntOpt(
-          rec["normalizedSpeedUms"] ?? validated["speedUms"],
+          rec["normalizedSpeedUms"] ??
+            knotsToUms(validated["speedUms"] as number),
           SafeInt(0),
         ),
         normalizedArmorUm: toSafeIntOpt(
-          rec["normalizedArmorUm"] ?? validated["armorBeltUm"],
+          rec["normalizedArmorUm"] ?? mmToUm(validated["armorBeltUm"] as number),
           SafeInt(0),
         ),
         hitPoints: toSafeIntOpt(validated["hitPoints"], SafeInt(100)),
-        mainGunsCaliber: toSafeIntOpt(validated["mainGuns"]?.["caliber"], SafeInt(0)),
+        mainGunsCaliber: toSafeIntOpt(
+          validated["mainGuns"]?.["caliber"] === undefined
+            ? undefined
+            : mmToUm(validated["mainGuns"]?.["caliber"] as number),
+          SafeInt(0),
+        ),
         mainGunsCount: toSafeIntOpt(validated["mainGuns"]?.["count"], SafeInt(0)),
         machineryType: validated["machineryType"],
         crewComplement: toSafeIntOpt(validated["crewComplement"], SafeInt(0)),
@@ -778,3 +822,33 @@ export class CampaignCompiler {
     return families;
   }
 }
+
+// ---- B-6/ADR-0025: authoritative campaign start date ----
+
+// Resolution order (documented on CampaignCompilerInput.campaignStart):
+//   1. campaignConfiguration.scenarioId -> canonical scenario start (DESIGN-03 §1)
+//   2. the validated explicit campaignStart input
+//   3. DEFAULT_CAMPAIGN_START (scen_1880: January 1880)
+// Deterministic, pure; never reads wall-clock/env/locale. `explicit` is the
+// already-validated campaignStart input (compile() validates it up front and
+// aborts on malformed values, see INVALID_CAMPAIGN_START).
+function resolveCampaignStart(
+  input: CampaignCompilerInput,
+  explicit: { startYear: number; startMonth: number } | undefined,
+): { startYear: number; startMonth: number } {
+  if (input.campaignConfiguration !== undefined) {
+    const scenarioId = (input.campaignConfiguration as { scenarioId?: unknown })["scenarioId"];
+    if (typeof scenarioId === "string") {
+      const scen = getScenarioById(scenarioId as ScenarioId);
+      if (scen) {
+        return { startYear: scen.startYear, startMonth: scen.startMonth };
+      }
+    }
+  }
+  if (explicit) {
+    return { startYear: explicit.startYear, startMonth: explicit.startMonth };
+  }
+  return { startYear: DEFAULT_CAMPAIGN_START_YEAR, startMonth: DEFAULT_CAMPAIGN_START_MONTH };
+}
+
+export const INVALID_CAMPAIGN_START = "INVALID_CAMPAIGN_START" as const;

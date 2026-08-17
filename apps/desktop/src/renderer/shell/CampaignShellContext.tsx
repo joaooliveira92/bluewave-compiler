@@ -14,6 +14,7 @@ export interface CampaignShellContextValue {
     | "saving"
     | "saveMessage"
     | "primaryAction"
+    | "committing"
     | "mode"
     | "screen"
     | "canGoBack"
@@ -24,6 +25,7 @@ export interface CampaignShellContextValue {
     | "openCampaign"
     | "closeCampaign"
     | "saveCampaign"
+    | "advanceMonth"
     | "selectScreen"
     | "setPrimaryAction"
     | "goBack"
@@ -53,6 +55,7 @@ export function CampaignShellProvider({
         saving: shell.saving,
         saveMessage: shell.saveMessage,
         primaryAction: shell.primaryAction,
+        committing: shell.committing,
         mode: shell.mode,
         screen: shell.screen,
         canGoBack: shell.canGoBack,
@@ -62,6 +65,7 @@ export function CampaignShellProvider({
         openCampaign: shell.openCampaign,
         closeCampaign: shell.closeCampaign,
         saveCampaign: shell.saveCampaign,
+        advanceMonth: shell.advanceMonth,
         selectScreen: shell.selectScreen,
         setPrimaryAction: shell.setPrimaryAction,
         goBack: shell.goBack,

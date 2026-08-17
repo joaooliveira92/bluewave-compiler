@@ -1,11 +1,11 @@
-﻿import { describe, it, expect } from "vite-plus/test";
+﻿import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
+import type { CommandBody, CommandEnvelope } from "@bluewave/commands";
+import { CommandIdempotencyMap, CommandLifecycle } from "@bluewave/commands";
 import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
-import type { CommandEnvelope, CommandBody } from "@bluewave/commands";
-import { CommandLifecycle, CommandIdempotencyMap } from "@bluewave/commands";
-import { MonthExecutor, PhaseEngine } from "../src/index.js";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
+import { MonthExecutor, PhaseRegistry } from "../src/index.js";
 
 const NATIONS = ["GBR", "FRA", "GER"];
 
@@ -102,6 +102,9 @@ function makeSnapshot(
     version: "0.1.0",
     turnNumber: SafeInt(1),
     campaignId: "diplomacy-acceptance",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: nations.map(([nationId]) => ({
       nationId,
       type: nationId === "GBR" ? ("playable" as const) : ("ai" as const),
@@ -200,11 +203,7 @@ function warpParticipants(
 
 describe("B10c diplomacy & war acceptance (criteria 1-14)", () => {
   it("C1: full turn includes the resolve_diplomacy phase", () => {
-    const snapshot = makeSnapshot(threeNations());
-    const engine = new PhaseEngine();
-    const collector = new DiagnosticCollector();
-    const result = engine.executeTurn(snapshot, [], "diplo-seed", collector);
-    const ids = result.phaseResults.map((p) => p.phaseId);
+    const ids = PhaseRegistry.all.map((p) => p.id);
     expect(ids).toContain("resolve_diplomacy");
     const idx = ids.indexOf("resolve_diplomacy");
     expect(idx).toBeGreaterThan(ids.indexOf("construction_processing"));
@@ -225,7 +224,9 @@ describe("B10c diplomacy & war acceptance (criteria 1-14)", () => {
     expect(war!.status).toBe("DECLARED_NOT_ACTIVE");
     expect(war!.attackerId).toBe("GBR");
     expect(war!.defenderId).toBe("FRA");
-    expect(war!.id).toBe("war_GBR_FRA_1");
+    // campaignMonth is derived from the snapshot start (1880-01) + turn 1 ->
+    // 1880-02 (B-6/ADR-0025); war ids embed the month id.
+    expect(war!.id).toBe("war_GBR_FRA_1880-02");
 
     const rel = findRelation(result.finalSnapshot, "GBR", "FRA")!;
     expect(rel.relation).toBe("at_war");

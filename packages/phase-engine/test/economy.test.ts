@@ -1,8 +1,8 @@
-﻿import { describe, it, expect } from "vite-plus/test";
+﻿import type { CampaignSnapshot, ConstructionProject, NationState } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import type { CampaignSnapshot, NationState, ConstructionProject } from "@bluewave/campaign";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
 import { MonthExecutor } from "../src/index.js";
 
 function makeNation(
@@ -72,6 +72,9 @@ function makeSnapshot(nations: Array<[string, NationState]>): CampaignSnapshot {
     version: "0.1.0",
     turnNumber: SafeInt(1),
     campaignId: "economy-acceptance",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: nations.map(([nationId]) => ({
       nationId,
       type: nationId === "GBR" ? ("playable" as const) : ("ai" as const),

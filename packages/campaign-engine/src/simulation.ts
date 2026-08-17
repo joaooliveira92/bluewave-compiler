@@ -46,12 +46,33 @@ export interface RandomDecisionRecord {
   readonly outcome: string;
 }
 
+/**
+ * Flat, vanilla-safe (web-renderable) summary of one month's auto-resolved
+ * battle. Grounded in the engine's `BattleResult`/`BattleInstance` surface but
+ * shaped for the renderer: no nested element instances, no mutable references.
+ * A battle that ends without a decisive winner/loser carries
+ * `winnerId`/`loserId` as `null` (bridge must not fabricate a result).
+ */
+export interface BattleOutcome {
+  readonly battleId: string;
+  readonly areaId: string;
+  readonly attackerId: string;
+  readonly defenderId: string;
+  readonly winnerId: string | null;
+  readonly loserId: string | null;
+  readonly warScoreDelta: number;
+  readonly attackerLosses: readonly string[];
+  readonly defenderLosses: readonly string[];
+  readonly explanation: readonly string[];
+}
+
 export interface ClosingSnapshotSummary {
   readonly revision: number;
   readonly month: MonthReportPeriod;
   readonly submarinePools: readonly SubmarinePool[];
   readonly minePressure: readonly MinePressure[];
   readonly landTargetDamage: readonly LandTargetDamage[];
+  readonly battleOutcomes: readonly BattleOutcome[];
   readonly activeWars: readonly unknown[];
 }
 

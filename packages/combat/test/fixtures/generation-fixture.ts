@@ -101,6 +101,9 @@ export function buildGenerationSnapshot(
     version: "0.1.0",
     turnNumber: SafeInt(1),
     campaignId: "generation-fixture",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: [
       { nationId: "GBR", type: "playable" },
       { nationId: "FRA", type: "ai" },

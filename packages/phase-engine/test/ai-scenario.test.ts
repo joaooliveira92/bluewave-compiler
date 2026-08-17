@@ -1,9 +1,9 @@
-﻿import { describe, it, expect } from "vite-plus/test";
-import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+﻿import type { CampaignSnapshot, ConstructionProject, NationState } from "@bluewave/campaign";
 import { RESEARCH_FIELD_PRIORITY_WEIGHTS } from "@bluewave/content-schema";
-import type { CampaignSnapshot, NationState, ConstructionProject } from "@bluewave/campaign";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
 import { MonthExecutor } from "../src/index.js";
 
 function makeNation(
@@ -89,6 +89,9 @@ function makeSnapshot(turn: SafeInt): CampaignSnapshot {
     version: "0.1.0",
     turnNumber: turn,
     campaignId: "ai-scenario",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: nations.map(([nationId]) => ({
       nationId,
       type: nationId === "GBR" ? ("playable" as const) : ("ai" as const),

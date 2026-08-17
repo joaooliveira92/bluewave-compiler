@@ -38,14 +38,12 @@ and its `issues/` to resume the frontier rather than beginning anew.
 
 ## 3. Execute
 
-- Determine the starting sprint (SPRINT-PLAN "Immediate next action", or
-  `$ARGUMENTS`, or the first incomplete sprint in the plan's dependency order).
-- For huge/foggy efforts, chart via `wayfinder`; otherwise: spec (`to-spec` /
-  spec-creator) → slice (`to-tickets`) → implement (frontier) → review →
-  orchestrator **validation gate** → commit → auto-advance to the next sprint.
-- Stop only on an `.ai/AUTONOMOUS-AGENT.md` stop condition, a decision-request,
-  project completion, or exhausted session budget — the plan's "Immediate next
-  action" should always point at the next sprint so the next boot resumes cleanly.
+Run the full execution loop by following **`.opencode/command/sprint.md`** (the
+single source of truth for the sprint loop): determine the starting sprint, run
+the wayfinder → spec → slice → implement → review → **validation gate** → commit
+→ auto-advance pipeline, and stop only on a documented stop condition. The
+context you loaded in §2 and the state you verified in §1 satisfy sprint.md's
+"load your operating context" step — do not re-read everything from scratch.
 
 ## Final message
 

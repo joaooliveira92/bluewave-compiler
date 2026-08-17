@@ -1,9 +1,21 @@
 /* @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { CampaignCommandClient } from "../../shared/campaign-command-contract.js";
+import { COSMETIC_MINIMUM_DURATION_MS } from "../screens/new-game/world-generation-presentation.js";
 import type { Screen } from "./campaign-screen-registry.js";
+
+beforeAll(() => {
+  if (typeof globalThis.ResizeObserver === "undefined") {
+    class ResizeObserverStub {
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    }
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver = ResizeObserverStub;
+  }
+});
 
 const testState = vi.hoisted(() => ({
   background: "none" as "none" | "water" | "stars" | "mesh-citrus" | "mesh-lagoon",
@@ -104,15 +116,16 @@ vi.mock("../screens/campaign-file/CampaignFileScreen.js", async () => {
   };
 });
 
-vi.mock("../screens/campaign-preferences/onboarding-blocks.js", async () => {
+vi.mock("../screens/new-game/RulesOfTheNavalAgeScreen.js", async () => {
   const React = await import("react");
   return {
-    CampaignPreferencesOnboarding: ({
+    RulesOfTheNavalAgeScreen: ({
       onCancel,
       onNext,
     }: {
       onCancel: () => void;
       onNext: (preferences: Record<string, string>, options: unknown) => void;
+      recommendedPreset: unknown;
     }) =>
       React.createElement(
         "section",
@@ -138,44 +151,127 @@ vi.mock("../screens/new-game/NewGameNationScreen.js", async () => {
   const React = await import("react");
   return {
     NewGameNationScreen: ({
-      status,
       error,
-      onBack,
-      onStart,
+      onCancel,
+      onConfirm,
     }: {
-      status: "ready" | "launching";
       error: string | null;
-      onBack: () => void;
-      onStart: (config: Record<string, string>) => Promise<void>;
+      onCancel: () => void;
+      onConfirm: (nationId: string) => void;
     }) =>
       React.createElement(
         "section",
         null,
         React.createElement("h1", null, "Choose nation"),
-        status === "launching" ? React.createElement("p", null, "Starting…") : null,
         error ? React.createElement("p", { role: "alert" }, error) : null,
-        React.createElement("button", { onClick: onBack }, "Back"),
+        React.createElement("button", { onClick: onCancel }, "Back"),
+        React.createElement("button", { onClick: () => onConfirm("nation_uk") }, "Confirm nation"),
+      ),
+  };
+});
+
+vi.mock("../screens/new-game/NewGameIdentityScreen.js", async () => {
+  const React = await import("react");
+  return {
+    NewGameIdentityScreen: ({ onNext }: { onNext: (identity: Record<string, string>) => void }) =>
+      React.createElement(
+        "section",
+        null,
+        React.createElement("h1", null, "Admiral & campaign identity"),
         React.createElement(
           "button",
           {
             onClick: () =>
-              void onStart({
-                version: "campaign_configuration_v1",
-                scenarioId: "scen_1900",
-                playerSlotId: "nation_uk",
-                continuityMode: "historical",
-                fleetSize: "standard",
-                researchSpeed: "standard",
-                technologyVariation: "none",
-                historicalBudget: "canonical",
-                legacyFleetMode: "canonical_fixture",
-                tacticalRealism: "admiral",
-                difficulty: "standard",
-                campaignSeed: "TEST",
+              onNext({
+                admiralName: "John Fisher",
+                campaignName: "Britannia Ascendant",
+                namingConvention: "historical",
+                shipNameReuse: "disabled",
+                measurementSystem: "imperial",
               }),
           },
-          "Launch campaign",
+          "Next",
         ),
+      ),
+  };
+});
+
+vi.mock("../screens/new-game/NewGameFleetMethodScreen.js", async () => {
+  const React = await import("react");
+  return {
+    NewGameFleetMethodScreen: ({
+      status,
+      error,
+      onNext,
+    }: {
+      status: "ready" | "launching";
+      error: string | null;
+      onNext: (fleetMethod: Record<string, string>) => void;
+    }) =>
+      React.createElement(
+        "section",
+        null,
+        React.createElement("h1", null, "Starting-fleet method"),
+        status === "launching" ? React.createElement("p", null, "Starting…") : null,
+        error ? React.createElement("p", { role: "alert" }, error) : null,
+        React.createElement(
+          "button",
+          { onClick: () => onNext({ legacyFleetModeId: "generated" }) },
+          "Continue to review",
+        ),
+      ),
+  };
+});
+
+vi.mock("../screens/new-game/NewGameCommissioningReviewScreen.js", async () => {
+  const React = await import("react");
+  return {
+    NewGameCommissioningReviewScreen: ({
+      status,
+      error,
+      onBeginCommission,
+    }: {
+      status: "ready" | "launching";
+      error: string | null;
+      onBeginCommission: () => Promise<void>;
+    }) =>
+      React.createElement(
+        "section",
+        null,
+        React.createElement("h1", null, "Final commissioning review"),
+        status === "launching" ? React.createElement("p", null, "Commissioning…") : null,
+        error ? React.createElement("p", { role: "alert" }, error) : null,
+        React.createElement(
+          "button",
+          { onClick: () => void onBeginCommission() },
+          "Begin Commission",
+        ),
+      ),
+  };
+});
+
+vi.mock("../screens/new-game/NewGameLaunchingScreen.js", async () => {
+  const React = await import("react");
+  return {
+    NewGameLaunchingScreen: ({
+      error,
+      onBackToReview,
+    }: {
+      error: string | null;
+      onBackToReview: () => void;
+    }) =>
+      React.createElement(
+        "section",
+        null,
+        React.createElement("h1", null, "Establishing the Naval Order"),
+        error ? React.createElement("p", { role: "alert" }, error) : null,
+        error
+          ? React.createElement(
+              "button",
+              { onClick: onBackToReview },
+              "Back to Commissioning Review",
+            )
+          : null,
       ),
   };
 });
@@ -268,11 +364,23 @@ function createShell(overrides: Record<string, unknown> = {}) {
             screen: shell.screen,
             campaign: shell.campaign,
           }
-        : shell.screen === "new-game-preferences"
-          ? { kind: "new-game-preferences" as const, screen: shell.screen }
-          : shell.screen === "new-game-nation"
-            ? { kind: "new-game-nation" as const, screen: shell.screen }
-            : { kind: "file" as const, screen: "file" as const };
+        : shell.screen === "new-game-nation"
+          ? { kind: "new-game-nation" as const, screen: shell.screen }
+          : shell.screen === "new-game-preferences"
+            ? { kind: "new-game-preferences" as const, screen: shell.screen }
+            : shell.screen === "new-game-archetype"
+              ? { kind: "new-game-archetype" as const, screen: shell.screen }
+              : shell.screen === "new-game-identity"
+                ? { kind: "new-game-identity" as const, screen: shell.screen }
+                : shell.screen === "new-game-fleet-method"
+                  ? { kind: "new-game-fleet-method" as const, screen: shell.screen }
+                  : shell.screen === "new-game-review"
+                    ? { kind: "new-game-review" as const, screen: shell.screen }
+                    : shell.screen === "new-game-launching"
+                      ? { kind: "new-game-launching" as const, screen: shell.screen }
+                      : shell.screen === "opening-briefing"
+                        ? { kind: "opening-briefing" as const, screen: shell.screen }
+                        : { kind: "file" as const, screen: "file" as const };
   return { ...shell, mode };
 }
 
@@ -341,14 +449,14 @@ describe("App", () => {
     expect(screen.getByText("Inspection failed")).toBeTruthy();
   });
 
-  it("moves from file selection to the explicit preferences variant", () => {
+  it("moves from file selection to the nation-confirmation variant", () => {
     const shell = createShell();
     testState.shell = shell;
 
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Start new game" }));
 
-    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-preferences");
+    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-nation");
   });
 
   it("composes the active campaign shell, sidebar, outlet, search, and primary action", () => {
@@ -389,32 +497,102 @@ describe("App", () => {
     expect(screen.getByTestId("shader-background").dataset.variant).toBe("water");
   });
 
-  it("compiles a campaign and opens the returned session", async () => {
-    const shell = createShell({ screen: "new-game-preferences" });
+  it("compiles a campaign, shows the briefing, and opens the session on Take command", async () => {
+    const shell = createShell({ screen: "new-game-nation" });
     testState.shell = shell;
-    const execute = vi.fn(async () => ({
-      outcome: "success" as const,
-      value: { sessionId: "ses-created" },
-    })) as unknown as CampaignCommandClient["execute"];
+    const execute = vi.fn(async (command: string) => {
+      if (command === "inspectOpeningBriefing") {
+        return {
+          outcome: "success" as const,
+          value: {
+            projection: {
+              nationId: "gb",
+              nationName: "United Kingdom",
+              month: { month: 1, year: 1880 },
+              stateOfTheNavy: {
+                shipClassCounts: [{ label: "battleship", count: 2 }],
+                shipsUnderConstruction: 1,
+                mostExpensiveActiveClass: null,
+                largestDockCapacity: 30,
+                totalMaintenance: 1_200,
+                constructionCommitted: 400,
+              },
+              treasury: {
+                governmentAllocation: 2_000,
+                fleetMaintenance: 1_000,
+                constructionCommitted: 400,
+                researchExpenditure: 500,
+                projectedSurplus: 100,
+                status: "narrow",
+              },
+              foreignIntelligence: { relations: [] },
+              immediateConcerns: [],
+            },
+          },
+          diagnostics: [],
+        };
+      }
+      return {
+        outcome: "success" as const,
+        value: { sessionId: "ses-created" },
+      };
+    }) as unknown as CampaignCommandClient["execute"];
     window.bluewave = createBridge({ campaign: createCampaignClient(execute) });
 
     const { rerender } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm nation" }));
+    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-preferences");
+
+    testState.shell = createShell({ ...shell, screen: "new-game-preferences" });
+    rerender(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(shell.selectScreen).toHaveBeenCalledWith("new-game-archetype");
 
-    testState.shell = createShell({
-      ...shell,
-      screen: "new-game-nation",
-    });
+    testState.shell = createShell({ ...shell, screen: "new-game-identity" });
     rerender(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "Launch campaign" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-fleet-method");
 
-    await waitFor(() => expect(execute).toHaveBeenCalledWith("compileCampaign", expect.anything()));
-    await waitFor(() => expect(shell.openCampaign).toHaveBeenCalledWith("ses-created"));
+    testState.shell = createShell({ ...shell, screen: "new-game-fleet-method" });
+    rerender(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Continue to review" }));
+    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-review");
+
+    testState.shell = createShell({ ...shell, screen: "new-game-review" });
+    rerender(<App />);
+
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Begin Commission" }));
+      expect(shell.selectScreen).toHaveBeenCalledWith("new-game-launching");
+
+      await vi.advanceTimersByTimeAsync(COSMETIC_MINIMUM_DURATION_MS);
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(execute).toHaveBeenCalledWith("compileCampaign", expect.anything());
+    // World generation auto-advances into the briefing, not the dashboard.
+    expect(shell.openCampaign).not.toHaveBeenCalled();
+    expect(shell.selectScreen).toHaveBeenLastCalledWith("opening-briefing");
+
+    testState.shell = createShell({ ...shell, screen: "opening-briefing" });
+    rerender(<App />);
+    // The briefing is a 5-page sequence starting at Appointment; walk to the
+    // closing page to reach "Take command".
+    expect(
+      await screen.findByText(/You have been appointed First Sea Lord — United Kingdom/),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Review Naval Estimates" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Take command" }));
+    expect(shell.openCampaign).toHaveBeenCalledWith("ses-created");
   });
 
   it("shows a compilation rejection and does not open a campaign", async () => {
-    const shell = createShell({ screen: "new-game-preferences" });
+    const shell = createShell({ screen: "new-game-nation" });
     testState.shell = shell;
     const execute = vi.fn(async () => ({
       outcome: "rejected" as const,
@@ -424,14 +602,37 @@ describe("App", () => {
     window.bluewave = createBridge({ campaign: createCampaignClient(execute) });
 
     const { rerender } = render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    testState.shell = createShell({ ...shell, screen: "new-game-nation" });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm nation" }));
+
+    testState.shell = createShell({ ...shell, screen: "new-game-preferences" });
     rerender(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "Launch campaign" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    testState.shell = createShell({ ...shell, screen: "new-game-identity" });
+    rerender(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    testState.shell = createShell({ ...shell, screen: "new-game-fleet-method" });
+    rerender(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Continue to review" }));
+
+    testState.shell = createShell({ ...shell, screen: "new-game-review" });
+    rerender(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Begin Commission" }));
+    expect(shell.selectScreen).toHaveBeenCalledWith("new-game-launching");
 
     expect(
       await screen.findByText("UNSUPPORTED_CONFIGURATION. difficulty is invalid"),
     ).toBeTruthy();
     expect(shell.openCampaign).not.toHaveBeenCalled();
+
+    // Landing directly on the launching screen (as the real navigation would
+    // have done) shows the dedicated error state with a working way back.
+    testState.shell = createShell({ ...shell, screen: "new-game-launching" });
+    rerender(<App />);
+    expect(screen.getByRole("heading", { name: "Establishing the Naval Order" })).toBeTruthy();
+    expect(screen.getByText("UNSUPPORTED_CONFIGURATION. difficulty is invalid")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Back to Commissioning Review" }));
+    expect(shell.selectScreen).toHaveBeenLastCalledWith("new-game-review");
   });
 });

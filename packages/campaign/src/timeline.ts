@@ -3,6 +3,34 @@
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 export const SIMULATION_END_YEAR = 1970 as const;
 export const SIMULATION_END_MONTH = 12 as const;
+
+// B-6/ADR-0025: the canonical start calendar date for campaigns compiled
+// without an explicit scenario / campaignStart input — the first canonical
+// scenario's start (scen_1880, DESIGN-03 §1). The CampaignCompiler always
+// stamps explicit startYear/startMonth on the compiled snapshot (scenario ->
+// start date when a campaignConfiguration is supplied, the campaignStart input
+// if given, else this default); the phase engine derives every campaign month
+// id from the snapshot's own start fields, so this constant is never read from
+// ambient time/env/locale.
+export const DEFAULT_CAMPAIGN_START_YEAR = 1880 as const;
+export const DEFAULT_CAMPAIGN_START_MONTH = 1 as const;
+
+/** Canonical month-id encoding (e.g. (1880, 2) -> "1880-02"). Zero-padded, integer arithmetic only. */
+export function monthId(year: number, month: number): string {
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}`;
+}
+
+/**
+ * DESIGN-03 §2 campaign month id for a turn: exactly
+ * `fromLinear(toLinear(startYear, startMonth) + turnNumber)` rendered `YYYY-MM`
+ * (e.g. campaign starting January 1880 at turn 1 -> "1880-02"). Deterministic:
+ * no wall-clock/env/locale. The weather stream domain is
+ * `campaign/weather/<areaId>/<month>` with this month id (DESIGN-42 §1).
+ */
+export function campaignMonthId(startYear: number, startMonth: number, turnNumber: number): string {
+  const d = fromLinear(toLinear(startYear, startMonth) + turnNumber);
+  return monthId(d.year, d.month);
+}
 export function toLinear(year: number, month: number): number {
   return year * 12 + (month - 1);
 }

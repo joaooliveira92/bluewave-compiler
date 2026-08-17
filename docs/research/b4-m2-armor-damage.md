@@ -41,18 +41,20 @@ documented ballistic-quality progression of naval armor (iron → compound →
 Harvey → Krupp cemented/KC → post-WWI improvements), keyed to the sim's era bands
 (`scen_1880` runs Jan 1880–Dec 1970):
 
-| Family | Era | Relative quality (BALANCE TARGET) | Grounding |
-|---|---|---|---|
-| `WROUGHT_IRON_PLATE` | 1880s | `9_800` bp | Wrought-iron plate baseline of the early pre-dreadnought era; reference baseline. |
-| `COMPOUND_IRON_STEEL` | 1880s–90s | `10_200` bp | Wilson/compound (iron–steel faced) far superior to iron at equal thickness (1880s). |
-| `HARVEY_PROCESS` | 1890s | `10_500` bp | Harvey face-hardened: markedly better than compound; made heavy iron belts obsolete. |
-| `KRUPP_CEMENTED` | mid-1890s→1910s | `10_800` bp | Krupp cemented (KC): ~15–25% better than Harvey — the standard WWI-era quality. |
-| `POST_KC_PLATE` | 1920s+ | `11_000` bp | Interwar improvements (e.g. improved KC/nickel-chrome): incremental quality gain. |
+| Technology | Era | Shipped multiplier (bp) | Grounding |
+|-----------|-----|------------------------|-----------|
+| Wrought iron | 1860s–1880s | 8_000 | Wrought-iron plate baseline of the early pre-dreadnought era. |
+| Compound (iron + steel) | 1880s–1890s | 9_000 | Wilson/compound (iron–steel faced) — markedly superior to iron at equal thickness. |
+| Harvey (face-hardened nickel-steel) | 1890s–1900s | 10_000 | Harvey face-hardened process — markedly better than compound; made heavy iron belts obsolete. 10 000 bp = neutral (1.0×) baseline. |
+| Krupp cemented (KC) / Krupp | 1900s–1930s | 10_500 | Krupp cemented (KC) — ~15–25% better than Harvey; the standard WWI-era quality. 10 500 bp = 1.05×. |
+| Post-Krupp / improved KC | 1930s+ | 11_000 | Interwar improvements (e.g. improved KC/nickel-chrome) — incremental quality gain at 1.10×. |
+
+[Sources: Okun's Naval Armor; Friedman's Naval Firepower; Campbell's Naval Weapons of WWII]
 
 Era mapping guidance: 1880s production-pack capitals (RML era) use
-`WROUGHT_IRON_PLATE` / early `COMPOUND_IRON_STEEL`; 1900+ designs shift to
-`HARVEY_PROCESS` → `KRUPP_CEMENTED`; 1920s+ to `POST_KC_PLATE`. Exact per-family
-multipliers are **BALANCE TARGET** and authored in ADR-0021; the *ordering and
+`IRON` / early `COMPOUND`; 1900+ designs shift to
+`HARVEY` → `KRUPP_KC`; 1920s+ to `POST_KC`. Exact per-family
+multipliers are shipped as `armor_v1` constants (ADR-0021); the *ordering and
 era direction* are historically grounded. Production-pack class assignments are a
 content-track concern (deferred), not fabricated here.
 
@@ -70,6 +72,12 @@ All normative (from DESIGN-41 §§14–20); resolution/control formulas that con
 them are M3/C-5.
 
 ## 5. Impact geometry / splinter anchoring
+
+### Splinter Protection Threshold
+
+50_800 µm (2 inches) — standard naval splinter protection threshold.
+
+[Sources: Okun's Naval Armor; Friedman's Naval Firepower; Campbell's Naval Weapons of WWII]
 
 - 2-in (50 800 µm) splinter-protection threshold: historically shipbuilders
   considered ~1–2 in light plating the break between splinter-resistant plating

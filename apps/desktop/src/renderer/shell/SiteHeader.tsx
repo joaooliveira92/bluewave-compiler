@@ -1,4 +1,4 @@
-import { ClockArrowRight } from "lucide-react";
+import { ClockArrowRight, Play } from "lucide-react";
 
 import { Button } from "../components/ui/button.js";
 import { cn } from "../lib/utils.js";
@@ -21,6 +21,8 @@ export interface SiteHeaderProps {
   readonly continueAction?: PrimaryAction;
   readonly searchTargets?: readonly SearchTarget[];
   readonly onSearchNavigate?: (id: string) => void;
+  readonly onAdvanceMonth?: (() => void) | undefined;
+  readonly advancingMonth?: boolean;
 }
 
 const NOOP = (): void => undefined;
@@ -36,6 +38,8 @@ export function SiteHeader({
   continueAction,
   searchTargets = EMPTY_SEARCH_TARGETS,
   onSearchNavigate,
+  onAdvanceMonth,
+  advancingMonth = false,
 }: SiteHeaderProps) {
   const { platform } = useWindowContext();
   const isMac = platform === "darwin";
@@ -69,6 +73,20 @@ export function SiteHeader({
             >
               <ClockArrowRight className="h-4 w-4" />
               <span className="truncate">{continueAction.label}</span>
+            </Button>
+          )}
+
+          {campaign !== null && onAdvanceMonth !== undefined && (
+            <Button
+              variant="outline"
+              aria-label="Advance month"
+              title="Resolve the current strategic month"
+              onClick={onAdvanceMonth}
+              disabled={advancingMonth}
+              className="h-8 shrink-0 justify-center gap-2 px-3"
+            >
+              <Play className="h-4 w-4" />
+              <span className="truncate">{advancingMonth ? "Advancing…" : "Advance Month"}</span>
             </Button>
           )}
 

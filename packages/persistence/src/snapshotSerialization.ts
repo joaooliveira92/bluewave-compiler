@@ -32,11 +32,10 @@ export type StorableCampaignSnapshot = Omit<
 };
 
 function mapToRecord<V>(map: Map<string, V>): Record<string, V> {
-  const record: Record<string, V> = {};
-  for (const [key, value] of map) {
-    record[key] = value;
-  }
-  return record;
+  // Object.fromEntries creates own data properties (define-property semantics),
+  // so special keys like "__proto__", "constructor", "prototype" cannot poison
+  // the prototype of the resulting record (TODO #10).
+  return Object.fromEntries(map);
 }
 
 function recordToMap<V>(record: Record<string, V>): Map<string, V> {

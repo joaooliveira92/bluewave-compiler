@@ -1,24 +1,28 @@
 import { describe, it, expect } from "vite-plus/test";
 import { BluewaveError } from "@bluewave/contracts";
 import {
-  GUNNERY_BASE_RELOAD_BY_CALIBER_MM,
-  GUNNERY_SCEN1880_RML_HEAVY_BASE_RELOAD_MIN_MS,
+  BASE_RELOAD_MS_BY_CALIBER,
+  GUNNERY_CALIBERS,
+  baseReloadMsForCaliber,
   gunneryBallisticsPolicyId,
+  type GunneryCaliber,
   SHIPPED_GUNNERY_BALLISTICS_CONTRACT,
   validateGunneryBallisticsContract,
 } from "../../src/gunnery/index.js";
 
-// Research table (docs/research/b3-m2-gunnery.md §1): broad caliber mm ->
+// Research table (docs/research/b3-m2-gunnery.md §1): broad caliber ->
 // chosen baseReloadMilliseconds. Locked so a drift in either the research note or
-// the shipped constant forces review.
-const RESEARCHED_BASE_RELOAD_BY_CALIBER_MM = {
-  152: 7_000,
-  203: 18_000,
-  305: 25_000,
-  356: 36_000,
-  381: 35_000,
-  406: 40_000,
-} as const;
+// the shipped constant forces review. The 1880s RML heavy-gun caliber is NOT in
+// this table: it has no primary-sourced precise integer (sources: "1-5 min/round")
+// and ships as an explicit BALANCE TARGET (ADR-0020) — asserted separately.
+const RESEARCHED_BASE_RELOAD_MS_BY_CALIBER: Partial<Record<GunneryCaliber, number>> = {
+  CAL_6IN_152MM: 7_000,
+  CAL_8IN_203MM: 18_000,
+  CAL_12IN_305MM: 25_000,
+  CAL_14IN_356MM: 36_000,
+  CAL_15IN_381MM: 35_000,
+  CAL_16IN_406MM: 40_000,
+};
 
 describe("AC-5 grounding: research-grounded base-reload-by-caliber constants", () => {
   it("ships the *_v1 policy id and SHIPPED_GUNNERY_BALLISTICS_CONTRACT", () => {
@@ -27,30 +31,42 @@ describe("AC-5 grounding: research-grounded base-reload-by-caliber constants", (
   });
 
   it("the shipped per-caliber values equal the researched table exactly", () => {
-    expect({ ...GUNNERY_BASE_RELOAD_BY_CALIBER_MM }).toEqual(RESEARCHED_BASE_RELOAD_BY_CALIBER_MM);
-    expect(SHIPPED_GUNNERY_BALLISTICS_CONTRACT.baseReloadByCaliberMm).toEqual(
-      RESEARCHED_BASE_RELOAD_BY_CALIBER_MM,
-    );
+    for (const cal of GUNNERY_CALIBERS) {
+      if (cal === "CAL_RML_HEAVY_1880") continue; // balance target, asserted separately
+      expect(BASE_RELOAD_MS_BY_CALIBER[cal]).toBe(RESEARCHED_BASE_RELOAD_MS_BY_CALIBER[cal]);
+      expect(SHIPPED_GUNNERY_BALLISTICS_CONTRACT.baseReloadMsByCaliber[cal]).toBe(
+        RESEARCHED_BASE_RELOAD_MS_BY_CALIBER[cal],
+      );
+    }
+    // the 1880s RML heavy-gun caliber is never silently pinned as a research fact
+    expect(RESEARCHED_BASE_RELOAD_MS_BY_CALIBER.CAL_RML_HEAVY_1880).toBeUndefined();
   });
 
   it("every per-caliber value is a positive integer (tactical ms)", () => {
-    const entries = Object.entries(GUNNERY_BASE_RELOAD_BY_CALIBER_MM);
-    expect(entries.length).toBeGreaterThan(0);
-    for (const [mm, ms] of entries) {
-      expect(Number(mm)).toBeGreaterThan(0);
+    expect(GUNNERY_CALIBERS.length).toBeGreaterThan(0);
+    for (const cal of GUNNERY_CALIBERS) {
+      const ms = BASE_RELOAD_MS_BY_CALIBER[cal]!;
       expect(ms).toBeGreaterThan(0);
       expect(Number.isInteger(ms)).toBe(true);
     }
   });
 
-  it("the 1880s RML heavy-gun balance-target flag equals the documented lower bound", () => {
+  it("the 1880s RML heavy-gun balance target equals the ADR-0020 midpoint", () => {
     // docs/research/b3-m2-gunnery.md §1: 1880s RML heavy guns are 1-5 min/round
-    // (120 000-300 000 ms), NOT fully grounded -> recorded as a BALANCE TARGET
-    // lower bound, never silently pinned as a primary fact (open content-owner
-    // decision).
-    expect(GUNNERY_SCEN1880_RML_HEAVY_BASE_RELOAD_MIN_MS).toBe(120_000);
-    expect(Number.isInteger(GUNNERY_SCEN1880_RML_HEAVY_BASE_RELOAD_MIN_MS)).toBe(true);
-    expect(SHIPPED_GUNNERY_BALLISTICS_CONTRACT.scen1880RmlHeavyBaseReloadMinMs).toBe(120_000);
+    // (120 000-300 000 ms), NOT fully grounded -> recorded as a BALANCE TARGET at
+    // the midpoint 210 000 ms (ADR-0020), never silently pinned as a primary fact
+    // (open content-owner decision).
+    expect(BASE_RELOAD_MS_BY_CALIBER.CAL_RML_HEAVY_1880).toBe(210_000);
+    expect(Number.isInteger(BASE_RELOAD_MS_BY_CALIBER.CAL_RML_HEAVY_1880)).toBe(true);
+    expect(SHIPPED_GUNNERY_BALLISTICS_CONTRACT.baseReloadMsByCaliber.CAL_RML_HEAVY_1880).toBe(
+      210_000,
+    );
+  });
+
+  it("baseReloadMsForCaliber returns every shipped caliber's shipped value", () => {
+    for (const cal of GUNNERY_CALIBERS) {
+      expect(baseReloadMsForCaliber(cal)).toBe(BASE_RELOAD_MS_BY_CALIBER[cal]);
+    }
   });
 
   it("validates the shipped contract without throwing", () => {
@@ -63,7 +79,7 @@ describe("AC-5 grounding: research-grounded base-reload-by-caliber constants", (
     expect(() =>
       validateGunneryBallisticsContract({
         ...SHIPPED_GUNNERY_BALLISTICS_CONTRACT,
-        baseReloadByCaliberMm: { ...GUNNERY_BASE_RELOAD_BY_CALIBER_MM, 152: 6_000 },
+        baseReloadMsByCaliber: { ...BASE_RELOAD_MS_BY_CALIBER, CAL_6IN_152MM: 6_000 },
       }),
     ).toThrow(BluewaveError);
   });
@@ -72,16 +88,16 @@ describe("AC-5 grounding: research-grounded base-reload-by-caliber constants", (
     expect(() =>
       validateGunneryBallisticsContract({
         ...SHIPPED_GUNNERY_BALLISTICS_CONTRACT,
-        baseReloadByCaliberMm: { ...GUNNERY_BASE_RELOAD_BY_CALIBER_MM, 450: 120_000 },
+        calibers: [...GUNNERY_CALIBERS].slice(0, 3),
       }),
     ).toThrow(BluewaveError);
   });
 
-  it("fails closed on a tampered 1880 RML balance-target flag", () => {
+  it("fails closed on a tampered 1880 RML balance-target value", () => {
     expect(() =>
       validateGunneryBallisticsContract({
         ...SHIPPED_GUNNERY_BALLISTICS_CONTRACT,
-        scen1880RmlHeavyBaseReloadMinMs: 60_000,
+        baseReloadMsByCaliber: { ...BASE_RELOAD_MS_BY_CALIBER, CAL_RML_HEAVY_1880: 60_000 },
       }),
     ).toThrow(BluewaveError);
   });

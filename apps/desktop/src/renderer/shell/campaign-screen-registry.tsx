@@ -1,7 +1,9 @@
 import {
   Activity,
   Crosshair,
+  FlaskConical,
   Hammer,
+  Handshake,
   LayoutDashboard,
   Map as MapIcon,
   Settings,
@@ -17,6 +19,7 @@ import { FleetScreen } from "../screens/fleet/FleetScreen.js";
 import { OptionsScreen } from "../screens/options/OptionsScreen.js";
 import { OverviewScreen } from "../screens/overview/OverviewScreen.js";
 import { useCampaignShellContext } from "./CampaignShellContext.js";
+import { isDebugMode } from "./debug-mode.js";
 
 const DebuggingScreen = lazy(() =>
   import("../screens/debugging/DebuggingScreen.js").then((module) => ({
@@ -26,6 +29,16 @@ const DebuggingScreen = lazy(() =>
 const SimulationScreen = lazy(() =>
   import("../screens/simulation/SimulationScreen.js").then((module) => ({
     default: module.SimulationScreen,
+  })),
+);
+const ResearchScreen = lazy(() =>
+  import("../screens/research/ResearchScreen.js").then((module) => ({
+    default: module.ResearchScreen,
+  })),
+);
+const DiplomacyScreen = lazy(() =>
+  import("../screens/diplomacy/DiplomacyScreen.js").then((module) => ({
+    default: module.DiplomacyScreen,
   })),
 );
 const TacticalSandboxScreen = lazy(() =>
@@ -44,9 +57,14 @@ const MapPrototypeScreen = lazy(() =>
 
 export type Screen =
   | "file"
+  | "new-game-nation"
   | "new-game-preferences"
   | "new-game-archetype"
-  | "new-game-nation"
+  | "new-game-identity"
+  | "new-game-fleet-method"
+  | "new-game-review"
+  | "new-game-launching"
+  | "opening-briefing"
   | CampaignScreen;
 
 export type CampaignScreen =
@@ -54,6 +72,8 @@ export type CampaignScreen =
   | "construction"
   | "fleet"
   | "simulation"
+  | "research"
+  | "diplomacy"
   | "tactical-sandbox"
   | "debugging"
   | "map-prototype"
@@ -93,6 +113,14 @@ function SimulationRoute({ sessionId }: CampaignScreenRouteProps) {
   return (
     <SimulationScreen sessionId={sessionId} onPrimaryActionChange={actions.setPrimaryAction} />
   );
+}
+
+function ResearchRoute({ sessionId }: CampaignScreenRouteProps) {
+  return <ResearchScreen sessionId={sessionId} />;
+}
+
+function DiplomacyRoute({ sessionId }: CampaignScreenRouteProps) {
+  return <DiplomacyScreen sessionId={sessionId} />;
 }
 
 function TacticalSandboxRoute({ sessionId }: CampaignScreenRouteProps) {
@@ -136,6 +164,37 @@ const MAP_PROTOTYPE_SCREEN: CampaignScreenDefinition = {
   route: MapPrototypeRoute,
 };
 
+// Debug-only tooling, gated by the pure rule in debug-mode.ts (`isDebugMode`).
+// Only set via `pnpm dev:debug` (or VITE_BLUEWAVE_DEBUG=true in a build) — a
+// plain `pnpm dev` does not enable it, so these screens (and their lazy
+// chunks) stay out of the sidebar unless debug mode is explicitly requested.
+const DEBUG_MODE = isDebugMode({ flag: import.meta.env.VITE_BLUEWAVE_DEBUG });
+
+const SIMULATION_SCREEN: CampaignScreenDefinition = {
+  id: "simulation",
+  label: "Simulation & Turn",
+  icon: Activity,
+  group: "campaign",
+  searchable: true,
+  route: SimulationRoute,
+};
+const TACTICAL_SANDBOX_SCREEN: CampaignScreenDefinition = {
+  id: "tactical-sandbox",
+  label: "Tactical Sandbox",
+  icon: Crosshair,
+  group: "campaign",
+  searchable: true,
+  route: TacticalSandboxRoute,
+};
+const DEBUGGING_SCREEN: CampaignScreenDefinition = {
+  id: "debugging",
+  label: "Debugging & Telemetry",
+  icon: Terminal,
+  group: "campaign",
+  searchable: true,
+  route: DebuggingRoute,
+};
+
 export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "overview",
@@ -161,30 +220,24 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
     searchable: true,
     route: FleetRoute,
   },
+  ...(DEBUG_MODE ? [SIMULATION_SCREEN] : []),
   {
-    id: "simulation",
-    label: "Simulation & Turn",
-    icon: Activity,
+    id: "research",
+    label: "Research & Technology",
+    icon: FlaskConical,
     group: "campaign",
     searchable: true,
-    route: SimulationRoute,
+    route: ResearchRoute,
   },
   {
-    id: "tactical-sandbox",
-    label: "Tactical Sandbox",
-    icon: Crosshair,
+    id: "diplomacy",
+    label: "Diplomacy & War",
+    icon: Handshake,
     group: "campaign",
     searchable: true,
-    route: TacticalSandboxRoute,
+    route: DiplomacyRoute,
   },
-  {
-    id: "debugging",
-    label: "Debugging & Telemetry",
-    icon: Terminal,
-    group: "campaign",
-    searchable: true,
-    route: DebuggingRoute,
-  },
+  ...(DEBUG_MODE ? [TACTICAL_SANDBOX_SCREEN, DEBUGGING_SCREEN] : []),
   ...(import.meta.env.DEV ? [MAP_PROTOTYPE_SCREEN] : []),
   {
     id: "campaign-preferences",

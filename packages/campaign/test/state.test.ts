@@ -1,15 +1,15 @@
-import { describe, it, expect } from "vite-plus/test";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { CANONICAL_SCENARIOS } from "../src/scenario.js";
-import { CANONICAL_FLEET_SIZE_SETTINGS } from "../src/fleetSize.js";
-import { CANONICAL_RESEARCH_SPEED_SETTINGS } from "../src/researchSpeed.js";
+import { describe, expect, it } from "vite-plus/test";
 import {
-  validateCampaignPreconditions,
-  createInitialCampaignState,
-  canAdvanceCampaign,
   advanceCampaignMonth,
   assertCampaignStateImmutability,
+  canAdvanceCampaign,
+  createInitialCampaignState,
+  validateCampaignPreconditions,
 } from "../src/campaignSession.js";
+import { CANONICAL_FLEET_SIZE_SETTINGS } from "../src/fleetSize.js";
+import { CANONICAL_RESEARCH_SPEED_SETTINGS } from "../src/researchSpeed.js";
+import { CANONICAL_SCENARIOS } from "../src/scenario.js";
 
 function collector() {
   return new DiagnosticCollector();

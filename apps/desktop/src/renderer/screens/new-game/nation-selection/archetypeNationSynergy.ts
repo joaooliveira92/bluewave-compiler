@@ -10,10 +10,10 @@ export interface NationArchetypeSynergy {
 /**
  * Presentational (non-authoritative) affinity notes between a nation and each
  * playstyle. This is flavour content shown on the nation-selection step; it never
- * changes campaign authority. Keyed by stable nation id like `nation_uk`.
+ * changes campaign authority. Keyed by stable nation id like `uk`.
  */
 const NATION_ARCHETYPE_SYNERGY: Record<string, Partial<Record<string, NationArchetypeSynergy>>> = {
-  nation_uk: {
+  uk: {
     merchant_prince: {
       affinity: "strong",
       note: "The Royal Navy's global commerce fits a treasury-led build-up well.",
@@ -27,7 +27,7 @@ const NATION_ARCHETYPE_SYNERGY: Record<string, Partial<Record<string, NationArch
       note: "British doctrine rewards decisive battle, but economy still fuels it.",
     },
   },
-  nation_germany: {
+  germany: {
     grand_admiral: {
       affinity: "strong",
       note: "A smaller, aggressive High Seas Fleet rewards a combat-focused playstyle.",
@@ -37,13 +37,13 @@ const NATION_ARCHETYPE_SYNERGY: Record<string, Partial<Record<string, NationArch
       note: "A constrained economy favours spending every appropriation carefully.",
     },
   },
-  nation_france: {
+  france: {
     shipyard_baron: {
       affinity: "strong",
       note: "French dockyards pair well with a construction-led strategy.",
     },
   },
-  nation_italy: {
+  italy: {
     grand_admiral: {
       affinity: "weak",
       note: "Italian battle doctrine is potent but a thin economy can limit follow-on.",

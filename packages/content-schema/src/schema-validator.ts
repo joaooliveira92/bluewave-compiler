@@ -1,5 +1,5 @@
-import { z } from "zod";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
+import type { z } from "zod";
 
 export function validateAgainstSchema<T>(
   data: unknown,

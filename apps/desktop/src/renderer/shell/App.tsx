@@ -1,7 +1,9 @@
-import type { ArchetypeSelection, CampaignConfiguration } from "@bluewave/campaign-engine";
+import { defaultArchetypeSelection, type ArchetypeSelection } from "@bluewave/campaign-engine";
 import { useEffect, useMemo, useState } from "react";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { WindowState } from "../../shared/bridge-contract.js";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
+import type { InspectOpeningBriefingResult } from "../../shared/campaign-command-contract.js";
 import type { NewGameOptions } from "../../shared/new-game-contract.js";
 import Auralis from "../components/backgrounds/auralis.js";
 import Nebulore from "../components/backgrounds/nebulore.js";
@@ -10,9 +12,23 @@ import { ShaderBackground } from "../components/motion/shader-background.js";
 import { Alert, AlertDescription } from "../components/ui/alert.js";
 import { SidebarInset, SidebarProvider } from "../components/ui/sidebar.js";
 import { CampaignFileScreen } from "../screens/campaign-file/CampaignFileScreen.js";
-import { CampaignPreferencesOnboarding } from "../screens/campaign-preferences/onboarding-blocks.js";
 import { NewGameArchetypeScreen } from "../screens/new-game/NewGameArchetypeScreen.js";
+import { NewGameBriefingScreen } from "../screens/new-game/NewGameBriefingScreen.js";
+import { NewGameCommissioningReviewScreen } from "../screens/new-game/NewGameCommissioningReviewScreen.js";
+import { NewGameFleetMethodScreen } from "../screens/new-game/NewGameFleetMethodScreen.js";
+import { NewGameIdentityScreen } from "../screens/new-game/NewGameIdentityScreen.js";
+import { NewGameLaunchingScreen } from "../screens/new-game/NewGameLaunchingScreen.js";
 import { NewGameNationScreen } from "../screens/new-game/NewGameNationScreen.js";
+import { RulesOfTheNavalAgeScreen } from "../screens/new-game/RulesOfTheNavalAgeScreen.js";
+import type { AdmiralPresetValues } from "../screens/new-game/admiral-preset.js";
+import {
+  defaultFleetMethod,
+  type FleetMethodDraft,
+} from "../screens/new-game/new-game-fleet-method-screen-state.js";
+import {
+  defaultCampaignIdentity,
+  type CampaignIdentityDraft,
+} from "../screens/new-game/new-game-identity-screen-state.js";
 import type { DraftPreferences } from "../screens/new-game/new-game-preferences-screen-state.js";
 import { AppSidebar } from "./AppSidebar.js";
 import { useBackground } from "./BackgroundContext.js";
@@ -23,6 +39,7 @@ import {
   type Screen,
 } from "./campaign-screen-registry.js";
 import type { CampaignShellMode } from "./campaign-shell-state.js";
+import { MapSheet } from "./MapSheet.js";
 import type { PrimaryAction } from "./primary-action.js";
 import { SiteHeader } from "./SiteHeader.js";
 import { type ActiveView, type HeaderCampaign, headerTitleFor } from "./site-header-state.js";
@@ -126,12 +143,25 @@ interface CampaignUnavailableViewProps {
   readonly newGameError: string | null;
   readonly onOpenCampaign: (sessionId: string) => Promise<void>;
   readonly onStartNewGame: () => void;
-  readonly onCancelPreferences: () => void;
+  readonly onCancelToFile: () => void;
+  readonly onConfirmNation: (nationId: string) => void;
+  readonly onRecommendedSetup: (nationId: string) => void;
+  readonly onBackToNation: () => void;
   readonly onPreferencesNext: (preferences: DraftPreferences, options: NewGameOptions) => void;
   readonly onBackToPreferences: () => void;
   readonly onArchetypeNext: (archetype: ArchetypeSelection) => void;
   readonly onBackToArchetype: () => void;
-  readonly onStartCampaign: (config: CampaignConfiguration) => Promise<void>;
+  readonly onIdentityNext: (identity: CampaignIdentityDraft) => void;
+  readonly onBackToIdentity: () => void;
+  readonly onFleetMethodNext: (fleetMethod: FleetMethodDraft) => void;
+  readonly onBackToFleetMethod: () => void;
+  readonly onLaunch: () => Promise<void>;
+  readonly onBackToReviewFromLaunch: () => void;
+  readonly onTakeCommand: () => Promise<void>;
+  readonly onInspectOpeningBriefing: (
+    sessionId: string,
+  ) => Promise<BridgeResult<InspectOpeningBriefingResult>>;
+  readonly briefingSessionId: string | null;
   readonly onPrimaryActionChange: (action: PrimaryAction | null) => void;
 }
 
@@ -147,11 +177,22 @@ function CampaignUnavailableView(props: CampaignUnavailableViewProps) {
           onStartNewGame={props.onStartNewGame}
         />
       );
+    case "new-game-nation":
+      return (
+        <NewGameNationScreen
+          error={props.newGameError}
+          onCancel={props.onCancelToFile}
+          onConfirm={props.onConfirmNation}
+          onRecommendedSetup={props.onRecommendedSetup}
+          onPrimaryActionChange={props.onPrimaryActionChange}
+        />
+      );
     case "new-game-preferences":
       return (
         <CampaignPreferencesView
-          onCancel={props.onCancelPreferences}
+          onCancel={props.onBackToNation}
           onNext={props.onPreferencesNext}
+          recommendedPreset={props.draft?.recommendedPreset ?? null}
         />
       );
     case "new-game-archetype":
@@ -168,22 +209,68 @@ function CampaignUnavailableView(props: CampaignUnavailableViewProps) {
           onPrimaryActionChange={props.onPrimaryActionChange}
         />
       );
-    case "new-game-nation":
-      return props.draft === null ? (
+    case "new-game-identity":
+      return (
+        <NewGameIdentityScreen
+          initialIdentity={props.draft?.identity ?? defaultCampaignIdentity()}
+          onBack={props.onBackToArchetype}
+          onNext={props.onIdentityNext}
+          onPrimaryActionChange={props.onPrimaryActionChange}
+        />
+      );
+    case "new-game-fleet-method":
+      return (
+        <NewGameFleetMethodScreen
+          initialFleetMethod={props.draft?.fleetMethod ?? defaultFleetMethod()}
+          status={props.newGameStatus}
+          error={props.newGameError}
+          onBack={props.onBackToIdentity}
+          onNext={props.onFleetMethodNext}
+          onPrimaryActionChange={props.onPrimaryActionChange}
+        />
+      );
+    case "new-game-review":
+      return props.draft === null ||
+        props.draft.preferences === null ||
+        props.draft.identity === null ||
+        props.draft.fleetMethod === null ? (
         <CampaignFileView
           onOpenCampaign={props.onOpenCampaign}
           onStartNewGame={props.onStartNewGame}
         />
       ) : (
-        <NewGameNationScreen
-          preferences={props.draft.preferences}
+        <NewGameCommissioningReviewScreen
+          nationId={props.draft.nationId}
           options={props.draft.options}
-          archetype={props.draft.archetype}
+          preferences={props.draft.preferences}
+          archetype={props.draft.archetype ?? defaultArchetypeSelection()}
+          identity={props.draft.identity}
+          fleetMethod={props.draft.fleetMethod}
           status={props.newGameStatus}
           error={props.newGameError}
-          onBack={props.onBackToArchetype}
-          onStart={props.onStartCampaign}
+          onBack={props.onBackToFleetMethod}
+          onBeginCommission={props.onLaunch}
           onPrimaryActionChange={props.onPrimaryActionChange}
+        />
+      );
+    case "new-game-launching":
+      return (
+        <NewGameLaunchingScreen
+          error={props.newGameError}
+          onBackToReview={props.onBackToReviewFromLaunch}
+        />
+      );
+    case "opening-briefing":
+      return props.briefingSessionId === null ? (
+        <CampaignFileView
+          onOpenCampaign={props.onOpenCampaign}
+          onStartNewGame={props.onStartNewGame}
+        />
+      ) : (
+        <NewGameBriefingScreen
+          sessionId={props.briefingSessionId}
+          onInspectOpeningBriefing={props.onInspectOpeningBriefing}
+          onTakeCommand={props.onTakeCommand}
         />
       );
     case "file":
@@ -231,12 +318,21 @@ function CampaignOpenErrorView({
 interface CampaignPreferencesViewProps {
   readonly onCancel: () => void;
   readonly onNext: (preferences: DraftPreferences, options: NewGameOptions) => void;
+  readonly recommendedPreset: AdmiralPresetValues | null;
 }
 
-function CampaignPreferencesView({ onCancel, onNext }: CampaignPreferencesViewProps) {
+function CampaignPreferencesView({
+  onCancel,
+  onNext,
+  recommendedPreset,
+}: CampaignPreferencesViewProps) {
   return (
     <div className="p-8">
-      <CampaignPreferencesOnboarding onCancel={onCancel} onNext={onNext} />
+      <RulesOfTheNavalAgeScreen
+        onCancel={onCancel}
+        onNext={onNext}
+        recommendedPreset={recommendedPreset}
+      />
     </div>
   );
 }
@@ -352,9 +448,14 @@ function CampaignShellApplication({
   const activeView: ActiveView =
     shell.state.mode.kind === "campaign"
       ? "playing"
-      : shell.state.mode.kind === "new-game-preferences" ||
+      : shell.state.mode.kind === "new-game-nation" ||
+          shell.state.mode.kind === "new-game-preferences" ||
           shell.state.mode.kind === "new-game-archetype" ||
-          shell.state.mode.kind === "new-game-nation"
+          shell.state.mode.kind === "new-game-identity" ||
+          shell.state.mode.kind === "new-game-fleet-method" ||
+          shell.state.mode.kind === "new-game-review" ||
+          shell.state.mode.kind === "new-game-launching" ||
+          shell.state.mode.kind === "opening-briefing"
         ? "new_game"
         : "menu";
 
@@ -377,6 +478,8 @@ function CampaignShellApplication({
       {...(shell.state.primaryAction !== null ? { continueAction: shell.state.primaryAction } : {})}
       searchTargets={searchTargets}
       onSearchNavigate={(id) => shell.actions.selectScreen(id as Screen)}
+      onAdvanceMonth={shell.actions.advanceMonth}
+      advancingMonth={shell.state.committing}
     />
   );
 
@@ -389,12 +492,32 @@ function CampaignShellApplication({
         newGameError={newGame.state.error}
         onOpenCampaign={shell.actions.openCampaign}
         onStartNewGame={newGame.actions.start}
-        onCancelPreferences={newGame.actions.cancel}
+        onCancelToFile={newGame.actions.cancel}
+        onConfirmNation={newGame.actions.confirmNation}
+        onRecommendedSetup={newGame.actions.applyRecommendedSetup}
+        onBackToNation={newGame.actions.backToNation}
         onPreferencesNext={newGame.actions.acceptPreferences}
         onBackToPreferences={newGame.actions.backToPreferences}
         onArchetypeNext={newGame.actions.acceptArchetype}
         onBackToArchetype={newGame.actions.backToArchetype}
-        onStartCampaign={newGame.actions.launch}
+        onIdentityNext={newGame.actions.acceptIdentity}
+        onBackToIdentity={newGame.actions.backToIdentity}
+        onFleetMethodNext={newGame.actions.acceptFleetMethod}
+        onBackToFleetMethod={newGame.actions.backToFleetMethod}
+        onLaunch={newGame.actions.launch}
+        onBackToReviewFromLaunch={newGame.actions.backToReviewFromLaunch}
+        onTakeCommand={newGame.actions.takeCommand}
+        onInspectOpeningBriefing={async (sessionId) => {
+          if (bridge === undefined) {
+            return {
+              outcome: "error",
+              reason: "BRIDGE_UNAVAILABLE",
+              diagnostics: ["The desktop bridge is unavailable."],
+            };
+          }
+          return bridge.campaign.execute("inspectOpeningBriefing", sessionId);
+        }}
+        briefingSessionId={newGame.state.briefingSessionId}
         onPrimaryActionChange={shell.actions.setPrimaryAction}
       />
     ) : (
@@ -413,6 +536,7 @@ function CampaignShellApplication({
       >
         {content}
       </AppFrame>
+      <MapSheet />
     </WindowContextProvider>
   );
 }

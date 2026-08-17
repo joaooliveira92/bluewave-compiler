@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vite-plus/test";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
 import { CANONICAL_SCENARIOS, validateScenarios } from "../src/scenario.js";
+
 function collector() {
   return new DiagnosticCollector();
 }

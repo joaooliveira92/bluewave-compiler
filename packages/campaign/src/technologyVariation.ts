@@ -1,7 +1,8 @@
 // packages/campaign/src/technologyVariation.ts
 // DESIGN-03 §6 Technology Variation - Normative
-import type { DiagnosticCollector } from "@bluewave/diagnostics";
+
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import type { DiagnosticCollector } from "@bluewave/diagnostics";
 
 export type VariationId = "none" | "some" | "considerable";
 export const VARIATION_IDS = ["none", "some", "considerable"] as const;

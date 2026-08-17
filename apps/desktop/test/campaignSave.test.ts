@@ -44,6 +44,9 @@ function buildSnapshot(): CampaignSnapshot {
     version: "1.0.0",
     turnNumber: SafeInt.ONE,
     campaignId: "test-campaign-001",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: [{ nationId: "uk", type: "playable" }],
     world: { areas: [], routes: [], ports: [] },
     nations,
@@ -59,7 +62,7 @@ function buildSnapshot(): CampaignSnapshot {
     designs: new Map(),
     designFamilies: new Map(),
     rulesetVersion: "1.0.0",
-    compatibilityVersion: "1.0.0",
+    compatibilityVersion: "1.1.0",
   };
 }
 

@@ -32,18 +32,26 @@ If two applicable instructions conflict, stop and create a decision request. Nev
 4. Before acceptance, run `.ai/REVIEW-PROMPT.md` in a fresh review context.
 5. Use `.ai/RELEASE-PROMPT.md` at release or compatibility gates.
 
-## Initial roadmap
+## Roadmap
 
-- B0: Repository and engineering governance
-- B1: Deterministic primitives and diagnostics
-- B2: Minimal content compiler
-- B3: Reduced-fixture campaign compiler
-- B4: Command lifecycle and strategic phase runner
-- B5: Meaningful one-month vertical slice
-- B6: Atomic persistence, reload, and replay
-- B7: Minimal deterministic battle auto-resolution
-- B8: Cross-process and cross-platform determinism proof
-- B9: Electron boundary and packaged smoke test
-- B10: Milestone 1 expansion
+The authoritative, living backlog is `.ai/SPRINT-PLAN.md`, executed through the
+orchestrator + subagent workflow described in `AGENTS.md` and
+`.ai/ORCHESTRATION.md`. Current state (verified, not doc-only):
 
-The concrete bootstrap brief intentionally combines the smallest coherent portions of B0 through B2. It must stop before campaign compilation.
+- B0–B8: done — governance, primitives, content compiler, reduced-fixture campaign
+  compiler, commands/phases, one-month slice, persistence/replay, battle
+  auto-resolution, cross-process determinism.
+- B9: done — Electron shell, packaged smoke test.
+- B10a–d: done — economy & construction, research & ship design, diplomacy & war,
+  AI & scenario readiness.
+- M1 `M1_STRATEGIC_CAMPAIGN_KERNEL`: ACCEPTED (`.ai/reports/a5-m1-acceptance-gate.md`).
+- CONTENT track: CONTENT-0..3 done (production pack `content/production/1880/`, PRE_WAR
+  and INTERWAR tech/design slices).
+- M2 Track B: B-1..B-5 done (tactical scaffolding, movement/spotting, gunnery, armor &
+  damage, weather & visibility); B-6 (battle results → campaign integration) next.
+- M2–M5: no briefs yet — Track B remainder (M2 acceptance), Track C (M3), Track D
+  (M4), Track E (M5), and REL-1 (full release validation) each open with a scoping
+  sprint.
+
+Initial history: the bootstrap brief combined the smallest coherent portions of B0
+through B2 and stopped before campaign compilation.

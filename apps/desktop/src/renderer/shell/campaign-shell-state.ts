@@ -6,6 +6,8 @@ import type { Screen } from "./AppSidebar.js";
 export interface CampaignOverview {
   readonly month: { readonly year: number; readonly month: number };
   readonly treasury: number;
+  /** The snapshot's optimistic-concurrency revision (turn number). */
+  readonly revision: number;
   readonly sessionId: string;
 }
 
@@ -17,10 +19,12 @@ export interface CampaignShellState {
   readonly saving: boolean;
   readonly saveMessage: string | null;
   readonly primaryAction: PrimaryAction | null;
+  readonly committing: boolean;
 }
 
 export type CampaignShellMode =
   | { readonly kind: "file"; readonly screen: "file" }
+  | { readonly kind: "new-game-nation"; readonly screen: "new-game-nation" }
   | {
       readonly kind: "new-game-preferences";
       readonly screen: "new-game-preferences";
@@ -29,7 +33,23 @@ export type CampaignShellMode =
       readonly kind: "new-game-archetype";
       readonly screen: "new-game-archetype";
     }
-  | { readonly kind: "new-game-nation"; readonly screen: "new-game-nation" }
+  | {
+      readonly kind: "new-game-identity";
+      readonly screen: "new-game-identity";
+    }
+  | {
+      readonly kind: "new-game-fleet-method";
+      readonly screen: "new-game-fleet-method";
+    }
+  | {
+      readonly kind: "new-game-review";
+      readonly screen: "new-game-review";
+    }
+  | {
+      readonly kind: "new-game-launching";
+      readonly screen: "new-game-launching";
+    }
+  | { readonly kind: "opening-briefing"; readonly screen: "opening-briefing" }
   | { readonly kind: "opening"; readonly screen: Screen }
   | {
       readonly kind: "open-error";
@@ -58,7 +78,10 @@ export type CampaignShellEvent =
   | {
       readonly type: "primary-action-changed";
       readonly action: PrimaryAction | null;
-    };
+    }
+  | { readonly type: "month-commit-started" }
+  | { readonly type: "month-committed"; readonly campaign: CampaignOverview }
+  | { readonly type: "month-commit-failed"; readonly message: string };
 
 export function initialCampaignShellState(): CampaignShellState {
   return {
@@ -69,6 +92,7 @@ export function initialCampaignShellState(): CampaignShellState {
     saving: false,
     saveMessage: null,
     primaryAction: null,
+    committing: false,
   };
 }
 
@@ -120,6 +144,12 @@ export function reduceCampaignShell(
       }
       return { ...state, primaryAction: next };
     }
+    case "month-commit-started":
+      return { ...state, committing: true, saveMessage: null };
+    case "month-committed":
+      return { ...state, committing: false, campaign: event.campaign };
+    case "month-commit-failed":
+      return { ...state, committing: false, saveMessage: event.message };
   }
 }
 
@@ -141,14 +171,29 @@ export function campaignShellMode(state: CampaignShellState): CampaignShellMode 
   if (state.campaign !== null) {
     return { kind: "campaign", screen, campaign: state.campaign };
   }
+  if (screen === "new-game-nation") {
+    return { kind: "new-game-nation", screen };
+  }
   if (screen === "new-game-preferences") {
     return { kind: "new-game-preferences", screen };
   }
   if (screen === "new-game-archetype") {
     return { kind: "new-game-archetype", screen };
   }
-  if (screen === "new-game-nation") {
-    return { kind: "new-game-nation", screen };
+  if (screen === "new-game-identity") {
+    return { kind: "new-game-identity", screen };
+  }
+  if (screen === "new-game-fleet-method") {
+    return { kind: "new-game-fleet-method", screen };
+  }
+  if (screen === "new-game-review") {
+    return { kind: "new-game-review", screen };
+  }
+  if (screen === "new-game-launching") {
+    return { kind: "new-game-launching", screen };
+  }
+  if (screen === "opening-briefing") {
+    return { kind: "opening-briefing", screen };
   }
   return { kind: "file", screen: "file" };
 }

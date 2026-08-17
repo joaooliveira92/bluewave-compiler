@@ -6,6 +6,9 @@ function webGlStub(overrides: Record<string, unknown> = {}) {
   const fragment = {} as WebGLShader;
   const program = {} as WebGLProgram;
   let shaderIndex = 0;
+  const attachShader = vi.fn();
+  const deleteShader = vi.fn();
+  const deleteProgram = vi.fn();
   const gl = {
     VERTEX_SHADER: 1,
     FRAGMENT_SHADER: 2,
@@ -16,40 +19,41 @@ function webGlStub(overrides: Record<string, unknown> = {}) {
     compileShader: vi.fn(),
     getShaderParameter: vi.fn(() => true),
     getShaderInfoLog: vi.fn(() => "compile failed"),
-    deleteShader: vi.fn(),
+    deleteShader,
     createProgram: vi.fn(() => program),
-    attachShader: vi.fn(),
+    attachShader,
     linkProgram: vi.fn(),
     getProgramParameter: vi.fn(() => true),
     getProgramInfoLog: vi.fn(() => "link failed"),
-    deleteProgram: vi.fn(),
+    deleteProgram,
     ...overrides,
   } as unknown as WebGLRenderingContext;
-  return { gl, vertex, fragment, program };
+  return { gl, vertex, fragment, program, attachShader, deleteShader, deleteProgram };
 }
 
 describe("shader program", () => {
   it("links both shaders and disposes every owned resource once", () => {
-    const { gl, vertex, fragment, program } = webGlStub();
+    const { gl, vertex, fragment, program, attachShader, deleteProgram, deleteShader } =
+      webGlStub();
     const result = createShaderProgram(gl, "vertex", "fragment");
 
     expect(result?.program).toBe(program);
-    expect(gl.attachShader).toHaveBeenCalledWith(program, vertex);
-    expect(gl.attachShader).toHaveBeenCalledWith(program, fragment);
+    expect(attachShader).toHaveBeenCalledWith(program, vertex);
+    expect(attachShader).toHaveBeenCalledWith(program, fragment);
 
     result?.dispose();
     result?.dispose();
-    expect(gl.deleteProgram).toHaveBeenCalledTimes(1);
-    expect(gl.deleteShader).toHaveBeenCalledTimes(2);
+    expect(deleteProgram).toHaveBeenCalledTimes(1);
+    expect(deleteShader).toHaveBeenCalledTimes(2);
   });
 
   it("cleans up and rejects a program that fails to link", () => {
-    const { gl, program } = webGlStub({
+    const { gl, program, deleteProgram, deleteShader } = webGlStub({
       getProgramParameter: vi.fn(() => false),
     });
 
     expect(createShaderProgram(gl, "vertex", "fragment")).toBeNull();
-    expect(gl.deleteProgram).toHaveBeenCalledWith(program);
-    expect(gl.deleteShader).toHaveBeenCalledTimes(2);
+    expect(deleteProgram).toHaveBeenCalledWith(program);
+    expect(deleteShader).toHaveBeenCalledTimes(2);
   });
 });

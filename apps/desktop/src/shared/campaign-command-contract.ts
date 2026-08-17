@@ -3,12 +3,14 @@ import type {
   BattleResolution,
   CampaignConfiguration,
   CommitMonthResponse,
+  OpeningBriefingProjection,
   PlayerProjection,
   RandomDecisionRecord,
   RawScriptedForceOrder,
   ReplayBattleBoundaryResponse,
   TacticalBattleOutcome,
 } from "@bluewave/campaign-engine";
+import type { WorldMapView } from "@bluewave/campaign-engine";
 import type { BridgeResult, CommandEnvelope } from "./bridge-contract.js";
 import type {
   LoadCampaignResponse,
@@ -31,6 +33,16 @@ import type {
   ReplaceMovementCommandPayload,
   SubmitMovementCommandPayload,
 } from "./fleet-contract.js";
+import type {
+  DiplomacyCommandOutcome,
+  DiplomacyScreenProjection,
+  SubmitDiplomacyCommandPayload,
+} from "./diplomacy-contract.js";
+import type {
+  ResearchPriorityOutcome,
+  ResearchScreenProjection,
+  SetResearchPriorityCommandPayload,
+} from "./research-contract.js";
 
 /**
  * Request payloads for the simulation domain (battle-related types live in
@@ -84,6 +96,16 @@ export interface InspectCampaignResult {
   readonly projection: PlayerProjection;
 }
 
+export interface InspectOpeningBriefingResult {
+  readonly projection: OpeningBriefingProjection;
+}
+
+export interface InspectMapResult {
+  readonly revision: number;
+  readonly month: { readonly month: number; readonly year: number };
+  readonly world: WorldMapView;
+}
+
 export interface SaveCampaignResult {
   readonly revision: number;
 }
@@ -100,6 +122,8 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "listNewGameOptions",
   "compileCampaign",
   "inspectCampaign",
+  "inspectOpeningBriefing",
+  "inspectMap",
   "closeCampaign",
   "saveCampaign",
   "commitMonth",
@@ -119,6 +143,10 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "submitMovementCommand",
   "replaceMovementCommand",
   "cancelMovementCommand",
+  "inspectResearchScreen",
+  "setResearchPriorityCommand",
+  "inspectDiplomacyScreen",
+  "submitDiplomacyCommand",
 ] as const;
 
 /**
@@ -138,6 +166,11 @@ export interface CampaignCommandClient {
     command: "inspectCampaign",
     payload: string,
   ): Promise<BridgeResult<InspectCampaignResult>>;
+  execute(
+    command: "inspectOpeningBriefing",
+    payload: string,
+  ): Promise<BridgeResult<InspectOpeningBriefingResult>>;
+  execute(command: "inspectMap", payload: string): Promise<BridgeResult<InspectMapResult>>;
   execute(command: "closeCampaign", payload: string): Promise<BridgeResult<unknown>>;
   execute(command: "saveCampaign", payload: string): Promise<BridgeResult<SaveCampaignResult>>;
   execute(
@@ -205,4 +238,20 @@ export interface CampaignCommandClient {
     command: "cancelMovementCommand",
     payload: CancelMovementCommandPayload,
   ): Promise<BridgeResult<MovementCommandOutcome>>;
+  execute(
+    command: "inspectResearchScreen",
+    payload: string,
+  ): Promise<BridgeResult<ResearchScreenProjection>>;
+  execute(
+    command: "setResearchPriorityCommand",
+    payload: SetResearchPriorityCommandPayload,
+  ): Promise<BridgeResult<ResearchPriorityOutcome>>;
+  execute(
+    command: "inspectDiplomacyScreen",
+    payload: string,
+  ): Promise<BridgeResult<DiplomacyScreenProjection>>;
+  execute(
+    command: "submitDiplomacyCommand",
+    payload: SubmitDiplomacyCommandPayload,
+  ): Promise<BridgeResult<DiplomacyCommandOutcome>>;
 }

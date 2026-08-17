@@ -9,8 +9,10 @@ import {
   initialCampaignShellState,
   reduceCampaignShell,
 } from "./campaign-shell-state.js";
+import type { CampaignOverview } from "./campaign-shell-state.js";
 import { canGoBack, canGoForward, goBack, goForward } from "./navigation-history.js";
 import type { PrimaryAction } from "./primary-action.js";
+import { formatCampaignMonth } from "./site-header-state.js";
 
 const SAVE_MESSAGE_DURATION_MS = 8_000;
 
@@ -41,6 +43,7 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
           campaign: {
             month: projection.month,
             treasury: projection.economy.treasury,
+            revision: projection.revision,
             sessionId,
           },
         });
@@ -95,6 +98,57 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
   );
 
   const selectScreen = useCallback((screen: Screen) => dispatch({ type: "visit", screen }), []);
+
+  const collectMessage = (message: string): void => {
+    dispatch({ type: "save-finished", message });
+    if (saveTimerRef.current !== null) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(
+      () => dispatch({ type: "save-message-cleared" }),
+      SAVE_MESSAGE_DURATION_MS,
+    );
+  };
+
+  const advanceMonth = useCallback(async () => {
+    if (bridge === undefined || state.campaign === null) return;
+    dispatch({ type: "month-commit-started" });
+    const sessionId = state.campaign.sessionId;
+    const started = performance.now();
+    try {
+      const result = await bridge.campaign.execute("commitMonth", {
+        sessionId,
+        expectedRevision: state.campaign.revision,
+        transportRequestId: crypto.randomUUID(),
+      });
+      const duration = Math.round(performance.now() - started);
+      if (result.outcome === "success") {
+        emitWideEvent("campaign_month_advance", sessionId, duration, "success");
+        const { value } = result;
+        const nextCampaign: CampaignOverview = {
+          month: value.closingSnapshot.month,
+          treasury: value.report.closingTreasury,
+          revision: value.closingSnapshot.revision,
+          sessionId,
+        };
+        dispatch({ type: "month-committed", campaign: nextCampaign });
+        collectMessage(`Month advanced to ${formatCampaignMonth(value.closingSnapshot.month)}.`);
+        return;
+      }
+      emitWideEvent("campaign_month_advance", sessionId, duration, "rejected", [result.reason]);
+      dispatch({
+        type: "month-commit-failed",
+        message: `Could not advance month: ${result.reason}.${result.diagnostics.length > 0 ? ` ${result.diagnostics.join("; ")}` : ""}`,
+      });
+    } catch (error) {
+      emitWideEvent("campaign_month_advance", sessionId, 0, "rejected", [
+        error instanceof Error ? error.message : "Unknown error",
+      ]);
+      dispatch({
+        type: "month-commit-failed",
+        message: error instanceof Error ? error.message : "Could not advance month.",
+      });
+    }
+  }, [bridge, state.campaign, collectMessage]);
+
   const setPrimaryAction = useCallback(
     (action: PrimaryAction | null) => dispatch({ type: "primary-action-changed", action }),
     [],
@@ -116,6 +170,7 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
       saving: state.saving,
       saveMessage: state.saveMessage,
       primaryAction: state.primaryAction,
+      committing: state.committing,
       mode: campaignShellMode(state),
       screen: currentShellScreen(state),
       canGoBack: canGoBack(state.history),
@@ -123,6 +178,7 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
       openCampaign,
       closeCampaign,
       saveCampaign,
+      advanceMonth,
       selectScreen,
       setPrimaryAction,
       goBack: goBackInHistory,
@@ -133,6 +189,7 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
       openCampaign,
       closeCampaign,
       saveCampaign,
+      advanceMonth,
       selectScreen,
       setPrimaryAction,
       goBackInHistory,

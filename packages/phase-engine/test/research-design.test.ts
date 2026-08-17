@@ -1,14 +1,14 @@
-﻿import { describe, it, expect } from "vite-plus/test";
-import { SafeInt } from "@bluewave/contracts";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import type {
+﻿import type {
   CampaignSnapshot,
-  NationState,
-  ConstructionProject,
   CompiledDesignVersion,
+  ConstructionProject,
+  NationState,
 } from "@bluewave/campaign";
-import type { CommandEnvelope, CommandBody } from "@bluewave/commands";
+import type { CommandBody, CommandEnvelope } from "@bluewave/commands";
+import { SafeInt } from "@bluewave/contracts";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { describe, expect, it } from "vite-plus/test";
 import { MonthExecutor } from "../src/index.js";
 
 function makeResearchNation(
@@ -82,6 +82,9 @@ function makeSnapshot(
     version: "0.1.0",
     turnNumber: SafeInt(1),
     campaignId: "research-acceptance",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: [...nations.keys()].map((nationId) => ({
       nationId,
       type: nationId === "GBR" ? ("playable" as const) : ("ai" as const),
@@ -453,10 +456,12 @@ describe("B10b design acceptance (criteria 12-13)", () => {
       nationId: "GBR",
       hullType: "battleship",
       normalizedDisplacementKg: SafeInt(18000),
-      normalizedSpeedUms: SafeInt(11),
-      normalizedArmorUm: SafeInt(300),
+      // ADR-0037: compiled designs carry canonical µm/µm·s⁻¹ (11 kt, 300 mm,
+      // 305 mm); month.ts converts back to the abstracted Ship stats.
+      normalizedSpeedUms: SafeInt(11 * 514_444),
+      normalizedArmorUm: SafeInt(300 * 1000),
       hitPoints: SafeInt(120),
-      mainGunsCaliber: SafeInt(305),
+      mainGunsCaliber: SafeInt(305 * 1000),
       mainGunsCount: SafeInt(10),
       machineryType: "steam_turbine",
       crewComplement: SafeInt(800),

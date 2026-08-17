@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vite-plus/test";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { toLinear, fromLinear, advanceMonth, isAtEnd, assertCanAdvance } from "../src/timeline.js";
+import { describe, expect, it } from "vite-plus/test";
+import { advanceMonth, assertCanAdvance, fromLinear, isAtEnd, toLinear } from "../src/timeline.js";
+
 function collector() {
   return new DiagnosticCollector();
 }

@@ -15,7 +15,7 @@ import type {
  */
 
 export function fixtureNation(overrides: Partial<NationState> & { id: string }): NationState {
-  const { id } = overrides;
+  const { id, ...rest } = overrides;
   return {
     id,
     name: id,
@@ -39,7 +39,7 @@ export function fixtureNation(overrides: Partial<NationState> & { id: string }):
     constructionProjects: [],
     isPlayable: true,
     isAI: false,
-    ...overrides,
+    ...rest,
   };
 }
 
@@ -97,6 +97,9 @@ export function fixtureSnapshot(
     version: "0.1.0",
     turnNumber: SafeInt(0),
     campaignId: "campaign-test",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: nations.map((n) => ({ nationId: n.id, type: n.isPlayable ? "playable" : "ai" })),
     world: { areas: [], routes: [], ports: [] },
     nations: nationsMap,
@@ -112,7 +115,7 @@ export function fixtureSnapshot(
     designs: designsMap,
     designFamilies: new Map(),
     rulesetVersion: "1.0",
-    compatibilityVersion: "1.0.0",
+    compatibilityVersion: "1.1.0",
     ...overrides,
   };
 }

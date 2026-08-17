@@ -72,10 +72,7 @@ export function createEnvelope(
 export function verifyEnvelope(envelope: CanonicalEnvelope, body: unknown): boolean {
   const bodyJson = canonicalSerialize(body);
   const computedHash = sha256Hex(bodyJson);
-  return (
-    computedHash === envelope.bodyHash &&
-    bytes(bodyJson).length === envelope.bodyLength
-  );
+  return computedHash === envelope.bodyHash && bytes(bodyJson).length === envelope.bodyLength;
 }
 
 export function hashWithContext(data: string, context: string): string {

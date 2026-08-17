@@ -1,6 +1,14 @@
 Type: task
-Status: open
+Status: resolved
 Blocked by: 03
+
+## Answer
+
+Superseded by [Bridge Scaffold & Entry-Point Cutover](11-bridge-scaffold-entry-point-cutover.md)
+(ticket 11): `index.html` boots `shell/App.tsx`, the game-client tree
+(`shell/`/`screens/`/`components/`/`content/`/`lib/`) is type-checked via
+`tsconfig.web.json`, and the old Editor/Viewer entry + IPC handlers were
+retired — all done as part of 11.
 
 ## Question
 

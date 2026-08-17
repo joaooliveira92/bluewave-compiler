@@ -93,6 +93,20 @@ vi.mock("../screens/simulation/SimulationScreen.js", async () => {
       ),
   };
 });
+vi.mock("../screens/research/ResearchScreen.js", async () => {
+  const React = await import("react");
+  return {
+    ResearchScreen: ({ sessionId }: { sessionId: string }) =>
+      React.createElement("section", { "data-testid": "research-screen" }, sessionId),
+  };
+});
+vi.mock("../screens/diplomacy/DiplomacyScreen.js", async () => {
+  const React = await import("react");
+  return {
+    DiplomacyScreen: ({ sessionId }: { sessionId: string }) =>
+      React.createElement("section", { "data-testid": "diplomacy-screen" }, sessionId),
+  };
+});
 vi.mock("../screens/tactical-sandbox/TacticalSandboxScreen.js", async () => {
   const React = await import("react");
   return {
@@ -175,6 +189,8 @@ describe("CampaignScreenOutlet", () => {
     ["construction", "construction-screen"],
     ["fleet", "fleet-screen"],
     ["simulation", "simulation-screen"],
+    ["research", "research-screen"],
+    ["diplomacy", "diplomacy-screen"],
     ["tactical-sandbox", "tactical-sandbox-screen"],
     ["debugging", "debugging-screen"],
     ["campaign-preferences", "campaign-preferences-screen"],
@@ -235,4 +251,15 @@ describe("campaign screen registry", () => {
       })),
     );
   });
+
+  // Debug-only screens are registered when VITE_BLUEWAVE_DEBUG=true (set for
+  // this test run in vitest.config.ts). Their exclusion when the flag is
+  // unset is a compile-time fold verified by the production bundle (labels
+  // absent), and the enabling rule itself is covered by debug-mode.test.ts.
+  it.each(["simulation", "tactical-sandbox", "debugging"] as const)(
+    "registers the debug-mode screen %s when the debug flag is set",
+    (id) => {
+      expect(CAMPAIGN_SCREEN_REGISTRY.some((screen) => screen.id === id)).toBe(true);
+    },
+  );
 });

@@ -189,6 +189,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.0.5
         version: 6.0.5(@voidzero-dev/vite-plus-core@0.2.8(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(typescript@5.9.3)(yaml@2.9.0))
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       d3-drag:
         specifier: ^3.0.0
         version: 3.0.0
@@ -283,6 +286,9 @@ importers:
       '@bluewave/campaign':
         specifier: workspace:*
         version: link:../campaign
+      '@bluewave/content-schema':
+        specifier: workspace:*
+        version: link:../content-schema
     devDependencies:
       '@bluewave/contracts':
         specifier: workspace:*
@@ -438,6 +444,9 @@ importers:
       '@bluewave/diagnostics':
         specifier: workspace:*
         version: link:../diagnostics
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
 
   packages/persistence:
     dependencies:
@@ -453,6 +462,9 @@ importers:
       '@bluewave/diagnostics':
         specifier: workspace:*
         version: link:../diagnostics
+      zod:
+        specifier: ^3.24.0
+        version: 3.25.76
 
   packages/phase-engine:
     dependencies:
@@ -2545,6 +2557,11 @@ packages:
 
   crc@3.8.0:
     resolution: {integrity: sha512-iX3mfgcTMIq3ZKLIsVFAbv7+Mc10kxabAGQb8HvjA1o3T1PIYprbakQ65d3I+2HGHt6nSKkM9PYjgoJO2KcFBQ==}
+
+  cross-env@7.0.3:
+    resolution: {integrity: sha512-+/HKd6EgcQCJGh2PSjZuUitQBQynKor4wrFbRg4DtAgS1aWO+gU52xpH7M9ScGgXSYmAVS9bIJ8EzuaGw0oNAw==}
+    engines: {node: '>=10.14', npm: '>=6', yarn: '>=1'}
+    hasBin: true
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -5882,6 +5899,10 @@ snapshots:
     dependencies:
       buffer: 5.7.1
     optional: true
+
+  cross-env@7.0.3:
+    dependencies:
+      cross-spawn: 7.0.6
 
   cross-spawn@7.0.6:
     dependencies:

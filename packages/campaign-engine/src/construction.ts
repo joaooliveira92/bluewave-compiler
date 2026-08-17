@@ -1,0 +1,198 @@
+import {
+  umsToKnots,
+  type CampaignSnapshot,
+  type CompiledDesignVersion as CompiledEngineDesignVersion,
+  type ConstructionProject,
+} from "@bluewave/campaign";
+import type { CompiledDesignVersion } from "./design.js";
+
+/**
+ * Construction-screen projections (desktop-mvp ticket 14). Everything here is
+ * a pure, deterministic derivation over the compiled `CampaignSnapshot` —
+ * no session state, no I/O, no randomness — so the desktop bridge can build
+ * the `ConstructionScreenProjection`'s `designs`/cost fields from the exact
+ * same immutable snapshot every `inspectConstructionScreen` call, and tests
+ * can pin the derivation against fixture data.
+ */
+
+/**
+ * Display label for a compiled design's authored `hullType`, mapped onto the
+ * ship-type vocabulary the construction screen's `DesignPicker` icons
+ * understand (`battleship`, `battlecruiser`, `cruiser`, ...). Presentation
+ * only (ENGINEERING-CONTRACT: rendering may derive display values; it never
+ * alters authoritative state). Unknown hull types pass through verbatim so
+ * nothing is ever mislabeled as something it is not.
+ */
+const CONSTRUCTION_SHIP_TYPE_LABELS: Readonly<Record<string, string>> = {
+  battleship: "battleship",
+  dreadnought: "battleship",
+  super_dreadnought: "battleship",
+  battlecruiser: "battlecruiser",
+  heavy_cruiser: "cruiser",
+  light_cruiser: "cruiser",
+  destroyer: "destroyer",
+  monitor: "monitor",
+  coast_defense_ship: "coast defense",
+  central_battery_ship: "central battery",
+  ironclad_turret_ship: "ironclad",
+  submarine: "submarine",
+  carrier: "carrier",
+};
+
+export function constructionShipTypeLabel(hullType: string): string {
+  return CONSTRUCTION_SHIP_TYPE_LABELS[hullType] ?? hullType;
+}
+
+/**
+ * Versioned judgment call, in the same class as ticket 12's documented
+ * `shipyardCapacity = sum(port.level)` proxy: the engine has no authored
+ * per-design construction cost, so the construction command's projected cost
+ * is derived deterministically from the design's real bulk
+ * (`normalizedDisplacementKg`, which the combat classifier also relies on).
+ *
+ * - `projectedCost` (treasury/work units): 1 unit per 100 metric tons —
+ *   `round(kg / 100_000)`. Work and treasury are 1:1 in the engine
+ *   (`applyBudgetProject` adds a command's `budget` straight onto a
+ *   project's `completedWork`), so a 11 880 t Inflexible reserves ~119 of a
+ *   starting 1 000 treasury, and a 64 000 t Yamato ~640 — real budget
+ *   pressure, not a placeholder.
+ * - `projectedCapacityUnits`: kilotons, `round(kg / 1_000_000)` — the same
+ *   mass figure scaled to the shipyard-capacity units (port levels, single
+ *   digits), so drydock commitments stay proportional to a nation's small
+ *   number of large yard slots. Explicit rounding, matching every other
+ *   derivation in `@bluewave/campaign-engine`.
+ */
+export const CONSTRUCTION_ORDER_FORMULA_ID = "construction_order_v1";
+export const CONSTRUCTION_ORDER_FORMULA_VERSION = "1.0.0";
+const KILOGRAMS_PER_TON = 1_000;
+const KILOGRAMS_PER_KILOTON = 1_000_000;
+const KILOGRAMS_PER_COST_UNIT = 100_000;
+
+export interface ConstructionOrderCosts {
+  readonly projectedCost: number;
+  readonly projectedCapacityUnits: number;
+}
+
+export function projectedConstructionOrderCosts(
+  design: CompiledEngineDesignVersion,
+): ConstructionOrderCosts {
+  const kilograms = Number(design.normalizedDisplacementKg);
+  return {
+    projectedCost: Math.round(kilograms / KILOGRAMS_PER_COST_UNIT),
+    projectedCapacityUnits: Math.round(kilograms / KILOGRAMS_PER_KILOTON),
+  };
+}
+
+/**
+ * The `CompiledDesignVersion[]` the Construction screen's `Design Catalog`
+ * tab lists for `nationId` — the friendly-units shape
+ * (`design.ts`, "ticket 14 (Construction Ordering) wires the real lookup").
+ *
+ * Every field is derived from the compiled snapshot / content catalog:
+ * - `year`: the design family's authored `familyCreationMonth` year (the
+ *   pack's closest real "vintage" datum; e.g. `des_gbr_inflexible` →
+ *   `fam_gbr_inflexible` `1880-01` → 1880). 0 when no family is authored.
+ * - `mass`: `normalizedDisplacementKg` in metric tons (rounded).
+ * - `speed`: `normalizedSpeedUms` in knots (rounded; 1 kt = 0.514 444 m/s).
+ * - `requiredTechnologyIds`: `[]` — nothing in the current content pack
+ *   links designs to technology prerequisites, so the honest value is
+ *   "no authored prerequisites" (the UI renders nothing for an empty list).
+ * - `shipType`: see `shipTypeLabel`.
+ *
+ * Sorted by `designVersionId` for deterministic rendering, matching
+ * `buildPlayerProjection`'s sort convention.
+ */
+export function buildConstructionDesignCatalog(
+  snapshot: CampaignSnapshot,
+  nationId: string,
+): CompiledDesignVersion[] {
+  const families = snapshot.designFamilies;
+  const designs: CompiledDesignVersion[] = [];
+  for (const design of snapshot.designs.values()) {
+    if (design.nationId !== nationId) continue;
+    const family = design.designFamilyId !== "" ? families.get(design.designFamilyId) : undefined;
+    const familyMonth = family?.familyCreationMonth ?? "";
+    designs.push({
+      designId: design.designVersionId,
+      className: design.className,
+      shipType: constructionShipTypeLabel(design.hullType),
+      nationId: design.nationId,
+      year: parseInt(familyMonth.slice(0, 4), 10) || 0,
+      mass: Math.round(Number(design.normalizedDisplacementKg) / KILOGRAMS_PER_TON),
+      speed: Math.round(umsToKnots(Number(design.normalizedSpeedUms))),
+      machineryType: design.machineryType,
+      requiredTechnologyIds: [],
+    });
+  }
+  designs.sort((a, b) => a.designId.localeCompare(b.designId));
+  return designs;
+}
+
+/**
+ * The snapshot project-id prefix a desktop construction command's queued
+ * order uses (`project-<commandId minus cmd->`). Authored starting projects
+ * (`con_gbr_inflexible` etc.) never carry this prefix — they have no command
+ * record behind them.
+ */
+export const CONSTRUCTION_PROJECT_ID_PREFIX = "project-";
+
+/** The workspace `commandId` an order-queued project belongs to, or `null`
+ * for authored starting projects (no command record exists for them). */
+export function constructionCommandIdForProject(projectId: string): string | null {
+  return projectId.startsWith(CONSTRUCTION_PROJECT_ID_PREFIX)
+    ? `cmd-${projectId.slice(CONSTRUCTION_PROJECT_ID_PREFIX.length)}`
+    : null;
+}
+
+/** The snapshot project id a construction command queues for `commandId`. */
+export function constructionProjectIdForCommand(commandId: string): string {
+  return `${CONSTRUCTION_PROJECT_ID_PREFIX}${commandId.replace(/^cmd-/, "")}`;
+}
+
+/**
+ * The Construction screen's "Projects in Yard" list — a deterministic,
+ * keyed-by-project-id projection of `nation.constructionProjects` (authored
+ * starting builds AND orders queued by the desktop construction commands)
+ * over the compiled snapshot, in the same convention as
+ * `buildConstructionDesignCatalog` (pure, sorted for stable rendering).
+ * `commandId` carries the workspace command id when the project came from a
+ * construction order (linking a project row to its Command Ledger entry) and
+ * `null` for authored starts.
+ */
+export interface ConstructionProjectQueueEntry {
+  readonly projectId: string;
+  readonly designVersionId: string;
+  readonly className: string;
+  readonly shipType: string;
+  readonly status: ConstructionProject["status"];
+  readonly totalWork: number;
+  readonly completedWork: number;
+  readonly paidWork: number;
+  readonly startedAt: string;
+  readonly commandId: string | null;
+}
+
+export function buildConstructionProjectQueue(
+  snapshot: CampaignSnapshot,
+  nationId: string,
+): ConstructionProjectQueueEntry[] {
+  const nation = snapshot.nations.get(nationId);
+  if (!nation) return [];
+  const entries = nation.constructionProjects.map((project) => {
+    const design = snapshot.designs.get(project.designVersionId);
+    return {
+      projectId: project.id,
+      designVersionId: project.designVersionId,
+      className: design?.className ?? project.designVersionId,
+      shipType: design ? constructionShipTypeLabel(design.hullType) : "unknown",
+      status: project.status,
+      totalWork: Number(project.totalWork),
+      completedWork: Number(project.completedWork),
+      paidWork: Number(project.paidWork),
+      startedAt: project.startedAt,
+      commandId: constructionCommandIdForProject(project.id),
+    };
+  });
+  entries.sort((a, b) => a.projectId.localeCompare(b.projectId));
+  return entries;
+}

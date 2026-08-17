@@ -1,4 +1,8 @@
-import type { CompiledDesignVersion, ConstructionCommand } from "@bluewave/campaign-engine";
+import type {
+  CompiledDesignVersion,
+  ConstructionCommand,
+  ConstructionProjectQueueEntry,
+} from "@bluewave/campaign-engine";
 import type { CommandEnvelope } from "./bridge-contract.js";
 
 /**
@@ -15,6 +19,9 @@ export interface ConstructionScreenProjection {
     readonly shipyardCapacity: number;
   };
   readonly designs: readonly CompiledDesignVersion[];
+  /** The nation's real construction projects (authored starting builds AND
+   * order-queued projects), keyed by project id. */
+  readonly projects: readonly ConstructionProjectQueueEntry[];
   readonly workspace: {
     readonly commands: readonly ConstructionCommand[];
     readonly treasuryReserved: number;

@@ -49,6 +49,9 @@ function makeSnapshot(
     version: "0.1.0",
     turnNumber: turn,
     campaignId: "ai-test-campaign",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: nations.map(([nationId]) => ({
       nationId,
       type: "ai" as const,
@@ -88,7 +91,7 @@ const project = (id: string, total: number, completed: number): ConstructionProj
 
 describe("AiCommandGenerator", () => {
   it("produces the deterministic idempotency key shape", () => {
-    const gen = new AiCommandGenerator({
+    const _gen = new AiCommandGenerator({
       campaignId: "camp",
       turnNumber: SafeInt(1),
       expectedSnapshotHash: testHash,

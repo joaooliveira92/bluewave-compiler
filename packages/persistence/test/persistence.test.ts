@@ -1,24 +1,32 @@
-import { describe, it, expect, beforeEach, afterEach } from "vite-plus/test";
-import { mkdtempSync, rmSync, existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { canonicalSerialize, sha256Hex, createEnvelope } from "@bluewave/deterministic";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { join } from "node:path";
+import type {
+  CampaignSnapshot,
+  CampaignState,
+  CompiledDesignVersion,
+  NationState,
+} from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
-import type { CampaignState, CampaignSnapshot, NationState } from "@bluewave/campaign";
-import { SaveStore } from "../src/store.js";
+import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import {
+  COMPATIBILITY_MISMATCH_CODE,
   CompatibilityChecker,
   CURRENT_COMPATIBILITY_VERSION,
-  COMPATIBILITY_MISMATCH_CODE,
 } from "../src/compatibility.js";
-import { RecoveryManager, cleanup } from "../src/recovery.js";
+import { cleanup, RecoveryManager } from "../src/recovery.js";
+import { SaveStore } from "../src/store.js";
 
 function createFixtureState(): CampaignState {
   const snapshot: CampaignSnapshot = {
     version: "1.0.0",
     turnNumber: SafeInt.ONE,
     campaignId: "test-campaign-001",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
     slots: [{ nationId: "nation-a", type: "playable" }],
     world: {
       areas: [{ id: "area-1", name: "Test Area", type: "sea" }],
@@ -115,7 +123,7 @@ describe("SaveStore", () => {
 
     const state = createFixtureState();
     state.snapshot.nations = new Map([["nation-a", nation]]);
-    state.snapshot.designs = new Map([
+    state.snapshot.designs = new Map<string, CompiledDesignVersion>([
       [
         "design-1",
         {
@@ -124,7 +132,7 @@ describe("SaveStore", () => {
           blockadedNationId: "nation-a",
           areaId: "area-1",
           establishedMonth: "1900-01",
-        },
+        } as unknown as CompiledDesignVersion,
       ],
     ]);
     state.snapshot.designFamilies = new Map([
@@ -199,6 +207,34 @@ describe("SaveStore", () => {
     expect(saves[0]!.turnNumber).toBe(1);
   });
 
+  it("lists equal-timestamp saves by the save chain, never the OS directory order (F6)", () => {
+    const state = createFixtureState();
+    store.save(state, tmpDir);
+    const firstSaveId = store.getActiveSaveId(tmpDir)!;
+    store.save(state, tmpDir);
+    const secondSaveId = store.getActiveSaveId(tmpDir)!;
+    expect(firstSaveId).not.toBe(secondSaveId);
+
+    // Force both saves onto an identical millisecond so the only remaining
+    // ordering signal is the pointer chain (the second save is the active /
+    // truly-newest one). Without the tie-break, `list()` would fall back to
+    // `readdirSync` order, which is platform-dependent.
+    const sharedTimestamp = "1970-01-01T00:00:00.000Z";
+    for (const saveId of [firstSaveId, secondSaveId]) {
+      const metaPath = join(tmpDir, saveId, "metadata.json");
+      const meta = JSON.parse(readFileSync(metaPath, "utf8")) as { timestamp: string };
+      meta.timestamp = sharedTimestamp;
+      writeFileSync(metaPath, JSON.stringify(meta, null, 2), "utf8");
+    }
+
+    const saves = store.list(tmpDir);
+    expect(saves).toHaveLength(2);
+    // Newest first, deterministically: the second save is the active one.
+    expect(saves[0]!.saveId).toBe(secondSaveId);
+    expect(saves[0]!.timestamp).toBe(sharedTimestamp);
+    expect(saves[1]!.saveId).toBe(firstSaveId);
+  });
+
   it("rejects corrupt saves on load", () => {
     const state = createFixtureState();
     store.save(state, tmpDir);
@@ -221,6 +257,9 @@ describe("SaveStore", () => {
       version: "1.0.0",
       turnNumber: SafeInt.ONE,
       campaignId: "test-campaign-002",
+      startYear: 1880,
+      startMonth: 1,
+      strategicWeather: [],
       slots: [],
       world: { areas: [], routes: [], ports: [] },
       nations: new Map(),
@@ -260,9 +299,13 @@ describe("SaveStore", () => {
     const controller = new AbortController();
     controller.abort();
 
-    expect(() => {
+    let thrown: unknown;
+    try {
       store.save(state, tmpDir, controller.signal);
-    }).toThrow("AbortError");
+    } catch (err) {
+      thrown = err;
+    }
+    expect((thrown as Error).name).toBe("AbortError");
   });
 
   it("handles cancellation via AbortSignal during load", () => {

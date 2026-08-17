@@ -13,6 +13,10 @@ export default defineConfig({
     globals: true,
     testTimeout: 30000,
     environment: "jsdom",
+    // Debug-only sidebar screens (Simulation, Tactical Sandbox, Debugging)
+    // are gated by VITE_BLUEWAVE_DEBUG, not by dev-mode — set it so their
+    // routes are still exercised by campaign-screen-registry.test.tsx.
+    env: { VITE_BLUEWAVE_DEBUG: "true" },
     // e2e/ holds Playwright specs (run via `playwright test`, not vitest) —
     // excluded explicitly since Playwright's own test() throws when picked
     // up by another runner. dist/ is gitignored `tsc -b` output; its
