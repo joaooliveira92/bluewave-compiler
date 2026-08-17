@@ -1,5 +1,13 @@
 export type { LedgerTransaction, LedgerTransactionInput } from "./financial-ledger.js";
 export { FinancialLedger } from "./financial-ledger.js";
+export {
+  BUDGET_COMPLETION_BRANCH_ID,
+  BUDGET_PROJECT_COMMAND_DEFINITION,
+  BUDGET_PROJECT_COMMAND_SCHEMA_VERSION,
+  BUDGET_PROJECT_COMMAND_TYPE_ID,
+  BudgetProjectLifecycle,
+} from "./commandLifecycle.js";
+export type { BudgetProjectLifecycleOutcome } from "./commandLifecycle.js";
 export type {
   MonthExecutorEngineOptions,
   MonthResult,
