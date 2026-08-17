@@ -126,6 +126,52 @@ describe("persistence remediation", () => {
       expect(store.load(tmpDir, diagnostics)).toBeNull();
       expect(diagnostics.errors.some((e) => e.code === "PERSISTENCE_CORRUPT_SAVE")).toBe(true);
     });
+
+    it("rejects campaign.json whose hashes were recomputed but whose signature is stale", () => {
+      // The point of the signature file is that the attacker must update BOTH
+      // the in-file hashes AND the separately-written signature. Here they
+      // recompute rawHash + envelope so the in-file gates alone would pass;
+      // the untouched signature must still refuse the load.
+      const state = fixture();
+      store.save(state, tmpDir);
+      const id = store.getActiveSaveId(tmpDir)!;
+      const campaignPath = join(tmpDir, id, "campaign.json");
+      const data = JSON.parse(readFileSync(campaignPath, "utf8"));
+
+      state.snapshot.turnNumber = SafeInt(99);
+      const envelope = createEnvelope(
+        "campaign-snapshot",
+        CURRENT_COMPATIBILITY_VERSION,
+        state.snapshot,
+      );
+      data.snapshot.turnNumber = 99;
+      data.envelope = envelope;
+      data.rawHash = sha256Hex(canonicalSerialize({ snapshot: state.snapshot, envelope }));
+      writeFileSync(campaignPath, JSON.stringify(data, null, 2), "utf8");
+
+      const diagnostics = new DiagnosticCollector();
+      expect(store.load(tmpDir, diagnostics)).toBeNull();
+      expect(diagnostics.errors.some((e) => e.code === "PERSISTENCE_CORRUPT_SAVE")).toBe(true);
+    });
+
+    it("loads a legacy save with no signature file, emitting a validation warning", () => {
+      store.save(fixture(), tmpDir);
+      const id = store.getActiveSaveId(tmpDir)!;
+      rmSync(join(tmpDir, id, "campaign.sig.json"));
+
+      const diagnostics = new DiagnosticCollector();
+      expect(store.load(tmpDir, diagnostics)).not.toBeNull();
+      expect(diagnostics.hasErrors).toBe(false);
+      expect(diagnostics.warnings.some((w) => w.code === "PERSISTENCE_UNSIGNED_SAVE")).toBe(true);
+    });
+
+    it("round-trips a normally signed save with no false rejection or warning", () => {
+      store.save(fixture(), tmpDir);
+      const diagnostics = new DiagnosticCollector();
+      expect(store.load(tmpDir, diagnostics)).not.toBeNull();
+      expect(diagnostics.hasErrors).toBe(false);
+      expect(diagnostics.warnings).toHaveLength(0);
+    });
   });
 
   describe("metadata hashes (TODO #1/#2)", () => {

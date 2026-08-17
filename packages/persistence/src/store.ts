@@ -33,6 +33,7 @@ import {
 export const CORRUPT_SAVE_CODE = "PERSISTENCE_CORRUPT_SAVE" as DiagnosticCode;
 export const MISSING_SAVE_CODE = "PERSISTENCE_MISSING_SAVE" as DiagnosticCode;
 export const CANCELLED_CODE = "PERSISTENCE_CANCELLED" as DiagnosticCode;
+export const UNSIGNED_SAVE_CODE = "PERSISTENCE_UNSIGNED_SAVE" as DiagnosticCode;
 
 export type { SaveMetadata } from "./schemas.js";
 
@@ -370,46 +371,53 @@ export class SaveStore {
       return null;
     }
 
-    // Integrity gate B — the signature file is now validated, never trusted
-    // blindly (TODO #1/#5). Its serialized hash must match the on-disk bytes and
-    // its state hash the semantic state.
+    // Integrity gate B — the signature file is validated, never trusted blindly
+    // (TODO #1/#5). Its serialized hash must match the on-disk bytes and its
+    // state hash the semantic state. A save with NO signature file is a legacy
+    // save written before the signature existed (or a turn-zero campaign): it
+    // still loads so existing saves are not broken, but it emits a validation
+    // warning because the independently-written artifact that catches on-disk
+    // tampering is absent — the in-file rawHash + envelope remain the only
+    // integrity signals for such a save.
     const rawSerializedHash = sha256Hex(campaignJson);
-    let sig: SigFile;
     if (!existsSync(sigPath)) {
-      diagnostics.addError(CORRUPT_SAVE_CODE, "Save signature file not found", {
-        stage: "persistence.load",
-      });
-      return null;
-    }
-    try {
-      sig = SigFileSchema.parse(JSON.parse(readFileSync(sigPath, "utf8")));
-    } catch {
-      diagnostics.addError(CORRUPT_SAVE_CODE, "Save signature file is invalid", {
-        stage: "persistence.load",
-      });
-      return null;
-    }
-    if (sig.serializedHash !== rawSerializedHash) {
-      diagnostics.addError(
-        CORRUPT_SAVE_CODE,
-        "Save signature does not match serialized content",
-        {
-          stage: "persistence.load",
-        },
+      diagnostics.addWarning(
+        UNSIGNED_SAVE_CODE,
+        "Save has no signature file; loaded as legacy with no independent on-disk tamper verification",
+        { stage: "persistence.load" },
       );
-      return null;
-    }
-    if (sig.stateHash !== state.rawHash) {
-      diagnostics.addError(CORRUPT_SAVE_CODE, "Save signature does not match state", {
-        stage: "persistence.load",
-      });
-      return null;
-    }
-    if (sig.compatibilityVersion !== state.snapshot.compatibilityVersion) {
-      diagnostics.addError(CORRUPT_SAVE_CODE, "Save signature version does not match state", {
-        stage: "persistence.load",
-      });
-      return null;
+    } else {
+      let sig: SigFile;
+      try {
+        sig = SigFileSchema.parse(JSON.parse(readFileSync(sigPath, "utf8")));
+      } catch {
+        diagnostics.addError(CORRUPT_SAVE_CODE, "Save signature file is invalid", {
+          stage: "persistence.load",
+        });
+        return null;
+      }
+      if (sig.serializedHash !== rawSerializedHash) {
+        diagnostics.addError(
+          CORRUPT_SAVE_CODE,
+          "Save signature does not match serialized content",
+          {
+            stage: "persistence.load",
+          },
+        );
+        return null;
+      }
+      if (sig.stateHash !== state.rawHash) {
+        diagnostics.addError(CORRUPT_SAVE_CODE, "Save signature does not match state", {
+          stage: "persistence.load",
+        });
+        return null;
+      }
+      if (sig.compatibilityVersion !== state.snapshot.compatibilityVersion) {
+        diagnostics.addError(CORRUPT_SAVE_CODE, "Save signature version does not match state", {
+          stage: "persistence.load",
+        });
+        return null;
+      }
     }
 
     if (!verifyEnvelope(state["envelope"], state["snapshot"])) {

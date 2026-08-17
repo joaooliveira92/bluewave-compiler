@@ -42,6 +42,14 @@ version → full structural schema → reconstituted semantic `rawHash` → sign
 file (`serializedHash` vs on-disk bytes, `stateHash` vs `rawHash`, and the
 signature compatibility version vs the snapshot's).
 
+A save whose `campaign.sig.json` is **absent** is treated as a legacy save (one
+written before the signature existed, or a turn-zero campaign): it still loads,
+but emits a `PERSISTENCE_UNSIGNED_SAVE` *warning* rather than being accepted
+silently, because the independently-written tamper artifact is missing. A
+signature file that is *present but invalid* (unparseable, or mismatching any of
+the three checks) is still a hard corruption error. New saves always write a
+signature, so this carve-out only grandfathers pre-existing data.
+
 ### 2. Save-id validation + path containment
 
 The save id is an opaque `<epochMs>-<uuid>`. `loadById` validates it against a
@@ -103,6 +111,8 @@ filesystem lock. This is documented rather than silently supported.
 
 - Signature tampering, serialized-content tampering, save-id traversal, and
   partially-published saves are all rejected on load.
+- Legacy saves lacking a signature load with a validation warning; anything that
+  *has* a signature must satisfy every signature check or it is rejected.
 - Metadata hashes now mean what their names say; the semantic/serialized hash
   distinction is explicit and tested.
 - Compatibility mismatches are diagnosed stably regardless of schema evolution.
