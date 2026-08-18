@@ -289,6 +289,33 @@ spec had none of these sections either).
   `SaveStore`'s tmp-dir-rename + pointer. The **new** pre-turn review UI feeds
   off the priorities engine (ticket 04) + two new `PlayerProjection.economy`
   fields (`constructionSpend`/`researchSpend`, ticket 06). Unblocks 14 + 15.
+- [Immediate priorities engine](./issues/04-immediate-priorities-engine.md) —
+  **resolved 2026-08-17 (grounded via a research subagent pass + direct
+  re-reads).** New read-only `@bluewave/campaign-engine` projection
+  (`src/priorities.ts`); **6 of 8** doc types ship. Cut: `obsolete_active_class`
+  (no obsolescence score, no design era/vintage field, **no design→required-tech
+  mapping** — `requiredTechnologyIds` hardcoded `[]`, so even the doc's
+  technology-gap fallback is unbuildable) and `construction_stalled` (month-
+  over-month `completedWork` delta isn't persisted; not derivable from a single
+  snapshot — ticket 09's Construction-page display flag can still use the
+  transient report delta, but the persistent card is cut). Buildable: the two
+  cash triggers (`monthly_deficit`, `critical_cash_reserve`) consume ticket 06's
+  two new `PlayerProjection.economy` fields; `low_research_spending` (8%
+  centralized as `MIN_RESEARCH_SHARE_BP = 800`); `high_foreign_tension`
+  (imports ticket 11's `isHighTension`/`HIGH_TENSION_THRESHOLD=8`, never
+  re-derived); `no_active_construction` (real appropriation predicate +
+  `shipyardCapacity` + real design catalog); `construction_near_completion`
+  **adapted** from doc's `remainingMonths <= 2` to a work-ratio proxy
+  (`NEAR_COMPLETION_WORK_RATIO = 0.9`, reusing the briefing heuristic) because
+  months-to-completion is underivable (`computeConstructionCap` private +
+  `baseResources` hardcoded `0`). Sort chain (severity → financial risk →
+  time-to-consequence → type order → id) fully feasible; dismissal stored in a
+  **new tolerant `ui-state.json` per-campaign sidecar** (renderer-owned, outside
+  the authoritative envelope, keyed by `campaignId`, turn-expiring) — which also
+  resolves the storage gap ticket 05 deferred. **Recorded finding (flagged, not
+  resolved):** engine `monthly_revenue` computes on `baseResources` (compiled
+  `0`) while projections use `income` — a pre-existing M1 economy display
+  truthfulness concern, surfaced here, not silently resolved.
 
 ## Not yet specified
 
