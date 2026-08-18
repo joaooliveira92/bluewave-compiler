@@ -271,10 +271,14 @@ in a new tolerant `ui-state.json` per-campaign sidecar that also resolves
 ticket 05's deferred storage; **recorded finding:** engine `monthly_revenue`
 uses `baseResources` (compiled 0) vs projection `income` — a pre-existing M1
 economy display concern, flagged not resolved)**. **14/18 tickets resolved.**
-**Next frontier (open, unblocked): 10 (ordering-a-ship wizard, blocked by 09,
-now unblocked), 12 (foreign relations, blocked by 11), 14 & 15 (blocked by 13,
-now unblocked)** — then assemble the single M2 spec per `map.md`. C-3-IMPL
-(submarines, queued below) remains on the implementation track, not dropped.
+**Next frontier (open, unblocked): 12 (foreign relations, blocked by 11), 14 &
+15 (blocked by 13)** — ticket 10 (ordering-a-ship wizard) also resolved
+2026-08-17 (real `submitConstructionCommand` family + design catalog back the
+wizard; naming step cut — no shipName input exists anywhere; full-cost upfront
+reservation means low cash is a hard INSUFFICIENT_FUNDS rejection, reversing
+the doc's "financial warning" framing). Once all 18 resolve, assemble the
+single M2 spec per `map.md`. C-3-IMPL (submarines, queued below) remains on the
+implementation track, not dropped.
 
 **B-6: DONE 2026-08-15 — M2 COMPLETED.** Battle results → campaign integration
 + M2 acceptance gate landed (commits `bf77843` scoping, `62fba1d` INC-1,

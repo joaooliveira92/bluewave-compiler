@@ -316,6 +316,26 @@ spec had none of these sections either).
   resolved):** engine `monthly_revenue` computes on `baseResources` (compiled
   `0`) while projections use `income` — a pre-existing M1 economy display
   truthfulness concern, surfaced here, not silently resolved.
+- [Ordering a ship wizard](./issues/10-ordering-a-ship-wizard.md) — **resolved
+  2026-08-17.** The wizard is a select-design → review → confirm flow over the
+  real `submitConstructionCommand`/`replaceConstructionCommand`/
+  `cancelConstructionCommand` family (`constructionCommands.ts`) + real design
+  catalog/cost projection (`construction.ts`); **8 of 10** doc steps real.
+  **Cut:** ship naming (§12.6 — the real `SubmitConstructionCommandPayload`
+  carries only `{sessionId, expectedRevision, transportRequestId, designId}`,
+  no `shipName`/`portId`; `ConstructionProject` has no name field; completed
+  ships auto-name `Ship {className}` at `month.ts:860`; commissioning
+  `namingConvention`/`shipNameReuse` stay UI-only — player naming recorded as a
+  deferred engine slice), estimated completion time (underivable, same finding
+  as ticket 04), and the doc's "insufficient cash doesn't disqualify" framing —
+  **reversed**: the engine reserves the **full projected cost** up front, so low
+  cash is a hard `INSUFFICIENT_FUNDS` rejection (`reserveForOrder`), not a
+  financial warning. Eligibility = real rejection codes (`UNKNOWN_DESIGN`,
+  `DESIGN_NOT_FOR_PLAYER`, `INSUFFICIENT_FUNDS`, `INSUFFICIENT_CAPACITY`).
+  `PlaceConstructionOrderCommand` maps onto the real family (no new command);
+  the doc's `warnings` array cut (outcomes are success-with-workspace or hard
+  rejection). Visual click-through prototype deferred to implementation (same
+  pattern as ticket 18).
 
 ## Not yet specified
 
