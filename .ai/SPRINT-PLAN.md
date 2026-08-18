@@ -270,15 +270,20 @@ work-ratio proxy since months-to-completion is underivable; dismissal persisted
 in a new tolerant `ui-state.json` per-campaign sidecar that also resolves
 ticket 05's deferred storage; **recorded finding:** engine `monthly_revenue`
 uses `baseResources` (compiled 0) vs projection `income` — a pre-existing M1
-economy display concern, flagged not resolved)**. **16/18 tickets resolved.**
-**Next frontier (open, unblocked): 14 & 15 (both blocked by 13)** — tickets 10
-and 12 also resolved 2026-08-17 (see `map.md` Decisions so far: ship wizard
-maps onto the real construction command family; Foreign Relations = the shipped
-read-only Diplomacy & War surface with likely-rival flavor marker and a
-current-state high-tension warning — monthly change cut, future-war framing
-reframed since war already exists). Once all 18 resolve, assemble the single M2
-spec per `map.md`. C-3-IMPL (submarines, queued below) remains on the
-implementation track, not dropped.
+economy display concern, flagged not resolved)**. **ALL 18/18 TICKETS RESOLVED — the M2 "First Month at the Admiralty" charting
+effort's decision phase is complete. Next (final) act: assemble the single M2
+spec per `map.md`** (§0, §1, §2, §3, §19.1 assembled from the resolved
+tickets' answers; §20–29 excluded per the map). Tickets 14 + 15 resolved
+2026-08-17: monthly-resolution presentation = cosmetic world-gen-pattern
+loading sequence over the synchronous `commitMonth` (no real progress
+streaming; truthful re-ordered stage labels; "Open campaign folder" cut — no
+preload capability); naval-estimates report = the real `CommitMonthResponse`
+rendered faithfully (Treasury/Construction/Research real, battle outcomes a
+dedicated subsection; Diplomacy section, research-effectiveness, per-ship
+maintenance, and "stalled" cut; new tolerant `monthly-reports.json` sidecar
+for last-12 history + the priorities baseline). After the spec lands, the
+effort's implementation tickets follow. C-3-IMPL (submarines, queued below)
+remains on the implementation track, not dropped.
 
 **B-6: DONE 2026-08-15 — M2 COMPLETED.** Battle results → campaign integration
 + M2 acceptance gate landed (commits `bf77843` scoping, `62fba1d` INC-1,

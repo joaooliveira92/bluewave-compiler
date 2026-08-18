@@ -351,6 +351,33 @@ spec had none of these sections either).
   is **reframed to current-state copy** ("hostile; war is possible", no
   "future milestone" caveat). No engine change, no new command, no RNG flag
   flip.
+- [Monthly resolution presentation](./issues/14-monthly-resolution-presentation.md) —
+  **resolved 2026-08-17.** M2 uses the **cosmetic world-gen-pattern loading
+  sequence** racing the synchronous `commitMonth` call — no real IPC progress
+  streaming (`MonthExecutor.execute` is one opaque call; no progress callback,
+  no `AbortSignal`). The seven doc stage labels are re-ordered + kept truthful
+  to the real `PhaseRegistry` order (finances→maintenance→construction→
+  diplomacy→research→estimates→save; note diplomacy 6.5 **before** research 7).
+  Failure UI keyed off real `BridgeResult` codes; "previous month intact" /
+  "Try Again is safe" guaranteed by ticket 13's atomicity + revision guard;
+  **"Open campaign folder" CUT** (no safe preload capability exists). No
+  `MonthResolutionProgress` schema built (moot with a cosmetic sequence).
+- [Monthly naval estimates report](./issues/15-monthly-naval-estimates-report.md) —
+  **resolved 2026-08-17.** Largely "document what's real": the report = the
+  real `CommitMonthResponse` (Treasury `MonthReport` + real ledger lines,
+  Construction/Research from real domain events + pre→post fleet/project
+  deltas, battle outcomes as a dedicated subsection). **Cuts:** Diplomacy
+  section (no monthly changes — ticket 12), Research budget-effectiveness +
+  settings effects (no formula), Fleet per-ship maintenance effect (only
+  aggregate real), Construction "stalled" (no from-snapshot signal — ticket
+  04). Report data model reconciles to `CommitMonthResponse` + thin derived
+  view (`reportId`→saveId, `generatedAt`→`SaveMetadata.timestamp`, never an
+  engine field). **Report history (last 12, read-only) has NO home** — new
+  tolerant per-campaign `monthly-reports.json` sidecar (same family as ticket
+  04's `ui-state.json`: atomic write, tolerant read, keyed by `campaignId`,
+  outside the authoritative envelope), storing last-12 derived reports +
+  priority fingerprints (the baseline for the report's new/resolved/continuing
+  Priorities section, which is the ticket-04 projection).
 
 ## Not yet specified
 
