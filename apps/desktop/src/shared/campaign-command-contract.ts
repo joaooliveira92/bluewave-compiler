@@ -111,6 +111,55 @@ export interface SaveCampaignResult {
 }
 
 /**
+ * Renderer-owned UI state persisted per-campaign in `ui-state.json` (spec §7
+ * "Dismissal" + §8 "Persistence"). One sidecar serves BOTH priority-dismissal
+ * and first-month-inspection state. It is **never authoritative** — it is not
+ * part of the save envelope/hash and is never fed into `MonthExecutor`
+ * (ENGINEERING-CONTRACT: "React and UI state are never authoritative
+ * simulation state"). Expiry is inherent: `dismissedFingerprints` are only
+ * honored while `turnNumber` equals the session's current turn (they expire on
+ * turn advance); `firstMonthInspection` does not expire (once
+ * completed/dismissed, reopening stays disabled across turns).
+ */
+export interface UiStateFirstMonthInspection {
+  readonly status: "not_started" | "in_progress" | "completed" | "dismissed";
+  readonly lastCompletedStep: number;
+}
+
+export interface UiState {
+  /** The turn the sidecar was last written at. */
+  readonly turnNumber: number;
+  /** Dismissal fingerprints (spec §7) — honored only while
+   * `turnNumber === currentTurnNumber`. */
+  readonly dismissedFingerprints: readonly string[];
+  /** Guided first-month inspection state (§8) — persists across turns. */
+  readonly firstMonthInspection?: UiStateFirstMonthInspection;
+}
+
+export interface ReadUiStateResult {
+  readonly uiState: UiState;
+}
+
+/**
+ * Write payload for `writeUiState`. Merge semantics: the sidecar serves BOTH
+ * priority-dismissal (§7) and first-month-inspection (§8) state, and a write
+ * only touches the fields it carries — `dismissedFingerprints` is a
+ * complete-set replace, while an ABSENT `firstMonthInspection` is carried
+ * forward from the stored sidecar (so a dismissal-only writer never erases
+ * inspection progress and vice-versa). An explicit inspection reset is
+ * available by sending `{ status: "not_started", lastCompletedStep: 0 }`.
+ */
+export interface WriteUiStatePayload {
+  readonly sessionId: string;
+  readonly dismissedFingerprints: readonly string[];
+  readonly firstMonthInspection?: UiStateFirstMonthInspection;
+}
+
+export interface WriteUiStateResult {
+  readonly uiState: UiState;
+}
+
+/**
  * Single source of truth for the command name set — `campaignBridge.ts`'s
  * runtime registry derives from this instead of hand-duplicating the list.
  * TypeScript can't generate overload signatures from a runtime tuple, so
@@ -147,6 +196,8 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "setResearchPriorityCommand",
   "inspectDiplomacyScreen",
   "submitDiplomacyCommand",
+  "readUiState",
+  "writeUiState",
 ] as const;
 
 /**
@@ -254,4 +305,9 @@ export interface CampaignCommandClient {
     command: "submitDiplomacyCommand",
     payload: SubmitDiplomacyCommandPayload,
   ): Promise<BridgeResult<DiplomacyCommandOutcome>>;
+  execute(command: "readUiState", payload: string): Promise<BridgeResult<ReadUiStateResult>>;
+  execute(
+    command: "writeUiState",
+    payload: WriteUiStatePayload,
+  ): Promise<BridgeResult<WriteUiStateResult>>;
 }

@@ -1,6 +1,19 @@
-import { describe, expect, it } from "vite-plus/test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { SaveStore } from "@bluewave/persistence";
+import { describe, expect, it, beforeEach, afterEach } from "vite-plus/test";
 import { CAMPAIGN_COMMAND_NAMES } from "../shared/campaign-command-contract.js";
 import { dispatchCampaignCommand } from "./campaignBridge.js";
+import { clearCampaignSessionsForTest, registerCampaignSession } from "./campaignSessions.js";
+import { compileProductionCampaign } from "./compiler.js";
+import { toSaveableState } from "./saveHelpers.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(__dirname, "../../../..");
+const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
 
 const IMPLEMENTED_COMMANDS = new Set([
   "listNewGameOptions",
@@ -18,6 +31,8 @@ const IMPLEMENTED_COMMANDS = new Set([
   "setResearchPriorityCommand",
   "inspectDiplomacyScreen",
   "submitDiplomacyCommand",
+  "readUiState",
+  "writeUiState",
   "loadCampaign",
   "verifyCampaign",
   "replayCampaign",
@@ -253,5 +268,113 @@ describe("dispatchCampaignCommand", () => {
     expect(result.outcome).toBe("error");
     if (result.outcome !== "error") return;
     expect(result.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("rejects a non-string readUiState payload", async () => {
+    const result = await dispatchCampaignCommand("readUiState", { sessionId: 123 });
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("INVALID_PAYLOAD");
+  });
+
+  it("returns SESSION_NOT_FOUND for readUiState without a session", async () => {
+    const result = await dispatchCampaignCommand("readUiState", "no-such-session");
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("rejects structurally invalid writeUiState payloads before touching the handler", async () => {
+    const longFingerprint = "f".repeat(257);
+    const oversizedArray = Array.from({ length: 65 }, (_, i) => `fp-${i}`);
+    for (const payload of [
+      { sessionId: "s" }, // missing dismissedFingerprints
+      { sessionId: "s", dismissedFingerprints: "high" }, // not an array
+      { sessionId: "s", dismissedFingerprints: [123] }, // non-string fingerprint
+      { sessionId: "s", dismissedFingerprints: [longFingerprint] }, // fingerprint > 256 chars
+      { sessionId: "s", dismissedFingerprints: oversizedArray }, // array > 64 entries
+      {
+        sessionId: "s",
+        dismissedFingerprints: [],
+        firstMonthInspection: { status: "in_progress" }, // missing lastCompletedStep
+      },
+      {
+        sessionId: "s",
+        dismissedFingerprints: [],
+        firstMonthInspection: { status: "paused", lastCompletedStep: 0 }, // unknown status
+      },
+      {
+        sessionId: "s",
+        dismissedFingerprints: [],
+        firstMonthInspection: { status: "completed", lastCompletedStep: 7 }, // > 6 steps
+      },
+      {
+        sessionId: "s",
+        dismissedFingerprints: [],
+        firstMonthInspection: { status: "completed", lastCompletedStep: -1 }, // negative
+      },
+    ]) {
+      const result = await dispatchCampaignCommand("writeUiState", payload);
+      expect(result.outcome).toBe("error");
+      if (result.outcome !== "error") return;
+      expect(result.reason).toBe("INVALID_PAYLOAD");
+    }
+  });
+
+  it("returns SESSION_NOT_FOUND for a well-formed writeUiState against an unknown session", async () => {
+    const result = await dispatchCampaignCommand("writeUiState", {
+      sessionId: "no-such-session",
+      dismissedFingerprints: ["fp-1"],
+      firstMonthInspection: { status: "in_progress", lastCompletedStep: 1 },
+    });
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  describe("ui-state dispatch happy paths", () => {
+    let saveRoot: string;
+    let sessionId: string;
+    let saveDir: string;
+
+    beforeEach(() => {
+      sessionId = "session-dispatch";
+      saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-bridge-ui-state-"));
+      saveDir = resolve(saveRoot, "save");
+      const signal = new AbortController().signal;
+      const collector = new DiagnosticCollector();
+      const output = compileProductionCampaign(PRODUCTION_PACK, signal, collector);
+      if (!output) throw new Error("production pack failed to compile");
+      const state = toSaveableState(output.state);
+      new SaveStore().save(state, saveDir);
+      registerCampaignSession({
+        sessionId,
+        saveDir,
+        playerSlotId: "uk",
+        campaignSeed: "a".repeat(32),
+        month: { month: 1, year: 1880 },
+        state,
+      });
+    });
+
+    afterEach(() => {
+      rmSync(saveRoot, { recursive: true, force: true });
+      clearCampaignSessionsForTest();
+    });
+
+    it("writeUiState round-trips through the dispatch boundary", async () => {
+      const write = await dispatchCampaignCommand("writeUiState", {
+        sessionId,
+        dismissedFingerprints: ["fp-1"],
+        firstMonthInspection: { status: "in_progress", lastCompletedStep: 2 },
+      });
+      expect(write.outcome).toBe("success");
+      if (write.outcome !== "success") return;
+
+      const read = await dispatchCampaignCommand("readUiState", sessionId);
+      expect(read.outcome).toBe("success");
+      if (read.outcome !== "success") return;
+      expect(read.value).toEqual(write.value);
+    });
   });
 });

@@ -123,3 +123,41 @@ export const DiplomacyCommandBodySchema = z.discriminatedUnion("type", [
 export const SubmitDiplomacyCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
   command: DiplomacyCommandBodySchema,
 });
+
+/**
+ * Renderer-owned UI-state sidecar (`ui-state.json`, spec §7 Dismissal + §8
+ * Persistence). Strict boundary schemas per ENGINEERING-CONTRACT "Content":
+ * the `status` is a closed enum, `lastCompletedStep` is a bounded integer in
+ * the 7-step (0-indexed) range 0..6, and the fingerprints array is
+ * source-size capped (64 entries, each ≤ 256 chars). The wire shape validates
+ * at this IPC boundary; the file read tolerantly falls back to empty defaults
+ * on any mismatch. Never authoritative.
+ */
+export const FirstMonthInspectionSchema = z.object({
+  status: z.enum(["not_started", "in_progress", "completed", "dismissed"]),
+  lastCompletedStep: z.number().int().nonnegative().max(6),
+});
+
+/** The full on-disk `ui-state.json` shape (also the read command's result). */
+export const UiStateSchema = z.object({
+  turnNumber: z.number().int().nonnegative(),
+  dismissedFingerprints: z.array(z.string().min(1).max(256)).max(64),
+  firstMonthInspection: FirstMonthInspectionSchema.optional(),
+});
+
+/**
+ * Write-payload wire shape for `writeUiState`. `turnNumber` is intentionally
+ * ABSENT: the handler stamps it from the session's current
+ * `state.snapshot.turnNumber`, so the sidecar can never be written against a
+ * stale turn (expiry stays honest). `firstMonthInspection` is optional and —
+ * when absent — carried forward from the stored sidecar (merge semantics,
+ * see `WriteUiStatePayload`); an explicit reset sends
+ * `{ status: "not_started", lastCompletedStep: 0 }`. Deeper checks (session
+ * exists, save dir writable) live in `uiState.ts`, matching the
+ * wire-shape/semantics split.
+ */
+export const WriteUiStatePayloadSchema = z.object({
+  sessionId: z.string().min(1),
+  dismissedFingerprints: z.array(z.string().min(1).max(256)).max(64),
+  firstMonthInspection: FirstMonthInspectionSchema.optional(),
+});

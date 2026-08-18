@@ -10,6 +10,7 @@ import {
   SessionIdPayloadSchema,
   SetResearchPriorityCommandPayloadSchema,
   SubmitDiplomacyCommandPayloadSchema,
+  WriteUiStatePayloadSchema,
 } from "./campaignCommandSchemas.js";
 import { commitMonth } from "./commands/commitMonth.js";
 import { compileCampaign, defaultCompileCampaignDeps } from "./commands/compileCampaign.js";
@@ -33,6 +34,7 @@ import { inspectMap } from "./commands/inspectMap.js";
 import { inspectOpeningBriefing } from "./commands/inspectOpeningBriefing.js";
 import { listNewGameOptions } from "./commands/listNewGameOptions.js";
 import { inspectResearchScreen, setResearchPriorityCommand } from "./commands/researchCommands.js";
+import { readUiState, writeUiState } from "./uiState.js";
 
 /**
  * The `campaign:execute` command registry. Every command documented across
@@ -163,6 +165,22 @@ export async function dispatchCampaignCommand(
         return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
       }
       return submitDiplomacyCommand(parsedPayload.data);
+    }
+
+    case "readUiState": {
+      const parsedPayload = SessionIdPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return readUiState(parsedPayload.data);
+    }
+
+    case "writeUiState": {
+      const parsedPayload = WriteUiStatePayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return writeUiState(parsedPayload.data);
     }
 
     // The four Campaign File continuance commands (ticket 16) take an

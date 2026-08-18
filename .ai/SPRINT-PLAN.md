@@ -278,9 +278,12 @@ frontier-ordered implementation tickets at
 `.scratch/game-onboarding-first-month/issues/INC-01..14` (to-tickets,
 tracer-bullet vertical slices). **Implementation frontier: INC-1 (economy
 projection extension) DONE 2026-08-17 (commit `4a5eb20`, 5 tests, goldens
-10/10, desktop tsc -b clean); INC-3 (ui-state.json sidecar) open + unblocked
-is next**, then INC-14 (nav shell) → INC-2 (priorities projection) / INC-13
-(campaign list) → the remaining screens (INC-4..INC-12) in blocking order.
+10/10, desktop tsc -b clean); INC-3 (ui-state.json sidecar) DONE 2026-08-18
+(reviewer APPROVE; ADR-0038; merge-preserve write semantics; desktop 470/470;
+goldens 10/10; two-process byte-identical — report
+`.ai/reports/game-onboarding-first-month-inc3.md`); **INC-14 (campaign shell
+header) is next** → INC-2 (priorities projection) / INC-13 (campaign list) →
+the remaining screens (INC-4..INC-12) in blocking order.
 The M2 spec covers §0–§19.1 (6-of-8 priorities with cuts; read-only Treasury;
 no ship naming; no real progress streaming; two new tolerant renderer-owned
 sidecars; report = real `CommitMonthResponse`; battle outcomes as report text)

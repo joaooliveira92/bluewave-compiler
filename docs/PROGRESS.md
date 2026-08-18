@@ -463,7 +463,17 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 > divergence (compiler hardcodes `baseResources: SafeInt(0)`) and the
 > turnNumber-as-revision same-month-conflict gap. Commits
 > `06014b2`/`ae951eb`/`b95073c`/`81066d6`/`3f83d1d`. **Frontier:** INC-1
-> (economy projection extension) + INC-3 (ui-state.json sidecar).
+> (economy projection extension) DONE (2026-08-17, `4a5eb20`); **INC-3
+> (`ui-state.json` per-campaign renderer-owned sidecar) DONE 2026-08-18** —
+> atomic tmp→rename write, tolerant read (missing/corrupt→defaults), expiry of
+> dismissal fingerprints on turn advance, merge-preserve write semantics (a
+> dismissal-only write never erases inspection state), narrow Zod-validated
+> `readUiState`/`writeUiState` IPC pair, `turnNumber` stamped server-side, never
+> authoritative (zero hash surface; goldens 10/10; two-process byte-identical);
+> reviewer APPROVE; ADR-0038; report
+> `.ai/reports/game-onboarding-first-month-inc3.md`. **Next frontier: INC-14
+> (campaign shell header) → INC-2 (priorities projection) / INC-13 (campaign
+> list) → INC-4..INC-12.**
 
 ### CLI battle/gunnery debug surface
 

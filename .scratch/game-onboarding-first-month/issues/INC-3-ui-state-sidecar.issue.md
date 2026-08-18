@@ -21,15 +21,18 @@ first-month-inspection state.
 
 **Blocked by:** None — can start immediately (pure new infrastructure)
 
-**Status:** ready-for-agent
+**Status:** done (2026-08-18, ADR-0038)
 
-- [ ] `ui-state.json` is written atomically (tmp → rename), keyed by
+- [x] `ui-state.json` is written atomically (tmp → rename), keyed by
       `campaignId`, and read tolerantly (missing/corrupt → defaults)
-- [ ] Dismissal fingerprints expire on turn advance (turnNumber comparison)
-- [ ] First-month-inspection state persists and survives save/load
-      per-campaign
-- [ ] The sidecar is never part of the authoritative envelope/hash and never
+- [x] Dismissal fingerprints expire on turn advance (turnNumber comparison)
+- [x] First-month-inspection state persists and survives save/load
+      per-campaign (merge-preserve write semantics — a dismissal-only write
+      never erases inspection state; explicit reset via `not_started/0`)
+- [x] The sidecar is never part of the authoritative envelope/hash and never
       fed into `MonthExecutor`
-- [ ] Narrow IPC surface, Zod-validated, no renderer→engine state leakage
-- [ ] Goldens 10/10 unchanged (new sidecar has zero hash surface)
-- [ ] Tests cover write/read, tolerant-corrupt recovery, and expiry
+- [x] Narrow IPC surface, Zod-validated, no renderer→engine state leakage
+      (`readUiState`/`writeUiState`; `turnNumber` stamped server-side)
+- [x] Goldens 10/10 unchanged (new sidecar has zero hash surface)
+- [x] Tests cover write/read, tolerant-corrupt recovery, and expiry
+      (13 uiState tests + bridge boundary/happy-path cases)
