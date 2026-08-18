@@ -251,10 +251,17 @@ session resolved the frontier decision tickets **07 (research)**, **08
 (fleet)**, **09 (construction)**, **11 (diplomacy tension-threshold policy —
 implemented in `campaign-engine/src/diplomacy.ts`, `tensionLabel`/
 `isHighTension`/`HIGH_TENSION_THRESHOLD=8`, + test)**, **16 (save/load &
-campaign-list)**, **18 (guided-inspection spotlight model)**. 12/18 tickets
-resolved. **Next frontier (open, unblocked): 13 Advance Month flow** → then
-04 (blocked by 11, now unblocked), 10 (blocked by 09), 12 (blocked by 11),
-14 & 15 (blocked by 13). Once all 18 resolve, assemble the single M2 spec per
+campaign-list)**, **18 (guided-inspection spotlight model)**, and **13
+(Advance Month flow — resolved 2026-08-17: the month pipeline is largely real,
+so §14 reduces to documenting `commitMonth`+`MonthExecutor`+`SaveStore`, the
+real `PhaseRegistry` stage list, the revision/committing-flag double-submit
+model with the same-`requestId` result-replay gap recorded, "no mid-resolution
+cancellation" as the decided deferral, and the new pre-turn review feeding off
+the priorities engine (04) + two new `PlayerProjection.economy` fields (06);
+unblocks 14 + 15)**. 13/18 tickets
+resolved. **Next frontier (open, unblocked): 04 Immediate priorities engine**
+→ then 10 (blocked by 09, now unblocked), 12 (blocked by 11), 14 & 15 (blocked
+by 13, now unblocked). Once all 18 resolve, assemble the single M2 spec per
 `map.md`. C-3-IMPL (submarines, queued below) remains on the implementation
 track, not dropped.
 

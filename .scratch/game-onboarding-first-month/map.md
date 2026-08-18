@@ -276,6 +276,19 @@ spec had none of these sections either).
   non-blocking, no focus trap, respects `prefers-reduced-motion`. Does **not**
   change ticket 05's steps/behavior/persistence. Concrete visual click-through
   prototype deferred to the implementation sprint (presentation detail only).
+- [Advance Month flow](./issues/13-advance-month-flow.md) — **resolved
+  2026-08-17**. The month pipeline is already fully built (`commitMonth` +
+  `MonthExecutor` + `SaveStore`), so §14 is largely "document what's real": the
+  17-step sequence maps onto the real `PhaseRegistry` phase list (date/turn
+  increment lives in `commitMonth`, not the engine); double-submission is the
+  renderer `committing` flag + `expectedRevision`→`REVISION_MISMATCH` (doc's
+  same-`requestId` result-replay is a recorded gap); `requestId` = the real
+  `CommandEnvelope.transportRequestId`; M2 ships **without** mid-resolution
+  cancellation (commit is synchronous/atomic; Advance disabled during the
+  in-flight commit — the ticket's recommended deferral); atomicity is
+  `SaveStore`'s tmp-dir-rename + pointer. The **new** pre-turn review UI feeds
+  off the priorities engine (ticket 04) + two new `PlayerProjection.economy`
+  fields (`constructionSpend`/`researchSpend`, ticket 06). Unblocks 14 + 15.
 
 ## Not yet specified
 
