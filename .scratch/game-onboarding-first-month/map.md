@@ -2,8 +2,13 @@
 
 **Label:** wayfinder:map
 
-## Destination
+> **STATUS (2026-08-17): DESTINATION REACHED.** All 18 decision tickets
+> resolved; the single M2 spec is assembled at [./spec.md](./spec.md) (with a
+> `.ai/specs/game-onboarding-first-month.md` pointer) and is **ready for
+> slicing** (to-tickets). This map and its `issues/` remain the decision
+> record / traceability source for that spec.
 
+## Destination
 A written **spec** for Milestone 2 ("First Month at the Admiralty") — the first
 complete strategic gameplay loop from **Take command** through the Overview
 dashboard, priorities, guided first-month inspection, Treasury/Research/Fleet
