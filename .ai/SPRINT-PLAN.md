@@ -270,14 +270,14 @@ work-ratio proxy since months-to-completion is underivable; dismissal persisted
 in a new tolerant `ui-state.json` per-campaign sidecar that also resolves
 ticket 05's deferred storage; **recorded finding:** engine `monthly_revenue`
 uses `baseResources` (compiled 0) vs projection `income` — a pre-existing M1
-economy display concern, flagged not resolved)**. **14/18 tickets resolved.**
-**Next frontier (open, unblocked): 12 (foreign relations, blocked by 11), 14 &
-15 (blocked by 13)** — ticket 10 (ordering-a-ship wizard) also resolved
-2026-08-17 (real `submitConstructionCommand` family + design catalog back the
-wizard; naming step cut — no shipName input exists anywhere; full-cost upfront
-reservation means low cash is a hard INSUFFICIENT_FUNDS rejection, reversing
-the doc's "financial warning" framing). Once all 18 resolve, assemble the
-single M2 spec per `map.md`. C-3-IMPL (submarines, queued below) remains on the
+economy display concern, flagged not resolved)**. **16/18 tickets resolved.**
+**Next frontier (open, unblocked): 14 & 15 (both blocked by 13)** — tickets 10
+and 12 also resolved 2026-08-17 (see `map.md` Decisions so far: ship wizard
+maps onto the real construction command family; Foreign Relations = the shipped
+read-only Diplomacy & War surface with likely-rival flavor marker and a
+current-state high-tension warning — monthly change cut, future-war framing
+reframed since war already exists). Once all 18 resolve, assemble the single M2
+spec per `map.md`. C-3-IMPL (submarines, queued below) remains on the
 implementation track, not dropped.
 
 **B-6: DONE 2026-08-15 — M2 COMPLETED.** Battle results → campaign integration

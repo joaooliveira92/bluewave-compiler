@@ -336,6 +336,21 @@ spec had none of these sections either).
   the doc's `warnings` array cut (outcomes are success-with-workspace or hard
   rejection). Visual click-through prototype deferred to implementation (same
   pattern as ticket 18).
+- [Foreign Relations page](./issues/12-foreign-relations-page.md) — **resolved
+  2026-08-17.** The page is the already-shipped read-only Diplomacy & War
+  surface (Relations / Wars / Blockades three-section layout; desktop-
+  diplomacy-war). Relationship list: `partnerName`/`relation`/`tension` all
+  real; label via ticket 11's `tensionLabel` (never re-derived); **likely
+  rival** = real presentation-only flavor data
+  (`NATION_DOSSIER_FIELDS.likelyRivals`, keyed by playable country, non-
+  playable nations get no marker). **Cut:** "change since previous month"
+  (no previous-turn tension stored; `resolve_diplomacy` `rngAllowed: false`;
+  monthly tension randomness is a future M2 slice per ticket 13) and the
+  doc's "may lead to war in a future milestone" warning framing — war already
+  exists and is displayed, so the high-tension warning (`isHighTension`, ≥ 8)
+  is **reframed to current-state copy** ("hostile; war is possible", no
+  "future milestone" caveat). No engine change, no new command, no RNG flag
+  flip.
 
 ## Not yet specified
 
