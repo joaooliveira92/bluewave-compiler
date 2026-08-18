@@ -27,14 +27,15 @@ the existing `inspectCampaign` command.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `PlayerProjection.economy.constructionSpend` + `researchSpend` are
+- [x] `PlayerProjection.economy.constructionSpend` + `researchSpend` are
       derived from real snapshot data and served via `inspectCampaign`
-- [ ] `PlayerProjection.nationName` + projected surplus/deficit are derived
+- [x] `PlayerProjection.nationName` + projected surplus/deficit are derived
       and served via `inspectCampaign`
-- [ ] Every derivation is pure over the snapshot (no I/O, no randomness, no
+- [x] Every derivation is pure over the snapshot (no I/O, no randomness, no
       `Date.now()`) — projections are never fed into `MonthExecutor`
-- [ ] Existing projection consumers still compile; `tsc -b` clean
-- [ ] Goldens 10/10 unchanged; two-process determinism byte-identical
-- [ ] Unit tests cover each new field's derivation against fixture data
+- [x] Existing projection consumers still compile; `tsc -b` clean
+      (repaired `overview-screen-state.test.ts` fixture during review)
+- [x] Goldens 10/10 unchanged; two-process determinism byte-identical
+- [x] Unit tests cover each new field's derivation against fixture data

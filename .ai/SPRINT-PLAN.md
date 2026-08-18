@@ -276,15 +276,16 @@ assembled at `.scratch/game-onboarding-first-month/spec.md` (+
 `.ai/specs/game-onboarding-first-month.md` pointer) and sliced into 14
 frontier-ordered implementation tickets at
 `.scratch/game-onboarding-first-month/issues/INC-01..14` (to-tickets,
-tracer-bullet vertical slices). **Frontier (open, unblocked): INC-1 (economy
-projection extension) and INC-3 (ui-state.json sidecar)** — then INC-14 (nav
-shell) → INC-2 (priorities projection) / INC-13 (campaign list) → the
-remaining screens (INC-4..INC-12) in blocking order. The M2 spec covers
-§0–§19.1 (6-of-8 priorities with cuts; read-only Treasury; no ship naming; no
-real progress streaming; two new tolerant renderer-owned sidecars; report =
-real `CommitMonthResponse`; battle outcomes as report text) + Out of scope +
-Handoff. **C-3-IMPL (submarines, queued below) remains on the implementation
-track, not dropped.**
+tracer-bullet vertical slices). **Implementation frontier: INC-1 (economy
+projection extension) DONE 2026-08-17 (commit `4a5eb20`, 5 tests, goldens
+10/10, desktop tsc -b clean); INC-3 (ui-state.json sidecar) open + unblocked
+is next**, then INC-14 (nav shell) → INC-2 (priorities projection) / INC-13
+(campaign list) → the remaining screens (INC-4..INC-12) in blocking order.
+The M2 spec covers §0–§19.1 (6-of-8 priorities with cuts; read-only Treasury;
+no ship naming; no real progress streaming; two new tolerant renderer-owned
+sidecars; report = real `CommitMonthResponse`; battle outcomes as report text)
++ Out of scope + Handoff. **C-3-IMPL (submarines, queued below) remains on the
+implementation track, not dropped.**
 
 **B-6: DONE 2026-08-15 — M2 COMPLETED.** Battle results → campaign integration
 + M2 acceptance gate landed (commits `bf77843` scoping, `62fba1d` INC-1,
