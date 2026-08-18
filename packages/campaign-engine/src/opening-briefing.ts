@@ -94,7 +94,7 @@ export interface OpeningBriefingProjection {
 export const MAINTENANCE_FORMULA_ID = "maintenance_v1";
 export const MAINTENANCE_FORMULA_VERSION = "1.0.0";
 
-function shipMaintenanceCost(hitPoints: number): number {
+export function shipMaintenanceCost(hitPoints: number): number {
   return Math.floor((hitPoints * 10) / 100);
 }
 
@@ -117,7 +117,7 @@ function treasuryStatus(
 }
 
 /** Total work the nation has already paid into its construction projects. */
-function totalPaidWork(nation: {
+export function totalPaidWork(nation: {
   readonly constructionProjects: readonly { readonly paidWork: unknown }[];
 }): number {
   return nation.constructionProjects.reduce((sum, project) => sum + Number(project.paidWork), 0);

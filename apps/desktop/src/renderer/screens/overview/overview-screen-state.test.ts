@@ -14,10 +14,14 @@ const projection: PlayerProjection = {
   campaignIdentity: "campaign_1",
   revision: 3 as PlayerProjection["revision"],
   month: { year: 1900, month: 3 },
+  nationName: "United Kingdom",
+  projectedSurplusDeficit: 1000,
   economy: {
     treasury: 50000,
     monthlyAppropriation: 4000,
     shipyardCapacity: 50,
+    constructionSpend: 500,
+    researchSpend: 300,
   },
   knownTechnologyIds: ["tech_steel_hull", "tech_triple_expansion"],
   fleet: [
