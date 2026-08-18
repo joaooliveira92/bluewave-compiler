@@ -409,7 +409,6 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 > fleet/honest-stub surface, continuance, CI gate `desktop-e2e.yml`).
 
 ### Campaign commissioning flow (game-onboarding)
-
 > **Status (2026-08-16): COMPLETE (INC-1..INC-8).** `.scratch/game-onboarding/`
 > (wayfinder map + 8 resolved decision tickets + assembled spec). Reorders and
 > enriches the new-game flow into the spec's 9-step commissioning sequence
@@ -433,6 +432,38 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 > cover the derivation and the Back/Next/Take-command path. All data-backed
 > decision tickets recorded as ADR-less documented judgment calls in the
 > projection's header.
+
+### First Month at the Admiralty (game-onboarding-first-month)
+
+> **Status (2026-08-17): CHARTING + SPEC ASSEMBLY COMPLETE; SLICED.** The M2
+> "First Month at the Admiralty" wayfinder effort
+> (`.scratch/game-onboarding-first-month/`) resolved **all 18 decision tickets**
+> (01–18, wayfinder charting), assembled the **single M2 spec**
+> (`spec.md`, 1 508 lines; pointer `.ai/specs/game-onboarding-first-month.md`),
+> and sliced it into **14 frontier-ordered implementation tickets**
+> (`issues/INC-01..14`). Headline decisions, all grounded per-ticket against
+> the real code: **Immediate Priorities** = a new read-only
+> `@bluewave/campaign-engine` projection shipping **6 of 8** doc types
+> (`obsolete_active_class` + `construction_stalled` cut — no trustworthy
+> signal; `construction_near_completion` adapted to a 0.9 work-ratio);
+> **Treasury** is a read-only projection screen (two new
+> `PlayerProjection.economy` fields, no budget commands); **no ship-naming
+> step** (no `shipName` input exists; completed ships auto-name
+> `Ship {className}`); **no real month-resolution progress streaming**
+> (cosmetic world-gen-pattern sequence over the synchronous `commitMonth`);
+> two **new tolerant renderer-owned sidecars** (`ui-state.json` for
+> dismissal/inspection state, `monthly-reports.json` for last-12 report
+> history) — both outside the authoritative envelope; the naval-estimates
+> report = the real `CommitMonthResponse` rendered faithfully with battle
+> outcomes as a dedicated plain-text subsection; Foreign Relations = the
+> already-shipped read-only Diplomacy & War surface with a `likelyRivals`
+> flavor marker and a current-state high-tension warning (ticket 11's
+> `tensionLabel`/`isHighTension` implemented in `campaign-engine`). Two items
+> **flagged, not resolved**: the `baseResources`-vs-`income` revenue
+> divergence (compiler hardcodes `baseResources: SafeInt(0)`) and the
+> turnNumber-as-revision same-month-conflict gap. Commits
+> `06014b2`/`ae951eb`/`b95073c`/`81066d6`/`3f83d1d`. **Frontier:** INC-1
+> (economy projection extension) + INC-3 (ui-state.json sidecar).
 
 ### CLI battle/gunnery debug surface
 

@@ -270,18 +270,21 @@ work-ratio proxy since months-to-completion is underivable; dismissal persisted
 in a new tolerant `ui-state.json` per-campaign sidecar that also resolves
 ticket 05's deferred storage; **recorded finding:** engine `monthly_revenue`
 uses `baseResources` (compiled 0) vs projection `income` — a pre-existing M1
-economy display concern, flagged not resolved)**. **ALL 18/18 TICKETS RESOLVED + SPEC ASSEMBLED — the M2 "First Month at the
-Admiralty" charting effort's decision + spec-assembly phase is COMPLETE.** The
-single M2 spec is assembled at `.scratch/game-onboarding-first-month/spec.md`
-(+ `.ai/specs/game-onboarding-first-month.md` pointer), ready for slicing
-(to-tickets). It covers §0–§19.1 from the resolved tickets (6-of-8 priorities
-with cuts; read-only Treasury; no ship naming; no real progress streaming;
-two new tolerant sidecars `ui-state.json` + `monthly-reports.json`; turnNumber-
-as-revision with a recorded same-month gap; no mid-resolution cancellation;
-`baseResources`-vs-`income` divergence flagged not resolved) + Out of scope +
-Handoff. **Next frontier on the charting track: slice the spec into
-implementation tickets (to-tickets, `game-onboarding-first-month`).** C-3-IMPL
-(submarines, queued below) remains on the implementation track, not dropped.
+economy display concern, flagged not resolved)**. **ALL 18/18 TICKETS RESOLVED + SPEC ASSEMBLED + SLICED — the M2 "First Month
+at the Admiralty" charting effort is COMPLETE.** The single M2 spec is
+assembled at `.scratch/game-onboarding-first-month/spec.md` (+
+`.ai/specs/game-onboarding-first-month.md` pointer) and sliced into 14
+frontier-ordered implementation tickets at
+`.scratch/game-onboarding-first-month/issues/INC-01..14` (to-tickets,
+tracer-bullet vertical slices). **Frontier (open, unblocked): INC-1 (economy
+projection extension) and INC-3 (ui-state.json sidecar)** — then INC-14 (nav
+shell) → INC-2 (priorities projection) / INC-13 (campaign list) → the
+remaining screens (INC-4..INC-12) in blocking order. The M2 spec covers
+§0–§19.1 (6-of-8 priorities with cuts; read-only Treasury; no ship naming; no
+real progress streaming; two new tolerant renderer-owned sidecars; report =
+real `CommitMonthResponse`; battle outcomes as report text) + Out of scope +
+Handoff. **C-3-IMPL (submarines, queued below) remains on the implementation
+track, not dropped.**
 
 **B-6: DONE 2026-08-15 — M2 COMPLETED.** Battle results → campaign integration
 + M2 acceptance gate landed (commits `bf77843` scoping, `62fba1d` INC-1,
