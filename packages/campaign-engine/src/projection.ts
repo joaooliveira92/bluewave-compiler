@@ -26,6 +26,13 @@ export interface PlayerProjectionEconomy {
    * `nation.research.researchBudget`.
    */
   readonly researchSpend: number;
+  /**
+   * The nation's fleet maintenance — re-derived from its ships
+   * (`shipMaintenanceCost` per hull), never the raw `nation.maintenanceCost`
+   * (0 before the first `commitMonth`). Same derivation as
+   * `projectedSurplusDeficit`'s.
+   */
+  readonly maintenanceCost: number;
 }
 
 export interface PlayerProjectionPort {
@@ -210,6 +217,7 @@ export function buildPlayerProjection(
       shipyardCapacity,
       constructionSpend,
       researchSpend,
+      maintenanceCost: fleetMaintenance,
     },
     fleet,
     ports,

@@ -42,6 +42,11 @@ const DiplomacyScreen = lazy(() =>
     default: module.DiplomacyScreen,
   })),
 );
+const TreasuryScreen = lazy(() =>
+  import("../screens/treasury/TreasuryScreen.js").then((module) => ({
+    default: module.TreasuryScreen,
+  })),
+);
 const TacticalSandboxScreen = lazy(() =>
   import("../screens/tactical-sandbox/TacticalSandboxScreen.js").then((module) => ({
     default: module.TacticalSandboxScreen,
@@ -126,19 +131,12 @@ function DiplomacyRoute({ sessionId }: CampaignScreenRouteProps) {
 }
 
 /**
- * Treasury stub slot — INC-14. Registered unconditionally so all six campaign
- * sections ship together in the nav shell (spec §5), but it can only render a
- * placeholder: no Treasury IPC command exists yet, so no real screen can
- * inspect state. INC-4 replaces this route with the real read-only Treasury
- * screen.
+ * Treasury — the read-only projection screen (INC-4). Replaces INC-14's
+ * stub slot: the sidebar entry/search target were already final, only the
+ * route was a placeholder.
  */
-function TreasuryStubRoute() {
-  return (
-    <section aria-label="Treasury" data-testid="treasury-screen" className="mx-auto max-w-2xl pt-8">
-      <h2 className="text-lg font-semibold">Treasury</h2>
-      <p className="text-sm text-muted-foreground">The Treasury projection is not yet available.</p>
-    </section>
-  );
+function TreasuryRoute({ sessionId }: CampaignScreenRouteProps) {
+  return <TreasuryScreen sessionId={sessionId} />;
 }
 
 function TacticalSandboxRoute({ sessionId }: CampaignScreenRouteProps) {
@@ -214,16 +212,14 @@ const DEBUGGING_SCREEN: CampaignScreenDefinition = {
 };
 
 // Sixth campaign section (spec §5) — always registered, like the five real
-// screens; only the *route* is a stub. When INC-4 lands the real Treasury
-// screen, swap `route` here (the rest of the definition — sidebar entry,
-// search target — is already final).
+// screens.
 const TREASURY_SCREEN: CampaignScreenDefinition = {
   id: "treasury",
   label: "Treasury",
   icon: Coins,
   group: "campaign",
   searchable: true,
-  route: TreasuryStubRoute,
+  route: TreasuryRoute,
 };
 
 export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [

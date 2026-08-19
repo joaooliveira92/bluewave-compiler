@@ -22,6 +22,7 @@ const projection: PlayerProjection = {
     shipyardCapacity: 50,
     constructionSpend: 500,
     researchSpend: 300,
+    maintenanceCost: 200,
   },
   knownTechnologyIds: ["tech_steel_hull", "tech_triple_expansion"],
   fleet: [

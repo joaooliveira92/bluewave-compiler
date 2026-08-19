@@ -107,6 +107,13 @@ vi.mock("../screens/diplomacy/DiplomacyScreen.js", async () => {
       React.createElement("section", { "data-testid": "diplomacy-screen" }, sessionId),
   };
 });
+vi.mock("../screens/treasury/TreasuryScreen.js", async () => {
+  const React = await import("react");
+  return {
+    TreasuryScreen: ({ sessionId }: { sessionId: string }) =>
+      React.createElement("section", { "data-testid": "treasury-screen" }, sessionId),
+  };
+});
 vi.mock("../screens/tactical-sandbox/TacticalSandboxScreen.js", async () => {
   const React = await import("react");
   return {
@@ -200,10 +207,10 @@ describe("CampaignScreenOutlet", () => {
     expect(screen.getByText("ses-1")).toBeTruthy();
   });
 
-  it("renders the Treasury stub until INC-4 wires the real screen", async () => {
+  it("routes the Treasury screen (INC-4 replaced the stub)", async () => {
     render(<CampaignScreenOutlet screen="treasury" />);
-    const stub = await screen.findByTestId("treasury-screen");
-    expect(stub.textContent).toContain("not yet available");
+    const treasury = await screen.findByTestId("treasury-screen");
+    expect(treasury.textContent).toContain("ses-1");
   });
 
   it("connects overview navigation to shell actions", async () => {

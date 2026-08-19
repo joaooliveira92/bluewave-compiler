@@ -21,6 +21,7 @@ const projection: PlayerProjection = {
     shipyardCapacity: 50,
     constructionSpend: 400_000,
     researchSpend: 350_000,
+    maintenanceCost: 250_000,
   },
   fleet: [],
   ports: [],
