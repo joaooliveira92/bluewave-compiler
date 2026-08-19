@@ -6,6 +6,7 @@ export * from "./design.js";
 export * from "./diplomacy.js";
 export * from "./fleet.js";
 export * from "./opening-briefing.js";
+export * from "./priorities.js";
 export * from "./projection.js";
 export * from "./research.js";
 export * from "./simulation.js";
