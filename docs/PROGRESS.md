@@ -482,8 +482,7 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 > Treasury screen replacing INC-14's stub (`PlayerProjection.economy
 > .maintenanceCost` added; income/expenditure/result all from `inspectCampaign`;
 > no budget controls). Desktop 507/507, goldens 10/10, two-process byte-identical;
-> report `.ai/reports/game-onboarding-first-month-inc13-inc4.md`. **Next frontier:
-> INC-5 (research allocation UX) / INC-6 (Overview dashboard) → INC-7..INC-12.**
+> report `.ai/reports/game-onboarding-first-month-inc13-inc4.md`. **INC-5 (research allocation edit UX — field-level priorities, `MAX_HIGH_PRIORITY_FIELDS=5` cap, projected monthly progress as pure largest-remainder derivation, autosave via `SaveStore` with `SAVE_FAILED` rollback, renderer-only unsaved indicator via the existing `SetResearchPriorityCommand` path) DONE 2026-08-19** (commit `a0079ed`, report `.ai/reports/game-onboarding-first-month-inc5.md`; desktop 507/507, `tsc -b` clean, goldens 10/10, byte-identical). **Next frontier: INC-6 (Overview dashboard) → INC-7..INC-12.**
 > C-3-IMPL (submarines) remains queued on the implementation track.
 
 ### CLI battle/gunnery debug surface

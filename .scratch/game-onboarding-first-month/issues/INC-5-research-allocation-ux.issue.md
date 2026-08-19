@@ -25,14 +25,14 @@ existing Research & Technology screen, per [the assembled spec](../spec.md)
 **Blocked by:** INC-14 (nav shell), INC-1 (researchSpend for the header's
 current-research figure)
 
-**Status:** ready-for-agent
+**Status:** done (INC-5 impl, 2026-08-19 — commit `a0079ed`)
 
-- [ ] Field priorities are editable per the weight model with the 5-HIGH cap
+- [x] Field priorities are editable per the weight model with the 5-HIGH cap
       enforced (raising a 6th is rejected, no silent redistribution)
-- [ ] Real `SetResearchPriorityCommand` is issued via the existing desktop
+- [x] Real `SetResearchPriorityCommand` is issued via the existing desktop
       command path (no new command)
-- [ ] Projected progress is a pure derivation, read-only
-- [ ] Autosave fires after a successful research-priority command
-- [ ] Component/engine tests cover the cap, the command payload, and the
+- [x] Projected progress is a pure derivation, read-only
+- [x] Autosave fires after a successful research-priority command
+- [x] Component/engine tests cover the cap, the command payload, and the
       autosave trigger
-- [ ] Goldens 10/10 unchanged; two-process determinism byte-identical
+- [x] Goldens 10/10 unchanged; two-process determinism byte-identical

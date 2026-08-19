@@ -292,8 +292,7 @@ UI, `—` for legacy/status, load via `loadCampaign`) + INC-4 (read-only
 Treasury screen — `PlayerProjection.economy.maintenanceCost` added, stub route
 replaced; no budget controls) DONE 2026-08-19** (report
 `.ai/reports/game-onboarding-first-month-inc13-inc4.md`; desktop 507/507,
-goldens 10/10, byte-identical) → **INC-5 (research allocation UX) / INC-6
-(Overview dashboard) are next**, then the remaining screens (INC-7..INC-12) in
+goldens 10/10, byte-identical) → **INC-5 (research allocation edit UX — field-level priorities, `MAX_HIGH_PRIORITY_FIELDS=5` cap, projected monthly progress as pure largest-remainder derivation, autosave via `SaveStore` with `SAVE_FAILED` rollback, renderer-only unsaved indicator; 5 files via the existing `SetResearchPriorityCommand` path) DONE 2026-08-19 (commit `a0079ed`, report `.ai/reports/game-onboarding-first-month-inc5.md`; desktop 507/507, `tsc -b` clean, goldens 10/10, byte-identical)** → **INC-6 (Overview dashboard) is next**, then the remaining screens (INC-7..INC-12) in
 blocking order.
 The M2 spec covers §0–§19.1 (6-of-8 priorities with cuts; read-only Treasury;
 no ship naming; no real progress streaming; two new tolerant renderer-owned
