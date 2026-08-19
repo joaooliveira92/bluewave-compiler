@@ -16,12 +16,12 @@ route (INC-14's stub slot).
 
 **Blocked by:** INC-1 (economy fields), INC-14 (nav shell Treasury route)
 
-**Status:** ready-for-agent
+**Status:** done (INC-4 impl, 2026-08-19)
 
-- [ ] Treasury route renders the real income/expenditure/result figures with
+- [x] Treasury route renders the real income/expenditure/result figures with
       honest copy (no budget controls of any kind)
-- [ ] Every displayed number comes from the projection — no renderer-side
+- [x] Every displayed number comes from the projection — no renderer-side
       derivations, no fabricated categories
-- [ ] No Treasury-specific command is added; no editable input exists
-- [ ] Component tests cover each row against a fixture projection
-- [ ] Goldens 10/10 unchanged
+- [x] No Treasury-specific command is added; no editable input exists
+- [x] Component tests cover each row against a fixture projection
+- [x] Goldens 10/10 unchanged

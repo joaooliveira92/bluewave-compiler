@@ -471,9 +471,20 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 > `readUiState`/`writeUiState` IPC pair, `turnNumber` stamped server-side, never
 > authoritative (zero hash surface; goldens 10/10; two-process byte-identical);
 > reviewer APPROVE; ADR-0038; report
-> `.ai/reports/game-onboarding-first-month-inc3.md`. **Next frontier: INC-14
-> (campaign shell header) → INC-2 (priorities projection) / INC-13 (campaign
-> list) → INC-4..INC-12.**
+> `.ai/reports/game-onboarding-first-month-inc3.md`. **INC-14 (campaign shell
+> header) + INC-2 (priorities projection) DONE 2026-08-18** (report
+> `.ai/reports/game-onboarding-first-month-inc14-inc2.md`). **INC-13
+> (campaign-list screen) + INC-4 (read-only Treasury screen) DONE 2026-08-19**
+> — `listCampaigns` IPC (native-dialog package dir → `SaveStore.list`, real
+> `SaveMetadata[]` newest-first, corrupt skipped), a 6-column CampaignListScreen
+> (legacy/degraded rows render `—`; status column `—` — not derivable from
+> `SaveMetadata`; load via real `loadCampaign`/`CompatibilityChecker`), and the
+> Treasury screen replacing INC-14's stub (`PlayerProjection.economy
+> .maintenanceCost` added; income/expenditure/result all from `inspectCampaign`;
+> no budget controls). Desktop 507/507, goldens 10/10, two-process byte-identical;
+> report `.ai/reports/game-onboarding-first-month-inc13-inc4.md`. **Next frontier:
+> INC-5 (research allocation UX) / INC-6 (Overview dashboard) → INC-7..INC-12.**
+> C-3-IMPL (submarines) remains queued on the implementation track.
 
 ### CLI battle/gunnery debug surface
 

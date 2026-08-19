@@ -593,10 +593,13 @@ adjustable, but that is §10's screen, not Treasury's.
 
 No "Other expenses" balancing row is needed — these three categories cover it.
 
-**Two new `PlayerProjection.economy` fields.** `PlayerProjection.economy` gets
-two new derived fields — **`constructionSpend`** and **`researchSpend`** — added
-alongside the surplus/deficit fields §5 already specified there, still served
-via the existing `inspectCampaign` command. **No new Treasury-specific command.**
+**Three new `PlayerProjection.economy` fields.** `PlayerProjection.economy` gets
+three new derived fields — **`constructionSpend`**, **`researchSpend`**, and
+**`maintenanceCost`** (added at INC-4 to keep Treasury's "Fleet maintenance" row
+internally consistent with `projectedSurplusDeficit`, reusing the same
+`fleetMaintenance` derivation) — added alongside the surplus/deficit fields §5
+already specified there, still served via the existing `inspectCampaign`
+command. **No new Treasury-specific command.**
 `maintenanceCost` is already real and direct on `NationState`.
 
 **§9.2 / §9.4–§9.6 cut entirely.** No `ReviseNavalBudgetCommand`, no

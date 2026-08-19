@@ -287,9 +287,14 @@ header — 14 files, 488 desktop, goldens 10/10, byte-identical, `StrategicDesti
 `buildPrioritiesProjection`, 6 of 8 types, 79/79 campaign-engine, goldens
 10/10) DONE 2026-08-18 (commits `5f8f348` + `ebadc5c`, report
 `.ai/reports/game-onboarding-first-month-inc14-inc2.md`)** → **INC-13
-(campaign list — blocked by INC-14) / INC-4 (Treasury — blocked by INC-1 +
-INC-14) are next**, then the remaining screens (INC-5..INC-12) in blocking
-order.
+(campaign-list screen — `listCampaigns` IPC + `SaveStore.list` read + 6-column
+UI, `—` for legacy/status, load via `loadCampaign`) + INC-4 (read-only
+Treasury screen — `PlayerProjection.economy.maintenanceCost` added, stub route
+replaced; no budget controls) DONE 2026-08-19** (report
+`.ai/reports/game-onboarding-first-month-inc13-inc4.md`; desktop 507/507,
+goldens 10/10, byte-identical) → **INC-5 (research allocation UX) / INC-6
+(Overview dashboard) are next**, then the remaining screens (INC-7..INC-12) in
+blocking order.
 The M2 spec covers §0–§19.1 (6-of-8 priorities with cuts; read-only Treasury;
 no ship naming; no real progress streaming; two new tolerant renderer-owned
 sidecars; report = real `CommitMonthResponse`; battle outcomes as report text)

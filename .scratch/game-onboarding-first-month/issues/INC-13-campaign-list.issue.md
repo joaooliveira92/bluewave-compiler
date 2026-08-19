@@ -21,13 +21,13 @@
 
 **Blocked by:** INC-14 (nav shell entry point)
 
-**Status:** ready-for-agent
+**Status:** done (INC-13 impl, 2026-08-19)
 
-- [ ] `SaveMetadataSchema` accepts the three new optional fields; legacy
+- [x] `SaveMetadataSchema` accepts the three new optional fields; legacy
       records render `—` (no migration, no fabricated values)
-- [ ] Campaign-list screen lists real saves with all six columns and loads
+- [x] Campaign-list screen lists real saves with all six columns and loads
       through `loadCampaign`/`CompatibilityChecker`
-- [ ] Corrupt/incompatible saves are skipped (never crash the list)
-- [ ] The new fields are written at save time by the real save path
-- [ ] Tests cover the schema extension + the list rendering + legacy records
-- [ ] Goldens 10/10 unchanged
+- [x] Corrupt/incompatible saves are skipped (never crash the list)
+- [x] The new fields are written at save time by the real save path
+- [x] Tests cover the schema extension + the list rendering + legacy records
+- [x] Goldens 10/10 unchanged
