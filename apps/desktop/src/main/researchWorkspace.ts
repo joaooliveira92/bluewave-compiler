@@ -3,6 +3,7 @@ import type { CommandEnvelope, SetResearchPriorityCommand } from "@bluewave/comm
 import {
   clearPendingEnvelopes,
   clearPendingWorkspacesForTest,
+  deletePendingEnvelope,
   fingerprintOfBody,
   lookupPendingEnvelope,
   pendingEnvelopesForExecution,
@@ -86,4 +87,8 @@ export function clearResearchEnvelopes(sessionId: string): void {
 /** Test-only: clears every session's queue so test files don't leak state. */
 export function clearResearchWorkspacesForTest(): void {
   clearPendingWorkspacesForTest();
+}
+
+export function deleteQueuedResearchCommand(sessionId: string, transportRequestId: string): void {
+  deletePendingEnvelope(sessionId, transportRequestId);
 }

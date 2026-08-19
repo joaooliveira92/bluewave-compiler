@@ -19,7 +19,12 @@ import { Kbd } from "../../components/ui/kbd.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
 import { Toggle } from "../../components/ui/toggle.js";
 import { useResearchScreen } from "./hooks/useResearchScreen.js";
-import { WEIGHT_OPTIONS, draftHighCount } from "./research-screen-state.js";
+import {
+  WEIGHT_OPTIONS,
+  deriveProjectedResearchAllocations,
+  draftHighCount,
+  isDraftDirty,
+} from "./research-screen-state.js";
 
 /**
  * Research & Technology screen (desktop-engine-feature-gate INC-3). Renders
@@ -76,6 +81,11 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
   const busy = state.kind === "submitting";
   const highCount = draftHighCount(state.draft);
   const highCountValid = highCount >= 1 && highCount <= MAX_HIGH_PRIORITY_FIELDS;
+  const dirty = isDraftDirty(state.projection, state.draft);
+  const projected = deriveProjectedResearchAllocations(
+    state.projection.researchBudget,
+    state.draft,
+  );
 
   return (
     <div className="space-y-6">
@@ -154,28 +164,49 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
         title="Field priorities"
         description="High (4) / Medium (2) / Low (1) weight scale; exactly 1..5 fields may stay High."
       >
+        {dirty && (
+          <p className="text-xs font-medium text-amber-600" role="status" aria-live="polite">
+            Unsaved changes — draft differs from the last committed priorities
+          </p>
+        )}
         <div className="space-y-2.5">
           {CANONICAL_RESEARCH_FIELD_IDS.map((fieldId) => {
             const weight = state.draft[fieldId] ?? 1;
+            const projectedPoints = projected[fieldId] ?? 0;
+            const isHigh = weight === 4;
             return (
               <div
                 key={fieldId}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
               >
-                <span className="font-mono text-xs">{fieldId}</span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-mono text-xs">{fieldId}</span>
+                  <span className="text-xs text-muted-foreground">
+                    ~{projectedPoints.toLocaleString()} pts next month
+                  </span>
+                </div>
                 <div className="flex items-center gap-1" role="group" aria-label={fieldId}>
-                  {WEIGHT_OPTIONS.map((option) => (
-                    <Toggle
-                      key={option.label}
-                      pressed={weight === option.weight}
-                      onPressedChange={() => setFieldWeight(fieldId, option.weight)}
-                      disabled={busy}
-                      size="sm"
-                      aria-label={`${fieldId} ${option.label}`}
-                    >
-                      {option.label}
-                    </Toggle>
-                  ))}
+                  {WEIGHT_OPTIONS.map((option) => {
+                    const wouldExceedHighCap =
+                      option.weight === 4 && !isHigh && highCount >= MAX_HIGH_PRIORITY_FIELDS;
+                    return (
+                      <Toggle
+                        key={option.label}
+                        pressed={weight === option.weight}
+                        onPressedChange={() => setFieldWeight(fieldId, option.weight)}
+                        disabled={busy || wouldExceedHighCap}
+                        size="sm"
+                        aria-label={`${fieldId} ${option.label}`}
+                        title={
+                          wouldExceedHighCap
+                            ? `At most ${MAX_HIGH_PRIORITY_FIELDS} fields may be High — lower another High field first`
+                            : undefined
+                        }
+                      >
+                        {option.label}
+                      </Toggle>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -187,6 +218,9 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
             {highCount} high-priority field{highCount === 1 ? "" : "s"} (
             {highCountValid ? "within" : "outside"} the engine's 1..
             {MAX_HIGH_PRIORITY_FIELDS} limit)
+            {highCount >= MAX_HIGH_PRIORITY_FIELDS
+              ? " — lower a High field before raising another"
+              : ""}
           </p>
           <Button onClick={() => submit()} disabled={!canSubmit || busy} size="sm">
             {busy ? "Applying…" : "Set priorities"}
@@ -194,7 +228,8 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
         </div>
         <p className="text-xs text-muted-foreground">
           Queued priorities are applied by the engine on the <strong>next turn advance</strong> —
-          the engine remains the only writer of research state.
+          the engine remains the only writer of research state. Projected points use the engine's
+          largest-remainder split over the budget and current weights.
         </p>
       </GlassSection>
 

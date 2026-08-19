@@ -1,5 +1,6 @@
 import {
   CANONICAL_RESEARCH_FIELD_IDS,
+  MAX_HIGH_PRIORITY_FIELDS,
   RESEARCH_FIELD_PRIORITY_WEIGHTS,
 } from "@bluewave/campaign-engine";
 import type {
@@ -215,6 +216,17 @@ export function setDraftWeight(
   fieldId: string,
   weight: FieldWeightOption,
 ): FieldWeightsDraft {
+  // INC-5: 5-HIGH cap — raising a 6th field to HIGH is rejected (no silent
+  // redistribution). The caller must first lower another HIGH field.
+  if (
+    weight === RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH &&
+    draft[fieldId] !== RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH
+  ) {
+    const currentHigh = CANONICAL_RESEARCH_FIELD_IDS.filter(
+      (field) => draft[field] === RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH,
+    ).length;
+    if (currentHigh >= MAX_HIGH_PRIORITY_FIELDS) return draft;
+  }
   return Object.freeze({ ...draft, [fieldId]: weight });
 }
 
@@ -261,10 +273,82 @@ export function draftHighCount(draft: FieldWeightsDraft): number {
 
 /** A draft is submittable when every canonical field carries a weight from
  * the {1,2,4} scale and at least one field is HIGH (mirrors the engine's
- * `SetResearchPriority` lifecycle validation). */
+ * `SetResearchPriority` lifecycle validation). The engine also requires
+ * `highCount <= MAX_HIGH_PRIORITY_FIELDS` — the UI's 5-HIGH cap (spec §10,
+ * INC-5). */
 export function draftIsSubmittable(draft: FieldWeightsDraft): boolean {
+  const highCount = draftHighCount(draft);
   return (
     CANONICAL_RESEARCH_FIELD_IDS.every((field) => isWeightValue(draft[field])) &&
-    draftHighCount(draft) >= 1
+    highCount >= 1 &&
+    highCount <= MAX_HIGH_PRIORITY_FIELDS
   );
+}
+
+/** Whether the editable draft diverges from the last committed projection —
+ * the renderer-only "unsaved changes" signal (spec §17). Only the research
+ * allocation surface has a draft, so this is the one place the indicator is
+ * meaningful. */
+export function isDraftDirty(
+  projection: ResearchScreenProjection,
+  draft: FieldWeightsDraft,
+): boolean {
+  for (const field of CANONICAL_RESEARCH_FIELD_IDS) {
+    const committed = projection.fieldPriorities[field] ?? RESEARCH_FIELD_PRIORITY_WEIGHTS.LOW;
+    const edited = draft[field] ?? RESEARCH_FIELD_PRIORITY_WEIGHTS.LOW;
+    if (committed !== edited) return true;
+  }
+  return false;
+}
+
+/** Pure largest-remainder proportional split over the draft weights, mirroring
+ * `packages/phase-engine/src/research.ts:largestRemainderAllocation` (spec §10
+ * "projected monthly progress"). `researchBudget` is the UI budget number; the
+ * engine's `computeResearchResources` is the identity (BP 10_000), so the
+ * budget is used directly as resources. Returns a per-field allocation that
+ * sums exactly to `researchBudget` (when >0 and at least one weight-bearing
+ * field). */
+export function deriveProjectedResearchAllocations(
+  researchBudget: number,
+  draft: FieldWeightsDraft,
+): Readonly<Record<string, number>> {
+  const result: Record<string, number> = {};
+  for (const field of CANONICAL_RESEARCH_FIELD_IDS) {
+    result[field] = 0;
+  }
+  if (!Number.isSafeInteger(researchBudget) || researchBudget <= 0) return Object.freeze(result);
+
+  const weights: [string, number][] = [];
+  for (const field of CANONICAL_RESEARCH_FIELD_IDS) {
+    const weight = draft[field];
+    if (
+      weight === RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH ||
+      weight === RESEARCH_FIELD_PRIORITY_WEIGHTS.MEDIUM ||
+      weight === RESEARCH_FIELD_PRIORITY_WEIGHTS.LOW
+    ) {
+      if (weight > 0) weights.push([field, weight]);
+    }
+  }
+  if (weights.length === 0) return Object.freeze(result);
+
+  const totalWeight = weights.reduce((sum, [, w]) => sum + w, 0);
+  if (totalWeight <= 0) return Object.freeze(result);
+
+  let allocated = 0;
+  const remainders: [string, number][] = [];
+  for (const [fieldId, weight] of weights) {
+    const raw = (weight / totalWeight) * researchBudget;
+    const floorShare = Math.floor(raw);
+    result[fieldId] = floorShare;
+    allocated += floorShare;
+    remainders.push([fieldId, raw - floorShare]);
+  }
+  let remaining = researchBudget - allocated;
+  remainders.sort((a, b) => b[1] - a[1]);
+  for (const [fieldId] of remainders) {
+    if (remaining <= 0) break;
+    result[fieldId] = (result[fieldId] ?? 0) + 1;
+    remaining -= 1;
+  }
+  return Object.freeze(result);
 }

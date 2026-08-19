@@ -97,6 +97,16 @@ export function clearPendingEnvelopes(sessionId: string): void {
   pendingBySession.delete(sessionId);
 }
 
+/** Remove a single queued envelope by transportRequestId — used to roll back
+ * an autosave failure (INC-5: domain command not successful until persistence
+ * succeeds). */
+export function deletePendingEnvelope(sessionId: string, transportRequestId: string): void {
+  const sessionQueue = pendingBySession.get(sessionId);
+  if (!sessionQueue) return;
+  sessionQueue.delete(transportRequestId);
+  if (sessionQueue.size === 0) pendingBySession.delete(sessionId);
+}
+
 /** Test-only: clears every session's queue so test files don't leak state. */
 export function clearPendingWorkspacesForTest(): void {
   pendingBySession.clear();

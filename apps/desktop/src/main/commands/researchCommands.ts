@@ -13,9 +13,11 @@ import type {
   SetResearchPriorityCommandPayload,
 } from "../../shared/research-contract.js";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
+import { SaveStore } from "@bluewave/persistence";
 import type { CampaignSessionRecord } from "../campaignSessions.js";
 import { getCampaignSession } from "../campaignSessions.js";
 import {
+  deleteQueuedResearchCommand,
   lookupQueuedResearchCommand,
   queueResearchEnvelope,
   type PendingResearchCommand,
@@ -126,6 +128,20 @@ export async function setResearchPriorityCommand(
     transportRequestId: payload.transportRequestId,
     envelope,
   });
+
+  // INC-5 autosave: a successful SetResearchPriority is not successful until
+  // its persistence contract succeeds (spec §17). The queued command is
+  // in-memory, so we persist the current authoritative state via SaveStore.
+  // If the save fails, roll back the queued envelope and surface SAVE_FAILED
+  // — no partial in-memory state remains (construction slice pattern).
+  const store = new SaveStore();
+  try {
+    store.save(record.state, record.saveDir);
+  } catch (err) {
+    deleteQueuedResearchCommand(payload.sessionId, payload.transportRequestId);
+    const message = err instanceof Error ? err.message : String(err);
+    return { outcome: "error", reason: "SAVE_FAILED", diagnostics: [message] };
+  }
 
   return { outcome: "success", value: outcomeFor(envelope), diagnostics: [] };
 }
