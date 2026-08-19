@@ -12,6 +12,7 @@ import { ShaderBackground } from "../components/motion/shader-background.js";
 import { Alert, AlertDescription } from "../components/ui/alert.js";
 import { SidebarInset, SidebarProvider } from "../components/ui/sidebar.js";
 import { CampaignFileScreen } from "../screens/campaign-file/CampaignFileScreen.js";
+import { CampaignListScreen } from "../screens/campaign-list/CampaignListScreen.js";
 import { NewGameArchetypeScreen } from "../screens/new-game/NewGameArchetypeScreen.js";
 import { NewGameBriefingScreen } from "../screens/new-game/NewGameBriefingScreen.js";
 import { NewGameCommissioningReviewScreen } from "../screens/new-game/NewGameCommissioningReviewScreen.js";
@@ -275,10 +276,13 @@ function CampaignUnavailableView(props: CampaignUnavailableViewProps) {
       );
     case "file":
       return (
-        <CampaignFileView
-          onOpenCampaign={props.onOpenCampaign}
-          onStartNewGame={props.onStartNewGame}
-        />
+        <>
+          <CampaignFileView
+            onOpenCampaign={props.onOpenCampaign}
+            onStartNewGame={props.onStartNewGame}
+          />
+          <CampaignListScreen />
+        </>
       );
   }
 }

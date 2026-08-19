@@ -11,6 +11,7 @@ import type {
   TacticalBattleOutcome,
 } from "@bluewave/campaign-engine";
 import type { WorldMapView } from "@bluewave/campaign-engine";
+import type { SaveMetadata } from "@bluewave/persistence";
 import type { BridgeResult, CommandEnvelope } from "./bridge-contract.js";
 import type {
   LoadCampaignResponse,
@@ -181,6 +182,7 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "resolveTacticalBattle",
   "replayBattleBoundary",
   "loadCampaign",
+  "listCampaigns",
   "verifyCampaign",
   "replayCampaign",
   "recoverCampaign",
@@ -245,6 +247,10 @@ export interface CampaignCommandClient {
     payload: ReplayBattleBoundaryPayload,
   ): Promise<BridgeResult<ReplayBattleBoundaryResponse>>;
   execute(command: "loadCampaign", payload: undefined): Promise<BridgeResult<LoadCampaignResponse>>;
+  execute(
+    command: "listCampaigns",
+    payload: undefined,
+  ): Promise<BridgeResult<readonly SaveMetadata[]>>;
   execute(
     command: "verifyCampaign",
     payload: undefined,

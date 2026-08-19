@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +14,7 @@ import { commitMonth } from "./commitMonth.js";
 import { compileCampaign, type CompileCampaignDeps } from "./compileCampaign.js";
 import { submitConstructionCommand } from "./constructionCommands.js";
 import {
+  listCampaigns,
   loadCampaign,
   recoverCampaign,
   replayCampaign,
@@ -428,5 +429,68 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     const replay = await replayCampaign(continuityDeps(saveDir));
     expect(replay.outcome).toBe("error");
     if (replay.outcome === "error") expect(replay.reason).toBe("SESSION_METADATA_MISSING");
+  });
+});
+
+describe("listCampaigns (campaign-list screen backing query)", () => {
+  let saveRoot: string;
+  let nextSessionOrdinal: number;
+
+  beforeEach(() => {
+    saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-listcampaigns-"));
+    nextSessionOrdinal = 0;
+  });
+
+  afterEach(() => {
+    rmSync(saveRoot, { recursive: true, force: true });
+    clearCampaignSessionsForTest();
+    clearConstructionWorkspacesForTest();
+  });
+
+  function compileDeps(saveDir: string) {
+    return {
+      contentDir: PRODUCTION_PACK,
+      chooseSaveDirectory: async () => saveDir,
+      generateSessionId: () => `list-${nextSessionOrdinal++}`,
+    };
+  }
+
+  it("lists real saves with the additive campaign-list fields", async () => {
+    const saveDir = resolve(saveRoot, "save-a");
+    const result = await compileCampaign(baseConfiguration(), compileDeps(saveDir));
+    expect(result.outcome).toBe("success");
+    if (result.outcome !== "success") throw new Error("fixture compile failed");
+
+    const list = await listCampaigns({ choosePackageDirectory: async () => saveDir });
+    expect(list.outcome).toBe("success");
+    if (list.outcome !== "success") return;
+    expect(list.value.length).toBeGreaterThanOrEqual(1);
+    const record = list.value[0];
+    expect(record).toBeDefined();
+    if (record === undefined) return;
+    // The save-time population of the INC-13 additive fields (no fabrication).
+    expect(record.campaignName).toBeTypeOf("string");
+    expect(record.nationId).toBeTypeOf("string");
+    expect(record.campaignDate).toEqual(
+      expect.objectContaining({ year: expect.any(Number), month: expect.any(Number) }),
+    );
+    expect(record.compatibilityVersion).toBeTypeOf("string");
+  });
+
+  it("returns an empty list for a directory with no valid saves (corrupt/incompatible skipped)", async () => {
+    const saveDir = resolve(saveRoot, "empty");
+    mkdirSync(saveDir, { recursive: true });
+
+    const list = await listCampaigns({ choosePackageDirectory: async () => saveDir });
+    expect(list.outcome).toBe("success");
+    if (list.outcome !== "success") return;
+    expect(list.value).toEqual([]);
+  });
+
+  it("returns a cancelled rejection when the user cancels the directory dialog", async () => {
+    const list = await listCampaigns({ choosePackageDirectory: async () => null });
+    expect(list.outcome).toBe("rejected");
+    if (list.outcome !== "rejected") return;
+    expect(list.reason).toBe("PACKAGE_SELECTION_CANCELLED");
   });
 });

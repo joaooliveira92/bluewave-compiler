@@ -22,6 +22,7 @@ import {
 } from "./commands/constructionCommands.js";
 import {
   defaultContinuityDeps,
+  listCampaigns,
   loadCampaign,
   recoverCampaign,
   replayCampaign,
@@ -190,6 +191,9 @@ export async function dispatchCampaignCommand(
     // same as `listNewGameOptions`.
     case "loadCampaign":
       return loadCampaign(defaultContinuityDeps);
+
+    case "listCampaigns":
+      return listCampaigns(defaultContinuityDeps);
 
     case "verifyCampaign":
       return verifyCampaign(defaultContinuityDeps);

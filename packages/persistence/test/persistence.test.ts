@@ -92,6 +92,24 @@ describe("SaveStore", () => {
     expect(loaded!["envelope"]["bodyHash"]).toBe(state.envelope.bodyHash);
   });
 
+  it("writes the additive INC-13 campaign-list fields at save time and lists them", () => {
+    const state = createFixtureState();
+    const saveResult = store.save(state, tmpDir);
+
+    // The three additive, optional fields are populated at save time from the
+    // real snapshot (no fabrication): campaign name is the campaign id, nation
+    // is the playable slot, campaign date is derived from start + turn.
+    expect(saveResult.metadata.campaignName).toBe("test-campaign-001");
+    expect(saveResult.metadata.nationId).toBe("nation-a");
+    expect(saveResult.metadata.campaignDate).toEqual({ year: 1880, month: 2 });
+
+    const saves = store.list(tmpDir);
+    expect(saves.length).toBeGreaterThanOrEqual(1);
+    expect(saves[0]!.campaignName).toBe("test-campaign-001");
+    expect(saves[0]!.nationId).toBe("nation-a");
+    expect(saves[0]!.campaignDate).toEqual({ year: 1880, month: 2 });
+  });
+
   it("round-trips Map-valued snapshot fields (nations, designs, designFamilies, activeCandidates)", () => {
     const nation: NationState = {
       id: "nation-a",

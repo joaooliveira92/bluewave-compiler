@@ -34,6 +34,7 @@ const IMPLEMENTED_COMMANDS = new Set([
   "readUiState",
   "writeUiState",
   "loadCampaign",
+  "listCampaigns",
   "verifyCampaign",
   "replayCampaign",
   "recoverCampaign",

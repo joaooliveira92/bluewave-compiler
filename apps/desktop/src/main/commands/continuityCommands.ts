@@ -162,6 +162,36 @@ export async function loadCampaign(
 }
 
 // ---------------------------------------------------------------------------
+// listCampaigns
+// ---------------------------------------------------------------------------
+
+/**
+ * `listCampaigns(undefined) -> BridgeResult<SaveMetadata[]>` — the
+ * campaign-list/load screen's backing query (§17.4). Prompts for the package
+ * save directory via the same native dialog as `loadCampaign`, then returns
+ * `SaveStore.list(saveDir)`: the package's saves as real `SaveMetadata`
+ * records, deterministically newest-first, skipping corrupt/incompatible
+ * directories. The new additive list fields (`campaignName`/`nationId`/
+ * `campaignDate`) are carried on the records when the save wrote them;
+ * legacy/degraded records simply omit them (the screen renders "—"). No
+ * state is mutated and no session is registered — the actual load still goes
+ * through `loadCampaign`/`CompatibilityChecker`.
+ */
+export async function listCampaigns(
+  deps: Pick<ContinuityDeps, "choosePackageDirectory">,
+): Promise<BridgeResult<SaveMetadata[]>> {
+  const saveDir = await deps.choosePackageDirectory();
+  if (saveDir === null) return cancelled();
+
+  const store = new SaveStore();
+  return {
+    outcome: "success",
+    value: store.list(saveDir),
+    diagnostics: [],
+  };
+}
+
+// ---------------------------------------------------------------------------
 // verifyCampaign
 // ---------------------------------------------------------------------------
 
