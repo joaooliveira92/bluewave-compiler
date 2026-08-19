@@ -107,6 +107,9 @@ export const SaveMetadataSchema = z.object({
   snapshotHash: z.string(),
   compatibilityVersion: z.string(),
   contentArtifactHash: z.string(),
+  campaignName: z.string().optional(),
+  nationId: z.string().optional(),
+  campaignDate: z.object({ year: z.number(), month: z.number() }).optional(),
 });
 
 export type SaveMetadata = z.infer<typeof SaveMetadataSchema>;

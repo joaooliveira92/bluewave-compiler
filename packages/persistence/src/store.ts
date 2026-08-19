@@ -105,6 +105,19 @@ export class SaveStore {
       compatibilityVersion: state.snapshot.compatibilityVersion,
       // The hash of the serialized on-disk artifact, matching the name.
       contentArtifactHash: serializedHash,
+      // INC-13: additive optional campaign-list display fields (no migration;
+      // legacy saves simply omit them and the list renders "—").
+      campaignName: state.snapshot.campaignId,
+      nationId: (() => {
+        const slot = state.snapshot.slots.find((s) => s.type === "playable");
+        return (slot ?? state.snapshot.slots[0])?.nationId;
+      })(),
+      campaignDate: (() => {
+        const totalMonths = (state.snapshot.startMonth - 1) + state.snapshot.turnNumber;
+        const year = state.snapshot.startYear + Math.floor(totalMonths / 12);
+        const month = (totalMonths % 12) + 1;
+        return { year, month };
+      })(),
     };
 
     // `published` guards the outer catch: once the directory has been renamed

@@ -282,8 +282,14 @@ projection extension) DONE 2026-08-17 (commit `4a5eb20`, 5 tests, goldens
 (reviewer APPROVE; ADR-0038; merge-preserve write semantics; desktop 470/470;
 goldens 10/10; two-process byte-identical — report
 `.ai/reports/game-onboarding-first-month-inc3.md`); **INC-14 (campaign shell
-header) is next** → INC-2 (priorities projection) / INC-13 (campaign list) →
-the remaining screens (INC-4..INC-12) in blocking order.
+header — 14 files, 488 desktop, goldens 10/10, byte-identical, `StrategicDestination`
+`foreign-relations`→`diplomacy`) + INC-2 (priorities projection — pure
+`buildPrioritiesProjection`, 6 of 8 types, 79/79 campaign-engine, goldens
+10/10) DONE 2026-08-18 (commits `5f8f348` + `ebadc5c`, report
+`.ai/reports/game-onboarding-first-month-inc14-inc2.md`)** → **INC-13
+(campaign list — blocked by INC-14) / INC-4 (Treasury — blocked by INC-1 +
+INC-14) are next**, then the remaining screens (INC-5..INC-12) in blocking
+order.
 The M2 spec covers §0–§19.1 (6-of-8 priorities with cuts; read-only Treasury;
 no ship naming; no real progress streaming; two new tolerant renderer-owned
 sidecars; report = real `CommitMonthResponse`; battle outcomes as report text)
