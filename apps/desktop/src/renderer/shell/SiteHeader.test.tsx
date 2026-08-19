@@ -12,6 +12,9 @@ import { WindowContextProvider } from "./WindowContext.js";
 const campaign: HeaderCampaign = {
   month: { year: 1900, month: 1 },
   treasury: 24_500_000,
+  nationName: "United Kingdom",
+  projectedSurplusDeficit: 1_500_000,
+  activeAlertsCount: null,
 };
 
 const matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -176,6 +179,34 @@ describe("SiteHeader", () => {
 
     expect(screen.getByText("Armed peace")).toBeTruthy();
     expect(screen.getByText(/£24,500k/)).toBeTruthy();
+  });
+
+  it("renders the INC-1 header fields: nation name and projected balance", () => {
+    renderHeader("linux", { activeView: "playing", campaign });
+
+    expect(screen.getByText("Nation:")).toBeTruthy();
+    expect(screen.getByText(/United Kingdom/)).toBeTruthy();
+    expect(screen.getByText("Projected balance:")).toBeTruthy();
+    expect(screen.getByText(/£1,500k/)).toBeTruthy();
+  });
+
+  it("keeps the alert-count slot empty until the INC-2 projection lands", () => {
+    renderHeader("linux", { activeView: "playing", campaign });
+
+    // The forward-wired slot is null, so the toolbar shows the placeholder
+    // dash rather than a fabricated count.
+    expect(screen.getByText("Alerts:")).toBeTruthy();
+    expect(screen.queryByText(/^[0-9]+$/)).toBeNull();
+  });
+
+  it("renders the alert count once the forward-wired slot is populated", () => {
+    renderHeader("linux", {
+      activeView: "playing",
+      campaign: { ...campaign, activeAlertsCount: 4 },
+    });
+
+    expect(screen.getByText("Alerts:")).toBeTruthy();
+    expect(screen.getByText("4")).toBeTruthy();
   });
 
   it("renders the advance-month button on the right for an active campaign", () => {

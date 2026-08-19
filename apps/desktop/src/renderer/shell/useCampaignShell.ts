@@ -45,6 +45,12 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
             treasury: projection.economy.treasury,
             revision: projection.revision,
             sessionId,
+            nationName: projection.nationName,
+            projectedSurplusDeficit: projection.projectedSurplusDeficit,
+            // Forward-wired slot: the INC-2 priorities projection will
+            // populate this once it lands; until then it stays null so the
+            // header shows an empty placeholder, never a fabricated count.
+            activeAlertsCount: null,
           },
         });
       } catch (error) {
@@ -128,6 +134,13 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
           treasury: value.report.closingTreasury,
           revision: value.closingSnapshot.revision,
           sessionId,
+          // The commit response carries no projection surface (no
+          // nationName/projectedSurplusDeficit on ClosingSnapshotSummary), so
+          // the shell keeps the stable nation identity and the last-known
+          // projected balance until the next inspectCampaign refreshes them.
+          nationName: state.campaign.nationName,
+          projectedSurplusDeficit: state.campaign.projectedSurplusDeficit,
+          activeAlertsCount: null,
         };
         dispatch({ type: "month-committed", campaign: nextCampaign });
         collectMessage(`Month advanced to ${formatCampaignMonth(value.closingSnapshot.month)}.`);

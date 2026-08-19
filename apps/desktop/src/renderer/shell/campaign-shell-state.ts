@@ -9,6 +9,21 @@ export interface CampaignOverview {
   /** The snapshot's optimistic-concurrency revision (turn number). */
   readonly revision: number;
   readonly sessionId: string;
+  /** The player nation's name — INC-1's `PlayerProjection.nationName`. */
+  readonly nationName: string;
+  /**
+   * Projected monthly surplus/deficit — INC-1's
+   * `PlayerProjection.projectedSurplusDeficit`. After a month commit the
+   * `CommitMonthResponse` carries no projection surface, so the shell keeps
+   * the last-known value until the next `inspectCampaign` refreshes it.
+   */
+  readonly projectedSurplusDeficit: number;
+  /**
+   * Active-alerts count slot, forward-wired to the INC-2 priorities
+   * projection: `null` until INC-2 lands, so the header renders an explicit
+   * placeholder rather than a fabricated count.
+   */
+  readonly activeAlertsCount: number | null;
 }
 
 export interface CampaignShellState {

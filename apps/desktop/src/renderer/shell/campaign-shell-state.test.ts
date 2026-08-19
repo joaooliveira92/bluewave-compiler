@@ -12,6 +12,9 @@ const campaign = {
   treasury: 50_000,
   revision: 1,
   sessionId: "ses_1",
+  nationName: "United Kingdom",
+  projectedSurplusDeficit: 2_000,
+  activeAlertsCount: null,
 };
 
 describe("campaign shell state", () => {
@@ -28,6 +31,23 @@ describe("campaign shell state", () => {
     expect(opened.loading).toBe(false);
     expect(opened.error).toBeNull();
     expect(currentShellScreen(opened)).toBe("overview");
+  });
+
+  it("carries the INC-1 header fields through the opened campaign overview", () => {
+    const opened = reduceCampaignShell(initialCampaignShellState(), {
+      type: "campaign-opened",
+      campaign,
+    });
+
+    expect(opened.campaign).toEqual(
+      expect.objectContaining({
+        nationName: "United Kingdom",
+        projectedSurplusDeficit: 2_000,
+        // Forward-wired INC-2 slot: null (empty/placeholder) until the
+        // priorities projection lands.
+        activeAlertsCount: null,
+      }),
+    );
   });
 
   it("records an opening failure without leaving the shell loading", () => {

@@ -200,6 +200,12 @@ describe("CampaignScreenOutlet", () => {
     expect(screen.getByText("ses-1")).toBeTruthy();
   });
 
+  it("renders the Treasury stub until INC-4 wires the real screen", async () => {
+    render(<CampaignScreenOutlet screen="treasury" />);
+    const stub = await screen.findByTestId("treasury-screen");
+    expect(stub.textContent).toContain("not yet available");
+  });
+
   it("connects overview navigation to shell actions", async () => {
     render(<CampaignScreenOutlet screen="overview" />);
     (await screen.findByRole("button", { name: "Open fleet" })).click();
@@ -238,6 +244,19 @@ describe("campaign screen registry", () => {
     const ids = CAMPAIGN_SCREEN_REGISTRY.map(({ id }) => id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(CAMPAIGN_SCREEN_REGISTRY.every(({ route }) => typeof route === "function")).toBe(true);
+  });
+
+  it("ships all six strategic sections in the campaign nav shell", () => {
+    expect(CAMPAIGN_SCREENS.map(({ id }) => id)).toEqual(
+      expect.arrayContaining([
+        "overview",
+        "construction",
+        "fleet",
+        "research",
+        "diplomacy",
+        "treasury",
+      ]),
+    );
   });
 
   it("derives navigation groups and search targets from one registry", () => {

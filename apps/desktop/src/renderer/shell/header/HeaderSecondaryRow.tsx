@@ -1,4 +1,15 @@
-import { AlertTriangle, Database, DollarSign, Gauge, Play, Save, TrendingUp } from "lucide-react";
+import {
+  AlertTriangle,
+  Bell,
+  Database,
+  DollarSign,
+  Gauge,
+  Landmark,
+  Play,
+  Save,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 
 import { Button } from "../../components/ui/button.js";
 import { Separator } from "../../components/ui/separator.js";
@@ -17,6 +28,9 @@ const METRIC_ICONS: Record<MetricIcon, typeof DollarSign> = {
   budget: DollarSign,
   prestige: Gauge,
   tension: TrendingUp,
+  nation: Landmark,
+  alerts: Bell,
+  balance: Wallet,
 };
 
 export interface HeaderSecondaryRowProps {

@@ -1,5 +1,6 @@
 import {
   Activity,
+  Coins,
   Crosshair,
   FlaskConical,
   Hammer,
@@ -74,6 +75,7 @@ export type CampaignScreen =
   | "simulation"
   | "research"
   | "diplomacy"
+  | "treasury"
   | "tactical-sandbox"
   | "debugging"
   | "map-prototype"
@@ -121,6 +123,22 @@ function ResearchRoute({ sessionId }: CampaignScreenRouteProps) {
 
 function DiplomacyRoute({ sessionId }: CampaignScreenRouteProps) {
   return <DiplomacyScreen sessionId={sessionId} />;
+}
+
+/**
+ * Treasury stub slot — INC-14. Registered unconditionally so all six campaign
+ * sections ship together in the nav shell (spec §5), but it can only render a
+ * placeholder: no Treasury IPC command exists yet, so no real screen can
+ * inspect state. INC-4 replaces this route with the real read-only Treasury
+ * screen.
+ */
+function TreasuryStubRoute() {
+  return (
+    <section aria-label="Treasury" data-testid="treasury-screen" className="mx-auto max-w-2xl pt-8">
+      <h2 className="text-lg font-semibold">Treasury</h2>
+      <p className="text-sm text-muted-foreground">The Treasury projection is not yet available.</p>
+    </section>
+  );
 }
 
 function TacticalSandboxRoute({ sessionId }: CampaignScreenRouteProps) {
@@ -195,6 +213,19 @@ const DEBUGGING_SCREEN: CampaignScreenDefinition = {
   route: DebuggingRoute,
 };
 
+// Sixth campaign section (spec §5) — always registered, like the five real
+// screens; only the *route* is a stub. When INC-4 lands the real Treasury
+// screen, swap `route` here (the rest of the definition — sidebar entry,
+// search target — is already final).
+const TREASURY_SCREEN: CampaignScreenDefinition = {
+  id: "treasury",
+  label: "Treasury",
+  icon: Coins,
+  group: "campaign",
+  searchable: true,
+  route: TreasuryStubRoute,
+};
+
 export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "overview",
@@ -237,6 +268,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
     searchable: true,
     route: DiplomacyRoute,
   },
+  TREASURY_SCREEN,
   ...(DEBUG_MODE ? [TACTICAL_SANDBOX_SCREEN, DEBUGGING_SCREEN] : []),
   ...(import.meta.env.DEV ? [MAP_PROTOTYPE_SCREEN] : []),
   {

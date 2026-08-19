@@ -17,9 +17,22 @@ export interface CampaignMonth {
 export interface HeaderCampaign {
   readonly month: CampaignMonth;
   readonly treasury: number;
+  /** The player nation's name — INC-1's `PlayerProjection.nationName`. */
+  readonly nationName: string;
+  /**
+   * Projected monthly surplus/deficit — INC-1's
+   * `PlayerProjection.projectedSurplusDeficit`.
+   */
+  readonly projectedSurplusDeficit: number;
+  /**
+   * Forward-wired active-alerts count slot: `null` until the INC-2
+   * priorities projection lands, so the toolbar shows an explicit
+   * placeholder — never a fabricated count.
+   */
+  readonly activeAlertsCount: number | null;
 }
 
-export type MetricIcon = "budget" | "prestige" | "tension";
+export type MetricIcon = "budget" | "prestige" | "tension" | "nation" | "alerts" | "balance";
 
 export interface HeaderMetric {
   readonly icon: MetricIcon;
@@ -152,10 +165,31 @@ export function describeSecondaryRow(
 function campaignMetrics(campaign: HeaderCampaign | null): readonly HeaderMetric[] {
   return [
     {
+      icon: "nation",
+      label: "Nation",
+      value: campaign === null ? NO_VALUE : campaign.nationName,
+      placeholder: campaign === null,
+    },
+    {
       icon: "budget",
       label: "Budget",
       value: campaign === null ? NO_VALUE : formatTreasury(campaign.treasury),
       placeholder: campaign === null,
+    },
+    {
+      icon: "balance",
+      label: "Projected balance",
+      value: campaign === null ? NO_VALUE : formatTreasury(campaign.projectedSurplusDeficit),
+      placeholder: campaign === null,
+    },
+    {
+      icon: "alerts",
+      label: "Alerts",
+      value:
+        campaign === null || campaign.activeAlertsCount === null
+          ? NO_VALUE
+          : String(campaign.activeAlertsCount),
+      placeholder: campaign === null || campaign.activeAlertsCount === null,
     },
     // Prestige and world tension are not part of the player projection yet.
     { icon: "prestige", label: "Prestige", value: NO_VALUE, placeholder: true },

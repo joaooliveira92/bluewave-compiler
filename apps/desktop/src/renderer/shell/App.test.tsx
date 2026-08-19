@@ -304,6 +304,7 @@ vi.mock("./SiteHeader.js", async () => {
       activeView,
       continueAction,
       searchTargets,
+      campaign,
     }: {
       title: string;
       activeView: string;
@@ -313,6 +314,7 @@ vi.mock("./SiteHeader.js", async () => {
         onTrigger: () => void;
       };
       searchTargets: readonly unknown[];
+      campaign?: { nationName?: string } | null;
     }) =>
       React.createElement(
         "header",
@@ -321,6 +323,7 @@ vi.mock("./SiteHeader.js", async () => {
           "data-active-view": activeView,
           "data-can-continue": String(continueAction !== undefined),
           "data-search-target-count": String(searchTargets.length),
+          "data-nation": campaign?.nationName ?? "",
         },
         title,
         continueAction ? React.createElement("span", null, continueAction.label) : null,
@@ -465,6 +468,9 @@ describe("App", () => {
         sessionId: "ses-1",
         month: { year: 1900, month: 1 },
         treasury: 50_000,
+        nationName: "United Kingdom",
+        projectedSurplusDeficit: 2_000,
+        activeAlertsCount: null,
       },
       screen: "overview",
       saveMessage: "Campaign saved",
@@ -483,6 +489,7 @@ describe("App", () => {
     expect(screen.getByTestId("site-header").dataset.activeView).toBe("playing");
     expect(screen.getByTestId("site-header").dataset.canContinue).toBe("true");
     expect(screen.getByTestId("site-header").dataset.searchTargetCount).toBe("2");
+    expect(screen.getByTestId("site-header").dataset.nation).toBe("United Kingdom");
     expect(screen.getByText("Advance turn")).toBeTruthy();
   });
 

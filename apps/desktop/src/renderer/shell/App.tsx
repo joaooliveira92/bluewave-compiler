@@ -424,6 +424,9 @@ function CampaignShellApplication({
         : {
             month: shell.state.campaign.month,
             treasury: shell.state.campaign.treasury,
+            nationName: shell.state.campaign.nationName,
+            projectedSurplusDeficit: shell.state.campaign.projectedSurplusDeficit,
+            activeAlertsCount: shell.state.campaign.activeAlertsCount,
           },
     [shell.state.campaign],
   );
