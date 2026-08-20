@@ -48,7 +48,7 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
 
   if (state.kind === "load-failed") {
     return (
-      <div className="space-y-6">
+      <div data-guided-target='diplomacy' className="space-y-6">
         <PageHeader
           icon={Handshake}
           title="Diplomacy & War"

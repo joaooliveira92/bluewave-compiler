@@ -48,7 +48,7 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
     selectedDivision === null ? null : pendingRouteFor(state, selectedDivision.divisionId);
 
   return (
-    <div className="space-y-6">
+    <div data-guided-target='fleet' className="space-y-6">
       <PageHeader
         icon={Ship}
         title="Fleet Movement"

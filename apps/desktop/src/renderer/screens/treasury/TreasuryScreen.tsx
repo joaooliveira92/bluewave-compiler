@@ -46,7 +46,7 @@ export function TreasuryScreen({ sessionId }: TreasuryScreenProps) {
   const t = summarizeTreasury(projection);
 
   return (
-    <div className="space-y-8">
+    <div data-guided-target='treasury' className="space-y-8">
       <PageHeader
         icon={Wallet}
         title="Treasury"

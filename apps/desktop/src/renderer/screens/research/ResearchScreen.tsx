@@ -41,7 +41,7 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
 
   if (state.kind === "load-failed") {
     return (
-      <div className="space-y-6">
+      <div data-guided-target='research' className="space-y-6">
         <PageHeader
           icon={FlaskConical}
           title="Research & Technology"

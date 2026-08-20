@@ -110,7 +110,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
   const priorities: readonly PriorityItem[] = [];
 
   return (
-    <div className="space-y-8">
+    <div data-guided-target='overview' className="space-y-8">
       <PageHeader
         icon={LayoutDashboard}
         title="Campaign Overview"

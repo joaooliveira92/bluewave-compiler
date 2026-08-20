@@ -44,6 +44,8 @@ import { MapSheet } from "./MapSheet.js";
 import type { PrimaryAction } from "./primary-action.js";
 import { SiteHeader } from "./SiteHeader.js";
 import { type ActiveView, type HeaderCampaign, headerTitleFor } from "./site-header-state.js";
+import { GuidedInspectionOverlay } from "./GuidedInspectionOverlay.js";
+import { useGuidedInspection } from "./useGuidedInspection.js";
 import { useTheme } from "./ThemeContext.js";
 import { type NewGameDraft, useNewGameFlow } from "./useNewGameFlow.js";
 import { WindowContextProvider } from "./WindowContext.js";
@@ -531,6 +533,10 @@ function CampaignShellApplication({
       <ActiveCampaignView screen={shell.state.screen} />
     );
 
+  const guidedSessionId =
+    shell.state.mode.kind === "campaign" ? shell.state.mode.campaign.sessionId : null;
+  const guided = useGuidedInspection({ sessionId: guidedSessionId });
+
   return (
     <WindowContextProvider value={windowContextValue}>
       <BackgroundLayer background={background} resolvedTheme={resolvedTheme} />
@@ -544,6 +550,17 @@ function CampaignShellApplication({
         {content}
       </AppFrame>
       <MapSheet />
+      {guided.visible && !guided.loading && (
+        <GuidedInspectionOverlay
+          stepIndex={guided.stepIndex}
+          onStepChange={(idx, completed) => {
+            if (completed) void guided.dismiss(idx);
+            else void guided.advance(idx);
+          }}
+          onDismiss={(idx) => void guided.dismiss(idx)}
+          onNavigate={(screenId) => shell.actions.selectScreen(screenId as Screen)}
+        />
+      )}
     </WindowContextProvider>
   );
 }

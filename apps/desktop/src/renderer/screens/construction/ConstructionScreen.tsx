@@ -31,7 +31,7 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
 
   if (state.workspace === null || state.economy === null) {
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div data-guided-target='construction' className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {[0, 1, 2].map((idx) => (
           <Skeleton key={idx} className="h-24" />
         ))}

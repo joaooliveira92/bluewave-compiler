@@ -29,18 +29,18 @@ real section screens + the Advance Month header action.
 **Blocked by:** INC-3 (sidecar persistence), INC-4 (Treasury screen), INC-5
 (Research), INC-6 (Overview)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Seven-step sequence highlights the six real screens + the header
+- [x] Seven-step sequence highlights the six real screens + the header
       Advance button (step 7 informational only)
-- [ ] Overlay is non-blocking: normal navigation/save/Advance stay usable;
+- [x] Overlay is non-blocking: normal navigation/save/Advance stay usable;
       no focus trap
-- [ ] All six "must not" behaviors verified (no domain mutation, no
+- [x] All six "must not" behaviors verified (no domain mutation, no
       blocking, no reopening after completion)
-- [ ] Inspection state persists per-campaign via the `ui-state.json` sidecar
+- [x] Inspection state persists per-campaign via the `ui-state.json` sidecar
       and resumes from the last completed step after save/load
-- [ ] Restart-guided-inspection command present; `prefers-reduced-motion`
+- [x] Restart-guided-inspection command present; `prefers-reduced-motion`
       honored
-- [ ] Autosave fires on inspection-status change
-- [ ] Component tests cover step navigation, the "must not" behaviors, and
+- [x] Autosave fires on inspection-status change
+- [x] Component tests cover step navigation, the "must not" behaviors, and
       persistence

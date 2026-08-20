@@ -79,7 +79,7 @@ export function SiteHeader({
           {campaign !== null && onAdvanceMonth !== undefined && (
             <Button
               variant="outline"
-              aria-label="Advance month"
+              aria-label="Advance month" data-guided-target='advance-month'
               title="Resolve the current strategic month"
               onClick={onAdvanceMonth}
               disabled={advancingMonth}
