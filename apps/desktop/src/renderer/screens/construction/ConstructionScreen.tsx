@@ -6,6 +6,7 @@ import { Kbd } from "../../components/ui/kbd.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs.js";
 import { StatsPanel } from "./components/StatsPanel.js";
+import { ConstructionWizard } from "./components/ConstructionWizard.js";
 import { DesignPicker } from "./components/DesignPicker.js";
 import { CommandTable } from "./components/CommandTable.js";
 import { LoadErrorCard } from "./components/LoadErrorCard.js";
@@ -24,6 +25,8 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
     cancel,
   } = useConstructionScreen(sessionId);
   const [activeTab, setActiveTab] = useState("overview");
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const selectedDesign = state.designs.find((d) => d.designId === selectedDesignId) ?? null;
 
   if (loadError !== null) {
     return <LoadErrorCard message={loadError} onReload={() => void loadScreen()} />;
@@ -81,17 +84,32 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
         </TabsContent>
 
         <TabsContent value="catalog">
-          <DesignPicker
-            designs={state.designs}
-            selectedDesignId={selectedDesignId}
-            onSelectDesign={setSelectedDesignId}
-            onSubmit={submit}
-            onRefresh={() => void loadScreen()}
-            busy={busy}
-            hasPendingRequest={request.outcomeUnknown}
-            onRetry={request.outcomeUnknown ? request.retry : undefined}
-            notice={state.notice}
-          />
+          {!wizardOpen ? (
+            <DesignPicker
+              designs={state.designs}
+              selectedDesignId={selectedDesignId}
+              onSelectDesign={setSelectedDesignId}
+              onSubmit={() => setWizardOpen(true)}
+              onRefresh={() => void loadScreen()}
+              busy={busy}
+              hasPendingRequest={request.outcomeUnknown}
+              onRetry={request.outcomeUnknown ? request.retry : undefined}
+              notice={state.notice}
+            />
+          ) : (
+            <ConstructionWizard
+              design={selectedDesign}
+              economy={state.economy}
+              workspace={state.workspace}
+              busy={busy}
+              notice={state.notice}
+              onConfirm={() => {
+                submit();
+                setWizardOpen(false);
+              }}
+              onCancelWizard={() => setWizardOpen(false)}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="commands">
