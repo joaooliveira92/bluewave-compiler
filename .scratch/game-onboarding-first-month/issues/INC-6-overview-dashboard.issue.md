@@ -24,17 +24,17 @@ spec](../spec.md) §6 — the center of the strategic loop.
 
 **Blocked by:** INC-1, INC-2, INC-14
 
-**Status:** ready-for-agent
+**Status:** done (INC-6 impl, 2026-08-19 — overview derivations + tensionLabel + cap-5 priorities + honest empty states)
 
-- [ ] All header/naval-position/foreign-situation fields derive from real
+- [x] All header/naval-position/foreign-situation fields derive from real
       snapshot data (fresh derivations, no aggregate reads where the spec
       says derive)
-- [ ] Maintenance is re-derived from ships, never the raw `maintenanceCost`
-- [ ] Priorities panel renders INC-2's output with cap-5 + severity sort +
+- [x] Maintenance is re-derived from ships, never the raw `maintenanceCost`
+- [x] Priorities panel renders INC-2's output with cap-5 + severity sort +
       destination links + the spec's empty-state copy
-- [ ] Tension labels use `tensionLabel`/`isHighTension` (imported, not
+- [x] Tension labels use `tensionLabel`/`isHighTension` (imported, not
       renderer-re-derived); no tension-trend indicator exists
-- [ ] Recent Developments hooks the naval-estimates report (INC-12) with an
+- [x] Recent Developments hooks the naval-estimates report (INC-12) with an
       honest empty state until it lands
-- [ ] Component tests cover the derivations + the priorities panel
-- [ ] Goldens 10/10 unchanged
+- [x] Component tests cover the derivations + the priorities panel
+- [x] Goldens 10/10 unchanged
