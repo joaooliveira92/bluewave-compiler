@@ -29,7 +29,11 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
   const selectedDesign = state.designs.find((d) => d.designId === selectedDesignId) ?? null;
 
   if (loadError !== null) {
-    return <LoadErrorCard message={loadError} onReload={() => void loadScreen()} />;
+    return (
+      <div data-guided-target='construction'>
+        <LoadErrorCard message={loadError} onReload={() => void loadScreen()} />
+      </div>
+    );
   }
 
   if (state.workspace === null || state.economy === null) {
@@ -48,7 +52,7 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
   ).length;
 
   return (
-    <div className="space-y-6">
+    <div data-guided-target='construction' className="space-y-6">
       <PageHeader
         icon={Hammer}
         title="Construction Commands"

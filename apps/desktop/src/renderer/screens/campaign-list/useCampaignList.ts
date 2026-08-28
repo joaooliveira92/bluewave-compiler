@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   applyListLoaded,
   applyLoadFailed,
@@ -10,6 +10,10 @@ import {
  * (main process prompts for the package directory). Read-only over the
  * engine — no state is mutated and no session is registered here; the actual
  * load goes through `loadCampaign`.
+ *
+ * The list is NOT loaded automatically on mount — doing so would open a
+ * native file dialog (`dialog.showOpenDialog`) at startup, which is
+ * undesirable. The caller must trigger `reload` explicitly.
  */
 export function useCampaignList() {
   const bridge = window.bluewave;
@@ -27,10 +31,6 @@ export function useCampaignList() {
     }
     setState((current) => applyListLoaded(current, result.value));
   }, [bridge]);
-
-  useEffect(() => {
-    void reload();
-  }, [reload]);
 
   return { state, reload };
 }

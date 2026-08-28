@@ -73,7 +73,7 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
 
   if (state.kind === "idle" || state.kind === "loading") {
     return (
-      <div className="space-y-6">
+      <div data-guided-target='diplomacy' className="space-y-6">
         <PageHeader
           icon={Handshake}
           title="Diplomacy & War"
@@ -95,7 +95,7 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
     playerCountryId !== null ? NATION_DOSSIER_FIELDS[playerCountryId].likelyRivals : [];
 
   return (
-    <div className="space-y-6">
+    <div data-guided-target='diplomacy' className="space-y-6">
       <PageHeader
         icon={Handshake}
         title="Diplomacy & War"

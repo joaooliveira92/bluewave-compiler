@@ -70,17 +70,19 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
 
   if (loadError !== null) {
     return (
-      <GlassCard glassVariant="liquid-refract" className="border-destructive/50">
-        <CardContent className="p-4 text-destructive">
-          Failed to load campaign overview: {loadError}
-        </CardContent>
-      </GlassCard>
+      <div data-guided-target='overview'>
+        <GlassCard glassVariant="liquid-refract" className="border-destructive/50">
+          <CardContent className="p-4 text-destructive">
+            Failed to load campaign overview: {loadError}
+          </CardContent>
+        </GlassCard>
+      </div>
     );
   }
 
   if (projection === null) {
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div data-guided-target='overview' className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {[0, 1, 2, 3, 4, 5].map((idx) => (
           <Skeleton key={idx} className="h-28" />
         ))}

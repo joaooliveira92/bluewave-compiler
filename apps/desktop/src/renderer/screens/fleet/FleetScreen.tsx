@@ -34,11 +34,19 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
   }
 
   if (loadError !== null) {
-    return <LoadErrorCard message={loadError} onReload={() => void loadScreen()} />;
+    return (
+      <div data-guided-target='fleet'>
+        <LoadErrorCard message={loadError} onReload={() => void loadScreen()} />
+      </div>
+    );
   }
 
   if (state.playerNationId === null) {
-    return <LoadingState />;
+    return (
+      <div data-guided-target='fleet'>
+        <LoadingState />
+      </div>
+    );
   }
 
   const busy = state.pendingRequest !== null || state.requiresRefresh;

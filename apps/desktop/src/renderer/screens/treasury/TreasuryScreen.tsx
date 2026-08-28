@@ -27,15 +27,17 @@ export function TreasuryScreen({ sessionId }: TreasuryScreenProps) {
 
   if (loadError !== null) {
     return (
-      <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-        Failed to load Treasury: {loadError}
+      <div data-guided-target='treasury'>
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          Failed to load Treasury: {loadError}
+        </div>
       </div>
     );
   }
 
   if (projection === null) {
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div data-guided-target='treasury' className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {[0, 1, 2].map((idx) => (
           <Skeleton key={idx} className="h-28" />
         ))}

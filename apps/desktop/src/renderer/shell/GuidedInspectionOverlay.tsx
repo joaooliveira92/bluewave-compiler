@@ -142,9 +142,8 @@ export function GuidedInspectionOverlay({
         data-testid="guided-inspection-card"
         className="pointer-events-auto absolute max-w-sm rounded-lg border bg-card p-4 shadow-xl"
         style={{
-          top: hasRect ? Math.min(rect.y + rect.height + 16, window.innerHeight - 180) : 80,
+          top: 80,
           right: 24,
-          left: hasRect && rect.x < 360 ? rect.x + rect.width + 16 : undefined,
         }}
         role="dialog"
         aria-label={`${step.title} — step ${clamped + 1} of ${GUIDED_STEP_COUNT}`}
