@@ -11,6 +11,8 @@ import { StarsBackground } from "../components/backgrounds/starts.js";
 import { ShaderBackground } from "../components/motion/shader-background.js";
 import { Alert, AlertDescription } from "../components/ui/alert.js";
 import { SidebarInset, SidebarProvider } from "../components/ui/sidebar.js";
+import { MonthlyResolutionFailure, MonthlyResolutionLoading } from "../components/MonthlyResolutionLoading.js";
+import { PreTurnReviewDialog } from "../components/PreTurnReviewDialog.js";
 import { CampaignFileScreen } from "../screens/campaign-file/CampaignFileScreen.js";
 import { CampaignListScreen } from "../screens/campaign-list/CampaignListScreen.js";
 import { NewGameArchetypeScreen } from "../screens/new-game/NewGameArchetypeScreen.js";
@@ -454,6 +456,8 @@ function CampaignShellApplication({
     [bridge, headerCampaign, platform, windowState],
   );
 
+  const [reviewOpen, setReviewOpen] = useState(false);
+
   const activeView: ActiveView =
     shell.state.mode.kind === "campaign"
       ? "playing"
@@ -487,7 +491,7 @@ function CampaignShellApplication({
       {...(shell.state.primaryAction !== null ? { continueAction: shell.state.primaryAction } : {})}
       searchTargets={searchTargets}
       onSearchNavigate={(id) => shell.actions.selectScreen(id as Screen)}
-      onAdvanceMonth={shell.actions.advanceMonth}
+      onAdvanceMonth={shell.state.campaign !== null ? () => setReviewOpen(true) : undefined}
       advancingMonth={shell.state.committing}
     />
   );
@@ -550,6 +554,32 @@ function CampaignShellApplication({
         {content}
       </AppFrame>
       <MapSheet />
+      <MonthlyResolutionLoading committing={shell.state.committing} />
+      {shell.state.saveMessage !== null && shell.state.saveMessage.startsWith("Could not advance month:") && (
+        <MonthlyResolutionFailure
+          message={shell.state.saveMessage}
+          onReturn={() => shell.actions.selectScreen("overview")}
+          onRetry={async () => {
+            // saveMessage is cleared on next commit attempt via month-commit-started
+            await shell.actions.advanceMonth();
+          }}
+        />
+      )}
+      {shell.state.campaign !== null && (
+        <PreTurnReviewDialog
+          open={reviewOpen}
+          onOpenChange={setReviewOpen}
+          sessionId={shell.state.campaign.sessionId}
+          campaign={shell.state.campaign}
+          saving={shell.state.saving}
+          saveMessage={shell.state.saveMessage}
+          committing={shell.state.committing}
+          onAdvance={async () => {
+            setReviewOpen(false);
+            await shell.actions.advanceMonth();
+          }}
+        />
+      )}
       {guided.visible && !guided.loading && (
         <GuidedInspectionOverlay
           stepIndex={guided.stepIndex}

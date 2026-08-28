@@ -16,6 +16,9 @@ import {
 } from "../../components/ui/select.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
 import type { DiplomacyScreenProjection } from "../../../shared/diplomacy-contract.js";
+import { isHighTension, tensionLabel } from "@bluewave/campaign-engine";
+import { NATION_DOSSIER_FIELDS } from "../../content/nationDossierFields.js";
+import { nationIdToCountryId } from "../new-game/nation-selection/slotBridge.js";
 import { useDiplomacyScreen } from "./hooks/useDiplomacyScreen.js";
 import {
   RELATION_LABELS,
@@ -87,6 +90,9 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
 
   const busy = state.kind === "submitting";
   const projection = state.projection;
+  const playerCountryId = nationIdToCountryId(projection.playerNationId);
+  const likelyRivals: readonly string[] =
+    playerCountryId !== null ? NATION_DOSSIER_FIELDS[playerCountryId].likelyRivals : [];
 
   return (
     <div className="space-y-6">
@@ -131,12 +137,17 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
           <div className="space-y-2.5">
             {projection.relations.map((row) => {
               const actions = diplomacyLegalActions(row);
+              const isLikelyRival = likelyRivals.includes(row.partnerName);
+              const highTension = isHighTension(row.tension);
+              const label = tensionLabel(row.tension);
               return (
                 <div key={row.partnerNationId} className="rounded-md border px-3 py-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-medium">{row.partnerName}</span>
+                      {isLikelyRival && <Badge variant="outline">Likely rival</Badge>}
                       <Badge variant="secondary">{RELATION_LABELS[row.relation]}</Badge>
+                      <Badge variant="outline">{label}</Badge>
                       <span className="text-xs text-muted-foreground">
                         tension {row.tension}/10
                       </span>
@@ -157,6 +168,11 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
                       ))}
                     </div>
                   </div>
+                  {highTension && (
+                    <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
+                      Relations with {row.partnerName} are {label}; war is possible
+                    </p>
+                  )}
                 </div>
               );
             })}

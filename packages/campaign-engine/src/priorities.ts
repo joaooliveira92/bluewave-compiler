@@ -17,6 +17,10 @@ import { shipMaintenanceCost, totalPaidWork } from "./opening-briefing.js";
 // module without importing diplomacy directly (the canonical export remains there).
 export { HIGH_TENSION_THRESHOLD, isHighTension } from "./diplomacy.js";
 
+export interface InspectPrioritiesResult {
+  readonly priorities: readonly StrategicPriority[];
+}
+
 /** Real `0..10` tension threshold is 8 — imported, never  re-declared. */
 export const MIN_RESEARCH_SHARE_BP = 800;
 export const NEAR_COMPLETION_WORK_RATIO = 0.9;
