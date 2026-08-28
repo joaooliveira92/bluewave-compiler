@@ -10,7 +10,7 @@
 | M1 Strategic Campaign Kernel | B0–B8   | Complete (57 docs)                      | Core pipeline done                   | ~154 tests passing             | ACCEPTED                 |
 | M1 Strategic Campaign Kernel | B9–B10  | Scope briefs ready                      | B9/B10a/B10b/B10c/B10d done          | 410 passing                    | **M1 COMPLETED (A-5 gate, 2026-08-12)** — `docs/acceptance/m1-capability-registry.md` |
 | M2 Surface Tactical Core     | —       | Design docs exist (DESIGN-34–42)        | B-1..B-6 IMPL DONE (2026-08-15)      | 900 combat tests pass          | **M2 COMPLETED (B-6 gate, 2026-08-15)** — see M2 section below |
-| Desktop & CLI surfaces       | —       | —                                       | MVP + 3 screens + CLI debug DONE     | desktop 353, campaign-engine 49 | Surfaces PASS (2026-08-15); debug-mode gating (ADR-0029); E2E suite in progress |
+| Desktop & CLI surfaces       | —       | —                                       | MVP + 3 screens + CLI debug DONE; game-onboarding-first-month INC-1..11 DONE (frontier INC-12); fleet-movement-strategy-map SCOPED (INC-1..INC-6) | desktop 507, campaign-engine 49 | Surfaces PASS (2026-08-15); debug-mode gating (ADR-0029); E2E suite in progress; new strategy-map scoping landed 2026-08-28 |
 | M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | **C-1 COMPLETE (INC-1..8, AC-1..25) + C-2-IMPL DONE (INC-1..8, PASS) + C-3 SCOPED (AC-1..22 / INC-1..8)** | torpedo 517, mines 357 tests pass | **C-1 COMPLETE (2026-08-16, ADR-0031)**; C-2 COMPLETE (AC-1..25, ADR-0033); C-3 SCOPED 2026-08-17; next frontier C-3-IMPL |
 | M4 Aviation                  | —       | Design docs exist (DESIGN-43–45)        | Not started                          | —                              | Future                   |
 | M5 Electronics & Missile Era | —       | Design docs exist (DESIGN-46–48)        | Not started                          | —                              | Future                   |
@@ -408,6 +408,21 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 > new-game-compile, advance-month); 4–7 ready-for-agent (construction,
 > fleet/honest-stub surface, continuance, CI gate `desktop-e2e.yml`).
 
+### Fleet Movement Strategy Map (desktop scoping)
+
+> **Status (2026-08-28): SCOPING DONE — PASS.** New desktop-side charting effort
+> for the campaign strategy map (`.scratch/fleet-movement-strategy-map/`), scoped
+> and sliced with a wayfinder map, 6 resolved decision tickets, a spec (29 742
+> bytes), and 6 frontier-ordered implementation tickets (INC-1..INC-6). Covers:
+> campaign-geometry seam with real MapData coastline promotion (`@bluewave/campaign`
+> `compiler`, `compileOutput`), fleet-chart shell wrapper, click-to-order interaction,
+> per-division tooltip and route lines, strategy-signals and fog-of-war
+> faithfulness, and shell-isolation with camera + performance (tile-atlas + viewport
+> culling). Research notes: `docs/research/fleet-movement-strategy-map-geometry-seam.md`,
+> `docs/research/fleet-movement-strategy-map-camera-perf.md`. Brief + spec pointer:
+> `.ai/specs/fleet-movement-strategy-map.md`. **Frontier: INC-1 (campaign geometry
+> & coastline asset promotion).** See `.scratch/fleet-movement-strategy-map/`.
+
 ### Campaign commissioning flow (game-onboarding)
 > **Status (2026-08-16): COMPLETE (INC-1..INC-8).** `.scratch/game-onboarding/`
 > (wayfinder map + 8 resolved decision tickets + assembled spec). Reorders and
@@ -482,7 +497,7 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 > Treasury screen replacing INC-14's stub (`PlayerProjection.economy
 > .maintenanceCost` added; income/expenditure/result all from `inspectCampaign`;
 > no budget controls). Desktop 507/507, goldens 10/10, two-process byte-identical;
-> report `.ai/reports/game-onboarding-first-month-inc13-inc4.md`. **INC-5 (research allocation edit UX — field-level priorities, `MAX_HIGH_PRIORITY_FIELDS=5` cap, projected monthly progress as pure largest-remainder derivation, autosave via `SaveStore` with `SAVE_FAILED` rollback, renderer-only unsaved indicator via the existing `SetResearchPriorityCommand` path) DONE 2026-08-19** (commit `a0079ed`, report `.ai/reports/game-onboarding-first-month-inc5.md`; desktop 507/507, `tsc -b` clean, goldens 10/10, byte-identical). **INC-6 (Overview dashboard — header/naval-position/foreign-situation via tensionLabel, cap-5 priorities verbatim empty-state, Recent Developments honest empty-state) DONE 2026-08-19** (report `.ai/reports/game-onboarding-first-month-inc6.md`; OverviewScreen + state helpers). **INC-7 (guided inspection — 7-step DOM spotlight, ui-state sidecar, restart, autosave) DONE 2026-08-20** (GuidedInspectionOverlay + guided-inspection-state + useGuidedInspection + CampaignPreferences restart; 16 new tests, desktop 523/523, goldens 10/10). **Next frontier: INC-8 (Fleet inspection) → INC-9..INC-12.**
+> report `.ai/reports/game-onboarding-first-month-inc13-inc4.md`. **INC-5 (research allocation edit UX — field-level priorities, `MAX_HIGH_PRIORITY_FIELDS=5` cap, projected monthly progress as pure largest-remainder derivation, autosave via `SaveStore` with `SAVE_FAILED` rollback, renderer-only unsaved indicator via the existing `SetResearchPriorityCommand` path) DONE 2026-08-19** (commit `a0079ed`, report `.ai/reports/game-onboarding-first-month-inc5.md`; desktop 507/507, `tsc -b` clean, goldens 10/10, byte-identical). **INC-6 (Overview dashboard — header/naval-position/foreign-situation via tensionLabel, cap-5 priorities verbatim empty-state, Recent Developments honest empty-state) DONE 2026-08-19** (report `.ai/reports/game-onboarding-first-month-inc6.md`; OverviewScreen + state helpers). **INC-7 (guided inspection — 7-step DOM spotlight, ui-state sidecar, restart, autosave) DONE 2026-08-20** (GuidedInspectionOverlay + guided-inspection-state + useGuidedInspection + CampaignPreferences restart; 16 new tests, desktop 523/523, goldens 10/10). **INC-8 (construction ordering wizard — select design → review → confirm over real commands, no ship-naming, honest rejection codes, replace/cancel, autosave) DONE 2026-08-28** (commit `295d678`). **INC-9 (foreign relations polish — likely-rival markers, isHighTension warnings, read-only) + INC-10 (pre-turn review dialog — all fields from real state, honest blockers, double-submit guard) + INC-11 (monthly-resolution presentation — 7-stage cosmetic loading screen over synchronous commitMonth, failure UI with real BridgeResult codes) DONE 2026-08-28** (bundled commit `a1a3b2b`). **Tour guide repair:** fixed guided-inspection overlay pinning at campaign start (`7e624cb`). **Next frontier: INC-12 (Monthly Naval Estimates report + monthly-reports.json history sidecar).**
 > C-3-IMPL (submarines) remains queued on the implementation track.
 
 ### CLI battle/gunnery debug surface
