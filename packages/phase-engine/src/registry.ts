@@ -116,6 +116,17 @@ export class PhaseRegistry {
       rngAllowed: true,
     },
     {
+      id: "resolve_aircraft_development",
+      name: "Aircraft Development Resolution",
+      // D-1: per-nation aircraft development pipeline (DESIGN-43 §§4-12),
+      // ordered after resolve_research (order 7) and before battle_generation
+      // (order 7.5). Strict no-op when no nation has aviation tech.
+      order: 7.2,
+      readPermissions: ["nations", "treasury", "research"],
+      writePermissions: ["nations"],
+      rngAllowed: true,
+    },
+    {
       id: "battle_generation",
       name: "Battle Generation",
       order: 7.5,

@@ -49,6 +49,7 @@ import type { PhaseDefinition } from "./registry.js";
 import { cloneSnapshot } from "./snapshotClone.js";
 import { budgetChangedEvent, constructionProgressedEvent, makeLedgerEntry } from "./events.js";
 import { resolveResearchPhase } from "./research.js";
+import { resolveAircraftDevelopment } from "./aircraft.js";
 import {
   applyAcceptPeace,
   applyDeclareBlockade,
@@ -943,6 +944,33 @@ export class MonthExecutor {
         nextSeq,
         campaignMonth,
       );
+    }
+
+    // Phase 7.2: resolve_aircraft_development (registry order 7.2, after
+    // resolve_research, before battle_generation). D-1: per-nation aircraft
+    // development pipeline (DESIGN-43 §§4-12): advance development projects,
+    // generate proposals on completion, resolve private ventures, expire stale
+    // proposals. Strict no-op when no nation has aviation tech (goldens unchanged
+    // for pre-aviation months).
+    {
+      if (!this.assertPhase(phaseGuard, "resolve_aircraft_development", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
+      const rngEngine = phaseGuard.rng("resolve_aircraft_development", randomSeed);
+      if (rngEngine) {
+        const result = resolveAircraftDevelopment({
+          snapshot: currentSnapshot,
+          campaignMonth,
+          rngStream: rngEngine.stream("aircraft/development"),
+        });
+        currentSnapshot = result.snapshot;
+      }
     }
 
     // Phase 9.5: battle_generation (order 7.5). Generates BattleInstances +

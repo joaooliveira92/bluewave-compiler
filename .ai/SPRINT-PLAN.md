@@ -248,7 +248,7 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-**D-1-IMPL (INC-6: Basing model + damaged disposition).** Implement basing model (6 basing classes, per-slot capacity tracking, 7 damaged dispositions via §21, cannibalization, capacity invariant) and damaged aircraft disposition. See spec at `.scratch/d1-m4-aviation/spec.md`.
+**D-1-IMPL (INC-7: Phase stage + engine wiring).** Wire `resolve_aircraft_development` phase (order 7.2, rngAllowed: true) into the campaign phase pipeline. Create `resolveAircraftDevelopment` per-nation function, strict no-op contract, goldens regenerate under ADR-0007. Plus records, ordering, integration-boundary proof. See spec at `.scratch/d1-m4-aviation/spec.md`.
 
 **Status (2026-08-29): INC-5 DONE.** INC-5 (squadron lifecycle): SquadronState, auto-equip eligibility + deterministic selection, re-equipment (2-month duration + experience penalty), expansion (ratio bands + penalties), inventory allocation per §35 priority. 5 new source files + 5 test files. 138 aircraft tests green (2662 total combat tests). Next frontier: INC-6 (basing model + damaged disposition).
 

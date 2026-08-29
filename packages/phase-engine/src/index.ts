@@ -33,3 +33,4 @@ export type {
   TacticalReplayResult,
 } from "./tacticalReplay.js";
 export { TacticalReplayVerifier } from "./tacticalReplay.js";
+export { resolveAircraftDevelopment } from "./aircraft.js";

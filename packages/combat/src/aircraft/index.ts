@@ -17,3 +17,5 @@ export * from "./expansion.js";
 export * from "./inventory-allocation.js";
 export * from "./basing.js";
 export * from "./damaged-disposition.js";
+export { compareDevelopmentProjects, compareProposals, compareSquadrons, compareBasingSlots } from "./ordering.js";
+export * from "./records.js";

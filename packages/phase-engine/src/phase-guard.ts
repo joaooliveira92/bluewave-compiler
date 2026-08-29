@@ -99,6 +99,11 @@ export const PHASE_FOOTPRINTS: Readonly<Record<string, PhaseFootprint>> = {
     writes: [PhaseResource.RESEARCH, PhaseResource.TREASURY],
     usesRng: true,
   },
+  resolve_aircraft_development: {
+    reads: [PhaseResource.NATIONS, PhaseResource.TREASURY, PhaseResource.RESEARCH],
+    writes: [PhaseResource.NATIONS],
+    usesRng: true,
+  },
   battle_generation: {
     reads: [PhaseResource.WARS, PhaseResource.FLEETS, PhaseResource.NATIONS],
     writes: [PhaseResource.WARS, PhaseResource.NATIONS],
