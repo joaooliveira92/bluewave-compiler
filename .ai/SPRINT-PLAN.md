@@ -191,6 +191,7 @@ detailed damage control also depends on the corresponding M3 capability (DESIGN-
 | #   | Sprint                                    | Governing docs           | Content deliverable                                  |
 | --- | ----------------------------------------- | ------------------------ | ---------------------------------------------------- |
 | D-1 | Aircraft development, squadrons, airbases | DESIGN-43 (768 lines)    | Aircraft/squadron/airbase data                       |
+|     | **D-1 SCOPING: DONE 2026-08-29 — PASS (orchestrator pipeline).** Scoped the aircraft development pipeline, squadron lifecycle, and basing system (DESIGN-43 §§1-21, §§32-41) as an engine-only deterministic module in `@bluewave/combat` with a new `resolve_aircraft_development` phase (order 7.2, rngAllowed: true). Wayfinder map `.scratch/d1-m4-aviation/map.md` + 6 decision tickets resolved, spec (AC-1..28, INC-1..9), brief `.ai/briefs/d1-m4-aviation.md`, research `docs/research/d1-m4-aviation-performance-baseline.md`. **Deferred:** mission roles (§§22-31 → D-2), experience/fatigue (§36 → DESIGN-28), production pipeline (§37). **Next: D-1-IMPL (INC-1: aircraft model + type definitions).** |
 | D-2 | Carrier operations                        | DESIGN-44                | Carrier + airgroup content                           |
 | D-3 | CAP & strikes                             | DESIGN-43/44 integration | Mission/CAP constants                                |
 | D-4 | Air defense / AA                          | DESIGN-45                | AA gun/ship data                                     |
@@ -247,18 +248,9 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-**D-1 (M4 Aviation scoping).** Scoping sprint for M4 Aviation. DESIGN-43 (768
-lines) — aircraft development, squadrons, airbases. This is a large/huge effort
-(no prior scoping), so follow the wayfinder convention: open a map + numbered
-issue tickets, resolve open questions (research/prototype/grilling/task tickets),
-close relevant OPEN-ISSUES.md candidates, and land a brief at
-`.ai/briefs/d1-m4-aviation.md`.
+**D-1-IMPL (INC-1: Aircraft model + type definitions).** First implementation ticket of the D-1 scoping sprint. Implement `AircraftModelDefinition`, the 12-type aircraft enum, and the `AircraftModelDefinition_v1` Zod contract with fail-closed validation guard. See spec at `.scratch/d1-m4-aviation/spec.md`, brief at `.ai/briefs/d1-m4-aviation.md`, research at `docs/research/d1-m4-aviation-performance-baseline.md`.
 
-**Status (2026-08-29): WAYFINDER INITIATED.** Map at
-`.scratch/d1-m4-aviation/map.md` with 6 decision tickets
-(`issues/01..06`). First frontier ticket: 01-research-aircraft-performance-baseline
-(research: ground early-aviation performance scores). Next session: claim and
-resolve the research ticket.
+**Status (2026-08-29): SCOPING COMPLETE.** All 6 wayfinder decision tickets resolved. Map at `.scratch/d1-m4-aviation/map.md`, spec with 28 ACs and 9 INC slices, 9 frontier-ordered issue files at `.scratch/d1-m4-aviation/issues/INC-1..9.issue.md`. First frontier: INC-1 (model + type definitions). Next session: claim and implement INC-1.
 
 **Desktop side-tracks (recorded, not dropped):**
 

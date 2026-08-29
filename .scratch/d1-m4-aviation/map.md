@@ -18,7 +18,14 @@ A first vertical slice of M4 Aviation: the **aircraft development pipeline, squa
 
 ## Decisions so far
 
-*(none yet — first session)*
+| Ticket | Type | Status | Decision |
+|--------|------|--------|----------|
+| 01 | research | **RESOLVED** | `docs/research/d1-m4-aviation-performance-baseline.md` — 295 lines, 3 tables. Score range calibration (linear speed formula, qualitative firepower/maneuverability/toughness anchors). Development duration 3-6 months grounded. Basing capacity: ~18/field, 10-26/WWI carrier. |
+| 02 | task | **RESOLVED** | Aircraft state under `NationState.aircraft` (new `AircraftNationState`). Flat count per model+condition. Squadron→model via `modelId`+count. Basing via per-host `BasingSlot` records. |
+| 03 | task | **RESOLVED** | D-1 covers §§1-21, §§32-41 per map. §§22-31 (mission roles) → D-2. §§36-37 → deferred. |
+| 04 | task | **RESOLVED** | Phase `resolve_aircraft_development` at order 7.2 (after `resolve_research`, before `battle_generation`). `rngAllowed: true`. Strict no-op when no aviation tech. Golden regen under ADR-0007. |
+| 05 | task | **RESOLVED** | 15/21 §40 codes shipped. 6 deferred behind marker `AIRCRAFT_MISSION_ROLE_DEFERRED`. Set-equality guard per C-sprint pattern. |
+| 06 | task | **RESOLVED** | 7 contracts: `AircraftModelDefinition_v1`, `AircraftDevelopmentProject_v1`, `AircraftProposal_v1`, `SquadronState_v1`, `AircraftInventoryRecord_v1`, `BasingSlot_v1`, `aircraft_development_duration_v1`.
 
 ## Not yet specified
 
