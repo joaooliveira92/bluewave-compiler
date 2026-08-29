@@ -34,3 +34,4 @@ export type {
 } from "./tacticalReplay.js";
 export { TacticalReplayVerifier } from "./tacticalReplay.js";
 export { resolveAircraftDevelopment } from "./aircraft.js";
+export { resolveCarrierOperations } from "./carrier-operations.js";

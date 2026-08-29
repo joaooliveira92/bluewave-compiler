@@ -69,3 +69,47 @@ describe("Cross-process determinism", () => {
     expect(r.replayVerificationHash).toBe(golden.replayVerificationHash);
   });
 });
+
+describe("Carrier operations cross-process determinism", () => {
+  const carrierChildScript = resolve(thisDir, "..", "dist", "run-carrier-operations-child.js");
+
+  interface CarrierChildOutput {
+    contentArtifactHash: string;
+    initialSnapshotHash: string;
+    closingSnapshotHash: string;
+    commandLedgerHash: string;
+    eventLedgerHash: string;
+    financialLedgerHash: string;
+    randomDecisionLedgerHash: string;
+    carrierOpsHash: string;
+    success: boolean;
+  }
+
+  function runCarrierChild(): CarrierChildOutput {
+    const stdout = execFileSync(process.execPath, [carrierChildScript], {
+      encoding: "utf8",
+      timeout: 30000,
+      env: { ...process.env, NODE_OPTIONS: "" },
+    });
+    const lines = stdout.trim().split("\n");
+    const jsonLine = lines[lines.length - 1]!;
+    return JSON.parse(jsonLine) as CarrierChildOutput;
+  }
+
+  it("Two clean carrier child-process runs produce identical carrier ops hashes", () => {
+    const r1 = runCarrierChild();
+    const r2 = runCarrierChild();
+
+    expect(r1.success).toBe(true);
+    expect(r2.success).toBe(true);
+
+    expect(r1.carrierOpsHash).toBe(r2.carrierOpsHash);
+    expect(r1.closingSnapshotHash).toBe(r2.closingSnapshotHash);
+    expect(r1.commandLedgerHash).toBe(r2.commandLedgerHash);
+    expect(r1.eventLedgerHash).toBe(r2.eventLedgerHash);
+    expect(r1.financialLedgerHash).toBe(r2.financialLedgerHash);
+    expect(r1.randomDecisionLedgerHash).toBe(r2.randomDecisionLedgerHash);
+    expect(r1.contentArtifactHash).toBe(r2.contentArtifactHash);
+    expect(r1.initialSnapshotHash).toBe(r2.initialSnapshotHash);
+  });
+});

@@ -212,6 +212,7 @@ const F = {
     "research",
     "constructionProjects",
     "aircraft",
+    "carrierOperations",
     "isPlayable",
     "isAI",
   ),

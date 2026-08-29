@@ -169,6 +169,8 @@ function makeRichSnapshot(): CampaignSnapshot {
       startedAt: "1880-01",
     },
   ];
+  gbr.aircraft = {} as any;
+  gbr.carrierOperations = {} as any;
 
   const fra = snapshot.nations.get(DEFENDER_NATION)!;
   fra.research = {

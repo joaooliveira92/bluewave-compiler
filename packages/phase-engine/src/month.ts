@@ -50,6 +50,7 @@ import { cloneSnapshot } from "./snapshotClone.js";
 import { budgetChangedEvent, constructionProgressedEvent, makeLedgerEntry } from "./events.js";
 import { resolveResearchPhase } from "./research.js";
 import { resolveAircraftDevelopment } from "./aircraft.js";
+import { resolveCarrierOperations } from "./carrier-operations.js";
 import {
   applyAcceptPeace,
   applyDeclareBlockade,
@@ -968,6 +969,33 @@ export class MonthExecutor {
           snapshot: currentSnapshot,
           campaignMonth,
           rngStream: rngEngine.stream("aircraft/development"),
+        });
+        currentSnapshot = result.snapshot;
+      }
+    }
+
+    // Phase 7.3: resolve_carrier_operations (registry order 7.3, after
+    // resolve_aircraft_development, before battle_generation). D-2:
+    // per-nation carrier operations pipeline (DESIGN-44): initialize carrier
+    // operations state for carrier-capable ships, process ongoing deck cycles.
+    // Strict no-op when no nation has carrier-capable ships (goldens unchanged
+    // for pre-carrier months).
+    {
+      if (!this.assertPhase(phaseGuard, "resolve_carrier_operations", collector)) {
+        return this.failClosed(
+          currentSnapshot,
+          commandLedger,
+          eventLedger,
+          randomLedger,
+          financialLedger,
+        );
+      }
+      const rngEngine = phaseGuard.rng("resolve_carrier_operations", randomSeed);
+      if (rngEngine) {
+        const result = resolveCarrierOperations({
+          snapshot: currentSnapshot,
+          campaignMonth,
+          rngStream: rngEngine.stream("carrier/operations"),
         });
         currentSnapshot = result.snapshot;
       }

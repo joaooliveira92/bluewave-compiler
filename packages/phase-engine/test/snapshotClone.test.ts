@@ -66,6 +66,8 @@ function minimalSnapshot(): CampaignSnapshot {
             discoveredTechs: [],
           } as any,
           constructionProjects: [],
+          aircraft: {} as any,
+          carrierOperations: {} as any,
           isPlayable: true,
           isAI: false,
         } as any,

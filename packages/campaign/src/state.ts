@@ -208,6 +208,7 @@ export interface NationState {
   research: ResearchState;
   constructionProjects: ConstructionProject[];
   aircraft?: Record<string, unknown>;
+  carrierOperations?: Record<string, unknown>;
   isPlayable: boolean;
   isAI: boolean;
 }
