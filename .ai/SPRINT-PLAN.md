@@ -248,9 +248,9 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-**D-1-IMPL (INC-1: Aircraft model + type definitions).** First implementation ticket of the D-1 scoping sprint. Implement `AircraftModelDefinition`, the 12-type aircraft enum, and the `AircraftModelDefinition_v1` Zod contract with fail-closed validation guard. See spec at `.scratch/d1-m4-aviation/spec.md`, brief at `.ai/briefs/d1-m4-aviation.md`, research at `docs/research/d1-m4-aviation-performance-baseline.md`.
+**D-1-IMPL (INC-3: Aircraft development pipeline).** Implement the aircraft development pipeline: `RequestAircraftProposalCommand`, one-active-proposal slot, `AircraftDevelopmentProject` lifecycle, development duration (`aircraft_development_duration_v1`), proposal generation (keyed RNG stream), attribute allocation, acceptance/rejection. See spec at `.scratch/d1-m4-aviation/spec.md`.
 
-**Status (2026-08-29): SCOPING COMPLETE.** All 6 wayfinder decision tickets resolved. Map at `.scratch/d1-m4-aviation/map.md`, spec with 28 ACs and 9 INC slices, 9 frontier-ordered issue files at `.scratch/d1-m4-aviation/issues/INC-1..9.issue.md`. First frontier: INC-1 (model + type definitions). Next session: claim and implement INC-1.
+**Status (2026-08-29): INC-1 + INC-2 DONE.** INC-1 (model definitions): 12-type enum, AircraftModelDefinition, Zod contract, 16 tests. INC-2 (state model): AircraftNationState, inventory, 5 sub-types, 12 tests. Combat suite 199/199 green. Commits: `1f5be9a` (scoping), `b5ae6ca` (INC-1), `e749605` (INC-2). Next frontier: INC-3 (development pipeline).
 
 **Desktop side-tracks (recorded, not dropped):**
 
