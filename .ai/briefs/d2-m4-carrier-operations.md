@@ -19,32 +19,32 @@ D-1 (M4 aircraft development) COMPLETE (2026-08-29, PASS). M1+M2+M3 completed. `
 
 ## Scope summary
 
-| Area | Scope decision |
-|------|----------------|
-| Carrier state model (§1) | IN |
-| Classification & capacity bounds (§2-3) | IN |
-| Deterministic capacity assignment (§4) | IN |
-| Oversized air group policy (§5) | IN |
-| Spot value base + modifiers (§6-7) | IN |
-| Jet carrier capability + eligibility (§8-10) | IN |
-| Deck-cycle states + transitions (§11) | IN |
-| Deck contention policy (§12) | IN |
-| Strike state + preparation (§13-14) | IN |
-| Strike-time modifiers + coordinated effects (§15-16) | IN |
-| Spot-value launch limit + launch rate (§17-18) | IN |
-| Automatic carrier maneuver (§19) | IN |
-| Wind-over-deck requirements (§20) | IN |
-| Deck hazard exposure + fire/explosion (§21-22) | IN |
-| Night recovery eligibility + loss risk (§23-24) | IN |
-| Weather suspension (§25) | IN |
-| Recovery priority (§26) | IN |
-| Ordnance state (§27) | IN |
-| Deck/hangar damage effects (§28) | IN |
-| Records, ordering, reason codes (§29-31) | IN |
-| CAP/strike mission execution in tactical combat | DEFERRED to D-3 |
-| Air defense / AA integration | DEFERRED to D-4 |
-| Experience/fatigue binding | DEFERRED (DESIGN-28 unassigned) |
-| Content YAML constants | DEFERRED (CONTENT-track) |
+| Area                                                 | Scope decision                  |
+| ---------------------------------------------------- | ------------------------------- |
+| Carrier state model (§1)                             | IN                              |
+| Classification & capacity bounds (§2-3)              | IN                              |
+| Deterministic capacity assignment (§4)               | IN                              |
+| Oversized air group policy (§5)                      | IN                              |
+| Spot value base + modifiers (§6-7)                   | IN                              |
+| Jet carrier capability + eligibility (§8-10)         | IN                              |
+| Deck-cycle states + transitions (§11)                | IN                              |
+| Deck contention policy (§12)                         | IN                              |
+| Strike state + preparation (§13-14)                  | IN                              |
+| Strike-time modifiers + coordinated effects (§15-16) | IN                              |
+| Spot-value launch limit + launch rate (§17-18)       | IN                              |
+| Automatic carrier maneuver (§19)                     | IN                              |
+| Wind-over-deck requirements (§20)                    | IN                              |
+| Deck hazard exposure + fire/explosion (§21-22)       | IN                              |
+| Night recovery eligibility + loss risk (§23-24)      | IN                              |
+| Weather suspension (§25)                             | IN                              |
+| Recovery priority (§26)                              | IN                              |
+| Ordnance state (§27)                                 | IN                              |
+| Deck/hangar damage effects (§28)                     | IN                              |
+| Records, ordering, reason codes (§29-31)             | IN                              |
+| CAP/strike mission execution in tactical combat      | DEFERRED to D-3                 |
+| Air defense / AA integration                         | DEFERRED to D-4                 |
+| Experience/fatigue binding                           | DEFERRED (DESIGN-28 unassigned) |
+| Content YAML constants                               | DEFERRED (CONTENT-track)        |
 
 ## Key decisions
 
@@ -61,17 +61,17 @@ D-1 (M4 aircraft development) COMPLETE (2026-08-29, PASS). M1+M2+M3 completed. `
 
 ## Implementation increments
 
-| INC | Deliverable |
-|-----|-------------|
-| INC-1 | Carrier state model + classification + capacity (§§1-5) |
-| INC-2 | Spot value + modifiers + jet eligibility (§§6-10) |
-| INC-3 | Deck-cycle states + contention (§§11-12) |
-| INC-4 | Strike preparation + launch + recovery (§§13-18) |
-| INC-5 | Carrier maneuver + wind-over-deck (§§19-20) |
-| INC-6 | Hazards + night ops + weather suspension (§§21-25) |
+| INC   | Deliverable                                                 |
+| ----- | ----------------------------------------------------------- |
+| INC-1 | Carrier state model + classification + capacity (§§1-5)     |
+| INC-2 | Spot value + modifiers + jet eligibility (§§6-10)           |
+| INC-3 | Deck-cycle states + contention (§§11-12)                    |
+| INC-4 | Strike preparation + launch + recovery (§§13-18)            |
+| INC-5 | Carrier maneuver + wind-over-deck (§§19-20)                 |
+| INC-6 | Hazards + night ops + weather suspension (§§21-25)          |
 | INC-7 | Recovery priority + ordnance + deck/hangar damage (§§26-28) |
-| INC-8 | Records + ordering + reason codes (§§29-31) |
-| INC-9 | Engine wiring + contracts rollup + two-process + gate |
+| INC-8 | Records + ordering + reason codes (§§29-31)                 |
+| INC-9 | Engine wiring + contracts rollup + two-process + gate       |
 
 ## Dependencies
 

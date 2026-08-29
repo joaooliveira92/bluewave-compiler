@@ -12,10 +12,7 @@ export const REEQUIPMENT_READINESS_DURATION_MONTHS = 3 as const;
 
 export type PropulsionFamily = "PISTON" | "JET" | "HELICOPTER" | "FLOATPLANE" | "OTHER";
 
-export function isFamilyChange(
-  oldFamily: PropulsionFamily,
-  newFamily: PropulsionFamily,
-): boolean {
+export function isFamilyChange(oldFamily: PropulsionFamily, newFamily: PropulsionFamily): boolean {
   if (oldFamily === newFamily) return false;
   const changePairs: ReadonlySet<string> = new Set([
     "PISTON->JET",
@@ -34,9 +31,7 @@ export interface ReequipmentEligibilityInput {
   hasConversionCost: boolean;
 }
 
-export type ReequipmentEligibilityResult =
-  | { eligible: true }
-  | { eligible: false; reason: string };
+export type ReequipmentEligibilityResult = { eligible: true } | { eligible: false; reason: string };
 
 export function checkReequipmentEligibility(
   input: ReequipmentEligibilityInput,

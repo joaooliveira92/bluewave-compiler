@@ -39,7 +39,9 @@ function validStrikeState(overrides: Partial<CarrierStrikeState> = {}): CarrierS
     originCarrierIds: ["ship_cv_01"],
     targetReportId: "report_tg_01",
     targetConfidenceBp: 8_000,
-    allocatedSquadrons: [{ squadronId: "sqn_vf_1", aircraftModelId: "f4f_wildcat", count: SafeInt(12) }],
+    allocatedSquadrons: [
+      { squadronId: "sqn_vf_1", aircraftModelId: "f4f_wildcat", count: SafeInt(12) },
+    ],
     escortAllocationIds: ["sqn_vf_2"],
     loadoutId: "loadout_bomb",
     ordnanceReservations: [{ ordnanceTypeId: "bomb_500lb", quantity: SafeInt(12) }],
@@ -94,9 +96,18 @@ describe("AC-15: Strike state model", () => {
 
   it("has the canonical mission states", () => {
     expect([...MISSION_STATES]).toEqual([
-      "PREPARING", "READY", "LAUNCHING", "AIRBORNE", "FORMING",
-      "EN_ROUTE", "ON_TARGET", "RETURNING", "RECOVERING",
-      "COMPLETED", "ABORTED", "LOST",
+      "PREPARING",
+      "READY",
+      "LAUNCHING",
+      "AIRBORNE",
+      "FORMING",
+      "EN_ROUTE",
+      "ON_TARGET",
+      "RETURNING",
+      "RECOVERING",
+      "COMPLETED",
+      "ABORTED",
+      "LOST",
     ]);
   });
 
@@ -229,11 +240,15 @@ describe("AC-17: Strike-time modifiers", () => {
   });
 
   it("strikeTimeMultiplierFromCapacity returns neutral for non-oversized", () => {
-    expect(strikeTimeMultiplierFromCapacity(OVERSIZED_CARRIER_THRESHOLD)).toBe(CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT);
+    expect(strikeTimeMultiplierFromCapacity(OVERSIZED_CARRIER_THRESHOLD)).toBe(
+      CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT,
+    );
   });
 
   it("strikeTimeMultiplierFromCapacity returns oversized bp for >threshold", () => {
-    expect(strikeTimeMultiplierFromCapacity(OVERSIZED_CARRIER_THRESHOLD + 1)).toBe(STRIKE_TIME_MODIFIERS.OVERSIZED_CARRIER_BP);
+    expect(strikeTimeMultiplierFromCapacity(OVERSIZED_CARRIER_THRESHOLD + 1)).toBe(
+      STRIKE_TIME_MODIFIERS.OVERSIZED_CARRIER_BP,
+    );
   });
 });
 
@@ -280,7 +295,9 @@ describe("AC-19: Spot-value launch limit", () => {
   });
 
   it("assertSpotLaunchPermitted throws CARRIER_STRIKE_EXCEEDS_SPOT_VALUE when exceeded", () => {
-    expect(() => assertSpotLaunchPermitted(13, SafeInt(12))).toThrow(CARRIER_STRIKE_EXCEEDS_SPOT_VALUE);
+    expect(() => assertSpotLaunchPermitted(13, SafeInt(12))).toThrow(
+      CARRIER_STRIKE_EXCEEDS_SPOT_VALUE,
+    );
   });
 });
 
@@ -308,11 +325,29 @@ describe("AC-20: Launch rate", () => {
   });
 
   it("effectiveLaunchRate: steam + light jet = 2/min (1 steam)", () => {
-    expect(effectiveLaunchRate(defaultLaunchInputs({ operationalCatapultCount: 1, usingSteamCatapults: true, isLightJet: true, isPiston: false }))).toBe(2);
+    expect(
+      effectiveLaunchRate(
+        defaultLaunchInputs({
+          operationalCatapultCount: 1,
+          usingSteamCatapults: true,
+          isLightJet: true,
+          isPiston: false,
+        }),
+      ),
+    ).toBe(2);
   });
 
   it("effectiveLaunchRate: 2+ steam + light jet = 3/min", () => {
-    expect(effectiveLaunchRate(defaultLaunchInputs({ operationalCatapultCount: 2, usingSteamCatapults: true, isLightJet: true, isPiston: false }))).toBe(3);
+    expect(
+      effectiveLaunchRate(
+        defaultLaunchInputs({
+          operationalCatapultCount: 2,
+          usingSteamCatapults: true,
+          isLightJet: true,
+          isPiston: false,
+        }),
+      ),
+    ).toBe(3);
   });
 
   it("effectiveLaunchRate: heavy jet = 2/min", () => {

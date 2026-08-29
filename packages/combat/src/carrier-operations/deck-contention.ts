@@ -76,9 +76,7 @@ export function mayOverlapOnAngledDeck(
   return (aLaunchSpot && bRecovery) || (aRecovery && bLaunchSpot);
 }
 
-export function canEmergencyRecoveryPreempt(
-  currentOperation: OperationClass,
-): boolean {
+export function canEmergencyRecoveryPreempt(currentOperation: OperationClass): boolean {
   if (currentOperation === "EMERGENCY_RECOVERY") return false;
   if (currentOperation === "ORDINARY_RECOVERY") return false;
   return true;
@@ -154,7 +152,11 @@ export function assertContentionPermitted(
       });
     }
 
-    if ((requestedLaunchSpot || requestedRecovery) && !isLaunchOrSpottingOperation(current) && !isRecoveryOperation(current)) {
+    if (
+      (requestedLaunchSpot || requestedRecovery) &&
+      !isLaunchOrSpottingOperation(current) &&
+      !isRecoveryOperation(current)
+    ) {
       throw new BluewaveError(CARRIER_DECK_CONTENTION, {
         code: CARRIER_DECK_CONTENTION,
         field: "currentOperations",

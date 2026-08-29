@@ -12,7 +12,10 @@ import {
   OVERSIZED_COORDINATION_BP,
   OVERSIZED_HAZARD_BP,
 } from "./constants.js";
-import { INVALID_CARRIER_OPERATIONS_STATE, CARRIER_OPERATIONS_INVARIANT_FAILED } from "./reasonCodes.js";
+import {
+  INVALID_CARRIER_OPERATIONS_STATE,
+  CARRIER_OPERATIONS_INVARIANT_FAILED,
+} from "./reasonCodes.js";
 
 const safeIntSchema = z.custom<SafeInt>((v) => SafeInt.isSafeInt(v as number), {
   message: "must be a SafeInt",
@@ -96,7 +99,9 @@ export const CarrierOperationsState_v1 = z.object({
 
 export type CarrierOperationsStateContract = z.infer<typeof CarrierOperationsState_v1>;
 
-export function validateCarrierOperationsStateContract(value: unknown): CarrierOperationsStateContract {
+export function validateCarrierOperationsStateContract(
+  value: unknown,
+): CarrierOperationsStateContract {
   const result = CarrierOperationsState_v1.safeParse(value);
   if (!result.success) {
     throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
@@ -188,7 +193,9 @@ export const CarrierDeckCycleState_v1 = z.object({
 
 export type CarrierDeckCycleStateContract = z.infer<typeof CarrierDeckCycleState_v1>;
 
-export function validateCarrierDeckCycleStateContract(value: unknown): CarrierDeckCycleStateContract {
+export function validateCarrierDeckCycleStateContract(
+  value: unknown,
+): CarrierDeckCycleStateContract {
   const result = CarrierDeckCycleState_v1.safeParse(value);
   if (!result.success) {
     throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
@@ -231,7 +238,9 @@ export const CarrierDeckContention_v1 = z.object({
 
 export type CarrierDeckContentionContract = z.infer<typeof CarrierDeckContention_v1>;
 
-export function validateCarrierDeckContentionContract(value: unknown): CarrierDeckContentionContract {
+export function validateCarrierDeckContentionContract(
+  value: unknown,
+): CarrierDeckContentionContract {
   const result = CarrierDeckContention_v1.safeParse(value);
   if (!result.success) {
     throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
@@ -293,7 +302,20 @@ export const CarrierStrikeState_v1 = z.object({
   fuelReserveBp: nonNegativeSafeIntSchema,
   spotValueRequirement: nonNegativeSafeIntSchema,
   formationState: z.enum(["FORMING", "FORMED", "DISPERSED", "SCATTERED"]),
-  missionState: z.enum(["PREPARING", "READY", "LAUNCHING", "AIRBORNE", "FORMING", "EN_ROUTE", "ON_TARGET", "RETURNING", "RECOVERING", "COMPLETED", "ABORTED", "LOST"]),
+  missionState: z.enum([
+    "PREPARING",
+    "READY",
+    "LAUNCHING",
+    "AIRBORNE",
+    "FORMING",
+    "EN_ROUTE",
+    "ON_TARGET",
+    "RETURNING",
+    "RECOVERING",
+    "COMPLETED",
+    "ABORTED",
+    "LOST",
+  ]),
   recoveryPlan: strikeRecoveryPlanSchema,
   rulesetVersion: z.string().min(1),
   strikeHash: z.string().min(1),
@@ -399,7 +421,9 @@ export const CarrierHazardExposure_v1 = z.object({
 
 export type CarrierHazardExposureContract = z.infer<typeof CarrierHazardExposure_v1>;
 
-export function validateCarrierHazardExposureContract(value: unknown): CarrierHazardExposureContract {
+export function validateCarrierHazardExposureContract(
+  value: unknown,
+): CarrierHazardExposureContract {
   const result = CarrierHazardExposure_v1.safeParse(value);
   if (!result.success) {
     throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
@@ -466,7 +490,9 @@ export const CarrierWeatherSuspension_v1 = z.object({
 
 export type CarrierWeatherSuspensionContract = z.infer<typeof CarrierWeatherSuspension_v1>;
 
-export function validateCarrierWeatherSuspensionContract(value: unknown): CarrierWeatherSuspensionContract {
+export function validateCarrierWeatherSuspensionContract(
+  value: unknown,
+): CarrierWeatherSuspensionContract {
   const result = CarrierWeatherSuspension_v1.safeParse(value);
   if (!result.success) {
     throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
@@ -481,7 +507,15 @@ export function validateCarrierWeatherSuspensionContract(value: unknown): Carrie
 
 const recoveryRequestSchema = z.object({
   aircraftId: z.string().min(1),
-  priorityLevel: z.enum(["EMERGENCY_FUEL", "DAMAGED_AIRCRAFT", "HAZARDOUS_ORDNANCE", "IMMEDIATE_CAP_RELAUNCH", "RETURNING_STRIKE", "SEARCH", "NORMAL_CAP"]),
+  priorityLevel: z.enum([
+    "EMERGENCY_FUEL",
+    "DAMAGED_AIRCRAFT",
+    "HAZARDOUS_ORDNANCE",
+    "IMMEDIATE_CAP_RELAUNCH",
+    "RETURNING_STRIKE",
+    "SEARCH",
+    "NORMAL_CAP",
+  ]),
   squadronId: z.string().min(1),
   fuelStateBp: basisPointSchema,
   isDamaged: z.boolean(),
@@ -498,7 +532,9 @@ export const CarrierRecoveryPriority_v1 = z.object({
 
 export type CarrierRecoveryPriorityContract = z.infer<typeof CarrierRecoveryPriority_v1>;
 
-export function validateCarrierRecoveryPriorityContract(value: unknown): CarrierRecoveryPriorityContract {
+export function validateCarrierRecoveryPriorityContract(
+  value: unknown,
+): CarrierRecoveryPriorityContract {
   const result = CarrierRecoveryPriority_v1.safeParse(value);
   if (!result.success) {
     throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {

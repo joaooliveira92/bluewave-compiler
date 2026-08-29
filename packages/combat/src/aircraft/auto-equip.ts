@@ -1,14 +1,8 @@
 //packages/combat/src/aircraft/auto-equip.ts
 // DESIGN-43 §§15-16 auto-equip eligibility + deterministic selection.
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
-import {
-  AIRCRAFT_BASIS_POINTS_PER_UNIT,
-  type AircraftType,
-} from "./constants.js";
-import {
-  SQUADRON_AUTO_EQUIP_UNAVAILABLE,
-  AIRCRAFT_INVENTORY_INSUFFICIENT,
-} from "./reasonCodes.js";
+import { AIRCRAFT_BASIS_POINTS_PER_UNIT, type AircraftType } from "./constants.js";
+import { SQUADRON_AUTO_EQUIP_UNAVAILABLE, AIRCRAFT_INVENTORY_INSUFFICIENT } from "./reasonCodes.js";
 import type { AircraftModelDefinition } from "./model.js";
 import type { SquadronState } from "./state.js";
 
@@ -24,9 +18,7 @@ export interface AutoEquipEligibilityInput {
   assetAutomationLock: boolean;
 }
 
-export type AutoEquipEligibilityResult =
-  | { eligible: true }
-  | { eligible: false; reason: string };
+export type AutoEquipEligibilityResult = { eligible: true } | { eligible: false; reason: string };
 
 export function checkAutoEquipEligibility(
   input: AutoEquipEligibilityInput,
@@ -60,9 +52,7 @@ export interface AutoEquipSelectionResult {
   selectedModel: AircraftModelDefinition | null;
 }
 
-export function selectAutoEquipModel(
-  input: AutoEquipSelectionInput,
-): AutoEquipSelectionResult {
+export function selectAutoEquipModel(input: AutoEquipSelectionInput): AutoEquipSelectionResult {
   const thresholdBp = SafeInt.mul(
     SafeInt(AUTO_EQUIP_STRENGTH_THRESHOLD_BP),
     input.authorizedStrength,

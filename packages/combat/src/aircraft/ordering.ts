@@ -1,6 +1,11 @@
 //packages/combat/src/aircraft/ordering.ts
 // DESIGN-43 §39 canonical ordering for aircraft resolution.
-import type { AircraftDevelopmentProject, AircraftProposal, SquadronState, BasingSlot } from "./state.js";
+import type {
+  AircraftDevelopmentProject,
+  AircraftProposal,
+  SquadronState,
+  BasingSlot,
+} from "./state.js";
 
 export function compareStrings(a: string, b: string): number {
   for (let i = 0; i < a.length && i < b.length; i++) {

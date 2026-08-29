@@ -45,7 +45,8 @@ export const CARRIER_OPERATIONS_PHASE_ID = "resolve_carrier_operations" as const
 export const carrierOperationsPolicyId = "carrier_operations_v1" as const;
 // ---- §6-7 Spot value constants ----
 export const SPOT_VALUE_SCALE_EXPONENT = 6 as const;
-export const SPOT_VALUE_DENOMINATOR: bigint = BigInt(CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT) ** BigInt(SPOT_VALUE_SCALE_EXPONENT);
+export const SPOT_VALUE_DENOMINATOR: bigint =
+  BigInt(CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT) ** BigInt(SPOT_VALUE_SCALE_EXPONENT);
 
 export const SPOT_CATAPULT_NONE_BP = 10_000 as const;
 export const SPOT_CATAPULT_ONE_BP = 11_000 as const;
@@ -70,7 +71,12 @@ export const SPOT_TECH_IMPROVED_BP = 11_000 as const;
 export const SPOT_TECH_MODERN_BP = 12_000 as const;
 
 // ---- §8 Jet carrier capability ----
-export const JET_CARRIER_CAPABILITIES = ["NONE", "LIGHT_JET_CAPABLE", "HEAVY_JET_CAPABLE", "MODERN_JET_CAPABLE"] as const;
+export const JET_CARRIER_CAPABILITIES = [
+  "NONE",
+  "LIGHT_JET_CAPABLE",
+  "HEAVY_JET_CAPABLE",
+  "MODERN_JET_CAPABLE",
+] as const;
 export type JetCarrierCapability = (typeof JET_CARRIER_CAPABILITIES)[number];
 
 export const LIGHT_JET_MIN_DISPLACEMENT_KG = 40_000_000 as const;

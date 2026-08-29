@@ -38,16 +38,44 @@ describe("AC-21: basing classes enum", () => {
 describe("AC-19: basing capacity invariant", () => {
   it("computes used slots excluding WRITTEN_OFF and LOST", () => {
     const slots: BasingSlot[] = [
-      { slotId: "s1", hostId: "base_a", aircraftModelId: "m1", squadronId: "sq1", condition: "UNASSIGNED_OPERATIONAL", allocatedAt: "1917-01" },
-      { slotId: "s2", hostId: "base_a", aircraftModelId: "m2", squadronId: null, condition: "WRITTEN_OFF", allocatedAt: "1917-01" },
-      { slotId: "s3", hostId: "base_a", aircraftModelId: "m3", squadronId: "sq1", condition: "ASSIGNED_OPERATIONAL", allocatedAt: "1917-01" },
+      {
+        slotId: "s1",
+        hostId: "base_a",
+        aircraftModelId: "m1",
+        squadronId: "sq1",
+        condition: "UNASSIGNED_OPERATIONAL",
+        allocatedAt: "1917-01",
+      },
+      {
+        slotId: "s2",
+        hostId: "base_a",
+        aircraftModelId: "m2",
+        squadronId: null,
+        condition: "WRITTEN_OFF",
+        allocatedAt: "1917-01",
+      },
+      {
+        slotId: "s3",
+        hostId: "base_a",
+        aircraftModelId: "m3",
+        squadronId: "sq1",
+        condition: "ASSIGNED_OPERATIONAL",
+        allocatedAt: "1917-01",
+      },
     ];
     expect(Number(computeUsedSlots(slots))).toBe(2);
   });
 
   it("checks capacity correctly", () => {
     const slots: BasingSlot[] = [
-      { slotId: "s1", hostId: "base_a", aircraftModelId: "m1", squadronId: "sq1", condition: "ASSIGNED_OPERATIONAL", allocatedAt: "1917-01" },
+      {
+        slotId: "s1",
+        hostId: "base_a",
+        aircraftModelId: "m1",
+        squadronId: "sq1",
+        condition: "ASSIGNED_OPERATIONAL",
+        allocatedAt: "1917-01",
+      },
     ];
     expect(checkBasingCapacity("base_a", "LAND_BASED", slots, SafeInt(1))).toBe(true);
     expect(checkBasingCapacity("base_a", "LAND_BASED", slots, SafeInt(24))).toBe(false);
@@ -55,7 +83,14 @@ describe("AC-19: basing capacity invariant", () => {
 
   it("assertBasingCapacity throws on insufficient capacity", () => {
     const slots: BasingSlot[] = [
-      { slotId: "s1", hostId: "base_a", aircraftModelId: "m1", squadronId: "sq1", condition: "ASSIGNED_OPERATIONAL", allocatedAt: "1917-01" },
+      {
+        slotId: "s1",
+        hostId: "base_a",
+        aircraftModelId: "m1",
+        squadronId: "sq1",
+        condition: "ASSIGNED_OPERATIONAL",
+        allocatedAt: "1917-01",
+      },
     ];
     let err: BluewaveError | undefined;
     try {
@@ -70,7 +105,13 @@ describe("AC-19: basing capacity invariant", () => {
 
 describe("basing slot operations", () => {
   it("allocateBasingSlot creates a slot with correct condition", () => {
-    const slot = allocateBasingSlot("base_brest", "spad_s_xiii", "sq_1", "ASSIGNED_OPERATIONAL", "1917-01");
+    const slot = allocateBasingSlot(
+      "base_brest",
+      "spad_s_xiii",
+      "sq_1",
+      "ASSIGNED_OPERATIONAL",
+      "1917-01",
+    );
     expect(slot.hostId).toBe("base_brest");
     expect(slot.aircraftModelId).toBe("spad_s_xiii");
     expect(slot.squadronId).toBe("sq_1");
@@ -79,14 +120,26 @@ describe("basing slot operations", () => {
   });
 
   it("releaseBasingSlot clears squadron and sets new condition", () => {
-    const slot = allocateBasingSlot("base_brest", "spad_s_xiii", "sq_1", "ASSIGNED_OPERATIONAL", "1917-01");
+    const slot = allocateBasingSlot(
+      "base_brest",
+      "spad_s_xiii",
+      "sq_1",
+      "ASSIGNED_OPERATIONAL",
+      "1917-01",
+    );
     const released = releaseBasingSlot(slot, "UNASSIGNED_OPERATIONAL");
     expect(released.condition).toBe("UNASSIGNED_OPERATIONAL");
     expect(released.squadronId).toBeNull();
   });
 
   it("removeBasingSlot sets condition to LOST and clears squadron", () => {
-    const slot = allocateBasingSlot("base_brest", "spad_s_xiii", "sq_1", "ASSIGNED_OPERATIONAL", "1917-01");
+    const slot = allocateBasingSlot(
+      "base_brest",
+      "spad_s_xiii",
+      "sq_1",
+      "ASSIGNED_OPERATIONAL",
+      "1917-01",
+    );
     const removed = removeBasingSlot(slot);
     expect(removed.condition).toBe("LOST");
     expect(removed.squadronId).toBeNull();

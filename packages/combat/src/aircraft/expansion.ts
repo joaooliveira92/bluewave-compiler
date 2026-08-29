@@ -10,15 +10,9 @@ export const EXPANSION_PENALTY_BAND_1 = 5 as const;
 export const EXPANSION_PENALTY_BAND_2 = 10 as const;
 export const EXPANSION_PENALTY_BAND_3 = 20 as const;
 
-export function computeExpansionRatioBp(
-  addedStrength: SafeInt,
-  priorStrength: SafeInt,
-): SafeInt {
+export function computeExpansionRatioBp(addedStrength: SafeInt, priorStrength: SafeInt): SafeInt {
   const prior = Number(priorStrength) < 1 ? SafeInt.ONE : priorStrength;
-  const ratio = SafeInt.div(
-    SafeInt.mul(addedStrength, SafeInt(10_000)),
-    prior,
-  );
+  const ratio = SafeInt.div(SafeInt.mul(addedStrength, SafeInt(10_000)), prior);
   return ratio;
 }
 
@@ -38,9 +32,7 @@ export interface ExpansionEligibilityInput {
   hasCommandAuthorization: boolean;
 }
 
-export type ExpansionEligibilityResult =
-  | { eligible: true }
-  | { eligible: false; reason: string };
+export type ExpansionEligibilityResult = { eligible: true } | { eligible: false; reason: string };
 
 export function checkExpansionEligibility(
   input: ExpansionEligibilityInput,

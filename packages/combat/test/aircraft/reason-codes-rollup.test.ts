@@ -1,6 +1,10 @@
 // AC-24 (INC-8): Reason-code set-equality vs DESIGN-43 §40.
 import { describe, expect, it } from "vitest";
-import { AIRCRAFT_REASON_CODES, AIRCRAFT_MISSION_ROLE_DEFERRED, RESOLVED_AIRCRAFT_DEVELOPMENT } from "../../src/aircraft/reasonCodes.js";
+import {
+  AIRCRAFT_REASON_CODES,
+  AIRCRAFT_MISSION_ROLE_DEFERRED,
+  RESOLVED_AIRCRAFT_DEVELOPMENT,
+} from "../../src/aircraft/reasonCodes.js";
 
 const SHIPPED_SECTION_40_CODES = [
   "INVALID_AIRCRAFT_MODEL_DEFINITION",

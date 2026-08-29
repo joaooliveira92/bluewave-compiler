@@ -43,7 +43,9 @@ function defaultHazardInputs(overrides: Partial<HazardExposureInputs> = {}): Haz
   };
 }
 
-function defaultProbInputs(overrides: Partial<HazardProbabilityInputs> = {}): HazardProbabilityInputs {
+function defaultProbInputs(
+  overrides: Partial<HazardProbabilityInputs> = {},
+): HazardProbabilityInputs {
   return {
     baseProbabilityBp: 2_000,
     exposureMultiplierBp: CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT,
@@ -70,7 +72,9 @@ describe("AC-23: Fueled/armed deck hazard exposure", () => {
   });
 
   it("computeHazardExposure: includes torpedo weight", () => {
-    const result = computeHazardExposure(defaultHazardInputs({ torpedoLoadedAircraftCount: SafeInt(4) }));
+    const result = computeHazardExposure(
+      defaultHazardInputs({ torpedoLoadedAircraftCount: SafeInt(4) }),
+    );
     expect(Number(result)).toBe(180 + 4 * 15);
   });
 
@@ -85,7 +89,9 @@ describe("AC-23: Fueled/armed deck hazard exposure", () => {
   });
 
   it("computeHazardExposure: zero aircraft produces zero exposure", () => {
-    const result = computeHazardExposure(defaultHazardInputs({ fueledAircraftCount: SafeInt(0), armedAircraftCount: SafeInt(0) }));
+    const result = computeHazardExposure(
+      defaultHazardInputs({ fueledAircraftCount: SafeInt(0), armedAircraftCount: SafeInt(0) }),
+    );
     expect(Number(result)).toBe(0);
   });
 });
@@ -111,19 +117,25 @@ describe("AC-24: Aviation fire/explosion probabilities", () => {
   });
 
   it("clamp: never above 10_000", () => {
-    const result = computeFinalHazardProbability(defaultProbInputs({ baseProbabilityBp: 10_000, exposureMultiplierBp: 15_000 }));
+    const result = computeFinalHazardProbability(
+      defaultProbInputs({ baseProbabilityBp: 10_000, exposureMultiplierBp: 15_000 }),
+    );
     expect(result).toBeLessThanOrEqual(10_000);
   });
 
   it("exposure multiplier increases probability", () => {
     const base = computeFinalHazardProbability(defaultProbInputs());
-    const increased = computeFinalHazardProbability(defaultProbInputs({ exposureMultiplierBp: 15_000 }));
+    const increased = computeFinalHazardProbability(
+      defaultProbInputs({ exposureMultiplierBp: 15_000 }),
+    );
     expect(increased).toBeGreaterThanOrEqual(base);
   });
 });
 
 describe("AC-25: Night recovery eligibility", () => {
-  function eligiblePreds(overrides: Partial<NightRecoveryPredicates> = {}): NightRecoveryPredicates {
+  function eligiblePreds(
+    overrides: Partial<NightRecoveryPredicates> = {},
+  ): NightRecoveryPredicates {
     return {
       hasNightCarrierOperationsTech: true,
       hasOperationalDeckLighting: true,
@@ -143,15 +155,23 @@ describe("AC-25: Night recovery eligibility", () => {
   });
 
   it("no tech + no emergency = ineligible", () => {
-    expect(isNightRecoveryEligible(eligiblePreds({ hasNightCarrierOperationsTech: false }))).toBe(false);
+    expect(isNightRecoveryEligible(eligiblePreds({ hasNightCarrierOperationsTech: false }))).toBe(
+      false,
+    );
   });
 
   it("no tech + emergency = eligible", () => {
-    expect(isNightRecoveryEligible(eligiblePreds({ hasNightCarrierOperationsTech: false, isEmergency: true }))).toBe(true);
+    expect(
+      isNightRecoveryEligible(
+        eligiblePreds({ hasNightCarrierOperationsTech: false, isEmergency: true }),
+      ),
+    ).toBe(true);
   });
 
   it("no deck lighting = ineligible", () => {
-    expect(isNightRecoveryEligible(eligiblePreds({ hasOperationalDeckLighting: false }))).toBe(false);
+    expect(isNightRecoveryEligible(eligiblePreds({ hasOperationalDeckLighting: false }))).toBe(
+      false,
+    );
   });
 
   it("invalid contact = ineligible", () => {
@@ -163,8 +183,9 @@ describe("AC-25: Night recovery eligibility", () => {
   });
 
   it("assertNightRecoveryEligible throws when ineligible", () => {
-    expect(() => assertNightRecoveryEligible(eligiblePreds({ hasNightCarrierOperationsTech: false })))
-      .toThrow(CARRIER_NIGHT_RECOVERY_INELIGIBLE);
+    expect(() =>
+      assertNightRecoveryEligible(eligiblePreds({ hasNightCarrierOperationsTech: false })),
+    ).toThrow(CARRIER_NIGHT_RECOVERY_INELIGIBLE);
   });
 });
 
@@ -201,7 +222,9 @@ describe("AC-26: Night recovery loss risk", () => {
 });
 
 describe("AC-27: Weather suspension", () => {
-  function weatherPreds(overrides: Partial<WeatherSuspensionPredicates> = {}): WeatherSuspensionPredicates {
+  function weatherPreds(
+    overrides: Partial<WeatherSuspensionPredicates> = {},
+  ): WeatherSuspensionPredicates {
     return {
       currentSeaState: SafeInt(4),
       windOverDeckKnots: SafeInt(24),
@@ -237,12 +260,16 @@ describe("AC-27: Weather suspension", () => {
   });
 
   it("sea state 7 suspends heavy jets", () => {
-    const result = evaluateWeatherSuspension(weatherPreds({ currentSeaState: SafeInt(7), aircraftClass: "HEAVY_JET" }));
+    const result = evaluateWeatherSuspension(
+      weatherPreds({ currentSeaState: SafeInt(7), aircraftClass: "HEAVY_JET" }),
+    );
     expectSuspended(result);
   });
 
   it("sea state 7 = 5000bp rate for non-heavy", () => {
-    const result = evaluateWeatherSuspension(weatherPreds({ currentSeaState: SafeInt(7), aircraftClass: "PISTON" }));
+    const result = evaluateWeatherSuspension(
+      weatherPreds({ currentSeaState: SafeInt(7), aircraftClass: "PISTON" }),
+    );
     expect(result.suspended).toBe(false);
     expect(result.rateMultiplierBp).toBe(5_000);
   });
@@ -258,26 +285,40 @@ describe("AC-27: Weather suspension", () => {
   });
 
   it("vis < 2nm suspends visual recovery without ILS", () => {
-    const result = evaluateWeatherSuspension(weatherPreds({ isLaunchOperation: false, visibilityNauticalMiles: SafeInt(1) }));
+    const result = evaluateWeatherSuspension(
+      weatherPreds({ isLaunchOperation: false, visibilityNauticalMiles: SafeInt(1) }),
+    );
     expectSuspended(result);
   });
 
   it("vis < 2nm does not suspend with ILS", () => {
-    const result = evaluateWeatherSuspension(weatherPreds({ isLaunchOperation: false, visibilityNauticalMiles: SafeInt(1), hasInstrumentLandingTechnology: true }));
+    const result = evaluateWeatherSuspension(
+      weatherPreds({
+        isLaunchOperation: false,
+        visibilityNauticalMiles: SafeInt(1),
+        hasInstrumentLandingTechnology: true,
+      }),
+    );
     expect(result.suspended).toBe(false);
   });
 
   it("vis < 2nm does not suspend launch", () => {
-    const result = evaluateWeatherSuspension(weatherPreds({ isLaunchOperation: true, visibilityNauticalMiles: SafeInt(1) }));
+    const result = evaluateWeatherSuspension(
+      weatherPreds({ isLaunchOperation: true, visibilityNauticalMiles: SafeInt(1) }),
+    );
     expect(result.suspended).toBe(false);
   });
 
   it("heavy precip = 5000bp for jet, 7500bp for piston", () => {
-    const piston = evaluateWeatherSuspension(weatherPreds({ isHeavyPrecipitation: true, aircraftClass: "PISTON" }));
+    const piston = evaluateWeatherSuspension(
+      weatherPreds({ isHeavyPrecipitation: true, aircraftClass: "PISTON" }),
+    );
     expect(piston.suspended).toBe(false);
     expect(piston.rateMultiplierBp).toBe(7_500);
 
-    const jet = evaluateWeatherSuspension(weatherPreds({ isHeavyPrecipitation: true, aircraftClass: "LIGHT_JET" }));
+    const jet = evaluateWeatherSuspension(
+      weatherPreds({ isHeavyPrecipitation: true, aircraftClass: "LIGHT_JET" }),
+    );
     expect(jet.suspended).toBe(false);
     expect(jet.rateMultiplierBp).toBe(5_000);
   });
@@ -293,7 +334,14 @@ describe("INC-6 contracts", () => {
 
   it("CarrierHazardExposure_v1 validates", () => {
     const record = {
-      inputs: { fueledAircraftCount: SafeInt(10), armedAircraftCount: SafeInt(8), torpedoLoadedAircraftCount: SafeInt(0), guidedWeaponLoadedAircraftCount: SafeInt(0), fuelingTransferActive: false, ordnanceHandlingActive: false },
+      inputs: {
+        fueledAircraftCount: SafeInt(10),
+        armedAircraftCount: SafeInt(8),
+        torpedoLoadedAircraftCount: SafeInt(0),
+        guidedWeaponLoadedAircraftCount: SafeInt(0),
+        fuelingTransferActive: false,
+        ordnanceHandlingActive: false,
+      },
       totalExposure: SafeInt(180),
     };
     expect(() => validateCarrierHazardExposureContract(record)).not.toThrow();
@@ -301,7 +349,17 @@ describe("INC-6 contracts", () => {
 
   it("CarrierNightRecovery_v1 validates", () => {
     const record = {
-      predicates: { hasNightCarrierOperationsTech: true, hasOperationalDeckLighting: true, hasValidContact: true, windOverDeckKnots: 20, aircraftClass: "PISTON", weatherNotSuspended: true, carrierCommandAccepts: true, hasSufficientFuel: true, isEmergency: false },
+      predicates: {
+        hasNightCarrierOperationsTech: true,
+        hasOperationalDeckLighting: true,
+        hasValidContact: true,
+        windOverDeckKnots: 20,
+        aircraftClass: "PISTON",
+        weatherNotSuspended: true,
+        carrierCommandAccepts: true,
+        hasSufficientFuel: true,
+        isEmergency: false,
+      },
       eligible: true,
       lossBasisBp: 250,
     };
@@ -310,7 +368,17 @@ describe("INC-6 contracts", () => {
 
   it("CarrierWeatherSuspension_v1 validates", () => {
     const record = {
-      predicates: { currentSeaState: SafeInt(4), windOverDeckKnots: SafeInt(24), aircraftClass: "PISTON", isLaunchOperation: true, isHeavyPrecipitation: false, isExtremePrecipitation: false, visibilityNauticalMiles: SafeInt(10), hasInstrumentLandingTechnology: false, deckFireIntensityBp: 0 },
+      predicates: {
+        currentSeaState: SafeInt(4),
+        windOverDeckKnots: SafeInt(24),
+        aircraftClass: "PISTON",
+        isLaunchOperation: true,
+        isHeavyPrecipitation: false,
+        isExtremePrecipitation: false,
+        visibilityNauticalMiles: SafeInt(10),
+        hasInstrumentLandingTechnology: false,
+        deckFireIntensityBp: 0,
+      },
       suspended: false,
       reason: "weather conditions permit operations",
     };

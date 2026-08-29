@@ -7,7 +7,10 @@ import {
   assertAutoEquipAvailable,
   AUTO_EQUIP_STRENGTH_THRESHOLD_BP,
 } from "../../src/aircraft/auto-equip.js";
-import { SQUADRON_AUTO_EQUIP_UNAVAILABLE, AIRCRAFT_INVENTORY_INSUFFICIENT } from "../../src/aircraft/reasonCodes.js";
+import {
+  SQUADRON_AUTO_EQUIP_UNAVAILABLE,
+  AIRCRAFT_INVENTORY_INSUFFICIENT,
+} from "../../src/aircraft/reasonCodes.js";
 import type { AircraftModelDefinition } from "../../src/aircraft/model.js";
 import type { SquadronState } from "../../src/aircraft/state.js";
 import type { BluewaveError } from "@bluewave/contracts";
@@ -122,15 +125,33 @@ describe("AC-15: deterministic auto-equip selection", () => {
       ["model_a", SafeInt(10)],
       ["model_b", SafeInt(10)],
     ]);
-    const modelA: AircraftModelDefinition = { ...FIGHTER_MODEL, aircraftModelId: "model_a", introductionMonth: "1915-01", eligibleRoleIds: ["CAP"] };
-    const modelB: AircraftModelDefinition = { ...FIGHTER_MODEL, aircraftModelId: "model_b", introductionMonth: "1916-01", eligibleRoleIds: ["CAP", "ESCORT"] };
-    const result = selectAutoEquipModel({ models: [modelA, modelB], inventory, authorizedStrength: SafeInt(18) });
+    const modelA: AircraftModelDefinition = {
+      ...FIGHTER_MODEL,
+      aircraftModelId: "model_a",
+      introductionMonth: "1915-01",
+      eligibleRoleIds: ["CAP"],
+    };
+    const modelB: AircraftModelDefinition = {
+      ...FIGHTER_MODEL,
+      aircraftModelId: "model_b",
+      introductionMonth: "1916-01",
+      eligibleRoleIds: ["CAP", "ESCORT"],
+    };
+    const result = selectAutoEquipModel({
+      models: [modelA, modelB],
+      inventory,
+      authorizedStrength: SafeInt(18),
+    });
     expect(result.selectedModel).toBeDefined();
   });
 
   it("returns null when no model has sufficient inventory", () => {
     const inventory = new Map<string, SafeInt>([["spad_s_xiii", SafeInt(1)]]);
-    const result = selectAutoEquipModel({ models: [FIGHTER_MODEL], inventory, authorizedStrength: SafeInt(18) });
+    const result = selectAutoEquipModel({
+      models: [FIGHTER_MODEL],
+      inventory,
+      authorizedStrength: SafeInt(18),
+    });
     expect(result.selectedModel).toBeNull();
   });
 
@@ -139,10 +160,28 @@ describe("AC-15: deterministic auto-equip selection", () => {
       ["model_1", SafeInt(20)],
       ["model_2", SafeInt(20)],
     ]);
-    const m1: AircraftModelDefinition = { ...FIGHTER_MODEL, aircraftModelId: "model_1", introductionMonth: "1916-01", eligibleRoleIds: ["CAP"] };
-    const m2: AircraftModelDefinition = { ...FIGHTER_MODEL, aircraftModelId: "model_2", introductionMonth: "1915-01", eligibleRoleIds: ["CAP", "ESCORT"] };
-    const r1 = selectAutoEquipModel({ models: [m1, m2], inventory, authorizedStrength: SafeInt(18) });
-    const r2 = selectAutoEquipModel({ models: [m1, m2], inventory, authorizedStrength: SafeInt(18) });
+    const m1: AircraftModelDefinition = {
+      ...FIGHTER_MODEL,
+      aircraftModelId: "model_1",
+      introductionMonth: "1916-01",
+      eligibleRoleIds: ["CAP"],
+    };
+    const m2: AircraftModelDefinition = {
+      ...FIGHTER_MODEL,
+      aircraftModelId: "model_2",
+      introductionMonth: "1915-01",
+      eligibleRoleIds: ["CAP", "ESCORT"],
+    };
+    const r1 = selectAutoEquipModel({
+      models: [m1, m2],
+      inventory,
+      authorizedStrength: SafeInt(18),
+    });
+    const r2 = selectAutoEquipModel({
+      models: [m1, m2],
+      inventory,
+      authorizedStrength: SafeInt(18),
+    });
     expect(r1.selectedModel?.aircraftModelId).toBe(r2.selectedModel?.aircraftModelId);
   });
 });

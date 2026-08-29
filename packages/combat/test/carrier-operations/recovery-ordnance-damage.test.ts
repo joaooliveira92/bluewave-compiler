@@ -45,23 +45,72 @@ describe("AC-28: Recovery priority", () => {
   });
 
   it("recoveryPriorityComparator orders by priority then id", () => {
-    const a: RecoveryRequest = { aircraftId: "ac_01", priorityLevel: "EMERGENCY_FUEL", squadronId: "sqn_1", fuelStateBp: 100, isDamaged: false, hasHazardousOrdnance: false };
-    const b: RecoveryRequest = { aircraftId: "ac_02", priorityLevel: "NORMAL_CAP", squadronId: "sqn_1", fuelStateBp: 5000, isDamaged: false, hasHazardousOrdnance: false };
+    const a: RecoveryRequest = {
+      aircraftId: "ac_01",
+      priorityLevel: "EMERGENCY_FUEL",
+      squadronId: "sqn_1",
+      fuelStateBp: 100,
+      isDamaged: false,
+      hasHazardousOrdnance: false,
+    };
+    const b: RecoveryRequest = {
+      aircraftId: "ac_02",
+      priorityLevel: "NORMAL_CAP",
+      squadronId: "sqn_1",
+      fuelStateBp: 5000,
+      isDamaged: false,
+      hasHazardousOrdnance: false,
+    };
     expect(recoveryPriorityComparator(a, b)).toBeLessThan(0);
   });
 
   it("same priority sorted by aircraft id", () => {
-    const a: RecoveryRequest = { aircraftId: "ac_a", priorityLevel: "SEARCH", squadronId: "sqn_1", fuelStateBp: 3000, isDamaged: false, hasHazardousOrdnance: false };
-    const b: RecoveryRequest = { aircraftId: "ac_b", priorityLevel: "SEARCH", squadronId: "sqn_1", fuelStateBp: 3000, isDamaged: false, hasHazardousOrdnance: false };
+    const a: RecoveryRequest = {
+      aircraftId: "ac_a",
+      priorityLevel: "SEARCH",
+      squadronId: "sqn_1",
+      fuelStateBp: 3000,
+      isDamaged: false,
+      hasHazardousOrdnance: false,
+    };
+    const b: RecoveryRequest = {
+      aircraftId: "ac_b",
+      priorityLevel: "SEARCH",
+      squadronId: "sqn_1",
+      fuelStateBp: 3000,
+      isDamaged: false,
+      hasHazardousOrdnance: false,
+    };
     expect(recoveryPriorityComparator(a, b)).toBeLessThan(0);
     expect(recoveryPriorityComparator(b, a)).toBeGreaterThan(0);
   });
 
   it("sortByRecoveryPriority returns correctly ordered list", () => {
     const requests: RecoveryRequest[] = [
-      { aircraftId: "ac_03", priorityLevel: "RETURNING_STRIKE", squadronId: "sqn_1", fuelStateBp: 3000, isDamaged: false, hasHazardousOrdnance: false },
-      { aircraftId: "ac_01", priorityLevel: "EMERGENCY_FUEL", squadronId: "sqn_1", fuelStateBp: 100, isDamaged: false, hasHazardousOrdnance: false },
-      { aircraftId: "ac_02", priorityLevel: "NORMAL_CAP", squadronId: "sqn_1", fuelStateBp: 5000, isDamaged: false, hasHazardousOrdnance: false },
+      {
+        aircraftId: "ac_03",
+        priorityLevel: "RETURNING_STRIKE",
+        squadronId: "sqn_1",
+        fuelStateBp: 3000,
+        isDamaged: false,
+        hasHazardousOrdnance: false,
+      },
+      {
+        aircraftId: "ac_01",
+        priorityLevel: "EMERGENCY_FUEL",
+        squadronId: "sqn_1",
+        fuelStateBp: 100,
+        isDamaged: false,
+        hasHazardousOrdnance: false,
+      },
+      {
+        aircraftId: "ac_02",
+        priorityLevel: "NORMAL_CAP",
+        squadronId: "sqn_1",
+        fuelStateBp: 5000,
+        isDamaged: false,
+        hasHazardousOrdnance: false,
+      },
     ];
     const sorted = sortByRecoveryPriority(requests);
     expect(sorted[0].aircraftId).toBe("ac_01");
@@ -70,31 +119,61 @@ describe("AC-28: Recovery priority", () => {
   });
 
   it("canReserveForRecovery: sufficient deck capacity returns true", () => {
-    expect(canReserveForRecovery({ deckCapacityAvailable: SafeInt(10), requestedSlots: SafeInt(5), carrierHasAlternateLanding: false })).toBe(true);
+    expect(
+      canReserveForRecovery({
+        deckCapacityAvailable: SafeInt(10),
+        requestedSlots: SafeInt(5),
+        carrierHasAlternateLanding: false,
+      }),
+    ).toBe(true);
   });
 
   it("canReserveForRecovery: insufficient capacity + no alternate = false", () => {
-    expect(canReserveForRecovery({ deckCapacityAvailable: SafeInt(3), requestedSlots: SafeInt(5), carrierHasAlternateLanding: false })).toBe(false);
+    expect(
+      canReserveForRecovery({
+        deckCapacityAvailable: SafeInt(3),
+        requestedSlots: SafeInt(5),
+        carrierHasAlternateLanding: false,
+      }),
+    ).toBe(false);
   });
 
   it("canReserveForRecovery: insufficient capacity + alternate = true", () => {
-    expect(canReserveForRecovery({ deckCapacityAvailable: SafeInt(3), requestedSlots: SafeInt(5), carrierHasAlternateLanding: true })).toBe(true);
+    expect(
+      canReserveForRecovery({
+        deckCapacityAvailable: SafeInt(3),
+        requestedSlots: SafeInt(5),
+        carrierHasAlternateLanding: true,
+      }),
+    ).toBe(true);
   });
 });
 
 describe("AC-29: Ordnance state", () => {
   it("hasSufficientOrdnance returns true when enough", () => {
-    const check: OrdnanceInventoryCheck = { inventoryTypeId: "bomb_500lb", availableQuantity: SafeInt(20), requestedQuantity: SafeInt(10) };
+    const check: OrdnanceInventoryCheck = {
+      inventoryTypeId: "bomb_500lb",
+      availableQuantity: SafeInt(20),
+      requestedQuantity: SafeInt(10),
+    };
     expect(hasSufficientOrdnance(check)).toBe(true);
   });
 
   it("hasSufficientOrdnance returns false when insufficient", () => {
-    const check: OrdnanceInventoryCheck = { inventoryTypeId: "bomb_500lb", availableQuantity: SafeInt(5), requestedQuantity: SafeInt(10) };
+    const check: OrdnanceInventoryCheck = {
+      inventoryTypeId: "bomb_500lb",
+      availableQuantity: SafeInt(5),
+      requestedQuantity: SafeInt(10),
+    };
     expect(hasSufficientOrdnance(check)).toBe(false);
   });
 
   it("assertSufficientOrdnance throws CARRIER_ORDNANCE_INVENTORY_INSUFFICIENT", () => {
-    const check: OrdnanceInventoryCheck = { inventoryTypeId: "torpedo_mk14", availableQuantity: SafeInt(0), requestedQuantity: SafeInt(2) };
+    const check: OrdnanceInventoryCheck = {
+      inventoryTypeId: "torpedo_mk14",
+      availableQuantity: SafeInt(0),
+      requestedQuantity: SafeInt(2),
+    };
     expect(() => assertSufficientOrdnance(check)).toThrow(CARRIER_ORDNANCE_INVENTORY_INSUFFICIENT);
   });
 
@@ -143,7 +222,10 @@ describe("AC-30: Deck/hangar damage effects", () => {
   });
 
   it("damaged flight deck reduces spot value", () => {
-    const effects = computeDeckHangarDamageEffects({ ...intactDamage(), flightDeckDamageBp: 5_000 });
+    const effects = computeDeckHangarDamageEffects({
+      ...intactDamage(),
+      flightDeckDamageBp: 5_000,
+    });
     expect(effects.spotValueMultiplierBp).toBe(3_500);
   });
 
@@ -158,12 +240,18 @@ describe("AC-30: Deck/hangar damage effects", () => {
   });
 
   it("fuel system damage blocks refueling", () => {
-    const effects = computeDeckHangarDamageEffects({ ...intactDamage(), fuelSystemDamageBp: 10_000 });
+    const effects = computeDeckHangarDamageEffects({
+      ...intactDamage(),
+      fuelSystemDamageBp: 10_000,
+    });
     expect(effects.refuelingPermitted).toBe(false);
   });
 
   it("ordnance storage damage blocks rearming", () => {
-    const effects = computeDeckHangarDamageEffects({ ...intactDamage(), ordnanceStorageDamageBp: 10_000 });
+    const effects = computeDeckHangarDamageEffects({
+      ...intactDamage(),
+      ordnanceStorageDamageBp: 10_000,
+    });
     expect(effects.rearmingPermitted).toBe(false);
   });
 
@@ -187,7 +275,16 @@ describe("INC-7 contracts", () => {
 
   it("CarrierRecoveryPriority_v1 validates", () => {
     const record = {
-      requests: [{ aircraftId: "ac_01", priorityLevel: "EMERGENCY_FUEL", squadronId: "sqn_1", fuelStateBp: 100, isDamaged: false, hasHazardousOrdnance: false }],
+      requests: [
+        {
+          aircraftId: "ac_01",
+          priorityLevel: "EMERGENCY_FUEL",
+          squadronId: "sqn_1",
+          fuelStateBp: 100,
+          isDamaged: false,
+          hasHazardousOrdnance: false,
+        },
+      ],
       deckCapacityAvailable: SafeInt(10),
       requestedSlots: SafeInt(1),
       carrierHasAlternateLanding: false,
@@ -198,7 +295,14 @@ describe("INC-7 contracts", () => {
 
   it("CarrierOrdnanceState_v1 validates", () => {
     const record = {
-      transactions: [{ ordnanceTypeId: "bomb_500lb", quantity: SafeInt(10), transactionType: "RESERVE", timestamp: 0 }],
+      transactions: [
+        {
+          ordnanceTypeId: "bomb_500lb",
+          quantity: SafeInt(10),
+          transactionType: "RESERVE",
+          timestamp: 0,
+        },
+      ],
       inventoryTypeId: "bomb_500lb",
       availableQuantity: SafeInt(20),
       requestedQuantity: SafeInt(10),

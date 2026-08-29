@@ -37,15 +37,13 @@ export function allocateInventory(
   const available = new Map(availableInventory);
 
   const priorityOrder = ALLOCATION_PRIORITIES;
-  const priorityIndex = (p: AllocationPriority): number =>
-    priorityOrder.indexOf(p);
+  const priorityIndex = (p: AllocationPriority): number => priorityOrder.indexOf(p);
 
   const sorted = [...demands].sort((a, b) => {
     const piA = priorityIndex(a.priority);
     const piB = priorityIndex(b.priority);
     if (piA !== piB) return piA - piB;
-    return a.squadronId.localeCompare(b.squadronId) ||
-      a.demandId.localeCompare(b.demandId);
+    return a.squadronId.localeCompare(b.squadronId) || a.demandId.localeCompare(b.demandId);
   });
 
   for (const demand of sorted) {

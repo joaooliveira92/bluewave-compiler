@@ -1,7 +1,5 @@
 import { SafeInt, BluewaveError } from "@bluewave/contracts";
-import {
-  CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT,
-} from "./constants.js";
+import { CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT } from "./constants.js";
 import {
   CARRIER_AVIATION_FIRE_HAZARD,
   CARRIER_AVIATION_ORDNANCE_HAZARD,
@@ -34,7 +32,8 @@ export function computeHazardExposure(inputs: HazardExposureInputs): SafeInt {
   total += Number(inputs.fueledAircraftCount) * HAZARD_WEIGHTS.FUELED_AIRCRAFT;
   total += Number(inputs.armedAircraftCount) * HAZARD_WEIGHTS.ARMED_AIRCRAFT;
   total += Number(inputs.torpedoLoadedAircraftCount) * HAZARD_WEIGHTS.TORPEDO_LOADED_AIRCRAFT;
-  total += Number(inputs.guidedWeaponLoadedAircraftCount) * HAZARD_WEIGHTS.GUIDED_WEAPON_LOADED_AIRCRAFT;
+  total +=
+    Number(inputs.guidedWeaponLoadedAircraftCount) * HAZARD_WEIGHTS.GUIDED_WEAPON_LOADED_AIRCRAFT;
   if (inputs.fuelingTransferActive) total += HAZARD_WEIGHTS.ACTIVE_FUELING_TRANSFER;
   if (inputs.ordnanceHandlingActive) total += HAZARD_WEIGHTS.ACTIVE_ORDNANCE_HANDLING;
   return SafeInt(total);
@@ -156,7 +155,9 @@ export interface WeatherSuspensionResult {
   reason: string;
 }
 
-export function evaluateWeatherSuspension(predicates: WeatherSuspensionPredicates): WeatherSuspensionResult {
+export function evaluateWeatherSuspension(
+  predicates: WeatherSuspensionPredicates,
+): WeatherSuspensionResult {
   const seaState = Number(predicates.currentSeaState);
   const vis = Number(predicates.visibilityNauticalMiles);
   const deckFire = predicates.deckFireIntensityBp;
@@ -214,7 +215,8 @@ export function evaluateWeatherSuspension(predicates: WeatherSuspensionPredicate
 
   if (predicates.isHeavyPrecipitation) {
     const precipRate = predicates.aircraftClass === "PISTON" ? 7_500 : 5_000;
-    rateMultiplierBp = rateMultiplierBp !== undefined ? Math.min(rateMultiplierBp, precipRate) : precipRate;
+    rateMultiplierBp =
+      rateMultiplierBp !== undefined ? Math.min(rateMultiplierBp, precipRate) : precipRate;
   }
 
   return {

@@ -100,13 +100,16 @@ describe("AC-8: Spot value modifiers", () => {
 
   it("result is clamped to compiledAircraftCapacity", () => {
     const base = baseSpotValue(4);
-    const result = computeFinalSpotValue(base, defaultSpotInputs({
-      compiledAircraftCapacity: 4,
-      operationalCatapultCount: 2,
-      speedKnots: 28,
-      deckConfigurationId: "angled_deck",
-      technologyLevel: "modern",
-    }));
+    const result = computeFinalSpotValue(
+      base,
+      defaultSpotInputs({
+        compiledAircraftCapacity: 4,
+        operationalCatapultCount: 2,
+        speedKnots: 28,
+        deckConfigurationId: "angled_deck",
+        technologyLevel: "modern",
+      }),
+    );
     expect(Number(result)).toBeLessThanOrEqual(4);
   });
 

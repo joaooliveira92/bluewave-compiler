@@ -26,15 +26,23 @@ describe("AC-13: SquadronState creation", () => {
   });
 
   it("computes a deterministic state hash", () => {
-    const a = withSquadronStateHash(createSquadronState("sq_1", "nation_france", "FIGHTER", SafeInt(18), "base_brest"));
-    const b = withSquadronStateHash(createSquadronState("sq_1", "nation_france", "FIGHTER", SafeInt(18), "base_brest"));
+    const a = withSquadronStateHash(
+      createSquadronState("sq_1", "nation_france", "FIGHTER", SafeInt(18), "base_brest"),
+    );
+    const b = withSquadronStateHash(
+      createSquadronState("sq_1", "nation_france", "FIGHTER", SafeInt(18), "base_brest"),
+    );
     expect(a.stateHash).toMatch(/^[0-9a-f]{64}$/);
     expect(a.stateHash).toBe(b.stateHash);
   });
 
   it("produces different hashes for different states", () => {
-    const a = withSquadronStateHash(createSquadronState("sq_1", "nation_france", "FIGHTER", SafeInt(18), "base_brest"));
-    const b = withSquadronStateHash(createSquadronState("sq_2", "nation_france", "FIGHTER", SafeInt(18), "base_brest"));
+    const a = withSquadronStateHash(
+      createSquadronState("sq_1", "nation_france", "FIGHTER", SafeInt(18), "base_brest"),
+    );
+    const b = withSquadronStateHash(
+      createSquadronState("sq_2", "nation_france", "FIGHTER", SafeInt(18), "base_brest"),
+    );
     expect(a.stateHash).not.toBe(b.stateHash);
   });
 });

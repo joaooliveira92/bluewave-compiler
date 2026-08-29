@@ -108,7 +108,12 @@ export const LAUNCH_RATES = {
   HEAVY_JET: 2,
 } as const;
 
-export function basePrepMinutes(mode: StrikeCoordinationMode, isAlert: boolean, isSearch: boolean, isEmergencyRestrike: boolean): number {
+export function basePrepMinutes(
+  mode: StrikeCoordinationMode,
+  isAlert: boolean,
+  isSearch: boolean,
+  isEmergencyRestrike: boolean,
+): number {
   if (isAlert) return BASE_PREP_TIMES.ALERT_CAP;
   if (isSearch) return BASE_PREP_TIMES.SEARCH;
   if (isEmergencyRestrike) return BASE_PREP_TIMES.EMERGENCY_RE_STRIKE;

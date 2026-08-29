@@ -50,10 +50,12 @@ function getAircraft(nation: NationState): AircraftNationState {
 
 function hasAviationTech(nation: NationState): boolean {
   const r = nation["research"];
-  return r["discoveredTechs"]?.some(
-    (t: string) =>
-      t === "early_aviation" || t === "aviation" || t === "flight" || t === "basic_aviation",
-  ) ?? false;
+  return (
+    r["discoveredTechs"]?.some(
+      (t: string) =>
+        t === "early_aviation" || t === "aviation" || t === "flight" || t === "basic_aviation",
+    ) ?? false
+  );
 }
 
 function processAircraftNation(
@@ -108,7 +110,14 @@ function processAircraftNation(
       nationId,
       currentMonth: campaignMonth,
       hasPrivateAviationIndustry: true,
-      permittedRoles: ["FIGHTER", "TORPEDO_BOMBER", "DIVE_BOMBER", "MEDIUM_BOMBER", "PATROL_AIRCRAFT", "FLOATPLANE_SCOUT"] as const,
+      permittedRoles: [
+        "FIGHTER",
+        "TORPEDO_BOMBER",
+        "DIVE_BOMBER",
+        "MEDIUM_BOMBER",
+        "PATROL_AIRCRAFT",
+        "FLOATPLANE_SCOUT",
+      ] as const,
       hasNationalProhibition: false,
       lastVentureMonth: null,
       privateProposals: updatedPrivateProposals,

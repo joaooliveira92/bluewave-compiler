@@ -52,8 +52,10 @@ describe("AC-22: inventory allocation priority", () => {
     ];
     const available = new Map<string, SafeInt>([["model_a", SafeInt(8)]]);
     const result = allocateInventory(demands, available);
-    expect(Number(result.allocated.get("model_a:sq_1") ?? SafeInt.ZERO) +
-      Number(result.allocated.get("model_a:sq_2") ?? SafeInt.ZERO)).toBe(8);
+    expect(
+      Number(result.allocated.get("model_a:sq_1") ?? SafeInt.ZERO) +
+        Number(result.allocated.get("model_a:sq_2") ?? SafeInt.ZERO),
+    ).toBe(8);
   });
 
   it("records remaining demands when allocation is partial", () => {

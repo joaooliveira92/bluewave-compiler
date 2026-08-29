@@ -18,9 +18,7 @@ export type DispositionResult =
   | { allowed: true; removeFromInventory: boolean; createSpareParts: boolean }
   | { allowed: false; reason: string };
 
-export function checkDispositionValidity(
-  input: DispositionInput,
-): DispositionResult {
+export function checkDispositionValidity(input: DispositionInput): DispositionResult {
   const { disposition } = input;
 
   if (disposition === "REPAIR_LOCALLY") {
@@ -89,15 +87,28 @@ export function applyDispositionToSlot(
 ): BasingSlot {
   return {
     ...slot,
-    condition: disposition === "REPAIR_LOCALLY" ? "UNASSIGNED_OPERATIONAL" as const :
-      disposition === "AWAIT_REPAIR_CAPACITY" ? "DAMAGED_AWAITING_CAPACITY" as const :
-      disposition === "WRITE_OFF" ? "WRITTEN_OFF" as const :
-      disposition === "CANNIBALIZE" ? "WRITTEN_OFF" as const :
-      disposition === "CAPTURED" ? "CAPTURED" as const :
-      disposition === "LOST" ? "LOST" as const :
-      disposition === "TRANSFER_FOR_REPAIR" ? "DAMAGED_AWAITING_CAPACITY" as const :
-      slot.condition,
-    squadronId: disposition === "CANNIBALIZE" || disposition === "WRITE_OFF" ||
-      disposition === "CAPTURED" || disposition === "LOST" ? null : slot.squadronId,
+    condition:
+      disposition === "REPAIR_LOCALLY"
+        ? ("UNASSIGNED_OPERATIONAL" as const)
+        : disposition === "AWAIT_REPAIR_CAPACITY"
+          ? ("DAMAGED_AWAITING_CAPACITY" as const)
+          : disposition === "WRITE_OFF"
+            ? ("WRITTEN_OFF" as const)
+            : disposition === "CANNIBALIZE"
+              ? ("WRITTEN_OFF" as const)
+              : disposition === "CAPTURED"
+                ? ("CAPTURED" as const)
+                : disposition === "LOST"
+                  ? ("LOST" as const)
+                  : disposition === "TRANSFER_FOR_REPAIR"
+                    ? ("DAMAGED_AWAITING_CAPACITY" as const)
+                    : slot.condition,
+    squadronId:
+      disposition === "CANNIBALIZE" ||
+      disposition === "WRITE_OFF" ||
+      disposition === "CAPTURED" ||
+      disposition === "LOST"
+        ? null
+        : slot.squadronId,
   };
 }

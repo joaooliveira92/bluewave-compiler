@@ -8,7 +8,10 @@ import {
   WOD_HEAVY_JET_RECOVERY_MIN_KNOTS,
   WOD_HELICOPTER_DEFAULT_MIN_KNOTS,
 } from "./constants.js";
-import { CARRIER_WIND_OVER_DECK_INSUFFICIENT, CARRIER_MANEUVER_LOCKED_BY_DECK_OPERATION } from "./reasonCodes.js";
+import {
+  CARRIER_WIND_OVER_DECK_INSUFFICIENT,
+  CARRIER_MANEUVER_LOCKED_BY_DECK_OPERATION,
+} from "./reasonCodes.js";
 
 export interface CarrierManeuverCommand {
   requiredCourse: CourseInterval;
@@ -65,21 +68,31 @@ export type AircraftClass = "PISTON" | "LIGHT_JET" | "HEAVY_JET" | "HELICOPTER" 
 
 export function minimumWindOverDeckForLaunch(aircraftClass: AircraftClass): number {
   switch (aircraftClass) {
-    case "PISTON": return WOD_PISTON_LAUNCH_MIN_KNOTS;
-    case "LIGHT_JET": return WOD_LIGHT_JET_LAUNCH_MIN_KNOTS;
-    case "HEAVY_JET": return WOD_HEAVY_JET_LAUNCH_MIN_KNOTS;
-    case "HELICOPTER": return WOD_HELICOPTER_DEFAULT_MIN_KNOTS;
-    default: return WOD_PISTON_LAUNCH_MIN_KNOTS;
+    case "PISTON":
+      return WOD_PISTON_LAUNCH_MIN_KNOTS;
+    case "LIGHT_JET":
+      return WOD_LIGHT_JET_LAUNCH_MIN_KNOTS;
+    case "HEAVY_JET":
+      return WOD_HEAVY_JET_LAUNCH_MIN_KNOTS;
+    case "HELICOPTER":
+      return WOD_HELICOPTER_DEFAULT_MIN_KNOTS;
+    default:
+      return WOD_PISTON_LAUNCH_MIN_KNOTS;
   }
 }
 
 export function minimumWindOverDeckForRecovery(aircraftClass: AircraftClass): number {
   switch (aircraftClass) {
-    case "PISTON": return WOD_PISTON_RECOVERY_MIN_KNOTS;
-    case "LIGHT_JET": return WOD_LIGHT_JET_RECOVERY_MIN_KNOTS;
-    case "HEAVY_JET": return WOD_HEAVY_JET_RECOVERY_MIN_KNOTS;
-    case "HELICOPTER": return WOD_HELICOPTER_DEFAULT_MIN_KNOTS;
-    default: return WOD_PISTON_RECOVERY_MIN_KNOTS;
+    case "PISTON":
+      return WOD_PISTON_RECOVERY_MIN_KNOTS;
+    case "LIGHT_JET":
+      return WOD_LIGHT_JET_RECOVERY_MIN_KNOTS;
+    case "HEAVY_JET":
+      return WOD_HEAVY_JET_RECOVERY_MIN_KNOTS;
+    case "HELICOPTER":
+      return WOD_HELICOPTER_DEFAULT_MIN_KNOTS;
+    default:
+      return WOD_PISTON_RECOVERY_MIN_KNOTS;
   }
 }
 

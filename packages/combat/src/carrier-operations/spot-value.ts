@@ -90,10 +90,7 @@ function oversizedMultiplierBp(compiledAircraftCapacity: number): number {
   return CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT;
 }
 
-export function computeFinalSpotValue(
-  baseSpot: SafeInt,
-  inputs: SpotMultiplierInputs,
-): SafeInt {
+export function computeFinalSpotValue(baseSpot: SafeInt, inputs: SpotMultiplierInputs): SafeInt {
   const product =
     BigInt(Number(baseSpot)) *
     BigInt(catapultMultiplierBp(inputs.operationalCatapultCount)) *

@@ -24,13 +24,13 @@ INC-4 (Private ventures) from D-1 M4 Aviation spec: typed event `private_aircraf
 
 AC-12 (§11-12) — fully covered by 23 tests:
 
-| Test area | Tests | Coverage |
-|-----------|-------|----------|
-| checkPrivateVentureEligibility | 8 | industry, prohibition, roles, cooldown, max limit |
-| generatePrivateVentureProposal | 3 | field presence, deterministic, different seeds |
-| resolvePrivateVenture | 5 | granted, ineligible, cooldown, limit, deterministic |
-| purchasePrivateProposal | 3 | purchase, expired, insufficient payment |
-| expirePrivateProposals | 4 | past expiry, within window, same month, non-PENDING |
+| Test area                      | Tests | Coverage                                            |
+| ------------------------------ | ----- | --------------------------------------------------- |
+| checkPrivateVentureEligibility | 8     | industry, prohibition, roles, cooldown, max limit   |
+| generatePrivateVentureProposal | 3     | field presence, deterministic, different seeds      |
+| resolvePrivateVenture          | 5     | granted, ineligible, cooldown, limit, deterministic |
+| purchasePrivateProposal        | 3     | purchase, expired, insufficient payment             |
+| expirePrivateProposals         | 4     | past expiry, within window, same month, non-PENDING |
 
 ## Commands and observed results
 
@@ -85,6 +85,7 @@ None. INC-4 is a pure module addition within `@bluewave/combat/src/aircraft/`. N
 ## Tests added
 
 23 tests in `packages/combat/test/aircraft/private-venture.test.ts` covering:
+
 - eligibility predicate (8 tests)
 - proposal generation (3 tests)
 - monthly resolution (5 tests)

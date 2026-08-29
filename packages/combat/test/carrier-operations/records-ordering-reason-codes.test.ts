@@ -10,7 +10,14 @@ import {
 describe("AC-31: Carrier operation records", () => {
   it("createCarrierOperationRecord builds a valid record", () => {
     const record = createCarrierOperationRecord(
-      { minute: 0, substep: "assignment", carrierId: "ship_cv_01", formulaVersion: "v1", contentVersion: "v1", rulesetVersion: "v1" },
+      {
+        minute: 0,
+        substep: "assignment",
+        carrierId: "ship_cv_01",
+        formulaVersion: "v1",
+        contentVersion: "v1",
+        rulesetVersion: "v1",
+      },
       { capacityUnitsDelta: 2 },
     );
     expect(record.battleMinute).toBe(0);
@@ -21,9 +28,15 @@ describe("AC-31: Carrier operation records", () => {
   });
 
   it("records carry all required §29 fields", () => {
-    const record = createCarrierOperationRecord(
-      { minute: 1, substep: "spot_calc", carrierId: "ship_cv_02", formulaVersion: "f2", contentVersion: "c2", rulesetVersion: "r2", rngVersion: "rng_v1" },
-    );
+    const record = createCarrierOperationRecord({
+      minute: 1,
+      substep: "spot_calc",
+      carrierId: "ship_cv_02",
+      formulaVersion: "f2",
+      contentVersion: "c2",
+      rulesetVersion: "r2",
+      rngVersion: "rng_v1",
+    });
     expect(record.formulaVersion).toBe("f2");
     expect(record.contentVersion).toBe("c2");
     expect(record.rulesetVersion).toBe("r2");
@@ -56,23 +69,39 @@ describe("AC-32: Canonical ordering", () => {
   });
 
   it("emergency before non-emergency", () => {
-    expect(recordComparator(key({ isEmergency: true }), key({ isEmergency: false }))).toBeLessThan(0);
+    expect(recordComparator(key({ isEmergency: true }), key({ isEmergency: false }))).toBeLessThan(
+      0,
+    );
   });
 
   it("lower operation class priority first", () => {
-    expect(recordComparator(key({ operationClassPriority: 1 }), key({ operationClassPriority: 3 }))).toBeLessThan(0);
+    expect(
+      recordComparator(key({ operationClassPriority: 1 }), key({ operationClassPriority: 3 })),
+    ).toBeLessThan(0);
   });
 
   it("earlier strike launch minute first", () => {
-    expect(recordComparator(key({ strikeLaunchMinute: 10, strikeId: "s1" }), key({ strikeLaunchMinute: 20, strikeId: "s2" }))).toBeLessThan(0);
+    expect(
+      recordComparator(
+        key({ strikeLaunchMinute: 10, strikeId: "s1" }),
+        key({ strikeLaunchMinute: 20, strikeId: "s2" }),
+      ),
+    ).toBeLessThan(0);
   });
 
   it("same minute ordered by strike id", () => {
-    expect(recordComparator(key({ strikeLaunchMinute: 10, strikeId: "a" }), key({ strikeLaunchMinute: 10, strikeId: "b" }))).toBeLessThan(0);
+    expect(
+      recordComparator(
+        key({ strikeLaunchMinute: 10, strikeId: "a" }),
+        key({ strikeLaunchMinute: 10, strikeId: "b" }),
+      ),
+    ).toBeLessThan(0);
   });
 
   it("squadron id tiebreak", () => {
-    expect(recordComparator(key({ squadronId: "sqn_a" }), key({ squadronId: "sqn_b" }))).toBeLessThan(0);
+    expect(
+      recordComparator(key({ squadronId: "sqn_a" }), key({ squadronId: "sqn_b" })),
+    ).toBeLessThan(0);
   });
 
   it("aircraft model then aircraft id tiebreak", () => {
@@ -84,11 +113,15 @@ describe("AC-32: Canonical ordering", () => {
   });
 
   it("equipment id tiebreak", () => {
-    expect(recordComparator(key({ equipmentId: "cat_1" }), key({ equipmentId: "cat_2" }))).toBeLessThan(0);
+    expect(
+      recordComparator(key({ equipmentId: "cat_1" }), key({ equipmentId: "cat_2" })),
+    ).toBeLessThan(0);
   });
 
   it("hazard event id tiebreak", () => {
-    expect(recordComparator(key({ hazardEventId: "fire_1" }), key({ hazardEventId: "fire_2" }))).toBeLessThan(0);
+    expect(
+      recordComparator(key({ hazardEventId: "fire_1" }), key({ hazardEventId: "fire_2" })),
+    ).toBeLessThan(0);
   });
 
   it("ordnance item + transaction id tiebreak", () => {

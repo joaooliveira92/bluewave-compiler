@@ -26,10 +26,7 @@ export interface CarrierOperationRecord {
   recordHash: string;
 }
 
-import type {
-  RecoveryRequest,
-  DeckHangarDamageEffects,
-} from "./recovery-ordnance-damage.js";
+import type { RecoveryRequest, DeckHangarDamageEffects } from "./recovery-ordnance-damage.js";
 import type { WeatherSuspensionResult } from "./hazards.js";
 import type { StrikeTimeInputs, LaunchRateInputs } from "./strikes.js";
 import type { ContentionPredicates, OperationClass } from "./deck-contention.js";
@@ -97,11 +94,14 @@ export interface CarrierRecordKey {
 export function recordComparator(a: CarrierRecordKey, b: CarrierRecordKey): number {
   if (a.carrierId !== b.carrierId) return a.carrierId < b.carrierId ? -1 : 1;
   if (a.isEmergency !== b.isEmergency) return a.isEmergency ? -1 : 1;
-  if (a.operationClassPriority !== b.operationClassPriority) return a.operationClassPriority - b.operationClassPriority;
-  if (a.strikeLaunchMinute !== b.strikeLaunchMinute) return a.strikeLaunchMinute - b.strikeLaunchMinute;
+  if (a.operationClassPriority !== b.operationClassPriority)
+    return a.operationClassPriority - b.operationClassPriority;
+  if (a.strikeLaunchMinute !== b.strikeLaunchMinute)
+    return a.strikeLaunchMinute - b.strikeLaunchMinute;
   if (a.strikeId !== b.strikeId) return a.strikeId < b.strikeId ? -1 : 1;
   if (a.squadronId !== b.squadronId) return a.squadronId < b.squadronId ? -1 : 1;
-  if (a.aircraftModelId !== b.aircraftModelId) return a.aircraftModelId < b.aircraftModelId ? -1 : 1;
+  if (a.aircraftModelId !== b.aircraftModelId)
+    return a.aircraftModelId < b.aircraftModelId ? -1 : 1;
   if (a.aircraftId !== b.aircraftId) return a.aircraftId < b.aircraftId ? -1 : 1;
   if (a.equipmentId !== b.equipmentId) return a.equipmentId < b.equipmentId ? -1 : 1;
   if (a.hazardEventId !== b.hazardEventId) return a.hazardEventId < b.hazardEventId ? -1 : 1;

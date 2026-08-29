@@ -42,7 +42,10 @@ import {
   validateOversizedCarrierPolicyContract,
   SHIPPED_CARRIER_OPERATIONS_CONTRACTS,
 } from "../../src/carrier-operations/index.js";
-import { CARRIER_OPERATIONS_RULESET_VERSION, CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT } from "../../src/carrier-operations/constants.js";
+import {
+  CARRIER_OPERATIONS_RULESET_VERSION,
+  CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT,
+} from "../../src/carrier-operations/constants.js";
 
 function validState(overrides: Partial<CarrierOperationsState> = {}): CarrierOperationsState {
   return {
@@ -102,18 +105,24 @@ describe("AC-1: Complete carrier state", () => {
   });
 
   it("assertCarrierOperationsState rejects missing shipId", () => {
-    expect(() => assertCarrierOperationsState(validState({ shipId: "" })))
-      .toThrow(INVALID_CARRIER_OPERATIONS_STATE);
+    expect(() => assertCarrierOperationsState(validState({ shipId: "" }))).toThrow(
+      INVALID_CARRIER_OPERATIONS_STATE,
+    );
   });
 
   it("assertCarrierOperationsState rejects invalid classification", () => {
-    expect(() => assertCarrierOperationsState(validState({ classification: "INVALID" as CarrierClassification })))
-      .toThrow(INVALID_CARRIER_OPERATIONS_STATE);
+    expect(() =>
+      assertCarrierOperationsState(
+        validState({ classification: "INVALID" as CarrierClassification }),
+      ),
+    ).toThrow(INVALID_CARRIER_OPERATIONS_STATE);
   });
 
   it("assertCarrierOperationsState rejects occupied > physical capacity", () => {
     expect(() =>
-      assertCarrierOperationsState(validState({ occupiedCapacityUnits: SafeInt(100), physicalCapacityUnits: SafeInt(72) })),
+      assertCarrierOperationsState(
+        validState({ occupiedCapacityUnits: SafeInt(100), physicalCapacityUnits: SafeInt(72) }),
+      ),
     ).toThrow(INVALID_CARRIER_OPERATIONS_STATE);
   });
 
@@ -124,9 +133,9 @@ describe("AC-1: Complete carrier state", () => {
   });
 
   it("assertCarrierOperationsState rejects wrong ruleset version", () => {
-    expect(() =>
-      assertCarrierOperationsState(validState({ rulesetVersion: "wrong_v1" })),
-    ).toThrow(INVALID_CARRIER_OPERATIONS_STATE);
+    expect(() => assertCarrierOperationsState(validState({ rulesetVersion: "wrong_v1" }))).toThrow(
+      INVALID_CARRIER_OPERATIONS_STATE,
+    );
   });
 });
 
@@ -136,8 +145,9 @@ describe("AC-1: CarrierOperationsState_v1 contract", () => {
   });
 
   it("rejects state with empty shipId through contract", () => {
-    expect(() => validateCarrierOperationsStateContract(validState({ shipId: "" })))
-      .toThrow(INVALID_CARRIER_OPERATIONS_STATE);
+    expect(() => validateCarrierOperationsStateContract(validState({ shipId: "" }))).toThrow(
+      INVALID_CARRIER_OPERATIONS_STATE,
+    );
   });
 });
 
@@ -188,20 +198,30 @@ describe("AC-3: Capacity units scale", () => {
 
   it("piston aircraft consume 2 units", () => {
     expect(Number(capacityUnitsForAircraftType("FIGHTER"))).toBe(ORDINARY_SLOT_CAPACITY_UNITS);
-    expect(Number(capacityUnitsForAircraftType("TORPEDO_BOMBER"))).toBe(ORDINARY_SLOT_CAPACITY_UNITS);
-    expect(Number(capacityUnitsForAircraftType("MEDIUM_BOMBER"))).toBe(ORDINARY_SLOT_CAPACITY_UNITS);
+    expect(Number(capacityUnitsForAircraftType("TORPEDO_BOMBER"))).toBe(
+      ORDINARY_SLOT_CAPACITY_UNITS,
+    );
+    expect(Number(capacityUnitsForAircraftType("MEDIUM_BOMBER"))).toBe(
+      ORDINARY_SLOT_CAPACITY_UNITS,
+    );
   });
 
   it("light jet fighter consumes 3 units", () => {
-    expect(Number(capacityUnitsForAircraftType("LIGHT_JET_FIGHTER"))).toBe(LIGHT_JET_CAPACITY_UNITS);
+    expect(Number(capacityUnitsForAircraftType("LIGHT_JET_FIGHTER"))).toBe(
+      LIGHT_JET_CAPACITY_UNITS,
+    );
   });
 
   it("heavy jet fighter consumes 3 units", () => {
-    expect(Number(capacityUnitsForAircraftType("HEAVY_JET_FIGHTER"))).toBe(HEAVY_JET_CAPACITY_UNITS);
+    expect(Number(capacityUnitsForAircraftType("HEAVY_JET_FIGHTER"))).toBe(
+      HEAVY_JET_CAPACITY_UNITS,
+    );
   });
 
   it("jet attack aircraft consumes 3 units", () => {
-    expect(Number(capacityUnitsForAircraftType("JET_ATTACK_AIRCRAFT"))).toBe(LIGHT_JET_CAPACITY_UNITS);
+    expect(Number(capacityUnitsForAircraftType("JET_ATTACK_AIRCRAFT"))).toBe(
+      LIGHT_JET_CAPACITY_UNITS,
+    );
   });
 
   it("helicopter consumes 2 units", () => {
@@ -209,7 +229,9 @@ describe("AC-3: Capacity units scale", () => {
   });
 
   it("rejects unknown aircraft type", () => {
-    expect(() => capacityUnitsForAircraftType("INVALID")).toThrow(CARRIER_OPERATIONS_INVARIANT_FAILED);
+    expect(() => capacityUnitsForAircraftType("INVALID")).toThrow(
+      CARRIER_OPERATIONS_INVARIANT_FAILED,
+    );
   });
 });
 
@@ -234,9 +256,27 @@ describe("AC-4: Integer capacity check", () => {
 describe("AC-5: Deterministic capacity assignment", () => {
   it("processes assignments in priority order", () => {
     const assignments: CarrierCapacityAssignment[] = [
-      { squadronId: "sqn_vf_1", aircraftModelId: "f4f_wildcat", aircraftType: "FIGHTER", capacityUnits: SafeInt(2), assignmentPriority: AssignmentPriority.CAP },
-      { squadronId: "sqn_vb_3", aircraftModelId: "sb2c_helldiver", aircraftType: "DIVE_BOMBER", capacityUnits: SafeInt(2), assignmentPriority: AssignmentPriority.STRIKE },
-      { squadronId: "sqn_vs_5", aircraftModelId: "sbd_dauntless", aircraftType: "DIVE_BOMBER", capacityUnits: SafeInt(2), assignmentPriority: AssignmentPriority.SEARCH },
+      {
+        squadronId: "sqn_vf_1",
+        aircraftModelId: "f4f_wildcat",
+        aircraftType: "FIGHTER",
+        capacityUnits: SafeInt(2),
+        assignmentPriority: AssignmentPriority.CAP,
+      },
+      {
+        squadronId: "sqn_vb_3",
+        aircraftModelId: "sb2c_helldiver",
+        aircraftType: "DIVE_BOMBER",
+        capacityUnits: SafeInt(2),
+        assignmentPriority: AssignmentPriority.STRIKE,
+      },
+      {
+        squadronId: "sqn_vs_5",
+        aircraftModelId: "sbd_dauntless",
+        aircraftType: "DIVE_BOMBER",
+        capacityUnits: SafeInt(2),
+        assignmentPriority: AssignmentPriority.SEARCH,
+      },
     ];
     const sorted = [...assignments].sort(assignmentOrderComparator);
     expect(sorted[0].assignmentPriority).toBe(AssignmentPriority.CAP);
@@ -246,8 +286,20 @@ describe("AC-5: Deterministic capacity assignment", () => {
 
   it("accepts all when capacity sufficient", () => {
     const assignments: CarrierCapacityAssignment[] = [
-      { squadronId: "sqn_vf_1", aircraftModelId: "f4f_wildcat", aircraftType: "FIGHTER", capacityUnits: SafeInt(2), assignmentPriority: AssignmentPriority.CAP },
-      { squadronId: "sqn_vf_2", aircraftModelId: "f4f_wildcat", aircraftType: "FIGHTER", capacityUnits: SafeInt(2), assignmentPriority: AssignmentPriority.PERMANENT },
+      {
+        squadronId: "sqn_vf_1",
+        aircraftModelId: "f4f_wildcat",
+        aircraftType: "FIGHTER",
+        capacityUnits: SafeInt(2),
+        assignmentPriority: AssignmentPriority.CAP,
+      },
+      {
+        squadronId: "sqn_vf_2",
+        aircraftModelId: "f4f_wildcat",
+        aircraftType: "FIGHTER",
+        capacityUnits: SafeInt(2),
+        assignmentPriority: AssignmentPriority.PERMANENT,
+      },
     ];
     const result = assignAircraft(assignments, SafeInt(72), SafeInt(0));
     expect(result.accepted).toHaveLength(2);
@@ -257,8 +309,20 @@ describe("AC-5: Deterministic capacity assignment", () => {
 
   it("rejects excess aircraft with capacity exceeded", () => {
     const assignments: CarrierCapacityAssignment[] = [
-      { squadronId: "sqn_vf_1", aircraftModelId: "f4f_wildcat", aircraftType: "FIGHTER", capacityUnits: SafeInt(2), assignmentPriority: AssignmentPriority.CAP },
-      { squadronId: "sqn_vf_2", aircraftModelId: "f4f_wildcat", aircraftType: "FIGHTER", capacityUnits: SafeInt(72), assignmentPriority: AssignmentPriority.PERMANENT },
+      {
+        squadronId: "sqn_vf_1",
+        aircraftModelId: "f4f_wildcat",
+        aircraftType: "FIGHTER",
+        capacityUnits: SafeInt(2),
+        assignmentPriority: AssignmentPriority.CAP,
+      },
+      {
+        squadronId: "sqn_vf_2",
+        aircraftModelId: "f4f_wildcat",
+        aircraftType: "FIGHTER",
+        capacityUnits: SafeInt(72),
+        assignmentPriority: AssignmentPriority.PERMANENT,
+      },
     ];
     const result = assignAircraft(assignments, SafeInt(72), SafeInt(0));
     expect(result.accepted).toHaveLength(1);
@@ -267,8 +331,20 @@ describe("AC-5: Deterministic capacity assignment", () => {
   });
 
   it("maintains deterministic order for same-priority assignments", () => {
-    const a: CarrierCapacityAssignment = { squadronId: "sqn_a", aircraftModelId: "model_a", aircraftType: "FIGHTER", capacityUnits: SafeInt(2), assignmentPriority: AssignmentPriority.PERMANENT };
-    const b: CarrierCapacityAssignment = { squadronId: "sqn_b", aircraftModelId: "model_b", aircraftType: "FIGHTER", capacityUnits: SafeInt(2), assignmentPriority: AssignmentPriority.PERMANENT };
+    const a: CarrierCapacityAssignment = {
+      squadronId: "sqn_a",
+      aircraftModelId: "model_a",
+      aircraftType: "FIGHTER",
+      capacityUnits: SafeInt(2),
+      assignmentPriority: AssignmentPriority.PERMANENT,
+    };
+    const b: CarrierCapacityAssignment = {
+      squadronId: "sqn_b",
+      aircraftModelId: "model_b",
+      aircraftType: "FIGHTER",
+      capacityUnits: SafeInt(2),
+      assignmentPriority: AssignmentPriority.PERMANENT,
+    };
     expect(assignmentOrderComparator(a, b)).toBeLessThan(0);
     expect(assignmentOrderComparator(b, a)).toBeGreaterThan(0);
     expect(assignmentOrderComparator(a, a)).toBe(0);
@@ -318,7 +394,10 @@ describe("AC-6: Oversized carrier policy", () => {
 describe("INC-1 contract rollup", () => {
   it("ships exactly 3 INC-1 contracts in rollup", () => {
     const inc1Contracts = SHIPPED_CARRIER_OPERATIONS_CONTRACTS.filter(
-      (c) => c.policyId === "carrier_operations_state_v1" || c.policyId === "carrier_capacity_assignment_v1" || c.policyId === "oversized_carrier_policy_v1",
+      (c) =>
+        c.policyId === "carrier_operations_state_v1" ||
+        c.policyId === "carrier_capacity_assignment_v1" ||
+        c.policyId === "oversized_carrier_policy_v1",
     );
     expect(inc1Contracts).toHaveLength(3);
   });

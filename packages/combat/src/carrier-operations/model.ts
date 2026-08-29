@@ -19,7 +19,10 @@ import {
   type CarrierClassification,
   type DeckCycleState,
 } from "./constants.js";
-import { INVALID_CARRIER_OPERATIONS_STATE, CARRIER_OPERATIONS_INVARIANT_FAILED } from "./reasonCodes.js";
+import {
+  INVALID_CARRIER_OPERATIONS_STATE,
+  CARRIER_OPERATIONS_INVARIANT_FAILED,
+} from "./reasonCodes.js";
 
 export interface CarrierOperationsState {
   shipId: string;
@@ -164,7 +167,10 @@ export interface CarrierCapacityAssignment {
   assignmentPriority: AssignmentPriority;
 }
 
-export function assignmentOrderComparator(a: CarrierCapacityAssignment, b: CarrierCapacityAssignment): number {
+export function assignmentOrderComparator(
+  a: CarrierCapacityAssignment,
+  b: CarrierCapacityAssignment,
+): number {
   if (a.assignmentPriority !== b.assignmentPriority) {
     return a.assignmentPriority - b.assignmentPriority;
   }

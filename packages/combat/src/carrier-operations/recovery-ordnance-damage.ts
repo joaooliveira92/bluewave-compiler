@@ -123,16 +123,23 @@ export interface DeckHangarDamageState {
   ordnanceStorageDamageBp: number;
 }
 
-export function computeDeckHangarDamageEffects(damage: DeckHangarDamageState): DeckHangarDamageEffects {
-  const flightDeckMult = damage.flightDeckDamageBp >= 10_000 ? 10_000
-    : damage.flightDeckDamageBp >= 7_500 ? 7_500
-    : damage.flightDeckDamageBp >= 3_500 ? 3_500
-    : 0;
+export function computeDeckHangarDamageEffects(
+  damage: DeckHangarDamageState,
+): DeckHangarDamageEffects {
+  const flightDeckMult =
+    damage.flightDeckDamageBp >= 10_000
+      ? 10_000
+      : damage.flightDeckDamageBp >= 7_500
+        ? 7_500
+        : damage.flightDeckDamageBp >= 3_500
+          ? 3_500
+          : 0;
 
   const catsOperational = damage.totalCatapultCount - damage.catapultDamageCount;
-  const launchRateMult = damage.totalCatapultCount > 0
-    ? Math.round((catsOperational / damage.totalCatapultCount) * 10_000)
-    : 10_000;
+  const launchRateMult =
+    damage.totalCatapultCount > 0
+      ? Math.round((catsOperational / damage.totalCatapultCount) * 10_000)
+      : 10_000;
 
   const liftsOperational = damage.liftOperationalCount;
   const liftMovementOk = liftsOperational > 0;
@@ -147,7 +154,8 @@ export function computeDeckHangarDamageEffects(damage: DeckHangarDamageState): D
     rearmingPermitted: damage.ordnanceStorageDamageBp < 10_000,
     fireExplosionRiskMultiplierBp: damage.hangarDamageBp >= 5_000 ? 12_000 : 10_000,
     capacityAccessBp: trappedAircraft > 0 ? 5_000 : 10_000,
-    repairRequired: damage.flightDeckDamageBp < 10_000 || damage.liftOperationalCount < damage.totalLiftCount,
+    repairRequired:
+      damage.flightDeckDamageBp < 10_000 || damage.liftOperationalCount < damage.totalLiftCount,
     jetCompatibilityDegraded: damage.flightDeckDamageBp < 7_500 || !liftMovementOk,
   };
 }

@@ -173,18 +173,21 @@ describe("AC-13: Explicit deck-cycle states", () => {
     });
 
     it("throws INVALID_CARRIER_DECK_CYCLE_TRANSITION for invalid transition", () => {
-      expect(() => assertValidDeckCycleTransition("UNREADY", "LAUNCHING"))
-        .toThrow(INVALID_CARRIER_DECK_CYCLE_TRANSITION);
+      expect(() => assertValidDeckCycleTransition("UNREADY", "LAUNCHING")).toThrow(
+        INVALID_CARRIER_DECK_CYCLE_TRANSITION,
+      );
     });
 
     it("throws for STRUCK_DOWN → AIRBORNE", () => {
-      expect(() => assertValidDeckCycleTransition("STRUCK_DOWN", "AIRBORNE"))
-        .toThrow(INVALID_CARRIER_DECK_CYCLE_TRANSITION);
+      expect(() => assertValidDeckCycleTransition("STRUCK_DOWN", "AIRBORNE")).toThrow(
+        INVALID_CARRIER_DECK_CYCLE_TRANSITION,
+      );
     });
 
     it("throws for AIRBORNE → UNREADY", () => {
-      expect(() => assertValidDeckCycleTransition("AIRBORNE", "UNREADY"))
-        .toThrow(INVALID_CARRIER_DECK_CYCLE_TRANSITION);
+      expect(() => assertValidDeckCycleTransition("AIRBORNE", "UNREADY")).toThrow(
+        INVALID_CARRIER_DECK_CYCLE_TRANSITION,
+      );
     });
   });
 });
@@ -260,10 +263,17 @@ describe("AC-14: Deck contention policy", () => {
   });
 
   describe("mayOverlapOnAngledDeck", () => {
-    const predicates = neutralPredicates({ hasAngledDeck: true, deckDamagePermitsOverlap: true, weatherPermitsOverlap: true, trafficPermitsOverlap: true });
+    const predicates = neutralPredicates({
+      hasAngledDeck: true,
+      deckDamagePermitsOverlap: true,
+      weatherPermitsOverlap: true,
+      trafficPermitsOverlap: true,
+    });
 
     it("allows launch + recovery overlap on angled deck", () => {
-      expect(mayOverlapOnAngledDeck("ALERT_CAP_LAUNCH", "ORDINARY_RECOVERY", predicates)).toBe(true);
+      expect(mayOverlapOnAngledDeck("ALERT_CAP_LAUNCH", "ORDINARY_RECOVERY", predicates)).toBe(
+        true,
+      );
     });
 
     it("allows recovery + spotting overlap on angled deck", () => {
@@ -271,11 +281,15 @@ describe("AC-14: Deck contention policy", () => {
     });
 
     it("does not allow two launch operations to overlap", () => {
-      expect(mayOverlapOnAngledDeck("ALERT_CAP_LAUNCH", "ACTIVE_STRIKE_LAUNCH", predicates)).toBe(false);
+      expect(mayOverlapOnAngledDeck("ALERT_CAP_LAUNCH", "ACTIVE_STRIKE_LAUNCH", predicates)).toBe(
+        false,
+      );
     });
 
     it("does not allow two recovery operations to overlap", () => {
-      expect(mayOverlapOnAngledDeck("EMERGENCY_RECOVERY", "ORDINARY_RECOVERY", predicates)).toBe(false);
+      expect(mayOverlapOnAngledDeck("EMERGENCY_RECOVERY", "ORDINARY_RECOVERY", predicates)).toBe(
+        false,
+      );
     });
 
     it("returns false without angled deck", () => {
@@ -284,13 +298,25 @@ describe("AC-14: Deck contention policy", () => {
     });
 
     it("returns false when deck damage prevents overlap", () => {
-      const damaged = neutralPredicates({ hasAngledDeck: true, deckDamagePermitsOverlap: false, weatherPermitsOverlap: true, trafficPermitsOverlap: true });
+      const damaged = neutralPredicates({
+        hasAngledDeck: true,
+        deckDamagePermitsOverlap: false,
+        weatherPermitsOverlap: true,
+        trafficPermitsOverlap: true,
+      });
       expect(mayOverlapOnAngledDeck("ALERT_CAP_LAUNCH", "ORDINARY_RECOVERY", damaged)).toBe(false);
     });
 
     it("returns false when weather prevents overlap", () => {
-      const badWeather = neutralPredicates({ hasAngledDeck: true, deckDamagePermitsOverlap: true, weatherPermitsOverlap: false, trafficPermitsOverlap: true });
-      expect(mayOverlapOnAngledDeck("ALERT_CAP_LAUNCH", "ORDINARY_RECOVERY", badWeather)).toBe(false);
+      const badWeather = neutralPredicates({
+        hasAngledDeck: true,
+        deckDamagePermitsOverlap: true,
+        weatherPermitsOverlap: false,
+        trafficPermitsOverlap: true,
+      });
+      expect(mayOverlapOnAngledDeck("ALERT_CAP_LAUNCH", "ORDINARY_RECOVERY", badWeather)).toBe(
+        false,
+      );
     });
   });
 
@@ -320,30 +346,47 @@ describe("AC-14: Deck contention policy", () => {
 
     it("rejects second operation on straight deck", () => {
       const pred = neutralPredicates();
-      expect(() => assertContentionPermitted("SPOTTING", ["REFUELING_REARMING"], pred))
-        .toThrow(CARRIER_DECK_CONTENTION);
+      expect(() => assertContentionPermitted("SPOTTING", ["REFUELING_REARMING"], pred)).toThrow(
+        CARRIER_DECK_CONTENTION,
+      );
     });
 
     it("allows launch + recovery overlap on angled deck", () => {
-      const pred = neutralPredicates({ hasAngledDeck: true, deckDamagePermitsOverlap: true, weatherPermitsOverlap: true, trafficPermitsOverlap: true });
-      expect(() => assertContentionPermitted("ALERT_CAP_LAUNCH", ["ORDINARY_RECOVERY"], pred)).not.toThrow();
+      const pred = neutralPredicates({
+        hasAngledDeck: true,
+        deckDamagePermitsOverlap: true,
+        weatherPermitsOverlap: true,
+        trafficPermitsOverlap: true,
+      });
+      expect(() =>
+        assertContentionPermitted("ALERT_CAP_LAUNCH", ["ORDINARY_RECOVERY"], pred),
+      ).not.toThrow();
     });
 
     it("rejects two launch operations on angled deck", () => {
-      const pred = neutralPredicates({ hasAngledDeck: true, deckDamagePermitsOverlap: true, weatherPermitsOverlap: true, trafficPermitsOverlap: true });
-      expect(() => assertContentionPermitted("ALERT_CAP_LAUNCH", ["ACTIVE_STRIKE_LAUNCH"], pred))
-        .toThrow(CARRIER_DECK_CONTENTION);
+      const pred = neutralPredicates({
+        hasAngledDeck: true,
+        deckDamagePermitsOverlap: true,
+        weatherPermitsOverlap: true,
+        trafficPermitsOverlap: true,
+      });
+      expect(() =>
+        assertContentionPermitted("ALERT_CAP_LAUNCH", ["ACTIVE_STRIKE_LAUNCH"], pred),
+      ).toThrow(CARRIER_DECK_CONTENTION);
     });
 
     it("allows emergency recovery to preempt spotting", () => {
       const pred = neutralPredicates();
-      expect(() => assertContentionPermitted("EMERGENCY_RECOVERY", ["SPOTTING"], pred)).not.toThrow();
+      expect(() =>
+        assertContentionPermitted("EMERGENCY_RECOVERY", ["SPOTTING"], pred),
+      ).not.toThrow();
     });
 
     it("rejects emergency recovery preempting another recovery", () => {
       const pred = neutralPredicates();
-      expect(() => assertContentionPermitted("EMERGENCY_RECOVERY", ["ORDINARY_RECOVERY"], pred))
-        .toThrow(CARRIER_DECK_CONTENTION);
+      expect(() =>
+        assertContentionPermitted("EMERGENCY_RECOVERY", ["ORDINARY_RECOVERY"], pred),
+      ).toThrow(CARRIER_DECK_CONTENTION);
     });
 
     it("rejects recovery when fueled/armed aircraft on deck block it", () => {
@@ -351,8 +394,9 @@ describe("AC-14: Deck contention policy", () => {
         hasFueledArmedAircraftOnDeck: true,
         clearDeckCapacitySufficient: false,
       });
-      expect(() => assertContentionPermitted("ORDINARY_RECOVERY", [], pred))
-        .toThrow(CARRIER_DECK_CONTENTION);
+      expect(() => assertContentionPermitted("ORDINARY_RECOVERY", [], pred)).toThrow(
+        CARRIER_DECK_CONTENTION,
+      );
     });
 
     it("allows spotting even with fueled/armed aircraft on deck", () => {
@@ -372,12 +416,22 @@ describe("AC-14: Deck contention policy", () => {
 
 describe("INC-3 contracts", () => {
   it("CarrierDeckCycleState_v1 validates a valid transition record", () => {
-    const record = { fromState: "UNREADY", toState: "READYING", timestamp: 0, transitionValidated: true };
+    const record = {
+      fromState: "UNREADY",
+      toState: "READYING",
+      timestamp: 0,
+      transitionValidated: true,
+    };
     expect(() => validateCarrierDeckCycleStateContract(record)).not.toThrow();
   });
 
   it("CarrierDeckCycleState_v1 rejects invalid fromState", () => {
-    const record = { fromState: "INVALID", toState: "READYING", timestamp: 0, transitionValidated: true };
+    const record = {
+      fromState: "INVALID",
+      toState: "READYING",
+      timestamp: 0,
+      transitionValidated: true,
+    };
     expect(() => validateCarrierDeckCycleStateContract(record)).toThrow();
   });
 
@@ -409,7 +463,8 @@ describe("INC-3 contracts", () => {
 
   it("INC-3 contracts have exactly 2 entries", () => {
     const inc3Contracts = SHIPPED_CARRIER_OPERATIONS_CONTRACTS.filter(
-      (c) => c.policyId === "carrier_deck_cycle_state_v1" || c.policyId === "carrier_deck_contention_v1",
+      (c) =>
+        c.policyId === "carrier_deck_cycle_state_v1" || c.policyId === "carrier_deck_contention_v1",
     );
     expect(inc3Contracts).toHaveLength(2);
   });

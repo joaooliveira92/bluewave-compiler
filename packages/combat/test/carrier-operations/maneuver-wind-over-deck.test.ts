@@ -40,17 +40,23 @@ describe("AC-21: Automatic carrier maneuver", () => {
     });
 
     it("tailwind: carrier speed - ambient = 5kt", () => {
-      const wod = relativeWindOverDeckKnots(headwindWindVector({ ambientWindDirectionDegrees: 180 }));
+      const wod = relativeWindOverDeckKnots(
+        headwindWindVector({ ambientWindDirectionDegrees: 180 }),
+      );
       expect(wod).toBe(5);
     });
 
     it("crosswind: sqrt-based, 90deg: carrier speed (cos90=0)", () => {
-      const wod = relativeWindOverDeckKnots(headwindWindVector({ ambientWindDirectionDegrees: 90 }));
+      const wod = relativeWindOverDeckKnots(
+        headwindWindVector({ ambientWindDirectionDegrees: 90 }),
+      );
       expect(wod).toBe(15);
     });
 
     it("270deg crosswind is same as 90deg", () => {
-      const wod = relativeWindOverDeckKnots(headwindWindVector({ ambientWindDirectionDegrees: 270 }));
+      const wod = relativeWindOverDeckKnots(
+        headwindWindVector({ ambientWindDirectionDegrees: 270 }),
+      );
       expect(wod).toBe(15);
     });
   });
@@ -65,8 +71,9 @@ describe("AC-21: Automatic carrier maneuver", () => {
     });
 
     it("throws CARRIER_MANEUVER_LOCKED_BY_DECK_OPERATION for conflicting operation", () => {
-      expect(() => assertManeuverNotLocked("op_001", "op_002"))
-        .toThrow(CARRIER_MANEUVER_LOCKED_BY_DECK_OPERATION);
+      expect(() => assertManeuverNotLocked("op_001", "op_002")).toThrow(
+        CARRIER_MANEUVER_LOCKED_BY_DECK_OPERATION,
+      );
     });
   });
 });
@@ -136,8 +143,9 @@ describe("AC-22: Wind-over-deck requirements", () => {
   });
 
   it("assertWindOverDeckSufficient throws for insufficient WOD", () => {
-    expect(() => assertWindOverDeckSufficient(19, "PISTON", true, "piston launch"))
-      .toThrow(CARRIER_WIND_OVER_DECK_INSUFFICIENT);
+    expect(() => assertWindOverDeckSufficient(19, "PISTON", true, "piston launch")).toThrow(
+      CARRIER_WIND_OVER_DECK_INSUFFICIENT,
+    );
   });
 
   it("assertWindOverDeckSufficient does not throw for sufficient WOD", () => {
@@ -150,7 +158,12 @@ describe("INC-5 contracts", () => {
     const record = {
       requiredCourse: { minDegrees: 0, maxDegrees: 10 },
       requiredSpeed: { minKnots: 20, maxKnots: 25 },
-      windVector: { ambientWindSpeedKnots: 10, ambientWindDirectionDegrees: 0, carrierSpeedKnots: 15, carrierCourseDegrees: 0 },
+      windVector: {
+        ambientWindSpeedKnots: 10,
+        ambientWindDirectionDegrees: 0,
+        carrierSpeedKnots: 15,
+        carrierCourseDegrees: 0,
+      },
       deckOperationId: "op_001",
       relativeWodKnots: 25,
       aircraftClass: "PISTON" as AircraftClass,
