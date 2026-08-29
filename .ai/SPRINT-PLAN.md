@@ -177,6 +177,7 @@ current track; C-1 is in flight.**
 |     | **C-3-IMPL COMPLETE (AC-1..AC-22) 2026-08-28 — PASS.** INC-1..INC-8 through the orchestrator pipeline. 8 commits. Combat 2068 tests / 167 files / 294 submarine tests green. Goldens 10/10 unchanged throughout. ADR(s): see INC-1 report (scope/integration + deferral). `BattleResolver`/`StrengthCalculator` unmodified. Submarine module: model.ts, constants.ts, reasonCodes.ts, contracts.ts, reliability.ts, missionEligibility.ts, proximity.ts, effectiveness.ts, seaStateProfile.ts, screeningBalance.ts, mineLaying.ts, friendlyIdentification.ts, submarineRecords.ts + simulation child + 11 test files. Deferred per spec §3: tactical allocation/loss, returning-ship interception, ASW resolution, friendly-fire outcomes, strategic attack loss application, mine-strike resolution, phase/snapshot wiring, command-layer orders, missile payloads. Next: **C-4 or C-5 scoping.** |
 | C-4 | Coastal defenses                | DESIGN-48 (short doc, 48 lines — may fold into C-3 during scoping) | Coastal-defense content                              |
 |     | **C-4 SCOPING: DONE 2026-08-28 — PASS.** Full value-model vertical slice of DESIGN-48 scoped: coastal battery definitions, land target types, damage state progression (5-state), placement rules (zone + seed-driven), local mine-pressure contribution (via C-2 `createMinePressureRecord`), value-only effectiveness formula, records/ordering/reason codes/contracts. Wayfinder map `.scratch/c4-m3-coastal-defenses/map.md` + decision tickets `01..06` (resolved), spec (AC-1..11, INC-1..6), brief `.ai/briefs/c4-m3-coastal-defenses.md`, `.ai/specs/c4-m3-coastal-defenses.md` pointer. **Deferred:** battle-participation integration, campaign-infrastructure consequence, AA progression, airfield/radar mechanics, YAML constants. **Next: C-4-IMPL (INC-1..INC-6).** |
+|     | **C-4-IMPL (Coastal defense — coastal artillery & land-target damage model): DONE 2026-08-28 — PASS.** INC-1..INC-6 through the orchestrator pipeline. 6 commits (`316cef9`, `912a372`, `3202dd9`, `deaa5c8`, `89dc5e2`, `9597c45`). Combat 78 tests / 10 files green incl. coastal-defense module. Build 18/18. `BattleResolver`/`StrengthCalculator` unmodified. ADR-0039. Goldens 10/10 unchanged (no snapshot/phase change). **Next: C-5 (smoke + detailed damage control) — scoping required.** |
 | C-5 | Smoke + detailed damage control | remainder of DESIGN-42, DESIGN-41                                  | Damage-control / smoke constants                     |
 | C-6 | M3 acceptance gate              |                                                                    | M3 content `SUPPORTED_MECHANICAL`; sign M3 COMPLETED |
 
@@ -269,15 +270,11 @@ application (§19) — each needs battle/attack machinery or DESIGN-29 (intellig
 
 ## Immediate next action
 
-**C-4-IMPL (Coastal defense — coastal artillery & land-target damage model, Track C).**
-Scoping DONE 2026-08-28 (map + decision tickets 01–06 resolved, spec at
-`.scratch/c4-m3-coastal-defenses/spec.md`, AC-1..11 / INC-1..6, brief at
-`.ai/briefs/c4-m3-coastal-defenses.md`). **Next frontier INC-1 (coastal battery
-definitions, land target types, damage states, constants, reason codes seed).**
-DESIGN-48 governs. No snapshot schema change; goldens stay 10/10.
-`BattleResolver`/`StrengthCalculator` unmodified.
-Deferred: battle-participation integration, campaign-infrastructure consequence,
-AA progression, airfield/radar mechanics, YAML-authored constants.
+**C-5 (Smoke + detailed damage control, Track C — M3 Advanced Surface Warfare).**
+DESIGN-42 remainder (smoke: drift/decay/screens §§7–23) + DESIGN-41 remainder
+(detailed damage control). Scoping required (no brief yet). `BattleResolver`/`StrengthCalculator`
+unmodified throughout. Goldens 10/10 stay unchanged until C-6 (M3 acceptance gate)
+when phase/snapshot wiring may require regeneration.
 
 **Desktop side-tracks (recorded, not dropped):**
 
