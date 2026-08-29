@@ -5,3 +5,5 @@ export * from "./contracts.js";
 export * from "./contractRollup.js";
 export * from "./spot-value.js";
 export * from "./jet-capability.js";
+export * from "./deck-cycles.js";
+export * from "./deck-contention.js";

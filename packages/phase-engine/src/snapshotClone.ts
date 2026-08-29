@@ -211,6 +211,7 @@ const F = {
     "divisions",
     "research",
     "constructionProjects",
+    "aircraft",
     "isPlayable",
     "isAI",
   ),

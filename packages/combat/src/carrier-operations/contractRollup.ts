@@ -3,6 +3,8 @@ import {
   validateCarrierOperationsStateContract,
   validateCarrierCapacityAssignmentContract,
   validateOversizedCarrierPolicyContract,
+  validateCarrierDeckCycleStateContract,
+  validateCarrierDeckContentionContract,
 } from "./contracts.js";
 
 export interface CarrierOperationsContractEntry {
@@ -26,6 +28,16 @@ export const SHIPPED_CARRIER_OPERATIONS_CONTRACTS: readonly CarrierOperationsCon
     policyId: "oversized_carrier_policy_v1",
     shippedContract: SHIPPED_CARRIER_OPERATIONS_CONTRACT.oversizedPolicy,
     validate: validateOversizedCarrierPolicyContract,
+  },
+  {
+    policyId: "carrier_deck_cycle_state_v1",
+    shippedContract: SHIPPED_CARRIER_OPERATIONS_CONTRACT.deckCycleState,
+    validate: validateCarrierDeckCycleStateContract,
+  },
+  {
+    policyId: "carrier_deck_contention_v1",
+    shippedContract: SHIPPED_CARRIER_OPERATIONS_CONTRACT.deckContention,
+    validate: validateCarrierDeckContentionContract,
   },
 ] as const;
 

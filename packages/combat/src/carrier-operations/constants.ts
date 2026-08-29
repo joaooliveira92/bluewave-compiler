@@ -23,19 +23,19 @@ export const OVERSIZED_COORDINATION_BP = 9_500 as const;
 export const OVERSIZED_HAZARD_BP = 11_000 as const;
 
 export const DECK_CYCLE_STATES = [
-  "IDLE",
-  "LAUNCHING",
-  "RECOVERING",
+  "UNREADY",
+  "READYING",
   "SPOTTING",
+  "SPOTTED",
+  "LAUNCHING",
+  "FORMING",
+  "AIRBORNE",
+  "RETURNING",
+  "HOLDING",
+  "LANDING",
   "REFUELING",
   "REARMING",
-  "MAINTENANCE",
-  "LAUNCHING_RECOVERING",
-  "EMERGENCY_RECOVERY",
-  "DAMAGE_CONTROL",
-  "DECK_PARK",
-  "TRANSFERRING",
-  "SUSPENDED",
+  "STRUCK_DOWN",
 ] as const;
 export type DeckCycleState = (typeof DECK_CYCLE_STATES)[number];
 

@@ -52,7 +52,7 @@ function validState(overrides: Partial<CarrierOperationsState> = {}): CarrierOpe
     physicalCapacityUnits: SafeInt(72),
     occupiedCapacityUnits: SafeInt(48),
     currentSpotValue: SafeInt(18),
-    deckCycleState: "IDLE" as DeckCycleState,
+    deckCycleState: "UNREADY" as DeckCycleState,
     deckConfigurationId: "straight_deck",
     catapultDefinitions: [],
     liftDefinitions: [],
@@ -92,7 +92,7 @@ describe("AC-1: Complete carrier state", () => {
     expect(state.classification).toBe("CV");
     expect(Number(state.physicalCapacityUnits)).toBe(72);
     expect(Number(state.occupiedCapacityUnits)).toBe(48);
-    expect(state.deckCycleState).toBe("IDLE");
+    expect(state.deckCycleState).toBe("UNREADY");
     expect(state.rulesetVersion).toBe(CARRIER_OPERATIONS_RULESET_VERSION);
     expect(state.stateHash).toMatch(/^[0-9a-f]{64}$/);
   });
@@ -317,7 +317,10 @@ describe("AC-6: Oversized carrier policy", () => {
 
 describe("INC-1 contract rollup", () => {
   it("ships exactly 3 contracts for INC-1", () => {
-    expect(SHIPPED_CARRIER_OPERATIONS_CONTRACTS).toHaveLength(3);
+    const inc1Contracts = SHIPPED_CARRIER_OPERATIONS_CONTRACTS.filter(
+      (c) => c.policyId === "carrier_operations_state_v1" || c.policyId === "carrier_capacity_assignment_v1" || c.policyId === "oversized_carrier_policy_v1",
+    );
+    expect(inc1Contracts).toHaveLength(3);
   });
 
   it("shipped contracts are all defined", () => {
@@ -361,19 +364,19 @@ describe("Reason codes surface", () => {
 describe("13 canonical deck cycle states", () => {
   it("declares exactly the 13 states per §11", () => {
     expect([...DECK_CYCLE_STATES]).toEqual([
-      "IDLE",
-      "LAUNCHING",
-      "RECOVERING",
+      "UNREADY",
+      "READYING",
       "SPOTTING",
+      "SPOTTED",
+      "LAUNCHING",
+      "FORMING",
+      "AIRBORNE",
+      "RETURNING",
+      "HOLDING",
+      "LANDING",
       "REFUELING",
       "REARMING",
-      "MAINTENANCE",
-      "LAUNCHING_RECOVERING",
-      "EMERGENCY_RECOVERY",
-      "DAMAGE_CONTROL",
-      "DECK_PARK",
-      "TRANSFERRING",
-      "SUSPENDED",
+      "STRUCK_DOWN",
     ]);
   });
 });

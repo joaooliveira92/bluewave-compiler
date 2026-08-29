@@ -1,7 +1,7 @@
 **Type:** implementation
-**Status:** open
+**Status:** closed
 **Blocked by:** INC-1
-**Frontier:** yes
+**Frontier:** no
 
 # INC-3: Deck-cycle states + contention (§§11-12)
 
@@ -17,3 +17,5 @@
 ## Acceptance criteria
 
 AC-13 (deck-cycle states), AC-14 (deck contention).
+
+**DONE 2026-08-29 — PASS.** Combat 217 files / 2845 tests green. 68 INC-3 tests green. Build 18/18. tsc -b clean.

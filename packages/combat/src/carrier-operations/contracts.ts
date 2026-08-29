@@ -179,6 +179,71 @@ export const CarrierSpotValue_v1 = z.object({
 
 export type CarrierSpotValueContract = z.infer<typeof CarrierSpotValue_v1>;
 
+export const CarrierDeckCycleState_v1 = z.object({
+  fromState: z.enum(DECK_CYCLE_STATES),
+  toState: z.enum(DECK_CYCLE_STATES),
+  timestamp: z.number().int().min(0),
+  transitionValidated: z.boolean(),
+});
+
+export type CarrierDeckCycleStateContract = z.infer<typeof CarrierDeckCycleState_v1>;
+
+export function validateCarrierDeckCycleStateContract(value: unknown): CarrierDeckCycleStateContract {
+  const result = CarrierDeckCycleState_v1.safeParse(value);
+  if (!result.success) {
+    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
+      code: INVALID_CARRIER_OPERATIONS_STATE,
+      field: result.error.errors[0]?.path.join(".") ?? "unknown",
+      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      value,
+    });
+  }
+  return result.data;
+}
+
+const operationClassSchema = z.enum([
+  "EMERGENCY_RECOVERY",
+  "ORDINARY_RECOVERY",
+  "ALERT_CAP_LAUNCH",
+  "ACTIVE_STRIKE_LAUNCH",
+  "SEARCH_LAUNCH",
+  "ORDINARY_CAP_LAUNCH",
+  "SPOTTING",
+  "REFUELING_REARMING",
+  "STRIKE_DOWN",
+]);
+
+const contentionPredicatesSchema = z.object({
+  hasAngledDeck: z.boolean(),
+  deckDamagePermitsOverlap: z.boolean(),
+  weatherPermitsOverlap: z.boolean(),
+  trafficPermitsOverlap: z.boolean(),
+  hasFueledArmedAircraftOnDeck: z.boolean(),
+  clearDeckCapacitySufficient: z.boolean(),
+});
+
+export const CarrierDeckContention_v1 = z.object({
+  requested: operationClassSchema,
+  currentOperations: z.array(operationClassSchema),
+  predicates: contentionPredicatesSchema,
+  permitted: z.boolean(),
+});
+
+export type CarrierDeckContentionContract = z.infer<typeof CarrierDeckContention_v1>;
+
+export function validateCarrierDeckContentionContract(value: unknown): CarrierDeckContentionContract {
+  const result = CarrierDeckContention_v1.safeParse(value);
+  if (!result.success) {
+    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
+      code: INVALID_CARRIER_OPERATIONS_STATE,
+      field: result.error.errors[0]?.path.join(".") ?? "unknown",
+      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      value,
+    });
+  }
+  return result.data;
+}
+
 export const JetCarrierCapability_v1 = z.object({
   trueStandardDisplacementKg: nonNegativeSafeIntSchema,
   hasCompatibleOperationalSteamCatapult: z.boolean(),
@@ -196,4 +261,6 @@ export const SHIPPED_CARRIER_OPERATIONS_CONTRACT = {
   state: CarrierOperationsState_v1,
   capacityAssignment: CarrierCapacityAssignment_v1,
   oversizedPolicy: OversizedCarrierPolicy_v1,
+  deckCycleState: CarrierDeckCycleState_v1,
+  deckContention: CarrierDeckContention_v1,
 } as const;
