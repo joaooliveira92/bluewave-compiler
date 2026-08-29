@@ -33,6 +33,7 @@ import {
   submarineReliabilityPolicyId,
   submarineRemoteEfficiencyPolicyId,
   submarineLongRangeAswVulnerabilityPolicyId,
+  submarineScreeningBalancePolicyId,
   submarineSeaStatePolicyId,
   submarineStrategicAssetPolicyId,
   submarineTypesPolicyId,
@@ -77,6 +78,11 @@ import {
   SUBMARINE_SEA_STATE_OPTIMUM_MIN,
   SUBMARINE_SEA_STATE_OPTIMUM_MAX,
 } from "./seaStateProfile.js";
+import {
+  SUBMARINE_HEAVY_SHIP_TYPES,
+  SUBMARINE_ELIGIBLE_ESCORT_TYPES,
+  SHIPPED_SCREENING_OPPORTUNITY_BANDS,
+} from "./screeningBalance.js";
 
 function arrayEquals(a: readonly unknown[], b: readonly unknown[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
@@ -820,5 +826,68 @@ export function validateSubmarineSeaStateContract(
     mismatch(c, "submarine_sea_state_v1 §17 snorkel machinery multiplier 7_500");
   if (c.surfacedTransitSpeedBp !== SUBMARINE_SURFACED_TRANSIT_SPEED_BP)
     mismatch(c, "submarine_sea_state_v1 §17 surfaced transit speed 7_500");
+  void c;
+}
+
+// ---------------------------------------------------------------------------
+// submarine_screening_balance_v1 (§18)
+// ---------------------------------------------------------------------------
+
+export interface SubmarineScreeningBalanceContract {
+  policyId: string;
+  rulesetVersion: string;
+  formulaVersion: string;
+  basisPointsPerUnit: number;
+  heavyShipTypes: readonly string[];
+  eligibleEscortTypes: readonly string[];
+  opportunityBands: ReadonlyArray<{ minRatio: number; maxRatio: number; multiplierBp: number }>;
+}
+
+export const SHIPPED_SUBMARINE_SCREENING_BALANCE_CONTRACT: SubmarineScreeningBalanceContract = {
+  policyId: submarineScreeningBalancePolicyId,
+  rulesetVersion: SUBMARINE_RULESET_VERSION,
+  formulaVersion: SUBMARINE_FORMULA_VERSION,
+  basisPointsPerUnit: SUBMARINE_BASIS_POINTS_PER_UNIT,
+  heavyShipTypes: SUBMARINE_HEAVY_SHIP_TYPES,
+  eligibleEscortTypes: SUBMARINE_ELIGIBLE_ESCORT_TYPES,
+  opportunityBands: SHIPPED_SCREENING_OPPORTUNITY_BANDS,
+};
+
+export function validateSubmarineScreeningBalanceContract(
+  c: Partial<SubmarineScreeningBalanceContract> | null | undefined,
+): asserts c is SubmarineScreeningBalanceContract {
+  function mismatch(contract: unknown, reason: string): never {
+    throw new BluewaveError(SUBMARINE_STATE_INVARIANT_FAILED, {
+      code: SUBMARINE_STATE_INVARIANT_FAILED,
+      reason,
+      contract,
+    });
+  }
+  if (!c) mismatch(c, "submarine_screening_balance_v1 missing contract");
+  if (c.policyId !== submarineScreeningBalancePolicyId)
+    mismatch(c, "submarine_screening_balance_v1 expected policy id");
+  if (
+    c.rulesetVersion !== SUBMARINE_RULESET_VERSION ||
+    c.formulaVersion !== SUBMARINE_FORMULA_VERSION
+  )
+    mismatch(c, "submarine_screening_balance_v1 ruleset/formula versions");
+  if (c.basisPointsPerUnit !== SUBMARINE_BASIS_POINTS_PER_UNIT)
+    mismatch(c, "submarine_screening_balance_v1 basis-point scale");
+  if (!c.heavyShipTypes || !arrayEquals(c.heavyShipTypes, SUBMARINE_HEAVY_SHIP_TYPES))
+    mismatch(c, "submarine_screening_balance_v1 §18 heavy ship types");
+  if (
+    !c.eligibleEscortTypes ||
+    !arrayEquals(c.eligibleEscortTypes, SUBMARINE_ELIGIBLE_ESCORT_TYPES)
+  )
+    mismatch(c, "submarine_screening_balance_v1 §18 eligible escort types");
+  if (!c.opportunityBands || c.opportunityBands.length !== 5)
+    mismatch(c, "submarine_screening_balance_v1 §18 five opportunity bands");
+  for (let i = 0; i < SHIPPED_SCREENING_OPPORTUNITY_BANDS.length; i++) {
+    const s = SHIPPED_SCREENING_OPPORTUNITY_BANDS[i];
+    const t = c.opportunityBands[i];
+    if (!s || !t) mismatch(c, `submarine_screening_balance_v1 band missing at index ${i}`);
+    if (t.minRatio !== s.minRatio || t.maxRatio !== s.maxRatio || t.multiplierBp !== s.multiplierBp)
+      mismatch(c, `submarine_screening_balance_v1 §18 band at index ${i}`);
+  }
   void c;
 }

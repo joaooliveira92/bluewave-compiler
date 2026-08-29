@@ -22,6 +22,8 @@ export const submarineLongRangeAswVulnerabilityPolicyId =
   "submarine_long_range_asw_vulnerability_v1" as const;
 export const submarineEffectivenessPolicyId = "submarine_effectiveness_v1" as const;
 export const submarineSeaStatePolicyId = "submarine_sea_state_v1" as const;
+export const submarineScreeningBalancePolicyId = "submarine_screening_balance_v1" as const;
+export const submarineAttackOpportunityPolicyId = "submarine_attack_opportunity_v1" as const;
 
 export const SUBMARINE_RULESET_VERSION = "submarine_ruleset_v1" as const;
 export const SUBMARINE_FORMULA_VERSION = "submarine_formula_v1" as const;
