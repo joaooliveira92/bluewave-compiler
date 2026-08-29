@@ -254,12 +254,20 @@ combat 1880 tests / 156 files green incl. 106 submarine; goldens 10/10 unchanged
 **INC-3 (proximity + remote-efficiency + ASW vulnerability, AC-6/AC-7/AC-8) DONE 2026-08-28** (see
 INC-3 commit hash below); combat 1904 tests / 157 files green incl. 130 submarine; goldens 10/10
 unchanged; reviewer APPROVE). Next frontier
-**INC-4 (strategic mission effectiveness + coastal restriction, AC-9/AC-10)** —
-unblocked. Design-34 governs. No snapshot schema change; goldens stay 10/10.
+**INC-4 (strategic mission effectiveness + coastal restriction, AC-9/AC-10)**
+— unblocked. Design-34 governs. No snapshot schema change; goldens stay 10/10.
 `BattleResolver`/`StrengthCalculator` unmodified.
 Deferred: tactical allocation/loss (§2–3), returning-ship interception (§21),
 ASW resolution (§22), friendly-fire risk/outcome (§23–24), strategic attack loss
 application (§19) — each needs battle/attack machinery or DESIGN-29 (intelligence).
+
+### C-3-IMPL INC-4 done (strategic mission effectiveness + coastal restriction)
+
+**INC-4 (strategic mission effectiveness + coastal restriction, AC-9/AC-10) DONE 2026-08-28** (commit `e8f2722`). effectiveness.ts: §11 BigInt formula (floor/base × 7 multipliers / 10_000^7), §12 coastal restriction predicate (6 movement kinds). submarine_effectiveness_v1 contract + validate guard. effectiveness.test.ts: 30 tests covering all-multiplier paths (AC-9), coastal restriction states (AC-10), authored default values (baseSupport=10_000, policy=10_000, intelligence=10_000+DEFERRED marker, enemyProtection=10_000, blockade=10_000), contract guard. Combat 1942 tests / 158 files green incl. 146 submarine; goldens 10/10 unchanged. `BattleResolver`/`StrengthCalculator` unmodified. Next frontier: **INC-5 (sea-state profile, AC-11/AC-12).**
+
+## Immediate next action
+
+**ACTIVE SPRINT: C-3-IMPL INC-4 (strategic mission effectiveness + coastal restriction, AC-9/AC-10).** DONE 2026-08-28 (commit `e8f2722`). Report `.ai/reports/c3-m3-submarines-inc4.md`. Combat 1942 tests / 158 files green incl. 146 submarine; goldens 10/10 byte-identical. Next frontier: **INC-5 (sea-state profile, AC-11/AC-12).**
 
 **Desktop side-tracks (recorded, not dropped):**
 
