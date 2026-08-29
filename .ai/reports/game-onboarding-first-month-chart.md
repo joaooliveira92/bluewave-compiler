@@ -36,6 +36,7 @@ the next frontier). Assembling the single M2 spec awaits all tickets per
 
 Charting effort only; the one code change (ticket 11) is additive to the
 diplomacy domain projection layer:
+
 - `campaign-engine/src/diplomacy.ts` — `tensionLabel`, `isHighTension`,
   `HIGH_TENSION_THRESHOLD`, `TENSION_LABELS`, `TENSION_LABEL_BANDS`.
 - `campaign-engine/test/tension-label.test.ts` — 8 tests (band edges, high-

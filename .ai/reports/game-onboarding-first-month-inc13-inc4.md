@@ -10,6 +10,7 @@ Two frontier-ordered implementation tickets landed on `dev` since the last repor
 (`INC-14` + `INC-2`, `.ai/reports/game-onboarding-first-month-inc14-inc2.md`):
 
 **INC-13 — Campaign-list screen + `SaveMetadata` extension** (spec §17.4).
+
 - The additive `SaveMetadataSchema` fields (`campaignName`, `nationId`,
   `campaignDate`) and their save-time population already existed (committed
   earlier); this ticket verified them and added a focused persistence test
@@ -31,6 +32,7 @@ Two frontier-ordered implementation tickets landed on `dev` since the last repor
   Load goes through the real `loadCampaign` + `CompatibilityChecker`.
 
 **INC-4 — Treasury read-only projection screen** (spec §9).
+
 - `packages/campaign-engine/src/projection.ts` — added `maintenanceCost` to
   `PlayerProjectionEconomy`, reusing the exact `fleetMaintenance` derivation
   that already backs `projectedSurplusDeficit` (additive, non-authoritative;
@@ -47,6 +49,7 @@ Two frontier-ordered implementation tickets landed on `dev` since the last repor
   Surplus/deficit may legitimately be negative (honest `Deficit`/`Surplus`).
 
 **Design decisions (recorded):**
+
 - Campaign status column renders `—`: `SaveMetadata` carries no
   `isTerminal`/in-flight signal (those live on `CampaignSessionState` only after
   load); deriving a status pre-load would fabricate. Reviewer confirmed honest.
@@ -62,6 +65,7 @@ Two frontier-ordered implementation tickets landed on `dev` since the last repor
 ## Requirements evidence (acceptance criterion → proving test)
 
 **INC-13:**
+
 1. **`SaveMetadataSchema` accepts the three new optional fields; legacy records render `—`** — `persistence.test.ts` new save-time test + `campaign-list-screen-state.test.ts` "labels a modern save" / "falls back to the honest turnNumber for a legacy save".
 2. **Campaign-list screen lists real saves with all six columns and loads through `loadCampaign`/`CompatibilityChecker`** — `CampaignListScreen.test.tsx` "renders real saves with all six columns"; load button calls `loadCampaign` (`CampaignListScreen.tsx`).
 3. **Corrupt/incompatible saves skipped** — `SaveStore.list` already skips (store.ts:462+); `listCampaigns` test "returns an empty list for a directory with no valid saves".
@@ -70,6 +74,7 @@ Two frontier-ordered implementation tickets landed on `dev` since the last repor
 6. **Goldens 10/10 unchanged** — `verify-golden-hashes.cjs` (below).
 
 **INC-4:**
+
 1. **Treasury route renders real income/expenditure/result figures with honest copy** — `TreasuryScreen.test.tsx` "renders the real income / expenditure / result figures from the projection".
 2. **Every displayed number from the projection; no renderer-side derivations, no fabricated categories** — `treasury-screen-state.test.ts` "summarizes every row from the projection"; only sums are total-expenditure + month-end funds.
 3. **No Treasury command; no editable input** — `TreasuryScreen.test.tsx` "renders no budget controls of any kind" (no button/input/combobox).

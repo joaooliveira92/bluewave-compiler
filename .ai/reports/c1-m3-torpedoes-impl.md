@@ -2,7 +2,7 @@
 
 - **Status:** Implemented with reviews
 - **Reviewed by:** IMPLEMENTATOR (07a0ecb)
-- **Validation:** 
+- **Validation:**
   - All 72 unit tests passed (`test/torpedo/*`) including:
     - Model validation (`model.test.ts`)
     - Launcher state guards (`launcher-state.test.ts`)

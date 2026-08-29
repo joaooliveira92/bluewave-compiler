@@ -21,10 +21,7 @@ import {
   TUBE_HIT_HAZARD_POLICIES,
   type TubeHitHazardPolicy,
 } from "./constants.js";
-import {
-  INVALID_TORPEDO_MODEL_DEFINITION,
-  TORPEDO_STATE_INVARIANT_FAILED,
-} from "./reasonCodes.js";
+import { INVALID_TORPEDO_MODEL_DEFINITION, TORPEDO_STATE_INVARIANT_FAILED } from "./reasonCodes.js";
 
 // Content version of the research-grounded model set (INC-1 seeded a subset;
 // INC-8 rolls up the FULL torpedo_models_v1 set — 8 models, see the shipped

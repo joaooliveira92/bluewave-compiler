@@ -5,9 +5,7 @@ import {
   COASTAL_DEFENSE_FORMULA_VERSION,
   type LandTargetType,
 } from "./constants.js";
-import {
-  COASTAL_DEFENSE_EFFECTIVENESS_FORMULA_MISSING,
-} from "./reasonCodes.js";
+import { COASTAL_DEFENSE_EFFECTIVENESS_FORMULA_MISSING } from "./reasonCodes.js";
 
 export interface CoastalArtilleryEffectivenessInput {
   readonly caliberMm: SafeInt;
@@ -17,18 +15,22 @@ export interface CoastalArtilleryEffectivenessInput {
   readonly seaStateMultiplierBp: SafeInt;
 }
 
-export function coastalArtilleryEffectivenessBp(input: CoastalArtilleryEffectivenessInput): SafeInt {
+export function coastalArtilleryEffectivenessBp(
+  input: CoastalArtilleryEffectivenessInput,
+): SafeInt {
   const base = SafeInt(BASE_EFFECTIVENESS_BP);
   const calFactor = SafeInt(Math.floor(input.caliberMm.valueOf() / 100));
   const targetBp = targetTypeEffectivenessBp(input.targetType);
 
-  const product = BigInt(base.valueOf()) *
+  const product =
+    BigInt(base.valueOf()) *
     BigInt(calFactor.valueOf()) *
     BigInt(input.damageMultiplierBp.valueOf()) *
     BigInt(input.seaStateMultiplierBp.valueOf()) *
     BigInt(targetBp.valueOf());
 
-  const denominator = BigInt(COASTAL_DEFENSE_BASIS_POINTS_PER_UNIT) *
+  const denominator =
+    BigInt(COASTAL_DEFENSE_BASIS_POINTS_PER_UNIT) *
     BigInt(COASTAL_DEFENSE_BASIS_POINTS_PER_UNIT) *
     BigInt(COASTAL_DEFENSE_BASIS_POINTS_PER_UNIT);
 

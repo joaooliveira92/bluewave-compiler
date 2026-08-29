@@ -90,6 +90,7 @@ See "Scope delivered — explicitly deferred". The report and consolidation entr
 ## Changed files
 
 Code (commit `c2caf64`):
+
 - `packages/combat/src/submarines/` — new module (`constants.ts`, `model.ts`, `reasonCodes.ts`, `contracts.ts`, `index.ts`).
 - `packages/combat/test/submarines/` — new tests (4 files).
 - `packages/combat/src/index.ts` — added `export * from "./submarines/index.js";` (the single permitted existing-file change).

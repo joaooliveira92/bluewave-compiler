@@ -10,7 +10,7 @@
    — `buildOpeningBriefingProjection(state, playerSlotId, month)`, exported via
    `src/index.ts`. Derives every briefing field from the compiled `CampaignSnapshot`
    with no fabricated values and no new domain concept:
-   - *State of the Navy*: ship-class inventory tally (fleet ships' `designVersionId`
+   - _State of the Navy_: ship-class inventory tally (fleet ships' `designVersionId`
      → design catalog → `hullType` → `constructionShipTypeLabel`), ships-under-construction
      (non-COMPLETED `ship` construction projects), most-expensive-active-class
      (max `projectedConstructionOrderCosts` over active ships' designs), largest-available-dock
@@ -20,20 +20,20 @@
      would fabricate £0; verified via reviewer BLOCKER), construction committed (aggregate
      project `paidWork`, honestly labeled as cumulative — `MonthReport.newConstructionSpending`
      is a monthly figure that only exists after a `commitMonth`).
-   - *Treasury*: government allocation (income × `navalAppropriationRateBp` via the engine's
+   - _Treasury_: government allocation (income × `navalAppropriationRateBp` via the engine's
      `scaleValue`, identical to `PlayerProjectionEconomy.monthlyAppropriation`), fleet
      maintenance (ship-derived, matching `MonthReport.maintenanceCost`), construction committed,
      research expenditure (`ResearchState.researchBudget`), projected surplus/deficit, and a
      qualitative `healthy/narrow/deficit/critical` status over the real surplus (thresholds
      documented as implementation detail, guarded against zero/negative allocation).
-   - *Foreign Intelligence*: per-rival relations label + tension only (**reuses
+   - _Foreign Intelligence_: per-rival relations label + tension only (**reuses
      `buildDiplomacyScreenProjection`** — no ship counts, no intel-quality tiering — both
      out-of-scope fog-of-war concepts).
-   - *Immediate Concerns*: four categories (obsolescence, budget shortfall, near-complete
+   - _Immediate Concerns_: four categories (obsolescence, budget shortfall, near-complete
      construction, low research spending) each triggered by real snapshot data; no
      "understaffed region" category.
    - Returns `undefined` for an unknown player slot (same convention as `buildPlayerProjection`).
-   - *Immediate Concerns*: four categories (obsolescence, budget shortfall, near-complete
+   - _Immediate Concerns_: four categories (obsolescence, budget shortfall, near-complete
      construction, low research spending) each triggered by real snapshot data; no
      "understaffed region" category.
    - Returns `undefined` for an unknown player slot (same convention as `buildPlayerProjection`).

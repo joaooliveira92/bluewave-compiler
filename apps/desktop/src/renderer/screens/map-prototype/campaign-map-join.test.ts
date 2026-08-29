@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { WorldMapView } from "@bluewave/campaign-engine";
-import {
-  CAMPAIGN_AREA_TO_FIXTURE,
-  joinWorldMap,
-} from "./campaign-map-join.js";
+import { CAMPAIGN_AREA_TO_FIXTURE, joinWorldMap } from "./campaign-map-join.js";
 
 /**
  * Authored-join tests: the campaign world (ids from the production pack) must
@@ -29,7 +26,13 @@ const WORLD: WorldMapView = {
     },
   ],
   fleets: [
-    { id: "fleet_gbr_home", nationId: "uk", name: "Home Fleet", areaId: "eng_home_coast", shipCount: 3 },
+    {
+      id: "fleet_gbr_home",
+      nationId: "uk",
+      name: "Home Fleet",
+      areaId: "eng_home_coast",
+      shipCount: 3,
+    },
   ],
 };
 

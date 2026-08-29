@@ -41,8 +41,8 @@ every other command in the registry — sync-write rationale, unit-tested).
    ui-state.json"; "is tolerant of a corrupt ui-state.json (unparseable or wrong
    shape -> defaults)".
 2. **Fingerprints expire on turn advance** — `resolveUiState` pure-function test
-   + integration "expires dismissals on turn advance and preserves inspection
-   across the real `commitMonth`".
+   - integration "expires dismissals on turn advance and preserves inspection
+     across the real `commitMonth`".
 3. **Inspection persists / survives save/load per-campaign** —
    "persists outside the authoritative envelope and survives a save/load cycle";
    "merge-preserves the sibling feature: a dismissal-only write retains the

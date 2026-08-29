@@ -30,7 +30,7 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
 
   if (loadError !== null) {
     return (
-      <div data-guided-target='construction'>
+      <div data-guided-target="construction">
         <LoadErrorCard message={loadError} onReload={() => void loadScreen()} />
       </div>
     );
@@ -38,7 +38,7 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
 
   if (state.workspace === null || state.economy === null) {
     return (
-      <div data-guided-target='construction' className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div data-guided-target="construction" className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {[0, 1, 2].map((idx) => (
           <Skeleton key={idx} className="h-24" />
         ))}
@@ -52,7 +52,7 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
   ).length;
 
   return (
-    <div data-guided-target='construction' className="space-y-6">
+    <div data-guided-target="construction" className="space-y-6">
       <PageHeader
         icon={Hammer}
         title="Construction Commands"

@@ -28,7 +28,10 @@ export interface UseGuidedInspectionResult {
 async function readInspection(sessionId: string): Promise<UiStateFirstMonthInspection | undefined> {
   const bridge = window.bluewave;
   if (bridge === undefined) return undefined;
-  const result = await bridge.campaign.execute("readUiState", sessionId) as unknown as { outcome: string; value?: { uiState?: { firstMonthInspection?: UiStateFirstMonthInspection } } };
+  const result = (await bridge.campaign.execute("readUiState", sessionId)) as unknown as {
+    outcome: string;
+    value?: { uiState?: { firstMonthInspection?: UiStateFirstMonthInspection } };
+  };
   if (result.outcome !== "success") return undefined;
   return result.value?.uiState?.firstMonthInspection;
 }
@@ -52,7 +55,9 @@ async function writeInspection(
   return result.value.uiState.firstMonthInspection;
 }
 
-export function useGuidedInspection(options: UseGuidedInspectionOptions): UseGuidedInspectionResult {
+export function useGuidedInspection(
+  options: UseGuidedInspectionOptions,
+): UseGuidedInspectionResult {
   const { sessionId } = options;
   const [inspection, setInspection] = useState<UiStateFirstMonthInspection | undefined>(undefined);
   const [stepIndex, setStepIndex] = useState(0);

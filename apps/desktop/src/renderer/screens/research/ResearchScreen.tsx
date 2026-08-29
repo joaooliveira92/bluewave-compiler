@@ -41,7 +41,7 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
 
   if (state.kind === "load-failed") {
     return (
-      <div data-guided-target='research' className="space-y-6">
+      <div data-guided-target="research" className="space-y-6">
         <PageHeader
           icon={FlaskConical}
           title="Research & Technology"
@@ -63,7 +63,7 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
 
   if (state.kind === "idle" || state.kind === "loading") {
     return (
-      <div data-guided-target='research' className="space-y-6">
+      <div data-guided-target="research" className="space-y-6">
         <PageHeader
           icon={FlaskConical}
           title="Research & Technology"
@@ -88,7 +88,7 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
   );
 
   return (
-    <div data-guided-target='research' className="space-y-6">
+    <div data-guided-target="research" className="space-y-6">
       <PageHeader
         icon={FlaskConical}
         title="Research & Technology"

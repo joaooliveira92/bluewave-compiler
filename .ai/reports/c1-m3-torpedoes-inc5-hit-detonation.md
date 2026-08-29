@@ -12,12 +12,12 @@ INC-5 of the C-1 torpedo fire-resolution slice of DESIGN-40, engine-only, entire
 
 ## Requirements evidence
 
-| Requirement | Implementation | Proving tests |
-| ----------- | -------------- | ------------- |
-| AC-13 part 2 §14 hit resolution | `hit-resolution.ts` (`intersectsCollisionGeometry`, `traveledArmingDistance`, `depthDraftCompatible`, `isLegalTarget`, `impactOrderingValid`, `resolveTorpedoHit` → `TORPEDO_HIT_RESOLVED`) | `test/torpedo/hit-resolution.test.ts` (25 tests) |
-| AC-14 §15 detonation outcomes | `detonation.ts` (`TORPEDO_DETONATION_OUTCOMES`, `computeDetonationProbabilityBp`, `resolveTorpedoDetonation`, `applyTorpedoDetonationToTrack`, `torpedoTerminalForDetonationOutcome`, model→fuze mapping) | `test/torpedo/detonation.test.ts` (28 tests) |
-| Reason-code partition | `reasonCodes.ts` ships `TORPEDO_HIT_RESOLVED`, `TORPEDO_DUD` | `test/torpedo/contracts.test.ts` (AC-21 seed, INC-5 set moved in, INC-6+ kept out) |
-| Contracts | `SHIPPED_TORPEDO_DETONATION_CONTRACT` + `validateTorpedoDetonationContract` | `test/torpedo/contracts.test.ts` (MEDIUM-3 block) |
+| Requirement                     | Implementation                                                                                                                                                                                            | Proving tests                                                                      |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| AC-13 part 2 §14 hit resolution | `hit-resolution.ts` (`intersectsCollisionGeometry`, `traveledArmingDistance`, `depthDraftCompatible`, `isLegalTarget`, `impactOrderingValid`, `resolveTorpedoHit` → `TORPEDO_HIT_RESOLVED`)               | `test/torpedo/hit-resolution.test.ts` (25 tests)                                   |
+| AC-14 §15 detonation outcomes   | `detonation.ts` (`TORPEDO_DETONATION_OUTCOMES`, `computeDetonationProbabilityBp`, `resolveTorpedoDetonation`, `applyTorpedoDetonationToTrack`, `torpedoTerminalForDetonationOutcome`, model→fuze mapping) | `test/torpedo/detonation.test.ts` (28 tests)                                       |
+| Reason-code partition           | `reasonCodes.ts` ships `TORPEDO_HIT_RESOLVED`, `TORPEDO_DUD`                                                                                                                                              | `test/torpedo/contracts.test.ts` (AC-21 seed, INC-5 set moved in, INC-6+ kept out) |
+| Contracts                       | `SHIPPED_TORPEDO_DETONATION_CONTRACT` + `validateTorpedoDetonationContract`                                                                                                                               | `test/torpedo/contracts.test.ts` (MEDIUM-3 block)                                  |
 
 ## Commands and observed results
 

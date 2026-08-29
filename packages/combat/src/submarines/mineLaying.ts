@@ -13,10 +13,7 @@
 //
 // Pure/deterministic: no I/O/clock/random.
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
-import {
-  SUBMARINE_BASIS_POINTS_PER_UNIT,
-  type SubmarineType,
-} from "./constants.js";
+import { SUBMARINE_BASIS_POINTS_PER_UNIT, type SubmarineType } from "./constants.js";
 import {
   SUBMARINE_MINE_INVENTORY_INSUFFICIENT,
   SUBMARINE_MISSION_INELIGIBLE,

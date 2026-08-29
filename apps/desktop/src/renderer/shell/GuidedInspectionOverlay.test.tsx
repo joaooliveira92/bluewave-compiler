@@ -5,9 +5,7 @@ import { GuidedInspectionOverlay } from "./GuidedInspectionOverlay.js";
 
 describe("GuidedInspectionOverlay", () => {
   it("renders step title and N of 7 progress", () => {
-    render(
-      <GuidedInspectionOverlay stepIndex={0} onStepChange={vi.fn()} onDismiss={vi.fn()} />,
-    );
+    render(<GuidedInspectionOverlay stepIndex={0} onStepChange={vi.fn()} onDismiss={vi.fn()} />);
     expect(screen.getByText("Overview — Your Naval Position")).toBeTruthy();
     expect(screen.getByText("1 of 7")).toBeTruthy();
   });
@@ -20,9 +18,7 @@ describe("GuidedInspectionOverlay", () => {
     expect(screen.getByTestId("guided-inspection-next")).toBeTruthy();
     expect(screen.getByTestId("guided-inspection-end")).toBeTruthy();
 
-    rerender(
-      <GuidedInspectionOverlay stepIndex={2} onStepChange={vi.fn()} onDismiss={vi.fn()} />,
-    );
+    rerender(<GuidedInspectionOverlay stepIndex={2} onStepChange={vi.fn()} onDismiss={vi.fn()} />);
     expect(screen.getByTestId("guided-inspection-back")).toBeTruthy();
     expect(screen.getByText("3 of 7")).toBeTruthy();
   });
@@ -40,9 +36,7 @@ describe("GuidedInspectionOverlay", () => {
   });
 
   it("is non-blocking: overlay has pointer-events-none, card is interactive, no focus trap", () => {
-    render(
-      <GuidedInspectionOverlay stepIndex={0} onStepChange={vi.fn()} onDismiss={vi.fn()} />,
-    );
+    render(<GuidedInspectionOverlay stepIndex={0} onStepChange={vi.fn()} onDismiss={vi.fn()} />);
     const overlay = screen.getByTestId("guided-inspection-overlay");
     // Overlay itself is non-blocking
     expect(overlay.className).toMatch(/pointer-events-none/);
@@ -70,11 +64,10 @@ describe("GuidedInspectionOverlay", () => {
     const target = document.createElement("div");
     target.setAttribute("data-guided-target", "overview");
     document.body.appendChild(target);
-    render(
-      <GuidedInspectionOverlay stepIndex={0} onStepChange={vi.fn()} onDismiss={vi.fn()} />,
-    );
+    render(<GuidedInspectionOverlay stepIndex={0} onStepChange={vi.fn()} onDismiss={vi.fn()} />);
     expect(screen.getByTestId("guided-inspection-overlay")).toBeTruthy();
     target.remove();
-    (window as unknown as { matchMedia?: unknown }).matchMedia = original as unknown as typeof window.matchMedia;
+    (window as unknown as { matchMedia?: unknown }).matchMedia =
+      original as unknown as typeof window.matchMedia;
   });
 });

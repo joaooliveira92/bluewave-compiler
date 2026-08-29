@@ -24,7 +24,10 @@ describe("AC-10: integration-boundary proof", () => {
     it(`${file} does not import from forbidden modules`, () => {
       const content = readFileSync(resolve(coastalDir, file), "utf-8");
       for (const forbidden of forbiddenImports) {
-        if (content.includes(`from "@bluewave/${forbidden}"`) || content.includes(`from '${forbidden}'`)) {
+        if (
+          content.includes(`from "@bluewave/${forbidden}"`) ||
+          content.includes(`from '${forbidden}'`)
+        ) {
           throw new Error(`${file} imports from forbidden module "${forbidden}"`);
         }
       }

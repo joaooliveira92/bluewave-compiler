@@ -20,9 +20,7 @@ const SHIPPED_IN_SLICE_CODES = [
   "COASTAL_DEFENSE_INVARIANT_FAILED",
 ] as const;
 
-const SHIPPED_MARKER_CODES = [
-  "COASTAL_DEFENSE_RESOLUTION_DEFERRED",
-] as const;
+const SHIPPED_MARKER_CODES = ["COASTAL_DEFENSE_RESOLUTION_DEFERRED"] as const;
 
 const ALL_SHIPPED = [...SHIPPED_IN_SLICE_CODES, ...SHIPPED_MARKER_CODES];
 
@@ -33,7 +31,9 @@ describe("Reason-code set-equality (C-4)", () => {
     expect(INVALID_DAMAGE_STATE_TRANSITION).toBe("INVALID_DAMAGE_STATE_TRANSITION");
     expect(COASTAL_DEFENSE_PLACEMENT_ZONE_INVALID).toBe("COASTAL_DEFENSE_PLACEMENT_ZONE_INVALID");
     expect(COASTAL_ARTILLERY_MINE_PRESSURE_MISSING).toBe("COASTAL_ARTILLERY_MINE_PRESSURE_MISSING");
-    expect(COASTAL_DEFENSE_EFFECTIVENESS_FORMULA_MISSING).toBe("COASTAL_DEFENSE_EFFECTIVENESS_FORMULA_MISSING");
+    expect(COASTAL_DEFENSE_EFFECTIVENESS_FORMULA_MISSING).toBe(
+      "COASTAL_DEFENSE_EFFECTIVENESS_FORMULA_MISSING",
+    );
     expect(COASTAL_DEFENSE_INVARIANT_FAILED).toBe("COASTAL_DEFENSE_INVARIANT_FAILED");
   });
 
@@ -52,7 +52,9 @@ describe("Reason-code set-equality (C-4)", () => {
 
   it("all in-slice code names start with valid prefix", () => {
     for (const code of SHIPPED_IN_SLICE_CODES) {
-      expect(code.startsWith("INVALID_") || code.startsWith("UNKNOWN_") || code.startsWith("COASTAL_")).toBe(true);
+      expect(
+        code.startsWith("INVALID_") || code.startsWith("UNKNOWN_") || code.startsWith("COASTAL_"),
+      ).toBe(true);
     }
   });
 

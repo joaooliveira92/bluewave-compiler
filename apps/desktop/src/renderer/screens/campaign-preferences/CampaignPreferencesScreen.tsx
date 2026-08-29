@@ -45,7 +45,8 @@ export function CampaignPreferencesScreen({
       return;
     }
     const read = await bridge.campaign.execute("readUiState", sessionId);
-    const dismissed = read.outcome === "success" ? [...read.value.uiState.dismissedFingerprints] : [];
+    const dismissed =
+      read.outcome === "success" ? [...read.value.uiState.dismissedFingerprints] : [];
     const result = await bridge.campaign.execute("writeUiState", {
       sessionId,
       dismissedFingerprints: dismissed,

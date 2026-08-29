@@ -121,7 +121,13 @@ export function WorldMapChart({
       .map((fleet) => {
         const anchor = fixtureAnchor(fleet.area);
         if (anchor === null) return null;
-        return { id: fleet.id, name: fleet.name, area: fleet.area, owner: fleet.nation, ships: fleet.ships };
+        return {
+          id: fleet.id,
+          name: fleet.name,
+          area: fleet.area,
+          owner: fleet.nation,
+          ships: fleet.ships,
+        };
       })
       .filter((f): f is NonNullable<typeof f> => f !== null);
   }, [live, overlay]);
@@ -223,7 +229,10 @@ export function WorldMapChart({
 
   return (
     <div
-      className={cn("relative h-full w-full overflow-hidden rounded-lg border shadow-sm", className)}
+      className={cn(
+        "relative h-full w-full overflow-hidden rounded-lg border shadow-sm",
+        className,
+      )}
       style={{ background: CHART.ocean }}
     >
       <svg

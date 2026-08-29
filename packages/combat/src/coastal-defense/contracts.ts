@@ -15,9 +15,7 @@ import {
   landTargetTypePolicyId,
   landTargetDamageStatePolicyId,
 } from "./constants.js";
-import {
-  COASTAL_DEFENSE_INVARIANT_FAILED,
-} from "./reasonCodes.js";
+import { COASTAL_DEFENSE_INVARIANT_FAILED } from "./reasonCodes.js";
 
 function guardFailed(constantId: string, detail: string): never {
   throw new BluewaveError(COASTAL_DEFENSE_INVARIANT_FAILED, {
@@ -58,7 +56,10 @@ export function validateCoastalBatteryContract(contract: CoastalBatteryContract)
     guardFailed("policyId", `expected ${coastalBatteryPolicyId}, got ${contract.policyId}`);
   }
   if (contract.rulesetVersion !== COASTAL_DEFENSE_RULESET_VERSION) {
-    guardFailed("rulesetVersion", `expected ${COASTAL_DEFENSE_RULESET_VERSION}, got ${contract.rulesetVersion}`);
+    guardFailed(
+      "rulesetVersion",
+      `expected ${COASTAL_DEFENSE_RULESET_VERSION}, got ${contract.rulesetVersion}`,
+    );
   }
   if (contract.basisPointsPerUnit !== COASTAL_DEFENSE_BASIS_POINTS_PER_UNIT) {
     guardFailed("basisPointsPerUnit", `expected ${COASTAL_DEFENSE_BASIS_POINTS_PER_UNIT}`);
@@ -98,7 +99,9 @@ export const SHIPPED_LAND_TARGET_DAMAGE_STATES_CONTRACT: LandTargetDamageStatesC
   states: [...LAND_TARGET_DAMAGE_STATES],
 };
 
-export function validateLandTargetDamageStatesContract(contract: LandTargetDamageStatesContract): void {
+export function validateLandTargetDamageStatesContract(
+  contract: LandTargetDamageStatesContract,
+): void {
   if (contract.policyId !== landTargetDamageStatePolicyId) {
     guardFailed("policyId", `expected ${landTargetDamageStatePolicyId}, got ${contract.policyId}`);
   }

@@ -66,7 +66,11 @@ export function createCoastalBatteryDefinition(params: {
   }
   const cal = SafeInt(params.caliberMm);
   if (cal < SafeInt(75) || cal > SafeInt(460)) {
-    batteryInvariant(params.caliberMm, "caliberMm", `caliber out of range [75, 460]: ${params.caliberMm}`);
+    batteryInvariant(
+      params.caliberMm,
+      "caliberMm",
+      `caliber out of range [75, 460]: ${params.caliberMm}`,
+    );
   }
   return {
     model: params.model as CoastalBatteryModel,

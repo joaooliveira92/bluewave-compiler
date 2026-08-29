@@ -24,7 +24,7 @@ skill (`.agents/skills/to-spec`).
 - `.ai/AUTONOMOUS-AGENT.md` — autonomy and stop conditions.
 - The **`to-spec`** skill for the required spec format and publication rules.
   Readiness is expressed per our tracker convention (`docs/agents/issue-tracker.md`
-  + `triage-labels.md`), not as a label string.
+  - `triage-labels.md`), not as a label string.
 - `.ai/REQUIREMENTS.md` + `docs/requirements/REQUIREMENT-MAP.md`.
 - The milestone brief (`.ai/briefs/<slug>.md`) or conversation context; the
   governing DESIGN-* docs; approved ADRs; `.ai/SPRINT-PLAN.md` row.

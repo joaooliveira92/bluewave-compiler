@@ -86,11 +86,7 @@ function invariant(value: unknown, field: string, reason: string): never {
 
 function isNonNegativeBp(v: unknown): v is number {
   return (
-    typeof v === "number" &&
-    Number.isInteger(v) &&
-    Number.isSafeInteger(v) &&
-    v >= 0 &&
-    v <= 20_000
+    typeof v === "number" && Number.isInteger(v) && Number.isSafeInteger(v) && v >= 0 && v <= 20_000
   );
 }
 
@@ -124,11 +120,7 @@ export function computeStrategicMissionEffectiveness(
 
   const relBp = input.reliabilityMultiplierBp;
   if (!isNonNegativeBp(relBp)) {
-    return invariant(
-      relBp,
-      "reliabilityMultiplierBp",
-      "must be a basis-point value [0, 20_000]",
-    );
+    return invariant(relBp, "reliabilityMultiplierBp", "must be a basis-point value [0, 20_000]");
   }
 
   const bsBp = input.baseSupportMultiplierBp ?? SUBMARINE_BASE_SUPPORT_MULTIPLIER_BP;
@@ -143,11 +135,7 @@ export function computeStrategicMissionEffectiveness(
 
   const intBp = input.intelligenceMultiplierBp ?? SUBMARINE_INTELLIGENCE_MULTIPLIER_BP;
   if (!isNonNegativeBp(intBp)) {
-    return invariant(
-      intBp,
-      "intelligenceMultiplierBp",
-      "must be a basis-point value [0, 20_000]",
-    );
+    return invariant(intBp, "intelligenceMultiplierBp", "must be a basis-point value [0, 20_000]");
   }
 
   const epBp = input.enemyProtectionMultiplierBp ?? SUBMARINE_ENEMY_PROTECTION_MULTIPLIER_BP;

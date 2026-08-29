@@ -11,7 +11,10 @@ import { StarsBackground } from "../components/backgrounds/starts.js";
 import { ShaderBackground } from "../components/motion/shader-background.js";
 import { Alert, AlertDescription } from "../components/ui/alert.js";
 import { SidebarInset, SidebarProvider } from "../components/ui/sidebar.js";
-import { MonthlyResolutionFailure, MonthlyResolutionLoading } from "../components/MonthlyResolutionLoading.js";
+import {
+  MonthlyResolutionFailure,
+  MonthlyResolutionLoading,
+} from "../components/MonthlyResolutionLoading.js";
 import { PreTurnReviewDialog } from "../components/PreTurnReviewDialog.js";
 import { CampaignFileScreen } from "../screens/campaign-file/CampaignFileScreen.js";
 import { CampaignListScreen } from "../screens/campaign-list/CampaignListScreen.js";
@@ -555,16 +558,17 @@ function CampaignShellApplication({
       </AppFrame>
       <MapSheet />
       <MonthlyResolutionLoading committing={shell.state.committing} />
-      {shell.state.saveMessage !== null && shell.state.saveMessage.startsWith("Could not advance month:") && (
-        <MonthlyResolutionFailure
-          message={shell.state.saveMessage}
-          onReturn={() => shell.actions.selectScreen("overview")}
-          onRetry={async () => {
-            // saveMessage is cleared on next commit attempt via month-commit-started
-            await shell.actions.advanceMonth();
-          }}
-        />
-      )}
+      {shell.state.saveMessage !== null &&
+        shell.state.saveMessage.startsWith("Could not advance month:") && (
+          <MonthlyResolutionFailure
+            message={shell.state.saveMessage}
+            onReturn={() => shell.actions.selectScreen("overview")}
+            onRetry={async () => {
+              // saveMessage is cleared on next commit attempt via month-commit-started
+              await shell.actions.advanceMonth();
+            }}
+          />
+        )}
       {shell.state.campaign !== null && (
         <PreTurnReviewDialog
           open={reviewOpen}

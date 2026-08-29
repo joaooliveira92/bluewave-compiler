@@ -107,9 +107,7 @@ describe("AC-14: attack-opportunity value-only (§19)", () => {
       regionalProtectionFactorBp: 6_000,
       missionStrengthFactorBp: 5_000,
     });
-    const expected = Math.floor(
-      (10_000 * 8_000 * 7_000 * 6_000 * 5_000) / 10_000 ** 4,
-    );
+    const expected = Math.floor((10_000 * 8_000 * 7_000 * 6_000 * 5_000) / 10_000 ** 4);
     expect(result).toBe(expected);
   });
 
@@ -215,8 +213,8 @@ describe("submarine_screening_balance_v1 contract (AC-21)", () => {
   it("validate fails on tampered opportunity band", () => {
     const tampered = {
       ...SHIPPED_SUBMARINE_SCREENING_BALANCE_CONTRACT,
-      opportunityBands: SHIPPED_SUBMARINE_SCREENING_BALANCE_CONTRACT.opportunityBands.map(
-        (b, i) => (i === 0 ? { ...b, multiplierBp: 14_000 } : b),
+      opportunityBands: SHIPPED_SUBMARINE_SCREENING_BALANCE_CONTRACT.opportunityBands.map((b, i) =>
+        i === 0 ? { ...b, multiplierBp: 14_000 } : b,
       ),
     };
     expect(() => validateSubmarineScreeningBalanceContract(tampered)).toThrow(BluewaveError);

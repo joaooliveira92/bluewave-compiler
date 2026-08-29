@@ -21,7 +21,11 @@ import {
   selectedScenario,
   updatePreference,
 } from "./new-game-preferences-screen-state.js";
-import { applyPreset, detectActivePreset, type PresetId } from "./rules-of-the-naval-age-presets.js";
+import {
+  applyPreset,
+  detectActivePreset,
+  type PresetId,
+} from "./rules-of-the-naval-age-presets.js";
 import { defaultCampaignSeed } from "./utils/campaign-seed.js";
 
 export interface RulesOfTheNavalAgeScreenProps {

@@ -845,7 +845,11 @@ export class MonthExecutor {
                 // ADR-0037: compiled design fields are canonical µm / µm·s⁻¹;
                 // the abstracted Ship stats are knots / mm (and a coarse
                 // firepower heuristic), so convert back for display/balance.
-                shipSpeed = SafeInt.div(design["normalizedSpeedUms"], SafeInt(KNOTS_TO_UMS), "floor");
+                shipSpeed = SafeInt.div(
+                  design["normalizedSpeedUms"],
+                  SafeInt(KNOTS_TO_UMS),
+                  "floor",
+                );
                 shipFirepower = SafeInt.mul(
                   design["mainGunsCount"],
                   SafeInt.div(design["mainGunsCaliber"], SafeInt(100_000), "floor"),

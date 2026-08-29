@@ -136,7 +136,10 @@ function main(): void {
   const out = {
     childId: "run-submarines-child",
     effectiveness,
-    coastalRestriction: { restricted: coastalRestriction.restricted, movementKind: coastalRestriction.movementKind },
+    coastalRestriction: {
+      restricted: coastalRestriction.restricted,
+      movementKind: coastalRestriction.movementKind,
+    },
     localOnly,
     category,
     detection,

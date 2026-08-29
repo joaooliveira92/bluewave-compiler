@@ -2,7 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { advanceMonth } from "@bluewave/campaign";
 import type { StrategicPriority } from "@bluewave/campaign-engine";
 import { Button } from "./ui/button.js";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog.js";
 import { Badge } from "./ui/badge.js";
 
 export interface PreTurnReviewDialogProps {
@@ -22,7 +29,20 @@ export interface PreTurnReviewDialogProps {
 }
 
 function formatMonth(month: { year: number; month: number }): string {
-  const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const names = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   return `${names[month.month - 1] ?? month.month} ${month.year}`;
 }
 
@@ -93,7 +113,8 @@ export function PreTurnReviewDialog({
         <DialogHeader>
           <DialogTitle>Pre-turn review</DialogTitle>
           <DialogDescription>
-            Review the current strategic state before advancing the campaign month. All figures are from real campaign state.
+            Review the current strategic state before advancing the campaign month. All figures are
+            from real campaign state.
           </DialogDescription>
         </DialogHeader>
 
@@ -117,42 +138,77 @@ export function PreTurnReviewDialog({
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Active construction projects</p>
-              <p className="font-medium">{constructionCount !== null ? constructionCount.toLocaleString() : loading ? "…" : "—"}</p>
+              <p className="font-medium">
+                {constructionCount !== null
+                  ? constructionCount.toLocaleString()
+                  : loading
+                    ? "…"
+                    : "—"}
+              </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Expected completions</p>
-              <p className="font-medium">{expectedCompletions !== null ? expectedCompletions.toLocaleString() : loading ? "…" : "—"}</p>
+              <p className="font-medium">
+                {expectedCompletions !== null
+                  ? expectedCompletions.toLocaleString()
+                  : loading
+                    ? "…"
+                    : "—"}
+              </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Current research spending</p>
-              <p className="font-medium">{researchSpend !== null ? `£${researchSpend.toLocaleString()}` : loading ? "…" : "—"}</p>
+              <p className="font-medium">
+                {researchSpend !== null
+                  ? `£${researchSpend.toLocaleString()}`
+                  : loading
+                    ? "…"
+                    : "—"}
+              </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Save status</p>
-              <p className="font-medium">{saving ? "Saving…" : saveMessage ?? "Saved"}</p>
+              <p className="font-medium">{saving ? "Saving…" : (saveMessage ?? "Saved")}</p>
             </div>
           </div>
 
           <div>
             <p className="text-xs font-medium text-muted-foreground">Unresolved warnings</p>
             {priorities.length === 0 ? (
-              <p className="mt-1 text-xs text-muted-foreground">The Admiralty has identified no urgent concerns.</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                The Admiralty has identified no urgent concerns.
+              </p>
             ) : (
               <div className="mt-1 space-y-1.5">
                 {priorities.slice(0, 5).map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded border px-2 py-1.5">
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between rounded border px-2 py-1.5"
+                  >
                     <div>
                       <p className="text-xs font-medium">{p.title}</p>
                       <p className="text-xs text-muted-foreground">{p.summary}</p>
                     </div>
-                    <Badge variant={p.severity === "critical" || p.severity === "warning" ? "destructive" : "secondary"}>{p.severity}</Badge>
+                    <Badge
+                      variant={
+                        p.severity === "critical" || p.severity === "warning"
+                          ? "destructive"
+                          : "secondary"
+                      }
+                    >
+                      {p.severity}
+                    </Badge>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {committing && <p className="text-xs text-muted-foreground">Advancing… the commit is synchronous and cannot be cancelled mid-resolution.</p>}
+          {committing && (
+            <p className="text-xs text-muted-foreground">
+              Advancing… the commit is synchronous and cannot be cancelled mid-resolution.
+            </p>
+          )}
         </div>
 
         <DialogFooter>

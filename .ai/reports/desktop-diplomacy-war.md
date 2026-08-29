@@ -21,8 +21,7 @@ issue any of the 7 commands):
   (read projection) + `submitDiplomacyCommand` (one generic command; the
   payload `command` is a Zod-discriminated union over the 7 B10c bodies).
 - **Authority (spec D1)** — the desktop ONLY queues engine envelopes through a
-  shared per-session command queue; `MonthExecutor` command_collection (order
-  2) + `resolveDiplomacyPhase` (order 6.5) are the sole mutators of
+  shared per-session command queue; `MonthExecutor` command_collection (order 2) + `resolveDiplomacyPhase` (order 6.5) are the sole mutators of
   politics/wars/blockades. Issue-time validity = the ENGINE's own public
   `CommandLifecycle.validate(envelope, snapshot)` (codes + messages surfaced
   verbatim — no hand-mirrored validators).
@@ -42,15 +41,15 @@ surfacing, trade agreements / treaties / strategic objectives.
 
 ## Requirements evidence
 
-| AC | Deliverable | Proving tests |
-| -- | ----------- | ------------- |
-| AC-1 | projection renders real relations/wars/blockades/nations/areas | `diplomacy-screen-projection.test.ts`; `diplomacyCommands.test.ts` inspect |
+| AC   | Deliverable                                                                             | Proving tests                                                                                                |
+| ---- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| AC-1 | projection renders real relations/wars/blockades/nations/areas                          | `diplomacy-screen-projection.test.ts`; `diplomacyCommands.test.ts` inspect                                   |
 | AC-2 | all 7 commands issue valid engine envelopes; commitMonth applies (war/alliance visible) | `diplomacyCommands.test.ts` (7 types + integration DeclareWar/FormAlliance + mixed research+diplomacy drain) |
-| AC-3 | invalid commands rejected at issue with engine code, session untouched | `diplomacyCommands.test.ts` (DECLARE_WAR_INVALID_TARGET, ALLIANCE_FORMATION_INELIGIBLE, BLOCKADE_NOT_AT_WAR) |
-| AC-4 | idempotent replay + revision mismatch + distinct same-type commandIds | `diplomacyCommands.test.ts` |
-| AC-5 | same seed + same command → identical hash (twin sessions) | `diplomacyCommands.test.ts` determinism |
-| AC-6 | canary updated; suites + gate green; empty-command campaigns byte-identical | desktop 343, campaign-engine 46, cross-process 14, goldens 10/10 |
-| AC-7 | deferred recorded; known limitations documented | map + tick-mto3 |
+| AC-3 | invalid commands rejected at issue with engine code, session untouched                  | `diplomacyCommands.test.ts` (DECLARE_WAR_INVALID_TARGET, ALLIANCE_FORMATION_INELIGIBLE, BLOCKADE_NOT_AT_WAR) |
+| AC-4 | idempotent replay + revision mismatch + distinct same-type commandIds                   | `diplomacyCommands.test.ts`                                                                                  |
+| AC-5 | same seed + same command → identical hash (twin sessions)                               | `diplomacyCommands.test.ts` determinism                                                                      |
+| AC-6 | canary updated; suites + gate green; empty-command campaigns byte-identical             | desktop 343, campaign-engine 46, cross-process 14, goldens 10/10                                             |
+| AC-7 | deferred recorded; known limitations documented                                         | map + tick-mto3                                                                                              |
 
 ## Commands and observed results
 

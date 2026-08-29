@@ -22,9 +22,9 @@ describe("calculateCoastalArtilleryMinePressure", () => {
   });
 
   it("rejects negative battery count", () => {
-    expect(() =>
-      calculateCoastalArtilleryMinePressure("area_north_sea", -1),
-    ).toThrowError(BluewaveError);
+    expect(() => calculateCoastalArtilleryMinePressure("area_north_sea", -1)).toThrowError(
+      BluewaveError,
+    );
   });
 
   it("error contains correct reason code for negative count", () => {

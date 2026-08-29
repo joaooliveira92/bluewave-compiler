@@ -104,8 +104,12 @@ describe("RulesOfTheNavalAgeScreen", () => {
 
     openSelectAndPick("Difficulty", "Hard");
 
-    expect(screen.getByRole("button", { name: /Cadet/ }).getAttribute("aria-pressed")).toBe("false");
-    expect(screen.getByRole("button", { name: /Custom/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: /Cadet/ }).getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+    expect(screen.getByRole("button", { name: /Custom/ }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
   });
 
   it.each([

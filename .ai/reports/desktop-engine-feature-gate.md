@@ -41,15 +41,15 @@ follow-up), design-template authoring UI.
 
 ## Requirements evidence
 
-| AC | Deliverable | Proving tests |
-| -- | ----------- | ------------- |
-| AC-1 | projection renders real budget/progress/discovered/priorities | `researchCommands.test.ts:117`; `research-screen-projection.test.ts` |
-| AC-2 | commitMonth applies queued priorities (engine-authoritative) | `researchCommands.test.ts:184–210` |
-| AC-3 | invalid priorities rejected with engine code, session untouched | `researchCommands.test.ts:212–243, 245` (incl. `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`) |
-| AC-4 | idempotent replay + revision mismatch, intact queue on failed commit | `researchCommands.test.ts:245–321` |
-| AC-5 | same seed → same hash (incl. two-process child) | `researchCommands.test.ts:324–372` |
-| AC-6 | canary updated; suite green | desktop 298/298, campaign-screen-registry test |
-| AC-7 | deferred candidates recorded | `.scratch/desktop-engine-feature-gate/map.md` |
+| AC   | Deliverable                                                          | Proving tests                                                                           |
+| ---- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| AC-1 | projection renders real budget/progress/discovered/priorities        | `researchCommands.test.ts:117`; `research-screen-projection.test.ts`                    |
+| AC-2 | commitMonth applies queued priorities (engine-authoritative)         | `researchCommands.test.ts:184–210`                                                      |
+| AC-3 | invalid priorities rejected with engine code, session untouched      | `researchCommands.test.ts:212–243, 245` (incl. `EXACT_TECHNOLOGY_SELECTION_PROHIBITED`) |
+| AC-4 | idempotent replay + revision mismatch, intact queue on failed commit | `researchCommands.test.ts:245–321`                                                      |
+| AC-5 | same seed → same hash (incl. two-process child)                      | `researchCommands.test.ts:324–372`                                                      |
+| AC-6 | canary updated; suite green                                          | desktop 298/298, campaign-screen-registry test                                          |
+| AC-7 | deferred candidates recorded                                         | `.scratch/desktop-engine-feature-gate/map.md`                                           |
 
 ## Commands and observed results
 

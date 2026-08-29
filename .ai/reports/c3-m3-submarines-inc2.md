@@ -73,6 +73,7 @@ Same set as INC-1: tactical allocation/loss (§2–3), returning-ship intercepti
 ## Changed files
 
 Code:
+
 - `packages/combat/src/submarines/missionEligibility.ts` (new)
 - `packages/combat/src/submarines/reliability.ts` (new)
 - `packages/combat/src/submarines/contracts.ts` (modified — added two contracts)
@@ -83,6 +84,7 @@ Code:
 - `packages/combat/test/submarines/reliability.test.ts` (new)
 
 Docs:
+
 - `.ai/SPRINT-PLAN.md` (updated INC-2 done, frontier to INC-3)
 - `docs/PROGRESS.md` (updated C-3 status)
 - `.scratch/c3-m3-submarines/issues/INC-2-mission-reliability.issue.md` (status→DONE)

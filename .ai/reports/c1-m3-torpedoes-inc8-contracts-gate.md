@@ -31,11 +31,11 @@ change (torpedo scope is engine-only; no snapshot/phase/events schema change).
 
 ## Requirements evidence
 
-| AC | Evidence |
-|----|----------|
-| AC-21 | `test/reason-codes-torpedoes.test.ts` (6 tests) — set-equality + disjointness |
+| AC    | Evidence                                                                                                                                                                                                |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-21 | `test/reason-codes-torpedoes.test.ts` (6 tests) — set-equality + disjointness                                                                                                                           |
 | AC-24 | `test/torpedo/contracts.test.ts` (50 tests) — tamper fail-closed on every contract incl. model-id list add/remove/reorder + content-hash mismatch; `torpedo_models_v1` pins the 8 seed ids (`model.ts`) |
-| AC-25 | torpedo scope is engine-only (diff shows no snapshot/phase/events/BattleResolver/StrengthCalculator change); goldens unchanged by this change |
+| AC-25 | torpedo scope is engine-only (diff shows no snapshot/phase/events/BattleResolver/StrengthCalculator change); goldens unchanged by this change                                                           |
 
 ## Commands and observed results
 

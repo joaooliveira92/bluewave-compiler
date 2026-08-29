@@ -974,10 +974,18 @@ export function resolveTorpedoes(input: ResolveTorpedoesInput): TorpedoResolutio
         // §22 chain-explosion discriminator (reviewer BLOCKER-1): the chain
         // explosion records share the primary §21 package's source/target at
         // the same instant — the `chain` marker keeps every recordId unique.
-        const chainRecs = damageRecordsFor(battleId, track, target, solution, command, chainResult, {
-          chain: true,
-          discriminators: recordDiscriminators,
-        });
+        const chainRecs = damageRecordsFor(
+          battleId,
+          track,
+          target,
+          solution,
+          command,
+          chainResult,
+          {
+            chain: true,
+            discriminators: recordDiscriminators,
+          },
+        );
         records.push(...chainRecs);
       }
     }

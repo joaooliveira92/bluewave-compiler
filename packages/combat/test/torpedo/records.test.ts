@@ -253,9 +253,7 @@ describe("AC-20 — §27 record surface + envelope hash", () => {
     const eventIds = res.events.map((e) => e.eventId);
     expect(new Set(eventIds).size).toBe(eventIds.length);
     // the chain discriminator is present on the secondary damage records
-    const damageRecordIds = res.records
-      .filter((r) => r.kind === "DAMAGE")
-      .map((r) => r.recordId);
+    const damageRecordIds = res.records.filter((r) => r.kind === "DAMAGE").map((r) => r.recordId);
     expect(damageRecordIds.some((id) => id.includes(":chain"))).toBe(true);
   });
 
@@ -290,11 +288,7 @@ describe("AC-20 — §27 record surface + envelope hash", () => {
           stream: (domain: string) => ({
             id: domain,
             next: () =>
-              domain.includes("launch_failure")
-                ? 0.9999
-                : domain.includes("machinery")
-                  ? 0.2
-                  : 0.0,
+              domain.includes("launch_failure") ? 0.9999 : domain.includes("machinery") ? 0.2 : 0.0,
           }),
         },
       });

@@ -27,12 +27,17 @@ export function MonthlyResolutionLoading({ committing }: MonthlyResolutionLoadin
           <div className="space-y-1.5">
             {RESOLUTION_STAGE_LABELS.map((label, idx) => (
               <div key={label} className="flex items-center gap-2 text-sm">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-xs">{idx + 1}</span>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-xs">
+                  {idx + 1}
+                </span>
                 <span>{label}</span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">Resolving the month — this is a cosmetic stage indicator over the synchronous commit; no percentage is claimed.</p>
+          <p className="text-xs text-muted-foreground">
+            Resolving the month — this is a cosmetic stage indicator over the synchronous commit; no
+            percentage is claimed.
+          </p>
         </CardContent>
       </Card>
     </div>
@@ -56,7 +61,10 @@ export function MonthlyResolutionFailure({
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="whitespace-pre-wrap text-sm">{message}</p>
-          <p className="text-xs text-muted-foreground">The previous month remains intact — no state was partially applied. The save pointer was not advanced.</p>
+          <p className="text-xs text-muted-foreground">
+            The previous month remains intact — no state was partially applied. The save pointer was
+            not advanced.
+          </p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onReturn}>
               Return to Overview

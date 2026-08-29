@@ -38,7 +38,12 @@ export const strategicPriorityTypeSchema = z.enum([
 ]);
 export type StrategicPriorityType = z.infer<typeof strategicPriorityTypeSchema>;
 
-export type StrategicDestinationSection = "overview" | "construction" | "fleet" | "research" | "diplomacy";
+export type StrategicDestinationSection =
+  | "overview"
+  | "construction"
+  | "fleet"
+  | "research"
+  | "diplomacy";
 
 export interface StrategicPriority {
   readonly id: string;
@@ -107,14 +112,18 @@ export function buildPrioritiesProjection(
   const ports = snapshot.world.ports.filter((p) => p.nationId === playerNationId);
   const shipyardCapacity = ports.reduce((sum, p) => sum + Number(p.level), 0);
 
-  const monthlyAppropriation = Number(scaleValue(Number(nation.income), Number(nation.navalAppropriationRateBp)));
+  const monthlyAppropriation = Number(
+    scaleValue(Number(nation.income), Number(nation.navalAppropriationRateBp)),
+  );
   const researchSpend = Number(nation.research.researchBudget);
   const constructionSpend = totalPaidWork(nation);
   const fleetMaintenance = nation.fleets.reduce(
-    (sum, fleet) => sum + fleet.ships.reduce((s, ship) => s + shipMaintenanceCost(Number(ship.hitPoints)), 0),
+    (sum, fleet) =>
+      sum + fleet.ships.reduce((s, ship) => s + shipMaintenanceCost(Number(ship.hitPoints)), 0),
     0,
   );
-  const projectedBalance = monthlyAppropriation - fleetMaintenance - constructionSpend - researchSpend;
+  const projectedBalance =
+    monthlyAppropriation - fleetMaintenance - constructionSpend - researchSpend;
   const totalMonthlyExpenditure = fleetMaintenance + constructionSpend + researchSpend;
   const treasury = Number(nation.treasury);
 
@@ -188,7 +197,7 @@ export function buildPrioritiesProjection(
         type: "construction_near_completion",
         severity: "information",
         title: "Construction near completion",
-        summary: `Project ${project.id} is ${(completed / total * 100).toFixed(0)}% complete — reallocate yards on completion.`,
+        summary: `Project ${project.id} is ${((completed / total) * 100).toFixed(0)}% complete — reallocate yards on completion.`,
         reason: `construction_near_completion: project ${project.id} completedWork ${completed} / totalWork ${total} >= ${NEAR_COMPLETION_WORK_RATIO}`,
         destination: destinationForType("construction_near_completion"),
         fingerprint,
@@ -221,7 +230,9 @@ export function buildPrioritiesProjection(
   {
     const activeCount = nation.constructionProjects.filter((p) => p.status !== "COMPLETED").length;
     if (activeCount === 0 && treasury > 0 && shipyardCapacity > 0) {
-      const hasEligibleDesign = [...snapshot.designs.values()].some((d) => d.nationId === playerNationId);
+      const hasEligibleDesign = [...snapshot.designs.values()].some(
+        (d) => d.nationId === playerNationId,
+      );
       if (hasEligibleDesign) {
         const fingerprint = "no_active_construction";
         out.push({
@@ -240,7 +251,11 @@ export function buildPrioritiesProjection(
 
   // Filter out the two CUT types — defensive: they must never be emitted even if
   // a future caller mistakenly adds them (do not rebuild them).
-  const filtered = out.filter((p) => p.type !== ("obsolete_active_class" as unknown as StrategicPriorityType) && p.type !== ("construction_stalled" as unknown as StrategicPriorityType));
+  const filtered = out.filter(
+    (p) =>
+      p.type !== ("obsolete_active_class" as unknown as StrategicPriorityType) &&
+      p.type !== ("construction_stalled" as unknown as StrategicPriorityType),
+  );
 
   // 5-key deterministic sort
   filtered.sort((a, b) => {

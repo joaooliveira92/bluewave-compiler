@@ -8,9 +8,9 @@ describe("event validation", () => {
   });
 
   it("rejects eventType and body.kind mismatches", () => {
-    expect(() => parseDomainEventEnvelope({ ...budgetEvent(), eventType: "BattleResolved" })).toThrow(
-      /eventType must match body.kind/,
-    );
+    expect(() =>
+      parseDomainEventEnvelope({ ...budgetEvent(), eventType: "BattleResolved" }),
+    ).toThrow(/eventType must match body.kind/);
   });
 
   it("rejects invalid timestamps", () => {
@@ -18,7 +18,9 @@ describe("event validation", () => {
   });
 
   it("rejects unsafe sequence numbers", () => {
-    expect(() => parseDomainEventEnvelope({ ...budgetEvent(), sequenceNumber: Number.MAX_SAFE_INTEGER + 1 })).toThrow();
+    expect(() =>
+      parseDomainEventEnvelope({ ...budgetEvent(), sequenceNumber: Number.MAX_SAFE_INTEGER + 1 }),
+    ).toThrow();
   });
 
   it("rejects unknown properties", () => {

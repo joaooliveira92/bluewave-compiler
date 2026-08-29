@@ -6,7 +6,9 @@ import {
   type CoastalArtilleryEffectivenessInput,
 } from "../../src/coastal-defense/index.js";
 
-function baseInput(overrides: Partial<CoastalArtilleryEffectivenessInput> = {}): CoastalArtilleryEffectivenessInput {
+function baseInput(
+  overrides: Partial<CoastalArtilleryEffectivenessInput> = {},
+): CoastalArtilleryEffectivenessInput {
   return {
     caliberMm: SafeInt(305),
     hasAA: false,
@@ -36,30 +38,40 @@ describe("coastalArtilleryEffectivenessBp", () => {
   });
 
   it("responds to damage multiplier changes", () => {
-    const full = coastalArtilleryEffectivenessBp(baseInput({ damageMultiplierBp: SafeInt(10_000) }));
+    const full = coastalArtilleryEffectivenessBp(
+      baseInput({ damageMultiplierBp: SafeInt(10_000) }),
+    );
     const half = coastalArtilleryEffectivenessBp(baseInput({ damageMultiplierBp: SafeInt(5_000) }));
     expect(full.valueOf()).toBeGreaterThan(half.valueOf());
   });
 
   it("responds to sea state multiplier changes", () => {
-    const calm = coastalArtilleryEffectivenessBp(baseInput({ seaStateMultiplierBp: SafeInt(10_000) }));
-    const rough = coastalArtilleryEffectivenessBp(baseInput({ seaStateMultiplierBp: SafeInt(5_000) }));
+    const calm = coastalArtilleryEffectivenessBp(
+      baseInput({ seaStateMultiplierBp: SafeInt(10_000) }),
+    );
+    const rough = coastalArtilleryEffectivenessBp(
+      baseInput({ seaStateMultiplierBp: SafeInt(5_000) }),
+    );
     expect(calm.valueOf()).toBeGreaterThan(rough.valueOf());
   });
 
   it("different target types produce different results", () => {
     const battery = coastalArtilleryEffectivenessBp(baseInput({ targetType: "COASTAL_BATTERY" }));
-    const transport = coastalArtilleryEffectivenessBp(baseInput({ targetType: "TRANSPORT_CONCENTRATION" }));
+    const transport = coastalArtilleryEffectivenessBp(
+      baseInput({ targetType: "TRANSPORT_CONCENTRATION" }),
+    );
     expect(battery.valueOf()).not.toBe(transport.valueOf());
   });
 
   it("floors the result (integer division)", () => {
-    const low = coastalArtilleryEffectivenessBp(baseInput({
-      caliberMm: SafeInt(75),
-      targetType: "TRANSPORT_CONCENTRATION",
-      damageMultiplierBp: SafeInt(5_000),
-      seaStateMultiplierBp: SafeInt(5_000),
-    }));
+    const low = coastalArtilleryEffectivenessBp(
+      baseInput({
+        caliberMm: SafeInt(75),
+        targetType: "TRANSPORT_CONCENTRATION",
+        damageMultiplierBp: SafeInt(5_000),
+        seaStateMultiplierBp: SafeInt(5_000),
+      }),
+    );
     expect(Number.isInteger(low.valueOf())).toBe(true);
   });
 });

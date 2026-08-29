@@ -54,6 +54,7 @@ None new.
 ## Changed files
 
 Code:
+
 - `packages/combat/src/submarines/proximity.ts` (new)
 - `packages/combat/src/submarines/contracts.ts` (modified — added 3 contracts)
 - `packages/combat/src/submarines/constants.ts` (modified — added 3 policy ids)
@@ -61,6 +62,7 @@ Code:
 - `packages/combat/test/submarines/proximity.test.ts` (new)
 
 Docs:
+
 - `.ai/SPRINT-PLAN.md` (updated INC-3 done, INC-4 frontier)
 - `docs/PROGRESS.md` (updated C-3 status)
 - Issue tracker (INC-3→DONE, INC-4→frontier)

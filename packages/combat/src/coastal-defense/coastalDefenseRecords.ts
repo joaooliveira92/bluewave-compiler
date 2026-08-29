@@ -45,15 +45,23 @@ export function createCoastalDefenseOperationsRecord(
   processedAt: string,
 ): CoastalDefenseOperationsRecord {
   const sortedAreas = [...areas]
-    .map(a => ({
+    .map((a) => ({
       ...a,
-      positions: [...a.positions].sort((x, y) =>
-        x.zoneId.localeCompare(y.zoneId) || x.positionIndex - y.positionIndex
+      positions: [...a.positions].sort(
+        (x, y) => x.zoneId.localeCompare(y.zoneId) || x.positionIndex - y.positionIndex,
       ),
     }))
     .sort((a, b) => a.areaId.localeCompare(b.areaId));
-  const surface = { rulesetVersion: COASTAL_DEFENSE_RULESET_VERSION, areas: sortedAreas, processedAt };
-  const envelope = createEnvelope("coastal-defense-operations-record", coastalBatteryPolicyId, surface);
+  const surface = {
+    rulesetVersion: COASTAL_DEFENSE_RULESET_VERSION,
+    areas: sortedAreas,
+    processedAt,
+  };
+  const envelope = createEnvelope(
+    "coastal-defense-operations-record",
+    coastalBatteryPolicyId,
+    surface,
+  );
   return {
     ...surface,
     recordHash: envelope.bodyHash,

@@ -9,7 +9,11 @@
 // diagnostic; never a crash, never a partial mutation.
 
 import type { CampaignSnapshot, Ship } from "@bluewave/campaign";
-import { BATTLE_AUTO_RESOLUTION_FAILED, INVALID_BATTLE_WEATHER_INITIALIZATION, resolveBattleAuto } from "@bluewave/combat";
+import {
+  BATTLE_AUTO_RESOLUTION_FAILED,
+  INVALID_BATTLE_WEATHER_INITIALIZATION,
+  resolveBattleAuto,
+} from "@bluewave/combat";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
@@ -280,12 +284,24 @@ describe("battle_resolution phase (AC-8): tactical auto-resolution wiring", () =
     // The phase must fall back COMPLETELY to the M1 strength path and emit the
     // real machine code, never a partial tactical mutation.
     const attackerShips = [
-      makeShip("g1", "dv-missing-att", ATTACKER_NATION, { firepower: 200, inBattleId: "battle-mid" }),
-      makeShip("g2", "dv-missing-att", ATTACKER_NATION, { firepower: 200, inBattleId: "battle-mid" }),
+      makeShip("g1", "dv-missing-att", ATTACKER_NATION, {
+        firepower: 200,
+        inBattleId: "battle-mid",
+      }),
+      makeShip("g2", "dv-missing-att", ATTACKER_NATION, {
+        firepower: 200,
+        inBattleId: "battle-mid",
+      }),
     ];
     const defenderShips = [
-      makeShip("f1", "dv-missing-def", DEFENDER_NATION, { firepower: 200, inBattleId: "battle-mid" }),
-      makeShip("f2", "dv-missing-def", DEFENDER_NATION, { firepower: 200, inBattleId: "battle-mid" }),
+      makeShip("f1", "dv-missing-def", DEFENDER_NATION, {
+        firepower: 200,
+        inBattleId: "battle-mid",
+      }),
+      makeShip("f2", "dv-missing-def", DEFENDER_NATION, {
+        firepower: 200,
+        inBattleId: "battle-mid",
+      }),
     ];
     const manifest = buildBattleManifest({
       battleId: "battle-mid",
@@ -305,9 +321,7 @@ describe("battle_resolution phase (AC-8): tactical auto-resolution wiring", () =
     // The emitted code must be the real machine code from the error context
     // (not a freeform message), with BATTLE_AUTO_RESOLUTION_FAILED only as a
     // last resort — proving the reviewer-fixed code path.
-    expect(
-      collector.errors.some((d) => d.code === "TACTICAL_UNIT_PROMOTION_INVALID"),
-    ).toBe(true);
+    expect(collector.errors.some((d) => d.code === "TACTICAL_UNIT_PROMOTION_INVALID")).toBe(true);
     expect(collector.errors.some((d) => d.code === BATTLE_AUTO_RESOLUTION_FAILED)).toBe(false);
 
     // COMPLETE legacy fallback: battle resolved (decided), no partial tactical

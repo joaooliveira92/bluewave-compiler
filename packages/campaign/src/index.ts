@@ -27,10 +27,28 @@ export type {
   BattleManifest,
   BattleManifestSide,
   BattleResult,
-  BlockadeState,CampaignSlot, CampaignSnapshot, CampaignState, CampaignWeatherState, CompiledDesignVersion, ConstructionProject, DesignFamily, DiplomaticRelation, FleetState, IntelligenceState, NationState, PersistenceManifest, PoliticalState, ResearchState, Ship, TechnologyProgress,
+  BlockadeState,
+  CampaignSlot,
+  CampaignSnapshot,
+  CampaignState,
+  CampaignWeatherState,
+  CompiledDesignVersion,
+  ConstructionProject,
+  DesignFamily,
+  DiplomaticRelation,
+  FleetState,
+  IntelligenceState,
+  NationState,
+  PersistenceManifest,
+  PoliticalState,
+  ResearchState,
+  Ship,
+  TechnologyProgress,
   WarDeclaration,
   WarParticipantMembership,
-  WarState, WorldState } from "./state.js";
+  WarState,
+  WorldState,
+} from "./state.js";
 export * from "./technologyVariation.js";
 export * from "./timeline.js";
 export * from "./warConstants.js";

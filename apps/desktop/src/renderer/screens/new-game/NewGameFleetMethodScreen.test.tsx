@@ -58,12 +58,12 @@ describe("NewGameFleetMethodScreen", () => {
 
   it("shows the manual-build not-yet-available note only on the disabled card", () => {
     setupUi();
-    expect(
-      screen.getByText(/Detailed fleet construction isn't available yet/),
-    ).toBeTruthy();
+    expect(screen.getByText(/Detailed fleet construction isn't available yet/)).toBeTruthy();
 
     const generatedCard = screen.getByRole("button", { name: /Inherit an Existing Navy/ });
-    const historicalCard = screen.getByRole("button", { name: /Curated Historical-Inspired Fleet/ });
+    const historicalCard = screen.getByRole("button", {
+      name: /Curated Historical-Inspired Fleet/,
+    });
     expect(generatedCard.textContent).not.toMatch(/not.*available/i);
     expect(historicalCard.textContent).not.toMatch(/not.*available/i);
   });
@@ -80,21 +80,21 @@ describe("NewGameFleetMethodScreen", () => {
     setupUi();
     click("Build the Legacy Fleet Manually");
     expect(
-      screen.getByRole("button", { name: /Build the Legacy Fleet Manually/ }).getAttribute(
-        "aria-pressed",
-      ),
+      screen
+        .getByRole("button", { name: /Build the Legacy Fleet Manually/ })
+        .getAttribute("aria-pressed"),
     ).toBe("true");
 
     click("Curated Historical-Inspired Fleet");
     expect(
-      screen.getByRole("button", { name: /Curated Historical-Inspired Fleet/ }).getAttribute(
-        "aria-pressed",
-      ),
+      screen
+        .getByRole("button", { name: /Curated Historical-Inspired Fleet/ })
+        .getAttribute("aria-pressed"),
     ).toBe("true");
     expect(
-      screen.getByRole("button", { name: /Build the Legacy Fleet Manually/ }).getAttribute(
-        "aria-pressed",
-      ),
+      screen
+        .getByRole("button", { name: /Build the Legacy Fleet Manually/ })
+        .getAttribute("aria-pressed"),
     ).toBe("false");
   });
 
@@ -115,9 +115,9 @@ describe("NewGameFleetMethodScreen", () => {
   it("starts from the provided initial fleet method", () => {
     setupUi({ legacyFleetModeId: "disabled" });
     expect(
-      screen.getByRole("button", { name: /Build the Legacy Fleet Manually/ }).getAttribute(
-        "aria-pressed",
-      ),
+      screen
+        .getByRole("button", { name: /Build the Legacy Fleet Manually/ })
+        .getAttribute("aria-pressed"),
     ).toBe("true");
   });
 

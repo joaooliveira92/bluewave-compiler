@@ -64,7 +64,9 @@ export function computeScreenRatioBp(
     });
   }
   const denominator = Math.max(1, eligibleHeavyShipStrength);
-  return SafeInt(Math.floor((eligibleEscortStrength * SUBMARINE_BASIS_POINTS_PER_UNIT) / denominator));
+  return SafeInt(
+    Math.floor((eligibleEscortStrength * SUBMARINE_BASIS_POINTS_PER_UNIT) / denominator),
+  );
 }
 
 // §18 opportunity multiplier bands (exact shipped values).
@@ -120,8 +122,11 @@ export function computeAttackOpportunityValue(input: AttackOpportunityInput): Sa
   const m = input.missionStrengthFactorBp;
 
   if (
-    !isNonNegativeBp(w) || !isNonNegativeBp(t) || !isNonNegativeBp(i) ||
-    !isNonNegativeBp(r) || !isNonNegativeBp(m)
+    !isNonNegativeBp(w) ||
+    !isNonNegativeBp(t) ||
+    !isNonNegativeBp(i) ||
+    !isNonNegativeBp(r) ||
+    !isNonNegativeBp(m)
   ) {
     throw new BluewaveError(SUBMARINE_STATE_INVARIANT_FAILED, {
       code: SUBMARINE_STATE_INVARIANT_FAILED,
@@ -139,11 +144,7 @@ export function computeAttackOpportunityValue(input: AttackOpportunityInput): Sa
 
 function isNonNegativeBp(v: unknown): v is number {
   return (
-    typeof v === "number" &&
-    Number.isInteger(v) &&
-    Number.isSafeInteger(v) &&
-    v >= 0 &&
-    v <= 20_000
+    typeof v === "number" && Number.isInteger(v) && Number.isSafeInteger(v) && v >= 0 && v <= 20_000
   );
 }
 

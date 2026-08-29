@@ -22,23 +22,17 @@ let masterPackageDir = "";
 // so this fixture has one committed month on top of the fresh compile.
 let recoverMasterPackageDir = "";
 
-async function compileFreshCampaign(
-  page: import("@playwright/test").Page,
-): Promise<void> {
+async function compileFreshCampaign(page: import("@playwright/test").Page): Promise<void> {
   await page.getByRole("button", { name: "New Campaign" }).click();
   await page.getByLabel("Campaign Seed").fill(SEED);
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.getByRole("button", { name: "Next: Choose Nation" }).click();
   await page.getByRole("heading", { name: "Choose your archetype" }).waitFor();
-  await page
-    .getByRole("button", { name: new RegExp(ARCHETYPE), exact: false })
-    .click();
+  await page.getByRole("button", { name: new RegExp(ARCHETYPE), exact: false }).click();
   await page.getByRole("button", { name: "Choose Nation" }).click();
   await page.getByRole("option", { name: NATION }).click();
   await page.getByRole("button", { name: "Start Campaign" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Campaign Overview" }),
-  ).toBeVisible({
+  await expect(page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
     timeout: 30_000,
   });
 }
@@ -51,9 +45,9 @@ async function compileFreshCampaign(
  * hash mismatch, not a parse error.
  */
 async function tamperActiveSave(packageDir: string): Promise<void> {
-  const pointer = JSON.parse(
-    await readFile(join(packageDir, "pointer.json"), "utf8"),
-  ) as { activeSaveId: string };
+  const pointer = JSON.parse(await readFile(join(packageDir, "pointer.json"), "utf8")) as {
+    activeSaveId: string;
+  };
   const campaignPath = join(packageDir, pointer.activeSaveId, "campaign.json");
   const parsed = JSON.parse(await readFile(campaignPath, "utf8")) as {
     snapshot: { campaignId: string };
@@ -65,21 +59,14 @@ async function tamperActiveSave(packageDir: string): Promise<void> {
   await writeFile(campaignPath, JSON.stringify(parsed), "utf8");
 }
 
-test("setup: compile the master production package fixtures", async ({
-  e2e,
-}) => {
-  masterPackageDir = join(
-    await mkdtemp(join(tmpdir(), "bluewave-continuance-master-")),
-    "package",
-  );
+test("setup: compile the master production package fixtures", async ({ e2e }) => {
+  masterPackageDir = join(await mkdtemp(join(tmpdir(), "bluewave-continuance-master-")), "package");
   await e2e.retargetDialog(masterPackageDir);
   await compileFreshCampaign(e2e.page);
   await expect(e2e.page.getByText("Revision 0")).toBeVisible();
 });
 
-test("setup: compile a two-revision package fixture for Recover", async ({
-  e2e,
-}) => {
+test("setup: compile a two-revision package fixture for Recover", async ({ e2e }) => {
   recoverMasterPackageDir = join(
     await mkdtemp(join(tmpdir(), "bluewave-continuance-recover-")),
     "package",
@@ -90,22 +77,16 @@ test("setup: compile a two-revision package fixture for Recover", async ({
   await expect(e2e.page.getByText("Bluewave — February 1880")).toBeVisible();
 });
 
-test("row 7: Load restores Overview from a production package copy", async ({
-  e2e,
-}) => {
+test("row 7: Load restores Overview from a production package copy", async ({ e2e }) => {
   const pkg = await copyFixturePackage(masterPackageDir, e2e.scratch);
   await e2e.retargetDialog(pkg);
 
   await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
-  await expect(
-    e2e.page.getByRole("heading", { name: "Campaign Overview" }),
-  ).toBeVisible({
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
     timeout: 30_000,
   });
   await expect(e2e.page.getByText("Revision 0")).toBeVisible();
-  await expect(
-    e2e.page.getByText("campaign-bluewave-1880-production"),
-  ).toBeVisible();
+  await expect(e2e.page.getByText("campaign-bluewave-1880-production")).toBeVisible();
 });
 
 test("row 8: Verify reports package integrity", async ({ e2e }) => {
@@ -121,9 +102,7 @@ test("row 8: Verify reports package integrity", async ({ e2e }) => {
   // opens to Overview.
   await e2e.retargetDialog(pkg);
   await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
-  await expect(
-    e2e.page.getByRole("heading", { name: "Campaign Overview" }),
-  ).toBeVisible({
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
     timeout: 30_000,
   });
 });
@@ -144,18 +123,14 @@ test("row 10: Recover repairs a damaged package", async ({ e2e }) => {
   await e2e.retargetDialog(pkg);
 
   await e2e.page.getByRole("button", { name: "Recover" }).click();
-  await expect(
-    e2e.page.getByText(/Recovery complete — active revision 0/),
-  ).toBeVisible({
+  await expect(e2e.page.getByText(/Recovery complete — active revision 0/)).toBeVisible({
     timeout: 15_000,
   });
 
   // Recovered package is playable: opens cleanly to Overview, no crash.
   await e2e.retargetDialog(pkg);
   await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
-  await expect(
-    e2e.page.getByRole("heading", { name: "Campaign Overview" }),
-  ).toBeVisible({
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
     timeout: 30_000,
   });
 });

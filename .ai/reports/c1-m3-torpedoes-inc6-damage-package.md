@@ -15,17 +15,17 @@ change; goldens unchanged.
 
 ## Requirements evidence
 
-| Requirement | Implementation | Proving tests |
-| ----------- | -------------- | ------------- |
-| AC-15 §16 damage package | `damagePackage.ts` (`TorpedoDamagePackage` + enveloped hash, `applyTorpedoDamagePackage` atomic incl. rollback) | `damage-package.test.ts` |
-| AC-16 §17 flotation | `flotation.ts` (`computeTorpedoFlotationDamage`, shipped leak/zone tables) + `structureFlotation` reuse | `flotation.test.ts` |
-| AC-16 §18 flooding creation | `flooding.ts` (`resolveTorpedoFloodingCreation`, 4-factor formula, isolation table) | `flooding-creation.test.ts` |
-| AC-17 §19 machinery | `machinery.ts` (weights 10_000, reduced 2_500, keyed selection → `ComponentOutcome`) | `machinery.test.ts` |
-| AC-17 §20 system shock | `systemShock.ts` (3_000/1_000/0 bp, ascending stable-id, ineligible unchanged) | `system-shock.test.ts` |
-| AC-18 §21 tube hazard | `tubeHazard.ts` (`underwater_tube_hit_hazard_v1`, four table groups, severe branch) | `tube-hazard.test.ts` |
-| AC-18 §22 chain reaction | `chainReaction.ts` (1_500/3_000/1_000 bases, five-modifier manifest, separate package helper) | `chain-reaction.test.ts` |
-| AC-18 §23 oxygen | `oxygen.ts` (15_000/11_000/7_500/15_000/3_000, compatibility gated) | `oxygen.test.ts` |
-| AC-16/AC-21/AC-24 | reason codes + `SHIPPED_TORPEDO_DAMAGE_CONTRACT`/`SHIPPED_UNDERWATER_TUBE_HIT_HAZARD_CONTRACT` + guards | `contracts.test.ts` |
+| Requirement                 | Implementation                                                                                                  | Proving tests               |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| AC-15 §16 damage package    | `damagePackage.ts` (`TorpedoDamagePackage` + enveloped hash, `applyTorpedoDamagePackage` atomic incl. rollback) | `damage-package.test.ts`    |
+| AC-16 §17 flotation         | `flotation.ts` (`computeTorpedoFlotationDamage`, shipped leak/zone tables) + `structureFlotation` reuse         | `flotation.test.ts`         |
+| AC-16 §18 flooding creation | `flooding.ts` (`resolveTorpedoFloodingCreation`, 4-factor formula, isolation table)                             | `flooding-creation.test.ts` |
+| AC-17 §19 machinery         | `machinery.ts` (weights 10_000, reduced 2_500, keyed selection → `ComponentOutcome`)                            | `machinery.test.ts`         |
+| AC-17 §20 system shock      | `systemShock.ts` (3_000/1_000/0 bp, ascending stable-id, ineligible unchanged)                                  | `system-shock.test.ts`      |
+| AC-18 §21 tube hazard       | `tubeHazard.ts` (`underwater_tube_hit_hazard_v1`, four table groups, severe branch)                             | `tube-hazard.test.ts`       |
+| AC-18 §22 chain reaction    | `chainReaction.ts` (1_500/3_000/1_000 bases, five-modifier manifest, separate package helper)                   | `chain-reaction.test.ts`    |
+| AC-18 §23 oxygen            | `oxygen.ts` (15_000/11_000/7_500/15_000/3_000, compatibility gated)                                             | `oxygen.test.ts`            |
+| AC-16/AC-21/AC-24           | reason codes + `SHIPPED_TORPEDO_DAMAGE_CONTRACT`/`SHIPPED_UNDERWATER_TUBE_HIT_HAZARD_CONTRACT` + guards         | `contracts.test.ts`         |
 
 ## Commands and observed results
 

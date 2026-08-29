@@ -30,11 +30,7 @@
  */
 
 import type { WorldMapView } from "@bluewave/campaign-engine";
-import {
-  AREAS_BY_ID,
-  type AreaId,
-  type NationId,
-} from "./prototype-world.js";
+import { AREAS_BY_ID, type AreaId, type NationId } from "./prototype-world.js";
 
 /** Fixture nation ids the prototype's `NATIONS_BY_ID` already carries hues for. */
 const FIXTURE_HUES: Readonly<Record<string, number>> = {

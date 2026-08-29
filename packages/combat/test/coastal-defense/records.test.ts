@@ -6,7 +6,9 @@ import {
   type CoastalDefenseBatteryRecord,
 } from "../../src/coastal-defense/index.js";
 
-function sampleBattery(overrides: Partial<CoastalDefenseBatteryRecord> = {}): CoastalDefenseBatteryRecord {
+function sampleBattery(
+  overrides: Partial<CoastalDefenseBatteryRecord> = {},
+): CoastalDefenseBatteryRecord {
   return {
     model: "GENERIC_HEAVY",
     caliberMm: 305,
@@ -20,7 +22,9 @@ function sampleBattery(overrides: Partial<CoastalDefenseBatteryRecord> = {}): Co
   };
 }
 
-function samplePosition(overrides: Partial<CoastalDefensePositionRecord> = {}): CoastalDefensePositionRecord {
+function samplePosition(
+  overrides: Partial<CoastalDefensePositionRecord> = {},
+): CoastalDefensePositionRecord {
   return {
     zoneId: "z1",
     areaId: "area_a",
@@ -48,7 +52,10 @@ describe("CoastalDefenseOperationsRecord", () => {
 
   it("different inputs produce different hashes", () => {
     const a = createCoastalDefenseOperationsRecord([sampleArea()], "2026-08-28T23:00:00Z");
-    const b = createCoastalDefenseOperationsRecord([sampleArea({ totalMinePressureIncrement: 1000 })], "2026-08-28T23:00:00Z");
+    const b = createCoastalDefenseOperationsRecord(
+      [sampleArea({ totalMinePressureIncrement: 1000 })],
+      "2026-08-28T23:00:00Z",
+    );
     expect(a.recordHash).not.toBe(b.recordHash);
   });
 
@@ -76,6 +83,6 @@ describe("CoastalDefenseOperationsRecord", () => {
       sampleArea({ areaId: "area_b" }),
     ];
     const record = createCoastalDefenseOperationsRecord(areas, "2026-08-28T23:00:00Z");
-    expect(record.areas.map(a => a.areaId)).toEqual(["area_a", "area_b", "area_c"]);
+    expect(record.areas.map((a) => a.areaId)).toEqual(["area_a", "area_b", "area_c"]);
   });
 });

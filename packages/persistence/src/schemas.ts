@@ -33,9 +33,7 @@ const StorableSnapshotSchema = z.object({
   campaignId: z.string(),
   startYear: z.number(),
   startMonth: z.number(),
-  slots: z
-    .array(z.object({ nationId: z.string(), type: z.string() }))
-    .default([]),
+  slots: z.array(z.object({ nationId: z.string(), type: z.string() })).default([]),
   world: z.object({
     areas: z.array(z.record(z.string(), z.unknown())).default([]),
     routes: z.array(z.unknown()).default([]),

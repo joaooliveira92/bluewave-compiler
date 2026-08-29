@@ -651,7 +651,9 @@ function printBattleSummary(
     if (battle.result) {
       const r = battle.result;
       const verdict =
-        r.winnerId && r.loserId ? `${r.winnerId} defeated ${r.loserId}` : "inconclusive (no winner)";
+        r.winnerId && r.loserId
+          ? `${r.winnerId} defeated ${r.loserId}`
+          : "inconclusive (no winner)";
       printResult(
         `    ${battle.id} (${battle.attackerId} vs ${battle.defenderId} @ ${battle.areaId}): ${verdict}`,
         "human",

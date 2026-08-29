@@ -15,15 +15,26 @@ import { parse } from "yaml";
 import { validateCampaignPreconditions } from "./campaignSession.js";
 import { knotsToUms, mmToUm } from "./designUnits.js";
 import { getScenarioById, type ScenarioId } from "./scenario.js";
-import type { AreaData, CampaignSlot, CampaignSnapshot, CampaignState,
+import type {
+  AreaData,
+  CampaignSlot,
+  CampaignSnapshot,
+  CampaignState,
   CompiledDesignVersion,
   ConstructionProject,
-  DesignFamily,DiplomaticRelation,
+  DesignFamily,
+  DiplomaticRelation,
   FleetState,
-  NationState,PoliticalState, PortData,
-  ResearchState,RouteData,
+  NationState,
+  PoliticalState,
+  PortData,
+  ResearchState,
+  RouteData,
   Ship,
-  TechnologyProgress,WarState, WorldState } from "./state.js";
+  TechnologyProgress,
+  WarState,
+  WorldState,
+} from "./state.js";
 import { DEFAULT_CAMPAIGN_START_MONTH, DEFAULT_CAMPAIGN_START_YEAR } from "./timeline.js";
 
 export interface CampaignCompilerInput {
@@ -745,8 +756,7 @@ export class CampaignCompiler {
         // the compiled design carries canonical engine units (µm/s, µm) that
         // the tactical classifier and combat layer consume (DESIGN-22 §2).
         normalizedSpeedUms: toSafeIntOpt(
-          rec["normalizedSpeedUms"] ??
-            knotsToUms(validated["speedUms"] as number),
+          rec["normalizedSpeedUms"] ?? knotsToUms(validated["speedUms"] as number),
           SafeInt(0),
         ),
         normalizedArmorUm: toSafeIntOpt(

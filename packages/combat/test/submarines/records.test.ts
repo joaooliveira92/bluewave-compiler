@@ -33,7 +33,10 @@ describe("AC-17: §26 canonical ordering", () => {
   it("orderMissionsByPriority: ascending priority", () => {
     const priorities = { MINE_LAYING: 7, FLEET_INTERDICTION: 2, MERCHANT_RAIDING: 3 };
     expect(
-      orderMissionsByPriority(["MINE_LAYING", "FLEET_INTERDICTION", "MERCHANT_RAIDING"], priorities),
+      orderMissionsByPriority(
+        ["MINE_LAYING", "FLEET_INTERDICTION", "MERCHANT_RAIDING"],
+        priorities,
+      ),
     ).toEqual(["FLEET_INTERDICTION", "MERCHANT_RAIDING", "MINE_LAYING"]);
   });
 

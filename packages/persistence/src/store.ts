@@ -113,7 +113,7 @@ export class SaveStore {
         return (slot ?? state.snapshot.slots[0])?.nationId;
       })(),
       campaignDate: (() => {
-        const totalMonths = (state.snapshot.startMonth - 1) + state.snapshot.turnNumber;
+        const totalMonths = state.snapshot.startMonth - 1 + state.snapshot.turnNumber;
         const year = state.snapshot.startYear + Math.floor(totalMonths / 12);
         const month = (totalMonths % 12) + 1;
         return { year, month };

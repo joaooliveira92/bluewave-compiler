@@ -57,7 +57,9 @@ export function MapSheet() {
       .execute("inspectMap", sessionId)
       .then((result) => {
         if (!active) return;
-        setOverlay(result.outcome === "success" ? joinWorldMap(result.value.world) : EMPTY_LIVE_OVERLAY);
+        setOverlay(
+          result.outcome === "success" ? joinWorldMap(result.value.world) : EMPTY_LIVE_OVERLAY,
+        );
       })
       .catch(() => {
         if (active) setOverlay(EMPTY_LIVE_OVERLAY);

@@ -8,8 +8,18 @@ import {
 } from "../../src/coastal-defense/index.js";
 
 const sampleZones: readonly CoastalDefenseZone[] = [
-  { zoneId: "z1", areaId: "area_a", validBatteryModels: ["GENERIC_HEAVY", "GENERIC_MEDIUM"], maxBatteries: SafeInt(3) },
-  { zoneId: "z2", areaId: "area_a", validBatteryModels: ["GENERIC_LIGHT"], maxBatteries: SafeInt(2) },
+  {
+    zoneId: "z1",
+    areaId: "area_a",
+    validBatteryModels: ["GENERIC_HEAVY", "GENERIC_MEDIUM"],
+    maxBatteries: SafeInt(3),
+  },
+  {
+    zoneId: "z2",
+    areaId: "area_a",
+    validBatteryModels: ["GENERIC_LIGHT"],
+    maxBatteries: SafeInt(2),
+  },
 ];
 
 describe("validatePlacementZone", () => {
@@ -18,12 +28,22 @@ describe("validatePlacementZone", () => {
   });
 
   it("rejects zones not in the valid set", () => {
-    const badZone: CoastalDefenseZone = { zoneId: "z_bad", areaId: "area_a", validBatteryModels: [], maxBatteries: SafeInt(0) };
+    const badZone: CoastalDefenseZone = {
+      zoneId: "z_bad",
+      areaId: "area_a",
+      validBatteryModels: [],
+      maxBatteries: SafeInt(0),
+    };
     expect(() => validatePlacementZone(badZone, sampleZones)).toThrowError(BluewaveError);
   });
 
   it("rejects zones for different area", () => {
-    const wrongArea: CoastalDefenseZone = { zoneId: "z1", areaId: "area_b", validBatteryModels: [], maxBatteries: SafeInt(0) };
+    const wrongArea: CoastalDefenseZone = {
+      zoneId: "z1",
+      areaId: "area_b",
+      validBatteryModels: [],
+      maxBatteries: SafeInt(0),
+    };
     expect(() => validatePlacementZone(wrongArea, sampleZones)).toThrowError(BluewaveError);
   });
 });
@@ -52,13 +72,20 @@ describe("selectCoastalDefensePositions", () => {
     const a = selectCoastalDefensePositions("area_a", sampleZones, "seed-x");
     const b = selectCoastalDefensePositions("area_a", sampleZones, "seed-y");
     const lengthsMatch = a.length === b.length;
-    const indicesMatch = a.every((p, i) => p.positionIndex.valueOf() === b[i].positionIndex.valueOf());
+    const indicesMatch = a.every(
+      (p, i) => p.positionIndex.valueOf() === b[i].positionIndex.valueOf(),
+    );
     expect(lengthsMatch && indicesMatch).toBe(false);
   });
 
   it("respects maxBatteries upper bound", () => {
     const singleZone: readonly CoastalDefenseZone[] = [
-      { zoneId: "z_single", areaId: "area_a", validBatteryModels: ["GENERIC_HEAVY"], maxBatteries: SafeInt(1) },
+      {
+        zoneId: "z_single",
+        areaId: "area_a",
+        validBatteryModels: ["GENERIC_HEAVY"],
+        maxBatteries: SafeInt(1),
+      },
     ];
     for (let i = 0; i < 10; i++) {
       const result = selectCoastalDefensePositions("area_a", singleZone, `seed-${i}`);

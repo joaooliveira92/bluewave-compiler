@@ -3,9 +3,7 @@ import {
   PER_BATTERY_MINE_PRESSURE_INCREMENT,
   COASTAL_DEFENSE_RULESET_VERSION,
 } from "./constants.js";
-import {
-  COASTAL_ARTILLERY_MINE_PRESSURE_MISSING,
-} from "./reasonCodes.js";
+import { COASTAL_ARTILLERY_MINE_PRESSURE_MISSING } from "./reasonCodes.js";
 
 export const COASTAL_ARTILLERY_MINE_SOURCE_ID = "coastal_artillery" as const;
 
@@ -38,7 +36,7 @@ export function coastalArtilleryMinePressureHash(pressure: CoastalArtilleryMineP
   let hash = 0;
   for (let i = 0; i < input.length; i++) {
     const char = input.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash |= 0;
   }
   return Math.abs(hash).toString(16);

@@ -347,9 +347,7 @@ describe("§11 authored multiplier defaults", () => {
 
 describe("submarine_effectiveness_v1 contract (AC-21)", () => {
   it("shipped contract matches expected policy id and values", () => {
-    expect(SHIPPED_SUBMARINE_EFFECTIVENESS_CONTRACT.policyId).toBe(
-      submarineEffectivenessPolicyId,
-    );
+    expect(SHIPPED_SUBMARINE_EFFECTIVENESS_CONTRACT.policyId).toBe(submarineEffectivenessPolicyId);
     expect(SHIPPED_SUBMARINE_EFFECTIVENESS_CONTRACT.basisPointsPerUnit).toBe(10_000);
     expect(SHIPPED_SUBMARINE_EFFECTIVENESS_CONTRACT.denominator).toBe(10_000 ** 7);
   });

@@ -60,7 +60,9 @@ export const HistoricalUncertaintySection = memo(function HistoricalUncertaintyS
                   </SelectContent>
                 </Select>
                 {currentValue !== "" && (
-                  <FieldDescription>{uncertaintyValueContent(field, currentValue).blurb}</FieldDescription>
+                  <FieldDescription>
+                    {uncertaintyValueContent(field, currentValue).blurb}
+                  </FieldDescription>
                 )}
               </Field>
             );

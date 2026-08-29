@@ -1,8 +1,5 @@
 import { BluewaveError } from "@bluewave/contracts";
-import {
-  type LandTargetDamageState,
-  type DamageEventType,
-} from "./constants.js";
+import { type LandTargetDamageState, type DamageEventType } from "./constants.js";
 import { INVALID_DAMAGE_STATE_TRANSITION } from "./reasonCodes.js";
 
 const DAMAGE_PROGRESSION: Record<LandTargetDamageState, LandTargetDamageState | null> = {

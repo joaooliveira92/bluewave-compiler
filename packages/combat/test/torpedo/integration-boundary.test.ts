@@ -177,7 +177,10 @@ describe("AC-22 — torpedo stage placement AFTER the damage stage", () => {
     const d1After = (res: { damageStates?: Record<string, ShipDamageState> }) => {
       const st = res.damageStates?.["d1"];
       expect(st).toBeDefined();
-      return { structuralIntegrity: st!.structuralIntegrity, flotationReserve: st!.flotationReserve };
+      return {
+        structuralIntegrity: st!.structuralIntegrity,
+        flotationReserve: st!.flotationReserve,
+      };
     };
     const { state } = buildTorpedoScene();
     // gunnery-only minute (guaranteed HIT battery -> real damage)
@@ -235,7 +238,10 @@ describe("AC-22 — torpedo context threads across minutes", () => {
       ...scene.state,
       movementStates: {
         ...scene.state.movementStates,
-        d1: { ...scene.state.movementStates?.d1 ?? buildTorpedoScene().state.movementStates!.d1, position: farPos },
+        d1: {
+          ...(scene.state.movementStates?.d1 ?? buildTorpedoScene().state.movementStates!.d1),
+          position: farPos,
+        },
       },
       contacts: [{ ...scene.contact, position: farPos }],
     };

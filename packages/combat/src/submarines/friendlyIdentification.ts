@@ -38,17 +38,11 @@ export interface FriendlyIdentificationInput {
 
 function isBpInRange(v: unknown): v is number {
   return (
-    typeof v === "number" &&
-    Number.isInteger(v) &&
-    Number.isSafeInteger(v) &&
-    v >= 0 &&
-    v <= 20_000
+    typeof v === "number" && Number.isInteger(v) && Number.isSafeInteger(v) && v >= 0 && v <= 20_000
   );
 }
 
-export function computeMisidentificationProbability(
-  input: FriendlyIdentificationInput,
-): SafeInt {
+export function computeMisidentificationProbability(input: FriendlyIdentificationInput): SafeInt {
   const base = input.baseProbabilityBp ?? SafeInt(SUBMARINE_FRIENDLY_IDENTIFICATION_BASE_BP);
   const vis = input.visibilityModifierBp;
   const comm = input.communicationModifierBp;

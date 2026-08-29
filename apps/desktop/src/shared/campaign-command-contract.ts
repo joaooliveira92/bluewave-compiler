@@ -226,7 +226,10 @@ export interface CampaignCommandClient {
     payload: string,
   ): Promise<BridgeResult<InspectOpeningBriefingResult>>;
   execute(command: "inspectMap", payload: string): Promise<BridgeResult<InspectMapResult>>;
-  execute(command: "inspectPriorities", payload: string): Promise<BridgeResult<InspectPrioritiesResult>>;
+  execute(
+    command: "inspectPriorities",
+    payload: string,
+  ): Promise<BridgeResult<InspectPrioritiesResult>>;
   execute(command: "closeCampaign", payload: string): Promise<BridgeResult<unknown>>;
   execute(command: "saveCampaign", payload: string): Promise<BridgeResult<SaveCampaignResult>>;
   execute(

@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import {
-  countryIdToNationId,
-  nationIdToCountryId,
-  NATION_ID_TO_COUNTRY_ID,
-} from "./slotBridge.js";
+import { countryIdToNationId, nationIdToCountryId, NATION_ID_TO_COUNTRY_ID } from "./slotBridge.js";
 
 // Content-pack nation ids (content/production/1880/countries.yaml) must resolve
 // to presentation country ids — a `nation_` mis-prefix here previously emptied

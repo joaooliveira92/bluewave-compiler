@@ -23,11 +23,11 @@ INC-4 of the C-1 torpedo fire-resolution slice of DESIGN-40, engine-only, entire
 
 ## Requirements evidence
 
-| Requirement | Implementation | Proving tests |
-| ----------- | -------------- | ------------- |
-| AC-12 launch timing/failure | `launch-failure.ts` (`resolveTubeLaunches`, `computeLaunchFailureChanceBp`, `evaluateTubeLaunchDraw`, `salvoContinuesAfterFailure`, `torpedoLaunchFailureStreamId`) | `test/torpedo/launch-failure.test.ts` (18 tests) |
-| AC-13 part 1 TorpedoTrack | `track.ts` (`torpedoTrackId`, `createTorpedoTrack`, `assertTorpedoTrackSurface`, `assertAuthoritativeTorpedoTrack`, `computeTorpedoTrackHash`, `verifyTorpedoTrackHash`, `advanceTorpedoTrack`, `setTorpedoTerminalResult`, `projectAlongHeading`, `foldMdeg`) | `test/torpedo/track.test.ts` (25 tests) |
-| Reason-code catalog shape (INC-4 set) | `reasonCodes.ts` (`TORPEDO_LAUNCH_FAILURE`, `TORPEDO_STUCK_IN_TUBE` shipped) | `test/torpedo/contracts.test.ts` (INC-4 codes moved into the shipped set, INC-5+ kept out) |
+| Requirement                           | Implementation                                                                                                                                                                                                                                                 | Proving tests                                                                              |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| AC-12 launch timing/failure           | `launch-failure.ts` (`resolveTubeLaunches`, `computeLaunchFailureChanceBp`, `evaluateTubeLaunchDraw`, `salvoContinuesAfterFailure`, `torpedoLaunchFailureStreamId`)                                                                                            | `test/torpedo/launch-failure.test.ts` (18 tests)                                           |
+| AC-13 part 1 TorpedoTrack             | `track.ts` (`torpedoTrackId`, `createTorpedoTrack`, `assertTorpedoTrackSurface`, `assertAuthoritativeTorpedoTrack`, `computeTorpedoTrackHash`, `verifyTorpedoTrackHash`, `advanceTorpedoTrack`, `setTorpedoTerminalResult`, `projectAlongHeading`, `foldMdeg`) | `test/torpedo/track.test.ts` (25 tests)                                                    |
+| Reason-code catalog shape (INC-4 set) | `reasonCodes.ts` (`TORPEDO_LAUNCH_FAILURE`, `TORPEDO_STUCK_IN_TUBE` shipped)                                                                                                                                                                                   | `test/torpedo/contracts.test.ts` (INC-4 codes moved into the shipped set, INC-5+ kept out) |
 
 ## Commands and observed results
 

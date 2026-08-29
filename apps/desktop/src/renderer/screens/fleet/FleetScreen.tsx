@@ -35,7 +35,7 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
 
   if (loadError !== null) {
     return (
-      <div data-guided-target='fleet'>
+      <div data-guided-target="fleet">
         <LoadErrorCard message={loadError} onReload={() => void loadScreen()} />
       </div>
     );
@@ -43,7 +43,7 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
 
   if (state.playerNationId === null) {
     return (
-      <div data-guided-target='fleet'>
+      <div data-guided-target="fleet">
         <LoadingState />
       </div>
     );
@@ -56,7 +56,7 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
     selectedDivision === null ? null : pendingRouteFor(state, selectedDivision.divisionId);
 
   return (
-    <div data-guided-target='fleet' className="space-y-6">
+    <div data-guided-target="fleet" className="space-y-6">
       <PageHeader
         icon={Ship}
         title="Fleet Movement"

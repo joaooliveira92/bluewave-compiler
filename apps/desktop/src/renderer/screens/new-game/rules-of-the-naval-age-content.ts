@@ -70,7 +70,8 @@ const UNCERTAINTY_VALUE_CONTENT: Record<UncertaintyField, Record<string, Setting
   historicalBudget: {
     standard: {
       label: "Standard",
-      blurb: "Naval budgets follow the era's typical economic rhythms — moderate, predictable growth.",
+      blurb:
+        "Naval budgets follow the era's typical economic rhythms — moderate, predictable growth.",
     },
     historical: {
       label: "Historical",
@@ -90,7 +91,8 @@ const UNCERTAINTY_VALUE_CONTENT: Record<UncertaintyField, Record<string, Setting
     },
     not_applicable: {
       label: "Not Applicable",
-      blurb: "This era's engagements don't use tactical-realism modeling — this setting has no effect.",
+      blurb:
+        "This era's engagements don't use tactical-realism modeling — this setting has no effect.",
     },
   },
   difficulty: {
@@ -100,7 +102,8 @@ const UNCERTAINTY_VALUE_CONTENT: Record<UncertaintyField, Record<string, Setting
     },
     normal: {
       label: "Normal",
-      blurb: "A balanced challenge, calibrated for players familiar with the basics of naval administration.",
+      blurb:
+        "A balanced challenge, calibrated for players familiar with the basics of naval administration.",
     },
     hard: {
       label: "Hard",
@@ -108,12 +111,16 @@ const UNCERTAINTY_VALUE_CONTENT: Record<UncertaintyField, Record<string, Setting
     },
     very_hard: {
       label: "Very Hard",
-      blurb: "An unforgiving campaign — rivals press every advantage, and mistakes compound quickly.",
+      blurb:
+        "An unforgiving campaign — rivals press every advantage, and mistakes compound quickly.",
     },
   },
 };
 
-export function uncertaintyValueContent(field: UncertaintyField, valueId: string): SettingValueContent {
+export function uncertaintyValueContent(
+  field: UncertaintyField,
+  valueId: string,
+): SettingValueContent {
   return UNCERTAINTY_VALUE_CONTENT[field][valueId] ?? { label: valueId, blurb: "" };
 }
 

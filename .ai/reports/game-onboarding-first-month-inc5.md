@@ -18,6 +18,7 @@ One frontier-ordered implementation ticket (commit `a0079ed`, 2026-08-19, 5 file
 - **Wired on the existing Research & Technology screen** — `ResearchScreen.tsx` (field priority toggles per `WEIGHT_OPTIONS` HIGH/Med/Low, 6th-HIGH disabled with helper text, projected allocations read-only, Submit disabled when `!canSubmit || !dirty || !highCountValid`). All numbers from the projection; the screen never computes authoritative values.
 
 Design decisions (recorded):
+
 - 5-HIGH enforcement lives in the pure reducer (not the component) so the identity check (`===`) is testable and the component stays a thin view.
 - Largest-remainder uses floating `weight/totalWeight * budget` with `Math.floor` + sorted remainders — integer-exact for the `researchBudget` range (safe integer) and weight sum ≤ 40 (10 fields × HIGH=4); matches the phase-engine's integer allocation within 1 unit.
 - Autosave failure surfaces as `SAVE_FAILED` + in-memory rollback — same pattern as the construction slices; the envelope never reaches `MonthExecutor` when persistence fails.

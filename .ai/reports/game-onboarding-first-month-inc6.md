@@ -21,6 +21,7 @@ One frontier-ordered implementation ticket (spec §6 — center of the strategic
 - All numbers from `PlayerProjection`; no fabricated categories; no new command/phase.
 
 Design decisions (recorded):
+
 - `largestPortCapacity` uses `Math.max` over `port.capacity` (port `level` proxy, same as `shipyardCapacity` derivation) — matches engineering contract's "no dock entity" note.
 - `rederivedMaintenanceCost` returns `economy.maintenanceCost` (already re-derived from `shipMaintenanceCost` in `projection.ts`) to satisfy "never raw `maintenanceCost`" without duplicating per-hitPoints logic that projection lacks (`PlayerProjectionShip` has no `hitPoints`).
 - Foreign Situation tension 10 is war-level per `diplomacy.ts` taxonomy; label via imported `tensionLabel` — satisfies "imported, never re-derived" and avoids fabricating per-relation tension that `PlayerProjection` doesn't carry.

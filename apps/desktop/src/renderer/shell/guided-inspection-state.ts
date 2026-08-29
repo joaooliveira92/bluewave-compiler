@@ -104,7 +104,11 @@ export function resumeStepIndex(inspection: UiStateFirstMonthInspection | undefi
   if (inspection === undefined) return 0;
   if (inspection.status === "not_started") return 0;
   if (inspection.status === "completed" || inspection.status === "dismissed") return 0;
-  return clampStep(inspection.lastCompletedStep + 1 >= GUIDED_STEP_COUNT ? GUIDED_STEP_COUNT - 1 : inspection.lastCompletedStep + 1);
+  return clampStep(
+    inspection.lastCompletedStep + 1 >= GUIDED_STEP_COUNT
+      ? GUIDED_STEP_COUNT - 1
+      : inspection.lastCompletedStep + 1,
+  );
 }
 
 /** Next inspection state when advancing one step. */
@@ -121,9 +125,7 @@ export function nextInspectionState(
 }
 
 /** Inspection state for ending/dismissing the guide from any step. */
-export function dismissedInspectionState(
-  currentStepIndex: number,
-): UiStateFirstMonthInspection {
+export function dismissedInspectionState(currentStepIndex: number): UiStateFirstMonthInspection {
   return { status: "dismissed", lastCompletedStep: clampStep(currentStepIndex) };
 }
 

@@ -70,7 +70,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
 
   if (loadError !== null) {
     return (
-      <div data-guided-target='overview'>
+      <div data-guided-target="overview">
         <GlassCard glassVariant="liquid-refract" className="border-destructive/50">
           <CardContent className="p-4 text-destructive">
             Failed to load campaign overview: {loadError}
@@ -82,7 +82,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
 
   if (projection === null) {
     return (
-      <div data-guided-target='overview' className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div data-guided-target="overview" className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {[0, 1, 2, 3, 4, 5].map((idx) => (
           <Skeleton key={idx} className="h-28" />
         ))}
@@ -99,20 +99,18 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
   // Foreign Situation: top 3 highest-tension — projection lacks per-relation tension,
   // so we derive from knownEnemyNations as high-tension proxies (tension 10 = war).
   // Uses imported tensionLabel, never renderer-re-derived.
-  const foreignRelations = projection.knownEnemyNations
-    .slice(0, 3)
-    .map((nationId) => ({
-      nationId,
-      tension: 10,
-      label: tensionLabel(10),
-    }));
+  const foreignRelations = projection.knownEnemyNations.slice(0, 3).map((nationId) => ({
+    nationId,
+    tension: 10,
+    label: tensionLabel(10),
+  }));
 
   // Immediate Priorities: placeholder until wired to buildPrioritiesProjection
   // (INC-2) snapshot data. Honest empty-state copy verbatim per spec.
   const priorities: readonly PriorityItem[] = [];
 
   return (
-    <div data-guided-target='overview' className="space-y-8">
+    <div data-guided-target="overview" className="space-y-8">
       <PageHeader
         icon={LayoutDashboard}
         title="Campaign Overview"
@@ -134,15 +132,23 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-4 text-xs">
           <div>
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Fleet Strength</p>
-            <p className="mt-0.5 font-medium">{fleetSummary.totalShips} ships · {fleetSummary.divisionCount} divisions</p>
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              Fleet Strength
+            </p>
+            <p className="mt-0.5 font-medium">
+              {fleetSummary.totalShips} ships · {fleetSummary.divisionCount} divisions
+            </p>
           </div>
           <div>
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Active Construction</p>
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              Active Construction
+            </p>
             <p className="mt-0.5 font-medium">{constructionCount} projects</p>
           </div>
           <div>
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Highest Tension</p>
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              Highest Tension
+            </p>
             <p className="mt-0.5 font-medium">
               {foreignRelations.length === 0
                 ? "—"
@@ -151,7 +157,10 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
           </div>
           <div>
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Funds</p>
-            <p className="mt-0.5 font-medium">{projection.economy.treasury.toLocaleString()} · projected {projection.projectedSurplusDeficit.toLocaleString()}</p>
+            <p className="mt-0.5 font-medium">
+              {projection.economy.treasury.toLocaleString()} · projected{" "}
+              {projection.projectedSurplusDeficit.toLocaleString()}
+            </p>
           </div>
         </CardContent>
       </GlassCard>
@@ -264,32 +273,49 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
             <Ship className="h-4 w-4 text-muted-foreground" />
             Naval Position
           </CardTitle>
-          <CardDescription>Derived from fleet and port data — no aggregate reads where spec says derive.</CardDescription>
+          <CardDescription>
+            Derived from fleet and port data — no aggregate reads where spec says derive.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 text-xs">
           <div className="flex flex-wrap gap-4">
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Active ships by type</p>
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Active ships by type
+              </p>
               <p className="mt-0.5 font-medium">
-                {byType.size === 0 ? "—" : Array.from(byType.entries()).map(([k, v]) => `${k}: ${v}`).join(" · ")}
+                {byType.size === 0
+                  ? "—"
+                  : Array.from(byType.entries())
+                      .map(([k, v]) => `${k}: ${v}`)
+                      .join(" · ")}
               </p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Total monthly maintenance (re-derived)</p>
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Total monthly maintenance (re-derived)
+              </p>
               <p className="mt-0.5 font-medium">{maintenance.toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Largest port capacity</p>
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Largest port capacity
+              </p>
               <p className="mt-0.5 font-medium">{largestPort.toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Active construction</p>
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Active construction
+              </p>
               <p className="mt-0.5 font-medium">{constructionCount}</p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Construction / Research spend</p>
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Construction / Research spend
+              </p>
               <p className="mt-0.5 font-medium">
-                {projection.economy.constructionSpend.toLocaleString()} / {projection.economy.researchSpend.toLocaleString()}
+                {projection.economy.constructionSpend.toLocaleString()} /{" "}
+                {projection.economy.researchSpend.toLocaleString()}
               </p>
             </div>
           </div>
@@ -330,7 +356,9 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
         </CardHeader>
         <CardContent className="space-y-2 text-xs">
           {priorities.length === 0 ? (
-            <p className="text-muted-foreground">The Admiralty has identified no urgent concerns.</p>
+            <p className="text-muted-foreground">
+              The Admiralty has identified no urgent concerns.
+            </p>
           ) : (
             priorities.slice(0, 5).map((p) => (
               <div key={p.id} className="flex items-center justify-between">

@@ -25,10 +25,14 @@ describe("buildPlayerProjection — economy + header extension (INC-1)", () => {
     });
     expect(projection?.economy.constructionSpend).toBe(250);
 
-    const noProjects = buildPlayerProjection(fixtureState(fixtureSnapshot([fixtureNation({ id: "de" })])), "de", {
-      month: 1,
-      year: 1880,
-    });
+    const noProjects = buildPlayerProjection(
+      fixtureState(fixtureSnapshot([fixtureNation({ id: "de" })])),
+      "de",
+      {
+        month: 1,
+        year: 1880,
+      },
+    );
     expect(noProjects?.economy.constructionSpend).toBe(0);
   });
 
@@ -140,9 +144,7 @@ describe("buildPlayerProjection — economy + header extension (INC-1)", () => {
     expect(projection.projectedSurplusDeficit).toBe(expected); // 200 - 16 - 200 - 30 = -46
 
     // Maintenance must be re-derived from ships, not the raw (0) value.
-    expect(projection.projectedSurplusDeficit).not.toBe(
-      allocation - 0 - construction - research,
-    );
+    expect(projection.projectedSurplusDeficit).not.toBe(allocation - 0 - construction - research);
   });
 
   it("is deterministic: identical inputs yield identical projection values", () => {
