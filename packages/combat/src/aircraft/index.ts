@@ -10,3 +10,8 @@ export * from "./development.js";
 export * from "./proposal.js";
 export * from "./event-types.js";
 export * from "./private-venture.js";
+export * from "./squadron.js";
+export * from "./auto-equip.js";
+export * from "./reequipment.js";
+export * from "./expansion.js";
+export * from "./inventory-allocation.js";

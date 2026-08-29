@@ -248,9 +248,9 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-**D-1-IMPL (INC-5: Squadron lifecycle + auto-equip + re-equipment + expansion + allocation).** Implement squadron lifecycle: `SquadronState`, auto-equip eligibility + deterministic selection, re-equipment (2-month duration + experience penalty), expansion (ratio bands + penalties), inventory allocation per §35 priority. See spec at `.scratch/d1-m4-aviation/spec.md`.
+**D-1-IMPL (INC-6: Basing model + damaged disposition).** Implement basing model (6 basing classes, per-slot capacity tracking, 7 damaged dispositions via §21, cannibalization, capacity invariant) and damaged aircraft disposition. See spec at `.scratch/d1-m4-aviation/spec.md`.
 
-**Status (2026-08-29): INC-4 DONE.** INC-4 (private ventures): private_aircraft_venture_v1 typed event, 12-month cooldown, max 3 unexpired, PurchasePrivateAircraftProposalCommand, 12-month expiry. 23 tests green (2620 total combat tests). Commit: `<pending>`. Next frontier: INC-5 (squadron lifecycle).
+**Status (2026-08-29): INC-5 DONE.** INC-5 (squadron lifecycle): SquadronState, auto-equip eligibility + deterministic selection, re-equipment (2-month duration + experience penalty), expansion (ratio bands + penalties), inventory allocation per §35 priority. 5 new source files + 5 test files. 138 aircraft tests green (2662 total combat tests). Next frontier: INC-6 (basing model + damaged disposition).
 
 **Desktop side-tracks (recorded, not dropped):**
 
