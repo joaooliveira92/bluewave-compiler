@@ -11,3 +11,4 @@ export * from "./strikes.js";
 export * from "./maneuver.js";
 export * from "./hazards.js";
 export * from "./recovery-ordnance-damage.js";
+export * from "./records.js";
