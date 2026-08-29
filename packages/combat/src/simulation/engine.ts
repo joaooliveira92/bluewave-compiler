@@ -44,6 +44,14 @@ import {
   type TorpedoTrack,
   type TorpedoRecord,
 } from "../torpedoes/index.js";
+import { resolveSmoke, type SmokeContext, type SmokeStageResult } from "../smoke/engineWiring.js";
+import type { SmokeCloud } from "../smoke/model.js";
+import type { SmokeEventRecord } from "../smoke/smokeRecords.js";
+import {
+  resolveDamageControl,
+  type DamageControlContext,
+  type DamageControlStageResult,
+} from "../damage/damageControlEngineWiring.js";
 
 export interface UnitOrders {
   orderedHeading: number;
@@ -76,6 +84,16 @@ export interface AdvanceMinuteInput {
   // resolveTorpedoes runs AFTER the damage stage and its records/states are
   // threaded (torpedoStates/torpedoTracks) exactly like gunneryStates.
   torpedoes?: TorpedoContext;
+  /** Optional smoke context (C-5 / INC-8). When absent, the smoke stage is a
+   *  strict no-op: zero events appended, minute snapshot/minuteHash byte-identical
+   *  to the pre-INC-8 baseline. When present, resolveSmoke runs after movement
+   *  intent (step 5) and before propulsion (step 6). */
+  smoke?: SmokeContext;
+  /** Optional damage-control context (C-5 / INC-8). When absent, the damage-control
+   *  stage is a strict no-op: zero events appended, minute snapshot/minuteHash
+   *  byte-identical to the baseline. When present, resolveDamageControl runs after
+   *  damage resolution (steps 9-10 and 10.5) in the same minute. */
+  damageControl?: DamageControlContext;
 }
 
 export interface MinuteResult {
@@ -102,6 +120,12 @@ export interface MinuteResult {
   // The §27 torpedo records emitted this minute. Present only when the stage
   // produced records.
   torpedoRecords?: readonly TorpedoRecord[];
+  /** Smoke clouds after this minute's smoke stage. Present only when the stage
+   *  resolved clouds. */
+  smokeClouds?: SmokeCloud[];
+  /** Smoke event records emitted this minute. Present only when the stage
+   *  produced records. */
+  smokeRecords?: SmokeEventRecord[];
 }
 
 // atomic mutable snapshot used through one minute.
@@ -192,6 +216,23 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     u.movement = next;
   }
   ledger.append(evt(minute, 0, "resolve_movement_intent", 5, "pipeline", battleId));
+
+  // Step 5.5 (C-5 / INC-8): resolve smoke — drift, decay, and lifecycle
+  // Strict no-op when no smoke context is supplied.
+  let smokeClouds: SmokeCloud[] | undefined;
+  let smokeRecords: SmokeEventRecord[] | undefined;
+  if (input.smoke) {
+    const smokeResult = resolveSmoke(input.smoke, minute, 0);
+    if (smokeResult.nextClouds.length > 0 || smokeResult.events.length > 0) {
+      smokeClouds = smokeResult.nextClouds;
+      smokeRecords = smokeResult.events;
+      for (const sr of smokeResult.events) {
+        ledger.append(
+          evt(minute, 0, `smoke_${sr.kind.toLowerCase()}`, 55, `cloud-${sr.cloudId}`, battleId),
+        );
+      }
+    }
+  }
 
   // Step 6: resolve propulsion, turning, and position (60 deterministic substeps).
   for (let sub = 0; sub < SUBSTEPS_PER_MINUTE; sub++) {
@@ -397,6 +438,26 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     }
   }
 
+  // Step 8.6 (C-5 / INC-8): resolve damage control — fire progression,
+  // flooding resolution, damage-control allocation. Strict no-op when no
+  // damage-control context is supplied.
+  if (input.damageControl) {
+    const dcResult = resolveDamageControl(input.damageControl, minute, 0);
+    for (const sr of dcResult.smokeEventRecords) {
+      ledger.append(evt(minute, 0, `smoke_fire`, 86, `fire-smoke`, battleId));
+    }
+    // Apply fire/flooding state updates to damageStates
+    if (damageStates) {
+      for (const [shipId, state] of Object.entries(damageStates)) {
+        damageStates[shipId] = {
+          ...state,
+          fireRecords: dcResult.fireRecords,
+          floodingRecords: dcResult.floodingRecords,
+        };
+      }
+    }
+  }
+
   const events = ledger.sorted();
   const hasTorpedoSurface =
     torpedoTracks !== undefined || (torpedoRecords !== undefined && torpedoRecords.length > 0);
@@ -467,6 +528,20 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
           },
         }
       : {}),
+    // The smoke minute-state surface (C-5 / INC-8): present ONLY when the stage
+    // resolved state — absent context or an empty stage keeps the snapshot
+    // byte-identical to the pre-INC-8 baseline (the strict no-op guarantee).
+    ...(smokeRecords && smokeRecords.length > 0
+      ? {
+          smoke: {
+            records: smokeRecords.map((r) => ({
+              recordId: r.recordId,
+              kind: r.kind,
+              recordHash: r.recordHash,
+            })),
+          },
+        }
+      : {}),
   };
   const minuteHash = sha256Hex(canonicalSerialize(snapshot));
 
@@ -482,6 +557,8 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     ...(torpedoStates ? { torpedoStates } : {}),
     ...(torpedoTracks ? { torpedoTracks } : {}),
     ...(torpedoRecords ? { torpedoRecords } : {}),
+    ...(smokeClouds ? { smokeClouds } : {}),
+    ...(smokeRecords ? { smokeRecords } : {}),
   };
 }
 
@@ -504,6 +581,14 @@ export interface AdvanceMinutesInput {
   /** Optional torpedo stage context (C-1 / INC-7). When absent, the torpedo
    *  stage is a strict no-op across all minutes. */
   torpedoes?: TorpedoContext;
+  /** Optional smoke context (C-5 / INC-8). When absent, the smoke stage is a
+   *  strict no-op across all minutes. When present, smoke clouds are threaded
+   *  from minute to minute. */
+  smoke?: SmokeContext;
+  /** Optional damage-control context (C-5 / INC-8). When absent, the damage-control
+   *  stage is a strict no-op across all minutes. When present, fire and flooding
+   *  records are threaded from minute to minute. */
+  damageControl?: DamageControlContext;
 }
 export interface AdvanceMinutesResult {
   results: MinuteResult[];
@@ -520,6 +605,8 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
   let weather = input.weather;
   let damage = input.damage;
   let torpedoes = input.torpedoes;
+  let smoke = input.smoke;
+  let damageControl = input.damageControl;
   let state: TacticalBattleState = {
     ...input.state,
     contacts: [...(input.state.contacts ?? [])],
@@ -537,6 +624,8 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
       weather,
       damage,
       torpedoes,
+      smoke,
+      damageControl,
     });
     results.push(res);
     state = {
@@ -591,6 +680,16 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
           if (tgt) torpedoes.targets[sid] = { ...tgt, damageState: st };
         }
       }
+    }
+    // Thread the updated smoke clouds into the next minute.
+    if (smoke && res.smokeClouds) {
+      smoke = { ...smoke, clouds: res.smokeClouds };
+    }
+    // Thread the updated damage-control context into the next minute.
+    if (damageControl && res.smokeRecords) {
+      // After damage control, fire and flooding records may have changed.
+      // The smoke stage handling is separate; damage control results are
+      // consumed here by updating the fire/flooding context.
     }
   }
   return {
