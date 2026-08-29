@@ -11,6 +11,8 @@ import {
   validateCarrierHazardExposureContract,
   validateCarrierNightRecoveryContract,
   validateCarrierWeatherSuspensionContract,
+  validateCarrierRecoveryPriorityContract,
+  validateCarrierOrdnanceStateContract,
 } from "./contracts.js";
 
 export interface CarrierOperationsContractEntry {
@@ -74,6 +76,16 @@ export const SHIPPED_CARRIER_OPERATIONS_CONTRACTS: readonly CarrierOperationsCon
     policyId: "carrier_weather_suspension_v1",
     shippedContract: SHIPPED_CARRIER_OPERATIONS_CONTRACT.weatherSuspension,
     validate: validateCarrierWeatherSuspensionContract,
+  },
+  {
+    policyId: "carrier_recovery_priority_v1",
+    shippedContract: SHIPPED_CARRIER_OPERATIONS_CONTRACT.recoveryPriority,
+    validate: validateCarrierRecoveryPriorityContract,
+  },
+  {
+    policyId: "carrier_ordnance_state_v1",
+    shippedContract: SHIPPED_CARRIER_OPERATIONS_CONTRACT.ordnanceState,
+    validate: validateCarrierOrdnanceStateContract,
   },
 ] as const;
 

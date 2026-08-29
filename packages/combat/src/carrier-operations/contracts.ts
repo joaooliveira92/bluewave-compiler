@@ -479,6 +479,68 @@ export function validateCarrierWeatherSuspensionContract(value: unknown): Carrie
   return result.data;
 }
 
+const recoveryRequestSchema = z.object({
+  aircraftId: z.string().min(1),
+  priorityLevel: z.enum(["EMERGENCY_FUEL", "DAMAGED_AIRCRAFT", "HAZARDOUS_ORDNANCE", "IMMEDIATE_CAP_RELAUNCH", "RETURNING_STRIKE", "SEARCH", "NORMAL_CAP"]),
+  squadronId: z.string().min(1),
+  fuelStateBp: basisPointSchema,
+  isDamaged: z.boolean(),
+  hasHazardousOrdnance: z.boolean(),
+});
+
+export const CarrierRecoveryPriority_v1 = z.object({
+  requests: z.array(recoveryRequestSchema),
+  deckCapacityAvailable: nonNegativeSafeIntSchema,
+  requestedSlots: nonNegativeSafeIntSchema,
+  carrierHasAlternateLanding: z.boolean(),
+  sortedAircraftIds: z.array(z.string()),
+});
+
+export type CarrierRecoveryPriorityContract = z.infer<typeof CarrierRecoveryPriority_v1>;
+
+export function validateCarrierRecoveryPriorityContract(value: unknown): CarrierRecoveryPriorityContract {
+  const result = CarrierRecoveryPriority_v1.safeParse(value);
+  if (!result.success) {
+    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
+      code: INVALID_CARRIER_OPERATIONS_STATE,
+      field: result.error.errors[0]?.path.join(".") ?? "unknown",
+      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      value,
+    });
+  }
+  return result.data;
+}
+
+const ordnanceTransactionSchema = z.object({
+  ordnanceTypeId: z.string().min(1),
+  quantity: nonNegativeSafeIntSchema,
+  transactionType: z.enum(["RESERVE", "CONSUME", "RETURN_TO_STORAGE", "JETTISON"]),
+  timestamp: z.number().int().min(0),
+});
+
+export const CarrierOrdnanceState_v1 = z.object({
+  transactions: z.array(ordnanceTransactionSchema),
+  inventoryTypeId: z.string().min(1),
+  availableQuantity: nonNegativeSafeIntSchema,
+  requestedQuantity: nonNegativeSafeIntSchema,
+  sufficient: z.boolean(),
+});
+
+export type CarrierOrdnanceStateContract = z.infer<typeof CarrierOrdnanceState_v1>;
+
+export function validateCarrierOrdnanceStateContract(value: unknown): CarrierOrdnanceStateContract {
+  const result = CarrierOrdnanceState_v1.safeParse(value);
+  if (!result.success) {
+    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
+      code: INVALID_CARRIER_OPERATIONS_STATE,
+      field: result.error.errors[0]?.path.join(".") ?? "unknown",
+      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      value,
+    });
+  }
+  return result.data;
+}
+
 export const SHIPPED_CARRIER_OPERATIONS_CONTRACT = {
   state: CarrierOperationsState_v1,
   capacityAssignment: CarrierCapacityAssignment_v1,
@@ -491,4 +553,6 @@ export const SHIPPED_CARRIER_OPERATIONS_CONTRACT = {
   hazardExposure: CarrierHazardExposure_v1,
   nightRecovery: CarrierNightRecovery_v1,
   weatherSuspension: CarrierWeatherSuspension_v1,
+  recoveryPriority: CarrierRecoveryPriority_v1,
+  ordnanceState: CarrierOrdnanceState_v1,
 } as const;

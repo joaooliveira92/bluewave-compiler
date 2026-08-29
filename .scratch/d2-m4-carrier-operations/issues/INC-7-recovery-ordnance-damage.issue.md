@@ -1,7 +1,7 @@
 **Type:** implementation
-**Status:** open
+**Status:** closed
 **Blocked by:** INC-1, INC-6
-**Frontier:** yes
+**Frontier:** no
 
 # INC-7: Recovery priority + ordnance + deck/hangar damage (§§26-28)
 
@@ -19,3 +19,5 @@
 ## Acceptance criteria
 
 AC-28 (recovery priority), AC-29 (ordnance), AC-30 (deck/hangar damage).
+
+**DONE 2026-08-29 — PASS.** Combat 221 files / 2975 tests green. Build 18/18. tsc -b clean.
