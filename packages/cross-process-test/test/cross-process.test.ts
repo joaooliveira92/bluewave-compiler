@@ -70,6 +70,53 @@ describe("Cross-process determinism", () => {
   });
 });
 
+describe("Air-combat cross-process determinism", () => {
+  const airCombatChildScript = resolve(thisDir, "..", "dist", "run-air-combat-child.js");
+
+  interface AirCombatChildOutput {
+    contentArtifactHash: string;
+    initialSnapshotHash: string;
+    closingSnapshotHash: string;
+    commandLedgerHash: string;
+    eventLedgerHash: string;
+    financialLedgerHash: string;
+    randomDecisionLedgerHash: string;
+    resolveAirCombatHash: string;
+    success: boolean;
+  }
+
+  function runAirCombatChild(): AirCombatChildOutput {
+    const stdout = execFileSync(process.execPath, [airCombatChildScript], {
+      encoding: "utf8",
+      timeout: 30000,
+      env: { ...process.env, NODE_OPTIONS: "" },
+    });
+    const lines = stdout.trim().split("\n");
+    const jsonLine = lines[lines.length - 1]!;
+    return JSON.parse(jsonLine) as AirCombatChildOutput;
+  }
+
+  it("Two clean air-combat child-process runs produce identical air-combat hashes", () => {
+    const r1 = runAirCombatChild();
+    const r2 = runAirCombatChild();
+
+    expect(r1.success).toBe(true);
+    expect(r2.success).toBe(true);
+    expect(r1.resolveAirCombatHash).toBe(r2.resolveAirCombatHash);
+    expect(r1.closingSnapshotHash).toBe(r2.closingSnapshotHash);
+    expect(r1.eventLedgerHash).toBe(r2.eventLedgerHash);
+  });
+
+  it("Air-combat child creates non-empty records when CAP/strike data is present", () => {
+    const r = runAirCombatChild();
+    expect(r.success).toBe(true);
+    expect(r.resolveAirCombatHash).not.toBe("");
+    expect(r.resolveAirCombatHash).not.toBe(
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ); // Not empty hash
+  });
+});
+
 describe("Carrier operations cross-process determinism", () => {
   const carrierChildScript = resolve(thisDir, "..", "dist", "run-carrier-operations-child.js");
 

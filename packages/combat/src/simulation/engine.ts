@@ -52,6 +52,11 @@ import {
   type DamageControlContext,
   type DamageControlStageResult,
 } from "../damage/damageControlEngineWiring.js";
+import {
+  resolveAirCombat,
+  type AirCombatContext,
+} from "../air-combat/engineWiring.js";
+import type { AirCombatRecord } from "../air-combat/records.js";
 
 export interface UnitOrders {
   orderedHeading: number;
@@ -94,6 +99,11 @@ export interface AdvanceMinuteInput {
    *  byte-identical to the baseline. When present, resolveDamageControl runs after
    *  damage resolution (steps 9-10 and 10.5) in the same minute. */
   damageControl?: DamageControlContext;
+  /** Optional air-combat context (D-3 / INC-8). When absent, the resolveAirCombat
+   *  stage is a strict no-op: zero records emitted, minute snapshot/minuteHash
+   *  byte-identical to the pre-INC-8 baseline. When present, resolveAirCombat runs
+   *  after weather (step 7.5) and before spotting (step 8). */
+  airCombat?: AirCombatContext;
 }
 
 export interface MinuteResult {
@@ -126,6 +136,12 @@ export interface MinuteResult {
   /** Smoke event records emitted this minute. Present only when the stage
    *  produced records. */
   smokeRecords?: SmokeEventRecord[];
+  /** Air-combat records emitted this minute. Present only when the stage
+   *  produced records. */
+  airCombatRecords?: readonly AirCombatRecord[];
+  /** Summary of air-combat activity this minute. Present only when the stage
+   *  was active. */
+  airCombatSummary?: { capEngagements: number; strikeAttacks: number; losses: number };
 }
 
 // atomic mutable snapshot used through one minute.
@@ -278,6 +294,25 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     });
     for (const we of weatherResult.ledgerEvents) ledger.append(we);
     weatherComponents = weatherResult.nextComponents;
+  }
+
+  // Step 7.7 (D-3 / INC-8): resolve air combat — CAP interception & strike attack.
+  // Runs after weather (step 7.5) and before spotting (step 8) so that CAP
+  // intercepts incoming strikes before gunnery resolves. Strict no-op when no
+  // air-combat context is supplied (zero records appended -> minute snapshot/
+  // minuteHash byte-identical to the pre-INC-8 baseline).
+  let airCombatRecords: readonly AirCombatRecord[] | undefined;
+  let airCombatSummary: { capEngagements: number; strikeAttacks: number; losses: number } | undefined;
+  if (input.airCombat) {
+    const airResult = resolveAirCombat({
+      ...input.airCombat,
+      battleId,
+      minute,
+    });
+    if (airResult.active && airResult.records.length > 0) {
+      airCombatRecords = airResult.records;
+      airCombatSummary = airResult.summary;
+    }
   }
 
   // Step 8: resolve sensor and spotting updates.
@@ -542,6 +577,30 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
           },
         }
       : {}),
+    // The air-combat minute-state surface (D-3 / INC-8): present ONLY when the
+    // stage resolved activity — absent context or an empty stage keeps the
+    // snapshot byte-identical to the pre-INC-8 baseline (the strict no-op
+    // guarantee).
+    ...(airCombatRecords && airCombatRecords.length > 0
+      ? {
+          airCombat: {
+            records: airCombatRecords.map((r) => ({
+              recordId: r.recordId,
+              kind: r.recordKind,
+              recordHash: r.recordHash,
+            })),
+            ...(airCombatSummary
+              ? {
+                  summary: {
+                    capEngagements: airCombatSummary.capEngagements,
+                    strikeAttacks: airCombatSummary.strikeAttacks,
+                    losses: airCombatSummary.losses,
+                  },
+                }
+              : {}),
+          },
+        }
+      : {}),
   };
   const minuteHash = sha256Hex(canonicalSerialize(snapshot));
 
@@ -559,6 +618,8 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     ...(torpedoRecords ? { torpedoRecords } : {}),
     ...(smokeClouds ? { smokeClouds } : {}),
     ...(smokeRecords ? { smokeRecords } : {}),
+    ...(airCombatRecords ? { airCombatRecords } : {}),
+    ...(airCombatSummary ? { airCombatSummary } : {}),
   };
 }
 
@@ -589,6 +650,10 @@ export interface AdvanceMinutesInput {
    *  stage is a strict no-op across all minutes. When present, fire and flooding
    *  records are threaded from minute to minute. */
   damageControl?: DamageControlContext;
+  /** Optional air-combat context (D-3 / INC-8). When absent, the resolveAirCombat
+   *  stage is a strict no-op across all minutes. When present, capPatrols and
+   *  strikeMissions are threaded from minute to minute. */
+  airCombat?: AirCombatContext;
 }
 export interface AdvanceMinutesResult {
   results: MinuteResult[];
@@ -607,6 +672,9 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
   let torpedoes = input.torpedoes;
   let smoke = input.smoke;
   let damageControl = input.damageControl;
+  let airCombat: AirCombatContext | undefined = input.airCombat
+    ? { ...input.airCombat }
+    : undefined;
   let state: TacticalBattleState = {
     ...input.state,
     contacts: [...(input.state.contacts ?? [])],
@@ -626,6 +694,7 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
       torpedoes,
       smoke,
       damageControl,
+      airCombat,
     });
     results.push(res);
     state = {
@@ -690,6 +759,16 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
       // After damage control, fire and flooding records may have changed.
       // The smoke stage handling is separate; damage control results are
       // consumed here by updating the fire/flooding context.
+    }
+    // Thread the updated air-combat context into the next minute (D-3 / INC-8).
+    // For the INC-8 stub, state does not change, but the records accumulate.
+    if (airCombat) {
+      if (res.airCombatRecords) {
+        airCombat = {
+          ...airCombat,
+          existingRecords: res.airCombatRecords.map((r) => ({ ...r })),
+        };
+      }
     }
   }
   return {

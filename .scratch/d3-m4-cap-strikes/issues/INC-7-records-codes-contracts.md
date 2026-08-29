@@ -1,8 +1,10 @@
 # INC-7: Records + ordering + reason codes + contracts
 
+**Type:** implementation
+**Status:** resolved
 **ACs:** AC-17, AC-18, AC-19, AC-20
 **Blocked by:** INC-1..INC-6
-**Frontier:** no
+**Frontier:** yes
 
 ## Deliverable
 
