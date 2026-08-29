@@ -11,7 +11,7 @@
 | M1 Strategic Campaign Kernel | B9–B10  | Scope briefs ready                      | B9/B10a/B10b/B10c/B10d done          | 410 passing                    | **M1 COMPLETED (A-5 gate, 2026-08-12)** — `docs/acceptance/m1-capability-registry.md` |
 | M2 Surface Tactical Core     | —       | Design docs exist (DESIGN-34–42)        | B-1..B-6 IMPL DONE (2026-08-15)      | 900 combat tests pass          | **M2 COMPLETED (B-6 gate, 2026-08-15)** — see M2 section below |
 | Desktop & CLI surfaces       | —       | —       | MVP + 3 screens + CLI debug DONE; game-onboarding-first-month INC-1..11 DONE (frontier INC-12); fleet-movement-strategy-map SCOPED (INC-1..INC-6) | desktop 507, campaign-engine 49 | Surfaces PASS (2026-08-15); debug-mode gating (ADR-0029); E2E suite in progress; new strategy-map scoping landed 2026-08-28 |
-| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | **C-1 COMPLETE + C-2-IMPL DONE + C-3-IMPL COMPLETE (AC-1..AC-22) + C-4 COMPLETE (AC-1..AC-11) + C-5-IMPL COMPLETE (INC-1..INC-9, AC-1..AC-15)** | torpedo 517, mines 357 + submarine 294 + coastal-defense 78 + smoke 203 + damage-control 505 tests pass | **C-1 COMPLETE (2026-08-16, ADR-0031)**; C-2 COMPLETE (AC-1..25, ADR-0033); **C-3-IMPL COMPLETE 2026-08-28** (AC-1..22, 8 commits); **C-4 COMPLETE 2026-08-28** (DESIGN-48, 6 INC tickets, 78 tests, ADR-0039); **C-5-IMPL COMPLETE 2026-08-29** (smoke + damage control, 42 source/test files, 203 smoke tests + 505 damage tests, ADR-0040); next: C-6 (M3 acceptance gate) |
+| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | **C-1 COMPLETE + C-2-IMPL DONE + C-3-IMPL COMPLETE (AC-1..AC-22) + C-4 COMPLETE (AC-1..AC-11) + C-5-IMPL COMPLETE (INC-1..INC-9, AC-1..AC-15) + C-6 M3 ACCEPTANCE GATE COMPLETE (2026-08-29)** | torpedo 517, mines 357 + submarine 294 + coastal-defense 78 + smoke 203 + damage-control 505 tests pass | **M3 COMPLETED (C-6 gate, 2026-08-29)** — `docs/acceptance/m3-capability-registry.md`; next: D-1 (M4 Aviation scoping) |
 | M4 Aviation                  | —       | Design docs exist (DESIGN-43–45)        | Not started                          | —                              | Future                   |
 | M5 Electronics & Missile Era | —       | Design docs exist (DESIGN-46–48)        | Not started                          | —                              | Future                   |
 
@@ -602,48 +602,18 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 
 ## 🔮 Not Yet Started (M3–M5)
 
-### M3 — Advanced Surface Warfare (Track C — current frontier)
+### M3 — Advanced Surface Warfare (Track C — COMPLETED 2026-08-29)
 
-Depends on accepted M1 + M2 (DESIGN-55 §4) — both COMPLETED. **C-1 COMPLETE —
-torpedo fire-resolution shipped (INC-1..INC-8, AC-1..AC-25, ADR-0031).** Scoped
-DONE (2026-08-16, committed `dddb11d`) — torpedo fire-resolution vertical
-slice of DESIGN-40 (map + decision tickets 01–06 resolved, spec AC-1..25 /
-INC-1..8, brief `.ai/briefs/c1-m3-torpedoes.md`, research
-`docs/research/c1-m3-torpedoes.md`); INC-8 (contracts rollup + reason-code
-set-equality + ADR + gate, AC-21/24/25) closed 2026-08-16. **C-2-IMPL (mines) COMPLETE (2026-08-16) —
-PASS, all 25 ACs:** mine-pressure lifecycle in `packages/combat/src/mines/`
-(types, sources, laying value, pressure increase, sweeping eligibility/values/
-dual-equipment/effective value, aggregation + §10 allocation, standoff/route-risk
-values, report/classifier, decay, post-war, ownership, knowledge, clearance,
-§28 records + §29 ordering, contracts rollup, two-process determinism); mines 26
-files / 357 tests green; ADR-0033; report `.ai/reports/c2-m3-mine-warfare-impl.md`.
-**Strike resolution + phase/snapshot wiring + route-strike application deferred
-to a C-2 continuation.** **C-3 SCOPING DONE (2026-08-17):** strategic
-submarine-operations lifecycle slice of DESIGN-34 scoped (map
-`.scratch/c3-m3-submarines/map.md` + decision tickets 01–06 resolved, spec
-AC-1..22 / INC-1..8, brief `.ai/briefs/c3-m3-submarines.md`, research
-`docs/research/c3-m3-submarines.md`). Tactical allocation/loss (§2–3),
-returning-ship interception (§21), ASW resolution application (§22),
-friendly-fire risk/outcome (§23–24), and strategic attack loss application (§19)
-deferred (battle machinery / DESIGN-29 unassigned). **C-3-IMPL INC-1 DONE
-2026-08-28:** strategic representation (§1), five type definitions (§4 + §9/§10
-exact tables), three policies (§5, warship+merchant sum-to-10_000 + independent
-neutral-incident multiplier), reason-code module seed (14 §27 codes + in-slice
-`SUBMARINE_RESOLUTION_DEFERRED` marker), and three `*_v1` contracts + fail-closed
-guards (report `.ai/reports/c3-m3-submarines-inc1.md`, commit `c2caf64`).
-**C-3-IMPL INC-2 DONE 2026-08-28:** mission eligibility (§6, seven canonical missions,
-12-guard eligibility predicate, `SUBMARINE_MISSION_INELIGIBLE`), reliability
-(§7, six-band multiplier table, `SUBMARINE_RELIABILITY_INSUFFICIENT`),
-`submarine_missions_v1` + `submarine_reliability_v1` contracts (AC-4/AC-5/AC-21);
-combat 1880 tests / 156 files green incl. 106 submarine; goldens 10/10 unchanged;
-reviewer APPROVE). **C-3-IMPL INC-3 DONE 2026-08-28:** base proximity bands (§8,
-`proximityBandForRouteDistance` with LOCAL/REGIONAL/REMOTE/EXTREME_REMOTE mapping);
-remote-efficiency multipliers (§9, exact table lookup via `submarineRemoteEfficiencyBp`);
-long-range ASW vulnerability (§10, `submarineAswVulnerabilityBp` with fail-closed guard
-`LONG_RANGE_ASW_VULNERABILITY_MISSING`); `submarine_proximity_v1` +
-`submarine_remote_efficiency_v1` + `submarine_long_range_asw_vulnerability_v1` contracts
-(AC-6/AC-7/AC-8); combat 1904 tests / 157 files green incl. 130 submarine; goldens 10/10
-unchanged; reviewer APPROVE). **C-3-IMPL COMPLETE (AC-1..AC-22, INC-1..INC-8) 2026-08-28 — PASS.** INC-4 (strategic mission effectiveness + coastal restriction), INC-5 (sea-state profile), INC-6 (screening balance + attack-opportunity), INC-7 (mine laying + friendly-identification), INC-8 (records/ordering/determinism + contracts rollup + gate) all landed. Submarine module: 294 tests, 167 files. ADR(s): see INC-1 report. **C-4 (Coastal defenses) COMPLETE 2026-08-28 — PASS (AC-1..AC-11, INC-1..INC-6, 78 tests, ADR-0039).** **C-5 SCOPING DONE 2026-08-28 — PASS.** Full smoke module (DESIGN-42 §§7-23) + damage-control extension (DESIGN-41 §§13-22, §24-25, §27-28) scoped. Spec at `.scratch/c5-m3-smoke-damage-control/spec.md`. `BattleResolver`/`StrengthCalculator` unmodified. Goldens regenerate under ADR-0007 (smoke stage wires into minute-advance). **Next: C-5-IMPL (INC-1..INC-9).**
+Depends on accepted M1 + M2 (DESIGN-55 §4) — both COMPLETED. **M3 COMPLETED at
+the C-6 acceptance gate (2026-08-29).** All six §4 capabilities signed ACCEPTED:
+torpedoes (C-1), mines (C-2), submarines (C-3), coastal defenses (C-4), smoke (C-5),
+and detailed damage control (C-5). Registry: `docs/acceptance/m3-capability-registry.md`.
+Full validation gate evidence: clean uncached build 18/18, `tsc -b` clean,
+combat 197 files / 2524 tests green, golden hashes 10/10, two-process
+determinism byte-identical, `BattleResolver`/`StrengthCalculator` unmodified
+throughout. Pre-existing unrelated failures: `content-schema/test/nation.test.ts`
+(broken import), desktop 2 tests (campaignBridge, ConstructionWizard). **Next: D-1
+(M4 Aviation scoping).**
 
 | Area                                  | Design coverage |
 | ------------------------------------- | --------------- |
