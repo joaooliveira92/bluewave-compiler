@@ -27,6 +27,8 @@ import {
   SUBMARINE_RULESET_VERSION,
   SUBMARINE_POLICY_TARGET_WEIGHTS_BP,
   submarineEffectivenessPolicyId,
+  submarineFriendlyIdentificationPolicyId,
+  submarineMineLayingPolicyId,
   submarineMissionsPolicyId,
   submarinePoliciesPolicyId,
   submarineProximityPolicyId,
@@ -83,6 +85,16 @@ import {
   SUBMARINE_ELIGIBLE_ESCORT_TYPES,
   SHIPPED_SCREENING_OPPORTUNITY_BANDS,
 } from "./screeningBalance.js";
+import {
+  SUBMARINE_MINE_LAYING_RELIABILITY_FLOOR,
+  SUBMARINE_MINE_LAYING_READINESS_FLOOR,
+  SUBMARINE_MINE_LAYING_FUEL_FLOOR_BP,
+} from "./mineLaying.js";
+import {
+  SUBMARINE_FRIENDLY_IDENTIFICATION_BASE_BP,
+  SUBMARINE_FRIENDLY_IDENTIFICATION_MIN_BP,
+  SUBMARINE_FRIENDLY_IDENTIFICATION_MAX_BP,
+} from "./friendlyIdentification.js";
 
 function arrayEquals(a: readonly unknown[], b: readonly unknown[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
@@ -889,5 +901,112 @@ export function validateSubmarineScreeningBalanceContract(
     if (t.minRatio !== s.minRatio || t.maxRatio !== s.maxRatio || t.multiplierBp !== s.multiplierBp)
       mismatch(c, `submarine_screening_balance_v1 §18 band at index ${i}`);
   }
+  void c;
+}
+
+// ---------------------------------------------------------------------------
+// submarine_mine_laying_v1 (§20)
+// ---------------------------------------------------------------------------
+
+export interface SubmarineMineLayingContract {
+  policyId: string;
+  rulesetVersion: string;
+  formulaVersion: string;
+  basisPointsPerUnit: number;
+  reliabilityFloor: number;
+  readinessFloor: number;
+  fuelFloorBp: number;
+}
+
+export const SHIPPED_SUBMARINE_MINE_LAYING_CONTRACT: SubmarineMineLayingContract = {
+  policyId: submarineMineLayingPolicyId,
+  rulesetVersion: SUBMARINE_RULESET_VERSION,
+  formulaVersion: SUBMARINE_FORMULA_VERSION,
+  basisPointsPerUnit: SUBMARINE_BASIS_POINTS_PER_UNIT,
+  reliabilityFloor: SUBMARINE_MINE_LAYING_RELIABILITY_FLOOR,
+  readinessFloor: SUBMARINE_MINE_LAYING_READINESS_FLOOR,
+  fuelFloorBp: SUBMARINE_MINE_LAYING_FUEL_FLOOR_BP,
+};
+
+export function validateSubmarineMineLayingContract(
+  c: Partial<SubmarineMineLayingContract> | null | undefined,
+): asserts c is SubmarineMineLayingContract {
+  function mismatch(contract: unknown, reason: string): never {
+    throw new BluewaveError(SUBMARINE_STATE_INVARIANT_FAILED, {
+      code: SUBMARINE_STATE_INVARIANT_FAILED,
+      reason,
+      contract,
+    });
+  }
+  if (!c) mismatch(c, "submarine_mine_laying_v1 missing contract");
+  if (c.policyId !== submarineMineLayingPolicyId)
+    mismatch(c, "submarine_mine_laying_v1 expected policy id");
+  if (
+    c.rulesetVersion !== SUBMARINE_RULESET_VERSION ||
+    c.formulaVersion !== SUBMARINE_FORMULA_VERSION
+  )
+    mismatch(c, "submarine_mine_laying_v1 ruleset/formula versions");
+  if (c.basisPointsPerUnit !== SUBMARINE_BASIS_POINTS_PER_UNIT)
+    mismatch(c, "submarine_mine_laying_v1 basis-point scale");
+  if (c.reliabilityFloor !== SUBMARINE_MINE_LAYING_RELIABILITY_FLOOR)
+    mismatch(c, "submarine_mine_laying_v1 §20 reliability floor 40");
+  if (c.readinessFloor !== SUBMARINE_MINE_LAYING_READINESS_FLOOR)
+    mismatch(c, "submarine_mine_laying_v1 §20 readiness floor 50");
+  if (c.fuelFloorBp !== SUBMARINE_MINE_LAYING_FUEL_FLOOR_BP)
+    mismatch(c, "submarine_mine_laying_v1 §20 fuel floor 3_000 bp");
+  void c;
+}
+
+// ---------------------------------------------------------------------------
+// submarine_friendly_identification_v1 (§23)
+// ---------------------------------------------------------------------------
+
+export interface SubmarineFriendlyIdentificationContract {
+  policyId: string;
+  rulesetVersion: string;
+  formulaVersion: string;
+  basisPointsPerUnit: number;
+  baseProbabilityBp: number;
+  clampMinBp: number;
+  clampMaxBp: number;
+}
+
+export const SHIPPED_SUBMARINE_FRIENDLY_IDENTIFICATION_CONTRACT: SubmarineFriendlyIdentificationContract =
+  {
+    policyId: submarineFriendlyIdentificationPolicyId,
+    rulesetVersion: SUBMARINE_RULESET_VERSION,
+    formulaVersion: SUBMARINE_FORMULA_VERSION,
+    basisPointsPerUnit: SUBMARINE_BASIS_POINTS_PER_UNIT,
+    baseProbabilityBp: SUBMARINE_FRIENDLY_IDENTIFICATION_BASE_BP,
+    clampMinBp: SUBMARINE_FRIENDLY_IDENTIFICATION_MIN_BP,
+    clampMaxBp: SUBMARINE_FRIENDLY_IDENTIFICATION_MAX_BP,
+  };
+
+export function validateSubmarineFriendlyIdentificationContract(
+  c: Partial<SubmarineFriendlyIdentificationContract> | null | undefined,
+): asserts c is SubmarineFriendlyIdentificationContract {
+  function mismatch(contract: unknown, reason: string): never {
+    throw new BluewaveError(SUBMARINE_STATE_INVARIANT_FAILED, {
+      code: SUBMARINE_STATE_INVARIANT_FAILED,
+      reason,
+      contract,
+    });
+  }
+  if (!c) mismatch(c, "submarine_friendly_identification_v1 missing contract");
+  if (c.policyId !== submarineFriendlyIdentificationPolicyId)
+    mismatch(c, "submarine_friendly_identification_v1 expected policy id");
+  if (
+    c.rulesetVersion !== SUBMARINE_RULESET_VERSION ||
+    c.formulaVersion !== SUBMARINE_FORMULA_VERSION
+  )
+    mismatch(c, "submarine_friendly_identification_v1 ruleset/formula versions");
+  if (c.basisPointsPerUnit !== SUBMARINE_BASIS_POINTS_PER_UNIT)
+    mismatch(c, "submarine_friendly_identification_v1 basis-point scale");
+  if (c.baseProbabilityBp !== SUBMARINE_FRIENDLY_IDENTIFICATION_BASE_BP)
+    mismatch(c, "submarine_friendly_identification_v1 §23 base 500 bp");
+  if (c.clampMinBp !== SUBMARINE_FRIENDLY_IDENTIFICATION_MIN_BP)
+    mismatch(c, "submarine_friendly_identification_v1 §23 clamp min 0");
+  if (c.clampMaxBp !== SUBMARINE_FRIENDLY_IDENTIFICATION_MAX_BP)
+    mismatch(c, "submarine_friendly_identification_v1 §23 clamp max 10_000");
   void c;
 }

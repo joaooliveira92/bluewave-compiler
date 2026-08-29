@@ -8,3 +8,5 @@ export * from "./proximity.js";
 export * from "./effectiveness.js";
 export * from "./seaStateProfile.js";
 export * from "./screeningBalance.js";
+export * from "./mineLaying.js";
+export * from "./friendlyIdentification.js";
