@@ -21,6 +21,7 @@ export const submarineRemoteEfficiencyPolicyId = "submarine_remote_efficiency_v1
 export const submarineLongRangeAswVulnerabilityPolicyId =
   "submarine_long_range_asw_vulnerability_v1" as const;
 export const submarineEffectivenessPolicyId = "submarine_effectiveness_v1" as const;
+export const submarineSeaStatePolicyId = "submarine_sea_state_v1" as const;
 
 export const SUBMARINE_RULESET_VERSION = "submarine_ruleset_v1" as const;
 export const SUBMARINE_FORMULA_VERSION = "submarine_formula_v1" as const;
@@ -76,6 +77,10 @@ export type SubmarineRangeClass = (typeof SUBMARINE_RANGE_CLASSES)[number];
 // closed shape (REQUIRED = the type needs a support base to operate at all).
 export const SUBMARINE_BASE_SUPPORT_REQUIREMENTS = ["REQUIRED", "OPTIONAL"] as const;
 export type SubmarineBaseSupportRequirement = (typeof SUBMARINE_BASE_SUPPORT_REQUIREMENTS)[number];
+
+// DESIGN-34 §13 sea-state categories — exactly these four values.
+export const SUBMARINE_SEA_STATE_CATEGORIES = ["CALM", "OPTIMAL", "HEAVY", "SEVERE"] as const;
+export type SubmarineSeaStateCategory = (typeof SUBMARINE_SEA_STATE_CATEGORIES)[number];
 
 // DESIGN-34 §5 canonical policy enum — exactly these three values.
 export const SUBMARINE_POLICIES = ["FLEET_SUPPORT", "PRIZE_RULES", "UNRESTRICTED"] as const;
