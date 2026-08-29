@@ -340,6 +340,49 @@ export function validateCarrierLaunchRateContract(value: unknown): CarrierLaunch
   return result.data;
 }
 
+const courseIntervalSchema = z.object({
+  minDegrees: z.number().min(0).max(360),
+  maxDegrees: z.number().min(0).max(360),
+});
+
+const speedIntervalSchema = z.object({
+  minKnots: z.number().min(0),
+  maxKnots: z.number().min(0),
+});
+
+const windVectorSchema = z.object({
+  ambientWindSpeedKnots: z.number().min(0),
+  ambientWindDirectionDegrees: z.number().min(0).max(360),
+  carrierSpeedKnots: z.number().min(0),
+  carrierCourseDegrees: z.number().min(0).max(360),
+});
+
+export const CarrierWindOverDeck_v1 = z.object({
+  requiredCourse: courseIntervalSchema,
+  requiredSpeed: speedIntervalSchema,
+  windVector: windVectorSchema,
+  deckOperationId: z.string().min(1),
+  relativeWodKnots: z.number().min(0),
+  aircraftClass: z.enum(["PISTON", "LIGHT_JET", "HEAVY_JET", "HELICOPTER", "UNKNOWN"]),
+  isLaunch: z.boolean(),
+  wodSufficient: z.boolean(),
+});
+
+export type CarrierWindOverDeckContract = z.infer<typeof CarrierWindOverDeck_v1>;
+
+export function validateCarrierWindOverDeckContract(value: unknown): CarrierWindOverDeckContract {
+  const result = CarrierWindOverDeck_v1.safeParse(value);
+  if (!result.success) {
+    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
+      code: INVALID_CARRIER_OPERATIONS_STATE,
+      field: result.error.errors[0]?.path.join(".") ?? "unknown",
+      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      value,
+    });
+  }
+  return result.data;
+}
+
 export const SHIPPED_CARRIER_OPERATIONS_CONTRACT = {
   state: CarrierOperationsState_v1,
   capacityAssignment: CarrierCapacityAssignment_v1,
@@ -348,4 +391,5 @@ export const SHIPPED_CARRIER_OPERATIONS_CONTRACT = {
   deckContention: CarrierDeckContention_v1,
   strikeState: CarrierStrikeState_v1,
   launchRate: CarrierLaunchRate_v1,
+  windOverDeck: CarrierWindOverDeck_v1,
 } as const;

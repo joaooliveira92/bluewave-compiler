@@ -83,3 +83,12 @@ export const HEAVY_JET_TECHNOLOGY = "modern_jet_carrier_operations" as const;
 // Spot value floor(compiledAircraftCapacity / 2) uses integer division.
 // §7: finalSpotValue clamped 0..compiledAircraftCapacity.
 export const SPOT_VALUE_CLAMP_MAX = 0 as const; // used as sentinel; actual max is per-carrier capacity
+
+// ---- §20 Wind-over-deck requirements ----
+export const WOD_PISTON_LAUNCH_MIN_KNOTS = 20 as const;
+export const WOD_PISTON_RECOVERY_MIN_KNOTS = 18 as const;
+export const WOD_LIGHT_JET_LAUNCH_MIN_KNOTS = 25 as const;
+export const WOD_LIGHT_JET_RECOVERY_MIN_KNOTS = 22 as const;
+export const WOD_HEAVY_JET_LAUNCH_MIN_KNOTS = 30 as const;
+export const WOD_HEAVY_JET_RECOVERY_MIN_KNOTS = 25 as const;
+export const WOD_HELICOPTER_DEFAULT_MIN_KNOTS = 0 as const;

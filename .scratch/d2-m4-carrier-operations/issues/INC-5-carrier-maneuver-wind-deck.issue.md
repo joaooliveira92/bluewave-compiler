@@ -1,7 +1,7 @@
 **Type:** implementation
-**Status:** open
+**Status:** closed
 **Blocked by:** INC-1
-**Frontier:** yes
+**Frontier:** no
 
 # INC-5: Carrier maneuver + wind-over-deck (§§19-20)
 
@@ -19,3 +19,5 @@
 ## Acceptance criteria
 
 AC-21 (carrier maneuver), AC-22 (wind-over-deck).
+
+**DONE 2026-08-29 — PASS.** Combat 219 files / 2910 tests green. Build 18/18. tsc -b clean.
