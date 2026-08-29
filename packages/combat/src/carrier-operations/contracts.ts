@@ -257,10 +257,95 @@ export const JetCarrierCapability_v1 = z.object({
 
 export type JetCarrierCapabilityContract = z.infer<typeof JetCarrierCapability_v1>;
 
+const strikeSquadronAllocationSchema = z.object({
+  squadronId: z.string().min(1),
+  aircraftModelId: z.string().min(1),
+  count: nonNegativeSafeIntSchema,
+});
+
+const strikeOrdnanceReservationSchema = z.object({
+  ordnanceTypeId: z.string().min(1),
+  quantity: nonNegativeSafeIntSchema,
+});
+
+const strikeRecoveryPlanSchema = z.object({
+  returnCarrierId: z.string().min(1),
+  recoveryWindowStart: z.number().int().min(0),
+  recoveryWindowEnd: z.number().int().min(0),
+  fuelReserveBp: nonNegativeSafeIntSchema,
+  divertFieldIds: z.array(z.string().min(1)),
+});
+
+export const CarrierStrikeState_v1 = z.object({
+  strikeId: z.string().min(1),
+  originCarrierIds: z.array(z.string().min(1)),
+  targetReportId: z.string().min(1),
+  targetConfidenceBp: basisPointSchema,
+  allocatedSquadrons: z.array(strikeSquadronAllocationSchema),
+  escortAllocationIds: z.array(z.string().min(1)),
+  loadoutId: z.string().min(1),
+  ordnanceReservations: z.array(strikeOrdnanceReservationSchema),
+  coordinationMode: z.enum(["UNCOORDINATED", "COORDINATED"]),
+  readinessStartMinute: z.number().int().min(0),
+  plannedLaunchMinute: z.number().int().min(0),
+  actualLaunchMinute: z.number().int().min(0),
+  fuelRequirementBp: nonNegativeSafeIntSchema,
+  fuelReserveBp: nonNegativeSafeIntSchema,
+  spotValueRequirement: nonNegativeSafeIntSchema,
+  formationState: z.enum(["FORMING", "FORMED", "DISPERSED", "SCATTERED"]),
+  missionState: z.enum(["PREPARING", "READY", "LAUNCHING", "AIRBORNE", "FORMING", "EN_ROUTE", "ON_TARGET", "RETURNING", "RECOVERING", "COMPLETED", "ABORTED", "LOST"]),
+  recoveryPlan: strikeRecoveryPlanSchema,
+  rulesetVersion: z.string().min(1),
+  strikeHash: z.string().min(1),
+});
+
+export type CarrierStrikeStateContract = z.infer<typeof CarrierStrikeState_v1>;
+
+export function validateCarrierStrikeStateContract(value: unknown): CarrierStrikeStateContract {
+  const result = CarrierStrikeState_v1.safeParse(value);
+  if (!result.success) {
+    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
+      code: INVALID_CARRIER_OPERATIONS_STATE,
+      field: result.error.errors[0]?.path.join(".") ?? "unknown",
+      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      value,
+    });
+  }
+  return result.data;
+}
+
+export const CarrierLaunchRate_v1 = z.object({
+  operationalCatapultCount: z.number().int().min(0),
+  usingSteamCatapults: z.boolean(),
+  isLightJet: z.boolean(),
+  isHeavyJet: z.boolean(),
+  isPiston: z.boolean(),
+  effectiveRate: z.number().int().min(1),
+  durationMinutes: z.number().int().min(1),
+  aircraftCount: z.number().int().min(1),
+});
+
+export type CarrierLaunchRateContract = z.infer<typeof CarrierLaunchRate_v1>;
+
+export function validateCarrierLaunchRateContract(value: unknown): CarrierLaunchRateContract {
+  const result = CarrierLaunchRate_v1.safeParse(value);
+  if (!result.success) {
+    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
+      code: INVALID_CARRIER_OPERATIONS_STATE,
+      field: result.error.errors[0]?.path.join(".") ?? "unknown",
+      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      value,
+    });
+  }
+  return result.data;
+}
+
 export const SHIPPED_CARRIER_OPERATIONS_CONTRACT = {
   state: CarrierOperationsState_v1,
   capacityAssignment: CarrierCapacityAssignment_v1,
   oversizedPolicy: OversizedCarrierPolicy_v1,
   deckCycleState: CarrierDeckCycleState_v1,
   deckContention: CarrierDeckContention_v1,
+  strikeState: CarrierStrikeState_v1,
+  launchRate: CarrierLaunchRate_v1,
 } as const;

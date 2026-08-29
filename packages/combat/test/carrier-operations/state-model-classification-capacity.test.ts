@@ -316,7 +316,7 @@ describe("AC-6: Oversized carrier policy", () => {
 });
 
 describe("INC-1 contract rollup", () => {
-  it("ships exactly 3 contracts for INC-1", () => {
+  it("ships exactly 3 INC-1 contracts in rollup", () => {
     const inc1Contracts = SHIPPED_CARRIER_OPERATIONS_CONTRACTS.filter(
       (c) => c.policyId === "carrier_operations_state_v1" || c.policyId === "carrier_capacity_assignment_v1" || c.policyId === "oversized_carrier_policy_v1",
     );

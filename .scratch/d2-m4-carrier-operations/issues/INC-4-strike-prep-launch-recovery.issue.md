@@ -1,7 +1,7 @@
 **Type:** implementation
-**Status:** open
+**Status:** closed
 **Blocked by:** INC-1, INC-3
-**Frontier:** yes
+**Frontier:** no
 
 # INC-4: Strike preparation + launch + recovery (§§13-18)
 
@@ -20,3 +20,5 @@
 ## Acceptance criteria
 
 AC-15 (strike state), AC-16 (prep times), AC-17 (time modifiers), AC-18 (coordinated strikes), AC-19 (spot limit), AC-20 (launch rate).
+
+**DONE 2026-08-29 — PASS.** Combat 218 files / 2885 tests green. Build 18/18. tsc -b clean.
