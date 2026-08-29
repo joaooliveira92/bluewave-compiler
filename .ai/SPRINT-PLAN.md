@@ -252,7 +252,7 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-**D-2-IMPL: Carrier operations — implementation.** DESIGN-44 (carrier operations): full carrier operations engine — state model, capacity, spot value, jet eligibility, deck cycles, contention, strikes, launch/recovery, maneuver, wind-over-deck, hazards, night ops, weather suspension, ordnance, deck/hangar damage, records, ordering, reason codes. Scoping complete (2026-08-29, PASS): see `.scratch/d2-m4-carrier-operations/` (map, spec AC-1..37, 9 implementation tickets INC-1..INC-9). Research grounded at `docs/research/d2-m4-carrier-operations.md`. **Frontier: INC-1 (carrier state model + classification + capacity).**
+**D-2-IMPL: Carrier operations — implementation.** DESIGN-44 (carrier operations): full carrier operations engine — state model, capacity, spot value, jet eligibility, deck cycles, contention, strikes, launch/recovery, maneuver, wind-over-deck, hazards, night ops, weather suspension, ordnance, deck/hangar damage, records, ordering, reason codes. Scoping complete (2026-08-29, PASS): see `.scratch/d2-m4-carrier-operations/` (map, spec AC-1..37, 9 implementation tickets INC-1..INC-9). Research grounded at `docs/research/d2-m4-carrier-operations.md`. **INC-1 COMPLETE (commit `81080e3`, 2026-08-29). INC-2 COMPLETE (commit follows).** **Frontier: INC-3 (deck-cycle states + contention) — AC-13..AC-14.**
 
 **Desktop side-tracks (recorded, not dropped):**
 

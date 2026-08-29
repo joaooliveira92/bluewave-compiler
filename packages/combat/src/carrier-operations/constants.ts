@@ -43,3 +43,43 @@ export const CARRIER_OPERATIONS_PHASE_ORDER = 7.3 as const;
 export const CARRIER_OPERATIONS_PHASE_ID = "resolve_carrier_operations" as const;
 
 export const carrierOperationsPolicyId = "carrier_operations_v1" as const;
+// ---- §6-7 Spot value constants ----
+export const SPOT_VALUE_SCALE_EXPONENT = 6 as const;
+export const SPOT_VALUE_DENOMINATOR: bigint = BigInt(CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT) ** BigInt(SPOT_VALUE_SCALE_EXPONENT);
+
+export const SPOT_CATAPULT_NONE_BP = 10_000 as const;
+export const SPOT_CATAPULT_ONE_BP = 11_000 as const;
+export const SPOT_CATAPULT_TWO_PLUS_BP = 12_000 as const;
+
+export const SPOT_SPEED_BELOW_20_BP = 6_000 as const;
+export const SPOT_SPEED_20_24_BP = 8_000 as const;
+export const SPOT_SPEED_24_28_BP = 10_000 as const;
+export const SPOT_SPEED_28_PLUS_BP = 11_000 as const;
+
+export const SPOT_DECK_STRAIGHT_BP = 10_000 as const;
+export const SPOT_DECK_EDGE_LIFT_BP = 11_000 as const;
+export const SPOT_DECK_ANGLED_BP = 12_000 as const;
+
+export const SPOT_DAMAGE_OPERATIONAL_BP = 10_000 as const;
+export const SPOT_DAMAGE_DEGRADED_BP = 7_500 as const;
+export const SPOT_DAMAGE_HEAVY_BP = 3_500 as const;
+export const SPOT_DAMAGE_INOPERABLE_BP = 0 as const;
+
+export const SPOT_TECH_BASIC_BP = 10_000 as const;
+export const SPOT_TECH_IMPROVED_BP = 11_000 as const;
+export const SPOT_TECH_MODERN_BP = 12_000 as const;
+
+// ---- §8 Jet carrier capability ----
+export const JET_CARRIER_CAPABILITIES = ["NONE", "LIGHT_JET_CAPABLE", "HEAVY_JET_CAPABLE", "MODERN_JET_CAPABLE"] as const;
+export type JetCarrierCapability = (typeof JET_CARRIER_CAPABILITIES)[number];
+
+export const LIGHT_JET_MIN_DISPLACEMENT_KG = 40_000_000 as const;
+export const LIGHT_JET_MIN_DISPLACEMENT_WITH_CATAPULT_KG = 30_000_000 as const;
+export const HEAVY_JET_MIN_DISPLACEMENT_KG = 40_000_000 as const;
+
+export const LIGHT_JET_TECHNOLOGY = "early_jet_carrier_operations" as const;
+export const HEAVY_JET_TECHNOLOGY = "modern_jet_carrier_operations" as const;
+
+// Spot value floor(compiledAircraftCapacity / 2) uses integer division.
+// §7: finalSpotValue clamped 0..compiledAircraftCapacity.
+export const SPOT_VALUE_CLAMP_MAX = 0 as const; // used as sentinel; actual max is per-carrier capacity

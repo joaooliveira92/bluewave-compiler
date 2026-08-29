@@ -4,6 +4,7 @@ import {
   CARRIER_CLASSIFICATIONS,
   DECK_CYCLE_STATES,
   CARRIER_OPERATIONS_RULESET_VERSION,
+  JET_CARRIER_CAPABILITIES,
   OVERSIZED_CARRIER_THRESHOLD,
   OVERSIZED_DECK_CYCLE_EFFICIENCY_BP,
   OVERSIZED_SORTIE_GENERATION_BP,
@@ -164,6 +165,32 @@ export function validateOversizedCarrierPolicyContract(
   }
   return result.data;
 }
+
+export const CarrierSpotValue_v1 = z.object({
+  baseSpotValue: nonNegativeSafeIntSchema,
+  operationalCatapultCount: z.number().int().min(0),
+  speedKnots: z.number().min(0),
+  deckConfigurationId: z.string().min(1),
+  flightDeckConditionBp: basisPointSchema,
+  technologyLevel: z.string().min(1),
+  compiledAircraftCapacity: z.number().int().min(0),
+  finalSpotValue: nonNegativeSafeIntSchema,
+});
+
+export type CarrierSpotValueContract = z.infer<typeof CarrierSpotValue_v1>;
+
+export const JetCarrierCapability_v1 = z.object({
+  trueStandardDisplacementKg: nonNegativeSafeIntSchema,
+  hasCompatibleOperationalSteamCatapult: z.boolean(),
+  hasAngledDeck: z.boolean(),
+  hasStrengthenedArrestingGear: z.boolean(),
+  hasJetCompatibleLiftsAndHangar: z.boolean(),
+  hasAdequateDeckStrengthAndHeatResistance: z.boolean(),
+  adoptedTechnologies: z.array(z.string().min(1)),
+  determinedCapability: z.enum(JET_CARRIER_CAPABILITIES),
+});
+
+export type JetCarrierCapabilityContract = z.infer<typeof JetCarrierCapability_v1>;
 
 export const SHIPPED_CARRIER_OPERATIONS_CONTRACT = {
   state: CarrierOperationsState_v1,

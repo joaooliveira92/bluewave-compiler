@@ -3,3 +3,5 @@ export * from "./reasonCodes.js";
 export * from "./model.js";
 export * from "./contracts.js";
 export * from "./contractRollup.js";
+export * from "./spot-value.js";
+export * from "./jet-capability.js";
