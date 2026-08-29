@@ -254,6 +254,12 @@ issue tickets, resolve open questions (research/prototype/grilling/task tickets)
 close relevant OPEN-ISSUES.md candidates, and land a brief at
 `.ai/briefs/d1-m4-aviation.md`.
 
+**Status (2026-08-29): WAYFINDER INITIATED.** Map at
+`.scratch/d1-m4-aviation/map.md` with 6 decision tickets
+(`issues/01..06`). First frontier ticket: 01-research-aircraft-performance-baseline
+(research: ground early-aviation performance scores). Next session: claim and
+resolve the research ticket.
+
 **Desktop side-tracks (recorded, not dropped):**
 
 - **Game-onboarding first month** (`.scratch/game-onboarding-first-month/`):
