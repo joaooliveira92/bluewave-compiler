@@ -6,3 +6,4 @@ export * from "./placement.js";
 export * from "./damage.js";
 export * from "./minePressure.js";
 export * from "./effectiveness.js";
+export * from "./coastalDefenseRecords.js";
