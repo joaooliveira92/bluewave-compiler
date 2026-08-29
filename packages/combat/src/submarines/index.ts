@@ -10,3 +10,4 @@ export * from "./seaStateProfile.js";
 export * from "./screeningBalance.js";
 export * from "./mineLaying.js";
 export * from "./friendlyIdentification.js";
+export * from "./submarineRecords.js";
