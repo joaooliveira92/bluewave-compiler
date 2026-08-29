@@ -11,7 +11,7 @@
 | M1 Strategic Campaign Kernel | B9–B10  | Scope briefs ready                      | B9/B10a/B10b/B10c/B10d done          | 410 passing                    | **M1 COMPLETED (A-5 gate, 2026-08-12)** — `docs/acceptance/m1-capability-registry.md` |
 | M2 Surface Tactical Core     | —       | Design docs exist (DESIGN-34–42)        | B-1..B-6 IMPL DONE (2026-08-15)      | 900 combat tests pass          | **M2 COMPLETED (B-6 gate, 2026-08-15)** — see M2 section below |
 | Desktop & CLI surfaces       | —       | —                                       | MVP + 3 screens + CLI debug DONE; game-onboarding-first-month INC-1..11 DONE (frontier INC-12); fleet-movement-strategy-map SCOPED (INC-1..INC-6) | desktop 507, campaign-engine 49 | Surfaces PASS (2026-08-15); debug-mode gating (ADR-0029); E2E suite in progress; new strategy-map scoping landed 2026-08-28 |
-| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | **C-1 COMPLETE (INC-1..8, AC-1..25) + C-2-IMPL DONE (INC-1..8, PASS) + C-3-IMPL INC-1+INC-2 DONE (AC-1..5, AC-21)** | torpedo 517, mines 357 + submarine 106 tests pass | **C-1 COMPLETE (2026-08-16, ADR-0031)**; C-2 COMPLETE (AC-1..25, ADR-0033); C-3-IMPL INC-1 DONE 2026-08-28, INC-2 DONE 2026-08-28; next frontier C-3-IMPL INC-3 |
+| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | **C-1 COMPLETE + C-2-IMPL DONE + C-3-IMPL INC-1/INC-2/INC-3 DONE** | torpedo 517, mines 357 + submarine 130 tests pass | **C-1 COMPLETE (2026-08-16, ADR-0031)**; C-2 COMPLETE (AC-1..25, ADR-0033); C-3-IMPL INC-1..3 DONE 2026-08-28; next frontier C-3-IMPL INC-4 |
 | M4 Aviation                  | —       | Design docs exist (DESIGN-43–45)        | Not started                          | —                              | Future                   |
 | M5 Electronics & Missile Era | —       | Design docs exist (DESIGN-46–48)        | Not started                          | —                              | Future                   |
 
@@ -636,15 +636,22 @@ guards (report `.ai/reports/c3-m3-submarines-inc1.md`, commit `c2caf64`).
 (§7, six-band multiplier table, `SUBMARINE_RELIABILITY_INSUFFICIENT`),
 `submarine_missions_v1` + `submarine_reliability_v1` contracts (AC-4/AC-5/AC-21);
 combat 1880 tests / 156 files green incl. 106 submarine; goldens 10/10 unchanged;
-reviewer APPROVE). **Next frontier: C-3-IMPL INC-3 (proximity + remote-efficiency +
-ASW vulnerability, AC-6/AC-7/AC-8).** See `.ai/SPRINT-PLAN.md`
+reviewer APPROVE). **C-3-IMPL INC-3 DONE 2026-08-28:** base proximity bands (§8,
+`proximityBandForRouteDistance` with LOCAL/REGIONAL/REMOTE/EXTREME_REMOTE mapping);
+remote-efficiency multipliers (§9, exact table lookup via `submarineRemoteEfficiencyBp`);
+long-range ASW vulnerability (§10, `submarineAswVulnerabilityBp` with fail-closed guard
+`LONG_RANGE_ASW_VULNERABILITY_MISSING`); `submarine_proximity_v1` +
+`submarine_remote_efficiency_v1` + `submarine_long_range_asw_vulnerability_v1` contracts
+(AC-6/AC-7/AC-8); combat 1904 tests / 157 files green incl. 130 submarine; goldens 10/10
+unchanged; reviewer APPROVE). **Next frontier: C-3-IMPL INC-4 (strategic mission effectiveness +
+coastal restriction, AC-9/AC-10).** See `.ai/SPRINT-PLAN.md`
 Track C for the full sprint order. See `.ai/SPRINT-PLAN.md` Track C for the full sprint order.
 
 | Area                                  | Design coverage |
 | ------------------------------------- | --------------- |
 | Torpedoes (C-1)                       | DESIGN-40 — **COMPLETE** (INC-1..8, AC-1..25, ADR-0031) |
 | Mine warfare (C-2)                    | DESIGN-35 — **COMPLETE** (INC-1..8 PASS, AC-1..25, ADR-0033) |
-| Submarines (C-3)                      | DESIGN-34 — **INC-1 DONE 2026-08-28** (AC-1..3, AC-18/21 seed); **INC-2 DONE 2026-08-28** (AC-4/AC-5/AC-21); INC-3 frontier
+| Submarines (C-3)                      | DESIGN-34 — **INC-1 DONE 2026-08-28** (AC-1..3, AC-18/21 seed); **INC-2 DONE 2026-08-28** (AC-4/AC-5/AC-21); **INC-3 DONE 2026-08-28** (AC-6/AC-7/AC-8); INC-4 frontier
 | Coastal defenses (C-4)                | DESIGN-48       |
 | Smoke (drift, decay, screens) (C-5)   | DESIGN-42 §§7-23 |
 | Detailed damage control (C-5)         | DESIGN-41 remainder |

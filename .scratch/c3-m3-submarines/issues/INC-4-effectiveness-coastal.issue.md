@@ -2,8 +2,8 @@
 
 **Type:** implementation
 **Status:** open
-**Blocked by:** INC-3
-**Frontier:** no
+**Blocked by:** INC-3 (DONE 2026-08-28)
+**Frontier:** yes
 
 ## Acceptance (spec AC-9, AC-10)
 

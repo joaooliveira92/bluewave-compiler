@@ -15,7 +15,11 @@
 // Pure/deterministic; fail-closed: any tampered contract throws
 // (INVALID_SUBMARINE_REPRESENTATION for the §1 guard, SUBMARINE_STATE_INVARIANT_FAILED
 // for the type/policy definition guards) and never silently passes.
-import { SUBMARINE_ASW_VULNERABILITY_BP } from "./model.js";
+import {
+  SUBMARINE_ASW_VULNERABILITY_BP,
+  SUBMARINE_NEUTRAL_ASW_VULNERABILITY_BP,
+  SUBMARINE_REMOTE_EFFICIENCY_BP,
+} from "./model.js";
 import { BluewaveError } from "@bluewave/contracts";
 import {
   SUBMARINE_BASIS_POINTS_PER_UNIT,
@@ -24,7 +28,10 @@ import {
   SUBMARINE_POLICY_TARGET_WEIGHTS_BP,
   submarineMissionsPolicyId,
   submarinePoliciesPolicyId,
+  submarineProximityPolicyId,
   submarineReliabilityPolicyId,
+  submarineRemoteEfficiencyPolicyId,
+  submarineLongRangeAswVulnerabilityPolicyId,
   submarineStrategicAssetPolicyId,
   submarineTypesPolicyId,
   STRATEGIC_REPRESENTATIONS,
@@ -414,5 +421,212 @@ export function validateSubmarineReliabilityContract(
         `submarine_reliability_v1 §7 band ${s.min}..${s.max} must be ${s.multiplierBp} bp`,
       );
   }
+  void c;
+}
+
+// ---------------------------------------------------------------------------
+// submarine_proximity_v1 (§8)
+// ---------------------------------------------------------------------------
+
+export interface SubmarineProximityContract {
+  policyId: string;
+  rulesetVersion: string;
+  formulaVersion: string;
+  basisPointsPerUnit: number;
+  proximityBands: ReadonlyArray<{
+    band: string;
+    minDistance: number;
+    maxDistance: number;
+  }>;
+}
+
+const PROXIMITY_BAND_DEFINITIONS: SubmarineProximityContract["proximityBands"] = [
+  { band: "LOCAL", minDistance: 0, maxDistance: 1 },
+  { band: "REGIONAL", minDistance: 2, maxDistance: 3 },
+  { band: "REMOTE", minDistance: 4, maxDistance: 6 },
+  { band: "EXTREME_REMOTE", minDistance: 7, maxDistance: Infinity },
+];
+
+export const SHIPPED_SUBMARINE_PROXIMITY_CONTRACT: SubmarineProximityContract = {
+  policyId: submarineProximityPolicyId,
+  rulesetVersion: SUBMARINE_RULESET_VERSION,
+  formulaVersion: SUBMARINE_FORMULA_VERSION,
+  basisPointsPerUnit: SUBMARINE_BASIS_POINTS_PER_UNIT,
+  proximityBands: PROXIMITY_BAND_DEFINITIONS,
+};
+
+export function validateSubmarineProximityContract(
+  c: Partial<SubmarineProximityContract> | null | undefined,
+): asserts c is SubmarineProximityContract {
+  function mismatch(contract: unknown, reason: string): never {
+    throw new BluewaveError(SUBMARINE_STATE_INVARIANT_FAILED, {
+      code: SUBMARINE_STATE_INVARIANT_FAILED,
+      reason,
+      contract,
+    });
+  }
+  if (!c) mismatch(c, "submarine_proximity_v1 missing contract");
+  if (c.policyId !== submarineProximityPolicyId)
+    mismatch(c, "submarine_proximity_v1 expected policy id");
+  if (
+    c.rulesetVersion !== SUBMARINE_RULESET_VERSION ||
+    c.formulaVersion !== SUBMARINE_FORMULA_VERSION
+  )
+    mismatch(c, "submarine_proximity_v1 ruleset/formula versions");
+  if (c.basisPointsPerUnit !== SUBMARINE_BASIS_POINTS_PER_UNIT)
+    mismatch(c, "submarine_proximity_v1 basis-point scale");
+  if (!c.proximityBands || c.proximityBands.length !== 4)
+    mismatch(c, "submarine_proximity_v1 §8 four-band table");
+  for (let i = 0; i < PROXIMITY_BAND_DEFINITIONS.length; i += 1) {
+    const s = PROXIMITY_BAND_DEFINITIONS[i];
+    const t = c.proximityBands[i];
+    if (!s || !t) mismatch(c, `submarine_proximity_v1 band missing at index ${i}`);
+    if (t.band !== s.band || t.minDistance !== s.minDistance || t.maxDistance !== s.maxDistance)
+      mismatch(c, `submarine_proximity_v1 §8 band ${s.band} bounds`);
+  }
+  void c;
+}
+
+// ---------------------------------------------------------------------------
+// submarine_remote_efficiency_v1 (§9)
+// ---------------------------------------------------------------------------
+
+export interface SubmarineRemoteEfficiencyContract {
+  policyId: string;
+  rulesetVersion: string;
+  formulaVersion: string;
+  basisPointsPerUnit: number;
+  efficiencyTableBp: ReadonlyArray<{
+    submarineTypeId: string;
+    bands: Record<string, number>;
+  }>;
+}
+
+const REMOTE_EFFICIENCY_ENTRIES: SubmarineRemoteEfficiencyContract["efficiencyTableBp"] = [
+  {
+    submarineTypeId: "COASTAL",
+    bands: { LOCAL: 10_000, REGIONAL: 7_500, REMOTE: 2_500, EXTREME_REMOTE: 0 },
+  },
+  {
+    submarineTypeId: "MEDIUM_RANGE",
+    bands: { LOCAL: 10_000, REGIONAL: 10_000, REMOTE: 7_500, EXTREME_REMOTE: 5_000 },
+  },
+  {
+    submarineTypeId: "LONG_RANGE",
+    bands: { LOCAL: 10_000, REGIONAL: 11_000, REMOTE: 12_500, EXTREME_REMOTE: 10_000 },
+  },
+  {
+    submarineTypeId: "MINELAYING",
+    bands: { LOCAL: 10_000, REGIONAL: 10_000, REMOTE: 8_000, EXTREME_REMOTE: 5_000 },
+  },
+  {
+    submarineTypeId: "MISSILE",
+    bands: { LOCAL: 10_000, REGIONAL: 10_000, REMOTE: 10_000, EXTREME_REMOTE: 9_000 },
+  },
+];
+
+export const SHIPPED_SUBMARINE_REMOTE_EFFICIENCY_CONTRACT: SubmarineRemoteEfficiencyContract = {
+  policyId: submarineRemoteEfficiencyPolicyId,
+  rulesetVersion: SUBMARINE_RULESET_VERSION,
+  formulaVersion: SUBMARINE_FORMULA_VERSION,
+  basisPointsPerUnit: SUBMARINE_BASIS_POINTS_PER_UNIT,
+  efficiencyTableBp: REMOTE_EFFICIENCY_ENTRIES,
+};
+
+export function validateSubmarineRemoteEfficiencyContract(
+  c: Partial<SubmarineRemoteEfficiencyContract> | null | undefined,
+): asserts c is SubmarineRemoteEfficiencyContract {
+  function mismatch(contract: unknown, reason: string): never {
+    throw new BluewaveError(SUBMARINE_STATE_INVARIANT_FAILED, {
+      code: SUBMARINE_STATE_INVARIANT_FAILED,
+      reason,
+      contract,
+    });
+  }
+  if (!c) mismatch(c, "submarine_remote_efficiency_v1 missing contract");
+  if (c.policyId !== submarineRemoteEfficiencyPolicyId)
+    mismatch(c, "submarine_remote_efficiency_v1 expected policy id");
+  if (
+    c.rulesetVersion !== SUBMARINE_RULESET_VERSION ||
+    c.formulaVersion !== SUBMARINE_FORMULA_VERSION
+  )
+    mismatch(c, "submarine_remote_efficiency_v1 ruleset/formula versions");
+  if (c.basisPointsPerUnit !== SUBMARINE_BASIS_POINTS_PER_UNIT)
+    mismatch(c, "submarine_remote_efficiency_v1 basis-point scale");
+  if (!c.efficiencyTableBp || c.efficiencyTableBp.length !== 5)
+    mismatch(c, "submarine_remote_efficiency_v1 §9 five-type table");
+  for (let i = 0; i < REMOTE_EFFICIENCY_ENTRIES.length; i += 1) {
+    const s = REMOTE_EFFICIENCY_ENTRIES[i];
+    const t = c.efficiencyTableBp[i];
+    if (!s || !t) mismatch(c, `submarine_remote_efficiency_v1 entry missing at index ${i}`);
+    if (t.submarineTypeId !== s.submarineTypeId)
+      mismatch(c, `submarine_remote_efficiency_v1 type id at index ${i}`);
+    for (const band of ["LOCAL", "REGIONAL", "REMOTE", "EXTREME_REMOTE"] as const) {
+      if (t.bands[band] !== s.bands[band])
+        mismatch(c, `submarine_remote_efficiency_v1 ${s.submarineTypeId} ${band} value`);
+    }
+  }
+  void c;
+}
+
+// ---------------------------------------------------------------------------
+// submarine_long_range_asw_vulnerability_v1 (§10)
+// ---------------------------------------------------------------------------
+
+export interface SubmarineLongRangeAswVulnerabilityContract {
+  policyId: string;
+  rulesetVersion: string;
+  formulaVersion: string;
+  basisPointsPerUnit: number;
+  validRangeMin: number;
+  validRangeMax: number;
+  vulnerabilityTableBp: Record<string, number>;
+  neutralVulnerabilityBp: number;
+}
+
+export const SHIPPED_SUBMARINE_LONG_RANGE_ASW_VULNERABILITY_CONTRACT: SubmarineLongRangeAswVulnerabilityContract =
+  {
+    policyId: submarineLongRangeAswVulnerabilityPolicyId,
+    rulesetVersion: SUBMARINE_RULESET_VERSION,
+    formulaVersion: SUBMARINE_FORMULA_VERSION,
+    basisPointsPerUnit: SUBMARINE_BASIS_POINTS_PER_UNIT,
+    validRangeMin: SUBMARINE_BASIS_POINTS_PER_UNIT,
+    validRangeMax: 12_500,
+    vulnerabilityTableBp: SUBMARINE_ASW_VULNERABILITY_BP,
+    neutralVulnerabilityBp: SUBMARINE_NEUTRAL_ASW_VULNERABILITY_BP,
+  };
+
+export function validateSubmarineLongRangeAswVulnerabilityContract(
+  c: Partial<SubmarineLongRangeAswVulnerabilityContract> | null | undefined,
+): asserts c is SubmarineLongRangeAswVulnerabilityContract {
+  function mismatch(contract: unknown, reason: string): never {
+    throw new BluewaveError(SUBMARINE_STATE_INVARIANT_FAILED, {
+      code: SUBMARINE_STATE_INVARIANT_FAILED,
+      reason,
+      contract,
+    });
+  }
+  if (!c) mismatch(c, "submarine_long_range_asw_vulnerability_v1 missing contract");
+  if (c.policyId !== submarineLongRangeAswVulnerabilityPolicyId)
+    mismatch(c, "submarine_long_range_asw_vulnerability_v1 expected policy id");
+  if (
+    c.rulesetVersion !== SUBMARINE_RULESET_VERSION ||
+    c.formulaVersion !== SUBMARINE_FORMULA_VERSION
+  )
+    mismatch(c, "submarine_long_range_asw_vulnerability_v1 ruleset/formula versions");
+  if (c.basisPointsPerUnit !== SUBMARINE_BASIS_POINTS_PER_UNIT)
+    mismatch(c, "submarine_long_range_asw_vulnerability_v1 basis-point scale");
+  if (c.validRangeMin !== SUBMARINE_BASIS_POINTS_PER_UNIT)
+    mismatch(c, "submarine_long_range_asw_vulnerability_v1 valid range min 10_000");
+  if (c.validRangeMax !== 12_500)
+    mismatch(c, "submarine_long_range_asw_vulnerability_v1 valid range max 12_500");
+  if (!c.vulnerabilityTableBp)
+    mismatch(c, "submarine_long_range_asw_vulnerability_v1 table missing");
+  for (const band of ["LOCAL", "REGIONAL", "REMOTE", "EXTREME_REMOTE"] as const) {
+    if (c.vulnerabilityTableBp[band] !== SUBMARINE_ASW_VULNERABILITY_BP[band])
+      mismatch(c, `submarine_long_range_asw_vulnerability_v1 ${band} value`);
+  }
+  if (c.neutralVulnerabilityBp !== SUBMARINE_NEUTRAL_ASW_VULNERABILITY_BP)
+    mismatch(c, "submarine_long_range_asw_vulnerability_v1 neutral baseline");
   void c;
 }

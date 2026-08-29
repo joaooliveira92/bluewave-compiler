@@ -249,10 +249,12 @@ Scoping DONE 2026-08-17 (map + decision tickets 01–06 resolved, spec at
 policies, reason codes + contracts seed) DONE 2026-08-28** (commit `c2caf64`);
 report `.ai/reports/c3-m3-submarines-inc1.md`; combat 1828 tests / 154 files
 green incl. 54 submarine; goldens 10/10 byte-identical; reviewer APPROVE.
-**INC-2 (mission eligibility + reliability, AC-4/AC-5) DONE 2026-08-28** (see
-INC-2 commit hash below); combat 1880 tests / 156 files green incl. 106
-submarine; goldens 10/10 unchanged; reviewer APPROVE). Next frontier
-**INC-3 (proximity + remote-efficiency + ASW vulnerability, AC-6/AC-7/AC-8)** —
+**INC-2 (mission eligibility + reliability, AC-4/AC-5) DONE 2026-08-28** (commit `1e922b3`);
+combat 1880 tests / 156 files green incl. 106 submarine; goldens 10/10 unchanged; reviewer APPROVE).
+**INC-3 (proximity + remote-efficiency + ASW vulnerability, AC-6/AC-7/AC-8) DONE 2026-08-28** (see
+INC-3 commit hash below); combat 1904 tests / 157 files green incl. 130 submarine; goldens 10/10
+unchanged; reviewer APPROVE). Next frontier
+**INC-4 (strategic mission effectiveness + coastal restriction, AC-9/AC-10)** —
 unblocked. Design-34 governs. No snapshot schema change; goldens stay 10/10.
 `BattleResolver`/`StrengthCalculator` unmodified.
 Deferred: tactical allocation/loss (§2–3), returning-ship interception (§21),

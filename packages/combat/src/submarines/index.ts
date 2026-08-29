@@ -4,3 +4,4 @@ export * from "./model.js";
 export * from "./contracts.js";
 export * from "./reliability.js";
 export * from "./missionEligibility.js";
+export * from "./proximity.js";
