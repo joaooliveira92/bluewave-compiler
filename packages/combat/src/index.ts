@@ -21,6 +21,7 @@ export * from "./contact/index.js";
 export * from "./torpedoes/index.js";
 export * from "./mines/index.js";
 export * from "./submarines/index.js";
+export * from "./aircraft/index.js";
 export * from "./simulation/engine.js";
 export * from "./simulation/spawn.js";
 export * from "./fullSpeedStress.js";
