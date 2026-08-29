@@ -11,7 +11,7 @@
 | M1 Strategic Campaign Kernel | B9–B10  | Scope briefs ready                      | B9/B10a/B10b/B10c/B10d done          | 410 passing                    | **M1 COMPLETED (A-5 gate, 2026-08-12)** — `docs/acceptance/m1-capability-registry.md` |
 | M2 Surface Tactical Core     | —       | Design docs exist (DESIGN-34–42)        | B-1..B-6 IMPL DONE (2026-08-15)      | 900 combat tests pass          | **M2 COMPLETED (B-6 gate, 2026-08-15)** — see M2 section below |
 | Desktop & CLI surfaces       | —       | —                                       | MVP + 3 screens + CLI debug DONE; game-onboarding-first-month INC-1..11 DONE (frontier INC-12); fleet-movement-strategy-map SCOPED (INC-1..INC-6) | desktop 507, campaign-engine 49 | Surfaces PASS (2026-08-15); debug-mode gating (ADR-0029); E2E suite in progress; new strategy-map scoping landed 2026-08-28 |
-| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | **C-1 COMPLETE (INC-1..8, AC-1..25) + C-2-IMPL DONE (INC-1..8, PASS) + C-3 SCOPED (AC-1..22 / INC-1..8)** | torpedo 517, mines 357 + submarine 54 tests pass | **C-1 COMPLETE (2026-08-16, ADR-0031)**; C-2 COMPLETE (AC-1..25, ADR-0033); C-3-IMPL INC-1 DONE 2026-08-28 (AC-1..3, AC-18/21 seed); next frontier C-3-IMPL INC-2 |
+| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | **C-1 COMPLETE (INC-1..8, AC-1..25) + C-2-IMPL DONE (INC-1..8, PASS) + C-3-IMPL INC-1+INC-2 DONE (AC-1..5, AC-21)** | torpedo 517, mines 357 + submarine 106 tests pass | **C-1 COMPLETE (2026-08-16, ADR-0031)**; C-2 COMPLETE (AC-1..25, ADR-0033); C-3-IMPL INC-1 DONE 2026-08-28, INC-2 DONE 2026-08-28; next frontier C-3-IMPL INC-3 |
 | M4 Aviation                  | —       | Design docs exist (DESIGN-43–45)        | Not started                          | —                              | Future                   |
 | M5 Electronics & Missile Era | —       | Design docs exist (DESIGN-46–48)        | Not started                          | —                              | Future                   |
 
@@ -631,14 +631,20 @@ exact tables), three policies (§5, warship+merchant sum-to-10_000 + independent
 neutral-incident multiplier), reason-code module seed (14 §27 codes + in-slice
 `SUBMARINE_RESOLUTION_DEFERRED` marker), and three `*_v1` contracts + fail-closed
 guards (report `.ai/reports/c3-m3-submarines-inc1.md`, commit `c2caf64`).
-**C-3-IMPL (INC-2..INC-8) remains the current M3 frontier.** See `.ai/SPRINT-PLAN.md`
+**C-3-IMPL INC-2 DONE 2026-08-28:** mission eligibility (§6, seven canonical missions,
+12-guard eligibility predicate, `SUBMARINE_MISSION_INELIGIBLE`), reliability
+(§7, six-band multiplier table, `SUBMARINE_RELIABILITY_INSUFFICIENT`),
+`submarine_missions_v1` + `submarine_reliability_v1` contracts (AC-4/AC-5/AC-21);
+combat 1880 tests / 156 files green incl. 106 submarine; goldens 10/10 unchanged;
+reviewer APPROVE). **Next frontier: C-3-IMPL INC-3 (proximity + remote-efficiency +
+ASW vulnerability, AC-6/AC-7/AC-8).** See `.ai/SPRINT-PLAN.md`
 Track C for the full sprint order. See `.ai/SPRINT-PLAN.md` Track C for the full sprint order.
 
 | Area                                  | Design coverage |
 | ------------------------------------- | --------------- |
 | Torpedoes (C-1)                       | DESIGN-40 — **COMPLETE** (INC-1..8, AC-1..25, ADR-0031) |
 | Mine warfare (C-2)                    | DESIGN-35 — **COMPLETE** (INC-1..8 PASS, AC-1..25, ADR-0033) |
-| Submarines (C-3)                      | DESIGN-34 — **INC-1 DONE 2026-08-28** (AC-1..3, AC-18/21 seed); INC-2 frontier (INC-2..8 pending) |
+| Submarines (C-3)                      | DESIGN-34 — **INC-1 DONE 2026-08-28** (AC-1..3, AC-18/21 seed); **INC-2 DONE 2026-08-28** (AC-4/AC-5/AC-21); INC-3 frontier
 | Coastal defenses (C-4)                | DESIGN-48       |
 | Smoke (drift, decay, screens) (C-5)   | DESIGN-42 §§7-23 |
 | Detailed damage control (C-5)         | DESIGN-41 remainder |

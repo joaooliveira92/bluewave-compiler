@@ -42,7 +42,9 @@ export const COASTAL_SUBMARINE_RANGE_RESTRICTED = "COASTAL_SUBMARINE_RANGE_RESTR
 export const LONG_RANGE_ASW_VULNERABILITY_MISSING = "LONG_RANGE_ASW_VULNERABILITY_MISSING" as const;
 // §7: reliability below 20 prohibits offensive deployment (INC-2 / AC-5).
 export const SUBMARINE_RELIABILITY_INSUFFICIENT = "SUBMARINE_RELIABILITY_INSUFFICIENT" as const;
-// §6: fuel insufficient for a mission (INC-2+/AC-4, mission eligibility).
+// §6: fuel insufficient for a mission. INC-2's eligibility predicate validates
+// fuel (firing SUBMARINE_MISSION_INELIGIBLE); the dedicated fuel-code FIRE is
+// deferred to the later mission/fuel slice (recorded, not dropped).
 export const SUBMARINE_FUEL_INSUFFICIENT = "SUBMARINE_FUEL_INSUFFICIENT" as const;
 // §19: a strategic attack-opportunity is CREATED (INC-6 / AC-14, value-only).
 export const SUBMARINE_ATTACK_OPPORTUNITY_CREATED = "SUBMARINE_ATTACK_OPPORTUNITY_CREATED" as const;
