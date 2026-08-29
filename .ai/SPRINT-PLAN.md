@@ -242,63 +242,32 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-**ACTIVE CHARTING (spec-writing): M2 "First Month at the Admiralty"
-(`.scratch/game-onboarding-first-month/`) — IN PROGRESS 2026-08-17.** A
-wayfinder effort producing the Milestone 2 strategic-loop spec (Take command
-→ Overview → priorities → Treasury/Research/Construction/Fleet/Diplomacy
-inspection → Advance Month → Monthly Naval Estimates → save/load). This
-session resolved the frontier decision tickets **07 (research)**, **08
-(fleet)**, **09 (construction)**, **11 (diplomacy tension-threshold policy —
-implemented in `campaign-engine/src/diplomacy.ts`, `tensionLabel`/
-`isHighTension`/`HIGH_TENSION_THRESHOLD=8`, + test)**, **16 (save/load &
-campaign-list)**, **18 (guided-inspection spotlight model)**, **13
-(Advance Month flow — resolved 2026-08-17: the month pipeline is largely real,
-so §14 reduces to documenting `commitMonth`+`MonthExecutor`+`SaveStore`, the
-real `PhaseRegistry` stage list, the revision/committing-flag double-submit
-model with the same-`requestId` result-replay gap recorded, "no mid-resolution
-cancellation" as the decided deferral, and the new pre-turn review feeding off
-the priorities engine (04) + two new `PlayerProjection.economy` fields (06);
-unblocks 14 + 15)**, and **04 (Immediate priorities engine — resolved
-2026-08-17 via research-subagent grounding: new read-only
-`campaign-engine/src/priorities.ts` projection, 6 of 8 doc types ship —
-`obsolete_active_class` cut (no obsolescence score and no design→tech
-mapping, so even the tech-gap fallback is unbuildable) and `construction_stalled`
-cut (month-over-month `completedWork` delta not persisted); cash triggers feed
-off ticket 06's two new `PlayerProjection.economy` fields; `high_foreign_tension`
-imports ticket 11's `isHighTension`; `construction_near_completion` adapted to a
-work-ratio proxy since months-to-completion is underivable; dismissal persisted
-in a new tolerant `ui-state.json` per-campaign sidecar that also resolves
-ticket 05's deferred storage; **recorded finding:** engine `monthly_revenue`
-uses `baseResources` (compiled 0) vs projection `income` — a pre-existing M1
-economy display concern, flagged not resolved)**. **ALL 18/18 TICKETS RESOLVED + SPEC ASSEMBLED + SLICED — the M2 "First Month
-at the Admiralty" charting effort is COMPLETE.** The single M2 spec is
-assembled at `.scratch/game-onboarding-first-month/spec.md` (+
-`.ai/specs/game-onboarding-first-month.md` pointer) and sliced into 14
-frontier-ordered implementation tickets at
-`.scratch/game-onboarding-first-month/issues/INC-01..14` (to-tickets,
-tracer-bullet vertical slices). **Implementation frontier: INC-1 (economy
-projection extension) DONE 2026-08-17 (commit `4a5eb20`, 5 tests, goldens
-10/10, desktop tsc -b clean); INC-3 (ui-state.json sidecar) DONE 2026-08-18
-(reviewer APPROVE; ADR-0038; merge-preserve write semantics; desktop 470/470;
-goldens 10/10; two-process byte-identical — report
-`.ai/reports/game-onboarding-first-month-inc3.md`); **INC-14 (campaign shell
-header — 14 files, 488 desktop, goldens 10/10, byte-identical, `StrategicDestination`
-`foreign-relations`→`diplomacy`) + INC-2 (priorities projection — pure
-`buildPrioritiesProjection`, 6 of 8 types, 79/79 campaign-engine, goldens
-10/10) DONE 2026-08-18 (commits `5f8f348` + `ebadc5c`, report
-`.ai/reports/game-onboarding-first-month-inc14-inc2.md`)** → **INC-13
-(campaign-list screen — `listCampaigns` IPC + `SaveStore.list` read + 6-column
-UI, `—` for legacy/status, load via `loadCampaign`) + INC-4 (read-only
-Treasury screen — `PlayerProjection.economy.maintenanceCost` added, stub route
-replaced; no budget controls) DONE 2026-08-19** (report
-`.ai/reports/game-onboarding-first-month-inc13-inc4.md`; desktop 507/507,
-goldens 10/10, byte-identical) → **INC-5 (research allocation edit UX — field-level priorities, `MAX_HIGH_PRIORITY_FIELDS=5` cap, projected monthly progress as pure largest-remainder derivation, autosave via `SaveStore` with `SAVE_FAILED` rollback, renderer-only unsaved indicator; 5 files via the existing `SetResearchPriorityCommand` path) DONE 2026-08-19 (commit `a0079ed`, report `.ai/reports/game-onboarding-first-month-inc5.md`; desktop 507/507, `tsc -b` clean, goldens 10/10, byte-identical)** → **INC-6 (Overview dashboard — header/naval-position/foreign-situation via tensionLabel, cap-5 priorities verbatim empty-state, Recent Developments honest empty-state, re-derived maintenance, largest port capacity) DONE 2026-08-19** (report `.ai/reports/game-onboarding-first-month-inc6.md`; OverviewScreen + state helpers; goldens 10/10) → **INC-7 (guided inspection — 7-step DOM spotlight, ui-state sidecar, restart command, autosave) DONE 2026-08-20** (report `.ai/reports/game-onboarding-first-month-inc7.md`; GuidedInspectionOverlay + guided-inspection-state + useGuidedInspection + CampaignPreferences restart; desktop 523/523, goldens 10/10, `tsc -b` clean) → **INC-8 (Fleet inspection) is next**, then INC-9..INC-12 in
-blocking order.
-The M2 spec covers §0–§19.1 (6-of-8 priorities with cuts; read-only Treasury;
-no ship naming; no real progress streaming; two new tolerant renderer-owned
-sidecars; report = real `CommitMonthResponse`; battle outcomes as report text)
-+ Out of scope + Handoff. **C-3-IMPL (submarines, queued below) remains on the
-implementation track, not dropped.**
+**ACTIVE SPRINT: C-3-IMPL (Submarines, Track C — M3 Advanced Surface Warfare).**
+Scoping DONE 2026-08-17 (map + decision tickets 01–06 resolved, spec at
+`.scratch/c3-m3-submarines/spec.md`, AC-1..22 / INC-1..8, brief at
+`.ai/briefs/c3-m3-submarines.md`). **INC-1 (strategic representation, types,
+policies, reason codes + contracts seed) DONE 2026-08-28** (commit `c2caf64`);
+report `.ai/reports/c3-m3-submarines-inc1.md`; combat 1828 tests / 154 files
+green incl. 54 submarine; goldens 10/10 byte-identical; reviewer APPROVE).
+Next frontier **INC-2 (mission eligibility + reliability, AC-4/AC-5)** —
+unblocked. Design-34 governs. No snapshot schema change; goldens stay 10/10.
+`BattleResolver`/`StrengthCalculator` unmodified.
+Deferred: tactical allocation/loss (§2–3), returning-ship interception (§21),
+ASW resolution (§22), friendly-fire risk/outcome (§23–24), strategic attack loss
+application (§19) — each needs battle/attack machinery or DESIGN-29 (intelligence).
+
+**Desktop side-tracks (recorded, not dropped):**
+
+- **Game-onboarding first month** (`.scratch/game-onboarding-first-month/`):
+  INC-1..INC-11 IMPLEMENTED DONE (commits `4a5eb20`..`a1a3b2b`). **Frontier
+  INC-12 (Monthly Naval Estimates report + history sidecar)** — renders real
+  `CommitMonthResponse` faithfully + monthly-reports.json keyed by `campaignId`,
+  tolerant read, pruned to 12 at write.
+- **Fleet movement strategy map** (`.scratch/fleet-movement-strategy-map/`):
+  SCOPED 2026-08-19 (spec 29 742 bytes, 6 INC tickets, research notes landed).
+  **Frontier INC-1 (campaign geometry seam & coastline asset promotion)** —
+  `AREA_GEOMETRY` join table, shared `campaign-geometry` helper, coastline
+  lazy-`fetch` from `public/coastline-10m.json`.
 
 **B-6: DONE 2026-08-15 — M2 COMPLETED.** Battle results → campaign integration
 + M2 acceptance gate landed (commits `bf77843` scoping, `62fba1d` INC-1,
