@@ -15,3 +15,5 @@ export * from "./auto-equip.js";
 export * from "./reequipment.js";
 export * from "./expansion.js";
 export * from "./inventory-allocation.js";
+export * from "./basing.js";
+export * from "./damaged-disposition.js";
