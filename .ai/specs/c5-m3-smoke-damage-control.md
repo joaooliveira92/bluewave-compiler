@@ -1,0 +1,1 @@
+C-5 M3 Smoke + Detailed Damage Control → `.scratch/c5-m3-smoke-damage-control/spec.md`

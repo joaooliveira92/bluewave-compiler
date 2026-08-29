@@ -179,6 +179,7 @@ current track; C-1 is in flight.**
 |     | **C-4 SCOPING: DONE 2026-08-28 — PASS.** Full value-model vertical slice of DESIGN-48 scoped: coastal battery definitions, land target types, damage state progression (5-state), placement rules (zone + seed-driven), local mine-pressure contribution (via C-2 `createMinePressureRecord`), value-only effectiveness formula, records/ordering/reason codes/contracts. Wayfinder map `.scratch/c4-m3-coastal-defenses/map.md` + decision tickets `01..06` (resolved), spec (AC-1..11, INC-1..6), brief `.ai/briefs/c4-m3-coastal-defenses.md`, `.ai/specs/c4-m3-coastal-defenses.md` pointer. **Deferred:** battle-participation integration, campaign-infrastructure consequence, AA progression, airfield/radar mechanics, YAML constants. **Next: C-4-IMPL (INC-1..INC-6).** |
 |     | **C-4-IMPL (Coastal defense — coastal artillery & land-target damage model): DONE 2026-08-28 — PASS.** INC-1..INC-6 through the orchestrator pipeline. 6 commits (`316cef9`, `912a372`, `3202dd9`, `deaa5c8`, `89dc5e2`, `9597c45`). Combat 78 tests / 10 files green incl. coastal-defense module. Build 18/18. `BattleResolver`/`StrengthCalculator` unmodified. ADR-0039. Goldens 10/10 unchanged (no snapshot/phase change). **Next: C-5 (smoke + detailed damage control) — scoping required.** |
 | C-5 | Smoke + detailed damage control | remainder of DESIGN-42, DESIGN-41                                  | Damage-control / smoke constants                     |
+|     | **C-5 SCOPING: DONE 2026-08-28 — PASS (orchestrator pipeline).** Scoped the smoke module (DESIGN-42 §§7-23: cloud model, drift/decay, line intersection, funnel smoke, smokescreens, floats, generators) + damage-control extension (DESIGN-41 §§13-22, §24-25, §27-28: fire propagation, flooding control, damage-control resources) as pure deterministic modules in `@bluewave/combat`. resolveSmoke engine wiring (step 5.5) — goldens regenerate under ADR-0007. resolveDamageControl engine wiring (step 8.6) — extends existing B-4 pipeline. Wayfinder map `.scratch/c5-m3-smoke-damage-control/map.md` + decision tickets `01..07` (resolved), spec (AC-1..15, INC-1..9), brief `.ai/briefs/c5-m3-smoke-damage-control.md`, research `docs/research/c5-m3-smoke-damage-control.md`. `BattleResolver`/`StrengthCalculator` unmodified. **Deferred:** full terminal state machine, survivors/rescue, aluminum superstructure, secondary hazards beyond fire/flooding, smoke→gunnery/spotting integration. **Next: C-5-IMPL (INC-1..INC-9).** |
 | C-6 | M3 acceptance gate              |                                                                    | M3 content `SUPPORTED_MECHANICAL`; sign M3 COMPLETED |
 
 ### Track D — M4 Aviation
@@ -245,36 +246,20 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-**ACTIVE SPRINT: C-3-IMPL (Submarines, Track C — M3 Advanced Surface Warfare).**
-Scoping DONE 2026-08-17 (map + decision tickets 01–06 resolved, spec at
-`.scratch/c3-m3-submarines/spec.md`, AC-1..22 / INC-1..8, brief at
-`.ai/briefs/c3-m3-submarines.md`). **INC-1 (strategic representation, types,
-policies, reason codes + contracts seed) DONE 2026-08-28** (commit `c2caf64`);
-report `.ai/reports/c3-m3-submarines-inc1.md`; combat 1828 tests / 154 files
-green incl. 54 submarine; goldens 10/10 byte-identical; reviewer APPROVE.
-**INC-2 (mission eligibility + reliability, AC-4/AC-5) DONE 2026-08-28** (commit `1e922b3`);
-combat 1880 tests / 156 files green incl. 106 submarine; goldens 10/10 unchanged; reviewer APPROVE).
-**INC-3 (proximity + remote-efficiency + ASW vulnerability, AC-6/AC-7/AC-8) DONE 2026-08-28** (see
-INC-3 commit hash below); combat 1904 tests / 157 files green incl. 130 submarine; goldens 10/10
-unchanged; reviewer APPROVE). Next frontier
-**INC-4 (strategic mission effectiveness + coastal restriction, AC-9/AC-10)**
-— unblocked. Design-34 governs. No snapshot schema change; goldens stay 10/10.
-`BattleResolver`/`StrengthCalculator` unmodified.
-Deferred: tactical allocation/loss (§2–3), returning-ship interception (§21),
-ASW resolution (§22), friendly-fire risk/outcome (§23–24), strategic attack loss
-application (§19) — each needs battle/attack machinery or DESIGN-29 (intelligence).
-
-### C-3-IMPL INC-4 done (strategic mission effectiveness + coastal restriction)
-
-**INC-4 (strategic mission effectiveness + coastal restriction, AC-9/AC-10) DONE 2026-08-28** (commit `e8f2722`). effectiveness.ts: §11 BigInt formula (floor/base × 7 multipliers / 10_000^7), §12 coastal restriction predicate (6 movement kinds). submarine_effectiveness_v1 contract + validate guard. effectiveness.test.ts: 30 tests covering all-multiplier paths (AC-9), coastal restriction states (AC-10), authored default values (baseSupport=10_000, policy=10_000, intelligence=10_000+DEFERRED marker, enemyProtection=10_000, blockade=10_000), contract guard. Combat 1942 tests / 158 files green incl. 146 submarine; goldens 10/10 unchanged. `BattleResolver`/`StrengthCalculator` unmodified. **INC-5 (sea-state profile, AC-11/AC-12) DONE 2026-08-28** (commit `85025d3`). seaStateProfile.ts: §13–17 sea-state scale + detection/observation/attack/surface-snorkel tables + §17 operation prohibition + buildSeaStateProfile. submarine_sea_state_v1 contract + validate guard. sea-state-profile.test.ts: 30 tests covering all scales, all multiplier exact tables, surfaced detection addition, operation prohibition, contract guard. Combat 1968 tests / 159 files green incl. 182 submarine; goldens 10/10 unchanged. **INC-6 (screening balance + attack-opportunity selection, AC-13/AC-14) DONE 2026-08-28** (commit `1aebe91`). screeningBalance.ts: computeScreenRatioBp (floor, max(1) heavy divisor), screeningOpportunityMultiplierBp (5 bands), computeAttackOpportunityValue (BigInt product, one FLOOR, keyed stream), createAttackOpportunityRecord. submarine_screening_balance_v1 contract + validate guard. screening-balance.test.ts: 25+ tests. Combat 1996 tests / 160 files green incl. 204 submarine. Next frontier: **INC-7 (mine laying + friendly-identification value-only, AC-15/AC-16).**
-
-## Immediate next action
-
 **C-5 (Smoke + detailed damage control, Track C — M3 Advanced Surface Warfare).**
-DESIGN-42 remainder (smoke: drift/decay/screens §§7–23) + DESIGN-41 remainder
-(detailed damage control). Scoping required (no brief yet). `BattleResolver`/`StrengthCalculator`
-unmodified throughout. Goldens 10/10 stay unchanged until C-6 (M3 acceptance gate)
-when phase/snapshot wiring may require regeneration.
+SCOPING DONE 2026-08-28 (map + decision tickets 01–07 resolved, spec at
+`.scratch/c5-m3-smoke-damage-control/spec.md`, AC-1..15 / INC-1..9, brief at
+`.ai/briefs/c5-m3-smoke-damage-control.md`, research at
+`docs/research/c5-m3-smoke-damage-control.md`). Delivers full smoke module
+(DESIGN-42 §§7-23: cloud model, drift/decay, line intersection, funnel smoke,
+smokescreens, floats, generators) + damage-control extension (DESIGN-41 §§13-22,
+§24-25, §27-28: fire propagation, flooding control, damage-control resources).
+**INC-1 first (model + constants + reason codes + funnel smoke) — unblocked.**
+`BattleResolver`/`StrengthCalculator` unmodified. Goldens will regenerate
+under ADR-0007 (smoke stage wires into minute-advance engine per Decision 03).
+Deferred: full terminal state machine, survivors/rescue, aluminum superstructure,
+secondary hazards beyond fire/flooding, smoke→gunnery/spotting integration,
+phase/snapshot wiring.
 
 **Desktop side-tracks (recorded, not dropped):**
 
