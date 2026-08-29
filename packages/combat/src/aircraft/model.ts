@@ -61,9 +61,7 @@ export interface AircraftModelDefinition {
   contentHash: string;
 }
 
-export function validateAircraftModelDefinition(
-  def: AircraftModelDefinition,
-): void {
+export function validateAircraftModelDefinition(def: AircraftModelDefinition): void {
   if (!isString(def.aircraftModelId)) {
     invalidModel("aircraftModelId", "missing or empty", def.aircraftModelId);
   }

@@ -10,14 +10,11 @@ import {
   AIRCRAFT_SCORE_MIN,
   AIRCRAFT_SCORE_MAX,
 } from "./constants.js";
-import {
-  INVALID_AIRCRAFT_MODEL_DEFINITION,
-} from "./reasonCodes.js";
+import { INVALID_AIRCRAFT_MODEL_DEFINITION } from "./reasonCodes.js";
 
-const safeIntSchema = z.custom<SafeInt>(
-  (v) => SafeInt.isSafeInt(v as number),
-  { message: "must be a SafeInt" },
-);
+const safeIntSchema = z.custom<SafeInt>((v) => SafeInt.isSafeInt(v as number), {
+  message: "must be a SafeInt",
+});
 
 const scoreSchema = safeIntSchema.refine(
   (v) => Number(v) >= AIRCRAFT_SCORE_MIN && Number(v) <= AIRCRAFT_SCORE_MAX,

@@ -110,7 +110,9 @@ export interface AircraftInventoryRecord {
   inventoryHash: string;
 }
 
-export function withAircraftInventoryRecordHash(record: AircraftInventoryRecord): AircraftInventoryRecord {
+export function withAircraftInventoryRecordHash(
+  record: AircraftInventoryRecord,
+): AircraftInventoryRecord {
   const { inventoryHash, ...rest } = record;
   const envelope = createEnvelope("aircraft-inventory-record", AIRCRAFT_RULESET_VERSION, rest);
   return { ...record, inventoryHash: envelope.bodyHash };

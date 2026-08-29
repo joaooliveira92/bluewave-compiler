@@ -54,7 +54,7 @@ describe("AC-4: 9 canonical inventory states", () => {
 describe("AC-4: inventory count invariants", () => {
   it("tracks counts per model+condition as SafeInt", () => {
     const inventory: Record<string, Record<string, SafeInt>> = {
-      "spad_s_xiii_1917": {
+      spad_s_xiii_1917: {
         UNASSIGNED_OPERATIONAL: SafeInt(12),
         ASSIGNED_OPERATIONAL: SafeInt(24),
         DAMAGED_REPAIRABLE: SafeInt(2),
