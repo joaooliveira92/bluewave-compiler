@@ -383,6 +383,102 @@ export function validateCarrierWindOverDeckContract(value: unknown): CarrierWind
   return result.data;
 }
 
+const hazardExposureInputsSchema = z.object({
+  fueledAircraftCount: nonNegativeSafeIntSchema,
+  armedAircraftCount: nonNegativeSafeIntSchema,
+  torpedoLoadedAircraftCount: nonNegativeSafeIntSchema,
+  guidedWeaponLoadedAircraftCount: nonNegativeSafeIntSchema,
+  fuelingTransferActive: z.boolean(),
+  ordnanceHandlingActive: z.boolean(),
+});
+
+export const CarrierHazardExposure_v1 = z.object({
+  inputs: hazardExposureInputsSchema,
+  totalExposure: nonNegativeSafeIntSchema,
+});
+
+export type CarrierHazardExposureContract = z.infer<typeof CarrierHazardExposure_v1>;
+
+export function validateCarrierHazardExposureContract(value: unknown): CarrierHazardExposureContract {
+  const result = CarrierHazardExposure_v1.safeParse(value);
+  if (!result.success) {
+    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
+      code: INVALID_CARRIER_OPERATIONS_STATE,
+      field: result.error.errors[0]?.path.join(".") ?? "unknown",
+      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      value,
+    });
+  }
+  return result.data;
+}
+
+const nightRecoveryPredicatesSchema = z.object({
+  hasNightCarrierOperationsTech: z.boolean(),
+  hasOperationalDeckLighting: z.boolean(),
+  hasValidContact: z.boolean(),
+  windOverDeckKnots: z.number().min(0),
+  aircraftClass: z.string().min(1),
+  weatherNotSuspended: z.boolean(),
+  carrierCommandAccepts: z.boolean(),
+  hasSufficientFuel: z.boolean(),
+  isEmergency: z.boolean(),
+});
+
+export const CarrierNightRecovery_v1 = z.object({
+  predicates: nightRecoveryPredicatesSchema,
+  eligible: z.boolean(),
+  lossBasisBp: z.number().int().min(0).max(10_000),
+});
+
+export type CarrierNightRecoveryContract = z.infer<typeof CarrierNightRecovery_v1>;
+
+export function validateCarrierNightRecoveryContract(value: unknown): CarrierNightRecoveryContract {
+  const result = CarrierNightRecovery_v1.safeParse(value);
+  if (!result.success) {
+    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
+      code: INVALID_CARRIER_OPERATIONS_STATE,
+      field: result.error.errors[0]?.path.join(".") ?? "unknown",
+      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      value,
+    });
+  }
+  return result.data;
+}
+
+const weatherSuspensionPredicatesSchema = z.object({
+  currentSeaState: nonNegativeSafeIntSchema,
+  windOverDeckKnots: nonNegativeSafeIntSchema,
+  aircraftClass: z.string().min(1),
+  isLaunchOperation: z.boolean(),
+  isHeavyPrecipitation: z.boolean(),
+  isExtremePrecipitation: z.boolean(),
+  visibilityNauticalMiles: nonNegativeSafeIntSchema,
+  hasInstrumentLandingTechnology: z.boolean(),
+  deckFireIntensityBp: basisPointSchema,
+});
+
+export const CarrierWeatherSuspension_v1 = z.object({
+  predicates: weatherSuspensionPredicatesSchema,
+  suspended: z.boolean(),
+  rateMultiplierBp: basisPointSchema.optional(),
+  reason: z.string(),
+});
+
+export type CarrierWeatherSuspensionContract = z.infer<typeof CarrierWeatherSuspension_v1>;
+
+export function validateCarrierWeatherSuspensionContract(value: unknown): CarrierWeatherSuspensionContract {
+  const result = CarrierWeatherSuspension_v1.safeParse(value);
+  if (!result.success) {
+    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
+      code: INVALID_CARRIER_OPERATIONS_STATE,
+      field: result.error.errors[0]?.path.join(".") ?? "unknown",
+      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      value,
+    });
+  }
+  return result.data;
+}
+
 export const SHIPPED_CARRIER_OPERATIONS_CONTRACT = {
   state: CarrierOperationsState_v1,
   capacityAssignment: CarrierCapacityAssignment_v1,
@@ -392,4 +488,7 @@ export const SHIPPED_CARRIER_OPERATIONS_CONTRACT = {
   strikeState: CarrierStrikeState_v1,
   launchRate: CarrierLaunchRate_v1,
   windOverDeck: CarrierWindOverDeck_v1,
+  hazardExposure: CarrierHazardExposure_v1,
+  nightRecovery: CarrierNightRecovery_v1,
+  weatherSuspension: CarrierWeatherSuspension_v1,
 } as const;

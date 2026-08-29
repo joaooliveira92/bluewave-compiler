@@ -1,7 +1,7 @@
 **Type:** implementation
-**Status:** open
+**Status:** closed
 **Blocked by:** INC-1
-**Frontier:** yes
+**Frontier:** no
 
 # INC-6: Hazards + night ops + weather suspension (§§21-25)
 
@@ -22,3 +22,5 @@
 ## Acceptance criteria
 
 AC-23 (hazard exposure), AC-24 (fire/explosion), AC-25 (night eligibility), AC-26 (night loss), AC-27 (weather suspension).
+
+**DONE 2026-08-29 — PASS.** Combat 220 files / 2948 tests green. Build 18/18. tsc -b clean.

@@ -9,3 +9,4 @@ export * from "./deck-cycles.js";
 export * from "./deck-contention.js";
 export * from "./strikes.js";
 export * from "./maneuver.js";
+export * from "./hazards.js";
