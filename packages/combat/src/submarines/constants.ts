@@ -20,6 +20,7 @@ export const submarineProximityPolicyId = "submarine_proximity_v1" as const;
 export const submarineRemoteEfficiencyPolicyId = "submarine_remote_efficiency_v1" as const;
 export const submarineLongRangeAswVulnerabilityPolicyId =
   "submarine_long_range_asw_vulnerability_v1" as const;
+export const submarineEffectivenessPolicyId = "submarine_effectiveness_v1" as const;
 
 export const SUBMARINE_RULESET_VERSION = "submarine_ruleset_v1" as const;
 export const SUBMARINE_FORMULA_VERSION = "submarine_formula_v1" as const;

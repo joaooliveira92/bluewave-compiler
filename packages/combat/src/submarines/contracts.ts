@@ -26,6 +26,7 @@ import {
   SUBMARINE_FORMULA_VERSION,
   SUBMARINE_RULESET_VERSION,
   SUBMARINE_POLICY_TARGET_WEIGHTS_BP,
+  submarineEffectivenessPolicyId,
   submarineMissionsPolicyId,
   submarinePoliciesPolicyId,
   submarineProximityPolicyId,
@@ -55,6 +56,13 @@ import {
   SUBMARINE_RELIABILITY_MIN,
   SUBMARINE_RELIABILITY_MAX,
 } from "./reliability.js";
+import {
+  SUBMARINE_BASE_SUPPORT_MULTIPLIER_BP,
+  SUBMARINE_POLICY_MULTIPLIER_BP,
+  SUBMARINE_INTELLIGENCE_MULTIPLIER_BP,
+  SUBMARINE_ENEMY_PROTECTION_MULTIPLIER_BP,
+  SUBMARINE_BLOCKADE_MULTIPLIER_BP,
+} from "./effectiveness.js";
 
 function arrayEquals(a: readonly unknown[], b: readonly unknown[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
@@ -628,5 +636,70 @@ export function validateSubmarineLongRangeAswVulnerabilityContract(
   }
   if (c.neutralVulnerabilityBp !== SUBMARINE_NEUTRAL_ASW_VULNERABILITY_BP)
     mismatch(c, "submarine_long_range_asw_vulnerability_v1 neutral baseline");
+  void c;
+}
+
+// ---------------------------------------------------------------------------
+// submarine_effectiveness_v1 (§11 + §12)
+// ---------------------------------------------------------------------------
+
+export interface SubmarineEffectivenessContract {
+  policyId: string;
+  rulesetVersion: string;
+  formulaVersion: string;
+  basisPointsPerUnit: number;
+  denominator: number;
+  baseSupportMultiplierBp: number;
+  policyMultiplierBp: number;
+  intelligenceMultiplierBp: number;
+  enemyProtectionMultiplierBp: number;
+  blockadeMultiplierBp: number;
+}
+
+export const SHIPPED_SUBMARINE_EFFECTIVENESS_CONTRACT: SubmarineEffectivenessContract = {
+  policyId: submarineEffectivenessPolicyId,
+  rulesetVersion: SUBMARINE_RULESET_VERSION,
+  formulaVersion: SUBMARINE_FORMULA_VERSION,
+  basisPointsPerUnit: SUBMARINE_BASIS_POINTS_PER_UNIT,
+  denominator: 10_000 ** 7,
+  baseSupportMultiplierBp: SUBMARINE_BASE_SUPPORT_MULTIPLIER_BP,
+  policyMultiplierBp: SUBMARINE_POLICY_MULTIPLIER_BP,
+  intelligenceMultiplierBp: SUBMARINE_INTELLIGENCE_MULTIPLIER_BP,
+  enemyProtectionMultiplierBp: SUBMARINE_ENEMY_PROTECTION_MULTIPLIER_BP,
+  blockadeMultiplierBp: SUBMARINE_BLOCKADE_MULTIPLIER_BP,
+};
+
+export function validateSubmarineEffectivenessContract(
+  c: Partial<SubmarineEffectivenessContract> | null | undefined,
+): asserts c is SubmarineEffectivenessContract {
+  function mismatch(contract: unknown, reason: string): never {
+    throw new BluewaveError(SUBMARINE_STATE_INVARIANT_FAILED, {
+      code: SUBMARINE_STATE_INVARIANT_FAILED,
+      reason,
+      contract,
+    });
+  }
+  if (!c) mismatch(c, "submarine_effectiveness_v1 missing contract");
+  if (c.policyId !== submarineEffectivenessPolicyId)
+    mismatch(c, "submarine_effectiveness_v1 expected policy id");
+  if (
+    c.rulesetVersion !== SUBMARINE_RULESET_VERSION ||
+    c.formulaVersion !== SUBMARINE_FORMULA_VERSION
+  )
+    mismatch(c, "submarine_effectiveness_v1 ruleset/formula versions");
+  if (c.basisPointsPerUnit !== SUBMARINE_BASIS_POINTS_PER_UNIT)
+    mismatch(c, "submarine_effectiveness_v1 basis-point scale");
+  if (c.denominator !== 10_000 ** 7)
+    mismatch(c, "submarine_effectiveness_v1 §11 denominator 10_000^7");
+  if (c.baseSupportMultiplierBp !== SUBMARINE_BASE_SUPPORT_MULTIPLIER_BP)
+    mismatch(c, "submarine_effectiveness_v1 §11 base-support multiplier");
+  if (c.policyMultiplierBp !== SUBMARINE_POLICY_MULTIPLIER_BP)
+    mismatch(c, "submarine_effectiveness_v1 §11 policy multiplier");
+  if (c.intelligenceMultiplierBp !== SUBMARINE_INTELLIGENCE_MULTIPLIER_BP)
+    mismatch(c, "submarine_effectiveness_v1 §11 intelligence multiplier");
+  if (c.enemyProtectionMultiplierBp !== SUBMARINE_ENEMY_PROTECTION_MULTIPLIER_BP)
+    mismatch(c, "submarine_effectiveness_v1 §11 enemy-protection multiplier");
+  if (c.blockadeMultiplierBp !== SUBMARINE_BLOCKADE_MULTIPLIER_BP)
+    mismatch(c, "submarine_effectiveness_v1 §11 blockade multiplier");
   void c;
 }
