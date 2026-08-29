@@ -98,6 +98,17 @@ export const AIRCRAFT_SCORE_MAX = 100 as const;
 // RNG stream key prefix for aircraft development proposal generation.
 export const AIRCRAFT_DESIGN_STREAM_KEY_PREFIX = "aircraft/development/nation" as const;
 
+// ---- INC-4 private venture constants ----
+
+// DESIGN-43 §11: private venture cooldown — exactly 12 completed months per nation.
+export const PRIVATE_VENTURE_COOLDOWN_MONTHS = 12 as const;
+
+// DESIGN-43 §11: maximum number of unexpired private proposals per nation.
+export const PRIVATE_VENTURE_MAX_UNEXPIRED = 3 as const;
+
+// DESIGN-43 §12: private proposal lifetime — exactly 12 completed months.
+export const PRIVATE_PROPOSAL_LIFETIME_MONTHS = 12 as const;
+
 // ---- INC-3 constants ----
 
 // DESIGN-43 §7: aircraft_development_duration_v1

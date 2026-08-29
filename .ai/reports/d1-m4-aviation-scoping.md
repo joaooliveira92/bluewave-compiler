@@ -16,6 +16,7 @@ D-1 scoping sprint for M4 Aviation (DESIGN-43, 768 lines). Delivered:
 6. **`.ai/specs/` pointer** — `.ai/specs/d1-m4-aviation.md` — index entry.
 
 ### Deferred (recorded in spec §1.3)
+
 - Mission-role feasibility engine (§§22-31) → D-2
 - Experience/fatigue binding (§36 → DESIGN-28, unassigned)
 - Aircraft production pipeline (§37)
@@ -24,8 +25,8 @@ D-1 scoping sprint for M4 Aviation (DESIGN-43, 768 lines). Delivered:
 
 ## Requirements evidence
 
-| AC | Requirement | Status | Evidence |
-|----|-------------|--------|----------|
+| AC          | Requirement                                | Status | Evidence                                               |
+| ----------- | ------------------------------------------ | ------ | ------------------------------------------------------ |
 | AC-1..AC-28 | All DESIGN-43 §§1-21, §§32-41 requirements | SCOPED | Spec `.scratch/d1-m4-aviation/spec.md` §1.1 full table |
 
 ## Commands and observed results

@@ -18,20 +18,20 @@ C-6 (M3 acceptance gate) DONE (2026-08-29, PASS). `@bluewave/combat` has mature 
 
 ## Scope summary
 
-| Area | Scope decision |
-|------|----------------|
-| Aircraft model + type definitions | IN (DESIGN-43 §§1-2) |
-| Aircraft state model (NationState.aircraft) | IN (§3) |
-| Development pipeline (request, proposal, project) | IN (§§4-10) |
-| Private ventures | IN (§§11-12) |
-| Squadron lifecycle + auto-equip + re-equipment + expansion | IN (§§13-19, §35) |
-| Basing model + damaged disposition | IN (§§20-21, §32) |
-| Records, ordering, reason codes | IN (§§38-41) |
-| Mission-role feasibility engine | DEFERRED to D-2 (§§22-31) |
-| Experience/fatigue binding | DEFERRED (DESIGN-28 unassigned, §36) |
-| Aircraft production pipeline | DEFERRED (§37) |
-| Tactical battle engagement | DEFERRED (D-2/D-3) |
-| Content YAML constants | DEFERRED (CONTENT-track) |
+| Area                                                       | Scope decision                       |
+| ---------------------------------------------------------- | ------------------------------------ |
+| Aircraft model + type definitions                          | IN (DESIGN-43 §§1-2)                 |
+| Aircraft state model (NationState.aircraft)                | IN (§3)                              |
+| Development pipeline (request, proposal, project)          | IN (§§4-10)                          |
+| Private ventures                                           | IN (§§11-12)                         |
+| Squadron lifecycle + auto-equip + re-equipment + expansion | IN (§§13-19, §35)                    |
+| Basing model + damaged disposition                         | IN (§§20-21, §32)                    |
+| Records, ordering, reason codes                            | IN (§§38-41)                         |
+| Mission-role feasibility engine                            | DEFERRED to D-2 (§§22-31)            |
+| Experience/fatigue binding                                 | DEFERRED (DESIGN-28 unassigned, §36) |
+| Aircraft production pipeline                               | DEFERRED (§37)                       |
+| Tactical battle engagement                                 | DEFERRED (D-2/D-3)                   |
+| Content YAML constants                                     | DEFERRED (CONTENT-track)             |
 
 ## Key decisions
 
@@ -47,17 +47,17 @@ C-6 (M3 acceptance gate) DONE (2026-08-29, PASS). `@bluewave/combat` has mature 
 
 ## Implementation increments
 
-| INC | Deliverable |
-|-----|-------------|
-| INC-1 | Aircraft model + type definitions |
-| INC-2 | Aircraft state model |
-| INC-3 | Development pipeline (request→proposal→project→acceptance) |
-| INC-4 | Private ventures |
+| INC   | Deliverable                                                             |
+| ----- | ----------------------------------------------------------------------- |
+| INC-1 | Aircraft model + type definitions                                       |
+| INC-2 | Aircraft state model                                                    |
+| INC-3 | Development pipeline (request→proposal→project→acceptance)              |
+| INC-4 | Private ventures                                                        |
 | INC-5 | Squadron lifecycle + auto-equip + re-equipment + expansion + allocation |
-| INC-6 | Basing model + damaged disposition |
-| INC-7 | Phase stage + engine wiring |
-| INC-8 | Reason codes rollup + set-equality guard |
-| INC-9 | Contracts rollup + ADR + traceability + gate |
+| INC-6 | Basing model + damaged disposition                                      |
+| INC-7 | Phase stage + engine wiring                                             |
+| INC-8 | Reason codes rollup + set-equality guard                                |
+| INC-9 | Contracts rollup + ADR + traceability + gate                            |
 
 ## Dependencies
 

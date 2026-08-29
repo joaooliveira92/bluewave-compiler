@@ -9,14 +9,14 @@
 M3 `M3_ADVANCED_SURFACE_WARFARE` signed COMPLETED per DESIGN-55 §23 (scoped
 closure). All six §4 capabilities transitioned to ACCEPTED:
 
-| §4 capability | Implementing sprint | Key ADR |
-|---|---|---|
-| Torpedoes | C-1 (INC-1..INC-8, AC-1..AC-25) | ADR-0031 |
-| Mines | C-2 (INC-1..INC-8, AC-1..AC-25) | ADR-0033 |
-| Submarines | C-3 (INC-1..INC-8, AC-1..AC-22) | ADR-0034..0037 |
-| Coastal defenses | C-4 (INC-1..INC-6, AC-1..AC-11) | ADR-0039 |
-| Smoke | C-5 (INC-1..INC-9, AC-1..AC-15) | ADR-0040 |
-| Detailed damage control | C-5 (INC-1..INC-9, AC-1..AC-15) | ADR-0040 |
+| §4 capability           | Implementing sprint             | Key ADR        |
+| ----------------------- | ------------------------------- | -------------- |
+| Torpedoes               | C-1 (INC-1..INC-8, AC-1..AC-25) | ADR-0031       |
+| Mines                   | C-2 (INC-1..INC-8, AC-1..AC-25) | ADR-0033       |
+| Submarines              | C-3 (INC-1..INC-8, AC-1..AC-22) | ADR-0034..0037 |
+| Coastal defenses        | C-4 (INC-1..INC-6, AC-1..AC-11) | ADR-0039       |
+| Smoke                   | C-5 (INC-1..INC-9, AC-1..AC-15) | ADR-0040       |
+| Detailed damage control | C-5 (INC-1..INC-9, AC-1..AC-15) | ADR-0040       |
 
 Deliverables: `docs/acceptance/m3-capability-registry.md`, updated PROGRESS.md,
 updated SPRINT-PLAN.md.

@@ -8,3 +8,5 @@ export * from "./development-duration.js";
 export * from "./attribute-allocation.js";
 export * from "./development.js";
 export * from "./proposal.js";
+export * from "./event-types.js";
+export * from "./private-venture.js";
