@@ -17,23 +17,23 @@ D-1 COMPLETE (aircraft models, squadrons, basing, phase wiring). D-2 COMPLETE (c
 
 ## Scope summary
 
-| Area | Scope decision |
-|------|----------------|
-| CAP patrol state + detection + interception timing | IN (INC-1) |
-| Air-to-air exchange formula (6-factor) | IN (INC-2) |
-| CAP vs escort + CAP vs bomber engagement | IN (INC-2) |
-| Strike disruption of bombers | IN (INC-3) |
-| Strike tactical state machine (EN_ROUTE→ATTACKING→EGRESSING→RETURNING) | IN (INC-3) |
-| Transit time calculation | IN (INC-4) |
-| Bombing accuracy + dive bombing + level bombing | IN (INC-4) |
-| Air-launched torpedo attack (reuse C-1) | IN (INC-5) |
-| Damage integration (feeds into existing resolveDamage) | IN (INC-5) |
-| Strike egress + fuel check + recovery (D-2) | IN (INC-6) |
-| Records + ordering + reason codes + contracts | IN (INC-7) |
-| Engine wiring (step 1, substep 1) + two-process + gate | IN (INC-8) |
-| AA / air defense | DEFERRED to D-4 |
-| Experience/fatigue (DESIGN-28) | DEFERRED |
-| Content YAML | DEFERRED to CONTENT-track |
+| Area                                                                   | Scope decision            |
+| ---------------------------------------------------------------------- | ------------------------- |
+| CAP patrol state + detection + interception timing                     | IN (INC-1)                |
+| Air-to-air exchange formula (6-factor)                                 | IN (INC-2)                |
+| CAP vs escort + CAP vs bomber engagement                               | IN (INC-2)                |
+| Strike disruption of bombers                                           | IN (INC-3)                |
+| Strike tactical state machine (EN_ROUTE→ATTACKING→EGRESSING→RETURNING) | IN (INC-3)                |
+| Transit time calculation                                               | IN (INC-4)                |
+| Bombing accuracy + dive bombing + level bombing                        | IN (INC-4)                |
+| Air-launched torpedo attack (reuse C-1)                                | IN (INC-5)                |
+| Damage integration (feeds into existing resolveDamage)                 | IN (INC-5)                |
+| Strike egress + fuel check + recovery (D-2)                            | IN (INC-6)                |
+| Records + ordering + reason codes + contracts                          | IN (INC-7)                |
+| Engine wiring (step 1, substep 1) + two-process + gate                 | IN (INC-8)                |
+| AA / air defense                                                       | DEFERRED to D-4           |
+| Experience/fatigue (DESIGN-28)                                         | DEFERRED                  |
+| Content YAML                                                           | DEFERRED to CONTENT-track |
 
 ## Key decisions
 

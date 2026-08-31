@@ -14,29 +14,29 @@ D-1 (aircraft models, squadrons, basing), D-2 (carrier operations), D-3 (CAP & s
 
 ## Scope summary
 
-| Area | Scope decision |
-|------|----------------|
-| Defense system definitions (§3) | IN (INC-1) |
-| AirDefenseState (§2) | IN (INC-1) |
-| Layer resolution §1 (AA only) | IN (INC-2) |
-| Heavy AA eligibility (§7) | IN (INC-2) |
-| Medium AA eligibility + timing (§8) | IN (INC-2) |
-| Light AA windows + speed bands (§9) | IN (INC-2) |
-| Guaranteed light-AA disruption (§10) | IN (INC-5) |
-| Director assignment + scaling (§11-12) | IN (INC-4) |
-| Radar-directed medium-AA groups (§13-14) | IN (INC-4) |
-| CIWS + redundancy (§15-16) | IN (INC-4) |
-| Engagement formula (§19) | IN (INC-3) |
-| Disruption (§6) | IN (INC-3) |
-| Ammunition (§20) | IN (INC-3) |
-| Simplified damage/power (§21) | IN (INC-3) |
-| Records + ordering (§26-27) | IN (INC-5) |
-| Reason codes (§28) | IN (INC-5) |
-| Contracts | IN (INC-5) |
-| Engine wiring (step 7.8) | IN (INC-6) |
-| SAM (HEAVY/MEDIUM/LIGHT) | DEFERRED to E-track (M5) |
-| Content YAML | DEFERRED to CONTENT-track |
-| Player UI | DEFERRED to desktop-track |
+| Area                                     | Scope decision            |
+| ---------------------------------------- | ------------------------- |
+| Defense system definitions (§3)          | IN (INC-1)                |
+| AirDefenseState (§2)                     | IN (INC-1)                |
+| Layer resolution §1 (AA only)            | IN (INC-2)                |
+| Heavy AA eligibility (§7)                | IN (INC-2)                |
+| Medium AA eligibility + timing (§8)      | IN (INC-2)                |
+| Light AA windows + speed bands (§9)      | IN (INC-2)                |
+| Guaranteed light-AA disruption (§10)     | IN (INC-5)                |
+| Director assignment + scaling (§11-12)   | IN (INC-4)                |
+| Radar-directed medium-AA groups (§13-14) | IN (INC-4)                |
+| CIWS + redundancy (§15-16)               | IN (INC-4)                |
+| Engagement formula (§19)                 | IN (INC-3)                |
+| Disruption (§6)                          | IN (INC-3)                |
+| Ammunition (§20)                         | IN (INC-3)                |
+| Simplified damage/power (§21)            | IN (INC-3)                |
+| Records + ordering (§26-27)              | IN (INC-5)                |
+| Reason codes (§28)                       | IN (INC-5)                |
+| Contracts                                | IN (INC-5)                |
+| Engine wiring (step 7.8)                 | IN (INC-6)                |
+| SAM (HEAVY/MEDIUM/LIGHT)                 | DEFERRED to E-track (M5)  |
+| Content YAML                             | DEFERRED to CONTENT-track |
+| Player UI                                | DEFERRED to desktop-track |
 
 ## Key decisions
 

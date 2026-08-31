@@ -32,8 +32,8 @@ D-3 scoping sprint for M4 Aviation air-combat tactical integration (DESIGN-43 §
 
 ## Requirements evidence
 
-| AC | Requirement | Status | Evidence |
-|----|------------|--------|----------|
+| AC          | Requirement                                                                                                                                                                                      | Status | Evidence                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | --------------------------------------------------------- |
 | AC-1..AC-22 | All CAP patrol, detection, interception, exchange, disruption, strike state machine, bombing, torpedo, damage, egress, recovery, records, ordering, reason codes, contracts, wiring, determinism | SCOPED | Spec `.scratch/d3-m4-cap-strikes/spec.md` §1.2 full table |
 
 ## Commands and observed results
@@ -57,6 +57,7 @@ None — scoping sprint. Tests are specified in the implementation tickets (INC-
 ## ADRs and dependencies
 
 No new ADR this sprint. ADR deferred to INC-8 (engine wiring + scope/integration boundary ADR). Dependency on:
+
 - D-1 (aircraft model definitions, squadron lifecycle, basing) — ACCEPTED
 - D-2 (carrier operations state, deck cycles, launch rates, recovery, records) — ACCEPTED
 - B-2 (spotting model for CAP detection) — ACCEPTED
