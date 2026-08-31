@@ -3,6 +3,7 @@
 // Parallel to air-combat/constants.ts pattern.
 
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { INVALID_AIR_DEFENSE_SYSTEM_DEFINITION } from "./reason-codes.js";
 
 // ---- §7 Protected radius ----
 
@@ -238,38 +239,6 @@ export const DISRUPTION_SEVERITY_ORDINAL: Record<string, number> = {
   MISSION_ABORT: 4,
 };
 
-// ---- §28 Reason codes for engagement outcomes (string literals for INC-3; full enum in INC-5) ----
-
-/** Disruption was applied to the attack. */
-export const AIR_ATTACK_DISRUPTED = "AIR_ATTACK_DISRUPTED" as const;
-
-/** Attack was aborted (prevented from releasing weapons or lost its attack). */
-export const AIR_ATTACK_ABORTED = "AIR_ATTACK_ABORTED" as const;
-
 // ---- State hash ----
 // SHA-256 hex output length
 export const STATE_HASH_LENGTH = 64 as const;
-
-// ---- Required reason codes (DESIGN-45 §28) ----
-// Missing or inconsistent air-defense state MUST fail with INVALID_AIR_DEFENSE_STATE.
-export const INVALID_AIR_DEFENSE_STATE = "INVALID_AIR_DEFENSE_STATE" as const;
-// Missing air-defense system metadata MUST fail with INVALID_AIR_DEFENSE_SYSTEM_DEFINITION.
-export const INVALID_AIR_DEFENSE_SYSTEM_DEFINITION =
-  "INVALID_AIR_DEFENSE_SYSTEM_DEFINITION" as const;
-
-// ---- §28 Layer-resolution reason codes (string literals for INC-2; full enum in INC-5) ----
-
-/** Heavy AA: target is beyond the 5 nm protected radius. */
-export const HEAVY_AA_PROTECTED_RADIUS_EXCEEDED = "HEAVY_AA_PROTECTED_RADIUS_EXCEEDED" as const;
-
-/** Medium AA: attacker released before the pre-release engagement window. */
-export const MEDIUM_AA_PRE_RELEASE_WINDOW_MISSED = "MEDIUM_AA_PRE_RELEASE_WINDOW_MISSED" as const;
-
-/** Target (attack type or profile) is ineligible for the defense layer. */
-export const AIR_DEFENSE_TARGET_INELIGIBLE = "AIR_DEFENSE_TARGET_INELIGIBLE" as const;
-
-/** No free engagement channel available for this system. */
-export const AIR_DEFENSE_CHANNEL_UNAVAILABLE = "AIR_DEFENSE_CHANNEL_UNAVAILABLE" as const;
-
-/** Insufficient ammunition for this engagement. */
-export const AIR_DEFENSE_AMMUNITION_UNAVAILABLE = "AIR_DEFENSE_AMMUNITION_UNAVAILABLE" as const;

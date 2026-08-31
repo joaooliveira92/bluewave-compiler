@@ -3,7 +3,8 @@
 // per DESIGN-45 §3. Strict Zod validation at construction boundaries, fail-closed guards.
 
 import { z } from "zod";
-import { AIR_DEFENSE_MODEL_VERSION, INVALID_AIR_DEFENSE_SYSTEM_DEFINITION } from "./constants.js";
+import { AIR_DEFENSE_MODEL_VERSION } from "./constants.js";
+import { INVALID_AIR_DEFENSE_SYSTEM_DEFINITION } from "./reason-codes.js";
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
 
 export const AIR_DEFENSE_RULESET_VERSION = "air_defense_v1" as const;

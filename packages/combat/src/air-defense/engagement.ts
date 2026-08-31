@@ -18,9 +18,11 @@ import {
   FORMULA_DENOMINATOR,
   DISRUPTION_SEVERITY_MAP,
   DISRUPTION_SEVERITY_ORDINAL,
+} from "./constants.js";
+import {
   AIR_DEFENSE_AMMUNITION_UNAVAILABLE,
   INVALID_AIR_DEFENSE_SYSTEM_DEFINITION,
-} from "./constants.js";
+} from "./reason-codes.js";
 
 // ============================================================================
 // AC-11: Engagement formula — 9-factor product with bigint floor-once

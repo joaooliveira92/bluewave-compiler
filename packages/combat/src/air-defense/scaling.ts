@@ -14,8 +14,8 @@ import {
   DIRECTOR_SCALING_TABLE,
   radarMediumAaMarginalMultiplierBp,
   ciwsMarginalMultiplierBp,
-  INVALID_AIR_DEFENSE_SYSTEM_DEFINITION,
 } from "./constants.js";
+import { INVALID_AIR_DEFENSE_SYSTEM_DEFINITION } from "./reason-codes.js";
 import type { LayerId } from "./air-defense-system-definition.js";
 
 // ---- §12 Shipped director normal-scaling cap ----

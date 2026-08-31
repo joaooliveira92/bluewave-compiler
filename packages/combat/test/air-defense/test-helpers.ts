@@ -138,12 +138,13 @@ export function makeState(
   systems: AirDefenseSystemDefinition[],
   overrides?: {
     defenderId?: string;
-    damageBp?: SafeInt;
     channelReservations?: Map<string, string>;
     ammunitionByType?: Map<string, SafeInt>;
+    powerBp?: SafeInt;
+    damageBp?: SafeInt;
   },
 ): AirDefenseState {
-  return createAirDefenseState(
+  let state = createAirDefenseState(
     overrides?.defenderId ?? "ship_001",
     "SHIP",
     systems,
@@ -151,6 +152,19 @@ export function makeState(
     defaultRadarState,
     SafeInt(10_000),
   );
+  if (overrides?.ammunitionByType) {
+    state = { ...state, ammunitionByType: overrides.ammunitionByType };
+  }
+  if (overrides?.channelReservations) {
+    state = { ...state, channelReservations: overrides.channelReservations };
+  }
+  if (overrides?.powerBp !== undefined) {
+    state = { ...state, powerBp: overrides.powerBp };
+  }
+  if (overrides?.damageBp !== undefined) {
+    state = { ...state, damageBp: overrides.damageBp };
+  }
+  return state;
 }
 
 // Override damageBp etc. after creation (state is a plain object)

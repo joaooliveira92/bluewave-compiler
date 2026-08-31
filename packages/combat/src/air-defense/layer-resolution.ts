@@ -13,17 +13,19 @@ import type { AirDefenseAttack, AttackTypeId } from "./air-defense-attack.js";
 import type { AirDefenseSystemDefinition, LayerId } from "./air-defense-system-definition.js";
 import type { AirDefenseState } from "./air-defense-state.js";
 import {
-  AIR_DEFENSE_AMMUNITION_UNAVAILABLE,
-  AIR_DEFENSE_CHANNEL_UNAVAILABLE,
-  AIR_DEFENSE_TARGET_INELIGIBLE,
-  HEAVY_AA_PROTECTED_RADIUS_EXCEEDED,
-  MEDIUM_AA_PRE_RELEASE_WINDOW_MISSED,
   NAUTICAL_MILE_M,
   PROTECTED_RADIUS,
   LIGHT_AA_WINDOW_DURATIONS,
   effectiveLightAAWindowMilliseconds,
   lightAASpeedMultiplierBp,
 } from "./constants.js";
+import {
+  AIR_DEFENSE_AMMUNITION_UNAVAILABLE,
+  AIR_DEFENSE_CHANNEL_UNAVAILABLE,
+  AIR_DEFENSE_TARGET_INELIGIBLE,
+  HEAVY_AA_PROTECTED_RADIUS_EXCEEDED,
+  MEDIUM_AA_PRE_RELEASE_WINDOW_MISSED,
+} from "./reason-codes.js";
 
 // ---- §28 Reason codes (string literals for INC-2; full enum in INC-5) ----
 

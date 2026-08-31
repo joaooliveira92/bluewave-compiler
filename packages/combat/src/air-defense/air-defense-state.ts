@@ -5,7 +5,8 @@
 
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
-import { AIR_DEFENSE_MODEL_VERSION, INVALID_AIR_DEFENSE_STATE } from "./constants.js";
+import { AIR_DEFENSE_MODEL_VERSION } from "./constants.js";
+import { INVALID_AIR_DEFENSE_STATE } from "./reason-codes.js";
 import type { AirDefenseSystemDefinition, LayerId } from "./air-defense-system-definition.js";
 
 // Comparator for deterministic sorting of [key, value] map entries by key.

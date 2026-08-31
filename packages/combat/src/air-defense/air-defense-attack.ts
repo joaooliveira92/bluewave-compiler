@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
-import { INVALID_AIR_DEFENSE_SYSTEM_DEFINITION } from "./constants.js";
+import { INVALID_AIR_DEFENSE_SYSTEM_DEFINITION } from "./reason-codes.js";
 
 // ---- §4 Attack types (lines 68-84) ----
 
