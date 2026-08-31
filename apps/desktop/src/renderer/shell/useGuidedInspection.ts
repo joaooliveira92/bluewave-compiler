@@ -70,7 +70,7 @@ export function useGuidedInspection(
       return;
     }
     let cancelled = false;
-    (async () => {
+    void (async () => {
       setLoading(true);
       const stored = await readInspection(sessionId);
       if (cancelled) return;

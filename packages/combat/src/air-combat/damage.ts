@@ -23,11 +23,11 @@ export type AirAttackDamagePackage = GunneryImpact;
 export interface BombingAttackInput {
   attackerSquadronId: string;
   targetShipId: string;
-  payloadCapacity: SafeInt;        // from aircraft model
+  payloadCapacity: SafeInt; // from aircraft model
   isDiveBomb: boolean;
-  accuracyBp: SafeInt;             // from computeBombingAccuracy
-  disruptionBp: SafeInt;           // current disruption
-  targetArmorZoneBp: SafeInt;      // target armor effectiveness
+  accuracyBp: SafeInt; // from computeBombingAccuracy
+  disruptionBp: SafeInt; // current disruption
+  targetArmorZoneBp: SafeInt; // target armor effectiveness
 }
 
 // ---- BombingAttackResult ----
@@ -63,9 +63,7 @@ export function resolveBombingAttack(
 ): BombingAttackResult {
   // ---- Hit probability ----
   const rawAccuracyBp = Number(input.accuracyBp);
-  const hitProbabilityBp = SafeInt(
-    Math.max(0, Math.min(AIR_COMBAT_BASIS_POINTS, rawAccuracyBp)),
-  );
+  const hitProbabilityBp = SafeInt(Math.max(0, Math.min(AIR_COMBAT_BASIS_POINTS, rawAccuracyBp)));
 
   // ---- RNG draw ----
   const stream = rngEngine.stream("air-combat/bombing-attack");
@@ -101,7 +99,8 @@ export function resolveBombingAttack(
       weaponId: input.isDiveBomb ? "dive-bomb" : "level-bomb",
       targetShipId: input.targetShipId,
       hitLocation: "DECK_HIT",
-      penetrationOutcome: penetrationMultiplierBp >= 10_000 ? "FULL_PENETRATION" : "PARTIAL_PENETRATION",
+      penetrationOutcome:
+        penetrationMultiplierBp >= 10_000 ? "FULL_PENETRATION" : "PARTIAL_PENETRATION",
       splinterIntensity: "MEDIUM",
       effectiveResistanceUm,
       penetrationMargin: 500 - effectiveResistanceUm,

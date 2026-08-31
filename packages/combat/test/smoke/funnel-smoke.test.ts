@@ -2,8 +2,6 @@ import { describe, expect, it } from "vite-plus/test";
 import { BluewaveError } from "@bluewave/contracts";
 import {
   computeFunnelSmokeDensity,
-  FUNNEL_FUEL_MULTIPLIERS,
-  FUNNEL_POWER_MULTIPLIERS,
   FUNNEL_SMOKE_BASE_DENSITY,
   WEATHER_SMOKE_STATE_INVARIANT_FAILED,
 } from "../../src/smoke/index.js";

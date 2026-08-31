@@ -1,7 +1,7 @@
 //packages/combat/test/air-combat/disruption.test.ts
 // AC-7 (INC-3): Strike disruption formula.
 // disruptionBp = max(5_000, 10_000 - floor(capEngaging * 1_000 / max(1, strikeAircraft)))
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { computeDisruption } from "../../src/air-combat/index.js";
 import {

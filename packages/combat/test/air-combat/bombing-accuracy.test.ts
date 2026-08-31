@@ -1,6 +1,6 @@
 //packages/combat/test/air-combat/bombing-accuracy.test.ts
 // AC-10 (INC-4): Bombing accuracy formula with disruption, altitude, visibility, target maneuver, payload.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   computeBombingAccuracy,
@@ -166,9 +166,7 @@ describe("AC-10: computeBombingAccuracy", () => {
       disruptionBp: SafeInt(AIR_COMBAT_BASIS_POINTS),
       altitude: "LOW",
     };
-    expect(() => computeBombingAccuracy(params)).toThrow(
-      AIR_COMBAT_BOMBING_PARAMETERS_INVALID,
-    );
+    expect(() => computeBombingAccuracy(params)).toThrow(AIR_COMBAT_BOMBING_PARAMETERS_INVALID);
   });
 
   it("invalid parameters (negative disruptionBp) → throws AIR_COMBAT_BOMBING_PARAMETERS_INVALID", () => {
@@ -180,9 +178,7 @@ describe("AC-10: computeBombingAccuracy", () => {
       disruptionBp: SafeInt(-100),
       altitude: "LOW",
     };
-    expect(() => computeBombingAccuracy(params)).toThrow(
-      AIR_COMBAT_BOMBING_PARAMETERS_INVALID,
-    );
+    expect(() => computeBombingAccuracy(params)).toThrow(AIR_COMBAT_BOMBING_PARAMETERS_INVALID);
   });
 
   it("invalid parameters (invalid altitude string) → throws AIR_COMBAT_BOMBING_PARAMETERS_INVALID", () => {
@@ -193,9 +189,7 @@ describe("AC-10: computeBombingAccuracy", () => {
       targetManeuverBp: SafeInt(AIR_COMBAT_MANEUVER_STATIONARY_BP),
       disruptionBp: SafeInt(AIR_COMBAT_BASIS_POINTS),
       altitude: "STRATOSPHERE",
-    } as BombingAccuracyParams;
-    expect(() => computeBombingAccuracy(params)).toThrow(
-      AIR_COMBAT_BOMBING_PARAMETERS_INVALID,
-    );
+    } as unknown as BombingAccuracyParams;
+    expect(() => computeBombingAccuracy(params)).toThrow(AIR_COMBAT_BOMBING_PARAMETERS_INVALID);
   });
 });

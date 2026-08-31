@@ -8,12 +8,7 @@ import { AIR_COMBAT_INVALID_STRIKE_TRANSITION } from "./reasonCodes.js";
 
 // ---- StrikeMissionPhase ----
 
-export type StrikeMissionPhase =
-  | "EN_ROUTE"
-  | "ON_TARGET"
-  | "ATTACKING"
-  | "EGRESSING"
-  | "RETURNING";
+export type StrikeMissionPhase = "EN_ROUTE" | "ON_TARGET" | "ATTACKING" | "EGRESSING" | "RETURNING";
 
 // ---- StrikeMissionState ----
 
@@ -157,11 +152,7 @@ export function createStrikeMissionState(
  */
 export function computeStrikeStateHash(state: StrikeMissionState): string {
   const { stateHash: _sh, ...rest } = state;
-  const envelope = createEnvelope(
-    "strike-mission-state",
-    AIR_COMBAT_RULESET_VERSION,
-    rest,
-  );
+  const envelope = createEnvelope("strike-mission-state", AIR_COMBAT_RULESET_VERSION, rest);
   return envelope.bodyHash;
 }
 

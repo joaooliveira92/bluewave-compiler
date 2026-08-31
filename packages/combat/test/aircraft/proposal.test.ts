@@ -1,5 +1,5 @@
 // AC-11 (INC-3): AircraftProposal creation, acceptance, rejection, expiry.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { RandomEngine } from "@bluewave/random";
 import {
@@ -9,7 +9,7 @@ import {
   rejectAircraftProposal,
   expireAircraftProposal,
 } from "../../src/aircraft/index.js";
-import type { AircraftDevelopmentProject, AircraftProposal } from "../../src/aircraft/index.js";
+import type { AircraftDevelopmentProject } from "../../src/aircraft/index.js";
 
 function baseProject(
   overrides: Partial<AircraftDevelopmentProject> = {},

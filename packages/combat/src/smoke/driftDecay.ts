@@ -1,15 +1,12 @@
 //packages/combat/src/smoke/driftDecay.ts
 // DESIGN-42 §8: smoke drift and decay per minute.
 
-import { createEnvelope } from "@bluewave/deterministic";
 import {
   WIND_RETENTION_LT_5_BP,
   WIND_RETENTION_5_TO_15_BP,
   WIND_RETENTION_15_TO_25_BP,
   WIND_RETENTION_GE_25_BP,
   SMOKESCREEN_REFERENCE_WIDTH_M,
-  SMOKE_RULESET_VERSION,
-  SMOKE_FORMULA_VERSION,
 } from "./constants.js";
 import { smokeCloudHash } from "./model.js";
 import type { SmokeCloud } from "./model.js";

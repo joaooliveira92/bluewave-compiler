@@ -31,7 +31,6 @@
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import {
   SUBMARINE_BASIS_POINTS_PER_UNIT,
-  submarineEffectivenessPolicyId,
   type BaseProximityBand,
   type SubmarineType,
 } from "./constants.js";

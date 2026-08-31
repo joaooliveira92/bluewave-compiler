@@ -1,17 +1,14 @@
 //packages/combat/test/air-combat/damage-integration.test.ts
 // AC-13 (INC-5): Bomb and torpedo damage integration with GunneryImpact shape.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { RandomEngine } from "@bluewave/random";
 import {
   resolveBombingAttack,
   resolveAirTorpedoAttack,
-  AIR_COMBAT_BASIS_POINTS,
-  AIR_COMBAT_BOMB_BASE_STRUCTURAL_DAMAGE,
   AIR_COMBAT_BOMB_BASE_FLOTATION_DAMAGE,
   AIR_COMBAT_TORPEDO_STRUCTURAL_DAMAGE,
   AIR_COMBAT_TORPEDO_FLOTATION_DAMAGE,
-  AIR_COMBAT_DIVE_BOMBING_PENETRATION_MULTIPLIER_BP,
   type BombingAttackInput,
   type AirTorpedoAttackInput,
   type AirAttackDamagePackage,
@@ -64,10 +61,7 @@ describe("AC-13: Damage integration — bomb and torpedo", () => {
 
     it("hitProbabilityBp is clamped to [0, 10_000]", () => {
       const rng = makeRng();
-      const result = resolveBombingAttack(
-        makeBombInput({ accuracyBp: SafeInt(-100) }),
-        rng,
-      );
+      const result = resolveBombingAttack(makeBombInput({ accuracyBp: SafeInt(-100) }), rng);
       expect(Number(result.hitProbabilityBp)).toBe(0);
 
       const resultHigh = resolveBombingAttack(
@@ -154,7 +148,10 @@ describe("AC-13: Damage integration — bomb and torpedo", () => {
 
     it("torpedo miss produces null damage package", () => {
       const rng = new RandomEngine("test-torp-miss");
-      const result = resolveAirTorpedoAttack(makeTorpedoInput({ targetSpeedBp: SafeInt(50_000) }), rng);
+      const result = resolveAirTorpedoAttack(
+        makeTorpedoInput({ targetSpeedBp: SafeInt(50_000) }),
+        rng,
+      );
       // With very high target speed, hit probability drops to 1000bp clamped, which is still > 0
       // but the RNG draw might be above it
       if (!result.hit) {

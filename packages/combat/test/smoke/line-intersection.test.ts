@@ -1,16 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
 import { computeLineSmokeIntersection } from "../../src/smoke/lineIntersection.js";
-import {
-  SMOKESCREEN_REFERENCE_WIDTH_M,
-  SMOKE_REFERENCE_PATH_LENGTH,
-  SMOKE_OPTICAL_NUMERATOR,
-  SMOKE_OPTICAL_DENOMINATOR,
-  SMOKE_OPTICAL_MIN,
-} from "../../src/smoke/constants.js";
+import { SMOKESCREEN_REFERENCE_WIDTH_M, SMOKE_OPTICAL_MIN } from "../../src/smoke/constants.js";
 import { createSmokeCloud } from "../../src/smoke/model.js";
 import type { SmokeCloud } from "../../src/smoke/model.js";
 
-const CLOUD_RADIUS = SMOKESCREEN_REFERENCE_WIDTH_M / 2;
+const _CLOUD_RADIUS = SMOKESCREEN_REFERENCE_WIDTH_M / 2;
 
 function makeCloud(overrides: Partial<SmokeCloud> & { smokeCloudId: string }): SmokeCloud {
   return createSmokeCloud({

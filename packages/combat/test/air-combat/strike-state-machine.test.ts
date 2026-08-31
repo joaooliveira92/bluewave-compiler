@@ -1,6 +1,6 @@
 //packages/combat/test/air-combat/strike-state-machine.test.ts
 // AC-8 (INC-3): Strike mission state machine with valid transitions.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   createStrikeMissionState,
@@ -8,7 +8,6 @@ import {
   validateStrikeTransition,
   computeStrikeStateHash,
   STRIKE_MISSION_TRANSITIONS,
-  AIR_COMBAT_RULESET_VERSION,
   AIR_COMBAT_INVALID_STRIKE_TRANSITION,
   type StrikeMissionState,
   type StrikeMissionPhase,
@@ -79,39 +78,39 @@ describe("AC-8: Strike mission state machine", () => {
     });
 
     it("throws for invalid transition: EN_ROUTE → EGRESSING", () => {
-      expect(() =>
-        validateStrikeTransition("EN_ROUTE", "EGRESSING", "mission_01"),
-      ).toThrow(AIR_COMBAT_INVALID_STRIKE_TRANSITION);
+      expect(() => validateStrikeTransition("EN_ROUTE", "EGRESSING", "mission_01")).toThrow(
+        AIR_COMBAT_INVALID_STRIKE_TRANSITION,
+      );
     });
 
     it("throws for invalid transition: ON_TARGET → RETURNING", () => {
-      expect(() =>
-        validateStrikeTransition("ON_TARGET", "RETURNING", "mission_01"),
-      ).toThrow(AIR_COMBAT_INVALID_STRIKE_TRANSITION);
+      expect(() => validateStrikeTransition("ON_TARGET", "RETURNING", "mission_01")).toThrow(
+        AIR_COMBAT_INVALID_STRIKE_TRANSITION,
+      );
     });
 
     it("throws for invalid transition: ATTACKING → EN_ROUTE", () => {
-      expect(() =>
-        validateStrikeTransition("ATTACKING", "EN_ROUTE", "mission_01"),
-      ).toThrow(AIR_COMBAT_INVALID_STRIKE_TRANSITION);
+      expect(() => validateStrikeTransition("ATTACKING", "EN_ROUTE", "mission_01")).toThrow(
+        AIR_COMBAT_INVALID_STRIKE_TRANSITION,
+      );
     });
 
     it("throws for invalid transition: RETURNING → anything (terminal)", () => {
-      expect(() =>
-        validateStrikeTransition("RETURNING", "EN_ROUTE", "mission_01"),
-      ).toThrow(AIR_COMBAT_INVALID_STRIKE_TRANSITION);
+      expect(() => validateStrikeTransition("RETURNING", "EN_ROUTE", "mission_01")).toThrow(
+        AIR_COMBAT_INVALID_STRIKE_TRANSITION,
+      );
 
-      expect(() =>
-        validateStrikeTransition("RETURNING", "ON_TARGET", "mission_01"),
-      ).toThrow(AIR_COMBAT_INVALID_STRIKE_TRANSITION);
+      expect(() => validateStrikeTransition("RETURNING", "ON_TARGET", "mission_01")).toThrow(
+        AIR_COMBAT_INVALID_STRIKE_TRANSITION,
+      );
 
-      expect(() =>
-        validateStrikeTransition("RETURNING", "ATTACKING", "mission_01"),
-      ).toThrow(AIR_COMBAT_INVALID_STRIKE_TRANSITION);
+      expect(() => validateStrikeTransition("RETURNING", "ATTACKING", "mission_01")).toThrow(
+        AIR_COMBAT_INVALID_STRIKE_TRANSITION,
+      );
 
-      expect(() =>
-        validateStrikeTransition("RETURNING", "EGRESSING", "mission_01"),
-      ).toThrow(AIR_COMBAT_INVALID_STRIKE_TRANSITION);
+      expect(() => validateStrikeTransition("RETURNING", "EGRESSING", "mission_01")).toThrow(
+        AIR_COMBAT_INVALID_STRIKE_TRANSITION,
+      );
     });
 
     it("throws for null/undefined current phase", () => {
@@ -233,9 +232,9 @@ describe("AC-8: Strike mission state machine", () => {
 
     it("throws on invalid transition", () => {
       const initial = validState();
-      expect(() =>
-        transitionStrikeState(initial, "EGRESSING"),
-      ).toThrow(AIR_COMBAT_INVALID_STRIKE_TRANSITION);
+      expect(() => transitionStrikeState(initial, "EGRESSING")).toThrow(
+        AIR_COMBAT_INVALID_STRIKE_TRANSITION,
+      );
     });
   });
 

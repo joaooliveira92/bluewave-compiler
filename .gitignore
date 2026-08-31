@@ -32,3 +32,4 @@ packages/*/src/**/*.d.ts.map
 .DS_Store
 .pnpm-store/
 .claude/
+.muse/

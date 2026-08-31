@@ -31,10 +31,7 @@ export type BombingAltitude = "HIGH" | "MEDIUM" | "LOW";
  * @returns Transit time in minutes (SafeInt).
  * @throws BluewaveError with AIR_COMBAT_BOMBING_PARAMETERS_INVALID if speedMps is negative.
  */
-export function computeTransitTimeMinutes(
-  distanceM: SafeInt,
-  speedMps: SafeInt,
-): SafeInt {
+export function computeTransitTimeMinutes(distanceM: SafeInt, speedMps: SafeInt): SafeInt {
   if (Number(distanceM) < 0) {
     throw new BluewaveError(AIR_COMBAT_BOMBING_PARAMETERS_INVALID, {
       code: AIR_COMBAT_BOMBING_PARAMETERS_INVALID,
@@ -116,10 +113,7 @@ export function computeBombingAccuracy(params: BombingAccuracyParams): SafeInt {
   const payloadFactorBp = SafeInt(
     Math.max(
       AIR_COMBAT_PAYLOAD_FACTOR_MIN_BP,
-      Math.min(
-        AIR_COMBAT_PAYLOAD_FACTOR_MAX_BP,
-        Number(rawPayloadFactor),
-      ),
+      Math.min(AIR_COMBAT_PAYLOAD_FACTOR_MAX_BP, Number(rawPayloadFactor)),
     ),
   );
 
@@ -137,9 +131,7 @@ export function computeBombingAccuracy(params: BombingAccuracyParams): SafeInt {
   const accuracyBp = Number(numerator / denominator);
 
   // Clamp to [0, AIR_COMBAT_BASIS_POINTS]
-  return SafeInt(
-    Math.max(0, Math.min(AIR_COMBAT_BASIS_POINTS, accuracyBp)),
-  );
+  return SafeInt(Math.max(0, Math.min(AIR_COMBAT_BASIS_POINTS, accuracyBp)));
 }
 
 // ---- computeBombDamageMultiplier ----

@@ -1,16 +1,12 @@
 // AC-14/15 (INC-5): Auto-equip eligibility + deterministic selection.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   checkAutoEquipEligibility,
   selectAutoEquipModel,
   assertAutoEquipAvailable,
-  AUTO_EQUIP_STRENGTH_THRESHOLD_BP,
 } from "../../src/aircraft/auto-equip.js";
-import {
-  SQUADRON_AUTO_EQUIP_UNAVAILABLE,
-  AIRCRAFT_INVENTORY_INSUFFICIENT,
-} from "../../src/aircraft/reasonCodes.js";
+import { SQUADRON_AUTO_EQUIP_UNAVAILABLE } from "../../src/aircraft/reasonCodes.js";
 import type { AircraftModelDefinition } from "../../src/aircraft/model.js";
 import type { SquadronState } from "../../src/aircraft/state.js";
 import type { BluewaveError } from "@bluewave/contracts";

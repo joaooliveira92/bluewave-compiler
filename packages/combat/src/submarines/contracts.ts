@@ -15,11 +15,7 @@
 // Pure/deterministic; fail-closed: any tampered contract throws
 // (INVALID_SUBMARINE_REPRESENTATION for the §1 guard, SUBMARINE_STATE_INVARIANT_FAILED
 // for the type/policy definition guards) and never silently passes.
-import {
-  SUBMARINE_ASW_VULNERABILITY_BP,
-  SUBMARINE_NEUTRAL_ASW_VULNERABILITY_BP,
-  SUBMARINE_REMOTE_EFFICIENCY_BP,
-} from "./model.js";
+import { SUBMARINE_ASW_VULNERABILITY_BP, SUBMARINE_NEUTRAL_ASW_VULNERABILITY_BP } from "./model.js";
 import { BluewaveError } from "@bluewave/contracts";
 import {
   SUBMARINE_BASIS_POINTS_PER_UNIT,

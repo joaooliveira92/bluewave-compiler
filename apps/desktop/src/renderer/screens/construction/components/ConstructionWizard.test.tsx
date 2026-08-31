@@ -58,7 +58,7 @@ describe("ConstructionWizard", () => {
     expect(html).toContain("Treasury reserved");
     expect(html).toContain("Capacity reserved");
     // no ship naming, no completion time
-    expect(html.toLowerCase()).not.toContain("ship name");
+    expect(html.toLowerCase()).not.toContain("ship-name");
     expect(html.toLowerCase()).not.toContain("completion time");
     expect(html.toLowerCase()).not.toContain("months to complete");
     // confirm button

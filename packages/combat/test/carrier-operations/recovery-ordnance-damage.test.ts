@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   RECOVERY_PRIORITY_LEVELS,
@@ -14,8 +14,6 @@ import {
   assertSufficientOrdnance,
   canReturnOrdnanceToStorage,
   computeDeckHangarDamageEffects,
-  CarrierRecoveryPriority_v1,
-  CarrierOrdnanceState_v1,
   validateCarrierRecoveryPriorityContract,
   validateCarrierOrdnanceStateContract,
   SHIPPED_CARRIER_OPERATIONS_CONTRACTS,

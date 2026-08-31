@@ -12,7 +12,6 @@ import { resolveAirCombat } from "../../src/air-combat/engineWiring.js";
 import { createCapPatrolState } from "../../src/air-combat/cap-patrol.js";
 import { createStrikeMissionState } from "../../src/air-combat/strike-state.js";
 import { SafeInt } from "@bluewave/contracts";
-import { RandomEngine } from "@bluewave/random";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -41,7 +40,14 @@ describe("AC-16 resolveAirCombat stage wiring", () => {
 
   it("strict no-op in advanceMinutes: no air-combat field → hashes unchanged", () => {
     // Run without airCombat — should not crash and produce consistent hashes
-    const cap = createCapPatrolState("sq-1", ["CAP"], SafeInt(4), SafeInt(500), SafeInt(60), [0, 0]);
+    const _cap = createCapPatrolState(
+      "sq-1",
+      ["CAP"],
+      SafeInt(4),
+      SafeInt(500),
+      SafeInt(60),
+      [0, 0],
+    );
     const r1 = advanceMinutes({
       state: {
         battleId: "test-noop",
@@ -82,8 +88,19 @@ describe("AC-16 resolveAirCombat stage wiring", () => {
   });
 
   it("creates engagement records for CAP patrol in INTERCEPTING state", () => {
-    const cap = createCapPatrolState("sq-1", ["CAP"], SafeInt(4), SafeInt(500), SafeInt(60), [0, 0]);
-    const interceptingCap = { ...cap, engagementState: "INTERCEPTING" as const, interceptTargetId: "strike-1" };
+    const cap = createCapPatrolState(
+      "sq-1",
+      ["CAP"],
+      SafeInt(4),
+      SafeInt(500),
+      SafeInt(60),
+      [0, 0],
+    );
+    const interceptingCap = {
+      ...cap,
+      engagementState: "INTERCEPTING" as const,
+      interceptTargetId: "strike-1",
+    };
 
     const result = resolveAirCombat({
       battleId: "battle-1",
@@ -101,8 +118,13 @@ describe("AC-16 resolveAirCombat stage wiring", () => {
 
   it("creates attack records for strike mission in ATTACKING phase", () => {
     const strike = createStrikeMissionState(
-      "mission-1", "strike-1", ["sq-bomber"], "target-ship",
-      [0, 0], SafeInt(150), SafeInt(30),
+      "mission-1",
+      "strike-1",
+      ["sq-bomber"],
+      "target-ship",
+      [0, 0],
+      SafeInt(150),
+      SafeInt(30),
     );
     const attackingStrike = { ...strike, phase: "ATTACKING" as const };
 
@@ -121,8 +143,13 @@ describe("AC-16 resolveAirCombat stage wiring", () => {
 
   it("returns sorted records with existing plus new records", () => {
     const strike = createStrikeMissionState(
-      "mission-1", "strike-1", ["sq-bomber"], "target-ship",
-      [0, 0], SafeInt(150), SafeInt(30),
+      "mission-1",
+      "strike-1",
+      ["sq-bomber"],
+      "target-ship",
+      [0, 0],
+      SafeInt(150),
+      SafeInt(30),
     );
     const attackingStrike = { ...strike, phase: "ATTACKING" as const };
 
@@ -134,15 +161,26 @@ describe("AC-16 resolveAirCombat stage wiring", () => {
     });
 
     expect(result.records.length).toBe(1);
-    const sorted = [...result.records].sort((a, b) =>
-      Number(a.minute) - Number(b.minute) || a.actorId.localeCompare(b.actorId),
+    const sorted = [...result.records].sort(
+      (a, b) => Number(a.minute) - Number(b.minute) || a.actorId.localeCompare(b.actorId),
     );
     expect(result.records).toEqual(sorted);
   });
 
   it("provides summary when active", () => {
-    const cap = createCapPatrolState("sq-cap", ["CAP"], SafeInt(4), SafeInt(500), SafeInt(60), [0, 0]);
-    const engagingCap = { ...cap, engagementState: "ENGAGING" as const, interceptTargetId: "strike-1" };
+    const cap = createCapPatrolState(
+      "sq-cap",
+      ["CAP"],
+      SafeInt(4),
+      SafeInt(500),
+      SafeInt(60),
+      [0, 0],
+    );
+    const engagingCap = {
+      ...cap,
+      engagementState: "ENGAGING" as const,
+      interceptTargetId: "strike-1",
+    };
 
     const result = resolveAirCombat({
       battleId: "battle-1",
@@ -189,7 +227,9 @@ describe("AC-22 integration boundary", () => {
       if (content.includes("../air-combat") || content.includes("./air-combat")) {
         // Only the combat index may re-export air-combat
         if (file !== "index.ts" && !file.startsWith("simulation/")) {
-          throw new Error(`File ${file} outside air-combat/ directory references air-combat module`);
+          throw new Error(
+            `File ${file} outside air-combat/ directory references air-combat module`,
+          );
         }
       }
     }
@@ -197,8 +237,19 @@ describe("AC-22 integration boundary", () => {
 
   it("air-comcat records have valid hashes", () => {
     // Verify record hash integrity for records created by resolveAirCombat
-    const cap = createCapPatrolState("sq-verify", ["CAP"], SafeInt(4), SafeInt(500), SafeInt(60), [0, 0]);
-    const engagingCap = { ...cap, engagementState: "ENGAGING" as const, interceptTargetId: "target-1" };
+    const cap = createCapPatrolState(
+      "sq-verify",
+      ["CAP"],
+      SafeInt(4),
+      SafeInt(500),
+      SafeInt(60),
+      [0, 0],
+    );
+    const engagingCap = {
+      ...cap,
+      engagementState: "ENGAGING" as const,
+      interceptTargetId: "target-1",
+    };
 
     const result = resolveAirCombat({
       battleId: "battle-verify",

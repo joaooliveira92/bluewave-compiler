@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import {
-  SUBMARINE_STATE_INVARIANT_FAILED,
   SUBMARINE_SEA_STATE_OPERATION_PROHIBITED,
-  SUBMARINE_BASIS_POINTS_PER_UNIT,
   SUBMARINE_SEA_STATE_CATEGORIES,
   submarineSeaStatePolicyId,
   SHIPPED_SUBMARINE_SEA_STATE_CONTRACT,

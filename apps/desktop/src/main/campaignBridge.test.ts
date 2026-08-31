@@ -21,6 +21,7 @@ const IMPLEMENTED_COMMANDS = new Set([
   "inspectCampaign",
   "inspectOpeningBriefing",
   "inspectMap",
+  "inspectPriorities",
   "commitMonth",
   "inspectConstructionScreen",
   "submitConstructionCommand",

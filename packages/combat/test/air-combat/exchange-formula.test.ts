@@ -1,6 +1,6 @@
 //packages/combat/test/air-combat/exchange-formula.test.ts
 // AC-5 (INC-2): 6-factor air-to-air exchange formula.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { RandomEngine } from "@bluewave/random";
 import {
@@ -8,7 +8,6 @@ import {
   computeCombatIndex,
   computeDefenderSurvivalFactorBp,
   type ExchangeInput,
-  type ExchangeResult,
 } from "../../src/air-combat/index.js";
 import {
   AIR_COMBAT_BASIS_POINTS,
@@ -207,37 +206,25 @@ describe("AC-5: Air-to-air exchange formula", () => {
 
     it("throws AIR_COMBAT_QUALITY_OUT_OF_RANGE for attackerCombatIndex < 0", () => {
       expect(() =>
-        computeExchange(
-          { ...defaultInput(), attackerCombatIndex: SafeInt(-1) },
-          makeRng(),
-        ),
+        computeExchange({ ...defaultInput(), attackerCombatIndex: SafeInt(-1) }, makeRng()),
       ).toThrow(AIR_COMBAT_QUALITY_OUT_OF_RANGE);
     });
 
     it("throws AIR_COMBAT_QUALITY_OUT_OF_RANGE for attackerCombatIndex > 100", () => {
       expect(() =>
-        computeExchange(
-          { ...defaultInput(), attackerCombatIndex: SafeInt(101) },
-          makeRng(),
-        ),
+        computeExchange({ ...defaultInput(), attackerCombatIndex: SafeInt(101) }, makeRng()),
       ).toThrow(AIR_COMBAT_QUALITY_OUT_OF_RANGE);
     });
 
     it("throws AIR_COMBAT_ATTACKER_ZERO_STRENGTH for zero attacker count", () => {
       expect(() =>
-        computeExchange(
-          { ...defaultInput(), attackerCount: SafeInt.ZERO },
-          makeRng(),
-        ),
+        computeExchange({ ...defaultInput(), attackerCount: SafeInt.ZERO }, makeRng()),
       ).toThrow(AIR_COMBAT_ATTACKER_ZERO_STRENGTH);
     });
 
     it("throws AIR_COMBAT_NO_AVAILABLE_TARGET for zero defender count", () => {
       expect(() =>
-        computeExchange(
-          { ...defaultInput(), defenderCount: SafeInt.ZERO },
-          makeRng(),
-        ),
+        computeExchange({ ...defaultInput(), defenderCount: SafeInt.ZERO }, makeRng()),
       ).toThrow(AIR_COMBAT_NO_AVAILABLE_TARGET);
     });
 
@@ -310,7 +297,7 @@ describe("AC-5: Air-to-air exchange formula", () => {
       );
       if (Number(result.losses) > 0) {
         const expectedDamaged = Math.floor(
-          Number(result.losses) * AIR_COMBAT_DESTROYED_DAMAGE_RATIO_BP / AIR_COMBAT_BASIS_POINTS,
+          (Number(result.losses) * AIR_COMBAT_DESTROYED_DAMAGE_RATIO_BP) / AIR_COMBAT_BASIS_POINTS,
         );
         expect(Number(result.damaged)).toBe(expectedDamaged);
       }

@@ -3,17 +3,10 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import type { CampaignSnapshot, CampaignState, NationState } from "@bluewave/campaign";
 import { CampaignCompiler } from "@bluewave/campaign/compiler";
-import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { CURRENT_COMPATIBILITY_VERSION, SaveStore } from "@bluewave/persistence";
+import { CURRENT_COMPATIBILITY_VERSION } from "@bluewave/persistence";
 import { MonthExecutor } from "@bluewave/phase-engine";
-import {
-  carrierClassification,
-  physicalCapacityUnits,
-  CVL_MIN_CAPACITY,
-  type CarrierOperationsState,
-} from "@bluewave/combat";
 import { nationsYaml } from "@bluewave/test-support";
 
 const FIXTURE = {

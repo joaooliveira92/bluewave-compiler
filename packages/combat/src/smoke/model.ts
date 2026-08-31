@@ -21,7 +21,7 @@ export interface SmokeCloud {
   readonly smokeCloudId: string;
   readonly sourceType: SmokeSourceType;
   readonly sourceId: string;
-  readonly owner: string | "NONE";
+  readonly owner: string;
   readonly creationMinute: number;
   readonly creationSubstep: number;
   readonly centroidPosition: [number, number];
@@ -40,7 +40,7 @@ export interface SmokeCloud {
 export function smokeCloudHash(params: {
   sourceType: SmokeSourceType;
   sourceId: string;
-  owner: string | "NONE";
+  owner: string;
   creationMinute: number;
   creationSubstep: number;
   centroidPosition: [number, number];
@@ -73,7 +73,7 @@ export function createSmokeCloud(params: {
   smokeCloudId: string;
   sourceType: string;
   sourceId: string;
-  owner: string | "NONE";
+  owner: string;
   creationMinute: number;
   creationSubstep: number;
   centroidPosition: [number, number];

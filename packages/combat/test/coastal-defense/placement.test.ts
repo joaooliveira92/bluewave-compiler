@@ -3,7 +3,6 @@ import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import {
   selectCoastalDefensePositions,
   validatePlacementZone,
-  COASTAL_DEFENSE_PLACEMENT_ZONE_INVALID,
   type CoastalDefenseZone,
 } from "../../src/coastal-defense/index.js";
 

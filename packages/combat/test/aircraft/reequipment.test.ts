@@ -1,5 +1,5 @@
 // AC-16/17 (INC-5): Re-equipment duration, unavailability, experience penalty.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   checkReequipmentEligibility,
@@ -9,10 +9,6 @@ import {
   startReequipment,
   completeReequipment,
   REEQUIPMENT_DURATION_MONTHS,
-  REEQUIPMENT_EXPERIENCE_PENALTY_BASE,
-  REEQUIPMENT_EXPERIENCE_PENALTY_FAMILY_CHANGE,
-  REEQUIPMENT_READINESS_MULTIPLIER_BP,
-  REEQUIPMENT_READINESS_DURATION_MONTHS,
 } from "../../src/aircraft/reequipment.js";
 import { SQUADRON_REEQUIPMENT_INELIGIBLE } from "../../src/aircraft/reasonCodes.js";
 import type { SquadronState } from "../../src/aircraft/state.js";

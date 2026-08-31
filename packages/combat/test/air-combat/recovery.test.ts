@@ -1,6 +1,6 @@
 //packages/combat/test/air-combat/recovery.test.ts
 // AC-15 (INC-6): Strike recovery and return-to-base.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   createStrikeMissionState,
@@ -110,7 +110,7 @@ describe("AC-15: Strike recovery", () => {
         ["sqn_002"],
         "target_ship_02",
         [0, 0] as [number, number],
-        SafeInt(10),  // 10 mps → 600m per minute
+        SafeInt(10), // 10 mps → 600m per minute
         SafeInt(30),
       );
       const onTarget = transitionStrikeState(initial, "ON_TARGET", {
@@ -143,7 +143,7 @@ describe("AC-15: Strike recovery", () => {
         SafeInt(30),
       );
       const onTarget = transitionStrikeState(initial, "ON_TARGET", {
-        position: [50, 0],  // Only 50m from start — within epsilon
+        position: [50, 0], // Only 50m from start — within epsilon
       });
       const attacking = transitionStrikeState(onTarget, "ATTACKING", {
         position: [50, 0],

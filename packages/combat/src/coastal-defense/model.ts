@@ -1,8 +1,6 @@
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
 import {
-  COASTAL_DEFENSE_BASIS_POINTS_PER_UNIT,
-  COASTAL_DEFENSE_FORMULA_VERSION,
   COASTAL_DEFENSE_RULESET_VERSION,
   DAMAGE_EVENT_TYPES,
   LAND_TARGET_DAMAGE_STATES,

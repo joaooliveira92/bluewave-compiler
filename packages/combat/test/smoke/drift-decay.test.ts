@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import {
-  resolveSmokeDriftDecay,
-  getWindRetentionMultiplier,
-  SMOKE_MERGE_PROXIMITY_M,
-} from "../../src/smoke/driftDecay.js";
+import { resolveSmokeDriftDecay, getWindRetentionMultiplier } from "../../src/smoke/driftDecay.js";
 import {
   WIND_RETENTION_LT_5_BP,
   WIND_RETENTION_5_TO_15_BP,

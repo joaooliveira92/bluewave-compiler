@@ -7,30 +7,24 @@ export interface CarrierOperationRecord {
   squadronId: string | undefined;
   aircraftId: string | undefined;
   capacityUnitsDelta: SafeInt | undefined;
-  spotInputs: unknown | undefined;
+  spotInputs: unknown;
   spotResult: SafeInt | undefined;
-  jetPredicates: unknown | undefined;
+  jetPredicates: unknown;
   deckState: string | undefined;
   contentionResult: string | undefined;
   timingMinutes: number | undefined;
   ratePerMinute: number | undefined;
-  weatherInputs: unknown | undefined;
-  windInputs: unknown | undefined;
+  weatherInputs: unknown;
+  windInputs: unknown;
   hazardExposure: SafeInt | undefined;
   hazardDecision: string | undefined;
-  inventoryTransaction: unknown | undefined;
+  inventoryTransaction: unknown;
   formulaVersion: string;
   contentVersion: string;
   rulesetVersion: string;
   rngVersion: string | undefined;
   recordHash: string;
 }
-
-import type { RecoveryRequest, DeckHangarDamageEffects } from "./recovery-ordnance-damage.js";
-import type { WeatherSuspensionResult } from "./hazards.js";
-import type { StrikeTimeInputs, LaunchRateInputs } from "./strikes.js";
-import type { ContentionPredicates, OperationClass } from "./deck-contention.js";
-import type { SpotMultiplierInputs } from "./spot-value.js";
 
 export interface CanonicalRecordInput {
   minute: number;

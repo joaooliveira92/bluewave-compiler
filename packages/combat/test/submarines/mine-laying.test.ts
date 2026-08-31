@@ -2,8 +2,6 @@ import { describe, expect, it } from "vite-plus/test";
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import {
   SUBMARINE_MINE_INVENTORY_INSUFFICIENT,
-  SUBMARINE_MISSION_INELIGIBLE,
-  SUBMARINE_BASIS_POINTS_PER_UNIT,
   submarineMineLayingPolicyId,
   SHIPPED_SUBMARINE_MINE_LAYING_CONTRACT,
   validateSubmarineMineLayingContract,

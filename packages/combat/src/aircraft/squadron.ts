@@ -2,11 +2,7 @@
 // DESIGN-43 §14 SquadronState creation, experience 0-100, state hash.
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
-import {
-  AIRCRAFT_RULESET_VERSION,
-  type AircraftType,
-  type SquadronReequipmentState,
-} from "./constants.js";
+import { AIRCRAFT_RULESET_VERSION, type AircraftType } from "./constants.js";
 import type { SquadronState } from "./state.js";
 import { INVALID_AIRCRAFT_STATE } from "./reasonCodes.js";
 

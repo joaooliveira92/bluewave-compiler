@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { SafeInt } from "@bluewave/contracts";
 import {
   coastalArtilleryEffectivenessBp,
-  COASTAL_DEFENSE_EFFECTIVENESS_FORMULA_MISSING,
   type CoastalArtilleryEffectivenessInput,
 } from "../../src/coastal-defense/index.js";
 

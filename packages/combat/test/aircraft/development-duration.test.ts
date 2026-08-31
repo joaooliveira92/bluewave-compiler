@@ -1,17 +1,13 @@
 // AC-8 (INC-3): Development duration formula.
 // Base 4 paid months, range 3-6, modifiers for complexity/technology/industry.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   computeDevelopmentDuration,
   computeMonthlyCost,
   designStreamKey,
   assertSufficientPayment,
-} from "../../src/aircraft/index.js";
-import {
-  AIRCRAFT_DEVELOPMENT_BASE_MONTHS,
   AIRCRAFT_DEVELOPMENT_MIN_MONTHS,
-  AIRCRAFT_DEVELOPMENT_MAX_MONTHS,
 } from "../../src/aircraft/index.js";
 
 describe("AC-8: development duration formula", () => {

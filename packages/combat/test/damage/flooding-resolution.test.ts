@@ -11,10 +11,8 @@ import {
   computeNetFloodingDelta,
   checkHighSpeedLoss,
   resolveFloodingProgression,
-  type FloodingSeverity,
 } from "../../src/damage/index.js";
 import type { FloodingSourceRecord } from "../../src/damage/state.js";
-import { FLOODING_HIGH_SPEED_LOSS_CHECK } from "../../src/damage/reasonCodes.js";
 
 // ---------------------------------------------------------------------------
 // Helpers

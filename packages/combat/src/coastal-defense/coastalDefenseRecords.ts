@@ -6,7 +6,6 @@ import {
   type LandTargetDamageState,
   type CoastalBatteryModel,
   type CoastalBatteryEraBand,
-  type DamageEventType,
 } from "./constants.js";
 
 export interface CoastalDefenseBatteryRecord {

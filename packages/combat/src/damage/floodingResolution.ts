@@ -211,7 +211,7 @@ export function resolveFloodingProgression(
   const totalIngressKgMin = floodingRecords.reduce((sum, record) => sum + record.rateKgMin, 0);
 
   // Step 2: Compute net flooding delta
-  const { netDeltaKgMin, dewateringKgMin } = computeNetFloodingDelta(
+  const { netDeltaKgMin } = computeNetFloodingDelta(
     totalIngressKgMin,
     speedKt,
     progressiveFailureBp,

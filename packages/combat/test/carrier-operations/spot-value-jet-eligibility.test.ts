@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   baseSpotValue,
@@ -24,7 +24,6 @@ import {
   SPOT_TECH_BASIC_BP,
   SPOT_TECH_IMPROVED_BP,
   SPOT_TECH_MODERN_BP,
-  OVERSIZED_DECK_CYCLE_EFFICIENCY_BP,
   CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT,
   JET_CARRIER_CAPABILITIES,
   LIGHT_JET_MIN_DISPLACEMENT_KG,
@@ -32,8 +31,6 @@ import {
   HEAVY_JET_MIN_DISPLACEMENT_KG,
   LIGHT_JET_TECHNOLOGY,
   HEAVY_JET_TECHNOLOGY,
-  CarrierSpotValue_v1,
-  JetCarrierCapability_v1,
 } from "../../src/carrier-operations/index.js";
 
 function defaultSpotInputs(overrides: Partial<SpotMultiplierInputs> = {}): SpotMultiplierInputs {

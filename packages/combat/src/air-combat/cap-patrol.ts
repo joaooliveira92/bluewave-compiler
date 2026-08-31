@@ -14,10 +14,7 @@ import {
   type CapPatrolAltitude,
   type DetectionOutcome,
 } from "./constants.js";
-import {
-  AIR_COMBAT_INVALID_STATE,
-  AIR_COMBAT_INTERCEPTION_TOO_LATE,
-} from "./reasonCodes.js";
+import { AIR_COMBAT_INVALID_STATE } from "./reasonCodes.js";
 
 // ---- CapPatrolState ----
 
@@ -75,7 +72,10 @@ export function createCapPatrolState(
   }
 
   // Validate operationalAircraftCount > 0
-  if (!SafeInt.isSafeInt(Number(operationalAircraftCount)) || Number(operationalAircraftCount) <= 0) {
+  if (
+    !SafeInt.isSafeInt(Number(operationalAircraftCount)) ||
+    Number(operationalAircraftCount) <= 0
+  ) {
     throw new BluewaveError(AIR_COMBAT_INVALID_STATE, {
       code: AIR_COMBAT_INVALID_STATE,
       field: "operationalAircraftCount",

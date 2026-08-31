@@ -44,18 +44,14 @@ import {
   type TorpedoTrack,
   type TorpedoRecord,
 } from "../torpedoes/index.js";
-import { resolveSmoke, type SmokeContext, type SmokeStageResult } from "../smoke/engineWiring.js";
+import { resolveSmoke, type SmokeContext } from "../smoke/engineWiring.js";
 import type { SmokeCloud } from "../smoke/model.js";
 import type { SmokeEventRecord } from "../smoke/smokeRecords.js";
 import {
   resolveDamageControl,
   type DamageControlContext,
-  type DamageControlStageResult,
 } from "../damage/damageControlEngineWiring.js";
-import {
-  resolveAirCombat,
-  type AirCombatContext,
-} from "../air-combat/engineWiring.js";
+import { resolveAirCombat, type AirCombatContext } from "../air-combat/engineWiring.js";
 import type { AirCombatRecord } from "../air-combat/records.js";
 
 export interface UnitOrders {
@@ -302,7 +298,9 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
   // air-combat context is supplied (zero records appended -> minute snapshot/
   // minuteHash byte-identical to the pre-INC-8 baseline).
   let airCombatRecords: readonly AirCombatRecord[] | undefined;
-  let airCombatSummary: { capEngagements: number; strikeAttacks: number; losses: number } | undefined;
+  let airCombatSummary:
+    | { capEngagements: number; strikeAttacks: number; losses: number }
+    | undefined;
   if (input.airCombat) {
     const airResult = resolveAirCombat({
       ...input.airCombat,
@@ -478,7 +476,7 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
   // damage-control context is supplied.
   if (input.damageControl) {
     const dcResult = resolveDamageControl(input.damageControl, minute, 0);
-    for (const sr of dcResult.smokeEventRecords) {
+    for (const _sr of dcResult.smokeEventRecords) {
       ledger.append(evt(minute, 0, `smoke_fire`, 86, `fire-smoke`, battleId));
     }
     // Apply fire/flooding state updates to damageStates

@@ -14,14 +14,8 @@
 //
 // Pure/deterministic: no I/O/clock/random.
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
-import {
-  SUBMARINE_BASIS_POINTS_PER_UNIT,
-  submarineFriendlyIdentificationPolicyId,
-} from "./constants.js";
-import {
-  SUBMARINE_FRIENDLY_FIRE_INCIDENT,
-  SUBMARINE_STATE_INVARIANT_FAILED,
-} from "./reasonCodes.js";
+import { SUBMARINE_BASIS_POINTS_PER_UNIT } from "./constants.js";
+import { SUBMARINE_STATE_INVARIANT_FAILED } from "./reasonCodes.js";
 
 export const SUBMARINE_FRIENDLY_IDENTIFICATION_BASE_BP = 500 as const;
 export const SUBMARINE_FRIENDLY_IDENTIFICATION_MIN_BP = 0 as const;

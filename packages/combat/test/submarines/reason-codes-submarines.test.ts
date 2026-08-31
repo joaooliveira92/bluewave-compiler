@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vite-plus/test";
-import { SafeInt } from "@bluewave/contracts";
 import {
   SUBMARINE_REASON_CODES,
   COASTAL_SUBMARINE_RANGE_RESTRICTED,

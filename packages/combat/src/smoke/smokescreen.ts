@@ -4,18 +4,11 @@
 
 import {
   SMOKESCREEN_INITIAL_DENSITY,
-  SMOKESCREEN_REFERENCE_WIDTH_M,
   SMOKESCREEN_VERTICAL_EXTENT_M,
   SMOKESCREEN_GENERATION_DURATION_MINUTES,
   SMOKESCREEN_COOLDOWN_MINUTES,
 } from "./constants.js";
-import {
-  SMOKESCREEN_SHIP_INELIGIBLE,
-  SMOKESCREEN_EQUIPMENT_UNAVAILABLE,
-  SMOKESCREEN_CONSUMABLE_UNAVAILABLE,
-  SMOKESCREEN_COOLDOWN_ACTIVE,
-  SMOKESCREEN_GENERATION_INTERRUPTED,
-} from "./reasonCodes.js";
+import { SMOKESCREEN_GENERATION_INTERRUPTED } from "./reasonCodes.js";
 import { createSmokeCloud } from "./model.js";
 import type { SmokeCloud } from "./model.js";
 
@@ -198,7 +191,7 @@ export function isShipEligibleForSmokescreen(
 export function computeSmokescreenSegment(params: {
   smokeCloudId: string;
   sourceId: string;
-  owner: string | "NONE";
+  owner: string;
   creationMinute: number;
   creationSubstep: number;
   centroidPosition: [number, number];
@@ -267,7 +260,7 @@ export interface GenerateSmokescreenMinuteParams {
 
   /** Unique cloud id to assign if a cloud is created. */
   cloudId: string;
-  owner: string | "NONE";
+  owner: string;
 
   centroidPosition: [number, number];
   driftVector: [number, number];

@@ -78,8 +78,8 @@ export function applyReequipmentExperiencePenalty(
 export function startReequipment(
   squadron: SquadronState,
   newModelId: string,
-  isFamilyChange: boolean,
-  currentMonth: string,
+  _isFamilyChange: boolean,
+  _currentMonth: string,
 ): SquadronState {
   return {
     ...squadron,

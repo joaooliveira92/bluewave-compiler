@@ -11,6 +11,7 @@ export default defineConfig({
     ignorePatterns: [
       ".agents/**",
       ".claude/**",
+      ".muse/**",
       ".scratch/**",
       ".turbo/**",
       "docs/**",

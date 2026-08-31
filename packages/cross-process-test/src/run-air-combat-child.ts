@@ -3,9 +3,6 @@
 // Creates a minimal TacticalBattleState with ships, CAP patrol states, and
 // strike mission states, then runs advanceMinutes with the air-combat context.
 // Outputs all hashes as JSON to stdout for cross-process byte-comparison.
-import { rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { resolve } from "node:path";
 import { RandomEngine } from "@bluewave/random";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";

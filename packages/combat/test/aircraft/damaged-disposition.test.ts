@@ -1,10 +1,10 @@
 // AC-20 (INC-6): Damaged aircraft disposition — 7 dispositions, cannibalization, no auto-clear.
-import { describe, expect, it } from "vitest";
-import { SafeInt } from "@bluewave/contracts";
+import { describe, expect, it } from "vite-plus/test";
 import {
   checkDispositionValidity,
   assertDispositionValidity,
   applyDispositionToSlot,
+  type DispositionResult,
 } from "../../src/aircraft/damaged-disposition.js";
 import { DAMAGED_AIRCRAFT_DISPOSITION_REQUIRED } from "../../src/aircraft/reasonCodes.js";
 import { AIRCRAFT_DAMAGED_DISPOSITIONS } from "../../src/aircraft/constants.js";
@@ -35,6 +35,12 @@ describe("AC-20: 7 damaged dispositions", () => {
     ]);
   });
 });
+
+function _isAllowedDisposition(
+  r: DispositionResult,
+): r is { allowed: true; removeFromInventory: boolean; createSpareParts: boolean } {
+  return (r as { allowed: boolean }).allowed === true;
+}
 
 describe("disposition validity", () => {
   it("REPAIR_LOCALLY requires all resources", () => {
@@ -71,8 +77,9 @@ describe("disposition validity", () => {
       hasTimeAvailable: false,
     });
     expect(r.allowed).toBe(true);
-    expect(r.removeFromInventory).toBe(true);
-    expect(r.createSpareParts).toBe(true);
+    const dr = r as { allowed: true; removeFromInventory: boolean; createSpareParts: boolean };
+    expect(dr.removeFromInventory).toBe(true);
+    expect(dr.createSpareParts).toBe(true);
   });
 
   it("WRITE_OFF removes from inventory, no spare parts", () => {
@@ -85,8 +92,9 @@ describe("disposition validity", () => {
       hasTimeAvailable: false,
     });
     expect(r.allowed).toBe(true);
-    expect(r.removeFromInventory).toBe(true);
-    expect(r.createSpareParts).toBe(false);
+    const dr = r as { allowed: true; removeFromInventory: boolean; createSpareParts: boolean };
+    expect(dr.removeFromInventory).toBe(true);
+    expect(dr.createSpareParts).toBe(false);
   });
 
   it("CAPTURED and LOST remove from inventory", () => {
@@ -100,8 +108,9 @@ describe("disposition validity", () => {
         hasTimeAvailable: false,
       });
       expect(r.allowed).toBe(true);
-      expect(r.removeFromInventory).toBe(true);
-      expect(r.createSpareParts).toBe(false);
+      const dr = r as { allowed: true; removeFromInventory: boolean; createSpareParts: boolean };
+      expect(dr.removeFromInventory).toBe(true);
+      expect(dr.createSpareParts).toBe(false);
     }
   });
 });

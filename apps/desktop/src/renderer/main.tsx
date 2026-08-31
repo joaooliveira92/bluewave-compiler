@@ -1,4 +1,3 @@
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./shell/App.js";
@@ -12,11 +11,9 @@ if (!container) {
 }
 
 createRoot(container).render(
-  <StrictMode>
-    <ThemeProvider>
-      <BackgroundProvider>
-        <App />
-      </BackgroundProvider>
-    </ThemeProvider>
-  </StrictMode>,
+  <ThemeProvider>
+    <BackgroundProvider>
+      <App />
+    </BackgroundProvider>
+  </ThemeProvider>,
 );

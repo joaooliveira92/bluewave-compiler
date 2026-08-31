@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vite-plus/test";
-import { CANON_NATIONS_1880 } from "../../../content/research/nations/1880/index.ts";
 import { type Nation, type NationId, NationIdSchema, NationSchema } from "../src/index.js";
+import { fixtureNations } from "./nation-fixtures.js";
 
 const EXPECTED_TAGS: Record<NationId, string> = {
   uk: "GBR",
@@ -30,7 +30,7 @@ const EXPECTED_TAGS: Record<NationId, string> = {
 };
 
 function corpusNations(): Nation[] {
-  return CANON_NATIONS_1880.nations as unknown as Nation[];
+  return fixtureNations();
 }
 
 describe("NationSchema", () => {

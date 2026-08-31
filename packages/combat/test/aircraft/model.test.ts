@@ -2,7 +2,7 @@
 // AircraftModelDefinition with all §2 fields, scores 0-100, integer
 // fixed-point payload/range/cost/work, contract validation. Missing/invalid
 // field fails closed with INVALID_AIRCRAFT_MODEL_DEFINITION.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import {
   INVALID_AIRCRAFT_MODEL_DEFINITION,

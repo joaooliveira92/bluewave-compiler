@@ -1,14 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError } from "@bluewave/contracts";
 import {
   COASTAL_DEFENSE_BATTERY_MODELS,
   COASTAL_BATTERY_ERA_BANDS,
-  MIN_CALIBER_MM,
-  MAX_CALIBER_MM,
-  INVALID_COASTAL_BATTERY_DEFINITION,
   createCoastalBatteryDefinition,
   batteryContentHash,
-  type CoastalBatteryDefinition,
 } from "../../src/coastal-defense/index.js";
 
 function validBatteryParams() {

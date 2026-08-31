@@ -1,5 +1,5 @@
 // AC-18 (INC-5): Squadron expansion — ratio formula, penalty bands, same-month aggregation.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   computeExpansionRatioBp,
@@ -7,8 +7,6 @@ import {
   checkExpansionEligibility,
   assertExpansionEligible,
   applyExpansionPenalty,
-  EXPANSION_BAND_1_LIMIT_BP,
-  EXPANSION_BAND_2_LIMIT_BP,
   EXPANSION_PENALTY_BAND_1,
   EXPANSION_PENALTY_BAND_2,
   EXPANSION_PENALTY_BAND_3,

@@ -1,6 +1,6 @@
 //packages/combat/test/air-combat/cap-vs-escort.test.ts
 // AC-4 (INC-2): CAP allocation vs escort fighters.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { computeCapAllocation } from "../../src/air-combat/index.js";
 

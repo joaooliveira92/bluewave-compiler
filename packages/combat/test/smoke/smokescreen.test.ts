@@ -6,8 +6,6 @@ import {
   generateSmokescreenMinute,
   createInitialSmokescreenState,
   smokescreenConcealmentBonusBp,
-  SMOKESCREEN_ELIGIBLE_CLASSES,
-  SMOKESCREEN_READINESS_STATES,
   SMOKESCREEN_INELIGIBILITY_REASONS,
   SMOKESCREEN_GENERATION_INTERRUPTED,
   type SmokescreenEligibilityParams,
@@ -16,7 +14,6 @@ import {
 } from "../../src/smoke/index.js";
 import {
   SMOKESCREEN_INITIAL_DENSITY,
-  SMOKESCREEN_REFERENCE_WIDTH_M,
   SMOKESCREEN_VERTICAL_EXTENT_M,
   SMOKESCREEN_GENERATION_DURATION_MINUTES,
   SMOKESCREEN_COOLDOWN_MINUTES,

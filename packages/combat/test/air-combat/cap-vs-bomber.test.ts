@@ -1,14 +1,13 @@
 //packages/combat/test/air-combat/cap-vs-bomber.test.ts
 // AC-6 (INC-2): Remaining CAP (after escort) engages bombers.
 // Bombers do NOT return fire.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { RandomEngine } from "@bluewave/random";
 import {
   computeCapAllocation,
   computeExchange,
   computeDisruption,
-  type ExchangeInput,
 } from "../../src/air-combat/index.js";
 import {
   AIR_COMBAT_BASIS_POINTS,

@@ -1,6 +1,6 @@
 //packages/combat/test/air-combat/ordering.test.ts
 // AC-18 (INC-7): canonical ordering per DESIGN-43 §39 + DESIGN-38 §29.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   compareAirCombatRecords,
@@ -57,10 +57,16 @@ describe("AC-18: canonical ordering", () => {
 
   it("same minute+substep+actor, targetId string sort", () => {
     const a = makeRecord({
-      minute: SafeInt(5), substep: SafeInt(1), actorId: "sqn-x", targetId: "tgt-1",
+      minute: SafeInt(5),
+      substep: SafeInt(1),
+      actorId: "sqn-x",
+      targetId: "tgt-1",
     });
     const b = makeRecord({
-      minute: SafeInt(5), substep: SafeInt(1), actorId: "sqn-x", targetId: "tgt-2",
+      minute: SafeInt(5),
+      substep: SafeInt(1),
+      actorId: "sqn-x",
+      targetId: "tgt-2",
     });
     expect(compareAirCombatRecords(a, b)).toBeLessThan(0);
     expect(compareAirCombatRecords(b, a)).toBeGreaterThan(0);
@@ -68,10 +74,16 @@ describe("AC-18: canonical ordering", () => {
 
   it("null targetId sorts as empty string", () => {
     const a = makeRecord({
-      minute: SafeInt(5), substep: SafeInt(1), actorId: "sqn-x", targetId: null,
+      minute: SafeInt(5),
+      substep: SafeInt(1),
+      actorId: "sqn-x",
+      targetId: null,
     });
     const b = makeRecord({
-      minute: SafeInt(5), substep: SafeInt(1), actorId: "sqn-x", targetId: "tgt-1",
+      minute: SafeInt(5),
+      substep: SafeInt(1),
+      actorId: "sqn-x",
+      targetId: "tgt-1",
     });
     expect(compareAirCombatRecords(a, b)).toBeLessThan(0);
     expect(compareAirCombatRecords(b, a)).toBeGreaterThan(0);
@@ -79,11 +91,17 @@ describe("AC-18: canonical ordering", () => {
 
   it("same minute+substep+actor+target, different recordKinds sorted by kind string", () => {
     const a = makeRecord({
-      minute: SafeInt(5), substep: SafeInt(1), actorId: "sqn-a", targetId: "tgt-b",
+      minute: SafeInt(5),
+      substep: SafeInt(1),
+      actorId: "sqn-a",
+      targetId: "tgt-b",
       recordKind: "ATTACK",
     });
     const b = makeRecord({
-      minute: SafeInt(5), substep: SafeInt(1), actorId: "sqn-a", targetId: "tgt-b",
+      minute: SafeInt(5),
+      substep: SafeInt(1),
+      actorId: "sqn-a",
+      targetId: "tgt-b",
       recordKind: "ENGAGEMENT",
     });
     expect(compareAirCombatRecords(a, b)).toBeLessThan(0); // "ATTACK" < "ENGAGEMENT"

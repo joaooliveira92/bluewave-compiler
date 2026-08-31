@@ -2,8 +2,6 @@ import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import {
   CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT,
   OVERSIZED_CARRIER_THRESHOLD,
-  OVERSIZED_SORTIE_GENERATION_BP,
-  type DeckCycleState,
 } from "./constants.js";
 import { CARRIER_STRIKE_EXCEEDS_SPOT_VALUE } from "./reasonCodes.js";
 

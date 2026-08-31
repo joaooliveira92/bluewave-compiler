@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
   createSmokeEventRecord,
-  computeSmokeEventHash,
   verifySmokeEventRecordHash,
   assertSmokeEventRecordSurface,
   smokeEventRecordId,
@@ -9,7 +8,6 @@ import {
   type SmokeEventRecord,
 } from "../../src/smoke/smokeRecords.js";
 import { SMOKE_RULESET_VERSION, SMOKE_FORMULA_VERSION } from "../../src/smoke/constants.js";
-import { BluewaveError } from "@bluewave/contracts";
 
 describe("smokeEventRecordId", () => {
   it("produces deterministic id from fields", () => {
@@ -253,7 +251,7 @@ describe("createSmokeEventRecord", () => {
 
     expect(Object.isFrozen(record)).toBe(true);
     expect(() => {
-      (record as Record<string, unknown>).kind = "FUNNEL_EMISSION";
+      (record as unknown as Record<string, unknown>).kind = "FUNNEL_EMISSION";
     }).toThrow();
   });
 

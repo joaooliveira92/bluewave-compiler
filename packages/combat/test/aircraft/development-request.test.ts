@@ -1,6 +1,6 @@
 // AC-5, AC-6, AC-7 (INC-3): Development request command, proposal slot,
 // project lifecycle.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   assertValidDevelopmentRole,
@@ -8,7 +8,6 @@ import {
   createDevelopmentProject,
   advanceAircraftDevelopment,
   computeDevelopmentProjectHash,
-  ACTIVE_STATUSES,
 } from "../../src/aircraft/index.js";
 import type { AircraftDevelopmentProject } from "../../src/aircraft/index.js";
 

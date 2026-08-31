@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import {
-  SUBMARINE_BASIS_POINTS_PER_UNIT,
   submarineFriendlyIdentificationPolicyId,
   SHIPPED_SUBMARINE_FRIENDLY_IDENTIFICATION_CONTRACT,
   validateSubmarineFriendlyIdentificationContract,

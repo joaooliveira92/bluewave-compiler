@@ -66,7 +66,7 @@ const NON_SECTION_30_IN_SLICE_MARKERS = ["SMOKE_RESOLUTION_DEFERRED"] as const;
 // originally shipped in B-5 (weather) and is now also shipped in C-5 (smoke).
 // It is documented in both modules' reasonCode catalogs as a §30 weather-only
 // code that the smoke module re-declares for contract validation.
-const SECTION_30_REUSED_ACROSS_MODULES = ["WEATHER_SMOKE_STATE_INVARIANT_FAILED"] as const;
+const _SECTION_30_REUSED_ACROSS_MODULES = ["WEATHER_SMOKE_STATE_INVARIANT_FAILED"] as const;
 
 describe("AC-17: smoke reason-code set-equality vs DESIGN-42 §30", () => {
   it("§30 in-slice + deferred partition covers exactly the full §30 list (no gaps, no overlap)", () => {

@@ -1,6 +1,6 @@
 // AC-12 (INC-4): Private ventures — eligibility, cooldown, max limit,
 // PurchasePrivateAircraftProposalCommand, 12-month expiry.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { RandomEngine } from "@bluewave/random";
 import {
@@ -12,11 +12,7 @@ import {
   PRIVATE_VENTURE_STREAM_KEY,
 } from "../../src/aircraft/private-venture.js";
 import type { PrivateVentureEligibilityInput } from "../../src/aircraft/private-venture.js";
-import {
-  PRIVATE_VENTURE_COOLDOWN_MONTHS,
-  PRIVATE_VENTURE_MAX_UNEXPIRED,
-  PRIVATE_PROPOSAL_LIFETIME_MONTHS,
-} from "../../src/aircraft/constants.js";
+import { PRIVATE_VENTURE_MAX_UNEXPIRED } from "../../src/aircraft/constants.js";
 import type { AircraftProposal } from "../../src/aircraft/state.js";
 
 function eligibleInput(

@@ -16,8 +16,6 @@ import {
   AIR_COMBAT_SURPRISE_FIRST_PASS_BP,
   AIR_COMBAT_SURPRISE_SUBSEQUENT_BP,
   AIR_COMBAT_DESTROYED_DAMAGE_RATIO_BP,
-  AIR_COMBAT_EXCHANGE_FACTOR_KEYS,
-  AIR_COMBAT_FORMULA_VERSION,
 } from "./constants.js";
 import {
   AIR_COMBAT_QUALITY_OUT_OF_RANGE,
@@ -28,15 +26,15 @@ import {
 // ---- ExchangeInput ----
 
 export interface ExchangeInput {
-  attackerCombatIndex: SafeInt;   // 0-100
-  defenderCombatIndex: SafeInt;   // 0-100
+  attackerCombatIndex: SafeInt; // 0-100
+  defenderCombatIndex: SafeInt; // 0-100
   attackerCount: SafeInt;
   defenderCount: SafeInt;
   attackerAltitude: "HIGH" | "MEDIUM" | "LOW";
   defenderAltitude: "HIGH" | "MEDIUM" | "LOW";
-  isFirstPass: boolean;          // surprise modifier
-  defenderToughness: SafeInt;    // 0-100
-  escortModifierBp: SafeInt;     // 10_000 = full (no escort), lower = escort reduces CAP effect
+  isFirstPass: boolean; // surprise modifier
+  defenderToughness: SafeInt; // 0-100
+  escortModifierBp: SafeInt; // 10_000 = full (no escort), lower = escort reduces CAP effect
 }
 
 // ---- ExchangeResult ----
@@ -70,7 +68,10 @@ function computeQualityBp(attackerCombatIndex: SafeInt, defenderCombatIndex: Saf
     denom,
     "floor",
   );
-  const clamped = Math.min(AIR_COMBAT_QUALITY_MAX_BP, Math.max(AIR_COMBAT_QUALITY_MIN_BP, Number(raw)));
+  const clamped = Math.min(
+    AIR_COMBAT_QUALITY_MAX_BP,
+    Math.max(AIR_COMBAT_QUALITY_MIN_BP, Number(raw)),
+  );
   return SafeInt(clamped);
 }
 
@@ -85,7 +86,10 @@ function computeNumericalAdvantageBp(attackerCount: SafeInt, defenderCount: Safe
     denom,
     "floor",
   );
-  const clamped = Math.min(AIR_COMBAT_BASIS_POINTS, Math.max(AIR_COMBAT_NUMERICAL_MIN_BP, Number(raw)));
+  const clamped = Math.min(
+    AIR_COMBAT_BASIS_POINTS,
+    Math.max(AIR_COMBAT_NUMERICAL_MIN_BP, Number(raw)),
+  );
   return SafeInt(clamped);
 }
 
@@ -126,11 +130,7 @@ function computeSurpriseBp(isFirstPass: boolean): SafeInt {
  * survivalBp = 9_000 + floor(toughness * 1_000 / 100), clamped to [9_000, 10_000]
  */
 function computeDefenderSurvivalBp(toughness: SafeInt): SafeInt {
-  const bonus = SafeInt.div(
-    SafeInt.mul(toughness, SafeInt(1_000)),
-    SafeInt(100),
-    "floor",
-  );
+  const bonus = SafeInt.div(SafeInt.mul(toughness, SafeInt(1_000)), SafeInt(100), "floor");
   const raw = SafeInt.add(SafeInt(9_000), bonus);
   const clamped = Math.min(AIR_COMBAT_BASIS_POINTS, Math.max(9_000, Number(raw)));
   return SafeInt(clamped);
@@ -154,10 +154,7 @@ function computeDefenderSurvivalBp(toughness: SafeInt): SafeInt {
  * @returns ExchangeResult with kill probability, losses, and factor contributions.
  * @throws BluewaveError on invalid input.
  */
-export function computeExchange(
-  input: ExchangeInput,
-  rngEngine: RandomEngine,
-): ExchangeResult {
+export function computeExchange(input: ExchangeInput, rngEngine: RandomEngine): ExchangeResult {
   // ---- Input validation ----
 
   const attackerCI = Number(input.attackerCombatIndex);
@@ -201,7 +198,10 @@ export function computeExchange(
   // ---- Compute 6 factors ----
 
   const qualityBp = computeQualityBp(input.attackerCombatIndex, input.defenderCombatIndex);
-  const numericalAdvantageBp = computeNumericalAdvantageBp(input.attackerCount, input.defenderCount);
+  const numericalAdvantageBp = computeNumericalAdvantageBp(
+    input.attackerCount,
+    input.defenderCount,
+  );
   const altitudeBp = computeAltitudeBp(input.attackerAltitude, input.defenderAltitude);
   const surpriseBp = computeSurpriseBp(input.isFirstPass);
   const defenderSurvivalBp = computeDefenderSurvivalBp(input.defenderToughness);
@@ -236,13 +236,15 @@ export function computeExchange(
 
   // ---- Losses ----
   const killProbNum = Number(killProbabilityBp);
-  const rawLosses = Math.floor(killProbNum * defenderCount / AIR_COMBAT_BASIS_POINTS);
+  const rawLosses = Math.floor((killProbNum * defenderCount) / AIR_COMBAT_BASIS_POINTS);
   // Minimum 1 loss if kill probability > 0, cap at defenderCount
   const cappedLosses = Math.min(defenderCount, killProbNum > 0 ? Math.max(1, rawLosses) : 0);
   const losses = SafeInt(cappedLosses);
 
   // ---- Damaged ----
-  const rawDamaged = Math.floor(cappedLosses * AIR_COMBAT_DESTROYED_DAMAGE_RATIO_BP / AIR_COMBAT_BASIS_POINTS);
+  const rawDamaged = Math.floor(
+    (cappedLosses * AIR_COMBAT_DESTROYED_DAMAGE_RATIO_BP) / AIR_COMBAT_BASIS_POINTS,
+  );
   const damaged = SafeInt(rawDamaged);
 
   // ---- RNG draw ----

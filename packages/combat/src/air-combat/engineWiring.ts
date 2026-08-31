@@ -71,7 +71,10 @@ export function resolveAirCombat(context: AirCombatContext): AirCombatStageResul
   const { capPatrols, strikeMissions, battleId, minute } = context;
 
   // ---- Strict no-op: no CAP and no strikes → empty result ----
-  if ((!capPatrols || capPatrols.length === 0) && (!strikeMissions || strikeMissions.length === 0)) {
+  if (
+    (!capPatrols || capPatrols.length === 0) &&
+    (!strikeMissions || strikeMissions.length === 0)
+  ) {
     return { records: [], active: false };
   }
 
@@ -126,10 +129,7 @@ export function resolveAirCombat(context: AirCombatContext): AirCombatStageResul
     }
   }
 
-  const sorted = canonicallySortedRecords([
-    ...(context.existingRecords ?? []),
-    ...records,
-  ]);
+  const sorted = canonicallySortedRecords([...(context.existingRecords ?? []), ...records]);
 
   return {
     // Thread input states through as next states (unchanged in stub)

@@ -3,10 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   canDeploySmokeFloat,
   deploySmokeFloat,
-  SMOKE_FLOAT_CAPACITY,
   SMOKE_FLOAT_INITIAL_DENSITY,
-  SMOKE_FLOAT_REFERENCE_WIDTH_M,
-  SMOKE_FLOAT_MAX_DEPLOYMENT_SPEED_KT,
   SMOKE_DOCTRINE_ADOPTION_MONTHS,
   SMOKE_FLOAT_TECHNOLOGY_UNAVAILABLE,
   SMOKE_FLOAT_CAPACITY_MISSING,
@@ -14,7 +11,6 @@ import {
   SMOKE_FLOAT_DEPLOYMENT_SPEED_EXCEEDED,
   SMOKE_EQUIPMENT_MODE_CONFLICT,
 } from "../../src/smoke/index.js";
-import type { SmokeCloud } from "../../src/smoke/index.js";
 
 function validDeployParams() {
   return {

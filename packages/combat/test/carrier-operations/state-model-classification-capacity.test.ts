@@ -1,12 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { describe, expect, it } from "vite-plus/test";
+import { SafeInt } from "@bluewave/contracts";
 import {
-  CARRIER_CLASSIFICATIONS,
   CVL_MIN_CAPACITY,
   CVL_MAX_CAPACITY,
   CV_MIN_CAPACITY,
   ORDINARY_SLOT_CAPACITY_UNITS,
-  PISTON_CAPACITY_UNITS,
   LIGHT_JET_CAPACITY_UNITS,
   HEAVY_JET_CAPACITY_UNITS,
   HELICOPTER_CAPACITY_UNITS,
@@ -22,10 +20,8 @@ import {
   CARRIER_OPERATIONS_REASON_CODES,
   type CarrierOperationsState,
   type CarrierClassification,
-  type CatapultDefinition,
   type DeckCycleState,
   type CarrierCapacityAssignment,
-  type OversizedCarrierPolicy,
   carrierClassification,
   physicalCapacityUnits,
   capacityUnitsForAircraftType,
@@ -36,8 +32,6 @@ import {
   SHIPPED_OVERSIZED_POLICY,
   isOversized,
   assertCarrierOperationsState,
-  CarrierOperationsState_v1,
-  OversizedCarrierPolicy_v1,
   validateCarrierOperationsStateContract,
   validateOversizedCarrierPolicyContract,
   SHIPPED_CARRIER_OPERATIONS_CONTRACTS,
@@ -75,9 +69,9 @@ function validState(overrides: Partial<CarrierOperationsState> = {}): CarrierOpe
     weatherOperabilityState: {
       currentSeaState: SafeInt(3),
       windOverDeckKnots: SafeInt(24),
-      precipitationIntensityBp: 0,
+      precipitationIntensityBp: SafeInt(0),
       visibilityNauticalMiles: SafeInt(10),
-      deckFireIntensityBp: 0,
+      deckFireIntensityBp: SafeInt(0),
       nightOperationsActive: false,
     },
     rulesetVersion: CARRIER_OPERATIONS_RULESET_VERSION,

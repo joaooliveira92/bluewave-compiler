@@ -4,15 +4,8 @@ import {
   createSmokeCloud,
   smokeCloudHash,
   SMOKE_SOURCE_TYPES,
-  INVALID_SMOKE_CLOUD,
-  FUNNEL_SMOKE_BASE_DENSITY,
-  SMOKESCREEN_INITIAL_DENSITY,
-  SMOKE_FLOAT_INITIAL_DENSITY,
-  SMOKE_GENERATOR_INITIAL_DENSITY,
   SMOKE_RULESET_VERSION,
   SMOKE_FORMULA_VERSION,
-  type SmokeCloud,
-  type SmokeSourceType,
 } from "../../src/smoke/index.js";
 
 function validFunnelCloudParams() {

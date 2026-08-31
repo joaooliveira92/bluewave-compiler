@@ -1,6 +1,6 @@
 // AC-3 (INC-2): Aircraft state under NationState. AC-4 (INC-2): inventory counts
 // per model+condition, 9 inventory states, state exclusivity invariant.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   type AircraftNationState,
@@ -9,7 +9,6 @@ import {
   type SquadronState,
   withAircraftInventoryRecordHash,
   verifyAircraftInventoryRecordHash,
-  AIRCRAFT_TYPES,
   AIRCRAFT_INVENTORY_STATES,
 } from "../../src/aircraft/index.js";
 

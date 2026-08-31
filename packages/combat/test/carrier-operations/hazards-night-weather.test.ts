@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   HAZARD_WEIGHTS,
@@ -6,10 +6,7 @@ import {
   NIGHT_RECOVERY_LOSS_BASES,
   NIGHT_RECOVERY_FAILURE_RESULTS,
   CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT,
-  CARRIER_AVIATION_FIRE_HAZARD,
-  CARRIER_AVIATION_ORDNANCE_HAZARD,
   CARRIER_NIGHT_RECOVERY_INELIGIBLE,
-  CARRIER_RECOVERY_OPERATIONAL_LOSS,
   CARRIER_OPERATIONS_SUSPENDED_BY_WEATHER,
   type HazardExposureInputs,
   type HazardProbabilityInputs,
@@ -22,9 +19,6 @@ import {
   assertNightRecoveryEligible,
   selectNightRecoveryLossResult,
   evaluateWeatherSuspension,
-  CarrierHazardExposure_v1,
-  CarrierNightRecovery_v1,
-  CarrierWeatherSuspension_v1,
   validateCarrierHazardExposureContract,
   validateCarrierNightRecoveryContract,
   validateCarrierWeatherSuspensionContract,

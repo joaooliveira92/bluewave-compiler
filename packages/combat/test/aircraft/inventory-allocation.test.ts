@@ -1,9 +1,8 @@
 // AC-22 (INC-5): Inventory allocation — deterministic §35 priority.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   allocateInventory,
-  ALLOCATION_PRIORITIES,
   type AllocationDemand,
   type AllocationPriority,
 } from "../../src/aircraft/inventory-allocation.js";

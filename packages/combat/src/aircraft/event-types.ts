@@ -3,10 +3,9 @@
 // The private_aircraft_venture_v1 event carries the outcome of a monthly
 // private-venture resolution: whether a venture was granted, which role,
 // the resulting proposal (if granted), and the next eligible month.
-import { SafeInt } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
 import { AIRCRAFT_RULESET_VERSION } from "./constants.js";
-import type { AircraftType, AircraftProposal } from "./index.js";
+import type { AircraftType } from "./index.js";
 
 export type PrivateVentureResult =
   | "VENTURE_GRANTED"

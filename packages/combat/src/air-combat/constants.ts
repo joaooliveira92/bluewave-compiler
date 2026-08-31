@@ -8,8 +8,8 @@ export const AIR_COMBAT_RULESET_VERSION = "1" as const;
 
 // Speed score → m/s conversion: mps = speed * 2.5 + 20
 // Stored as bp: speed * 250 + 2000, then floor / 100
-export const AIR_COMBAT_SPEED_MPS_FACTOR = 250 as const;   // 2.5 in bp (250bp per 0.01)
-export const AIR_COMBAT_SPEED_MPS_BASE = 20 as const;       // intercept in m/s
+export const AIR_COMBAT_SPEED_MPS_FACTOR = 250 as const; // 2.5 in bp (250bp per 0.01)
+export const AIR_COMBAT_SPEED_MPS_BASE = 20 as const; // intercept in m/s
 export const AIR_COMBAT_SPEED_SCORE_MULTIPLIER_BP = 25_000 as const;
 export const AIR_COMBAT_SPEED_SCORE_DENOMINATOR_BP = 10_000 as const;
 export const AIR_COMBAT_MIN_SPEED_MPS = 20 as const;
@@ -115,13 +115,13 @@ export const AIR_COMBAT_LEVEL_BOMBING_PENETRATION_MULTIPLIER_BP = 10_000 as cons
 
 // ---- INC-5 constants (air-launched torpedo) ----
 
-export const AIR_COMBAT_TORPEDO_MIN_DROP_SPEED_MPS = 50 as const;    // minimum speed for safe drop
-export const AIR_COMBAT_TORPEDO_MIN_DROP_ALTITUDE_M = 10 as const;    // minimum altitude for drop
-export const AIR_COMBAT_TORPEDO_MAX_DROP_ALTITUDE_M = 300 as const;   // max altitude for accurate drop
-export const AIR_COMBAT_TORPEDO_MIN_RUN_M = 200 as const;             // minimum run distance
+export const AIR_COMBAT_TORPEDO_MIN_DROP_SPEED_MPS = 50 as const; // minimum speed for safe drop
+export const AIR_COMBAT_TORPEDO_MIN_DROP_ALTITUDE_M = 10 as const; // minimum altitude for drop
+export const AIR_COMBAT_TORPEDO_MAX_DROP_ALTITUDE_M = 300 as const; // max altitude for accurate drop
+export const AIR_COMBAT_TORPEDO_MIN_RUN_M = 200 as const; // minimum run distance
 export const AIR_COMBAT_TORPEDO_AIR_LAUNCH_HIT_BONUS_BP = 12_500 as const; // closing speed bonus
-export const AIR_COMBAT_TORPEDO_BASE_HIT_BP = 5_000 as const;        // base hit probability
-export const AIR_COMBAT_BOMB_BASE_STRUCTURAL_DAMAGE = 100 as const;   // base bomb structural damage
-export const AIR_COMBAT_BOMB_BASE_FLOTATION_DAMAGE = 50 as const;     // base bomb flotation damage
-export const AIR_COMBAT_TORPEDO_STRUCTURAL_DAMAGE = 500 as const;     // torpedo vs ship structural
-export const AIR_COMBAT_TORPEDO_FLOTATION_DAMAGE = 1000 as const;     // torpedo flotation damage
+export const AIR_COMBAT_TORPEDO_BASE_HIT_BP = 5_000 as const; // base hit probability
+export const AIR_COMBAT_BOMB_BASE_STRUCTURAL_DAMAGE = 100 as const; // base bomb structural damage
+export const AIR_COMBAT_BOMB_BASE_FLOTATION_DAMAGE = 50 as const; // base bomb flotation damage
+export const AIR_COMBAT_TORPEDO_STRUCTURAL_DAMAGE = 500 as const; // torpedo vs ship structural
+export const AIR_COMBAT_TORPEDO_FLOTATION_DAMAGE = 1000 as const; // torpedo flotation damage

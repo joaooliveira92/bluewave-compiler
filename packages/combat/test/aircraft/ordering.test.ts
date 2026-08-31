@@ -1,5 +1,5 @@
 // AC-23 (INC-7): Aircraft canonical ordering (§39).
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   compareDevelopmentProjects,

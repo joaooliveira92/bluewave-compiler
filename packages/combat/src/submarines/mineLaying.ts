@@ -12,12 +12,11 @@
 // concurrent session's working set per the C-2/C-3 spec note).
 //
 // Pure/deterministic: no I/O/clock/random.
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
-import { SUBMARINE_BASIS_POINTS_PER_UNIT, type SubmarineType } from "./constants.js";
+import { SafeInt } from "@bluewave/contracts";
+import { type SubmarineType } from "./constants.js";
 import {
   SUBMARINE_MINE_INVENTORY_INSUFFICIENT,
   SUBMARINE_MISSION_INELIGIBLE,
-  SUBMARINE_STATE_INVARIANT_FAILED,
   type SubmarineReasonCode,
 } from "./reasonCodes.js";
 

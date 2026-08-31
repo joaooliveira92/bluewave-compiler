@@ -1,37 +1,36 @@
 // AC-10 (INC-3): Attribute allocation formula.
 // Start from role baseline, +10 per emphasised trait, -10 trade-off,
 // no attribute below role min or above 100.
-import { describe, expect, it } from "vitest";
-import { SafeInt } from "@bluewave/contracts";
+import { describe, expect, it } from "vite-plus/test";
 import { allocateAttributes } from "../../src/aircraft/index.js";
 
 describe("AC-10: attribute allocation", () => {
   it("returns baseline values for FIGHTER with no effective emphasized traits", () => {
-    const [s, f, m, t] = allocateAttributes("FIGHTER", ["PAYLOAD", "RANGE"]);
+    const [s, f, _m, _t] = allocateAttributes("FIGHTER", ["PAYLOAD", "RANGE"]);
     expect(Number(s)).toBe(35);
     expect(Number(f)).toBe(20);
-    expect(Number(m)).toBe(45);
-    expect(Number(t)).toBe(25);
+    expect(Number(_m)).toBe(45);
+    expect(Number(_t)).toBe(25);
   });
 
   it("applies +10 SPEED bonus when SPEED is emphasised", () => {
-    const [s, f, m, t] = allocateAttributes("FIGHTER", ["SPEED", "RANGE"]);
+    const [s, f, _m, _t] = allocateAttributes("FIGHTER", ["SPEED", "RANGE"]);
     expect(Number(s)).toBe(50);
     expect(Number(f)).toBe(20);
   });
 
   it("applies +10 FIREPOWER bonus when FIREPOWER is emphasised", () => {
-    const [s, f, m, t] = allocateAttributes("FIGHTER", ["FIREPOWER", "RANGE"]);
+    const [_s, f, _m, _t] = allocateAttributes("FIGHTER", ["FIREPOWER", "RANGE"]);
     expect(Number(f)).toBe(35);
   });
 
   it("applies +10 MANEUVERABILITY bonus", () => {
-    const [s, f, m, t] = allocateAttributes("FIGHTER", ["MANEUVERABILITY", "RANGE"]);
+    const [_s, _f, m, _t] = allocateAttributes("FIGHTER", ["MANEUVERABILITY", "RANGE"]);
     expect(Number(m)).toBe(60);
   });
 
   it("applies +10 TOUGHNESS bonus", () => {
-    const [s, f, m, t] = allocateAttributes("FIGHTER", ["TOUGHNESS", "RANGE"]);
+    const [_s, _f, _m, t] = allocateAttributes("FIGHTER", ["TOUGHNESS", "RANGE"]);
     expect(Number(t)).toBe(40);
   });
 
@@ -46,7 +45,7 @@ describe("AC-10: attribute allocation", () => {
   });
 
   it("clamps values at SCORE_MAX (100)", () => {
-    const [s, f, m, t] = allocateAttributes("HEAVY_JET_FIGHTER", ["SPEED", "MANEUVERABILITY"]);
+    const [s, _f, m, _t] = allocateAttributes("HEAVY_JET_FIGHTER", ["SPEED", "MANEUVERABILITY"]);
     expect(Number(s)).toBeLessThanOrEqual(100);
     expect(Number(m)).toBeLessThanOrEqual(100);
   });

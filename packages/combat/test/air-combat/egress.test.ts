@@ -1,6 +1,6 @@
 //packages/combat/test/air-combat/egress.test.ts
 // AC-14 (INC-6): Strike egress and fuel check.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   createStrikeMissionState,
@@ -95,7 +95,7 @@ describe("AC-14: Strike egress and fuel check", () => {
         ["sqn_002"],
         "target_ship_02",
         [0, 0] as [number, number],
-        SafeInt(10),   // slow: 10 mps
+        SafeInt(10), // slow: 10 mps
         SafeInt(30),
       );
       const enRoute = transitionStrikeState(initial, "ON_TARGET", {
@@ -156,11 +156,11 @@ describe("AC-14: Strike egress and fuel check", () => {
       // Position should be closer to start [100, 200] than original [1000, 800]
       const origDist = Math.sqrt(
         (state.position[0] - state.startPosition[0]) ** 2 +
-        (state.position[1] - state.startPosition[1]) ** 2,
+          (state.position[1] - state.startPosition[1]) ** 2,
       );
       const newDist = Math.sqrt(
         (egressState.position[0] - egressState.startPosition[0]) ** 2 +
-        (egressState.position[1] - egressState.startPosition[1]) ** 2,
+          (egressState.position[1] - egressState.startPosition[1]) ** 2,
       );
       expect(newDist).toBeLessThanOrEqual(origDist);
     });

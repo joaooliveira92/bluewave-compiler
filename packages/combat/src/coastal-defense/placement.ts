@@ -1,13 +1,5 @@
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
-import {
-  COASTAL_DEFENSE_BASIS_POINTS_PER_UNIT,
-  COASTAL_DEFENSE_FORMULA_VERSION,
-  COASTAL_DEFENSE_RULESET_VERSION,
-} from "./constants.js";
-import {
-  COASTAL_DEFENSE_INVARIANT_FAILED,
-  COASTAL_DEFENSE_PLACEMENT_ZONE_INVALID,
-} from "./reasonCodes.js";
+import { COASTAL_DEFENSE_PLACEMENT_ZONE_INVALID } from "./reasonCodes.js";
 
 export interface CoastalDefensePosition {
   readonly zoneId: string;

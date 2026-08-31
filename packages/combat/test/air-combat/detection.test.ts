@@ -1,6 +1,6 @@
 //packages/combat/test/air-combat/detection.test.ts
 // AC-2 (INC-1): CAP detection of incoming strikes via B-2 spotting model.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { computeDetection } from "../../src/air-combat/index.js";
 

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   resolveDamageControl,
   type DamageControlContext,
-  type DamageControlStageResult,
 } from "../../src/damage/damageControlEngineWiring.js";
 import type { FireRecord, FloodingSourceRecord } from "../../src/damage/state.js";
 import { createDefaultDamageControlResource } from "../../src/damage/damageControl.js";

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // PROTOTYPE DRAFT — one serial narrative + a continuance skeleton, synced
 // against the real implementation in apps/desktop/e2e/mvp-loop.spec.ts and
 // continuance.spec.ts. Contract in README.md.

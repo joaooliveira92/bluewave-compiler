@@ -2,7 +2,6 @@ import { describe, expect, it } from "vite-plus/test";
 import { BluewaveError } from "@bluewave/contracts";
 import {
   LAND_TARGET_TYPES,
-  UNKNOWN_LAND_TARGET_TYPE,
   validateLandTargetType,
   createLandTarget,
   isTerminalDamageState,

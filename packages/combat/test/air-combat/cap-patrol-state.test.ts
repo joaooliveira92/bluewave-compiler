@@ -1,12 +1,9 @@
 //packages/combat/test/air-combat/cap-patrol-state.test.ts
 // AC-1 (INC-1): CAP patrol state creation.
 // Tests createCapPatrolState validation and default values.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
-import {
-  createCapPatrolState,
-  type CapPatrolState,
-} from "../../src/air-combat/index.js";
+import { createCapPatrolState, type CapPatrolState } from "../../src/air-combat/index.js";
 import { AIR_COMBAT_INVALID_STATE } from "../../src/air-combat/index.js";
 
 function validParams() {

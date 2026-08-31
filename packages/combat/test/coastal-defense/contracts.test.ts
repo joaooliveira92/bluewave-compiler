@@ -11,8 +11,6 @@ import {
   coastalBatteryPolicyId,
   landTargetTypePolicyId,
   landTargetDamageStatePolicyId,
-  COASTAL_DEFENSE_RULESET_VERSION,
-  COASTAL_DEFENSE_BASIS_POINTS_PER_UNIT,
 } from "../../src/coastal-defense/index.js";
 
 describe("Contracts (INC-1 seed)", () => {

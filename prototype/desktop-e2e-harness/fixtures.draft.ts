@@ -1,3 +1,4 @@
+// @ts-nocheck
 // PROTOTYPE DRAFT — synced against the real implementation in
 // apps/desktop/e2e/fixtures.ts (playwright, Electron 41.10.4). Contract in
 // README.md.
@@ -124,7 +125,7 @@ export async function copyFixturePackage(sourceDir: string, scratchRoot: string)
 type HarnessFixtures = { e2e: E2EHarness };
 
 export const test = base.extend<HarnessFixtures>({
-  e2e: async ({}, use) => {
+  e2e: async (_unused, use) => {
     const h = await launchHarness();
     try {
       await use(h);

@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
+import { SafeInt } from "@bluewave/contracts";
 import {
   CARRIER_OPERATIONS_REASON_CODES,
   type CarrierRecordKey,
@@ -18,7 +19,7 @@ describe("AC-31: Carrier operation records", () => {
         contentVersion: "v1",
         rulesetVersion: "v1",
       },
-      { capacityUnitsDelta: 2 },
+      { capacityUnitsDelta: SafeInt(2) },
     );
     expect(record.battleMinute).toBe(0);
     expect(record.substep).toBe("assignment");

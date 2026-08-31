@@ -25,9 +25,9 @@ export interface AirTorpedoAttackInput {
   targetShipId: string;
   dropSpeedMps: SafeInt;
   dropAltitudeM: SafeInt;
-  distanceToTargetM: SafeInt;  // for min run check
-  targetSpeedBp: SafeInt;      // target speed in bp (10_000 = no evasion)
-  targetSizeBp: SafeInt;       // target size factor (10_000 = battleship, 5_000 = destroyer)
+  distanceToTargetM: SafeInt; // for min run check
+  targetSpeedBp: SafeInt; // target speed in bp (10_000 = no evasion)
+  targetSizeBp: SafeInt; // target size factor (10_000 = battleship, 5_000 = destroyer)
 }
 
 // ---- AirTorpedoAttackResult ----
@@ -35,7 +35,7 @@ export interface AirTorpedoAttackInput {
 export interface AirTorpedoAttackResult {
   hit: boolean;
   hitProbabilityBp: SafeInt;
-  damagePackage: GunneryImpact | null;  // null if miss
+  damagePackage: GunneryImpact | null; // null if miss
 }
 
 // ---- resolveAirTorpedoAttack ----

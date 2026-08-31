@@ -223,11 +223,12 @@ describe("AC-20 — §27 record surface + envelope hash", () => {
     // draw to zero so the detonation functions, the tube hazard is SEVERE, and the
     // §22 chain detonates — exercising the full chain-explosion record path.
     const forcedChainEngine = {
+      masterSeed: "",
       stream: (domain: string) => ({
         id: domain,
         next: () => (domain.includes("launch_failure") ? 0.9999 : 0.0),
       }),
-    };
+    } as unknown as RandomEngine;
     const { contact } = buildTorpedoScene();
     const res = resolveTorpedoes({
       battleId: TORPEDO_BATTLE_ID,
@@ -285,12 +286,13 @@ describe("AC-20 — §27 record surface + envelope hash", () => {
         // DEGRADED_PROPULSION), the shock draw to a strike (0.0), and avoid a
         // launch failure so the track runs and the damage package is applied.
         engine: {
+          masterSeed: "",
           stream: (domain: string) => ({
             id: domain,
             next: () =>
               domain.includes("launch_failure") ? 0.9999 : domain.includes("machinery") ? 0.2 : 0.0,
           }),
-        },
+        } as unknown as RandomEngine,
       });
     const a = run();
     const b = run();

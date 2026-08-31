@@ -3,7 +3,6 @@ import {
   type BaseProximityBand,
   type SubmarineType,
   SUBMARINE_BASIS_POINTS_PER_UNIT,
-  submarineProximityPolicyId,
 } from "./constants.js";
 import {
   SUBMARINE_STATE_INVARIANT_FAILED,

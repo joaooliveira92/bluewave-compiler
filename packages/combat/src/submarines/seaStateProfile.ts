@@ -14,7 +14,7 @@
 //
 // Pure/deterministic: no I/O/clock/random.
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
-import { SUBMARINE_BASIS_POINTS_PER_UNIT, type SubmarineSeaStateCategory } from "./constants.js";
+import { type SubmarineSeaStateCategory } from "./constants.js";
 import {
   SUBMARINE_SEA_STATE_OPERATION_PROHIBITED,
   SUBMARINE_STATE_INVARIANT_FAILED,

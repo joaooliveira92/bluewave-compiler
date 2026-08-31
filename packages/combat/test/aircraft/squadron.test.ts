@@ -1,13 +1,10 @@
 // AC-13 (INC-5): SquadronState creation, experience 0-100, state hash.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   createSquadronState,
   withSquadronStateHash,
-  computeSquadronStateHash,
   assertSquadronExperience,
-  SQUADRON_EXPERIENCE_MIN,
-  SQUADRON_EXPERIENCE_MAX,
 } from "../../src/aircraft/squadron.js";
 import { INVALID_AIRCRAFT_STATE } from "../../src/aircraft/reasonCodes.js";
 import type { BluewaveError } from "@bluewave/contracts";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import {
   WOD_PISTON_LAUNCH_MIN_KNOTS,
   WOD_PISTON_RECOVERY_MIN_KNOTS,
@@ -17,7 +17,6 @@ import {
   minimumWindOverDeckForRecovery,
   checkWindOverDeckSufficient,
   assertWindOverDeckSufficient,
-  CarrierWindOverDeck_v1,
   validateCarrierWindOverDeckContract,
   SHIPPED_CARRIER_OPERATIONS_CONTRACTS,
 } from "../../src/carrier-operations/index.js";

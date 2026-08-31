@@ -1,11 +1,10 @@
 //packages/combat/test/air-combat/torpedo-attack.test.ts
 // AC-12 (INC-5): Air-launched torpedo attack resolution.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { RandomEngine } from "@bluewave/random";
 import {
   resolveAirTorpedoAttack,
-  AIR_COMBAT_BASIS_POINTS,
   AIR_COMBAT_TORPEDO_BASE_HIT_BP,
   AIR_COMBAT_TORPEDO_AIR_LAUNCH_HIT_BONUS_BP,
   AIR_COMBAT_TORPEDO_MIN_DROP_SPEED_MPS,
@@ -26,11 +25,11 @@ function defaultInput(): AirTorpedoAttackInput {
   return {
     attackerSquadronId: "sqn_attack_01",
     targetShipId: "target_ship_01",
-    dropSpeedMps: SafeInt(150),       // well above min 50
-    dropAltitudeM: SafeInt(50),        // between 10 and 300
-    distanceToTargetM: SafeInt(1000),  // well above min 200
-    targetSpeedBp: SafeInt(10_000),    // no evasion
-    targetSizeBp: SafeInt(10_000),     // battleship size
+    dropSpeedMps: SafeInt(150), // well above min 50
+    dropAltitudeM: SafeInt(50), // between 10 and 300
+    distanceToTargetM: SafeInt(1000), // well above min 200
+    targetSpeedBp: SafeInt(10_000), // no evasion
+    targetSizeBp: SafeInt(10_000), // battleship size
   };
 }
 
@@ -146,7 +145,7 @@ describe("AC-12: Air-launched torpedo attack", () => {
       // step3 = 6250 * 10000 / 1 = 62500000, clamped to 10000
       const input: AirTorpedoAttackInput = {
         ...defaultInput(),
-        targetSpeedBp: SafeInt(1),  // minimum speed denominator
+        targetSpeedBp: SafeInt(1), // minimum speed denominator
       };
       const result = resolveAirTorpedoAttack(input, makeRng());
       expect(Number(result.hitProbabilityBp)).toBe(10_000);

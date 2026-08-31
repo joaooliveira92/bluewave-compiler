@@ -3,7 +3,6 @@
 // Parallel to aircraft/records.ts pattern.
 import { SafeInt } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
-import { AIR_COMBAT_RULESET_VERSION } from "./constants.js";
 import { AIR_COMBAT_RECORD_INTEGRITY_FAILURE } from "./reasonCodes.js";
 
 export const AIR_COMBAT_RECORD_POLICY_ID = "air_combat_record_v1" as const;
@@ -25,11 +24,7 @@ export interface AirCombatRecord {
 type AirCombatRecordBody = Omit<AirCombatRecord, "recordHash">;
 
 export function computeAirCombatRecordHash(body: AirCombatRecordBody): string {
-  const envelope = createEnvelope(
-    "air-combat-record",
-    AIR_COMBAT_RECORD_POLICY_ID,
-    body,
-  );
+  const envelope = createEnvelope("air-combat-record", AIR_COMBAT_RECORD_POLICY_ID, body);
   return envelope.bodyHash;
 }
 

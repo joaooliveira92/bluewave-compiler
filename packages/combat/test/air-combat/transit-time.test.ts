@@ -1,6 +1,6 @@
 //packages/combat/test/air-combat/transit-time.test.ts
 // AC-9 (INC-4): Transit time computation for strike formations.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import { computeTransitTimeMinutes } from "../../src/air-combat/index.js";
 
@@ -57,15 +57,11 @@ describe("AC-9: computeTransitTimeMinutes", () => {
   });
 
   it("throws for negative distance", () => {
-    expect(() =>
-      computeTransitTimeMinutes(SafeInt(-100), SafeInt(100)),
-    ).toThrow();
+    expect(() => computeTransitTimeMinutes(SafeInt(-100), SafeInt(100))).toThrow();
   });
 
   it("throws for negative speed", () => {
-    expect(() =>
-      computeTransitTimeMinutes(SafeInt(100_000), SafeInt(-10)),
-    ).toThrow();
+    expect(() => computeTransitTimeMinutes(SafeInt(100_000), SafeInt(-10))).toThrow();
   });
 
   it("zero speed uses SafeInt.ONE denominator to avoid division by zero", () => {

@@ -1,8 +1,7 @@
 // AC-19/21 (INC-6): Basing capacity, class enum, slot allocation.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
-  AIRCRAFT_BASING_CAPACITIES_V1,
   getBasingCapacity,
   computeUsedSlots,
   checkBasingCapacity,

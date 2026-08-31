@@ -12,7 +12,6 @@ import {
   getFirePriorityCategory,
   getFloodingPriorityCategory,
   type DamageControlAllocation,
-  type AllocationResult,
   DAMAGE_CONTROL_PRIORITIES,
 } from "../../src/damage/index.js";
 import type { FireSourceRecord, FloodingSourceRecord } from "../../src/damage/state.js";

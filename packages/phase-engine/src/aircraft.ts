@@ -2,7 +2,6 @@
 // D-1: resolveAircraftDevelopment — campaign-level aircraft development phase
 // resolver. Phase order 7.2 (after resolve_research, before battle_generation).
 // Strict no-op when no nation has aviation tech.
-import { SafeInt } from "@bluewave/contracts";
 import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
 import type { AircraftNationState } from "@bluewave/combat";
 import {

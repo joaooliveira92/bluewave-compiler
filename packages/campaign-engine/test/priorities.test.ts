@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vite-plus/test";
-import { scaleValue } from "@bluewave/campaign";
 import {
   buildPrioritiesProjection,
   MIN_RESEARCH_SHARE_BP,
@@ -87,7 +86,7 @@ describe("priorities projection", () => {
 
   it("monthly_deficit warning vs critical via treasury+projectedBalance predicate", () => {
     // Force deficit: income 0 => appropriation 0, maintenance 10000, so projected -200k
-    const snapSolvent = makeSnapshot({
+    const _snapSolvent = makeSnapshot({
       treasury: 50_000 as any,
       income: 100_000 as any,
       navalAppropriationRateBp: 1000 as any, // 10% => 10k

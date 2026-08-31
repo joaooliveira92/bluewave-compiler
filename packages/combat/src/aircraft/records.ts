@@ -1,8 +1,6 @@
 //packages/combat/src/aircraft/records.ts
 // DESIGN-43 §38 aircraft operation records.
-import { SafeInt } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
-import { AIRCRAFT_RULESET_VERSION } from "./constants.js";
 
 export const AIRCRAFT_RECORD_POLICY_ID = "aircraft_record_v1" as const;
 

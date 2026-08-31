@@ -1,8 +1,8 @@
 //packages/combat/src/aircraft/damaged-disposition.ts
 // DESIGN-43 §21 damaged aircraft disposition: 7 dispositions, cannibalization.
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError } from "@bluewave/contracts";
 import { DAMAGED_AIRCRAFT_DISPOSITION_REQUIRED } from "./reasonCodes.js";
-import { AIRCRAFT_DAMAGED_DISPOSITIONS, type AircraftDamagedDisposition } from "./constants.js";
+import type { AircraftDamagedDisposition } from "./constants.js";
 import type { BasingSlot } from "./state.js";
 
 export interface DispositionInput {

@@ -1,17 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   CARRIER_STRIKE_EXCEEDS_SPOT_VALUE,
   CARRIER_OPERATIONS_BASIS_POINTS_PER_UNIT,
   OVERSIZED_CARRIER_THRESHOLD,
-  OVERSIZED_SORTIE_GENERATION_BP,
   STRIKE_COORDINATION_MODES,
   MISSION_STATES,
   FORMATION_STATES,
   type CarrierStrikeState,
-  type StrikeCoordinationMode,
-  type FormationState,
-  type MissionState,
   BASE_PREP_TIMES,
   STRIKE_TIME_MODIFIERS,
   COORDINATED_STRIKE_MODIFIERS,
@@ -26,8 +22,6 @@ import {
   effectiveLaunchRate,
   launchDurationMinutes,
   type LaunchRateInputs,
-  CarrierStrikeState_v1,
-  CarrierLaunchRate_v1,
   validateCarrierStrikeStateContract,
   validateCarrierLaunchRateContract,
   SHIPPED_CARRIER_OPERATIONS_CONTRACTS,

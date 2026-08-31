@@ -6,7 +6,6 @@ import { SafeInt } from "@bluewave/contracts";
 import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
 import type { CarrierOperationsState, CarrierOperationRecord } from "@bluewave/combat";
 import {
-  CARRIER_CLASSIFICATIONS,
   CVL_MIN_CAPACITY,
   carrierClassification,
   physicalCapacityUnits,
@@ -59,9 +58,9 @@ function identifyCarrierShips(nation: NationState, carrierOps: Record<string, un
 
 function processCarrierNation(
   nation: NationState,
-  nationId: string,
-  campaignMonth: string,
-  rngStream: RandomStream,
+  _nationId: string,
+  _campaignMonth: string,
+  _rngStream: RandomStream,
 ): { updatedNation: NationState; records: CarrierOperationRecord[] } {
   const records: CarrierOperationRecord[] = [];
 
@@ -220,7 +219,7 @@ export function resolveCarrierOperations(
   const updatedNations = new Map<string, NationState>();
 
   let hasAnyCarriers = false;
-  for (const [nationId, nation] of snapshot["nations"]) {
+  for (const [_nationId, nation] of snapshot["nations"]) {
     const carrierOps = getCarrierOps(nation);
     const carrierIds = identifyCarrierShips(nation, carrierOps);
     if (carrierIds.length > 0) {
