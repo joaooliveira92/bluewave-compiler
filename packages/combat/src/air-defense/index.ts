@@ -7,3 +7,4 @@ export * from "./air-defense-state.js";
 export * from "./air-defense-attack.js";
 export * from "./layer-resolution.js";
 export * from "./engagement.js";
+export * from "./scaling.js";
