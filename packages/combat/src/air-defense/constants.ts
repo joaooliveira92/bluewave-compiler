@@ -201,15 +201,50 @@ export const CATEGORY_IDS = [...LAYER_IDS] as const;
 // Content version / hash for air-defense definitions
 export const AIR_DEFENSE_MODEL_VERSION = "air_defense_v1" as const;
 
-// ---- Engagement resolution formula constants ----
+// ---- Engagement resolution formula constants (§19, AC-11) ----
 // effectiveDefenseBp = floor(baseDefenseBp * director * radar * crew * damage * ammunition * targetProfile * weather * saturation / 10_000^8)
-// 10_000^8 = 10^32
+// 10_000^8 = 10^32 — bigint required (exceeds Number.MAX_SAFE_INTEGER).
 export const FORMULA_DENOMINATOR = 10_000 as const;
 export const FORMULA_EXPONENT = 8 as const;
+export const ENGAGEMENT_FORMULA_SCALE_EXPONENT = 8 as const;
+export const ENGAGEMENT_FORMULA_DENOMINATOR: bigint =
+  10_000n ** BigInt(ENGAGEMENT_FORMULA_SCALE_EXPONENT);
 
 // ---- Crew quality constants ----
 export const CREW_QUALITY_MIN = 0 as const;
 export const CREW_QUALITY_MAX = 10_000 as const;
+
+// ---- §21 Local control multiplier (AC-14) ----
+// "An intact gun with a destroyed director may use local control only when its
+// definition provides an exact local-control multiplier." Shipped value: 5_000 bp.
+export const LOCAL_CONTROL_MULTIPLIER_BP = 5_000 as const;
+
+// ---- §6 Disruption severity mappings (AC-12) ----
+// Shipped disruption levels with their accuracy and cohesion multipliers (bp).
+// MISSION_ABORT: attack does not proceed (no multipliers needed).
+export const DISRUPTION_SEVERITY_MAP = {
+  LIGHT: { accuracyMultiplierBp: 9_000, cohesionMultiplierBp: 9_500 },
+  MODERATE: { accuracyMultiplierBp: 7_500, cohesionMultiplierBp: 8_500 },
+  SEVERE: { accuracyMultiplierBp: 5_000, cohesionMultiplierBp: 6_500 },
+  MISSION_ABORT: { accuracyMultiplierBp: 0, cohesionMultiplierBp: 0 },
+} as const;
+
+// ---- §6 Disruption severity ordinal for stacking comparison ----
+// Higher ordinal = more severe. Used to select highest severity within one layer.
+export const DISRUPTION_SEVERITY_ORDINAL: Record<string, number> = {
+  LIGHT: 1,
+  MODERATE: 2,
+  SEVERE: 3,
+  MISSION_ABORT: 4,
+};
+
+// ---- §28 Reason codes for engagement outcomes (string literals for INC-3; full enum in INC-5) ----
+
+/** Disruption was applied to the attack. */
+export const AIR_ATTACK_DISRUPTED = "AIR_ATTACK_DISRUPTED" as const;
+
+/** Attack was aborted (prevented from releasing weapons or lost its attack). */
+export const AIR_ATTACK_ABORTED = "AIR_ATTACK_ABORTED" as const;
 
 // ---- State hash ----
 // SHA-256 hex output length

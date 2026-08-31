@@ -104,6 +104,10 @@ export interface AirDefenseSystemDefinition {
   baseDisruptionBp: SafeInt;
   rate: SafeInt; // rounds per minute / engagement rate
   saturationGroup: SafeInt; // group ID for saturation calculations
+  /** §21 local-control multiplier (bp). When present, an intact gun with a
+   *  destroyed director may use this reduced multiplier instead of zero.
+   *  Shipped value: 5_000. Absent ⇒ no local control ⇒ director loss blocks path. */
+  localControlMultiplierBp?: SafeInt;
   contentVersion: string;
   contentHash: string;
 }
@@ -194,6 +198,10 @@ const AirDefenseSystemDefinitionSchema = z
     saturationGroup: safeIntSchema("saturationGroup must be a non-negative integer", {
       nonNegative: true,
     }).optional(),
+    localControlMultiplierBp: safeIntSchema(
+      "localControlMultiplierBp must be a non-negative integer",
+      { nonNegative: true },
+    ).optional(),
 
     contentVersion: z.string().min(1, "contentVersion must be a non-empty string"),
 
@@ -283,6 +291,9 @@ export function createAirDefenseSystemDefinition(
     baseDisruptionBp: params.baseDisruptionBp ?? SafeInt(15),
     rate: params.rate ?? SafeInt(100),
     saturationGroup: params.saturationGroup ?? SafeInt.ZERO,
+    ...(params.localControlMultiplierBp !== undefined && {
+      localControlMultiplierBp: params.localControlMultiplierBp,
+    }),
     contentVersion: params.contentVersion ?? AIR_DEFENSE_MODEL_VERSION,
     contentHash:
       params.contentHash ?? "0000000000000000000000000000000000000000000000000000000000000000",
