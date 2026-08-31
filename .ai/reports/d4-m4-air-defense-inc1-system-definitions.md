@@ -32,11 +32,11 @@ director/radar-saturation/CIWS-redundancy resolution (INC-4), SAM layers (E-trac
 
 ## Requirements evidence
 
-| AC | Symbols | Proving tests |
-|----|---------|---------------|
-| AC-1 | `validateAirDefenseSystemDefinition`, `createAirDefenseSystemDefinition`, `AirDefenseSystemDefinitionSchema` | `air-defense/system-definition.test.ts` (30 tests) |
-| AC-2 | `createAirDefenseState`, `computeAirDefenseStateHash`, `AirDefenseState` | `air-defense/state.test.ts` (21 tests, incl. map/set ordering invariance) |
-| (constants) | `DIRECTOR_SCALING_TABLE`, `RADAR_SATURATION_TABLE`, `CIWS_REDUNDANCY_TABLE`, `LIGHT_AA_WINDOW_DURATIONS`, `LIGHT_AA_SPEED_BANDS`, `effectiveLightAAWindowMilliseconds`, `radarMediumAaMarginalMultiplierBp`, `ciwsMarginalMultiplierBp` | `air-defense/constants.test.ts` (11 tests) |
+| AC          | Symbols                                                                                                                                                                                                                                 | Proving tests                                                             |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| AC-1        | `validateAirDefenseSystemDefinition`, `createAirDefenseSystemDefinition`, `AirDefenseSystemDefinitionSchema`                                                                                                                            | `air-defense/system-definition.test.ts` (30 tests)                        |
+| AC-2        | `createAirDefenseState`, `computeAirDefenseStateHash`, `AirDefenseState`                                                                                                                                                                | `air-defense/state.test.ts` (21 tests, incl. map/set ordering invariance) |
+| (constants) | `DIRECTOR_SCALING_TABLE`, `RADAR_SATURATION_TABLE`, `CIWS_REDUNDANCY_TABLE`, `LIGHT_AA_WINDOW_DURATIONS`, `LIGHT_AA_SPEED_BANDS`, `effectiveLightAAWindowMilliseconds`, `radarMediumAaMarginalMultiplierBp`, `ciwsMarginalMultiplierBp` | `air-defense/constants.test.ts` (11 tests)                                |
 
 ## Reviewer findings repaired (source-verified against docs/rules/air-defense.md)
 

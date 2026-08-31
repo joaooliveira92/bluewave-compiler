@@ -93,13 +93,14 @@ describe("AirDefense constants (DESIGN-45)", () => {
   });
 
   describe("LIGHT_AA_WINDOW_DURATIONS (§9)", () => {
-    it("should match the canonical base windows (torpedo = 120s)", () => {
+    it("should match the canonical base windows (torpedo = 120s, guided_weapon = 60s)", () => {
       expect(LIGHT_AA_WINDOW_DURATIONS).toEqual({
         LEVEL: 120,
         DIVE: 60,
         TORPEDO: 120,
         SKIP: 60,
         ROCKET: 60,
+        GUIDED_WEAPON: 60,
       });
     });
   });

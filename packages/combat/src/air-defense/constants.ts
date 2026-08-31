@@ -4,10 +4,16 @@
 
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
 
-// ---- §3 Protected radius ----
+// ---- §7 Protected radius ----
 
-// Protected radius for heavy AA engagement (meters) — own ship or protected nearby ship
-export const PROTECTED_RADIUS = 5_000 as const;
+// Protected radius for heavy AA engagement (meters) — own ship or protected nearby ship.
+// DESIGN-45 §7: permitted range 3..8 nm, shipped value exactly 5 nm.
+// 1 nautical mile = 1852 m (exact, international definition).
+// 5 nm = 5 × 1852 = 9260 m.
+export const PROTECTED_RADIUS = 9_260 as const;
+
+/** 1 nautical mile in meters (exact international definition). */
+export const NAUTICAL_MILE_M = 1_852 as const;
 
 // ---- §12 Director scaling table ----
 // Director strength index → scaling value (basis points)
@@ -91,6 +97,7 @@ export const LIGHT_AA_WINDOW_DURATIONS = {
   TORPEDO: 120, // 2-minute window = 120 seconds
   SKIP: 60, // 1-minute window = 60 seconds
   ROCKET: 60, // 1-minute window = 60 seconds
+  GUIDED_WEAPON: 60, // 1-minute window = 60 seconds (§9: aircraft-delivered guided weapon)
 } as const;
 
 // ---- §9 Light AA speed bands (knots) ----
@@ -214,3 +221,20 @@ export const INVALID_AIR_DEFENSE_STATE = "INVALID_AIR_DEFENSE_STATE" as const;
 // Missing air-defense system metadata MUST fail with INVALID_AIR_DEFENSE_SYSTEM_DEFINITION.
 export const INVALID_AIR_DEFENSE_SYSTEM_DEFINITION =
   "INVALID_AIR_DEFENSE_SYSTEM_DEFINITION" as const;
+
+// ---- §28 Layer-resolution reason codes (string literals for INC-2; full enum in INC-5) ----
+
+/** Heavy AA: target is beyond the 5 nm protected radius. */
+export const HEAVY_AA_PROTECTED_RADIUS_EXCEEDED = "HEAVY_AA_PROTECTED_RADIUS_EXCEEDED" as const;
+
+/** Medium AA: attacker released before the pre-release engagement window. */
+export const MEDIUM_AA_PRE_RELEASE_WINDOW_MISSED = "MEDIUM_AA_PRE_RELEASE_WINDOW_MISSED" as const;
+
+/** Target (attack type or profile) is ineligible for the defense layer. */
+export const AIR_DEFENSE_TARGET_INELIGIBLE = "AIR_DEFENSE_TARGET_INELIGIBLE" as const;
+
+/** No free engagement channel available for this system. */
+export const AIR_DEFENSE_CHANNEL_UNAVAILABLE = "AIR_DEFENSE_CHANNEL_UNAVAILABLE" as const;
+
+/** Insufficient ammunition for this engagement. */
+export const AIR_DEFENSE_AMMUNITION_UNAVAILABLE = "AIR_DEFENSE_AMMUNITION_UNAVAILABLE" as const;
