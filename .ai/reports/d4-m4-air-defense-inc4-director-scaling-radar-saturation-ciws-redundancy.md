@@ -72,7 +72,7 @@ pnpm format
 
 pnpm -w turbo run test --force
   Tasks: 36 successful, 36 total (0 failed)
-  combat: 3499 tests passed
+  combat: 3518 tests passed
   desktop: 528 tests passed
 
 node scripts/verify-golden-hashes.cjs
