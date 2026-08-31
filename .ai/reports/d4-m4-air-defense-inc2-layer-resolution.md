@@ -37,14 +37,14 @@ wiring (INC-6), SAM layers (E-track).
 
 ## Requirements evidence
 
-| AC      | Symbols                                                                                                                                                              | Proving tests                                              |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| AC-3    | `RESOLUTION_ORDER`, `resolveLayerEligibility`, `LayerEligibilityOutcome`                                                                                                     | `layer-order.test.ts`                                      |
-| AC-4    | `checkHeavyAAEligibility`, `PROTECTED_RADIUS` (= 9_260 m = 5 nm)                                                                                                             | `heavy-aa-eligibility.test.ts`                             |
-| AC-5    | `checkMediumAAEligibility`, `MEDIUM_AA_FIRE_CONTROL_MIN_BP` (= 4_000)                                                                                                       | `medium-aa-timing.test.ts`                                 |
-| AC-6    | `checkLightAAEligibility`, `LIGHT_AA_WINDOW_DURATIONS`, `LIGHT_AA_SPEED_BANDS`, `effectiveLightAAWindowMilliseconds`                                                         | `light-aa-windows.test.ts`                                 |
-| CIWS    | `checkCiwsEligibility`, `REQUIRES_EXPLICIT_CAPABILITY` (CIWS:HEAVY_ASM, CIWS:MEDIUM_ASM)                                                                                   | `ciws-eligibility.test.ts`                                 |
-| §4 desc | `AirDefenseAttack`, `createAirDefenseAttack`, `validateAirDefenseAttack`, `AttackType`, `TerminalProfile`                                                                  | `air-defense-attack.test.ts`                               |
+| AC      | Symbols                                                                                                              | Proving tests                  |
+| ------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| AC-3    | `RESOLUTION_ORDER`, `resolveLayerEligibility`, `LayerEligibilityOutcome`                                             | `layer-order.test.ts`          |
+| AC-4    | `checkHeavyAAEligibility`, `PROTECTED_RADIUS` (= 9_260 m = 5 nm)                                                     | `heavy-aa-eligibility.test.ts` |
+| AC-5    | `checkMediumAAEligibility`, `MEDIUM_AA_FIRE_CONTROL_MIN_BP` (= 4_000)                                                | `medium-aa-timing.test.ts`     |
+| AC-6    | `checkLightAAEligibility`, `LIGHT_AA_WINDOW_DURATIONS`, `LIGHT_AA_SPEED_BANDS`, `effectiveLightAAWindowMilliseconds` | `light-aa-windows.test.ts`     |
+| CIWS    | `checkCiwsEligibility`, `REQUIRES_EXPLICIT_CAPABILITY` (CIWS:HEAVY_ASM, CIWS:MEDIUM_ASM)                             | `ciws-eligibility.test.ts`     |
+| §4 desc | `AirDefenseAttack`, `createAirDefenseAttack`, `validateAirDefenseAttack`, `AttackType`, `TerminalProfile`            | `air-defense-attack.test.ts`   |
 
 ## Reviewer findings repaired (source-verified against docs/rules/air-defense.md)
 
@@ -58,7 +58,7 @@ wiring (INC-6), SAM layers (E-track).
   capability (`CIWS_TERMINAL_DEFENSE:MEDIUM_ASM`) per §18 line 318 fail-closed rule;
   decision recorded in **ADR-0042**. Tests prove reject + accept.
 - **F4 (LOW):** speed conversion now uses `SafeInt.div(SafeInt.mul(...), SafeInt(3600),
-  "floor")` integer arithmetic instead of `Math.floor(Number(...) * ... / 3600)`.
+"floor")` integer arithmetic instead of `Math.floor(Number(...) * ... / 3600)`.
 - **F7 (LOW):** constants.ts comment corrected to reference §7.
 
 ## Canonical value corrections
