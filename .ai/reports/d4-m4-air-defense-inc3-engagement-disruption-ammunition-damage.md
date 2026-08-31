@@ -11,7 +11,7 @@ the third of six D-4 implementation tickets. Delivered:
 
 - **AC-11 (§19)** — `computeEffectiveDefenseBp()`: the 9-factor engagement formula
   `effectiveDefenseBp = floor(base × director × radar × crew × damage × ammunition ×
-  targetProfile × weather × saturation / 10_000^8)` with bigint floor-once rounding
+targetProfile × weather × saturation / 10_000^8)` with bigint floor-once rounding
   (numerator can reach ~10^36, beyond Number.MAX_SAFE_INTEGER). Neutral-factor identity
   preserved (all-10_000 → base). Clamped to `[0, MAX_SAFE_INTEGER]`. Full traceability
   detail (exact numerator/denominator strings, scale exponent, raw floored value).
@@ -40,12 +40,12 @@ disruption (INC-5), engine stage wiring (INC-6), SAM layers (E-track).
 
 ## Requirements evidence
 
-| AC      | Symbols                                            | Proving tests                  |
-| ------- | -------------------------------------------------- | ------------------------------ |
-| AC-11   | `computeEffectiveDefenseBp`, `neutralEngagementFactors` | `engagement-formula.test.ts` (22) |
-| AC-12   | `disruptionSeverityMultipliers`, `determineDisruptionSeverity`, `highestSeverityInLayer`, `combineCrossLayerDisruption`, `resolveEngagementOutcome` | `disruption.test.ts` (35) |
-| AC-13   | `computeAmmunitionMultiplierBp`, `consumeAmmunition` | `ammunition.test.ts` (20) |
-| AC-14   | `AirDamageComponentStatus`, `ALL_CHANNELS_OPERATIONAL`, `computeDirectorMultiplierBp`, `computeDamageMultiplierBp`, `computeDamageAwareMultipliers` | `damage-power.test.ts` (18) |
+| AC    | Symbols                                                                                                                                             | Proving tests                     |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| AC-11 | `computeEffectiveDefenseBp`, `neutralEngagementFactors`                                                                                             | `engagement-formula.test.ts` (22) |
+| AC-12 | `disruptionSeverityMultipliers`, `determineDisruptionSeverity`, `highestSeverityInLayer`, `combineCrossLayerDisruption`, `resolveEngagementOutcome` | `disruption.test.ts` (35)         |
+| AC-13 | `computeAmmunitionMultiplierBp`, `consumeAmmunition`                                                                                                | `ammunition.test.ts` (20)         |
+| AC-14 | `AirDamageComponentStatus`, `ALL_CHANNELS_OPERATIONAL`, `computeDirectorMultiplierBp`, `computeDamageMultiplierBp`, `computeDamageAwareMultipliers` | `damage-power.test.ts` (18)       |
 
 ## Commands and observed results
 

@@ -4,8 +4,8 @@
 
 **Blocked by:** 03 — Engagement formula + disruption + ammunition + damage
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] AC-8: Director assignment order + scaling table values
-- [ ] AC-9: Radar-directed group saturation diminishing returns
-- [ ] AC-10: CIWS redundancy schedule
+- [x] AC-8: Director assignment order + scaling table values
+- [x] AC-9: Radar-directed group saturation diminishing returns
+- [x] AC-10: CIWS redundancy schedule
