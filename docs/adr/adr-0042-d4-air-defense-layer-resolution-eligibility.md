@@ -1,8 +1,9 @@
-# ADR-0042: D-4 Air Defense — Layer Resolution & Eligibility + Engagement Decisions (INC-2/INC-3)
+# ADR-0042: D-4 Air Defense — Layer Resolution & Eligibility + Engagement Decisions (INC-2/INC-3/INC-4)
 
 ## Status
 
-Accepted (2026-09-22; INC-3 decisions 7–10 added 2026-09-22)
+Accepted (2026-09-22; INC-3 decisions 7–10 added 2026-09-22; INC-4 decisions 11–13 added
+2026-09-22)
 
 ## Context
 
@@ -124,10 +125,59 @@ the ammunition module is a documented opt-in for direct-constructed states only.
 
 ### 10. Engagement factor bound
 
-`computeEffectiveDefenseBp` enforces every factor ≤ `MAX_ENGAGEMENT_FACTOR_BP = 31_000`
+`computeEffectiveDefenseBp` enforced every factor ≤ `MAX_ENGAGEMENT_FACTOR_BP = 31_000`
 (the shipped §12 director maximum) at the boundary, so the documented numerator bound
 (≤ 31_000 × 10_000^8 ≈ 3.1e37) holds by construction and `Number(rawFloored)` can never
 lose precision; a defensive `rawFloored > Number.MAX_SAFE_INTEGER` throw is also included.
+**Superseded by decision 13** for the SATURATION-class slots only (INC-4).
+
+### 11. §19 slot mapping for the six caller-supplied multipliers
+
+In the INC-3 `computeEffectiveDefenseBp` nine-factor product
+`base × director × radar × crew × damage × ammunition × targetProfile × weather ×
+saturation / 10_000^8`, the three multipliers INC-4 computes are canonically bound as:
+`directorBp` ← `computeDirectorFactorBp(operationalDirectorCount)` (§12), `radarBp` ←
+`computeRadarFactorBp(radarDirectedGroupCount)` (§14), and `saturationBp` ←
+`computeCiwsSaturationFactorBp(contributingCiwsSystemCount)` (§16). crew/damage/ammunition
+remain INC-3 computed from the authoritative state (decision 8); targetProfile and weather
+are neutral-or-later concerns (INC-5/6). The engine call site that composes these into
+`resolveEngagement` is wired in INC-6.
+
+### 12. "Threat score descending" (§11.2) is realized by the §17 comparator
+
+DESIGN-45 defines no threat-score formula; the only canonical threat ordering in the
+document is §17 Simultaneous Threats. INC-4 therefore implements "threat score descending"
+(`"higher = assigned first"`) as a deterministic comparator `compareThreatPriority` over
+`AirDefenseAttack` fields, keyed in order: (1) released threats before pre-release (§17.1),
+(2) closer to impact first (§17 line "closest to impact", §17.6 — smaller `timeToImpactMs`),
+(3) threats against the defended ship before protected nearby ships (§17.3-4 —
+`targetId === defenderId`), (4) expected-damage proxy descending (§17.5 — larger
+`formationSize`; the attack's declared deterministic fields, no RNG), (5) target identifier
+ascending (§17.7). No additional threat-score formula is invented; the comparator IS the
+resolved threat score. In `compareCandidates` a deterministic codepoint residue (systemId,
+then attackId) guarantees a TOTAL order so input array order can never leak into results
+(§27 line 453).
+
+### 13. Zero-count consumer-side neutrals + two-class factor bound (superseding decision 10)
+
+§14/§16 define diminishing-return schedules only for group/system counts ≥ 1. A defended
+ship with NO radar-directed medium-AA group or NO contributing CIWS system retains the
+consumer-side NEUTRAL factor **10_000** for that slot (`RADAR_NEUTRAL_FACTOR_BP` /
+`CIWS_NEUTRAL_FACTOR_BP`) — the same neutral as an absent multiplier in the engagement
+formula, not a §14/§16 value. INC-4 also repairs decision 10 into a TWO-CLASS bound: the
+NORMAL-class slots (base, director, crew, damage, ammunition, targetProfile, weather) stay
+enforced ≤ `MAX_ENGAGEMENT_FACTOR_BP = 31_000`; the SATURATION-class slots (radar §14,
+saturation §16) carry the UNDIVIDED marginal sums over the ship's actual radar-directed
+group / contributing CIWS system count (each marginal ≤ 10_000; 4 groups/systems →
+40_000 = the exact rational aggregated count kept in the numerator, > 31_000) and are
+admitted up to `Number.MAX_SAFE_INTEGER` WITHOUT the 31_000 limit — their structural bound
+(sum over the caller-fed actual aggregates; each marginal ≤ 10_000) lives at the caller
+(INC-5/6). Rationale: a §14 effective-group count of 4.0 (40_000 bp) is a legitimate §19
+factor and must not be rejected by a cap sized to the largest single shipped value.
+Consequence: with both SATURATION slots at legal-boundary values the floored result can
+reach ~2.2e31 (> `Number.MAX_SAFE_INTEGER`), so the defensive throw IS reachable by
+pathological-but-legal aggregate inputs and fires fail-closed; realistic ship-scale inputs
+(floored ≤ ~1.5e6) never trip it.
 
 ## Consequences
 
@@ -135,9 +185,14 @@ lose precision; a defensive `rawFloored > Number.MAX_SAFE_INTEGER` throw is also
   schema and the state hash; INC-5's contract rollup (`air_defense_v1`) must include it.
 - INC-5's reason-codes guard is presence-of-20, not exact-20.
 - INC-5's `air_defense_v1` contract must also include the INC-3 fields
-  (`roundsPerEngagement`, `magazineCapacity`, `localControlSupported`) and the engagement/
-  disruption/ammunition/damage shapes, and formalize the `draw`/`consumedRounds` result
-  semantics (decision 8-9).
+  (`roundsPerEngagement`, `magazineCapacity`, `localControlSupported`), the engagement/
+  disruption/ammunition/damage shapes, the INC-4 director/radar/CIWS scaling shapes
+  (`DIRECTOR_SCALING_TABLE`, `RADAR_SATURATION_TABLE`, `CIWS_REDUNDANCY_TABLE` +
+  `assignAADirectors`/`computeDirectorFactorBp`/`computeRadarFactorBp`/
+  `computeCiwsSaturationFactorBp`), the two-class factor-bound policy (decision 13), and the
+  formalized `draw`/`consumedRounds` result semantics (decisions 8-9).
+- INC-5/6 must feed the SATURATION-class slots only the actual aggregate sums (per decision
+  13); the §19 boundary itself admits any non-negative safe integer for those slots.
 - No golden-hash or authoritative content change (module unwired; INC-6 wiring will not
   alter hashes while strictly a no-op when no AA context is present).
 - Future SAM-layer integration (E-track) will extend the matrix with
