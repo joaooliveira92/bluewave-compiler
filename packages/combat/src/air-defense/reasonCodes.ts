@@ -20,3 +20,9 @@ export const MEDIUM_AA_PRE_RELEASE_WINDOW_MISSED = "MEDIUM_AA_PRE_RELEASE_WINDOW
 // ---- INC-2 attack boundary code ----
 // Strict AirDefenseAttack validation failures use this code (DESIGN-45 §4).
 export const INVALID_AIR_DEFENSE_ATTACK = "INVALID_AIR_DEFENSE_ATTACK" as const;
+
+// ---- INC-3 invariant code ----
+// DESIGN-45 §28 canonical code: an air-defense invariant violation (e.g. a stacked
+// disruption multiplier outside [0, 10_000] or a duplicate layer representative) fails with
+// this code. Used by disruption.ts (§6 stacking guards). The full §28 rollup lands in INC-5.
+export const AIR_DEFENSE_INVARIANT_FAILED = "AIR_DEFENSE_INVARIANT_FAILED" as const;

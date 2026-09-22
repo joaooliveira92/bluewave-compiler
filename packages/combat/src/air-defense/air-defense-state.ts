@@ -113,6 +113,9 @@ export function computeAirDefenseStateHash(state: AirDefenseState): string {
       baseAbortBp: sys.baseAbortBp,
       baseDisruptionBp: sys.baseDisruptionBp,
       rate: sys.rate,
+      roundsPerEngagement: sys.roundsPerEngagement,
+      magazineCapacity: sys.magazineCapacity,
+      localControlSupported: sys.localControlSupported,
       saturationGroup: sys.saturationGroup,
       contentVersion: sys.contentVersion,
       contentHash: sys.contentHash,
@@ -159,6 +162,13 @@ export function computeAirDefenseStateHash(state: AirDefenseState): string {
  * @param radarState - Radar state.
  * @param crewQuality - Crew quality basis points (0-10_000).
  * @returns A valid initial AirDefenseState with computed stateHash.
+ *
+ * Each defense system's magazine is seeded to its `magazineCapacity` (the initial ready
+ * load, §20 "magazine or ready-service capacity"), so states built through this constructor
+ * carry explicit, authoritative ammunition reserves by default ("Every engagement MUST
+ * reserve and consume exact ammunition", §20 line 334; §29.21 "magazines are explicit and
+ * authoritative"). Callers who construct states directly may omit entries — ammunition.ts
+ * treats an absent entry as an explicit documented opt-in for the "present supply" model.
  */
 export function createAirDefenseState(
   defenderId: string,
@@ -202,7 +212,12 @@ export function createAirDefenseState(
     crewQuality,
     damageBp: SafeInt.ZERO,
     powerBp: SafeInt.ZERO,
-    ammunitionByType: new Map<string, SafeInt>(),
+    // Seed each system's magazine to its ready-service capacity (Repair MEDIUM-1): a
+    // defensive opportunity does not create ammunition (§20 line 346), so the initial load
+    // must be explicit and authoritative (§29.21).
+    ammunitionByType: new Map<string, SafeInt>(
+      systems.map((sys) => [sys.systemId, sys.magazineCapacity] as const),
+    ),
     targetAllocations: new Map<string, string>(),
     channelReservations: new Map<string, string>(),
     disruptionRecords: [],

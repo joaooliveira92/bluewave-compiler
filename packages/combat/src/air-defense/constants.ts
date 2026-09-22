@@ -208,9 +208,41 @@ export const AIR_DEFENSE_MODEL_VERSION = "air_defense_v1" as const;
 export const FORMULA_DENOMINATOR = 10_000 as const;
 export const FORMULA_EXPONENT = 8 as const;
 
+// Maximum allowed value for ANY §19 formula factor (base + 8 multipliers), in basis points.
+// The shipped director factor reaches 31_000 (§12: 4 directors → 31_000 aggregate directed-
+// fire value) — the largest shipped factor. computeEffectiveDefenseBp rejects any factor
+// above this cap (REPAIR/LOW-4), which makes the documented numerator bound enforceable by
+// the function itself so Number(rawFloored) can never lose precision.
+export const MAX_ENGAGEMENT_FACTOR_BP = 31_000 as const;
+
 // ---- Crew quality constants ----
 export const CREW_QUALITY_MIN = 0 as const;
 export const CREW_QUALITY_MAX = 10_000 as const;
+
+// ---- §6 Disruption severity multipliers (accuracy/cohesion, basis points) ----
+// Canonical shipped levels (§6 lines 118-123): LIGHT 9_000/9_500, MODERATE 7_500/8_500,
+// SEVERE 5_000/6_500, MISSION_ABORT → attack does not proceed (0/0).
+export const DISRUPTION_MULTIPLIERS = {
+  LIGHT: { accuracyBp: 9_000, cohesionBp: 9_500 },
+  MODERATE: { accuracyBp: 7_500, cohesionBp: 8_500 },
+  SEVERE: { accuracyBp: 5_000, cohesionBp: 6_500 },
+  MISSION_ABORT: { accuracyBp: 0, cohesionBp: 0 },
+} as const;
+
+// ---- §21 Simplified system-level damage multipliers ----
+// The simplified §21 model (spec §1.1 item 16) folds weapon/director/radar/power/feed/
+// stabilization damage into a single system-level status with one multiplier each:
+//   OPERATIONAL → 10_000, DAMAGED → 5_000, DESTROYED → 0.
+export const OPERATIONAL_MULTIPLIER_BP = 10_000 as const;
+export const DAMAGED_MULTIPLIER_BP = 5_000 as const;
+export const DESTROYED_MULTIPLIER_BP = 0 as const;
+
+// ---- §21 Local control multiplier ----
+// "An intact gun with a destroyed director may use local control only when its definition
+// provides an exact local-control multiplier. The shipped local-control multiplier is 5_000
+// basis points" (§21 line 363). Only applies when the system definition sets
+// localControlSupported = true; otherwise the neutral 10_000 applies.
+export const LOCAL_CONTROL_MULTIPLIER_BP = 5_000 as const;
 
 // ---- State hash ----
 // SHA-256 hex output length

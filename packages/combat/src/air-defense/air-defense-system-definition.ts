@@ -104,6 +104,9 @@ export interface AirDefenseSystemDefinition {
   baseAbortBp: SafeInt;
   baseDisruptionBp: SafeInt;
   rate: SafeInt; // rounds per minute / engagement rate
+  roundsPerEngagement: SafeInt; // §20 "rounds or missiles per engagement" (positive)
+  magazineCapacity: SafeInt; // §20 "magazine or ready-service capacity" (positive)
+  localControlSupported: boolean; // §21: system may use local control (5_000 bp) when its director is unavailable
   saturationGroup: SafeInt; // group ID for saturation calculations
   contentVersion: string;
   contentHash: string;
@@ -194,6 +197,13 @@ const AirDefenseSystemDefinitionSchema = z
       nonNegative: true,
     }).optional(),
     rate: safeIntSchema("rate must be a positive integer", { positive: true }).optional(),
+    roundsPerEngagement: safeIntSchema("roundsPerEngagement must be a positive integer", {
+      positive: true,
+    }).optional(),
+    magazineCapacity: safeIntSchema("magazineCapacity must be a positive integer", {
+      positive: true,
+    }).optional(),
+    localControlSupported: z.boolean().optional(),
     saturationGroup: safeIntSchema("saturationGroup must be a non-negative integer", {
       nonNegative: true,
     }).optional(),
@@ -286,6 +296,9 @@ export function createAirDefenseSystemDefinition(
     baseAbortBp: params.baseAbortBp ?? SafeInt(30),
     baseDisruptionBp: params.baseDisruptionBp ?? SafeInt(15),
     rate: params.rate ?? SafeInt(100),
+    roundsPerEngagement: params.roundsPerEngagement ?? SafeInt.ONE,
+    magazineCapacity: params.magazineCapacity ?? SafeInt(1_000),
+    localControlSupported: params.localControlSupported ?? false,
     saturationGroup: params.saturationGroup ?? SafeInt.ZERO,
     contentVersion: params.contentVersion ?? AIR_DEFENSE_MODEL_VERSION,
     contentHash:

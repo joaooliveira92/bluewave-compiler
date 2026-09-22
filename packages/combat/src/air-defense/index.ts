@@ -11,3 +11,7 @@ export * from "./heavy-aa-eligibility.js";
 export * from "./medium-aa-eligibility.js";
 export * from "./light-aa-eligibility.js";
 export * from "./layer-resolution.js";
+export * from "./engagement.js";
+export * from "./disruption.js";
+export * from "./ammunition.js";
+export * from "./damage-power.js";
