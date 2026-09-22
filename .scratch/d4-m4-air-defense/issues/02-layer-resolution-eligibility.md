@@ -4,9 +4,9 @@
 
 **Blocked by:** 01 — System definitions + state model + constants
 
-**Status:** ready-for-agent
+**Status:** DONE (2026-09-22 — PASS). Evidence: `.ai/reports/d4-m4-air-defense-inc2-layer-resolution.md`. ADR-0042.
 
-- [ ] AC-3: Layers resolve in HEAVY→MEDIUM→LIGHT→CIWS order
-- [ ] AC-4: Heavy AA protects own ship + 5nm protected radius
-- [ ] AC-5: Medium AA pre-release window with 4_000bp FC solution
-- [ ] AC-6: Light AA windows per attack profile + speed bands
+- [x] AC-3: Layers resolve in HEAVY→MEDIUM→LIGHT→CIWS order
+- [x] AC-4: Heavy AA protects own ship + 5nm protected radius
+- [x] AC-5: Medium AA pre-release window with 4_000bp FC solution
+- [x] AC-6: Light AA windows per attack profile + speed bands
