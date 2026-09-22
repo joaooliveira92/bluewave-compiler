@@ -85,7 +85,10 @@ export interface EngagementMultipliers {
 // they carry the UNDIVIDED marginal sums (4 radar groups → 40_000; 4 CIWS systems → 40_000)
 // and are admitted as any non-negative safe integer (their structural bound — sum over the
 // ship's actual group/system count, each marginal <= 10_000 — lives at the caller, INC-5/6).
-const FACTOR_SLOT_NAMES = [
+// Factor order for the nine numerator factors: [base, director, radar, crew, damage,
+// ammunition, targetProfile, weather, saturation] — the §19 product's written order.
+// Exported as the canonical §19 factor-key order contracted by air_defense_v1 (AC-17).
+export const ENGAGEMENT_FACTOR_SLOT_NAMES = [
   "base",
   "director",
   "radar",
@@ -96,10 +99,10 @@ const FACTOR_SLOT_NAMES = [
   "weather",
   "saturation",
 ] as const;
-type FactorSlotName = (typeof FACTOR_SLOT_NAMES)[number];
+type FactorSlotName = (typeof ENGAGEMENT_FACTOR_SLOT_NAMES)[number];
 // Keyed by slot name (not a parallel array) so the product's written order and the cap set
-// cannot drift apart: adding a slot to FACTOR_SLOT_NAMES without assigning it a cap here is
-// a compile error (MEDIUM-2/LOW-4 alignment repair).
+// cannot drift apart: adding a slot to ENGAGEMENT_FACTOR_SLOT_NAMES without assigning it a
+// cap here is a compile error (MEDIUM-2/LOW-4 alignment repair).
 const FACTOR_CAPS_BP: Readonly<Record<FactorSlotName, number>> = {
   base: MAX_ENGAGEMENT_FACTOR_BP, // base — NORMAL
   director: MAX_ENGAGEMENT_FACTOR_BP, // director — NORMAL
@@ -144,7 +147,7 @@ export function computeEffectiveDefenseBp(
   let numerator = 1n;
   for (let i = 0; i < factors.length; i++) {
     const factor = factors[i]!;
-    const slot = FACTOR_SLOT_NAMES[i]!;
+    const slot = ENGAGEMENT_FACTOR_SLOT_NAMES[i]!;
     const cap = FACTOR_CAPS_BP[slot];
     if (!SafeInt.isSafeInt(factor) || factor < 0 || factor > cap) {
       throw new BluewaveError(

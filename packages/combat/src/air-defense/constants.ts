@@ -202,6 +202,32 @@ export const CATEGORY_IDS = [...LAYER_IDS] as const;
 // Content version / hash for air-defense definitions
 export const AIR_DEFENSE_MODEL_VERSION = "air_defense_v1" as const;
 
+// ---- §1 Canonical defense-layer order (full) ----
+// The complete DESIGN-45 §1 layer order — CAP + the three SAM layers are deferred to the
+// E-track; the shipped AA resolution subset is DEFENSE_LAYER_ORDER in layer-resolution.js.
+// This full order is the §27.2 record-ordering key and the `layerOrder` in air_defense_v1.
+export const FULL_DEFENSE_LAYER_ORDER = [
+  "CAP",
+  "HEAVY_SAM",
+  "MEDIUM_SAM",
+  "LIGHT_SAM",
+  "HEAVY_AA",
+  "MEDIUM_AA",
+  "LIGHT_AA",
+  "CIWS_TERMINAL_DEFENSE",
+] as const;
+
+// ---- §19 Engagement formula version ----
+// Version of the authoritative §19 nine-factor formula (effectiveDefenseBp = floor(base ×
+// director × radar × crew × damage × ammunition × targetProfile × weather × saturation /
+// 10_000^8), floor once). Contracted by air_defense_v1.
+export const AIR_DEFENSE_FORMULA_VERSION = "air_defense_formula_v1" as const;
+
+// ---- Basis points ----
+// The universal basis-point scale of the air-defense ruleset (§19 multipliers, §6 severity
+// values, §12/§14/§16 tables). Contracted by air_defense_v1.
+export const AIR_DEFENSE_BASIS_POINTS = 10_000 as const;
+
 // ---- Engagement resolution formula constants ----
 // effectiveDefenseBp = floor(baseDefenseBp * director * radar * crew * damage * ammunition * targetProfile * weather * saturation / 10_000^8)
 // 10_000^8 = 10^32

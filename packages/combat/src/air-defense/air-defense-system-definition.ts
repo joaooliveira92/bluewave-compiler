@@ -8,6 +8,42 @@ import { BluewaveError, SafeInt } from "@bluewave/contracts";
 
 export const AIR_DEFENSE_RULESET_VERSION = "air_defense_v1" as const;
 
+/**
+ * The AirDefenseSystemDefinition schema field keys in strict schema declaration order
+ * (§3). Contracted verbatim by air_defense_v1 so a versioned contract pins the exact
+ * system-definition schema surface (ADR-0042 decision 12 consequence). Derived from the
+ * schema below — the list is asserted by the air_defense_v1 contract test to equal
+ * Object.keys(AirDefenseSystemDefinitionSchema.shape).
+ */
+export const AIR_DEFENSE_SYSTEM_DEFINITION_FIELD_KEYS = [
+  "systemId",
+  "layer",
+  "category",
+  "mountCount",
+  "barrels",
+  "rangeMinM",
+  "rangeMaxM",
+  "altitudeMinM",
+  "altitudeMaxM",
+  "targetSpeedLimitMps",
+  "arcDegreesMax",
+  "profileEligibility",
+  "fireControl",
+  "radar",
+  "engagementChannels",
+  "baseKillBp",
+  "baseDamageBp",
+  "baseAbortBp",
+  "baseDisruptionBp",
+  "rate",
+  "roundsPerEngagement",
+  "magazineCapacity",
+  "localControlSupported",
+  "saturationGroup",
+  "contentVersion",
+  "contentHash",
+] as const;
+
 // ---- Layer and category literals ----
 
 export const Layer = {
