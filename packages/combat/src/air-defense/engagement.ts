@@ -5,17 +5,34 @@
 //   * targetProfile * weather * saturation / 10_000^8)
 // The exact rational result MUST be rounded once with FLOOR (§19 line 326).
 //
-// Bound analysis (ENGINEERING-CONTRACT, gunnery precedent DESIGN-07/§3): every §19 factor
-// (base + 8 multipliers) is enforced by the function itself to be <= MAX_ENGAGEMENT_FACTOR_BP
-// = 31_000 (the shipped director maximum, §12) and non-negative. The raw numerator is
-// therefore <= 31_000 × 10_000^8 ≈ 3.1e37 (the documented bound — one 31_000 factor with all
-// others <= 10_000; a uniform 31_000 cap bounds it by 31_000^9 ≈ 2.6e40), far above
-// Number.MAX_SAFE_INTEGER (~9.0e15). This proves bigint necessary for the intermediate
-// product; the floored result is <= 31_000 (shipped mix; <= 2.7e8 even in the worst uniform
-// 31_000 case) and always fits a plain safe integer, so Number(rawFloored) never loses
-// precision. A defensive check throws if rawFloored ever exceeded MAX_SAFE_INTEGER. No
-// clamp: the design does not specify one — the raw floored value is returned and callers
-// interpret it.
+// Bound analysis (ENGINEERING-CONTRACT, gunnery precedent DESIGN-07/§3): the eight §19
+// multiplier slots fall into TWO policy classes (INC-4 bound repair, grounded in §14/§16):
+//   NORMAL class — director, crew, damage, ammunition, targetProfile, weather (and the base
+//   value): each is enforced by the function itself to be <= MAX_ENGAGEMENT_FACTOR_BP =
+//   31_000 (the shipped director maximum, §12) and non-negative. 31_000 is the largest
+//   shipped NORMAL-class factor; a factor above this cap is rejected fail-closed.
+//   SATURATION class — radar (§14) and saturation (§16): SafeInt AGGREGATES that
+//   legitimately exceed 31_000. The radar slot is the UNDIVIDED §14 marginal sum over the
+//   ship's radar-directed medium-AA groups (4 groups → 40_000, i.e. the exact rational
+//   effectiveRadarMediumAaGroups = 4.0 kept in the numerator); the saturation slot is the
+//   UNDIVIDED §16 CIWS redundancy marginal sum (4 systems → 40_000). Each marginal is
+//   <= 10_000 and the sum runs over the ship's actual group/system count, so realistic state
+//   sizes keep the aggregate a plain safe integer (structural bound — the caller feeds the
+//   actual aggregates). These slots are accepted WITHOUT the 31_000 limit; they still must
+//   be non-negative safe integers at the boundary.
+// The intermediate product therefore stays a bigint (the 10_000^8 denominator alone exceeds
+// Number range; with both saturation-class slots at the boundary the numerator can reach
+// ~31_000^7 × (9.007e15)^2 ≈ 2.2e63 — trivially within bigint and far above MAX_SAFE_INTEGER
+// ~9.0e15, proving bigint necessary). The FLOORED result is a small safe integer for
+// realistic state sizes: every NORMAL-class factor <= 31_000 and the saturation-class
+// rationals are proportional to the ship's group/system counts — e.g. the shipped
+// 4-director / 4-group / 4-CIWS optimum floors at ~500_000 for a neutral base
+// (10_000 × 3.1 × 4.0 × 4.0 = 496_000), and a fleet-scale 64+64 saturation mix stays well
+// below MAX_SAFE_INTEGER. A defensive check still throws if rawFloored would exceed
+// MAX_SAFE_INTEGER — reachable ONLY by pathological-but-legal saturation aggregates (both
+// slots near MAX_SAFE_INTEGER → floored ≈ 2.2e31), never by realistic state; it protects
+// callers from a silent Number precision loss. No clamp: the design does not specify one —
+// the raw floored value is returned and callers interpret it.
 //
 // Kill/damage/abort/disruption checks use ONE keyed random draw 0..9_999 (domain-separated
 // @bluewave/random stream) against an explicit mutually exclusive cumulative outcome table
@@ -60,21 +77,60 @@ export interface EngagementMultipliers {
   saturationBp: SafeInt;
 }
 
+// ---- Two-class factor bound policy (INC-4 repair; see module bound analysis) ----
+// Factor order for the nine numerator factors: [base, director, radar, crew, damage,
+// ammunition, targetProfile, weather, saturation] — the §19 product's written order.
+// NORMAL-class slots are capped at MAX_ENGAGEMENT_FACTOR_BP (31_000, the shipped director
+// maximum §12). SATURATION-class slots (radar §14, saturation §16) are unbounded by 31_000:
+// they carry the UNDIVIDED marginal sums (4 radar groups → 40_000; 4 CIWS systems → 40_000)
+// and are admitted as any non-negative safe integer (their structural bound — sum over the
+// ship's actual group/system count, each marginal <= 10_000 — lives at the caller, INC-5/6).
+const FACTOR_SLOT_NAMES = [
+  "base",
+  "director",
+  "radar",
+  "crew",
+  "damage",
+  "ammunition",
+  "targetProfile",
+  "weather",
+  "saturation",
+] as const;
+type FactorSlotName = (typeof FACTOR_SLOT_NAMES)[number];
+// Keyed by slot name (not a parallel array) so the product's written order and the cap set
+// cannot drift apart: adding a slot to FACTOR_SLOT_NAMES without assigning it a cap here is
+// a compile error (MEDIUM-2/LOW-4 alignment repair).
+const FACTOR_CAPS_BP: Readonly<Record<FactorSlotName, number>> = {
+  base: MAX_ENGAGEMENT_FACTOR_BP, // base — NORMAL
+  director: MAX_ENGAGEMENT_FACTOR_BP, // director — NORMAL
+  radar: Number.MAX_SAFE_INTEGER, // radar — SATURATION (§14 aggregate, no 31_000 limit)
+  crew: MAX_ENGAGEMENT_FACTOR_BP, // crew — NORMAL
+  damage: MAX_ENGAGEMENT_FACTOR_BP, // damage — NORMAL
+  ammunition: MAX_ENGAGEMENT_FACTOR_BP, // ammunition — NORMAL
+  targetProfile: MAX_ENGAGEMENT_FACTOR_BP, // targetProfile — NORMAL
+  weather: MAX_ENGAGEMENT_FACTOR_BP, // weather — NORMAL
+  saturation: Number.MAX_SAFE_INTEGER, // saturation — SATURATION (§16 aggregate, no 31_000 limit)
+};
+
 /**
  * AC-11: effectiveDefenseBp = floor(baseDefenseBp * Π multiplierBp / 10_000^8).
  * All 9 factors (base + 8 multipliers) are accumulated as a bigint numerator, divided once
  * by 10_000^8 (bigint division floors for non-negative values), and returned as a SafeInt.
- * Fail-closed boundaries: every factor must be a non-negative safe integer <=
- * MAX_ENGAGEMENT_FACTOR_BP (31_000, the shipped director maximum §12), which enforces the
- * documented numerator bound so Number(rawFloored) can never lose precision; a defensive
- * check also throws if the floored result ever exceeded MAX_SAFE_INTEGER. The result is the
- * raw floored value — never clamped (see module bound analysis).
+ * Fail-closed boundaries (TWO-CLASS policy, INC-4 repair): every NORMAL-class factor (base,
+ * director, crew, damage, ammunition, targetProfile, weather) must be a non-negative safe
+ * integer <= MAX_ENGAGEMENT_FACTOR_BP (31_000, the shipped director maximum §12); the
+ * SATURATION-class slots (radar §14, saturation §16) must be non-negative safe integers but
+ * are accepted WITHOUT the 31_000 limit — they carry the undivided §§14/16 marginal sums,
+ * which legitimately exceed 31_000 (4 radar groups → 40_000; 4 CIWS systems → 40_000; see
+ * module bound analysis). A defensive check also throws if the floored result ever exceeded
+ * MAX_SAFE_INTEGER (protects pathology). The result is the raw floored value — never clamped
+ * (see module bound analysis).
  */
 export function computeEffectiveDefenseBp(
   baseDefenseBp: SafeInt,
   multipliers: EngagementMultipliers,
 ): SafeInt {
-  const factors: readonly SafeInt[] = [
+  const factors: readonly number[] = [
     baseDefenseBp,
     multipliers.directorBp,
     multipliers.radarBp,
@@ -86,13 +142,18 @@ export function computeEffectiveDefenseBp(
     multipliers.saturationBp,
   ];
   let numerator = 1n;
-  for (const factor of factors) {
-    if (!SafeInt.isSafeInt(factor) || factor < 0 || factor > MAX_ENGAGEMENT_FACTOR_BP) {
+  for (let i = 0; i < factors.length; i++) {
+    const factor = factors[i]!;
+    const slot = FACTOR_SLOT_NAMES[i]!;
+    const cap = FACTOR_CAPS_BP[slot];
+    if (!SafeInt.isSafeInt(factor) || factor < 0 || factor > cap) {
       throw new BluewaveError(
-        `computeEffectiveDefenseBp: every factor must be a non-negative safe integer <= MAX_ENGAGEMENT_FACTOR_BP (${MAX_ENGAGEMENT_FACTOR_BP})`,
+        `computeEffectiveDefenseBp: every NORMAL-class factor must be a non-negative safe integer <= MAX_ENGAGEMENT_FACTOR_BP (${MAX_ENGAGEMENT_FACTOR_BP}); SATURATION-class factors (radar, saturation) must be non-negative safe integers (no 31_000 limit)`,
         {
           code: INVALID_AIR_DEFENSE_STATE,
+          slot,
           factor,
+          cap,
           maxFactorBp: MAX_ENGAGEMENT_FACTOR_BP,
         },
       );
@@ -102,8 +163,12 @@ export function computeEffectiveDefenseBp(
   // bigint integer division floors (all values non-negative).
   const rawFloored: bigint = numerator / ENGAGEMENT_FORMULA_DENOMINATOR;
   if (rawFloored > BigInt(Number.MAX_SAFE_INTEGER)) {
-    // Defensive: unreachable under the factor cap (floored result <= 2.7e8); guards against
-    // any future bound regression silently losing precision in Number(rawFloored).
+    // Defensive: the documented TWO-CLASS bounds allow the floored result to reach ~2.2e31
+    // (7 NORMAL factors at 31_000 × both SATURATION slots at MAX_SAFE_INTEGER →
+    // ~31_000^7 × (9.007e15)^2 / 1e32), which EXCEEDS MAX_SAFE_INTEGER — so this throw IS
+    // reachable by pathological-but-legal aggregate inputs and fires fail-closed rather than
+    // silently losing precision in Number(rawFloored). Realistic ship-scale inputs (floored
+    // <= ~1.5e6) never trip it.
     throw new BluewaveError("computeEffectiveDefenseBp: floored result exceeds MAX_SAFE_INTEGER", {
       code: INVALID_AIR_DEFENSE_STATE,
       rawFloored: rawFloored.toString(),

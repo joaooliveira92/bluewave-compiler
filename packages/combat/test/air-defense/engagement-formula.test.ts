@@ -218,7 +218,9 @@ describe("AC-11: engagement formula (§19)", () => {
     expect(computeEffectiveDefenseBp(SafeInt(10_000), m)).toBe(31_000);
   });
 
-  it("rejects a factor above MAX_ENGAGEMENT_FACTOR_BP (31_001) fail-closed", () => {
+  it("rejects a NORMAL-class factor above MAX_ENGAGEMENT_FACTOR_BP (31_001 director) fail-closed", () => {
+    // INC-4 repair: the 31_000 cap applies to the NORMAL-class slots (base, director, crew,
+    // damage, ammunition, targetProfile, weather). A director factor above it still throws.
     let caught: unknown;
     try {
       computeEffectiveDefenseBp(SafeInt(100), {
@@ -230,6 +232,7 @@ describe("AC-11: engagement formula (§19)", () => {
     }
     expect(caught).toBeInstanceOf(BluewaveError);
     expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
+    expect((caught as BluewaveError).context.slot).toBe("director");
   });
 
   it("the returned value never exceeds 31_000 under the shipped factor bounds", () => {
@@ -243,6 +246,106 @@ describe("AC-11: engagement formula (§19)", () => {
       }),
     ).toBe(31_000);
     expect(computeEffectiveDefenseBp(SafeInt(31_000), neutralMultipliers())).toBe(31_000);
+  });
+});
+
+describe("AC-11: two-class factor bound policy (INC-4 repair, §14/§16 saturation aggregates)", () => {
+  // Before INC-4 every factor was capped at 31_000 on the premise that "the director factor
+  // reaching 31_000 is the largest shipped factor". That premise is WRONG per §14/§16: the
+  // UNDIVIDED radar aggregate over 4 radar-directed medium-AA groups is 40_000 and the CIWS
+  // redundancy aggregate over 4 systems is 40_000 — both > 31_000. The repaired policy:
+  //   1. base + the six NORMAL-class multipliers (director, crew, damage, ammunition,
+  //      targetProfile, weather) ≤ MAX_ENGAGEMENT_FACTOR_BP (31_000) — unchanged, still
+  //      fail-closed above it;
+  //   2. radar and saturation are SATURATION-class SafeInt aggregates accepted WITHOUT the
+  //      31_000 limit (structural bound at the caller: sum over the ship's actual group /
+  //      system count, each marginal ≤ 10_000);
+  //   3. the defensive rawFloored > MAX_SAFE_INTEGER throw is retained.
+  it("(a) §14 rational embedding: base 100, all other factors neutral, radarBp=40_000 (4 groups) → 400", () => {
+    // effectiveRadarMediumAaGroups = Σ/10_000 = 40_000/10_000 = 4.0 exactly; §19 keeps the
+    // undivided sum in the numerator and rounds ONCE: floor(100 × 4.0) = 400.
+    const m = { ...neutralMultipliers(), radarBp: SafeInt(40_000) };
+    expect(computeEffectiveDefenseBp(SafeInt(100), m)).toBe(400);
+  });
+
+  it("(b) §16 rational embedding: base 100, all other factors neutral, saturationBp=40_000 (4 CIWS) → 400", () => {
+    const m = { ...neutralMultipliers(), saturationBp: SafeInt(40_000) };
+    expect(computeEffectiveDefenseBp(SafeInt(100), m)).toBe(400);
+  });
+
+  it("(c) mixed with the director factor: base 100, directorBp=18_000 (2 directors), radarBp=40_000 → 720", () => {
+    // 100 × 18_000 × 40_000 / 10_000^2 = 100 × 1.8 × 4.0 = 720 (all other factors neutral).
+    const m = { ...neutralMultipliers(), directorBp: SafeInt(18_000), radarBp: SafeInt(40_000) };
+    expect(computeEffectiveDefenseBp(SafeInt(100), m)).toBe(720);
+  });
+
+  it("the 9-group radar aggregate (55_500) is accepted and embeds the §14 rational 5.55", () => {
+    const m = { ...neutralMultipliers(), radarBp: SafeInt(55_500) };
+    expect(computeEffectiveDefenseBp(SafeInt(100), m)).toBe(555);
+  });
+
+  it("the 12-system CIWS aggregate (55_000) is accepted — §16 is not a construction cap", () => {
+    const m = { ...neutralMultipliers(), saturationBp: SafeInt(55_000) };
+    expect(computeEffectiveDefenseBp(SafeInt(100), m)).toBe(550);
+  });
+
+  it("SATURATION-class slots accept a value just above the 31_000 NORMAL cap (radarBp=31_001)", () => {
+    // The class distinction boundary: 31_001 is rejected for NORMAL-class slots but is a
+    // legal non-negative safe integer for the saturation-class slots.
+    const m = { ...neutralMultipliers(), radarBp: 31_001 as SafeInt };
+    expect(computeEffectiveDefenseBp(SafeInt(100), m)).toBe(310); // floor(100 × 3.1001)
+    const s = { ...neutralMultipliers(), saturationBp: 31_001 as SafeInt };
+    expect(computeEffectiveDefenseBp(SafeInt(100), s)).toBe(310);
+  });
+
+  it("a saturation aggregate beyond the shipped optimum is still exact: max-valid 4/4-scale, radar 4 groups + saturation 4 systems + director 4", () => {
+    // base 10_000 × 31_000 × 40_000 × 40_000 / 10_000^4 = 10_000 × 3.1 × 4.0 × 4.0 = 496_000.
+    const m = {
+      ...neutralMultipliers(),
+      directorBp: SafeInt(31_000),
+      radarBp: SafeInt(40_000),
+      saturationBp: SafeInt(40_000),
+    };
+    expect(computeEffectiveDefenseBp(SafeInt(10_000), m)).toBe(496_000);
+  });
+
+  it("the defensive rawFloored > MAX_SAFE_INTEGER throw still guards pathological saturation inputs", () => {
+    // Two MAX_SAFE_INTEGER saturation slots: rawFloored ≈ 100 × (9.0e15)² / 10_000² ≈ 8.1e25
+    // > MAX_SAFE_INTEGER — the defensive throw fires even though both slots passed the
+    // non-negative safe-integer boundary.
+    let caught: unknown;
+    try {
+      computeEffectiveDefenseBp(SafeInt(100), {
+        ...neutralMultipliers(),
+        radarBp: Number.MAX_SAFE_INTEGER as SafeInt,
+        saturationBp: Number.MAX_SAFE_INTEGER as SafeInt,
+      });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(BluewaveError);
+    expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
+  });
+
+  it("SATURATION-class slots still reject negatives and non-safe integers (fail-closed)", () => {
+    expect(() =>
+      computeEffectiveDefenseBp(SafeInt(100), {
+        ...neutralMultipliers(),
+        radarBp: -1 as SafeInt,
+      }),
+    ).toThrow();
+    expect(() =>
+      computeEffectiveDefenseBp(SafeInt(100), {
+        ...neutralMultipliers(),
+        saturationBp: -10_000 as SafeInt,
+      }),
+    ).toThrow();
+    expect(() =>
+      computeEffectiveDefenseBp(SafeInt(100), {
+        ...neutralMultipliers(),
+        radarBp: (Number.MAX_SAFE_INTEGER + 1) as SafeInt,
+      }),
+    ).toThrow();
   });
 });
 

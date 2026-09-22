@@ -208,11 +208,18 @@ export const AIR_DEFENSE_MODEL_VERSION = "air_defense_v1" as const;
 export const FORMULA_DENOMINATOR = 10_000 as const;
 export const FORMULA_EXPONENT = 8 as const;
 
-// Maximum allowed value for ANY §19 formula factor (base + 8 multipliers), in basis points.
-// The shipped director factor reaches 31_000 (§12: 4 directors → 31_000 aggregate directed-
-// fire value) — the largest shipped factor. computeEffectiveDefenseBp rejects any factor
-// above this cap (REPAIR/LOW-4), which makes the documented numerator bound enforceable by
-// the function itself so Number(rawFloored) can never lose precision.
+// Maximum allowed value for the §19 NORMAL-class formula factors, in basis points — the base
+// value plus the six non-saturation multiplier slots (director, crew, damage, ammunition,
+// targetProfile, weather). The shipped director factor reaches 31_000 (§12: 4 directors →
+// 31_000 aggregate directed-fire value) — the largest shipped NORMAL-class factor.
+// computeEffectiveDefenseBp rejects any NORMAL-class factor above this cap fail-closed.
+// The SATURATION-class slots (radar §14, saturation §16) are SafeInt AGGREGATES that
+// legitimately EXCEED 31_000 — the undivided §14 marginal sum over the ship's radar-directed
+// medium-AA groups (4 groups → 40_000 = the exact rational 4.0) and the undivided §16 CIWS
+// redundancy sum (4 systems → 40_000) — and are accepted WITHOUT this limit (INC-4 bound
+// repair; structural bound: the sum over the ship's actual radar-directed group / CIWS
+// system count, each marginal <= 10_000, so realistic counts keep the sum a plain safe
+// integer).
 export const MAX_ENGAGEMENT_FACTOR_BP = 31_000 as const;
 
 // ---- Crew quality constants ----
