@@ -284,6 +284,7 @@ describe("AirDefenseSystemDefinition", () => {
         altitudeMinM: 0,
         altitudeMaxM: 10_000,
         targetSpeedLimitMps: 500,
+        arcDegreesMax: 360,
         profileEligibility: new Set(["CA"]),
         fireControl: {
           trackingRangeM: 25_000,

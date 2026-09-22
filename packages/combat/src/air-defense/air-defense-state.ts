@@ -94,6 +94,7 @@ export function computeAirDefenseStateHash(state: AirDefenseState): string {
       altitudeMinM: sys.altitudeMinM,
       altitudeMaxM: sys.altitudeMaxM,
       targetSpeedLimitMps: sys.targetSpeedLimitMps,
+      arcDegreesMax: sys.arcDegreesMax,
       profileEligibility: Array.from(sys.profileEligibility).sort(),
       fireControl: {
         trackingRangeM: sys.fireControl.trackingRangeM,

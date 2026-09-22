@@ -85,6 +85,7 @@ export interface AirDefenseSystemDefinition {
   altitudeMinM: SafeInt;
   altitudeMaxM: SafeInt;
   targetSpeedLimitMps: SafeInt;
+  arcDegreesMax: SafeInt; // 0-360 degrees; maximum angular offset (bearing) the mount can engage
   profileEligibility: ReadonlySet<string>;
   fireControl: {
     trackingRangeM: SafeInt;
@@ -137,6 +138,8 @@ const AirDefenseSystemDefinitionSchema = z
     targetSpeedLimitMps: safeIntSchema("targetSpeedLimitMps must be a non-negative integer", {
       nonNegative: true,
     }),
+
+    arcDegreesMax: safeIntSchema("arcDegreesMax must be 0-360", { min: 0, max: 360 }),
 
     profileEligibility: z
       .set(z.string())
@@ -264,6 +267,7 @@ export function createAirDefenseSystemDefinition(
     altitudeMinM: params.altitudeMinM ?? SafeInt.ZERO,
     altitudeMaxM: params.altitudeMaxM ?? SafeInt(30_000),
     targetSpeedLimitMps: params.targetSpeedLimitMps ?? SafeInt(500),
+    arcDegreesMax: params.arcDegreesMax ?? SafeInt(360),
     profileEligibility: params.profileEligibility ?? new Set(["DEFAULT"]),
     fireControl: params.fireControl ?? {
       trackingRangeM: SafeInt(10_000),

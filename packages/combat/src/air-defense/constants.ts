@@ -4,10 +4,18 @@
 
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
 
-// ---- §3 Protected radius ----
+// ---- §7 Heavy AA protected radius ----
+// DESIGN-45 §7: the permitted protected radius is 3..8 nautical miles; the shipped value is
+// exactly 5. RESOLUTION (INC-2): the INC-1 PROTECTED_RADIUS constant deferred the unit
+// decision (m vs nm); §7 states the radius in nautical miles, so the authoritative shipped
+// value is exactly 5 nm = 5 × 1_852 m = 9_260 m (exact product, kept as a literal).
+export const NAUTICAL_MILE_M = 1_852 as const;
+export const HEAVY_AA_PROTECTED_RADIUS_NM = 5 as const;
+export const HEAVY_AA_PROTECTED_RADIUS_M = 9_260 as const;
 
-// Protected radius for heavy AA engagement (meters) — own ship or protected nearby ship
-export const PROTECTED_RADIUS = 5_000 as const;
+// ---- §8 Medium AA fire-control requirement ----
+// Medium AA may engage only when the fire-control solution is at least 4_000 basis points.
+export const MEDIUM_AA_FIRE_CONTROL_MINIMUM_BP = 4_000 as const;
 
 // ---- §12 Director scaling table ----
 // Director strength index → scaling value (basis points)
