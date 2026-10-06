@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — System definitions + state model + constants
 
-**Status:** DONE
+**Status:** DONE (2026-09-22 — PASS). Evidence: `.ai/reports/d4-m4-air-defense-inc2-layer-resolution.md`. ADR-0042.
 
 - [x] AC-3: Layers resolve in HEAVY→MEDIUM→LIGHT→CIWS order
 - [x] AC-4: Heavy AA protects own ship + 5nm protected radius

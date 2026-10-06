@@ -609,7 +609,7 @@ describe("AirDefenseState", () => {
       expect(state.disruptionRecords).toEqual([]);
     });
 
-    it("should initialize Maps to empty", () => {
+    it("should initialize Maps (ammunition seeded to magazineCapacity; others empty)", () => {
       const system = createAirDefenseSystemDefinition({
         systemId: "sys_001",
         layer: Layer.HEAVY_AA,
@@ -636,7 +636,10 @@ describe("AirDefenseState", () => {
         SafeInt(10_000),
       );
 
-      expect(state.ammunitionByType.size).toBe(0);
+      // Repair MEDIUM-1: each system's magazine is seeded to its magazineCapacity (the
+      // initial ready load, §20/§29.21), so ammunitionByType is NOT empty at construction.
+      expect(state.ammunitionByType.size).toBe(1);
+      expect(Number(state.ammunitionByType.get("sys_001"))).toBe(1_000); // default magazineCapacity
       expect(state.targetAllocations.size).toBe(0);
       expect(state.channelReservations.size).toBe(0);
     });

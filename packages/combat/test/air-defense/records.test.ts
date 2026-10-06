@@ -1,124 +1,280 @@
 // packages/combat/test/air-defense/records.test.ts
-// AC-15: AirDefenseEngagementRecord per DESIGN-45 §26.
+// AC-15 (INC-5): AirDefenseEngagementRecord per DESIGN-45 §26 — immutable, hashed, kind
+// coverage, and the AC-7 guaranteed light-AA disruption opportunity record factory.
 import { describe, expect, it } from "vite-plus/test";
-import { SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import {
+  AttackType,
   createAirDefenseEngagementRecord,
-  computeAirDefenseEngagementRecordHash,
+  createLightAaDisruptionOpportunityRecord,
   verifyAirDefenseEngagementRecordHash,
   assertAirDefenseEngagementRecordHash,
-  outcomeEffectOrdinal,
+  computeAirDefenseEngagementRecordHash,
+  airDefenseOutcomeOrdinal,
+  AIR_DEFENSE_INVARIANT_FAILED,
+  AIR_DEFENSE_FORMULA_VERSION,
+  AIR_DEFENSE_MODEL_VERSION,
   AIR_DEFENSE_RECORD_POLICY_ID,
-  type AirDefenseEngagementRecord,
+  LIGHT_AA_DISRUPTION_OPPORTUNITY_CREATED,
 } from "../../src/air-defense/index.js";
-import { AIR_DEFENSE_RULESET_VERSION } from "../../src/air-defense/index.js";
+import type { AirDefenseEngagementRecord } from "../../src/air-defense/index.js";
 
-const TEST_FORMULA_VERSION = "air_defense_formula_v1" as const;
-
-function makeDefaultRecordParams() {
+function makeRecordParams(overrides: Record<string, unknown> = {}) {
   return {
-    battleMinute: SafeInt(5),
+    recordId: "rec-ad-001",
+    minute: SafeInt(12),
     substep: SafeInt(1),
-    defenderId: "ship-001",
-    attackerId: "atk-001",
-    attackType: "AIRCRAFT_DIVE_BOMBING",
-    terminalProfile: "DIVE",
-    layer: "LIGHT_AA" as const,
-    systemId: "sys-01",
-    directorState: "OPERATIONAL",
-    radarState: "OPERATIONAL",
-    crewQualityBp: SafeInt(8_000),
-    damageState: "OPERATIONAL",
-    powerState: "OPERATIONAL",
-    ammunitionState: "AVAILABLE",
-    timingMs: SafeInt(1_000),
-    channelId: "ch-1",
-    directorScalingBp: SafeInt(10_000),
-    radarSaturationBp: SafeInt(10_000),
-    ciwsRedundancyBp: SafeInt(10_000),
-    outcomeProbabilityBp: SafeInt(1_000),
-    randomDrawBp: SafeInt(500),
-    outcome: "DISRUPTION" as const,
-    disruptionSeverity: "LIGHT" as const,
-    formulaVersion: TEST_FORMULA_VERSION,
-    rulesetVersion: AIR_DEFENSE_RULESET_VERSION,
-    policyId: AIR_DEFENSE_RECORD_POLICY_ID,
+    defenderId: "ship_001",
+    attackerId: "frm_lvl_001",
+    attackId: "atk_001",
+    targetId: "ship_001",
+    attackType: AttackType.AIRCRAFT_LEVEL_BOMBING,
+    attackProfile: "LEVEL",
+    layer: "HEAVY_AA",
+    defenseSystemId: "sys_heavy_01",
+    directorChannelId: "dir_01",
+    radarChannelId: "radar_01",
+    directorFactorBp: SafeInt(31_000),
+    radarFactorBp: SafeInt(10_000),
+    saturationFactorBp: SafeInt(10_000),
+    crewQuality: SafeInt(10_000),
+    damageBp: SafeInt.ZERO,
+    powerBp: SafeInt(10_000),
+    roundsRemaining: SafeInt(1_000),
+    roundsConsumed: SafeInt(4),
+    ammunitionMultiplierBp: SafeInt(10_000),
+    timeToImpactMs: SafeInt(120_000),
+    windowMilliseconds: SafeInt(0), // heavy AA windows no window concept; 0 = not applicable
+    effectiveKillBp: SafeInt(380),
+    effectiveDamageBp: SafeInt(190),
+    effectiveAbortBp: SafeInt(114),
+    effectiveDisruptionBp: SafeInt(57),
+    draw: SafeInt(123),
+    outcome: "DAMAGE",
+    disruptionSeverity: null,
+    threatReleased: false,
+    threatFormationSize: SafeInt(2),
+    reasonCode: "AIR_DEFENSE_CHANNEL_UNAVAILABLE",
+    outcomeOrdinal: airDefenseOutcomeOrdinal("DAMAGE"),
+    recordKind: "ENGAGEMENT",
+    modelVersion: AIR_DEFENSE_MODEL_VERSION,
+    formulaVersion: AIR_DEFENSE_FORMULA_VERSION,
+    ...overrides,
   };
 }
 
-describe("AC-15: AirDefenseEngagementRecord", () => {
-  it("creates a record with all fields and a non-empty deterministic recordHash", () => {
-    const record = createAirDefenseEngagementRecord(makeDefaultRecordParams());
-    expect(record.defenderId).toBe("ship-001");
-    expect(record.attackerId).toBe("atk-001");
-    expect(Number(record.battleMinute)).toBe(5);
+function makeRecord(overrides: Record<string, unknown> = {}): AirDefenseEngagementRecord {
+  return createAirDefenseEngagementRecord(
+    makeRecordParams(overrides) as Parameters<typeof createAirDefenseEngagementRecord>[0],
+  );
+}
+
+describe("AC-15: AirDefenseEngagementRecord (§26)", () => {
+  it("creates a record with all §26 fields and a non-empty deterministic recordHash", () => {
+    const record = makeRecord();
+    expect(record.recordId).toBe("rec-ad-001");
+    expect(Number(record.minute)).toBe(12);
     expect(Number(record.substep)).toBe(1);
+    expect(record.defenderId).toBe("ship_001");
+    expect(record.attackerId).toBe("frm_lvl_001");
     expect(record.recordHash).toBeTruthy();
     expect(record.recordHash.length).toBe(64);
   });
 
-  it("verify returns true for valid record", () => {
-    const record = createAirDefenseEngagementRecord(makeDefaultRecordParams());
-    expect(verifyAirDefenseEngagementRecordHash(record)).toBe(true);
+  it("two identical records produce identical hashes; different fields differ", () => {
+    expect(makeRecord().recordHash).toBe(
+      createAirDefenseEngagementRecord(
+        makeRecordParams() as Parameters<typeof createAirDefenseEngagementRecord>[0],
+      ).recordHash,
+    );
+    expect(makeRecord({ attackId: "atk_002" }).recordHash).not.toBe(makeRecord().recordHash);
   });
 
-  it("verify returns false for tampered record", () => {
-    const record = createAirDefenseEngagementRecord(makeDefaultRecordParams());
+  it("computeAirDefenseEngagementRecordHash is deterministic", () => {
+    const params = makeRecordParams();
+    expect(computeAirDefenseEngagementRecordHash(params as never)).toBe(
+      computeAirDefenseEngagementRecordHash(params as never),
+    );
+  });
+
+  it("records are immutable (Object.freeze)", () => {
+    const record = makeRecord();
+    expect(Object.isFrozen(record)).toBe(true);
+  });
+
+  it("verifyAirDefenseEngagementRecordHash true for valid, false for tampered", () => {
+    const record = makeRecord();
+    expect(verifyAirDefenseEngagementRecordHash(record)).toBe(true);
     const tampered: AirDefenseEngagementRecord = {
       ...record,
-      systemId: "tampered-system-id",
+      defenseSystemId: "sys_heavy_02",
     };
     expect(verifyAirDefenseEngagementRecordHash(tampered)).toBe(false);
   });
 
-  it("assert throws when hash is invalid", () => {
-    const record = createAirDefenseEngagementRecord(makeDefaultRecordParams());
-    const tampered: AirDefenseEngagementRecord = {
-      ...record,
-      channelId: "tampered",
+  it("assertAirDefenseEngagementRecordHash fails tampered records with AIR_DEFENSE_INVARIANT_FAILED", () => {
+    const record = makeRecord();
+    const tampered: AirDefenseEngagementRecord = { ...record, reasonCode: "TAMPERED" };
+    let caught: BluewaveError | null = null;
+    try {
+      assertAirDefenseEngagementRecordHash(tampered);
+    } catch (error) {
+      caught = error as BluewaveError;
+    }
+    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(caught?.context.code).toBe(AIR_DEFENSE_INVARIANT_FAILED);
+  });
+
+  it("supports every §26 record kind", () => {
+    for (const recordKind of [
+      "ENGAGEMENT",
+      "CAP_INTERCEPTION_INELIGIBLE",
+      "CAP_EXHAUSTED",
+      "DIRECTOR_ASSIGNMENT",
+      "DISRUPTION",
+      "CIWS_ENGAGEMENT",
+    ]) {
+      const record = makeRecord({ recordKind });
+      expect(record.recordKind).toBe(recordKind);
+      expect(verifyAirDefenseEngagementRecordHash(record)).toBe(true);
+    }
+  });
+
+  it("handles null director/radar channels", () => {
+    const record = makeRecord({ directorChannelId: null, radarChannelId: null });
+    expect(record.directorChannelId).toBeNull();
+    expect(record.radarChannelId).toBeNull();
+    expect(verifyAirDefenseEngagementRecordHash(record)).toBe(true);
+  });
+
+  it("carries the full §1 layer union, including the deferred CAP/SAM layers", () => {
+    for (const layer of [
+      "CAP",
+      "HEAVY_SAM",
+      "MEDIUM_SAM",
+      "LIGHT_SAM",
+      "HEAVY_AA",
+      "MEDIUM_AA",
+      "LIGHT_AA",
+      "CIWS_TERMINAL_DEFENSE",
+    ]) {
+      const record = makeRecord({ layer });
+      expect(record.layer).toBe(layer);
+      expect(verifyAirDefenseEngagementRecordHash(record)).toBe(true);
+    }
+  });
+
+  it("pins the record policy id and the model/formula versions into every record", () => {
+    const record = makeRecord();
+    expect(record.modelVersion).toBe(AIR_DEFENSE_MODEL_VERSION);
+    expect(record.formulaVersion).toBe(AIR_DEFENSE_FORMULA_VERSION);
+    expect(AIR_DEFENSE_RECORD_POLICY_ID).toBe("air_defense_record_v1");
+  });
+
+  describe("outcome-effect ordinals (§27.8)", () => {
+    it("orders outcomes by increasing effect strength", () => {
+      const cases: Array<[string, number]> = [
+        ["INELIGIBLE", 0],
+        ["EXHAUSTED", 1],
+        ["DIRECTOR_ASSIGNED", 2],
+        ["OPPORTUNITY_CREATED", 3],
+        ["NO_EFFECT", 4],
+        ["DISRUPTION", 5],
+        ["ABORT", 6],
+        ["DAMAGE", 7],
+        ["KILL", 8],
+      ];
+      for (const [outcome, ordinal] of cases) {
+        expect(Number(airDefenseOutcomeOrdinal(outcome as never))).toBe(ordinal);
+      }
+    });
+
+    it("monotonic: KILL beats DAMAGE beats NO_EFFECT beats OPPORTUNITY_CREATED", () => {
+      expect(Number(airDefenseOutcomeOrdinal("KILL"))).toBeGreaterThan(
+        Number(airDefenseOutcomeOrdinal("DAMAGE")),
+      );
+      expect(Number(airDefenseOutcomeOrdinal("DAMAGE"))).toBeGreaterThan(
+        Number(airDefenseOutcomeOrdinal("NO_EFFECT")),
+      );
+      expect(Number(airDefenseOutcomeOrdinal("NO_EFFECT"))).toBeGreaterThan(
+        Number(airDefenseOutcomeOrdinal("OPPORTUNITY_CREATED")),
+      );
+    });
+  });
+
+  describe("AC-7 opportunity record factory (§29.8-9)", () => {
+    const opportunity = {
+      opportunityCreated: true,
+      checkMinute: SafeInt(12),
+      checkSubstep: SafeInt(1),
+      reasonCode: LIGHT_AA_DISRUPTION_OPPORTUNITY_CREATED,
     };
-    expect(() => assertAirDefenseEngagementRecordHash(tampered)).toThrow();
-  });
 
-  it("two identical records produce identical hashes", () => {
-    const params = makeDefaultRecordParams();
-    const record1 = createAirDefenseEngagementRecord(params);
-    const record2 = createAirDefenseEngagementRecord(params);
-    expect(record1.recordHash).toBe(record2.recordHash);
-  });
+    function opportunityRecord(overrides: Record<string, unknown> = {}) {
+      return createLightAaDisruptionOpportunityRecord({
+        opportunity,
+        recordId: "rec-light-opp-001",
+        defenderId: "ship_001",
+        attackerId: "frm_lvl_001",
+        attackId: "atk_001",
+        targetId: "ship_001",
+        attackType: AttackType.AIRCRAFT_LEVEL_BOMBING,
+        attackProfile: "LEVEL",
+        defenseSystemId: "sys_light_01",
+        directorChannelId: "dir_01",
+        radarChannelId: null,
+        directorFactorBp: SafeInt(10_000),
+        radarFactorBp: SafeInt(10_000),
+        saturationFactorBp: SafeInt(10_000),
+        crewQuality: SafeInt(10_000),
+        damageBp: SafeInt.ZERO,
+        powerBp: SafeInt(10_000),
+        roundsRemaining: SafeInt(1_000),
+        ammunitionMultiplierBp: SafeInt(10_000),
+        timeToImpactMs: SafeInt(120_000),
+        windowMilliseconds: SafeInt(120_000),
+        effectiveKillBp: SafeInt(20),
+        effectiveDamageBp: SafeInt(10),
+        effectiveAbortBp: SafeInt(5),
+        effectiveDisruptionBp: SafeInt(3),
+        threatReleased: false,
+        threatFormationSize: SafeInt(2),
+        ...overrides,
+      });
+    }
 
-  it("records with different fields produce different hashes", () => {
-    const record1 = createAirDefenseEngagementRecord(makeDefaultRecordParams());
-    const record2 = createAirDefenseEngagementRecord({
-      ...makeDefaultRecordParams(),
-      defenderId: "ship-999",
+    it("creates an immutable, verifiable record for a GRANTED opportunity", () => {
+      const record = opportunityRecord();
+      expect(record.recordKind).toBe("LIGHT_AA_DISRUPTION_OPPORTUNITY");
+      expect(record.layer).toBe("LIGHT_AA");
+      expect(record.outcome).toBe("OPPORTUNITY_CREATED");
+      expect(record.minute).toBe(SafeInt(12));
+      expect(record.substep).toBe(SafeInt(1));
+      expect(record.reasonCode).toBe(LIGHT_AA_DISRUPTION_OPPORTUNITY_CREATED);
+      expect(Number(record.outcomeOrdinal)).toBe(
+        Number(airDefenseOutcomeOrdinal("OPPORTUNITY_CREATED")),
+      );
+      expect(verifyAirDefenseEngagementRecordHash(record)).toBe(true);
+      expect(Object.isFrozen(record)).toBe(true);
     });
-    expect(record1.recordHash).not.toBe(record2.recordHash);
-  });
 
-  it("hash is computed deterministically", () => {
-    const hash1 = computeAirDefenseEngagementRecordHash(makeDefaultRecordParams());
-    const hash2 = computeAirDefenseEngagementRecordHash(makeDefaultRecordParams());
-    expect(hash1).toBe(hash2);
-  });
-
-  it("supports different layers and outcomes", () => {
-    const record = createAirDefenseEngagementRecord({
-      ...makeDefaultRecordParams(),
-      layer: "CIWS_TERMINAL_DEFENSE",
-      outcome: "KILL",
-      disruptionSeverity: null,
+    it("guarantees NO ammunition, hit, damage, or abort (§29.9): draw=0, roundsConsumed=0", () => {
+      const record = opportunityRecord();
+      expect(Number(record.roundsConsumed)).toBe(0);
+      expect(Number(record.draw)).toBe(0);
+      expect(record.disruptionSeverity).toBeNull();
+      expect(record.outcome).toBe("OPPORTUNITY_CREATED");
     });
-    expect(record.layer).toBe("CIWS_TERMINAL_DEFENSE");
-    expect(record.outcome).toBe("KILL");
-    expect(record.disruptionSeverity).toBeNull();
-  });
 
-  it("outcomeEffectOrdinal: KILL=0, DAMAGE=1, ABORT=2, DISRUPTION=3, NO_EFFECT=4", () => {
-    expect(outcomeEffectOrdinal("KILL")).toBe(0);
-    expect(outcomeEffectOrdinal("DAMAGE")).toBe(1);
-    expect(outcomeEffectOrdinal("ABORT")).toBe(2);
-    expect(outcomeEffectOrdinal("DISRUPTION")).toBe(3);
-    expect(outcomeEffectOrdinal("NO_EFFECT")).toBe(4);
+    it("rejects a NOT-created opportunity with AIR_DEFENSE_INVARIANT_FAILED", () => {
+      let caught: BluewaveError | null = null;
+      try {
+        opportunityRecord({ opportunity: { ...opportunity, opportunityCreated: false } });
+      } catch (error) {
+        caught = error as BluewaveError;
+      }
+      expect(caught).toBeInstanceOf(BluewaveError);
+      expect(caught?.context.code).toBe(AIR_DEFENSE_INVARIANT_FAILED);
+    });
   });
 });

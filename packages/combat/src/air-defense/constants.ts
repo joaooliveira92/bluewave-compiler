@@ -3,18 +3,19 @@
 // Parallel to air-combat/constants.ts pattern.
 
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
-import { INVALID_AIR_DEFENSE_SYSTEM_DEFINITION } from "./reason-codes.js";
 
-// ---- §7 Protected radius ----
-
-// Protected radius for heavy AA engagement (meters) — own ship or protected nearby ship.
-// DESIGN-45 §7: permitted range 3..8 nm, shipped value exactly 5 nm.
-// 1 nautical mile = 1852 m (exact, international definition).
-// 5 nm = 5 × 1852 = 9260 m.
-export const PROTECTED_RADIUS = 9_260 as const;
-
-/** 1 nautical mile in meters (exact international definition). */
+// ---- §7 Heavy AA protected radius ----
+// DESIGN-45 §7: the permitted protected radius is 3..8 nautical miles; the shipped value is
+// exactly 5. RESOLUTION (INC-2): the INC-1 PROTECTED_RADIUS constant deferred the unit
+// decision (m vs nm); §7 states the radius in nautical miles, so the authoritative shipped
+// value is exactly 5 nm = 5 × 1_852 m = 9_260 m (exact product, kept as a literal).
 export const NAUTICAL_MILE_M = 1_852 as const;
+export const HEAVY_AA_PROTECTED_RADIUS_NM = 5 as const;
+export const HEAVY_AA_PROTECTED_RADIUS_M = 9_260 as const;
+
+// ---- §8 Medium AA fire-control requirement ----
+// Medium AA may engage only when the fire-control solution is at least 4_000 basis points.
+export const MEDIUM_AA_FIRE_CONTROL_MINIMUM_BP = 4_000 as const;
 
 // ---- §12 Director scaling table ----
 // Director strength index → scaling value (basis points)
@@ -98,7 +99,6 @@ export const LIGHT_AA_WINDOW_DURATIONS = {
   TORPEDO: 120, // 2-minute window = 120 seconds
   SKIP: 60, // 1-minute window = 60 seconds
   ROCKET: 60, // 1-minute window = 60 seconds
-  GUIDED_WEAPON: 60, // 1-minute window = 60 seconds (§9: aircraft-delivered guided weapon)
 } as const;
 
 // ---- §9 Light AA speed bands (knots) ----
@@ -202,43 +202,88 @@ export const CATEGORY_IDS = [...LAYER_IDS] as const;
 // Content version / hash for air-defense definitions
 export const AIR_DEFENSE_MODEL_VERSION = "air_defense_v1" as const;
 
-// ---- Engagement resolution formula constants (§19, AC-11) ----
+// ---- §1 Canonical defense-layer order (full) ----
+// The complete DESIGN-45 §1 layer order — CAP + the three SAM layers are deferred to the
+// E-track; the shipped AA resolution subset is DEFENSE_LAYER_ORDER in layer-resolution.js.
+// This full order is the §27.2 record-ordering key and the `layerOrder` in air_defense_v1.
+export const FULL_DEFENSE_LAYER_ORDER = [
+  "CAP",
+  "HEAVY_SAM",
+  "MEDIUM_SAM",
+  "LIGHT_SAM",
+  "HEAVY_AA",
+  "MEDIUM_AA",
+  "LIGHT_AA",
+  "CIWS_TERMINAL_DEFENSE",
+] as const;
+
+// ---- §19 Engagement formula version ----
+// Version of the authoritative §19 nine-factor formula (effectiveDefenseBp = floor(base ×
+// director × radar × crew × damage × ammunition × targetProfile × weather × saturation /
+// 10_000^8), floor once). Contracted by air_defense_v1.
+export const AIR_DEFENSE_FORMULA_VERSION = "air_defense_formula_v1" as const;
+
+// ---- Basis points ----
+// The universal basis-point scale of the air-defense ruleset (§19 multipliers, §6 severity
+// values, §12/§14/§16 tables). Contracted by air_defense_v1.
+export const AIR_DEFENSE_BASIS_POINTS = 10_000 as const;
+
+// ---- Engagement resolution formula constants ----
 // effectiveDefenseBp = floor(baseDefenseBp * director * radar * crew * damage * ammunition * targetProfile * weather * saturation / 10_000^8)
-// 10_000^8 = 10^32 — bigint required (exceeds Number.MAX_SAFE_INTEGER).
+// 10_000^8 = 10^32
 export const FORMULA_DENOMINATOR = 10_000 as const;
 export const FORMULA_EXPONENT = 8 as const;
-export const ENGAGEMENT_FORMULA_SCALE_EXPONENT = 8 as const;
-export const ENGAGEMENT_FORMULA_DENOMINATOR: bigint =
-  10_000n ** BigInt(ENGAGEMENT_FORMULA_SCALE_EXPONENT);
+
+// Maximum allowed value for the §19 NORMAL-class formula factors, in basis points — the base
+// value plus the six non-saturation multiplier slots (director, crew, damage, ammunition,
+// targetProfile, weather). The shipped director factor reaches 31_000 (§12: 4 directors →
+// 31_000 aggregate directed-fire value) — the largest shipped NORMAL-class factor.
+// computeEffectiveDefenseBp rejects any NORMAL-class factor above this cap fail-closed.
+// The SATURATION-class slots (radar §14, saturation §16) are SafeInt AGGREGATES that
+// legitimately EXCEED 31_000 — the undivided §14 marginal sum over the ship's radar-directed
+// medium-AA groups (4 groups → 40_000 = the exact rational 4.0) and the undivided §16 CIWS
+// redundancy sum (4 systems → 40_000) — and are accepted WITHOUT this limit (INC-4 bound
+// repair; structural bound: the sum over the ship's actual radar-directed group / CIWS
+// system count, each marginal <= 10_000, so realistic counts keep the sum a plain safe
+// integer).
+export const MAX_ENGAGEMENT_FACTOR_BP = 31_000 as const;
 
 // ---- Crew quality constants ----
 export const CREW_QUALITY_MIN = 0 as const;
 export const CREW_QUALITY_MAX = 10_000 as const;
 
-// ---- §21 Local control multiplier (AC-14) ----
-// "An intact gun with a destroyed director may use local control only when its
-// definition provides an exact local-control multiplier." Shipped value: 5_000 bp.
-export const LOCAL_CONTROL_MULTIPLIER_BP = 5_000 as const;
-
-// ---- §6 Disruption severity mappings (AC-12) ----
-// Shipped disruption levels with their accuracy and cohesion multipliers (bp).
-// MISSION_ABORT: attack does not proceed (no multipliers needed).
-export const DISRUPTION_SEVERITY_MAP = {
-  LIGHT: { accuracyMultiplierBp: 9_000, cohesionMultiplierBp: 9_500 },
-  MODERATE: { accuracyMultiplierBp: 7_500, cohesionMultiplierBp: 8_500 },
-  SEVERE: { accuracyMultiplierBp: 5_000, cohesionMultiplierBp: 6_500 },
-  MISSION_ABORT: { accuracyMultiplierBp: 0, cohesionMultiplierBp: 0 },
+// ---- §6 Disruption severity multipliers (accuracy/cohesion, basis points) ----
+// Canonical shipped levels (§6 lines 118-123): LIGHT 9_000/9_500, MODERATE 7_500/8_500,
+// SEVERE 5_000/6_500, MISSION_ABORT → attack does not proceed (0/0).
+export const DISRUPTION_MULTIPLIERS = {
+  LIGHT: { accuracyBp: 9_000, cohesionBp: 9_500 },
+  MODERATE: { accuracyBp: 7_500, cohesionBp: 8_500 },
+  SEVERE: { accuracyBp: 5_000, cohesionBp: 6_500 },
+  MISSION_ABORT: { accuracyBp: 0, cohesionBp: 0 },
 } as const;
 
-// ---- §6 Disruption severity ordinal for stacking comparison ----
-// Higher ordinal = more severe. Used to select highest severity within one layer.
-export const DISRUPTION_SEVERITY_ORDINAL: Record<string, number> = {
-  LIGHT: 1,
-  MODERATE: 2,
-  SEVERE: 3,
-  MISSION_ABORT: 4,
-};
+// ---- §21 Simplified system-level damage multipliers ----
+// The simplified §21 model (spec §1.1 item 16) folds weapon/director/radar/power/feed/
+// stabilization damage into a single system-level status with one multiplier each:
+//   OPERATIONAL → 10_000, DAMAGED → 5_000, DESTROYED → 0.
+export const OPERATIONAL_MULTIPLIER_BP = 10_000 as const;
+export const DAMAGED_MULTIPLIER_BP = 5_000 as const;
+export const DESTROYED_MULTIPLIER_BP = 0 as const;
+
+// ---- §21 Local control multiplier ----
+// "An intact gun with a destroyed director may use local control only when its definition
+// provides an exact local-control multiplier. The shipped local-control multiplier is 5_000
+// basis points" (§21 line 363). Only applies when the system definition sets
+// localControlSupported = true; otherwise the neutral 10_000 applies.
+export const LOCAL_CONTROL_MULTIPLIER_BP = 5_000 as const;
 
 // ---- State hash ----
 // SHA-256 hex output length
 export const STATE_HASH_LENGTH = 64 as const;
+
+// ---- Required reason codes (DESIGN-45 §28) ----
+// Missing or inconsistent air-defense state MUST fail with INVALID_AIR_DEFENSE_STATE.
+export const INVALID_AIR_DEFENSE_STATE = "INVALID_AIR_DEFENSE_STATE" as const;
+// Missing air-defense system metadata MUST fail with INVALID_AIR_DEFENSE_SYSTEM_DEFINITION.
+export const INVALID_AIR_DEFENSE_SYSTEM_DEFINITION =
+  "INVALID_AIR_DEFENSE_SYSTEM_DEFINITION" as const;

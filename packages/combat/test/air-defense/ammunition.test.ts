@@ -1,215 +1,225 @@
 // packages/combat/test/air-defense/ammunition.test.ts
-// AC-13: Ammunition consumption + empty system contributes zero.
-// Tests reserve+consume exact, rounds-per-engagement decrement, magazine
-// depletion → empty system → effectiveDefenseBp 0, no-ammunition-created invariant.
+// AC-13: Ammunition consumption + empty system contributes zero (§20).
+// Verifies consume/decrement, the absent-entry → present assumption, the empty (0) → zero
+// multiplier, magazine seeding at state construction (Repair MEDIUM-1), fail-closed
+// insufficient-reserve consumption (Repair LOW-5), immutability, and state-hash recomputation.
 
 import { describe, it, expect } from "vite-plus/test";
-import { SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import {
-  computeAmmunitionMultiplierBp,
+  AirDefenseState,
+  Category,
+  Layer,
+  ammunitionMultiplierBp,
+  computeAirDefenseStateHash,
   consumeAmmunition,
-  computeEffectiveDefenseBp,
-  neutralEngagementFactors,
+  createAirDefenseState,
+  createAirDefenseSystemDefinition,
+  hasAmmunition,
+  INVALID_AIR_DEFENSE_STATE,
+  roundsForSystem,
 } from "../../src/air-defense/index.js";
 
-describe("Ammunition consumption (§20, AC-13)", () => {
-  describe("computeAmmunitionMultiplierBp", () => {
-    it("should return 10_000 (neutral) when rounds > 0", () => {
-      expect(computeAmmunitionMultiplierBp(1)).toBe(10_000);
-      expect(computeAmmunitionMultiplierBp(100)).toBe(10_000);
-      expect(computeAmmunitionMultiplierBp(9_999)).toBe(10_000);
-    });
+function directorState() {
+  return {
+    channelId: "ch001",
+    assignedLayer: Layer.HEAVY_AA,
+    directorIndex: SafeInt(0),
+    scalingBp: SafeInt(10_000),
+  };
+}
 
-    it("should return 0 when rounds = 0 (empty system)", () => {
-      expect(computeAmmunitionMultiplierBp(0)).toBe(0);
-    });
+function radarState() {
+  return {
+    channelId: "radar01",
+    assignedLayer: Layer.HEAVY_AA,
+    saturationGroup: SafeInt(0),
+    diminishingReturnsBp: SafeInt(10_000),
+  };
+}
 
-    it("should throw for negative rounds", () => {
-      expect(() => computeAmmunitionMultiplierBp(-1)).toThrow(
-        "roundsRemaining must be a non-negative integer",
-      );
-    });
+function makeSystem(overrides: Record<string, unknown> = {}) {
+  return createAirDefenseSystemDefinition({
+    systemId: "sys_001",
+    layer: Layer.HEAVY_AA,
+    category: Category.HEAVY_AA,
+    roundsPerEngagement: SafeInt(5),
+    profileEligibility: new Set(["AIRCRAFT_LEVEL_BOMBING"]),
+    engagementChannels: new Set(["ch001"]),
+    ...overrides,
+  });
+}
 
-    it("should throw for non-integer rounds", () => {
-      expect(() => computeAmmunitionMultiplierBp(1.5)).toThrow(
-        "roundsRemaining must be a non-negative integer",
-      );
-    });
+function makeState(
+  system: ReturnType<typeof makeSystem>,
+  ammo: ReadonlyArray<readonly [string, SafeInt]>,
+): AirDefenseState {
+  const state: AirDefenseState = {
+    defenderId: "ship_001",
+    scope: "SHIP",
+    systems: [system],
+    directorState: {
+      channelId: "ch001",
+      assignedLayer: Layer.HEAVY_AA,
+      directorIndex: SafeInt(0),
+      scalingBp: SafeInt(10_000),
+    },
+    radarState: {
+      channelId: "radar01",
+      assignedLayer: Layer.HEAVY_AA,
+      saturationGroup: SafeInt(0),
+      diminishingReturnsBp: SafeInt(10_000),
+    },
+    crewQuality: SafeInt(10_000),
+    damageBp: SafeInt.ZERO,
+    powerBp: SafeInt.ZERO,
+    ammunitionByType: new Map(ammo),
+    targetAllocations: new Map<string, string>(),
+    channelReservations: new Map<string, string>(),
+    disruptionRecords: [],
+    stateHash: "",
+  };
+  state.stateHash = computeAirDefenseStateHash(state);
+  return state;
+}
+
+describe("AC-13: ammunition availability (§20)", () => {
+  it("absent entry → assume present (documented basic model)", () => {
+    const state = makeState(makeSystem(), []);
+    expect(hasAmmunition(state, "sys_001")).toBe(true);
+    expect(Number(ammunitionMultiplierBp(state, "sys_001"))).toBe(10_000);
   });
 
-  describe("empty system → effectiveDefenseBp = 0 (§20 line 346)", () => {
-    it("should produce effectiveDefenseBp = 0 when ammunitionMultiplierBp = 0", () => {
-      const result = computeEffectiveDefenseBp({
-        ...neutralEngagementFactors(SafeInt(100)),
-        ammunitionMultiplierBp: SafeInt(0),
-      });
-      expect(result.effectiveDefenseBp).toBe(0);
-    });
-
-    it("should produce effectiveDefenseBp = 0 regardless of other high factors", () => {
-      const result = computeEffectiveDefenseBp({
-        baseDefenseBp: SafeInt(100),
-        directorMultiplierBp: SafeInt(31_000),
-        radarMultiplierBp: SafeInt(10_000),
-        crewMultiplierBp: SafeInt(10_000),
-        damageMultiplierBp: SafeInt(10_000),
-        ammunitionMultiplierBp: SafeInt(0),
-        targetProfileMultiplierBp: SafeInt(10_000),
-        weatherMultiplierBp: SafeInt(10_000),
-        saturationMultiplierBp: SafeInt(10_000),
-      });
-      expect(result.effectiveDefenseBp).toBe(0);
-    });
-
-    it("§20: 'An empty system contributes zero. A defensive opportunity does not create ammunition.'", () => {
-      // Verify: even with a defensive opportunity (all other factors maximal),
-      // zero ammunition means zero effective defense.
-      const result = computeEffectiveDefenseBp({
-        baseDefenseBp: SafeInt(10_000),
-        directorMultiplierBp: SafeInt(31_000),
-        radarMultiplierBp: SafeInt(10_000),
-        crewMultiplierBp: SafeInt(10_000),
-        damageMultiplierBp: SafeInt(10_000),
-        ammunitionMultiplierBp: SafeInt(0),
-        targetProfileMultiplierBp: SafeInt(10_000),
-        weatherMultiplierBp: SafeInt(10_000),
-        saturationMultiplierBp: SafeInt(10_000),
-      });
-      expect(result.effectiveDefenseBp).toBe(0);
-    });
+  it("an explicit 0 entry is empty: contributes zero", () => {
+    const state = makeState(makeSystem(), [["sys_001", SafeInt.ZERO]]);
+    expect(hasAmmunition(state, "sys_001")).toBe(false);
+    expect(Number(ammunitionMultiplierBp(state, "sys_001"))).toBe(0);
   });
 
-  describe("consumeAmmunition — exact reserve + consume (§20 lines 332-346)", () => {
-    it("should consume exact rounds per engagement", () => {
-      const ammo = new Map<string, SafeInt>([["sys_001", SafeInt(100)]]);
-      const result = consumeAmmunition(ammo, "sys_001", SafeInt(10));
+  it("a present entry is full under the basic model (10_000 multiplier)", () => {
+    const state = makeState(makeSystem(), [["sys_001", SafeInt(42)]]);
+    expect(hasAmmunition(state, "sys_001")).toBe(true);
+    expect(Number(ammunitionMultiplierBp(state, "sys_001"))).toBe(10_000);
+    expect(Number(roundsForSystem(state, "sys_001"))).toBe(42);
+  });
+});
 
-      expect(result.sufficient).toBe(true);
-      expect(Number(result.roundsConsumed)).toBe(10);
-      expect(Number(result.newAmmunitionByType.get("sys_001"))).toBe(90);
-    });
-
-    it("should not mutate the original ammunition map", () => {
-      const ammo = new Map<string, SafeInt>([["sys_001", SafeInt(100)]]);
-      consumeAmmunition(ammo, "sys_001", SafeInt(10));
-      expect(Number(ammo.get("sys_001"))).toBe(100);
-    });
-
-    it("should return the original map when ammunition is insufficient", () => {
-      const ammo = new Map<string, SafeInt>([["sys_001", SafeInt(5)]]);
-      const result = consumeAmmunition(ammo, "sys_001", SafeInt(10));
-
-      expect(result.sufficient).toBe(false);
-      expect(Number(result.roundsConsumed)).toBe(0);
-      expect(result.newAmmunitionByType).toBe(ammo); // same reference
-    });
-
-    it("should handle consuming all rounds (deplete to 0)", () => {
-      const ammo = new Map<string, SafeInt>([["sys_001", SafeInt(10)]]);
-      const result = consumeAmmunition(ammo, "sys_001", SafeInt(10));
-
-      expect(result.sufficient).toBe(true);
-      expect(Number(result.newAmmunitionByType.get("sys_001"))).toBe(0);
-    });
-
-    it("should handle zero rounds per engagement (no-op consume)", () => {
-      const ammo = new Map<string, SafeInt>([["sys_001", SafeInt(100)]]);
-      const result = consumeAmmunition(ammo, "sys_001", SafeInt(0));
-
-      expect(result.sufficient).toBe(true);
-      expect(Number(result.roundsConsumed)).toBe(0);
-      expect(Number(result.newAmmunitionByType.get("sys_001"))).toBe(100);
-    });
-
-    it("should handle system not in ammunition map (defaults to 0 available)", () => {
-      const ammo = new Map<string, SafeInt>();
-      const result = consumeAmmunition(ammo, "sys_unknown", SafeInt(10));
-
-      expect(result.sufficient).toBe(false);
-      expect(Number(result.roundsConsumed)).toBe(0);
-    });
-
-    it("should handle multiple systems independently", () => {
-      const ammo = new Map<string, SafeInt>([
-        ["sys_001", SafeInt(100)],
-        ["sys_002", SafeInt(50)],
-      ]);
-      const result = consumeAmmunition(ammo, "sys_001", SafeInt(20));
-
-      expect(Number(result.newAmmunitionByType.get("sys_001"))).toBe(80);
-      expect(Number(result.newAmmunitionByType.get("sys_002"))).toBe(50);
-    });
-
-    it("should reject negative rounds per engagement", () => {
-      const ammo = new Map<string, SafeInt>([["sys_001", SafeInt(100)]]);
-      expect(() => consumeAmmunition(ammo, "sys_001", SafeInt(-1))).toThrow(
-        "roundsPerEngagement must be a non-negative safe integer",
-      );
-    });
+describe("AC-13: consumption (§20)", () => {
+  it("decrements the tracked rounds by the requested amount", () => {
+    const state = makeState(makeSystem(), [["sys_001", SafeInt(100)]]);
+    const next = consumeAmmunition(state, "sys_001", SafeInt(10));
+    expect(Number(next.ammunitionByType.get("sys_001"))).toBe(90);
   });
 
-  describe("no-ammunition-created invariant (§20 line 346)", () => {
-    it("should never increase ammunition through engagement", () => {
-      const ammo = new Map<string, SafeInt>([["sys_001", SafeInt(50)]]);
-      const result = consumeAmmunition(ammo, "sys_001", SafeInt(10));
-      expect(Number(result.newAmmunitionByType.get("sys_001"))).toBeLessThanOrEqual(50);
-    });
-
-    it("should preserve ammunition for other systems", () => {
-      const ammo = new Map<string, SafeInt>([
-        ["sys_001", SafeInt(50)],
-        ["sys_002", SafeInt(30)],
-        ["sys_003", SafeInt(20)],
-      ]);
-      const result = consumeAmmunition(ammo, "sys_002", SafeInt(5));
-
-      expect(Number(result.newAmmunitionByType.get("sys_001"))).toBe(50);
-      expect(Number(result.newAmmunitionByType.get("sys_002"))).toBe(25);
-      expect(Number(result.newAmmunitionByType.get("sys_003"))).toBe(20);
-    });
-
-    it("should return new map (immutability guarantee)", () => {
-      const ammo = new Map<string, SafeInt>([["sys_001", SafeInt(50)]]);
-      const result = consumeAmmunition(ammo, "sys_001", SafeInt(10));
-      // New map should be a different object
-      expect(result.newAmmunitionByType).not.toBe(ammo);
-    });
+  it("defaults the consumption to the system's roundsPerEngagement", () => {
+    const state = makeState(makeSystem({ roundsPerEngagement: SafeInt(5) }), [
+      ["sys_001", SafeInt(100)],
+    ]);
+    const next = consumeAmmunition(state, "sys_001");
+    expect(Number(next.ammunitionByType.get("sys_001"))).toBe(95);
   });
 
-  describe("ammunition depletion → zero effective defense", () => {
-    it("should chain: deplete ammo → computeMultiplierBp → computeEffectiveDefenseBp = 0", () => {
-      // Step 1: consume all rounds
-      const ammo = new Map<string, SafeInt>([["sys_001", SafeInt(10)]]);
-      const consumed = consumeAmmunition(ammo, "sys_001", SafeInt(10));
-      expect(consumed.sufficient).toBe(true);
+  it("never decrements below 0 — fails closed instead of silently flooring (Repair LOW-5)", () => {
+    const state = makeState(makeSystem(), [["sys_001", SafeInt(3)]]);
+    let caught: unknown;
+    try {
+      consumeAmmunition(state, "sys_001", SafeInt(5));
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(BluewaveError);
+    expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
+    expect((caught as BluewaveError).context).toMatchObject({ systemId: "sys_001" });
+    // The original state is untouched by the failed consumption.
+    expect(Number(state.ammunitionByType.get("sys_001"))).toBe(3);
+  });
 
-      // Step 2: compute multiplier from remaining rounds
-      const remaining = Number(consumed.newAmmunitionByType.get("sys_001") ?? SafeInt(0));
-      const multiplier = computeAmmunitionMultiplierBp(remaining);
-      expect(multiplier).toBe(0);
+  it("a 0-round (empty) explicit entry never consumes (zero-contribution path)", () => {
+    // An empty system contributes zero (§20 line 346): it does not fire, so it never
+    // reaches consumption. Consuming 0 from an empty reserve is a legal no-op (0 <= 0).
+    const state = makeState(makeSystem(), [["sys_001", SafeInt.ZERO]]);
+    const next = consumeAmmunition(state, "sys_001", SafeInt.ZERO);
+    expect(Number(next.ammunitionByType.get("sys_001"))).toBe(0);
+    expect(hasAmmunition(next, "sys_001")).toBe(false);
+    expect(Number(ammunitionMultiplierBp(next, "sys_001"))).toBe(0);
+  });
 
-      // Step 3: compute effective defense
-      const defense = computeEffectiveDefenseBp({
-        ...neutralEngagementFactors(SafeInt(100)),
-        ammunitionMultiplierBp: multiplier,
-      });
-      expect(defense.effectiveDefenseBp).toBe(0);
+  it("is immutable: the original state's map is unchanged", () => {
+    const state = makeState(makeSystem(), [["sys_001", SafeInt(100)]]);
+    const next = consumeAmmunition(state, "sys_001", SafeInt(10));
+    expect(Number(state.ammunitionByType.get("sys_001"))).toBe(100);
+    expect(next).not.toBe(state);
+    expect(next.ammunitionByType).not.toBe(state.ammunitionByType);
+  });
+
+  it("recomputes the state hash (mirrors addDisruptionRecord)", () => {
+    const state = makeState(makeSystem(), [["sys_001", SafeInt(100)]]);
+    const next = consumeAmmunition(state, "sys_001", SafeInt(10));
+    expect(next.stateHash).not.toBe(state.stateHash);
+    expect(next.stateHash).toBe(computeAirDefenseStateHash(next));
+  });
+
+  it("an absent reserve stays absent after consumption (no fabricated ammunition)", () => {
+    const state = makeState(makeSystem(), []);
+    const next = consumeAmmunition(state, "sys_001", SafeInt(5));
+    expect(next.ammunitionByType.has("sys_001")).toBe(false);
+    expect(next).not.toBe(state);
+    expect(next.stateHash).toBe(computeAirDefenseStateHash(next));
+  });
+
+  it("rejects a negative consumption request (fail-closed)", () => {
+    const state = makeState(makeSystem(), [["sys_001", SafeInt(100)]]);
+    let caught: unknown;
+    try {
+      consumeAmmunition(state, "sys_001", -5 as SafeInt);
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(BluewaveError);
+  });
+});
+
+describe("AC-13: magazine seeding at state construction (Repair MEDIUM-1, §20/§29.21)", () => {
+  it("createAirDefenseState seeds each system to its magazineCapacity", () => {
+    const system = makeSystem({ magazineCapacity: SafeInt(15) });
+    const state = createAirDefenseState(
+      "ship_001",
+      "SHIP",
+      [system],
+      directorState(),
+      radarState(),
+      SafeInt(10_000),
+    );
+    expect(state.ammunitionByType).toBeInstanceOf(Map);
+    expect(state.ammunitionByType.size).toBe(1);
+    expect(Number(roundsForSystem(state, "sys_001"))).toBe(15);
+    expect(Number(ammunitionMultiplierBp(state, "sys_001"))).toBe(10_000);
+  });
+
+  it("repeated engagements drain the seeded magazine to 0, then contribute zero", () => {
+    // magazineCapacity 15, roundsPerEngagement 5 → three exact engagements drain to 0.
+    const system = makeSystem({
+      magazineCapacity: SafeInt(15),
+      roundsPerEngagement: SafeInt(5),
     });
+    let state = createAirDefenseState(
+      "ship_001",
+      "SHIP",
+      [system],
+      directorState(),
+      radarState(),
+      SafeInt(10_000),
+    );
 
-    it("should continue engagement after partial depletion", () => {
-      const ammo = new Map<string, SafeInt>([["sys_001", SafeInt(100)]]);
-      const consumed = consumeAmmunition(ammo, "sys_001", SafeInt(30));
-      expect(consumed.sufficient).toBe(true);
+    state = consumeAmmunition(state, "sys_001"); // 15 → 10
+    expect(Number(roundsForSystem(state, "sys_001"))).toBe(10);
+    state = consumeAmmunition(state, "sys_001"); // 10 → 5
+    expect(Number(roundsForSystem(state, "sys_001"))).toBe(5);
+    state = consumeAmmunition(state, "sys_001"); // 5 → 0
+    expect(Number(roundsForSystem(state, "sys_001"))).toBe(0);
 
-      const remaining = Number(consumed.newAmmunitionByType.get("sys_001") ?? SafeInt(0));
-      const multiplier = computeAmmunitionMultiplierBp(remaining);
-      expect(multiplier).toBe(10_000);
-
-      const defense = computeEffectiveDefenseBp({
-        ...neutralEngagementFactors(SafeInt(50)),
-        ammunitionMultiplierBp: multiplier,
-      });
-      expect(defense.effectiveDefenseBp).toBe(50);
-    });
+    // Empty system contributes zero (§20 line 346).
+    expect(hasAmmunition(state, "sys_001")).toBe(false);
+    expect(Number(ammunitionMultiplierBp(state, "sys_001"))).toBe(0);
   });
 });

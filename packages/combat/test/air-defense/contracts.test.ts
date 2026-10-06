@@ -1,7 +1,10 @@
 // packages/combat/test/air-defense/contracts.test.ts
-// AC-17: air_defense_v1, aa_director_scaling_v1, radar_saturation_v1, ciws_redundancy_v1 contracts.
+// AC-17 (INC-5): air_defense_v1 + aa_director_scaling_v1 + radar_saturation_v1 +
+// ciws_redundancy_v1 — strict Zod literal schemas, fail-closed validate*Contract guards,
+// the 4-entry registry in canonical order, and a pinned golden hash of the shipped values.
 import { describe, expect, it } from "vite-plus/test";
 import { BluewaveError } from "@bluewave/contracts";
+import { createEnvelope } from "@bluewave/deterministic";
 import {
   AirDefensePolicy_v1,
   AaDirectorScalingPolicy_v1,
@@ -11,207 +14,258 @@ import {
   validateAaDirectorScalingContract,
   validateRadarSaturationContract,
   validateCiwsRedundancyContract,
+  makeValidAirDefensePolicy_v1,
+  makeValidAaDirectorScalingPolicy_v1,
+  makeValidRadarSaturationPolicy_v1,
+  makeValidCiwsRedundancyPolicy_v1,
   validateAllAirDefenseContracts,
   SHIPPED_AIR_DEFENSE_CONTRACTS,
+  AIR_DEFENSE_CONTRACT_POLICY_ID,
+  AIR_DEFENSE_DIRECTOR_SCALING_POLICY_ID,
+  AIR_DEFENSE_RADAR_SATURATION_POLICY_ID,
+  AIR_DEFENSE_CIWS_REDUNDANCY_POLICY_ID,
+  AIR_DEFENSE_INVARIANT_FAILED,
+  AIR_DEFENSE_SHIPPED_REASON_CODE_LIST,
+  AIR_DEFENSE_SYSTEM_DEFINITION_FIELD_KEYS,
+  ENGAGEMENT_FACTOR_SLOT_NAMES,
+  DISRUPTION_MULTIPLIERS,
 } from "../../src/air-defense/index.js";
-import {
-  AIR_DEFENSE_MODEL_VERSION,
-  PROTECTED_RADIUS,
-  DIRECTOR_SCALING_TABLE,
-  RADAR_SATURATION_TABLE,
-  CIWS_REDUNDANCY_TABLE,
-} from "../../src/air-defense/index.js";
-import { AIR_DEFENSE_RULESET_VERSION } from "../../src/air-defense/index.js";
 
-function makeValidAirDefensePolicy() {
-  return {
-    rulesetVersion: AIR_DEFENSE_RULESET_VERSION,
-    modelVersion: AIR_DEFENSE_MODEL_VERSION,
-    protectedRadiusM: PROTECTED_RADIUS,
-    scaleExponent: 8,
-  };
-}
+/** Pinned golden hash of the canonical serialization of the 4 shipped contract values.
+ *  Regenerate ONLY as a deliberate versioned release change (artifact: module golden, new in
+ *  INC-5) — the engine goldens in golden/hashes.json are untouched by this contract. */
+const AIR_DEFENSE_CONTRACTS_GOLDEN_HASH =
+  "92d3008abba718f0198180411ebd410b2beebbf25209426bf0ad1396622679e9";
 
-function makeValidAaDirectorScaling() {
-  return {
-    contractId: "aa_director_scaling_v1",
-    scalingTable: [...DIRECTOR_SCALING_TABLE],
-  };
-}
-
-function makeValidRadarSaturation() {
-  return {
-    contractId: "radar_saturation_v1",
-    saturationTable: [...RADAR_SATURATION_TABLE],
-  };
-}
-
-function makeValidCiwsRedundancy() {
-  return {
-    contractId: "ciws_redundancy_v1",
-    redundancyTable: [...CIWS_REDUNDANCY_TABLE],
-  };
-}
-
-describe("AC-17: air_defense_v1 contract", () => {
-  it("validates a correct policy object", () => {
-    const result = AirDefensePolicy_v1.safeParse(makeValidAirDefensePolicy());
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects wrong rulesetVersion", () => {
-    const result = AirDefensePolicy_v1.safeParse({
-      ...makeValidAirDefensePolicy(),
-      rulesetVersion: "wrong-version",
+describe("AC-17: versioned air-defense contracts", () => {
+  describe("air_defense_v1", () => {
+    it("validates the shipped manifest", () => {
+      const result = AirDefensePolicy_v1.safeParse(makeValidAirDefensePolicy_v1());
+      expect(result.success).toBe(true);
     });
-    expect(result.success).toBe(false);
-  });
 
-  it("rejects wrong protectedRadiusM", () => {
-    const result = AirDefensePolicy_v1.safeParse({
-      ...makeValidAirDefensePolicy(),
-      protectedRadiusM: 5_000,
+    it("rejects a wrong rulesetVersion", () => {
+      const result = AirDefensePolicy_v1.safeParse({
+        ...makeValidAirDefensePolicy_v1(),
+        rulesetVersion: "air_defense_v2",
+      });
+      expect(result.success).toBe(false);
     });
-    expect(result.success).toBe(false);
-  });
 
-  it("rejects unknown fields", () => {
-    const result = AirDefensePolicy_v1.safeParse({
-      ...makeValidAirDefensePolicy(),
-      extraField: 1,
+    it("rejects a wrong basisPoints value", () => {
+      const result = AirDefensePolicy_v1.safeParse({
+        ...makeValidAirDefensePolicy_v1(),
+        basisPoints: 100,
+      });
+      expect(result.success).toBe(false);
     });
-    expect(result.success).toBe(false);
-  });
 
-  it("validateAirDefenseContract passes on valid input", () => {
-    const result = validateAirDefenseContract(makeValidAirDefensePolicy());
-    expect(result.rulesetVersion).toBe(AIR_DEFENSE_RULESET_VERSION);
-    expect(result.modelVersion).toBe(AIR_DEFENSE_MODEL_VERSION);
-  });
-
-  it("validateAirDefenseContract throws BluewaveError on invalid input", () => {
-    expect(() => validateAirDefenseContract({})).toThrow(BluewaveError);
-  });
-});
-
-describe("AC-17: aa_director_scaling_v1 contract", () => {
-  it("validates the shipped scaling table", () => {
-    const result = AaDirectorScalingPolicy_v1.safeParse(makeValidAaDirectorScaling());
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects a wrong scaling value", () => {
-    const result = AaDirectorScalingPolicy_v1.safeParse({
-      contractId: "aa_director_scaling_v1",
-      scalingTable: [
-        [0, 5_000],
-        [1, 10_000],
-        [2, 9_999], // wrong
-        [3, 25_000],
-        [4, 31_000],
-      ],
+    it("rejects a truncated layer order", () => {
+      const valid = makeValidAirDefensePolicy_v1();
+      const result = AirDefensePolicy_v1.safeParse({
+        ...valid,
+        layerOrder: valid.layerOrder.slice(0, 4),
+      });
+      expect(result.success).toBe(false);
     });
-    expect(result.success).toBe(false);
-  });
 
-  it("rejects wrong contractId", () => {
-    const result = AaDirectorScalingPolicy_v1.safeParse({
-      contractId: "wrong_id",
-      scalingTable: makeValidAaDirectorScaling().scalingTable,
+    it("rejects a mismatched reason-code catalog (one code swapped)", () => {
+      const valid = makeValidAirDefensePolicy_v1();
+      const tampered = [...valid.reasonCodes];
+      tampered[19] = "NOT_A_SHIPPED_CODE";
+      const result = AirDefensePolicy_v1.safeParse({ ...valid, reasonCodes: tampered });
+      expect(result.success).toBe(false);
     });
-    expect(result.success).toBe(false);
-  });
 
-  it("validateAaDirectorScalingContract passes on valid input", () => {
-    const result = validateAaDirectorScalingContract(makeValidAaDirectorScaling());
-    expect(result.contractId).toBe("aa_director_scaling_v1");
-  });
-
-  it("validateAaDirectorScalingContract throws BluewaveError on invalid input", () => {
-    expect(() => validateAaDirectorScalingContract({})).toThrow(BluewaveError);
-  });
-});
-
-describe("AC-17: radar_saturation_v1 contract", () => {
-  it("validates the shipped saturation table", () => {
-    const result = RadarSaturationPolicy_v1.safeParse(makeValidRadarSaturation());
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects a wrong saturation value", () => {
-    const result = RadarSaturationPolicy_v1.safeParse({
-      contractId: "radar_saturation_v1",
-      saturationTable: [
-        [1, 10_000],
-        [2, 10_000],
-        [3, 10_000],
-        [4, 10_000],
-        [5, 5_000],
-        [6, 5_000],
-        [7, 2_500],
-        [8, 2_500],
-        [9, 999_999],
-      ],
+    it("rejects an extra system-definition field key", () => {
+      const valid = makeValidAirDefensePolicy_v1();
+      const result = AirDefensePolicy_v1.safeParse({
+        ...valid,
+        systemDefinitionFieldKeys: [...valid.systemDefinitionFieldKeys, "extraField"],
+      });
+      expect(result.success).toBe(false);
     });
-    expect(result.success).toBe(false);
-  });
 
-  it("validateRadarSaturationContract passes on valid input", () => {
-    const result = validateRadarSaturationContract(makeValidRadarSaturation());
-    expect(result.contractId).toBe("radar_saturation_v1");
-  });
-
-  it("validateRadarSaturationContract throws BluewaveError on invalid input", () => {
-    expect(() => validateRadarSaturationContract({})).toThrow(BluewaveError);
-  });
-});
-
-describe("AC-17: ciws_redundancy_v1 contract", () => {
-  it("validates the shipped redundancy table", () => {
-    const result = CiwsRedundancyPolicy_v1.safeParse(makeValidCiwsRedundancy());
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects a wrong redundancy value", () => {
-    const result = CiwsRedundancyPolicy_v1.safeParse({
-      contractId: "ciws_redundancy_v1",
-      redundancyTable: [
-        [1, 10_000],
-        [2, 10_000],
-        [3, 10_000],
-        [4, 10_000],
-        [5, 5_000],
-        [6, 5_000],
-        [7, 1_500],
-        [8, 1_500],
-        [9, 500],
-      ],
+    it("validateAirDefenseContract passes the shipped manifest", () => {
+      expect(validateAirDefenseContract(makeValidAirDefensePolicy_v1()).policyId).toBe(
+        AIR_DEFENSE_CONTRACT_POLICY_ID,
+      );
     });
-    expect(result.success).toBe(true);
+
+    it("validateAirDefenseContract throws BluewaveError tagged AIR_DEFENSE_INVARIANT_FAILED", () => {
+      let caught: BluewaveError | null = null;
+      try {
+        validateAirDefenseContract({});
+      } catch (error) {
+        caught = error as BluewaveError;
+      }
+      expect(caught).toBeInstanceOf(BluewaveError);
+      expect(caught?.context.code).toBe(AIR_DEFENSE_INVARIANT_FAILED);
+    });
   });
 
-  it("validateCiwsRedundancyContract passes on valid input", () => {
-    const result = validateCiwsRedundancyContract(makeValidCiwsRedundancy());
-    expect(result.contractId).toBe("ciws_redundancy_v1");
+  describe("aa_director_scaling_v1", () => {
+    it("validates the shipped scaling table and cap", () => {
+      const result = AaDirectorScalingPolicy_v1.safeParse(makeValidAaDirectorScalingPolicy_v1());
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects a wrong normalScalingCap literal", () => {
+      const result = AaDirectorScalingPolicy_v1.safeParse({
+        ...makeValidAaDirectorScalingPolicy_v1(),
+        normalScalingCap: 3,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects a tampered table row value", () => {
+      const valid = makeValidAaDirectorScalingPolicy_v1();
+      const rows = valid.scalingTable.map((row: readonly [number, number]) => [...row]);
+      rows[0] = [0, 9_999];
+      const result = AaDirectorScalingPolicy_v1.safeParse({ ...valid, scalingTable: rows });
+      expect(result.success).toBe(false);
+    });
+
+    it("validateAaDirectorScalingContract fail-closed", () => {
+      expect(() =>
+        validateAaDirectorScalingContract(makeValidAaDirectorScalingPolicy_v1()),
+      ).not.toThrow();
+      expect(() => validateAaDirectorScalingContract({ normalScalingCap: 7 })).toThrow(
+        BluewaveError,
+      );
+    });
   });
 
-  it("validateCiwsRedundancyContract throws BluewaveError on invalid input", () => {
-    expect(() => validateCiwsRedundancyContract({})).toThrow(BluewaveError);
-  });
-});
+  describe("radar_saturation_v1", () => {
+    it("validates the shipped §14 marginal schedule", () => {
+      const result = RadarSaturationPolicy_v1.safeParse(makeValidRadarSaturationPolicy_v1());
+      expect(result.success).toBe(true);
+    });
 
-describe("AC-17: contract rollup", () => {
-  it("SHIPPED_AIR_DEFENSE_CONTRACTS has 4 entries with expected policyIds", () => {
-    const ids = SHIPPED_AIR_DEFENSE_CONTRACTS.map((e) => e.policyId);
-    expect(ids).toEqual([
-      "air_defense_v1",
-      "aa_director_scaling_v1",
-      "radar_saturation_v1",
-      "ciws_redundancy_v1",
-    ]);
+    it("rejects a wrong §14 marginal value", () => {
+      const valid = makeValidRadarSaturationPolicy_v1();
+      const rows = valid.saturationTable.map((row: readonly [number, number]) => [...row]);
+      rows[0] = [1, 9_000];
+      const result = RadarSaturationPolicy_v1.safeParse({ ...valid, saturationTable: rows });
+      expect(result.success).toBe(false);
+    });
+
+    it("validateRadarSaturationContract fail-closed", () => {
+      expect(() =>
+        validateRadarSaturationContract(makeValidRadarSaturationPolicy_v1()),
+      ).not.toThrow();
+      expect(() => validateRadarSaturationContract({ saturationTable: [] })).toThrow(BluewaveError);
+    });
   });
 
-  it("validateAllAirDefenseContracts passes (all registered validators)", () => {
-    expect(() => validateAllAirDefenseContracts()).not.toThrow();
+  describe("ciws_redundancy_v1", () => {
+    it("validates the shipped §16 marginal schedule", () => {
+      const result = CiwsRedundancyPolicy_v1.safeParse(makeValidCiwsRedundancyPolicy_v1());
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects a wrong §16 marginal value", () => {
+      const valid = makeValidCiwsRedundancyPolicy_v1();
+      const rows = valid.redundancyTable.map((row: readonly [number, number]) => [...row]);
+      rows[1] = [2, 9_000];
+      const result = CiwsRedundancyPolicy_v1.safeParse({ ...valid, redundancyTable: rows });
+      expect(result.success).toBe(false);
+    });
+
+    it("validateCiwsRedundancyContract fail-closed", () => {
+      expect(() =>
+        validateCiwsRedundancyContract(makeValidCiwsRedundancyPolicy_v1()),
+      ).not.toThrow();
+      expect(() => validateCiwsRedundancyContract({ redundancyTable: [[1, 10_000]] })).toThrow(
+        BluewaveError,
+      );
+    });
+  });
+
+  describe("registry (contractRollup)", () => {
+    it("ships exactly 4 contracts in canonical order", () => {
+      expect(SHIPPED_AIR_DEFENSE_CONTRACTS.map((e) => e.policyId)).toEqual([
+        AIR_DEFENSE_CONTRACT_POLICY_ID,
+        AIR_DEFENSE_DIRECTOR_SCALING_POLICY_ID,
+        AIR_DEFENSE_RADAR_SATURATION_POLICY_ID,
+        AIR_DEFENSE_CIWS_REDUNDANCY_POLICY_ID,
+      ]);
+    });
+
+    it("validateAllAirDefenseContracts passes every shipped contract through its own validator", () => {
+      expect(() => validateAllAirDefenseContracts()).not.toThrow();
+    });
+  });
+
+  describe("shipped manifest content (pinned literals)", () => {
+    const valid = makeValidAirDefensePolicy_v1();
+
+    it("pins the 8-layer §1 order and the 4-layer AA subset", () => {
+      expect(valid.layerOrder).toEqual([
+        "CAP",
+        "HEAVY_SAM",
+        "MEDIUM_SAM",
+        "LIGHT_SAM",
+        "HEAVY_AA",
+        "MEDIUM_AA",
+        "LIGHT_AA",
+        "CIWS_TERMINAL_DEFENSE",
+      ]);
+      expect(valid.aaLayerOrder).toEqual([
+        "HEAVY_AA",
+        "MEDIUM_AA",
+        "LIGHT_AA",
+        "CIWS_TERMINAL_DEFENSE",
+      ]);
+    });
+
+    it("pins the §19 nine-factor order", () => {
+      expect(valid.factorKeys).toEqual([...ENGAGEMENT_FACTOR_SLOT_NAMES]);
+    });
+
+    it("pins the §28 reason-code catalog to the exact 20 shipped codes", () => {
+      expect(valid.reasonCodes).toEqual([...AIR_DEFENSE_SHIPPED_REASON_CODE_LIST]);
+    });
+
+    it("pins the §3 system-definition schema key surface", () => {
+      expect(valid.systemDefinitionFieldKeys).toEqual([
+        ...AIR_DEFENSE_SYSTEM_DEFINITION_FIELD_KEYS,
+      ]);
+    });
+
+    it("pins the §6 disruption multipliers to the shipped constant pairs", () => {
+      const expected = Object.fromEntries(
+        Object.entries(DISRUPTION_MULTIPLIERS).map(([severity, pair]) => [severity, pair]),
+      );
+      expect(valid.disruptionMultipliers).toEqual(expected);
+    });
+
+    it("pins the §29.8 guaranteed light-AA policy to exactly one authoritative substep", () => {
+      expect(valid.guaranteedLightAaDisruption).toEqual({ exactlyOneAuthoritativeSubstep: 1 });
+    });
+
+    it("pins the §7 protected radius, §8 fire-control minimum, and §21 local-control multiplier", () => {
+      expect(valid.protectedRadiusNm).toBe(5);
+      expect(valid.protectedRadiusM).toBe(9_260);
+      expect(valid.mediumAaFireControlMinimumBp).toBe(4_000);
+      expect(valid.localControlMultiplierBp).toBe(5_000);
+    });
+
+    it("pins the §19 formula constants (10_000^8, floor once)", () => {
+      expect(valid.formulaDenominator).toBe(10_000);
+      expect(valid.formulaExponent).toBe(8);
+      expect(valid.floorOnce).toBe(true);
+    });
+  });
+
+  describe("pinned contract golden hash (module golden, INC-5)", () => {
+    it("the canonical serialization of the 4 shipped contracts matches the pinned hash", () => {
+      const body = SHIPPED_AIR_DEFENSE_CONTRACTS.map((entry) => ({
+        policyId: entry.policyId,
+        shippedContract: entry.shippedContract,
+      }));
+      const envelope = createEnvelope("air-defense-contracts", "inc5", body);
+      expect(envelope.bodyHash).toBe(AIR_DEFENSE_CONTRACTS_GOLDEN_HASH);
+    });
   });
 });

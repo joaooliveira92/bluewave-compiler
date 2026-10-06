@@ -1,84 +1,126 @@
 // packages/combat/test/air-defense/ciws-redundancy.test.ts
-// AC-10: CIWS redundancy schedule (§16).
-// Verifies the marginal multiplier schedule, the effective system count, and that
-// the schedule is an additive-value schedule (NOT a construction cap).
+// AC-10: CIWS redundancy (DESIGN-45 §15, §16).
+// §15 line 266: a damaged, unpowered, empty, jammed, or out-of-arc CIWS system contributes
+// ZERO — the caller filters the ship's CIWS systems through isCiwsContributingSystem before
+// counting. §16: marginal multipliers 1..4→10_000, 5..6→5_000, 7..8→1_500, 9+→500 — a
+// marginal-effectiveness schedule, NOT a construction cap (§16 line 289): any system count is
+// legal input, each system above the eighth contributes the 9+ residual 500. The factor keeps
+// the UNDIVIDED sum (the exact rational redundantCIwsSet = Σ/10_000); the owning §19 formula
+// rounds once. Markers: 5..6 → DIMINISHING, 7+ → STRONG_REDUNDANCY. Pure + deterministic.
 
 import { describe, it, expect } from "vite-plus/test";
-import { CIWS_REDUNDANCY_TABLE, evaluateCiwsRedundancy } from "../../src/air-defense/index.js";
+import { BluewaveError } from "@bluewave/contracts";
+import {
+  CIWS_DIMINISHING_RETURNS_ACTIVE,
+  CIWS_STRONG_REDUNDANCY_ACTIVE,
+  ciwsMarginalMultiplierBp,
+  ciwsSaturationMarkers,
+  computeCiwsSaturationFactorBp,
+  INVALID_AIR_DEFENSE_STATE,
+  isCiwsContributingSystem,
+} from "../../src/air-defense/index.js";
 
-describe("CIWS redundancy (DESIGN-45 §16)", () => {
-  it("exposes the exact shipped marginal schedule", () => {
-    expect(CIWS_REDUNDANCY_TABLE).toEqual([
-      [1, 10_000],
-      [2, 10_000],
-      [3, 10_000],
-      [4, 10_000],
-      [5, 5_000],
-      [6, 5_000],
-      [7, 1_500],
-      [8, 1_500],
-      [9, 500],
-    ]);
+describe("AC-10: §15 CIWS contribution predicate", () => {
+  it("a fully healthy CIWS system contributes to the redundant set", () => {
+    expect(
+      isCiwsContributingSystem({
+        damaged: false,
+        unpowered: false,
+        empty: false,
+        jammed: false,
+        outOfArc: false,
+      }),
+    ).toBe(true);
   });
 
-  it("reports the marginal multiplier of the last system", () => {
-    expect(evaluateCiwsRedundancy(1).marginalLastBp).toBe(10_000);
-    expect(evaluateCiwsRedundancy(4).marginalLastBp).toBe(10_000);
-    expect(evaluateCiwsRedundancy(5).marginalLastBp).toBe(5_000);
-    expect(evaluateCiwsRedundancy(6).marginalLastBp).toBe(5_000);
-    expect(evaluateCiwsRedundancy(7).marginalLastBp).toBe(1_500);
-    expect(evaluateCiwsRedundancy(8).marginalLastBp).toBe(1_500);
-    expect(evaluateCiwsRedundancy(9).marginalLastBp).toBe(500);
-    expect(evaluateCiwsRedundancy(12).marginalLastBp).toBe(500);
+  it("each §15 zero-contribution condition independently excludes the system", () => {
+    const healthy = {
+      damaged: false,
+      unpowered: false,
+      empty: false,
+      jammed: false,
+      outOfArc: false,
+    };
+    expect(isCiwsContributingSystem({ ...healthy, damaged: true })).toBe(false);
+    expect(isCiwsContributingSystem({ ...healthy, unpowered: true })).toBe(false);
+    expect(isCiwsContributingSystem({ ...healthy, empty: true })).toBe(false);
+    expect(isCiwsContributingSystem({ ...healthy, jammed: true })).toBe(false);
+    expect(isCiwsContributingSystem({ ...healthy, outOfArc: true })).toBe(false);
+  });
+});
+
+describe("AC-10: §16 CIWS redundancy factor schedule", () => {
+  it("matches the canonical §16 marginal sums exactly: systems 1..9", () => {
+    // Marginal schedule: 1..4 → 10_000; 5..6 → 5_000; 7..8 → 1_500; 9 → 500 (§16 lines 272-275).
+    const expected = [
+      10_000, // 1 system  → 1 × 10_000
+      20_000, // 2 systems → 2 × 10_000
+      30_000, // 3 systems → 3 × 10_000
+      40_000, // 4 systems → 4 × 10_000
+      45_000, // 5 systems → + 5_000
+      50_000, // 6 systems → + 5_000
+      51_500, // 7 systems → + 1_500
+      53_000, // 8 systems → + 1_500
+      53_500, // 9 systems → + 500
+    ];
+    expected.forEach((value, index) => {
+      const count = index + 1;
+      expect(computeCiwsSaturationFactorBp(count)).toBe(value);
+      expect(Number(computeCiwsSaturationFactorBp(count)) / 10_000).toBe(value / 10_000);
+    });
   });
 
-  it("flags the reduced-value step at systems 5-6", () => {
-    expect(evaluateCiwsRedundancy(4).diminishingStepActive).toBe(false);
-    expect(evaluateCiwsRedundancy(5).diminishingStepActive).toBe(true);
-    expect(evaluateCiwsRedundancy(6).diminishingStepActive).toBe(true);
-    expect(evaluateCiwsRedundancy(7).diminishingStepActive).toBe(false);
+  it("is NOT a construction cap: 12 and 15 systems are legal and each system above the eighth adds the residual 500", () => {
+    // 12 systems: 53_000 + 4 × 500 = 55_000; 15 systems: 53_000 + 7 × 500 = 56_500.
+    expect(computeCiwsSaturationFactorBp(12)).toBe(55_000);
+    expect(computeCiwsSaturationFactorBp(15)).toBe(56_500);
+    expect(
+      Number(computeCiwsSaturationFactorBp(12)) - Number(computeCiwsSaturationFactorBp(8)),
+    ).toBe(4 * 500);
+    for (let count = 10; count <= 24; count++) {
+      let manual = 0;
+      for (let n = 1; n <= count; n++) {
+        manual += ciwsMarginalMultiplierBp(n);
+      }
+      expect(computeCiwsSaturationFactorBp(count)).toBe(manual);
+    }
   });
 
-  it("flags the heavy reduction step at systems 7-8", () => {
-    expect(evaluateCiwsRedundancy(6).heavyReductionStepActive).toBe(false);
-    expect(evaluateCiwsRedundancy(7).heavyReductionStepActive).toBe(true);
-    expect(evaluateCiwsRedundancy(8).heavyReductionStepActive).toBe(true);
-    expect(evaluateCiwsRedundancy(9).heavyReductionStepActive).toBe(false);
+  it("embeds the exact §16 rational in the numerator — the owning formula divides by 10_000 once", () => {
+    // redundantCIwsSet = Σ/10_000: 4 systems → exactly 4.0; 7 systems → exactly 5.15.
+    expect(computeCiwsSaturationFactorBp(4) / 10_000).toBe(4.0);
+    expect(computeCiwsSaturationFactorBp(7) / 10_000).toBe(5.15);
+    expect(computeCiwsSaturationFactorBp(15) / 10_000).toBe(5.65);
   });
 
-  it("flags strong redundancy at systems 9+", () => {
-    expect(evaluateCiwsRedundancy(8).strongRedundancyActive).toBe(false);
-    expect(evaluateCiwsRedundancy(9).strongRedundancyActive).toBe(true);
-    expect(evaluateCiwsRedundancy(20).strongRedundancyActive).toBe(true);
+  it("returns the NEUTRAL consumer-side factor 10_000 for a ship with no contributing CIWS system", () => {
+    // Mirror of §14 groups-0 guidance: no contributing systems keeps the neutral so the
+    // engagement formula is unchanged (not a §16 schedule value).
+    expect(computeCiwsSaturationFactorBp(0)).toBe(10_000);
   });
 
-  it("computes the effective system count via the marginal sum", () => {
-    // 1..4 → 4×10_000 = 40_000 → 4.0
-    expect(evaluateCiwsRedundancy(4).effectiveSystemCountRational).toBe(4);
-    // 40_000 + 2×5_000 = 50_000 → 5.0
-    expect(evaluateCiwsRedundancy(6).effectiveSystemCountRational).toBe(5);
-    // 50_000 + 2×1_500 = 53_000 → 5.3
-    expect(evaluateCiwsRedundancy(8).effectiveSystemCountRational).toBe(5.3);
-    // 53_000 + 500 = 53_500 → 5.35
-    expect(evaluateCiwsRedundancy(9).effectiveSystemCountRational).toBe(5.35);
+  it("emits §28 markers only in the documented regimes: 5..6 diminishing, 7+ strong redundancy", () => {
+    expect(ciwsSaturationMarkers(0)).toEqual([]);
+    expect(ciwsSaturationMarkers(4)).toEqual([]);
+    expect(ciwsSaturationMarkers(5)).toEqual([CIWS_DIMINISHING_RETURNS_ACTIVE]);
+    expect(ciwsSaturationMarkers(6)).toEqual([CIWS_DIMINISHING_RETURNS_ACTIVE]);
+    expect(ciwsSaturationMarkers(7)).toEqual([CIWS_STRONG_REDUNDANCY_ACTIVE]);
+    expect(ciwsSaturationMarkers(12)).toEqual([CIWS_STRONG_REDUNDANCY_ACTIVE]);
   });
 
-  it("never drives effective value to zero (additive schedule, not a construction cap)", () => {
-    // A very large CIWS stack still retains positive cumulative value.
-    const r = evaluateCiwsRedundancy(40);
-    expect(r.sumMarginalBp).toBeGreaterThan(0);
-    expect(r.effectiveSystemCountRational).toBeGreaterThan(0);
-  });
+  it("fails closed on a negative or non-integer system count with INVALID_AIR_DEFENSE_STATE", () => {
+    let caught: unknown;
+    try {
+      computeCiwsSaturationFactorBp(-1);
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(BluewaveError);
+    expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
 
-  it("treats a zero system count as an empty schedule", () => {
-    const r = evaluateCiwsRedundancy(0);
-    expect(r.systemCount).toBe(0);
-    expect(r.marginalLastBp).toBe(0);
-    expect(r.effectiveSystemCountRational).toBe(0);
-    expect(r.sumMarginalBp).toBe(0);
-  });
-
-  it("rejects negative system counts", () => {
-    expect(() => evaluateCiwsRedundancy(-1)).toThrow();
+    expect(() => computeCiwsSaturationFactorBp(1.5)).toThrow(BluewaveError);
+    expect(() => computeCiwsSaturationFactorBp(Number.NaN)).toThrow(BluewaveError);
+    expect(() => ciwsSaturationMarkers(-2)).toThrow(BluewaveError);
+    expect(() => ciwsSaturationMarkers(7.5)).toThrow(BluewaveError);
   });
 });

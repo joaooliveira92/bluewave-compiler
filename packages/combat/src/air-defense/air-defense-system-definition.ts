@@ -3,11 +3,46 @@
 // per DESIGN-45 §3. Strict Zod validation at construction boundaries, fail-closed guards.
 
 import { z } from "zod";
-import { AIR_DEFENSE_MODEL_VERSION } from "./constants.js";
-import { INVALID_AIR_DEFENSE_SYSTEM_DEFINITION } from "./reason-codes.js";
+import { AIR_DEFENSE_MODEL_VERSION, INVALID_AIR_DEFENSE_SYSTEM_DEFINITION } from "./constants.js";
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
 
 export const AIR_DEFENSE_RULESET_VERSION = "air_defense_v1" as const;
+
+/**
+ * The AirDefenseSystemDefinition schema field keys in strict schema declaration order
+ * (§3). Contracted verbatim by air_defense_v1 so a versioned contract pins the exact
+ * system-definition schema surface (ADR-0042 decision 12 consequence). Derived from the
+ * schema below — the list is asserted by the air_defense_v1 contract test to equal
+ * Object.keys(AirDefenseSystemDefinitionSchema.shape).
+ */
+export const AIR_DEFENSE_SYSTEM_DEFINITION_FIELD_KEYS = [
+  "systemId",
+  "layer",
+  "category",
+  "mountCount",
+  "barrels",
+  "rangeMinM",
+  "rangeMaxM",
+  "altitudeMinM",
+  "altitudeMaxM",
+  "targetSpeedLimitMps",
+  "arcDegreesMax",
+  "profileEligibility",
+  "fireControl",
+  "radar",
+  "engagementChannels",
+  "baseKillBp",
+  "baseDamageBp",
+  "baseAbortBp",
+  "baseDisruptionBp",
+  "rate",
+  "roundsPerEngagement",
+  "magazineCapacity",
+  "localControlSupported",
+  "saturationGroup",
+  "contentVersion",
+  "contentHash",
+] as const;
 
 // ---- Layer and category literals ----
 
@@ -86,6 +121,7 @@ export interface AirDefenseSystemDefinition {
   altitudeMinM: SafeInt;
   altitudeMaxM: SafeInt;
   targetSpeedLimitMps: SafeInt;
+  arcDegreesMax: SafeInt; // 0-360 degrees; maximum angular offset (bearing) the mount can engage
   profileEligibility: ReadonlySet<string>;
   fireControl: {
     trackingRangeM: SafeInt;
@@ -104,11 +140,10 @@ export interface AirDefenseSystemDefinition {
   baseAbortBp: SafeInt;
   baseDisruptionBp: SafeInt;
   rate: SafeInt; // rounds per minute / engagement rate
+  roundsPerEngagement: SafeInt; // §20 "rounds or missiles per engagement" (positive)
+  magazineCapacity: SafeInt; // §20 "magazine or ready-service capacity" (positive)
+  localControlSupported: boolean; // §21: system may use local control (5_000 bp) when its director is unavailable
   saturationGroup: SafeInt; // group ID for saturation calculations
-  /** §21 local-control multiplier (bp). When present, an intact gun with a
-   *  destroyed director may use this reduced multiplier instead of zero.
-   *  Shipped value: 5_000. Absent ⇒ no local control ⇒ director loss blocks path. */
-  localControlMultiplierBp?: SafeInt;
   contentVersion: string;
   contentHash: string;
 }
@@ -142,6 +177,8 @@ const AirDefenseSystemDefinitionSchema = z
     targetSpeedLimitMps: safeIntSchema("targetSpeedLimitMps must be a non-negative integer", {
       nonNegative: true,
     }),
+
+    arcDegreesMax: safeIntSchema("arcDegreesMax must be 0-360", { min: 0, max: 360 }),
 
     profileEligibility: z
       .set(z.string())
@@ -196,13 +233,16 @@ const AirDefenseSystemDefinitionSchema = z
       nonNegative: true,
     }).optional(),
     rate: safeIntSchema("rate must be a positive integer", { positive: true }).optional(),
+    roundsPerEngagement: safeIntSchema("roundsPerEngagement must be a positive integer", {
+      positive: true,
+    }).optional(),
+    magazineCapacity: safeIntSchema("magazineCapacity must be a positive integer", {
+      positive: true,
+    }).optional(),
+    localControlSupported: z.boolean().optional(),
     saturationGroup: safeIntSchema("saturationGroup must be a non-negative integer", {
       nonNegative: true,
     }).optional(),
-    localControlMultiplierBp: safeIntSchema(
-      "localControlMultiplierBp must be a non-negative integer",
-      { nonNegative: true },
-    ).optional(),
 
     contentVersion: z.string().min(1, "contentVersion must be a non-empty string"),
 
@@ -273,6 +313,7 @@ export function createAirDefenseSystemDefinition(
     altitudeMinM: params.altitudeMinM ?? SafeInt.ZERO,
     altitudeMaxM: params.altitudeMaxM ?? SafeInt(30_000),
     targetSpeedLimitMps: params.targetSpeedLimitMps ?? SafeInt(500),
+    arcDegreesMax: params.arcDegreesMax ?? SafeInt(360),
     profileEligibility: params.profileEligibility ?? new Set(["DEFAULT"]),
     fireControl: params.fireControl ?? {
       trackingRangeM: SafeInt(10_000),
@@ -291,10 +332,10 @@ export function createAirDefenseSystemDefinition(
     baseAbortBp: params.baseAbortBp ?? SafeInt(30),
     baseDisruptionBp: params.baseDisruptionBp ?? SafeInt(15),
     rate: params.rate ?? SafeInt(100),
+    roundsPerEngagement: params.roundsPerEngagement ?? SafeInt.ONE,
+    magazineCapacity: params.magazineCapacity ?? SafeInt(1_000),
+    localControlSupported: params.localControlSupported ?? false,
     saturationGroup: params.saturationGroup ?? SafeInt.ZERO,
-    ...(params.localControlMultiplierBp !== undefined && {
-      localControlMultiplierBp: params.localControlMultiplierBp,
-    }),
     contentVersion: params.contentVersion ?? AIR_DEFENSE_MODEL_VERSION,
     contentHash:
       params.contentHash ?? "0000000000000000000000000000000000000000000000000000000000000000",

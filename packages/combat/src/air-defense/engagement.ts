@@ -1,616 +1,417 @@
 // packages/combat/src/air-defense/engagement.ts
-// D-4 M4 Aviation: Air Defense — Engagement resolution (INC-3)
-// AC-11: 9-factor effectiveDefenseBp with bigint floor-once (§19)
-// AC-12: Disruption severity levels + stacking + mutually exclusive outcome table (§5, §6)
-// AC-13: Ammunition consumption + empty system → zero contribution (§20)
-// AC-14: Simplified damage/power state + local control multiplier (§21)
+// D-4 M4 Aviation: Air Defense — AC-11 engagement resolution per DESIGN-45 §19/§20/§5.
 //
-// This module is PURE and deterministic. No ambient I/O, no RNG calls,
-// no mutation of passed state. Random outcomes use a supplied `randomBp`
-// draw parameter in [0, 10_000).
+// effectiveDefenseBp = floor(baseDefenseBp * director * radar * crew * damage * ammunition
+//   * targetProfile * weather * saturation / 10_000^8)
+// The exact rational result MUST be rounded once with FLOOR (§19 line 326).
+//
+// Bound analysis (ENGINEERING-CONTRACT, gunnery precedent DESIGN-07/§3): the eight §19
+// multiplier slots fall into TWO policy classes (INC-4 bound repair, grounded in §14/§16):
+//   NORMAL class — director, crew, damage, ammunition, targetProfile, weather (and the base
+//   value): each is enforced by the function itself to be <= MAX_ENGAGEMENT_FACTOR_BP =
+//   31_000 (the shipped director maximum, §12) and non-negative. 31_000 is the largest
+//   shipped NORMAL-class factor; a factor above this cap is rejected fail-closed.
+//   SATURATION class — radar (§14) and saturation (§16): SafeInt AGGREGATES that
+//   legitimately exceed 31_000. The radar slot is the UNDIVIDED §14 marginal sum over the
+//   ship's radar-directed medium-AA groups (4 groups → 40_000, i.e. the exact rational
+//   effectiveRadarMediumAaGroups = 4.0 kept in the numerator); the saturation slot is the
+//   UNDIVIDED §16 CIWS redundancy marginal sum (4 systems → 40_000). Each marginal is
+//   <= 10_000 and the sum runs over the ship's actual group/system count, so realistic state
+//   sizes keep the aggregate a plain safe integer (structural bound — the caller feeds the
+//   actual aggregates). These slots are accepted WITHOUT the 31_000 limit; they still must
+//   be non-negative safe integers at the boundary.
+// The intermediate product therefore stays a bigint (the 10_000^8 denominator alone exceeds
+// Number range; with both saturation-class slots at the boundary the numerator can reach
+// ~31_000^7 × (9.007e15)^2 ≈ 2.2e63 — trivially within bigint and far above MAX_SAFE_INTEGER
+// ~9.0e15, proving bigint necessary). The FLOORED result is a small safe integer for
+// realistic state sizes: every NORMAL-class factor <= 31_000 and the saturation-class
+// rationals are proportional to the ship's group/system counts — e.g. the shipped
+// 4-director / 4-group / 4-CIWS optimum floors at ~500_000 for a neutral base
+// (10_000 × 3.1 × 4.0 × 4.0 = 496_000), and a fleet-scale 64+64 saturation mix stays well
+// below MAX_SAFE_INTEGER. A defensive check still throws if rawFloored would exceed
+// MAX_SAFE_INTEGER — reachable ONLY by pathological-but-legal saturation aggregates (both
+// slots near MAX_SAFE_INTEGER → floored ≈ 2.2e31), never by realistic state; it protects
+// callers from a silent Number precision loss. No clamp: the design does not specify one —
+// the raw floored value is returned and callers interpret it.
+//
+// Kill/damage/abort/disruption checks use ONE keyed random draw 0..9_999 (domain-separated
+// @bluewave/random stream) against an explicit mutually exclusive cumulative outcome table
+// (§19 line 328-330): KILL → DAMAGE → ABORT → DISRUPTION → NO_EFFECT. One draw can never
+// count as both physical kill and disruption.
+//
+// `resolveEngagement` is the pure per-engagement entry point INC-6 will call. It does NOT
+// re-run layer resolution or eligibility (the caller's job); it computes the four effective
+// bp values, draws the keyed outcome, consumes roundsPerEngagement on every drawn
+// engagement (KILL/DAMAGE/ABORT/DISRUPTION and a drawn NO_EFFECT alike), and returns the
+// new immutable state + result.
 
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
-import type { AirDefenseSystemDefinition, LayerId } from "./air-defense-system-definition.js";
-import type { DisruptionSeverityType } from "./air-defense-state.js";
+import { drawUniform, type RandomEngine } from "@bluewave/random";
+import type { AirDefenseState } from "./air-defense-state.js";
+import type { AirDefenseSystemDefinition } from "./air-defense-system-definition.js";
+import type { AirDefenseAttack } from "./attack.js";
+import { consumeAmmunition, ammunitionMultiplierBp } from "./ammunition.js";
+import { effectiveDamageMultiplierBp } from "./damage-power.js";
 import {
-  ENGAGEMENT_FORMULA_DENOMINATOR,
-  ENGAGEMENT_FORMULA_SCALE_EXPONENT,
   FORMULA_DENOMINATOR,
-  DISRUPTION_SEVERITY_MAP,
-  DISRUPTION_SEVERITY_ORDINAL,
+  FORMULA_EXPONENT,
+  INVALID_AIR_DEFENSE_STATE,
+  MAX_ENGAGEMENT_FACTOR_BP,
 } from "./constants.js";
-import {
-  AIR_DEFENSE_AMMUNITION_UNAVAILABLE,
-  INVALID_AIR_DEFENSE_SYSTEM_DEFINITION,
-} from "./reason-codes.js";
 
-// ============================================================================
-// AC-11: Engagement formula — 9-factor product with bigint floor-once
-// ============================================================================
+// Exact denominator 10_000^8 = 10^32 (bigint; 10^32 — within bigint, not Number range).
+const FORMULA_SCALE_N = BigInt(FORMULA_DENOMINATOR);
+export const ENGAGEMENT_FORMULA_DENOMINATOR: bigint = FORMULA_SCALE_N ** BigInt(FORMULA_EXPONENT);
+
+// ---- §19 formula ----
+
+/** The 8 §19 multiplier factors (all basis points, SafeInt). */
+export interface EngagementMultipliers {
+  directorBp: SafeInt;
+  radarBp: SafeInt;
+  crewBp: SafeInt;
+  damageBp: SafeInt;
+  ammunitionBp: SafeInt;
+  targetProfileBp: SafeInt;
+  weatherBp: SafeInt;
+  saturationBp: SafeInt;
+}
+
+// ---- Two-class factor bound policy (INC-4 repair; see module bound analysis) ----
+// Factor order for the nine numerator factors: [base, director, radar, crew, damage,
+// ammunition, targetProfile, weather, saturation] — the §19 product's written order.
+// NORMAL-class slots are capped at MAX_ENGAGEMENT_FACTOR_BP (31_000, the shipped director
+// maximum §12). SATURATION-class slots (radar §14, saturation §16) are unbounded by 31_000:
+// they carry the UNDIVIDED marginal sums (4 radar groups → 40_000; 4 CIWS systems → 40_000)
+// and are admitted as any non-negative safe integer (their structural bound — sum over the
+// ship's actual group/system count, each marginal <= 10_000 — lives at the caller, INC-5/6).
+// Factor order for the nine numerator factors: [base, director, radar, crew, damage,
+// ammunition, targetProfile, weather, saturation] — the §19 product's written order.
+// Exported as the canonical §19 factor-key order contracted by air_defense_v1 (AC-17).
+export const ENGAGEMENT_FACTOR_SLOT_NAMES = [
+  "base",
+  "director",
+  "radar",
+  "crew",
+  "damage",
+  "ammunition",
+  "targetProfile",
+  "weather",
+  "saturation",
+] as const;
+type FactorSlotName = (typeof ENGAGEMENT_FACTOR_SLOT_NAMES)[number];
+// Keyed by slot name (not a parallel array) so the product's written order and the cap set
+// cannot drift apart: adding a slot to ENGAGEMENT_FACTOR_SLOT_NAMES without assigning it a
+// cap here is a compile error (MEDIUM-2/LOW-4 alignment repair).
+const FACTOR_CAPS_BP: Readonly<Record<FactorSlotName, number>> = {
+  base: MAX_ENGAGEMENT_FACTOR_BP, // base — NORMAL
+  director: MAX_ENGAGEMENT_FACTOR_BP, // director — NORMAL
+  radar: Number.MAX_SAFE_INTEGER, // radar — SATURATION (§14 aggregate, no 31_000 limit)
+  crew: MAX_ENGAGEMENT_FACTOR_BP, // crew — NORMAL
+  damage: MAX_ENGAGEMENT_FACTOR_BP, // damage — NORMAL
+  ammunition: MAX_ENGAGEMENT_FACTOR_BP, // ammunition — NORMAL
+  targetProfile: MAX_ENGAGEMENT_FACTOR_BP, // targetProfile — NORMAL
+  weather: MAX_ENGAGEMENT_FACTOR_BP, // weather — NORMAL
+  saturation: Number.MAX_SAFE_INTEGER, // saturation — SATURATION (§16 aggregate, no 31_000 limit)
+};
 
 /**
- * All 9 multiplier inputs for the §19 engagement formula.
- * Every value is a SafeInt basis point (0..≥0, neutral = 10_000).
- *
- * Factor sources:
- *   baseDefenseBp       — system definition (§3: kill/damage/abort/disruption base)
- *   directorMultiplierBp — §12 director scaling table (5_000 / 10_000 / 18_000 / 25_000 / 31_000)
- *   radarMultiplierBp   — §13/§14 radar availability/saturation (neutral 10_000 unless specified)
- *   crewMultiplierBp    — crew quality (neutral 10_000; no shipped AA-specific table — see ADR)
- *   damageMultiplierBp  — §21 overall component damage effect (derived from AirDamageComponentStatus)
- *   ammunitionMultiplierBp — §20 ammunition availability (0 if empty, 10_000 if full)
- *   targetProfileMultiplierBp — target profile fit (neutral 10_000; no shipped AA table — see ADR)
- *   weatherMultiplierBp — weather effects (neutral 10_000; no shipped AA table — see ADR)
- *   saturationMultiplierBp — §14/§16/§17 saturation effect (neutral 10_000 unless specified)
+ * AC-11: effectiveDefenseBp = floor(baseDefenseBp * Π multiplierBp / 10_000^8).
+ * All 9 factors (base + 8 multipliers) are accumulated as a bigint numerator, divided once
+ * by 10_000^8 (bigint division floors for non-negative values), and returned as a SafeInt.
+ * Fail-closed boundaries (TWO-CLASS policy, INC-4 repair): every NORMAL-class factor (base,
+ * director, crew, damage, ammunition, targetProfile, weather) must be a non-negative safe
+ * integer <= MAX_ENGAGEMENT_FACTOR_BP (31_000, the shipped director maximum §12); the
+ * SATURATION-class slots (radar §14, saturation §16) must be non-negative safe integers but
+ * are accepted WITHOUT the 31_000 limit — they carry the undivided §§14/16 marginal sums,
+ * which legitimately exceed 31_000 (4 radar groups → 40_000; 4 CIWS systems → 40_000; see
+ * module bound analysis). A defensive check also throws if the floored result ever exceeded
+ * MAX_SAFE_INTEGER (protects pathology). The result is the raw floored value — never clamped
+ * (see module bound analysis).
  */
-export interface EngagementFactorInputs {
-  readonly baseDefenseBp: SafeInt;
-  readonly directorMultiplierBp: SafeInt;
-  readonly radarMultiplierBp: SafeInt;
-  readonly crewMultiplierBp: SafeInt;
-  readonly damageMultiplierBp: SafeInt;
-  readonly ammunitionMultiplierBp: SafeInt;
-  readonly targetProfileMultiplierBp: SafeInt;
-  readonly weatherMultiplierBp: SafeInt;
-  readonly saturationMultiplierBp: SafeInt;
-}
-
-/** Detailed breakdown of the bigint floor-once computation for traceability. */
-export interface EngagementFormulaDetail {
-  /** Exact rational numerator as a decimal string (bigint). */
-  readonly numerator: string;
-  /** Exact denominator (10_000^8) as a decimal string. */
-  readonly denominator: string;
-  /** Rounding mode: always "floor". */
-  readonly mode: string;
-  /** Scale exponent (8). */
-  readonly scaleExponent: number;
-  /** Raw floored value before clamping. */
-  readonly rawFlooredBp: number;
-}
-
-/** Result of the engagement formula. */
-export interface EffectiveDefenseResult {
-  /** Final effective defense basis points, clamped to [0, MAX_SAFE_INTEGER]. */
-  readonly effectiveDefenseBp: SafeInt;
-  /** Factor contributions for traceability. */
-  readonly factorContributions: Record<string, SafeInt>;
-  /** Rounding detail (bigint intermediate). */
-  readonly rounding: EngagementFormulaDetail;
-}
-
-/**
- * AC-11: Computes effectiveDefenseBp using the §19 9-factor product with
- * bigint floor-once rounding.
- *
- * Formula: floor(baseDefenseBp × director × radar × crew × damage ×
- *   ammunition × targetProfile × weather × saturation / 10_000^8)
- *
- * The exact rational result is rounded ONCE with FLOOR. No intermediate
- * rounding. BigInt is used because the numerator can reach ~10^40, far
- * above Number.MAX_SAFE_INTEGER (~9.0×10^15).
- *
- * @param inputs — 9 SafeInt basis-point factors (§19).
- * @returns EffectiveDefenseResult with floored bp and traceability detail.
- */
-export function computeEffectiveDefenseBp(inputs: EngagementFactorInputs): EffectiveDefenseResult {
-  // Validate all inputs are non-negative safe integers
-  const factorKeys: Array<keyof EngagementFactorInputs> = [
-    "baseDefenseBp",
-    "directorMultiplierBp",
-    "radarMultiplierBp",
-    "crewMultiplierBp",
-    "damageMultiplierBp",
-    "ammunitionMultiplierBp",
-    "targetProfileMultiplierBp",
-    "weatherMultiplierBp",
-    "saturationMultiplierBp",
+export function computeEffectiveDefenseBp(
+  baseDefenseBp: SafeInt,
+  multipliers: EngagementMultipliers,
+): SafeInt {
+  const factors: readonly number[] = [
+    baseDefenseBp,
+    multipliers.directorBp,
+    multipliers.radarBp,
+    multipliers.crewBp,
+    multipliers.damageBp,
+    multipliers.ammunitionBp,
+    multipliers.targetProfileBp,
+    multipliers.weatherBp,
+    multipliers.saturationBp,
   ];
-
-  for (const key of factorKeys) {
-    const val = inputs[key];
-    if (!SafeInt.isSafeInt(val) || val < 0) {
+  let numerator = 1n;
+  for (let i = 0; i < factors.length; i++) {
+    const factor = factors[i]!;
+    const slot = ENGAGEMENT_FACTOR_SLOT_NAMES[i]!;
+    const cap = FACTOR_CAPS_BP[slot];
+    if (!SafeInt.isSafeInt(factor) || factor < 0 || factor > cap) {
       throw new BluewaveError(
-        `computeEffectiveDefenseBp: ${key} must be a non-negative safe integer`,
-        { code: INVALID_AIR_DEFENSE_SYSTEM_DEFINITION, factorKey: key, value: val },
+        `computeEffectiveDefenseBp: every NORMAL-class factor must be a non-negative safe integer <= MAX_ENGAGEMENT_FACTOR_BP (${MAX_ENGAGEMENT_FACTOR_BP}); SATURATION-class factors (radar, saturation) must be non-negative safe integers (no 31_000 limit)`,
+        {
+          code: INVALID_AIR_DEFENSE_STATE,
+          slot,
+          factor,
+          cap,
+          maxFactorBp: MAX_ENGAGEMENT_FACTOR_BP,
+        },
       );
     }
+    numerator *= BigInt(factor);
+  }
+  // bigint integer division floors (all values non-negative).
+  const rawFloored: bigint = numerator / ENGAGEMENT_FORMULA_DENOMINATOR;
+  if (rawFloored > BigInt(Number.MAX_SAFE_INTEGER)) {
+    // Defensive: the documented TWO-CLASS bounds allow the floored result to reach ~2.2e31
+    // (7 NORMAL factors at 31_000 × both SATURATION slots at MAX_SAFE_INTEGER →
+    // ~31_000^7 × (9.007e15)^2 / 1e32), which EXCEEDS MAX_SAFE_INTEGER — so this throw IS
+    // reachable by pathological-but-legal aggregate inputs and fires fail-closed rather than
+    // silently losing precision in Number(rawFloored). Realistic ship-scale inputs (floored
+    // <= ~1.5e6) never trip it.
+    throw new BluewaveError("computeEffectiveDefenseBp: floored result exceeds MAX_SAFE_INTEGER", {
+      code: INVALID_AIR_DEFENSE_STATE,
+      rawFloored: rawFloored.toString(),
+    });
+  }
+  return SafeInt(Number(rawFloored));
+}
+
+// ---- §5 outcome table ----
+
+/** The five §5 primary engagement outcomes. */
+export type EngagementOutcome = "KILL" | "DAMAGE" | "ABORT" | "DISRUPTION" | "NO_EFFECT";
+
+/** Inputs to the mutually exclusive cumulative outcome table. */
+export interface EngagementOutcomeParams {
+  effectiveKillBp: SafeInt;
+  effectiveDamageBp: SafeInt;
+  effectiveAbortBp: SafeInt;
+  effectiveDisruptionBp: SafeInt;
+  /** One keyed random draw 0..9_999. */
+  draw: SafeInt;
+}
+
+/** Cumulative band boundaries of the canonical outcome table. */
+export interface EngagementOutcomeThresholds {
+  /** [0, killEndBp) → KILL */
+  killEndBp: SafeInt;
+  /** [killEndBp, damageEndBp) → DAMAGE */
+  damageEndBp: SafeInt;
+  /** [damageEndBp, abortEndBp) → ABORT */
+  abortEndBp: SafeInt;
+  /** [abortEndBp, disruptionEndBp) → DISRUPTION */
+  disruptionEndBp: SafeInt;
+  /** == disruptionEndBp; draw >= totalBp → NO_EFFECT */
+  totalBp: SafeInt;
+}
+
+export interface EngagementOutcomeResult {
+  outcome: EngagementOutcome;
+  draw: SafeInt;
+  thresholds: EngagementOutcomeThresholds;
+}
+
+/**
+ * AC-11 (§5 + §19 lines 328-330): exactly one primary outcome via the canonical mutually
+ * exclusive cumulative outcome table, band precedence KILL → DAMAGE → ABORT → DISRUPTION →
+ * NO_EFFECT:
+ *
+ *   draw < killBp                       → KILL
+ *   draw < killBp + damageBp            → DAMAGE
+ *   draw < killBp + damageBp + abortBp  → ABORT
+ *   draw < + disruptionBp               → DISRUPTION
+ *   otherwise                           → NO_EFFECT
+ *
+ * Cumulative sums use safe-integer arithmetic (each effective value <= 31_000; the sum of
+ * the four <= 124_000, well within the safe range).
+ */
+export function resolveEngagementOutcome(params: EngagementOutcomeParams): EngagementOutcomeResult {
+  const { effectiveKillBp, effectiveDamageBp, effectiveAbortBp, effectiveDisruptionBp, draw } =
+    params;
+  const killEndBp = effectiveKillBp;
+  const damageEndBp = SafeInt.add(killEndBp, effectiveDamageBp);
+  const abortEndBp = SafeInt.add(damageEndBp, effectiveAbortBp);
+  const disruptionEndBp = SafeInt.add(abortEndBp, effectiveDisruptionBp);
+
+  let outcome: EngagementOutcome;
+  if (draw < killEndBp) {
+    outcome = "KILL";
+  } else if (draw < damageEndBp) {
+    outcome = "DAMAGE";
+  } else if (draw < abortEndBp) {
+    outcome = "ABORT";
+  } else if (draw < disruptionEndBp) {
+    outcome = "DISRUPTION";
+  } else {
+    outcome = "NO_EFFECT";
   }
 
-  // ---- BigInt numerator: multiply all 9 factors ----
-  // Bound analysis: worst case 9 factors each ≤ 10_000 → numerator ≤ 10_000^9 = 10^36.
-  // 10^36 < BigInt safe range. BigInt intermediate is REQUIRED (ENGINEERING-CONTRACT §5).
-  let numerator: bigint = BigInt(inputs.baseDefenseBp);
-  numerator *= BigInt(inputs.directorMultiplierBp);
-  numerator *= BigInt(inputs.radarMultiplierBp);
-  numerator *= BigInt(inputs.crewMultiplierBp);
-  numerator *= BigInt(inputs.damageMultiplierBp);
-  numerator *= BigInt(inputs.ammunitionMultiplierBp);
-  numerator *= BigInt(inputs.targetProfileMultiplierBp);
-  numerator *= BigInt(inputs.weatherMultiplierBp);
-  numerator *= BigInt(inputs.saturationMultiplierBp);
-
-  // ---- BigInt integer division floors for non-negative values ----
-  const rawFloored: bigint = numerator / ENGAGEMENT_FORMULA_DENOMINATOR;
-  const rawFlooredBp: number = Number(rawFloored);
-
-  // Clamp to safe range (should always be ≤ 10_000 for reasonable inputs)
-  const effectiveDefenseBp = SafeInt(Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, rawFlooredBp)));
-
   return {
-    effectiveDefenseBp,
-    factorContributions: { ...inputs },
-    rounding: {
-      mode: "floor",
-      numerator: numerator.toString(),
-      denominator: ENGAGEMENT_FORMULA_DENOMINATOR.toString(),
-      scaleExponent: ENGAGEMENT_FORMULA_SCALE_EXPONENT,
-      rawFlooredBp,
+    outcome,
+    draw,
+    thresholds: {
+      killEndBp,
+      damageEndBp,
+      abortEndBp,
+      disruptionEndBp,
+      totalBp: disruptionEndBp,
     },
   };
 }
 
+// ---- Keyed random draw ----
+
+/** Draw bounds for the engagement outcome draw (inclusive). */
+export const ENGAGEMENT_DRAW_MIN = 0 as const;
+export const ENGAGEMENT_DRAW_MAX = 9_999 as const;
+
 /**
- * Neutral factor set: all 8 multiplier factors = 10_000 (identity).
- * Returns effectiveDefenseBp = baseDefenseBp when all factors are neutral.
+ * Domain-separated, stable stream id for one engagement's outcome draw. Same identity →
+ * same stream → same draw (gunneryHitStreamId idiom).
  */
-export function neutralEngagementFactors(baseDefenseBp: SafeInt): EngagementFactorInputs {
-  const neutral = SafeInt(10_000);
-  return {
-    baseDefenseBp,
-    directorMultiplierBp: neutral,
-    radarMultiplierBp: neutral,
-    crewMultiplierBp: neutral,
-    damageMultiplierBp: neutral,
-    ammunitionMultiplierBp: neutral,
-    targetProfileMultiplierBp: neutral,
-    weatherMultiplierBp: neutral,
-    saturationMultiplierBp: neutral,
+export function airDefenseEngagementStreamId(identity: {
+  defenderId: string;
+  systemId: string;
+  attackId: string;
+  minute: SafeInt;
+  substep: SafeInt;
+}): string {
+  return `air-defense/engagement/${identity.defenderId}/${identity.systemId}/${identity.attackId}/${identity.minute}/${identity.substep}`;
+}
+
+/** One keyed random draw 0..9_999 for an air-defense engagement outcome. */
+export function drawAirDefenseOutcome(engine: RandomEngine, streamId: string): SafeInt {
+  const stream = engine.stream(streamId);
+  return drawUniform(stream, SafeInt(ENGAGEMENT_DRAW_MIN), SafeInt(ENGAGEMENT_DRAW_MAX));
+}
+
+// ---- Per-engagement resolution entry point ----
+
+export interface EngagementResolutionInput {
+  system: AirDefenseSystemDefinition;
+  attack: AirDefenseAttack;
+  state: AirDefenseState;
+  /**
+   * The 8 §19 multiplier factors. TWO factors are state-authoritative and overridden by the
+   * state — they are NOT bypassable by the caller:
+   * - `ammunitionBp` from ammunitionMultiplierBp (§20: an empty system contributes zero);
+   * - `damageBp` from effectiveDamageMultiplierBp(state.damageBp, state.powerBp) (§21: a
+   *   DESTROYED (damageBp >= 10_000) or unpowered (powerBp <= 0) system contributes zero).
+   * The caller supplies the other six (INC-4 computes director/radar/saturation).
+   */
+  multipliers: EngagementMultipliers;
+  engine: RandomEngine;
+  identity: {
+    defenderId: string;
+    systemId: string;
+    attackId: string;
+    minute: SafeInt;
+    substep: SafeInt;
   };
 }
 
-// ============================================================================
-// AC-12: Disruption model — severity levels, stacking, outcome table
-// ============================================================================
-
-/** Disruption severity-to-multiplier mapping per §6 lines 118-123. */
-export interface DisruptionSeverityMultipliers {
-  readonly accuracyMultiplierBp: number;
-  readonly cohesionMultiplierBp: number;
+export interface EngagementResolution {
+  /** New immutable state (ammunition consumed when the system engaged). */
+  state: AirDefenseState;
+  outcome: EngagementOutcome;
+  effectiveBp: { kill: SafeInt; damage: SafeInt; abort: SafeInt; disruption: SafeInt };
+  /**
+   * Rounds consumed by this engagement. Consumed on EVERY drawn engagement — every fired
+   * resolution, including a drawn NO_EFFECT (§20 line 334: "Every engagement MUST reserve and
+   * consume exact ammunition"). Zero only on the zero-contribution path, where the system did
+   * not fire (empty / destroyed / zero-base bands → no draw taken).
+   */
+  consumedRounds: SafeInt;
+  /**
+   * The keyed draw for this engagement. When the system contributes zero (empty/zero-band
+   * outcome bands — no draw is taken), this is the documented sentinel SafeInt.ZERO and no
+   * ammunition is consumed; every real drawn outcome (including a drawn NO_EFFECT) consumes
+   * ammunition.
+   */
+  draw: SafeInt;
+  streamId: string;
 }
 
 /**
- * Returns the shipped disruption multipliers for a given severity level (§6).
- * MISSION_ABORT returns { accuracyMultiplierBp: 0, cohesionMultiplierBp: 0 }
- * because the attack does not proceed.
+ * Resolves ONE eligible system-vs-attack engagement (INC-6 entry point). Lean: does NOT
+ * re-run layer resolution or eligibility — the caller determines those. Computes the four
+ * effective bp values from the system's base values × the §19 multipliers, draws ONE keyed
+ * outcome, resolves the primary outcome via the canonical table, and consumes
+ * roundsPerEngagement on every drawn engagement — KILL/DAMAGE/ABORT/DISRUPTION and a drawn
+ * NO_EFFECT alike (§20 line 334: "Every engagement MUST reserve and consume exact
+ * ammunition"). The only non-consuming path is the zero-contribution early return: a system
+ * that contributes zero — empty ammunition (§20 line 346), DESTROYED (damageBp >= 10_000) or
+ * unpowered (powerBp <= 0) (§21), or zero-base bands — yields all-zero effective bp →
+ * NO_EFFECT, no draw taken, nothing consumed, and does not fire.
  */
-export function disruptionSeverityMultipliers(
-  severity: DisruptionSeverityType,
-): DisruptionSeverityMultipliers {
-  const entry = DISRUPTION_SEVERITY_MAP[severity];
-  if (entry === undefined) {
-    throw new BluewaveError(`disruptionSeverityMultipliers: unknown severity "${severity}"`, {
-      code: INVALID_AIR_DEFENSE_SYSTEM_DEFINITION,
-      severity,
+export function resolveEngagement(input: EngagementResolutionInput): EngagementResolution {
+  const { system, state, multipliers, engine, identity } = input;
+  const streamId = airDefenseEngagementStreamId(identity);
+
+  // Lean integrity check: the system must be an authoritative member of the state.
+  if (!state.systems.some((sys) => sys.systemId === system.systemId)) {
+    throw new BluewaveError("resolveEngagement: system is not part of the air-defense state", {
+      code: INVALID_AIR_DEFENSE_STATE,
+      systemId: system.systemId,
     });
   }
-  return { ...entry };
-}
 
-/**
- * Maps a disruption basis-point value to a severity level (§6).
- * Thresholds derived from the shipped disruption bp values:
- *   ≥ 15_000 → MISSION_ABORT (disruptionBp exceeds base + stacking)
- *   ≥ 8_000 → SEVERE
- *   ≥ 3_000 → MODERATE
- *   > 0 → LIGHT
- *   0 → no disruption
- *
- * NOTE: These thresholds are a documented deterministic mapping.
- * The shipped disruption bp values for LIGHT/MODERATE/SEVERE are 3/8/15
- * from BASE_DEFENSE_VALUES (§3). A disruption check that passes yields a
- * disruption record; the severity is determined by comparing the disruption
- * bp against these thresholds.
- */
-export function determineDisruptionSeverity(disruptionBp: number): DisruptionSeverityType | null {
-  if (disruptionBp <= 0) return null;
-  if (disruptionBp >= 15_000) return "MISSION_ABORT";
-  if (disruptionBp >= 8_000) return "SEVERE";
-  if (disruptionBp >= 3_000) return "MODERATE";
-  return "LIGHT";
-}
+  // §20/§21 authoritative state factors: ammunition (empty → 0) AND damage×power (DESTROYED
+  // / unpowered → 0) — both contribute zero and are not bypassable by the caller.
+  const ammunitionBp = ammunitionMultiplierBp(state, system.systemId);
+  const damageBp = effectiveDamageMultiplierBp(state.damageBp, state.powerBp);
+  const effectiveMultipliers: EngagementMultipliers = { ...multipliers, ammunitionBp, damageBp };
 
-/**
- * AC-12 stacking rule (§6 line 125): "For several disruption records,
- * only the highest severity from one defense layer applies."
- *
- * Returns the highest-severity record from a set of records in a single layer.
- * If multiple records share the highest severity, the first encountered is returned.
- */
-export function highestSeverityInLayer<
-  T extends { severity: DisruptionSeverityType; layer: LayerId },
->(records: ReadonlyArray<T>, layer: LayerId): T | null {
-  let best: T | null = null;
-  let bestOrdinal = -1;
-  for (const rec of records) {
-    if (rec.layer !== layer) continue;
-    const ordinal = DISRUPTION_SEVERITY_ORDINAL[rec.severity] ?? 0;
-    if (ordinal > bestOrdinal) {
-      bestOrdinal = ordinal;
-      best = rec;
-    }
-  }
-  return best;
-}
+  const effectiveBp = {
+    kill: computeEffectiveDefenseBp(system.baseKillBp, effectiveMultipliers),
+    damage: computeEffectiveDefenseBp(system.baseDamageBp, effectiveMultipliers),
+    abort: computeEffectiveDefenseBp(system.baseAbortBp, effectiveMultipliers),
+    disruption: computeEffectiveDefenseBp(system.baseDisruptionBp, effectiveMultipliers),
+  };
 
-/**
- * AC-12 cross-layer stacking (§6 line 125): "Different defense layers
- * multiply in canonical layer order and round once at final attack resolution."
- *
- * Combines disruption multipliers from different layers multiplicatively.
- * Returns the combined accuracy and cohesion multipliers after applying
- * all layers' best severities in canonical order.
- */
-export interface CombinedDisruptionMultipliers {
-  readonly accuracyMultiplierBp: SafeInt;
-  readonly cohesionMultiplierBp: SafeInt;
-}
+  const totalBp = SafeInt.add(
+    SafeInt.add(effectiveBp.kill, effectiveBp.damage),
+    SafeInt.add(effectiveBp.abort, effectiveBp.disruption),
+  );
 
-/**
- * Combines disruption effects from multiple layers.
- * Each layer contributes its highest-severity multiplier. Layers compose
- * multiplicatively; the final product is floored once with bigint.
- *
- * @param layerSeverities — map of layer → highest severity in that layer (or null).
- * @returns Combined accuracy and cohesion multipliers in bp.
- */
-export function combineCrossLayerDisruption(
-  layerSeverities: ReadonlyMap<LayerId, DisruptionSeverityType | null>,
-): CombinedDisruptionMultipliers {
-  // Start with neutral (10_000 bp = 1.0)
-  let accuracyProduct = 10_000n;
-  let cohesionProduct = 10_000n;
-
-  let disruptedLayerCount = 0;
-  for (const [, severity] of layerSeverities) {
-    if (severity === null) continue;
-    const mults = DISRUPTION_SEVERITY_MAP[severity];
-    if (mults === undefined) continue;
-    accuracyProduct *= BigInt(mults.accuracyMultiplierBp);
-    cohesionProduct *= BigInt(mults.cohesionMultiplierBp);
-    disruptedLayerCount++;
-  }
-
-  if (disruptedLayerCount === 0) {
+  if (totalBp === SafeInt.ZERO) {
+    // No outcome band is reachable (empty system / destroyed / degenerate zero-base system):
+    // the system contributes zero. No draw is consumed and no ammunition is expended.
     return {
-      accuracyMultiplierBp: SafeInt(10_000),
-      cohesionMultiplierBp: SafeInt(10_000),
+      state,
+      outcome: "NO_EFFECT",
+      effectiveBp,
+      consumedRounds: SafeInt.ZERO,
+      draw: SafeInt.ZERO,
+      streamId,
     };
   }
 
-  const denominator = BigInt(FORMULA_DENOMINATOR) ** BigInt(disruptedLayerCount);
+  const draw = drawAirDefenseOutcome(engine, streamId);
+  const resolved = resolveEngagementOutcome({
+    effectiveKillBp: effectiveBp.kill,
+    effectiveDamageBp: effectiveBp.damage,
+    effectiveAbortBp: effectiveBp.abort,
+    effectiveDisruptionBp: effectiveBp.disruption,
+    draw,
+  });
 
-  // bigint division floors for non-negative values
-  const accuracyFloored = Number(accuracyProduct / denominator);
-  const cohesionFloored = Number(cohesionProduct / denominator);
-
+  // Every drawn engagement has fired and MUST consume exact ammunition (§20 line 334):
+  // KILL/DAMAGE/ABORT/DISRUPTION AND a drawn NO_EFFECT all consume roundsPerEngagement.
+  // Only the zero-contribution path above (no draw taken — the system did not fire) consumes
+  // nothing (§20 line 346: an empty system "contributes zero").
+  const consumedRounds = system.roundsPerEngagement;
+  const nextState = consumeAmmunition(state, system.systemId, consumedRounds);
   return {
-    accuracyMultiplierBp: SafeInt(Math.max(0, accuracyFloored)),
-    cohesionMultiplierBp: SafeInt(Math.max(0, cohesionFloored)),
-  };
-}
-
-// ---- §5 Mutually exclusive outcome table (AC-12) ----
-
-/** Primary engagement outcome per §5 lines 86-104. */
-export type EngagementOutcome = "KILL" | "DAMAGE" | "ABORT" | "DISRUPTION" | "NO_EFFECT";
-
-/**
- * Effective defense bp values for each outcome type.
- * These are the computed effectiveDefenseBp values for each base outcome
- * (kill, damage, abort, disruption), each multiplied by the full 9-factor
- * formula. The outcome is determined by a single draw in [0, 10_000).
- */
-export interface EngagementOutcomeThresholds {
-  /** Effective kill probability in bp (from baseKillBp × 9 factors). */
-  readonly killBp: number;
-  /** Effective damage probability in bp. */
-  readonly damageBp: number;
-  /** Effective abort probability in bp. */
-  readonly abortBp: number;
-  /** Effective disruption probability in bp. */
-  readonly disruptionBp: number;
-}
-
-/**
- * AC-12: Mutually exclusive outcome table per §5/§19.
- *
- * A single draw in [0, 10_000) maps to exactly one outcome:
- *   [0, killBp) → KILL
- *   [killBp, killBp + damageBp) → DAMAGE
- *   [killBp + damageBp, killBp + damageBp + abortBp) → ABORT
- *   [killBp + damageBp + abortBp, killBp + damageBp + abortBp + disruptionBp) → DISRUPTION
- *   [sum, 10_000) → NO_EFFECT
- *
- * §19 lines 328-330: "The same engagement MUST NOT count one random draw as
- * both physical kill and disruption unless its outcome table explicitly combines
- * them." This table ensures exactly one outcome per draw.
- *
- * @param thresholds — effective bp for each outcome type.
- * @param randomBp — a single draw in [0, 10_000). Must be a non-negative integer.
- * @returns Exactly one EngagementOutcome.
- */
-export function resolveEngagementOutcome(
-  thresholds: EngagementOutcomeThresholds,
-  randomBp: number,
-): EngagementOutcome {
-  if (!Number.isInteger(randomBp) || randomBp < 0 || randomBp >= FORMULA_DENOMINATOR) {
-    throw new BluewaveError(
-      `resolveEngagementOutcome: randomBp must be an integer in [0, ${FORMULA_DENOMINATOR})`,
-      { code: INVALID_AIR_DEFENSE_SYSTEM_DEFINITION, randomBp },
-    );
-  }
-
-  const cumulative =
-    thresholds.killBp + thresholds.damageBp + thresholds.abortBp + thresholds.disruptionBp;
-
-  // Total probability must not exceed 10_000 (100%)
-  if (cumulative > FORMULA_DENOMINATOR) {
-    throw new BluewaveError(
-      "resolveEngagementOutcome: cumulative outcome thresholds exceed 10_000 bp",
-      { code: INVALID_AIR_DEFENSE_SYSTEM_DEFINITION, cumulative, thresholds },
-    );
-  }
-
-  let cursor = 0;
-
-  cursor += thresholds.killBp;
-  if (randomBp < cursor) return "KILL";
-
-  cursor += thresholds.damageBp;
-  if (randomBp < cursor) return "DAMAGE";
-
-  cursor += thresholds.abortBp;
-  if (randomBp < cursor) return "ABORT";
-
-  cursor += thresholds.disruptionBp;
-  if (randomBp < cursor) return "DISRUPTION";
-
-  return "NO_EFFECT";
-}
-
-// ============================================================================
-// AC-13: Ammunition consumption
-// ============================================================================
-
-/**
- * Computes the ammunition multiplier (§20).
- * An empty system contributes zero: ammunitionMultiplierBp = 0 when rounds ≤ 0.
- * A full/available system contributes neutral 10_000 bp.
- *
- * §20 line 346: "An empty system contributes zero. A defensive opportunity
- * does not create ammunition."
- */
-export function computeAmmunitionMultiplierBp(roundsRemaining: number): SafeInt {
-  if (!Number.isInteger(roundsRemaining) || roundsRemaining < 0) {
-    throw new BluewaveError(
-      "computeAmmunitionMultiplierBp: roundsRemaining must be a non-negative integer",
-      { code: AIR_DEFENSE_AMMUNITION_UNAVAILABLE, roundsRemaining },
-    );
-  }
-  return SafeInt(roundsRemaining > 0 ? 10_000 : 0);
-}
-
-/**
- * Result of ammunition consumption.
- */
-export interface AmmunitionConsumptionResult {
-  /** New ammunition state after consumption. */
-  readonly newAmmunitionByType: ReadonlyMap<string, SafeInt>;
-  /** Whether the system had sufficient ammunition. */
-  readonly sufficient: boolean;
-  /** Rounds consumed (0 if insufficient). */
-  readonly roundsConsumed: SafeInt;
-}
-
-/**
- * AC-13: Reserves and consumes exact ammunition per engagement (§20).
- *
- * §20 lines 332-346: "Every engagement MUST reserve and consume exact
- * ammunition." Each system declares rounds per engagement. The function
- * decrements from ready/magazine capacity.
- *
- * This function is IMMUTABLE — it returns a new map, never mutating the input.
- *
- * @param ammunitionByType — current ammunition state (systemId → rounds).
- * @param systemId — the engaging system.
- * @param roundsPerEngagement — exact rounds to consume.
- * @returns New ammunition state + consumption details.
- */
-export function consumeAmmunition(
-  ammunitionByType: ReadonlyMap<string, SafeInt>,
-  systemId: string,
-  roundsPerEngagement: SafeInt,
-): AmmunitionConsumptionResult {
-  if (!SafeInt.isSafeInt(roundsPerEngagement) || roundsPerEngagement < 0) {
-    throw new BluewaveError(
-      "consumeAmmunition: roundsPerEngagement must be a non-negative safe integer",
-      { code: AIR_DEFENSE_AMMUNITION_UNAVAILABLE, roundsPerEngagement },
-    );
-  }
-
-  const currentRounds = ammunitionByType.get(systemId);
-  const available = currentRounds !== undefined ? Number(currentRounds) : 0;
-
-  if (available < Number(roundsPerEngagement)) {
-    // Insufficient ammunition — do not consume, return new map unchanged
-    return {
-      newAmmunitionByType: ammunitionByType,
-      sufficient: false,
-      roundsConsumed: SafeInt(0),
-    };
-  }
-
-  // Decrement exact rounds
-  const newRounds = SafeInt(available - Number(roundsPerEngagement));
-  const newMap = new Map(ammunitionByType);
-  newMap.set(systemId, newRounds);
-
-  return {
-    newAmmunitionByType: newMap,
-    sufficient: true,
-    roundsConsumed: roundsPerEngagement,
-  };
-}
-
-// ============================================================================
-// AC-14: Simplified damage/power state + local control multiplier
-// ============================================================================
-
-/**
- * AC-14: Simplified component damage state per §21.
- * Damage MUST independently affect 8 channels:
- *   weapon mount/launcher, director, radar/local sensor, electrical power,
- *   data/communication path, ammunition feed, stabilization, engagement channels.
- *
- * Each channel is independently tracked as operational (true) or destroyed (false).
- */
-export interface AirDamageComponentStatus {
-  /** Weapon mount or launcher operational. */
-  readonly weaponMount: boolean;
-  /** Fire-control director operational. */
-  readonly director: boolean;
-  /** Radar or local sensor operational. */
-  readonly radar: boolean;
-  /** Electrical power operational. */
-  readonly electricalPower: boolean;
-  /** Data or communication path operational. */
-  readonly dataCommPath: boolean;
-  /** Ammunition feed operational. */
-  readonly ammunitionFeed: boolean;
-  /** Stabilization operational. */
-  readonly stabilization: boolean;
-  /** Engagement channels operational. */
-  readonly engagementChannels: boolean;
-}
-
-/** All channels operational (fully functional system). */
-export const ALL_CHANNELS_OPERATIONAL: AirDamageComponentStatus = {
-  weaponMount: true,
-  director: true,
-  radar: true,
-  electricalPower: true,
-  dataCommPath: true,
-  ammunitionFeed: true,
-  stabilization: true,
-  engagementChannels: true,
-};
-
-/**
- * AC-14: Computes the director multiplier with local-control fallback (§21).
- *
- * §21 lines 361-363: "An intact gun with a destroyed director may use local
- * control only when its definition provides an exact local-control multiplier.
- * The shipped local-control multiplier is 5_000 basis points."
- *
- * Logic:
- *   - Director operational → use normalDirectorMultiplierBp (from §12 table)
- *   - Director destroyed + system has localControlMultiplierBp → use local control (5_000 bp)
- *   - Director destroyed + no localControlMultiplierBp → 0 (director loss blocks path)
- *
- * @param componentStatus — component damage state.
- * @param systemDefinition — system definition (for localControlMultiplierBp).
- * @param normalDirectorMultiplierBp — normal director scaling value (from §12 table).
- * @returns Director multiplier in bp.
- */
-export function computeDirectorMultiplierBp(
-  componentStatus: AirDamageComponentStatus,
-  systemDefinition: AirDefenseSystemDefinition,
-  normalDirectorMultiplierBp: SafeInt,
-): SafeInt {
-  if (componentStatus.director) {
-    // Director operational: use normal scaling
-    return normalDirectorMultiplierBp;
-  }
-
-  // Director destroyed: check for local control
-  if (systemDefinition.localControlMultiplierBp !== undefined) {
-    // Local control available: use the shipped multiplier (5_000 bp)
-    return systemDefinition.localControlMultiplierBp;
-  }
-
-  // No local control defined: director loss blocks engagement path
-  return SafeInt(0);
-}
-
-/**
- * AC-14: Computes the overall damage multiplier from component status (§21).
- *
- * §21 specifies 8 independent damage channels. The overall damageMultiplierBp
- * aggregates the component states. This simplified implementation counts
- * operational channels and computes a proportional multiplier.
- *
- * Simplified model: each channel contributes 1/8 of 10_000 bp (1_250 bp).
- * All channels operational → 10_000 bp (neutral).
- * Each destroyed channel reduces by 1_250 bp.
- * Minimum is 0 bp (all channels destroyed).
- *
- * NOTE: DESIGN-45 does not ship a specific formula for combining the 8 damage
- * channels into a single multiplier. This simplified proportional model is
- * documented here and may be refined when the canonical combination formula
- * is specified in a future design increment.
- *
- * @param componentStatus — component damage state.
- * @returns Damage multiplier in bp [0, 10_000].
- */
-export function computeDamageMultiplierBp(componentStatus: AirDamageComponentStatus): SafeInt {
-  const channels: readonly boolean[] = [
-    componentStatus.weaponMount,
-    componentStatus.director,
-    componentStatus.radar,
-    componentStatus.electricalPower,
-    componentStatus.dataCommPath,
-    componentStatus.ammunitionFeed,
-    componentStatus.stabilization,
-    componentStatus.engagementChannels,
-  ];
-  const operationalCount = channels.filter(Boolean).length;
-  // floor(operationalCount × 10_000 / 8)
-  const scaled = Math.floor((operationalCount * 10_000) / channels.length);
-  return SafeInt(Math.max(0, Math.min(10_000, scaled)));
-}
-
-/**
- * Convenience: applies the full damage-aware director multiplier computation
- * and returns both the director multiplier and the overall damage multiplier
- * for use in the engagement formula.
- */
-export interface DamageAwareMultipliers {
-  /** Director multiplier with local-control fallback. */
-  readonly directorMultiplierBp: SafeInt;
-  /** Overall damage multiplier from component status. */
-  readonly damageMultiplierBp: SafeInt;
-}
-
-/**
- * Computes both director and damage multipliers from component status.
- * This is the recommended entry point for wiring AC-14 into AC-11.
- *
- * @param componentStatus — component damage state.
- * @param systemDefinition — system definition (for localControlMultiplierBp).
- * @param normalDirectorMultiplierBp — normal director scaling (from §12 table).
- */
-export function computeDamageAwareMultipliers(
-  componentStatus: AirDamageComponentStatus,
-  systemDefinition: AirDefenseSystemDefinition,
-  normalDirectorMultiplierBp: SafeInt,
-): DamageAwareMultipliers {
-  return {
-    directorMultiplierBp: computeDirectorMultiplierBp(
-      componentStatus,
-      systemDefinition,
-      normalDirectorMultiplierBp,
-    ),
-    damageMultiplierBp: computeDamageMultiplierBp(componentStatus),
+    state: nextState,
+    outcome: resolved.outcome,
+    effectiveBp,
+    consumedRounds,
+    draw,
+    streamId,
   };
 }

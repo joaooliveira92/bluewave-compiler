@@ -1,145 +1,264 @@
 // packages/combat/test/air-defense/light-aa-disruption.test.ts
-// AC-7: Guaranteed disruption opportunity for light AA per DESIGN-45 §10.
-// Ensures every eligible light-AA system receives at least one disruption check.
-// The guaranteed opportunity does NOT guarantee ammunition, hit, damage, or abort.
-
+// AC-7 (INC-5): guaranteed light-AA disruption opportunity (DESIGN-45 §29.8-9) — every
+// eligible light-AA system receives at least one disruption check of one authoritative
+// substep; the opportunity does NOT guarantee ammunition, hit, damage, or abort.
 import { describe, it, expect } from "vite-plus/test";
-import { SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import {
-  evaluateLightAADisruptionOpportunity,
+  AttackType,
+  Category,
+  computeLightAaEligibility,
+  createAirDefenseAttack,
+  createAirDefenseSystemDefinition,
+  Layer,
+  resolveGuaranteedLightAaDisruptionOpportunity,
+  AIR_DEFENSE_AMMUNITION_UNAVAILABLE,
+  AIR_DEFENSE_CHANNEL_UNAVAILABLE,
+  AIR_DEFENSE_INVARIANT_FAILED,
+  AIR_DEFENSE_TARGET_INELIGIBLE,
   LIGHT_AA_DISRUPTION_OPPORTUNITY_CREATED,
 } from "../../src/air-defense/index.js";
-import { makeLightAASystem, makeAttack, makeState, makeContext } from "./test-helpers.js";
+import type { LightAaEligibilityResult } from "../../src/air-defense/index.js";
 
-// Default makeContext uses attackerRangeM = 8_000 which exceeds the light-AA
-// rangeMaxM = 3_000. Every eligible test needs attackerRange within system range.
-function inRangeContext(overrides?: Parameters<typeof makeContext>[0]) {
-  return makeContext({ attackerRangeM: SafeInt(1_000), ...overrides });
+const OPERABLE = {
+  defenderSunk: false,
+  defenderAbandoned: false,
+  systemPowered: true,
+  systemOperational: true,
+};
+
+type SysOverrides = Partial<Parameters<typeof createAirDefenseSystemDefinition>[0]>;
+type AtkOverrides = Partial<Parameters<typeof createAirDefenseAttack>[0]>;
+
+function lightAaSystem(overrides: SysOverrides = {}) {
+  return createAirDefenseSystemDefinition({
+    systemId: "sys_light",
+    layer: Layer.LIGHT_AA,
+    category: Category.LIGHT_AA,
+    rangeMinM: SafeInt(0),
+    rangeMaxM: SafeInt(4_000),
+    altitudeMinM: SafeInt(0),
+    altitudeMaxM: SafeInt(6_000),
+    targetSpeedLimitMps: SafeInt(800),
+    arcDegreesMax: SafeInt(90),
+    profileEligibility: new Set([
+      "AIRCRAFT_LEVEL_BOMBING",
+      "AIRCRAFT_DIVE_BOMBING",
+      "AIRCRAFT_SKIP_BOMBING",
+      "AIRCRAFT_TORPEDO_ATTACK",
+      "AIRCRAFT_ROCKET_ATTACK",
+      "AIRCRAFT_GUIDED_WEAPON_ATTACK",
+      "ANTI_RADIATION_WEAPON",
+      "LIGHT_ASM",
+    ]),
+    engagementChannels: new Set(["ch_light"]),
+    contentHash: "f".repeat(64),
+    ...overrides,
+  });
 }
 
-describe("AC-7: guaranteed light-AA disruption opportunity (§10)", () => {
-  it("grants every eligible light-AA system a disruption opportunity", () => {
-    const system = makeLightAASystem();
-    const state = makeState([system], { powerBp: SafeInt(10_000) });
-    const attack = makeAttack();
-    const context = inRangeContext();
-
-    const result = evaluateLightAADisruptionOpportunity(system, state, attack, context, 0);
-    expect(result.eligible).toBe(true);
-    expect(result.reasonCode).toBe(LIGHT_AA_DISRUPTION_OPPORTUNITY_CREATED);
+function attack(overrides: AtkOverrides = {}) {
+  return createAirDefenseAttack({
+    attackId: "atk_light_001",
+    formationId: "frm_light_001",
+    targetId: "ship_001",
+    attackType: AttackType.AIRCRAFT_LEVEL_BOMBING,
+    speedKnots: SafeInt(150), // < 200 knots → 10_000 bp → effective window 120_000 ms
+    speedMps: SafeInt(77),
+    currentRangeM: SafeInt(2_000),
+    currentAltitudeM: SafeInt(1_000),
+    bearingDegrees: SafeInt(0),
+    releaseRangeM: SafeInt(1_000),
+    releaseAltitudeM: SafeInt(500),
+    isReleased: false,
+    fireControlSolutionBp: SafeInt(10_000),
+    timeToImpactMs: SafeInt(120_000), // <= 120_000 effective window → window open
+    formationSize: SafeInt(2),
+    cohesionBp: SafeInt(10_000),
+    defensiveSusceptibilityBp: SafeInt(10_000),
+    contentHash: "g".repeat(64),
+    ...overrides,
   });
+}
 
-  it("runs the disruption check against each eligible light-AA system independently", () => {
-    const system1 = makeLightAASystem({ systemId: "light_001" });
-    const system2 = makeLightAASystem({ systemId: "light_002" });
-    const state = makeState([system1, system2], { powerBp: SafeInt(10_000) });
-    const attack = makeAttack();
-    const context = inRangeContext();
-
-    const r1 = evaluateLightAADisruptionOpportunity(system1, state, attack, context, 100);
-    const r2 = evaluateLightAADisruptionOpportunity(system2, state, attack, context, 100);
-    expect(r1.reasonCode).toBe(LIGHT_AA_DISRUPTION_OPPORTUNITY_CREATED);
-    expect(r2.reasonCode).toBe(LIGHT_AA_DISRUPTION_OPPORTUNITY_CREATED);
+function eligibilityFor(atk: ReturnType<typeof attack>, overrides: Record<string, unknown> = {}) {
+  return computeLightAaEligibility({
+    system: lightAaSystem(),
+    attack: atk,
+    operability: OPERABLE,
+    channelAvailable: true,
+    ammunitionAvailable: true,
+    ...overrides,
   });
+}
 
-  it("does NOT guarantee damage/abort: a result with NO_EFFECT is valid for an eligible system", () => {
-    const system = makeLightAASystem();
-    const state = makeState([system], { powerBp: SafeInt(10_000) });
-    const attack = makeAttack();
-    const context = inRangeContext();
-
-    // Light AA base disruption = 15bp (createAirDefenseSystemDefinition default).
-    // Draw (100) >= 15 → NO_EFFECT.
-    const result = evaluateLightAADisruptionOpportunity(system, state, attack, context, 100);
-    expect(result.eligible).toBe(true);
-    expect(result.reasonCode).toBe(LIGHT_AA_DISRUPTION_OPPORTUNITY_CREATED);
-    expect(result.outcome).toBe("NO_EFFECT");
-    expect(result.severity).toBeNull();
-  });
-
-  it("can produce a DISRUPTION outcome for an eligible system with a favorable draw", () => {
-    // Use a high base disruption value to reliably force a DISRUPTION outcome.
-    const system = makeLightAASystem({
-      baseDisruptionBp: SafeInt(9_000),
+function resolve(
+  atk: ReturnType<typeof attack>,
+  opts: {
+    eligibility?: LightAaEligibilityResult;
+    system?: SysOverrides;
+    operability?: typeof OPERABLE;
+    channelAvailable?: boolean;
+    ammunitionAvailable?: boolean;
+    minute?: SafeInt;
+    substep?: SafeInt;
+  } = {},
+) {
+  const system = lightAaSystem(opts.system);
+  const eligibility =
+    opts.eligibility ??
+    computeLightAaEligibility({
+      system,
+      attack: atk,
+      operability: opts.operability ?? OPERABLE,
+      channelAvailable: opts.channelAvailable ?? true,
+      ammunitionAvailable: opts.ammunitionAvailable ?? true,
     });
-    const state = makeState([system], { powerBp: SafeInt(10_000) });
-    const attack = makeAttack();
-    const context = inRangeContext();
+  return resolveGuaranteedLightAaDisruptionOpportunity({
+    system,
+    attack: atk,
+    operability: opts.operability ?? OPERABLE,
+    channelAvailable: opts.channelAvailable ?? true,
+    ammunitionAvailable: opts.ammunitionAvailable ?? true,
+    eligibility,
+    timing: { minute: opts.minute ?? SafeInt(12), substep: opts.substep ?? SafeInt(1) },
+  });
+}
 
-    // Draw < 9_000 bp → DISRUPTION.
-    const result = evaluateLightAADisruptionOpportunity(system, state, attack, context, 5_000);
-    expect(result.eligible).toBe(true);
+function thrownCode(fn: () => void): string {
+  try {
+    fn();
+  } catch (error) {
+    expect(error).toBeInstanceOf(BluewaveError);
+    return (error as BluewaveError).context.code as string;
+  }
+  throw new Error("expected a BluewaveError, none was thrown");
+}
+
+describe("AC-7: guaranteed light-AA disruption opportunity (§29.8-9)", () => {
+  it("every eligible light-AA system receives the opportunity at exactly ONE authoritative substep", () => {
+    const result = resolve(attack(), { minute: SafeInt(12), substep: SafeInt(1) });
+    expect(result.opportunityCreated).toBe(true);
+    expect(result.checkMinute).toBe(SafeInt(12));
+    expect(result.checkSubstep).toBe(SafeInt(1));
     expect(result.reasonCode).toBe(LIGHT_AA_DISRUPTION_OPPORTUNITY_CREATED);
-    expect(result.outcome).toBe("DISRUPTION");
-    expect(result.severity).toBe("SEVERE"); // disruptionBp >= 8_000 → SEVERE
   });
 
-  it("is prohibited when the system is destroyed (zero mounts)", () => {
-    const system = makeLightAASystem({ mountCount: SafeInt(0) });
-    const state = makeState([system], { powerBp: SafeInt(10_000) });
-    const attack = makeAttack();
-    const context = inRangeContext();
-
-    const result = evaluateLightAADisruptionOpportunity(system, state, attack, context, 100);
-    expect(result.eligible).toBe(false);
-    expect(result.reasonCode).toBe("");
+  it("is deterministic — identical inputs produce identical results", () => {
+    const a = resolve(attack());
+    const b = resolve(attack());
+    expect(a).toEqual(b);
   });
 
-  it("is prohibited when the system is out of ammunition", () => {
-    const system = makeLightAASystem();
-    const state = makeState([system], {
-      ammunitionByType: new Map<string, SafeInt>([["light_001", SafeInt(0)]]),
-      powerBp: SafeInt(10_000),
+  it("does NOT guarantee ammunition, hit, damage, or abort (§29.9)", () => {
+    // The opportunity is only a CHECK grant: no rounds are fired and no random decision is
+    // drawn at this stage (the disruption severity draw happens at attack resolution).
+    const result = resolve(attack());
+    expect(result.opportunityCreated).toBe(true);
+    // The record-level contract (AC-15) pins draw=0 and roundsConsumed=0 — asserted in
+    // records.test.ts against createLightAaDisruptionOpportunityRecord.
+    expect(result.reasonCode).toBe(LIGHT_AA_DISRUPTION_OPPORTUNITY_CREATED);
+  });
+
+  describe("prohibited cases (deterministic predicate order)", () => {
+    it("attack type not permitted by matrix/listing → AIR_DEFENSE_TARGET_INELIGIBLE", () => {
+      const result = resolve(attack({ attackType: AttackType.HEAVY_ASM }));
+      expect(result.opportunityCreated).toBe(false);
+      expect(result.reasonCode).toBe(AIR_DEFENSE_TARGET_INELIGIBLE);
     });
-    const attack = makeAttack();
-    const context = inRangeContext();
 
-    const result = evaluateLightAADisruptionOpportunity(system, state, attack, context, 100);
-    expect(result.eligible).toBe(false);
-    expect(result.reasonCode).toBe("");
+    it("system destroyed / unpowered → AIR_DEFENSE_TARGET_INELIGIBLE", () => {
+      for (const operability of [
+        { ...OPERABLE, systemOperational: false },
+        { ...OPERABLE, systemPowered: false },
+        { ...OPERABLE, defenderSunk: true },
+      ]) {
+        const result = resolve(attack(), { operability });
+        expect(result.opportunityCreated).toBe(false);
+        expect(result.reasonCode).toBe(AIR_DEFENSE_TARGET_INELIGIBLE);
+      }
+    });
+
+    it("attack out of the mount arc → AIR_DEFENSE_TARGET_INELIGIBLE (arc enforced here)", () => {
+      // The light-AA eligibility result (computed on the SAME out-of-arc attack) stays
+      // eligible — the arc is the resolver's own addition, so no contradiction fires.
+      const atk = attack({ bearingDegrees: SafeInt(200) }); // arcDegreesMax is 90
+      expect(eligibilityFor(atk).eligible).toBe(true);
+      const result = resolve(atk);
+      expect(result.opportunityCreated).toBe(false);
+      expect(result.reasonCode).toBe(AIR_DEFENSE_TARGET_INELIGIBLE);
+    });
+
+    it("attack outside the envelope → AIR_DEFENSE_TARGET_INELIGIBLE", () => {
+      const result = resolve(attack({ currentRangeM: SafeInt(10_000) }));
+      expect(result.opportunityCreated).toBe(false);
+      expect(result.reasonCode).toBe(AIR_DEFENSE_TARGET_INELIGIBLE);
+    });
+
+    it("flight window closed (timeToImpactMs past the effective window) → AIR_DEFENSE_TARGET_INELIGIBLE", () => {
+      const result = resolve(attack({ timeToImpactMs: SafeInt(120_001) }));
+      expect(result.opportunityCreated).toBe(false);
+      expect(result.reasonCode).toBe(AIR_DEFENSE_TARGET_INELIGIBLE);
+    });
+
+    it("channel unavailable → AIR_DEFENSE_CHANNEL_UNAVAILABLE", () => {
+      const result = resolve(attack(), { channelAvailable: false });
+      expect(result.opportunityCreated).toBe(false);
+      expect(result.reasonCode).toBe(AIR_DEFENSE_CHANNEL_UNAVAILABLE);
+    });
+
+    it("ammunition unavailable → AIR_DEFENSE_AMMUNITION_UNAVAILABLE", () => {
+      const result = resolve(attack(), { ammunitionAvailable: false });
+      expect(result.opportunityCreated).toBe(false);
+      expect(result.reasonCode).toBe(AIR_DEFENSE_AMMUNITION_UNAVAILABLE);
+    });
+
+    it("prohibited attempts still report the attempted minute/substep", () => {
+      const result = resolve(attack({ currentRangeM: SafeInt(10_000) }), {
+        minute: SafeInt(7),
+        substep: SafeInt(1),
+      });
+      expect(result.checkMinute).toBe(SafeInt(7));
+      expect(result.checkSubstep).toBe(SafeInt(1));
+    });
   });
 
-  it("is prohibited when the system is unpowered", () => {
-    const system = makeLightAASystem();
-    const state = makeState([system]); // powerBp = 0 by default
-    const attack = makeAttack();
-    const context = inRangeContext();
+  describe("fail-closed contradiction guard", () => {
+    it("eligibility claims eligible but a shared predicate blocks → AIR_DEFENSE_INVARIANT_FAILED", () => {
+      const fakeEligible: LightAaEligibilityResult = {
+        eligible: true,
+        profile: "LEVEL",
+        baseWindowMilliseconds: SafeInt(120_000),
+        speedMultiplierBp: SafeInt(10_000),
+        effectiveWindowMilliseconds: SafeInt(120_000),
+        withinEnvelope: true,
+        windowOpen: true,
+        reason: null,
+      };
+      const code = thrownCode(() =>
+        resolve(attack(), { eligibility: fakeEligible, channelAvailable: false }),
+      );
+      expect(code).toBe(AIR_DEFENSE_INVARIANT_FAILED);
+    });
 
-    const result = evaluateLightAADisruptionOpportunity(system, state, attack, context, 100);
-    expect(result.eligible).toBe(false);
-    expect(result.reasonCode).toBe("");
-  });
-
-  it("is prohibited when the attacker is out of arc (out of range)", () => {
-    const system = makeLightAASystem();
-    const state = makeState([system], { powerBp: SafeInt(10_000) });
-    const attack = makeAttack();
-    const context = makeContext({ attackerRangeM: SafeInt(5_000) }); // > rangeMaxM 3_000
-
-    const result = evaluateLightAADisruptionOpportunity(system, state, attack, context, 100);
-    expect(result.eligible).toBe(false);
-    expect(result.reasonCode).toBe("");
-  });
-
-  it("is prohibited when the target is ineligible", () => {
-    const system = makeLightAASystem();
-    const state = makeState([system], { powerBp: SafeInt(10_000) });
-    const attack = makeAttack();
-    const contextBB = inRangeContext({ targetType: "BB" });
-
-    const result = evaluateLightAADisruptionOpportunity(system, state, attack, contextBB, 100);
-    expect(result.eligible).toBe(false);
-    expect(result.reasonCode).toBe("");
-  });
-
-  it("rejects invalid randomBp draws as no-effect (fail-safe)", () => {
-    const system = makeLightAASystem();
-    const state = makeState([system], { powerBp: SafeInt(10_000) });
-    const attack = makeAttack();
-    const context = inRangeContext();
-
-    const result = evaluateLightAADisruptionOpportunity(system, state, attack, context, 10_000);
-    expect(result.eligible).toBe(false);
-    expect(result.outcome).toBe("NO_EFFECT");
+    it("eligibility claims eligible but the system is inoperable → AIR_DEFENSE_INVARIANT_FAILED", () => {
+      const fakeEligible: LightAaEligibilityResult = {
+        eligible: true,
+        profile: "LEVEL",
+        baseWindowMilliseconds: SafeInt(120_000),
+        speedMultiplierBp: SafeInt(10_000),
+        effectiveWindowMilliseconds: SafeInt(120_000),
+        withinEnvelope: true,
+        windowOpen: true,
+        reason: null,
+      };
+      const code = thrownCode(() =>
+        resolve(attack(), {
+          eligibility: fakeEligible,
+          operability: { ...OPERABLE, systemPowered: false },
+        }),
+      );
+      expect(code).toBe(AIR_DEFENSE_INVARIANT_FAILED);
+    });
   });
 });
