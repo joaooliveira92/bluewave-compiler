@@ -267,6 +267,25 @@ module golden hash (`AIR_DEFENSE_CONTRACTS_GOLDEN_HASH`), regenerated only as a 
 versioned release change. Consequence: any contract edit requires the constant change, the
 factory change, the schema change and the hash change to land together or the gate fails.
 
+### 21. Step 7.8 stage composition (INC-6)
+
+`resolveAirDefense` (`air-defense/engineWiring.ts`) runs at step 7.8, after air combat
+(7.7) and before spotting (8), from an optional `AdvanceMinuteInput.airDefense` context.
+It is a strict no-op (no records, minute hash byte-identical) when the context is absent
+or carries no defender or no attack. Composition: defenders in codepoint `defenderId`
+order → `resolveDefenseLayers` (§1 order, codepoint `systemId`) → one keyed
+`resolveEngagement` per eligible candidate, threading the defender state (ammunition)
+candidate-to-candidate and minute-to-minute through `advanceMinutes`. Ineligible
+candidates with a §28 reason emit an `INELIGIBLE` record (no draw). §19 slots: director =
+`directorState.scalingBp`, radar = `radarState.diminishingReturnsBp`, crew =
+`crewQuality`, saturation = §16 CIWS factor over the layer's eligible CIWS count
+(neutral elsewhere, per decision 13), target-profile/weather caller-supplied (neutral
+default). §28 ships codes only for abort/disruption (`AIR_ATTACK_ABORTED` /
+`AIR_ATTACK_DISRUPTED`); KILL/DAMAGE/NO_EFFECT records carry the outcome literal as
+`reasonCode` — no §28 code is invented (exact-20 catalog, decision 14). The air-defense
+barrel is now exported from the `@bluewave/combat` root; the two pre-existing
+colliding names (`compareStrings`, `damageMultiplierBp`) keep their pre-D-4 owners.
+
 ## Consequences
 
 - INC-5 obligations below were **discharged** when INC-5 landed (`53ec75f`, adopted by the

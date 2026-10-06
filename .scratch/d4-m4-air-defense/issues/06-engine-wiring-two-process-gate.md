@@ -4,10 +4,10 @@
 
 **Blocked by:** 05 — Records + ordering + reason codes + contracts + guaranteed disruption (DONE 2026-09-22, traceability closed 2026-10-06)
 
-**Status:** ready-for-agent (frontier — unblocked)
+**Status:** DONE (2026-10-06 — PASS). Evidence: `.ai/reports/d4-m4-air-defense-inc6-engine-wiring-gate.md`. ADR-0042 decision 21.
 
-**Frontier:** yes
+**Frontier:** no
 
-- [ ] AC-18: Engine stage at step 7.8, strict no-op
-- [ ] AC-19: Two-process determinism (child process)
-- [ ] AC-20: BattleResolver/StrengthCalculator unmodified
+- [x] AC-18: Engine stage at step 7.8, strict no-op
+- [x] AC-19: Two-process determinism (child process)
+- [x] AC-20: BattleResolver/StrengthCalculator unmodified

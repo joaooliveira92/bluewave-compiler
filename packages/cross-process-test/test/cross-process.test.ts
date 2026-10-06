@@ -117,6 +117,39 @@ describe("Air-combat cross-process determinism", () => {
   });
 });
 
+describe("Air-defense cross-process determinism (D-4 AC-19)", () => {
+  const airDefenseChildScript = resolve(thisDir, "..", "dist", "run-air-defense-child.js");
+
+  interface AirDefenseChildOutput {
+    resolveAirDefenseHash: string;
+    closingSnapshotHash: string;
+    recordCount: number;
+    success: boolean;
+    error?: string;
+  }
+
+  function runAirDefenseChild(): AirDefenseChildOutput {
+    const stdout = execFileSync(process.execPath, [airDefenseChildScript], {
+      encoding: "utf8",
+      timeout: 30000,
+      env: { ...process.env, NODE_OPTIONS: "" },
+    });
+    const lines = stdout.trim().split("\n");
+    return JSON.parse(lines[lines.length - 1]!) as AirDefenseChildOutput;
+  }
+
+  it("Two clean air-defense child-process runs produce identical hashes", () => {
+    const r1 = runAirDefenseChild();
+    const r2 = runAirDefenseChild();
+    expect(r1.error).toBeUndefined();
+    expect(r1.success).toBe(true);
+    expect(r2.success).toBe(true);
+    expect(r1.recordCount).toBeGreaterThan(0);
+    expect(r1.resolveAirDefenseHash).toBe(r2.resolveAirDefenseHash);
+    expect(r1.closingSnapshotHash).toBe(r2.closingSnapshotHash);
+  });
+});
+
 describe("Carrier operations cross-process determinism", () => {
   const carrierChildScript = resolve(thisDir, "..", "dist", "run-carrier-operations-child.js");
 

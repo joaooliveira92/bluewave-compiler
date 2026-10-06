@@ -53,6 +53,9 @@ import {
 } from "../damage/damageControlEngineWiring.js";
 import { resolveAirCombat, type AirCombatContext } from "../air-combat/engineWiring.js";
 import type { AirCombatRecord } from "../air-combat/records.js";
+import { resolveAirDefense, type AirDefenseContext } from "../air-defense/engineWiring.js";
+import type { AirDefenseEngagementRecord } from "../air-defense/records.js";
+import type { AirDefenseState } from "../air-defense/air-defense-state.js";
 
 export interface UnitOrders {
   orderedHeading: number;
@@ -100,6 +103,11 @@ export interface AdvanceMinuteInput {
    *  byte-identical to the pre-INC-8 baseline. When present, resolveAirCombat runs
    *  after weather (step 7.5) and before spotting (step 8). */
   airCombat?: AirCombatContext;
+  /** Optional air-defense context (D-4 / INC-6). When absent, the resolveAirDefense
+   *  stage is a strict no-op: zero records emitted, minute snapshot/minuteHash
+   *  byte-identical to the pre-INC-6 baseline. When present, resolveAirDefense runs
+   *  after air combat (step 7.7) and before spotting (step 8). */
+  airDefense?: AirDefenseContext;
 }
 
 export interface MinuteResult {
@@ -138,6 +146,12 @@ export interface MinuteResult {
   /** Summary of air-combat activity this minute. Present only when the stage
    *  was active. */
   airCombatSummary?: { capEngagements: number; strikeAttacks: number; losses: number };
+  /** Air-defense records emitted this minute (§27 order). Present only when the
+   *  stage produced records. */
+  airDefenseRecords?: readonly AirDefenseEngagementRecord[];
+  /** Per-defender air-defense states after this minute (ammunition consumed).
+   *  Present only when the stage produced records. */
+  airDefenseStates?: Readonly<Record<string, AirDefenseState>>;
 }
 
 // atomic mutable snapshot used through one minute.
@@ -310,6 +324,21 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     if (airResult.active && airResult.records.length > 0) {
       airCombatRecords = airResult.records;
       airCombatSummary = airResult.summary;
+    }
+  }
+
+  // Step 7.8 (D-4 / INC-6): resolve air defense — HEAVY → MEDIUM → LIGHT → CIWS
+  // layers against incoming air attacks. Runs after air combat (step 7.7) and before
+  // spotting (step 8). Strict no-op when no air-defense context is supplied or it
+  // carries no defender/attack (zero records -> minute snapshot/minuteHash
+  // byte-identical to the pre-INC-6 baseline).
+  let airDefenseRecords: readonly AirDefenseEngagementRecord[] | undefined;
+  let airDefenseStates: Readonly<Record<string, AirDefenseState>> | undefined;
+  if (input.airDefense) {
+    const adResult = resolveAirDefense(input.airDefense, battleId, minute);
+    if (adResult.records.length > 0) {
+      airDefenseRecords = adResult.records;
+      airDefenseStates = adResult.nextStates;
     }
   }
 
@@ -599,6 +628,20 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
           },
         }
       : {}),
+    // The air-defense minute-state surface (D-4 / INC-6): present ONLY when the stage
+    // emitted records (strict no-op guarantee for absent/empty context).
+    ...(airDefenseRecords && airDefenseRecords.length > 0
+      ? {
+          airDefense: {
+            records: airDefenseRecords.map((r) => ({
+              recordId: r.recordId,
+              kind: r.recordKind,
+              outcome: r.outcome,
+              recordHash: r.recordHash,
+            })),
+          },
+        }
+      : {}),
   };
   const minuteHash = sha256Hex(canonicalSerialize(snapshot));
 
@@ -618,6 +661,8 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     ...(smokeRecords ? { smokeRecords } : {}),
     ...(airCombatRecords ? { airCombatRecords } : {}),
     ...(airCombatSummary ? { airCombatSummary } : {}),
+    ...(airDefenseRecords ? { airDefenseRecords } : {}),
+    ...(airDefenseStates ? { airDefenseStates } : {}),
   };
 }
 
@@ -652,6 +697,10 @@ export interface AdvanceMinutesInput {
    *  stage is a strict no-op across all minutes. When present, capPatrols and
    *  strikeMissions are threaded from minute to minute. */
   airCombat?: AirCombatContext;
+  /** Optional air-defense context (D-4 / INC-6). When absent, the resolveAirDefense
+   *  stage is a strict no-op across all minutes. When present, per-defender states
+   *  (ammunition) are threaded from minute to minute. */
+  airDefense?: AirDefenseContext;
 }
 export interface AdvanceMinutesResult {
   results: MinuteResult[];
@@ -673,6 +722,7 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
   let airCombat: AirCombatContext | undefined = input.airCombat
     ? { ...input.airCombat }
     : undefined;
+  let airDefense = input.airDefense;
   let state: TacticalBattleState = {
     ...input.state,
     contacts: [...(input.state.contacts ?? [])],
@@ -693,6 +743,7 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
       smoke,
       damageControl,
       airCombat,
+      airDefense,
     });
     results.push(res);
     state = {
@@ -767,6 +818,17 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
           existingRecords: res.airCombatRecords.map((r) => ({ ...r })),
         };
       }
+    }
+    // Thread the per-defender air-defense states (ammunition) into the next minute.
+    if (airDefense && res.airDefenseStates) {
+      const nextStates = res.airDefenseStates;
+      airDefense = {
+        ...airDefense,
+        defenders: airDefense.defenders.map((d) => {
+          const ns = nextStates[d.state.defenderId];
+          return ns ? { ...d, state: ns } : d;
+        }),
+      };
     }
   }
   return {
