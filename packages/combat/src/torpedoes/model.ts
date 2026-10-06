@@ -538,7 +538,13 @@ export const SHIPPED_TORPEDO_MODELS: readonly TorpedoModelDefinition[] = [
     reliabilityBp: 88_000,
     depthKeepingProfile: "primitive",
     guidanceCapability: "none",
-    compatibleLauncherFamilyIds: ["14in_above_water_fixed", "14in_above_water_trainable"],
+    // P-1 / ADR-0046: 1880 ironclads (e.g. Inflexible) fired the 14-in Whitehead
+    // from submerged bow tubes — docs/research/p1-1880-torpedo-armament.md.
+    compatibleLauncherFamilyIds: [
+      "14in_above_water_fixed",
+      "14in_above_water_trainable",
+      "14in_underwater_fixed",
+    ],
     oxygenState: null,
     tubeHitHazardPolicyId: "ORDINARY",
     contentVersion: torpedoModelsContentVersion,

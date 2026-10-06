@@ -335,6 +335,7 @@ const F = {
     "crewComplement",
     "contentVersion",
     "compiledHash",
+    "torpedoArmament",
   ),
   DesignFamily: fields<DesignFamily>()(
     "designFamilyId",

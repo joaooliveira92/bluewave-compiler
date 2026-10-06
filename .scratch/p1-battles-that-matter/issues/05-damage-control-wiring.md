@@ -1,9 +1,3 @@
-# 05-damage-control-wiring
+# 05-damage-control-wiring — superseded by 07
 
-**Spec:** ../spec.md — deferred follow-up
-
-**Blocked by:** 04
-
-**Status:** ready-for-agent
-
-**Frontier:** no
+**Status:** superseded (2026-10-06) — see 07 (the engine stage itself is not per-ship).

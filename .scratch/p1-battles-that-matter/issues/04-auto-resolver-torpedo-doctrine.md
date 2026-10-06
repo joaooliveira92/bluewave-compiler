@@ -4,6 +4,6 @@
 
 **Blocked by:** 02, 03
 
-**Status:** ready-for-agent
+**Status:** DONE (2026-10-06, ADR-0046)
 
 **Frontier:** no

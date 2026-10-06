@@ -53,6 +53,7 @@ import {
   TORPEDO_LAUNCH_SUBSTEP,
   TORPEDO_MINUTE_MS,
   TORPEDO_RULESET_VERSION,
+  torpedoSpeedBpKnotsToUmS,
   type FloodingIsolationState,
 } from "./constants.js";
 import { reserveSalvoTorpedoes, type TorpedoSalvoPolicyInputs } from "./salvo.js";
@@ -681,13 +682,32 @@ export function resolveTorpedoes(input: ResolveTorpedoesInput): TorpedoResolutio
   }
 
   // ===================== STAGE 2 — ADVANCE (whole-minute) ===================
-  // ADR-0031 entry (reviewer LOW-8): the track advance is a SINGLE end-of-minute
-  // jump (the torpedo advances the whole `dtMs` and is then hit-checked at the
-  // SAMPLED end position at substep 56). A §14 mid-minute crossing is NOT
-  // evaluated in this slice — a torpedo that INTERSECTS the target mid-minute
-  // but ends OUTSIDE the collision envelope MISSES. This is a documented
-  // end-of-minute approximation (recorded in ADR-0031), not silent behavior.
+  // The track advances the whole `dtMs` in one jump and is hit-checked at
+  // substep 56 along the SEGMENT it swept this minute (P-1 / ADR-0046, superseding
+  // the ADR-0031 end-point-only approximation): a torpedo that crosses the target
+  // mid-minute hits. A run that ends inside the minute is evaluated at its last
+  // running point BEFORE the EXHAUSTION transition, so a torpedo whose whole run is
+  // shorter than one minute of travel (e.g. the 550 m Whitehead) can still hit.
   const toEvaluate: TorpedoTrack[] = [];
+  const sweptFrom = new Map<string, Position>();
+  const exhaustOnMiss = new Map<string, TorpedoTrack>();
+  const exhaustionRecord = (track: TorpedoTrack): void => {
+    records.push(
+      makeRecord(battleId, {
+        kind: "TRACK",
+        battleMinute: minute,
+        substep: TORPEDO_RESOLVE_IMPACT_SUBSTEP,
+        sourceId: track.torpedoTrackId,
+        targetId: track.targetContactId,
+        commandSource: commandSourceOf(track, launcherById),
+        legalContactId: track.targetContactId === NO_TARGET_CONTACT ? null : track.targetContactId,
+        torpedoModelId: track.torpedoModelId,
+        launcherId: track.launcherId,
+        settingId: track.selectedSettingId,
+        damageEffects: { ...NEUTRAL_DAMAGE_EFFECTS, terminalTransition: "EXHAUSTION" },
+      }),
+    );
+  };
   for (const track of runningTracks) {
     const dtMs =
       track.launchMinute === minute
@@ -699,24 +719,23 @@ export function resolveTorpedoes(input: ResolveTorpedoesInput): TorpedoResolutio
     }
     const advanced = advanceTorpedoTrack(track, dtMs);
     if (advanced.terminalResult === "EXHAUSTION") {
-      records.push(
-        makeRecord(battleId, {
-          kind: "TRACK",
-          battleMinute: minute,
-          substep: TORPEDO_RESOLVE_IMPACT_SUBSTEP,
-          sourceId: track.torpedoTrackId,
-          targetId: track.targetContactId,
-          commandSource: commandSourceOf(track, launcherById),
-          legalContactId:
-            track.targetContactId === NO_TARGET_CONTACT ? null : track.targetContactId,
-          torpedoModelId: track.torpedoModelId,
-          launcherId: track.launcherId,
-          settingId: track.selectedSettingId,
-          damageEffects: { ...NEUTRAL_DAMAGE_EFFECTS, terminalTransition: "EXHAUSTION" },
-        }),
-      );
+      // last running point: 1 m short of the run's end (the floor-metre exhaustion test)
+      const remainingUm = track.maxRunDistanceM * 1_000_000 - track.distanceTraveledUm - 1_000_000;
+      const speedUmS = torpedoSpeedBpKnotsToUmS(track.speedKnotsBp);
+      const msToEnd = remainingUm > 0 ? Math.floor((remainingUm * 1_000) / speedUmS) : 0;
+      if (msToEnd > 0) {
+        const runEnd = advanceTorpedoTrack(track, msToEnd);
+        if (runEnd.terminalResult === null) {
+          sweptFrom.set(runEnd.torpedoTrackId, track.currentPosition);
+          exhaustOnMiss.set(runEnd.torpedoTrackId, advanced);
+          toEvaluate.push(runEnd);
+          continue;
+        }
+      }
+      exhaustionRecord(track);
       continue; // terminal — no hit evaluation this minute
     }
+    sweptFrom.set(advanced.torpedoTrackId, track.currentPosition);
     toEvaluate.push(advanced);
   }
 
@@ -752,6 +771,9 @@ export function resolveTorpedoes(input: ResolveTorpedoesInput): TorpedoResolutio
       blocker: null,
       impactMinute: minute,
       impactSubstep: TORPEDO_RESOLVE_IMPACT_SUBSTEP,
+      ...(sweptFrom.has(track.torpedoTrackId)
+        ? { sweptFrom: sweptFrom.get(track.torpedoTrackId)! }
+        : {}),
     });
     const solution = trackLaunchSolution.get(track.torpedoTrackId);
     const commandSource = commandSourceOf(track, launcherById);
@@ -773,7 +795,9 @@ export function resolveTorpedoes(input: ResolveTorpedoesInput): TorpedoResolutio
       }),
     );
     if (!hit.hit) {
-      continuedTracks.push(track);
+      const exhausted = exhaustOnMiss.get(track.torpedoTrackId);
+      if (exhausted) exhaustionRecord(exhausted);
+      else continuedTracks.push(track);
       continue;
     }
 

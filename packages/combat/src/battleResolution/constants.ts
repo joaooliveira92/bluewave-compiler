@@ -8,6 +8,7 @@
 import { BluewaveError } from "@bluewave/contracts";
 import { BATTLE_AUTO_RESOLUTION_FAILED } from "./reasonCodes.js";
 import { DEFAULT_MAX_BATTLE_MINUTES } from "../battleEnd.js";
+import { KNOTS_TO_UM_S, SPEED_BP_SCALE } from "../movement/constants.js";
 import { ARMOR_QUALITY_FAMILIES } from "../damage/armorModel.js";
 
 export const battleAutoResolutionPolicyId = "battle_auto_resolution_v1" as const;
@@ -46,10 +47,13 @@ export const AUTO_RESOLUTION_BATTLE_START_MINUTES = 360 as const; // 06:00 -> mi
 export const GUNNERY_BASE_RELOAD_MS = 60_000 as const;
 export const GUNNERY_ACCURACY_BASE_BP = 4_000 as const;
 
-/** Conversion: designed speed µm/s -> basis-point knots (integer, floor).
- *  knots ≈ m/s * 1.944; kept integer: floor(ums * 1_944 / 1_000_000_000). */
+/** Conversion: designed speed µm/s -> movement speed units (knots × SPEED_BP_SCALE,
+ *  the scale `speedBpKnotsToUmS` reads). Integer, floor:
+ *  floor(ums * SPEED_BP_SCALE / KNOTS_TO_UM_S).
+ *  P-1 / ADR-0046: the B-6 form returned whole knots, which movement read as
+ *  thousandths of a knot — auto-resolved ships effectively never moved. */
 export function designedSpeedBpKnots(designedSpeedUms: number): number {
-  return Math.floor((designedSpeedUms * 1_944) / 1_000_000_000);
+  return Math.floor((designedSpeedUms * SPEED_BP_SCALE) / KNOTS_TO_UM_S);
 }
 
 // ---------------------------------------------------------------------------

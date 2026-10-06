@@ -39,6 +39,9 @@ import { AUTO_RESOLUTION_UNAVAILABLE } from "../generation/reasonCodes.js";
 import { BATTLE_AUTO_RESOLUTION_FAILED } from "./reasonCodes.js";
 import { type AutoResolverNation, projectBattle, type ProjectBattleOutput } from "./project.js";
 import { buildBattleWeather } from "./weather.js";
+import { planTorpedoCommands } from "./torpedoDoctrine.js";
+import { pursuitOrders } from "./pursuit.js";
+import { TORPEDO_HIT_RESOLVED, type TorpedoContext } from "../torpedoes/index.js";
 import {
   battleLoss,
   initialDamageState,
@@ -97,6 +100,8 @@ export interface BattleResolutionResult {
   minuteHashes: string[];
   /** Domain-separated envelope hash over the result surface. */
   resultHash: string;
+  /** P-1: torpedo activity — present only when a combatant carried torpedo armament. */
+  torpedoSummary?: { tubesFired: number; hits: number };
   provenance: {
     battleId: string;
     manifestHash: string;
@@ -277,6 +282,9 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
   let gunnery: GunneryBattery[] = [...projected.batteries];
   let damage: DamageContext = { ...projected.damage, engine, randomLedger: input.randomLedger };
   let weatherCtx = weather.context;
+  // P-1 (AC-5): torpedo launchers/targets/tracks; absent when no unit is armed (AC-6).
+  let torpedo: TorpedoContext | undefined = projected.torpedoes;
+  const torpedoSummary = { tubesFired: 0, hits: 0 };
 
   const allEvents: BattleEvent[] = [];
   const minuteHashes: string[] = [];
@@ -301,16 +309,44 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
         : b;
     });
 
-    // 2. one fully-resolved tactical minute (steps 4-8 + 7.5 + 8.5 + 9-10)
+    // 1b. torpedo doctrine (P-1): sync target damage, then plan this minute's launches
+    if (torpedo) {
+      const targets = { ...torpedo.targets };
+      for (const [shipId, t] of Object.entries(targets)) {
+        const st = damage.targets[shipId]?.state;
+        if (st) targets[shipId] = { ...t, damageState: st };
+      }
+      torpedo = { ...torpedo, targets };
+      torpedo = {
+        ...torpedo,
+        commands: planTorpedoCommands({
+          battleId: projected.state.battleId,
+          torpedoes: torpedo,
+          battleState,
+          damage,
+          units: projected.units,
+        }),
+      };
+      torpedoSummary.tubesFired += torpedo.commands.reduce((n, c) => n + c.tubeIndexes.length, 0);
+    }
+
+    // 2. one fully-resolved tactical minute (steps 4-8 + 7.5 + 8.5 + 9-10 + 10.5)
     const res = advanceMinute({
       state: battleState,
       minute,
       observationTime,
-      orders: projected.orders,
+      orders: pursuitOrders({
+        battleId: projected.state.battleId,
+        battleState,
+        damage,
+        units: projected.units,
+        baseOrders: projected.orders,
+      }),
       engine,
       gunnery,
       weather: weatherCtx,
       damage,
+      ...(torpedo ? { torpedoes: torpedo } : {}),
     });
 
     allEvents.push(...res.events);
@@ -336,6 +372,24 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
     }
     if (res.damageStates) {
       damage = { ...damage, targets: mergeTargetStates(damage.targets, res.damageStates) };
+    }
+    if (torpedo) {
+      torpedoSummary.hits += (res.torpedoRecords ?? []).filter(
+        (r) => r.kind === "HIT_RESOLUTION" && r.damageEffects.reasonCode === TORPEDO_HIT_RESOLVED,
+      ).length;
+      const launcherStates = res.torpedoStates;
+      torpedo = {
+        ...torpedo,
+        commands: [],
+        // the stage reports only RUNNING tracks; none reported -> none running
+        tracks: (res.torpedoTracks ?? []).map((t) => ({ ...t })),
+        launchers: launcherStates
+          ? torpedo.launchers.map((w) => {
+              const next = launcherStates[w.launcher.launcherId];
+              return next ? { ...w, launcher: next } : w;
+            })
+          : torpedo.launchers,
+      };
     }
 
     // 4. §32 battle end (terminating-minute effects already applied)
@@ -440,6 +494,7 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
     eventLedgerHash: ledger.hash(),
     minuteHashes,
     resultHash: "",
+    ...(projected.torpedoes ? { torpedoSummary } : {}),
     provenance,
   };
   // resultHash: domain-separated envelope over the whole non-hash surface

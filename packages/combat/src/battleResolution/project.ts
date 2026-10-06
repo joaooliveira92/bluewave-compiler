@@ -50,6 +50,8 @@ import {
   designedSpeedBpKnots,
 } from "./constants.js";
 import { BATTLE_AUTO_RESOLUTION_FAILED } from "./reasonCodes.js";
+import { projectTorpedoes } from "./torpedoProjection.js";
+import type { TorpedoContext } from "../torpedoes/index.js";
 
 export interface AutoResolverNation {
   nationId: string;
@@ -79,6 +81,8 @@ export interface ProjectBattleOutput {
   units: TacticalShipUnit[];
   /** Resolved designs for the promoted units (promotion-verified). */
   designs: Record<string, CompiledDesignVersion>;
+  /** P-1: torpedo launchers + targets; absent when no unit carries torpedo armament. */
+  torpedoes?: TorpedoContext;
 }
 
 export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
@@ -148,6 +152,16 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
       turningRateMdegS: 1_000,
     })),
   );
+
+  // P-1 / ADR-0046: spawn.ts labels 90/270 as east/west, but movement's
+  // `directionBp` convention is 0 = +X (east), 180 = -X (west); with 90/270 the
+  // sides steamed in parallel along ±Y and never closed. Auto-resolution sets the
+  // closing headings explicitly (spawn.ts is left untouched for its pinned,
+  // direction-agnostic B-2..B-6 baselines — reconciliation is a recorded follow-up).
+  for (const u of units) {
+    const m = movement[u.assetId]!;
+    movement[u.assetId] = { ...m, heading: u.sideId === "ATTACKER" ? 0 : 180 };
+  }
 
   // ---- divisions -----------------------------------------------------------
   const divisions: TacticalDivision[] = [];
@@ -265,6 +279,13 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
     };
   }
 
+  const torpedoes = projectTorpedoes({
+    battleId: manifest.battleId,
+    units,
+    designs: unitDesigns,
+    damageTargets: targets,
+  });
+
   return {
     state,
     batteries,
@@ -272,6 +293,7 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
     orders,
     units,
     designs: unitDesigns,
+    ...(torpedoes ? { torpedoes } : {}),
   };
 }
 
