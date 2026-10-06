@@ -118,6 +118,28 @@ vitest, golden verify, two-process determinism), not from reading docs:
 > PASS — the plan no longer treats B10b as anything but accepted (see Track A
 > rows A-0/A-0b).
 
+## Playability-first re-plan (2026-10-06, ADR-0045) — governs ordering
+
+The owner-approved diagnosis found M3/M4 rules depth unreachable from a real
+campaign (auto-resolution runs gunnery + weather + damage only) and the
+_Rule the Waves 3_-defining features absent. **Execution order from here:**
+
+| #      | Sprint                         | Kind         | Depends on | Scope                                                                                                                                           |
+| ------ | ------------------------------ | ------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| D-4/6  | D-4 INC-6 engine wiring + gate | Impl         | D-4 INC-5  | Close the open D-4 branch (ticket 06). D-5 and Track E then **paused**.                                                                         |
+| P-0    | Repo gate green                | Impl         | none       | `.scratch/desktop-test-failures/` ticket 01 — `useNewGameFlow.test.ts` timeouts; `pnpm check` green with no hand-waived failures.               |
+| P-1    | Battles that matter            | Scoping+Impl | P-0        | Wire torpedoes, smoke, damage control (+ mines where present) into `resolveBattleAuto`; re-verify M3 under the campaign-reachability criterion. |
+| P-2    | Ship designer                  | Scoping+Impl | P-1        | Tech-gated hull/armor/armament/machinery designer with displacement/cost/speed derivation feeding construction (desktop + engine).              |
+| P-3    | Intentful AI                   | Scoping+Impl | P-2        | Doctrine-weighted budget, rival-aware building and design choice, tension-driven war decisions; replaces uniform-random selection.              |
+| P-4    | Living world                   | Scoping+Impl | P-0        | Events (DESIGN-49), politics/unrest (DESIGN-18), tension → crisis → war.                                                                        |
+| P-5    | Strategic fleet map            | Impl         | P-0        | `.scratch/fleet-movement-strategy-map/` INC-1..INC-6 (already scoped).                                                                          |
+| P-6    | Player-fought tactical battles | Scoping+Impl | P-1        | Promote the debug tactical sandbox into an opt-in "fight this battle" flow from the monthly turn.                                               |
+| resume | D-5, Track E                   | —            | P-1..P-4   | Resume only once the 1880 campaign plays meaningfully into the 1910s.                                                                           |
+
+**New gate criterion (all future gates):** a capability is ACCEPTED only if a
+deterministic test drives it from a compiled campaign month and observes its
+effect on authoritative state.
+
 ## Sprint sequence
 
 ### Track A — M1 (Strategic Campaign Kernel) + its content — **COMPLETED (A-5 gate, 2026-08-12)**
@@ -256,6 +278,9 @@ ownership during the relevant scoping sprint rather than guessing now:
   coverage for full support.
 
 ## Immediate next action
+
+**Order per ADR-0045:** D-4 INC-6 (below) → P-0 → P-1 → P-2 → P-3 → P-4 → P-5 →
+P-6. D-5 and Track E are paused.
 
 **D-4-IMPL (INC-6: Engine stage wiring + two-process + gate) — FRONTIER (unblocked: 05 DONE).** Sixth and last of 6 implementation tickets for the AA air-defense module (`.scratch/d4-m4-air-defense/issues/06-engine-wiring-two-process-gate.md`; spec `.scratch/d4-m4-air-defense/spec.md`). Wire `resolve_air_defense` at step 7.8 (after air-combat 7.7, before `resolveSensorsSpotting` 8) with optional `AirDefenseContext` in `AdvanceMinuteInput` and a strict no-op when absent (AC-18), prove two-process determinism via the child process (AC-19), and prove `BattleResolver`/`StrengthCalculator` remain unmodified (AC-20); gate the increment on the full orchestrator validation pipeline (build/typecheck/lint/format/tests + goldens 10/10 + `test:cross-process`). **INC-5 is fully closed** — code landed 2026-09-22 (`53ec75f`), traceability landed 2026-10-06: report `.ai/reports/d4-m4-air-defense-inc5-records-ordering-reason-codes-contracts.md`, **ADR-0042** decisions 14-20, DONE lines in this file and `docs/PROGRESS.md` (superseded parallel-run artifacts removed per **ADR-0044**).
 

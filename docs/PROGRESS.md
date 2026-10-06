@@ -17,6 +17,12 @@
 
 Live roadmap / next-action detail: `.ai/SPRINT-PLAN.md`.
 
+> **2026-10-06 re-plan (ADR-0045):** M3/M4 modules are not yet reachable from a
+> campaign (auto-resolution runs gunnery + weather + damage only). After D-4 INC-6,
+> D-5 and M5 are paused in favour of **Track P — Playable Campaign**: P-0 green
+> gate → P-1 battles that matter → P-2 ship designer → P-3 intentful AI → P-4
+> living world → P-5 strategic map → P-6 player-fought battles.
+
 ---
 
 ## ✅ Completed
