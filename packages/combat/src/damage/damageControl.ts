@@ -178,7 +178,9 @@ export function getEffectiveRepairReduction(allocations: DamageControlAllocation
  * @param resources - Available damage-control resources.
  * @param fireRecords - Active fire source records.
  * @param floodingRecords - Active flooding source records.
- * @param floodedWaterBp - Current flooded water mass in basis points of displacement.
+ * @param floodedWaterBp - Current accumulated flooded water as basis points of
+ *   displacement (`floodedWaterBpFromKg` conversion — ADR-0047 decision 4).
+ *   Callers MUST pass bp, never the kg mass surface.
  * @returns Allocation result with allocations and remaining resources.
  */
 export function allocateDamageControl(

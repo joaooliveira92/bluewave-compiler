@@ -77,6 +77,30 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     expect(a.damageReport).toEqual(b.damageReport);
   });
 
+  it("AC-6 pinned unarmed baseline: resolveBattleAuto(makeAutoInput()) stays byte-identical (P-1 review F5)", () => {
+    // The fixture carries main batteries but NO torpedo-armament ships, so the
+    // wired per-ship damage-control stage never activates — this is the pre-P-1
+    // "unarmed" resolution path. Pinning these hashes (captured 2026-10-06
+    // before ANY ticket-07 repair landed) proves the DC rollout did not perturb
+    // the unarmed world: AC-6's hash freeze holds through the kg->bp severity
+    // fix, the fail-closed engine guard, and the reason-code registration.
+    const result = resolveBattleAuto(makeAutoInput());
+    expect(result.battleEndReason).toBe("no_viable_combatants");
+    expect(result.elapsedMinutes).toBe(18);
+    expect(result.resultHash).toBe(
+      "88d409ac743cde2e4fa43048e3d33a4db22be4166b4cd209315afc2b1ebea762",
+    );
+    expect(result.minuteHashes[0]).toBe(
+      "704d9118704bb7ff99215a06c9eabcbda043c21f897e87accd311494f0c8f218",
+    );
+    expect(result.minuteHashes[1]).toBe(
+      "cab4b696447f7c100d8df91532440f45f5003f3372094cb3aa7fd19d8bda3924",
+    );
+    expect(result.minuteHashes[result.minuteHashes.length - 1]).toBe(
+      "b0cb413ad74515a1b551d4946ebd31809adfcb9ebe76c6aafaa7552ac469e5cf",
+    );
+  });
+
   it("missing manifest fails closed with AUTO_RESOLUTION_UNAVAILABLE", () => {
     const input = makeAutoInput();
     let caught: unknown;

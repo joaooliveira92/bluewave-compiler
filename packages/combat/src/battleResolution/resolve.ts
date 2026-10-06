@@ -19,7 +19,7 @@
 // Fail-closed: a missing/undefined manifest -> AUTO_RESOLUTION_UNAVAILABLE;
 // every other malformed input -> a stable diagnostic; never a partial result.
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
-import { createEnvelope } from "@bluewave/deterministic";
+import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
 import { RandomEngine, type RandomLedger } from "@bluewave/random";
 import { BattleLedger, type BattleEvent } from "../battleLedger.js";
 import { advanceMinute } from "../simulation/engine.js";
@@ -33,6 +33,7 @@ import type { GunneryBattery } from "../gunnery/resolve.js";
 import { NO_TARGET, withGunneryStateHash } from "../gunnery/index.js";
 import type { TacticalBattleState } from "../tactical/state.js";
 import type { TacticalShipUnit } from "../tactical/unit.js";
+import type { MovementState } from "../movement.js";
 import type { ShipDamageState } from "../damage/state.js";
 import type { StrategicWeatherState } from "../weather/strategic-state.js";
 import { AUTO_RESOLUTION_UNAVAILABLE } from "../generation/reasonCodes.js";
@@ -49,6 +50,11 @@ import {
   type DamageTargetContext,
 } from "./damage.js";
 import { decideBattleEnd, type BattleSide, type ShipViability } from "./viability.js";
+import { createDefaultDamageControlResource } from "../damage/damageControl.js";
+import type { DamageControlContext } from "../damage/damageControlEngineWiring.js";
+import { DAMAGE_RULESET_VERSION } from "../damage/constants.js";
+import { DAMAGE_CONTROL_KEYED_DRAW } from "../damage/reasonCodes.js";
+import { SPEED_BP_SCALE } from "../movement/constants.js";
 import {
   AUTO_RESOLUTION_MAX_MINUTES,
   battleAutoResolutionPolicyId,
@@ -165,6 +171,95 @@ function mergeTargetStates(
     if (t) out[shipId] = { ...t, state };
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Damage control (P-1 ticket 07): per-ship contexts derived from each ship's
+// CURRENT damage state. Wired ONLY when the battle carries torpedo armament
+// (AC-6: an unarmed battle never sends a damageControl surface, so the
+// engine's step 8.6 stays a strict no-op and the battle keeps byte-identical
+// minute/result hashes). The keyedRng is scoped per (battleId, minute,
+// shipId, draw ordinal) so every ship resolves from its own deterministic
+// streams — mirrors damage.ts scopedRng (ADR-0026 §random).
+
+function buildDamageControlContexts(input: {
+  battleId: string;
+  minute: number;
+  units: readonly TacticalShipUnit[];
+  damage: DamageContext;
+  movementStates: Record<string, MovementState> | undefined;
+  engine: RandomEngine;
+  randomLedger?: RandomLedger;
+}): Record<string, DamageControlContext> {
+  const { battleId, minute, units, damage, movementStates, engine, randomLedger } = input;
+  const contexts: Record<string, DamageControlContext> = {};
+  const shipIds = units.map((u) => u.assetId).sort();
+  for (const shipId of shipIds) {
+    const target = damage.targets[shipId];
+    if (!target) continue; // every committed ship is in targets; defensive no-op
+    const state = target.state;
+    const currentSpeedBp = movementStates?.[shipId]?.currentSpeed ?? 0;
+    let drawCall = 0;
+    const scopedRng = (stream: string): number => {
+      // The ordinal is part of the ledger inputHash too (domain-separated
+      // input-hash requirement): the SAME (battleId, minute, shipId, stream)
+      // tuple produces a DIFFERENT decision for A different ordinal.
+      const ordinal = drawCall;
+      drawCall += 1;
+      const domain = `${stream}:${battleId}:${minute}:${shipId}:${ordinal}`;
+      const draw = engine.stream(domain).next();
+      if (randomLedger) {
+        randomLedger.record({
+          streamId: domain,
+          entityKey: shipId,
+          phase: "resolve_battle_auto_resolution_damage_control",
+          rulesetVersion: DAMAGE_RULESET_VERSION,
+          inputHash: sha256Hex(
+            canonicalSerialize({
+              battleId,
+              minute,
+              shipId,
+              stream,
+              drawCall: ordinal,
+            }),
+          ),
+          draw,
+          outcome: String(draw),
+          reasonCode: DAMAGE_CONTROL_KEYED_DRAW,
+        });
+      }
+      return draw;
+    };
+    contexts[shipId] = {
+      fireRecords: [...state.fireRecords],
+      floodingRecords: [...state.floodingRecords],
+      // accumulated flooded-water MASS in kg (progressiveFloodingTotal surface;
+      // ADR-0047 decision 4 — severity converts to bp via designDisplacementKg).
+      floodedWaterBp: state.progressiveFloodingTotal,
+      designDisplacementKg: target.designDisplacementKg,
+      shipType: target.shipType,
+      currentSpeedKt: Math.floor(currentSpeedBp / SPEED_BP_SCALE),
+      resources: createDefaultDamageControlResource(),
+      keyedRng: scopedRng,
+    };
+  }
+  return contexts;
+}
+
+/**
+ * AC-6 damage-control gate (ADR-0047 decision 1) — exported so the gate is a
+ * testable seam instead of an inline truthiness check at the call site.
+ *
+ * The stage runs iff the projected battle carries torpedo armament:
+ * `projectTorpedoes` returns a `TorpedoContext` iff at least one promoted unit
+ * declares `torpedoArmament`, and `undefined` otherwise (torpedoProjection.ts —
+ * `if (launchers.length === 0) return undefined`). A battle that fails this
+ * predicate never sends a `damageControl` surface to `advanceMinute`, so engine
+ * step 8.6 stays a strict no-op and the battle keeps its pre-P-1 minute/result
+ * hashes byte-for-byte (spec AC-6; `resolveBattleAuto` wires it per minute).
+ */
+export function shouldWireDamageControl(torpedoes: TorpedoContext | undefined): boolean {
+  return torpedoes !== undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -330,6 +425,25 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
       torpedoSummary.tubesFired += torpedo.commands.reduce((n, c) => n + c.tubeIndexes.length, 0);
     }
 
+    // 1c. damage control (P-1 ticket 07): per-ship contexts derived from each
+    // ship's CURRENT (pre-minute) damage state. Wired ONLY when the battle
+    // carries torpedo armament — unarmed battles keep the pre-07 pipeline
+    // byte-identical (AC-6; the gate itself is `shouldWireDamageControl`, the
+    // exported predicate the AC-6 unit tests pin). The engine step 8.6 resolves
+    // each ship independently and writes flooding/flotation/terminal changes
+    // back per ship (a strict no-op until a ship actually has fires or flooding).
+    const damageControl = shouldWireDamageControl(torpedo)
+      ? buildDamageControlContexts({
+          battleId: projected.state.battleId,
+          minute,
+          units: projected.units,
+          damage,
+          movementStates: battleState.movementStates,
+          engine,
+          randomLedger: input.randomLedger,
+        })
+      : undefined;
+
     // 2. one fully-resolved tactical minute (steps 4-8 + 7.5 + 8.5 + 9-10 + 10.5)
     const res = advanceMinute({
       state: battleState,
@@ -347,6 +461,7 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
       weather: weatherCtx,
       damage,
       ...(torpedo ? { torpedoes: torpedo } : {}),
+      ...(damageControl ? { damageControl } : {}),
     });
 
     allEvents.push(...res.events);

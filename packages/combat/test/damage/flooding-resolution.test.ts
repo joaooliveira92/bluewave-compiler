@@ -10,6 +10,7 @@ import {
   getSpeedPressureMultiplierBp,
   computeNetFloodingDelta,
   checkHighSpeedLoss,
+  floodedWaterBpFromKg,
   resolveFloodingProgression,
 } from "../../src/damage/index.js";
 import type { FloodingSourceRecord } from "../../src/damage/state.js";
@@ -299,6 +300,48 @@ describe("INC-6: checkHighSpeedLoss (§17)", () => {
 });
 
 // ---------------------------------------------------------------------------
+// floodedWaterBpFromKg — kg -> bp of displacement (ADR-0047 decision 4)
+
+describe("INC-6: floodedWaterBpFromKg (§14/§48 v12; ADR-0047 d4)", () => {
+  // The 1880 ironclad fixture hull: 11 000 t design displacement (ADR-0046).
+  // bp = floor(mass × 10_000 / displacement), so 1 bp == 1 100 kg on this hull.
+  const HULL = 11_000_000;
+
+  it("converts mass to bp with explicit floor rounding", () => {
+    expect(floodedWaterBpFromKg(548_900, HULL)).toBe(499);
+    expect(floodedWaterBpFromKg(548_901, HULL)).toBe(499); // floor, not round
+    expect(floodedWaterBpFromKg(1_100, HULL)).toBe(1);
+    expect(floodedWaterBpFromKg(0, HULL)).toBe(0);
+  });
+
+  it("severity thresholds 499/500, 1_499/1_500, 2_999/3_000 bp (the reviewer F1 boundary set)", () => {
+    expect(getFloodingSeverity(floodedWaterBpFromKg(548_900, HULL))).toBe("MINOR"); // 499 bp
+    expect(getFloodingSeverity(floodedWaterBpFromKg(550_000, HULL))).toBe("SERIOUS"); // 500 bp
+    expect(getFloodingSeverity(floodedWaterBpFromKg(1_648_900, HULL))).toBe("SERIOUS"); // 1 499 bp
+    expect(getFloodingSeverity(floodedWaterBpFromKg(1_650_000, HULL))).toBe("MAJOR"); // 1 500 bp
+    expect(getFloodingSeverity(floodedWaterBpFromKg(3_298_900, HULL))).toBe("MAJOR"); // 2 999 bp
+    expect(getFloodingSeverity(floodedWaterBpFromKg(3_300_000, HULL))).toBe("CRITICAL"); // 3 000 bp
+  });
+
+  it("regression: a kg mass fed straight into the bp thresholds read CRITICAL on the old code", () => {
+    // 500_000 kg is 45% of the hull — as kg it exceeds the 3_000 "threshold";
+    // as bp of displacement it is only 454 bp -> MINOR. The old call sites fed
+    // kg into getFloodingSeverity and read CRITICAL on any real hull.
+    expect(floodedWaterBpFromKg(500_000, HULL)).toBe(454);
+    expect(getFloodingSeverity(floodedWaterBpFromKg(500_000, HULL))).toBe("MINOR");
+    // The next severity band genuinely starts at 500 bp (550_000 kg on this hull).
+    expect(getFloodingSeverity(floodedWaterBpFromKg(550_000, HULL))).toBe("SERIOUS");
+  });
+
+  it("fails closed on a non-positive design displacement (DESIGN-41 §1)", () => {
+    expect(() => floodedWaterBpFromKg(1_000, 0)).toThrow();
+    expect(() => floodedWaterBpFromKg(1_000, -5)).toThrow();
+    expect(() => floodedWaterBpFromKg(-1, 11_000_000)).toThrow();
+    expect(() => floodedWaterBpFromKg(1.5, 11_000_000)).toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // resolveFloodingProgression
 
 describe("INC-6: resolveFloodingProgression (§18)", () => {
@@ -307,9 +350,12 @@ describe("INC-6: resolveFloodingProgression (§18)", () => {
     rateKgMin: 500,
     cause: "FLOODING_SOURCE_CREATED",
   };
+  // 1 000 t test hull: bp == kg / 100, so the legacy bp-valued masses below map
+  // to whole bp bands exactly (accumulation stays kg — ADR-0047 decision 4).
+  const TEST_HULL = 1_000_000;
 
   it("no flooding sources produces zero delta", () => {
-    const result = resolveFloodingProgression([], 0, 10, 10_000, 0, 0, null);
+    const result = resolveFloodingProgression([], 0, TEST_HULL, 10, 10_000, 0, 0, null);
     expect(result.netDeltaKgMin).toBe(0);
     expect(result.nextFloodedWaterBp).toBe(0);
     expect(result.severity).toBe("MINOR");
@@ -317,7 +363,7 @@ describe("INC-6: resolveFloodingProgression (§18)", () => {
   });
 
   it("single source increases flooded water", () => {
-    const result = resolveFloodingProgression([sampleRecord], 0, 10, 10_000, 0, 0, null);
+    const result = resolveFloodingProgression([sampleRecord], 0, TEST_HULL, 10, 10_000, 0, 0, null);
     // rawIngress = floor(500 * 7500 * 10000 / 100_000_000) = 375
     expect(result.netDeltaKgMin).toBe(375);
     expect(result.nextFloodedWaterBp).toBe(375);
@@ -331,25 +377,35 @@ describe("INC-6: resolveFloodingProgression (§18)", () => {
       { compartmentId: "COMP-2", rateKgMin: 200, cause: "BATTLE_DAMAGE" },
     ];
     // totalIngress = 500, same as single source test
-    const result = resolveFloodingProgression(records, 0, 10, 10_000, 0, 0, null);
+    const result = resolveFloodingProgression(records, 0, TEST_HULL, 10, 10_000, 0, 0, null);
     expect(result.netDeltaKgMin).toBe(375);
     expect(result.nextFloodedWaterBp).toBe(375);
   });
 
-  it("accumulated flooded water affects severity", () => {
-    // already 2000 bp flooded → MAJOR severity
-    // delta adds more → nextFloodedWaterBp increases further
-    const result = resolveFloodingProgression([sampleRecord], 2_000, 10, 10_000, 0, 0, null);
-    expect(result.nextFloodedWaterBp).toBe(2_375);
+  it("accumulated flooded WATER MASS affects severity via bp of displacement", () => {
+    // 200_000 kg on a 1 000 t hull = 2_000 bp (MAJOR band); the +375 kg delta
+    // keeps it in MAJOR (2_003 bp). The accumulator stays in kg throughout.
+    const result = resolveFloodingProgression(
+      [sampleRecord],
+      200_000,
+      TEST_HULL,
+      10,
+      10_000,
+      0,
+      0,
+      null,
+    );
+    expect(result.nextFloodedWaterBp).toBe(200_375);
     expect(result.severity).toBe("MAJOR");
   });
 
   it("high speed and high severity triggers loss check", () => {
-    // Already at 3_000 bp (CRITICAL), speed 30 kt
+    // 300_000 kg on a 1 000 t hull = 3_000 bp (CRITICAL), speed 30 kt.
     // With RNG=0.04 → draw 400bp < 5000bp (critical OVER_25) → loss
     const result = resolveFloodingProgression(
       [sampleRecord],
-      3_000,
+      300_000,
+      TEST_HULL,
       30,
       10_000,
       0,
@@ -360,8 +416,54 @@ describe("INC-6: resolveFloodingProgression (§18)", () => {
     expect(result.highSpeedLoss).toBe(true);
   });
 
+  it("§17 eligibility boundary: bp severity (not kg) decides whether the draw is consumed", () => {
+    // The 11 000 t ironclad hull (ADR-0046). 1_648_900 kg = 1_499 bp -> SERIOUS
+    // (not eligible: no draw), 1_650_000 kg = 1_500 bp -> MAJOR (eligible: the
+    // keyed draw is consumed). The old code fed kg into severity, so eligibility
+    // flipped at 3_000 kg instead of 3_000 bp.
+    const ironclad = 11_000_000;
+    const seriousRng = trackingRng();
+    const serious = resolveFloodingProgression(
+      [sampleRecord],
+      1_648_900,
+      ironclad,
+      30,
+      10_000,
+      0,
+      0,
+      seriousRng.rng,
+    );
+    expect(serious.severity).toBe("SERIOUS");
+    expect(serious.highSpeedLoss).toBe(false);
+    expect(seriousRng.streams).toEqual([]); // §17 gate refuses at SERIOUS: no draw
+
+    const majorRng = trackingRng();
+    const major = resolveFloodingProgression(
+      [sampleRecord],
+      1_650_000,
+      ironclad,
+      30,
+      10_000,
+      0,
+      0,
+      majorRng.rng,
+    );
+    expect(major.severity).toBe("MAJOR");
+    expect(major.highSpeedLoss).toBe(true); // draw 0 < MAJOR OVER_25 1_500 bp
+    expect(majorRng.streams).toContain("battle/ship/flooding/high_speed_loss");
+  });
+
   it("pumping reduces net delta in full progression", () => {
-    const result = resolveFloodingProgression([sampleRecord], 0, 10, 10_000, 200, 0, null);
+    const result = resolveFloodingProgression(
+      [sampleRecord],
+      0,
+      TEST_HULL,
+      10,
+      10_000,
+      200,
+      0,
+      null,
+    );
     // rawIngress=375, pumping=200 → netDelta=175
     expect(result.netDeltaKgMin).toBe(175);
     expect(result.nextFloodedWaterBp).toBe(175);
@@ -369,7 +471,7 @@ describe("INC-6: resolveFloodingProgression (§18)", () => {
 
   it("flooding records are returned unchanged", () => {
     const records: FloodingSourceRecord[] = [sampleRecord];
-    const result = resolveFloodingProgression(records, 0, 10, 10_000, 0, 0, null);
+    const result = resolveFloodingProgression(records, 0, TEST_HULL, 10, 10_000, 0, 0, null);
     expect(result.floodingRecords).toBe(records);
     expect(result.floodingRecords.length).toBe(1);
     expect(result.floodingRecords[0].compartmentId).toBe("COMP-1");

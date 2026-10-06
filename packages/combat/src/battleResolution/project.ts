@@ -262,6 +262,7 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
       state: initialDamageState(u.assetId),
       designFlotationReserve: FLOAT_UNIT,
       designStabilityScore: STABILITY_INITIAL_BP,
+      designDisplacementKg: Number(u.displacementKg),
       beltArmorUm: design.normalizedArmorUm as number,
       mainGunsCaliberUm: design.mainGunsCaliber as number,
       shipType: u.shipType,

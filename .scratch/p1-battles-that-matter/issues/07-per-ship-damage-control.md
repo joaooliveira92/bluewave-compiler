@@ -2,9 +2,9 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** DONE (2026-10-06, ADR-0047; reviews: NEEDS_REWORK → repairs F1/F5–F8 → APPROVE)
 
-**Frontier:** yes
+**Frontier:** no
 
 ## Problem (evidence)
 

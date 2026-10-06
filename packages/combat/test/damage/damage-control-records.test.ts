@@ -11,11 +11,17 @@ function makeDefaultResource(): DamageControlResource {
   return createDefaultDamageControlResource();
 }
 
+// 10 000 t test hull: severity is evaluated as bp of design displacement
+// (ADR-0047 decision 4), so  3_000 bp == 3_000_000 kg on this hull.
+const TEST_HULL_DISPLACEMENT_KG = 10_000_000;
+
 function makeContext(overrides: Partial<DamageControlContext> = {}): DamageControlContext {
   return {
     fireRecords: [],
     floodingRecords: [],
+    // accumulated flooded-water MASS in kg (progressiveFloodingTotal surface).
     floodedWaterBp: 0,
+    designDisplacementKg: TEST_HULL_DISPLACEMENT_KG,
     shipType: "ORDINARY",
     currentSpeedKt: 10,
     resources: makeDefaultResource(),
@@ -80,25 +86,27 @@ describe("resolveDamageControl", () => {
 
   it("flooding progression updates flooded water mass", () => {
     const floods = [makeFlood("comp-1", 100)];
-    const ctx = makeContext({ floodingRecords: floods, floodedWaterBp: 500 });
+    // kg-scale input (ADR-0047 decision 4): 500_000 kg on the 10 000 t hull is
+    // 500 bp -> SERIOUS severity, so the stage runs with a real severity level.
+    const ctx = makeContext({ floodingRecords: floods, floodedWaterBp: 500_000 });
     const result = resolveDamageControl(ctx, 1, 0);
 
-    // Speed 10 knots → speedPressureBp = 7_500
-    // rawIngress = floor(100 * 7_500 * 10_000 / 100_000_000) = floor(75_000) = 75,000... wait
-    // Actually: numerator = 100 * 7_500 * 10_000 = 7_500_000_000
-    // divisor = 100_000_000
-    // rawIngress = 75
-    // pumping base = 200 per team
-    // effectivePumping from allocations = ? (depends on team allocation)
-    // netDeltaKgMin = max(0, 75 - effectivePumping)
-    // So with teams, nextFloodedWaterBp >= 500
-    expect(result.nextFloodedWaterBp).toBeGreaterThanOrEqual(500);
+    // The accumulated mass is never reduced below its input: the net delta is
+    // clamped at >= 0 (§18), so the post-minute mass is at least the mass it
+    // started from.
+    expect(result.nextFloodedWaterBp).toBeGreaterThanOrEqual(500_000);
   });
 
   it("damage-control resources are allocated", () => {
     const fires = [makeFire("comp-1", 8_000)];
     const floods = [makeFlood("comp-1", 500)];
-    const ctx = makeContext({ fireRecords: fires, floodingRecords: floods, floodedWaterBp: 3_000 });
+    // 3_000_000 kg == 3_000 bp of the 10 000 t hull -> CRITICAL severity, so the
+    // severity-driven (CRITICAL_FLOODING) allocation path is the one exercised.
+    const ctx = makeContext({
+      fireRecords: fires,
+      floodingRecords: floods,
+      floodedWaterBp: 3_000_000,
+    });
     const result = resolveDamageControl(ctx, 1, 0);
 
     expect(result.allocations.length).toBeGreaterThan(0);
@@ -112,10 +120,11 @@ describe("resolveDamageControl", () => {
   it("combined fire + flood produces smoke records and allocations", () => {
     const fires = [makeFire("comp-1", 8_000)];
     const floods = [makeFlood("comp-1", 200)];
+    // 2_000_000 kg == 2_000 bp of the 10 000 t hull -> MAJOR severity.
     const ctx = makeContext({
       fireRecords: fires,
       floodingRecords: floods,
-      floodedWaterBp: 2_000,
+      floodedWaterBp: 2_000_000,
     });
     const result = resolveDamageControl(ctx, 1, 0);
 
@@ -144,7 +153,9 @@ describe("resolveDamageControl", () => {
     const floods = [makeFlood("comp-1", 500)];
     const ctx = makeContext({
       floodingRecords: floods,
-      floodedWaterBp: 5_000, // CRITICAL severity
+      // 3 000_000 kg = 3_000 bp of the 10 000 t hull -> CRITICAL severity
+      // (kg mass surface, ADR-0047 decision 4).
+      floodedWaterBp: 3_000_000,
       currentSpeedKt: 25,
       keyedRng: null,
     });

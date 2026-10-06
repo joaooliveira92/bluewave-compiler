@@ -130,6 +130,9 @@ function damageContext(): DamageContext {
         state: initialDamageState("d1"),
         designFlotationReserve: 50_000,
         designStabilityScore: 8_000,
+        // 30 000 t design displacement — flooding severity converts kg -> bp
+        // against this denominator (ADR-0047 decision 4; P-1 repair F1).
+        designDisplacementKg: 30_000_000,
         beltArmorUm: 305_000_000,
         mainGunsCaliberUm: 343_000_000,
         shipType: "BB",

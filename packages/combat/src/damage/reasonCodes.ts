@@ -30,6 +30,11 @@ export const ARMOR_THICKNESS_LIMIT_EXCEEDED = "ARMOR_THICKNESS_LIMIT_EXCEEDED" a
 export const SPLINTER_PROTECTION_NOT_QUALIFIED = "SPLINTER_PROTECTION_NOT_QUALIFIED" as const;
 export const ARMOR_QUALITY_MULTIPLIER_MISSING = "ARMOR_QUALITY_MULTIPLIER_MISSING" as const;
 
+// ---- Legacy ledger draw codes (P-1 registration; used by the random-ledger
+// records of the damage and per-ship damage-control stages) ----
+export const DAMAGE_KEYED_DRAW = "DAMAGE_KEYED_DRAW" as const;
+export const DAMAGE_CONTROL_KEYED_DRAW = "DAMAGE_CONTROL_KEYED_DRAW" as const;
+
 // ---- Collected catalog (set-equality checked in INC-6) ----
 export const DAMAGE_REASON_CODES = {
   INVALID_SHIP_DAMAGE_STATE,
@@ -52,6 +57,8 @@ export const DAMAGE_REASON_CODES = {
   ARMOR_THICKNESS_LIMIT_EXCEEDED,
   SPLINTER_PROTECTION_NOT_QUALIFIED,
   ARMOR_QUALITY_MULTIPLIER_MISSING,
+  DAMAGE_KEYED_DRAW,
+  DAMAGE_CONTROL_KEYED_DRAW,
 } as const;
 
 // ---- Deferred §47 codes (recorded, not shipped — owned by M3/C-5) ----

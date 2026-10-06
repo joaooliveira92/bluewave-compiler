@@ -27,6 +27,7 @@ import type { BattleEvent } from "../battleLedger.js";
 import { type GunneryImpact, resolveDamage } from "../damage/engineWiring.js";
 import { type ShipDamageState, withDamageStateHash } from "../damage/state.js";
 import { DAMAGE_RULESET_VERSION, DAMAGE_FORMULA_VERSION } from "../damage/constants.js";
+import { DAMAGE_KEYED_DRAW } from "../damage/reasonCodes.js";
 import {
   determinePenetrationOutcome,
   lookupArmorQualityMultiplierBp,
@@ -73,6 +74,10 @@ export interface DamageTargetContext {
   designFlotationReserve: number;
   /** Design (full) stability score in basis points [0, 10_000]. */
   designStabilityScore: number;
+  /** Design displacement in integer kilograms — the denominator of the
+   *  bp-of-displacement flooding severity conversion (DESIGN-41 §14/§48 v12;
+   *  ADR-0047 decision 4). Threaded from the projected unit. */
+  designDisplacementKg: number;
   /** Belt armor thickness in µm (zone thickness source). */
   beltArmorUm: number;
   /** Main gun caliber in µm (shell penetration source). */
@@ -340,7 +345,7 @@ export function resolveMinuteDamage(input: ResolveMinuteDamageInput): ResolveMin
           ),
           draw,
           outcome: String(draw),
-          reasonCode: "DAMAGE_KEYED_DRAW",
+          reasonCode: DAMAGE_KEYED_DRAW,
         });
       }
       return draw;

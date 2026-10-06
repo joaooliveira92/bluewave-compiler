@@ -48,7 +48,9 @@ import { resolveSmoke, type SmokeContext } from "../smoke/engineWiring.js";
 import type { SmokeCloud } from "../smoke/model.js";
 import type { SmokeEventRecord } from "../smoke/smokeRecords.js";
 import {
+  applyDamageControlToState,
   resolveDamageControl,
+  requireDamageDesignSurface,
   type DamageControlContext,
 } from "../damage/damageControlEngineWiring.js";
 import { resolveAirCombat, type AirCombatContext } from "../air-combat/engineWiring.js";
@@ -62,6 +64,11 @@ export interface UnitOrders {
   orderedSpeedBp: number;
   attainableMaxBp?: number;
 }
+
+// Step 8.6 (C-5 / INC-8): the damage-control stage runs LAST in the minute —
+// after damage (substep 3) and after the torpedo impact evaluation (substep
+// 56). Its ledger events sort at the tail of the minute's canonical order.
+export const DAMAGE_CONTROL_SUBSTEP = 57 as const;
 
 export interface AdvanceMinuteInput {
   state: TacticalBattleState;
@@ -93,11 +100,14 @@ export interface AdvanceMinuteInput {
    *  to the pre-INC-8 baseline. When present, resolveSmoke runs after movement
    *  intent (step 5) and before propulsion (step 6). */
   smoke?: SmokeContext;
-  /** Optional damage-control context (C-5 / INC-8). When absent, the damage-control
-   *  stage is a strict no-op: zero events appended, minute snapshot/minuteHash
-   *  byte-identical to the baseline. When present, resolveDamageControl runs after
-   *  damage resolution (steps 9-10 and 10.5) in the same minute. */
-  damageControl?: DamageControlContext;
+  /** Optional damage-control contexts (C-5 / INC-8, P-1 ticket 07): a map of
+   *  per-ship DamageControlContext keyed by ship assetId. When absent, the
+   *  damage-control stage is a strict no-op: zero events appended, minute
+   *  snapshot/minuteHash byte-identical to the baseline. When present,
+   *  resolveDamageControl runs per ship after damage resolution (steps 9-10 and
+   *  10.5) in the same minute; a ship with no active fire/flooding resolution
+   *  stays byte-identical too (no state write, no events when nothing changed). */
+  damageControl?: Record<string, DamageControlContext>;
   /** Optional air-combat context (D-3 / INC-8). When absent, the resolveAirCombat
    *  stage is a strict no-op: zero records emitted, minute snapshot/minuteHash
    *  byte-identical to the pre-INC-8 baseline. When present, resolveAirCombat runs
@@ -500,22 +510,68 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     }
   }
 
-  // Step 8.6 (C-5 / INC-8): resolve damage control — fire progression,
-  // flooding resolution, damage-control allocation. Strict no-op when no
-  // damage-control context is supplied.
+  // Step 8.6 (C-5 / INC-8, P-1 ticket 07): resolve damage control PER SHIP —
+  // fire progression, flooding resolution, damage-control allocation, and the
+  // §32 terminal-seam write-back (flooding weight drains flotation reserve; a
+  // zero reserve transitions the ship NORMAL -> SINKING/FOUNDERED). Strict
+  // no-op when no damage-control map is supplied (zero events; hashes
+  // unchanged). When a map IS supplied, each ship resolves INDEPENDENTLY in
+  // deterministic shipId order with its own context (records + resources +
+  // speed + keyedRng); a ship whose resolution changes nothing (no fires, no
+  // flooding, no reserve drain) is skipped entirely, so even a wired-but-quiet
+  // minute stays byte-identical to the same minute without the wiring.
   if (input.damageControl) {
-    const dcResult = resolveDamageControl(input.damageControl, minute, 0);
-    for (const _sr of dcResult.smokeEventRecords) {
-      ledger.append(evt(minute, 0, `smoke_fire`, 86, `fire-smoke`, battleId));
-    }
-    // Apply fire/flooding state updates to damageStates
-    if (damageStates) {
-      for (const [shipId, state] of Object.entries(damageStates)) {
-        damageStates[shipId] = {
-          ...state,
-          fireRecords: dcResult.fireRecords,
-          floodingRecords: dcResult.floodingRecords,
-        };
+    const damageControlMap = input.damageControl;
+    const dcShipIds = Object.keys(damageControlMap).sort();
+    for (const shipId of dcShipIds) {
+      const dcContext = damageControlMap[shipId]!;
+      const baseState = damageStates?.[shipId] ?? input.damage?.targets[shipId]?.state;
+      if (!baseState) continue; // no authoritative state surface -> nothing to write back
+      // The ship's CURRENT damage state is authoritative for its fire/flooding
+      // records (gunnery or torpedo damage THIS minute may have created or
+      // changed them — the caller-built context is a pre-minute snapshot). The
+      // rest of the context (resources, shipType, speed, keyedRng) comes from
+      // the caller; P-1 ticket 07: per-ship flooding must progress against the
+      // post-impact state, never the stale caller records.
+      const dcResult = resolveDamageControl(
+        {
+          ...dcContext,
+          shipId,
+          fireRecords: [...baseState.fireRecords],
+          floodingRecords: [...baseState.floodingRecords],
+          // kg mass surface (progressiveFloodingTotal; ADR-0047 decision 4 —
+          // severity converts to bp-of-displacement at the evaluation site).
+          floodedWaterBp: baseState.progressiveFloodingTotal,
+        },
+        minute,
+        DAMAGE_CONTROL_SUBSTEP,
+      );
+      for (const sr of dcResult.smokeEventRecords) {
+        // Ship-scoped actor + fire-location target keep eventIds unique across
+        // ships and across multiple fires on one ship (pre-07 single-context
+        // emission collided for every fire after the first).
+        ledger.append(
+          evt(
+            minute,
+            DAMAGE_CONTROL_SUBSTEP,
+            "smoke_fire",
+            86,
+            `fire-smoke:${shipId}`,
+            battleId,
+            sr.sourceId,
+          ),
+        );
+      }
+      const design = requireDamageDesignSurface(input.damage?.targets[shipId], battleId, shipId);
+      const written = applyDamageControlToState({
+        state: baseState,
+        stageResult: dcResult,
+        designFlotationReserve: design.designFlotationReserve,
+        designStabilityScore: design.designStabilityScore,
+      });
+      if (written.changed) {
+        if (!damageStates) damageStates = {};
+        damageStates[shipId] = written.state;
       }
     }
   }
@@ -689,10 +745,11 @@ export interface AdvanceMinutesInput {
    *  strict no-op across all minutes. When present, smoke clouds are threaded
    *  from minute to minute. */
   smoke?: SmokeContext;
-  /** Optional damage-control context (C-5 / INC-8). When absent, the damage-control
-   *  stage is a strict no-op across all minutes. When present, fire and flooding
-   *  records are threaded from minute to minute. */
-  damageControl?: DamageControlContext;
+  /** Optional per-ship damage-control contexts (C-5 / INC-8, P-1 ticket 07).
+   *  When absent, the damage-control stage is a strict no-op across all
+   *  minutes. When present, each ship's fire/flooding records are threaded
+   *  from minute to minute via the updated damage states. */
+  damageControl?: Record<string, DamageControlContext>;
   /** Optional air-combat context (D-3 / INC-8). When absent, the resolveAirCombat
    *  stage is a strict no-op across all minutes. When present, capPatrols and
    *  strikeMissions are threaded from minute to minute. */
@@ -803,11 +860,30 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
     if (smoke && res.smokeClouds) {
       smoke = { ...smoke, clouds: res.smokeClouds };
     }
-    // Thread the updated damage-control context into the next minute.
-    if (damageControl && res.smokeRecords) {
-      // After damage control, fire and flooding records may have changed.
-      // The smoke stage handling is separate; damage control results are
-      // consumed here by updating the fire/flooding context.
+    // Thread the updated damage-control contexts into the next minute
+    // (P-1 ticket 07). The damage-control stage's write-back lands in
+    // res.damageStates, so every context whose ship state changed this minute
+    // is rebased on the authoritative new state — new fires/floods resolve
+    // next minute, and the floodedWaterBp accumulation continues from the
+    // state's progressiveFloodingTotal. Unchanged contexts carry forward
+    // untouched (their records are still accurate).
+    if (damageControl && res.damageStates) {
+      let rebased = false;
+      const nextMap = { ...damageControl };
+      for (const [sid, st] of Object.entries(res.damageStates)) {
+        const ctx = nextMap[sid];
+        if (!ctx) continue;
+        rebased = true;
+        nextMap[sid] = {
+          ...ctx,
+          fireRecords: [...st.fireRecords],
+          floodingRecords: [...st.floodingRecords],
+          // kg mass surface (progressiveFloodingTotal; ADR-0047 decision 4 —
+          // severity converts to bp-of-displacement at the evaluation site).
+          floodedWaterBp: st.progressiveFloodingTotal,
+        };
+      }
+      if (rebased) damageControl = nextMap;
     }
     // Thread the updated air-combat context into the next minute (D-3 / INC-8).
     // For the INC-8 stub, state does not change, but the records accumulate.

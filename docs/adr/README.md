@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (ADR-0046 records the current next number).
+highest existing number + 1 (ADR-0047 records the current next number).
 Refresh this table from each file's H1 when one is added or re-titled.
 
 | # | File | Title |
@@ -51,3 +51,4 @@ Refresh this table from each file's H1 when one is added or re-titled.
 | 0044 | [ADR-0044-d4-parallel-implementation-merge-resolution.md](ADR-0044-d4-parallel-implementation-merge-resolution.md) | D-4 Air Defense — Merge Resolution: adopt the 2026-09-22 `origin/dev` implementation |
 | 0045 | [ADR-0045-playability-first-reprioritization.md](ADR-0045-playability-first-reprioritization.md) | Playability-First Re-prioritization of the Sprint Backlog |
 | 0046 | [ADR-0046-p1-campaign-battle-fidelity-fixes.md](ADR-0046-p1-campaign-battle-fidelity-fixes.md) | P-1 — Torpedoes in Campaign Auto-Resolution + Battle-Fidelity Fixes |
+| 0047 | [ADR-0047-p1-damage-control-scope-and-units.md](ADR-0047-p1-damage-control-scope-and-units.md) | P-1 — Damage-Control Scope in Auto-Resolution, Unit Contract, and Recorded Deferrals |
