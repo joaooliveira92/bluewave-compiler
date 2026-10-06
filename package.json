@@ -16,7 +16,7 @@
     "format:fix": "vp fmt --write .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "test:run": "pnpm -r --filter='!prototype' exec vitest run",
+    "test:run": "pnpm -r --filter='!prototype' exec vp test run",
     "test:cross-process": "node packages/cross-process-test/dist/run-child.js",
     "clean": "turbo run clean && rimraf .turbo",
     "clean:all": "pnpm clean && rimraf node_modules",

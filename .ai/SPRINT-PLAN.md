@@ -279,7 +279,7 @@ ownership during the relevant scoping sprint rather than guessing now:
 
 ## Immediate next action
 
-**Order per ADR-0045:** ~~D-4 INC-6~~ (DONE 2026-10-06, report `.ai/reports/d4-m4-air-defense-inc6-engine-wiring-gate.md`) → **P-0 (frontier)** → P-1 → P-2 → P-3 → P-4 → P-5 →
+**Order per ADR-0045:** ~~D-4 INC-6~~ (DONE 2026-10-06, report `.ai/reports/d4-m4-air-defense-inc6-engine-wiring-gate.md`) → ~~P-0~~ (DONE 2026-10-06: root `test:run` used plain `vitest` instead of `vp test`; `pnpm check` green) → **P-1 (frontier)** → P-1 → P-2 → P-3 → P-4 → P-5 →
 P-6. D-5 and Track E are paused.
 
 **D-4-IMPL (INC-6: Engine stage wiring + two-process + gate) — DONE 2026-10-06 — PASS.** Sixth and last of 6 implementation tickets for the AA air-defense module (`.scratch/d4-m4-air-defense/issues/06-engine-wiring-two-process-gate.md`; spec `.scratch/d4-m4-air-defense/spec.md`). Wire `resolve_air_defense` at step 7.8 (after air-combat 7.7, before `resolveSensorsSpotting` 8) with optional `AirDefenseContext` in `AdvanceMinuteInput` and a strict no-op when absent (AC-18), prove two-process determinism via the child process (AC-19), and prove `BattleResolver`/`StrengthCalculator` remain unmodified (AC-20); gate the increment on the full orchestrator validation pipeline (build/typecheck/lint/format/tests + goldens 10/10 + `test:cross-process`). **INC-5 is fully closed** — code landed 2026-09-22 (`53ec75f`), traceability landed 2026-10-06: report `.ai/reports/d4-m4-air-defense-inc5-records-ordering-reason-codes-contracts.md`, **ADR-0042** decisions 14-20, DONE lines in this file and `docs/PROGRESS.md` (superseded parallel-run artifacts removed per **ADR-0044**).

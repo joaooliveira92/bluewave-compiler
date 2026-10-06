@@ -2,11 +2,11 @@
 
 **Type:** task
 
-**Status:** open
+**Status:** resolved (2026-10-06, P-0)
 
 **Blocked by:** none
 
-**Frontier:** yes
+**Frontier:** no
 
 **What to build:** Make `pnpm test:run` / `pnpm check` green (or green-with-an-explicitly-documented-skip)
 for `apps/desktop/src/renderer/shell/useNewGameFlow.test.ts`, which fails with 7 × 30s
@@ -51,3 +51,11 @@ would hide inside the known-red noise.
 Related known pre-existing reds (candidates for sibling tickets): `content-schema/test/nation.test.ts`
 import failure; `RulesOfTheNavalAgeScreen` intermittent renderer flake (passes standalone);
 compiler-cli parallel-timeout flake (passes standalone).
+
+## Resolution (2026-10-06, P-0)
+
+Root cause: the root `test:run` script ran the plain `vitest` binary, while every package's
+`test` script (and the tests' `vi` import, `vite-plus/test`) uses the vite-plus runner. Under
+the mismatched runner, the fake-timer / `waitFor` tests in `useNewGameFlow.test.ts` hang.
+Fix: `test:run` now runs `vp test run`. `pnpm check` is fully green (desktop 528/528,
+combat 3603/3603) with no hand-waived failures.
