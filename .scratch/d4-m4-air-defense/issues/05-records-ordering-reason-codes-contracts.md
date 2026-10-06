@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 — Director scaling + radar saturation + CIWS redundancy
 
-**Status:** DONE (2026-09-22 — implementation landed in commit `53ec75f`; re-validated in the 2026-10-06 `origin/dev` merge gate: 357 air-defense tests green, `tsc -b`/lint/format clean). Evidence report + ADR-0042 INC-5 decisions still outstanding (recorded as the frontier in `.ai/SPRINT-PLAN.md`; see ADR-0044).
+**Status:** DONE (2026-09-22 — implementation landed in commit `53ec75f`; traceability closed 2026-10-06: report `.ai/reports/d4-m4-air-defense-inc5-records-ordering-reason-codes-contracts.md` + ADR-0042 decisions 14-20; re-validated in the 2026-10-06 `origin/dev` merge gate: 357 air-defense / 3594 combat tests green, `tsc -b`/lint/format clean, goldens 10/10, two-process `success: true`)
 
 - [x] AC-7: Guaranteed disruption opportunity for light AA
 - [x] AC-15: Engagement records + ordering per §27

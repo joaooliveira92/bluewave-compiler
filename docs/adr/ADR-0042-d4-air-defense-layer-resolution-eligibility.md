@@ -1,9 +1,9 @@
-# ADR-0042: D-4 Air Defense — Layer Resolution & Eligibility + Engagement Decisions (INC-2/INC-3/INC-4)
+# ADR-0042: D-4 Air Defense — Layer Resolution & Eligibility + Engagement Decisions (INC-2/INC-3/INC-4/INC-5)
 
 ## Status
 
 Accepted (2026-09-22; INC-3 decisions 7–10 added 2026-09-22; INC-4 decisions 11–13 added
-2026-09-22)
+2026-09-22; INC-5 decisions 14–20 added 2026-10-06)
 
 ## Context
 
@@ -11,8 +11,10 @@ D-4 (Air Defense, DESIGN-45) INC-2 implements layer resolution (HEAVY_AA → MED
 LIGHT_AA → CIWS_TERMINAL_DEFENSE, §1), the incoming-attack model (§4), and the
 heavy/medium/light/CIWS eligibility predicates (§7, §8, §9, §18) as a pure deterministic
 module in `@bluewave/combat/src/air-defense/`. INC-3 implements the engagement formula
-(§19), disruption (§6), ammunition (§20), and damage/power (§21). Several decisions made
-across INC-2/INC-3 need a recorded rationale to constrain future scope (INC-3..6), preserve
+(§19), disruption (§6), ammunition (§20), and damage/power (§21). INC-5 implements the §26
+records, §27 canonical ordering, the §28 reason-code rollup, the versioned contracts, and
+the §29.8-9 guaranteed light-AA disruption opportunity. Several decisions made across
+INC-2/INC-3/INC-5 need a recorded rationale to constrain future scope (INC-3..6), preserve
 determinism, and avoid silent re-interpretation of canonical content.
 
 ## Decisions
@@ -179,19 +181,110 @@ reach ~2.2e31 (> `Number.MAX_SAFE_INTEGER`), so the defensive throw IS reachable
 pathological-but-legal aggregate inputs and fires fail-closed; realistic ship-scale inputs
 (floored ≤ ~1.5e6) never trip it.
 
+### 14. Exact-20 §28 catalog (resolving decision 3's "presence-of-20")
+
+Decision 3 made `INVALID_AIR_DEFENSE_ATTACK` a documented boundary/superset code, and the
+guard standing at INC-4 was presence-of-20 (any set *containing* the 20 spec codes passed).
+INC-5 resolves this to **exactly** the twenty §28 codes: the shipped set is
+`AIR_DEFENSE_SHIPPED_REASON_CODE_LIST` — every §28 code, no invented extras. The two INC-1
+state codes (`INVALID_AIR_DEFENSE_STATE`, `INVALID_AIR_DEFENSE_SYSTEM_DEFINITION`) are §28
+members and are IN the shipped 20; `INVALID_AIR_DEFENSE_ATTACK` (§4) remains a documented
+boundary code reported by `attack.ts` and is never shipped; the six `*_DEFERRED` SAM
+markers are verbatim reservations for the E-track SAM tickets and are NOT shipped (no
+shipped code mentions SAM). Consequence: shipping a 21st code, or dropping one, is now a
+test failure (`reason-codes-rollup.test.ts` set equality), not a legal superset.
+
+### 15. One ordered reason-code list is the single source of truth
+
+`AIR_DEFENSE_SHIPPED_REASON_CODE_LIST` carries the 20 codes in exact §28 document order and
+is authoritative: the `AirDefenseReasonCode` type union, the `AIR_DEFENSE_REASON_CODES_SHIPPED`
+keyed object (its `Object.values` order equals the list), the `AIR_DEFENSE_REASON_CODE_SET`
+lookup set, and the `air_defense_v1` contract's `reasonCodes` literal tuple are all DERIVED
+from it, and the catalog is versioned as `air_defense_reason_codes_v1`
+(`reasonCodesVersion` in the contract). Consequence: count/order/membership drift cannot be
+introduced at a call site — it requires a compile-level edit of the list itself, which
+fails the pinned tests and the contract simultaneously.
+
+### 16. Canonical §27.8 outcome-effect ordinal (one table, nine outcomes)
+
+`AIR_DEFENSE_OUTCOME_ORDINALS` is the ONLY "outcome effect ordinal": a monotone total order
+over all nine §26 outcomes — INELIGIBLE 0 < EXHAUSTED 1 < DIRECTOR_ASSIGNED 2 <
+OPPORTUNITY_CREATED 3 < NO_EFFECT 4 < DISRUPTION 5 < ABORT 6 < DAMAGE 7 < KILL 8 (the five
+§5 engagement outcomes plus the four §26 non-engagement outcomes). Every record's
+`outcomeOrdinal` field and the §27.8 ordering key read this table; an unknown outcome fails
+closed with `AIR_DEFENSE_INVARIANT_FAILED`. Consequence: no caller may re-derive or
+re-interpret effect strength, so "which outcome wins a tie" can never diverge between the
+record, the sort, and future reporting.
+
+### 17. Record integrity: shared envelope hash + the invariant code; records are immutable
+
+§26 records are hashed by the shared canonical envelope
+(`createEnvelope("air-defense-record", air_defense_record_v1, body)`) over a primitives-only
+body, verified by `verifyAirDefenseEngagementRecordHash` / asserted by
+`assertAirDefenseEngagementRecordHash`. Integrity failures reuse §28's canonical record/
+invariant boundary `AIR_DEFENSE_INVARIANT_FAILED` — NO new `INVALID_AIR_DEFENSE_RECORD`
+code (adding one would break decision 14's exact-20). Records are `Object.freeze`-ed on
+creation (shallow suffices: the body carries primitives only). Consequence: tamper
+detection and §28 catalog stability are satisfied by the same choice.
+
+### 18. §27 canonical ordering is a total, deterministic codepoint order
+
+`compareAirDefenseEngagementRecords` applies the eight §27 keys in document order (arrival
+time → layer → defended ship → §17 threat priority → defense system → director/radar
+channel → record id → outcome ordinal) using codepoint `compareStrings` — never
+`localeCompare` — with three defensive realizations: an unknown layer sorts LAST (never
+crashes, never wins), null director/radar channels compare as `""`, and threat priority is
+the decision-12 §17 comparator (released first, closer to impact, defended ship first,
+formationSize descending, targetId ascending). `canonicallySortedAirDefenseRecords` returns
+a sorted COPY. Consequence: any consumer (records reporting, replay, cross-process diffing)
+gets one canonical order that cannot vary with input order, locale, or platform.
+
+### 19. The guaranteed light-AA opportunity is a gate, not a draw (§29.8-9)
+
+`resolveGuaranteedLightAaDisruptionOpportunity` decides ONLY whether the one authoritative
+disruption-check substep is granted for a (system, attack) pair at a (minute, substep),
+through a fixed-order predicate chain with deterministic reason reporting. It performs no
+RNG, consumes no ammunition, and fires no engagement; the §6 severity draw — and therefore
+hit/damage/abort effects — happens at attack resolution (INC-6) against the opportunity's
+exact check timing, so §29.9 holds: only the CHECK is guaranteed. A fail-closed
+contradiction guard throws `AIR_DEFENSE_INVARIANT_FAILED` when eligibility claims true
+while a shared direct predicate contradicts it; the arc predicate is deliberately excluded
+from that guard because light-AA eligibility never checks the arc (the resolver owns
+out-of-arc `TARGET_INELIGIBLE` reporting). Consequence: INC-6 has an explicit contract to
+consume — opportunity records carry `checkMinute`/`checkSubstep` and `draw = 0`.
+
+### 20. Contracts: literal-pinned, registry-gated, hash-pinned
+
+All four shipped contracts (`air_defense_v1`, `aa_director_scaling_v1`, `radar_saturation_v1`,
+`ciws_redundancy_v1`) are strict Zod objects whose values are literals built FROM the
+shipped constants, and the `makeValid*_v1` factories build the shipped values from those
+same constants — schema and content cannot silently diverge. `air_defense_v1` additionally
+pins the §3 system-definition schema surface via `AIR_DEFENSE_SYSTEM_DEFINITION_FIELD_KEYS`
+and the §28 catalog tuple (decision 15), plus `guaranteedLightAaDisruption:
+{ exactlyOneAuthoritativeSubstep: 1 }` (decision 19). `contractRollup.ts` registers them in
+canonical order behind `validateAllAirDefenseContracts()` and pins the shipped values with a
+module golden hash (`AIR_DEFENSE_CONTRACTS_GOLDEN_HASH`), regenerated only as a deliberate
+versioned release change. Consequence: any contract edit requires the constant change, the
+factory change, the schema change and the hash change to land together or the gate fails.
+
 ## Consequences
 
-- The `arcDegreesMax` field becomes part of the shipped `AirDefenseSystemDefinition`
-  schema and the state hash; INC-5's contract rollup (`air_defense_v1`) must include it.
-- INC-5's reason-codes guard is presence-of-20, not exact-20.
-- INC-5's `air_defense_v1` contract must also include the INC-3 fields
+- INC-5 obligations below were **discharged** when INC-5 landed (`53ec75f`, adopted by the
+  2026-10-06 merge, ADR-0044): the field keys are contracted (decision 20), the catalog is
+  exact-20 (decision 14), the manifest carries the INC-3 fields and the INC-4 shapes, and
+  `draw`/`consumedRounds` semantics are formalized (decisions 8-9, 19).
+- The `arcDegreesMax` field is part of the shipped `AirDefenseSystemDefinition` schema and
+  the state hash, and is pinned by `air_defense_v1`.
+- The reason-code guard is **exact-20**, superseding the "presence-of-20" note that stood
+  here before decision 14.
+- The `air_defense_v1` contract includes the INC-3 fields
   (`roundsPerEngagement`, `magazineCapacity`, `localControlSupported`), the engagement/
   disruption/ammunition/damage shapes, the INC-4 director/radar/CIWS scaling shapes
   (`DIRECTOR_SCALING_TABLE`, `RADAR_SATURATION_TABLE`, `CIWS_REDUNDANCY_TABLE` +
   `assignAADirectors`/`computeDirectorFactorBp`/`computeRadarFactorBp`/
   `computeCiwsSaturationFactorBp`), the two-class factor-bound policy (decision 13), and the
   formalized `draw`/`consumedRounds` result semantics (decisions 8-9).
-- INC-5/6 must feed the SATURATION-class slots only the actual aggregate sums (per decision
+- INC-6 must feed the SATURATION-class slots only the actual aggregate sums (per decision
   13); the §19 boundary itself admits any non-negative safe integer for those slots.
 - No golden-hash or authoritative content change (module unwired; INC-6 wiring will not
   alter hashes while strictly a no-op when no AA context is present).
@@ -204,3 +297,5 @@ pathological-but-legal aggregate inputs and fires fail-closed; realistic ship-sc
 - ADR-0020/0021/0022 (B-3/B-4/B-5 scope/integration boundaries)
 - ADR-0031/0033/0039/0040 (C-track scope/integration boundaries)
 - ADR-0041 (D-2 carrier operations scope/integration boundary)
+- ADR-0044 (why the 2026-09-22 INC-2..INC-5 run is authoritative — this ADR is its
+  decision record)

@@ -56,34 +56,39 @@ Every path under `packages/combat/src/air-defense/` and
   `d4-m4-air-defense-inc5-records-ordering-reason-codes-contracts.md`
   (superseded by `…-inc3-engagement-formula.md` and `…-inc4-director-scaling.md`).
 - **ADRs**: `ADR-0042-ciws-compatible-terminal-defense.md` (superseded by
-  `adr-0042` decision 5 — the §18 matrix plus the `profileEligibility` gate that
+  `ADR-0042` decision 5 — the §18 matrix plus the `profileEligibility` gate that
   makes CIWS heavy/medium ASM engagement require a declared capability) and
   `ADR-0043-air-defense-ordering-proxy-deferred-sam.md` (superseded by the
-  retained `ordering.ts` §27.4 full §17 comparator per `adr-0042` decision 12;
+  retained `ordering.ts` §27.4 full §17 comparator per `ADR-0042` decision 12;
   the six `_DEFERRED` SAM/terminal markers ship in `reasonCodes.ts`).
 
 ### 3. ADR numbering
 
-`adr-0042-d4-air-defense-layer-resolution-eligibility.md` keeps **0042**; the
+`ADR-0042-d4-air-defense-layer-resolution-eligibility.md` keeps **0042**; the
 local `ADR-0042-ciws-compatible-terminal-defense.md` is removed. Number
 **0043** is retired with its superseded ADR and is not reused; this decision
 takes **0044**.
 
-### 4. INC-5 traceability is deferred, not dropped
+### 4. INC-5 traceability was deferred, then closed (2026-10-06)
 
-The retained INC-5 implementation (commit `53ec75f`) is code-complete and green,
-but its evidence report, ADR-0042 INC-5 decisions, and the INC-5 DONE lines in
-`SPRINT-PLAN.md`/`PROGRESS.md` were never written by that run. Those remain
-outstanding and are recorded as the frontier in both documents rather than being
-back-filled from the superseded run's numbers.
+The retained INC-5 implementation (commit `53ec75f`) was code-complete and green at merge
+time, but its evidence report, ADR-0042 INC-5 decisions, and the INC-5 DONE lines in
+`SPRINT-PLAN.md`/`PROGRESS.md` were never written by that run (the only ones in the repo
+belonged to the superseded parallel run and were removed above rather than back-filled).
+Those are now written against the retained code: report
+`.ai/reports/d4-m4-air-defense-inc5-records-ordering-reason-codes-contracts.md`,
+**ADR-0042** decisions 14–20, DONE lines in both documents, ticket 05 resolved.
 
 ## Consequences
 
 - One implementation, one source of truth for every module and reason code; the
   merge validation gate is green (`tsc -b` clean, lint 0/0, 357 air-defense /
   3594 combat tests, format clean).
-- `.ai/reports/` holds INC-1..INC-4 evidence for the retained run only; INC-5
-  evidence is the next doc task before INC-6 (engine stage wiring).
+- `.ai/reports/` holds INC-1..INC-5 evidence for the retained run only (INC-5 closed
+  2026-10-06); the frontier moves to INC-6 (engine stage wiring), a code ticket.
+- `scripts/preflight.cjs` (wired into `pnpm dev`/`pnpm check`) now fails fast on the
+  state that caused this ADR: an in-progress merge or conflict markers in tracked
+  files; `AGENTS.md` session start records the sync + preflight habit.
 - The next ADR number is **0045**.
 - The 2026-08-31 local INC-2..INC-5 work survives only as history in
   `git log`; anything of lasting value from it (INC-1 report formatting, ticket
@@ -91,7 +96,7 @@ back-filled from the superseded run's numbers.
 
 ## Related
 
-- `adr-0042-d4-air-defense-layer-resolution-eligibility.md` (the retained D-4
-  decisions 1–13)
+- `ADR-0042-d4-air-defense-layer-resolution-eligibility.md` (the retained D-4
+  decisions 1–20)
 - ADR-0007 (golden hash regeneration process)
 - `.scratch/d4-m4-air-defense/spec.md` (D-4 spec and AC coverage)
