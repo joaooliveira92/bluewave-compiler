@@ -61,6 +61,14 @@ export interface CompiledDesignVersion {
   crewComplement: SafeInt;
   contentVersion: string;
   compiledHash: string;
+  /** P-1: as-built torpedo mounts (absent = no torpedo armament). */
+  torpedoArmament?: readonly CompiledTorpedoMount[];
+}
+
+export interface CompiledTorpedoMount {
+  mountType: string;
+  tubeCount: SafeInt;
+  torpedoModelId: string;
 }
 
 export interface DesignFamily {

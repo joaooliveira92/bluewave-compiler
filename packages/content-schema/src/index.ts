@@ -1,7 +1,12 @@
 export type { Area } from "./area.js";
 export { AreaSchema } from "./area.js";
 export type { DesignTemplate } from "./design.js";
-export { DesignTemplateSchema, MainGunsSchema } from "./design.js";
+export {
+  DesignTemplateSchema,
+  MainGunsSchema,
+  TorpedoMountSchema,
+  TORPEDO_MOUNT_TYPE_VALUES,
+} from "./design.js";
 export type { ContentPack, PackManifest, RulesetManifest } from "./manifest.js";
 export { PackManifestSchema, RulesetManifestSchema } from "./manifest.js";
 export type {

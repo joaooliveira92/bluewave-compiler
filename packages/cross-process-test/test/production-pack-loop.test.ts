@@ -201,3 +201,46 @@ describe("production pack (content/production/1880) full loop", () => {
     }
   });
 });
+
+describe("P-1 AC-3: 1880 roster torpedo armament (docs/research/p1-1880-torpedo-armament.md)", () => {
+  it("compiles the as-built tube counts and leaves unsourced/post-1880 fits unarmed", () => {
+    const { state } = compileProductionPack();
+    const tubes = (id: string): number =>
+      (state.snapshot.designs.get(id)?.torpedoArmament ?? []).reduce(
+        (n, m) => n + Number(m.tubeCount),
+        0,
+      );
+    expect({
+      des_gbr_inflexible: tubes("des_gbr_inflexible"),
+      des_gbr_devastation: tubes("des_gbr_devastation"),
+      des_fra_redoutable: tubes("des_fra_redoutable"),
+      des_fra_amiral_duperre: tubes("des_fra_amiral_duperre"),
+      des_rus_petrveliky: tubes("des_rus_petrveliky"),
+      des_rus_ekaterina2: tubes("des_rus_ekaterina2"),
+      des_ita_duilio: tubes("des_ita_duilio"),
+      des_ita_italia: tubes("des_ita_italia"),
+      des_chi_dingyuan: tubes("des_chi_dingyuan"),
+    }).toEqual({
+      des_gbr_inflexible: 4,
+      des_gbr_devastation: 2,
+      des_fra_redoutable: 4,
+      des_fra_amiral_duperre: 4,
+      des_rus_petrveliky: 2,
+      des_rus_ekaterina2: 7,
+      des_ita_duilio: 3,
+      des_ita_italia: 4,
+      des_chi_dingyuan: 3,
+    });
+    for (const unarmed of [
+      "des_gbr_dreadnought75",
+      "des_gbr_alexandra",
+      "des_ger_kaiser",
+      "des_ger_sachsen",
+      "des_aut_tegetthoff",
+      "des_usa_amphitrite",
+      "des_jpn_fuso",
+    ]) {
+      expect(state.snapshot.designs.get(unarmed)?.torpedoArmament).toBeUndefined();
+    }
+  });
+});

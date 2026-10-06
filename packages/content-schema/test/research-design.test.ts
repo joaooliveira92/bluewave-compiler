@@ -25,6 +25,39 @@ describe("DesignTemplateSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("P-1 AC-1: accepts torpedoArmament and rejects bad mounts", () => {
+    const base = {
+      designId: "gbr-inflexible",
+      nationId: "uk",
+      className: "Inflexible",
+      hullType: "ironclad_turret_ship",
+      displacementKg: 11_880_000,
+      speedUms: 14,
+      armorBeltUm: 610,
+      mainGuns: { caliber: 406, count: 4, mounts: 2 },
+      machineryType: "reciprocating_compound",
+      hitPoints: 60,
+      crewComplement: 460,
+    };
+    const mount = {
+      mountType: "UNDERWATER_FIXED",
+      tubeCount: 2,
+      torpedoModelId: "whitehead_14in_1886",
+    };
+    expect(DesignTemplateSchema.safeParse({ ...base, torpedoArmament: [mount] }).success).toBe(
+      true,
+    );
+    for (const bad of [
+      [{ ...mount, mountType: "DECK" }],
+      [{ ...mount, tubeCount: 0 }],
+      [{ ...mount, torpedoModelId: "" }],
+      [{ ...mount, extra: 1 }],
+      [],
+    ]) {
+      expect(DesignTemplateSchema.safeParse({ ...base, torpedoArmament: bad }).success).toBe(false);
+    }
+  });
+
   it("rejects a template missing required fields", () => {
     const invalid = { designId: "gbr-dreadnought-v1", className: "Dreadnought" };
     const result = DesignTemplateSchema.safeParse(invalid);

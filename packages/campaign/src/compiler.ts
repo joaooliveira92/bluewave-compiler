@@ -730,6 +730,9 @@ export class CampaignCompiler {
         hitPoints: rec["hitPoints"],
         crewComplement: rec["crewComplement"],
         contentVersion: rec["contentVersion"],
+        ...(rec["torpedoArmament"] !== undefined
+          ? { torpedoArmament: rec["torpedoArmament"] }
+          : {}),
       };
 
       const validated = validateAgainstSchema(
@@ -741,6 +744,15 @@ export class CampaignCompiler {
       );
       if (!validated) continue;
 
+      const torpedoArmament = (
+        validated["torpedoArmament"] as
+          | { mountType: string; tubeCount: number; torpedoModelId: string }[]
+          | undefined
+      )?.map((m) => ({
+        mountType: m.mountType,
+        tubeCount: SafeInt(m.tubeCount),
+        torpedoModelId: m.torpedoModelId,
+      }));
       const design: CompiledDesignVersion = {
         designVersionId,
         designFamilyId: toStr(validated["designFamilyId"], ""),
@@ -787,8 +799,11 @@ export class CampaignCompiler {
             machineryType: validated["machineryType"],
             hitPoints: validated["hitPoints"],
             crewComplement: validated["crewComplement"],
+            // P-1 AC-2: only hashed when present, so unarmed designs keep their hash.
+            ...(torpedoArmament ? { torpedoArmament } : {}),
           }),
         ),
+        ...(torpedoArmament ? { torpedoArmament } : {}),
       };
 
       designs.set(designVersionId, design);

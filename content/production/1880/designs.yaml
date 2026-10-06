@@ -14,6 +14,10 @@
   machineryType: "reciprocating_compound"
   hitPoints: 60
   crewComplement: 460
+  # As-built fit — docs/research/p1-1880-torpedo-armament.md
+  torpedoArmament:
+    - { mountType: "UNDERWATER_FIXED", tubeCount: 2, torpedoModelId: "whitehead_14in_1886" }
+    - { mountType: "ABOVE_WATER_TRAINABLE", tubeCount: 2, torpedoModelId: "whitehead_14in_1886" }
   familyCreationMonth: "1880-01"
 - designId: "des_gbr_dreadnought75"
   designVersionId: "des_gbr_dreadnought75"
@@ -48,6 +52,9 @@
   machineryType: "reciprocating_compound"
   hitPoints: 38
   crewComplement: 400
+  # As-built fit — docs/research/p1-1880-torpedo-armament.md
+  torpedoArmament:
+    - { mountType: "ABOVE_WATER_TRAINABLE", tubeCount: 2, torpedoModelId: "whitehead_14in_1886" }
   familyCreationMonth: "1880-01"
 - designId: "des_gbr_alexandra"
   designVersionId: "des_gbr_alexandra"
@@ -82,6 +89,9 @@
   machineryType: "reciprocating_compound"
   hitPoints: 40
   crewComplement: 710
+  # As-built fit — docs/research/p1-1880-torpedo-armament.md
+  torpedoArmament:
+    - { mountType: "ABOVE_WATER_TRAINABLE", tubeCount: 4, torpedoModelId: "whitehead_14in_1886" }
   familyCreationMonth: "1880-01"
 - designId: "des_fra_amiral_duperre"
   designVersionId: "des_fra_amiral_duperre"
@@ -99,6 +109,9 @@
   machineryType: "reciprocating_compound"
   hitPoints: 46
   crewComplement: 700
+  # As-built fit — docs/research/p1-1880-torpedo-armament.md
+  torpedoArmament:
+    - { mountType: "ABOVE_WATER_TRAINABLE", tubeCount: 4, torpedoModelId: "whitehead_14in_1886" }
   familyCreationMonth: "1880-01"
 - designId: "des_ger_kaiser"
   designVersionId: "des_ger_kaiser"
@@ -150,6 +163,10 @@
   machineryType: "reciprocating_compound"
   hitPoints: 42
   crewComplement: 440
+  # As-built fit — docs/research/p1-1880-torpedo-armament.md
+  torpedoArmament:
+    - { mountType: "UNDERWATER_FIXED", tubeCount: 1, torpedoModelId: "whitehead_14in_1886" }
+    - { mountType: "ABOVE_WATER_TRAINABLE", tubeCount: 1, torpedoModelId: "whitehead_14in_1886" }
   familyCreationMonth: "1880-01"
 - designId: "des_rus_ekaterina2"
   designVersionId: "des_rus_ekaterina2"
@@ -167,6 +184,9 @@
   machineryType: "reciprocating_compound"
   hitPoints: 44
   crewComplement: 600
+  # As-built fit — docs/research/p1-1880-torpedo-armament.md
+  torpedoArmament:
+    - { mountType: "ABOVE_WATER_TRAINABLE", tubeCount: 7, torpedoModelId: "whitehead_14in_1886" }
   familyCreationMonth: "1880-01"
 - designId: "des_aut_tegetthoff"
   designVersionId: "des_aut_tegetthoff"
@@ -201,6 +221,9 @@
   machineryType: "reciprocating_compound"
   hitPoints: 52
   crewComplement: 480
+  # As-built fit — docs/research/p1-1880-torpedo-armament.md
+  torpedoArmament:
+    - { mountType: "ABOVE_WATER_TRAINABLE", tubeCount: 3, torpedoModelId: "whitehead_14in_1886" }
   familyCreationMonth: "1880-01"
 - designId: "des_ita_italia"
   designVersionId: "des_ita_italia"
@@ -218,6 +241,9 @@
   machineryType: "reciprocating_compound"
   hitPoints: 44
   crewComplement: 760
+  # As-built fit — docs/research/p1-1880-torpedo-armament.md
+  torpedoArmament:
+    - { mountType: "ABOVE_WATER_TRAINABLE", tubeCount: 4, torpedoModelId: "whitehead_14in_1886" }
   familyCreationMonth: "1880-01"
 - designId: "des_usa_amphitrite"
   designVersionId: "des_usa_amphitrite"
@@ -269,6 +295,9 @@
   machineryType: "reciprocating_compound"
   hitPoints: 40
   crewComplement: 330
+  # As-built fit — docs/research/p1-1880-torpedo-armament.md
+  torpedoArmament:
+    - { mountType: "ABOVE_WATER_TRAINABLE", tubeCount: 3, torpedoModelId: "whitehead_14in_1886" }
   familyCreationMonth: "1880-01"
 - designId: "des_pw_uk_dreadnought"
   designVersionId: "des_pw_uk_dreadnought"
