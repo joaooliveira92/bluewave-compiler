@@ -1,8 +1,8 @@
 # LOD coastlines + Canvas/WebGL renderer
 
-Status: open
-Frontier: no
-Blocked by: prototype spike
+Status: spike done (ADR-0055); simplifier landed; Canvas layer + bake step next
+Frontier: yes
+Blocked by: none (spike done, ADR-0055)
 Requirements: M-2
 
 ## Acceptance
