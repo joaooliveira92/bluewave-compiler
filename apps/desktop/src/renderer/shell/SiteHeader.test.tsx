@@ -191,12 +191,12 @@ describe("SiteHeader", () => {
     expect(screen.getByText(/£1,500k/)).toBeTruthy();
   });
 
-  it("keeps the alert-count slot empty until the INC-2 projection lands", () => {
+  it("omits the alert-count slot until the INC-2 projection lands", () => {
     renderHeader("linux", { activeView: "playing", campaign });
 
-    // The forward-wired slot is null, so the toolbar shows the placeholder
-    // dash rather than a fabricated count.
-    expect(screen.getByText("Alerts:")).toBeTruthy();
+    // The forward-wired slot is null: it is not shown at all (no "Alerts: —"
+    // placeholder, and certainly no fabricated count).
+    expect(screen.queryByText("Alerts:")).toBeNull();
     expect(screen.queryByText(/^[0-9]+$/)).toBeNull();
   });
 

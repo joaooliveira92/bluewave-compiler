@@ -19,6 +19,8 @@ import type { DiplomacyScreenProjection } from "../../../shared/diplomacy-contra
 import { isHighTension, tensionLabel } from "@bluewave/campaign-engine";
 import { NATION_DOSSIER_FIELDS } from "../../content/nationDossierFields.js";
 import { nationIdToCountryId } from "../new-game/nation-selection/slotBridge.js";
+import { humanizeId } from "../../lib/humanize-id.js";
+import { DEBUG_MODE } from "../../shell/debug-flag.js";
 import { useDiplomacyScreen } from "./hooks/useDiplomacyScreen.js";
 import {
   RELATION_LABELS,
@@ -101,12 +103,14 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
         title="Diplomacy & War"
         description="View and direct relations; the engine applies commands on the next turn advance."
         actions={
-          <div className="flex items-center gap-1.5">
-            <Kbd>
-              {String(state.month.month).padStart(2, "0")}/{state.month.year}
-            </Kbd>
-            <Kbd>REV {state.revision}</Kbd>
-          </div>
+          DEBUG_MODE ? (
+            <div className="flex items-center gap-1.5">
+              <Kbd>
+                {String(state.month.month).padStart(2, "0")}/{state.month.year}
+              </Kbd>
+              <Kbd>REV {state.revision}</Kbd>
+            </div>
+          ) : undefined
         }
       />
 
@@ -147,7 +151,10 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
                       <span className="text-sm font-medium">{row.partnerName}</span>
                       {isLikelyRival && <Badge variant="outline">Likely rival</Badge>}
                       <Badge variant="secondary">{RELATION_LABELS[row.relation]}</Badge>
-                      <Badge variant="outline">{label}</Badge>
+                      {humanizeId(label).toLowerCase() !==
+                        (RELATION_LABELS[row.relation] ?? "").toLowerCase() && (
+                        <Badge variant="outline">{humanizeId(label)}</Badge>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         tension {row.tension}/10
                       </span>

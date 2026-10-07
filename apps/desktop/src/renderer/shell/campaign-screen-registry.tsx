@@ -20,7 +20,7 @@ import { FleetScreen } from "../screens/fleet/FleetScreen.js";
 import { OptionsScreen } from "../screens/options/OptionsScreen.js";
 import { OverviewScreen } from "../screens/overview/OverviewScreen.js";
 import { useCampaignShellContext } from "./CampaignShellContext.js";
-import { isDebugMode } from "./debug-mode.js";
+import { DEBUG_MODE } from "./debug-flag.js";
 
 const DebuggingScreen = lazy(() =>
   import("../screens/debugging/DebuggingScreen.js").then((module) => ({
@@ -189,7 +189,6 @@ const MAP_PROTOTYPE_SCREEN: CampaignScreenDefinition = {
 // Only set via `pnpm dev:debug` (or VITE_BLUEWAVE_DEBUG=true in a build) — a
 // plain `pnpm dev` does not enable it, so these screens (and their lazy
 // chunks) stay out of the sidebar unless debug mode is explicitly requested.
-const DEBUG_MODE = isDebugMode({ flag: import.meta.env.VITE_BLUEWAVE_DEBUG });
 
 const SIMULATION_SCREEN: CampaignScreenDefinition = {
   id: "simulation",

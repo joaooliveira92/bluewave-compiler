@@ -14,6 +14,7 @@ import {
   SidebarRail,
 } from "../components/ui/sidebar.js";
 
+import { DEBUG_MODE } from "./debug-flag.js";
 import { CAMPAIGN_SCREENS, SETTINGS_SCREENS, type Screen } from "./campaign-screen-registry.js";
 export type { Screen } from "./campaign-screen-registry.js";
 export interface AppSidebarProps {
@@ -97,7 +98,8 @@ export function AppSidebar({ screen, onSelect, footer }: AppSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
 
-      {footer !== undefined && (
+      {/* The footer is the engine session id: debug builds only. */}
+      {DEBUG_MODE && footer !== undefined && (
         <SidebarFooter>
           <span className="truncate px-2 py-1 font-mono text-[12px] text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
             {footer}

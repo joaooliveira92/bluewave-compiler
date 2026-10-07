@@ -18,6 +18,8 @@ import { GlassCard } from "../../components/ui/glass-card.js";
 import { Kbd } from "../../components/ui/kbd.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
 import { Toggle } from "../../components/ui/toggle.js";
+import { humanizeId } from "../../lib/humanize-id.js";
+import { DEBUG_MODE } from "../../shell/debug-flag.js";
 import { useResearchScreen } from "./hooks/useResearchScreen.js";
 import {
   WEIGHT_OPTIONS,
@@ -94,12 +96,14 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
         title="Research & Technology"
         description="Set field priorities; the engine applies them on the next turn advance."
         actions={
-          <div className="flex items-center gap-1.5">
-            <Kbd>
-              {String(state.month.month).padStart(2, "0")}/{state.month.year}
-            </Kbd>
-            <Kbd>REV {state.revision}</Kbd>
-          </div>
+          DEBUG_MODE ? (
+            <div className="flex items-center gap-1.5">
+              <Kbd>
+                {String(state.month.month).padStart(2, "0")}/{state.month.year}
+              </Kbd>
+              <Kbd>REV {state.revision}</Kbd>
+            </div>
+          ) : undefined
         }
       />
 
@@ -137,7 +141,7 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
           {state.projection.currentProjectTechId === null ? (
             <p className="text-sm text-muted-foreground">No active project selected</p>
           ) : (
-            <p className="font-mono text-sm">{state.projection.currentProjectTechId}</p>
+            <p className="text-sm">{humanizeId(state.projection.currentProjectTechId)}</p>
           )}
         </GlassSection>
 
@@ -150,8 +154,8 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {state.projection.discoveredTechIds.map((techId) => (
-                <Badge key={techId} variant="outline" className="font-mono">
-                  {techId}
+                <Badge key={techId} variant="outline">
+                  {humanizeId(techId)}
                 </Badge>
               ))}
             </div>
@@ -180,7 +184,7 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
                 className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
               >
                 <div className="flex flex-col gap-0.5">
-                  <span className="font-mono text-xs">{fieldId}</span>
+                  <span className="text-sm">{humanizeId(fieldId)}</span>
                   <span className="text-xs text-muted-foreground">
                     ~{projectedPoints.toLocaleString()} pts next month
                   </span>
@@ -248,7 +252,7 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
                 className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
               >
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs">{tech.techId}</span>
+                  <span className="text-sm">{humanizeId(tech.techId)}</span>
                   {tech.completed && <Badge variant="secondary">completed</Badge>}
                   {tech.techId === state.projection.currentProjectTechId && (
                     <Badge variant="outline">current project</Badge>

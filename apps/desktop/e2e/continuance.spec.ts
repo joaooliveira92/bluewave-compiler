@@ -56,7 +56,7 @@ test("setup: compile the master production package fixtures", async ({ e2e }) =>
   masterPackageDir = join(await mkdtemp(join(tmpdir(), "bluewave-continuance-master-")), "package");
   await e2e.retargetDialog(masterPackageDir);
   await compileFreshCampaign(e2e.page);
-  await expect(e2e.page.getByText("Revision 0")).toBeVisible();
+  await expect(e2e.page.getByText("Bluewave — January 1880")).toBeVisible();
 });
 
 test("setup: compile a two-revision package fixture for Recover", async ({ e2e }) => {
@@ -79,7 +79,7 @@ test("row 7: Load restores Overview from a production package copy", async ({ e2
   await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
     timeout: 30_000,
   });
-  await expect(e2e.page.getByText("Revision 0")).toBeVisible();
+  await expect(e2e.page.getByText("Bluewave — January 1880")).toBeVisible();
   await expect(
     e2e.page.getByText("campaign-bluewave-1880-production", { exact: true }),
   ).toBeVisible();

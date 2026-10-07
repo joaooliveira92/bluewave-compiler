@@ -42,10 +42,8 @@ export const DivisionPicker = memo(function DivisionPicker({
             <RadioGroupItem key={division.divisionId} value={division.divisionId}>
               <CardContent className="p-4">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{division.divisionId}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {division.fleetName} · {areaName(division.areaId)}
-                  </p>
+                  <p className="truncate font-medium">{division.fleetName}</p>
+                  <p className="text-xs text-muted-foreground">{areaName(division.areaId)}</p>
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {division.ships.slice(0, 4).map((ship) => (
                       <span

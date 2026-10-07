@@ -33,9 +33,10 @@ test("row 1: New Game compiles a fresh campaign onto Overview", async ({ e2e }) 
     timeout: 30_000,
   });
 
-  // User-visible proof of the fresh compile: Revision 0 (turn number 0) and
-  // the production scenario's fixed campaign identity + a non-empty hash.
-  await expect(e2e.page.getByText("Revision 0")).toBeVisible();
+  // User-visible proof of the fresh compile: the campaign starts in January
+  // 1880 (turn 0) and carries the production scenario's fixed identity.
+  // (Revision numbers and session ids are debug-build detail, not shown to players.)
+  await expect(e2e.page.getByText("Bluewave — January 1880")).toBeVisible();
   await expect(
     e2e.page.getByText("campaign-bluewave-1880-production", { exact: true }),
   ).toBeVisible();
@@ -52,7 +53,6 @@ test("row 2: Advance Month moves the calendar into the following month", async (
   });
 
   // Committed start-of-campaign state: turn 0, January 1880 in the header.
-  await expect(e2e.page.getByText("Revision 0")).toBeVisible();
   await expect(e2e.page.getByText("Bluewave — January 1880")).toBeVisible();
 
   // Header's advance action drives the month forward (deterministic seed).
@@ -150,7 +150,7 @@ test("row 6: Fleet Movement renders the honest compiled state", async ({ e2e }) 
   // not hold for the production scenario; the UK has three authored starting
   // fleets.)
   await expect(e2e.page.getByRole("heading", { name: "Divisions" })).toBeVisible();
-  await expect(e2e.page.getByRole("radio", { name: /fleet_gbr_home/ })).toBeVisible();
+  await expect(e2e.page.getByRole("radio", { name: /Home Fleet/ })).toBeVisible();
 
   // Movement-order surface: honestly not-submittable. The bridge's movement
   // commands stay NOT_IMPLEMENTED -- submitting surfaces that as a notice,

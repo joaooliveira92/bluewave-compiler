@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DEBUG_MODE } from "../../shell/debug-flag.js";
 import { Hammer } from "lucide-react";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
@@ -58,14 +59,16 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
         title="Construction Commands"
         description="Drydock procurement and shipyard queue management."
         actions={
-          <div className="flex items-center gap-1.5">
-            {state.month !== null && (
-              <Kbd>
-                {String(state.month.month).padStart(2, "0")}/{state.month.year}
-              </Kbd>
-            )}
-            <Kbd>REV {state.revision}</Kbd>
-          </div>
+          DEBUG_MODE ? (
+            <div className="flex items-center gap-1.5">
+              {state.month !== null && (
+                <Kbd>
+                  {String(state.month.month).padStart(2, "0")}/{state.month.year}
+                </Kbd>
+              )}
+              <Kbd>REV {state.revision}</Kbd>
+            </div>
+          ) : undefined
         }
       />
 

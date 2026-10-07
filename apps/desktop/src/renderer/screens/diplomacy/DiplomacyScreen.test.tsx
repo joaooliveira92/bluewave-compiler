@@ -115,6 +115,14 @@ const ResizeObserverMock = vi.hoisted(
 );
 vi.stubGlobal("ResizeObserver", ResizeObserverMock);
 
+// The vitest config turns the debug flag on globally; flip it per test.
+const debugFlag = vi.hoisted(() => ({ on: false }));
+vi.mock("../../shell/debug-flag.js", () => ({
+  get DEBUG_MODE() {
+    return debugFlag.on;
+  },
+}));
+
 vi.mock("./hooks/useDiplomacyScreen.js", () => ({
   useDiplomacyScreen: (_sessionId: string) => ({
     state: hookMocks.stateFn(),
@@ -219,5 +227,25 @@ describe("DiplomacyScreen", () => {
     render(<DiplomacyScreen sessionId="ses-1" />);
     expect(screen.getByRole("button", { name: "Submit command" })).not.toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("shows a relation once (no duplicate badge) and hides engine metadata outside debug builds", () => {
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    // Germany is "neutral" at tension 5: the tension band is also "neutral", which
+    // used to render a second, lowercase badge next to "Neutral".
+    expect(screen.getAllByText("Neutral")).toHaveLength(1);
+    expect(screen.queryByText("neutral")).toBeNull();
+    // Revision and month code are debug-only.
+    expect(screen.queryByText(/^REV /)).toBeNull();
+  });
+
+  it("shows the revision badge in a debug build", () => {
+    debugFlag.on = true;
+    try {
+      render(<DiplomacyScreen sessionId="ses-1" />);
+      expect(screen.getByText(/^REV /)).not.toBeNull();
+    } finally {
+      debugFlag.on = false;
+    }
   });
 });

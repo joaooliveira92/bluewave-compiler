@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { DEBUG_MODE } from "../../shell/debug-flag.js";
 import { Ship } from "lucide-react";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
@@ -60,11 +61,17 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
       <PageHeader
         icon={Ship}
         title="Fleet Movement"
-        description={state.month !== null ? `${state.month.month}/${state.month.year}` : undefined}
+        description={
+          DEBUG_MODE && state.month !== null
+            ? `${state.month.month}/${state.month.year}`
+            : undefined
+        }
         actions={
-          <Badge variant="outline" className="font-mono text-xs">
-            Rev {state.revision}
-          </Badge>
+          DEBUG_MODE ? (
+            <Badge variant="outline" className="font-mono text-xs">
+              Rev {state.revision}
+            </Badge>
+          ) : undefined
         }
       />
       <DivisionPicker

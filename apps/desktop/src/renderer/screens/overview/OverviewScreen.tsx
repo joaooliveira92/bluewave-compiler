@@ -11,6 +11,7 @@ import {
   Info,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { DEBUG_MODE } from "../../shell/debug-flag.js";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
 import { Button } from "../../components/ui/button.js";
@@ -125,8 +126,14 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
         title="Campaign Overview"
         description={
           <>
-            {monthLabel(projection.month)} · Revision {projection.revision} · Session{" "}
-            <span className="font-mono">{sessionId}</span>
+            {monthLabel(projection.month)}
+            {DEBUG_MODE && (
+              <>
+                {" "}
+                · Revision {projection.revision} · Session{" "}
+                <span className="font-mono">{sessionId}</span>
+              </>
+            )}
           </>
         }
       />
