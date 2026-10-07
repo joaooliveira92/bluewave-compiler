@@ -11,10 +11,13 @@ churn. Findings, most impactful first. None of these is fixed yet.
 
 ## Needs investigation (possible data inconsistency)
 
-1. **Active construction count disagrees.** Overview says "ACTIVE CONSTRUCTION 0 projects" and the
-   Construction ledger says 0 committed, but the Pre-turn review dialog on the same Jan 1880 save says
-   "Active construction projects: 1". One of them is wrong, or they count different things (the
-   research project `mac_triple_expansion`?). Reproduce: `--save <pkg>`, open Overview, click Advance Month.
+1. **Active construction count disagrees — root cause found.** The Pre-turn review is right (1 active
+   project; the engine counts `status !== "COMPLETED"` everywhere, and the starting campaign has one
+   project under construction). The Overview is wrong: `activeConstructionCount()` in
+   `overview-screen-state.ts` is an explicit placeholder (`constructionSpend > 0 ? 1 : 0`, "until INC-8's
+   construction projection enriches the view"). Fix: have the Overview read the same real count the
+   Pre-turn review uses (the construction screen projection's `projects`), then add a test that the two
+   surfaces agree.
 2. **"Projected balance: -£56" in the header** reads like a balance, but it is the monthly
    surplus/deficit (Treasury shows month-end funds of 944). Label it "Projected change" or show 944.
 
