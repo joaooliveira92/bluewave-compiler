@@ -160,7 +160,7 @@ describe("useNewGameFlow", () => {
     const { result, execute, openCampaign, selectScreen } = setup();
     advanceToReview(result.current.actions);
 
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
       let launchPromise: Promise<void> = Promise.resolve();
       act(() => {
@@ -194,7 +194,7 @@ describe("useNewGameFlow", () => {
     const { result, openCampaign, selectScreen } = setup();
     advanceToReview(result.current.actions);
 
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
       let launchPromise: Promise<void> = Promise.resolve();
       act(() => {
@@ -216,7 +216,7 @@ describe("useNewGameFlow", () => {
     const { result, execute } = setup();
     advanceToReview(result.current.actions, { legacyFleetModeId: "disabled" });
 
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
       let launchPromise: Promise<void> = Promise.resolve();
       act(() => {
@@ -310,7 +310,7 @@ describe("useNewGameFlow", () => {
     const { result } = setup(execute);
     advanceToReview(result.current.actions);
 
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
       let launchPromise: Promise<void> = Promise.resolve();
       act(() => {
