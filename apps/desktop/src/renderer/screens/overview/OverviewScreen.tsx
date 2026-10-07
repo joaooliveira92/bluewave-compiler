@@ -27,8 +27,8 @@ import {
   largestPortCapacity,
   rederivedMaintenanceCost,
   shipsByType,
-  activeConstructionCount,
 } from "./overview-screen-state.js";
+import { activeConstructionProjects } from "../construction/construction-screen-state.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
 import { tensionLabel } from "@bluewave/campaign-engine";
 
@@ -48,13 +48,23 @@ interface PriorityItem {
 export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
   const bridge = window.bluewave;
   const [state, setState] = useState(initialOverviewScreenState);
+  // Real project count from the construction projection (null until loaded or if unavailable).
+  const [constructionCount, setConstructionCount] = useState<number | null>(null);
 
   const loadScreen = useCallback(async () => {
     if (bridge === undefined) {
       setState((current) => applyLoadFailed(current, "Bluewave bridge not available"));
       return;
     }
-    const result = await bridge.campaign.execute("inspectCampaign", sessionId);
+    const [result, construction] = await Promise.all([
+      bridge.campaign.execute("inspectCampaign", sessionId),
+      bridge.campaign.execute("inspectConstructionScreen", sessionId),
+    ]);
+    setConstructionCount(
+      construction.outcome === "success"
+        ? activeConstructionProjects(construction.value.projects).length
+        : null,
+    );
     if (result.outcome !== "success") {
       setState((current) => applyLoadFailed(current, result.reason));
       return;
@@ -94,7 +104,6 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
   const byType = shipsByType(projection);
   const maintenance = rederivedMaintenanceCost(projection);
   const largestPort = largestPortCapacity(projection);
-  const constructionCount = activeConstructionCount(projection);
 
   // Foreign Situation: top 3 highest-tension — projection lacks per-relation tension,
   // so we derive from knownEnemyNations as high-tension proxies (tension 10 = war).
@@ -143,7 +152,9 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
               Active Construction
             </p>
-            <p className="mt-0.5 font-medium">{constructionCount} projects</p>
+            <p className="mt-0.5 font-medium">
+              {constructionCount === null ? "—" : `${constructionCount} projects`}
+            </p>
           </div>
           <div>
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -307,7 +318,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                 Active construction
               </p>
-              <p className="mt-0.5 font-medium">{constructionCount}</p>
+              <p className="mt-0.5 font-medium">{constructionCount ?? "—"}</p>
             </div>
             <div>
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">

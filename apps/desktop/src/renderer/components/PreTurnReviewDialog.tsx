@@ -1,3 +1,4 @@
+import { activeConstructionProjects } from "../screens/construction/construction-screen-state.js";
 import { useCallback, useEffect, useState } from "react";
 import { advanceMonth } from "@bluewave/campaign";
 import type { StrategicPriority } from "@bluewave/campaign-engine";
@@ -85,7 +86,7 @@ export function PreTurnReviewDialog({
       }
       if (constrRes.outcome === "success") {
         const projects = constrRes.value.projects;
-        const active = projects.filter((p) => p.status !== "COMPLETED");
+        const active = activeConstructionProjects(projects);
         setConstructionCount(active.length);
         // Expected completions: work-ratio proxy ≥0.9 (spec §7) — honest, never months-to-completion
         const nearComplete = active.filter((p) => {

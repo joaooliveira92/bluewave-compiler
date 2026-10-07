@@ -67,15 +67,6 @@ export function shipsByType(projection: PlayerProjection): ReadonlyMap<string, n
   return counts;
 }
 
-export function activeConstructionCount(projection: PlayerProjection): number {
-  // Projection does not carry projects directly; the count is derived from
-  // constructionSpend + shipyard signal when available. For the Overview spec,
-  // we derive from fleet maintenance signal: if constructionSpend > 0 then at
-  // least one project is active. This is a placeholder until INC-8's
-  // construction projection enriches the view.
-  return projection.economy.constructionSpend > 0 ? 1 : 0;
-}
-
 export function monthLabel(month: PlayerProjection["month"]): string {
   const MONTH_NAMES = [
     "January",

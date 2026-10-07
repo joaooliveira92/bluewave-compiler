@@ -54,3 +54,15 @@ export function acceptConstructionCommand(value: ConstructionCommandOutcome): {
     notice: commandNotice(value.command),
   };
 }
+
+/**
+ * Projects that still count as "active construction" (anything not COMPLETED —
+ * the same definition the engine uses). The single source of truth for every
+ * surface that shows this number (Overview, Pre-turn review), so they cannot
+ * drift apart.
+ */
+export function activeConstructionProjects<T extends { readonly status: string }>(
+  projects: readonly T[],
+): readonly T[] {
+  return projects.filter((project) => project.status !== "COMPLETED");
+}

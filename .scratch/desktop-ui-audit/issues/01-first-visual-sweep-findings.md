@@ -11,7 +11,7 @@ churn. Findings, most impactful first. None of these is fixed yet.
 
 ## Needs investigation (possible data inconsistency)
 
-1. **Active construction count disagrees — root cause found.** The Pre-turn review is right (1 active
+1. **[FIXED] Active construction count disagrees — root cause found.** The Pre-turn review is right (1 active
    project; the engine counts `status !== "COMPLETED"` everywhere, and the starting campaign has one
    project under construction). The Overview is wrong: `activeConstructionCount()` in
    `overview-screen-state.ts` is an explicit placeholder (`constructionSpend > 0 ? 1 : 0`, "until INC-8's

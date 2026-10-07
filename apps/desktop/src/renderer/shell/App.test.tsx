@@ -507,7 +507,7 @@ describe("App", () => {
   it("compiles a campaign, shows the briefing, and opens the session on Take command", async () => {
     const shell = createShell({ screen: "new-game-nation" });
     testState.shell = shell;
-    const execute = vi.fn(async (command: string) => {
+    const executeMock = vi.fn(async (command: string) => {
       if (command === "inspectOpeningBriefing") {
         return {
           outcome: "success" as const,
@@ -543,7 +543,8 @@ describe("App", () => {
         outcome: "success" as const,
         value: { sessionId: "ses-created" },
       };
-    }) as unknown as CampaignCommandClient["execute"];
+    });
+    const execute = executeMock as unknown as CampaignCommandClient["execute"];
     window.bluewave = createBridge({ campaign: createCampaignClient(execute) });
 
     const { rerender } = render(<App />);
@@ -594,7 +595,7 @@ describe("App", () => {
     // onInspectOpeningBriefing resets the projection and loops in the real app
     // (the screen's own primary-action update re-renders App).
     const inspectCalls = () =>
-      execute.mock.calls.filter(([command]) => command === "inspectOpeningBriefing").length;
+      executeMock.mock.calls.filter(([command]) => command === "inspectOpeningBriefing").length;
     expect(inspectCalls()).toBe(1);
     rerender(<App />);
     await act(async () => {});
