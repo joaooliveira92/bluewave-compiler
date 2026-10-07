@@ -38,6 +38,7 @@ import type { ShipDamageState } from "../damage/state.js";
 import type { StrategicWeatherState } from "../weather/strategic-state.js";
 import { AUTO_RESOLUTION_UNAVAILABLE } from "../generation/reasonCodes.js";
 import { BATTLE_AUTO_RESOLUTION_FAILED } from "./reasonCodes.js";
+import { CauseOfLossTracker, type LossCause } from "./causeOfLoss.js";
 import { type AutoResolverNation, projectBattle, type ProjectBattleOutput } from "./project.js";
 import { buildBattleWeather } from "./weather.js";
 import { planTorpedoCommands } from "./torpedoDoctrine.js";
@@ -106,6 +107,12 @@ export interface BattleResolutionResult {
   minuteHashes: string[];
   /** Domain-separated envelope hash over the result surface. */
   resultHash: string;
+  /**
+   * P-1 (ADR-0052): why each sunk/foundered ship was lost, keyed by ship id
+   * (gunfire | fire | flooding | torpedo). Present only when at least one ship
+   * was lost. OBSERVATIONAL: excluded from `resultHash`.
+   */
+  causeOfLoss?: Record<string, LossCause>;
   /** P-1: torpedo activity — present only when a combatant carried torpedo armament. */
   torpedoSummary?: { tubesFired: number; hits: number };
   provenance: {
@@ -361,6 +368,7 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
   // P-1 (AC-5): torpedo launchers/targets/tracks; absent when no unit is armed (AC-6).
   let torpedo: TorpedoContext | undefined = projected.torpedoes;
   const torpedoSummary = { tubesFired: 0, hits: 0 };
+  const lossTracker = new CauseOfLossTracker();
 
   const allEvents: BattleEvent[] = [];
   const minuteHashes: string[] = [];
@@ -464,7 +472,27 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
       weatherCtx = { ...weatherCtx, components: res.weatherComponents };
     }
     if (res.damageStates) {
+      const preTargets = damage.targets;
       damage = { ...damage, targets: mergeTargetStates(damage.targets, res.damageStates) };
+      // cause-of-loss observation (ADR-0052; not hashed, no draws)
+      const hitKeys = new Set(
+        (res.torpedoRecords ?? [])
+          .filter(
+            (r) =>
+              r.kind === "HIT_RESOLUTION" && r.damageEffects.reasonCode === TORPEDO_HIT_RESOLVED,
+          )
+          .map((r) => r.targetId),
+      );
+      for (const [shipId, post] of Object.entries(res.damageStates)) {
+        const pre = preTargets[shipId]?.state;
+        if (pre)
+          lossTracker.observe(
+            shipId,
+            pre,
+            post,
+            hitKeys.has(`${projected.state.battleId}:${shipId}`),
+          );
+      }
     }
     if (torpedo) {
       torpedoSummary.hits += (res.torpedoRecords ?? []).filter(
@@ -573,6 +601,11 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
     campaignAssetIds,
   };
 
+  const causeOfLoss: Record<string, LossCause> = {};
+  for (const id of [...attackerSunkIds, ...defenderSunkIds].sort()) {
+    causeOfLoss[id] = lossTracker.causeOf(id) ?? "gunfire";
+  }
+
   const result: BattleResolutionResult = {
     battleId: input.manifest.battleId,
     battleEndReason: endReason,
@@ -588,10 +621,12 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
     minuteHashes,
     resultHash: "",
     ...(projected.torpedoes ? { torpedoSummary } : {}),
+    ...(Object.keys(causeOfLoss).length > 0 ? { causeOfLoss } : {}),
     provenance,
   };
   // resultHash: domain-separated envelope over the whole non-hash surface
-  const { resultHash: _hash, ...hashBody } = result;
+  // causeOfLoss is observational (ADR-0052) and excluded so no baseline moves.
+  const { resultHash: _hash, causeOfLoss: _cause, ...hashBody } = result;
   result.resultHash = createEnvelope(
     "battle-auto-resolution-result",
     battleAutoResolutionPolicyId,
