@@ -53,6 +53,8 @@ import {
   STABILITY_INITIAL_BP,
   STRUCTURE_UNIT,
   type AutoResolutionZone,
+  type AutoResolutionZoneId,
+  ZONE_HIT_WEIGHT_BP,
 } from "./constants.js";
 
 // Damage runs between gunnery (substep 2) and nothing else in this slice:
@@ -446,7 +448,21 @@ function pickZone(
   if (!engine || target.zones.length === 0) return target.zones[0]!;
   const streamId = `battle/damage/hit_zone:${battleId}:${minute}:${DAMAGE_SUBSTEP}:${target.shipId}:${salvo.batteryId}`;
   const stream = engine.stream(streamId);
-  const draw = drawUniform(stream, SafeInt(0), SafeInt(target.zones.length - 1));
+  // ADR-0053: weighted by ZONE_HIT_WEIGHT_BP (one uniform draw over the total;
+  // equal weights of 1 reduce exactly to the pre-ADR-0053 uniform draw).
+  const weightOf = (z: AutoResolutionZone): number =>
+    ZONE_HIT_WEIGHT_BP[z.id as AutoResolutionZoneId] ?? 0;
+  const totalWeight = target.zones.reduce((a, z) => a + weightOf(z), 0);
+  const roll = drawUniform(stream, SafeInt(0), SafeInt(Math.max(0, totalWeight - 1))) as number;
+  let acc = 0;
+  let draw = target.zones.length - 1;
+  for (let i = 0; i < target.zones.length; i++) {
+    acc += weightOf(target.zones[i]!);
+    if (roll < acc) {
+      draw = i;
+      break;
+    }
+  }
   if (randomLedger) {
     randomLedger.record({
       streamId,

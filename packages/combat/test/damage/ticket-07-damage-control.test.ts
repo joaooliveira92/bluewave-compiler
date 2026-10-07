@@ -226,8 +226,8 @@ describe("P-1 ticket 07: per-ship damage control", () => {
     it("reserve reaching 0 transitions the ship SINKING (flooding feeds §32)", () => {
       const state = withDamageStateHash({ ...initialDamageState("a1") });
       const { state: next } = writer(state, {
-        nextFloodedWaterBp: 51_000,
-        netDeltaKgMin: 51_000,
+        nextFloodedWaterBp: FLOAT_UNIT + 1_000,
+        netDeltaKgMin: FLOAT_UNIT + 1_000,
       });
       expect(next.flotationReserve).toBe(0);
       expect(next.terminalStatus).toBe("SINKING");
@@ -239,8 +239,8 @@ describe("P-1 ticket 07: per-ship damage control", () => {
         structuralIntegrity: 0,
       });
       const { state: next } = writer(state, {
-        nextFloodedWaterBp: 51_000,
-        netDeltaKgMin: 51_000,
+        nextFloodedWaterBp: FLOAT_UNIT + 1_000,
+        netDeltaKgMin: FLOAT_UNIT + 1_000,
       });
       expect(next.terminalStatus).toBe("FOUNDERED");
     });
@@ -316,7 +316,7 @@ describe("P-1 ticket 07: per-ship damage control", () => {
       const state = buildTestState();
       const initial = withDamageStateHash({
         ...initialDamageState("a1"),
-        floodingRecords: [makeFlood("COMP-BELT-1", 10_000)],
+        floodingRecords: [makeFlood("COMP-BELT-1", FLOAT_UNIT / 4)],
       });
       const damage = damageContext({ a1: initial, d1: initialDamageState("d1") });
       const res = advanceMinutes({
@@ -326,7 +326,7 @@ describe("P-1 ticket 07: per-ship damage control", () => {
         damage,
         damageControl: {
           a1: makeContext({
-            floodingRecords: [makeFlood("COMP-BELT-1", 10_000)],
+            floodingRecords: [makeFlood("COMP-BELT-1", FLOAT_UNIT / 4)],
             floodedWaterBp: 0,
           }),
           d1: makeContext({ floodedWaterBp: 0 }),
@@ -340,7 +340,7 @@ describe("P-1 ticket 07: per-ship damage control", () => {
 
       const last = res.results[res.results.length - 1]!.damageStates?.["a1"];
       expect(last).toBeDefined();
-      // Flooding weight drained the 50_000 flotation reserve -> SINKING.
+      // Flooding weight drained the FLOAT_UNIT flotation reserve (ADR-0053 rescaled the flood rate with it) -> SINKING.
       expect(last!.flotationReserve).toBe(0);
       expect(last!.terminalStatus).toBe("SINKING");
       expect(last!.progressiveFloodingTotal).toBeGreaterThanOrEqual(FLOAT_UNIT);

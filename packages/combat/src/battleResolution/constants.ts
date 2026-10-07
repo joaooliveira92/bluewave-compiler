@@ -105,6 +105,17 @@ export const ZONE_THICKNESS_BP: Record<AutoResolutionZoneId, number> = {
   MAGAZINE: 8_000,
 } as const;
 
+/** Relative hit-location weight per zone (sums to 10_000). ADR-0053: the magazine
+ *  is a small, deep, heavily protected target, so it is struck far less often
+ *  than the uniform 25% the original authored draw implied (magazine
+ *  detonations were the dominant lethality source). */
+export const ZONE_HIT_WEIGHT_BP: Record<AutoResolutionZoneId, number> = {
+  BELT: 4_000,
+  DECK: 3_000,
+  SUPERSTRUCTURE: 2_700,
+  MAGAZINE: 300,
+} as const;
+
 export const ZONE_CRITICAL: Record<AutoResolutionZoneId, boolean> = {
   BELT: false,
   DECK: false,
@@ -150,7 +161,7 @@ export const AUTO_RESOLUTION_COMPONENTS = [
 // Initial reserves are canonical full-integrity score units (B-4 fixtures use
 // the same scale); a ship's battle hp derives from STRUCTURE + FLOAT equally.
 export const STRUCTURE_UNIT = 100_000 as const;
-export const FLOAT_UNIT = 50_000 as const;
+export const FLOAT_UNIT = 400_000 as const;
 export const STABILITY_INITIAL_BP = 8_000 as const;
 
 // ---------------------------------------------------------------------------
