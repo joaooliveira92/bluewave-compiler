@@ -2,7 +2,7 @@
  * JOIN — the authored bridge between the live campaign world and the map's
  * fixture geometry.
  *
- * The F1 map renders on top of `screens/map-prototype/prototype-world.ts`'s
+ * The F1 map renders on top of `components/world-map/fixture-world.ts`'s
  * hand-authored 36-area geometry (the only polygons/coastlines/labels that
  * exist in the repo). The real `CampaignSnapshot` (`world.areas`, `world.ports`,
  * per-nation `fleets`) carries NO geographic coordinates — only ids and names.
@@ -30,7 +30,7 @@
  */
 
 import type { WorldMapView } from "@bluewave/campaign-engine";
-import { AREAS_BY_ID, type AreaId, type NationId } from "./prototype-world.js";
+import { AREAS_BY_ID, type AreaId, type NationId } from "./fixture-world.js";
 
 /** Fixture nation ids the prototype's `NATIONS_BY_ID` already carries hues for. */
 const FIXTURE_HUES: Readonly<Record<string, number>> = {

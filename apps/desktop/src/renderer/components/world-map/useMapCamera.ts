@@ -47,7 +47,7 @@ const MIN_SCALE = 0.9;
 /** Raised from 14 (ADR-0055); beyond ~60x the 0.01° coastline data runs out. */
 const MAX_SCALE = 60;
 
-export interface PrototypeCamera {
+export interface MapCamera {
   readonly svgRef: React.RefObject<SVGSVGElement | null>;
   readonly worldRef: React.RefObject<SVGGElement | null>;
   readonly meterRef: React.RefObject<HTMLSpanElement | null>;
@@ -70,11 +70,11 @@ export interface CameraOptions {
   readonly wrapHorizontally: boolean;
 }
 
-export function usePrototypeCamera(
+export function useMapCamera(
   worldWidth: number,
   worldHeight: number,
   options: CameraOptions = { wrapHorizontally: true },
-): PrototypeCamera {
+): MapCamera {
   const { wrapHorizontally } = options;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const worldRef = useRef<SVGGElement | null>(null);

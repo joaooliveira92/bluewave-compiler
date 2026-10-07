@@ -14,22 +14,15 @@
 import { useMemo } from "react";
 import { Button } from "../ui/button.js";
 import { CoastlineCanvas } from "./CoastlineCanvas.js";
-import {
-  AREAS,
-  AREAS_BY_ID,
-  EDGES,
-  FLEETS,
-  PASSAGES_BY_ID,
-  POSSESSIONS,
-} from "../../screens/map-prototype/prototype-world.js";
-import { COASTLINE_POLYGONS } from "../../screens/map-prototype/prototype-coastline.js";
+import { AREAS, AREAS_BY_ID, EDGES, FLEETS, PASSAGES_BY_ID, POSSESSIONS } from "./fixture-world.js";
+import { COASTLINE_POLYGONS } from "./coastline-data.js";
 import {
   PROJECTIONS,
   projectAreas,
   projectPoint,
   projectionById,
   WORLD_WRAP_TURNS,
-} from "../../screens/map-prototype/prototype-projection.js";
+} from "./projection.js";
 import {
   LAYERS,
   areaControl,
@@ -37,16 +30,16 @@ import {
   nationName,
   nationStroke,
   summariseArea,
-} from "../../screens/map-prototype/map-prototype-screen-state.js";
+} from "./map-state.js";
 import {
   EMPTY_LIVE_OVERLAY,
   campaignNationHue,
   campaignNationLabel,
   fixtureAnchor,
   type LiveWorldMapOverlay,
-} from "../../screens/map-prototype/campaign-map-join.js";
-import { usePrototypeCamera } from "../../screens/map-prototype/usePrototypeCamera.js";
-import type { MapVariantProps } from "../../screens/map-prototype/variant-contract.js";
+} from "./campaign-map-join.js";
+import { useMapCamera } from "./useMapCamera.js";
+import type { MapViewProps } from "./map-contract.js";
 import { cn } from "../../lib/utils.js";
 
 const CHART = {
@@ -64,7 +57,7 @@ function pinned(x: number, y: number) {
   return { transform: `translate(${x}px, ${y}px) scale(var(--map-inv, 1))` };
 }
 
-export interface WorldMapChartProps extends MapVariantProps {
+export interface WorldMapChartProps extends MapViewProps {
   readonly className?: string;
   /** Optional live campaign overlay; defaults to the static prototype fixture. */
   readonly overlay?: LiveWorldMapOverlay;
@@ -83,7 +76,7 @@ export function WorldMapChart({
   className,
 }: WorldMapChartProps) {
   const projection = projectionById(state.projection);
-  const camera = usePrototypeCamera(projection.width, projection.height);
+  const camera = useMapCamera(projection.width, projection.height);
   const live = overlay.source === "campaign";
 
   /** Ownership: live overlay overrides the fixture wherever the campaign maps one. */

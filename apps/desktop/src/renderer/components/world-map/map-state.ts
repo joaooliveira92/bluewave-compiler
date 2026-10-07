@@ -20,8 +20,8 @@ import {
   type AreaControl,
   type AreaId,
   type NationId,
-} from "./prototype-world.js";
-import { nauticalMiles, type ProjectionId } from "./prototype-projection.js";
+} from "./fixture-world.js";
+import { nauticalMiles, type ProjectionId } from "./projection.js";
 
 export type LayerId = "ownership" | "passages" | "possessions" | "fleets" | "labels" | "routes";
 

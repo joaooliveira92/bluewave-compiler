@@ -8,11 +8,8 @@
 import { useEffect, useRef } from "react";
 import { coastlineForTier, coastlineTierFor } from "../../lib/coastline-tiers.js";
 import type { FlatPolygon } from "../../lib/simplify-geometry.js";
-import type { PrototypeCamera } from "../../screens/map-prototype/usePrototypeCamera.js";
-import {
-  WORLD_WRAP_TURNS,
-  type Projection,
-} from "../../screens/map-prototype/prototype-projection.js";
+import type { MapCamera } from "./useMapCamera.js";
+import { WORLD_WRAP_TURNS, type Projection } from "./projection.js";
 
 interface BuiltPolygon {
   readonly path: Path2D;
@@ -23,7 +20,7 @@ interface BuiltPolygon {
 }
 
 export interface CoastlineCanvasProps {
-  readonly camera: PrototypeCamera;
+  readonly camera: MapCamera;
   readonly polygons: readonly FlatPolygon[];
   readonly projection: Projection;
   readonly centre: number;

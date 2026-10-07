@@ -24,11 +24,11 @@ import {
   selectArea,
   toggleLayer,
   type LayerId,
-} from "./map-prototype-screen-state.js";
+} from "../../components/world-map/map-state.js";
 import { PrototypeSwitcher, readVariantFromLocation } from "./PrototypeSwitcher.js";
-import type { ProjectionId } from "./prototype-projection.js";
-import type { AreaId } from "./prototype-world.js";
-import type { VariantDefinition } from "./variant-contract.js";
+import type { ProjectionId } from "../../components/world-map/projection.js";
+import type { AreaId } from "../../components/world-map/fixture-world.js";
+import type { VariantDefinition } from "../../components/world-map/map-contract.js";
 import { VariantAChart } from "./variants/VariantAChart.js";
 import { VariantBBoard } from "./variants/VariantBBoard.js";
 import { VariantCGraph } from "./variants/VariantCGraph.js";

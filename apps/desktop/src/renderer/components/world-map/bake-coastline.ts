@@ -16,7 +16,7 @@
  *
  * **Tier is the fidelity knob.** Natural Earth publishes three, and the number
  * is the map scale each is *drawn for*: 110m is a world thumbnail, 50m a
- * continent, 10m a coastline. The camera zooms to 14x (usePrototypeCamera's
+ * continent, 10m a coastline. The camera zooms to 14x (useMapCamera's
  * MAX_SCALE), which is roughly 1:1.5M at the equator — two whole tiers past
  * what 110m carries, which is why 110m goes visibly polygonal when you zoom
  * into the Aegean or the Danish straits. For a naval game the coast *is* the
@@ -244,7 +244,7 @@ ${body},
 ];
 `;
 
-  const target = join(dirname(fileURLToPath(import.meta.url)), "prototype-coastline.ts");
+  const target = join(dirname(fileURLToPath(import.meta.url)), "coastline-data.ts");
   await writeFile(target, output, "utf8");
   process.stdout.write(`wrote ${target}\n${polygons.length} polygons, ${pointCount} points\n`);
 }

@@ -5,7 +5,7 @@ import {
   EMPTY_LIVE_OVERLAY,
   joinWorldMap,
   type LiveWorldMapOverlay,
-} from "../screens/map-prototype/campaign-map-join.js";
+} from "../components/world-map/campaign-map-join.js";
 import {
   initialMapPrototypeState,
   pushRuler,
@@ -13,9 +13,9 @@ import {
   selectArea,
   toggleLayer,
   type LayerId,
-} from "../screens/map-prototype/map-prototype-screen-state.js";
-import type { ProjectionId } from "../screens/map-prototype/prototype-projection.js";
-import type { AreaId } from "../screens/map-prototype/prototype-world.js";
+} from "../components/world-map/map-state.js";
+import type { ProjectionId } from "../components/world-map/projection.js";
+import type { AreaId } from "../components/world-map/fixture-world.js";
 import { useCampaignShellContext } from "./CampaignShellContext.js";
 
 /** Global F1 shortcut that opens the world map in a side sheet. */

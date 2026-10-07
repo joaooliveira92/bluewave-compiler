@@ -32,23 +32,23 @@ import {
   FLEETS,
   PASSAGES_BY_ID,
   POSSESSIONS,
-} from "../prototype-world.js";
-import { COASTLINE_POLYGONS } from "../prototype-coastline.js";
+} from "../../../components/world-map/fixture-world.js";
+import { COASTLINE_POLYGONS } from "../../../components/world-map/coastline-data.js";
 import {
   projectAreas,
   projectionById,
   ringToPath,
   WORLD_WRAP_TURNS,
   type Point,
-} from "../prototype-projection.js";
+} from "../../../components/world-map/projection.js";
 import {
   areaControl,
   nationName,
   nationStroke,
   summariseArea,
-} from "../map-prototype-screen-state.js";
-import { usePrototypeCamera } from "../usePrototypeCamera.js";
-import type { MapVariantProps } from "../variant-contract.js";
+} from "../../../components/world-map/map-state.js";
+import { useMapCamera } from "../../../components/world-map/useMapCamera.js";
+import type { MapViewProps } from "../../../components/world-map/map-contract.js";
 
 export function VariantCGraph({
   state,
@@ -56,9 +56,9 @@ export function VariantCGraph({
   onSelect,
   onRuler,
   onToggleClosedPassages,
-}: MapVariantProps) {
+}: MapViewProps) {
   const projection = projectionById(state.projection);
-  const camera = usePrototypeCamera(projection.width, projection.height);
+  const camera = useMapCamera(projection.width, projection.height);
   const control = areaControl();
   const [filter, setFilter] = useState("");
 

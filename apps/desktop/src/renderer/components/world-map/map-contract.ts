@@ -5,11 +5,11 @@
  * shared wrapper. A variant is free to throw out the whole page.
  */
 
-import type { ProjectionId } from "./prototype-projection.js";
-import type { LayerId, MapPrototypeState, RouteReading } from "./map-prototype-screen-state.js";
-import type { AreaId } from "./prototype-world.js";
+import type { ProjectionId } from "./projection.js";
+import type { LayerId, MapPrototypeState, RouteReading } from "./map-state.js";
+import type { AreaId } from "./fixture-world.js";
 
-export interface MapVariantProps {
+export interface MapViewProps {
   readonly state: MapPrototypeState;
   readonly route: RouteReading | null;
   readonly onSelect: (area: AreaId | null) => void;
@@ -24,5 +24,5 @@ export interface VariantDefinition {
   readonly key: string;
   readonly name: string;
   readonly premise: string;
-  readonly Component: React.ComponentType<MapVariantProps>;
+  readonly Component: React.ComponentType<MapViewProps>;
 }
