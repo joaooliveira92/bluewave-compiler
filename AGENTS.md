@@ -52,6 +52,11 @@
 
 ## Agent skills
 
+### Viewing the desktop UI
+
+Agents can screenshot, inspect and click through the Electron app via Playwright. See
+`docs/agents/desktop-view.md` (`pnpm run snap` in `apps/desktop`).
+
 ### Issue tracker
 
 Issues are tracked as local markdown files under `.scratch/`. See `docs/agents/issue-tracker.md`.

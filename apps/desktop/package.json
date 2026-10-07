@@ -17,6 +17,7 @@
     "typecheck": "tsc -b",
     "test": "vp test run",
     "test:e2e": "playwright test",
+    "snap": "node scripts/view.ts",
     "lint": "vp lint .",
     "lint:fix": "echo 'ok'"
   },
