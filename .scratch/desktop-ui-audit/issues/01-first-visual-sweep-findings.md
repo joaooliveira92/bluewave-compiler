@@ -48,9 +48,9 @@ churn. Findings, most impactful first. None of these is fixed yet.
     month advance the engine does apply it (relation becomes "At war", tension 10/10, state
     `war_imminent`). Needs: visible draft feedback (scroll to / pin the queue bar), and a confirmation
     for the irreversible declaration.
-13. **Header status ignores war.** Header says "Status: Armed peace" while the Diplomacy screen says
+13. **[FIXED] Header status ignores war.** Header says "Status: Armed peace" while the Diplomacy screen says
     "At war" with the Austro-Hungarian Empire.
-14. **Month advance is not shared across surfaces.** The header "Advance Month" does not feed the
+14. **[PARTLY FIXED] Month advance is not shared across surfaces.** Fixed: the header (month, revision, balance, war status) now refreshes from `inspectCampaign` after any advance, including advances made from the Simulation screen, and the Simulation screen re-reads its revision when the header advances (no stale `expectedRevision`). Still open: the header's "Advance Month" does not populate the Simulation Turn Report (the report only reflects advances made from that screen). Original finding: The header "Advance Month" does not feed the
     Simulation screen's Turn Report ("No turn advanced yet"), and advancing from the Simulation screen's
     own "Advance Turn (1 Month)" leaves the header on "January 1880" while the report says Month 8/1880.
     Also, the Diplomacy screen kept showing 01/1880 REV 0 while the header advanced to July until the

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 
+import type { PlayerProjection } from "@bluewave/campaign-engine";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import { emitWideEvent } from "../lib/telemetry.js";
 import type { Screen } from "./AppSidebar.js";
@@ -15,6 +16,23 @@ import type { PrimaryAction } from "./primary-action.js";
 import { formatCampaignMonth } from "./site-header-state.js";
 
 const SAVE_MESSAGE_DURATION_MS = 8_000;
+
+/** Builds the shell's campaign summary from an `inspectCampaign` projection. */
+function overviewFromProjection(sessionId: string, projection: PlayerProjection): CampaignOverview {
+  return {
+    month: projection.month,
+    treasury: projection.economy.treasury,
+    revision: projection.revision,
+    sessionId,
+    nationName: projection.nationName,
+    projectedSurplusDeficit: projection.projectedSurplusDeficit,
+    atWar: projection.knownEnemyNations.length > 0,
+    // Forward-wired slot: the INC-2 priorities projection will populate this
+    // once it lands; until then it stays null so the header shows an empty
+    // placeholder, never a fabricated count.
+    activeAlertsCount: null,
+  };
+}
 
 export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
   const [state, dispatch] = useReducer(reduceCampaignShell, undefined, initialCampaignShellState);
@@ -37,21 +55,9 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
           return;
         }
         emitWideEvent("campaign_open", sessionId, duration, "success");
-        const projection = result.value.projection;
         dispatch({
           type: "campaign-opened",
-          campaign: {
-            month: projection.month,
-            treasury: projection.economy.treasury,
-            revision: projection.revision,
-            sessionId,
-            nationName: projection.nationName,
-            projectedSurplusDeficit: projection.projectedSurplusDeficit,
-            // Forward-wired slot: the INC-2 priorities projection will
-            // populate this once it lands; until then it stays null so the
-            // header shows an empty placeholder, never a fabricated count.
-            activeAlertsCount: null,
-          },
+          campaign: overviewFromProjection(sessionId, result.value.projection),
         });
       } catch (error) {
         dispatch({
@@ -114,6 +120,26 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
     );
   };
 
+  /**
+   * Re-reads the header's campaign summary (month, treasury, revision,
+   * projected balance, war status) from the engine. Called after every month
+   * advance — from the header or from the Simulation screen — so the header
+   * never shows a stale month or "Armed peace" during a war.
+   */
+  const refreshCampaign = useCallback(
+    async (sessionIdOverride?: string) => {
+      const sessionId = sessionIdOverride ?? state.campaign?.sessionId;
+      if (bridge === undefined || sessionId === undefined) return;
+      const result = await bridge.campaign.execute("inspectCampaign", sessionId);
+      if (result.outcome !== "success") return;
+      dispatch({
+        type: "campaign-refreshed",
+        campaign: overviewFromProjection(sessionId, result.value.projection),
+      });
+    },
+    [bridge, state.campaign?.sessionId],
+  );
+
   const advanceMonth = useCallback(async () => {
     if (bridge === undefined || state.campaign === null) return;
     dispatch({ type: "month-commit-started" });
@@ -140,9 +166,12 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
           // projected balance until the next inspectCampaign refreshes them.
           nationName: state.campaign.nationName,
           projectedSurplusDeficit: state.campaign.projectedSurplusDeficit,
+          atWar: state.campaign.atWar,
           activeAlertsCount: null,
         };
         dispatch({ type: "month-committed", campaign: nextCampaign });
+        // The commit response carries no projection surface; refresh the rest.
+        void refreshCampaign(sessionId);
         collectMessage(`Month advanced to ${formatCampaignMonth(value.closingSnapshot.month)}.`);
         return;
       }
@@ -160,7 +189,7 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
         message: error instanceof Error ? error.message : "Could not advance month.",
       });
     }
-  }, [bridge, state.campaign, collectMessage]);
+  }, [bridge, state.campaign, collectMessage, refreshCampaign]);
 
   const setPrimaryAction = useCallback(
     (action: PrimaryAction | null) => dispatch({ type: "primary-action-changed", action }),
@@ -192,6 +221,7 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
       closeCampaign,
       saveCampaign,
       advanceMonth,
+      refreshCampaign,
       selectScreen,
       setPrimaryAction,
       goBack: goBackInHistory,
@@ -203,6 +233,7 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
       closeCampaign,
       saveCampaign,
       advanceMonth,
+      refreshCampaign,
       selectScreen,
       setPrimaryAction,
       goBackInHistory,

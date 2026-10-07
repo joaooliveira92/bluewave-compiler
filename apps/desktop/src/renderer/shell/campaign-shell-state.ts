@@ -24,6 +24,12 @@ export interface CampaignOverview {
    * placeholder rather than a fabricated count.
    */
   readonly activeAlertsCount: number | null;
+  /**
+   * True when the player nation is at war with at least one nation
+   * (`PlayerProjection.knownEnemyNations` is non-empty); drives the header
+   * status. Refreshed from `inspectCampaign` after every month advance.
+   */
+  readonly atWar: boolean;
 }
 
 export interface CampaignShellState {
@@ -96,6 +102,7 @@ export type CampaignShellEvent =
     }
   | { readonly type: "month-commit-started" }
   | { readonly type: "month-committed"; readonly campaign: CampaignOverview }
+  | { readonly type: "campaign-refreshed"; readonly campaign: CampaignOverview }
   | { readonly type: "month-commit-failed"; readonly message: string };
 
 export function initialCampaignShellState(): CampaignShellState {
@@ -163,6 +170,8 @@ export function reduceCampaignShell(
       return { ...state, committing: true, saveMessage: null };
     case "month-committed":
       return { ...state, committing: false, campaign: event.campaign };
+    case "campaign-refreshed":
+      return { ...state, campaign: event.campaign };
     case "month-commit-failed":
       return { ...state, committing: false, saveMessage: event.message };
   }

@@ -15,6 +15,7 @@ const campaign = {
   nationName: "United Kingdom",
   projectedSurplusDeficit: 2_000,
   activeAlertsCount: null,
+  atWar: false,
 };
 
 describe("campaign shell state", () => {
@@ -46,6 +47,7 @@ describe("campaign shell state", () => {
         // Forward-wired INC-2 slot: null (empty/placeholder) until the
         // priorities projection lands.
         activeAlertsCount: null,
+        atWar: false,
       }),
     );
   });

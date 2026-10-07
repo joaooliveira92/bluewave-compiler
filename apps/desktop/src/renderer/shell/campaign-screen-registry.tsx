@@ -116,9 +116,14 @@ function FleetRoute({ sessionId }: CampaignScreenRouteProps) {
 }
 
 function SimulationRoute({ sessionId }: CampaignScreenRouteProps) {
-  const { actions } = useCampaignShellContext();
+  const { state, actions } = useCampaignShellContext();
   return (
-    <SimulationScreen sessionId={sessionId} onPrimaryActionChange={actions.setPrimaryAction} />
+    <SimulationScreen
+      sessionId={sessionId}
+      onPrimaryActionChange={actions.setPrimaryAction}
+      campaignRevision={state.campaign?.revision}
+      onMonthCommitted={() => void actions.refreshCampaign(sessionId)}
+    />
   );
 }
 

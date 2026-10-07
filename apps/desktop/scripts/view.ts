@@ -9,6 +9,7 @@
  *                                        [--advance N] [--settle MS] [--tour]
  *                                        [--make-save DIR]
  *
+ * --click "TEXT @last" clicks the last match instead of the first.
  * --advance   clicks "Advance Month" N times, in order with the other actions (repeatable).
  * --settle    extra wait (ms) once, right before capture (--wait is per action).
  * --tour      leave the first-month guided tour overlay alone (default: dismiss it).
@@ -105,15 +106,19 @@ try {
     if (kind === "click") {
       // Prefer an accessible role/name match (waiting for it to render, e.g. after
       // a compile), fall back to any visible text.
-      const byRole = h.page
-        .getByRole("button", { name: arg })
-        .or(h.page.getByRole("link", { name: arg }))
-        .first();
+      // "TEXT @last" targets the last match instead of the first (e.g. a pinned
+      // action bar whose button repeats a label used by rows above it).
+      const wantLast = arg.endsWith(" @last");
+      const label = wantLast ? arg.slice(0, -" @last".length) : arg;
+      const matches = h.page
+        .getByRole("button", { name: label })
+        .or(h.page.getByRole("link", { name: label }));
+      const byRole = wantLast ? matches.last() : matches.first();
       const appeared = await byRole
         .waitFor({ timeout: 30_000 })
         .then(() => true)
         .catch(() => false);
-      const target = appeared ? byRole : h.page.getByText(arg).first();
+      const target = appeared ? byRole : h.page.getByText(label).first();
       // An element that keeps re-mounting never becomes "stable"; fall back to a
       // direct DOM click and note it (a churning screen is itself worth knowing).
       await target.click({ timeout: 5_000 }).catch(async () => {

@@ -15,6 +15,7 @@ const campaign: HeaderCampaign = {
   nationName: "United Kingdom",
   projectedSurplusDeficit: 1_500_000,
   activeAlertsCount: null,
+  atWar: false,
 };
 
 const matchMedia = vi.fn().mockImplementation((query: string) => ({

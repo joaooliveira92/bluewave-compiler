@@ -24,6 +24,8 @@ export interface HeaderCampaign {
    * `PlayerProjection.projectedSurplusDeficit`.
    */
   readonly projectedSurplusDeficit: number;
+  /** True when the player nation is at war with anyone. */
+  readonly atWar: boolean;
   /**
    * Forward-wired active-alerts count slot: `null` until the INC-2
    * priorities projection lands, so the toolbar shows an explicit
@@ -136,7 +138,7 @@ export function describeSecondaryRow(
       return {
         kind: "campaign",
         metrics: campaignMetrics(campaign),
-        status: "Armed peace",
+        status: campaign?.atWar === true ? "At war" : "Armed peace",
       };
 
     case "new_game":

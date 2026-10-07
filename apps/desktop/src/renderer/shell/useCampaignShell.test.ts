@@ -82,40 +82,74 @@ describe("useCampaignShell", () => {
       sessionId: "ses-1",
       nationName: "United Kingdom",
       projectedSurplusDeficit: 1_250_000,
+      atWar: false,
       // Forward-wired INC-2 slot: empty until the priorities projection lands.
       activeAlertsCount: null,
     });
   });
 
-  it("keeps the header fields across a month commit and leaves the alert slot empty", async () => {
+  it("refreshes the header from the engine after a month commit, including war status", async () => {
+    // Before the commit nobody is at war; the post-commit projection shows a war
+    // and a new month/revision/balance (as the engine would after a declaration).
+    const afterCommit: PlayerProjection = {
+      ...projection,
+      revision: 4,
+      month: { year: 1900, month: 2 },
+      projectedSurplusDeficit: -56,
+      economy: { ...projection.economy, treasury: 22_900_000 },
+      knownEnemyNations: ["at"],
+    };
+    let committed = false;
     const execute = vi.fn(async (command: string) => {
       if (command === "inspectCampaign") {
-        return { outcome: "success" as const, value: { projection }, diagnostics: [] };
+        return {
+          outcome: "success" as const,
+          value: { projection: committed ? afterCommit : projection },
+          diagnostics: [],
+        };
       }
+      committed = true;
       return monthCommitSuccess;
     }) as unknown as CampaignExecute;
     const { result } = setup(execute);
 
     await act(() => result.current.openCampaign("ses-1"));
+    expect(result.current.campaign?.atWar).toBe(false);
     await act(() => result.current.advanceMonth());
 
     expect(execute).toHaveBeenCalledWith(
       "commitMonth",
       expect.objectContaining({ sessionId: "ses-1", expectedRevision: 3 }),
     );
+    // Commit response alone has no projection surface, so the shell re-reads it:
+    // projected balance and war status are no longer stale after the advance.
     expect(result.current.campaign).toEqual({
-      month: { month: 2, year: 1900 },
+      month: { year: 1900, month: 2 },
       treasury: 22_900_000,
       revision: 4,
       sessionId: "ses-1",
-      // The commit response carries no projection surface (no nationName /
-      // projectedSurplusDeficit on ClosingSnapshotSummary), so the shell
-      // keeps the stable nation identity and the last-known projection.
       nationName: "United Kingdom",
-      projectedSurplusDeficit: 1_250_000,
+      projectedSurplusDeficit: -56,
+      atWar: true,
       activeAlertsCount: null,
     });
     expect(result.current.committing).toBe(false);
+  });
+
+  it("refreshCampaign re-reads the header on demand (e.g. after the Simulation screen commits)", async () => {
+    let revision = 3;
+    const execute = vi.fn(async () => ({
+      outcome: "success" as const,
+      value: { projection: { ...projection, revision } },
+      diagnostics: [],
+    })) as unknown as CampaignExecute;
+    const { result } = setup(execute);
+
+    await act(() => result.current.openCampaign("ses-1"));
+    expect(result.current.campaign?.revision).toBe(3);
+    revision = 9;
+    await act(() => result.current.refreshCampaign("ses-1"));
+    expect(result.current.campaign?.revision).toBe(9);
   });
 
   it("keeps the alert slot empty on a rejected commit and stays ready to retry", async () => {

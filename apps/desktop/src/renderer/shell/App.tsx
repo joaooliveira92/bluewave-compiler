@@ -438,6 +438,7 @@ function CampaignShellApplication({
             treasury: shell.state.campaign.treasury,
             nationName: shell.state.campaign.nationName,
             projectedSurplusDeficit: shell.state.campaign.projectedSurplusDeficit,
+            atWar: shell.state.campaign.atWar,
             activeAlertsCount: shell.state.campaign.activeAlertsCount,
           },
     [shell.state.campaign],
