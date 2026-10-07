@@ -162,7 +162,7 @@ export const WriteUiStatePayloadSchema = z.object({
   firstMonthInspection: FirstMonthInspectionSchema.optional(),
 });
 
-/** Tactical Sandbox payloads (debug-only; ADR-0055). */
+/** Tactical Sandbox payloads (debug-only; ADR-0057). */
 export const GenerateBattlePayloadSchema = z.object({
   sessionId: z.string().min(1),
   warId: z.string().min(1),

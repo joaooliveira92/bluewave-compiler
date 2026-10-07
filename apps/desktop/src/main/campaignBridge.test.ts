@@ -16,7 +16,7 @@ const REPO_ROOT = resolve(__dirname, "../../../..");
 const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
 
 const IMPLEMENTED_COMMANDS = new Set([
-  // Tactical Sandbox (ADR-0055): routed, but debug-gated inside the handler.
+  // Tactical Sandbox (ADR-0057): routed, but debug-gated inside the handler.
   "generateBattle",
   "resolveBattle",
   "resolveTacticalBattle",

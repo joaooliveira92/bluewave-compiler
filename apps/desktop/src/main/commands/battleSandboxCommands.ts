@@ -17,7 +17,7 @@ import { getCampaignSession } from "../campaignSessions.js";
 import { isBattleSandboxEnabled } from "../debugGate.js";
 
 /**
- * Debug-only Tactical Sandbox commands (ADR-0055).
+ * Debug-only Tactical Sandbox commands (ADR-0057).
  *
  * The sandbox must be able to show a battle on demand, but a real campaign can
  * never reach contact: `generateBattles` only yields a mission when both sides

@@ -6,7 +6,7 @@ Accepted (2026-10-07). Part 1 implemented; part 2 recorded as a deferral with a 
 
 ## Context
 
-Building the desktop Tactical Sandbox (ADR-0055) showed that no real turn can generate a battle. The
+Building the desktop Tactical Sandbox (ADR-0057) showed that no real turn can generate a battle. The
 canonical rule (`docs/rules/battle-generation.md` §6.1, §6.2, §10) requires a minimum eligible combat
 strength **per side**: 300 points for a Fleet Battle, 150 for a Cruiser Battle. Two separate problems:
 
@@ -46,7 +46,7 @@ neither problem changes any real campaign's outcome yet.
    Recommended next step: decide the unit together with movement/contact (the floor's job is to keep
    trivial skirmishes from being Fleet Battles; whether a 1-ship engagement should be a Cruiser Battle
    is a design question), as a **versioned ruleset constant** with an ADR and a golden refresh, so the
-   change is explicit and reversible. Until then the sandbox's `strengthScale` (ADR-0055) is the only
+   change is explicit and reversible. Until then the sandbox's `strengthScale` (ADR-0057) is the only
    way to see a battle, and it says so in every result.
 
 ## Consequences

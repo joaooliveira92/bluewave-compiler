@@ -58,7 +58,7 @@ churn. Findings, most impactful first. None of these is fixed yet.
 15. Eight months at war (UK vs Austria-Hungary) produced no battle ("No battles resolved this month"),
     so war-triggered auto-resolution is not a practical way to see battle screens.
 
-12. **[FIXED, ADR-0055] Tactical Sandbox cannot generate a battle in the desktop app.** In a debug build, "Generate
+12. **[FIXED, ADR-0057] Tactical Sandbox cannot generate a battle in the desktop app.** In a debug build, "Generate
     Engagement" returns `NOT_IMPLEMENTED`: `generateBattle` has no case in
     `apps/desktop/src/main/campaignBridge.ts` (it falls through to the stub). The sandbox UI and the
     renderer provider exist; the bridge command does not. This is the shortest path to inspecting

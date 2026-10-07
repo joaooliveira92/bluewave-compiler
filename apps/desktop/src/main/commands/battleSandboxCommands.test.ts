@@ -33,7 +33,7 @@ const ON: BattleSandboxDeps = { debugEnabled: () => true };
 const OFF: BattleSandboxDeps = { debugEnabled: () => false };
 const WAR_ID = "war_uk_france_1880-01";
 
-describe("battle sandbox commands (ADR-0055)", () => {
+describe("battle sandbox commands (ADR-0057)", () => {
   let saveRoot: string;
 
   beforeEach(() => {

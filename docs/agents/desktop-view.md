@@ -48,7 +48,7 @@ From the repo root, `pnpm snap:debug <flags>` builds that way and runs `snap`; p
 the normal build, so the two do not interfere. Always finish with `pnpm snap` (or `pnpm build`) before
 running `pnpm test:e2e`, so the specs run against the normal build.
 
-**Generate and resolve a battle** (ADR-0055). Needs a campaign package (`--make-save`) and a war:
+**Generate and resolve a battle** (ADR-0057). Needs a campaign package (`--make-save`) and a war:
 
 ```bash
 pnpm snap:debug --save /tmp/bw-save \
