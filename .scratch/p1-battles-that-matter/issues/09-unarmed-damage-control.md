@@ -4,9 +4,9 @@
 
 **Blocked by:** 07
 
-**Status:** open
+**Status:** DONE (2026-10-07, ADR-0049; follow-up ticket 10)
 
-**Frontier:** no (blocked until 07 is reviewed, gated, and committed)
+**Frontier:** no
 
 ## Problem (canonical end state)
 

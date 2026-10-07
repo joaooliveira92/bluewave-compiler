@@ -1,56 +1,20 @@
-// P-1 ticket 07 (second-review fix): the AC-6 damage-control gate as a testable
-// seam.
-//
-//   1. `shouldWireDamageControl` — the exported pure predicate that decides
-//      whether `resolveBattleAuto` sends a per-ship `damageControl` map to the
-//      engine (ADR-0047 decision 1): false for a projected battle with no
-//      torpedo context, true when the projection carries one.
-//   2. A SECOND pinned unarmed baseline (baseline #1 lives in
-//      auto-resolve.test.ts) whose random ledger proves the fixture contains
-//      shell-started fires (§9 FIRE_SOURCE_CREATED records). A gate regression
-//      is only detectable in a battle that HAS fires/flooding: a wired stage
-//      would decay them and emit `smoke_fire` events, changing the per-minute
-//      hashes (and therefore the result hash). Baseline #1 pins three of the
-//      default fixture's minute hashes; this baseline pins a different
-//      deterministic fixture's FULL minuteHashes.
+// P-1 ticket 09 (ADR-0049): damage control now runs in EVERY auto-resolved
+// battle (the ADR-0047 torpedo-armament gate is gone). This file pins an unarmed
+// baseline whose random ledger proves the fixture contains shell-started fires
+// (§9 FIRE_SOURCE_CREATED draws). Wiring the stage there is observably quiet
+// because shell-created fire/flooding SOURCES are not yet persisted into
+// ShipDamageState.fireRecords/floodingRecords (ticket 10), so the stage has
+// nothing to progress and the per-minute hashes stay byte-identical. When
+// ticket 10 lands, this baseline is expected to move and must be re-pinned
+// through the ADR-0007 process.
 //
 // Pure/deterministic: fixed fixture, fixed campaign seed, no ambient random.
 import { describe, expect, it } from "vite-plus/test";
-import { SafeInt } from "@bluewave/contracts";
-import type { CompiledDesignVersion } from "@bluewave/campaign";
 import { RandomLedger } from "@bluewave/random";
 import { projectBattle } from "../../src/battleResolution/project.js";
-import { resolveBattleAuto, shouldWireDamageControl } from "../../src/battleResolution/resolve.js";
+import { resolveBattleAuto } from "../../src/battleResolution/resolve.js";
 import { getFireRiskBp } from "../../src/damage/immediateFireFlooding.js";
-import { makeAutoInput, makeNations, type FixtureNationSet } from "./fixtures.js";
-
-const WHITEHEAD = "whitehead_14in_1886";
-
-/** Give EVERY design in both nations torpedo armament (see torpedo-auto.test.ts). */
-function armAll(nations: FixtureNationSet): FixtureNationSet {
-  const arm = (designs: Map<string, CompiledDesignVersion>) =>
-    new Map(
-      [...designs].map(([id, d]) => [
-        id,
-        {
-          ...d,
-          torpedoArmament: [
-            { mountType: "UNDERWATER_FIXED", tubeCount: SafeInt(2), torpedoModelId: WHITEHEAD },
-            {
-              mountType: "ABOVE_WATER_TRAINABLE",
-              tubeCount: SafeInt(2),
-              torpedoModelId: WHITEHEAD,
-            },
-          ],
-        },
-      ]),
-    );
-  return {
-    ...nations,
-    attacker: { ...nations.attacker, designs: arm(nations.attacker.designs) },
-    defender: { ...nations.defender, designs: arm(nations.defender.designs) },
-  };
-}
+import { makeAutoInput, makeNations } from "./fixtures.js";
 
 // Second unarmed fixture: 4-gun batteries instead of the default 10, so the
 // pinned hashes are independent of baseline #1 (auto-resolve.test.ts).
@@ -88,37 +52,14 @@ const FIRE_BASELINE_MINUTE_HASHES = [
   "346ad2155adc26d1d3ede9cb4f6950e7a4fba46891074016d2e12a4e80d2ccb3",
 ] as const;
 
-describe("AC-6 damage-control gate (P-1 ticket 07)", () => {
-  it("shouldWireDamageControl: false without a projected torpedo context, true with one", () => {
-    // Unarmed battle: no promoted unit carries torpedo armament, so the
-    // projection has no TorpedoContext at all — the gate must stay shut.
-    const unarmed = makeAutoInput();
-    const unarmedProjection = projectBattle({
-      ...unarmed,
-      rulesetVersion: unarmed.rulesetVersion,
-    });
-    expect(unarmedProjection.torpedoes).toBeUndefined();
-    expect(shouldWireDamageControl(unarmedProjection.torpedoes)).toBe(false);
-    expect(shouldWireDamageControl(undefined)).toBe(false);
-
-    // Armed battle: the projection carries launcher wirings + target contexts,
-    // so the gate opens and the stage is wired for every minute.
-    const armed = makeAutoInput({ nations: armAll(makeNations()) });
-    const armedProjection = projectBattle({ ...armed, rulesetVersion: armed.rulesetVersion });
-    expect(armedProjection.torpedoes).toBeDefined();
-    expect(armedProjection.torpedoes!.launchers.length).toBeGreaterThan(0);
-    expect(shouldWireDamageControl(armedProjection.torpedoes)).toBe(true);
-  });
-
-  it("AC-6 pinned unarmed baseline #2: a fixture whose ledger records shell-started fires stays byte-identical", () => {
-    // Still unarmed in the torpedo sense — the gate must keep this battle's
-    // pre-P-1 semantics even though it is full of gunnery damage.
+describe("unarmed damage control (P-1 ticket 09)", () => {
+  it("unarmed baseline #2: damage control wired in an unarmed battle with shell-started fires (quiet until ticket 10)", () => {
+    // Unarmed in the torpedo sense, yet the damage-control stage is wired.
     const unarmedProjection = projectBattle({
       ...FIRE_BASELINE_INPUT,
       rulesetVersion: FIRE_BASELINE_INPUT.rulesetVersion,
     });
     expect(unarmedProjection.torpedoes).toBeUndefined();
-    expect(shouldWireDamageControl(unarmedProjection.torpedoes)).toBe(false);
 
     const ledger = new RandomLedger();
     const result = resolveBattleAuto({ ...FIRE_BASELINE_INPUT, randomLedger: ledger });

@@ -175,10 +175,7 @@ function mergeTargetStates(
 
 // ---------------------------------------------------------------------------
 // Damage control (P-1 ticket 07): per-ship contexts derived from each ship's
-// CURRENT damage state. Wired ONLY when the battle carries torpedo armament
-// (AC-6: an unarmed battle never sends a damageControl surface, so the
-// engine's step 8.6 stays a strict no-op and the battle keeps byte-identical
-// minute/result hashes). The keyedRng is scoped per (battleId, minute,
+// CURRENT damage state. Wired in every battle (ticket 09 / ADR-0049). The keyedRng is scoped per (battleId, minute,
 // shipId, draw ordinal) so every ship resolves from its own deterministic
 // streams — mirrors damage.ts scopedRng (ADR-0026 §random).
 
@@ -244,22 +241,6 @@ function buildDamageControlContexts(input: {
     };
   }
   return contexts;
-}
-
-/**
- * AC-6 damage-control gate (ADR-0047 decision 1) — exported so the gate is a
- * testable seam instead of an inline truthiness check at the call site.
- *
- * The stage runs iff the projected battle carries torpedo armament:
- * `projectTorpedoes` returns a `TorpedoContext` iff at least one promoted unit
- * declares `torpedoArmament`, and `undefined` otherwise (torpedoProjection.ts —
- * `if (launchers.length === 0) return undefined`). A battle that fails this
- * predicate never sends a `damageControl` surface to `advanceMinute`, so engine
- * step 8.6 stays a strict no-op and the battle keeps its pre-P-1 minute/result
- * hashes byte-for-byte (spec AC-6; `resolveBattleAuto` wires it per minute).
- */
-export function shouldWireDamageControl(torpedoes: TorpedoContext | undefined): boolean {
-  return torpedoes !== undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -425,24 +406,21 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
       torpedoSummary.tubesFired += torpedo.commands.reduce((n, c) => n + c.tubeIndexes.length, 0);
     }
 
-    // 1c. damage control (P-1 ticket 07): per-ship contexts derived from each
-    // ship's CURRENT (pre-minute) damage state. Wired ONLY when the battle
-    // carries torpedo armament — unarmed battles keep the pre-07 pipeline
-    // byte-identical (AC-6; the gate itself is `shouldWireDamageControl`, the
-    // exported predicate the AC-6 unit tests pin). The engine step 8.6 resolves
-    // each ship independently and writes flooding/flotation/terminal changes
-    // back per ship (a strict no-op until a ship actually has fires or flooding).
-    const damageControl = shouldWireDamageControl(torpedo)
-      ? buildDamageControlContexts({
-          battleId: projected.state.battleId,
-          minute,
-          units: projected.units,
-          damage,
-          movementStates: battleState.movementStates,
-          engine,
-          randomLedger: input.randomLedger,
-        })
-      : undefined;
+    // 1c. damage control (P-1 tickets 07/09): per-ship contexts derived from each
+    // ship's CURRENT (pre-minute) damage state, wired in EVERY auto-resolved
+    // battle (DESIGN-41 §13/§19/§44; ADR-0049 retired the ADR-0047 torpedo gate).
+    // The engine step 8.6 resolves each ship independently and writes
+    // flooding/flotation/terminal changes back per ship (a strict no-op until a
+    // ship actually has fires or flooding).
+    const damageControl = buildDamageControlContexts({
+      battleId: projected.state.battleId,
+      minute,
+      units: projected.units,
+      damage,
+      movementStates: battleState.movementStates,
+      engine,
+      randomLedger: input.randomLedger,
+    });
 
     // 2. one fully-resolved tactical minute (steps 4-8 + 7.5 + 8.5 + 9-10 + 10.5)
     const res = advanceMinute({
