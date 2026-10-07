@@ -42,7 +42,7 @@ churn. Findings, most impactful first. None of these is fixed yet.
 10. Fleet cards for `fleet_gbr_cape` list no ships, unlike the other two fleets — confirm that is
     real data and not a missing assignment.
 
-11. **Diplomacy command flow is hard to discover** (corrected after investigation: the backend is
+11. **[FIXED, ADR-0054] Diplomacy command flow is hard to discover** (corrected after investigation: the backend is
     fine). "Declare war" only creates a *draft*; the "Command queue" bar with "Submit command" sits at
     the bottom of the page, off-screen, so the click appears to do nothing. After "Submit command" and a
     month advance the engine does apply it (relation becomes "At war", tension 10/10, state

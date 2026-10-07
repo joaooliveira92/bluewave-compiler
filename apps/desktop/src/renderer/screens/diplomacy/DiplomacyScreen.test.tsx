@@ -1,5 +1,5 @@
 /* @vitest-environment jsdom */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import type { DiplomacyScreenState } from "./diplomacy-screen-state.js";
 import {
@@ -200,5 +200,24 @@ describe("DiplomacyScreen", () => {
   it("displays the honest queued notice copy on the loaded screen", () => {
     render(<DiplomacyScreen sessionId="ses-1" />);
     expect(screen.getAllByText(/next turn advance/).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("labels a drafted war declaration as such and warns it cannot be cancelled", () => {
+    hookMocks.stateFn.mockReturnValue(diplomacyBeginAction(makeLoaded(), "france", "DeclareWar"));
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    // Relation rows also carry "Declare war" buttons — scope to the pinned queue bar.
+    const bar = within(screen.getByText("Command queue").closest("div.sticky") as HTMLElement);
+    expect(bar.getByRole("button", { name: "Declare war" })).not.toBeNull();
+    expect(bar.getByRole("alert").textContent).toMatch(/cannot be cancelled/);
+    expect(bar.queryByRole("button", { name: "Submit command" })).toBeNull();
+  });
+
+  it("keeps the generic submit label for non-war drafts", () => {
+    hookMocks.stateFn.mockReturnValue(
+      diplomacyBeginAction(makeLoaded(), "france", "FormNonAggressionPact"),
+    );
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    expect(screen.getByRole("button", { name: "Submit command" })).not.toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });
