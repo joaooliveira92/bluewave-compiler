@@ -27,11 +27,13 @@ import {
   totalPortCapacity,
   largestPortCapacity,
   rederivedMaintenanceCost,
-  shipsByType,
+  shipNames,
 } from "./overview-screen-state.js";
 import { activeConstructionProjects } from "../construction/construction-screen-state.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
 import { tensionLabel } from "@bluewave/campaign-engine";
+import { campaignNationLabel } from "../../components/world-map/campaign-map-join.js";
+import { humanizeId } from "../../lib/humanize-id.js";
 
 export interface OverviewScreenProps {
   readonly sessionId: string;
@@ -102,7 +104,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
   }
 
   const fleetSummary = summarizeFleet(projection);
-  const byType = shipsByType(projection);
+  const ships = shipNames(projection);
   const maintenance = rederivedMaintenanceCost(projection);
   const largestPort = largestPortCapacity(projection);
 
@@ -160,7 +162,9 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
               Active Construction
             </p>
             <p className="mt-0.5 font-medium">
-              {constructionCount === null ? "—" : `${constructionCount} projects`}
+              {constructionCount === null
+                ? "Not available"
+                : `${constructionCount} ${constructionCount === 1 ? "project" : "projects"}`}
             </p>
           </div>
           <div>
@@ -169,8 +173,8 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
             </p>
             <p className="mt-0.5 font-medium">
               {foreignRelations.length === 0
-                ? "—"
-                : `${foreignRelations[0]!.nationId} (${foreignRelations[0]!.tension} · ${foreignRelations[0]!.label})`}
+                ? "No known tensions"
+                : `${campaignNationLabel(foreignRelations[0]!.nationId)} (${foreignRelations[0]!.tension} · ${humanizeId(foreignRelations[0]!.label)})`}
             </p>
           </div>
           <div>
@@ -299,14 +303,10 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
           <div className="flex flex-wrap gap-4">
             <div>
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                Active ships by type
+                Ships in service
               </p>
               <p className="mt-0.5 font-medium">
-                {byType.size === 0
-                  ? "—"
-                  : Array.from(byType.entries())
-                      .map(([k, v]) => `${k}: ${v}`)
-                      .join(" · ")}
+                {ships.length === 0 ? "No ships in service" : ships.join(" · ")}
               </p>
             </div>
             <div>
@@ -325,7 +325,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
                 Active construction
               </p>
-              <p className="mt-0.5 font-medium">{constructionCount ?? "—"}</p>
+              <p className="mt-0.5 font-medium">{constructionCount ?? "Not available"}</p>
             </div>
             <div>
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -354,9 +354,9 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
           ) : (
             foreignRelations.map((rel) => (
               <div key={rel.nationId} className="flex items-center justify-between">
-                <span className="font-medium">{rel.nationId}</span>
+                <span className="font-medium">{campaignNationLabel(rel.nationId)}</span>
                 <span className="text-muted-foreground">
-                  {rel.tension} · {rel.label}
+                  {rel.tension} · {humanizeId(rel.label)}
                 </span>
               </div>
             ))

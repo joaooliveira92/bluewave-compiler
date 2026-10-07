@@ -6,7 +6,7 @@ import { Badge } from "../../components/ui/badge.js";
 import { Button } from "../../components/ui/button.js";
 import { CardContent, CardHeader, CardTitle } from "../../components/ui/card.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
-import { Kbd } from "../../components/ui/kbd.js";
+import { debugRevisionActions } from "../../components/shared/debugRevisionActions.js";
 import {
   Select,
   SelectContent,
@@ -25,6 +25,7 @@ import { useDiplomacyScreen } from "./hooks/useDiplomacyScreen.js";
 import {
   RELATION_LABELS,
   diplomacyLegalActions,
+  tensionBadgeLabel,
   type DiplomacyDraftCommand,
 } from "./diplomacy-screen-state.js";
 
@@ -102,16 +103,7 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
         icon={Handshake}
         title="Diplomacy & War"
         description="View and direct relations; the engine applies commands on the next turn advance."
-        actions={
-          DEBUG_MODE ? (
-            <div className="flex items-center gap-1.5">
-              <Kbd>
-                {String(state.month.month).padStart(2, "0")}/{state.month.year}
-              </Kbd>
-              <Kbd>REV {state.revision}</Kbd>
-            </div>
-          ) : undefined
-        }
+        actions={debugRevisionActions(state.month, state.revision)}
       />
 
       {state.notice !== null && (
@@ -143,7 +135,7 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
               const actions = diplomacyLegalActions(row);
               const isLikelyRival = likelyRivals.includes(row.partnerName);
               const highTension = isHighTension(row.tension);
-              const label = tensionLabel(row.tension);
+              const tensionBadge = tensionBadgeLabel(row.relation, row.tension);
               return (
                 <div key={row.partnerNationId} className="rounded-md border px-3 py-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -151,10 +143,7 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
                       <span className="text-sm font-medium">{row.partnerName}</span>
                       {isLikelyRival && <Badge variant="outline">Likely rival</Badge>}
                       <Badge variant="secondary">{RELATION_LABELS[row.relation]}</Badge>
-                      {humanizeId(label).toLowerCase() !==
-                        (RELATION_LABELS[row.relation] ?? "").toLowerCase() && (
-                        <Badge variant="outline">{humanizeId(label)}</Badge>
-                      )}
+                      {tensionBadge !== null && <Badge variant="outline">{tensionBadge}</Badge>}
                       <span className="text-xs text-muted-foreground">
                         tension {row.tension}/10
                       </span>
@@ -177,7 +166,8 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
                   </div>
                   {highTension && (
                     <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
-                      Relations with {row.partnerName} are {label}; war is possible
+                      Relations with {row.partnerName} are{" "}
+                      {humanizeId(tensionLabel(row.tension)).toLowerCase()}; war is possible
                     </p>
                   )}
                 </div>
@@ -204,7 +194,7 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
               <div key={war.warId} className="rounded-md border px-3 py-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs">{war.warId}</span>
+                    {DEBUG_MODE && <span className="font-mono text-xs">{war.warId}</span>}
                     <Badge variant={war.status === "ENDED" ? "secondary" : "destructive"}>
                       {war.status}
                     </Badge>
@@ -334,7 +324,7 @@ function CommandQueueBar({
                     <SelectContent>
                       {projection.areas.map((area) => (
                         <SelectItem key={area.areaId} value={area.areaId}>
-                          {area.name} ({area.areaId})
+                          {DEBUG_MODE ? `${area.name} (${area.areaId})` : area.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

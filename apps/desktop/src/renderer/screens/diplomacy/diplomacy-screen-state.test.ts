@@ -3,6 +3,7 @@ import type { DiplomacyScreenProjection } from "../../../shared/diplomacy-contra
 import type { DiplomacyScreenState } from "./diplomacy-screen-state.js";
 import {
   RELATION_LABELS,
+  tensionBadgeLabel,
   diplomacyBeginAction,
   diplomacyBeginLoading,
   diplomacyBeginPeace,
@@ -327,5 +328,20 @@ describe("diplomacy screen state", () => {
       allied: "Allied",
       at_war: "At war",
     });
+  });
+});
+
+describe("tensionBadgeLabel", () => {
+  it("shows a readable tension band alongside a differing relation", () => {
+    expect(tensionBadgeLabel("neutral", 10)).toBe("War imminent");
+    expect(tensionBadgeLabel("allied", 0)).toBe("Cordial");
+    expect(tensionBadgeLabel("at_war", 8)).toBe("Hostile");
+  });
+
+  it("drops the badge only where it would repeat the relation badge (neutral/neutral)", () => {
+    expect(tensionBadgeLabel("neutral", 3)).toBeNull();
+    expect(tensionBadgeLabel("neutral", 5)).toBeNull();
+    // Same band word under a different relation is still informative.
+    expect(tensionBadgeLabel("allied", 4)).toBe("Neutral");
   });
 });

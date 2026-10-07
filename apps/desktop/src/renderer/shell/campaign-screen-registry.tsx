@@ -185,10 +185,9 @@ const MAP_PROTOTYPE_SCREEN: CampaignScreenDefinition = {
   route: MapPrototypeRoute,
 };
 
-// Debug-only tooling, gated by the pure rule in debug-mode.ts (`isDebugMode`).
-// Only set via `pnpm dev:debug` (or VITE_BLUEWAVE_DEBUG=true in a build) — a
-// plain `pnpm dev` does not enable it, so these screens (and their lazy
-// chunks) stay out of the sidebar unless debug mode is explicitly requested.
+// Debug-only screens below are gated by DEBUG_MODE (shell/debug-flag.ts, ADR-0029):
+// a plain `pnpm dev` does not enable them, so they (and their lazy chunks) stay
+// out of the sidebar unless debug mode is explicitly requested (`pnpm dev:debug`).
 
 const SIMULATION_SCREEN: CampaignScreenDefinition = {
   id: "simulation",

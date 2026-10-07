@@ -154,13 +154,24 @@ describe("DiplomacyScreen", () => {
     expect(screen.getByText("Germany")).not.toBeNull();
 
     // War list with sides, scores, status + the ACTIVE Accept-peace control.
-    expect(screen.getByText("war_uk_france_1880-01")).not.toBeNull();
+    // The raw war id is engine detail: not shown in a release build (ADR-0058).
+    expect(screen.queryByText("war_uk_france_1880-01")).toBeNull();
     expect(screen.getByText("score 3:1")).not.toBeNull();
     expect(screen.getByText("you: attacker")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Accept peace" })).toBeTruthy();
 
     // Blockade row with blockader → blockaded in an area (player = "your nation").
     expect(screen.getByText("your nation → France")).not.toBeNull();
+  });
+
+  it("shows the raw war id only in a debug build", () => {
+    debugFlag.on = true;
+    try {
+      render(<DiplomacyScreen sessionId="ses-1" />);
+      expect(screen.getByText("war_uk_france_1880-01")).not.toBeNull();
+    } finally {
+      debugFlag.on = false;
+    }
   });
 
   it("renders honest empty states (no wars / no blockades) without fabrication", () => {

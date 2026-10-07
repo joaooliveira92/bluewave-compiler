@@ -2,7 +2,9 @@ import type {
   DiplomacyScreenProjection,
   DiplomacyCommandBody,
 } from "../../../shared/diplomacy-contract.js";
+import { tensionLabel, type DiplomacyRelationKind } from "@bluewave/campaign-engine";
 import { describeRejection } from "../../lib/command-screen-workflow.js";
+import { humanizeId } from "../../lib/humanize-id.js";
 
 /**
  * Pure presentation state for the Diplomacy & War screen
@@ -311,9 +313,21 @@ export function diplomacyCanSubmit(state: DiplomacyScreenState): boolean {
 }
 
 /** Human label for a relation kind. */
-export const RELATION_LABELS: Readonly<Record<string, string>> = {
+export const RELATION_LABELS: Readonly<Record<DiplomacyRelationKind, string>> = {
   neutral: "Neutral",
   allied: "Allied",
   at_war: "At war",
   trade_agreement: "Trade agreement",
 };
+
+/**
+ * The tension-band badge shown next to a relation badge, or null when it would
+ * only repeat it. The two vocabularies share exactly one word: a "neutral"
+ * relation at a "neutral" tension band. Compared on the typed values, not on
+ * display strings.
+ */
+export function tensionBadgeLabel(relation: DiplomacyRelationKind, tension: number): string | null {
+  const band = tensionLabel(tension);
+  if (band === "neutral" && relation === "neutral") return null;
+  return humanizeId(band);
+}

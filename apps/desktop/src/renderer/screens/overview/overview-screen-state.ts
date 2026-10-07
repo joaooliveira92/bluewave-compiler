@@ -54,17 +54,11 @@ export function rederivedMaintenanceCost(projection: PlayerProjection): number {
   return projection.economy.maintenanceCost;
 }
 
-export function shipsByType(projection: PlayerProjection): ReadonlyMap<string, number> {
-  const counts = new Map<string, number>();
-  for (const fleet of projection.fleet) {
-    for (const division of fleet.divisions) {
-      for (const ship of division.ships) {
-        const key = ship.designId || "unknown";
-        counts.set(key, (counts.get(key) ?? 0) + 1);
-      }
-    }
-  }
-  return counts;
+/** Names of every ship in service, in fleet/division order. Display names only — never design ids. */
+export function shipNames(projection: PlayerProjection): readonly string[] {
+  return projection.fleet.flatMap((fleet) =>
+    fleet.divisions.flatMap((division) => division.ships.map((ship) => ship.name)),
+  );
 }
 
 export function monthLabel(month: PlayerProjection["month"]): string {

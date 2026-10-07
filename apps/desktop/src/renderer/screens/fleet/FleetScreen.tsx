@@ -9,6 +9,7 @@ import { useFleetScreen } from "./hooks/useFleetScreen.js";
 import { DivisionPicker } from "./components/DivisionPicker.js";
 import { GeographyCard } from "./components/GeographyCard.js";
 import { OrderSection } from "./components/OrderSection.js";
+import { humanizeId } from "../../lib/humanize-id.js";
 import { MovementCommandsTable } from "./components/MovementCommandsTable.js";
 import { LoadErrorCard } from "./components/LoadErrorCard.js";
 import { LoadingState } from "./components/LoadingState.js";
@@ -29,6 +30,15 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
   } = useFleetScreen(sessionId);
 
   const areaNameMap = useMemo(() => new Map(state.areas.map((a) => [a.id, a.name])), [state.areas]);
+
+  const divisionNameMap = useMemo(
+    () => new Map(state.divisions.map((d) => [d.divisionId, d.fleetName])),
+    [state.divisions],
+  );
+
+  function divisionName(divisionId: string): string {
+    return divisionNameMap.get(divisionId) ?? humanizeId(divisionId);
+  }
 
   function areaName(areaId: string): string {
     return areaNameMap.get(areaId) ?? areaId;
@@ -105,7 +115,11 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
         areaName={areaName}
       />
       <Separator />
-      <MovementCommandsTable commands={state.movementCommands} areaName={areaName} />
+      <MovementCommandsTable
+        commands={state.movementCommands}
+        areaName={areaName}
+        divisionName={divisionName}
+      />
     </div>
   );
 }

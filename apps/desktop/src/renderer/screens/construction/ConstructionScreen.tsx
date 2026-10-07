@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { DEBUG_MODE } from "../../shell/debug-flag.js";
 import { Hammer } from "lucide-react";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
-import { Kbd } from "../../components/ui/kbd.js";
+import { debugRevisionActions } from "../../components/shared/debugRevisionActions.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs.js";
 import { StatsPanel } from "./components/StatsPanel.js";
@@ -58,18 +57,7 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
         icon={Hammer}
         title="Construction Commands"
         description="Drydock procurement and shipyard queue management."
-        actions={
-          DEBUG_MODE ? (
-            <div className="flex items-center gap-1.5">
-              {state.month !== null && (
-                <Kbd>
-                  {String(state.month.month).padStart(2, "0")}/{state.month.year}
-                </Kbd>
-              )}
-              <Kbd>REV {state.revision}</Kbd>
-            </div>
-          ) : undefined
-        }
+        actions={debugRevisionActions(state.month, state.revision)}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

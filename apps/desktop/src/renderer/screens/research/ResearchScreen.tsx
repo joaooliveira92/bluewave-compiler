@@ -15,11 +15,10 @@ import { Badge } from "../../components/ui/badge.js";
 import { Button } from "../../components/ui/button.js";
 import { CardContent, CardHeader, CardTitle } from "../../components/ui/card.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
-import { Kbd } from "../../components/ui/kbd.js";
+import { debugRevisionActions } from "../../components/shared/debugRevisionActions.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
 import { Toggle } from "../../components/ui/toggle.js";
 import { humanizeId } from "../../lib/humanize-id.js";
-import { DEBUG_MODE } from "../../shell/debug-flag.js";
 import { useResearchScreen } from "./hooks/useResearchScreen.js";
 import {
   WEIGHT_OPTIONS,
@@ -95,16 +94,7 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
         icon={FlaskConical}
         title="Research & Technology"
         description="Set field priorities; the engine applies them on the next turn advance."
-        actions={
-          DEBUG_MODE ? (
-            <div className="flex items-center gap-1.5">
-              <Kbd>
-                {String(state.month.month).padStart(2, "0")}/{state.month.year}
-              </Kbd>
-              <Kbd>REV {state.revision}</Kbd>
-            </div>
-          ) : undefined
-        }
+        actions={debugRevisionActions(state.month, state.revision)}
       />
 
       {state.notice !== null && (
@@ -189,7 +179,11 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
                     ~{projectedPoints.toLocaleString()} pts next month
                   </span>
                 </div>
-                <div className="flex items-center gap-1" role="group" aria-label={fieldId}>
+                <div
+                  className="flex items-center gap-1"
+                  role="group"
+                  aria-label={humanizeId(fieldId)}
+                >
                   {WEIGHT_OPTIONS.map((option) => {
                     const wouldExceedHighCap =
                       option.weight === 4 && !isHigh && highCount >= MAX_HIGH_PRIORITY_FIELDS;
@@ -200,7 +194,7 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
                         onPressedChange={() => setFieldWeight(fieldId, option.weight)}
                         disabled={busy || wouldExceedHighCap}
                         size="sm"
-                        aria-label={`${fieldId} ${option.label}`}
+                        aria-label={`${humanizeId(fieldId)} ${option.label}`}
                         title={
                           wouldExceedHighCap
                             ? `At most ${MAX_HIGH_PRIORITY_FIELDS} fields may be High — lower another High field first`
