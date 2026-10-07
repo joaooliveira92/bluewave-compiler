@@ -1,6 +1,6 @@
 # LOD coastlines + Canvas/WebGL renderer
 
-Status: spike done (ADR-0055); simplifier landed; Canvas layer + bake step next
+Status: done (Canvas coastline layer, 3 LOD tiers computed lazily at runtime, bbox culling, zoom ceiling 14->60, constant-screen-size markers/labels, non-scaling strokes). Not done: baked tier files, minimap, scale bar (ticket 03)
 Frontier: yes
 Blocked by: none (spike done, ADR-0055)
 Requirements: M-2

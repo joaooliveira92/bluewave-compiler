@@ -44,7 +44,8 @@ function bandFor(scale: number): ZoomBand {
 }
 
 const MIN_SCALE = 0.9;
-const MAX_SCALE = 14;
+/** Raised from 14 (ADR-0055); beyond ~60x the 0.01° coastline data runs out. */
+const MAX_SCALE = 60;
 
 export interface PrototypeCamera {
   readonly svgRef: React.RefObject<SVGSVGElement | null>;
@@ -55,6 +56,9 @@ export interface PrototypeCamera {
   readonly zoomBy: (factor: number) => void;
   readonly focusOn: (x: number, y: number, scale?: number) => void;
   readonly isDraggingRef: React.RefObject<boolean>;
+  /** Called after every transform change (pan, zoom, reset). Returns an unsubscribe. */
+  readonly getTransform: () => Readonly<CameraTransform>;
+  readonly subscribe: (listener: (transform: Readonly<CameraTransform>) => void) => () => void;
 }
 
 export interface CameraOptions {
@@ -79,6 +83,7 @@ export function usePrototypeCamera(
   const camera = useRef<CameraTransform>({ scale: 1, x: 0, y: 0 });
   const [zoomBand, setZoomBand] = useState<ZoomBand>(0);
   const bandRef = useRef<ZoomBand>(0);
+  const listeners = useRef(new Set<(transform: Readonly<CameraTransform>) => void>());
 
   // Frame timing. Kept out of React entirely; the readout is written straight
   // into a span so producing the number cannot perturb the number.
@@ -91,6 +96,10 @@ export function usePrototypeCamera(
     if (world === null) return;
     const { scale, x, y } = camera.current;
     world.setAttribute("transform", `translate(${x} ${y}) scale(${scale})`);
+    // Markers and labels counter-scale with this so they hold their screen
+    // size at any zoom (the world group scales everything inside it).
+    svgRef.current?.style.setProperty("--map-inv", String(1 / scale));
+    for (const listener of listeners.current) listener(camera.current);
     const next = bandFor(scale);
     if (next !== bandRef.current) {
       bandRef.current = next;
@@ -273,6 +282,13 @@ export function usePrototypeCamera(
     reset();
   }, [reset]);
 
+  const subscribe = useCallback((listener: (transform: Readonly<CameraTransform>) => void) => {
+    listeners.current.add(listener);
+    return () => {
+      listeners.current.delete(listener);
+    };
+  }, []);
+
   return {
     svgRef,
     worldRef,
@@ -282,5 +298,7 @@ export function usePrototypeCamera(
     zoomBy,
     focusOn,
     isDraggingRef,
+    subscribe,
+    getTransform: () => camera.current,
   };
 }

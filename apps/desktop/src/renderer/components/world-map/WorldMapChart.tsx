@@ -13,6 +13,7 @@
 
 import { useMemo } from "react";
 import { Button } from "../ui/button.js";
+import { CoastlineCanvas } from "./CoastlineCanvas.js";
 import {
   AREAS,
   AREAS_BY_ID,
@@ -27,9 +28,7 @@ import {
   projectAreas,
   projectPoint,
   projectionById,
-  ringToPath,
   WORLD_WRAP_TURNS,
-  type Point,
 } from "../../screens/map-prototype/prototype-projection.js";
 import {
   LAYERS,
@@ -59,6 +58,11 @@ const CHART = {
   ink: "oklch(0.92 0.01 240)",
   inkDim: "oklch(0.70 0.015 240)",
 };
+
+/** Pins a child to a world point at constant screen size (see camera `--map-inv`). */
+function pinned(x: number, y: number) {
+  return { transform: `translate(${x}px, ${y}px) scale(var(--map-inv, 1))` };
+}
 
 export interface WorldMapChartProps extends MapVariantProps {
   readonly className?: string;
@@ -131,22 +135,6 @@ export function WorldMapChart({
       })
       .filter((f): f is NonNullable<typeof f> => f !== null);
   }, [live, overlay]);
-
-  const coastline = useMemo(
-    () =>
-      COASTLINE_POLYGONS.map((rings) =>
-        rings
-          .map((flat) => {
-            const ring: Point[] = [];
-            for (let i = 0; i < flat.length; i += 2) {
-              ring.push([(flat[i] as number) - state.centre, flat[i + 1] as number]);
-            }
-            return ringToPath(ring, projection);
-          })
-          .join(""),
-      ),
-    [projection, state.centre],
-  );
 
   const areas = useMemo(
     () => projectAreas(AREAS, projection, state.centre),
@@ -233,8 +221,18 @@ export function WorldMapChart({
         "relative h-full w-full overflow-hidden rounded-lg border shadow-sm",
         className,
       )}
-      style={{ background: CHART.ocean }}
+      style={{
+        background: `radial-gradient(ellipse 75% 75% at 50% 45%, ${CHART.ocean} 60%, ${CHART.oceanDeep} 100%)`,
+      }}
     >
+      <CoastlineCanvas
+        camera={camera}
+        polygons={COASTLINE_POLYGONS}
+        projection={projection}
+        centre={state.centre}
+        fill={CHART.land}
+        stroke={CHART.landEdge}
+      />
       <svg
         ref={camera.svgRef}
         className="h-full w-full cursor-grab touch-none active:cursor-grabbing"
@@ -243,39 +241,19 @@ export function WorldMapChart({
         role="application"
         aria-label="World map"
       >
-        <defs>
-          <radialGradient id="chart-vignette" cx="50%" cy="45%" r="75%">
-            <stop offset="60%" stopColor={CHART.ocean} />
-            <stop offset="100%" stopColor={CHART.oceanDeep} />
-          </radialGradient>
-        </defs>
-        <rect
-          x={-projection.width}
-          y={-projection.height}
-          width={projection.width * 4}
-          height={projection.height * 4}
-          fill="url(#chart-vignette)"
-        />
         <g ref={camera.worldRef}>
           {/* Every layer, three times: one turn west, home, one turn east.
               That is the entire antimeridian strategy — no clipping, no ring
               splitting, and markers wrap with the polygons they belong to. */}
           {WORLD_WRAP_TURNS.map((turn) => (
             <g key={turn} transform={`translate(${turn * projection.width} 0)`}>
-              <path d={graticule} stroke={CHART.graticule} strokeWidth={1} fill="none" />
-
-              {/* Layer: base map. One path per landmass. */}
-              {coastline.map((d, index) => (
-                <path
-                  // eslint-disable-next-line react/no-array-index-key
-                  key={index}
-                  d={d}
-                  fill={CHART.land}
-                  fillRule="evenodd"
-                  stroke={CHART.landEdge}
-                  strokeWidth={0.8}
-                />
-              ))}
+              <path
+                d={graticule}
+                stroke={CHART.graticule}
+                strokeWidth={1}
+                vectorEffect="non-scaling-stroke"
+                fill="none"
+              />
 
               {/* Layer: areas + ownership wash. */}
               {areas.map((area) => {
@@ -301,6 +279,7 @@ export function WorldMapChart({
                           : "oklch(0.75 0.02 240 / 0.35)"
                     }
                     strokeWidth={selected ? 2.5 : onRouteLeg ? 2 : 0.9}
+                    vectorEffect="non-scaling-stroke"
                     strokeDasharray={held?.contested === true ? "6 4" : undefined}
                     className="cursor-pointer transition-[fill] duration-150"
                     onClick={(event) => handleAreaClick(area.id, event.shiftKey)}
@@ -316,6 +295,7 @@ export function WorldMapChart({
                     fill="none"
                     stroke="oklch(0.2 0 0 / 0.6)"
                     strokeWidth={6}
+                    vectorEffect="non-scaling-stroke"
                     strokeLinecap="round"
                   />
                   <path
@@ -323,6 +303,7 @@ export function WorldMapChart({
                     fill="none"
                     stroke="oklch(0.85 0.16 85)"
                     strokeWidth={2.5}
+                    vectorEffect="non-scaling-stroke"
                     strokeDasharray="10 6"
                     strokeLinecap="round"
                   />
@@ -349,26 +330,29 @@ export function WorldMapChart({
                           passage.open ? "oklch(0.75 0.02 240 / 0.3)" : "oklch(0.65 0.2 25 / 0.55)"
                         }
                         strokeWidth={1.5}
+                        vectorEffect="non-scaling-stroke"
                         strokeDasharray={passage.open ? undefined : "5 4"}
                       />
-                      <circle
-                        cx={mx}
-                        cy={my}
-                        r={7}
-                        fill={passage.open ? "oklch(0.28 0.03 245)" : "oklch(0.36 0.11 25)"}
-                        stroke={passage.open ? "oklch(0.8 0.02 240)" : "oklch(0.72 0.2 25)"}
-                        strokeWidth={1.6}
-                      />
-                      <text
-                        x={mx}
-                        y={my + 3.2}
-                        textAnchor="middle"
-                        fontSize={9}
-                        fill={CHART.ink}
-                        style={{ pointerEvents: "none" }}
-                      >
-                        {passage.kind === "canal" ? "C" : "S"}
-                      </text>
+                      <g style={pinned(mx, my)}>
+                        <circle
+                          cx={0}
+                          cy={0}
+                          r={7}
+                          fill={passage.open ? "oklch(0.28 0.03 245)" : "oklch(0.36 0.11 25)"}
+                          stroke={passage.open ? "oklch(0.8 0.02 240)" : "oklch(0.72 0.2 25)"}
+                          strokeWidth={1.6}
+                        />
+                        <text
+                          x={0}
+                          y={3.2}
+                          textAnchor="middle"
+                          fontSize={9}
+                          fill={CHART.ink}
+                          style={{ pointerEvents: "none" }}
+                        >
+                          {passage.kind === "canal" ? "C" : "S"}
+                        </text>
+                      </g>
                     </g>
                   );
                 })}
@@ -379,10 +363,10 @@ export function WorldMapChart({
                   const [x, y] = projectPoint(possession.at, projection, state.centre);
                   const major = possession.base === "major";
                   return (
-                    <g key={possession.id}>
+                    <g key={possession.id} style={pinned(x, y)}>
                       <circle
-                        cx={x}
-                        cy={y}
+                        cx={0}
+                        cy={0}
                         r={major ? 5 : 3.5}
                         fill={strokeFor(possession.owner)}
                         stroke="oklch(0.15 0.02 245)"
@@ -390,8 +374,8 @@ export function WorldMapChart({
                       />
                       {camera.zoomBand >= 2 && (
                         <text
-                          x={x + 8}
-                          y={y + 3}
+                          x={8}
+                          y={3}
                           fontSize={9}
                           fill={CHART.inkDim}
                           style={{ pointerEvents: "none" }}
@@ -410,10 +394,7 @@ export function WorldMapChart({
                   if (anchor === undefined) return null;
                   const offset = (index % 3) * 16 - 16;
                   return (
-                    <g
-                      key={fleet.id}
-                      transform={`translate(${anchor[0] + offset} ${anchor[1] + 18})`}
-                    >
+                    <g key={fleet.id} style={pinned(anchor[0] + offset, anchor[1] + 18)}>
                       <rect
                         x={-11}
                         y={-8}
@@ -448,8 +429,8 @@ export function WorldMapChart({
                   return (
                     <text
                       key={area.id}
-                      x={area.label[0]}
-                      y={area.label[1]}
+                      x={0}
+                      y={0}
                       textAnchor="middle"
                       fontSize={big ? 15 : 12}
                       letterSpacing={1.2}
@@ -458,6 +439,7 @@ export function WorldMapChart({
                       strokeWidth={3}
                       paintOrder="stroke"
                       style={{
+                        ...pinned(area.label[0], area.label[1]),
                         pointerEvents: "none",
                         textTransform: "uppercase",
                       }}
