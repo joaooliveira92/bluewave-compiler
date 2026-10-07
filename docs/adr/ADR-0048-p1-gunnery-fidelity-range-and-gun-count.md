@@ -43,5 +43,9 @@ produced byte-identical damage reports across five seeds (ADR-0046 consequence).
   in `gunnery-fidelity.test.ts`).
 - Integer batch values can differ by 1–2 bp from float evaluation; the integer
   form is authoritative.
+- Range is measured to the contact track position, so a stale track fires at
+  the stale range (intended: legal-contact range only).
+- The curve reproduces the legacy band table; the Tsushima/Jutland anchors only
+  loosely bracket it (q is ~2x low vs Tsushima, consistent with Jutland).
 - A hit still resolves one impact per salvo, not one per gun; per-gun impacts
   are deferred.

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted (2026-10-07). Supersedes ADR-0047 decisions 1–3.
+Accepted (2026-10-07). Supersedes ADR-0047 decisions 1 and 2 (the gate and its recorded deviation); decision 3's follow-up is this ADR plus ticket 10.
 
 ## Context
 
@@ -29,7 +29,11 @@ therefore closed structurally, but shell fires still do not burn. That gap is
 tracked as ticket 10; it will move unarmed hashes and must be re-pinned through
 the ADR-0007 process with this ADR as context.
 
+Ticket 09's progression, two-process and §32-end tests are deferred to ticket 10
+for the same reason; they cannot be observed until sources are persisted.
+
 ## Consequences
 
+- ADR-0047 remains the record of the gate it introduced.
 - No hash migration is needed for this change; goldens are unaffected.
 - The pinned unarmed fire baseline now documents a wired-but-quiet stage.

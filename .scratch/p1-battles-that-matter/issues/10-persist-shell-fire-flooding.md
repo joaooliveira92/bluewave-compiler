@@ -25,3 +25,5 @@ baselines stayed byte-identical.
   through the ADR-0007 process; record old/new hashes in a new ADR.
 - Tests: a shell-started fire persists, progresses across minutes, and can
   contribute to terminal state; two-process determinism.
+- Also carries ticket 09's deferred tests: seeded-fire progression in an
+  unarmed battle, and the §32 battle-end decision still correct.

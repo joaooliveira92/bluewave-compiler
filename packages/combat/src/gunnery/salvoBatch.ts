@@ -27,7 +27,7 @@
 //
 // Documented deviation from floating-point examples: the exact integer result
 // can differ by 1-2 bp from a float evaluation (e.g. q = 875, N = 4 gives
-// 3_066 here; a naive 10_000 * (1 - 0.9125^4) float gives 3_066.5 -> 3_066,
+// 3_066 here; a naive 10_000 * (1 - 0.9125^4) float gives 3_066.85 -> 3_066 (floor),
 // and some published examples print 3_067). The integer form is authoritative.
 //
 // Bound analysis (DESIGN-07): (10_000 - q) <= 10_000 and N is a salvoCount

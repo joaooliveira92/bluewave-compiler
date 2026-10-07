@@ -82,7 +82,7 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     // wired per-ship damage-control stage never activates — this is the pre-P-1
     // "unarmed" resolution path. Pinning these hashes (captured 2026-10-06
     // before ANY ticket-07 repair landed) proves the DC rollout did not perturb
-    // the unarmed world: AC-6's hash freeze holds through the kg->bp severity
+    // the unarmed world: the unarmed hash freeze (amended AC-6, ADR-0049) holds through the kg->bp severity
     // fix, the fail-closed engine guard, and the reason-code registration.
     // Re-pinned for ticket 06 / ADR-0048: range- and gun-count-sensitive gunnery
     // moved the fired minutes' hashes 2026-10-06 (minute 0 is byte-identical —

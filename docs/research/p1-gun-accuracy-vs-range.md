@@ -40,7 +40,7 @@ decay slower than 1/R². We fit the one-parameter family
     perRoundHitProbability(R) = A / (R_yd − R_0),  R_yd in yards
 
 which is the "falloff" shape used by the wargaming gunnery literature, with the
-join constants chosen so the shipped integer table lands on the anchors:
+join constants chosen to reproduce the legacy band table. NOTE: this is a calibration to that table, not a fit to the anchors; the anchors only loosely bracket it (q is ~2x low vs Tsushima, consistent with Jutland). The shipped denominator is `10_000 + 7(R_yd − 2_000)` (see below), not a pole at 2 000 yd:
 
 - `R_0 = 2_000 yd` — the curve branch starts at 2 000 yd (closer ranges evaluate
   at 2 000 yd; below ~3.1 km the per-minute probability saturates at the cap);
@@ -92,7 +92,7 @@ binomial-equivalent batch of `salvoCount` independent rounds:
 exact integer (bigint); `N=0 → 0`, `N=1 → q`, monotone in q and N, converging to
 10 000. **Integer form is authoritative** — a naive float evaluation can differ
 ±1–2 bp (e.g. q=875, N=4: 3_066 integer; the float 10_000×(1−0.9125⁴) is
-3_066.5 and some published examples print 3_067).
+3_066.85 and some published examples print 3_067).
 
 ## 5. Integration (ticket 06)
 

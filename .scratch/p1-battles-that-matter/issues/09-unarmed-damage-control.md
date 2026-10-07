@@ -27,3 +27,10 @@ fire/flooding records sit unprogressed (pre-P-1 behaviour, recorded deviation).
   assessment).
 - Tests: unarmed battle with a shell-induced fire shows progression across
   minutes; determinism two-process; §32 end still correct.
+
+## Outcome / deferred (ADR-0049)
+
+Gate removed; AC-6 amended in spec.md. The progression test, two-process
+determinism test and §32-end test listed above are DEFERRED to ticket 10:
+shell-created sources are not persisted into `ShipDamageState`, so there is
+nothing to progress in an unarmed battle until then.

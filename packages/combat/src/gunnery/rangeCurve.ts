@@ -20,7 +20,7 @@
 //   * Jutland 1916 (USNI Proceedings, Sep 1921; Campbell "Jutland"): ~2-4 %
 //     heavy-calibre hits per round at ~11-16 km.
 //   * The shipped integers below are BALANCE TARGETs, not normative physics:
-//     the curve family q(R) = a/(R - R0) is fitted so that the per-round
+//     the curve is calibrated (to the legacy band table, not the anchors) so that the per-round
 //     probability reproduces the anchored fallback table exactly at its 8 band
 //     edges (3/5/8/12/16/20/25/40 km -> 1500/875/524/341/253/201/160/99 bp),
 //     capped at 1_500 bp and floored at 60 bp by design.

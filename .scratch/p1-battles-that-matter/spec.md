@@ -26,7 +26,7 @@ resolver supported it.
 | AC-3 | The 16 1880-roster designs carry the as-built armament in `docs/research/p1-1880-torpedo-armament.md`                                 | production-pack compile test                                |
 | AC-4 | `projectBattle` builds torpedo launcher wirings (one per mount) + per-ship torpedo target contexts from compiled designs            | combat projection tests                                     |
 | AC-5 | `resolveBattleAuto` runs a deterministic torpedo doctrine: a launcher with loaded tubes fires one tube per minute at the nearest legal enemy contact inside the model's range; launcher/track/damage states thread minute-to-minute; torpedo damage feeds the §32 battle-end decision | combat auto-resolution tests                                |
-| AC-6 | Battles between ships without torpedo armament keep byte-identical minute hashes and result hashes                                  | pinned unarmed `resultHash` baseline test + goldens 10/10    |
+| AC-6 | Amended (ADR-0049): damage control runs in every battle; the hash freeze for unarmed battles holds only while the stage has nothing to progress (until ticket 10)| pinned unarmed `resultHash` baseline test + goldens 10/10    |
 | AC-7 | Campaign reachability (ADR-0045 gate): a compiled production-pack battle between torpedo-armed ships emits torpedo records and its outcome differs from the same battle with armament stripped | combat/campaign integration test                            |
 | AC-8 | Two-process determinism of a torpedo-armed auto-resolved battle                                                                     | cross-process test                                          |
 
@@ -37,16 +37,16 @@ resolver supported it.
 - Doctrine is deliberately simple and deterministic (one tube per launcher per minute,
   nearest legal target, within model max range). Tactical AI depth belongs to P-6.
 - **ADR-0047 (ticket 07):** the DESIGN-41 damage-control stage runs in
-  `resolveBattleAuto` iff the battle contains a unit with `torpedoArmament` — the
-  deterministic form of AC-6's hash freeze; unarmed battles keep pre-P-1
-  semantics until ticket 09. Severity thresholds are basis points of
+  `resolveBattleAuto` iff the battle contains a unit with `torpedoArmament` — superseded by
+  ADR-0049 (ticket 09): the stage now runs in every battle. Severity thresholds are basis points of
   displacement (§14): mass stays in kg, `bp = floor(mass × 10_000 / displacementKg)`
   is applied only at severity evaluation.
 
 ## Deferred (recorded, not dropped)
 
-- Unarmed-battle damage-control progression (DESIGN-41 §13/§19/§44 vs AC-6) —
-  ticket 09, per ADR-0047; amends AC-6 and re-pins baselines via ADR-0007.
+- Persisting shell-created fire/flooding sources so unarmed battles actually
+  progress them (DESIGN-41 §13/§19/§44) — ticket 10, per ADR-0049; re-pins
+  baselines via ADR-0007.
 - DESIGN-41 §17 high-speed-loss effect + `FLOODING_HIGH_SPEED_LOSS_CHECK`
   emission (needs a spatial compartment model on `ShipDamageState`) — ADR-0047.
 - DESIGN-41 §1/§27 persistent damage-control resources (state-schema change) and
