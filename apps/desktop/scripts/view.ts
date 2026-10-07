@@ -9,7 +9,7 @@
  *                                        [--advance N] [--settle MS] [--tour]
  *                                        [--make-save DIR]
  *
- * --advance   clicks "Advance Month" N times after the actions.
+ * --advance   clicks "Advance Month" N times, in order with the other actions (repeatable).
  * --settle    extra wait (ms) once, right before capture (--wait is per action).
  * --tour      leave the first-month guided tour overlay alone (default: dismiss it).
  * --make-save runs the new-game flow, compiles a campaign into DIR (so it can be
@@ -47,7 +47,7 @@ const { values } = parseArgs({
     eval: { type: "string" },
     save: { type: "string" },
     selector: { type: "string" },
-    advance: { type: "string", default: "0" },
+    advance: { type: "string", multiple: true, default: [] },
     settle: { type: "string", default: "0" },
     tour: { type: "boolean", default: false },
     "make-save": { type: "string" },
@@ -58,9 +58,14 @@ const { values } = parseArgs({
 // Preserve CLI order across the three action flags.
 const order = process.argv
   .slice(2)
-  .filter((a) => ["--click", "--fill", "--press"].includes(a))
-  .map((a) => a.slice(2) as "click" | "fill" | "press");
-const queues = { click: [...values.click!], fill: [...values.fill!], press: [...values.press!] };
+  .filter((a) => ["--click", "--fill", "--press", "--advance"].includes(a))
+  .map((a) => a.slice(2) as "click" | "fill" | "press" | "advance");
+const queues = {
+  click: [...values.click!],
+  fill: [...values.fill!],
+  press: [...values.press!],
+  advance: [...values.advance!],
+};
 
 const outDir = resolve(values.out!);
 await mkdir(outDir, { recursive: true });
@@ -115,6 +120,8 @@ try {
         log.push(`[snap] "${arg}" never stabilised; used dispatchEvent click`);
         await target.dispatchEvent("click");
       });
+    } else if (kind === "advance") {
+      await advanceMonths(h.page, Number(arg));
     } else if (kind === "fill") {
       const i = arg.indexOf("=");
       await h.page.getByLabel(arg.slice(0, i)).fill(arg.slice(i + 1));
@@ -122,10 +129,6 @@ try {
       await h.page.keyboard.press(arg);
     }
     await h.page.waitForTimeout(Number(values.wait));
-    await tidy();
-  }
-  if (Number(values.advance) > 0) {
-    await advanceMonths(h.page, Number(values.advance));
     await tidy();
   }
   if (values.eval) {

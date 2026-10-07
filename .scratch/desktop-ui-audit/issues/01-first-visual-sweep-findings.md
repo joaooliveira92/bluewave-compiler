@@ -39,11 +39,22 @@ churn. Findings, most impactful first. None of these is fixed yet.
 10. Fleet cards for `fleet_gbr_cape` list no ships, unlike the other two fleets — confirm that is
     real data and not a missing assignment.
 
-11. **Diplomacy actions are silent.** Clicking "Declare war" (no confirmation) changes nothing visible:
-    no pending/queued marker on the row, no notice, header status stays "Armed peace". The page says
-    commands apply on the next turn advance, but the player cannot tell the click registered, or undo it.
-    Three months advanced after declaring war on the Austro-Hungarian Empire; the Turn Report showed no
-    battle (not investigated whether the declaration reached the engine).
+11. **Diplomacy command flow is hard to discover** (corrected after investigation: the backend is
+    fine). "Declare war" only creates a *draft*; the "Command queue" bar with "Submit command" sits at
+    the bottom of the page, off-screen, so the click appears to do nothing. After "Submit command" and a
+    month advance the engine does apply it (relation becomes "At war", tension 10/10, state
+    `war_imminent`). Needs: visible draft feedback (scroll to / pin the queue bar), and a confirmation
+    for the irreversible declaration.
+13. **Header status ignores war.** Header says "Status: Armed peace" while the Diplomacy screen says
+    "At war" with the Austro-Hungarian Empire.
+14. **Month advance is not shared across surfaces.** The header "Advance Month" does not feed the
+    Simulation screen's Turn Report ("No turn advanced yet"), and advancing from the Simulation screen's
+    own "Advance Turn (1 Month)" leaves the header on "January 1880" while the report says Month 8/1880.
+    Also, the Diplomacy screen kept showing 01/1880 REV 0 while the header advanced to July until the
+    screen was re-opened (stale while visible; verify).
+15. Eight months at war (UK vs Austria-Hungary) produced no battle ("No battles resolved this month"),
+    so war-triggered auto-resolution is not a practical way to see battle screens.
+
 12. **Tactical Sandbox cannot generate a battle in the desktop app.** In a debug build, "Generate
     Engagement" returns `NOT_IMPLEMENTED`: `generateBattle` has no case in
     `apps/desktop/src/main/campaignBridge.ts` (it falls through to the stub). The sandbox UI and the
