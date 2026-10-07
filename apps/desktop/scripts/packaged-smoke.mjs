@@ -81,28 +81,43 @@ try {
   );
   check("debug-only commands rejected", reason === "DEBUG_ONLY", String(reason));
 
+  // The home screen's map panel, checked on its own (the F1 sheet is a second
+  // map, so every query below is scoped to one container).
+  const mapPainted = (root) =>
+    root.evaluate((container) => {
+      const canvas = container.querySelector("canvas");
+      if (!canvas || canvas.width === 0) return false;
+      const data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+      for (let i = 3; i < data.length; i += 4) if (data[i] > 0) return true;
+      return false;
+    });
+  const awaitPainted = async (name, root) => {
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline) {
+      if (await mapPainted(root)) return check(name, true);
+      await page.waitForTimeout(250);
+    }
+    check(name, false, "canvas stayed empty");
+  };
+
+  const panel = page.getByTestId("overview-map-panel");
+  await panel.getByRole("application", { name: /World map/ }).waitFor({ timeout: 15_000 });
+  check("home map panel present", true);
+  await awaitPainted("home map coastline painted from the packaged chunk", panel);
+  check(
+    "home map: 36 keyboard-reachable areas",
+    (await panel.locator('path[role="button"]').count()) === 36,
+  );
+
   await page.keyboard.press("F1");
-  await page.getByRole("application", { name: /World map/ }).waitFor({ timeout: 15_000 });
-  await page
-    .waitForFunction(
-      () => {
-        const canvas = document
-          .querySelector('svg[aria-label^="World map"]')
-          ?.parentElement?.querySelector("canvas");
-        if (!canvas || canvas.width === 0) return false;
-        const data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
-        for (let i = 3; i < data.length; i += 4) if (data[i] > 0) return true;
-        return false;
-      },
-      undefined,
-      { timeout: 15_000 },
-    )
-    .then(
-      () => check("map coastline painted from the packaged chunk", true),
-      () => check("map coastline painted from the packaged chunk", false, "canvas stayed empty"),
-    );
-  check("36 keyboard-reachable areas", (await page.locator('path[role="button"]').count()) === 36);
-  check("minimap present", (await page.getByTestId("map-minimap").count()) === 1);
+  const sheet = page.getByRole("dialog");
+  await sheet.getByRole("application", { name: /World map/ }).waitFor({ timeout: 15_000 });
+  await awaitPainted("F1 map coastline painted", sheet);
+  check(
+    "F1 map: 36 keyboard-reachable areas",
+    (await sheet.locator('path[role="button"]').count()) === 36,
+  );
+  check("F1 map: minimap present", (await sheet.getByTestId("map-minimap").count()) === 1);
   if (values.shot !== undefined) await page.screenshot({ path: values.shot });
   check("no renderer errors", errors.length === 0, errors[0]?.slice(0, 200));
 } finally {
