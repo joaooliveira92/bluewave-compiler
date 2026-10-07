@@ -84,20 +84,26 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     // before ANY ticket-07 repair landed) proves the DC rollout did not perturb
     // the unarmed world: AC-6's hash freeze holds through the kg->bp severity
     // fix, the fail-closed engine guard, and the reason-code registration.
+    // Re-pinned for ticket 06 / ADR-0048: range- and gun-count-sensitive gunnery
+    // moved the fired minutes' hashes 2026-10-06 (minute 0 is byte-identical —
+    // no battery has completed a reload at minute 0). Old -> new: RESULT
+    // 88d409ac... -> 74d2dfe7...; minute 1 cab4b696... -> cfe97211...; last
+    // minute b0cb413a... -> 97c94150...; battle still ends no_viable_combatants
+    // at minute 18.
     const result = resolveBattleAuto(makeAutoInput());
     expect(result.battleEndReason).toBe("no_viable_combatants");
     expect(result.elapsedMinutes).toBe(18);
     expect(result.resultHash).toBe(
-      "88d409ac743cde2e4fa43048e3d33a4db22be4166b4cd209315afc2b1ebea762",
+      "74d2dfe77b3348ca475035cc5b638296a8100686cdc0d75cff549c3ca8062a1b",
     );
     expect(result.minuteHashes[0]).toBe(
       "704d9118704bb7ff99215a06c9eabcbda043c21f897e87accd311494f0c8f218",
     );
     expect(result.minuteHashes[1]).toBe(
-      "cab4b696447f7c100d8df91532440f45f5003f3372094cb3aa7fd19d8bda3924",
+      "cfe97211b8387654f49b33f273cd294cfda133c9e9ade3fe595867f5d8654b15",
     );
     expect(result.minuteHashes[result.minuteHashes.length - 1]).toBe(
-      "b0cb413ad74515a1b551d4946ebd31809adfcb9ebe76c6aafaa7552ac469e5cf",
+      "97c9415046f0419eb8034a1ec16e33828fb440a16e486cac57b1bbed8517708e",
     );
   });
 

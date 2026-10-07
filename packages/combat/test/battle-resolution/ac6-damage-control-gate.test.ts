@@ -58,27 +58,34 @@ const FIRE_BASELINE_INPUT = makeAutoInput({
   nations: makeNations({ attackerGuns: [4, 4], defenderGuns: [4, 4] }),
 });
 
+// Auto-resolution gunnery fidelity (P-1 ticket 06 / ADR-0048) made the timeline
+// range- and gun-count-sensitive, so this unarmed (torpedo-sense) baseline hash
+// moved 2026-10-06. Re-pinned; the fixture still ends no_viable_combatants at
+// minute 18. Old -> new: RESULT 1c47f90b0a36... -> 9c88d23f3931...; minutes 1-6
+// and 14-17 changed (minutes 0, 7, 9-13 byte-identical — those minutes fired no
+// gunnery salvo). Minute 0 (704d9118...) unchanged because no battery has
+// completed a reload at minute 0.
 const FIRE_BASELINE_RESULT_HASH =
-  "1c47f90b0a36f52bf2b3ce6dad3cf8a126d6e07a35768812c29b3a6c7373933c";
+  "9c88d23f39316ad89a37041703d71e20582ea44434ae22d41ecc4972c6faa1f2";
 const FIRE_BASELINE_MINUTE_HASHES = [
   "704d9118704bb7ff99215a06c9eabcbda043c21f897e87accd311494f0c8f218",
-  "cab4b696447f7c100d8df91532440f45f5003f3372094cb3aa7fd19d8bda3924",
-  "25241f885651c6bc0a53c0fc5d5179aa9399c1bd8829209d1d8aae5ae58d4395",
-  "ca22ec0a66017a551cb1b93dfe888e79c458e96d7f9be9d1fbe7338011b1e7bf",
-  "7d4a0bdd7aae1fac631432751f7bb04d3a9f9f11ed38edb85e7d4a3f43c86472",
-  "823cc727373b89e3c37e55e4a5c1175d033bdbf39a1630c29102532a0436f838",
-  "ef2d72da4cab002e7031881f9642e8deaf3cfd6013cb6ad8b9d57fe4f690d511",
+  "2e2de88b6ed11699c2fdd380ff71340886c2f3fd2d3dd78bb1f2cd6d7665a275",
+  "a48b85fb060d64ed510650c47bc881f06d62e7f5320d0c8549eb5193640e1a81",
+  "b0cac36501a2325e60ef7aa45c39aa2d4ed4291e09d814617f5806c76678366e",
+  "7cd8b37d435faa3bad44b486f03b4fea66b44a51e0d18ee3edf73b8af920024b",
+  "3704f048bfd0dfa097102caf6cb4f9cbd47cadcc32c4d62265b9682f793327cd",
+  "147f181b02a94e68628433c8ac198998094c5cd6f8c79d125f5e9b6a5519a7c9",
   "ec41098e604b234580804d7deb9cf0ee87c9c6ea6f515fbbeb3670c3fc70aea3",
-  "a5104d0b98d76aced703620c7faaae4d846d4097f839889a880b8bbaa1dc4d18",
+  "8ffacbdb20adca6d3d044cb944743d8e9c4fc54a06b05c204f2e164df73b979b",
   "32e7a20860d5fcb2dbbbe10388652c4b3436fc873916e8b324b4caa856417a03",
   "69d7f5179a797c0100468b622f633d4432059fde8b40c300cedb404ca76e1dd0",
   "d30c06a95efcd0b488fa06b09b3377bd640681e842496df7f21b2ab5812cf3d4",
   "5ff8e4393b9ecffd32419937c22a789911e40c4e8b0a49b8316c3fcabc402abe",
   "8f725505dfacd5e0f2f08fee6bc0bf6cdd235ba42e90ee58b3bd1d2cf452f26f",
-  "316604fde3921ce6745329e8c38e91e67cc7fd1c181989f19aa321aa70971a3c",
-  "9427e9809f5191c9d42bd1959ed793b7f9cf1d77cac3ea6519303fedbd07088a",
-  "14d467e3aca949ff0f16e644595103fd7f59245e32cde42ebe6208616f97d894",
-  "b0cb413ad74515a1b551d4946ebd31809adfcb9ebe76c6aafaa7552ac469e5cf",
+  "fedd8bb1b691025d1f2e038df3ac2451da0ece694eca1eb9cc40f339212cf807",
+  "8fd5b879e7eba56ca3f6220d7e3946e383e04dad8596c34e2dcb53213c213b63",
+  "44b43ca038a998389773d3dd0e9db73ef59a4a8cd5f2d27865457ea4d6c06228",
+  "346ad2155adc26d1d3ede9cb4f6950e7a4fba46891074016d2e12a4e80d2ccb3",
 ] as const;
 
 describe("AC-6 damage-control gate (P-1 ticket 07)", () => {

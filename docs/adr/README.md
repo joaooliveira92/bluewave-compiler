@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (ADR-0047 records the current next number).
+highest existing number + 1 (ADR-0048 records the current next number).
 Refresh this table from each file's H1 when one is added or re-titled.
 
 | # | File | Title |
@@ -52,3 +52,4 @@ Refresh this table from each file's H1 when one is added or re-titled.
 | 0045 | [ADR-0045-playability-first-reprioritization.md](ADR-0045-playability-first-reprioritization.md) | Playability-First Re-prioritization of the Sprint Backlog |
 | 0046 | [ADR-0046-p1-campaign-battle-fidelity-fixes.md](ADR-0046-p1-campaign-battle-fidelity-fixes.md) | P-1 — Torpedoes in Campaign Auto-Resolution + Battle-Fidelity Fixes |
 | 0047 | [ADR-0047-p1-damage-control-scope-and-units.md](ADR-0047-p1-damage-control-scope-and-units.md) | P-1 — Damage-Control Scope in Auto-Resolution, Unit Contract, and Recorded Deferrals |
+| 0048 | [ADR-0048-p1-gunnery-fidelity-range-and-gun-count.md](ADR-0048-p1-gunnery-fidelity-range-and-gun-count.md) | P-1 — Auto-Resolution Gunnery Fidelity (True Range + Gun-Count Sensitivity) |

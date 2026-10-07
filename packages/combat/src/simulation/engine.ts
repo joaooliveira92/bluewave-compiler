@@ -411,6 +411,17 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
   const afterContacts = [...byKey.values()];
   ledger.append(evt(minute, 0, "resolve_sensors_spotting", 8, "pipeline", battleId));
 
+  // P-1 ticket 06: true post-movement ship positions (`assetId -> [x, y]`, integer
+  // µm), built once from the resolved movements and shared by the gunnery stage
+  // (true legal contact range -> §3 `range` accuracy factor) and the torpedo
+  // stage (geometric line-of-sight / track checks).
+  const shipPositions: Record<string, Position> = {};
+  for (const u of units) {
+    const m = resolvedMovements[u.assetId];
+    if (!m) continue;
+    shipPositions[u.assetId] = m.position;
+  }
+
   // Step 8.5 (DESIGN-39 / B-3 INC-4): surface-gunnery resolution AFTER spotting,
   // using the just-updated legal contact tracks. Strict no-op when no batteries are
   // supplied (no gunneryState on any unit) -> zero events appended, so the minute
@@ -425,6 +436,7 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
       batteries: gunneryBatteries,
       contacts: afterContacts,
       engine: input.engine,
+      shipPositions,
     });
     for (const ge of gres.events) ledger.append(ge);
     gunneryStates = gres.nextStates;
@@ -460,13 +472,11 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
   let torpedoTracks: readonly TorpedoTrack[] | undefined;
   let torpedoRecords: readonly TorpedoRecord[] | undefined;
   if (input.torpedoes) {
-    const shipPositions: Record<string, Position> = {};
     const shipHeadings: Record<string, number> = {};
     const shipSpeedsUmS: Record<string, number> = {};
     for (const u of units) {
       const m = resolvedMovements[u.assetId];
       if (!m) continue;
-      shipPositions[u.assetId] = m.position;
       shipHeadings[u.assetId] = m.heading;
       shipSpeedsUmS[u.assetId] = m.currentSpeed;
     }
