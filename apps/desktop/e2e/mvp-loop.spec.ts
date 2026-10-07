@@ -2,6 +2,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SEED, test, expect } from "./fixtures.js";
+import { advanceMonths, dismissTour, startNewCampaign } from "./flows.js";
 
 // Serial create-side narrative (matrix rows 1-6). One compiled campaign is
 // shared across the specs IN THIS FILE via `sharedSaveDir`; strict per-test
@@ -11,7 +12,7 @@ test.describe.configure({ mode: "serial" });
 let sharedSaveDir = "";
 
 const ARCHETYPE = "Shipyard Baron";
-const NATION = "Austro-Hungarian Empire";
+const NATION = "United Kingdom";
 
 // The Overview screen also renders its own "Construction"/"Fleet" quick-nav
 // buttons, so plain getByRole("button", { name }) is ambiguous -- scope to
@@ -25,22 +26,7 @@ test("row 1: New Game compiles a fresh campaign onto Overview", async ({ e2e }) 
   sharedSaveDir = join(await mkdtemp(join(tmpdir(), "bluewave-shared-")), "save");
   await e2e.retargetDialog(sharedSaveDir);
 
-  // Landing -> New Campaign -> preferences (step 1: fill seed)
-  await e2e.page.getByRole("button", { name: "New Campaign" }).click();
-  await e2e.page.getByLabel("Campaign Seed").fill(SEED);
-  await e2e.page.getByRole("button", { name: "Next", exact: true }).click();
-
-  // Step 2 (Ruleset) -> proceed to archetype.
-  await e2e.page.getByRole("button", { name: "Next: Choose Nation" }).click();
-
-  // Archetype: pick an engine-backed preset via the header primary action.
-  await e2e.page.getByRole("heading", { name: "Choose your archetype" }).waitFor();
-  await e2e.page.getByRole("button", { name: new RegExp(ARCHETYPE), exact: false }).click();
-  await e2e.page.getByRole("button", { name: "Choose Nation" }).click();
-
-  // Nation: pick the slot.
-  await e2e.page.getByRole("option", { name: NATION }).click();
-  await e2e.page.getByRole("button", { name: "Start Campaign" }).click();
+  await startNewCampaign(e2e.page, { seed: SEED, archetype: ARCHETYPE, nation: NATION });
 
   // Compiled -> shell moves into the active campaign, always on Overview.
   await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
@@ -50,7 +36,9 @@ test("row 1: New Game compiles a fresh campaign onto Overview", async ({ e2e }) 
   // User-visible proof of the fresh compile: Revision 0 (turn number 0) and
   // the production scenario's fixed campaign identity + a non-empty hash.
   await expect(e2e.page.getByText("Revision 0")).toBeVisible();
-  await expect(e2e.page.getByText("campaign-bluewave-1880-production")).toBeVisible();
+  await expect(
+    e2e.page.getByText("campaign-bluewave-1880-production", { exact: true }),
+  ).toBeVisible();
 });
 
 test("row 2: Advance Month moves the calendar into the following month", async ({ e2e }) => {
@@ -68,7 +56,8 @@ test("row 2: Advance Month moves the calendar into the following month", async (
   await expect(e2e.page.getByText("Bluewave — January 1880")).toBeVisible();
 
   // Header's advance action drives the month forward (deterministic seed).
-  await e2e.page.getByRole("button", { name: "Advance Month" }).click();
+  await dismissTour(e2e.page);
+  await advanceMonths(e2e.page, 1);
 
   // User-visible advancement past the starting month, with an honest notice.
   await expect(e2e.page.getByText("Bluewave — February 1880")).toBeVisible();
@@ -90,6 +79,8 @@ test("row 3: Construction submit lands a design order in the command table", asy
   await e2e.page.getByRole("tab", { name: "Design Catalog" }).click();
   await e2e.page.getByRole("radio").first().click();
   await e2e.page.getByRole("button", { name: "Submit Construction Command" }).click();
+  // Select-design -> review -> confirm: submit opens a review panel first.
+  await e2e.page.getByRole("button", { name: "Confirm order" }).click();
 
   // User-visible acceptance notice, then the Command Ledger reflects the
   // snapshot's new construction command (screen renders `submitted`).
@@ -153,13 +144,13 @@ test("row 6: Fleet Movement renders the honest compiled state", async ({ e2e }) 
   await navigateTo(e2e.page, "Fleet");
   await expect(e2e.page.getByRole("heading", { name: "Fleet Movement" })).toBeVisible();
 
-  // Honest divisions state: this campaign's compiled Austro-Hungarian fleet
-  // (fleet_aut_adriatic) renders as the real compiled state -- never an
+  // Honest divisions state: this campaign's compiled United Kingdom fleets
+  // (fleet_gbr_*) render as the real compiled state -- never an
   // error card. (The matrix's "compiler emits no divisions" assumption does
-  // not hold for the Austria-Hungary production scenario; this nation has
-  // one authored starting division.)
+  // not hold for the production scenario; the UK has three authored starting
+  // fleets.)
   await expect(e2e.page.getByRole("heading", { name: "Divisions" })).toBeVisible();
-  await expect(e2e.page.getByRole("radio", { name: /fleet_aut_adriatic/ })).toBeVisible();
+  await expect(e2e.page.getByRole("radio", { name: /fleet_gbr_home/ })).toBeVisible();
 
   // Movement-order surface: honestly not-submittable. The bridge's movement
   // commands stay NOT_IMPLEMENTED -- submitting surfaces that as a notice,

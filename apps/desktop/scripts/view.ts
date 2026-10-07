@@ -6,7 +6,15 @@
  *   pnpm --filter @bluewave/desktop snap [--out DIR] [--click TEXT]... [--fill LABEL=VALUE]...
  *                                        [--press KEY]... [--wait MS] [--eval JS]
  *                                        [--save PACKAGE_DIR] [--selector CSS]
+ *                                        [--advance N] [--settle MS] [--tour]
+ *                                        [--make-save DIR]
  *
+ * --advance   clicks "Advance Month" N times after the actions.
+ * --settle    extra wait (ms) once, right before capture (--wait is per action).
+ * --tour      leave the first-month guided tour overlay alone (default: dismiss it).
+ * --make-save runs the new-game flow, compiles a campaign into DIR (so it can be
+ *             passed to --save later) and waits for the Overview. DIR must not exist
+ *             or be empty.
  * --save      copies a compiled campaign package to a temp dir, opens it via
  *             "Open Campaign", and starts from there (the source is never touched).
  * --selector  screenshots only the first element matching the CSS selector.
@@ -23,6 +31,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { advanceMonths, dismissTour, startNewCampaign } from "../e2e/flows.ts";
 import { copyFixturePackage, launchHarness, teardownHarness } from "../e2e/fixtures.ts";
 
 const { values } = parseArgs({
@@ -35,6 +44,10 @@ const { values } = parseArgs({
     eval: { type: "string" },
     save: { type: "string" },
     selector: { type: "string" },
+    advance: { type: "string", default: "0" },
+    settle: { type: "string", default: "0" },
+    tour: { type: "boolean", default: false },
+    "make-save": { type: "string" },
   },
   strict: true,
 });
@@ -56,7 +69,8 @@ if (values.save) {
   saveDir = await copyFixturePackage(resolve(values.save), saveScratch);
 }
 
-const h = await launchHarness({ saveDir });
+const makeSave = values["make-save"] ? resolve(values["make-save"]) : undefined;
+const h = await launchHarness({ saveDir: saveDir ?? makeSave });
 const log: string[] = [];
 h.page.on("console", (m) => log.push(`[${m.type()}] ${m.text()}`));
 h.page.on("pageerror", (e) => log.push(`[pageerror] ${e.message}`));
@@ -66,15 +80,38 @@ try {
     await h.page.getByRole("button", { name: "Open Campaign" }).click();
     await h.page.waitForTimeout(Number(values.wait));
   }
+  if (makeSave) {
+    await startNewCampaign(h.page);
+    await h.page
+      .getByRole("heading", { name: "Campaign Overview" })
+      .waitFor({ timeout: 60_000 })
+      .catch(() => log.push("[snap] Overview did not appear after Begin Commission"));
+  }
+  // The tour mounts shortly after the Overview, so only the first check waits.
+  const tidy = async (waitMs = 0) => {
+    if (!values.tour) await dismissTour(h.page, waitMs || 1);
+  };
+  await tidy(1500);
   for (const kind of order) {
     const arg = queues[kind].shift()!;
     if (kind === "click") {
-      // Prefer an accessible role/name match, fall back to any visible text.
+      // Prefer an accessible role/name match (waiting for it to render, e.g. after
+      // a compile), fall back to any visible text.
       const byRole = h.page
         .getByRole("button", { name: arg })
-        .or(h.page.getByRole("link", { name: arg }));
-      const target = (await byRole.count()) > 0 ? byRole.first() : h.page.getByText(arg).first();
-      await target.click();
+        .or(h.page.getByRole("link", { name: arg }))
+        .first();
+      const appeared = await byRole
+        .waitFor({ timeout: 30_000 })
+        .then(() => true)
+        .catch(() => false);
+      const target = appeared ? byRole : h.page.getByText(arg).first();
+      // An element that keeps re-mounting never becomes "stable"; fall back to a
+      // direct DOM click and note it (a churning screen is itself worth knowing).
+      await target.click({ timeout: 5_000 }).catch(async () => {
+        log.push(`[snap] "${arg}" never stabilised; used dispatchEvent click`);
+        await target.dispatchEvent("click");
+      });
     } else if (kind === "fill") {
       const i = arg.indexOf("=");
       await h.page.getByLabel(arg.slice(0, i)).fill(arg.slice(i + 1));
@@ -82,11 +119,16 @@ try {
       await h.page.keyboard.press(arg);
     }
     await h.page.waitForTimeout(Number(values.wait));
+    await tidy();
+  }
+  if (Number(values.advance) > 0) {
+    await advanceMonths(h.page, Number(values.advance));
+    await tidy();
   }
   if (values.eval) {
     log.push(`[eval] ${JSON.stringify(await h.page.evaluate(values.eval))}`);
   }
-  await h.page.waitForTimeout(Number(values.wait));
+  await h.page.waitForTimeout(Number(values.wait) + Number(values.settle));
 
   const shot = { path: resolve(outDir, "screenshot.png") };
   if (values.selector) await h.page.locator(values.selector).first().screenshot(shot);

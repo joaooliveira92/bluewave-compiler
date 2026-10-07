@@ -11,14 +11,21 @@ pnpm run snap --click "New Campaign"                  # click, then capture
 pnpm run snap --click "New Campaign" --press Enter    # actions run in the order given
 pnpm run snap --fill "Name=Test" --eval "document.title"
 pnpm run snap --selector "main"                       # screenshot one element only
-pnpm run snap --save path/to/package                  # start from a compiled campaign package
+pnpm run snap --make-save /tmp/bw-save                # run the new-game flow, write a campaign package
+pnpm run snap --save /tmp/bw-save                     # start from that package (opens on Overview)
+pnpm run snap --save /tmp/bw-save --advance 3         # ...then advance three months (Jan -> Apr 1880)
 ```
+
+Typical agent loop: `--make-save` once (about 10 s), then reuse it with `--save` for every screen you
+want to look at. Other flags: `--settle MS` (one extra wait before capture; `--wait` is per action),
+`--tour` (keep the first-month guided tour, which is dismissed by default).
 
 From the repo root, `pnpm snap <flags>` rebuilds the desktop app first (so you never view a stale
 `out/`) and then runs the same command. Relative `--out`/`--save` paths resolve from `apps/desktop`.
 
 `--save` copies the package to a temp dir (the source is never modified), clicks "Open Campaign",
-then runs your actions.
+then runs your actions. The new-game, advance-month and tour-dismiss flows live in
+`apps/desktop/e2e/flows.ts`, shared with the e2e specs; fix them there when the UI changes.
 
 The script is named `snap` because `pnpm view` is a built-in pnpm command.
 
