@@ -10,6 +10,7 @@
     "build": "turbo run build",
     "preflight": "node scripts/preflight.cjs",
     "snap": "pnpm --filter @bluewave/desktop build && pnpm --filter @bluewave/desktop run snap",
+    "snap:debug": "pnpm --filter @bluewave/desktop exec cross-env VITE_BLUEWAVE_DEBUG=true electron-vite build && pnpm --filter @bluewave/desktop run snap",
     "dev": "node scripts/preflight.cjs && turbo run dev",
     "lint": "vp lint .",
     "lint:fix": "vp lint --fix .",

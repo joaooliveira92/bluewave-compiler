@@ -39,6 +39,17 @@ churn. Findings, most impactful first. None of these is fixed yet.
 10. Fleet cards for `fleet_gbr_cape` list no ships, unlike the other two fleets — confirm that is
     real data and not a missing assignment.
 
+11. **Diplomacy actions are silent.** Clicking "Declare war" (no confirmation) changes nothing visible:
+    no pending/queued marker on the row, no notice, header status stays "Armed peace". The page says
+    commands apply on the next turn advance, but the player cannot tell the click registered, or undo it.
+    Three months advanced after declaring war on the Austro-Hungarian Empire; the Turn Report showed no
+    battle (not investigated whether the declaration reached the engine).
+12. **Tactical Sandbox cannot generate a battle in the desktop app.** In a debug build, "Generate
+    Engagement" returns `NOT_IMPLEMENTED`: `generateBattle` has no case in
+    `apps/desktop/src/main/campaignBridge.ts` (it falls through to the stub). The sandbox UI and the
+    renderer provider exist; the bridge command does not. This is the shortest path to inspecting
+    battle screens for the combat-tuning work.
+
 ## Done when
 
 Each item is fixed, deliberately deferred in a comment below, or split into its own ticket.

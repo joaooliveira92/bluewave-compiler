@@ -40,3 +40,17 @@ Output goes to `apps/desktop/.dev-data/view/` (git-ignored; override with `--out
 Each run is a fresh app instance, so state does not persist between runs; chain every step in
 one invocation (the new-game flow takes ~10 clicks/fills; see `aria.yaml` after each step for the
 next control name). For multi-step flows that need real logic, write a spec in `apps/desktop/e2e/`.
+
+## Debug-only screens and battles
+
+Tactical Sandbox and Debugging & Telemetry only exist in a debug build (`VITE_BLUEWAVE_DEBUG=true`, ADR-0029).
+From the repo root, `pnpm snap:debug <flags>` builds that way and runs `snap`; plain `pnpm snap` rebuilds
+the normal build, so the two do not interfere. Note: as of 2026-10-07 the sandbox's "Generate Engagement"
+returns `NOT_IMPLEMENTED` (the `generateBattle` bridge command is not wired), so battles cannot be
+produced on demand yet; see `.scratch/desktop-ui-audit/issues/01-first-visual-sweep-findings.md` (#12).
+
+## Idle-render check
+
+Every run ends with a one-second DOM probe and logs `idle mutations/s: structural=N attributes=M` in
+`console.log`. A healthy screen has structural near 0; thousands means a render loop (the briefing bug
+measured ~19,000) and adds a `WARNING` line. Attribute churn alone (the globe, shaders) is normal.

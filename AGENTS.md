@@ -55,7 +55,11 @@
 ### Viewing the desktop UI
 
 Agents can screenshot, inspect and click through the Electron app via Playwright. See
-`docs/agents/desktop-view.md` (`pnpm run snap` in `apps/desktop`).
+`docs/agents/desktop-view.md` (`pnpm snap` from the repo root). For any ticket that changes
+what the player sees, the implementator and the reviewer each capture the affected screen with `snap`
+and check it against the acceptance criteria (screenshot + `aria.yaml`, console clean, no churn
+warning); a UI change without a captured screen is not APPROVE-able. `pnpm test:e2e` is part of
+`pnpm check`.
 
 ### Issue tracker
 
