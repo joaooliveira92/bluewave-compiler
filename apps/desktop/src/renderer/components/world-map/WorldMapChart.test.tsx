@@ -51,4 +51,36 @@ describe("WorldMapChart", () => {
     expect(container.querySelector('[aria-hidden="true"] span')).not.toBeNull();
     expect(screen.getByText("Ownership")).toBeTruthy();
   });
+
+  it("exposes area ownership as text: labelled keyboard-selectable areas and a data table", () => {
+    const onSelect = vi.fn();
+    const { container } = render(
+      <WorldMapChart
+        state={initialMapPrototypeState}
+        route={null}
+        onSelect={onSelect}
+        onRuler={noop}
+        onToggleLayer={noop}
+        onSetProjection={noop}
+        onSetCentre={noop}
+        onToggleClosedPassages={noop}
+      />,
+    );
+    const areas = [...container.querySelectorAll('path[role="button"]')];
+    expect(areas.length).toBe(36); // one reachable copy per area, not one per wrap turn
+    for (const area of areas) {
+      expect(area.getAttribute("aria-label")).toMatch(
+        /: (held by .+|unclaimed), (no fleets|\d+ fleets?)$/,
+      );
+      expect(area.getAttribute("tabindex")).toBe("0");
+    }
+    const first = areas[0] as Element;
+    fireEvent.keyDown(first, { key: "Enter" });
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(first, { key: " " });
+    expect(onSelect).toHaveBeenCalledTimes(2);
+
+    const table = screen.getByRole("table", { name: "Area control" });
+    expect(table.querySelectorAll("tbody tr").length).toBe(areas.length);
+  });
 });

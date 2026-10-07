@@ -15,6 +15,7 @@ import { useMemo } from "react";
 import { Button } from "../ui/button.js";
 import { CoastlineCanvas } from "./CoastlineCanvas.js";
 import { MapScaleBar } from "./MapScaleBar.js";
+import { buildOwnershipRows, describeArea } from "./map-a11y.js";
 import { AREAS, AREAS_BY_ID, EDGES, FLEETS, PASSAGES_BY_ID, POSSESSIONS } from "./fixture-world.js";
 import { useCoastline } from "./useCoastline.js";
 import {
@@ -137,6 +138,25 @@ export function WorldMapChart({
   );
   const areasById = useMemo(() => new Map(areas.map((area) => [area.id, area])), [areas]);
 
+  const ownershipRows = useMemo(
+    () =>
+      buildOwnershipRows(
+        areas.map((area) => ({ id: area.id, name: AREAS_BY_ID.get(area.id)?.name ?? area.id })),
+        (id) => {
+          const owner = control.get(id)?.owner ?? null;
+          if (owner === null) return null;
+          return live ? campaignNationLabel(owner) : nationName(owner);
+        },
+        (id) => drawnFleets.filter((fleet) => fleet.area === id).length,
+        state.selected,
+      ),
+    [areas, control, drawnFleets, live, state.selected],
+  );
+  const rowById = useMemo(
+    () => new Map(ownershipRows.map((row) => [row.id, row])),
+    [ownershipRows],
+  );
+
   const graticule = useMemo(() => {
     const lines: string[] = [];
     for (let lat = -60; lat <= 60; lat += 30) {
@@ -203,6 +223,11 @@ export function WorldMapChart({
   function strokeFor(nation: string): string {
     if (live) return `oklch(0.74 0.17 ${campaignNationHue(nation)})`;
     return nationStroke(nation);
+  }
+
+  function describeAreaFor(id: string): string {
+    const row = rowById.get(id);
+    return row === undefined ? id : describeArea(row);
   }
 
   /** Display name for a nation (campaign id or fixture id). */
@@ -314,8 +339,21 @@ export function WorldMapChart({
                     strokeWidth={selected ? 2.5 : onRouteLeg ? 2 : 0.9}
                     vectorEffect="non-scaling-stroke"
                     strokeDasharray={held?.contested === true ? "6 4" : undefined}
-                    className="cursor-pointer transition-[fill] duration-150"
+                    className="cursor-pointer outline-none transition-[fill] duration-150 focus-visible:stroke-[3]"
+                    // The map draws every layer three times to wrap seamlessly;
+                    // only the home copy is exposed to keyboard and screen readers.
+                    role={turn === 0 ? "button" : undefined}
+                    tabIndex={turn === 0 ? 0 : undefined}
+                    aria-hidden={turn === 0 ? undefined : true}
+                    aria-pressed={turn === 0 ? selected : undefined}
+                    aria-label={turn === 0 ? describeAreaFor(area.id) : undefined}
                     onClick={(event) => handleAreaClick(area.id, event.shiftKey)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      event.stopPropagation();
+                      handleAreaClick(area.id, event.shiftKey);
+                    }}
                   />
                 );
               })}
@@ -485,6 +523,26 @@ export function WorldMapChart({
           ))}
         </g>
       </svg>
+
+      <table className="sr-only">
+        <caption>Area control</caption>
+        <thead>
+          <tr>
+            <th scope="col">Area</th>
+            <th scope="col">Controlled by</th>
+            <th scope="col">Fleets</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ownershipRows.map((row) => (
+            <tr key={row.id} aria-selected={row.selected}>
+              <th scope="row">{row.name}</th>
+              <td>{row.owner ?? "Unclaimed"}</td>
+              <td>{row.fleets}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <div
         className="pointer-events-none absolute bottom-3 right-3 rounded-md border px-2.5 py-1.5 backdrop-blur"
