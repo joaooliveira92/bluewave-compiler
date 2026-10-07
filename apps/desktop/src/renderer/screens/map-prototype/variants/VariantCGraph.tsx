@@ -33,7 +33,7 @@ import {
   PASSAGES_BY_ID,
   POSSESSIONS,
 } from "../../../components/world-map/fixture-world.js";
-import { COASTLINE_POLYGONS } from "../../../components/world-map/coastline-data.js";
+import { useCoastline } from "../../../components/world-map/useCoastline.js";
 import {
   projectAreas,
   projectionById,
@@ -62,9 +62,10 @@ export function VariantCGraph({
   const control = areaControl();
   const [filter, setFilter] = useState("");
 
+  const coastlineState = useCoastline();
   const coastline = useMemo(
     () =>
-      COASTLINE_POLYGONS.map((rings) =>
+      (coastlineState.status === "ready" ? coastlineState.polygons : []).map((rings) =>
         rings
           .map((flat) => {
             const ring: Point[] = [];
@@ -75,7 +76,7 @@ export function VariantCGraph({
           })
           .join(""),
       ),
-    [projection, state.centre],
+    [coastlineState, projection, state.centre],
   );
 
   const nodes = useMemo(() => {

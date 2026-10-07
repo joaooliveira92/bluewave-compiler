@@ -15,7 +15,7 @@ import { useMemo } from "react";
 import { Button } from "../ui/button.js";
 import { CoastlineCanvas } from "./CoastlineCanvas.js";
 import { AREAS, AREAS_BY_ID, EDGES, FLEETS, PASSAGES_BY_ID, POSSESSIONS } from "./fixture-world.js";
-import { COASTLINE_POLYGONS } from "./coastline-data.js";
+import { useCoastline } from "./useCoastline.js";
 import {
   PROJECTIONS,
   projectAreas,
@@ -78,6 +78,7 @@ export function WorldMapChart({
   const projection = projectionById(state.projection);
   const camera = useMapCamera(projection.width, projection.height);
   const live = overlay.source === "campaign";
+  const coastline = useCoastline();
 
   /** Ownership: live overlay overrides the fixture wherever the campaign maps one. */
   const control = useMemo(() => {
@@ -218,14 +219,31 @@ export function WorldMapChart({
         background: `radial-gradient(ellipse 75% 75% at 50% 45%, ${CHART.ocean} 60%, ${CHART.oceanDeep} 100%)`,
       }}
     >
-      <CoastlineCanvas
-        camera={camera}
-        polygons={COASTLINE_POLYGONS}
-        projection={projection}
-        centre={state.centre}
-        fill={CHART.land}
-        stroke={CHART.landEdge}
-      />
+      {coastline.status === "ready" && (
+        <CoastlineCanvas
+          camera={camera}
+          polygons={coastline.polygons}
+          projection={projection}
+          centre={state.centre}
+          fill={CHART.land}
+          stroke={CHART.landEdge}
+        />
+      )}
+      {coastline.status !== "ready" && (
+        <div
+          role="status"
+          className="absolute bottom-3 right-3 z-10 rounded-md border px-2.5 py-1 text-xs"
+          style={{
+            background: "oklch(0.16 0.025 245 / 0.85)",
+            borderColor: "oklch(0.4 0.02 245)",
+            color: CHART.ink,
+          }}
+        >
+          {coastline.status === "loading"
+            ? "Loading coastline…"
+            : `Coastline unavailable: ${coastline.message}`}
+        </div>
+      )}
       <svg
         ref={camera.svgRef}
         className="h-full w-full cursor-grab touch-none active:cursor-grabbing"
