@@ -18,6 +18,7 @@
     "test": "vp test run",
     "test:e2e": "playwright test",
     "snap": "node scripts/view.ts",
+    "smoke:packaged": "node scripts/packaged-smoke.mjs",
     "lint": "vp lint .",
     "lint:fix": "echo 'ok'"
   },
