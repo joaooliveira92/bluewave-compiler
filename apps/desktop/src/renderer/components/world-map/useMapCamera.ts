@@ -54,6 +54,10 @@ export interface MapCamera {
   readonly zoomBand: ZoomBand;
   readonly reset: () => void;
   readonly zoomBy: (factor: number) => void;
+  /** Pan by screen pixels (keyboard control). */
+  readonly panBy: (dxPixels: number, dyPixels: number) => void;
+  /** Screen pixels per world user unit at camera scale 1. */
+  readonly getPixelsPerUnit: () => number;
   readonly focusOn: (x: number, y: number, scale?: number) => void;
   readonly isDraggingRef: React.RefObject<boolean>;
   /** Called after every transform change (pan, zoom, reset). Returns an unsubscribe. */
@@ -109,7 +113,7 @@ export function useMapCamera(
 
   /** Screen pixels per user unit, or null before the SVG is laid out. */
   const pixelsPerUnit = useCallback((): number => {
-    const ctm = svgRef.current?.getScreenCTM();
+    const ctm = svgRef.current?.getScreenCTM?.();
     return ctm === null || ctm === undefined || ctm.a === 0 ? 1 : ctm.a;
   }, []);
 
@@ -198,6 +202,17 @@ export function useMapCamera(
       zoomAt(factor, rect.left + rect.width / 2, rect.top + rect.height / 2);
     },
     [zoomAt],
+  );
+
+  const panBy = useCallback(
+    (dxPixels: number, dyPixels: number) => {
+      const unitScale = pixelsPerUnit();
+      camera.current.x += dxPixels / unitScale;
+      camera.current.y += dyPixels / unitScale;
+      clamp();
+      applyTransform();
+    },
+    [applyTransform, clamp, pixelsPerUnit],
   );
 
   const focusOn = useCallback(
@@ -297,6 +312,8 @@ export function useMapCamera(
     reset,
     zoomBy,
     focusOn,
+    panBy,
+    getPixelsPerUnit: pixelsPerUnit,
     isDraggingRef,
     subscribe,
     getTransform: () => camera.current,

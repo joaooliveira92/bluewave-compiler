@@ -14,6 +14,7 @@
 import { useMemo } from "react";
 import { Button } from "../ui/button.js";
 import { CoastlineCanvas } from "./CoastlineCanvas.js";
+import { MapScaleBar } from "./MapScaleBar.js";
 import { AREAS, AREAS_BY_ID, EDGES, FLEETS, PASSAGES_BY_ID, POSSESSIONS } from "./fixture-world.js";
 import { useCoastline } from "./useCoastline.js";
 import {
@@ -172,6 +173,25 @@ export function WorldMapChart({
     };
   }, [live, overlay, state.selected]);
 
+  /** Keyboard parity for pan/zoom (wheel and drag stay the pointer path). */
+  function handleMapKey(event: React.KeyboardEvent<SVGSVGElement>): void {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    const step = event.shiftKey ? 240 : 80;
+    const moves: Record<string, [number, number]> = {
+      ArrowLeft: [step, 0],
+      ArrowRight: [-step, 0],
+      ArrowUp: [0, step],
+      ArrowDown: [0, -step],
+    };
+    const move = moves[event.key];
+    if (move !== undefined) camera.panBy(move[0], move[1]);
+    else if (event.key === "+" || event.key === "=") camera.zoomBy(1.4);
+    else if (event.key === "-" || event.key === "_") camera.zoomBy(1 / 1.4);
+    else if (event.key === "0") camera.reset();
+    else return;
+    event.preventDefault();
+  }
+
   /** Colour a nation (campaign id or fixture id) for the wash. */
   function fillFor(nation: string | null, alpha: number): string {
     if (nation === null) return `oklch(0.55 0 0 / ${alpha * 0.35})`;
@@ -232,7 +252,7 @@ export function WorldMapChart({
       {coastline.status !== "ready" && (
         <div
           role="status"
-          className="absolute bottom-3 right-3 z-10 rounded-md border px-2.5 py-1 text-xs"
+          className="absolute bottom-16 right-3 z-10 rounded-md border px-2.5 py-1 text-xs"
           style={{
             background: "oklch(0.16 0.025 245 / 0.85)",
             borderColor: "oklch(0.4 0.02 245)",
@@ -250,7 +270,9 @@ export function WorldMapChart({
         viewBox={`0 0 ${projection.width} ${projection.height}`}
         preserveAspectRatio="xMidYMid meet"
         role="application"
-        aria-label="World map"
+        aria-label="World map. Arrow keys pan, plus and minus zoom, zero resets."
+        tabIndex={0}
+        onKeyDown={handleMapKey}
       >
         <g ref={camera.worldRef}>
           {/* Every layer, three times: one turn west, home, one turn east.
@@ -463,6 +485,17 @@ export function WorldMapChart({
           ))}
         </g>
       </svg>
+
+      <div
+        className="pointer-events-none absolute bottom-3 right-3 rounded-md border px-2.5 py-1.5 backdrop-blur"
+        style={{
+          background: "oklch(0.16 0.025 245 / 0.85)",
+          borderColor: "oklch(0.4 0.02 245)",
+          color: CHART.ink,
+        }}
+      >
+        <MapScaleBar camera={camera} worldWidth={projection.width} />
+      </div>
 
       {/* Chrome: a floating toolbar, chart-styled rather than app-styled — a
           deliberate choice, so the chart reads as a chart rather than another

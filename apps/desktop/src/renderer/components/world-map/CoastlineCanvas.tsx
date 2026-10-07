@@ -5,7 +5,7 @@
  * zoom, and culls whole landmasses by bounding box.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { coastlineForTier, coastlineTierFor } from "../../lib/coastline-tiers.js";
 import type { FlatPolygon } from "../../lib/simplify-geometry.js";
 import type { MapCamera } from "./useMapCamera.js";
@@ -65,12 +65,17 @@ export function CoastlineCanvas({
 }: CoastlineCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const builtRef = useRef(new Map<number, BuiltPolygon[]>());
+  const [supported, setSupported] = useState(true);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (canvas === null || typeof Path2D === "undefined") return;
-    const context = canvas.getContext("2d");
-    if (context === null) return;
+    if (canvas === null) return;
+    const context = typeof Path2D === "undefined" ? null : canvas.getContext("2d");
+    if (context === null) {
+      setSupported(false);
+      return;
+    }
+    setSupported(true);
     builtRef.current = new Map();
     let frame = 0;
 
@@ -126,15 +131,32 @@ export function CoastlineCanvas({
       if (frame === 0) frame = requestAnimationFrame(draw);
     };
     const unsubscribe = camera.subscribe(schedule);
-    const observer = new ResizeObserver(schedule);
-    observer.observe(canvas);
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
+    observer?.observe(canvas);
     schedule();
     return () => {
       unsubscribe();
-      observer.disconnect();
+      observer?.disconnect();
       if (frame !== 0) cancelAnimationFrame(frame);
     };
   }, [camera, polygons, projection, centre, fill, stroke]);
 
-  return <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />;
+  return (
+    <>
+      <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
+      {!supported && (
+        <div
+          role="alert"
+          className="absolute bottom-16 right-3 z-10 rounded-md border px-2.5 py-1 text-xs"
+          style={{
+            background: "oklch(0.16 0.025 245 / 0.85)",
+            borderColor: "oklch(0.55 0.15 25)",
+            color: "oklch(0.92 0.01 240)",
+          }}
+        >
+          Coastline unavailable: canvas drawing is not supported here.
+        </div>
+      )}
+    </>
+  );
 }
