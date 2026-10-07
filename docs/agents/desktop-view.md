@@ -18,9 +18,9 @@ From the repo root, `pnpm snap <flags>` rebuilds the desktop app first (so you n
 `out/`) and then runs the same command. Relative `--out`/`--save` paths resolve from `apps/desktop`.
 
 `--save` copies the package to a temp dir (the source is never modified), clicks "Open Campaign",
-then runs your actions. Note: the `--save` path is not yet verified end to end.
+then runs your actions.
 
-Use `pnpm run snap`, not `pnpm snap`/`pnpm view` — `view` is a built-in pnpm command.
+The script is named `snap` because `pnpm view` is a built-in pnpm command.
 
 Output goes to `apps/desktop/.dev-data/view/` (git-ignored; override with `--out`):
 
@@ -31,4 +31,5 @@ Output goes to `apps/desktop/.dev-data/view/` (git-ignored; override with `--out
 
 `--click TEXT` matches a button/link by accessible name first, then falls back to visible text.
 Each run is a fresh app instance, so state does not persist between runs; chain every step in
-one invocation. For multi-step flows that need real logic, write a spec in `apps/desktop/e2e/`.
+one invocation (the new-game flow takes ~10 clicks/fills; see `aria.yaml` after each step for the
+next control name). For multi-step flows that need real logic, write a spec in `apps/desktop/e2e/`.

@@ -1,10 +1,16 @@
 /**
+ * `style-src` allows 'unsafe-inline' because motion, the shader components and
+ * Tailwind-driven components set inline `style` attributes at runtime; without
+ * it Chromium blocks them. Scripts stay strict (`default-src 'self'`), which is
+ * what matters for XSS; inline styles are a low-risk grant for a local bundle.
+ *
  * `img-src` allows `data:` in addition to `self` because the shader
  * background components (@paper-design/shaders-react) load their
  * placeholder/unset image uniforms from an inline `data:image/gif` pixel,
  * not just same-origin files.
  */
-export const CONTENT_SECURITY_POLICY = "default-src 'self'; img-src 'self' data:";
+export const CONTENT_SECURITY_POLICY =
+  "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:";
 
 /**
  * Vite's React-refresh preamble (injected by @vitejs/plugin-react for HMR)
