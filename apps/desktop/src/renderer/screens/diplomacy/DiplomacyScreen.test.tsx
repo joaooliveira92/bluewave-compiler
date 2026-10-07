@@ -150,7 +150,8 @@ describe("DiplomacyScreen", () => {
     expect(screen.getByText("At war")).not.toBeNull();
     expect(screen.getByText("tension 9/10")).not.toBeNull();
     expect(screen.getByText("NAP")).not.toBeNull();
-    expect(screen.getByText("France")).not.toBeNull();
+    // The relations row (the war score bar also names France, so scope to the row).
+    expect(screen.getByText("France", { selector: "span.text-sm.font-medium" })).not.toBeNull();
     expect(screen.getByText("Germany")).not.toBeNull();
 
     // War list with sides, scores, status + the ACTIVE Accept-peace control.
@@ -172,6 +173,29 @@ describe("DiplomacyScreen", () => {
     } finally {
       debugFlag.on = false;
     }
+  });
+
+  it("shows the war score as a player-vs-enemy bar derived from the engine's scores", () => {
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    const bar = screen.getByRole("img", { name: /War score:/ });
+    // The player (UK) is the attacker with 3; France defends with 1.
+    expect(bar.getAttribute("aria-label")).toBe("War score: your nation 3, France 1");
+  });
+
+  it("lists the war-panel items the engine cannot supply as deferred, never as numbers", () => {
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    const panel = screen.getByTestId("war-deferred");
+    expect(panel.textContent).toContain("Not yet modelled by the engine");
+    for (const name of [
+      "Trade protection",
+      "Anti-submarine strength",
+      "Submarine warfare policy",
+      "Invasion planning",
+    ]) {
+      expect(panel.textContent).toContain(name);
+    }
+    // No fabricated figure sits next to any deferred item.
+    expect(panel.textContent).not.toMatch(/\d+\s*(of|\/)\s*\d+/);
   });
 
   it("renders honest empty states (no wars / no blockades) without fabrication", () => {

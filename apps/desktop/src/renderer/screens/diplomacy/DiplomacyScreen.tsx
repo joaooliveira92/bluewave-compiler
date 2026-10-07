@@ -21,6 +21,8 @@ import { NATION_DOSSIER_FIELDS } from "../../content/nationDossierFields.js";
 import { nationIdToCountryId } from "../new-game/nation-selection/slotBridge.js";
 import { humanizeId } from "../../lib/humanize-id.js";
 import { DEBUG_MODE } from "../../shell/debug-flag.js";
+import { WarDeferredPanel } from "./components/WarDeferredPanel.js";
+import { WarScoreBar } from "./components/WarScoreBar.js";
 import { useDiplomacyScreen } from "./hooks/useDiplomacyScreen.js";
 import {
   RELATION_LABELS,
@@ -224,10 +226,28 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
                     </Button>
                   )}
                 </div>
+                <div className="mt-2">
+                  <WarScoreBar
+                    war={war}
+                    yourName={sideLabel(
+                      projection,
+                      war.playerSide === "attacker"
+                        ? war.attackerSideMembers
+                        : war.defenderSideMembers,
+                    )}
+                    enemyName={sideLabel(
+                      projection,
+                      war.playerSide === "attacker"
+                        ? war.defenderSideMembers
+                        : war.attackerSideMembers,
+                    )}
+                  />
+                </div>
               </div>
             ))}
           </div>
         )}
+        <WarDeferredPanel />
       </GlassSection>
 
       <GlassSection

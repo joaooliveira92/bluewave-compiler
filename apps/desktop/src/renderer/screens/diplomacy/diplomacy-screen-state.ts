@@ -331,3 +331,56 @@ export function tensionBadgeLabel(relation: DiplomacyRelationKind, tension: numb
   if (band === "neutral" && relation === "neutral") return null;
   return humanizeId(band);
 }
+
+export interface WarScoreSplit {
+  readonly yours: number;
+  readonly enemy: number;
+  /** Player's share of the combined score, 0..1 (0.5 when neither side has scored). */
+  readonly yourShare: number;
+}
+
+/** The player's score against the enemy's, from the war's attacker/defender scores. */
+export function warScoreSplit(war: {
+  readonly attackerWarScore: number;
+  readonly defenderWarScore: number;
+  readonly playerSide: "attacker" | "defender";
+}): WarScoreSplit {
+  const yours = war.playerSide === "attacker" ? war.attackerWarScore : war.defenderWarScore;
+  const enemy = war.playerSide === "attacker" ? war.defenderWarScore : war.attackerWarScore;
+  const total = Math.max(0, yours) + Math.max(0, enemy);
+  return { yours, enemy, yourShare: total === 0 ? 0.5 : Math.max(0, yours) / total };
+}
+
+export interface DeferredWarItem {
+  readonly id: string;
+  readonly name: string;
+  readonly reason: string;
+}
+
+/**
+ * RTW3 war-panel items the engine cannot supply yet (docs/research/
+ * rtw3-war-panel-engine-surface.md). Shown as an explicit "not modelled" list —
+ * never as numbers or controls that look real.
+ */
+export const DEFERRED_WAR_ITEMS: readonly DeferredWarItem[] = [
+  {
+    id: "trade-protection",
+    name: "Trade protection",
+    reason: "The engine has no commerce or trade-route state yet.",
+  },
+  {
+    id: "asw",
+    name: "Anti-submarine strength",
+    reason: "Submarine warfare is modelled in battles only, with no campaign-level rating.",
+  },
+  {
+    id: "submarine-policy",
+    name: "Submarine warfare policy",
+    reason: "Fleet support, prize rules and unrestricted warfare need an engine command first.",
+  },
+  {
+    id: "invasion",
+    name: "Invasion planning",
+    reason: "Invasions exist only as a battle mission type, not as a campaign plan.",
+  },
+];

@@ -4,6 +4,8 @@ import type { DiplomacyScreenState } from "./diplomacy-screen-state.js";
 import {
   RELATION_LABELS,
   tensionBadgeLabel,
+  warScoreSplit,
+  DEFERRED_WAR_ITEMS,
   diplomacyBeginAction,
   diplomacyBeginLoading,
   diplomacyBeginPeace,
@@ -343,5 +345,44 @@ describe("tensionBadgeLabel", () => {
     expect(tensionBadgeLabel("neutral", 5)).toBeNull();
     // Same band word under a different relation is still informative.
     expect(tensionBadgeLabel("allied", 4)).toBe("Neutral");
+  });
+});
+
+describe("warScoreSplit", () => {
+  it("reads the player's score from the correct side", () => {
+    const attacker = { attackerWarScore: 6, defenderWarScore: 2, playerSide: "attacker" } as const;
+    expect(warScoreSplit(attacker)).toEqual({ yours: 6, enemy: 2, yourShare: 0.75 });
+    expect(warScoreSplit({ ...attacker, playerSide: "defender" })).toEqual({
+      yours: 2,
+      enemy: 6,
+      yourShare: 0.25,
+    });
+  });
+
+  it("centres the bar when nobody has scored and never divides by zero", () => {
+    const even = { attackerWarScore: 0, defenderWarScore: 0, playerSide: "attacker" } as const;
+    expect(warScoreSplit(even).yourShare).toBe(0.5);
+  });
+
+  it("clamps negative scores out of the bar share but reports them honestly", () => {
+    const split = warScoreSplit({
+      attackerWarScore: -3,
+      defenderWarScore: 4,
+      playerSide: "attacker",
+    });
+    expect(split.yours).toBe(-3);
+    expect(split.yourShare).toBe(0);
+  });
+});
+
+describe("DEFERRED_WAR_ITEMS", () => {
+  it("lists the four unsupported RTW3 items, each with a stated reason and a unique id", () => {
+    expect(DEFERRED_WAR_ITEMS.map((i) => i.id)).toEqual([
+      "trade-protection",
+      "asw",
+      "submarine-policy",
+      "invasion",
+    ]);
+    expect(DEFERRED_WAR_ITEMS.every((i) => i.reason.length > 20)).toBe(true);
   });
 });

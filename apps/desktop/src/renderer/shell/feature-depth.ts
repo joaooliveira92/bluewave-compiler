@@ -45,12 +45,8 @@ export const FEATURE_DEPTH: readonly FeatureDepthEntry[] = [
   },
   { feature: "options", screen: "options", path: ["Options"] },
   // Planned — RTW3 parity (F-*). Paths are the budgeted placement.
-  {
-    feature: "war-panel",
-    screen: null,
-    planned: true,
-    path: ["Diplomacy & War", "War", "Submarine policy"],
-  },
+  // War scores + the explicit "not modelled" list live on the Diplomacy screen.
+  { feature: "war-panel", screen: "diplomacy", path: ["Diplomacy & War"] },
   { feature: "intel", screen: null, planned: true, path: ["Diplomacy & War", "Intel", "Report"] },
   { feature: "submarines", screen: null, planned: true, path: ["Fleet", "Submarines"] },
   {
