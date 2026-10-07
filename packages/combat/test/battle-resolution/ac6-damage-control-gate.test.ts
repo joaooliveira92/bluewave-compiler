@@ -1,12 +1,10 @@
 // P-1 ticket 09 (ADR-0049): damage control now runs in EVERY auto-resolved
 // battle (the ADR-0047 torpedo-armament gate is gone). This file pins an unarmed
 // baseline whose random ledger proves the fixture contains shell-started fires
-// (§9 FIRE_SOURCE_CREATED draws). Wiring the stage there is observably quiet
-// because shell-created fire/flooding SOURCES are not yet persisted into
-// ShipDamageState.fireRecords/floodingRecords (ticket 10), so the stage has
-// nothing to progress and the per-minute hashes stay byte-identical. When
-// ticket 10 lands, this baseline is expected to move and must be re-pinned
-// through the ADR-0007 process.
+// (§9 FIRE_SOURCE_CREATED draws). Ticket 09 was observably quiet here because
+// shell-created sources were not persisted; ticket 10 (ADR-0050) persists them
+// into ShipDamageState.fireRecords/floodingRecords, so step 8.6 now progresses
+// them and the baseline was re-pinned through the ADR-0007 process.
 //
 // Pure/deterministic: fixed fixture, fixed campaign seed, no ambient random.
 import { describe, expect, it } from "vite-plus/test";
@@ -29,31 +27,36 @@ const FIRE_BASELINE_INPUT = makeAutoInput({
 // and 14-17 changed (minutes 0, 7, 9-13 byte-identical — those minutes fired no
 // gunnery salvo). Minute 0 (704d9118...) unchanged because no battery has
 // completed a reload at minute 0.
+//
+// Re-pinned for ticket 10 / ADR-0050 (shell-created fire/flooding persisted):
+// RESULT 9c88d23f39316ad8... -> c6b73c6f73d16d4a...; minutes 0-2 byte-identical,
+// minutes 3-17 changed (first persisted source progresses from minute 3); the
+// fixture still ends no_viable_combatants at minute 18.
 const FIRE_BASELINE_RESULT_HASH =
-  "9c88d23f39316ad89a37041703d71e20582ea44434ae22d41ecc4972c6faa1f2";
+  "c6b73c6f73d16d4ab9a5d9ce1ffe1878d1474386f924abfd38cf08d4d7a285d4";
 const FIRE_BASELINE_MINUTE_HASHES = [
   "704d9118704bb7ff99215a06c9eabcbda043c21f897e87accd311494f0c8f218",
   "2e2de88b6ed11699c2fdd380ff71340886c2f3fd2d3dd78bb1f2cd6d7665a275",
   "a48b85fb060d64ed510650c47bc881f06d62e7f5320d0c8549eb5193640e1a81",
-  "b0cac36501a2325e60ef7aa45c39aa2d4ed4291e09d814617f5806c76678366e",
-  "7cd8b37d435faa3bad44b486f03b4fea66b44a51e0d18ee3edf73b8af920024b",
-  "3704f048bfd0dfa097102caf6cb4f9cbd47cadcc32c4d62265b9682f793327cd",
-  "147f181b02a94e68628433c8ac198998094c5cd6f8c79d125f5e9b6a5519a7c9",
-  "ec41098e604b234580804d7deb9cf0ee87c9c6ea6f515fbbeb3670c3fc70aea3",
-  "8ffacbdb20adca6d3d044cb944743d8e9c4fc54a06b05c204f2e164df73b979b",
-  "32e7a20860d5fcb2dbbbe10388652c4b3436fc873916e8b324b4caa856417a03",
-  "69d7f5179a797c0100468b622f633d4432059fde8b40c300cedb404ca76e1dd0",
-  "d30c06a95efcd0b488fa06b09b3377bd640681e842496df7f21b2ab5812cf3d4",
-  "5ff8e4393b9ecffd32419937c22a789911e40c4e8b0a49b8316c3fcabc402abe",
-  "8f725505dfacd5e0f2f08fee6bc0bf6cdd235ba42e90ee58b3bd1d2cf452f26f",
-  "fedd8bb1b691025d1f2e038df3ac2451da0ece694eca1eb9cc40f339212cf807",
-  "8fd5b879e7eba56ca3f6220d7e3946e383e04dad8596c34e2dcb53213c213b63",
-  "44b43ca038a998389773d3dd0e9db73ef59a4a8cd5f2d27865457ea4d6c06228",
-  "346ad2155adc26d1d3ede9cb4f6950e7a4fba46891074016d2e12a4e80d2ccb3",
+  "393c5b4d9e9d7ad48281be6b47d59bd3da6c88eaabc4e1b164cad3a4b41d4abb",
+  "0a4dbd6463f77acea380e0b1a50543f14efe0add9de7fa7db012b1e3cde95427",
+  "68ff962be6c506c3e6aa0d78866a72dad0ae40857766ce10d3518a34f2244c64",
+  "0d787bb23cf04557fedfe2b2f110e32ff6a897c22fc1ed24f76d86be5386e28a",
+  "21b9742461fc83079792a6e23f1a9cfccf851a52de4b5990385ff429863c19d6",
+  "20acedec8054b1f9e2be99b3b082b2658ea33c67ac5dc4fddcda19a40ae0691c",
+  "3f626dea48903fc7fb1637a1df6edac7c9dac16da368537b06502e92d8c1431c",
+  "1c89c15dafa3827b61e1a9096e567163c5b401aeb7c3bd2beae84c017e02397a",
+  "86e78535441184508cb523f013770fa02908c55703a04df2709d2db8dde1f7af",
+  "066394158c2275996a4bbae838c9c080f7efabd6c4105cac0608bb3eb4360914",
+  "85fcaf6eeab83b838cb946de5894e018c5407f69e689b70beba79c88b616ce7d",
+  "f8386e7e033f371befcaa55eddfe1f72e3fe21d99d4a3f076f7c5f0569f1e48b",
+  "b5e86205c2a1958504257ab85f5e015a25693805c144e692395fee2df532c032",
+  "9a34adb83ab39250286f2d117e89427ef97b81ce044e93d2d92d8381764bd375",
+  "97a7125156533c7c98bc85adbfbc1029626b4dcc4d9c68866483488d9f1c7888",
 ] as const;
 
 describe("unarmed damage control (P-1 ticket 09)", () => {
-  it("unarmed baseline #2: damage control wired in an unarmed battle with shell-started fires (quiet until ticket 10)", () => {
+  it("unarmed baseline #2: damage control wired in an unarmed battle with persisted shell-started fires (ticket 10)", () => {
     // Unarmed in the torpedo sense, yet the damage-control stage is wired.
     const unarmedProjection = projectBattle({
       ...FIRE_BASELINE_INPUT,

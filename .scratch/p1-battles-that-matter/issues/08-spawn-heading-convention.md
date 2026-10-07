@@ -4,7 +4,7 @@
 
 **Status:** ready-for-agent
 
-**Frontier:** no
+**Frontier:** yes
 
 `computeInitialMovementStates` labels 90/270 as east/west, but `directionBp` uses 0 = +X.
 Auto-resolution overrides it (ADR-0046). Fix at the source, and re-pin the B-2..B-6 no-op

@@ -90,11 +90,17 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     // 88d409ac... -> 74d2dfe7...; minute 1 cab4b696... -> cfe97211...; last
     // minute b0cb413a... -> 97c94150...; battle still ends no_viable_combatants
     // at minute 18.
+    // Re-pinned for ticket 10 / ADR-0050 (shell-created fire/flooding sources
+    // persisted into ShipDamageState; step 8.6 progresses them): RESULT
+    // 74d2dfe7... -> e017125e...; minutes 0-2 byte-identical (minute 1 is still
+    // cfe97211...), minutes 3-17 changed; the battle now ends no_viable_combatants
+    // at minute 14 (was 18) because persisted fires/flooding sink ships sooner;
+    // last minute 97c94150... -> 0493ad21....
     const result = resolveBattleAuto(makeAutoInput());
     expect(result.battleEndReason).toBe("no_viable_combatants");
-    expect(result.elapsedMinutes).toBe(18);
+    expect(result.elapsedMinutes).toBe(14);
     expect(result.resultHash).toBe(
-      "74d2dfe77b3348ca475035cc5b638296a8100686cdc0d75cff549c3ca8062a1b",
+      "e017125ea0d2a8b00ed38709ea932cbcaffae070151d2b95b29d3f93f2a4ba17",
     );
     expect(result.minuteHashes[0]).toBe(
       "704d9118704bb7ff99215a06c9eabcbda043c21f897e87accd311494f0c8f218",
@@ -103,7 +109,7 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
       "cfe97211b8387654f49b33f273cd294cfda133c9e9ade3fe595867f5d8654b15",
     );
     expect(result.minuteHashes[result.minuteHashes.length - 1]).toBe(
-      "97c9415046f0419eb8034a1ec16e33828fb440a16e486cac57b1bbed8517708e",
+      "0493ad21d340cd1f1bb513b6fbd100ecbe79535d62fec3370f6b82d65c8b3bd7",
     );
   });
 
