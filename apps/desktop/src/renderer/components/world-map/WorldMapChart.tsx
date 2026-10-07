@@ -14,6 +14,7 @@
 import { useMemo } from "react";
 import { Button } from "../ui/button.js";
 import { CoastlineCanvas } from "./CoastlineCanvas.js";
+import { MapMinimap } from "./MapMinimap.js";
 import { MapScaleBar } from "./MapScaleBar.js";
 import { buildOwnershipRows, describeArea } from "./map-a11y.js";
 import { AREAS, AREAS_BY_ID, EDGES, FLEETS, PASSAGES_BY_ID, POSSESSIONS } from "./fixture-world.js";
@@ -277,7 +278,7 @@ export function WorldMapChart({
       {coastline.status !== "ready" && (
         <div
           role="status"
-          className="absolute bottom-16 right-3 z-10 rounded-md border px-2.5 py-1 text-xs"
+          className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-md border px-2.5 py-1 text-xs"
           style={{
             background: "oklch(0.16 0.025 245 / 0.85)",
             borderColor: "oklch(0.4 0.02 245)",
@@ -544,15 +545,28 @@ export function WorldMapChart({
         </tbody>
       </table>
 
-      <div
-        className="pointer-events-none absolute bottom-3 right-3 rounded-md border px-2.5 py-1.5 backdrop-blur"
-        style={{
-          background: "oklch(0.16 0.025 245 / 0.85)",
-          borderColor: "oklch(0.4 0.02 245)",
-          color: CHART.ink,
-        }}
-      >
-        <MapScaleBar camera={camera} worldWidth={projection.width} />
+      <div className="absolute bottom-3 right-3 flex flex-col items-end gap-2">
+        {coastline.status === "ready" && (
+          <MapMinimap
+            camera={camera}
+            projection={projection}
+            centre={state.centre}
+            polygons={coastline.polygons}
+            land={CHART.land}
+            ocean={CHART.ocean}
+            ink={CHART.ink}
+          />
+        )}
+        <div
+          className="pointer-events-none rounded-md border px-2.5 py-1.5 backdrop-blur"
+          style={{
+            background: "oklch(0.16 0.025 245 / 0.85)",
+            borderColor: "oklch(0.4 0.02 245)",
+            color: CHART.ink,
+          }}
+        >
+          <MapScaleBar camera={camera} worldWidth={projection.width} />
+        </div>
       </div>
 
       {/* Chrome: a floating toolbar, chart-styled rather than app-styled — a

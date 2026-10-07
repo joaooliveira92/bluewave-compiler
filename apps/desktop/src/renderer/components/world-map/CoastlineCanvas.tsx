@@ -207,7 +207,7 @@ export function CoastlineCanvas({
       {!supported && (
         <div
           role="alert"
-          className="absolute bottom-16 right-3 z-10 rounded-md border px-2.5 py-1 text-xs"
+          className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-md border px-2.5 py-1 text-xs"
           style={{
             background: "oklch(0.16 0.025 245 / 0.85)",
             borderColor: "oklch(0.55 0.15 25)",
