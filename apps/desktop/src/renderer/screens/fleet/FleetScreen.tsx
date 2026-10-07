@@ -4,12 +4,13 @@ import { Ship } from "lucide-react";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
 import { Separator } from "../../components/ui/separator.js";
-import { pendingRouteFor } from "./fleet-screen-state.js";
+import { DEFERRED_SUBMARINE_ITEMS, pendingRouteFor } from "./fleet-screen-state.js";
 import { useFleetScreen } from "./hooks/useFleetScreen.js";
 import { DivisionPicker } from "./components/DivisionPicker.js";
 import { GeographyCard } from "./components/GeographyCard.js";
 import { OrderSection } from "./components/OrderSection.js";
 import { humanizeId } from "../../lib/humanize-id.js";
+import { DeferredFeaturesPanel } from "../../components/shared/DeferredFeaturesPanel.js";
 import { WorldMapPanel } from "../../components/world-map/WorldMapPanel.js";
 import { MovementCommandsTable } from "./components/MovementCommandsTable.js";
 import { LoadErrorCard } from "./components/LoadErrorCard.js";
@@ -129,6 +130,11 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
         areaName={areaName}
       />
       <Separator />
+      <DeferredFeaturesPanel
+        items={DEFERRED_SUBMARINE_ITEMS}
+        testId="submarines-deferred"
+        title="Submarines — not yet modelled by the engine"
+      />
       <MovementCommandsTable
         commands={state.movementCommands}
         areaName={areaName}

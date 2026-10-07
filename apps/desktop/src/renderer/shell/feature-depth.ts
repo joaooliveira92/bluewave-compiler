@@ -47,8 +47,10 @@ export const FEATURE_DEPTH: readonly FeatureDepthEntry[] = [
   // Planned — RTW3 parity (F-*). Paths are the budgeted placement.
   // War scores + the explicit "not modelled" list live on the Diplomacy screen.
   { feature: "war-panel", screen: "diplomacy", path: ["Diplomacy & War"] },
-  { feature: "intel", screen: null, planned: true, path: ["Diplomacy & War", "Intel", "Report"] },
-  { feature: "submarines", screen: null, planned: true, path: ["Fleet", "Submarines"] },
+  // Shown as an explicit "not modelled" panel (docs/research/rtw3-intel-and-submarines-engine-surface.md).
+  { feature: "intel", screen: "diplomacy", path: ["Diplomacy & War"] },
+  // Shown as an explicit "not modelled" panel (docs/research/rtw3-intel-and-submarines-engine-surface.md).
+  { feature: "submarines", screen: "fleet", path: ["Fleet"] },
   {
     feature: "coastal-forts",
     screen: null,

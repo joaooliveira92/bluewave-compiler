@@ -21,10 +21,12 @@ import { NATION_DOSSIER_FIELDS } from "../../content/nationDossierFields.js";
 import { nationIdToCountryId } from "../new-game/nation-selection/slotBridge.js";
 import { humanizeId } from "../../lib/humanize-id.js";
 import { DEBUG_MODE } from "../../shell/debug-flag.js";
-import { WarDeferredPanel } from "./components/WarDeferredPanel.js";
+import { DeferredFeaturesPanel } from "../../components/shared/DeferredFeaturesPanel.js";
 import { WarScoreBar } from "./components/WarScoreBar.js";
 import { useDiplomacyScreen } from "./hooks/useDiplomacyScreen.js";
 import {
+  DEFERRED_INTEL_ITEMS,
+  DEFERRED_WAR_ITEMS,
   RELATION_LABELS,
   diplomacyLegalActions,
   tensionBadgeLabel,
@@ -181,6 +183,11 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
           Commands are validated by the engine when submitted — a rejected command shows the
           engine's code, never a fabricated message.
         </p>
+        <DeferredFeaturesPanel
+          items={DEFERRED_INTEL_ITEMS}
+          testId="intel-deferred"
+          title="Intelligence — not yet modelled by the engine"
+        />
       </GlassSection>
 
       <GlassSection
@@ -247,7 +254,7 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
             ))}
           </div>
         )}
-        <WarDeferredPanel />
+        <DeferredFeaturesPanel items={DEFERRED_WAR_ITEMS} testId="war-deferred" />
       </GlassSection>
 
       <GlassSection

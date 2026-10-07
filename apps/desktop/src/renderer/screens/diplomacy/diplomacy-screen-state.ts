@@ -4,6 +4,7 @@ import type {
 } from "../../../shared/diplomacy-contract.js";
 import { tensionLabel, type DiplomacyRelationKind } from "@bluewave/campaign-engine";
 import { describeRejection } from "../../lib/command-screen-workflow.js";
+import type { DeferredFeature } from "../../components/shared/DeferredFeaturesPanel.js";
 import { humanizeId } from "../../lib/humanize-id.js";
 
 /**
@@ -351,18 +352,12 @@ export function warScoreSplit(war: {
   return { yours, enemy, yourShare: total === 0 ? 0.5 : Math.max(0, yours) / total };
 }
 
-export interface DeferredWarItem {
-  readonly id: string;
-  readonly name: string;
-  readonly reason: string;
-}
-
 /**
  * RTW3 war-panel items the engine cannot supply yet (docs/research/
  * rtw3-war-panel-engine-surface.md). Shown as an explicit "not modelled" list —
  * never as numbers or controls that look real.
  */
-export const DEFERRED_WAR_ITEMS: readonly DeferredWarItem[] = [
+export const DEFERRED_WAR_ITEMS: readonly DeferredFeature[] = [
   {
     id: "trade-protection",
     name: "Trade protection",
@@ -382,5 +377,28 @@ export const DEFERRED_WAR_ITEMS: readonly DeferredWarItem[] = [
     id: "invasion",
     name: "Invasion planning",
     reason: "Invasions exist only as a battle mission type, not as a campaign plan.",
+  },
+];
+
+/**
+ * RTW3 intelligence items the engine cannot supply yet (docs/research/
+ * rtw3-intel-and-submarines-engine-surface.md). Relations, tension and "likely
+ * rival" are real and already shown above.
+ */
+export const DEFERRED_INTEL_ITEMS: readonly DeferredFeature[] = [
+  {
+    id: "intel-levels",
+    name: "Intelligence level per nation",
+    reason: "Campaign state has only an empty intelligence placeholder.",
+  },
+  {
+    id: "intel-spending",
+    name: "Intelligence spending",
+    reason: "There is no intelligence budget line in the economy yet.",
+  },
+  {
+    id: "intel-reports",
+    name: "Intelligence reports",
+    reason: "No report model exists; relations and tension above are the real foreign picture.",
   },
 ];

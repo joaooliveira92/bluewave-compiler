@@ -5,6 +5,7 @@ import {
   RELATION_LABELS,
   tensionBadgeLabel,
   warScoreSplit,
+  DEFERRED_INTEL_ITEMS,
   DEFERRED_WAR_ITEMS,
   diplomacyBeginAction,
   diplomacyBeginLoading,
@@ -384,5 +385,16 @@ describe("DEFERRED_WAR_ITEMS", () => {
       "invasion",
     ]);
     expect(DEFERRED_WAR_ITEMS.every((i) => i.reason.length > 20)).toBe(true);
+  });
+});
+
+describe("DEFERRED_INTEL_ITEMS", () => {
+  it("lists the unsupported intelligence items with reasons and unique ids", () => {
+    expect(DEFERRED_INTEL_ITEMS.map((i) => i.id)).toEqual([
+      "intel-levels",
+      "intel-spending",
+      "intel-reports",
+    ]);
+    expect(DEFERRED_INTEL_ITEMS.every((i) => i.reason.length > 20)).toBe(true);
   });
 });

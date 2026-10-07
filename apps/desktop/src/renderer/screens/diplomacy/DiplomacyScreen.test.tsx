@@ -198,6 +198,20 @@ describe("DiplomacyScreen", () => {
     expect(panel.textContent).not.toMatch(/\d+\s*(of|\/)\s*\d+/);
   });
 
+  it("shows intelligence as not modelled, while relations stay real", () => {
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    const panel = screen.getByTestId("intel-deferred");
+    expect(panel.textContent).toContain("not yet modelled by the engine");
+    for (const name of [
+      "Intelligence level per nation",
+      "Intelligence spending",
+      "Intelligence reports",
+    ]) {
+      expect(panel.textContent).toContain(name);
+    }
+    expect(screen.getByText("tension 9/10")).not.toBeNull();
+  });
+
   it("renders honest empty states (no wars / no blockades) without fabrication", () => {
     const empty = makeLoaded({
       wars: [],
