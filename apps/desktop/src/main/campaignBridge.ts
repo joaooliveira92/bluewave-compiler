@@ -11,7 +11,16 @@ import {
   SetResearchPriorityCommandPayloadSchema,
   SubmitDiplomacyCommandPayloadSchema,
   WriteUiStatePayloadSchema,
+  BattleIdPayloadSchema,
+  GenerateBattlePayloadSchema,
+  ResolveTacticalBattlePayloadSchema,
 } from "./campaignCommandSchemas.js";
+import {
+  generateBattle,
+  replayBattleBoundary,
+  resolveBattle,
+  resolveTacticalBattle,
+} from "./commands/battleSandboxCommands.js";
 import { commitMonth } from "./commands/commitMonth.js";
 import { compileCampaign, defaultCompileCampaignDeps } from "./commands/compileCampaign.js";
 import {
@@ -235,6 +244,39 @@ export async function dispatchCampaignCommand(
         return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
       }
       return cancelConstructionCommand(parsedPayload.data);
+    }
+
+    // Tactical Sandbox (debug builds only; each command rejects DEBUG_ONLY otherwise).
+    case "generateBattle": {
+      const parsedPayload = GenerateBattlePayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return generateBattle(parsedPayload.data);
+    }
+
+    case "resolveBattle": {
+      const parsedPayload = BattleIdPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return resolveBattle(parsedPayload.data);
+    }
+
+    case "resolveTacticalBattle": {
+      const parsedPayload = ResolveTacticalBattlePayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return resolveTacticalBattle(parsedPayload.data as never);
+    }
+
+    case "replayBattleBoundary": {
+      const parsedPayload = BattleIdPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return replayBattleBoundary(parsedPayload.data);
     }
 
     default:

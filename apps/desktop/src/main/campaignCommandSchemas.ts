@@ -161,3 +161,21 @@ export const WriteUiStatePayloadSchema = z.object({
   dismissedFingerprints: z.array(z.string().min(1).max(256)).max(64),
   firstMonthInspection: FirstMonthInspectionSchema.optional(),
 });
+
+/** Tactical Sandbox payloads (debug-only; ADR-0055). */
+export const GenerateBattlePayloadSchema = z.object({
+  sessionId: z.string().min(1),
+  warId: z.string().min(1),
+  areaId: z.string().min(1).optional(),
+  strengthScale: z.number().int().min(1).max(1000).optional(),
+});
+
+export const BattleIdPayloadSchema = z.object({
+  sessionId: z.string().min(1),
+  battleId: z.string().min(1),
+});
+
+export const ResolveTacticalBattlePayloadSchema = BattleIdPayloadSchema.extend({
+  turnCount: z.number().int().positive(),
+  scriptedOrders: z.array(z.unknown()),
+});

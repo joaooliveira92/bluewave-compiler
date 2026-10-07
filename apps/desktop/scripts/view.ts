@@ -9,7 +9,7 @@
  *                                        [--advance N] [--settle MS] [--tour]
  *                                        [--make-save DIR]
  *
- * --click "TEXT @last" clicks the last match instead of the first.
+ * --click "TEXT @last" / "TEXT @N" clicks the last / Nth (0-based) match instead of the first.
  * --advance   clicks "Advance Month" N times, in order with the other actions (repeatable).
  * --settle    extra wait (ms) once, right before capture (--wait is per action).
  * --tour      leave the first-month guided tour overlay alone (default: dismiss it).
@@ -106,14 +106,20 @@ try {
     if (kind === "click") {
       // Prefer an accessible role/name match (waiting for it to render, e.g. after
       // a compile), fall back to any visible text.
-      // "TEXT @last" targets the last match instead of the first (e.g. a pinned
-      // action bar whose button repeats a label used by rows above it).
-      const wantLast = arg.endsWith(" @last");
-      const label = wantLast ? arg.slice(0, -" @last".length) : arg;
+      // "TEXT @last" / "TEXT @N" target the last / Nth (0-based) match instead of the
+      // first (e.g. one row's button among many with the same label).
+      const suffix = /^(.*) @(last|\d+)$/.exec(arg);
+      const label = suffix ? (suffix[1] as string) : arg;
       const matches = h.page
         .getByRole("button", { name: label })
         .or(h.page.getByRole("link", { name: label }));
-      const byRole = wantLast ? matches.last() : matches.first();
+      const which = suffix?.[2];
+      const byRole =
+        which === undefined
+          ? matches.first()
+          : which === "last"
+            ? matches.last()
+            : matches.nth(Number(which));
       const appeared = await byRole
         .waitFor({ timeout: 30_000 })
         .then(() => true)

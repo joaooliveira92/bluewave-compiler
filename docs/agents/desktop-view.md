@@ -45,9 +45,23 @@ next control name). For multi-step flows that need real logic, write a spec in `
 
 Tactical Sandbox and Debugging & Telemetry only exist in a debug build (`VITE_BLUEWAVE_DEBUG=true`, ADR-0029).
 From the repo root, `pnpm snap:debug <flags>` builds that way and runs `snap`; plain `pnpm snap` rebuilds
-the normal build, so the two do not interfere. Note: as of 2026-10-07 the sandbox's "Generate Engagement"
-returns `NOT_IMPLEMENTED` (the `generateBattle` bridge command is not wired), so battles cannot be
-produced on demand yet; see `.scratch/desktop-ui-audit/issues/01-first-visual-sweep-findings.md` (#12).
+the normal build, so the two do not interfere. Always finish with `pnpm snap` (or `pnpm build`) before
+running `pnpm test:e2e`, so the specs run against the normal build.
+
+**Generate and resolve a battle** (ADR-0055). Needs a campaign package (`--make-save`) and a war:
+
+```bash
+pnpm snap:debug --save /tmp/bw-save \
+  --click "Diplomacy & War" --click "Declare war @2" --click "Declare war @last" --advance 1 \
+  --click "Tactical Sandbox" --fill "War ID=war_uk_france_1880-01" \
+  --click "Generate Engagement" --click "Auto-Resolve" --settle 1500
+```
+
+- `Declare war @2` is the third row (France); `Declare war @last` is the pinned queue bar's button.
+- The war id is `war_<attacker>_<defender>_1880-01`; a wrong id lists the known wars in the error.
+- The sandbox runs on a temporary copy of the campaign (fleets co-located, strength scaled for the
+  eligibility floors); the result's notices say exactly what was changed. The campaign is untouched.
+- "Run Tactical Resolver" and "Replay Boundary" reject with an explanation: they need the B-6 orchestrator.
 
 ## Idle-render check
 

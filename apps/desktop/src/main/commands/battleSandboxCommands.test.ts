@@ -1,0 +1,358 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { CampaignSnapshot, CampaignState, WarDeclaration } from "@bluewave/campaign";
+import { createEnvelope } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { SaveStore } from "@bluewave/persistence";
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+import {
+  clearCampaignSessionsForTest,
+  getCampaignSession,
+  registerCampaignSession,
+} from "../campaignSessions.js";
+import { commitMonth } from "./commitMonth.js";
+import { compileProductionCampaign } from "../compiler.js";
+import { toSaveableState } from "../saveHelpers.js";
+import {
+  clearBattleSandboxForTest,
+  colocateWarSides,
+  excludeUndesignedShips,
+  generateBattle,
+  replayBattleBoundary,
+  resolveBattle,
+  resolveTacticalBattle,
+  type BattleSandboxDeps,
+} from "./battleSandboxCommands.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PRODUCTION_PACK = resolve(__dirname, "../../../../..", "content", "production", "1880");
+
+const ON: BattleSandboxDeps = { debugEnabled: () => true };
+const OFF: BattleSandboxDeps = { debugEnabled: () => false };
+const WAR_ID = "war_uk_france_1880-01";
+
+describe("battle sandbox commands (ADR-0055)", () => {
+  let saveRoot: string;
+
+  beforeEach(() => {
+    saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-battle-sandbox-"));
+  });
+
+  afterEach(() => {
+    rmSync(saveRoot, { recursive: true, force: true });
+    clearCampaignSessionsForTest();
+    clearBattleSandboxForTest();
+  });
+
+  function activeWar(status: WarDeclaration["status"] = "ACTIVE"): WarDeclaration {
+    return {
+      id: WAR_ID,
+      attackerSideId: "side_uk",
+      defenderSideId: "side_france",
+      attackerSideMembers: ["uk"],
+      defenderSideMembers: ["france"],
+      attackerWarScore: 0,
+      defenderWarScore: 0,
+      attackerId: "uk",
+      defenderId: "france",
+      startDate: "1880-01",
+      status,
+    };
+  }
+
+  function registerSession(
+    sessionId: string,
+    patch?: (snapshot: CampaignSnapshot) => void,
+  ): CampaignState {
+    const output = compileProductionCampaign(
+      PRODUCTION_PACK,
+      new AbortController().signal,
+      new DiagnosticCollector(),
+    );
+    if (!output) throw new Error("production pack failed to compile");
+    const snapshot = structuredClone(output.state.snapshot);
+    if (patch) patch(snapshot);
+    const state: CampaignState = {
+      snapshot,
+      envelope: createEnvelope("campaign-snapshot", snapshot.compatibilityVersion, snapshot),
+      rawHash: "",
+    };
+    const saveable = toSaveableState(state);
+    const saveDir = resolve(saveRoot, sessionId);
+    new SaveStore().save(saveable, saveDir);
+    registerCampaignSession({
+      sessionId,
+      saveDir,
+      playerSlotId: "uk",
+      campaignSeed: "a".repeat(32),
+      month: { month: 1, year: 1880 },
+      state: saveable,
+    });
+    return saveable;
+  }
+
+  const withWar = (snapshot: CampaignSnapshot) => {
+    snapshot.wars = { ...snapshot.wars, wars: [activeWar()] };
+  };
+
+  /** A session with an ACTIVE UK-France war and one committed month (so strategic weather exists). */
+  async function warSessionWithWeather(sessionId: string): Promise<void> {
+    registerSession(sessionId, withWar);
+    const committed = await commitMonth({
+      sessionId,
+      expectedRevision: 0,
+      transportRequestId: `commit-${sessionId}`,
+    });
+    expect(committed.outcome).toBe("success");
+  }
+
+  async function generated(sessionId: string, extra: { strengthScale?: number } = {}) {
+    const result = await generateBattle({ sessionId, warId: WAR_ID, ...extra }, ON);
+    if (result.outcome !== "success") {
+      throw new Error(`generate failed: ${result.outcome} ${JSON.stringify(result)}`);
+    }
+    return result.value.manifest;
+  }
+
+  describe("debug gate (R4)", () => {
+    it("rejects every command with DEBUG_ONLY in a non-debug build", async () => {
+      registerSession("s1", withWar);
+      const results = await Promise.all([
+        generateBattle({ sessionId: "s1", warId: WAR_ID }, OFF),
+        resolveBattle({ sessionId: "s1", battleId: "b" }, OFF),
+        resolveTacticalBattle(
+          { sessionId: "s1", battleId: "b", turnCount: 1, scriptedOrders: [] },
+          OFF,
+        ),
+        replayBattleBoundary({ sessionId: "s1", battleId: "b" }, OFF),
+      ]);
+      for (const result of results) {
+        expect(result).toMatchObject({ outcome: "rejected", reason: "DEBUG_ONLY" });
+      }
+    });
+  });
+
+  describe("generateBattle rejections (R1: never NOT_IMPLEMENTED)", () => {
+    it("reports SESSION_NOT_FOUND for an unknown session", async () => {
+      expect(await generateBattle({ sessionId: "nope", warId: WAR_ID }, ON)).toMatchObject({
+        outcome: "error",
+        reason: "SESSION_NOT_FOUND",
+      });
+    });
+
+    it("reports WAR_NOT_FOUND and tells the player how to get a war when there are none", async () => {
+      registerSession("s1");
+      const result = await generateBattle({ sessionId: "s1", warId: WAR_ID }, ON);
+      expect(result).toMatchObject({ outcome: "rejected", reason: "WAR_NOT_FOUND" });
+      expect(JSON.stringify(result)).toMatch(/declare war/i);
+    });
+
+    it("lists the known wars when the requested one does not exist", async () => {
+      registerSession("s1", withWar);
+      const result = await generateBattle({ sessionId: "s1", warId: "war_other" }, ON);
+      expect(result).toMatchObject({ outcome: "rejected", reason: "WAR_NOT_FOUND" });
+      expect(JSON.stringify(result)).toContain(WAR_ID);
+    });
+
+    it("reports WAR_NOT_ACTIVE for a war that has ended", async () => {
+      registerSession("s1", (snapshot) => {
+        snapshot.wars = {
+          ...snapshot.wars,
+          wars: [activeWar("ENDED" as WarDeclaration["status"])],
+        };
+      });
+      expect(await generateBattle({ sessionId: "s1", warId: WAR_ID }, ON)).toMatchObject({
+        outcome: "rejected",
+        reason: "WAR_NOT_ACTIVE",
+      });
+    });
+
+    it("documents the strength-floor finding: with real strengths (scale 1) no battle is eligible", async () => {
+      registerSession("s1", withWar);
+      const result = await generateBattle({ sessionId: "s1", warId: WAR_ID, strengthScale: 1 }, ON);
+      expect(result).toMatchObject({ outcome: "rejected", reason: "NO_ELIGIBLE_BATTLE" });
+    });
+
+    it("rejects an area the defender has no ships in", async () => {
+      registerSession("s1", withWar);
+      const result = await generateBattle(
+        { sessionId: "s1", warId: WAR_ID, areaId: "africa_cape" },
+        ON,
+      );
+      expect(result).toMatchObject({ outcome: "rejected", reason: "AREA_NOT_DEFENDED" });
+    });
+  });
+
+  describe("excludeUndesignedShips", () => {
+    it("treats ships with no compiled design as unavailable on a copy and reports them", () => {
+      const output = compileProductionCampaign(
+        PRODUCTION_PACK,
+        new AbortController().signal,
+        new DiagnosticCollector(),
+      );
+      if (!output) throw new Error("compile failed");
+      const snapshot = output.state.snapshot;
+      const before = structuredClone(snapshot);
+      const result = excludeUndesignedShips(snapshot);
+      expect(result.excluded).toContain("gbr_malta_temp");
+      expect(snapshot).toEqual(before);
+      const ship = result.snapshot.nations
+        .get("uk")!
+        .fleets.flatMap((f) => f.ships)
+        .find((s) => s.id === "gbr_malta_temp")!;
+      expect(ship.isUnderConstruction).toBe(true);
+    });
+  });
+
+  describe("colocateWarSides", () => {
+    function snapshotOf(): CampaignSnapshot {
+      const output = compileProductionCampaign(
+        PRODUCTION_PACK,
+        new AbortController().signal,
+        new DiagnosticCollector(),
+      );
+      if (!output) throw new Error("compile failed");
+      return output.state.snapshot;
+    }
+
+    it("moves completed attacker ships into the defender's area without mutating the input", () => {
+      const snapshot = snapshotOf();
+      const before = structuredClone(snapshot);
+      const result = colocateWarSides(snapshot, "uk", "france", undefined);
+      if ("error" in result) throw new Error(result.error);
+      expect(result.moved).toBe(true);
+      expect(snapshot).toEqual(before);
+      const moved = result.snapshot.nations.get("uk")!;
+      for (const fleet of moved.fleets) {
+        expect(fleet.locationAreaId).toBe(result.areaId);
+        for (const ship of fleet.ships) {
+          if (!ship.isUnderConstruction) expect(ship.locationAreaId).toBe(result.areaId);
+        }
+      }
+      // Ships still under construction are not teleported.
+      const original = snapshot.nations.get("uk")!;
+      const building = original.fleets.flatMap((f) => f.ships).filter((s) => s.isUnderConstruction);
+      for (const ship of building) {
+        const after = moved.fleets.flatMap((f) => f.ships).find((s) => s.id === ship.id)!;
+        expect(after.locationAreaId).toBe(ship.locationAreaId);
+      }
+    });
+
+    it("returns the same snapshot untouched when the sides already share an area", () => {
+      const snapshot = snapshotOf();
+      const first = colocateWarSides(snapshot, "uk", "france", undefined);
+      if ("error" in first) throw new Error(first.error);
+      const again = colocateWarSides(first.snapshot, "uk", "france", undefined);
+      if ("error" in again) throw new Error(again.error);
+      expect(again.moved).toBe(false);
+      expect(again.snapshot).toBe(first.snapshot);
+    });
+
+    it("errors when a side has no completed ships", () => {
+      expect(colocateWarSides(snapshotOf(), "uk", "no_such_nation", undefined)).toMatchObject({
+        error: "NO_DEFENDER_FORCES",
+      });
+    });
+  });
+
+  describe("generateBattle (R2, R3)", () => {
+    it("produces a manifest for a declared war on a temporary scenario", async () => {
+      await warSessionWithWeather("s1");
+      const result = await generateBattle({ sessionId: "s1", warId: WAR_ID }, ON);
+      expect(result.outcome).toBe("success");
+      if (result.outcome !== "success") return;
+      const { manifest } = result.value;
+      expect(manifest.warId).toBe(WAR_ID);
+      expect(manifest.sides.map((s) => s.nationId).sort()).toEqual(["france", "uk"]);
+      expect(manifest.sides.every((s) => s.participants.length > 0)).toBe(true);
+      expect(manifest.manifestHash).toMatch(/^[0-9a-f]{64}$/);
+      // The player is told the scenario is synthetic.
+      expect(result.diagnostics.join(" ")).toMatch(/temporary copy/);
+      expect(result.diagnostics.join(" ")).toMatch(/scaled x100/);
+    });
+
+    it("is deterministic: the same request returns the same manifest hash (R2)", async () => {
+      await warSessionWithWeather("s1");
+      const a = await generated("s1");
+      const b = await generated("s1");
+      expect(a.manifestHash).toBe(b.manifestHash);
+      expect(a.battleId).toBe(b.battleId);
+    });
+
+    it("never changes the campaign snapshot, its hash or its saves (R3)", async () => {
+      await warSessionWithWeather("s1");
+      const record = getCampaignSession("s1")!;
+      const snapshotBefore = structuredClone(record.state.snapshot);
+      const stateBefore = record.state;
+      const manifest = await generated("s1");
+      await resolveBattle({ sessionId: "s1", battleId: manifest.battleId }, ON);
+      const after = getCampaignSession("s1")!;
+      expect(after.state).toBe(stateBefore);
+      expect(after.state.snapshot).toEqual(snapshotBefore);
+    });
+  });
+
+  describe("resolveBattle (R5)", () => {
+    it("requires a generated battle", async () => {
+      await warSessionWithWeather("s1");
+      expect(await resolveBattle({ sessionId: "s1", battleId: "battle_x" }, ON)).toMatchObject({
+        outcome: "rejected",
+        reason: "BATTLE_NOT_GENERATED",
+      });
+    });
+
+    it("explains that weather is missing before any month has been advanced", async () => {
+      registerSession("s1", withWar);
+      const manifest = await generated("s1");
+      const result = await resolveBattle({ sessionId: "s1", battleId: manifest.battleId }, ON);
+      expect(result).toMatchObject({ outcome: "rejected", reason: "NO_STRATEGIC_WEATHER" });
+      expect(JSON.stringify(result)).toMatch(/advance a month/);
+    });
+
+    it("auto-resolves a generated battle into a partitioned, deterministic result", async () => {
+      await warSessionWithWeather("s1");
+      const manifest = await generated("s1");
+      const request = { sessionId: "s1", battleId: manifest.battleId };
+      const first = await resolveBattle(request, ON);
+      expect(first.outcome).toBe("success");
+      if (first.outcome !== "success") return;
+      const { resolution } = first.value;
+      expect(resolution.battleId).toBe(manifest.battleId);
+      expect([null, "uk", "france"]).toContain(resolution.missionOutcome.winner);
+      expect(resolution.missionOutcome.outcomeKind.length).toBeGreaterThan(0);
+      // Every participating ship is reported exactly once, survived or sunk.
+      const reported = [...resolution.attacker.ships, ...resolution.defender.ships].map(
+        (s) => s.shipId,
+      );
+      const participants = manifest.sides.flatMap((side) => side.participants.map((p) => p.shipId));
+      expect([...reported].sort()).toEqual([...participants].sort());
+      expect(new Set(reported).size).toBe(reported.length);
+      for (const ship of [...resolution.attacker.ships, ...resolution.defender.ships]) {
+        expect(["survived", "sunk"]).toContain(ship.outcome);
+      }
+      // No campaign state is applied, and the result says so.
+      expect(resolution.warScoreChange).toBe(0);
+      expect(first.diagnostics.join(" ")).toMatch(/no campaign state was changed/);
+
+      const second = await resolveBattle(request, ON);
+      expect(second).toEqual(first);
+    });
+  });
+
+  describe("tactical commands without an orchestrator", () => {
+    it("rejects scripted tactical resolution and boundary replay honestly (not NOT_IMPLEMENTED)", async () => {
+      expect(
+        await resolveTacticalBattle(
+          { sessionId: "s1", battleId: "b", turnCount: 1, scriptedOrders: [] },
+          ON,
+        ),
+      ).toMatchObject({ outcome: "rejected", reason: "TACTICAL_RESOLUTION_UNAVAILABLE" });
+      expect(await replayBattleBoundary({ sessionId: "s1", battleId: "b" }, ON)).toMatchObject({
+        outcome: "rejected",
+        reason: "BOUNDARY_REPLAY_UNAVAILABLE",
+      });
+    });
+  });
+});

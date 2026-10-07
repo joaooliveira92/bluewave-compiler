@@ -59,3 +59,4 @@ Refresh this table from each file's H1 when one is added or re-titled.
 | 0052 | [ADR-0052-p1-cause-of-loss.md](ADR-0052-p1-cause-of-loss.md) | P-1 — Per-Ship Cause of Loss in Battle Results |
 | 0053 | [ADR-0053-p1-lethality-tuning.md](ADR-0053-p1-lethality-tuning.md) | P-1 — Auto-Resolution Lethality Tuning |
 | 0054 | [ADR-0054-diplomacy-command-visibility.md](ADR-0054-diplomacy-command-visibility.md) | Diplomacy Command Queue Stays Visible; War Declaration Reads as Irreversible |
+| 0055 | [ADR-0055-desktop-battle-sandbox-scenario.md](ADR-0055-desktop-battle-sandbox-scenario.md) | Desktop Tactical Sandbox Runs on an Ephemeral Scenario Copy |

@@ -16,6 +16,11 @@ const REPO_ROOT = resolve(__dirname, "../../../..");
 const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
 
 const IMPLEMENTED_COMMANDS = new Set([
+  // Tactical Sandbox (ADR-0055): routed, but debug-gated inside the handler.
+  "generateBattle",
+  "resolveBattle",
+  "resolveTacticalBattle",
+  "replayBattleBoundary",
   "listNewGameOptions",
   "compileCampaign",
   "inspectCampaign",
@@ -57,6 +62,37 @@ describe("dispatchCampaignCommand", () => {
       expect(result.outcome).toBe("error");
       if (result.outcome !== "error") continue;
       expect(result.reason).toBe("NOT_IMPLEMENTED");
+    }
+  });
+
+  it("rejects malformed Tactical Sandbox payloads before touching the engine", async () => {
+    for (const [command, payload] of [
+      ["generateBattle", { sessionId: "s" }],
+      ["generateBattle", { sessionId: "s", warId: "w", strengthScale: 0 }],
+      ["resolveBattle", { sessionId: "s" }],
+      [
+        "resolveTacticalBattle",
+        { sessionId: "s", battleId: "b", turnCount: 0, scriptedOrders: [] },
+      ],
+      ["replayBattleBoundary", {}],
+    ] as const) {
+      const result = await dispatchCampaignCommand(command, payload);
+      expect(result).toMatchObject({ outcome: "error", reason: "INVALID_PAYLOAD" });
+    }
+  });
+
+  it("answers valid Tactical Sandbox commands with DEBUG_ONLY outside a debug build (R4)", async () => {
+    for (const [command, payload] of [
+      ["generateBattle", { sessionId: "s", warId: "w" }],
+      ["resolveBattle", { sessionId: "s", battleId: "b" }],
+      [
+        "resolveTacticalBattle",
+        { sessionId: "s", battleId: "b", turnCount: 1, scriptedOrders: [] },
+      ],
+      ["replayBattleBoundary", { sessionId: "s", battleId: "b" }],
+    ] as const) {
+      const result = await dispatchCampaignCommand(command, payload);
+      expect(result).toMatchObject({ outcome: "rejected", reason: "DEBUG_ONLY" });
     }
   });
 

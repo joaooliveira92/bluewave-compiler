@@ -1,7 +1,7 @@
 # Spec: Desktop Tactical Sandbox — generate and view a battle on demand
 
 Slug: `desktop-battle-sandbox`
-Status: draft (written 2026-10-07 from the visual audit, ticket `desktop-ui-audit/issues/01`, #12 and #15)
+Status: implemented for generate + auto-resolve (2026-10-07, ADR-0055, option A). Scripted tactical resolution and boundary replay are deferred to B-6: they reject with a specific reason.
 
 ## Problem
 
@@ -21,7 +21,7 @@ Two findings make this more than plumbing:
    (ticket 10 ruling), and eight months at war (UK vs Austria-Hungary) produced "No battles resolved".
    So wiring the bridge alone would answer every request with "no eligible battle".
 
-## Decision needed (record as an ADR when chosen)
+## Decision (taken: option A — see ADR-0055)
 
 How does the debug sandbox get two opposing fleets into one area? Options:
 
@@ -80,3 +80,14 @@ How does the debug sandbox get two opposing fleets into one area? Options:
 
 R1-R6 pass; the decision above is recorded as an ADR; `pnpm check` is green; a `snap:debug` capture of a
 resolved battle is attached to the closing ticket comment.
+
+## Outcome (2026-10-07)
+
+Implemented per ADR-0055. R1-R5 are covered by `battleSandboxCommands.test.ts` (18 tests) and
+`campaignBridge.test.ts`; R6 was verified by a `snap:debug` capture (UK vs France, 2 vs 1 ships,
+auto-resolved). Not done, by design: `resolveTacticalBattle` and `replayBattleBoundary` (they need the
+B-6 tactical-loop orchestrator) — they reject with `TACTICAL_RESOLUTION_UNAVAILABLE` /
+`BOUNDARY_REPLAY_UNAVAILABLE`.
+
+Three findings made the sandbox need more than a bridge command: no contact (movement unimplemented),
+strength floors out of scale with `firepower`, and a ship (`gbr_malta_temp`) with no design. See ADR-0055.

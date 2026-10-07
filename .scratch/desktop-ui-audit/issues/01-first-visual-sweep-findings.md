@@ -58,11 +58,24 @@ churn. Findings, most impactful first. None of these is fixed yet.
 15. Eight months at war (UK vs Austria-Hungary) produced no battle ("No battles resolved this month"),
     so war-triggered auto-resolution is not a practical way to see battle screens.
 
-12. **Tactical Sandbox cannot generate a battle in the desktop app.** In a debug build, "Generate
+12. **[FIXED, ADR-0055] Tactical Sandbox cannot generate a battle in the desktop app.** In a debug build, "Generate
     Engagement" returns `NOT_IMPLEMENTED`: `generateBattle` has no case in
     `apps/desktop/src/main/campaignBridge.ts` (it falls through to the stub). The sandbox UI and the
     renderer provider exist; the bridge command does not. This is the shortest path to inspecting
     battle screens for the combat-tuning work.
+
+16. **Real turns can never generate a battle (combat/content, not fixed).** The engine's eligibility
+    floors (`FLEET_BATTLE_MIN_STRENGTH` 300, `CRUISER_BATTLE_MIN_STRENGTH` 150) are compared with summed
+    `ship.firepower`, which is ~16-24 per 1880 ship (UK + France combined ~60). Eight months at war
+    produced no battle for this reason. Needs a decision on the strength scale (P-1 / content track).
+    `generateBattle` in the sandbox works around it with `strengthScale` (default 100) and says so.
+17. **Content defect: `gbr_malta_temp` has an empty `designVersionId`** (production pack, UK
+    Mediterranean fleet). `resolveBattleAuto` fails closed on it (`TACTICAL_UNIT_PROMOTION_INVALID`), and
+    the engine's eligibility check never checks for a design, so a real turn that reached it would fall back
+    to the legacy resolver. The sandbox treats such ships as unavailable on its temporary copy.
+18. **Observation for the P-1 balance track:** the first sandbox auto-resolution (UK 2 ships vs France 1
+    ship, `fra_med_coast`, 1880-02) ended `time_limit` with no ship sunk and no winner. Not investigated
+    here; worth a look next to the ADR-0053 sweep, which used 2 BB vs 2 BB.
 
 ## Done when
 
