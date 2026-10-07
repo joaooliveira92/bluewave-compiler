@@ -75,6 +75,17 @@
   --color-sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Tailwind v4 defaults borders to currentColor; restore the themed color. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border);
+  }
+}
+
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);

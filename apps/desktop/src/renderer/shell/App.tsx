@@ -17,7 +17,6 @@ import {
 } from "../components/MonthlyResolutionLoading.js";
 import { PreTurnReviewDialog } from "../components/PreTurnReviewDialog.js";
 import { CampaignFileScreen } from "../screens/campaign-file/CampaignFileScreen.js";
-import { CampaignListScreen } from "../screens/campaign-list/CampaignListScreen.js";
 import { NewGameArchetypeScreen } from "../screens/new-game/NewGameArchetypeScreen.js";
 import { NewGameBriefingScreen } from "../screens/new-game/NewGameBriefingScreen.js";
 import { NewGameCommissioningReviewScreen } from "../screens/new-game/NewGameCommissioningReviewScreen.js";
@@ -201,6 +200,7 @@ function CampaignUnavailableView(props: CampaignUnavailableViewProps) {
           onCancel={props.onBackToNation}
           onNext={props.onPreferencesNext}
           recommendedPreset={props.draft?.recommendedPreset ?? null}
+          onPrimaryActionChange={props.onPrimaryActionChange}
         />
       );
     case "new-game-archetype":
@@ -279,17 +279,15 @@ function CampaignUnavailableView(props: CampaignUnavailableViewProps) {
           sessionId={props.briefingSessionId}
           onInspectOpeningBriefing={props.onInspectOpeningBriefing}
           onTakeCommand={props.onTakeCommand}
+          onPrimaryActionChange={props.onPrimaryActionChange}
         />
       );
     case "file":
       return (
-        <>
-          <CampaignFileView
-            onOpenCampaign={props.onOpenCampaign}
-            onStartNewGame={props.onStartNewGame}
-          />
-          <CampaignListScreen />
-        </>
+        <CampaignFileView
+          onOpenCampaign={props.onOpenCampaign}
+          onStartNewGame={props.onStartNewGame}
+        />
       );
   }
 }
@@ -330,12 +328,14 @@ interface CampaignPreferencesViewProps {
   readonly onCancel: () => void;
   readonly onNext: (preferences: DraftPreferences, options: NewGameOptions) => void;
   readonly recommendedPreset: AdmiralPresetValues | null;
+  readonly onPrimaryActionChange: (action: PrimaryAction | null) => void;
 }
 
 function CampaignPreferencesView({
   onCancel,
   onNext,
   recommendedPreset,
+  onPrimaryActionChange,
 }: CampaignPreferencesViewProps) {
   return (
     <div className="p-8">
@@ -343,6 +343,7 @@ function CampaignPreferencesView({
         onCancel={onCancel}
         onNext={onNext}
         recommendedPreset={recommendedPreset}
+        onPrimaryActionChange={onPrimaryActionChange}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 /* @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { CampaignCommandClient } from "../../shared/campaign-command-contract.js";
@@ -590,11 +590,22 @@ describe("App", () => {
     expect(
       await screen.findByText(/You have been appointed First Sea Lord — United Kingdom/),
     ).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Review Naval Estimates" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Take command" }));
+    // The briefing's forward action lives in the header's primary action.
+    const triggerPrimary = (expectedLabel: string) => {
+      const action = shell.setPrimaryAction.mock.calls.at(-1)?.[0] as
+        | { label: string; onTrigger: () => void }
+        | null
+        | undefined;
+      expect(action?.label).toBe(expectedLabel);
+      act(() => {
+        void action?.onTrigger();
+      });
+    };
+    triggerPrimary("Review Naval Estimates");
+    triggerPrimary("Next");
+    triggerPrimary("Next");
+    triggerPrimary("Next");
+    triggerPrimary("Take command");
     expect(shell.openCampaign).toHaveBeenCalledWith("ses-created");
   });
 

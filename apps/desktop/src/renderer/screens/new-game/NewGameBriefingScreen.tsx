@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Flag, Landmark, Radar } from "lucide-react";
+import { ArrowLeft, Flag, Landmark, Radar } from "lucide-react";
 import type { OpeningBriefingProjection } from "@bluewave/campaign-engine";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -9,6 +9,7 @@ import { NATION_FLAVOR_TEXT } from "../../content/nationFlavorText.js";
 import type { PlayableSlotCountryId } from "../../content/nationAssetManifest.js";
 import { Button } from "../../components/ui/button.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
+import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { formatCampaignMonth, formatTreasury } from "../../shell/site-header-state.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
 import {
@@ -27,6 +28,7 @@ export interface NewGameBriefingScreenProps {
     sessionId: string,
   ) => Promise<BridgeResult<InspectOpeningBriefingResult>>;
   readonly onTakeCommand: () => void;
+  readonly onPrimaryActionChange: SetPrimaryAction;
 }
 
 const EMPTY_PAGE_INDEX = 0;
@@ -229,6 +231,7 @@ export function NewGameBriefingScreen({
   sessionId,
   onInspectOpeningBriefing,
   onTakeCommand,
+  onPrimaryActionChange,
 }: NewGameBriefingScreenProps) {
   const [pageIndex, setPageIndex] = useState(EMPTY_PAGE_INDEX);
   const [projection, setProjection] = useState<OpeningBriefingProjection | null>(null);
@@ -251,6 +254,19 @@ export function NewGameBriefingScreen({
       active = false;
     };
   }, [sessionId, onInspectOpeningBriefing]);
+
+  const ready = projection !== null;
+  const isLastPage = pageIndex === OPENING_BRIEFING_PAGE_COUNT - 1;
+
+  useEffect(() => {
+    if (!ready) return;
+    onPrimaryActionChange({
+      label: isLastPage ? PAGE_LAST_ACTION_LABEL : pageIndex === 0 ? PAGE_1_NEXT_LABEL : "Next",
+      disabled: false,
+      onTrigger: isLastPage ? onTakeCommand : () => setPageIndex(nextPageIndex(pageIndex)),
+    });
+    return () => onPrimaryActionChange(null);
+  }, [ready, isLastPage, pageIndex, onTakeCommand, onPrimaryActionChange]);
 
   if (error !== null) {
     return (
@@ -291,8 +307,6 @@ export function NewGameBriefingScreen({
       <ImmediateConcernsPage projection={projection} />
     );
 
-  const isLastPage = pageIndex === OPENING_BRIEFING_PAGE_COUNT - 1;
-
   return (
     <div className="mx-auto flex h-full max-w-3xl flex-col gap-6 overflow-y-auto p-8">
       <ScreenHeader icon={<Landmark />} title="Opening Strategic Briefing" description={title} />
@@ -319,17 +333,6 @@ export function NewGameBriefingScreen({
           <ArrowLeft className="size-4" aria-hidden="true" />
           Back
         </Button>
-
-        {isLastPage ? (
-          <Button type="button" onClick={onTakeCommand}>
-            {PAGE_LAST_ACTION_LABEL}
-          </Button>
-        ) : (
-          <Button type="button" onClick={() => setPageIndex(nextPageIndex(pageIndex))}>
-            {pageIndex === 0 ? PAGE_1_NEXT_LABEL : "Next"}
-            <ArrowRight className="size-4" aria-hidden="true" />
-          </Button>
-        )}
       </div>
 
       <div
