@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (ADR-0050 records the current next number).
+highest existing number + 1 (ADR-0051 records the current next number).
 Refresh this table from each file's H1 when one is added or re-titled.
 
 | # | File | Title |
@@ -55,3 +55,4 @@ Refresh this table from each file's H1 when one is added or re-titled.
 | 0048 | [ADR-0048-p1-gunnery-fidelity-range-and-gun-count.md](ADR-0048-p1-gunnery-fidelity-range-and-gun-count.md) | P-1 — Auto-Resolution Gunnery Fidelity (True Range + Gun-Count Sensitivity) |
 | 0049 | [ADR-0049-p1-damage-control-in-every-battle.md](ADR-0049-p1-damage-control-in-every-battle.md) | P-1 — Damage Control Runs in Every Auto-Resolved Battle |
 | 0050 | [ADR-0050-p1-persist-shell-fire-flooding.md](ADR-0050-p1-persist-shell-fire-flooding.md) | P-1 — Persist Shell-Created Fire and Flooding Sources |
+| 0051 | [ADR-0051-p1-spawn-heading-convention.md](ADR-0051-p1-spawn-heading-convention.md) | P-1 — Spawn Heading Follows `directionBp` |

@@ -117,10 +117,19 @@ function weatherContext(overrides: Partial<WeatherEngineContext> = {}): WeatherE
 // supplied — zero events appended and minute hashes byte-identical to these
 // literals. Any B-2 movement/spotting change, or a stray weather event on the
 // no-context path, breaks this pin (L1).
+// ADR-0007 re-pin (P-1 ticket 08, spawn heading 90/270 -> 0/180 so the spawn
+// convention matches movement's directionBp). Verified heading-only: forcing the old
+// 90/270 headings onto the new spawn reproduces the OLD hashes exactly. OLD -> NEW:
+//   4fec82834e5434557526c71e075388880b627689084cb5866e85a25069fc693d ->
+//   9dad9e7afe95f50db01c5f320d98ae303f621ae8b3198cd026d49b58ccc1002b
+//   8d5a88b1bb8f43c9fe713900f8040c821b1984e11c66f13b25fedd87bac7c3d1 ->
+//   7364212a3a08d71ca5ef2727c11a009011f0be0e30b2d7f3f132bbf39272a17a
+//   eba05c9b89987d26e0e592c82071193c8a098b5018be7b3cd7b795bb9d3b0e49 ->
+//   c2001463797927b9f5dcb9424f472c17d2fe939d3e38282c1cbe667d6d8d8b20
 const BASELINE_MINUTE_HASHES = [
-  "4fec82834e5434557526c71e075388880b627689084cb5866e85a25069fc693d",
-  "8d5a88b1bb8f43c9fe713900f8040c821b1984e11c66f13b25fedd87bac7c3d1",
-  "eba05c9b89987d26e0e592c82071193c8a098b5018be7b3cd7b795bb9d3b0e49",
+  "9dad9e7afe95f50db01c5f320d98ae303f621ae8b3198cd026d49b58ccc1002b",
+  "7364212a3a08d71ca5ef2727c11a009011f0be0e30b2d7f3f132bbf39272a17a",
+  "c2001463797927b9f5dcb9424f472c17d2fe939d3e38282c1cbe667d6d8d8b20",
 ] as const;
 
 describe("AC-13: weather in minute-advance", () => {

@@ -15,7 +15,7 @@
 //  - an asset on the manifest missing from both nations fails closed with
 //    BATTLE_AUTO_RESOLUTION_FAILED and a stable diagnostic (no partial result);
 //  - movement spawn uses the canonical default area bbox; initial headings
-//    from spawn.ts (attackers east, defenders west).
+//    from spawn.ts (attackers heading 0 = east, defenders 180 = west).
 import { sha256Hex } from "@bluewave/deterministic";
 import { canonicalSerialize } from "@bluewave/deterministic";
 import { BluewaveError } from "@bluewave/contracts";
@@ -153,15 +153,9 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
     })),
   );
 
-  // P-1 / ADR-0046: spawn.ts labels 90/270 as east/west, but movement's
-  // `directionBp` convention is 0 = +X (east), 180 = -X (west); with 90/270 the
-  // sides steamed in parallel along ±Y and never closed. Auto-resolution sets the
-  // closing headings explicitly (spawn.ts is left untouched for its pinned,
-  // direction-agnostic B-2..B-6 baselines — reconciliation is a recorded follow-up).
-  for (const u of units) {
-    const m = movement[u.assetId]!;
-    movement[u.assetId] = { ...m, heading: u.sideId === "ATTACKER" ? 0 : 180 };
-  }
+  // P-1 ticket 08 (supersedes the ADR-0046 override): spawn.ts now follows movement's
+  // `directionBp` convention (0 = +X east, 180 = -X west), so ATTACKER 0 / DEFENDER 180
+  // closing headings come straight from `computeInitialMovementStates`.
 
   // ---- divisions -----------------------------------------------------------
   const divisions: TacticalDivision[] = [];

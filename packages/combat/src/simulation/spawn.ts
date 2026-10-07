@@ -19,8 +19,9 @@ export interface SpawnUnit {
   turningRateMdegS: number;
 }
 
-// Place ATTACKER ships along the west edge heading east (90) and DEFENDER ships
-// along the east edge heading west (270), spread deterministically by index.
+// Heading convention (P-1 ticket 08): movement's `directionBp` uses 0 = +X (east),
+// 180 = -X (west). Place ATTACKER ships along the west edge heading east (0) and
+// DEFENDER ships along the east edge heading west (180), spread deterministically by index.
 // Positions are integer micrometres within the area bbox.
 export function computeInitialMovementStates(
   bbox: AreaBBox,
@@ -49,7 +50,7 @@ export function computeInitialMovementStates(
       };
     });
   };
-  place(attackers, 90, bbox.minX);
-  place(defenders, 270, bbox.maxX);
+  place(attackers, 0, bbox.minX);
+  place(defenders, 180, bbox.maxX);
   return out;
 }

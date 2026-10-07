@@ -294,11 +294,21 @@ export const TORPEDO_SCENE_ORDERS = { a1: { orderedHeading: 0, orderedSpeedBp: 0
 // Captured from the PRE-INC-7 engine (3 minutes of the baseline builder with
 // battleId "baseline-b1" and orders a1 heading90/speed20) and re-confirmed
 // byte-identical after the INC-7 engine change. These literals MUST NOT be
-// regenerated — the strict no-op tests below pin them.
+// regenerated except through the ADR-0007 process (done once: ticket 08, below) — the
+// strict no-op tests below pin them.
+// ADR-0007 re-pin (P-1 ticket 08, spawn heading 90/270 -> 0/180 so the spawn
+// convention matches movement's directionBp). Verified heading-only: forcing the old
+// 90/270 headings onto the new spawn reproduces the OLD hashes exactly. OLD -> NEW:
+//   abdcc6016ddee44ea6846492d39fd2358bb466d5e6d6f39e8e163a28db7bffc2 ->
+//   776d173937a5adf1d8ba5be6ae49ae95a818d6988e3a8fc23176c6dc378990c3
+//   492b9696bae8d386f6622f9f924bb76e342998ebb313ccbd23e6ba5c07a5bfd1 ->
+//   ff4e9f63172d29c4d6a61faf313a46518c47c1bab7a31edc78dbe36a10c2bcf4
+//   84291ea770b87bce659b456f3471f0511c383cd01699d30bde9e68a5763dc5ce ->
+//   341169fb6b084c0758348088849d7a4a70636d9610c9735f71c2802a51f70718
 export const BASELINE_NO_CONTEXT_HASHES = [
-  "abdcc6016ddee44ea6846492d39fd2358bb466d5e6d6f39e8e163a28db7bffc2",
-  "492b9696bae8d386f6622f9f924bb76e342998ebb313ccbd23e6ba5c07a5bfd1",
-  "84291ea770b87bce659b456f3471f0511c383cd01699d30bde9e68a5763dc5ce",
+  "776d173937a5adf1d8ba5be6ae49ae95a818d6988e3a8fc23176c6dc378990c3",
+  "ff4e9f63172d29c4d6a61faf313a46518c47c1bab7a31edc78dbe36a10c2bcf4",
+  "341169fb6b084c0758348088849d7a4a70636d9610c9735f71c2802a51f70718",
 ] as const;
 const OBSERVATION_TIME = "1900-01-01T00:00:00.000Z";
 
