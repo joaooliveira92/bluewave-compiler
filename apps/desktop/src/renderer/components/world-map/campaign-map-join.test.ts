@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { WorldMapView } from "@bluewave/campaign-engine";
-import { CAMPAIGN_AREA_TO_FIXTURE, joinWorldMap } from "./campaign-map-join.js";
+import { CAMPAIGN_AREA_TO_FIXTURE, fixtureAreaId, joinWorldMap } from "./campaign-map-join.js";
 
 /**
  * Authored-join tests: the campaign world (ids from the production pack) must
@@ -182,5 +182,12 @@ describe("CAMPAIGN_AREA_TO_FIXTURE", () => {
     for (const id of coastal) {
       expect(CAMPAIGN_AREA_TO_FIXTURE[id], id).toBeDefined();
     }
+  });
+});
+
+describe("fixtureAreaId", () => {
+  it("returns the polygon a campaign area is drawn on, or null when it has none", () => {
+    expect(fixtureAreaId("eng_home_coast")).toBe("area_north_sea");
+    expect(fixtureAreaId("not_a_real_area")).toBeNull();
   });
 });

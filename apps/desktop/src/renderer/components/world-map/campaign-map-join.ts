@@ -171,6 +171,11 @@ export function campaignNationHue(nationId: string): number {
 }
 
 /** Resolve a campaign nation id to a display label, else the raw id. */
+/** The fixture polygon a campaign area is drawn on, or null if it has none. */
+export function fixtureAreaId(campaignAreaId: string): AreaId | null {
+  return CAMPAIGN_AREA_TO_FIXTURE[campaignAreaId] ?? null;
+}
+
 export function campaignNationLabel(nationId: string): string {
   return NATION_LABEL[nationId] ?? nationId;
 }

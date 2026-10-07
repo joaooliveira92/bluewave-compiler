@@ -10,6 +10,7 @@ import { DivisionPicker } from "./components/DivisionPicker.js";
 import { GeographyCard } from "./components/GeographyCard.js";
 import { OrderSection } from "./components/OrderSection.js";
 import { humanizeId } from "../../lib/humanize-id.js";
+import { WorldMapPanel } from "../../components/world-map/WorldMapPanel.js";
 import { MovementCommandsTable } from "./components/MovementCommandsTable.js";
 import { LoadErrorCard } from "./components/LoadErrorCard.js";
 import { LoadingState } from "./components/LoadingState.js";
@@ -91,12 +92,25 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
         areaName={areaName}
       />
       <Separator />
-      <GeographyCard
-        areas={state.areas}
-        areaEdges={state.areaEdges}
-        ports={state.ports}
-        areaName={areaName}
+      <WorldMapPanel
+        sessionId={sessionId}
+        title="Fleet positions"
+        focusAreaId={selectedDivision?.areaId ?? null}
+        testId="fleet-map-panel"
       />
+      <details className="group rounded-md border px-4 py-3">
+        <summary className="cursor-pointer text-sm font-medium">
+          Reference: areas, routes and ports
+        </summary>
+        <div className="mt-3">
+          <GeographyCard
+            areas={state.areas}
+            areaEdges={state.areaEdges}
+            ports={state.ports}
+            areaName={areaName}
+          />
+        </div>
+      </details>
       <Separator />
       <OrderSection
         areas={state.areas}

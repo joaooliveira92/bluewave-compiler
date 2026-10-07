@@ -23,7 +23,6 @@ export const GeographyCard = memo(function GeographyCard({
 }: GeographyCardProps) {
   return (
     <section>
-      <h3 className="mb-3 text-sm font-medium">Geography</h3>
       <Card>
         <CardContent className="grid gap-4 py-4 text-sm sm:grid-cols-3">
           <div>
