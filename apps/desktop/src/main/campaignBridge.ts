@@ -10,6 +10,7 @@ import {
   SessionIdPayloadSchema,
   SetResearchPriorityCommandPayloadSchema,
   SubmitDiplomacyCommandPayloadSchema,
+  SubmitDivisionCommandPayloadSchema,
   WriteUiStatePayloadSchema,
   BattleIdPayloadSchema,
   GenerateBattlePayloadSchema,
@@ -39,6 +40,7 @@ import {
 } from "./commands/continuityCommands.js";
 import { inspectFleetScreen } from "./commands/fleetCommands.js";
 import { inspectDiplomacyScreen, submitDiplomacyCommand } from "./commands/diplomacyCommands.js";
+import { inspectDivisionScreen, submitDivisionCommand } from "./commands/divisionCommands.js";
 import { inspectCampaign } from "./commands/inspectCampaign.js";
 import { inspectBattleHistory } from "./commands/inspectBattleHistory.js";
 import { inspectMap } from "./commands/inspectMap.js";
@@ -193,6 +195,22 @@ export async function dispatchCampaignCommand(
         return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
       }
       return submitDiplomacyCommand(parsedPayload.data);
+    }
+
+    case "inspectDivisionScreen": {
+      const parsedPayload = SessionIdPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return inspectDivisionScreen(parsedPayload.data);
+    }
+
+    case "submitDivisionCommand": {
+      const parsedPayload = SubmitDivisionCommandPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return submitDivisionCommand(parsedPayload.data);
     }
 
     case "readUiState": {

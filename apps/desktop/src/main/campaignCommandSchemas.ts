@@ -125,6 +125,42 @@ export const SubmitDiplomacyCommandPayloadSchema = CommandEnvelopePayloadSchema.
 });
 
 /**
+ * Wire shape of one of the 5 engine division commands. Shape and size bounds only
+ * (`z.string().min(1)`);
+ * legality — ship-type compatibility, size by type, same location, ownership — is
+ * the ENGINE's own `CommandLifecycle.validate()` at issue time, never a desktop mirror.
+ */
+export const DivisionCommandBodySchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("CreateDivision"),
+    flagshipShipId: z.string().min(1),
+    role: z.string().min(1),
+    formation: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("AddShipToDivision"),
+    divisionId: z.string().min(1),
+    shipId: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("RemoveShipFromDivision"),
+    divisionId: z.string().min(1),
+    shipId: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("ChangeDivisionFlagship"),
+    divisionId: z.string().min(1),
+    newFlagshipShipId: z.string().min(1),
+  }),
+  z.object({ type: z.literal("DissolveDivision"), divisionId: z.string().min(1) }),
+]);
+
+/** Wire shape for `submitDivisionCommand`. */
+export const SubmitDivisionCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  command: DivisionCommandBodySchema,
+});
+
+/**
  * Renderer-owned UI-state sidecar (`ui-state.json`, spec §7 Dismissal + §8
  * Persistence). Strict boundary schemas per ENGINEERING-CONTRACT "Content":
  * the `status` is a closed enum, `lastCompletedStep` is a bounded integer in

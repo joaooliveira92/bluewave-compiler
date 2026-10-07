@@ -37,6 +37,8 @@ const IMPLEMENTED_COMMANDS = new Set([
   "inspectResearchScreen",
   "setResearchPriorityCommand",
   "inspectDiplomacyScreen",
+  "inspectDivisionScreen",
+  "submitDivisionCommand",
   "submitDiplomacyCommand",
   "readUiState",
   "writeUiState",

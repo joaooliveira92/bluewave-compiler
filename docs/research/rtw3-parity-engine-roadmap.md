@@ -46,6 +46,20 @@ Movement orders exist in the UI but the bridge answers NOT_IMPLEMENTED (known, s
 | Ship designer (F-14) | Construction picks from a designs catalog; no free-form design with stats | Engine work | Large |
 | Ships sunk: names / date / cause / scrapping | Ids only, no date, cause not persisted, no scrap mechanic | Engine work | Small–Medium |
 
+## Engine gaps found while building the division editor
+
+Pinned by tests in `apps/desktop/src/main/commands/divisionCommands.test.ts`:
+
+1. **`CreateDivision` keeps only the first ship.** The validator checks the whole `shipOrder`, but
+   `applyDivisionCommand`'s `create` case sets `shipOrder = [shipId]`. A division is founded on its
+   flagship; the rest must join via `AddShipToDivision`. The desktop sends one flagship, never a list.
+2. **`AddShipToDivision` does not enforce the same-area rule** (`DIVISION_LOCATION_CONFLICT` is defined
+   in DESIGN-26 but only checked at creation). A division can end up spanning two areas. The UI offers
+   only same-area ships; the engine should enforce it.
+3. **Reorganization is not free:** adding a ship costs 5 experience and 10 cohesion, removing a
+   non-flagship 3 and 5, changing flagship 5 and 10 (a new division starts at 20 and 30). The UI states
+   these costs before the player commits.
+
 ## Recommended ranking (my view — yours to overrule)
 
 Ranked by *player value per unit of engine risk*:

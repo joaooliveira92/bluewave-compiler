@@ -41,6 +41,11 @@ import type {
   SubmitDiplomacyCommandPayload,
 } from "./diplomacy-contract.js";
 import type {
+  DivisionCommandOutcome,
+  DivisionScreenProjection,
+  SubmitDivisionCommandPayload,
+} from "./division-contract.js";
+import type {
   ResearchPriorityOutcome,
   ResearchScreenProjection,
   SetResearchPriorityCommandPayload,
@@ -205,6 +210,8 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "inspectResearchScreen",
   "setResearchPriorityCommand",
   "inspectDiplomacyScreen",
+  "inspectDivisionScreen",
+  "submitDivisionCommand",
   "submitDiplomacyCommand",
   "readUiState",
   "writeUiState",
@@ -327,6 +334,14 @@ export interface CampaignCommandClient {
     command: "submitDiplomacyCommand",
     payload: SubmitDiplomacyCommandPayload,
   ): Promise<BridgeResult<DiplomacyCommandOutcome>>;
+  execute(
+    command: "inspectDivisionScreen",
+    payload: string,
+  ): Promise<BridgeResult<DivisionScreenProjection>>;
+  execute(
+    command: "submitDivisionCommand",
+    payload: SubmitDivisionCommandPayload,
+  ): Promise<BridgeResult<DivisionCommandOutcome>>;
   execute(command: "readUiState", payload: string): Promise<BridgeResult<ReadUiStateResult>>;
   execute(
     command: "writeUiState",
