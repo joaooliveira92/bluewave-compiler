@@ -590,6 +590,15 @@ describe("App", () => {
     expect(
       await screen.findByText(/You have been appointed First Sea Lord — United Kingdom/),
     ).toBeTruthy();
+    // Re-rendering App must not re-run the briefing load: an unstable
+    // onInspectOpeningBriefing resets the projection and loops in the real app
+    // (the screen's own primary-action update re-renders App).
+    const inspectCalls = () =>
+      execute.mock.calls.filter(([command]) => command === "inspectOpeningBriefing").length;
+    expect(inspectCalls()).toBe(1);
+    rerender(<App />);
+    await act(async () => {});
+    expect(inspectCalls()).toBe(1);
     // The briefing's forward action lives in the header's primary action.
     const triggerPrimary = (expectedLabel: string) => {
       const action = shell.setPrimaryAction.mock.calls.at(-1)?.[0] as

@@ -34,6 +34,9 @@ import { parseArgs } from "node:util";
 import { advanceMonths, dismissTour, startNewCampaign } from "../e2e/flows.ts";
 import { copyFixturePackage, launchHarness, teardownHarness } from "../e2e/fixtures.ts";
 
+// Idle DOM mutations per second above which a screen is reported as churning.
+const CHURN_THRESHOLD = 500;
+
 const { values } = parseArgs({
   options: {
     out: { type: "string", default: ".dev-data/view" },
@@ -130,6 +133,23 @@ try {
   }
   await h.page.waitForTimeout(Number(values.wait) + Number(values.settle));
 
+  // Churn probe: a calm screen mutates a few dozen nodes per second; a render loop
+  // (e.g. an unstable effect dependency) mutates thousands. Flag it in console.log.
+  const mutations = await h.page.evaluate(
+    () =>
+      new Promise<number>((done) => {
+        let n = 0;
+        const o = new MutationObserver((ms) => (n += ms.length));
+        o.observe(document.body, { subtree: true, childList: true, attributes: true });
+        setTimeout(() => (o.disconnect(), done(n)), 1000);
+      }),
+  );
+  if (mutations > CHURN_THRESHOLD) {
+    log.push(
+      `[snap] WARNING: ${mutations} DOM mutations in 1s while idle — the screen may be in a render loop`,
+    );
+  }
+
   const shot = { path: resolve(outDir, "screenshot.png") };
   if (values.selector) await h.page.locator(values.selector).first().screenshot(shot);
   else await h.page.screenshot(shot);
@@ -137,6 +157,7 @@ try {
   await writeFile(resolve(outDir, "text.txt"), await h.page.locator("body").innerText());
   await writeFile(resolve(outDir, "console.log"), log.join("\n") + "\n");
   console.log(`captured -> ${outDir}\n  screenshot.png  aria.yaml  text.txt  console.log`);
+  if (log.some((l) => l.includes("WARNING"))) console.log("  ! churn warning — see console.log");
 } finally {
   await teardownHarness(h);
   if (saveScratch) await rm(saveScratch, { recursive: true, force: true }).catch(() => {});
