@@ -40,6 +40,12 @@ test("row 1: New Game compiles a fresh campaign onto Overview", async ({ e2e }) 
   await expect(
     e2e.page.getByText("campaign-bluewave-1880-production", { exact: true }),
   ).toBeVisible();
+
+  // The world map is the home screen's primary panel (spec M-1): live, lazy-loaded
+  // and keyboard-reachable without opening anything.
+  await expect(e2e.page.getByRole("application", { name: /World map/ })).toBeVisible({
+    timeout: 15_000,
+  });
 });
 
 test("row 2: Advance Month moves the calendar into the following month", async ({ e2e }) => {

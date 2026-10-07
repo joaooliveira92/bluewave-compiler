@@ -83,4 +83,67 @@ describe("WorldMapChart", () => {
     const table = screen.getByRole("table", { name: "Area control" });
     expect(table.querySelectorAll("tbody tr").length).toBe(areas.length);
   });
+
+  describe("panel variant (embedded on Overview)", () => {
+    function renderPanel() {
+      return render(
+        <WorldMapChart
+          variant="panel"
+          state={initialMapPrototypeState}
+          route={null}
+          onSelect={noop}
+          onRuler={noop}
+          onToggleLayer={noop}
+          onSetProjection={noop}
+          onSetCentre={noop}
+          onToggleClosedPassages={noop}
+        />,
+      );
+    }
+    const hidden = (element: HTMLElement) => element.closest(".hidden") !== null;
+
+    it("collapses the layer controls behind a Layers button until opened", () => {
+      renderPanel();
+      const layers = screen.getByRole("button", { name: "Layers" });
+      expect(layers.getAttribute("aria-expanded")).toBe("false");
+      expect(hidden(screen.getByText("Ownership"))).toBe(true);
+
+      fireEvent.click(layers);
+      expect(layers.getAttribute("aria-expanded")).toBe("true");
+      expect(hidden(screen.getByText("Ownership"))).toBe(false);
+
+      fireEvent.click(layers);
+      expect(hidden(screen.getByText("Ownership"))).toBe(true);
+    });
+
+    it("keeps idle hint cards out of the way", () => {
+      renderPanel();
+      expect(hidden(screen.getByText(/Click an area to inspect/))).toBe(true);
+      expect(hidden(screen.getByText(/Shift-click two areas for a route reading/))).toBe(true);
+    });
+
+    it("can omit the minimap", () => {
+      const { container } = render(
+        <WorldMapChart
+          variant="panel"
+          showMinimap={false}
+          state={initialMapPrototypeState}
+          route={null}
+          onSelect={noop}
+          onRuler={noop}
+          onToggleLayer={noop}
+          onSetProjection={noop}
+          onSetCentre={noop}
+          onToggleClosedPassages={noop}
+        />,
+      );
+      expect(container.querySelector('[data-testid="map-minimap"]')).toBeNull();
+    });
+  });
+
+  it("the full variant shows every control from the start", () => {
+    renderChart();
+    expect(screen.queryByRole("button", { name: "Layers" })).toBeNull();
+    expect(screen.getByText("Ownership").closest(".hidden")).toBeNull();
+  });
 });

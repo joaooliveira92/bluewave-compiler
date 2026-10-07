@@ -24,6 +24,8 @@ export interface FeatureDepthEntry {
 
 export const FEATURE_DEPTH: readonly FeatureDepthEntry[] = [
   { feature: "overview", screen: "overview", path: ["Overview"] },
+  // The map is the Overview's primary panel (0 extra clicks); F1 opens it full-screen.
+  { feature: "world-map", screen: "overview", path: ["Overview"] },
   {
     feature: "ships-under-construction",
     screen: "construction",

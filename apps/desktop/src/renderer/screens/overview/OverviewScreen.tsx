@@ -31,6 +31,7 @@ import {
 } from "./overview-screen-state.js";
 import { activeConstructionProjects } from "../construction/construction-screen-state.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
+import { OverviewMapPanel } from "./OverviewMapPanel.js";
 import { tensionLabel } from "@bluewave/campaign-engine";
 import { campaignNationLabel } from "../../components/world-map/campaign-map-join.js";
 import { humanizeId } from "../../lib/humanize-id.js";
@@ -141,6 +142,8 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
       />
 
       {/* Header summary: admiralName (M1 identity) → campaign name, fleet strength, construction count, highest tension */}
+      <OverviewMapPanel sessionId={sessionId} />
+
       <GlassCard glassVariant="liquid-refract">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium">Admiralty Header</CardTitle>

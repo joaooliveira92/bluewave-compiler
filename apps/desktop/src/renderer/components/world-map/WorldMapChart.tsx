@@ -11,7 +11,7 @@
  * component is the one consumer of that data that is not itself throwaway.
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "../ui/button.js";
 import { CoastlineCanvas } from "./CoastlineCanvas.js";
 import { MapMinimap } from "./MapMinimap.js";
@@ -64,6 +64,13 @@ export interface WorldMapChartProps extends MapViewProps {
   readonly className?: string;
   /** Optional live campaign overlay; defaults to the static prototype fixture. */
   readonly overlay?: LiveWorldMapOverlay;
+  /**
+   * "full" shows every control (the F1 map). "panel" is the embedded variant for
+   * the Overview: layer controls collapse behind a Layers button and the idle
+   * hint cards stay out of the way, so the chart gets the space.
+   */
+  readonly variant?: "full" | "panel";
+  readonly showMinimap?: boolean;
 }
 
 export function WorldMapChart({
@@ -77,7 +84,11 @@ export function WorldMapChart({
   onToggleClosedPassages,
   overlay = EMPTY_LIVE_OVERLAY,
   className,
+  variant = "full",
+  showMinimap = true,
 }: WorldMapChartProps) {
+  const isPanel = variant === "panel";
+  const [toolsOpen, setToolsOpen] = useState(false);
   const projection = projectionById(state.projection);
   const camera = useMapCamera(projection.width, projection.height);
   const live = overlay.source === "campaign";
@@ -546,7 +557,7 @@ export function WorldMapChart({
       </table>
 
       <div className="absolute bottom-3 right-3 flex flex-col items-end gap-2">
-        {coastline.status === "ready" && (
+        {coastline.status === "ready" && showMinimap && (
           <MapMinimap
             camera={camera}
             projection={projection}
@@ -572,8 +583,25 @@ export function WorldMapChart({
       {/* Chrome: a floating toolbar, chart-styled rather than app-styled — a
           deliberate choice, so the chart reads as a chart rather than another
           panel of the shell. */}
+      {isPanel && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="absolute left-3 top-3 z-10 bg-background/80 backdrop-blur"
+          aria-expanded={toolsOpen}
+          title="Layers, projection and centre. Click an area to inspect it; shift-click two areas for a route reading."
+          onClick={() => setToolsOpen((open) => !open)}
+        >
+          Layers
+        </Button>
+      )}
       <div
-        className="absolute left-3 top-3 flex flex-col gap-2 rounded-lg border p-2.5 text-xs shadow-lg backdrop-blur"
+        className={cn(
+          "absolute left-3 flex flex-col gap-2 rounded-lg border p-2.5 text-xs shadow-lg backdrop-blur",
+          isPanel ? "top-14" : "top-3",
+          isPanel && !toolsOpen && "hidden",
+        )}
         style={{
           background: "oklch(0.16 0.025 245 / 0.85)",
           borderColor: "oklch(0.4 0.02 245)",
@@ -652,7 +680,10 @@ export function WorldMapChart({
 
       {/* Chrome: inspector floats over the chart rather than taking layout. */}
       <div
-        className="absolute right-3 top-3 w-72 rounded-lg border p-3 text-xs shadow-lg backdrop-blur"
+        className={cn(
+          "absolute right-3 top-3 w-72 rounded-lg border p-3 text-xs shadow-lg backdrop-blur",
+          isPanel && summary === null && "hidden",
+        )}
         style={{
           background: "oklch(0.16 0.025 245 / 0.9)",
           borderColor: "oklch(0.4 0.02 245)",
@@ -725,7 +756,10 @@ export function WorldMapChart({
 
       {/* Chrome: the ruler readout. */}
       <div
-        className="absolute bottom-3 left-3 rounded-lg border px-3 py-2 text-xs shadow-lg backdrop-blur"
+        className={cn(
+          "absolute bottom-3 left-3 rounded-lg border px-3 py-2 text-xs shadow-lg backdrop-blur",
+          isPanel && route === null && "hidden",
+        )}
         style={{
           background: "oklch(0.16 0.025 245 / 0.9)",
           borderColor: "oklch(0.4 0.02 245)",
