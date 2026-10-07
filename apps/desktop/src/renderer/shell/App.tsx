@@ -1,5 +1,5 @@
 import { defaultArchetypeSelection, type ArchetypeSelection } from "@bluewave/campaign-engine";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { WindowState } from "../../shared/bridge-contract.js";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
@@ -462,6 +462,23 @@ function CampaignShellApplication({
 
   const [reviewOpen, setReviewOpen] = useState(false);
 
+  // Must keep a stable identity: NewGameBriefingScreen re-runs its load effect
+  // (resetting the projection) whenever this changes, and the screen's own
+  // primary-action update re-renders this component — an inline arrow loops.
+  const inspectOpeningBriefing = useCallback(
+    async (sessionId: string) => {
+      if (bridge === undefined) {
+        return {
+          outcome: "error" as const,
+          reason: "BRIDGE_UNAVAILABLE" as const,
+          diagnostics: ["The desktop bridge is unavailable."],
+        };
+      }
+      return bridge.campaign.execute("inspectOpeningBriefing", sessionId);
+    },
+    [bridge],
+  );
+
   const activeView: ActiveView =
     shell.state.mode.kind === "campaign"
       ? "playing"
@@ -524,16 +541,7 @@ function CampaignShellApplication({
         onLaunch={newGame.actions.launch}
         onBackToReviewFromLaunch={newGame.actions.backToReviewFromLaunch}
         onTakeCommand={newGame.actions.takeCommand}
-        onInspectOpeningBriefing={async (sessionId) => {
-          if (bridge === undefined) {
-            return {
-              outcome: "error",
-              reason: "BRIDGE_UNAVAILABLE",
-              diagnostics: ["The desktop bridge is unavailable."],
-            };
-          }
-          return bridge.campaign.execute("inspectOpeningBriefing", sessionId);
-        }}
+        onInspectOpeningBriefing={inspectOpeningBriefing}
         briefingSessionId={newGame.state.briefingSessionId}
         onPrimaryActionChange={shell.actions.setPrimaryAction}
       />
