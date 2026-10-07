@@ -57,8 +57,10 @@ export const FEATURE_DEPTH: readonly FeatureDepthEntry[] = [
     planned: true,
     path: ["Construction", "Forts & bases", "Build"],
   },
-  { feature: "ships-sunk-or-scrapped", screen: null, planned: true, path: ["Fleet", "Losses"] },
-  { feature: "area-overview", screen: null, planned: true, path: ["Fleet", "Areas"] },
+  // Battle history with loss counts (names/dates not recorded by the engine: docs/research/rtw3-losses-ledger-engine-surface.md).
+  { feature: "ships-sunk-or-scrapped", screen: "diplomacy", path: ["Diplomacy & War"] },
+  // Per-area table inside Fleet.
+  { feature: "area-overview", screen: "fleet", path: ["Fleet", "Area overview"] },
   {
     feature: "fleet-organization",
     screen: null,

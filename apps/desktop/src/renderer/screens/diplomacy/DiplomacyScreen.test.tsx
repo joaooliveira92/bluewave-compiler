@@ -123,6 +123,13 @@ vi.mock("../../shell/debug-flag.js", () => ({
   },
 }));
 
+const battleHistoryMock = vi.hoisted(() => ({
+  state: { status: "ready", history: { battles: [] } } as unknown,
+}));
+vi.mock("./hooks/useBattleHistory.js", () => ({
+  useBattleHistory: () => battleHistoryMock.state,
+}));
+
 vi.mock("./hooks/useDiplomacyScreen.js", () => ({
   useDiplomacyScreen: (_sessionId: string) => ({
     state: hookMocks.stateFn(),
@@ -267,6 +274,12 @@ describe("DiplomacyScreen", () => {
     expect(bar.getByRole("button", { name: "Declare war" })).not.toBeNull();
     expect(bar.getByRole("alert").textContent).toMatch(/cannot be cancelled/);
     expect(bar.queryByRole("button", { name: "Submit command" })).toBeNull();
+  });
+
+  it("shows the battle history section, with an honest empty state", () => {
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    expect(screen.getByText("Battle history")).not.toBeNull();
+    expect(screen.getByText("No battles fought yet")).not.toBeNull();
   });
 
   it("keeps the generic submit label for non-war drafts", () => {

@@ -40,6 +40,7 @@ import {
 import { inspectFleetScreen } from "./commands/fleetCommands.js";
 import { inspectDiplomacyScreen, submitDiplomacyCommand } from "./commands/diplomacyCommands.js";
 import { inspectCampaign } from "./commands/inspectCampaign.js";
+import { inspectBattleHistory } from "./commands/inspectBattleHistory.js";
 import { inspectMap } from "./commands/inspectMap.js";
 import { inspectOpeningBriefing } from "./commands/inspectOpeningBriefing.js";
 import { inspectPriorities } from "./commands/inspectPriorities.js";
@@ -112,6 +113,14 @@ export async function dispatchCampaignCommand(
         return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
       }
       return inspectMap(parsedPayload.data);
+    }
+
+    case "inspectBattleHistory": {
+      const parsedPayload = SessionIdPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return inspectBattleHistory(parsedPayload.data);
     }
 
     case "inspectOpeningBriefing": {

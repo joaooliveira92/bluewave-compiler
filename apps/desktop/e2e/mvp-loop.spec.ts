@@ -164,3 +164,25 @@ test("row 6: Fleet Movement renders the honest compiled state", async ({ e2e }) 
   await e2e.page.getByRole("button", { name: "Submit movement command" }).click();
   await expect(e2e.page.getByText(/NOT_IMPLEMENTED/)).toBeVisible();
 });
+
+test("row 6b: Diplomacy & War shows real relations, battle history and honest deferrals", async ({
+  e2e,
+}) => {
+  await e2e.retargetDialog(sharedSaveDir);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
+    timeout: 30_000,
+  });
+
+  await navigateTo(e2e.page, "Diplomacy & War");
+  await expect(e2e.page.getByRole("heading", { name: "Diplomacy & War" })).toBeVisible();
+
+  // The read-only battle-history command answers over the real IPC bridge: a fresh
+  // campaign has fought nothing, which is shown as such (not as an error).
+  await expect(e2e.page.getByText("No battles fought yet")).toBeVisible({ timeout: 15_000 });
+  await expect(e2e.page.getByText(/Battle history unavailable/)).not.toBeVisible();
+
+  // War-panel items the engine cannot supply are stated, never faked.
+  await expect(e2e.page.getByText("Not yet modelled by the engine", { exact: true })).toBeVisible();
+  await expect(e2e.page.getByText(/Trade protection/)).toBeVisible();
+});

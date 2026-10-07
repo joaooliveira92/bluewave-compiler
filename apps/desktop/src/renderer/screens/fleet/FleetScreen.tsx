@@ -4,10 +4,14 @@ import { Ship } from "lucide-react";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
 import { Separator } from "../../components/ui/separator.js";
-import { DEFERRED_SUBMARINE_ITEMS, pendingRouteFor } from "./fleet-screen-state.js";
+import {
+  DEFERRED_SUBMARINE_ITEMS,
+  buildAreaOverview,
+  pendingRouteFor,
+} from "./fleet-screen-state.js";
+import { AreaOverviewTable } from "./components/AreaOverviewTable.js";
 import { useFleetScreen } from "./hooks/useFleetScreen.js";
 import { DivisionPicker } from "./components/DivisionPicker.js";
-import { GeographyCard } from "./components/GeographyCard.js";
 import { OrderSection } from "./components/OrderSection.js";
 import { humanizeId } from "../../lib/humanize-id.js";
 import { DeferredFeaturesPanel } from "../../components/shared/DeferredFeaturesPanel.js";
@@ -36,6 +40,11 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
   const divisionNameMap = useMemo(
     () => new Map(state.divisions.map((d) => [d.divisionId, d.fleetName])),
     [state.divisions],
+  );
+
+  const areaOverview = useMemo(
+    () => buildAreaOverview(state.areas, state.areaEdges, state.ports, state.divisions),
+    [state.areas, state.areaEdges, state.ports, state.divisions],
   );
 
   function divisionName(divisionId: string): string {
@@ -100,16 +109,9 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
         testId="fleet-map-panel"
       />
       <details className="group rounded-md border px-4 py-3">
-        <summary className="cursor-pointer text-sm font-medium">
-          Reference: areas, routes and ports
-        </summary>
+        <summary className="cursor-pointer text-sm font-medium">Area overview</summary>
         <div className="mt-3">
-          <GeographyCard
-            areas={state.areas}
-            areaEdges={state.areaEdges}
-            ports={state.ports}
-            areaName={areaName}
-          />
+          <AreaOverviewTable rows={areaOverview} />
         </div>
       </details>
       <Separator />

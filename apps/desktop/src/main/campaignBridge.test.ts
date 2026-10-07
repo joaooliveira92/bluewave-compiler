@@ -26,6 +26,7 @@ const IMPLEMENTED_COMMANDS = new Set([
   "inspectCampaign",
   "inspectOpeningBriefing",
   "inspectMap",
+  "inspectBattleHistory",
   "inspectPriorities",
   "commitMonth",
   "inspectConstructionScreen",
@@ -117,6 +118,20 @@ describe("dispatchCampaignCommand", () => {
 
   it("returns SESSION_NOT_FOUND for a well-formed but unknown inspectCampaign session id", async () => {
     const result = await dispatchCampaignCommand("inspectCampaign", "no-such-session");
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("rejects a non-string inspectBattleHistory payload", async () => {
+    const result = await dispatchCampaignCommand("inspectBattleHistory", { sessionId: 123 });
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("INVALID_PAYLOAD");
+  });
+
+  it("returns SESSION_NOT_FOUND for an unknown inspectBattleHistory session id", async () => {
+    const result = await dispatchCampaignCommand("inspectBattleHistory", "no-such-session");
     expect(result.outcome).toBe("error");
     if (result.outcome !== "error") return;
     expect(result.reason).toBe("SESSION_NOT_FOUND");

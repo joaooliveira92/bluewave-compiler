@@ -11,3 +11,4 @@ export * from "./projection.js";
 export * from "./research.js";
 export * from "./simulation.js";
 export * from "./world-map.js";
+export * from "./battle-history.js";

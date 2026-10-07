@@ -1,5 +1,14 @@
 import type { ReactNode } from "react";
-import { AlertCircle, Anchor, CheckCircle2, Handshake, Info, Swords, X } from "lucide-react";
+import {
+  AlertCircle,
+  Anchor,
+  CheckCircle2,
+  Handshake,
+  History,
+  Info,
+  Swords,
+  X,
+} from "lucide-react";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert.js";
 import { Badge } from "../../components/ui/badge.js";
@@ -23,6 +32,8 @@ import { humanizeId } from "../../lib/humanize-id.js";
 import { DEBUG_MODE } from "../../shell/debug-flag.js";
 import { DeferredFeaturesPanel } from "../../components/shared/DeferredFeaturesPanel.js";
 import { WarScoreBar } from "./components/WarScoreBar.js";
+import { BattleHistorySection } from "./components/BattleHistorySection.js";
+import { useBattleHistory } from "./hooks/useBattleHistory.js";
 import { useDiplomacyScreen } from "./hooks/useDiplomacyScreen.js";
 import {
   DEFERRED_INTEL_ITEMS,
@@ -55,6 +66,7 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
     reload,
     canSubmit,
   } = useDiplomacyScreen(sessionId);
+  const battleHistory = useBattleHistory(sessionId, state.revision);
 
   if (state.kind === "load-failed") {
     return (
@@ -282,6 +294,14 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
             ))}
           </div>
         )}
+      </GlassSection>
+
+      <GlassSection
+        icon={<History className="h-4 w-4 text-muted-foreground" />}
+        title="Battle history"
+        description="Resolved battles and the ships lost in them, from the engine's recorded results."
+      >
+        <BattleHistorySection state={battleHistory} />
       </GlassSection>
 
       <CommandQueueBar
