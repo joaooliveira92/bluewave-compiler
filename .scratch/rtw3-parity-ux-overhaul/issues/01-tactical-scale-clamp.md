@@ -1,6 +1,6 @@
 # Tactical map scale model + clamp
 
-Status: open
+Status: done (scale model, clamp, LOD bands, tests); camera wiring waits on a tactical map view
 Frontier: yes
 Blocked by: none
 Requirements: M-5, M-7
