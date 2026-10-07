@@ -267,8 +267,8 @@ export function generateBattles(inputs: BattleGenerationInputs): BattleGeneratio
     );
 
     // ADR B-1-5/7: enforce strength floors per mission (AC-5).
-    const attackerStrength = eligibleAssets.reduce((s, e) => s + e.effectiveStrength, 0);
-    const defenderStrength = eligibleAssets.reduce((s, e) => s + e.effectiveStrength, 0);
+    const attackerStrength = attackerEligible.reduce((s, e) => s + e.effectiveStrength, 0);
+    const defenderStrength = defenderEligible.reduce((s, e) => s + e.effectiveStrength, 0);
     const minStrength =
       opp.missionType === "FLEET_BATTLE" ? FLEET_BATTLE_MIN_STRENGTH : CRUISER_BATTLE_MIN_STRENGTH;
     if (attackerStrength < minStrength || defenderStrength < minStrength) {

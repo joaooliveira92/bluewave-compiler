@@ -64,12 +64,12 @@ churn. Findings, most impactful first. None of these is fixed yet.
     renderer provider exist; the bridge command does not. This is the shortest path to inspecting
     battle screens for the combat-tuning work.
 
-16. **Real turns can never generate a battle (combat/content, not fixed).** The engine's eligibility
+16. **[PART FIXED, ADR-0056] Real turns can never generate a battle.** Fixed: the floor is now applied per side, as the rules require (it summed both sides before). Still open: the strength unit (see ADR-0056 for the options and the recommended next step). The engine's eligibility
     floors (`FLEET_BATTLE_MIN_STRENGTH` 300, `CRUISER_BATTLE_MIN_STRENGTH` 150) are compared with summed
     `ship.firepower`, which is ~16-24 per 1880 ship (UK + France combined ~60). Eight months at war
     produced no battle for this reason. Needs a decision on the strength scale (P-1 / content track).
     `generateBattle` in the sandbox works around it with `strengthScale` (default 100) and says so.
-17. **Content defect: `gbr_malta_temp` has an empty `designVersionId`** (production pack, UK
+17. **[KNOWN CONTENT GAP, tracked in `docs/research/content-5-1880-pack-audit-2026-08-17.md`] `gbr_malta_temp` has an empty `designVersionId`** (production pack, UK
     Mediterranean fleet). `resolveBattleAuto` fails closed on it (`TACTICAL_UNIT_PROMOTION_INVALID`), and
     the engine's eligibility check never checks for a design, so a real turn that reached it would fall back
     to the legacy resolver. The sandbox treats such ships as unavailable on its temporary copy.

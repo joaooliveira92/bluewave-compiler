@@ -79,4 +79,32 @@ describe("BattleGenerator / generateBattles (AC-12 / INC-5)", () => {
     // 2 opportunities in one area; the monthly limit rejects the second.
     expect(result.rejections.length).toBeGreaterThanOrEqual(1);
   });
+
+  // docs/rules/battle-generation.md §6.1/§10: the strength floor applies PER SIDE
+  // ("minimum eligible combat strength of 300 points per side"). The pipeline used
+  // to sum BOTH sides' assets and test that total against each side's floor, so a
+  // weak side was carried by a strong opponent.
+  describe("strength floor is enforced per side (rules §6.1, §10)", () => {
+    const strengthBySide = (attacker: number, defender: number) => ({
+      ...inputs(defaultTwoNationFixture()),
+      // GBR ships are the attacker, FRA the defender in the fixture war.
+      resolveStrength: (shipId: string) => (shipId.startsWith("gb_") ? attacker : defender),
+    });
+
+    it("rejects the mission when the defender alone is below the floor, even if the attacker is huge", () => {
+      const result = generateBattles(strengthBySide(1_000, 10));
+      expect(result.manifests).toEqual([]);
+      expect(result.rejections.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("rejects the mission when the attacker alone is below the floor, even if the defender is huge", () => {
+      const result = generateBattles(strengthBySide(10, 1_000));
+      expect(result.manifests).toEqual([]);
+    });
+
+    it("accepts the mission when each side clears the floor on its own", () => {
+      const result = generateBattles(strengthBySide(1_000, 1_000));
+      expect(result.manifests.length).toBeGreaterThan(0);
+    });
+  });
 });

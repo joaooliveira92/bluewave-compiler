@@ -608,7 +608,7 @@ describe("App", () => {
         | undefined;
       expect(action?.label).toBe(expectedLabel);
       act(() => {
-        void action?.onTrigger();
+        action?.onTrigger();
       });
     };
     triggerPrimary("Review Naval Estimates");
