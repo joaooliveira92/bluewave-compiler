@@ -34,7 +34,7 @@ import { parseArgs } from "node:util";
 import { advanceMonths, dismissTour, startNewCampaign } from "../e2e/flows.ts";
 import { copyFixturePackage, launchHarness, teardownHarness } from "../e2e/fixtures.ts";
 
-// Idle DOM mutations per second above which a screen is reported as churning.
+// Idle structural DOM mutations per second above which a screen is reported as churning.
 const CHURN_THRESHOLD = 500;
 
 const { values } = parseArgs({
@@ -133,22 +133,35 @@ try {
   }
   await h.page.waitForTimeout(Number(values.wait) + Number(values.settle));
 
-  // Churn probe: a calm screen mutates a few dozen nodes per second; a render loop
-  // (e.g. an unstable effect dependency) mutates thousands. Flag it in console.log.
-  const mutations = await h.page.evaluate(
+  // Churn probe: a render loop (e.g. an unstable effect dependency) keeps adding and
+  // removing nodes; a calm screen changes a few dozen per second. Only structural
+  // mutations count — continuous animation (the globe, shaders) rewrites attributes
+  // every frame and is not a loop.
+  const { structural, attributes } = await h.page.evaluate(
     () =>
-      new Promise<number>((done) => {
-        let n = 0;
-        const o = new MutationObserver((ms) => (n += ms.length));
-        o.observe(document.body, { subtree: true, childList: true, attributes: true });
-        setTimeout(() => (o.disconnect(), done(n)), 1000);
+      new Promise<{ structural: number; attributes: number }>((done) => {
+        const counts = { structural: 0, attributes: 0 };
+        const o = new MutationObserver((ms) => {
+          for (const m of ms) {
+            if (m.type === "attributes") counts.attributes++;
+            else counts.structural++;
+          }
+        });
+        o.observe(document.body, {
+          subtree: true,
+          childList: true,
+          attributes: true,
+          characterData: true,
+        });
+        setTimeout(() => (o.disconnect(), done(counts)), 1000);
       }),
   );
-  if (mutations > CHURN_THRESHOLD) {
+  if (structural > CHURN_THRESHOLD) {
     log.push(
-      `[snap] WARNING: ${mutations} DOM mutations in 1s while idle — the screen may be in a render loop`,
+      `[snap] WARNING: ${structural} node add/remove/text mutations in 1s while idle — the screen may be in a render loop`,
     );
   }
+  log.push(`[snap] idle mutations/s: structural=${structural} attributes=${attributes}`);
 
   const shot = { path: resolve(outDir, "screenshot.png") };
   if (values.selector) await h.page.locator(values.selector).first().screenshot(shot);
