@@ -73,7 +73,7 @@ function UtilizationBar({
         </span>
       </div>
       <Progress value={pct} className={overCommitted ? "[&>*>*]:bg-destructive" : undefined} />
-      <p className="text-right text-[11px] text-muted-foreground">
+      <p className="text-right text-xs text-muted-foreground">
         {pct}% committed · {Math.max(0, total - reserved).toLocaleString()} available
       </p>
     </div>

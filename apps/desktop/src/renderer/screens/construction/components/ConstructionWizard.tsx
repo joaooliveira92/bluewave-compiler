@@ -82,22 +82,22 @@ export const ConstructionWizard = memo(function ConstructionWizard({
             Design summary
           </h4>
           <div className="flex flex-wrap gap-1.5">
-            <Badge variant="outline" className="font-mono text-[11px]">
+            <Badge variant="outline" className="font-mono text-xs">
               {design.className}
             </Badge>
-            <Badge variant="outline" className="font-mono text-[11px]">
+            <Badge variant="outline" className="font-mono text-xs">
               {design.shipType}
             </Badge>
-            <Badge variant="outline" className="font-mono text-[11px]">
+            <Badge variant="outline" className="font-mono text-xs">
               {design.year}
             </Badge>
-            <Badge variant="outline" className="font-mono text-[11px]">
+            <Badge variant="outline" className="font-mono text-xs">
               {design.mass.toLocaleString()}t
             </Badge>
-            <Badge variant="outline" className="font-mono text-[11px]">
+            <Badge variant="outline" className="font-mono text-xs">
               {design.speed}kt
             </Badge>
-            <Badge variant="outline" className="font-mono text-[11px]">
+            <Badge variant="outline" className="font-mono text-xs">
               {design.machineryType}
             </Badge>
           </div>

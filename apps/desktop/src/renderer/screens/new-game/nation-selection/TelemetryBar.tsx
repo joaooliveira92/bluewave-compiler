@@ -3,7 +3,7 @@ import { Compass } from "lucide-react";
 export function TelemetryBar({ coordinateLabel }: { coordinateLabel: string }): React.JSX.Element {
   return (
     <section
-      className="h-8 flex-none border-b border-[#141f2d] bg-[#05080e] px-6 flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-[#526a85]"
+      className="h-8 flex-none border-b border-[#141f2d] bg-[#05080e] px-6 flex items-center justify-between font-mono text-xs uppercase tracking-widest text-[#526a85]"
       aria-label="Tactical Status Bar"
     >
       <div className="flex items-center gap-6">

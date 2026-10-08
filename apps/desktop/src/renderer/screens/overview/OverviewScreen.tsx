@@ -143,15 +143,13 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-4 text-xs">
           <div>
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              Fleet Strength
-            </p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Fleet Strength</p>
             <p className="mt-0.5 font-medium">
               {fleetSummary.totalShips} ships · {fleetSummary.divisionCount} divisions
             </p>
           </div>
           <div>
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">
               Active Construction
             </p>
             <p className="mt-0.5 font-medium">
@@ -161,7 +159,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
             </p>
           </div>
           <div>
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">
               Highest Tension
             </p>
             <p className="mt-0.5 font-medium">
@@ -171,7 +169,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
             </p>
           </div>
           <div>
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Funds</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Funds</p>
             <p className="mt-0.5 font-medium">
               {projection.economy.treasury.toLocaleString()} · projected{" "}
               {projection.projectedSurplusDeficit.toLocaleString()}
@@ -295,7 +293,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
         <CardContent className="space-y-3 text-xs">
           <div className="flex flex-wrap gap-4">
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
                 Ships in service
               </p>
               <p className="mt-0.5 font-medium">
@@ -303,25 +301,25 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
               </p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
                 Total monthly maintenance (re-derived)
               </p>
               <p className="mt-0.5 font-medium">{maintenance.toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
                 Largest port capacity
               </p>
               <p className="mt-0.5 font-medium">{largestPort.toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
                 Active construction
               </p>
               <p className="mt-0.5 font-medium">{constructionCount ?? "Not available"}</p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
                 Construction / Research spend
               </p>
               <p className="mt-0.5 font-medium">

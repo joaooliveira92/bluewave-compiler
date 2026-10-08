@@ -45,7 +45,7 @@ export function MapScaleBar({
 
   return (
     <div className="pointer-events-none flex flex-col items-start gap-0.5" aria-hidden="true">
-      <span ref={labelRef} className="text-[11px] tabular-nums" />
+      <span ref={labelRef} className="text-xs tabular-nums" />
       <div
         ref={barRef}
         className="h-1.5 border-x border-b"

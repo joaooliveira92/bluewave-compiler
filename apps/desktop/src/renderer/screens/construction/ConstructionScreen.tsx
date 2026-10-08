@@ -67,7 +67,7 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
           <TabsTrigger value="commands">
             Command Ledger
             {submittedCount > 0 && (
-              <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[11px]">
+              <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-xs">
                 {submittedCount}
               </Badge>
             )}

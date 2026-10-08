@@ -88,21 +88,21 @@ export const CommandTable = memo(function CommandTable({
                     <TableCell className="font-medium">
                       <div className="flex flex-col">
                         <span>{command.design.className}</span>
-                        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <span className="text-xs uppercase tracking-wide text-muted-foreground">
                           {command.design.shipType}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge
-                        className={`gap-1 text-[11px] uppercase ${STATUS_CLASSNAME[command.status]}`}
+                        className={`gap-1 text-xs uppercase ${STATUS_CLASSNAME[command.status]}`}
                       >
                         <StatusIcon className="h-3 w-3" />
                         {command.status}
                       </Badge>
                     </TableCell>
                     {DEBUG_MODE && (
-                      <TableCell className="font-mono text-[11px] text-muted-foreground">
+                      <TableCell className="font-mono text-xs text-muted-foreground">
                         {command.commandId}
                       </TableCell>
                     )}

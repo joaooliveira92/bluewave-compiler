@@ -151,7 +151,7 @@ export function GuidedInspectionOverlay({
         <div className="space-y-2">
           <h2 className="text-sm font-semibold">{step.title}</h2>
           <p className="text-xs text-muted-foreground leading-relaxed">{step.description}</p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {clamped + 1} of {GUIDED_STEP_COUNT}
           </p>
         </div>

@@ -1,5 +1,5 @@
 /* @vitest-environment jsdom */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import type { PlayerProjection } from "@bluewave/campaign-engine";
 
@@ -71,11 +71,19 @@ describe("TreasuryScreen", () => {
     render(<TreasuryScreen sessionId="ses-1" />);
 
     expect(screen.getByText("Government naval allocation")).not.toBeNull();
-    expect(screen.getByText("4,000")).not.toBeNull();
+    // Income appears in its own card (and again in the budget bar legend): check the card.
+    expect(
+      within(
+        screen.getByText("Government naval allocation").parentElement as HTMLElement,
+      ).getByText("4,000"),
+    ).not.toBeNull();
 
-    expect(screen.getByText("Fleet maintenance")).not.toBeNull();
-    expect(screen.getByText("Construction")).not.toBeNull();
-    expect(screen.getByText("Research")).not.toBeNull();
+    // Named in the expenditure card and again in the budget bar legend.
+    expect(screen.getAllByText("Fleet maintenance").length).toBeGreaterThanOrEqual(2);
+    // Named in the expenditure card and again in the budget bar legend.
+    expect(screen.getAllByText("Construction").length).toBeGreaterThanOrEqual(2);
+    // Named in the expenditure card and again in the budget bar legend.
+    expect(screen.getAllByText("Research").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Total expenditure")).not.toBeNull();
     expect(screen.getByText("1,000")).not.toBeNull();
 
@@ -103,5 +111,18 @@ describe("TreasuryScreen", () => {
     hookMocks.state.mockReturnValue(applyProjectionLoaded(initialTreasuryScreenState(), deficit));
     render(<TreasuryScreen sessionId="ses-1" />);
     expect(screen.getByText("Deficit")).not.toBeNull();
+  });
+
+  it("shows the budget at a glance with every segment named in text, not colour alone", () => {
+    hookMocks.state.mockReturnValue(
+      applyProjectionLoaded(initialTreasuryScreenState(), projection),
+    );
+    render(<TreasuryScreen sessionId="ses-1" />);
+    const bar = screen.getByRole("img", { name: /Monthly budget: income 4,000/ });
+    expect(bar.getAttribute("aria-label")).toContain("Fleet maintenance 200");
+    expect(bar.getAttribute("aria-label")).toContain("Construction 500");
+    expect(bar.getAttribute("aria-label")).toContain("Research 300");
+    expect(bar.getAttribute("aria-label")).toContain("Spending is within income.");
+    expect(screen.getByTestId("budget-bar").textContent).toContain("Income");
   });
 });

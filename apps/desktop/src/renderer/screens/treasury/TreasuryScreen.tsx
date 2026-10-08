@@ -4,6 +4,7 @@ import { Badge } from "../../components/ui/badge.js";
 import { CardContent, CardHeader, CardTitle } from "../../components/ui/card.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
+import { BudgetBar } from "./BudgetBar.js";
 import { summarizeTreasury } from "./treasury-screen-state.js";
 import { useTreasuryScreen } from "./useTreasuryScreen.js";
 
@@ -54,6 +55,15 @@ export function TreasuryScreen({ sessionId }: TreasuryScreenProps) {
         title="Treasury"
         description="Government naval allocation, expenditure, and projected position. Read-only."
       />
+
+      <GlassCard glassVariant="liquid-refract">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Budget at a glance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <BudgetBar breakdown={t} />
+        </CardContent>
+      </GlassCard>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <GlassCard glassVariant="liquid-refract">

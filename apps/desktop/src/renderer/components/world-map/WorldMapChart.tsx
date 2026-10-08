@@ -617,7 +617,7 @@ export function WorldMapChart({
               variant="ghost"
               onClick={() => onSetProjection(option.id)}
               title={option.note}
-              className="h-7 px-2 text-[11px] hover:bg-white/10"
+              className="h-7 px-2 text-xs hover:bg-white/10"
               style={{
                 background: state.projection === option.id ? "oklch(0.7 0.12 240)" : "transparent",
                 color: state.projection === option.id ? "oklch(0.15 0.02 245)" : CHART.inkDim,
@@ -635,7 +635,7 @@ export function WorldMapChart({
               size="sm"
               variant="outline"
               onClick={() => onToggleLayer(layer.id)}
-              className="h-7 border px-2 text-[11px] hover:bg-white/10"
+              className="h-7 border px-2 text-xs hover:bg-white/10"
               style={{
                 background: state.layers[layer.id] ? "oklch(0.35 0.03 245)" : "transparent",
                 color: state.layers[layer.id] ? CHART.ink : CHART.inkDim,
@@ -646,7 +646,7 @@ export function WorldMapChart({
             </Button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-[11px]" style={{ color: CHART.inkDim }}>
+        <label className="flex items-center gap-2 text-xs" style={{ color: CHART.inkDim }}>
           Centre
           <input
             type="range"
@@ -665,14 +665,14 @@ export function WorldMapChart({
             size="sm"
             variant="outline"
             onClick={camera.reset}
-            className="h-7 border px-2 text-[11px] hover:bg-white/10"
+            className="h-7 border px-2 text-xs hover:bg-white/10"
             style={{ borderColor: "oklch(0.4 0.02 245)", color: CHART.inkDim }}
           >
             Reset view
           </Button>
           <span
             ref={camera.meterRef}
-            className="font-mono text-[10px] tabular-nums"
+            className="font-mono text-xs tabular-nums"
             style={{ color: CHART.inkDim }}
           />
         </div>
@@ -787,7 +787,7 @@ export function WorldMapChart({
               size="sm"
               variant="outline"
               onClick={onToggleClosedPassages}
-              className="h-6 border px-2 text-[11px] hover:bg-white/10"
+              className="h-6 border px-2 text-xs hover:bg-white/10"
               style={{ borderColor: "oklch(0.4 0.02 245)", color: CHART.ink }}
             >
               {state.respectClosedPassages ? "avoiding closures" : "ignoring closures"}
