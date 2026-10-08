@@ -1,5 +1,5 @@
 import { Anchor } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect } from "react";
 import type { NewGameOptions } from "../../../shared/new-game-contract.js";
 import { Button } from "../../components/ui/button.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
@@ -10,24 +10,9 @@ import { HistoricalUncertaintySection } from "./components/HistoricalUncertainty
 import { LoadingState } from "./components/LoadingState.js";
 import { PresetPickerSection } from "./components/PresetPickerSection.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
-import type {
-  DraftPreferences,
-  NewGamePreferencesScreenState,
-} from "./new-game-preferences-screen-state.js";
-import {
-  applyOptionsFailed,
-  applyOptionsLoaded,
-  initialNewGamePreferencesScreenState,
-  isReadyToProceed,
-  selectedScenario,
-  updatePreference,
-} from "./new-game-preferences-screen-state.js";
-import {
-  applyPreset,
-  detectActivePreset,
-  type PresetId,
-} from "./rules-of-the-naval-age-presets.js";
-import { defaultCampaignSeed } from "./utils/campaign-seed.js";
+import type { DraftPreferences } from "./new-game-preferences-screen-state.js";
+import type { PresetId } from "./rules-of-the-naval-age-presets.js";
+import { useNavalAgePreferences } from "./useNavalAgePreferences.js";
 
 export interface RulesOfTheNavalAgeScreenProps {
   readonly recommendedPreset: AdmiralPresetValues | null;
@@ -42,63 +27,43 @@ export function RulesOfTheNavalAgeScreen({
   onNext,
   onPrimaryActionChange,
 }: RulesOfTheNavalAgeScreenProps) {
-  const bridge = window.bluewave;
-  const [state, setState] = useState<NewGamePreferencesScreenState>(
-    initialNewGamePreferencesScreenState,
+  const {
+    state,
+    options,
+    preferences,
+    scenario,
+    ready,
+    activePreset,
+    setPreference,
+    selectPreset,
+  } = useNavalAgePreferences(recommendedPreset);
+
+  const handlePreferenceChange = useCallback(
+    (field: keyof DraftPreferences, value: string) => {
+      setPreference(field, value);
+    },
+    [setPreference],
   );
-  const recommendedPresetRef = useRef(recommendedPreset);
 
-  useEffect(() => {
-    async function loadOptions(): Promise<void> {
-      if (bridge === undefined) {
-        setState((current) => applyOptionsFailed(current, "Bluewave bridge not available"));
-        return;
-      }
-      const result = await bridge.campaign.execute("listNewGameOptions", undefined);
-      if (result.outcome !== "success") {
-        setState((current) => applyOptionsFailed(current, result.reason));
-        return;
-      }
-      setState((current) =>
-        applyOptionsLoaded(
-          current,
-          result.value,
-          defaultCampaignSeed(),
-          recommendedPresetRef.current,
-        ),
-      );
-    }
-    void loadOptions();
-  }, [bridge]);
+  const onScenarioChange = useCallback(
+    (value: string) => setPreference("scenarioId", value),
+    [setPreference],
+  );
 
-  const scenario = selectedScenario(state);
-  const ready = isReadyToProceed(state);
-  const options = state.options;
-  const preferences = state.preferences;
-  const activePreset = detectActivePreset(preferences);
+  const onFleetSizeChange = useCallback(
+    (value: string) => setPreference("fleetSize", value),
+    [setPreference],
+  );
 
-  const handlePreferenceChange = useCallback((field: keyof DraftPreferences, value: string) => {
-    setState((current) => updatePreference(current, field, value));
-  }, []);
+  const onSeedChange = useCallback(
+    (value: string) => setPreference("campaignSeed", value),
+    [setPreference],
+  );
 
-  const onScenarioChange = useCallback((value: string) => {
-    setState((current) => updatePreference(current, "scenarioId", value));
-  }, []);
-
-  const onFleetSizeChange = useCallback((value: string) => {
-    setState((current) => updatePreference(current, "fleetSize", value));
-  }, []);
-
-  const onSeedChange = useCallback((value: string) => {
-    setState((current) => updatePreference(current, "campaignSeed", value));
-  }, []);
-
-  const onSelectPreset = useCallback((presetId: PresetId) => {
-    setState((current) => ({
-      ...current,
-      preferences: applyPreset(current.preferences, presetId),
-    }));
-  }, []);
+  const onSelectPreset = useCallback(
+    (presetId: PresetId) => selectPreset(presetId),
+    [selectPreset],
+  );
 
   const handleNext = useCallback(() => {
     if (options !== null && ready) onNext(preferences, options);
