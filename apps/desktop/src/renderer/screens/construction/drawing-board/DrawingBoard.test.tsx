@@ -70,6 +70,19 @@ describe("DrawingBoard", () => {
     expect(within(cmp()).getByText("Displacement")).toBeTruthy();
   });
 
+  it("lists edits in the history and jumping back restores the earlier design", () => {
+    render(<DrawingBoard />);
+    const hist = () => region("Edit history");
+    expect(within(hist()).getByText(/Start:/)).toBeTruthy();
+    const before = metric("Top speed");
+    commit(/installed power/i, "3400");
+    expect(within(hist()).getByText(/Machinery: installed kw → 3400/)).toBeTruthy();
+    fireEvent.click(within(hist()).getByRole("button", { name: /0\. Start:/ }));
+    expect(metric("Top speed")).toBe(before);
+    fireEvent.click(within(hist()).getByRole("button", { name: /1\. Machinery/ }));
+    expect(metric("Top speed")).not.toBe(before);
+  });
+
   it("labels the development metric as such", () => {
     render(<DrawingBoard />);
     expect(

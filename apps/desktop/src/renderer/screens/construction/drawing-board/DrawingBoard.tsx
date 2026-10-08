@@ -8,6 +8,7 @@ import {
   FindingsPanel,
   ComparePanel,
   ForecastPanel,
+  HistoryPanel,
   HullPanel,
   HullPlanPanel,
   LedgerPanel,
@@ -97,6 +98,13 @@ export function DrawingBoard({ sessionId }: { readonly sessionId?: string } = {}
           {sessionId !== undefined && (
             <SubmitPanel sessionId={sessionId} draft={draft} valid={view.valid} />
           )}
+          <HistoryPanel
+            history={state.history}
+            cursor={state.editCount}
+            startName={state.preset.name}
+            content={content}
+            jumpTo={actions.jumpTo}
+          />
           <FilePanel
             draft={draft}
             view={view}

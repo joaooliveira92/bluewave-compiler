@@ -37,12 +37,16 @@ export interface DrawingBoardState {
   /** Last rejected edit, shown to the player instead of failing silently. */
   readonly editError: string | null;
   readonly editCount: number;
+  /** Every edit in the log (applied ones first), for the history list. */
+  readonly history: readonly DraftEdit[];
 }
 
 export interface DrawingBoardActions {
   readonly edit: (e: DraftEdit) => void;
   readonly undo: () => void;
   readonly redo: () => void;
+  /** Moves the history cursor: 0 = starting design, n = after the n-th edit. */
+  readonly jumpTo: (cursor: number) => void;
   readonly loadPreset: (id: string) => void;
   readonly setMonth: (month: string) => void;
   /** Previews candidate edits by recompiling; call on demand, not on every render. */
@@ -109,11 +113,16 @@ export function useDrawingBoard(fixedMonth: string | null = null): {
       canRedo: canRedo(log),
       editError,
       editCount: log.cursor,
+      history: log.edits,
     },
     actions: {
       edit,
       undo: () => commit(undo(logRef.current)),
       redo: () => commit(redo(logRef.current)),
+      jumpTo: (cursor) => {
+        const l = logRef.current;
+        commit({ ...l, cursor: Math.max(0, Math.min(l.edits.length, cursor)) });
+      },
       loadPreset: (id) => {
         const p = content.references.find((r) => r.id === id);
         if (!p) return;

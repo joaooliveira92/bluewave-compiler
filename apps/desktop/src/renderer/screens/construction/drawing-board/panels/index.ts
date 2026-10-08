@@ -5,6 +5,7 @@ export { FilePanel } from "./FilePanel.js";
 export { FindingsPanel } from "./FindingsPanel.js";
 export { ForecastPanel } from "./ForecastPanel.js";
 export { HullPlanPanel } from "./hull-plan/HullPlanPanel.js";
+export { HistoryPanel } from "./HistoryPanel.js";
 export { HullPanel } from "./HullPanel.js";
 export { LedgerPanel } from "./LedgerPanel.js";
 export { MachineryPanel } from "./MachineryPanel.js";
