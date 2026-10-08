@@ -4,6 +4,7 @@ import type {
   ConstructionScreenProjection,
 } from "../../../../shared/construction-contract.js";
 import { useCommandScreenWorkflow } from "../../../lib/command-screen-workflow.js";
+import { useCampaignRevision } from "../../../shell/CampaignShellContext.js";
 import type { ConstructionScreenState } from "../construction-screen-state.js";
 import {
   acceptConstructionCommand,
@@ -29,21 +30,25 @@ export interface UseConstructionScreenReturn {
 export function useConstructionScreen(sessionId: string): UseConstructionScreenReturn {
   const [selectedDesignId, setSelectedDesignId] = useState<string | null>(null);
   const bridge = window.bluewave;
+  const campaignRevision = useCampaignRevision();
   const workflow = useCommandScreenWorkflow<
     ConstructionScreenState,
     ConstructionScreenProjection,
     ConstructionCommandOutcome
-  >({
-    initialState: initialConstructionScreenState,
-    load: () =>
-      bridge
-        ? bridge.campaign.execute("inspectConstructionScreen", sessionId)
-        : Promise.reject(new Error("Bluewave bridge not available")),
-    project: projectConstructionScreen,
-    accept: acceptConstructionCommand,
-    onProjection: (projection) =>
-      setSelectedDesignId((current) => current ?? projection.designs[0]?.designId ?? null),
-  });
+  >(
+    {
+      initialState: initialConstructionScreenState,
+      load: () =>
+        bridge
+          ? bridge.campaign.execute("inspectConstructionScreen", sessionId)
+          : Promise.reject(new Error("Bluewave bridge not available")),
+      project: projectConstructionScreen,
+      accept: acceptConstructionCommand,
+      onProjection: (projection) =>
+        setSelectedDesignId((current) => current ?? projection.designs[0]?.designId ?? null),
+    },
+    { refreshKey: campaignRevision },
+  );
   function submit(): void {
     if (!bridge || selectedDesignId === null) return;
     workflow.execute("submit", ({ expectedRevision, transportRequestId }) =>

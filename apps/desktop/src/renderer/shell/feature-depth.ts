@@ -61,12 +61,8 @@ export const FEATURE_DEPTH: readonly FeatureDepthEntry[] = [
   { feature: "ships-sunk-or-scrapped", screen: "diplomacy", path: ["Diplomacy & War"] },
   // Per-area table inside Fleet.
   { feature: "area-overview", screen: "fleet", path: ["Fleet", "Area overview"] },
-  {
-    feature: "fleet-organization",
-    screen: null,
-    planned: true,
-    path: ["Fleet", "Organization", "Edit division"],
-  },
+  // Real: the 5 engine division commands, in Fleet (docs/research/rtw3-parity-engine-roadmap.md).
+  { feature: "fleet-organization", screen: "fleet", path: ["Fleet"] },
   { feature: "air-groups", screen: null, planned: true, path: ["Fleet", "Air", "Air groups"] },
   {
     feature: "aircraft-types",

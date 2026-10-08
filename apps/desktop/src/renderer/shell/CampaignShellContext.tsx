@@ -88,3 +88,14 @@ export function useCampaignShellContext(): CampaignShellContextValue {
   }
   return context;
 }
+
+/**
+ * The active campaign's committed revision (turn number), or null when no campaign
+ * is open or the hook is used outside the shell. Unlike `useCampaignShellContext` it
+ * never throws, so screen hooks stay usable in isolation (tests, previews). A screen
+ * passes it as `refreshKey` so it reloads when the month is advanced elsewhere.
+ */
+export function useCampaignRevision(): number | null {
+  const context = use(CampaignShellContext);
+  return context?.state.campaign?.revision ?? null;
+}

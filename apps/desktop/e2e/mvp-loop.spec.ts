@@ -1,7 +1,7 @@
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { SEED, test, expect } from "./fixtures.js";
+import { SEED, test, expect, copyFixturePackage } from "./fixtures.js";
 import { advanceMonths, dismissTour, startNewCampaign } from "./flows.js";
 
 // Serial create-side narrative (matrix rows 1-6). One compiled campaign is
@@ -185,4 +185,34 @@ test("row 6b: Diplomacy & War shows real relations, battle history and honest de
   // War-panel items the engine cannot supply are stated, never faked.
   await expect(e2e.page.getByText("Not yet modelled by the engine", { exact: true })).toBeVisible();
   await expect(e2e.page.getByText(/Trade protection/)).toBeVisible();
+});
+
+test("row 6c: Fleet organization founds a division through the real engine and applies it next month", async ({
+  e2e,
+}) => {
+  // A disposable copy of the compiled save: advancing the month must not touch the shared one.
+  const copy = await copyFixturePackage(sharedSaveDir, e2e.scratch);
+  await e2e.retargetDialog(copy);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await dismissTour(e2e.page);
+
+  await navigateTo(e2e.page, "Fleet");
+  const organization = e2e.page.getByTestId("fleet-organization");
+  await expect(organization.getByText("No divisions yet")).toBeVisible({ timeout: 15_000 });
+
+  await organization.getByRole("button", { name: "Create division" }).click();
+  // Queued, not applied: the engine only acts when the month is committed.
+  await expect(organization.getByRole("status")).toContainText("Create division queued");
+  await expect(organization.getByText("No divisions yet")).toBeVisible();
+
+  await advanceMonths(e2e.page, 1);
+  await navigateTo(e2e.page, "Fleet");
+  await expect(organization.getByRole("heading", { name: /division — HMS / })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(organization.getByText("Commander vacant")).toBeVisible();
+  await expect(organization.getByText("No divisions yet")).not.toBeVisible();
 });

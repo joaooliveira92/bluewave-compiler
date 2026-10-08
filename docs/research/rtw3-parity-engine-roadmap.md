@@ -27,7 +27,7 @@ Movement orders exist in the UI but the bridge answers NOT_IMPLEMENTED (known, s
 
 | RTW3 area | Engine today | Verdict | Effort |
 |---|---|---|---|
-| **Fleet organization / division editor** (F-7) | Real model `PermanentDivision` (role, formation, experience, cohesion, flagship, commander ref, ship order) + the 5 commands above, validated by DESIGN-26 reason codes. Production starts with **zero** divisions (`divisions: []`). | **Buildable now — UI only, no engine change** | Medium: bridge command + read model + editor |
+| **Fleet organization / division editor** (F-7) — **BUILT** (Fleet screen) | Real model `PermanentDivision` (role, formation, experience, cohesion, flagship, commander ref, ship order) + the 5 commands above, validated by DESIGN-26 reason codes. Production starts with **zero** divisions (`divisions: []`). | **Buildable now — UI only, no engine change** | Medium: bridge command + read model + editor |
 | Fleet movement orders | Bridge returns NOT_IMPLEMENTED; no movement command in the 14 | Engine work | Medium |
 | War score, blockades | Real | Done | — |
 | Trade protection, ASW rating | None at campaign level | Engine work | Large |

@@ -4,6 +4,7 @@ import type {
   MovementCommandOutcome,
 } from "../../../../shared/fleet-contract.js";
 import { useCommandScreenWorkflow } from "../../../lib/command-screen-workflow.js";
+import { useCampaignRevision } from "../../../shell/CampaignShellContext.js";
 import type { FleetScreenState } from "../fleet-screen-state.js";
 import {
   acceptMovementCommand,
@@ -32,23 +33,27 @@ export function useFleetScreen(sessionId: string): UseFleetScreenReturn {
   const [selectedDivisionId, setSelectedDivisionId] = useState<string | null>(null);
   const [destinationAreaId, setDestinationAreaId] = useState<string | null>(null);
   const bridge = window.bluewave;
+  const campaignRevision = useCampaignRevision();
   const workflow = useCommandScreenWorkflow<
     FleetScreenState,
     FleetScreenProjection,
     MovementCommandOutcome
-  >({
-    initialState: initialFleetScreenState,
-    load: () =>
-      bridge
-        ? bridge.campaign.execute("inspectFleetScreen", sessionId)
-        : Promise.reject(new Error("Bluewave bridge not available")),
-    project: projectFleetScreen,
-    accept: acceptMovementCommand,
-    onProjection: (projection) => {
-      setSelectedDivisionId((current) => current ?? projection.divisions[0]?.divisionId ?? null);
-      setDestinationAreaId((current) => current ?? projection.areas[0]?.id ?? null);
+  >(
+    {
+      initialState: initialFleetScreenState,
+      load: () =>
+        bridge
+          ? bridge.campaign.execute("inspectFleetScreen", sessionId)
+          : Promise.reject(new Error("Bluewave bridge not available")),
+      project: projectFleetScreen,
+      accept: acceptMovementCommand,
+      onProjection: (projection) => {
+        setSelectedDivisionId((current) => current ?? projection.divisions[0]?.divisionId ?? null);
+        setDestinationAreaId((current) => current ?? projection.areas[0]?.id ?? null);
+      },
     },
-  });
+    { refreshKey: campaignRevision },
+  );
   function selectedDivision() {
     return workflow.state.divisions.find((division) => division.divisionId === selectedDivisionId);
   }

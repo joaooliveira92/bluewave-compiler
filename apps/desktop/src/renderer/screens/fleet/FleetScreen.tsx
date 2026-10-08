@@ -9,6 +9,7 @@ import {
   buildAreaOverview,
   pendingRouteFor,
 } from "./fleet-screen-state.js";
+import { FleetOrganizationSection } from "./organization/FleetOrganizationSection.js";
 import { AreaOverviewTable } from "./components/AreaOverviewTable.js";
 import { useFleetScreen } from "./hooks/useFleetScreen.js";
 import { DivisionPicker } from "./components/DivisionPicker.js";
@@ -114,6 +115,8 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
           <AreaOverviewTable rows={areaOverview} />
         </div>
       </details>
+      <Separator />
+      <FleetOrganizationSection sessionId={sessionId} />
       <Separator />
       <OrderSection
         areas={state.areas}
