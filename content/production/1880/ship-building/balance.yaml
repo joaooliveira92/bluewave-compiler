@@ -1,0 +1,524 @@
+# Ship-building balance for the EARLY band. SOURCED/FITTED: hull.hullCoeffMilliKg and exponent (fit to White 1894 hull fractions), machinery.cFormX100
+# (admiralty coefficients from Royal Sovereign, Majestic, Edgar, Havock, Siegfried, Speedy trials), armour.materialEffBp (Britannica 1911, Brassey 1902).
+# EVERYTHING ELSE is a PLACEHOLDER gameplay constant pending calibration (ticket SB-12 follow-up).
+ship:
+  hull:
+    hullCoeffMilliKg: 9900
+    seawaterKgPerM3: 1025
+    materialBp:
+      iron: 12500
+      mild_steel: 10000
+      high_tensile: 9000
+    schemeBp:
+      transverse: 10500
+      mixed: 10000
+      longitudinal: 9500
+    subdivisionBp:
+      - 8000
+      - 9000
+      - 10000
+      - 11500
+      - 13000
+    buoyancyTolBp: 500
+    overTargetTolBp: 300
+    reserveBuoyancyWarnBp: 3000
+    reserveBuoyancyCriticalBp: 1500
+  machinery:
+    cFormX100:
+      torpedo_boat_form: 21700
+      protected_cruiser_form: 26000
+      coast_defence_form: 15500
+      pre_dreadnought_form: 26500
+    slr0X1000: 1300
+    kSlBp: 600
+    cFloorBp: 5000
+    slrMaxX1000: 3200
+    minSpeedMilliKnots: 6000
+    maxSpeedMilliKnots: 40000
+    kwPerShpBp: 7457
+    auxWeightBp: 0 # White 1894 figures already cover the complete propelling machinery
+    fuelUnusableBp: 500
+    fuelReserveBp: 700
+    bunkerLitrePerKg: 1
+  arrangement:
+    concentrationAdvisoryBp: 6000
+    concentrationWarningBp: 8000
+  weapons:
+    feedFactor:
+      points:
+        - - 0
+          - 10000
+        - - 200
+          - 9000
+        - - 600
+          - 5000
+    stowageBp: 12000
+    blastLoadBp: 3000
+    minBeamArcDeg: 30
+    arcWarnLossDeg: 20
+  armour:
+    steelKgPerM3: 7850
+    backingBp: 11000
+    fixingsBp: 10500
+    materialEffBp:
+      wrought_iron: 10000
+      iron: 10000
+      compound: 13000
+      steel: 13000
+      mild_steel: 13000
+      nickel_steel: 13500
+      harvey: 19500
+      krupp: 23000
+    coverageWarnBp: 9000
+    coverageCriticalBp: 6000
+    magazineWarnBp: 0
+    magazineCriticalBp: -5000
+    underwaterRequiredDepth:
+      points:
+        - - 0
+          - 500
+        - - 100
+          - 2000
+        - - 400
+          - 4000
+    floodBaseBp:
+      - 1000
+      - 2500
+      - 4000
+      - 5500
+      - 7000
+    floodReserveWeightBp: 2000
+    floodDamageControlWeightBp: 3000
+    magVulnBaseBp: 3000
+    magVulnBoilerBp: 2000
+    magVulnTorpedoBp: 1500
+  stability:
+    kbBp: 5300
+    inertiaBp: 400
+    trimToleranceBp: 150
+    sectionModulusBp: 12000
+    stressCriticalBp: 10000
+    stressBlockingBp: 13000
+    seakeepingFreeboard:
+      points:
+        - - 0
+          - 2000
+        - - 60
+          - 6000
+        - - 120
+          - 10000
+    seakeepingGm:
+      points:
+        - - 0
+          - 3000
+        - - 600
+          - 10000
+        - - 2500
+          - 6000
+    thinMarginBp: 1000
+  systems:
+    caseProfileBp:
+      DEFAULT:
+        HARBOUR: 1000
+        CRUISING: 6000
+        ACTION: 10000
+    generatorConcentrationDerateBp: 2500
+    coolingReliabilityPerPercentBp: 50
+    hullCrewPerTonneX1000: 15
+    litrePerHead:
+      SPARTAN: 2000
+      STANDARD: 3000
+      GENEROUS: 4500
+    baseAccuracyBp: 5000
+    localControlPenaltyBp: 1500
+    smokeInterferencePermille: 40
+    smokeInterferencePenaltyBp: 1000
+  ledgerCategoryOf:
+    HULL_FORM: hull
+    MATERIAL: hull
+    BOILER: machinery
+    ENGINE: machinery
+    SHAFT_PROPELLER: machinery
+    FUEL_BUNKER: fuel
+    GENERATOR: auxiliary
+    MAIN_GUN: armament
+    SECONDARY_GUN: armament
+    DUAL_PURPOSE_GUN: armament
+    AA_WEAPON: armament
+    TORPEDO_TUBE: armament
+    MINE_GEAR: mission
+    AIRCRAFT_FACILITY: mission
+    MISSILE_LAUNCHER: armament
+    MOUNT: armament
+    MAGAZINE: armament
+    AMMUNITION: ammunition
+    ARMOUR_SCHEME: armour
+    UNDERWATER_PROTECTION: armour
+    DIRECTOR: sensors
+    RANGEFINDER: sensors
+    RADAR: sensors
+    SONAR: sensors
+    COMMS: sensors
+    SPECIAL_EQUIPMENT: auxiliary
+    DAMAGE_CONTROL: auxiliary
+    ACCOMMODATION: auxiliary
+  lumpZFractionBp:
+    hull: 5500
+    margin: 5500
+    reserve: 5500
+    crew: 6500
+    machinery: 3500
+    fuel: 2500
+  armourZFractionBp:
+    DECK_MAIN: 7500
+    SPLINTER_PLATING: 8500
+    MAGAZINE_BOX: 4000
+    BELT_MAIN: 4500
+  crewKgPerHead: 250
+  stabilityWindowByCategory:
+    DD:
+      gmMinMm: 500
+      gmCapsizeMm: 100
+      gmMaxMm: 2000
+    CL:
+      gmMinMm: 600
+      gmCapsizeMm: 100
+      gmMaxMm: 2200
+    CA:
+      gmMinMm: 700
+      gmCapsizeMm: 150
+      gmMaxMm: 2500
+    B:
+      gmMinMm: 800
+      gmCapsizeMm: 150
+      gmMaxMm: 3000
+    BB:
+      gmMinMm: 900
+      gmCapsizeMm: 200
+      gmMaxMm: 3500
+  minReserveBpByExpectation:
+    NONE: 0
+    MINOR: 300
+    MAJOR: 800
+cost:
+  hullCostPerTonneMicro:
+    iron: 75000000
+    mild_steel: 100000000
+    high_tensile: 135000000
+  formComplexityBp:
+    torpedo_boat_form: 11000
+    protected_cruiser_form: 10500
+    coast_defence_form: 10000
+    pre_dreadnought_form: 10000
+  subdivisionComplexityBp:
+    - 9000
+    - 10000
+    - 11000
+    - 12500
+    - 14000
+  speedPremium:
+    points:
+      - - 0
+        - 10000
+      - - 1300
+        - 10000
+      - - 2000
+        - 12000
+      - - 3200
+        - 20000
+  armourCostPerKgMicro:
+    wrought_iron: 150000
+    iron: 150000
+    compound: 350000
+    steel: 250000
+    mild_steel: 200000
+    nickel_steel: 500000
+    harvey: 800000
+    krupp: 1000000
+  machineryCostPerKwMicro:
+    compound_cylindrical: 8000000
+    triple_expansion_cylindrical: 9000000
+    triple_expansion_watertube: 14000000
+    locomotive_boiler_tb: 12000000
+  maturityCostBp:
+    points:
+      - - 0
+        - 15000
+      - - 5000
+        - 12000
+      - - 10000
+        - 10000
+  overheadBp: 1200
+  firstOfClassBp: 1500
+  hullMonthlyMaintenanceBp: 8
+  plantMonthlyMaintenanceBp: 15
+construction:
+  hullWorkPerTonneMicro: 40000
+  armourWorkPerKgMicro: 70
+  machineryWorkPerKwMicro: 3000
+  componentCostPerWorkMicro: 3000
+  lineByCategory:
+    HULL_FORM: fit_out
+    MATERIAL: fit_out
+    BOILER: machinery
+    ENGINE: machinery
+    SHAFT_PROPELLER: machinery
+    FUEL_BUNKER: fit_out
+    GENERATOR: machinery
+    MAIN_GUN: heavy_gun
+    SECONDARY_GUN: heavy_gun
+    DUAL_PURPOSE_GUN: heavy_gun
+    AA_WEAPON: heavy_gun
+    TORPEDO_TUBE: heavy_gun
+    MINE_GEAR: fit_out
+    AIRCRAFT_FACILITY: fit_out
+    MISSILE_LAUNCHER: heavy_gun
+    MOUNT: heavy_gun
+    MAGAZINE: fit_out
+    AMMUNITION: fit_out
+    ARMOUR_SCHEME: armour_plate
+    UNDERWATER_PROTECTION: armour_plate
+    DIRECTOR: fit_out
+    RANGEFINDER: fit_out
+    RADAR: fit_out
+    SONAR: fit_out
+    COMMS: fit_out
+    SPECIAL_EQUIPMENT: fit_out
+    DAMAGE_CONTROL: fit_out
+    ACCOMMODATION: fit_out
+  fitOutHullShareBp: 2500
+  launchHullShareBp: 300
+  trialsShareBp: 400
+  acceptanceShareBp: 100
+  firstOfClassWorkBp: 2000
+  maxMonths: 120
+cve:
+  weightsByCategory:
+    DD: &a1
+      offence: 3000
+      protection: 1000
+      mobility: 2500
+      reliability: 1500
+      suitability: 2000
+    CL: *a1
+    CA: *a1
+    B: *a1
+    BB: *a1
+  offence:
+    points:
+      - - 0
+        - 0
+      - - 20000
+        - 4000
+      - - 100000
+        - 8000
+      - - 400000
+        - 10000
+  torpedoOffence:
+    points:
+      - - 0
+        - 0
+      - - 1
+        - 1000
+      - - 3
+        - 2000
+  speed:
+    points:
+      - - 0
+        - 0
+      - - 10000
+        - 2000
+      - - 20000
+        - 6000
+      - - 30000
+        - 10000
+  range:
+    points:
+      - - 0
+        - 0
+      - - 1000
+        - 2000
+      - - 3000
+        - 7000
+      - - 6000
+        - 10000
+  warningPenaltyBp: 300
+  criticalPenaltyBp: 1000
+refit:
+  rules:
+    MAINTENANCE_REFIT:
+      projectType: REPAIR
+      allowedCategories: []
+      minRemainingLifeMonths: 0
+      maxHullFatigueBp: 10000
+      fatigueGainBp: 0
+      costMultiplierBp: 12000
+      minMonths: 2
+      lifeExtensionMonths: 36
+    SENSOR_FC_UPDATE:
+      projectType: EQUIPMENT_INSTALLATION
+      allowedCategories:
+        - DIRECTOR
+        - RANGEFINDER
+        - RADAR
+        - COMMS
+        - GENERATOR
+      minRemainingLifeMonths: 24
+      maxHullFatigueBp: 8000
+      fatigueGainBp: 300
+      costMultiplierBp: 12000
+      minMonths: 2
+      lifeExtensionMonths: 12
+    AA_UPGRADE:
+      projectType: EQUIPMENT_INSTALLATION
+      allowedCategories:
+        - AA_WEAPON
+        - DIRECTOR
+        - MAGAZINE
+      minRemainingLifeMonths: 24
+      maxHullFatigueBp: 8000
+      fatigueGainBp: 300
+      costMultiplierBp: 12000
+      minMonths: 2
+      lifeExtensionMonths: 12
+    MACHINERY_REFIT:
+      projectType: REBUILD
+      allowedCategories:
+        - ENGINE
+        - BOILER
+        - GENERATOR
+      minRemainingLifeMonths: 24
+      maxHullFatigueBp: 6000
+      fatigueGainBp: 800
+      costMultiplierBp: 12000
+      minMonths: 6
+      lifeExtensionMonths: 12
+    REARMAMENT:
+      projectType: REBUILD
+      allowedCategories:
+        - MAIN_GUN
+        - SECONDARY_GUN
+        - MAGAZINE
+        - MOUNT
+      minRemainingLifeMonths: 24
+      maxHullFatigueBp: 6000
+      fatigueGainBp: 800
+      costMultiplierBp: 12000
+      minMonths: 6
+      lifeExtensionMonths: 12
+    ARMOUR_MODIFICATION:
+      projectType: REBUILD
+      allowedCategories:
+        - ARMOUR_SCHEME
+      minRemainingLifeMonths: 24
+      maxHullFatigueBp: 5000
+      fatigueGainBp: 1000
+      costMultiplierBp: 12000
+      minMonths: 8
+      lifeExtensionMonths: 12
+    AVIATION_CONVERSION:
+      projectType: CONVERSION
+      allowedCategories:
+        - AIRCRAFT_FACILITY
+      minRemainingLifeMonths: 24
+      maxHullFatigueBp: 5000
+      fatigueGainBp: 1000
+      costMultiplierBp: 12000
+      minMonths: 8
+      lifeExtensionMonths: 12
+    MAJOR_RECONSTRUCTION:
+      projectType: REBUILD
+      allowedCategories: []
+      minRemainingLifeMonths: 24
+      maxHullFatigueBp: 4000
+      fatigueGainBp: 2500
+      costMultiplierBp: 15000
+      minMonths: 12
+      lifeExtensionMonths: 12
+    ROLE_CONVERSION:
+      projectType: CONVERSION
+      allowedCategories: []
+      minRemainingLifeMonths: 24
+      maxHullFatigueBp: 7000
+      fatigueGainBp: 500
+      costMultiplierBp: 12000
+      minMonths: 6
+      lifeExtensionMonths: 12
+  removalCostBp: 2000
+  holeGrowthBp: 2000
+  uneconomicalBp: 6000
+  uneconomicalHardBp: 9000
+  costPerWorkMicro: 3000
+ai:
+  CONSERVATIVE:
+    weights:
+      offence: 1500
+      protection: 1500
+      mobility: 2000
+      reliability: 3000
+      suitability: 2000
+    warningPenaltyBp: 800
+    criticalPenaltyBp: 3000
+    costWeightBp: 500
+    reserveTargetBp: null
+    designMarginBp: 600
+  BALANCED:
+    weights:
+      offence: 2500
+      protection: 1500
+      mobility: 2500
+      reliability: 1500
+      suitability: 2000
+    warningPenaltyBp: 400
+    criticalPenaltyBp: 1500
+    costWeightBp: 500
+    reserveTargetBp: null
+    designMarginBp: 400
+  AGGRESSIVE:
+    weights:
+      offence: 4000
+      protection: 500
+      mobility: 3000
+      reliability: 500
+      suitability: 2000
+    warningPenaltyBp: 100
+    criticalPenaltyBp: 600
+    costWeightBp: 200
+    reserveTargetBp: null
+    designMarginBp: 200
+  LOW_COST:
+    weights:
+      offence: 2000
+      protection: 1000
+      mobility: 2000
+      reliability: 2000
+      suitability: 3000
+    warningPenaltyBp: 400
+    criticalPenaltyBp: 1500
+    costWeightBp: 5000
+    reserveTargetBp: null
+    designMarginBp: 400
+  LONG_RANGE:
+    weights:
+      offence: 1500
+      protection: 1000
+      mobility: 4500
+      reliability: 1500
+      suitability: 1500
+    warningPenaltyBp: 400
+    criticalPenaltyBp: 1500
+    costWeightBp: 500
+    reserveTargetBp: null
+    designMarginBp: 400
+  UPGRADE:
+    weights:
+      offence: 2000
+      protection: 1500
+      mobility: 2000
+      reliability: 2000
+      suitability: 2500
+    warningPenaltyBp: 400
+    criticalPenaltyBp: 1500
+    costWeightBp: 500
+    reserveTargetBp: 800
+    designMarginBp: 500

@@ -1,0 +1,632 @@
+# Ship-building component catalogue, EARLY band (1880-1899).
+# Source of every figure: docs/research/ship-building-early-band.md. Confidence labels (VERIFIED / SINGLE-SOURCE / ESTIMATE / UNVERIFIED)
+# are kept in comments. PLACEHOLDER = no source in the research note; must be replaced before release (ticket SB-12 follow-up).
+# Units: kg, mm, litres, kW, budget micro-units, bp. Formulas use the restricted grammar of @bluewave/ship-design.
+components:
+  # 12in/25: gun 43.8 long t, shell 714 lb, charge 295 lb, 1914 fps, ROF 0.3-0.5 [NW] SINGLE-SOURCE. Mount mass ESTIMATE (no source).
+  - id: gun_bl_12in_25
+    displayName: "BL 12-inch/25 gun in barbette mount"
+    category: MAIN_GUN
+    introduction: { fromMonth: "1885-01", obsoleteMonth: null }
+    requires: [gun_breech_rifled]
+    parameters: { barrels: { min: 1, max: 4, step: 1 }, rounds: { min: 20, max: 120, step: 10 } }
+    constants:
+      {
+        gun_kg: 44500,
+        mount_per_barrel_kg: 30000,
+        mount_fixed_kg: 20000,
+        cost_per_kg_micro: 150000,
+      }
+    weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
+    volumeLitre: "223500 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    costMicro: "(gun_kg + mount_per_barrel_kg) * barrels * cost_per_kg_micro" # PLACEHOLDER: proportional to mass, no cost source
+    crew: "13 * barrels"
+    powerKw: "1 * barrels"
+    upgradePath: []
+    tags: [gun, heavy]
+    deckFootprintMm2: "35015000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    heightMm: "3200"
+    zCgMm: "6500"
+    fcClass: heavy
+    attributes:
+      caliberUm: "305000"
+      shellMassG: "324000"
+      chargeBp: "4136"
+      roundVolumeMl: "229003" # ESTIMATE: 0.5 mL per gram of round
+      rofBaseX100: "40"
+      beamArcDeg: "120"
+      maxFeedPermille: "250"
+    maintenanceMonthlyBp: 20
+
+  # 13.5in/30: gun 67 long t, shell 1250 lb, charge 630 lb SBC [NW] SINGLE-SOURCE. Mount mass ESTIMATE.
+  - id: gun_bl_135in_30
+    displayName: "BL 13.5-inch/30 gun in barbette mount"
+    category: MAIN_GUN
+    introduction: { fromMonth: "1885-01", obsoleteMonth: null }
+    requires: [gun_breech_rifled]
+    parameters: { barrels: { min: 1, max: 4, step: 1 }, rounds: { min: 20, max: 120, step: 10 } }
+    constants:
+      {
+        gun_kg: 68100,
+        mount_per_barrel_kg: 45000,
+        mount_fixed_kg: 25000,
+        cost_per_kg_micro: 150000,
+      }
+    weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
+    volumeLitre: "339300 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    costMicro: "(gun_kg + mount_per_barrel_kg) * barrels * cost_per_kg_micro" # PLACEHOLDER: proportional to mass, no cost source
+    crew: "14 * barrels"
+    powerKw: "1 * barrels"
+    upgradePath: []
+    tags: [gun, heavy]
+    deckFootprintMm2: "53157000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    heightMm: "3200"
+    zCgMm: "6500"
+    fcClass: heavy
+    attributes:
+      caliberUm: "343000"
+      shellMassG: "567000"
+      chargeBp: "5044"
+      roundVolumeMl: "426497" # ESTIMATE: 0.5 mL per gram of round
+      rofBaseX100: "40"
+      beamArcDeg: "120"
+      maxFeedPermille: "250"
+    maintenanceMonthlyBp: 20
+
+  # 12in/35 Mk VIII: gun 46 long t, shell 850 lb [NW]+[B2] VERIFIED; charge 79 kg ESTIMATE (1908+ load); ROF 1 per 70-100 s. Mount mass ESTIMATE.
+  - id: gun_bl_12in_35
+    displayName: "BL 12-inch/35 Mk VIII gun in turret"
+    category: MAIN_GUN
+    introduction: { fromMonth: "1895-01", obsoleteMonth: null }
+    requires: [gun_breech_rifled, gun_smokeless_powder]
+    parameters: { barrels: { min: 1, max: 4, step: 1 }, rounds: { min: 20, max: 120, step: 10 } }
+    constants:
+      {
+        gun_kg: 46700,
+        mount_per_barrel_kg: 32000,
+        mount_fixed_kg: 20000,
+        cost_per_kg_micro: 150000,
+      }
+    weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
+    volumeLitre: "236100 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    costMicro: "(gun_kg + mount_per_barrel_kg) * barrels * cost_per_kg_micro" # PLACEHOLDER: proportional to mass, no cost source
+    crew: "13 * barrels"
+    powerKw: "1 * barrels"
+    upgradePath: []
+    tags: [gun, heavy]
+    deckFootprintMm2: "36989000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    heightMm: "3200"
+    zCgMm: "6500"
+    fcClass: heavy
+    attributes:
+      caliberUm: "305000"
+      shellMassG: "386000"
+      chargeBp: "2047"
+      roundVolumeMl: "232507" # ESTIMATE: 0.5 mL per gram of round
+      rofBaseX100: "70"
+      beamArcDeg: "120"
+      maxFeedPermille: "250"
+    maintenanceMonthlyBp: 20
+
+  # 10in/32: gun 29.5 long t, shell 500 lb, charge 252 lb [NW] SINGLE-SOURCE. Mount mass ESTIMATE.
+  - id: gun_bl_10in_32
+    displayName: "BL 10-inch/32 gun in mount"
+    category: MAIN_GUN
+    introduction: { fromMonth: "1885-01", obsoleteMonth: null }
+    requires: [gun_breech_rifled]
+    parameters: { barrels: { min: 1, max: 4, step: 1 }, rounds: { min: 20, max: 120, step: 10 } }
+    constants:
+      {
+        gun_kg: 30000,
+        mount_per_barrel_kg: 20000,
+        mount_fixed_kg: 12000,
+        cost_per_kg_micro: 150000,
+      }
+    weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
+    volumeLitre: "150000 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    costMicro: "(gun_kg + mount_per_barrel_kg) * barrels * cost_per_kg_micro" # PLACEHOLDER: proportional to mass, no cost source
+    crew: "9 * barrels"
+    powerKw: "1 * barrels"
+    upgradePath: []
+    tags: [gun, heavy]
+    deckFootprintMm2: "23500000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    heightMm: "3200"
+    zCgMm: "6500"
+    fcClass: heavy
+    attributes:
+      caliberUm: "254000"
+      shellMassG: "227000"
+      chargeBp: "5022"
+      roundVolumeMl: "170499" # ESTIMATE: 0.5 mL per gram of round
+      rofBaseX100: "50"
+      beamArcDeg: "120"
+      maxFeedPermille: "250"
+    maintenanceMonthlyBp: 20
+
+  # 9.2in/31.5: gun 22-24 long t, shell 380 lb, charge 163 lb [NW] SINGLE-SOURCE. Mount mass ESTIMATE.
+  - id: gun_bl_92in_315
+    displayName: "BL 9.2-inch/31.5 gun in mount"
+    category: SECONDARY_GUN
+    introduction: { fromMonth: "1881-01", obsoleteMonth: null }
+    requires: [gun_breech_rifled]
+    parameters: { barrels: { min: 1, max: 2, step: 1 }, rounds: { min: 20, max: 120, step: 10 } }
+    constants:
+      { gun_kg: 23400, mount_per_barrel_kg: 14000, mount_fixed_kg: 9000, cost_per_kg_micro: 120000 }
+    weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
+    volumeLitre: "112200 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    costMicro: "(gun_kg + mount_per_barrel_kg) * barrels * cost_per_kg_micro" # PLACEHOLDER: proportional to mass, no cost source
+    crew: "7 * barrels"
+    powerKw: "1 * barrels"
+    upgradePath: []
+    tags: [gun, medium]
+    deckFootprintMm2: "17578000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    heightMm: "2200"
+    zCgMm: "6000"
+    fcClass: medium
+    attributes:
+      caliberUm: "234000"
+      shellMassG: "172000"
+      chargeBp: "4286"
+      roundVolumeMl: "122859" # ESTIMATE: 0.5 mL per gram of round
+      rofBaseX100: "100"
+      beamArcDeg: "120"
+      maxFeedPermille: "300"
+    maintenanceMonthlyBp: 20
+
+  # 6in/26: shell 100 lb, charge 48 lb, 1960 fps [NW] SINGLE-SOURCE. Gun mass 4300 kg ESTIMATE (UNVERIFIED). In-service year UNVERIFIED (1881-1887); 1884 chosen.
+  - id: gun_bl_6in_26
+    displayName: "BL 6-inch/26 gun in mount"
+    category: SECONDARY_GUN
+    introduction: { fromMonth: "1884-01", obsoleteMonth: null }
+    requires: [gun_breech_rifled]
+    parameters: { barrels: { min: 1, max: 2, step: 1 }, rounds: { min: 40, max: 200, step: 10 } }
+    constants:
+      { gun_kg: 4300, mount_per_barrel_kg: 3000, mount_fixed_kg: 1500, cost_per_kg_micro: 120000 }
+    weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
+    volumeLitre: "21900 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    costMicro: "(gun_kg + mount_per_barrel_kg) * barrels * cost_per_kg_micro" # PLACEHOLDER: proportional to mass, no cost source
+    crew: "3 * barrels"
+    powerKw: "1 * barrels"
+    upgradePath: []
+    tags: [gun, medium]
+    deckFootprintMm2: "3431000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    heightMm: "2200"
+    zCgMm: "6000"
+    fcClass: medium
+    attributes:
+      caliberUm: "152000"
+      shellMassG: "45000"
+      chargeBp: "4812"
+      roundVolumeMl: "33327" # ESTIMATE: 0.5 mL per gram of round
+      rofBaseX100: "400"
+      beamArcDeg: "150"
+      maxFeedPermille: "300"
+    maintenanceMonthlyBp: 20
+
+  # QF 6in/40: gun 6.6 long t, shell 100 lb, charge 29.75 lb EXE [NW] SINGLE-SOURCE. Mount mass ESTIMATE.
+  - id: gun_qf_6in_40
+    displayName: "QF 6-inch/40 gun in shielded mount"
+    category: SECONDARY_GUN
+    introduction: { fromMonth: "1892-01", obsoleteMonth: null }
+    requires: [gun_qf_medium]
+    parameters: { barrels: { min: 1, max: 2, step: 1 }, rounds: { min: 40, max: 200, step: 10 } }
+    constants:
+      { gun_kg: 6700, mount_per_barrel_kg: 3500, mount_fixed_kg: 1800, cost_per_kg_micro: 120000 }
+    weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
+    volumeLitre: "30600 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    costMicro: "(gun_kg + mount_per_barrel_kg) * barrels * cost_per_kg_micro" # PLACEHOLDER: proportional to mass, no cost source
+    crew: "3 * barrels"
+    powerKw: "1 * barrels"
+    upgradePath: []
+    tags: [gun, medium]
+    deckFootprintMm2: "4794000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    heightMm: "2200"
+    zCgMm: "6000"
+    fcClass: medium
+    attributes:
+      caliberUm: "152000"
+      shellMassG: "45000"
+      chargeBp: "2980"
+      roundVolumeMl: "29205" # ESTIMATE: 0.5 mL per gram of round
+      rofBaseX100: "600"
+      beamArcDeg: "150"
+      maxFeedPermille: "300"
+    maintenanceMonthlyBp: 20
+
+  # QF 4.7in: gun 2.07-2.1 long t, shell 45 lb, charge 12 lb SP [NW] SINGLE-SOURCE. Mount mass ESTIMATE.
+  - id: gun_qf_47in
+    displayName: "QF 4.7-inch gun in shielded mount"
+    category: SECONDARY_GUN
+    introduction: { fromMonth: "1887-01", obsoleteMonth: null }
+    requires: [gun_qf_light]
+    parameters: { barrels: { min: 1, max: 2, step: 1 }, rounds: { min: 40, max: 200, step: 10 } }
+    constants:
+      { gun_kg: 2130, mount_per_barrel_kg: 1200, mount_fixed_kg: 600, cost_per_kg_micro: 120000 }
+    weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
+    volumeLitre: "9990 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    costMicro: "(gun_kg + mount_per_barrel_kg) * barrels * cost_per_kg_micro" # PLACEHOLDER: proportional to mass, no cost source
+    crew: "2 * barrels"
+    powerKw: "1 * barrels"
+    upgradePath: []
+    tags: [gun, light]
+    deckFootprintMm2: "1565100 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    heightMm: "2200"
+    zCgMm: "6000"
+    fcClass: light
+    attributes:
+      caliberUm: "120000"
+      shellMassG: "20400"
+      chargeBp: "2647"
+      roundVolumeMl: "12899" # ESTIMATE: 0.5 mL per gram of round
+      rofBaseX100: "500"
+      beamArcDeg: "150"
+      maxFeedPermille: "300"
+    maintenanceMonthlyBp: 20
+
+  # 12-pdr: gun 510 kg, shell 12.5 lb, 2235 fps, mount PI* 1253 kg [NW] SINGLE-SOURCE. Charge ~1 kg ESTIMATE.
+  - id: gun_qf_12pdr
+    displayName: "QF 12-pounder 12-cwt gun on pedestal"
+    category: SECONDARY_GUN
+    introduction: { fromMonth: "1894-01", obsoleteMonth: null }
+    requires: [gun_qf_light]
+    parameters: { barrels: { min: 1, max: 1, step: 1 }, rounds: { min: 50, max: 300, step: 50 } }
+    constants:
+      { gun_kg: 510, mount_per_barrel_kg: 1253, mount_fixed_kg: 0, cost_per_kg_micro: 120000 }
+    weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
+    volumeLitre: "5289 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    costMicro: "(gun_kg + mount_per_barrel_kg) * barrels * cost_per_kg_micro" # PLACEHOLDER: proportional to mass, no cost source
+    crew: "2 * barrels"
+    powerKw: "1 * barrels"
+    upgradePath: []
+    tags: [gun, light]
+    deckFootprintMm2: "1500000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    heightMm: "2200"
+    zCgMm: "6000"
+    fcClass: light
+    attributes:
+      caliberUm: "76000"
+      shellMassG: "5670"
+      chargeBp: "1764"
+      roundVolumeMl: "3335" # ESTIMATE: 0.5 mL per gram of round
+      rofBaseX100: "1500"
+      beamArcDeg: "140"
+      maxFeedPermille: "400"
+    maintenanceMonthlyBp: 20
+
+  # 6-pdr: gun 849 lb, shell 6 lb, 1765 fps [NW] SINGLE-SOURCE. Charge 0.4 kg ESTIMATE. Mount mass ESTIMATE.
+  - id: gun_qf_6pdr
+    displayName: "QF 6-pounder 8-cwt gun on pedestal"
+    category: SECONDARY_GUN
+    introduction: { fromMonth: "1884-01", obsoleteMonth: null }
+    requires: [gun_qf_light]
+    parameters: { barrels: { min: 1, max: 1, step: 1 }, rounds: { min: 50, max: 300, step: 50 } }
+    constants:
+      { gun_kg: 385, mount_per_barrel_kg: 300, mount_fixed_kg: 0, cost_per_kg_micro: 120000 }
+    weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
+    volumeLitre: "2055 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    costMicro: "(gun_kg + mount_per_barrel_kg) * barrels * cost_per_kg_micro" # PLACEHOLDER: proportional to mass, no cost source
+    crew: "2 * barrels"
+    powerKw: "1 * barrels"
+    upgradePath: []
+    tags: [gun, light]
+    deckFootprintMm2: "1500000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    heightMm: "2200"
+    zCgMm: "6000"
+    fcClass: light
+    attributes:
+      caliberUm: "57000"
+      shellMassG: "2720"
+      chargeBp: "1471"
+      roundVolumeMl: "1560" # ESTIMATE: 0.5 mL per gram of round
+      rofBaseX100: "2000"
+      beamArcDeg: "140"
+      maxFeedPermille: "400"
+    maintenanceMonthlyBp: 20
+
+  # 3-pdr: gun 528 lb, shell 3.3 lb, 1884 fps, mount 0.7 long t [NW] SINGLE-SOURCE. Charge 0.3 kg ESTIMATE.
+  - id: gun_hotchkiss_3pdr
+    displayName: "Hotchkiss 3-pounder 47 mm gun"
+    category: SECONDARY_GUN
+    introduction: { fromMonth: "1886-01", obsoleteMonth: null }
+    requires: [gun_qf_light]
+    parameters: { barrels: { min: 1, max: 1, step: 1 }, rounds: { min: 50, max: 400, step: 50 } }
+    constants:
+      { gun_kg: 240, mount_per_barrel_kg: 710, mount_fixed_kg: 0, cost_per_kg_micro: 120000 }
+    weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
+    volumeLitre: "2850 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    costMicro: "(gun_kg + mount_per_barrel_kg) * barrels * cost_per_kg_micro" # PLACEHOLDER: proportional to mass, no cost source
+    crew: "2 * barrels"
+    powerKw: "1 * barrels"
+    upgradePath: []
+    tags: [gun, light]
+    deckFootprintMm2: "1500000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    heightMm: "2200"
+    zCgMm: "6000"
+    fcClass: light
+    attributes:
+      caliberUm: "47000"
+      shellMassG: "1500"
+      chargeBp: "2000"
+      roundVolumeMl: "900" # ESTIMATE: 0.5 mL per gram of round
+      rofBaseX100: "2000"
+      beamArcDeg: "140"
+      maxFeedPermille: "400"
+    maintenanceMonthlyBp: 20
+
+  # 1in Nordenfelt: mass 447 lb, bullet 7.25 oz, 1464 fps [TG via secondary] SINGLE-SOURCE (relayed). ROF 200 rds/min ESTIMATE (UNVERIFIED). Mount mass ESTIMATE.
+  - id: gun_nordenfelt_1in
+    displayName: "Nordenfelt 1-inch 4-barrel machine gun"
+    category: SECONDARY_GUN
+    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
+    requires: []
+    parameters: { barrels: { min: 1, max: 1, step: 1 }, rounds: { min: 500, max: 3000, step: 500 } }
+    constants:
+      { gun_kg: 203, mount_per_barrel_kg: 150, mount_fixed_kg: 0, cost_per_kg_micro: 120000 }
+    weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
+    volumeLitre: "1059 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    costMicro: "(gun_kg + mount_per_barrel_kg) * barrels * cost_per_kg_micro" # PLACEHOLDER: proportional to mass, no cost source
+    crew: "2 * barrels"
+    powerKw: "1 * barrels"
+    upgradePath: []
+    tags: [gun, light]
+    deckFootprintMm2: "1500000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    heightMm: "2200"
+    zCgMm: "6000"
+    fcClass: light
+    attributes:
+      caliberUm: "25000"
+      shellMassG: "206"
+      chargeBp: "0"
+      roundVolumeMl: "103" # ESTIMATE: 0.5 mL per gram of round
+      rofBaseX100: "20000"
+      beamArcDeg: "140"
+      maxFeedPermille: "400"
+    maintenanceMonthlyBp: 20
+
+  # Maxim .303: gun 58.4 lb + mount 160 lb, bullet 14 g, charge 3 g [NW] SINGLE-SOURCE. Sustained 250 rds/min ESTIMATE (cyclic 500). RN naval adoption 1890s; 1890-01 chosen.
+  - id: gun_maxim_303
+    displayName: "Maxim .303 machine gun on mount"
+    category: SECONDARY_GUN
+    introduction: { fromMonth: "1890-01", obsoleteMonth: null }
+    requires: []
+    parameters:
+      { barrels: { min: 1, max: 1, step: 1 }, rounds: { min: 1000, max: 6000, step: 1000 } }
+    constants: { gun_kg: 27, mount_per_barrel_kg: 73, mount_fixed_kg: 0, cost_per_kg_micro: 120000 }
+    weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
+    volumeLitre: "300 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    costMicro: "(gun_kg + mount_per_barrel_kg) * barrels * cost_per_kg_micro" # PLACEHOLDER: proportional to mass, no cost source
+    crew: "2 * barrels"
+    powerKw: "1 * barrels"
+    upgradePath: []
+    tags: [gun, light]
+    deckFootprintMm2: "1500000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    heightMm: "2200"
+    zCgMm: "6000"
+    fcClass: light
+    attributes:
+      caliberUm: "8000"
+      shellMassG: "14"
+      chargeBp: "2143"
+      roundVolumeMl: "20" # ESTIMATE: 0.5 mL per gram of round
+      rofBaseX100: "25000"
+      beamArcDeg: "150"
+      maxFeedPermille: "400"
+    maintenanceMonthlyBp: 20
+
+  # 14in Whitehead: 18-24 kn, 550-750 m, warhead 12-35 kg UNVERIFIED; torpedo mass ~300 kg ESTIMATE (250-400); carriage mass ESTIMATE 0.8-2.0 t (UNVERIFIED); 2 torpedoes per tube incl. reload ESTIMATE.
+  - id: tube_14in_above_water
+    displayName: "14-inch Whitehead torpedo tube, above-water trainable carriage"
+    category: TORPEDO_TUBE
+    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
+    requires: [torp_whitehead_torpedo]
+    parameters: { tubes: { min: 1, max: 4, step: 1 } }
+    constants:
+      { tube_kg: 1400, torpedo_kg: 300, torpedoes_per_tube: 2, cost_per_tube_micro: 600000000 }
+    weightKg: "(tube_kg + torpedo_kg * torpedoes_per_tube) * tubes"
+    volumeLitre: "(2500 + 600 * torpedoes_per_tube) * tubes" # PLACEHOLDER volume
+    costMicro: "cost_per_tube_micro * tubes" # PLACEHOLDER
+    crew: "3 * tubes"
+    powerKw: "0"
+    upgradePath: []
+    tags: [torpedo]
+    deckFootprintMm2: "2500000 * tubes"
+    heightMm: "1500"
+    zCgMm: "4800"
+    torpedoMount:
+      mountType: ABOVE_WATER_TRAINABLE
+      torpedoModelId: whitehead_14in_1886
+    maintenanceMonthlyBp: 15
+
+  # 14in Whitehead: 18-24 kn, 550-750 m, warhead 12-35 kg UNVERIFIED; torpedo mass ~300 kg ESTIMATE (250-400); tube mass ESTIMATE 1.5-3.5 t (UNVERIFIED); 2 torpedoes per tube incl. reload ESTIMATE.
+  - id: tube_14in_submerged
+    displayName: "14-inch Whitehead torpedo tube, submerged bow tube"
+    category: TORPEDO_TUBE
+    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
+    requires: [torp_whitehead_torpedo]
+    parameters: { tubes: { min: 1, max: 4, step: 1 } }
+    constants:
+      { tube_kg: 2500, torpedo_kg: 300, torpedoes_per_tube: 2, cost_per_tube_micro: 600000000 }
+    weightKg: "(tube_kg + torpedo_kg * torpedoes_per_tube) * tubes"
+    volumeLitre: "(2500 + 600 * torpedoes_per_tube) * tubes" # PLACEHOLDER volume
+    costMicro: "cost_per_tube_micro * tubes" # PLACEHOLDER
+    crew: "3 * tubes"
+    powerKw: "0"
+    upgradePath: []
+    tags: [torpedo]
+    deckFootprintMm2: "2500000 * tubes"
+    heightMm: "1500"
+    zCgMm: "4800"
+    torpedoMount:
+      mountType: UNDERWATER_FIXED
+      torpedoModelId: whitehead_14in_1886
+    maintenanceMonthlyBp: 15
+
+  # PLACEHOLDER (no source): magazine capacities and masses. Capacity is volume only; ammunition mass is carried by the guns.
+  - id: magazine_small
+    displayName: "Magazine, small (light guns and shell rooms)"
+    category: MAGAZINE
+    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
+    requires: []
+    parameters: {}
+    constants: { cap_litre: 8000 }
+    weightKg: "2000"
+    volumeLitre: "9000"
+    costMicro: "300000000"
+    crew: "2"
+    powerKw: "0"
+    upgradePath: [magazine_medium]
+    tags: [magazine]
+    critical: true
+    deckFootprintMm2: "4000000"
+    heightMm: "2200"
+    zCgMm: "2200"
+    attributes: { magazineLitre: "8000", flashProtectionBp: "0" }
+  - id: magazine_medium
+    displayName: "Magazine, medium (secondary guns)"
+    category: MAGAZINE
+    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
+    requires: []
+    parameters: {}
+    constants: { cap_litre: 30000 }
+    weightKg: "6000"
+    volumeLitre: "33000"
+    costMicro: "900000000"
+    crew: "4"
+    powerKw: "0"
+    upgradePath: [magazine_heavy]
+    tags: [magazine]
+    critical: true
+    deckFootprintMm2: "9000000"
+    heightMm: "2400"
+    zCgMm: "2200"
+    attributes: { magazineLitre: "30000", flashProtectionBp: "0" }
+  - id: magazine_heavy
+    displayName: "Magazine, heavy (main battery)"
+    category: MAGAZINE
+    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
+    requires: []
+    parameters: {}
+    constants: { cap_litre: 120000 }
+    weightKg: "20000"
+    volumeLitre: "130000"
+    costMicro: "3000000000"
+    crew: "8"
+    powerKw: "0"
+    upgradePath: []
+    tags: [magazine]
+    critical: true
+    deckFootprintMm2: "30000000"
+    heightMm: "2600"
+    zCgMm: "2400"
+    attributes: { magazineLitre: "120000", flashProtectionBp: "0" }
+  # PLACEHOLDER (no source): fire control. Optical rangefinder by fc_basic_rangefinding.
+  - id: rangefinder_optical
+    displayName: "Optical rangefinder"
+    category: RANGEFINDER
+    introduction: { fromMonth: "1890-01", obsoleteMonth: null }
+    requires: [fc_basic_rangefinding]
+    parameters: {}
+    constants: {}
+    weightKg: "300"
+    volumeLitre: "300"
+    costMicro: "100000000"
+    crew: "2"
+    powerKw: "0"
+    upgradePath: []
+    tags: [fire_control]
+    deckFootprintMm2: "600000"
+    heightMm: "1500"
+    zCgMm: "8000"
+    fcClasses: [heavy, medium, light]
+    attributes: { accuracyBonusBp: "800", capacity: "8" }
+  # PLACEHOLDER (no source): ship's electrical plant, quarters, funnel, pumps, ventilation.
+  - id: dynamo_small
+    displayName: "Dynamo set, 60 kW"
+    category: GENERATOR
+    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
+    requires: []
+    parameters: {}
+    constants: {}
+    weightKg: "1200"
+    volumeLitre: "2500"
+    costMicro: "200000000"
+    crew: "2"
+    powerKw: "0"
+    upgradePath: []
+    tags: [electrical]
+    deckFootprintMm2: "2000000"
+    heightMm: "1800"
+    zCgMm: "1500"
+    coolingKw: "6"
+    attributes: { genKw: "60" }
+  - id: quarters_crew
+    displayName: "Crew quarters block (volume only)"
+    category: ACCOMMODATION
+    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
+    requires: []
+    parameters: { blocks: { min: 1, max: 40, step: 1 } }
+    constants: { litre_per_block: 20000 }
+    weightKg: "300 * blocks"
+    volumeLitre: "litre_per_block * blocks"
+    costMicro: "30000000 * blocks"
+    crew: "0"
+    powerKw: "0"
+    upgradePath: []
+    tags: [accommodation]
+    deckFootprintMm2: "2500000 * blocks"
+    heightMm: "2000"
+    zCgMm: "3800"
+  - id: funnel_single
+    displayName: "Funnel"
+    category: SPECIAL_EQUIPMENT
+    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
+    requires: []
+    parameters: {}
+    constants: {}
+    weightKg: "5000"
+    volumeLitre: "1000"
+    costMicro: "60000000"
+    crew: "0"
+    powerKw: "0"
+    upgradePath: []
+    tags: [funnel]
+    deckFootprintMm2: "4000000"
+    heightMm: "6000"
+    zCgMm: "6500"
+    attributes: { arcBlockedDeg: "20", arcReachPermille: "60" }
+  - id: pumps_damage_control
+    displayName: "Pumps and damage-control gear"
+    category: DAMAGE_CONTROL
+    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
+    requires: [dc_watertight_bulkheads]
+    parameters: {}
+    constants: {}
+    weightKg: "1500"
+    volumeLitre: "3000"
+    costMicro: "30000000"
+    crew: "2"
+    powerKw: "0"
+    upgradePath: []
+    tags: [damage_control]
+    deckFootprintMm2: "2000000"
+    heightMm: "1800"
+    zCgMm: "1800"
+    attributes: { damageControlBp: "500" }
+  - id: ventilation_plant
+    displayName: "Ventilation and cooling plant"
+    category: SPECIAL_EQUIPMENT
+    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
+    requires: []
+    parameters: {}
+    constants: {}
+    weightKg: "2500"
+    volumeLitre: "4000"
+    costMicro: "25000000"
+    crew: "0"
+    powerKw: "6"
+    upgradePath: []
+    tags: [ventilation]
+    deckFootprintMm2: "2000000"
+    heightMm: "1800"
+    zCgMm: "3500"
+    attributes: { coolingSupplyKw: "40" }
