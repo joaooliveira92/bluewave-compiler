@@ -27,6 +27,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useFrameMeter } from "./useFrameMeter.js";
+
 export interface CameraTransform {
   scale: number;
   x: number;
@@ -108,9 +110,7 @@ export function useMapCamera(
 
   // Frame timing. Kept out of React entirely; the readout is written straight
   // into a span so producing the number cannot perturb the number.
-  const samples = useRef<number[]>([]);
-  const lastFrame = useRef(0);
-  const lastReport = useRef(0);
+  const { sample: sampleFrame, reset: resetFrameMeter } = useFrameMeter(meterRef);
 
   /** Screen pixels per user unit, or null before the SVG is laid out. */
   const pixelsPerUnit = useCallback((): number => {
@@ -194,35 +194,14 @@ export function useMapCamera(
         : Math.min(visible.top, Math.max(visible.top + visible.height - scaledHeight, current.y));
   }, [minScale, viewportUnits, worldHeight, worldWidth, wrapHorizontally]);
 
-  const sampleFrame = useCallback(() => {
-    const now = performance.now();
-    if (lastFrame.current !== 0) {
-      const delta = now - lastFrame.current;
-      if (delta < 250) samples.current.push(delta);
-      if (samples.current.length > 400) samples.current.shift();
-    }
-    lastFrame.current = now;
-    if (now - lastReport.current > 250 && meterRef.current !== null) {
-      lastReport.current = now;
-      const sorted = [...samples.current].sort((a, b) => a - b);
-      const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
-      const p50 = sorted[Math.floor(sorted.length * 0.5)] ?? 0;
-      meterRef.current.textContent =
-        sorted.length < 8
-          ? "drag or zoom to measure"
-          : `p50 ${p50.toFixed(1)} ms · p95 ${p95.toFixed(1)} ms · n=${sorted.length}`;
-    }
-  }, []);
-
   const reset = useCallback(() => {
     // "Fit world": the clamp centres whatever margin is left over.
     camera.current = { scale: minScale(), x: 0, y: 0 };
     touched.current = false;
-    samples.current = [];
-    lastFrame.current = 0;
+    resetFrameMeter();
     clamp();
     applyTransform();
-  }, [applyTransform, clamp, minScale]);
+  }, [applyTransform, clamp, minScale, resetFrameMeter]);
 
   const zoomAt = useCallback(
     (factor: number, clientX: number, clientY: number) => {
@@ -304,8 +283,7 @@ export function useMapCamera(
       isDraggingRef.current = false;
       lastX = event.clientX;
       lastY = event.clientY;
-      samples.current = [];
-      lastFrame.current = 0;
+      resetFrameMeter();
       svg?.setPointerCapture(event.pointerId);
     }
 
@@ -348,7 +326,7 @@ export function useMapCamera(
       svg.removeEventListener("pointerup", onPointerUp);
       svg.removeEventListener("pointercancel", onPointerUp);
     };
-  }, [applyTransform, clamp, pixelsPerUnit, sampleFrame, zoomAt]);
+  }, [applyTransform, clamp, pixelsPerUnit, resetFrameMeter, sampleFrame, zoomAt]);
 
   useEffect(() => {
     reset();
