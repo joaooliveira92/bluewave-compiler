@@ -43,6 +43,14 @@ describe("DrawingBoard", () => {
     expect(img.getAttribute("aria-label")).toMatch(/Top-down plan/);
   });
 
+  it("draws gun arcs for armed designs and hides them with the toggle", () => {
+    render(<DrawingBoard />);
+    const arcs = () => region("Hull plan").querySelectorAll("[data-arc]").length;
+    expect(arcs()).toBeGreaterThan(0);
+    fireEvent.click(screen.getByLabelText("Show gun arcs"));
+    expect(arcs()).toBe(0);
+  });
+
   it("labels the development metric as such", () => {
     render(<DrawingBoard />);
     expect(

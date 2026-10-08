@@ -73,7 +73,7 @@ export function DrawingBoard({ sessionId }: { readonly sessionId?: string } = {}
       )}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="space-y-4">
-          <HullPlanPanel draft={draft} content={content} />
+          <HullPlanPanel draft={draft} content={content} view={view} />
           <HullPanel draft={draft} content={content} edit={actions.edit} />
           <MachineryPanel draft={draft} content={content} edit={actions.edit} />
           <PlacementsPanel
