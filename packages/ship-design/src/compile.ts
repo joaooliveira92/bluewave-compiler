@@ -1,3 +1,10 @@
+import {
+  classFacts,
+  classificationFindings,
+  DESIGN_22_EARLY,
+  isEarlyShipType,
+  type ClassificationRules,
+} from "./classification.js";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import {
   analyseArrangement,
@@ -148,6 +155,8 @@ export interface ShipBalance {
   readonly armourZFractionBp: Readonly<Record<string, number>>;
   readonly crewKgPerHead: number;
   readonly stabilityWindowByCategory: Readonly<Record<string, StabilityWindow>>;
+  /** DESIGN-22 thresholds; defaults to the EARLY band when absent. */
+  readonly classification?: ClassificationRules;
   readonly minReserveBpByExpectation: Readonly<
     Record<DesignRequirement["modernizationExpectation"], number>
   >;
@@ -179,6 +188,7 @@ export interface CompiledDesign {
   readonly armour: ArmourResult | null;
   readonly stability: StabilityResult | null;
   readonly systems: SystemsResult | null;
+  readonly naturalClass: string | null;
   readonly componentCostMicro: number;
   /** Per-placement resolved data used by cost and construction planning. */
   readonly components: readonly ComponentSummary[];
@@ -689,6 +699,36 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
     findings.push(...stability.findings);
   }
 
+  const components: ComponentSummary[] = resolved.map((r) => ({
+    instanceId: r.spec.instanceId,
+    componentId: r.def.id,
+    category: r.def.category,
+    weightKg: r.weightKg,
+    costMicro: r.costMicro,
+    maintenanceMonthlyBp: r.def.maintenanceMonthlyBp ?? 0,
+    buildWorkMicro:
+      r.def.buildWorkMicro === undefined
+        ? null
+        : num(r.def.buildWorkMicro, { ...r.def.constants, ...r.params }),
+    productionLine: r.def.productionLine ?? null,
+    requires: r.def.requires,
+    params: r.params,
+    attr: r.attr,
+    torpedoMount: r.def.torpedoMount ?? null,
+  }));
+
+  // 7b. Intended classification (DESIGN-22 section 5). Only the types of the active band are checked.
+  let naturalClassId: string | null = null;
+  if (isEarlyShipType(draft.requirement.category)) {
+    const cls = classificationFindings(
+      classFacts({ totalKg: hullRes.totalKg, machinery: machineryRaw, components }, draft),
+      draft.requirement.category,
+      b.classification ?? DESIGN_22_EARLY,
+    );
+    naturalClassId = cls.natural;
+    findings.push(...cls.findings);
+  }
+
   // 8. Dock, treaty, modernization
   const total = hullRes.totalKg;
   const heaviest = Math.max(0, ...resolved.map((r) => r.weightKg));
@@ -796,23 +836,6 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
 
   const sorted = sortFindings(findings);
   const costMicro = resolved.reduce((a, r) => a + r.costMicro, 0);
-  const components: ComponentSummary[] = resolved.map((r) => ({
-    instanceId: r.spec.instanceId,
-    componentId: r.def.id,
-    category: r.def.category,
-    weightKg: r.weightKg,
-    costMicro: r.costMicro,
-    maintenanceMonthlyBp: r.def.maintenanceMonthlyBp ?? 0,
-    buildWorkMicro:
-      r.def.buildWorkMicro === undefined
-        ? null
-        : num(r.def.buildWorkMicro, { ...r.def.constants, ...r.params }),
-    productionLine: r.def.productionLine ?? null,
-    requires: r.def.requires,
-    params: r.params,
-    attr: r.attr,
-    torpedoMount: r.def.torpedoMount ?? null,
-  }));
   const body = {
     ledger: hullRes.ledger,
     totalKg: total,
@@ -823,6 +846,7 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
     armour,
     stability,
     systems,
+    naturalClass: naturalClassId,
     componentCostMicro: costMicro,
     components,
     findings: sorted,

@@ -169,6 +169,8 @@ export const balance: ShipBalance = {
   },
   crewKgPerHead: 250,
   stabilityWindowByCategory: {
+    DD: { gmMinMm: 500, gmCapsizeMm: 100, gmMaxMm: 2_000 },
+    CL: { gmMinMm: 500, gmCapsizeMm: 100, gmMaxMm: 2_000 },
     torpedo_gunboat: { gmMinMm: 500, gmCapsizeMm: 100, gmMaxMm: 2_000 },
   },
   minReserveBpByExpectation: { NONE: 0, MINOR: 300, MAJOR: 800 },
