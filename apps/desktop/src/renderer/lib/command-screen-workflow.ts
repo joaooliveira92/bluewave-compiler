@@ -152,9 +152,14 @@ export function commandNotice(command: {
 
 let commandCounter = 0;
 
-function createTransportRequestId(kind: RequestKind): string {
+/**
+ * Renderer-side transport identity for the optimistic-concurrency flow
+ * (`expectedRevision` / `transportRequestId` triple). The single generator for
+ * every command screen, so the id shape cannot drift between them.
+ */
+export function createTransportRequestId(prefix: string): string {
   commandCounter++;
-  return `${kind}-${Date.now().toString(36)}-${commandCounter}`;
+  return `${prefix}-${Date.now().toString(36)}-${commandCounter}`;
 }
 
 /**

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ResearchPriorityOutcome } from "../../../../shared/research-contract.js";
+import type { BridgeResult } from "../../../../shared/bridge-contract.js";
+import { createTransportRequestId } from "../../../lib/command-screen-workflow.js";
 import type { ResearchScreenState } from "../research-screen-state.js";
 import {
   draftIsSubmittable,
@@ -22,30 +24,6 @@ export interface UseResearchScreenReturn {
   readonly reload: () => Promise<void>;
   readonly canSubmit: boolean;
 }
-
-let transportCounter = 0;
-
-/** Renderer-side transport identity for the optimistic-concurrency flow
- * (`expectedRevision` / `transportRequestId` triple). Generated here, outside
- * the pure reducer; a retry of the same prepared request replays the same id. */
-function createTransportRequestId(): string {
-  transportCounter++;
-  return `priority-${Date.now().toString(36)}-${transportCounter}`;
-}
-
-type SubmitResult =
-  | {
-      readonly outcome: "success";
-      readonly value: ResearchPriorityOutcome;
-      readonly diagnostics: readonly string[];
-    }
-  | {
-      readonly outcome: "rejected";
-      readonly reason: string;
-      readonly diagnostics: readonly string[];
-      readonly currentRevision?: number;
-    }
-  | { readonly outcome: "error"; readonly reason: string; readonly diagnostics: readonly string[] };
 
 export function useResearchScreen(sessionId: string): UseResearchScreenReturn {
   const [state, setState] = useState<ResearchScreenState>({ kind: "idle", revision: 0 });
@@ -116,7 +94,7 @@ export function useResearchScreen(sessionId: string): UseResearchScreenReturn {
       return;
     if (!bridge || !draftIsSubmittable(current.draft)) return;
     const expectedRevision = current.revision;
-    const transportRequestId = createTransportRequestId();
+    const transportRequestId = createTransportRequestId("priority");
     setState((prev) => researchBeginSubmit(prev, transportRequestId));
     void bridge.campaign
       .execute("setResearchPriorityCommand", {
@@ -143,7 +121,10 @@ export function useResearchScreen(sessionId: string): UseResearchScreenReturn {
   return { state, setFieldWeight, submit, reload, canSubmit };
 }
 
-function applySubmitResult(state: ResearchScreenState, result: SubmitResult): ResearchScreenState {
+function applySubmitResult(
+  state: ResearchScreenState,
+  result: BridgeResult<ResearchPriorityOutcome>,
+): ResearchScreenState {
   if (result.outcome === "success") return researchSubmitSuccess(state, result.value);
   if (result.outcome === "rejected") {
     return researchSubmitRejected(state, {

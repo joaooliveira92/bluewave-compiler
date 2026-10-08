@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import type { BridgeResult } from "../../../../shared/bridge-contract.js";
 import type { DiplomacyCommandOutcome } from "../../../../shared/diplomacy-contract.js";
+import { createTransportRequestId } from "../../../lib/command-screen-workflow.js";
 import type { DiplomacyScreenState } from "../diplomacy-screen-state.js";
 import {
   diplomacyBeginAction,
@@ -28,30 +30,6 @@ export interface UseDiplomacyScreenReturn {
   readonly reload: () => Promise<void>;
   readonly canSubmit: boolean;
 }
-
-let transportCounter = 0;
-
-/** Renderer-side transport identity for the optimistic-concurrency flow
- * (`expectedRevision` / `transportRequestId` triple). Generated here, outside
- * the pure reducer; retries of the same prepared request replay the same id. */
-function createTransportRequestId(): string {
-  transportCounter++;
-  return `diplo-${Date.now().toString(36)}-${transportCounter}`;
-}
-
-type SubmitResult =
-  | {
-      readonly outcome: "success";
-      readonly value: DiplomacyCommandOutcome;
-      readonly diagnostics: readonly string[];
-    }
-  | {
-      readonly outcome: "rejected";
-      readonly reason: string;
-      readonly diagnostics: readonly string[];
-      readonly currentRevision?: number;
-    }
-  | { readonly outcome: "error"; readonly reason: string; readonly diagnostics: readonly string[] };
 
 export function useDiplomacyScreen(sessionId: string): UseDiplomacyScreenReturn {
   const [state, setState] = useState<DiplomacyScreenState>({ kind: "idle", revision: 0 });
@@ -128,7 +106,7 @@ export function useDiplomacyScreen(sessionId: string): UseDiplomacyScreenReturn 
     const command = diplomacyDraftToCommand(draft);
     if (command === null) return;
     const expectedRevision = current.revision;
-    const transportRequestId = createTransportRequestId();
+    const transportRequestId = createTransportRequestId("diplo");
     setState((prev) => diplomacyBeginSubmit(prev, transportRequestId));
     void bridge.campaign
       .execute("submitDiplomacyCommand", {
@@ -169,7 +147,7 @@ export function useDiplomacyScreen(sessionId: string): UseDiplomacyScreenReturn 
 
 function applySubmitResult(
   state: DiplomacyScreenState,
-  result: SubmitResult,
+  result: BridgeResult<DiplomacyCommandOutcome>,
 ): DiplomacyScreenState {
   if (result.outcome === "success") return diplomacySubmitSuccess(state, result.value);
   if (result.outcome === "rejected") {
