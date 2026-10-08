@@ -1,3 +1,5 @@
+import type { Diagnostic } from "@bluewave/diagnostics";
+
 export type IssuerClass = "PLAYER" | "AI" | "SYSTEM_AUTOMATION";
 export const ISSUER_CLASSES: readonly IssuerClass[] = [
   "PLAYER",
@@ -268,3 +270,16 @@ export interface CanonicalCommandOrderKey {
   submissionOrdinal: number;
   commandId: string;
 }
+
+export type CommandOutcome =
+  | { type: "success"; commandId: string; snapshotHash: string; result?: unknown }
+  | { type: "rejected"; commandId: string; snapshotHash: string; diagnostic: Diagnostic }
+  | { type: "idempotency_match"; commandId: string; snapshotHash: string; result?: unknown }
+  | {
+      type: "idempotency_conflict";
+      commandId: string;
+      snapshotHash: string;
+      diagnostic: Diagnostic;
+    };
+
+export type LifecycleStepResult = { ok: true } | { ok: false; outcome: CommandOutcome };

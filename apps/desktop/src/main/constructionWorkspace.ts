@@ -1,11 +1,11 @@
 import type { CampaignSessionRecord } from "./campaignSessions.js";
 import {
   CommandLedger,
-  CommandLifecycle,
   CommandRegistry,
   ReservationManager,
   ScopedIdempotencyStore,
   canTransition,
+  createCommandRecord,
   createSettlementRecord,
   hashCommandRecord,
   type CommandBody,
@@ -95,8 +95,6 @@ export const CONSTRUCTION_REFUND_BRANCH: CommandSettlementBranch = {
   roundingMode: "FLOOR",
   explanationReasonCode: "COMMAND_CANCELLED",
 };
-
-const lifecycler = new CommandLifecycle();
 
 /**
  * The single `CommandTypeDefinition` for construction orders. Registered
@@ -482,7 +480,7 @@ export function acceptConstructionRecord(
     projectedCapacityUnits,
     record.state.rawHash,
   );
-  const created = lifecycler.createCommandRecord(
+  const created = createCommandRecord(
     envelope,
     CONSTRUCTION_COMMAND_DEFINITION,
     snapshot.campaignId,

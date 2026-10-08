@@ -1,42 +1,31 @@
 // packages/campaign/src/compiler.ts
+// Campaign-compile orchestrator (DESIGN-09). This module owns the public
+// compilation request/response contracts and the statically ordered pipeline;
+// each materialization stage lives in its own focused module.
 
-import { readFileSync } from "node:fs";
-import { isAbsolute, relative, resolve, sep } from "node:path";
 import { Compiler, type CompilerInput } from "@bluewave/content-compiler";
 import type { ContentPack } from "@bluewave/content-schema";
-import { DesignTemplateSchema, validateAgainstSchema } from "@bluewave/content-schema";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
 import {
   DiagnosticCollector,
   type DiagnosticCollector as DiagnosticCollectorType,
 } from "@bluewave/diagnostics";
-import { parse } from "yaml";
+import { loadAllCampaignData, toStr, type CampaignFiles } from "./campaignInput.js";
 import { validateCampaignPreconditions } from "./campaignSession.js";
-import { buildOfficerRoster } from "./officers.js";
-import { knotsToUms, mmToUm } from "./designUnits.js";
+import {
+  assertFleetDesignLinks,
+  buildDesignFamiliesFromData,
+  buildDesignsFromData,
+} from "./designCompilation.js";
+import { buildNationStates, buildSlots } from "./nationCompilation.js";
+import { buildPoliticalState, buildWarState } from "./politicalCompilation.js";
 import { getScenarioById, type ScenarioId } from "./scenario.js";
-import type {
-  AreaData,
-  CampaignSlot,
-  CampaignSnapshot,
-  CampaignState,
-  CompiledDesignVersion,
-  ConstructionProject,
-  DesignFamily,
-  DiplomaticRelation,
-  FleetState,
-  NationState,
-  PoliticalState,
-  PortData,
-  ResearchState,
-  RouteData,
-  Ship,
-  TechnologyProgress,
-  WarState,
-  WorldState,
-} from "./state.js";
+import type { CampaignSnapshot, CampaignState } from "./state.js";
 import { DEFAULT_CAMPAIGN_START_MONTH, DEFAULT_CAMPAIGN_START_YEAR } from "./timeline.js";
+import { buildWorldState } from "./worldCompilation.js";
+
+export type { CampaignFiles };
 
 export interface CampaignCompilerInput {
   compilerInput: CompilerInput;
@@ -59,15 +48,6 @@ export interface CampaignCompilerInput {
   campaignStart?: { startYear: number; startMonth: number };
 }
 
-export interface CampaignFiles {
-  fleetFiles: string[];
-  economyFiles: string[];
-  constructionFiles: string[];
-  diplomacyFiles: string[];
-  researchFiles: string[];
-  designFiles: string[];
-}
-
 export interface CampaignCompilerOutput {
   state: CampaignState;
   contentHash: string;
@@ -78,62 +58,36 @@ export interface CampaignCompilerOutput {
   pack: ContentPack;
 }
 
-function toSafeInt(value: unknown): SafeInt {
-  if (typeof value === "number") return SafeInt(value);
-  return SafeInt(0);
+export type CampaignStart = { startYear: number; startMonth: number };
+
+interface ValidatedCampaignStart {
+  ok: boolean;
+  value?: CampaignStart;
 }
 
-function toSafeIntOpt(value: unknown, fallback: SafeInt): SafeInt {
-  if (typeof value === "number") return SafeInt(value);
-  return fallback;
-}
-
-function toStr(value: unknown, fallback = ""): string {
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-  return fallback;
-}
-
-function isInside(parentResolved: string, childResolved: string): boolean {
-  const rel = relative(parentResolved, childResolved);
-  if (!rel) return true; // same dir
-  if (isAbsolute(rel)) return false;
-  if (rel === ".." || rel.startsWith(`..${sep}`)) return false;
-  return childResolved === parentResolved || childResolved.startsWith(parentResolved + sep);
-}
-
-function parseYamlFile(
-  filePath: string,
-  contentDir: string,
+// Validate the explicit campaignStart input up front so a malformed value fails
+// the compile with a stable diagnostic (never a silent default or a runtime
+// half-stamped snapshot).
+function validateCampaignStart(
+  start: CampaignCompilerInput["campaignStart"],
   collector: DiagnosticCollectorType,
-): unknown[] | undefined {
-  const contentDirResolved = resolve(contentDir);
-  const fullPath = resolve(contentDirResolved, filePath);
-
-  // secure: reject absolute escapes & traversal
-  if (!isInside(contentDirResolved, fullPath)) {
-    collector.addError("CAMPAIGN-PATH", `Path traversal rejected for campaign file: ${filePath}`, {
-      stage: "campaign-compile",
-    });
-    return undefined;
+): ValidatedCampaignStart {
+  if (start === undefined) return { ok: true };
+  if (
+    !Number.isInteger(start?.startYear) ||
+    (start?.startYear ?? 0) < 1800 ||
+    !Number.isInteger(start?.startMonth) ||
+    (start?.startMonth ?? 0) < 1 ||
+    (start?.startMonth ?? 0) > 12
+  ) {
+    collector.addError(
+      INVALID_CAMPAIGN_START,
+      `Invalid campaignStart ${String(start?.startYear)}-${String(start?.startMonth)}: year must be an integer >= 1800 and month an integer 1..12`,
+      { stage: "campaign-compile" },
+    );
+    return { ok: false };
   }
-
-  try {
-    const content = readFileSync(fullPath, "utf8");
-    const doc = parse(content);
-    if (Array.isArray(doc)) return doc;
-    collector.addError("CAMPAIGN-PARSE", `Expected array in campaign file: ${filePath}`, {
-      stage: "campaign-compile",
-    });
-    return undefined;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : toStr(err);
-    collector.addError("CAMPAIGN-READ", `Failed to read campaign file ${filePath}: ${msg}`, {
-      stage: "campaign-compile",
-    });
-    return undefined;
-  }
+  return { ok: true, value: { startYear: start.startYear, startMonth: start.startMonth } };
 }
 
 export class CampaignCompiler {
@@ -153,28 +107,8 @@ export class CampaignCompiler {
       return undefined;
     }
 
-    // B-6/ADR-0025: validate the explicit campaignStart input up front so a
-    // malformed value fails the compile with a stable diagnostic (never a
-    // silent default or a runtime half-stamped snapshot).
-    let campaignStart: { startYear: number; startMonth: number } | undefined;
-    if (input.campaignStart !== undefined) {
-      const s = input.campaignStart;
-      if (
-        !Number.isInteger(s?.startYear) ||
-        (s?.startYear ?? 0) < 1800 ||
-        !Number.isInteger(s?.startMonth) ||
-        (s?.startMonth ?? 0) < 1 ||
-        (s?.startMonth ?? 0) > 12
-      ) {
-        collector.addError(
-          INVALID_CAMPAIGN_START,
-          `Invalid campaignStart ${String(s?.startYear)}-${String(s?.startMonth)}: year must be an integer >= 1800 and month an integer 1..12`,
-          { stage: "campaign-compile" },
-        );
-        return undefined;
-      }
-      campaignStart = { startYear: s.startYear, startMonth: s.startMonth };
-    }
+    const startInput = validateCampaignStart(input.campaignStart, collector);
+    if (!startInput.ok) return undefined;
 
     // DESIGN-03 §3 + §9.3/9.4: when a CampaignConfiguration is supplied it MUST be
     // complete and valid BEFORE any campaign RNG stream derives. Invalid config MUST
@@ -205,101 +139,51 @@ export class CampaignCompiler {
     const contentDir = input.compilerInput.contentDir;
 
     // Step 2: Parse campaign-specific YAML
-    const fleetsData = this.loadCampaignFiles(
-      input.campaignFiles.fleetFiles,
-      contentDir,
-      collector,
-      signal,
-    );
-    const economiesData = this.loadCampaignFiles(
-      input.campaignFiles.economyFiles,
-      contentDir,
-      collector,
-      signal,
-    );
-    const constructionsData = this.loadCampaignFiles(
-      input.campaignFiles.constructionFiles,
-      contentDir,
-      collector,
-      signal,
-    );
-    const diplomacyData = this.loadCampaignFiles(
-      input.campaignFiles.diplomacyFiles,
-      contentDir,
-      collector,
-      signal,
-    );
-    const researchData = this.loadCampaignFiles(
-      input.campaignFiles.researchFiles,
-      contentDir,
-      collector,
-      signal,
-    );
-    const designsData = this.loadCampaignFiles(
-      input.campaignFiles.designFiles,
-      contentDir,
-      collector,
-      signal,
-    );
-
+    const data = loadAllCampaignData(input.campaignFiles, contentDir, collector, signal);
     if (collector.hasErrors || signal.aborted) return undefined;
 
     // Step 3: Build WorldState from content
-    const world = this.buildWorldState(pack);
+    const world = buildWorldState(pack);
 
     // Step 4: Build nation states
-    const nations = this.buildNationStates(
+    const nations = buildNationStates(
       pack,
-      fleetsData,
-      economiesData,
-      constructionsData,
-      researchData,
+      data.fleets,
+      data.economies,
+      data.constructions,
+      data.research,
       collector,
     );
     if (!nations || signal.aborted) return undefined;
 
     // Step 5: Build war state
-    const wars = this.buildWarState();
+    const wars = buildWarState();
 
     // Step 6: Build political state
-    const politics = this.buildPoliticalState(diplomacyData, nations, collector);
+    const politics = buildPoliticalState(data.diplomacy, nations, collector);
 
     // Step 6b: Build designs from design data
-    const designs = this.buildDesignsFromData(designsData, collector);
-    const designFamilies = this.buildDesignFamiliesFromData(designsData);
+    const designs = buildDesignsFromData(data.designs, collector);
+    const designFamilies = buildDesignFamiliesFromData(data.designs);
 
     // Validate fleet -> design link (immutable reference)
-    if (designs.size > 0) {
-      for (const [, nation] of nations) {
-        for (const fleet of nation.fleets) {
-          for (const ship of fleet.ships) {
-            if (ship.designVersionId && !designs.has(ship.designVersionId)) {
-              collector.addError(
-                "CAMPAIGN-DESIGN",
-                `Ship ${ship.id} references unknown designVersionId ${ship.designVersionId}`,
-                { stage: "campaign-compile" },
-              );
-            }
-          }
-        }
-      }
-      if (collector.hasErrors) return undefined;
-    }
+    if (!assertFleetDesignLinks(nations, designs, collector)) return undefined;
+    if (signal.aborted) return undefined;
 
     // Step 7: Determine slots - sorted for determinism
-    const slots = this.buildSlots(nations);
+    const slots = buildSlots(nations);
 
     // Step 8: Build intelligence shell
     const intelligence = { shells: {} };
 
     // Step 9: Build snapshot
-    const campaignStartResolved = resolveCampaignStart(input, campaignStart);
+    const campaignStart = resolveCampaignStart(input, startInput.value);
     const snapshot: CampaignSnapshot = {
       version: "0.1.0",
       turnNumber: SafeInt(0),
       campaignId: `campaign-${toStr((pack.manifest as Record<string, unknown>)["name"], "unknown")}`,
-      startYear: campaignStartResolved.startYear,
-      startMonth: campaignStartResolved.startMonth,
+      startYear: campaignStart.startYear,
+      startMonth: campaignStart.startMonth,
       slots,
       world,
       nations,
@@ -327,527 +211,6 @@ export class CampaignCompiler {
       pack,
     };
   }
-
-  private loadCampaignFiles(
-    files: string[],
-    contentDir: string,
-    collector: DiagnosticCollectorType,
-    signal?: AbortSignal,
-  ): unknown[] {
-    const all: unknown[] = [];
-    for (const file of files) {
-      if (signal?.aborted) break;
-      const data = parseYamlFile(file, contentDir, collector);
-      if (data) all.push(...data);
-    }
-    return all;
-  }
-
-  private buildSlots(nations: Map<string, NationState>): CampaignSlot[] {
-    const slots: CampaignSlot[] = [];
-    for (const [id, nation] of nations) {
-      slots.push({ nationId: id, type: nation.isPlayable ? "playable" : "ai" });
-    }
-    // deterministic: alphabetical nationId order regardless of file insertion order
-    slots.sort((a, b) => a.nationId.localeCompare(b.nationId));
-    return slots;
-  }
-
-  private isNationPlayable(
-    id: string,
-    countryRec: Record<string, unknown>,
-    collector: DiagnosticCollectorType,
-  ): boolean {
-    const flag = countryRec["isPlayable"];
-    if (typeof flag !== "boolean") {
-      collector.addError(
-        "CAMPAIGN-ISPLAYABLE",
-        `Nation '${id}' is missing the required isPlayable flag`,
-        { stage: "campaign-compile", entityId: id },
-      );
-      return false;
-    }
-    return flag;
-  }
-
-  private buildWorldState(pack: ContentPack): WorldState {
-    const areas: AreaData[] = (pack.areas ?? [])
-      .map((a: Record<string, unknown>) => ({
-        id: toStr(a["id"], ""),
-        name: toStr(a["name"], ""),
-        type: (a["type"] as "land" | "sea" | "coastal") ?? "land",
-        controller: typeof a["controller"] === "string" ? a["controller"] : undefined,
-      }))
-      .sort((a, b) => a.id.localeCompare(b.id));
-
-    const routes: RouteData[] = (pack.routes ?? [])
-      .map((r: Record<string, unknown>) => ({
-        id: toStr(r["id"], ""),
-        from: toStr(r["from"], ""),
-        to: toStr(r["to"], ""),
-        type: (r["type"] as "land" | "sea" | "rail") ?? "land",
-        distance: toSafeInt(r["distance"]),
-      }))
-      .sort((a, b) => a.id.localeCompare(b.id));
-
-    const ports: PortData[] = (pack.ports ?? [])
-      .map((p: Record<string, unknown>) => ({
-        id: toStr(p["id"], ""),
-        name: toStr(p["name"], ""),
-        areaId: toStr(p["areaId"], ""),
-        nationId: toStr(p["nationId"], ""),
-        level: toSafeIntOpt(p["level"], SafeInt(1)),
-      }))
-      .sort((a, b) => a.id.localeCompare(b.id));
-
-    return { areas, routes, ports };
-  }
-
-  private buildNationStates(
-    pack: ContentPack,
-    fleetsData: unknown[],
-    economiesData: unknown[],
-    constructionsData: unknown[],
-    researchData: unknown[],
-    collector: DiagnosticCollectorType,
-  ): Map<string, NationState> | undefined {
-    const nations = new Map<string, NationState>();
-
-    // sort nations by canonical id for deterministic Map insertion / rawHash
-    const sortedNations = [...(pack.nations ?? [])].sort((a, b) => {
-      const aId = toStr((a as Record<string, unknown>)["id"], "");
-      const bId = toStr((b as Record<string, unknown>)["id"], "");
-      return aId.localeCompare(bId);
-    });
-
-    for (const nation of sortedNations) {
-      const countryRec = nation as Record<string, unknown>;
-      const id = toStr(countryRec["id"], "");
-
-      const isPlayable = this.isNationPlayable(id, countryRec, collector);
-
-      const fleets = this.buildFleets(fleetsData, id);
-      const research = this.buildResearch(researchData, id);
-      const constructions = this.buildConstructions(constructionsData, id);
-
-      let treasury = SafeInt(500);
-      let income = SafeInt(100);
-      let expenses = SafeInt(50);
-
-      for (const eco of economiesData) {
-        const ecoRec = eco as Record<string, unknown>;
-        if (ecoRec["nationId"] === id) {
-          treasury = toSafeIntOpt(ecoRec["treasury"], SafeInt(500));
-          income = toSafeIntOpt(ecoRec["income"], SafeInt(100));
-          expenses = toSafeIntOpt(ecoRec["expenses"], SafeInt(50));
-        }
-      }
-
-      nations.set(id, {
-        id,
-        name: toStr(countryRec["name"], ""),
-        tag: toStr(countryRec["tag"], ""),
-        treasury,
-        income,
-        expenses,
-        baseResources: SafeInt(0),
-        navalAppropriationRateBp: SafeInt(2000),
-        maintenanceCost: SafeInt(0),
-        fleets,
-        divisions: [],
-        officers: buildOfficerRoster(id),
-        research,
-        constructionProjects: constructions,
-        isPlayable,
-        isAI: !isPlayable,
-      });
-    }
-
-    if (nations.size === 0) {
-      collector.addError("CAMPAIGN", "No nations found in content pack", {
-        stage: "campaign-compile",
-      });
-      return undefined;
-    }
-
-    return nations;
-  }
-
-  private buildFleets(fleetsData: unknown[], nationId: string): FleetState[] {
-    return fleetsData
-      .filter((f) => (f as Record<string, unknown>)["nationId"] === nationId)
-      .map((f) => {
-        const fRec = f as Record<string, unknown>;
-        return {
-          id: toStr(fRec["id"], ""),
-          nationId: toStr(fRec["nationId"], ""),
-          name: toStr(fRec["name"], ""),
-          locationAreaId: toStr(fRec["locationAreaId"], ""),
-          ships: this.buildShips(fRec),
-        };
-      })
-      .sort((a, b) => a.id.localeCompare(b.id));
-  }
-
-  private buildShips(fleet: Record<string, unknown>): Ship[] {
-    const shipsRaw = fleet["ships"];
-    if (!Array.isArray(shipsRaw)) return [];
-    const nationId = toStr(fleet["nationId"], "");
-    const locationAreaId = toStr(fleet["locationAreaId"], "");
-
-    return shipsRaw
-      .map((s: Record<string, unknown>) => ({
-        id: toStr(s["id"], ""),
-        name: toStr(s["name"], ""),
-        classId: toStr(s["classId"], ""),
-        nationId,
-        locationAreaId,
-        designVersionId: toStr(s["designVersionId"], ""),
-        hitPoints: toSafeIntOpt(s["hitPoints"], SafeInt(100)),
-        maxHitPoints: toSafeIntOpt(s["maxHitPoints"], SafeInt(100)),
-        speed: toSafeIntOpt(s["speed"], SafeInt(10)),
-        firepower: toSafeIntOpt(s["firepower"], SafeInt(10)),
-        armor: toSafeIntOpt(s["armor"], SafeInt(10)),
-        isUnderConstruction: s["isUnderConstruction"] === true,
-        constructionProgress: toSafeIntOpt(s["constructionProgress"], SafeInt(0)),
-        constructionTotalWork: toSafeIntOpt(s["constructionTotalWork"], SafeInt(0)),
-        inBattleId: typeof s["inBattleId"] === "string" ? s["inBattleId"] : undefined,
-      }))
-      .sort((a, b) => a.id.localeCompare(b.id));
-  }
-
-  private buildResearch(researchData: unknown[], nationId: string): ResearchState {
-    const nationResearch = researchData.find(
-      (r) => (r as Record<string, unknown>)["nationId"] === nationId,
-    ) as Record<string, unknown> | undefined;
-
-    if (!nationResearch)
-      return {
-        nationId,
-        technologies: [],
-        fieldPriorities: {},
-        researchBudget: SafeInt(0),
-        activeCandidates: new Map(),
-        discoveredTechs: [],
-      };
-
-    const techs: TechnologyProgress[] = [];
-    const techsRaw = nationResearch["technologies"];
-    if (Array.isArray(techsRaw)) {
-      for (const t of techsRaw) {
-        const tRec = t as Record<string, unknown>;
-        techs.push({
-          techId: toStr(tRec["techId"], ""),
-          investedPoints: toSafeIntOpt(tRec["investedPoints"], SafeInt(0)),
-          completed: tRec["completed"] === true,
-        });
-      }
-    }
-
-    const fieldPriorities: Record<string, SafeInt> = {};
-    const fieldPrioritiesRaw = nationResearch["fieldPriorities"];
-    if (fieldPrioritiesRaw && typeof fieldPrioritiesRaw === "object") {
-      for (const [key, val] of Object.entries(fieldPrioritiesRaw as Record<string, unknown>)) {
-        fieldPriorities[key] = toSafeIntOpt(val, SafeInt(1));
-      }
-    }
-
-    const activeCandidatesRaw = nationResearch["activeCandidates"];
-    const activeCandidates = new Map<string, string>();
-    if (activeCandidatesRaw && typeof activeCandidatesRaw === "object") {
-      for (const [key, val] of Object.entries(activeCandidatesRaw as Record<string, unknown>)) {
-        if (typeof val === "string") {
-          activeCandidates.set(key, val);
-        }
-      }
-    }
-
-    const discoveredTechsRaw = nationResearch["discoveredTechs"];
-    const discoveredTechs: string[] = [];
-    if (Array.isArray(discoveredTechsRaw)) {
-      for (const t of discoveredTechsRaw) {
-        discoveredTechs.push(toStr(t));
-      }
-    }
-
-    return {
-      nationId,
-      technologies: techs,
-      currentProjectTechId:
-        typeof nationResearch["currentProjectTechId"] === "string"
-          ? nationResearch["currentProjectTechId"]
-          : undefined,
-      fieldPriorities,
-      researchBudget: toSafeIntOpt(nationResearch["researchBudget"], SafeInt(0)),
-      activeCandidates,
-      discoveredTechs,
-    };
-  }
-
-  private buildConstructions(
-    constructionsData: unknown[],
-    nationId: string,
-  ): ConstructionProject[] {
-    return constructionsData
-      .filter((c) => (c as Record<string, unknown>)["nationId"] === nationId)
-      .map((c) => {
-        const cRec = c as Record<string, unknown>;
-        return {
-          id: toStr(cRec["id"], ""),
-          type: (cRec["type"] as "ship" | "building" | "technology") ?? "ship",
-          projectType: "NEW_CONSTRUCTION" as const,
-          targetId: toStr(cRec["targetId"], ""),
-          designVersionId: toStr(cRec["designVersionId"], ""),
-          totalWork: toSafeIntOpt(cRec["totalWork"], SafeInt(100)),
-          completedWork: toSafeIntOpt(cRec["completedWork"], SafeInt(0)),
-          paidWork: toSafeIntOpt(cRec["paidWork"], SafeInt(0)),
-          status:
-            (cRec["status"] as "PLANNED" | "AUTHORIZED" | "ACTIVE" | "COMPLETED") ?? "PLANNED",
-          startedAt: toStr(cRec["startedAt"], "1880-01"),
-        };
-      })
-      .sort((a, b) => a.id.localeCompare(b.id));
-  }
-
-  private buildWarState(): WarState {
-    return {
-      wars: [],
-      battles: [],
-      participantMemberships: [],
-      blockadeState: [],
-      battleManifests: [],
-    };
-  }
-
-  private buildPoliticalState(
-    diplomacyData: unknown[],
-    nations: Map<string, NationState>,
-    collector: DiagnosticCollectorType,
-  ): PoliticalState {
-    const relations: DiplomaticRelation[] = [];
-    const seen = new Set<string>();
-
-    for (const r of diplomacyData) {
-      const rRec = r as Record<string, unknown>;
-      const nationA = toStr(rRec["nationA"], "");
-      const nationB = toStr(rRec["nationB"], "");
-      if (nationA === nationB) {
-        collector.addError(
-          "INVALID_DIPLOMATIC_PAIR_REGISTRY",
-          `Self-relation for nation ${nationA} is not allowed`,
-          { stage: "campaign-compile" },
-        );
-        continue;
-      }
-      const relation = (rRec["relation"] as DiplomaticRelation["relation"]) ?? "neutral";
-
-      let tension = 5;
-      const authoredTension = rRec["tension"];
-      if (typeof authoredTension === "number") {
-        if (authoredTension < 0 || authoredTension > 10) {
-          collector.addError(
-            "TENSION_OUT_OF_RANGE",
-            `Tension ${authoredTension} for pair ${nationA}/${nationB} is outside 0..10`,
-            { stage: "campaign-compile" },
-          );
-        } else {
-          tension = authoredTension;
-        }
-      }
-      const nap = rRec["nap"] === true;
-
-      relations.push({
-        nationA,
-        nationB,
-        relation,
-        tension,
-        nap,
-        since: toStr(rRec["since"], "1880-01"),
-      });
-      seen.add(this.pairKey(nationA, nationB));
-    }
-
-    this.enforcePairRegistry(relations, seen, nations, collector);
-
-    relations.sort((a, b) =>
-      this.pairKey(a.nationA, a.nationB).localeCompare(this.pairKey(b.nationA, b.nationB)),
-    );
-    return { relations, shells: {} };
-  }
-
-  private pairKey(a: string, b: string): string {
-    return [a, b].sort().join("\u0000");
-  }
-
-  private enforcePairRegistry(
-    relations: DiplomaticRelation[],
-    seen: Set<string>,
-    nations: Map<string, NationState>,
-    _collector: DiagnosticCollectorType,
-  ): void {
-    const nationIds = [...nations.keys()].sort((a, b) => a.localeCompare(b));
-    for (let i = 0; i < nationIds.length; i++) {
-      for (let j = i + 1; j < nationIds.length; j++) {
-        const a = nationIds[i]!;
-        const b = nationIds[j]!;
-        const key = this.pairKey(a, b);
-        if (!seen.has(key)) {
-          relations.push({
-            nationA: a,
-            nationB: b,
-            relation: "neutral",
-            tension: 5,
-            nap: false,
-            since: "1880-01",
-          });
-          seen.add(key);
-        }
-      }
-    }
-  }
-
-  private buildDesignsFromData(
-    designsData: unknown[],
-    collector: DiagnosticCollectorType,
-  ): Map<string, CompiledDesignVersion> {
-    const designs = new Map<string, CompiledDesignVersion>();
-
-    if (!Array.isArray(designsData)) return designs;
-
-    for (const d of designsData) {
-      const rec = d as Record<string, unknown>;
-      const designVersionId = toStr(rec["designVersionId"], toStr(rec["designId"]));
-
-      const rawDesign = {
-        designId: designVersionId,
-        designFamilyId: rec["designFamilyId"],
-        nationId: rec["nationId"],
-        className: rec["className"],
-        hullType: rec["hullType"],
-        displacementKg: rec["displacementKg"],
-        speedUms: rec["speedUms"],
-        armorBeltUm: rec["armorBeltUm"],
-        mainGuns: rec["mainGuns"],
-        machineryType: rec["machineryType"],
-        hitPoints: rec["hitPoints"],
-        crewComplement: rec["crewComplement"],
-        contentVersion: rec["contentVersion"],
-        ...(rec["torpedoArmament"] !== undefined
-          ? { torpedoArmament: rec["torpedoArmament"] }
-          : {}),
-      };
-
-      const validated = validateAgainstSchema(
-        rawDesign,
-        DesignTemplateSchema,
-        "DesignTemplate",
-        "designs.yaml",
-        collector,
-      );
-      if (!validated) continue;
-
-      const torpedoArmament = (
-        validated["torpedoArmament"] as
-          | { mountType: string; tubeCount: number; torpedoModelId: string }[]
-          | undefined
-      )?.map((m) => ({
-        mountType: m.mountType,
-        tubeCount: SafeInt(m.tubeCount),
-        torpedoModelId: m.torpedoModelId,
-      }));
-      const design: CompiledDesignVersion = {
-        designVersionId,
-        designFamilyId: toStr(validated["designFamilyId"], ""),
-        className: validated["className"],
-        nationId: validated["nationId"],
-        hullType: validated["hullType"],
-        normalizedDisplacementKg: toSafeIntOpt(
-          rec["normalizedDisplacementKg"] ?? validated["displacementKg"],
-          SafeInt(0),
-        ),
-        // ADR-0037: design YAML authors speed in knots and armor/caliber in
-        // millimetres (human-friendly, matches DESIGN-22 §1's authored style);
-        // the compiled design carries canonical engine units (µm/s, µm) that
-        // the tactical classifier and combat layer consume (DESIGN-22 §2).
-        normalizedSpeedUms: toSafeIntOpt(
-          rec["normalizedSpeedUms"] ?? knotsToUms(validated["speedUms"] as number),
-          SafeInt(0),
-        ),
-        normalizedArmorUm: toSafeIntOpt(
-          rec["normalizedArmorUm"] ?? mmToUm(validated["armorBeltUm"] as number),
-          SafeInt(0),
-        ),
-        hitPoints: toSafeIntOpt(validated["hitPoints"], SafeInt(100)),
-        mainGunsCaliber: toSafeIntOpt(
-          validated["mainGuns"]?.["caliber"] === undefined
-            ? undefined
-            : mmToUm(validated["mainGuns"]?.["caliber"] as number),
-          SafeInt(0),
-        ),
-        mainGunsCount: toSafeIntOpt(validated["mainGuns"]?.["count"], SafeInt(0)),
-        machineryType: validated["machineryType"],
-        crewComplement: toSafeIntOpt(validated["crewComplement"], SafeInt(0)),
-        contentVersion: toStr(validated["contentVersion"], "0.1.0"),
-        compiledHash: sha256Hex(
-          canonicalSerialize({
-            designVersionId,
-            className: validated["className"],
-            nationId: validated["nationId"],
-            hullType: validated["hullType"],
-            displacementKg: validated["displacementKg"],
-            speedUms: validated["speedUms"],
-            armorBeltUm: validated["armorBeltUm"],
-            mainGuns: validated["mainGuns"],
-            machineryType: validated["machineryType"],
-            hitPoints: validated["hitPoints"],
-            crewComplement: validated["crewComplement"],
-            // P-1 AC-2: only hashed when present, so unarmed designs keep their hash.
-            ...(torpedoArmament ? { torpedoArmament } : {}),
-          }),
-        ),
-        ...(torpedoArmament ? { torpedoArmament } : {}),
-      };
-
-      designs.set(designVersionId, design);
-    }
-
-    return designs;
-  }
-
-  private buildDesignFamiliesFromData(designsData: unknown[]): Map<string, DesignFamily> {
-    const families = new Map<string, DesignFamily>();
-
-    if (!Array.isArray(designsData)) return families;
-
-    // Group by designFamilyId
-    const familyMap = new Map<string, { rec: Record<string, unknown>; members: string[] }>();
-    for (const d of designsData) {
-      const rec = d as Record<string, unknown>;
-      const familyId = toStr(rec["designFamilyId"], "");
-      if (!familyId) continue;
-      const designVersionId = toStr(rec["designVersionId"], toStr(rec["designId"]));
-
-      if (!familyMap.has(familyId)) {
-        familyMap.set(familyId, { rec, members: [] });
-      }
-      if (designVersionId) {
-        familyMap.get(familyId)!.members.push(designVersionId);
-      }
-    }
-
-    for (const [familyId, data] of familyMap) {
-      data.members.sort((a, b) => a.localeCompare(b));
-      families.set(familyId, {
-        designFamilyId: familyId,
-        nationId: toStr(data.rec["nationId"], ""),
-        rootDesignVersionId: data.members[0] ?? "",
-        memberDesignVersionIds: data.members,
-        familyCreationMonth: toStr(data.rec["familyCreationMonth"], "1880-01"),
-      });
-    }
-
-    return families;
-  }
 }
 
 // ---- B-6/ADR-0025: authoritative campaign start date ----
@@ -861,8 +224,8 @@ export class CampaignCompiler {
 // aborts on malformed values, see INVALID_CAMPAIGN_START).
 function resolveCampaignStart(
   input: CampaignCompilerInput,
-  explicit: { startYear: number; startMonth: number } | undefined,
-): { startYear: number; startMonth: number } {
+  explicit: CampaignStart | undefined,
+): CampaignStart {
   if (input.campaignConfiguration !== undefined) {
     const scenarioId = (input.campaignConfiguration as { scenarioId?: unknown })["scenarioId"];
     if (typeof scenarioId === "string") {

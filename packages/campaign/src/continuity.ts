@@ -97,15 +97,13 @@ export function validateParticipationRecord(r: unknown, c: DiagnosticCollector) 
   }
   return true;
 }
-export function resolveParticipation(
+function findUniqueParticipationRecord(
   scenarioId: string,
   playableSlotId: string,
   continuityModeId: ContinuityMode,
   records: ScenarioParticipationRecord[],
-  identities: Map<string, NationIdentityDefinition>,
-  continuations: Map<string, ContinuationDefinition>,
   c: DiagnosticCollector,
-): string | undefined {
+): ScenarioParticipationRecord | undefined {
   const matches = records.filter(
     (r) =>
       r.scenarioId === scenarioId &&
@@ -120,7 +118,124 @@ export function resolveParticipation(
     );
     return undefined;
   }
-  const rec = matches[0]!;
+  return matches[0];
+}
+
+// CONDITIONAL_ACTIVE is legal only under alternate_continuity_v1 and must name a
+// continuation that resolves to a playable-slot nation instance.
+function resolveConditionalActiveParticipation(
+  rec: ScenarioParticipationRecord,
+  playableSlotId: string,
+  continuityModeId: ContinuityMode,
+  identities: Map<string, NationIdentityDefinition>,
+  continuations: Map<string, ContinuationDefinition>,
+  c: DiagnosticCollector,
+): string | undefined {
+  if (continuityModeId !== "alternate_continuity_v1") {
+    c.addError(
+      "INVALID_SCENARIO_PARTICIPATION_RECORD",
+      "CONDITIONAL_ACTIVE only under alternate_continuity_v1",
+      { stage: "continuity" },
+    );
+    return undefined;
+  }
+  if (
+    rec.continuationDefinitionId === "NONE" ||
+    !continuations.has(rec.continuationDefinitionId as string)
+  ) {
+    c.addError(
+      "MISSING_ALTERNATE_CONTINUITY_DEFINITION",
+      `Missing continuation ${String(rec.continuationDefinitionId)}`,
+      { stage: "continuity" },
+    );
+    return undefined;
+  }
+  const cont = continuations.get(rec.continuationDefinitionId as string)!;
+  if (cont.playableSlotId !== playableSlotId) {
+    c.addError("MISSING_ALTERNATE_CONTINUITY_DEFINITION", "Continuation playableSlotId mismatch", {
+      stage: "continuity",
+    });
+    return undefined;
+  }
+  const target = cont.targetScenarioNationInstanceId;
+  const ident = identities.get(target);
+  if (
+    !ident ||
+    ident.participantClass !== "PLAYABLE_SLOT_INSTANCE" ||
+    ident.playableSlotId !== playableSlotId
+  ) {
+    c.addError(
+      "AI_POWER_PLAYABLE_SLOT_SUBSTITUTION",
+      `AI power cannot replace playable slot ${playableSlotId}`,
+      { stage: "continuity" },
+    );
+    return undefined;
+  }
+  return target;
+}
+
+// ACTIVE must be a real playable-slot nation instance and carry no continuation.
+function resolveActiveParticipation(
+  rec: ScenarioParticipationRecord,
+  playableSlotId: string,
+  identities: Map<string, NationIdentityDefinition>,
+  c: DiagnosticCollector,
+): string | undefined {
+  if (rec.scenarioNationInstanceId === "NONE") {
+    c.addError(
+      "INVALID_SCENARIO_PARTICIPATION_RECORD",
+      "ACTIVE requires scenarioNationInstanceId",
+      { stage: "continuity" },
+    );
+    return undefined;
+  }
+  if (rec.continuationDefinitionId !== "NONE") {
+    c.addError(
+      "INVALID_SCENARIO_PARTICIPATION_RECORD",
+      "ACTIVE must have continuationDefinitionId NONE",
+      { stage: "continuity" },
+    );
+    return undefined;
+  }
+  const ident = identities.get(rec.scenarioNationInstanceId as string);
+  if (!ident) {
+    c.addError("INVALID_SCENARIO_PARTICIPATION_RECORD", "Unknown nation instance", {
+      stage: "continuity",
+    });
+    return undefined;
+  }
+  if (
+    ident.participantClass !== "PLAYABLE_SLOT_INSTANCE" ||
+    ident.playableSlotId !== playableSlotId
+  ) {
+    c.addError(
+      "AI_POWER_PLAYABLE_SLOT_SUBSTITUTION",
+      `AI_ONLY_POWER cannot occupy playable slot ${playableSlotId}`,
+      { stage: "continuity" },
+    );
+    return undefined;
+  }
+  return rec.scenarioNationInstanceId as string;
+}
+
+export function resolveParticipation(
+  scenarioId: string,
+  playableSlotId: string,
+  continuityModeId: ContinuityMode,
+  records: ScenarioParticipationRecord[],
+  identities: Map<string, NationIdentityDefinition>,
+  continuations: Map<string, ContinuationDefinition>,
+  c: DiagnosticCollector,
+): string | undefined {
+  const rec = findUniqueParticipationRecord(
+    scenarioId,
+    playableSlotId,
+    continuityModeId,
+    records,
+    c,
+  );
+  if (!rec) return undefined;
+
   if (rec.participationStatus === "INACTIVE" && continuityModeId === "historical") {
     c.addError(
       "PLAYABLE_SLOT_INACTIVE_HISTORICAL",
@@ -138,86 +253,17 @@ export function resolveParticipation(
     return undefined;
   }
   if (rec.participationStatus === "CONDITIONAL_ACTIVE") {
-    if (continuityModeId !== "alternate_continuity_v1") {
-      c.addError(
-        "INVALID_SCENARIO_PARTICIPATION_RECORD",
-        "CONDITIONAL_ACTIVE only under alternate_continuity_v1",
-        { stage: "continuity" },
-      );
-      return undefined;
-    }
-    if (
-      rec.continuationDefinitionId === "NONE" ||
-      !continuations.has(rec.continuationDefinitionId as string)
-    ) {
-      c.addError(
-        "MISSING_ALTERNATE_CONTINUITY_DEFINITION",
-        `Missing continuation ${String(rec.continuationDefinitionId)}`,
-        { stage: "continuity" },
-      );
-      return undefined;
-    }
-    const cont = continuations.get(rec.continuationDefinitionId as string)!;
-    if (cont.playableSlotId !== playableSlotId) {
-      c.addError(
-        "MISSING_ALTERNATE_CONTINUITY_DEFINITION",
-        "Continuation playableSlotId mismatch",
-        { stage: "continuity" },
-      );
-      return undefined;
-    }
-    const target = cont.targetScenarioNationInstanceId;
-    const ident = identities.get(target);
-    if (
-      !ident ||
-      ident.participantClass !== "PLAYABLE_SLOT_INSTANCE" ||
-      ident.playableSlotId !== playableSlotId
-    ) {
-      c.addError(
-        "AI_POWER_PLAYABLE_SLOT_SUBSTITUTION",
-        `AI power cannot replace playable slot ${playableSlotId}`,
-        { stage: "continuity" },
-      );
-      return undefined;
-    }
-    return target;
+    return resolveConditionalActiveParticipation(
+      rec,
+      playableSlotId,
+      continuityModeId,
+      identities,
+      continuations,
+      c,
+    );
   }
   if (rec.participationStatus === "ACTIVE") {
-    if (rec.scenarioNationInstanceId === "NONE") {
-      c.addError(
-        "INVALID_SCENARIO_PARTICIPATION_RECORD",
-        "ACTIVE requires scenarioNationInstanceId",
-        { stage: "continuity" },
-      );
-      return undefined;
-    }
-    if (rec.continuationDefinitionId !== "NONE") {
-      c.addError(
-        "INVALID_SCENARIO_PARTICIPATION_RECORD",
-        "ACTIVE must have continuationDefinitionId NONE",
-        { stage: "continuity" },
-      );
-      return undefined;
-    }
-    const ident = identities.get(rec.scenarioNationInstanceId as string);
-    if (!ident) {
-      c.addError("INVALID_SCENARIO_PARTICIPATION_RECORD", "Unknown nation instance", {
-        stage: "continuity",
-      });
-      return undefined;
-    }
-    if (
-      ident.participantClass !== "PLAYABLE_SLOT_INSTANCE" ||
-      ident.playableSlotId !== playableSlotId
-    ) {
-      c.addError(
-        "AI_POWER_PLAYABLE_SLOT_SUBSTITUTION",
-        `AI_ONLY_POWER cannot occupy playable slot ${playableSlotId}`,
-        { stage: "continuity" },
-      );
-      return undefined;
-    }
-    return rec.scenarioNationInstanceId as string;
+    return resolveActiveParticipation(rec, playableSlotId, identities, c);
   }
   c.addError("INVALID_SCENARIO_PARTICIPATION_RECORD", `Slot ${playableSlotId} inactive`, {
     stage: "continuity",

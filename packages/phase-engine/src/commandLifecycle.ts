@@ -7,8 +7,11 @@ import {
   CommandRegistry,
   ReservationManager,
   canTransition,
+  checkCancellationWindow,
+  createCommandRecord,
   createSettlementRecord,
   hashCommandRecord,
+  produceResult,
   type CommandRecord,
   type CommandResult,
   type CommandSettlementRecord,
@@ -319,7 +322,7 @@ export class BudgetProjectLifecycle {
     reservations.release(record.commandId);
 
     // 8) Produce + attach the terminal CommandResult.
-    const result = this.lifecycle.produceResult(
+    const result = produceResult(
       record.commandId,
       "COMPLETED",
       "COMMAND_COMPLETED",
@@ -367,12 +370,7 @@ export class BudgetProjectLifecycle {
     currentStatus: CommandStatus,
   ): { allowed: boolean; reasonCode: string } {
     const record = this.makeRecord(snapshot, envelope, slot);
-    return this.lifecycle.checkCancellationWindow(
-      record,
-      this.definition(),
-      currentPhaseId,
-      currentStatus,
-    );
+    return checkCancellationWindow(record, this.definition(), currentPhaseId, currentStatus);
   }
 
   /**
@@ -446,7 +444,7 @@ export class BudgetProjectLifecycle {
     reservations.release(record.commandId);
 
     const preHash = sha256Hex(canonicalSerialize(snapshot));
-    const result = this.lifecycle.produceResult(
+    const result = produceResult(
       record.commandId,
       "CANCELLED",
       "COMMAND_CANCELLED",
@@ -621,7 +619,7 @@ export class BudgetProjectLifecycle {
       snapshot["startMonth"],
       snapshot["turnNumber"] as number,
     );
-    return this.lifecycle.createCommandRecord(
+    return createCommandRecord(
       envelope,
       this.definition(),
       snapshot.campaignId,

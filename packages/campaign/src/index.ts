@@ -52,6 +52,7 @@ export type {
   WorldState,
 } from "./state.js";
 export * from "./technologyVariation.js";
+export * from "./technologyMaterialization.js";
 export * from "./timeline.js";
 export * from "./warConstants.js";
 export * from "./budgetConstants.js";

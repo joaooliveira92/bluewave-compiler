@@ -25,7 +25,6 @@ export type {
   SetBudgetAllocationCommand,
   SetResearchPriorityCommand,
 } from "./envelope.js";
-export type { CommandOutcome } from "./lifecycle.js";
 export {
   CommandIdempotencyMap,
   CommandLedger,
@@ -38,5 +37,6 @@ export * from "./reasonCodes.js";
 export * from "./registry.js";
 export * from "./reservation.js";
 export * from "./settlement.js";
+export * from "./specRules.js";
 export * from "./types.js";
 export * from "./validation.js";
