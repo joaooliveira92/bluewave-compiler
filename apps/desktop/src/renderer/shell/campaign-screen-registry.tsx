@@ -169,6 +169,7 @@ function OptionsRoute() {
     <OptionsScreen
       saving={state.saving}
       onSave={actions.saveCampaign}
+      onCopy={actions.copyCampaign}
       onCloseCampaign={actions.closeCampaign}
     />
   );

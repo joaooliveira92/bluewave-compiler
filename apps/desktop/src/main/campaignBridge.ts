@@ -44,6 +44,7 @@ import { inspectDivisionScreen, submitDivisionCommand } from "./commands/divisio
 import { inspectCampaign } from "./commands/inspectCampaign.js";
 import { inspectBattleHistory } from "./commands/inspectBattleHistory.js";
 import { inspectMap } from "./commands/inspectMap.js";
+import { closeCampaign, copyCampaign, saveCampaign } from "./commands/sessionCommands.js";
 import { inspectOpeningBriefing } from "./commands/inspectOpeningBriefing.js";
 import { inspectPriorities } from "./commands/inspectPriorities.js";
 import { listNewGameOptions } from "./commands/listNewGameOptions.js";
@@ -211,6 +212,18 @@ export async function dispatchCampaignCommand(
         return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
       }
       return submitDivisionCommand(parsedPayload.data);
+    }
+
+    case "saveCampaign":
+    case "closeCampaign":
+    case "copyCampaign": {
+      const parsedPayload = SessionIdPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      if (parsedCommand.data === "saveCampaign") return saveCampaign(parsedPayload.data);
+      if (parsedCommand.data === "closeCampaign") return closeCampaign(parsedPayload.data);
+      return copyCampaign(parsedPayload.data);
     }
 
     case "readUiState": {

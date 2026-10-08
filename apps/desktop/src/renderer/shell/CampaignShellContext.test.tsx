@@ -24,6 +24,7 @@ const shell = {
   openCampaign: vi.fn(async () => undefined),
   closeCampaign: vi.fn(async () => undefined),
   saveCampaign: vi.fn(async () => undefined),
+  copyCampaign: vi.fn(async () => undefined),
   advanceMonth: vi.fn(async () => undefined),
   refreshCampaign: vi.fn(),
   selectScreen: vi.fn(),

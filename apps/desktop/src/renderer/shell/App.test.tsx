@@ -347,6 +347,7 @@ function createShell(overrides: Record<string, unknown> = {}) {
     openCampaign: vi.fn(async () => undefined),
     closeCampaign: vi.fn(async () => undefined),
     saveCampaign: vi.fn(async () => undefined),
+    copyCampaign: vi.fn(async () => undefined),
     selectScreen: vi.fn(),
     setPrimaryAction: vi.fn(),
     goBack: vi.fn(),

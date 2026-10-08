@@ -82,7 +82,8 @@ export const FEATURE_DEPTH: readonly FeatureDepthEntry[] = [
     planned: true,
     path: ["Simulation & Turn", "History"],
   },
-  { feature: "copy-game", screen: null, planned: true, path: ["Options", "Copy game"] },
+  // Real: "Save a Copy…" in Options (copyCampaign).
+  { feature: "copy-game", screen: "options", path: ["Options"] },
   { feature: "resign", screen: null, planned: true, path: ["Options", "Resign"] },
   {
     feature: "ship-designer",

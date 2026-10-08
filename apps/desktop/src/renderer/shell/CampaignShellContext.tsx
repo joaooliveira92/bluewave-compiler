@@ -25,6 +25,7 @@ export interface CampaignShellContextValue {
     | "openCampaign"
     | "closeCampaign"
     | "saveCampaign"
+    | "copyCampaign"
     | "advanceMonth"
     | "refreshCampaign"
     | "selectScreen"
@@ -66,6 +67,7 @@ export function CampaignShellProvider({
         openCampaign: shell.openCampaign,
         closeCampaign: shell.closeCampaign,
         saveCampaign: shell.saveCampaign,
+        copyCampaign: shell.copyCampaign,
         advanceMonth: shell.advanceMonth,
         refreshCampaign: shell.refreshCampaign,
         selectScreen: shell.selectScreen,

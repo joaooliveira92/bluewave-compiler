@@ -121,6 +121,25 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
     );
   }, [bridge, state.campaign]);
 
+  /** "Save a copy…": the player picks a location; cancelling is silent, never an error. */
+  const copyCampaign = useCallback(async () => {
+    if (bridge === undefined || state.campaign === null) return;
+    dispatch({ type: "save-started" });
+    if (saveTimerRef.current !== null) clearTimeout(saveTimerRef.current);
+    const result = await bridge.campaign.execute("copyCampaign", state.campaign.sessionId);
+    const message =
+      result.outcome === "success"
+        ? `Copy saved to ${result.value.location}.`
+        : result.reason === "SAVE_LOCATION_CANCELLED"
+          ? null
+          : `Copy failed: ${result.reason}.${result.diagnostics.length > 0 ? ` ${result.diagnostics.join("; ")}` : ""}`;
+    dispatch({ type: "save-finished", message });
+    saveTimerRef.current = setTimeout(
+      () => dispatch({ type: "save-message-cleared" }),
+      SAVE_MESSAGE_DURATION_MS,
+    );
+  }, [bridge, state.campaign]);
+
   useEffect(
     () => () => {
       if (saveTimerRef.current !== null) clearTimeout(saveTimerRef.current);
@@ -240,6 +259,7 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
       openCampaign,
       closeCampaign,
       saveCampaign,
+      copyCampaign,
       advanceMonth,
       refreshCampaign,
       selectScreen,
@@ -252,6 +272,7 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
       openCampaign,
       closeCampaign,
       saveCampaign,
+      copyCampaign,
       advanceMonth,
       refreshCampaign,
       selectScreen,

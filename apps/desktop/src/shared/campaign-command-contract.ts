@@ -118,6 +118,12 @@ export interface InspectBattleHistoryResult {
   readonly history: BattleHistoryView;
 }
 
+export interface CopyCampaignResult {
+  readonly revision: number;
+  /** Where the copy was written. */
+  readonly location: string;
+}
+
 export interface SaveCampaignResult {
   readonly revision: number;
 }
@@ -189,6 +195,7 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "inspectPriorities",
   "closeCampaign",
   "saveCampaign",
+  "copyCampaign",
   "commitMonth",
   "generateBattle",
   "resolveBattle",
@@ -249,6 +256,7 @@ export interface CampaignCommandClient {
   ): Promise<BridgeResult<InspectPrioritiesResult>>;
   execute(command: "closeCampaign", payload: string): Promise<BridgeResult<unknown>>;
   execute(command: "saveCampaign", payload: string): Promise<BridgeResult<SaveCampaignResult>>;
+  execute(command: "copyCampaign", payload: string): Promise<BridgeResult<CopyCampaignResult>>;
   execute(
     command: "commitMonth",
     payload: CommitMonthPayload,

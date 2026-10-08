@@ -21,6 +21,7 @@ const shell = vi.hoisted(() => ({
     setPrimaryAction: vi.fn(),
     closeCampaign: vi.fn(),
     saveCampaign: vi.fn(),
+    copyCampaign: vi.fn(),
   },
 }));
 

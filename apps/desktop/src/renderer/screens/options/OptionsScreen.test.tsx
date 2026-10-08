@@ -8,7 +8,7 @@ function renderOptions() {
   return render(
     <BackgroundProvider>
       <DensityProvider>
-        <OptionsScreen saving={false} onSave={vi.fn()} onCloseCampaign={vi.fn()} />
+        <OptionsScreen saving={false} onSave={vi.fn()} onCopy={vi.fn()} onCloseCampaign={vi.fn()} />
       </DensityProvider>
     </BackgroundProvider>,
   );

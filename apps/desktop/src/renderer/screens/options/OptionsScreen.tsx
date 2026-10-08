@@ -1,6 +1,7 @@
 import {
   Ban,
   Citrus,
+  Copy,
   DoorOpen,
   Flame,
   Gem,
@@ -39,6 +40,7 @@ import { DENSITY_OPTIONS, useDensity } from "../../shell/DensityContext.js";
 export interface OptionsScreenProps {
   readonly saving: boolean;
   readonly onSave: () => void;
+  readonly onCopy: () => void;
   readonly onCloseCampaign: () => void;
 }
 
@@ -56,7 +58,7 @@ const BACKGROUND_OPTIONS: {
   { label: "None", value: "none", icon: Ban },
 ];
 
-export function OptionsScreen({ saving, onSave, onCloseCampaign }: OptionsScreenProps) {
+export function OptionsScreen({ saving, onSave, onCopy, onCloseCampaign }: OptionsScreenProps) {
   const { background, setBackground } = useBackground();
   const { density, setDensity } = useDensity();
   const activeOption =
@@ -124,6 +126,22 @@ export function OptionsScreen({ saving, onSave, onCloseCampaign }: OptionsScreen
           <Button variant="default" onClick={onSave} disabled={saving}>
             <Save className="h-3.5 w-3.5" />
             {saving ? "Saving…" : "Save"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Save a Copy</CardTitle>
+          <CardDescription>
+            Write a separate copy of this campaign to a location you choose. The original is
+            untouched, and the copy can be opened later from the campaign file screen.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" onClick={onCopy} disabled={saving}>
+            <Copy className="h-3.5 w-3.5" />
+            Save a Copy…
           </Button>
         </CardContent>
       </Card>
