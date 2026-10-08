@@ -23,10 +23,18 @@ import {
 } from "./fixture-world.js";
 import { nauticalMiles, type ProjectionId } from "./projection.js";
 
-export type LayerId = "ownership" | "passages" | "possessions" | "fleets" | "labels" | "routes";
+export type LayerId =
+  | "ownership"
+  | "borders"
+  | "passages"
+  | "possessions"
+  | "fleets"
+  | "labels"
+  | "routes";
 
 export const LAYERS: readonly { id: LayerId; label: string }[] = [
   { id: "ownership", label: "Ownership" },
+  { id: "borders", label: "1880 borders" },
   { id: "passages", label: "Passages" },
   { id: "possessions", label: "Possessions" },
   { id: "fleets", label: "Fleets" },
@@ -50,6 +58,7 @@ export const initialMapPrototypeState: MapPrototypeState = {
   rulerTo: "area_malacca",
   layers: {
     ownership: true,
+    borders: true,
     passages: true,
     possessions: true,
     fleets: true,

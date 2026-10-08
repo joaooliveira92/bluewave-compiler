@@ -46,6 +46,16 @@ import {
 } from "./campaign-map-join.js";
 import { useMapCamera } from "./useMapCamera.js";
 import { useMapPalette } from "./map-palette.js";
+import { BORDERS_1880 } from "./borders-1880-data.js";
+import type { BorderSet } from "./CoastlineCanvas.js";
+import {
+  CONTINENTS,
+  COUNTRIES,
+  LABEL_RANK,
+  labelPresentation,
+  type LabelKind,
+  type LabelTraits,
+} from "./map-labels.js";
 import type { MapViewProps } from "./map-contract.js";
 import { cn } from "../../lib/utils.js";
 
@@ -109,6 +119,29 @@ const NUDGES: readonly (readonly [number, number])[] = [
   [-48, 18],
   [48, 18],
 ];
+
+interface LabelSpec {
+  readonly key: string;
+  readonly kind: LabelKind;
+  readonly text: string;
+  /** World user units. */
+  readonly ux: number;
+  readonly uy: number;
+  /** Tie-break within a rank: bigger first. */
+  readonly weight: number;
+  readonly anchor: "middle" | "start";
+  readonly px: number;
+  readonly opacity: number;
+  readonly rank: number;
+}
+
+interface PlacedLabel {
+  readonly id: string;
+  readonly turn: number;
+  readonly spec: LabelSpec;
+  readonly dx: number;
+  readonly dy: number;
+}
 
 interface PortMark {
   readonly id: string;
@@ -243,6 +276,22 @@ export function WorldMapChart({
     () => projectAreas(AREAS, projection, state.centre),
     [projection, state.centre],
   );
+  /** The playable nations' 1880 borders, tinted by nation and themed. */
+  const borderSets = useMemo<BorderSet[]>(
+    () =>
+      state.layers.borders
+        ? Object.entries(BORDERS_1880).map(([id, polygons]) => {
+            const hue = campaignNationHue(id);
+            return {
+              id,
+              polygons,
+              tint: `oklch(${palette.borderTintLightness} 0.14 ${hue} / 0.16)`,
+              edge: `oklch(${palette.borderEdgeLightness} 0.15 ${hue} / 0.9)`,
+            };
+          })
+        : [],
+    [palette, state.layers.borders],
+  );
   const areasById = useMemo(() => new Map(areas.map((area) => [area.id, area])), [areas]);
 
   // Bumped once the camera settles (and on mount), so label placement tracks
@@ -346,26 +395,96 @@ export function WorldMapChart({
   }, [areasById, camera.zoomBand, drawnFleets, portMarks, viewVersion]);
 
   /**
-   * Which area labels to draw, as `turn:areaId`. Laid out in screen pixels from
-   * the settled camera: biggest area first, and a label is dropped if it would
-   * leave the view, sit under a floating panel, or overlap one already kept.
+   * The place names to draw, laid out in screen pixels from the settled camera.
+   * What is eligible depends on zoom (see `labelPresentation`): big names when
+   * zoomed out, smaller ones as you close in. Eligible names are placed in
+   * priority order, and one is dropped if it would leave the view, sit under a
+   * floating panel, cover a marker, or overlap one already placed; it is first
+   * nudged to nearby spots.
    */
-  const visibleLabels = useMemo(() => {
-    // `turn:areaId` -> nudge from the anchor, in screen pixels.
-    const kept = new Map<string, { dx: number; dy: number }>();
-    if (!state.layers.labels) return kept;
+  const placedLabels = useMemo<PlacedLabel[]>(() => {
+    const placedOut: PlacedLabel[] = [];
+    if (!state.layers.labels) return placedOut;
     const svg = camera.svgRef.current;
     const ctm = svg?.getScreenCTM?.();
-    const turns = camera.isWrapping() ? WORLD_WRAP_TURNS : [0];
-    const ranked = [...areas].sort(
-      (a, b) => b.bounds.width * b.bounds.height - a.bounds.width * a.bounds.height,
-    );
-    // Before layout (or without a CTM) there is nothing to measure against.
-    const measured = svg != null && ctm != null && svg.clientWidth > 0;
-    const frame = measured ? svg.getBoundingClientRect() : null;
+    if (svg == null || ctm == null || svg.clientWidth === 0) return placedOut;
+    const frame = svg.getBoundingClientRect();
     const transform = camera.getTransform();
+    const zoom = transform.scale / camera.getMinScale();
+    const turns = camera.isWrapping() ? WORLD_WRAP_TURNS : [0];
+
+    // Everything that could be named, with its zoom-dependent look.
+    const specs: LabelSpec[] = [];
+    const consider = (
+      spec: Omit<LabelSpec, "px" | "opacity" | "rank">,
+      traits: LabelTraits = {},
+    ) => {
+      const look = labelPresentation(spec.kind, zoom, traits);
+      if (look !== null) specs.push({ ...spec, ...look, rank: LABEL_RANK[spec.kind] });
+    };
+    for (const country of COUNTRIES) {
+      const [ux, uy] = projectPoint(country.at, projection, state.centre);
+      consider({
+        key: `country:${country.name}`,
+        kind: "country",
+        text: country.name,
+        ux,
+        uy,
+        weight: 0,
+        anchor: "middle",
+      });
+    }
+    for (const area of areas) {
+      const definition = AREAS_BY_ID.get(area.id);
+      if (definition === undefined) continue;
+      const size = area.bounds.width * area.bounds.height;
+      consider(
+        {
+          key: `sea:${area.id}`,
+          kind: "sea",
+          text: definition.name,
+          ux: area.label[0],
+          uy: area.label[1],
+          weight: size,
+          anchor: "middle",
+        },
+        { big: size > 26000 },
+      );
+    }
+    for (const continent of CONTINENTS) {
+      const [ux, uy] = projectPoint(continent.at, projection, state.centre);
+      consider({
+        key: `continent:${continent.name}`,
+        kind: "continent",
+        text: continent.name,
+        ux,
+        uy,
+        weight: 0,
+        anchor: "middle",
+      });
+    }
+    // A clustered port dot has no single name to show; singles do.
+    const singles = new Set(portMarks.filter((mark) => mark.count === 1).map((mark) => mark.id));
+    for (const mark of portMarks) {
+      if (mark.count !== 1 || !singles.has(mark.id)) continue;
+      consider(
+        {
+          key: `port:${mark.id}`,
+          kind: "port",
+          text: mark.name,
+          ux: mark.ux,
+          uy: mark.uy,
+          weight: mark.major ? 1 : 0,
+          anchor: "start",
+        },
+        { major: mark.major },
+      );
+    }
+    specs.sort((a, b) => a.rank - b.rank || b.weight - a.weight);
+
+    // Things a label must not sit on: floating panels, then markers.
     const obstacles: Box[] = [];
-    if (frame !== null && rootRef.current !== null) {
+    if (rootRef.current !== null) {
       for (const element of rootRef.current.querySelectorAll(
         "[data-map-obstacle], .pointer-events-auto",
       )) {
@@ -379,16 +498,11 @@ export function WorldMapChart({
         });
       }
     }
-    // Markers (user-space point + half size in pixels) the labels steer around.
     const markers: { ux: number; uy: number; hw: number; hh: number }[] = [];
     if (state.layers.possessions) {
       for (const mark of portMarks) {
-        markers.push({
-          ux: mark.ux,
-          uy: mark.uy,
-          hw: mark.count > 1 ? 11 : 8,
-          hh: mark.count > 1 ? 11 : 8,
-        });
+        const half = mark.count > 1 ? 11 : 8;
+        markers.push({ ux: mark.ux, uy: mark.uy, hw: half, hh: half });
       }
     }
     if (state.layers.fleets) {
@@ -405,57 +519,66 @@ export function WorldMapChart({
         markers.push({ ux: (from[0] + to[0]) / 2, uy: (from[1] + to[1]) / 2, hw: 9, hh: 9 });
       }
     }
+
+    const toScreen = (ux: number, uy: number, turn: number) => ({
+      x:
+        ctm.a * (transform.x + transform.scale * (ux + turn * projection.width)) +
+        ctm.e -
+        frame.left,
+      y: ctm.d * (transform.y + transform.scale * uy) + ctm.f - frame.top,
+    });
     const placed: Box[] = [];
-    for (const area of ranked) {
-      const definition = AREAS_BY_ID.get(area.id);
-      if (definition === undefined) continue;
-      const big = area.bounds.width * area.bounds.height > 26000;
-      if (camera.zoomBand === 0 && !big) continue;
-      if (frame === null || ctm == null) {
-        for (const turn of turns) kept.set(`${turn}:${area.id}`, { dx: 0, dy: 0 });
-        continue;
-      }
-      const px = big ? 15 : 13;
-      const halfWidth = (definition.name.length * (px * 0.62 + 1.2)) / 2 + 4;
+    for (const spec of specs) {
+      const upper = spec.kind === "sea" || spec.kind === "continent";
+      const width = spec.text.length * (spec.px * (upper ? 0.62 : 0.56) + (upper ? 1.2 : 0)) + 8;
       for (const turn of turns) {
-        const cx =
-          ctm.a * (transform.x + transform.scale * (area.label[0] + turn * projection.width)) +
-          ctm.e -
-          frame.left;
-        const cy = ctm.d * (transform.y + transform.scale * area.label[1]) + ctm.f - frame.top;
-        const markerBoxes: Box[] = markers.map((marker) => {
-          const mx =
-            ctm.a * (transform.x + transform.scale * (marker.ux + turn * projection.width)) +
-            ctm.e -
-            frame.left;
-          const my = ctm.d * (transform.y + transform.scale * marker.uy) + ctm.f - frame.top;
-          return { x0: mx - marker.hw, x1: mx + marker.hw, y0: my - marker.hh, y1: my + marker.hh };
-        });
-        // Try the anchor first, then nudge it before giving up.
-        // Nearest spots first: the anchor, then up/down, then a little sideways.
+        const at = toScreen(spec.ux, spec.uy, turn);
+        // A port's own dot is not an obstacle to its own name.
+        const markerBoxes: Box[] = markers
+          .filter(
+            (marker) => !(spec.kind === "port" && marker.ux === spec.ux && marker.uy === spec.uy),
+          )
+          .map((marker) => {
+            const m = toScreen(marker.ux, marker.uy, turn);
+            return {
+              x0: m.x - marker.hw,
+              x1: m.x + marker.hw,
+              y0: m.y - marker.hh,
+              y1: m.y + marker.hh,
+            };
+          });
         for (const [dx, dy] of NUDGES) {
+          const left = spec.anchor === "start" ? at.x + dx + 8 : at.x + dx - width / 2;
           const box = {
-            x0: cx + dx - halfWidth,
-            x1: cx + dx + halfWidth,
-            y0: cy + dy - px * 1.1,
-            y1: cy + dy + px * 0.5,
+            x0: left,
+            x1: left + width,
+            y0: at.y + dy - spec.px * 1.1,
+            y1: at.y + dy + spec.px * 0.5,
           };
-          if (box.x0 < 6 || box.y0 < 6 || box.x1 > frame.width - 6 || box.y1 > frame.height - 6) {
+          if (box.x0 < 6 || box.y0 < 6 || box.x1 > frame.width - 6 || box.y1 > frame.height - 6)
             continue;
-          }
           if (obstacles.some((other) => boxesOverlap(box, other))) continue;
           if (markerBoxes.some((other) => boxesOverlap(box, other))) continue;
           if (placed.some((other) => boxesOverlap(box, other))) continue;
           placed.push(box);
-          kept.set(`${turn}:${area.id}`, { dx, dy });
+          placedOut.push({ id: `${turn}:${spec.key}`, turn, spec, dx, dy });
           break;
         }
       }
     }
-    return kept;
+    return placedOut;
     // `viewVersion` is the settled-camera signal; the camera object itself is a stable bundle of refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [areas, camera.zoomBand, fleetMarks, portMarks, projection.width, state.layers, viewVersion]);
+  }, [
+    areas,
+    areasById,
+    fleetMarks,
+    portMarks,
+    projection,
+    state.centre,
+    state.layers,
+    viewVersion,
+  ]);
 
   /** Possessions (ports) per fixture area: the campaign's own ports when live, the fixture's otherwise. */
   const possessionsByArea = useMemo(() => {
@@ -637,6 +760,7 @@ export function WorldMapChart({
           centre={state.centre}
           fill={palette.land}
           stroke={palette.landEdge}
+          borders={borderSets}
         />
       )}
       {coastline.status !== "ready" && (
@@ -830,21 +954,6 @@ export function WorldMapChart({
                           {mark.count}
                         </text>
                       )}
-                      {!grouped && camera.zoomBand >= 2 && (
-                        <text
-                          x={8}
-                          y={3}
-                          fill={palette.labelInk}
-                          stroke={palette.labelHalo}
-                          paintOrder="stroke"
-                          style={{
-                            ...screenText(12, 3.5),
-                            pointerEvents: "none",
-                          }}
-                        >
-                          {mark.name}
-                        </text>
-                      )}
                     </g>
                   );
                 })}
@@ -885,36 +994,34 @@ export function WorldMapChart({
                   );
                 })}
 
-              {/* Layer: labels. Hand-placed anchors, thinned by zoom band. */}
-              {state.layers.labels &&
-                areas.map((area) => {
-                  const definition = AREAS_BY_ID.get(area.id);
-                  if (definition === undefined || !visibleLabels.has(`${turn}:${area.id}`))
-                    return null;
-                  const nudge = visibleLabels.get(`${turn}:${area.id}`) ?? { dx: 0, dy: 0 };
-                  const big = area.bounds.width * area.bounds.height > 26000;
-                  return (
-                    <text
-                      key={area.id}
-                      x={0}
-                      y={0}
-                      textAnchor="middle"
-                      letterSpacing={1.2}
-                      fill={palette.labelInk}
-                      stroke={palette.labelHalo}
-                      paintOrder="stroke"
-                      style={{
-                        transform: `${pinned(area.label[0], area.label[1]).transform} translate(${nudge.dx}px, ${nudge.dy}px)`,
-                        ...screenText(big ? 15 : 13, 3),
-                        fontWeight: 600,
-                        pointerEvents: "none",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {definition.name}
-                    </text>
-                  );
-                })}
+              {/* Layer: place names, zoom-aware (see placedLabels). */}
+              {placedLabels
+                .filter((label) => label.turn === turn)
+                .map(({ id, spec, dx, dy }) => (
+                  <text
+                    key={id}
+                    x={0}
+                    y={0}
+                    aria-hidden="true"
+                    textAnchor={spec.anchor}
+                    letterSpacing={spec.kind === "sea" || spec.kind === "continent" ? 1.2 : 0.2}
+                    fill={palette.labelInk}
+                    stroke={palette.labelHalo}
+                    paintOrder="stroke"
+                    opacity={spec.opacity * (spec.kind === "continent" ? 0.8 : 1)}
+                    style={{
+                      transform: `${pinned(spec.ux, spec.uy).transform} translate(${dx}px, ${dy}px)`,
+                      ...screenText(spec.px, 3),
+                      fontWeight: spec.kind === "continent" ? 500 : 600,
+                      fontStyle: spec.kind === "port" ? "normal" : undefined,
+                      pointerEvents: "none",
+                      textTransform:
+                        spec.kind === "sea" || spec.kind === "continent" ? "uppercase" : undefined,
+                    }}
+                  >
+                    {spec.text}
+                  </text>
+                ))}
             </g>
           ))}
         </g>

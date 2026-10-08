@@ -62,6 +62,8 @@ export interface MapCamera {
   readonly isDraggingRef: React.RefObject<boolean>;
   /** False while the whole world fits the view, so only the home copy is drawn. */
   readonly isWrapping: () => boolean;
+  /** The zoom floor: the scale at which the whole world fits the view. */
+  readonly getMinScale: () => number;
   /** The viewport in camera user units (see `viewportUnits`). */
   readonly getViewport: () => Viewport;
   /** Called after every transform change (pan, zoom, reset). Returns an unsubscribe. */
@@ -389,6 +391,7 @@ export function useMapCamera(
     isDraggingRef,
     isWrapping: () => wrapping.current,
     getViewport: viewportUnits,
+    getMinScale: minScale,
     subscribe,
     getTransform: () => camera.current,
   };

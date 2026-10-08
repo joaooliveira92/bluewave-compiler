@@ -18,6 +18,9 @@ export interface MapPalette {
   readonly route: string;
   readonly labelInk: string;
   readonly labelHalo: string;
+  /** OKLCH lightness for nation border tints and lines (hue comes from the nation). */
+  readonly borderTintLightness: number;
+  readonly borderEdgeLightness: number;
   /** The minimap inset: its own surface, since the main ocean is transparent. */
   readonly minimapOcean: string;
   readonly minimapLand: string;
@@ -36,6 +39,8 @@ export const DARK_MAP_PALETTE: MapPalette = {
   route: "oklch(0.85 0.16 85)",
   labelInk: "oklch(0.95 0.01 240)",
   labelHalo: "oklch(0.15 0.02 245 / 0.8)",
+  borderTintLightness: 0.7,
+  borderEdgeLightness: 0.74,
   minimapOcean: "oklch(0.19 0.035 245)",
   minimapLand: "oklch(0.30 0.018 250)",
   minimapInk: "oklch(0.92 0.01 240)",
@@ -53,6 +58,8 @@ export const LIGHT_MAP_PALETTE: MapPalette = {
   route: "oklch(0.55 0.17 55)",
   labelInk: "oklch(0.22 0.02 250)",
   labelHalo: "oklch(0.98 0.005 240 / 0.85)",
+  borderTintLightness: 0.6,
+  borderEdgeLightness: 0.5,
   minimapOcean: "oklch(0.96 0.01 245)",
   minimapLand: "oklch(0.78 0.015 250)",
   minimapInk: "oklch(0.25 0.02 250)",

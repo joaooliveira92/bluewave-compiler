@@ -8,7 +8,7 @@
  * a frame.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   COASTLINE_TIER_TOLERANCES,
   coastlineTierFor,
@@ -34,6 +34,47 @@ export interface CoastlineCanvasProps {
   readonly centre: number;
   readonly fill: string;
   readonly stroke: string;
+  /** Political borders drawn over the land only (clipped to the coastline). */
+  readonly borders?: readonly BorderSet[];
+}
+
+export interface BorderSet {
+  readonly id: string;
+  readonly polygons: readonly FlatPolygon[];
+  /** Translucent wash over the territory. */
+  readonly tint: string;
+  /** The border line. */
+  readonly edge: string;
+}
+
+interface BuiltBorders {
+  readonly path: Path2D;
+  readonly tint: string;
+  readonly edge: string;
+}
+
+function buildBorders(
+  sets: readonly BorderSet[],
+  projection: Projection,
+  centre: number,
+): BuiltBorders[] {
+  // Same support check as the coastline itself (jsdom has no Path2D).
+  if (sets.length === 0 || typeof Path2D === "undefined") return [];
+  if (typeof new Path2D().moveTo !== "function") return [];
+  return sets.map((set) => {
+    const path = new Path2D();
+    for (const rings of set.polygons) {
+      for (const flat of rings) {
+        for (let k = 0; k < flat.length; k += 2) {
+          const [x, y] = projection.project((flat[k] as number) - centre, flat[k + 1] as number);
+          if (k === 0) path.moveTo(x, y);
+          else path.lineTo(x, y);
+        }
+        path.closePath();
+      }
+    }
+    return { path, tint: set.tint, edge: set.edge };
+  });
 }
 
 const TIERS: readonly CoastlineTier[] = [0, 1, 2];
@@ -91,9 +132,22 @@ export function CoastlineCanvas({
   centre,
   fill,
   stroke,
+  borders,
 }: CoastlineCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const builtRef = useRef(new Map<number, BuiltPolygon[]>());
+  // Borders live outside the main effect so toggling or recolouring them never
+  // throws away the (expensive) built coastline tiers; they just ask for a redraw.
+  const bordersRef = useRef<BuiltBorders[]>([]);
+  const redrawRef = useRef<() => void>(() => undefined);
+  const builtBorders = useMemo(
+    () => buildBorders(borders ?? [], projection, centre),
+    [borders, projection, centre],
+  );
+  useEffect(() => {
+    bordersRef.current = builtBorders;
+    redrawRef.current();
+  }, [builtBorders]);
   // `camera` is a fresh object every render; the effect must not restart (and
   // throw away the built tiers) each time the zoom band re-renders the chart.
   const cameraRef = useRef(camera);
@@ -161,12 +215,30 @@ export function CoastlineCanvas({
           context.fill(polygon.path, "evenodd");
           context.stroke(polygon.path);
         }
+        // Borders go on after the land, and only where land already is: the
+        // 1880 borders are coarser than the coastline, so clipping them to it
+        // keeps their coastal edges from spilling into the sea.
+        if (bordersRef.current.length > 0) {
+          context.globalCompositeOperation = "source-atop";
+          context.lineWidth = (1.6 * dpr) / Math.min(a, d);
+          for (const border of bordersRef.current) {
+            context.fillStyle = border.tint;
+            context.fill(border.path, "evenodd");
+            context.strokeStyle = border.edge;
+            context.stroke(border.path);
+          }
+          context.globalCompositeOperation = "source-over";
+          context.fillStyle = fill;
+          context.strokeStyle = stroke;
+          context.lineWidth = dpr / Math.min(a, d);
+        }
       }
     };
 
     const schedule = () => {
       if (frame === 0) frame = requestAnimationFrame(draw);
     };
+    redrawRef.current = schedule;
     const unsubscribe = camera.subscribe(schedule);
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
     observer?.observe(canvas);
