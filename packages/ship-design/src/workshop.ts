@@ -5,6 +5,7 @@ import {
   type ShipContext,
 } from "./compile.js";
 import {
+  buildTimeIsProvisional,
   ConstructionPlanError,
   historicalBuildMonths,
   planConstruction,
@@ -62,6 +63,8 @@ export interface WorkshopView {
     readonly months: number | null;
     /** Historical keel-to-commissioning months for this displacement after industry and acceleration; null if not valid. */
     readonly historicalMonths: number | null;
+    /** True while any build-time table point bracketing this displacement is not VERIFIED (see `buildTimeIsProvisional`); false when no time is forecast. */
+    readonly historicalProvisional: boolean;
     readonly bottleneck: LineId | null;
     /** Id of the yard the forecast assumes (the fitting yard with the shortest schedule, smallest on a tie); null if none. */
     readonly yardId: string | null;
@@ -164,6 +167,7 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
 
   let months: number | null = null;
   let historicalMonths: number | null = null;
+  let historicalProvisional = false;
   let bottleneck: LineId | null = null;
   let note: string | null = null;
   let yardId: string | null = null;
@@ -207,6 +211,7 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
             : `No shipyard that can hold this hull finishes it within ${env.constructionBalance.maxMonths} months (largest: ${fitting[fitting.length - 1]!.facility.id}).`;
       } else {
         historicalMonths = hist;
+        historicalProvisional = buildTimeIsProvisional(c.totalKg, env.constructionBalance);
         months = best.total;
         bottleneck = best.schedule.bottleneck;
         yardId = best.yard.facility.id;
@@ -232,6 +237,7 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
       monthlyMaintenanceMicro: cost.monthlyMaintenance,
       months,
       historicalMonths,
+      historicalProvisional,
       bottleneck,
       yardId,
       note,

@@ -608,7 +608,7 @@ export function ForecastPanel({ view }: { readonly view: WorkshopView }) {
               ? (view.forecast.note ?? "n/a")
               : view.forecast.historicalMonths !== null &&
                   view.forecast.months <= view.forecast.historicalMonths
-                ? `${view.forecast.months} months (provisional: historical build time for this displacement)`
+                ? `${view.forecast.months} months (historical build time for this displacement${view.forecast.historicalProvisional ? ", provisional: some source points are not verified" : ""})`
                 : `${view.forecast.months} months (limited by ${view.forecast.bottleneck ?? "capacity"})`}
           </dd>
         </div>

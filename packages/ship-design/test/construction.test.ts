@@ -5,6 +5,7 @@ import {
   planConstruction,
   simulateConstruction,
   historicalBuildMonths,
+  buildTimeIsProvisional,
   checkPlan,
   ConstructionPlanError,
   LINE_IDS,
@@ -198,15 +199,20 @@ describe("historical build time by displacement (ADR-0067 section 5)", () => {
   const kg = (t: number) => t * 1000;
   it("hits the table points exactly and clamps outside the table", () => {
     const months = (t: number) => historicalBuildMonths(kg(t), earlyConstruction);
+    expect(months(390)).toBe(18); // Brassey 1901 p. 264 standard (Bat 16 / Whiting 14 are records)
+    expect(months(11_000)).toBe(30); // Diadem, Brassey 1901 p. 262
     expect(months(12_950)).toBe(35); // Canopus, Brassey 1901
-    expect(months(12_000)).toBe(31); // Cressy
+    expect(months(12_000)).toBe(31); // Cressy, laid Oct 1898, commissioned May 1901
     expect(months(14_900)).toBe(36);
+    expect(months(16_500)).toBe(34); // Lord Nelson, Brassey 1908 p. 27
+    expect(months(18_600)).toBe(28); // Bellerophon, Brassey 1910 p. 1
     expect(months(1)).toBe(18);
-    expect(months(100_000)).toBe(42);
+    expect(months(100_000)).toBe(28);
   });
-  it("interpolates monotonically between points (boundary: just either side of a point)", () => {
+  it("interpolates monotonically through the 1890s range (boundary: just either side of a point)", () => {
+    // Above 14,900 t the sourced Dreadnought-era points fall (British yards were faster by 1906-10); see balance.yaml.
     let prev = 0;
-    for (let t = 300; t <= 20_000; t += 250) {
+    for (let t = 300; t <= 14_900; t += 250) {
       const m = historicalBuildMonths(kg(t), earlyConstruction);
       expect(m).toBeGreaterThanOrEqual(prev);
       prev = m;
@@ -221,6 +227,41 @@ describe("historical build time by displacement (ADR-0067 section 5)", () => {
     expect(historicalBuildMonths(kg(14_900), earlyConstruction, { industryBp: 13_000 })).toBe(47);
     expect(historicalBuildMonths(kg(14_900), earlyConstruction, { accelerated: true })).toBe(32);
     expect(historicalBuildMonths(kg(300), constructionBalance, { industryBp: 1 })).toBe(1);
+  });
+  it("every table point carries a source and none is an unsourced ESTIMATE (ticket 22)", () => {
+    expect(earlyConstruction.buildMonthsProvenance).toHaveLength(
+      earlyConstruction.buildMonthsByDisplacementT.points.length,
+    );
+    for (const p of earlyConstruction.buildMonthsProvenance) {
+      expect(["VERIFIED", "SECONDARY"]).toContain(p.status);
+      expect(p.source.length).toBeGreaterThan(20);
+    }
+    const cressy = earlyConstruction.buildMonthsByDisplacementT.points.findIndex(
+      ([t]) => t === 12_000,
+    );
+    expect(earlyConstruction.buildMonthsProvenance[cressy]!.status).toBe("VERIFIED");
+    expect(earlyConstruction.buildMonthsProvenance[cressy]!.source).toContain("May 1901");
+  });
+  it("is provisional while a bracketing point is not VERIFIED (exact hit, between, clamped)", () => {
+    const pts = earlyConstruction.buildMonthsByDisplacementT.points;
+    const sec = earlyConstruction.buildMonthsProvenance.findIndex((p) => p.status !== "VERIFIED");
+    expect(sec).toBeGreaterThanOrEqual(0);
+    const t = (i: number) => pts[i]![0] * 1000;
+    expect(buildTimeIsProvisional(t(sec), earlyConstruction)).toBe(true); // exact hit
+    expect(buildTimeIsProvisional(t(sec) - 1000, earlyConstruction)).toBe(true); // just below, bracket includes it
+    expect(buildTimeIsProvisional(t(sec) + 1000, earlyConstruction)).toBe(true); // just above
+    expect(buildTimeIsProvisional(12_500_000, earlyConstruction)).toBe(false); // Cressy..Canopus, both VERIFIED
+    expect(buildTimeIsProvisional(1_000, earlyConstruction)).toBe(true); // clamped onto the SECONDARY 390 t end
+    expect(buildTimeIsProvisional(90_000_000, earlyConstruction)).toBe(false); // clamped on a VERIFIED end
+  });
+  it("rejects provenance that does not match the table", () => {
+    expect(() =>
+      buildTimeIsProvisional(12_000_000, { ...earlyConstruction, buildMonthsProvenance: [] }),
+    ).toThrow(/Provenance/);
+    const bad = earlyConstruction.buildMonthsProvenance.map((p) => ({ ...p, source: " " }));
+    expect(() =>
+      buildTimeIsProvisional(12_000_000, { ...earlyConstruction, buildMonthsProvenance: bad }),
+    ).toThrow(/source/);
   });
   it("is deterministic across calls", () => {
     const a = historicalBuildMonths(kg(13_333), earlyConstruction, { accelerated: true });

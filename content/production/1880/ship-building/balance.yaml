@@ -295,30 +295,65 @@ construction:
   acceptanceShareBp: 100
   firstOfClassWorkBp: 2000
   maxMonths: 120
-  # Build time (ticket 20, ADR-0067 section 5): months from keel to commissioning at a neutral yard, by displacement in tonnes.
-  # Linear interpolation, clamped at the ends. The RTW3 manual gives no table, so these are derived from history.
-  #  VERIFIED = checked against a primary source (Brassey's Naval Annual 1901, archive.org id brassey-s-naval-annual-1901,
-  #  "Retarded Construction", pp. 257-261). WIKIPEDIA = Wikipedia citing Conway's/Brassey, not yet checked against the book.
-  #  ESTIMATE = no source; replace before release.
-  #   Majestic 14,900 t: 22 months (VERIFIED, Brassey 1901 p. 258: efficient record, ready for sea in 22 months).
-  #   Magnificent: 24 months (VERIFIED, same page); Royal Sovereign 14,150 t: 32 months (VERIFIED, same page).
+  # Build time (tickets 20 and 22, ADR-0067 section 5): months from keel to commissioning at a neutral yard, by displacement in
+  # tonnes. Linear interpolation, clamped at the ends. The RTW3 manual gives no table, so the points are derived from history.
+  # Each point carries machine-readable provenance in buildMonthsProvenance (same order): VERIFIED = months read in a primary
+  # contemporary source for a ship of about that displacement; SECONDARY = compilation, derived, or the displacement itself is
+  # unverified; ESTIMATE = no source. The Drawing Board shows the build time as provisional unless both points bracketing the
+  # displacement are VERIFIED. Full source notes: docs/research/ship-building-build-times.md.
+  #  Brassey's Naval Annual 1901 = archive.org id brassey-s-naval-annual-1901 (OCR text read in full for the pages cited);
+  #  1902 = brasseysnavala1902brasuoft; 1908 = navalannual1908; 1910 = navalannual1910; 1907 = brassey-s-naval-annual-1907.
+  #   Torpedo-boat destroyer ~390 t: Whiting completed in 14 months and Bat in 16 (Brassey 1901 p. 263); the same page-264 passage
+  #     sets 18 months as the most a destroyer should take. Wikipedia gives Whiting laid 13 Apr 1896, completed Jun 1897 (14).
+  #   Second-class cruiser (Hermes/Highflyer, 5,600 t): "about two years and a half" from keel to Fleet Reserve (Brassey 1901
+  #     p. 262); commissioned Oct and 7 Dec 1899. The 5,600 t displacement is not stated in the volumes read: SECONDARY.
+  #   First-class protected cruiser (Diadem, 11,000 t per Brassey 1901 p. 10): laid 23 Jan 1896, pennant 19 Jul 1898, "two years
+  #     and six months" (p. 262); Niobe 36 months. Brassey's standard for a first-class cruiser is two years from laying down.
+  #   Majestic 14,900 t: 22 months (VERIFIED, Brassey 1901 p. 258: efficient record; Brassey 1896 First Lord's memorandum agrees).
+  #   Magnificent: 24 months (same page); Royal Sovereign 14,150 t: 32 months (same page).
   #   Hannibal 14,900 t: laid 1 May 1894, ready 9 May 1898, just over 48 months (VERIFIED, p. 258; labour dispute and alterations).
   #   Canopus class 12,950 t: Canopus 35, Ocean 36, Goliath 39 months (VERIFIED, p. 259 table); Glory 47 (VERIFIED, delayed).
-  #   Cressy 12,000 t: laid 12 Oct 1898 (VERIFIED, Brassey 1901 dockyard/contract table), completed 28 May 1901, about 31 months
-  #     (WIKIPEDIA, completion date unverified).
+  #   Cressy 12,000 t: laid 12 Oct 1898 (Brassey 1901 p. 23 table); delivered by Fairfield to Portsmouth in October 1900
+  #     (Brassey 1901 p. 20, about 24 months, contractor's delivery, not commissioning); "commissioned in May last", i.e. May 1901
+  #     (Brassey 1902 p. 396), which matches Wikipedia's 28 May 1901. Keel to commissioning is 31 months. The two dates are
+  #     different events, so there is no conflict; the table uses commissioning like every other point.
+  #   Lord Nelson 16,500 t: 34 months; King Edward VII class (Africa, Hibernia, Britannia, 16,350 t) 32-36 months (Brassey 1908
+  #     p. 27). Dreadnought 17,900 t: about 16 months, "could only be attained in very special cases" (same page; Brassey 1907
+  #     p. 7), so it is excluded as an outlier.
+  #   Bellerophon class 18,600 t: "twenty-eight months or less from the date of laying down" (Brassey 1910 p. 1). Vanguard
+  #     19,250 t: laid Apr 1908, commissioned Mar 1910, about 23 months (same page, "well under the two years allowed").
+  #   The late points fall below the 1890s points because British yards were more efficient by 1906-10; a displacement-only
+  #     table cannot model that, so it is recorded here and left to the industry multiplier below.
   #   Blake 9,150 t: about 43 months, laid Jul 1888, ready Feb 1892 (WIKIPEDIA, 1880s outlier, not used for the 1890s curve).
-  #   Hornet 275 t: about 24 months, laid Jul 1892, completed Jul 1894 (WIKIPEDIA; new-boiler lead ship, outlier, not used).
-  # Table points: 12,950 t is Canopus (35); 14,900 t takes 36 months, in line with Canopus/Ocean/Goliath (35-39); 12,000 t uses Cressy; the efficient record (22-24 months) is reached through
-  # efficientIndustryBp (24/36 = 6,667 bp, rounded to 6,700). Points at 300, 3,000 and 9,000 t are ESTIMATE.
+  #   Hornet 275 t: 24 months, laid Jul 1892, completed Jul 1894 (WIKIPEDIA; new-boiler lead ship, outlier, not used).
+  # The efficient record (22-24 months) is reached through efficientIndustryBp (24/36 = 6,667 bp, rounded to 6,700).
   buildMonthsByDisplacementT:
     points:
-      - [300, 18] # ESTIMATE (destroyer / torpedo boat; Hornet 24 months is a WIKIPEDIA outlier)
-      - [3000, 24] # ESTIMATE
-      - [9000, 30] # ESTIMATE (Blake 43 months WIKIPEDIA, 1880s)
-      - [12000, 31] # Cressy, WIKIPEDIA completion date (laid-down VERIFIED)
-      - [12950, 35] # Canopus, VERIFIED (Brassey 1901 p. 259)
-      - [14900, 36] # Majestic-size typical (Canopus-class 35-39 months, VERIFIED p. 259; Majestic record 22 is the efficient floor)
-      - [20000, 42] # ESTIMATE extrapolation
+      - [390, 18]
+      - [5600, 30]
+      - [11000, 30]
+      - [12000, 31]
+      - [12950, 35]
+      - [14900, 36]
+      - [16500, 34]
+      - [18600, 28]
+  buildMonthsProvenance:
+    - status: SECONDARY
+      source: "Brassey's Naval Annual 1901 p. 264 (18 months the most a destroyer should take; Bat 16, Whiting 14 are the records, p. 263); the ~390 t displacement is from Wikipedia, not Brassey"
+    - status: SECONDARY
+      source: "Brassey's Naval Annual 1901 p. 262 (Hermes and Highflyer about 2.5 years); the 5,600 t displacement is not in the volumes read"
+    - status: VERIFIED
+      source: "Brassey's Naval Annual 1901 p. 262 (Diadem, laid 23 Jan 1896, pennant 19 Jul 1898); 11,000 t from p. 10"
+    - status: VERIFIED
+      source: "Cressy: laid 12 Oct 1898 (Brassey 1901 p. 23), commissioned May 1901 (Brassey 1902 p. 396); delivered by contractor Oct 1900 (Brassey 1901 p. 20)"
+    - status: VERIFIED
+      source: "Brassey's Naval Annual 1901 p. 259 (Canopus laid 4 Jan 1897, completed 5 Dec 1899, 35 months)"
+    - status: VERIFIED
+      source: "Brassey's Naval Annual 1901 pp. 258-259 (Canopus class 35-39 months; Majestic class over three years each)"
+    - status: VERIFIED
+      source: "Brassey's Naval Annual 1908 p. 27 (Lord Nelson 34 months; King Edward VII class 32-36); 16,500 t from Brassey 1907 p. 47"
+    - status: VERIFIED
+      source: "Brassey's Naval Annual 1910 p. 1 (Bellerophon class 28 months or less from laying down); 18,600 t from Brassey 1907 p. 47"
   # Efficient shipbuilding industry: Majestic 22 / typical 36 = 6,100; Magnificent 24 / 36 = 6,667 (VERIFIED, Brassey 1901 p. 258).
   efficientIndustryBp: 6700
   # Accelerated construction: 10 % faster (RTW3 official manual p. 31, a game rule).

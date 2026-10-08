@@ -59,10 +59,26 @@ export interface ConstructionBalance {
   readonly maxMonths: number;
   /** Displacement in tonnes -> months from keel to commissioning at a neutral yard (ADR-0067 section 5). */
   readonly buildMonthsByDisplacementT: LookupTable;
+  /** Provenance of each build-time point, parallel to `buildMonthsByDisplacementT.points` (same length and order). */
+  readonly buildMonthsProvenance: readonly BuildTimeProvenance[];
   /** Industry-efficiency multiplier on build time for an efficient shipbuilding industry, bp (10_000 = neutral). */
   readonly efficientIndustryBp: number;
   /** Accelerated construction time multiplier, bp (RTW3 manual p. 31: 10 % faster = 9_000). */
   readonly accelerationTimeBp: number;
+}
+
+/**
+ * How well a build-time table point is sourced. VERIFIED: the months value is read in a primary contemporary source for a
+ * ship of about that displacement. SECONDARY: from a compilation, a derived value, or a primary duration whose displacement
+ * is not itself verified. ESTIMATE: no source. The Drawing Board labels the build time provisional unless every point that
+ * brackets the displacement is VERIFIED.
+ */
+export type BuildTimeSourceStatus = "VERIFIED" | "SECONDARY" | "ESTIMATE";
+
+export interface BuildTimeProvenance {
+  readonly status: BuildTimeSourceStatus;
+  /** Citation: publication, page and ship the value is read from. */
+  readonly source: string;
 }
 
 export interface BuildTimeOptions {
@@ -94,6 +110,37 @@ export function historicalBuildMonths(
 export interface ConstructionPlan {
   readonly packages: readonly WorkPackage[];
   readonly totalWork: number;
+}
+
+/**
+ * True while any table point that brackets this displacement (the point itself on an exact hit, the first or last point
+ * outside the table, otherwise the two surrounding points) is not VERIFIED. Throws if the provenance does not match the table.
+ */
+export function buildTimeIsProvisional(displacementKg: number, b: ConstructionBalance): boolean {
+  const pts = b.buildMonthsByDisplacementT.points;
+  const prov = b.buildMonthsProvenance;
+  if (prov.length !== pts.length) {
+    throw new Error(
+      `buildMonthsProvenance has ${prov.length} entries for ${pts.length} buildMonthsByDisplacementT points`,
+    );
+  }
+  for (const p of prov) {
+    if (p.status !== "VERIFIED" && p.status !== "SECONDARY" && p.status !== "ESTIMATE") {
+      throw new Error(`unknown build-time source status '${String(p.status)}'`);
+    }
+    if (p.source.trim() === "") throw new Error("build-time provenance needs a source citation");
+  }
+  const t = Math.round(displacementKg / 1000);
+  const last = pts.length - 1;
+  if (last < 0) throw new Error("empty build-time table");
+  const verified = (i: number) => prov[i]!.status === "VERIFIED";
+  if (t <= pts[0]![0]) return !verified(0);
+  if (t >= pts[last]![0]) return !verified(last);
+  for (let i = 1; i <= last; i++) {
+    if (t === pts[i]![0]) return !verified(i);
+    if (t < pts[i]![0]) return !(verified(i - 1) && verified(i));
+  }
+  return !verified(last);
 }
 
 const BP = 10_000n;

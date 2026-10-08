@@ -658,6 +658,13 @@ export const constructionBalance: ConstructionBalance = {
       [15_000, 36],
     ],
   },
+  // Test fixture only: invented numbers, so every point is an ESTIMATE.
+  buildMonthsProvenance: [
+    { status: "ESTIMATE", source: "test fixture" },
+    { status: "ESTIMATE", source: "test fixture" },
+    { status: "ESTIMATE", source: "test fixture" },
+    { status: "ESTIMATE", source: "test fixture" },
+  ],
   efficientIndustryBp: 6_700,
   accelerationTimeBp: 9_000,
 };

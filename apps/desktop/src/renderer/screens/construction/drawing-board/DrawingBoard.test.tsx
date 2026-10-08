@@ -145,6 +145,21 @@ describe("DrawingBoard", () => {
     expect(months()).toBeGreaterThanOrEqual(30);
   });
 
+  it("labels the build time provisional only while a bracketing point is not VERIFIED (ticket 22)", () => {
+    const text = () =>
+      within(region("Cost and construction forecast")).getByText("Build time").nextElementSibling!
+        .textContent!;
+    render(<DrawingBoard />);
+    // the small default hull sits on the SECONDARY 390 t row
+    expect(text()).toMatch(/historical build time.*provisional/);
+    fireEvent.change(screen.getByLabelText("Starting design"), {
+      target: { value: "majestic_like" },
+    });
+    // Majestic-size hull is bracketed by VERIFIED Cressy / Canopus points
+    expect(text()).toContain("historical build time");
+    expect(text()).not.toMatch(/provisional/i);
+  });
+
   it("technology depends on the year: the same battleship is rejected before its guns exist", () => {
     render(<DrawingBoard />);
     fireEvent.change(screen.getByLabelText("Starting design"), {

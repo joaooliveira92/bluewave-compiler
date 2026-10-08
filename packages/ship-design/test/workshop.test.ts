@@ -92,6 +92,30 @@ describe("buildWorkshopView", () => {
       big.forecast,
     );
   });
+  it("the forecast is provisional only while a bracketing build-time point is not VERIFIED (ticket 22)", () => {
+    const e = env("1896-01");
+    // Majestic sits between the VERIFIED Canopus and Majestic-size points, so it is not provisional.
+    expect(buildWorkshopView(majestic, e).forecast.historicalProvisional).toBe(false);
+    const withStatus = (status: "VERIFIED" | "SECONDARY" | "ESTIMATE") => ({
+      ...e,
+      constructionBalance: {
+        ...constructionBalance,
+        buildMonthsProvenance: constructionBalance.buildMonthsProvenance.map((p) => ({
+          ...p,
+          status,
+        })),
+      },
+    });
+    expect(buildWorkshopView(majestic, withStatus("ESTIMATE")).forecast.historicalProvisional).toBe(
+      true,
+    );
+    expect(
+      buildWorkshopView(majestic, withStatus("SECONDARY")).forecast.historicalProvisional,
+    ).toBe(true);
+    expect(buildWorkshopView(majestic, withStatus("VERIFIED")).forecast.historicalProvisional).toBe(
+      false,
+    );
+  });
   it("a Majestic-size hull is forecast in the large yard; a destroyer in the smallest yard that fits (ADR-0067 section 6)", () => {
     const big = buildWorkshopView(majestic, env("1896-01"));
     expect(big.forecast.yardId).toBe("yard_large");
