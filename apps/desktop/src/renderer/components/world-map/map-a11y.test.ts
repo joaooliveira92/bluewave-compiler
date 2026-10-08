@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { buildOwnershipRows, describeArea } from "./map-a11y.js";
+import { buildOwnershipRows, describeArea, filterAreaRows } from "./map-a11y.js";
 
 describe("describeArea", () => {
   it("states ownership and fleet count in words", () => {
@@ -29,5 +29,31 @@ describe("buildOwnershipRows", () => {
     expect(rows.map((r) => r.name)).toEqual(["Aden", "Zanzibar"]);
     expect(rows[0]).toMatchObject({ owner: "Britain", fleets: 0, selected: false });
     expect(rows[1]).toMatchObject({ owner: null, fleets: 3, selected: true });
+  });
+});
+
+describe("filterAreaRows", () => {
+  const rows = [
+    { id: "a", name: "North Sea", owner: "Britain", fleets: 2, selected: false },
+    { id: "b", name: "Baltic", owner: "Germany", fleets: 0, selected: false },
+    { id: "c", name: "Arabian Sea", owner: null, fleets: 0, selected: false },
+  ];
+
+  it("keeps everything for an empty or blank query", () => {
+    expect(filterAreaRows(rows, "")).toEqual(rows);
+    expect(filterAreaRows(rows, "   ")).toEqual(rows);
+  });
+
+  it("matches the area name or the owner, ignoring case and surrounding spaces", () => {
+    expect(filterAreaRows(rows, " sea ").map((r) => r.id)).toEqual(["a", "c"]);
+    expect(filterAreaRows(rows, "GERMANY").map((r) => r.id)).toEqual(["b"]);
+  });
+
+  it("lets the player find unclaimed areas by typing 'unclaimed'", () => {
+    expect(filterAreaRows(rows, "unclaimed").map((r) => r.id)).toEqual(["c"]);
+  });
+
+  it("returns nothing when nothing matches", () => {
+    expect(filterAreaRows(rows, "zzz")).toEqual([]);
   });
 });

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { WorldMapChart } from "./WorldMapChart.js";
 import { initialMapPrototypeState } from "./map-state.js";
@@ -104,7 +104,7 @@ describe("WorldMapChart", () => {
 
     it("collapses the layer controls behind a Layers button until opened", () => {
       renderPanel();
-      const layers = screen.getByRole("button", { name: "Layers" });
+      const layers = screen.getByRole("button", { name: "Layers & areas" });
       expect(layers.getAttribute("aria-expanded")).toBe("false");
       expect(hidden(screen.getByText("Ownership"))).toBe(true);
 
@@ -143,7 +143,57 @@ describe("WorldMapChart", () => {
 
   it("the full variant shows every control from the start", () => {
     renderChart();
-    expect(screen.queryByRole("button", { name: "Layers" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Layers & areas" })).toBeNull();
     expect(screen.getByText("Ownership").closest(".hidden")).toBeNull();
+  });
+
+  describe("area list", () => {
+    function renderWithSelect() {
+      const onSelect = vi.fn();
+      render(
+        <WorldMapChart
+          state={initialMapPrototypeState}
+          route={null}
+          onSelect={onSelect}
+          onRuler={noop}
+          onToggleLayer={noop}
+          onSetProjection={noop}
+          onSetCentre={noop}
+          onToggleClosedPassages={noop}
+        />,
+      );
+      return onSelect;
+    }
+
+    it("lists every area with its owner, and a count in the heading", () => {
+      renderWithSelect();
+      const list = screen.getByRole("list", { name: "Areas" });
+      expect(within(list).getAllByRole("button")).toHaveLength(36);
+      expect(screen.getByText("Areas (36)")).toBeTruthy();
+    });
+
+    it("filters by name or owner and says when nothing matches", () => {
+      renderWithSelect();
+      const list = screen.getByRole("list", { name: "Areas" });
+      fireEvent.change(screen.getByLabelText("Filter areas"), { target: { value: "north sea" } });
+      const names = within(list)
+        .getAllByRole("button")
+        .map((button) => button.textContent ?? "");
+      expect(names.length).toBeGreaterThan(0);
+      expect(names.length).toBeLessThan(36);
+      expect(names.every((name) => /north sea/i.test(name))).toBe(true);
+
+      fireEvent.change(screen.getByLabelText("Filter areas"), { target: { value: "zzzzzz" } });
+      expect(within(list).queryAllByRole("button")).toHaveLength(0);
+      expect(screen.getByText("No areas match.")).toBeTruthy();
+    });
+
+    it("selects the area when a row is clicked", () => {
+      const onSelect = renderWithSelect();
+      const list = screen.getByRole("list", { name: "Areas" });
+      fireEvent.click(within(list).getAllByRole("button")[0] as HTMLElement);
+      expect(onSelect).toHaveBeenCalledTimes(1);
+      expect(typeof onSelect.mock.calls[0]?.[0]).toBe("string");
+    });
   });
 });

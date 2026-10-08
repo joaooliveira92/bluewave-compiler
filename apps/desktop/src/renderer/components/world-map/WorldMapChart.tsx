@@ -16,7 +16,7 @@ import { Button } from "../ui/button.js";
 import { CoastlineCanvas } from "./CoastlineCanvas.js";
 import { MapMinimap } from "./MapMinimap.js";
 import { MapScaleBar } from "./MapScaleBar.js";
-import { buildOwnershipRows, describeArea } from "./map-a11y.js";
+import { buildOwnershipRows, describeArea, filterAreaRows } from "./map-a11y.js";
 import { AREAS, AREAS_BY_ID, EDGES, FLEETS, PASSAGES_BY_ID, POSSESSIONS } from "./fixture-world.js";
 import { useCoastline } from "./useCoastline.js";
 import {
@@ -89,6 +89,7 @@ export function WorldMapChart({
 }: WorldMapChartProps) {
   const isPanel = variant === "panel";
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [areaQuery, setAreaQuery] = useState("");
   const projection = projectionById(state.projection);
   const camera = useMapCamera(projection.width, projection.height);
   const live = overlay.source === "campaign";
@@ -235,6 +236,18 @@ export function WorldMapChart({
   function strokeFor(nation: string): string {
     if (live) return `oklch(0.74 0.17 ${campaignNationHue(nation)})`;
     return nationStroke(nation);
+  }
+
+  const visibleAreaRows = useMemo(
+    () => filterAreaRows(ownershipRows, areaQuery),
+    [ownershipRows, areaQuery],
+  );
+
+  /** Select an area and bring it into view (the area list's job). */
+  function focusArea(id: string): void {
+    onSelect(id);
+    const point = areasById.get(id)?.label;
+    if (point !== undefined) camera.focusOn(point[0], point[1], 3.5);
   }
 
   function describeAreaFor(id: string): string {
@@ -593,13 +606,14 @@ export function WorldMapChart({
           title="Layers, projection and centre. Click an area to inspect it; shift-click two areas for a route reading."
           onClick={() => setToolsOpen((open) => !open)}
         >
-          Layers
+          Layers &amp; areas
         </Button>
       )}
       <div
         className={cn(
-          "absolute left-3 flex flex-col gap-2 rounded-lg border p-2.5 text-xs shadow-lg backdrop-blur",
-          isPanel ? "top-14" : "top-3",
+          "absolute left-3 flex flex-col gap-2 overflow-y-auto rounded-lg border p-2.5 text-xs shadow-lg backdrop-blur",
+          // Never taller than the chart: leave room for the route readout along the bottom edge.
+          isPanel ? "top-14 max-h-[calc(100%-8rem)]" : "top-3 max-h-[calc(100%-7.5rem)]",
           isPanel && !toolsOpen && "hidden",
         )}
         style={{
@@ -676,6 +690,49 @@ export function WorldMapChart({
             style={{ color: CHART.inkDim }}
           />
         </div>
+        <details className="group" data-testid="area-list">
+          <summary className="cursor-pointer select-none text-xs" style={{ color: CHART.inkDim }}>
+            Areas ({ownershipRows.length})
+          </summary>
+          <div className="mt-2 space-y-1.5" style={{ width: 220 }}>
+            <input
+              type="search"
+              value={areaQuery}
+              onChange={(event) => setAreaQuery(event.target.value)}
+              placeholder="Filter by name or owner"
+              aria-label="Filter areas"
+              className="h-7 w-full rounded-md border bg-transparent px-2 text-xs placeholder:opacity-60"
+              style={{ borderColor: "oklch(0.4 0.02 245)", color: CHART.ink }}
+            />
+            <ul className="max-h-56 space-y-0.5 overflow-y-auto pr-1" aria-label="Areas">
+              {visibleAreaRows.length === 0 && (
+                <li className="px-1 py-1" style={{ color: CHART.inkDim }}>
+                  No areas match.
+                </li>
+              )}
+              {visibleAreaRows.map((row) => (
+                <li key={row.id}>
+                  <button
+                    type="button"
+                    onClick={() => focusArea(row.id)}
+                    aria-current={row.selected ? "true" : undefined}
+                    className="flex w-full items-center justify-between gap-2 rounded px-1.5 py-1 text-left hover:bg-white/10"
+                    style={{
+                      background: row.selected ? "oklch(0.35 0.03 245)" : "transparent",
+                      color: CHART.ink,
+                    }}
+                  >
+                    <span className="truncate">{row.name}</span>
+                    <span className="shrink-0 tabular-nums" style={{ color: CHART.inkDim }}>
+                      {row.owner ?? "Unclaimed"}
+                      {row.fleets > 0 ? ` · ${row.fleets}` : ""}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </details>
       </div>
 
       {/* Chrome: inspector floats over the chart rather than taking layout. */}

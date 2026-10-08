@@ -35,3 +35,17 @@ export function buildOwnershipRows(
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
+
+/** Case-insensitive match on area name or owner; an empty query keeps every row. */
+export function filterAreaRows(
+  rows: readonly AreaOwnershipRow[],
+  query: string,
+): readonly AreaOwnershipRow[] {
+  const needle = query.trim().toLowerCase();
+  if (needle === "") return rows;
+  return rows.filter(
+    (row) =>
+      row.name.toLowerCase().includes(needle) ||
+      (row.owner ?? "unclaimed").toLowerCase().includes(needle),
+  );
+}
