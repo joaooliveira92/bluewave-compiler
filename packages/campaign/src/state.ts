@@ -230,7 +230,7 @@ export interface NationState {
   maintenanceCost: SafeInt;
   fleets: FleetState[];
   divisions: PermanentDivision[];
-  /** The nation's officer corps (ADR-0063); absent in saves from earlier builds. */
+  /** The nation's officer corps (ADR-0065); absent in saves from earlier builds. */
   officers?: Officer[];
   research: ResearchState;
   constructionProjects: ConstructionProject[];

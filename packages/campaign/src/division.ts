@@ -346,7 +346,7 @@ export function applyDivisionCommand(
 }
 
 /**
- * Puts `commanderId` (an officer id, or `VACANT`) in command of a division (ADR-0063).
+ * Puts `commanderId` (an officer id, or `VACANT`) in command of a division (ADR-0065).
  * Filling a vacancy is free; replacing or relieving a sitting commander costs the
  * DESIGN-26 commander-change penalty. Pure; returns a new division with a fresh hash.
  */

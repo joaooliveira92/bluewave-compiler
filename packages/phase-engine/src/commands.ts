@@ -67,7 +67,7 @@ export function applySetResearchPriority(
 }
 
 /**
- * Canonical application of AssignOfficer / RelieveOfficer (ADR-0063): sets the
+ * Canonical application of AssignOfficer / RelieveOfficer (ADR-0065): sets the
  * division's commander. Re-checks the rules against the snapshot it applies to.
  */
 export function applyOfficerCommand(

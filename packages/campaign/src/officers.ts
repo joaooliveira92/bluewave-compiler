@@ -1,7 +1,7 @@
 import { SafeInt } from "@bluewave/contracts";
 
 /**
- * Naval officers (ADR-0063). A nation's officer corps is a deterministic, fictional
+ * Naval officers (ADR-0065). A nation's officer corps is a deterministic, fictional
  * roster generated from the nation id at compile time: no real person is named, and
  * the same pack always produces the same officers. Each officer has one command
  * rating (`skill`, 30..90) that a division commander adds to gunnery accuracy.

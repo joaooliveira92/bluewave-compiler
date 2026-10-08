@@ -59,7 +59,7 @@ export interface AutoResolverNation {
   ships: Ship[];
   designs: Map<string, CompiledDesignVersion>;
   divisions: PermanentDivision[];
-  /** The nation's officer corps; a division commander's skill adds to its ships' accuracy (ADR-0063). */
+  /** The nation's officer corps; a division commander's skill adds to its ships' accuracy (ADR-0065). */
   officers?: Officer[];
 }
 
@@ -90,7 +90,7 @@ export interface ProjectBattleOutput {
 
 /**
  * Accuracy multiplier (bp) from the commander of the division a ship belongs to
- * (ADR-0063). Ships outside any division, and every nation without divisions, stay neutral;
+ * (ADR-0065). Ships outside any division, and every nation without divisions, stay neutral;
  * a division with no commander (or an unknown one) takes the DESIGN-26 vacancy penalty.
  */
 function commanderAccuracyBp(
