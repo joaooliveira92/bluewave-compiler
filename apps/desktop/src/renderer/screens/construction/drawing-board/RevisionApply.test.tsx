@@ -81,6 +81,11 @@ describe("Revision preview for a revisable project", () => {
     const apply = await screen.findByRole("button", { name: /apply revision/i });
     await waitFor(() => expect((apply as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(apply);
+    // irreversible-looking: the player confirms the tier before it is queued
+    const dialog = await screen.findByRole("alertdialog");
+    expect(dialog.textContent).toMatch(/hull progress/);
+    expect(execute.mock.calls.some((c) => c[0] === "reviseProjectCommand")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Queue the revision" }));
     await waitFor(() => expect(region("Revision preview").textContent).toMatch(/Revision queued/));
     const call = execute.mock.calls.find((c) => c[0] === "reviseProjectCommand")!;
     expect(call[1]).toMatchObject({ sessionId: "s1", expectedRevision: 7, projectId: "con_x" });
@@ -108,6 +113,7 @@ describe("Revision preview for a revisable project", () => {
     const apply = await screen.findByRole("button", { name: /apply revision/i });
     await waitFor(() => expect((apply as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(apply);
+    fireEvent.click(await screen.findByRole("button", { name: "Queue the revision" }));
     await waitFor(() =>
       expect(region("Revision preview").textContent).toContain("needs a rebuild project"),
     );

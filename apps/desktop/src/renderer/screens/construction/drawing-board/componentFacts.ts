@@ -1,0 +1,43 @@
+import type { ComponentDef, ComponentSummary } from "@bluewave/ship-design";
+
+export interface ComponentFacts {
+  readonly name: string;
+  readonly category: string;
+  readonly introduced: string;
+  readonly obsolete: string | null;
+  readonly tags: readonly string[];
+  /** Resolved figures for one placed instance; null for a catalogue entry that is not placed. */
+  readonly placed: { readonly weightT: number; readonly costGbp: number } | null;
+}
+
+const words = (s: string) => s.replaceAll("_", " ").toLowerCase();
+
+/** What the hover card shows for a component. Pure: the weight and cost are the compiler's own, never recomputed here. */
+export function componentFacts(
+  def: ComponentDef,
+  summary: ComponentSummary | undefined,
+): ComponentFacts {
+  return {
+    name: def.displayName,
+    category: words(def.category),
+    introduced: def.introduction.fromMonth,
+    obsolete: def.introduction.obsoleteMonth,
+    tags: def.tags,
+    placed:
+      summary === undefined
+        ? null
+        : { weightT: summary.weightKg / 1000, costGbp: summary.costMicro / 1_000_000 },
+  };
+}
+
+/** Components grouped by category in catalogue order, for the add-component menu. */
+export function componentsByCategory(
+  components: readonly ComponentDef[],
+): { readonly category: string; readonly items: readonly ComponentDef[] }[] {
+  const groups = new Map<string, ComponentDef[]>();
+  for (const c of components) {
+    const key = words(c.category);
+    groups.set(key, [...(groups.get(key) ?? []), c]);
+  }
+  return [...groups].map(([category, items]) => ({ category, items }));
+}

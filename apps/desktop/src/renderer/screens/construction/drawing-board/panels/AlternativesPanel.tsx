@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Candidate, DesignDraft } from "@bluewave/ship-design";
 import { Button } from "../../../../components/ui/button.js";
+import { ConfirmAction } from "../ConfirmAction.js";
 import { Panel } from "./Panel.js";
 
 const archetypeLabel: Record<string, string> = {
@@ -15,9 +16,12 @@ const archetypeLabel: Record<string, string> = {
 export function AlternativesPanel({
   generate,
   onLoad,
+  dirty,
 }: {
   readonly generate: () => Candidate[];
   readonly onLoad: (d: DesignDraft) => void;
+  /** True when the working design has edits that loading a candidate would discard. */
+  readonly dirty: boolean;
 }) {
   const [state, setState] = useState<{
     readonly status: "idle" | "working" | "done";
@@ -62,9 +66,16 @@ export function AlternativesPanel({
                       {(c.cveBp / 100).toFixed(0)}/100 (development metric)
                     </div>
                   </div>
-                  <Button size="sm" onClick={() => onLoad(c.draft)}>
+                  <ConfirmAction
+                    size="sm"
+                    confirm={dirty}
+                    title="Replace your design?"
+                    description="Loading this candidate replaces the design you are working on, and its edit history is cleared."
+                    confirmLabel="Replace my design"
+                    onConfirm={() => onLoad(c.draft)}
+                  >
                     Load design
-                  </Button>
+                  </ConfirmAction>
                 </li>
               );
             })}

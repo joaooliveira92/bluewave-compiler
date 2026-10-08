@@ -171,6 +171,9 @@ describe("DrawingBoard", () => {
     expect(list.textContent).toContain("development metric");
     commit(/installed power/i, "3400");
     fireEvent.click(within(items[0]!).getByRole("button", { name: /load design/i }));
+    // the working design has an edit, so loading a candidate asks first
+    fireEvent.click(await screen.findByRole("button", { name: "Replace my design" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     expect(within(region("Validation")).getByRole("status").textContent).toContain(
       "Design can be submitted",
     );
@@ -179,23 +182,59 @@ describe("DrawingBoard", () => {
     ); // history reset
   }, 40_000);
 
-  it("adds and removes components", () => {
+  it("adds a component from the grouped menu and removes it", async () => {
     render(<DrawingBoard />);
     const rows = () => within(region("Components and arrangement")).getAllByRole("row").length;
     const n = rows();
-    fireEvent.change(screen.getByLabelText("Add component"), { target: { value: "gun_qf_6pdr" } });
-    fireEvent.click(screen.getByRole("button", { name: /add to ship/i }));
-    expect(rows()).toBe(n + 1);
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
+    const items = await screen.findAllByRole("menuitem");
+    const six = items.find((i) => /6-pounder|6 pounder|6pdr/i.test(i.textContent ?? ""))!;
+    expect(six).toBeTruthy();
+    fireEvent.click(six);
+    await waitFor(() => expect(rows()).toBe(n + 1));
     fireEvent.click(screen.getByRole("button", { name: "Remove gun_qf_6pdr_1" }));
     expect(rows()).toBe(n);
   });
 
-  it("switching the starting design loads the battleship and resets history", () => {
+  it("offers components that are not yet available as disabled, with the month they arrive", async () => {
+    render(<DrawingBoard />);
+    fireEvent.change(screen.getByLabelText("Starting design"), {
+      target: { value: "torpedo_cruiser_1880" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
+    const items = await screen.findAllByRole("menuitem");
+    const later = items.filter((i) => /from \d{4}-\d{2}/.test(i.textContent ?? ""));
+    expect(later.length).toBeGreaterThan(0);
+    expect(later.every((i) => i.getAttribute("aria-disabled") === "true")).toBe(true);
+  });
+
+  it("duplicates a fitting from its row menu and moves it to another zone", async () => {
+    render(<DrawingBoard />);
+    const panel = () => region("Components and arrangement");
+    const rows = () => within(panel()).getAllByRole("row").length;
+    const n = rows();
+    fireEvent.click(within(panel()).getByRole("button", { name: "More actions for funnel" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
+    await waitFor(() => expect(rows()).toBe(n + 1));
+    expect(within(panel()).getByText("funnel_single_1")).toBeTruthy();
+  });
+
+  it("right-clicking a fitting opens the same actions", async () => {
+    render(<DrawingBoard />);
+    const panel = region("Components and arrangement");
+    const row = within(panel).getByText("funnel").closest("tr")!;
+    fireEvent.contextMenu(row);
+    expect(await screen.findByRole("menuitem", { name: "Duplicate" })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: "Remove" })).toBeTruthy();
+  });
+
+  it("switching the starting design asks first when there are edits, then loads the battleship and resets history", async () => {
     render(<DrawingBoard />);
     commit(/installed power/i, "3400");
     fireEvent.change(screen.getByLabelText("Starting design"), {
       target: { value: "majestic_like" },
     });
+    fireEvent.click(await screen.findByRole("button", { name: "Replace my design" }));
     expect(metric("Classification")).toBe("B");
     expect((screen.getByRole("button", { name: /undo/i }) as HTMLButtonElement).disabled).toBe(
       true,

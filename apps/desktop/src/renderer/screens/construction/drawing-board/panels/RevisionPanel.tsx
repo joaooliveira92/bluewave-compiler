@@ -6,10 +6,20 @@ import {
   type DraftEdit,
   type RevisionDecision,
 } from "@bluewave/ship-design";
+import { Ship } from "lucide-react";
+import {
+  Attachment,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+} from "../../../../components/ui/attachment.js";
+import { Badge } from "../../../../components/ui/badge.js";
 import { Alert } from "../../../../components/ui/alert.js";
 import { Button } from "../../../../components/ui/button.js";
 import { useCampaignRevision } from "../../../../shell/CampaignShellContext.js";
 import type { DrawingBoardContent } from "../content.js";
+import { ConfirmAction } from "../ConfirmAction.js";
 import { SelectField } from "../fields.js";
 import {
   changeKinds,
@@ -21,6 +31,12 @@ import {
 } from "../revisionPreview.js";
 import { Panel } from "./Panel.js";
 
+const TIER_BADGE: Record<RevisionDecision["tier"], "secondary" | "outline" | "destructive"> = {
+  T0_FREE: "outline",
+  T1_REVISION: "secondary",
+  T2_REDESIGN: "destructive",
+  T3_RECONSTRUCTION: "destructive",
+};
 const pct = (bp: number) => `${(bp / 100).toFixed(1)}%`;
 let reviseCounter = 0;
 
@@ -38,6 +54,7 @@ export function RevisionPanel({
   startDraft,
   content,
   onLoad,
+  dirty,
 }: {
   readonly sessionId?: string;
   readonly projects: readonly RevisionProject[];
@@ -46,6 +63,7 @@ export function RevisionPanel({
   readonly startDraft: DesignDraft;
   readonly content: DrawingBoardContent;
   readonly onLoad: (draft: DesignDraft) => void;
+  readonly dirty: boolean;
 }) {
   const balance = content.revision;
   const open = revisableProjects(projects);
@@ -144,17 +162,40 @@ export function RevisionPanel({
         }))}
         onChange={setChosen}
       />
+      <Attachment aria-label="Selected ship" state={revisable ? "done" : "idle"}>
+        <AttachmentMedia>
+          <Ship />
+        </AttachmentMedia>
+        <AttachmentContent>
+          <AttachmentTitle>{project.className}</AttachmentTitle>
+          <AttachmentDescription>
+            {pct(
+              project.totalWork > 0
+                ? Math.floor((project.completedWork * 10_000) / project.totalWork)
+                : 10_000,
+            )}{" "}
+            built · {revisable ? "design on file" : "authored design"}
+          </AttachmentDescription>
+        </AttachmentContent>
+      </Attachment>
       {exact && (
-        <Button variant="outline" onClick={() => onLoad(real.draft)}>
+        <ConfirmAction
+          variant="outline"
+          confirm={dirty}
+          title="Replace your design?"
+          description="Loading this ship's design replaces the design you are working on, and its edit history is cleared."
+          confirmLabel="Replace my design"
+          onConfirm={() => onLoad(real.draft)}
+        >
           Load this ship&apos;s design into the board
-        </Button>
+        </ConfirmAction>
       )}
       {d === null ? (
         <p className="text-sm">No changes yet, so nothing would need revising.</p>
       ) : (
         <div role="status" className="space-y-1 text-sm">
           <p className="font-medium">
-            {TIER_LABEL[d.tier]}{" "}
+            <Badge variant={TIER_BADGE[d.tier]}>{TIER_LABEL[d.tier]}</Badge>{" "}
             <span className="font-normal">at {pct(d.progressBp)} hull progress</span>
           </p>
           <ul className="list-disc pl-5 text-muted-foreground">
@@ -201,9 +242,20 @@ export function RevisionPanel({
         </div>
       )}
       {exact && (
-        <Button onClick={() => void apply()} disabled={!canApply}>
+        <ConfirmAction
+          confirm
+          disabled={!canApply}
+          title="Apply this revision?"
+          description={
+            d === null
+              ? ""
+              : `${TIER_LABEL[d.tier]} at ${pct(d.progressBp)} hull progress. ${d.tier === "T2_REDESIGN" ? "Part of the hull work already done will be lost. " : ""}It is queued now and takes effect when the month is committed.`
+          }
+          confirmLabel="Queue the revision"
+          onConfirm={() => void apply()}
+        >
           {busy ? "Queuing…" : "Apply revision to this ship"}
-        </Button>
+        </ConfirmAction>
       )}
       {result !== null && (
         <Alert variant={result.tone === "ok" ? "default" : "destructive"}>{result.text}</Alert>

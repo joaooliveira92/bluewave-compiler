@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { Redo2, Undo2 } from "lucide-react";
 import { Alert } from "../../../components/ui/alert.js";
+import { Badge } from "../../../components/ui/badge.js";
 import { Button } from "../../../components/ui/button.js";
 import { ButtonGroup } from "../../../components/ui/button-group.js";
+import { ConfirmDialog } from "./ConfirmAction.js";
+import { RequirementChip } from "./RequirementChip.js";
 import { SelectField } from "./fields.js";
 import {
   AlternativesPanel,
@@ -38,6 +42,7 @@ export function DrawingBoard({
   const campaignMonth = useCampaignMonthId();
   const { state, actions } = useDrawingBoard(campaignMonth);
   const { draft, view, content } = state;
+  const [pendingPreset, setPendingPreset] = useState<string | null>(null);
   return (
     <div className="space-y-4" data-testid="drawing-board">
       <div className="flex flex-wrap items-end gap-3">
@@ -46,7 +51,7 @@ export function DrawingBoard({
           label="Starting design"
           value={state.preset.id}
           options={content.references.map((r) => ({ value: r.id, label: r.name }))}
-          onChange={actions.loadPreset}
+          onChange={(id) => (state.editCount > 0 ? setPendingPreset(id) : actions.loadPreset(id))}
         />
         <SelectField
           className="min-w-32"
@@ -71,12 +76,20 @@ export function DrawingBoard({
             Redo
           </Button>
         </ButtonGroup>
-        <p className="text-xs text-muted-foreground">
-          {state.editCount} edit(s) · requirement: {draft.requirement.category},{" "}
-          {(draft.requirement.requiredSpeedMilliKnots / 1000).toFixed(1)} kn,{" "}
-          {draft.requirement.requiredRangeNm.toLocaleString("en-US")} nm
-        </p>
+        <Badge variant="secondary">{state.editCount} edit(s)</Badge>
+        <RequirementChip requirement={draft.requirement} />
       </div>
+      <ConfirmDialog
+        open={pendingPreset !== null}
+        onOpenChange={(open) => !open && setPendingPreset(null)}
+        title="Start from a different design?"
+        description="This replaces the design you are working on, and its edit history is cleared."
+        confirmLabel="Replace my design"
+        onConfirm={() => {
+          if (pendingPreset !== null) actions.loadPreset(pendingPreset);
+          setPendingPreset(null);
+        }}
+      />
       {state.editError !== null && <Alert variant="destructive">{state.editError}</Alert>}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="space-y-4">
@@ -87,6 +100,7 @@ export function DrawingBoard({
             draft={draft}
             content={content}
             month={state.month}
+            view={view}
             edit={actions.edit}
           />
           <ArmourPanel draft={draft} edit={actions.edit} />
@@ -109,6 +123,7 @@ export function DrawingBoard({
             startDraft={state.preset.draft}
             content={content}
             onLoad={actions.loadDraft}
+            dirty={state.editCount > 0}
           />
           <HistoryPanel
             history={state.history}
@@ -123,8 +138,13 @@ export function DrawingBoard({
             content={content}
             presetName={state.preset.name}
             onLoad={actions.loadDraft}
+            dirty={state.editCount > 0}
           />
-          <AlternativesPanel generate={actions.generateAlternatives} onLoad={actions.loadDraft} />
+          <AlternativesPanel
+            dirty={state.editCount > 0}
+            generate={actions.generateAlternatives}
+            onLoad={actions.loadDraft}
+          />
         </div>
       </div>
     </div>
