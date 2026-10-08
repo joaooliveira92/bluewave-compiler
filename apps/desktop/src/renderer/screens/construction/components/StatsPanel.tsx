@@ -2,7 +2,6 @@ import { memo } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Banknote, Coins, Hammer, Layers, Lock } from "lucide-react";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
