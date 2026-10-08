@@ -12,7 +12,7 @@ import {
   MetricsPanel,
   PlacementsPanel,
   SubmitPanel,
-} from "./panels.js";
+} from "./panels/index.js";
 import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
 import { useDrawingBoard } from "./useDrawingBoard.js";
 
