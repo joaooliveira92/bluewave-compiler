@@ -1,5 +1,14 @@
-import { useState } from "react";
-import type { DesignDraft, DraftEdit } from "@bluewave/ship-design";
+import { useEffect, useState } from "react";
+import {
+  draftChangeKinds,
+  type ChangeKind,
+  type DesignDraft,
+  type DraftEdit,
+  type RevisionDecision,
+} from "@bluewave/ship-design";
+import { Alert } from "../../../../components/ui/alert.js";
+import { Button } from "../../../../components/ui/button.js";
+import { useCampaignRevision } from "../../../../shell/CampaignShellContext.js";
 import type { DrawingBoardContent } from "../content.js";
 import { SelectField } from "../fields.js";
 import {
@@ -13,29 +22,57 @@ import {
 import { Panel } from "./Panel.js";
 
 const pct = (bp: number) => `${(bp / 100).toFixed(1)}%`;
+let reviseCounter = 0;
 
 /**
- * "What would these changes cost on a ship already being built?" Preview only: applying a revision to a project is
- * not an engine command yet. The rules are `classifyRevision` (spec 15.4) with the project's real work figures.
+ * What would these changes cost on a ship already being built, and (for ships whose design the engine kept) apply them.
+ * For a revisable project the comparison is against that ship's real draft with the engine's own diff, so the preview
+ * is exactly what the engine will decide. For an authored design there is no draft: the preview then counts the edits
+ * made on the board and cannot be applied.
  */
 export function RevisionPanel({
+  sessionId,
   projects,
   history,
   draft,
   startDraft,
   content,
+  onLoad,
 }: {
+  readonly sessionId?: string;
   readonly projects: readonly RevisionProject[];
   readonly history: readonly DraftEdit[];
   readonly draft: DesignDraft;
   readonly startDraft: DesignDraft;
   readonly content: DrawingBoardContent;
+  readonly onLoad: (draft: DesignDraft) => void;
 }) {
   const balance = content.revision;
   const open = revisableProjects(projects);
   const [chosen, setChosen] = useState<string>("");
   const project = open.find((p) => p.projectId === chosen) ?? open[0];
-  const categories = new Map(content.components.map((c) => [c.id, c.category]));
+  const bridge = window.bluewave;
+  const revision = useCampaignRevision();
+  const [real, setReal] = useState<{ projectId: string; draft: DesignDraft } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
+  const projectId = project?.projectId;
+  const revisable = project?.revisable === true;
+
+  useEffect(() => {
+    setReal(null);
+    setResult(null);
+    if (!bridge || sessionId === undefined || projectId === undefined || !revisable) return;
+    let live = true;
+    void bridge.campaign.execute("loadProjectDraft", { sessionId, projectId }).then((r) => {
+      if (live && r.outcome === "success")
+        setReal({ projectId, draft: r.value.draft as unknown as DesignDraft });
+    });
+    return () => {
+      live = false;
+    };
+  }, [bridge, sessionId, projectId, revisable]);
+
   if (balance === null) {
     return (
       <Panel title="Revision preview">
@@ -52,8 +89,50 @@ export function RevisionPanel({
       </Panel>
     );
   }
-  const kinds = changeKinds(history, startDraft, draft, (id) => categories.get(id));
-  const d = previewRevision(kinds, project, balance);
+  const categories = new Map(content.components.map((c) => [c.id, c.category]));
+  const categoryOf = (id: string) => categories.get(id);
+  const exact = real !== null && real.projectId === project.projectId;
+  const kinds: ChangeKind[] = exact
+    ? draftChangeKinds(real.draft, draft, categoryOf)
+    : changeKinds(history, startDraft, draft, categoryOf);
+  const d: RevisionDecision | null = previewRevision(kinds, project, balance);
+  const canApply =
+    exact &&
+    d !== null &&
+    !d.requiresRebuildProject &&
+    sessionId !== undefined &&
+    revision !== null &&
+    bridge !== undefined &&
+    !busy;
+
+  const apply = async () => {
+    if (!bridge || sessionId === undefined || revision === null) return;
+    setBusy(true);
+    reviseCounter++;
+    try {
+      const r = await bridge.campaign.execute("reviseProjectCommand", {
+        sessionId,
+        expectedRevision: revision,
+        transportRequestId: `revise-${Date.now().toString(36)}-${reviseCounter}`,
+        projectId: project.projectId,
+        draft: draft as unknown as Record<string, unknown>,
+      });
+      setResult(
+        r.outcome === "success"
+          ? {
+              tone: "ok",
+              text: `Revision queued (${TIER_LABEL[r.value.tier]}). It takes effect when the month is committed.`,
+            }
+          : {
+              tone: "bad",
+              text: (r.diagnostics.length > 0 ? r.diagnostics : [r.reason]).join(" "),
+            },
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Panel title="Revision preview">
       <SelectField
@@ -65,6 +144,11 @@ export function RevisionPanel({
         }))}
         onChange={setChosen}
       />
+      {exact && (
+        <Button variant="outline" onClick={() => onLoad(real.draft)}>
+          Load this ship&apos;s design into the board
+        </Button>
+      )}
       {d === null ? (
         <p className="text-sm">No changes yet, so nothing would need revising.</p>
       ) : (
@@ -116,11 +200,27 @@ export function RevisionPanel({
           )}
         </div>
       )}
+      {exact && (
+        <Button onClick={() => void apply()} disabled={!canApply}>
+          {busy ? "Queuing…" : "Apply revision to this ship"}
+        </Button>
+      )}
+      {result !== null && (
+        <p
+          role="alert"
+          className={result.tone === "ok" ? "text-sm text-emerald-700" : "text-sm text-red-700"}
+        >
+          {result.text}
+        </p>
+      )}
       <p className="text-xs text-muted-foreground">
         Changes counted:{" "}
-        {kinds.length > 0 ? kinds.join(", ").toLowerCase().replaceAll("_", " ") : "none"}. Preview
-        only; the engine cannot yet apply a revision. Armour and machinery orders are assumed not
-        placed.
+        {kinds.length > 0 ? kinds.join(", ").toLowerCase().replaceAll("_", " ") : "none"}.{" "}
+        {exact
+          ? "Compared with this ship's real design. Armour and machinery orders are assumed not placed."
+          : revisable
+            ? "Loading this ship's design…"
+            : "This ship was built from an authored design, so it cannot be revised and this is only an estimate from your edits."}
       </p>
     </Panel>
   );

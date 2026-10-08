@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import type { DesignDraft, WorkshopView } from "@bluewave/ship-design";
+import { Alert } from "../../../../components/ui/alert.js";
 import { Button } from "../../../../components/ui/button.js";
+import { ButtonGroup } from "../../../../components/ui/button-group.js";
 import type { DrawingBoardContent } from "../content.js";
 import { designFileName, exportDesign, importDesign } from "../designFile.js";
 import { Panel } from "./Panel.js";
@@ -39,7 +41,7 @@ export function FilePanel({
   };
   return (
     <Panel title="Design file">
-      <div className="flex flex-wrap gap-2">
+      <ButtonGroup aria-label="Design file actions">
         <Button variant="outline" onClick={save}>
           Save design file
         </Button>
@@ -59,11 +61,11 @@ export function FilePanel({
             if (f) void open(f);
           }}
         />
-      </div>
+      </ButtonGroup>
       {message !== null && (
-        <p role="status" className={message.tone === "ok" ? "text-sm" : "text-sm text-red-700"}>
+        <Alert role="status" variant={message.tone === "ok" ? "default" : "destructive"}>
           {message.text}
-        </p>
+        </Alert>
       )}
     </Panel>
   );

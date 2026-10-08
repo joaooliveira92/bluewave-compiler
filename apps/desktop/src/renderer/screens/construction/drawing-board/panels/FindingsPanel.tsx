@@ -6,6 +6,12 @@ import type {
   SuggestedFix,
   WorkshopView,
 } from "@bluewave/ship-design";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../../../../components/ui/accordion.js";
 import { Badge } from "../../../../components/ui/badge.js";
 import { Button } from "../../../../components/ui/button.js";
 import { Panel } from "./Panel.js";
@@ -17,17 +23,19 @@ const sevVariant: Record<Severity, "destructive" | "secondary" | "outline"> = {
   ADVISORY: "outline",
 };
 
-function FindingItem({ f }: { readonly f: Finding }) {
+function FindingItem({ f, value }: { readonly f: Finding; readonly value: string }) {
   return (
-    <li>
-      <details className="rounded border p-2">
-        <summary className="cursor-pointer text-sm">
+    <AccordionItem value={value} className="rounded border px-2">
+      <AccordionTrigger className="gap-2 py-2 text-left font-normal hover:no-underline">
+        <span className="flex-1">
           <Badge variant={sevVariant[f.severity]} className="mr-2">
             {f.severity}
           </Badge>
           {f.what}
-        </summary>
-        <div className="mt-2 space-y-1 text-sm">
+        </span>
+      </AccordionTrigger>
+      <AccordionContent>
+        <div className="space-y-1 text-sm">
           <p>
             <strong>Why:</strong> {f.why}
           </p>
@@ -46,8 +54,8 @@ function FindingItem({ f }: { readonly f: Finding }) {
           )}
           <p className="text-xs text-muted-foreground">Rule {f.id}</p>
         </div>
-      </details>
-    </li>
+      </AccordionContent>
+    </AccordionItem>
   );
 }
 
@@ -82,13 +90,13 @@ export function FindingsPanel({
       {total === 0 ? (
         <p className="text-sm text-muted-foreground">No findings.</p>
       ) : (
-        <ul className="space-y-2">
+        <Accordion multiple className="space-y-2" aria-label="Findings">
           {order.flatMap((s) =>
             view.findingsBySeverity[s].map((f, i) => (
-              <FindingItem key={`${s}-${f.id}-${i}`} f={f} />
+              <FindingItem key={`${s}-${f.id}-${i}`} value={`${s}-${f.id}-${i}`} f={f} />
             )),
           )}
-        </ul>
+        </Accordion>
       )}
       {serious && (
         <div className="space-y-2 border-t pt-3">

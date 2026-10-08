@@ -14,6 +14,7 @@ import {
 import { compileProductionCampaign } from "../compiler.js";
 import { clearPendingWorkspacesForTest } from "../pendingCommands.js";
 import { toSaveableState } from "../saveHelpers.js";
+import { SafeInt } from "@bluewave/contracts";
 import { commitMonth } from "./commitMonth.js";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../..");
@@ -214,5 +215,181 @@ describe("submitDesignCommand (ADR-0066)", () => {
       outcome: "rejected",
       reason: "REVISION_MISMATCH",
     });
+  });
+});
+
+describe("reviseProjectCommand and loadProjectDraft (ADR-0070)", () => {
+  let saveRoot: string;
+  beforeEach(() => {
+    saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-revise-"));
+    const collector = new DiagnosticCollector();
+    const output = compileProductionCampaign(
+      PRODUCTION_PACK,
+      new AbortController().signal,
+      collector,
+    );
+    if (!output) throw new Error("production pack failed to compile");
+    const state = toSaveableState(output.state);
+    new SaveStore().save(state, saveRoot);
+    registerCampaignSession({
+      sessionId: "rv",
+      saveDir: saveRoot,
+      playerSlotId: "uk",
+      campaignSeed: "a".repeat(32),
+      month: { month: 1, year: 1880 },
+      state,
+    });
+  });
+  afterEach(() => {
+    rmSync(saveRoot, { recursive: true, force: true });
+    clearCampaignSessionsForTest();
+    clearPendingWorkspacesForTest();
+  });
+
+  const revision = () => Number(getCampaignSession("rv")!.state.snapshot.turnNumber);
+
+  /** Submits the cruiser, commits the month, and puts a project on it with `done` work complete. */
+  async function projectOn(done: number): Promise<string> {
+    const queued = await dispatchCampaignCommand("submitDesignCommand", {
+      sessionId: "rv",
+      expectedRevision: revision(),
+      transportRequestId: "tx-base",
+      className: "Rev Cruiser",
+      draft: cruiser,
+    });
+    if (queued.outcome !== "success") throw new Error("submit failed");
+    const designVersionId = (queued.value as { designVersionId: string }).designVersionId;
+    const committed = await commitMonth({
+      sessionId: "rv",
+      expectedRevision: revision(),
+      transportRequestId: "commit-rv",
+    });
+    if (committed.outcome !== "success") throw new Error("commit failed");
+    const record = getCampaignSession("rv")!;
+    const snapshot = record.state.snapshot;
+    const nation = snapshot.nations.get("uk")!;
+    const design = snapshot.designs.get(designVersionId)!;
+    const total = Math.round(Number(design.normalizedDisplacementKg) / 100_000);
+    const project = {
+      id: "con_rv",
+      type: "ship",
+      projectType: "NEW_CONSTRUCTION",
+      targetId: "ship_rv",
+      designVersionId,
+      totalWork: SafeInt(total),
+      completedWork: SafeInt(done),
+      paidWork: SafeInt(done),
+      status: "ACTIVE",
+      startedAt: "1880-02",
+    } as unknown as (typeof nation.constructionProjects)[number];
+    Object.assign(record.state, {
+      snapshot: {
+        ...snapshot,
+        nations: new Map([
+          ...snapshot.nations,
+          ["uk", { ...nation, constructionProjects: [...nation.constructionProjects, project] }],
+        ]),
+      },
+    });
+    return designVersionId;
+  }
+
+  const tweaked = {
+    ...cruiser,
+    hull: {
+      ...cruiser.hull,
+      designMarginBp: (cruiser.hull as { designMarginBp: number }).designMarginBp + 100,
+    },
+  };
+  const revise = (over: Record<string, unknown> = {}) =>
+    dispatchCampaignCommand("reviseProjectCommand", {
+      sessionId: "rv",
+      expectedRevision: revision(),
+      transportRequestId: `tx-rev-${Math.random()}`,
+      projectId: "con_rv",
+      draft: tweaked,
+      ...over,
+    });
+
+  it("loads the real draft of a revisable project", async () => {
+    await projectOn(0);
+    const r = await dispatchCampaignCommand("loadProjectDraft", {
+      sessionId: "rv",
+      projectId: "con_rv",
+    });
+    expect(r.outcome).toBe("success");
+    if (r.outcome === "success")
+      expect((r.value as { draft: { hull: unknown } }).draft.hull).toEqual(cruiser.hull);
+  });
+
+  it("refuses to load an authored project that has no source draft", async () => {
+    const snapshot = getCampaignSession("rv")!.state.snapshot;
+    const authored = snapshot.nations.get("uk")!.constructionProjects[0];
+    if (!authored) return; // pack with no authored project: nothing to refuse
+    expect(
+      await dispatchCampaignCommand("loadProjectDraft", {
+        sessionId: "rv",
+        projectId: authored.id,
+      }),
+    ).toMatchObject({ outcome: "rejected", reason: "PROJECT_NOT_REVISABLE" });
+  });
+
+  it("queues a free change, answers with its tier, and the month applies it", async () => {
+    const oldDesign = await projectOn(0);
+    const r = await revise();
+    expect(r.outcome).toBe("success");
+    if (r.outcome !== "success") return;
+    const out = r.value as { tier: string; newDesignVersionId: string };
+    expect(out.tier).toBe("T0_FREE");
+    const committed = await commitMonth({
+      sessionId: "rv",
+      expectedRevision: revision(),
+      transportRequestId: "commit-rv-2",
+    });
+    expect(committed.outcome).toBe("success");
+    const snapshot = getCampaignSession("rv")!.state.snapshot;
+    const project = snapshot.nations
+      .get("uk")!
+      .constructionProjects.find((p) => p.id === "con_rv")!;
+    expect(project.designVersionId).toBe(out.newDesignVersionId);
+    expect(project.designVersionId).not.toBe(oldDesign);
+    expect(snapshot.designs.has(oldDesign)).toBe(true);
+  });
+
+  it("reports a revision tier from the project's real progress", async () => {
+    await projectOn(4);
+    const r = await revise();
+    expect(r.outcome).toBe("success");
+    if (r.outcome === "success") expect((r.value as { tier: string }).tier).toBe("T1_REVISION");
+  });
+
+  it("rejects a change on a mostly built ship, queuing nothing", async () => {
+    await projectOn(12);
+    expect(await revise()).toMatchObject({
+      outcome: "rejected",
+      reason: "REVISION_REQUIRES_REBUILD",
+    });
+  });
+
+  it("rejects a revision that changes nothing and an unbuildable one", async () => {
+    await projectOn(0);
+    expect(await revise({ draft: cruiser })).toMatchObject({
+      outcome: "rejected",
+      reason: "REVISION_REJECTED",
+    });
+    const heavy = { ...cruiser, machinery: { ...cruiser.machinery, fuelCapacityKg: 400_000 } };
+    expect(await revise({ draft: heavy })).toMatchObject({
+      outcome: "rejected",
+      reason: "REVISION_REJECTED",
+    });
+  });
+
+  it("rejects an unknown project and malformed payloads", async () => {
+    await projectOn(0);
+    expect(await revise({ projectId: "nope" })).toMatchObject({
+      outcome: "rejected",
+      reason: "PROJECT_NOT_REVISABLE",
+    });
+    expect((await revise({ projectId: "" })).outcome).toBe("error");
   });
 });

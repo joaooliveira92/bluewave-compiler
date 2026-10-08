@@ -48,6 +48,8 @@ const IMPLEMENTED_COMMANDS = new Set([
   "cancelMovementCommand",
   "submitBudgetAllocation",
   "submitDesignCommand",
+  "reviseProjectCommand",
+  "loadProjectDraft",
   "submitDiplomacyCommand",
   "readUiState",
   "writeUiState",

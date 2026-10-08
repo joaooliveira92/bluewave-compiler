@@ -1,5 +1,7 @@
 import { Redo2, Undo2 } from "lucide-react";
+import { Alert } from "../../../components/ui/alert.js";
 import { Button } from "../../../components/ui/button.js";
+import { ButtonGroup } from "../../../components/ui/button-group.js";
 import { SelectField } from "./fields.js";
 import {
   AlternativesPanel,
@@ -59,7 +61,7 @@ export function DrawingBoard({
           }))}
           onChange={actions.setMonth}
         />
-        <div className="flex gap-2">
+        <ButtonGroup aria-label="History">
           <Button variant="outline" onClick={actions.undo} disabled={!state.canUndo}>
             <Undo2 aria-hidden="true" className="mr-1 size-4" />
             Undo
@@ -68,18 +70,14 @@ export function DrawingBoard({
             <Redo2 aria-hidden="true" className="mr-1 size-4" />
             Redo
           </Button>
-        </div>
+        </ButtonGroup>
         <p className="text-xs text-muted-foreground">
           {state.editCount} edit(s) · requirement: {draft.requirement.category},{" "}
           {(draft.requirement.requiredSpeedMilliKnots / 1000).toFixed(1)} kn,{" "}
           {draft.requirement.requiredRangeNm.toLocaleString("en-US")} nm
         </p>
       </div>
-      {state.editError !== null && (
-        <p role="alert" className="rounded border border-red-300 p-2 text-sm text-red-700">
-          {state.editError}
-        </p>
-      )}
+      {state.editError !== null && <Alert variant="destructive">{state.editError}</Alert>}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="space-y-4">
           <HullPlanPanel draft={draft} content={content} view={view} />
@@ -104,11 +102,13 @@ export function DrawingBoard({
             <SubmitPanel sessionId={sessionId} draft={draft} valid={view.valid} />
           )}
           <RevisionPanel
+            sessionId={sessionId}
             projects={projects}
             history={state.history.slice(0, state.editCount)}
             draft={draft}
             startDraft={state.preset.draft}
             content={content}
+            onLoad={actions.loadDraft}
           />
           <HistoryPanel
             history={state.history}

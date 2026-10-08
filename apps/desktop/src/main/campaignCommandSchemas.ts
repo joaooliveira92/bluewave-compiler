@@ -177,6 +177,20 @@ export const SubmitDesignCommandPayloadSchema = CommandEnvelopePayloadSchema.ext
   ),
 });
 
+/** Wire shape for `reviseProjectCommand`; the engine and the ship-design compiler validate the draft. */
+export const ReviseProjectCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  projectId: z.string().min(1),
+  draft: z.custom<Record<string, unknown>>(
+    (v) => typeof v === "object" && v !== null,
+    "draft must be an object",
+  ),
+});
+
+export const LoadProjectDraftPayloadSchema = z.object({
+  sessionId: z.string().min(1),
+  projectId: z.string().min(1),
+});
+
 /** Wire shape for `submitBudgetAllocation`; bounds are the engine's own (validated at issue). */
 export const SubmitBudgetAllocationPayloadSchema = CommandEnvelopePayloadSchema.extend({
   appropriationRateBp: z.number().int(),

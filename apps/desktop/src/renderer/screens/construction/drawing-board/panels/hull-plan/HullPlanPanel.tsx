@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { DesignDraft, WorkshopView } from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../content.js";
+import { Checkbox } from "../../../../../components/ui/checkbox.js";
 import { Panel } from "../Panel.js";
 import { planFrame, PLAN_H, PLAN_W } from "./geometry.js";
 import { GunArcLayer, HullFittingLayer, HullOutlineLayer, HullZoneLayer } from "./layers.js";
@@ -29,10 +30,15 @@ export function HullPlanPanel({
   const mounts = view.compiled.weapons?.mounts ?? [];
   return (
     <Panel title="Hull plan">
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={showArcs} onChange={(e) => setShowArcs(e.target.checked)} />
-        Show gun arcs
-      </label>
+      <div className="flex items-center gap-2 text-sm">
+        <Checkbox
+          id="show-gun-arcs"
+          aria-label="Show gun arcs"
+          checked={showArcs}
+          onCheckedChange={(v) => setShowArcs(v === true)}
+        />
+        <span aria-hidden="true">Show gun arcs</span>
+      </div>
       <svg
         viewBox={`0 0 ${PLAN_W} ${PLAN_H}`}
         className="w-full rounded bg-muted/40"

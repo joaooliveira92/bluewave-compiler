@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { DesignDraft } from "@bluewave/ship-design";
+import { Alert } from "../../../../components/ui/alert.js";
 import { Button } from "../../../../components/ui/button.js";
-import { cn } from "../../../../lib/utils.js";
 import { useCampaignRevision } from "../../../../shell/CampaignShellContext.js";
 import { Panel } from "./Panel.js";
 
@@ -81,14 +81,13 @@ export function SubmitPanel({
         </p>
       )}
       {result !== null && (
-        <ul
-          role="status"
-          className={cn("text-sm", result.tone === "ok" ? "text-emerald-700" : "text-red-700")}
-        >
-          {result.lines.map((l) => (
-            <li key={l}>{l}</li>
-          ))}
-        </ul>
+        <Alert role="status" variant={result.tone === "ok" ? "default" : "destructive"}>
+          <ul>
+            {result.lines.map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+          </ul>
+        </Alert>
       )}
     </Panel>
   );

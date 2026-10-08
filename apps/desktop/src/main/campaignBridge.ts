@@ -16,6 +16,8 @@ import {
   SessionIdPayloadSchema,
   SetResearchPriorityCommandPayloadSchema,
   SubmitBudgetAllocationPayloadSchema,
+  LoadProjectDraftPayloadSchema,
+  ReviseProjectCommandPayloadSchema,
   SubmitDesignCommandPayloadSchema,
   SubmitDiplomacyCommandPayloadSchema,
   SubmitDivisionCommandPayloadSchema,
@@ -44,7 +46,11 @@ import {
   replayCampaign,
   verifyCampaign,
 } from "./commands/continuityCommands.js";
-import { submitDesignCommand } from "./commands/designCommands.js";
+import {
+  loadProjectDraft,
+  reviseProjectCommand,
+  submitDesignCommand,
+} from "./commands/designCommands.js";
 import { inspectFleetScreen } from "./commands/fleetCommands.js";
 import { inspectDiplomacyScreen, submitDiplomacyCommand } from "./commands/diplomacyCommands.js";
 import {
@@ -174,6 +180,12 @@ export const defaultCommandRegistry: CommandRegistry = {
   ),
   submitDesignCommand: withSchema(SubmitDesignCommandPayloadSchema, (payload) =>
     submitDesignCommand(payload),
+  ),
+  reviseProjectCommand: withSchema(ReviseProjectCommandPayloadSchema, (payload) =>
+    reviseProjectCommand(payload),
+  ),
+  loadProjectDraft: withSchema(LoadProjectDraftPayloadSchema, (payload) =>
+    loadProjectDraft(payload),
   ),
   inspectResearchScreen: withSchema(SessionIdPayloadSchema, (sessionId) =>
     inspectResearchScreen(sessionId),

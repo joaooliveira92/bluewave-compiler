@@ -17,6 +17,8 @@ export interface RevisionProject {
   readonly status: string;
   readonly totalWork: number;
   readonly completedWork: number;
+  /** True when the engine kept the project's source draft, so a revision can be applied to it (ADR-0070). */
+  readonly revisable?: boolean;
 }
 
 /** Only unfinished projects can be revised. */

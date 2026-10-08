@@ -170,6 +170,8 @@ export interface ConstructionProjectQueueEntry {
   readonly paidWork: number;
   readonly startedAt: string;
   readonly commandId: string | null;
+  /** True when the project's design kept its source draft (ADR-0070), so a `ReviseProject` can apply to it. */
+  readonly revisable: boolean;
 }
 
 export function buildConstructionProjectQueue(
@@ -191,6 +193,7 @@ export function buildConstructionProjectQueue(
       paidWork: Number(project.paidWork),
       startedAt: project.startedAt,
       commandId: constructionCommandIdForProject(project.id),
+      revisable: design?.sourceDraft !== undefined && project.status !== "COMPLETED",
     };
   });
   entries.sort((a, b) => a.projectId.localeCompare(b.projectId));
