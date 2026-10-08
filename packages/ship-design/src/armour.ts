@@ -42,6 +42,8 @@ export interface ArmourBalance {
   readonly fixingsBp: number;
   /** Effective-thickness multiplier per armour material, bp. */
   readonly materialEffBp: Readonly<Record<string, number>>;
+  /** Deck armour faces plunging fire at reduced striking velocity: threat penetration x this / 10_000 for DECK_* regions. */
+  readonly deckPenetrationBp: number;
   readonly coverageWarnBp: number;
   readonly coverageCriticalBp: number;
   readonly magazineWarnBp: number;
@@ -147,8 +149,19 @@ export function compileArmour(input: ArmourInput, b: ArmourBalance): ArmourResul
     weightByRegionKg[r.region] = (weightByRegionKg[r.region] ?? 0) + regionWeightKg(r, b);
     total += regionWeightKg(r, b);
     const m: Record<string, number> = marginBp[r.region] ?? {};
-    for (const t of input.threats)
-      m[t.id] = Math.max(m[t.id] ?? -10_000, penetrationMarginBp(r, t, b));
+    const isDeck = r.region === "DECK_MAIN" || r.region === "DECK_SLOPE";
+    for (const t of input.threats) {
+      const effective = isDeck
+        ? {
+            ...t,
+            penetrationUm: Math.max(
+              1,
+              Math.floor((t.penetrationUm * b.deckPenetrationBp) / 10_000),
+            ),
+          }
+        : t;
+      m[t.id] = Math.max(m[t.id] ?? -10_000, penetrationMarginBp(r, effective, b));
+    }
     marginBp[r.region] = m;
   }
   const margin = (region: ArmourRegionId): number | null =>

@@ -564,16 +564,16 @@ components:
     category: ACCOMMODATION
     introduction: { fromMonth: "1880-01", obsoleteMonth: null }
     requires: []
-    parameters: { blocks: { min: 1, max: 40, step: 1 } }
-    constants: { litre_per_block: 20000 }
-    weightKg: "300 * blocks"
+    parameters: { blocks: { min: 1, max: 80, step: 1 } }
+    constants: { litre_per_block: 10000 }
+    weightKg: "150 * blocks"
     volumeLitre: "litre_per_block * blocks"
-    costMicro: "30000000 * blocks"
+    costMicro: "15000000 * blocks"
     crew: "0"
     powerKw: "0"
     upgradePath: []
     tags: [accommodation]
-    deckFootprintMm2: "2500000 * blocks"
+    deckFootprintMm2: "1250000 * blocks"
     heightMm: "2000"
     zCgMm: "3800"
   - id: funnel_single

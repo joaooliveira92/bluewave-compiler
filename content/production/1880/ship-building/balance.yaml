@@ -69,6 +69,7 @@ ship:
       nickel_steel: 13500
       harvey: 19500
       krupp: 23000
+    deckPenetrationBp: 3500 # gameplay abstraction (plunging fire at reduced velocity): ESTIMATE
     coverageWarnBp: 9000
     coverageCriticalBp: 6000
     magazineWarnBp: 0
@@ -96,7 +97,7 @@ ship:
     kbBp: 5300
     inertiaBp: 400
     trimToleranceBp: 150
-    sectionModulusBp: 12000
+    sectionModulusBp: 28000 # calibrated: Havock (a successful 1893 ship) = ~80% of the critical index; no sourced bending data
     stressCriticalBp: 10000
     stressBlockingBp: 13000
     seakeepingFreeboard:

@@ -87,6 +87,15 @@ export interface MachineryPlan {
   readonly fuelZoneId: ZoneId;
   readonly fuelStationPermille: number;
   readonly foulingBp: number;
+  /**
+   * Optional machinery rooms (boiler rooms, engine rooms). The plant's weight and volume are split by `shareBp`
+   * (sum 10_000); each room is a separate critical system. When absent the plant is one room at `zoneId`.
+   */
+  readonly rooms?: readonly {
+    readonly zoneId: ZoneId;
+    readonly stationPermille: number;
+    readonly shareBp: number;
+  }[];
 }
 
 export interface DesignRequirement {
@@ -98,6 +107,8 @@ export interface DesignRequirement {
   readonly modernizationExpectation: "NONE" | "MINOR" | "MAJOR";
   readonly crewQualityBp: number;
   readonly accommodationStandard: AccommodationStandard;
+  /** NONE = the brief accepts an unprotected ship (torpedo craft): protection findings become advisories. Default STANDARD. */
+  readonly protectionGoal?: "NONE" | "STANDARD";
 }
 
 export interface DesignDraft {
@@ -564,38 +575,48 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
     ...(r.attr.maxFeedPermille !== undefined ? { maxFeedPermille: r.attr.maxFeedPermille } : {}),
   }));
   const dm = draft.machinery;
-  resolvedPlacements.push(
-    {
-      instanceId: "~plant",
+  const rooms = dm.rooms ?? [
+    { zoneId: dm.zoneId, stationPermille: dm.stationPermille, shareBp: 10_000 },
+  ];
+  if (rooms.reduce((a, r) => a + r.shareBp, 0) !== 10_000 || rooms.some((r) => r.shareBp <= 0)) {
+    throw new Error("machinery room shares must be positive and sum to 10000");
+  }
+  const roomPart = (total: number, i: number) =>
+    i === rooms.length - 1
+      ? total - rooms.slice(0, i).reduce((a, r) => a + Math.floor((total * r.shareBp) / 10_000), 0)
+      : Math.floor((total * rooms[i]!.shareBp) / 10_000);
+  rooms.forEach((room, i) => {
+    resolvedPlacements.push({
+      instanceId: `~plant${rooms.length === 1 ? "" : `:${i}`}`,
       componentId: plant.id,
       category: "ENGINE",
-      zoneId: dm.zoneId,
-      stationPermille: dm.stationPermille,
-      weightKg: machineryRaw.plantWeightKg,
-      volumeLitre: machineryRaw.plantVolumeLitre,
+      zoneId: room.zoneId,
+      stationPermille: room.stationPermille,
+      weightKg: roomPart(machineryRaw.plantWeightKg, i),
+      volumeLitre: roomPart(machineryRaw.plantVolumeLitre, i),
       deckFootprintMm2: 0,
       heightMm: 0,
       zCgMm: Math.floor((hull.depthToMainDeck * b.lumpZFractionBp.machinery) / 10_000),
       allowedZones: [...ZONE_IDS],
       forbidsCoLocation: [],
       critical: true,
-    },
-    {
-      instanceId: "~bunkers",
-      componentId: "bunkers",
-      category: "FUEL_BUNKER",
-      zoneId: dm.fuelZoneId,
-      stationPermille: dm.fuelStationPermille,
-      weightKg: dm.fuelCapacityKg,
-      volumeLitre: machineryRaw.bunkerVolumeLitre,
-      deckFootprintMm2: 0,
-      heightMm: 0,
-      zCgMm: Math.floor((hull.depthToMainDeck * b.lumpZFractionBp.fuel) / 10_000),
-      allowedZones: [...ZONE_IDS],
-      forbidsCoLocation: [],
-      critical: false,
-    },
-  );
+    });
+  });
+  resolvedPlacements.push({
+    instanceId: "~bunkers",
+    componentId: "bunkers",
+    category: "FUEL_BUNKER",
+    zoneId: dm.fuelZoneId,
+    stationPermille: dm.fuelStationPermille,
+    weightKg: dm.fuelCapacityKg,
+    volumeLitre: machineryRaw.bunkerVolumeLitre,
+    deckFootprintMm2: 0,
+    heightMm: 0,
+    zCgMm: Math.floor((hull.depthToMainDeck * b.lumpZFractionBp.fuel) / 10_000),
+    allowedZones: [...ZONE_IDS],
+    forbidsCoLocation: [],
+    critical: false,
+  });
   const arrangement = analyseArrangement(
     resolvedPlacements,
     formData.zones,
@@ -653,12 +674,14 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
       });
     }
   }
-  lumps.push({
-    label: "plant",
-    kg: machineryRaw.plantWeightKg,
-    zMm: Math.floor((hull.depthToMainDeck * b.lumpZFractionBp.machinery) / 10_000),
-    stationPermille: dm.stationPermille,
-    zoneId: dm.zoneId,
+  rooms.forEach((room, i) => {
+    lumps.push({
+      label: `plant:${i}`,
+      kg: roomPart(machineryRaw.plantWeightKg, i),
+      zMm: Math.floor((hull.depthToMainDeck * b.lumpZFractionBp.machinery) / 10_000),
+      stationPermille: room.stationPermille,
+      zoneId: room.zoneId,
+    });
   });
   lumps.push({
     label: "fuel",
@@ -834,7 +857,16 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
     );
   }
 
-  const sorted = sortFindings(findings);
+  const protectionIds = new Set([
+    "MAGAZINE_UNPROTECTED",
+    "ARMOUR_INEFFECTIVE_VS_ADVERSARY",
+    "CITADEL_INCOMPLETE",
+  ]);
+  const adjusted =
+    draft.requirement.protectionGoal === "NONE"
+      ? findings.map((x) => (protectionIds.has(x.id) ? { ...x, severity: "ADVISORY" as const } : x))
+      : findings;
+  const sorted = sortFindings(adjusted);
   const costMicro = resolved.reduce((a, r) => a + r.costMicro, 0);
   const body = {
     ledger: hullRes.ledger,

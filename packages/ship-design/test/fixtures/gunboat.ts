@@ -71,6 +71,7 @@ export const balance: ShipBalance = {
       face_hardened: 14_000,
       mild_steel: 9_000,
     },
+    deckPenetrationBp: 10_000,
     coverageWarnBp: 9_000,
     coverageCriticalBp: 6_000,
     magazineWarnBp: 0,

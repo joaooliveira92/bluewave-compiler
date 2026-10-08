@@ -15,6 +15,7 @@ const bal: ArmourBalance = {
   backingBp: 11_000,
   fixingsBp: 10_500,
   materialEffBp: { iron: 8_000, compound: 10_000, nickel_steel: 12_000, face_hardened: 14_000 },
+  deckPenetrationBp: 10_000,
   coverageWarnBp: 9_000,
   coverageCriticalBp: 6_000,
   magazineWarnBp: 0,
@@ -180,6 +181,29 @@ describe("compileArmour", () => {
     const regs = [belt(), belt({ region: "DECK_MAIN" })];
     expect(JSON.stringify(compileArmour(input({ regions: regs }), bal))).toBe(
       JSON.stringify(compileArmour(input({ regions: [...regs].reverse() }), bal)),
+    );
+  });
+});
+
+describe("deck penetration factor", () => {
+  it("decks face reduced penetration; belts do not", () => {
+    const deck = belt({ region: "DECK_MAIN", thicknessUm: 100_000 });
+    const full = penetrationMarginBp(deck, gun12, bal);
+    const reduced = compileArmour(input({ regions: [deck], designThreatId: "gun_12in" }), {
+      ...bal,
+      deckPenetrationBp: 4_000,
+    });
+    const plain = compileArmour(input({ regions: [deck], designThreatId: "gun_12in" }), bal);
+    expect(reduced.marginBp.DECK_MAIN!.gun_12in!).toBeGreaterThan(
+      plain.marginBp.DECK_MAIN!.gun_12in!,
+    );
+    expect(plain.marginBp.DECK_MAIN!.gun_12in!).toBe(full);
+    const b = compileArmour(
+      input({ regions: [belt({ thicknessUm: 100_000 })], designThreatId: "gun_12in" }),
+      { ...bal, deckPenetrationBp: 4_000 },
+    );
+    expect(b.marginBp.BELT_MAIN!.gun_12in!).toBe(
+      penetrationMarginBp(belt({ thicknessUm: 100_000 }), gun12, bal),
     );
   });
 });
