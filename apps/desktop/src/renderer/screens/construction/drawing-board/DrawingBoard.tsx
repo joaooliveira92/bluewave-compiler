@@ -13,6 +13,7 @@ import {
   MetricsPanel,
   PlacementsPanel,
   SubmitPanel,
+  TopsidePanel,
 } from "./panels/index.js";
 import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
 import { useDrawingBoard } from "./useDrawingBoard.js";
@@ -87,6 +88,7 @@ export function DrawingBoard({ sessionId }: { readonly sessionId?: string } = {}
         <div className="space-y-4">
           <FindingsPanel view={view} suggest={actions.suggest} onApply={actions.edit} />
           <MetricsPanel view={view} />
+          <TopsidePanel view={view} />
           <LedgerPanel view={view} />
           <ForecastPanel view={view} />
           {sessionId !== undefined && (

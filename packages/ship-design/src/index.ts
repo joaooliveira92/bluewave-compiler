@@ -8,6 +8,7 @@ export { evaluate, type EvalEnv, type LookupTable } from "./formula/eval.js";
 export * from "./hull.js";
 export * from "./machinery.js";
 export * from "./arrangement.js";
+export * from "./topside.js";
 export * from "./weapons.js";
 export * from "./armour.js";
 export * from "./stability.js";

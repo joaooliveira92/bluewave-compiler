@@ -51,6 +51,16 @@ describe("DrawingBoard", () => {
     expect(arcs()).toBe(0);
   });
 
+  it("shows topside load as absolute deck area and a percentage, updated by edits", () => {
+    render(<DrawingBoard />);
+    const used = () =>
+      within(region("Topside load")).getByRole("meter").getAttribute("aria-valuenow");
+    expect(within(region("Topside load")).getByText(/m² deck area/)).toBeTruthy();
+    const before = used();
+    fireEvent.click(screen.getAllByRole("button", { name: /^Remove / })[0]!);
+    expect(Number(used())).toBeLessThan(Number(before));
+  });
+
   it("labels the development metric as such", () => {
     render(<DrawingBoard />);
     expect(
