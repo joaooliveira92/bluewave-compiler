@@ -27,6 +27,20 @@ const nonNegativeSafeIntSchema = safeIntSchema.refine((v) => Number(v) >= 0, {
 
 const basisPointSchema = z.number().int().min(0).max(10_000);
 
+/** Parse a carrier-operations contract, failing closed with a stable BluewaveError. */
+function parseContract<T>(schema: z.ZodType<T>, value: unknown, code: string): T {
+  const result = schema.safeParse(value);
+  if (!result.success) {
+    throw new BluewaveError(code, {
+      code,
+      field: result.error.errors[0]?.path.join(".") ?? "unknown",
+      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      value,
+    });
+  }
+  return result.data;
+}
+
 const catapultDefinitionSchema = z.object({
   catapultId: z.string().min(1),
   compatible: z.boolean(),
@@ -102,16 +116,7 @@ export type CarrierOperationsStateContract = z.infer<typeof CarrierOperationsSta
 export function validateCarrierOperationsStateContract(
   value: unknown,
 ): CarrierOperationsStateContract {
-  const result = CarrierOperationsState_v1.safeParse(value);
-  if (!result.success) {
-    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
-      code: INVALID_CARRIER_OPERATIONS_STATE,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
-      value,
-    });
-  }
-  return result.data;
+  return parseContract(CarrierOperationsState_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
 const assignmentSchema = z.object({
@@ -133,16 +138,7 @@ export type CarrierCapacityAssignmentContract = z.infer<typeof CarrierCapacityAs
 export function validateCarrierCapacityAssignmentContract(
   value: unknown,
 ): CarrierCapacityAssignmentContract {
-  const result = CarrierCapacityAssignment_v1.safeParse(value);
-  if (!result.success) {
-    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
-      code: INVALID_CARRIER_OPERATIONS_STATE,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
-      value,
-    });
-  }
-  return result.data;
+  return parseContract(CarrierCapacityAssignment_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
 export const OversizedCarrierPolicy_v1 = z.object({
@@ -159,16 +155,7 @@ export type OversizedCarrierPolicyContract = z.infer<typeof OversizedCarrierPoli
 export function validateOversizedCarrierPolicyContract(
   value: unknown,
 ): OversizedCarrierPolicyContract {
-  const result = OversizedCarrierPolicy_v1.safeParse(value);
-  if (!result.success) {
-    throw new BluewaveError(CARRIER_OPERATIONS_INVARIANT_FAILED, {
-      code: CARRIER_OPERATIONS_INVARIANT_FAILED,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
-      value,
-    });
-  }
-  return result.data;
+  return parseContract(OversizedCarrierPolicy_v1, value, CARRIER_OPERATIONS_INVARIANT_FAILED);
 }
 
 export const CarrierSpotValue_v1 = z.object({
@@ -196,16 +183,7 @@ export type CarrierDeckCycleStateContract = z.infer<typeof CarrierDeckCycleState
 export function validateCarrierDeckCycleStateContract(
   value: unknown,
 ): CarrierDeckCycleStateContract {
-  const result = CarrierDeckCycleState_v1.safeParse(value);
-  if (!result.success) {
-    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
-      code: INVALID_CARRIER_OPERATIONS_STATE,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
-      value,
-    });
-  }
-  return result.data;
+  return parseContract(CarrierDeckCycleState_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
 const operationClassSchema = z.enum([
@@ -241,16 +219,7 @@ export type CarrierDeckContentionContract = z.infer<typeof CarrierDeckContention
 export function validateCarrierDeckContentionContract(
   value: unknown,
 ): CarrierDeckContentionContract {
-  const result = CarrierDeckContention_v1.safeParse(value);
-  if (!result.success) {
-    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
-      code: INVALID_CARRIER_OPERATIONS_STATE,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
-      value,
-    });
-  }
-  return result.data;
+  return parseContract(CarrierDeckContention_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
 export const JetCarrierCapability_v1 = z.object({
@@ -324,16 +293,7 @@ export const CarrierStrikeState_v1 = z.object({
 export type CarrierStrikeStateContract = z.infer<typeof CarrierStrikeState_v1>;
 
 export function validateCarrierStrikeStateContract(value: unknown): CarrierStrikeStateContract {
-  const result = CarrierStrikeState_v1.safeParse(value);
-  if (!result.success) {
-    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
-      code: INVALID_CARRIER_OPERATIONS_STATE,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
-      value,
-    });
-  }
-  return result.data;
+  return parseContract(CarrierStrikeState_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
 export const CarrierLaunchRate_v1 = z.object({
@@ -350,16 +310,7 @@ export const CarrierLaunchRate_v1 = z.object({
 export type CarrierLaunchRateContract = z.infer<typeof CarrierLaunchRate_v1>;
 
 export function validateCarrierLaunchRateContract(value: unknown): CarrierLaunchRateContract {
-  const result = CarrierLaunchRate_v1.safeParse(value);
-  if (!result.success) {
-    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
-      code: INVALID_CARRIER_OPERATIONS_STATE,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
-      value,
-    });
-  }
-  return result.data;
+  return parseContract(CarrierLaunchRate_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
 const courseIntervalSchema = z.object({
@@ -393,16 +344,7 @@ export const CarrierWindOverDeck_v1 = z.object({
 export type CarrierWindOverDeckContract = z.infer<typeof CarrierWindOverDeck_v1>;
 
 export function validateCarrierWindOverDeckContract(value: unknown): CarrierWindOverDeckContract {
-  const result = CarrierWindOverDeck_v1.safeParse(value);
-  if (!result.success) {
-    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
-      code: INVALID_CARRIER_OPERATIONS_STATE,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
-      value,
-    });
-  }
-  return result.data;
+  return parseContract(CarrierWindOverDeck_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
 const hazardExposureInputsSchema = z.object({
@@ -424,16 +366,7 @@ export type CarrierHazardExposureContract = z.infer<typeof CarrierHazardExposure
 export function validateCarrierHazardExposureContract(
   value: unknown,
 ): CarrierHazardExposureContract {
-  const result = CarrierHazardExposure_v1.safeParse(value);
-  if (!result.success) {
-    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
-      code: INVALID_CARRIER_OPERATIONS_STATE,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
-      value,
-    });
-  }
-  return result.data;
+  return parseContract(CarrierHazardExposure_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
 const nightRecoveryPredicatesSchema = z.object({
@@ -457,16 +390,7 @@ export const CarrierNightRecovery_v1 = z.object({
 export type CarrierNightRecoveryContract = z.infer<typeof CarrierNightRecovery_v1>;
 
 export function validateCarrierNightRecoveryContract(value: unknown): CarrierNightRecoveryContract {
-  const result = CarrierNightRecovery_v1.safeParse(value);
-  if (!result.success) {
-    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
-      code: INVALID_CARRIER_OPERATIONS_STATE,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
-      value,
-    });
-  }
-  return result.data;
+  return parseContract(CarrierNightRecovery_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
 const weatherSuspensionPredicatesSchema = z.object({
@@ -493,16 +417,7 @@ export type CarrierWeatherSuspensionContract = z.infer<typeof CarrierWeatherSusp
 export function validateCarrierWeatherSuspensionContract(
   value: unknown,
 ): CarrierWeatherSuspensionContract {
-  const result = CarrierWeatherSuspension_v1.safeParse(value);
-  if (!result.success) {
-    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
-      code: INVALID_CARRIER_OPERATIONS_STATE,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
-      value,
-    });
-  }
-  return result.data;
+  return parseContract(CarrierWeatherSuspension_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
 const recoveryRequestSchema = z.object({
@@ -535,16 +450,7 @@ export type CarrierRecoveryPriorityContract = z.infer<typeof CarrierRecoveryPrio
 export function validateCarrierRecoveryPriorityContract(
   value: unknown,
 ): CarrierRecoveryPriorityContract {
-  const result = CarrierRecoveryPriority_v1.safeParse(value);
-  if (!result.success) {
-    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
-      code: INVALID_CARRIER_OPERATIONS_STATE,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
-      value,
-    });
-  }
-  return result.data;
+  return parseContract(CarrierRecoveryPriority_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
 const ordnanceTransactionSchema = z.object({
@@ -565,16 +471,7 @@ export const CarrierOrdnanceState_v1 = z.object({
 export type CarrierOrdnanceStateContract = z.infer<typeof CarrierOrdnanceState_v1>;
 
 export function validateCarrierOrdnanceStateContract(value: unknown): CarrierOrdnanceStateContract {
-  const result = CarrierOrdnanceState_v1.safeParse(value);
-  if (!result.success) {
-    throw new BluewaveError(INVALID_CARRIER_OPERATIONS_STATE, {
-      code: INVALID_CARRIER_OPERATIONS_STATE,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
-      value,
-    });
-  }
-  return result.data;
+  return parseContract(CarrierOrdnanceState_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
 export const SHIPPED_CARRIER_OPERATIONS_CONTRACT = {
