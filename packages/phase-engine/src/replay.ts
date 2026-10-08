@@ -34,7 +34,13 @@ export interface ReplayResult {
   finalSnapshot: CampaignSnapshot;
 }
 
-function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
+/**
+ * The deterministic subset of a snapshot that `ReplayVerifier` hashes (and that
+ * any caller computing an expected closing-state hash must use). Exported so
+ * external callers — the desktop's replay command, cross-process checks — share
+ * one definition instead of copying it and risking divergence.
+ */
+export function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
   const nations: Record<string, NationState> = {};
   for (const [id, nation] of snapshot.nations) {
     nations[id] = nation;
@@ -76,7 +82,8 @@ function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
   };
 }
 
-function hashSnapshot(snapshot: CampaignSnapshot): string {
+/** SHA-256 of `snapshotToHashable` — the canonical snapshot hash used by replay. */
+export function hashSnapshot(snapshot: CampaignSnapshot): string {
   return sha256Hex(canonicalSerialize(snapshotToHashable(snapshot)));
 }
 

@@ -25,7 +25,7 @@ export {
 export type { PhaseDefinition } from "./registry.js";
 export { PhaseRegistry } from "./registry.js";
 export type { ReplayMismatch, ReplayResult, ReplayStepResult } from "./replay.js";
-export { ReplayVerifier } from "./replay.js";
+export { ReplayVerifier, hashSnapshot, snapshotToHashable } from "./replay.js";
 export type {
   TacticalBattleDivergence,
   TacticalBattleVerification,

@@ -1,10 +1,7 @@
 import type { BridgeResult } from "../../../shared/bridge-contract.js";
 import type { ConstructionCommandOutcome } from "../../../shared/construction-contract.js";
-import {
-  CONSTRUCTION_COMMAND_DEFINITION,
-  workspaceView,
-  type ConstructionWorkspace,
-} from "../../constructionWorkspace.js";
+import { workspaceView } from "../../construction/view.js";
+import type { ConstructionWorkspace } from "../../construction/workspaceState.js";
 import { uiStatusFor } from "./command-status.js";
 
 /**
@@ -18,7 +15,7 @@ export function replayIdempotent(
   transportRequestId: string,
   commandId: string,
 ): BridgeResult<ConstructionCommandOutcome> | undefined {
-  const existing = workspace.idempotency.get(CONSTRUCTION_COMMAND_DEFINITION, transportRequestId);
+  const existing = workspace.findIdempotent(transportRequestId);
   if (!existing) return undefined;
   if (existing.commandId !== commandId) {
     return {

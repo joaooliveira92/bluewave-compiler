@@ -3,19 +3,16 @@ import {
   buildConstructionDesignCatalog,
   type CompiledDesignVersion,
   type ConstructionCommand,
-  type ConstructionCommandStatus,
 } from "@bluewave/campaign-engine";
 import type { CampaignSessionRecord } from "../../campaignSessions.js";
-import type { ConstructionWorkspace } from "../../constructionWorkspace.js";
 import { uiStatusFor } from "./command-status.js";
 
 /**
- * The UI-facing projection of the construction workspace. Owns everything the
+ * The UI-facing shape of a construction command. Owns everything the
  * Construction screen sees about a command record — resolving the compiled
- * design behind a design id, shaping a `ConstructionCommand` row, and writing a
- * row's status back. The command flows in `constructionCommands.ts` never touch
- * these shapes directly; the status vocabulary it shares with the workspace
- * lives in `command-status.ts`.
+ * design behind a design id and shaping a `ConstructionCommand` row. The
+ * status vocabulary it shares with the workspace lives in `command-status.ts`;
+ * writing a row's status back is a `ConstructionWorkspace` operation.
  */
 
 /**
@@ -65,15 +62,4 @@ export function toUiCommand(input: UiCommandInput): ConstructionCommand {
     projectedCost: input.projectedCost,
     projectedCapacityUnits: input.projectedCapacityUnits,
   };
-}
-
-/** Write a row's status in place, preserving submission order. */
-export function setUiCommandStatus(
-  workspace: ConstructionWorkspace,
-  commandId: string,
-  status: ConstructionCommandStatus,
-): void {
-  workspace.commands = workspace.commands.map((command) =>
-    command.commandId === commandId ? { ...command, status } : command,
-  );
 }

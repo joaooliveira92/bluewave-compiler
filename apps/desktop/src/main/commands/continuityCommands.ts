@@ -1,11 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { advanceMonth, getScenarioById, type CampaignSnapshot } from "@bluewave/campaign";
-import type { NationState } from "@bluewave/campaign";
+import { advanceMonth, getScenarioById } from "@bluewave/campaign";
 import { CommandLedger } from "@bluewave/commands";
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { RecoveryManager, SaveStore, type SaveMetadata } from "@bluewave/persistence";
-import { ReplayVerifier } from "@bluewave/phase-engine";
+import { hashSnapshot, ReplayVerifier } from "@bluewave/phase-engine";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
   LoadCampaignResponse,
@@ -256,10 +254,9 @@ export async function verifyCampaign(
  * (`${campaignSeed}:month:<pre-turn>`, the exact derivation `commitMonth`
  * uses) against the pre-month snapshot, and confirms the replayed closing
  * hash matches the persisted post-month snapshot's deterministic
- * subset-hash — the same `snapshotToHashable`/`hashSnapshot` comparison
- * ticket 05 proved end-to-end against `content/production/1880` (copied
- * verbatim from `packages/phase-engine/src/replay.ts`, which does not
- * export it; `ReplayVerifier.verify()` compares exactly this hash).
+ * subset-hash — using `@bluewave/phase-engine`'s exported
+ * `snapshotToHashable`/`hashSnapshot`, the exact functions
+ * `ReplayVerifier.verify()` compares with.
  *
  * `commitMonth` executes every month with an empty command array (the
  * engine-facing command set — construction orders are folded into the
@@ -485,61 +482,4 @@ export async function recoverCampaign(
     },
     diagnostics: [],
   };
-}
-
-// ---------------------------------------------------------------------------
-// ReplayVerifier's subset-hash, copied per ticket 05's note
-// ---------------------------------------------------------------------------
-
-/**
- * Mirrors `ReplayVerifier`'s internal `snapshotToHashable`/`hashSnapshot`
- * (`packages/phase-engine/src/replay.ts`, not exported) — exactly the shape
- * ticket 05's production-pack loop test had to copy locally. `verify()`
- * compares its replayed closing state against a hash of THIS subset, not a
- * full canonicalSerialize of the raw snapshot, so any caller computing the
- * expected hash must use the identical shape.
- */
-function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
-  const nations: Record<string, NationState> = {};
-  for (const [id, nation] of snapshot["nations"]) {
-    nations[id] = nation;
-  }
-  const wars = {
-    wars: snapshot["wars"]["wars"].map((w) => ({ ...w })),
-    battles: snapshot["wars"]["battles"].map((b) => ({ ...b, manifestHash: b["manifestHash"] })),
-    participantMemberships: snapshot["wars"]["participantMemberships"].map((m) => ({ ...m })),
-    blockadeState: snapshot["wars"]["blockadeState"].map((b) => ({ ...b })),
-    battleManifests: (snapshot["wars"]["battleManifests"] ?? []).map((m) => ({ ...m })),
-  };
-  return {
-    version: snapshot["version"],
-    turnNumber: snapshot["turnNumber"],
-    campaignId: snapshot["campaignId"],
-    // B-6/ADR-0025: start date + current-month per-area weather are part of
-    // the authoritative snapshot surface (parity with ReplayVerifier).
-    startYear: snapshot["startYear"],
-    startMonth: snapshot["startMonth"],
-    strategicWeather: (snapshot["strategicWeather"] ?? []).map((s) => ({ ...s })),
-    slots: snapshot["slots"].map((s) => ({ ...s })),
-    world: {
-      areas: snapshot["world"]["areas"].map((a) => ({ ...a })),
-      routes: snapshot["world"]["routes"].map((r) => ({ ...r })),
-      ports: snapshot["world"]["ports"].map((p) => ({ ...p })),
-    },
-    nations,
-    wars,
-    politics: {
-      relations: snapshot["politics"]["relations"].map((r) => ({ ...r })),
-      shells: { ...snapshot["politics"]["shells"] },
-    },
-    intelligence: {
-      shells: { ...snapshot["intelligence"]["shells"] },
-    },
-    rulesetVersion: snapshot["rulesetVersion"],
-    compatibilityVersion: snapshot["compatibilityVersion"],
-  };
-}
-
-function hashSnapshot(snapshot: CampaignSnapshot): string {
-  return sha256Hex(canonicalSerialize(snapshotToHashable(snapshot)));
 }

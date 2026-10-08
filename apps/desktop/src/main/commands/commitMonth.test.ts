@@ -20,7 +20,8 @@ import {
 } from "../campaignSessions.js";
 import { compileProductionCampaign } from "../compiler.js";
 import { toSaveableState } from "../saveHelpers.js";
-import { commitMonth, mapBattleOutcome } from "./commitMonth.js";
+import { commitMonth } from "./commitMonth.js";
+import { mapBattleOutcome } from "./commitMonth/battleOutcomes.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");

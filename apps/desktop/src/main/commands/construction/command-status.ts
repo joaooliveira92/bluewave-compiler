@@ -4,9 +4,10 @@ import type { ConstructionCommandStatus } from "@bluewave/campaign-engine";
 /**
  * The one mapping between the command machinery's statuses and the Construction
  * screen's four-way UI status, plus the terminal-status predicate. Dependency-
- * free (only the two status vocabularies), so both `constructionWorkspace.ts`
- * and the UI-projection module can share it without a cycle. Terminality reuses
- * the machinery's own canonical `TERMINAL_STATUSES` rather than a private copy.
+ * free (only the two status vocabularies), so the workspace domain
+ * (`construction/commandRecord.ts`, `construction/view.ts`) and this folder's
+ * UI-projection module can share it without coupling. Terminality reuses the
+ * machinery's own canonical `TERMINAL_STATUSES` rather than a private copy.
  */
 
 export function isTerminal(record: CommandRecord): boolean {

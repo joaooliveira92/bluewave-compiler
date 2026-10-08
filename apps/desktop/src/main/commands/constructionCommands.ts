@@ -14,7 +14,6 @@ import type {
 } from "../../shared/construction-contract.js";
 import { getCampaignSession } from "../campaignSessions.js";
 import {
-  CONSTRUCTION_COMMAND_DEFINITION,
   CONSTRUCTION_SETTLEMENT_BRANCH_ID,
   acceptConstructionRecord,
   constructionEconomy,
@@ -25,15 +24,15 @@ import {
   workspaceView,
   type ConstructionWorkspace,
 } from "../constructionWorkspace.js";
+import { forecastCostOf } from "../construction/workspaceState.js";
 import { verifyEnvelope } from "./commandEnvelope.js";
 import { deriveConstructionCommandId } from "./construction/command-id.js";
 import { isTerminal, uiStatusFor } from "./construction/command-status.js";
-import { resolveUiDesign, setUiCommandStatus, toUiCommand } from "./construction/command-view.js";
+import { resolveUiDesign, toUiCommand } from "./construction/command-view.js";
 import { validateDesignForPlayer } from "./construction/design-validation.js";
 import { replayIdempotent } from "./construction/idempotency.js";
 import {
   canReserveReplacement,
-  forecastCostOf,
   reserveForOrder,
   restoreInFlight,
 } from "./construction/reservations.js";
@@ -163,13 +162,13 @@ export async function submitConstructionCommand(
     addProjectToNation(snapshot, record.playerSlotId, project),
   );
   if (!persisted.ok) {
-    workspace.reservations.release(commandId);
+    workspace.release(commandId);
     return persisted.result;
   }
 
-  workspace.records.set(commandId, accepted);
-  workspace.idempotency.set(CONSTRUCTION_COMMAND_DEFINITION, accepted);
-  workspace.commands.push(
+  workspace.putRecord(accepted);
+  workspace.rememberIdempotent(accepted);
+  workspace.appendCommand(
     toUiCommand({
       recordRef: accepted,
       designId: payload.designId,
@@ -179,7 +178,7 @@ export async function submitConstructionCommand(
       submittedAtRevision: Number(record.state.snapshot.turnNumber),
     }),
   );
-  workspace.ledger.add({
+  workspace.appendLedger({
     type: "success",
     commandId,
     snapshotHash: record.state.rawHash,
@@ -212,7 +211,7 @@ export async function replaceConstructionCommand(
   const replaceReplay = replayIdempotent(workspace, payload.transportRequestId, newCommandId);
   if (replaceReplay) return replaceReplay;
 
-  const target = workspace.records.get(payload.commandId);
+  const target = workspace.getRecord(payload.commandId);
   if (!target) {
     return {
       outcome: "rejected",
@@ -262,8 +261,8 @@ export async function replaceConstructionCommand(
     settlementRecord: settlement,
     supersededByCommandId: newCommandId,
   };
-  workspace.records.set(payload.commandId, supersededRecord);
-  setUiCommandStatus(workspace, payload.commandId, "superseded");
+  workspace.putRecord(supersededRecord);
+  workspace.setCommandStatus(payload.commandId, "superseded");
 
   // In-memory acceptance of the replacement (reservation confirmed by the
   // preflight above; the original's release already freed its hold).
@@ -281,7 +280,7 @@ export async function replaceConstructionCommand(
   if (!reserved.ok) {
     // Defensive only — the preflight made this unreachable. Restore the
     // original to in-flight before reporting the rejection.
-    restoreInFlight(workspace, record, target);
+    restoreInFlight(workspace, target);
     return {
       outcome: "rejected",
       reason: reserved.reasonCode,
@@ -309,14 +308,14 @@ export async function replaceConstructionCommand(
     // Roll the whole supersession back: the original is in-flight again with
     // its reservation re-held, the replacement leaves no trace, and the
     // session is exactly as it was (nothing was persisted).
-    restoreInFlight(workspace, record, target);
-    workspace.reservations.release(newCommandId);
+    restoreInFlight(workspace, target);
+    workspace.release(newCommandId);
     return persisted.result;
   }
 
-  workspace.records.set(newCommandId, accepted);
-  workspace.idempotency.set(CONSTRUCTION_COMMAND_DEFINITION, accepted);
-  workspace.commands.push(
+  workspace.putRecord(accepted);
+  workspace.rememberIdempotent(accepted);
+  workspace.appendCommand(
     toUiCommand({
       recordRef: accepted,
       designId: payload.designId,
@@ -326,13 +325,13 @@ export async function replaceConstructionCommand(
       submittedAtRevision: Number(record.state.snapshot.turnNumber),
     }),
   );
-  workspace.ledger.add({
+  workspace.appendLedger({
     type: "success",
     commandId: payload.commandId,
     snapshotHash: record.state.rawHash,
     result: { status: "SUPERSEDED", supersededBy: newCommandId },
   });
-  workspace.ledger.add({
+  workspace.appendLedger({
     type: "success",
     commandId: newCommandId,
     snapshotHash: record.state.rawHash,
@@ -360,7 +359,7 @@ export async function cancelConstructionCommand(
   const cancelReplay = replayIdempotent(workspace, payload.transportRequestId, payload.commandId);
   if (cancelReplay) return cancelReplay;
 
-  const target = workspace.records.get(payload.commandId);
+  const target = workspace.getRecord(payload.commandId);
   if (!target) {
     return {
       outcome: "rejected",
@@ -386,8 +385,8 @@ export async function cancelConstructionCommand(
     forecastCostOf(cancelled),
   );
   const cancelledRecord = { ...cancelled, settlementRecord: settlement };
-  workspace.records.set(payload.commandId, cancelledRecord);
-  setUiCommandStatus(workspace, payload.commandId, "cancelled");
+  workspace.putRecord(cancelledRecord);
+  workspace.setCommandStatus(payload.commandId, "cancelled");
 
   // Authoritative mutation first (F2): if the persist fails, the in-memory
   // cancellation is rolled back — the record is in-flight again with its
@@ -398,12 +397,12 @@ export async function cancelConstructionCommand(
     removeProjectForCommand(snapshot, record.playerSlotId, payload.commandId),
   );
   if (!removed.ok) {
-    restoreInFlight(workspace, record, target);
+    restoreInFlight(workspace, target);
     return removed.result;
   }
 
-  workspace.idempotency.set(CONSTRUCTION_COMMAND_DEFINITION, cancelledRecord);
-  workspace.ledger.add({
+  workspace.rememberIdempotent(cancelledRecord);
+  workspace.appendLedger({
     type: "success",
     commandId: payload.commandId,
     snapshotHash: record.state.rawHash,
