@@ -22,6 +22,8 @@ to `main` (see `AGENTS.md`).
 - **Budget at a glance** on Treasury.
 - **Display density** setting (Comfortable / Compact) in Options.
 - **Save a Copy…** in Options.
+- **Monthly report** on Overview: after you advance the month, treasury movement, spending, construction and
+  research progress and battles (in words, with names), plus earlier months from this session.
 
 ### Fixed
 

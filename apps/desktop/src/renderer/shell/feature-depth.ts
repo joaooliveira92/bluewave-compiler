@@ -76,12 +76,8 @@ export const FEATURE_DEPTH: readonly FeatureDepthEntry[] = [
   { feature: "fleet-exercise", screen: null, planned: true, path: ["Fleet", "Training"] },
   { feature: "treaty-limits", screen: null, planned: true, path: ["Diplomacy & War", "Treaties"] },
   { feature: "budget-allocation", screen: null, planned: true, path: ["Treasury", "Allocation"] },
-  {
-    feature: "message-history",
-    screen: null,
-    planned: true,
-    path: ["Simulation & Turn", "History"],
-  },
+  // Real, session-only: the monthly report + earlier months on Overview (the engine keeps no month history yet).
+  { feature: "message-history", screen: "overview", path: ["Overview"] },
   // Real: "Save a Copy…" in Options (copyCampaign).
   { feature: "copy-game", screen: "options", path: ["Options"] },
   { feature: "resign", screen: null, planned: true, path: ["Options", "Resign"] },

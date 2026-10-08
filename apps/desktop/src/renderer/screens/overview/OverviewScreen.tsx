@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   MapPin,
   Ship,
-  Info,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { DEBUG_MODE } from "../../shell/debug-flag.js";
@@ -30,10 +29,12 @@ import {
 } from "./overview-screen-state.js";
 import { activeConstructionProjects } from "../construction/construction-screen-state.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
+import { MonthReportCard } from "./MonthReportCard.js";
 import { PrioritiesCard } from "./PrioritiesCard.js";
 import { usePriorities } from "./usePriorities.js";
 import { WorldMapPanel } from "../../components/world-map/WorldMapPanel.js";
 import { tensionLabel } from "@bluewave/campaign-engine";
+import { useMonthHistory } from "../../shell/CampaignShellContext.js";
 import { campaignNationLabel } from "../../components/world-map/campaign-map-join.js";
 import { humanizeId } from "../../lib/humanize-id.js";
 
@@ -44,6 +45,7 @@ export interface OverviewScreenProps {
 
 export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
   const priorities = usePriorities(sessionId);
+  const monthHistory = useMonthHistory();
   const bridge = window.bluewave;
   const [state, setState] = useState(initialOverviewScreenState);
   // Real project count from the construction projection (null until loaded or if unavailable).
@@ -98,6 +100,8 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
     );
   }
 
+  const areaNames = new Map(projection.strategicAreas.map((area) => [area.id, area.name]));
+  const areaName = (id: string): string => areaNames.get(id) ?? humanizeId(id);
   const fleetSummary = summarizeFleet(projection);
   const ships = shipNames(projection);
   const maintenance = rederivedMaintenanceCost(projection);
@@ -357,19 +361,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
 
       <PrioritiesCard state={priorities} onNavigate={onNavigate} />
 
-      {/* Recent Developments — honest empty state until INC-12 */}
-      <GlassCard glassVariant="liquid-refract">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
-            <Info className="h-4 w-4 text-muted-foreground" />
-            Recent Developments
-          </CardTitle>
-          <CardDescription>From the most recent Monthly Naval Estimates report.</CardDescription>
-        </CardHeader>
-        <CardContent className="text-xs text-muted-foreground">
-          <p>No monthly developments yet.</p>
-        </CardContent>
-      </GlassCard>
+      <MonthReportCard history={monthHistory} areaName={areaName} />
 
       <GlassCard glassVariant="liquid-refract">
         <CardHeader className="pb-3">

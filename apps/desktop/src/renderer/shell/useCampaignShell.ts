@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import type { PlayerProjection } from "@bluewave/campaign-engine";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import { countActiveAlerts } from "../lib/priorities.js";
+import { summarizeMonth } from "../lib/month-summary.js";
 import { emitWideEvent } from "../lib/telemetry.js";
 import type { Screen } from "./AppSidebar.js";
 import {
@@ -212,7 +213,11 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
           // Last month's count would be wrong for this month; the refresh below fills it in.
           activeAlertsCount: null,
         };
-        dispatch({ type: "month-committed", campaign: nextCampaign });
+        dispatch({
+          type: "month-committed",
+          campaign: nextCampaign,
+          summary: summarizeMonth(value),
+        });
         // The commit response carries no projection surface; refresh the rest.
         void refreshCampaign(sessionId);
         collectMessage(`Month advanced to ${formatCampaignMonth(value.closingSnapshot.month)}.`);
@@ -256,6 +261,7 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
       saveMessage: state.saveMessage,
       primaryAction: state.primaryAction,
       committing: state.committing,
+      monthHistory: state.monthHistory,
       mode: campaignShellMode(state),
       screen: currentShellScreen(state),
       canGoBack: canGoBack(state.history),

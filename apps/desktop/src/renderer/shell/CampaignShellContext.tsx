@@ -1,3 +1,4 @@
+import type { MonthSummary } from "../lib/month-summary.js";
 import { createContext, type ReactNode, use, useMemo } from "react";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { useCampaignShell } from "./useCampaignShell.js";
@@ -15,6 +16,7 @@ export interface CampaignShellContextValue {
     | "saveMessage"
     | "primaryAction"
     | "committing"
+    | "monthHistory"
     | "mode"
     | "screen"
     | "canGoBack"
@@ -58,6 +60,7 @@ export function CampaignShellProvider({
         saveMessage: shell.saveMessage,
         primaryAction: shell.primaryAction,
         committing: shell.committing,
+        monthHistory: shell.monthHistory,
         mode: shell.mode,
         screen: shell.screen,
         canGoBack: shell.canGoBack,
@@ -100,4 +103,15 @@ export function useCampaignShellContext(): CampaignShellContextValue {
 export function useCampaignRevision(): number | null {
   const context = use(CampaignShellContext);
   return context?.state.campaign?.revision ?? null;
+}
+
+const NO_MONTH_HISTORY: readonly MonthSummary[] = [];
+
+/**
+ * The months committed in this session, newest first (empty outside the shell). Non-throwing, like
+ * `useCampaignRevision`, so screens can use it in isolation.
+ */
+export function useMonthHistory(): readonly MonthSummary[] {
+  const context = use(CampaignShellContext);
+  return context?.state.monthHistory ?? NO_MONTH_HISTORY;
 }

@@ -17,6 +17,7 @@ const shell = {
   saveMessage: null,
   primaryAction: null,
   committing: false,
+  monthHistory: [],
   mode: { kind: "file", screen: "file" } as const,
   screen: "file" as const,
   canGoBack: false,
