@@ -18,6 +18,8 @@ import { OptionsScreen } from "./screens/options/OptionsScreen.js";
 import { PrioritiesCard } from "./screens/overview/PrioritiesCard.js";
 import { BudgetBar } from "./screens/treasury/BudgetBar.js";
 import { BackgroundProvider } from "./shell/BackgroundContext.js";
+import { AppSidebar } from "./shell/AppSidebar.js";
+import { SidebarProvider } from "./components/ui/sidebar.js";
 import { DensityProvider } from "./shell/DensityContext.js";
 
 /**
@@ -199,6 +201,14 @@ describe("accessibility audit (axe-core)", () => {
         areaName={(id) => id}
         divisionName={(id) => id}
       />,
+    );
+  });
+
+  it("Sidebar with its section headings", async () => {
+    await audit(
+      <SidebarProvider>
+        <AppSidebar screen="overview" onSelect={noop} />
+      </SidebarProvider>,
     );
   });
 

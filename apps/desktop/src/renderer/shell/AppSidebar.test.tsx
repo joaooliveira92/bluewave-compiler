@@ -45,3 +45,57 @@ describe("AppSidebar session footer (ADR-0058)", () => {
     expect(screen.getByText(SESSION)).toBeTruthy();
   });
 });
+
+describe("AppSidebar sections (N-2)", () => {
+  beforeAll(() => {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+  });
+  afterEach(cleanup);
+
+  it("groups the screens under Admiralty, Operations, Government and Foreign, in that order", () => {
+    renderSidebar();
+    const labels = ["Admiralty", "Operations", "Government", "Foreign"].map((label) =>
+      screen.getByText(label),
+    );
+    for (let i = 1; i < labels.length; i++) {
+      // Document order: each heading comes after the one before it.
+      expect(
+        labels[i - 1]!.compareDocumentPosition(labels[i]!) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+  });
+
+  it("puts each screen in the section for its job", () => {
+    const { container } = render(
+      <SidebarProvider>
+        <AppSidebar screen="overview" onSelect={() => undefined} />
+      </SidebarProvider>,
+    );
+    const names = (id: string) =>
+      [...container.querySelectorAll(`[data-sidebar-section="${id}"] button span`)].map(
+        (node) => node.textContent,
+      );
+    expect(names("operations")).toEqual(expect.arrayContaining(["Fleet", "Construction"]));
+    expect(names("government")).toEqual(
+      expect.arrayContaining(["Research & Technology", "Treasury"]),
+    );
+    expect(names("foreign")).toEqual(["Diplomacy & War"]);
+    expect(names("settings")).toEqual(expect.arrayContaining(["Campaign Preferences", "Options"]));
+  });
+
+  it("selects a screen when its entry is clicked", () => {
+    const onSelect = vi.fn();
+    render(
+      <SidebarProvider>
+        <AppSidebar screen="overview" onSelect={onSelect} />
+      </SidebarProvider>,
+    );
+    screen.getByRole("button", { name: "Treasury" }).click();
+    expect(onSelect).toHaveBeenCalledWith("treasury");
+  });
+});

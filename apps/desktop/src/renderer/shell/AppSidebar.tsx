@@ -15,8 +15,11 @@ import {
 } from "../components/ui/sidebar.js";
 
 import { DEBUG_MODE } from "./debug-flag.js";
-import { CAMPAIGN_SCREENS, SETTINGS_SCREENS, type Screen } from "./campaign-screen-registry.js";
+import { CAMPAIGN_SCREEN_REGISTRY, type Screen } from "./campaign-screen-registry.js";
+import { buildSidebarSections } from "./sidebar-sections.js";
 export type { Screen } from "./campaign-screen-registry.js";
+const SIDEBAR_SECTIONS = buildSidebarSections(CAMPAIGN_SCREEN_REGISTRY);
+
 export interface AppSidebarProps {
   readonly screen: Screen;
   readonly onSelect: (screen: Screen) => void;
@@ -58,44 +61,27 @@ export function AppSidebar({ screen, onSelect, footer }: AppSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Campaign</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {CAMPAIGN_SCREENS.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    isActive={screen === item.id}
-                    tooltip={item.label}
-                    onClick={() => onSelect(item.id)}
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {SETTINGS_SCREENS.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    isActive={screen === item.id}
-                    tooltip={item.label}
-                    onClick={() => onSelect(item.id)}
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {SIDEBAR_SECTIONS.map((section) => (
+          <SidebarGroup key={section.id} data-sidebar-section={section.id}>
+            {section.id !== "settings" && <SidebarGroupLabel>{section.label}</SidebarGroupLabel>}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {section.items.map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      isActive={screen === item.id}
+                      tooltip={item.label}
+                      onClick={() => onSelect(item.id)}
+                    >
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       {/* The footer is the engine session id: debug builds only. */}
