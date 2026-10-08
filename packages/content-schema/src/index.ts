@@ -90,3 +90,14 @@ export { validateAgainstSchema } from "./schema-validator.js";
 export type { TechnologyPrerequisite } from "./technology.js";
 export { TechnologyPrerequisiteChainSchema } from "./technology.js";
 export { parseYamlSafe, type SafeParseResult } from "./yaml-parser.js";
+export type { PropulsionPlantData, ShipComponentData, ShipHullFormData } from "./ship-component.js";
+export {
+  PropulsionPlantCatalogueSchema,
+  PropulsionPlantSchema,
+  SHIP_COMPONENT_CATEGORIES,
+  SHIP_ZONE_IDS,
+  ShipComponentCatalogueSchema,
+  ShipComponentSchema,
+  ShipHullFormCatalogueSchema,
+  ShipHullFormSchema,
+} from "./ship-component.js";
