@@ -35,6 +35,7 @@ to `main` (see `AGENTS.md`).
 - Map labels and markers keep a constant size when zoomed; coastlines render smoothly at every zoom.
 
 ### Changed
+
 - **Sidebar grouped by job:** Admiralty, Operations, Government, Foreign (and Settings). Group headings now
   actually display — the shared sidebar-label component was dropping its text.
 
