@@ -95,6 +95,12 @@ export function useMapCamera(
   const lastFrame = useRef(0);
   const lastReport = useRef(0);
 
+  /** Screen pixels per user unit, or null before the SVG is laid out. */
+  const pixelsPerUnit = useCallback((): number => {
+    const ctm = svgRef.current?.getScreenCTM?.();
+    return ctm === null || ctm === undefined || ctm.a === 0 ? 1 : ctm.a;
+  }, []);
+
   const applyTransform = useCallback(() => {
     const world = worldRef.current;
     if (world === null) return;
@@ -103,19 +109,15 @@ export function useMapCamera(
     // Markers and labels counter-scale with this so they hold their screen
     // size at any zoom (the world group scales everything inside it).
     svgRef.current?.style.setProperty("--map-inv", String(1 / scale));
+    // User units per screen pixel, so text can be sized in real pixels.
+    svgRef.current?.style.setProperty("--map-upx", String(1 / pixelsPerUnit()));
     for (const listener of listeners.current) listener(camera.current);
     const next = bandFor(scale);
     if (next !== bandRef.current) {
       bandRef.current = next;
       setZoomBand(next);
     }
-  }, []);
-
-  /** Screen pixels per user unit, or null before the SVG is laid out. */
-  const pixelsPerUnit = useCallback((): number => {
-    const ctm = svgRef.current?.getScreenCTM?.();
-    return ctm === null || ctm === undefined || ctm.a === 0 ? 1 : ctm.a;
-  }, []);
+  }, [pixelsPerUnit]);
 
   /** The viewport, expressed in the same user units as the camera. */
   const viewportUnits = useCallback((): { width: number; height: number } => {
@@ -127,9 +129,21 @@ export function useMapCamera(
     };
   }, [pixelsPerUnit, worldHeight, worldWidth]);
 
+  /**
+   * The smallest scale at which the world still covers the viewport. Below it
+   * a wide panel shows wrapped copies of the world beside the real one (and a
+   * tall one shows empty bands), so zooming out stops here. Falls back to
+   * MIN_SCALE before the SVG is laid out.
+   */
+  const minScale = useCallback((): number => {
+    const visible = viewportUnits();
+    const cover = Math.max(visible.width / worldWidth, visible.height / worldHeight);
+    return Number.isFinite(cover) && cover > 0 ? cover : MIN_SCALE;
+  }, [viewportUnits, worldHeight, worldWidth]);
+
   const clamp = useCallback(() => {
     const current = camera.current;
-    current.scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, current.scale));
+    current.scale = Math.min(MAX_SCALE, Math.max(minScale(), current.scale));
     const span = worldWidth * current.scale;
     const visible = viewportUnits();
     if (wrapHorizontally) {
@@ -142,7 +156,7 @@ export function useMapCamera(
     const scaledHeight = worldHeight * current.scale;
     const minY = Math.min(0, visible.height - scaledHeight);
     current.y = Math.min(0, Math.max(minY, current.y));
-  }, [viewportUnits, worldHeight, worldWidth, wrapHorizontally]);
+  }, [minScale, viewportUnits, worldHeight, worldWidth, wrapHorizontally]);
 
   const sampleFrame = useCallback(() => {
     const now = performance.now();
@@ -183,7 +197,7 @@ export function useMapCamera(
       const py = (clientY - rect.top) / unitScale;
       const current = camera.current;
       const before = current.scale;
-      current.scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, current.scale * factor));
+      current.scale = Math.min(MAX_SCALE, Math.max(minScale(), current.scale * factor));
       const ratio = current.scale / before;
       current.x = px - (px - current.x) * ratio;
       current.y = py - (py - current.y) * ratio;
@@ -191,7 +205,7 @@ export function useMapCamera(
       applyTransform();
       sampleFrame();
     },
-    [applyTransform, clamp, pixelsPerUnit, sampleFrame],
+    [applyTransform, clamp, minScale, pixelsPerUnit, sampleFrame],
   );
 
   const zoomBy = useCallback(
@@ -219,13 +233,13 @@ export function useMapCamera(
     (x: number, y: number, scale = 3.5) => {
       const current = camera.current;
       const visible = viewportUnits();
-      current.scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
+      current.scale = Math.min(MAX_SCALE, Math.max(minScale(), scale));
       current.x = visible.width / 2 - x * current.scale;
       current.y = visible.height / 2 - y * current.scale;
       clamp();
       applyTransform();
     },
-    [applyTransform, clamp, viewportUnits],
+    [applyTransform, clamp, minScale, viewportUnits],
   );
 
   useEffect(() => {

@@ -50,7 +50,6 @@ import { cn } from "../../lib/utils.js";
 
 const CHART = {
   ocean: "oklch(0.19 0.035 245)",
-  oceanDeep: "oklch(0.15 0.03 248)",
   land: "oklch(0.30 0.018 250)",
   landEdge: "oklch(0.42 0.02 250)",
   graticule: "oklch(0.30 0.02 245)",
@@ -61,6 +60,15 @@ const CHART = {
 /** Pins a child to a world point at constant screen size (see camera `--map-inv`). */
 function pinned(x: number, y: number) {
   return { transform: `translate(${x}px, ${y}px) scale(var(--map-inv, 1))` };
+}
+
+/** Text sized in real screen pixels, whatever the SVG viewBox scale (camera `--map-upx`). */
+function screenText(px: number, strokePx: number) {
+  return {
+    fontSize: `calc(${px}px * var(--map-upx, 1))`,
+    strokeWidth: `calc(${strokePx}px * var(--map-upx, 1))`,
+    strokeLinejoin: "round" as const,
+  };
 }
 
 export interface WorldMapChartProps extends MapViewProps {
@@ -335,9 +343,6 @@ export function WorldMapChart({
         !isCommand && "rounded-lg border shadow-sm",
         className,
       )}
-      style={{
-        background: `radial-gradient(ellipse 75% 75% at 50% 45%, ${CHART.ocean} 60%, ${CHART.oceanDeep} 100%)`,
-      }}
     >
       {coastline.status === "ready" && (
         <CoastlineCanvas
@@ -522,9 +527,13 @@ export function WorldMapChart({
                         <text
                           x={8}
                           y={3}
-                          fontSize={9}
-                          fill={CHART.inkDim}
-                          style={{ pointerEvents: "none" }}
+                          fill={CHART.ink}
+                          stroke="oklch(0.15 0.02 245)"
+                          paintOrder="stroke"
+                          style={{
+                            ...screenText(12, 3.5),
+                            pointerEvents: "none",
+                          }}
                         >
                           {possession.name}
                         </text>
@@ -578,14 +587,14 @@ export function WorldMapChart({
                       x={0}
                       y={0}
                       textAnchor="middle"
-                      fontSize={big ? 15 : 12}
                       letterSpacing={1.2}
                       fill={CHART.ink}
                       stroke="oklch(0.15 0.02 245)"
-                      strokeWidth={3}
                       paintOrder="stroke"
                       style={{
                         ...pinned(area.label[0], area.label[1]),
+                        ...screenText(big ? 15 : 13, 4),
+                        fontWeight: 600,
                         pointerEvents: "none",
                         textTransform: "uppercase",
                       }}
