@@ -66,77 +66,123 @@ export async function submitDiplomacyCommand(
     sessionId: payload.sessionId,
     expectedRevision: payload.expectedRevision,
     transportRequestId: payload.transportRequestId,
-    build: (record) => ({
-      body: engineBodyFor(record.playerSlotId, payload.command),
-      discriminator: discriminatorFor(payload.command),
-    }),
+    build: (record) => planDiplomacyCommand(payload.command, record.playerSlotId),
   });
 }
 
-/** The command-specific part of the idempotency identity — the nontrivial
- * operand (target / partner / war / area). Deterministic, mirrors the body. */
-function discriminatorFor(command: DiplomacyCommandBody): string {
-  switch (command.type) {
-    case "DeclareWar":
-      return command.targetNationId;
-    case "AcceptPeace":
-      return command.warId;
-    case "FormAlliance":
-    case "BreakAlliance":
-    case "FormNonAggressionPact":
-    case "BreakNonAggressionPact":
-      return command.partnerNationId;
-    case "DeclareBlockade":
-      return `${command.targetNationId}\u0000${command.areaId}`;
-  }
+interface DiplomacyCommandPlan {
+  readonly body: Extract<CommandBody, { type: DiplomacyCommandBody["type"] }>;
+  readonly discriminator: string;
 }
 
-/** Maps the wire command onto the engine's own `CommandBody` — `nationId` is
- * always the session's player slot, never on the wire. */
-function engineBodyFor(
-  playerSlotId: string,
+/**
+ * The per-command descriptor: its idempotency discriminator (the nontrivial
+ * operand — target / partner / war / area) and its engine body. Keeping BOTH in
+ * one entry (rather than two switches over the same union) means a new
+ * diplomacy command is a single addition — the two can no longer drift apart.
+ */
+interface DiplomacyCommandDescriptor<T extends DiplomacyCommandBody> {
+  readonly discriminator: (command: T) => string;
+  readonly toEngineBody: (
+    command: T,
+    playerSlotId: string,
+  ) => Extract<CommandBody, { type: T["type"] }>;
+}
+
+type DiplomacyCommandPlanner = (
   command: DiplomacyCommandBody,
-): Extract<CommandBody, { type: DiplomacyCommandBody["type"] }> {
-  switch (command.type) {
-    case "DeclareWar":
-      return {
-        type: "DeclareWar",
-        nationId: playerSlotId,
-        targetNationId: command.targetNationId,
-        ...(command.warGoalsId !== undefined ? { warGoalsId: command.warGoalsId } : {}),
-      };
-    case "AcceptPeace":
-      return { type: "AcceptPeace", nationId: playerSlotId, warId: command.warId };
-    case "FormAlliance":
-      return {
-        type: "FormAlliance",
-        nationId: playerSlotId,
-        partnerNationId: command.partnerNationId,
-      };
-    case "BreakAlliance":
-      return {
-        type: "BreakAlliance",
-        nationId: playerSlotId,
-        partnerNationId: command.partnerNationId,
-      };
-    case "FormNonAggressionPact":
-      return {
-        type: "FormNonAggressionPact",
-        nationId: playerSlotId,
-        partnerNationId: command.partnerNationId,
-      };
-    case "BreakNonAggressionPact":
-      return {
-        type: "BreakNonAggressionPact",
-        nationId: playerSlotId,
-        partnerNationId: command.partnerNationId,
-      };
-    case "DeclareBlockade":
-      return {
-        type: "DeclareBlockade",
-        nationId: playerSlotId,
-        targetNationId: command.targetNationId,
-        areaId: command.areaId,
-      };
-  }
+  playerSlotId: string,
+) => DiplomacyCommandPlan;
+
+/**
+ * Adapts a descriptor for one union member into a uniform planner. The table is
+ * keyed by the discriminant and only ever entered via {@link planDiplomacyCommand}'s
+ * `command.type` lookup, so asserting that `command` is member `T` is sound;
+ * TypeScript cannot express that correlation across an indexed lookup (same
+ * registry discipline as `campaignBridge.ts`).
+ */
+function planWith<T extends DiplomacyCommandBody["type"]>(
+  descriptor: DiplomacyCommandDescriptor<Extract<DiplomacyCommandBody, { type: T }>>,
+): DiplomacyCommandPlanner {
+  return (command, playerSlotId) => {
+    const typed = command as Extract<DiplomacyCommandBody, { type: T }>;
+    return {
+      body: descriptor.toEngineBody(typed, playerSlotId),
+      discriminator: descriptor.discriminator(typed),
+    };
+  };
+}
+
+/** One entry per wire command: its engine body and idempotency discriminator.
+ * `nationId` is always the session's player slot, never on the wire. */
+const DIPLOMACY_COMMANDS: {
+  readonly [K in DiplomacyCommandBody["type"]]: DiplomacyCommandPlanner;
+} = {
+  DeclareWar: planWith<"DeclareWar">({
+    discriminator: (command) => command.targetNationId,
+    toEngineBody: (command, playerSlotId) => ({
+      type: "DeclareWar",
+      nationId: playerSlotId,
+      targetNationId: command.targetNationId,
+      ...(command.warGoalsId !== undefined ? { warGoalsId: command.warGoalsId } : {}),
+    }),
+  }),
+  AcceptPeace: planWith<"AcceptPeace">({
+    discriminator: (command) => command.warId,
+    toEngineBody: (command, playerSlotId) => ({
+      type: "AcceptPeace",
+      nationId: playerSlotId,
+      warId: command.warId,
+    }),
+  }),
+  FormAlliance: planWith<"FormAlliance">({
+    discriminator: (command) => command.partnerNationId,
+    toEngineBody: (command, playerSlotId) => ({
+      type: "FormAlliance",
+      nationId: playerSlotId,
+      partnerNationId: command.partnerNationId,
+    }),
+  }),
+  BreakAlliance: planWith<"BreakAlliance">({
+    discriminator: (command) => command.partnerNationId,
+    toEngineBody: (command, playerSlotId) => ({
+      type: "BreakAlliance",
+      nationId: playerSlotId,
+      partnerNationId: command.partnerNationId,
+    }),
+  }),
+  FormNonAggressionPact: planWith<"FormNonAggressionPact">({
+    discriminator: (command) => command.partnerNationId,
+    toEngineBody: (command, playerSlotId) => ({
+      type: "FormNonAggressionPact",
+      nationId: playerSlotId,
+      partnerNationId: command.partnerNationId,
+    }),
+  }),
+  BreakNonAggressionPact: planWith<"BreakNonAggressionPact">({
+    discriminator: (command) => command.partnerNationId,
+    toEngineBody: (command, playerSlotId) => ({
+      type: "BreakNonAggressionPact",
+      nationId: playerSlotId,
+      partnerNationId: command.partnerNationId,
+    }),
+  }),
+  DeclareBlockade: planWith<"DeclareBlockade">({
+    discriminator: (command) => `${command.targetNationId}\u0000${command.areaId}`,
+    toEngineBody: (command, playerSlotId) => ({
+      type: "DeclareBlockade",
+      nationId: playerSlotId,
+      targetNationId: command.targetNationId,
+      areaId: command.areaId,
+    }),
+  }),
+};
+
+/** Maps the wire command onto the engine's own `CommandBody` and its
+ * idempotency discriminator; `nationId` is always the session's player slot. */
+function planDiplomacyCommand(
+  command: DiplomacyCommandBody,
+  playerSlotId: string,
+): DiplomacyCommandPlan {
+  return DIPLOMACY_COMMANDS[command.type](command, playerSlotId);
 }
