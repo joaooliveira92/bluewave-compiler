@@ -2,6 +2,7 @@ export { AlternativesPanel } from "./AlternativesPanel.js";
 export { ArmourPanel } from "./ArmourPanel.js";
 export { FindingsPanel } from "./FindingsPanel.js";
 export { ForecastPanel } from "./ForecastPanel.js";
+export { HullPlanPanel } from "./HullPlanPanel.js";
 export { HullPanel } from "./HullPanel.js";
 export { LedgerPanel } from "./LedgerPanel.js";
 export { MachineryPanel } from "./MachineryPanel.js";

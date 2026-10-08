@@ -35,6 +35,14 @@ describe("DrawingBoard", () => {
     expect(metric("Top speed")).toMatch(/kn \(need 25\.5\)/);
   });
 
+  it("draws a top-down hull plan with one marker per placed fitting", () => {
+    render(<DrawingBoard />);
+    const plan = region("Hull plan");
+    const img = within(plan).getByRole("img");
+    expect(img.querySelectorAll("circle").length).toBeGreaterThan(0);
+    expect(img.getAttribute("aria-label")).toMatch(/Top-down plan/);
+  });
+
   it("labels the development metric as such", () => {
     render(<DrawingBoard />);
     expect(
