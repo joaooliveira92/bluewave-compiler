@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 
 import type { PlayerProjection } from "@bluewave/campaign-engine";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
+import { countActiveAlerts } from "../lib/priorities.js";
 import { emitWideEvent } from "../lib/telemetry.js";
 import type { Screen } from "./AppSidebar.js";
 import {
@@ -18,7 +19,11 @@ import { formatCampaignMonth } from "./site-header-state.js";
 const SAVE_MESSAGE_DURATION_MS = 8_000;
 
 /** Builds the shell's campaign summary from an `inspectCampaign` projection. */
-function overviewFromProjection(sessionId: string, projection: PlayerProjection): CampaignOverview {
+function overviewFromProjection(
+  sessionId: string,
+  projection: PlayerProjection,
+  activeAlertsCount: number | null,
+): CampaignOverview {
   return {
     month: projection.month,
     treasury: projection.economy.treasury,
@@ -27,11 +32,24 @@ function overviewFromProjection(sessionId: string, projection: PlayerProjection)
     nationName: projection.nationName,
     projectedSurplusDeficit: projection.projectedSurplusDeficit,
     atWar: projection.knownEnemyNations.length > 0,
-    // Forward-wired slot: the INC-2 priorities projection will populate this
-    // once it lands; until then it stays null so the header shows an empty
-    // placeholder, never a fabricated count.
-    activeAlertsCount: null,
+    // Real count from the engine's priorities projection; null only when that
+    // projection could not be read, so the header omits the slot rather than
+    // showing a made-up number.
+    activeAlertsCount,
   };
+}
+
+/** The number of warnings/criticals the engine reports, or null if unavailable. */
+async function loadActiveAlertsCount(
+  bridge: BluewaveDesktopBridge,
+  sessionId: string,
+): Promise<number | null> {
+  try {
+    const result = await bridge.campaign.execute("inspectPriorities", sessionId);
+    return result.outcome === "success" ? countActiveAlerts(result.value.priorities) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
@@ -55,9 +73,10 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
           return;
         }
         emitWideEvent("campaign_open", sessionId, duration, "success");
+        const alerts = await loadActiveAlertsCount(bridge, sessionId);
         dispatch({
           type: "campaign-opened",
-          campaign: overviewFromProjection(sessionId, result.value.projection),
+          campaign: overviewFromProjection(sessionId, result.value.projection, alerts),
         });
       } catch (error) {
         dispatch({
@@ -132,9 +151,10 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
       if (bridge === undefined || sessionId === undefined) return;
       const result = await bridge.campaign.execute("inspectCampaign", sessionId);
       if (result.outcome !== "success") return;
+      const alerts = await loadActiveAlertsCount(bridge, sessionId);
       dispatch({
         type: "campaign-refreshed",
-        campaign: overviewFromProjection(sessionId, result.value.projection),
+        campaign: overviewFromProjection(sessionId, result.value.projection, alerts),
       });
     },
     [bridge, state.campaign?.sessionId],
@@ -167,7 +187,7 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
           nationName: state.campaign.nationName,
           projectedSurplusDeficit: state.campaign.projectedSurplusDeficit,
           atWar: state.campaign.atWar,
-          activeAlertsCount: null,
+          activeAlertsCount: state.campaign.activeAlertsCount,
         };
         dispatch({ type: "month-committed", campaign: nextCampaign });
         // The commit response carries no projection surface; refresh the rest.

@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   MapPin,
   Ship,
-  AlertTriangle,
   Info,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -31,6 +30,8 @@ import {
 } from "./overview-screen-state.js";
 import { activeConstructionProjects } from "../construction/construction-screen-state.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
+import { PrioritiesCard } from "./PrioritiesCard.js";
+import { usePriorities } from "./usePriorities.js";
 import { WorldMapPanel } from "../../components/world-map/WorldMapPanel.js";
 import { tensionLabel } from "@bluewave/campaign-engine";
 import { campaignNationLabel } from "../../components/world-map/campaign-map-join.js";
@@ -41,15 +42,8 @@ export interface OverviewScreenProps {
   readonly onNavigate: (screen: Screen) => void;
 }
 
-interface PriorityItem {
-  readonly id: string;
-  readonly title: string;
-  readonly summary: string;
-  readonly severity: string;
-  readonly destination: Screen;
-}
-
 export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
+  const priorities = usePriorities(sessionId);
   const bridge = window.bluewave;
   const [state, setState] = useState(initialOverviewScreenState);
   // Real project count from the construction projection (null until loaded or if unavailable).
@@ -117,10 +111,6 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
     tension: 10,
     label: tensionLabel(10),
   }));
-
-  // Immediate Priorities: placeholder until wired to buildPrioritiesProjection
-  // (INC-2) snapshot data. Honest empty-state copy verbatim per spec.
-  const priorities: readonly PriorityItem[] = [];
 
   return (
     <div data-guided-target="overview" className="space-y-8">
@@ -367,34 +357,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
         </CardContent>
       </GlassCard>
 
-      {/* Immediate Priorities — cap 5, severity-sorted, destination links, verbatim empty-state */}
-      <GlassCard glassVariant="liquid-refract">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-            Immediate Priorities
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-xs">
-          {priorities.length === 0 ? (
-            <p className="text-muted-foreground">
-              The Admiralty has identified no urgent concerns.
-            </p>
-          ) : (
-            priorities.slice(0, 5).map((p) => (
-              <div key={p.id} className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{p.title}</p>
-                  <p className="text-muted-foreground">{p.summary}</p>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => onNavigate(p.destination)}>
-                  {p.destination}
-                </Button>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </GlassCard>
+      <PrioritiesCard state={priorities} onNavigate={onNavigate} />
 
       {/* Recent Developments — honest empty state until INC-12 */}
       <GlassCard glassVariant="liquid-refract">
