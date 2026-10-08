@@ -41,7 +41,7 @@ export interface RevisionDecision {
   readonly reasonCodes: readonly string[];
 }
 
-const STRUCTURE_KEYS = new Set([
+export const STRUCTURE_KEYS: ReadonlySet<string> = new Set([
   "hullFormId",
   "lengthWl",
   "beam",

@@ -66,6 +66,11 @@ export interface CompiledDesignVersion {
   compiledHash: string;
   /** P-1: as-built torpedo mounts (absent = no torpedo armament). */
   torpedoArmament?: readonly CompiledTorpedoMount[];
+  /**
+   * The ship-design draft this version was compiled from (ADR-0070), as plain JSON. Only designs submitted through
+   * `SubmitDesign` carry one; authored pack designs have none. It lets a later revision start from the real design.
+   */
+  sourceDraft?: Readonly<Record<string, unknown>>;
 }
 
 export interface CompiledTorpedoMount {

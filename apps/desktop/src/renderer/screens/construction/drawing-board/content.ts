@@ -9,7 +9,6 @@ import {
   type DesignDraft,
   type HullFormRecord,
   type PropulsionPlant,
-  type RevisionBalance,
   type ShipBuildingContent,
   type ShipBuildingData,
 } from "@bluewave/ship-design";
@@ -31,8 +30,6 @@ export interface ReferenceDesign {
 /** Bundled EARLY-band ship-building content (v1) plus the reference designs offered as starting points. */
 export interface DrawingBoardContent extends ShipBuildingContent {
   readonly references: readonly ReferenceDesign[];
-  /** Revision-tier thresholds for changes made during construction (spec 15.4). */
-  readonly revision: RevisionBalance;
 }
 
 let cached: DrawingBoardContent | null = null;
@@ -51,7 +48,6 @@ export function loadDrawingBoardContent(): DrawingBoardContent {
   };
   cached = {
     ...buildShipBuildingContent(data),
-    revision: (data.balance as unknown as { revision: RevisionBalance }).revision,
     references: (parse(referencesYaml) as { designs: ReferenceDesign[] }).designs,
   };
   return cached;

@@ -62,3 +62,4 @@ Refresh this table from each file's H1 when one is added or re-titled.
 | 0056 | [ADR-0056-battle-generation-strength-floors.md](ADR-0056-battle-generation-strength-floors.md) | Battle-Generation Strength Floors — Per-Side Fix Now, Unit Deferred |
 | 0057 | [ADR-0057-desktop-battle-sandbox-scenario.md](ADR-0057-desktop-battle-sandbox-scenario.md) | Desktop Tactical Sandbox Runs on an Ephemeral Scenario Copy |
 | 0069 | [ADR-0069-1880-nation-borders.md](ADR-0069-1880-nation-borders.md) | 1880 borders for the playable nations (presentation layer) |
+| 0070 | [ADR-0070-revise-project-command.md](ADR-0070-revise-project-command.md) | ReviseProject command and retained source drafts |

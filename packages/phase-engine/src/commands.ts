@@ -1,9 +1,4 @@
-import type {
-  CampaignSnapshot,
-  CompiledDesignVersion,
-  DesignFamily,
-  NationState,
-} from "@bluewave/campaign";
+import type { CampaignSnapshot, DesignFamily, NationState } from "@bluewave/campaign";
 import {
   applyCommanderChange,
   DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE,
@@ -18,14 +13,10 @@ import type {
   SetBudgetAllocationCommand,
   SubmitDesignCommand,
 } from "@bluewave/commands";
-import {
-  compileDesign,
-  toEngineDesign,
-  type DesignDraft,
-  type ShipBuildingContent,
-} from "@bluewave/ship-design";
+import { compileDesign, type DesignDraft, type ShipBuildingContent } from "@bluewave/ship-design";
 import { SafeInt } from "@bluewave/contracts";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
+import { buildDesignVersion } from "./designVersion.js";
 import { EventLedger } from "@bluewave/events";
 import type { FinancialLedger } from "./financial-ledger.js";
 import { budgetChangedEvent, makeLedgerEntry } from "./events.js";
@@ -300,7 +291,7 @@ export function applySubmitDesign(
       `Design ${body["designVersionId"]} cannot be built: ${blocking.join(", ")}`,
     );
   }
-  const e = toEngineDesign(compiled, draft, {
+  const design = buildDesignVersion(compiled, draft, {
     designVersionId: body["designVersionId"],
     designFamilyId: body["designFamilyId"],
     className: body["className"],
@@ -309,32 +300,6 @@ export function applySubmitDesign(
     contentVersion: currentSnapshot["rulesetVersion"],
     kgPerHitPoint: content.kgPerHitPoint,
   });
-  const design: CompiledDesignVersion = {
-    designVersionId: e.designVersionId,
-    designFamilyId: e.designFamilyId,
-    className: e.className,
-    nationId: e.nationId,
-    hullType: e.hullType,
-    normalizedDisplacementKg: SafeInt(e.normalizedDisplacementKg),
-    normalizedSpeedUms: SafeInt(e.normalizedSpeedUms),
-    normalizedArmorUm: SafeInt(e.normalizedArmorUm),
-    hitPoints: SafeInt(e.hitPoints),
-    mainGunsCaliber: SafeInt(e.mainGunsCaliber),
-    mainGunsCount: SafeInt(e.mainGunsCount),
-    machineryType: e.machineryType,
-    crewComplement: SafeInt(e.crewComplement),
-    contentVersion: e.contentVersion,
-    compiledHash: e.compiledHash,
-    ...(e.torpedoArmament
-      ? {
-          torpedoArmament: e.torpedoArmament.map((m) => ({
-            mountType: m.mountType,
-            tubeCount: SafeInt(m.tubeCount),
-            torpedoModelId: m.torpedoModelId,
-          })),
-        }
-      : {}),
-  };
   const existing = currentSnapshot["designFamilies"].get(body["designFamilyId"]);
   const family: DesignFamily = existing
     ? {

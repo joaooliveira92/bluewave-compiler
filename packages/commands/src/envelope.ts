@@ -17,6 +17,7 @@ export type CommandBody =
   | SetBudgetAllocationCommand
   | MoveFleetCommand
   | SubmitDesignCommand
+  | ReviseProjectCommand
   | AssignOfficerCommand
   | RelieveOfficerCommand
   | DeclareWarCommand
@@ -69,6 +70,20 @@ export interface SubmitDesignCommand {
   className: string;
   hullType: string;
   machineryType: string;
+  draft: unknown;
+}
+/**
+ * Revises a construction project with a changed design (ADR-0070). `draft` is the whole new DesignDraft; the project's
+ * current design must carry its source draft. The change is classified from the two drafts and the project's work
+ * (spec 15.4) when the month applies the command: a free change or revision swaps the design, a redesign also
+ * loses hull progress, and a change past the redesign window is refused (it needs a rebuild project).
+ */
+export interface ReviseProjectCommand {
+  type: "ReviseProject";
+  nationId: string;
+  projectId: string;
+  /** Id of the new design version; the project's family gains this member. */
+  newDesignVersionId: string;
   draft: unknown;
 }
 export interface AssignOfficerCommand {

@@ -23,7 +23,11 @@ const detMocks = vi.hoisted(() => ({
   })),
   verifyEnvelope: vi.fn(() => true),
 }));
-vi.mock("@bluewave/deterministic", () => detMocks);
+// Partial mock: ship-design (loaded through commands and phase-engine) needs the real powRational at import time.
+vi.mock("@bluewave/deterministic", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  ...detMocks,
+}));
 
 const compilerMock = vi.hoisted(() => ({ compile: vi.fn() }));
 vi.mock("@bluewave/content-compiler", () => ({

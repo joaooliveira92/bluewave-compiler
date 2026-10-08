@@ -20,7 +20,7 @@ const project = (donePct: number, status = "ACTIVE"): RevisionProject => ({
 
 describe("revision preview", () => {
   it("loads the revision balance from content", () => {
-    expect(content.revision).toMatchObject({
+    expect(content.revision!).toMatchObject({
       freeBelowBp: 500,
       revisionBelowBp: 2500,
       redesignBelowBp: 5000,
@@ -28,7 +28,7 @@ describe("revision preview", () => {
   });
   it("no edits means no preview", () => {
     expect(changeKinds([], start, start, cat)).toEqual([]);
-    expect(previewRevision([], project(10), content.revision)).toBeNull();
+    expect(previewRevision([], project(10), content.revision!)).toBeNull();
   });
   it("classifies hull geometry edits as structure and fittings as fittings", () => {
     const hull = { kind: "set_hull", patch: { beam: 13000 } } as never;
@@ -46,23 +46,23 @@ describe("revision preview", () => {
   });
   it("tier rises with progress for the same fittings change", () => {
     const tiers = [2, 10, 30, 60].map(
-      (p) => previewRevision(["FITTINGS"], project(p), content.revision)!.tier,
+      (p) => previewRevision(["FITTINGS"], project(p), content.revision!)!.tier,
     );
     expect(tiers).toEqual(["T0_FREE", "T1_REVISION", "T2_REDESIGN", "T3_RECONSTRUCTION"]);
   });
   it("T3 asks for a rebuild project; T1 has the spec's minimum delay of one month", () => {
     expect(
-      previewRevision(["FITTINGS"], project(60), content.revision)!.requiresRebuildProject,
+      previewRevision(["FITTINGS"], project(60), content.revision!)!.requiresRebuildProject,
     ).toBe(true);
     expect(
-      previewRevision(["FITTINGS"], project(10), content.revision)!.delayMonths,
+      previewRevision(["FITTINGS"], project(10), content.revision!)!.delayMonths,
     ).toBeGreaterThanOrEqual(1);
   });
   it("a project with zero total work is treated as fully progressed, not a divide-by-zero", () => {
     const d = previewRevision(
       ["FITTINGS"],
       { ...project(0), totalWork: 0, completedWork: 0 },
-      content.revision,
+      content.revision!,
     )!;
     expect(d.progressBp).toBe(10_000);
   });

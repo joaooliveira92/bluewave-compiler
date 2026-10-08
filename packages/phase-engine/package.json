@@ -12,6 +12,7 @@
   "dependencies": {
     "@bluewave/ai": "workspace:*",
     "@bluewave/campaign": "workspace:*",
+    "@bluewave/campaign-engine": "workspace:*",
     "@bluewave/combat": "workspace:*",
     "@bluewave/commands": "workspace:*",
     "@bluewave/content-schema": "workspace:*",

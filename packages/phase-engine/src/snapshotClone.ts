@@ -341,6 +341,7 @@ const F = {
     "contentVersion",
     "compiledHash",
     "torpedoArmament",
+    "sourceDraft",
   ),
   DesignFamily: fields<DesignFamily>()(
     "designFamilyId",

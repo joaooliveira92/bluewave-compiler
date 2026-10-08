@@ -1,5 +1,8 @@
 import type { DraftEdit } from "@bluewave/ship-design";
 
+const show = (v: unknown): string =>
+  typeof v === "object" && v !== null ? JSON.stringify(v) : String(v);
+
 const words = (s: string) =>
   s
     .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -11,11 +14,11 @@ export function describeEdit(e: DraftEdit, nameOf: (componentId: string) => stri
   switch (e.kind) {
     case "set_hull":
       return `Hull: ${Object.entries(e.patch)
-        .map(([k, v]) => `${words(k)} → ${String(v)}`)
+        .map(([k, v]) => `${words(k)} → ${show(v)}`)
         .join(", ")}`;
     case "set_machinery":
       return `Machinery: ${Object.entries(e.patch)
-        .map(([k, v]) => `${words(k)} → ${String(v)}`)
+        .map(([k, v]) => `${words(k)} → ${show(v)}`)
         .join(", ")}`;
     case "add_placement":
       return `Add ${nameOf(e.placement.componentId)} to ${words(e.placement.zoneId)}`;

@@ -31,10 +31,18 @@ export function RevisionPanel({
   readonly startDraft: DesignDraft;
   readonly content: DrawingBoardContent;
 }) {
+  const balance = content.revision;
   const open = revisableProjects(projects);
   const [chosen, setChosen] = useState<string>("");
   const project = open.find((p) => p.projectId === chosen) ?? open[0];
   const categories = new Map(content.components.map((c) => [c.id, c.category]));
+  if (balance === null) {
+    return (
+      <Panel title="Revision preview">
+        <p className="text-sm text-muted-foreground">This ruleset has no revision rules.</p>
+      </Panel>
+    );
+  }
   if (project === undefined) {
     return (
       <Panel title="Revision preview">
@@ -45,7 +53,7 @@ export function RevisionPanel({
     );
   }
   const kinds = changeKinds(history, startDraft, draft, (id) => categories.get(id));
-  const d = previewRevision(kinds, project, content.revision);
+  const d = previewRevision(kinds, project, balance);
   return (
     <Panel title="Revision preview">
       <SelectField

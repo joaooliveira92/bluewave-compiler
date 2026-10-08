@@ -19,6 +19,9 @@
       "path": "../campaign"
     },
     {
+      "path": "../campaign-engine"
+    },
+    {
       "path": "../commands"
     },
     {

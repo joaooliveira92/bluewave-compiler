@@ -50,6 +50,7 @@ export function validatePayloadRules(
   if (envelope.body.type === "AssignOfficer") return validateAssignOfficer(envelope, snapshot);
   if (envelope.body.type === "RelieveOfficer") return validateRelieveOfficer(envelope, snapshot);
   if (envelope.body.type === "SubmitDesign") return validateSubmitDesign(envelope, snapshot);
+  if (envelope.body.type === "ReviseProject") return validateReviseProject(envelope, snapshot);
   if (envelope.body.type === "MoveFleet") {
     const move = envelope.body;
     const problem = fleetMoveProblem(snapshot, move.nationId, move.fleetId, move.toAreaId);
@@ -178,6 +179,73 @@ function validateSetBudgetAllocation(
     return reject(
       "INVALID_COMMAND_PAYLOAD",
       `researchBudget must be an integer in ${String(RESEARCH_BUDGET_MIN)}..${String(RESEARCH_BUDGET_MAX)}`,
+    );
+  return { ok: true };
+}
+
+function validateReviseProject(
+  envelope: CommandEnvelope<CommandBody>,
+  snapshot: CampaignSnapshot,
+): LifecycleStepResult {
+  const body = envelope.body as Extract<CommandBody, { type: "ReviseProject" }>;
+  const nation = snapshot.nations.get(body.nationId);
+  if (!nation)
+    return rejectValidation(
+      envelope,
+      snapshot,
+      "INVALID_NATION_ID",
+      `Nation ${body.nationId} not found`,
+    );
+  const project = nation.constructionProjects.find((p) => p.id === body.projectId);
+  if (!project)
+    return rejectValidation(
+      envelope,
+      snapshot,
+      "INVALID_COMMAND_PAYLOAD",
+      `Project ${body.projectId} not found`,
+    );
+  if (project.status === "COMPLETED")
+    return rejectValidation(
+      envelope,
+      snapshot,
+      "INVALID_COMMAND_PAYLOAD",
+      `Project ${body.projectId} is complete and cannot be revised`,
+    );
+  if (!/^[a-z][a-z0-9_]{1,63}$/.test(body.newDesignVersionId))
+    return rejectValidation(
+      envelope,
+      snapshot,
+      "INVALID_COMMAND_PAYLOAD",
+      "Design id must be lower snake_case (2-64 characters)",
+    );
+  if (snapshot.designs.has(body.newDesignVersionId))
+    return rejectValidation(
+      envelope,
+      snapshot,
+      "INVALID_COMMAND_PAYLOAD",
+      `Design ${body.newDesignVersionId} already exists`,
+    );
+  if (snapshot.designs.get(project.designVersionId)?.sourceDraft === undefined)
+    return rejectValidation(
+      envelope,
+      snapshot,
+      "INVALID_COMMAND_PAYLOAD",
+      `Project ${body.projectId} was built from an authored design with no source draft and cannot be revised`,
+    );
+  const problems = validateDraftShape(body.draft);
+  if (problems.length > 0)
+    return rejectValidation(
+      envelope,
+      snapshot,
+      "INVALID_COMMAND_PAYLOAD",
+      `Design draft is malformed: ${problems.join("; ")}`,
+    );
+  if ((body.draft as { nationId?: unknown }).nationId !== body.nationId)
+    return rejectValidation(
+      envelope,
+      snapshot,
+      "INVALID_COMMAND_PAYLOAD",
+      "The draft belongs to a different nation",
     );
   return { ok: true };
 }

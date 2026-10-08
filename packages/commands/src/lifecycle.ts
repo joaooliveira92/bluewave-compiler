@@ -216,6 +216,17 @@ export class CommandLifecycle {
         snapshotHash,
         result: { nationId: body.nationId, designVersionId: body.designVersionId },
       };
+    if (body.type === "ReviseProject")
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: {
+          nationId: body.nationId,
+          projectId: body.projectId,
+          newDesignVersionId: body.newDesignVersionId,
+        },
+      };
     if (body.type === "MoveFleet")
       return {
         type: "success",

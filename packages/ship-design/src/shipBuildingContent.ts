@@ -12,6 +12,7 @@ import type { Facility } from "./compile.js";
 import type { PropulsionPlant } from "./machinery.js";
 import type { ThreatProfile } from "./armour.js";
 import type { WorkshopEnvironment } from "./workshop.js";
+import type { RevisionBalance } from "./revision.js";
 import { buildYards } from "./yards.js";
 
 /** Parsed (not yet interpreted) ship-building data: the YAML files of content/production/<scenario>/ship-building. */
@@ -25,6 +26,8 @@ export interface ShipBuildingData {
     readonly construction: ConstructionBalance;
     readonly cve: CveBalance;
     readonly ai?: Readonly<Record<ArchetypeId, ArchetypeSpec>>;
+    /** Revision-tier thresholds (spec 15.4); absent in older packs, in which case revisions are refused. */
+    readonly revision?: RevisionBalance;
     readonly environment: {
       readonly threats: readonly ThreatProfile[];
       readonly facilities: readonly Facility[];
@@ -46,6 +49,8 @@ export interface ShipBuildingContent {
   /** Ruleset constant for the engine projection (displacement per hit point). */
   readonly kgPerHitPoint: number;
   readonly aiEnvironmentFor: (month: string) => AiEnvironment;
+  /** Revision-tier thresholds, or null when the pack has none. */
+  readonly revision: RevisionBalance | null;
 }
 
 /** Technology is available once its year has begun; month ids are YYYY-MM. */
@@ -88,6 +93,7 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
     hullForms: data.hullForms,
     environmentFor,
     kgPerHitPoint: data.balance.environment.kgPerHitPoint,
+    revision: data.balance.revision ?? null,
     aiEnvironmentFor: (month) => {
       if (!data.balance.ai) throw new Error("ship-building balance has no 'ai' section");
       const env = environmentFor(month);

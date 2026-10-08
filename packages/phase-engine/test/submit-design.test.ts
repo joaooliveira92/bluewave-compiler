@@ -114,6 +114,15 @@ function run(
 }
 
 describe("SubmitDesign through the month", () => {
+  it("keeps the submitted draft with the design so it can be revised later (ADR-0070)", () => {
+    const snapshot = snapshotIn(1895);
+    const { designs } = run(snapshot, [submit(snapshot)]);
+    const d = designs.get("des_test_destroyer")!;
+    expect(d.sourceDraft).toEqual(havockDraft);
+    // a copy, not the caller's object
+    expect(d.sourceDraft).not.toBe(havockDraft);
+  });
+
   it("compiles a valid design and adds it, with its family, to the snapshot", () => {
     const snapshot = snapshotIn(1895);
     const { designs, families, collector } = run(snapshot, [submit(snapshot)]);

@@ -21,6 +21,7 @@ export type {
   AssignOfficerCommand,
   MoveFleetCommand,
   SubmitDesignCommand,
+  ReviseProjectCommand,
   RelieveOfficerCommand,
   SetBudgetAllocationCommand,
   SetResearchPriorityCommand,
