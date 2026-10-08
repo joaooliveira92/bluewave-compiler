@@ -1,4 +1,4 @@
-import { warScoreSplit } from "../diplomacy-screen-state.js";
+import { warScoreSplit } from "../diplomacy-presentation.js";
 
 export interface WarScoreBarProps {
   readonly war: Parameters<typeof warScoreSplit>[0];

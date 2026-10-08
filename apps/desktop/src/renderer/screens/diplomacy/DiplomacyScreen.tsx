@@ -1,48 +1,20 @@
-import {
-  AlertCircle,
-  Anchor,
-  CheckCircle2,
-  Handshake,
-  History,
-  Info,
-  Swords,
-  X,
-} from "lucide-react";
+import { Handshake, History } from "lucide-react";
 import { PageHeader } from "../../components/shared/PageHeader.js";
-import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert.js";
-import { Badge } from "../../components/ui/badge.js";
-import { Button } from "../../components/ui/button.js";
-import { CardContent, CardHeader, CardTitle } from "../../components/ui/card.js";
-import { GlassCard } from "../../components/ui/glass-card.js";
 import { GlassSectionCard } from "../../components/shared/GlassSectionCard.js";
 import { debugRevisionActions } from "../../components/shared/debugRevisionActions.js";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../components/ui/select.js";
-import { Skeleton } from "../../components/ui/skeleton.js";
-import type { DiplomacyScreenProjection } from "../../../shared/diplomacy-contract.js";
-import { isHighTension, tensionLabel } from "@bluewave/campaign-engine";
-import { NATION_DOSSIER_FIELDS } from "../../content/nationDossierFields.js";
-import { nationIdToCountryId } from "../new-game/nation-selection/slotBridge.js";
-import { humanizeId } from "../../lib/humanize-id.js";
-import { DEBUG_MODE } from "../../shell/debug-flag.js";
-import { DeferredFeaturesPanel } from "../../components/shared/DeferredFeaturesPanel.js";
-import { WarScoreBar } from "./components/WarScoreBar.js";
-import { BattleHistorySection } from "./components/BattleHistorySection.js";
+  BattleHistorySection,
+  BlockadesSection,
+  CommandQueueBar,
+  DiplomacyLoadErrorState,
+  DiplomacyLoadingState,
+  DiplomacyNotice,
+  RelationsSection,
+  WarsSection,
+} from "./components/index.js";
+import { buildDiplomacyViewModel } from "./diplomacy-view-model.js";
 import { useBattleHistory } from "./hooks/useBattleHistory.js";
 import { useDiplomacyScreen } from "./hooks/useDiplomacyScreen.js";
-import {
-  DEFERRED_INTEL_ITEMS,
-  DEFERRED_WAR_ITEMS,
-  RELATION_LABELS,
-  diplomacyLegalActions,
-  tensionBadgeLabel,
-  type DiplomacyDraftCommand,
-} from "./diplomacy-screen-state.js";
 
 /**
  * Diplomacy & War screen (desktop-diplomacy-war INC-3). Renders ONLY data
@@ -69,49 +41,15 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
   const battleHistory = useBattleHistory(sessionId, state.revision);
 
   if (state.kind === "load-failed") {
-    return (
-      <div data-guided-target="diplomacy" className="space-y-6">
-        <PageHeader
-          icon={Handshake}
-          title="Diplomacy & War"
-          description="Relations, wars and blockades from the compiled campaign state."
-        />
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Diplomacy screen failed to load</AlertTitle>
-          <AlertDescription className="flex flex-col gap-2">
-            <span className="whitespace-pre-wrap">{state.message}</span>
-            <Button variant="outline" size="sm" className="w-fit" onClick={() => void reload()}>
-              Retry
-            </Button>
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
+    return <DiplomacyLoadErrorState message={state.message} onRetry={() => void reload()} />;
   }
 
   if (state.kind === "idle" || state.kind === "loading") {
-    return (
-      <div data-guided-target="diplomacy" className="space-y-6">
-        <PageHeader
-          icon={Handshake}
-          title="Diplomacy & War"
-          description="Relations, wars and blockades from the compiled campaign state."
-        />
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {[0, 1, 2].map((idx) => (
-            <Skeleton key={idx} className="h-28" />
-          ))}
-        </div>
-      </div>
-    );
+    return <DiplomacyLoadingState />;
   }
 
   const busy = state.kind === "submitting";
-  const projection = state.projection;
-  const playerCountryId = nationIdToCountryId(projection.playerNationId);
-  const likelyRivals: readonly string[] =
-    playerCountryId !== null ? NATION_DOSSIER_FIELDS[playerCountryId].likelyRivals : [];
+  const vm = buildDiplomacyViewModel(state.projection, state.draftCommand);
 
   return (
     <div data-guided-target="diplomacy" className="space-y-6">
@@ -123,178 +61,14 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
       />
 
       {state.notice !== null && (
-        <Alert variant={state.kind === "submitted" ? "default" : "destructive"}>
-          {state.kind === "submitted" ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <Info className="h-4 w-4" />
-          )}
-          {state.kind === "submitted" ? (
-            <AlertTitle>Command queued</AlertTitle>
-          ) : (
-            <AlertTitle>Not applied</AlertTitle>
-          )}
-          <AlertDescription className="whitespace-pre-wrap">{state.notice}</AlertDescription>
-        </Alert>
+        <DiplomacyNotice submitted={state.kind === "submitted"} notice={state.notice} />
       )}
 
-      <GlassSectionCard
-        icon={<Handshake className="h-4 w-4 text-muted-foreground" />}
-        title="Relations"
-        description="Every nation's relation, tension, NAP and start of the current stance."
-      >
-        {projection.relations.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No relations recorded yet</p>
-        ) : (
-          <div className="space-y-2.5">
-            {projection.relations.map((row) => {
-              const actions = diplomacyLegalActions(row);
-              const isLikelyRival = likelyRivals.includes(row.partnerName);
-              const highTension = isHighTension(row.tension);
-              const tensionBadge = tensionBadgeLabel(row.relation, row.tension);
-              return (
-                <div key={row.partnerNationId} className="rounded-md border px-3 py-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-medium">{row.partnerName}</span>
-                      {isLikelyRival && <Badge variant="outline">Likely rival</Badge>}
-                      <Badge variant="secondary">{RELATION_LABELS[row.relation]}</Badge>
-                      {tensionBadge !== null && <Badge variant="outline">{tensionBadge}</Badge>}
-                      <span className="text-xs text-muted-foreground">
-                        tension {row.tension}/10
-                      </span>
-                      {row.nap && <Badge variant="outline">NAP</Badge>}
-                      <span className="text-xs text-muted-foreground">since {row.since}</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-1">
-                      {actions.map((kind) => (
-                        <Button
-                          key={kind}
-                          variant="outline"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => setRowAction(row.partnerNationId, kind)}
-                        >
-                          {ACTION_LABELS[kind]}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                  {highTension && (
-                    <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
-                      Relations with {row.partnerName} are{" "}
-                      {humanizeId(tensionLabel(row.tension)).toLowerCase()}; war is possible
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Commands are validated by the engine when submitted — a rejected command shows the
-          engine's code, never a fabricated message.
-        </p>
-        <DeferredFeaturesPanel
-          items={DEFERRED_INTEL_ITEMS}
-          testId="intel-deferred"
-          title="Intelligence — not yet modelled by the engine"
-        />
-      </GlassSectionCard>
+      <RelationsSection rows={vm.relations} busy={busy} onRowAction={setRowAction} />
 
-      <GlassSectionCard
-        icon={<Swords className="h-4 w-4 text-muted-foreground" />}
-        title="Wars"
-        description="Player-involved wars with war scores, status and dates."
-      >
-        {projection.wars.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No wars yet</p>
-        ) : (
-          <div className="space-y-2.5">
-            {projection.wars.map((war) => (
-              <div key={war.warId} className="rounded-md border px-3 py-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {DEBUG_MODE && <span className="font-mono text-xs">{war.warId}</span>}
-                    <Badge variant={war.status === "ENDED" ? "secondary" : "destructive"}>
-                      {war.status}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {sideLabel(projection, war.attackerSideMembers)} vs{" "}
-                      {sideLabel(projection, war.defenderSideMembers)}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      score {war.attackerWarScore}:{war.defenderWarScore}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {war.startDate}
-                      {war.endDate !== undefined ? ` — ${war.endDate}` : ""}
-                    </span>
-                    <Badge variant="outline">
-                      you: {war.playerSide === "attacker" ? "attacker" : "defender"}
-                    </Badge>
-                  </div>
-                  {war.status === "ACTIVE" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={busy}
-                      onClick={() => setPeaceAction(war.warId)}
-                    >
-                      Accept peace
-                    </Button>
-                  )}
-                </div>
-                <div className="mt-2">
-                  <WarScoreBar
-                    war={war}
-                    yourName={sideLabel(
-                      projection,
-                      war.playerSide === "attacker"
-                        ? war.attackerSideMembers
-                        : war.defenderSideMembers,
-                    )}
-                    enemyName={sideLabel(
-                      projection,
-                      war.playerSide === "attacker"
-                        ? war.defenderSideMembers
-                        : war.attackerSideMembers,
-                    )}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        <DeferredFeaturesPanel items={DEFERRED_WAR_ITEMS} testId="war-deferred" />
-      </GlassSectionCard>
+      <WarsSection rows={vm.wars} busy={busy} onPeaceAction={setPeaceAction} />
 
-      <GlassSectionCard
-        icon={<Anchor className="h-4 w-4 text-muted-foreground" />}
-        title="Blockades"
-        description="Blockade coverage involving your nation, per strategic area."
-      >
-        {projection.blockades.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No blockades yet</p>
-        ) : (
-          <div className="space-y-1.5">
-            {projection.blockades.map((blockade) => (
-              <div
-                key={`${blockade.blockaderId}:${blockade.blockadedNationId}:${blockade.areaId}`}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
-              >
-                <span className="text-sm">
-                  {nationName(projection, blockade.blockaderId)} →{" "}
-                  {nationName(projection, blockade.blockadedNationId)}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  in {areaName(projection, blockade.areaId)} · since {blockade.establishedMonth}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </GlassSectionCard>
+      <BlockadesSection rows={vm.blockades} />
 
       <GlassSectionCard
         icon={<History className="h-4 w-4 text-muted-foreground" />}
@@ -306,8 +80,9 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
 
       <CommandQueueBar
         busy={busy}
-        projection={projection}
+        areas={state.projection.areas}
         draft={state.draftCommand}
+        draftLabel={vm.draftLabel}
         canSubmit={canSubmit}
         onAreaChange={setBlockadeArea}
         onClear={clearDraft}
@@ -315,137 +90,4 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
       />
     </div>
   );
-}
-
-function CommandQueueBar({
-  busy,
-  projection,
-  draft,
-  canSubmit,
-  onAreaChange,
-  onClear,
-  onApply,
-}: {
-  readonly busy: boolean;
-  readonly projection: DiplomacyScreenProjection;
-  readonly draft: DiplomacyDraftCommand | null;
-  readonly canSubmit: boolean;
-  readonly onAreaChange: (areaId: string) => void;
-  readonly onClear: () => void;
-  readonly onApply: () => void;
-}) {
-  const declaringWar = draft?.kind === "DeclareWar";
-  return (
-    // Pinned to the bottom of the viewport so a drafted action is visible the
-    // moment it is created, however far down the relations list it was clicked.
-    // The sticky element must be this plain wrapper: GlassCard nests its own
-    // overflow-hidden container, which would confine `sticky` to the card.
-    <div className="sticky bottom-4 z-10 rounded-xl bg-background shadow-lg">
-      <GlassCard glassVariant="liquid-refract">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
-            <Handshake className="h-4 w-4 text-muted-foreground" />
-            Command queue
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {draft === null ? (
-            <p className="text-sm text-muted-foreground">
-              No command selected. Pick an action on a relation row or accept peace on an active
-              war.
-            </p>
-          ) : (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border px-3 py-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm">{describeDraft(projection, draft)}</span>
-                {draft.kind === "DeclareBlockade" && (
-                  <Select
-                    value={draft.areaId}
-                    onValueChange={(areaId) => onAreaChange(areaId)}
-                    disabled={busy}
-                    className="w-52"
-                  >
-                    <SelectTrigger aria-label="Blockade area">
-                      <SelectValue placeholder="Area" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projection.areas.map((area) => (
-                        <SelectItem key={area.areaId} value={area.areaId}>
-                          {DEBUG_MODE ? `${area.name} (${area.areaId})` : area.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Button variant="ghost" size="sm" disabled={busy} onClick={onClear}>
-                  <X className="h-3.5 w-3.5" />
-                  Clear
-                </Button>
-                <Button
-                  size="sm"
-                  variant={declaringWar ? "destructive" : "default"}
-                  disabled={!canSubmit || busy}
-                  onClick={onApply}
-                >
-                  {busy ? "Submitting…" : declaringWar ? "Declare war" : "Submit command"}
-                </Button>
-              </div>
-            </div>
-          )}
-          {declaringWar && (
-            <p role="alert" className="text-sm font-medium text-destructive">
-              Once submitted, a declaration of war cannot be cancelled from this screen. It takes
-              effect when you advance the month.
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            Queued commands are applied by the engine on the <strong>next turn advance</strong> —
-            the engine remains the only writer of relations, wars and blockades.
-          </p>
-        </CardContent>
-      </GlassCard>
-    </div>
-  );
-}
-
-const ACTION_LABELS: Readonly<Record<string, string>> = {
-  DeclareWar: "Declare war",
-  AcceptPeace: "Accept peace",
-  FormAlliance: "Form alliance",
-  BreakAlliance: "Break alliance",
-  FormNonAggressionPact: "Form NAP",
-  BreakNonAggressionPact: "Break NAP",
-  DeclareBlockade: "Blockade",
-};
-
-function describeDraft(
-  projection: DiplomacyScreenProjection,
-  draft: DiplomacyDraftCommand,
-): string {
-  const base = `${ACTION_LABELS[draft.kind] ?? draft.kind}`;
-  switch (draft.kind) {
-    case "AcceptPeace":
-      return `${base} in war ${draft.warId ?? "(unknown)"}`;
-    case "DeclareBlockade":
-      return `${base} on ${nationName(projection, draft.partnerNationId)}`;
-    default:
-      return `${base} with ${nationName(projection, draft.partnerNationId)}`;
-  }
-}
-
-function nationName(projection: DiplomacyScreenProjection, nationId: string): string {
-  return (
-    projection.knownNations.find((n) => n.nationId === nationId)?.name ??
-    (nationId === projection.playerNationId ? "your nation" : nationId)
-  );
-}
-
-function sideLabel(projection: DiplomacyScreenProjection, memberIds: readonly string[]): string {
-  return memberIds.map((id) => nationName(projection, id)).join(" + ") || "—";
-}
-
-function areaName(projection: DiplomacyScreenProjection, areaId: string): string {
-  return projection.areas.find((a) => a.areaId === areaId)?.name ?? areaId;
 }
