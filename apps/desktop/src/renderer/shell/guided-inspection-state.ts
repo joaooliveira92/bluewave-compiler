@@ -20,7 +20,8 @@ export const GUIDED_INSPECTION_STEPS: readonly GuidedStep[] = [
   {
     id: "overview",
     title: "Overview — Your Naval Position",
-    description: "Your fleet strength, dock capacity, and foreign posture at a glance.",
+    description:
+      "The world map with your fleets, areas and nations; your treasury and balance sit in the status strip below.",
     targetSelector: "[data-guided-target='overview']",
     screenId: "overview",
   },
