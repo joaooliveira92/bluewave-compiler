@@ -104,12 +104,7 @@ export function validateAcceptPeace(
     return rejectValidation(envelope, snapshot, "PEACE_INVALID", "warId must be non-empty");
   const war = snapshot.wars.wars.find((w) => w.id === body.warId);
   if (!war)
-    return rejectValidation(
-      envelope,
-      snapshot,
-      "PEACE_INVALID",
-      `War ${body.warId} not found`,
-    );
+    return rejectValidation(envelope, snapshot, "PEACE_INVALID", `War ${body.warId} not found`);
   if (war.status !== "ACTIVE")
     return rejectValidation(
       envelope,

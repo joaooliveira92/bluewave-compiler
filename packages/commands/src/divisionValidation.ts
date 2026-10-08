@@ -1,5 +1,10 @@
 import type { CampaignSnapshot } from "@bluewave/campaign";
-import { DIVISION_FORMATIONS, DIVISION_MAX_SHIPS, DIVISION_ROLES, VACANT } from "@bluewave/campaign";
+import {
+  DIVISION_FORMATIONS,
+  DIVISION_MAX_SHIPS,
+  DIVISION_ROLES,
+  VACANT,
+} from "@bluewave/campaign";
 import type {
   AddShipToDivisionCommand,
   ChangeDivisionFlagshipCommand,

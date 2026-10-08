@@ -62,15 +62,15 @@ export function validatePayloadRules(
   if (envelope.body.type === "FormAlliance") return validateFormAlliance(envelope, snapshot);
   if (envelope.body.type === "BreakAlliance") return validateBreakAlliance(envelope, snapshot);
   if (envelope.body.type === "FormNonAggressionPact") return validateFormNap(envelope, snapshot);
-  if (envelope.body.type === "BreakNonAggressionPact")
-    return validateBreakNap(envelope, snapshot);
+  if (envelope.body.type === "BreakNonAggressionPact") return validateBreakNap(envelope, snapshot);
   if (envelope.body.type === "DeclareBlockade") return validateDeclareBlockade(envelope, snapshot);
   if (envelope.body.type === "CreateDivision") return validateCreateDivision(envelope, snapshot);
   if (envelope.body.type === "AddShipToDivision")
     return validateAddShipToDivision(envelope, snapshot);
   if (envelope.body.type === "RemoveShipFromDivision")
     return validateRemoveShipFromDivision(envelope, snapshot);
-  if (envelope.body.type === "DissolveDivision") return validateDissolveDivision(envelope, snapshot);
+  if (envelope.body.type === "DissolveDivision")
+    return validateDissolveDivision(envelope, snapshot);
   if (envelope.body.type === "ChangeDivisionFlagship")
     return validateChangeDivisionFlagship(envelope, snapshot);
   if (envelope.body.type !== "budget_project") {
