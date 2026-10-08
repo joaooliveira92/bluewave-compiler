@@ -72,6 +72,21 @@ describe("DrawingBoard", () => {
     ).toBeTruthy();
   });
 
+  it("suggests fixes for an overweight ship, previews their effect, and applying one improves the design", () => {
+    render(<DrawingBoard />);
+    commit(/coal bunkers/i, "400");
+    const validation = region("Validation");
+    expect(within(validation).getByRole("status").textContent).toContain("cannot be built");
+    fireEvent.click(within(validation).getByRole("button", { name: /suggest fixes/i }));
+    const list = within(validation).getByRole("list", { name: /suggested fixes/i });
+    expect(within(list).getAllByRole("listitem").length).toBeGreaterThan(0);
+    expect(list.textContent).toMatch(/blocking \d+ → \d+/);
+    fireEvent.click(within(list).getAllByRole("button", { name: /apply/i })[0]!);
+    // the suggestion list belongs to the old design and disappears
+    expect(within(validation).queryByRole("list", { name: /suggested fixes/i })).toBeNull();
+    expect(within(validation).getByRole("status").textContent).toMatch(/\d+ blocking/);
+  });
+
   it("adds and removes components", () => {
     render(<DrawingBoard />);
     const rows = () => within(region("Components and arrangement")).getAllByRole("row").length;

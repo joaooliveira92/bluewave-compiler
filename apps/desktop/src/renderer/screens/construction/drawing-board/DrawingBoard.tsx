@@ -75,7 +75,7 @@ export function DrawingBoard() {
           <ArmourPanel draft={draft} edit={actions.edit} />
         </div>
         <div className="space-y-4">
-          <FindingsPanel view={view} />
+          <FindingsPanel view={view} suggest={actions.suggest} onApply={actions.edit} />
           <MetricsPanel view={view} />
           <LedgerPanel view={view} />
           <ForecastPanel view={view} />

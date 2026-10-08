@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   buildWorkshopView,
+  suggestFixes,
+  type SuggestedFix,
   canRedo,
   canUndo,
   currentDraft,
@@ -39,6 +41,8 @@ export interface DrawingBoardActions {
   readonly redo: () => void;
   readonly loadPreset: (id: string) => void;
   readonly setMonth: (month: string) => void;
+  /** Previews candidate edits by recompiling; call on demand, not on every render. */
+  readonly suggest: () => SuggestedFix[];
 }
 
 /** Local-only designer state: an undoable edit log over a draft, recompiled for display after every change. */
@@ -96,6 +100,7 @@ export function useDrawingBoard(): { state: DrawingBoardState; actions: DrawingB
         setEditError(null);
       },
       setMonth: setMonthState,
+      suggest: () => suggestFixes(draft, env.ctx, 5, view.compiled),
     },
   };
 }

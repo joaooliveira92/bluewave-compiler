@@ -9,6 +9,7 @@ import {
   type DraftEdit,
   type Finding,
   type Severity,
+  type SuggestedFix,
   type WorkshopView,
   type ZoneId,
 } from "@bluewave/ship-design";
@@ -499,9 +500,24 @@ function FindingItem({ f }: { readonly f: Finding }) {
   );
 }
 
-export function FindingsPanel({ view }: { readonly view: WorkshopView }) {
+export function FindingsPanel({
+  view,
+  suggest,
+  onApply,
+}: {
+  readonly view: WorkshopView;
+  readonly suggest: () => SuggestedFix[];
+  readonly onApply: (e: DraftEdit) => void;
+}) {
   const order: Severity[] = ["BLOCKING", "CRITICAL", "WARNING", "ADVISORY"];
   const total = order.reduce((a, s) => a + view.counts[s], 0);
+  const serious = view.counts.BLOCKING + view.counts.CRITICAL + view.counts.WARNING > 0;
+  // Suggestions belong to one compiled design: they reset whenever the design changes.
+  const [fixes, setFixes] = useState<{
+    readonly forHash: string;
+    readonly list: SuggestedFix[];
+  } | null>(null);
+  const current = fixes !== null && fixes.forHash === view.compiled.hash ? fixes.list : null;
   return (
     <Panel title="Validation">
       <p role="status" className="text-sm">
@@ -522,6 +538,49 @@ export function FindingsPanel({ view }: { readonly view: WorkshopView }) {
             )),
           )}
         </ul>
+      )}
+      {serious && (
+        <div className="space-y-2 border-t pt-3">
+          <Button
+            variant="outline"
+            onClick={() => setFixes({ forHash: view.compiled.hash, list: suggest() })}
+          >
+            Suggest fixes
+          </Button>
+          {current !== null &&
+            (current.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No single change improves this design; try changing more than one thing.
+              </p>
+            ) : (
+              <ul className="space-y-2" aria-label="Suggested fixes">
+                {current.map((f) => (
+                  <li
+                    key={f.description}
+                    className="flex items-start justify-between gap-3 rounded border p-2 text-sm"
+                  >
+                    <div>
+                      <div>{f.description}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Resolves{" "}
+                        {f.resolved.length === 0
+                          ? "nothing outright"
+                          : f.resolved.map((r) => r.split(":")[1]).join(", ")}{" "}
+                        · blocking {f.countsBefore.BLOCKING} → {f.countsAfter.BLOCKING}, critical{" "}
+                        {f.countsBefore.CRITICAL} → {f.countsAfter.CRITICAL}, warnings{" "}
+                        {f.countsBefore.WARNING} → {f.countsAfter.WARNING} · weight{" "}
+                        {f.totalKgDelta >= 0 ? "+" : ""}
+                        {Math.round(f.totalKgDelta / 1000)} t
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={() => onApply(f.edit)}>
+                      Apply
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ))}
+        </div>
       )}
     </Panel>
   );
