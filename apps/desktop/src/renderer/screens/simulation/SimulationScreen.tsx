@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useMemo } from "react";
 import { Activity, RefreshCw } from "lucide-react";
 
 import { PageHeader } from "../../components/shared/PageHeader.js";
@@ -7,6 +7,7 @@ import { Button } from "../../components/ui/button.js";
 import { Spinner } from "../../components/ui/spinner.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
+import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
 import { BattleArenaTab } from "./components/BattleArenaTab.js";
 import { ErrorAlert } from "./components/ErrorAlert.js";
 import { StrategicOverviewTab } from "./components/StrategicOverviewTab.js";
@@ -49,14 +50,15 @@ export function SimulationScreen({
     handleTacticalResolve,
   } = useSimulationScreen(sessionId, { campaignRevision, onMonthCommitted });
 
-  useEffect(() => {
-    onPrimaryActionChange({
+  const primaryAction = useMemo(
+    () => ({
       label: loading ? "Processing turn…" : "Advance Turn (1 Month)",
       disabled: loading,
       onTrigger: handleAdvanceTurn,
-    });
-    return () => onPrimaryActionChange(null);
-  }, [loading, handleAdvanceTurn, onPrimaryActionChange]);
+    }),
+    [loading, handleAdvanceTurn],
+  );
+  usePrimaryAction(primaryAction, onPrimaryActionChange);
 
   return (
     <div className="space-y-6">

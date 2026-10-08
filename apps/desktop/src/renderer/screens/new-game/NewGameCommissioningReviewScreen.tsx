@@ -1,9 +1,10 @@
 import type { ArchetypeSelection } from "@bluewave/campaign-engine";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { Button } from "../../components/ui/button.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
 import { Table, TableBody, TableCell, TableRow } from "../../components/ui/table.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
+import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
 import type { FleetMethodDraft } from "./new-game-fleet-method-screen-state.js";
 import type { CampaignIdentityDraft } from "./new-game-identity-screen-state.js";
@@ -50,14 +51,15 @@ export function NewGameCommissioningReviewScreen({
     onBeginRef.current();
   }, []);
 
-  useEffect(() => {
-    onPrimaryActionChange({
+  const primaryAction = useMemo(
+    () => ({
       label: launching ? "Commissioning…" : "Begin Commission",
       disabled: launching,
       onTrigger: triggerBegin,
-    });
-    return () => onPrimaryActionChange(null);
-  }, [launching, triggerBegin, onPrimaryActionChange]);
+    }),
+    [launching, triggerBegin],
+  );
+  usePrimaryAction(primaryAction, onPrimaryActionChange);
 
   const rows = buildSummaryRows({
     nationId,
