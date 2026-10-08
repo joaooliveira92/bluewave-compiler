@@ -13,6 +13,7 @@ import {
   PlacementsPanel,
   SubmitPanel,
 } from "./panels.js";
+import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
 import { useDrawingBoard } from "./useDrawingBoard.js";
 
 const MONTHS = ["1885-01", "1890-01", "1893-06", "1895-06", "1896-01", "1899-12"];
@@ -22,7 +23,8 @@ const MONTHS = ["1885-01", "1890-01", "1893-06", "1895-06", "1896-01", "1899-12"
  * compile result. Submitting a design to the engine arrives with the command wiring (SB-14).
  */
 export function DrawingBoard({ sessionId }: { readonly sessionId?: string } = {}) {
-  const { state, actions } = useDrawingBoard();
+  const campaignMonth = useCampaignMonthId();
+  const { state, actions } = useDrawingBoard(campaignMonth);
   const { draft, view, content } = state;
   return (
     <div className="space-y-4" data-testid="drawing-board">
@@ -38,9 +40,13 @@ export function DrawingBoard({ sessionId }: { readonly sessionId?: string } = {}
           className="min-w-32"
           label="Technology as of"
           value={state.month}
-          options={[...new Set([...MONTHS, state.month])]
-            .sort()
-            .map((m) => ({ value: m, label: m }))}
+          options={(campaignMonth !== null
+            ? [campaignMonth]
+            : [...new Set([...MONTHS, state.month])].sort()
+          ).map((m) => ({
+            value: m,
+            label: campaignMonth !== null ? `${m} (campaign date)` : m,
+          }))}
           onChange={actions.setMonth}
         />
         <div className="flex gap-2">

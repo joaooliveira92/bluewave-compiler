@@ -105,6 +105,16 @@ export function useCampaignRevision(): number | null {
   return context?.state.campaign?.revision ?? null;
 }
 
+/**
+ * The active campaign's current month as `YYYY-MM`, or null outside a campaign. Used where rules depend on the
+ * campaign date (technology availability for ship design).
+ */
+export function useCampaignMonthId(): string | null {
+  const context = use(CampaignShellContext);
+  const month = context?.state.campaign?.month;
+  return month ? `${month.year}-${String(month.month).padStart(2, "0")}` : null;
+}
+
 const NO_MONTH_HISTORY: readonly MonthSummary[] = [];
 
 /**

@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "../../../components/ui/card.js";
 import { Progress } from "../../../components/ui/progress.js";
+import { GlassCard } from "@/components/ui/glass-card.jsx";
 
 export interface StatsPanelProps {
   readonly economy: {
@@ -32,7 +33,7 @@ function KpiCard({
   readonly value: number;
 }) {
   return (
-    <Card>
+    <GlassCard>
       <CardContent className="flex items-center gap-3 p-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Icon className="h-5 w-5" />
@@ -44,7 +45,7 @@ function KpiCard({
           </p>
         </div>
       </CardContent>
-    </Card>
+    </GlassCard>
   );
 }
 
@@ -88,7 +89,7 @@ export const StatsPanel = memo(function StatsPanel({ economy, workspace }: Stats
         <KpiCard icon={Coins} label="Monthly Appropriation" value={economy.monthlyAppropriation} />
         <KpiCard icon={Hammer} label="Shipyard Capacity" value={economy.shipyardCapacity} />
       </div>
-      <Card>
+      <GlassCard>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium">Commitments</CardTitle>
           <CardDescription>
@@ -109,7 +110,7 @@ export const StatsPanel = memo(function StatsPanel({ economy, workspace }: Stats
             total={economy.shipyardCapacity}
           />
         </CardContent>
-      </Card>
+      </GlassCard>
     </div>
   );
 });

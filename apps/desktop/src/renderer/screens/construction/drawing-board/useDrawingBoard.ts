@@ -52,11 +52,23 @@ export interface DrawingBoardActions {
 }
 
 /** Local-only designer state: an undoable edit log over a draft, recompiled for display after every change. */
-export function useDrawingBoard(): { state: DrawingBoardState; actions: DrawingBoardActions } {
+export function useDrawingBoard(fixedMonth: string | null = null): {
+  state: DrawingBoardState;
+  actions: DrawingBoardActions;
+} {
   const content = useMemo(() => loadDrawingBoardContent(), []);
-  const [preset, setPreset] = useState<ReferenceDesign>(content.references[0]!);
-  const [log, setLog] = useState<EditLog>(() => newLog(content.references[0]!.draft));
-  const [month, setMonthState] = useState(content.references[0]!.month);
+  // In a campaign start from the newest reference design that exists at the campaign date, else the first one.
+  const initial =
+    (fixedMonth === null
+      ? undefined
+      : [...content.references]
+          .filter((r) => r.month <= fixedMonth)
+          .sort((a, b) => (a.month < b.month ? 1 : -1))[0]) ?? content.references[0]!;
+  const [preset, setPreset] = useState<ReferenceDesign>(initial);
+  const [log, setLog] = useState<EditLog>(() => newLog(initial.draft));
+  const [chosenMonth, setMonthState] = useState(content.references[0]!.month);
+  // Inside a campaign the rules date is the campaign month: technology availability must match what the engine will use.
+  const month = fixedMonth ?? chosenMonth;
   const [editError, setEditError] = useState<string | null>(null);
 
   const logRef = useRef(log);
@@ -102,7 +114,7 @@ export function useDrawingBoard(): { state: DrawingBoardState; actions: DrawingB
         if (!p) return;
         setPreset(p);
         commit(newLog(p.draft));
-        setMonthState(p.month);
+        if (fixedMonth === null) setMonthState(p.month);
         setEditError(null);
       },
       setMonth: setMonthState,
