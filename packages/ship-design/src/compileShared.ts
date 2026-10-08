@@ -3,12 +3,7 @@
 // pipeline stages. Re-exported from ./compile.js so the package surface is
 // unchanged.
 import type { ArrangementBalance, ArrangementResult, ZoneDef, ZoneId } from "./arrangement.js";
-import type {
-  ArmourBalance,
-  ArmourRegion,
-  ArmourResult,
-  ThreatProfile,
-} from "./armour.js";
+import type { ArmourBalance, ArmourRegion, ArmourResult, ThreatProfile } from "./armour.js";
 import type { ClassificationRules } from "./classification.js";
 import type { ComponentCategory, ComponentDef } from "./component.js";
 import type { Finding } from "./findings.js";

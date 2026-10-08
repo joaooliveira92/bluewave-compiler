@@ -8,7 +8,7 @@ import {
   type ResolvedPlacement,
   type ZoneId,
 } from "./arrangement.js";
-import type { ArmourResult } from "./armour.js";
+import { compileArmour, type ArmourInput, type ArmourResult } from "./armour.js";
 import type { ComponentDef } from "./component.js";
 import {
   cmpStr,
@@ -22,10 +22,11 @@ import {
   type ShipContext,
 } from "./compileShared.js";
 import type { Finding } from "./findings.js";
-import type { HullResult, HullSpec } from "./hull.js";
-import type { MachineryResult, PropulsionPlant } from "./machinery.js";
-import type { WeightItem } from "./stability.js";
-import type { WeaponsResult } from "./weapons.js";
+import { compileHull, type HullResult } from "./hull.js";
+import { emptyLedger, withLine, type LedgerCategory } from "./ledger.js";
+import { compileMachinery, type MachineryResult, type PropulsionPlant } from "./machinery.js";
+import { compileSystems, type SystemsResult } from "./systems.js";
+import { compileWeapons, type ArcObstacle, type GunMount, type WeaponsResult } from "./weapons.js";
 
 type AmmoMount = WeaponsResult["mounts"][number];
 
@@ -250,205 +251,205 @@ export function buildPlacementsAndArrangement(args: {
 }
 
 // Stage 7 - stability: every ledger kilogram becomes a weight lump.
-export function buildStabilityLumps(args: {
-  draft: DesignDraft;
-  resolved: Resolved[];
-  hull: HullSpec;
-  formData: HullFormData;
-  b: ShipBalance;
-  hullRes: HullResult;
-  machineryRaw: MachineryResult;
-  ammoById: Map<string, AmmoMount>;
-  byId: Map<string, Resolved>;
-  rooms: readonly { zoneId: ZoneId; stationPermille: number; shareBp: number }[];
-  roomPart: (total: number, i: number) => number;
-  armour: ArmourResult;
-}): WeightItem[] {
-  const { draft, resolved, hull, formData, b, hullRes, machineryRaw, ammoById, byId, rooms, roomPart, armour } =
-    args;
-  const lumps: WeightItem[] = [];
-  const spread = (label: string, kg: number, zFracBp: number) => {
-    let left = kg;
-    const shares = formData.buoyancyByZoneBp;
-    ZONE_IDS.forEach((zid, i) => {
-      if (zid === "MISSION") return;
-      const zd = formData.zones[i]!;
-      const part = i === ZONE_IDS.length - 2 ? left : Math.floor((kg * shares[i]!) / 10_000);
-      left -= part;
-      lumps.push({
-        label: `${label}:${zid}`,
-        kg: part,
-        zMm: Math.floor((hull.depthToMainDeck * zFracBp) / 10_000),
-        stationPermille: Math.floor((zd.startPermille + zd.endPermille) / 2),
-        zoneId: zid,
-      });
-    });
-  };
-  spread("hull", hullRes.ledger.hull, b.lumpZFractionBp.hull);
-  spread("margin", hullRes.ledger.margin, b.lumpZFractionBp.margin);
-  spread("reserve", hullRes.ledger.reserve, b.lumpZFractionBp.reserve);
-  spread("crew", hullRes.ledger.crew, b.lumpZFractionBp.crew);
-  for (const r of resolved) {
-    lumps.push({
-      label: r.spec.instanceId,
-      kg: r.weightKg,
-      zMm: r.zCgMm,
-      stationPermille: r.spec.stationPermille,
-      zoneId: r.spec.zoneId,
-    });
-    const am = ammoById.get(r.spec.instanceId);
-    if (am && am.ammoMassKg > 0) {
-      const ms = r.spec.magazineRef ? byId.get(r.spec.magazineRef) : undefined;
-      lumps.push({
-        label: `${r.spec.instanceId}:ammo`,
-        kg: am.ammoMassKg,
-        zMm: ms?.zCgMm ?? r.zCgMm,
-        stationPermille: ms?.spec.stationPermille ?? r.spec.stationPermille,
-        zoneId: ms?.spec.zoneId ?? r.spec.zoneId,
-      });
-    }
-  }
-  rooms.forEach((room, i) => {
-    lumps.push({
-      label: `plant:${i}`,
-      kg: roomPart(machineryRaw.plantWeightKg, i),
-      zMm: Math.floor((hull.depthToMainDeck * b.lumpZFractionBp.machinery) / 10_000),
-      stationPermille: room.stationPermille,
-      zoneId: room.zoneId,
-    });
-  });
-  lumps.push({
-    label: "fuel",
-    kg: draft.machinery.fuelCapacityKg,
-    zMm: Math.floor((hull.depthToMainDeck * b.lumpZFractionBp.fuel) / 10_000),
-    stationPermille: draft.machinery.fuelStationPermille,
-    zoneId: draft.machinery.fuelZoneId,
-  });
-  for (const [region, kg] of Object.entries(armour.weightByRegionKg)) {
-    lumps.push({
-      label: `armour:${region}`,
-      kg,
-      zMm: Math.floor((hull.depthToMainDeck * (b.armourZFractionBp[region] ?? 5_000)) / 10_000),
-      stationPermille: 450,
-      zoneId: "CENTRAL_MACHINERY",
-    });
-  }
-  return lumps;
-}
 
 // Stage 8 - dock, treaty and modernization findings.
-export function collectDockTreatyModernizationFindings(args: {
+
+// Stage 2 - weapons: build gun mounts + arc obstacles and compile the battery.
+export function compileWeaponSet(args: {
+  draft: DesignDraft;
+  resolved: Resolved[];
+  byId: Map<string, Resolved>;
+  b: ShipBalance;
+  findings: Finding[];
+}): { weapons: WeaponsResult; ammoById: Map<string, AmmoMount>; gunRes: Resolved[] } {
+  const { draft, resolved, byId, b, findings } = args;
+  const station = (id: string | undefined) => (id ? byId.get(id)?.spec.stationPermille : undefined);
+
+  const gunRes = resolved.filter((r) => WEAPON_CATEGORIES.includes(r.def.category));
+  const mounts: GunMount[] = gunRes.map((r) => {
+    const magSt = station(r.spec.magazineRef);
+    return {
+      instanceId: r.spec.instanceId,
+      stationPermille: r.spec.stationPermille,
+      side: r.spec.side ?? "CENTRE",
+      barrels: r.params.barrels ?? 1,
+      roundsPerBarrel: r.params.rounds ?? 0,
+      shellMassG: r.attr.shellMassG ?? 0,
+      chargeBp: r.attr.chargeBp ?? 0,
+      roundVolumeMl: r.attr.roundVolumeMl ?? 0,
+      rofBaseX100: r.attr.rofBaseX100 ?? 0,
+      beamArcDeg: r.attr.beamArcDeg ?? 0,
+      feedDistancePermille: magSt === undefined ? 0 : Math.abs(r.spec.stationPermille - magSt),
+    };
+  });
+  const obstacles: ArcObstacle[] = resolved
+    .filter((r) => (r.attr.arcBlockedDeg ?? 0) > 0)
+    .map((r) => ({
+      id: r.spec.instanceId,
+      fromPermille: r.spec.stationPermille,
+      toPermille: r.spec.stationPermille,
+      reachPermille: r.attr.arcReachPermille ?? 0,
+      blockedDeg: r.attr.arcBlockedDeg!,
+    }));
+  const weapons = compileWeapons(mounts, obstacles, draft.requirement.crewQualityBp, b.weapons);
+  findings.push(...weapons.findings);
+  const ammoById = new Map(weapons.mounts.map((m) => [m.instanceId, m]));
+  return { weapons, ammoById, gunRes };
+}
+
+// Stage 3 - machinery: systems balance, installed power and propulsion plant.
+export function compileSystemsAndMachinery(args: {
   draft: DesignDraft;
   ctx: ShipContext;
   resolved: Resolved[];
-  total: number;
-  reserveKg: number;
+  gunRes: Resolved[];
+  plant: PropulsionPlant;
+  b: ShipBalance;
   findings: Finding[];
-}): void {
-  const { draft, ctx, resolved, total, reserveKg, findings } = args;
+}): { systems: SystemsResult; machineryRaw: MachineryResult } {
+  const { draft, resolved, gunRes, plant, b, findings } = args;
   const hull = draft.hull;
-  const b = ctx.balance;
 
-  const heaviest = Math.max(0, ...resolved.map((r) => r.weightKg));
-  if (
-    !ctx.facilities.some(
-      (x) =>
-        x.maxLengthMm >= hull.lengthWl &&
-        x.maxBeamMm >= hull.beam &&
-        x.maxDisplacementKg >= total &&
-        x.craneLiftKg >= heaviest,
-    )
-  ) {
-    findings.push(
-      f(
-        "NO_FACILITY_FITS",
-        "BLOCKING",
-        "No available shipyard can build this ship.",
-        `Needs length ${hull.lengthWl} mm, beam ${hull.beam} mm, ${total} kg, crane lift ${heaviest} kg.`,
-        "The design cannot be laid down anywhere you own or can use.",
-        [
-          ["smaller_hull", "Reduce length, beam or displacement."],
-          ["lighter_items", "Use components within the crane limit."],
-          ["build_dock", "Invest in a larger slipway."],
-        ],
-        "SB-DOCK",
-      ),
-    );
-  }
-  const t = ctx.treaty;
-  if (t) {
-    if (t.maxDisplacementKg !== undefined && total > t.maxDisplacementKg) {
-      findings.push(
-        f(
-          "TREATY_LIMIT_DISPLACEMENT",
-          "BLOCKING",
-          "The design exceeds the treaty displacement limit.",
-          `${total} kg vs limit ${t.maxDisplacementKg} kg.`,
-          "Building it violates the treaty.",
-          [
-            ["cut_weight", "Reduce displacement below the limit."],
-            ["leave_treaty", "Withdraw from the treaty (diplomatic consequences)."],
-            ["other_category", "Design a category the treaty does not limit."],
-          ],
-          "SB-TREATY",
-        ),
-      );
-    }
-    if (t.maxMainGunCaliberUm !== undefined) {
-      const over = resolved.filter(
-        (r) => r.def.category === "MAIN_GUN" && (r.attr.caliberUm ?? 0) > t.maxMainGunCaliberUm!,
-      );
-      if (over.length > 0)
-        findings.push(
-          f(
-            "TREATY_LIMIT_CALIBRE",
-            "BLOCKING",
-            "A main gun exceeds the treaty calibre limit.",
-            `${over.map((o) => o.spec.instanceId).join(", ")} over ${t.maxMainGunCaliberUm} µm.`,
-            "Building it violates the treaty.",
-            [
-              ["smaller_gun", "Use a smaller calibre."],
-              ["leave_treaty", "Withdraw from the treaty."],
-              ["reclassify", "Redesign as a category without the limit."],
-            ],
-            "SB-TREATY",
-          ),
-        );
-    }
-    if (t.forbiddenCategories?.includes(draft.requirement.category)) {
-      findings.push(
-        f(
-          "TREATY_LIMIT_CATEGORY",
-          "BLOCKING",
-          "This ship category is forbidden by treaty.",
-          `Category ${draft.requirement.category}.`,
-          "It cannot be built while the treaty is in force.",
-          [
-            ["other_category", "Choose another category."],
-            ["leave_treaty", "Withdraw from the treaty."],
-            ["wait", "Wait for the treaty to expire."],
-          ],
-          "SB-TREATY",
-        ),
-      );
-    }
-  }
-  const reserveBp = total === 0 ? 0 : Math.floor((reserveKg * 10_000) / total);
-  const minReserve = b.minReserveBpByExpectation[draft.requirement.modernizationExpectation];
-  if (reserveBp < minReserve) {
-    findings.push(
-      f(
-        "MODERNIZATION_MARGIN_LOW",
-        "ADVISORY",
-        "The design has little room to grow.",
-        `Growth reserve ${reserveBp} bp; the requirement expects at least ${minReserve} bp.`,
-        "Later refits will be limited or impossible without removing equipment.",
-        [
-          ["raise_reserve", "Raise the growth reserve (costs capability now)."],
-          ["accept", "Accept a hull that cannot be modernized."],
-        ],
-        "F-H5",
-      ),
-    );
-  }
+  const accommodationVolume = resolved
+    .filter((r) => r.def.category === "ACCOMMODATION")
+    .reduce((a, r) => a + r.volumeLitre, 0);
+  const systemsItems = resolved.map((r) => ({
+    instanceId: r.spec.instanceId,
+    category: r.def.category,
+    powerKw: r.powerKw,
+    coolingKw: r.coolingKw,
+    crew: r.crew,
+  }));
+  const generators = resolved
+    .filter((r) => r.def.category === "GENERATOR")
+    .map((r) => ({ instanceId: r.spec.instanceId, kw: r.attr.genKw ?? 0, zoneId: r.spec.zoneId }));
+  const directors = resolved
+    .filter((r) => r.def.category === "DIRECTOR" || r.def.category === "RANGEFINDER")
+    .map((r) => ({
+      instanceId: r.spec.instanceId,
+      supportedClasses: r.def.fcClasses ?? [],
+      accuracyBonusBp: r.attr.accuracyBonusBp ?? 0,
+      capacity: r.attr.capacity ?? 0,
+      stationPermille: r.spec.stationPermille,
+    }));
+  const guns = gunRes
+    .filter((r) => r.def.fcClass)
+    .map((r) => ({ instanceId: r.spec.instanceId, fcClass: r.def.fcClass! }));
+  const funnels = resolved
+    .filter((r) => r.def.tags.includes("funnel"))
+    .map((r) => r.spec.stationPermille);
+  const systems = compileSystems(
+    {
+      items: systemsItems,
+      generators,
+      coolingSupplyKw: resolved.reduce((a, r) => a + (r.attr.coolingSupplyKw ?? 0), 0),
+      displacementKg: hull.targetDisplacementKg,
+      accommodationStandard: draft.requirement.accommodationStandard,
+      accommodationVolumeLitre: accommodationVolume,
+      guns,
+      directors,
+      funnelStationsPermille: funnels,
+    },
+    b.systems,
+  );
+  findings.push(...systems.findings);
+
+  const machineryRaw = compileMachinery(
+    {
+      plant,
+      installedKw: draft.machinery.installedKw,
+      hullFormId: hull.hullFormId,
+      lengthWlMm: hull.lengthWl,
+      displacementKg: hull.targetDisplacementKg,
+      foulingBp: draft.machinery.foulingBp,
+      fuelCapacityKg: draft.machinery.fuelCapacityKg,
+      cruiseSpeedMilliKnots: draft.requirement.cruiseSpeedMilliKnots,
+      requiredSpeedMilliKnots: draft.requirement.requiredSpeedMilliKnots,
+      requiredRangeNm: draft.requirement.requiredRangeNm,
+    },
+    b.machinery,
+  );
+  findings.push(...machineryRaw.findings);
+  return { systems, machineryRaw };
+}
+
+// Stages 4-5 - armour + hull + ledger: guard armour before the hull is sized to
+// break the reserve-buoyancy circular dependency.
+export function compileStructure(args: {
+  draft: DesignDraft;
+  ctx: ShipContext;
+  resolved: Resolved[];
+  plant: PropulsionPlant;
+  formData: HullFormData;
+  b: ShipBalance;
+  weapons: WeaponsResult;
+  systems: SystemsResult;
+  machineryRaw: MachineryResult;
+  findings: Finding[];
+}): { hullRes: HullResult; armour: ArmourResult } {
+  const { draft, ctx, resolved, plant, formData, b, weapons, systems, machineryRaw, findings } =
+    args;
+  const hull = draft.hull;
+
+  const armourInput = (
+    reserveBuoyancyBp: number,
+    magazines: ArmourInput["magazines"],
+  ): ArmourInput => ({
+    regions: draft.armour.regions,
+    threats: ctx.threats,
+    designThreatId: draft.requirement.designThreatId,
+    citadelLengthMm: draft.armour.citadelLengthMm,
+    magazines,
+    torpedoWarheadKg: draft.armour.torpedoWarheadKg,
+    bunkerProtectionBp: draft.armour.bunkerProtectionBp,
+    subdivisionGrade: hull.subdivisionGrade,
+    reserveBuoyancyBp,
+    damageControlBp: resolved.reduce((a, r) => a + (r.attr.damageControlBp ?? 0), 0),
+    flammableBp:
+      resolved.reduce((a, r) => a + (r.attr.flammableBp ?? 0), 0) +
+      (plant.fuelType === "OIL" ? 1_000 : 0),
+  });
+  const armourPre = compileArmour(armourInput(0, []), b.armour);
+  const mag = (region: string, threatId: string) => armourPre.marginBp[region]?.[threatId] ?? null;
+  const designThreat = draft.requirement.designThreatId;
+  const magazines = resolved
+    .filter((r) => r.def.category === "MAGAZINE")
+    .map((r) => {
+      const near = (cat: Parameters<(typeof WEAPON_CATEGORIES)["includes"]>[0]) =>
+        resolved.some((o) => o.def.category === cat && o.spec.zoneId === r.spec.zoneId);
+      return {
+        magazineId: r.spec.instanceId,
+        beltMarginBp: mag("BELT_MAIN", designThreat),
+        deckMarginBp: mag("DECK_MAIN", designThreat),
+        boxMarginBp: mag("MAGAZINE_BOX", designThreat),
+        adjacentBoilers: near("BOILER") || near("ENGINE"),
+        adjacentTorpedoTubes: near("TORPEDO_TUBE"),
+        flashProtectionBp: r.attr.flashProtectionBp ?? 0,
+      };
+    });
+
+  const sumBy = (cat: LedgerCategory, extra = 0) =>
+    resolved
+      .filter((r) => b.ledgerCategoryOf[r.def.category] === cat)
+      .reduce((a, r) => a + r.weightKg, extra);
+  const crewKg = systems.crewRequired * b.crewKgPerHead;
+  let others = emptyLedger();
+  others = withLine(
+    others,
+    "machinery",
+    (machineryRaw.plantWeightKg + sumBy("machinery")) as never,
+  );
+  others = withLine(others, "fuel", (draft.machinery.fuelCapacityKg + sumBy("fuel")) as never);
+  others = withLine(others, "armament", sumBy("armament") as never);
+  others = withLine(others, "ammunition", (weapons.ammoMassKg + sumBy("ammunition")) as never);
+  others = withLine(others, "sensors", sumBy("sensors") as never);
+  others = withLine(others, "mission", sumBy("mission") as never);
+  others = withLine(others, "crew", crewKg as never);
+  others = withLine(others, "auxiliary", sumBy("auxiliary") as never);
+  others = withLine(others, "armour", (armourPre.totalWeightKg + sumBy("armour")) as never);
+  const hullRes = compileHull(hull, formData.form, b.hull, others);
+  findings.push(...hullRes.findings);
+  const armour = compileArmour(armourInput(hullRes.reserveBuoyancyBp, magazines), b.armour);
+  findings.push(...armour.findings);
+  return { hullRes, armour };
 }
