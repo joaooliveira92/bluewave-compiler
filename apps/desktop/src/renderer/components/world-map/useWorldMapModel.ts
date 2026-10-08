@@ -1,32 +1,26 @@
 /**
  * The chart's view model: every piece of data the SVG and chrome draw, derived
- * once from the interaction state, the live campaign overlay, the camera and
- * the palette. This is the one place that knows how to merge a campaign over
- * the fixture and how a marker/label ends up positioned, so `WorldMapChart`
- * itself stays a composition root rather than a second body of logic.
+ * once from the interaction state, the active world source, the camera and the
+ * palette. This is the one place that knows how a marker/label ends up
+ * positioned, so `WorldMapChart` itself stays a composition root rather than a
+ * second body of logic.
+ *
+ * Which world is drawn — the fixture or a live campaign — is no longer decided
+ * here: it is a `WorldMapSource` (see `world-map-source.ts`) selected once up
+ * front. Every deriver below consumes that interface, so a new source is a new
+ * implementation rather than an edit to each of them.
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { AREAS, AREAS_BY_ID, EDGES, PASSAGES_BY_ID, type AreaControl } from "./fixture-world.js";
 import {
-  AREAS,
-  AREAS_BY_ID,
-  EDGES,
-  FLEETS,
-  PASSAGES_BY_ID,
-  POSSESSIONS,
-  type AreaControl,
-} from "./fixture-world.js";
-import {
-  EMPTY_LIVE_OVERLAY,
   campaignNationHue,
-  campaignNationLabel,
-  fixtureAnchor,
+  EMPTY_LIVE_OVERLAY,
   type LiveWorldMapOverlay,
 } from "./campaign-map-join.js";
 import { buildOwnershipRows, describeArea, type AreaOwnershipRow } from "./map-a11y.js";
 import { campaignTreeRows, type AreaTreeRow } from "./area-tree.js";
-import { areaControl, summariseArea, nationFill, nationName, nationStroke } from "./map-state.js";
-import type { MapPrototypeState, RouteReading } from "./map-state.js";
+import type { AreaSummary, MapPrototypeState, RouteReading } from "./map-state.js";
 import {
   WORLD_WRAP_TURNS,
   projectAreas,
@@ -40,9 +34,7 @@ import {
   portSingles,
   type AreaAnchors,
   type FleetMark,
-  type FleetPlacement,
   type PortMark,
-  type PossessionPlacement,
 } from "./map-markers.js";
 import { layoutLabels, type PlacedLabel } from "./map-label-layout.js";
 import { buildGraticule } from "./map-graticule.js";
@@ -50,6 +42,11 @@ import type { MapPalette } from "./map-palette.js";
 import type { MapCamera } from "./useMapCamera.js";
 import type { BorderSet } from "./CoastlineCanvas.js";
 import { BORDERS_1880 } from "./borders-1880-data.js";
+import {
+  campaignWorldMapSource,
+  fixtureWorldMapSource,
+  type WorldMapSource,
+} from "./world-map-source.js";
 
 /** A passage badge and the edge it gates, projected for the current centre. */
 export interface PassageMark {
@@ -79,7 +76,7 @@ export interface WorldMapModel {
   readonly ownershipRows: readonly AreaOwnershipRow[];
   readonly rowById: ReadonlyMap<string, AreaOwnershipRow>;
   readonly treeRows: readonly AreaTreeRow[];
-  readonly summary: ReturnType<typeof summariseArea>;
+  readonly summary: AreaSummary | null;
   readonly areaName: (id: string) => string;
   readonly fillFor: (nation: string | null, alpha: number) => string;
   readonly strokeFor: (nation: string) => string;
@@ -107,64 +104,12 @@ export function useWorldMapModel({
   camera,
   rootRef,
 }: WorldMapModelInput): WorldMapModel {
-  /** Ownership: live overlay overrides the fixture wherever the campaign maps one. */
-  const control = useMemo(() => {
-    const merged = new Map(areaControl());
-    if (overlay.source !== "campaign") return merged;
-    for (const [area, owner] of overlay.ownership) {
-      merged.set(area, { owner, contested: false, possessions: 0 });
-    }
-    return merged;
-  }, [overlay]);
-
-  /** The possessions/ports to draw: live campaign ports when active, else fixture. */
-  const drawnPorts = useMemo<PossessionPlacement[]>(() => {
-    if (overlay.source !== "campaign") {
-      return POSSESSIONS.map((possession) => ({
-        id: possession.id,
-        name: possession.name,
-        at: possession.at,
-        owner: possession.owner,
-        base: possession.base,
-      }));
-    }
-    return overlay.ports
-      .map((port) => {
-        const at = fixtureAnchor(port.area);
-        if (at === null) return null;
-        return {
-          id: port.id,
-          name: port.name,
-          at,
-          owner: port.nation,
-          base: (port.level >= 7 ? "major" : "minor") as "major" | "minor",
-        };
-      })
-      .filter((port): port is NonNullable<typeof port> => port !== null);
-  }, [overlay]);
-
-  /** The fleets to draw: live campaign fleets when active, else fixture. */
-  const drawnFleets = useMemo<FleetPlacement[]>(() => {
-    if (overlay.source !== "campaign") {
-      return FLEETS.map((fleet) => ({
-        id: fleet.id,
-        area: fleet.area,
-        ships: fleet.ships,
-        owner: fleet.owner,
-      }));
-    }
-    return overlay.fleets
-      .map((fleet) => {
-        if (fixtureAnchor(fleet.area) === null) return null;
-        return {
-          id: fleet.id,
-          area: fleet.area,
-          ships: fleet.ships,
-          owner: fleet.nation,
-        };
-      })
-      .filter((fleet): fleet is NonNullable<typeof fleet> => fleet !== null);
-  }, [overlay]);
+  /** The one branch on which world is drawn; everything below is source-agnostic. */
+  const source = useMemo<WorldMapSource>(
+    () =>
+      overlay.source === "campaign" ? campaignWorldMapSource(overlay) : fixtureWorldMapSource(),
+    [overlay],
+  );
 
   const areas = useMemo(
     () => projectAreas(AREAS, projection, state.centre),
@@ -207,21 +152,21 @@ export function useWorldMapModel({
   }, [camera.subscribe]);
 
   const portMarks = useMemo<PortMark[]>(() => {
-    const singles = portSingles(drawnPorts, projection, state.centre);
+    const singles = portSingles(source.ports, projection, state.centre);
     const factor = camera.getTransform().scale * camera.getPixelsPerUnit();
     return buildPortMarks(singles, camera.zoomBand === 0, factor);
     // `viewVersion` is the settled-camera signal (see placedLabels).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camera.zoomBand, drawnPorts, projection, state.centre, viewVersion]);
+  }, [camera.zoomBand, source.ports, projection, state.centre, viewVersion]);
 
   const fleetMarks = useMemo<FleetMark[]>(() => {
     const anchors: AreaAnchors = new Map([...areasById].map(([id, area]) => [id, area.label]));
-    const singles = fleetSingles(drawnFleets, anchors);
+    const singles = fleetSingles(source.fleets, anchors);
     const factor = camera.getTransform().scale * camera.getPixelsPerUnit();
     return buildFleetMarks(singles, camera.zoomBand === 0, factor, portMarks);
     // `viewVersion` is the settled-camera signal (see placedLabels).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [areasById, camera.zoomBand, drawnFleets, portMarks, viewVersion]);
+  }, [areasById, camera.zoomBand, source.fleets, portMarks, viewVersion]);
 
   const passageMarks = useMemo<PassageMark[]>(() => {
     const marks: PassageMark[] = [];
@@ -279,31 +224,19 @@ export function useWorldMapModel({
     viewVersion,
   ]);
 
-  /** Possessions (ports) per fixture area: the campaign's own ports when live, the fixture's otherwise. */
-  const possessionsByArea = useMemo(() => {
-    const counts = new Map<string, number>();
-    if (overlay.source === "campaign") {
-      for (const port of overlay.ports) counts.set(port.area, (counts.get(port.area) ?? 0) + 1);
-    } else {
-      for (const [id, held] of control) counts.set(id, held.possessions);
-    }
-    return counts;
-  }, [overlay, control]);
-
   const ownershipRows = useMemo(
     () =>
       buildOwnershipRows(
         areas.map((area) => ({ id: area.id, name: AREAS_BY_ID.get(area.id)?.name ?? area.id })),
         (id) => {
-          const owner = control.get(id)?.owner ?? null;
-          if (owner === null) return null;
-          return overlay.source === "campaign" ? campaignNationLabel(owner) : nationName(owner);
+          const owner = source.control.get(id)?.owner ?? null;
+          return owner === null ? null : source.nameFor(owner);
         },
-        (id) => drawnFleets.filter((fleet) => fleet.area === id).length,
-        (id) => possessionsByArea.get(id) ?? 0,
+        (id) => source.fleets.filter((fleet) => fleet.area === id).length,
+        (id) => source.possessionCounts.get(id) ?? 0,
         state.selected,
       ),
-    [areas, control, drawnFleets, overlay.source, possessionsByArea, state.selected],
+    [areas, source, state.selected],
   );
   const rowById = useMemo(
     () => new Map(ownershipRows.map((row) => [row.id, row])),
@@ -314,37 +247,19 @@ export function useWorldMapModel({
 
   const routeSet = useMemo(() => new Set(route?.path ?? []), [route]);
 
-  /** Selected-area inspector: live overlay data when active, else the fixture. */
-  const summary = useMemo(() => {
-    if (state.selected === null) return null;
-    const fixture = summariseArea(state.selected);
-    if (fixture === null) return null;
-    if (overlay.source !== "campaign") return fixture;
-    const owner = overlay.ownership.get(state.selected) ?? null;
-    const ports = overlay.ports.filter((port) => port.area === state.selected);
-    const fleets = overlay.fleets.filter((fleet) => fleet.area === state.selected);
-    return {
-      id: state.selected,
-      name: fixture.name,
-      control: { owner, contested: false, possessions: 0 },
-      possessions: ports.map((port) => ({ id: port.id, name: port.name, owner: port.nation })),
-      fleets: fleets.map((fleet) => ({
-        id: fleet.id,
-        name: fleet.name,
-        owner: fleet.nation,
-        ships: fleet.ships,
-      })),
-      neighbours: fixture.neighbours,
-    };
-  }, [overlay, state.selected]);
+  /** Selected-area inspector: the source's own view of the area, or null. */
+  const summary = useMemo(
+    () => (state.selected === null ? null : source.summarise(state.selected)),
+    [source, state.selected],
+  );
 
   /** The area tree's rows: campaign areas when live, else the fixture areas (no regions). */
   const treeRows = useMemo<AreaTreeRow[]>(() => {
-    if (overlay.source === "campaign") {
+    if (source.campaignAreas !== null) {
       return campaignTreeRows(
-        overlay.campaignAreas,
-        overlay.playerNationId,
-        campaignNationLabel,
+        source.campaignAreas,
+        source.playerNationId,
+        (nation) => source.nameFor(nation),
         state.selected,
       );
     }
@@ -357,7 +272,7 @@ export function useWorldMapModel({
       mapAreaId: row.id,
       selected: row.selected,
     }));
-  }, [overlay, ownershipRows, state.selected]);
+  }, [source, ownershipRows, state.selected]);
 
   const routePath = useMemo(() => {
     if (route === null || !state.layers.routes) return "";
@@ -374,11 +289,11 @@ export function useWorldMapModel({
 
   return {
     state,
-    live: overlay.source === "campaign",
-    playerNationId: overlay.playerNationId,
+    live: source.live,
+    playerNationId: source.playerNationId,
     areas,
     areasById,
-    control,
+    control: source.control,
     borderSets,
     portMarks,
     fleetMarks,
@@ -392,24 +307,9 @@ export function useWorldMapModel({
     treeRows,
     summary,
     areaName,
-    fillFor: (nation, alpha) => {
-      if (nation === null) return `oklch(0.55 0 0 / ${alpha * 0.35})`;
-      if (overlay.source === "campaign") {
-        return `oklch(0.66 0.15 ${campaignNationHue(nation)} / ${alpha})`;
-      }
-      return nationFill(nation, alpha);
-    },
-    strokeFor: (nation) => {
-      if (overlay.source === "campaign") {
-        return `oklch(0.74 0.17 ${campaignNationHue(nation)})`;
-      }
-      return nationStroke(nation);
-    },
-    nameFor: (nation) => {
-      if (nation === null) return "Unclaimed";
-      if (overlay.source === "campaign") return campaignNationLabel(nation);
-      return nationName(nation);
-    },
+    fillFor: (nation, alpha) => source.fillFor(nation, alpha),
+    strokeFor: (nation) => source.strokeFor(nation),
+    nameFor: (nation) => source.nameFor(nation),
     describeAreaFor: (id) => {
       const row = rowById.get(id);
       return row === undefined ? id : describeArea(row);
