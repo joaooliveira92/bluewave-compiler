@@ -36,6 +36,7 @@ import {
 } from "../screens/new-game/new-game-identity-screen-state.js";
 import type { DraftPreferences } from "../screens/new-game/new-game-preferences-screen-state.js";
 import { BottomNav } from "./BottomNav.js";
+import { StatusStrip } from "./StatusStrip.js";
 import { useBackground } from "./BackgroundContext.js";
 import { CampaignShellProvider, useCampaignShellContext } from "./CampaignShellContext.js";
 import {
@@ -359,6 +360,8 @@ function ActiveCampaignView({ screen }: { readonly screen: Screen }) {
 
 interface AppFrameProps {
   readonly campaignSessionId: string | null;
+  readonly campaignRevision: number | null;
+  readonly activeAlertsCount: number | null;
   readonly screen: Screen;
   readonly saveMessage: string | null;
   readonly header: React.ReactNode;
@@ -368,6 +371,8 @@ interface AppFrameProps {
 
 function AppFrame({
   campaignSessionId,
+  campaignRevision,
+  activeAlertsCount,
   screen,
   saveMessage,
   header,
@@ -390,6 +395,13 @@ function AppFrame({
           {children}
         </SidebarInset>
       </div>
+      {campaignSessionId !== null && campaignRevision !== null && (
+        <StatusStrip
+          sessionId={campaignSessionId}
+          revision={campaignRevision}
+          alertsCount={activeAlertsCount}
+        />
+      )}
       {campaignSessionId !== null && (
         <BottomNav screen={screen} onSelect={onSelectScreen} footer={campaignSessionId} />
       )}
@@ -559,6 +571,8 @@ function CampaignShellApplication({
       <BackgroundLayer background={background} resolvedTheme={resolvedTheme} />
       <AppFrame
         campaignSessionId={shell.state.campaign?.sessionId ?? null}
+        campaignRevision={shell.state.campaign?.revision ?? null}
+        activeAlertsCount={shell.state.campaign?.activeAlertsCount ?? null}
         screen={shell.state.screen}
         saveMessage={shell.state.saveMessage}
         header={header}

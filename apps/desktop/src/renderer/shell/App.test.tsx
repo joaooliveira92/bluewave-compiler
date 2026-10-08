@@ -281,6 +281,11 @@ vi.mock("./BottomNav.js", async () => {
   return { BottomNav: () => React.createElement("nav", { "data-testid": "bottom-nav" }) };
 });
 
+vi.mock("./StatusStrip.js", async () => {
+  const React = await import("react");
+  return { StatusStrip: () => React.createElement("section", { "data-testid": "status-strip" }) };
+});
+
 vi.mock("./campaign-screen-registry.js", async () => {
   const React = await import("react");
   return {
