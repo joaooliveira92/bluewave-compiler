@@ -32,6 +32,8 @@ import { GlassCard } from "@/components/ui/glass-card.js";
 import { MonthReportCard } from "./MonthReportCard.js";
 import { PrioritiesCard } from "./PrioritiesCard.js";
 import { usePriorities } from "./usePriorities.js";
+import { NationRail } from "./NationRail.js";
+import { useNationRail } from "./useNationRail.js";
 import { WorldMapPanel } from "../../components/world-map/WorldMapPanel.js";
 import { tensionLabel } from "@bluewave/campaign-engine";
 import { useMonthHistory } from "../../shell/CampaignShellContext.js";
@@ -45,6 +47,7 @@ export interface OverviewScreenProps {
 
 export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
   const priorities = usePriorities(sessionId);
+  const nationRail = useNationRail(sessionId);
   const monthHistory = useMonthHistory();
   const bridge = window.bluewave;
   const [state, setState] = useState(initialOverviewScreenState);
@@ -136,7 +139,10 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
       />
 
       {/* Header summary: admiralName (M1 identity) → campaign name, fleet strength, construction count, highest tension */}
-      <WorldMapPanel sessionId={sessionId} testId="overview-map-panel" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <WorldMapPanel sessionId={sessionId} testId="overview-map-panel" />
+        <NationRail state={nationRail} playerName={projection.nationName} onNavigate={onNavigate} />
+      </div>
 
       <GlassCard glassVariant="liquid-refract">
         <CardHeader className="pb-3">
