@@ -16,7 +16,13 @@ import { Button } from "../ui/button.js";
 import { CoastlineCanvas } from "./CoastlineCanvas.js";
 import { MapMinimap } from "./MapMinimap.js";
 import { MapScaleBar } from "./MapScaleBar.js";
-import { buildOwnershipRows, describeArea, filterAreaRows } from "./map-a11y.js";
+import {
+  areaMetricText,
+  buildOwnershipRows,
+  describeArea,
+  filterAreaRows,
+  type AreaMetric,
+} from "./map-a11y.js";
 import { AREAS, AREAS_BY_ID, EDGES, FLEETS, PASSAGES_BY_ID, POSSESSIONS } from "./fixture-world.js";
 import { useCoastline } from "./useCoastline.js";
 import {
@@ -90,6 +96,7 @@ export function WorldMapChart({
   const isPanel = variant === "panel";
   const [toolsOpen, setToolsOpen] = useState(false);
   const [areaQuery, setAreaQuery] = useState("");
+  const [areaMetric, setAreaMetric] = useState<AreaMetric>("ships");
   const projection = projectionById(state.projection);
   const camera = useMapCamera(projection.width, projection.height);
   const live = overlay.source === "campaign";
@@ -151,6 +158,18 @@ export function WorldMapChart({
   );
   const areasById = useMemo(() => new Map(areas.map((area) => [area.id, area])), [areas]);
 
+  /** Possessions (ports) per fixture area: the campaign's own ports when live, the fixture's otherwise. */
+  const possessionsByArea = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (live) {
+      // The joined overlay's ports already sit on fixture areas (see joinWorldMap).
+      for (const port of overlay.ports) counts.set(port.area, (counts.get(port.area) ?? 0) + 1);
+    } else {
+      for (const [id, held] of control) counts.set(id, held.possessions);
+    }
+    return counts;
+  }, [live, overlay, control]);
+
   const ownershipRows = useMemo(
     () =>
       buildOwnershipRows(
@@ -161,9 +180,10 @@ export function WorldMapChart({
           return live ? campaignNationLabel(owner) : nationName(owner);
         },
         (id) => drawnFleets.filter((fleet) => fleet.area === id).length,
+        (id) => possessionsByArea.get(id) ?? 0,
         state.selected,
       ),
-    [areas, control, drawnFleets, live, state.selected],
+    [areas, control, drawnFleets, live, possessionsByArea, state.selected],
   );
   const rowById = useMemo(
     () => new Map(ownershipRows.map((row) => [row.id, row])),
@@ -695,6 +715,24 @@ export function WorldMapChart({
             Areas ({ownershipRows.length})
           </summary>
           <div className="mt-2 space-y-1.5" style={{ width: 220 }}>
+            <div role="group" aria-label="Show in the area list" className="flex gap-1">
+              {(["ships", "possessions"] as const).map((metric) => (
+                <button
+                  key={metric}
+                  type="button"
+                  aria-pressed={areaMetric === metric}
+                  onClick={() => setAreaMetric(metric)}
+                  className="h-6 flex-1 rounded border px-1.5 text-xs capitalize hover:bg-white/10"
+                  style={{
+                    background: areaMetric === metric ? "oklch(0.35 0.03 245)" : "transparent",
+                    borderColor: "oklch(0.4 0.02 245)",
+                    color: areaMetric === metric ? CHART.ink : CHART.inkDim,
+                  }}
+                >
+                  {metric}
+                </button>
+              ))}
+            </div>
             <input
               type="search"
               value={areaQuery}
@@ -725,7 +763,9 @@ export function WorldMapChart({
                     <span className="truncate">{row.name}</span>
                     <span className="shrink-0 tabular-nums" style={{ color: CHART.inkDim }}>
                       {row.owner ?? "Unclaimed"}
-                      {row.fleets > 0 ? ` · ${row.fleets}` : ""}
+                      {areaMetricText(row, areaMetric) !== null
+                        ? ` · ${areaMetricText(row, areaMetric)}`
+                        : ""}
                     </span>
                   </button>
                 </li>

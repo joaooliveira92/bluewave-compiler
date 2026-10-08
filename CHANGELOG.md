@@ -10,7 +10,7 @@ to `main` (see `AGENTS.md`).
 
 - **Map as the home screen.** Overview opens on a live world map (Compact / Large / Fill) with ownership,
   fleets and routes, a scale bar in nautical miles, a minimap, deep zoom to 60× with detailed coastlines,
-  an area list (filter, select, zoom), keyboard pan/zoom, and a text table of area control. F1 opens the
+  an area list (filter, select, zoom, with a Ships/Possessions toggle), keyboard pan/zoom, and a text table of area control. F1 opens the
   same map in a larger side panel.
 - **Fleet organization (division editor).** Create divisions on a flagship, add and remove ships, change
   the flagship, dissolve — with the experience/cohesion cost of each change stated first.

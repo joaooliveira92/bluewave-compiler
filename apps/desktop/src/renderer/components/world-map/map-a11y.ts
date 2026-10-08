@@ -9,6 +9,8 @@ export interface AreaOwnershipRow {
   /** Controlling nation's display name, or null when unclaimed. */
   readonly owner: string | null;
   readonly fleets: number;
+  /** Ports and other possessions in the area. */
+  readonly possessions: number;
   readonly selected: boolean;
 }
 
@@ -23,6 +25,7 @@ export function buildOwnershipRows(
   areas: readonly { readonly id: string; readonly name: string }[],
   ownerOf: (areaId: string) => string | null,
   fleetCountOf: (areaId: string) => number,
+  possessionCountOf: (areaId: string) => number,
   selected: string | null,
 ): AreaOwnershipRow[] {
   return areas
@@ -31,6 +34,7 @@ export function buildOwnershipRows(
       name: area.name,
       owner: ownerOf(area.id),
       fleets: fleetCountOf(area.id),
+      possessions: possessionCountOf(area.id),
       selected: area.id === selected,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -48,4 +52,21 @@ export function filterAreaRows(
       row.name.toLowerCase().includes(needle) ||
       (row.owner ?? "unclaimed").toLowerCase().includes(needle),
   );
+}
+
+export type AreaMetric = "ships" | "possessions";
+
+/** The count an area-list row shows for the chosen metric, with its label ("2 ships", "1 possession"). */
+export function areaMetricText(row: AreaOwnershipRow, metric: AreaMetric): string | null {
+  const count = metric === "ships" ? row.fleets : row.possessions;
+  if (count === 0) return null;
+  const noun =
+    metric === "ships"
+      ? count === 1
+        ? "fleet"
+        : "fleets"
+      : count === 1
+        ? "possession"
+        : "possessions";
+  return `${count} ${noun}`;
 }

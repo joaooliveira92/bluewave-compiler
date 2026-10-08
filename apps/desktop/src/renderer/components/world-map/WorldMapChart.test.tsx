@@ -188,6 +188,65 @@ describe("WorldMapChart", () => {
       expect(screen.getByText("No areas match.")).toBeTruthy();
     });
 
+    it("switches what each row counts between ships and possessions", () => {
+      renderWithSelect();
+      const list = screen.getByRole("list", { name: "Areas" });
+      const group = screen.getByRole("group", { name: "Show in the area list" });
+      const ships = within(group).getByRole("button", { name: "ships" });
+      const possessions = within(group).getByRole("button", { name: "possessions" });
+      expect(ships.getAttribute("aria-pressed")).toBe("true");
+      expect(list.textContent).toMatch(/\d+ fleets?/);
+      expect(list.textContent).not.toMatch(/\d+ possessions?/);
+
+      fireEvent.click(possessions);
+      expect(possessions.getAttribute("aria-pressed")).toBe("true");
+      expect(ships.getAttribute("aria-pressed")).toBe("false");
+      expect(list.textContent).toMatch(/\d+ possessions?/);
+      expect(list.textContent).not.toMatch(/\d+ fleets?/);
+    });
+
+    it("counts the LIVE campaign's own ports per area (not the fixture's) when an overlay is supplied", () => {
+      render(
+        <WorldMapChart
+          state={initialMapPrototypeState}
+          route={null}
+          overlay={{
+            source: "campaign",
+            ownership: new Map(),
+            fleets: [],
+            ports: [
+              { id: "p1", name: "Portsmouth", area: "area_north_sea", nation: "uk", level: 3 },
+              { id: "p2", name: "Plymouth", area: "area_north_sea", nation: "uk", level: 2 },
+              { id: "p3", name: "Valletta", area: "area_mediterranean", nation: "uk", level: 1 },
+            ],
+          }}
+          onSelect={noop}
+          onRuler={noop}
+          onToggleLayer={noop}
+          onSetProjection={noop}
+          onSetCentre={noop}
+          onToggleClosedPassages={noop}
+        />,
+      );
+      fireEvent.click(
+        within(screen.getByRole("group", { name: "Show in the area list" })).getByRole("button", {
+          name: "possessions",
+        }),
+      );
+      const list = screen.getByRole("list", { name: "Areas" });
+      const row = (name: RegExp) =>
+        within(list)
+          .getAllByRole("button")
+          .find((button) => name.test(button.textContent ?? ""))!;
+      expect(row(/^North Sea/).textContent).toContain("2 possessions");
+      expect(row(/^Mediterranean/).textContent).toContain("1 possession");
+      // Exactly the live ports are counted: 3 in total, and areas without a port stay quiet.
+      const counted = within(list)
+        .getAllByRole("button")
+        .filter((button) => /possession/.test(button.textContent ?? ""));
+      expect(counted).toHaveLength(2);
+    });
+
     it("selects the area when a row is clicked", () => {
       const onSelect = renderWithSelect();
       const list = screen.getByRole("list", { name: "Areas" });
