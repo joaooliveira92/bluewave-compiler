@@ -12,6 +12,9 @@ import {
   type PlanFrame,
 } from "./geometry.js";
 
+/** Label size in SVG user units (not CSS px): the 640-unit plan is scaled up to the panel width, so this renders at 12 px or more. */
+const PLAN_FONT = 8;
+
 export function HullOutlineLayer({ frame }: { readonly frame: PlanFrame }) {
   const pts: string[] = [];
   for (let i = 0; i <= 40; i++)
@@ -21,18 +24,25 @@ export function HullOutlineLayer({ frame }: { readonly frame: PlanFrame }) {
   return (
     <>
       <polygon points={pts.join(" ")} className="fill-background stroke-foreground" />
-      <text x={PLAN_PAD} y={12} className="fill-muted-foreground text-[8px]">
+      <text x={PLAN_PAD} y={12} className="fill-muted-foreground" fontSize={PLAN_FONT}>
         bow
       </text>
       <text
         x={PLAN_W - PLAN_PAD}
         y={12}
         textAnchor="end"
-        className="fill-muted-foreground text-[8px]"
+        className="fill-muted-foreground"
+        fontSize={PLAN_FONT}
       >
         stern
       </text>
-      <text x={PLAN_W / 2} y={12} textAnchor="middle" className="fill-muted-foreground text-[8px]">
+      <text
+        x={PLAN_W / 2}
+        y={12}
+        textAnchor="middle"
+        className="fill-muted-foreground"
+        fontSize={PLAN_FONT}
+      >
         starboard ↑ · port ↓
       </text>
     </>
@@ -66,7 +76,8 @@ export function HullZoneLayer({
               x={(frame.x(z.startPermille) + frame.x(z.endPermille)) / 2}
               y={PLAN_H - 6}
               textAnchor="middle"
-              className="fill-muted-foreground text-[8px]"
+              className="fill-muted-foreground"
+              fontSize={PLAN_FONT}
             >
               {z.id.replaceAll("_", " ").toLowerCase()}
             </text>

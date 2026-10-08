@@ -1,0 +1,41 @@
+import { useState } from "react";
+import { PencilRuler } from "lucide-react";
+import { Button } from "../../../components/ui/button.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../../../components/ui/dialog.js";
+import { DrawingBoard } from "./DrawingBoard.js";
+
+/** The ship designer opens in a near full-screen modal so the plan, panels and findings get the whole window. */
+export function DrawingBoardDialog({ sessionId }: { readonly sessionId?: string } = {}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <div className="flex flex-col items-start gap-3 rounded border p-4">
+        <p className="text-sm text-muted-foreground">
+          Design a ship component by component: hull, machinery, armament and arrangement, with live
+          validation, cost and build-time forecasts.
+        </p>
+        <Button onClick={() => setOpen(true)}>
+          <PencilRuler aria-hidden="true" className="mr-1 size-4" />
+          Open Drawing Board
+        </Button>
+      </div>
+      <DialogContent className="flex h-[96vh] w-[98vw] max-w-none flex-col gap-3 overflow-hidden p-4">
+        <DialogHeader>
+          <DialogTitle>Drawing Board</DialogTitle>
+          <DialogDescription>
+            Edits are a local draft until you submit the design for construction.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <DrawingBoard sessionId={sessionId} />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
