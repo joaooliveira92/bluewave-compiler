@@ -119,6 +119,26 @@ function triangular(keyBase: string, min: number, max: number): number {
   return Math.trunc((a + b) / 2);
 }
 
+interface TechnologyManifestHashParts {
+  entries: Record<string, TechnologyManifestEntry>;
+  contentHash: string;
+  rulesetHash: string;
+  formulaVersion: string;
+}
+
+// §6.7 canonical manifest hash recipe. Single source of truth shared by
+// materialization and post-creation verification so the two can never drift.
+function computeTechnologyManifestHash(parts: TechnologyManifestHashParts): string {
+  return sha256Hex(
+    canonicalSerialize({
+      entries: parts.entries,
+      contentHash: parts.contentHash,
+      rulesetHash: parts.rulesetHash,
+      formulaVersion: parts.formulaVersion,
+    }),
+  );
+}
+
 const ALLOWED_DATE_DIST = new Set(["constant_zero_v1", "symmetric_triangular_integer_v1"]);
 const ALLOWED_EFF_DIST = new Set(["constant_10000_v1", "symmetric_triangular_integer_v1"]);
 
@@ -294,17 +314,16 @@ export function validateTechnologyVariationProfiles(
   return ok;
 }
 
-export function materializeTechnologyVariation(
-  techs: TechnologyDefinition[],
-  profile: TechnologyVariationProfile,
-  campaignSeed: string,
-  contentHash: string,
-  rulesetHash: string,
-  c: DiagnosticCollector,
-): CampaignTechnologyManifest | undefined {
-  if (!validateTechnologyVariationProfile(profile, c)) return undefined;
-  // clone to avoid mutating caller
-  const cloned: TechnologyDefinition[] = techs.map((t) => ({
+interface TechnologyVariationContext {
+  profile: TechnologyVariationProfile;
+  campaignSeed: string;
+  contentHash: string;
+  rulesetHash: string;
+}
+
+// Deep-clone the caller's definitions so materialization never mutates input.
+function cloneTechnologyDefinitions(techs: TechnologyDefinition[]): TechnologyDefinition[] {
+  return techs.map((t) => ({
     ...t,
     canonicalEffectValues: { ...t.canonicalEffectValues },
     variableEffectIds: [...t.variableEffectIds],
@@ -317,9 +336,14 @@ export function materializeTechnologyVariation(
       ? Object.fromEntries(Object.entries(t.effectVariationBounds).map(([k, v]) => [k, { ...v }]))
       : undefined,
   }));
-  const sorted = [...cloned].sort((a, b) => a.technologyId.localeCompare(b.technologyId));
+}
 
-  for (const t of sorted) {
+// Apply ineligible defaults for incomplete metadata and reject invalid delays.
+function normalizeAndValidateTechnologyMetadata(
+  technologies: TechnologyDefinition[],
+  c: DiagnosticCollector,
+): boolean {
+  for (const t of technologies) {
     const missing =
       t.variationEligible === undefined ||
       t.dateVariationEligible === undefined ||
@@ -338,7 +362,6 @@ export function materializeTechnologyVariation(
       t.dateVariationEligible = false;
       t.effectivenessVariationEligible = false;
     }
-    // validate delay values strictly
     if (t.prerequisiteDelayMonths !== undefined) {
       if (typeof t.prerequisiteDelayMonths === "number") {
         if (!Number.isInteger(t.prerequisiteDelayMonths) || t.prerequisiteDelayMonths < 0) {
@@ -347,7 +370,7 @@ export function materializeTechnologyVariation(
             `prerequisiteDelayMonths for ${t.technologyId} must be non-negative integer`,
             { stage: "technology-variation" },
           );
-          return undefined;
+          return false;
         }
       } else if (typeof t.prerequisiteDelayMonths === "object") {
         for (const [pre, d] of Object.entries(
@@ -359,21 +382,27 @@ export function materializeTechnologyVariation(
               `prerequisiteDelayMonths[${pre}] for ${t.technologyId} must be non-negative integer`,
               { stage: "technology-variation" },
             );
-            return undefined;
+            return false;
           }
         }
       }
     }
   }
+  return true;
+}
 
-  const byId = new Map(sorted.map((t) => [t.technologyId, t]));
+// Deterministic Kahn topological order; undefined on a prerequisite cycle.
+function topologicalTechnologyOrder(
+  technologies: TechnologyDefinition[],
+  c: DiagnosticCollector,
+): string[] | undefined {
   const adj = new Map<string, string[]>();
   const indeg = new Map<string, number>();
-  for (const t of sorted) {
+  for (const t of technologies) {
     adj.set(t.technologyId, []);
     indeg.set(t.technologyId, 0);
   }
-  for (const t of sorted) {
+  for (const t of technologies) {
     for (const pre of t.prerequisiteTechnologyIds ?? []) {
       if (adj.has(pre)) {
         adj.get(pre)!.push(t.technologyId);
@@ -401,7 +430,7 @@ export function materializeTechnologyVariation(
     q.push(...newly);
     q.sort();
   }
-  if (order.length !== sorted.length) {
+  if (order.length !== technologies.length) {
     const remaining = [...indeg.entries()]
       .filter(([, d]) => d > 0)
       .map(([id]) => id)
@@ -413,127 +442,152 @@ export function materializeTechnologyVariation(
     );
     return undefined;
   }
+  return order;
+}
 
-  const entries: Record<string, TechnologyManifestEntry> = {};
-  const initialFinal = new Map<string, number>();
-
-  for (const t of sorted) {
-    let shift = 0;
-    let mult = 10_000;
-    if (t.variationEligible) {
-      if (t.dateVariationEligible) {
-        if (profile.dateDistributionId === "constant_zero_v1") shift = 0;
-        else if (profile.dateDistributionId === "symmetric_triangular_integer_v1") {
-          const base = buildKey({
-            campaignSeed,
-            technologyId: t.technologyId,
-            settingId: profile.settingId,
-            formulaVersion: profile.variationFormulaVersion,
-            decisionTypeId: "availability_shift",
-          });
-          shift = triangular(base, profile.earliestDateShiftMonths, profile.latestDateShiftMonths);
-        }
-      }
-      if (t.effectivenessVariationEligible) {
-        let effMin = profile.effectivenessVariationMinBp;
-        let effMax = profile.effectivenessVariationMaxBp;
-        if (t.effectVariationBounds) {
-          for (const [effId, bounds] of Object.entries(t.effectVariationBounds)) {
-            if (!Number.isInteger(bounds.minBp) || !Number.isInteger(bounds.maxBp)) {
-              c.addError(
-                "INVALID_TECHNOLOGY_VARIATION_PROFILE",
-                `effectVariationBounds ${effId} must be integers`,
-                { stage: "technology-variation" },
-              );
-              return undefined;
-            }
-            const eMin = Math.max(effMin, bounds.minBp);
-            const eMax = Math.min(effMax, bounds.maxBp);
-            if (eMin > eMax) {
-              c.addError(
-                "INVALID_EFFECT_VARIATION_BOUNDS",
-                `Empty intersection for ${t.technologyId}.${effId} [${bounds.minBp}..${bounds.maxBp}] vs profile [${effMin}..${effMax}]`,
-                { stage: "technology-variation" },
-              );
-              return undefined;
-            }
-            effMin = eMin;
-            effMax = eMax;
-          }
-        }
-        if (profile.effectivenessDistributionId === "constant_10000_v1") mult = 10_000;
-        else if (profile.effectivenessDistributionId === "symmetric_triangular_integer_v1") {
-          const base = buildKey({
-            campaignSeed,
-            technologyId: t.technologyId,
-            settingId: profile.settingId,
-            formulaVersion: profile.variationFormulaVersion,
-            decisionTypeId: "effectiveness_multiplier",
-          });
-          mult = triangular(base, effMin, effMax);
-        }
-      }
+// §6.6: derive one technology's date shift and effectiveness multiplier.
+function deriveTechnologyVariation(
+  t: TechnologyDefinition,
+  profile: TechnologyVariationProfile,
+  campaignSeed: string,
+  c: DiagnosticCollector,
+): { shift: number; mult: number } | undefined {
+  let shift = 0;
+  let mult = 10_000;
+  if (!t.variationEligible) return { shift, mult };
+  if (t.dateVariationEligible) {
+    if (profile.dateDistributionId === "constant_zero_v1") shift = 0;
+    else if (profile.dateDistributionId === "symmetric_triangular_integer_v1") {
+      const base = buildKey({
+        campaignSeed,
+        technologyId: t.technologyId,
+        settingId: profile.settingId,
+        formulaVersion: profile.variationFormulaVersion,
+        decisionTypeId: "availability_shift",
+      });
+      shift = triangular(base, profile.earliestDateShiftMonths, profile.latestDateShiftMonths);
     }
-    const raw = t.canonicalAvailabilityMonth + shift;
-    const clamped = Math.min(
-      Math.max(raw, t.earliestPermittedAvailabilityMonth),
-      t.latestPermittedAvailabilityMonth,
-    );
-    initialFinal.set(t.technologyId, clamped);
-    const canonicalEff = { ...t.canonicalEffectValues };
-    const varied: Record<string, number> = {};
-    for (const [k, v] of Object.entries(canonicalEff)) {
-      if (
-        t.variableEffectIds.includes(k) &&
-        t.effectivenessVariationEligible &&
-        t.variationEligible
-      ) {
-        // §6.6: variedEffectValue = roundTowardZero(canonicalEffectValue * multiplierBp / 10_000).
-        // BigInt division truncates toward zero, matching round-toward-zero for signed values
-        // and floor for unsigned values.
-        varied[k] = Number((BigInt(v) * BigInt(mult)) / BigInt(10000));
-      } else varied[k] = v;
-    }
-    entries[t.technologyId] = {
-      technologyId: t.technologyId,
-      canonicalAvailabilityMonth: t.canonicalAvailabilityMonth,
-      selectedDateShift: shift,
-      finalAvailabilityMonth: clamped,
-      canonicalEffectValues: canonicalEff,
-      effectivenessMultiplier: mult,
-      finalVariedEffectValues: varied,
-      eligibilityFlags: {
-        variationEligible: t.variationEligible,
-        dateVariationEligible: t.dateVariationEligible,
-        effectivenessVariationEligible: t.effectivenessVariationEligible,
-      },
-      variationDecisionRecordIds: [
-        buildKey({
-          campaignSeed,
-          technologyId: t.technologyId,
-          settingId: profile.settingId,
-          formulaVersion: profile.variationFormulaVersion,
-          decisionTypeId: "availability_shift",
-        }),
-        buildKey({
-          campaignSeed,
-          technologyId: t.technologyId,
-          settingId: profile.settingId,
-          formulaVersion: profile.variationFormulaVersion,
-          decisionTypeId: "effectiveness_multiplier",
-        }),
-      ],
-      contentHash,
-      rulesetHash,
-      formulaVersion: profile.variationFormulaVersion,
-    };
   }
+  if (t.effectivenessVariationEligible) {
+    let effMin = profile.effectivenessVariationMinBp;
+    let effMax = profile.effectivenessVariationMaxBp;
+    if (t.effectVariationBounds) {
+      for (const [effId, bounds] of Object.entries(t.effectVariationBounds)) {
+        if (!Number.isInteger(bounds.minBp) || !Number.isInteger(bounds.maxBp)) {
+          c.addError(
+            "INVALID_TECHNOLOGY_VARIATION_PROFILE",
+            `effectVariationBounds ${effId} must be integers`,
+            { stage: "technology-variation" },
+          );
+          return undefined;
+        }
+        const eMin = Math.max(effMin, bounds.minBp);
+        const eMax = Math.min(effMax, bounds.maxBp);
+        if (eMin > eMax) {
+          c.addError(
+            "INVALID_EFFECT_VARIATION_BOUNDS",
+            `Empty intersection for ${t.technologyId}.${effId} [${bounds.minBp}..${bounds.maxBp}] vs profile [${effMin}..${effMax}]`,
+            { stage: "technology-variation" },
+          );
+          return undefined;
+        }
+        effMin = eMin;
+        effMax = eMax;
+      }
+    }
+    if (profile.effectivenessDistributionId === "constant_10000_v1") mult = 10_000;
+    else if (profile.effectivenessDistributionId === "symmetric_triangular_integer_v1") {
+      const base = buildKey({
+        campaignSeed,
+        technologyId: t.technologyId,
+        settingId: profile.settingId,
+        formulaVersion: profile.variationFormulaVersion,
+        decisionTypeId: "effectiveness_multiplier",
+      });
+      mult = triangular(base, effMin, effMax);
+    }
+  }
+  return { shift, mult };
+}
 
+// One technology's varied availability/effectiveness decision + manifest entry.
+function materializeTechnologyEntry(
+  t: TechnologyDefinition,
+  context: TechnologyVariationContext,
+  c: DiagnosticCollector,
+): { entry: TechnologyManifestEntry; finalAvailabilityMonth: number } | undefined {
+  const { profile, campaignSeed, contentHash, rulesetHash } = context;
+  const derived = deriveTechnologyVariation(t, profile, campaignSeed, c);
+  if (derived === undefined) return undefined;
+  const { shift, mult } = derived;
+  const raw = t.canonicalAvailabilityMonth + shift;
+  const clamped = Math.min(
+    Math.max(raw, t.earliestPermittedAvailabilityMonth),
+    t.latestPermittedAvailabilityMonth,
+  );
+  const canonicalEff = { ...t.canonicalEffectValues };
+  const varied: Record<string, number> = {};
+  for (const [k, v] of Object.entries(canonicalEff)) {
+    if (
+      t.variableEffectIds.includes(k) &&
+      t.effectivenessVariationEligible &&
+      t.variationEligible
+    ) {
+      // §6.6: variedEffectValue = roundTowardZero(canonicalEffectValue * multiplierBp / 10_000).
+      // BigInt division truncates toward zero, matching round-toward-zero for signed values
+      // and floor for unsigned values.
+      varied[k] = Number((BigInt(v) * BigInt(mult)) / BigInt(10000));
+    } else varied[k] = v;
+  }
+  const entry: TechnologyManifestEntry = {
+    technologyId: t.technologyId,
+    canonicalAvailabilityMonth: t.canonicalAvailabilityMonth,
+    selectedDateShift: shift,
+    finalAvailabilityMonth: clamped,
+    canonicalEffectValues: canonicalEff,
+    effectivenessMultiplier: mult,
+    finalVariedEffectValues: varied,
+    eligibilityFlags: {
+      variationEligible: t.variationEligible,
+      dateVariationEligible: t.dateVariationEligible,
+      effectivenessVariationEligible: t.effectivenessVariationEligible,
+    },
+    variationDecisionRecordIds: [
+      buildKey({
+        campaignSeed,
+        technologyId: t.technologyId,
+        settingId: profile.settingId,
+        formulaVersion: profile.variationFormulaVersion,
+        decisionTypeId: "availability_shift",
+      }),
+      buildKey({
+        campaignSeed,
+        technologyId: t.technologyId,
+        settingId: profile.settingId,
+        formulaVersion: profile.variationFormulaVersion,
+        decisionTypeId: "effectiveness_multiplier",
+      }),
+    ],
+    contentHash,
+    rulesetHash,
+    formulaVersion: profile.variationFormulaVersion,
+  };
+  return { entry, finalAvailabilityMonth: clamped };
+}
+
+// §6 prerequisite propagation: a successor may not become available before its
+// predecessor plus the declared delay.
+function propagatePrerequisiteAvailability(
+  order: string[],
+  byId: Map<string, TechnologyDefinition>,
+  finalAvailability: Map<string, number>,
+  entries: Record<string, TechnologyManifestEntry>,
+): void {
   for (const id of order) {
     const t = byId.get(id)!;
-    let cur = initialFinal.get(id)!;
+    let cur = finalAvailability.get(id)!;
     for (const pre of t.prerequisiteTechnologyIds ?? []) {
-      const preFinal = initialFinal.get(pre);
+      const preFinal = finalAvailability.get(pre);
       if (preFinal === undefined) continue;
       let delay = 0;
       if (typeof t.prerequisiteDelayMonths === "number") delay = t.prerequisiteDelayMonths;
@@ -542,41 +596,68 @@ export function materializeTechnologyVariation(
       const required = preFinal + delay;
       if (cur < required) {
         cur = required;
-        initialFinal.set(id, cur);
+        finalAvailability.set(id, cur);
         entries[id]!.finalAvailabilityMonth = cur;
       }
     }
   }
+}
 
-  const manifest: CampaignTechnologyManifest = {
+export function materializeTechnologyVariation(
+  techs: TechnologyDefinition[],
+  profile: TechnologyVariationProfile,
+  campaignSeed: string,
+  contentHash: string,
+  rulesetHash: string,
+  c: DiagnosticCollector,
+): CampaignTechnologyManifest | undefined {
+  if (!validateTechnologyVariationProfile(profile, c)) return undefined;
+  const cloned = cloneTechnologyDefinitions(techs);
+  const sorted = [...cloned].sort((a, b) => a.technologyId.localeCompare(b.technologyId));
+
+  if (!normalizeAndValidateTechnologyMetadata(sorted, c)) return undefined;
+
+  const order = topologicalTechnologyOrder(sorted, c);
+  if (order === undefined) return undefined;
+
+  const context: TechnologyVariationContext = { profile, campaignSeed, contentHash, rulesetHash };
+  const byId = new Map(sorted.map((t) => [t.technologyId, t]));
+  const entries: Record<string, TechnologyManifestEntry> = {};
+  const finalAvailability = new Map<string, number>();
+
+  for (const t of sorted) {
+    const materialized = materializeTechnologyEntry(t, context, c);
+    if (materialized === undefined) return undefined;
+    entries[t.technologyId] = materialized.entry;
+    finalAvailability.set(t.technologyId, materialized.finalAvailabilityMonth);
+  }
+
+  propagatePrerequisiteAvailability(order, byId, finalAvailability, entries);
+
+  return {
     entries,
     contentHash,
     rulesetHash,
     formulaVersion: profile.variationFormulaVersion,
-    manifestHash: "",
-  };
-  manifest.manifestHash = sha256Hex(
-    canonicalSerialize({
+    manifestHash: computeTechnologyManifestHash({
       entries,
       contentHash,
       rulesetHash,
       formulaVersion: profile.variationFormulaVersion,
     }),
-  );
-  return manifest;
+  };
 }
+
 export function verifyTechnologyManifest(
   manifest: CampaignTechnologyManifest,
   c: DiagnosticCollector,
 ): boolean {
-  const recomputed = sha256Hex(
-    canonicalSerialize({
-      entries: manifest.entries,
-      contentHash: manifest.contentHash,
-      rulesetHash: manifest.rulesetHash,
-      formulaVersion: manifest.formulaVersion,
-    }),
-  );
+  const recomputed = computeTechnologyManifestHash({
+    entries: manifest.entries,
+    contentHash: manifest.contentHash,
+    rulesetHash: manifest.rulesetHash,
+    formulaVersion: manifest.formulaVersion,
+  });
   if (recomputed !== manifest.manifestHash) {
     c.addError(
       "TECHNOLOGY_MANIFEST_MISMATCH",

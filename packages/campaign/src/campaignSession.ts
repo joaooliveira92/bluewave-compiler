@@ -15,7 +15,10 @@ import {
 import { validateFleetSizeSettings } from "./fleetSize.js";
 import { validateResearchSpeedSettings } from "./researchSpeed.js";
 import { CANONICAL_SCENARIOS, validateScenarios } from "./scenario.js";
-import type { CampaignTechnologyManifest } from "./technologyVariation.js";
+import {
+  type CampaignTechnologyManifest,
+  verifyTechnologyManifest,
+} from "./technologyVariation.js";
 import { assertCanAdvance, fromLinear, isAtEnd, isBeyondEnd, toLinear } from "./timeline.js";
 
 export { validateCampaignSeed } from "./campaignConfiguration.js";
@@ -255,23 +258,7 @@ export function verifyCampaignTechnologyManifest(
   manifest: CampaignTechnologyManifest,
   collector: DiagnosticCollector,
 ): boolean {
-  const recomputed = sha256Hex(
-    canonicalSerialize({
-      entries: manifest.entries,
-      contentHash: manifest.contentHash,
-      rulesetHash: manifest.rulesetHash,
-      formulaVersion: manifest.formulaVersion,
-    }),
-  );
-  if (recomputed !== manifest.manifestHash) {
-    collector.addError(
-      "TECHNOLOGY_MANIFEST_MISMATCH",
-      "Technology manifest hash mismatch after campaign creation",
-      { stage: "technology-variation" },
-    );
-    return false;
-  }
-  return true;
+  return verifyTechnologyManifest(manifest, collector);
 }
 
 /** Guard §8 post-save mutation: compares hash, fails silent change */
