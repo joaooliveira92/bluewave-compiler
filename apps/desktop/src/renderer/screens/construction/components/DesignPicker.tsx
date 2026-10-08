@@ -103,26 +103,23 @@ export const DesignPicker = memo(function DesignPicker({
                           <p className="truncate pr-5 font-semibold leading-tight">
                             {design.className}
                           </p>
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">
                             {design.shipType}
                           </p>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        <Badge variant="outline" className="font-mono text-[11px] font-normal">
+                        <Badge variant="outline" className="font-mono text-xs font-normal">
                           {design.year}
                         </Badge>
-                        <Badge variant="outline" className="font-mono text-[11px] font-normal">
+                        <Badge variant="outline" className="font-mono text-xs font-normal">
                           {design.mass.toLocaleString()}t
                         </Badge>
-                        <Badge variant="outline" className="font-mono text-[11px] font-normal">
+                        <Badge variant="outline" className="font-mono text-xs font-normal">
                           {design.speed}kt
                         </Badge>
                         {design.carrierAttributes !== undefined && (
-                          <Badge
-                            variant="outline"
-                            className="gap-1 font-mono text-[11px] font-normal"
-                          >
+                          <Badge variant="outline" className="gap-1 font-mono text-xs font-normal">
                             <Plane className="h-3 w-3" />
                             {design.carrierAttributes.aircraftCapacity}
                           </Badge>
@@ -131,7 +128,7 @@ export const DesignPicker = memo(function DesignPicker({
                       {design.requiredTechnologyIds.length > 0 && (
                         <Tooltip>
                           <TooltipTrigger render={<span className="inline-flex" />}>
-                            <Badge variant="secondary" className="text-[11px]">
+                            <Badge variant="secondary" className="text-xs">
                               {design.requiredTechnologyIds.length} required tech
                               {design.requiredTechnologyIds.length === 1 ? "" : "s"}
                             </Badge>

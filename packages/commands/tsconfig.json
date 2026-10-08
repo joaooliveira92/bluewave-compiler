@@ -6,9 +6,20 @@
   },
   "include": ["src"],
   "references": [
-    { "path": "../contracts" },
-    { "path": "../deterministic" },
-    { "path": "../diagnostics" },
-    { "path": "../campaign" }
+    {
+      "path": "../contracts"
+    },
+    {
+      "path": "../deterministic"
+    },
+    {
+      "path": "../diagnostics"
+    },
+    {
+      "path": "../campaign"
+    },
+    {
+      "path": "../ship-design"
+    }
   ]
 }

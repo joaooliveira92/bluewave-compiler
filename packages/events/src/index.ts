@@ -14,7 +14,8 @@ export type {
   TechnologyDiscovered,
 } from "./envelope.js";
 export type { ExplanationTree } from "./explanation.js";
-export { ExplanationBuilder, formatExplanation } from "./explanation.js";
+export { ExplanationBuilder } from "./explanation.js";
+export { formatExplanation } from "./format.js";
 export { EventLedger } from "./ledger.js";
 export {
   BattleInitiatedSchema,

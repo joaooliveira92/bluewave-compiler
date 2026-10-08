@@ -9,7 +9,7 @@ correct action is `rm -r` on this folder plus the two references listed under "D
 below — not a refactor into `screens/strategic-map/`.
 
 Nothing here touches IPC, the engine, or a real campaign. The world is a fixture in
-`prototype-world.ts` (36 areas, 59 edges), which is why the screen is never registered in a
+`components/world-map/fixture-world.ts` (36 areas, 59 edges), which is why the screen is never registered in a
 production build.
 
 ## Running it
@@ -48,7 +48,7 @@ before judging one — several apparent flaws are the point.
 
 ## Coastline geometry
 
-`bake-coastline.ts` is a one-off author-time bake, run by hand, that writes `prototype-coastline.ts`.
+`bake-coastline.ts` is a one-off author-time bake, run by hand, that writes `components/world-map/coastline-data.ts`.
 It takes a Natural Earth tier as its argument:
 
 ```
@@ -57,7 +57,7 @@ pnpm tsx apps/desktop/src/renderer/screens/map-prototype/bake-coastline.ts [110m
 
 **10m is the default and the decided tier.** The number is the map scale each tier is _drawn for_ —
 110m is a world thumbnail, 50m a continent, 10m a coastline. The camera reaches 14x
-(`usePrototypeCamera.ts`, `MAX_SCALE`), roughly 1:1.5M at the equator, so 110m goes visibly
+(`components/world-map/useMapCamera.ts`, `MAX_SCALE`), roughly 1:1.5M at the equator, so 110m goes visibly
 polygonal exactly where a naval game needs resolution. For a naval game the coast is the subject.
 
 Two properties worth preserving in whatever replaces this:

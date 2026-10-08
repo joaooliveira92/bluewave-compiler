@@ -1,7 +1,8 @@
+import { appendMonthSummary, type MonthSummary } from "../lib/month-summary.js";
 import type { PrimaryAction } from "./primary-action.js";
 import type { NavigationHistory } from "./navigation-history.js";
 import { currentEntry, initialHistory, visit } from "./navigation-history.js";
-import type { Screen } from "./AppSidebar.js";
+import type { Screen } from "./campaign-screen-registry.js";
 
 export interface CampaignOverview {
   readonly month: { readonly year: number; readonly month: number };
@@ -9,6 +10,27 @@ export interface CampaignOverview {
   /** The snapshot's optimistic-concurrency revision (turn number). */
   readonly revision: number;
   readonly sessionId: string;
+  /** The player nation's name — INC-1's `PlayerProjection.nationName`. */
+  readonly nationName: string;
+  /**
+   * Projected monthly surplus/deficit — INC-1's
+   * `PlayerProjection.projectedSurplusDeficit`. After a month commit the
+   * `CommitMonthResponse` carries no projection surface, so the shell keeps
+   * the last-known value until the next `inspectCampaign` refreshes it.
+   */
+  readonly projectedSurplusDeficit: number;
+  /**
+   * Active-alerts count slot, forward-wired to the INC-2 priorities
+   * projection: `null` until INC-2 lands, so the header renders an explicit
+   * placeholder rather than a fabricated count.
+   */
+  readonly activeAlertsCount: number | null;
+  /**
+   * True when the player nation is at war with at least one nation
+   * (`PlayerProjection.knownEnemyNations` is non-empty); drives the header
+   * status. Refreshed from `inspectCampaign` after every month advance.
+   */
+  readonly atWar: boolean;
 }
 
 export interface CampaignShellState {
@@ -20,6 +42,11 @@ export interface CampaignShellState {
   readonly saveMessage: string | null;
   readonly primaryAction: PrimaryAction | null;
   readonly committing: boolean;
+  /**
+   * Reports of the months committed in this session, newest first. Kept in memory only: the engine
+   * does not persist a month history yet, so it starts empty each time the campaign is opened.
+   */
+  readonly monthHistory: readonly MonthSummary[];
 }
 
 export type CampaignShellMode =
@@ -80,7 +107,12 @@ export type CampaignShellEvent =
       readonly action: PrimaryAction | null;
     }
   | { readonly type: "month-commit-started" }
-  | { readonly type: "month-committed"; readonly campaign: CampaignOverview }
+  | {
+      readonly type: "month-committed";
+      readonly campaign: CampaignOverview;
+      readonly summary: MonthSummary;
+    }
+  | { readonly type: "campaign-refreshed"; readonly campaign: CampaignOverview }
   | { readonly type: "month-commit-failed"; readonly message: string };
 
 export function initialCampaignShellState(): CampaignShellState {
@@ -93,6 +125,7 @@ export function initialCampaignShellState(): CampaignShellState {
     saveMessage: null,
     primaryAction: null,
     committing: false,
+    monthHistory: [],
   };
 }
 
@@ -114,6 +147,7 @@ export function reduceCampaignShell(
         campaign: event.campaign,
         loading: false,
         error: null,
+        monthHistory: [],
         history: visit(state.history, "overview"),
       };
     case "campaign-open-failed":
@@ -147,7 +181,18 @@ export function reduceCampaignShell(
     case "month-commit-started":
       return { ...state, committing: true, saveMessage: null };
     case "month-committed":
-      return { ...state, committing: false, campaign: event.campaign };
+      return {
+        ...state,
+        committing: false,
+        campaign: event.campaign,
+        monthHistory: appendMonthSummary(state.monthHistory, event.summary),
+      };
+    case "campaign-refreshed":
+      // A late refresh must not resurrect a closed campaign or replace a different one.
+      if (state.campaign === null || state.campaign.sessionId !== event.campaign.sessionId) {
+        return state;
+      }
+      return { ...state, campaign: event.campaign };
     case "month-commit-failed":
       return { ...state, committing: false, saveMessage: event.message };
   }

@@ -7,10 +7,12 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "src/renderer"),
+      "@content": resolve(__dirname, "../../content/production/1880"),
     },
   },
   test: {
     globals: true,
+    setupFiles: ["./src/renderer/test-setup.ts"],
     testTimeout: 30000,
     environment: "jsdom",
     // Debug-only sidebar screens (Simulation, Tactical Sandbox, Debugging)

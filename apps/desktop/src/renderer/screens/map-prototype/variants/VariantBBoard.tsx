@@ -32,7 +32,7 @@ import {
   NATIONS,
   PASSAGES_BY_ID,
   POSSESSIONS,
-} from "../prototype-world.js";
+} from "../../../components/world-map/fixture-world.js";
 import {
   LAYERS,
   areaControl,
@@ -40,9 +40,9 @@ import {
   nationName,
   nationStroke,
   summariseArea,
-} from "../map-prototype-screen-state.js";
-import { usePrototypeCamera } from "../usePrototypeCamera.js";
-import type { MapVariantProps } from "../variant-contract.js";
+} from "../../../components/world-map/map-state.js";
+import { useMapCamera } from "../../../components/world-map/useMapCamera.js";
+import type { MapViewProps } from "../../../components/world-map/map-contract.js";
 
 const TILE_WIDTH = 152;
 const TILE_HEIGHT = 108;
@@ -77,8 +77,8 @@ export function VariantBBoard({
   onRuler,
   onToggleLayer,
   onToggleClosedPassages,
-}: MapVariantProps) {
-  const camera = usePrototypeCamera(BOARD_WIDTH, BOARD_HEIGHT, {
+}: MapViewProps) {
+  const camera = useMapCamera(BOARD_WIDTH, BOARD_HEIGHT, {
     wrapHorizontally: false,
   });
   const control = areaControl();

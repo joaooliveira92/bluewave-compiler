@@ -2,13 +2,13 @@ import { memo } from "react";
 import { AlertTriangle, Download, RefreshCw, RotateCcw, Save } from "lucide-react";
 import { Button } from "../../../components/ui/button.js";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card.js";
 import { CloseCampaignDialog } from "./CloseCampaignDialog.js";
+import { GlassCard } from "@/components/ui/glass-card.jsx";
 
 export interface DangerZonePanelProps {
   readonly onExportConfig: () => void;
@@ -22,7 +22,7 @@ export const DangerZonePanel = memo(function DangerZonePanel({
   onCloseCampaign,
 }: DangerZonePanelProps) {
   return (
-    <Card className="border-destructive/30">
+    <GlassCard className="border-destructive/30">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-1.5 text-sm font-medium text-destructive">
           <AlertTriangle className="h-4 w-4" />
@@ -55,6 +55,6 @@ export const DangerZonePanel = memo(function DangerZonePanel({
           )}
         </div>
       </CardContent>
-    </Card>
+    </GlassCard>
   );
 });

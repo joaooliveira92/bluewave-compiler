@@ -42,12 +42,12 @@ validation gate. Subagents live in `.opencode/agents/`. The pipeline is
 
 ## Roles
 
-| Role              | `.opencode/agents/` | Skill                       | Permissions                | Output                                                                  |
-| ----------------- | ------------------- | --------------------------- | -------------------------- | ----------------------------------------------------------------------- |
-| 1. spec-creator   | `spec-creator.md`   | `to-spec`                   | write spec only            | `.scratch/<slug>/spec.md` + `.ai/specs/` pointer                        |
-| 2. research       | `research.md`       | `research`                  | write notes only           | `docs/research/<slug>-<topic>.md`                                       |
-| 3. implementator  | `implementator.md`  | — (works `to-tickets` output) | edit+run                 | frontier ticket done + code + tests + exact results + changed-file list |
-| 4. reviewer       | `reviewer.md`       | —                           | read-only                  | severity-tagged findings + APPROVE / NEEDS_REWORK                       |
+| Role              | `.opencode/agents/` | Skill                                     | Permissions         | Output                                                                  |
+| ----------------- | ------------------- | ----------------------------------------- | ------------------- | ----------------------------------------------------------------------- |
+| 1. spec-creator   | `spec-creator.md`   | `to-spec`                                 | write spec only     | `.scratch/<slug>/spec.md` + `.ai/specs/` pointer                        |
+| 2. research       | `research.md`       | `research`                                | write notes only    | `docs/research/<slug>-<topic>.md`                                       |
+| 3. implementator  | `implementator.md`  | — (works `to-tickets` output)             | edit+run            | frontier ticket done + code + tests + exact results + changed-file list |
+| 4. reviewer       | `reviewer.md`       | —                                         | read-only           | severity-tagged findings + APPROVE / NEEDS_REWORK                       |
 | orchestrator (me) | —                   | `wayfinder` (chart), `to-tickets` (slice) | owns git/validation | map + gate + git/traceability/ADRs                                      |
 
 Ordering: **chart/research → spec → slice → implement → review → (repair loop) →

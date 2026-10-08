@@ -79,14 +79,14 @@ describe("ResearchScreen", () => {
     expect(screen.getByText("60")).not.toBeNull();
 
     // Field priorities render with their weight labels.
-    expect(screen.getByText("GUNNERY")).not.toBeNull();
-    expect(screen.getByText("MACHINERY")).not.toBeNull();
-    expect(screen.getByText("INFRASTRUCTURE")).not.toBeNull();
+    expect(screen.getByText("Gunnery")).not.toBeNull();
+    expect(screen.getByText("Machinery")).not.toBeNull();
+    expect(screen.getByText("Infrastructure")).not.toBeNull();
 
     // Discovered techs are shown as badges.
-    expect(screen.getByText("basic_steam")).not.toBeNull();
+    expect(screen.getByText("Basic steam")).not.toBeNull();
     // `gunnery_rifled` appears as a discovered badge AND an in-progress row.
-    expect(screen.getAllByText("gunnery_rifled").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Gunnery rifled").length).toBeGreaterThanOrEqual(2);
 
     // In-progress technology work with invested points + current-project tag.
     expect(screen.getByText("24 pts")).not.toBeNull();

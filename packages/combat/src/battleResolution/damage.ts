@@ -25,8 +25,14 @@ import type { GunneryEventRecord } from "../gunnery/event.js";
 import type { TacticalContact } from "../contact/lifecycle.js";
 import type { BattleEvent } from "../battleLedger.js";
 import { type GunneryImpact, resolveDamage } from "../damage/engineWiring.js";
-import { type ShipDamageState, withDamageStateHash } from "../damage/state.js";
+import {
+  type FireRecord,
+  type FloodingSourceRecord,
+  type ShipDamageState,
+  withDamageStateHash,
+} from "../damage/state.js";
 import { DAMAGE_RULESET_VERSION, DAMAGE_FORMULA_VERSION } from "../damage/constants.js";
+import { DAMAGE_KEYED_DRAW } from "../damage/reasonCodes.js";
 import {
   determinePenetrationOutcome,
   lookupArmorQualityMultiplierBp,
@@ -47,6 +53,8 @@ import {
   STABILITY_INITIAL_BP,
   STRUCTURE_UNIT,
   type AutoResolutionZone,
+  type AutoResolutionZoneId,
+  ZONE_HIT_WEIGHT_BP,
 } from "./constants.js";
 
 // Damage runs between gunnery (substep 2) and nothing else in this slice:
@@ -73,6 +81,10 @@ export interface DamageTargetContext {
   designFlotationReserve: number;
   /** Design (full) stability score in basis points [0, 10_000]. */
   designStabilityScore: number;
+  /** Design displacement in integer kilograms — the denominator of the
+   *  bp-of-displacement flooding severity conversion (DESIGN-41 §14/§48 v12;
+   *  ADR-0047 decision 4). Threaded from the projected unit. */
+  designDisplacementKg: number;
   /** Belt armor thickness in µm (zone thickness source). */
   beltArmorUm: number;
   /** Main gun caliber in µm (shell penetration source). */
@@ -340,19 +352,24 @@ export function resolveMinuteDamage(input: ResolveMinuteDamageInput): ResolveMin
           ),
           draw,
           outcome: String(draw),
-          reasonCode: "DAMAGE_KEYED_DRAW",
+          reasonCode: DAMAGE_KEYED_DRAW,
         });
       }
       return draw;
     };
 
-    const { newState, events: damageEventRecords } = resolveDamage(
+    const { newState: resolvedState, events: damageEventRecords } = resolveDamage(
       target.state,
       impacts,
       minute,
       DAMAGE_SUBSTEP,
       scopedRng,
     );
+
+    // ADR-0050: persist shell-created fire/flooding sources into the state so
+    // the always-wired step 8.6 damage-control stage progresses them. Pure
+    // post-processing of the already-drawn event records: no extra draws.
+    const newState = persistCreatedSources(resolvedState, damageEventRecords);
 
     for (const dmgEvent of damageEventRecords) {
       events.push({
@@ -375,6 +392,45 @@ export function resolveMinuteDamage(input: ResolveMinuteDamageInput): ResolveMin
   return { events, states, updatedTargets };
 }
 
+/**
+ * Append the fire/flooding sources created by this ship's impacts (event
+ * records, in impact order) to the state's records (ADR-0050). Flooding
+ * sources append verbatim (torpedo-path convention, damagePackage.ts); a fire
+ * at a location that already burns merges into the existing record at the
+ * higher intensity (one record per location keeps smoke cloud/event ids
+ * unique). Integer-only; returns the input state untouched (same hash) when
+ * nothing was created.
+ */
+export function persistCreatedSources(
+  state: ShipDamageState,
+  records: readonly {
+    createdFireSources: readonly FireRecord[];
+    createdFloodingSources: readonly FloodingSourceRecord[];
+  }[],
+): ShipDamageState {
+  const fires: FireRecord[] = [...state.fireRecords];
+  const floods: FloodingSourceRecord[] = [...state.floodingRecords];
+  let changed = false;
+  for (const r of records) {
+    for (const f of r.createdFireSources) {
+      const idx = fires.findIndex((x) => x.locationId === f.locationId);
+      if (idx < 0) {
+        fires.push({ ...f });
+        changed = true;
+      } else if (f.intensityBp > fires[idx]!.intensityBp) {
+        fires[idx] = { ...fires[idx]!, intensityBp: f.intensityBp };
+        changed = true;
+      }
+    }
+    for (const fl of r.createdFloodingSources) {
+      floods.push({ ...fl });
+      changed = true;
+    }
+  }
+  if (!changed) return state;
+  return withDamageStateHash({ ...state, fireRecords: fires, floodingRecords: floods });
+}
+
 /** Deterministic canonical zone pick — keyed stream when an engine is present,
  *  else the first zone ("BELT"). The stream is keyed by target ship AND salvo
  *  battery (each battery fires ≤1 salvo/minute, so batteryId is a stable,
@@ -392,7 +448,21 @@ function pickZone(
   if (!engine || target.zones.length === 0) return target.zones[0]!;
   const streamId = `battle/damage/hit_zone:${battleId}:${minute}:${DAMAGE_SUBSTEP}:${target.shipId}:${salvo.batteryId}`;
   const stream = engine.stream(streamId);
-  const draw = drawUniform(stream, SafeInt(0), SafeInt(target.zones.length - 1));
+  // ADR-0053: weighted by ZONE_HIT_WEIGHT_BP (one uniform draw over the total;
+  // equal weights of 1 reduce exactly to the pre-ADR-0053 uniform draw).
+  const weightOf = (z: AutoResolutionZone): number =>
+    ZONE_HIT_WEIGHT_BP[z.id as AutoResolutionZoneId] ?? 0;
+  const totalWeight = target.zones.reduce((a, z) => a + weightOf(z), 0);
+  const roll = drawUniform(stream, SafeInt(0), SafeInt(Math.max(0, totalWeight - 1))) as number;
+  let acc = 0;
+  let draw = target.zones.length - 1;
+  for (let i = 0; i < target.zones.length; i++) {
+    acc += weightOf(target.zones[i]!);
+    if (roll < acc) {
+      draw = i;
+      break;
+    }
+  }
   if (randomLedger) {
     randomLedger.record({
       streamId,

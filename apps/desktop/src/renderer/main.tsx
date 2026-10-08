@@ -1,8 +1,8 @@
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./shell/App.js";
 import { BackgroundProvider } from "./shell/BackgroundContext.js";
+import { DensityProvider } from "./shell/DensityContext.js";
 import { ThemeProvider } from "./shell/ThemeContext.js";
 import "./styles/globals.css";
 
@@ -12,11 +12,11 @@ if (!container) {
 }
 
 createRoot(container).render(
-  <StrictMode>
-    <ThemeProvider>
-      <BackgroundProvider>
+  <ThemeProvider>
+    <BackgroundProvider>
+      <DensityProvider>
         <App />
-      </BackgroundProvider>
-    </ThemeProvider>
-  </StrictMode>,
+      </DensityProvider>
+    </BackgroundProvider>
+  </ThemeProvider>,
 );

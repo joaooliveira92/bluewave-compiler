@@ -10,6 +10,10 @@ import {
 const campaign: HeaderCampaign = {
   month: { year: 1900, month: 1 },
   treasury: 24_500_000,
+  nationName: "United Kingdom",
+  projectedSurplusDeficit: 1_500_000,
+  activeAlertsCount: null,
+  atWar: false,
 };
 
 describe("formatTreasury", () => {
@@ -83,12 +87,73 @@ describe("describeSecondaryRow", () => {
     });
   });
 
+  it("drives the nation and projected-balance metrics from the INC-1 fields", () => {
+    const row = describeSecondaryRow("playing", campaign);
+    if (row.kind !== "campaign") throw new Error("expected a campaign row");
+
+    const nation = row.metrics.find((metric) => metric.icon === "nation");
+    expect(nation).toEqual({
+      icon: "nation",
+      label: "Nation",
+      value: "United Kingdom",
+      placeholder: false,
+    });
+
+    const balance = row.metrics.find((metric) => metric.icon === "balance");
+    expect(balance).toEqual({
+      icon: "balance",
+      label: "Projected balance",
+      value: "£1,500k",
+      placeholder: false,
+    });
+  });
+
+  it("renders a projected deficit with the sign outside the currency symbol", () => {
+    const row = describeSecondaryRow("playing", {
+      ...campaign,
+      projectedSurplusDeficit: -1_200_000,
+    });
+    if (row.kind !== "campaign") throw new Error("expected a campaign row");
+
+    const balance = row.metrics.find((metric) => metric.icon === "balance");
+    expect(balance?.value).toBe("-£1,200k");
+    expect(balance?.placeholder).toBe(false);
+  });
+
+  it("keeps the alert-count slot empty (placeholder) until INC-2 lands", () => {
+    const row = describeSecondaryRow("playing", campaign);
+    if (row.kind !== "campaign") throw new Error("expected a campaign row");
+
+    const alerts = row.metrics.find((metric) => metric.icon === "alerts");
+    expect(alerts).toEqual({
+      icon: "alerts",
+      label: "Alerts",
+      value: "—",
+      placeholder: true,
+    });
+  });
+
+  it("shows the real alert count once the forward-wired slot is populated", () => {
+    const row = describeSecondaryRow("playing", { ...campaign, activeAlertsCount: 3 });
+    if (row.kind !== "campaign") throw new Error("expected a campaign row");
+
+    const alerts = row.metrics.find((metric) => metric.icon === "alerts");
+    expect(alerts).toEqual({
+      icon: "alerts",
+      label: "Alerts",
+      value: "3",
+      placeholder: false,
+    });
+  });
+
   it("marks metrics the engine does not yet expose as placeholders", () => {
     const row = describeSecondaryRow("playing", campaign);
     if (row.kind !== "campaign") throw new Error("expected a campaign row");
 
     const unbacked = row.metrics.filter((metric) => metric.placeholder);
-    expect(unbacked.map((metric) => metric.icon)).toEqual(["prestige", "tension"]);
+    // The alert slot is forward-wired (INC-2), so it is a placeholder while
+    // its projection is absent; prestige/tension are not projected at all.
+    expect(unbacked.map((metric) => metric.icon)).toEqual(["alerts", "prestige", "tension"]);
   });
 
   it("shows a dash for the budget when the campaign has not loaded", () => {

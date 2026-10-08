@@ -50,7 +50,7 @@ export const PageHeader = memo(function PageHeader({
           {breadcrumbs.length > 0 && (
             <nav
               aria-label="Breadcrumb"
-              className="mb-0.5 flex items-center gap-1 text-[11px] text-muted-foreground"
+              className="mb-0.5 flex items-center gap-1 text-xs text-muted-foreground"
             >
               {breadcrumbs.map((crumb, index) => (
                 <span key={crumb.label} className="flex items-center gap-1">

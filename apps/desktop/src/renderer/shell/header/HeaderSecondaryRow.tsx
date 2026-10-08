@@ -1,4 +1,15 @@
-import { AlertTriangle, Database, DollarSign, Gauge, Play, Save, TrendingUp } from "lucide-react";
+import {
+  AlertTriangle,
+  Bell,
+  Database,
+  DollarSign,
+  Gauge,
+  Landmark,
+  Play,
+  Save,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 
 import { Button } from "../../components/ui/button.js";
 import { Separator } from "../../components/ui/separator.js";
@@ -17,6 +28,9 @@ const METRIC_ICONS: Record<MetricIcon, typeof DollarSign> = {
   budget: DollarSign,
   prestige: Gauge,
   tension: TrendingUp,
+  nation: Landmark,
+  alerts: Bell,
+  balance: Wallet,
 };
 
 export interface HeaderSecondaryRowProps {
@@ -80,12 +94,15 @@ function SecondaryRowContent({
       return (
         <div className="flex w-full items-center justify-between px-1 text-xs text-muted-foreground">
           <div className="flex items-center gap-4">
-            {row.metrics.map((metric, index) => (
-              <div key={metric.icon} className="flex items-center gap-4">
-                {index > 0 && <Separator orientation="vertical" className="h-3" />}
-                <Metric metric={metric} />
-              </div>
-            ))}
+            {row.metrics
+              // Slots the engine does not report yet are omitted, not shown as "—".
+              .filter((metric) => !metric.placeholder)
+              .map((metric, index) => (
+                <div key={metric.icon} className="flex items-center gap-4">
+                  {index > 0 && <Separator orientation="vertical" className="h-3" />}
+                  <Metric metric={metric} />
+                </div>
+              ))}
           </div>
           <div className="text-[12px]" style={NO_DRAG}>
             <span>

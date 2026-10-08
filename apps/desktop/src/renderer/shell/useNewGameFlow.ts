@@ -210,7 +210,6 @@ export function useNewGameFlow(
     navigation.selectScreen("new-game-launching");
     setStatus("launching");
     setError(null);
-    const minimumElapsed = delay(COSMETIC_MINIMUM_DURATION_MS);
     try {
       const archetypeToken = serializeArchetypeSelection(
         draft.archetype ?? defaultArchetypeSelection(),
@@ -234,7 +233,7 @@ export function useNewGameFlow(
         setError(`${result.reason}.${diagnostics}`);
         return;
       }
-      await minimumElapsed;
+      await delay(COSMETIC_MINIMUM_DURATION_MS);
       setDraft(null);
       setBriefingSessionId(result.value.sessionId);
       navigation.selectScreen("opening-briefing");

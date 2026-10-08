@@ -37,17 +37,17 @@ Wayfinder map + 6 decision tickets resolved, research
 
 ## Orchestrator validation gate (exact commands + observed results)
 
-| Check | Command | Result |
-|---|---|---|
-| Clean uncached build | `pnpm -w turbo run build --force` | 18/18 successful, 0 cached |
-| Typecheck | `pnpm -w exec tsc -b` | clean (exit 0) |
-| Lint | `pnpm lint` (phase-engine, combat, campaign, persistence, compiler-cli) | 0 warnings / 0 errors |
-| Format | `pnpm -w exec vp fmt --check` | clean (changed files) |
-| Full test suite (per package) | `pnpm vitest run` | combat 900, campaign 107, phase-engine 108, persistence 26, cross-process 14, content-compiler 14, ai 22, commands 16, events 9, deterministic 11, random 16, contracts 20, diagnostics 7 — all green |
-| Golden hashes ×2 | `node scripts/verify-golden-hashes.cjs` | "All 10 hashes match golden reference" (twice) |
-| Cross-process determinism ×2 | `node packages/cross-process-test/dist/run-child.js` ×2 | byte-identical |
-| Phase determinism | `phase-engine/test/battle-resolution-phase.test.ts` | two runs → identical closing snapshot + randomLedger hash |
-| `BattleResolver`/`StrengthCalculator` | `git diff --stat resolver.ts strength.ts` | empty (unmodified) |
+| Check                                 | Command                                                                 | Result                                                                                                                                                                                                |
+| ------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Clean uncached build                  | `pnpm -w turbo run build --force`                                       | 18/18 successful, 0 cached                                                                                                                                                                            |
+| Typecheck                             | `pnpm -w exec tsc -b`                                                   | clean (exit 0)                                                                                                                                                                                        |
+| Lint                                  | `pnpm lint` (phase-engine, combat, campaign, persistence, compiler-cli) | 0 warnings / 0 errors                                                                                                                                                                                 |
+| Format                                | `pnpm -w exec vp fmt --check`                                           | clean (changed files)                                                                                                                                                                                 |
+| Full test suite (per package)         | `pnpm vitest run`                                                       | combat 900, campaign 107, phase-engine 108, persistence 26, cross-process 14, content-compiler 14, ai 22, commands 16, events 9, deterministic 11, random 16, contracts 20, diagnostics 7 — all green |
+| Golden hashes ×2                      | `node scripts/verify-golden-hashes.cjs`                                 | "All 10 hashes match golden reference" (twice)                                                                                                                                                        |
+| Cross-process determinism ×2          | `node packages/cross-process-test/dist/run-child.js` ×2                 | byte-identical                                                                                                                                                                                        |
+| Phase determinism                     | `phase-engine/test/battle-resolution-phase.test.ts`                     | two runs → identical closing snapshot + randomLedger hash                                                                                                                                             |
+| `BattleResolver`/`StrengthCalculator` | `git diff --stat resolver.ts strength.ts`                               | empty (unmodified)                                                                                                                                                                                    |
 
 Pre-existing, unrelated red suite: `content-schema/test/nation.test.ts` (broken
 import of a deleted content corpus); not M2-scoped, tracked separately.

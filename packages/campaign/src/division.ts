@@ -344,3 +344,32 @@ export function applyDivisionCommand(
   next.aggregateHash = hashPermanentDivision(next);
   return { division: next, reorgReason, penaltiesApplied: penalties };
 }
+
+/**
+ * Puts `commanderId` (an officer id, or `VACANT`) in command of a division (ADR-0065).
+ * Filling a vacancy is free; replacing or relieving a sitting commander costs the
+ * DESIGN-26 commander-change penalty. Pure; returns a new division with a fresh hash.
+ */
+export function applyCommanderChange(
+  division: PermanentDivision,
+  commanderId: CommanderRef,
+  month: string,
+): ApplyDivisionResult {
+  const penalties =
+    division.commanderOfficerId === VACANT || division.commanderOfficerId === commanderId
+      ? { experience: 0, cohesion: 0 }
+      : {
+          experience: DIVISION_PENALTIES.commanderChange.experience,
+          cohesion: DIVISION_PENALTIES.commanderChange.cohesion,
+        };
+  const next: PermanentDivision = {
+    ...division,
+    commanderOfficerId: commanderId,
+    lastReorganizationMonth: month,
+    experience: SafeInt(clampScore((division.experience as number) + penalties.experience)),
+    cohesion: SafeInt(clampScore((division.cohesion as number) + penalties.cohesion)),
+    aggregateHash: "",
+  };
+  next.aggregateHash = hashPermanentDivision(next);
+  return { division: next, reorgReason: "CHANGE_FLAGSHIP", penaltiesApplied: penalties };
+}

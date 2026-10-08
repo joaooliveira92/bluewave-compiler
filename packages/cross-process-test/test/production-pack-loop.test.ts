@@ -201,3 +201,157 @@ describe("production pack (content/production/1880) full loop", () => {
     }
   });
 });
+
+describe("P-1 AC-3: 1880 roster torpedo armament (docs/research/p1-1880-torpedo-armament.md)", () => {
+  it("compiles the as-built tube counts and leaves unsourced/post-1880 fits unarmed", () => {
+    const { state } = compileProductionPack();
+    const tubes = (id: string): number =>
+      (state.snapshot.designs.get(id)?.torpedoArmament ?? []).reduce(
+        (n, m) => n + Number(m.tubeCount),
+        0,
+      );
+    expect({
+      des_gbr_inflexible: tubes("des_gbr_inflexible"),
+      des_gbr_devastation: tubes("des_gbr_devastation"),
+      des_fra_redoutable: tubes("des_fra_redoutable"),
+      des_fra_amiral_duperre: tubes("des_fra_amiral_duperre"),
+      des_rus_petrveliky: tubes("des_rus_petrveliky"),
+      des_rus_ekaterina2: tubes("des_rus_ekaterina2"),
+      des_ita_duilio: tubes("des_ita_duilio"),
+      des_ita_italia: tubes("des_ita_italia"),
+      des_chi_dingyuan: tubes("des_chi_dingyuan"),
+    }).toEqual({
+      des_gbr_inflexible: 4,
+      des_gbr_devastation: 2,
+      des_fra_redoutable: 4,
+      des_fra_amiral_duperre: 4,
+      des_rus_petrveliky: 2,
+      des_rus_ekaterina2: 7,
+      des_ita_duilio: 3,
+      des_ita_italia: 4,
+      des_chi_dingyuan: 3,
+    });
+    for (const unarmed of [
+      "des_gbr_dreadnought75",
+      "des_gbr_alexandra",
+      "des_ger_kaiser",
+      "des_ger_sachsen",
+      "des_aut_tegetthoff",
+      "des_usa_amphitrite",
+      "des_jpn_fuso",
+    ]) {
+      expect(state.snapshot.designs.get(unarmed)?.torpedoArmament).toBeUndefined();
+    }
+  });
+});
+
+describe("P-1 AC-7: torpedoes reachable from a compiled production-pack battle", () => {
+  it("an Italy vs Russia ironclad action built from compiled 1880 content fires torpedoes", async () => {
+    const { buildManifest, resolveBattleAuto, withStrategicWeatherStateHash } =
+      await import("@bluewave/combat");
+    const { state } = compileProductionPack();
+    const snap = state.snapshot;
+    const nation = (id: string) => {
+      const n = snap.nations.get(id)!;
+      const ships = n.fleets.flatMap((f) => f.ships).filter((s) => !s.isUnderConstruction);
+      return { nationId: id, ships, designs: snap.designs, divisions: [] };
+    };
+    const italy = nation("italy");
+    const russia = nation("russia");
+    expect(italy.ships.length).toBeGreaterThan(0);
+    expect(russia.ships.length).toBeGreaterThan(0);
+    const strip = (n: ReturnType<typeof nation>) => ({
+      ...n,
+      designs: new Map(
+        [...n.designs].map(([k, d]) => {
+          const { torpedoArmament: _t, ...rest } = d;
+          return [k, rest];
+        }),
+      ),
+    });
+    const run = (
+      attacker: ReturnType<typeof nation>,
+      defender: ReturnType<typeof nation>,
+      seed: string,
+    ) => {
+      const manifest = buildManifest({
+        battleId: `p1-ac7-${seed}`,
+        opportunityId: "opp-p1",
+        warId: "war-p1",
+        areaId: "med_central",
+        missionType: "open_fleet_engagement",
+        attackerId: "italy",
+        defenderId: "russia",
+        acceptanceClass: "accepted",
+        missionObjectives: [],
+        sides: [
+          { sideId: "ATTACKER", participantIds: ["italy"] },
+          { sideId: "DEFENDER", participantIds: ["russia"] },
+        ],
+        persistentAssets: [...attacker.ships, ...defender.ships].map((s) => s.id),
+        temporaryAssets: [],
+        permanentDivisionIds: [],
+        tacticalDivisions: [],
+        commanders: [],
+        weather: "clear",
+        seaState: "calm",
+        visibility: "good",
+        environment: "open_sea",
+        sourceStateHashes: {},
+        reservations: [],
+        autoResolutionProof: "auto-resolvable",
+        provenanceRecords: [],
+        rulesetVersion: "b6_ruleset_v1",
+        formulaVersion: "b6_formula_v1",
+        aiPolicyVersion: "ai_policy_v1",
+        rngVersion: "rng_v1",
+        contentVersion: "0.4.0",
+      });
+      return resolveBattleAuto({
+        battleId: manifest.battleId,
+        areaId: "med_central",
+        campaignMonth: "1880-06",
+        manifest,
+        attacker,
+        defender,
+        strategicWeather: withStrategicWeatherStateHash({
+          areaId: "med_central",
+          month: "1880-06",
+          climateProfileId: "default",
+          seasonId: "summer",
+          persistentWeatherStateId: "",
+          seaState: 2,
+          windDirectionDeg: 225,
+          windSpeedUmPerSec: 5_000_000,
+          precipitationType: "NONE",
+          precipitationIntensityBp: 0,
+          fogMistDensityBp: 500,
+          cloudCoverBp: 3_000,
+          daylightProfileId: "default_daylight_v1",
+          glareEligible: true,
+          baseVisibilityUm: 20_000_000_000,
+          generatedAtPhase: "weather_generation",
+          rulesetVersion: "weather_ruleset_v1",
+          climateVersion: "weather_climate_v1",
+          formulaVersion: "weather_formula_v1",
+          rngVersion: "weather_rng_v1",
+        }),
+        campaignSeed: seed,
+        rulesetVersion: "b6_ruleset_v1",
+        formulaVersion: "b6_formula_v1",
+        rngVersion: "rng_v1",
+      });
+    };
+    let fired = 0;
+    let changed = 0;
+    for (const seed of ["p1", "p2", "p3", "p4", "p5", "p6"]) {
+      const armed = run(italy, russia, seed);
+      const plain = run(strip(italy), strip(russia), seed);
+      expect(plain.torpedoSummary).toBeUndefined();
+      fired += armed.torpedoSummary!.tubesFired;
+      if (armed.resultHash !== plain.resultHash) changed++;
+    }
+    expect(fired).toBeGreaterThan(0);
+    expect(changed).toBeGreaterThan(0);
+  });
+});

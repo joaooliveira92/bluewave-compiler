@@ -181,11 +181,23 @@ export function prepareCommand<Value>(
  * idempotent retry, rejection adoption, and stale-projection refresh remain
  * behind this interface.
  */
+export interface CommandScreenWorkflowOptions {
+  /**
+   * When this value changes after mount, the screen reloads its projection. Pass the
+   * campaign revision so a month advanced from elsewhere (the header's Advance Month)
+   * does not leave this screen showing pre-advance data.
+   */
+  readonly refreshKey?: number | null;
+}
+
 export function useCommandScreenWorkflow<
   State extends RequestLifecycle,
   Projection extends { readonly revision: number },
   Value,
->(adapter: CommandScreenAdapter<State, Projection, Value>): CommandScreenWorkflow<State, Value> {
+>(
+  adapter: CommandScreenAdapter<State, Projection, Value>,
+  options: CommandScreenWorkflowOptions = {},
+): CommandScreenWorkflow<State, Value> {
   const [state, setState] = useState<State>(adapter.initialState);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [outcomeUnknown, setOutcomeUnknown] = useState(false);
@@ -276,6 +288,15 @@ export function useCommandScreenWorkflow<
   useEffect(() => {
     if (state.requiresRefresh) void loadScreen();
   }, [state.requiresRefresh, loadScreen]);
+
+  // Reload when the campaign moved on elsewhere. The mount load above already
+  // covers the first render, so the initial key is remembered, not acted on.
+  const seenRefreshKey = useRef(options.refreshKey);
+  useEffect(() => {
+    if (seenRefreshKey.current === options.refreshKey) return;
+    seenRefreshKey.current = options.refreshKey;
+    void loadScreen();
+  }, [options.refreshKey, loadScreen]);
 
   return {
     state,

@@ -1,3 +1,4 @@
+import type { MonthSummary } from "../lib/month-summary.js";
 import { createContext, type ReactNode, use, useMemo } from "react";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { useCampaignShell } from "./useCampaignShell.js";
@@ -15,6 +16,7 @@ export interface CampaignShellContextValue {
     | "saveMessage"
     | "primaryAction"
     | "committing"
+    | "monthHistory"
     | "mode"
     | "screen"
     | "canGoBack"
@@ -25,7 +27,9 @@ export interface CampaignShellContextValue {
     | "openCampaign"
     | "closeCampaign"
     | "saveCampaign"
+    | "copyCampaign"
     | "advanceMonth"
+    | "refreshCampaign"
     | "selectScreen"
     | "setPrimaryAction"
     | "goBack"
@@ -56,6 +60,7 @@ export function CampaignShellProvider({
         saveMessage: shell.saveMessage,
         primaryAction: shell.primaryAction,
         committing: shell.committing,
+        monthHistory: shell.monthHistory,
         mode: shell.mode,
         screen: shell.screen,
         canGoBack: shell.canGoBack,
@@ -65,7 +70,9 @@ export function CampaignShellProvider({
         openCampaign: shell.openCampaign,
         closeCampaign: shell.closeCampaign,
         saveCampaign: shell.saveCampaign,
+        copyCampaign: shell.copyCampaign,
         advanceMonth: shell.advanceMonth,
+        refreshCampaign: shell.refreshCampaign,
         selectScreen: shell.selectScreen,
         setPrimaryAction: shell.setPrimaryAction,
         goBack: shell.goBack,
@@ -85,4 +92,36 @@ export function useCampaignShellContext(): CampaignShellContextValue {
     throw new Error("useCampaignShellContext must be used within CampaignShellProvider");
   }
   return context;
+}
+
+/**
+ * The active campaign's committed revision (turn number), or null when no campaign
+ * is open or the hook is used outside the shell. Unlike `useCampaignShellContext` it
+ * never throws, so screen hooks stay usable in isolation (tests, previews). A screen
+ * passes it as `refreshKey` so it reloads when the month is advanced elsewhere.
+ */
+export function useCampaignRevision(): number | null {
+  const context = use(CampaignShellContext);
+  return context?.state.campaign?.revision ?? null;
+}
+
+/**
+ * The active campaign's current month as `YYYY-MM`, or null outside a campaign. Used where rules depend on the
+ * campaign date (technology availability for ship design).
+ */
+export function useCampaignMonthId(): string | null {
+  const context = use(CampaignShellContext);
+  const month = context?.state.campaign?.month;
+  return month ? `${month.year}-${String(month.month).padStart(2, "0")}` : null;
+}
+
+const NO_MONTH_HISTORY: readonly MonthSummary[] = [];
+
+/**
+ * The months committed in this session, newest first (empty outside the shell). Non-throwing, like
+ * `useCampaignRevision`, so screens can use it in isolation.
+ */
+export function useMonthHistory(): readonly MonthSummary[] {
+  const context = use(CampaignShellContext);
+  return context?.state.monthHistory ?? NO_MONTH_HISTORY;
 }

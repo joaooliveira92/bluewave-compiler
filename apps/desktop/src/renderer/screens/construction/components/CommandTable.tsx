@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { DEBUG_MODE } from "../../../shell/debug-flag.js";
 import type { LucideIcon } from "lucide-react";
 import { Ban, CheckCircle2, Clock, RefreshCwOff } from "lucide-react";
 import type { ConstructionCommand, ConstructionCommandStatus } from "@bluewave/campaign-engine";
@@ -72,8 +73,8 @@ export const CommandTable = memo(function CommandTable({
               <TableRow>
                 <TableHead>Design</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Command</TableHead>
-                <TableHead className="text-right">Rev</TableHead>
+                {DEBUG_MODE && <TableHead>Command</TableHead>}
+                {DEBUG_MODE && <TableHead className="text-right">Rev</TableHead>}
                 <TableHead className="text-right">Cost</TableHead>
                 <TableHead className="text-right">Capacity</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -87,25 +88,29 @@ export const CommandTable = memo(function CommandTable({
                     <TableCell className="font-medium">
                       <div className="flex flex-col">
                         <span>{command.design.className}</span>
-                        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <span className="text-xs uppercase tracking-wide text-muted-foreground">
                           {command.design.shipType}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge
-                        className={`gap-1 text-[11px] uppercase ${STATUS_CLASSNAME[command.status]}`}
+                        className={`gap-1 text-xs uppercase ${STATUS_CLASSNAME[command.status]}`}
                       >
                         <StatusIcon className="h-3 w-3" />
                         {command.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-mono text-[11px] text-muted-foreground">
-                      {command.commandId}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-xs">
-                      {command.submittedAtRevision}
-                    </TableCell>
+                    {DEBUG_MODE && (
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {command.commandId}
+                      </TableCell>
+                    )}
+                    {DEBUG_MODE && (
+                      <TableCell className="text-right font-mono text-xs">
+                        {command.submittedAtRevision}
+                      </TableCell>
+                    )}
                     <TableCell className="text-right font-mono text-xs">
                       {command.projectedCost.toLocaleString()}
                     </TableCell>

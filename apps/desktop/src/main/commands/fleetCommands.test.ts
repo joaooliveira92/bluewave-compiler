@@ -12,8 +12,10 @@ import {
   getCampaignSession,
   registerCampaignSession,
 } from "../campaignSessions.js";
+import { clearPendingWorkspacesForTest } from "../pendingCommands.js";
 import { compileProductionCampaign } from "../compiler.js";
 import { toSaveableState } from "../saveHelpers.js";
+import { commitMonth } from "./commitMonth.js";
 import { inspectFleetScreen } from "./fleetCommands.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -37,6 +39,7 @@ describe("fleet commands", () => {
   afterEach(() => {
     rmSync(saveRoot, { recursive: true, force: true });
     clearCampaignSessionsForTest();
+    clearPendingWorkspacesForTest();
   });
 
   /** Compile the production pack once per fixture and register a session for
@@ -63,10 +66,6 @@ describe("fleet commands", () => {
       state,
     });
     return state;
-  }
-
-  function loadSavedState(saveDir: string): CampaignState | null {
-    return new SaveStore().load(saveDir, new DiagnosticCollector());
   }
 
   it("returns SESSION_NOT_FOUND for an unregistered session", async () => {
@@ -180,56 +179,107 @@ describe("fleet commands", () => {
     }
   });
 
-  it("returns the not-implemented stub outcome for movement commands without mutating state", async () => {
-    const saveDir = resolve(saveRoot, "save-stub");
-    const state = registerProductionSession("stub-session", saveDir, "uk");
+  describe("movement orders (ADR-0062)", () => {
+    function submit(over: Record<string, unknown> = {}) {
+      return dispatchCampaignCommand("submitMovementCommand", {
+        sessionId: "mv",
+        divisionId: "fleet_gbr_home",
+        fromAreaId: "eng_home_coast",
+        toAreaId: "sea_english_channel",
+        expectedRevision: 0,
+        transportRequestId: "tx-1",
+        ...over,
+      });
+    }
+    async function listed() {
+      const result = await inspectFleetScreen("mv");
+      if (result.outcome !== "success") throw new Error(result.reason);
+      return result.value.movementCommands;
+    }
 
-    const submit = await dispatchCampaignCommand("submitMovementCommand", {
-      sessionId: "stub-session",
-      divisionId: "fleet_gbr_home",
-      fromAreaId: "eng_home_coast",
-      toAreaId: "sea_english_channel",
-      expectedRevision: 0,
-      transportRequestId: "tx-fleet-1",
+    it("queues a legal one-hop order, lists it, and the engine moves the fleet when the month is committed", async () => {
+      registerProductionSession("mv", resolve(saveRoot, "mv"), "uk");
+      const result = await submit();
+      expect(result).toMatchObject({
+        outcome: "success",
+        value: { command: { status: "submitted" } },
+      });
+      expect(await listed()).toEqual([
+        expect.objectContaining({
+          divisionId: "fleet_gbr_home",
+          fromAreaId: "eng_home_coast",
+          toAreaId: "sea_english_channel",
+          status: "submitted",
+        }),
+      ]);
+      // Queued only: nothing moved yet.
+      const before = getCampaignSession("mv")!.state.snapshot.nations.get("uk")!;
+      expect(before.fleets.find((f) => f.id === "fleet_gbr_home")!.locationAreaId).toBe(
+        "eng_home_coast",
+      );
+
+      const committed = await commitMonth({
+        sessionId: "mv",
+        expectedRevision: 0,
+        transportRequestId: "commit-mv",
+      });
+      expect(committed.outcome).toBe("success");
+      const after = getCampaignSession("mv")!.state.snapshot.nations.get("uk")!;
+      const fleet = after.fleets.find((f) => f.id === "fleet_gbr_home")!;
+      expect(fleet.locationAreaId).toBe("sea_english_channel");
+      expect(fleet.ships.every((s) => s.locationAreaId === "sea_english_channel")).toBe(true);
+      expect(await listed()).toEqual([]);
     });
-    expect(submit.outcome).toBe("error");
-    if (submit.outcome !== "error") return;
-    expect(submit.reason).toBe("NOT_IMPLEMENTED");
-    // The diagnostic names the command and says it is not implemented yet —
-    // the movement controls surface this instead of silently failing.
-    expect(submit.diagnostics.join(" ")).toContain("submitMovementCommand");
-    expect(submit.diagnostics.join(" ")).toMatch(/not impl/i);
 
-    const replace = await dispatchCampaignCommand("replaceMovementCommand", {
-      sessionId: "stub-session",
-      commandId: "cmd-fleet-1",
-      divisionId: "fleet_gbr_home",
-      fromAreaId: "eng_home_coast",
-      toAreaId: "sea_english_channel",
-      expectedRevision: 0,
-      transportRequestId: "t-fleet-replace",
+    it("rejects an illegal destination with the engine's code and queues nothing", async () => {
+      registerProductionSession("mv", resolve(saveRoot, "mv"), "uk");
+      const result = await submit({ toAreaId: "sea_baltic" });
+      expect(result).toMatchObject({ outcome: "rejected", reason: "INVALID_ROUTE" });
+      expect(await listed()).toEqual([]);
     });
-    expect(replace.outcome).toBe("error");
-    if (replace.outcome === "error") expect(replace.reason).toBe("NOT_IMPLEMENTED");
 
-    const cancel = await dispatchCampaignCommand("cancelMovementCommand", {
-      sessionId: "stub-session",
-      commandId: "cmd-x",
-      expectedRevision: 0,
-      transportRequestId: "t-fleet-cancel",
+    it("keeps one order per fleet: a second order replaces the first, and cancel drops it", async () => {
+      registerProductionSession("mv", resolve(saveRoot, "mv"), "uk");
+      await submit();
+      await submit({ toAreaId: "sea_north_sea", transportRequestId: "tx-2" });
+      const orders = await listed();
+      expect(orders).toHaveLength(1);
+      expect(orders[0]!.toAreaId).toBe("sea_north_sea");
+
+      const replaced = await dispatchCampaignCommand("replaceMovementCommand", {
+        sessionId: "mv",
+        commandId: orders[0]!.commandId,
+        divisionId: "fleet_gbr_home",
+        fromAreaId: "eng_home_coast",
+        toAreaId: "sea_english_channel",
+        expectedRevision: 0,
+        transportRequestId: "tx-3",
+      });
+      expect(replaced.outcome).toBe("success");
+      expect((await listed())[0]!.toAreaId).toBe("sea_english_channel");
+
+      const cancelled = await dispatchCampaignCommand("cancelMovementCommand", {
+        sessionId: "mv",
+        commandId: orders[0]!.commandId,
+        expectedRevision: 0,
+        transportRequestId: "tx-4",
+      });
+      expect(cancelled).toMatchObject({
+        outcome: "success",
+        value: { command: { status: "cancelled" } },
+      });
+      expect(await listed()).toEqual([]);
     });
-    expect(cancel.outcome).toBe("error");
-    if (cancel.outcome === "error") expect(cancel.reason).toBe("NOT_IMPLEMENTED");
 
-    // Nothing mutated: the in-memory session still holds the exact pre-stub
-    // state, and the on-disk save round-trips with turnNumber 0.
-    const record = getCampaignSession("stub-session");
-    expect(record).toBeDefined();
-    expect(record!.state.snapshot).toBe(state.snapshot);
-    expect(Number(record!.state.snapshot.turnNumber)).toBe(0);
-
-    const saved = loadSavedState(saveDir);
-    expect(saved).not.toBeNull();
-    if (saved) expect(Number(saved.snapshot.turnNumber)).toBe(0);
+    it("rejects cancelling or replacing an order that does not exist", async () => {
+      registerProductionSession("mv", resolve(saveRoot, "mv"), "uk");
+      const cancel = await dispatchCampaignCommand("cancelMovementCommand", {
+        sessionId: "mv",
+        commandId: "nope",
+        expectedRevision: 0,
+        transportRequestId: "tx-9",
+      });
+      expect(cancel).toMatchObject({ outcome: "rejected", reason: "COMMAND_NOT_FOUND" });
+    });
   });
 });

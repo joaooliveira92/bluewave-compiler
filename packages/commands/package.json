@@ -14,7 +14,8 @@
     "@bluewave/deterministic": "workspace:*",
     "@bluewave/diagnostics": "workspace:*",
     "@bluewave/campaign": "workspace:*",
-    "@bluewave/content-schema": "workspace:*"
+    "@bluewave/content-schema": "workspace:*",
+    "@bluewave/ship-design": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

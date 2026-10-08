@@ -30,6 +30,16 @@ export interface SandboxContextValue {
   };
 }
 
+/** The engine's stable reason code, followed by its diagnostics when it gave any. */
+function describeFailure(result: {
+  readonly reason: string;
+  readonly diagnostics: readonly string[];
+}): string {
+  return result.diagnostics.length > 0
+    ? `${result.reason} — ${result.diagnostics.join(" ")}`
+    : result.reason;
+}
+
 const SandboxContext = createContext<SandboxContextValue | null>(null);
 
 export function SandboxProvider({
@@ -52,7 +62,7 @@ export function SandboxProvider({
     if (result.outcome === "success") {
       setState((current) => applyManifestGenerated(current, result.value.manifest));
     } else {
-      setState((current) => applyGenerateFailed(current, result.reason));
+      setState((current) => applyGenerateFailed(current, describeFailure(result)));
     }
   }, [bridge, sessionId, state.warId]);
 
@@ -66,7 +76,7 @@ export function SandboxProvider({
     if (result.outcome === "success") {
       setState((current) => applyAutoResolution(current, result.value.resolution));
     } else {
-      setState((current) => applyResolveFailed(current, result.reason));
+      setState((current) => applyResolveFailed(current, describeFailure(result)));
     }
   }, [bridge, sessionId, state.manifest]);
 
@@ -87,7 +97,7 @@ export function SandboxProvider({
     if (result.outcome === "success") {
       setState((current) => applyTacticalOutcome(current, result.value.outcome));
     } else {
-      setState((current) => applyResolveFailed(current, result.reason));
+      setState((current) => applyResolveFailed(current, describeFailure(result)));
     }
   }, [bridge, sessionId, state.manifest, state.scriptedOrdersText, state.turnCount]);
 
@@ -101,7 +111,7 @@ export function SandboxProvider({
     if (result.outcome === "success") {
       setState((current) => applyBoundaryReplayed(current, result.value));
     } else {
-      setState((current) => applyBoundaryReplayFailed(current, result.reason));
+      setState((current) => applyBoundaryReplayFailed(current, describeFailure(result)));
     }
   }, [bridge, sessionId, state.manifest]);
 

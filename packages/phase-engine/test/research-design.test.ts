@@ -504,3 +504,61 @@ describe("B10b design acceptance (criteria 12-13)", () => {
     expect(ship.isUnderConstruction).toBe(false);
   });
 });
+
+describe("SetBudgetAllocation (ADR-0060)", () => {
+  const techs = () => [
+    { techId: "basic_hull", investedPoints: SafeInt(0), completed: false },
+    { techId: "basic_steam", investedPoints: SafeInt(0), completed: false },
+  ];
+  const command = (snapshot: CampaignSnapshot, rate: number, research: number) =>
+    ({
+      commandId: "alloc-1",
+      version: "0.1.0",
+      expectedSnapshotHash: sha256Hex(canonicalSerialize(snapshot)),
+      idempotencyKey: "ik-alloc-1",
+      timestamp: "test",
+      body: {
+        type: "SetBudgetAllocation",
+        nationId: "GBR",
+        appropriationRateBp: SafeInt(rate),
+        researchBudget: SafeInt(research),
+      },
+    }) as CommandEnvelope<CommandBody>;
+
+  it("sets the appropriation rate and keeps paying the research budget every month", () => {
+    const gbr = makeResearchNation("GBR", {
+      treasury: SafeInt(1000),
+      techs: techs(),
+      priorities: defaultPriorities(),
+    });
+    const snapshot = makeSnapshot(new Map([["GBR", gbr]]));
+    const first = runMonth(snapshot, [command(snapshot, 3000, 80)]);
+    expect(first.result.success).toBe(true);
+    const afterFirst = first.result.finalSnapshot.nations.get("GBR")!;
+    expect(afterFirst.navalAppropriationRateBp as number).toBe(3000);
+    expect(afterFirst.research.standingResearchBudget as number).toBe(80);
+    expect(afterFirst.research.researchBudget as number).toBe(80);
+
+    const second = runMonth(first.result.finalSnapshot, []);
+    const spent = second.result.financialLedger.all.filter(
+      (e) => e.nationId === "GBR" && e.categoryId === "RESEARCH_EXPENDITURE",
+    );
+    expect(spent.some((e) => (e.debit as number) === 80)).toBe(true);
+  });
+
+  it("rejects out-of-range allocations and leaves the nation unchanged", () => {
+    const gbr = makeResearchNation("GBR", { techs: techs(), priorities: defaultPriorities() });
+    const snapshot = makeSnapshot(new Map([["GBR", gbr]]));
+    for (const [rate, research] of [
+      [100, 10],
+      [9000, 10],
+      [2000, -1],
+      [2000, 100000],
+    ] as const) {
+      const { result } = runMonth(snapshot, [command(snapshot, rate, research)]);
+      const nation = result.finalSnapshot.nations.get("GBR")!;
+      expect(nation.navalAppropriationRateBp as number).toBe(2000);
+      expect(nation.research.standingResearchBudget).toBeUndefined();
+    }
+  });
+});

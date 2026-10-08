@@ -1,5 +1,5 @@
 /* @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { CampaignCommandClient } from "../../shared/campaign-command-contract.js";
@@ -276,12 +276,14 @@ vi.mock("../screens/new-game/NewGameLaunchingScreen.js", async () => {
   };
 });
 
-vi.mock("./AppSidebar.js", async () => {
+vi.mock("./BottomNav.js", async () => {
   const React = await import("react");
-  return {
-    AppSidebar: ({ footer }: { footer?: string }) =>
-      React.createElement("aside", null, `Sidebar ${footer ?? ""}`),
-  };
+  return { BottomNav: () => React.createElement("nav", { "data-testid": "bottom-nav" }) };
+});
+
+vi.mock("./StatusStrip.js", async () => {
+  const React = await import("react");
+  return { StatusStrip: () => React.createElement("section", { "data-testid": "status-strip" }) };
 });
 
 vi.mock("./campaign-screen-registry.js", async () => {
@@ -304,6 +306,7 @@ vi.mock("./SiteHeader.js", async () => {
       activeView,
       continueAction,
       searchTargets,
+      campaign,
     }: {
       title: string;
       activeView: string;
@@ -313,6 +316,7 @@ vi.mock("./SiteHeader.js", async () => {
         onTrigger: () => void;
       };
       searchTargets: readonly unknown[];
+      campaign?: { nationName?: string } | null;
     }) =>
       React.createElement(
         "header",
@@ -321,6 +325,7 @@ vi.mock("./SiteHeader.js", async () => {
           "data-active-view": activeView,
           "data-can-continue": String(continueAction !== undefined),
           "data-search-target-count": String(searchTargets.length),
+          "data-nation": campaign?.nationName ?? "",
         },
         title,
         continueAction ? React.createElement("span", null, continueAction.label) : null,
@@ -344,6 +349,7 @@ function createShell(overrides: Record<string, unknown> = {}) {
     openCampaign: vi.fn(async () => undefined),
     closeCampaign: vi.fn(async () => undefined),
     saveCampaign: vi.fn(async () => undefined),
+    copyCampaign: vi.fn(async () => undefined),
     selectScreen: vi.fn(),
     setPrimaryAction: vi.fn(),
     goBack: vi.fn(),
@@ -459,12 +465,15 @@ describe("App", () => {
     expect(shell.selectScreen).toHaveBeenCalledWith("new-game-nation");
   });
 
-  it("composes the active campaign shell, sidebar, outlet, search, and primary action", () => {
+  it("composes the active campaign shell, bottom nav, outlet, search, and primary action", () => {
     testState.shell = createShell({
       campaign: {
         sessionId: "ses-1",
         month: { year: 1900, month: 1 },
         treasury: 50_000,
+        nationName: "United Kingdom",
+        projectedSurplusDeficit: 2_000,
+        activeAlertsCount: null,
       },
       screen: "overview",
       saveMessage: "Campaign saved",
@@ -477,12 +486,13 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(screen.getByText("Sidebar ses-1")).toBeTruthy();
+    expect(screen.getByTestId("bottom-nav")).toBeTruthy();
     expect(screen.getByTestId("campaign-outlet").textContent).toBe("overview");
     expect(screen.getByRole("alert").textContent).toContain("Campaign saved");
     expect(screen.getByTestId("site-header").dataset.activeView).toBe("playing");
     expect(screen.getByTestId("site-header").dataset.canContinue).toBe("true");
     expect(screen.getByTestId("site-header").dataset.searchTargetCount).toBe("2");
+    expect(screen.getByTestId("site-header").dataset.nation).toBe("United Kingdom");
     expect(screen.getByText("Advance turn")).toBeTruthy();
   });
 
@@ -500,7 +510,7 @@ describe("App", () => {
   it("compiles a campaign, shows the briefing, and opens the session on Take command", async () => {
     const shell = createShell({ screen: "new-game-nation" });
     testState.shell = shell;
-    const execute = vi.fn(async (command: string) => {
+    const executeMock = vi.fn(async (command: string) => {
       if (command === "inspectOpeningBriefing") {
         return {
           outcome: "success" as const,
@@ -536,7 +546,8 @@ describe("App", () => {
         outcome: "success" as const,
         value: { sessionId: "ses-created" },
       };
-    }) as unknown as CampaignCommandClient["execute"];
+    });
+    const execute = executeMock as unknown as CampaignCommandClient["execute"];
     window.bluewave = createBridge({ campaign: createCampaignClient(execute) });
 
     const { rerender } = render(<App />);
@@ -583,11 +594,31 @@ describe("App", () => {
     expect(
       await screen.findByText(/You have been appointed First Sea Lord — United Kingdom/),
     ).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Review Naval Estimates" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Take command" }));
+    // Re-rendering App must not re-run the briefing load: an unstable
+    // onInspectOpeningBriefing resets the projection and loops in the real app
+    // (the screen's own primary-action update re-renders App).
+    const inspectCalls = () =>
+      executeMock.mock.calls.filter(([command]) => command === "inspectOpeningBriefing").length;
+    expect(inspectCalls()).toBe(1);
+    rerender(<App />);
+    await act(async () => {});
+    expect(inspectCalls()).toBe(1);
+    // The briefing's forward action lives in the header's primary action.
+    const triggerPrimary = (expectedLabel: string) => {
+      const action = shell.setPrimaryAction.mock.calls.at(-1)?.[0] as
+        | { label: string; onTrigger: () => void }
+        | null
+        | undefined;
+      expect(action?.label).toBe(expectedLabel);
+      act(() => {
+        action?.onTrigger();
+      });
+    };
+    triggerPrimary("Review Naval Estimates");
+    triggerPrimary("Next");
+    triggerPrimary("Next");
+    triggerPrimary("Next");
+    triggerPrimary("Take command");
     expect(shell.openCampaign).toHaveBeenCalledWith("ses-created");
   });
 

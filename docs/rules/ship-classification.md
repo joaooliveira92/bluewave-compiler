@@ -183,10 +183,10 @@ A design is `CL` only when all conditions hold:
 
 The following explicit exceptions are permitted:
 
-- `protected_cruiser_exception`: available only with technology capability `protected_cruiser_design`; permits absence of belt armor but does not change displacement, speed, or caliber boundaries;
+- `protected_cruiser_exception` (ruleset constant version `1`, ADR-0067): permits absence of belt armor, and additionally raises the CL main-gun bound from `152_400` to `203_200` micrometres (8 inches) when the design has no main belt (thickness `0`), an armour deck (`DECK_MAIN` or `DECK_SLOPE` thickness above `0`), and every main-gun mount above 6 inches is a single mount (one barrel). Twin or larger mounts above 6 inches, any main belt, or a gun above 8 inches fails CL. It does not change displacement or speed boundaries and does not change the strict CA `> 6` inch bound. In the EARLY band it needs no technology gate; the later capability `protected_cruiser_design` gates it in other bands;
 - `missile_cruiser_exception`: available only with capability `guided_missile_cruiser`; permits main surface guns below the normal role requirement and missile primary armament, but maximum installed gun caliber remains `152_400` micrometres.
 
-A main caliber exactly `6` inches is legal. A caliber above `6` inches is not CL.
+A main caliber exactly `6` inches is legal. A caliber above `6` inches is not CL, except under `protected_cruiser_exception` (exactly `8` inches is legal there, `8` inches plus one micrometre is not).
 
 ## 10. B Classification
 
@@ -513,7 +513,7 @@ Automated validation MUST prove that:
 5. qualifying armor begins exactly at 2 inches;
 6. DD maximums are exactly 2,000, 2,500, 3,000, 3,500, and 3,800 metric tonnes under the declared eras and technologies;
 7. the late DD maximum is exactly 3,800 metric tonnes inclusive;
-8. CL uses `>= 2,000`, `< 8,000`, speed `> 16`, and gun caliber `<= 6` inches;
+8. CL uses `>= 2,000`, `< 8,000`, speed `> 16`, and gun caliber `<= 6` inches (or `<= 8` inches single-mounted under the protected-cruiser exception);
 9. B uses displacement `>= 5,000`, belt `>= 6`, guns `> 6`, speed `< 20`, and at most two turrets;
 10. CA uses displacement `> 4,000`, speed `> 19`, belt `> 2` and `<= 12`, and guns `> 6` and `<= 11` inches;
 11. BC uses explicit armament alternatives and exact era speed thresholds;

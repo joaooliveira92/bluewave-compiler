@@ -22,9 +22,7 @@ export interface E2EHarness {
   retargetDialog(dir: string): Promise<void>;
 }
 
-export async function launchHarness(
-  opts: { saveDir?: string } = {},
-): Promise<E2EHarness> {
+export async function launchHarness(opts: { saveDir?: string } = {}): Promise<E2EHarness> {
   if (!existsSync(OUT_MAIN)) {
     throw new Error(
       `out/main/index.js missing — run "pnpm build" (electron-vite build) in apps/desktop first`,
@@ -98,10 +96,7 @@ export async function teardownHarness(h: E2EHarness): Promise<void> {
  * the shipped tree). `sourceDir` is the package to copy; `scratchRoot` is
  * typically the per-test `e2e.scratch` tree.
  */
-export async function copyFixturePackage(
-  sourceDir: string,
-  scratchRoot: string,
-): Promise<string> {
+export async function copyFixturePackage(sourceDir: string, scratchRoot: string): Promise<string> {
   const target = join(scratchRoot, "package");
   await cp(sourceDir, target, { recursive: true });
   return target;

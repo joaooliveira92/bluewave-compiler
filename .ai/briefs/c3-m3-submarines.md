@@ -144,7 +144,7 @@ In addition to the permanent `.ai/AUTONOMOUS-AGENT.md` rules:
 - Do not modify `packages/combat/src/torpedoes/`, `packages/combat/src/mines/`,
   `packages/combat/src/weather/`, `packages/phase-engine/`, `packages/random/`,
   or the desktop-e2e harness — concurrent sessions own those in the shared tree.
-  `mines/` may be *read* for the `AreaMinePressureRecord` type only.
+  `mines/` may be _read_ for the `AreaMinePressureRecord` type only.
 
 ## Required delivery
 

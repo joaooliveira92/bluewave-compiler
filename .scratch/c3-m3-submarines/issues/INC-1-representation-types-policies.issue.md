@@ -1,9 +1,9 @@
 # INC-1 — Strategic Representation + Types + Policies + Reason Codes + Contracts Seed
 
 **Type:** implementation
-**Status:** open
+**Status:** DONE (2026-08-28, commit `c2caf64`)
 **Blocked by:** scoping (issues 01–06 resolved)
-**Frontier:** yes (first)
+**Frontier:** no
 
 ## Acceptance (spec AC-1, AC-2, AC-3, AC-18, AC-21 seeds)
 

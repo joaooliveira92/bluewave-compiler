@@ -7,7 +7,7 @@ import type {
   SubmarinePool,
   TacticalBattleOutcome,
 } from "@bluewave/campaign-engine";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { emitWideEvent } from "../../../lib/telemetry.js";
 import { auditInputFromDecisions, recordEngineAudit } from "../../../lib/engine-audit.js";
@@ -33,7 +33,16 @@ export interface UseSimulationScreenReturn {
   readonly handleTacticalResolve: () => Promise<void>;
 }
 
-export function useSimulationScreen(sessionId: string): UseSimulationScreenReturn {
+export interface UseSimulationScreenOptions {
+  readonly campaignRevision?: number;
+  readonly onMonthCommitted?: () => void;
+}
+
+export function useSimulationScreen(
+  sessionId: string,
+  options: UseSimulationScreenOptions = {},
+): UseSimulationScreenReturn {
+  const { campaignRevision, onMonthCommitted } = options;
   const bridge = window.bluewave;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +89,16 @@ export function useSimulationScreen(sessionId: string): UseSimulationScreenRetur
     void loadSnapshotData();
   }, [loadSnapshotData]);
 
+  // The header can advance the month while this screen is open. Without this the
+  // next "Advance Turn" would send a stale `expectedRevision` and be rejected.
+  const revisionRef = useRef(revision);
+  revisionRef.current = revision;
+  useEffect(() => {
+    if (campaignRevision !== undefined && campaignRevision !== revisionRef.current) {
+      void loadSnapshotData();
+    }
+  }, [campaignRevision, loadSnapshotData]);
+
   const handleAdvanceTurn = useCallback(async () => {
     if (bridge === undefined) return;
     const startTime = performance.now();
@@ -111,6 +130,7 @@ export function useSimulationScreen(sessionId: string): UseSimulationScreenRetur
         setAutoResolution(null);
         setTacticalOutcome(null);
         setActiveTab("report");
+        onMonthCommitted?.();
       } else {
         emitWideEvent("month_commit", sessionId, duration, "rejected", [res.reason]);
         setError(`Failed to advance turn: ${res.reason}. ${res.diagnostics.join("; ")}`);
@@ -123,7 +143,7 @@ export function useSimulationScreen(sessionId: string): UseSimulationScreenRetur
     } finally {
       setLoading(false);
     }
-  }, [bridge, sessionId, revision]);
+  }, [bridge, sessionId, revision, onMonthCommitted]);
 
   const handleGenerateBattle = useCallback(async () => {
     if (bridge === undefined) return;

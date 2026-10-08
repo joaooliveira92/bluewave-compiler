@@ -21,6 +21,7 @@ const shell = vi.hoisted(() => ({
     setPrimaryAction: vi.fn(),
     closeCampaign: vi.fn(),
     saveCampaign: vi.fn(),
+    copyCampaign: vi.fn(),
   },
 }));
 
@@ -107,6 +108,13 @@ vi.mock("../screens/diplomacy/DiplomacyScreen.js", async () => {
       React.createElement("section", { "data-testid": "diplomacy-screen" }, sessionId),
   };
 });
+vi.mock("../screens/treasury/TreasuryScreen.js", async () => {
+  const React = await import("react");
+  return {
+    TreasuryScreen: ({ sessionId }: { sessionId: string }) =>
+      React.createElement("section", { "data-testid": "treasury-screen" }, sessionId),
+  };
+});
 vi.mock("../screens/tactical-sandbox/TacticalSandboxScreen.js", async () => {
   const React = await import("react");
   return {
@@ -142,22 +150,8 @@ vi.mock("../screens/campaign-preferences/CampaignPreferencesScreen.js", async ()
 vi.mock("../screens/options/OptionsScreen.js", async () => {
   const React = await import("react");
   return {
-    OptionsScreen: ({
-      saving,
-      onSave,
-      onCloseCampaign,
-    }: {
-      saving: boolean;
-      onSave: () => void;
-      onCloseCampaign: () => void;
-    }) =>
-      React.createElement(
-        "section",
-        { "data-testid": "options-screen" },
-        React.createElement("span", null, saving ? "Saving" : "Idle"),
-        React.createElement("button", { onClick: onSave }, "Save"),
-        React.createElement("button", { onClick: onCloseCampaign }, "Close campaign"),
-      ),
+    OptionsScreen: () =>
+      React.createElement("section", { "data-testid": "options-screen" }, "Options"),
   };
 });
 
@@ -200,6 +194,12 @@ describe("CampaignScreenOutlet", () => {
     expect(screen.getByText("ses-1")).toBeTruthy();
   });
 
+  it("routes the Treasury screen (INC-4 replaced the stub)", async () => {
+    render(<CampaignScreenOutlet screen="treasury" />);
+    const treasury = await screen.findByTestId("treasury-screen");
+    expect(treasury.textContent).toContain("ses-1");
+  });
+
   it("connects overview navigation to shell actions", async () => {
     render(<CampaignScreenOutlet screen="overview" />);
     (await screen.findByRole("button", { name: "Open fleet" })).click();
@@ -214,14 +214,9 @@ describe("CampaignScreenOutlet", () => {
     );
   });
 
-  it("connects option state and actions", async () => {
-    shell.state.saving = true;
+  it("renders the options screen without campaign file actions", async () => {
     render(<CampaignScreenOutlet screen="options" />);
-    expect(await screen.findByText("Saving")).toBeTruthy();
-    screen.getByRole("button", { name: "Save" }).click();
-    screen.getByRole("button", { name: "Close campaign" }).click();
-    expect(shell.actions.saveCampaign).toHaveBeenCalledOnce();
-    expect(shell.actions.closeCampaign).toHaveBeenCalledOnce();
+    expect(await screen.findByTestId("options-screen")).toBeTruthy();
   });
 
   it.each(["file", "new-game-preferences", "new-game-nation"] as const)(
@@ -238,6 +233,19 @@ describe("campaign screen registry", () => {
     const ids = CAMPAIGN_SCREEN_REGISTRY.map(({ id }) => id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(CAMPAIGN_SCREEN_REGISTRY.every(({ route }) => typeof route === "function")).toBe(true);
+  });
+
+  it("ships all six strategic sections in the campaign nav shell", () => {
+    expect(CAMPAIGN_SCREENS.map(({ id }) => id)).toEqual(
+      expect.arrayContaining([
+        "overview",
+        "construction",
+        "fleet",
+        "research",
+        "diplomacy",
+        "treasury",
+      ]),
+    );
   });
 
   it("derives navigation groups and search targets from one registry", () => {

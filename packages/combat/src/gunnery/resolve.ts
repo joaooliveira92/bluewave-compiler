@@ -52,8 +52,11 @@ import {
 } from "./event.js";
 import { validateTargetOrder } from "../targeting.js";
 import type { TacticalContact } from "../contact/lifecycle.js";
+import type { Position } from "../spotting/detection.js";
 import { SUBSTEPS_PER_MINUTE } from "../movement/constants.js";
 import { INVALID_GUNNERY_STATE } from "./reasonCodes.js";
+import { rangeBetweenUm, rangeMultiplierBp } from "./rangeCurve.js";
+import { salvoBatchAccuracyBp } from "./salvoBatch.js";
 
 // Gunnery runs after spotting (step 8) in the DESIGN-38 pipeline. Contacts are
 // created/updated at substeps 0 and 1 within step 8, so gunnery uses substep 2;
@@ -86,6 +89,15 @@ export interface ResolveGunneryInput {
   batteries: readonly GunneryBattery[];
   contacts: readonly TacticalContact[];
   engine?: RandomEngine;
+  /** True post-movement ship positions (`assetId -> [x, y]` integer µm), used
+   *  to fill the DESIGN-39 §3 `range` accuracy factor from the TRUE legal
+   *  contact range each minute (P-1 ticket 06): a battery targeting a legal
+   *  contact whose track and shooter position are both supplied fires at
+   *  `rangeMultiplierBp(distance shooters -> contact)`, and its range estimate
+   *  is written into the next GunneryState. When positions are absent the
+   *  battery's authored `range` factor and range estimate are used unchanged
+   *  (backwards-compatible; direct-call tests never pass positions). */
+  shipPositions?: Readonly<Record<string, Position>>;
 }
 
 export interface ResolveGunneryOutput {
@@ -129,6 +141,7 @@ export function resolveGunnery(input: ResolveGunneryInput): ResolveGunneryOutput
       substep,
       contactsMap,
       engine: input.engine,
+      shipPositions: input.shipPositions,
       active,
     });
     if (outcome.fired) {
@@ -147,6 +160,7 @@ interface BatteryContext {
   substep: number;
   contactsMap: Map<string, TacticalContact>;
   engine?: RandomEngine;
+  shipPositions?: Readonly<Record<string, Position>>;
   active: boolean;
 }
 
@@ -160,7 +174,7 @@ function resolveOneBattery(b: GunneryBattery, ctx: BatteryContext): BatteryOutco
   }
 
   // Advance reload by one tactical minute's work, then evaluate firing predicates.
-  const advanced = withGunneryStateHash({
+  let advanced = withGunneryStateHash({
     ...state,
     reloadProgressMs: advanceReloadProgress(state.reloadProgressMs, TACTICAL_MINUTE_MS),
   });
@@ -177,6 +191,30 @@ function resolveOneBattery(b: GunneryBattery, ctx: BatteryContext): BatteryOutco
   // / illegal true asset fails with TACTICAL_FOG_OF_WAR_VIOLATION (validateTargetOrder).
   validateTargetOrder(state.targetContactId, ctx.contactsMap);
 
+  // P-1 ticket 06: the TRUE legal contact range this minute. The engine supplies
+  // post-movement ship positions; the range is measured shooter -> contact-track
+  // position in integer µm (floored distance), overriding the battle planner's
+  // 10 km estimate. When positions (or the target's track position) are absent,
+  // `currentRangeUm` stays undefined and the battery behaves exactly as before
+  // (authored `range` factor + authored range estimate — the caller authored the
+  // factor, so there is nothing to fall back to and fail on).
+  let currentRangeUm: number | undefined;
+  if (ctx.shipPositions) {
+    const shooterPos = ctx.shipPositions[b.ownerShipId];
+    const targetTrack = ctx.contactsMap.get(state.targetContactId);
+    if (shooterPos && targetTrack?.position) {
+      currentRangeUm = rangeBetweenUm(shooterPos, targetTrack.position);
+    }
+  }
+
+  // The true range is authoritative state: write it into the advanced state even
+  // when the battery will not fire this minute (reload/solution gating), so the
+  // next minute's state reflects the measured range regardless of firing.
+  if (currentRangeUm !== undefined) {
+    const next = withGunneryStateHash({ ...advanced, rangeEstimateUm: currentRangeUm });
+    advanced = next;
+  }
+
   // Reload complete (DESIGN-39 §4) after this minute's reload work.
   const rate = computeEffectiveReloadMs(b.baseReloadMs, b.rateFactors);
   if (!isReloadComplete(advanced.reloadProgressMs, rate.effectiveReloadMs)) {
@@ -192,8 +230,15 @@ function resolveOneBattery(b: GunneryBattery, ctx: BatteryContext): BatteryOutco
     b.permittedTypes ?? AMMUNITION_TYPES,
   );
 
-  // Accuracy + the single keyed hit draw (INC-2).
-  const acc = resolveAccuracy(b.accuracyFactors);
+  // Accuracy + the single keyed hit draw (INC-2). When the true range is known,
+  // its §3 `range` factor replaces the battery's authored (neutral) one for this
+  // salvo; `record.accuracy` keeps the per-round §3 resolution while
+  // `randomDecisions[0].finalAccuracyBp` carries the salvo batch value below.
+  const accuracyFactors =
+    currentRangeUm !== undefined
+      ? { ...b.accuracyFactors, range: rangeMultiplierBp(currentRangeUm) }
+      : b.accuracyFactors;
+  const acc = resolveAccuracy(accuracyFactors);
   if (!ctx.engine) {
     throw new BluewaveError(INVALID_GUNNERY_STATE, {
       code: INVALID_GUNNERY_STATE,
@@ -201,14 +246,19 @@ function resolveOneBattery(b: GunneryBattery, ctx: BatteryContext): BatteryOutco
       batteryId: b.id,
     });
   }
+  // P-1 ticket 06: N-gun salvo sensitivity without changing the ONE-draw shape —
+  // the binomial-equivalent batch probability of `salvoCount` independent rounds
+  // is evaluated exactly (bigint) and fed to the single keyed draw.
+  const salvoAccuracyBp = salvoBatchAccuracyBp(acc.finalAccuracyBp, b.salvoCount);
   const hit = resolveHit(
     ctx.engine,
     { battleId: ctx.battleId, batteryId: b.id, minute: ctx.minute, substep: ctx.substep },
-    acc.finalAccuracyBp,
+    salvoAccuracyBp,
   );
 
   const nextState: GunneryState = withGunneryStateHash({
     ...state,
+    ...(currentRangeUm !== undefined ? { rangeEstimateUm: currentRangeUm } : {}),
     ammunition: nextAmmo,
     reloadProgressMs: resetReloadProgress(),
     lastSalvoMinute: ctx.minute,
@@ -241,6 +291,9 @@ function resolveOneBattery(b: GunneryBattery, ctx: BatteryContext): BatteryOutco
     },
     accuracy: acc,
     rate,
+    // The single keyed draw carries the SALVO (batch) probability — the per-round
+    // §3 resolution stays in `accuracy`; `finalAccuracyBp` here is that batch
+    // value (P-1 ticket 06).
     randomDecisions: [hit],
     outcome: hit.isHit ? "HIT" : "MISS",
   };

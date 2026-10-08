@@ -20,7 +20,8 @@ import {
 } from "../campaignSessions.js";
 import { compileProductionCampaign } from "../compiler.js";
 import { toSaveableState } from "../saveHelpers.js";
-import { commitMonth, mapBattleOutcome } from "./commitMonth.js";
+import { commitMonth } from "./commitMonth.js";
+import { mapBattleOutcome } from "./commitMonth/battleOutcomes.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
@@ -216,11 +217,11 @@ describe("commitMonth", () => {
         algorithm: "sha256",
         artifactKind: "campaign-snapshot",
         compatibilityVersion: "1.1.0",
-        bodyHash: "940375344ecf21c22dbca155527575db8dc85625ddab420f2f1021e0d47c8636",
-        bodyLength: 81291,
+        bodyHash: "1706ae2bfc07e02213d28b02649cc37341fd6c1dcbb9157a521e4462b95f4f3f",
+        bodyLength: 87677,
       });
       expect(updated.state.rawHash).toBe(
-        "1d47e16e238f9b1de050cef6459095594ec8ea002a536c61cdeb17385a8e93c1",
+        "57f625053f13ccfbd8e14c188f6b1018660e602ce7c526d423092f112d03a4c6",
       );
       const expectedActiveWars = updated.state.snapshot.wars.wars.filter(
         (w) => w.status !== "ENDED",

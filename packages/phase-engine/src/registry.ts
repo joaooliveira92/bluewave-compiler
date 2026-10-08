@@ -116,6 +116,28 @@ export class PhaseRegistry {
       rngAllowed: true,
     },
     {
+      id: "resolve_aircraft_development",
+      name: "Aircraft Development Resolution",
+      // D-1: per-nation aircraft development pipeline (DESIGN-43 §§4-12),
+      // ordered after resolve_research (order 7) and before battle_generation
+      // (order 7.5). Strict no-op when no nation has aviation tech.
+      order: 7.2,
+      readPermissions: ["nations", "treasury", "research"],
+      writePermissions: ["nations"],
+      rngAllowed: true,
+    },
+    {
+      id: "resolve_carrier_operations",
+      name: "Carrier Operations Resolution",
+      // D-2: per-nation carrier operations pipeline (DESIGN-44), ordered after
+      // resolve_aircraft_development (order 7.2) and before battle_generation
+      // (order 7.5). Strict no-op when no nation has carrier-capable ships.
+      order: 7.3,
+      readPermissions: ["nations"],
+      writePermissions: ["nations"],
+      rngAllowed: true,
+    },
+    {
       id: "battle_generation",
       name: "Battle Generation",
       order: 7.5,

@@ -11,7 +11,11 @@ describe("Electron boundary", () => {
   it("applies `default-src 'self'` CSP to renderer responses", () => {
     const headers = applyContentSecurityPolicy({ "X-Frame-Options": ["DENY"] });
     expect(headers["Content-Security-Policy"]).toEqual([CONTENT_SECURITY_POLICY]);
-    expect(CONTENT_SECURITY_POLICY).toBe("default-src 'self'; img-src 'self' data:");
+    expect(CONTENT_SECURITY_POLICY).toBe(
+      "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:",
+    );
+    // Scripts stay strict: no inline/eval grant in production.
+    expect(CONTENT_SECURITY_POLICY).not.toContain("script-src");
     // Pre-existing headers are preserved.
     expect(headers["X-Frame-Options"]).toEqual(["DENY"]);
   });

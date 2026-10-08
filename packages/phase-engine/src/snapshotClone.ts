@@ -14,6 +14,7 @@ import type {
   FleetState,
   IntelligenceState,
   NationState,
+  Officer,
   PermanentDivision,
   PoliticalState,
   ResearchState,
@@ -133,7 +134,9 @@ function recordClone<T extends object>(
 // key of T is missing or an unknown key is present.
 function fields<T>() {
   return <U extends readonly (keyof T)[]>(
-    ...keys: U & (Exclude<keyof T, U[number]> extends never ? unknown : never) & (Exclude<U[number], keyof T> extends never ? unknown : never)
+    ...keys: U &
+      (Exclude<keyof T, U[number]> extends never ? unknown : never) &
+      (Exclude<U[number], keyof T> extends never ? unknown : never)
   ): U => keys;
 }
 
@@ -163,6 +166,7 @@ const F = {
     "currentProjectTechId",
     "fieldPriorities",
     "researchBudget",
+    "standingResearchBudget",
     "activeCandidates",
     "discoveredTechs",
   ),
@@ -195,6 +199,7 @@ const F = {
     "status",
     "startedAt",
   ),
+  Officer: fields<Officer>()("id", "name", "rank", "skill"),
   NationState: fields<NationState>()(
     "id",
     "name",
@@ -207,12 +212,22 @@ const F = {
     "maintenanceCost",
     "fleets",
     "divisions",
+    "officers",
     "research",
     "constructionProjects",
+    "aircraft",
+    "carrierOperations",
     "isPlayable",
     "isAI",
   ),
-  DiplomaticRelation: fields<DiplomaticRelation>()("nationA", "nationB", "relation", "tension", "nap", "since"),
+  DiplomaticRelation: fields<DiplomaticRelation>()(
+    "nationA",
+    "nationB",
+    "relation",
+    "tension",
+    "nap",
+    "since",
+  ),
   PoliticalState: fields<PoliticalState>()("relations", "shells"),
   IntelligenceState: fields<IntelligenceState>()("shells"),
   AreaData: fields<AreaData>()("id", "name", "type", "controller"),
@@ -242,7 +257,12 @@ const F = {
     "status",
     "nationalContributionPoints",
   ),
-  BlockadeState: fields<BlockadeState>()("blockaderId", "blockadedNationId", "areaId", "establishedMonth"),
+  BlockadeState: fields<BlockadeState>()(
+    "blockaderId",
+    "blockadedNationId",
+    "areaId",
+    "establishedMonth",
+  ),
   BattleInstance: fields<BattleInstance>()(
     "id",
     "phase",
@@ -254,7 +274,15 @@ const F = {
     "manifestHash",
     "result",
   ),
-  BattleResult: fields<BattleResult>()("winnerId", "loserId", "attackerLosses", "defenderLosses", "damageReport", "explanation"),
+  BattleResult: fields<BattleResult>()(
+    "winnerId",
+    "loserId",
+    "attackerLosses",
+    "defenderLosses",
+    "damageReport",
+    "explanation",
+    "lostShips",
+  ),
   BattleManifest: fields<BattleManifest>()(
     "battleId",
     "opportunityId",
@@ -288,7 +316,13 @@ const F = {
     "manifestHash",
   ),
   BattleManifestSide: fields<BattleManifestSide>()("sideId", "participantIds"),
-  WarState: fields<WarState>()("wars", "battles", "participantMemberships", "blockadeState", "battleManifests"),
+  WarState: fields<WarState>()(
+    "wars",
+    "battles",
+    "participantMemberships",
+    "blockadeState",
+    "battleManifests",
+  ),
   CampaignSlot: fields<CampaignSlot>()("nationId", "type"),
   CompiledDesignVersion: fields<CompiledDesignVersion>()(
     "designVersionId",
@@ -306,8 +340,15 @@ const F = {
     "crewComplement",
     "contentVersion",
     "compiledHash",
+    "torpedoArmament",
   ),
-  DesignFamily: fields<DesignFamily>()("designFamilyId", "nationId", "rootDesignVersionId", "memberDesignVersionIds", "familyCreationMonth"),
+  DesignFamily: fields<DesignFamily>()(
+    "designFamilyId",
+    "nationId",
+    "rootDesignVersionId",
+    "memberDesignVersionIds",
+    "familyCreationMonth",
+  ),
   CampaignWeatherState: fields<CampaignWeatherState>()(
     "areaId",
     "month",
@@ -354,7 +395,8 @@ const F = {
 // Compile-time exhaustiveness assertions (redundant with fields<T>() but
 // documents intent and survives `as const` widening). If any line errors,
 // a field was added/renamed without updating F.
-type _Assert<T, U extends readonly (keyof T)[]> = Exclude<keyof T, U[number]> extends never ? true : never;
+type _Assert<T, U extends readonly (keyof T)[]> =
+  Exclude<keyof T, U[number]> extends never ? true : never;
 const _assert: [
   _Assert<Ship, typeof F.Ship>,
   _Assert<FleetState, typeof F.FleetState>,
@@ -362,6 +404,7 @@ const _assert: [
   _Assert<ResearchState, typeof F.ResearchState>,
   _Assert<PermanentDivision, typeof F.PermanentDivision>,
   _Assert<ConstructionProject, typeof F.ConstructionProject>,
+  _Assert<Officer, typeof F.Officer>,
   _Assert<NationState, typeof F.NationState>,
   _Assert<DiplomaticRelation, typeof F.DiplomaticRelation>,
   _Assert<PoliticalState, typeof F.PoliticalState>,
@@ -383,7 +426,36 @@ const _assert: [
   _Assert<DesignFamily, typeof F.DesignFamily>,
   _Assert<CampaignWeatherState, typeof F.CampaignWeatherState>,
   _Assert<CampaignSnapshot, typeof F.CampaignSnapshot>,
-] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
+] = [
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+];
 void _assert;
 
 const cloneShip = (s: Ship): Ship => recordClone(s, F.Ship);
@@ -391,38 +463,57 @@ const cloneFleet = (f: FleetState): FleetState =>
   recordClone(f, F.FleetState, {
     ships: (v) => (v as Ship[]).map((x) => cloneShip(x as Ship)),
   });
-const cloneTechnology = (t: TechnologyProgress): TechnologyProgress => recordClone(t, F.TechnologyProgress);
+const cloneTechnology = (t: TechnologyProgress): TechnologyProgress =>
+  recordClone(t, F.TechnologyProgress);
 const cloneResearch = (r: ResearchState): ResearchState =>
   recordClone(r, F.ResearchState, {
     technologies: (v) => (v as TechnologyProgress[]).map(cloneTechnology),
   });
-const cloneDivision = (d: PermanentDivision): PermanentDivision => recordClone(d, F.PermanentDivision);
-const cloneConstructionProject = (c: ConstructionProject): ConstructionProject => recordClone(c, F.ConstructionProject);
+const cloneDivision = (d: PermanentDivision): PermanentDivision =>
+  recordClone(d, F.PermanentDivision);
+const cloneConstructionProject = (c: ConstructionProject): ConstructionProject =>
+  recordClone(c, F.ConstructionProject);
 const cloneNation = (n: NationState): NationState =>
   recordClone(n, F.NationState, {
     fleets: (v) => (v as FleetState[]).map(cloneFleet),
     divisions: (v) => (v as PermanentDivision[]).map(cloneDivision),
+    officers: (v) => (v === undefined ? undefined : (v as Officer[]).map((o) => ({ ...o }))),
     research: (v) => cloneResearch(v as ResearchState),
     constructionProjects: (v) => (v as ConstructionProject[]).map(cloneConstructionProject),
   });
-const cloneBattleResult = (r: BattleResult): BattleResult => recordClone(r, F.BattleResult);
+const cloneBattleResult = (r: BattleResult): BattleResult =>
+  recordClone(r, F.BattleResult, {
+    lostShips: (v) =>
+      v === undefined
+        ? undefined
+        : (v as NonNullable<BattleResult["lostShips"]>).map((s) => ({ ...s })),
+  });
 const cloneBattle = (b: BattleInstance): BattleInstance =>
   recordClone(b, F.BattleInstance, {
     result: (v) => (v === undefined ? undefined : cloneBattleResult(v as BattleResult)),
   });
 const cloneManifest = (m: BattleManifest): BattleManifest =>
   recordClone(m, F.BattleManifest, {
-    sides: (v) => (v as BattleManifestSide[]).map((side) => recordClone(side, F.BattleManifestSide)),
+    sides: (v) =>
+      (v as BattleManifestSide[]).map((side) => recordClone(side, F.BattleManifestSide)),
   });
-const cloneWeather = (w: CampaignWeatherState): CampaignWeatherState => recordClone(w, F.CampaignWeatherState);
-const cloneDesign = (d: CompiledDesignVersion): CompiledDesignVersion => recordClone(d, F.CompiledDesignVersion);
+const cloneWeather = (w: CampaignWeatherState): CampaignWeatherState =>
+  recordClone(w, F.CampaignWeatherState);
+const cloneDesign = (d: CompiledDesignVersion): CompiledDesignVersion =>
+  recordClone(d, F.CompiledDesignVersion);
 const cloneDesignFamily = (d: DesignFamily): DesignFamily => recordClone(d, F.DesignFamily);
 const cloneDesigns = (designs: CampaignSnapshot["designs"]): CampaignSnapshot["designs"] => {
-  if (designs instanceof Map) return new Map([...designs].map(([id, d]) => [id, cloneDesign(d as CompiledDesignVersion)]));
+  if (designs instanceof Map)
+    return new Map([...designs].map(([id, d]) => [id, cloneDesign(d as CompiledDesignVersion)]));
   throw new Error("cloneSnapshot: designs must be a Map");
 };
-const cloneDesignFamilies = (designFamilies: CampaignSnapshot["designFamilies"]): CampaignSnapshot["designFamilies"] => {
-  if (designFamilies instanceof Map) return new Map([...designFamilies].map(([id, d]) => [id, cloneDesignFamily(d as DesignFamily)]));
+const cloneDesignFamilies = (
+  designFamilies: CampaignSnapshot["designFamilies"],
+): CampaignSnapshot["designFamilies"] => {
+  if (designFamilies instanceof Map)
+    return new Map(
+      [...designFamilies].map(([id, d]) => [id, cloneDesignFamily(d as DesignFamily)]),
+    );
   throw new Error("cloneSnapshot: designFamilies must be a Map");
 };
 
@@ -432,7 +523,8 @@ const cloneDesignFamilies = (designFamilies: CampaignSnapshot["designFamilies"])
  * consecutive turns. Deterministic, no RNG/IO, preserves missing vs undefined.
  */
 export function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
-  if (snapshot === null || typeof snapshot !== "object") throw new Error("cloneSnapshot: snapshot must be a non-null object");
+  if (snapshot === null || typeof snapshot !== "object")
+    throw new Error("cloneSnapshot: snapshot must be a non-null object");
   const seen = new WeakMap<object, unknown>();
   return recordClone(
     snapshot,
@@ -440,33 +532,61 @@ export function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
     {
       slots: (v) => (v as CampaignSlot[]).map((s) => recordClone(s, F.CampaignSlot, {}, seen)),
       world: (v) =>
-        recordClone(v as WorldState, F.WorldState, {
-          areas: (areas) => (areas as AreaData[]).map((a) => recordClone(a, F.AreaData, {}, seen)),
-          routes: (routes) => (routes as RouteData[]).map((r) => recordClone(r, F.RouteData, {}, seen)),
-          ports: (ports) => (ports as PortData[]).map((p) => recordClone(p, F.PortData, {}, seen)),
-        }, seen),
+        recordClone(
+          v as WorldState,
+          F.WorldState,
+          {
+            areas: (areas) =>
+              (areas as AreaData[]).map((a) => recordClone(a, F.AreaData, {}, seen)),
+            routes: (routes) =>
+              (routes as RouteData[]).map((r) => recordClone(r, F.RouteData, {}, seen)),
+            ports: (ports) =>
+              (ports as PortData[]).map((p) => recordClone(p, F.PortData, {}, seen)),
+          },
+          seen,
+        ),
       nations: (v) => {
         if (!(v instanceof Map)) throw new Error("cloneSnapshot: nations must be a Map");
         return new Map([...(v as Map<string, NationState>)].map(([id, n]) => [id, cloneNation(n)]));
       },
       wars: (v) =>
-        recordClone(v as WarState, F.WarState, {
-          wars: (wars) => (wars as WarDeclaration[]).map((w) => recordClone(w, F.WarDeclaration, {}, seen)),
-          battles: (battles) => (battles as BattleInstance[]).map(cloneBattle),
-          participantMemberships: (memberships) =>
-            (memberships as WarParticipantMembership[]).map((m) => recordClone(m, F.WarParticipantMembership, {}, seen)),
-          blockadeState: (state) => (state as BlockadeState[]).map((b) => recordClone(b, F.BlockadeState, {}, seen)),
-          battleManifests: (manifests) =>
-            manifests === undefined ? undefined : (manifests as BattleManifest[]).map(cloneManifest),
-        }, seen),
+        recordClone(
+          v as WarState,
+          F.WarState,
+          {
+            wars: (wars) =>
+              (wars as WarDeclaration[]).map((w) => recordClone(w, F.WarDeclaration, {}, seen)),
+            battles: (battles) => (battles as BattleInstance[]).map(cloneBattle),
+            participantMemberships: (memberships) =>
+              (memberships as WarParticipantMembership[]).map((m) =>
+                recordClone(m, F.WarParticipantMembership, {}, seen),
+              ),
+            blockadeState: (state) =>
+              (state as BlockadeState[]).map((b) => recordClone(b, F.BlockadeState, {}, seen)),
+            battleManifests: (manifests) =>
+              manifests === undefined
+                ? undefined
+                : (manifests as BattleManifest[]).map(cloneManifest),
+          },
+          seen,
+        ),
       politics: (v) =>
-        recordClone(v as PoliticalState, F.PoliticalState, {
-          relations: (relations) => (relations as DiplomaticRelation[]).map((r) => recordClone(r, F.DiplomaticRelation, {}, seen)),
-        }, seen),
+        recordClone(
+          v as PoliticalState,
+          F.PoliticalState,
+          {
+            relations: (relations) =>
+              (relations as DiplomaticRelation[]).map((r) =>
+                recordClone(r, F.DiplomaticRelation, {}, seen),
+              ),
+          },
+          seen,
+        ),
       intelligence: (v) => recordClone(v as IntelligenceState, F.IntelligenceState, {}, seen),
       designs: (v) => cloneDesigns(v as CampaignSnapshot["designs"]),
       designFamilies: (v) => cloneDesignFamilies(v as CampaignSnapshot["designFamilies"]),
-      strategicWeather: (v) => (v === undefined ? undefined : (v as CampaignWeatherState[]).map(cloneWeather)),
+      strategicWeather: (v) =>
+        v === undefined ? undefined : (v as CampaignWeatherState[]).map(cloneWeather),
     },
     seen,
   );
@@ -474,6 +594,8 @@ export function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
 
 /** Audit surface: type name → ordered field list. Frozen to prevent tampering. */
 export const CLONE_COVERAGE: Readonly<Record<string, readonly string[]>> = (() => {
-  const entries = Object.entries(F).map(([k, v]) => [k, Object.freeze([...(v as readonly string[])])] as const);
+  const entries = Object.entries(F).map(
+    ([k, v]) => [k, Object.freeze([...(v as readonly string[])])] as const,
+  );
   return Object.freeze(Object.fromEntries(entries)) as Readonly<Record<string, readonly string[]>>;
 })();

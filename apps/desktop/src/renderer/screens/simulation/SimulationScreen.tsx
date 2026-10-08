@@ -16,9 +16,18 @@ import { useSimulationScreen } from "./hooks/useSimulationScreen.js";
 export interface SimulationScreenProps {
   readonly sessionId: string;
   readonly onPrimaryActionChange: SetPrimaryAction;
+  /** The shell's current revision; when it moves (e.g. the header advanced the month) this screen re-reads. */
+  readonly campaignRevision?: number;
+  /** Called after this screen commits a month so the shell (header) can refresh. */
+  readonly onMonthCommitted?: () => void;
 }
 
-export function SimulationScreen({ sessionId, onPrimaryActionChange }: SimulationScreenProps) {
+export function SimulationScreen({
+  sessionId,
+  onPrimaryActionChange,
+  campaignRevision,
+  onMonthCommitted,
+}: SimulationScreenProps) {
   const {
     loading,
     error,
@@ -38,7 +47,7 @@ export function SimulationScreen({ sessionId, onPrimaryActionChange }: Simulatio
     handleGenerateBattle,
     handleAutoResolve,
     handleTacticalResolve,
-  } = useSimulationScreen(sessionId);
+  } = useSimulationScreen(sessionId, { campaignRevision, onMonthCommitted });
 
   useEffect(() => {
     onPrimaryActionChange({

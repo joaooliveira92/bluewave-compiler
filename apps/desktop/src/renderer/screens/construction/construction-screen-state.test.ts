@@ -13,6 +13,7 @@ import type { PreparedCommand, RequestKind } from "../../lib/command-screen-work
 import type { ConstructionScreenState } from "./construction-screen-state.js";
 import {
   acceptConstructionCommand,
+  activeConstructionProjects,
   initialConstructionScreenState,
   projectConstructionScreen,
 } from "./construction-screen-state.js";
@@ -216,5 +217,20 @@ describe("construction screen state", () => {
 
     expect(first.context.transportRequestId).not.toBe(second.context.transportRequestId);
     expect(first.context.transportRequestId.startsWith("submit-")).toBe(true);
+  });
+});
+
+describe("activeConstructionProjects", () => {
+  it("counts everything that is not COMPLETED, so Overview and Pre-turn review agree", () => {
+    const projects = [
+      { status: "IN_PROGRESS" },
+      { status: "QUEUED" },
+      { status: "COMPLETED" },
+    ] as const;
+    expect(activeConstructionProjects(projects)).toEqual([
+      { status: "IN_PROGRESS" },
+      { status: "QUEUED" },
+    ]);
+    expect(activeConstructionProjects([])).toEqual([]);
   });
 });

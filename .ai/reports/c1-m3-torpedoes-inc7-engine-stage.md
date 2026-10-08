@@ -14,11 +14,11 @@ immutable records + §28 canonical ordering; two-process determinism child. `Bat
 
 ## Requirements evidence
 
-| Requirement | Implementation | Proving tests |
-| ----------- | -------------- | ------------- |
-| AC-22 engine stage | `torpedoes/resolve.ts` (`resolveTorpedoes`), `simulation/engine.ts` (optional `torpedoes` context, stage after damage, strict no-op, threading) | `advance.test.ts`, `integration-boundary.test.ts` |
-| AC-20 records/ordering | `torpedoes/records.ts` (§27 record + hash), `torpedoes/ordering.ts` (§28 locale-free comparators) | `records.test.ts`, `ordering.test.ts` |
-| AC-23 two-process determinism | `simulation/run-torpedo-child.ts` (fixed seed, single canonical JSON line) | `determinism.test.ts` (two node spawns, byte-compared) |
+| Requirement                   | Implementation                                                                                                                                  | Proving tests                                          |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| AC-22 engine stage            | `torpedoes/resolve.ts` (`resolveTorpedoes`), `simulation/engine.ts` (optional `torpedoes` context, stage after damage, strict no-op, threading) | `advance.test.ts`, `integration-boundary.test.ts`      |
+| AC-20 records/ordering        | `torpedoes/records.ts` (§27 record + hash), `torpedoes/ordering.ts` (§28 locale-free comparators)                                               | `records.test.ts`, `ordering.test.ts`                  |
+| AC-23 two-process determinism | `simulation/run-torpedo-child.ts` (fixed seed, single canonical JSON line)                                                                      | `determinism.test.ts` (two node spawns, byte-compared) |
 
 ## Commands and observed results
 

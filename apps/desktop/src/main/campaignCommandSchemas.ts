@@ -123,3 +123,123 @@ export const DiplomacyCommandBodySchema = z.discriminatedUnion("type", [
 export const SubmitDiplomacyCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
   command: DiplomacyCommandBodySchema,
 });
+
+/**
+ * Wire shape of one of the 5 engine division commands. Shape and size bounds only
+ * (`z.string().min(1)`);
+ * legality — ship-type compatibility, size by type, same location, ownership — is
+ * the ENGINE's own `CommandLifecycle.validate()` at issue time, never a desktop mirror.
+ */
+export const DivisionCommandBodySchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("CreateDivision"),
+    flagshipShipId: z.string().min(1),
+    role: z.string().min(1),
+    formation: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("AddShipToDivision"),
+    divisionId: z.string().min(1),
+    shipId: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("RemoveShipFromDivision"),
+    divisionId: z.string().min(1),
+    shipId: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("ChangeDivisionFlagship"),
+    divisionId: z.string().min(1),
+    newFlagshipShipId: z.string().min(1),
+  }),
+  z.object({ type: z.literal("DissolveDivision"), divisionId: z.string().min(1) }),
+]);
+
+/** Wire shapes for the fleet movement commands; legality is the engine's (`MoveFleet`). */
+export const SubmitMovementCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  divisionId: z.string().min(1),
+  fromAreaId: z.string(),
+  toAreaId: z.string().min(1),
+});
+export const ReplaceMovementCommandPayloadSchema = SubmitMovementCommandPayloadSchema.extend({
+  commandId: z.string().min(1),
+});
+export const CancelMovementCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  commandId: z.string().min(1),
+});
+
+/** Wire shape for `submitDesignCommand`; the draft is validated by the engine (`SubmitDesign`) and the ship-design compiler. */
+export const SubmitDesignCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  className: z.string().trim().min(1).max(60),
+  draft: z.custom<Record<string, unknown>>(
+    (v) => typeof v === "object" && v !== null,
+    "draft must be an object",
+  ),
+});
+
+/** Wire shape for `submitBudgetAllocation`; bounds are the engine's own (validated at issue). */
+export const SubmitBudgetAllocationPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  appropriationRateBp: z.number().int(),
+  researchBudget: z.number().int(),
+});
+
+/** Wire shape for `submitDivisionCommand`. */
+export const SubmitDivisionCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  command: DivisionCommandBodySchema,
+});
+
+/**
+ * Renderer-owned UI-state sidecar (`ui-state.json`, spec §7 Dismissal + §8
+ * Persistence). Strict boundary schemas per ENGINEERING-CONTRACT "Content":
+ * the `status` is a closed enum, `lastCompletedStep` is a bounded integer in
+ * the 7-step (0-indexed) range 0..6, and the fingerprints array is
+ * source-size capped (64 entries, each ≤ 256 chars). The wire shape validates
+ * at this IPC boundary; the file read tolerantly falls back to empty defaults
+ * on any mismatch. Never authoritative.
+ */
+export const FirstMonthInspectionSchema = z.object({
+  status: z.enum(["not_started", "in_progress", "completed", "dismissed"]),
+  lastCompletedStep: z.number().int().nonnegative().max(6),
+});
+
+/** The full on-disk `ui-state.json` shape (also the read command's result). */
+export const UiStateSchema = z.object({
+  turnNumber: z.number().int().nonnegative(),
+  dismissedFingerprints: z.array(z.string().min(1).max(256)).max(64),
+  firstMonthInspection: FirstMonthInspectionSchema.optional(),
+});
+
+/**
+ * Write-payload wire shape for `writeUiState`. `turnNumber` is intentionally
+ * ABSENT: the handler stamps it from the session's current
+ * `state.snapshot.turnNumber`, so the sidecar can never be written against a
+ * stale turn (expiry stays honest). `firstMonthInspection` is optional and —
+ * when absent — carried forward from the stored sidecar (merge semantics,
+ * see `WriteUiStatePayload`); an explicit reset sends
+ * `{ status: "not_started", lastCompletedStep: 0 }`. Deeper checks (session
+ * exists, save dir writable) live in `uiState.ts`, matching the
+ * wire-shape/semantics split.
+ */
+export const WriteUiStatePayloadSchema = z.object({
+  sessionId: z.string().min(1),
+  dismissedFingerprints: z.array(z.string().min(1).max(256)).max(64),
+  firstMonthInspection: FirstMonthInspectionSchema.optional(),
+});
+
+/** Tactical Sandbox payloads (debug-only; ADR-0057). */
+export const GenerateBattlePayloadSchema = z.object({
+  sessionId: z.string().min(1),
+  warId: z.string().min(1),
+  areaId: z.string().min(1).optional(),
+  strengthScale: z.number().int().min(1).max(1000).optional(),
+});
+
+export const BattleIdPayloadSchema = z.object({
+  sessionId: z.string().min(1),
+  battleId: z.string().min(1),
+});
+
+export const ResolveTacticalBattlePayloadSchema = BattleIdPayloadSchema.extend({
+  turnCount: z.number().int().positive(),
+  scriptedOrders: z.array(z.unknown()),
+});

@@ -1,5 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { FileText, Settings2 } from "lucide-react";
+import { Button } from "../../components/ui/button.js";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs.js";
 import { PreferencesLoadingState } from "./components/PreferencesLoadingState.js";
@@ -26,6 +27,7 @@ export function CampaignPreferencesScreen({
   const { projection, loadError, loadProjection } = useCampaignProjection(sessionId);
   const { displayPrefs, togglePref } = useDisplayPreferences();
   const { copied, copy } = useClipboardCopy();
+  const [restartMessage, setRestartMessage] = useState<string | null>(null);
 
   const handleCopyId = useCallback(() => {
     void copy(sessionId);
@@ -35,6 +37,27 @@ export function CampaignPreferencesScreen({
     if (projection === null) return;
     downloadCampaignConfig(sessionId, projection);
   }, [projection, sessionId]);
+
+  const handleRestartInspection = useCallback(async () => {
+    const bridge = window.bluewave;
+    if (bridge === undefined) {
+      setRestartMessage("Bridge unavailable");
+      return;
+    }
+    const read = await bridge.campaign.execute("readUiState", sessionId);
+    const dismissed =
+      read.outcome === "success" ? [...read.value.uiState.dismissedFingerprints] : [];
+    const result = await bridge.campaign.execute("writeUiState", {
+      sessionId,
+      dismissedFingerprints: dismissed,
+      firstMonthInspection: { status: "not_started", lastCompletedStep: 0 },
+    });
+    if (result.outcome === "success") {
+      setRestartMessage("Guided inspection will reappear on next navigation.");
+    } else {
+      setRestartMessage(`Restart failed: ${result.reason}`);
+    }
+  }, [sessionId]);
 
   if (loadError !== null) {
     return <PreferencesErrorState message={loadError} onRetry={loadProjection} />;
@@ -84,6 +107,23 @@ export function CampaignPreferencesScreen({
 
         <TabsContent value="display">
           <DisplayPreferencesPanel displayPrefs={displayPrefs} onTogglePref={togglePref} />
+          <div className="mt-6 rounded-lg border p-4 space-y-2">
+            <h3 className="text-sm font-medium">Guided Inspection</h3>
+            <p className="text-xs text-muted-foreground">
+              Restart the first-month guided tour for this campaign.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="restart-guided-inspection"
+              onClick={() => void handleRestartInspection()}
+            >
+              Restart guided inspection
+            </Button>
+            {restartMessage !== null && (
+              <p className="text-xs text-muted-foreground">{restartMessage}</p>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="danger">

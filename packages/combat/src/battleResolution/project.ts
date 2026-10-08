@@ -15,11 +15,12 @@
 //  - an asset on the manifest missing from both nations fails closed with
 //    BATTLE_AUTO_RESOLUTION_FAILED and a stable diagnostic (no partial result);
 //  - movement spawn uses the canonical default area bbox; initial headings
-//    from spawn.ts (attackers east, defenders west).
+//    from spawn.ts (attackers heading 0 = east, defenders 180 = west).
 import { sha256Hex } from "@bluewave/deterministic";
 import { canonicalSerialize } from "@bluewave/deterministic";
 import { BluewaveError } from "@bluewave/contracts";
-import type { CompiledDesignVersion, PermanentDivision, Ship } from "@bluewave/campaign";
+import type { CompiledDesignVersion, Officer, PermanentDivision, Ship } from "@bluewave/campaign";
+import { officerAccuracyBp, VACANT_COMMANDER_ACCURACY_BP } from "@bluewave/campaign";
 import {
   promoteTacticalUnit,
   TACTICAL_UNIT_PROMOTION_INVALID,
@@ -50,12 +51,16 @@ import {
   designedSpeedBpKnots,
 } from "./constants.js";
 import { BATTLE_AUTO_RESOLUTION_FAILED } from "./reasonCodes.js";
+import { projectTorpedoes } from "./torpedoProjection.js";
+import type { TorpedoContext } from "../torpedoes/index.js";
 
 export interface AutoResolverNation {
   nationId: string;
   ships: Ship[];
   designs: Map<string, CompiledDesignVersion>;
   divisions: PermanentDivision[];
+  /** The nation's officer corps; a division commander's skill adds to its ships' accuracy (ADR-0065). */
+  officers?: Officer[];
 }
 
 export interface ProjectBattleInput {
@@ -79,6 +84,25 @@ export interface ProjectBattleOutput {
   units: TacticalShipUnit[];
   /** Resolved designs for the promoted units (promotion-verified). */
   designs: Record<string, CompiledDesignVersion>;
+  /** P-1: torpedo launchers + targets; absent when no unit carries torpedo armament. */
+  torpedoes?: TorpedoContext;
+}
+
+/**
+ * Accuracy multiplier (bp) from the commander of the division a ship belongs to
+ * (ADR-0065). Ships outside any division, and every nation without divisions, stay neutral;
+ * a division with no commander (or an unknown one) takes the DESIGN-26 vacancy penalty.
+ */
+function commanderAccuracyBp(
+  unit: TacticalShipUnit,
+  attacker: AutoResolverNation,
+  defender: AutoResolverNation,
+): number {
+  const nation = unit.sideId === "ATTACKER" ? attacker : defender;
+  const division = nation.divisions.find((d) => d.shipOrder.includes(unit.assetId));
+  if (!division) return 10_000;
+  const officer = (nation.officers ?? []).find((o) => o.id === division.commanderOfficerId);
+  return officer ? officerAccuracyBp(Number(officer.skill)) : VACANT_COMMANDER_ACCURACY_BP;
 }
 
 export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
@@ -149,6 +173,10 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
     })),
   );
 
+  // P-1 ticket 08 (supersedes the ADR-0046 override): spawn.ts now follows movement's
+  // `directionBp` convention (0 = +X east, 180 = -X west), so ATTACKER 0 / DEFENDER 180
+  // closing headings come straight from `computeInitialMovementStates`.
+
   // ---- divisions -----------------------------------------------------------
   const divisions: TacticalDivision[] = [];
   const projectDivision = (
@@ -211,7 +239,10 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
       salvoCount: mainGunsCount,
       preferredType: "ARMOR_PIERCING",
       rateFactors: neutralRateFactors(),
-      accuracyFactors: neutralAccuracyFactors(GUNNERY_ACCURACY_BASE_BP),
+      accuracyFactors: {
+        ...neutralAccuracyFactors(GUNNERY_ACCURACY_BASE_BP),
+        officer: commanderAccuracyBp(u, attacker, defender),
+      },
       state: withGunneryStateHash({
         batteryId,
         ownerShipId: u.assetId,
@@ -248,6 +279,7 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
       state: initialDamageState(u.assetId),
       designFlotationReserve: FLOAT_UNIT,
       designStabilityScore: STABILITY_INITIAL_BP,
+      designDisplacementKg: Number(u.displacementKg),
       beltArmorUm: design.normalizedArmorUm as number,
       mainGunsCaliberUm: design.mainGunsCaliber as number,
       shipType: u.shipType,
@@ -265,6 +297,13 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
     };
   }
 
+  const torpedoes = projectTorpedoes({
+    battleId: manifest.battleId,
+    units,
+    designs: unitDesigns,
+    damageTargets: targets,
+  });
+
   return {
     state,
     batteries,
@@ -272,6 +311,7 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
     orders,
     units,
     designs: unitDesigns,
+    ...(torpedoes ? { torpedoes } : {}),
   };
 }
 

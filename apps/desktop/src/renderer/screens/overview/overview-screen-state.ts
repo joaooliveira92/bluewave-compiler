@@ -42,6 +42,25 @@ export function totalPortCapacity(projection: PlayerProjection): number {
   return projection.ports.reduce((sum, port) => sum + port.capacity, 0);
 }
 
+export function largestPortCapacity(projection: PlayerProjection): number {
+  return projection.ports.reduce((max, port) => Math.max(max, port.capacity), 0);
+}
+
+export function rederivedMaintenanceCost(projection: PlayerProjection): number {
+  // Re-derived fresh from ships — never the raw maintenanceCost (0 pre-first-commit).
+  // The projection's economy.maintenanceCost is already the re-derived value
+  // (fleetMaintenance via shipMaintenanceCost); this helper documents that the
+  // Overview never reads a raw nation.maintenanceCost.
+  return projection.economy.maintenanceCost;
+}
+
+/** Names of every ship in service, in fleet/division order. Display names only — never design ids. */
+export function shipNames(projection: PlayerProjection): readonly string[] {
+  return projection.fleet.flatMap((fleet) =>
+    fleet.divisions.flatMap((division) => division.ships.map((ship) => ship.name)),
+  );
+}
+
 export function monthLabel(month: PlayerProjection["month"]): string {
   const MONTH_NAMES = [
     "January",

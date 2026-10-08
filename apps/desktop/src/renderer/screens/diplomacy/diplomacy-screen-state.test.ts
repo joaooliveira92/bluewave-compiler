@@ -2,7 +2,6 @@ import { describe, expect, it } from "vite-plus/test";
 import type { DiplomacyScreenProjection } from "../../../shared/diplomacy-contract.js";
 import type { DiplomacyScreenState } from "./diplomacy-screen-state.js";
 import {
-  RELATION_LABELS,
   diplomacyBeginAction,
   diplomacyBeginLoading,
   diplomacyBeginPeace,
@@ -10,7 +9,6 @@ import {
   diplomacyCanSubmit,
   diplomacyClearDraft,
   diplomacyDraftToCommand,
-  diplomacyLegalActions,
   diplomacyLoadFailure,
   diplomacyLoadSuccess,
   diplomacySetBlockadeArea,
@@ -115,30 +113,6 @@ describe("diplomacy screen state", () => {
       revision: 3,
       message: "SESSION_NOT_FOUND: no session",
     });
-  });
-
-  it("derives legal actions from the projected relation state (UI affordance only)", () => {
-    // Neutral -> DeclareWar, FormAlliance, FormNonAggressionPact.
-    expect(diplomacyLegalActions(fixtureProjection().relations[0]!)).toEqual([
-      "DeclareWar",
-      "FormAlliance",
-      "FormNonAggressionPact",
-    ]);
-    // Allied -> DeclareWar + BreakAlliance + FormNonAggressionPact (NAP can
-    // form on allies + no NAP present yet).
-    expect(diplomacyLegalActions(fixtureProjection().relations[1]!)).toEqual([
-      "DeclareWar",
-      "BreakAlliance",
-      "FormNonAggressionPact",
-    ]);
-    // at_war -> no DeclareWar; DeclareBlockade offered.
-    expect(diplomacyLegalActions({ relation: "at_war", nap: false })).toEqual(["DeclareBlockade"]);
-    // nap on -> break affordance.
-    expect(diplomacyLegalActions({ relation: "neutral", nap: true })).toEqual([
-      "DeclareWar",
-      "FormAlliance",
-      "BreakNonAggressionPact",
-    ]);
   });
 
   it("walks loaded -> submitting -> submitted with an honest queue notice", () => {
@@ -319,13 +293,5 @@ describe("diplomacy screen state", () => {
     if (cleared.kind !== "loaded") return;
     expect(cleared.draftCommand).toBeNull();
     expect(diplomacyCanSubmit(cleared)).toBe(false);
-  });
-
-  it("exposes relation labels for honest rendering", () => {
-    expect(RELATION_LABELS).toMatchObject({
-      neutral: "Neutral",
-      allied: "Allied",
-      at_war: "At war",
-    });
   });
 });

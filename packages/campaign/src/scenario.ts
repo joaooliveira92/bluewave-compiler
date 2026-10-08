@@ -81,6 +81,129 @@ function isNonEmptyStringArray(v: unknown): boolean {
   );
 }
 
+function hasRequiredScenarioFields(r: Record<string, unknown>, c: DiagnosticCollector): boolean {
+  let ok = true;
+  for (const f of REQUIRED) {
+    if (!(f in r)) {
+      c.addError(
+        "INVALID_SCENARIO_DEFINITION",
+        `Missing field ${f} in scenario ${(r["scenarioId"] as string) ?? "unknown"}`,
+        { stage: "scenario-validation" },
+      );
+      ok = false;
+    }
+  }
+  return ok;
+}
+
+// Validate the scenarioId and record it; undefined means the id is invalid and
+// the remaining checks for this scenario must be skipped.
+function registerScenarioId(
+  r: Record<string, unknown>,
+  seen: Set<string>,
+  c: DiagnosticCollector,
+): string | undefined {
+  const id = r["scenarioId"] as string;
+  if (typeof id !== "string" || !CANONICAL_SCENARIO_IDS.includes(id as ScenarioId)) {
+    c.addError("INVALID_SCENARIO_DEFINITION", `Invalid scenarioId ${String(id)}`, {
+      stage: "scenario-validation",
+    });
+    return undefined;
+  }
+  if (seen.has(id)) {
+    c.addError("INVALID_SCENARIO_DEFINITION", `Duplicate scenarioId ${id}`, {
+      stage: "scenario-validation",
+    });
+  }
+  seen.add(id);
+  return id;
+}
+
+function validateScenarioCalendar(
+  r: Record<string, unknown>,
+  id: string,
+  c: DiagnosticCollector,
+): boolean {
+  let ok = true;
+  const exp = YEAR_OF[id]!;
+  if (r["startYear"] !== exp || r["startMonth"] !== 1) {
+    c.addError(
+      "INVALID_SCENARIO_DEFINITION",
+      `Scenario ${id} must start January ${exp}, got ${String(r["startYear"])}-${String(r["startMonth"])}`,
+      { stage: "scenario-validation" },
+    );
+    ok = false;
+  }
+  if (r["endYear"] !== 1970 || r["endMonth"] !== 12) {
+    c.addError(
+      "INVALID_SCENARIO_DEFINITION",
+      `Scenario ${id} must end December 1970, got ${String(r["endYear"])}-${String(r["endMonth"])}`,
+      { stage: "scenario-validation" },
+    );
+    ok = false;
+  }
+  return ok;
+}
+
+function validateScenarioSupportedFields(
+  r: Record<string, unknown>,
+  id: string,
+  c: DiagnosticCollector,
+): boolean {
+  let ok = true;
+  // supported* allowlist validation
+  const checks: Array<[string, Set<string>]> = [
+    ["supportedFleetSizeSettingIds", ALLOWED_FLEET],
+    ["supportedResearchSpeedSettingIds", ALLOWED_RESEARCH],
+    ["supportedTechnologyVariationSettingIds", ALLOWED_VARIATION],
+  ];
+  for (const [field, allowed] of checks) {
+    const v = r[field];
+    if (!isNonEmptyStringArray(v)) {
+      c.addError("INVALID_SCENARIO_DEFINITION", `${id}: ${field} must be non-empty string array`, {
+        stage: "scenario-validation",
+      });
+      ok = false;
+    } else {
+      for (const e of v as string[])
+        if (!allowed.has(e)) {
+          c.addError("INVALID_SCENARIO_DEFINITION", `${id}: ${field} contains invalid value ${e}`, {
+            stage: "scenario-validation",
+          });
+          ok = false;
+        }
+    }
+  }
+  // other supported* at least non-empty string array
+  for (const field of [
+    "supportedHistoricalBudgetOptionIds",
+    "supportedLegacyFleetModeIds",
+    "supportedTacticalRealismModeIds",
+    "supportedDifficultyProfileIds",
+  ]) {
+    if (!isNonEmptyStringArray(r[field])) {
+      c.addError("INVALID_SCENARIO_DEFINITION", `${id}: ${field} must be non-empty string array`, {
+        stage: "scenario-validation",
+      });
+      ok = false;
+    }
+  }
+  return ok;
+}
+
+function validateScenarioRecord(
+  r: Record<string, unknown>,
+  seen: Set<string>,
+  c: DiagnosticCollector,
+): boolean {
+  let ok = hasRequiredScenarioFields(r, c);
+  const id = registerScenarioId(r, seen, c);
+  if (id === undefined) return false;
+  if (!validateScenarioCalendar(r, id, c)) ok = false;
+  if (!validateScenarioSupportedFields(r, id, c)) ok = false;
+  return ok;
+}
+
 export function validateScenarios(
   input: unknown,
   c: DiagnosticCollector,
@@ -109,92 +232,7 @@ export function validateScenarios(
       ok = false;
       continue;
     }
-    const r = s as Record<string, unknown>;
-    for (const f of REQUIRED) {
-      if (!(f in r)) {
-        c.addError(
-          "INVALID_SCENARIO_DEFINITION",
-          `Missing field ${f} in scenario ${(r["scenarioId"] as string) ?? "unknown"}`,
-          { stage: "scenario-validation" },
-        );
-        ok = false;
-      }
-    }
-    const id = r["scenarioId"] as string;
-    if (typeof id !== "string" || !CANONICAL_SCENARIO_IDS.includes(id as ScenarioId)) {
-      c.addError("INVALID_SCENARIO_DEFINITION", `Invalid scenarioId ${String(id)}`, {
-        stage: "scenario-validation",
-      });
-      ok = false;
-      continue;
-    }
-    if (seen.has(id)) {
-      c.addError("INVALID_SCENARIO_DEFINITION", `Duplicate scenarioId ${id}`, {
-        stage: "scenario-validation",
-      });
-      ok = false;
-    }
-    seen.add(id);
-    const exp = YEAR_OF[id]!;
-    if (r["startYear"] !== exp || r["startMonth"] !== 1) {
-      c.addError(
-        "INVALID_SCENARIO_DEFINITION",
-        `Scenario ${id} must start January ${exp}, got ${String(r["startYear"])}-${String(r["startMonth"])}`,
-        { stage: "scenario-validation" },
-      );
-      ok = false;
-    }
-    if (r["endYear"] !== 1970 || r["endMonth"] !== 12) {
-      c.addError(
-        "INVALID_SCENARIO_DEFINITION",
-        `Scenario ${id} must end December 1970, got ${String(r["endYear"])}-${String(r["endMonth"])}`,
-        { stage: "scenario-validation" },
-      );
-      ok = false;
-    }
-    // supported* allowlist validation
-    const checks: Array<[string, Set<string>]> = [
-      ["supportedFleetSizeSettingIds", ALLOWED_FLEET],
-      ["supportedResearchSpeedSettingIds", ALLOWED_RESEARCH],
-      ["supportedTechnologyVariationSettingIds", ALLOWED_VARIATION],
-    ];
-    for (const [field, allowed] of checks) {
-      const v = r[field];
-      if (!isNonEmptyStringArray(v)) {
-        c.addError(
-          "INVALID_SCENARIO_DEFINITION",
-          `${id}: ${field} must be non-empty string array`,
-          { stage: "scenario-validation" },
-        );
-        ok = false;
-      } else {
-        for (const e of v as string[])
-          if (!allowed.has(e)) {
-            c.addError(
-              "INVALID_SCENARIO_DEFINITION",
-              `${id}: ${field} contains invalid value ${e}`,
-              { stage: "scenario-validation" },
-            );
-            ok = false;
-          }
-      }
-    }
-    // other supported* at least non-empty string array
-    for (const field of [
-      "supportedHistoricalBudgetOptionIds",
-      "supportedLegacyFleetModeIds",
-      "supportedTacticalRealismModeIds",
-      "supportedDifficultyProfileIds",
-    ]) {
-      if (!isNonEmptyStringArray(r[field])) {
-        c.addError(
-          "INVALID_SCENARIO_DEFINITION",
-          `${id}: ${field} must be non-empty string array`,
-          { stage: "scenario-validation" },
-        );
-        ok = false;
-      }
-    }
+    if (!validateScenarioRecord(s as Record<string, unknown>, seen, c)) ok = false;
   }
   for (const id of CANONICAL_SCENARIO_IDS) {
     if (!seen.has(id)) {

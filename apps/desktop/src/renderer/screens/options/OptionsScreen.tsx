@@ -1,45 +1,12 @@
-import {
-  Ban,
-  Citrus,
-  DoorOpen,
-  Flame,
-  Gem,
-  Orbit,
-  Palette,
-  Save,
-  Settings,
-  Sparkles,
-  Waves,
-} from "lucide-react";
+import { Ban, Citrus, Flame, Gem, Orbit, Palette, Settings, Sparkles, Waves } from "lucide-react";
 import { BloomMenu } from "../../components/motion/bloom-menu.js";
 import { PageHeader } from "../../components/shared/PageHeader.js";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "../../components/ui/alert-dialog.js";
 import { Button } from "../../components/ui/button.js";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card.js";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card.js";
 import type { BackgroundStyle } from "../../shell/BackgroundContext.js";
 import { useBackground } from "../../shell/BackgroundContext.js";
-
-export interface OptionsScreenProps {
-  readonly saving: boolean;
-  readonly onSave: () => void;
-  readonly onCloseCampaign: () => void;
-}
+import { DENSITY_OPTIONS, useDensity } from "../../shell/DensityContext.js";
+import { GlassCard } from "@/components/ui/glass-card.jsx";
 
 const BACKGROUND_OPTIONS: {
   label: string;
@@ -55,8 +22,9 @@ const BACKGROUND_OPTIONS: {
   { label: "None", value: "none", icon: Ban },
 ];
 
-export function OptionsScreen({ saving, onSave, onCloseCampaign }: OptionsScreenProps) {
+export function OptionsScreen() {
   const { background, setBackground } = useBackground();
+  const { density, setDensity } = useDensity();
   const activeOption =
     BACKGROUND_OPTIONS.find((option) => option.value === background) ?? BACKGROUND_OPTIONS[0];
   const activeLabel = activeOption?.label ?? "Background";
@@ -64,9 +32,13 @@ export function OptionsScreen({ saving, onSave, onCloseCampaign }: OptionsScreen
 
   return (
     <div className="space-y-6">
-      <PageHeader icon={Settings} title="Options" description="Campaign-level actions." />
+      <PageHeader
+        icon={Settings}
+        title="Options"
+        description="Appearance and display. Save, copy and close live in the header Campaign menu."
+      />
 
-      <Card>
+      <GlassCard>
         <CardHeader>
           <CardTitle className="text-sm font-medium">Background</CardTitle>
           <CardDescription>Choose the animated backdrop behind the app.</CardDescription>
@@ -86,51 +58,32 @@ export function OptionsScreen({ saving, onSave, onCloseCampaign }: OptionsScreen
             }}
           />
         </CardContent>
-      </Card>
+      </GlassCard>
 
-      <Card>
+      <GlassCard>
         <CardHeader>
-          <CardTitle className="text-sm font-medium">Save Campaign</CardTitle>
-          <CardDescription>Write the current campaign state to its package file.</CardDescription>
+          <CardTitle className="text-sm font-medium">Display density</CardTitle>
+          <CardDescription>
+            How much fits on screen. Compact tightens spacing across every screen.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="default" onClick={onSave} disabled={saving}>
-            <Save className="h-3.5 w-3.5" />
-            {saving ? "Saving…" : "Save"}
-          </Button>
+          <div role="group" aria-label="Display density" className="flex flex-wrap gap-2">
+            {DENSITY_OPTIONS.map((option) => (
+              <Button
+                key={option.value}
+                type="button"
+                variant={option.value === density ? "default" : "outline"}
+                aria-pressed={option.value === density}
+                title={option.description}
+                onClick={() => setDensity(option.value)}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
         </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Close Campaign</CardTitle>
-          <CardDescription>Return to the campaign file screen.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AlertDialog>
-            <AlertDialogTrigger
-              render={
-                <Button variant="outline">
-                  <DoorOpen className="h-3.5 w-3.5" />
-                  Close Campaign
-                </Button>
-              }
-            />
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Close this campaign?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  You will be returned to the campaign file screen. Unsaved progress may be lost.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={onCloseCampaign}>Close Campaign</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </CardContent>
-      </Card>
+      </GlassCard>
     </div>
   );
 }

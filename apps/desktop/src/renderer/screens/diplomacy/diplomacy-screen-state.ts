@@ -119,25 +119,6 @@ export function diplomacyLoadFailure(
   return { kind: "load-failed", revision: state.revision, message };
 }
 
-/** Legal-action affordance for one relations row — derived from the projected
- * relation/nap state ONLY (`declareWar` enabled unless `at_war`, alliance/NAP
- * form/break on the matching relation). This drives which chips render; the
- * engine's own `CommandLifecycle.validate()` remains the authority at issue
- * time (spec D1) — nothing here re-implements it. */
-export function diplomacyLegalActions(row: {
-  readonly relation: DiplomacyScreenProjection["relations"][number]["relation"];
-  readonly nap: boolean;
-}): DiplomacyActionKind[] {
-  const actions: DiplomacyActionKind[] = [];
-  if (row.relation !== "at_war") actions.push("DeclareWar");
-  if (row.relation === "neutral") actions.push("FormAlliance");
-  if (row.relation === "allied") actions.push("BreakAlliance");
-  if (row.relation === "at_war") actions.push("DeclareBlockade");
-  if (row.nap) actions.push("BreakNonAggressionPact");
-  else if (row.relation !== "at_war") actions.push("FormNonAggressionPact");
-  return actions;
-}
-
 /** Begin drafting a pair action on a relations row. Only reachable from a
  * data-bearing phase; replaces any prior draft. */
 export function diplomacyBeginAction(
@@ -309,11 +290,3 @@ export function diplomacyCanSubmit(state: DiplomacyScreenState): boolean {
     diplomacyDraftToCommand(state.draftCommand) !== null
   );
 }
-
-/** Human label for a relation kind. */
-export const RELATION_LABELS: Readonly<Record<string, string>> = {
-  neutral: "Neutral",
-  allied: "Allied",
-  at_war: "At war",
-  trade_agreement: "Trade agreement",
-};

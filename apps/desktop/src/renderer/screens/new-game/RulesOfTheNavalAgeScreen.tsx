@@ -2,6 +2,7 @@ import { Anchor } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { NewGameOptions } from "../../../shared/new-game-contract.js";
 import { Button } from "../../components/ui/button.js";
+import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import type { AdmiralPresetValues } from "./admiral-preset.js";
 import { EraScaleSection } from "./components/EraScaleSection.js";
 import { ErrorState } from "./components/ErrorState.js";
@@ -21,19 +22,25 @@ import {
   selectedScenario,
   updatePreference,
 } from "./new-game-preferences-screen-state.js";
-import { applyPreset, detectActivePreset, type PresetId } from "./rules-of-the-naval-age-presets.js";
+import {
+  applyPreset,
+  detectActivePreset,
+  type PresetId,
+} from "./rules-of-the-naval-age-presets.js";
 import { defaultCampaignSeed } from "./utils/campaign-seed.js";
 
 export interface RulesOfTheNavalAgeScreenProps {
   readonly recommendedPreset: AdmiralPresetValues | null;
   readonly onCancel: () => void;
   readonly onNext: (preferences: DraftPreferences, options: NewGameOptions) => void;
+  readonly onPrimaryActionChange: SetPrimaryAction;
 }
 
 export function RulesOfTheNavalAgeScreen({
   recommendedPreset,
   onCancel,
   onNext,
+  onPrimaryActionChange,
 }: RulesOfTheNavalAgeScreenProps) {
   const bridge = window.bluewave;
   const [state, setState] = useState<NewGamePreferencesScreenState>(
@@ -97,6 +104,15 @@ export function RulesOfTheNavalAgeScreen({
     if (options !== null && ready) onNext(preferences, options);
   }, [options, ready, preferences, onNext]);
 
+  useEffect(() => {
+    onPrimaryActionChange({
+      label: "Next: Choose Archetype",
+      disabled: !ready,
+      onTrigger: handleNext,
+    });
+    return () => onPrimaryActionChange(null);
+  }, [ready, handleNext, onPrimaryActionChange]);
+
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
       <ScreenHeader
@@ -138,9 +154,6 @@ export function RulesOfTheNavalAgeScreen({
       <div className="flex justify-between">
         <Button type="button" variant="outline" onClick={onCancel}>
           Back
-        </Button>
-        <Button type="button" onClick={handleNext} disabled={!ready}>
-          Next: Choose Archetype
         </Button>
       </div>
     </div>

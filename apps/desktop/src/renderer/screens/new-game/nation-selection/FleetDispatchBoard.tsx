@@ -104,7 +104,7 @@ export function FleetDispatchBoard({
 
           <h2
             id={`${listboxId}-heading`}
-            className="mt-1 font-mono text-lg font-bold uppercase tracking-[0.16em] text-accent sm:text-lg"
+            className="mt-1 font-mono text-lg font-bold uppercase tracking-[0.16em] text-foreground sm:text-lg"
           >
             Fleet Dispatch
           </h2>

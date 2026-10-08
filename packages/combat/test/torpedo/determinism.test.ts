@@ -7,6 +7,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { execFileSync } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { FLOAT_UNIT } from "../../src/battleResolution/constants.js";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const childScript = resolve(thisDir, "..", "..", "dist", "simulation", "run-torpedo-child.js");
@@ -57,7 +58,7 @@ describe("AC-23 cross-process torpedo determinism (two child processes)", () => 
     // the fixed seed functioned the warheads: structure/flotation degraded and
     // progressive-flooding sources were created through the INC-6 seam.
     expect(damaged!.structuralIntegrity).toBeLessThan(100_000);
-    expect(damaged!.flotationReserve).toBeLessThan(50_000);
+    expect(damaged!.flotationReserve).toBeLessThan(FLOAT_UNIT);
     expect(damaged!.floodingRecords).toBeGreaterThan(0);
   });
 });

@@ -77,6 +77,48 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     expect(a.damageReport).toEqual(b.damageReport);
   });
 
+  it("AC-6 pinned unarmed baseline: resolveBattleAuto(makeAutoInput()) stays byte-identical (P-1 review F5)", () => {
+    // The fixture carries main batteries but NO torpedo-armament ships, so the
+    // wired per-ship damage-control stage never activates — this is the pre-P-1
+    // "unarmed" resolution path. Pinning these hashes (captured 2026-10-06
+    // before ANY ticket-07 repair landed) proves the DC rollout did not perturb
+    // the unarmed world: the unarmed hash freeze (amended AC-6, ADR-0049) holds through the kg->bp severity
+    // fix, the fail-closed engine guard, and the reason-code registration.
+    // Re-pinned for ticket 06 / ADR-0048: range- and gun-count-sensitive gunnery
+    // moved the fired minutes' hashes 2026-10-06 (minute 0 is byte-identical —
+    // no battery has completed a reload at minute 0). Old -> new: RESULT
+    // 88d409ac... -> 74d2dfe7...; minute 1 cab4b696... -> cfe97211...; last
+    // minute b0cb413a... -> 97c94150...; battle still ends no_viable_combatants
+    // at minute 18.
+    // Re-pinned for ticket 10 / ADR-0050 (shell-created fire/flooding sources
+    // persisted into ShipDamageState; step 8.6 progresses them): RESULT
+    // 74d2dfe7... -> e017125e...; minutes 0-2 byte-identical (minute 1 is still
+    // cfe97211...), minutes 3-17 changed; the battle now ends no_viable_combatants
+    // at minute 14 (was 18) because persisted fires/flooding sink ships sooner;
+    // last minute 97c94150... -> 0493ad21....
+    // Re-pinned for ADR-0053 (P-1 lethality tuning: FLOAT_UNIT 50_000 -> 400_000,
+    // magazine-weighted hit zones): RESULT e017125e... -> bee00786...; minute 0
+    // byte-identical, minute 1 cfe97211... -> 2c598e47..., later minutes changed; the battle now ends no_viable_combatants
+    // at minute 54 (was 14); last minute 0493ad21... -> aaca0a19.... A
+    // forced-old-constant run (FLOAT_UNIT 50_000, equal zone weights) reproduces
+    // e017125e... exactly, so the move is due to the tuning alone.
+    const result = resolveBattleAuto(makeAutoInput());
+    expect(result.battleEndReason).toBe("no_viable_combatants");
+    expect(result.elapsedMinutes).toBe(54);
+    expect(result.resultHash).toBe(
+      "bee00786083a802b2540925c12c2304fd3fcb29de61ae152727568924b8f4baf",
+    );
+    expect(result.minuteHashes[0]).toBe(
+      "704d9118704bb7ff99215a06c9eabcbda043c21f897e87accd311494f0c8f218",
+    );
+    expect(result.minuteHashes[1]).toBe(
+      "2c598e47aaf75652fe048e2c27ad21bd39244937633566b98bdb5e54b874d7e4",
+    );
+    expect(result.minuteHashes[result.minuteHashes.length - 1]).toBe(
+      "aaca0a19665be2f339301869a9c36cd707ccfc1968f2c77d156ae181d8a72c83",
+    );
+  });
+
   it("missing manifest fails closed with AUTO_RESOLUTION_UNAVAILABLE", () => {
     const input = makeAutoInput();
     let caught: unknown;

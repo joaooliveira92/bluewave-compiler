@@ -143,6 +143,34 @@ export function intersectsCollisionGeometry(
   return dxUm * dxUm + dyUm * dyUm <= radiusUm * radiusUm;
 }
 
+// §14(1) swept form (P-1, ADR-0046): the torpedo intersects the collision
+// geometry at ANY point of the segment it travelled this minute — the minimum
+// distance from the centre to the segment [from, to] is within the radius.
+// Exact integer arithmetic (bigint); a degenerate segment reduces to the point test.
+export function sweptPathIntersectsCollisionGeometry(
+  from: Position,
+  to: Position,
+  centre: Position,
+  collisionRadiusM: number,
+): boolean {
+  if (!isPosition(from)) invariant("sweptFrom", from, "swept start must be an integer µm pair");
+  if (intersectsCollisionGeometry(to, centre, collisionRadiusM)) return true;
+  const ax = BigInt(from[0]);
+  const ay = BigInt(from[1]);
+  const dx = BigInt(to[0]) - ax;
+  const dy = BigInt(to[1]) - ay;
+  const px = BigInt(centre[0]) - ax;
+  const py = BigInt(centre[1]) - ay;
+  const len2 = dx * dx + dy * dy;
+  const radiusUm = BigInt(collisionRadiusM) * 1_000_000n;
+  if (len2 === 0n) return px * px + py * py <= radiusUm * radiusUm;
+  const dot = px * dx + py * dy;
+  if (dot <= 0n) return px * px + py * py <= radiusUm * radiusUm;
+  if (dot >= len2) return false; // beyond `to`, already rejected by the end-point test
+  // squared perpendicular distance = |p|^2 - dot^2/len2  (compare scaled by len2)
+  return (px * px + py * py) * len2 - dot * dot <= radiusUm * radiusUm * len2;
+}
+
 // §14(2): traveled at least the arming distance — floor-metre traveled vs
 // armingDistanceM (mirrors the §13 track.armed accounting exactly).
 export function traveledArmingDistance(track: TorpedoTrack): boolean {
@@ -287,6 +315,9 @@ export function resolveTorpedoHit(o: {
   blocker: TorpedoContactBlocker | null; // explicit non-contact result or none
   impactMinute: number;
   impactSubstep: number;
+  /** P-1 (ADR-0046): the track position at the start of this minute's advance —
+   *  when present, geometry is tested along the swept segment, not only the end point. */
+  sweptFrom?: Position;
 }): TorpedoHitResolution {
   assertAuthoritativeTorpedoTrack(o.track);
   if (o.track.terminalResult !== null)
@@ -327,7 +358,14 @@ export function resolveTorpedoHit(o: {
     const centre = legalContactPosition(o.knownTracks, o.target.contactId);
     geometryIntersects =
       centre !== null &&
-      intersectsCollisionGeometry(o.track.currentPosition, centre, o.target.collisionRadiusM);
+      (o.sweptFrom !== undefined
+        ? sweptPathIntersectsCollisionGeometry(
+            o.sweptFrom,
+            o.track.currentPosition,
+            centre,
+            o.target.collisionRadiusM,
+          )
+        : intersectsCollisionGeometry(o.track.currentPosition, centre, o.target.collisionRadiusM));
   }
   const depthCompatible =
     o.target !== null && depthDraftCompatible(o.track.depthSettingM, o.target.draftM);

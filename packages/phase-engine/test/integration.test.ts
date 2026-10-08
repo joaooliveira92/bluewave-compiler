@@ -551,6 +551,8 @@ describe("Full-slice integration", () => {
       "ai_planning",
       "battle_generation",
       "battle_resolution",
+      "resolve_aircraft_development",
+      "resolve_carrier_operations",
       "resolve_research",
       "weather_generation",
     ]);

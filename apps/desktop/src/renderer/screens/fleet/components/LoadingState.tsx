@@ -6,7 +6,7 @@ export const LoadingState = memo(function LoadingState() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold">Fleet Movement</h2>
+        <h2 className="text-lg font-semibold">Fleet</h2>
       </div>
       <Card>
         <CardContent className="flex items-center gap-3 py-6">

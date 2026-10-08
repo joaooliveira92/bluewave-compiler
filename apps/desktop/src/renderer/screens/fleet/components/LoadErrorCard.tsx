@@ -14,7 +14,7 @@ export const LoadErrorCard = memo(function LoadErrorCard({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold">Fleet Movement</h2>
+        <h2 className="text-lg font-semibold">Fleet</h2>
       </div>
       <Alert variant="destructive">
         <AlertDescription className="whitespace-pre-line">{message}</AlertDescription>

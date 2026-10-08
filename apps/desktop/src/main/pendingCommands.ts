@@ -90,11 +90,26 @@ export function pendingEnvelopesForExecution(
   }));
 }
 
+/** The queued entries for `sessionId` in issue order (no hash refresh; for listing/removal). */
+export function pendingEntries(sessionId: string): PendingCommandEntry[] {
+  return [...(pendingBySession.get(sessionId)?.values() ?? [])];
+}
+
 /** Drop every drained envelope for `sessionId` — called by `commitMonth` only
  * AFTER a successful execute + save (never on `MONTH_EXECUTION_FAILED` or
  * `SAVE_FAILED`; those leave the queue intact so a retry re-delivers). */
 export function clearPendingEnvelopes(sessionId: string): void {
   pendingBySession.delete(sessionId);
+}
+
+/** Remove a single queued envelope by transportRequestId — used to roll back
+ * an autosave failure (INC-5: domain command not successful until persistence
+ * succeeds). */
+export function deletePendingEnvelope(sessionId: string, transportRequestId: string): void {
+  const sessionQueue = pendingBySession.get(sessionId);
+  if (!sessionQueue) return;
+  sessionQueue.delete(transportRequestId);
+  if (sessionQueue.size === 0) pendingBySession.delete(sessionId);
 }
 
 /** Test-only: clears every session's queue so test files don't leak state. */

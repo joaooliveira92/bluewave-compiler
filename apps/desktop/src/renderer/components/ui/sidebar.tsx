@@ -385,7 +385,9 @@ const SidebarGroupLabel = ({
         className,
       )}
       {...props}
-    />
+    >
+      {children}
+    </div>
   );
 };
 SidebarGroupLabel.displayName = "SidebarGroupLabel";

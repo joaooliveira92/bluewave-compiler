@@ -35,7 +35,17 @@ const DIVISION_PATH = resolve(
   "division.ts",
 );
 
+const OFFICER_PATH = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "campaign",
+  "src",
+  "officers.ts",
+);
+
 const STATE_SOURCE = readFileSync(STATE_PATH, "utf8");
+const OFFICER_SOURCE = readFileSync(OFFICER_PATH, "utf8");
 const DIVISION_SOURCE = readFileSync(DIVISION_PATH, "utf8");
 
 // ---------------------------------------------------------------------------
@@ -46,6 +56,7 @@ const DIVISION_SOURCE = readFileSync(DIVISION_PATH, "utf8");
 
 function sourceForType(typeName: string): string {
   if (typeName === "PermanentDivision") return DIVISION_SOURCE;
+  if (typeName === "Officer") return OFFICER_SOURCE;
   return STATE_SOURCE;
 }
 
@@ -131,11 +142,13 @@ function makeRichSnapshot(): CampaignSnapshot {
       { techId: "dreadnought_hull", investedPoints: SafeInt(0), completed: false },
     ],
     currentProjectTechId: "basic_steam",
+    standingResearchBudget: SafeInt(40),
     fieldPriorities: { A: SafeInt(50), B: SafeInt(50) },
     researchBudget: SafeInt(100),
     activeCandidates: new Map([["basic_steam", "active"]]),
     discoveredTechs: ["basic_steam", "machinery"],
   };
+  gbr.officers = [{ id: "off-1", name: "Test Officer", rank: "CAPTAIN", skill: SafeInt(50) }];
   gbr.divisions = [
     {
       divisionId: "div-1",
@@ -169,6 +182,8 @@ function makeRichSnapshot(): CampaignSnapshot {
       startedAt: "1880-01",
     },
   ];
+  gbr.aircraft = {} as any;
+  gbr.carrierOperations = {} as any;
 
   const fra = snapshot.nations.get(DEFENDER_NATION)!;
   fra.research = {
@@ -191,6 +206,16 @@ function makeRichSnapshot(): CampaignSnapshot {
     defenderLosses: [],
     damageReport: { "f1-id": SafeInt(10) },
     explanation: ["g1 sunk"],
+    lostShips: [
+      {
+        shipId: "g1",
+        name: "HMS Lost",
+        classId: "c",
+        nationId: "GBR",
+        month: "1880-03",
+        cause: "gunfire",
+      },
+    ],
   };
   snapshot.wars.battles = [battle];
   snapshot.wars.participantMemberships = [
@@ -305,6 +330,7 @@ const CANONICAL_CLONE_TYPES = [
   "TechnologyProgress",
   "ResearchState",
   "PermanentDivision",
+  "Officer",
   "ConstructionProject",
   "NationState",
   "DiplomaticRelation",
@@ -350,6 +376,7 @@ describe("snapshotClone — field-exhaustive clone coverage audit", () => {
     expect(Object.keys(gbr.research).sort()).toEqual([...CLONE_COVERAGE.ResearchState!].sort());
     expect(Object.keys(gbr.fleets[0]!).sort()).toEqual([...CLONE_COVERAGE.FleetState!].sort());
     expect(Object.keys(gbr.fleets[0]!.ships[0]!).sort()).toEqual([...CLONE_COVERAGE.Ship!].sort());
+    expect(Object.keys(gbr.officers![0]!).sort()).toEqual([...CLONE_COVERAGE.Officer!].sort());
     expect(Object.keys(gbr.divisions[0]!).sort()).toEqual(
       [...CLONE_COVERAGE.PermanentDivision!].sort(),
     );

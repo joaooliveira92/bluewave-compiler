@@ -14,8 +14,11 @@ import {
 } from "./campaignConfiguration.js";
 import { validateFleetSizeSettings } from "./fleetSize.js";
 import { validateResearchSpeedSettings } from "./researchSpeed.js";
-import { CANONICAL_SCENARIOS, validateScenarios } from "./scenario.js";
-import type { CampaignTechnologyManifest } from "./technologyVariation.js";
+import { CANONICAL_SCENARIOS, type ScenarioDefinition, validateScenarios } from "./scenario.js";
+import {
+  type CampaignTechnologyManifest,
+  verifyTechnologyManifest,
+} from "./technologyVariation.js";
 import { assertCanAdvance, fromLinear, isAtEnd, isBeyondEnd, toLinear } from "./timeline.js";
 
 export { validateCampaignSeed } from "./campaignConfiguration.js";
@@ -50,6 +53,83 @@ export interface CampaignSessionState {
  * campaign RNG streams are derived. Invalid -> INVALID_CAMPAIGN_CONFIGURATION
  * and MUST NOT create an active campaign. Runtime inference/fallback prohibited.
  */
+function validateScenariosInput(
+  input: unknown,
+  collector: DiagnosticCollector,
+): ScenarioDefinition[] | undefined {
+  if (input === undefined) {
+    collector.addError(
+      "INVALID_SCENARIO_DEFINITION",
+      "missing scenarios (fallback to canonical prohibited)",
+      { stage: "scenario-validation" },
+    );
+    return undefined;
+  }
+  return validateScenarios(input, collector);
+}
+
+function validateFleetSizeInput(input: unknown, collector: DiagnosticCollector): boolean {
+  if (input === undefined || input === null) {
+    collector.addError(
+      "MISSING_FLEET_SIZE_MULTIPLIER",
+      "fleetSizeSettings must be array of exactly 4 canonical settings (inference prohibited)",
+      { stage: "fleet-size" },
+    );
+    return false;
+  }
+  return validateFleetSizeSettings(input, collector) !== undefined;
+}
+
+function validateResearchSpeedInput(input: unknown, collector: DiagnosticCollector): boolean {
+  if (input === undefined || input === null) {
+    collector.addError(
+      "INVALID_RESEARCH_SPEED_MULTIPLIER",
+      "researchSpeedSettings must be array of exactly 4 canonical settings",
+      { stage: "research-speed" },
+    );
+    return false;
+  }
+  return validateResearchSpeedSettings(input, collector) !== undefined;
+}
+
+// §3 + §1 cross-check: chosen ids must be supported by THE VALIDATED scenario
+// (not the canonical constant - compilation must honor the shipped content).
+function validateConfigurationSupportedByScenario(
+  cfg: CampaignConfiguration,
+  scen: ScenarioDefinition,
+  stage: string,
+  collector: DiagnosticCollector,
+): boolean {
+  const checks: Array<[string, string, string[]]> = [
+    ["fleetSizeSettingId", cfg.fleetSizeSettingId, scen.supportedFleetSizeSettingIds],
+    ["researchSpeedSettingId", cfg.researchSpeedSettingId, scen.supportedResearchSpeedSettingIds],
+    [
+      "technologyVariationSettingId",
+      cfg.technologyVariationSettingId,
+      scen.supportedTechnologyVariationSettingIds,
+    ],
+    [
+      "historicalBudgetOptionId",
+      cfg.historicalBudgetOptionId,
+      scen.supportedHistoricalBudgetOptionIds,
+    ],
+    ["legacyFleetModeId", cfg.legacyFleetModeId, scen.supportedLegacyFleetModeIds],
+    ["tacticalRealismModeId", cfg.tacticalRealismModeId, scen.supportedTacticalRealismModeIds],
+    ["difficultyProfileId", cfg.difficultyProfileId, scen.supportedDifficultyProfileIds],
+  ];
+  for (const [field, val, allowed] of checks) {
+    if (!allowed.includes(val)) {
+      collector.addError(
+        "INVALID_CAMPAIGN_CONFIGURATION",
+        `${field} "${val}" not supported by scenario ${scen.scenarioId}`,
+        { stage },
+      );
+      return false;
+    }
+  }
+  return true;
+}
+
 export function validateCampaignPreconditions(
   input: unknown,
   collector: DiagnosticCollector,
@@ -63,16 +143,7 @@ export function validateCampaignPreconditions(
   }
 
   // §1: canonical 5 scenarios, January check, INVALID_SCENARIO_DEFINITION - no fallback
-  const scenInput = anyInput["scenarios"];
-  if (scenInput === undefined) {
-    collector.addError(
-      "INVALID_SCENARIO_DEFINITION",
-      "missing scenarios (fallback to canonical prohibited)",
-      { stage: "scenario-validation" },
-    );
-    return false;
-  }
-  const validatedScenarios = validateScenarios(scenInput, collector);
+  const validatedScenarios = validateScenariosInput(anyInput["scenarios"], collector);
   if (!validatedScenarios) return false;
 
   // §3: campaignConfiguration mandatory - no omission
@@ -88,69 +159,20 @@ export function validateCampaignPreconditions(
   if (!validateCampaignConfiguration(cfg, collector)) return false;
 
   // §4: fleetSizeSettings mandatory - exactly the canonical settings
-  const fleet = anyInput["fleetSizeSettings"];
-  if (fleet === undefined || fleet === null) {
-    collector.addError(
-      "MISSING_FLEET_SIZE_MULTIPLIER",
-      "fleetSizeSettings must be array of exactly 4 canonical settings (inference prohibited)",
-      { stage: "fleet-size" },
-    );
-    return false;
-  }
-  if (!validateFleetSizeSettings(fleet, collector)) return false;
+  if (!validateFleetSizeInput(anyInput["fleetSizeSettings"], collector)) return false;
 
   // §5: researchSpeedSettings mandatory - exactly the canonical settings
-  const research = anyInput["researchSpeedSettings"];
-  if (research === undefined || research === null) {
-    collector.addError(
-      "INVALID_RESEARCH_SPEED_MULTIPLIER",
-      "researchSpeedSettings must be array of exactly 4 canonical settings",
-      { stage: "research-speed" },
-    );
-    return false;
-  }
-  if (!validateResearchSpeedSettings(research, collector)) return false;
+  if (!validateResearchSpeedInput(anyInput["researchSpeedSettings"], collector)) return false;
 
   // §3 + §1 cross-check: chosen ids must be supported by THE VALIDATED INPUT scenario
   // (not the canonical constant - compilation must honor the shipped content).
   const typedCfg = cfg as CampaignConfiguration;
   const scen = validatedScenarios.find((s) => s.scenarioId === typedCfg.scenarioId);
-  if (scen) {
-    const checks: Array<[string, string, string[]]> = [
-      ["fleetSizeSettingId", typedCfg.fleetSizeSettingId, scen.supportedFleetSizeSettingIds],
-      [
-        "researchSpeedSettingId",
-        typedCfg.researchSpeedSettingId,
-        scen.supportedResearchSpeedSettingIds,
-      ],
-      [
-        "technologyVariationSettingId",
-        typedCfg.technologyVariationSettingId,
-        scen.supportedTechnologyVariationSettingIds,
-      ],
-      [
-        "historicalBudgetOptionId",
-        typedCfg.historicalBudgetOptionId,
-        scen.supportedHistoricalBudgetOptionIds,
-      ],
-      ["legacyFleetModeId", typedCfg.legacyFleetModeId, scen.supportedLegacyFleetModeIds],
-      [
-        "tacticalRealismModeId",
-        typedCfg.tacticalRealismModeId,
-        scen.supportedTacticalRealismModeIds,
-      ],
-      ["difficultyProfileId", typedCfg.difficultyProfileId, scen.supportedDifficultyProfileIds],
-    ];
-    for (const [field, val, allowed] of checks) {
-      if (!allowed.includes(val)) {
-        collector.addError(
-          "INVALID_CAMPAIGN_CONFIGURATION",
-          `${field} "${val}" not supported by scenario ${scen.scenarioId}`,
-          { stage: "campaign-configuration" },
-        );
-        return false;
-      }
-    }
+  if (
+    scen &&
+    !validateConfigurationSupportedByScenario(typedCfg, scen, "campaign-configuration", collector)
+  ) {
+    return false;
   }
 
   return true;
@@ -172,25 +194,8 @@ export function createInitialCampaignState(
     return undefined;
   }
   // supported* cross-check also on direct creation
-  const supportedChecks: Array<[keyof CampaignConfiguration, string[]]> = [
-    ["fleetSizeSettingId", scen.supportedFleetSizeSettingIds],
-    ["researchSpeedSettingId", scen.supportedResearchSpeedSettingIds],
-    ["technologyVariationSettingId", scen.supportedTechnologyVariationSettingIds],
-    ["historicalBudgetOptionId", scen.supportedHistoricalBudgetOptionIds],
-    ["legacyFleetModeId", scen.supportedLegacyFleetModeIds],
-    ["tacticalRealismModeId", scen.supportedTacticalRealismModeIds],
-    ["difficultyProfileId", scen.supportedDifficultyProfileIds],
-  ];
-  for (const [field, allowed] of supportedChecks) {
-    const val = configuration[field] as string;
-    if (!allowed.includes(val)) {
-      collector.addError(
-        "INVALID_CAMPAIGN_CONFIGURATION",
-        `${field} "${val}" not supported by scenario ${scen.scenarioId}`,
-        { stage: "campaign-state" },
-      );
-      return undefined;
-    }
+  if (!validateConfigurationSupportedByScenario(configuration, scen, "campaign-state", collector)) {
+    return undefined;
   }
 
   return {
@@ -255,23 +260,7 @@ export function verifyCampaignTechnologyManifest(
   manifest: CampaignTechnologyManifest,
   collector: DiagnosticCollector,
 ): boolean {
-  const recomputed = sha256Hex(
-    canonicalSerialize({
-      entries: manifest.entries,
-      contentHash: manifest.contentHash,
-      rulesetHash: manifest.rulesetHash,
-      formulaVersion: manifest.formulaVersion,
-    }),
-  );
-  if (recomputed !== manifest.manifestHash) {
-    collector.addError(
-      "TECHNOLOGY_MANIFEST_MISMATCH",
-      "Technology manifest hash mismatch after campaign creation",
-      { stage: "technology-variation" },
-    );
-    return false;
-  }
-  return true;
+  return verifyTechnologyManifest(manifest, collector);
 }
 
 /** Guard §8 post-save mutation: compares hash, fails silent change */

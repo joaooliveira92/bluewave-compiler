@@ -1,5 +1,6 @@
 import type { CampaignState } from "@bluewave/campaign";
 import { scaleValue } from "@bluewave/campaign";
+import { shipMaintenanceCost, totalPaidWork } from "./opening-briefing.js";
 
 /**
  * One nation's slice of `CampaignSnapshot`, flattened for UI convenience.
@@ -10,6 +11,28 @@ export interface PlayerProjectionEconomy {
   readonly treasury: number;
   readonly monthlyAppropriation: number;
   readonly shipyardCapacity: number;
+  /**
+   * The nation's total committed work across its construction projects — the
+   * cumulative `sum(Number(project.paidWork))`. Mirrors the honest snapshot
+   * value `buildOpeningBriefingProjection` documents as `constructionCommitted`
+   * (`opening-briefing.ts`): there is no pre-commit monthly construction
+   * figure (`MonthReport.newConstructionSpending` only exists after a
+   * `commitMonth`), so this surfaces the cumulative commitment, not a
+   * fabricated monthly number.
+   */
+  readonly constructionSpend: number;
+  /**
+   * The nation's current research expenditure — a direct read of
+   * `nation.research.researchBudget`.
+   */
+  readonly researchSpend: number;
+  /**
+   * The nation's fleet maintenance — re-derived from its ships
+   * (`shipMaintenanceCost` per hull), never the raw `nation.maintenanceCost`
+   * (0 before the first `commitMonth`). Same derivation as
+   * `projectedSurplusDeficit`'s.
+   */
+  readonly maintenanceCost: number;
 }
 
 export interface PlayerProjectionPort {
@@ -55,6 +78,17 @@ export interface PlayerProjection {
   readonly snapshotHash: string;
   readonly revision: number;
   readonly month: PlayerProjectionMonth;
+  readonly nationName: string;
+  /**
+   * Projected monthly surplus/deficit for the nation, derived from the same
+   * raw fields Treasury uses and reusing the briefing's `projectedSurplus`
+   * chain: `governmentAllocation (= scaleValue(income, navalAppropriationRateBp))`
+   * minus fleet maintenance (re-derived from ships — never the raw
+   * `nation.maintenanceCost`, which is 0 before the first `commitMonth`),
+   * minus committed construction work, minus research expenditure. Purely
+   * derived over the immutable snapshot.
+   */
+  readonly projectedSurplusDeficit: number;
   readonly economy: PlayerProjectionEconomy;
   readonly fleet: readonly PlayerProjectionFleet[];
   readonly ports: readonly PlayerProjectionPort[];
@@ -77,6 +111,14 @@ export interface PlayerProjection {
  *   own ports' authored `level` — there is no dedicated "shipyard capacity"
  *   concept elsewhere in the engine yet, so port level is the closest real,
  *   non-fabricated proxy (documented judgment call, ticket 12).
+ * - `economy.constructionSpend` is the cumulative committed construction work
+ *   (`sum(paidWork)` — the honest pre-commit value, same as the briefing's
+ *   `constructionCommitted`), and `economy.researchSpend` is the real
+ *   `researchBudget` (direct read).
+ * - `nationName` is `NationState.name`; `projectedSurplusDeficit` reuses the
+ *   briefing's `projectedSurplus` chain (`monthlyAppropriation` minus fleet
+ *   maintenance re-derived from ships, committed construction, research
+ *   spend) — never the raw `maintenanceCost` (0 pre-first-commit).
  * - `fleet` flattens each compiled `FleetState` into one division carrying
  *   all of its ships — the compiled snapshot has no separate division
  *   grouping under a fleet (see `commandWorkspace`, deliberately left empty:
@@ -112,6 +154,22 @@ export function buildPlayerProjection(
   const monthlyAppropriation = Number(
     scaleValue(Number(nation.income), Number(nation.navalAppropriationRateBp)),
   );
+
+  // Construction spend: cumulative committed work across construction
+  // projects (honest pre-commit value — see `PlayerProjectionEconomy`).
+  const constructionSpend = totalPaidWork(nation);
+  // Research spend: direct read of the real research budget.
+  const researchSpend = Number(nation.research.researchBudget);
+  // Fleet maintenance: re-derived from ships (never the raw `maintenanceCost`,
+  // which is 0 before the first commitMonth).
+  const fleetMaintenance = nation.fleets.reduce(
+    (sum, fleet) =>
+      sum + fleet.ships.reduce((s, ship) => s + shipMaintenanceCost(Number(ship.hitPoints)), 0),
+    0,
+  );
+  // Projected surplus/deficit — the briefing's `projectedSurplus` chain.
+  const projectedSurplusDeficit =
+    monthlyAppropriation - fleetMaintenance - constructionSpend - researchSpend;
 
   const fleet: PlayerProjectionFleet[] = nation.fleets.map((f) => ({
     name: f.name,
@@ -151,10 +209,15 @@ export function buildPlayerProjection(
     snapshotHash: state.rawHash,
     revision: Number(snapshot.turnNumber),
     month,
+    nationName: nation.name,
+    projectedSurplusDeficit,
     economy: {
       treasury: Number(nation.treasury),
       monthlyAppropriation,
       shipyardCapacity,
+      constructionSpend,
+      researchSpend,
+      maintenanceCost: fleetMaintenance,
     },
     fleet,
     ports,

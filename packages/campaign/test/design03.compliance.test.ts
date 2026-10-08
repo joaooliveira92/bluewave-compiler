@@ -38,7 +38,6 @@ import {
 } from "../src/scenario.js";
 import {
   CANONICAL_TECH_PROFILES,
-  materializeTechnologyVariation,
   RNG_ALGORITHM_VERSION,
   STREAM_FAMILY,
   type TechnologyDefinition,
@@ -46,6 +45,7 @@ import {
   validateTechnologyVariationProfiles,
   verifyTechnologyManifest,
 } from "../src/technologyVariation.js";
+import { materializeTechnologyVariation } from "../src/technologyMaterialization.js";
 import {
   advanceMonth,
   assertCanAdvance,

@@ -2,10 +2,10 @@ import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { describe, expect, it } from "vite-plus/test";
 import {
   CANONICAL_TECH_PROFILES,
-  materializeTechnologyVariation,
   STREAM_FAMILY,
   validateTechnologyVariationProfile,
 } from "../src/technologyVariation.js";
+import { materializeTechnologyVariation } from "../src/technologyMaterialization.js";
 
 function collector() {
   return new DiagnosticCollector();

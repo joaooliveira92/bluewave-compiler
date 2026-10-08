@@ -12,6 +12,10 @@ import { WindowContextProvider } from "./WindowContext.js";
 const campaign: HeaderCampaign = {
   month: { year: 1900, month: 1 },
   treasury: 24_500_000,
+  nationName: "United Kingdom",
+  projectedSurplusDeficit: 1_500_000,
+  activeAlertsCount: null,
+  atWar: false,
 };
 
 const matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -70,7 +74,6 @@ describe("SiteHeader", () => {
   it("renders the nav and title slots", () => {
     renderHeader();
 
-    expect(screen.getByRole("button", { name: "Toggle sidebar" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Go back" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Go forward" })).toBeTruthy();
     expect(screen.getByText("Naval Ministry")).toBeTruthy();
@@ -178,6 +181,34 @@ describe("SiteHeader", () => {
     expect(screen.getByText(/£24,500k/)).toBeTruthy();
   });
 
+  it("renders the INC-1 header fields: nation name and projected balance", () => {
+    renderHeader("linux", { activeView: "playing", campaign });
+
+    expect(screen.getByText("Nation:")).toBeTruthy();
+    expect(screen.getByText(/United Kingdom/)).toBeTruthy();
+    expect(screen.getByText("Projected balance:")).toBeTruthy();
+    expect(screen.getByText(/£1,500k/)).toBeTruthy();
+  });
+
+  it("omits the alert-count slot until the INC-2 projection lands", () => {
+    renderHeader("linux", { activeView: "playing", campaign });
+
+    // The forward-wired slot is null: it is not shown at all (no "Alerts: —"
+    // placeholder, and certainly no fabricated count).
+    expect(screen.queryByText("Alerts:")).toBeNull();
+    expect(screen.queryByText(/^[0-9]+$/)).toBeNull();
+  });
+
+  it("renders the alert count once the forward-wired slot is populated", () => {
+    renderHeader("linux", {
+      activeView: "playing",
+      campaign: { ...campaign, activeAlertsCount: 4 },
+    });
+
+    expect(screen.getByText("Alerts:")).toBeTruthy();
+    expect(screen.getByText("4")).toBeTruthy();
+  });
+
   it("renders the advance-month button on the right for an active campaign", () => {
     const onAdvanceMonth = vi.fn();
     renderHeader("linux", { activeView: "playing", campaign, onAdvanceMonth });
@@ -215,5 +246,18 @@ describe("SiteHeader", () => {
     cleanup();
     renderHeader("linux", { activeView: "options" });
     expect(screen.getByText("Preferences:")).toBeTruthy();
+  });
+
+  it("shows the Campaign menu only in a campaign with its handlers, beside the single Advance control", () => {
+    renderHeader();
+    expect(screen.queryByRole("button", { name: "Campaign menu" })).toBeNull();
+    cleanup();
+    renderHeader("linux", {
+      campaign,
+      onAdvanceMonth: vi.fn(),
+      campaignMenu: { saving: false, onSave: vi.fn(), onCopy: vi.fn(), onCloseCampaign: vi.fn() },
+    });
+    expect(screen.getByRole("button", { name: "Campaign menu" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Advance month" })).toHaveLength(1);
   });
 });

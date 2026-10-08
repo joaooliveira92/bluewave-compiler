@@ -19,7 +19,7 @@
 // Fail-closed: a missing/undefined manifest -> AUTO_RESOLUTION_UNAVAILABLE;
 // every other malformed input -> a stable diagnostic; never a partial result.
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
-import { createEnvelope } from "@bluewave/deterministic";
+import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
 import { RandomEngine, type RandomLedger } from "@bluewave/random";
 import { BattleLedger, type BattleEvent } from "../battleLedger.js";
 import { advanceMinute } from "../simulation/engine.js";
@@ -33,12 +33,17 @@ import type { GunneryBattery } from "../gunnery/resolve.js";
 import { NO_TARGET, withGunneryStateHash } from "../gunnery/index.js";
 import type { TacticalBattleState } from "../tactical/state.js";
 import type { TacticalShipUnit } from "../tactical/unit.js";
+import type { MovementState } from "../movement.js";
 import type { ShipDamageState } from "../damage/state.js";
 import type { StrategicWeatherState } from "../weather/strategic-state.js";
 import { AUTO_RESOLUTION_UNAVAILABLE } from "../generation/reasonCodes.js";
 import { BATTLE_AUTO_RESOLUTION_FAILED } from "./reasonCodes.js";
+import { CauseOfLossTracker, type LossCause } from "./causeOfLoss.js";
 import { type AutoResolverNation, projectBattle, type ProjectBattleOutput } from "./project.js";
 import { buildBattleWeather } from "./weather.js";
+import { planTorpedoCommands } from "./torpedoDoctrine.js";
+import { pursuitOrders } from "./pursuit.js";
+import { TORPEDO_HIT_RESOLVED, type TorpedoContext } from "../torpedoes/index.js";
 import {
   battleLoss,
   initialDamageState,
@@ -46,6 +51,11 @@ import {
   type DamageTargetContext,
 } from "./damage.js";
 import { decideBattleEnd, type BattleSide, type ShipViability } from "./viability.js";
+import { createDefaultDamageControlResource } from "../damage/damageControl.js";
+import type { DamageControlContext } from "../damage/damageControlEngineWiring.js";
+import { DAMAGE_RULESET_VERSION } from "../damage/constants.js";
+import { DAMAGE_CONTROL_KEYED_DRAW } from "../damage/reasonCodes.js";
+import { SPEED_BP_SCALE } from "../movement/constants.js";
 import {
   AUTO_RESOLUTION_MAX_MINUTES,
   battleAutoResolutionPolicyId,
@@ -97,6 +107,14 @@ export interface BattleResolutionResult {
   minuteHashes: string[];
   /** Domain-separated envelope hash over the result surface. */
   resultHash: string;
+  /**
+   * P-1 (ADR-0052): why each sunk/foundered ship was lost, keyed by ship id
+   * (gunfire | fire | flooding | torpedo). Present only when at least one ship
+   * was lost. OBSERVATIONAL: excluded from `resultHash`.
+   */
+  causeOfLoss?: Record<string, LossCause>;
+  /** P-1: torpedo activity — present only when a combatant carried torpedo armament. */
+  torpedoSummary?: { tubesFired: number; hits: number };
   provenance: {
     battleId: string;
     manifestHash: string;
@@ -160,6 +178,76 @@ function mergeTargetStates(
     if (t) out[shipId] = { ...t, state };
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Damage control (P-1 ticket 07): per-ship contexts derived from each ship's
+// CURRENT damage state. Wired in every battle (ticket 09 / ADR-0049). The keyedRng is scoped per (battleId, minute,
+// shipId, draw ordinal) so every ship resolves from its own deterministic
+// streams — mirrors damage.ts scopedRng (ADR-0026 §random).
+
+function buildDamageControlContexts(input: {
+  battleId: string;
+  minute: number;
+  units: readonly TacticalShipUnit[];
+  damage: DamageContext;
+  movementStates: Record<string, MovementState> | undefined;
+  engine: RandomEngine;
+  randomLedger?: RandomLedger;
+}): Record<string, DamageControlContext> {
+  const { battleId, minute, units, damage, movementStates, engine, randomLedger } = input;
+  const contexts: Record<string, DamageControlContext> = {};
+  const shipIds = units.map((u) => u.assetId).sort();
+  for (const shipId of shipIds) {
+    const target = damage.targets[shipId];
+    if (!target) continue; // every committed ship is in targets; defensive no-op
+    const state = target.state;
+    const currentSpeedBp = movementStates?.[shipId]?.currentSpeed ?? 0;
+    let drawCall = 0;
+    const scopedRng = (stream: string): number => {
+      // The ordinal is part of the ledger inputHash too (domain-separated
+      // input-hash requirement): the SAME (battleId, minute, shipId, stream)
+      // tuple produces a DIFFERENT decision for A different ordinal.
+      const ordinal = drawCall;
+      drawCall += 1;
+      const domain = `${stream}:${battleId}:${minute}:${shipId}:${ordinal}`;
+      const draw = engine.stream(domain).next();
+      if (randomLedger) {
+        randomLedger.record({
+          streamId: domain,
+          entityKey: shipId,
+          phase: "resolve_battle_auto_resolution_damage_control",
+          rulesetVersion: DAMAGE_RULESET_VERSION,
+          inputHash: sha256Hex(
+            canonicalSerialize({
+              battleId,
+              minute,
+              shipId,
+              stream,
+              drawCall: ordinal,
+            }),
+          ),
+          draw,
+          outcome: String(draw),
+          reasonCode: DAMAGE_CONTROL_KEYED_DRAW,
+        });
+      }
+      return draw;
+    };
+    contexts[shipId] = {
+      fireRecords: [...state.fireRecords],
+      floodingRecords: [...state.floodingRecords],
+      // accumulated flooded-water MASS in kg (progressiveFloodingTotal surface;
+      // ADR-0047 decision 4 — severity converts to bp via designDisplacementKg).
+      floodedWaterBp: state.progressiveFloodingTotal,
+      designDisplacementKg: target.designDisplacementKg,
+      shipType: target.shipType,
+      currentSpeedKt: Math.floor(currentSpeedBp / SPEED_BP_SCALE),
+      resources: createDefaultDamageControlResource(),
+      keyedRng: scopedRng,
+    };
+  }
+  return contexts;
 }
 
 // ---------------------------------------------------------------------------
@@ -277,6 +365,10 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
   let gunnery: GunneryBattery[] = [...projected.batteries];
   let damage: DamageContext = { ...projected.damage, engine, randomLedger: input.randomLedger };
   let weatherCtx = weather.context;
+  // P-1 (AC-5): torpedo launchers/targets/tracks; absent when no unit is armed (AC-6).
+  let torpedo: TorpedoContext | undefined = projected.torpedoes;
+  const torpedoSummary = { tubesFired: 0, hits: 0 };
+  const lossTracker = new CauseOfLossTracker();
 
   const allEvents: BattleEvent[] = [];
   const minuteHashes: string[] = [];
@@ -301,16 +393,61 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
         : b;
     });
 
-    // 2. one fully-resolved tactical minute (steps 4-8 + 7.5 + 8.5 + 9-10)
+    // 1b. torpedo doctrine (P-1): sync target damage, then plan this minute's launches
+    if (torpedo) {
+      const targets = { ...torpedo.targets };
+      for (const [shipId, t] of Object.entries(targets)) {
+        const st = damage.targets[shipId]?.state;
+        if (st) targets[shipId] = { ...t, damageState: st };
+      }
+      torpedo = { ...torpedo, targets };
+      torpedo = {
+        ...torpedo,
+        commands: planTorpedoCommands({
+          battleId: projected.state.battleId,
+          torpedoes: torpedo,
+          battleState,
+          damage,
+          units: projected.units,
+        }),
+      };
+      torpedoSummary.tubesFired += torpedo.commands.reduce((n, c) => n + c.tubeIndexes.length, 0);
+    }
+
+    // 1c. damage control (P-1 tickets 07/09): per-ship contexts derived from each
+    // ship's CURRENT (pre-minute) damage state, wired in EVERY auto-resolved
+    // battle (DESIGN-41 §13/§19/§44; ADR-0049 retired the ADR-0047 torpedo gate).
+    // The engine step 8.6 resolves each ship independently and writes
+    // flooding/flotation/terminal changes back per ship (a strict no-op until a
+    // ship actually has fires or flooding).
+    const damageControl = buildDamageControlContexts({
+      battleId: projected.state.battleId,
+      minute,
+      units: projected.units,
+      damage,
+      movementStates: battleState.movementStates,
+      engine,
+      randomLedger: input.randomLedger,
+    });
+
+    // 2. one fully-resolved tactical minute (steps 4-8 + 7.5 + 8.5 + 9-10 + 10.5)
     const res = advanceMinute({
       state: battleState,
       minute,
       observationTime,
-      orders: projected.orders,
+      orders: pursuitOrders({
+        battleId: projected.state.battleId,
+        battleState,
+        damage,
+        units: projected.units,
+        baseOrders: projected.orders,
+      }),
       engine,
       gunnery,
       weather: weatherCtx,
       damage,
+      ...(torpedo ? { torpedoes: torpedo } : {}),
+      ...(damageControl ? { damageControl } : {}),
     });
 
     allEvents.push(...res.events);
@@ -335,7 +472,45 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
       weatherCtx = { ...weatherCtx, components: res.weatherComponents };
     }
     if (res.damageStates) {
+      const preTargets = damage.targets;
       damage = { ...damage, targets: mergeTargetStates(damage.targets, res.damageStates) };
+      // cause-of-loss observation (ADR-0052; not hashed, no draws)
+      const hitKeys = new Set(
+        (res.torpedoRecords ?? [])
+          .filter(
+            (r) =>
+              r.kind === "HIT_RESOLUTION" && r.damageEffects.reasonCode === TORPEDO_HIT_RESOLVED,
+          )
+          .map((r) => r.targetId),
+      );
+      for (const [shipId, post] of Object.entries(res.damageStates)) {
+        const pre = preTargets[shipId]?.state;
+        if (pre)
+          lossTracker.observe(
+            shipId,
+            pre,
+            post,
+            hitKeys.has(`${projected.state.battleId}:${shipId}`),
+          );
+      }
+    }
+    if (torpedo) {
+      torpedoSummary.hits += (res.torpedoRecords ?? []).filter(
+        (r) => r.kind === "HIT_RESOLUTION" && r.damageEffects.reasonCode === TORPEDO_HIT_RESOLVED,
+      ).length;
+      const launcherStates = res.torpedoStates;
+      torpedo = {
+        ...torpedo,
+        commands: [],
+        // the stage reports only RUNNING tracks; none reported -> none running
+        tracks: (res.torpedoTracks ?? []).map((t) => ({ ...t })),
+        launchers: launcherStates
+          ? torpedo.launchers.map((w) => {
+              const next = launcherStates[w.launcher.launcherId];
+              return next ? { ...w, launcher: next } : w;
+            })
+          : torpedo.launchers,
+      };
     }
 
     // 4. §32 battle end (terminating-minute effects already applied)
@@ -426,6 +601,11 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
     campaignAssetIds,
   };
 
+  const causeOfLoss: Record<string, LossCause> = {};
+  for (const id of [...attackerSunkIds, ...defenderSunkIds].sort()) {
+    causeOfLoss[id] = lossTracker.causeOf(id) ?? "gunfire";
+  }
+
   const result: BattleResolutionResult = {
     battleId: input.manifest.battleId,
     battleEndReason: endReason,
@@ -440,10 +620,13 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
     eventLedgerHash: ledger.hash(),
     minuteHashes,
     resultHash: "",
+    ...(projected.torpedoes ? { torpedoSummary } : {}),
+    ...(Object.keys(causeOfLoss).length > 0 ? { causeOfLoss } : {}),
     provenance,
   };
   // resultHash: domain-separated envelope over the whole non-hash surface
-  const { resultHash: _hash, ...hashBody } = result;
+  // causeOfLoss is observational (ADR-0052) and excluded so no baseline moves.
+  const { resultHash: _hash, causeOfLoss: _cause, ...hashBody } = result;
   result.resultHash = createEnvelope(
     "battle-auto-resolution-result",
     battleAutoResolutionPolicyId,

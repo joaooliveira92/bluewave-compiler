@@ -1,7 +1,8 @@
 /* @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { OpeningBriefingProjection } from "@bluewave/campaign-engine";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vite-plus/test";
+import type { PrimaryAction } from "../../shell/primary-action.js";
 import { NewGameBriefingScreen } from "./NewGameBriefingScreen.js";
 
 function fixtureProjection(
@@ -55,14 +56,25 @@ function renderScreen(projection: OpeningBriefingProjection, onTakeCommand = vi.
   const onInspect = vi
     .fn()
     .mockResolvedValue({ outcome: "success", value: { projection }, diagnostics: [] });
+  let primary: PrimaryAction | null = null;
+  const onPrimaryActionChange = vi.fn((action: PrimaryAction | null) => {
+    primary = action;
+  });
   const view = render(
     <NewGameBriefingScreen
       sessionId="s1"
       onInspectOpeningBriefing={onInspect}
       onTakeCommand={onTakeCommand}
+      onPrimaryActionChange={onPrimaryActionChange}
     />,
   );
-  return { onInspect, onTakeCommand, view };
+  return {
+    onInspect,
+    onTakeCommand,
+    view,
+    primaryLabel: () => primary?.label ?? null,
+    triggerPrimary: () => act(() => primary?.onTrigger()),
+  };
 }
 
 describe("NewGameBriefingScreen", () => {
@@ -71,43 +83,49 @@ describe("NewGameBriefingScreen", () => {
   });
 
   it("loads the projection and renders the Appointment page first with title and start date", async () => {
-    renderScreen(fixtureProjection());
+    const { primaryLabel } = renderScreen(fixtureProjection());
     await screen.findByText("Opening Strategic Briefing");
     expect(
       screen.getByText(/You have been appointed First Sea Lord — United Kingdom/),
     ).toBeTruthy();
     expect(screen.getByText("Appointment confirmed · January 1880")).toBeTruthy();
-    // Page 1 keeps the flavorful forward label, not "Next".
-    expect(screen.getByRole("button", { name: "Review Naval Estimates" })).toBeTruthy();
+    // Page 1 keeps the flavorful forward label, not "Next". The label registers from an
+    // effect that runs after the page text appears, so wait for it rather than read it once.
+    await waitFor(() => expect(primaryLabel()).toBe("Review Naval Estimates"));
     // Back is not available on page 1.
     expect(screen.getByRole("button", { name: "Back" }).hasAttribute("disabled")).toBe(true);
   });
 
   it("walks the full five-page sequence then Take command fires the closing action", async () => {
     const onTakeCommand = vi.fn();
-    renderScreen(fixtureProjection(), onTakeCommand);
+    const { primaryLabel, triggerPrimary } = renderScreen(fixtureProjection(), onTakeCommand);
     await screen.findByText("Opening Strategic Briefing");
+    // `triggerPrimary` is a silent no-op until the primary action has registered.
+    await waitFor(() => expect(primaryLabel()).toBe("Review Naval Estimates"));
 
     // Page 1 -> 2 via "Review Naval Estimates".
-    fireEvent.click(screen.getByRole("button", { name: "Review Naval Estimates" }));
+    triggerPrimary();
     expect(screen.getByText("State of the Navy")).toBeTruthy();
     expect(screen.getByText("Majestic class (£150)")).toBeTruthy();
     expect(screen.getByText("Ships under construction")).toBeTruthy();
 
     // Page 2 -> 3.
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(primaryLabel()).toBe("Next");
+    triggerPrimary();
     expect(screen.getByText("Treasury Position")).toBeTruthy();
     expect(screen.getByText("Projected surplus / deficit")).toBeTruthy();
     expect(screen.getByText("narrow")).toBeTruthy();
 
     // Page 3 -> 4.
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(primaryLabel()).toBe("Next");
+    triggerPrimary();
     expect(screen.getByText("Foreign Intelligence")).toBeTruthy();
     expect(screen.getByText("German Empire")).toBeTruthy();
     expect(screen.getByText("at war · tension 10")).toBeTruthy();
 
     // Page 4 -> 5.
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(primaryLabel()).toBe("Next");
+    triggerPrimary();
     expect(screen.getByText("Immediate Concerns")).toBeTruthy();
     expect(screen.getByText("The projected monthly budget runs a deficit.")).toBeTruthy();
 
@@ -116,8 +134,10 @@ describe("NewGameBriefingScreen", () => {
     expect(screen.getByText("Foreign Intelligence")).toBeTruthy();
 
     // Forward again then Take command.
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Take command" }));
+    expect(primaryLabel()).toBe("Next");
+    triggerPrimary();
+    expect(primaryLabel()).toBe("Take command");
+    triggerPrimary();
     expect(onTakeCommand).toHaveBeenCalledTimes(1);
   });
 
@@ -130,6 +150,7 @@ describe("NewGameBriefingScreen", () => {
         sessionId="s1"
         onInspectOpeningBriefing={onInspect}
         onTakeCommand={vi.fn()}
+        onPrimaryActionChange={vi.fn()}
       />,
     );
     await screen.findByText("Briefing unavailable");

@@ -1,0 +1,92 @@
+# Propulsion plants. kg/kW: compound 195, TE 170, water-tube 80 (ESTIMATE), loco 46 (White 1894 p.562). SFC base g/kWh at 60% load: 1300/1220/1200(ESTIMATE)/1500(ESTIMATE);
+# part-load curve shape, volume per kW and reliability are PLACEHOLDER/ESTIMATE (no source). Years: compound 1880, TE 1885 (first RN fit 1882-86 UNVERIFIED), loco 1890, water-tube 1893.
+plants:
+  - id: compound_cylindrical
+    fuelType: COAL
+    weightMilliKgPerKw: 195000
+    volumeLitrePerKw: 180
+    sfcGramPerKwh:
+      points:
+        - - 0
+          - 1651
+        - - 2000
+          - 1443
+        - - 6000
+          - 1300
+        - - 10000
+          - 1385
+    reliabilityBp: 8500
+    minKw: 300
+    maxKw: 8000
+    introduction:
+      fromMonth: 1880-01
+      obsoleteMonth: null
+    requires:
+      - mac_compound_engine
+  - id: triple_expansion_cylindrical
+    fuelType: COAL
+    weightMilliKgPerKw: 170000
+    volumeLitrePerKw: 150
+    sfcGramPerKwh:
+      points:
+        - - 0
+          - 1549
+        - - 2000
+          - 1354
+        - - 6000
+          - 1220
+        - - 10000
+          - 1299
+    reliabilityBp: 9000
+    minKw: 500
+    maxKw: 14000
+    introduction:
+      fromMonth: 1885-01
+      obsoleteMonth: null
+    requires:
+      - mac_triple_expansion
+  - id: triple_expansion_watertube
+    fuelType: COAL
+    weightMilliKgPerKw: 80000
+    volumeLitrePerKw: 110
+    sfcGramPerKwh:
+      points:
+        - - 0
+          - 1524
+        - - 2000
+          - 1332
+        - - 6000
+          - 1200
+        - - 10000
+          - 1278
+    reliabilityBp: 8200
+    minKw: 300
+    maxKw: 20000
+    introduction:
+      fromMonth: 1893-01
+      obsoleteMonth: null
+    requires:
+      - mac_triple_expansion
+      - mac_water_tube_boiler
+  - id: locomotive_boiler_tb
+    fuelType: COAL
+    weightMilliKgPerKw: 46000
+    volumeLitrePerKw: 60
+    sfcGramPerKwh:
+      points:
+        - - 0
+          - 1905
+        - - 2000
+          - 1665
+        - - 6000
+          - 1500
+        - - 10000
+          - 1598
+    reliabilityBp: 8000
+    minKw: 200
+    maxKw: 3000
+    introduction:
+      fromMonth: 1890-01
+      obsoleteMonth: null
+    requires:
+      - mac_forced_draft

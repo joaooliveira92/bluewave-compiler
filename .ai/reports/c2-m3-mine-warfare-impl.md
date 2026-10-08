@@ -28,33 +28,33 @@ track); command-layer laying orders (later command slice). See the C-2 ADR
 
 ## Requirements evidence
 
-| Requirement | Implementation | Proving tests |
-| --- | --- | --- |
-| AC-1 AreaMinePressureRecord | `mines/pressure-record.ts` | `pressure-record.test.ts`, mine 17 |
-| AC-2 MineTypeDefinition | `mines/model.ts` | `type-definitions.test.ts` (25) |
-| AC-3 Mine sources | `mines/sources.ts` | `sources.test.ts` (18) |
-| AC-4 Laying value | `mines/laying.ts` | `laying-value.test.ts` (20) |
-| AC-5 Pressure increase | `mines/pressure-increase.ts` | `pressure-increase.test.ts` (19) |
-| AC-6 Sweeping eligibility | `mines/sweeping-eligibility.ts` | `sweeping-eligibility.test.ts` (16) |
-| AC-7 Base values | `mines/sweeping-base-values.ts` | `sweeping-base-values.test.ts` (10) |
-| AC-8 Dual equipment | `mines/dual-equipment.ts` | `dual-equipment.test.ts` (14) |
-| AC-9 Effective value | `mines/effective-sweeping.ts` | `effective-sweeping.test.ts` (15) |
-| AC-10 Aggregation + allocation | `mines/sweeping-aggregation.ts` | `sweeping-aggregation.test.ts` (28) |
-| AC-11 Defensive standoff | `mines/defensive-standoff.ts` | `defensive-standoff.test.ts` (18) |
-| AC-12 Route risk | `mines/route-risk.ts` | `route-risk.test.ts` (17) |
-| AC-13 Mine report | `mines/mine-report.ts` | `report.test.ts` (6) |
-| AC-14 Misidentification | `mines/misidentification.ts` | `misidentification.test.ts` (12) |
-| AC-15 Decay | `mines/decay.ts` | `decay.test.ts` (20) |
-| AC-16 Post-war | `mines/post-war-persistence.ts` | `post-war-persistence.test.ts` (14) |
-| AC-17 Ownership | `mines/ownership-transitions.ts` | `ownership-transitions.test.ts` (20) |
-| AC-18 Knowledge | `mines/knowledge.ts` | `knowledge.test.ts` (11) |
-| AC-19 Clearance | `mines/clearance.ts` | `clearance.test.ts` (10) |
-| AC-20 Records + ordering | `mines/records.ts`, `mines/ordering.ts` | `records.test.ts` (10), `ordering.test.ts` (10) |
-| AC-21 Reason-code set-equality | `mines/reasonCodes.ts` | `reason-codes-mines.test.ts` (6) |
-| AC-22 Integration boundary | `mines/*` (pure) | `integration-boundary.test.ts` (3) |
-| AC-23 Two-process determinism | `simulation/run-mines-child.ts` | `determinism.test.ts` (4) |
-| AC-24 Contracts rollup | `mines/contracts.ts` | `contracts-rollup.test.ts` (5) |
-| AC-25 Goldens unchanged | — (no snapshot/phase change) | orchestrator gate |
+| Requirement                    | Implementation                          | Proving tests                                   |
+| ------------------------------ | --------------------------------------- | ----------------------------------------------- |
+| AC-1 AreaMinePressureRecord    | `mines/pressure-record.ts`              | `pressure-record.test.ts`, mine 17              |
+| AC-2 MineTypeDefinition        | `mines/model.ts`                        | `type-definitions.test.ts` (25)                 |
+| AC-3 Mine sources              | `mines/sources.ts`                      | `sources.test.ts` (18)                          |
+| AC-4 Laying value              | `mines/laying.ts`                       | `laying-value.test.ts` (20)                     |
+| AC-5 Pressure increase         | `mines/pressure-increase.ts`            | `pressure-increase.test.ts` (19)                |
+| AC-6 Sweeping eligibility      | `mines/sweeping-eligibility.ts`         | `sweeping-eligibility.test.ts` (16)             |
+| AC-7 Base values               | `mines/sweeping-base-values.ts`         | `sweeping-base-values.test.ts` (10)             |
+| AC-8 Dual equipment            | `mines/dual-equipment.ts`               | `dual-equipment.test.ts` (14)                   |
+| AC-9 Effective value           | `mines/effective-sweeping.ts`           | `effective-sweeping.test.ts` (15)               |
+| AC-10 Aggregation + allocation | `mines/sweeping-aggregation.ts`         | `sweeping-aggregation.test.ts` (28)             |
+| AC-11 Defensive standoff       | `mines/defensive-standoff.ts`           | `defensive-standoff.test.ts` (18)               |
+| AC-12 Route risk               | `mines/route-risk.ts`                   | `route-risk.test.ts` (17)                       |
+| AC-13 Mine report              | `mines/mine-report.ts`                  | `report.test.ts` (6)                            |
+| AC-14 Misidentification        | `mines/misidentification.ts`            | `misidentification.test.ts` (12)                |
+| AC-15 Decay                    | `mines/decay.ts`                        | `decay.test.ts` (20)                            |
+| AC-16 Post-war                 | `mines/post-war-persistence.ts`         | `post-war-persistence.test.ts` (14)             |
+| AC-17 Ownership                | `mines/ownership-transitions.ts`        | `ownership-transitions.test.ts` (20)            |
+| AC-18 Knowledge                | `mines/knowledge.ts`                    | `knowledge.test.ts` (11)                        |
+| AC-19 Clearance                | `mines/clearance.ts`                    | `clearance.test.ts` (10)                        |
+| AC-20 Records + ordering       | `mines/records.ts`, `mines/ordering.ts` | `records.test.ts` (10), `ordering.test.ts` (10) |
+| AC-21 Reason-code set-equality | `mines/reasonCodes.ts`                  | `reason-codes-mines.test.ts` (6)                |
+| AC-22 Integration boundary     | `mines/*` (pure)                        | `integration-boundary.test.ts` (3)              |
+| AC-23 Two-process determinism  | `simulation/run-mines-child.ts`         | `determinism.test.ts` (4)                       |
+| AC-24 Contracts rollup         | `mines/contracts.ts`                    | `contracts-rollup.test.ts` (5)                  |
+| AC-25 Goldens unchanged        | — (no snapshot/phase change)            | orchestrator gate                               |
 
 Mines suite total: **26 files / 357 tests green**.
 
@@ -77,7 +77,7 @@ node scripts/verify-golden-hashes.cjs               # 10/10 at INC-2..INC-7 gate
   byte-compared): identical — **AC-23 PASS** (also spawned manually post-fix:
   `BYTE-IDENTICAL`, 804 bytes).
 - Record hash: domain-separated `createEnvelope("mine_warfare_resolution",
-  "mine_warfare_resolution_v1", …)` over the non-hash surface; identical content
+"mine_warfare_resolution_v1", …)` over the non-hash surface; identical content
   → identical 64-hex hash; tamper breaks verification (records.test).
 - No `Math.random`/`Date`/`process.env`/localeCompare/fs-order in mines source
   (grep-verified in integration-boundary test).

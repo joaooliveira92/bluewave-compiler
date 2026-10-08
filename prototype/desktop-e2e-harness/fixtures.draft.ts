@@ -1,3 +1,4 @@
+// @ts-nocheck
 // PROTOTYPE DRAFT — synced against the real implementation in
 // apps/desktop/e2e/fixtures.ts (playwright, Electron 41.10.4). Contract in
 // README.md.
@@ -115,10 +116,7 @@ async function teardown(h: E2EHarness): Promise<void> {
  * tree. Mirrors fixtures.ts: `sourceDir` is the package, `scratchRoot` the
  * per-test scratch tree.
  */
-export async function copyFixturePackage(
-  sourceDir: string,
-  scratchRoot: string,
-): Promise<string> {
+export async function copyFixturePackage(sourceDir: string, scratchRoot: string): Promise<string> {
   const target = join(scratchRoot, "package");
   await cp(sourceDir, target, { recursive: true });
   return target;
@@ -127,7 +125,7 @@ export async function copyFixturePackage(
 type HarnessFixtures = { e2e: E2EHarness };
 
 export const test = base.extend<HarnessFixtures>({
-  e2e: async ({}, use) => {
+  e2e: async (_unused, use) => {
     const h = await launchHarness();
     try {
       await use(h);

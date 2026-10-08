@@ -1,5 +1,5 @@
 /* @vitest-environment jsdom */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import type { DiplomacyScreenState } from "./diplomacy-screen-state.js";
 import {
@@ -115,6 +115,21 @@ const ResizeObserverMock = vi.hoisted(
 );
 vi.stubGlobal("ResizeObserver", ResizeObserverMock);
 
+// The vitest config turns the debug flag on globally; flip it per test.
+const debugFlag = vi.hoisted(() => ({ on: false }));
+vi.mock("../../shell/debug-flag.js", () => ({
+  get DEBUG_MODE() {
+    return debugFlag.on;
+  },
+}));
+
+const battleHistoryMock = vi.hoisted(() => ({
+  state: { status: "ready", history: { battles: [] } } as unknown,
+}));
+vi.mock("./hooks/useBattleHistory.js", () => ({
+  useBattleHistory: () => battleHistoryMock.state,
+}));
+
 vi.mock("./hooks/useDiplomacyScreen.js", () => ({
   useDiplomacyScreen: (_sessionId: string) => ({
     state: hookMocks.stateFn(),
@@ -142,17 +157,66 @@ describe("DiplomacyScreen", () => {
     expect(screen.getByText("At war")).not.toBeNull();
     expect(screen.getByText("tension 9/10")).not.toBeNull();
     expect(screen.getByText("NAP")).not.toBeNull();
-    expect(screen.getByText("France")).not.toBeNull();
+    // The relations row (the war score bar also names France, so scope to the row).
+    expect(screen.getByText("France", { selector: "span.text-sm.font-medium" })).not.toBeNull();
     expect(screen.getByText("Germany")).not.toBeNull();
 
     // War list with sides, scores, status + the ACTIVE Accept-peace control.
-    expect(screen.getByText("war_uk_france_1880-01")).not.toBeNull();
+    // The raw war id is engine detail: not shown in a release build (ADR-0058).
+    expect(screen.queryByText("war_uk_france_1880-01")).toBeNull();
     expect(screen.getByText("score 3:1")).not.toBeNull();
     expect(screen.getByText("you: attacker")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Accept peace" })).toBeTruthy();
 
     // Blockade row with blockader → blockaded in an area (player = "your nation").
     expect(screen.getByText("your nation → France")).not.toBeNull();
+  });
+
+  it("shows the raw war id only in a debug build", () => {
+    debugFlag.on = true;
+    try {
+      render(<DiplomacyScreen sessionId="ses-1" />);
+      expect(screen.getByText("war_uk_france_1880-01")).not.toBeNull();
+    } finally {
+      debugFlag.on = false;
+    }
+  });
+
+  it("shows the war score as a player-vs-enemy bar derived from the engine's scores", () => {
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    const bar = screen.getByRole("img", { name: /War score:/ });
+    // The player (UK) is the attacker with 3; France defends with 1.
+    expect(bar.getAttribute("aria-label")).toBe("War score: your nation 3, France 1");
+  });
+
+  it("lists the war-panel items the engine cannot supply as deferred, never as numbers", () => {
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    const panel = screen.getByTestId("war-deferred");
+    expect(panel.textContent).toContain("Not yet modelled by the engine");
+    for (const name of [
+      "Trade protection",
+      "Anti-submarine strength",
+      "Submarine warfare policy",
+      "Invasion planning",
+    ]) {
+      expect(panel.textContent).toContain(name);
+    }
+    // No fabricated figure sits next to any deferred item.
+    expect(panel.textContent).not.toMatch(/\d+\s*(of|\/)\s*\d+/);
+  });
+
+  it("shows intelligence as not modelled, while relations stay real", () => {
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    const panel = screen.getByTestId("intel-deferred");
+    expect(panel.textContent).toContain("not yet modelled by the engine");
+    for (const name of [
+      "Intelligence level per nation",
+      "Intelligence spending",
+      "Intelligence reports",
+    ]) {
+      expect(panel.textContent).toContain(name);
+    }
+    expect(screen.getByText("tension 9/10")).not.toBeNull();
   });
 
   it("renders honest empty states (no wars / no blockades) without fabrication", () => {
@@ -200,5 +264,50 @@ describe("DiplomacyScreen", () => {
   it("displays the honest queued notice copy on the loaded screen", () => {
     render(<DiplomacyScreen sessionId="ses-1" />);
     expect(screen.getAllByText(/next turn advance/).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("labels a drafted war declaration as such and warns it cannot be cancelled", () => {
+    hookMocks.stateFn.mockReturnValue(diplomacyBeginAction(makeLoaded(), "france", "DeclareWar"));
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    // Relation rows also carry "Declare war" buttons — scope to the pinned queue bar.
+    const bar = within(screen.getByText("Command queue").closest("div.sticky") as HTMLElement);
+    expect(bar.getByRole("button", { name: "Declare war" })).not.toBeNull();
+    expect(bar.getByRole("alert").textContent).toMatch(/cannot be cancelled/);
+    expect(bar.queryByRole("button", { name: "Submit command" })).toBeNull();
+  });
+
+  it("shows the battle history section, with an honest empty state", () => {
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    expect(screen.getByText("Battle history")).not.toBeNull();
+    expect(screen.getByText("No battles fought yet")).not.toBeNull();
+  });
+
+  it("keeps the generic submit label for non-war drafts", () => {
+    hookMocks.stateFn.mockReturnValue(
+      diplomacyBeginAction(makeLoaded(), "france", "FormNonAggressionPact"),
+    );
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    expect(screen.getByRole("button", { name: "Submit command" })).not.toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("shows a relation once (no duplicate badge) and hides engine metadata outside debug builds", () => {
+    render(<DiplomacyScreen sessionId="ses-1" />);
+    // Germany is "neutral" at tension 5: the tension band is also "neutral", which
+    // used to render a second, lowercase badge next to "Neutral".
+    expect(screen.getAllByText("Neutral")).toHaveLength(1);
+    expect(screen.queryByText("neutral")).toBeNull();
+    // Revision and month code are debug-only.
+    expect(screen.queryByText(/^REV /)).toBeNull();
+  });
+
+  it("shows the revision badge in a debug build", () => {
+    debugFlag.on = true;
+    try {
+      render(<DiplomacyScreen sessionId="ses-1" />);
+      expect(screen.getByText(/^REV /)).not.toBeNull();
+    } finally {
+      debugFlag.on = false;
+    }
   });
 });

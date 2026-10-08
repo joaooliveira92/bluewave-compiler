@@ -33,9 +33,9 @@ describe("EventLedger", () => {
   it("rejects non-increasing sequences for one aggregate", () => {
     const ledger = new EventLedger();
     ledger.append(budgetEvent());
-    expect(() => ledger.append(budgetEvent({ eventId: "evt-2", sequenceNumber: asSafeInt(1) }))).toThrow(
-      /sequenceNumber must increase/,
-    );
+    expect(() =>
+      ledger.append(budgetEvent({ eventId: "evt-2", sequenceNumber: asSafeInt(1) })),
+    ).toThrow(/sequenceNumber must increase/);
   });
 
   it("tracks sequence numbers independently per aggregate", () => {

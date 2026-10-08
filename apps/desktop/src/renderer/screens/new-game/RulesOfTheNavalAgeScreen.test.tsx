@@ -1,9 +1,10 @@
 /* @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { NewGameOptions } from "../../../shared/new-game-contract.js";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { BluewaveDesktopBridge } from "../../../preload/index.js";
 import type { AdmiralPresetValues } from "./admiral-preset.js";
+import type { PrimaryAction } from "../../shell/primary-action.js";
 import { RulesOfTheNavalAgeScreen } from "./RulesOfTheNavalAgeScreen.js";
 
 beforeAll(() => {
@@ -66,15 +67,22 @@ beforeEach(() => {
 async function setupUi(recommendedPreset: AdmiralPresetValues | null = null) {
   const onCancel = vi.fn();
   const onNext = vi.fn();
+  let primary: PrimaryAction | null = null;
   const utils = render(
     <RulesOfTheNavalAgeScreen
       recommendedPreset={recommendedPreset}
       onCancel={onCancel}
       onNext={onNext}
+      onPrimaryActionChange={(action) => {
+        primary = action;
+      }}
     />,
   );
   await screen.findByText("Rules of the Naval Age");
-  return { ...utils, onCancel, onNext };
+  // The heading is there at once; the setting controls only render once the options have loaded
+  // through the bridge. Wait for them, or the tests below race the load on a busy machine.
+  await screen.findByLabelText("Fleet Size");
+  return { ...utils, onCancel, onNext, getPrimary: () => primary };
 }
 
 function openSelectAndPick(labelText: string, optionName: string) {
@@ -104,8 +112,12 @@ describe("RulesOfTheNavalAgeScreen", () => {
 
     openSelectAndPick("Difficulty", "Hard");
 
-    expect(screen.getByRole("button", { name: /Cadet/ }).getAttribute("aria-pressed")).toBe("false");
-    expect(screen.getByRole("button", { name: /Custom/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: /Cadet/ }).getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+    expect(screen.getByRole("button", { name: /Custom/ }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
   });
 
   it.each([
@@ -122,10 +134,12 @@ describe("RulesOfTheNavalAgeScreen", () => {
   });
 
   it("disables Next until options finish loading, then advances with the current preferences", async () => {
-    const { onNext } = await setupUi();
+    const { onNext, getPrimary } = await setupUi();
 
     fireEvent.click(screen.getByRole("button", { name: /Cadet/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Next: Choose Archetype" }));
+    await waitFor(() => expect(getPrimary()?.disabled).toBe(false));
+    expect(getPrimary()?.label).toBe("Next: Choose Archetype");
+    act(() => getPrimary()?.onTrigger());
 
     await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
     const [preferences] = onNext.mock.calls[0] as [Record<string, string>, NewGameOptions];

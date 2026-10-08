@@ -81,12 +81,12 @@ export const OrderSection = memo(function OrderSection({
                 "Select a division."
               ) : pendingRoute === null ? (
                 <>
-                  <strong>{selectedDivision.divisionId}</strong> is in{" "}
+                  <strong>{selectedDivision.fleetName}</strong> is in{" "}
                   {areaName(selectedDivision.areaId)} with no pending route.
                 </>
               ) : (
                 <>
-                  <strong>{selectedDivision.divisionId}</strong> has a pending route{" "}
+                  <strong>{selectedDivision.fleetName}</strong> has a pending route{" "}
                   <strong>{areaName(pendingRoute.fromAreaId)}</strong> →{" "}
                   <strong>{areaName(pendingRoute.toAreaId)}</strong>.
                 </>

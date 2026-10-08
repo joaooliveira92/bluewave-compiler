@@ -1,6 +1,7 @@
 import { memo } from "react";
 import type { MovementCommand } from "@bluewave/campaign-engine";
 import { Badge } from "../../../components/ui/badge.js";
+import { DEBUG_MODE } from "../../../shell/debug-flag.js";
 import { Empty, EmptyDescription, EmptyIcon, EmptyTitle } from "../../../components/ui/empty.js";
 import {
   Table,
@@ -14,11 +15,14 @@ import {
 export interface MovementCommandsTableProps {
   readonly commands: readonly MovementCommand[];
   readonly areaName: (areaId: string) => string;
+  /** Display name for a division id (the fleet it belongs to). */
+  readonly divisionName: (divisionId: string) => string;
 }
 
 export const MovementCommandsTable = memo(function MovementCommandsTable({
   commands,
   areaName,
+  divisionName,
 }: MovementCommandsTableProps) {
   return (
     <section>
@@ -39,19 +43,21 @@ export const MovementCommandsTable = memo(function MovementCommandsTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Command</TableHead>
+                {DEBUG_MODE && <TableHead>Command</TableHead>}
                 <TableHead>Division</TableHead>
                 <TableHead>From</TableHead>
                 <TableHead>To</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Revision</TableHead>
+                {DEBUG_MODE && <TableHead className="text-right">Revision</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {commands.map((command) => (
                 <TableRow key={command.commandId}>
-                  <TableCell className="font-mono text-xs">{command.commandId}</TableCell>
-                  <TableCell className="font-medium">{command.divisionId}</TableCell>
+                  {DEBUG_MODE && (
+                    <TableCell className="font-mono text-xs">{command.commandId}</TableCell>
+                  )}
+                  <TableCell className="font-medium">{divisionName(command.divisionId)}</TableCell>
                   <TableCell>{areaName(command.fromAreaId)}</TableCell>
                   <TableCell>{areaName(command.toAreaId)}</TableCell>
                   <TableCell>
@@ -67,9 +73,11 @@ export const MovementCommandsTable = memo(function MovementCommandsTable({
                       {command.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right font-mono text-xs">
-                    {command.submittedAtRevision}
-                  </TableCell>
+                  {DEBUG_MODE && (
+                    <TableCell className="text-right font-mono text-xs">
+                      {command.submittedAtRevision}
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

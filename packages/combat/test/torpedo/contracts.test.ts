@@ -507,9 +507,7 @@ describe("AC-24 (INC-8): the torpedo_models_v1 contract + validate guard (fail c
 
 describe("AC-24 (INC-8): the torpedo_launch_authority_v1 contract in the full *_v1 rollup (fail closed)", () => {
   it("ships the *_v1 policy id + SHIPPED_TORPEDO_LAUNCH_AUTHORITY_CONTRACT and validates", () => {
-    expect(SHIPPED_TORPEDO_LAUNCH_AUTHORITY_CONTRACT.policyId).toBe(
-      "torpedo_launch_authority_v1",
-    );
+    expect(SHIPPED_TORPEDO_LAUNCH_AUTHORITY_CONTRACT.policyId).toBe("torpedo_launch_authority_v1");
     expect(() =>
       validateTorpedoLaunchAuthorityContract(SHIPPED_TORPEDO_LAUNCH_AUTHORITY_CONTRACT),
     ).not.toThrow();

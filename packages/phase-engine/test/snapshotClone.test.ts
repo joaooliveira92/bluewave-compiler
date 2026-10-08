@@ -1,26 +1,93 @@
-
 import type { CampaignSnapshot } from "@bluewave/campaign";
 import { describe, expect, it } from "vite-plus/test";
 import * as snapshotClone from "../src/snapshotClone";
 
 function minimalSnapshot(): CampaignSnapshot {
   return {
-    version: 1, turnNumber: 0, campaignId: "c1", startYear: 1880, startMonth: 1,
+    version: 1,
+    turnNumber: 0,
+    campaignId: "c1",
+    startYear: 1880,
+    startMonth: 1,
     slots: [{ nationId: "n1", type: "human" }],
-    world: { areas: [{ id: "a1", name: "Atlantic", type: "sea", controller: null } as any], routes: [], ports: [] },
-    nations: new Map([["n1", {
-      id: "n1", name: "Test", tag: "TST", treasury: 100, income: 10, expenses: 5,
-      baseResources: {} as any, navalAppropriationRateBp: 1000, maintenanceCost: 1,
-      fleets: [{ id: "f1", nationId: "n1", name: "Fleet", ships: [{ id: "s1", name: "Ship", classId: "c1", nationId: "n1", locationAreaId: "a1", designVersionId: "d1", hitPoints: 10, maxHitPoints: 10, speed: 1, firepower: 1, armor: 1, isUnderConstruction: false, constructionProgress: 0, constructionTotalWork: 0, inBattleId: undefined } as any], locationAreaId: "a1" } as any],
-      divisions: [], research: { nationId: "n1", technologies: [], currentProjectTechId: undefined, fieldPriorities: {} as any, researchBudget: 0, activeCandidates: [], discoveredTechs: [] } as any,
-      constructionProjects: [], isPlayable: true, isAI: false,
-    } as any]]),
-    wars: { wars: [], battles: [], participantMemberships: [], blockadeState: [], battleManifests: undefined as any },
+    world: {
+      areas: [{ id: "a1", name: "Atlantic", type: "sea", controller: null } as any],
+      routes: [],
+      ports: [],
+    },
+    nations: new Map([
+      [
+        "n1",
+        {
+          id: "n1",
+          name: "Test",
+          tag: "TST",
+          treasury: 100,
+          income: 10,
+          expenses: 5,
+          baseResources: {} as any,
+          navalAppropriationRateBp: 1000,
+          maintenanceCost: 1,
+          fleets: [
+            {
+              id: "f1",
+              nationId: "n1",
+              name: "Fleet",
+              ships: [
+                {
+                  id: "s1",
+                  name: "Ship",
+                  classId: "c1",
+                  nationId: "n1",
+                  locationAreaId: "a1",
+                  designVersionId: "d1",
+                  hitPoints: 10,
+                  maxHitPoints: 10,
+                  speed: 1,
+                  firepower: 1,
+                  armor: 1,
+                  isUnderConstruction: false,
+                  constructionProgress: 0,
+                  constructionTotalWork: 0,
+                  inBattleId: undefined,
+                } as any,
+              ],
+              locationAreaId: "a1",
+            } as any,
+          ],
+          divisions: [],
+          officers: [],
+          research: {
+            nationId: "n1",
+            technologies: [],
+            currentProjectTechId: undefined,
+            fieldPriorities: {} as any,
+            researchBudget: 0,
+            activeCandidates: [],
+            discoveredTechs: [],
+          } as any,
+          constructionProjects: [],
+          aircraft: {} as any,
+          carrierOperations: {} as any,
+          isPlayable: true,
+          isAI: false,
+        } as any,
+      ],
+    ]),
+    wars: {
+      wars: [],
+      battles: [],
+      participantMemberships: [],
+      blockadeState: [],
+      battleManifests: undefined as any,
+    },
     politics: { relations: [], shells: {} as any },
     intelligence: { shells: {} as any },
-    designs: new Map(), designFamilies: new Map(),
+    designs: new Map(),
+    designFamilies: new Map(),
     strategicWeather: undefined as any,
-    rulesetVersion: "1", compatibilityVersion: "1",
+    rulesetVersion: "1",
+    compatibilityVersion: "1",
   } as unknown as CampaignSnapshot;
 }
 
@@ -31,7 +98,9 @@ describe("cloneSnapshot hardening", () => {
     expect(b).toEqual(a);
     expect(b).not.toBe(a);
     expect(b.nations).not.toBe(a.nations);
-    expect(b.nations.get("n1")?.fleets[0].ships[0]).not.toBe(a.nations.get("n1")!.fleets[0].ships[0]);
+    expect(b.nations.get("n1")?.fleets[0].ships[0]).not.toBe(
+      a.nations.get("n1")!.fleets[0].ships[0],
+    );
     // mutate clone does not affect original
     (b.nations.get("n1") as any).treasury = 999;
     expect(a.nations.get("n1")!.treasury).toBe(100);
@@ -65,7 +134,22 @@ describe("cloneSnapshot hardening", () => {
   it("handles Date correctly", () => {
     const a = minimalSnapshot();
     const d = new Date("1905-05-27T00:00:00Z");
-    (a.wars.wars as any) = [{ id: "w1", attackerSideId: "s1", defenderSideId: "s2", attackerSideMembers: [], defenderSideMembers: [], attackerWarScore: 0, defenderWarScore: 0, attackerId: "n1", defenderId: "n2", startDate: d, status: "active", endDate: undefined }];
+    (a.wars.wars as any) = [
+      {
+        id: "w1",
+        attackerSideId: "s1",
+        defenderSideId: "s2",
+        attackerSideMembers: [],
+        defenderSideMembers: [],
+        attackerWarScore: 0,
+        defenderWarScore: 0,
+        attackerId: "n1",
+        defenderId: "n2",
+        startDate: d,
+        status: "active",
+        endDate: undefined,
+      },
+    ];
     const b = snapshotClone.cloneSnapshot(a);
     expect(b.wars.wars[0].startDate).toEqual(d);
     expect(b.wars.wars[0].startDate).not.toBe(d);
@@ -105,15 +189,21 @@ describe("cloneSnapshot hardening", () => {
   it("boundary: empty collections", () => {
     const a = minimalSnapshot();
     a.nations.get("n1")!.fleets = [];
-    a.world.areas = []; a.world.routes = []; a.world.ports = [];
+    a.world.areas = [];
+    a.world.routes = [];
+    a.world.ports = [];
     const b = snapshotClone.cloneSnapshot(a);
     expect(b.world.areas).toEqual([]);
     expect(b.nations.get("n1")!.fleets).toEqual([]);
   });
 
   it("invalid input throws deterministic error", () => {
-    expect(() => snapshotClone.cloneSnapshot(null as any)).toThrow("snapshot must be a non-null object");
-    expect(() => snapshotClone.cloneSnapshot(undefined as any)).toThrow("snapshot must be a non-null object");
+    expect(() => snapshotClone.cloneSnapshot(null as any)).toThrow(
+      "snapshot must be a non-null object",
+    );
+    expect(() => snapshotClone.cloneSnapshot(undefined as any)).toThrow(
+      "snapshot must be a non-null object",
+    );
     const bad = minimalSnapshot() as any;
     bad.nations = {}; // not a Map
     expect(() => snapshotClone.cloneSnapshot(bad)).toThrow("nations must be a Map");
@@ -121,14 +211,17 @@ describe("cloneSnapshot hardening", () => {
 
   it("CLONE_COVERAGE is frozen", () => {
     expect(Object.isFrozen(snapshotClone.CLONE_COVERAGE)).toBe(true);
-    for (const v of Object.values(snapshotClone.CLONE_COVERAGE)) expect(Object.isFrozen(v)).toBe(true);
+    for (const v of Object.values(snapshotClone.CLONE_COVERAGE))
+      expect(Object.isFrozen(v)).toBe(true);
   });
 
   it("determinism: key order follows F", () => {
     const a = minimalSnapshot();
     const b = snapshotClone.cloneSnapshot(a);
-    expect(Object.keys(b.world)).toEqual(["areas","routes","ports"]);
-    expect(Object.keys(b.nations.get("n1")!)).toEqual([...snapshotClone.CLONE_COVERAGE["NationState"]]);
+    expect(Object.keys(b.world)).toEqual(["areas", "routes", "ports"]);
+    expect(Object.keys(b.nations.get("n1")!)).toEqual([
+      ...snapshotClone.CLONE_COVERAGE["NationState"],
+    ]);
   });
 
   it("does not share nested free-form objects", () => {

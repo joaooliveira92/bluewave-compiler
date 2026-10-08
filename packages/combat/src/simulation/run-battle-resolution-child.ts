@@ -136,8 +136,45 @@ const input: ResolveBattleAutoInput = {
   rngVersion: "rng_v1",
 };
 
+// P-1 AC-8: the same battle with 1880-scale, torpedo-armed ironclads (ADR-0046) —
+// launches/hits and hashes must be byte-identical across processes.
+function armedIronclads(designs: Map<string, CompiledDesignVersion>) {
+  return new Map(
+    [...designs].map(([id, d]) => [
+      id,
+      {
+        ...d,
+        normalizedSpeedUms: SafeInt(14 * 514_444),
+        normalizedDisplacementKg: SafeInt(11_000_000),
+        mainGunsCount: SafeInt(4),
+        torpedoArmament: [
+          {
+            mountType: "UNDERWATER_FIXED",
+            tubeCount: SafeInt(2),
+            torpedoModelId: "whitehead_14in_1886",
+          },
+          {
+            mountType: "ABOVE_WATER_TRAINABLE",
+            tubeCount: SafeInt(2),
+            torpedoModelId: "whitehead_14in_1886",
+          },
+        ],
+      },
+    ]),
+  );
+}
+
 function main(): void {
   const result = resolveBattleAuto(input);
+  const torpedoRuns = ["s1", "s2", "s3", "s4", "s5"].map((seed) => {
+    const r = resolveBattleAuto({
+      ...input,
+      campaignSeed: seed,
+      attacker: { ...input.attacker, designs: armedIronclads(input.attacker.designs) },
+      defender: { ...input.defender, designs: armedIronclads(input.defender.designs) },
+    });
+    return { seed, resultHash: r.resultHash, torpedoSummary: r.torpedoSummary ?? null };
+  });
   const out = {
     resultHash: result.resultHash,
     battleEndReason: result.battleEndReason,
@@ -153,6 +190,7 @@ function main(): void {
       attackerSunkIds: result.attackerSunkIds,
       defenderSunkIds: result.defenderSunkIds,
     },
+    torpedoRuns,
   };
   process.stdout.write(canonicalSerialize(out) + "\n");
 }

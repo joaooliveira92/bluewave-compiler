@@ -5,6 +5,7 @@ import {
   applyProjectionLoaded,
   initialOverviewScreenState,
   monthLabel,
+  shipNames,
   summarizeFleet,
   totalPortCapacity,
 } from "./overview-screen-state.js";
@@ -14,10 +15,15 @@ const projection: PlayerProjection = {
   campaignIdentity: "campaign_1",
   revision: 3 as PlayerProjection["revision"],
   month: { year: 1900, month: 3 },
+  nationName: "United Kingdom",
+  projectedSurplusDeficit: 1000,
   economy: {
     treasury: 50000,
     monthlyAppropriation: 4000,
     shipyardCapacity: 50,
+    constructionSpend: 500,
+    researchSpend: 300,
+    maintenanceCost: 200,
   },
   knownTechnologyIds: ["tech_steel_hull", "tech_triple_expansion"],
   fleet: [
@@ -94,5 +100,14 @@ describe("overview-screen-state", () => {
 
   it("falls back to the numeric month when out of range", () => {
     expect(monthLabel({ year: 1900, month: 13 })).toBe("13 1900");
+  });
+
+  it("lists ships by display name in fleet/division order, never by design id", () => {
+    expect(shipNames(projection)).toEqual(["HMS Majestic", "HMS Magnificent", "HMS Diadem"]);
+    expect(shipNames(projection).join(" ")).not.toMatch(/design_/);
+  });
+
+  it("lists no ships for an empty fleet", () => {
+    expect(shipNames({ ...projection, fleet: [] })).toEqual([]);
   });
 });

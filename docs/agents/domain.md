@@ -49,3 +49,9 @@ If the concept you need isn't in the glossary yet, that's a signal — either yo
 If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
 
 > _Contradicts ADR-0007 (event-sourced orders) — but worth reopening because…_
+
+## Glossary filename (project override)
+
+Upstream skills (≥ 2026-10-07) look for `GLOSSARY.md`; this repo's canonical glossary is
+`CONTEXT.md`. `GLOSSARY.md` is a symlink to `CONTEXT.md` — edit `CONTEXT.md`, and treat
+either name as the same file.

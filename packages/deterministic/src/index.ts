@@ -79,3 +79,5 @@ export function hashWithContext(data: string, context: string): string {
   const ctx = new TextEncoder().encode(context + "\0" + data);
   return hex(sha256(ctx));
 }
+
+export { integerRoot, powRational } from "./fixedMath.js";

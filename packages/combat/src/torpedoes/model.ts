@@ -21,10 +21,7 @@ import {
   TUBE_HIT_HAZARD_POLICIES,
   type TubeHitHazardPolicy,
 } from "./constants.js";
-import {
-  INVALID_TORPEDO_MODEL_DEFINITION,
-  TORPEDO_STATE_INVARIANT_FAILED,
-} from "./reasonCodes.js";
+import { INVALID_TORPEDO_MODEL_DEFINITION, TORPEDO_STATE_INVARIANT_FAILED } from "./reasonCodes.js";
 
 // Content version of the research-grounded model set (INC-1 seeded a subset;
 // INC-8 rolls up the FULL torpedo_models_v1 set — 8 models, see the shipped
@@ -541,7 +538,13 @@ export const SHIPPED_TORPEDO_MODELS: readonly TorpedoModelDefinition[] = [
     reliabilityBp: 88_000,
     depthKeepingProfile: "primitive",
     guidanceCapability: "none",
-    compatibleLauncherFamilyIds: ["14in_above_water_fixed", "14in_above_water_trainable"],
+    // P-1 / ADR-0046: 1880 ironclads (e.g. Inflexible) fired the 14-in Whitehead
+    // from submerged bow tubes — docs/research/p1-1880-torpedo-armament.md.
+    compatibleLauncherFamilyIds: [
+      "14in_above_water_fixed",
+      "14in_above_water_trainable",
+      "14in_underwater_fixed",
+    ],
     oxygenState: null,
     tubeHitHazardPolicyId: "ORDINARY",
     contentVersion: torpedoModelsContentVersion,

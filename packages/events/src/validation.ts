@@ -13,55 +13,67 @@ const nonNegativeSafeInt = safeInt.refine((value) => value >= 0, {
   message: "Expected a non-negative safe integer",
 });
 
-export const NationBudgetChangedSchema = z.object({
-  kind: z.literal("NationBudgetChanged"),
-  nationId: nonEmptyString,
-  previousTreasury: safeInt,
-  newTreasury: safeInt,
-  delta: safeInt,
-  reason: nonEmptyString,
-}).strict();
+export const NationBudgetChangedSchema = z
+  .object({
+    kind: z.literal("NationBudgetChanged"),
+    nationId: nonEmptyString,
+    previousTreasury: safeInt,
+    newTreasury: safeInt,
+    delta: safeInt,
+    reason: nonEmptyString,
+  })
+  .strict();
 
-export const ConstructionProgressedSchema = z.object({
-  kind: z.literal("ConstructionProgressed"),
-  projectId: nonEmptyString,
-  nationId: nonEmptyString,
-  previousWork: nonNegativeSafeInt,
-  newWork: nonNegativeSafeInt,
-  workAdded: nonNegativeSafeInt,
-}).strict();
+export const ConstructionProgressedSchema = z
+  .object({
+    kind: z.literal("ConstructionProgressed"),
+    projectId: nonEmptyString,
+    nationId: nonEmptyString,
+    previousWork: nonNegativeSafeInt,
+    newWork: nonNegativeSafeInt,
+    workAdded: nonNegativeSafeInt,
+  })
+  .strict();
 
-export const ResearchProgressedSchema = z.object({
-  kind: z.literal("ResearchProgressed"),
-  nationId: nonEmptyString,
-  techId: nonEmptyString,
-  previousPoints: nonNegativeSafeInt,
-  newPoints: nonNegativeSafeInt,
-}).strict();
+export const ResearchProgressedSchema = z
+  .object({
+    kind: z.literal("ResearchProgressed"),
+    nationId: nonEmptyString,
+    techId: nonEmptyString,
+    previousPoints: nonNegativeSafeInt,
+    newPoints: nonNegativeSafeInt,
+  })
+  .strict();
 
-export const BattleInitiatedSchema = z.object({
-  kind: z.literal("BattleInitiated"),
-  battleId: nonEmptyString,
-  attackerId: nonEmptyString,
-  defenderId: nonEmptyString,
-  areaId: nonEmptyString,
-}).strict();
+export const BattleInitiatedSchema = z
+  .object({
+    kind: z.literal("BattleInitiated"),
+    battleId: nonEmptyString,
+    attackerId: nonEmptyString,
+    defenderId: nonEmptyString,
+    areaId: nonEmptyString,
+  })
+  .strict();
 
-export const BattleResolvedSchema = z.object({
-  kind: z.literal("BattleResolved"),
-  battleId: nonEmptyString,
-  winnerId: nonEmptyString,
-  loserId: nonEmptyString,
-}).strict();
+export const BattleResolvedSchema = z
+  .object({
+    kind: z.literal("BattleResolved"),
+    battleId: nonEmptyString,
+    winnerId: nonEmptyString,
+    loserId: nonEmptyString,
+  })
+  .strict();
 
-export const TechnologyDiscoveredSchema = z.object({
-  kind: z.literal("TechnologyDiscovered"),
-  nationId: nonEmptyString,
-  techId: nonEmptyString,
-  researchFieldId: nonEmptyString,
-  discoveryMonth: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Expected YYYY-MM"),
-  cost: nonNegativeSafeInt,
-}).strict();
+export const TechnologyDiscoveredSchema = z
+  .object({
+    kind: z.literal("TechnologyDiscovered"),
+    nationId: nonEmptyString,
+    techId: nonEmptyString,
+    researchFieldId: nonEmptyString,
+    discoveryMonth: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Expected YYYY-MM"),
+    cost: nonNegativeSafeInt,
+  })
+  .strict();
 
 export const DomainEventBodySchema = z.discriminatedUnion("kind", [
   NationBudgetChangedSchema,

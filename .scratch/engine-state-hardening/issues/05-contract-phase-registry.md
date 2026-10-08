@@ -20,7 +20,7 @@ allowed, fails closed with a diagnostic.
 **Blocked by:** None — can start immediately.
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Frontier:** yes
 
 - [x] Single phase-execution path exists; the no-op phase facade no longer presents as an alternate engine (retired or folded).
@@ -29,3 +29,26 @@ allowed, fails closed with a diagnostic.
 - [x] Existing behavior/goldens unchanged where the registry already matches reality (byte-identical), with any genuine mismatch resolved deliberately and documented.
 - [x] Registry access rules are covered by runtime tests (not only unit tests of the `hasAccess` helper).
 - [x] Full repo gate green: uncached build, `tsc -b`, lint, all per-package tests, goldens unchanged, two-process determinism byte-identical.
+
+## Resolution
+
+Implemented on `dev` (this issue, commit "contract PhaseRegistry into real
+execution path"). The monolithic month executor now runs every phase through the
+registry contract at runtime: each phase's body is guarded by
+`MonthExecutor.assertPhase`, which checks its authoritative runtime footprint
+(`PHASE_FOOTPRINTS` in `packages/phase-engine/src/phase-guard.ts` —
+read/writePermissions + rngAllowed) against the registry's declared definition
+via `PhaseGuard.assert`. A phase touching a resource it lacks permission for, or
+drawing randomness when none is allowed, records a stable `PHASE_ACCESS_DENIED`
+diagnostic and the phase is failed closed (its body does not run). RNG is
+phase-scoped: `phaseGuard.rng(phaseId, seed)` returns a per-phase stream recorded
+in the random ledger. The old no-op phase facade is retired — the month executor
+is the single execution path. Behavior is byte-identical where the registry
+already matches reality (goldens unchanged); the fail-closed guard is exercised
+by runtime tests (not just `hasAccess` unit tests) in
+`packages/phase-engine/test/month.test.ts` (a phase denied a required permission
+fails the run with `PHASE_ACCESS_DENIED`, and a well-formed run is never denied).
+
+Validation: `tsc --noEmit` 0, `vp lint .` 0, all 135 `@bluewave/phase-engine`
+tests green. Full-repo `check` blocked at baseline by an unrelated
+content-generation import in `content-schema` (see ticket 03 Resolution).

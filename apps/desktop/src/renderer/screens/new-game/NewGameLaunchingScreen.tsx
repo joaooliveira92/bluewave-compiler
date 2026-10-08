@@ -23,11 +23,7 @@ export function NewGameLaunchingScreen({ error, onBackToReview }: NewGameLaunchi
   if (error !== null) {
     return (
       <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center gap-6 p-8 text-center">
-        <ScreenHeader
-          icon={<span>⚓</span>}
-          title="Commissioning failed"
-          description={error}
-        />
+        <ScreenHeader icon={<span>⚓</span>} title="Commissioning failed" description={error} />
         <Button type="button" variant="ghost" onClick={onBackToReview}>
           Back to Commissioning Review
         </Button>

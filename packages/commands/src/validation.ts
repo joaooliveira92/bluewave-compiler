@@ -1,7 +1,36 @@
+import type { CampaignSnapshot } from "@bluewave/campaign";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import type { CommandRecord, CommandTypeDefinition, CommandValidationRecord } from "./types.js";
+import type { DiagnosticCode } from "@bluewave/diagnostics";
+import type { CommandBody, CommandEnvelope } from "./envelope.js";
+import type {
+  CommandOutcome,
+  CommandRecord,
+  CommandTypeDefinition,
+  CommandValidationRecord,
+  LifecycleStepResult,
+} from "./types.js";
 
 export type PredicateResult = { predicateId: string; passed: boolean; reasonCode?: string };
+
+/**
+ * Build the rejected outcome for a payload validation failure (diagnostic stage
+ * `validate`, snapshot hash recomputed from the snapshot under validation).
+ */
+export function rejectValidation(
+  envelope: CommandEnvelope<CommandBody>,
+  snapshot: CampaignSnapshot,
+  code: string,
+  message: string,
+): LifecycleStepResult {
+  const snapshotHash = sha256Hex(canonicalSerialize(snapshot));
+  const outcome: CommandOutcome = {
+    type: "rejected",
+    commandId: envelope.commandId,
+    snapshotHash,
+    diagnostic: { code: code as DiagnosticCode, severity: "error", stage: "validate", message },
+  };
+  return { ok: false, outcome };
+}
 
 export function createValidationRecord(
   command: CommandRecord,

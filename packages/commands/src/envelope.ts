@@ -14,6 +14,11 @@ export interface CommandEnvelope<TBody> {
 export type CommandBody =
   | BudgetProjectCommand
   | SetResearchPriorityCommand
+  | SetBudgetAllocationCommand
+  | MoveFleetCommand
+  | SubmitDesignCommand
+  | AssignOfficerCommand
+  | RelieveOfficerCommand
   | DeclareWarCommand
   | AcceptPeaceCommand
   | FormAllianceCommand
@@ -37,6 +42,45 @@ export interface SetResearchPriorityCommand {
   nationId: string;
   fieldPriorities: Record<string, SafeInt>;
   exactTechId?: string;
+}
+export interface SetBudgetAllocationCommand {
+  type: "SetBudgetAllocation";
+  nationId: string;
+  /** Naval appropriation rate in basis points (ADR-0060 bounds). */
+  appropriationRateBp: SafeInt;
+  /** Standing monthly research budget (ADR-0060 bounds). */
+  researchBudget: SafeInt;
+}
+export interface MoveFleetCommand {
+  type: "MoveFleet";
+  nationId: string;
+  fleetId: string;
+  toAreaId: string;
+}
+/**
+ * Submits a component-level ship design (ADR-0066). `draft` is a `@bluewave/ship-design` DesignDraft as JSON; the
+ * lifecycle only checks its shape and ids, the authoritative compile happens when the month applies the command.
+ */
+export interface SubmitDesignCommand {
+  type: "SubmitDesign";
+  nationId: string;
+  designVersionId: string;
+  designFamilyId: string;
+  className: string;
+  hullType: string;
+  machineryType: string;
+  draft: unknown;
+}
+export interface AssignOfficerCommand {
+  type: "AssignOfficer";
+  nationId: string;
+  officerId: string;
+  divisionId: string;
+}
+export interface RelieveOfficerCommand {
+  type: "RelieveOfficer";
+  nationId: string;
+  divisionId: string;
 }
 export interface DeclareWarCommand {
   type: "DeclareWar";

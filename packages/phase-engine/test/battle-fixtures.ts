@@ -116,6 +116,8 @@ export function makeNation(id: string, ships: Ship[]): NationState {
       discoveredTechs: [],
     },
     constructionProjects: [],
+    aircraft: {} as Record<string, unknown>,
+    carrierOperations: {} as Record<string, unknown>,
     isPlayable: id === ATTACKER_NATION,
     isAI: id !== ATTACKER_NATION,
   };

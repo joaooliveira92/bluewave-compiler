@@ -13,14 +13,17 @@ import type {
   SetResearchPriorityCommandPayload,
 } from "../../shared/research-contract.js";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
+import { SaveStore } from "@bluewave/persistence";
 import type { CampaignSessionRecord } from "../campaignSessions.js";
 import { getCampaignSession } from "../campaignSessions.js";
 import {
+  deleteQueuedResearchCommand,
   lookupQueuedResearchCommand,
   queueResearchEnvelope,
   type PendingResearchCommand,
 } from "../researchWorkspace.js";
 import { fingerprintOfBody } from "../pendingCommands.js";
+import { currentRevision, deterministicTimestamp, verifyEnvelope } from "./commandEnvelope.js";
 
 /**
  * The Research & Technology screen's two bridge commands
@@ -127,6 +130,20 @@ export async function setResearchPriorityCommand(
     envelope,
   });
 
+  // INC-5 autosave: a successful SetResearchPriority is not successful until
+  // its persistence contract succeeds (spec §17). The queued command is
+  // in-memory, so we persist the current authoritative state via SaveStore.
+  // If the save fails, roll back the queued envelope and surface SAVE_FAILED
+  // — no partial in-memory state remains (construction slice pattern).
+  const store = new SaveStore();
+  try {
+    store.save(record.state, record.saveDir);
+  } catch (err) {
+    deleteQueuedResearchCommand(payload.sessionId, payload.transportRequestId);
+    const message = err instanceof Error ? err.message : String(err);
+    return { outcome: "error", reason: "SAVE_FAILED", diagnostics: [message] };
+  }
+
   return { outcome: "success", value: outcomeFor(envelope), diagnostics: [] };
 }
 
@@ -180,55 +197,9 @@ function buildResearchEnvelope(
   };
 }
 
-/** Pure integer arithmetic (UTC), identical to `AiCommandGenerator`'s
- * deterministic timestamp: turn 0 → 1910-01-01T00:00:00.000Z, one day per
- * turn number (no wall clock, no locale). */
-function deterministicTimestamp(record: CampaignSessionRecord): string {
-  const daysOffset = ((Number(record.state.snapshot.turnNumber) % 365) + 365) % 365;
-  const ms = Date.UTC(1910, 0, 1) + daysOffset * 24 * 60 * 60 * 1000;
-  return new Date(ms).toISOString();
-}
-
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
-
-type EnvelopeVerification =
-  | { outcome: "success"; record: CampaignSessionRecord }
-  | {
-      outcome: "rejected";
-      reason: string;
-      diagnostics: readonly string[];
-      currentRevision?: number;
-    }
-  | { outcome: "error"; reason: string; diagnostics: readonly string[] };
-
-function verifyEnvelope(sessionId: string, expectedRevision: number): EnvelopeVerification {
-  const record = getCampaignSession(sessionId);
-  if (!record) {
-    return {
-      outcome: "error",
-      reason: "SESSION_NOT_FOUND",
-      diagnostics: [`No active campaign session ${sessionId}`],
-    };
-  }
-  const current = currentRevision(record);
-  if (expectedRevision !== current) {
-    return {
-      outcome: "rejected",
-      reason: "REVISION_MISMATCH",
-      diagnostics: [
-        `Expected revision ${expectedRevision} but session ${sessionId} is at revision ${current}`,
-      ],
-      currentRevision: current,
-    };
-  }
-  return { outcome: "success", record };
-}
-
-function currentRevision(record: CampaignSessionRecord): number {
-  return Number(record.state.snapshot.turnNumber);
-}
 
 /** Engine-mirror validation (lifecycle `validateSetResearchPriority`):
  * every canonical field present, each weight in {1,2,4}, highCount 1..MAX,

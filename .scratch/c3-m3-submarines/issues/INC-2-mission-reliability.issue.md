@@ -1,8 +1,8 @@
 # INC-2 — Mission Eligibility + Reliability
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** INC-1
+**Status:** DONE (2026-08-28, see §1 for commit hash)
+**Blocked by:** INC-1 (DONE 2026-08-28, `c2caf64`)
 **Frontier:** no
 
 ## Acceptance (spec AC-4, AC-5)

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
+import type { MonthSummary } from "../lib/month-summary.js";
 import {
   campaignShellMode,
   currentShellScreen,
@@ -7,11 +8,28 @@ import {
   reduceCampaignShell,
 } from "./campaign-shell-state.js";
 
+const monthSummary = (month: number, netChange = -56): MonthSummary => ({
+  month: { year: 1900, month },
+  openingTreasury: 1000,
+  closingTreasury: 1000 + netChange,
+  netChange,
+  maintenanceCost: 16,
+  constructionSpending: 0,
+  battles: [],
+  technologiesDiscovered: 0,
+  constructionUpdates: 0,
+  researchUpdates: 0,
+});
+
 const campaign = {
   month: { year: 1900, month: 1 },
   treasury: 50_000,
   revision: 1,
   sessionId: "ses_1",
+  nationName: "United Kingdom",
+  projectedSurplusDeficit: 2_000,
+  activeAlertsCount: null,
+  atWar: false,
 };
 
 describe("campaign shell state", () => {
@@ -28,6 +46,24 @@ describe("campaign shell state", () => {
     expect(opened.loading).toBe(false);
     expect(opened.error).toBeNull();
     expect(currentShellScreen(opened)).toBe("overview");
+  });
+
+  it("carries the INC-1 header fields through the opened campaign overview", () => {
+    const opened = reduceCampaignShell(initialCampaignShellState(), {
+      type: "campaign-opened",
+      campaign,
+    });
+
+    expect(opened.campaign).toEqual(
+      expect.objectContaining({
+        nationName: "United Kingdom",
+        projectedSurplusDeficit: 2_000,
+        // Forward-wired INC-2 slot: null (empty/placeholder) until the
+        // priorities projection lands.
+        activeAlertsCount: null,
+        atWar: false,
+      }),
+    );
   });
 
   it("records an opening failure without leaving the shell loading", () => {
@@ -169,6 +205,7 @@ describe("campaign shell state", () => {
     const committed = reduceCampaignShell(started, {
       type: "month-committed",
       campaign: { ...campaign, revision: 2 },
+      summary: monthSummary(2),
     });
     expect(committed.committing).toBe(false);
     expect(committed.campaign?.revision).toBe(2);
@@ -252,5 +289,69 @@ describe("campaign shell state", () => {
       kind: "new-game-fleet-method",
       screen: "new-game-fleet-method",
     });
+  });
+});
+
+describe("campaign-refreshed guard", () => {
+  const opened = reduceCampaignShell(initialCampaignShellState(), {
+    type: "campaign-opened",
+    campaign,
+  });
+
+  it("applies a refresh for the open campaign", () => {
+    const next = reduceCampaignShell(opened, {
+      type: "campaign-refreshed",
+      campaign: { ...campaign, revision: 2 },
+    });
+    expect(next.campaign?.revision).toBe(2);
+  });
+
+  it("ignores a refresh that arrives after the campaign was closed", () => {
+    const closed = reduceCampaignShell(opened, { type: "campaign-closed" });
+    const next = reduceCampaignShell(closed, { type: "campaign-refreshed", campaign });
+    expect(next.campaign).toBeNull();
+  });
+
+  it("ignores a refresh that belongs to a different session", () => {
+    const next = reduceCampaignShell(opened, {
+      type: "campaign-refreshed",
+      campaign: { ...campaign, sessionId: "some-other-session", revision: 9 },
+    });
+    expect(next.campaign?.revision).toBe(campaign.revision);
+  });
+});
+
+describe("month history", () => {
+  const opened = reduceCampaignShell(initialCampaignShellState(), {
+    type: "campaign-opened",
+    campaign,
+  });
+  const commit = (state: ReturnType<typeof reduceCampaignShell>, month: number) =>
+    reduceCampaignShell(state, {
+      type: "month-committed",
+      campaign: { ...campaign, revision: month },
+      summary: monthSummary(month),
+    });
+
+  it("starts empty and records each committed month, newest first", () => {
+    expect(opened.monthHistory).toEqual([]);
+    const after = commit(commit(opened, 2), 3);
+    expect(after.monthHistory.map((m) => m.month.month)).toEqual([3, 2]);
+  });
+
+  it("starts afresh when a campaign is opened, and is cleared when it closes", () => {
+    const withHistory = commit(opened, 2);
+    const reopened = reduceCampaignShell(withHistory, { type: "campaign-opened", campaign });
+    expect(reopened.monthHistory).toEqual([]);
+    const closed = reduceCampaignShell(withHistory, { type: "campaign-closed" });
+    expect(closed.monthHistory).toEqual([]);
+  });
+
+  it("does not add a month to the history when the commit fails", () => {
+    const failed = reduceCampaignShell(commit(opened, 2), {
+      type: "month-commit-failed",
+      message: "boom",
+    });
+    expect(failed.monthHistory).toHaveLength(1);
   });
 });

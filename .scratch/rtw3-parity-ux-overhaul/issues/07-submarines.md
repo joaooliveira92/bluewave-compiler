@@ -1,0 +1,9 @@
+# Submarine roster + auto-build
+
+Status: done for what the engine supports — explicit deferred panel with reasons; engine tickets needed (docs/research/rtw3-intel-and-submarines-engine-surface.md)
+Frontier: no
+Blocked by: none (04 done)
+Requirements: F-3
+
+## Acceptance
+As spec.

@@ -2,6 +2,7 @@
 import type { SafeInt } from "@bluewave/contracts";
 import type { CanonicalEnvelope } from "@bluewave/deterministic";
 import type { PermanentDivision } from "./division.js";
+import type { Officer } from "./officers.js";
 
 export interface Ship {
   id: string;
@@ -41,6 +42,8 @@ export interface ResearchState {
   currentProjectTechId?: string;
   fieldPriorities: Record<string, SafeInt>;
   researchBudget: SafeInt;
+  /** Player-set monthly research budget that refills `researchBudget` each month (ADR-0060). */
+  standingResearchBudget?: SafeInt;
   activeCandidates: Map<string, string>;
   discoveredTechs: string[];
 }
@@ -61,6 +64,14 @@ export interface CompiledDesignVersion {
   crewComplement: SafeInt;
   contentVersion: string;
   compiledHash: string;
+  /** P-1: as-built torpedo mounts (absent = no torpedo armament). */
+  torpedoArmament?: readonly CompiledTorpedoMount[];
+}
+
+export interface CompiledTorpedoMount {
+  mountType: string;
+  tubeCount: SafeInt;
+  torpedoModelId: string;
 }
 
 export interface DesignFamily {
@@ -97,6 +108,18 @@ export interface BattleInstance {
   result?: BattleResult;
 }
 
+/** A ship lost in battle, recorded before the engine removes it from its fleet (ADR-0061). */
+export interface LostShipRecord {
+  shipId: string;
+  name: string;
+  classId: string;
+  nationId: string;
+  /** Campaign month the battle resolved in. */
+  month: string;
+  /** Observational cause from the tactical report (ADR-0052); absent for the legacy path. */
+  cause?: string;
+}
+
 export interface BattleResult {
   // B-6 INC-3/ADR-0026 §7: a tie / time-limit battle ends with BOTH null
   // (neither side eliminated) — such a battle contributes no war score, no
@@ -110,6 +133,8 @@ export interface BattleResult {
   defenderLosses: string[];
   damageReport: Record<string, SafeInt>;
   explanation: string[];
+  /** Details of every ship lost; absent when none were lost or for pre-ADR-0061 saves. */
+  lostShips?: LostShipRecord[];
 }
 
 export interface BattleManifestSide {
@@ -205,8 +230,12 @@ export interface NationState {
   maintenanceCost: SafeInt;
   fleets: FleetState[];
   divisions: PermanentDivision[];
+  /** The nation's officer corps (ADR-0065); absent in saves from earlier builds. */
+  officers?: Officer[];
   research: ResearchState;
   constructionProjects: ConstructionProject[];
+  aircraft?: Record<string, unknown>;
+  carrierOperations?: Record<string, unknown>;
   isPlayable: boolean;
   isAI: boolean;
 }

@@ -617,6 +617,62 @@ describe("CampaignCompiler", () => {
     }
   });
 
+  it("P-1 AC-2: compiles optional torpedoArmament; unarmed designs keep their hash shape", () => {
+    const compileDesign = (extra: string) => {
+      const fixture = createFixtureDir();
+      try {
+        writeContentFixture(fixture.path);
+        writeFile(
+          fixture.path,
+          "designs.yaml",
+          `
+- designId: "uk-inflexible-v1"
+  designFamilyId: "inflexible"
+  nationId: "uk"
+  className: "Inflexible"
+  hullType: "ironclad_turret_ship"
+  displacementKg: 11880000
+  speedUms: 14
+  armorBeltUm: 610
+  mainGuns: { caliber: 406, count: 4, mounts: 2 }
+  machineryType: "reciprocating_compound"
+  hitPoints: 60
+  crewComplement: 460
+${extra}`,
+        );
+        const collector = new DiagnosticCollector();
+        const output = new CampaignCompiler().compile(
+          {
+            ...minimalInput(fixture.path),
+            campaignFiles: {
+              ...minimalInput(fixture.path).campaignFiles,
+              designFiles: ["designs.yaml"],
+            },
+          },
+          new AbortController().signal,
+          collector,
+        );
+        expect(collector.hasErrors).toBe(false);
+        return output!.state.snapshot.designs.get("uk-inflexible-v1")!;
+      } finally {
+        fixture.cleanup();
+      }
+    };
+
+    const unarmed = compileDesign("");
+    const armed = compileDesign(`  torpedoArmament:
+    - { mountType: "UNDERWATER_FIXED", tubeCount: 2, torpedoModelId: "whitehead_14in_1886" }
+    - { mountType: "ABOVE_WATER_TRAINABLE", tubeCount: 2, torpedoModelId: "whitehead_14in_1886" }
+`);
+    expect("torpedoArmament" in unarmed).toBe(false);
+    expect(armed.torpedoArmament).toEqual([
+      { mountType: "UNDERWATER_FIXED", tubeCount: 2, torpedoModelId: "whitehead_14in_1886" },
+      { mountType: "ABOVE_WATER_TRAINABLE", tubeCount: 2, torpedoModelId: "whitehead_14in_1886" },
+    ]);
+    expect(armed.compiledHash).not.toBe(unarmed.compiledHash);
+    expect(compileDesign("").compiledHash).toBe(unarmed.compiledHash);
+  });
+
   it("links initial fleet ships to compiled designs via designVersionId", () => {
     const fixture = createFixtureDir();
     try {

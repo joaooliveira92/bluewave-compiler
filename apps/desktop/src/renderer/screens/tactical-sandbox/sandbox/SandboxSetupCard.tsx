@@ -74,7 +74,7 @@ export function SandboxSetupCard() {
                   </div>
                   {side.participants.map((participant, idx) => (
                     <div key={idx} className="text-[12px]">
-                      • {participant.shipId} ({participant.divisionId ?? "unassigned"})
+                      • {participant.shipId} ({participant.divisionId || "unassigned"})
                     </div>
                   ))}
                 </div>

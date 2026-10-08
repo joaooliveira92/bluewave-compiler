@@ -3,6 +3,7 @@ import type {
   BattleResolution,
   CampaignConfiguration,
   CommitMonthResponse,
+  InspectPrioritiesResult,
   OpeningBriefingProjection,
   PlayerProjection,
   RandomDecisionRecord,
@@ -10,8 +11,10 @@ import type {
   ReplayBattleBoundaryResponse,
   TacticalBattleOutcome,
 } from "@bluewave/campaign-engine";
-import type { WorldMapView } from "@bluewave/campaign-engine";
+import type { BattleHistoryView, WorldMapView } from "@bluewave/campaign-engine";
+import type { SaveMetadata } from "@bluewave/persistence";
 import type { BridgeResult, CommandEnvelope } from "./bridge-contract.js";
+import type { DesignCommandOutcome, SubmitDesignCommandPayload } from "./design-contract.js";
 import type {
   LoadCampaignResponse,
   RecoverCampaignResponse,
@@ -34,10 +37,20 @@ import type {
   SubmitMovementCommandPayload,
 } from "./fleet-contract.js";
 import type {
+  BudgetCommandOutcome,
+  BudgetScreenProjection,
+  SubmitBudgetAllocationPayload,
+} from "./budget-contract.js";
+import type {
   DiplomacyCommandOutcome,
   DiplomacyScreenProjection,
   SubmitDiplomacyCommandPayload,
 } from "./diplomacy-contract.js";
+import type {
+  DivisionCommandOutcome,
+  DivisionScreenProjection,
+  SubmitDivisionCommandPayload,
+} from "./division-contract.js";
 import type {
   ResearchPriorityOutcome,
   ResearchScreenProjection,
@@ -106,8 +119,68 @@ export interface InspectMapResult {
   readonly world: WorldMapView;
 }
 
+export interface InspectBattleHistoryResult {
+  readonly revision: number;
+  readonly history: BattleHistoryView;
+}
+
+export interface CopyCampaignResult {
+  readonly revision: number;
+  /** Where the copy was written. */
+  readonly location: string;
+}
+
 export interface SaveCampaignResult {
   readonly revision: number;
+}
+
+/**
+ * Renderer-owned UI state persisted per-campaign in `ui-state.json` (spec §7
+ * "Dismissal" + §8 "Persistence"). One sidecar serves BOTH priority-dismissal
+ * and first-month-inspection state. It is **never authoritative** — it is not
+ * part of the save envelope/hash and is never fed into `MonthExecutor`
+ * (ENGINEERING-CONTRACT: "React and UI state are never authoritative
+ * simulation state"). Expiry is inherent: `dismissedFingerprints` are only
+ * honored while `turnNumber` equals the session's current turn (they expire on
+ * turn advance); `firstMonthInspection` does not expire (once
+ * completed/dismissed, reopening stays disabled across turns).
+ */
+export interface UiStateFirstMonthInspection {
+  readonly status: "not_started" | "in_progress" | "completed" | "dismissed";
+  readonly lastCompletedStep: number;
+}
+
+export interface UiState {
+  /** The turn the sidecar was last written at. */
+  readonly turnNumber: number;
+  /** Dismissal fingerprints (spec §7) — honored only while
+   * `turnNumber === currentTurnNumber`. */
+  readonly dismissedFingerprints: readonly string[];
+  /** Guided first-month inspection state (§8) — persists across turns. */
+  readonly firstMonthInspection?: UiStateFirstMonthInspection;
+}
+
+export interface ReadUiStateResult {
+  readonly uiState: UiState;
+}
+
+/**
+ * Write payload for `writeUiState`. Merge semantics: the sidecar serves BOTH
+ * priority-dismissal (§7) and first-month-inspection (§8) state, and a write
+ * only touches the fields it carries — `dismissedFingerprints` is a
+ * complete-set replace, while an ABSENT `firstMonthInspection` is carried
+ * forward from the stored sidecar (so a dismissal-only writer never erases
+ * inspection progress and vice-versa). An explicit inspection reset is
+ * available by sending `{ status: "not_started", lastCompletedStep: 0 }`.
+ */
+export interface WriteUiStatePayload {
+  readonly sessionId: string;
+  readonly dismissedFingerprints: readonly string[];
+  readonly firstMonthInspection?: UiStateFirstMonthInspection;
+}
+
+export interface WriteUiStateResult {
+  readonly uiState: UiState;
 }
 
 /**
@@ -124,14 +197,18 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "inspectCampaign",
   "inspectOpeningBriefing",
   "inspectMap",
+  "inspectBattleHistory",
+  "inspectPriorities",
   "closeCampaign",
   "saveCampaign",
+  "copyCampaign",
   "commitMonth",
   "generateBattle",
   "resolveBattle",
   "resolveTacticalBattle",
   "replayBattleBoundary",
   "loadCampaign",
+  "listCampaigns",
   "verifyCampaign",
   "replayCampaign",
   "recoverCampaign",
@@ -143,10 +220,17 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "submitMovementCommand",
   "replaceMovementCommand",
   "cancelMovementCommand",
+  "submitDesignCommand",
   "inspectResearchScreen",
   "setResearchPriorityCommand",
   "inspectDiplomacyScreen",
+  "inspectDivisionScreen",
+  "submitDivisionCommand",
+  "inspectBudgetScreen",
+  "submitBudgetAllocation",
   "submitDiplomacyCommand",
+  "readUiState",
+  "writeUiState",
 ] as const;
 
 /**
@@ -171,8 +255,17 @@ export interface CampaignCommandClient {
     payload: string,
   ): Promise<BridgeResult<InspectOpeningBriefingResult>>;
   execute(command: "inspectMap", payload: string): Promise<BridgeResult<InspectMapResult>>;
+  execute(
+    command: "inspectBattleHistory",
+    payload: string,
+  ): Promise<BridgeResult<InspectBattleHistoryResult>>;
+  execute(
+    command: "inspectPriorities",
+    payload: string,
+  ): Promise<BridgeResult<InspectPrioritiesResult>>;
   execute(command: "closeCampaign", payload: string): Promise<BridgeResult<unknown>>;
   execute(command: "saveCampaign", payload: string): Promise<BridgeResult<SaveCampaignResult>>;
+  execute(command: "copyCampaign", payload: string): Promise<BridgeResult<CopyCampaignResult>>;
   execute(
     command: "commitMonth",
     payload: CommitMonthPayload,
@@ -194,6 +287,10 @@ export interface CampaignCommandClient {
     payload: ReplayBattleBoundaryPayload,
   ): Promise<BridgeResult<ReplayBattleBoundaryResponse>>;
   execute(command: "loadCampaign", payload: undefined): Promise<BridgeResult<LoadCampaignResponse>>;
+  execute(
+    command: "listCampaigns",
+    payload: undefined,
+  ): Promise<BridgeResult<readonly SaveMetadata[]>>;
   execute(
     command: "verifyCampaign",
     payload: undefined,
@@ -235,6 +332,10 @@ export interface CampaignCommandClient {
     payload: ReplaceMovementCommandPayload,
   ): Promise<BridgeResult<MovementCommandOutcome>>;
   execute(
+    command: "submitDesignCommand",
+    payload: SubmitDesignCommandPayload,
+  ): Promise<BridgeResult<DesignCommandOutcome>>;
+  execute(
     command: "cancelMovementCommand",
     payload: CancelMovementCommandPayload,
   ): Promise<BridgeResult<MovementCommandOutcome>>;
@@ -254,4 +355,25 @@ export interface CampaignCommandClient {
     command: "submitDiplomacyCommand",
     payload: SubmitDiplomacyCommandPayload,
   ): Promise<BridgeResult<DiplomacyCommandOutcome>>;
+  execute(
+    command: "inspectDivisionScreen",
+    payload: string,
+  ): Promise<BridgeResult<DivisionScreenProjection>>;
+  execute(
+    command: "submitDivisionCommand",
+    payload: SubmitDivisionCommandPayload,
+  ): Promise<BridgeResult<DivisionCommandOutcome>>;
+  execute(
+    command: "inspectBudgetScreen",
+    payload: string,
+  ): Promise<BridgeResult<BudgetScreenProjection>>;
+  execute(
+    command: "submitBudgetAllocation",
+    payload: SubmitBudgetAllocationPayload,
+  ): Promise<BridgeResult<BudgetCommandOutcome>>;
+  execute(command: "readUiState", payload: string): Promise<BridgeResult<ReadUiStateResult>>;
+  execute(
+    command: "writeUiState",
+    payload: WriteUiStatePayload,
+  ): Promise<BridgeResult<WriteUiStateResult>>;
 }

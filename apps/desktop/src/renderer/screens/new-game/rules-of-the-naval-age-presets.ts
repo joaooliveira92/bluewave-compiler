@@ -95,10 +95,7 @@ export function detectActivePreset(preferences: DraftPreferences): ActivePresetI
   return match?.id ?? "custom";
 }
 
-export function applyPreset(
-  preferences: DraftPreferences,
-  presetId: PresetId,
-): DraftPreferences {
+export function applyPreset(preferences: DraftPreferences, presetId: PresetId): DraftPreferences {
   const preset = PRESET_DEFINITIONS.find((candidate) => candidate.id === presetId);
   if (preset === undefined) return preferences;
   return { ...preferences, ...preset.bundle };

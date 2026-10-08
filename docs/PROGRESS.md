@@ -10,12 +10,18 @@
 | M1 Strategic Campaign Kernel | B0–B8   | Complete (57 docs)                      | Core pipeline done                   | ~154 tests passing             | ACCEPTED                 |
 | M1 Strategic Campaign Kernel | B9–B10  | Scope briefs ready                      | B9/B10a/B10b/B10c/B10d done          | 410 passing                    | **M1 COMPLETED (A-5 gate, 2026-08-12)** — `docs/acceptance/m1-capability-registry.md` |
 | M2 Surface Tactical Core     | —       | Design docs exist (DESIGN-34–42)        | B-1..B-6 IMPL DONE (2026-08-15)      | 900 combat tests pass          | **M2 COMPLETED (B-6 gate, 2026-08-15)** — see M2 section below |
-| Desktop & CLI surfaces       | —       | —                                       | MVP + 3 screens + CLI debug DONE     | desktop 353, campaign-engine 49 | Surfaces PASS (2026-08-15); debug-mode gating (ADR-0029); E2E suite in progress |
-| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | **C-1 COMPLETE (INC-1..8, AC-1..25) + C-2-IMPL DONE (INC-1..8, PASS) + C-3 SCOPED (AC-1..22 / INC-1..8)** | torpedo 517, mines 357 tests pass | **C-1 COMPLETE (2026-08-16, ADR-0031)**; C-2 COMPLETE (AC-1..25, ADR-0033); C-3 SCOPED 2026-08-17; next frontier C-3-IMPL |
-| M4 Aviation                  | —       | Design docs exist (DESIGN-43–45)        | Not started                          | —                              | Future                   |
+| Desktop & CLI surfaces       | —       | —       | MVP + 3 screens + CLI debug DONE; game-onboarding-first-month INC-1..11 DONE (frontier INC-12); fleet-movement-strategy-map SCOPED (INC-1..INC-6) | desktop 507, campaign-engine 49 | Surfaces PASS (2026-08-15); debug-mode gating (ADR-0029); E2E suite in progress; new strategy-map scoping landed 2026-08-28 |
+| M3 Advanced Surface Warfare  | —       | Design docs exist (DESIGN-34–36, 39–42) | **C-1 COMPLETE + C-2-IMPL DONE + C-3-IMPL COMPLETE (AC-1..AC-22) + C-4 COMPLETE (AC-1..AC-11) + C-5-IMPL COMPLETE (INC-1..INC-9, AC-1..AC-15) + C-6 M3 ACCEPTANCE GATE COMPLETE (2026-08-29)** | torpedo 517, mines 357 + submarine 294 + coastal-defense 78 + smoke 203 + damage-control 505 tests pass | **M3 COMPLETED (C-6 gate, 2026-08-29)** — `docs/acceptance/m3-capability-registry.md`; next: D-1 (M4 Aviation scoping) |
+| M4 Aviation                  | —       | Design docs exist (DESIGN-43–45)        | D-1 SCOPING + IMPL COMPLETE (2026-08-29). INC-1..INC-9 all done — 17 source files, 17 test files, 2696 combat tests green. Full aircraft development pipeline + squadron lifecycle + basing + phase wiring landed. `BattleResolver`/`StrengthCalculator` unmodified. **D-2 COMPLETE (2026-08-29)** — full DESIGN-44 carrier operations engine. 2992 combat tests green. **D-3 COMPLETE (2026-08-29)** — CAP & strike tactical air-combat integration. INC-1..INC-8 all done via orchestrator pipeline. 245 air-combat tests across 20 files (15 source, 19 test). 6-factor squadron-quality exchange formula (research-grounded). Full strike lifecycle (CAP patrol, detection, interception, air-to-air exchange, bombing, torpedo attack, egress, recovery). Engine stage wired at step 7.7. Cross-process two-process determinism proven. Goldens 10/10 unchanged. `BattleResolver`/`StrengthCalculator` unmodified. 3237 combat tests green. **D-4 SCOPING COMPLETE (2026-08-29)** — AA air-defense vertical slice of DESIGN-45, 20 ACs, 6 INC tickets, SAM deferred to E-track. **D-4-IMPL (INC-1) DONE 2026-08-31 — PASS** — system definitions + state model + constants, all canonical §12/§14/§16/§9 constants + reason codes, 62 air-defense tests green, reviewer NEEDS_REWORK repaired. **D-4-IMPL (INC-2) DONE 2026-09-22 — PASS** — attack model (§4), layer resolution in HEAVY→MEDIUM→LIGHT→CIWS order (AC-3), heavy-AA 5nm/9_260m protected radius (AC-4), medium-AA pre-release + 4_000bp FC (AC-5), light-AA windows + speed bands (AC-6), §18 matrix, ADR-0042, 150 air-defense tests green. **D-4-IMPL (INC-3) DONE 2026-09-22 — PASS** — 9-factor engagement formula with one FLOOR + bigint (AC-11), exactly-one-outcome table with keyed draw, disruption severity + stacking (AC-12), magazine-seeded ammo + empty→zero (AC-13), simplified damage/power + local control (AC-14), ADR-0042 decisions 7-10, 220 air-defense tests green.** D-4-IMPL (INC-4) DONE 2026-09-22 — PASS** — AA director assignment (§11: one channel per director, §17-threat-comparator order) + §12 scaling table 0→5_000/1→10_000/2→18_000/3→25_000/4→31_000 (AC-8), radar-directed medium-AA saturation with UNDIVIDED §14 marginal sum in the §19 numerator (AC-9), CIWS redundancy with UNDIVIDED §16 marginal sum (AC-10), two-class factor-bound repair in the §19 formula (NORMAL-class ≤31_000 + SATURATION-class admitted up to MAX_SAFE), 5 new §28 reason codes, ADR-0042 decisions 11-13, 271 air-defense tests green. **D-4-IMPL (INC-5) DONE 2026-09-22 (code 53ec75f) + traceability/gate 2026-10-06 — PASS** — engagement records per §26 (envelope hash, immutable, 7 record kinds) + canonical §27 eight-key codepoint ordering + §27.8 nine-outcome ordinal (AC-15), exactly-20 §28 reason-code catalog with single-source list + set-equality guard + 6 deferred SAM markers (AC-16), four literal-pinned strict-Zod contracts + contractRollup registry + pinned module golden (AC-17), guaranteed light-AA disruption opportunity gate with no draw/no ammunition (AC-7), ADR-0042 decisions 14-20, report `.ai/reports/d4-m4-air-defense-inc5-records-ordering-reason-codes-contracts.md` (the superseded 2026-08-31 parallel INC-2..INC-5 run was removed in the origin/dev merge, ADR-0044). **D-4-IMPL (INC-6) DONE 2026-10-06 — PASS** — `resolveAirDefense` at step 7.8 with strict no-op, ammunition threading, root export, two-process child, ADR-0042 decision 21, report `.ai/reports/d4-m4-air-defense-inc6-engine-wiring-gate.md`. **D-4 COMPLETE (code); D-5 paused per ADR-0045. P-0 DONE 2026-10-06 (`pnpm check` fully green). P-1 tickets 01–04 DONE (ADR-0046): torpedoes reachable in campaign battles; auto-resolution speed/heading/short-run-hit fixes; frontier P-1 06 (gunnery fidelity) + 07 (per-ship damage control).**** | 3237 combat tests (245 air-combat) + 357 air-defense (2026-10-06 merge gate: 3594 combat green) | D-3 COMPLETE, D-4 SCOPED |
 | M5 Electronics & Missile Era | —       | Design docs exist (DESIGN-46–48)        | Not started                          | —                              | Future                   |
 
 Live roadmap / next-action detail: `.ai/SPRINT-PLAN.md`.
+
+> **2026-10-06 re-plan (ADR-0045):** M3/M4 modules are not yet reachable from a
+> campaign (auto-resolution runs gunnery + weather + damage only). After D-4 INC-6,
+> D-5 and M5 are paused in favour of **Track P — Playable Campaign**: P-0 green
+> gate → P-1 battles that matter → P-2 ship designer → P-3 intentful AI → P-4
+> living world → P-5 strategic map → P-6 player-fought battles.
 
 ---
 
@@ -271,11 +277,12 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 | `compiler-cli`                 | INTEGRATED_NOT_ACCEPTED | CLI (bwc): validate, compile, inspect, verify, compare, campaign:_, turn:_, replay; `battle:generate`/`advance-minute`/`resolve-shot` debug surface |
 | `desktop`                      | INTEGRATED              | Electron (41) + React 19 game client: playable MVP loop + Research & Technology + Diplomacy & War + battle outcomes + debug-mode gating; E2E Playwright suite in progress |
 
-#### Phase Registry (14 ordered phases)
+#### Phase Registry (16 ordered phases)
 
 Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 `weather_generation` (B-5/B-6, ADR-0022/0025), `ai_planning` (B10d),
-`resolve_diplomacy` (B10c), `battle_generation` (B-1).
+`resolve_diplomacy` (B10c), `battle_generation` (B-1), `resolve_aircraft_development` (D-1),
+`resolve_carrier_operations` (D-2).
 
 | Order | Phase                  | RNG allowed | Notes                                        |
 | ----- | ---------------------- | ----------- | -------------------------------------------- |
@@ -290,6 +297,8 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 | 6     | `construction_processing` | no        | progress cap enforcement                     |
 | 6.5   | `resolve_diplomacy`    | no          | diplomacy/war/blockade resolution (B10c)     |
 | 7     | `resolve_research`     | yes         | RNG-driven research point allocation         |
+| 7.2   | `resolve_aircraft_development` | yes | Aircraft development pipeline (D-1)     |
+| 7.3   | `resolve_carrier_operations` | yes | Carrier operations advancement (D-2)     |
 | 7.5   | `battle_generation`    | yes         | manifest battles from reachable missions (B-1)|
 | 8     | `battle_resolution`    | yes         | auto-resolve pending battles (B-6)           |
 | 9     | `closing_validation`   | no          | final state validation + hash                |
@@ -408,8 +417,22 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 > new-game-compile, advance-month); 4–7 ready-for-agent (construction,
 > fleet/honest-stub surface, continuance, CI gate `desktop-e2e.yml`).
 
-### Campaign commissioning flow (game-onboarding)
+### Fleet Movement Strategy Map (desktop scoping)
 
+> **Status (2026-08-28): SCOPING DONE — PASS.** New desktop-side charting effort
+> for the campaign strategy map (`.scratch/fleet-movement-strategy-map/`), scoped
+> and sliced with a wayfinder map, 6 resolved decision tickets, a spec (29 742
+> bytes), and 6 frontier-ordered implementation tickets (INC-1..INC-6). Covers:
+> campaign-geometry seam with real MapData coastline promotion (`@bluewave/campaign`
+> `compiler`, `compileOutput`), fleet-chart shell wrapper, click-to-order interaction,
+> per-division tooltip and route lines, strategy-signals and fog-of-war
+> faithfulness, and shell-isolation with camera + performance (tile-atlas + viewport
+> culling). Research notes: `docs/research/fleet-movement-strategy-map-geometry-seam.md`,
+> `docs/research/fleet-movement-strategy-map-camera-perf.md`. Brief + spec pointer:
+> `.ai/specs/fleet-movement-strategy-map.md`. **Frontier: INC-1 (campaign geometry
+> & coastline asset promotion).** See `.scratch/fleet-movement-strategy-map/`.
+
+### Campaign commissioning flow (game-onboarding)
 > **Status (2026-08-16): COMPLETE (INC-1..INC-8).** `.scratch/game-onboarding/`
 > (wayfinder map + 8 resolved decision tickets + assembled spec). Reorders and
 > enriches the new-game flow into the spec's 9-step commissioning sequence
@@ -433,6 +456,58 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 > cover the derivation and the Back/Next/Take-command path. All data-backed
 > decision tickets recorded as ADR-less documented judgment calls in the
 > projection's header.
+
+### First Month at the Admiralty (game-onboarding-first-month)
+
+> **Status (2026-08-17): CHARTING + SPEC ASSEMBLY COMPLETE; SLICED.** The M2
+> "First Month at the Admiralty" wayfinder effort
+> (`.scratch/game-onboarding-first-month/`) resolved **all 18 decision tickets**
+> (01–18, wayfinder charting), assembled the **single M2 spec**
+> (`spec.md`, 1 508 lines; pointer `.ai/specs/game-onboarding-first-month.md`),
+> and sliced it into **14 frontier-ordered implementation tickets**
+> (`issues/INC-01..14`). Headline decisions, all grounded per-ticket against
+> the real code: **Immediate Priorities** = a new read-only
+> `@bluewave/campaign-engine` projection shipping **6 of 8** doc types
+> (`obsolete_active_class` + `construction_stalled` cut — no trustworthy
+> signal; `construction_near_completion` adapted to a 0.9 work-ratio);
+> **Treasury** is a read-only projection screen (two new
+> `PlayerProjection.economy` fields, no budget commands); **no ship-naming
+> step** (no `shipName` input exists; completed ships auto-name
+> `Ship {className}`); **no real month-resolution progress streaming**
+> (cosmetic world-gen-pattern sequence over the synchronous `commitMonth`);
+> two **new tolerant renderer-owned sidecars** (`ui-state.json` for
+> dismissal/inspection state, `monthly-reports.json` for last-12 report
+> history) — both outside the authoritative envelope; the naval-estimates
+> report = the real `CommitMonthResponse` rendered faithfully with battle
+> outcomes as a dedicated plain-text subsection; Foreign Relations = the
+> already-shipped read-only Diplomacy & War surface with a `likelyRivals`
+> flavor marker and a current-state high-tension warning (ticket 11's
+> `tensionLabel`/`isHighTension` implemented in `campaign-engine`). Two items
+> **flagged, not resolved**: the `baseResources`-vs-`income` revenue
+> divergence (compiler hardcodes `baseResources: SafeInt(0)`) and the
+> turnNumber-as-revision same-month-conflict gap. Commits
+> `06014b2`/`ae951eb`/`b95073c`/`81066d6`/`3f83d1d`. **Frontier:** INC-1
+> (economy projection extension) DONE (2026-08-17, `4a5eb20`); **INC-3
+> (`ui-state.json` per-campaign renderer-owned sidecar) DONE 2026-08-18** —
+> atomic tmp→rename write, tolerant read (missing/corrupt→defaults), expiry of
+> dismissal fingerprints on turn advance, merge-preserve write semantics (a
+> dismissal-only write never erases inspection state), narrow Zod-validated
+> `readUiState`/`writeUiState` IPC pair, `turnNumber` stamped server-side, never
+> authoritative (zero hash surface; goldens 10/10; two-process byte-identical);
+> reviewer APPROVE; ADR-0038; report
+> `.ai/reports/game-onboarding-first-month-inc3.md`. **INC-14 (campaign shell
+> header) + INC-2 (priorities projection) DONE 2026-08-18** (report
+> `.ai/reports/game-onboarding-first-month-inc14-inc2.md`). **INC-13
+> (campaign-list screen) + INC-4 (read-only Treasury screen) DONE 2026-08-19**
+> — `listCampaigns` IPC (native-dialog package dir → `SaveStore.list`, real
+> `SaveMetadata[]` newest-first, corrupt skipped), a 6-column CampaignListScreen
+> (legacy/degraded rows render `—`; status column `—` — not derivable from
+> `SaveMetadata`; load via real `loadCampaign`/`CompatibilityChecker`), and the
+> Treasury screen replacing INC-14's stub (`PlayerProjection.economy
+> .maintenanceCost` added; income/expenditure/result all from `inspectCampaign`;
+> no budget controls). Desktop 507/507, goldens 10/10, two-process byte-identical;
+> report `.ai/reports/game-onboarding-first-month-inc13-inc4.md`. **INC-5 (research allocation edit UX — field-level priorities, `MAX_HIGH_PRIORITY_FIELDS=5` cap, projected monthly progress as pure largest-remainder derivation, autosave via `SaveStore` with `SAVE_FAILED` rollback, renderer-only unsaved indicator via the existing `SetResearchPriorityCommand` path) DONE 2026-08-19** (commit `a0079ed`, report `.ai/reports/game-onboarding-first-month-inc5.md`; desktop 507/507, `tsc -b` clean, goldens 10/10, byte-identical). **INC-6 (Overview dashboard — header/naval-position/foreign-situation via tensionLabel, cap-5 priorities verbatim empty-state, Recent Developments honest empty-state) DONE 2026-08-19** (report `.ai/reports/game-onboarding-first-month-inc6.md`; OverviewScreen + state helpers). **INC-7 (guided inspection — 7-step DOM spotlight, ui-state sidecar, restart, autosave) DONE 2026-08-20** (GuidedInspectionOverlay + guided-inspection-state + useGuidedInspection + CampaignPreferences restart; 16 new tests, desktop 523/523, goldens 10/10). **INC-8 (construction ordering wizard — select design → review → confirm over real commands, no ship-naming, honest rejection codes, replace/cancel, autosave) DONE 2026-08-28** (commit `295d678`). **INC-9 (foreign relations polish — likely-rival markers, isHighTension warnings, read-only) + INC-10 (pre-turn review dialog — all fields from real state, honest blockers, double-submit guard) + INC-11 (monthly-resolution presentation — 7-stage cosmetic loading screen over synchronous commitMonth, failure UI with real BridgeResult codes) DONE 2026-08-28** (bundled commit `a1a3b2b`). **Tour guide repair:** fixed guided-inspection overlay pinning at campaign start (`7e624cb`). **Next frontier: INC-12 (Monthly Naval Estimates report + monthly-reports.json history sidecar).**
+> C-3-IMPL (submarines) remains queued on the implementation track.
 
 ### CLI battle/gunnery debug surface
 
@@ -536,40 +611,27 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 
 ## 🔮 Not Yet Started (M3–M5)
 
-### M3 — Advanced Surface Warfare (Track C — current frontier)
+### M3 — Advanced Surface Warfare (Track C — COMPLETED 2026-08-29)
 
-Depends on accepted M1 + M2 (DESIGN-55 §4) — both COMPLETED. **C-1 COMPLETE —
-torpedo fire-resolution shipped (INC-1..INC-8, AC-1..AC-25, ADR-0031).** Scoped
-DONE (2026-08-16, committed `dddb11d`) — torpedo fire-resolution vertical
-slice of DESIGN-40 (map + decision tickets 01–06 resolved, spec AC-1..25 /
-INC-1..8, brief `.ai/briefs/c1-m3-torpedoes.md`, research
-`docs/research/c1-m3-torpedoes.md`); INC-8 (contracts rollup + reason-code
-set-equality + ADR + gate, AC-21/24/25) closed 2026-08-16. **C-2-IMPL (mines) COMPLETE (2026-08-16) —
-PASS, all 25 ACs:** mine-pressure lifecycle in `packages/combat/src/mines/`
-(types, sources, laying value, pressure increase, sweeping eligibility/values/
-dual-equipment/effective value, aggregation + §10 allocation, standoff/route-risk
-values, report/classifier, decay, post-war, ownership, knowledge, clearance,
-§28 records + §29 ordering, contracts rollup, two-process determinism); mines 26
-files / 357 tests green; ADR-0033; report `.ai/reports/c2-m3-mine-warfare-impl.md`.
-**Strike resolution + phase/snapshot wiring + route-strike application deferred
-to a C-2 continuation.** **C-3 SCOPING DONE (2026-08-17):** strategic
-submarine-operations lifecycle slice of DESIGN-34 scoped (map
-`.scratch/c3-m3-submarines/map.md` + decision tickets 01–06 resolved, spec
-AC-1..22 / INC-1..8, brief `.ai/briefs/c3-m3-submarines.md`, research
-`docs/research/c3-m3-submarines.md`). Tactical allocation/loss (§2–3),
-returning-ship interception (§21), ASW resolution application (§22),
-friendly-fire risk/outcome (§23–24), and strategic attack loss application (§19)
-deferred (battle machinery / DESIGN-29 unassigned). **C-3-IMPL (INC-1..INC-8) is
-the current M3 frontier.** See `.ai/SPRINT-PLAN.md` Track C for the full sprint order.
+Depends on accepted M1 + M2 (DESIGN-55 §4) — both COMPLETED. **M3 COMPLETED at
+the C-6 acceptance gate (2026-08-29).** All six §4 capabilities signed ACCEPTED:
+torpedoes (C-1), mines (C-2), submarines (C-3), coastal defenses (C-4), smoke (C-5),
+and detailed damage control (C-5). Registry: `docs/acceptance/m3-capability-registry.md`.
+Full validation gate evidence: clean uncached build 18/18, `tsc -b` clean,
+combat 197 files / 2524 tests green, golden hashes 10/10, two-process
+determinism byte-identical, `BattleResolver`/`StrengthCalculator` unmodified
+throughout. Pre-existing unrelated failures: `content-schema/test/nation.test.ts`
+(broken import), desktop 2 tests (campaignBridge, ConstructionWizard). **Next: D-1
+(M4 Aviation scoping).**
 
 | Area                                  | Design coverage |
 | ------------------------------------- | --------------- |
 | Torpedoes (C-1)                       | DESIGN-40 — **COMPLETE** (INC-1..8, AC-1..25, ADR-0031) |
 | Mine warfare (C-2)                    | DESIGN-35 — **COMPLETE** (INC-1..8 PASS, AC-1..25, ADR-0033) |
-| Submarines (C-3)                      | DESIGN-34 — **SCOPED 2026-08-17** (AC-1..22 / INC-1..8); C-3-IMPL queued |
-| Coastal defenses (C-4)                | DESIGN-48       |
-| Smoke (drift, decay, screens) (C-5)   | DESIGN-42 §§7-23 |
-| Detailed damage control (C-5)         | DESIGN-41 remainder |
+| Submarines (C-3)                      | DESIGN-34 — **C-3-IMPL COMPLETE 2026-08-28** (AC-1..AC-22, INC-1..INC-8, 8 commits, 294 submarine tests) |
+| Coastal defenses (C-4)                      | DESIGN-48       | **COMPLETE 2026-08-28** — value-model vertical slice (AC-1..AC-11, INC-1..INC-6, 78 tests, ADR-0039); full spec at `.scratch/c4-m3-coastal-defenses/` |
+| Smoke (drift, decay, screens) (C-5)   | DESIGN-42 §§7-23 | **C-5-IMPL COMPLETE 2026-08-29** — full smoke module (cloud model, drift/decay, line intersection, funnel smoke, smokescreens, floats, generators, source precedence); INC-1..INC-9 all green; 203 tests |
+| Detailed damage control (C-5)         | DESIGN-41 remainder | **C-5-IMPL COMPLETE 2026-08-29** — fire propagation (§19-22, §24-25), flooding control (§13-18), damage-control resources (§27-28); deferred: full terminal state machine, survivors/rescue |
 
 ### M4 — Aviation (Track D)
 

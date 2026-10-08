@@ -1,4 +1,3 @@
-
 import { describe, expect, it } from "vite-plus/test";
 import { ExplanationBuilder, formatExplanation } from "../src/index.js";
 

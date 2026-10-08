@@ -1,3 +1,4 @@
+import type { DeferredFeature } from "../../components/shared/DeferredFeaturesPanel.js";
 import type {
   ConstructionCommandOutcome,
   ConstructionScreenProjection,
@@ -54,3 +55,34 @@ export function acceptConstructionCommand(value: ConstructionCommandOutcome): {
     notice: commandNotice(value.command),
   };
 }
+
+/**
+ * Projects that still count as "active construction" (anything not COMPLETED —
+ * the same definition the engine uses). The single source of truth for every
+ * surface that shows this number (Overview, Pre-turn review), so they cannot
+ * drift apart.
+ */
+export function activeConstructionProjects<T extends { readonly status: string }>(
+  projects: readonly T[],
+): readonly T[] {
+  return projects.filter((project) => project.status !== "COMPLETED");
+}
+
+/** Construction items the engine cannot supply yet (engine-surface note, sections D and E). */
+export const DEFERRED_CONSTRUCTION_ITEMS: readonly DeferredFeature[] = [
+  {
+    id: "build-submarine",
+    name: "Build submarine",
+    reason: "1880 content has no submarine hull or design, so there is nothing to order.",
+  },
+  {
+    id: "build-fort-base",
+    name: "Build fort or base",
+    reason: "Coastal defence exists only in tactical combat, not as campaign construction.",
+  },
+  {
+    id: "coastal-fortifications",
+    name: "Coastal fortifications",
+    reason: "The campaign holds no fortification state, so none can be listed.",
+  },
+];

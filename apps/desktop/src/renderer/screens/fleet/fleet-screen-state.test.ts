@@ -6,6 +6,7 @@ import {
   initialFleetScreenState,
   pendingRouteFor,
   projectFleetScreen,
+  reachableAreas,
 } from "./fleet-screen-state.js";
 import {
   acceptCommand,
@@ -149,8 +150,8 @@ describe("fleet screen state", () => {
 
     expect(state.movementCommands).toEqual([movementCommand]);
     expect(state.pendingRequest).toBeNull();
-    expect(state.notice).toContain("mcmd_1");
-    expect(state.notice).toContain("submitted");
+    expect(state.notice).toContain("Order queued");
+    expect(state.notice).not.toContain("mcmd_1"); // engine ids stay out of the release UI
   });
 
   it("shows the engine reason code and diagnostics for an illegal route", () => {
@@ -190,5 +191,24 @@ describe("fleet screen state", () => {
       transportRequestId: "tx-3",
     });
     expect(state.notice).toContain("TRANSPORT_FAILURE");
+  });
+});
+
+describe("reachableAreas", () => {
+  const areas = [
+    { id: "a", name: "Alpha" },
+    { id: "b", name: "Bravo" },
+    { id: "c", name: "Charlie" },
+    { id: "d", name: "Delta" },
+  ];
+  const edges = [
+    { fromAreaId: "a", toAreaId: "b" },
+    { fromAreaId: "c", toAreaId: "a" },
+    { fromAreaId: "b", toAreaId: "d" },
+  ];
+  it("lists areas one hop away in either direction, by name, excluding the origin", () => {
+    expect(reachableAreas(areas, edges, "a").map((x) => x.id)).toEqual(["b", "c"]);
+    expect(reachableAreas(areas, edges, "d").map((x) => x.id)).toEqual(["b"]);
+    expect(reachableAreas(areas, edges, "zzz")).toEqual([]);
   });
 });

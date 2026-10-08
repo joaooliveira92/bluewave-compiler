@@ -1,5 +1,6 @@
 import {
   Activity,
+  Coins,
   Crosshair,
   FlaskConical,
   Hammer,
@@ -12,14 +13,14 @@ import {
   Terminal,
   type LucideIcon,
 } from "lucide-react";
-import { lazy, Suspense, type ComponentType } from "react";
+import { lazy, Suspense, useCallback, type ComponentType } from "react";
 import { CampaignPreferencesScreen } from "../screens/campaign-preferences/CampaignPreferencesScreen.js";
 import { ConstructionScreen } from "../screens/construction/ConstructionScreen.js";
 import { FleetScreen } from "../screens/fleet/FleetScreen.js";
 import { OptionsScreen } from "../screens/options/OptionsScreen.js";
 import { OverviewScreen } from "../screens/overview/OverviewScreen.js";
 import { useCampaignShellContext } from "./CampaignShellContext.js";
-import { isDebugMode } from "./debug-mode.js";
+import { DEBUG_MODE } from "./debug-flag.js";
 
 const DebuggingScreen = lazy(() =>
   import("../screens/debugging/DebuggingScreen.js").then((module) => ({
@@ -39,6 +40,11 @@ const ResearchScreen = lazy(() =>
 const DiplomacyScreen = lazy(() =>
   import("../screens/diplomacy/DiplomacyScreen.js").then((module) => ({
     default: module.DiplomacyScreen,
+  })),
+);
+const TreasuryScreen = lazy(() =>
+  import("../screens/treasury/TreasuryScreen.js").then((module) => ({
+    default: module.TreasuryScreen,
   })),
 );
 const TacticalSandboxScreen = lazy(() =>
@@ -74,6 +80,7 @@ export type CampaignScreen =
   | "simulation"
   | "research"
   | "diplomacy"
+  | "treasury"
   | "tactical-sandbox"
   | "debugging"
   | "map-prototype"
@@ -89,6 +96,8 @@ type CampaignScreenRoute = ComponentType<CampaignScreenRouteProps>;
 export interface CampaignScreenDefinition {
   readonly id: CampaignScreen;
   readonly label: string;
+  /** Compact name for tight surfaces (the bottom bar); the full `label` is its tooltip. */
+  readonly shortLabel: string;
   readonly icon: LucideIcon;
   readonly group: "campaign" | "settings";
   readonly searchable: boolean;
@@ -109,9 +118,18 @@ function FleetRoute({ sessionId }: CampaignScreenRouteProps) {
 }
 
 function SimulationRoute({ sessionId }: CampaignScreenRouteProps) {
-  const { actions } = useCampaignShellContext();
+  const { state, actions } = useCampaignShellContext();
+  const onMonthCommitted = useCallback(
+    () => void actions.refreshCampaign(sessionId),
+    [actions.refreshCampaign, sessionId],
+  );
   return (
-    <SimulationScreen sessionId={sessionId} onPrimaryActionChange={actions.setPrimaryAction} />
+    <SimulationScreen
+      sessionId={sessionId}
+      onPrimaryActionChange={actions.setPrimaryAction}
+      campaignRevision={state.campaign?.revision}
+      onMonthCommitted={onMonthCommitted}
+    />
   );
 }
 
@@ -121,6 +139,15 @@ function ResearchRoute({ sessionId }: CampaignScreenRouteProps) {
 
 function DiplomacyRoute({ sessionId }: CampaignScreenRouteProps) {
   return <DiplomacyScreen sessionId={sessionId} />;
+}
+
+/**
+ * Treasury — the read-only projection screen (INC-4). Replaces INC-14's
+ * stub slot: the sidebar entry/search target were already final, only the
+ * route was a placeholder.
+ */
+function TreasuryRoute({ sessionId }: CampaignScreenRouteProps) {
+  return <TreasuryScreen sessionId={sessionId} />;
 }
 
 function TacticalSandboxRoute({ sessionId }: CampaignScreenRouteProps) {
@@ -143,14 +170,7 @@ function CampaignPreferencesRoute({ sessionId }: CampaignScreenRouteProps) {
 }
 
 function OptionsRoute() {
-  const { state, actions } = useCampaignShellContext();
-  return (
-    <OptionsScreen
-      saving={state.saving}
-      onSave={actions.saveCampaign}
-      onCloseCampaign={actions.closeCampaign}
-    />
-  );
+  return <OptionsScreen />;
 }
 
 // PROTOTYPE — throwaway, ticket 06. Never registered in a production build, so
@@ -158,21 +178,21 @@ function OptionsRoute() {
 const MAP_PROTOTYPE_SCREEN: CampaignScreenDefinition = {
   id: "map-prototype",
   label: "Map Prototype",
+  shortLabel: "Map",
   icon: MapIcon,
   group: "campaign",
   searchable: true,
   route: MapPrototypeRoute,
 };
 
-// Debug-only tooling, gated by the pure rule in debug-mode.ts (`isDebugMode`).
-// Only set via `pnpm dev:debug` (or VITE_BLUEWAVE_DEBUG=true in a build) — a
-// plain `pnpm dev` does not enable it, so these screens (and their lazy
-// chunks) stay out of the sidebar unless debug mode is explicitly requested.
-const DEBUG_MODE = isDebugMode({ flag: import.meta.env.VITE_BLUEWAVE_DEBUG });
+// Debug-only screens below are gated by DEBUG_MODE (shell/debug-flag.ts, ADR-0029):
+// a plain `pnpm dev` does not enable them, so they (and their lazy chunks) stay
+// out of the sidebar unless debug mode is explicitly requested (`pnpm dev:debug`).
 
 const SIMULATION_SCREEN: CampaignScreenDefinition = {
   id: "simulation",
   label: "Simulation & Turn",
+  shortLabel: "Sim",
   icon: Activity,
   group: "campaign",
   searchable: true,
@@ -181,6 +201,7 @@ const SIMULATION_SCREEN: CampaignScreenDefinition = {
 const TACTICAL_SANDBOX_SCREEN: CampaignScreenDefinition = {
   id: "tactical-sandbox",
   label: "Tactical Sandbox",
+  shortLabel: "Sandbox",
   icon: Crosshair,
   group: "campaign",
   searchable: true,
@@ -189,16 +210,30 @@ const TACTICAL_SANDBOX_SCREEN: CampaignScreenDefinition = {
 const DEBUGGING_SCREEN: CampaignScreenDefinition = {
   id: "debugging",
   label: "Debugging & Telemetry",
+  shortLabel: "Debug",
   icon: Terminal,
   group: "campaign",
   searchable: true,
   route: DebuggingRoute,
 };
 
+// Sixth campaign section (spec §5) — always registered, like the five real
+// screens.
+const TREASURY_SCREEN: CampaignScreenDefinition = {
+  id: "treasury",
+  label: "Treasury",
+  shortLabel: "Treasury",
+  icon: Coins,
+  group: "campaign",
+  searchable: true,
+  route: TreasuryRoute,
+};
+
 export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "overview",
     label: "Overview",
+    shortLabel: "Overview",
     icon: LayoutDashboard,
     group: "campaign",
     searchable: true,
@@ -207,6 +242,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "construction",
     label: "Construction",
+    shortLabel: "Build",
     icon: Hammer,
     group: "campaign",
     searchable: true,
@@ -215,6 +251,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "fleet",
     label: "Fleet",
+    shortLabel: "Fleet",
     icon: Ship,
     group: "campaign",
     searchable: true,
@@ -224,6 +261,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "research",
     label: "Research & Technology",
+    shortLabel: "Research",
     icon: FlaskConical,
     group: "campaign",
     searchable: true,
@@ -232,16 +270,19 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "diplomacy",
     label: "Diplomacy & War",
+    shortLabel: "Diplomacy",
     icon: Handshake,
     group: "campaign",
     searchable: true,
     route: DiplomacyRoute,
   },
+  TREASURY_SCREEN,
   ...(DEBUG_MODE ? [TACTICAL_SANDBOX_SCREEN, DEBUGGING_SCREEN] : []),
   ...(import.meta.env.DEV ? [MAP_PROTOTYPE_SCREEN] : []),
   {
     id: "campaign-preferences",
     label: "Campaign Preferences",
+    shortLabel: "Prefs",
     icon: Settings2,
     group: "settings",
     searchable: false,
@@ -250,6 +291,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "options",
     label: "Options",
+    shortLabel: "Options",
     icon: Settings,
     group: "settings",
     searchable: false,

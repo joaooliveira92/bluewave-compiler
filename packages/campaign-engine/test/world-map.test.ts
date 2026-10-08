@@ -44,7 +44,10 @@ describe("buildWorldMapView", () => {
             makeFleet(
               "fleet_gbr_home",
               "Home Fleet",
-              [makeShip("gbr_dreadnought", "HMS Dreadnought"), makeShip("gbr_inflexible", "HMS Inflexible")],
+              [
+                makeShip("gbr_dreadnought", "HMS Dreadnought"),
+                makeShip("gbr_inflexible", "HMS Inflexible"),
+              ],
               "eng_home_coast",
             ),
           ],
@@ -74,7 +77,12 @@ describe("buildWorldMapView", () => {
               controller: "uk",
             },
             { id: "sea_english_channel", name: "English Channel", type: "sea" },
-            { id: "fra_med_coast", name: "French Mediterranean", type: "coastal", controller: "france" },
+            {
+              id: "fra_med_coast",
+              name: "French Mediterranean",
+              type: "coastal",
+              controller: "france",
+            },
           ],
           routes: [],
           ports: [
@@ -112,27 +120,41 @@ describe("buildWorldMapView", () => {
 
     expect(view.ports).toEqual([
       { id: "fra_toulon", name: "Toulon", areaId: "fra_med_coast", nationId: "france", level: 9 },
-      { id: "gbr_portsmouth", name: "Portsmouth", areaId: "eng_home_coast", nationId: "uk", level: 10 },
+      {
+        id: "gbr_portsmouth",
+        name: "Portsmouth",
+        areaId: "eng_home_coast",
+        nationId: "uk",
+        level: 10,
+      },
     ]);
 
     expect(view.fleets).toEqual([
-      { id: "fleet_fra_med", nationId: "france", name: "Escadre", areaId: "fra_med_coast", shipCount: 1 },
-      { id: "fleet_gbr_home", nationId: "uk", name: "Home Fleet", areaId: "eng_home_coast", shipCount: 2 },
+      {
+        id: "fleet_fra_med",
+        nationId: "france",
+        name: "Escadre",
+        areaId: "fra_med_coast",
+        shipCount: 1,
+      },
+      {
+        id: "fleet_gbr_home",
+        nationId: "uk",
+        name: "Home Fleet",
+        areaId: "eng_home_coast",
+        shipCount: 2,
+      },
     ]);
   });
 
   it("renders an unclaimed area controller as null", () => {
-    const snapshot = fixtureSnapshot(
-      [],
-      [],
-      {
-        world: {
-          areas: [{ id: "sea_north_sea", name: "North Sea", type: "sea" }],
-          routes: [],
-          ports: [],
-        },
+    const snapshot = fixtureSnapshot([], [], {
+      world: {
+        areas: [{ id: "sea_north_sea", name: "North Sea", type: "sea" }],
+        routes: [],
+        ports: [],
       },
-    );
+    });
 
     const view = buildWorldMapView(snapshot);
     expect(view.areas).toEqual([

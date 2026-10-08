@@ -11,7 +11,11 @@
 
 import type { CampaignSnapshot, CampaignWeatherState, NationState } from "@bluewave/campaign";
 import type { ClimateProfile } from "@bluewave/combat";
-import { defaultClimateProfile_v1, WEATHER_GENERATION_PHASE, WEATHER_PROFILE_INCOMPLETE } from "@bluewave/combat";
+import {
+  defaultClimateProfile_v1,
+  WEATHER_GENERATION_PHASE,
+  WEATHER_PROFILE_INCOMPLETE,
+} from "@bluewave/combat";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
