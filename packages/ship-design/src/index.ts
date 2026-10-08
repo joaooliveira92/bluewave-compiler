@@ -26,3 +26,4 @@ export * from "./engineAdapter.js";
 export * from "./report.js";
 export * from "./contextBuilder.js";
 export * from "./classification.js";
+export * from "./workshop.js";
