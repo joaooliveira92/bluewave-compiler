@@ -28,6 +28,7 @@ import type { CommandRecord } from "@bluewave/commands";
 import type { CampaignSessionRecord } from "../campaignSessions.js";
 import { getCampaignSession, registerCampaignSession } from "../campaignSessions.js";
 import { toSaveableState } from "../saveHelpers.js";
+import { verifyEnvelope } from "./commandEnvelope.js";
 import {
   CONSTRUCTION_COMMAND_DEFINITION,
   CONSTRUCTION_SETTLEMENT_BRANCH_ID,
@@ -91,7 +92,7 @@ export async function inspectConstructionScreen(
 export async function submitConstructionCommand(
   payload: SubmitConstructionCommandPayload,
 ): Promise<BridgeResult<ConstructionCommandOutcome>> {
-  const verified = await verifyEnvelope(payload.sessionId, payload.expectedRevision);
+  const verified = verifyEnvelope(payload.sessionId, payload.expectedRevision);
   if (verified.outcome !== "success") return verified;
   const record = verified.record;
 
@@ -206,7 +207,7 @@ export async function submitConstructionCommand(
 export async function replaceConstructionCommand(
   payload: ReplaceConstructionCommandPayload,
 ): Promise<BridgeResult<ConstructionCommandOutcome>> {
-  const verified = await verifyEnvelope(payload.sessionId, payload.expectedRevision);
+  const verified = verifyEnvelope(payload.sessionId, payload.expectedRevision);
   if (verified.outcome !== "success") return verified;
   const record = verified.record;
 
@@ -366,7 +367,7 @@ export async function replaceConstructionCommand(
 export async function cancelConstructionCommand(
   payload: CancelConstructionCommandPayload,
 ): Promise<BridgeResult<ConstructionCommandOutcome>> {
-  const verified = await verifyEnvelope(payload.sessionId, payload.expectedRevision);
+  const verified = verifyEnvelope(payload.sessionId, payload.expectedRevision);
   if (verified.outcome !== "success") return verified;
   const record = verified.record;
 
@@ -440,42 +441,6 @@ export async function cancelConstructionCommand(
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
-
-type EnvelopeVerification =
-  | { outcome: "success"; record: CampaignSessionRecord }
-  | {
-      outcome: "rejected";
-      reason: string;
-      diagnostics: readonly string[];
-      currentRevision?: number;
-    }
-  | { outcome: "error"; reason: string; diagnostics: readonly string[] };
-
-async function verifyEnvelope(
-  sessionId: string,
-  expectedRevision: number,
-): Promise<EnvelopeVerification> {
-  const record = getCampaignSession(sessionId);
-  if (!record) {
-    return {
-      outcome: "error",
-      reason: "SESSION_NOT_FOUND",
-      diagnostics: [`No active campaign session ${sessionId}`],
-    };
-  }
-  const currentRevision = Number(record.state.snapshot.turnNumber);
-  if (expectedRevision !== currentRevision) {
-    return {
-      outcome: "rejected",
-      reason: "REVISION_MISMATCH",
-      diagnostics: [
-        `Expected revision ${expectedRevision} but session ${sessionId} is at revision ${currentRevision}`,
-      ],
-      currentRevision,
-    };
-  }
-  return { outcome: "success", record };
-}
 
 function commandIdFor(
   transportRequestId: string,

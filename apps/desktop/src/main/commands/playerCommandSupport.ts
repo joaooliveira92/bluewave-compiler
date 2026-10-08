@@ -2,12 +2,14 @@ import { CommandLifecycle, type CommandBody, type CommandEnvelope } from "@bluew
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type { CampaignSessionRecord } from "../campaignSessions.js";
-import { getCampaignSession } from "../campaignSessions.js";
+import { deterministicTimestamp, verifyEnvelope } from "./commandEnvelope.js";
 import {
   fingerprintOfBody,
   lookupPendingEnvelope,
   queuePendingEnvelope,
 } from "../pendingCommands.js";
+
+export { currentRevision, verifyEnvelope, type EnvelopeVerification } from "./commandEnvelope.js";
 
 /**
  * The shared "queue a real engine envelope" flow behind every player command
@@ -29,52 +31,6 @@ export interface QueuedCommandOutcome<Type extends string> {
   readonly commandId: string;
   readonly bodyType: Type;
   readonly appliedOnNextTurn: true;
-}
-
-export type EnvelopeVerification =
-  | { outcome: "success"; record: CampaignSessionRecord }
-  | {
-      outcome: "rejected";
-      reason: string;
-      diagnostics: readonly string[];
-      currentRevision?: number;
-    }
-  | { outcome: "error"; reason: string; diagnostics: readonly string[] };
-
-export function currentRevision(record: CampaignSessionRecord): number {
-  return Number(record.state.snapshot.turnNumber);
-}
-
-export function verifyEnvelope(sessionId: string, expectedRevision: number): EnvelopeVerification {
-  const record = getCampaignSession(sessionId);
-  if (!record) {
-    return {
-      outcome: "error",
-      reason: "SESSION_NOT_FOUND",
-      diagnostics: [`No active campaign session ${sessionId}`],
-    };
-  }
-  const current = currentRevision(record);
-  if (expectedRevision !== current) {
-    return {
-      outcome: "rejected",
-      reason: "REVISION_MISMATCH",
-      diagnostics: [
-        `Expected revision ${expectedRevision} but session ${sessionId} is at revision ${current}`,
-      ],
-      currentRevision: current,
-    };
-  }
-  return { outcome: "success", record };
-}
-
-/** Pure integer arithmetic (UTC), identical to `AiCommandGenerator`'s
- * deterministic timestamp: turn 0 → 1910-01-01T00:00:00.000Z, one day per
- * turn number (no wall clock, no locale). */
-function deterministicTimestamp(record: CampaignSessionRecord): string {
-  const daysOffset = ((Number(record.state.snapshot.turnNumber) % 365) + 365) % 365;
-  const ms = Date.UTC(1910, 0, 1) + daysOffset * 24 * 60 * 60 * 1000;
-  return new Date(ms).toISOString();
 }
 
 /**
