@@ -29,6 +29,10 @@ vi.mock("./organization/FleetOrganizationSection.js", () => ({
   FleetOrganizationSection: () => <div data-testid="organization-stub" />,
 }));
 
+vi.mock("./components/FleetReportSections.js", () => ({
+  FleetReportSections: () => <div data-testid="report-sections-stub" />,
+}));
+
 const loaded: FleetScreenState = {
   ...initialFleetScreenState(),
   playerNationId: "uk",
@@ -59,13 +63,13 @@ describe("FleetScreen", () => {
     expect(screen.queryByTestId("movement-deferred")).toBeNull();
   });
 
-  it("composes the positions map, organization, submarine deferral and area overview", () => {
+  it("composes the positions map, organization, report sections and area overview", () => {
     hook.state = loaded;
     render(<FleetScreen sessionId="ses-1" />);
     expect(screen.getByRole("heading", { name: "Fleet", level: 2 })).toBeTruthy();
     expect(screen.getByTestId("map-stub")).toBeTruthy();
     expect(screen.getByTestId("organization-stub")).toBeTruthy();
-    expect(screen.getByTestId("submarines-deferred")).toBeTruthy();
+    expect(screen.getByTestId("report-sections-stub")).toBeTruthy();
     expect(screen.getByText("Area overview")).toBeTruthy();
     expect(screen.getByRole("radio", { name: /Home Fleet/ })).toBeTruthy();
   });

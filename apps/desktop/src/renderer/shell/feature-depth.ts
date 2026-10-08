@@ -51,29 +51,34 @@ export const FEATURE_DEPTH: readonly FeatureDepthEntry[] = [
   { feature: "intel", screen: "diplomacy", path: ["Diplomacy & War"] },
   // Shown as an explicit "not modelled" panel (docs/research/rtw3-intel-and-submarines-engine-surface.md).
   { feature: "submarines", screen: "fleet", path: ["Fleet"] },
+  // Deferred panel inside Construction's "Not yet modelled" section (IMP-06, CC-8).
+  { feature: "coastal-forts", screen: "construction", path: ["Construction", "Not yet modelled"] },
   {
-    feature: "coastal-forts",
-    screen: null,
-    planned: true,
-    path: ["Construction", "Forts & bases", "Build"],
+    feature: "build-submarine",
+    screen: "construction",
+    path: ["Construction", "Not yet modelled"],
   },
+  {
+    feature: "build-fort-base",
+    screen: "construction",
+    path: ["Construction", "Not yet modelled"],
+  },
+  // Fleet "Losses" section: the player's sunk ships by name, class and cause (ADR-0061).
+  { feature: "fleet-losses", screen: "fleet", path: ["Fleet", "Losses"] },
   // Battle history with loss counts (names/dates not recorded by the engine: docs/research/rtw3-losses-ledger-engine-surface.md).
   { feature: "ships-sunk-or-scrapped", screen: "diplomacy", path: ["Diplomacy & War"] },
   // Per-area table inside Fleet.
   { feature: "area-overview", screen: "fleet", path: ["Fleet", "Area overview"] },
   // Real: the 5 engine division commands, in Fleet (docs/research/rtw3-parity-engine-roadmap.md).
   { feature: "fleet-organization", screen: "fleet", path: ["Fleet"] },
-  { feature: "air-groups", screen: null, planned: true, path: ["Fleet", "Air", "Air groups"] },
-  {
-    feature: "aircraft-types",
-    screen: null,
-    planned: true,
-    path: ["Fleet", "Air", "Aircraft types"],
-  },
-  { feature: "officers", screen: null, planned: true, path: ["Fleet", "Officers"] },
+  // Deferred items inside Fleet's "Not yet modelled" section (IMP-06, CC-8).
+  { feature: "air-groups", screen: "fleet", path: ["Fleet", "Not yet modelled"] },
+  { feature: "aircraft-types", screen: "fleet", path: ["Fleet", "Not yet modelled"] },
+  // Real: division commanders (ADR-0065) in Fleet's Officers section.
+  { feature: "officers", screen: "fleet", path: ["Fleet", "Officers"] },
   { feature: "doctrine", screen: null, planned: true, path: ["Research & Technology", "Doctrine"] },
   { feature: "mobilization", screen: null, planned: true, path: ["Treasury", "Mobilization"] },
-  { feature: "fleet-exercise", screen: null, planned: true, path: ["Fleet", "Training"] },
+  { feature: "fleet-exercise", screen: "fleet", path: ["Fleet", "Not yet modelled"] },
   { feature: "treaty-limits", screen: null, planned: true, path: ["Diplomacy & War", "Treaties"] },
   { feature: "budget-allocation", screen: null, planned: true, path: ["Treasury", "Allocation"] },
   // Real, session-only: the monthly report + earlier months on Overview (the engine keeps no month history yet).

@@ -71,7 +71,7 @@ export function DivisionCard({ division, state, busy, send }: DivisionCardProps)
             {division.commanderVacant && (
               <Badge
                 variant="outline"
-                title="No officers are modelled yet, so every division's command is vacant."
+                title="No officer commands this division yet. Its ships fight with a command penalty."
               >
                 Commander vacant
               </Badge>

@@ -4,18 +4,14 @@ import { Ship } from "lucide-react";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
 import { Separator } from "../../components/ui/separator.js";
-import {
-  DEFERRED_SUBMARINE_ITEMS,
-  buildAreaOverview,
-  pendingRouteFor,
-} from "./fleet-screen-state.js";
+import { buildAreaOverview, pendingRouteFor } from "./fleet-screen-state.js";
+import { FleetReportSections } from "./components/FleetReportSections.js";
 import { MovementCommandsTable } from "./components/MovementCommandsTable.js";
 import { OrderSection } from "./components/OrderSection.js";
 import { FleetOrganizationSection } from "./organization/FleetOrganizationSection.js";
 import { AreaOverviewTable } from "./components/AreaOverviewTable.js";
 import { useFleetScreen } from "./hooks/useFleetScreen.js";
 import { DivisionPicker } from "./components/DivisionPicker.js";
-import { DeferredFeaturesPanel } from "../../components/shared/DeferredFeaturesPanel.js";
 import { WorldMapPanel } from "../../components/world-map/WorldMapPanel.js";
 import { LoadErrorCard } from "./components/LoadErrorCard.js";
 import { LoadingState } from "./components/LoadingState.js";
@@ -132,11 +128,7 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
         }
       />
       <Separator />
-      <DeferredFeaturesPanel
-        items={DEFERRED_SUBMARINE_ITEMS}
-        testId="submarines-deferred"
-        title="Submarines — not yet modelled by the engine"
-      />
+      <FleetReportSections sessionId={sessionId} />
     </div>
   );
 }

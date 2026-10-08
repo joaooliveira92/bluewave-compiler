@@ -115,6 +115,31 @@ describe("buildDivisionScreenView", () => {
     expect(view.unassignedShips).toEqual([]);
   });
 
+  it("names the commanding officer (ADR-0065) and leaves the commander unset when vacant", () => {
+    const officer = {
+      id: "off_uk_1",
+      name: "Edmund Harcourt",
+      rank: "COMMODORE",
+      skill: SafeInt(62),
+    };
+    const base = snapshot(
+      [fleet("f_home", "home", [ship("s1", "HMS Alexandra"), ship("s2", "HMS Dreadnought")])],
+      [
+        division({ divisionId: "div_1", commanderOfficerId: "off_uk_1" }),
+        division({ divisionId: "div_2", shipOrder: [], flagshipShipId: "none" }),
+      ],
+    );
+    const nation = base.nations.get("uk")!;
+    nation.officers = [officer as never];
+    const view = buildDivisionScreenView(base, "uk")!;
+    expect(view.divisions[0]).toMatchObject({
+      commanderVacant: false,
+      commander: { officerId: "off_uk_1", name: "Edmund Harcourt", rank: "COMMODORE", skill: 62 },
+    });
+    expect(view.divisions[1]?.commanderVacant).toBe(true);
+    expect(view.divisions[1]?.commander).toBeUndefined();
+  });
+
   it("never offers ships still under construction", () => {
     const view = buildDivisionScreenView(
       snapshot(

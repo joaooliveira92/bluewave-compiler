@@ -1,7 +1,7 @@
 # Fleet Losses/Officers sections and deferred items
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** none
 **Frontier:** yes
 **Requirements:** CC-8

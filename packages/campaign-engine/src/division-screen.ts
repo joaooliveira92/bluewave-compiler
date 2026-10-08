@@ -32,14 +32,25 @@ export interface UnassignedShipView extends DivisionShipView {
   readonly areaName: string;
 }
 
+/** The officer commanding a division (ADR-0065). */
+export interface DivisionCommanderView {
+  readonly officerId: string;
+  readonly name: string;
+  readonly rank: string;
+  /** Command rating, 30..90. */
+  readonly skill: number;
+}
+
 export interface DivisionView {
   readonly divisionId: string;
   readonly role: string;
   readonly formation: string;
   readonly flagshipShipId: string;
   readonly flagshipName: string;
-  /** True while no officer commands the division (the engine has no officer roster yet). */
+  /** True while no officer commands the division (ADR-0065). */
   readonly commanderVacant: boolean;
+  /** The commanding officer; absent while vacant (or if the officer is missing from the corps). */
+  readonly commander?: DivisionCommanderView;
   /** 0..100 */
   readonly experience: number;
   /** 0..100 */
@@ -106,21 +117,36 @@ export function buildDivisionScreenView(
   }
   const nameOf = (id: string): string => shipsById.get(id)?.name ?? id;
 
+  const officersById = new Map((nation.officers ?? []).map((officer) => [officer.id, officer]));
+
   const divisions: DivisionView[] = [...nation.divisions]
     .sort((a, b) => byId(a.divisionId, b.divisionId))
-    .map((division) => ({
-      divisionId: division.divisionId,
-      role: division.divisionRole,
-      formation: division.preferredFormation,
-      flagshipShipId: division.flagshipShipId,
-      flagshipName: nameOf(division.flagshipShipId),
-      commanderVacant: division.commanderOfficerId === VACANT,
-      experience: Number(division.experience),
-      cohesion: Number(division.cohesion),
-      areaId: division.locationAreaId,
-      areaName: areaName(division.locationAreaId),
-      ships: division.shipOrder.map((shipId) => ({ shipId, name: nameOf(shipId) })),
-    }));
+    .map((division) => {
+      const officer = officersById.get(division.commanderOfficerId);
+      return {
+        divisionId: division.divisionId,
+        role: division.divisionRole,
+        formation: division.preferredFormation,
+        flagshipShipId: division.flagshipShipId,
+        flagshipName: nameOf(division.flagshipShipId),
+        commanderVacant: division.commanderOfficerId === VACANT,
+        ...(officer === undefined
+          ? {}
+          : {
+              commander: {
+                officerId: officer.id,
+                name: officer.name,
+                rank: officer.rank,
+                skill: Number(officer.skill),
+              },
+            }),
+        experience: Number(division.experience),
+        cohesion: Number(division.cohesion),
+        areaId: division.locationAreaId,
+        areaName: areaName(division.locationAreaId),
+        ships: division.shipOrder.map((shipId) => ({ shipId, name: nameOf(shipId) })),
+      };
+    });
 
   const assigned = new Set(nation.divisions.flatMap((division) => division.shipOrder));
   const unassignedShips: UnassignedShipView[] = [...shipsById.entries()]
