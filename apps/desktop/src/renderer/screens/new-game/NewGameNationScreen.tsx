@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   PLAYABLE_SLOT_COUNTRY_IDS,
   type PlayableSlotCountryId,
 } from "../../content/nationAssetManifest.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
+import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
 import { NationSelectionScreen } from "./nation-selection/NationSelectionScreen.js";
 import { countryIdToNationId } from "./nation-selection/slotBridge.js";
 
@@ -41,14 +42,11 @@ export function NewGameNationScreen({
     if (nationId !== null) onConfirmRef.current(nationId);
   }, [focusedIndex, slots]);
 
-  useEffect(() => {
-    onPrimaryActionChange({
-      label: "Continue",
-      disabled: false,
-      onTrigger: triggerConfirm,
-    });
-    return () => onPrimaryActionChange(null);
-  }, [triggerConfirm, onPrimaryActionChange]);
+  const primaryAction = useMemo(
+    () => ({ label: "Continue", disabled: false, onTrigger: triggerConfirm }),
+    [triggerConfirm],
+  );
+  usePrimaryAction(primaryAction, onPrimaryActionChange);
 
   const handleConfirm = useCallback(
     (countryId: string) => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "../../components/ui/button.js";
 import { Field, FieldGroup, FieldLabel } from "../../components/ui/field.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "../../components/ui/select.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
+import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
 import {
   type CampaignIdentityDraft,
   type MeasurementSystem,
@@ -50,14 +51,11 @@ export function NewGameIdentityScreen({
 
   const valid = isCampaignIdentityValid(identity);
 
-  useEffect(() => {
-    onPrimaryActionChange({
-      label: "Next",
-      disabled: !valid,
-      onTrigger: triggerNext,
-    });
-    return () => onPrimaryActionChange(null);
-  }, [valid, triggerNext, onPrimaryActionChange]);
+  const primaryAction = useMemo(
+    () => ({ label: "Next", disabled: !valid, onTrigger: triggerNext }),
+    [valid, triggerNext],
+  );
+  usePrimaryAction(primaryAction, onPrimaryActionChange);
 
   return (
     <div className="mx-auto flex h-full max-w-2xl flex-col gap-6 overflow-y-auto p-8">

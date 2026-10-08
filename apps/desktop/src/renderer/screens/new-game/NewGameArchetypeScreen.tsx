@@ -6,7 +6,7 @@ import {
   type ArchetypeSelection,
 } from "@bluewave/campaign-engine";
 import { RotateCcw, Wand2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "../../components/ui/button.js";
 import {
   Dialog,
@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "../../components/ui/dialog.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
+import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
 import { buildArchetypeConsequence } from "./archetype-consequence.js";
 import { ArchetypeConsequencePanel } from "./ArchetypeConsequencePanel.js";
 import {
@@ -80,17 +81,11 @@ export function NewGameArchetypeScreen({
     onNextRef.current(editorToSelection(currentState));
   }, []);
 
-  useEffect(() => {
-    onPrimaryActionChange({
-      label: "Choose Nation",
-      disabled: !hasSelection,
-      onTrigger: handleChooseNation,
-    });
-
-    return () => {
-      onPrimaryActionChange(null);
-    };
-  }, [hasSelection, handleChooseNation, onPrimaryActionChange]);
+  const primaryAction = useMemo(
+    () => ({ label: "Choose Nation", disabled: !hasSelection, onTrigger: handleChooseNation }),
+    [hasSelection, handleChooseNation],
+  );
+  usePrimaryAction(primaryAction, onPrimaryActionChange);
 
   const handlePresetClick = useCallback((id: string) => {
     setState((current) => selectPreset(current, id));

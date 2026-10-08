@@ -1,8 +1,9 @@
 import { Anchor } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useMemo } from "react";
 import type { NewGameOptions } from "../../../shared/new-game-contract.js";
 import { Button } from "../../components/ui/button.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
+import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
 import type { AdmiralPresetValues } from "./admiral-preset.js";
 import { EraScaleSection } from "./components/EraScaleSection.js";
 import { ErrorState } from "./components/ErrorState.js";
@@ -69,14 +70,11 @@ export function RulesOfTheNavalAgeScreen({
     if (options !== null && ready) onNext(preferences, options);
   }, [options, ready, preferences, onNext]);
 
-  useEffect(() => {
-    onPrimaryActionChange({
-      label: "Next: Choose Archetype",
-      disabled: !ready,
-      onTrigger: handleNext,
-    });
-    return () => onPrimaryActionChange(null);
-  }, [ready, handleNext, onPrimaryActionChange]);
+  const primaryAction = useMemo(
+    () => ({ label: "Next: Choose Archetype", disabled: !ready, onTrigger: handleNext }),
+    [ready, handleNext],
+  );
+  usePrimaryAction(primaryAction, onPrimaryActionChange);
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">

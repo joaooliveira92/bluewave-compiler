@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Badge } from "../../components/ui/badge.js";
 import { Button } from "../../components/ui/button.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
+import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
 import { FLEET_METHOD_CARDS, type FleetMethodCardContent } from "./fleet-method-content.js";
 import type { FleetMethodDraft } from "./new-game-fleet-method-screen-state.js";
@@ -35,14 +36,15 @@ export function NewGameFleetMethodScreen({
     onNextRef.current(fleetMethodRef.current);
   }, []);
 
-  useEffect(() => {
-    onPrimaryActionChange({
+  const primaryAction = useMemo(
+    () => ({
       label: launching ? "Starting…" : "Start Campaign",
       disabled: launching,
       onTrigger: triggerNext,
-    });
-    return () => onPrimaryActionChange(null);
-  }, [launching, triggerNext, onPrimaryActionChange]);
+    }),
+    [launching, triggerNext],
+  );
+  usePrimaryAction(primaryAction, onPrimaryActionChange);
 
   return (
     <div className="mx-auto flex h-full max-w-4xl flex-col gap-6 overflow-y-auto p-8">
