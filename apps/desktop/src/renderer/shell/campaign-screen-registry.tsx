@@ -13,7 +13,7 @@ import {
   Terminal,
   type LucideIcon,
 } from "lucide-react";
-import { lazy, Suspense, type ComponentType } from "react";
+import { lazy, Suspense, useCallback, type ComponentType } from "react";
 import { CampaignPreferencesScreen } from "../screens/campaign-preferences/CampaignPreferencesScreen.js";
 import { ConstructionScreen } from "../screens/construction/ConstructionScreen.js";
 import { FleetScreen } from "../screens/fleet/FleetScreen.js";
@@ -117,12 +117,16 @@ function FleetRoute({ sessionId }: CampaignScreenRouteProps) {
 
 function SimulationRoute({ sessionId }: CampaignScreenRouteProps) {
   const { state, actions } = useCampaignShellContext();
+  const onMonthCommitted = useCallback(
+    () => void actions.refreshCampaign(sessionId),
+    [actions.refreshCampaign, sessionId],
+  );
   return (
     <SimulationScreen
       sessionId={sessionId}
       onPrimaryActionChange={actions.setPrimaryAction}
       campaignRevision={state.campaign?.revision}
-      onMonthCommitted={() => void actions.refreshCampaign(sessionId)}
+      onMonthCommitted={onMonthCommitted}
     />
   );
 }

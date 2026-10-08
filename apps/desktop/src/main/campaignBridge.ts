@@ -13,6 +13,7 @@ import {
   CancelMovementCommandPayloadSchema,
   ReplaceMovementCommandPayloadSchema,
   SubmitBudgetAllocationPayloadSchema,
+  SubmitDesignCommandPayloadSchema,
   SubmitMovementCommandPayloadSchema,
   SubmitDivisionCommandPayloadSchema,
   WriteUiStatePayloadSchema,
@@ -42,6 +43,7 @@ import {
   replayCampaign,
   verifyCampaign,
 } from "./commands/continuityCommands.js";
+import { submitDesignCommand } from "./commands/designCommands.js";
 import { inspectFleetScreen } from "./commands/fleetCommands.js";
 import { inspectDiplomacyScreen, submitDiplomacyCommand } from "./commands/diplomacyCommands.js";
 import {
@@ -228,6 +230,14 @@ export async function dispatchCampaignCommand(
         return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
       }
       return submitMovementCommand(parsedPayload.data);
+    }
+
+    case "submitDesignCommand": {
+      const parsedPayload = SubmitDesignCommandPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return submitDesignCommand(parsedPayload.data);
     }
 
     case "replaceMovementCommand": {

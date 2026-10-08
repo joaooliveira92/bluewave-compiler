@@ -65,14 +65,14 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
   const refreshGenerationRef = useRef(0);
 
   /** Show a transient status message in the header; null just ends the "saving" state silently. */
-  const collectMessage = (message: string | null): void => {
+  const collectMessage = useCallback((message: string | null): void => {
     dispatch({ type: "save-finished", message });
     if (saveTimerRef.current !== null) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(
       () => dispatch({ type: "save-message-cleared" }),
       SAVE_MESSAGE_DURATION_MS,
     );
-  };
+  }, []);
 
   const openCampaign = useCallback(
     async (sessionId: string) => {

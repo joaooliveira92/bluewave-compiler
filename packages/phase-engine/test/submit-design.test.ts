@@ -54,7 +54,7 @@ const reference = (
     designs: { id: string; draft: Record<string, unknown> }[];
   }
 ).designs;
-const havockDraft = {
+const havockDraft: Record<string, unknown> = {
   ...reference.find((d) => d.id === "havock_like")!.draft,
   nationId: ATTACKER_NATION,
 };
@@ -166,7 +166,9 @@ describe("SubmitDesign through the month", () => {
     const snapshot = snapshotIn(1895);
     const a = run(snapshot, [submit(snapshot)]);
     const b = run(snapshot, [submit(snapshot)]);
-    expect(a.result.closingSnapshotHash).toBe(b.result.closingSnapshotHash);
+    expect(sha256Hex(canonicalSerialize(a.result.finalSnapshot))).toBe(
+      sha256Hex(canonicalSerialize(b.result.finalSnapshot)),
+    );
   });
 
   it("a second design in the same family joins it", () => {

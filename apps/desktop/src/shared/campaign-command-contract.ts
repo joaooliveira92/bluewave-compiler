@@ -14,6 +14,7 @@ import type {
 import type { BattleHistoryView, WorldMapView } from "@bluewave/campaign-engine";
 import type { SaveMetadata } from "@bluewave/persistence";
 import type { BridgeResult, CommandEnvelope } from "./bridge-contract.js";
+import type { DesignCommandOutcome, SubmitDesignCommandPayload } from "./design-contract.js";
 import type {
   LoadCampaignResponse,
   RecoverCampaignResponse,
@@ -219,6 +220,7 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "submitMovementCommand",
   "replaceMovementCommand",
   "cancelMovementCommand",
+  "submitDesignCommand",
   "inspectResearchScreen",
   "setResearchPriorityCommand",
   "inspectDiplomacyScreen",
@@ -329,6 +331,10 @@ export interface CampaignCommandClient {
     command: "replaceMovementCommand",
     payload: ReplaceMovementCommandPayload,
   ): Promise<BridgeResult<MovementCommandOutcome>>;
+  execute(
+    command: "submitDesignCommand",
+    payload: SubmitDesignCommandPayload,
+  ): Promise<BridgeResult<DesignCommandOutcome>>;
   execute(
     command: "cancelMovementCommand",
     payload: CancelMovementCommandPayload,

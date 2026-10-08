@@ -20,6 +20,7 @@ import { DiagnosticCollector } from "@bluewave/diagnostics";
 import type { DomainEventBody, DomainEventEnvelope } from "@bluewave/events";
 import { SaveStore } from "@bluewave/persistence";
 import { MonthExecutor, type LedgerTransaction } from "@bluewave/phase-engine";
+import { loadShipBuildingContent } from "../shipBuildingContent.js";
 import type { RandomDecision } from "@bluewave/random";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type { CommitMonthPayload } from "../../shared/campaign-command-contract.js";
@@ -122,7 +123,16 @@ export async function commitMonth(
     record.playerSlotId,
   );
   const pendingCommands = pendingEnvelopesForExecution(payload.sessionId, executionSnapshot);
-  const result = executor.execute(executionSnapshot, pendingCommands, randomSeed, collector);
+  const result = executor.execute(
+    executionSnapshot,
+    pendingCommands,
+    randomSeed,
+    collector,
+    undefined,
+    {
+      shipBuilding: loadShipBuildingContent(),
+    },
+  );
 
   if (!result.success) {
     return {

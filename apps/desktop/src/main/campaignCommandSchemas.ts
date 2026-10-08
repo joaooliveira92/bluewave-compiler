@@ -168,6 +168,15 @@ export const CancelMovementCommandPayloadSchema = CommandEnvelopePayloadSchema.e
   commandId: z.string().min(1),
 });
 
+/** Wire shape for `submitDesignCommand`; the draft is validated by the engine (`SubmitDesign`) and the ship-design compiler. */
+export const SubmitDesignCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  className: z.string().trim().min(1).max(60),
+  draft: z.custom<Record<string, unknown>>(
+    (v) => typeof v === "object" && v !== null,
+    "draft must be an object",
+  ),
+});
+
 /** Wire shape for `submitBudgetAllocation`; bounds are the engine's own (validated at issue). */
 export const SubmitBudgetAllocationPayloadSchema = CommandEnvelopePayloadSchema.extend({
   appropriationRateBp: z.number().int(),
