@@ -23,6 +23,8 @@ const facts = (o: Partial<ClassFacts>): ClassFacts => ({
   mainTurretCount: 0,
   torpedoTubes: 1,
   aircraftCapacity: 0,
+  deckUm: 0,
+  maxHeavyMountBarrels: 0,
   ...o,
 });
 const pass = (t: keyof typeof classPredicates, f: ClassFacts) =>
@@ -106,6 +108,58 @@ describe("DESIGN-22 boundaries (strict versus inclusive)", () => {
         R,
       ),
     ).toBeNull();
+  });
+});
+
+describe("protected-cruiser exception (ADR-0067, ticket 19)", () => {
+  const nineInch = facts({
+    displacementKg: 7_000_000,
+    speedUms: 22 * UM_PER_KNOT,
+    beltUm: 0,
+    deckUm: 6 * UM_PER_INCH,
+    maxMainGunUm: 9_200 * 25.4,
+    mainTurretCount: 2,
+    maxHeavyMountBarrels: 1,
+  });
+  const protectedEight = { ...nineInch, maxMainGunUm: 8 * UM_PER_INCH };
+  it("is versioned data in the ruleset", () => {
+    expect(R.protectedCruiserExceptionVersion).toBe(1);
+    expect(R.clProtectedMaxGunUm).toBe(203_200);
+  });
+  it("lets a belt-less deck cruiser with single mounts up to exactly 8 in be CL", () => {
+    expect(pass("CL", protectedEight)).toBe(true);
+    expect(naturalClass(protectedEight, R)).toBe("CL");
+    expect(pass("CL", { ...protectedEight, maxMainGunUm: 8 * UM_PER_INCH + 1 })).toBe(false);
+    expect(pass("CL", { ...protectedEight, maxMainGunUm: 6 * UM_PER_INCH })).toBe(true);
+  });
+  it("rejects twin mounts, a main belt, or no armour deck above 6 in", () => {
+    expect(pass("CL", { ...protectedEight, maxHeavyMountBarrels: 2 })).toBe(false);
+    expect(pass("CL", { ...protectedEight, beltUm: 1 })).toBe(false);
+    expect(pass("CL", { ...protectedEight, deckUm: 0 })).toBe(false);
+  });
+  it("does not move the displacement, speed or strict CA 6 in bounds", () => {
+    expect(pass("CL", { ...protectedEight, displacementKg: 8_000_000 })).toBe(false);
+    expect(pass("CL", { ...protectedEight, speedUms: 16 * UM_PER_KNOT })).toBe(false);
+    const sixInchBelted = facts({
+      displacementKg: 7_700_000,
+      speedUms: 20 * UM_PER_KNOT,
+      beltUm: 6 * UM_PER_INCH,
+      maxMainGunUm: 6 * UM_PER_INCH,
+    });
+    expect(pass("CA", sixInchBelted)).toBe(false);
+  });
+  it("a 9.2 in single-mount ship declared CL is BLOCKING; the 8 in one has no finding", () => {
+    expect(classificationFindings(nineInch, "CL", R).findings[0]!.id).toBe(
+      "INTENDED_CLASSIFICATION_ILLEGAL",
+    );
+    expect(classificationFindings(protectedEight, "CL", R)).toEqual({
+      natural: "CL",
+      findings: [],
+    });
+  });
+  it("is deterministic", () => {
+    const a = JSON.stringify(classificationFindings(protectedEight, "CL", R));
+    expect(JSON.stringify(classificationFindings({ ...protectedEight }, "CL", R))).toBe(a);
   });
 });
 

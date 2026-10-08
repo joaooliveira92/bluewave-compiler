@@ -604,6 +604,7 @@ export const costBalance: CostBalance = {
   },
   overheadBp: 1_200,
   firstOfClassBp: 1_500,
+  accelerationCostBp: 500,
   hullMonthlyMaintenanceBp: 8,
   plantMonthlyMaintenanceBp: 15,
 };
@@ -649,6 +650,16 @@ export const constructionBalance: ConstructionBalance = {
   acceptanceShareBp: 100,
   firstOfClassWorkBp: 2_000,
   maxMonths: 120,
+  buildMonthsByDisplacementT: {
+    points: [
+      [100, 10],
+      [1_000, 18],
+      [10_000, 30],
+      [15_000, 36],
+    ],
+  },
+  efficientIndustryBp: 6_700,
+  accelerationTimeBp: 9_000,
 };
 
 import type { CveBalance } from "../../src/index.js";

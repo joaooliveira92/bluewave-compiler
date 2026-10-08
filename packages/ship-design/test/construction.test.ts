@@ -4,6 +4,7 @@ import {
   computeCost,
   planConstruction,
   simulateConstruction,
+  historicalBuildMonths,
   checkPlan,
   ConstructionPlanError,
   LINE_IDS,
@@ -11,6 +12,7 @@ import {
   type ConstructionPlan,
 } from "../src/index.js";
 import { ctx, draft, costBalance, constructionBalance } from "./fixtures/gunboat.js";
+import { constructionBalance as earlyConstruction } from "./helpers/earlyContext.js";
 
 const compiled = compileDesign(draft, ctx);
 const mature = { maturityBpByTech: {}, firstOfClass: false };
@@ -189,5 +191,48 @@ describe("plan and schedule", () => {
         ),
       ),
     ).toBe(a);
+  });
+});
+
+describe("historical build time by displacement (ADR-0067 section 5)", () => {
+  const kg = (t: number) => t * 1000;
+  it("hits the table points exactly and clamps outside the table", () => {
+    const months = (t: number) => historicalBuildMonths(kg(t), earlyConstruction);
+    expect(months(12_950)).toBe(35); // Canopus, Brassey 1901
+    expect(months(12_000)).toBe(31); // Cressy
+    expect(months(14_900)).toBe(36);
+    expect(months(1)).toBe(18);
+    expect(months(100_000)).toBe(42);
+  });
+  it("interpolates monotonically between points (boundary: just either side of a point)", () => {
+    let prev = 0;
+    for (let t = 300; t <= 20_000; t += 250) {
+      const m = historicalBuildMonths(kg(t), earlyConstruction);
+      expect(m).toBeGreaterThanOrEqual(prev);
+      prev = m;
+    }
+    expect(historicalBuildMonths(kg(12_949), earlyConstruction)).toBe(34);
+    expect(historicalBuildMonths(kg(12_951), earlyConstruction)).toBe(35);
+  });
+  it("applies the industry modifier and acceleration with explicit rounding", () => {
+    const eff = earlyConstruction.efficientIndustryBp;
+    // Efficient yard reproduces the Brassey records: Magnificent 24, Majestic 22 (to within a month).
+    expect(historicalBuildMonths(kg(14_900), earlyConstruction, { industryBp: eff })).toBe(24);
+    expect(historicalBuildMonths(kg(14_900), earlyConstruction, { industryBp: 13_000 })).toBe(47);
+    expect(historicalBuildMonths(kg(14_900), earlyConstruction, { accelerated: true })).toBe(32);
+    expect(historicalBuildMonths(kg(300), constructionBalance, { industryBp: 1 })).toBe(1);
+  });
+  it("is deterministic across calls", () => {
+    const a = historicalBuildMonths(kg(13_333), earlyConstruction, { accelerated: true });
+    expect(historicalBuildMonths(kg(13_333), earlyConstruction, { accelerated: true })).toBe(a);
+  });
+  it("accelerated construction costs 5 % more on subtotal plus overheads", () => {
+    const base = computeCost(compiled, draft, costBalance, mature);
+    const fast = computeCost(compiled, draft, costBalance, { ...mature, accelerated: true });
+    expect(fast.accelerationPremium).toBe(
+      Math.round((base.subtotal + base.overheads) * 0.05) as typeof fast.accelerationPremium,
+    );
+    expect(fast.total).toBe(base.total + fast.accelerationPremium);
+    expect(base.accelerationPremium).toBe(0);
   });
 });

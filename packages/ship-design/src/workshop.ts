@@ -5,6 +5,7 @@ import {
   type ShipContext,
 } from "./compile.js";
 import {
+  historicalBuildMonths,
   planConstruction,
   simulateConstruction,
   type ConstructionBalance,
@@ -24,6 +25,8 @@ export interface WorkshopEnvironment {
   readonly cveBalance: CveBalance;
   /** Work micro-units per month each line can apply to this ship, from the chosen yard. */
   readonly yardCapacity: Readonly<Record<LineId, number>>;
+  /** Shipbuilding-industry build-time multiplier, bp (10_000 or absent = neutral; ADR-0067 section 5). */
+  readonly industryBp?: number;
 }
 
 export interface LedgerRow {
@@ -53,7 +56,10 @@ export interface WorkshopView {
   readonly forecast: {
     readonly costMicro: number;
     readonly monthlyMaintenanceMicro: number;
+    /** Forecast build time: the larger of the historical table time (industry, acceleration applied) and the capacity schedule. */
     readonly months: number | null;
+    /** Historical keel-to-commissioning months for this displacement after industry and acceleration; null if not valid. */
+    readonly historicalMonths: number | null;
     readonly bottleneck: LineId | null;
     readonly note: string | null;
   };
@@ -153,6 +159,7 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
   ];
 
   let months: number | null = null;
+  let historicalMonths: number | null = null;
   let bottleneck: LineId | null = null;
   let note: string | null = null;
   if (c.valid) {
@@ -163,7 +170,11 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
         { capacity: env.yardCapacity, monthlyFundingMicro: null, costPerWorkMicro: 1 },
         env.constructionBalance.maxMonths,
       );
-      months = s.durationMonths;
+      historicalMonths = historicalBuildMonths(c.totalKg, env.constructionBalance, {
+        industryBp: env.industryBp,
+        accelerated: env.costCtx.accelerated,
+      });
+      months = Math.max(historicalMonths, s.durationMonths);
       bottleneck = s.bottleneck;
     } catch (e) {
       note = e instanceof Error ? e.message : String(e);
@@ -185,6 +196,7 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
       costMicro: cost.total,
       monthlyMaintenanceMicro: cost.monthlyMaintenance,
       months,
+      historicalMonths,
       bottleneck,
       note,
     },

@@ -130,6 +130,21 @@ describe("DrawingBoard", () => {
     );
   });
 
+  it("the forecast shows a build time that grows with displacement (historical table, ticket 20)", () => {
+    const months = () => {
+      const t = within(region("Cost and construction forecast")).getByText("Build time")
+        .nextElementSibling!.textContent!;
+      return Number(/^(\d+) months/.exec(t)![1]);
+    };
+    render(<DrawingBoard />);
+    const destroyer = months();
+    fireEvent.change(screen.getByLabelText("Starting design"), {
+      target: { value: "majestic_like" },
+    });
+    expect(months()).toBeGreaterThan(destroyer);
+    expect(months()).toBeGreaterThanOrEqual(30);
+  });
+
   it("technology depends on the year: the same battleship is rejected before its guns exist", () => {
     render(<DrawingBoard />);
     fireEvent.change(screen.getByLabelText("Starting design"), {

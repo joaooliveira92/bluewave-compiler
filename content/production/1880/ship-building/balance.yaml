@@ -251,6 +251,8 @@ cost:
         - 10000
   overheadBp: 1200
   firstOfClassBp: 1500
+  # Accelerated construction: +5 % cost (RTW3 official manual p. 31, a game rule; time side is construction.accelerationTimeBp).
+  accelerationCostBp: 500
   hullMonthlyMaintenanceBp: 8
   plantMonthlyMaintenanceBp: 15
 construction:
@@ -293,6 +295,34 @@ construction:
   acceptanceShareBp: 100
   firstOfClassWorkBp: 2000
   maxMonths: 120
+  # Build time (ticket 20, ADR-0067 section 5): months from keel to commissioning at a neutral yard, by displacement in tonnes.
+  # Linear interpolation, clamped at the ends. The RTW3 manual gives no table, so these are derived from history.
+  #  VERIFIED = checked against a primary source (Brassey's Naval Annual 1901, archive.org id brassey-s-naval-annual-1901,
+  #  "Retarded Construction", pp. 257-261). WIKIPEDIA = Wikipedia citing Conway's/Brassey, not yet checked against the book.
+  #  ESTIMATE = no source; replace before release.
+  #   Majestic 14,900 t: 22 months (VERIFIED, Brassey 1901 p. 258: efficient record, ready for sea in 22 months).
+  #   Magnificent: 24 months (VERIFIED, same page); Royal Sovereign 14,150 t: 32 months (VERIFIED, same page).
+  #   Hannibal 14,900 t: laid 1 May 1894, ready 9 May 1898, just over 48 months (VERIFIED, p. 258; labour dispute and alterations).
+  #   Canopus class 12,950 t: Canopus 35, Ocean 36, Goliath 39 months (VERIFIED, p. 259 table); Glory 47 (VERIFIED, delayed).
+  #   Cressy 12,000 t: laid 12 Oct 1898 (VERIFIED, Brassey 1901 dockyard/contract table), completed 28 May 1901, about 31 months
+  #     (WIKIPEDIA, completion date unverified).
+  #   Blake 9,150 t: about 43 months, laid Jul 1888, ready Feb 1892 (WIKIPEDIA, 1880s outlier, not used for the 1890s curve).
+  #   Hornet 275 t: about 24 months, laid Jul 1892, completed Jul 1894 (WIKIPEDIA; new-boiler lead ship, outlier, not used).
+  # Table points: 12,950 t is Canopus (35); 14,900 t takes 36 months, in line with Canopus/Ocean/Goliath (35-39); 12,000 t uses Cressy; the efficient record (22-24 months) is reached through
+  # efficientIndustryBp (24/36 = 6,667 bp, rounded to 6,700). Points at 300, 3,000 and 9,000 t are ESTIMATE.
+  buildMonthsByDisplacementT:
+    points:
+      - [300, 18] # ESTIMATE (destroyer / torpedo boat; Hornet 24 months is a WIKIPEDIA outlier)
+      - [3000, 24] # ESTIMATE
+      - [9000, 30] # ESTIMATE (Blake 43 months WIKIPEDIA, 1880s)
+      - [12000, 31] # Cressy, WIKIPEDIA completion date (laid-down VERIFIED)
+      - [12950, 35] # Canopus, VERIFIED (Brassey 1901 p. 259)
+      - [14900, 36] # Majestic-size typical (Canopus-class 35-39 months, VERIFIED p. 259; Majestic record 22 is the efficient floor)
+      - [20000, 42] # ESTIMATE extrapolation
+  # Efficient shipbuilding industry: Majestic 22 / typical 36 = 6,100; Magnificent 24 / 36 = 6,667 (VERIFIED, Brassey 1901 p. 258).
+  efficientIndustryBp: 6700
+  # Accelerated construction: 10 % faster (RTW3 official manual p. 31, a game rule).
+  accelerationTimeBp: 9000
 cve:
   weightsByCategory:
     DD: &a1
@@ -541,6 +571,9 @@ environment:
         maxDisplacementKg: 30000000,
         craneLiftKg: 250000,
       }
-  yardCapacityWorkPerMonth: 2000000
+  # PLACEHOLDER. Raised from 2,000,000 (ticket 20): at 2M a Majestic-size hull (276M work) could not finish in maxMonths, so the
+  # Drawing Board had no forecast for battleships. At 20M the capacity schedule is shorter than the historical table time, which
+  # then sets the forecast (buildMonthsByDisplacementT); capacity only lengthens it for over-large or over-loaded builds.
+  yardCapacityWorkPerMonth: 20000000
   # Engine projection: displacement per hit point; the median of the 37 authored 1880-pack designs is ~214,000 kg.
   kgPerHitPoint: 214000

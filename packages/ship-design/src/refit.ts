@@ -1,3 +1,4 @@
+import type { ArmourRegion, ArmourRegionId } from "./armour.js";
 import type { ComponentCategory } from "./component.js";
 import {
   compileDesign,
@@ -63,6 +64,13 @@ export interface RefitPlan {
   readonly kind: RefitKind;
   readonly removeInstanceIds: readonly string[];
   readonly add: readonly PlacementSpec[];
+  /**
+   * Armour regions to add or replace (matched by `region`), e.g. +1 in of DECK_MAIN or a changed BELT_UPPER. Legal only
+   * under ARMOUR_MODIFICATION (RTW3 manual p. 32; ADR-0067 §3). Applied after `armourRemove`.
+   */
+  readonly armourSet?: readonly ArmourRegion[];
+  /** Armour regions to strip (e.g. CONNING_TOWER). Legal only under ARMOUR_MODIFICATION. */
+  readonly armourRemove?: readonly ArmourRegionId[];
 }
 
 export interface RefitEvaluation {
@@ -184,7 +192,58 @@ export function evaluateRefit(
       !plan.removeInstanceIds.includes(p.instanceId) &&
       !plan.removeInstanceIds.includes(p.magazineRef ?? ""),
   );
-  const newDesign: DesignDraft = { ...ship.design, placements: [...stripped, ...plan.add] };
+  const armourSet = plan.armourSet ?? [];
+  const armourRemove = plan.armourRemove ?? [];
+  if ((armourSet.length > 0 || armourRemove.length > 0) && plan.kind !== "ARMOUR_MODIFICATION") {
+    findings.push(
+      f(
+        "REFIT_ARMOUR_KIND_MISMATCH",
+        "BLOCKING",
+        `Armour cannot be changed in a ${plan.kind} refit.`,
+        "Only an armour modification may add, remove or alter armour regions.",
+        "A refit of this kind cannot touch the armour.",
+        [
+          ["use_kind", "Plan an armour modification instead."],
+          ["drop", "Remove the armour changes from the plan."],
+          ["reconstruct", "Plan a major reconstruction instead."],
+        ],
+      ),
+    );
+  }
+  const haveRegions = new Set(ship.design.armour.regions.map((r) => r.region));
+  for (const region of armourRemove) {
+    if (!haveRegions.has(region))
+      findings.push(
+        f(
+          "REFIT_UNKNOWN_TARGET",
+          "BLOCKING",
+          `Nothing to remove: armour region ${region}.`,
+          "The ship has no such armour region.",
+          "The plan cannot be carried out.",
+          [
+            ["fix_plan", "Remove the entry from the plan."],
+            ["pick_other", "Choose an armoured region."],
+            ["resurvey", "Re-survey the ship design."],
+          ],
+        ),
+      );
+  }
+  const replaced = new Map(armourSet.map((a) => [a.region, a]));
+  const kept = ship.design.armour.regions
+    .filter((r) => !armourRemove.includes(r.region))
+    .map((r) => replaced.get(r.region) ?? r);
+  const armourRegions = [
+    ...kept,
+    ...[...replaced.values()].filter((a) => !haveRegions.has(a.region)),
+  ];
+  const newDesign: DesignDraft = {
+    ...ship.design,
+    placements: [...stripped, ...plan.add],
+    armour:
+      armourSet.length > 0 || armourRemove.length > 0
+        ? { ...ship.design.armour, regions: armourRegions }
+        : ship.design.armour,
+  };
 
   const before = compileDesign(ship.design, ctx);
   const rawAfter = compileDesign(newDesign, ctx);

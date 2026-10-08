@@ -1,6 +1,8 @@
 import type { ComponentCategory } from "./component.js";
 import type { CompiledDesign, DesignDraft } from "./compile.js";
 import type { CostBreakdown } from "./cost.js";
+import { evaluate, type LookupTable } from "./formula/eval.js";
+import { parseFormula } from "./formula/parse.js";
 import { toSafe } from "./units.js";
 
 export type LineId = "slipway" | "armour_plate" | "heavy_gun" | "machinery" | "quay" | "trials";
@@ -55,6 +57,38 @@ export interface ConstructionBalance {
   readonly acceptanceShareBp: number;
   readonly firstOfClassWorkBp: number;
   readonly maxMonths: number;
+  /** Displacement in tonnes -> months from keel to commissioning at a neutral yard (ADR-0067 section 5). */
+  readonly buildMonthsByDisplacementT: LookupTable;
+  /** Industry-efficiency multiplier on build time for an efficient shipbuilding industry, bp (10_000 = neutral). */
+  readonly efficientIndustryBp: number;
+  /** Accelerated construction time multiplier, bp (RTW3 manual p. 31: 10 % faster = 9_000). */
+  readonly accelerationTimeBp: number;
+}
+
+export interface BuildTimeOptions {
+  /** Shipbuilding-industry time multiplier, bp: below 10_000 efficient, above undeveloped. Default neutral. */
+  readonly industryBp?: number;
+  readonly accelerated?: boolean;
+}
+
+/**
+ * Historical build time (keel to commissioning) in whole months for a displacement, from the content table, scaled by the
+ * industry multiplier and, if accelerated, the acceleration multiplier. Pure; round-half-up on each bp step; at least 1.
+ */
+export function historicalBuildMonths(
+  displacementKg: number,
+  b: ConstructionBalance,
+  o: BuildTimeOptions = {},
+): number {
+  const tonnes = Math.round(displacementKg / 1000);
+  const base = evaluate(parseFormula("lookup(t, x)"), {
+    vars: { x: tonnes },
+    tables: { t: b.buildMonthsByDisplacementT },
+  });
+  let m = BigInt(base);
+  m = mulBp(m, o.industryBp ?? 10_000);
+  if (o.accelerated) m = mulBp(m, b.accelerationTimeBp);
+  return Math.max(1, Number(m));
 }
 
 export interface ConstructionPlan {

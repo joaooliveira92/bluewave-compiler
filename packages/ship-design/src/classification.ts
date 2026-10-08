@@ -19,6 +19,10 @@ export interface ClassFacts {
   readonly mainTurretCount: number;
   readonly torpedoTubes: number;
   readonly aircraftCapacity: number;
+  /** Thickest armour deck (DECK_MAIN or DECK_SLOPE), micrometres (0 if none). */
+  readonly deckUm: number;
+  /** Most barrels in any single main-gun mount whose calibre exceeds the normal CL gun limit (0 if none). */
+  readonly maxHeavyMountBarrels: number;
 }
 
 /** Normative thresholds from docs/rules/ship-classification.md, kept as data so a ruleset change is not a code change. */
@@ -30,6 +34,10 @@ export interface ClassificationRules {
   readonly clMaxDisplacementKg: number;
   readonly clMinSpeedUms: number;
   readonly clMaxGunUm: number;
+  /** Version of the protected-cruiser exception (ADR-0067; bump when its predicate changes). */
+  readonly protectedCruiserExceptionVersion: number;
+  /** Largest single-mounted gun a belt-less armoured-deck (protected) cruiser may carry and still be CL. */
+  readonly clProtectedMaxGunUm: number;
   readonly caMinDisplacementKg: number;
   readonly caMinSpeedUms: number;
   readonly caBeltMinUm: number;
@@ -55,6 +63,8 @@ export const DESIGN_22_EARLY: ClassificationRules = {
   clMaxDisplacementKg: 8_000_000,
   clMinSpeedUms: 16 * UM_PER_KNOT,
   clMaxGunUm: 6 * UM_PER_INCH,
+  protectedCruiserExceptionVersion: 1,
+  clProtectedMaxGunUm: 8 * UM_PER_INCH,
   caMinDisplacementKg: 4_000_000,
   caMinSpeedUms: 19 * UM_PER_KNOT,
   caBeltMinUm: 2 * UM_PER_INCH,
@@ -70,6 +80,17 @@ export const DESIGN_22_EARLY: ClassificationRules = {
   bbGunMinUm: 10 * UM_PER_INCH,
   aircraftLimit: 4,
 };
+
+/**
+ * Protected-cruiser exception (DESIGN-22 section 9, ADR-0067): an armour-deck ship with no main belt whose guns
+ * above the normal CL limit are all single mounts no larger than the protected limit. It changes only the CL gun
+ * bound; displacement and speed bounds are untouched.
+ */
+export const isProtectedCruiser = (f: ClassFacts, r: ClassificationRules): boolean =>
+  f.beltUm === 0 &&
+  f.deckUm > 0 &&
+  f.maxMainGunUm <= r.clProtectedMaxGunUm &&
+  f.maxHeavyMountBarrels <= 1;
 
 /** Strict/inclusive boundaries follow the document literally (see its section 21 boundary summary). */
 export const classPredicates: Record<
@@ -93,7 +114,10 @@ export const classPredicates: Record<
     if (!(f.displacementKg >= r.clMinDisplacementKg && f.displacementKg < r.clMaxDisplacementKg))
       why.push(`displacement must be ${r.clMinDisplacementKg}..${r.clMaxDisplacementKg - 1} kg`);
     if (!(f.speedUms > r.clMinSpeedUms)) why.push("speed must exceed 16 kn");
-    if (!(f.maxMainGunUm <= r.clMaxGunUm)) why.push("main guns must be 6 inches or smaller");
+    if (!(f.maxMainGunUm <= r.clMaxGunUm) && !isProtectedCruiser(f, r))
+      why.push(
+        "main guns must be 6 inches or smaller (protected cruisers: single mounts up to 8 inches, armour deck, no main belt)",
+      );
     if (f.aircraftCapacity >= r.aircraftLimit) why.push("aircraft capacity must be below 4");
     return why;
   },
@@ -168,6 +192,12 @@ export function classFacts(
       .filter((k) => k.category === "TORPEDO_TUBE")
       .reduce((a, k) => a + (k.params.tubes ?? 1), 0),
     aircraftCapacity: 0,
+    deckUm: d.armour.regions
+      .filter((r) => r.region === "DECK_MAIN" || r.region === "DECK_SLOPE")
+      .reduce((m, r) => Math.max(m, r.thicknessUm), 0),
+    maxHeavyMountBarrels: guns
+      .filter((k) => (k.attr.caliberUm ?? 0) > DESIGN_22_EARLY.clMaxGunUm)
+      .reduce((m, k) => Math.max(m, k.params.barrels ?? 1), 0),
   };
 }
 

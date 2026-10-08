@@ -3,6 +3,7 @@ import {
   evaluateRefit,
   compileDesign,
   checkFindingShape,
+  type ArmourRegion,
   type ComponentDef,
   type RefitPlan,
   type ShipContext,
@@ -211,5 +212,129 @@ describe("refit legality (I5)", () => {
     const snap = JSON.stringify(ship);
     expect(JSON.stringify(run(upgrade()))).toBe(JSON.stringify(run(upgrade())));
     expect(JSON.stringify(ship)).toBe(snap);
+  });
+});
+
+describe("ARMOUR_MODIFICATION (RTW3 manual p. 32 rebuild list, ADR-0067 §3)", () => {
+  const region = (
+    r: ArmourRegion["region"],
+    thicknessUm: number,
+    lengthMm = 10_000,
+    heightMm = 2_000,
+  ): ArmourRegion => ({
+    region: r,
+    thicknessUm,
+    lengthMm,
+    heightMm,
+    materialId: "mild_steel",
+    cosObliquityBp: 10_000,
+  });
+  const armoured: ShipState = {
+    ...ship,
+    // 1 in over the 24 m x 5 m deck is about 27.6 t, so the budget must be generous.
+    growthBudgetKg: 40_000,
+    design: {
+      ...draft,
+      armour: {
+        ...draft.armour,
+        regions: [
+          ...draft.armour.regions,
+          region("BELT_UPPER", 50_000),
+          region("CONNING_TOWER", 60_000, 3_000, 1_500),
+        ],
+      },
+    },
+  };
+  const deck = armoured.design.armour.regions.find((r) => r.region === "DECK_MAIN")!;
+  const kg = (c: { armour: number }) => c.armour;
+  const plan = (over: Partial<RefitPlan>): RefitPlan => ({
+    kind: "ARMOUR_MODIFICATION",
+    removeInstanceIds: [],
+    add: [],
+    ...over,
+  });
+  const addDeck = plan({ armourSet: [{ ...deck, thicknessUm: deck.thicknessUm + 25_400 }] });
+  const removeConn = plan({ armourRemove: ["CONNING_TOWER"] });
+  const changeBelt = plan({ armourSet: [region("BELT_UPPER", 75_000)] });
+
+  it("add 1 in of DECK_MAIN: legal, adds armour mass, cost and growth use", () => {
+    const r = run(addDeck, armoured);
+    expect(r.legal).toBe(true);
+    expect(r.projectType).toBe("REBUILD");
+    expect(kg(r.after.ledger)).toBeGreaterThan(kg(r.before.ledger));
+    expect(r.netAddedKg).toBeGreaterThan(0);
+    expect(r.costMicro).toBeGreaterThan(0);
+    expect(r.nextState.growthBudgetKg).toBeLessThan(armoured.growthBudgetKg);
+    expect(
+      r.nextState.design.armour.regions.find((x) => x.region === "DECK_MAIN")!.thicknessUm,
+    ).toBe(deck.thicknessUm + 25_400);
+    expect(r.nextState.refitCount).toBe(1);
+  });
+  it("remove CONNING_TOWER: legal, sheds armour mass, region gone", () => {
+    const r = run(removeConn, armoured);
+    expect(r.legal).toBe(true);
+    expect(r.netAddedKg).toBeLessThan(0);
+    expect(r.newDesign.armour.regions.some((x) => x.region === "CONNING_TOWER")).toBe(false);
+    expect(r.nextState.growthBudgetKg).toBeLessThanOrEqual(armoured.growthBudgetKg);
+  });
+  it("change BELT_UPPER: legal, replaced in place, region count unchanged", () => {
+    const r = run(changeBelt, armoured);
+    expect(r.legal).toBe(true);
+    expect(r.netAddedKg).toBeGreaterThan(0);
+    expect(r.newDesign.armour.regions.map((x) => x.region)).toEqual(
+      armoured.design.armour.regions.map((x) => x.region),
+    );
+    expect(r.newDesign.armour.regions.find((x) => x.region === "BELT_UPPER")!.thicknessUm).toBe(
+      75_000,
+    );
+  });
+  it("armour edits are illegal under any other refit kind", () => {
+    for (const kind of ["SENSOR_FC_UPDATE", "REARMAMENT", "MAJOR_RECONSTRUCTION"] as const) {
+      for (const p of [addDeck, removeConn, changeBelt]) {
+        const r = run({ ...p, kind }, armoured);
+        expect(r.legal).toBe(false);
+        expect(r.findings.map((x) => x.id)).toContain("REFIT_ARMOUR_KIND_MISMATCH");
+        expect(r.nextState).toBe(armoured);
+      }
+    }
+  });
+  it("removing a region the ship lacks is blocked", () => {
+    const r = run(plan({ armourRemove: ["TORPEDO_BELT"] }), armoured);
+    expect(r.legal).toBe(false);
+    expect(r.findings.map((x) => x.id)).toContain("REFIT_UNKNOWN_TARGET");
+  });
+  it("respects the growth budget", () => {
+    const r = run(addDeck, { ...armoured, growthBudgetKg: 1 });
+    expect(r.legal).toBe(false);
+    expect(r.findings.map((x) => x.id)).toContain("REFIT_GROWTH_EXCEEDED");
+  });
+  it("respects remaining-life and fatigue limits for all three cases", () => {
+    const rule = refitBalance.rules.ARMOUR_MODIFICATION;
+    for (const p of [addDeck, removeConn, changeBelt]) {
+      const old = run(p, { ...armoured, remainingServiceMonths: rule.minRemainingLifeMonths - 1 });
+      expect(old.findings.map((x) => x.id)).toContain("REFIT_SERVICE_LIFE_TOO_SHORT");
+      const worn = run(p, { ...armoured, hullFatigueBp: rule.maxHullFatigueBp + 1 });
+      expect(worn.findings.map((x) => x.id)).toContain("HULL_WORN_OUT");
+      const ok = run(p, armoured);
+      expect(ok.nextState.hullFatigueBp).toBe(armoured.hullFatigueBp + rule.fatigueGainBp);
+      expect(ok.nextState.remainingServiceMonths).toBe(
+        armoured.remainingServiceMonths + rule.lifeExtensionMonths,
+      );
+    }
+  });
+  it("is deterministic and does not mutate the input", () => {
+    const snap = JSON.stringify(armoured);
+    expect(JSON.stringify(run(addDeck, armoured))).toBe(JSON.stringify(run(addDeck, armoured)));
+    expect(JSON.stringify(armoured)).toBe(snap);
+  });
+  it("plans without armour fields are unchanged: design armour is the same object and serialization has no new keys", () => {
+    const r = run(upgrade());
+    expect(r.newDesign.armour).toBe(draft.armour);
+    expect(JSON.stringify(upgrade())).not.toContain("armour");
+    expect(Object.keys(upgrade()).sort()).toEqual(["add", "kind", "removeInstanceIds"]);
+  });
+  it("a plan with armour edits survives a JSON round trip with the same result", () => {
+    const rt = JSON.parse(JSON.stringify(addDeck)) as RefitPlan;
+    expect(JSON.stringify(run(rt, armoured))).toBe(JSON.stringify(run(addDeck, armoured)));
   });
 });

@@ -17,6 +17,8 @@ export interface CostBalance {
   readonly maturityCostBp: LookupTable;
   readonly overheadBp: number;
   readonly firstOfClassBp: number;
+  /** Extra cost of accelerated construction on subtotal + overheads, bp (RTW3 manual p. 31: +5 %). */
+  readonly accelerationCostBp: number;
   readonly hullMonthlyMaintenanceBp: number;
   readonly plantMonthlyMaintenanceBp: number;
 }
@@ -25,6 +27,8 @@ export interface CostContext {
   /** Per-technology maturity for the building nation, bp. Missing = fully mature. */
   readonly maturityBpByTech: Readonly<Record<string, number>>;
   readonly firstOfClass: boolean;
+  /** Accelerated construction (ADR-0067 section 5): faster build for an extra cost. Absent = normal pace. */
+  readonly accelerated?: boolean;
 }
 
 export interface CostBreakdown {
@@ -35,6 +39,7 @@ export interface CostBreakdown {
   readonly subtotal: BudgetMicro;
   readonly overheads: BudgetMicro;
   readonly firstOfClassPremium: BudgetMicro;
+  readonly accelerationPremium: BudgetMicro;
   readonly total: BudgetMicro;
   readonly monthlyMaintenance: BudgetMicro;
 }
@@ -98,6 +103,7 @@ export function computeCost(
   const subtotal = hull + armour + machinery + components;
   const overheads = mulBpB(subtotal, b.overheadBp);
   const premium = x.firstOfClass ? mulBpB(subtotal + overheads, b.firstOfClassBp) : 0n;
+  const acceleration = x.accelerated ? mulBpB(subtotal + overheads, b.accelerationCostBp) : 0n;
   const m = (v: bigint) => toSafe("cost", v) as BudgetMicro;
   return {
     hull: m(hull),
@@ -107,7 +113,8 @@ export function computeCost(
     subtotal: m(subtotal),
     overheads: m(overheads),
     firstOfClassPremium: m(premium),
-    total: m(subtotal + overheads + premium),
+    accelerationPremium: m(acceleration),
+    total: m(subtotal + overheads + premium + acceleration),
     monthlyMaintenance: m(maintenance),
   };
 }

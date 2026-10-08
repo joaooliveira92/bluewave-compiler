@@ -24,7 +24,7 @@ const env = (month: string): WorkshopEnvironment => ({
   costCtx: { maturityBpByTech: {}, firstOfClass: true },
   constructionBalance,
   cveBalance,
-  yardCapacity: cap(2_000_000),
+  yardCapacity: cap(20_000_000),
 });
 
 describe("buildWorkshopView", () => {
@@ -72,5 +72,27 @@ describe("buildWorkshopView", () => {
     expect(JSON.stringify(a)).toBe(JSON.stringify(buildWorkshopView(majestic, env("1896-01"))));
     expect(a.valid).toBe(true);
     expect(a.naturalClass).toBe("B");
+  });
+  it("forecast build time follows displacement, industry and acceleration (ticket 20)", () => {
+    const small = buildWorkshopView(havock, env("1895-06"));
+    const big = buildWorkshopView(majestic, env("1896-01"));
+    expect(big.forecast.note).toBeNull();
+    expect(small.forecast.historicalMonths).toBeGreaterThan(0);
+    expect(big.forecast.historicalMonths!).toBeGreaterThan(small.forecast.historicalMonths!);
+    expect(big.forecast.months!).toBeGreaterThanOrEqual(big.forecast.historicalMonths!);
+    const fast = buildWorkshopView(majestic, {
+      ...env("1896-01"),
+      industryBp: constructionBalance.efficientIndustryBp,
+    });
+    expect(fast.forecast.historicalMonths!).toBeLessThan(big.forecast.historicalMonths!);
+    const rushed = buildWorkshopView(majestic, {
+      ...env("1896-01"),
+      costCtx: { maturityBpByTech: {}, firstOfClass: true, accelerated: true },
+    });
+    expect(rushed.forecast.historicalMonths!).toBeLessThan(big.forecast.historicalMonths!);
+    expect(rushed.forecast.costMicro).toBeGreaterThan(big.forecast.costMicro);
+    expect(buildWorkshopView(majestic, { ...env("1896-01"), industryBp: 10_000 }).forecast).toEqual(
+      big.forecast,
+    );
   });
 });

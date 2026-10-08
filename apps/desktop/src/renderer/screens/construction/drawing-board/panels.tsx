@@ -606,7 +606,10 @@ export function ForecastPanel({ view }: { readonly view: WorkshopView }) {
           <dd className="tabular-nums">
             {view.forecast.months === null
               ? (view.forecast.note ?? "n/a")
-              : `${view.forecast.months} months (limited by ${view.forecast.bottleneck ?? "capacity"})`}
+              : view.forecast.historicalMonths !== null &&
+                  view.forecast.months <= view.forecast.historicalMonths
+                ? `${view.forecast.months} months (provisional: historical build time for this displacement)`
+                : `${view.forecast.months} months (limited by ${view.forecast.bottleneck ?? "capacity"})`}
           </dd>
         </div>
         <div className="flex justify-between gap-4">
