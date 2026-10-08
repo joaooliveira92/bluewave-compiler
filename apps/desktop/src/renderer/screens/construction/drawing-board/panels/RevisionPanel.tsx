@@ -206,12 +206,7 @@ export function RevisionPanel({
         </Button>
       )}
       {result !== null && (
-        <p
-          role="alert"
-          className={result.tone === "ok" ? "text-sm text-emerald-700" : "text-sm text-red-700"}
-        >
-          {result.text}
-        </p>
+        <Alert variant={result.tone === "ok" ? "default" : "destructive"}>{result.text}</Alert>
       )}
       <p className="text-xs text-muted-foreground">
         Changes counted:{" "}

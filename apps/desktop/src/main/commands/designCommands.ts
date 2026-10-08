@@ -124,13 +124,19 @@ function projectWithDraft(
   const snapshot = record.state.snapshot;
   const nation = snapshot.nations.get(record.playerSlotId);
   const project = nation?.constructionProjects.find((p) => p.id === projectId);
-  if (!project) return { error: `Project ${projectId} not found` } as const;
+  if (!project) return { ok: false, error: `Project ${projectId} not found` } as const;
   const design = snapshot.designs.get(project.designVersionId);
   if (design?.sourceDraft === undefined)
     return {
+      ok: false,
       error: `Project ${projectId} was built from an authored design with no source draft and cannot be revised`,
     } as const;
-  return { project, design, draft: design.sourceDraft as unknown as DesignDraft } as const;
+  return {
+    ok: true,
+    project,
+    design,
+    draft: design.sourceDraft as unknown as DesignDraft,
+  } as const;
 }
 
 /** The draft a project is being built from, so the Drawing Board can edit the real design (ADR-0070). */
@@ -140,7 +146,7 @@ export async function loadProjectDraft(
   const record = getCampaignSession(payload.sessionId);
   if (!record) return sessionMissing(payload.sessionId);
   const found = projectWithDraft(record, payload.projectId);
-  if ("error" in found)
+  if (!found.ok)
     return { outcome: "rejected", reason: "PROJECT_NOT_REVISABLE", diagnostics: [found.error] };
   return {
     outcome: "success",
@@ -163,7 +169,7 @@ export async function reviseProjectCommand(
   const record = getCampaignSession(payload.sessionId);
   if (!record) return sessionMissing(payload.sessionId);
   const found = projectWithDraft(record, payload.projectId);
-  if ("error" in found)
+  if (!found.ok)
     return { outcome: "rejected", reason: "PROJECT_NOT_REVISABLE", diagnostics: [found.error] };
   const shape = validateDraftShape(payload.draft);
   if (shape.length > 0)
