@@ -164,6 +164,7 @@ export const isEarlyShipType = (s: string): s is EarlyShipType =>
 export function classFacts(
   c: Pick<CompiledDesign, "totalKg" | "machinery" | "components">,
   d: DesignDraft,
+  rules: Pick<ClassificationRules, "clMaxGunUm"> = DESIGN_22_EARLY,
 ): ClassFacts {
   const beltRegions = d.armour.regions.filter((r) => r.region === "BELT_MAIN");
   const guns = c.components.filter((k) => k.category === "MAIN_GUN");
@@ -196,7 +197,7 @@ export function classFacts(
       .filter((r) => r.region === "DECK_MAIN" || r.region === "DECK_SLOPE")
       .reduce((m, r) => Math.max(m, r.thicknessUm), 0),
     maxHeavyMountBarrels: guns
-      .filter((k) => (k.attr.caliberUm ?? 0) > DESIGN_22_EARLY.clMaxGunUm)
+      .filter((k) => (k.attr.caliberUm ?? 0) > rules.clMaxGunUm)
       .reduce((m, k) => Math.max(m, k.params.barrels ?? 1), 0),
   };
 }
