@@ -20,6 +20,7 @@ export type {
   RemoveShipFromDivisionCommand,
   AssignOfficerCommand,
   MoveFleetCommand,
+  SubmitDesignCommand,
   RelieveOfficerCommand,
   SetBudgetAllocationCommand,
   SetResearchPriorityCommand,

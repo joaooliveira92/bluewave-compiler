@@ -523,3 +523,24 @@ ai:
     costWeightBp: 500
     reserveTargetBp: 800
     designMarginBp: 500
+
+# Reference environment for design validation until campaign facilities and threats are wired (SB-14b).
+# Threat penetrations: 12in/25 sourced (521 mm iron at 1,000 yd); QF values are ESTIMATE.
+environment:
+  threats:
+    - { id: bl_12in, penetrationUm: 521000 }
+    - { id: bl_92in, penetrationUm: 300000 }
+    - { id: qf_6in, penetrationUm: 150000 }
+    - { id: qf_47in, penetrationUm: 100000 }
+    - { id: qf_12pdr, penetrationUm: 50000 }
+  facilities:
+    - {
+        id: yard,
+        maxLengthMm: 200000,
+        maxBeamMm: 40000,
+        maxDisplacementKg: 30000000,
+        craneLiftKg: 250000,
+      }
+  yardCapacityWorkPerMonth: 2000000
+  # Engine projection: displacement per hit point; the median of the 37 authored 1880-pack designs is ~214,000 kg.
+  kgPerHitPoint: 214000

@@ -1,0 +1,215 @@
+// ADR-0066: SubmitDesign - authoritative component-level design compile at month application.
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { CampaignSnapshot } from "@bluewave/campaign";
+import type { CommandBody, CommandEnvelope } from "@bluewave/commands";
+import { CommandLifecycle } from "@bluewave/commands";
+import {
+  PropulsionPlantCatalogueSchema,
+  ShipComponentCatalogueSchema,
+  ShipHullFormCatalogueSchema,
+} from "@bluewave/content-schema";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+import {
+  buildShipBuildingContent,
+  type ComponentDef,
+  type HullFormRecord,
+  type PropulsionPlant,
+  type ShipBuildingData,
+} from "@bluewave/ship-design";
+import { parse } from "yaml";
+import { describe, expect, it } from "vite-plus/test";
+import { MonthExecutor } from "../src/index.js";
+import { ATTACKER_NATION, makeBattleSnapshot } from "./battle-fixtures.js";
+
+const root = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "..",
+  "content",
+  "production",
+  "1880",
+);
+const load = (rel: string) =>
+  parse(readFileSync(join(root, rel), "utf8")) as Record<string, unknown>;
+const data: ShipBuildingData = {
+  components: ShipComponentCatalogueSchema.parse(load("ship-building/components.yaml"))
+    .components as ComponentDef[],
+  plants: PropulsionPlantCatalogueSchema.parse(load("ship-building/plants.yaml"))
+    .plants as unknown as PropulsionPlant[],
+  hullForms: ShipHullFormCatalogueSchema.parse(load("ship-building/hull-forms.yaml"))
+    .hullForms as HullFormRecord[],
+  balance: load("ship-building/balance.yaml") as unknown as ShipBuildingData["balance"],
+  technologies: parse(readFileSync(join(root, "technologies.yaml"), "utf8")) as {
+    id: string;
+    year: number;
+  }[],
+};
+const content = buildShipBuildingContent(data);
+const reference = (
+  parse(readFileSync(join(root, "ship-building", "reference-designs.yaml"), "utf8")) as {
+    designs: { id: string; draft: Record<string, unknown> }[];
+  }
+).designs;
+const havockDraft = {
+  ...reference.find((d) => d.id === "havock_like")!.draft,
+  nationId: ATTACKER_NATION,
+};
+
+function snapshotIn(year: number, month = 6): CampaignSnapshot {
+  return {
+    ...makeBattleSnapshot({ areas: ["a-1"], wars: [] }),
+    startYear: year,
+    startMonth: month,
+  };
+}
+
+function submit(
+  snapshot: CampaignSnapshot,
+  draft: unknown = havockDraft,
+  id = "des_test_destroyer",
+): CommandEnvelope<CommandBody> {
+  return {
+    commandId: `sd-${id}`,
+    version: "0.1.0",
+    expectedSnapshotHash: sha256Hex(canonicalSerialize(snapshot)),
+    idempotencyKey: `ik-${id}`,
+    timestamp: "test",
+    body: {
+      type: "SubmitDesign",
+      nationId: ATTACKER_NATION,
+      designVersionId: id,
+      designFamilyId: "fam_test_destroyer",
+      className: "Test class",
+      hullType: "destroyer",
+      machineryType: "locomotive_boiler",
+      draft,
+    },
+  };
+}
+
+function run(
+  snapshot: CampaignSnapshot,
+  commands: CommandEnvelope<CommandBody>[],
+  withContent = true,
+) {
+  const collector = new DiagnosticCollector();
+  const result = new MonthExecutor().execute(
+    snapshot,
+    commands,
+    "design-seed",
+    collector,
+    undefined,
+    withContent ? { shipBuilding: content } : undefined,
+  );
+  return {
+    result,
+    collector,
+    designs: result.finalSnapshot.designs,
+    families: result.finalSnapshot.designFamilies,
+  };
+}
+
+describe("SubmitDesign through the month", () => {
+  it("compiles a valid design and adds it, with its family, to the snapshot", () => {
+    const snapshot = snapshotIn(1895);
+    const { designs, families, collector } = run(snapshot, [submit(snapshot)]);
+    const d = designs.get("des_test_destroyer")!;
+    expect(d).toBeDefined();
+    expect(d.nationId).toBe(ATTACKER_NATION);
+    expect(Number(d.normalizedSpeedUms)).toBeGreaterThan(25 * 514_444);
+    expect(Number(d.normalizedDisplacementKg)).toBeGreaterThan(250_000);
+    expect(Number(d.hitPoints)).toBeGreaterThanOrEqual(1);
+    expect(d.torpedoArmament?.[0]).toMatchObject({
+      mountType: "ABOVE_WATER_TRAINABLE",
+      tubeCount: 2,
+    });
+    expect(d.compiledHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(families.get("fam_test_destroyer")!.memberDesignVersionIds).toEqual([
+      "des_test_destroyer",
+    ]);
+    expect(collector.all.filter((x) => x.code === "DESIGN_REJECTED")).toEqual([]);
+  });
+
+  it("rejects a design whose technology does not exist yet, leaving the snapshot untouched", () => {
+    const snapshot = snapshotIn(1885);
+    const { designs, collector } = run(snapshot, [submit(snapshot)]);
+    expect(designs.has("des_test_destroyer")).toBe(false);
+    const rejected = collector.all.find((x) => x.code === "DESIGN_REJECTED");
+    expect(rejected?.message).toContain("TECH_UNAVAILABLE");
+  });
+
+  it("rejects an overweight design with every blocking finding named", () => {
+    const snapshot = snapshotIn(1895);
+    const heavy = {
+      ...havockDraft,
+      machinery: { ...(havockDraft.machinery as object), fuelCapacityKg: 400_000 },
+    };
+    const { designs, collector } = run(snapshot, [submit(snapshot, heavy)]);
+    expect(designs.has("des_test_destroyer")).toBe(false);
+    expect(collector.all.find((x) => x.code === "DESIGN_REJECTED")?.message).toContain(
+      "OVERWEIGHT_UNRECOVERABLE",
+    );
+  });
+
+  it("skips the command with a diagnostic when the engine has no ship-building content", () => {
+    const snapshot = snapshotIn(1895);
+    const { designs, collector } = run(snapshot, [submit(snapshot)], false);
+    expect(designs.has("des_test_destroyer")).toBe(false);
+    expect(collector.all.some((x) => x.code === "SHIP_BUILDING_CONTENT_MISSING")).toBe(true);
+  });
+
+  it("is deterministic: the same command on the same snapshot gives identical snapshots", () => {
+    const snapshot = snapshotIn(1895);
+    const a = run(snapshot, [submit(snapshot)]);
+    const b = run(snapshot, [submit(snapshot)]);
+    expect(a.result.closingSnapshotHash).toBe(b.result.closingSnapshotHash);
+  });
+
+  it("a second design in the same family joins it", () => {
+    const snapshot = snapshotIn(1895);
+    const first = run(snapshot, [submit(snapshot)]);
+    const next = first.result.finalSnapshot;
+    const second = run(next, [submit(next, havockDraft, "des_test_destroyer_b")]);
+    expect(second.families.get("fam_test_destroyer")!.memberDesignVersionIds).toEqual([
+      "des_test_destroyer",
+      "des_test_destroyer_b",
+    ]);
+  });
+});
+
+describe("SubmitDesign lifecycle validation", () => {
+  const snapshot = snapshotIn(1895);
+  const code = (cmd: CommandEnvelope<CommandBody>) => {
+    const outcome = new CommandLifecycle().validate(cmd, snapshot);
+    if (outcome.ok) return "OK";
+    return outcome.outcome.type === "rejected" ? outcome.outcome.diagnostic.code : "OTHER";
+  };
+  const withBody = (patch: Record<string, unknown>) => {
+    const base = submit(snapshot);
+    return {
+      ...base,
+      body: { ...(base.body as object), ...patch },
+    } as unknown as CommandEnvelope<CommandBody>;
+  };
+  it("accepts a well-formed submission (the authoritative compile is not done at issue time)", () => {
+    expect(code(submit(snapshot))).toBe("OK");
+  });
+  it("rejects unknown nations, bad ids, empty names, duplicates, malformed drafts and another nation's draft", () => {
+    expect(code(withBody({ nationId: "XXX" }))).toBe("INVALID_NATION_ID");
+    expect(code(withBody({ designVersionId: "Bad Id" }))).toBe("INVALID_COMMAND_PAYLOAD");
+    expect(code(withBody({ className: "  " }))).toBe("INVALID_COMMAND_PAYLOAD");
+    expect(code(withBody({ draft: { nationId: ATTACKER_NATION } }))).toBe(
+      "INVALID_COMMAND_PAYLOAD",
+    );
+    expect(code(withBody({ draft: { ...havockDraft, nationId: "FRA" } }))).toBe(
+      "INVALID_COMMAND_PAYLOAD",
+    );
+    const existing = [...snapshot.designs.keys()][0];
+    if (existing)
+      expect(code(withBody({ designVersionId: existing }))).toBe("INVALID_COMMAND_PAYLOAD");
+  });
+});

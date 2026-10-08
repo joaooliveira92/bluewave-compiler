@@ -28,3 +28,4 @@ export * from "./contextBuilder.js";
 export * from "./classification.js";
 export * from "./workshop.js";
 export * from "./suggest.js";
+export * from "./shipBuildingContent.js";

@@ -341,6 +341,9 @@ importers:
       '@bluewave/diagnostics':
         specifier: workspace:*
         version: link:../diagnostics
+      '@bluewave/ship-design':
+        specifier: workspace:*
+        version: link:../ship-design
 
   packages/content-compiler:
     dependencies:
@@ -510,10 +513,16 @@ importers:
       '@bluewave/random':
         specifier: workspace:*
         version: link:../random
+      '@bluewave/ship-design':
+        specifier: workspace:*
+        version: link:../ship-design
     devDependencies:
       '@bluewave/test-support':
         specifier: workspace:*
         version: link:../test-support
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
 
   packages/random:
     dependencies:

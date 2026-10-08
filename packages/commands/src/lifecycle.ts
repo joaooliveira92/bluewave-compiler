@@ -17,6 +17,7 @@ import {
   RESEARCH_FIELD_PRIORITY_WEIGHTS,
 } from "@bluewave/content-schema";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { validateDraftShape } from "@bluewave/ship-design";
 import type { Diagnostic, DiagnosticCode } from "@bluewave/diagnostics";
 import { AuditChain } from "./audit.js";
 import { hashCommandRecord } from "./canonicalization.js";
@@ -165,6 +166,7 @@ export class CommandLifecycle {
       return this.validateAssignOfficer(envelope, snapshot);
     if (envelope.body.type === "RelieveOfficer")
       return this.validateRelieveOfficer(envelope, snapshot);
+    if (envelope.body.type === "SubmitDesign") return this.validateSubmitDesign(envelope, snapshot);
     if (envelope.body.type === "MoveFleet") {
       const move = envelope.body;
       const problem = fleetMoveProblem(snapshot, move.nationId, move.fleetId, move.toAreaId);
@@ -787,6 +789,62 @@ export class CommandLifecycle {
     return { ok: true };
   }
 
+  private validateSubmitDesign(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as Extract<CommandBody, { type: "SubmitDesign" }>;
+    if (!snapshot.nations.has(body.nationId))
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "INVALID_NATION_ID",
+        `Nation ${body.nationId} not found`,
+      );
+    const idPattern = /^[a-z][a-z0-9_]{1,63}$/;
+    if (!idPattern.test(body.designVersionId) || !idPattern.test(body.designFamilyId))
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "INVALID_COMMAND_PAYLOAD",
+        "Design and family ids must be lower snake_case (2-64 characters)",
+      );
+    if (
+      body.className.trim() === "" ||
+      body.hullType.trim() === "" ||
+      body.machineryType.trim() === ""
+    )
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "INVALID_COMMAND_PAYLOAD",
+        "className, hullType and machineryType are required",
+      );
+    if (snapshot.designs.has(body.designVersionId))
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "INVALID_COMMAND_PAYLOAD",
+        `Design ${body.designVersionId} already exists`,
+      );
+    const problems = validateDraftShape(body.draft);
+    if (problems.length > 0)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "INVALID_COMMAND_PAYLOAD",
+        `Design draft is malformed: ${problems.join("; ")}`,
+      );
+    if ((body.draft as { nationId?: unknown }).nationId !== body.nationId)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "INVALID_COMMAND_PAYLOAD",
+        "The draft belongs to a different nation",
+      );
+    return { ok: true };
+  }
+
   private validateRelieveOfficer(
     envelope: CommandEnvelope<CommandBody>,
     snapshot: CampaignSnapshot,
@@ -953,6 +1011,13 @@ export class CommandLifecycle {
         commandId: envelope.commandId,
         snapshotHash,
         result: { nationId: body.nationId, divisionId: body.divisionId },
+      };
+    if (body.type === "SubmitDesign")
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: { nationId: body.nationId, designVersionId: body.designVersionId },
       };
     if (body.type === "MoveFleet")
       return {

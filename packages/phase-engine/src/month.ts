@@ -38,6 +38,7 @@ import type {
   FormNonAggressionPactCommand,
   AssignOfficerCommand,
   MoveFleetCommand,
+  SubmitDesignCommand,
   RelieveOfficerCommand,
   SetBudgetAllocationCommand,
   SetResearchPriorityCommand,
@@ -47,6 +48,7 @@ import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { EventLedger } from "@bluewave/events";
 import { RandomLedger } from "@bluewave/random";
+import type { ShipBuildingContent } from "@bluewave/ship-design";
 import { FinancialLedger } from "./financial-ledger.js";
 import { PhaseGuard, PHASE_ACCESS_DENIED, PHASE_FOOTPRINTS } from "./phase-guard.js";
 import type { PhaseDefinition } from "./registry.js";
@@ -67,6 +69,7 @@ import {
   applyBudgetProject,
   applyDivisionCommandMonth,
   applyMoveFleet,
+  applySubmitDesign,
   applyOfficerCommand,
   applySetBudgetAllocation,
   applySetResearchPriority,
@@ -112,6 +115,8 @@ export interface StrategicWeatherPhaseOptions {
  */
 export interface MonthExecutorEngineOptions {
   readonly phaseOverrides?: ReadonlyMap<string, PhaseDefinition>;
+  /** Ship-building content used to compile `SubmitDesign` commands (ADR-0066). Without it such commands are skipped with a diagnostic. */
+  readonly shipBuilding?: ShipBuildingContent;
 }
 
 function computeMaintenanceCost(ship: Ship): SafeInt {
@@ -338,6 +343,17 @@ export class MonthExecutor {
               currentSnapshot = applyOfficerCommand(
                 currentSnapshot,
                 body as AssignOfficerCommand | RelieveOfficerCommand,
+                campaignMonth,
+                collector,
+              );
+              continue;
+            }
+
+            if (body["type"] === "SubmitDesign") {
+              currentSnapshot = applySubmitDesign(
+                currentSnapshot,
+                body as SubmitDesignCommand,
+                engineOptions?.shipBuilding,
                 campaignMonth,
                 collector,
               );

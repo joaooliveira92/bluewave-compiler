@@ -16,6 +16,7 @@ export type CommandBody =
   | SetResearchPriorityCommand
   | SetBudgetAllocationCommand
   | MoveFleetCommand
+  | SubmitDesignCommand
   | AssignOfficerCommand
   | RelieveOfficerCommand
   | DeclareWarCommand
@@ -55,6 +56,20 @@ export interface MoveFleetCommand {
   nationId: string;
   fleetId: string;
   toAreaId: string;
+}
+/**
+ * Submits a component-level ship design (ADR-0066). `draft` is a `@bluewave/ship-design` DesignDraft as JSON; the
+ * lifecycle only checks its shape and ids, the authoritative compile happens when the month applies the command.
+ */
+export interface SubmitDesignCommand {
+  type: "SubmitDesign";
+  nationId: string;
+  designVersionId: string;
+  designFamilyId: string;
+  className: string;
+  hullType: string;
+  machineryType: string;
+  draft: unknown;
 }
 export interface AssignOfficerCommand {
   type: "AssignOfficer";

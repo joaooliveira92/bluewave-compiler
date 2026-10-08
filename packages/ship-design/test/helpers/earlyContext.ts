@@ -7,14 +7,15 @@ import {
   ShipHullFormCatalogueSchema,
 } from "@bluewave/content-schema";
 import {
-  hullFormsFromRecords,
+  buildShipBuildingContent,
   shipBalanceFromRecord,
   type ComponentDef,
-  type CostBalance,
   type ConstructionBalance,
+  type CostBalance,
   type CveBalance,
   type HullFormRecord,
   type PropulsionPlant,
+  type ShipBuildingData,
   type ShipContext,
 } from "../../src/index.js";
 
@@ -38,31 +39,16 @@ const techs = parse(readFileSync(join(root, "technologies.yaml"), "utf8")) as {
   year: number;
 }[];
 
-/** Reference threat profiles. Penetrations come from the research note (12in/25: 521 mm iron at 1,000 yd); QF values are ESTIMATE. */
-export const threats = [
-  { id: "bl_12in", penetrationUm: 521_000 },
-  { id: "bl_92in", penetrationUm: 300_000 },
-  { id: "qf_6in", penetrationUm: 150_000 },
-  { id: "qf_47in", penetrationUm: 100_000 },
-  { id: "qf_12pdr", penetrationUm: 50_000 },
-];
-
-export const earlyContext = (month: string): ShipContext => ({
-  month,
-  unlockedTechs: new Set(techs.filter((t) => t.year <= Number(month.slice(0, 4))).map((t) => t.id)),
-  catalogue: components,
+export const shipBuildingData: ShipBuildingData = {
+  components,
   plants,
-  hullForms: hullFormsFromRecords(hullRecords),
-  threats,
-  facilities: [
-    {
-      id: "yard",
-      maxLengthMm: 200_000,
-      maxBeamMm: 40_000,
-      maxDisplacementKg: 30_000_000,
-      craneLiftKg: 250_000,
-    },
-  ],
-  treaty: null,
-  balance: shipBalance,
-});
+  hullForms: hullRecords,
+  balance: balanceFile as unknown as ShipBuildingData["balance"],
+  technologies: techs,
+};
+export const shipBuildingContent = buildShipBuildingContent(shipBuildingData);
+
+/** Same ship-building context the engine and the UI use, for a given campaign month. */
+export const earlyContext = (month: string): ShipContext =>
+  shipBuildingContent.environmentFor(month).ctx;
+export const threats = shipBuildingData.balance.environment.threats;

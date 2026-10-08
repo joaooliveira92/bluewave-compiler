@@ -35,7 +35,7 @@ export interface EngineAdapterOptions {
   readonly hullType: string;
   readonly machineryType: string;
   readonly contentVersion: string;
-  /** Hull mass that equals one engine hit point (ruleset constant). */
+  /** Displacement that equals one engine hit point (ruleset constant; authored 1880 designs average ~214,000 kg). */
   readonly kgPerHitPoint: number;
 }
 
@@ -100,7 +100,7 @@ export function toEngineDesign(
     normalizedDisplacementKg: c.totalKg,
     normalizedSpeedUms: Math.floor(((c.machinery?.maxSpeedMilliKnots ?? 0) * UM_PER_KNOT) / 1000),
     normalizedArmorUm: armorUm,
-    hitPoints: Math.max(1, Math.floor(c.ledger.hull / o.kgPerHitPoint)),
+    hitPoints: Math.max(1, Math.floor(c.totalKg / o.kgPerHitPoint)),
     mainGunsCaliber: caliber,
     mainGunsCount: count,
     machineryType: o.machineryType,

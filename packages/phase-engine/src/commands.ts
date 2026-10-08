@@ -1,6 +1,8 @@
 import type {
   CampaignSnapshot,
   CanonicalShipType,
+  CompiledDesignVersion,
+  DesignFamily,
   DivisionAssetView,
   NationState,
   PermanentDivision,
@@ -29,7 +31,14 @@ import type {
   MoveFleetCommand,
   RelieveOfficerCommand,
   SetBudgetAllocationCommand,
+  SubmitDesignCommand,
 } from "@bluewave/commands";
+import {
+  compileDesign,
+  toEngineDesign,
+  type DesignDraft,
+  type ShipBuildingContent,
+} from "@bluewave/ship-design";
 import { SafeInt } from "@bluewave/contracts";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { EventLedger } from "@bluewave/events";
@@ -443,4 +452,98 @@ export function applyDivisionCommandMonth(
   }
 
   return snapshot;
+}
+
+/**
+ * Canonical application of a SubmitDesign command (ADR-0066). The design is compiled here, with the ship-building
+ * content supplied to the engine, never trusted from the caller. A rejected design leaves the snapshot untouched and
+ * records a DESIGN_REJECTED diagnostic naming every blocking finding; an accepted one becomes an immutable
+ * CompiledDesignVersion that the existing construction flow can order.
+ */
+export function applySubmitDesign(
+  currentSnapshot: CampaignSnapshot,
+  body: SubmitDesignCommand,
+  content: ShipBuildingContent | undefined,
+  month: string,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const fail = (code: string, message: string): CampaignSnapshot => {
+    collector.addError(code, message, { stage: "command_collection" });
+    return currentSnapshot;
+  };
+  if (!currentSnapshot["nations"].has(body["nationId"]))
+    return fail("INVALID_NATION_ID", `Nation ${body["nationId"]} not found`);
+  if (currentSnapshot["designs"].has(body["designVersionId"]))
+    return fail("DESIGN_REJECTED", `Design ${body["designVersionId"]} already exists`);
+  if (content === undefined)
+    return fail(
+      "SHIP_BUILDING_CONTENT_MISSING",
+      "The engine was not given ship-building content; design not compiled",
+    );
+  const draft = body["draft"] as DesignDraft;
+  const env = content.environmentFor(month);
+  const compiled = compileDesign(draft, env.ctx);
+  if (!compiled.valid) {
+    const blocking = compiled.findings.filter((f) => f.severity === "BLOCKING").map((f) => f.id);
+    return fail(
+      "DESIGN_REJECTED",
+      `Design ${body["designVersionId"]} cannot be built: ${blocking.join(", ")}`,
+    );
+  }
+  const e = toEngineDesign(compiled, draft, {
+    designVersionId: body["designVersionId"],
+    designFamilyId: body["designFamilyId"],
+    className: body["className"],
+    hullType: body["hullType"],
+    machineryType: body["machineryType"],
+    contentVersion: currentSnapshot["rulesetVersion"],
+    kgPerHitPoint: content.kgPerHitPoint,
+  });
+  const design: CompiledDesignVersion = {
+    designVersionId: e.designVersionId,
+    designFamilyId: e.designFamilyId,
+    className: e.className,
+    nationId: e.nationId,
+    hullType: e.hullType,
+    normalizedDisplacementKg: SafeInt(e.normalizedDisplacementKg),
+    normalizedSpeedUms: SafeInt(e.normalizedSpeedUms),
+    normalizedArmorUm: SafeInt(e.normalizedArmorUm),
+    hitPoints: SafeInt(e.hitPoints),
+    mainGunsCaliber: SafeInt(e.mainGunsCaliber),
+    mainGunsCount: SafeInt(e.mainGunsCount),
+    machineryType: e.machineryType,
+    crewComplement: SafeInt(e.crewComplement),
+    contentVersion: e.contentVersion,
+    compiledHash: e.compiledHash,
+    ...(e.torpedoArmament
+      ? {
+          torpedoArmament: e.torpedoArmament.map((m) => ({
+            mountType: m.mountType,
+            tubeCount: SafeInt(m.tubeCount),
+            torpedoModelId: m.torpedoModelId,
+          })),
+        }
+      : {}),
+  };
+  const existing = currentSnapshot["designFamilies"].get(body["designFamilyId"]);
+  const family: DesignFamily = existing
+    ? {
+        ...existing,
+        memberDesignVersionIds: [...existing.memberDesignVersionIds, design.designVersionId],
+      }
+    : {
+        designFamilyId: body["designFamilyId"],
+        nationId: body["nationId"],
+        rootDesignVersionId: design.designVersionId,
+        memberDesignVersionIds: [design.designVersionId],
+        familyCreationMonth: month,
+      };
+  return {
+    ...currentSnapshot,
+    designs: new Map([...currentSnapshot["designs"], [design.designVersionId, design]]),
+    designFamilies: new Map([
+      ...currentSnapshot["designFamilies"],
+      [family.designFamilyId, family],
+    ]),
+  };
 }

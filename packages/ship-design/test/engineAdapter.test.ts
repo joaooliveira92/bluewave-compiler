@@ -36,7 +36,7 @@ describe("toEngineDesign", () => {
     expect(e.mainGunsCaliber).toBe(119_380); // largest secondary gun when no main gun is fitted
     expect(e.mainGunsCount).toBe(2);
     expect(e.crewComplement).toBe(c.systems!.crewRequired);
-    expect(e.hitPoints).toBe(Math.floor(c.ledger.hull / 4_000));
+    expect(e.hitPoints).toBe(Math.floor(c.totalKg / 4_000));
     expect(e.torpedoArmament).toEqual([
       { mountType: "ABOVE_WATER_TRAINABLE", tubeCount: 3, torpedoModelId: "whitehead_14in_1886" },
     ]);
