@@ -14,6 +14,7 @@ import type { ConstructionScreenState } from "./construction-screen-state.js";
 import {
   acceptConstructionCommand,
   activeConstructionProjects,
+  expectedConstructionCompletions,
   initialConstructionScreenState,
   projectConstructionScreen,
 } from "./construction-screen-state.js";
@@ -233,5 +234,26 @@ describe("activeConstructionProjects", () => {
       { status: "QUEUED" },
     ]);
     expect(activeConstructionProjects([])).toEqual([]);
+  });
+});
+
+describe("expectedConstructionCompletions", () => {
+  it("counts only active projects at or above the near-completion ratio", () => {
+    const projects = [
+      { status: "IN_PROGRESS", totalWork: 100, completedWork: 90 },
+      { status: "QUEUED", totalWork: 100, completedWork: 95 },
+      { status: "IN_PROGRESS", totalWork: 100, completedWork: 89 },
+      // A finished project never counts, even though its work ratio is 1.
+      { status: "COMPLETED", totalWork: 100, completedWork: 100 },
+    ];
+
+    expect(expectedConstructionCompletions(projects)).toBe(2);
+  });
+
+  it("ignores zero-work projects and handles the empty list", () => {
+    expect(
+      expectedConstructionCompletions([{ status: "IN_PROGRESS", totalWork: 0, completedWork: 0 }]),
+    ).toBe(0);
+    expect(expectedConstructionCompletions([])).toBe(0);
   });
 });

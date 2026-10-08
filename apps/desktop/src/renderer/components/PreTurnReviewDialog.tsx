@@ -1,7 +1,4 @@
-import { activeConstructionProjects } from "../screens/construction/construction-screen-state.js";
-import { useCallback, useEffect, useState } from "react";
 import { advanceMonth } from "@bluewave/campaign";
-import type { StrategicPriority } from "@bluewave/campaign-engine";
 import { Button } from "./ui/button.js";
 import {
   Dialog,
@@ -12,6 +9,7 @@ import {
   DialogTitle,
 } from "./ui/dialog.js";
 import { Badge } from "./ui/badge.js";
+import { usePreTurnReviewData } from "./usePreTurnReviewData.js";
 
 export interface PreTurnReviewDialogProps {
   readonly open: boolean;
@@ -57,53 +55,10 @@ export function PreTurnReviewDialog({
   committing,
   onAdvance,
 }: PreTurnReviewDialogProps) {
-  const [priorities, setPriorities] = useState<readonly StrategicPriority[]>([]);
-  const [constructionCount, setConstructionCount] = useState<number | null>(null);
-  const [expectedCompletions, setExpectedCompletions] = useState<number | null>(null);
-  const [researchSpend, setResearchSpend] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { priorities, constructionCount, expectedCompletions, researchSpend, loading } =
+    usePreTurnReviewData(sessionId, open);
 
   const nextMonth = advanceMonth(campaign.month.year, campaign.month.month, 1);
-
-  const loadReviewData = useCallback(async () => {
-    if (!open) return;
-    const bridge = window.bluewave;
-    if (!bridge) return;
-    setLoading(true);
-    try {
-      const [campaignRes, priRes, constrRes] = await Promise.all([
-        bridge.campaign.execute("inspectCampaign", sessionId),
-        bridge.campaign.execute("inspectPriorities", sessionId),
-        bridge.campaign.execute("inspectConstructionScreen", sessionId),
-      ]);
-      if (campaignRes.outcome === "success") {
-        setResearchSpend(campaignRes.value.projection.economy.researchSpend);
-      }
-      if (priRes.outcome === "success") {
-        setPriorities(priRes.value.priorities);
-      } else {
-        setPriorities([]);
-      }
-      if (constrRes.outcome === "success") {
-        const projects = constrRes.value.projects;
-        const active = activeConstructionProjects(projects);
-        setConstructionCount(active.length);
-        // Expected completions: work-ratio proxy ≥0.9 (spec §7) — honest, never months-to-completion
-        const nearComplete = active.filter((p) => {
-          const total = Number(p.totalWork);
-          const completed = Number(p.completedWork);
-          return total > 0 && completed / total >= 0.9;
-        }).length;
-        setExpectedCompletions(nearComplete);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [open, sessionId]);
-
-  useEffect(() => {
-    void loadReviewData();
-  }, [loadReviewData]);
 
   const advanceLabel = `Advance to ${formatMonth(nextMonth)}`;
   const canAdvance = !committing && !saving;

@@ -1,3 +1,4 @@
+import { NEAR_COMPLETION_WORK_RATIO } from "@bluewave/campaign-engine";
 import type { DeferredFeature } from "../../components/shared/DeferredFeaturesPanel.js";
 import type {
   ConstructionCommandOutcome,
@@ -69,6 +70,25 @@ export function activeConstructionProjects<T extends { readonly status: string }
   projects: readonly T[],
 ): readonly T[] {
   return projects.filter((project) => project.status !== "COMPLETED");
+}
+
+/**
+ * Active projects whose work is at least `NEAR_COMPLETION_WORK_RATIO` complete
+ * — the same "expected completions" proxy the engine's priorities use (spec §7),
+ * never a months-to-completion estimate. Kept beside `activeConstructionProjects`
+ * so the definition cannot drift from the count of active projects.
+ */
+export function expectedConstructionCompletions(
+  projects: readonly {
+    readonly status: string;
+    readonly totalWork: number;
+    readonly completedWork: number;
+  }[],
+): number {
+  return activeConstructionProjects(projects).filter((project) => {
+    const total = project.totalWork;
+    return total > 0 && project.completedWork / total >= NEAR_COMPLETION_WORK_RATIO;
+  }).length;
 }
 
 /** Construction items the engine cannot supply yet (engine-surface note, sections D and E). */
