@@ -1,5 +1,6 @@
 import type { CampaignSlot, CampaignSnapshot } from "@bluewave/campaign";
 import {
+  fleetMoveProblem,
   APPROPRIATION_RATE_MAX_BP,
   APPROPRIATION_RATE_MIN_BP,
   RESEARCH_BUDGET_MAX,
@@ -159,6 +160,16 @@ export class CommandLifecycle {
       return this.validateSetResearchPriority(envelope, snapshot);
     if (envelope.body.type === "SetBudgetAllocation")
       return this.validateSetBudgetAllocation(envelope, snapshot);
+    if (envelope.body.type === "MoveFleet") {
+      const move = envelope.body;
+      const problem = fleetMoveProblem(snapshot, move.nationId, move.fleetId, move.toAreaId);
+      return problem === null
+        ? { ok: true }
+        : {
+            ok: false,
+            outcome: this.makeRejected(envelope, snapshot, problem.code, problem.message),
+          };
+    }
     if (envelope.body.type === "DeclareWar") return this.validateDeclareWar(envelope, snapshot);
     if (envelope.body.type === "AcceptPeace") return this.validateAcceptPeace(envelope, snapshot);
     if (envelope.body.type === "FormAlliance") return this.validateFormAlliance(envelope, snapshot);
@@ -859,6 +870,13 @@ export class CommandLifecycle {
         commandId: envelope.commandId,
         snapshotHash,
         result: { nationId: body.nationId, fieldPriorities: body.fieldPriorities },
+      };
+    if (body.type === "MoveFleet")
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: { nationId: body.nationId, fleetId: body.fleetId, toAreaId: body.toAreaId },
       };
     if (body.type === "SetBudgetAllocation")
       return {

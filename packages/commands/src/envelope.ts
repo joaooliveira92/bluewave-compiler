@@ -15,6 +15,7 @@ export type CommandBody =
   | BudgetProjectCommand
   | SetResearchPriorityCommand
   | SetBudgetAllocationCommand
+  | MoveFleetCommand
   | DeclareWarCommand
   | AcceptPeaceCommand
   | FormAllianceCommand
@@ -46,6 +47,12 @@ export interface SetBudgetAllocationCommand {
   appropriationRateBp: SafeInt;
   /** Standing monthly research budget (ADR-0060 bounds). */
   researchBudget: SafeInt;
+}
+export interface MoveFleetCommand {
+  type: "MoveFleet";
+  nationId: string;
+  fleetId: string;
+  toAreaId: string;
 }
 export interface DeclareWarCommand {
   type: "DeclareWar";

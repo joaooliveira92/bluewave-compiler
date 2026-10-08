@@ -5,7 +5,6 @@ import type {
   MovementCommandOutcome,
 } from "../../../shared/fleet-contract.js";
 import type { RequestLifecycle } from "../../lib/command-screen-workflow.js";
-import { commandNotice } from "../../lib/command-screen-workflow.js";
 
 /**
  * Presentation state for the fleet movement screen. Divisions, geography, and
@@ -75,7 +74,10 @@ export function acceptMovementCommand(value: MovementCommandOutcome): {
 } {
   return {
     patch: { movementCommands: value.workspace.movementCommands },
-    notice: commandNotice(value.command),
+    notice:
+      value.command.status === "cancelled"
+        ? "Order cancelled."
+        : "Order queued. The fleet sails when you advance the month.",
   };
 }
 
@@ -149,15 +151,22 @@ export function buildAreaOverview(
 }
 
 /**
- * Fleet movement orders (docs/research/rtw3-parity-engine-roadmap.md): the engine's 14 player
- * commands include none that moves a fleet, and the bridge's movement commands are stubs. The Fleet
- * screen therefore says so instead of offering a Submit button that can only fail.
+ * Areas a division can be ordered to: those one route hop from where it is (routes are
+ * two-way). The engine's `MoveFleet` validator still decides each order; this only keeps
+ * the picker to destinations that can pass it.
  */
-export const DEFERRED_MOVEMENT_ITEMS: readonly DeferredFeature[] = [
-  {
-    id: "movement-orders",
-    name: "Fleet movement orders",
-    reason:
-      "The engine has no command that moves a fleet yet, so fleets cannot be ordered to sail.",
-  },
-];
+export function reachableAreas(
+  areas: readonly { readonly id: string; readonly name: string }[],
+  areaEdges: readonly { readonly fromAreaId: string; readonly toAreaId: string }[],
+  fromAreaId: string,
+): { readonly id: string; readonly name: string }[] {
+  const next = new Set<string>();
+  for (const edge of areaEdges) {
+    if (edge.fromAreaId === fromAreaId) next.add(edge.toAreaId);
+    if (edge.toAreaId === fromAreaId) next.add(edge.fromAreaId);
+  }
+  return areas
+    .filter((area) => next.has(area.id))
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name));
+}

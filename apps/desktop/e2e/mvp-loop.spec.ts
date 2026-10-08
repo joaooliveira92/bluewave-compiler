@@ -158,10 +158,32 @@ test("row 6: Fleet renders the honest compiled state", async ({ e2e }) => {
   await expect(e2e.page.getByRole("heading", { name: "Divisions" })).toBeVisible();
   await expect(e2e.page.getByRole("radio", { name: /Home Fleet/ })).toBeVisible();
 
-  // Movement orders: the engine has no movement command, so the screen says so plainly instead
-  // of offering a button that can only fail.
-  await expect(e2e.page.getByTestId("movement-deferred")).toContainText("Fleet movement orders");
-  await expect(e2e.page.getByRole("button", { name: "Submit movement command" })).toHaveCount(0);
+  // Movement orders are real (ADR-0062): the form is offered, with nothing queued yet.
+  await expect(e2e.page.getByRole("button", { name: "Submit movement command" })).toBeVisible();
+  await expect(e2e.page.getByText("No movement commands")).toBeVisible();
+});
+
+test("row 6e: a fleet ordered to sail moves one hop when the month advances", async ({ e2e }) => {
+  const copy = await copyFixturePackage(sharedSaveDir, e2e.scratch);
+  await e2e.retargetDialog(copy);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await dismissTour(e2e.page);
+
+  await navigateTo(e2e.page, "Fleet");
+  await e2e.page.getByRole("radio", { name: /Home Fleet/ }).click();
+  await e2e.page.getByRole("button", { name: "Submit movement command" }).click();
+  await expect(e2e.page.getByText("Order queued")).toBeVisible();
+  await expect(e2e.page.getByRole("row", { name: /Home Fleet.*submitted/ })).toBeVisible();
+
+  await advanceMonths(e2e.page, 1);
+  await navigateTo(e2e.page, "Fleet");
+  await expect(e2e.page.getByRole("radio", { name: /Home Fleet.*English Channel/ })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(e2e.page.getByText("No movement commands")).toBeVisible();
 });
 
 test("row 6b: Diplomacy & War shows real relations, battle history and honest deferrals", async ({

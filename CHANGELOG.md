@@ -8,6 +8,9 @@ to `main` (see `AGENTS.md`).
 
 ### Added
 
+- **Fleet movement orders.** Order a fleet to sail to a neighbouring area from the Fleet screen; it moves when
+  you advance the month. One order per fleet; replace or cancel it before then. The 1880 map was also
+  connected: most home coasts and colonies had no sea routes at all.
 - **Ships sunk now have names.** Every ship lost in battle is recorded with its name, class, owner and
   cause (gunfire, torpedo, flooding, fire) and listed in the battle history on Diplomacy & War.
 - **Budget allocation (Treasury).** Set the naval appropriation rate (5–50%) and a standing monthly

@@ -5,10 +5,12 @@ import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
 import { Separator } from "../../components/ui/separator.js";
 import {
-  DEFERRED_MOVEMENT_ITEMS,
   DEFERRED_SUBMARINE_ITEMS,
   buildAreaOverview,
+  pendingRouteFor,
 } from "./fleet-screen-state.js";
+import { MovementCommandsTable } from "./components/MovementCommandsTable.js";
+import { OrderSection } from "./components/OrderSection.js";
 import { FleetOrganizationSection } from "./organization/FleetOrganizationSection.js";
 import { AreaOverviewTable } from "./components/AreaOverviewTable.js";
 import { useFleetScreen } from "./hooks/useFleetScreen.js";
@@ -19,8 +21,20 @@ import { LoadErrorCard } from "./components/LoadErrorCard.js";
 import { LoadingState } from "./components/LoadingState.js";
 
 function FleetScreen({ sessionId }: { readonly sessionId: string }) {
-  const { state, loadError, selectedDivisionId, loadScreen, setSelectedDivisionId } =
-    useFleetScreen(sessionId);
+  const {
+    state,
+    loadError,
+    selectedDivisionId,
+    destinationAreaId,
+    reachableAreas,
+    request,
+    loadScreen,
+    setSelectedDivisionId,
+    setDestinationAreaId,
+    submit,
+    replace,
+    cancel,
+  } = useFleetScreen(sessionId);
 
   const areaNameMap = useMemo(() => new Map(state.areas.map((a) => [a.id, a.name])), [state.areas]);
 
@@ -92,12 +106,30 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
       <Separator />
       <FleetOrganizationSection sessionId={sessionId} />
       <Separator />
-      {/* Movement orders are not offered: the engine has no movement command yet. The order form
-          (OrderSection) and commands table (MovementCommandsTable) are kept, unrendered, for the day it does. */}
-      <DeferredFeaturesPanel
-        items={DEFERRED_MOVEMENT_ITEMS}
-        testId="movement-deferred"
-        title="Movement orders — not yet modelled by the engine"
+      <OrderSection
+        areas={reachableAreas}
+        selectedDivision={selectedDivision}
+        destinationAreaId={destinationAreaId}
+        onDestinationChange={setDestinationAreaId}
+        pendingRoute={
+          selectedDivisionId === null ? null : pendingRouteFor(state, selectedDivisionId)
+        }
+        busy={state.pendingRequest !== null || state.requiresRefresh}
+        onSubmit={submit}
+        onReplace={replace}
+        onCancel={cancel}
+        onRefresh={() => void loadScreen()}
+        hasPendingRequest={request.outcomeUnknown}
+        onRetry={request.retry}
+        notice={state.notice}
+        areaName={areaName}
+      />
+      <MovementCommandsTable
+        commands={state.movementCommands}
+        areaName={areaName}
+        divisionName={(divisionId) =>
+          state.divisions.find((d) => d.divisionId === divisionId)?.fleetName ?? divisionId
+        }
       />
       <Separator />
       <DeferredFeaturesPanel

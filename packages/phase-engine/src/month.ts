@@ -36,6 +36,7 @@ import type {
   DeclareWarCommand,
   FormAllianceCommand,
   FormNonAggressionPactCommand,
+  MoveFleetCommand,
   SetBudgetAllocationCommand,
   SetResearchPriorityCommand,
 } from "@bluewave/commands";
@@ -63,6 +64,7 @@ import {
 import {
   applyBudgetProject,
   applyDivisionCommandMonth,
+  applyMoveFleet,
   applySetBudgetAllocation,
   applySetResearchPriority,
 } from "./commands.js";
@@ -324,6 +326,15 @@ export class MonthExecutor {
                 currentSnapshot,
                 priorityBody["nationId"],
                 priorityBody["fieldPriorities"],
+                collector,
+              );
+              continue;
+            }
+
+            if (body["type"] === "MoveFleet") {
+              currentSnapshot = applyMoveFleet(
+                currentSnapshot,
+                body as MoveFleetCommand,
                 collector,
               );
               continue;

@@ -10,6 +10,7 @@ import {
   assertDivisionInvariants,
   DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE,
   DIVISION_STATE_INVARIANT_FAILED,
+  fleetMoveProblem,
   INITIAL_DIVISION_COHESION,
   INITIAL_DIVISION_EXPERIENCE,
   VACANT,
@@ -23,6 +24,7 @@ import type {
   CreateDivisionCommand,
   DissolveDivisionCommand,
   RemoveShipFromDivisionCommand,
+  MoveFleetCommand,
   SetBudgetAllocationCommand,
 } from "@bluewave/commands";
 import { SafeInt } from "@bluewave/contracts";
@@ -58,6 +60,50 @@ export function applySetResearchPriority(
   };
   const updatedNations = new Map(currentSnapshot["nations"]);
   updatedNations.set(nationId, updatedNation);
+  return { ...currentSnapshot, nations: updatedNations };
+}
+
+/**
+ * Canonical application of a MoveFleet command (ADR-0062): the fleet, its ships and
+ * any division founded on one of its ships relocate to the destination area. The
+ * move is re-checked against the snapshot it applies to, so a stale order is skipped
+ * with a diagnostic rather than teleporting a fleet.
+ */
+export function applyMoveFleet(
+  currentSnapshot: CampaignSnapshot,
+  body: MoveFleetCommand,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const problem = fleetMoveProblem(
+    currentSnapshot,
+    body["nationId"],
+    body["fleetId"],
+    body["toAreaId"],
+  );
+  if (problem !== null) {
+    collector.addError(problem.code, problem.message, { stage: "command_collection" });
+    return currentSnapshot;
+  }
+  const nation = currentSnapshot["nations"].get(body["nationId"])!;
+  const moved = nation["fleets"].find((f) => f["id"] === body["fleetId"])!;
+  const movedShipIds = new Set(moved["ships"].map((s) => s["id"]));
+  const updatedNation: NationState = {
+    ...nation,
+    fleets: nation["fleets"].map((fleet) =>
+      fleet["id"] === body["fleetId"]
+        ? {
+            ...fleet,
+            locationAreaId: body["toAreaId"],
+            ships: fleet["ships"].map((s) => ({ ...s, locationAreaId: body["toAreaId"] })),
+          }
+        : fleet,
+    ),
+    divisions: nation["divisions"].map((d) =>
+      movedShipIds.has(d["flagshipShipId"]) ? { ...d, locationAreaId: body["toAreaId"] } : d,
+    ),
+  };
+  const updatedNations = new Map(currentSnapshot["nations"]);
+  updatedNations.set(body["nationId"], updatedNation);
   return { ...currentSnapshot, nations: updatedNations };
 }
 

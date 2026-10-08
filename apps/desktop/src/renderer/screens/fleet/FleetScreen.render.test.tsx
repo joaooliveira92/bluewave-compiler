@@ -11,6 +11,7 @@ vi.mock("./hooks/useFleetScreen.js", () => ({
     loadError: null,
     selectedDivisionId: "fleet_home",
     destinationAreaId: null,
+    reachableAreas: [{ id: "channel", name: "English Channel" }],
     request: { outcomeUnknown: false, retry: () => undefined },
     loadScreen: async () => undefined,
     setSelectedDivisionId: () => undefined,
@@ -50,13 +51,12 @@ describe("FleetScreen", () => {
   });
   afterEach(cleanup);
 
-  it("does not offer movement orders the engine cannot execute, and says why", () => {
+  it("offers movement orders limited to the areas one hop away, and no longer claims they are unmodelled", () => {
     hook.state = loaded;
     render(<FleetScreen sessionId="ses-1" />);
-    expect(screen.queryByRole("button", { name: /Submit movement command/ })).toBeNull();
-    const panel = screen.getByTestId("movement-deferred");
-    expect(panel.textContent).toContain("Movement orders — not yet modelled by the engine");
-    expect(panel.textContent).toContain("Fleet movement orders");
+    expect(screen.getByRole("button", { name: /Submit movement command/ })).toBeTruthy();
+    expect(screen.getByText("Movement commands")).toBeTruthy();
+    expect(screen.queryByTestId("movement-deferred")).toBeNull();
   });
 
   it("composes the positions map, organization, submarine deferral and area overview", () => {

@@ -90,6 +90,11 @@ export function pendingEnvelopesForExecution(
   }));
 }
 
+/** The queued entries for `sessionId` in issue order (no hash refresh; for listing/removal). */
+export function pendingEntries(sessionId: string): PendingCommandEntry[] {
+  return [...(pendingBySession.get(sessionId)?.values() ?? [])];
+}
+
 /** Drop every drained envelope for `sessionId` — called by `commitMonth` only
  * AFTER a successful execute + save (never on `MONTH_EXECUTION_FAILED` or
  * `SAVE_FAILED`; those leave the queue intact so a retry re-delivers). */

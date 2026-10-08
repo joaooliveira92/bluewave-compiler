@@ -10,7 +10,10 @@ import {
   SessionIdPayloadSchema,
   SetResearchPriorityCommandPayloadSchema,
   SubmitDiplomacyCommandPayloadSchema,
+  CancelMovementCommandPayloadSchema,
+  ReplaceMovementCommandPayloadSchema,
   SubmitBudgetAllocationPayloadSchema,
+  SubmitMovementCommandPayloadSchema,
   SubmitDivisionCommandPayloadSchema,
   WriteUiStatePayloadSchema,
   BattleIdPayloadSchema,
@@ -41,6 +44,11 @@ import {
 } from "./commands/continuityCommands.js";
 import { inspectFleetScreen } from "./commands/fleetCommands.js";
 import { inspectDiplomacyScreen, submitDiplomacyCommand } from "./commands/diplomacyCommands.js";
+import {
+  cancelMovementCommand,
+  replaceMovementCommand,
+  submitMovementCommand,
+} from "./commands/fleetCommands.js";
 import { inspectBudgetScreen, submitBudgetAllocation } from "./commands/budgetCommands.js";
 import { inspectDivisionScreen, submitDivisionCommand } from "./commands/divisionCommands.js";
 import { inspectCampaign } from "./commands/inspectCampaign.js";
@@ -65,9 +73,7 @@ import { readUiState, writeUiState } from "./uiState.js";
  * Each has its own payload schema; every other command stays
  * the ticket 11 `NOT_IMPLEMENTED` stub until a later ticket implements it
  * (scope discipline — see ADR-0021's "ticket 11 scaffolds the boundary only"
- * framing). `submitMovementCommand`/`replaceMovementCommand`/
- * `cancelMovementCommand` stay in that stub set deliberately: fleet movement
- * is out of this map's scope (ticket 10 ruling).
+ * framing). Fleet movement (`submit/replace/cancelMovementCommand`) is wired since ADR-0062.
  */
 const CommandNameSchema = z.enum(CAMPAIGN_COMMAND_NAMES);
 
@@ -216,6 +222,30 @@ export async function dispatchCampaignCommand(
       return submitDivisionCommand(parsedPayload.data);
     }
 
+    case "submitMovementCommand": {
+      const parsedPayload = SubmitMovementCommandPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return submitMovementCommand(parsedPayload.data);
+    }
+
+    case "replaceMovementCommand": {
+      const parsedPayload = ReplaceMovementCommandPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return replaceMovementCommand(parsedPayload.data);
+    }
+
+    case "cancelMovementCommand": {
+      const parsedPayload = CancelMovementCommandPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return cancelMovementCommand(parsedPayload.data);
+    }
+
     case "inspectBudgetScreen": {
       const parsedPayload = SessionIdPayloadSchema.safeParse(payload);
       if (!parsedPayload.success) {
@@ -341,9 +371,7 @@ export async function dispatchCampaignCommand(
       return {
         outcome: "error",
         reason: "NOT_IMPLEMENTED",
-        diagnostics: [
-          `${parsedCommand.data} is not implemented yet (desktop-mvp ticket 11 scaffold).`,
-        ],
+        diagnostics: [`${command} is not implemented yet (desktop-mvp ticket 11 scaffold).`],
       };
   }
 }

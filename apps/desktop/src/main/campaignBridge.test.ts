@@ -43,6 +43,9 @@ const IMPLEMENTED_COMMANDS = new Set([
   "closeCampaign",
   "submitDivisionCommand",
   "inspectBudgetScreen",
+  "submitMovementCommand",
+  "replaceMovementCommand",
+  "cancelMovementCommand",
   "submitBudgetAllocation",
   "submitDiplomacyCommand",
   "readUiState",
@@ -64,7 +67,6 @@ describe("dispatchCampaignCommand", () => {
 
   it("still returns NOT_IMPLEMENTED for every command outside the implemented set", async () => {
     const outOfScope = CAMPAIGN_COMMAND_NAMES.filter((name) => !IMPLEMENTED_COMMANDS.has(name));
-    expect(outOfScope.length).toBeGreaterThan(0);
     for (const command of outOfScope) {
       const result = await dispatchCampaignCommand(command, undefined);
       expect(result.outcome).toBe("error");

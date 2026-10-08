@@ -10,6 +10,7 @@ import {
   acceptMovementCommand,
   initialFleetScreenState,
   projectFleetScreen,
+  reachableAreas,
 } from "../fleet-screen-state.js";
 
 export interface UseFleetScreenReturn {
@@ -17,6 +18,7 @@ export interface UseFleetScreenReturn {
   readonly loadError: string | null;
   readonly selectedDivisionId: string | null;
   readonly destinationAreaId: string | null;
+  readonly reachableAreas: readonly { readonly id: string; readonly name: string }[];
   readonly request: {
     readonly outcomeUnknown: boolean;
     readonly retry: () => void;
@@ -54,19 +56,30 @@ export function useFleetScreen(sessionId: string): UseFleetScreenReturn {
     },
     { refreshKey: campaignRevision },
   );
+  const reachable = (() => {
+    const division = workflow.state.divisions.find((d) => d.divisionId === selectedDivisionId);
+    return division
+      ? reachableAreas(workflow.state.areas, workflow.state.areaEdges, division.areaId)
+      : [];
+  })();
+  // The chosen destination if it is one hop away, otherwise the first reachable area.
+  const effectiveDestinationAreaId = reachable.some((a) => a.id === destinationAreaId)
+    ? destinationAreaId
+    : (reachable[0]?.id ?? null);
+
   function selectedDivision() {
     return workflow.state.divisions.find((division) => division.divisionId === selectedDivisionId);
   }
 
   function submit(): void {
     const division = selectedDivision();
-    if (!bridge || !division || destinationAreaId === null) return;
+    if (!bridge || !division || effectiveDestinationAreaId === null) return;
     workflow.execute("submit", ({ expectedRevision, transportRequestId }) =>
       bridge.campaign.execute("submitMovementCommand", {
         sessionId,
         divisionId: division.divisionId,
         fromAreaId: division.areaId,
-        toAreaId: destinationAreaId,
+        toAreaId: effectiveDestinationAreaId,
         expectedRevision,
         transportRequestId,
       }),
@@ -75,14 +88,14 @@ export function useFleetScreen(sessionId: string): UseFleetScreenReturn {
 
   function replace(commandId: string): void {
     const division = selectedDivision();
-    if (!bridge || !division || destinationAreaId === null) return;
+    if (!bridge || !division || effectiveDestinationAreaId === null) return;
     workflow.execute("replace", ({ expectedRevision, transportRequestId }) =>
       bridge.campaign.execute("replaceMovementCommand", {
         sessionId,
         commandId,
         divisionId: division.divisionId,
         fromAreaId: division.areaId,
-        toAreaId: destinationAreaId,
+        toAreaId: effectiveDestinationAreaId,
         expectedRevision,
         transportRequestId,
       }),
@@ -105,7 +118,8 @@ export function useFleetScreen(sessionId: string): UseFleetScreenReturn {
     state: workflow.state,
     loadError: workflow.loadError,
     selectedDivisionId,
-    destinationAreaId,
+    destinationAreaId: effectiveDestinationAreaId,
+    reachableAreas: reachable,
     request: workflow.request,
     loadScreen: workflow.loadScreen,
     setSelectedDivisionId,

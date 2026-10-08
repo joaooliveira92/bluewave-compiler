@@ -155,6 +155,19 @@ export const DivisionCommandBodySchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("DissolveDivision"), divisionId: z.string().min(1) }),
 ]);
 
+/** Wire shapes for the fleet movement commands; legality is the engine's (`MoveFleet`). */
+export const SubmitMovementCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  divisionId: z.string().min(1),
+  fromAreaId: z.string(),
+  toAreaId: z.string().min(1),
+});
+export const ReplaceMovementCommandPayloadSchema = SubmitMovementCommandPayloadSchema.extend({
+  commandId: z.string().min(1),
+});
+export const CancelMovementCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  commandId: z.string().min(1),
+});
+
 /** Wire shape for `submitBudgetAllocation`; bounds are the engine's own (validated at issue). */
 export const SubmitBudgetAllocationPayloadSchema = CommandEnvelopePayloadSchema.extend({
   appropriationRateBp: z.number().int(),
