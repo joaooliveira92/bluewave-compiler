@@ -5,6 +5,7 @@ import {
   AlternativesPanel,
   ArmourPanel,
   FindingsPanel,
+  ComparePanel,
   ForecastPanel,
   HullPanel,
   HullPlanPanel,
@@ -88,6 +89,7 @@ export function DrawingBoard({ sessionId }: { readonly sessionId?: string } = {}
         <div className="space-y-4">
           <FindingsPanel view={view} suggest={actions.suggest} onApply={actions.edit} />
           <MetricsPanel view={view} />
+          <ComparePanel baseline={state.baseline} view={view} name={state.preset.name} />
           <TopsidePanel view={view} />
           <LedgerPanel view={view} />
           <ForecastPanel view={view} />

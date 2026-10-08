@@ -61,6 +61,15 @@ describe("DrawingBoard", () => {
     expect(Number(used())).toBeLessThan(Number(before));
   });
 
+  it("compares against the starting design and lists only what changed", () => {
+    render(<DrawingBoard />);
+    const cmp = () => region("Compared with starting design");
+    expect(within(cmp()).getByText(/No differences/)).toBeTruthy();
+    commit(/installed power/i, "3400");
+    expect(within(cmp()).queryByText(/No differences/)).toBeNull();
+    expect(within(cmp()).getByText("Displacement")).toBeTruthy();
+  });
+
   it("labels the development metric as such", () => {
     render(<DrawingBoard />);
     expect(

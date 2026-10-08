@@ -30,6 +30,8 @@ export interface DrawingBoardState {
   readonly month: string;
   readonly draft: DesignDraft;
   readonly view: WorkshopView;
+  /** The starting design compiled under the same rules, for the "developed from" comparison. */
+  readonly baseline: WorkshopView;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
   /** Last rejected edit, shown to the player instead of failing silently. */
@@ -81,6 +83,8 @@ export function useDrawingBoard(fixedMonth: string | null = null): {
   const env = useMemo(() => content.environmentFor(month), [content, month]);
   const view = useMemo(() => buildWorkshopView(draft, env), [draft, env]);
 
+  const baseline = useMemo(() => buildWorkshopView(preset.draft, env), [preset, env]);
+
   const edit = useCallback(
     (e: DraftEdit) => {
       try {
@@ -100,6 +104,7 @@ export function useDrawingBoard(fixedMonth: string | null = null): {
       month,
       draft,
       view,
+      baseline,
       canUndo: canUndo(log),
       canRedo: canRedo(log),
       editError,
