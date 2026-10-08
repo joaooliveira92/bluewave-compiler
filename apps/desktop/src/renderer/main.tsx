@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./shell/App.js";
 import { BackgroundProvider } from "./shell/BackgroundContext.js";
+import { DensityProvider } from "./shell/DensityContext.js";
 import { ThemeProvider } from "./shell/ThemeContext.js";
 import "./styles/globals.css";
 
@@ -13,7 +14,9 @@ if (!container) {
 createRoot(container).render(
   <ThemeProvider>
     <BackgroundProvider>
-      <App />
+      <DensityProvider>
+        <App />
+      </DensityProvider>
     </BackgroundProvider>
   </ThemeProvider>,
 );
