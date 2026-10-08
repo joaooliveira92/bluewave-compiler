@@ -36,6 +36,7 @@ import {
 import type { BackgroundStyle } from "../../shell/BackgroundContext.js";
 import { useBackground } from "../../shell/BackgroundContext.js";
 import { DENSITY_OPTIONS, useDensity } from "../../shell/DensityContext.js";
+import { GlassCard } from "@/components/ui/glass-card.jsx";
 
 export interface OptionsScreenProps {
   readonly saving: boolean;
@@ -49,14 +50,14 @@ const BACKGROUND_OPTIONS: {
   value: BackgroundStyle;
   icon: typeof Waves;
 }[] = [
-  { label: "Water", value: "water", icon: Waves },
-  { label: "Starfield", value: "stars", icon: Sparkles },
-  { label: "Mesh - Citrus", value: "mesh-citrus", icon: Citrus },
-  { label: "Mesh - Lagoon", value: "mesh-lagoon", icon: Gem },
-  { label: "Auralis", value: "auralis", icon: Flame },
-  { label: "Nebulore", value: "nebulore", icon: Orbit },
-  { label: "None", value: "none", icon: Ban },
-];
+    { label: "Water", value: "water", icon: Waves },
+    { label: "Starfield", value: "stars", icon: Sparkles },
+    { label: "Mesh - Citrus", value: "mesh-citrus", icon: Citrus },
+    { label: "Mesh - Lagoon", value: "mesh-lagoon", icon: Gem },
+    { label: "Auralis", value: "auralis", icon: Flame },
+    { label: "Nebulore", value: "nebulore", icon: Orbit },
+    { label: "None", value: "none", icon: Ban },
+  ];
 
 export function OptionsScreen({ saving, onSave, onCopy, onCloseCampaign }: OptionsScreenProps) {
   const { background, setBackground } = useBackground();
@@ -70,7 +71,7 @@ export function OptionsScreen({ saving, onSave, onCopy, onCloseCampaign }: Optio
     <div className="space-y-6">
       <PageHeader icon={Settings} title="Options" description="Campaign-level actions." />
 
-      <Card>
+      <GlassCard>
         <CardHeader>
           <CardTitle className="text-sm font-medium">Background</CardTitle>
           <CardDescription>Choose the animated backdrop behind the app.</CardDescription>
@@ -90,9 +91,9 @@ export function OptionsScreen({ saving, onSave, onCopy, onCloseCampaign }: Optio
             }}
           />
         </CardContent>
-      </Card>
+      </GlassCard>
 
-      <Card>
+      <GlassCard>
         <CardHeader>
           <CardTitle className="text-sm font-medium">Display density</CardTitle>
           <CardDescription>
@@ -115,9 +116,9 @@ export function OptionsScreen({ saving, onSave, onCopy, onCloseCampaign }: Optio
             ))}
           </div>
         </CardContent>
-      </Card>
+      </GlassCard>
 
-      <Card>
+      <GlassCard>
         <CardHeader>
           <CardTitle className="text-sm font-medium">Save Campaign</CardTitle>
           <CardDescription>Write the current campaign state to its package file.</CardDescription>
@@ -128,9 +129,9 @@ export function OptionsScreen({ saving, onSave, onCopy, onCloseCampaign }: Optio
             {saving ? "Saving…" : "Save"}
           </Button>
         </CardContent>
-      </Card>
+      </GlassCard>
 
-      <Card>
+      <GlassCard>
         <CardHeader>
           <CardTitle className="text-sm font-medium">Save a Copy</CardTitle>
           <CardDescription>
@@ -144,9 +145,9 @@ export function OptionsScreen({ saving, onSave, onCopy, onCloseCampaign }: Optio
             Save a Copy…
           </Button>
         </CardContent>
-      </Card>
+      </GlassCard>
 
-      <Card>
+      <GlassCard>
         <CardHeader>
           <CardTitle className="text-sm font-medium">Close Campaign</CardTitle>
           <CardDescription>Return to the campaign file screen.</CardDescription>
@@ -175,7 +176,7 @@ export function OptionsScreen({ saving, onSave, onCopy, onCloseCampaign }: Optio
             </AlertDialogContent>
           </AlertDialog>
         </CardContent>
-      </Card>
+      </GlassCard>
     </div>
   );
 }

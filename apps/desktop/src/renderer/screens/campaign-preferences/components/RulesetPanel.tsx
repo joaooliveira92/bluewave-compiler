@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "../../../components/ui/card.js";
 import type { CampaignConfigDisplay } from "../types.js";
+import { GlassCard } from "@/components/ui/glass-card.jsx";
 
 export interface RulesetPanelProps {
   readonly config: CampaignConfigDisplay;
@@ -26,7 +27,7 @@ export const RulesetPanel = memo(function RulesetPanel({ config }: RulesetPanelP
   ];
 
   return (
-    <Card>
+    <GlassCard>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-1.5  font-medium">
           <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
@@ -49,6 +50,6 @@ export const RulesetPanel = memo(function RulesetPanel({ config }: RulesetPanelP
           ))}
         </div>
       </CardContent>
-    </Card>
+    </GlassCard>
   );
 });

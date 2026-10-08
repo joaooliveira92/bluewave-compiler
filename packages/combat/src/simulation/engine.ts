@@ -1,74 +1,60 @@
 //packages/combat/src/simulation/engine.ts
-// DESIGN-38 §3 tactical minute-advance simulation over TacticalBattleState, steps
-// 4-8 in order:
-//   4 update_contact_knowledge, 5 resolve_movement_intent,
-//   6 resolve_propulsion_formation, 7 resolve_collisions_grounding (empty hook),
-//   8 resolve_sensors_spotting.
-// Uses the existing BattleLedger + canonicalEventOrder and computes a minute-state
-// hash per minute. Pure/deterministic: no ambient clock, random, or I/O.
-import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+// DESIGN-38 §3 tactical minute-advance simulation over TacticalBattleState. This
+// module owns the public request/result contracts and the ordered minute
+// orchestrator; each deterministic stage lives in ./minuteStages.js.
 import type { RandomEngine } from "@bluewave/random";
 import type { MovementState } from "../movement.js";
-import {
-  resolvePropulsion,
-  resolveTurning,
-  advancePosition,
-  resolveCollisionsGrounding,
-} from "../movement/kinematics.js";
-import {
-  resolveSensorsSpotting,
-  type SensorObserver,
-  type TrueAsset,
-  type Position,
-} from "../spotting/detection.js";
-import {
-  ageContact,
-  isStale,
-  updateContact,
-  createContactTrack,
-  type TacticalContact,
-} from "../contact/lifecycle.js";
 import { BattleLedger, type BattleEvent } from "../battleLedger.js";
-import { resolveGunnery, type GunneryBattery, type GunneryEventRecord } from "../gunnery/index.js";
-import { resolveWeather, type WeatherEngineContext } from "../weather/engine.js";
+import type { TacticalContact } from "../contact/lifecycle.js";
+import type { GunneryBattery, GunneryState } from "../gunnery/index.js";
+import type { WeatherEngineContext } from "../weather/engine.js";
 import type { BattleWeatherComponents } from "../weather/components.js";
-import { SUBSTEPS_PER_MINUTE } from "../movement/constants.js";
 import type { TacticalBattleState } from "../tactical/index.js";
-import type { GunneryState } from "../gunnery/index.js";
 import type { ShipDamageState } from "../damage/state.js";
-import { resolveMinuteDamage, type DamageContext } from "../battleResolution/damage.js";
-import {
-  resolveTorpedoes,
-  type TorpedoContext,
-  type TorpedoLauncherState,
-  type TorpedoTrack,
-  type TorpedoRecord,
+import type { DamageContext } from "../battleResolution/damage.js";
+import type {
+  TorpedoContext,
+  TorpedoLauncherState,
+  TorpedoRecord,
+  TorpedoTrack,
 } from "../torpedoes/index.js";
-import { resolveSmoke, type SmokeContext } from "../smoke/engineWiring.js";
+import type { SmokeContext } from "../smoke/engineWiring.js";
 import type { SmokeCloud } from "../smoke/model.js";
 import type { SmokeEventRecord } from "../smoke/smokeRecords.js";
-import {
-  applyDamageControlToState,
-  resolveDamageControl,
-  requireDamageDesignSurface,
-  type DamageControlContext,
-} from "../damage/damageControlEngineWiring.js";
-import { resolveAirCombat, type AirCombatContext } from "../air-combat/engineWiring.js";
+import type { DamageControlContext } from "../damage/damageControlEngineWiring.js";
+import type { AirCombatContext } from "../air-combat/engineWiring.js";
 import type { AirCombatRecord } from "../air-combat/records.js";
-import { resolveAirDefense, type AirDefenseContext } from "../air-defense/engineWiring.js";
+import type { AirDefenseContext } from "../air-defense/engineWiring.js";
 import type { AirDefenseEngagementRecord } from "../air-defense/records.js";
 import type { AirDefenseState } from "../air-defense/air-defense-state.js";
+import {
+  buildShipPositions,
+  cloneMovementState,
+  resolveAirCombatStage,
+  resolveAirDefenseStage,
+  resolveCollisionsStage,
+  resolveDamageControlStage,
+  resolveDamageStage,
+  resolveGunneryStage,
+  resolveMovementIntent,
+  resolvePropulsionStage,
+  resolveSensorsStage,
+  resolveSmokeStage,
+  resolveTorpedoStage,
+  resolveWeatherStage,
+  updateContactKnowledge,
+  type MinuteRun,
+  type UnitRun,
+} from "./minuteStages.js";
+import { buildMinuteResult } from "./minuteResult.js";
+
+export { DAMAGE_CONTROL_SUBSTEP } from "./minuteStages.js";
 
 export interface UnitOrders {
   orderedHeading: number;
   orderedSpeedBp: number;
   attainableMaxBp?: number;
 }
-
-// Step 8.6 (C-5 / INC-8): the damage-control stage runs LAST in the minute —
-// after damage (substep 3) and after the torpedo impact evaluation (substep
-// 56). Its ledger events sort at the tail of the minute's canonical order.
-export const DAMAGE_CONTROL_SUBSTEP = 57 as const;
 
 export interface AdvanceMinuteInput {
   state: TacticalBattleState;
@@ -164,51 +150,14 @@ export interface MinuteResult {
   airDefenseStates?: Readonly<Record<string, AirDefenseState>>;
 }
 
-// atomic mutable snapshot used through one minute.
-interface UnitRun {
-  assetId: string;
-  movement: MovementState;
-}
-
-// Deterministic event identifier: derived solely from the event's canonical
-// fields, so repeated runs and child processes emit identical eventIds (no
-// module-level counter; ENGINEERING-CONTRACT determinism). The fields already
-// distinguish every event this pipeline emits: pipeline phase events share
-// minute/substep but differ by eventType; contact events embed the stable
-// contact key in actorId and targetId.
-function evt(
-  minute: number,
-  substep: number,
-  eventType: string,
-  priority: number,
-  actorId: string,
-  battleId: string,
-  targetId = "",
-): BattleEvent {
-  const eventId = `${battleId}:${minute}:${substep}:${eventType}:${actorId}:${targetId}`;
-  return {
-    battleId,
-    minute,
-    substep,
-    eventPriority: priority,
-    actorId,
-    targetId,
-    eventId,
-    eventType,
-  };
-}
-
-function cloneMovementState(m: MovementState): MovementState {
-  return { ...m, ...(m.position ? { position: [m.position[0], m.position[1]] } : {}) };
-}
-
 export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
   const { battleId } = input.state;
   const minute = input.minute;
   const ledger = new BattleLedger();
   const units = input.state.units ?? [];
-  // Deep copy movement states so sub-step integration (step 6) never mutates the
-  // caller's authoritative state (immutable typed transitions, ENGINEERING-CONTRACT).
+
+  // Deep copy movement states so sub-step integration never mutates the caller's
+  // authoritative state (immutable typed transitions, ENGINEERING-CONTRACT).
   const movement: Record<string, MovementState> = {};
   for (const [k, v] of Object.entries(input.state.movementStates ?? {})) {
     movement[k] = cloneMovementState(v);
@@ -230,506 +179,40 @@ export function advanceMinute(input: AdvanceMinuteInput): MinuteResult {
     return { assetId: u.assetId, movement: m };
   });
 
-  // Step 4: update contact and knowledge state (age by 1 minute; drop dead).
-  let contacts: TacticalContact[] = (input.state.contacts ?? []).map((c) => ageContact(c, 1));
-  const before = contacts
-    .filter((c) => !isStale(c))
-    .map((c) => c.contactId)
-    .sort();
-  contacts = contacts.filter((c) => !isStale(c));
-  ledger.append(evt(minute, 0, "update_contact_knowledge", 4, "pipeline", battleId));
-
-  // Step 5: resolve movement intent — apply orders to each unit.
-  const orders = input.orders ?? {};
-  const resolvedMovements: Record<string, MovementState> = {};
-  for (const u of run) {
-    const ord = orders[u.assetId];
-    const next: MovementState = {
-      ...u.movement,
-      orderedSpeed: ord?.orderedSpeedBp ?? u.movement.orderedSpeed,
-    };
-    resolvedMovements[u.assetId] = next;
-    u.movement = next;
-  }
-  ledger.append(evt(minute, 0, "resolve_movement_intent", 5, "pipeline", battleId));
-
-  // Step 5.5 (C-5 / INC-8): resolve smoke — drift, decay, and lifecycle
-  // Strict no-op when no smoke context is supplied.
-  let smokeClouds: SmokeCloud[] | undefined;
-  let smokeRecords: SmokeEventRecord[] | undefined;
-  if (input.smoke) {
-    const smokeResult = resolveSmoke(input.smoke, minute, 0);
-    if (smokeResult.nextClouds.length > 0 || smokeResult.events.length > 0) {
-      smokeClouds = smokeResult.nextClouds;
-      smokeRecords = smokeResult.events;
-      for (const sr of smokeResult.events) {
-        ledger.append(
-          evt(minute, 0, `smoke_${sr.kind.toLowerCase()}`, 55, `cloud-${sr.cloudId}`, battleId),
-        );
-      }
-    }
-  }
-
-  // Step 6: resolve propulsion, turning, and position (60 deterministic substeps).
-  for (let sub = 0; sub < SUBSTEPS_PER_MINUTE; sub++) {
-    for (const u of run) {
-      const ord = orders[u.assetId];
-      const m = u.movement;
-      m.currentSpeed = resolvePropulsion({
-        currentSpeed: m.currentSpeed,
-        orderedSpeed: m.orderedSpeed,
-        dtSeconds: 1,
-        attainableMaxBpKnots: ord?.attainableMaxBp ?? m.orderedSpeed,
-      });
-      // With no order, a unit holds its existing course (heading==orderedHeading
-      // yields zero turn), rather than inventing a magnetic-north bias (F4).
-      m.heading = resolveTurning({
-        heading: m.heading,
-        orderedHeading: ord?.orderedHeading ?? m.heading,
-        dtSeconds: 1,
-        turningRateMdegS: m.turningRate,
-      });
-      m.position = advancePosition({
-        state: { ...m, currentSpeed: m.currentSpeed, heading: m.heading },
-        dtSeconds: 1,
-      });
-    }
-  }
-  for (const u of run) resolvedMovements[u.assetId] = { ...u.movement };
-  ledger.append(evt(minute, 0, "resolve_propulsion_formation", 6, "pipeline", battleId));
-
-  // Step 7: collisions/grounding — successful empty record (deferred resolution).
-  const collisionRecord = resolveCollisionsGrounding();
-  ledger.append(evt(minute, 0, "resolve_collisions_grounding", 7, "pipeline", battleId));
-
-  // Step 7.5 (B-5 / INC-5): resolve weather — time-of-day, progression,
-  // and visibility before spotting. Strict no-op when no weather context is
-  // supplied (zero events -> minute hash byte-identical to B-2/B-3/B-4).
-  let weatherComponents: BattleWeatherComponents | undefined;
-  if (input.weather) {
-    const weatherResult = resolveWeather({
-      context: input.weather,
-      battleId,
-      minute,
-    });
-    for (const we of weatherResult.ledgerEvents) ledger.append(we);
-    weatherComponents = weatherResult.nextComponents;
-  }
-
-  // Step 7.7 (D-3 / INC-8): resolve air combat — CAP interception & strike attack.
-  // Runs after weather (step 7.5) and before spotting (step 8) so that CAP
-  // intercepts incoming strikes before gunnery resolves. Strict no-op when no
-  // air-combat context is supplied (zero records appended -> minute snapshot/
-  // minuteHash byte-identical to the pre-INC-8 baseline).
-  let airCombatRecords: readonly AirCombatRecord[] | undefined;
-  let airCombatSummary:
-    | { capEngagements: number; strikeAttacks: number; losses: number }
-    | undefined;
-  if (input.airCombat) {
-    const airResult = resolveAirCombat({
-      ...input.airCombat,
-      battleId,
-      minute,
-    });
-    if (airResult.active && airResult.records.length > 0) {
-      airCombatRecords = airResult.records;
-      airCombatSummary = airResult.summary;
-    }
-  }
-
-  // Step 7.8 (D-4 / INC-6): resolve air defense — HEAVY → MEDIUM → LIGHT → CIWS
-  // layers against incoming air attacks. Runs after air combat (step 7.7) and before
-  // spotting (step 8). Strict no-op when no air-defense context is supplied or it
-  // carries no defender/attack (zero records -> minute snapshot/minuteHash
-  // byte-identical to the pre-INC-6 baseline).
-  let airDefenseRecords: readonly AirDefenseEngagementRecord[] | undefined;
-  let airDefenseStates: Readonly<Record<string, AirDefenseState>> | undefined;
-  if (input.airDefense) {
-    const adResult = resolveAirDefense(input.airDefense, battleId, minute);
-    if (adResult.records.length > 0) {
-      airDefenseRecords = adResult.records;
-      airDefenseStates = adResult.nextStates;
-    }
-  }
-
-  // Step 8: resolve sensor and spotting updates.
-  const observers: SensorObserver[] = units.map((u) => ({
-    observerId: `obs-${u.assetId}`,
-    sideId: u.sideId,
-    position: resolvedMovements[u.assetId]!.position,
-  }));
-  const assets: TrueAsset[] = units.map((u) => ({
-    assetId: u.assetId,
-    sideId: u.sideId,
-    position: resolvedMovements[u.assetId]!.position,
-    heading: resolvedMovements[u.assetId]!.heading,
-    speedBpKnots: resolvedMovements[u.assetId]!.currentSpeed,
-    estimatedClass: u.className,
-  }));
-  const detected = resolveSensorsSpotting({
-    observers,
-    assets,
+  const ctx: MinuteRun = {
+    input,
     battleId,
     minute,
-    observationTime: input.observationTime,
-    contractRangeUm: input.attackRangeUm,
-  });
-  const byKey = new Map(contacts.map((c) => [c.contactId, c]));
-  const seen = new Set<string>();
-  for (const d of detected) {
-    const key = d.contactId;
-    seen.add(key);
-    const existing = byKey.get(key);
-    if (existing) {
-      const merged: TacticalContact = updateContact(existing, {
-        position: d.position,
-        course: d.course,
-        speedBpKnots: d.speed,
-        observationTime: d.observationTime,
-        minute,
-        source: d.source,
-      });
-      byKey.set(key, merged);
-      ledger.append(evt(minute, 1, "contact_updated", 8, `obs-${key}`, battleId, key));
-    } else {
-      const created = createContactTrack({
-        battleId,
-        assetId: d.assetId,
-        sideId: d.sideId,
-        estimatedIdentity: d.estimatedIdentity,
-        position: d.position,
-        course: d.course,
-        speedBpKnots: d.speed,
-        observationTime: d.observationTime,
-        minute,
-        source: d.source,
-      });
-      byKey.set(key, created);
-      ledger.append(evt(minute, 0, "contact_created", 8, `obs-${key}`, battleId, key));
-    }
-  }
-  const afterContacts = [...byKey.values()];
-  ledger.append(evt(minute, 0, "resolve_sensors_spotting", 8, "pipeline", battleId));
-
-  // P-1 ticket 06: true post-movement ship positions (`assetId -> [x, y]`, integer
-  // µm), built once from the resolved movements and shared by the gunnery stage
-  // (true legal contact range -> §3 `range` accuracy factor) and the torpedo
-  // stage (geometric line-of-sight / track checks).
-  const shipPositions: Record<string, Position> = {};
-  for (const u of units) {
-    const m = resolvedMovements[u.assetId];
-    if (!m) continue;
-    shipPositions[u.assetId] = m.position;
-  }
-
-  // Step 8.5 (DESIGN-39 / B-3 INC-4): surface-gunnery resolution AFTER spotting,
-  // using the just-updated legal contact tracks. Strict no-op when no batteries are
-  // supplied (no gunneryState on any unit) -> zero events appended, so the minute
-  // snapshot/minuteHash remain byte-identical to the pre-INC-4 output (AC-15).
-  let gunneryStates: Record<string, GunneryState> | undefined;
-  const gunneryBatteries = input.gunnery ?? [];
-  let salvos: readonly GunneryEventRecord[] = [];
-  if (gunneryBatteries.length > 0) {
-    const gres = resolveGunnery({
-      battleId,
-      minute,
-      batteries: gunneryBatteries,
-      contacts: afterContacts,
-      engine: input.engine,
-      shipPositions,
-    });
-    for (const ge of gres.events) ledger.append(ge);
-    gunneryStates = gres.nextStates;
-    salvos = gres.salvos;
-  }
-
-  // Step 9-10 (DESIGN-38 §3 / B-4 / B-6 INC-2): apply damage from gunnery HIT
-  // events — each HIT becomes a GunneryImpact applied via resolveDamage, and the
-  // damage events are appended here (after gunnery at substep 3). Strict no-op
-  // when no damage context is supplied (zero events; hashes unchanged).
-  let damageStates: Record<string, ShipDamageState> | undefined;
-  if (input.damage) {
-    const dmgResult = resolveMinuteDamage({
-      battleId,
-      minute,
-      salvos,
-      contacts: afterContacts,
-      targets: input.damage.targets,
-      engine: input.damage.engine,
-      randomLedger: input.damage.randomLedger,
-    });
-    for (const de of dmgResult.events) ledger.append(de);
-    if (Object.keys(dmgResult.states).length > 0) damageStates = dmgResult.states;
-  }
-
-  // Step 10.5 (DESIGN-40 / C-1 INC-7): torpedo fire resolution AFTER the damage
-  // stage, using the same legal contact surface. Strict no-op when no torpedo
-  // context is supplied (zero events appended, minute snapshot/minuteHash
-  // byte-identical to the B-2..B-6 baseline). When a context is supplied but
-  // nothing resolves, the same byte-identical guarantee holds (the stage emits
-  // nothing until there is a launcher with a command or a running track).
-  let torpedoStates: Record<string, TorpedoLauncherState> | undefined;
-  let torpedoTracks: readonly TorpedoTrack[] | undefined;
-  let torpedoRecords: readonly TorpedoRecord[] | undefined;
-  if (input.torpedoes) {
-    const shipHeadings: Record<string, number> = {};
-    const shipSpeedsUmS: Record<string, number> = {};
-    for (const u of units) {
-      const m = resolvedMovements[u.assetId];
-      if (!m) continue;
-      shipHeadings[u.assetId] = m.heading;
-      shipSpeedsUmS[u.assetId] = m.currentSpeed;
-    }
-    // AC-22 composition (reviewer BLOCKER-2): the torpedo stage runs AFTER the
-    // damage stage in the same minute, so it must resolve against the ship's
-    // POST-damage state — not the caller's PRE-damage target input. Thread the
-    // damage stage's per-ship `damageStates` into the torpedo target contexts
-    // (same immutable copy-out as the next-minute threading below) so gunnery
-    // damage applied this minute is NOT silently discarded: the torpedo
-    // damage accumulates on top of it, and the merge below keeps the combined
-    // (gunnery + torpedo) state rather than replacing per-ship states.
-    let torpedoContext = input.torpedoes;
-    if (damageStates && Object.keys(damageStates).length > 0) {
-      torpedoContext = { ...input.torpedoes, targets: { ...input.torpedoes.targets } };
-      for (const [sid, st] of Object.entries(damageStates)) {
-        const tgt = torpedoContext.targets[sid];
-        if (tgt) torpedoContext.targets[sid] = { ...tgt, damageState: st };
-      }
-    }
-    const torpedoResult = resolveTorpedoes({
-      battleId,
-      minute,
-      context: torpedoContext,
-      contacts: afterContacts,
-      shipPositions,
-      shipHeadings,
-      shipSpeedsUmS,
-      engine: input.engine,
-    });
-    if (torpedoResult.changed) {
-      for (const te of torpedoResult.events) ledger.append(te);
-      torpedoRecords = torpedoResult.records.length > 0 ? torpedoResult.records : undefined;
-      torpedoTracks = torpedoResult.tracks.length > 0 ? torpedoResult.tracks : undefined;
-      if (Object.keys(torpedoResult.launcherStates).length > 0)
-        torpedoStates = torpedoResult.launcherStates;
-      // COMPOSE (AC-22): keep every pre-torpedo damage state and let the torpedo
-      // result overwrite ONLY the ships it damaged (which, thanks to the
-      // threading above, already carry the accumulated gunnery + torpedo damage).
-      if (Object.keys(torpedoResult.damageStates).length > 0)
-        damageStates = { ...damageStates, ...torpedoResult.damageStates };
-    }
-  }
-
-  // Step 8.6 (C-5 / INC-8, P-1 ticket 07): resolve damage control PER SHIP —
-  // fire progression, flooding resolution, damage-control allocation, and the
-  // §32 terminal-seam write-back (flooding weight drains flotation reserve; a
-  // zero reserve transitions the ship NORMAL -> SINKING/FOUNDERED). Strict
-  // no-op when no damage-control map is supplied (zero events; hashes
-  // unchanged). When a map IS supplied, each ship resolves INDEPENDENTLY in
-  // deterministic shipId order with its own context (records + resources +
-  // speed + keyedRng); a ship whose resolution changes nothing (no fires, no
-  // flooding, no reserve drain) is skipped entirely, so even a wired-but-quiet
-  // minute stays byte-identical to the same minute without the wiring.
-  if (input.damageControl) {
-    const damageControlMap = input.damageControl;
-    const dcShipIds = Object.keys(damageControlMap).sort();
-    for (const shipId of dcShipIds) {
-      const dcContext = damageControlMap[shipId]!;
-      const baseState = damageStates?.[shipId] ?? input.damage?.targets[shipId]?.state;
-      if (!baseState) continue; // no authoritative state surface -> nothing to write back
-      // The ship's CURRENT damage state is authoritative for its fire/flooding
-      // records (gunnery or torpedo damage THIS minute may have created or
-      // changed them — the caller-built context is a pre-minute snapshot). The
-      // rest of the context (resources, shipType, speed, keyedRng) comes from
-      // the caller; P-1 ticket 07: per-ship flooding must progress against the
-      // post-impact state, never the stale caller records.
-      const dcResult = resolveDamageControl(
-        {
-          ...dcContext,
-          shipId,
-          fireRecords: [...baseState.fireRecords],
-          floodingRecords: [...baseState.floodingRecords],
-          // kg mass surface (progressiveFloodingTotal; ADR-0047 decision 4 —
-          // severity converts to bp-of-displacement at the evaluation site).
-          floodedWaterBp: baseState.progressiveFloodingTotal,
-        },
-        minute,
-        DAMAGE_CONTROL_SUBSTEP,
-      );
-      for (const sr of dcResult.smokeEventRecords) {
-        // Ship-scoped actor + fire-location target keep eventIds unique across
-        // ships and across multiple fires on one ship (pre-07 single-context
-        // emission collided for every fire after the first).
-        ledger.append(
-          evt(
-            minute,
-            DAMAGE_CONTROL_SUBSTEP,
-            "smoke_fire",
-            86,
-            `fire-smoke:${shipId}`,
-            battleId,
-            sr.sourceId,
-          ),
-        );
-      }
-      const design = requireDamageDesignSurface(input.damage?.targets[shipId], battleId, shipId);
-      const written = applyDamageControlToState({
-        state: baseState,
-        stageResult: dcResult,
-        designFlotationReserve: design.designFlotationReserve,
-        designStabilityScore: design.designStabilityScore,
-      });
-      if (written.changed) {
-        if (!damageStates) damageStates = {};
-        damageStates[shipId] = written.state;
-      }
-    }
-  }
-
-  const events = ledger.sorted();
-  const hasTorpedoSurface =
-    torpedoTracks !== undefined || (torpedoRecords !== undefined && torpedoRecords.length > 0);
-  const snapshot = {
-    battleId,
-    minute,
-    units: units.map((u) => ({
-      assetId: u.assetId,
-      position: resolvedMovements[u.assetId]!.position,
-      heading: resolvedMovements[u.assetId]!.heading,
-      currentSpeed: resolvedMovements[u.assetId]!.currentSpeed,
-    })),
-    contacts: afterContacts.map((c) => ({
-      contactId: c.contactId,
-      assetId: c.assetId,
-      position: c.position,
-      course: c.course,
-      speed: c.speed,
-      confidence: c.confidence,
-      stale: c.stale,
-    })),
-    collisionEmpty: collisionRecord.empty,
-    droppedContacts: before.filter((id) => !byKey.has(id)),
-    events: events.map((e) => ({
-      minute: e.minute,
-      substep: e.substep,
-      eventPriority: e.eventPriority,
-      eventType: e.eventType,
-      eventId: e.eventId,
-    })),
-    // The torpedo minute-state surface (INC-7): present ONLY when the stage
-    // resolved state — absent context or an empty stage keeps the snapshot
-    // byte-identical to the B-2..B-6 baseline (the strict no-op guarantee).
-    ...(hasTorpedoSurface
-      ? {
-          torpedo: {
-            tracks: (torpedoTracks ?? []).map((t) => ({
-              torpedoTrackId: t.torpedoTrackId,
-              currentPosition: t.currentPosition,
-              distanceTraveledUm: t.distanceTraveledUm,
-              armed: t.armed,
-              terminalResult: t.terminalResult,
-              trackHash: t.trackHash,
-            })),
-            ...(torpedoStates
-              ? {
-                  launchers: Object.keys(torpedoStates)
-                    .sort()
-                    .map((launcherId) => {
-                      const st = torpedoStates![launcherId]!;
-                      return {
-                        launcherId,
-                        loadedPerTube: st.loadedPerTube,
-                        stateHash: st.stateHash,
-                      };
-                    }),
-                }
-              : {}),
-            ...(torpedoRecords && torpedoRecords.length > 0
-              ? {
-                  records: torpedoRecords.map((r) => ({
-                    recordId: r.recordId,
-                    kind: r.kind,
-                    recordHash: r.recordHash,
-                  })),
-                }
-              : {}),
-          },
-        }
-      : {}),
-    // The smoke minute-state surface (C-5 / INC-8): present ONLY when the stage
-    // resolved state — absent context or an empty stage keeps the snapshot
-    // byte-identical to the pre-INC-8 baseline (the strict no-op guarantee).
-    ...(smokeRecords && smokeRecords.length > 0
-      ? {
-          smoke: {
-            records: smokeRecords.map((r) => ({
-              recordId: r.recordId,
-              kind: r.kind,
-              recordHash: r.recordHash,
-            })),
-          },
-        }
-      : {}),
-    // The air-combat minute-state surface (D-3 / INC-8): present ONLY when the
-    // stage resolved activity — absent context or an empty stage keeps the
-    // snapshot byte-identical to the pre-INC-8 baseline (the strict no-op
-    // guarantee).
-    ...(airCombatRecords && airCombatRecords.length > 0
-      ? {
-          airCombat: {
-            records: airCombatRecords.map((r) => ({
-              recordId: r.recordId,
-              kind: r.recordKind,
-              recordHash: r.recordHash,
-            })),
-            ...(airCombatSummary
-              ? {
-                  summary: {
-                    capEngagements: airCombatSummary.capEngagements,
-                    strikeAttacks: airCombatSummary.strikeAttacks,
-                    losses: airCombatSummary.losses,
-                  },
-                }
-              : {}),
-          },
-        }
-      : {}),
-    // The air-defense minute-state surface (D-4 / INC-6): present ONLY when the stage
-    // emitted records (strict no-op guarantee for absent/empty context).
-    ...(airDefenseRecords && airDefenseRecords.length > 0
-      ? {
-          airDefense: {
-            records: airDefenseRecords.map((r) => ({
-              recordId: r.recordId,
-              kind: r.recordKind,
-              outcome: r.outcome,
-              recordHash: r.recordHash,
-            })),
-          },
-        }
-      : {}),
+    ledger,
+    units,
+    movement,
+    run,
+    contacts: [],
+    before: [],
+    orders: input.orders ?? {},
+    resolvedMovements: {},
+    collisionRecord: { empty: true },
+    afterContacts: [],
+    byKey: new Map(),
+    shipPositions: {},
+    salvos: [],
   };
-  const minuteHash = sha256Hex(canonicalSerialize(snapshot));
 
-  return {
-    minute,
-    movementStates: resolvedMovements,
-    contacts: afterContacts,
-    events: ledger.sorted(),
-    minuteHash,
-    ...(gunneryStates ? { gunneryStates } : {}),
-    ...(weatherComponents ? { weatherComponents } : {}),
-    ...(damageStates ? { damageStates } : {}),
-    ...(torpedoStates ? { torpedoStates } : {}),
-    ...(torpedoTracks ? { torpedoTracks } : {}),
-    ...(torpedoRecords ? { torpedoRecords } : {}),
-    ...(smokeClouds ? { smokeClouds } : {}),
-    ...(smokeRecords ? { smokeRecords } : {}),
-    ...(airCombatRecords ? { airCombatRecords } : {}),
-    ...(airCombatSummary ? { airCombatSummary } : {}),
-    ...(airDefenseRecords ? { airDefenseRecords } : {}),
-    ...(airDefenseStates ? { airDefenseStates } : {}),
-  };
+  updateContactKnowledge(ctx); // step 4
+  resolveMovementIntent(ctx); // step 5
+  resolveSmokeStage(ctx); // step 5.5
+  resolvePropulsionStage(ctx); // step 6
+  resolveCollisionsStage(ctx); // step 7
+  resolveWeatherStage(ctx); // step 7.5
+  resolveAirCombatStage(ctx); // step 7.7
+  resolveAirDefenseStage(ctx); // step 7.8
+  resolveSensorsStage(ctx); // step 8
+  buildShipPositions(ctx); // P-1 ticket 06
+  resolveGunneryStage(ctx); // step 8.5
+  resolveDamageStage(ctx); // steps 9-10
+  resolveTorpedoStage(ctx); // step 10.5
+  resolveDamageControlStage(ctx); // step 8.6 (canonically last)
+  return buildMinuteResult(ctx);
 }
 
 // AC-12: advance a battle state N full minutes in DESIGN-38 order, collecting a
@@ -873,10 +356,7 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
     // Thread the updated damage-control contexts into the next minute
     // (P-1 ticket 07). The damage-control stage's write-back lands in
     // res.damageStates, so every context whose ship state changed this minute
-    // is rebased on the authoritative new state — new fires/floods resolve
-    // next minute, and the floodedWaterBp accumulation continues from the
-    // state's progressiveFloodingTotal. Unchanged contexts carry forward
-    // untouched (their records are still accurate).
+    // is rebased on the authoritative new state.
     if (damageControl && res.damageStates) {
       let rebased = false;
       const nextMap = { ...damageControl };
@@ -888,15 +368,12 @@ export function advanceMinutes(input: AdvanceMinutesInput): AdvanceMinutesResult
           ...ctx,
           fireRecords: [...st.fireRecords],
           floodingRecords: [...st.floodingRecords],
-          // kg mass surface (progressiveFloodingTotal; ADR-0047 decision 4 —
-          // severity converts to bp-of-displacement at the evaluation site).
           floodedWaterBp: st.progressiveFloodingTotal,
         };
       }
       if (rebased) damageControl = nextMap;
     }
     // Thread the updated air-combat context into the next minute (D-3 / INC-8).
-    // For the INC-8 stub, state does not change, but the records accumulate.
     if (airCombat) {
       if (res.airCombatRecords) {
         airCombat = {

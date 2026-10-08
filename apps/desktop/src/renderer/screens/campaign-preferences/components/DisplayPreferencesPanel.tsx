@@ -10,6 +10,7 @@ import {
 import { Field, FieldDescription, FieldLabel } from "../../../components/ui/field.js";
 import { Toggle } from "../../../components/ui/toggle.js";
 import type { DisplayPreferences } from "../types.js";
+import { GlassCard } from "@/components/ui/glass-card.jsx";
 
 interface DisplayPreferenceOption {
   readonly key: keyof DisplayPreferences;
@@ -50,7 +51,7 @@ export const DisplayPreferencesPanel = memo(function DisplayPreferencesPanel({
   onTogglePref,
 }: DisplayPreferencesPanelProps) {
   return (
-    <Card>
+    <GlassCard>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
           <Eye className="h-4 w-4 text-muted-foreground" />
@@ -82,6 +83,6 @@ export const DisplayPreferencesPanel = memo(function DisplayPreferencesPanel({
           </Field>
         ))}
       </CardContent>
-    </Card>
+    </GlassCard>
   );
 });

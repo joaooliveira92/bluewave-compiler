@@ -35,6 +35,12 @@ import {
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const srcDir = resolve(thisDir, "..", "..", "src");
 const engineSrc = readFileSync(resolve(srcDir, "simulation", "engine.ts"), "utf8");
+const minuteStagesSrc = readFileSync(resolve(srcDir, "simulation", "minuteStages.ts"), "utf8");
+const minuteResultSrc = readFileSync(resolve(srcDir, "simulation", "minuteResult.ts"), "utf8");
+// The minute advance is split across engine.ts (orchestrator), minuteStages.ts
+// (stages), and minuteResult.ts (snapshot/hash assembly); the boundary
+// constraints apply to the trio.
+const simulationSrc = engineSrc + minuteStagesSrc + minuteResultSrc;
 const resolveSrc = readFileSync(resolve(srcDir, "torpedoes", "resolve.ts"), "utf8");
 const torpedoTxt =
   readFileSync(resolve(srcDir, "torpedoes", "index.ts"), "utf8") +
@@ -44,16 +50,19 @@ const torpedoTxt =
 const OBSERVATION_TIME = "1900-01-01T00:00:00.000Z";
 
 describe("AC-22 — engine package boundary", () => {
-  it("engine.ts imports the torpedo surface only through the public index barrel", () => {
-    const torpedoImports = engineSrc.match(/from "\.\.\/torpedoes\/[^"]+"/g) ?? [];
-    expect(torpedoImports).toEqual([`from "../torpedoes/index.js"`]);
+  it("the simulation modules import the torpedo surface only through the public index barrel", () => {
+    const torpedoImports = simulationSrc.match(/from "\.\.\/torpedoes\/[^"]+"/g) ?? [];
+    expect([...new Set(torpedoImports)]).toEqual([`from "../torpedoes/index.js"`]);
   });
 
-  it("engine.ts has exactly its committed cross-package imports (deterministic + random)", () => {
+  it("the simulation modules have exactly their committed cross-package imports (deterministic + random)", () => {
     // the B-2 engine imports @bluewave/deterministic + @bluewave/random; it
     // must NOT gain new cross-package dependencies from the torpedo stage.
-    const cross = engineSrc.match(/from "@bluewave\/[^"]+"/g) ?? [];
-    expect(cross.sort()).toEqual(['from "@bluewave/deterministic"', 'from "@bluewave/random"']);
+    const cross = simulationSrc.match(/from "@bluewave\/[^"]+"/g) ?? [];
+    expect([...new Set(cross)].sort()).toEqual([
+      'from "@bluewave/deterministic"',
+      'from "@bluewave/random"',
+    ]);
   });
 
   it("torpedo modules never import the engine (no cycle) and no platform I/O", () => {
