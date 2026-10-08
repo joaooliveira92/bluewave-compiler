@@ -1,9 +1,6 @@
 import { ArrowLeft, Flag, Landmark, Radar } from "lucide-react";
 import type { OpeningBriefingProjection } from "@bluewave/campaign-engine";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
-import type { InspectOpeningBriefingResult } from "../../../shared/campaign-command-contract.js";
-import type { BridgeResult } from "../../../shared/bridge-contract.js";
 import { NATION_DOSSIER_FIELDS } from "../../content/nationDossierFields.js";
 import { NATION_FLAVOR_TEXT } from "../../content/nationFlavorText.js";
 import type { PlayableSlotCountryId } from "../../content/nationAssetManifest.js";
@@ -12,26 +9,16 @@ import { GlassCard } from "../../components/ui/glass-card.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { formatCampaignMonth, formatTreasury } from "../../shell/site-header-state.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
-import {
-  OPENING_BRIEFING_PAGE_COUNT,
-  OPENING_BRIEFING_PAGE_TITLES,
-  PAGE_1_NEXT_LABEL,
-  PAGE_LAST_ACTION_LABEL,
-  canGoBack,
-  nextPageIndex,
-  previousPageIndex,
-} from "./new-game-briefing-screen-state.js";
+import { OPENING_BRIEFING_PAGE_TITLES, canGoBack } from "./new-game-briefing-screen-state.js";
+import { useBriefingPager } from "./useBriefingPager.js";
+import { useOpeningBriefing, type LoadOpeningBriefing } from "./useOpeningBriefing.js";
 
 export interface NewGameBriefingScreenProps {
   readonly sessionId: string;
-  readonly onInspectOpeningBriefing: (
-    sessionId: string,
-  ) => Promise<BridgeResult<InspectOpeningBriefingResult>>;
+  readonly onInspectOpeningBriefing: LoadOpeningBriefing;
   readonly onTakeCommand: () => void;
   readonly onPrimaryActionChange: SetPrimaryAction;
 }
-
-const EMPTY_PAGE_INDEX = 0;
 
 function formatSignedMoney(value: number): string {
   const sign = value >= 0 ? "+" : "−";
@@ -233,40 +220,14 @@ export function NewGameBriefingScreen({
   onTakeCommand,
   onPrimaryActionChange,
 }: NewGameBriefingScreenProps) {
-  const [pageIndex, setPageIndex] = useState(EMPTY_PAGE_INDEX);
-  const [projection, setProjection] = useState<OpeningBriefingProjection | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    setProjection(null);
-    setError(null);
-    setPageIndex(EMPTY_PAGE_INDEX);
-    void onInspectOpeningBriefing(sessionId).then((result) => {
-      if (!active) return;
-      if (result.outcome !== "success") {
-        setError(result.reason);
-        return;
-      }
-      setProjection(result.value.projection);
-    });
-    return () => {
-      active = false;
-    };
-  }, [sessionId, onInspectOpeningBriefing]);
-
+  const { projection, error } = useOpeningBriefing(sessionId, onInspectOpeningBriefing);
   const ready = projection !== null;
-  const isLastPage = pageIndex === OPENING_BRIEFING_PAGE_COUNT - 1;
-
-  useEffect(() => {
-    if (!ready) return;
-    onPrimaryActionChange({
-      label: isLastPage ? PAGE_LAST_ACTION_LABEL : pageIndex === 0 ? PAGE_1_NEXT_LABEL : "Next",
-      disabled: false,
-      onTrigger: isLastPage ? onTakeCommand : () => setPageIndex(nextPageIndex(pageIndex)),
-    });
-    return () => onPrimaryActionChange(null);
-  }, [ready, isLastPage, pageIndex, onTakeCommand, onPrimaryActionChange]);
+  const { pageIndex, goBack } = useBriefingPager({
+    sessionId,
+    ready,
+    onTakeCommand,
+    onPrimaryActionChange,
+  });
 
   if (error !== null) {
     return (
@@ -324,12 +285,7 @@ export function NewGameBriefingScreen({
       {pageContent}
 
       <div className="flex items-center justify-between">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => setPageIndex(previousPageIndex(pageIndex))}
-          disabled={!canGoBack(pageIndex)}
-        >
+        <Button type="button" variant="ghost" onClick={goBack} disabled={!canGoBack(pageIndex)}>
           <ArrowLeft className="size-4" aria-hidden="true" />
           Back
         </Button>
