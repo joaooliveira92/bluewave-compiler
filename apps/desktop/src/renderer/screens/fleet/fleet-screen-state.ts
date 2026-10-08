@@ -147,3 +147,17 @@ export function buildAreaOverview(
     }))
     .sort((a, b) => byName(a.name, b.name));
 }
+
+/**
+ * Fleet movement orders (docs/research/rtw3-parity-engine-roadmap.md): the engine's 14 player
+ * commands include none that moves a fleet, and the bridge's movement commands are stubs. The Fleet
+ * screen therefore says so instead of offering a Submit button that can only fail.
+ */
+export const DEFERRED_MOVEMENT_ITEMS: readonly DeferredFeature[] = [
+  {
+    id: "movement-orders",
+    name: "Fleet movement orders",
+    reason:
+      "The engine has no command that moves a fleet yet, so fleets cannot be ordered to sail.",
+  },
+];

@@ -140,7 +140,7 @@ test("row 5: Construction cancel removes the command from the live table", async
   await expect(e2e.page.getByRole("row").filter({ hasText: "submitted" })).toHaveCount(0);
 });
 
-test("row 6: Fleet Movement renders the honest compiled state", async ({ e2e }) => {
+test("row 6: Fleet renders the honest compiled state", async ({ e2e }) => {
   await e2e.retargetDialog(sharedSaveDir);
   await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
   await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
@@ -148,7 +148,7 @@ test("row 6: Fleet Movement renders the honest compiled state", async ({ e2e }) 
   });
 
   await navigateTo(e2e.page, "Fleet");
-  await expect(e2e.page.getByRole("heading", { name: "Fleet Movement" })).toBeVisible();
+  await expect(e2e.page.getByRole("heading", { name: "Fleet", exact: true })).toBeVisible();
 
   // Honest divisions state: this campaign's compiled United Kingdom fleets
   // (fleet_gbr_*) render as the real compiled state -- never an
@@ -158,11 +158,10 @@ test("row 6: Fleet Movement renders the honest compiled state", async ({ e2e }) 
   await expect(e2e.page.getByRole("heading", { name: "Divisions" })).toBeVisible();
   await expect(e2e.page.getByRole("radio", { name: /Home Fleet/ })).toBeVisible();
 
-  // Movement-order surface: honestly not-submittable. The bridge's movement
-  // commands stay NOT_IMPLEMENTED -- submitting surfaces that as a notice,
-  // never a fabricated success outcome.
-  await e2e.page.getByRole("button", { name: "Submit movement command" }).click();
-  await expect(e2e.page.getByText(/NOT_IMPLEMENTED/)).toBeVisible();
+  // Movement orders: the engine has no movement command, so the screen says so plainly instead
+  // of offering a button that can only fail.
+  await expect(e2e.page.getByTestId("movement-deferred")).toContainText("Fleet movement orders");
+  await expect(e2e.page.getByRole("button", { name: "Submit movement command" })).toHaveCount(0);
 });
 
 test("row 6b: Diplomacy & War shows real relations, battle history and honest deferrals", async ({
@@ -215,4 +214,46 @@ test("row 6c: Fleet organization founds a division through the real engine and a
   });
   await expect(organization.getByText("Commander vacant")).toBeVisible();
   await expect(organization.getByText("No divisions yet")).not.toBeVisible();
+});
+
+test("row 6d: Options can save, save a copy, and close the campaign", async ({ e2e }) => {
+  const working = await copyFixturePackage(sharedSaveDir, e2e.scratch);
+  await e2e.retargetDialog(working);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await dismissTour(e2e.page);
+
+  await navigateTo(e2e.page, "Options");
+  await expect(e2e.page.getByRole("heading", { name: "Options" })).toBeVisible();
+
+  // Save used to answer NOT_IMPLEMENTED; it now confirms the revision on disk. (Earlier rows advance
+  // the shared save, so the turn is whatever it is now — assert the shape, not a fixed number.)
+  await e2e.page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(e2e.page.getByText(/Campaign saved — revision \d+/)).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(e2e.page.getByText(/NOT_IMPLEMENTED/)).not.toBeVisible();
+
+  // Save a copy: the (stubbed) dialog returns a new folder; the copy is a real package.
+  const copyDir = join(e2e.scratch, "the-copy");
+  await e2e.retargetDialog(copyDir);
+  await e2e.page.getByRole("button", { name: /Save a Copy/ }).click();
+  await expect(e2e.page.getByText(/Copy saved to/)).toBeVisible({ timeout: 15_000 });
+
+  // Close returns to the campaign file screen.
+  await e2e.page.getByRole("button", { name: "Close Campaign" }).click();
+  await e2e.page.getByRole("button", { name: "Close Campaign" }).last().click();
+  await expect(e2e.page.getByRole("button", { name: "Open Campaign" })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).not.toBeVisible();
+
+  // The copy opens like any other campaign.
+  await e2e.retargetDialog(copyDir);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
+    timeout: 30_000,
+  });
 });

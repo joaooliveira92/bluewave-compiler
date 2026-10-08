@@ -25,12 +25,17 @@ to `main` (see `AGENTS.md`).
 
 ### Fixed
 
-- **Save and Close Campaign did nothing** (they reported "not implemented"). Both now work (checked in
-  the built app and by integration tests; the automated end-to-end row is pending). Save is safe to click
+- **Save and Close Campaign did nothing** (they reported "not implemented"). Both now work (covered by integration
+  tests and an end-to-end test). Save is safe to click
   repeatedly, and Close frees everything the session held.
 - Fleet, Construction and the division editor no longer show pre-advance data after you advance the month.
 - Engine ids, session ids and revision numbers no longer appear in the release UI (debug builds only).
 - Map labels and markers keep a constant size when zoomed; coastlines render smoothly at every zoom.
+
+### Changed
+
+- **Fleet** no longer offers a movement-order form that could only fail; it says plainly that the engine has no
+  movement command yet. The screen title is now "Fleet".
 
 ### Not yet modelled by the engine (shown as such in the app, never faked)
 
@@ -44,3 +49,4 @@ orders. See `docs/research/rtw3-parity-engine-roadmap.md`.
 - Canvas coastline renderer with level-of-detail tiers (ADR-0055); baked binary coastline asset.
 - Packaged-app smoke script (`pnpm --filter @bluewave/desktop run smoke:packaged`).
 - Type-floor, click-depth and content-coverage guard tests.
+- Automated accessibility audit (axe-core) over the new screens, with a control test proving it detects violations.

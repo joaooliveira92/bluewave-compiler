@@ -5,52 +5,29 @@ import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
 import { Separator } from "../../components/ui/separator.js";
 import {
+  DEFERRED_MOVEMENT_ITEMS,
   DEFERRED_SUBMARINE_ITEMS,
   buildAreaOverview,
-  pendingRouteFor,
 } from "./fleet-screen-state.js";
 import { FleetOrganizationSection } from "./organization/FleetOrganizationSection.js";
 import { AreaOverviewTable } from "./components/AreaOverviewTable.js";
 import { useFleetScreen } from "./hooks/useFleetScreen.js";
 import { DivisionPicker } from "./components/DivisionPicker.js";
-import { OrderSection } from "./components/OrderSection.js";
-import { humanizeId } from "../../lib/humanize-id.js";
 import { DeferredFeaturesPanel } from "../../components/shared/DeferredFeaturesPanel.js";
 import { WorldMapPanel } from "../../components/world-map/WorldMapPanel.js";
-import { MovementCommandsTable } from "./components/MovementCommandsTable.js";
 import { LoadErrorCard } from "./components/LoadErrorCard.js";
 import { LoadingState } from "./components/LoadingState.js";
 
 function FleetScreen({ sessionId }: { readonly sessionId: string }) {
-  const {
-    state,
-    loadError,
-    selectedDivisionId,
-    destinationAreaId,
-    request,
-    loadScreen,
-    setSelectedDivisionId,
-    setDestinationAreaId,
-    submit,
-    replace,
-    cancel,
-  } = useFleetScreen(sessionId);
+  const { state, loadError, selectedDivisionId, loadScreen, setSelectedDivisionId } =
+    useFleetScreen(sessionId);
 
   const areaNameMap = useMemo(() => new Map(state.areas.map((a) => [a.id, a.name])), [state.areas]);
-
-  const divisionNameMap = useMemo(
-    () => new Map(state.divisions.map((d) => [d.divisionId, d.fleetName])),
-    [state.divisions],
-  );
 
   const areaOverview = useMemo(
     () => buildAreaOverview(state.areas, state.areaEdges, state.ports, state.divisions),
     [state.areas, state.areaEdges, state.ports, state.divisions],
   );
-
-  function divisionName(divisionId: string): string {
-    return divisionNameMap.get(divisionId) ?? humanizeId(divisionId);
-  }
 
   function areaName(areaId: string): string {
     return areaNameMap.get(areaId) ?? areaId;
@@ -72,17 +49,14 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
     );
   }
 
-  const busy = state.pendingRequest !== null || state.requiresRefresh;
   const selectedDivision =
     state.divisions.find((division) => division.divisionId === selectedDivisionId) ?? null;
-  const pendingRoute =
-    selectedDivision === null ? null : pendingRouteFor(state, selectedDivision.divisionId);
 
   return (
     <div data-guided-target="fleet" className="space-y-6">
       <PageHeader
         icon={Ship}
-        title="Fleet Movement"
+        title="Fleet"
         description={
           DEBUG_MODE && state.month !== null
             ? `${state.month.month}/${state.month.year}`
@@ -118,32 +92,18 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
       <Separator />
       <FleetOrganizationSection sessionId={sessionId} />
       <Separator />
-      <OrderSection
-        areas={state.areas}
-        selectedDivision={selectedDivision}
-        destinationAreaId={destinationAreaId}
-        onDestinationChange={setDestinationAreaId}
-        pendingRoute={pendingRoute}
-        busy={busy}
-        onSubmit={submit}
-        onReplace={replace}
-        onCancel={cancel}
-        onRefresh={() => void loadScreen()}
-        hasPendingRequest={request.outcomeUnknown}
-        onRetry={request.retry}
-        notice={state.notice}
-        areaName={areaName}
+      {/* Movement orders are not offered: the engine has no movement command yet. The order form
+          (OrderSection) and commands table (MovementCommandsTable) are kept, unrendered, for the day it does. */}
+      <DeferredFeaturesPanel
+        items={DEFERRED_MOVEMENT_ITEMS}
+        testId="movement-deferred"
+        title="Movement orders — not yet modelled by the engine"
       />
       <Separator />
       <DeferredFeaturesPanel
         items={DEFERRED_SUBMARINE_ITEMS}
         testId="submarines-deferred"
         title="Submarines — not yet modelled by the engine"
-      />
-      <MovementCommandsTable
-        commands={state.movementCommands}
-        areaName={areaName}
-        divisionName={divisionName}
       />
     </div>
   );
