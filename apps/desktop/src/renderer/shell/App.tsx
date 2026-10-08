@@ -352,7 +352,8 @@ function CampaignPreferencesView({
 
 function ActiveCampaignView({ screen }: { readonly screen: Screen }) {
   return (
-    <div className="p-8 font-sans">
+    // The Overview is the full-bleed command screen (CC-2): no page padding, so the map fills the space.
+    <div className={screen === "overview" ? "h-full font-sans" : "p-8 font-sans"}>
       <CampaignScreenOutlet screen={screen} />
     </div>
   );

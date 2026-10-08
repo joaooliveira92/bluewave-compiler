@@ -11,12 +11,13 @@
  * component is the one consumer of that data that is not itself throwaway.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Button } from "../ui/button.js";
 import { CoastlineCanvas } from "./CoastlineCanvas.js";
 import { MapMinimap } from "./MapMinimap.js";
 import { MapScaleBar } from "./MapScaleBar.js";
 import { buildOwnershipRows, describeArea } from "./map-a11y.js";
+import { CollapsiblePanel } from "../shared/CollapsiblePanel.js";
 import { AreaTreePanel } from "./AreaTreePanel.js";
 import { campaignTreeRows, type AreaTreeRow } from "./area-tree.js";
 import { AREAS, AREAS_BY_ID, EDGES, FLEETS, PASSAGES_BY_ID, POSSESSIONS } from "./fixture-world.js";
@@ -69,10 +70,18 @@ export interface WorldMapChartProps extends MapViewProps {
   /**
    * "full" shows every control (the F1 map). "panel" is the embedded variant for
    * the Overview: layer controls collapse behind a Layers button and the idle
-   * hint cards stay out of the way, so the chart gets the space.
+   * hint cards stay out of the way, so the chart gets the space. "command" is the full-bleed
+   * campaign home (CC-2): no frame, and the controls, area tree, inspector and the host's panels
+   * float over the chart in left and right docks that let pointer events through to the map.
    */
-  readonly variant?: "full" | "panel";
+  readonly variant?: "full" | "panel" | "command";
   readonly showMinimap?: boolean;
+  /** "command" only: panels stacked under the area tree in the left dock. */
+  readonly leftPanels?: ReactNode;
+  /** "command" only: panels stacked above the inspector in the right dock. */
+  readonly rightPanels?: ReactNode;
+  /** "command" only: whether the area tree starts open (compact density passes false). */
+  readonly treeDefaultOpen?: boolean;
 }
 
 export function WorldMapChart({
@@ -88,8 +97,13 @@ export function WorldMapChart({
   className,
   variant = "full",
   showMinimap = true,
+  leftPanels,
+  rightPanels,
+  treeDefaultOpen = true,
 }: WorldMapChartProps) {
-  const isPanel = variant === "panel";
+  const isCommand = variant === "command";
+  /** Both embedded variants keep idle hints and the layer controls out of the way. */
+  const isPanel = variant !== "full";
   const [toolsOpen, setToolsOpen] = useState(false);
   const projection = projectionById(state.projection);
   const camera = useMapCamera(projection.width, projection.height);
@@ -317,7 +331,8 @@ export function WorldMapChart({
   return (
     <div
       className={cn(
-        "relative h-full w-full overflow-hidden rounded-lg border shadow-sm",
+        "relative h-full w-full overflow-hidden",
+        !isCommand && "rounded-lg border shadow-sm",
         className,
       )}
       style={{
@@ -631,184 +646,231 @@ export function WorldMapChart({
       {/* Chrome: a floating toolbar, chart-styled rather than app-styled — a
           deliberate choice, so the chart reads as a chart rather than another
           panel of the shell. */}
-      {isPanel && (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="absolute left-3 top-3 z-10 bg-background/80 backdrop-blur"
-          aria-expanded={toolsOpen}
-          title="Layers, projection and centre. Click an area to inspect it; shift-click two areas for a route reading."
-          onClick={() => setToolsOpen((open) => !open)}
-        >
-          Layers &amp; areas
-        </Button>
-      )}
       <div
         className={cn(
-          "absolute left-3 flex flex-col gap-2 overflow-y-auto rounded-lg border p-2.5 text-xs shadow-lg backdrop-blur",
-          // Never taller than the chart: leave room for the route readout along the bottom edge.
-          isPanel ? "top-14 max-h-[calc(100%-8rem)]" : "top-3 max-h-[calc(100%-7.5rem)]",
-          isPanel && !toolsOpen && "hidden",
+          isCommand
+            ? "pointer-events-none absolute bottom-16 left-3 top-3 z-10 flex w-72 flex-col gap-2 overflow-y-auto"
+            : "contents",
         )}
-        style={{
-          background: "oklch(0.16 0.025 245 / 0.85)",
-          borderColor: "oklch(0.4 0.02 245)",
-          color: CHART.ink,
-        }}
+        data-testid={isCommand ? "map-left-dock" : undefined}
       >
-        <div className="flex gap-1">
-          {PROJECTIONS.map((option) => (
-            <Button
-              key={option.id}
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => onSetProjection(option.id)}
-              title={option.note}
-              className="h-7 px-2 text-xs hover:bg-white/10"
-              style={{
-                background: state.projection === option.id ? "oklch(0.7 0.12 240)" : "transparent",
-                color: state.projection === option.id ? "oklch(0.15 0.02 245)" : CHART.inkDim,
-              }}
-            >
-              {option.name}
-            </Button>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-1" style={{ maxWidth: 220 }}>
-          {LAYERS.map((layer) => (
-            <Button
-              key={layer.id}
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => onToggleLayer(layer.id)}
-              className="h-7 border px-2 text-xs hover:bg-white/10"
-              style={{
-                background: state.layers[layer.id] ? "oklch(0.35 0.03 245)" : "transparent",
-                color: state.layers[layer.id] ? CHART.ink : CHART.inkDim,
-                borderColor: "oklch(0.4 0.02 245)",
-              }}
-            >
-              {layer.label}
-            </Button>
-          ))}
-        </div>
-        <label className="flex items-center gap-2 text-xs" style={{ color: CHART.inkDim }}>
-          Centre
-          <input
-            type="range"
-            min={-180}
-            max={180}
-            step={10}
-            value={state.centre}
-            onChange={(event) => onSetCentre(Number(event.target.value))}
-            className="w-28"
-          />
-          <span className="tabular-nums">{state.centre}°</span>
-        </label>
-        <div className="flex items-center gap-2">
+        {isPanel && (
           <Button
             type="button"
             size="sm"
             variant="outline"
-            onClick={camera.reset}
-            className="h-7 border px-2 text-xs hover:bg-white/10"
-            style={{ borderColor: "oklch(0.4 0.02 245)", color: CHART.inkDim }}
+            className={cn(
+              "bg-background/80 backdrop-blur",
+              isCommand ? "pointer-events-auto self-start" : "absolute left-3 top-3 z-10",
+            )}
+            aria-expanded={toolsOpen}
+            title="Layers, projection and centre. Click an area to inspect it; shift-click two areas for a route reading."
+            onClick={() => setToolsOpen((open) => !open)}
           >
-            Reset view
+            Layers &amp; areas
           </Button>
-          <span
-            ref={camera.meterRef}
-            className="font-mono text-xs tabular-nums"
-            style={{ color: CHART.inkDim }}
-          />
-        </div>
-        <details className="group" data-testid="area-list">
-          <summary className="cursor-pointer select-none text-xs" style={{ color: CHART.inkDim }}>
-            Areas ({treeRows.length})
-          </summary>
-          <div className="mt-2" style={{ width: 220, color: CHART.ink }}>
-            <AreaTreePanel rows={treeRows} onSelectArea={focusTreeRow} />
+        )}
+        <div
+          className={cn(
+            "flex flex-col gap-2 overflow-y-auto rounded-lg border p-2.5 text-xs shadow-lg backdrop-blur",
+            isCommand
+              ? "pointer-events-auto"
+              : cn(
+                  "absolute left-3",
+                  // Never taller than the chart: leave room for the route readout along the bottom edge.
+                  isPanel ? "top-14 max-h-[calc(100%-8rem)]" : "top-3 max-h-[calc(100%-7.5rem)]",
+                ),
+            isPanel && !toolsOpen && "hidden",
+          )}
+          style={{
+            background: "oklch(0.16 0.025 245 / 0.85)",
+            borderColor: "oklch(0.4 0.02 245)",
+            color: CHART.ink,
+          }}
+        >
+          <div className="flex gap-1">
+            {PROJECTIONS.map((option) => (
+              <Button
+                key={option.id}
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => onSetProjection(option.id)}
+                title={option.note}
+                className="h-7 px-2 text-xs hover:bg-white/10"
+                style={{
+                  background:
+                    state.projection === option.id ? "oklch(0.7 0.12 240)" : "transparent",
+                  color: state.projection === option.id ? "oklch(0.15 0.02 245)" : CHART.inkDim,
+                }}
+              >
+                {option.name}
+              </Button>
+            ))}
           </div>
-        </details>
+          <div className="flex flex-wrap gap-1" style={{ maxWidth: 220 }}>
+            {LAYERS.map((layer) => (
+              <Button
+                key={layer.id}
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onToggleLayer(layer.id)}
+                className="h-7 border px-2 text-xs hover:bg-white/10"
+                style={{
+                  background: state.layers[layer.id] ? "oklch(0.35 0.03 245)" : "transparent",
+                  color: state.layers[layer.id] ? CHART.ink : CHART.inkDim,
+                  borderColor: "oklch(0.4 0.02 245)",
+                }}
+              >
+                {layer.label}
+              </Button>
+            ))}
+          </div>
+          <label className="flex items-center gap-2 text-xs" style={{ color: CHART.inkDim }}>
+            Centre
+            <input
+              type="range"
+              min={-180}
+              max={180}
+              step={10}
+              value={state.centre}
+              onChange={(event) => onSetCentre(Number(event.target.value))}
+              className="w-28"
+            />
+            <span className="tabular-nums">{state.centre}°</span>
+          </label>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={camera.reset}
+              className="h-7 border px-2 text-xs hover:bg-white/10"
+              style={{ borderColor: "oklch(0.4 0.02 245)", color: CHART.inkDim }}
+            >
+              Reset view
+            </Button>
+            <span
+              ref={camera.meterRef}
+              className="font-mono text-xs tabular-nums"
+              style={{ color: CHART.inkDim }}
+            />
+          </div>
+          {!isCommand && (
+            <details className="group" data-testid="area-list">
+              <summary
+                className="cursor-pointer select-none text-xs"
+                style={{ color: CHART.inkDim }}
+              >
+                Areas ({treeRows.length})
+              </summary>
+              <div className="mt-2" style={{ width: 220, color: CHART.ink }}>
+                <AreaTreePanel rows={treeRows} onSelectArea={focusTreeRow} />
+              </div>
+            </details>
+          )}
+        </div>
+        {isCommand && (
+          <CollapsiblePanel
+            panelId="map-areas"
+            title="Areas"
+            badge={`(${treeRows.length})`}
+            defaultOpen={treeDefaultOpen}
+            testId="area-list"
+          >
+            <AreaTreePanel rows={treeRows} onSelectArea={focusTreeRow} />
+          </CollapsiblePanel>
+        )}
+        {isCommand && leftPanels}
       </div>
 
-      {/* Chrome: inspector floats over the chart rather than taking layout. */}
       <div
         className={cn(
-          "absolute right-3 top-3 w-72 rounded-lg border p-3 text-xs shadow-lg backdrop-blur",
-          isPanel && summary === null && "hidden",
+          isCommand
+            ? "pointer-events-none absolute bottom-16 right-3 top-3 z-10 flex w-72 flex-col items-stretch gap-2 overflow-y-auto"
+            : "contents",
         )}
-        style={{
-          background: "oklch(0.16 0.025 245 / 0.9)",
-          borderColor: "oklch(0.4 0.02 245)",
-          color: CHART.ink,
-        }}
+        data-testid={isCommand ? "map-right-dock" : undefined}
       >
-        {summary === null ? (
-          <p style={{ color: CHART.inkDim }}>
-            Click an area to inspect. Shift-click two areas to lay the ruler.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm font-medium tracking-wide uppercase">{summary.name}</span>
-              <button
-                type="button"
-                onClick={() => onSelect(null)}
-                className="leading-none opacity-70 transition-opacity hover:opacity-100"
-                style={{ color: CHART.inkDim }}
-                aria-label="Clear selection"
-              >
-                ×
-              </button>
-            </div>
-            <div style={{ color: CHART.inkDim }}>
-              {nameFor(summary.control.owner)}
-              {summary.control.contested ? " · contested" : ""} · {summary.possessions.length}{" "}
-              possessions · {summary.fleets.length} fleets
-            </div>
-            {summary.fleets.length > 0 && (
-              <ul className="m-0 list-none p-0">
-                {summary.fleets.map((fleet) => (
-                  <li key={fleet.id} className="flex justify-between">
-                    <span>{fleet.name}</span>
-                    <span className="tabular-nums" style={{ color: CHART.inkDim }}>
-                      {fleet.ships}
-                    </span>
+        {isCommand && rightPanels}
+
+        {/* Chrome: inspector floats over the chart rather than taking layout. */}
+        <div
+          className={cn(
+            "rounded-lg border p-3 text-xs shadow-lg backdrop-blur",
+            isCommand ? "pointer-events-auto" : "absolute right-3 top-3 w-72",
+            isPanel && summary === null && "hidden",
+          )}
+          style={{
+            background: "oklch(0.16 0.025 245 / 0.9)",
+            borderColor: "oklch(0.4 0.02 245)",
+            color: CHART.ink,
+          }}
+        >
+          {summary === null ? (
+            <p style={{ color: CHART.inkDim }}>
+              Click an area to inspect. Shift-click two areas to lay the ruler.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm font-medium tracking-wide uppercase">{summary.name}</span>
+                <button
+                  type="button"
+                  onClick={() => onSelect(null)}
+                  className="leading-none opacity-70 transition-opacity hover:opacity-100"
+                  style={{ color: CHART.inkDim }}
+                  aria-label="Clear selection"
+                >
+                  ×
+                </button>
+              </div>
+              <div style={{ color: CHART.inkDim }}>
+                {nameFor(summary.control.owner)}
+                {summary.control.contested ? " · contested" : ""} · {summary.possessions.length}{" "}
+                possessions · {summary.fleets.length} fleets
+              </div>
+              {summary.fleets.length > 0 && (
+                <ul className="m-0 list-none p-0">
+                  {summary.fleets.map((fleet) => (
+                    <li key={fleet.id} className="flex justify-between">
+                      <span>{fleet.name}</span>
+                      <span className="tabular-nums" style={{ color: CHART.inkDim }}>
+                        {fleet.ships}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div style={{ color: CHART.inkDim }}>Adjacent</div>
+              <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                {summary.neighbours.map((neighbour) => (
+                  <li key={neighbour.id}>
+                    <button
+                      type="button"
+                      className="w-full text-left transition-opacity hover:opacity-80"
+                      onClick={() => onSelect(neighbour.id)}
+                    >
+                      {neighbour.name}
+                      {neighbour.passage !== null && (
+                        <span
+                          style={{
+                            color: neighbour.open ? CHART.inkDim : "oklch(0.72 0.2 25)",
+                          }}
+                        >
+                          {" "}
+                          via {neighbour.passage}
+                          {neighbour.open ? "" : " (closed)"}
+                        </span>
+                      )}
+                    </button>
                   </li>
                 ))}
               </ul>
-            )}
-            <div style={{ color: CHART.inkDim }}>Adjacent</div>
-            <ul className="m-0 flex list-none flex-col gap-1 p-0">
-              {summary.neighbours.map((neighbour) => (
-                <li key={neighbour.id}>
-                  <button
-                    type="button"
-                    className="w-full text-left transition-opacity hover:opacity-80"
-                    onClick={() => onSelect(neighbour.id)}
-                  >
-                    {neighbour.name}
-                    {neighbour.passage !== null && (
-                      <span
-                        style={{
-                          color: neighbour.open ? CHART.inkDim : "oklch(0.72 0.2 25)",
-                        }}
-                      >
-                        {" "}
-                        via {neighbour.passage}
-                        {neighbour.open ? "" : " (closed)"}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Chrome: the ruler readout. */}

@@ -1,7 +1,7 @@
 import { Info } from "lucide-react";
-import { GlassCard } from "@/components/ui/glass-card.js";
 import { campaignNationLabel } from "../../components/world-map/campaign-map-join.js";
-import { CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card.js";
+import { CardShell } from "../../components/shared/CardShell.js";
+import { CardDescription, CardTitle } from "../../components/ui/card.js";
 import { humanizeId } from "../../lib/humanize-id.js";
 import type { MonthSummary } from "../../lib/month-summary.js";
 import { describeBattle, progressLine, signed } from "./month-report-format.js";
@@ -47,47 +47,55 @@ function Report({
 export function MonthReportCard({
   history,
   areaName = humanizeId,
+  embedded = false,
 }: {
   readonly history: readonly MonthSummary[];
   readonly areaName?: (id: string) => string;
+  /** Render only the body (a host panel supplies the chrome and title). */
+  readonly embedded?: boolean;
 }) {
   const [latest, ...earlier] = history;
+  const description =
+    latest === undefined
+      ? "The monthly report appears here after you advance the month."
+      : `Report for ${monthLabel(latest.month)}.`;
   return (
-    <GlassCard glassVariant="liquid-refract" data-testid="month-report-card">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
-          <Info className="h-4 w-4 text-muted-foreground" />
-          Recent Developments
-        </CardTitle>
-        <CardDescription>
-          {latest === undefined
-            ? "The monthly report appears here after you advance the month."
-            : `Report for ${monthLabel(latest.month)}.`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 text-xs">
-        {latest === undefined ? (
-          <p className="text-muted-foreground">No months have been advanced yet this session.</p>
-        ) : (
-          <Report summary={latest} areaName={areaName} />
-        )}
-        {earlier.length > 0 && (
-          <details>
-            <summary className="cursor-pointer text-muted-foreground">
-              Earlier months this session ({earlier.length})
-            </summary>
-            <ul className="mt-2 space-y-3">
-              {earlier.map((summary) => (
-                <li key={`${summary.month.year}-${summary.month.month}`} className="space-y-1">
-                  <p className="font-medium">{monthLabel(summary.month)}</p>
-                  <Report summary={summary} areaName={areaName} />
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 text-muted-foreground">History is kept while the app is open.</p>
-          </details>
-        )}
-      </CardContent>
-    </GlassCard>
+    <CardShell
+      testId="month-report-card"
+      embedded={embedded}
+      header={
+        <>
+          <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
+            <Info className="h-4 w-4 text-muted-foreground" />
+            Recent Developments
+          </CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </>
+      }
+      contentClassName="space-y-3 text-xs"
+    >
+      {embedded && <p className="text-muted-foreground">{description}</p>}
+      {latest === undefined ? (
+        <p className="text-muted-foreground">No months have been advanced yet this session.</p>
+      ) : (
+        <Report summary={latest} areaName={areaName} />
+      )}
+      {earlier.length > 0 && (
+        <details>
+          <summary className="cursor-pointer text-muted-foreground">
+            Earlier months this session ({earlier.length})
+          </summary>
+          <ul className="mt-2 space-y-3">
+            {earlier.map((summary) => (
+              <li key={`${summary.month.year}-${summary.month.month}`} className="space-y-1">
+                <p className="font-medium">{monthLabel(summary.month)}</p>
+                <Report summary={summary} areaName={areaName} />
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-muted-foreground">History is kept while the app is open.</p>
+        </details>
+      )}
+    </CardShell>
   );
 }

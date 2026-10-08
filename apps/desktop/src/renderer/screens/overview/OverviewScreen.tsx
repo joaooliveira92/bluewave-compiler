@@ -1,73 +1,65 @@
-import {
-  Anchor,
-  Banknote,
-  Flag,
-  FlaskConical,
-  Hammer,
-  LayoutDashboard,
-  MapPin,
-  Ship,
-} from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { DEBUG_MODE } from "../../shell/debug-flag.js";
-import { PageHeader } from "../../components/shared/PageHeader.js";
-import { Badge } from "../../components/ui/badge.js";
-import { Button } from "../../components/ui/button.js";
-import { CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card.js";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { CollapsiblePanel } from "../../components/shared/CollapsiblePanel.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
+import { GlassCard } from "@/components/ui/glass-card.js";
+import { CardContent } from "../../components/ui/card.js";
+import { useWorldMapController } from "../../components/world-map/useWorldMapController.js";
+import { useMinWidth } from "../../lib/use-min-width.js";
+import { humanizeId } from "../../lib/humanize-id.js";
 import type { Screen } from "../../shell/campaign-screen-registry.js";
+import { useMonthHistory } from "../../shell/CampaignShellContext.js";
+import { useDensity } from "../../shell/DensityContext.js";
+import { DEBUG_MODE } from "../../shell/debug-flag.js";
 import {
   applyLoadFailed,
   applyProjectionLoaded,
   initialOverviewScreenState,
   monthLabel,
-  summarizeFleet,
-  totalPortCapacity,
-  largestPortCapacity,
-  rederivedMaintenanceCost,
-  shipNames,
 } from "./overview-screen-state.js";
-import { activeConstructionProjects } from "../construction/construction-screen-state.js";
-import { GlassCard } from "@/components/ui/glass-card.js";
 import { MonthReportCard } from "./MonthReportCard.js";
-import { PrioritiesCard } from "./PrioritiesCard.js";
-import { usePriorities } from "./usePriorities.js";
 import { NationRail } from "./NationRail.js";
+import { PrioritiesCard } from "./PrioritiesCard.js";
 import { useNationRail } from "./useNationRail.js";
-import { WorldMapPanel } from "../../components/world-map/WorldMapPanel.js";
-import { tensionLabel } from "@bluewave/campaign-engine";
-import { useMonthHistory } from "../../shell/CampaignShellContext.js";
-import { campaignNationLabel } from "../../components/world-map/campaign-map-join.js";
-import { humanizeId } from "../../lib/humanize-id.js";
+import { usePriorities } from "./usePriorities.js";
+
+// The map (Canvas renderer + 2 MB coastline) is the heaviest thing on the home screen, so it loads
+// lazily and never delays the panels.
+const WorldMapChart = lazy(() =>
+  import("../../components/world-map/WorldMapChart.js").then((module) => ({
+    default: module.WorldMapChart,
+  })),
+);
+
+/** Below this width the panels stack under the map instead of floating over it (CC-9). */
+export const COMMAND_OVERLAY_MIN_WIDTH = 1024;
 
 export interface OverviewScreenProps {
   readonly sessionId: string;
   readonly onNavigate: (screen: Screen) => void;
 }
 
+/**
+ * The campaign command screen (CC-1, CC-2): a full-bleed world map with collapsible panels floating
+ * at its edges (areas and layers at the left, month report and priorities under them, the nation rail
+ * at the right). Budget and nation figures live in the status strip. Under 1024 px the map comes
+ * first and the same panels stack beneath it.
+ */
 export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
   const priorities = usePriorities(sessionId);
   const nationRail = useNationRail(sessionId);
   const monthHistory = useMonthHistory();
+  const map = useWorldMapController(sessionId);
+  const { density } = useDensity();
+  const wide = useMinWidth(COMMAND_OVERLAY_MIN_WIDTH);
   const bridge = window.bluewave;
   const [state, setState] = useState(initialOverviewScreenState);
-  // Real project count from the construction projection (null until loaded or if unavailable).
-  const [constructionCount, setConstructionCount] = useState<number | null>(null);
 
   const loadScreen = useCallback(async () => {
     if (bridge === undefined) {
       setState((current) => applyLoadFailed(current, "Bluewave bridge not available"));
       return;
     }
-    const [result, construction] = await Promise.all([
-      bridge.campaign.execute("inspectCampaign", sessionId),
-      bridge.campaign.execute("inspectConstructionScreen", sessionId),
-    ]);
-    setConstructionCount(
-      construction.outcome === "success"
-        ? activeConstructionProjects(construction.value.projects).length
-        : null,
-    );
+    const result = await bridge.campaign.execute("inspectCampaign", sessionId);
     if (result.outcome !== "success") {
       setState((current) => applyLoadFailed(current, result.reason));
       return;
@@ -83,7 +75,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
 
   if (loadError !== null) {
     return (
-      <div data-guided-target="overview">
+      <div data-guided-target="overview" className="p-8">
         <GlassCard glassVariant="liquid-refract" className="border-destructive/50">
           <CardContent className="p-4 text-destructive">
             Failed to load campaign overview: {loadError}
@@ -95,322 +87,101 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
 
   if (projection === null) {
     return (
-      <div data-guided-target="overview" className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {[0, 1, 2, 3, 4, 5].map((idx) => (
-          <Skeleton key={idx} className="h-28" />
-        ))}
+      <div data-guided-target="overview" className="h-full min-h-[28rem] p-3">
+        <Skeleton className="h-full w-full rounded-lg" />
       </div>
     );
   }
 
   const areaNames = new Map(projection.strategicAreas.map((area) => [area.id, area.name]));
   const areaName = (id: string): string => areaNames.get(id) ?? humanizeId(id);
-  const fleetSummary = summarizeFleet(projection);
-  const ships = shipNames(projection);
-  const maintenance = rederivedMaintenanceCost(projection);
-  const largestPort = largestPortCapacity(projection);
 
-  // Foreign Situation: top 3 highest-tension — projection lacks per-relation tension,
-  // so we derive from knownEnemyNations as high-tension proxies (tension 10 = war).
-  // Uses imported tensionLabel, never renderer-re-derived.
-  const foreignRelations = projection.knownEnemyNations.slice(0, 3).map((nationId) => ({
-    nationId,
-    tension: 10,
-    label: tensionLabel(10),
-  }));
+  // Compact density keeps every panel collapsed until the player opens it.
+  const roomy = density !== "compact";
+  const priorityCount = priorities.status === "ready" ? priorities.priorities.length : null;
+
+  const monthReport = (
+    <CollapsiblePanel
+      panelId="home-month-report"
+      title="Recent developments"
+      defaultOpen={roomy && monthHistory.length > 0}
+      testId="home-month-report"
+    >
+      <MonthReportCard history={monthHistory} areaName={areaName} embedded />
+    </CollapsiblePanel>
+  );
+  const prioritiesPanel = (
+    <CollapsiblePanel
+      panelId="home-priorities"
+      title="Immediate priorities"
+      badge={priorityCount === null ? undefined : `(${priorityCount})`}
+      defaultOpen={roomy}
+      testId="home-priorities"
+    >
+      <PrioritiesCard state={priorities} onNavigate={onNavigate} embedded />
+    </CollapsiblePanel>
+  );
+  const nationsPanel = (
+    <CollapsiblePanel
+      panelId="home-nations"
+      title="Nations"
+      defaultOpen={roomy}
+      testId="home-nations"
+    >
+      <NationRail
+        state={nationRail}
+        playerName={projection.nationName}
+        onNavigate={onNavigate}
+        embedded
+      />
+    </CollapsiblePanel>
+  );
+
+  const heading = (
+    <>
+      <h1 className="sr-only">
+        Campaign Overview, {monthLabel(projection.month)}
+        {DEBUG_MODE && ` · Revision ${projection.revision} · Session ${sessionId}`}
+      </h1>
+      <p className="sr-only">{projection.campaignIdentity}</p>
+    </>
+  );
+
+  if (wide) {
+    return (
+      <div data-guided-target="overview" className="relative h-full min-h-[28rem]">
+        {heading}
+        <Suspense fallback={<Skeleton className="h-full w-full" />}>
+          <WorldMapChart
+            className="h-full"
+            variant="command"
+            showMinimap={false}
+            treeDefaultOpen={roomy}
+            leftPanels={
+              <>
+                {prioritiesPanel}
+                {monthReport}
+              </>
+            }
+            rightPanels={nationsPanel}
+            {...map}
+          />
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
-    <div data-guided-target="overview" className="space-y-8">
-      <PageHeader
-        icon={LayoutDashboard}
-        title="Campaign Overview"
-        description={
-          <>
-            {monthLabel(projection.month)}
-            {DEBUG_MODE && (
-              <>
-                {" "}
-                · Revision {projection.revision} · Session{" "}
-                <span className="font-mono">{sessionId}</span>
-              </>
-            )}
-          </>
-        }
-      />
-
-      {/* Header summary: admiralName (M1 identity) → campaign name, fleet strength, construction count, highest tension */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <WorldMapPanel sessionId={sessionId} testId="overview-map-panel" />
-        <NationRail state={nationRail} playerName={projection.nationName} onNavigate={onNavigate} />
+    <div data-guided-target="overview" className="flex flex-col gap-3 p-3">
+      {heading}
+      <div className="h-[60vh] min-h-[22rem]">
+        <Suspense fallback={<Skeleton className="h-full w-full rounded-lg" />}>
+          <WorldMapChart className="h-full" variant="panel" {...map} />
+        </Suspense>
       </div>
-
-      <GlassCard glassVariant="liquid-refract">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Admiralty Header</CardTitle>
-          <CardDescription>
-            {projection.nationName} · {projection.campaignIdentity}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-4 text-xs">
-          <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Fleet Strength</p>
-            <p className="mt-0.5 font-medium">
-              {fleetSummary.totalShips} ships · {fleetSummary.divisionCount} divisions
-            </p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">
-              Active Construction
-            </p>
-            <p className="mt-0.5 font-medium">
-              {constructionCount === null
-                ? "Not available"
-                : `${constructionCount} ${constructionCount === 1 ? "project" : "projects"}`}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">
-              Highest Tension
-            </p>
-            <p className="mt-0.5 font-medium">
-              {foreignRelations.length === 0
-                ? "No known tensions"
-                : `${campaignNationLabel(foreignRelations[0]!.nationId)} (${foreignRelations[0]!.tension} · ${humanizeId(foreignRelations[0]!.label)})`}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Funds</p>
-            <p className="mt-0.5 font-medium">
-              {projection.economy.treasury.toLocaleString()} · projected{" "}
-              {projection.projectedSurplusDeficit.toLocaleString()}
-            </p>
-          </div>
-        </CardContent>
-      </GlassCard>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <GlassCard glassVariant="liquid-refract">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
-              <Banknote className="h-4 w-4 text-muted-foreground" />
-              Treasury
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <p className="text-2xl font-semibold tracking-tight">
-              {projection.economy.treasury.toLocaleString()}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              +{projection.economy.monthlyAppropriation.toLocaleString()} / month
-            </p>
-          </CardContent>
-        </GlassCard>
-
-        <GlassCard glassVariant="liquid-refract">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
-              <Ship className="h-4 w-4 text-muted-foreground" />
-              Fleet
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <p className="text-2xl font-semibold tracking-tight">{fleetSummary.totalShips}</p>
-            <p className="text-xs text-muted-foreground">
-              {fleetSummary.divisionCount} division
-              {fleetSummary.divisionCount === 1 ? "" : "s"} across {fleetSummary.fleetCount} fleet
-              {fleetSummary.fleetCount === 1 ? "" : "s"}
-            </p>
-          </CardContent>
-        </GlassCard>
-
-        <GlassCard glassVariant="liquid-refract">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
-              <Hammer className="h-4 w-4 text-muted-foreground" />
-              Shipyard Capacity
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <p className="text-2xl font-semibold tracking-tight">
-              {projection.economy.shipyardCapacity}
-            </p>
-            <p className="text-xs text-muted-foreground">capacity units available</p>
-          </CardContent>
-        </GlassCard>
-
-        <GlassCard glassVariant="liquid-refract">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
-              <FlaskConical className="h-4 w-4 text-muted-foreground" />
-              Research
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <p className="text-2xl font-semibold tracking-tight">
-              {projection.knownTechnologyIds.length}
-            </p>
-            <p className="text-xs text-muted-foreground">technologies known</p>
-          </CardContent>
-        </GlassCard>
-
-        <GlassCard glassVariant="liquid-refract">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              Strategic Presence
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <p className="text-2xl font-semibold tracking-tight">{projection.ports.length}</p>
-            <p className="text-xs text-muted-foreground">
-              ports · {totalPortCapacity(projection)} capacity · {projection.strategicAreas.length}{" "}
-              areas
-            </p>
-          </CardContent>
-        </GlassCard>
-
-        <GlassCard glassVariant="liquid-refract">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
-              <Flag className="h-4 w-4 text-muted-foreground" />
-              Diplomacy
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <p className="text-2xl font-semibold tracking-tight">
-              {projection.knownEnemyNations.length}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {projection.knownEnemyNations.length === 0
-                ? "no known enemies"
-                : projection.knownEnemyNations.join(", ")}
-            </p>
-          </CardContent>
-        </GlassCard>
-      </div>
-
-      {/* Naval Position — fresh derivations, maintenance re-derived */}
-      <GlassCard glassVariant="liquid-refract">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
-            <Ship className="h-4 w-4 text-muted-foreground" />
-            Naval Position
-          </CardTitle>
-          <CardDescription>
-            Derived from fleet and port data — no aggregate reads where spec says derive.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3 text-xs">
-          <div className="flex flex-wrap gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                Ships in service
-              </p>
-              <p className="mt-0.5 font-medium">
-                {ships.length === 0 ? "No ships in service" : ships.join(" · ")}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                Total monthly maintenance (re-derived)
-              </p>
-              <p className="mt-0.5 font-medium">{maintenance.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                Largest port capacity
-              </p>
-              <p className="mt-0.5 font-medium">{largestPort.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                Active construction
-              </p>
-              <p className="mt-0.5 font-medium">{constructionCount ?? "Not available"}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                Construction / Research spend
-              </p>
-              <p className="mt-0.5 font-medium">
-                {projection.economy.constructionSpend.toLocaleString()} /{" "}
-                {projection.economy.researchSpend.toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </GlassCard>
-
-      {/* Foreign Situation — top 3 tension via imported tensionLabel, no trend */}
-      <GlassCard glassVariant="liquid-refract">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
-            <Flag className="h-4 w-4 text-muted-foreground" />
-            Foreign Situation
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-xs">
-          {foreignRelations.length === 0 ? (
-            <p className="text-muted-foreground">No foreign relations.</p>
-          ) : (
-            foreignRelations.map((rel) => (
-              <div key={rel.nationId} className="flex items-center justify-between">
-                <span className="font-medium">{campaignNationLabel(rel.nationId)}</span>
-                <span className="text-muted-foreground">
-                  {rel.tension} · {humanizeId(rel.label)}
-                </span>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </GlassCard>
-
-      <PrioritiesCard state={priorities} onNavigate={onNavigate} />
-
-      <MonthReportCard history={monthHistory} areaName={areaName} />
-
-      <GlassCard glassVariant="liquid-refract">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
-          <CardDescription>Jump straight to the relevant desk.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => onNavigate("construction")}>
-            <Hammer className="h-3.5 w-3.5" />
-            Construction
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => onNavigate("fleet")}>
-            <Ship className="h-3.5 w-3.5" />
-            Fleet
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => onNavigate("simulation")}>
-            <Anchor className="h-3.5 w-3.5" />
-            Simulation & Turn
-          </Button>
-        </CardContent>
-      </GlassCard>
-
-      <GlassCard glassVariant="liquid-refract">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Campaign Identity</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-4 font-mono text-xs">
-          <div>
-            <p className="text-[12px] uppercase tracking-wider text-muted-foreground">
-              Campaign ID
-            </p>
-            <p className="mt-0.5">{projection.campaignIdentity}</p>
-          </div>
-          <div>
-            <p className="text-[12px] uppercase tracking-wider text-muted-foreground">
-              Snapshot Hash
-            </p>
-            <Badge variant="outline" className="mt-0.5 font-mono">
-              {projection.snapshotHash.slice(0, 16)}…
-            </Badge>
-          </div>
-        </CardContent>
-      </GlassCard>
+      {prioritiesPanel}
+      {monthReport}
+      {nationsPanel}
     </div>
   );
 }

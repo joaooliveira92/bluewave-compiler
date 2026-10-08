@@ -141,6 +141,53 @@ describe("WorldMapChart", () => {
     });
   });
 
+  describe("command variant (full-bleed campaign home)", () => {
+    function renderCommand(treeDefaultOpen = true) {
+      return render(
+        <WorldMapChart
+          variant="command"
+          treeDefaultOpen={treeDefaultOpen}
+          leftPanels={<p>Left panel</p>}
+          rightPanels={<p>Right panel</p>}
+          state={initialMapPrototypeState}
+          route={null}
+          onSelect={noop}
+          onRuler={noop}
+          onToggleLayer={noop}
+          onSetProjection={noop}
+          onSetCentre={noop}
+          onToggleClosedPassages={noop}
+        />,
+      );
+    }
+
+    it("is frameless and puts the area tree in the left dock as its own collapsible panel", () => {
+      const { container } = renderCommand();
+      expect((container.firstElementChild as HTMLElement).className).not.toMatch(/border|rounded/);
+      const dock = screen.getByTestId("map-left-dock");
+      expect(within(dock).getByTestId("area-list")).toBeTruthy();
+      expect(within(dock).getByText("Left panel")).toBeTruthy();
+      expect(within(screen.getByTestId("map-right-dock")).getByText("Right panel")).toBeTruthy();
+      // The tree is no longer inside the (collapsed) layers block.
+      expect(screen.getByTestId("area-list").closest(".hidden")).toBeNull();
+    });
+
+    it("lets pointer events through the docks so the map can still pan and zoom", () => {
+      renderCommand();
+      expect(screen.getByTestId("map-left-dock").className).toMatch(/pointer-events-none/);
+      expect(screen.getByTestId("map-right-dock").className).toMatch(/pointer-events-none/);
+      expect(screen.getByTestId("area-list").className).toMatch(/pointer-events-auto/);
+    });
+
+    it("starts the area tree collapsed when asked (compact density)", () => {
+      sessionStorage.clear();
+      renderCommand(false);
+      expect(screen.getByRole("button", { name: /^Areas/ }).getAttribute("aria-expanded")).toBe(
+        "false",
+      );
+    });
+  });
+
   it("the full variant shows every control from the start", () => {
     renderChart();
     expect(screen.queryByRole("button", { name: "Layers & areas" })).toBeNull();

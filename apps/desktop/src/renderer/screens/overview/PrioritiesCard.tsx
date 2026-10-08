@@ -1,9 +1,9 @@
 import type { StrategicPriority } from "@bluewave/campaign-engine";
 import { AlertTriangle } from "lucide-react";
-import { GlassCard } from "@/components/ui/glass-card.js";
 import { Badge } from "../../components/ui/badge.js";
 import { Button } from "../../components/ui/button.js";
-import { CardContent, CardHeader, CardTitle } from "../../components/ui/card.js";
+import { CardShell } from "../../components/shared/CardShell.js";
+import { CardTitle } from "../../components/ui/card.js";
 import { SEVERITY_LABELS, SEVERITY_VARIANT, destinationLabel } from "../../lib/priorities.js";
 import type { Screen } from "../../shell/campaign-screen-registry.js";
 import type { PrioritiesState } from "./usePriorities.js";
@@ -47,44 +47,49 @@ function PriorityRow({
 export function PrioritiesCard({
   state,
   onNavigate,
+  embedded = false,
 }: {
   readonly state: PrioritiesState;
   readonly onNavigate: (screen: Screen) => void;
+  /** Render only the body (a host panel supplies the chrome and title). */
+  readonly embedded?: boolean;
 }) {
   const priorities = state.status === "ready" ? state.priorities : [];
   const hidden = Math.max(0, priorities.length - MAX_VISIBLE_PRIORITIES);
   return (
-    <GlassCard glassVariant="liquid-refract" data-testid="priorities-card">
-      <CardHeader className="pb-3">
+    <CardShell
+      testId="priorities-card"
+      embedded={embedded}
+      header={
         <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
           <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           Immediate Priorities
         </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2 text-xs">
-        {state.status === "loading" ? (
-          <p className="text-muted-foreground">Reading the Admiralty&apos;s concerns…</p>
-        ) : state.status === "unavailable" ? (
-          <p className="text-muted-foreground" role="alert">
-            Priorities are unavailable right now.
-          </p>
-        ) : priorities.length === 0 ? (
-          <p className="text-muted-foreground">The Admiralty has identified no urgent concerns.</p>
-        ) : (
-          <>
-            <ul className="space-y-3">
-              {priorities.slice(0, MAX_VISIBLE_PRIORITIES).map((priority) => (
-                <PriorityRow key={priority.id} priority={priority} onNavigate={onNavigate} />
-              ))}
-            </ul>
-            {hidden > 0 && (
-              <p className="text-muted-foreground">
-                and {hidden} more {hidden === 1 ? "concern" : "concerns"}
-              </p>
-            )}
-          </>
-        )}
-      </CardContent>
-    </GlassCard>
+      }
+      contentClassName="space-y-2 text-xs"
+    >
+      {state.status === "loading" ? (
+        <p className="text-muted-foreground">Reading the Admiralty&apos;s concerns…</p>
+      ) : state.status === "unavailable" ? (
+        <p className="text-muted-foreground" role="alert">
+          Priorities are unavailable right now.
+        </p>
+      ) : priorities.length === 0 ? (
+        <p className="text-muted-foreground">The Admiralty has identified no urgent concerns.</p>
+      ) : (
+        <>
+          <ul className="space-y-3">
+            {priorities.slice(0, MAX_VISIBLE_PRIORITIES).map((priority) => (
+              <PriorityRow key={priority.id} priority={priority} onNavigate={onNavigate} />
+            ))}
+          </ul>
+          {hidden > 0 && (
+            <p className="text-muted-foreground">
+              and {hidden} more {hidden === 1 ? "concern" : "concerns"}
+            </p>
+          )}
+        </>
+      )}
+    </CardShell>
   );
 }
