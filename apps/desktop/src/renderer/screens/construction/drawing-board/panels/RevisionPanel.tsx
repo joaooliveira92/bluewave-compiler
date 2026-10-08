@@ -16,7 +16,6 @@ import {
 } from "../../../../components/ui/attachment.js";
 import { Badge } from "../../../../components/ui/badge.js";
 import { Alert } from "../../../../components/ui/alert.js";
-import { Button } from "../../../../components/ui/button.js";
 import { useCampaignRevision } from "../../../../shell/CampaignShellContext.js";
 import type { DrawingBoardContent } from "../content.js";
 import { ConfirmAction } from "../ConfirmAction.js";
