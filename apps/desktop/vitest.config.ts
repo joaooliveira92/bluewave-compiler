@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "src/renderer"),
+      "@content": resolve(__dirname, "../../content/production/1880"),
     },
   },
   test: {

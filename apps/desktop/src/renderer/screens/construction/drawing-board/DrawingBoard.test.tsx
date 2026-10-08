@@ -1,0 +1,108 @@
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vite-plus/test";
+import { DrawingBoard } from "./DrawingBoard.js";
+
+afterEach(cleanup);
+
+const commit = (label: string | RegExp, value: string) => {
+  const input = screen.getByLabelText(label) as HTMLInputElement;
+  fireEvent.change(input, { target: { value } });
+  fireEvent.blur(input);
+};
+const region = (name: string) => screen.getByRole("region", { name });
+const metric = (label: string) =>
+  within(region("Performance")).getByText(label).nextElementSibling!.textContent ?? "";
+
+describe("DrawingBoard", () => {
+  it("opens on the Havock-like destroyer as a valid design with the standard panels", () => {
+    render(<DrawingBoard />);
+    for (const name of [
+      "Hull and displacement",
+      "Machinery, fuel and range",
+      "Components and arrangement",
+      "Protection",
+      "Validation",
+      "Performance",
+      "Weight summary",
+      "Cost and construction forecast",
+    ]) {
+      expect(region(name)).toBeTruthy();
+    }
+    expect(within(region("Validation")).getByRole("status").textContent).toContain(
+      "Design can be submitted",
+    );
+    expect(metric("Classification")).toBe("DD");
+    expect(metric("Top speed")).toMatch(/kn \(need 25\.5\)/);
+  });
+
+  it("labels the development metric as such", () => {
+    render(<DrawingBoard />);
+    expect(
+      within(region("Cost and construction forecast")).getByText(/DEV METRIC: not a combat result/),
+    ).toBeTruthy();
+  });
+
+  it("editing installed power changes speed and the weight ledger; undo restores them", () => {
+    render(<DrawingBoard />);
+    const before = metric("Top speed");
+    const undo = screen.getByRole("button", { name: /undo/i }) as HTMLButtonElement;
+    expect(undo.disabled).toBe(true);
+    commit(/installed power/i, "3400");
+    expect(metric("Top speed")).not.toBe(before);
+    expect(undo.disabled).toBe(false);
+    fireEvent.click(undo);
+    expect(metric("Top speed")).toBe(before);
+    fireEvent.click(screen.getByRole("button", { name: /redo/i }));
+    expect(metric("Top speed")).not.toBe(before);
+  });
+
+  it("an overweight edit shows blocking findings with cause, consequence and remedies", () => {
+    render(<DrawingBoard />);
+    commit(/coal bunkers/i, "400");
+    const validation = region("Validation");
+    expect(within(validation).getByRole("status").textContent).toContain("cannot be built");
+    expect(within(validation).getAllByText("BLOCKING").length).toBeGreaterThan(0);
+    const overweight = within(validation).getByText(/exceeds what this hull may carry/i);
+    fireEvent.click(overweight);
+    expect(within(validation).getAllByText(/Why:/).length).toBeGreaterThan(0);
+    expect(within(validation).getAllByText(/Consequence:/).length).toBeGreaterThan(0);
+    expect(within(validation).getAllByText(/Ways to fix it:/).length).toBeGreaterThan(0);
+    expect(
+      within(region("Cost and construction forecast")).getByText(/Resolve blocking findings/),
+    ).toBeTruthy();
+  });
+
+  it("adds and removes components", () => {
+    render(<DrawingBoard />);
+    const rows = () => within(region("Components and arrangement")).getAllByRole("row").length;
+    const n = rows();
+    fireEvent.change(screen.getByLabelText("Add component"), { target: { value: "gun_qf_6pdr" } });
+    fireEvent.click(screen.getByRole("button", { name: /add to ship/i }));
+    expect(rows()).toBe(n + 1);
+    fireEvent.click(screen.getByRole("button", { name: "Remove gun_qf_6pdr_1" }));
+    expect(rows()).toBe(n);
+  });
+
+  it("switching the starting design loads the battleship and resets history", () => {
+    render(<DrawingBoard />);
+    commit(/installed power/i, "3400");
+    fireEvent.change(screen.getByLabelText("Starting design"), {
+      target: { value: "majestic_like" },
+    });
+    expect(metric("Classification")).toBe("B");
+    expect((screen.getByRole("button", { name: /undo/i }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
+  it("technology depends on the year: the same battleship is rejected before its guns exist", () => {
+    render(<DrawingBoard />);
+    fireEvent.change(screen.getByLabelText("Starting design"), {
+      target: { value: "majestic_like" },
+    });
+    fireEvent.change(screen.getByLabelText("Technology as of"), { target: { value: "1890-01" } });
+    expect(
+      within(region("Validation")).getAllByText(/not available to this nation yet/i).length,
+    ).toBeGreaterThan(0);
+  });
+});

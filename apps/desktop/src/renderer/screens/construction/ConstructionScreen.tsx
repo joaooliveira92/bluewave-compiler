@@ -11,6 +11,7 @@ import { DesignPicker } from "./components/DesignPicker.js";
 import { CommandTable } from "./components/CommandTable.js";
 import { LoadErrorCard } from "./components/LoadErrorCard.js";
 import { useConstructionScreen } from "./hooks/useConstructionScreen.js";
+import { DrawingBoard } from "./drawing-board/DrawingBoard.js";
 
 export function ConstructionScreen({ sessionId }: { readonly sessionId: string }) {
   const {
@@ -64,6 +65,7 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
         <TabsList>
           <TabsTrigger value="overview">Shipyard Ledger</TabsTrigger>
           <TabsTrigger value="catalog">Design Catalog</TabsTrigger>
+          <TabsTrigger value="drawing-board">Drawing Board</TabsTrigger>
           <TabsTrigger value="commands">
             Command Ledger
             {submittedCount > 0 && (
@@ -105,6 +107,10 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
               onCancelWizard={() => setWizardOpen(false)}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="drawing-board">
+          <DrawingBoard />
         </TabsContent>
 
         <TabsContent value="commands">

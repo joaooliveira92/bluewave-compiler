@@ -119,6 +119,9 @@ importers:
       '@bluewave/random':
         specifier: workspace:*
         version: link:../../packages/random
+      '@bluewave/ship-design':
+        specifier: workspace:*
+        version: link:../../packages/ship-design
       '@paper-design/shaders-react':
         specifier: ^0.0.62
         version: 0.0.62(@types/react@19.2.18)(react@19.2.8)
@@ -146,6 +149,9 @@ importers:
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.6.0
+      yaml:
+        specifier: ^2.7.0
+        version: 2.9.0
       zod:
         specifier: ^3.24.0
         version: 3.25.76
