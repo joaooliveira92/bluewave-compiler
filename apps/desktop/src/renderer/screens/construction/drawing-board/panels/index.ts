@@ -12,4 +12,5 @@ export { MachineryPanel } from "./MachineryPanel.js";
 export { MetricsPanel } from "./MetricsPanel.js";
 export { PlacementsPanel } from "./PlacementsPanel.js";
 export { TopsidePanel } from "./TopsidePanel.js";
+export { RevisionPanel } from "./RevisionPanel.js";
 export { SubmitPanel } from "./SubmitPanel.js";

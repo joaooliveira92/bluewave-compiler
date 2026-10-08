@@ -83,6 +83,30 @@ describe("DrawingBoard", () => {
     expect(metric("Top speed")).not.toBe(before);
   });
 
+  it("previews the revision tier of the edits against a project under construction", () => {
+    const projects = [
+      {
+        projectId: "p1",
+        className: "Ironclad",
+        status: "ACTIVE",
+        totalWork: 1_000_000,
+        completedWork: 300_000,
+      },
+    ];
+    render(<DrawingBoard projects={projects} />);
+    const panel = () => region("Revision preview");
+    expect(within(panel()).getByText(/No changes yet/)).toBeTruthy();
+    commit(/installed power/i, "3400");
+    expect(within(panel()).getByRole("status").textContent).toMatch(
+      /Redesign.*30\.0% hull progress/,
+    );
+  });
+
+  it("says there is nothing to revise when no ship is under construction", () => {
+    render(<DrawingBoard />);
+    expect(within(region("Revision preview")).getByText(/nothing to revise/)).toBeTruthy();
+  });
+
   it("labels the development metric as such", () => {
     render(<DrawingBoard />);
     expect(

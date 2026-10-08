@@ -629,3 +629,15 @@ environment:
   yardWorkPerTonneMonth: 700
   # Engine projection: displacement per hit point; the median of the 37 authored 1880-pack designs is ~214,000 kg.
   kgPerHitPoint: 214000
+# Revision tiers for changes during construction (spec section 15.4). Hull-progress thresholds 5 / 25 / 50 percent are the spec
+# values (bp of total hull work). The rework, delay, study-cost and kept-progress figures are PLACEHOLDER: no source, to be tuned
+# in the balance pass (ticket SB-12 follow-up).
+revision:
+  freeBelowBp: 500
+  revisionBelowBp: 2500
+  redesignBelowBp: 5000
+  reworkBp: 3000 # PLACEHOLDER
+  t1DelayMonths: 1 # spec: delay of at least one month
+  redesignStudyCostBp: 6000 # PLACEHOLDER
+  redesignKeptBp: 5000 # PLACEHOLDER
+  t2DelayMonths: 4 # PLACEHOLDER

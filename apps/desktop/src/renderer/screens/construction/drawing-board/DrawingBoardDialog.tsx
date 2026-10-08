@@ -9,9 +9,13 @@ import {
   DialogTitle,
 } from "../../../components/ui/dialog.js";
 import { DrawingBoard } from "./DrawingBoard.js";
+import type { RevisionProject } from "./revisionPreview.js";
 
 /** The ship designer opens in a near full-screen modal so the plan, panels and findings get the whole window. */
-export function DrawingBoardDialog({ sessionId }: { readonly sessionId?: string } = {}) {
+export function DrawingBoardDialog({
+  sessionId,
+  projects,
+}: { readonly sessionId?: string; readonly projects?: readonly RevisionProject[] } = {}) {
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -33,7 +37,7 @@ export function DrawingBoardDialog({ sessionId }: { readonly sessionId?: string 
           </DialogDescription>
         </DialogHeader>
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <DrawingBoard sessionId={sessionId} />
+          <DrawingBoard sessionId={sessionId} projects={projects} />
         </div>
       </DialogContent>
     </Dialog>

@@ -87,6 +87,7 @@ describe("construction screen state", () => {
       month: projection.month,
       economy: projection.economy,
       designs: projection.designs,
+      projects: projection.projects,
       workspace: projection.workspace,
     });
   });

@@ -15,10 +15,12 @@ import {
   MachineryPanel,
   MetricsPanel,
   PlacementsPanel,
+  RevisionPanel,
   SubmitPanel,
   TopsidePanel,
 } from "./panels/index.js";
 import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
+import type { RevisionProject } from "./revisionPreview.js";
 import { useDrawingBoard } from "./useDrawingBoard.js";
 
 const MONTHS = ["1885-01", "1890-01", "1893-06", "1895-06", "1896-01", "1899-12"];
@@ -27,7 +29,10 @@ const MONTHS = ["1885-01", "1890-01", "1893-06", "1895-06", "1896-01", "1899-12"
  * Component-level ship designer (SB-18 v1). Local to the renderer: edits an undoable draft and shows the live
  * compile result. Submitting a design to the engine arrives with the command wiring (SB-14).
  */
-export function DrawingBoard({ sessionId }: { readonly sessionId?: string } = {}) {
+export function DrawingBoard({
+  sessionId,
+  projects = [],
+}: { readonly sessionId?: string; readonly projects?: readonly RevisionProject[] } = {}) {
   const campaignMonth = useCampaignMonthId();
   const { state, actions } = useDrawingBoard(campaignMonth);
   const { draft, view, content } = state;
@@ -98,6 +103,13 @@ export function DrawingBoard({ sessionId }: { readonly sessionId?: string } = {}
           {sessionId !== undefined && (
             <SubmitPanel sessionId={sessionId} draft={draft} valid={view.valid} />
           )}
+          <RevisionPanel
+            projects={projects}
+            history={state.history.slice(0, state.editCount)}
+            draft={draft}
+            startDraft={state.preset.draft}
+            content={content}
+          />
           <HistoryPanel
             history={state.history}
             cursor={state.editCount}
