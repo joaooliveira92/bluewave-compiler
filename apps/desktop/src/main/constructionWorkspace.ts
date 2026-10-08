@@ -19,15 +19,13 @@ import {
   type SettlementBranchId,
 } from "@bluewave/commands";
 import {
-  buildConstructionDesignCatalog,
   buildPlayerProjection,
   constructionCommandIdForProject,
   projectedConstructionOrderCosts,
-  type CompiledDesignVersion,
   type ConstructionCommand,
-  type ConstructionCommandStatus,
 } from "@bluewave/campaign-engine";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { resolveUiDesign, toUiCommand } from "./commands/construction/command-view.js";
 
 /**
  * Session-scoped construction workspace (desktop-mvp ticket 14), owning the
@@ -247,49 +245,16 @@ function reconstructWorkspaceFromSnapshot(
     };
     workspace.records.set(commandId, accepted);
     workspace.commands.push(
-      reconstructedUiCommand(record, accepted, project.designVersionId, costs, revision),
+      toUiCommand({
+        recordRef: accepted,
+        designId: project.designVersionId,
+        design: resolveUiDesign(record, project.designVersionId),
+        projectedCost: costs.projectedCost,
+        projectedCapacityUnits: costs.projectedCapacityUnits,
+        submittedAtRevision: revision,
+      }),
     );
   }
-}
-
-function reconstructedUiCommand(
-  record: CampaignSessionRecord,
-  recordRef: CommandRecord,
-  designId: string,
-  costs: { projectedCost: number; projectedCapacityUnits: number },
-  submittedAtRevision: number,
-): ConstructionCommand {
-  const catalog = buildConstructionDesignCatalog(record.state.snapshot, record.playerSlotId);
-  const found = catalog.find((candidate) => candidate.designId === designId);
-  const design: CompiledDesignVersion = found ?? deterministicFallbackDesign(record, designId);
-  return {
-    commandId: recordRef.commandId,
-    designId,
-    design,
-    nationId: record.playerSlotId,
-    status: uiStatusFor(recordRef),
-    submittedAtRevision,
-    projectedCost: costs.projectedCost,
-    projectedCapacityUnits: costs.projectedCapacityUnits,
-  };
-}
-
-function deterministicFallbackDesign(
-  record: CampaignSessionRecord,
-  designId: string,
-): CompiledDesignVersion {
-  const engine = record.state.snapshot.designs.get(designId);
-  return {
-    designId,
-    className: engine?.className ?? designId,
-    shipType: "unknown",
-    nationId: record.playerSlotId,
-    year: 0,
-    mass: 0,
-    speed: 0,
-    machineryType: engine?.machineryType ?? "",
-    requiredTechnologyIds: [],
-  };
 }
 
 /**
@@ -406,20 +371,6 @@ type ConstructionScreenWorkspace = {
 
 function uiCommandHoldsReservation(command: ConstructionCommand): boolean {
   return command.status === "submitted";
-}
-
-/** Map a `CommandRecord`'s machinery status onto the screen's four-way UI status. */
-export function uiStatusFor(record: CommandRecord): ConstructionCommandStatus {
-  switch (record.status) {
-    case "SUPERSEDED":
-      return "superseded";
-    case "CANCELLED":
-      return "cancelled";
-    default:
-      // SUBMITTED..ACCEPTED are all "in flight" for the UI: the Command
-      // Ledger shows submit/replace/cancel actions only for these.
-      return "submitted";
-  }
 }
 
 /**
