@@ -36,7 +36,9 @@ import type {
   DeclareWarCommand,
   FormAllianceCommand,
   FormNonAggressionPactCommand,
+  AssignOfficerCommand,
   MoveFleetCommand,
+  RelieveOfficerCommand,
   SetBudgetAllocationCommand,
   SetResearchPriorityCommand,
 } from "@bluewave/commands";
@@ -65,6 +67,7 @@ import {
   applyBudgetProject,
   applyDivisionCommandMonth,
   applyMoveFleet,
+  applyOfficerCommand,
   applySetBudgetAllocation,
   applySetResearchPriority,
 } from "./commands.js";
@@ -326,6 +329,16 @@ export class MonthExecutor {
                 currentSnapshot,
                 priorityBody["nationId"],
                 priorityBody["fieldPriorities"],
+                collector,
+              );
+              continue;
+            }
+
+            if (body["type"] === "AssignOfficer" || body["type"] === "RelieveOfficer") {
+              currentSnapshot = applyOfficerCommand(
+                currentSnapshot,
+                body as AssignOfficerCommand | RelieveOfficerCommand,
+                campaignMonth,
                 collector,
               );
               continue;
@@ -1237,12 +1250,14 @@ export class MonthExecutor {
                 ships: attacker["fleets"].flatMap((f) => f["ships"]),
                 designs: currentSnapshot["designs"],
                 divisions: attacker["divisions"],
+                officers: attacker["officers"],
               },
               defender: {
                 nationId: defender["id"],
                 ships: defender["fleets"].flatMap((f) => f["ships"]),
                 designs: currentSnapshot["designs"],
                 divisions: defender["divisions"],
+                officers: defender["officers"],
               },
               strategicWeather,
               campaignSeed: randomSeed,

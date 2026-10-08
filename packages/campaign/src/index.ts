@@ -56,3 +56,4 @@ export * from "./timeline.js";
 export * from "./warConstants.js";
 export * from "./budgetConstants.js";
 export * from "./movement.js";
+export * from "./officers.js";

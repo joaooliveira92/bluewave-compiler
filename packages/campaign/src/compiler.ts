@@ -13,6 +13,7 @@ import {
 } from "@bluewave/diagnostics";
 import { parse } from "yaml";
 import { validateCampaignPreconditions } from "./campaignSession.js";
+import { buildOfficerRoster } from "./officers.js";
 import { knotsToUms, mmToUm } from "./designUnits.js";
 import { getScenarioById, type ScenarioId } from "./scenario.js";
 import type {
@@ -454,6 +455,7 @@ export class CampaignCompiler {
         maintenanceCost: SafeInt(0),
         fleets,
         divisions: [],
+        officers: buildOfficerRoster(id),
         research,
         constructionProjects: constructions,
         isPlayable,

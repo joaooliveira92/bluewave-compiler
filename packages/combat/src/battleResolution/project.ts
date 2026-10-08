@@ -19,7 +19,8 @@
 import { sha256Hex } from "@bluewave/deterministic";
 import { canonicalSerialize } from "@bluewave/deterministic";
 import { BluewaveError } from "@bluewave/contracts";
-import type { CompiledDesignVersion, PermanentDivision, Ship } from "@bluewave/campaign";
+import type { CompiledDesignVersion, Officer, PermanentDivision, Ship } from "@bluewave/campaign";
+import { officerAccuracyBp, VACANT_COMMANDER_ACCURACY_BP } from "@bluewave/campaign";
 import {
   promoteTacticalUnit,
   TACTICAL_UNIT_PROMOTION_INVALID,
@@ -58,6 +59,8 @@ export interface AutoResolverNation {
   ships: Ship[];
   designs: Map<string, CompiledDesignVersion>;
   divisions: PermanentDivision[];
+  /** The nation's officer corps; a division commander's skill adds to its ships' accuracy (ADR-0063). */
+  officers?: Officer[];
 }
 
 export interface ProjectBattleInput {
@@ -83,6 +86,23 @@ export interface ProjectBattleOutput {
   designs: Record<string, CompiledDesignVersion>;
   /** P-1: torpedo launchers + targets; absent when no unit carries torpedo armament. */
   torpedoes?: TorpedoContext;
+}
+
+/**
+ * Accuracy multiplier (bp) from the commander of the division a ship belongs to
+ * (ADR-0063). Ships outside any division, and every nation without divisions, stay neutral;
+ * a division with no commander (or an unknown one) takes the DESIGN-26 vacancy penalty.
+ */
+function commanderAccuracyBp(
+  unit: TacticalShipUnit,
+  attacker: AutoResolverNation,
+  defender: AutoResolverNation,
+): number {
+  const nation = unit.sideId === "ATTACKER" ? attacker : defender;
+  const division = nation.divisions.find((d) => d.shipOrder.includes(unit.assetId));
+  if (!division) return 10_000;
+  const officer = (nation.officers ?? []).find((o) => o.id === division.commanderOfficerId);
+  return officer ? officerAccuracyBp(Number(officer.skill)) : VACANT_COMMANDER_ACCURACY_BP;
 }
 
 export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
@@ -219,7 +239,10 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
       salvoCount: mainGunsCount,
       preferredType: "ARMOR_PIERCING",
       rateFactors: neutralRateFactors(),
-      accuracyFactors: neutralAccuracyFactors(GUNNERY_ACCURACY_BASE_BP),
+      accuracyFactors: {
+        ...neutralAccuracyFactors(GUNNERY_ACCURACY_BASE_BP),
+        officer: commanderAccuracyBp(u, attacker, defender),
+      },
       state: withGunneryStateHash({
         batteryId,
         ownerShipId: u.assetId,

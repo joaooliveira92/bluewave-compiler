@@ -2,6 +2,7 @@
 import type { SafeInt } from "@bluewave/contracts";
 import type { CanonicalEnvelope } from "@bluewave/deterministic";
 import type { PermanentDivision } from "./division.js";
+import type { Officer } from "./officers.js";
 
 export interface Ship {
   id: string;
@@ -229,6 +230,8 @@ export interface NationState {
   maintenanceCost: SafeInt;
   fleets: FleetState[];
   divisions: PermanentDivision[];
+  /** The nation's officer corps (ADR-0063); absent in saves from earlier builds. */
+  officers?: Officer[];
   research: ResearchState;
   constructionProjects: ConstructionProject[];
   aircraft?: Record<string, unknown>;

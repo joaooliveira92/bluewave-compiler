@@ -6,6 +6,7 @@ import type {
   PermanentDivision,
 } from "@bluewave/campaign";
 import {
+  applyCommanderChange,
   applyDivisionCommand,
   assertDivisionInvariants,
   DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE,
@@ -24,7 +25,9 @@ import type {
   CreateDivisionCommand,
   DissolveDivisionCommand,
   RemoveShipFromDivisionCommand,
+  AssignOfficerCommand,
   MoveFleetCommand,
+  RelieveOfficerCommand,
   SetBudgetAllocationCommand,
 } from "@bluewave/commands";
 import { SafeInt } from "@bluewave/contracts";
@@ -61,6 +64,50 @@ export function applySetResearchPriority(
   const updatedNations = new Map(currentSnapshot["nations"]);
   updatedNations.set(nationId, updatedNation);
   return { ...currentSnapshot, nations: updatedNations };
+}
+
+/**
+ * Canonical application of AssignOfficer / RelieveOfficer (ADR-0063): sets the
+ * division's commander. Re-checks the rules against the snapshot it applies to.
+ */
+export function applyOfficerCommand(
+  currentSnapshot: CampaignSnapshot,
+  body: AssignOfficerCommand | RelieveOfficerCommand,
+  campaignMonth: string,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const nation = currentSnapshot["nations"].get(body["nationId"]);
+  const idx = nation?.["divisions"].findIndex((d) => d["divisionId"] === body["divisionId"]) ?? -1;
+  if (!nation || idx === -1) {
+    collector.addError(
+      DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE,
+      `Division ${body["divisionId"]} not found`,
+      { stage: "command_collection" },
+    );
+    return currentSnapshot;
+  }
+  let commanderId = VACANT;
+  if (body["type"] === "AssignOfficer") {
+    const known = (nation["officers"] ?? []).some((o) => o["id"] === body["officerId"]);
+    const elsewhere = nation["divisions"].some(
+      (d) =>
+        d["commanderOfficerId"] === body["officerId"] && d["divisionId"] !== body["divisionId"],
+    );
+    if (!known || elsewhere) {
+      collector.addError(
+        "INVALID_COMMAND_PAYLOAD",
+        `Officer ${body["officerId"]} cannot be assigned to ${body["divisionId"]}`,
+        { stage: "command_collection" },
+      );
+      return currentSnapshot;
+    }
+    commanderId = body["officerId"];
+  }
+  const divisions = [...nation["divisions"]];
+  divisions[idx] = applyCommanderChange(divisions[idx]!, commanderId, campaignMonth).division;
+  const nations = new Map(currentSnapshot["nations"]);
+  nations.set(body["nationId"], { ...nation, divisions });
+  return { ...currentSnapshot, nations };
 }
 
 /**

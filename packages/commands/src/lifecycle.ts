@@ -1,5 +1,6 @@
 import type { CampaignSlot, CampaignSnapshot } from "@bluewave/campaign";
 import {
+  VACANT,
   fleetMoveProblem,
   APPROPRIATION_RATE_MAX_BP,
   APPROPRIATION_RATE_MIN_BP,
@@ -160,6 +161,10 @@ export class CommandLifecycle {
       return this.validateSetResearchPriority(envelope, snapshot);
     if (envelope.body.type === "SetBudgetAllocation")
       return this.validateSetBudgetAllocation(envelope, snapshot);
+    if (envelope.body.type === "AssignOfficer")
+      return this.validateAssignOfficer(envelope, snapshot);
+    if (envelope.body.type === "RelieveOfficer")
+      return this.validateRelieveOfficer(envelope, snapshot);
     if (envelope.body.type === "MoveFleet") {
       const move = envelope.body;
       const problem = fleetMoveProblem(snapshot, move.nationId, move.fleetId, move.toAreaId);
@@ -741,6 +746,70 @@ export class CommandLifecycle {
     return { ok: true };
   }
 
+  private validateAssignOfficer(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as Extract<CommandBody, { type: "AssignOfficer" }>;
+    const nation = snapshot.nations.get(body.nationId);
+    if (!nation)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "INVALID_NATION_ID",
+        `Nation ${body.nationId} not found`,
+      );
+    if (!(nation.officers ?? []).some((o) => o.id === body.officerId))
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "INVALID_COMMAND_PAYLOAD",
+        `Officer ${body.officerId} is not in ${body.nationId}'s officer corps`,
+      );
+    const division = this.divisionById(snapshot, body.nationId, body.divisionId);
+    if (!division)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE",
+        `Division ${body.divisionId} not found`,
+      );
+    const elsewhere = nation.divisions.find(
+      (d) => d.commanderOfficerId === body.officerId && d.divisionId !== body.divisionId,
+    );
+    if (elsewhere)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "INVALID_COMMAND_PAYLOAD",
+        `Officer ${body.officerId} already commands division ${elsewhere.divisionId}; relieve them first`,
+      );
+    return { ok: true };
+  }
+
+  private validateRelieveOfficer(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as Extract<CommandBody, { type: "RelieveOfficer" }>;
+    const division = this.divisionById(snapshot, body.nationId, body.divisionId);
+    if (!division)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE",
+        `Division ${body.divisionId} not found`,
+      );
+    if (division.commanderOfficerId === VACANT)
+      return this.rejectValidate(
+        envelope,
+        snapshot,
+        "INVALID_COMMAND_PAYLOAD",
+        `Division ${body.divisionId} has no commander to relieve`,
+      );
+    return { ok: true };
+  }
+
   private validateDissolveDivision(
     envelope: CommandEnvelope<CommandBody>,
     snapshot: CampaignSnapshot,
@@ -870,6 +939,20 @@ export class CommandLifecycle {
         commandId: envelope.commandId,
         snapshotHash,
         result: { nationId: body.nationId, fieldPriorities: body.fieldPriorities },
+      };
+    if (body.type === "AssignOfficer")
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: { nationId: body.nationId, officerId: body.officerId, divisionId: body.divisionId },
+      };
+    if (body.type === "RelieveOfficer")
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: { nationId: body.nationId, divisionId: body.divisionId },
       };
     if (body.type === "MoveFleet")
       return {

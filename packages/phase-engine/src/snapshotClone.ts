@@ -14,6 +14,7 @@ import type {
   FleetState,
   IntelligenceState,
   NationState,
+  Officer,
   PermanentDivision,
   PoliticalState,
   ResearchState,
@@ -198,6 +199,7 @@ const F = {
     "status",
     "startedAt",
   ),
+  Officer: fields<Officer>()("id", "name", "rank", "skill"),
   NationState: fields<NationState>()(
     "id",
     "name",
@@ -210,6 +212,7 @@ const F = {
     "maintenanceCost",
     "fleets",
     "divisions",
+    "officers",
     "research",
     "constructionProjects",
     "aircraft",
@@ -401,6 +404,7 @@ const _assert: [
   _Assert<ResearchState, typeof F.ResearchState>,
   _Assert<PermanentDivision, typeof F.PermanentDivision>,
   _Assert<ConstructionProject, typeof F.ConstructionProject>,
+  _Assert<Officer, typeof F.Officer>,
   _Assert<NationState, typeof F.NationState>,
   _Assert<DiplomaticRelation, typeof F.DiplomaticRelation>,
   _Assert<PoliticalState, typeof F.PoliticalState>,
@@ -450,6 +454,7 @@ const _assert: [
   true,
   true,
   true,
+  true,
 ];
 void _assert;
 
@@ -472,6 +477,7 @@ const cloneNation = (n: NationState): NationState =>
   recordClone(n, F.NationState, {
     fleets: (v) => (v as FleetState[]).map(cloneFleet),
     divisions: (v) => (v as PermanentDivision[]).map(cloneDivision),
+    officers: (v) => (v === undefined ? undefined : (v as Officer[]).map((o) => ({ ...o }))),
     research: (v) => cloneResearch(v as ResearchState),
     constructionProjects: (v) => (v as ConstructionProject[]).map(cloneConstructionProject),
   });

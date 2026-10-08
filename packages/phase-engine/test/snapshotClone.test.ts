@@ -56,6 +56,7 @@ function minimalSnapshot(): CampaignSnapshot {
             } as any,
           ],
           divisions: [],
+          officers: [],
           research: {
             nationId: "n1",
             technologies: [],

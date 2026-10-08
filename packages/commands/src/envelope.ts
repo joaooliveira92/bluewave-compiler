@@ -16,6 +16,8 @@ export type CommandBody =
   | SetResearchPriorityCommand
   | SetBudgetAllocationCommand
   | MoveFleetCommand
+  | AssignOfficerCommand
+  | RelieveOfficerCommand
   | DeclareWarCommand
   | AcceptPeaceCommand
   | FormAllianceCommand
@@ -53,6 +55,17 @@ export interface MoveFleetCommand {
   nationId: string;
   fleetId: string;
   toAreaId: string;
+}
+export interface AssignOfficerCommand {
+  type: "AssignOfficer";
+  nationId: string;
+  officerId: string;
+  divisionId: string;
+}
+export interface RelieveOfficerCommand {
+  type: "RelieveOfficer";
+  nationId: string;
+  divisionId: string;
 }
 export interface DeclareWarCommand {
   type: "DeclareWar";
