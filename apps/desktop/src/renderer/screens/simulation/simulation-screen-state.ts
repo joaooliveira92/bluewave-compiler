@@ -1,66 +1,133 @@
 import type {
-  DomainEvent,
-  FinancialLedgerEntry,
-  AIPlan,
-  RandomDecisionRecord,
-  MonthReport,
-  CommandLedgerEntry,
-  DockyardProject,
-  SubmarinePool,
-  MinePressure,
-  LandTargetDamage,
   BattleManifest,
   BattleResolution,
+  CommitMonthResponse,
+  LandTargetDamage,
+  MinePressure,
+  SubmarinePool,
   TacticalBattleOutcome,
 } from "@bluewave/campaign-engine";
-import type { RequestLifecycle } from "../../lib/command-screen-workflow.js";
 
-export interface SimulationScreenState extends RequestLifecycle {
-  readonly month: { readonly year: number; readonly month: number } | null;
-  readonly activeWars: readonly {
-    readonly warId: string;
-    readonly attackerId: string;
-    readonly defenderId: string;
-  }[];
+/**
+ * The simulation screen's single source of truth. Every entry point folds its
+ * result through `reduceSimulationScreen`, so loading flags, revision adoption,
+ * and battle-output resets stay in one place rather than scattered setters.
+ */
+export interface SimulationScreenState {
+  readonly loading: boolean;
+  readonly error: string | null;
+  readonly activeTab: string;
+  readonly revision: number;
   readonly submarinePools: readonly SubmarinePool[];
   readonly minePressure: readonly MinePressure[];
   readonly landTargetDamage: readonly LandTargetDamage[];
-
-  // Last month resolution outcome data
-  readonly lastReport: MonthReport | null;
-  readonly lastDomainEvents: readonly DomainEvent[];
-  readonly lastFinancialLedger: readonly FinancialLedgerEntry[];
-  readonly lastAiPlan: AIPlan | null;
-  readonly lastRandomDecisions: readonly RandomDecisionRecord[];
-  readonly lastCommandLedger: readonly CommandLedgerEntry[];
-  readonly lastProjects: readonly DockyardProject[];
-
-  // Active battles
-  readonly activeBattleManifest: BattleManifest | null;
-  readonly activeBattleResolution: BattleResolution | null;
-  readonly activeTacticalOutcome: TacticalBattleOutcome | null;
+  readonly commitResult: CommitMonthResponse | null;
+  readonly battleManifest: BattleManifest | null;
+  readonly autoResolution: BattleResolution | null;
+  readonly tacticalOutcome: TacticalBattleOutcome | null;
+  readonly battleLoading: boolean;
+  readonly battleError: string | null;
 }
+
+export type SimulationScreenAction =
+  | { readonly type: "load-started" }
+  | { readonly type: "load-succeeded"; readonly revision: number }
+  | { readonly type: "load-failed"; readonly message: string }
+  | { readonly type: "commit-started" }
+  | { readonly type: "commit-succeeded"; readonly response: CommitMonthResponse }
+  | { readonly type: "commit-failed"; readonly message: string }
+  | { readonly type: "battle-generate-started" }
+  | { readonly type: "battle-resolve-started" }
+  | { readonly type: "battle-succeeded"; readonly manifest: BattleManifest }
+  | { readonly type: "resolve-succeeded"; readonly resolution: BattleResolution }
+  | { readonly type: "tactical-succeeded"; readonly outcome: TacticalBattleOutcome }
+  | { readonly type: "battle-failed"; readonly message: string }
+  | { readonly type: "tab-selected"; readonly tab: string };
 
 export function initialSimulationScreenState(): SimulationScreenState {
   return {
+    loading: false,
+    error: null,
+    activeTab: "overview",
     revision: 0,
-    month: null,
-    activeWars: [],
     submarinePools: [],
     minePressure: [],
     landTargetDamage: [],
-    lastReport: null,
-    lastDomainEvents: [],
-    lastFinancialLedger: [],
-    lastAiPlan: null,
-    lastRandomDecisions: [],
-    lastCommandLedger: [],
-    lastProjects: [],
-    activeBattleManifest: null,
-    activeBattleResolution: null,
-    activeTacticalOutcome: null,
-    pendingRequest: null,
-    requiresRefresh: false,
-    notice: null,
+    commitResult: null,
+    battleManifest: null,
+    autoResolution: null,
+    tacticalOutcome: null,
+    battleLoading: false,
+    battleError: null,
   };
+}
+
+export function reduceSimulationScreen(
+  state: SimulationScreenState,
+  action: SimulationScreenAction,
+): SimulationScreenState {
+  switch (action.type) {
+    case "load-started":
+      return { ...state, loading: true };
+    case "load-succeeded":
+      return { ...state, loading: false, revision: action.revision };
+    case "load-failed":
+      return { ...state, loading: false, error: action.message };
+    case "commit-started":
+      return { ...state, loading: true, error: null };
+    case "commit-succeeded": {
+      const snapshot = action.response.closingSnapshot;
+      return {
+        ...state,
+        loading: false,
+        error: null,
+        revision: Number(snapshot.revision),
+        submarinePools: snapshot.submarinePools ?? [],
+        minePressure: snapshot.minePressure ?? [],
+        landTargetDamage: snapshot.landTargetDamage ?? [],
+        commitResult: action.response,
+        battleManifest: null,
+        autoResolution: null,
+        tacticalOutcome: null,
+        activeTab: "report",
+      };
+    }
+    case "commit-failed":
+      return { ...state, loading: false, error: action.message };
+    case "battle-generate-started":
+      return {
+        ...state,
+        battleLoading: true,
+        battleError: null,
+        autoResolution: null,
+        tacticalOutcome: null,
+      };
+    case "battle-resolve-started":
+      return { ...state, battleLoading: true, battleError: null };
+    case "battle-succeeded":
+      return {
+        ...state,
+        battleLoading: false,
+        battleError: null,
+        battleManifest: action.manifest,
+      };
+    case "resolve-succeeded":
+      return {
+        ...state,
+        battleLoading: false,
+        battleError: null,
+        autoResolution: action.resolution,
+      };
+    case "tactical-succeeded":
+      return {
+        ...state,
+        battleLoading: false,
+        battleError: null,
+        tacticalOutcome: action.outcome,
+      };
+    case "battle-failed":
+      return { ...state, battleLoading: false, battleError: action.message };
+    case "tab-selected":
+      return { ...state, activeTab: action.tab };
+  }
 }

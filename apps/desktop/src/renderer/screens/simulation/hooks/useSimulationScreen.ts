@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+
 import type {
   BattleManifest,
   BattleResolution,
@@ -7,10 +9,20 @@ import type {
   SubmarinePool,
   TacticalBattleOutcome,
 } from "@bluewave/campaign-engine";
-import { useCallback, useEffect, useRef, useState } from "react";
 
-import { emitWideEvent } from "../../../lib/telemetry.js";
-import { auditInputFromDecisions, recordEngineAudit } from "../../../lib/engine-audit.js";
+import type { BluewaveDesktopBridge } from "../../../../preload/index.js";
+import { auditInputFromDecisions } from "../../../lib/engine-audit.js";
+import { SCRIPTED_TACTICAL_ORDERS } from "../simulation-battle-orders.js";
+import {
+  commandFailureMessage,
+  createDesktopSimulationTelemetry,
+  runSimulationCommand,
+  type SimulationTelemetryPort,
+} from "../simulation-command.js";
+import {
+  initialSimulationScreenState,
+  reduceSimulationScreen,
+} from "../simulation-screen-state.js";
 
 export interface UseSimulationScreenReturn {
   readonly loading: boolean;
@@ -33,55 +45,64 @@ export interface UseSimulationScreenReturn {
   readonly handleTacticalResolve: () => Promise<void>;
 }
 
+/** The narrow transport the screen needs; keeps the hook decoupled from the bridge surface. */
+export type SimulationCommandPort = Pick<BluewaveDesktopBridge, "campaign">;
+
 export interface UseSimulationScreenOptions {
   readonly campaignRevision?: number;
   readonly onMonthCommitted?: () => void;
+  /** Override the transport (tests / embedding); defaults to `window.bluewave`. */
+  readonly bridge?: SimulationCommandPort;
+  /** Override the telemetry sink; defaults to the desktop wide-event adapter. */
+  readonly telemetry?: SimulationTelemetryPort;
 }
 
+/**
+ * Drives the Simulation screen: loads the session snapshot, commits months, and
+ * runs the battle lifecycle. Domain transitions live in the pure
+ * `simulation-screen-state` reducer; the guarded command pipeline lives in
+ * `simulation-command`; this hook only wires them together.
+ */
 export function useSimulationScreen(
   sessionId: string,
   options: UseSimulationScreenOptions = {},
 ): UseSimulationScreenReturn {
-  const { campaignRevision, onMonthCommitted } = options;
-  const bridge = window.bluewave;
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("overview");
+  const {
+    campaignRevision,
+    onMonthCommitted,
+    bridge: bridgeOption,
+    telemetry: telemetryOption,
+  } = options;
+  const bridge = bridgeOption ?? window.bluewave;
+  const telemetry = useMemo(
+    () => telemetryOption ?? createDesktopSimulationTelemetry(),
+    [telemetryOption],
+  );
 
-  const [revision, setRevision] = useState<number>(0);
-  const [_month, setMonth] = useState<{ year: number; month: number } | null>(null);
-  const [submarinePools, setSubmarinePools] = useState<readonly SubmarinePool[]>([]);
-  const [minePressure, setMinePressure] = useState<readonly MinePressure[]>([]);
-  const [landTargetDamage, setLandTargetDamage] = useState<readonly LandTargetDamage[]>([]);
-  const [_activeWars, setActiveWars] = useState<readonly unknown[]>([]);
+  const [state, dispatch] = useReducer(
+    reduceSimulationScreen,
+    undefined,
+    initialSimulationScreenState,
+  );
 
-  const [commitResult, setCommitResult] = useState<CommitMonthResponse | null>(null);
-
-  const [battleManifest, setBattleManifest] = useState<BattleManifest | null>(null);
-  const [autoResolution, setAutoResolution] = useState<BattleResolution | null>(null);
-  const [tacticalOutcome, setTacticalOutcome] = useState<TacticalBattleOutcome | null>(null);
-  const [battleLoading, setBattleLoading] = useState(false);
-  const [battleError, setBattleError] = useState<string | null>(null);
+  const revisionRef = useRef(state.revision);
+  revisionRef.current = state.revision;
+  const battleManifestRef = useRef(state.battleManifest);
+  battleManifestRef.current = state.battleManifest;
 
   const loadSnapshotData = useCallback(async () => {
     if (bridge === undefined) return;
+    dispatch({ type: "load-started" });
     try {
-      setLoading(true);
-      // `inspectCampaign` (not `inspectConstructionScreen` — that's ticket
-      // 10's still-unimplemented stub) is the real source of the session's
-      // current `revision`/`month`, needed so the very first `commitMonth`
-      // call (ticket 13) sends a correct `expectedRevision` even when this
-      // screen is opened after a save was loaded partway through a
-      // campaign, not just right after `compileCampaign`.
-      const res = await bridge.campaign.execute("inspectCampaign", sessionId);
-      if (res.outcome === "success") {
-        setRevision(res.value.projection.revision);
-        setMonth(res.value.projection.month);
+      const result = await bridge.campaign.execute("inspectCampaign", sessionId);
+      if (result.outcome === "success") {
+        dispatch({ type: "load-succeeded", revision: result.value.projection.revision });
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to inspect state");
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      dispatch({
+        type: "load-failed",
+        message: error instanceof Error ? error.message : "Failed to inspect state",
+      });
     }
   }, [bridge, sessionId]);
 
@@ -89,10 +110,6 @@ export function useSimulationScreen(
     void loadSnapshotData();
   }, [loadSnapshotData]);
 
-  // The header can advance the month while this screen is open. Without this the
-  // next "Advance Turn" would send a stale `expectedRevision` and be rejected.
-  const revisionRef = useRef(revision);
-  revisionRef.current = revision;
   useEffect(() => {
     if (campaignRevision !== undefined && campaignRevision !== revisionRef.current) {
       void loadSnapshotData();
@@ -101,193 +118,123 @@ export function useSimulationScreen(
 
   const handleAdvanceTurn = useCallback(async () => {
     if (bridge === undefined) return;
-    const startTime = performance.now();
-    try {
-      setLoading(true);
-      setError(null);
-      const transportId = `desktop-commit-${Date.now()}`;
-      const res = await bridge.campaign.execute("commitMonth", {
-        sessionId,
-        expectedRevision: revision,
-        transportRequestId: transportId,
-      });
-      const duration = Math.round(performance.now() - startTime);
-      if (res.outcome === "success") {
-        emitWideEvent("month_commit", sessionId, duration, "success");
-        recordEngineAudit("month_commit", {
-          randomDecisions: res.value.randomDecisions ?? [],
-          domainEvents: res.value.domainEvents ?? [],
-          financialLedger: res.value.financialLedger ?? [],
-        });
-        setCommitResult(res.value);
-        setRevision(Number(res.value.closingSnapshot.revision));
-        setMonth(res.value.closingSnapshot.month);
-        setSubmarinePools(res.value.closingSnapshot.submarinePools || []);
-        setMinePressure(res.value.closingSnapshot.minePressure || []);
-        setLandTargetDamage(res.value.closingSnapshot.landTargetDamage || []);
-        setActiveWars(res.value.closingSnapshot.activeWars || []);
-        setBattleManifest(null);
-        setAutoResolution(null);
-        setTacticalOutcome(null);
-        setActiveTab("report");
-        onMonthCommitted?.();
-      } else {
-        emitWideEvent("month_commit", sessionId, duration, "rejected", [res.reason]);
-        setError(`Failed to advance turn: ${res.reason}. ${res.diagnostics.join("; ")}`);
-      }
-    } catch (err) {
-      const duration = Math.round(performance.now() - startTime);
-      const errMsg = err instanceof Error ? err.message : "Error committing turn";
-      emitWideEvent("month_commit", sessionId, duration, "rejected", [errMsg]);
-      setError(errMsg);
-    } finally {
-      setLoading(false);
+    dispatch({ type: "commit-started" });
+    const result = await runSimulationCommand({
+      action: "month_commit",
+      sessionId,
+      telemetry,
+      transportErrorFallback: "Error committing turn",
+      run: () =>
+        bridge.campaign.execute("commitMonth", {
+          sessionId,
+          expectedRevision: revisionRef.current,
+          transportRequestId: `desktop-commit-${Date.now()}`,
+        }),
+      audit: (value) => ({
+        randomDecisions: value.randomDecisions ?? [],
+        domainEvents: value.domainEvents ?? [],
+        financialLedger: value.financialLedger ?? [],
+      }),
+    });
+    if (result.status === "success") {
+      dispatch({ type: "commit-succeeded", response: result.value });
+      onMonthCommitted?.();
+      return;
     }
-  }, [bridge, sessionId, revision, onMonthCommitted]);
+    dispatch({
+      type: "commit-failed",
+      message: commandFailureMessage(result, "Failed to advance turn"),
+    });
+  }, [bridge, sessionId, telemetry, onMonthCommitted]);
 
   const handleGenerateBattle = useCallback(async () => {
     if (bridge === undefined) return;
-    const startTime = performance.now();
-    try {
-      setBattleLoading(true);
-      setBattleError(null);
-      setAutoResolution(null);
-      setTacticalOutcome(null);
-
-      const res = await bridge.campaign.execute("generateBattle", {
-        sessionId,
-        warId: "war_uk_germany",
-      });
-      const duration = Math.round(performance.now() - startTime);
-      if (res.outcome === "success") {
-        emitWideEvent("battle_generate", sessionId, duration, "success");
-        recordEngineAudit(
-          "battle_generate",
-          auditInputFromDecisions(res.value.randomDecisions ?? []),
-        );
-        setBattleManifest(res.value.manifest);
-      } else {
-        emitWideEvent("battle_generate", sessionId, duration, "rejected", [res.reason]);
-        setBattleError(
-          `Failed to generate battle: ${res.reason}. ${res.diagnostics?.join("; ") || ""}`,
-        );
-      }
-    } catch (err) {
-      const duration = Math.round(performance.now() - startTime);
-      const errMsg = err instanceof Error ? err.message : "Error generating battle";
-      emitWideEvent("battle_generate", sessionId, duration, "rejected", [errMsg]);
-      setBattleError(errMsg);
-    } finally {
-      setBattleLoading(false);
+    dispatch({ type: "battle-generate-started" });
+    const result = await runSimulationCommand({
+      action: "battle_generate",
+      sessionId,
+      telemetry,
+      transportErrorFallback: "Error generating battle",
+      run: () => bridge.campaign.execute("generateBattle", { sessionId, warId: "war_uk_germany" }),
+      audit: (value) => auditInputFromDecisions(value.randomDecisions ?? []),
+    });
+    if (result.status === "success") {
+      dispatch({ type: "battle-succeeded", manifest: result.value.manifest });
+      return;
     }
-  }, [bridge, sessionId]);
+    dispatch({
+      type: "battle-failed",
+      message: commandFailureMessage(result, "Failed to generate battle"),
+    });
+  }, [bridge, sessionId, telemetry]);
 
   const handleAutoResolve = useCallback(async () => {
-    if (bridge === undefined || battleManifest === null) return;
-    const startTime = performance.now();
-    try {
-      setBattleLoading(true);
-      setBattleError(null);
-      const res = await bridge.campaign.execute("resolveBattle", {
-        sessionId,
-        battleId: battleManifest.battleId,
-      });
-      const duration = Math.round(performance.now() - startTime);
-      if (res.outcome === "success") {
-        emitWideEvent("battle_resolve", sessionId, duration, "success");
-        setAutoResolution(res.value.resolution);
-      } else {
-        emitWideEvent("battle_resolve", sessionId, duration, "rejected", [res.reason]);
-        setBattleError(`Failed to resolve: ${res.reason}`);
-      }
-    } catch (err) {
-      const duration = Math.round(performance.now() - startTime);
-      const errMsg = err instanceof Error ? err.message : "Error resolving battle";
-      emitWideEvent("battle_resolve", sessionId, duration, "rejected", [errMsg]);
-      setBattleError(errMsg);
-    } finally {
-      setBattleLoading(false);
+    const manifest = battleManifestRef.current;
+    if (bridge === undefined || manifest === null) return;
+    dispatch({ type: "battle-resolve-started" });
+    const result = await runSimulationCommand({
+      action: "battle_resolve",
+      sessionId,
+      telemetry,
+      transportErrorFallback: "Error resolving battle",
+      run: () =>
+        bridge.campaign.execute("resolveBattle", { sessionId, battleId: manifest.battleId }),
+    });
+    if (result.status === "success") {
+      dispatch({ type: "resolve-succeeded", resolution: result.value.resolution });
+      return;
     }
-  }, [bridge, sessionId, battleManifest]);
+    dispatch({
+      type: "battle-failed",
+      message: commandFailureMessage(result, "Failed to resolve", { includeDiagnostics: false }),
+    });
+  }, [bridge, sessionId, telemetry]);
 
   const handleTacticalResolve = useCallback(async () => {
-    if (bridge === undefined || battleManifest === null) return;
-    const startTime = performance.now();
-    try {
-      setBattleLoading(true);
-      setBattleError(null);
-      const scriptedOrders = [
-        {
-          issueTurn: 1,
-          divisionId: "Channel Squadron",
-          orderType: "change_lead_division" as const,
-          newLeadShipId: "HMS Majestic",
-        },
-        {
-          issueTurn: 1,
-          divisionId: "Channel Squadron",
-          orderType: "target_ship" as const,
-        },
-        {
-          issueTurn: 1,
-          divisionId: "Cruiser Squadron",
-          orderType: "flotilla_attack" as const,
-          targetDivisionId: "Scouting Group",
-        },
-        {
-          issueTurn: 2,
-          divisionId: "High Seas Squadron",
-          orderType: "rally" as const,
-          rallyPoint: { x: 500, y: 500 },
-        },
-        {
-          issueTurn: 3,
-          divisionId: "Scouting Group",
-          orderType: "disengage" as const,
-        },
-      ];
-
-      const res = await bridge.campaign.execute("resolveTacticalBattle", {
-        sessionId,
-        battleId: battleManifest.battleId,
-        turnCount: 200,
-        scriptedOrders,
-      });
-      const duration = Math.round(performance.now() - startTime);
-      if (res.outcome === "success") {
-        emitWideEvent("battle_resolve_tactical", sessionId, duration, "success");
-        recordEngineAudit(
-          "battle_resolve_tactical",
-          auditInputFromDecisions(res.value.randomDecisions ?? []),
-        );
-        setTacticalOutcome(res.value.outcome);
-      } else {
-        emitWideEvent("battle_resolve_tactical", sessionId, duration, "rejected", [res.reason]);
-        setBattleError(`Failed to resolve tactically: ${res.reason}`);
-      }
-    } catch (err) {
-      const duration = Math.round(performance.now() - startTime);
-      const errMsg = err instanceof Error ? err.message : "Error resolving tactical battle";
-      emitWideEvent("battle_resolve_tactical", sessionId, duration, "rejected", [errMsg]);
-      setBattleError(errMsg);
-    } finally {
-      setBattleLoading(false);
+    const manifest = battleManifestRef.current;
+    if (bridge === undefined || manifest === null) return;
+    dispatch({ type: "battle-resolve-started" });
+    const result = await runSimulationCommand({
+      action: "battle_resolve_tactical",
+      sessionId,
+      telemetry,
+      transportErrorFallback: "Error resolving tactical battle",
+      run: () =>
+        bridge.campaign.execute("resolveTacticalBattle", {
+          sessionId,
+          battleId: manifest.battleId,
+          turnCount: 200,
+          scriptedOrders: SCRIPTED_TACTICAL_ORDERS,
+        }),
+      audit: (value) => auditInputFromDecisions(value.randomDecisions ?? []),
+    });
+    if (result.status === "success") {
+      dispatch({ type: "tactical-succeeded", outcome: result.value.outcome });
+      return;
     }
-  }, [bridge, sessionId, battleManifest]);
+    dispatch({
+      type: "battle-failed",
+      message: commandFailureMessage(result, "Failed to resolve tactically", {
+        includeDiagnostics: false,
+      }),
+    });
+  }, [bridge, sessionId, telemetry]);
+
+  const setActiveTab = useCallback((tab: string) => dispatch({ type: "tab-selected", tab }), []);
 
   return {
-    loading,
-    error,
-    activeTab,
-    submarinePools,
-    minePressure,
-    landTargetDamage,
-    commitResult,
-    battleManifest,
-    autoResolution,
-    tacticalOutcome,
-    battleLoading,
-    battleError,
+    loading: state.loading,
+    error: state.error,
+    activeTab: state.activeTab,
+    submarinePools: state.submarinePools,
+    minePressure: state.minePressure,
+    landTargetDamage: state.landTargetDamage,
+    commitResult: state.commitResult,
+    battleManifest: state.battleManifest,
+    autoResolution: state.autoResolution,
+    tacticalOutcome: state.tacticalOutcome,
+    battleLoading: state.battleLoading,
+    battleError: state.battleError,
     setActiveTab,
     loadSnapshotData,
     handleAdvanceTurn,
