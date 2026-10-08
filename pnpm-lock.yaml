@@ -521,6 +521,25 @@ importers:
         specifier: workspace:*
         version: link:../diagnostics
 
+  packages/ship-design:
+    dependencies:
+      '@bluewave/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@bluewave/deterministic':
+        specifier: workspace:*
+        version: link:../deterministic
+      '@bluewave/random':
+        specifier: workspace:*
+        version: link:../random
+    devDependencies:
+      '@bluewave/content-schema':
+        specifier: workspace:*
+        version: link:../content-schema
+      yaml:
+        specifier: ^2.7.0
+        version: 2.9.0
+
   packages/test-support:
     dependencies:
       '@bluewave/content-compiler':

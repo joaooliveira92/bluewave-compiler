@@ -19,3 +19,4 @@ Current specs:
 - Desktop diplomacy & war screen (B10c) → `.scratch/desktop-diplomacy-war/` (spec.md)
 - Desktop battle-outcome surfacing (B-6 follow-up) → `.scratch/desktop-battle-outcomes/` (spec.md)
 - P-1 (Track P battles that matter) → `.scratch/p1-battles-that-matter/` (spec.md, AC-1..8 / 01..05)
+- SB-1 (Ship-building component-level design workshop) → `.scratch/ship-building/` (spec.md, AC-1..15 / SB-00..SB-18)
