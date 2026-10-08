@@ -96,7 +96,7 @@ hullForms:
     lengthMaxMm: 140000
     lbMinX100: 450
     lbMaxX100: 650
-    formBp: 10089
+    formBp: 9817
     waterplaneCoeffBp: 7800
     sheerBp: 11000
     volumeFullnessBp: 6000

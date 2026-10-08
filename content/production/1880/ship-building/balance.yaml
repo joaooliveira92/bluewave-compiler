@@ -178,15 +178,15 @@ ship:
   crewKgPerHead: 250
   stabilityWindowByCategory:
     DD:
-      gmMinMm: 500
+      gmMinMm: 350
       gmCapsizeMm: 100
       gmMaxMm: 2000
     CL:
-      gmMinMm: 600
+      gmMinMm: 450
       gmCapsizeMm: 100
       gmMaxMm: 2200
     CA:
-      gmMinMm: 700
+      gmMinMm: 500
       gmCapsizeMm: 150
       gmMaxMm: 2500
     B:
@@ -203,9 +203,9 @@ ship:
     MAJOR: 800
 cost:
   hullCostPerTonneMicro:
-    iron: 75000000
-    mild_steel: 100000000
-    high_tensile: 135000000
+    iron: 55000000 # GBP per tonne of hull weight: 48 (1873) to 80 (1885), Brassey; mid-range 70 chosen for mild steel (research 2)
+    mild_steel: 70000000
+    high_tensile: 100000000 # ESTIMATE
   formComplexityBp:
     torpedo_boat_form: 11000
     protected_cruiser_form: 10500
@@ -228,19 +228,19 @@ cost:
       - - 3200
         - 20000
   armourCostPerKgMicro:
-    wrought_iron: 150000
-    iron: 150000
-    compound: 350000
-    steel: 250000
-    mild_steel: 200000
-    nickel_steel: 500000
-    harvey: 800000
-    krupp: 1000000
+    wrought_iron: 50000 # GBP 50/t iron, GBP 95/t compound (Colossus/Collingwood, VERIFIED); steel/Harvey/Krupp GBP 100-120/t (US-derived, ESTIMATE)
+    iron: 50000
+    compound: 95000
+    steel: 100000
+    mild_steel: 100000
+    nickel_steel: 110000
+    harvey: 115000
+    krupp: 120000
   machineryCostPerKwMicro:
-    compound_cylindrical: 8000000
-    triple_expansion_cylindrical: 9000000
-    triple_expansion_watertube: 14000000
-    locomotive_boiler_tb: 12000000
+    compound_cylindrical: 10700000 # GBP 8 per ihp (1888) = 10.7 per kW (Trafalgar), ESTIMATE
+    triple_expansion_cylindrical: 8000000 # GBP 6 per ihp, between 8 (1888) and 4.5 (1893-95), ESTIMATE
+    triple_expansion_watertube: 9000000 # ESTIMATE
+    locomotive_boiler_tb: 7100000 # Havock machinery GBP 18,674 / 3,500 ihp = 5.3 per ihp (Brassey 1894, VERIFIED)
   maturityCostBp:
     points:
       - - 0

@@ -132,7 +132,7 @@ describe("calibration against sourced ships", () => {
     return (w * 100) / dispKg;
   };
   it("hull weight fractions reproduce White 1894 (BB 38 %, CA 38 %, coast-defence 31 %, torpedo boat 33 %) within 1 point", () => {
-    expect(hullShare("pre_dreadnought_form", 118.9, 22.9, 13.7, 15_139_000)).toBeCloseTo(38, 0);
+    expect(hullShare("pre_dreadnought_form", 118.9, 22.9, 14.0, 15_139_000)).toBeCloseTo(38, 0);
     expect(hullShare("protected_cruiser_form", 110, 18.3, 11.3, 7_823_000)).toBeCloseTo(38, 0);
     expect(hullShare("coast_defence_form", 76.4, 14.9, 8.4, 3_500_000)).toBeCloseTo(31, 0);
     expect(hullShare("torpedo_boat_form", 54.9, 5.64, 4.0, 244_000)).toBeCloseTo(33, 0);

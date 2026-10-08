@@ -17,6 +17,11 @@ Source of record: `docs/research/ship-building-early-band.md` (confidence labels
 - Admiralty coefficients per form (`cFormX100`): fitted to trial power of Royal Sovereign, Majestic, Edgar, Havock, Siegfried; `test/earlyBand.test.ts` checks all within 15 %.
 - Gun, shell, charge, ROF: navweaps.com compilation of RN tables; armour factors: Britannica 1911 and Brassey 1902.
 
+## Research pass 2 (docs/research/ship-building-early-band-2.md) applied
+- Money is GBP with 1 GBP = 1,000,000 micro-units. Costs are calibrated to Brassey: a Havock-like destroyer prices at ~GBP 34.2k (sourced 34,254; machinery 18,674) and a Majestic-like battleship within 20 % of GBP 911k (sources exclude guns) (`test/references.test.ts`). Hull GBP 70/t of hull line, compound armour GBP 95/t, iron 50, heavy guns GBP 197/kg (200/long ton), machinery GBP 4.5-8 per ihp.
+- Gun data: 6"/26 mass 5.08 t, 12"/35 charge 76 kg, sustained rates of fire (0.8 / 5 / 10 / 15 rds/min), QF charges, 6-inch mount 7.6 t, torpedoes per tube 3, Barr & Stroud rangefinder 1893.
+- Ship data: Havock coal 61 t and crew 42, Majestic moulded depth 14.0 m (hull form refitted), rounds per gun 200 (6-inch) / 300 (12-pdr), stability windows widened to the sourced GM ranges.
+
 ## Placeholders (no source; replace before release)
-Mount masses, magazine/fitting data, costs, part-load fuel curves, plant volumes and reliability, zone shares, stability windows,
+Heavy mount masses (12/10/9.2-inch), tube and carriage masses, magazine/fitting data, QF unit prices, rangefinder mass, part-load fuel curves, plant volumes and reliability, zone shares, stability windows,
 crew per tonne, all cost/construction/CVE/refit/AI constants. Each is marked `PLACEHOLDER` or `ESTIMATE` in the files or in `balance.yaml`'s header.

@@ -37,7 +37,7 @@ designs:
         installedKw: 2700
         zoneId: CENTRAL_MACHINERY
         stationPermille: 400
-        fuelCapacityKg: 57000
+        fuelCapacityKg: 61000
         fuelZoneId: SUPERSTRUCTURE
         fuelStationPermille: 560
         foulingBp: 0
@@ -131,7 +131,7 @@ designs:
         lengthWl: 118900
         beam: 22900
         draught: 8200
-        depthToMainDeck: 13700
+        depthToMainDeck: 14000
         blockCoeffBp: 6600
         materialId: mild_steel
         structuralSchemeId: mixed
@@ -201,7 +201,7 @@ designs:
           stationPermille: 50
           params:
             barrels: 2
-            rounds: 80
+            rounds: 75
           magazineRef: mag_main_fwd
         - instanceId: main_aft
           componentId: gun_bl_12in_35
@@ -209,7 +209,7 @@ designs:
           stationPermille: 930
           params:
             barrels: 2
-            rounds: 80
+            rounds: 75
           magazineRef: mag_main_aft
         - instanceId: mag_main_fwd
           componentId: magazine_heavy
@@ -226,7 +226,7 @@ designs:
           side: PORT
           params:
             barrels: 1
-            rounds: 120
+            rounds: 200
           magazineRef: mag_med_a
         - instanceId: qf6_s1
           componentId: gun_qf_6in_40
@@ -235,7 +235,7 @@ designs:
           side: STBD
           params:
             barrels: 1
-            rounds: 120
+            rounds: 200
           magazineRef: mag_med_a
         - instanceId: qf6_p2
           componentId: gun_qf_6in_40
@@ -244,7 +244,7 @@ designs:
           side: PORT
           params:
             barrels: 1
-            rounds: 120
+            rounds: 200
           magazineRef: mag_med_a
         - instanceId: qf6_s2
           componentId: gun_qf_6in_40
@@ -253,7 +253,7 @@ designs:
           side: STBD
           params:
             barrels: 1
-            rounds: 120
+            rounds: 200
           magazineRef: mag_med_a
         - instanceId: qf6_p3
           componentId: gun_qf_6in_40
@@ -262,7 +262,7 @@ designs:
           side: PORT
           params:
             barrels: 1
-            rounds: 120
+            rounds: 200
           magazineRef: mag_med_b
         - instanceId: qf6_s3
           componentId: gun_qf_6in_40
@@ -271,7 +271,7 @@ designs:
           side: STBD
           params:
             barrels: 1
-            rounds: 120
+            rounds: 200
           magazineRef: mag_med_b
         - instanceId: qf6_p4
           componentId: gun_qf_6in_40
@@ -280,7 +280,7 @@ designs:
           side: PORT
           params:
             barrels: 1
-            rounds: 120
+            rounds: 200
           magazineRef: mag_med_b
         - instanceId: qf6_s4
           componentId: gun_qf_6in_40
@@ -289,7 +289,7 @@ designs:
           side: STBD
           params:
             barrels: 1
-            rounds: 120
+            rounds: 200
           magazineRef: mag_med_b
         - instanceId: mag_med_a
           componentId: magazine_medium
@@ -305,7 +305,7 @@ designs:
           stationPermille: 930
           params:
             barrels: 1
-            rounds: 200
+            rounds: 300
           magazineRef: mag_small
         - instanceId: mag_small
           componentId: magazine_small
