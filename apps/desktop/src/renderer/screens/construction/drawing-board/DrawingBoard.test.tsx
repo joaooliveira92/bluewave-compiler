@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { DrawingBoard } from "./DrawingBoard.js";
 
@@ -86,6 +86,26 @@ describe("DrawingBoard", () => {
     expect(within(validation).queryByRole("list", { name: /suggested fixes/i })).toBeNull();
     expect(within(validation).getByRole("status").textContent).toMatch(/\d+ blocking/);
   });
+
+  it("the AI designer proposes valid alternatives that can be loaded as the working design", async () => {
+    render(<DrawingBoard />);
+    const panel = region("AI alternatives");
+    fireEvent.click(within(panel).getByRole("button", { name: /generate alternatives/i }));
+    const list = await waitFor(() => within(panel).getByRole("list", { name: /ai candidates/i }), {
+      timeout: 20_000,
+    });
+    const items = within(list).getAllByRole("listitem");
+    expect(items.length).toBeGreaterThan(0);
+    expect(list.textContent).toContain("development metric");
+    commit(/installed power/i, "3400");
+    fireEvent.click(within(items[0]!).getByRole("button", { name: /load design/i }));
+    expect(within(region("Validation")).getByRole("status").textContent).toContain(
+      "Design can be submitted",
+    );
+    expect((screen.getByRole("button", { name: /undo/i }) as HTMLButtonElement).disabled).toBe(
+      true,
+    ); // history reset
+  }, 40_000);
 
   it("adds and removes components", () => {
     render(<DrawingBoard />);

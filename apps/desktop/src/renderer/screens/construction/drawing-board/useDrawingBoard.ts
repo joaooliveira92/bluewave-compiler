@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   buildWorkshopView,
+  generateCandidates,
   suggestFixes,
+  type Candidate,
   type SuggestedFix,
   canRedo,
   canUndo,
@@ -43,6 +45,10 @@ export interface DrawingBoardActions {
   readonly setMonth: (month: string) => void;
   /** Previews candidate edits by recompiling; call on demand, not on every render. */
   readonly suggest: () => SuggestedFix[];
+  /** Runs the same-rules AI designer from the current draft; call on demand (a second or two of work). */
+  readonly generateAlternatives: () => Candidate[];
+  /** Replaces the working design (and its history) with another draft, e.g. an AI candidate. */
+  readonly loadDraft: (draft: DesignDraft) => void;
 }
 
 /** Local-only designer state: an undoable edit log over a draft, recompiled for display after every change. */
@@ -101,6 +107,18 @@ export function useDrawingBoard(): { state: DrawingBoardState; actions: DrawingB
       },
       setMonth: setMonthState,
       suggest: () => suggestFixes(draft, env.ctx, 5, view.compiled),
+      generateAlternatives: () =>
+        generateCandidates(content.aiEnvironmentFor(month), {
+          base: draft,
+          seed: `drawing-board:${view.compiled.hash.slice(0, 16)}`,
+          nationKey: draft.nationId,
+          candidates: 4,
+          compilesPerArchetype: 50,
+        }).candidates as Candidate[],
+      loadDraft: (d) => {
+        commit(newLog(d));
+        setEditError(null);
+      },
     },
   };
 }

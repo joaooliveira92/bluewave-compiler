@@ -7,6 +7,9 @@ import {
   hullFormsFromRecords,
   LINE_IDS,
   shipBalanceFromRecord,
+  type AiEnvironment,
+  type ArchetypeId,
+  type ArchetypeSpec,
   type ComponentDef,
   type ConstructionBalance,
   type CostBalance,
@@ -39,6 +42,7 @@ export interface DrawingBoardContent {
   readonly hullForms: readonly HullFormRecord[];
   readonly references: readonly ReferenceDesign[];
   readonly environmentFor: (month: string) => WorkshopEnvironment;
+  readonly aiEnvironmentFor: (month: string) => AiEnvironment;
 }
 
 let cached: DrawingBoardContent | null = null;
@@ -56,6 +60,7 @@ export function loadDrawingBoardContent(): DrawingBoardContent {
     cost: CostBalance;
     construction: ConstructionBalance;
     cve: CveBalance;
+    ai: Record<ArchetypeId, ArchetypeSpec>;
   };
   const ship = shipBalanceFromRecord(balance.ship);
   const techs = parse(technologiesYaml) as { id: string; year: number }[];
@@ -66,46 +71,59 @@ export function loadDrawingBoardContent(): DrawingBoardContent {
     number
   >;
 
+  const environmentFor = (month: string): WorkshopEnvironment => ({
+    ctx: {
+      month,
+      unlockedTechs: new Set(
+        techs.filter((t) => t.year <= Number(month.slice(0, 4))).map((t) => t.id),
+      ),
+      catalogue: components,
+      plants,
+      hullForms: forms,
+      // Reference threat profiles: 12in/25 penetration is sourced; the QF values are ESTIMATE (see the research note).
+      threats: [
+        { id: "bl_12in", penetrationUm: 521_000 },
+        { id: "bl_92in", penetrationUm: 300_000 },
+        { id: "qf_6in", penetrationUm: 150_000 },
+        { id: "qf_47in", penetrationUm: 100_000 },
+        { id: "qf_12pdr", penetrationUm: 50_000 },
+      ],
+      facilities: [
+        {
+          id: "yard",
+          maxLengthMm: 200_000,
+          maxBeamMm: 40_000,
+          maxDisplacementKg: 30_000_000,
+          craneLiftKg: 250_000,
+        },
+      ],
+      treaty: null,
+      balance: ship,
+    },
+    costBalance: balance.cost,
+    costCtx: { maturityBpByTech: {}, firstOfClass: true },
+    constructionBalance: balance.construction,
+    cveBalance: balance.cve,
+    yardCapacity,
+  });
+
   cached = {
     components,
     plants,
     hullForms,
     references,
-    environmentFor: (month) => ({
-      ctx: {
-        month,
-        unlockedTechs: new Set(
-          techs.filter((t) => t.year <= Number(month.slice(0, 4))).map((t) => t.id),
-        ),
-        catalogue: components,
-        plants,
-        hullForms: forms,
-        // Reference threat profiles: 12in/25 penetration is sourced; the QF values are ESTIMATE (see the research note).
-        threats: [
-          { id: "bl_12in", penetrationUm: 521_000 },
-          { id: "bl_92in", penetrationUm: 300_000 },
-          { id: "qf_6in", penetrationUm: 150_000 },
-          { id: "qf_47in", penetrationUm: 100_000 },
-          { id: "qf_12pdr", penetrationUm: 50_000 },
-        ],
-        facilities: [
-          {
-            id: "yard",
-            maxLengthMm: 200_000,
-            maxBeamMm: 40_000,
-            maxDisplacementKg: 30_000_000,
-            craneLiftKg: 250_000,
-          },
-        ],
-        treaty: null,
-        balance: ship,
-      },
-      costBalance: balance.cost,
-      costCtx: { maturityBpByTech: {}, firstOfClass: true },
-      constructionBalance: balance.construction,
-      cveBalance: balance.cve,
-      yardCapacity,
-    }),
+    environmentFor,
+    aiEnvironmentFor: (month) => {
+      const env = environmentFor(month);
+      return {
+        ctx: env.ctx,
+        costBalance: env.costBalance,
+        costCtx: env.costCtx,
+        cveBalance: env.cveBalance,
+        archetypes: balance.ai,
+        budgetMicro: null,
+      };
+    },
   };
   return cached;
 }

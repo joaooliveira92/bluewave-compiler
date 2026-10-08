@@ -2,6 +2,7 @@ import { Redo2, Undo2 } from "lucide-react";
 import { Button } from "../../../components/ui/button.js";
 import { SelectField } from "./fields.js";
 import {
+  AlternativesPanel,
   ArmourPanel,
   FindingsPanel,
   ForecastPanel,
@@ -79,6 +80,7 @@ export function DrawingBoard() {
           <MetricsPanel view={view} />
           <LedgerPanel view={view} />
           <ForecastPanel view={view} />
+          <AlternativesPanel generate={actions.generateAlternatives} onLoad={actions.loadDraft} />
         </div>
       </div>
     </div>
