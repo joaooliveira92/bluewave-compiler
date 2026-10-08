@@ -14,7 +14,7 @@ export type {
   StrategicWeatherPhaseOptions,
 } from "./month.js";
 export { MonthExecutor } from "./month.js";
-export { applyBattleConsequences, resolveShipStrength } from "./battles.js";
+export { applyBattleConsequences, collectLostShips, resolveShipStrength } from "./battles.js";
 export {
   PhaseGuard,
   PHASE_ACCESS_DENIED,

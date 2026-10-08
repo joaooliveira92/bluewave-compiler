@@ -25,6 +25,7 @@ function entry(over: Partial<BattleHistoryEntry>): BattleHistoryEntry {
     playerLossCount: 1,
     enemyLossCount: 3,
     lostShipIds: ["s1", "s2", "s3", "s4"],
+    lostShips: [],
     ...over,
   };
 }
@@ -55,7 +56,7 @@ describe("BattleHistorySection", () => {
     expect(screen.getByText("you lost 1 ship · enemy lost 3 ships")).toBeTruthy();
     expect(screen.queryByText("battle_0007")).toBeNull();
     expect(screen.queryByText(/s1/)).toBeNull();
-    expect(screen.getByText(/Ship names are not recorded once a ship is lost/)).toBeTruthy();
+    expect(screen.getByText(/before ship records were kept/)).toBeTruthy();
   });
 
   it("totals only the player's battles in the summary line", () => {
@@ -95,5 +96,35 @@ describe("BattleHistorySection", () => {
     debugFlag.on = true;
     render(<BattleHistorySection state={{ status: "ready", history: { battles: [entry({})] } }} />);
     expect(screen.getByText("battle_0007")).toBeTruthy();
+  });
+
+  it("lists lost ships by name, class, owner and cause, and only notes missing records for old battles", () => {
+    const withShips = entry({
+      lostShipIds: ["s1"],
+      lostShips: [
+        {
+          name: "HMS Valiant",
+          classId: "ironclad_battleship",
+          nationName: "Britain",
+          ownedByPlayer: true,
+          month: "1880-03",
+          cause: "torpedo",
+        },
+      ],
+    });
+    const { rerender } = render(
+      <BattleHistorySection state={{ status: "ready", history: { battles: [withShips] } }} />,
+    );
+    const list = screen.getByRole("list", { name: "Ships lost in this battle" });
+    expect(list.textContent).toContain("HMS Valiant");
+    expect(list.textContent).toContain("sunk by torpedo");
+    expect(screen.queryByText(/before ship records were kept/)).toBeNull();
+
+    rerender(
+      <BattleHistorySection
+        state={{ status: "ready", history: { battles: [entry({ lostShips: [] })] } }}
+      />,
+    );
+    expect(screen.getByText(/before ship records were kept/)).toBeTruthy();
   });
 });

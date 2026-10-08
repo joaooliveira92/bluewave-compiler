@@ -11,7 +11,7 @@ import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { describe, expect, it } from "vite-plus/test";
-import { applyBattleConsequences, MonthExecutor } from "../src/index.js";
+import { applyBattleConsequences, collectLostShips, MonthExecutor } from "../src/index.js";
 import {
   ATTACKER_NATION,
   CAMPAIGN_SEED,
@@ -146,5 +146,39 @@ describe("battle consequences (AC-9)", () => {
       sha256Hex(canonicalSerialize(b.result.finalSnapshot)),
     );
     expect(a.result.randomLedger.hash()).toBe(b.result.randomLedger.hash());
+  });
+});
+
+describe("collectLostShips (ADR-0061)", () => {
+  it("records name, class, nation, month and cause for exactly the ships applyBattleConsequences removes", () => {
+    const snapshot = makeBattleSnapshot({
+      attackerShips: [
+        battleShip("g1", ATTACKER_NATION, "battle-1"),
+        battleShip("g2", ATTACKER_NATION, "battle-1"),
+      ],
+      defenderShips: [
+        battleShip("f1", DEFENDER_NATION, "battle-1"),
+        battleShip("f2", DEFENDER_NATION, "battle-1"),
+      ],
+    });
+    const battle = makeBattle();
+    const result = {
+      damageReport: { g1: SafeInt(9_999), g2: SafeInt(0), f1: SafeInt(100), f2: SafeInt(60) },
+      attackerSunkIds: [],
+      defenderSunkIds: ["f1"],
+      causeOfLoss: { f1: "torpedo" as const },
+    };
+    const lost = collectLostShips(snapshot, battle, result, "1880-03");
+    const after = allShips(applyBattleConsequences(snapshot, battle, result)).map((x) => x.id);
+    // The ledger and the fleets agree: lost = before minus after.
+    const before = allShips(snapshot).map((x) => x.id);
+    expect(lost.map((l) => l.shipId).sort()).toEqual(
+      before.filter((id) => !after.includes(id)).sort(),
+    );
+    const f1 = lost.find((l) => l.shipId === "f1")!;
+    expect(f1).toMatchObject({ nationId: DEFENDER_NATION, month: "1880-03", cause: "torpedo" });
+    expect(f1.name.length).toBeGreaterThan(0);
+    // A ship lost only through hp==0 carries no cause (the tactical report named none).
+    expect(lost.find((l) => l.shipId === "g1")!.cause).toBeUndefined();
   });
 });

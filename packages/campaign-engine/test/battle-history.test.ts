@@ -144,4 +144,58 @@ describe("buildBattleHistory", () => {
     );
     expect(view.battles[0]).toMatchObject({ attackerName: "ghost", areaName: "nowhere" });
   });
+
+  it("carries the recorded details of lost ships and flags which are the player's", () => {
+    const view = buildBattleHistory(
+      snapshotWith([
+        battle({
+          id: "b3",
+          result: result({
+            lostShips: [
+              {
+                shipId: "fr_ship_1",
+                name: "Le Foudroyant",
+                classId: "ironclad",
+                nationId: "france",
+                month: "1880-03",
+                cause: "gunfire",
+              },
+              {
+                shipId: "uk_1",
+                name: "HMS Lost",
+                classId: "cruiser",
+                nationId: "uk",
+                month: "1880-03",
+              },
+            ],
+          }),
+        }),
+      ]),
+      "uk",
+    );
+    expect(view.battles[0]!.lostShips).toEqual([
+      {
+        name: "Le Foudroyant",
+        classId: "ironclad",
+        nationName: "France",
+        ownedByPlayer: false,
+        month: "1880-03",
+        cause: "gunfire",
+      },
+      {
+        name: "HMS Lost",
+        classId: "cruiser",
+        nationName: "Britain",
+        ownedByPlayer: true,
+        month: "1880-03",
+        cause: null,
+      },
+    ]);
+  });
+
+  it("has no ship details for battles recorded before ADR-0061", () => {
+    const view = buildBattleHistory(snapshotWith([battle({ id: "b4", result: result() })]), "uk");
+    expect(view.battles[0]!.lostShips).toEqual([]);
+    expect(view.battles[0]!.lostShipIds).toHaveLength(2);
+  });
 });

@@ -68,6 +68,7 @@ import {
 } from "./commands.js";
 import {
   applyBattleConsequences,
+  collectLostShips,
   applyBattleResult,
   recordResolvedBattle,
   resolveBattleManifest,
@@ -1259,11 +1260,13 @@ export class MonthExecutor {
               );
             }
 
+            // ADR-0061: record who was lost BEFORE the ships leave their fleets.
+            const lostShips = collectLostShips(currentSnapshot, battle, autoResult, campaignMonth);
             currentSnapshot = applyBattleConsequences(currentSnapshot, battle, autoResult);
             currentSnapshot = recordResolvedBattle(
               currentSnapshot,
               battle,
-              toCampaignBattleResult(autoResult),
+              toCampaignBattleResult(autoResult, lostShips),
             );
           } catch (e) {
             // Fail-closed auto-resolution: INC-2 throws a stable BluewaveError

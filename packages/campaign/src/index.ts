@@ -27,6 +27,7 @@ export type {
   BattleManifest,
   BattleManifestSide,
   BattleResult,
+  LostShipRecord,
   BlockadeState,
   CampaignSlot,
   CampaignSnapshot,

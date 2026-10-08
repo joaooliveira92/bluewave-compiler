@@ -17,6 +17,7 @@ function entry(over: Partial<BattleHistoryEntry>): BattleHistoryEntry {
     playerLossCount: 0,
     enemyLossCount: 0,
     lostShipIds: [],
+    lostShips: [],
     ...over,
   };
 }

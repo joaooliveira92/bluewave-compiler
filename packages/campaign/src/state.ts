@@ -107,6 +107,18 @@ export interface BattleInstance {
   result?: BattleResult;
 }
 
+/** A ship lost in battle, recorded before the engine removes it from its fleet (ADR-0061). */
+export interface LostShipRecord {
+  shipId: string;
+  name: string;
+  classId: string;
+  nationId: string;
+  /** Campaign month the battle resolved in. */
+  month: string;
+  /** Observational cause from the tactical report (ADR-0052); absent for the legacy path. */
+  cause?: string;
+}
+
 export interface BattleResult {
   // B-6 INC-3/ADR-0026 §7: a tie / time-limit battle ends with BOTH null
   // (neither side eliminated) — such a battle contributes no war score, no
@@ -120,6 +132,8 @@ export interface BattleResult {
   defenderLosses: string[];
   damageReport: Record<string, SafeInt>;
   explanation: string[];
+  /** Details of every ship lost; absent when none were lost or for pre-ADR-0061 saves. */
+  lostShips?: LostShipRecord[];
 }
 
 export interface BattleManifestSide {

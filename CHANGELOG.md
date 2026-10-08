@@ -8,6 +8,8 @@ to `main` (see `AGENTS.md`).
 
 ### Added
 
+- **Ships sunk now have names.** Every ship lost in battle is recorded with its name, class, owner and
+  cause (gunfire, torpedo, flooding, fire) and listed in the battle history on Diplomacy & War.
 - **Budget allocation (Treasury).** Set the naval appropriation rate (5–50%) and a standing monthly
   research budget; the change is applied when you advance the month. Previously research was funded
   for the first month only and nothing let you change the budget.

@@ -194,6 +194,16 @@ function makeRichSnapshot(): CampaignSnapshot {
     defenderLosses: [],
     damageReport: { "f1-id": SafeInt(10) },
     explanation: ["g1 sunk"],
+    lostShips: [
+      {
+        shipId: "g1",
+        name: "HMS Lost",
+        classId: "c",
+        nationId: "GBR",
+        month: "1880-03",
+        cause: "gunfire",
+      },
+    ],
   };
   snapshot.wars.battles = [battle];
   snapshot.wars.participantMemberships = [

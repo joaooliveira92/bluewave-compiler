@@ -71,6 +71,7 @@ const battle: BattleHistoryEntry = {
   playerLossCount: 1,
   enemyLossCount: 3,
   lostShipIds: [],
+  lostShips: [],
 };
 
 describe("accessibility audit (axe-core)", () => {

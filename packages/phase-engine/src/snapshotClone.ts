@@ -278,6 +278,7 @@ const F = {
     "defenderLosses",
     "damageReport",
     "explanation",
+    "lostShips",
   ),
   BattleManifest: fields<BattleManifest>()(
     "battleId",
@@ -474,7 +475,13 @@ const cloneNation = (n: NationState): NationState =>
     research: (v) => cloneResearch(v as ResearchState),
     constructionProjects: (v) => (v as ConstructionProject[]).map(cloneConstructionProject),
   });
-const cloneBattleResult = (r: BattleResult): BattleResult => recordClone(r, F.BattleResult);
+const cloneBattleResult = (r: BattleResult): BattleResult =>
+  recordClone(r, F.BattleResult, {
+    lostShips: (v) =>
+      v === undefined
+        ? undefined
+        : (v as NonNullable<BattleResult["lostShips"]>).map((s) => ({ ...s })),
+  });
 const cloneBattle = (b: BattleInstance): BattleInstance =>
   recordClone(b, F.BattleInstance, {
     result: (v) => (v === undefined ? undefined : cloneBattleResult(v as BattleResult)),

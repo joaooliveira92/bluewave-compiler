@@ -2,6 +2,7 @@ import type {
   BattleInstance,
   BattleResult,
   CampaignSnapshot,
+  LostShipRecord,
   NationState,
   Ship,
 } from "@bluewave/campaign";
@@ -287,7 +288,10 @@ export function applyBattleConsequences(
  * shape persisted on `BattleInstance.result`). Ties / time-limit battles carry
  * null winner/loser (ADR-0026 §7); sunk ids are canonical id-sorted.
  */
-export function toCampaignBattleResult(auto: BattleResolutionResult): BattleResult {
+export function toCampaignBattleResult(
+  auto: BattleResolutionResult,
+  lostShips: LostShipRecord[] = [],
+): BattleResult {
   return {
     winnerId: auto.winnerId,
     loserId: auto.loserId,
@@ -297,7 +301,48 @@ export function toCampaignBattleResult(auto: BattleResolutionResult): BattleResu
     explanation: [
       `auto-resolved (${auto.battleEndReason}) after ${String(auto.elapsedMinutes)} battle minutes`,
     ],
+    ...(lostShips.length > 0 ? { lostShips } : {}),
   };
+}
+
+/**
+ * The details of every ship the battle destroys (ADR-0061), taken BEFORE
+ * `applyBattleConsequences` removes them from their fleets. Mirrors that function's
+ * rule (in the sunk lists OR damage takes hp to 0) and fleet order, so the ledger
+ * and the fleets can never disagree.
+ */
+export function collectLostShips(
+  snapshot: CampaignSnapshot,
+  battle: BattleInstance,
+  result: Pick<
+    BattleResolutionResult,
+    "damageReport" | "attackerSunkIds" | "defenderSunkIds" | "causeOfLoss"
+  >,
+  campaignMonth: string,
+): LostShipRecord[] {
+  const sunkIds = new Set<string>([...result.attackerSunkIds, ...result.defenderSunkIds]);
+  const battleFleetIds = new Set<string>([...battle.attackerFleetIds, ...battle.defenderFleetIds]);
+  const lost: LostShipRecord[] = [];
+  for (const nation of snapshot["nations"].values()) {
+    for (const fleet of nation["fleets"]) {
+      if (!battleFleetIds.has(fleet["id"])) continue;
+      for (const ship of fleet["ships"]) {
+        const loss = Number(result.damageReport[ship["id"]] ?? 0);
+        const newHp = Math.max(0, (ship["hitPoints"] as number) - loss);
+        if (!sunkIds.has(ship["id"]) && newHp > 0) continue;
+        const cause = result.causeOfLoss?.[ship["id"]];
+        lost.push({
+          shipId: ship["id"],
+          name: ship["name"],
+          classId: ship["classId"],
+          nationId: ship["nationId"],
+          month: campaignMonth,
+          ...(cause !== undefined ? { cause } : {}),
+        });
+      }
+    }
+  }
+  return lost;
 }
 
 /** Mark a battle resolved with its recorded campaign result (battles keep

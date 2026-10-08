@@ -1,4 +1,5 @@
 import { Badge } from "../../../components/ui/badge.js";
+import { humanizeId } from "../../../lib/humanize-id.js";
 import { DEBUG_MODE } from "../../../shell/debug-flag.js";
 import type { BattleHistoryState } from "../hooks/useBattleHistory.js";
 import { OUTCOME_LABELS, shipsLabel, summarizeBattleHistory } from "../battle-history-state.js";
@@ -9,6 +10,13 @@ const OUTCOME_VARIANT = {
   undecided: "secondary",
   "not-involved": "outline",
 } as const;
+
+const CAUSE_LABELS: Readonly<Record<string, string>> = {
+  gunfire: "sunk by gunfire",
+  fire: "lost to fire",
+  flooding: "lost to flooding",
+  torpedo: "sunk by torpedo",
+};
 
 /** Resolved battles and the ships lost in them, from the engine's recorded results. */
 export function BattleHistorySection({ state }: { readonly state: BattleHistoryState }) {
@@ -58,11 +66,28 @@ export function BattleHistorySection({ state }: { readonly state: BattleHistoryS
               ? `you lost ${shipsLabel(battle.playerLossCount)} · enemy lost ${shipsLabel(battle.enemyLossCount)}`
               : `${shipsLabel(battle.enemyLossCount)} lost`}
           </span>
+          {battle.lostShips.length > 0 && (
+            <ul className="w-full space-y-0.5 text-xs" aria-label="Ships lost in this battle">
+              {battle.lostShips.map((ship) => (
+                <li key={`${ship.name}-${ship.month}`} className="flex flex-wrap gap-x-2">
+                  <span className={ship.ownedByPlayer ? "font-medium" : undefined}>
+                    {ship.name}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {humanizeId(ship.classId)} · {ship.nationName}
+                    {ship.cause !== null && ` · ${CAUSE_LABELS[ship.cause] ?? ship.cause}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       ))}
-      <p className="text-xs text-muted-foreground">
-        Ship names are not recorded once a ship is lost, so losses are shown as counts.
-      </p>
+      {battles.some((b) => b.lostShipIds.length > 0 && b.lostShips.length === 0) && (
+        <p className="text-xs text-muted-foreground">
+          Battles from before ship records were kept show only how many ships were lost.
+        </p>
+      )}
     </div>
   );
 }

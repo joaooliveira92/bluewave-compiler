@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "../../components/ui/button.js";
 import { CardContent, CardHeader, CardTitle } from "../../components/ui/card.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
@@ -45,25 +45,24 @@ export function BudgetPolicyPanel({ sessionId }: BudgetPolicyPanelProps) {
     { refreshKey: campaignRevision },
   );
   const { state } = workflow;
-  const [rate, setRate] = useState<number | null>(null);
-  const [research, setResearch] = useState<number | null>(null);
-
-  // Adopt the engine's values whenever a fresh projection arrives.
-  useEffect(() => {
-    setRate(state.appropriationRateBp);
-    setResearch(state.researchBudget);
-  }, [state.revision, state.appropriationRateBp, state.researchBudget]);
+  // The sliders show the player's draft; with no draft they show the engine's values.
+  // A fresh projection (new revision) discards any stale draft.
+  const [draft, setDraft] = useState<{ revision: number; rate?: number; research?: number }>({
+    revision: state.revision,
+  });
+  const current = draft.revision === state.revision ? draft : { revision: state.revision };
+  const rate = current.rate ?? state.appropriationRateBp;
+  const research = current.research ?? state.researchBudget;
+  const setRate = (value: number) => setDraft({ ...current, rate: value });
+  const setResearch = (value: number) => setDraft({ ...current, research: value });
 
   const { bounds } = state;
   const loaded = bounds.appropriationRateMaxBp > 0;
   const busy = state.pendingRequest !== null || state.requiresRefresh;
-  const dirty =
-    rate !== null &&
-    research !== null &&
-    (rate !== state.appropriationRateBp || research !== state.researchBudget);
+  const dirty = rate !== state.appropriationRateBp || research !== state.researchBudget;
 
   function apply(): void {
-    if (!bridge || rate === null || research === null) return;
+    if (!bridge) return;
     workflow.execute("submit", ({ expectedRevision, transportRequestId }) =>
       bridge.campaign.execute("submitBudgetAllocation", {
         sessionId,
@@ -86,7 +85,7 @@ export function BudgetPolicyPanel({ sessionId }: BudgetPolicyPanelProps) {
             {workflow.loadError}
           </p>
         )}
-        {loaded && rate !== null && research !== null && (
+        {loaded && (
           <>
             <label className="block space-y-1 text-sm">
               <span className="flex justify-between">
