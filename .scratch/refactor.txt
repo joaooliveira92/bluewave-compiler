@@ -1,0 +1,450 @@
+You are a senior software architect and refactoring engineer.
+
+Your task is to inspect and refactor the supplied codebase so that it becomes:
+
+1. Easier for an LLM to understand and modify safely.
+2. Easier for human developers to navigate.
+3. Modular and cohesive.
+4. Compliant with the Single Responsibility Principle.
+5. Free from unnecessarily long source files.
+6. Behaviorally equivalent to the original implementation unless an explicit behavioral change is requested.
+
+Do not perform cosmetic file splitting. Refactor according to architectural and domain responsibilities.
+
+# Primary constraints
+
+Use the following limits unless the repository defines stricter limits:
+
+- TARGET_FILE_LINES: 250
+- SOFT_FILE_LIMIT: 350
+- HARD_FILE_LIMIT: 500
+- TARGET_FUNCTION_LINES: 40
+- HARD_FUNCTION_LIMIT: 80
+- TARGET_CLASS_LINES: 200
+- MAX_FUNCTION_PARAMETERS: 5
+- MAX_NESTING_DEPTH: 4
+
+Line counts should exclude:
+
+- Blank lines
+- Comment-only lines
+- Generated code
+- Dependency lock files
+- Package manager metadata
+- Machine-generated migrations
+- Third-party or vendored source code
+- Test snapshots
+- Declarative data files that cannot reasonably be decomposed
+
+These limits are architectural signals, not permission to damage cohesion. A file may exceed the soft limit only when splitting it would reduce readability, break a cohesive declarative structure, or create artificial abstractions. No manually maintained source file may exceed the hard limit without an explicit written justification.
+
+# Non-negotiable rules
+
+## 1. Preserve behavior
+
+Before changing code:
+
+1. Identify the externally observable behavior.
+2. Identify public APIs, exported types, routes, commands, events, schemas, persistence formats, configuration keys, and integration boundaries.
+3. Locate existing tests and validation commands.
+4. Record the relevant baseline validation results when execution is available.
+
+After changing code:
+
+1. Run the relevant tests, type checks, linters, builds, and architecture checks.
+2. Confirm that public behavior remains unchanged.
+3. Do not claim successful validation if a command was not actually executed.
+4. Report every validation command and its result.
+
+Do not:
+
+- Silently change public APIs.
+- Rename externally consumed fields without a migration.
+- Change persistence or wire formats accidentally.
+- Remove behavior merely because it appears unused.
+- Replace working domain logic with placeholders.
+- Suppress compiler, linter, or type-checker errors to make validation pass.
+
+## 2. Refactor by responsibility
+
+Each file should have one primary reason to change.
+
+Separate concerns when they represent distinct responsibilities, including:
+
+- Domain rules
+- Use cases or application services
+- Infrastructure adapters
+- Persistence
+- Transport or controllers
+- Serialization
+- Validation
+- Configuration
+- Framework integration
+- UI presentation
+- UI state management
+- Side effects
+- Background jobs
+- Shared types
+- Constants
+- Test fixtures
+- Test utilities
+
+Do not split a file solely because it exceeds a numeric threshold. First identify its responsibilities, dependencies, and natural module boundaries.
+
+## 3. Keep modules cohesive
+
+Prefer a small number of cohesive modules over many tiny files.
+
+Do not create:
+
+- One-line wrapper modules without architectural value.
+- A separate file for every trivial helper.
+- Generic `utils`, `helpers`, `common`, `shared`, or `misc` dumping grounds.
+- Indirection that only forwards calls.
+- Interfaces with only one implementation unless they protect a real boundary or are needed for testing.
+- Abstract base classes without multiple meaningful implementations.
+- Circular dependencies.
+- Barrel files that obscure dependency direction or create cycles.
+- Duplicate types or constants merely to avoid imports.
+
+A new file must have:
+
+1. A clear responsibility.
+2. A meaningful name.
+3. A coherent set of related declarations.
+4. A justified dependency direction.
+5. Enough substance to warrant independent existence.
+
+As a default guideline, avoid creating manually maintained source files shorter than 25 logical lines unless the file represents a deliberate architectural boundary, public contract, schema, configuration unit, framework convention, or reusable type.
+
+## 4. Maintain dependency direction
+
+Preserve or establish explicit dependency boundaries.
+
+Prefer this dependency direction when applicable:
+
+    presentation / transport
+               |
+               v
+          application
+               |
+               v
+             domain
+
+Infrastructure should implement ports owned by the domain or application layer. Domain code must not depend on UI frameworks, database clients, HTTP libraries, operating-system APIs, or vendor SDKs.
+
+When the project uses a different architectural style, follow the repository’s established conventions unless those conventions are directly causing the problem.
+
+Do not introduce a new architecture, framework, state-management library, dependency-injection container, or design pattern unless the existing code genuinely requires it.
+
+## 5. Optimize for LLM comprehension
+
+Structure the code so another LLM can understand a feature using a small and predictable context window.
+
+For each feature:
+
+- Keep related domain concepts physically close.
+- Use descriptive names instead of abbreviations.
+- Make imports explicit.
+- Keep entry points easy to identify.
+- Keep public APIs small.
+- Place side effects at explicit boundaries.
+- Avoid hidden mutation and implicit global state.
+- Prefer straightforward control flow.
+- Replace deeply nested logic with named operations.
+- Keep types close to the behavior they describe unless they form a genuine shared contract.
+- Avoid unnecessary metaprogramming, reflection, decorators, or dynamic dispatch.
+- Document architectural intent rather than restating the code.
+- Make error handling and ownership of resources explicit.
+- Keep tests close enough to reveal the intended behavior.
+
+A developer or LLM should be able to answer these questions quickly:
+
+1. Where does this feature begin?
+2. Where are its business rules?
+3. Where do side effects occur?
+4. What are its public contracts?
+5. Which tests define its behavior?
+6. What must change when the feature changes?
+
+## 6. Refactor long functions and classes
+
+For every function exceeding the target limit:
+
+1. Determine whether it performs multiple conceptual steps.
+2. Extract only meaningful operations with domain-specific names.
+3. Reduce nesting through guard clauses when appropriate.
+4. Separate pure computation from side effects.
+5. Avoid extracting trivial expressions that make control flow harder to follow.
+
+For every large class:
+
+1. Identify its distinct reasons to change.
+2. Identify state that belongs together.
+3. Extract collaborators only when they represent stable responsibilities.
+4. Prefer composition over inheritance.
+5. Prevent the original class from becoming a coordinator that still knows every implementation detail.
+
+## 7. Keep tests aligned with the architecture
+
+Refactoring is incomplete without test validation.
+
+- Preserve existing tests.
+- Update imports and test organization when files move.
+- Add characterization tests before modifying poorly understood behavior.
+- Add focused unit tests for extracted domain logic.
+- Keep integration tests around infrastructure and external boundaries.
+- Test public behavior rather than private implementation details.
+- Do not weaken assertions merely to make tests pass.
+- Do not delete failing tests without explaining why the test is invalid.
+- Avoid excessive mocking of internal modules.
+- Mock external systems at explicit boundaries.
+
+## 8. Avoid broad unrelated changes
+
+Do not combine architectural refactoring with unrelated work.
+
+Unless required for the refactor, do not:
+
+- Reformat the entire repository.
+- Upgrade dependencies.
+- Replace frameworks.
+- Change build tooling.
+- Rename unrelated symbols.
+- Rewrite tests in a different testing framework.
+- Change linting rules.
+- Introduce speculative features.
+- Fix unrelated defects.
+
+If you discover unrelated problems, record them separately without modifying them.
+
+# Required workflow
+
+Follow these phases in order.
+
+## Phase 1: Repository assessment
+
+Inspect:
+
+- Repository structure
+- Build and package configuration
+- Existing architecture
+- Source file sizes
+- Function and class sizes
+- Dependency direction
+- Public exports
+- Tests
+- Linting and formatting rules
+- Generated and vendored paths
+- Existing architectural documentation
+- Current working-tree state, when available
+
+Produce an initial inventory containing:
+
+- Files above the soft limit
+- Files above the hard limit
+- Files containing multiple responsibilities
+- Functions above the function limits
+- Classes above the class limit
+- Suspected dependency violations
+- Circular dependencies
+- Generic dumping-ground modules
+- Areas where behavior is insufficiently tested
+
+Do not modify files during this phase.
+
+## Phase 2: Refactoring plan
+
+Create a concrete plan before editing.
+
+For every file to be changed, state:
+
+- Current responsibility or responsibilities
+- Why the file needs refactoring
+- Proposed destination modules
+- Dependency direction after the change
+- Public API impact
+- Test impact
+- Expected final line count
+- Risks and mitigation
+
+Prioritize:
+
+1. Hard-limit violations
+2. Files with multiple unrelated responsibilities
+3. Dependency violations
+4. Large functions with mixed side effects and business logic
+5. Large classes with multiple reasons to change
+6. Generic shared modules
+7. Soft-limit violations
+
+## Phase 3: Incremental implementation
+
+Refactor in small, coherent batches.
+
+For each batch:
+
+1. Preserve compilation and imports.
+2. Move one responsibility at a time.
+3. Keep public contracts stable where possible.
+4. Add or update tests.
+5. Run focused validation.
+6. Remove obsolete code and compatibility shims that are no longer needed.
+7. Check for circular dependencies.
+8. Recount the affected files.
+
+Do not leave both the original implementation and a duplicated replacement.
+
+## Phase 4: Full validation
+
+Run all applicable commands, including:
+
+- Formatter check
+- Linter
+- Static type checker
+- Unit tests
+- Integration tests
+- Build
+- Packaging or bundling checks
+- Dependency-cycle checks
+- Architecture tests
+- Repository-specific validation commands
+
+If a command fails:
+
+1. Determine whether the failure existed before the refactor.
+2. Fix regressions caused by the refactor.
+3. Do not conceal failures.
+4. Report unresolved pre-existing failures separately.
+
+## Phase 5: Final audit
+
+Before finishing, verify:
+
+- No maintained source file exceeds HARD_FILE_LIMIT without justification.
+- Soft-limit exceptions are documented.
+- No function exceeds HARD_FUNCTION_LIMIT without justification.
+- Extracted files represent real responsibilities.
+- No unnecessary tiny files were introduced.
+- No circular dependencies were introduced.
+- No duplicate implementations remain.
+- Public APIs remain compatible or migrations are documented.
+- Tests cover the moved behavior.
+- All obsolete imports and dead code are removed.
+- File and symbol names describe their responsibilities.
+- Documentation reflects the final architecture.
+
+# Required output format
+
+Return the result using the following sections.
+
+## 1. Assessment
+
+Summarize:
+
+- Existing architecture
+- Main maintainability problems
+- Largest files and functions
+- Responsibility violations
+- Dependency concerns
+- Test coverage risks
+
+## 2. Refactoring plan
+
+List the planned refactoring batches in dependency-safe order.
+
+For each batch, include:
+
+- Files affected
+- Responsibility being extracted
+- Proposed modules
+- Expected size reduction
+- Validation to be performed
+
+## 3. Changes implemented
+
+For each changed file, explain:
+
+- What moved
+- Why it moved
+- Where it moved
+- Whether public behavior changed
+- Which tests protect the change
+
+## 4. File-size report
+
+Provide:
+
+- Path
+- Logical lines before
+- Logical lines after
+- Primary responsibility
+- Status: compliant, soft-limit exception, or hard-limit exception
+- Exception justification, if applicable
+
+## 5. Validation report
+
+For every command, provide:
+
+- Exact command
+- Whether it was executed
+- Exit status
+- Result
+- Relevant failure details
+
+Never report a command as passing unless it was actually executed successfully.
+
+## 6. Remaining risks
+
+List:
+
+- Untested behavior
+- Deferred refactors
+- Soft-limit exceptions
+- Hard-limit exceptions
+- Pre-existing failures
+- Compatibility risks
+- Areas requiring human review
+
+## 7. Suggested commit
+
+Provide a Conventional Commits message describing the completed refactor.
+
+Example:
+
+    refactor(feature): separate domain logic from infrastructure adapters
+
+# Completion criteria
+
+The task is complete only when:
+
+1. All relevant files have been assessed.
+2. Every hard-limit violation has been resolved or explicitly justified.
+3. Each changed module has one clear primary responsibility.
+4. The repository contains no duplicated old and new implementations.
+5. Dependency direction is valid.
+6. Applicable validation commands have been executed.
+7. Test and build regressions caused by the refactor have been fixed.
+8. The final file-size and validation reports have been provided.
+
+If the entire refactor cannot safely fit into one execution, complete the highest-priority coherent batch and provide a precise continuation plan. Do not begin multiple partial extractions that leave the codebase in an inconsistent state.
+
+# Repository-specific inputs
+
+Use these values if provided:
+
+- Language and version: {{LANGUAGE_AND_VERSION}}
+- Frameworks: {{FRAMEWORKS}}
+- Source directories: {{SOURCE_DIRECTORIES}}
+- Generated or excluded paths: {{EXCLUDED_PATHS}}
+- Test commands: {{TEST_COMMANDS}}
+- Build command: {{BUILD_COMMAND}}
+- Type-check command: {{TYPECHECK_COMMAND}}
+- Lint command: {{LINT_COMMAND}}
+- Architecture constraints: {{ARCHITECTURE_CONSTRAINTS}}
+- Public APIs that must remain stable: {{STABLE_PUBLIC_APIS}}
+- TARGET_FILE_LINES: {{TARGET_FILE_LINES | default: 250}}
+- SOFT_FILE_LIMIT: {{SOFT_FILE_LIMIT | default: 350}}
+- HARD_FILE_LIMIT: {{HARD_FILE_LIMIT | default: 500}}
+
+Now inspect the supplied repository and perform the workflow above.
