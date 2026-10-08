@@ -11,12 +11,7 @@ import {
   type ArchetypeDimension,
   type ArchetypeEffects,
 } from "@bluewave/campaign-engine";
-
-const DIMENSION_LABELS: Record<ArchetypeDimension, string> = {
-  economy: "Economy",
-  industry: "Industry",
-  combat: "Combat",
-};
+import { archetypeDimensionLabel } from "./archetype-dimensions.js";
 
 const DIMENSION_SYSTEMS: Record<ArchetypeDimension, string> = {
   economy: "Starting treasury and monthly appropriation",
@@ -73,7 +68,7 @@ export function buildArchetypeConsequence(allocation: ArchetypeAllocation): Arch
 
   const dimensionDeltas = ARCHETYPE_DIMENSIONS.map((dimension) => ({
     dimension,
-    label: DIMENSION_LABELS[dimension],
+    label: archetypeDimensionLabel(dimension),
     invested: allocation[dimension],
     balanced: BALANCED_ALLOCATION[dimension],
     delta: difference[dimension],
@@ -93,7 +88,7 @@ export function buildArchetypeConsequence(allocation: ArchetypeAllocation): Arch
   }
 
   const systems = ARCHETYPE_DIMENSIONS.map(
-    (dimension) => `${DIMENSION_LABELS[dimension]} — ${DIMENSION_SYSTEMS[dimension]}`,
+    (dimension) => `${archetypeDimensionLabel(dimension)} — ${DIMENSION_SYSTEMS[dimension]}`,
   );
 
   const numericEffects: ArchetypeNumericEffect[] = [

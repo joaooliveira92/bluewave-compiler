@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import {
   AlertCircle,
   Anchor,
@@ -15,6 +14,7 @@ import { Badge } from "../../components/ui/badge.js";
 import { Button } from "../../components/ui/button.js";
 import { CardContent, CardHeader, CardTitle } from "../../components/ui/card.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
+import { GlassSectionCard } from "../../components/shared/GlassSectionCard.js";
 import { debugRevisionActions } from "../../components/shared/debugRevisionActions.js";
 import {
   Select,
@@ -138,7 +138,7 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
         </Alert>
       )}
 
-      <GlassSection
+      <GlassSectionCard
         icon={<Handshake className="h-4 w-4 text-muted-foreground" />}
         title="Relations"
         description="Every nation's relation, tension, NAP and start of the current stance."
@@ -200,9 +200,9 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
           testId="intel-deferred"
           title="Intelligence — not yet modelled by the engine"
         />
-      </GlassSection>
+      </GlassSectionCard>
 
-      <GlassSection
+      <GlassSectionCard
         icon={<Swords className="h-4 w-4 text-muted-foreground" />}
         title="Wars"
         description="Player-involved wars with war scores, status and dates."
@@ -267,9 +267,9 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
           </div>
         )}
         <DeferredFeaturesPanel items={DEFERRED_WAR_ITEMS} testId="war-deferred" />
-      </GlassSection>
+      </GlassSectionCard>
 
-      <GlassSection
+      <GlassSectionCard
         icon={<Anchor className="h-4 w-4 text-muted-foreground" />}
         title="Blockades"
         description="Blockade coverage involving your nation, per strategic area."
@@ -294,15 +294,15 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
             ))}
           </div>
         )}
-      </GlassSection>
+      </GlassSectionCard>
 
-      <GlassSection
+      <GlassSectionCard
         icon={<History className="h-4 w-4 text-muted-foreground" />}
         title="Battle history"
         description="Resolved battles and the ships lost in them, from the engine's recorded results."
       >
         <BattleHistorySection state={battleHistory} />
-      </GlassSection>
+      </GlassSectionCard>
 
       <CommandQueueBar
         busy={busy}
@@ -407,33 +407,6 @@ function CommandQueueBar({
         </CardContent>
       </GlassCard>
     </div>
-  );
-}
-
-function GlassSection({
-  icon,
-  title,
-  description,
-  children,
-}: {
-  readonly icon: ReactNode;
-  readonly title: string;
-  readonly description?: string;
-  readonly children: ReactNode;
-}) {
-  return (
-    <GlassCard glassVariant="liquid-refract">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-1.5 text-sm font-medium">
-          {icon}
-          {title}
-        </CardTitle>
-        {description !== undefined && (
-          <p className="text-xs text-muted-foreground">{description}</p>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-3">{children}</CardContent>
-    </GlassCard>
   );
 }
 

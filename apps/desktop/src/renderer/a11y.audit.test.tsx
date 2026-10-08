@@ -208,11 +208,11 @@ describe("accessibility audit (axe-core)", () => {
     await audit(<BottomNav screen="overview" onSelect={noop} />);
   });
 
-  it("Options (density, save, copy, close)", async () => {
+  it("Options (appearance and display)", async () => {
     await audit(
       <BackgroundProvider>
         <DensityProvider>
-          <OptionsScreen saving={false} onSave={noop} onCopy={noop} onCloseCampaign={noop} />
+          <OptionsScreen />
         </DensityProvider>
       </BackgroundProvider>,
     );

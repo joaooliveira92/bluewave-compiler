@@ -1,4 +1,4 @@
-import { BALANCED_ALLOCATION, type ArchetypeDimension } from "@bluewave/campaign-engine";
+import { BALANCED_ALLOCATION } from "@bluewave/campaign-engine";
 import {
   ArrowDown,
   ArrowUp,
@@ -24,13 +24,8 @@ import {
   TooltipTrigger,
 } from "../../components/ui/tooltip.js";
 import { type ArchetypeNumericEffect, type ArchetypeConsequence } from "./archetype-consequence.js";
+import { archetypeDimensionDescriptor } from "./archetype-dimensions.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
-
-const DIMENSION_ICONS: Record<ArchetypeDimension, typeof Coins> = {
-  economy: Coins,
-  industry: Factory,
-  combat: Swords,
-};
 
 const EFFECT_META: Record<string, { readonly icon: typeof Coins; readonly description: string }> = {
   "Starting treasury": {
@@ -104,7 +99,7 @@ function DimensionDeltas({ consequence }: { consequence: ArchetypeConsequence })
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       {consequence.dimensionDeltas.map((delta) => {
-        const Icon = DIMENSION_ICONS[delta.dimension];
+        const Icon = archetypeDimensionDescriptor(delta.dimension).icon;
         const DeltaIcon = delta.delta > 0 ? TrendingUp : delta.delta < 0 ? TrendingDown : Minus;
         const variance =
           delta.delta > 0 ? "default" : delta.delta < 0 ? "destructive" : "secondary";
