@@ -16,13 +16,9 @@ import { Button } from "../ui/button.js";
 import { CoastlineCanvas } from "./CoastlineCanvas.js";
 import { MapMinimap } from "./MapMinimap.js";
 import { MapScaleBar } from "./MapScaleBar.js";
-import {
-  areaMetricText,
-  buildOwnershipRows,
-  describeArea,
-  filterAreaRows,
-  type AreaMetric,
-} from "./map-a11y.js";
+import { buildOwnershipRows, describeArea } from "./map-a11y.js";
+import { AreaTreePanel } from "./AreaTreePanel.js";
+import { campaignTreeRows, type AreaTreeRow } from "./area-tree.js";
 import { AREAS, AREAS_BY_ID, EDGES, FLEETS, PASSAGES_BY_ID, POSSESSIONS } from "./fixture-world.js";
 import { useCoastline } from "./useCoastline.js";
 import {
@@ -95,8 +91,6 @@ export function WorldMapChart({
 }: WorldMapChartProps) {
   const isPanel = variant === "panel";
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [areaQuery, setAreaQuery] = useState("");
-  const [areaMetric, setAreaMetric] = useState<AreaMetric>("ships");
   const projection = projectionById(state.projection);
   const camera = useMapCamera(projection.width, projection.height);
   const live = overlay.source === "campaign";
@@ -258,16 +252,37 @@ export function WorldMapChart({
     return nationStroke(nation);
   }
 
-  const visibleAreaRows = useMemo(
-    () => filterAreaRows(ownershipRows, areaQuery),
-    [ownershipRows, areaQuery],
-  );
+  /** The area tree's rows: campaign areas when live, else the fixture areas (no regions). */
+  const treeRows = useMemo<AreaTreeRow[]>(() => {
+    if (live) {
+      return campaignTreeRows(
+        overlay.campaignAreas,
+        overlay.playerNationId,
+        campaignNationLabel,
+        state.selected,
+      );
+    }
+    return ownershipRows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      owner: row.owner,
+      ships: row.fleets,
+      possessed: row.possessions > 0,
+      mapAreaId: row.id,
+      selected: row.selected,
+    }));
+  }, [live, overlay, ownershipRows, state.selected]);
 
   /** Select an area and bring it into view (the area list's job). */
   function focusArea(id: string): void {
     onSelect(id);
     const point = areasById.get(id)?.label;
     if (point !== undefined) camera.focusOn(point[0], point[1], 3.5);
+  }
+
+  /** A tree row was chosen: select its map area (which opens the inspector) and zoom to it. */
+  function focusTreeRow(row: AreaTreeRow): void {
+    if (row.mapAreaId !== null) focusArea(row.mapAreaId);
   }
 
   function describeAreaFor(id: string): string {
@@ -712,65 +727,10 @@ export function WorldMapChart({
         </div>
         <details className="group" data-testid="area-list">
           <summary className="cursor-pointer select-none text-xs" style={{ color: CHART.inkDim }}>
-            Areas ({ownershipRows.length})
+            Areas ({treeRows.length})
           </summary>
-          <div className="mt-2 space-y-1.5" style={{ width: 220 }}>
-            <div role="group" aria-label="Show in the area list" className="flex gap-1">
-              {(["ships", "possessions"] as const).map((metric) => (
-                <button
-                  key={metric}
-                  type="button"
-                  aria-pressed={areaMetric === metric}
-                  onClick={() => setAreaMetric(metric)}
-                  className="h-6 flex-1 rounded border px-1.5 text-xs capitalize hover:bg-white/10"
-                  style={{
-                    background: areaMetric === metric ? "oklch(0.35 0.03 245)" : "transparent",
-                    borderColor: "oklch(0.4 0.02 245)",
-                    color: areaMetric === metric ? CHART.ink : CHART.inkDim,
-                  }}
-                >
-                  {metric}
-                </button>
-              ))}
-            </div>
-            <input
-              type="search"
-              value={areaQuery}
-              onChange={(event) => setAreaQuery(event.target.value)}
-              placeholder="Filter by name or owner"
-              aria-label="Filter areas"
-              className="h-7 w-full rounded-md border bg-transparent px-2 text-xs placeholder:opacity-60"
-              style={{ borderColor: "oklch(0.4 0.02 245)", color: CHART.ink }}
-            />
-            <ul className="max-h-56 space-y-0.5 overflow-y-auto pr-1" aria-label="Areas">
-              {visibleAreaRows.length === 0 && (
-                <li className="px-1 py-1" style={{ color: CHART.inkDim }}>
-                  No areas match.
-                </li>
-              )}
-              {visibleAreaRows.map((row) => (
-                <li key={row.id}>
-                  <button
-                    type="button"
-                    onClick={() => focusArea(row.id)}
-                    aria-current={row.selected ? "true" : undefined}
-                    className="flex w-full items-center justify-between gap-2 rounded px-1.5 py-1 text-left hover:bg-white/10"
-                    style={{
-                      background: row.selected ? "oklch(0.35 0.03 245)" : "transparent",
-                      color: CHART.ink,
-                    }}
-                  >
-                    <span className="truncate">{row.name}</span>
-                    <span className="shrink-0 tabular-nums" style={{ color: CHART.inkDim }}>
-                      {row.owner ?? "Unclaimed"}
-                      {areaMetricText(row, areaMetric) !== null
-                        ? ` · ${areaMetricText(row, areaMetric)}`
-                        : ""}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+          <div className="mt-2" style={{ width: 220, color: CHART.ink }}>
+            <AreaTreePanel rows={treeRows} onSelectArea={focusTreeRow} />
           </div>
         </details>
       </div>

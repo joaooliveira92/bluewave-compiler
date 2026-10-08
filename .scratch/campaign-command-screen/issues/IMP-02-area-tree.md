@@ -1,7 +1,7 @@
 # Area tree panel with regions
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** none
 **Frontier:** yes
 **Requirements:** CC-4

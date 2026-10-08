@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { resolvePlayerNationId } from "./area-tree.js";
 import { EMPTY_LIVE_OVERLAY, joinWorldMap, type LiveWorldMapOverlay } from "./campaign-map-join.js";
 import {
   initialMapPrototypeState,
@@ -34,7 +35,8 @@ export interface WorldMapController {
  */
 export function useWorldMapController(sessionId: string | null): WorldMapController {
   const [state, setState] = useState(initialMapPrototypeState);
-  const [overlay, setOverlay] = useState<LiveWorldMapOverlay>(EMPTY_LIVE_OVERLAY);
+  const [baseOverlay, setOverlay] = useState<LiveWorldMapOverlay>(EMPTY_LIVE_OVERLAY);
+  const [playerNationId, setPlayerNationId] = useState<string | null>(null);
 
   useEffect(() => {
     const bridge = window.bluewave;
@@ -47,9 +49,25 @@ export function useWorldMapController(sessionId: string | null): WorldMapControl
       .execute("inspectMap", sessionId)
       .then((result) => {
         if (!active) return;
-        setOverlay(
-          result.outcome === "success" ? joinWorldMap(result.value.world) : EMPTY_LIVE_OVERLAY,
-        );
+        if (result.outcome !== "success") {
+          setOverlay(EMPTY_LIVE_OVERLAY);
+          setPlayerNationId(null);
+          return;
+        }
+        setOverlay(joinWorldMap(result.value.world));
+        // The tree's Ships / Possessions lenses are the player's: resolve who that is.
+        return Promise.resolve(bridge.campaign.execute("inspectCampaign", sessionId))
+          .then((campaign) => {
+            if (!active) return;
+            setPlayerNationId(
+              campaign?.outcome === "success"
+                ? resolvePlayerNationId(result.value.world, campaign.value.projection.nationName)
+                : null,
+            );
+          })
+          .catch(() => {
+            if (active) setPlayerNationId(null);
+          });
       })
       .catch(() => {
         if (active) setOverlay(EMPTY_LIVE_OVERLAY);
@@ -58,6 +76,11 @@ export function useWorldMapController(sessionId: string | null): WorldMapControl
       active = false;
     };
   }, [sessionId]);
+
+  const overlay = useMemo(
+    () => (baseOverlay.source === "campaign" ? { ...baseOverlay, playerNationId } : baseOverlay),
+    [baseOverlay, playerNationId],
+  );
 
   const onSelect = useCallback(
     (area: AreaId | null) => setState((current) => selectArea(current, area)),

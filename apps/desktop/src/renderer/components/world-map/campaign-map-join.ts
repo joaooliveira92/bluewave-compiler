@@ -200,7 +200,21 @@ export interface LiveWorldMapOverlay {
     readonly nation: NationId;
     readonly ships: number;
   }[];
+  /**
+   * Every campaign area at its own (production-pack) granularity, with who controls it and the
+   * fleets sitting in it. The map draws at fixture granularity; the area tree lists these.
+   */
+  readonly campaignAreas: readonly CampaignAreaEntry[];
+  /** The player's nation id, when the host has resolved it; the tree's Ships/Possessions key off it. */
+  readonly playerNationId: string | null;
   readonly source: "campaign" | "none";
+}
+
+export interface CampaignAreaEntry {
+  readonly id: string;
+  readonly name: string;
+  readonly controller: string | null;
+  readonly fleets: readonly { readonly nation: NationId; readonly ships: number }[];
 }
 
 /**
@@ -245,13 +259,24 @@ export function joinWorldMap(world: WorldMapView): LiveWorldMapOverlay {
     })
     .filter((fleet): fleet is NonNullable<typeof fleet> => fleet !== null);
 
-  return { ownership, ports, fleets, source: "campaign" };
+  const campaignAreas: CampaignAreaEntry[] = world.areas.map((area) => ({
+    id: area.id,
+    name: area.name,
+    controller: area.controller ?? null,
+    fleets: world.fleets
+      .filter((fleet) => fleet.areaId === area.id)
+      .map((fleet) => ({ nation: fleet.nationId, ships: fleet.shipCount })),
+  }));
+
+  return { ownership, ports, fleets, campaignAreas, playerNationId: null, source: "campaign" };
 }
 
 export const EMPTY_LIVE_OVERLAY: LiveWorldMapOverlay = {
   ownership: new Map(),
   ports: [],
   fleets: [],
+  campaignAreas: [],
+  playerNationId: null,
   source: "none",
 };
 

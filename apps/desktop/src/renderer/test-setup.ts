@@ -7,3 +7,12 @@ import { configure } from "@testing-library/react";
  * long enough for a loaded machine and still short enough that a genuine hang fails promptly.
  */
 configure({ asyncUtilTimeout: 5000 });
+
+/** jsdom has no ResizeObserver; components that measure themselves (liquid-glass) need a no-op. */
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  };
+}
