@@ -563,17 +563,34 @@ environment:
     - { id: qf_6in, penetrationUm: 150000 }
     - { id: qf_47in, penetrationUm: 100000 }
     - { id: qf_12pdr, penetrationUm: 50000 }
+  # Yards (ADR-0067 section 6). Per-line capacity is maxDisplacement(t) x yardWorkPerTonneMonth, so a bigger yard works faster and
+  # the "limited by <line>" bottleneck is meaningful. Limits and rate are ESTIMATES: sized to the 1880-1900 hull classes
+  # (destroyer/torpedo boat, cruiser, battleship), not to named historical slips.
   facilities:
     - {
-        id: yard,
+        id: yard_small,
+        maxLengthMm: 110000,
+        maxBeamMm: 15000,
+        maxDisplacementKg: 3000000,
+        craneLiftKg: 80000,
+      }
+    - {
+        id: yard_medium,
+        maxLengthMm: 150000,
+        maxBeamMm: 22000,
+        maxDisplacementKg: 9000000,
+        craneLiftKg: 150000,
+      }
+    - {
+        id: yard_large,
         maxLengthMm: 200000,
         maxBeamMm: 40000,
         maxDisplacementKg: 30000000,
         craneLiftKg: 250000,
       }
-  # PLACEHOLDER. Raised from 2,000,000 (ticket 20): at 2M a Majestic-size hull (276M work) could not finish in maxMonths, so the
-  # Drawing Board had no forecast for battleships. At 20M the capacity schedule is shorter than the historical table time, which
-  # then sets the forecast (buildMonthsByDisplacementT); capacity only lengthens it for over-large or over-loaded builds.
-  yardCapacityWorkPerMonth: 20000000
+  # PLACEHOLDER rate (ESTIMATE): 700 work micro-units per tonne of maxDisplacement per month per line. The large yard (30,000 t)
+  # keeps the 21,000,000 that ticket 20 needed for a Majestic-size hull (276M work) to finish inside maxMonths; the small yard
+  # (3,000 t) has 2,100,000 and cannot hold a battleship at all.
+  yardWorkPerTonneMonth: 700
   # Engine projection: displacement per hit point; the median of the 37 authored 1880-pack designs is ~214,000 kg.
   kgPerHitPoint: 214000

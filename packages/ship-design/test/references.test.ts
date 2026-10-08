@@ -139,7 +139,24 @@ describe("Majestic-like battleship on the real EARLY-band content", () => {
 
 describe("1880 torpedo cruiser reference", () => {
   it("is valid in January 1880, naturally CL, and not before its torpedoes exist", () => {
-    const ref = (parse(readFileSync(join(__dirname, "..", "..", "..", "content", "production", "1880", "ship-building", "reference-designs.yaml"), "utf8")) as { designs: { id: string; month: string; draft: DesignDraft }[] }).designs.find((d) => d.id === "torpedo_cruiser_1880")!;
+    const ref = (
+      parse(
+        readFileSync(
+          join(
+            __dirname,
+            "..",
+            "..",
+            "..",
+            "content",
+            "production",
+            "1880",
+            "ship-building",
+            "reference-designs.yaml",
+          ),
+          "utf8",
+        ),
+      ) as { designs: { id: string; month: string; draft: DesignDraft }[] }
+    ).designs.find((d) => d.id === "torpedo_cruiser_1880")!;
     const r = compileDesign(ref.draft, earlyContext(ref.month));
     expect(r.findings.filter((f) => f.severity === "BLOCKING")).toEqual([]);
     expect(r.valid).toBe(true);

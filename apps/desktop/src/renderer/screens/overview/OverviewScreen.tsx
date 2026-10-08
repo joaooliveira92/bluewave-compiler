@@ -15,7 +15,7 @@ import { Badge } from "../../components/ui/badge.js";
 import { Button } from "../../components/ui/button.js";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
-import type { Screen } from "../../shell/AppSidebar.js";
+import type { Screen } from "../../shell/campaign-screen-registry.js";
 import {
   applyLoadFailed,
   applyProjectionLoaded,

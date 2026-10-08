@@ -1,4 +1,4 @@
-import type { ArmourRegion, ArmourRegionId } from "./armour.js";
+import { armourAvailabilityFindings, type ArmourRegion, type ArmourRegionId } from "./armour.js";
 import type { ComponentCategory } from "./component.js";
 import {
   compileDesign,
@@ -107,6 +107,11 @@ const f = (
   remedies: remedies.map(([rid, description]) => ({ id: rid, description })),
   evidence: { formulaId: "REFIT", inputs: {}, threshold, value },
 });
+// Reported once, for the installed plate only, by the explicit gate above.
+const ARMOUR_GATE_IDS: ReadonlySet<string> = new Set([
+  "ARMOUR_TECH_UNAVAILABLE",
+  "ARMOUR_THICKNESS_UNAVAILABLE",
+]);
 const fmt = (n: number) => n.toLocaleString("en-US");
 
 /**
@@ -210,6 +215,12 @@ export function evaluateRefit(
       ),
     );
   }
+  // Same gate as the design compile, applied to the plate the refit installs (a pre-existing region is not re-judged).
+  findings.push(
+    ...armourAvailabilityFindings(armourSet, ctx.balance.armour, ctx.month, ctx.unlockedTechs).map(
+      (x) => ({ ...x, id: `REFIT_${x.id}` }),
+    ),
+  );
   const haveRegions = new Set(ship.design.armour.regions.map((r) => r.region));
   for (const region of armourRemove) {
     if (!haveRegions.has(region))
@@ -338,7 +349,8 @@ export function evaluateRefit(
   for (const x of after.findings) {
     if (
       (x.severity === "BLOCKING" || x.severity === "CRITICAL") &&
-      !baseline.has(`${x.severity}:${x.id}`)
+      !baseline.has(`${x.severity}:${x.id}`) &&
+      !ARMOUR_GATE_IDS.has(x.id)
     ) {
       findings.push({ ...x, id: `REFIT_${x.id}`, what: `Refit would cause: ${x.what}` });
     }

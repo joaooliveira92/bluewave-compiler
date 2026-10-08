@@ -2,7 +2,7 @@ import { appendMonthSummary, type MonthSummary } from "../lib/month-summary.js";
 import type { PrimaryAction } from "./primary-action.js";
 import type { NavigationHistory } from "./navigation-history.js";
 import { currentEntry, initialHistory, visit } from "./navigation-history.js";
-import type { Screen } from "./AppSidebar.js";
+import type { Screen } from "./campaign-screen-registry.js";
 
 export interface CampaignOverview {
   readonly month: { readonly year: number; readonly month: number };

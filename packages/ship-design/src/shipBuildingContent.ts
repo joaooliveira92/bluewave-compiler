@@ -1,7 +1,6 @@
 import type { ArchetypeId, ArchetypeSpec, AiEnvironment } from "./ai.js";
 import type { ComponentDef } from "./component.js";
 import type { ConstructionBalance } from "./construction.js";
-import { LINE_IDS, type LineId } from "./construction.js";
 import {
   hullFormsFromRecords,
   shipBalanceFromRecord,
@@ -13,6 +12,7 @@ import type { Facility } from "./compile.js";
 import type { PropulsionPlant } from "./machinery.js";
 import type { ThreatProfile } from "./armour.js";
 import type { WorkshopEnvironment } from "./workshop.js";
+import { buildYards } from "./yards.js";
 
 /** Parsed (not yet interpreted) ship-building data: the YAML files of content/production/<scenario>/ship-building. */
 export interface ShipBuildingData {
@@ -28,7 +28,8 @@ export interface ShipBuildingData {
     readonly environment: {
       readonly threats: readonly ThreatProfile[];
       readonly facilities: readonly Facility[];
-      readonly yardCapacityWorkPerMonth: number;
+      /** Work micro-units per month per line per tonne of a yard's maxDisplacement (ADR-0067 section 6). */
+      readonly yardWorkPerTonneMonth: number;
       readonly kgPerHitPoint: number;
     };
   };
@@ -59,9 +60,10 @@ export function unlockedTechIds(
 export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingContent {
   const ship = shipBalanceFromRecord(data.balance.ship);
   const forms = hullFormsFromRecords(data.hullForms);
-  const yardCapacity = Object.fromEntries(
-    LINE_IDS.map((l) => [l, data.balance.environment.yardCapacityWorkPerMonth]),
-  ) as Record<LineId, number>;
+  const yards = buildYards(
+    data.balance.environment.facilities,
+    data.balance.environment.yardWorkPerTonneMonth,
+  );
   const environmentFor = (month: string): WorkshopEnvironment => ({
     ctx: {
       month,
@@ -78,7 +80,7 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
     costCtx: { maturityBpByTech: {}, firstOfClass: true },
     constructionBalance: data.balance.construction,
     cveBalance: data.balance.cve,
-    yardCapacity,
+    yards,
   });
   return {
     components: data.components,

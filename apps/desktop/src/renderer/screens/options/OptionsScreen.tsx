@@ -50,14 +50,14 @@ const BACKGROUND_OPTIONS: {
   value: BackgroundStyle;
   icon: typeof Waves;
 }[] = [
-    { label: "Water", value: "water", icon: Waves },
-    { label: "Starfield", value: "stars", icon: Sparkles },
-    { label: "Mesh - Citrus", value: "mesh-citrus", icon: Citrus },
-    { label: "Mesh - Lagoon", value: "mesh-lagoon", icon: Gem },
-    { label: "Auralis", value: "auralis", icon: Flame },
-    { label: "Nebulore", value: "nebulore", icon: Orbit },
-    { label: "None", value: "none", icon: Ban },
-  ];
+  { label: "Water", value: "water", icon: Waves },
+  { label: "Starfield", value: "stars", icon: Sparkles },
+  { label: "Mesh - Citrus", value: "mesh-citrus", icon: Citrus },
+  { label: "Mesh - Lagoon", value: "mesh-lagoon", icon: Gem },
+  { label: "Auralis", value: "auralis", icon: Flame },
+  { label: "Nebulore", value: "nebulore", icon: Orbit },
+  { label: "None", value: "none", icon: Ban },
+];
 
 export function OptionsScreen({ saving, onSave, onCopy, onCloseCampaign }: OptionsScreenProps) {
   const { background, setBackground } = useBackground();

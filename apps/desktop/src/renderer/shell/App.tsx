@@ -35,7 +35,7 @@ import {
   type CampaignIdentityDraft,
 } from "../screens/new-game/new-game-identity-screen-state.js";
 import type { DraftPreferences } from "../screens/new-game/new-game-preferences-screen-state.js";
-import { AppSidebar } from "./AppSidebar.js";
+import { BottomNav } from "./BottomNav.js";
 import { useBackground } from "./BackgroundContext.js";
 import { CampaignShellProvider, useCampaignShellContext } from "./CampaignShellContext.js";
 import {
@@ -378,9 +378,6 @@ function AppFrame({
     <SidebarProvider className="h-svh flex-col overflow-hidden bg-transparent">
       {header}
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {campaignSessionId !== null && (
-          <AppSidebar screen={screen} onSelect={onSelectScreen} footer={campaignSessionId} />
-        )}
         <SidebarInset className="relative min-h-0 overflow-auto bg-transparent">
           {saveMessage !== null && (
             <Alert
@@ -393,6 +390,9 @@ function AppFrame({
           {children}
         </SidebarInset>
       </div>
+      {campaignSessionId !== null && (
+        <BottomNav screen={screen} onSelect={onSelectScreen} footer={campaignSessionId} />
+      )}
     </SidebarProvider>
   );
 }

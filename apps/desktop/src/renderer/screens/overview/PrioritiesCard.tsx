@@ -5,7 +5,7 @@ import { Badge } from "../../components/ui/badge.js";
 import { Button } from "../../components/ui/button.js";
 import { CardContent, CardHeader, CardTitle } from "../../components/ui/card.js";
 import { SEVERITY_LABELS, SEVERITY_VARIANT, destinationLabel } from "../../lib/priorities.js";
-import type { Screen } from "../../shell/AppSidebar.js";
+import type { Screen } from "../../shell/campaign-screen-registry.js";
 import type { PrioritiesState } from "./usePriorities.js";
 
 /** At most this many priorities are shown; the engine already sorts the most urgent first. */

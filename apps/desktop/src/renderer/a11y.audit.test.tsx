@@ -18,8 +18,7 @@ import { OptionsScreen } from "./screens/options/OptionsScreen.js";
 import { PrioritiesCard } from "./screens/overview/PrioritiesCard.js";
 import { BudgetBar } from "./screens/treasury/BudgetBar.js";
 import { BackgroundProvider } from "./shell/BackgroundContext.js";
-import { AppSidebar } from "./shell/AppSidebar.js";
-import { SidebarProvider } from "./components/ui/sidebar.js";
+import { BottomNav } from "./shell/BottomNav.js";
 import { DensityProvider } from "./shell/DensityContext.js";
 
 /**
@@ -205,12 +204,8 @@ describe("accessibility audit (axe-core)", () => {
     );
   });
 
-  it("Sidebar with its section headings", async () => {
-    await audit(
-      <SidebarProvider>
-        <AppSidebar screen="overview" onSelect={noop} />
-      </SidebarProvider>,
-    );
+  it("Bottom navigation", async () => {
+    await audit(<BottomNav screen="overview" onSelect={noop} />);
   });
 
   it("Options (density, save, copy, close)", async () => {

@@ -74,7 +74,6 @@ describe("SiteHeader", () => {
   it("renders the nav and title slots", () => {
     renderHeader();
 
-    expect(screen.getByRole("button", { name: "Toggle sidebar" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Go back" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Go forward" })).toBeTruthy();
     expect(screen.getByText("Naval Ministry")).toBeTruthy();

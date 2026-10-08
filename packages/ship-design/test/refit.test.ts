@@ -338,3 +338,118 @@ describe("ARMOUR_MODIFICATION (RTW3 manual p. 32 rebuild list, ADR-0067 §3)", (
     expect(JSON.stringify(run(rt, armoured))).toBe(JSON.stringify(run(addDeck, armoured)));
   });
 });
+
+describe("ARMOUR_MODIFICATION tech gating (ticket 24; shares the compile gate)", () => {
+  const gated: ShipContext = {
+    ...ctx,
+    balance: {
+      ...ctx.balance,
+      armour: {
+        ...ctx.balance.armour,
+        materialEffBp: {
+          ...ctx.balance.armour.materialEffBp,
+          compound: 13_000,
+          nickel_steel: 13_500,
+        },
+        materialAvailability: {
+          nickel_steel: { requires: ["tech_nickel"], fromMonth: "1895-01" },
+          compound: { fromMonth: "1880-01", obsoleteMonth: "1893-01", maxThicknessUm: 450_000 },
+          mild_steel: { fromMonth: "1880-01", maxThicknessUm: 40_000 },
+        },
+      },
+    },
+  };
+  const deck = draft.armour.regions.find((r) => r.region === "DECK_MAIN")!;
+  const plan = (r: Partial<ArmourRegion>): RefitPlan => ({
+    kind: "ARMOUR_MODIFICATION",
+    removeInstanceIds: [],
+    add: [],
+    armourSet: [{ ...deck, thicknessUm: 40_000, ...r }],
+  });
+  const big: ShipState = { ...ship, growthBudgetKg: 40_000 };
+  const ids = (r: ReturnType<typeof run>) => r.findings.map((x) => x.id);
+
+  it("an available material at an allowed thickness is legal", () => {
+    const r = run(plan({ materialId: "mild_steel" }), big, gated);
+    expect(r.legal).toBe(true);
+    expect(ids(r).some((i) => i.includes("ARMOUR_"))).toBe(false);
+  });
+  it("a material whose tech is missing is BLOCKING and the ship is unchanged", () => {
+    const r = run(plan({ materialId: "nickel_steel" }), big, gated);
+    expect(r.legal).toBe(false);
+    const x = r.findings.find((f) => f.id === "REFIT_ARMOUR_TECH_UNAVAILABLE")!;
+    expect(x.severity).toBe("BLOCKING");
+    expect(x.why).toContain("tech_nickel");
+    expect(checkFindingShape(x)).toEqual([]);
+    expect(r.nextState).toBe(big);
+    // with the tech unlocked it is legal
+    const ok = run(plan({ materialId: "nickel_steel" }), big, {
+      ...gated,
+      month: "1895-01",
+      unlockedTechs: new Set([...gated.unlockedTechs, "tech_nickel"]),
+    });
+    expect(ok.legal).toBe(true);
+  });
+  it("a material not yet introduced at the campaign month is BLOCKING, legal once introduced", () => {
+    const techd = { ...gated, unlockedTechs: new Set([...gated.unlockedTechs, "tech_nickel"]) };
+    const early = run(plan({ materialId: "nickel_steel" }), big, techd);
+    expect(early.legal).toBe(false);
+    expect(early.findings.find((f) => f.id === "REFIT_ARMOUR_TECH_UNAVAILABLE")!.why).toContain(
+      "1895-01",
+    );
+    const late = run(plan({ materialId: "nickel_steel" }), big, {
+      ...gated,
+      month: "1895-01",
+      unlockedTechs: new Set([...gated.unlockedTechs, "tech_nickel"]),
+    });
+    expect(late.legal).toBe(true);
+  });
+  it("an obsolete material is only an ADVISORY", () => {
+    const r = run(plan({ materialId: "compound" }), big, gated);
+    expect(r.legal).toBe(true);
+    expect(r.findings.find((f) => f.id === "REFIT_ARMOUR_MATERIAL_OBSOLETE")?.severity).toBe(
+      "ADVISORY",
+    );
+  });
+  it("a plate thicker than the material allows is BLOCKING", () => {
+    const r = run(plan({ materialId: "mild_steel", thicknessUm: 40_001 }), big, gated);
+    expect(r.legal).toBe(false);
+    const x = r.findings.find((f) => f.id === "REFIT_ARMOUR_THICKNESS_UNAVAILABLE")!;
+    expect(x.severity).toBe("BLOCKING");
+    expect(x.evidence.threshold).toBe(40_000);
+    expect(run(plan({ materialId: "mild_steel", thicknessUm: 40_000 }), big, gated).legal).toBe(
+      true,
+    );
+  });
+  it("the same gate blocks a new design compile", () => {
+    const d = {
+      ...draft,
+      armour: { ...draft.armour, regions: [{ ...deck, materialId: "nickel_steel" }] },
+    };
+    const c = compileDesign(d, gated);
+    expect(c.findings.some((f) => f.id === "ARMOUR_TECH_UNAVAILABLE")).toBe(true);
+    expect(c.valid).toBe(false);
+  });
+  it("an existing out-of-gate region is not re-judged; unrelated refits and absent availability are unchanged", () => {
+    const old: ShipState = {
+      ...big,
+      design: {
+        ...draft,
+        armour: { ...draft.armour, regions: [{ ...deck, materialId: "nickel_steel" }] },
+      },
+    };
+    const r = run(
+      { ...plan({}), armourSet: undefined, armourRemove: ["SPLINTER_PLATING"] },
+      old,
+      gated,
+    );
+    expect(ids(r)).not.toContain("REFIT_ARMOUR_TECH_UNAVAILABLE");
+    // no availability table: nickel_steel is unrestricted, as before this ticket
+    expect(run(plan({ materialId: "nickel_steel" }), big, ctx).legal).toBe(true);
+    expect(run(upgrade(), ship, gated).legal).toBe(true);
+  });
+  it("is deterministic", () => {
+    const p = plan({ materialId: "nickel_steel" });
+    expect(JSON.stringify(run(p, big, gated))).toBe(JSON.stringify(run(p, big, gated)));
+  });
+});

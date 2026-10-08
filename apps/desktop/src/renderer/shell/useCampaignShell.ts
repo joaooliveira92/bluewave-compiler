@@ -5,7 +5,7 @@ import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import { countActiveAlerts } from "../lib/priorities.js";
 import { summarizeMonth } from "../lib/month-summary.js";
 import { emitWideEvent } from "../lib/telemetry.js";
-import type { Screen } from "./AppSidebar.js";
+import type { Screen } from "./campaign-screen-registry.js";
 import {
   campaignShellMode,
   currentShellScreen,

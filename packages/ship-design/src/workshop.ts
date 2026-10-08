@@ -5,6 +5,7 @@ import {
   type ShipContext,
 } from "./compile.js";
 import {
+  ConstructionPlanError,
   historicalBuildMonths,
   planConstruction,
   simulateConstruction,
@@ -15,6 +16,7 @@ import { computeCost, type CostBalance, type CostContext } from "./cost.js";
 import { computeCve, CVE_LABEL, type CveBalance } from "./cve.js";
 import type { Finding, Severity } from "./findings.js";
 import { LEDGER_CATEGORIES, type LedgerCategory } from "./ledger.js";
+import { yardFits, type Yard } from "./yards.js";
 
 /** Everything the workshop needs besides the draft. Built once per campaign from content and nation state. */
 export interface WorkshopEnvironment {
@@ -23,8 +25,8 @@ export interface WorkshopEnvironment {
   readonly costCtx: CostContext;
   readonly constructionBalance: ConstructionBalance;
   readonly cveBalance: CveBalance;
-  /** Work micro-units per month each line can apply to this ship, from the chosen yard. */
-  readonly yardCapacity: Readonly<Record<LineId, number>>;
+  /** Shipyards (limits plus per-line capacity scaled to maxDisplacement), ascending capacity (ADR-0067 section 6). */
+  readonly yards: readonly Yard[];
   /** Shipbuilding-industry build-time multiplier, bp (10_000 or absent = neutral; ADR-0067 section 5). */
   readonly industryBp?: number;
 }
@@ -61,6 +63,8 @@ export interface WorkshopView {
     /** Historical keel-to-commissioning months for this displacement after industry and acceleration; null if not valid. */
     readonly historicalMonths: number | null;
     readonly bottleneck: LineId | null;
+    /** Id of the yard the forecast assumes (the fitting yard with the shortest schedule, smallest on a tie); null if none. */
+    readonly yardId: string | null;
     readonly note: string | null;
   };
   readonly cve: { readonly label: string; readonly cveBp: number };
@@ -162,20 +166,51 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
   let historicalMonths: number | null = null;
   let bottleneck: LineId | null = null;
   let note: string | null = null;
+  let yardId: string | null = null;
   if (c.valid) {
     try {
       const plan = planConstruction(c, draft, cost, env.constructionBalance, true);
-      const s = simulateConstruction(
-        plan,
-        { capacity: env.yardCapacity, monthlyFundingMicro: null, costPerWorkMicro: 1 },
-        env.constructionBalance.maxMonths,
-      );
-      historicalMonths = historicalBuildMonths(c.totalKg, env.constructionBalance, {
+      const demand = {
+        lengthMm: draft.hull.lengthWl,
+        beamMm: draft.hull.beam,
+        displacementKg: c.totalKg,
+        heaviestKg: Math.max(0, ...c.components.map((x) => x.weightKg)),
+      };
+      const fitting = env.yards.filter((y) => yardFits(y.facility, demand));
+      const hist = historicalBuildMonths(c.totalKg, env.constructionBalance, {
         industryBp: env.industryBp,
         accelerated: env.costCtx.accelerated,
       });
-      months = Math.max(historicalMonths, s.durationMonths);
-      bottleneck = s.bottleneck;
+      let best: {
+        yard: Yard;
+        schedule: ReturnType<typeof simulateConstruction>;
+        total: number;
+      } | null = null;
+      for (const yard of fitting) {
+        try {
+          const schedule = simulateConstruction(
+            plan,
+            { capacity: yard.capacity, monthlyFundingMicro: null, costPerWorkMicro: 1 },
+            env.constructionBalance.maxMonths,
+          );
+          const total = Math.max(hist, schedule.durationMonths);
+          // Yards are ascending in capacity, so a strict improvement keeps the smallest yard on a tie.
+          if (best === null || total < best.total) best = { yard, schedule, total };
+        } catch (e) {
+          if (!(e instanceof ConstructionPlanError) || e.code !== "CONSTRUCTION_STALLED") throw e;
+        }
+      }
+      if (best === null) {
+        note =
+          fitting.length === 0
+            ? "No shipyard can build this hull."
+            : `No shipyard that can hold this hull finishes it within ${env.constructionBalance.maxMonths} months (largest: ${fitting[fitting.length - 1]!.facility.id}).`;
+      } else {
+        historicalMonths = hist;
+        months = best.total;
+        bottleneck = best.schedule.bottleneck;
+        yardId = best.yard.facility.id;
+      }
     } catch (e) {
       note = e instanceof Error ? e.message : String(e);
     }
@@ -198,6 +233,7 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
       months,
       historicalMonths,
       bottleneck,
+      yardId,
       note,
     },
     cve: { label: CVE_LABEL, cveBp: cve.cveBp },

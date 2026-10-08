@@ -8,7 +8,12 @@ import {
   type ResolvedPlacement,
   type ZoneId,
 } from "./arrangement.js";
-import { compileArmour, type ArmourInput, type ArmourResult } from "./armour.js";
+import {
+  armourAvailabilityFindings,
+  compileArmour,
+  type ArmourInput,
+  type ArmourResult,
+} from "./armour.js";
 import type { ComponentDef } from "./component.js";
 import {
   cmpStr,
@@ -409,6 +414,9 @@ export function compileStructure(args: {
       resolved.reduce((a, r) => a + (r.attr.flammableBp ?? 0), 0) +
       (plant.fuelType === "OIL" ? 1_000 : 0),
   });
+  findings.push(
+    ...armourAvailabilityFindings(draft.armour.regions, b.armour, ctx.month, ctx.unlockedTechs),
+  );
   const armourPre = compileArmour(armourInput(0, []), b.armour);
   const mag = (region: string, threatId: string) => armourPre.marginBp[region]?.[threatId] ?? null;
   const designThreat = draft.requirement.designThreatId;

@@ -4,8 +4,6 @@ import {
   applyEdit,
   LEDGER_CATEGORIES,
   CVE_LABEL,
-  LINE_IDS,
-  type LineId,
   type WorkshopEnvironment,
 } from "../src/index.js";
 import {
@@ -13,18 +11,17 @@ import {
   costBalance,
   cveBalance,
   earlyContext,
+  shipBuildingContent,
 } from "./helpers/earlyContext.js";
 import { havock, majestic } from "./helpers/references.js";
 
-const cap = (n: number) =>
-  Object.fromEntries(LINE_IDS.map((l) => [l, n])) as Record<LineId, number>;
 const env = (month: string): WorkshopEnvironment => ({
   ctx: earlyContext(month),
   costBalance,
   costCtx: { maturityBpByTech: {}, firstOfClass: true },
   constructionBalance,
   cveBalance,
-  yardCapacity: cap(20_000_000),
+  yards: shipBuildingContent.environmentFor(month).yards,
 });
 
 describe("buildWorkshopView", () => {
@@ -94,5 +91,48 @@ describe("buildWorkshopView", () => {
     expect(buildWorkshopView(majestic, { ...env("1896-01"), industryBp: 10_000 }).forecast).toEqual(
       big.forecast,
     );
+  });
+  it("a Majestic-size hull is forecast in the large yard; a destroyer in the smallest yard that fits (ADR-0067 section 6)", () => {
+    const big = buildWorkshopView(majestic, env("1896-01"));
+    expect(big.forecast.yardId).toBe("yard_large");
+    expect(big.forecast.months).not.toBeNull();
+    const small = buildWorkshopView(havock, env("1895-06"));
+    expect(small.forecast.yardId).toBe("yard_small");
+  });
+  it("forecast = max(historical, schedule); a weaker large yard lengthens it and names the bottleneck", () => {
+    const e = env("1896-01");
+    const base = buildWorkshopView(majestic, e);
+    const slow = buildWorkshopView(majestic, {
+      ...e,
+      yards: e.yards.map((y) => ({
+        ...y,
+        capacity: Object.fromEntries(
+          Object.entries(y.capacity).map(([l, n]) => [l, Math.floor(n / 2)]),
+        ) as typeof y.capacity,
+      })),
+    });
+    expect(slow.forecast.months!).toBeGreaterThan(base.forecast.months!);
+    expect(slow.forecast.months!).toBeGreaterThan(slow.forecast.historicalMonths!);
+    expect(slow.forecast.bottleneck).not.toBeNull();
+  });
+  it("gives a clear note when no fitting yard finishes the hull, and when no yard fits", () => {
+    const e = env("1896-01");
+    const crawl = buildWorkshopView(majestic, {
+      ...e,
+      yards: e.yards.map((y) => ({
+        ...y,
+        capacity: Object.fromEntries(
+          Object.keys(y.capacity).map((l) => [l, 1]),
+        ) as typeof y.capacity,
+      })),
+    });
+    expect(crawl.forecast.months).toBeNull();
+    expect(crawl.forecast.yardId).toBeNull();
+    expect(crawl.forecast.note).toMatch(
+      /No shipyard that can hold this hull finishes it within 120 months \(largest: yard_large\)/,
+    );
+    const none = buildWorkshopView(majestic, { ...e, yards: [] });
+    expect(none.forecast.note).toBe("No shipyard can build this hull.");
+    expect(none.forecast.months).toBeNull();
   });
 });

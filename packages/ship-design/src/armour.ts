@@ -36,7 +36,21 @@ export interface ThreatProfile {
   readonly penetrationUm: number;
 }
 
+/** When an armour material may be fitted, and the thickest plate of it that can be made. All fields but `fromMonth` optional. */
+export interface ArmourMaterialAvailability {
+  readonly requires?: readonly string[];
+  readonly fromMonth: string;
+  readonly obsoleteMonth?: string | null;
+  /** Thickest plate of this material that can be manufactured, um. */
+  readonly maxThicknessUm?: number;
+}
+
 export interface ArmourBalance {
+  /**
+   * Optional availability per material. A material without an entry is unrestricted, so content that does not (yet)
+   * declare availability behaves as before.
+   */
+  readonly materialAvailability?: Readonly<Record<string, ArmourMaterialAvailability>>;
   readonly steelKgPerM3: number;
   readonly backingBp: number;
   readonly fixingsBp: number;
@@ -311,4 +325,96 @@ export function compileArmour(input: ArmourInput, b: ArmourBalance): ArmourResul
     fireRiskBp,
     findings: sortFindings(findings),
   };
+}
+
+const gateFinding = (
+  id: string,
+  severity: Finding["severity"],
+  what: string,
+  why: string,
+  consequence: string,
+  remedies: [string, string][],
+  threshold: number,
+  value: number,
+): Finding => ({
+  id,
+  severity,
+  what,
+  why,
+  consequence,
+  remedies: remedies.map(([rid, description]) => ({ id: rid, description })),
+  evidence: { formulaId: "F-A-AVAIL", inputs: {}, threshold, value },
+});
+
+/**
+ * The single armour tech gate, used by the design compile (all regions) and by refits (only the regions a refit installs).
+ * Not yet introduced / missing tech / plate thicker than the material allows are BLOCKING; an obsolete material is ADVISORY,
+ * as for components. Pure and order-stable (input order).
+ */
+export function armourAvailabilityFindings(
+  regions: readonly ArmourRegion[],
+  b: ArmourBalance,
+  month: string,
+  unlockedTechs: ReadonlySet<string>,
+): Finding[] {
+  const out: Finding[] = [];
+  for (const r of regions) {
+    const a = b.materialAvailability?.[r.materialId];
+    if (a === undefined) continue;
+    const missing = (a.requires ?? []).filter((t) => !unlockedTechs.has(t));
+    if (missing.length > 0 || a.fromMonth > month) {
+      out.push(
+        gateFinding(
+          "ARMOUR_TECH_UNAVAILABLE",
+          "BLOCKING",
+          `${r.materialId} armour (${r.region}) is not available to this nation yet.`,
+          missing.length > 0
+            ? `Missing technology: ${missing.join(", ")}.`
+            : `Introduced ${a.fromMonth}; current month ${month}.`,
+          "A ship cannot carry armour that cannot yet be made.",
+          [
+            ["research", "Research the missing technology."],
+            ["alternative", "Use an earlier armour material that is available."],
+            ["wait", "Delay the work until the material is available."],
+          ],
+          0,
+          1,
+        ),
+      );
+      continue;
+    }
+    if (a.obsoleteMonth != null && a.obsoleteMonth <= month) {
+      out.push(
+        gateFinding(
+          "ARMOUR_MATERIAL_OBSOLETE",
+          "ADVISORY",
+          `${r.materialId} armour (${r.region}) is obsolete.`,
+          `Obsolete since ${a.obsoleteMonth}.`,
+          "The plate is outclassed by newer armour.",
+          [["upgrade", "Use a newer armour material."]],
+          0,
+          1,
+        ),
+      );
+    }
+    if (a.maxThicknessUm !== undefined && r.thicknessUm > a.maxThicknessUm) {
+      out.push(
+        gateFinding(
+          "ARMOUR_THICKNESS_UNAVAILABLE",
+          "BLOCKING",
+          `${r.materialId} plate for ${r.region} is thicker than can be made.`,
+          `${fmt(r.thicknessUm)} um requested; at most ${fmt(a.maxThicknessUm)} um.`,
+          "Industry cannot roll or forge a plate that thick in this material.",
+          [
+            ["thinner", "Reduce the plate thickness."],
+            ["other_material", "Use a different armour material."],
+            ["wait", "Delay the work until thicker plate can be made."],
+          ],
+          a.maxThicknessUm,
+          r.thicknessUm,
+        ),
+      );
+    }
+  }
+  return out;
 }

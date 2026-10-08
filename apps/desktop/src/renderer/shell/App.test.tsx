@@ -276,12 +276,9 @@ vi.mock("../screens/new-game/NewGameLaunchingScreen.js", async () => {
   };
 });
 
-vi.mock("./AppSidebar.js", async () => {
+vi.mock("./BottomNav.js", async () => {
   const React = await import("react");
-  return {
-    AppSidebar: ({ footer }: { footer?: string }) =>
-      React.createElement("aside", null, `Sidebar ${footer ?? ""}`),
-  };
+  return { BottomNav: () => React.createElement("nav", { "data-testid": "bottom-nav" }) };
 });
 
 vi.mock("./campaign-screen-registry.js", async () => {
@@ -463,7 +460,7 @@ describe("App", () => {
     expect(shell.selectScreen).toHaveBeenCalledWith("new-game-nation");
   });
 
-  it("composes the active campaign shell, sidebar, outlet, search, and primary action", () => {
+  it("composes the active campaign shell, bottom nav, outlet, search, and primary action", () => {
     testState.shell = createShell({
       campaign: {
         sessionId: "ses-1",
@@ -484,7 +481,7 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(screen.getByText("Sidebar ses-1")).toBeTruthy();
+    expect(screen.getByTestId("bottom-nav")).toBeTruthy();
     expect(screen.getByTestId("campaign-outlet").textContent).toBe("overview");
     expect(screen.getByRole("alert").textContent).toContain("Campaign saved");
     expect(screen.getByTestId("site-header").dataset.activeView).toBe("playing");
