@@ -39,6 +39,7 @@ export interface MapMinimapProps {
   readonly land: string;
   readonly ocean: string;
   readonly ink: string;
+  readonly borderColor: string;
 }
 
 /**
@@ -53,6 +54,7 @@ export function MapMinimap({
   land,
   ocean,
   ink,
+  borderColor,
 }: MapMinimapProps) {
   const [path, setPath] = useState("");
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -80,13 +82,8 @@ export function MapMinimap({
   useEffect(() => {
     const update = () => {
       const current = cameraRef.current;
-      const main = current.svgRef.current;
-      const unit = current.getPixelsPerUnit();
-      const view = {
-        width: (main?.clientWidth ?? projection.width * unit) / unit,
-        height: (main?.clientHeight ?? projection.height * unit) / unit,
-      };
-      const rects = visibleWorldRects(current.getTransform(), view, projection);
+      const view = current.getViewport();
+      const rects = visibleWorldRects(current.getTransform(), view, projection, view);
       rectRefs.current.forEach((node, index) => {
         const rect = rects[index];
         if (node === null || node === undefined) return;
@@ -124,7 +121,7 @@ export function MapMinimap({
   };
 
   const heightPx = Math.round((MINIMAP_WIDTH_PX * projection.height) / projection.width);
-  const border = useMemo(() => ({ borderColor: "oklch(0.4 0.02 245)" }), []);
+  const border = useMemo(() => ({ borderColor }), [borderColor]);
 
   return (
     <svg
@@ -150,7 +147,8 @@ export function MapMinimap({
           ref={(node) => {
             rectRefs.current[index] = node;
           }}
-          fill="oklch(0.92 0.01 240 / 0.12)"
+          fill={ink}
+          fillOpacity={0.14}
           stroke={ink}
           strokeWidth={2}
           vectorEffect="non-scaling-stroke"

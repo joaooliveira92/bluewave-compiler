@@ -148,6 +148,7 @@ export function CoastlineCanvas({
       context.lineJoin = "round";
 
       for (const turn of WORLD_WRAP_TURNS) {
+        if (turn !== 0 && !camera.isWrapping()) continue;
         const e =
           ctm.a * (transform.x + transform.scale * turn * projection.width) + ctm.e - rect.left;
         context.setTransform(a * dpr, 0, 0, d * dpr, e * dpr, f * dpr);

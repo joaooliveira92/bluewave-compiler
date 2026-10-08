@@ -12,6 +12,7 @@ function setup() {
   const camera = {
     svgRef: { current: null },
     getPixelsPerUnit: () => 1,
+    getViewport: () => ({ left: 0, top: 0, width: projection.width, height: projection.height }),
     getTransform: () => ({ scale: 2, x: 0, y: 0 }),
     subscribe,
     focusOn,
@@ -25,6 +26,7 @@ function setup() {
       land="#333"
       ocean="#111"
       ink="#eee"
+      borderColor="#444"
     />,
   );
   const minimap = screen.getByTestId("map-minimap");

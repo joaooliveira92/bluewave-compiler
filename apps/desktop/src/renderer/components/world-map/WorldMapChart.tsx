@@ -1,7 +1,7 @@
 /**
  * The Admiralty-chart world map — real coastlines, areas as translucent
- * ownership washes over them, its own chart palette independent of the app
- * theme (the way a paper chart would be).
+ * ownership washes over them. The ocean is transparent, so the map surface
+ * follows the app theme (see map-palette.ts).
  *
  * Promoted out of `screens/map-prototype/variants/VariantAChart.tsx` (ticket
  * 06's three-way comparison) once "Admiralty chart" was chosen as the design.
@@ -11,7 +11,7 @@
  * component is the one consumer of that data that is not itself throwaway.
  */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "../ui/button.js";
 import { CoastlineCanvas } from "./CoastlineCanvas.js";
 import { MapMinimap } from "./MapMinimap.js";
@@ -45,6 +45,7 @@ import {
   type LiveWorldMapOverlay,
 } from "./campaign-map-join.js";
 import { useMapCamera } from "./useMapCamera.js";
+import { useMapPalette } from "./map-palette.js";
 import type { MapViewProps } from "./map-contract.js";
 import { cn } from "../../lib/utils.js";
 
@@ -62,13 +63,81 @@ function pinned(x: number, y: number) {
   return { transform: `translate(${x}px, ${y}px) scale(var(--map-inv, 1))` };
 }
 
-/** Text sized in real screen pixels, whatever the SVG viewBox scale (camera `--map-upx`). */
+/** Text for a pinned group: `--map-inv` already makes one user unit one screen pixel. */
 function screenText(px: number, strokePx: number) {
-  return {
-    fontSize: `calc(${px}px * var(--map-upx, 1))`,
-    strokeWidth: `calc(${strokePx}px * var(--map-upx, 1))`,
-    strokeLinejoin: "round" as const,
-  };
+  return { fontSize: px, strokeWidth: strokePx, strokeLinejoin: "round" as const };
+}
+
+/**
+ * Pushes fleet badges down, a few pixels at a time, until none sits on a port
+ * dot (`factor` is screen pixels per user unit).
+ */
+function clearOfPorts(
+  fleets: readonly FleetMark[],
+  ports: readonly PortMark[],
+  factor: number,
+): FleetMark[] {
+  return fleets.map((fleet) => {
+    const halfWidth = fleet.count > 1 ? 15 : 11;
+    const moved = { ...fleet };
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const hit = ports.some((port) => {
+        const radius = port.count > 1 ? 9 : port.major ? 5 : 3.5;
+        return (
+          Math.abs(port.ux - moved.ux) * factor < radius + halfWidth &&
+          Math.abs(port.uy - moved.uy) * factor < radius + 8
+        );
+      });
+      if (!hit) break;
+      moved.uy += 14 / factor;
+    }
+    return moved;
+  });
+}
+
+/** Label nudges to try, in screen pixels, nearest to the anchor first. */
+const NUDGES: readonly (readonly [number, number])[] = [
+  [0, 0],
+  [0, -18],
+  [0, 18],
+  [0, -36],
+  [0, 36],
+  [-48, 0],
+  [48, 0],
+  [-48, -18],
+  [48, -18],
+  [-48, 18],
+  [48, 18],
+];
+
+interface PortMark {
+  readonly id: string;
+  readonly name: string;
+  ux: number;
+  uy: number;
+  owner: string | null;
+  major: boolean;
+  count: number;
+}
+
+interface FleetMark {
+  readonly id: string;
+  ux: number;
+  uy: number;
+  ships: number;
+  owner: string | null;
+  count: number;
+}
+
+interface Box {
+  readonly x0: number;
+  readonly x1: number;
+  readonly y0: number;
+  readonly y1: number;
+}
+
+function boxesOverlap(a: Box, b: Box): boolean {
+  return a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
 }
 
 export interface WorldMapChartProps extends MapViewProps {
@@ -115,6 +184,8 @@ export function WorldMapChart({
   const [toolsOpen, setToolsOpen] = useState(false);
   const projection = projectionById(state.projection);
   const camera = useMapCamera(projection.width, projection.height);
+  const palette = useMapPalette();
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const live = overlay.source === "campaign";
   const coastline = useCoastline();
 
@@ -173,6 +244,218 @@ export function WorldMapChart({
     [projection, state.centre],
   );
   const areasById = useMemo(() => new Map(areas.map((area) => [area.id, area])), [areas]);
+
+  // Bumped once the camera settles (and on mount), so label placement tracks
+  // the real view without running per frame.
+  const [viewVersion, setViewVersion] = useState(0);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const bump = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => setViewVersion((version) => version + 1), 120);
+    };
+    const unsubscribe = camera.subscribe(bump);
+    bump();
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [camera.subscribe]);
+
+  /**
+   * Port dots to draw. Like fleets, ports within a dot's width of each other
+   * merge into one counted dot at the home zoom and separate as you zoom in.
+   */
+  const portMarks = useMemo<PortMark[]>(() => {
+    const singles: PortMark[] = drawnPorts.map((possession) => {
+      const [ux, uy] = projectPoint(possession.at, projection, state.centre);
+      return {
+        id: possession.id,
+        name: possession.name,
+        ux,
+        uy,
+        owner: possession.owner,
+        major: possession.base === "major",
+        count: 1,
+      };
+    });
+    if (camera.zoomBand > 0) return singles;
+    const radius = 14 / (camera.getTransform().scale * camera.getPixelsPerUnit());
+    const clusters: PortMark[] = [];
+    for (const mark of singles) {
+      const near = clusters.find(
+        (cluster) => Math.hypot(cluster.ux - mark.ux, cluster.uy - mark.uy) < radius,
+      );
+      if (near === undefined) {
+        clusters.push({ ...mark });
+        continue;
+      }
+      const total = near.count + 1;
+      near.ux = (near.ux * near.count + mark.ux) / total;
+      near.uy = (near.uy * near.count + mark.uy) / total;
+      near.owner = near.owner === mark.owner ? near.owner : null;
+      near.major = near.major || mark.major;
+      near.count = total;
+    }
+    return clusters;
+    // `viewVersion` is the settled-camera signal (see visibleLabels).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [camera.zoomBand, drawnPorts, projection, state.centre, viewVersion]);
+
+  /**
+   * Fleet badges to draw. At the home zoom, fleets that would sit within a
+   * badge's width of each other collapse into one badge showing the total, so
+   * a crowded sea reads as a single mark; zooming in spreads them out again.
+   */
+  const fleetMarks = useMemo<FleetMark[]>(() => {
+    const singles: FleetMark[] = [];
+    drawnFleets.forEach((fleet, index) => {
+      const anchor = areasById.get(fleet.area)?.label;
+      if (anchor === undefined) return;
+      singles.push({
+        id: fleet.id,
+        ux: anchor[0] + ((index % 3) * 16 - 16),
+        uy: anchor[1] + 18,
+        ships: fleet.ships,
+        owner: fleet.owner,
+        count: 1,
+      });
+    });
+    const factor = camera.getTransform().scale * camera.getPixelsPerUnit();
+    if (camera.zoomBand > 0) return clearOfPorts(singles, portMarks, factor);
+    const radius = 34 / (camera.getTransform().scale * camera.getPixelsPerUnit());
+    const clusters: FleetMark[] = [];
+    for (const mark of singles) {
+      const near = clusters.find(
+        (cluster) => Math.hypot(cluster.ux - mark.ux, cluster.uy - mark.uy) < radius,
+      );
+      if (near === undefined) {
+        clusters.push({ ...mark });
+        continue;
+      }
+      const total = near.count + 1;
+      near.ux = (near.ux * near.count + mark.ux) / total;
+      near.uy = (near.uy * near.count + mark.uy) / total;
+      near.ships += mark.ships;
+      near.owner = near.owner === mark.owner ? near.owner : null;
+      near.count = total;
+    }
+    return clearOfPorts(clusters, portMarks, factor);
+    // `viewVersion` is the settled-camera signal (see visibleLabels).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [areasById, camera.zoomBand, drawnFleets, portMarks, viewVersion]);
+
+  /**
+   * Which area labels to draw, as `turn:areaId`. Laid out in screen pixels from
+   * the settled camera: biggest area first, and a label is dropped if it would
+   * leave the view, sit under a floating panel, or overlap one already kept.
+   */
+  const visibleLabels = useMemo(() => {
+    // `turn:areaId` -> nudge from the anchor, in screen pixels.
+    const kept = new Map<string, { dx: number; dy: number }>();
+    if (!state.layers.labels) return kept;
+    const svg = camera.svgRef.current;
+    const ctm = svg?.getScreenCTM?.();
+    const turns = camera.isWrapping() ? WORLD_WRAP_TURNS : [0];
+    const ranked = [...areas].sort(
+      (a, b) => b.bounds.width * b.bounds.height - a.bounds.width * a.bounds.height,
+    );
+    // Before layout (or without a CTM) there is nothing to measure against.
+    const measured = svg != null && ctm != null && svg.clientWidth > 0;
+    const frame = measured ? svg.getBoundingClientRect() : null;
+    const transform = camera.getTransform();
+    const obstacles: Box[] = [];
+    if (frame !== null && rootRef.current !== null) {
+      for (const element of rootRef.current.querySelectorAll(
+        "[data-map-obstacle], .pointer-events-auto",
+      )) {
+        const rect = element.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) continue;
+        obstacles.push({
+          x0: rect.left - frame.left,
+          x1: rect.right - frame.left,
+          y0: rect.top - frame.top,
+          y1: rect.bottom - frame.top,
+        });
+      }
+    }
+    // Markers (user-space point + half size in pixels) the labels steer around.
+    const markers: { ux: number; uy: number; hw: number; hh: number }[] = [];
+    if (state.layers.possessions) {
+      for (const mark of portMarks) {
+        markers.push({
+          ux: mark.ux,
+          uy: mark.uy,
+          hw: mark.count > 1 ? 11 : 8,
+          hh: mark.count > 1 ? 11 : 8,
+        });
+      }
+    }
+    if (state.layers.fleets) {
+      for (const mark of fleetMarks) {
+        markers.push({ ux: mark.ux, uy: mark.uy, hw: mark.count > 1 ? 17 : 13, hh: 10 });
+      }
+    }
+    if (state.layers.passages) {
+      for (const edge of EDGES) {
+        if (edge.passage === undefined) continue;
+        const from = areasById.get(edge.a)?.label;
+        const to = areasById.get(edge.b)?.label;
+        if (from === undefined || to === undefined) continue;
+        markers.push({ ux: (from[0] + to[0]) / 2, uy: (from[1] + to[1]) / 2, hw: 9, hh: 9 });
+      }
+    }
+    const placed: Box[] = [];
+    for (const area of ranked) {
+      const definition = AREAS_BY_ID.get(area.id);
+      if (definition === undefined) continue;
+      const big = area.bounds.width * area.bounds.height > 26000;
+      if (camera.zoomBand === 0 && !big) continue;
+      if (frame === null || ctm == null) {
+        for (const turn of turns) kept.set(`${turn}:${area.id}`, { dx: 0, dy: 0 });
+        continue;
+      }
+      const px = big ? 15 : 13;
+      const halfWidth = (definition.name.length * (px * 0.62 + 1.2)) / 2 + 4;
+      for (const turn of turns) {
+        const cx =
+          ctm.a * (transform.x + transform.scale * (area.label[0] + turn * projection.width)) +
+          ctm.e -
+          frame.left;
+        const cy = ctm.d * (transform.y + transform.scale * area.label[1]) + ctm.f - frame.top;
+        const markerBoxes: Box[] = markers.map((marker) => {
+          const mx =
+            ctm.a * (transform.x + transform.scale * (marker.ux + turn * projection.width)) +
+            ctm.e -
+            frame.left;
+          const my = ctm.d * (transform.y + transform.scale * marker.uy) + ctm.f - frame.top;
+          return { x0: mx - marker.hw, x1: mx + marker.hw, y0: my - marker.hh, y1: my + marker.hh };
+        });
+        // Try the anchor first, then nudge it before giving up.
+        // Nearest spots first: the anchor, then up/down, then a little sideways.
+        for (const [dx, dy] of NUDGES) {
+          const box = {
+            x0: cx + dx - halfWidth,
+            x1: cx + dx + halfWidth,
+            y0: cy + dy - px * 1.1,
+            y1: cy + dy + px * 0.5,
+          };
+          if (box.x0 < 6 || box.y0 < 6 || box.x1 > frame.width - 6 || box.y1 > frame.height - 6) {
+            continue;
+          }
+          if (obstacles.some((other) => boxesOverlap(box, other))) continue;
+          if (markerBoxes.some((other) => boxesOverlap(box, other))) continue;
+          if (placed.some((other) => boxesOverlap(box, other))) continue;
+          placed.push(box);
+          kept.set(`${turn}:${area.id}`, { dx, dy });
+          break;
+        }
+      }
+    }
+    return kept;
+    // `viewVersion` is the settled-camera signal; the camera object itself is a stable bundle of refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [areas, camera.zoomBand, fleetMarks, portMarks, projection.width, state.layers, viewVersion]);
 
   /** Possessions (ports) per fixture area: the campaign's own ports when live, the fixture's otherwise. */
   const possessionsByArea = useMemo(() => {
@@ -338,6 +621,8 @@ export function WorldMapChart({
 
   return (
     <div
+      ref={rootRef}
+      style={{ ["--map-focus" as string]: palette.selectedEdge }}
       className={cn(
         "relative h-full w-full overflow-hidden",
         !isCommand && "rounded-lg border shadow-sm",
@@ -350,8 +635,8 @@ export function WorldMapChart({
           polygons={coastline.polygons}
           projection={projection}
           centre={state.centre}
-          fill={CHART.land}
-          stroke={CHART.landEdge}
+          fill={palette.land}
+          stroke={palette.landEdge}
         />
       )}
       {coastline.status !== "ready" && (
@@ -371,7 +656,9 @@ export function WorldMapChart({
       )}
       <svg
         ref={camera.svgRef}
-        className="h-full w-full cursor-grab touch-none active:cursor-grabbing"
+        // `relative` lifts the SVG above the (positioned) coastline canvas, so labels
+        // and markers draw over land instead of vanishing under it.
+        className="relative h-full w-full cursor-grab touch-none active:cursor-grabbing"
         viewBox={`0 0 ${projection.width} ${projection.height}`}
         preserveAspectRatio="xMidYMid meet"
         role="application"
@@ -384,10 +671,14 @@ export function WorldMapChart({
               That is the entire antimeridian strategy — no clipping, no ring
               splitting, and markers wrap with the polygons they belong to. */}
           {WORLD_WRAP_TURNS.map((turn) => (
-            <g key={turn} transform={`translate(${turn * projection.width} 0)`}>
+            <g
+              key={turn}
+              transform={`translate(${turn * projection.width} 0)`}
+              style={turn === 0 ? undefined : { display: "var(--map-copies, inline)" }}
+            >
               <path
                 d={graticule}
-                stroke={CHART.graticule}
+                stroke={palette.graticule}
                 strokeWidth={1}
                 vectorEffect="non-scaling-stroke"
                 fill="none"
@@ -406,20 +697,20 @@ export function WorldMapChart({
                       state.layers.ownership
                         ? fillFor(held?.owner ?? null, selected ? 0.42 : 0.2)
                         : selected
-                          ? "oklch(0.7 0.02 240 / 0.25)"
-                          : "oklch(0.7 0.02 240 / 0.06)"
+                          ? palette.areaWashSelected
+                          : palette.areaWash
                     }
                     stroke={
                       selected
-                        ? CHART.ink
+                        ? palette.selectedEdge
                         : onRouteLeg
-                          ? "oklch(0.85 0.16 85)"
-                          : "oklch(0.75 0.02 240 / 0.35)"
+                          ? palette.route
+                          : palette.areaEdge
                     }
                     strokeWidth={selected ? 2.5 : onRouteLeg ? 2 : 0.9}
                     vectorEffect="non-scaling-stroke"
                     strokeDasharray={held?.contested === true ? "6 4" : undefined}
-                    className="cursor-pointer outline-none transition-[fill] duration-150 focus-visible:stroke-[3]"
+                    className="cursor-pointer outline-none transition-[fill] duration-150 focus-visible:[stroke:var(--map-focus)] focus-visible:stroke-[3]"
                     // The map draws every layer three times to wrap seamlessly;
                     // only the home copy is exposed to keyboard and screen readers.
                     role={turn === 0 ? "button" : undefined}
@@ -434,7 +725,10 @@ export function WorldMapChart({
                       event.stopPropagation();
                       handleAreaClick(area.id, event.shiftKey);
                     }}
-                  />
+                  >
+                    {/* Hover name, so an area whose label was thinned out stays identifiable. */}
+                    {turn === 0 && <title>{AREAS_BY_ID.get(area.id)?.name ?? area.id}</title>}
+                  </path>
                 );
               })}
 
@@ -452,7 +746,7 @@ export function WorldMapChart({
                   <path
                     d={routePath}
                     fill="none"
-                    stroke="oklch(0.85 0.16 85)"
+                    stroke={palette.route}
                     strokeWidth={2.5}
                     vectorEffect="non-scaling-stroke"
                     strokeDasharray="10 6"
@@ -488,7 +782,8 @@ export function WorldMapChart({
                         <circle
                           cx={0}
                           cy={0}
-                          r={7}
+                          r={passage.open ? 5.5 : 7}
+                          opacity={passage.open ? 0.85 : 1}
                           fill={passage.open ? "oklch(0.28 0.03 245)" : "oklch(0.36 0.11 25)"}
                           stroke={passage.open ? "oklch(0.8 0.02 240)" : "oklch(0.72 0.2 25)"}
                           strokeWidth={1.6}
@@ -497,8 +792,8 @@ export function WorldMapChart({
                           x={0}
                           y={3.2}
                           textAnchor="middle"
-                          fontSize={9}
-                          fill={CHART.ink}
+                          fontSize={8}
+                          fill="oklch(0.92 0.01 240)"
                           style={{ pointerEvents: "none" }}
                         >
                           {passage.kind === "canal" ? "C" : "S"}
@@ -510,32 +805,44 @@ export function WorldMapChart({
 
               {/* Layer: possessions. */}
               {state.layers.possessions &&
-                drawnPorts.map((possession) => {
-                  const [x, y] = projectPoint(possession.at, projection, state.centre);
-                  const major = possession.base === "major";
+                portMarks.map((mark) => {
+                  const grouped = mark.count > 1;
                   return (
-                    <g key={possession.id} style={pinned(x, y)}>
+                    <g key={mark.id} style={pinned(mark.ux, mark.uy)}>
+                      {grouped && <title>{`${mark.count} ports`}</title>}
                       <circle
                         cx={0}
                         cy={0}
-                        r={major ? 5 : 3.5}
-                        fill={strokeFor(possession.owner)}
+                        r={grouped ? 9 : mark.major ? 5 : 3.5}
+                        fill={mark.owner === null ? "oklch(0.78 0.02 240)" : strokeFor(mark.owner)}
                         stroke="oklch(0.15 0.02 245)"
-                        strokeWidth={1.4}
+                        strokeWidth={grouped ? 2 : 1.4}
                       />
-                      {camera.zoomBand >= 2 && (
+                      {grouped && (
+                        <text
+                          y={3.5}
+                          textAnchor="middle"
+                          fontSize={10}
+                          fontWeight={600}
+                          fill="oklch(0.15 0.02 245)"
+                          style={{ pointerEvents: "none" }}
+                        >
+                          {mark.count}
+                        </text>
+                      )}
+                      {!grouped && camera.zoomBand >= 2 && (
                         <text
                           x={8}
                           y={3}
-                          fill={CHART.ink}
-                          stroke="oklch(0.15 0.02 245)"
+                          fill={palette.labelInk}
+                          stroke={palette.labelHalo}
                           paintOrder="stroke"
                           style={{
                             ...screenText(12, 3.5),
                             pointerEvents: "none",
                           }}
                         >
-                          {possession.name}
+                          {mark.name}
                         </text>
                       )}
                     </g>
@@ -544,21 +851,25 @@ export function WorldMapChart({
 
               {/* Layer: fleets. */}
               {state.layers.fleets &&
-                drawnFleets.map((fleet, index) => {
-                  const anchor = areasById.get(fleet.area)?.label;
-                  if (anchor === undefined) return null;
-                  const offset = (index % 3) * 16 - 16;
+                fleetMarks.map((mark) => {
+                  const grouped = mark.count > 1;
+                  const half = grouped ? 15 : 11;
                   return (
-                    <g key={fleet.id} style={pinned(anchor[0] + offset, anchor[1] + 18)}>
+                    <g
+                      key={mark.id}
+                      style={pinned(mark.ux, mark.uy)}
+                      opacity={grouped || !live || mark.owner === overlay.playerNationId ? 1 : 0.72}
+                    >
+                      {grouped && <title>{`${mark.count} fleets · ${mark.ships} ships`}</title>}
                       <rect
-                        x={-11}
+                        x={-half}
                         y={-8}
-                        width={22}
+                        width={half * 2}
                         height={16}
                         rx={3}
-                        fill={strokeFor(fleet.owner)}
+                        fill={mark.owner === null ? "oklch(0.78 0.02 240)" : strokeFor(mark.owner)}
                         stroke="oklch(0.15 0.02 245)"
-                        strokeWidth={1.4}
+                        strokeWidth={grouped ? 2 : 1.4}
                       />
                       <text
                         y={4}
@@ -568,7 +879,7 @@ export function WorldMapChart({
                         fill="oklch(0.15 0.02 245)"
                         style={{ pointerEvents: "none" }}
                       >
-                        {fleet.ships}
+                        {mark.ships}
                       </text>
                     </g>
                   );
@@ -578,9 +889,10 @@ export function WorldMapChart({
               {state.layers.labels &&
                 areas.map((area) => {
                   const definition = AREAS_BY_ID.get(area.id);
-                  if (definition === undefined) return null;
+                  if (definition === undefined || !visibleLabels.has(`${turn}:${area.id}`))
+                    return null;
+                  const nudge = visibleLabels.get(`${turn}:${area.id}`) ?? { dx: 0, dy: 0 };
                   const big = area.bounds.width * area.bounds.height > 26000;
-                  if (camera.zoomBand === 0 && !big) return null;
                   return (
                     <text
                       key={area.id}
@@ -588,12 +900,12 @@ export function WorldMapChart({
                       y={0}
                       textAnchor="middle"
                       letterSpacing={1.2}
-                      fill={CHART.ink}
-                      stroke="oklch(0.15 0.02 245)"
+                      fill={palette.labelInk}
+                      stroke={palette.labelHalo}
                       paintOrder="stroke"
                       style={{
-                        ...pinned(area.label[0], area.label[1]),
-                        ...screenText(big ? 15 : 13, 4),
+                        transform: `${pinned(area.label[0], area.label[1]).transform} translate(${nudge.dx}px, ${nudge.dy}px)`,
+                        ...screenText(big ? 15 : 13, 3),
                         fontWeight: 600,
                         pointerEvents: "none",
                         textTransform: "uppercase",
@@ -628,16 +940,17 @@ export function WorldMapChart({
         </tbody>
       </table>
 
-      <div className="absolute bottom-3 right-3 flex flex-col items-end gap-2">
+      <div data-map-obstacle className="absolute bottom-3 right-3 flex flex-col items-end gap-2">
         {coastline.status === "ready" && showMinimap && (
           <MapMinimap
             camera={camera}
             projection={projection}
             centre={state.centre}
             polygons={coastline.polygons}
-            land={CHART.land}
-            ocean={CHART.ocean}
-            ink={CHART.ink}
+            land={palette.minimapLand}
+            ocean={palette.minimapOcean}
+            ink={palette.minimapInk}
+            borderColor={palette.minimapBorder}
           />
         )}
         <div
@@ -648,6 +961,32 @@ export function WorldMapChart({
             color: CHART.ink,
           }}
         >
+          {(state.layers.possessions || state.layers.fleets) && (
+            <div
+              aria-hidden="true"
+              className="mb-1.5 flex items-center gap-3 text-xs"
+              style={{ color: CHART.inkDim }}
+            >
+              {state.layers.possessions && (
+                <span className="flex items-center gap-1">
+                  <span
+                    className="inline-block size-2.5 rounded-full border"
+                    style={{ background: CHART.inkDim, borderColor: CHART.ink }}
+                  />
+                  Ports
+                </span>
+              )}
+              {state.layers.fleets && (
+                <span className="flex items-center gap-1">
+                  <span
+                    className="inline-block h-2.5 w-3 rounded-[2px] border"
+                    style={{ background: CHART.inkDim, borderColor: CHART.ink }}
+                  />
+                  Fleets
+                </span>
+              )}
+            </div>
+          )}
           <MapScaleBar camera={camera} worldWidth={projection.width} />
         </div>
       </div>
@@ -806,6 +1145,7 @@ export function WorldMapChart({
 
         {/* Chrome: inspector floats over the chart rather than taking layout. */}
         <div
+          data-map-obstacle
           className={cn(
             "rounded-lg border p-3 text-xs shadow-lg backdrop-blur",
             isCommand ? "pointer-events-auto" : "absolute right-3 top-3 w-72",
@@ -884,6 +1224,7 @@ export function WorldMapChart({
 
       {/* Chrome: the ruler readout. */}
       <div
+        data-map-obstacle
         className={cn(
           "absolute bottom-3 left-3 rounded-lg border px-3 py-2 text-xs shadow-lg backdrop-blur",
           isPanel && route === null && "hidden",

@@ -7,7 +7,7 @@
  *                                        [--press KEY]... [--wait MS] [--eval JS]
  *                                        [--save PACKAGE_DIR] [--selector CSS]
  *                                        [--advance N] [--settle MS] [--tour]
- *                                        [--make-save DIR]
+ *                                        [--make-save DIR] [--size WxH] [--theme light|dark]
  *
  * --click "TEXT @last" / "TEXT @N" clicks the last / Nth (0-based) match instead of the first.
  * --advance   clicks "Advance Month" N times, in order with the other actions (repeatable).
@@ -18,6 +18,8 @@
  *             or be empty.
  * --save      copies a compiled campaign package to a temp dir, opens it via
  *             "Open Campaign", and starts from there (the source is never touched).
+ * --size     resizes the window (CSS pixels, e.g. 900x700) before the first action.
+ * --theme     "light" or "dark": starts the app in that theme (via its storage key).
  * --selector  screenshots only the first element matching the CSS selector.
  *
  * Actions run in the order given. Output (default `.dev-data/view`, git-ignored):
@@ -52,6 +54,8 @@ const { values } = parseArgs({
     settle: { type: "string", default: "0" },
     tour: { type: "boolean", default: false },
     "make-save": { type: "string" },
+    size: { type: "string" },
+    theme: { type: "string" },
   },
   strict: true,
 });
@@ -85,6 +89,14 @@ h.page.on("console", (m) => log.push(`[${m.type()}] ${m.text()}`));
 h.page.on("pageerror", (e) => log.push(`[pageerror] ${e.message}`));
 
 try {
+  if (values.theme) {
+    // Through the app's own storage key, before anything is opened, so the theme
+    // provider (and everything keyed off it) starts in the requested theme
+    // rather than having a class flipped under it.
+    await h.page.evaluate((theme) => localStorage.setItem("bluewave-theme", theme), values.theme);
+    await h.page.reload();
+    await h.page.getByText("Bluewave Naval Staff").waitFor({ timeout: 15_000 });
+  }
   if (saveDir) {
     await h.page.getByRole("button", { name: "Open Campaign" }).click();
     await h.page.waitForTimeout(Number(values.wait));
@@ -95,6 +107,22 @@ try {
       .getByRole("heading", { name: "Campaign Overview" })
       .waitFor({ timeout: 60_000 })
       .catch(() => log.push("[snap] Overview did not appear after Begin Commission"));
+  }
+  if (values.size) {
+    const match = /^(\d+)x(\d+)$/.exec(values.size);
+    if (match === null) throw new Error(`--size expects WxH, got "${values.size}"`);
+    const [, width, height] = match;
+    await h.app.evaluate(
+      ({ BrowserWindow }, [w, ht]) => {
+        const win = BrowserWindow.getAllWindows().find(
+          (x) => !x.webContents.getURL().startsWith("devtools://"),
+        );
+        win?.setMinimumSize(1, 1);
+        win?.setContentSize(w as number, ht as number);
+      },
+      [Number(width), Number(height)],
+    );
+    await h.page.waitForTimeout(500);
   }
   // The tour mounts shortly after the Overview, so only the first check waits.
   const tidy = async (waitMs = 0) => {

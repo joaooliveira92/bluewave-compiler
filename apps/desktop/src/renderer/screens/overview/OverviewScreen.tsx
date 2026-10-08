@@ -156,7 +156,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
             className="h-full"
             variant="command"
             showMinimap={false}
-            treeDefaultOpen={roomy}
+            treeDefaultOpen={false}
             leftPanels={
               <>
                 {prioritiesPanel}

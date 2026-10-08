@@ -21,12 +21,14 @@ export function visibleWorldRects(
   camera: CameraState,
   view: { readonly width: number; readonly height: number },
   world: { readonly width: number; readonly height: number },
+  /** Where the view's top-left sits in camera user units (non-zero when letterboxed). */
+  origin: { readonly left: number; readonly top: number } = { left: 0, top: 0 },
 ): Rect[] {
   const width = Math.min(world.width, view.width / camera.scale);
   const height = Math.min(world.height, view.height / camera.scale);
-  const y = Math.min(Math.max(-camera.y / camera.scale, 0), world.height - height);
+  const y = Math.min(Math.max((origin.top - camera.y) / camera.scale, 0), world.height - height);
   if (width >= world.width) return [{ x: 0, y, width: world.width, height }];
-  const x = (((-camera.x / camera.scale) % world.width) + world.width) % world.width;
+  const x = ((((origin.left - camera.x) / camera.scale) % world.width) + world.width) % world.width;
   const rects: Rect[] = [{ x, y, width, height }];
   if (x + width > world.width) rects.push({ x: x - world.width, y, width, height });
   return rects;

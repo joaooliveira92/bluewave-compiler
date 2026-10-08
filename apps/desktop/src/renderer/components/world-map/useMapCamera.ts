@@ -60,9 +60,20 @@ export interface MapCamera {
   readonly getPixelsPerUnit: () => number;
   readonly focusOn: (x: number, y: number, scale?: number) => void;
   readonly isDraggingRef: React.RefObject<boolean>;
+  /** False while the whole world fits the view, so only the home copy is drawn. */
+  readonly isWrapping: () => boolean;
+  /** The viewport in camera user units (see `viewportUnits`). */
+  readonly getViewport: () => Viewport;
   /** Called after every transform change (pan, zoom, reset). Returns an unsubscribe. */
   readonly getTransform: () => Readonly<CameraTransform>;
   readonly subscribe: (listener: (transform: Readonly<CameraTransform>) => void) => () => void;
+}
+
+export interface Viewport {
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
 }
 
 export interface CameraOptions {
@@ -84,6 +95,10 @@ export function useMapCamera(
   const worldRef = useRef<SVGGElement | null>(null);
   const meterRef = useRef<HTMLSpanElement | null>(null);
   const isDraggingRef = useRef(false);
+  /** True once the user (or a focus call) has moved the camera off the fitted view. */
+  const touched = useRef(false);
+  /** Whether the east-west copies are in play (false while the world fits the view). */
+  const wrapping = useRef(true);
   const camera = useRef<CameraTransform>({ scale: 1, x: 0, y: 0 });
   const [zoomBand, setZoomBand] = useState<ZoomBand>(0);
   const bandRef = useRef<ZoomBand>(0);
@@ -107,10 +122,11 @@ export function useMapCamera(
     const { scale, x, y } = camera.current;
     world.setAttribute("transform", `translate(${x} ${y}) scale(${scale})`);
     // Markers and labels counter-scale with this so they hold their screen
-    // size at any zoom (the world group scales everything inside it).
-    svgRef.current?.style.setProperty("--map-inv", String(1 / scale));
-    // User units per screen pixel, so text can be sized in real pixels.
-    svgRef.current?.style.setProperty("--map-upx", String(1 / pixelsPerUnit()));
+    // size in real pixels at any zoom and any viewBox scale (the world group
+    // scales everything inside it, and the viewBox scales the group).
+    svgRef.current?.style.setProperty("--map-inv", String(1 / (scale * pixelsPerUnit())));
+    // The wrapped copies are only drawn while the world overflows the view.
+    svgRef.current?.style.setProperty("--map-copies", wrapping.current ? "inline" : "none");
     for (const listener of listeners.current) listener(camera.current);
     const next = bandFor(scale);
     if (next !== bandRef.current) {
@@ -119,26 +135,35 @@ export function useMapCamera(
     }
   }, [pixelsPerUnit]);
 
-  /** The viewport, expressed in the same user units as the camera. */
-  const viewportUnits = useCallback((): { width: number; height: number } => {
+  /**
+   * The viewport in the same user units as the camera. `left`/`top` are where
+   * its edges sit in user space: non-zero whenever `preserveAspectRatio`
+   * letterboxes the viewBox, which it does for any panel that is not the
+   * world's own shape.
+   */
+  const viewportUnits = useCallback((): Viewport => {
     const svg = svgRef.current;
     const factor = pixelsPerUnit();
+    const ctm = svg?.getScreenCTM?.();
+    const rect = svg?.getBoundingClientRect();
     return {
+      left: ctm && rect && ctm.a !== 0 ? (rect.left - ctm.e) / ctm.a : 0,
+      top: ctm && rect && ctm.d !== 0 ? (rect.top - ctm.f) / ctm.d : 0,
       width: (svg?.clientWidth ?? worldWidth * factor) / factor,
       height: (svg?.clientHeight ?? worldHeight * factor) / factor,
     };
   }, [pixelsPerUnit, worldHeight, worldWidth]);
 
   /**
-   * The smallest scale at which the world still covers the viewport. Below it
-   * a wide panel shows wrapped copies of the world beside the real one (and a
-   * tall one shows empty bands), so zooming out stops here. Falls back to
-   * MIN_SCALE before the SVG is laid out.
+   * The zoom floor: the whole world fits the viewport. When the panel is wider
+   * (or taller) than the world, the world is centred with empty margins and the
+   * wrapped copies are hidden (see `wrapping`), so there is never a second
+   * world beside the first. Falls back to MIN_SCALE before layout.
    */
   const minScale = useCallback((): number => {
     const visible = viewportUnits();
-    const cover = Math.max(visible.width / worldWidth, visible.height / worldHeight);
-    return Number.isFinite(cover) && cover > 0 ? cover : MIN_SCALE;
+    const fit = Math.min(visible.width / worldWidth, visible.height / worldHeight);
+    return Number.isFinite(fit) && fit > 0 ? fit : MIN_SCALE;
   }, [viewportUnits, worldHeight, worldWidth]);
 
   const clamp = useCallback(() => {
@@ -146,16 +171,25 @@ export function useMapCamera(
     current.scale = Math.min(MAX_SCALE, Math.max(minScale(), current.scale));
     const span = worldWidth * current.scale;
     const visible = viewportUnits();
-    if (wrapHorizontally) {
+    if (wrapHorizontally && span > visible.width) {
       // The map repeats, so x only ever needs one turn's worth. Wrapping into
       // (-span, 0] rather than [-span, 0) is what keeps a fresh camera at 0.
+      wrapping.current = true;
       current.x = -(((-current.x % span) + span) % span);
     } else {
-      current.x = Math.min(0, Math.max(Math.min(0, visible.width - span), current.x));
+      // The world is narrower than the view (or the board does not wrap):
+      // centre it and stop at its edges.
+      wrapping.current = false;
+      current.x =
+        span <= visible.width
+          ? visible.left + (visible.width - span) / 2
+          : Math.min(visible.left, Math.max(visible.left + visible.width - span, current.x));
     }
     const scaledHeight = worldHeight * current.scale;
-    const minY = Math.min(0, visible.height - scaledHeight);
-    current.y = Math.min(0, Math.max(minY, current.y));
+    current.y =
+      scaledHeight <= visible.height
+        ? visible.top + (visible.height - scaledHeight) / 2
+        : Math.min(visible.top, Math.max(visible.top + visible.height - scaledHeight, current.y));
   }, [minScale, viewportUnits, worldHeight, worldWidth, wrapHorizontally]);
 
   const sampleFrame = useCallback(() => {
@@ -179,12 +213,14 @@ export function useMapCamera(
   }, []);
 
   const reset = useCallback(() => {
-    camera.current = { scale: 1, x: 0, y: 0 };
+    // "Fit world": the clamp centres whatever margin is left over.
+    camera.current = { scale: minScale(), x: 0, y: 0 };
+    touched.current = false;
     samples.current = [];
     lastFrame.current = 0;
     clamp();
     applyTransform();
-  }, [applyTransform, clamp]);
+  }, [applyTransform, clamp, minScale]);
 
   const zoomAt = useCallback(
     (factor: number, clientX: number, clientY: number) => {
@@ -193,10 +229,12 @@ export function useMapCamera(
       const rect = svg.getBoundingClientRect();
       const unitScale = pixelsPerUnit();
       // The cursor, in the same user units the camera translate is written in.
-      const px = (clientX - rect.left) / unitScale;
-      const py = (clientY - rect.top) / unitScale;
+      const origin = viewportUnits();
+      const px = origin.left + (clientX - rect.left) / unitScale;
+      const py = origin.top + (clientY - rect.top) / unitScale;
       const current = camera.current;
       const before = current.scale;
+      touched.current = true;
       current.scale = Math.min(MAX_SCALE, Math.max(minScale(), current.scale * factor));
       const ratio = current.scale / before;
       current.x = px - (px - current.x) * ratio;
@@ -205,7 +243,7 @@ export function useMapCamera(
       applyTransform();
       sampleFrame();
     },
-    [applyTransform, clamp, minScale, pixelsPerUnit, sampleFrame],
+    [applyTransform, clamp, minScale, pixelsPerUnit, sampleFrame, viewportUnits],
   );
 
   const zoomBy = useCallback(
@@ -221,6 +259,7 @@ export function useMapCamera(
   const panBy = useCallback(
     (dxPixels: number, dyPixels: number) => {
       const unitScale = pixelsPerUnit();
+      touched.current = true;
       camera.current.x += dxPixels / unitScale;
       camera.current.y += dyPixels / unitScale;
       clamp();
@@ -232,10 +271,11 @@ export function useMapCamera(
   const focusOn = useCallback(
     (x: number, y: number, scale = 3.5) => {
       const current = camera.current;
+      touched.current = true;
       const visible = viewportUnits();
       current.scale = Math.min(MAX_SCALE, Math.max(minScale(), scale));
-      current.x = visible.width / 2 - x * current.scale;
-      current.y = visible.height / 2 - y * current.scale;
+      current.x = visible.left + visible.width / 2 - x * current.scale;
+      current.y = visible.top + visible.height / 2 - y * current.scale;
       clamp();
       applyTransform();
     },
@@ -273,6 +313,7 @@ export function useMapCamera(
       const dy = event.clientY - lastY;
       if (!isDraggingRef.current && Math.hypot(dx, dy) < 3) return;
       isDraggingRef.current = true;
+      touched.current = true;
       lastX = event.clientX;
       lastY = event.clientY;
       const factor = pixelsPerUnit();
@@ -311,6 +352,23 @@ export function useMapCamera(
     reset();
   }, [reset]);
 
+  // The viewport changes size after mount (layout, window resize). Refit an
+  // untouched camera; otherwise just re-clamp so the zoom floor still holds.
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (svg === null || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      if (!touched.current) {
+        reset();
+        return;
+      }
+      clamp();
+      applyTransform();
+    });
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, [applyTransform, clamp, reset]);
+
   const subscribe = useCallback((listener: (transform: Readonly<CameraTransform>) => void) => {
     listeners.current.add(listener);
     return () => {
@@ -329,6 +387,8 @@ export function useMapCamera(
     panBy,
     getPixelsPerUnit: pixelsPerUnit,
     isDraggingRef,
+    isWrapping: () => wrapping.current,
+    getViewport: viewportUnits,
     subscribe,
     getTransform: () => camera.current,
   };
