@@ -329,6 +329,16 @@ export function reservationRequirementsFor(
 }
 
 /** Test-only: clears every workspace so test files don't leak state. */
+/** Drops one session's construction workspace (called when the campaign is closed). */
+export function clearConstructionWorkspace(sessionId: string): void {
+  workspaces.delete(sessionId);
+}
+
+/** True while a construction workspace is held for the session (for teardown tests). */
+export function hasConstructionWorkspace(sessionId: string): boolean {
+  return workspaces.has(sessionId);
+}
+
 export function clearConstructionWorkspacesForTest(): void {
   workspaces.clear();
 }

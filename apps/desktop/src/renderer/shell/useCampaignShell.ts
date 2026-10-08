@@ -39,6 +39,10 @@ function overviewFromProjection(
   };
 }
 
+function diagnosticsSuffix(diagnostics: readonly string[]): string {
+  return diagnostics.length > 0 ? ` ${diagnostics.join("; ")}` : "";
+}
+
 /** The number of warnings/criticals the engine reports, or null if unavailable. */
 async function loadActiveAlertsCount(
   bridge: BluewaveDesktopBridge,
@@ -55,6 +59,19 @@ async function loadActiveAlertsCount(
 export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
   const [state, dispatch] = useReducer(reduceCampaignShell, undefined, initialCampaignShellState);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Bumped whenever the campaign is closed or a newer refresh starts, so a response that
+  // arrives late (out of order, or after Close) is dropped instead of overwriting newer state.
+  const refreshGenerationRef = useRef(0);
+
+  /** Show a transient status message in the header; null just ends the "saving" state silently. */
+  const collectMessage = (message: string | null): void => {
+    dispatch({ type: "save-finished", message });
+    if (saveTimerRef.current !== null) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(
+      () => dispatch({ type: "save-message-cleared" }),
+      SAVE_MESSAGE_DURATION_MS,
+    );
+  };
 
   const openCampaign = useCallback(
     async (sessionId: string) => {
@@ -95,29 +112,26 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
     const duration = Math.round(performance.now() - started);
     if (result.outcome === "success" || result.reason === "SESSION_NOT_FOUND") {
       emitWideEvent("campaign_close", state.campaign.sessionId, duration, "success");
+      refreshGenerationRef.current += 1;
       dispatch({ type: "campaign-closed" });
       return;
     }
     emitWideEvent("campaign_close", state.campaign.sessionId, duration, "rejected", [
       result.reason,
     ]);
+    collectMessage(`Could not close the campaign: ${result.reason}.`);
   }, [bridge, state.campaign]);
 
   const saveCampaign = useCallback(async () => {
     if (bridge === undefined || state.campaign === null) return;
     dispatch({ type: "save-started" });
-    if (saveTimerRef.current !== null) clearTimeout(saveTimerRef.current);
     const result = await bridge.campaign.execute("saveCampaign", state.campaign.sessionId);
-    const message =
+    collectMessage(
       result.outcome === "success"
         ? `Campaign saved — revision ${result.value.revision}.`
         : result.reason === "CANCELLED"
           ? null
-          : `Save failed: ${result.reason}.${result.diagnostics.length > 0 ? ` ${result.diagnostics.join("; ")}` : ""}`;
-    dispatch({ type: "save-finished", message });
-    saveTimerRef.current = setTimeout(
-      () => dispatch({ type: "save-message-cleared" }),
-      SAVE_MESSAGE_DURATION_MS,
+          : `Save failed: ${result.reason}.${diagnosticsSuffix(result.diagnostics)}`,
     );
   }, [bridge, state.campaign]);
 
@@ -125,18 +139,13 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
   const copyCampaign = useCallback(async () => {
     if (bridge === undefined || state.campaign === null) return;
     dispatch({ type: "save-started" });
-    if (saveTimerRef.current !== null) clearTimeout(saveTimerRef.current);
     const result = await bridge.campaign.execute("copyCampaign", state.campaign.sessionId);
-    const message =
+    collectMessage(
       result.outcome === "success"
         ? `Copy saved to ${result.value.location}.`
         : result.reason === "SAVE_LOCATION_CANCELLED"
           ? null
-          : `Copy failed: ${result.reason}.${result.diagnostics.length > 0 ? ` ${result.diagnostics.join("; ")}` : ""}`;
-    dispatch({ type: "save-finished", message });
-    saveTimerRef.current = setTimeout(
-      () => dispatch({ type: "save-message-cleared" }),
-      SAVE_MESSAGE_DURATION_MS,
+          : `Copy failed: ${result.reason}.${diagnosticsSuffix(result.diagnostics)}`,
     );
   }, [bridge, state.campaign]);
 
@@ -149,15 +158,6 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
 
   const selectScreen = useCallback((screen: Screen) => dispatch({ type: "visit", screen }), []);
 
-  const collectMessage = (message: string): void => {
-    dispatch({ type: "save-finished", message });
-    if (saveTimerRef.current !== null) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(
-      () => dispatch({ type: "save-message-cleared" }),
-      SAVE_MESSAGE_DURATION_MS,
-    );
-  };
-
   /**
    * Re-reads the header's campaign summary (month, treasury, revision,
    * projected balance, war status) from the engine. Called after every month
@@ -168,9 +168,12 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
     async (sessionIdOverride?: string) => {
       const sessionId = sessionIdOverride ?? state.campaign?.sessionId;
       if (bridge === undefined || sessionId === undefined) return;
+      const generation = ++refreshGenerationRef.current;
       const result = await bridge.campaign.execute("inspectCampaign", sessionId);
       if (result.outcome !== "success") return;
       const alerts = await loadActiveAlertsCount(bridge, sessionId);
+      // A newer refresh started, or the campaign was closed, while we waited: drop this one.
+      if (generation !== refreshGenerationRef.current) return;
       dispatch({
         type: "campaign-refreshed",
         campaign: overviewFromProjection(sessionId, result.value.projection, alerts),
@@ -206,7 +209,8 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
           nationName: state.campaign.nationName,
           projectedSurplusDeficit: state.campaign.projectedSurplusDeficit,
           atWar: state.campaign.atWar,
-          activeAlertsCount: state.campaign.activeAlertsCount,
+          // Last month's count would be wrong for this month; the refresh below fills it in.
+          activeAlertsCount: null,
         };
         dispatch({ type: "month-committed", campaign: nextCampaign });
         // The commit response carries no projection surface; refresh the rest.

@@ -11,7 +11,7 @@ to `main` (see `AGENTS.md`).
 - **Map as the home screen.** Overview opens on a live world map (Compact / Large / Fill) with ownership,
   fleets and routes, a scale bar in nautical miles, a minimap, deep zoom to 60× with detailed coastlines,
   an area list (filter, select, zoom), keyboard pan/zoom, and a text table of area control. F1 opens the
-  same map full-screen.
+  same map in a larger side panel.
 - **Fleet organization (division editor).** Create divisions on a flagship, add and remove ships, change
   the flagship, dissolve — with the experience/cohesion cost of each change stated first.
 - **Fleet positions map and area overview** on the Fleet screen, focused on the selected division.
@@ -25,8 +25,9 @@ to `main` (see `AGENTS.md`).
 
 ### Fixed
 
-- **Save and Close Campaign did nothing** (they reported "not implemented"). Both now work; Save is safe
-  to click repeatedly.
+- **Save and Close Campaign did nothing** (they reported "not implemented"). Both now work (checked in
+  the built app and by integration tests; the automated end-to-end row is pending). Save is safe to click
+  repeatedly, and Close frees everything the session held.
 - Fleet, Construction and the division editor no longer show pre-advance data after you advance the month.
 - Engine ids, session ids and revision numbers no longer appear in the release UI (debug builds only).
 - Map labels and markers keep a constant size when zoomed; coastlines render smoothly at every zoom.

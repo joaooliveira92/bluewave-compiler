@@ -46,5 +46,15 @@ changes, so a month advanced from the header never leaves Fleet/Construction sho
 `saveCampaign`, `closeCampaign` and `copyCampaign` are real bridge commands (Save and Close had no handler
 and answered NOT_IMPLEMENTED). Save is idempotent because `commitMonth` already persists every month.
 
+## 6. Testing
+Renderer tests wait up to 5s for async UI (`src/renderer/test-setup.ts`, was Testing Library's 1s). Under
+the full parallel suite a lazily loaded chunk (the map and its coastline) intermittently took longer than
+1s and unrelated tests failed. This only lengthens how long a test is willing to wait; it cannot make a
+broken feature pass.
+
+`SaveStore.isCurrent` compares the active save's full-content hash with a live state. `CampaignState.rawHash`
+must not be used for this: it is computed over the in-memory form where Map-valued fields (nations,
+designs) contribute nothing, so two states differing only in a nation's treasury share a `rawHash`.
+
 ## Consequences
 New screens follow rule 1. The roadmap document, not this ADR, tracks which engine mechanics to build.

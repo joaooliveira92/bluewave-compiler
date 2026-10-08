@@ -77,6 +77,12 @@ const cost = (p: { readonly experience: number; readonly cohesion: number }): Di
   cohesion: Math.abs(p.cohesion),
 });
 
+/**
+ * Ids sort by code unit, never by locale: a deterministic view must order the same on every
+ * machine, and `localeCompare` depends on the host's language settings.
+ */
+const byId = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+
 export function buildDivisionScreenView(
   snapshot: CampaignSnapshot,
   nationId: string,
@@ -101,7 +107,7 @@ export function buildDivisionScreenView(
   const nameOf = (id: string): string => shipsById.get(id)?.name ?? id;
 
   const divisions: DivisionView[] = [...nation.divisions]
-    .sort((a, b) => a.divisionId.localeCompare(b.divisionId))
+    .sort((a, b) => byId(a.divisionId, b.divisionId))
     .map((division) => ({
       divisionId: division.divisionId,
       role: division.divisionRole,
@@ -126,7 +132,7 @@ export function buildDivisionScreenView(
       areaId: info.areaId,
       areaName: areaName(info.areaId),
     }))
-    .sort((a, b) => a.areaId.localeCompare(b.areaId) || a.shipId.localeCompare(b.shipId));
+    .sort((a, b) => byId(a.areaId, b.areaId) || byId(a.shipId, b.shipId));
 
   return {
     divisions,

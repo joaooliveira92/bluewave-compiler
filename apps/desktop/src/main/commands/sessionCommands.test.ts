@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,7 +22,12 @@ import { clearPendingWorkspacesForTest, pendingEnvelopesForExecution } from "../
 import { toSaveableState } from "../saveHelpers.js";
 import { commitMonth } from "./commitMonth.js";
 import { inspectDivisionScreen, submitDivisionCommand } from "./divisionCommands.js";
-import { closeCampaign, copyCampaign, saveCampaign } from "./sessionCommands.js";
+import {
+  clearConstructionWorkspacesForTest,
+  getConstructionWorkspace,
+  hasConstructionWorkspace,
+} from "../constructionWorkspace.js";
+import { assessCopyTarget, closeCampaign, copyCampaign, saveCampaign } from "./sessionCommands.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PRODUCTION_PACK = resolve(__dirname, "../../../../..", "content", "production", "1880");
@@ -37,6 +42,7 @@ describe("session commands (save / close / copy)", () => {
     rmSync(root, { recursive: true, force: true });
     clearCampaignSessionsForTest();
     clearPendingWorkspacesForTest();
+    clearConstructionWorkspacesForTest();
   });
 
   function register(sessionId: string): { saveDir: string; state: CampaignState } {
@@ -105,6 +111,35 @@ describe("session commands (save / close / copy)", () => {
       expect(savesIn(saveDir)).toBe(1);
     });
 
+    it("notices a package that differs from the live state within the SAME turn, and fixes it once", async () => {
+      const { saveDir, state } = register("s4");
+      // Same turn, different content: the package was altered after the session opened.
+      const altered = structuredClone(state.snapshot);
+      const uk = altered.nations.get("uk")!;
+      altered.nations.set("uk", {
+        ...uk,
+        treasury: (Number(uk.treasury) + 1) as typeof uk.treasury,
+      });
+      new SaveStore().save(
+        toSaveableState({
+          snapshot: altered,
+          envelope: createEnvelope("campaign-snapshot", altered.compatibilityVersion, altered),
+          rawHash: "",
+        }),
+        saveDir,
+      );
+      expect(savesIn(saveDir)).toBe(2);
+
+      expect(await saveCampaign("s4")).toMatchObject({
+        outcome: "success",
+        value: { revision: 0 },
+      });
+      expect(savesIn(saveDir)).toBe(3);
+      // Now the package matches the live state again: further clicks write nothing.
+      await saveCampaign("s4");
+      expect(savesIn(saveDir)).toBe(3);
+    });
+
     it("reports the new revision after a month is committed, without duplicating the save", async () => {
       const { saveDir } = register("s3");
       const committed = await commitMonth({
@@ -151,6 +186,14 @@ describe("session commands (save / close / copy)", () => {
       expect(pendingEnvelopesForExecution("c1", snapshot)).toEqual([]);
     });
 
+    it("also drops the session's construction workspace (it used to leak)", async () => {
+      register("c3");
+      getConstructionWorkspace(getCampaignSession("c3")!);
+      expect(hasConstructionWorkspace("c3")).toBe(true);
+      await closeCampaign("c3");
+      expect(hasConstructionWorkspace("c3")).toBe(false);
+    });
+
     it("answers SESSION_NOT_FOUND the second time (the shell treats that as already closed)", async () => {
       register("c2");
       await closeCampaign("c2");
@@ -191,6 +234,85 @@ describe("session commands (save / close / copy)", () => {
       const result = await copyCampaign("k3", { chooseCopyDirectory: async () => saveDir });
       expect(result).toMatchObject({ outcome: "rejected", reason: "COPY_TARGET_IS_SOURCE" });
       expect(savesIn(saveDir)).toBe(1);
+    });
+
+    describe("target safety", () => {
+      const ask = (target: string) => ({ chooseCopyDirectory: async () => target });
+
+      it("refuses another spelling of the source folder (trailing slash, ./, symlink)", async () => {
+        const { saveDir } = register("t1");
+        for (const spelled of [`${saveDir}/`, `${saveDir}/../t1`, `${saveDir}/.`]) {
+          expect(await copyCampaign("t1", ask(spelled))).toMatchObject({
+            outcome: "rejected",
+            reason: "COPY_TARGET_IS_SOURCE",
+          });
+        }
+        const link = resolve(root, "link-to-t1");
+        symlinkSync(saveDir, link);
+        expect(await copyCampaign("t1", ask(link))).toMatchObject({
+          outcome: "rejected",
+          reason: "COPY_TARGET_IS_SOURCE",
+        });
+        expect(savesIn(saveDir)).toBe(1);
+      });
+
+      it("refuses a target inside the source, or a folder that contains the source", async () => {
+        const { saveDir } = register("t2");
+        expect(await copyCampaign("t2", ask(resolve(saveDir, "nested")))).toMatchObject({
+          outcome: "rejected",
+          reason: "COPY_TARGET_INSIDE_SOURCE",
+        });
+        expect(await copyCampaign("t2", ask(root))).toMatchObject({
+          outcome: "rejected",
+          reason: "COPY_TARGET_CONTAINS_SOURCE",
+        });
+        expect(existsSync(resolve(saveDir, "nested"))).toBe(false);
+      });
+
+      it("never merges into another campaign's package or overwrites its session file", async () => {
+        register("t3");
+        const other = register("t3-other");
+        const before = readSessionMetadata(other.saveDir);
+        const result = await copyCampaign("t3", ask(other.saveDir));
+        expect(result).toMatchObject({ outcome: "rejected", reason: "COPY_TARGET_NOT_EMPTY" });
+        expect(savesIn(other.saveDir)).toBe(1);
+        expect(readSessionMetadata(other.saveDir)).toEqual(before);
+      });
+
+      it("accepts an existing EMPTY folder, and refuses a file", async () => {
+        register("t4");
+        const empty = resolve(root, "empty");
+        mkdirSync(empty);
+        expect(await copyCampaign("t4", ask(empty))).toMatchObject({ outcome: "success" });
+        expect(savesIn(empty)).toBe(1);
+
+        const file = resolve(root, "a-file");
+        writeFileSync(file, "x");
+        expect(await copyCampaign("t4", ask(file))).toMatchObject({
+          outcome: "rejected",
+          reason: "COPY_TARGET_NOT_A_DIRECTORY",
+        });
+      });
+
+      it("refuses, before asking anything, when the campaign has no session file to carry over", async () => {
+        const { saveDir } = register("t5");
+        rmSync(resolve(saveDir, "session.json"));
+        let asked = false;
+        const result = await copyCampaign("t5", {
+          chooseCopyDirectory: async () => {
+            asked = true;
+            return resolve(root, "x");
+          },
+        });
+        expect(result).toMatchObject({ outcome: "error", reason: "SESSION_METADATA_MISSING" });
+        expect(asked).toBe(false);
+        expect(existsSync(resolve(root, "x"))).toBe(false);
+      });
+
+      it("assessCopyTarget accepts a brand-new sibling folder", () => {
+        const { saveDir } = register("t6");
+        expect(assessCopyTarget(saveDir, resolve(root, "brand-new"))).toBeNull();
+      });
     });
 
     it("fails honestly for an unknown session without asking the player anything", async () => {

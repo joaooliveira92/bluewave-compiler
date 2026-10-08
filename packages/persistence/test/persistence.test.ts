@@ -110,6 +110,66 @@ describe("SaveStore", () => {
     expect(saves[0]!.campaignDate).toEqual({ year: 1880, month: 2 });
   });
 
+  describe("isCurrent", () => {
+    const nationA = (treasury: number): NationState => ({
+      id: "nation-a",
+      name: "Nation A",
+      tag: "NAT",
+      treasury: SafeInt(treasury),
+      income: SafeInt(100),
+      expenses: SafeInt(50),
+      baseResources: SafeInt(10),
+      navalAppropriationRateBp: SafeInt(500),
+      maintenanceCost: SafeInt(20),
+      fleets: [],
+      divisions: [],
+      research: {
+        nationId: "nation-a",
+        technologies: [],
+        fieldPriorities: {},
+        researchBudget: SafeInt(0),
+        activeCandidates: new Map(),
+        discoveredTechs: [],
+      },
+      constructionProjects: [],
+      isPlayable: true,
+      isAI: false,
+    });
+    const withTreasury = (treasury: number): CampaignState => {
+      const state = createFixtureState();
+      state.snapshot.nations = new Map([["nation-a", nationA(treasury)]]);
+      return state;
+    };
+
+    it("is false when nothing has been saved", () => {
+      expect(store.isCurrent(withTreasury(1000), tmpDir)).toBe(false);
+      expect(store.isCurrent(withTreasury(1000), join(tmpDir, "does-not-exist"))).toBe(false);
+    });
+
+    it("is true for the state that was saved, and false once a different state is saved", () => {
+      const first = withTreasury(1000);
+      store.save(first, tmpDir);
+      expect(store.isCurrent(first, tmpDir)).toBe(true);
+
+      store.save(withTreasury(2000), tmpDir);
+      expect(store.isCurrent(first, tmpDir)).toBe(false);
+      expect(store.isCurrent(withTreasury(2000), tmpDir)).toBe(true);
+    });
+
+    it("sees a change that only touches a Map-valued nation field (rawHash cannot)", () => {
+      const a = withTreasury(1000);
+      const b = withTreasury(1001);
+      // The in-memory state hash is blind to the Map contents...
+      expect(sha256Hex(canonicalSerialize({ ...a, rawHash: undefined }))).toBe(
+        sha256Hex(canonicalSerialize({ ...b, rawHash: undefined })),
+      );
+      // ...but the package comparison is not.
+      store.save(a, tmpDir);
+      expect(store.isCurrent(a, tmpDir)).toBe(true);
+      expect(store.isCurrent(b, tmpDir)).toBe(false);
+    });
+  });
+
   it("round-trips Map-valued snapshot fields (nations, designs, designFamilies, activeCandidates)", () => {
     const nation: NationState = {
       id: "nation-a",

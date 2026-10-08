@@ -168,6 +168,14 @@ describe("buildDivisionScreenView", () => {
     expect(view.divisions[0]?.ships).toEqual([{ shipId: "gone", name: "gone" }]);
   });
 
+  it("orders ids by code unit, not by the host's locale (uppercase sorts before lowercase)", () => {
+    const view = buildDivisionScreenView(
+      snapshot([fleet("f", "home", [ship("a_ship", "A"), ship("B_ship", "B")])], []),
+      "uk",
+    )!;
+    expect(view.unassignedShips.map((s) => s.shipId)).toEqual(["B_ship", "a_ship"]);
+  });
+
   it("is deterministic: same snapshot, same view", () => {
     const snap = snapshot([fleet("f", "home", [ship("b", "B"), ship("a", "A")])], []);
     expect(buildDivisionScreenView(snap, "uk")).toEqual(buildDivisionScreenView(snap, "uk"));

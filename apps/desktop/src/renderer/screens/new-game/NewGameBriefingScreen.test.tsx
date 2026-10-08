@@ -1,5 +1,5 @@
 /* @vitest-environment jsdom */
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { OpeningBriefingProjection } from "@bluewave/campaign-engine";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vite-plus/test";
 import type { PrimaryAction } from "../../shell/primary-action.js";
@@ -89,8 +89,9 @@ describe("NewGameBriefingScreen", () => {
       screen.getByText(/You have been appointed First Sea Lord — United Kingdom/),
     ).toBeTruthy();
     expect(screen.getByText("Appointment confirmed · January 1880")).toBeTruthy();
-    // Page 1 keeps the flavorful forward label, not "Next".
-    expect(primaryLabel()).toBe("Review Naval Estimates");
+    // Page 1 keeps the flavorful forward label, not "Next". The label registers from an
+    // effect that runs after the page text appears, so wait for it rather than read it once.
+    await waitFor(() => expect(primaryLabel()).toBe("Review Naval Estimates"));
     // Back is not available on page 1.
     expect(screen.getByRole("button", { name: "Back" }).hasAttribute("disabled")).toBe(true);
   });
@@ -99,6 +100,8 @@ describe("NewGameBriefingScreen", () => {
     const onTakeCommand = vi.fn();
     const { primaryLabel, triggerPrimary } = renderScreen(fixtureProjection(), onTakeCommand);
     await screen.findByText("Opening Strategic Briefing");
+    // `triggerPrimary` is a silent no-op until the primary action has registered.
+    await waitFor(() => expect(primaryLabel()).toBe("Review Naval Estimates"));
 
     // Page 1 -> 2 via "Review Naval Estimates".
     triggerPrimary();

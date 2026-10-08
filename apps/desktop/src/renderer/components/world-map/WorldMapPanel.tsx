@@ -36,7 +36,7 @@ export interface WorldMapPanelProps {
 /**
  * The live world map as an embedded panel: Overview's primary panel (spec M-1)
  * and Fleet's position view. Sized to taste; F1 still opens the same map
- * full-screen from any screen.
+ * in a larger side panel from any screen.
  */
 export function WorldMapPanel({
   sessionId,
@@ -66,7 +66,7 @@ export function WorldMapPanel({
         </CardTitle>
         <div className="flex items-center gap-2">
           <span className="hidden text-xs text-muted-foreground sm:inline">
-            F1 opens it full-screen
+            F1 opens a larger map
           </span>
           <div role="group" aria-label="Map size" className="flex gap-1">
             {MAP_PANEL_SIZES.map((option) => (

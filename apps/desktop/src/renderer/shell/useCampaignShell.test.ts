@@ -173,4 +173,164 @@ describe("useCampaignShell", () => {
     expect(result.current.campaign?.activeAlertsCount).toBeNull();
     expect(result.current.campaign?.nationName).toBe("United Kingdom");
   });
+
+  describe("alerts, refresh ordering and the campaign lifecycle", () => {
+    const ok = <T>(value: T) => ({ outcome: "success" as const, value, diagnostics: [] });
+    const withMonth = (month: number): PlayerProjection => ({
+      ...projection,
+      month: { year: 1900, month },
+    });
+    const priority = (severity: string, id: string) => ({
+      id,
+      type: "monthly_deficit",
+      severity,
+      title: "t",
+      summary: "s",
+      reason: "r",
+      destination: "overview",
+      fingerprint: id,
+    });
+    const deferred = <T>() => {
+      let resolve!: (value: T) => void;
+      const promise = new Promise<T>((r) => {
+        resolve = r;
+      });
+      return { promise, resolve };
+    };
+
+    it("shows the engine's real alert count (warnings + criticals) after opening", async () => {
+      const execute = vi.fn(async (command: string) =>
+        command === "inspectPriorities"
+          ? ok({
+              priorities: [
+                priority("critical", "a"),
+                priority("warning", "b"),
+                priority("advisory", "c"),
+              ],
+            })
+          : ok({ projection }),
+      ) as unknown as CampaignExecute;
+      const { result } = setup(execute);
+      await act(() => result.current.openCampaign("ses-1"));
+      expect(result.current.campaign?.activeAlertsCount).toBe(2);
+    });
+
+    it("omits the count (null) when priorities cannot be read, instead of inventing one", async () => {
+      const execute = vi.fn(async (command: string) =>
+        command === "inspectPriorities"
+          ? { outcome: "error" as const, reason: "BOOM", diagnostics: [] }
+          : ok({ projection }),
+      ) as unknown as CampaignExecute;
+      const { result } = setup(execute);
+      await act(() => result.current.openCampaign("ses-1"));
+      expect(result.current.campaign?.activeAlertsCount).toBeNull();
+    });
+
+    it("keeps the NEWER refresh when two overlapping refreshes finish out of order", async () => {
+      const slow = deferred<ReturnType<typeof ok>>();
+      const fast = deferred<ReturnType<typeof ok>>();
+      let inspectCalls = 0;
+      const execute = vi.fn(async (command: string) => {
+        if (command === "inspectPriorities") return ok({ priorities: [] });
+        inspectCalls += 1;
+        if (inspectCalls === 1) return ok({ projection: withMonth(1) }); // open
+        return inspectCalls === 2 ? slow.promise : fast.promise;
+      }) as unknown as CampaignExecute;
+      const { result } = setup(execute);
+      await act(() => result.current.openCampaign("ses-1"));
+
+      let first!: Promise<void>;
+      let second!: Promise<void>;
+      act(() => {
+        first = result.current.refreshCampaign("ses-1");
+        second = result.current.refreshCampaign("ses-1");
+      });
+      await act(async () => {
+        fast.resolve(ok({ projection: withMonth(3) })); // the newer refresh answers first
+        await second;
+      });
+      await act(async () => {
+        slow.resolve(ok({ projection: withMonth(2) })); // the older one answers late
+        await first;
+      });
+      expect(result.current.campaign?.month).toEqual({ year: 1900, month: 3 });
+    });
+
+    it("does not re-open a campaign whose refresh finishes after it was closed", async () => {
+      const late = deferred<ReturnType<typeof ok>>();
+      let inspectCalls = 0;
+      const execute = vi.fn(async (command: string) => {
+        if (command === "closeCampaign") return ok({ closed: true });
+        if (command === "inspectPriorities") return ok({ priorities: [] });
+        inspectCalls += 1;
+        return inspectCalls === 1 ? ok({ projection }) : late.promise;
+      }) as unknown as CampaignExecute;
+      const { result } = setup(execute);
+      await act(() => result.current.openCampaign("ses-1"));
+
+      let refreshing!: Promise<void>;
+      act(() => {
+        refreshing = result.current.refreshCampaign("ses-1");
+      });
+      await act(() => result.current.closeCampaign());
+      expect(result.current.campaign).toBeNull();
+
+      await act(async () => {
+        late.resolve(ok({ projection: withMonth(2) }));
+        await refreshing;
+      });
+      expect(result.current.campaign).toBeNull();
+    });
+
+    it("says why a campaign could not be closed, and keeps it open", async () => {
+      const execute = vi.fn(async (command: string) =>
+        command === "closeCampaign"
+          ? { outcome: "error" as const, reason: "BOOM", diagnostics: [] }
+          : command === "inspectPriorities"
+            ? ok({ priorities: [] })
+            : ok({ projection }),
+      ) as unknown as CampaignExecute;
+      const { result } = setup(execute);
+      await act(() => result.current.openCampaign("ses-1"));
+      await act(() => result.current.closeCampaign());
+      expect(result.current.saveMessage).toBe("Could not close the campaign: BOOM.");
+      expect(result.current.campaign).not.toBeNull();
+    });
+
+    it("reports save, copy, cancelled copy and failures in the header message", async () => {
+      let save: unknown = ok({ revision: 3 });
+      let copy: unknown = ok({ revision: 3, location: "/tmp/copy" });
+      const execute = vi.fn(async (command: string) => {
+        if (command === "saveCampaign") return save;
+        if (command === "copyCampaign") return copy;
+        return command === "inspectPriorities" ? ok({ priorities: [] }) : ok({ projection });
+      }) as unknown as CampaignExecute;
+      const { result } = setup(execute);
+      await act(() => result.current.openCampaign("ses-1"));
+
+      await act(() => result.current.saveCampaign());
+      expect(result.current.saveMessage).toBe("Campaign saved — revision 3.");
+
+      await act(() => result.current.copyCampaign());
+      expect(result.current.saveMessage).toBe("Copy saved to /tmp/copy.");
+
+      copy = { outcome: "rejected", reason: "SAVE_LOCATION_CANCELLED", diagnostics: [] };
+      await act(() => result.current.copyCampaign());
+      expect(result.current.saveMessage).toBeNull(); // cancelling is silent
+
+      copy = {
+        outcome: "rejected",
+        reason: "COPY_TARGET_NOT_EMPTY",
+        diagnostics: ["Pick an empty folder."],
+      };
+      await act(() => result.current.copyCampaign());
+      expect(result.current.saveMessage).toBe(
+        "Copy failed: COPY_TARGET_NOT_EMPTY. Pick an empty folder.",
+      );
+
+      save = { outcome: "error", reason: "SAVE_FAILED", diagnostics: ["disk full"] };
+      await act(() => result.current.saveCampaign());
+      expect(result.current.saveMessage).toBe("Save failed: SAVE_FAILED. disk full");
+    });
+  });
 });

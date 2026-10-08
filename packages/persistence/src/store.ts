@@ -536,6 +536,27 @@ export class SaveStore {
     return saves;
   }
 
+  /**
+   * True when the ACTIVE save in `saveDir` holds exactly `state`. Compares the full
+   * serialized content hash (`contentArtifactHash`), which covers the Map-valued
+   * snapshot fields (nations, designs, …). The state's own `rawHash` does NOT: it is
+   * computed over the in-memory form, where those Maps contribute nothing, so two states
+   * that differ only in a nation's treasury share a `rawHash`. Never throws — an absent,
+   * unreadable or foreign package is simply "not current".
+   */
+  isCurrent(state: CampaignState, saveDir: string): boolean {
+    try {
+      const activeId = this.getActiveSaveId(saveDir);
+      if (activeId === null) return false;
+      const active = this.list(saveDir).find((save) => save.saveId === activeId);
+      if (active === undefined) return false;
+      const storable = { ...state, snapshot: toStorableSnapshot(state.snapshot) };
+      return active.contentArtifactHash === sha256Hex(canonicalSerialize(storable));
+    } catch {
+      return false;
+    }
+  }
+
   getActiveSaveId(saveDir: string): string | null {
     const pointerPath = join(saveDir, "pointer.json");
     if (!existsSync(pointerPath)) return null;

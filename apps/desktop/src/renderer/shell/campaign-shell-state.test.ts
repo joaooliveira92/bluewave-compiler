@@ -276,3 +276,32 @@ describe("campaign shell state", () => {
     });
   });
 });
+
+describe("campaign-refreshed guard", () => {
+  const opened = reduceCampaignShell(initialCampaignShellState(), {
+    type: "campaign-opened",
+    campaign,
+  });
+
+  it("applies a refresh for the open campaign", () => {
+    const next = reduceCampaignShell(opened, {
+      type: "campaign-refreshed",
+      campaign: { ...campaign, revision: 2 },
+    });
+    expect(next.campaign?.revision).toBe(2);
+  });
+
+  it("ignores a refresh that arrives after the campaign was closed", () => {
+    const closed = reduceCampaignShell(opened, { type: "campaign-closed" });
+    const next = reduceCampaignShell(closed, { type: "campaign-refreshed", campaign });
+    expect(next.campaign).toBeNull();
+  });
+
+  it("ignores a refresh that belongs to a different session", () => {
+    const next = reduceCampaignShell(opened, {
+      type: "campaign-refreshed",
+      campaign: { ...campaign, sessionId: "some-other-session", revision: 9 },
+    });
+    expect(next.campaign?.revision).toBe(campaign.revision);
+  });
+});

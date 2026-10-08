@@ -34,7 +34,7 @@ describe("WorldMapPanel", () => {
   it("loads the map lazily and tells the player about the full-screen shortcut", async () => {
     render(<WorldMapPanel sessionId="ses-1" />);
     expect(screen.getByText("World map")).toBeTruthy();
-    expect(screen.getByText("F1 opens it full-screen")).toBeTruthy();
+    expect(screen.getByText("F1 opens a larger map")).toBeTruthy();
     expect(await screen.findByRole("application", { name: /World map/ })).toBeTruthy();
   });
 

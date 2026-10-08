@@ -171,6 +171,10 @@ export function reduceCampaignShell(
     case "month-committed":
       return { ...state, committing: false, campaign: event.campaign };
     case "campaign-refreshed":
+      // A late refresh must not resurrect a closed campaign or replace a different one.
+      if (state.campaign === null || state.campaign.sessionId !== event.campaign.sessionId) {
+        return state;
+      }
       return { ...state, campaign: event.campaign };
     case "month-commit-failed":
       return { ...state, committing: false, saveMessage: event.message };
