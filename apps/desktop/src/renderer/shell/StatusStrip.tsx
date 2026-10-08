@@ -1,13 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-import type { PlayerProjection } from "@bluewave/campaign-engine";
 import { cn } from "../lib/utils.js";
+import { useBridgeQuery } from "../lib/use-bridge-query.js";
 import { useDensity } from "./DensityContext.js";
 import {
   buildStatusStrip,
   NOT_YET_MODELLED,
-  type StatusStripAreas,
   type StatusStripModel,
   type StripRow,
 } from "./status-strip-state.js";
@@ -187,11 +186,6 @@ export function StatusStripView({ model }: { readonly model: StatusStripModel })
   );
 }
 
-interface StripData {
-  readonly projection: PlayerProjection;
-  readonly areas: StatusStripAreas | null;
-}
-
 export interface StatusStripProps {
   readonly sessionId: string;
   /** Changes whenever the campaign advances, so the strip re-reads the engine. */
@@ -201,33 +195,21 @@ export interface StatusStripProps {
 
 /** Reads the engine views the strip needs and renders it; renders nothing until they load. */
 export function StatusStrip({ sessionId, revision, alertsCount }: StatusStripProps) {
-  const [data, setData] = useState<StripData | null>(null);
+  const campaign = useBridgeQuery(sessionId, revision, (bridge, id) =>
+    bridge.campaign.execute("inspectCampaign", id),
+  );
+  const map = useBridgeQuery(sessionId, revision, (bridge, id) =>
+    bridge.campaign.execute("inspectMap", id),
+  );
 
-  useEffect(() => {
-    const bridge = window.bluewave;
-    if (bridge === undefined) return;
-    let active = true;
-    async function load(): Promise<void> {
-      try {
-        const [campaign, map] = await Promise.all([
-          bridge!.campaign.execute("inspectCampaign", sessionId),
-          bridge!.campaign.execute("inspectMap", sessionId).catch(() => null),
-        ]);
-        if (!active || campaign.outcome !== "success") return;
-        setData({
-          projection: campaign.value.projection,
-          areas: map !== null && map.outcome === "success" ? map.value.world.areas : null,
-        });
-      } catch {
-        // The strip is supplementary: stay hidden rather than show a made-up number.
-      }
-    }
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [sessionId, revision]);
-
-  if (data === null) return null;
-  return <StatusStripView model={buildStatusStrip({ ...data, alertsCount })} />;
+  if (campaign.status !== "ready") return null;
+  return (
+    <StatusStripView
+      model={buildStatusStrip({
+        projection: campaign.value.projection,
+        areas: map.status === "ready" ? map.value.world.areas : null,
+        alertsCount,
+      })}
+    />
+  );
 }

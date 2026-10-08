@@ -1,5 +1,8 @@
 import type { BattleHistoryView } from "@bluewave/campaign-engine";
-import { useEffect, useState } from "react";
+
+import type { BridgeResult } from "../../../../shared/bridge-contract.js";
+import type { InspectBattleHistoryResult } from "../../../../shared/campaign-command-contract.js";
+import { useBridgeQuery } from "../../../lib/use-bridge-query.js";
 
 export type BattleHistoryState =
   | { readonly status: "loading" }
@@ -11,37 +14,18 @@ export type BattleHistoryState =
  * changes (a committed month may have resolved new battles).
  */
 export function useBattleHistory(sessionId: string, revision: number): BattleHistoryState {
-  const [state, setState] = useState<BattleHistoryState>({ status: "loading" });
+  const state = useBridgeQuery(
+    sessionId,
+    revision,
+    (bridge, id): Promise<BridgeResult<InspectBattleHistoryResult>> =>
+      bridge.campaign.execute("inspectBattleHistory", id),
+    {
+      bridgeUnavailableMessage: "The desktop bridge is unavailable.",
+      transportFailureMessage: "Battle history failed to load.",
+    },
+  );
 
-  useEffect(() => {
-    const bridge = window.bluewave;
-    if (bridge === undefined) {
-      setState({ status: "error", message: "The desktop bridge is unavailable." });
-      return;
-    }
-    let active = true;
-    bridge.campaign
-      .execute("inspectBattleHistory", sessionId)
-      .then((result) => {
-        if (!active) return;
-        setState(
-          result.outcome === "success"
-            ? { status: "ready", history: result.value.history }
-            : { status: "error", message: result.reason },
-        );
-      })
-      .catch((error: unknown) => {
-        if (active) {
-          setState({
-            status: "error",
-            message: error instanceof Error ? error.message : "Battle history failed to load.",
-          });
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [sessionId, revision]);
-
-  return state;
+  if (state.status === "ready") return { status: "ready", history: state.value.history };
+  if (state.status === "error") return { status: "error", message: state.message };
+  return { status: "loading" };
 }

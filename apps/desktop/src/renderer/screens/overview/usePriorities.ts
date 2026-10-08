@@ -1,5 +1,7 @@
-import type { StrategicPriority } from "@bluewave/campaign-engine";
-import { useEffect, useState } from "react";
+import type { InspectPrioritiesResult, StrategicPriority } from "@bluewave/campaign-engine";
+
+import type { BridgeResult } from "../../../shared/bridge-contract.js";
+import { useBridgeQuery } from "../../lib/use-bridge-query.js";
 import { useCampaignRevision } from "../../shell/CampaignShellContext.js";
 
 export type PrioritiesState =
@@ -13,32 +15,14 @@ export type PrioritiesState =
  */
 export function usePriorities(sessionId: string): PrioritiesState {
   const revision = useCampaignRevision();
-  const [state, setState] = useState<PrioritiesState>({ status: "loading" });
+  const state = useBridgeQuery(
+    sessionId,
+    revision,
+    (bridge, id): Promise<BridgeResult<InspectPrioritiesResult>> =>
+      bridge.campaign.execute("inspectPriorities", id),
+  );
 
-  useEffect(() => {
-    const bridge = window.bluewave;
-    if (bridge === undefined) {
-      setState({ status: "unavailable" });
-      return;
-    }
-    let active = true;
-    bridge.campaign
-      .execute("inspectPriorities", sessionId)
-      .then((result) => {
-        if (!active) return;
-        setState(
-          result.outcome === "success"
-            ? { status: "ready", priorities: result.value.priorities }
-            : { status: "unavailable" },
-        );
-      })
-      .catch(() => {
-        if (active) setState({ status: "unavailable" });
-      });
-    return () => {
-      active = false;
-    };
-  }, [sessionId, revision]);
-
-  return state;
+  if (state.status === "ready") return { status: "ready", priorities: state.value.priorities };
+  if (state.status === "error") return { status: "unavailable" };
+  return { status: "loading" };
 }

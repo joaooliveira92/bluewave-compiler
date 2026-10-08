@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import type { BridgeResult } from "../../../shared/bridge-contract.js";
 import type { DiplomacyScreenProjection } from "../../../shared/diplomacy-contract.js";
+import { useBridgeQuery } from "../../lib/use-bridge-query.js";
 import { useCampaignRevision } from "../../shell/CampaignShellContext.js";
 
 export type NationRailLoad =
@@ -10,32 +11,14 @@ export type NationRailLoad =
 /** The Diplomacy & War inspect view, reloaded when the campaign revision changes. */
 export function useNationRail(sessionId: string): NationRailLoad {
   const revision = useCampaignRevision();
-  const [state, setState] = useState<NationRailLoad>({ status: "loading" });
+  const state = useBridgeQuery(
+    sessionId,
+    revision,
+    (bridge, id): Promise<BridgeResult<DiplomacyScreenProjection>> =>
+      bridge.campaign.execute("inspectDiplomacyScreen", id),
+  );
 
-  useEffect(() => {
-    const bridge = window.bluewave;
-    if (bridge === undefined) {
-      setState({ status: "unavailable" });
-      return;
-    }
-    let active = true;
-    bridge.campaign
-      .execute("inspectDiplomacyScreen", sessionId)
-      .then((result) => {
-        if (!active) return;
-        setState(
-          result.outcome === "success"
-            ? { status: "ready", projection: result.value }
-            : { status: "unavailable" },
-        );
-      })
-      .catch(() => {
-        if (active) setState({ status: "unavailable" });
-      });
-    return () => {
-      active = false;
-    };
-  }, [sessionId, revision]);
-
-  return state;
+  if (state.status === "ready") return { status: "ready", projection: state.value };
+  if (state.status === "error") return { status: "unavailable" };
+  return { status: "loading" };
 }
