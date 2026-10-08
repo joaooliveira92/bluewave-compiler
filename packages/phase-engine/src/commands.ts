@@ -23,6 +23,7 @@ import type {
   CreateDivisionCommand,
   DissolveDivisionCommand,
   RemoveShipFromDivisionCommand,
+  SetBudgetAllocationCommand,
 } from "@bluewave/commands";
 import { SafeInt } from "@bluewave/contracts";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
@@ -57,6 +58,36 @@ export function applySetResearchPriority(
   };
   const updatedNations = new Map(currentSnapshot["nations"]);
   updatedNations.set(nationId, updatedNation);
+  return { ...currentSnapshot, nations: updatedNations };
+}
+
+/**
+ * Canonical application of a SetBudgetAllocation command (ADR-0060): sets the
+ * naval appropriation rate and the standing monthly research budget.
+ */
+export function applySetBudgetAllocation(
+  currentSnapshot: CampaignSnapshot,
+  body: SetBudgetAllocationCommand,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const nation = currentSnapshot["nations"].get(body["nationId"]);
+  if (!nation) {
+    collector.addError("NATION_NOT_FOUND", `Nation ${body["nationId"]} not found`, {
+      stage: "command_collection",
+    });
+    return currentSnapshot;
+  }
+  const updatedNation: NationState = {
+    ...nation,
+    navalAppropriationRateBp: body["appropriationRateBp"],
+    research: {
+      ...nation["research"],
+      researchBudget: body["researchBudget"],
+      standingResearchBudget: body["researchBudget"],
+    },
+  };
+  const updatedNations = new Map(currentSnapshot["nations"]);
+  updatedNations.set(body["nationId"], updatedNation);
   return { ...currentSnapshot, nations: updatedNations };
 }
 

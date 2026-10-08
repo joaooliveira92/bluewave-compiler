@@ -279,7 +279,7 @@ export function resolveResearchPhase(
         technologies: updatedTechs,
         activeCandidates,
         discoveredTechs: [...monthDiscoveredTechs],
-        researchBudget: SafeInt.ZERO,
+        researchBudget: research["standingResearchBudget"] ?? SafeInt.ZERO,
       },
     };
 

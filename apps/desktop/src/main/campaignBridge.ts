@@ -10,6 +10,7 @@ import {
   SessionIdPayloadSchema,
   SetResearchPriorityCommandPayloadSchema,
   SubmitDiplomacyCommandPayloadSchema,
+  SubmitBudgetAllocationPayloadSchema,
   SubmitDivisionCommandPayloadSchema,
   WriteUiStatePayloadSchema,
   BattleIdPayloadSchema,
@@ -40,6 +41,7 @@ import {
 } from "./commands/continuityCommands.js";
 import { inspectFleetScreen } from "./commands/fleetCommands.js";
 import { inspectDiplomacyScreen, submitDiplomacyCommand } from "./commands/diplomacyCommands.js";
+import { inspectBudgetScreen, submitBudgetAllocation } from "./commands/budgetCommands.js";
 import { inspectDivisionScreen, submitDivisionCommand } from "./commands/divisionCommands.js";
 import { inspectCampaign } from "./commands/inspectCampaign.js";
 import { inspectBattleHistory } from "./commands/inspectBattleHistory.js";
@@ -212,6 +214,22 @@ export async function dispatchCampaignCommand(
         return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
       }
       return submitDivisionCommand(parsedPayload.data);
+    }
+
+    case "inspectBudgetScreen": {
+      const parsedPayload = SessionIdPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return inspectBudgetScreen(parsedPayload.data);
+    }
+
+    case "submitBudgetAllocation": {
+      const parsedPayload = SubmitBudgetAllocationPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
+        return invalidPayloadResult(parsedPayload.error.issues.map((i) => i.message));
+      }
+      return submitBudgetAllocation(parsedPayload.data);
     }
 
     case "saveCampaign":

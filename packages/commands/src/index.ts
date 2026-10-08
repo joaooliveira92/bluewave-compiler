@@ -18,6 +18,7 @@ export type {
   FormAllianceCommand,
   FormNonAggressionPactCommand,
   RemoveShipFromDivisionCommand,
+  SetBudgetAllocationCommand,
   SetResearchPriorityCommand,
 } from "./envelope.js";
 export type { CommandOutcome } from "./lifecycle.js";

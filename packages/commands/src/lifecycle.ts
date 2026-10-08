@@ -1,5 +1,9 @@
 import type { CampaignSlot, CampaignSnapshot } from "@bluewave/campaign";
 import {
+  APPROPRIATION_RATE_MAX_BP,
+  APPROPRIATION_RATE_MIN_BP,
+  RESEARCH_BUDGET_MAX,
+  RESEARCH_BUDGET_MIN,
   DIVISION_FORMATIONS,
   DIVISION_MAX_SHIPS,
   DIVISION_ROLES,
@@ -153,6 +157,8 @@ export class CommandLifecycle {
     }
     if (envelope.body.type === "SetResearchPriority")
       return this.validateSetResearchPriority(envelope, snapshot);
+    if (envelope.body.type === "SetBudgetAllocation")
+      return this.validateSetBudgetAllocation(envelope, snapshot);
     if (envelope.body.type === "DeclareWar") return this.validateDeclareWar(envelope, snapshot);
     if (envelope.body.type === "AcceptPeace") return this.validateAcceptPeace(envelope, snapshot);
     if (envelope.body.type === "FormAlliance") return this.validateFormAlliance(envelope, snapshot);
@@ -264,6 +270,42 @@ export class CommandLifecycle {
         ),
       };
     }
+    return { ok: true };
+  }
+
+  private validateSetBudgetAllocation(
+    envelope: CommandEnvelope<CommandBody>,
+    snapshot: CampaignSnapshot,
+  ): LifecycleStepResult {
+    const body = envelope.body as Extract<CommandBody, { type: "SetBudgetAllocation" }>;
+    const reject = (code: string, message: string): LifecycleStepResult => ({
+      ok: false,
+      outcome: this.makeRejected(envelope, snapshot, code, message),
+    });
+    if (typeof body.nationId !== "string" || body.nationId.length === 0)
+      return reject("INVALID_NATION_ID", "nationId must be a non-empty string");
+    if (!snapshot.nations.has(body.nationId))
+      return reject("INVALID_NATION_ID", `Nation ${body.nationId} not found`);
+    const rate = body.appropriationRateBp as number;
+    if (
+      !Number.isSafeInteger(rate) ||
+      rate < APPROPRIATION_RATE_MIN_BP ||
+      rate > APPROPRIATION_RATE_MAX_BP
+    )
+      return reject(
+        "INVALID_COMMAND_PAYLOAD",
+        `appropriationRateBp must be an integer in ${String(APPROPRIATION_RATE_MIN_BP)}..${String(APPROPRIATION_RATE_MAX_BP)}`,
+      );
+    const research = body.researchBudget as number;
+    if (
+      !Number.isSafeInteger(research) ||
+      research < RESEARCH_BUDGET_MIN ||
+      research > RESEARCH_BUDGET_MAX
+    )
+      return reject(
+        "INVALID_COMMAND_PAYLOAD",
+        `researchBudget must be an integer in ${String(RESEARCH_BUDGET_MIN)}..${String(RESEARCH_BUDGET_MAX)}`,
+      );
     return { ok: true };
   }
 
@@ -817,6 +859,17 @@ export class CommandLifecycle {
         commandId: envelope.commandId,
         snapshotHash,
         result: { nationId: body.nationId, fieldPriorities: body.fieldPriorities },
+      };
+    if (body.type === "SetBudgetAllocation")
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: {
+          nationId: body.nationId,
+          appropriationRateBp: body.appropriationRateBp,
+          researchBudget: body.researchBudget,
+        },
       };
     if (body.type === "DeclareWar")
       return {

@@ -9,7 +9,7 @@ import { TreasuryScreen } from "./TreasuryScreen.js";
 /**
  * Render test for the Treasury screen. The hook is mocked so the test
  * asserts PURE rendering: every figure comes from the projection (income /
- * expenditure rows / result), no budget controls exist, and honest error /
+ * expenditure rows / result), the allocation panel is hosted, and honest error /
  * loading states.
  */
 
@@ -61,6 +61,10 @@ vi.mock("./useTreasuryScreen.js", () => ({
   useTreasuryScreen: () => ({ state: hookMocks.state(), reload: hookMocks.reload }),
 }));
 
+vi.mock("./BudgetPolicyPanel.js", () => ({
+  BudgetPolicyPanel: () => <div data-testid="budget-policy-panel-stub" />,
+}));
+
 afterEach(() => {
   cleanup();
   hookMocks.state.mockClear();
@@ -95,11 +99,9 @@ describe("TreasuryScreen", () => {
     expect(screen.getByText("Surplus")).not.toBeNull();
   });
 
-  it("renders no budget controls of any kind", () => {
+  it("hosts the budget allocation panel (its own tests cover the controls)", () => {
     render(<TreasuryScreen sessionId="ses-1" />);
-    expect(screen.queryByRole("button")).toBeNull();
-    expect(screen.queryByRole("input")).toBeNull();
-    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.getByTestId("budget-policy-panel-stub")).not.toBeNull();
   });
 
   it("flags a deficit honestly from a negative projected surplus", () => {

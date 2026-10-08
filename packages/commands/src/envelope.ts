@@ -14,6 +14,7 @@ export interface CommandEnvelope<TBody> {
 export type CommandBody =
   | BudgetProjectCommand
   | SetResearchPriorityCommand
+  | SetBudgetAllocationCommand
   | DeclareWarCommand
   | AcceptPeaceCommand
   | FormAllianceCommand
@@ -37,6 +38,14 @@ export interface SetResearchPriorityCommand {
   nationId: string;
   fieldPriorities: Record<string, SafeInt>;
   exactTechId?: string;
+}
+export interface SetBudgetAllocationCommand {
+  type: "SetBudgetAllocation";
+  nationId: string;
+  /** Naval appropriation rate in basis points (ADR-0060 bounds). */
+  appropriationRateBp: SafeInt;
+  /** Standing monthly research budget (ADR-0060 bounds). */
+  researchBudget: SafeInt;
 }
 export interface DeclareWarCommand {
   type: "DeclareWar";

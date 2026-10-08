@@ -42,6 +42,8 @@ const IMPLEMENTED_COMMANDS = new Set([
   "saveCampaign",
   "closeCampaign",
   "submitDivisionCommand",
+  "inspectBudgetScreen",
+  "submitBudgetAllocation",
   "submitDiplomacyCommand",
   "readUiState",
   "writeUiState",

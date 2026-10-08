@@ -131,6 +131,7 @@ function makeRichSnapshot(): CampaignSnapshot {
       { techId: "dreadnought_hull", investedPoints: SafeInt(0), completed: false },
     ],
     currentProjectTechId: "basic_steam",
+    standingResearchBudget: SafeInt(40),
     fieldPriorities: { A: SafeInt(50), B: SafeInt(50) },
     researchBudget: SafeInt(100),
     activeCandidates: new Map([["basic_steam", "active"]]),

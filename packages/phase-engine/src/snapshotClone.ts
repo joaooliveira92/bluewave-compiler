@@ -165,6 +165,7 @@ const F = {
     "currentProjectTechId",
     "fieldPriorities",
     "researchBudget",
+    "standingResearchBudget",
     "activeCandidates",
     "discoveredTechs",
   ),

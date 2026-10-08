@@ -8,6 +8,9 @@ to `main` (see `AGENTS.md`).
 
 ### Added
 
+- **Budget allocation (Treasury).** Set the naval appropriation rate (5–50%) and a standing monthly
+  research budget; the change is applied when you advance the month. Previously research was funded
+  for the first month only and nothing let you change the budget.
 - **Map as the home screen.** Overview opens on a live world map (Compact / Large / Fill) with ownership,
   fleets and routes, a scale bar in nautical miles, a minimap, deep zoom to 60× with detailed coastlines,
   an area list (filter, select, zoom, with a Ships/Possessions toggle), keyboard pan/zoom, and a text table of area control. F1 opens the

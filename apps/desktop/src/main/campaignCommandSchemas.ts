@@ -155,6 +155,12 @@ export const DivisionCommandBodySchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("DissolveDivision"), divisionId: z.string().min(1) }),
 ]);
 
+/** Wire shape for `submitBudgetAllocation`; bounds are the engine's own (validated at issue). */
+export const SubmitBudgetAllocationPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  appropriationRateBp: z.number().int(),
+  researchBudget: z.number().int(),
+});
+
 /** Wire shape for `submitDivisionCommand`. */
 export const SubmitDivisionCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
   command: DivisionCommandBodySchema,

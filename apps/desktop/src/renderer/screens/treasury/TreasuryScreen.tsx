@@ -5,6 +5,7 @@ import { CardContent, CardHeader, CardTitle } from "../../components/ui/card.js"
 import { GlassCard } from "../../components/ui/glass-card.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
 import { BudgetBar } from "./BudgetBar.js";
+import { BudgetPolicyPanel } from "./BudgetPolicyPanel.js";
 import { summarizeTreasury } from "./treasury-screen-state.js";
 import { useTreasuryScreen } from "./useTreasuryScreen.js";
 
@@ -53,7 +54,7 @@ export function TreasuryScreen({ sessionId }: TreasuryScreenProps) {
       <PageHeader
         icon={Wallet}
         title="Treasury"
-        description="Government naval allocation, expenditure, and projected position. Read-only."
+        description="Government naval allocation, expenditure, and projected position. Set the appropriation rate and research budget below."
       />
 
       <GlassCard glassVariant="liquid-refract">
@@ -64,6 +65,8 @@ export function TreasuryScreen({ sessionId }: TreasuryScreenProps) {
           <BudgetBar breakdown={t} />
         </CardContent>
       </GlassCard>
+
+      <BudgetPolicyPanel sessionId={sessionId} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <GlassCard glassVariant="liquid-refract">

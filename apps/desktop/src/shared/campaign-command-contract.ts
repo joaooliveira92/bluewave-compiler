@@ -36,6 +36,11 @@ import type {
   SubmitMovementCommandPayload,
 } from "./fleet-contract.js";
 import type {
+  BudgetCommandOutcome,
+  BudgetScreenProjection,
+  SubmitBudgetAllocationPayload,
+} from "./budget-contract.js";
+import type {
   DiplomacyCommandOutcome,
   DiplomacyScreenProjection,
   SubmitDiplomacyCommandPayload,
@@ -219,6 +224,8 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "inspectDiplomacyScreen",
   "inspectDivisionScreen",
   "submitDivisionCommand",
+  "inspectBudgetScreen",
+  "submitBudgetAllocation",
   "submitDiplomacyCommand",
   "readUiState",
   "writeUiState",
@@ -350,6 +357,14 @@ export interface CampaignCommandClient {
     command: "submitDivisionCommand",
     payload: SubmitDivisionCommandPayload,
   ): Promise<BridgeResult<DivisionCommandOutcome>>;
+  execute(
+    command: "inspectBudgetScreen",
+    payload: string,
+  ): Promise<BridgeResult<BudgetScreenProjection>>;
+  execute(
+    command: "submitBudgetAllocation",
+    payload: SubmitBudgetAllocationPayload,
+  ): Promise<BridgeResult<BudgetCommandOutcome>>;
   execute(command: "readUiState", payload: string): Promise<BridgeResult<ReadUiStateResult>>;
   execute(
     command: "writeUiState",

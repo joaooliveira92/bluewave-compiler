@@ -41,6 +41,8 @@ export interface ResearchState {
   currentProjectTechId?: string;
   fieldPriorities: Record<string, SafeInt>;
   researchBudget: SafeInt;
+  /** Player-set monthly research budget that refills `researchBudget` each month (ADR-0060). */
+  standingResearchBudget?: SafeInt;
   activeCandidates: Map<string, string>;
   discoveredTechs: string[];
 }
