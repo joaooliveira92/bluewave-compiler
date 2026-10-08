@@ -4,6 +4,7 @@ import { SelectField } from "./fields.js";
 import {
   AlternativesPanel,
   ArmourPanel,
+  FilePanel,
   FindingsPanel,
   ComparePanel,
   ForecastPanel,
@@ -96,6 +97,13 @@ export function DrawingBoard({ sessionId }: { readonly sessionId?: string } = {}
           {sessionId !== undefined && (
             <SubmitPanel sessionId={sessionId} draft={draft} valid={view.valid} />
           )}
+          <FilePanel
+            draft={draft}
+            view={view}
+            content={content}
+            presetName={state.preset.name}
+            onLoad={actions.loadDraft}
+          />
           <AlternativesPanel generate={actions.generateAlternatives} onLoad={actions.loadDraft} />
         </div>
       </div>
