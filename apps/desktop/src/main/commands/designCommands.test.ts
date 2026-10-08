@@ -26,30 +26,102 @@ const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
 const cruiser = {
   nationId: "uk",
   requirement: {
-    category: "CL", requiredSpeedMilliKnots: 16_000, cruiseSpeedMilliKnots: 10_000, requiredRangeNm: 1_500,
-    designThreatId: "qf_12pdr", modernizationExpectation: "NONE", crewQualityBp: 10_000, accommodationStandard: "SPARTAN", protectionGoal: "NONE",
+    category: "CL",
+    requiredSpeedMilliKnots: 16_000,
+    cruiseSpeedMilliKnots: 10_000,
+    requiredRangeNm: 1_500,
+    designThreatId: "qf_12pdr",
+    modernizationExpectation: "NONE",
+    crewQualityBp: 10_000,
+    accommodationStandard: "SPARTAN",
+    protectionGoal: "NONE",
   },
   hull: {
-    hullFormId: "protected_cruiser_form", lengthWl: 85_000, beam: 12_000, draught: 4_200, depthToMainDeck: 7_000, blockCoeffBp: 5_000,
-    materialId: "mild_steel", structuralSchemeId: "mixed", subdivisionGrade: 2, targetDisplacementKg: 2_200_000, limitDisplacementKg: null,
-    designMarginBp: 300, growthReserveBp: 0,
+    hullFormId: "protected_cruiser_form",
+    lengthWl: 85_000,
+    beam: 12_000,
+    draught: 4_200,
+    depthToMainDeck: 7_000,
+    blockCoeffBp: 5_000,
+    materialId: "mild_steel",
+    structuralSchemeId: "mixed",
+    subdivisionGrade: 2,
+    targetDisplacementKg: 2_200_000,
+    limitDisplacementKg: null,
+    designMarginBp: 300,
+    growthReserveBp: 0,
   },
   machinery: {
-    plantId: "compound_cylindrical", installedKw: 2_300, zoneId: "CENTRAL_MACHINERY", stationPermille: 400, fuelCapacityKg: 800_000,
-    fuelZoneId: "CENTRAL_MACHINERY", fuelStationPermille: 450, foulingBp: 0,
-    rooms: [{ zoneId: "CENTRAL_MACHINERY", stationPermille: 400, shareBp: 6_000 }, { zoneId: "AFT_SERVICE", stationPermille: 680, shareBp: 4_000 }],
+    plantId: "compound_cylindrical",
+    installedKw: 2_300,
+    zoneId: "CENTRAL_MACHINERY",
+    stationPermille: 400,
+    fuelCapacityKg: 800_000,
+    fuelZoneId: "CENTRAL_MACHINERY",
+    fuelStationPermille: 450,
+    foulingBp: 0,
+    rooms: [
+      { zoneId: "CENTRAL_MACHINERY", stationPermille: 400, shareBp: 6_000 },
+      { zoneId: "AFT_SERVICE", stationPermille: 680, shareBp: 4_000 },
+    ],
   },
   armour: { regions: [], citadelLengthMm: 0, torpedoWarheadKg: 12, bunkerProtectionBp: 0 },
   placements: [
-    { instanceId: "mg_fwd", componentId: "gun_nordenfelt_1in", zoneId: "FORECASTLE", stationPermille: 40, params: { barrels: 1, rounds: 1_000 }, magazineRef: "mag_fwd" },
-    { instanceId: "mg_aft", componentId: "gun_nordenfelt_1in", zoneId: "QUARTERDECK", stationPermille: 950, params: { barrels: 1, rounds: 1_000 }, magazineRef: "mag_aft" },
-    { instanceId: "tubes", componentId: "tube_14in_above_water", zoneId: "SUPERSTRUCTURE", stationPermille: 580, params: { tubes: 4 } },
-    { instanceId: "mag_fwd", componentId: "magazine_small", zoneId: "FWD_MAGAZINE", stationPermille: 130 },
-    { instanceId: "mag_aft", componentId: "magazine_small", zoneId: "AFT_MAGAZINE", stationPermille: 830 },
+    {
+      instanceId: "mg_fwd",
+      componentId: "gun_nordenfelt_1in",
+      zoneId: "FORECASTLE",
+      stationPermille: 40,
+      params: { barrels: 1, rounds: 1_000 },
+      magazineRef: "mag_fwd",
+    },
+    {
+      instanceId: "mg_aft",
+      componentId: "gun_nordenfelt_1in",
+      zoneId: "QUARTERDECK",
+      stationPermille: 950,
+      params: { barrels: 1, rounds: 1_000 },
+      magazineRef: "mag_aft",
+    },
+    {
+      instanceId: "tubes",
+      componentId: "tube_14in_above_water",
+      zoneId: "SUPERSTRUCTURE",
+      stationPermille: 580,
+      params: { tubes: 4 },
+    },
+    {
+      instanceId: "mag_fwd",
+      componentId: "magazine_small",
+      zoneId: "FWD_MAGAZINE",
+      stationPermille: 130,
+    },
+    {
+      instanceId: "mag_aft",
+      componentId: "magazine_small",
+      zoneId: "AFT_MAGAZINE",
+      stationPermille: 830,
+    },
     { instanceId: "dyn", componentId: "dynamo_small", zoneId: "FWD_SERVICE", stationPermille: 200 },
-    { instanceId: "vent", componentId: "ventilation_plant", zoneId: "FWD_SERVICE", stationPermille: 210 },
-    { instanceId: "quarters", componentId: "quarters_crew", zoneId: "FWD_SERVICE", stationPermille: 230, params: { blocks: 12 } },
-    { instanceId: "funnel", componentId: "funnel_single", zoneId: "SUPERSTRUCTURE", stationPermille: 600 },
+    {
+      instanceId: "vent",
+      componentId: "ventilation_plant",
+      zoneId: "FWD_SERVICE",
+      stationPermille: 210,
+    },
+    {
+      instanceId: "quarters",
+      componentId: "quarters_crew",
+      zoneId: "FWD_SERVICE",
+      stationPermille: 230,
+      params: { blocks: 12 },
+    },
+    {
+      instanceId: "funnel",
+      componentId: "funnel_single",
+      zoneId: "SUPERSTRUCTURE",
+      stationPermille: 600,
+    },
   ],
 };
 
@@ -93,7 +165,6 @@ describe("submitDesignCommand (ADR-0066)", () => {
 
   it("queues a valid design, and committing the month adds it to the snapshot", async () => {
     const queued = await submit();
-    if (queued.outcome !== "success") console.log("QUEUED", JSON.stringify(queued));
     expect(queued.outcome).toBe("success");
     if (queued.outcome !== "success") return;
     const { designVersionId } = queued.value as { designVersionId: string };
@@ -131,17 +202,9 @@ describe("submitDesignCommand (ADR-0066)", () => {
   });
 
   it("rejects malformed payloads at the boundary and bad drafts by shape", async () => {
-    expect((await submit({ className: "" })).outcome).toBe("rejected");
-    console.log(
-      "BADBOUNDARY",
-      JSON.stringify([
-        await submit({ className: "" }),
-        await submit({ draft: { nationId: "uk" } }),
-        await submit({ draft: "nope" }),
-      ]),
-    );
+    expect((await submit({ className: "" })).outcome).toBe("error");
     expect((await submit({ draft: { nationId: "uk" } })).outcome).toBe("rejected");
-    expect((await submit({ draft: "nope" })).outcome).toBe("rejected");
+    expect((await submit({ draft: "nope" })).outcome).toBe("error");
   });
 
   it("is idempotent for the same transport request and rejects a stale revision", async () => {

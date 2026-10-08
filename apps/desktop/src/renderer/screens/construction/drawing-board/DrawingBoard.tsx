@@ -11,6 +11,7 @@ import {
   MachineryPanel,
   MetricsPanel,
   PlacementsPanel,
+  SubmitPanel,
 } from "./panels.js";
 import { useDrawingBoard } from "./useDrawingBoard.js";
 
@@ -20,7 +21,7 @@ const MONTHS = ["1885-01", "1890-01", "1893-06", "1895-06", "1896-01", "1899-12"
  * Component-level ship designer (SB-18 v1). Local to the renderer: edits an undoable draft and shows the live
  * compile result. Submitting a design to the engine arrives with the command wiring (SB-14).
  */
-export function DrawingBoard() {
+export function DrawingBoard({ sessionId }: { readonly sessionId?: string } = {}) {
   const { state, actions } = useDrawingBoard();
   const { draft, view, content } = state;
   return (
@@ -80,6 +81,9 @@ export function DrawingBoard() {
           <MetricsPanel view={view} />
           <LedgerPanel view={view} />
           <ForecastPanel view={view} />
+          {sessionId !== undefined && (
+            <SubmitPanel sessionId={sessionId} draft={draft} valid={view.valid} />
+          )}
           <AlternativesPanel generate={actions.generateAlternatives} onLoad={actions.loadDraft} />
         </div>
       </div>

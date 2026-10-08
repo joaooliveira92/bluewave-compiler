@@ -110,7 +110,7 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
         </TabsContent>
 
         <TabsContent value="drawing-board">
-          <DrawingBoard />
+          <DrawingBoard sessionId={sessionId} />
         </TabsContent>
 
         <TabsContent value="commands">
