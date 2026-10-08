@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { BackgroundProvider } from "../../shell/BackgroundContext.js";
 import { DensityProvider } from "../../shell/DensityContext.js";
 import { OptionsScreen } from "./OptionsScreen.js";
@@ -8,7 +8,7 @@ function renderOptions() {
   return render(
     <BackgroundProvider>
       <DensityProvider>
-        <OptionsScreen saving={false} onSave={vi.fn()} onCopy={vi.fn()} onCloseCampaign={vi.fn()} />
+        <OptionsScreen />
       </DensityProvider>
     </BackgroundProvider>,
   );
@@ -41,5 +41,11 @@ describe("OptionsScreen display density", () => {
     );
     expect(document.documentElement.dataset["density"]).toBe("compact");
     expect(localStorage.getItem("bluewave-density")).toBe("compact");
+  });
+
+  it("no longer carries campaign file actions (they live in the header Campaign menu)", () => {
+    renderOptions();
+    expect(screen.queryByRole("button", { name: /^Save/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Close Campaign/i })).toBeNull();
   });
 });

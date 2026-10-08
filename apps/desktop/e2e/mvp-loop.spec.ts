@@ -16,9 +16,14 @@ const NATION = "United Kingdom";
 
 // The Overview screen also renders its own "Construction"/"Fleet" quick-nav
 // buttons, so plain getByRole("button", { name }) is ambiguous -- scope to
-// the sidebar's nav buttons (data-sidebar="menu-button").
+// the bottom bar. Its buttons carry the full screen name as title/aria-label.
 function navigateTo(page: import("@playwright/test").Page, label: string) {
-  return page.locator('[data-sidebar="menu-button"]').filter({ hasText: label }).click();
+  return page.getByTestId("bottom-nav").getByRole("button", { name: label, exact: true }).click();
+}
+
+async function openCampaignMenuItem(page: import("@playwright/test").Page, name: string | RegExp) {
+  await page.getByRole("button", { name: "Campaign menu" }).click();
+  await page.getByRole("button", { name }).click();
 }
 
 test("row 1: New Game compiles a fresh campaign onto Overview", async ({ e2e }) => {
@@ -238,7 +243,7 @@ test("row 6c: Fleet organization founds a division through the real engine and a
   await expect(organization.getByText("No divisions yet")).not.toBeVisible();
 });
 
-test("row 6d: Options can save, save a copy, and close the campaign", async ({ e2e }) => {
+test("row 6d: the Campaign menu can save, copy, and close the campaign", async ({ e2e }) => {
   const working = await copyFixturePackage(sharedSaveDir, e2e.scratch);
   await e2e.retargetDialog(working);
   await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
@@ -247,12 +252,9 @@ test("row 6d: Options can save, save a copy, and close the campaign", async ({ e
   });
   await dismissTour(e2e.page);
 
-  await navigateTo(e2e.page, "Options");
-  await expect(e2e.page.getByRole("heading", { name: "Options" })).toBeVisible();
-
   // Save used to answer NOT_IMPLEMENTED; it now confirms the revision on disk. (Earlier rows advance
   // the shared save, so the turn is whatever it is now — assert the shape, not a fixed number.)
-  await e2e.page.getByRole("button", { name: "Save", exact: true }).click();
+  await openCampaignMenuItem(e2e.page, "Save");
   await expect(e2e.page.getByText(/Campaign saved — revision \d+/)).toBeVisible({
     timeout: 15_000,
   });
@@ -261,12 +263,12 @@ test("row 6d: Options can save, save a copy, and close the campaign", async ({ e
   // Save a copy: the (stubbed) dialog returns a new folder; the copy is a real package.
   const copyDir = join(e2e.scratch, "the-copy");
   await e2e.retargetDialog(copyDir);
-  await e2e.page.getByRole("button", { name: /Save a Copy/ }).click();
+  await openCampaignMenuItem(e2e.page, /Copy game/);
   await expect(e2e.page.getByText(/Copy saved to/)).toBeVisible({ timeout: 15_000 });
 
   // Close returns to the campaign file screen.
-  await e2e.page.getByRole("button", { name: "Close Campaign" }).click();
-  await e2e.page.getByRole("button", { name: "Close Campaign" }).last().click();
+  await openCampaignMenuItem(e2e.page, "Close campaign…");
+  await e2e.page.getByRole("button", { name: "Close campaign", exact: true }).click();
   await expect(e2e.page.getByRole("button", { name: "Open Campaign" })).toBeVisible({
     timeout: 15_000,
   });

@@ -21,7 +21,9 @@ describe("BottomNav (proof of concept)", () => {
       .getAllByRole("button")
       .map((button) => button.textContent);
     expect(labels).toEqual(
-      CAMPAIGN_NAVIGATION_SECTIONS.flatMap((section) => section.items.map((item) => item.label)),
+      CAMPAIGN_NAVIGATION_SECTIONS.flatMap((section) =>
+        section.items.map((item) => item.shortLabel),
+      ),
     );
   });
 
@@ -29,8 +31,22 @@ describe("BottomNav (proof of concept)", () => {
     render(<BottomNav screen="treasury" onSelect={() => undefined} />);
     const current = screen.getAllByRole("button").filter((b) => b.ariaCurrent === "page");
     expect(current.map((b) => b.textContent)).toEqual(["Treasury"]);
-    for (const button of screen.getAllByRole("button")) {
-      expect(button.getAttribute("title")).toBe(button.textContent);
+    const items = CAMPAIGN_NAVIGATION_SECTIONS.flatMap((section) => section.items);
+    for (const [index, button] of screen.getAllByRole("button").entries()) {
+      expect(button.getAttribute("title")).toBe(items[index]?.label);
+      expect(button.getAttribute("aria-label")).toBe(items[index]?.label);
+    }
+  });
+
+  it("uses short labels that never truncate, while full names stay available", () => {
+    render(<BottomNav screen="overview" onSelect={() => undefined} />);
+    expect(screen.getByRole("button", { name: "Research & Technology" }).textContent).toBe(
+      "Research",
+    );
+    expect(screen.getByRole("button", { name: "Diplomacy & War" }).textContent).toBe("Diplomacy");
+    expect(screen.getByRole("button", { name: "Campaign Preferences" }).textContent).toBe("Prefs");
+    for (const item of CAMPAIGN_NAVIGATION_SECTIONS.flatMap((section) => section.items)) {
+      expect(item.shortLabel.length).toBeLessThanOrEqual(10);
     }
   });
 

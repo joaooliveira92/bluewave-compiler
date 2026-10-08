@@ -1,49 +1,12 @@
-import {
-  Ban,
-  Citrus,
-  Copy,
-  DoorOpen,
-  Flame,
-  Gem,
-  Orbit,
-  Palette,
-  Save,
-  Settings,
-  Sparkles,
-  Waves,
-} from "lucide-react";
+import { Ban, Citrus, Flame, Gem, Orbit, Palette, Settings, Sparkles, Waves } from "lucide-react";
 import { BloomMenu } from "../../components/motion/bloom-menu.js";
 import { PageHeader } from "../../components/shared/PageHeader.js";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "../../components/ui/alert-dialog.js";
 import { Button } from "../../components/ui/button.js";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card.js";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card.js";
 import type { BackgroundStyle } from "../../shell/BackgroundContext.js";
 import { useBackground } from "../../shell/BackgroundContext.js";
 import { DENSITY_OPTIONS, useDensity } from "../../shell/DensityContext.js";
 import { GlassCard } from "@/components/ui/glass-card.jsx";
-
-export interface OptionsScreenProps {
-  readonly saving: boolean;
-  readonly onSave: () => void;
-  readonly onCopy: () => void;
-  readonly onCloseCampaign: () => void;
-}
 
 const BACKGROUND_OPTIONS: {
   label: string;
@@ -59,7 +22,7 @@ const BACKGROUND_OPTIONS: {
   { label: "None", value: "none", icon: Ban },
 ];
 
-export function OptionsScreen({ saving, onSave, onCopy, onCloseCampaign }: OptionsScreenProps) {
+export function OptionsScreen() {
   const { background, setBackground } = useBackground();
   const { density, setDensity } = useDensity();
   const activeOption =
@@ -69,7 +32,11 @@ export function OptionsScreen({ saving, onSave, onCopy, onCloseCampaign }: Optio
 
   return (
     <div className="space-y-6">
-      <PageHeader icon={Settings} title="Options" description="Campaign-level actions." />
+      <PageHeader
+        icon={Settings}
+        title="Options"
+        description="Appearance and display. Save, copy and close live in the header Campaign menu."
+      />
 
       <GlassCard>
         <CardHeader>
@@ -115,66 +82,6 @@ export function OptionsScreen({ saving, onSave, onCopy, onCloseCampaign }: Optio
               </Button>
             ))}
           </div>
-        </CardContent>
-      </GlassCard>
-
-      <GlassCard>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Save Campaign</CardTitle>
-          <CardDescription>Write the current campaign state to its package file.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="default" onClick={onSave} disabled={saving}>
-            <Save className="h-3.5 w-3.5" />
-            {saving ? "Saving…" : "Save"}
-          </Button>
-        </CardContent>
-      </GlassCard>
-
-      <GlassCard>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Save a Copy</CardTitle>
-          <CardDescription>
-            Write a separate copy of this campaign to a location you choose. The original is
-            untouched, and the copy can be opened later from the campaign file screen.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="outline" onClick={onCopy} disabled={saving}>
-            <Copy className="h-3.5 w-3.5" />
-            Save a Copy…
-          </Button>
-        </CardContent>
-      </GlassCard>
-
-      <GlassCard>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Close Campaign</CardTitle>
-          <CardDescription>Return to the campaign file screen.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AlertDialog>
-            <AlertDialogTrigger
-              render={
-                <Button variant="outline">
-                  <DoorOpen className="h-3.5 w-3.5" />
-                  Close Campaign
-                </Button>
-              }
-            />
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Close this campaign?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  You will be returned to the campaign file screen. Unsaved progress may be lost.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={onCloseCampaign}>Close Campaign</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </CardContent>
       </GlassCard>
     </div>

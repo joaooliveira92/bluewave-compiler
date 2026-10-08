@@ -150,22 +150,8 @@ vi.mock("../screens/campaign-preferences/CampaignPreferencesScreen.js", async ()
 vi.mock("../screens/options/OptionsScreen.js", async () => {
   const React = await import("react");
   return {
-    OptionsScreen: ({
-      saving,
-      onSave,
-      onCloseCampaign,
-    }: {
-      saving: boolean;
-      onSave: () => void;
-      onCloseCampaign: () => void;
-    }) =>
-      React.createElement(
-        "section",
-        { "data-testid": "options-screen" },
-        React.createElement("span", null, saving ? "Saving" : "Idle"),
-        React.createElement("button", { onClick: onSave }, "Save"),
-        React.createElement("button", { onClick: onCloseCampaign }, "Close campaign"),
-      ),
+    OptionsScreen: () =>
+      React.createElement("section", { "data-testid": "options-screen" }, "Options"),
   };
 });
 
@@ -228,14 +214,9 @@ describe("CampaignScreenOutlet", () => {
     );
   });
 
-  it("connects option state and actions", async () => {
-    shell.state.saving = true;
+  it("renders the options screen without campaign file actions", async () => {
     render(<CampaignScreenOutlet screen="options" />);
-    expect(await screen.findByText("Saving")).toBeTruthy();
-    screen.getByRole("button", { name: "Save" }).click();
-    screen.getByRole("button", { name: "Close campaign" }).click();
-    expect(shell.actions.saveCampaign).toHaveBeenCalledOnce();
-    expect(shell.actions.closeCampaign).toHaveBeenCalledOnce();
+    expect(await screen.findByTestId("options-screen")).toBeTruthy();
   });
 
   it.each(["file", "new-game-preferences", "new-game-nation"] as const)(

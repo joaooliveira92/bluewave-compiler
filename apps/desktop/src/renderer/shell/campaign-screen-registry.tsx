@@ -96,6 +96,8 @@ type CampaignScreenRoute = ComponentType<CampaignScreenRouteProps>;
 export interface CampaignScreenDefinition {
   readonly id: CampaignScreen;
   readonly label: string;
+  /** Compact name for tight surfaces (the bottom bar); the full `label` is its tooltip. */
+  readonly shortLabel: string;
   readonly icon: LucideIcon;
   readonly group: "campaign" | "settings";
   readonly searchable: boolean;
@@ -168,15 +170,7 @@ function CampaignPreferencesRoute({ sessionId }: CampaignScreenRouteProps) {
 }
 
 function OptionsRoute() {
-  const { state, actions } = useCampaignShellContext();
-  return (
-    <OptionsScreen
-      saving={state.saving}
-      onSave={actions.saveCampaign}
-      onCopy={actions.copyCampaign}
-      onCloseCampaign={actions.closeCampaign}
-    />
-  );
+  return <OptionsScreen />;
 }
 
 // PROTOTYPE — throwaway, ticket 06. Never registered in a production build, so
@@ -184,6 +178,7 @@ function OptionsRoute() {
 const MAP_PROTOTYPE_SCREEN: CampaignScreenDefinition = {
   id: "map-prototype",
   label: "Map Prototype",
+  shortLabel: "Map",
   icon: MapIcon,
   group: "campaign",
   searchable: true,
@@ -197,6 +192,7 @@ const MAP_PROTOTYPE_SCREEN: CampaignScreenDefinition = {
 const SIMULATION_SCREEN: CampaignScreenDefinition = {
   id: "simulation",
   label: "Simulation & Turn",
+  shortLabel: "Sim",
   icon: Activity,
   group: "campaign",
   searchable: true,
@@ -205,6 +201,7 @@ const SIMULATION_SCREEN: CampaignScreenDefinition = {
 const TACTICAL_SANDBOX_SCREEN: CampaignScreenDefinition = {
   id: "tactical-sandbox",
   label: "Tactical Sandbox",
+  shortLabel: "Sandbox",
   icon: Crosshair,
   group: "campaign",
   searchable: true,
@@ -213,6 +210,7 @@ const TACTICAL_SANDBOX_SCREEN: CampaignScreenDefinition = {
 const DEBUGGING_SCREEN: CampaignScreenDefinition = {
   id: "debugging",
   label: "Debugging & Telemetry",
+  shortLabel: "Debug",
   icon: Terminal,
   group: "campaign",
   searchable: true,
@@ -224,6 +222,7 @@ const DEBUGGING_SCREEN: CampaignScreenDefinition = {
 const TREASURY_SCREEN: CampaignScreenDefinition = {
   id: "treasury",
   label: "Treasury",
+  shortLabel: "Treasury",
   icon: Coins,
   group: "campaign",
   searchable: true,
@@ -234,6 +233,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "overview",
     label: "Overview",
+    shortLabel: "Overview",
     icon: LayoutDashboard,
     group: "campaign",
     searchable: true,
@@ -242,6 +242,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "construction",
     label: "Construction",
+    shortLabel: "Build",
     icon: Hammer,
     group: "campaign",
     searchable: true,
@@ -250,6 +251,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "fleet",
     label: "Fleet",
+    shortLabel: "Fleet",
     icon: Ship,
     group: "campaign",
     searchable: true,
@@ -259,6 +261,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "research",
     label: "Research & Technology",
+    shortLabel: "Research",
     icon: FlaskConical,
     group: "campaign",
     searchable: true,
@@ -267,6 +270,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "diplomacy",
     label: "Diplomacy & War",
+    shortLabel: "Diplomacy",
     icon: Handshake,
     group: "campaign",
     searchable: true,
@@ -278,6 +282,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "campaign-preferences",
     label: "Campaign Preferences",
+    shortLabel: "Prefs",
     icon: Settings2,
     group: "settings",
     searchable: false,
@@ -286,6 +291,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
   {
     id: "options",
     label: "Options",
+    shortLabel: "Options",
     icon: Settings,
     group: "settings",
     searchable: false,

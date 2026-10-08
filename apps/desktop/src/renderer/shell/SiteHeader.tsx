@@ -2,7 +2,7 @@ import { ClockArrowRight, Play } from "lucide-react";
 
 import { Button } from "../components/ui/button.js";
 import { cn } from "../lib/utils.js";
-import { Header, type NavAction } from "./header/index.js";
+import { Header, type HeaderCampaignMenuProps, type NavAction } from "./header/index.js";
 import { DRAG, NO_DRAG } from "./header/drag-region.js";
 import type { PrimaryAction } from "./primary-action.js";
 import type { SearchTarget } from "./global-search-state.js";
@@ -23,6 +23,8 @@ export interface SiteHeaderProps {
   readonly onSearchNavigate?: (id: string) => void;
   readonly onAdvanceMonth?: (() => void) | undefined;
   readonly advancingMonth?: boolean;
+  /** Save / Copy game / Close handlers; the Campaign menu renders only with a campaign. */
+  readonly campaignMenu?: HeaderCampaignMenuProps;
 }
 
 const NOOP = (): void => undefined;
@@ -40,6 +42,7 @@ export function SiteHeader({
   onSearchNavigate,
   onAdvanceMonth,
   advancingMonth = false,
+  campaignMenu,
 }: SiteHeaderProps) {
   const { platform } = useWindowContext();
   const isMac = platform === "darwin";
@@ -89,6 +92,10 @@ export function SiteHeader({
               <Play className="h-4 w-4" />
               <span className="truncate">{advancingMonth ? "Advancing…" : "Advance Month"}</span>
             </Button>
+          )}
+
+          {campaign !== null && campaignMenu !== undefined && (
+            <Header.CampaignMenu {...campaignMenu} />
           )}
 
           <Header.Chrome />

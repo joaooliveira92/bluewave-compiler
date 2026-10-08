@@ -31,6 +31,7 @@ export function BottomNav({ screen, onSelect, footer }: BottomNavProps) {
               <button
                 type="button"
                 title={item.label}
+                aria-label={item.label}
                 aria-current={active ? "page" : undefined}
                 data-active={active}
                 onClick={() => onSelect(item.id)}
@@ -41,7 +42,7 @@ export function BottomNav({ screen, onSelect, footer }: BottomNavProps) {
                 )}
               >
                 <item.icon className="size-4 shrink-0" aria-hidden="true" />
-                <span className="max-w-full truncate">{item.label}</span>
+                <span className="max-w-full whitespace-nowrap">{item.shortLabel}</span>
               </button>
             </li>
           );

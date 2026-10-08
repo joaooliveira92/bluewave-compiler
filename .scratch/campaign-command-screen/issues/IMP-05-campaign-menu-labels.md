@@ -1,7 +1,7 @@
 # Header Campaign menu and BottomNav labels
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** none
 **Frontier:** yes
 **Requirements:** CC-6, CC-7

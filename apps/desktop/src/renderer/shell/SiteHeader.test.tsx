@@ -247,4 +247,17 @@ describe("SiteHeader", () => {
     renderHeader("linux", { activeView: "options" });
     expect(screen.getByText("Preferences:")).toBeTruthy();
   });
+
+  it("shows the Campaign menu only in a campaign with its handlers, beside the single Advance control", () => {
+    renderHeader();
+    expect(screen.queryByRole("button", { name: "Campaign menu" })).toBeNull();
+    cleanup();
+    renderHeader("linux", {
+      campaign,
+      onAdvanceMonth: vi.fn(),
+      campaignMenu: { saving: false, onSave: vi.fn(), onCopy: vi.fn(), onCloseCampaign: vi.fn() },
+    });
+    expect(screen.getByRole("button", { name: "Campaign menu" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Advance month" })).toHaveLength(1);
+  });
 });
