@@ -79,6 +79,9 @@ async function setupUi(recommendedPreset: AdmiralPresetValues | null = null) {
     />,
   );
   await screen.findByText("Rules of the Naval Age");
+  // The heading is there at once; the setting controls only render once the options have loaded
+  // through the bridge. Wait for them, or the tests below race the load on a busy machine.
+  await screen.findByLabelText("Fleet Size");
   return { ...utils, onCancel, onNext, getPrimary: () => primary };
 }
 
