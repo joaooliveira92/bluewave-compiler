@@ -3,7 +3,6 @@ import { Copy, Fingerprint, Globe } from "lucide-react";
 import type { PlayerProjection } from "@bluewave/campaign-engine";
 import { Badge } from "../../../components/ui/badge.js";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,

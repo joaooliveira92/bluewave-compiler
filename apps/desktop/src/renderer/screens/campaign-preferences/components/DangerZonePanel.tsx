@@ -2,7 +2,6 @@ import { memo } from "react";
 import { AlertTriangle, Download, RefreshCw, RotateCcw, Save } from "lucide-react";
 import { Button } from "../../../components/ui/button.js";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,

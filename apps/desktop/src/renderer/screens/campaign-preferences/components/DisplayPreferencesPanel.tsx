@@ -1,7 +1,6 @@
 import { memo } from "react";
 import { Eye, Sparkles } from "lucide-react";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,

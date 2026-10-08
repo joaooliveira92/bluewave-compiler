@@ -2,7 +2,6 @@ import { memo } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { Badge } from "../../../components/ui/badge.js";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
