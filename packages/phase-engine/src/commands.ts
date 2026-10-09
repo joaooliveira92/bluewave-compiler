@@ -22,6 +22,7 @@ import { compileDesign, type DesignDraft, type ShipBuildingContent } from "@blue
 import { SafeInt } from "@bluewave/contracts";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { buildDesignVersion, pricingFor } from "./designVersion.js";
+import { startDesignStudy, studyExists } from "./designStudies.js";
 import { fundConstructionProject } from "./constructionFunding.js";
 import { EventLedger } from "@bluewave/events";
 import type { FinancialLedger } from "./financial-ledger.js";
@@ -314,7 +315,10 @@ export function applySubmitDesign(
   };
   if (!currentSnapshot["nations"].has(body["nationId"]))
     return fail("INVALID_NATION_ID", `Nation ${body["nationId"]} not found`);
-  if (currentSnapshot["designs"].has(body["designVersionId"]))
+  if (
+    currentSnapshot["designs"].has(body["designVersionId"]) ||
+    studyExists(currentSnapshot, body["designVersionId"])
+  )
     return fail("DESIGN_REJECTED", `Design ${body["designVersionId"]} already exists`);
   if (content === undefined)
     return fail(
@@ -345,6 +349,16 @@ export function applySubmitDesign(
     },
     pricingFor(content, month),
   );
+  // DESIGN-21 section 3: with study rules in the content, the design is approved only when its study is done (ADR-0085).
+  if (content.study !== null)
+    return startDesignStudy(
+      currentSnapshot,
+      body["nationId"],
+      design,
+      { compiled, draft },
+      content,
+      month,
+    );
   const existing = currentSnapshot["designFamilies"].get(body["designFamilyId"]);
   const family: DesignFamily = existing
     ? {

@@ -5,8 +5,38 @@ import { Alert } from "../../../../components/ui/alert.js";
 import { Button } from "../../../../components/ui/button.js";
 import { useCampaignRevision } from "../../../../shell/CampaignShellContext.js";
 import { Panel } from "./Panel.js";
+import { plural } from "../plural.js";
+import type { DesignStudyPreview } from "../../../../../shared/design-contract.js";
 
 let submitCounter = 0;
+
+/** What the player is told when a design is queued: with study rules, its study's months and cost (ADR-0085). */
+export function queuedLines(name: string, study: DesignStudyPreview | undefined): string[] {
+  if (study === undefined)
+    return [`Design queued. "${name}" joins the Design Catalog when the month is advanced.`];
+  const lines = [
+    `Design queued. Its design study starts when the month is advanced: ${plural(study.months, "month")} and ${plural(study.cost, "treasury unit")}, paid month by month.`,
+  ];
+  if (study.derived && study.baselineClassName !== null)
+    lines.push(
+      `A variant of ${study.baselineClassName}: the study is ${study.discountBp / 100}% shorter and cheaper.`,
+    );
+  else if (study.failedCriteria.length > 0)
+    lines.push(
+      `Too different from the earlier "${name}" design to be a variant (${study.failedCriteria
+        .map((c) =>
+          c
+            .replace(/^DERIVED_DESIGN_/, "")
+            .replaceAll("_", " ")
+            .toLowerCase(),
+        )
+        .join(", ")}), so it starts a new design family at the full study cost.`,
+    );
+  lines.push(
+    `"${name}" joins the Design Catalog when the study is done. A month without the money makes no progress.`,
+  );
+  return lines;
+}
 
 /** What a refused submission means for the player; the engine's own lines follow it. */
 export function rejectionLead(reason: string): string {
@@ -66,12 +96,7 @@ export function SubmitPanel({
       });
       if (r.outcome === "success") {
         setQueuedKey(key);
-        setResult({
-          tone: "ok",
-          lines: [
-            `Design queued. "${className.trim()}" joins the Design Catalog when the month is advanced.`,
-          ],
-        });
+        setResult({ tone: "ok", lines: queuedLines(className.trim(), r.value.study) });
       } else {
         setResult({
           tone: "bad",

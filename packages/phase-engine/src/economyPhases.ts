@@ -3,6 +3,7 @@
 import type { CampaignSnapshot, ConstructionProject, NationState, Ship } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
 import { fundConstructionProject } from "./constructionFunding.js";
+import { fundDesignStudies } from "./designStudies.js";
 import { budgetChangedEvent, makeLedgerEntry } from "./events.js";
 import type { MonthContext } from "./monthContext.js";
 
@@ -83,6 +84,8 @@ function capacityOf(
 // Phase 4: appropriation — proportional funding of construction projects within
 // the nation's construction cap.
 export function runAppropriationPhase(ctx: MonthContext): void {
+  // Design studies are paid first: design-office work is small and gates every new class (ADR-0085).
+  fundDesignStudies(ctx);
   const { campaignMonth, eventLedger, financialLedger, nextSeq } = ctx;
 
   for (const [nationId, nation] of ctx.currentSnapshot["nations"]) {

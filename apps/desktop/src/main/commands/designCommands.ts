@@ -25,7 +25,14 @@ import type {
   ShipDraftView,
   StartRebuildCommandPayload,
   SubmitDesignCommandPayload,
+  DesignStudyPreview,
 } from "../../shared/design-contract.js";
+import {
+  buildDesignVersion,
+  planDesignStudy,
+  pricingFor,
+  studyExists,
+} from "@bluewave/phase-engine";
 import { getCampaignSession } from "../campaignSessions.js";
 import { loadShipBuildingContent } from "../shipBuildingContent.js";
 import { submitPlayerCommand } from "./playerCommandSupport.js";
@@ -94,6 +101,57 @@ export async function submitDesignCommand(
   const base = slug(payload.className);
   const turn = Number(record.state.snapshot.turnNumber);
   const designVersionId = `des_${record.playerSlotId.toLowerCase()}_${base}_t${turn}`.slice(0, 64);
+  const designFamilyId = `fam_${record.playerSlotId.toLowerCase()}_${base}`.slice(0, 64);
+  const hullType = HULL_TYPE_BY_CLASS[draft.requirement.category] ?? "coast_defense_ship";
+  const snapshot = record.state.snapshot;
+  if (snapshot.designs.has(designVersionId) || studyExists(snapshot, designVersionId)) {
+    return {
+      outcome: "rejected",
+      reason: "DESIGN_REJECTED",
+      diagnostics: [
+        `A design named "${payload.className.trim()}" was already submitted this month.`,
+      ],
+    };
+  }
+  // The study the engine will open for it, from the same rules, so the player sees its months and cost now (ADR-0085).
+  const content = loadShipBuildingContent();
+  let study: DesignStudyPreview | undefined;
+  if (content.study !== null) {
+    const owned = { ...draft, nationId: record.playerSlotId };
+    const planned = planDesignStudy(
+      snapshot,
+      record.playerSlotId,
+      buildDesignVersion(
+        compiled,
+        owned,
+        {
+          designVersionId,
+          designFamilyId,
+          className: payload.className.trim(),
+          hullType,
+          machineryType: draft.machinery.plantId,
+          contentVersion: snapshot.rulesetVersion,
+          kgPerHitPoint: content.kgPerHitPoint,
+        },
+        pricingFor(content, monthId),
+      ),
+      { compiled, draft: owned },
+      content,
+      monthId,
+    );
+    study = {
+      months: planned.finalStudyWork,
+      cost: planned.finalStudyCost,
+      derived: planned.derived,
+      discountBp: planned.discountBp,
+      baselineClassName:
+        planned.baselineDesignVersionId === "NONE"
+          ? null
+          : (snapshot.designs.get(planned.baselineDesignVersionId)?.className ?? null),
+      newFamily: planned.newFamily,
+      failedCriteria: planned.failedCriteria,
+    };
+  }
   const result = await submitPlayerCommand({
     sessionId: payload.sessionId,
     expectedRevision: payload.expectedRevision,
@@ -103,9 +161,9 @@ export async function submitDesignCommand(
         type: "SubmitDesign",
         nationId: rec.playerSlotId,
         designVersionId,
-        designFamilyId: `fam_${rec.playerSlotId.toLowerCase()}_${base}`.slice(0, 64),
+        designFamilyId,
         className: payload.className.trim(),
-        hullType: HULL_TYPE_BY_CLASS[draft.requirement.category] ?? "coast_defense_ship",
+        hullType,
         machineryType: draft.machinery.plantId,
         draft: { ...draft, nationId: rec.playerSlotId },
       },
@@ -115,7 +173,12 @@ export async function submitDesignCommand(
   if (result.outcome !== "success") return result;
   return {
     outcome: "success",
-    value: { commandId: result.value.commandId, designVersionId, appliedOnNextTurn: true },
+    value: {
+      commandId: result.value.commandId,
+      designVersionId,
+      appliedOnNextTurn: true,
+      ...(study ? { study } : {}),
+    },
     diagnostics: [],
   };
 }

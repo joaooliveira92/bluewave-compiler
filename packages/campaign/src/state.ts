@@ -287,10 +287,47 @@ export interface NationState {
   officers?: Officer[];
   research: ResearchState;
   constructionProjects: ConstructionProject[];
+  /** Design studies (DESIGN-21 section 3, ADR-0085); absent until the nation submits its first design. */
+  designStudies?: DesignStudy[];
   aircraft?: Record<string, unknown>;
   carrierOperations?: Record<string, unknown>;
   isPlayable: boolean;
   isAI: boolean;
+}
+
+/**
+ * A design study (DESIGN-21 section 3, ADR-0085): the paid design-office work that approves one submitted design. It holds
+ * the compiled version it approves, which enters `designs` (with its family) in the month the study completes. Work is in
+ * months, cost in treasury units; a month that cannot be paid makes no progress.
+ */
+export interface DesignStudy {
+  designStudyId: string;
+  nationId: string;
+  /** Intended builder context: the nation's own design office (licensed design rights do not exist yet). */
+  builderContext: "NATIONAL";
+  /** The approved design it was derived from, or "NONE" for a new design. */
+  baselineDesignVersionId: string;
+  designFamilyId: string;
+  /** Whether the family is created when the study completes (a new design, or a derived one that was not similar). */
+  newFamily: boolean;
+  /** Similarity result (sections 9-17): failed criterion codes in the fixed order; empty when derived. */
+  derived: boolean;
+  failedCriteria: string[];
+  baseStudyWork: number;
+  baseStudyCost: number;
+  discountBp: number;
+  finalStudyWork: number;
+  finalStudyCost: number;
+  workDone: number;
+  costPaid: number;
+  status: "IN_PROGRESS" | "COMPLETED";
+  startMonth: string;
+  completionMonth: string | null;
+  rulesetVersion: string;
+  formulaVersion: "design_study_v1";
+  /** sha256 of the study's identity and terms, fixed when it starts. */
+  projectHash: string;
+  design: CompiledDesignVersion;
 }
 
 /** The package kinds of a new-construction plan (ship-design `PackageKind`); stored as plain strings so the state stays data. */

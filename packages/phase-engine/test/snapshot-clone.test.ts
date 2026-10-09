@@ -325,6 +325,32 @@ function makeRichSnapshot(): CampaignSnapshot {
     ["dv-b", makeDesign("dv-b", ATTACKER_NATION)],
     ["dv-c", makeDesign("dv-c", DEFENDER_NATION)],
   ]);
+  snapshot.nations.get(ATTACKER_NATION)!.designStudies = [
+    {
+      designStudyId: "study_dv-s",
+      nationId: ATTACKER_NATION,
+      builderContext: "NATIONAL",
+      baselineDesignVersionId: "dv-a",
+      designFamilyId: "family-a",
+      newFamily: false,
+      derived: true,
+      failedCriteria: [],
+      baseStudyWork: 4,
+      baseStudyCost: 8,
+      discountBp: 2500,
+      finalStudyWork: 3,
+      finalStudyCost: 6,
+      workDone: 1,
+      costPaid: 2,
+      status: "IN_PROGRESS",
+      startMonth: "1880-01",
+      completionMonth: null,
+      rulesetVersion: "1.0.0",
+      formulaVersion: "design_study_v1",
+      projectHash: "h",
+      design: makeDesign("dv-s", ATTACKER_NATION),
+    },
+  ];
   snapshot.designFamilies = new Map([
     [
       "family-a",
@@ -379,6 +405,7 @@ const CANONICAL_CLONE_TYPES = [
   "CampaignSlot",
   "CompiledDesignVersion",
   "DesignFamily",
+  "DesignStudy",
   "CampaignWeatherState",
   "CampaignSnapshot",
 ] as const;
@@ -407,6 +434,9 @@ describe("snapshotClone — field-exhaustive clone coverage audit", () => {
     expect(Object.keys(gbr.officers![0]!).sort()).toEqual([...CLONE_COVERAGE.Officer!].sort());
     expect(Object.keys(gbr.divisions[0]!).sort()).toEqual(
       [...CLONE_COVERAGE.PermanentDivision!].sort(),
+    );
+    expect(Object.keys(gbr.designStudies![0]!).sort()).toEqual(
+      [...CLONE_COVERAGE.DesignStudy!].sort(),
     );
     expect(Object.keys(gbr.constructionProjects[0]!).sort()).toEqual(
       [...CLONE_COVERAGE.ConstructionProject!].sort(),

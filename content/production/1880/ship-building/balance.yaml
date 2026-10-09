@@ -697,3 +697,14 @@ rebuild:
   maxSpeedIncreaseMilliKnots: 3000
   maxLengthChangeBp: 500
   maxBeamChangeBp: 500
+
+# Design studies (DESIGN-21 sections 3 and 18, ADR-0085). The discount is the rule's own (2,500 bp, permitted 1,500-3,500; minimums
+# exactly 1). The base work and cost are not given by the rules, so they are decided game-design constants, not historical data:
+#   costBp: a study costs 3 % of the design's first ship (rounded up, at least 1 treasury unit).
+#   baseWorkMonths: 4 months of design-office work, so a new class is approved in the fifth month after it is submitted.
+study:
+  costBp: 300
+  baseWorkMonths: 4
+  derivedDiscountBp: 2500
+  minFinalWork: 1
+  minFinalCost: 1

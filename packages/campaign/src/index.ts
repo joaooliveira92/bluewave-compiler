@@ -45,6 +45,7 @@ export type {
   DiplomaticRelation,
   FleetState,
   IntelligenceState,
+  DesignStudy,
   NationState,
   PersistenceManifest,
   PoliticalState,

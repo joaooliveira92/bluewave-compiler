@@ -12,6 +12,7 @@ import type {
   ConstructionPackage,
   ConstructionProject,
   DesignFamily,
+  DesignStudy,
   DiplomaticRelation,
   FleetState,
   IntelligenceState,
@@ -219,6 +220,30 @@ const F = {
     "dependsOn",
   ),
   Officer: fields<Officer>()("id", "name", "rank", "skill"),
+  DesignStudy: fields<DesignStudy>()(
+    "designStudyId",
+    "nationId",
+    "builderContext",
+    "baselineDesignVersionId",
+    "designFamilyId",
+    "newFamily",
+    "derived",
+    "failedCriteria",
+    "baseStudyWork",
+    "baseStudyCost",
+    "discountBp",
+    "finalStudyWork",
+    "finalStudyCost",
+    "workDone",
+    "costPaid",
+    "status",
+    "startMonth",
+    "completionMonth",
+    "rulesetVersion",
+    "formulaVersion",
+    "projectHash",
+    "design",
+  ),
   NationState: fields<NationState>()(
     "id",
     "name",
@@ -234,6 +259,7 @@ const F = {
     "officers",
     "research",
     "constructionProjects",
+    "designStudies",
     "aircraft",
     "carrierOperations",
     "isPlayable",
@@ -448,9 +474,11 @@ const _assert: [
   _Assert<CampaignSlot, typeof F.CampaignSlot>,
   _Assert<CompiledDesignVersion, typeof F.CompiledDesignVersion>,
   _Assert<DesignFamily, typeof F.DesignFamily>,
+  _Assert<DesignStudy, typeof F.DesignStudy>,
   _Assert<CampaignWeatherState, typeof F.CampaignWeatherState>,
   _Assert<CampaignSnapshot, typeof F.CampaignSnapshot>,
 ] = [
+  true,
   true,
   true,
   true,
@@ -512,6 +540,11 @@ const cloneConstructionProject = (c: ConstructionProject): ConstructionProject =
       v === undefined ? undefined : (v as ConstructionPackage[]).map(cloneConstructionPackage),
     monthUsage: (v) => (v === undefined ? undefined : cloneMonthUsage(v as ConstructionMonthUsage)),
   });
+const cloneDesignStudy = (st: DesignStudy): DesignStudy =>
+  recordClone(st, F.DesignStudy, {
+    failedCriteria: (v) => [...(v as string[])],
+    design: (v) => cloneDesign(v as CompiledDesignVersion),
+  });
 const cloneNation = (n: NationState): NationState =>
   recordClone(n, F.NationState, {
     fleets: (v) => (v as FleetState[]).map(cloneFleet),
@@ -519,6 +552,8 @@ const cloneNation = (n: NationState): NationState =>
     officers: (v) => (v === undefined ? undefined : (v as Officer[]).map((o) => ({ ...o }))),
     research: (v) => cloneResearch(v as ResearchState),
     constructionProjects: (v) => (v as ConstructionProject[]).map(cloneConstructionProject),
+    designStudies: (v) =>
+      v === undefined ? undefined : (v as DesignStudy[]).map(cloneDesignStudy),
   });
 const cloneBattleResult = (r: BattleResult): BattleResult =>
   recordClone(r, F.BattleResult, {

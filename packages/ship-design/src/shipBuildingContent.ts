@@ -14,6 +14,7 @@ import type { ThreatProfile } from "./armour.js";
 import type { WorkshopEnvironment } from "./workshop.js";
 import { checkRebuildBalance, type RebuildBalance } from "./rebuild.js";
 import { checkRevisionBalance, type RevisionBalance } from "./revision.js";
+import { checkStudyBalance, type StudyBalance } from "./study.js";
 import { buildYards } from "./yards.js";
 
 /** Parsed (not yet interpreted) ship-building data: the YAML files of content/production/<scenario>/ship-building. */
@@ -31,6 +32,8 @@ export interface ShipBuildingData {
     readonly revision?: RevisionBalance;
     /** Retained-hull limits of a rebuild (DESIGN-23 section 21); absent in older packs, in which case rebuilds are refused. */
     readonly rebuild?: RebuildBalance;
+    /** Design studies (DESIGN-21 sections 3 and 18, ADR-0085); absent in older packs, in which case designs need no study. */
+    readonly study?: StudyBalance;
     readonly environment: {
       readonly threats: readonly ThreatProfile[];
       readonly facilities: readonly Facility[];
@@ -60,6 +63,8 @@ export interface ShipBuildingContent {
   readonly revision: RevisionBalance | null;
   /** Retained-hull limits of a rebuild, or null when the pack has none. */
   readonly rebuild: RebuildBalance | null;
+  /** Design-study rules, or null when the pack has none (designs are then approved without a study). */
+  readonly study: StudyBalance | null;
 }
 
 /** Technology is available once its year has begun; month ids are YYYY-MM. */
@@ -72,6 +77,8 @@ export function unlockedTechIds(
 }
 
 export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingContent {
+  // A pack that has a study section must have all of it (DERIVED_DESIGN_DISCOUNT_CONTRACT_MISSING otherwise).
+  const study = data.balance.study === undefined ? null : checkStudyBalance(data.balance.study);
   if (data.balance.rebuild !== undefined) {
     const problems = checkRebuildBalance(data.balance.rebuild);
     if (problems.length > 0)
@@ -115,6 +122,7 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
     treasuryUnitMicro: data.balance.environment.treasuryUnitMicro,
     revision: data.balance.revision ?? null,
     rebuild: data.balance.rebuild ?? null,
+    study,
     aiEnvironmentFor: (month) => {
       if (!data.balance.ai) throw new Error("ship-building balance has no 'ai' section");
       const env = environmentFor(month);

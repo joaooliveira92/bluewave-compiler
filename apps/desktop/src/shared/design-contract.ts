@@ -11,10 +11,28 @@ export interface SubmitDesignCommandPayload extends CommandEnvelope {
   readonly draft: Record<string, unknown>;
 }
 
+/** The design study a submission opens (DESIGN-21 section 3, ADR-0085): what it costs and when the design is approved. */
+export interface DesignStudyPreview {
+  /** Months of paid study work; the design joins the catalog in the month the last one is paid. */
+  readonly months: number;
+  /** Total study cost in treasury units, paid month by month. */
+  readonly cost: number;
+  /** Derived from an approved design in the same family (25 % less work and cost). */
+  readonly derived: boolean;
+  readonly discountBp: number;
+  /** The approved design it is derived from, when derived. */
+  readonly baselineClassName: string | null;
+  /** A design under an existing class name that is not similar starts a new family; these are the criteria it failed. */
+  readonly newFamily: boolean;
+  readonly failedCriteria: readonly string[];
+}
+
 export interface DesignCommandOutcome {
   readonly commandId: string;
   readonly designVersionId: string;
   readonly appliedOnNextTurn: true;
+  /** Present when the content has study rules: the design is approved when this study is done, not next month. */
+  readonly study?: DesignStudyPreview;
 }
 
 /** Revise a construction project with a changed design (ADR-0070). The engine classifies and applies it at month end. */

@@ -53,7 +53,9 @@ const data: ShipBuildingData = {
     year: number;
   }[],
 };
-const content = buildShipBuildingContent(data);
+// Without study rules a submitted design is approved the same month, which these tests rely on; studies themselves are
+// covered in design-study.test.ts (ADR-0085).
+const content = { ...buildShipBuildingContent(data), study: null };
 const reference = (
   parse(readFileSync(join(root, "ship-building", "reference-designs.yaml"), "utf8")) as {
     designs: { id: string; draft: Record<string, unknown> }[];
