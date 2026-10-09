@@ -11,8 +11,8 @@ interface DossierFieldRowProps {
 function DossierFieldRow({ label, value }: DossierFieldRowProps): JSX.Element {
   return (
     <p className="mt-2 font-display text-[0.72rem] leading-relaxed">
-      <span className="font-black uppercase tracking-[0.08em] text-[#d4a359]">{label}:</span>{" "}
-      <span className="text-[#b4c1ce]">{value}</span>
+      <span className="font-black uppercase tracking-[0.08em] text-admiralty-accent">{label}:</span>{" "}
+      <span className="text-admiralty-ink-muted">{value}</span>
     </p>
   );
 }

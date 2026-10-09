@@ -241,9 +241,8 @@ describe("accessibility audit (axe-core)", () => {
   const BOARD_TIMEOUT_MS = 120_000;
   const openBattleship = () => {
     const rendered = render(<DrawingBoard />);
-    fireEvent.change(screen.getByLabelText("Starting design"), {
-      target: { value: "majestic_like" },
-    });
+    fireEvent.click(screen.getByLabelText("Starting design"));
+    fireEvent.click(screen.getByRole("option", { name: "Majestic-like battleship (1895)" }));
     return rendered.container;
   };
 

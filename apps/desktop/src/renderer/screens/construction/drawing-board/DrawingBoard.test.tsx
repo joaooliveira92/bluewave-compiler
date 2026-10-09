@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { DrawingBoard } from "./DrawingBoard.js";
-import { openTab, region } from "./test-helpers.js";
+import { chooseOption, openTab, region } from "./test-helpers.js";
 
 afterEach(cleanup);
 
@@ -199,9 +199,7 @@ describe("DrawingBoard", () => {
 
   it("offers components that are not yet available as disabled, with the month they arrive", async () => {
     render(<DrawingBoard />);
-    fireEvent.change(screen.getByLabelText("Starting design"), {
-      target: { value: "torpedo_cruiser_1880" },
-    });
+    chooseOption("Starting design", "Torpedo cruiser (1880, CL)");
     openTab("Arrangement");
     fireEvent.click(screen.getByRole("button", { name: "Add component" }));
     const items = await screen.findAllByRole("menuitem");
@@ -233,9 +231,7 @@ describe("DrawingBoard", () => {
   it("switching the starting design asks first when there are edits, then loads the battleship and resets history", async () => {
     render(<DrawingBoard />);
     commit(/installed power/i, "3400");
-    fireEvent.change(screen.getByLabelText("Starting design"), {
-      target: { value: "majestic_like" },
-    });
+    chooseOption("Starting design", "Majestic-like battleship (1895)");
     fireEvent.click(await screen.findByRole("button", { name: "Replace my design" }));
     expect(metric("Classification")).toBe("B");
     expect((screen.getByRole("button", { name: /undo/i }) as HTMLButtonElement).disabled).toBe(
@@ -251,9 +247,7 @@ describe("DrawingBoard", () => {
     };
     render(<DrawingBoard />);
     const destroyer = months();
-    fireEvent.change(screen.getByLabelText("Starting design"), {
-      target: { value: "majestic_like" },
-    });
+    chooseOption("Starting design", "Majestic-like battleship (1895)");
     expect(months()).toBeGreaterThan(destroyer);
     expect(months()).toBeGreaterThanOrEqual(30);
   });
@@ -265,9 +259,7 @@ describe("DrawingBoard", () => {
     render(<DrawingBoard />);
     // the small default hull sits on the SECONDARY 390 t row
     expect(text()).toMatch(/historical build time.*provisional/);
-    fireEvent.change(screen.getByLabelText("Starting design"), {
-      target: { value: "majestic_like" },
-    });
+    chooseOption("Starting design", "Majestic-like battleship (1895)");
     // Majestic-size hull is bracketed by VERIFIED Cressy / Canopus points
     expect(text()).toContain("historical build time");
     expect(text()).not.toMatch(/provisional/i);
@@ -275,10 +267,8 @@ describe("DrawingBoard", () => {
 
   it("technology depends on the year: the same battleship is rejected before its guns exist", () => {
     render(<DrawingBoard />);
-    fireEvent.change(screen.getByLabelText("Starting design"), {
-      target: { value: "majestic_like" },
-    });
-    fireEvent.change(screen.getByLabelText("Technology as of"), { target: { value: "1890-01" } });
+    chooseOption("Starting design", "Majestic-like battleship (1895)");
+    chooseOption("Technology as of", "1890-01");
     expect(
       within(region("Validation")).getAllByText(/not available to this nation yet/i).length,
     ).toBeGreaterThan(0);

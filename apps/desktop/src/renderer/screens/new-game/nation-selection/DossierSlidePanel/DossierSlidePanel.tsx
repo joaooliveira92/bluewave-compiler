@@ -42,7 +42,7 @@ export function DossierSlidePanel({
         entered ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-full opacity-0",
       )}
     >
-      <div className="relative isolate min-w-0 overflow-hidden border-t border-[#d4a359]/40 bg-[#070b12] shadow-[0_-24px_70px_rgba(0,0,0,0.72),0_0_0_1px_rgba(212,163,89,0.08)]">
+      <div className="relative isolate min-w-0 overflow-hidden border-t border-admiralty-accent/40 bg-admiralty-surface-raised shadow-[0_-24px_70px_rgba(0,0,0,0.72),0_0_0_1px_color-mix(in_srgb,var(--color-admiralty-accent)_8%,transparent)]">
         <DossierCover countryId={countryId} />
         <DossierHeader
           countryId={countryId}
@@ -54,13 +54,13 @@ export function DossierSlidePanel({
           military={tabs.military}
           diplomacy={tabs.diplomacy}
         />
-        <DossierControls
+        {/* <DossierControls
           countryId={countryId}
           nationName={flavor.name}
           onChangeNation={onChangeNation}
           onConfirm={onConfirm}
           onRecommendedSetup={onRecommendedSetup}
-        />
+        /> */}
       </div>
     </section>
   );

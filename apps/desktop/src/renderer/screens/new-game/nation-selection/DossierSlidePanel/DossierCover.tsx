@@ -22,16 +22,16 @@ export function DossierCover({ countryId }: { countryId: PlayableSlotCountryId }
       ) : (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -z-20 flex items-center justify-center bg-[radial-gradient(circle_at_48%_38%,rgba(42,184,230,0.14),rgba(3,5,9,0.96)_70%)]"
+          className="pointer-events-none absolute inset-0 -z-20 flex items-center justify-center bg-[radial-gradient(circle_at_48%_38%,color-mix(in_srgb,var(--color-admiralty-signal)_14%,transparent),var(--color-admiralty-surface)_70%)]"
         >
-          <span className="font-display text-7xl font-black tracking-[0.18em] text-[#2ab8e6]/10">
+          <span className="font-display text-7xl font-black tracking-[0.18em] text-admiralty-signal/10">
             {getCountryCode(countryId)}
           </span>
         </div>
       )}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-[#030509]/70 via-[#05080e]/75 to-[#030509]/95"
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-admiralty-surface/70 via-admiralty-surface/75 to-admiralty-surface/95"
       />
       <div
         aria-hidden="true"
@@ -44,7 +44,7 @@ export function DossierCover({ countryId }: { countryId: PlayableSlotCountryId }
       />
       <div
         aria-hidden="true"
-        className="absolute inset-x-0 top-0 h-px bg-[#d4a359] shadow-[0_0_18px_rgba(212,163,89,0.55)]"
+        className="absolute inset-x-0 top-0 h-px bg-admiralty-accent shadow-[0_0_18px_color-mix(in_srgb,var(--color-admiralty-accent)_55%,transparent)]"
       />
     </>
   );

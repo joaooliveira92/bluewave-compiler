@@ -12,7 +12,7 @@ export function FlavorSummary({
   const accent = ACCENT_STYLES[accentColor];
 
   return (
-    <article className="group relative min-w-0 bg-[#070b12]/55 px-4 py-3 backdrop-blur-sm transition-colors hover:bg-[#0c1420]/80 sm:px-5 sm:py-4">
+    <article className="group relative min-w-0 bg-admiralty-surface-raised/55 px-4 py-3 backdrop-blur-sm transition-colors hover:bg-admiralty-surface-raised/80 sm:px-5 sm:py-4">
       <div className="mb-2 flex items-center gap-2">
         <span
           className={cn(
@@ -33,7 +33,7 @@ export function FlavorSummary({
           {label}
         </span>
       </div>
-      <p className="line-clamp-3 text-[0.7rem] leading-relaxed text-[#9aabba] sm:text-xs">{text}</p>
+      <p className="line-clamp-3 text-[0.7rem] leading-relaxed text-admiralty-ink-muted sm:text-xs">{text}</p>
     </article>
   );
 }

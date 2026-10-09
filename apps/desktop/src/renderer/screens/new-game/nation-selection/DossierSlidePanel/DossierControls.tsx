@@ -19,13 +19,13 @@ export function DossierControls({
   onRecommendedSetup,
 }: DossierControlsProps): JSX.Element {
   return (
-    <footer className="flex flex-col gap-2 border-t border-[#d4a359]/20 bg-black/25 px-4 py-3 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
+    <footer className="flex flex-col gap-2 border-t border-admiralty-accent/20 bg-admiralty-surface/25 px-4 py-3 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
       <Button
         type="button"
         variant="ghost"
         size="sm"
         onClick={onChangeNation}
-        className="w-full shrink-0 gap-2 font-display text-xs font-black uppercase tracking-[0.12em] text-[#b4c1ce] hover:bg-white/5 hover:text-[#ece5d8] sm:w-auto"
+        className="w-full shrink-0 gap-2 font-display text-xs font-black uppercase tracking-[0.12em] text-admiralty-ink-muted hover:bg-admiralty-ink/5 hover:text-admiralty-ink sm:w-auto"
       >
         <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
         Change Nation
@@ -36,7 +36,7 @@ export function DossierControls({
           variant="outline"
           size="sm"
           onClick={() => onRecommendedSetup(countryId)}
-          className="w-full shrink-0 gap-2 border-[#d4a359]/40 bg-transparent px-4 font-display text-xs font-black uppercase tracking-[0.12em] text-[#d4a359] hover:bg-[#d4a359]/10 sm:w-auto"
+          className="w-full shrink-0 gap-2 border-admiralty-accent/40 bg-transparent px-4 font-display text-xs font-black uppercase tracking-[0.12em] text-admiralty-accent hover:bg-admiralty-accent/10 sm:w-auto"
         >
           <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
           Recommended Setup
@@ -45,7 +45,7 @@ export function DossierControls({
           type="button"
           size="sm"
           onClick={() => onConfirm(countryId)}
-          className="w-full shrink-0 gap-2 border border-[#d4a359] bg-[#d4a359] px-4 font-display text-xs font-black uppercase tracking-[0.12em] text-[#05080e] hover:bg-[#e6ba70] sm:w-auto"
+          className="w-full shrink-0 gap-2 border border-admiralty-accent bg-admiralty-accent px-4 font-display text-xs font-black uppercase tracking-[0.12em] text-admiralty-accent-foreground hover:bg-admiralty-accent/90 sm:w-auto"
         >
           <Check className="h-3.5 w-3.5" aria-hidden="true" />
           Continue as {nationName}

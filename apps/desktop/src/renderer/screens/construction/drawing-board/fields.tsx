@@ -1,4 +1,11 @@
 import { useId } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../../components/ui/select.js";
 import { cn } from "../../../lib/utils.js";
 
 const inputClass =
@@ -94,19 +101,18 @@ export function SelectField({
       <label htmlFor={id} className="block text-xs text-muted-foreground">
         {shortLabel ?? label}
       </label>
-      <select
-        id={id}
-        aria-label={shortLabel === undefined ? undefined : label}
-        className={inputClass}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value} disabled={o.disabled}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+      <Select value={value} onValueChange={onChange} className="w-full">
+        <SelectTrigger id={id} aria-label={shortLabel === undefined ? undefined : label}>
+          <SelectValue placeholder="Select" />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value} disabled={o.disabled}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

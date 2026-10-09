@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 
-// Shared by CampaignLaunchGate (the menu-to-nation-select transition view)
-// and GlobePanel (the incoming interactive globe's fade-in) so they run on
-// the same clock.
+// The nation-selection globe's fade-in clock (GlobePanel). Kept as a shared
+// constant so any future launch-to-nation-select handoff runs on the same clock.
 export const GLOBE_TRANSITION_MS = 650;
 
 export function prefersReducedMotion(): boolean {

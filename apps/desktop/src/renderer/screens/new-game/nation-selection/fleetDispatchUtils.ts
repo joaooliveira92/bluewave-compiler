@@ -12,6 +12,10 @@ export interface StackPosition {
   active: boolean;
 }
 
+// Decorative per-card cover palettes (indexed for visual variety, not tied to
+// nation identity). Intentionally invariant across light/dark: they sit *behind*
+// the photographic ship cover, so they are only visible as a fallback when a
+// ship asset is missing, plus the accent stripe along each card's top edge.
 export const CARD_PALETTES = [
   {
     background: "linear-gradient(145deg, #243a31 0%, #152820 48%, #0c1713 100%)",

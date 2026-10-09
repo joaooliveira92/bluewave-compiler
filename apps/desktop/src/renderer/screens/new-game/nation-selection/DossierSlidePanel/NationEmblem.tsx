@@ -10,14 +10,14 @@ export function NationEmblem({ countryId }: { countryId: PlayableSlotCountryId }
 
   if (colours === null || imageFailed) {
     return (
-      <div className="flex h-12 w-16 flex-none items-center justify-center rounded-md border border-dashed border-[#d4a359]/30 bg-[#05080e]/80 font-display text-[0.6rem] font-bold uppercase tracking-[0.16em] text-[#64778d]">
+      <div className="flex h-12 w-16 flex-none items-center justify-center rounded-md border border-dashed border-admiralty-accent/30 bg-admiralty-surface-raised/80 font-display text-[0.6rem] font-bold uppercase tracking-[0.16em] text-admiralty-ink-faint">
         N/A
       </div>
     );
   }
 
   return (
-    <div className="relative h-12 w-16 flex-none overflow-hidden rounded-md border border-[#d4a359]/45 bg-[#05080e] shadow-[0_0_18px_rgba(212,163,89,0.12)]">
+    <div className="relative h-12 w-16 flex-none overflow-hidden rounded-md border border-admiralty-accent/45 bg-admiralty-surface-raised shadow-[0_0_18px_color-mix(in_srgb,var(--color-admiralty-accent)_12%,transparent)]">
       <img
         src={colours.url}
         alt={colours.label}

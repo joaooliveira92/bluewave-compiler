@@ -25,6 +25,21 @@ const PANEL_TAB: Record<string, string> = {
 export const openTab = (name: string) =>
   fireEvent.click(screen.getByRole("tab", { name: new RegExp(name, "i") }));
 
+/** Opens a `<Select>` by its trigger's accessible name and clicks the option whose visible text matches. */
+export function chooseOption(trigger: string | RegExp, option: string | RegExp): void {
+  fireEvent.click(screen.getByLabelText(trigger));
+  fireEvent.click(screen.getByRole("option", { name: option }));
+}
+
+/** Opens a `<Select>` by its trigger's accessible name and clicks the option at `index`. */
+export function chooseOptionAt(trigger: string | RegExp, index: number): void {
+  fireEvent.click(screen.getByLabelText(trigger));
+  const options = screen.getAllByRole("option");
+  const chosen = options[index];
+  if (chosen === undefined) throw new Error(`no option at index ${index}`);
+  fireEvent.click(chosen);
+}
+
 /** Opens the tab that holds the named panel and returns the panel. */
 export function region(name: string): HTMLElement {
   const tab = PANEL_TAB[name];

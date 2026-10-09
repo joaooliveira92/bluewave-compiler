@@ -16,10 +16,10 @@ interface GlobePanelProps {
 
 const TARGETING_BEZEL = (
   <div className="pointer-events-none absolute inset-0 z-10" aria-hidden="true">
-    <div className="absolute left-6 top-6 h-8 w-8 border-l border-t border-[#2ab8e6]/25" />
-    <div className="absolute right-6 top-6 h-8 w-8 border-r border-t border-[#2ab8e6]/25" />
-    <div className="absolute bottom-6 left-6 h-8 w-8 border-b border-l border-[#2ab8e6]/25" />
-    <div className="absolute bottom-6 right-6 h-8 w-8 border-b border-r border-[#2ab8e6]/25" />
+    <div className="absolute left-6 top-6 h-8 w-8 border-l border-t border-admiralty-signal/25" />
+    <div className="absolute right-6 top-6 h-8 w-8 border-r border-t border-admiralty-signal/25" />
+    <div className="absolute bottom-6 left-6 h-8 w-8 border-b border-l border-admiralty-signal/25" />
+    <div className="absolute bottom-6 right-6 h-8 w-8 border-b border-r border-admiralty-signal/25" />
   </div>
 );
 
@@ -31,18 +31,19 @@ export function GlobePanel({
   onConfirm,
   onRecommendedSetup,
 }: GlobePanelProps): JSX.Element {
-  // Fades in over the same window CampaignLaunchGate's departing decorative
-  // globe fades out, so the handoff reads as one continuous transition.
+  // Fades the interactive globe in on mount so the viewport settles rather than
+  // snapping in at full opacity.
   const globeVisible = useArmedAfterMount(true);
 
   return (
     <section
+      data-testid="globe-panel"
       aria-label="Nation details"
       className="
         relative z-10
         h-full min-h-0 min-w-0
         flex-1 overflow-hidden
-        bg-[#020406]
+        bg-admiralty-surface
       "
     >
       {/* Globe viewport */}

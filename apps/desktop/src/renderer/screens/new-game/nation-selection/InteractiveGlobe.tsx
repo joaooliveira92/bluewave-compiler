@@ -86,11 +86,11 @@ export function InteractiveGlobe({
               .attr("stroke", "none");
             g.append("line")
               .attr("class", "pin-h")
-              .attr("stroke", "#38bdf8")
+              .attr("stroke", "var(--globe-accent)")
               .attr("stroke-width", 1.25);
             g.append("line")
               .attr("class", "pin-v")
-              .attr("stroke", "#38bdf8")
+              .attr("stroke", "var(--globe-accent)")
               .attr("stroke-width", 1.25);
             g.append("circle").attr("class", "pin-dot").attr("stroke", "none");
             return g;
@@ -119,7 +119,7 @@ export function InteractiveGlobe({
             .attr("cx", x)
             .attr("cy", y)
             .attr("r", pixelRadius * 0.85)
-            .attr("fill", DOMINANT_FLAG_COLORS[d.countryId] ?? "#38bdf8");
+            .attr("fill", DOMINANT_FLAG_COLORS[d.countryId] ?? "var(--globe-accent)");
         });
 
       const ringPoint = focused();
@@ -133,7 +133,7 @@ export function InteractiveGlobe({
               .append("rect")
               .attr("class", "svg-globe-ring")
               .attr("fill", "none")
-              .attr("stroke", "#d4a359")
+              .attr("stroke", "var(--globe-ring)")
               .attr("stroke-width", 1.5),
           (update) => update,
           (exit) => exit.remove(),

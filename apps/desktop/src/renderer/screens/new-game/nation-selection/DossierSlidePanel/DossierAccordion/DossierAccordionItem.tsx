@@ -27,7 +27,7 @@ export function DossierAccordionItem({
   return (
     <article
       className={cn(
-        "relative h-full min-h-0 min-w-0 overflow-hidden border-r border-[#1e2a3b] bg-[#070b12]/65 last:border-r-0",
+        "relative h-full min-h-0 min-w-0 overflow-hidden border-r border-admiralty-border bg-admiralty-surface-raised/65 last:border-r-0",
         expanded && accent.bg,
       )}
     >
@@ -42,7 +42,7 @@ export function DossierAccordionItem({
             aria-controls={panelId}
             onClick={onSelect}
             onKeyDown={onKeyDown}
-            className="flex min-h-12 w-full items-center gap-2 px-3 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#d4a359] sm:px-5"
+            className="flex min-h-12 w-full items-center gap-2 px-3 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-admiralty-accent sm:px-5"
           >
             <Icon className={cn("h-4 w-4 shrink-0", accent.text)} aria-hidden="true" />
             <span
@@ -59,7 +59,7 @@ export function DossierAccordionItem({
             id={panelId}
             aria-labelledby={triggerId}
             className={cn(
-              "min-h-0 overflow-y-auto overscroll-contain border-t px-3 py-3 text-[0.72rem] leading-relaxed text-[#b4c1ce] sm:px-5 sm:py-4 sm:text-xs",
+              "min-h-0 overflow-y-auto overscroll-contain border-t px-3 py-3 text-[0.72rem] leading-relaxed text-admiralty-ink-muted sm:px-5 sm:py-4 sm:text-xs",
               accent.border,
             )}
           >
@@ -79,7 +79,7 @@ export function DossierAccordionItem({
           title={section.label}
           onClick={onSelect}
           onKeyDown={onKeyDown}
-          className="flex h-full w-full items-center justify-center p-0 outline-none hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#d4a359]"
+          className="flex h-full w-full items-center justify-center p-0 outline-none hover:bg-admiralty-ink/[0.05] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-admiralty-accent"
         >
           <Icon className={cn("h-5 w-5 shrink-0", accent.text)} aria-hidden="true" />
         </button>

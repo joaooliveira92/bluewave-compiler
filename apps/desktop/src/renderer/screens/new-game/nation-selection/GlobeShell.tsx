@@ -20,31 +20,36 @@ export function GlobeShell({ refs }: GlobeShellProps): JSX.Element {
       >
         <defs>
           <radialGradient id="svg-globe-ocean" cx="50%" cy="50%" r="55%">
-            <stop offset="0%" stopColor="#0e1622" />
-            <stop offset="100%" stopColor="#0a0f18" />
+            <stop offset="0%" stopColor="var(--globe-ocean-inner)" />
+            <stop offset="100%" stopColor="var(--globe-ocean-outer)" />
           </radialGradient>
           <radialGradient id="svg-globe-atmosphere" cx="50%" cy="50%" r="52%">
-            <stop offset="88%" stopColor="#38bdf8" stopOpacity="0" />
-            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.3" />
+            <stop offset="88%" stopColor="var(--globe-accent)" stopOpacity="0" />
+            <stop offset="100%" stopColor="var(--globe-accent)" stopOpacity="0.3" />
           </radialGradient>
         </defs>
         <circle ref={refs.atmosphereRef} fill="url(#svg-globe-atmosphere)" />
         <circle
           ref={refs.oceanRef}
           fill="url(#svg-globe-ocean)"
-          stroke="#38bdf8"
+          stroke="var(--globe-accent)"
           strokeOpacity={0.5}
           strokeWidth={1}
         />
         <g
           ref={refs.gratRef}
           fill="none"
-          stroke="#38bdf8"
+          stroke="var(--globe-accent)"
           strokeOpacity={0.25}
           strokeWidth={0.6}
           strokeDasharray="2 3"
         />
-        <g ref={refs.landRef} fill="#1d2b20" stroke="#c89b3c" strokeWidth={1.25} />
+        <g
+          ref={refs.landRef}
+          fill="var(--globe-land-fill)"
+          stroke="var(--globe-land-stroke)"
+          strokeWidth={1.25}
+        />
         <g ref={refs.pinRef} />
         <g ref={refs.ringRef} className="svg-globe-ring-group" />
       </svg>

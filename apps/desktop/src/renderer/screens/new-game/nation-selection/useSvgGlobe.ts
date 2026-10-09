@@ -21,12 +21,12 @@ interface Topology<T> {
 
 import worldTopology from "@/content/world-110m.json";
 
-// Shared drawing piece behind both globe variants — the D3 (d3-geo) SVG
-// orthographic sphere ("Blueprint" style, wayfinder #152). DecorativeGlobe and
-// InteractiveGlobe both drive this hook, which owns the projection, the rAF
-// spin/render loop, and the suspend-on-hidden/resize lifecycle. Everything that
-// differs between variants — pins, the selection ring, drag/zoom/click — is
-// layered on by the consuming component through the returned handles.
+// Shared drawing piece behind the interactive globe — the D3 (d3-geo) SVG
+// orthographic sphere ("Blueprint" style, wayfinder #152). InteractiveGlobe
+// drives this hook, which owns the projection, the rAF spin/render loop, and
+// the suspend-on-hidden/resize lifecycle. Everything that differs per variant —
+// pins, the selection ring, drag/zoom/click — is layered on by the consuming
+// component through the returned handles.
 
 export const MIN_PHI_DEG = -75;
 export const MAX_PHI_DEG = 40;

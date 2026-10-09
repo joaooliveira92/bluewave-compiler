@@ -126,7 +126,7 @@ export function NationSelectionScreen({
 
   if (slotCount === 0) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-[#030509] p-8 text-center font-display text-sm uppercase tracking-widest text-[#798fa8]">
+      <div className="flex h-full w-full items-center justify-center bg-admiralty-surface p-8 text-center font-display text-sm uppercase tracking-widest text-admiralty-ink-muted">
         No playable nations for this scenario.
       </div>
     );
@@ -134,7 +134,8 @@ export function NationSelectionScreen({
 
   return (
     <div
-      className="flex h-full min-h-[44rem] w-full flex-col bg-[#030509] font-sans text-[#e2d9c8] selection:bg-[#d4a359] selection:text-[#05080e] overflow-hidden"
+      data-testid="fleet-dispatch-surface"
+      className="flex h-full min-h-[44rem] w-full flex-col bg-admiralty-surface font-sans text-admiralty-ink selection:bg-admiralty-accent selection:text-admiralty-accent-foreground overflow-hidden"
       aria-labelledby="nation-selection-heading"
     >
       {/* ── Intelligence Telemetry Bar ── */}
@@ -143,15 +144,15 @@ export function NationSelectionScreen({
       {/* ── Main Command Surface ── */}
       <main
         aria-labelledby="nation-selection-heading"
-        className="relative flex min-h-0 flex-1 flex-col items-stretch bg-[#030509] lg:flex-row lg:overflow-hidden"
+        className="relative flex min-h-0 flex-1 flex-col items-stretch bg-admiralty-surface lg:flex-row lg:overflow-hidden"
       >
         {/* Background Admiralty Blueprint Grid */}
         <div
           className="pointer-events-none absolute inset-0 opacity-15"
           style={{
             backgroundImage: `
-              linear-gradient(to right, rgba(42, 184, 230, 0.15) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(42, 184, 230, 0.15) 1px, transparent 1px)
+              linear-gradient(to right, color-mix(in srgb, var(--color-admiralty-signal) 15%, transparent) 1px, transparent 1px),
+              linear-gradient(to bottom, color-mix(in srgb, var(--color-admiralty-signal) 15%, transparent) 1px, transparent 1px)
             `,
             backgroundSize: "44px 44px",
           }}
@@ -185,13 +186,13 @@ export function NationSelectionScreen({
         {failure && (
           <div
             role="alert"
-            className="absolute inset-x-0 bottom-4 z-40 mx-auto w-full max-w-md rounded-xl border border-[#dc2626]/40 bg-[#101622]/95 p-4 shadow-2xl backdrop-blur-md"
+            className="absolute inset-x-0 bottom-4 z-40 mx-auto w-full max-w-md rounded-xl border border-destructive/40 bg-admiralty-surface-raised/95 p-4 shadow-2xl backdrop-blur-md"
           >
-            <div className="flex items-center gap-2 font-display text-base font-bold text-[#dc2626] uppercase mb-1">
-              <span className="h-2 w-2 rounded-full bg-[#dc2626]" />
+            <div className="flex items-center gap-2 font-display text-base font-bold text-destructive uppercase mb-1">
+              <span className="h-2 w-2 rounded-full bg-destructive" />
               <span>Admiralty Failure Dispatch</span>
             </div>
-            <p className="font-display text-base text-rose-200">{failure}</p>
+            <p className="font-display text-base text-admiralty-ink">{failure}</p>
           </div>
         )}
       </main>

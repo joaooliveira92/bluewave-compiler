@@ -171,11 +171,17 @@ export function Select({
 
 export interface SelectTriggerProps {
   readonly id?: string;
+  readonly "aria-label"?: string;
   className?: string;
   children: ReactNode;
 }
 
-export function SelectTrigger({ id, className, children }: SelectTriggerProps) {
+export function SelectTrigger({
+  id,
+  "aria-label": ariaLabel,
+  className,
+  children,
+}: SelectTriggerProps) {
   const ctx = useSelectContext("SelectTrigger");
   const isTop = ctx.placement === "top";
   // edge facing the panel flattens then rounds; the far edge stays rounded.
@@ -192,6 +198,7 @@ export function SelectTrigger({ id, className, children }: SelectTriggerProps) {
       ref={ctx.triggerRef}
       id={id ?? ctx.triggerId}
       disabled={ctx.disabled}
+      aria-label={ariaLabel}
       aria-haspopup="listbox"
       aria-expanded={ctx.open}
       aria-controls={ctx.listId}
@@ -413,6 +420,7 @@ export function SelectItem({ value, disabled = false, className, children }: Sel
       <button
         type="button"
         role="option"
+        data-value={value}
         aria-selected={selected}
         disabled={disabled}
         onClick={() => ctx.select(value)}

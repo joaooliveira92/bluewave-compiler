@@ -3,32 +3,34 @@ import { Compass } from "lucide-react";
 export function TelemetryBar({ coordinateLabel }: { coordinateLabel: string }): React.JSX.Element {
   return (
     <section
-      className="h-8 flex-none border-b border-[#141f2d] bg-[#05080e] px-6 flex items-center justify-between font-display text-xs uppercase tracking-widest text-[#526a85]"
+      className="h-8 flex-none border-b border-admiralty-border bg-admiralty-surface px-6 flex items-center justify-between font-display text-xs uppercase tracking-widest text-admiralty-ink-faint"
       aria-label="Tactical Status Bar"
     >
       <div className="flex items-center gap-6">
-        <div className="flex items-center gap-2 text-[#d4a359]/80">
+        <div className="flex items-center gap-2 text-admiralty-accent/80">
           <Compass className="h-3.5 w-3.5 animate-spin" style={{ animationDuration: "12s" }} />
           <span>Telemetry Lock:</span>
         </div>
-        <span className="font-mono text-white tabular-nums tracking-normal">{coordinateLabel}</span>
+        <span className="font-mono text-admiralty-ink tabular-nums tracking-normal">
+          {coordinateLabel}
+        </span>
       </div>
-      <div className="hidden md:flex items-center gap-6 text-[#3c4e63]">
+      <div className="hidden md:flex items-center gap-6 text-admiralty-ink-faint">
         <span>
           NAVIGATE:{" "}
-          <kbd className="text-[#d4a359] bg-[#090f17] px-1.5 py-0.5 rounded border border-[#141f2d]">
+          <kbd className="text-admiralty-accent bg-admiralty-surface-raised px-1.5 py-0.5 rounded border border-admiralty-border">
             ↑↓←→
           </kbd>
         </span>
         <span>
           CONFIRM:{" "}
-          <kbd className="text-[#d4a359] bg-[#090f17] px-1.5 py-0.5 rounded border border-[#141f2d]">
+          <kbd className="text-admiralty-accent bg-admiralty-surface-raised px-1.5 py-0.5 rounded border border-admiralty-border">
             ENTER
           </kbd>
         </span>
         <span>
           ABORT:{" "}
-          <kbd className="text-[#d4a359] bg-[#090f17] px-1.5 py-0.5 rounded border border-[#141f2d]">
+          <kbd className="text-admiralty-accent bg-admiralty-surface-raised px-1.5 py-0.5 rounded border border-admiralty-border">
             ESC
           </kbd>
         </span>

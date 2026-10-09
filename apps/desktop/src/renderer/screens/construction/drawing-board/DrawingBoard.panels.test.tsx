@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vite-plus/test";
 import { loadDrawingBoardContent } from "./content.js";
 import { DrawingBoard } from "./DrawingBoard.js";
 import { PLAN_H, PLAN_MID, PLAN_W, stationX } from "./panels/hull-plan/geometry.js";
-import { openTab, region } from "./test-helpers.js";
+import { chooseOption, openTab, region } from "./test-helpers.js";
 
 afterEach(cleanup);
 
@@ -16,9 +16,7 @@ const commit = (label: string | RegExp, value: string) => {
 describe("DrawingBoard panels", () => {
   it("edits armour regions: size, plate, slope, and adds a new region from the hull", () => {
     render(<DrawingBoard />);
-    fireEvent.change(screen.getByLabelText("Starting design"), {
-      target: { value: "majestic_like" },
-    });
+    chooseOption("Starting design", "Majestic-like battleship (1895)");
     const protection = () => region("Protection");
     expect(within(protection()).getByText("Coverage")).toBeTruthy();
     const regionsBefore = within(protection()).getAllByRole("listitem").length;
@@ -38,38 +36,32 @@ describe("DrawingBoard panels", () => {
 
   it("offers the armour materials weakest first, disabling those not yet makeable", () => {
     render(<DrawingBoard />);
-    fireEvent.change(screen.getByLabelText("Starting design"), {
-      target: { value: "majestic_like" },
-    });
+    chooseOption("Starting design", "Majestic-like battleship (1895)");
     const select = within(region("Protection")).getAllByLabelText(/Material of /)[0]!;
-    const options = [...select.querySelectorAll("option")].map((o) => o.value);
-    expect(options.length).toBeGreaterThan(1);
-    expect(options.indexOf("wrought_iron")).toBeLessThan(options.indexOf("harvey"));
-    expect(options).toContain((select as HTMLSelectElement).value);
+    fireEvent.click(select);
+    const options = screen.getAllByRole("option") as HTMLButtonElement[];
+    const values = options.map((o) => o.getAttribute("data-value"));
+    expect(values.length).toBeGreaterThan(1);
+    expect(values.indexOf("wrought_iron")).toBeLessThan(values.indexOf("harvey"));
     // The 1896 battleship cannot make Krupp plate yet (technology year 1900): offered, disabled, with the reason.
-    const krupp = [...select.querySelectorAll("option")].find((o) => o.value === "krupp") as
-      | HTMLOptionElement
-      | undefined;
-    expect(krupp?.disabled).toBe(true);
-    expect(krupp?.textContent).toMatch(/needs hc_krupp_cemented_armor/);
-    const current = [...select.querySelectorAll("option")].find(
-      (o) => o.value === (select as HTMLSelectElement).value,
-    ) as HTMLOptionElement;
+    const krupp = options.find((o) => o.getAttribute("data-value") === "krupp")!;
+    expect(krupp.disabled).toBe(true);
+    expect(krupp.textContent).toMatch(/needs hc_krupp_cemented_armor/);
+    const current = options.find((o) => o.getAttribute("aria-selected") === "true")!;
     expect(current.disabled).toBe(false);
   });
 
   it("groups guns into named batteries, sets the mount side, and clears a battery as one undoable step", async () => {
     render(<DrawingBoard />);
-    fireEvent.change(screen.getByLabelText("Starting design"), {
-      target: { value: "majestic_like" },
-    });
+    chooseOption("Starting design", "Majestic-like battleship (1895)");
     const batteries = () => region("Batteries");
     const main = within(batteries()).getAllByRole("listitem")[0]!;
     expect(main.textContent).toMatch(/Main battery, \d+\.\d-inch/);
     expect(within(batteries()).getAllByText(/^A · /).length).toBeGreaterThan(0);
     // Set a mount to port: its badge changes and the history says so.
-    const side = screen.getAllByLabelText(/^Side of /)[0] as HTMLSelectElement;
-    fireEvent.change(side, { target: { value: "PORT" } });
+    const side = screen.getAllByLabelText(/^Side of /)[0]!;
+    fireEvent.click(side);
+    fireEvent.click(screen.getByRole("option", { name: "Port" }));
     openTab("History");
     expect(within(region("Edit history")).getByText(/ to port$/)).toBeTruthy();
     // Clear the first battery: one confirmation, one history entry, one undo restores everything.
@@ -115,9 +107,7 @@ describe("DrawingBoard panels", () => {
         clientY: PLAN_MID,
       });
       expect(within(panel).getByRole("status").textContent).toMatch(/Choose a component/);
-      fireEvent.change(within(panel).getByLabelText("Component to place"), {
-        target: { value: placeable.id },
-      });
+      chooseOption("Component to place", placeable.displayName);
       fireEvent.click(screen.getByTestId("plan-click-layer"), {
         clientX: stationX(300),
         clientY: PLAN_MID,
@@ -131,8 +121,8 @@ describe("DrawingBoard panels", () => {
       render(<DrawingBoard />);
       const panel = region("Hull plan");
       fireEvent.click(within(panel).getByRole("button", { name: "Move on plan" }));
-      const select = within(panel).getByLabelText("Fitting to move") as HTMLSelectElement;
-      fireEvent.change(select, { target: { value: select.options[1]!.value } });
+      fireEvent.click(within(panel).getByLabelText("Fitting to move"));
+      fireEvent.click(screen.getAllByRole("option")[1]!);
       expect(screen.getByTestId("plan-selected-ring")).toBeTruthy();
       fireEvent.click(
         within(panel).getByRole("button", { name: /Move 10 permille toward the stern/ }),
@@ -171,8 +161,8 @@ describe("DrawingBoard panels", () => {
     expect(within(brief).getByLabelText(/^Class code DD/)).toBeTruthy();
     commit(/Required range/, "4321");
     expect((screen.getByLabelText(/Required range/) as HTMLInputElement).value).toBe("4321");
-    fireEvent.change(screen.getByLabelText("Ship type"), { target: { value: "CL" } });
-    expect((screen.getByLabelText("Ship type") as HTMLSelectElement).value).toBe("CL");
+    chooseOption("Ship type", "CL · Light cruiser");
+    expect(screen.getByLabelText("Ship type").textContent).toContain("Light cruiser");
     // Declaring a type the destroyer does not qualify for is blocked by DESIGN-22, and the history says why.
     openTab("History");
     expect(within(region("Edit history")).getByText(/Brief: category → CL/)).toBeTruthy();

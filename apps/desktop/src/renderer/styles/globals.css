@@ -95,6 +95,27 @@
   --color-sidebar-border: oklch(0.922 0 0);
   --color-sidebar-ring: oklch(0.708 0 0);
   --radius: 0.5rem;
+
+  /*
+   * "Admiralty" surface family — the Fleet Dispatch / nation-selection command
+   * console. A named role set rather than raw hexes so the console can invert
+   * between light and dark while keeping its hierarchy (deep surface → raised
+   * panels → warm ink → gold accent → blueprint-signal cyan). Values live in
+   * both this light block and the `.dark` override below; components consume the
+   * `*-admiralty-*` utilities and never a literal colour.
+   */
+  --color-admiralty-surface: #eef3f8;
+  --color-admiralty-surface-raised: #ffffff;
+  --color-admiralty-ink: #0b1a2b;
+  --color-admiralty-ink-muted: #4c6076;
+  --color-admiralty-ink-faint: #5e7488;
+  --color-admiralty-border: #d3dfea;
+  /* Gold commission accent; darkened in light mode for contrast on the surface. */
+  --color-admiralty-accent: #9a6a1a;
+  /* Text/icon colour that sits *on* the accent (CTA buttons, active badge). */
+  --color-admiralty-accent-foreground: #ffffff;
+  /* Blueprint/signal cyan used on the bezel and registry grid. */
+  --color-admiralty-signal: #0284c7;
 }
 
 .dark {
@@ -127,6 +148,39 @@
   --color-sidebar-accent-foreground: oklch(0.985 0 0);
   --color-sidebar-border: oklch(1 0 0 / 10%);
   --color-sidebar-ring: oklch(0.556 0 0);
+
+  /* Admiralty surface family — dark console (see the light block in @theme). */
+  --color-admiralty-surface: #030509;
+  --color-admiralty-surface-raised: #070b12;
+  --color-admiralty-ink: #e6dcc8;
+  --color-admiralty-ink-muted: #9db0c4;
+  --color-admiralty-ink-faint: #6b7f95;
+  --color-admiralty-border: #1e2a3b;
+  --color-admiralty-accent: #d4a359;
+  --color-admiralty-accent-foreground: #05080e;
+  --color-admiralty-signal: #2ab8e6;
+}
+
+/*
+ * Spinning globe palette (launch backdrop + nation-selection "Fleet Dispatch").
+ * The sphere is drawn imperatively into SVG by useSvgGlobe, so these are plain
+ * custom properties rather than Tailwind utilities; the `.dark` overrides below
+ * let the globe follow the active theme without a React re-render (the browser
+ * repaints presentation attributes that reference these vars when `.dark` flips).
+ */
+:root {
+  --globe-ocean-inner: #eaf4fd;
+  --globe-ocean-outer: #cfe3f4;
+  --globe-accent: var(--color-admiralty-signal);
+  --globe-land-fill: #cbdcc4;
+  --globe-land-stroke: var(--color-admiralty-accent);
+  --globe-ring: var(--color-admiralty-accent);
+}
+
+.dark {
+  --globe-ocean-inner: #0e1622;
+  --globe-ocean-outer: #0a0f18;
+  --globe-land-fill: #1d2b20;
 }
 
 /* Tailwind v4 defaults borders to currentColor; restore the themed color. */
