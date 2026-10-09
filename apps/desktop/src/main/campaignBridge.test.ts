@@ -86,7 +86,7 @@ describe("dispatchCampaignCommand", () => {
 
   it("rejects malformed Tactical Sandbox payloads before touching the engine", async () => {
     for (const [command, payload] of [
-      ["generateBattle", { sessionId: "s" }],
+      ["generateBattle", { warId: "w" }],
       ["generateBattle", { sessionId: "s", warId: "w", strengthScale: 0 }],
       ["resolveBattle", { sessionId: "s" }],
       [
@@ -103,6 +103,9 @@ describe("dispatchCampaignCommand", () => {
   it("answers valid Tactical Sandbox commands with DEBUG_ONLY outside a debug build (R4)", async () => {
     for (const [command, payload] of [
       ["generateBattle", { sessionId: "s", warId: "w" }],
+      // `warId` is optional: the Simulation Battle Arena omits it and lets the
+      // command auto-select the player's active war.
+      ["generateBattle", { sessionId: "s" }],
       ["resolveBattle", { sessionId: "s", battleId: "b" }],
       [
         "resolveTacticalBattle",

@@ -83,7 +83,12 @@ export type CommitMonthPayload = CommandEnvelope;
 
 export interface GenerateBattlePayload {
   readonly sessionId: string;
-  readonly warId: string;
+  /**
+   * The war to generate an engagement for. Omitted by the Simulation Battle
+   * Arena, which lets the command auto-select the player's first active war; the
+   * Tactical Sandbox passes the war id typed into its setup form.
+   */
+  readonly warId?: string;
 }
 
 export interface GenerateBattleResult {

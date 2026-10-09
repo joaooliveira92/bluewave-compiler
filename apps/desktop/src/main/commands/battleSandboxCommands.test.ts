@@ -294,6 +294,47 @@ describe("battle sandbox commands (ADR-0057)", () => {
     });
   });
 
+  describe("generateBattle without an explicit war id (arena auto-selection)", () => {
+    it("auto-selects the player's active war when no war id is given", async () => {
+      await warSessionWithWeather("s1");
+      const result = await generateBattle({ sessionId: "s1" }, ON);
+      expect(result.outcome).toBe("success");
+      if (result.outcome !== "success") return;
+      expect(result.value.manifest.warId).toBe(WAR_ID);
+    });
+
+    it("picks the lowest war id deterministically when several are active", async () => {
+      registerSession("s1", (snapshot) => {
+        snapshot.wars = {
+          ...snapshot.wars,
+          wars: [
+            { ...activeWar(), id: "war_uk_france_1880-02" },
+            { ...activeWar(), id: "war_uk_france_1880-01" },
+          ],
+        };
+      });
+      const committed = await commitMonth({
+        sessionId: "s1",
+        expectedRevision: 0,
+        transportRequestId: "commit-auto",
+      });
+      expect(committed.outcome).toBe("success");
+
+      const result = await generateBattle({ sessionId: "s1" }, ON);
+      expect(result.outcome).toBe("success");
+      if (result.outcome !== "success") return;
+      expect(result.value.manifest.warId).toBe("war_uk_france_1880-01");
+    });
+
+    it("reports WAR_NOT_FOUND with guidance when the player has no active war", async () => {
+      registerSession("s1", (snapshot) => {
+        snapshot.wars = { ...snapshot.wars, wars: [] };
+      });
+      const result = await generateBattle({ sessionId: "s1" }, ON);
+      expect(result).toMatchObject({ outcome: "rejected", reason: "WAR_NOT_FOUND" });
+    });
+  });
+
   describe("resolveBattle (R5)", () => {
     it("requires a generated battle", async () => {
       await warSessionWithWeather("s1");

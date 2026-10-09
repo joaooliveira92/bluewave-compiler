@@ -266,7 +266,7 @@ export const WriteUiStatePayloadSchema = z.object({
 /** Tactical Sandbox payloads (debug-only; ADR-0057). */
 export const GenerateBattlePayloadSchema = z.object({
   sessionId: z.string().min(1),
-  warId: z.string().min(1),
+  warId: z.string().min(1).optional(),
   areaId: z.string().min(1).optional(),
   strengthScale: z.number().int().min(1).max(1000).optional(),
 });

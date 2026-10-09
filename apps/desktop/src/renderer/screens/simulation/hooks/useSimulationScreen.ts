@@ -163,7 +163,7 @@ export function useSimulationScreen(
       sessionId,
       telemetry,
       transportErrorFallback: "Error generating battle",
-      run: () => bridge.campaign.execute("generateBattle", { sessionId, warId: "war_uk_germany" }),
+      run: () => bridge.campaign.execute("generateBattle", { sessionId }),
       audit: (value) => auditInputFromDecisions(value.randomDecisions ?? []),
     });
     if (result.status === "success") {

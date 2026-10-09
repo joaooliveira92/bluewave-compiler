@@ -1,5 +1,5 @@
 import { campaignMonthId } from "@bluewave/campaign";
-import type { CampaignSnapshot, NationState } from "@bluewave/campaign";
+import type { CampaignSnapshot, NationState, WarDeclaration } from "@bluewave/campaign";
 import type { BattleManifest, BattleResolution } from "@bluewave/campaign-engine";
 import { generateBattles, resolveBattleAuto } from "@bluewave/combat";
 import { resolveShipStrength } from "@bluewave/phase-engine";
@@ -274,6 +274,26 @@ function toRendererManifest(
 // commands
 // ---------------------------------------------------------------------------
 
+/**
+ * The player's first active war, for callers that do not name one (the
+ * Simulation Battle Arena). Deterministic: filtered to wars the player is a
+ * party to and ordered by war id, so the same campaign always resolves the same
+ * war.
+ */
+function pickPlayerActiveWar(
+  wars: readonly WarDeclaration[],
+  playerSlotId: string,
+): WarDeclaration | undefined {
+  return wars
+    .filter(
+      (war) =>
+        (war.status === "ACTIVE" || war.status === "DECLARED_NOT_ACTIVE") &&
+        (war.attackerSideMembers.includes(playerSlotId) ||
+          war.defenderSideMembers.includes(playerSlotId)),
+    )
+    .sort((a, b) => a.id.localeCompare(b.id))[0];
+}
+
 export async function generateBattle(
   payload: GenerateBattlePayload & {
     readonly areaId?: string;
@@ -293,12 +313,17 @@ export async function generateBattle(
     };
   }
   const snapshot = record.state.snapshot;
-  const war = snapshot.wars.wars.find((w) => w.id === payload.warId);
+  const war =
+    payload.warId !== undefined
+      ? snapshot.wars.wars.find((w) => w.id === payload.warId)
+      : pickPlayerActiveWar(snapshot.wars.wars, record.playerSlotId);
   if (!war) {
     const known = snapshot.wars.wars.map((w) => w.id);
     return rejected(
       "WAR_NOT_FOUND",
-      `No war ${payload.warId} in this campaign.`,
+      payload.warId !== undefined
+        ? `No war ${payload.warId} in this campaign.`
+        : `No active war for ${record.playerSlotId}.`,
       known.length === 0
         ? "No wars exist yet — declare war on the Diplomacy screen and advance a month first."
         : `Known wars: ${known.join(", ")}`,
