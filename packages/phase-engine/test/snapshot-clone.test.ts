@@ -181,6 +181,25 @@ function makeRichSnapshot(): CampaignSnapshot {
       status: "ACTIVE",
       startedAt: "1880-01",
       holdUntilMonth: "1880-03",
+      packages: [
+        {
+          id: "hull",
+          kind: "HULL",
+          line: "slipway",
+          totalWork: SafeInt(150),
+          doneWork: SafeInt(50),
+          dependsOn: [],
+        },
+        {
+          id: "launch",
+          kind: "LAUNCH",
+          line: "slipway",
+          totalWork: SafeInt(50),
+          doneWork: SafeInt(0),
+          dependsOn: ["hull"],
+        },
+      ],
+      yardId: "yard_small",
     },
   ];
   gbr.aircraft = {} as any;
@@ -333,6 +352,7 @@ const CANONICAL_CLONE_TYPES = [
   "PermanentDivision",
   "Officer",
   "ConstructionProject",
+  "ConstructionPackage",
   "NationState",
   "DiplomaticRelation",
   "PoliticalState",
@@ -383,6 +403,9 @@ describe("snapshotClone — field-exhaustive clone coverage audit", () => {
     );
     expect(Object.keys(gbr.constructionProjects[0]!).sort()).toEqual(
       [...CLONE_COVERAGE.ConstructionProject!].sort(),
+    );
+    expect(Object.keys(gbr.constructionProjects[0]!.packages![0]!).sort()).toEqual(
+      [...CLONE_COVERAGE.ConstructionPackage!].sort(),
     );
     expect(Object.keys(clone.wars.wars[0]!).sort()).toEqual(
       [...CLONE_COVERAGE.WarDeclaration!].sort(),

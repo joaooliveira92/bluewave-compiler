@@ -2,6 +2,7 @@
 // Boundary validation phases: opening_validation (1) and closing_validation (11).
 import type { CampaignSnapshot } from "@bluewave/campaign";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
+import { constructionPackageProblems } from "./constructionPackages.js";
 
 // Phase 1: opening_validation — reject an invalid starting snapshot before any
 // phase commits (negative treasury, construction overflow, ship in >1 battle).
@@ -84,6 +85,14 @@ export function runClosingValidationPhase(
         collector.addError(
           "CONSTRUCTION_OVERFLOW",
           `Project ${project["id"]} completedWork ${String(project["completedWork"])} exceeds totalWork ${String(project["totalWork"])}`,
+          { stage: "closing-validation" },
+        );
+        hasErrors = true;
+      }
+      for (const problem of constructionPackageProblems(project)) {
+        collector.addError(
+          "CONSTRUCTION_PACKAGE_INCONSISTENT",
+          `Project ${project["id"]}: ${problem}`,
           { stage: "closing-validation" },
         );
         hasErrors = true;

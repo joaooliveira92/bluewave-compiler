@@ -8,6 +8,7 @@ import type {
   CampaignSnapshot,
   CampaignWeatherState,
   CompiledDesignVersion,
+  ConstructionPackage,
   ConstructionProject,
   DesignFamily,
   DiplomaticRelation,
@@ -199,6 +200,16 @@ const F = {
     "status",
     "startedAt",
     "holdUntilMonth",
+    "packages",
+    "yardId",
+  ),
+  ConstructionPackage: fields<ConstructionPackage>()(
+    "id",
+    "kind",
+    "line",
+    "totalWork",
+    "doneWork",
+    "dependsOn",
   ),
   Officer: fields<Officer>()("id", "name", "rank", "skill"),
   NationState: fields<NationState>()(
@@ -407,6 +418,7 @@ const _assert: [
   _Assert<ResearchState, typeof F.ResearchState>,
   _Assert<PermanentDivision, typeof F.PermanentDivision>,
   _Assert<ConstructionProject, typeof F.ConstructionProject>,
+  _Assert<ConstructionPackage, typeof F.ConstructionPackage>,
   _Assert<Officer, typeof F.Officer>,
   _Assert<NationState, typeof F.NationState>,
   _Assert<DiplomaticRelation, typeof F.DiplomaticRelation>,
@@ -458,6 +470,7 @@ const _assert: [
   true,
   true,
   true,
+  true,
 ];
 void _assert;
 
@@ -474,8 +487,15 @@ const cloneResearch = (r: ResearchState): ResearchState =>
   });
 const cloneDivision = (d: PermanentDivision): PermanentDivision =>
   recordClone(d, F.PermanentDivision);
+const cloneConstructionPackage = (p: ConstructionPackage): ConstructionPackage =>
+  recordClone(p, F.ConstructionPackage, {
+    dependsOn: (v) => [...(v as string[])],
+  });
 const cloneConstructionProject = (c: ConstructionProject): ConstructionProject =>
-  recordClone(c, F.ConstructionProject);
+  recordClone(c, F.ConstructionProject, {
+    packages: (v) =>
+      v === undefined ? undefined : (v as ConstructionPackage[]).map(cloneConstructionPackage),
+  });
 const cloneNation = (n: NationState): NationState =>
   recordClone(n, F.NationState, {
     fleets: (v) => (v as FleetState[]).map(cloneFleet),

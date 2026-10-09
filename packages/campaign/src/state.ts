@@ -250,6 +250,32 @@ export interface NationState {
   isAI: boolean;
 }
 
+/** The package kinds of a new-construction plan (ship-design `PackageKind`); stored as plain strings so the state stays data. */
+export type ConstructionPackageKind =
+  | "HULL"
+  | "ARMOUR"
+  | "ORDNANCE"
+  | "MACHINERY"
+  | "LAUNCH"
+  | "FIT_OUT"
+  | "TRIALS"
+  | "ACCEPTANCE";
+
+/**
+ * One work package of a project (ADR-0077): the plan is stored on the project so the engine never needs the design or the
+ * content to advance it. Work is in the same units as the project's `totalWork`.
+ */
+export interface ConstructionPackage {
+  id: string;
+  kind: ConstructionPackageKind;
+  /** Production line that supplies its capacity (ship-design `LineId`). */
+  line: string;
+  totalWork: SafeInt;
+  doneWork: SafeInt;
+  /** Package ids that must be complete before this one starts. */
+  dependsOn: string[];
+}
+
 export interface ConstructionProject {
   id: string;
   type: "ship" | "building" | "technology";
@@ -266,6 +292,14 @@ export interface ConstructionProject {
    * earlier month than the campaign month means the hold has ended.
    */
   holdUntilMonth?: string;
+  /**
+   * Per-package progress (ADR-0077). Absent for authored projects and for projects made before per-package progress, which
+   * keep the single `completedWork` figure. When present, `completedWork` is the sum of the packages' `doneWork` and
+   * `totalWork` the sum of their `totalWork`.
+   */
+  packages?: ConstructionPackage[];
+  /** Id of the yard building the ship (ADR-0077); absent when no yard was chosen. */
+  yardId?: string;
 }
 
 export interface WorldState {

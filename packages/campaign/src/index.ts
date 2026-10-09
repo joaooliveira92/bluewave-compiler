@@ -35,6 +35,8 @@ export type {
   CampaignWeatherState,
   CompiledDesignVersion,
   CompiledTorpedoMount,
+  ConstructionPackage,
+  ConstructionPackageKind,
   ConstructionProject,
   DesignFamily,
   DiplomaticRelation,

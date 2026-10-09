@@ -40,3 +40,15 @@ budget advances (`applyBudgetProject`). Consequences:
 
 Sliced in ADR-0077. **29a done:** `advanceConstructionMonth`, `emptyProgress`, `isConstructionComplete`, `PackageProgress` (in `construction.ts`; `simulateConstruction` now repeats the step) and `buildProgressOf`, `progressFromSingleFigure`, `totalDone` (`constructionProgress.ts`). Tests: `constructionProgress.test.ts` (10: dependencies read at the month start, capacity and funds limits, purity, determinism, stepping equals simulating for several capacities and funding, resumability, revision flags, legacy mapping); the 364 existing ship-design tests still pass unchanged. ship-design 36 files / 374 tests; tsc and lint exit 0.
 Next: 29b (persistence, no behaviour change), then 29c (engine advancement, the first slice that moves golden hashes).
+
+### 2026-10-09 orchestrator (29b)
+
+**29b done, no behaviour change.** `ConstructionProject` gains optional `packages: ConstructionPackage[]` (id, kind, line, totalWork,
+doneWork, dependsOn: the plan is stored on the project, so the engine never needs the design or the content to advance it) and
+`yardId`; absent for authored and legacy projects, so no golden hash moves. `snapshotClone` covers both (new record type
+`ConstructionPackage`, deep-copied, absent fields stay absent). `constructionPackageProblems` (pure) checks unique ids, known
+dependencies, 0 <= done <= total, sum(total) = totalWork, sum(done) = completedWork; closing validation reports
+`CONSTRUCTION_PACKAGE_INCONSISTENT`. Tests: `construction-packages.test.ts` (problems, validation wiring, clone), the clone audit
+fixture now carries both fields. phase-engine 20 files / 186 tests. A flaky a11y audit I introduced earlier (one test with nine axe
+passes timed out under full-suite load and left axe running for the next test) was split into three tests with their own timeouts.
+Next: 29c (the first slice that changes behaviour and golden hashes for designed-ship projects).
