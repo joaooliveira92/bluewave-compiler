@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import type { BattleManifest } from "@bluewave/campaign-engine";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { BattleManifestView } from "./BattleManifestView.js";
 
@@ -77,6 +77,18 @@ describe("BattleManifestView", () => {
     expect(screen.getByText("German Empire")).not.toBeNull();
     expect(screen.queryByText(/\(Player\)/)).toBeNull();
     expect(screen.queryByText(/\(AI\)/)).toBeNull();
+  });
+
+  it("keys the attacker/defender columns off sideId, not array order", () => {
+    const base = manifestWith("uk", "germany");
+    const reversed = { ...base, sides: [...base.sides].reverse() } as BattleManifest;
+
+    render(<BattleManifestView manifest={reversed} playerNationId="uk" />);
+
+    const attackerColumn = screen.getByText("ATTACKER").parentElement!;
+    const defenderColumn = screen.getByText("DEFENDER").parentElement!;
+    expect(within(attackerColumn).getByText("United Kingdom (Player)")).not.toBeNull();
+    expect(within(defenderColumn).getByText("German Empire (AI)")).not.toBeNull();
   });
 
   it("falls back to the raw id for an unmapped nation id", () => {

@@ -68,6 +68,22 @@ describe("BattleResolutionPanel", () => {
     expect(screen.getByText("gunnery")).not.toBeNull();
   });
 
+  it("shows INCONCLUSIVE when the auto-resolution has no winner", () => {
+    render(
+      <BattleResolutionPanel
+        autoResolution={
+          {
+            ...autoResolution,
+            missionOutcome: { winner: null, outcomeKind: "draw" },
+          } as BattleResolution
+        }
+        tacticalOutcome={null}
+      />,
+    );
+
+    expect(screen.getByText("WINNER: INCONCLUSIVE")).not.toBeNull();
+  });
+
   it("shows only the auto resolution when no tactical run exists", () => {
     render(<BattleResolutionPanel autoResolution={autoResolution} tacticalOutcome={null} />);
 

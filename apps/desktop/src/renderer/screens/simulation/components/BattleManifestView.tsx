@@ -14,6 +14,18 @@ function roleSuffix(nationId: string, playerNationId: string | null): string {
   return nationId === playerNationId ? " (Player)" : " (AI)";
 }
 
+/**
+ * The side for a given role, keyed off `sideId` so the columns cannot silently
+ * swap if the manifest ever reorders its sides. Falls back to the historical
+ * positional order when a side does not carry the expected id.
+ */
+function sideFor(
+  sides: readonly BattleSide[],
+  sideId: "attacker" | "defender",
+): BattleSide | undefined {
+  return sides.find((side) => side.sideId === sideId) ?? sides[sideId === "attacker" ? 0 : 1];
+}
+
 function BattleSideColumn({
   label,
   side,
@@ -54,12 +66,12 @@ export function BattleManifestView({ manifest, playerNationId }: BattleManifestV
       <div className="grid grid-cols-2 gap-4">
         <BattleSideColumn
           label="ATTACKER"
-          side={manifest.sides[0]}
+          side={sideFor(manifest.sides, "attacker")}
           playerNationId={playerNationId}
         />
         <BattleSideColumn
           label="DEFENDER"
-          side={manifest.sides[1]}
+          side={sideFor(manifest.sides, "defender")}
           playerNationId={playerNationId}
         />
       </div>

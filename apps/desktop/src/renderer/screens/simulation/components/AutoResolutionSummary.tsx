@@ -26,7 +26,7 @@ export function AutoResolutionSummary({ resolution }: AutoResolutionSummaryProps
         <div className="space-y-2 rounded-md border border-success/30 bg-success/5 p-3 font-mono text-xs">
           <div className="flex items-center justify-between border-b pb-1">
             <span className="font-semibold">
-              WINNER: {resolution.missionOutcome.winner || "INCONCLUSIVE"}
+              WINNER: {resolution.missionOutcome.winner ?? "INCONCLUSIVE"}
             </span>
             <Badge variant="outline" className="text-[12px]">
               {resolution.missionOutcome.outcomeKind}
