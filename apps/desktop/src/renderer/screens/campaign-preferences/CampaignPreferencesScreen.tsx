@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useBridge } from "../../lib/bridge-context.js";
 import { FileText, Settings2 } from "lucide-react";
 import { Button } from "../../components/ui/button.js";
 import { PageHeader } from "../../components/shared/PageHeader.js";
@@ -28,6 +29,7 @@ export function CampaignPreferencesScreen({
   const { displayPrefs, togglePref } = useDisplayPreferences();
   const { copied, copy } = useClipboardCopy();
   const [restartMessage, setRestartMessage] = useState<string | null>(null);
+  const bridge = useBridge();
 
   const handleCopyId = useCallback(() => {
     void copy(sessionId);
@@ -39,7 +41,6 @@ export function CampaignPreferencesScreen({
   }, [projection, sessionId]);
 
   const handleRestartInspection = useCallback(async () => {
-    const bridge = window.bluewave;
     if (bridge === undefined) {
       setRestartMessage("Bridge unavailable");
       return;
@@ -57,7 +58,7 @@ export function CampaignPreferencesScreen({
     } else {
       setRestartMessage(`Restart failed: ${result.reason}`);
     }
-  }, [sessionId]);
+  }, [bridge, sessionId]);
 
   if (loadError !== null) {
     return <PreferencesErrorState message={loadError} onRetry={loadProjection} />;

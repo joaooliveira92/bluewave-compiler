@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useBridge } from "../../lib/bridge-context.js";
 import { Button } from "../../components/ui/button.js";
 import { CardContent, CardHeader, CardTitle } from "../../components/ui/card.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
@@ -26,7 +27,7 @@ export interface BudgetPolicyPanelProps {
  * re-validates on submit and applies the change when the month is advanced.
  */
 export function BudgetPolicyPanel({ sessionId }: BudgetPolicyPanelProps) {
-  const bridge = window.bluewave;
+  const bridge = useBridge();
   const campaignRevision = useCampaignRevision();
   const workflow = useCommandScreenWorkflow<
     BudgetPolicyState,

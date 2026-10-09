@@ -1,4 +1,5 @@
 import { History } from "lucide-react";
+import { useBridge } from "../../lib/bridge-context.js";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Button } from "../../components/ui/button.js";
 import {
@@ -15,7 +16,7 @@ import { useCampaignList } from "./useCampaignList.js";
 
 export function CampaignListScreen() {
   const { state } = useCampaignList();
-  const bridge = window.bluewave;
+  const bridge = useBridge();
 
   const { saves, loadError } = state;
 

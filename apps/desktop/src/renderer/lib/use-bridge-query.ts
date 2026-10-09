@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
+import { useBridge } from "./bridge-context.js";
 
 export type BridgeQueryState<Value> =
   | { readonly status: "loading" }
@@ -32,6 +33,7 @@ export function useBridgeQuery<Value>(
   options: UseBridgeQueryOptions = {},
 ): BridgeQueryState<Value> {
   const [state, setState] = useState<BridgeQueryState<Value>>({ status: "loading" });
+  const bridge = useBridge();
   const runRef = useRef(run);
   runRef.current = run;
   const unavailableMessage = options.bridgeUnavailableMessage ?? DEFAULT_UNAVAILABLE_MESSAGE;
@@ -39,7 +41,6 @@ export function useBridgeQuery<Value>(
     options.transportFailureMessage ?? DEFAULT_TRANSPORT_FAILURE_MESSAGE;
 
   useEffect(() => {
-    const bridge = window.bluewave;
     if (bridge === undefined) {
       setState({ status: "error", message: unavailableMessage });
       return;
@@ -65,7 +66,7 @@ export function useBridgeQuery<Value>(
     return () => {
       active = false;
     };
-  }, [sessionId, revision, unavailableMessage, transportFailureMessage]);
+  }, [bridge, sessionId, revision, unavailableMessage, transportFailureMessage]);
 
   return state;
 }

@@ -7,15 +7,16 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useBridge } from "../../lib/bridge-context.js";
 import { resolvePlayerNationId } from "./area-tree.js";
 import { EMPTY_LIVE_OVERLAY, joinWorldMap, type LiveWorldMapOverlay } from "./campaign-map-join.js";
 
 export function useLiveWorldMapOverlay(sessionId: string | null): LiveWorldMapOverlay {
+  const bridge = useBridge();
   const [baseOverlay, setOverlay] = useState<LiveWorldMapOverlay>(EMPTY_LIVE_OVERLAY);
   const [playerNationId, setPlayerNationId] = useState<string | null>(null);
 
   useEffect(() => {
-    const bridge = window.bluewave;
     if (bridge === undefined || sessionId === null) {
       setOverlay(EMPTY_LIVE_OVERLAY);
       return;
@@ -51,7 +52,7 @@ export function useLiveWorldMapOverlay(sessionId: string | null): LiveWorldMapOv
     return () => {
       active = false;
     };
-  }, [sessionId]);
+  }, [bridge, sessionId]);
 
   const overlay = useMemo(
     () => (baseOverlay.source === "campaign" ? { ...baseOverlay, playerNationId } : baseOverlay),

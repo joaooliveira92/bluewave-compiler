@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useBridge } from "../../../../lib/bridge-context.js";
 import {
   draftChangeKinds,
   type ChangeKind,
@@ -68,7 +69,7 @@ export function RevisionPanel({
   const open = revisableProjects(projects);
   const [chosen, setChosen] = useState<string>("");
   const project = open.find((p) => p.projectId === chosen) ?? open[0];
-  const bridge = window.bluewave;
+  const bridge = useBridge();
   const revision = useCampaignRevision();
   const [real, setReal] = useState<{ projectId: string; draft: DesignDraft } | null>(null);
   const [busy, setBusy] = useState(false);

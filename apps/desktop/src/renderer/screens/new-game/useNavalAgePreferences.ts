@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { BluewaveDesktopBridge } from "../../../preload/index.js";
+import { useBridge } from "../../lib/bridge-context.js";
 import type { NewGameOptions } from "../../../shared/new-game-contract.js";
 import type { AdmiralPresetValues } from "./admiral-preset.js";
 import {
@@ -44,8 +45,10 @@ export interface UseNavalAgePreferencesReturn {
  */
 export function useNavalAgePreferences(
   recommendedPreset: AdmiralPresetValues | null,
-  port: NewGameOptionsPort | undefined = window.bluewave,
+  portOption?: NewGameOptionsPort,
 ): UseNavalAgePreferencesReturn {
+  const contextBridge = useBridge();
+  const port = portOption ?? contextBridge;
   const [state, setState] = useState<NewGamePreferencesScreenState>(
     initialNewGamePreferencesScreenState,
   );

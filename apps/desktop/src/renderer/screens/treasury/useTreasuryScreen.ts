@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useBridge } from "../../lib/bridge-context.js";
 import {
   applyProjectionLoaded,
   applyLoadFailed,
@@ -11,7 +12,7 @@ import {
  * controls, nothing computed against authoritative state.
  */
 export function useTreasuryScreen(sessionId: string) {
-  const bridge = window.bluewave;
+  const bridge = useBridge();
   const [state, setState] = useState(initialTreasuryScreenState);
 
   const loadScreen = useCallback(async () => {

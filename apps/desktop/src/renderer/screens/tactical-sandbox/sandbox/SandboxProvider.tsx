@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import type { BridgeResult } from "../../../../shared/bridge-contract.js";
 import type { BluewaveDesktopBridge } from "../../../../preload/index.js";
+import { useBridge } from "../../../lib/bridge-context.js";
 import {
   applyAutoResolution,
   applyBoundaryReplayed,
@@ -57,7 +58,8 @@ export function SandboxProvider({
   readonly bridge?: SandboxBridge;
   readonly children: ReactNode;
 }) {
-  const bridge = bridgeOption ?? window.bluewave;
+  const contextBridge = useBridge();
+  const bridge = bridgeOption ?? contextBridge;
   const [state, setState] = useState(initialTacticalSandboxScreenState);
 
   /**

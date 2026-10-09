@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { useBridge } from "../../lib/bridge-context.js";
 import { CollapsiblePanel } from "../../components/shared/CollapsiblePanel.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
@@ -51,7 +52,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
   const map = useWorldMapController(sessionId);
   const { density } = useDensity();
   const wide = useMinWidth(COMMAND_OVERLAY_MIN_WIDTH);
-  const bridge = window.bluewave;
+  const bridge = useBridge();
   const [state, setState] = useState(initialOverviewScreenState);
 
   const loadScreen = useCallback(async () => {

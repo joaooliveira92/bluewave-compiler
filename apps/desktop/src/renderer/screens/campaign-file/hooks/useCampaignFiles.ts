@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useBridge } from "../../../lib/bridge-context.js";
 
 import type { BridgeResult } from "../../../../shared/bridge-contract.js";
 import type { LoadCampaignResponse } from "../../../../shared/continuity-contract.js";
@@ -30,7 +31,7 @@ interface UseCampaignFilesResult {
 export function useCampaignFiles({
   onOpenCampaign,
 }: UseCampaignFilesOptions): UseCampaignFilesResult {
-  const bridge = window.bluewave;
+  const bridge = useBridge();
   const [recentFiles, setRecentFiles] = useState<readonly RecentFile[]>(loadRecentFiles);
   const [result, setResult] = useState<OperationResult | null>(null);
   const [pendingOperation, setPendingOperation] = useState<OperationKind | null>(null);

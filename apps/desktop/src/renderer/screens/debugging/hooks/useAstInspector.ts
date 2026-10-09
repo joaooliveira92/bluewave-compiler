@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useBridge } from "../../../lib/bridge-context.js";
 import type { CompiledRecord } from "../types.js";
 import { filterRecords } from "../utils/filter.js";
 
@@ -14,7 +15,7 @@ export interface UseAstInspectorReturn {
 }
 
 export function useAstInspector(sessionId: string): UseAstInspectorReturn {
-  const bridge = window.bluewave;
+  const bridge = useBridge();
   const [records, setRecords] = useState<readonly CompiledRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecord, setSelectedRecord] = useState<CompiledRecord | null>(null);

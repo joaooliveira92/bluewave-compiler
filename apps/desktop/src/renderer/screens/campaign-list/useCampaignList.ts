@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useBridge } from "../../lib/bridge-context.js";
 import {
   applyListLoaded,
   applyLoadFailed,
@@ -16,7 +17,7 @@ import {
  * undesirable. The caller must trigger `reload` explicitly.
  */
 export function useCampaignList() {
-  const bridge = window.bluewave;
+  const bridge = useBridge();
   const [state, setState] = useState(initialCampaignListScreenState);
 
   const reload = useCallback(async () => {

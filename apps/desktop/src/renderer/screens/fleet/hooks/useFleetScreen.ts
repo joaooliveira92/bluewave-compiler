@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useBridge } from "../../../lib/bridge-context.js";
 import type {
   FleetScreenProjection,
   MovementCommandOutcome,
@@ -34,7 +35,7 @@ export interface UseFleetScreenReturn {
 export function useFleetScreen(sessionId: string): UseFleetScreenReturn {
   const [selectedDivisionId, setSelectedDivisionId] = useState<string | null>(null);
   const [destinationAreaId, setDestinationAreaId] = useState<string | null>(null);
-  const bridge = window.bluewave;
+  const bridge = useBridge();
   const campaignRevision = useCampaignRevision();
   const workflow = useCommandScreenWorkflow<
     FleetScreenState,

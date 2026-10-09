@@ -150,6 +150,41 @@ export function commandNotice(command: {
   return `Command ${command.commandId} is ${command.status}`;
 }
 
+/**
+ * Folds a submit's transport result into a screen state, given that screen's
+ * own phase transitions. The one place the three-outcome envelope is mapped:
+ * `success` -> accepted, `rejected` (with its optional stale revision) ->
+ * rejected, anything else -> a transport failure. Lets a screen keep its
+ * discriminated-union state while sharing the transport bookkeeping.
+ */
+export function foldCommandResult<State, Value>(
+  result: BridgeResult<Value>,
+  folds: {
+    readonly success: (state: State, value: Value) => State;
+    readonly rejected: (
+      state: State,
+      rejection: {
+        readonly reason: string;
+        readonly diagnostics: readonly string[];
+        readonly currentRevision?: number;
+      },
+    ) => State;
+    readonly transportFailure: (state: State, message: string) => State;
+  },
+): (state: State) => State {
+  return (state) => {
+    if (result.outcome === "success") return folds.success(state, result.value);
+    if (result.outcome === "rejected") {
+      return folds.rejected(state, {
+        reason: result.reason,
+        diagnostics: result.diagnostics,
+        currentRevision: result.currentRevision,
+      });
+    }
+    return folds.transportFailure(state, `${result.reason}: ${result.diagnostics.join("; ")}`);
+  };
+}
+
 let commandCounter = 0;
 
 /**

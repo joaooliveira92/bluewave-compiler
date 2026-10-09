@@ -3,6 +3,7 @@ import type {
   DivisionCommandOutcome,
   DivisionScreenProjection,
 } from "../../../../shared/division-contract.js";
+import { useBridge } from "../../../lib/bridge-context.js";
 import { useCommandScreenWorkflow } from "../../../lib/command-screen-workflow.js";
 import { useCampaignRevision } from "../../../shell/CampaignShellContext.js";
 import type { DivisionOrganizationState } from "../organization/division-organization-state.js";
@@ -24,7 +25,7 @@ export interface UseDivisionOrganizationReturn {
 
 /** Fleet-organization data + command queueing, on the shared command-screen workflow. */
 export function useDivisionOrganization(sessionId: string): UseDivisionOrganizationReturn {
-  const bridge = window.bluewave;
+  const bridge = useBridge();
   const campaignRevision = useCampaignRevision();
   const workflow = useCommandScreenWorkflow<
     DivisionOrganizationState,

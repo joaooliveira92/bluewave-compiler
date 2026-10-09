@@ -11,6 +11,7 @@ import type {
 } from "@bluewave/campaign-engine";
 
 import type { BluewaveDesktopBridge } from "../../../../preload/index.js";
+import { useBridge } from "../../../lib/bridge-context.js";
 import { auditInputFromDecisions } from "../../../lib/engine-audit.js";
 import { SCRIPTED_TACTICAL_ORDERS } from "../simulation-battle-orders.js";
 import {
@@ -51,7 +52,7 @@ export type SimulationCommandPort = Pick<BluewaveDesktopBridge, "campaign">;
 export interface UseSimulationScreenOptions {
   readonly campaignRevision?: number;
   readonly onMonthCommitted?: () => void;
-  /** Override the transport (tests / embedding); defaults to `window.bluewave`. */
+  /** Override the transport (tests / embedding); defaults to the bridge port. */
   readonly bridge?: SimulationCommandPort;
   /** Override the telemetry sink; defaults to the desktop wide-event adapter. */
   readonly telemetry?: SimulationTelemetryPort;
@@ -73,7 +74,8 @@ export function useSimulationScreen(
     bridge: bridgeOption,
     telemetry: telemetryOption,
   } = options;
-  const bridge = bridgeOption ?? window.bluewave;
+  const contextBridge = useBridge();
+  const bridge = bridgeOption ?? contextBridge;
   const telemetry = useMemo(
     () => telemetryOption ?? createDesktopSimulationTelemetry(),
     [telemetryOption],

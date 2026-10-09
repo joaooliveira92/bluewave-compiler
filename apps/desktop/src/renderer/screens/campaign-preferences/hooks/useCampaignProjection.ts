@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useBridge } from "../../../lib/bridge-context.js";
 import type { PlayerProjection } from "@bluewave/campaign-engine";
 
 export interface UseCampaignProjectionReturn {
@@ -10,7 +11,7 @@ export interface UseCampaignProjectionReturn {
 export function useCampaignProjection(sessionId: string): UseCampaignProjectionReturn {
   const [projection, setProjection] = useState<PlayerProjection | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const bridge = window.bluewave;
+  const bridge = useBridge();
 
   const loadProjection = useCallback(async () => {
     if (bridge === undefined) {

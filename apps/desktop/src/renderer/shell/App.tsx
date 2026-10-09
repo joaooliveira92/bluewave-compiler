@@ -6,6 +6,7 @@ import {
   MonthlyResolutionLoading,
 } from "../components/MonthlyResolutionLoading.js";
 import { PreTurnReviewDialog } from "../components/PreTurnReviewDialog.js";
+import { BridgeProvider } from "../lib/bridge-context.js";
 import {
   CAMPAIGN_SCREEN_SEARCH_TARGETS,
   CampaignScreenOutlet,
@@ -227,11 +228,16 @@ function CampaignShellApplication({
   );
 }
 
-export function App() {
-  const bridge = window.bluewave;
+export function App({
+  bridge = window.bluewave,
+}: {
+  readonly bridge?: BluewaveDesktopBridge | undefined;
+} = {}) {
   return (
-    <CampaignShellProvider bridge={bridge}>
-      <CampaignShellApplication bridge={bridge} />
-    </CampaignShellProvider>
+    <BridgeProvider bridge={bridge}>
+      <CampaignShellProvider bridge={bridge}>
+        <CampaignShellApplication bridge={bridge} />
+      </CampaignShellProvider>
+    </BridgeProvider>
   );
 }

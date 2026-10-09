@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useBridge } from "../../../lib/bridge-context.js";
 import type {
   ConstructionCommandOutcome,
   ConstructionScreenProjection,
@@ -29,7 +30,7 @@ export interface UseConstructionScreenReturn {
 
 export function useConstructionScreen(sessionId: string): UseConstructionScreenReturn {
   const [selectedDesignId, setSelectedDesignId] = useState<string | null>(null);
-  const bridge = window.bluewave;
+  const bridge = useBridge();
   const campaignRevision = useCampaignRevision();
   const workflow = useCommandScreenWorkflow<
     ConstructionScreenState,

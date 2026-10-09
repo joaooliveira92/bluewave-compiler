@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { UiStateFirstMonthInspection } from "../../shared/campaign-command-contract.js";
+import type { BluewaveDesktopBridge } from "../../preload/index.js";
+import { useBridge } from "../lib/bridge-context.js";
 import {
   GUIDED_STEP_COUNT,
   dismissedInspectionState,
@@ -25,8 +27,10 @@ export interface UseGuidedInspectionResult {
   setVisible: (v: boolean) => void;
 }
 
-async function readInspection(sessionId: string): Promise<UiStateFirstMonthInspection | undefined> {
-  const bridge = window.bluewave;
+async function readInspection(
+  bridge: BluewaveDesktopBridge | undefined,
+  sessionId: string,
+): Promise<UiStateFirstMonthInspection | undefined> {
   if (bridge === undefined) return undefined;
   const result = (await bridge.campaign.execute("readUiState", sessionId)) as unknown as {
     outcome: string;
@@ -37,10 +41,10 @@ async function readInspection(sessionId: string): Promise<UiStateFirstMonthInspe
 }
 
 async function writeInspection(
+  bridge: BluewaveDesktopBridge | undefined,
   sessionId: string,
   inspection: UiStateFirstMonthInspection,
 ): Promise<UiStateFirstMonthInspection | undefined> {
-  const bridge = window.bluewave;
   if (bridge === undefined) return undefined;
   // Merge semantics: writeUiState carries dismissedFingerprints (empty for now) + inspection
   const readBefore = await bridge.campaign.execute("readUiState", sessionId);
@@ -59,6 +63,7 @@ export function useGuidedInspection(
   options: UseGuidedInspectionOptions,
 ): UseGuidedInspectionResult {
   const { sessionId } = options;
+  const bridge = useBridge();
   const [inspection, setInspection] = useState<UiStateFirstMonthInspection | undefined>(undefined);
   const [stepIndex, setStepIndex] = useState(0);
   const [visible, setVisible] = useState(false);
@@ -72,7 +77,7 @@ export function useGuidedInspection(
     let cancelled = false;
     void (async () => {
       setLoading(true);
-      const stored = await readInspection(sessionId);
+      const stored = await readInspection(bridge, sessionId);
       if (cancelled) return;
       if (stored === undefined) {
         setInspection(emptyInspection());
@@ -98,7 +103,7 @@ export function useGuidedInspection(
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [bridge, sessionId]);
 
   const advance = useCallback(
     async (currentIndex: number) => {
@@ -108,19 +113,19 @@ export function useGuidedInspection(
       const isLast = currentIndex >= GUIDED_STEP_COUNT - 1;
       // If completing on last step, hide immediately
       if (isLast) {
-        const persisted = await writeInspection(sessionId, next);
+        const persisted = await writeInspection(bridge, sessionId, next);
         setInspection(persisted ?? next);
         setVisible(false);
         return;
       }
       // Otherwise advance to next step and persist lastCompletedStep
-      const persisted = await writeInspection(sessionId, next);
+      const persisted = await writeInspection(bridge, sessionId, next);
       setInspection(persisted ?? next);
       setStepIndex(currentIndex + 1);
       // Spec §17: autosave is the writeUiState itself (renderer-owned sidecar, not authoritative)
       // No additional saveCampaign needed.
     },
-    [sessionId, inspection],
+    [bridge, sessionId, inspection],
   );
 
   const dismiss = useCallback(
@@ -130,17 +135,17 @@ export function useGuidedInspection(
         return;
       }
       const next = dismissedInspectionState(currentIndex);
-      const persisted = await writeInspection(sessionId, next);
+      const persisted = await writeInspection(bridge, sessionId, next);
       setInspection(persisted ?? next);
       setVisible(false);
     },
-    [sessionId],
+    [bridge, sessionId],
   );
 
   const restart = useCallback(async () => {
     if (sessionId === null) return;
     const next = restartedInspection();
-    const persisted = await writeInspection(sessionId, next);
+    const persisted = await writeInspection(bridge, sessionId, next);
     setInspection(persisted ?? next);
     setStepIndex(0);
     setVisible(true);

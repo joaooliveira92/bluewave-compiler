@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { StrategicPriority } from "@bluewave/campaign-engine";
 
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
+import { useBridge } from "../lib/bridge-context.js";
 import {
   activeConstructionProjects,
   expectedConstructionCompletions,
@@ -30,13 +31,15 @@ const EMPTY_PRE_TURN_REVIEW: PreTurnReviewData = {
 /**
  * Loads the pre-turn review's three read-only projections while the dialog is
  * open. Owns the bridge access and the derived construction figures so the
- * dialog stays presentational; `bridge` defaults to `window.bluewave`.
+ * dialog stays presentational; `bridge` falls back to the bridge port.
  */
 export function usePreTurnReviewData(
   sessionId: string,
   open: boolean,
-  bridge: PreTurnReviewBridge | undefined = window.bluewave,
+  bridgeOption?: PreTurnReviewBridge,
 ): PreTurnReviewData {
+  const contextBridge = useBridge();
+  const bridge = bridgeOption ?? contextBridge;
   const [data, setData] = useState<PreTurnReviewData>(EMPTY_PRE_TURN_REVIEW);
 
   useEffect(() => {

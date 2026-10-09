@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useBridge } from "../../../lib/bridge-context.js";
 
-import type { BridgeResult } from "../../../../shared/bridge-contract.js";
 import type { DiplomacyCommandOutcome } from "../../../../shared/diplomacy-contract.js";
-import { createTransportRequestId } from "../../../lib/command-screen-workflow.js";
+import {
+  createTransportRequestId,
+  foldCommandResult,
+} from "../../../lib/command-screen-workflow.js";
 import type { DiplomacyScreenState } from "../diplomacy-screen-state.js";
 import {
   diplomacyBeginAction,
@@ -33,7 +36,7 @@ export interface UseDiplomacyScreenReturn {
 
 export function useDiplomacyScreen(sessionId: string): UseDiplomacyScreenReturn {
   const [state, setState] = useState<DiplomacyScreenState>({ kind: "idle", revision: 0 });
-  const bridge = window.bluewave;
+  const bridge = useBridge();
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -116,7 +119,13 @@ export function useDiplomacyScreen(sessionId: string): UseDiplomacyScreenReturn 
         command,
       })
       .then((result) => {
-        setState((prev) => applySubmitResult(prev, result));
+        setState(
+          foldCommandResult<DiplomacyScreenState, DiplomacyCommandOutcome>(result, {
+            success: diplomacySubmitSuccess,
+            rejected: diplomacySubmitRejected,
+            transportFailure: diplomacyTransportFailure,
+          }),
+        );
       })
       .catch((error: unknown) => {
         setState((prev) =>
@@ -143,19 +152,4 @@ export function useDiplomacyScreen(sessionId: string): UseDiplomacyScreenReturn 
     reload,
     canSubmit,
   };
-}
-
-function applySubmitResult(
-  state: DiplomacyScreenState,
-  result: BridgeResult<DiplomacyCommandOutcome>,
-): DiplomacyScreenState {
-  if (result.outcome === "success") return diplomacySubmitSuccess(state, result.value);
-  if (result.outcome === "rejected") {
-    return diplomacySubmitRejected(state, {
-      reason: result.reason,
-      diagnostics: result.diagnostics,
-      currentRevision: result.currentRevision,
-    });
-  }
-  return diplomacyTransportFailure(state, `${result.reason}: ${result.diagnostics.join("; ")}`);
 }

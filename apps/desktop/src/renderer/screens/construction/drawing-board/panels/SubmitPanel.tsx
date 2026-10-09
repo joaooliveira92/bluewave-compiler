@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useBridge } from "../../../../lib/bridge-context.js";
 import type { DesignDraft } from "@bluewave/ship-design";
 import { Alert } from "../../../../components/ui/alert.js";
 import { Button } from "../../../../components/ui/button.js";
@@ -21,7 +22,7 @@ export function SubmitPanel({
   readonly valid: boolean;
 }) {
   const revision = useCampaignRevision();
-  const bridge = window.bluewave;
+  const bridge = useBridge();
   const [className, setClassName] = useState("");
   const [result, setResult] = useState<{
     readonly tone: "ok" | "bad";

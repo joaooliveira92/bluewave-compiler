@@ -28,6 +28,7 @@
     "src/renderer/content/**/*.ts",
     "src/renderer/content/**/*.json",
     "src/renderer/lib/**/*.ts",
+    "src/renderer/lib/**/*.tsx",
     "src/shared/**/*.ts",
     "src/renderer/raw.d.ts",
     "src/renderer/main.tsx",
