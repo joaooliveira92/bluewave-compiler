@@ -524,6 +524,122 @@ describe("division commands (AC-3)", () => {
   });
 });
 
+describe("StartRebuild validation (ADR-0078)", () => {
+  const ship = (over: Record<string, unknown> = {}) => ({
+    id: "s1",
+    name: "HMS Test",
+    classId: "c",
+    nationId: "GBR",
+    locationAreaId: "a-1",
+    designVersionId: "d_old",
+    hitPoints: SafeInt(100),
+    maxHitPoints: SafeInt(100),
+    speed: SafeInt(10),
+    firepower: SafeInt(10),
+    armor: SafeInt(10),
+    isUnderConstruction: false,
+    constructionProgress: SafeInt(0),
+    constructionTotalWork: SafeInt(0),
+    ...over,
+  });
+  const snapshotWith = (
+    shipOver: Record<string, unknown> = {},
+    opts: { sourceDraft?: boolean; extraDesign?: string; project?: string } = {},
+  ): CampaignSnapshot => {
+    const base = makeTestSnapshot();
+    const nation = base.nations.get("GBR")!;
+    const designs = new Map(base.designs);
+    designs.set("d_old", {
+      designVersionId: "d_old",
+      ...(opts.sourceDraft === false ? {} : { sourceDraft: { nationId: "GBR" } }),
+    } as never);
+    if (opts.extraDesign)
+      designs.set(opts.extraDesign, { designVersionId: opts.extraDesign } as never);
+    return {
+      ...base,
+      designs,
+      nations: new Map([
+        [
+          "GBR",
+          {
+            ...nation,
+            fleets: [
+              {
+                id: "f",
+                nationId: "GBR",
+                name: "f",
+                locationAreaId: "a-1",
+                ships: [ship(shipOver)],
+              },
+            ],
+            constructionProjects: opts.project
+              ? [{ id: opts.project, projectType: "NEW_CONSTRUCTION" } as never]
+              : [],
+          },
+        ],
+      ]),
+    } as unknown as CampaignSnapshot;
+  };
+  const rebuild = (
+    snapshot: CampaignSnapshot,
+    over: Partial<Extract<CommandBody, { type: "StartRebuild" }>> = {},
+  ) => {
+    const envelope: CommandEnvelope<CommandBody> = {
+      commandId: "c1",
+      version: "0.1.0",
+      expectedSnapshotHash: sha256Hex(canonicalSerialize(snapshot)),
+      idempotencyKey: "k1",
+      timestamp: "t",
+      body: {
+        type: "StartRebuild",
+        nationId: "GBR",
+        shipId: "s1",
+        projectId: "con_rebuild",
+        newDesignVersionId: "d_new",
+        draft: { nationId: "GBR" },
+        ...over,
+      },
+    };
+    return new CommandLifecycle().process(
+      envelope,
+      snapshot,
+      { nationId: "GBR", type: "playable" },
+      new CommandIdempotencyMap(),
+    );
+  };
+  /** "CODE: message" of a rejection, or the outcome type when the command was accepted. */
+  const reason = (o: ReturnType<typeof rebuild>) =>
+    o.type === "rejected" ? `${o.diagnostic.code}: ${o.diagnostic.message}` : o.type;
+
+  it("rejects an unknown nation, an unknown ship and another nation's ship", () => {
+    expect(reason(rebuild(snapshotWith(), { nationId: "XXX" }))).toContain("INVALID_NATION_ID");
+    expect(reason(rebuild(snapshotWith(), { shipId: "ghost" }))).toContain("is not GBR");
+  });
+  it("rejects a ship that is under construction, already unavailable, or in a battle", () => {
+    expect(reason(rebuild(snapshotWith({ isUnderConstruction: true })))).toContain(
+      "SHIP_NOT_OPERATIONAL",
+    );
+    expect(reason(rebuild(snapshotWith({ availability: "UNAVAILABLE" })))).toContain(
+      "SHIP_NOT_OPERATIONAL",
+    );
+    expect(reason(rebuild(snapshotWith({ inBattleId: "b1" })))).toContain("in a battle");
+  });
+  it("rejects bad ids, an existing design or project, and an authored design with no source draft", () => {
+    expect(reason(rebuild(snapshotWith(), { newDesignVersionId: "Bad Id" }))).toContain(
+      "lower snake_case",
+    );
+    expect(reason(rebuild(snapshotWith(), { projectId: "X" }))).toContain("lower snake_case");
+    expect(reason(rebuild(snapshotWith({}, { extraDesign: "d_new" })))).toContain("already exists");
+    expect(reason(rebuild(snapshotWith({}, { project: "con_rebuild" })))).toContain(
+      "Project con_rebuild already exists",
+    );
+    expect(reason(rebuild(snapshotWith({}, { sourceDraft: false })))).toContain("no source draft");
+  });
+  it("rejects a malformed draft", () => {
+    expect(reason(rebuild(snapshotWith()))).toContain("malformed");
+  });
+});
+
 describe("CommandLedger", () => {
   it("produces deterministic hash", () => {
     const ledger1 = new CommandLedger();

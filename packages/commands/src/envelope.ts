@@ -18,6 +18,7 @@ export type CommandBody =
   | MoveFleetCommand
   | SubmitDesignCommand
   | ReviseProjectCommand
+  | StartRebuildCommand
   | AssignOfficerCommand
   | RelieveOfficerCommand
   | DeclareWarCommand
@@ -83,6 +84,22 @@ export interface ReviseProjectCommand {
   nationId: string;
   projectId: string;
   /** Id of the new design version; the project's family gains this member. */
+  newDesignVersionId: string;
+  draft: unknown;
+}
+/**
+ * Starts a rebuild of a completed ship with a changed design (ADR-0078, DESIGN-23 sections 17-22). `draft` is the whole new
+ * DesignDraft; the ship's current design must carry its source draft. The rebuild is validated against the retained-hull
+ * limits when the month applies the command; if it is legal the ship is unavailable for the whole project and `projectId`
+ * is the new construction project that does the work. A refused rebuild changes nothing.
+ */
+export interface StartRebuildCommand {
+  type: "StartRebuild";
+  nationId: string;
+  shipId: string;
+  /** Id of the new REBUILD project. */
+  projectId: string;
+  /** Id of the new design version the ship becomes when the rebuild completes. */
   newDesignVersionId: string;
   draft: unknown;
 }

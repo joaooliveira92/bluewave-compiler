@@ -227,6 +227,18 @@ export class CommandLifecycle {
           newDesignVersionId: body.newDesignVersionId,
         },
       };
+    if (body.type === "StartRebuild")
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: {
+          nationId: body.nationId,
+          shipId: body.shipId,
+          projectId: body.projectId,
+          newDesignVersionId: body.newDesignVersionId,
+        },
+      };
     if (body.type === "MoveFleet")
       return {
         type: "success",

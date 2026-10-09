@@ -372,6 +372,126 @@ describe("ReviseProject on a project with work packages (ADR-0077)", () => {
   });
 });
 
+/** A snapshot where the attacker's first ship was built to the submitted design (so it carries its source draft). */
+function withBuiltShip(): { snapshot: CampaignSnapshot; shipId: string } {
+  const start = withProject(0);
+  const nation = start.nations.get(ATTACKER_NATION)!;
+  const [first, ...rest] = nation.fleets;
+  const own = first!.ships[0]!;
+  const ship = { ...own, designVersionId: "des_rev_base" };
+  return {
+    shipId: ship.id,
+    snapshot: {
+      ...start,
+      nations: new Map([
+        ...start.nations,
+        [
+          ATTACKER_NATION,
+          { ...nation, fleets: [{ ...first!, ships: [ship, ...first!.ships.slice(1)] }, ...rest] },
+        ],
+      ]),
+    },
+  };
+}
+const rebuildCommand = (
+  snapshot: CampaignSnapshot,
+  shipId: string,
+  draft: unknown,
+  id = "des_reb_2",
+) =>
+  envelope(
+    snapshot,
+    {
+      type: "StartRebuild",
+      nationId: ATTACKER_NATION,
+      shipId,
+      projectId: "con_rebuild",
+      newDesignVersionId: id,
+      draft,
+    },
+    `rebuild-${id}`,
+  );
+const startRebuild = (snapshot: CampaignSnapshot, shipId: string, draft: unknown) =>
+  execute(snapshot, [rebuildCommand(snapshot, shipId, draft)]);
+const shipOf = (s: CampaignSnapshot, id: string) =>
+  s.nations
+    .get(ATTACKER_NATION)!
+    .fleets.flatMap((f) => f.ships)
+    .find((x) => x.id === id)!;
+
+describe("StartRebuild through the month (ADR-0078)", () => {
+  it("a legal rebuild makes the ship unavailable and starts a REBUILD project without the hull and launch", () => {
+    const { snapshot, shipId } = withBuiltShip();
+    const { snapshot: after, collector } = startRebuild(snapshot, shipId, machineryChange);
+    expect(collector.errors.map((e) => `${e.code}: ${e.message}`)).toEqual([]);
+    const ship = shipOf(after, shipId);
+    expect(ship.availability).toBe("UNAVAILABLE");
+    expect(ship.availabilityProjectId).toBe("con_rebuild");
+    const project = after.nations
+      .get(ATTACKER_NATION)!
+      .constructionProjects.find((p) => p.id === "con_rebuild")!;
+    expect(project).toMatchObject({
+      projectType: "REBUILD",
+      targetShipId: shipId,
+      designVersionId: "des_reb_2",
+      status: "PLANNED",
+      completedWork: 0,
+    });
+    expect(project.packages!.map((p) => p.kind)).not.toContain("HULL");
+    expect(project.packages!.map((p) => p.kind)).not.toContain("LAUNCH");
+    expect(packageInvariantsHold(project)).toBe(true);
+    expect(Number(project.totalWork)).toBeGreaterThan(0);
+    expect(project.yardId).toBe(after.designs.get("des_reb_2")!.constructionPlan!.yardId);
+    // The old design is kept; the ship still points at it until the rebuild completes.
+    expect(after.designs.has("des_rev_base")).toBe(true);
+    expect(ship.designVersionId).toBe("des_rev_base");
+  });
+
+  it("the ship cannot sail while it is being rebuilt", () => {
+    const { snapshot, shipId } = withBuiltShip();
+    const { snapshot: after } = startRebuild(snapshot, shipId, machineryChange);
+    expect(shipOf(after, shipId).availability).toBe("UNAVAILABLE");
+  });
+
+  it("a rebuild outside the retained-hull limits is refused and changes nothing", () => {
+    const { snapshot, shipId } = withBuiltShip();
+    const tooWide = revised((d) => (d.hull.beam = Math.round(d.hull.beam * 1.2)));
+    const { snapshot: after, collector } = startRebuild(snapshot, shipId, tooWide);
+    expect(collector.errors.map((e) => e.code)).toContain("REBUILD_REJECTED");
+    expect(collector.errors.map((e) => e.message).join()).toMatch(/REBUILD_BEAM_LIMIT/);
+    expect(shipOf(after, shipId).availability).toBeUndefined();
+    expect(
+      after.nations.get(ATTACKER_NATION)!.constructionProjects.some((p) => p.id === "con_rebuild"),
+    ).toBe(false);
+    expect(after.designs.has("des_reb_2")).toBe(false);
+  });
+
+  it("a rebuild that changes nothing is refused", () => {
+    const { snapshot, shipId } = withBuiltShip();
+    const { collector } = startRebuild(snapshot, shipId, baseDraft);
+    expect(collector.errors.map((e) => e.message).join()).toMatch(/changes nothing/);
+  });
+
+  it("a ship already unavailable cannot be rebuilt again", () => {
+    const { snapshot, shipId } = withBuiltShip();
+    const once = startRebuild(snapshot, shipId, machineryChange).snapshot;
+    const again = execute(once, [rebuildCommand(once, shipId, fittingsChange, "des_reb_3")]);
+    expect(again.snapshot.designs.has("des_reb_3")).toBe(false);
+    expect(
+      again.snapshot.nations
+        .get(ATTACKER_NATION)!
+        .constructionProjects.filter((p) => p.projectType === "REBUILD"),
+    ).toHaveLength(1);
+  });
+
+  it("is deterministic", () => {
+    const { snapshot, shipId } = withBuiltShip();
+    const a = startRebuild(snapshot, shipId, machineryChange).snapshot;
+    const b = startRebuild(snapshot, shipId, machineryChange).snapshot;
+    expect(sha256Hex(canonicalSerialize(a))).toBe(sha256Hex(canonicalSerialize(b)));
+  });
+});
+
 // The month executor applies commands in the month after the snapshot's start month (1880-01).
 const APPLIED_MONTH = "1880-02";
 

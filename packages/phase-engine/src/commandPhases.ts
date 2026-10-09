@@ -19,6 +19,7 @@ import {
   type SetBudgetAllocationCommand,
   type SetResearchPriorityCommand,
   type ReviseProjectCommand,
+  type StartRebuildCommand,
   type SubmitDesignCommand,
 } from "@bluewave/commands";
 import {
@@ -39,6 +40,7 @@ import {
 } from "./diplomacy.js";
 import type { MonthContext } from "./monthContext.js";
 import { applyReviseProject } from "./reviseProject.js";
+import { applyStartRebuild } from "./startRebuild.js";
 
 // Phase 3: command_collection — process player commands in order, applying each
 // successful command body through the shared command appliers.
@@ -108,6 +110,17 @@ function applyAdministrativeCommand(ctx: MonthContext, body: CommandBody): boole
     ctx.currentSnapshot = applyReviseProject(
       ctx.currentSnapshot,
       body as ReviseProjectCommand,
+      ctx.engineOptions?.shipBuilding,
+      campaignMonth,
+      collector,
+    );
+    return true;
+  }
+
+  if (body["type"] === "StartRebuild") {
+    ctx.currentSnapshot = applyStartRebuild(
+      ctx.currentSnapshot,
+      body as StartRebuildCommand,
       ctx.engineOptions?.shipBuilding,
       campaignMonth,
       collector,

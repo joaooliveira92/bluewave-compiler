@@ -5,6 +5,7 @@ import {
   RESEARCH_BUDGET_MAX,
   RESEARCH_BUDGET_MIN,
   fleetMoveProblem,
+  isShipOperational,
 } from "@bluewave/campaign";
 import {
   CANONICAL_RESEARCH_FIELD_IDS,
@@ -51,6 +52,7 @@ export function validatePayloadRules(
   if (envelope.body.type === "RelieveOfficer") return validateRelieveOfficer(envelope, snapshot);
   if (envelope.body.type === "SubmitDesign") return validateSubmitDesign(envelope, snapshot);
   if (envelope.body.type === "ReviseProject") return validateReviseProject(envelope, snapshot);
+  if (envelope.body.type === "StartRebuild") return validateStartRebuild(envelope, snapshot);
   if (envelope.body.type === "MoveFleet") {
     const move = envelope.body;
     const problem = fleetMoveProblem(snapshot, move.nationId, move.fleetId, move.toAreaId);
@@ -180,6 +182,54 @@ function validateSetBudgetAllocation(
       "INVALID_COMMAND_PAYLOAD",
       `researchBudget must be an integer in ${String(RESEARCH_BUDGET_MIN)}..${String(RESEARCH_BUDGET_MAX)}`,
     );
+  return { ok: true };
+}
+
+function validateStartRebuild(
+  envelope: CommandEnvelope<CommandBody>,
+  snapshot: CampaignSnapshot,
+): LifecycleStepResult {
+  const body = envelope.body as Extract<CommandBody, { type: "StartRebuild" }>;
+  const reject = (code: string, message: string) =>
+    rejectValidation(envelope, snapshot, code, message);
+  const nation = snapshot.nations.get(body.nationId);
+  if (!nation) return reject("INVALID_NATION_ID", `Nation ${body.nationId} not found`);
+  const ship = nation.fleets.flatMap((f) => f.ships).find((s) => s.id === body.shipId);
+  if (!ship)
+    return reject("INVALID_COMMAND_PAYLOAD", `Ship ${body.shipId} is not ${body.nationId}'s`);
+  if (!isShipOperational(ship))
+    return reject(
+      "SHIP_NOT_OPERATIONAL",
+      `Ship ${body.shipId} is under construction or already unavailable and cannot be rebuilt`,
+    );
+  if (ship.inBattleId !== undefined)
+    return reject(
+      "INVALID_COMMAND_PAYLOAD",
+      `Ship ${body.shipId} is in a battle and cannot be rebuilt`,
+    );
+  for (const [label, id] of [
+    ["Design", body.newDesignVersionId],
+    ["Project", body.projectId],
+  ] as const)
+    if (!/^[a-z][a-z0-9_-]{1,63}$/.test(id))
+      return reject(
+        "INVALID_COMMAND_PAYLOAD",
+        `${label} id must be lower snake_case (2-64 characters)`,
+      );
+  if (snapshot.designs.has(body.newDesignVersionId))
+    return reject("INVALID_COMMAND_PAYLOAD", `Design ${body.newDesignVersionId} already exists`);
+  if (nation.constructionProjects.some((p) => p.id === body.projectId))
+    return reject("INVALID_COMMAND_PAYLOAD", `Project ${body.projectId} already exists`);
+  if (snapshot.designs.get(ship.designVersionId)?.sourceDraft === undefined)
+    return reject(
+      "INVALID_COMMAND_PAYLOAD",
+      `Ship ${body.shipId} was built from an authored design with no source draft and cannot be rebuilt`,
+    );
+  const problems = validateDraftShape(body.draft);
+  if (problems.length > 0)
+    return reject("INVALID_COMMAND_PAYLOAD", `Design draft is malformed: ${problems.join("; ")}`);
+  if ((body.draft as { nationId?: unknown }).nationId !== body.nationId)
+    return reject("INVALID_COMMAND_PAYLOAD", "The draft belongs to a different nation");
   return { ok: true };
 }
 

@@ -22,6 +22,7 @@ export type {
   MoveFleetCommand,
   SubmitDesignCommand,
   ReviseProjectCommand,
+  StartRebuildCommand,
   RelieveOfficerCommand,
   SetBudgetAllocationCommand,
   SetResearchPriorityCommand,
