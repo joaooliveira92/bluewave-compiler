@@ -1,5 +1,6 @@
 import {
   isConstructionComplete,
+  isPackageComplete,
   LINE_IDS,
   PACKAGE_ORDER,
   type LineId,
@@ -27,7 +28,7 @@ export function buildProgressOf(plan: ConstructionPlan, progress: PackageProgres
     hullTotalWork: hull ? total(hull.id) : 0,
     armourStarted: kindDone("ARMOUR") > 0,
     machineryStarted: kindDone("MACHINERY") > 0,
-    launched: launch ? doneOn(progress, launch.id) >= launch.totalWork : false,
+    launched: launch ? isPackageComplete(plan, progress, launch.id) : false,
     affectedDoneWork: plan.packages.reduce((a, p) => a + doneOn(progress, p.id), 0),
   };
 }

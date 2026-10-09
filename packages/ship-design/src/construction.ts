@@ -269,12 +269,28 @@ function allocationOrder(plan: ConstructionPlan): WorkPackage[] {
   );
 }
 
-const isComplete = (plan: ConstructionPlan, progress: PackageProgress, id: string): boolean =>
-  (progress[id] ?? 0) >= plan.packages.find((p) => p.id === id)!.totalWork;
+/**
+ * Whether a package is complete: all its work is done and so are all its dependencies. The second condition matters for a
+ * package with no work (a very small ship can round a package to zero units): it is complete only once what it depends on is,
+ * never "from the start", or later packages could begin before the hull was built. Plans are acyclic (`checkPlan`).
+ */
+export function isPackageComplete(
+  plan: ConstructionPlan,
+  progress: PackageProgress,
+  id: string,
+): boolean {
+  const p = plan.packages.find((x) => x.id === id);
+  if (p === undefined) return false;
+  return (
+    (progress[id] ?? 0) >= p.totalWork &&
+    p.dependsOn.every((d) => isPackageComplete(plan, progress, d))
+  );
+}
+const isComplete = isPackageComplete;
 
 /** Whether every package of the plan has all its work done. */
 export function isConstructionComplete(plan: ConstructionPlan, progress: PackageProgress): boolean {
-  return plan.packages.every((p) => (progress[p.id] ?? 0) >= p.totalWork);
+  return plan.packages.every((p) => isPackageComplete(plan, progress, p.id));
 }
 
 export interface MonthAdvance {

@@ -4,6 +4,7 @@ import {
   buildProgressOf,
   emptyProgress,
   isConstructionComplete,
+  isPackageComplete,
   LINE_IDS,
   capacityInUnits,
   progressFromSingleFigure,
@@ -245,5 +246,43 @@ describe("capacityInUnits", () => {
   });
   it("rejects a plan with no work", () => {
     expect(() => capacityInUnits(micro, { packages: [], totalWork: 0 }, 5)).toThrow(RangeError);
+  });
+});
+
+describe("packages with no work (a very small ship)", () => {
+  // Scaled to 3 units, "launch" and others round to zero.
+  const tiny = scalePlanToUnits(plan, 3);
+  const workOf = (id: string) => tiny.packages.find((p) => p.id === id)!.totalWork;
+
+  it("a package with no work is complete only once its dependencies are", () => {
+    expect(workOf("launch")).toBe(0);
+    const start = emptyProgress(tiny);
+    expect(isPackageComplete(tiny, start, "launch")).toBe(false); // hull not built yet
+    const hullDone = { ...start, hull: workOf("hull") };
+    expect(isPackageComplete(tiny, hullDone, "launch")).toBe(true);
+  });
+
+  it("dependents of a zero-work package wait for its dependencies, not for nothing", () => {
+    const month = advanceConstructionMonth(tiny, emptyProgress(tiny), capacity(1_000), null);
+    // The hull may be finished this month, but fit-out (after launch, after hull) cannot start in the same month.
+    expect(month.progress["fit_out"]).toBe(0);
+    let progress: PackageProgress = month.progress;
+    let months = 1;
+    while (!isConstructionComplete(tiny, progress) && months < 50) {
+      progress = advanceConstructionMonth(tiny, progress, capacity(1_000), null).progress;
+      months++;
+    }
+    expect(isConstructionComplete(tiny, progress)).toBe(true);
+  });
+
+  it("launched is false until the hull is built, even when the launch package has no work", () => {
+    expect(buildProgressOf(tiny, emptyProgress(tiny)).launched).toBe(false);
+    const built = buildProgressOf(tiny, { ...emptyProgress(tiny), hull: workOf("hull") });
+    expect(built.launched).toBe(true);
+  });
+
+  it("an empty plan is complete, and an unknown id is not", () => {
+    expect(isConstructionComplete({ packages: [], totalWork: 0 }, {})).toBe(true);
+    expect(isPackageComplete(plan, emptyProgress(plan), "nope")).toBe(false);
   });
 });
