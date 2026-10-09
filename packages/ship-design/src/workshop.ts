@@ -6,10 +6,7 @@ import {
 } from "./compile.js";
 import {
   buildTimeIsProvisional,
-  ConstructionPlanError,
-  historicalBuildMonths,
   planConstruction,
-  simulateConstruction,
   type ConstructionBalance,
   type LineId,
 } from "./construction.js";
@@ -18,7 +15,8 @@ import { computeCost, type CostBalance, type CostContext } from "./cost.js";
 import { computeCve, CVE_LABEL, type CveBalance } from "./cve.js";
 import type { Finding, Severity } from "./findings.js";
 import { LEDGER_CATEGORIES, type LedgerCategory } from "./ledger.js";
-import { yardFits, yardMisfits, type Yard, type YardLimit } from "./yards.js";
+import { chooseYard, yardDemandOf } from "./yardChoice.js";
+import { yardMisfits, type Yard, type YardLimit } from "./yards.js";
 
 /** Everything the workshop needs besides the draft. Built once per campaign from content and nation state. */
 export interface WorkshopEnvironment {
@@ -195,39 +193,13 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
   if (c.valid) {
     try {
       const plan = planConstruction(c, draft, cost, env.constructionBalance, true);
-      const demand = {
-        lengthMm: draft.hull.lengthWl,
-        beamMm: draft.hull.beam,
-        displacementKg: c.totalKg,
-        heaviestKg: Math.max(0, ...c.components.map((x) => x.weightKg)),
-      };
-      const fitting = env.yards.filter((y) => yardFits(y.facility, demand));
-      const hist = historicalBuildMonths(c.totalKg, env.constructionBalance, {
+      const demand = yardDemandOf(c, draft);
+      const choice = chooseYard(plan, demand, env.yards, env.constructionBalance, c.totalKg, {
         industryBp: env.industryBp,
         accelerated: env.costCtx.accelerated,
       });
-      const monthsByYard = new Map<string, number | null>();
-      let best: {
-        yard: Yard;
-        schedule: ReturnType<typeof simulateConstruction>;
-        total: number;
-      } | null = null;
-      for (const yard of fitting) {
-        monthsByYard.set(yard.facility.id, null);
-        try {
-          const schedule = simulateConstruction(
-            plan,
-            { capacity: yard.capacity, monthlyFundingMicro: null, costPerWorkMicro: 1 },
-            env.constructionBalance.maxMonths,
-          );
-          const total = Math.max(hist, schedule.durationMonths);
-          monthsByYard.set(yard.facility.id, total);
-          // Yards are ascending in capacity, so a strict improvement keeps the smallest yard on a tie.
-          if (best === null || total < best.total) best = { yard, schedule, total };
-        } catch (e) {
-          if (!(e instanceof ConstructionPlanError) || e.code !== "CONSTRUCTION_STALLED") throw e;
-        }
-      }
+      const { fitting, best, monthsByYard } = choice;
+      const hist = choice.historicalMonths;
       if (best === null) {
         note =
           fitting.length === 0
@@ -236,7 +208,7 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
       } else {
         historicalMonths = hist;
         historicalProvisional = buildTimeIsProvisional(c.totalKg, env.constructionBalance);
-        months = best.total;
+        months = best.months;
         bottleneck = best.schedule.bottleneck;
         yardId = best.yard.facility.id;
       }
