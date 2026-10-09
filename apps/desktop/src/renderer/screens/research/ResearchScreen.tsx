@@ -1,3 +1,5 @@
+import { FlaskConical } from "lucide-react";
+import { ScreenStage } from "../../components/shared/ScreenStage.js";
 import { debugRevisionActions } from "../../components/shared/debugRevisionActions.js";
 import {
   FieldPrioritiesEditor,
@@ -5,7 +7,6 @@ import {
   ResearchLoadErrorState,
   ResearchLoadingState,
   ResearchNotice,
-  ResearchPageShell,
   ResearchSummarySections,
 } from "./components/index.js";
 import { useResearchScreen } from "./hooks/useResearchScreen.js";
@@ -36,7 +37,10 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
   const vm = buildResearchViewModel(state);
 
   return (
-    <ResearchPageShell
+    <ScreenStage
+      guidedTarget="research"
+      icon={FlaskConical}
+      title="Research & Technology"
       description="Set field priorities; the engine applies them on the next turn advance."
       actions={debugRevisionActions(state.month, state.revision)}
     >
@@ -63,6 +67,6 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
       />
 
       <InProgressTechnologiesCard technologies={vm.inProgressTechnologies} />
-    </ResearchPageShell>
+    </ScreenStage>
   );
 }

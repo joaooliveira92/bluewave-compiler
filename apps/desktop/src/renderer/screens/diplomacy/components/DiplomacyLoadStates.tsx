@@ -1,50 +1,35 @@
-import { AlertCircle, Handshake } from "lucide-react";
-import { PageHeader } from "../../../components/shared/PageHeader.js";
-import { Alert, AlertDescription, AlertTitle } from "../../../components/ui/alert.js";
-import { Button } from "../../../components/ui/button.js";
-import { Skeleton } from "../../../components/ui/skeleton.js";
+import { Handshake } from "lucide-react";
+import {
+  ScreenLoadErrorState,
+  ScreenLoadingState,
+  type ScreenLoadStateProps,
+} from "../../../components/shared/ScreenLoadStates.js";
 
-export function DiplomacyLoadErrorState({
-  message,
-  onRetry,
-}: {
+const DIPLOMACY_HEADER: Omit<ScreenLoadStateProps, "guidedTarget"> = {
+  icon: Handshake,
+  title: "Diplomacy & War",
+  description: "Relations, wars and blockades from the compiled campaign state.",
+};
+
+const DIPLOMACY_GUIDED_TARGET = "diplomacy";
+
+export interface DiplomacyLoadErrorStateProps {
   readonly message: string;
   readonly onRetry: () => void;
-}) {
+}
+
+export function DiplomacyLoadErrorState({ message, onRetry }: DiplomacyLoadErrorStateProps) {
   return (
-    <div data-guided-target="diplomacy" className="space-y-6">
-      <PageHeader
-        icon={Handshake}
-        title="Diplomacy & War"
-        description="Relations, wars and blockades from the compiled campaign state."
-      />
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Diplomacy screen failed to load</AlertTitle>
-        <AlertDescription className="flex flex-col gap-2">
-          <span className="whitespace-pre-wrap">{message}</span>
-          <Button variant="outline" size="sm" className="w-fit" onClick={onRetry}>
-            Retry
-          </Button>
-        </AlertDescription>
-      </Alert>
-    </div>
+    <ScreenLoadErrorState
+      guidedTarget={DIPLOMACY_GUIDED_TARGET}
+      {...DIPLOMACY_HEADER}
+      errorTitle="Diplomacy screen failed to load"
+      message={message}
+      onRetry={onRetry}
+    />
   );
 }
 
 export function DiplomacyLoadingState() {
-  return (
-    <div data-guided-target="diplomacy" className="space-y-6">
-      <PageHeader
-        icon={Handshake}
-        title="Diplomacy & War"
-        description="Relations, wars and blockades from the compiled campaign state."
-      />
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {[0, 1, 2].map((idx) => (
-          <Skeleton key={idx} className="h-28" />
-        ))}
-      </div>
-    </div>
-  );
+  return <ScreenLoadingState guidedTarget={DIPLOMACY_GUIDED_TARGET} {...DIPLOMACY_HEADER} />;
 }

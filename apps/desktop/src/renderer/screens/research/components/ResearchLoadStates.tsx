@@ -1,8 +1,17 @@
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "../../../components/ui/alert.js";
-import { Button } from "../../../components/ui/button.js";
-import { Skeleton } from "../../../components/ui/skeleton.js";
-import { ResearchPageShell } from "./ResearchPageShell.js";
+import { FlaskConical } from "lucide-react";
+import {
+  ScreenLoadErrorState,
+  ScreenLoadingState,
+  type ScreenLoadStateProps,
+} from "../../../components/shared/ScreenLoadStates.js";
+
+const RESEARCH_HEADER: Omit<ScreenLoadStateProps, "guidedTarget"> = {
+  icon: FlaskConical,
+  title: "Research & Technology",
+  description: "Direct the monthly research budget across fields.",
+};
+
+const RESEARCH_GUIDED_TARGET = "research";
 
 export interface ResearchLoadErrorStateProps {
   readonly message: string;
@@ -11,29 +20,16 @@ export interface ResearchLoadErrorStateProps {
 
 export function ResearchLoadErrorState({ message, onRetry }: ResearchLoadErrorStateProps) {
   return (
-    <ResearchPageShell>
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Research screen failed to load</AlertTitle>
-        <AlertDescription className="flex flex-col gap-2">
-          <span className="whitespace-pre-wrap">{message}</span>
-          <Button variant="outline" size="sm" className="w-fit" onClick={onRetry}>
-            Retry
-          </Button>
-        </AlertDescription>
-      </Alert>
-    </ResearchPageShell>
+    <ScreenLoadErrorState
+      guidedTarget={RESEARCH_GUIDED_TARGET}
+      {...RESEARCH_HEADER}
+      errorTitle="Research screen failed to load"
+      message={message}
+      onRetry={onRetry}
+    />
   );
 }
 
 export function ResearchLoadingState() {
-  return (
-    <ResearchPageShell>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {[0, 1, 2].map((idx) => (
-          <Skeleton key={idx} className="h-28" />
-        ))}
-      </div>
-    </ResearchPageShell>
-  );
+  return <ScreenLoadingState guidedTarget={RESEARCH_GUIDED_TARGET} {...RESEARCH_HEADER} />;
 }

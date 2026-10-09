@@ -1,6 +1,6 @@
 import { Handshake, History } from "lucide-react";
-import { PageHeader } from "../../components/shared/PageHeader.js";
 import { GlassSectionCard } from "../../components/shared/GlassSectionCard.js";
+import { ScreenStage } from "../../components/shared/ScreenStage.js";
 import { debugRevisionActions } from "../../components/shared/debugRevisionActions.js";
 import {
   BattleHistorySection,
@@ -52,14 +52,13 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
   const vm = buildDiplomacyViewModel(state.projection, state.draftCommand);
 
   return (
-    <div data-guided-target="diplomacy" className="space-y-6">
-      <PageHeader
-        icon={Handshake}
-        title="Diplomacy & War"
-        description="View and direct relations; the engine applies commands on the next turn advance."
-        actions={debugRevisionActions(state.month, state.revision)}
-      />
-
+    <ScreenStage
+      guidedTarget="diplomacy"
+      icon={Handshake}
+      title="Diplomacy & War"
+      description="View and direct relations; the engine applies commands on the next turn advance."
+      actions={debugRevisionActions(state.month, state.revision)}
+    >
       {state.notice !== null && (
         <DiplomacyNotice submitted={state.kind === "submitted"} notice={state.notice} />
       )}
@@ -88,6 +87,6 @@ export function DiplomacyScreen({ sessionId }: { readonly sessionId: string }) {
         onClear={clearDraft}
         onApply={submit}
       />
-    </div>
+    </ScreenStage>
   );
 }
