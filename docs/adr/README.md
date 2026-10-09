@@ -68,3 +68,4 @@ Refresh this table from each file's H1 when one is added or re-titled.
 | 0074 | [ADR-0074-designed-ship-treasury-cost.md](ADR-0074-designed-ship-treasury-cost.md) | Designed ships are priced by the cost model, in treasury units |
 | 0075 | [ADR-0075-read-only-screen-query-convention.md](ADR-0075-read-only-screen-query-convention.md) | Read-only screen reads go through one query hook |
 | 0076 | [ADR-0076-sb2-ship-building-parity.md](ADR-0076-sb2-ship-building-parity.md) | SB-2 ship-building parity: yards forecast-only, optional draft fields, era scope |
+| 0077 | [ADR-0077-construction-progress-per-package.md](ADR-0077-construction-progress-per-package.md) | Construction progress per work package: one resumable step, revision reads real state, legacy mapping, slices |

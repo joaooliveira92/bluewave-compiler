@@ -253,9 +253,78 @@ export function checkPlan(plan: ConstructionPlan): void {
   for (const p of plan.packages) visit(p.id);
 }
 
+/** Work done so far on each package of a plan, by package id. The resumable state of a construction project. */
+export type PackageProgress = Readonly<Record<string, number>>;
+
+/** A project that has not started: no work on any package. */
+export function emptyProgress(plan: ConstructionPlan): PackageProgress {
+  return Object.fromEntries(plan.packages.map((p) => [p.id, 0]));
+}
+
+/** Packages in the order contended capacity is allocated: canonical kind order, then id. */
+function allocationOrder(plan: ConstructionPlan): WorkPackage[] {
+  return [...plan.packages].sort(
+    (x, y) =>
+      PACKAGE_ORDER.indexOf(x.kind) - PACKAGE_ORDER.indexOf(y.kind) || (x.id < y.id ? -1 : 1),
+  );
+}
+
+const isComplete = (plan: ConstructionPlan, progress: PackageProgress, id: string): boolean =>
+  (progress[id] ?? 0) >= plan.packages.find((p) => p.id === id)!.totalWork;
+
+/** Whether every package of the plan has all its work done. */
+export function isConstructionComplete(plan: ConstructionPlan, progress: PackageProgress): boolean {
+  return plan.packages.every((p) => (progress[p.id] ?? 0) >= p.totalWork);
+}
+
+export interface MonthAdvance {
+  /** Progress after the month. */
+  readonly progress: PackageProgress;
+  /** Work applied this month, by package id (only packages that took work). */
+  readonly applied: Readonly<Record<string, number>>;
+  /** Packages that finished this month. */
+  readonly completed: readonly string[];
+  /** The line of each package that capacity, not money, held back this month (a line repeats once per such package). */
+  readonly limitedLines: readonly LineId[];
+}
+
 /**
- * Month-by-month progress. A package starts only when its dependencies are complete; progress in a month is limited by
- * line capacity and, if set, funding (money buys work at `costPerWorkMicro`). Contended lines are allocated in
+ * One month of construction from a given state: a package starts only when its dependencies are complete; work applied
+ * to it is limited by its line's capacity, the remaining work and the funds available (work units this month, or null for
+ * unconstrained). Contended lines are allocated in PACKAGE_ORDER. Pure, deterministic; never negative, never above the
+ * remaining work (invariant I6). `simulateConstruction` is this step repeated.
+ */
+export function advanceConstructionMonth(
+  plan: ConstructionPlan,
+  progress: PackageProgress,
+  capacity: Readonly<Record<LineId, number>>,
+  fundsWork: number | null,
+): MonthAdvance {
+  const cap = new Map(LINE_IDS.map((l) => [l, capacity[l]]));
+  let funds = fundsWork === null ? Number.MAX_SAFE_INTEGER : Math.max(0, Math.floor(fundsWork));
+  const next: Record<string, number> = { ...progress };
+  const applied: Record<string, number> = {};
+  const completed: string[] = [];
+  const limited: LineId[] = [];
+  for (const p of allocationOrder(plan)) {
+    const done = progress[p.id] ?? 0;
+    if (done >= p.totalWork || !p.dependsOn.every((d) => isComplete(plan, progress, d))) continue;
+    const rem = p.totalWork - done;
+    const lineCap = cap.get(p.line)!;
+    const a = Math.max(0, Math.min(rem, lineCap, funds));
+    if (a < rem && a === lineCap && lineCap < funds) limited.push(p.line);
+    cap.set(p.line, lineCap - a);
+    funds -= a;
+    next[p.id] = done + a;
+    applied[p.id] = a;
+    if (done + a >= p.totalWork) completed.push(p.id);
+  }
+  return { progress: next, applied, completed, limitedLines: limited };
+}
+
+/**
+ * Month-by-month progress from the start. A package starts only when its dependencies are complete; progress in a month is
+ * limited by line capacity and, if set, funding (money buys work at `costPerWorkMicro`). Contended lines are allocated in
  * PACKAGE_ORDER. Progress is never negative and never exceeds remaining work (invariant I6).
  */
 export function simulateConstruction(
@@ -264,39 +333,20 @@ export function simulateConstruction(
   maxMonths: number,
 ): ConstructionSchedule {
   checkPlan(plan);
-  const remaining = new Map(plan.packages.map((p) => [p.id, p.totalWork]));
-  const done = new Set<string>();
+  let progress = emptyProgress(plan);
   const months: MonthState[] = [];
   const limited = new Map<LineId, number>();
-  const order = [...plan.packages].sort(
-    (x, y) =>
-      PACKAGE_ORDER.indexOf(x.kind) - PACKAGE_ORDER.indexOf(y.kind) || (x.id < y.id ? -1 : 1),
-  );
-  for (let m = 1; m <= maxMonths && done.size < plan.packages.length; m++) {
-    const cap = new Map(LINE_IDS.map((l) => [l, s.capacity[l]]));
-    let funds =
+  for (let m = 1; m <= maxMonths && !isConstructionComplete(plan, progress); m++) {
+    const funds =
       s.monthlyFundingMicro === null
-        ? Number.MAX_SAFE_INTEGER
+        ? null
         : Math.floor(s.monthlyFundingMicro / Math.max(1, s.costPerWorkMicro));
-    const applied: Record<string, number> = {};
-    const finished: string[] = [];
-    for (const p of order) {
-      if (done.has(p.id) || !p.dependsOn.every((x) => done.has(x))) continue;
-      const rem = remaining.get(p.id)!;
-      const lineCap = cap.get(p.line)!;
-      const a = Math.max(0, Math.min(rem, lineCap, funds));
-      if (a < rem && a === lineCap && lineCap < funds)
-        limited.set(p.line, (limited.get(p.line) ?? 0) + 1);
-      cap.set(p.line, lineCap - a);
-      funds -= a;
-      remaining.set(p.id, rem - a);
-      applied[p.id] = a;
-      if (rem - a === 0) finished.push(p.id);
-    }
-    for (const id of finished) done.add(id);
-    months.push({ month: m, applied, completed: finished });
+    const step = advanceConstructionMonth(plan, progress, s.capacity, funds);
+    for (const l of step.limitedLines) limited.set(l, (limited.get(l) ?? 0) + 1);
+    months.push({ month: m, applied: step.applied, completed: step.completed });
+    progress = step.progress;
   }
-  if (done.size < plan.packages.length) {
+  if (!isConstructionComplete(plan, progress)) {
     throw new ConstructionPlanError(
       "CONSTRUCTION_STALLED",
       `not finished within ${maxMonths} months (capacity or funding too low)`,
@@ -315,8 +365,6 @@ export function simulateConstruction(
     months,
     durationMonths: months.length,
     bottleneck,
-    finalWork: Object.fromEntries(
-      plan.packages.map((p) => [p.id, p.totalWork - remaining.get(p.id)!]),
-    ),
+    finalWork: Object.fromEntries(plan.packages.map((p) => [p.id, progress[p.id] ?? 0])),
   };
 }

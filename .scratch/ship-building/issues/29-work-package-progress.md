@@ -1,7 +1,7 @@
 # 29: Run construction progress per work package
 
 **Type:** implementation (engine milestone)
-**Status:** open (deferred)
+**Status:** in progress (slice 29a done; 29b-e open, see ADR-0077)
 **Blocked by:** none (ADR-0064 gives the package model)
 **Frontier:** yes
 
@@ -33,3 +33,10 @@ budget advances (`applyBudgetProject`). Consequences:
 - A project advances package by package; trials and launch are states, not guesses.
 - `ReviseProject` reads real package state; a launched ship classifies as T3.
 - Determinism, persistence round trip, and the cross-process golden checks pass.
+
+## Comments
+
+### 2026-10-09 orchestrator
+
+Sliced in ADR-0077. **29a done:** `advanceConstructionMonth`, `emptyProgress`, `isConstructionComplete`, `PackageProgress` (in `construction.ts`; `simulateConstruction` now repeats the step) and `buildProgressOf`, `progressFromSingleFigure`, `totalDone` (`constructionProgress.ts`). Tests: `constructionProgress.test.ts` (10: dependencies read at the month start, capacity and funds limits, purity, determinism, stepping equals simulating for several capacities and funding, resumability, revision flags, legacy mapping); the 364 existing ship-design tests still pass unchanged. ship-design 36 files / 374 tests; tsc and lint exit 0.
+Next: 29b (persistence, no behaviour change), then 29c (engine advancement, the first slice that moves golden hashes).
