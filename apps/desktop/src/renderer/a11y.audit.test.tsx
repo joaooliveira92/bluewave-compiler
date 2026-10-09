@@ -1,4 +1,4 @@
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type {
   BattleHistoryEntry,
   DivisionView,
@@ -9,6 +9,7 @@ import { DeferredFeaturesPanel } from "./components/shared/DeferredFeaturesPanel
 import { WorldMapChart } from "./components/world-map/WorldMapChart.js";
 import { initialMapPrototypeState } from "./components/world-map/map-state.js";
 import { axeViolations } from "./lib/axe.js";
+import { DrawingBoard } from "./screens/construction/drawing-board/DrawingBoard.js";
 import { BattleHistorySection } from "./screens/diplomacy/components/BattleHistorySection.js";
 import { AreaOverviewTable } from "./screens/fleet/components/AreaOverviewTable.js";
 import { MovementCommandsTable } from "./screens/fleet/components/MovementCommandsTable.js";
@@ -230,6 +231,36 @@ describe("accessibility audit (axe-core)", () => {
     await audit(<WorldMapChart {...props} />);
     cleanup();
     await audit(<WorldMapChart {...props} variant="panel" />);
+  });
+
+  it("Drawing Board — every tab on the battleship, with plan tools on and the legend popover open", async () => {
+    const { container } = render(<DrawingBoard />);
+    fireEvent.change(screen.getByLabelText("Starting design"), {
+      target: { value: "majestic_like" },
+    });
+    for (const tab of [
+      "Hull and machinery",
+      "Arrangement",
+      "Analysis",
+      "Build",
+      "History and files",
+    ]) {
+      fireEvent.click(screen.getByRole("tab", { name: new RegExp(tab, "i") }));
+      expect(await axeViolations(container), tab).toEqual([]);
+    }
+    // Plan tools in both modes (the toolbar and its status line).
+    fireEvent.click(screen.getByRole("tab", { name: /Hull and machinery/i }));
+    for (const mode of ["Place on plan", "Move on plan"]) {
+      fireEvent.click(screen.getByRole("button", { name: mode }));
+      expect(await axeViolations(container), mode).toEqual([]);
+    }
+    // The legend popover renders in a portal, so audit the whole document.
+    fireEvent.click(screen.getByRole("button", { name: /^Sheer \(Sheer/ }));
+    await screen.findByText("Data + convention");
+    // Auditing the whole body has no page landmarks, so the page-level "region" rule does not apply here.
+    expect((await axeViolations(document.body)).filter((v) => !v.startsWith("region "))).toEqual(
+      [],
+    );
   });
 
   it("control: the harness really catches violations (so a clean result means something)", async () => {

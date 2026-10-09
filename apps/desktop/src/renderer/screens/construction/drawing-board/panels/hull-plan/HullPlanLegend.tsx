@@ -29,7 +29,7 @@ function LegendChip({ entry }: { readonly entry: LegendEntry }) {
         </TooltipTrigger>
         <TooltipContent side="top">{entry.tooltip}</TooltipContent>
       </Tooltip>
-      <PopoverContent className="w-72 space-y-2 text-sm">
+      <PopoverContent aria-label={entry.title} className="w-72 space-y-2 text-sm">
         <div className="flex items-center justify-between gap-2">
           <span className="font-medium">{entry.title}</span>
           <Badge variant="secondary" className="text-xs">

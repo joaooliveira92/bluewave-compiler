@@ -168,6 +168,42 @@ test("row 6: Fleet renders the honest compiled state", async ({ e2e }) => {
   await expect(e2e.page.getByText("No movement commands")).toBeVisible();
 });
 
+test("row 6f: the Drawing Board edits the hull plan, batteries and armour in the real app", async ({
+  e2e,
+}) => {
+  await e2e.retargetDialog(sharedSaveDir);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await navigateTo(e2e.page, "Construction");
+  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
+  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
+  const board = e2e.page.getByRole("dialog");
+  await expect(board.getByRole("tab", { name: /Hull and machinery/ })).toBeVisible();
+
+  // Hull plan: move a fitting with the keyboard-reachable buttons, then place one by clicking the real drawing.
+  await board.getByRole("button", { name: "Move on plan" }).click();
+  await board.getByLabel("Fitting to move").selectOption({ index: 1 });
+  await board.getByRole("button", { name: /Move 10 permille toward the stern/ }).click();
+  await expect(board.getByRole("status").filter({ hasText: /toward the stern/ })).toBeVisible();
+  await board.getByRole("button", { name: "Place on plan" }).click();
+  await board.getByLabel("Component to place").selectOption({ index: 1 });
+  await board.getByTestId("plan-click-layer").click();
+  await expect(board.getByRole("status").filter({ hasText: /^Placed / })).toBeVisible();
+
+  // Arrangement: the batteries panel and the armour panel are present and editable.
+  await board.getByRole("tab", { name: /Arrangement/ }).click();
+  await expect(board.getByRole("region", { name: "Batteries" })).toBeVisible();
+  await expect(board.getByRole("region", { name: "Protection" })).toBeVisible();
+
+  // History records both plan edits as separate, undoable steps.
+  await board.getByRole("tab", { name: /History and files/ }).click();
+  const history = board.getByRole("region", { name: "Edit history" });
+  await expect(history.getByText(/Move /)).toBeVisible();
+  await expect(history.getByText(/Add /)).toBeVisible();
+});
+
 test("row 6e: a fleet ordered to sail moves one hop when the month advances", async ({ e2e }) => {
   const copy = await copyFixturePackage(sharedSaveDir, e2e.scratch);
   await e2e.retargetDialog(copy);

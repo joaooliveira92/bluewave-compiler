@@ -29,7 +29,7 @@ export function RequirementChip({ requirement: r }: { readonly requirement: Desi
           {r.requiredRangeNm.toLocaleString("en-US")} nm
         </Badge>
       </PopoverTrigger>
-      <PopoverContent className="w-72 text-sm">
+      <PopoverContent aria-label="Design requirement" className="w-72 text-sm">
         <div className="mb-2 font-medium">Design requirement</div>
         <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
           {rows.map(([k, v]) => (
