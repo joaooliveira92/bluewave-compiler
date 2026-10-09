@@ -11,6 +11,7 @@ export type {
   NationBudgetChanged,
   Reason,
   ResearchProgressed,
+  ShipRebuilt,
   TechnologyDiscovered,
 } from "./envelope.js";
 export type { ExplanationTree } from "./explanation.js";
@@ -27,5 +28,6 @@ export {
   parseDomainEventBody,
   parseDomainEventEnvelope,
   ResearchProgressedSchema,
+  ShipRebuiltSchema,
   TechnologyDiscoveredSchema,
 } from "./validation.js";

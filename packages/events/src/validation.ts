@@ -35,6 +35,17 @@ export const ConstructionProgressedSchema = z
   })
   .strict();
 
+export const ShipRebuiltSchema = z
+  .object({
+    kind: z.literal("ShipRebuilt"),
+    projectId: nonEmptyString,
+    nationId: nonEmptyString,
+    shipId: nonEmptyString,
+    fromDesignVersionId: nonEmptyString,
+    toDesignVersionId: nonEmptyString,
+  })
+  .strict();
+
 export const ResearchProgressedSchema = z
   .object({
     kind: z.literal("ResearchProgressed"),
@@ -78,6 +89,7 @@ export const TechnologyDiscoveredSchema = z
 export const DomainEventBodySchema = z.discriminatedUnion("kind", [
   NationBudgetChangedSchema,
   ConstructionProgressedSchema,
+  ShipRebuiltSchema,
   ResearchProgressedSchema,
   BattleInitiatedSchema,
   BattleResolvedSchema,

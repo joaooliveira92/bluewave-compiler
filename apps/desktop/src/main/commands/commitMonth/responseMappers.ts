@@ -61,6 +61,8 @@ function describeDomainEventBody(body: DomainEventBody): string {
       return `${body.nationId}: treasury ${String(body.previousTreasury)} -> ${String(body.newTreasury)} (${body.reason})`;
     case "ConstructionProgressed":
       return `${body.nationId}: project ${body.projectId} work ${String(body.previousWork)} -> ${String(body.newWork)}`;
+    case "ShipRebuilt":
+      return `${body.nationId}: ship ${body.shipId} rebuilt from ${body.fromDesignVersionId} to ${body.toDesignVersionId}`;
     case "ResearchProgressed":
       return `${body.nationId}: ${body.techId} progress ${String(body.previousPoints)} -> ${String(body.newPoints)}`;
     case "BattleInitiated":

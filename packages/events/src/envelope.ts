@@ -24,6 +24,19 @@ export interface ConstructionProgressed {
   readonly workAdded: SafeInt;
 }
 
+/**
+ * The transition record of a completed rebuild (ADR-0078, DESIGN-23 section 22): the ship changed from one compiled design
+ * version to another. The old version stays persisted; this event is the ship-specific record of the change.
+ */
+export interface ShipRebuilt {
+  readonly kind: "ShipRebuilt";
+  readonly projectId: string;
+  readonly nationId: string;
+  readonly shipId: string;
+  readonly fromDesignVersionId: string;
+  readonly toDesignVersionId: string;
+}
+
 export interface ResearchProgressed {
   readonly kind: "ResearchProgressed";
   readonly nationId: string;
@@ -59,6 +72,7 @@ export interface TechnologyDiscovered {
 export type DomainEventBody =
   | NationBudgetChanged
   | ConstructionProgressed
+  | ShipRebuilt
   | ResearchProgressed
   | BattleInitiated
   | BattleResolved

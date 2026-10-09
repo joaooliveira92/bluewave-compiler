@@ -1,7 +1,13 @@
 import { SafeInt } from "@bluewave/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import type { DomainEventBody, DomainEventEnvelope, NationBudgetChanged } from "../src/index.js";
-import { EventLedger, ExplanationBuilder, formatExplanation } from "../src/index.js";
+import {
+  EventLedger,
+  ExplanationBuilder,
+  formatExplanation,
+  parseDomainEventBody,
+  parseDomainEventEnvelope,
+} from "../src/index.js";
 
 describe("DomainEventEnvelope", () => {
   it("creates a domain event envelope", () => {
@@ -61,6 +67,36 @@ describe("DomainEventEnvelope", () => {
     expect(parsed["body"]["kind"]).toBe("ConstructionProgressed");
     expect(parsed["body"]["workAdded"]).toBe(30);
     expect(parsed["sequenceNumber"]).toBe(2);
+  });
+});
+
+describe("ShipRebuilt", () => {
+  const body = {
+    kind: "ShipRebuilt",
+    projectId: "con_rebuild",
+    nationId: "GBR",
+    shipId: "s1",
+    fromDesignVersionId: "d_old",
+    toDesignVersionId: "d_new",
+  } as const;
+  const envelope = {
+    eventId: "ShipRebuilt-con_rebuild-1",
+    version: "0.1.0",
+    aggregateType: "construction",
+    aggregateId: "con_rebuild",
+    eventType: "ShipRebuilt",
+    timestamp: "1880-02-01T00:00:00.000Z",
+    body,
+    sequenceNumber: SafeInt(1),
+  };
+  it("parses as a domain event body and a full envelope", () => {
+    expect(parseDomainEventBody(body)).toEqual(body);
+    expect(parseDomainEventEnvelope(envelope)["body"]["kind"]).toBe("ShipRebuilt");
+  });
+  it("rejects a record missing the old or the new design, and an unknown field", () => {
+    expect(() => parseDomainEventBody({ ...body, fromDesignVersionId: "" })).toThrow();
+    expect(() => parseDomainEventBody({ ...body, toDesignVersionId: undefined })).toThrow();
+    expect(() => parseDomainEventBody({ ...body, extra: 1 })).toThrow();
   });
 });
 
