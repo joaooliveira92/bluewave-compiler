@@ -17,9 +17,16 @@ import type { BridgeResult, CommandEnvelope } from "./bridge-contract.js";
 import type {
   DesignCommandOutcome,
   LoadProjectDraftPayload,
+  LoadShipDraftPayload,
   ProjectDraftView,
+  RebuildableShipView,
+  RebuildCheckPayload,
+  RebuildCheckView,
+  RebuildCommandOutcome,
   ReviseCommandOutcome,
   ReviseProjectCommandPayload,
+  ShipDraftView,
+  StartRebuildCommandPayload,
   SubmitDesignCommandPayload,
 } from "./design-contract.js";
 import type {
@@ -230,6 +237,10 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "submitDesignCommand",
   "reviseProjectCommand",
   "loadProjectDraft",
+  "listRebuildableShips",
+  "loadShipDraft",
+  "checkRebuild",
+  "startRebuildCommand",
   "inspectResearchScreen",
   "setResearchPriorityCommand",
   "inspectDiplomacyScreen",
@@ -352,6 +363,22 @@ export interface CampaignCommandClient {
     command: "loadProjectDraft",
     payload: LoadProjectDraftPayload,
   ): Promise<BridgeResult<ProjectDraftView>>;
+  execute(
+    command: "listRebuildableShips",
+    payload: string,
+  ): Promise<BridgeResult<readonly RebuildableShipView[]>>;
+  execute(
+    command: "loadShipDraft",
+    payload: LoadShipDraftPayload,
+  ): Promise<BridgeResult<ShipDraftView>>;
+  execute(
+    command: "checkRebuild",
+    payload: RebuildCheckPayload,
+  ): Promise<BridgeResult<RebuildCheckView>>;
+  execute(
+    command: "startRebuildCommand",
+    payload: StartRebuildCommandPayload,
+  ): Promise<BridgeResult<RebuildCommandOutcome>>;
   execute(
     command: "cancelMovementCommand",
     payload: CancelMovementCommandPayload,

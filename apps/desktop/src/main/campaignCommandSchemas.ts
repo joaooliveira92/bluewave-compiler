@@ -186,6 +186,29 @@ export const ReviseProjectCommandPayloadSchema = CommandEnvelopePayloadSchema.ex
   ),
 });
 
+const DraftObjectSchema = z.custom<Record<string, unknown>>(
+  (v) => typeof v === "object" && v !== null,
+  "draft must be an object",
+);
+
+export const LoadShipDraftPayloadSchema = z.object({
+  sessionId: z.string().min(1),
+  shipId: z.string().min(1),
+});
+
+/** Wire shape for `checkRebuild`; the ship-design compiler and the rebuild rules validate the draft. */
+export const RebuildCheckPayloadSchema = z.object({
+  sessionId: z.string().min(1),
+  shipId: z.string().min(1),
+  draft: DraftObjectSchema,
+});
+
+/** Wire shape for `startRebuildCommand`. */
+export const StartRebuildCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+  shipId: z.string().min(1),
+  draft: DraftObjectSchema,
+});
+
 export const LoadProjectDraftPayloadSchema = z.object({
   sessionId: z.string().min(1),
   projectId: z.string().min(1),

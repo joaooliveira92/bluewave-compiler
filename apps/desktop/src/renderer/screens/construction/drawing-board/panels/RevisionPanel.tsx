@@ -236,9 +236,9 @@ export function RevisionPanel({
           </dl>
           {d.requiresRebuildProject && (
             <p>
-              This ship is too far along to be revised, and rebuilding a ship that is already built
-              is not available yet. Finish it as designed, then use "Submit design" to add this
-              version as a new class and order it as a separate ship.
+              This ship is too far along to be revised. Finish it as designed, then rebuild it from
+              the Rebuild a ship panel, or use "Submit design" to add this version as a new class
+              and order it as a separate ship.
             </p>
           )}
         </div>

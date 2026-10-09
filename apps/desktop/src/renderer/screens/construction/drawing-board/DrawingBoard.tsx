@@ -35,6 +35,7 @@ import {
   MachineryPanel,
   MetricsPanel,
   PlacementsPanel,
+  RebuildPanel,
   RevisionPanel,
   SubmitPanel,
   TopsidePanel,
@@ -210,6 +211,13 @@ export function DrawingBoard({
             history={state.history.slice(0, state.editCount)}
             draft={draft}
             startDraft={state.preset.draft}
+            content={content}
+            onLoad={actions.loadDraft}
+            dirty={state.editCount > 0}
+          />
+          <RebuildPanel
+            sessionId={sessionId}
+            draft={draft}
             content={content}
             onLoad={actions.loadDraft}
             dirty={state.editCount > 0}

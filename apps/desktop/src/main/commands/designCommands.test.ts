@@ -393,3 +393,207 @@ describe("reviseProjectCommand and loadProjectDraft (ADR-0070)", () => {
     expect((await revise({ projectId: "" })).outcome).toBe("error");
   });
 });
+
+describe("rebuilding a ship through the bridge (ADR-0078)", () => {
+  let saveRoot: string;
+  beforeEach(() => {
+    saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-rebuild-"));
+    const collector = new DiagnosticCollector();
+    const output = compileProductionCampaign(
+      PRODUCTION_PACK,
+      new AbortController().signal,
+      collector,
+    );
+    if (!output) throw new Error("production pack failed to compile");
+    const state = toSaveableState(output.state);
+    new SaveStore().save(state, saveRoot);
+    registerCampaignSession({
+      sessionId: "rb",
+      saveDir: saveRoot,
+      playerSlotId: "uk",
+      campaignSeed: "a".repeat(32),
+      month: { month: 1, year: 1880 },
+      state,
+    });
+  });
+  afterEach(() => {
+    rmSync(saveRoot, { recursive: true, force: true });
+    clearCampaignSessionsForTest();
+    clearPendingWorkspacesForTest();
+  });
+
+  const revision = () => Number(getCampaignSession("rb")!.state.snapshot.turnNumber);
+
+  /** Submits the cruiser, commits the month, and puts a commissioned ship of that design in the player's first fleet. */
+  async function builtShip(): Promise<{ shipId: string; designVersionId: string }> {
+    const queued = await dispatchCampaignCommand("submitDesignCommand", {
+      sessionId: "rb",
+      expectedRevision: revision(),
+      transportRequestId: "tx-rb-base",
+      className: "Rebuild Cruiser",
+      draft: cruiser,
+    });
+    if (queued.outcome !== "success") throw new Error("submit failed");
+    const designVersionId = (queued.value as { designVersionId: string }).designVersionId;
+    const committed = await commitMonth({
+      sessionId: "rb",
+      expectedRevision: revision(),
+      transportRequestId: "commit-rb",
+    });
+    if (committed.outcome !== "success") throw new Error("commit failed");
+    const record = getCampaignSession("rb")!;
+    const snapshot = record.state.snapshot;
+    const nation = snapshot.nations.get("uk")!;
+    const [first, ...rest] = nation.fleets;
+    if (!first) throw new Error("the player has no fleet");
+    const ship = {
+      id: "ship_rebuild_1",
+      name: "HMS Rebuild",
+      classId: "rebuild_cruiser",
+      nationId: "uk",
+      locationAreaId: first.locationAreaId,
+      designVersionId,
+      hitPoints: SafeInt(100),
+      maxHitPoints: SafeInt(100),
+      speed: SafeInt(16),
+      firepower: SafeInt(10),
+      armor: SafeInt(0),
+      isUnderConstruction: false,
+      constructionProgress: SafeInt(0),
+      constructionTotalWork: SafeInt(0),
+    };
+    Object.assign(record.state, {
+      snapshot: {
+        ...snapshot,
+        nations: new Map([
+          ...snapshot.nations,
+          ["uk", { ...nation, fleets: [{ ...first, ships: [...first.ships, ship] }, ...rest] }],
+        ]),
+      },
+    });
+    return { shipId: ship.id, designVersionId };
+  }
+
+  const faster = { ...cruiser, machinery: { ...cruiser.machinery, installedKw: 2_400 } };
+  const wider = {
+    ...cruiser,
+    hull: { ...cruiser.hull, beam: Math.round(cruiser.hull.beam * 1.2) },
+  };
+  const check = (shipId: string, draft: unknown) =>
+    dispatchCampaignCommand("checkRebuild", { sessionId: "rb", shipId, draft });
+  const start = (shipId: string, draft: unknown) =>
+    dispatchCampaignCommand("startRebuildCommand", {
+      sessionId: "rb",
+      expectedRevision: revision(),
+      transportRequestId: `tx-rb-${Math.random()}`,
+      shipId,
+      draft,
+    });
+
+  it("lists the ships that can be rebuilt and loads the real draft of one", async () => {
+    const { shipId } = await builtShip();
+    const list = await dispatchCampaignCommand("listRebuildableShips", "rb");
+    expect(list.outcome).toBe("success");
+    if (list.outcome === "success")
+      expect((list.value as { shipId: string }[]).map((s) => s.shipId)).toEqual([shipId]);
+    const draft = await dispatchCampaignCommand("loadShipDraft", { sessionId: "rb", shipId });
+    expect(draft.outcome).toBe("success");
+    if (draft.outcome === "success")
+      expect((draft.value as { draft: { hull: unknown } }).draft.hull).toEqual(cruiser.hull);
+  });
+
+  it("does not offer authored ships, and refuses to load their draft", async () => {
+    const snapshot = getCampaignSession("rb")!.state.snapshot;
+    const authored = snapshot.nations.get("uk")!.fleets.flatMap((f) => f.ships)[0];
+    const list = await dispatchCampaignCommand("listRebuildableShips", "rb");
+    expect(list).toMatchObject({ outcome: "success", value: [] });
+    if (authored)
+      expect(
+        await dispatchCampaignCommand("loadShipDraft", { sessionId: "rb", shipId: authored.id }),
+      ).toMatchObject({ outcome: "rejected", reason: "SHIP_NOT_REBUILDABLE" });
+  });
+
+  it("checks a change within the limits as legal, with its measures, queuing nothing", async () => {
+    const { shipId } = await builtShip();
+    const r = await check(shipId, faster);
+    expect(r.outcome).toBe("success");
+    if (r.outcome !== "success") return;
+    const view = r.value as {
+      legal: boolean;
+      findings: unknown[];
+      measures: { speedChangeMilliKnots: number };
+    };
+    expect(view.legal).toBe(true);
+    expect(view.findings).toEqual([]);
+    expect(view.measures.speedChangeMilliKnots).toBeGreaterThan(0);
+  });
+
+  it("explains a change beyond the retained-hull limits, finding by finding", async () => {
+    const { shipId } = await builtShip();
+    const r = await check(shipId, wider);
+    expect(r.outcome).toBe("success");
+    if (r.outcome !== "success") return;
+    const view = r.value as {
+      legal: boolean;
+      findings: { id: string; remedies: string[] }[];
+      measures: { beamChangeBp: number };
+    };
+    expect(view.legal).toBe(false);
+    expect(view.findings.map((f) => f.id)).toContain("REBUILD_BEAM_LIMIT");
+    expect(view.findings[0]!.remedies.length).toBeGreaterThanOrEqual(3);
+    expect(view.measures.beamChangeBp).toBe(2000);
+  });
+
+  it("says when a change changes nothing", async () => {
+    const { shipId } = await builtShip();
+    const r = await check(shipId, cruiser);
+    expect(r).toMatchObject({ outcome: "success", value: { legal: false, changesNothing: true } });
+  });
+
+  it("queues a legal rebuild, and committing the month makes the ship unavailable on a REBUILD project", async () => {
+    const { shipId } = await builtShip();
+    const r = await start(shipId, faster);
+    expect(r.outcome).toBe("success");
+    if (r.outcome !== "success") return;
+    const out = r.value as { projectId: string; newDesignVersionId: string };
+    const committed = await commitMonth({
+      sessionId: "rb",
+      expectedRevision: revision(),
+      transportRequestId: "commit-rb-2",
+    });
+    expect(committed.outcome).toBe("success");
+    const snapshot = getCampaignSession("rb")!.state.snapshot;
+    const nation = snapshot.nations.get("uk")!;
+    const ship = nation.fleets.flatMap((f) => f.ships).find((s) => s.id === shipId)!;
+    expect(ship.availability).toBe("UNAVAILABLE");
+    const project = nation.constructionProjects.find((p) => p.id === out.projectId)!;
+    expect(project).toMatchObject({ projectType: "REBUILD", targetShipId: shipId });
+    expect(snapshot.designs.has(out.newDesignVersionId)).toBe(true);
+    // Once it is being rebuilt it is no longer offered.
+    expect(await dispatchCampaignCommand("listRebuildableShips", "rb")).toMatchObject({
+      value: [],
+    });
+  });
+
+  it("rejects an illegal or no-op rebuild immediately, queuing nothing", async () => {
+    const { shipId } = await builtShip();
+    expect(await start(shipId, wider)).toMatchObject({
+      outcome: "rejected",
+      reason: "REBUILD_REJECTED",
+    });
+    expect(await start(shipId, cruiser)).toMatchObject({
+      outcome: "rejected",
+      reason: "REBUILD_REJECTED",
+    });
+  });
+
+  it("rejects an unknown ship and malformed payloads", async () => {
+    await builtShip();
+    expect(await start("nope", faster)).toMatchObject({
+      outcome: "rejected",
+      reason: "SHIP_NOT_REBUILDABLE",
+    });
+    expect((await start("", faster)).outcome).toBe("error");
+    expect((await check("", faster)).outcome).toBe("error");
+  });
+});

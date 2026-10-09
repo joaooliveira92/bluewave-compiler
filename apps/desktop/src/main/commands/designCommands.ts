@@ -1,18 +1,29 @@
+import { isShipOperational } from "@bluewave/campaign";
 import {
   classifyRevision,
   compileDesign,
   draftChangeKinds,
   progressFromWork,
+  rebuildFactsOf,
   validateDraftShape,
+  validateRebuild,
+  yardDemandOf,
   type DesignDraft,
 } from "@bluewave/ship-design";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
   DesignCommandOutcome,
   LoadProjectDraftPayload,
+  LoadShipDraftPayload,
   ProjectDraftView,
+  RebuildableShipView,
+  RebuildCheckPayload,
+  RebuildCheckView,
+  RebuildCommandOutcome,
   ReviseCommandOutcome,
   ReviseProjectCommandPayload,
+  ShipDraftView,
+  StartRebuildCommandPayload,
   SubmitDesignCommandPayload,
 } from "../../shared/design-contract.js";
 import { getCampaignSession } from "../campaignSessions.js";
@@ -252,6 +263,221 @@ export async function reviseProjectCommand(
       progressBp: decision.progressBp,
       reworkWork: decision.reworkWorkMicro,
       reasonCodes: decision.reasonCodes,
+      appliedOnNextTurn: true,
+    },
+    diagnostics: [],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Rebuild (ADR-0078): list the ships that can be rebuilt, load one's draft, check a change, start the rebuild.
+// ---------------------------------------------------------------------------
+
+type SessionRecord = NonNullable<ReturnType<typeof getCampaignSession>>;
+
+/** The player's own ship, if it is commissioned, free (no battle) and its design kept a source draft; else why not. */
+function rebuildableShip(record: SessionRecord, shipId: string) {
+  const snapshot = record.state.snapshot;
+  const nation = snapshot.nations.get(record.playerSlotId);
+  const ship = nation?.fleets.flatMap((f) => f.ships).find((s) => s.id === shipId);
+  if (!ship) return { ok: false, error: `Ship ${shipId} is not yours` } as const;
+  if (!isShipOperational(ship) || ship.inBattleId !== undefined)
+    return {
+      ok: false,
+      error: `${ship.name} is under construction, already being rebuilt or in a battle`,
+    } as const;
+  const design = snapshot.designs.get(ship.designVersionId);
+  if (design?.sourceDraft === undefined)
+    return {
+      ok: false,
+      error: `${ship.name} was built from an authored design with no source draft and cannot be rebuilt`,
+    } as const;
+  return { ok: true, ship, design, draft: design.sourceDraft as unknown as DesignDraft } as const;
+}
+
+const monthIdOf = (record: SessionRecord) =>
+  `${record.month.year}-${String(record.month.month).padStart(2, "0")}`;
+
+/** The player's ships that can be rebuilt, in ship id order. */
+export async function listRebuildableShips(
+  sessionId: string,
+): Promise<BridgeResult<readonly RebuildableShipView[]>> {
+  const record = getCampaignSession(sessionId);
+  if (!record) return sessionMissing(sessionId);
+  const nation = record.state.snapshot.nations.get(record.playerSlotId);
+  const ships = (nation?.fleets ?? [])
+    .flatMap((f) => f.ships)
+    .flatMap((s) => {
+      const found = rebuildableShip(record, s.id);
+      return found.ok
+        ? [
+            {
+              shipId: s.id,
+              name: s.name,
+              className: found.design.className,
+              designVersionId: s.designVersionId,
+            },
+          ]
+        : [];
+    })
+    .sort((a, b) => (a.shipId < b.shipId ? -1 : a.shipId > b.shipId ? 1 : 0));
+  return { outcome: "success", value: ships, diagnostics: [] };
+}
+
+/** The draft a ship was built from, so the Drawing Board can edit the real design for a rebuild. */
+export async function loadShipDraft(
+  payload: LoadShipDraftPayload,
+): Promise<BridgeResult<ShipDraftView>> {
+  const record = getCampaignSession(payload.sessionId);
+  if (!record) return sessionMissing(payload.sessionId);
+  const found = rebuildableShip(record, payload.shipId);
+  if (!found.ok)
+    return { outcome: "rejected", reason: "SHIP_NOT_REBUILDABLE", diagnostics: [found.error] };
+  return {
+    outcome: "success",
+    value: {
+      className: found.design.className,
+      draft: found.draft as unknown as Record<string, unknown>,
+    },
+    diagnostics: [],
+  };
+}
+
+/**
+ * Checks a changed design as a rebuild of `shipId`: compiles it, compares it with the ship's current design against the
+ * retained-hull limits and the dock, and answers with the findings and how far each measure goes. Nothing is queued. The same
+ * rules the engine applies when the month is committed (`applyStartRebuild`), so a legal check means the order will be
+ * accepted unless the situation changes.
+ */
+function rebuildCheck(
+  record: SessionRecord,
+  shipId: string,
+  draftIn: Record<string, unknown>,
+): BridgeResult<{ view: RebuildCheckView; draft: DesignDraft }> {
+  const found = rebuildableShip(record, shipId);
+  if (!found.ok)
+    return { outcome: "rejected", reason: "SHIP_NOT_REBUILDABLE", diagnostics: [found.error] };
+  const shape = validateDraftShape(draftIn);
+  if (shape.length > 0)
+    return { outcome: "rejected", reason: "INVALID_COMMAND_PAYLOAD", diagnostics: shape };
+  const content = loadShipBuildingContent();
+  if (content.rebuild === null)
+    return {
+      outcome: "rejected",
+      reason: "REBUILD_RULES_MISSING",
+      diagnostics: ["The ship-building content has no rebuild rules"],
+    };
+  const draft = { ...(draftIn as unknown as DesignDraft), nationId: record.playerSlotId };
+  const env = content.environmentFor(monthIdOf(record));
+  let compiled;
+  let current;
+  try {
+    compiled = compileDesign(draft, env.ctx);
+    current = compileDesign(found.draft, env.ctx);
+  } catch (e) {
+    return {
+      outcome: "rejected",
+      reason: "REBUILD_REJECTED",
+      diagnostics: [e instanceof Error ? e.message : String(e)],
+    };
+  }
+  const categories = new Map(content.components.map((c) => [c.id, c.category]));
+  const changesNothing =
+    draftChangeKinds(found.draft, draft, (id) => categories.get(id)).length === 0;
+  const designProblems = compiled.valid
+    ? []
+    : compiled.findings.filter((f) => f.severity === "BLOCKING").map((f) => `${f.what} ${f.why}`);
+  const report = validateRebuild(
+    rebuildFactsOf(current, found.draft),
+    rebuildFactsOf(compiled, draft),
+    content.rebuild,
+    { demand: yardDemandOf(compiled, draft), yards: env.yards },
+  );
+  const view: RebuildCheckView = {
+    legal: report.legal && compiled.valid && !changesNothing,
+    findings: report.findings.map((f) => ({
+      id: f.id,
+      what: f.what,
+      why: f.why,
+      consequence: f.consequence,
+      remedies: f.remedies.map((r) => r.description),
+    })),
+    designProblems,
+    changesNothing,
+    measures: report.measures,
+  };
+  return { outcome: "success", value: { view, draft }, diagnostics: [] };
+}
+
+export async function checkRebuild(
+  payload: RebuildCheckPayload,
+): Promise<BridgeResult<RebuildCheckView>> {
+  const record = getCampaignSession(payload.sessionId);
+  if (!record) return sessionMissing(payload.sessionId);
+  const result = rebuildCheck(record, payload.shipId, payload.draft);
+  if (result.outcome !== "success") return result;
+  return { outcome: "success", value: result.value.view, diagnostics: [] };
+}
+
+const idPart = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+/**
+ * Queues a `StartRebuild` (ADR-0078). The rebuild check runs first, so a design that cannot be built, changes nothing or
+ * breaks a retained-hull limit is rejected here without queuing; the engine stays the only authority when the month is
+ * committed.
+ */
+export async function startRebuildCommand(
+  payload: StartRebuildCommandPayload,
+): Promise<BridgeResult<RebuildCommandOutcome>> {
+  const record = getCampaignSession(payload.sessionId);
+  if (!record) return sessionMissing(payload.sessionId);
+  const checked = rebuildCheck(record, payload.shipId, payload.draft);
+  if (checked.outcome !== "success") return checked;
+  const { view, draft } = checked.value;
+  if (!view.legal)
+    return {
+      outcome: "rejected",
+      reason: "REBUILD_REJECTED",
+      diagnostics: [
+        ...(view.changesNothing ? ["The rebuild changes nothing"] : []),
+        ...view.designProblems,
+        ...view.findings.map((f) => `${f.what} ${f.why}`),
+      ],
+    };
+  const found = rebuildableShip(record, payload.shipId);
+  if (!found.ok)
+    return { outcome: "rejected", reason: "SHIP_NOT_REBUILDABLE", diagnostics: [found.error] };
+  const turn = Number(record.state.snapshot.turnNumber);
+  const newDesignVersionId =
+    `${found.design.designVersionId.replace(/_(r|rb)\d+$/, "")}_rb${turn}`.slice(0, 64);
+  const projectId = `rebuild_${idPart(payload.shipId)}_t${turn}`.slice(0, 64);
+  const result = await submitPlayerCommand({
+    sessionId: payload.sessionId,
+    expectedRevision: payload.expectedRevision,
+    transportRequestId: payload.transportRequestId,
+    build: (rec) => ({
+      body: {
+        type: "StartRebuild",
+        nationId: rec.playerSlotId,
+        shipId: payload.shipId,
+        projectId,
+        newDesignVersionId,
+        draft: { ...draft, nationId: rec.playerSlotId },
+      },
+      discriminator: `${payload.shipId}/${newDesignVersionId}`,
+    }),
+  });
+  if (result.outcome !== "success") return result;
+  return {
+    outcome: "success",
+    value: {
+      commandId: result.value.commandId,
+      projectId,
+      newDesignVersionId,
       appliedOnNextTurn: true,
     },
     diagnostics: [],
