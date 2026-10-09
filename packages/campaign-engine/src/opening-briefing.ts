@@ -1,5 +1,5 @@
 import type { CampaignState } from "@bluewave/campaign";
-import { scaleValue } from "@bluewave/campaign";
+import { isShipOperational, scaleValue } from "@bluewave/campaign";
 import { buildDiplomacyScreenProjection } from "./diplomacy.js";
 import { constructionShipTypeLabel, projectedConstructionOrderCosts } from "./construction.js";
 import type { PlayerProjectionMonth } from "./projection.js";
@@ -160,7 +160,7 @@ export function buildOpeningBriefingProjection(
   } | null = null;
   for (const fleet of nation.fleets) {
     for (const ship of fleet.ships) {
-      if (ship.isUnderConstruction) continue;
+      if (!isShipOperational(ship)) continue;
       const design = snapshot.designs.get(ship.designVersionId);
       if (design === undefined) continue;
       const cost = projectedConstructionOrderCosts(design).projectedCost;

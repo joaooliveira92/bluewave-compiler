@@ -6,6 +6,7 @@ import type {
   NationState,
   Ship,
 } from "@bluewave/campaign";
+import { isShipOperational } from "@bluewave/campaign";
 import { RandomEngine, RandomStream, drawUniform } from "@bluewave/random";
 import type { ExplanationTree } from "@bluewave/events";
 import { ExplanationBuilder, formatExplanation } from "@bluewave/events";
@@ -88,7 +89,7 @@ export class BattleResolver {
     const loserId = attackerWins ? battle.defenderId : battle.attackerId;
 
     const loserFleets = attackerWins ? defenderFleets : attackerFleets;
-    const allLoserShips = loserFleets.flatMap((f) => f.ships.filter((s) => !s.isUnderConstruction));
+    const allLoserShips = loserFleets.flatMap((f) => f.ships.filter((s) => isShipOperational(s)));
 
     const winnerEff = Math.max(attackerEffective, defenderEffective);
     const loserEff = Math.min(attackerEffective, defenderEffective);

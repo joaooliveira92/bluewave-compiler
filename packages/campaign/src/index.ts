@@ -50,12 +50,14 @@ export type {
   PoliticalState,
   ResearchState,
   Ship,
+  ShipAvailability,
   TechnologyProgress,
   WarDeclaration,
   WarParticipantMembership,
   WarState,
   WorldState,
 } from "./state.js";
+export { isShipOperational } from "./state.js";
 export * from "./technologyVariation.js";
 export * from "./technologyMaterialization.js";
 export * from "./timeline.js";

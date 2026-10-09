@@ -20,7 +20,11 @@ import { sha256Hex } from "@bluewave/deterministic";
 import { canonicalSerialize } from "@bluewave/deterministic";
 import { BluewaveError } from "@bluewave/contracts";
 import type { CompiledDesignVersion, Officer, PermanentDivision, Ship } from "@bluewave/campaign";
-import { officerAccuracyBp, VACANT_COMMANDER_ACCURACY_BP } from "@bluewave/campaign";
+import {
+  isShipOperational,
+  officerAccuracyBp,
+  VACANT_COMMANDER_ACCURACY_BP,
+} from "@bluewave/campaign";
 import {
   promoteTacticalUnit,
   TACTICAL_UNIT_PROMOTION_INVALID,
@@ -128,7 +132,7 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
         reason: "manifest persistent asset not found in either nation's committed ships",
       });
     }
-    if (ship.isUnderConstruction) continue; // B-1: under-construction ships cannot promote
+    if (!isShipOperational(ship)) continue; // B-1: under-construction (or under-rebuild) ships cannot promote
 
     const sideId: "ATTACKER" | "DEFENDER" = attackerByPid.has(assetId) ? "ATTACKER" : "DEFENDER";
     const designs = sideId === "ATTACKER" ? attacker.designs : defender.designs;

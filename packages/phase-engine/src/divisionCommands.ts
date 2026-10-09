@@ -14,6 +14,7 @@ import {
   DIVISION_STATE_INVARIANT_FAILED,
   INITIAL_DIVISION_COHESION,
   INITIAL_DIVISION_EXPERIENCE,
+  isShipOperational,
   VACANT,
 } from "@bluewave/campaign";
 import { classifyShip } from "@bluewave/combat";
@@ -54,7 +55,7 @@ function divisionAssetsFor(
       shipId: id,
       shipType,
       locationAreaId: s["locationAreaId"],
-      isUnderConstruction: s["isUnderConstruction"],
+      isUnderConstruction: !isShipOperational(s),
     });
   }
   return assets;

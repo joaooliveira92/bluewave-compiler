@@ -33,3 +33,8 @@ now tell the player what to do instead: finish the ship as designed, then submit
 ### 2026-10-09 orchestrator
 
 Sliced in ADR-0078. **28a done:** `rebuild.ts` (`validateRebuild`, `rebuildFactsOf`, `checkRebuildBalance`), `balance.yaml` `rebuild:` with the rule's shipped values, `ShipBuildingContent.rebuild`. Tests: `rebuild.test.ts` (inclusive boundaries of each limit, all failures at once in a fixed order, finding shape, measures, dock, determinism, shipped values). ship-design 38 files / 410 tests; tsc and lint exit 0. Next: 28b (state and availability).
+
+### 2026-10-09 orchestrator (28b-1)
+
+**28b-1 done: ship availability, enforced.** `Ship.availability?: "DEGRADED" | "UNAVAILABLE"` and `availabilityProjectId?` (absent = available) and one shared `isShipOperational` (commissioned and not UNAVAILABLE) in `campaign`. Used wherever a ship would move, train or fight: `fleetMoveProblem` (a fleet with an unavailable ship aboard cannot sail, new code `SHIP_UNAVAILABLE`; one with no operational ship still gives `SHIP_NOT_OPERATIONAL`), battle loser ships (`phase-engine/battles.ts`), division formation and the opening briefing (`campaign-engine`), division asset eligibility (`divisionCommands.ts`), and combat strength, resolution and promotion (`combat`). DEGRADED still operates. Snapshot clone covers both fields. Nothing sets availability yet (28b-2/28c do), so no behaviour or golden changes.
+Tests: `ship-availability.test.ts` (campaign, 5), fleet-movement (+3, a fleet always has two ships so no silent skip), combat strength (+2), division screen (+1), clone audit. campaign 113, combat 3687, campaign-engine 102, phase-engine 224.

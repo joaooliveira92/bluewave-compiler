@@ -156,6 +156,23 @@ describe("buildDivisionScreenView", () => {
     expect(view.unassignedShips.map((s) => s.shipId)).toEqual(["s1"]);
   });
 
+  it("never offers a ship that a rebuild has made unavailable, but does offer a degraded one", () => {
+    const view = buildDivisionScreenView(
+      snapshot(
+        [
+          fleet("f", "home", [
+            ship("s1", "HMS Ready"),
+            ship("s2", "HMS Rebuilding", { availability: "UNAVAILABLE" }),
+            ship("s3", "HMS Limping", { availability: "DEGRADED" }),
+          ]),
+        ],
+        [],
+      ),
+      "uk",
+    )!;
+    expect(view.unassignedShips.map((s) => s.shipId)).toEqual(["s1", "s3"]);
+  });
+
   it("exposes the engine's roles, formations and size limits instead of hard-coding them in the UI", () => {
     const view = buildDivisionScreenView(snapshot([], []), "uk")!;
     expect(view.roles).toEqual(["INDEPENDENT", "CORE", "SUPPORT", "SCOUT", "SCREEN", "PATROL"]);

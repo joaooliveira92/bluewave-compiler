@@ -1,9 +1,9 @@
 import { SafeInt } from "@bluewave/contracts";
-import type { FleetState } from "@bluewave/campaign";
+import { isShipOperational, type FleetState } from "@bluewave/campaign";
 
 export class StrengthCalculator {
   private static activeShips(fleet: FleetState) {
-    return fleet.ships.filter((s) => !s.isUnderConstruction);
+    return fleet.ships.filter((s) => isShipOperational(s));
   }
 
   static totalFirepower(fleet: FleetState): SafeInt {

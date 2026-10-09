@@ -7,6 +7,7 @@ import type {
   Ship,
 } from "@bluewave/campaign";
 import {
+  isShipOperational,
   MAXIMUM_CONCURRENT_WARS,
   SURRENDER_SCORE,
   VICTORY_MAJOR_MAX_FRACTION,
@@ -127,7 +128,7 @@ export function applyBattleResult(
     ? loserNation["fleets"]
         .filter((f) => loserFleetIds.includes(f["id"]))
         .flatMap((f) => f["ships"])
-        .filter((s) => !s["isUnderConstruction"])
+        .filter((s) => isShipOperational(s))
     : [];
 
   const totalHp = loserShips.reduce((sum, s) => sum + (s["hitPoints"] as number), 0);

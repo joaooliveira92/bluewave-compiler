@@ -4,6 +4,13 @@ import type { CanonicalEnvelope } from "@bluewave/deterministic";
 import type { PermanentDivision } from "./division.js";
 import type { Officer } from "./officers.js";
 
+/**
+ * Operational availability of a ship while a project works on it (DESIGN-23 section 20). Absent means AVAILABLE. An
+ * UNAVAILABLE ship must not move, train, hold a foreign station or enter battle generation; DEGRADED is reserved for repair
+ * policies that permit limited operation.
+ */
+export type ShipAvailability = "DEGRADED" | "UNAVAILABLE";
+
 export interface Ship {
   id: string;
   name: string;
@@ -20,6 +27,20 @@ export interface Ship {
   constructionProgress: SafeInt;
   constructionTotalWork: SafeInt;
   inBattleId?: string;
+  /** Operational availability while a rebuild or conversion works on the ship; absent = available (ADR-0078). */
+  availability?: ShipAvailability;
+  /** The project that made the ship unavailable, while it is. */
+  availabilityProjectId?: string;
+}
+
+/**
+ * Whether a ship can act in the campaign: commissioned and not made unavailable by a rebuild or conversion. The one test
+ * used wherever a ship would move, train or enter battle generation.
+ */
+export function isShipOperational(
+  ship: Pick<Ship, "isUnderConstruction" | "availability">,
+): boolean {
+  return !ship.isUnderConstruction && ship.availability !== "UNAVAILABLE";
 }
 
 export interface FleetState {

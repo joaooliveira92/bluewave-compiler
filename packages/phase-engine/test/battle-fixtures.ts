@@ -59,6 +59,8 @@ export interface FixtureShipOpts {
   underConstruction?: boolean;
   inBattleId?: string;
   loc?: string;
+  availability?: Ship["availability"];
+  availabilityProjectId?: string;
 }
 
 export function makeShip(
@@ -83,6 +85,8 @@ export function makeShip(
     constructionProgress: SafeInt(0),
     constructionTotalWork: SafeInt(0),
     inBattleId: opts.inBattleId,
+    availability: opts.availability,
+    availabilityProjectId: opts.availabilityProjectId,
   };
 }
 

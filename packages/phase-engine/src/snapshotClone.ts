@@ -160,6 +160,8 @@ const F = {
     "constructionProgress",
     "constructionTotalWork",
     "inBattleId",
+    "availability",
+    "availabilityProjectId",
   ),
   FleetState: fields<FleetState>()("id", "nationId", "name", "ships", "locationAreaId"),
   TechnologyProgress: fields<TechnologyProgress>()("techId", "investedPoints", "completed"),

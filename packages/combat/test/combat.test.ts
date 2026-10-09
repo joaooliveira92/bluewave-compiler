@@ -361,6 +361,21 @@ describe("combat (narrow) - preserved", () => {
   });
 });
 
+describe("StrengthCalculator: a ship under rebuild does not count (ADR-0078)", () => {
+  it("leaves unavailable ships out of firepower, as it leaves out ships under construction", () => {
+    const ships = [
+      makeShip({ id: "s1", firepower: SafeInt(10) }),
+      makeShip({ id: "s2", firepower: SafeInt(20), availability: "UNAVAILABLE" }),
+      makeShip({ id: "s3", firepower: SafeInt(40), isUnderConstruction: true }),
+    ];
+    expect(StrengthCalculator.totalFirepower(makeFleet({ id: "f", ships }))).toBe(10 as SafeInt);
+  });
+  it("a degraded ship still counts", () => {
+    const ships = [makeShip({ id: "s1", firepower: SafeInt(10), availability: "DEGRADED" })];
+    expect(StrengthCalculator.totalFirepower(makeFleet({ id: "f", ships }))).toBe(10 as SafeInt);
+  });
+});
+
 describe("StrengthCalculator", () => {
   it("totalFirepower sums ship firepower", () => {
     const ships = [

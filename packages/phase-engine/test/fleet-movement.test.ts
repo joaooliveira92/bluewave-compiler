@@ -68,6 +68,50 @@ describe("fleetMoveProblem", () => {
   });
 });
 
+describe("a ship under rebuild cannot sail (DESIGN-23 section 20, ADR-0078)", () => {
+  // The first fleet always has two ships here: its own, plus a copy that stays available unless `all` is set.
+  const withAvailability = (all: boolean): CampaignSnapshot => {
+    const s = world();
+    const nation = s.nations.get(ATTACKER_NATION)!;
+    const [first, ...rest] = nation.fleets;
+    const own = first!.ships[0]!;
+    const ships = [
+      { ...own, availability: "UNAVAILABLE" as const, availabilityProjectId: "project-rebuild" },
+      all
+        ? { ...own, id: `${own.id}-b`, availability: "UNAVAILABLE" as const }
+        : { ...own, id: `${own.id}-b` },
+    ];
+    return {
+      ...s,
+      nations: new Map([
+        ...s.nations,
+        [ATTACKER_NATION, { ...nation, fleets: [{ ...first!, ships }, ...rest] }],
+      ]),
+    };
+  };
+  it("refuses a fleet that has an unavailable ship aboard, naming the ship", () => {
+    const s = withAvailability(false);
+    const problem = fleetMoveProblem(s, ATTACKER_NATION, fleetIdOf(s), "a-2");
+    expect(problem?.code).toBe("SHIP_UNAVAILABLE");
+    expect(problem?.message).toContain("under rebuild");
+  });
+  it("refuses a fleet whose every ship is unavailable as having no operational ship", () => {
+    const s = withAvailability(true);
+    expect(fleetMoveProblem(s, ATTACKER_NATION, fleetIdOf(s), "a-2")?.code).toBe(
+      "SHIP_NOT_OPERATIONAL",
+    );
+  });
+  it("leaves the fleet where it is when the month runs the order", () => {
+    const s = withAvailability(true);
+    const before = s.nations.get(ATTACKER_NATION)!.fleets[0]!;
+    const { nation } = run(s, [move(s, "a-2")]);
+    expect(nation.fleets[0]!.locationAreaId).toBe(before.locationAreaId);
+    expect(nation.fleets[0]!.ships.map((x) => x.locationAreaId)).toEqual(
+      before.ships.map((x) => x.locationAreaId),
+    );
+  });
+});
+
 describe("MoveFleet through the month", () => {
   it("relocates the fleet and its ships when the month runs", () => {
     const snapshot = world();

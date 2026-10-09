@@ -6,6 +6,7 @@ import {
   INITIAL_DIVISION_EXPERIENCE,
   DIVISION_MAX_SHIPS,
   DIVISION_ROLES,
+  isShipOperational,
   VACANT,
   type CampaignSnapshot,
 } from "@bluewave/campaign";
@@ -107,7 +108,7 @@ export function buildDivisionScreenView(
   const shipsById = new Map<string, { name: string; classId: string; areaId: string }>();
   for (const fleet of nation.fleets) {
     for (const ship of fleet.ships) {
-      if (ship.isUnderConstruction) continue;
+      if (!isShipOperational(ship)) continue;
       shipsById.set(ship.id, {
         name: ship.name,
         classId: ship.classId,
