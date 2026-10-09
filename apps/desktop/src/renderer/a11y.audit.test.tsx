@@ -188,18 +188,16 @@ describe("accessibility audit (axe-core)", () => {
     cleanup();
     await audit(
       <MovementCommandsTable
-        commands={[
+        rows={[
           {
             commandId: "c1",
-            divisionId: "d1",
-            fromAreaId: "a",
-            toAreaId: "b",
+            divisionName: "1st Battle Squadron",
+            fromName: "Malta",
+            toName: "Algiers",
             status: "submitted",
             submittedAtRevision: 1,
           },
         ]}
-        areaName={(id) => id}
-        divisionName={(id) => id}
       />,
     );
   });
