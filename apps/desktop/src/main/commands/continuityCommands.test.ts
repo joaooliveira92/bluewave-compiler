@@ -4,8 +4,14 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import type { CampaignConfiguration } from "@bluewave/campaign-engine";
+import {
+  CANONICAL_RESEARCH_FIELD_IDS,
+  RESEARCH_FIELD_PRIORITY_WEIGHTS,
+  type CampaignConfiguration,
+} from "@bluewave/campaign-engine";
+import { setResearchPriorityCommand } from "./researchCommands.js";
 import { compileProductionCampaign } from "../compiler.js";
 import { clearCampaignSessionsForTest, getCampaignSession } from "../campaignSessions.js";
 import { clearConstructionWorkspacesForTest } from "../constructionWorkspace.js";
@@ -22,6 +28,9 @@ import {
   type ContinuityDeps,
 } from "./continuityCommands.js";
 import { inspectCampaign } from "./inspectCampaign.js";
+import { parse } from "yaml";
+import { dispatchCampaignCommand } from "../campaignBridge.js";
+import { clearPendingWorkspacesForTest } from "../pendingCommands.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
@@ -111,6 +120,15 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
   function restartApp(): void {
     clearCampaignSessionsForTest();
     clearConstructionWorkspacesForTest();
+    clearPendingWorkspacesForTest();
+  }
+
+  /** The 1880 torpedo cruiser reference draft, valid at the campaign start. */
+  function torpedoCruiserDraft(): Record<string, unknown> {
+    const refs = parse(
+      readFileSync(resolve(PRODUCTION_PACK, "ship-building", "reference-designs.yaml"), "utf8"),
+    ) as { designs: { id: string; draft: Record<string, unknown> }[] };
+    return { ...refs.designs.find((d) => d.id === "torpedo_cruiser_1880")!.draft, nationId: "uk" };
   }
 
   /**
@@ -253,6 +271,113 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
       expect(revision.expectedHash).toBe(revision.actualHash);
       expect(revision.expectedHash.length).toBeGreaterThan(0);
     }
+  });
+
+  it("replay re-executes a month's player commands (a submitted design) and still matches", async () => {
+    const saveDir = resolve(saveRoot, "save-cmd");
+    const sessionId = await compileAndSave(saveDir);
+    const queued = await dispatchCampaignCommand("submitDesignCommand", {
+      sessionId,
+      expectedRevision: 0,
+      transportRequestId: randomTransportRequestId(),
+      className: "Replay Class",
+      draft: torpedoCruiserDraft(),
+    });
+    expect(queued.outcome).toBe("success");
+    await advanceOneMonth(sessionId, 0);
+    await advanceOneMonth(sessionId, 1);
+
+    restartApp();
+
+    const replay = await replayCampaign(continuityDeps(saveDir));
+    expect(replay.outcome).toBe("success");
+    if (replay.outcome !== "success") return;
+    expect(replay.value.revisions.map((r) => r.matched)).toEqual([true, true]);
+    expect(replay.value.matched).toBe(true);
+  });
+
+  it("replay re-executes a month's research priority change and still matches", async () => {
+    const saveDir = resolve(saveRoot, "save-research");
+    const sessionId = await compileAndSave(saveDir);
+    const fieldPriorities: Record<string, number> = {};
+    for (const field of CANONICAL_RESEARCH_FIELD_IDS)
+      fieldPriorities[field] = RESEARCH_FIELD_PRIORITY_WEIGHTS.LOW;
+    fieldPriorities.GUNNERY = RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH;
+    const queued = await setResearchPriorityCommand({
+      sessionId,
+      expectedRevision: 0,
+      transportRequestId: randomTransportRequestId(),
+      fieldPriorities,
+    });
+    expect(queued.outcome).toBe("success");
+    await advanceOneMonth(sessionId, 0);
+
+    restartApp();
+
+    const replay = await replayCampaign(continuityDeps(saveDir));
+    expect(replay.outcome).toBe("success");
+    if (replay.outcome !== "success") return;
+    expect(replay.value.revisions.map((r) => r.matched)).toEqual([true]);
+  });
+
+  /** Rewrites the newest save's month input, keeping its metadata hash consistent (a save made under other rules). */
+  function rewriteMonthInput(
+    saveDir: string,
+    change: (input: Record<string, unknown>) => void,
+    rehash: boolean,
+  ): void {
+    const newest = new SaveStore().list(saveDir)[0]!;
+    const dir = join(saveDir, newest.saveId);
+    const input = JSON.parse(readFileSync(join(dir, "month-input.json"), "utf8")) as Record<
+      string,
+      unknown
+    >;
+    change(input);
+    const text = canonicalSerialize(input);
+    writeFileSync(join(dir, "month-input.json"), text, "utf8");
+    if (rehash) {
+      const meta = JSON.parse(readFileSync(join(dir, "metadata.json"), "utf8")) as Record<
+        string,
+        unknown
+      >;
+      writeFileSync(
+        join(dir, "metadata.json"),
+        JSON.stringify({ ...meta, monthInputHash: sha256Hex(text) }),
+        "utf8",
+      );
+    }
+  }
+
+  it("replay says a month played under other ship-building content cannot be reproduced, not that it matched", async () => {
+    const saveDir = resolve(saveRoot, "save-content");
+    const sessionId = await compileAndSave(saveDir);
+    await advanceOneMonth(sessionId, 0);
+    rewriteMonthInput(
+      saveDir,
+      (i) => (i["shipBuildingContentHash"] = "an-older-content-version"),
+      true,
+    );
+    restartApp();
+    const replay = await replayCampaign(continuityDeps(saveDir));
+    if (replay.outcome !== "success") throw new Error("replay failed");
+    expect(replay.value.matched).toBe(false);
+    expect(replay.value.revisions[0]).toMatchObject({
+      matched: false,
+      expectedHash: "content-changed",
+    });
+    expect(replay.diagnostics.join(" ")).toMatch(/different ship-building content/);
+  });
+
+  it("replay fails a month whose stored input was altered after the save", async () => {
+    const saveDir = resolve(saveRoot, "save-altered");
+    const sessionId = await compileAndSave(saveDir);
+    await advanceOneMonth(sessionId, 0);
+    rewriteMonthInput(saveDir, (i) => (i["commandOutcomes"] = [{ forged: true }]), false);
+    restartApp();
+    const replay = await replayCampaign(continuityDeps(saveDir));
+    if (replay.outcome !== "success") throw new Error("replay failed");
+    expect(replay.value.revisions[0]).toMatchObject({ matched: false, expectedHash: "unreadable" });
+    expect(replay.diagnostics.join(" ")).toMatch(/does not match its hash/);
   });
 
   it("replay reports a mismatch (not a confident pass) when the persisted history was tampered with", async () => {

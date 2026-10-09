@@ -108,6 +108,8 @@ export const SaveMetadataSchema = z.object({
   campaignName: z.string().optional(),
   nationId: z.string().optional(),
   campaignDate: z.object({ year: z.number(), month: z.number() }).optional(),
+  /** sha256 of `month-input.json`, written only by a save that closes an executed month (absent on older saves). */
+  monthInputHash: z.string().optional(),
 });
 
 export type SaveMetadata = z.infer<typeof SaveMetadataSchema>;

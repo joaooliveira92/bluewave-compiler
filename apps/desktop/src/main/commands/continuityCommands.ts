@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { advanceMonth, getScenarioById } from "@bluewave/campaign";
 import { CommandLedger } from "@bluewave/commands";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { DiagnosticCollector, type DiagnosticCode } from "@bluewave/diagnostics";
 import { RecoveryManager, SaveStore, type SaveMetadata } from "@bluewave/persistence";
 import { hashSnapshot, ReplayVerifier } from "@bluewave/phase-engine";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
@@ -13,6 +13,9 @@ import type {
   VerifyCampaignResponse,
 } from "../../shared/continuity-contract.js";
 import { registerCampaignSession } from "../campaignSessions.js";
+import { ledgerOf, parseMonthInput } from "../monthInput.js";
+import { promotePlayerSlotForExecution } from "./commitMonth/snapshot.js";
+import { loadShipBuildingContent, shipBuildingContentHash } from "../shipBuildingContent.js";
 import { readSessionMetadata } from "../campaignSessionMetadata.js";
 
 /**
@@ -258,12 +261,15 @@ export async function verifyCampaign(
  * `snapshotToHashable`/`hashSnapshot`, the exact functions
  * `ReplayVerifier.verify()` compares with.
  *
- * `commitMonth` executes every month with an empty command array (the
- * engine-facing command set — construction orders are folded into the
- * snapshot before the month runs), so the replayed command ledger is empty
- * by construction and the authoritative comparison is the closing-state
- * hash. A campaign that has never advanced has no executed months and
- * trivially `matched` with zero revisions.
+ * Each month is replayed with the input it was executed with, stored beside
+ * the save that closes it (`month-input.json`, see `monthInput.ts`): the
+ * player's command envelopes, their original outcomes (compared step by
+ * step) and the ship-building content hash. If that content has changed
+ * since, the month is reported as not reproducible rather than replayed
+ * against different rules. Saves written before month inputs existed carry
+ * none and replay with no commands, as they always did. A campaign that has
+ * never advanced has no executed months and trivially `matched` with zero
+ * revisions.
  */
 export async function replayCampaign(
   deps: ContinuityDeps,
@@ -338,18 +344,62 @@ export async function replayCampaign(
     }
 
     const seed = `${metadata.campaignSeed}:month:${String(pre.snapshot.turnNumber)}`;
+    const postSaveId = newestSavePerTurn.get(postTurn)!.saveId;
+    const stored = store.loadMonthInput(saveDir, postSaveId, collector);
+    const input = stored.status === "present" ? parseMonthInput(stored.value) : null;
+    if (stored.status === "corrupt" || (stored.status === "present" && input === null)) {
+      if (stored.status === "present") {
+        collector.addError(
+          "REPLAY_MONTH_INPUT_INVALID" as DiagnosticCode,
+          `Revision ${String(postTurn)}: the stored month input is not a month_input_v1 record.`,
+          { stage: "replay" },
+        );
+      }
+      allMatched = false;
+      revisions.push({
+        revision: postTurn,
+        matched: false,
+        expectedHash: "unreadable",
+        actualHash: "unreadable",
+      });
+      continue;
+    }
+    if (input !== null && input.shipBuildingContentHash !== shipBuildingContentHash()) {
+      collector.addWarning(
+        "REPLAY_CONTENT_CHANGED" as DiagnosticCode,
+        `Revision ${String(postTurn)} was played with different ship-building content; it cannot be reproduced by this version.`,
+        { stage: "replay" },
+      );
+      allMatched = false;
+      revisions.push({
+        revision: postTurn,
+        matched: false,
+        expectedHash: "content-changed",
+        actualHash: "content-changed",
+      });
+      continue;
+    }
     // `commitMonth` advances `turnNumber` by one purely as session
     // bookkeeping after execution; the engine's own final snapshot keeps the
     // pre-turn label. Compare like with like by hashing the persisted
     // post-month snapshot at the pre-turn number.
-    const expectedHash = hashSnapshot({ ...post.snapshot, turnNumber: pre.snapshot.turnNumber });
+    // commitMonth executes with the player's slot first (the engine authorizes human commands against slots[0]) and
+    // restores the compiled order before saving; replay does the same on both sides so the queued envelopes validate.
+    const executed = promotePlayerSlotForExecution(pre.snapshot, metadata.playerSlotId);
+    const expectedHash = hashSnapshot(
+      promotePlayerSlotForExecution(
+        { ...post.snapshot, turnNumber: pre.snapshot.turnNumber },
+        metadata.playerSlotId,
+      ),
+    );
     const result = verifier.verify(
-      pre.snapshot,
-      [],
-      new CommandLedger(),
+      executed,
+      input === null ? [] : [...input.commands],
+      input === null ? new CommandLedger() : ledgerOf(input),
       expectedHash,
       seed,
       collector,
+      input === null ? undefined : { shipBuilding: loadShipBuildingContent() },
     );
 
     revisions.push({

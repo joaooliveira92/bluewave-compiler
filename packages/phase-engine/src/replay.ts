@@ -3,6 +3,7 @@ import type { CommandBody, CommandEnvelope, CommandLedger } from "@bluewave/comm
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { MonthExecutor } from "./month.js";
+import type { MonthExecutorEngineOptions } from "./monthContext.js";
 
 export interface ReplayStepResult {
   stepIndex: number;
@@ -95,9 +96,18 @@ export class ReplayVerifier {
     expectedFinalSnapshotHash: string,
     randomSeed: string,
     collector: DiagnosticCollector,
+    engineOptions?: MonthExecutorEngineOptions,
   ): ReplayResult {
     const executor = new MonthExecutor();
-    const result = executor.execute(snapshot, commands, randomSeed, collector);
+    // The same engine options the month was executed with (e.g. the ship-building content), or the replay cannot agree.
+    const result = executor.execute(
+      snapshot,
+      commands,
+      randomSeed,
+      collector,
+      undefined,
+      engineOptions,
+    );
 
     const replayedFinalHash = hashSnapshot(result.finalSnapshot);
 

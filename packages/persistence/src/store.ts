@@ -67,8 +67,30 @@ function createAbortError(): Error {
   return error;
 }
 
+/** Extra artifacts a save can carry beside the campaign state. */
+export interface SaveExtras {
+  /**
+   * What the month that produced this state executed on (the player's command envelopes, their outcomes, the content
+   * the engine was given), so a replay can run the same month again. Any JSON value; the caller owns its shape.
+   */
+  readonly monthInput?: unknown;
+}
+
+/** Result of `loadMonthInput`: absent on saves that predate month inputs or do not close a month. */
+export type MonthInputLoad =
+  | { readonly status: "absent" }
+  | { readonly status: "present"; readonly value: unknown }
+  | { readonly status: "corrupt" };
+
+const MONTH_INPUT_FILE = "month-input.json";
+
 export class SaveStore {
-  save(state: CampaignState, saveDir: string, signal?: AbortSignal): SaveResult {
+  save(
+    state: CampaignState,
+    saveDir: string,
+    signal?: AbortSignal,
+    extras: SaveExtras = {},
+  ): SaveResult {
     if (signal?.aborted) {
       throw createAbortError();
     }
@@ -89,6 +111,8 @@ export class SaveStore {
     const serializedHash = sha256Hex(serialized);
     const snapshotHash = sha256Hex(canonicalSerialize(toStorableSnapshot(state.snapshot)));
     const previousSaveId = this.getActiveSaveId(saveDir) ?? undefined;
+    const monthInput =
+      extras.monthInput === undefined ? undefined : canonicalSerialize(extras.monthInput);
 
     const sig: SigFile = {
       serializedHash,
@@ -118,6 +142,7 @@ export class SaveStore {
         const month = (totalMonths % 12) + 1;
         return { year, month };
       })(),
+      ...(monthInput === undefined ? {} : { monthInputHash: sha256Hex(monthInput) }),
     };
 
     // `published` guards the outer catch: once the directory has been renamed
@@ -129,6 +154,8 @@ export class SaveStore {
       writeFileSync(join(tmpDir, "campaign.json"), serialized, "utf8");
       writeFileSync(join(tmpDir, "campaign.sig.json"), JSON.stringify(sig, null, 2), "utf8");
       writeFileSync(join(tmpDir, "metadata.json"), JSON.stringify(metadata, null, 2), "utf8");
+      if (monthInput !== undefined)
+        writeFileSync(join(tmpDir, MONTH_INPUT_FILE), monthInput, "utf8");
 
       if (signal?.aborted) {
         cleanup(tmpDir);
@@ -217,6 +244,58 @@ export class SaveStore {
    * (e.g. replay verification) reach a save's *predecessor* — the snapshot a
    * turn was executed against — rather than only ever the current active save.
    */
+  /**
+   * The month input a save was written with (see `SaveExtras.monthInput`), checked against the hash in its metadata.
+   * "absent" when the save has none; "corrupt" (with a diagnostic) when the file is missing, unreadable or altered.
+   */
+  loadMonthInput(
+    saveDir: string,
+    saveId: string,
+    diagnostics: DiagnosticCollector,
+  ): MonthInputLoad {
+    const stage = { stage: "persistence.loadMonthInput" };
+    if (!isValidSaveId(saveId)) {
+      diagnostics.addError(CORRUPT_SAVE_CODE, "Save id is not a valid identifier", stage);
+      return { status: "corrupt" };
+    }
+    const savePath = join(saveDir, saveId);
+    if (!isContainedIn(saveDir, savePath)) {
+      diagnostics.addError(CORRUPT_SAVE_CODE, "Save id escapes the save directory", stage);
+      return { status: "corrupt" };
+    }
+    let metadata: SaveMetadata;
+    try {
+      metadata = SaveMetadataSchema.parse(
+        JSON.parse(readFileSync(join(savePath, "metadata.json"), "utf8")),
+      );
+    } catch {
+      diagnostics.addError(CORRUPT_SAVE_CODE, `Save ${saveId} has no readable metadata`, stage);
+      return { status: "corrupt" };
+    }
+    if (metadata.monthInputHash === undefined) return { status: "absent" };
+    let text: string;
+    try {
+      text = readFileSync(join(savePath, MONTH_INPUT_FILE), "utf8");
+    } catch {
+      diagnostics.addError(CORRUPT_SAVE_CODE, `Save ${saveId} lost its month input`, stage);
+      return { status: "corrupt" };
+    }
+    if (sha256Hex(text) !== metadata.monthInputHash) {
+      diagnostics.addError(
+        CORRUPT_SAVE_CODE,
+        `Save ${saveId} month input does not match its hash`,
+        stage,
+      );
+      return { status: "corrupt" };
+    }
+    try {
+      return { status: "present", value: JSON.parse(text) as unknown };
+    } catch {
+      diagnostics.addError(CORRUPT_SAVE_CODE, `Save ${saveId} month input is not JSON`, stage);
+      return { status: "corrupt" };
+    }
+  }
+
   loadById(
     saveDir: string,
     saveId: string,

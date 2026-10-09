@@ -6,7 +6,8 @@ import { createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
 import { MonthExecutor } from "@bluewave/phase-engine";
-import { loadShipBuildingContent } from "../shipBuildingContent.js";
+import { loadShipBuildingContent, shipBuildingContentHash } from "../shipBuildingContent.js";
+import { monthInputOf } from "../monthInput.js";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type { CommitMonthPayload } from "../../shared/campaign-command-contract.js";
 import { getCampaignSession, registerCampaignSession } from "../campaignSessions.js";
@@ -191,7 +192,14 @@ export async function commitMonth(
 
   const store = new SaveStore();
   try {
-    store.save(nextState, record.saveDir);
+    // The month's input travels with the save that closes it, so replayCampaign can run this month again.
+    store.save(nextState, record.saveDir, undefined, {
+      monthInput: monthInputOf(
+        pendingCommands,
+        result.commandLedger.all,
+        shipBuildingContentHash(),
+      ),
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { outcome: "error", reason: "SAVE_FAILED", diagnostics: [message] };
