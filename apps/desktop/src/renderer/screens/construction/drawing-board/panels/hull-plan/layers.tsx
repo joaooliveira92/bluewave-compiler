@@ -2,28 +2,76 @@ import type { DesignDraft, ZoneId } from "@bluewave/ship-design";
 import { ZONE_IDS } from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../content.js";
 import { arcSectors, sectorPath } from "./arcs.js";
-import {
-  fittingPoint,
-  halfBeam,
-  PLAN_H,
-  PLAN_MID,
-  PLAN_PAD,
-  PLAN_W,
-  type PlanFrame,
-} from "./geometry.js";
+import { fittingPoint, PLAN_H, PLAN_MID, PLAN_PAD, PLAN_W, type PlanFrame } from "./geometry.js";
 
 /** Label size in SVG user units (not CSS px): the 640-unit plan is scaled up to the panel width, so this renders at 12 px or more. */
 const PLAN_FONT = 8;
 
-export function HullOutlineLayer({ frame }: { readonly frame: PlanFrame }) {
+/** Closed outline polygon points for the hull scaled by `scale` about the centreline. */
+function outlinePoints(frame: PlanFrame, scale: number): string {
   const pts: string[] = [];
   for (let i = 0; i <= 40; i++)
-    pts.push(`${frame.x(i * 25)},${PLAN_MID - halfBeam(i / 40, frame.maxHalf)}`);
+    pts.push(`${frame.x(i * 25).toFixed(2)},${(PLAN_MID - frame.half(i / 40) * scale).toFixed(2)}`);
   for (let i = 40; i >= 0; i--)
-    pts.push(`${frame.x(i * 25)},${PLAN_MID + halfBeam(i / 40, frame.maxHalf)}`);
+    pts.push(`${frame.x(i * 25).toFixed(2)},${(PLAN_MID + frame.half(i / 40) * scale).toFixed(2)}`);
+  return pts.join(" ");
+}
+
+export function HullOutlineLayer({ frame }: { readonly frame: PlanFrame }) {
+  const lcbX = frame.x(frame.lcbPermille);
   return (
     <>
-      <polygon points={pts.join(" ")} className="fill-background stroke-foreground" />
+      <polygon
+        points={outlinePoints(frame, 1)}
+        className="fill-background stroke-foreground"
+        strokeWidth={1.4}
+        strokeLinejoin="round"
+        data-testid="hull-outline"
+      />
+      <polygon
+        points={outlinePoints(frame, 0.9)}
+        className="fill-none stroke-muted-foreground"
+        strokeOpacity={0.5}
+        data-testid="hull-deck-edge"
+      />
+      <line
+        x1={frame.x(0)}
+        x2={frame.x(1000)}
+        y1={PLAN_MID}
+        y2={PLAN_MID}
+        className="stroke-muted-foreground"
+        strokeOpacity={0.5}
+        strokeDasharray="8 2 1 2"
+      />
+      {Array.from({ length: 9 }, (_, i) => (i + 1) * 100).map((p) => (
+        <line
+          key={p}
+          x1={frame.x(p)}
+          x2={frame.x(p)}
+          y1={PLAN_MID - 3}
+          y2={PLAN_MID + 3}
+          className="stroke-muted-foreground"
+          strokeOpacity={0.6}
+        />
+      ))}
+      <g data-testid="hull-lcb">
+        <circle cx={lcbX} cy={PLAN_MID} r={3.5} className="fill-none stroke-foreground" />
+        <line
+          x1={lcbX - 3.5}
+          x2={lcbX + 3.5}
+          y1={PLAN_MID}
+          y2={PLAN_MID}
+          className="stroke-foreground"
+        />
+        <line
+          x1={lcbX}
+          x2={lcbX}
+          y1={PLAN_MID - 3.5}
+          y2={PLAN_MID + 3.5}
+          className="stroke-foreground"
+        />
+        <title>{`Centre of buoyancy, ${frame.lcbPermille}‰ from the bow`}</title>
+      </g>
       <text x={PLAN_PAD} y={12} className="fill-muted-foreground" fontSize={PLAN_FONT}>
         bow
       </text>

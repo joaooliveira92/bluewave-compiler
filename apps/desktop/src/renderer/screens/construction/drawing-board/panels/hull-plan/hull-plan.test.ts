@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { arcSectors, bearingVector, normaliseDeg, sectorPath } from "./arcs.js";
-import { fittingPoint, PLAN_MID, planFrame } from "./geometry.js";
+import { fittingPoint, PLAN_MID, planFrame, waterplaneShape } from "./geometry.js";
 
 const hull = (lengthM: number, beamM: number) =>
   ({ lengthWl: lengthM * 1000, beam: beamM * 1000 }) as never;
@@ -80,5 +80,34 @@ describe("plan geometry", () => {
       expect(f.x(-50)).toBe(f.x(0));
       expect(f.x(2000)).toBe(f.x(1000));
     }
+  });
+});
+
+describe("waterplaneShape", () => {
+  const area = (cw: number, lcb = 500) => {
+    const s = waterplaneShape({ waterplaneCoeffBp: cw, lcbPermille: lcb });
+    let a = 0;
+    for (let i = 0; i < 2000; i++) a += s((i + 0.5) / 2000) / 2000;
+    return a;
+  };
+  it("integrates to the waterplane coefficient", () => {
+    for (const cw of [7000, 7200, 8200]) expect(area(cw)).toBeCloseTo(cw / 10000, 2);
+  });
+  it("is pointed at the bow, full amidships and narrower at the transom", () => {
+    const s = waterplaneShape({ waterplaneCoeffBp: 7400, lcbPermille: 500 });
+    expect(s(0)).toBe(0);
+    expect(s(0.5)).toBe(1);
+    expect(s(1)).toBeGreaterThan(0);
+    expect(s(1)).toBeLessThan(1);
+  });
+  it("a finer waterplane is narrower forward than a fuller one", () => {
+    const fine = waterplaneShape({ waterplaneCoeffBp: 7000, lcbPermille: 500 });
+    const full = waterplaneShape({ waterplaneCoeffBp: 8200, lcbPermille: 500 });
+    expect(fine(0.1)).toBeLessThan(full(0.1));
+  });
+  it("falls back to a typical form and stays within 0..1", () => {
+    const s = waterplaneShape();
+    for (let i = 0; i <= 100; i++) expect(s(i / 100)).toBeGreaterThanOrEqual(0);
+    expect(Math.max(...Array.from({ length: 101 }, (_, i) => s(i / 100)))).toBe(1);
   });
 });

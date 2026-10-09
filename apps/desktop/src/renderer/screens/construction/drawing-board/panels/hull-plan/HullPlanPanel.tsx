@@ -9,8 +9,9 @@ import { GunArcLayer, HullFittingLayer, HullOutlineLayer, HullZoneLayer } from "
 /**
  * Top-down plan of the hull, composed of layers: outline, zones, gun arcs, fittings.
  *
- * SCHEMATIC GEOMETRY: the outline is a generic pointed-bow shape scaled to length and beam, not the
- * hull form's real lines, and centreline fittings are nudged apart vertically so overlapping dots stay
+ * SCHEMATIC GEOMETRY: the outline is a parametric waterline scaled to length and beam. Its area follows the
+ * hull form's waterplane coefficient and its bow/stern fullness follows the form's LCB, but it is not the
+ * form's real lines, and centreline fittings are nudged apart vertically so overlapping dots stay
  * visible (the nudge carries no meaning). Arc wedges have a fixed drawn radius (range is not shown). Only
  * the station (x), the port/starboard side and the arc width are data. Do not treat this as an
  * authoritative hull-form visualisation.
@@ -25,8 +26,12 @@ export function HullPlanPanel({
   readonly view: WorkshopView;
 }) {
   const [showArcs, setShowArcs] = useState(true);
-  const frame = planFrame(draft.hull);
-  const zones = content.hullForms.find((f) => f.id === draft.hull.hullFormId)?.zones ?? [];
+  const form = content.hullForms.find((f) => f.id === draft.hull.hullFormId);
+  const frame = planFrame(
+    draft.hull,
+    form && { waterplaneCoeffBp: form.waterplaneCoeffBp, lcbPermille: form.lcbPermille },
+  );
+  const zones = form?.zones ?? [];
   const mounts = view.compiled.weapons?.mounts ?? [];
   return (
     <Panel title="Hull plan">
@@ -52,8 +57,8 @@ export function HullPlanPanel({
       </svg>
       <p className="text-xs text-muted-foreground">
         {frame.lengthM.toFixed(0)} m × {frame.beamM.toFixed(1)} m · {draft.placements.length}{" "}
-        fitting(s). Schematic outline; only station, side and arc width are data. Arcs show the
-        effective beam arc after obstruction.
+        fitting(s). Outline follows the hull form's waterplane coefficient and LCB (⊕); only
+        station, side and arc width are data. Arcs show the effective beam arc after obstruction.
       </p>
     </Panel>
   );
