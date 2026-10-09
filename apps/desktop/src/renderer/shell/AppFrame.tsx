@@ -56,11 +56,7 @@ export function AppFrame({
       ref={frameRef}
       className="relative h-svh flex-col overflow-hidden bg-transparent"
     >
-      <div
-        ref={topRef}
-        data-underlay={underlay}
-        className="group/chrome relative z-20 shrink-0"
-      >
+      <div ref={topRef} data-underlay={underlay} className="group/chrome relative z-20 shrink-0">
         {header}
       </div>
       <div
