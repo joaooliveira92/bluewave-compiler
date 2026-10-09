@@ -53,6 +53,7 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
       <FieldPrioritiesEditor
         fields={vm.fields}
         highCount={vm.highCount}
+        highCap={vm.highCap}
         highCountValid={vm.highCountValid}
         dirty={vm.dirty}
         busy={busy}

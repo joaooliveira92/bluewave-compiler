@@ -1,7 +1,3 @@
-import {
-  MAX_HIGH_PRIORITY_FIELDS,
-  RESEARCH_FIELD_PRIORITY_WEIGHTS,
-} from "@bluewave/campaign-engine";
 import { Toggle } from "../../../components/ui/toggle.js";
 import { WEIGHT_OPTIONS, type FieldWeightOption } from "../research-field-priorities.js";
 import type { ResearchFieldRow } from "../research-view-model.js";
@@ -10,11 +6,11 @@ export interface FieldPriorityRowProps {
   readonly field: ResearchFieldRow;
   /** True when no additional field may be raised to High (the INC-5 cap). */
   readonly highCapReached: boolean;
+  /** The engine's maximum number of High fields, for the affordance copy. */
+  readonly highCap: number;
   readonly busy: boolean;
   readonly onSetWeight: (weight: FieldWeightOption) => void;
 }
-
-const HIGH_CAP_TITLE = `At most ${MAX_HIGH_PRIORITY_FIELDS} fields may be High — lower another High field first`;
 
 /**
  * One canonical research field: its label, projected next-month points, and the
@@ -24,6 +20,7 @@ const HIGH_CAP_TITLE = `At most ${MAX_HIGH_PRIORITY_FIELDS} fields may be High �
 export function FieldPriorityRow({
   field,
   highCapReached,
+  highCap,
   busy,
   onSetWeight,
 }: FieldPriorityRowProps) {
@@ -39,8 +36,7 @@ export function FieldPriorityRow({
       </div>
       <div className="flex items-center gap-1" role="group" aria-label={field.label}>
         {WEIGHT_OPTIONS.map((option) => {
-          const exceedsHighCap =
-            option.weight === RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH && wouldExceedHighCap;
+          const exceedsHighCap = option.isHigh && wouldExceedHighCap;
           return (
             <Toggle
               key={option.label}
@@ -49,7 +45,11 @@ export function FieldPriorityRow({
               disabled={busy || exceedsHighCap}
               size="sm"
               aria-label={`${field.label} ${option.label}`}
-              title={exceedsHighCap ? HIGH_CAP_TITLE : undefined}
+              title={
+                exceedsHighCap
+                  ? `At most ${highCap} fields may be High — lower another High field first`
+                  : undefined
+              }
             >
               {option.label}
             </Toggle>

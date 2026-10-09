@@ -36,6 +36,7 @@ export interface ResearchViewModel {
   readonly inProgressTechnologies: readonly ResearchProgressRow[];
   readonly fields: readonly ResearchFieldRow[];
   readonly highCount: number;
+  readonly highCap: number;
   readonly highCountValid: boolean;
   readonly dirty: boolean;
 }
@@ -77,6 +78,7 @@ export function buildResearchViewModel(state: ResearchScreenActiveData): Researc
       };
     }),
     highCount,
+    highCap: MAX_HIGH_PRIORITY_FIELDS,
     highCountValid: highCount >= 1 && highCount <= MAX_HIGH_PRIORITY_FIELDS,
     dirty: isDraftDirty(projection, draft),
   };

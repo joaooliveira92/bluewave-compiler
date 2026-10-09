@@ -29,6 +29,7 @@ function renderRow(
     <FieldPriorityRow
       field={field(over)}
       highCapReached={false}
+      highCap={5}
       busy={false}
       onSetWeight={() => {}}
       {...props}

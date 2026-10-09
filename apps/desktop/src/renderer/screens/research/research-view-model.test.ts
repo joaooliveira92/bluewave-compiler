@@ -54,6 +54,7 @@ describe("buildResearchViewModel", () => {
     ]);
     expect(vm.dirty).toBe(false);
     expect(vm.highCount).toBe(1);
+    expect(vm.highCap).toBe(5);
     expect(vm.highCountValid).toBe(true);
   });
 

@@ -10,6 +10,7 @@ import {
   draftIsSubmittable,
   draftToPriorities,
   setDraftWeight,
+  type FieldWeightOption,
 } from "../research-field-priorities.js";
 import type { ResearchScreenState } from "../research-screen-state.js";
 import {
@@ -24,7 +25,7 @@ import {
 
 export interface UseResearchScreenReturn {
   readonly state: ResearchScreenState;
-  readonly setFieldWeight: (fieldId: string, weight: 1 | 2 | 4) => void;
+  readonly setFieldWeight: (fieldId: string, weight: FieldWeightOption) => void;
   readonly submit: () => void;
   readonly reload: () => Promise<void>;
   readonly canSubmit: boolean;
@@ -76,7 +77,7 @@ export function useResearchScreen(sessionId: string): UseResearchScreenReturn {
     if (state.kind === "rejected-with-revision") void reload();
   }, [state.kind, reload]);
 
-  const setFieldWeight = useCallback((fieldId: string, weight: 1 | 2 | 4) => {
+  const setFieldWeight = useCallback((fieldId: string, weight: FieldWeightOption) => {
     setState((current) => {
       if (
         current.kind !== "loaded" &&

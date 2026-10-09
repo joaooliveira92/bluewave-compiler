@@ -11,7 +11,7 @@ export interface ResearchLoadErrorStateProps {
 
 export function ResearchLoadErrorState({ message, onRetry }: ResearchLoadErrorStateProps) {
   return (
-    <ResearchPageShell description="Direct the monthly research budget across fields.">
+    <ResearchPageShell>
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Research screen failed to load</AlertTitle>
@@ -28,7 +28,7 @@ export function ResearchLoadErrorState({ message, onRetry }: ResearchLoadErrorSt
 
 export function ResearchLoadingState() {
   return (
-    <ResearchPageShell description="The monthly research budget across fields.">
+    <ResearchPageShell>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {[0, 1, 2].map((idx) => (
           <Skeleton key={idx} className="h-28" />

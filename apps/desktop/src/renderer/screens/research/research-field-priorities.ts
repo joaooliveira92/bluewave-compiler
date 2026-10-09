@@ -17,10 +17,11 @@ export type FieldWeightsDraft = Readonly<Record<string, number>>;
 export const WEIGHT_OPTIONS: readonly {
   readonly weight: FieldWeightOption;
   readonly label: string;
+  readonly isHigh: boolean;
 }[] = [
-  { weight: RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH, label: "High" },
-  { weight: RESEARCH_FIELD_PRIORITY_WEIGHTS.MEDIUM, label: "Med" },
-  { weight: RESEARCH_FIELD_PRIORITY_WEIGHTS.LOW, label: "Low" },
+  { weight: RESEARCH_FIELD_PRIORITY_WEIGHTS.HIGH, label: "High", isHigh: true },
+  { weight: RESEARCH_FIELD_PRIORITY_WEIGHTS.MEDIUM, label: "Med", isHigh: false },
+  { weight: RESEARCH_FIELD_PRIORITY_WEIGHTS.LOW, label: "Low", isHigh: false },
 ];
 
 function isWeightValue(value: number | undefined): value is FieldWeightOption {

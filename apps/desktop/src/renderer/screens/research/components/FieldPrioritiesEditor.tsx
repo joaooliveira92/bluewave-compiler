@@ -1,4 +1,3 @@
-import { MAX_HIGH_PRIORITY_FIELDS } from "@bluewave/campaign-engine";
 import { FlaskConical } from "lucide-react";
 import { Button } from "../../../components/ui/button.js";
 import { GlassSectionCard } from "../../../components/shared/GlassSectionCard.js";
@@ -9,6 +8,7 @@ import { FieldPriorityRow } from "./FieldPriorityRow.js";
 export interface FieldPrioritiesEditorProps {
   readonly fields: readonly ResearchFieldRow[];
   readonly highCount: number;
+  readonly highCap: number;
   readonly highCountValid: boolean;
   readonly dirty: boolean;
   readonly busy: boolean;
@@ -20,6 +20,7 @@ export interface FieldPrioritiesEditorProps {
 export function FieldPrioritiesEditor({
   fields,
   highCount,
+  highCap,
   highCountValid,
   dirty,
   busy,
@@ -27,7 +28,7 @@ export function FieldPrioritiesEditor({
   onSetFieldWeight,
   onSubmit,
 }: FieldPrioritiesEditorProps) {
-  const highCapReached = highCount >= MAX_HIGH_PRIORITY_FIELDS;
+  const highCapReached = highCount >= highCap;
 
   return (
     <GlassSectionCard
@@ -46,6 +47,7 @@ export function FieldPrioritiesEditor({
             key={field.fieldId}
             field={field}
             highCapReached={highCapReached}
+            highCap={highCap}
             busy={busy}
             onSetWeight={(weight) => onSetFieldWeight(field.fieldId, weight)}
           />
@@ -55,10 +57,8 @@ export function FieldPrioritiesEditor({
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
         <p className="text-xs text-muted-foreground">
           {highCount} high-priority field{highCount === 1 ? "" : "s"} (
-          {highCountValid ? "within" : "outside"} the engine's 1..{MAX_HIGH_PRIORITY_FIELDS} limit)
-          {highCount >= MAX_HIGH_PRIORITY_FIELDS
-            ? " — lower a High field before raising another"
-            : ""}
+          {highCountValid ? "within" : "outside"} the engine's 1..{highCap} limit)
+          {highCount >= highCap ? " — lower a High field before raising another" : ""}
         </p>
         <Button onClick={onSubmit} disabled={!canSubmit || busy} size="sm">
           {busy ? "Applying…" : "Set priorities"}
