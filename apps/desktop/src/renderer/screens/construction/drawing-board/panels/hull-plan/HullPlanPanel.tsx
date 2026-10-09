@@ -26,6 +26,9 @@ import { FindingMarkers, layoutMarkers } from "../../validation/FindingMarkers.j
 import { FindingsControl, useFindingsView } from "../../validation/FindingsControl.js";
 import { passesFilter } from "../../validation/severity.js";
 import { SECTIONS } from "./sections.js";
+import { plural } from "../../plural.js";
+import { Info } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "../../../../../components/ui/popover.js";
 import type { ShipEntity } from "../../selection/store.js";
 import { FittingTargets } from "./FittingTargets.js";
 import { SelectionLayer } from "./SelectionLayer.js";
@@ -295,14 +298,28 @@ export function HullPlanPanel({
             funnels: placedFunnels,
           })}
         />
-        <p className="text-xs text-muted-foreground">
-          {frame.lengthM.toFixed(0)} m × {frame.beamM.toFixed(1)} m · {draft.placements.length}{" "}
-          fitting(s). Schematic design views, not construction drawings or a true lines plan. The
-          hull form's waterplane coefficient, LCB, sheer and the placed fittings drive the drawing;
-          bow and stern character, sheer emphasis, deck-house steps and funnel shape are visual
-          conventions. Only station, side and arc width of fittings are data. Arcs show the
-          effective beam arc after obstruction.
-        </p>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>
+            {frame.lengthM.toFixed(0)} m × {frame.beamM.toFixed(1)} m ·{" "}
+            {plural(draft.placements.length, "fitting")} · Schematic, not a lines plan.
+          </span>
+          <Popover>
+            <PopoverTrigger
+              render={<button type="button" />}
+              className="inline-flex items-center gap-1 rounded underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Info aria-hidden="true" className="size-3" />
+              About this drawing
+            </PopoverTrigger>
+            <PopoverContent aria-label="About this drawing" className="w-80 text-xs">
+              Schematic design views, not construction drawings or a true lines plan. The hull
+              form's waterplane coefficient, LCB, sheer and the placed fittings drive the drawing;
+              bow and stern character, sheer emphasis, deck-house steps and funnel shape are visual
+              conventions. Only station, side and arc width of fittings are data. Arcs show the
+              effective beam arc after obstruction.
+            </PopoverContent>
+          </Popover>
+        </div>
       </TooltipProvider>
     </Panel>
   );

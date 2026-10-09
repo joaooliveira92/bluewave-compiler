@@ -52,6 +52,7 @@ import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
 import type { RevisionProject } from "./revisionPreview.js";
 import { useDrawingBoard } from "./useDrawingBoard.js";
 import { useDraftAutosave } from "./useDraftAutosave.js";
+import { plural } from "./plural.js";
 import { entityExists, type EntityContext } from "./selection/facts.js";
 import { boardFindings } from "./validation/boardFindings.js";
 import {
@@ -80,6 +81,11 @@ const TABS: readonly { value: BoardTab; label: string; Icon: LucideIcon }[] = [
 ];
 /** Two columns once the tab pane (not the window) is wide enough: the pane shares the window with the ship view. */
 const TAB_GRID = "grid grid-cols-1 items-start gap-4 @4xl:grid-cols-2";
+
+const IS_MAC = typeof navigator !== "undefined" && /Mac/.test(navigator.platform);
+/** Shortcut labels in the platform's own notation. */
+const MOD = IS_MAC ? "⌘" : "Ctrl+";
+const SHIFT = IS_MAC ? "⇧" : "Shift+";
 
 const MONTHS = ["1885-01", "1890-01", "1893-06", "1895-06", "1896-01", "1899-12"];
 
@@ -148,6 +154,26 @@ export function DrawingBoard({
         ref={rootRef}
         className="flex h-full min-h-0 flex-col gap-4"
         data-testid="drawing-board"
+        onKeyDown={(e) => {
+          // Undo/redo for the design: ⌘Z / Ctrl+Z, ⇧⌘Z / Ctrl+Shift+Z / Ctrl+Y. A text field keeps its own undo.
+          if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+          const t = e.target;
+          if (
+            t instanceof HTMLElement &&
+            (t.isContentEditable ||
+              (t instanceof HTMLInputElement && t.type !== "checkbox") ||
+              t instanceof HTMLTextAreaElement)
+          )
+            return;
+          const key = e.key.toLowerCase();
+          const redo = (key === "z" && e.shiftKey) || (key === "y" && !e.shiftKey);
+          if (key === "z" && !e.shiftKey) {
+            if (state.canUndo) actions.undo();
+          } else if (redo) {
+            if (state.canRedo) actions.redo();
+          } else return;
+          e.preventDefault();
+        }}
         onKeyDownCapture={(e) => {
           // Escape, one step per press, from the drawing or the inspector: an open preview (hover card or
           // finding marker) closes itself first; then the opened finding; then the pinned entity; only then does
@@ -176,20 +202,27 @@ export function DrawingBoard({
               options={content.references.map((r) => ({ value: r.id, label: r.name }))}
               onChange={(id) => (state.editCount > 0 ? setPendingPreset(id) : loadPreset(id))}
             />
-            <SelectField
-              inline
-              label="Technology as of"
-              shortLabel="Technology"
-              value={state.month}
-              options={(campaignMonth !== null
-                ? [campaignMonth]
-                : [...new Set([...MONTHS, state.month])].sort()
-              ).map((m) => ({
-                value: m,
-                label: campaignMonth !== null ? `${m} (campaign date)` : m,
-              }))}
-              onChange={actions.setMonth}
-            />
+            {campaignMonth !== null ? (
+              // In a campaign the rules date is the campaign month (the engine uses the same), so it is shown, not chosen.
+              <p
+                className="flex h-9 items-center gap-2 text-sm"
+                title="Technology is fixed to the campaign date"
+              >
+                <span className="text-xs text-muted-foreground">Technology</span>
+                {campaignMonth} (campaign date)
+              </p>
+            ) : (
+              <SelectField
+                inline
+                label="Technology as of"
+                shortLabel="Technology"
+                value={state.month}
+                options={[...new Set([...MONTHS, state.month])]
+                  .sort()
+                  .map((m) => ({ value: m, label: m }))}
+                onChange={actions.setMonth}
+              />
+            )}
             <Separator orientation="vertical" className="h-6" />
             <ButtonGroup aria-label="History">
               {(
@@ -212,12 +245,14 @@ export function DrawingBoard({
                   >
                     <Icon aria-hidden="true" />
                   </TooltipTrigger>
-                  <TooltipContent>{name}</TooltipContent>
+                  <TooltipContent>
+                    {name} ({name === "Undo" ? `${MOD}Z` : `${SHIFT}${MOD}Z`})
+                  </TooltipContent>
                 </Tooltip>
               ))}
             </ButtonGroup>
             <span className="text-xs text-muted-foreground tabular-nums">
-              {state.editCount} edit(s)
+              {plural(state.editCount, "edit", "edits", "No edits")}
             </span>
             <Separator orientation="vertical" className="h-6" />
             <PlanModeButtons tool={planTool} onTool={setPlanTool} />
@@ -271,7 +306,7 @@ export function DrawingBoard({
           </Badge>
           <span className="text-muted-foreground">
             {view.counts.BLOCKING} blocking · {view.counts.CRITICAL} critical ·{" "}
-            {view.counts.WARNING} warning
+            {plural(view.counts.WARNING, "warning")}
           </span>
           {view.metrics.slice(0, 3).map((m) => (
             <span key={m.id} className="tabular-nums">

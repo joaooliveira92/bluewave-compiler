@@ -85,8 +85,8 @@ export function BriefPanel({
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        The type is what the ship must qualify as (DESIGN-22). A design that does not meet its type
-        cannot be built; the natural class is the type it would actually qualify as.
+        The type is what the ship must qualify as. A design that does not meet its type cannot be
+        built; the natural class is the type it would actually qualify as.
       </p>
     </Panel>
   );

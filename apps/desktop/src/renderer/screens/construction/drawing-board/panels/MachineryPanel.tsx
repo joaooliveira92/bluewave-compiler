@@ -3,6 +3,7 @@ import type { DrawingBoardContent } from "../content.js";
 import { NumberField, SelectField } from "../fields.js";
 import { Panel } from "./Panel.js";
 import type { Edit } from "./types.js";
+import { plural } from "../plural.js";
 
 export function MachineryPanel({
   draft,
@@ -38,8 +39,8 @@ export function MachineryPanel({
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        {m.rooms?.length ?? 1} machinery room(s). Cruise speed and range target come from the
-        requirement: {(draft.requirement.cruiseSpeedMilliKnots / 1000).toFixed(1)} kn,{" "}
+        {plural(m.rooms?.length ?? 1, "machinery room")}. Cruise speed and range target come from
+        the requirement: {(draft.requirement.cruiseSpeedMilliKnots / 1000).toFixed(1)} kn,{" "}
         {draft.requirement.requiredRangeNm.toLocaleString("en-US")} nm.
       </p>
     </Panel>

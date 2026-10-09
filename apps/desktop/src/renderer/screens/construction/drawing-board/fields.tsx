@@ -12,8 +12,23 @@ const inputClass =
   "h-8 w-full rounded-md border bg-background px-2 text-sm tabular-nums focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
 
 /**
+ * Reads a typed number with either decimal mark ("16.5" or "16,5"); thousands separators are not accepted, so "1,500"
+ * is refused rather than read as 1.5. Null when the text is not a number.
+ */
+export function parseTypedNumber(raw: string): number | null {
+  const t = raw.trim();
+  if (!/^[-+]?(\d+([.,]\d*)?|[.,]\d+)$/.test(t)) return null;
+  const n = Number(t.replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
  * Number input in display units that commits an integer in internal units on blur or Enter. Uncontrolled and keyed by the
  * committed value, so typing never creates an edit per keystroke and an undo resets the field.
+ *
+ * A text input, not `type="number"`: Chromium formats number inputs with the OS locale (a decimal-comma system shows
+ * "16,0" next to "16.0 kn" everywhere else), so the value is always shown with a decimal point and either mark is
+ * accepted when typing. ArrowUp/ArrowDown step by `step` within min/max, as a number input would.
  */
 export function NumberField({
   label,
@@ -43,10 +58,12 @@ export function NumberField({
 }) {
   const id = useId();
   const shown = (value / scale).toFixed(decimals);
+  const stepBy = step ?? (decimals > 0 ? Number((1 / 10 ** decimals).toFixed(decimals)) : 1);
+  const clampShown = (n: number) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, n));
   const commit = (raw: string) => {
-    const parsed = Number(raw);
-    if (!Number.isFinite(parsed)) return;
-    const internal = Math.round(parsed * scale);
+    const parsed = parseTypedNumber(raw);
+    if (parsed === null) return;
+    const internal = Math.round(clampShown(parsed) * scale);
     if (internal !== value) onCommit(internal);
   };
   return (
@@ -60,15 +77,20 @@ export function NumberField({
         id={id}
         aria-label={shortLabel === undefined ? undefined : `${label}${unit ? ` (${unit})` : ""}`}
         className={inputClass}
-        type="number"
+        type="text"
         inputMode="decimal"
+        autoComplete="off"
+        spellCheck={false}
         defaultValue={shown}
-        min={min}
-        max={max}
-        step={step ?? (decimals > 0 ? Number((1 / 10 ** decimals).toFixed(decimals)) : 1)}
         onBlur={(e) => commit(e.currentTarget.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") commit(e.currentTarget.value);
+          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            const current = parseTypedNumber(e.currentTarget.value) ?? value / scale;
+            const next = clampShown(current + (e.key === "ArrowUp" ? stepBy : -stepBy));
+            e.currentTarget.value = next.toFixed(decimals);
+            e.preventDefault();
+          }
         }}
       />
     </div>
@@ -113,7 +135,7 @@ export function SelectField({
           aria-label={shortLabel === undefined ? undefined : label}
           className={inline ? "h-9 py-0" : undefined}
         >
-          <SelectValue placeholder="Select" />
+          <SelectValue placeholder="Select" className="min-w-0 flex-1 truncate text-left" />
         </SelectTrigger>
         <SelectContent>
           {options.map((o) => (

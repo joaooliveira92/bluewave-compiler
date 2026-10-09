@@ -134,7 +134,7 @@ describe("selecting sections", () => {
     render(<DrawingBoard />);
     fireEvent.click(label("Forward service"));
     fireEvent.click(target("gun_12pdr"));
-    expect(screen.getByText("0 edit(s)")).toBeTruthy();
+    expect(screen.getByText("No edits")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Undo" }).hasAttribute("disabled")).toBe(true);
   });
 });

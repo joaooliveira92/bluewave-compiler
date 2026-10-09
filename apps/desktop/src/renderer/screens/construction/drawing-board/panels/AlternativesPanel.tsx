@@ -3,6 +3,7 @@ import type { Candidate, DesignDraft } from "@bluewave/ship-design";
 import { Button } from "../../../../components/ui/button.js";
 import { ConfirmAction } from "../ConfirmAction.js";
 import { Panel } from "./Panel.js";
+import { plural } from "../plural.js";
 
 const archetypeLabel: Record<string, string> = {
   CONSERVATIVE: "Conservative and reliable",
@@ -62,8 +63,11 @@ export function AlternativesPanel({
                       {((k.machinery?.maxSpeedMilliKnots ?? 0) / 1000).toFixed(1)} kn ·{" "}
                       {(k.machinery?.rangeNmAtCruise ?? 0).toLocaleString("en-US")} nm · cost{" "}
                       {Math.round(c.costMicro / 1_000_000).toLocaleString("en-US")} ·{" "}
-                      {k.findings.filter((f) => f.severity !== "ADVISORY").length} finding(s) · CVE{" "}
-                      {(c.cveBp / 100).toFixed(0)}/100 (development metric)
+                      {plural(
+                        k.findings.filter((f) => f.severity !== "ADVISORY").length,
+                        "finding",
+                      )}{" "}
+                      · CVE {(c.cveBp / 100).toFixed(0)}/100 (development metric)
                     </div>
                   </div>
                   <ConfirmAction

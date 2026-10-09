@@ -56,7 +56,7 @@ describe("Drawing Board autosave", () => {
     stored = { presetId: start.id, log: encodeLog(savedLog), savedAt: "2026-10-09T09:00:00.000Z" };
     render(<DrawingBoard sessionId="s1" />);
     expect(await screen.findByText(/unsubmitted design was restored/)).toBeTruthy();
-    expect(screen.getByText("1 edit(s)")).toBeTruthy();
+    expect(screen.getByText("1 edit")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Undo" }).hasAttribute("disabled")).toBe(false);
   });
 
@@ -86,7 +86,7 @@ describe("Drawing Board autosave", () => {
     stored = { presetId: start.id, log: encodeLog(savedLog), savedAt: "2026-10-09T09:00:00.000Z" };
     render(<DrawingBoard sessionId="s1" />);
     fireEvent.click(await screen.findByRole("button", { name: "Start over" }));
-    expect(screen.getByText("0 edit(s)")).toBeTruthy();
+    expect(screen.getByText("No edits")).toBeTruthy();
     await waitFor(() => expect(stored).toBeNull(), { timeout: 3000 });
     expect(screen.queryByText(/unsubmitted design was restored/)).toBeNull();
   });
@@ -97,6 +97,6 @@ describe("Drawing Board autosave", () => {
     await waitFor(() => expect(execute).toHaveBeenCalledWith("readDrawingBoardDraft", "s1"));
     await new Promise((r) => setTimeout(r, 50));
     expect(screen.queryByText(/unsubmitted design was restored/)).toBeNull();
-    expect(screen.getByText("0 edit(s)")).toBeTruthy();
+    expect(screen.getByText("No edits")).toBeTruthy();
   });
 });

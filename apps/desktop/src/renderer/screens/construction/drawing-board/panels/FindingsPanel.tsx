@@ -31,6 +31,7 @@ import { Panel } from "./Panel.js";
 import { findingAttrs } from "../selection/navigation.js";
 import type { BoardFinding } from "../validation/boardFindings.js";
 import { SEVERITY_ORDER, SEVERITY_STYLE } from "../validation/severity.js";
+import { plural } from "../plural.js";
 
 /** The rule id, with the computed evidence behind the finding on hover. */
 function RuleEvidence({ f }: { readonly f: Finding }) {
@@ -154,7 +155,13 @@ function Verdict({
           : "Design cannot be built: resolve the blocking findings."}
       </AlertTitle>
       <AlertDescription>
-        {order.map((s) => `${view.counts[s]} ${s.toLowerCase()}`).join(", ")}
+        {order
+          .map((s) =>
+            s === "WARNING" || s === "ADVISORY"
+              ? plural(view.counts[s], s.toLowerCase())
+              : `${view.counts[s]} ${s.toLowerCase()}`,
+          )
+          .join(", ")}
       </AlertDescription>
     </Alert>
   );

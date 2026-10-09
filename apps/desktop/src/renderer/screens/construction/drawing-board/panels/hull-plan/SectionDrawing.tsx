@@ -8,6 +8,7 @@ import type { DesignDraft } from "@bluewave/ship-design";
 import { funnelShapes, houseMasses, type ProfileFrame } from "./profile-geometry.js";
 import { ProfileFittingsLayer, ProfileHullLayer } from "./profile-layers.js";
 import type { FittingKind, SectionFacts, ZoneRange } from "./sections.js";
+import { plural } from "../../plural.js";
 
 /** Card drawing size (SVG user units, drawn about 1:1 in the card). */
 export const SECTION_W = 400;
@@ -85,7 +86,7 @@ export function SectionDrawing({
   const ticks: number[] = [];
   for (let p = Math.ceil(s / step) * step; p <= e; p += step)
     if (p >= 0 && p <= 1000) ticks.push(p);
-  const label = `Detailed drawing of the ${facts.meta.name.toLowerCase()}, stations ${zone.startPermille} to ${zone.endPermille} permille: plan above, profile below, ${facts.fittings.length} fitting(s) numbered${facts.machineryRooms.length ? `, ${facts.machineryRooms.length} machinery room(s)` : ""}${facts.fuelStationPermille !== undefined ? ", fuel stowage" : ""}.`;
+  const label = `Detailed drawing of the ${facts.meta.name.toLowerCase()}, stations ${zone.startPermille} to ${zone.endPermille} permille: plan above, profile below, ${plural(facts.fittings.length, "fitting")} numbered${facts.machineryRooms.length ? `, ${plural(facts.machineryRooms.length, "machinery room")}` : ""}${facts.fuelStationPermille !== undefined ? ", fuel stowage" : ""}.`;
   return (
     <svg
       viewBox={`0 0 ${SECTION_W} ${SECTION_H}`}

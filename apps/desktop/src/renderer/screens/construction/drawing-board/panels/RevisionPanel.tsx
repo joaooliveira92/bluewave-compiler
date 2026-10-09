@@ -30,6 +30,7 @@ import {
   type RevisionProject,
 } from "../revisionPreview.js";
 import { Panel } from "./Panel.js";
+import { plural } from "../plural.js";
 
 const TIER_BADGE: Record<RevisionDecision["tier"], "secondary" | "outline" | "destructive"> = {
   T0_FREE: "outline",
@@ -209,7 +210,7 @@ export function RevisionPanel({
             {d.delayMonths > 0 && (
               <>
                 <dt className="text-muted-foreground">Funding on hold for</dt>
-                <dd className="text-right">{d.delayMonths} month(s)</dd>
+                <dd className="text-right">{plural(d.delayMonths, "month")}</dd>
               </>
             )}
             {d.reworkWorkMicro > 0 && (

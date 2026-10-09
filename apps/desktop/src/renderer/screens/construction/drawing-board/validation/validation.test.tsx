@@ -323,7 +323,7 @@ describe("display controls", () => {
       visible: false,
       filter: "advisory",
     });
-    expect(screen.getByText("0 edit(s)")).toBeTruthy();
+    expect(screen.getByText("No edits")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Undo" }).hasAttribute("disabled")).toBe(true);
   });
 
