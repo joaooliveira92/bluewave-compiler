@@ -26,7 +26,12 @@ export function DossierHeader({
               You have been appointed {appointmentTitle}
             </p>
           </div>
-
+          <h3
+            id={`nation-dossier-heading-${countryId}`}
+            className="mt-1 truncate font-display text-base font-black uppercase tracking-[0.1em] text-admiralty-ink sm:text-xl sm:tracking-[0.12em]"
+          >
+            {nationName}
+          </h3>
           <p className="mt-0.5 font-display text-[0.55rem] uppercase tracking-[0.18em] text-admiralty-accent/80">
             Fleet record · {getCountryCode(countryId)}
           </p>

@@ -21,9 +21,7 @@ async function openFleetDispatchInTheme(page: Page, theme: "light" | "dark"): Pr
 }
 
 const background = (page: Page, testId: string): Promise<string> =>
-  page
-    .getByTestId(testId)
-    .evaluate((el) => getComputedStyle(el).backgroundColor);
+  page.getByTestId(testId).evaluate((el) => getComputedStyle(el).backgroundColor);
 
 const oceanInner = (page: Page): Promise<string> =>
   page

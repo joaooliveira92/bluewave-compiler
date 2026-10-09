@@ -54,13 +54,13 @@ export function DossierSlidePanel({
           military={tabs.military}
           diplomacy={tabs.diplomacy}
         />
-        {/* <DossierControls
+        <DossierControls
           countryId={countryId}
           nationName={flavor.name}
           onChangeNation={onChangeNation}
           onConfirm={onConfirm}
           onRecommendedSetup={onRecommendedSetup}
-        /> */}
+        />
       </div>
     </section>
   );
