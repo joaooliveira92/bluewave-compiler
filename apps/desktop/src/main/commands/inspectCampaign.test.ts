@@ -52,6 +52,7 @@ describe("inspectCampaign", () => {
     expect(projection.campaignIdentity).toBe(output.state.snapshot.campaignId);
     expect(projection.economy.treasury).toBe(Number(ukNation.treasury));
     expect(projection.month).toEqual({ month: 1, year: 1880 });
+    expect(projection.playerNationId).toBe("uk");
 
     const expectedFleetCount = ukNation.fleets.length;
     expect(projection.fleet).toHaveLength(expectedFleetCount);

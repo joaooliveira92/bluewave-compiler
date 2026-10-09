@@ -1,12 +1,46 @@
-import type { BattleManifest } from "@bluewave/campaign-engine";
+import type { BattleManifest, BattleSide } from "@bluewave/campaign-engine";
 
 import { Badge } from "../../../components/ui/badge.js";
+import { nationDisplayName } from "../../../content/nationDisplayName.js";
 
 interface BattleManifestViewProps {
   readonly manifest: BattleManifest;
+  readonly playerNationId: string | null;
 }
 
-export function BattleManifestView({ manifest }: BattleManifestViewProps) {
+/** `(Player)`/`(AI)` from the player nation id; omitted entirely when it is unknown. */
+function roleSuffix(nationId: string, playerNationId: string | null): string {
+  if (playerNationId === null) return "";
+  return nationId === playerNationId ? " (Player)" : " (AI)";
+}
+
+function BattleSideColumn({
+  label,
+  side,
+  playerNationId,
+}: {
+  readonly label: string;
+  readonly side: BattleSide | undefined;
+  readonly playerNationId: string | null;
+}) {
+  const nationId = side?.nationId ?? "";
+  return (
+    <div>
+      <div className="text-[12px] text-muted-foreground">{label}</div>
+      <div className="font-semibold text-foreground">
+        {side === undefined ? "" : `${nationDisplayName(nationId)}${roleSuffix(nationId, playerNationId)}`}
+      </div>
+      <div className="mt-1 text-[12px] text-muted-foreground">SQUADRONS:</div>
+      {side?.participants.map((p, idx) => (
+        <div key={idx} className="text-[12px]">
+          • {p.shipId} ({p.divisionId})
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function BattleManifestView({ manifest, playerNationId }: BattleManifestViewProps) {
   return (
     <div className="space-y-2 rounded-md border bg-muted/10 p-3 font-mono text-xs">
       <div className="flex items-center justify-between border-b pb-1">
@@ -16,26 +50,16 @@ export function BattleManifestView({ manifest }: BattleManifestViewProps) {
         </Badge>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <div className="text-[12px] text-muted-foreground">ATTACKER</div>
-          <div className="font-semibold text-foreground">United Kingdom (Player)</div>
-          <div className="mt-1 text-[12px] text-muted-foreground">SQUADRONS:</div>
-          {manifest.sides[0]?.participants.map((p, idx) => (
-            <div key={idx} className="text-[12px]">
-              • {p.shipId} ({p.divisionId})
-            </div>
-          ))}
-        </div>
-        <div>
-          <div className="text-[12px] text-muted-foreground">DEFENDER</div>
-          <div className="font-semibold text-foreground">German Empire (AI)</div>
-          <div className="mt-1 text-[12px] text-muted-foreground">SQUADRONS:</div>
-          {manifest.sides[1]?.participants.map((p, idx) => (
-            <div key={idx} className="text-[12px]">
-              • {p.shipId} ({p.divisionId})
-            </div>
-          ))}
-        </div>
+        <BattleSideColumn
+          label="ATTACKER"
+          side={manifest.sides[0]}
+          playerNationId={playerNationId}
+        />
+        <BattleSideColumn
+          label="DEFENDER"
+          side={manifest.sides[1]}
+          playerNationId={playerNationId}
+        />
       </div>
     </div>
   );

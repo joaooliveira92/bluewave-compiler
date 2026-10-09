@@ -18,6 +18,8 @@ export interface SimulationScreenState {
   readonly error: string | null;
   readonly activeTab: string;
   readonly revision: number;
+  /** The session's player nation id, captured from the projection; never guessed from side order. */
+  readonly playerNationId: string | null;
   readonly submarinePools: readonly SubmarinePool[];
   readonly minePressure: readonly MinePressure[];
   readonly landTargetDamage: readonly LandTargetDamage[];
@@ -31,7 +33,11 @@ export interface SimulationScreenState {
 
 export type SimulationScreenAction =
   | { readonly type: "load-started" }
-  | { readonly type: "load-succeeded"; readonly revision: number }
+  | {
+      readonly type: "load-succeeded";
+      readonly revision: number;
+      readonly playerNationId: string | null;
+    }
   | { readonly type: "load-failed"; readonly message: string }
   | { readonly type: "commit-started" }
   | { readonly type: "commit-succeeded"; readonly response: CommitMonthResponse }
@@ -50,6 +56,7 @@ export function initialSimulationScreenState(): SimulationScreenState {
     error: null,
     activeTab: "overview",
     revision: 0,
+    playerNationId: null,
     submarinePools: [],
     minePressure: [],
     landTargetDamage: [],
@@ -70,7 +77,12 @@ export function reduceSimulationScreen(
     case "load-started":
       return { ...state, loading: true };
     case "load-succeeded":
-      return { ...state, loading: false, revision: action.revision };
+      return {
+        ...state,
+        loading: false,
+        revision: action.revision,
+        playerNationId: action.playerNationId,
+      };
     case "load-failed":
       return { ...state, loading: false, error: action.message };
     case "commit-started":

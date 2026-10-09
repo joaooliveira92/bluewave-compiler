@@ -30,6 +30,7 @@ export interface UseSimulationScreenReturn {
   readonly loading: boolean;
   readonly error: string | null;
   readonly activeTab: string;
+  readonly playerNationId: string | null;
   readonly submarinePools: readonly SubmarinePool[];
   readonly minePressure: readonly MinePressure[];
   readonly landTargetDamage: readonly LandTargetDamage[];
@@ -99,7 +100,11 @@ export function useSimulationScreen(
     try {
       const result = await bridge.campaign.execute("inspectCampaign", sessionId);
       if (result.outcome === "success") {
-        dispatch({ type: "load-succeeded", revision: result.value.projection.revision });
+        dispatch({
+          type: "load-succeeded",
+          revision: result.value.projection.revision,
+          playerNationId: result.value.projection.playerNationId,
+        });
       }
     } catch (error) {
       dispatch({
@@ -229,6 +234,7 @@ export function useSimulationScreen(
     loading: state.loading,
     error: state.error,
     activeTab: state.activeTab,
+    playerNationId: state.playerNationId,
     submarinePools: state.submarinePools,
     minePressure: state.minePressure,
     landTargetDamage: state.landTargetDamage,

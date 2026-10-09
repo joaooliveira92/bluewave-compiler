@@ -8,6 +8,7 @@ function projection(overrides: Partial<PlayerProjection> = {}): PlayerProjection
     snapshotHash: "h",
     revision: 1,
     month: { year: 1880, month: 1 },
+    playerNationId: "uk",
     nationName: "Britain",
     projectedSurplusDeficit: 1200,
     economy: {

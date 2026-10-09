@@ -15,6 +15,7 @@ import {
   ItemDescription,
   ItemTitle,
 } from "../../../components/ui/item.js";
+import { nationDisplayName } from "../../../content/nationDisplayName.js";
 
 interface SubmarinePoolsSectionProps {
   readonly pools: readonly SubmarinePool[];
@@ -44,7 +45,7 @@ export function SubmarinePoolsSection({ pools }: SubmarinePoolsSectionProps) {
             {pools.map((pool, idx) => (
               <Item key={idx}>
                 <ItemContent>
-                  <ItemTitle>{pool.nationId === "nation_uk" ? "UK" : "Germany"}</ItemTitle>
+                  <ItemTitle>{nationDisplayName(pool.nationId)}</ItemTitle>
                   <ItemDescription className="font-mono">{pool.submarineType}</ItemDescription>
                 </ItemContent>
                 <ItemActions>

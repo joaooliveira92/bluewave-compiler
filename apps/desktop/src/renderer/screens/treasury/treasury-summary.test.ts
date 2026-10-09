@@ -7,6 +7,7 @@ const projection: PlayerProjection = {
   campaignIdentity: "campaign_1",
   revision: 3 as PlayerProjection["revision"],
   month: { year: 1880, month: 3 },
+  playerNationId: "uk",
   nationName: "United Kingdom",
   projectedSurplusDeficit: 1000,
   economy: {

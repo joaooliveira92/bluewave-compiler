@@ -78,6 +78,13 @@ export interface PlayerProjection {
   readonly snapshotHash: string;
   readonly revision: number;
   readonly month: PlayerProjectionMonth;
+  /**
+   * The nation id of the player slot this projection was built for. Derived,
+   * read-only projection data (never authoritative state and never persisted):
+   * it lets presentation tell the player's side from the AI's without guessing
+   * from ordering or nation identity.
+   */
+  readonly playerNationId: string;
   readonly nationName: string;
   /**
    * Projected monthly surplus/deficit for the nation, derived from the same
@@ -209,6 +216,7 @@ export function buildPlayerProjection(
     snapshotHash: state.rawHash,
     revision: Number(snapshot.turnNumber),
     month,
+    playerNationId: playerSlotId,
     nationName: nation.name,
     projectedSurplusDeficit,
     economy: {

@@ -29,16 +29,30 @@ describe("simulation screen state", () => {
     expect(state.error).toBeNull();
     expect(state.activeTab).toBe("overview");
     expect(state.revision).toBe(0);
+    expect(state.playerNationId).toBeNull();
     expect(state.battleManifest).toBeNull();
   });
 
-  it("adopts the loaded revision and clears the loading flag", () => {
+  it("adopts the loaded revision and player nation id, and clears the loading flag", () => {
     const state = reduceSimulationScreen(
       reduceSimulationScreen(initialSimulationScreenState(), { type: "load-started" }),
-      { type: "load-succeeded", revision: 12 },
+      { type: "load-succeeded", revision: 12, playerNationId: "uk" },
     );
     expect(state.loading).toBe(false);
     expect(state.revision).toBe(12);
+    expect(state.playerNationId).toBe("uk");
+  });
+
+  it("keeps the player nation id across battle and commit actions", () => {
+    const loaded = reduceSimulationScreen(initialSimulationScreenState(), {
+      type: "load-succeeded",
+      revision: 3,
+      playerNationId: "france",
+    });
+    const afterBattle = reduceSimulationScreen(loaded, {
+      type: "battle-generate-started",
+    });
+    expect(afterBattle.playerNationId).toBe("france");
   });
 
   it("records a load failure without leaving the screen loading", () => {

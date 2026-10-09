@@ -33,6 +33,7 @@ export function SimulationScreen({
     loading,
     error,
     activeTab,
+    playerNationId,
     submarinePools,
     minePressure,
     landTargetDamage,
@@ -109,6 +110,7 @@ export function SimulationScreen({
             battleError={battleError}
             autoResolution={autoResolution}
             tacticalOutcome={tacticalOutcome}
+            playerNationId={playerNationId}
             onGenerateBattle={handleGenerateBattle}
             onAutoResolve={handleAutoResolve}
             onTacticalResolve={handleTacticalResolve}

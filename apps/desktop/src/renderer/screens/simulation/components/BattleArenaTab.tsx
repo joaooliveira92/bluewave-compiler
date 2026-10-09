@@ -26,6 +26,7 @@ interface BattleArenaTabProps {
   readonly battleError: string | null;
   readonly autoResolution: BattleResolution | null;
   readonly tacticalOutcome: TacticalBattleOutcome | null;
+  readonly playerNationId: string | null;
   readonly onGenerateBattle: () => void;
   readonly onAutoResolve: () => void;
   readonly onTacticalResolve: () => void;
@@ -37,6 +38,7 @@ export function BattleArenaTab({
   battleError,
   autoResolution,
   tacticalOutcome,
+  playerNationId,
   onGenerateBattle,
   onAutoResolve,
   onTacticalResolve,
@@ -96,7 +98,9 @@ export function BattleArenaTab({
             </EmptyDescription>
           </Empty>
         ) : (
-          battleManifest !== null && <BattleManifestView manifest={battleManifest} />
+          battleManifest !== null && (
+            <BattleManifestView manifest={battleManifest} playerNationId={playerNationId} />
+          )
         )}
 
         <BattleResolutionPanel autoResolution={autoResolution} tacticalOutcome={tacticalOutcome} />

@@ -13,6 +13,7 @@ const projection: PlayerProjection = {
   snapshotHash: "hash_abc",
   revision: 3,
   month: { year: 1900, month: 1 },
+  playerNationId: "uk",
   nationName: "United Kingdom",
   projectedSurplusDeficit: 1_250_000,
   economy: {

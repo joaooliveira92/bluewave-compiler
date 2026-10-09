@@ -11,7 +11,8 @@ import { StrategicOverviewTab } from "./StrategicOverviewTab.js";
  * authoritative state.
  */
 const pools: readonly SubmarinePool[] = [
-  { poolId: "pool_1", nationId: "nation_uk", submarineType: "Holland-class", available: 3 },
+  { poolId: "pool_1", nationId: "uk", submarineType: "Holland-class", available: 3 },
+  { poolId: "pool_2", nationId: "germany", submarineType: "U-boat", available: 5 },
 ];
 
 const pressure: readonly MinePressure[] = [
@@ -44,9 +45,11 @@ describe("StrategicOverviewTab", () => {
     );
 
     expect(screen.getByText("Submarine Warfare Pools")).not.toBeNull();
-    expect(screen.getByText("UK")).not.toBeNull();
+    expect(screen.getByText("United Kingdom")).not.toBeNull();
+    expect(screen.getByText("German Empire")).not.toBeNull();
     expect(screen.getByText("Holland-class")).not.toBeNull();
     expect(screen.getByText("3 available")).not.toBeNull();
+    expect(screen.getByText("5 available")).not.toBeNull();
 
     expect(screen.getByText("Sea Mine Pressure Map")).not.toBeNull();
     expect(screen.getByText("Mediterranean")).not.toBeNull();

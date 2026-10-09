@@ -109,6 +109,7 @@ describe("buildPlayerProjection", () => {
     expect(projection.snapshotHash).toBe("raw-hash-abc");
     expect(projection.revision).toBe(3);
     expect(projection.month).toEqual({ month: 3, year: 1900 });
+    expect(projection.playerNationId).toBe("uk");
 
     // Economy: treasury is direct, monthlyAppropriation reuses the real
     // basis-point scaling formula (1000 * 2000bp/10000 = 200).
