@@ -157,6 +157,7 @@ export async function submitConstructionCommand(
     payload.designId,
     costs.projectedCost,
     record.month,
+    valid.design.constructionPlan,
   );
   const persisted = constructionSnapshotStore.persist(record, (snapshot) =>
     addProjectToNation(snapshot, record.playerSlotId, project),
@@ -296,6 +297,7 @@ export async function replaceConstructionCommand(
     payload.designId,
     costs.projectedCost,
     record.month,
+    valid.design.constructionPlan,
   );
   const persisted = constructionSnapshotStore.persist(record, (snapshot) =>
     addProjectToNation(

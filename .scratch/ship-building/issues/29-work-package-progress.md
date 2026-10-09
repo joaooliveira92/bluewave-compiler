@@ -1,7 +1,7 @@
 # 29: Run construction progress per work package
 
 **Type:** implementation (engine milestone)
-**Status:** in progress (slice 29a done; 29b-e open, see ADR-0077)
+**Status:** in progress (29a, 29b, 29c done; 29d, 29e open, see ADR-0077)
 **Blocked by:** none (ADR-0064 gives the package model)
 **Frontier:** yes
 
@@ -52,3 +52,10 @@ dependencies, 0 <= done <= total, sum(total) = totalWork, sum(done) = completedW
 fixture now carries both fields. phase-engine 20 files / 186 tests. A flaky a11y audit I introduced earlier (one test with nine axe
 passes timed out under full-suite load and left axe running for the next test) was split into three tests with their own timeouts.
 Next: 29c (the first slice that changes behaviour and golden hashes for designed-ship projects).
+
+### 2026-10-09 orchestrator (29c)
+
+**29c done: designed-ship projects now advance package by package.** Steps: (1) `scalePlanToUnits` / `capacityInUnits` (largest remainder onto the project's treasury units); (2) `chooseYard` extracted from the forecast and shared, `constructionOrderPlan`; (3) `CompiledDesignVersion.constructionPlan` (packages in units, yard, per-line capacity) stored by `buildDesignVersion` for SubmitDesign and ReviseProject; (4) the desktop order builder (`constructionProjectFor`, submit and replace) starts a project with packages and `yardId` when the plan adds up to the cost; (5) `fundConstructionProject` (phase-engine) is the one funding rule used by `applyBudgetProject`, the appropriation phase and its leftover funding. Per-month capacity is accounted on the project (`monthUsage`: work applied per line, progress at the month's start), and `advanceConstructionMonth` takes an optional `dependencyProgress`, so several funding calls in one month cannot spend a line's capacity twice or start a dependent package early. Money that cannot be used is not spent: `budget_project` charges only the work applied and warns `PROJECT_CAPACITY_EXHAUSTED` when nothing can be done; the appropriation phase skips such projects and lets leftover funds go to the next project that can use them.
+Key proof: through the real month executor a package project completes in exactly `simulateConstruction`'s number of months for yard capacities 20, 45 and 1000 (`construction-engine.test.ts`), so the forecast and the engine agree. Legacy and authored projects (no packages) keep the single-figure arithmetic and every golden hash unchanged.
+Tests: ship-design 37 files / 390; phase-engine 22 files / 206 (construction-funding 8, construction-engine 8, clone audit); desktop main 22 files / 217 (snapshot-mutations 4). `pnpm check` exit 0 (173 desktop files, 1146 tests, 19 e2e, goldens and cross-process determinism unchanged).
+Known behaviour change (intended, ADR-0077): a designed ship now takes as many months as its yard allows, not one month per budget. Open: 29d (ReviseProject reads real state and rescales packages; a launched ship is T3), 29e (Construction screen shows packages and the yard; the Drawing Board yard list drops "forecast only").

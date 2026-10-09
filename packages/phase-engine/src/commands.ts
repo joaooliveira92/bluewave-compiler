@@ -1,4 +1,9 @@
-import type { CampaignSnapshot, DesignFamily, NationState } from "@bluewave/campaign";
+import type {
+  CampaignSnapshot,
+  ConstructionProject,
+  DesignFamily,
+  NationState,
+} from "@bluewave/campaign";
 import {
   applyCommanderChange,
   DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE,
@@ -17,6 +22,7 @@ import { compileDesign, type DesignDraft, type ShipBuildingContent } from "@blue
 import { SafeInt } from "@bluewave/contracts";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { buildDesignVersion, pricingFor } from "./designVersion.js";
+import { fundConstructionProject } from "./constructionFunding.js";
 import { EventLedger } from "@bluewave/events";
 import type { FinancialLedger } from "./financial-ledger.js";
 import { budgetChangedEvent, makeLedgerEntry } from "./events.js";
@@ -211,8 +217,33 @@ export function applyBudgetProject(
     return currentSnapshot;
   }
 
-  const budget = body["budget"];
+  const requested = body["budget"];
+  let budget = requested;
   const previousTreasury = nation["treasury"];
+  let fundedProject: ConstructionProject | undefined;
+  if (project["packages"] !== undefined) {
+    // Per-package construction (ADR-0077): only the work the yard can do this month is applied and charged.
+    const capacity = currentSnapshot["designs"].get(project["designVersionId"])?.constructionPlan
+      ?.capacityUnits;
+    const funded = fundConstructionProject(
+      project,
+      capacity === undefined
+        ? undefined
+        : Object.fromEntries(Object.entries(capacity).map(([line, v]) => [line, v as number])),
+      requested as number,
+      campaignMonth,
+    );
+    if (funded.applied <= 0) {
+      collector.addWarning(
+        "PROJECT_CAPACITY_EXHAUSTED",
+        `Project ${body["projectId"]} could use none of the ${String(requested)} units offered this month: the yard's capacity or the package order leaves nothing to do`,
+        { stage: "command_collection", entityId: body["projectId"] },
+      );
+      return currentSnapshot;
+    }
+    budget = SafeInt(funded.applied);
+    fundedProject = funded.project;
+  }
   const newTreasury = SafeInt.sub(previousTreasury, budget);
   const rawNewWork = SafeInt.add(project["completedWork"], budget);
   const clampedWork = rawNewWork > project["totalWork"] ? project["totalWork"] : rawNewWork;
@@ -221,14 +252,14 @@ export function applyBudgetProject(
     ...nation,
     treasury: newTreasury,
     constructionProjects: nation["constructionProjects"].map((p) =>
-      p["id"] === body["projectId"]
-        ? {
+      p["id"] !== body["projectId"]
+        ? p
+        : (fundedProject ?? {
             ...p,
             completedWork: clampedWork,
             paidWork: SafeInt.add(p["paidWork"], budget),
             status: "ACTIVE" as const,
-          }
-        : p,
+          }),
     ),
   };
   const updatedNations = new Map(currentSnapshot["nations"]);

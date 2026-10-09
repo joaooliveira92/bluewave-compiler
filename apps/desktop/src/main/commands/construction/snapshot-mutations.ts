@@ -1,4 +1,8 @@
-import type { CampaignSnapshot, ConstructionProject } from "@bluewave/campaign";
+import type {
+  CampaignSnapshot,
+  ConstructionPlanRecord,
+  ConstructionProject,
+} from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
 import { constructionProjectIdForCommand } from "@bluewave/campaign-engine";
 
@@ -9,11 +13,37 @@ import { constructionProjectIdForCommand } from "@bluewave/campaign-engine";
  * reused by any snapshot writer.
  */
 
+/**
+ * The per-package state a new project starts with (ADR-0077), from the design's construction plan: every package with no
+ * work done and the yard that builds it. Only when the plan's packages add up to the project's total work, so the project's
+ * invariants hold from the start; otherwise the project keeps the single-figure model.
+ */
+function packagesFor(
+  plan: ConstructionPlanRecord | undefined,
+  projectedCost: number,
+): Pick<ConstructionProject, "packages" | "yardId"> {
+  if (plan === undefined) return {};
+  const total = plan.packages.reduce((sum, p) => sum + Number(p.totalWork), 0);
+  if (total !== projectedCost) return {};
+  return {
+    packages: plan.packages.map((p) => ({
+      id: p.id,
+      kind: p.kind,
+      line: p.line,
+      totalWork: p.totalWork,
+      doneWork: SafeInt.ZERO,
+      dependsOn: [...p.dependsOn],
+    })),
+    yardId: plan.yardId,
+  };
+}
+
 export function constructionProjectFor(
   commandId: string,
   designId: string,
   projectedCost: number,
   month: { month: number; year: number },
+  plan?: ConstructionPlanRecord,
 ): ConstructionProject {
   return {
     id: constructionProjectIdForCommand(commandId),
@@ -26,6 +56,7 @@ export function constructionProjectFor(
     paidWork: SafeInt.ZERO,
     status: "PLANNED",
     startedAt: `${String(month.year)}-${String(month.month).padStart(2, "0")}`,
+    ...packagesFor(plan, projectedCost),
   };
 }
 

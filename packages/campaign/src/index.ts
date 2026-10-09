@@ -36,6 +36,7 @@ export type {
   CompiledDesignVersion,
   CompiledTorpedoMount,
   ConstructionPackage,
+  ConstructionMonthUsage,
   ConstructionPackageKind,
   ConstructionPlanRecord,
   ConstructionPlanShare,

@@ -1,7 +1,8 @@
 // packages/phase-engine/src/economyPhases.ts
 // Economy phases: monthly_revenue, appropriation, maintenance, obligation.
-import type { ConstructionProject, NationState, Ship } from "@bluewave/campaign";
+import type { CampaignSnapshot, ConstructionProject, NationState, Ship } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
+import { fundConstructionProject } from "./constructionFunding.js";
 import { budgetChangedEvent, makeLedgerEntry } from "./events.js";
 import type { MonthContext } from "./monthContext.js";
 
@@ -68,6 +69,17 @@ export function runMonthlyRevenuePhase(ctx: MonthContext): void {
   }
 }
 
+/** The monthly yard capacity (treasury units per line) recorded on a project's design, or undefined when it has none. */
+function capacityOf(
+  designs: CampaignSnapshot["designs"],
+  project: ConstructionProject,
+): Record<string, number> | undefined {
+  const capacity = designs.get(project["designVersionId"])?.constructionPlan?.capacityUnits;
+  return capacity === undefined
+    ? undefined
+    : Object.fromEntries(Object.entries(capacity).map(([line, v]) => [line, v as number]));
+}
+
 // Phase 4: appropriation — proportional funding of construction projects within
 // the nation's construction cap.
 export function runAppropriationPhase(ctx: MonthContext): void {
@@ -108,6 +120,25 @@ export function runAppropriationPhase(ctx: MonthContext): void {
       const clampedAlloc = cappedAlloc > remainingWork ? remainingWork : cappedAlloc;
       if ((clampedAlloc as number) <= 0) continue;
 
+      if (project["packages"] !== undefined) {
+        // Per-package construction (ADR-0077): only what the yard can do this month is applied and charged.
+        const funded = fundConstructionProject(
+          project,
+          capacityOf(ctx.currentSnapshot["designs"], project),
+          clampedAlloc as number,
+          campaignMonth,
+        );
+        if (funded.applied <= 0) continue;
+        const applied = SafeInt(funded.applied);
+        totalDelta = SafeInt.add(totalDelta, applied);
+        remainingFunds = SafeInt.sub(remainingFunds, applied);
+        remainingCap = SafeInt.sub(remainingCap, applied);
+        updatedProjects = updatedProjects.map((p) =>
+          p["id"] === project["id"] ? funded.project : p,
+        );
+        continue;
+      }
+
       totalDelta = SafeInt.add(totalDelta, clampedAlloc);
       remainingFunds = SafeInt.sub(remainingFunds, clampedAlloc);
       remainingCap = SafeInt.sub(remainingCap, clampedAlloc);
@@ -125,7 +156,13 @@ export function runAppropriationPhase(ctx: MonthContext): void {
     }
 
     // Apply leftover funds to first incomplete project if within cap
-    const leftover = applyLeftoverFunding(updatedProjects, remainingFunds, remainingCap);
+    const leftover = applyLeftoverFunding(
+      updatedProjects,
+      remainingFunds,
+      remainingCap,
+      ctx.currentSnapshot["designs"],
+      campaignMonth,
+    );
     updatedProjects = leftover.projects;
     totalDelta = SafeInt.add(totalDelta, leftover.delta);
 
@@ -177,13 +214,35 @@ function applyLeftoverFunding(
   projects: ConstructionProject[],
   remainingFunds: SafeInt,
   remainingCap: SafeInt,
+  designs: CampaignSnapshot["designs"],
+  campaignMonth: string,
 ): { projects: ConstructionProject[]; delta: SafeInt } {
   if ((remainingFunds as number) <= 0 || (remainingCap as number) <= 0) {
     return { projects, delta: SafeInt.ZERO };
   }
+  // Projects with work packages take leftover funds in order, skipping one the yard cannot work on this month (ADR-0077).
+  const offered =
+    (remainingFunds as number) > (remainingCap as number) ? remainingCap : remainingFunds;
+  for (const candidate of projects) {
+    if (candidate["packages"] === undefined || candidate["status"] === "COMPLETED") continue;
+    if ((candidate["completedWork"] as number) >= (candidate["totalWork"] as number)) continue;
+    const funded = fundConstructionProject(
+      candidate,
+      capacityOf(designs, candidate),
+      offered as number,
+      campaignMonth,
+    );
+    if (funded.applied <= 0) continue;
+    return {
+      projects: projects.map((p) => (p["id"] === candidate["id"] ? funded.project : p)),
+      delta: SafeInt(funded.applied),
+    };
+  }
   const firstIncomplete = projects.find(
     (p) =>
-      (p["completedWork"] as number) < (p["totalWork"] as number) && p["status"] !== "COMPLETED",
+      p["packages"] === undefined &&
+      (p["completedWork"] as number) < (p["totalWork"] as number) &&
+      p["status"] !== "COMPLETED",
   );
   if (!firstIncomplete) return { projects, delta: SafeInt.ZERO };
 

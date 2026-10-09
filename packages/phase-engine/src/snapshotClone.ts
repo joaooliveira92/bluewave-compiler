@@ -8,6 +8,7 @@ import type {
   CampaignSnapshot,
   CampaignWeatherState,
   CompiledDesignVersion,
+  ConstructionMonthUsage,
   ConstructionPackage,
   ConstructionProject,
   DesignFamily,
@@ -26,6 +27,7 @@ import type {
   WarState,
   WorldState,
 } from "@bluewave/campaign";
+import type { SafeInt } from "@bluewave/contracts";
 
 type AreaData = WorldState["areas"][number];
 type RouteData = WorldState["routes"][number];
@@ -202,7 +204,9 @@ const F = {
     "holdUntilMonth",
     "packages",
     "yardId",
+    "monthUsage",
   ),
+  ConstructionMonthUsage: fields<ConstructionMonthUsage>()("month", "used", "startDone"),
   ConstructionPackage: fields<ConstructionPackage>()(
     "id",
     "kind",
@@ -420,6 +424,7 @@ const _assert: [
   _Assert<PermanentDivision, typeof F.PermanentDivision>,
   _Assert<ConstructionProject, typeof F.ConstructionProject>,
   _Assert<ConstructionPackage, typeof F.ConstructionPackage>,
+  _Assert<ConstructionMonthUsage, typeof F.ConstructionMonthUsage>,
   _Assert<Officer, typeof F.Officer>,
   _Assert<NationState, typeof F.NationState>,
   _Assert<DiplomaticRelation, typeof F.DiplomaticRelation>,
@@ -472,6 +477,7 @@ const _assert: [
   true,
   true,
   true,
+  true,
 ];
 void _assert;
 
@@ -492,10 +498,16 @@ const cloneConstructionPackage = (p: ConstructionPackage): ConstructionPackage =
   recordClone(p, F.ConstructionPackage, {
     dependsOn: (v) => [...(v as string[])],
   });
+const cloneMonthUsage = (u: ConstructionMonthUsage): ConstructionMonthUsage =>
+  recordClone(u, F.ConstructionMonthUsage, {
+    used: (v) => ({ ...(v as Record<string, SafeInt>) }),
+    startDone: (v) => ({ ...(v as Record<string, SafeInt>) }),
+  });
 const cloneConstructionProject = (c: ConstructionProject): ConstructionProject =>
   recordClone(c, F.ConstructionProject, {
     packages: (v) =>
       v === undefined ? undefined : (v as ConstructionPackage[]).map(cloneConstructionPackage),
+    monthUsage: (v) => (v === undefined ? undefined : cloneMonthUsage(v as ConstructionMonthUsage)),
   });
 const cloneNation = (n: NationState): NationState =>
   recordClone(n, F.NationState, {

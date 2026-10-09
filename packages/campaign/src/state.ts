@@ -298,6 +298,17 @@ export interface ConstructionPackage {
   dependsOn: string[];
 }
 
+/**
+ * What a project's funding has already used in one month (ADR-0077): the work applied per production line and the progress
+ * the month started from. Funding can reach a project several times in a month (a budget command, then the appropriation
+ * phase); this keeps a line's monthly capacity from being spent twice and keeps dependencies judged at the month's start.
+ */
+export interface ConstructionMonthUsage {
+  month: string;
+  used: Record<string, SafeInt>;
+  startDone: Record<string, SafeInt>;
+}
+
 export interface ConstructionProject {
   id: string;
   type: "ship" | "building" | "technology";
@@ -322,6 +333,8 @@ export interface ConstructionProject {
   packages?: ConstructionPackage[];
   /** Id of the yard building the ship (ADR-0077); absent when no yard was chosen. */
   yardId?: string;
+  /** Capacity and starting progress of the month last funded; only on projects with `packages`. */
+  monthUsage?: ConstructionMonthUsage;
 }
 
 export interface WorldState {
