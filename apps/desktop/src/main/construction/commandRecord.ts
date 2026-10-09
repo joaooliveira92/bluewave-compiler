@@ -102,6 +102,19 @@ export function campaignMonthKey(record: CampaignSessionRecord): string {
   return `${String(record.month.year)}-${String(record.month.month).padStart(2, "0")}`;
 }
 
+/** The projected treasury amount a record reserved — read off its canonical
+ * payload (written by `acceptConstructionRecord`), never recomputed. */
+export function forecastCostOf(record: CommandRecord): number {
+  const payload = record.canonicalPayload as { projectedCost?: number } | null;
+  return typeof payload?.projectedCost === "number" ? payload.projectedCost : 0;
+}
+
+/** The projected capacity units a record reserved — see `forecastCostOf`. */
+export function forecastCapacityUnitsOf(record: CommandRecord): number {
+  const payload = record.canonicalPayload as { projectedCapacityUnits?: number } | null;
+  return typeof payload?.projectedCapacityUnits === "number" ? payload.projectedCapacityUnits : 0;
+}
+
 /**
  * Walk SUBMITTED → VALIDATED → AUTHORIZED → RESERVED → ACCEPTED, verifying
  * every hop. Each hop goes through `withRecordStatus` (NOT the machinery's

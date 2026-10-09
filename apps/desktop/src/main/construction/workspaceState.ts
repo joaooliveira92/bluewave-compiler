@@ -1,14 +1,24 @@
 import {
   CommandLedger,
-  ReservationManager,
   ScopedIdempotencyStore,
   type CommandOutcome,
   type CommandRecord,
-  type ResourcePool,
 } from "@bluewave/commands";
 import type { ConstructionCommand, ConstructionCommandStatus } from "@bluewave/campaign-engine";
 import { CONSTRUCTION_COMMAND_DEFINITION } from "./commandDefinition.js";
-import { reservationRequirementsFor } from "./reservationRequirements.js";
+import { forecastCapacityUnitsOf, forecastCostOf } from "./commandRecord.js";
+import {
+  ConstructionReservations,
+  type ProjectedCosts,
+  type ReservationFailure,
+  type ReserveOrderResult,
+} from "./reservationLedger.js";
+
+export type {
+  ProjectedCosts,
+  ReservationFailure,
+  ReserveOrderResult,
+} from "./reservationLedger.js";
 
 /**
  * The session-scoped construction workspace: the append-only command
@@ -17,52 +27,30 @@ import { reservationRequirementsFor } from "./reservationRequirements.js";
  *
  * It is a class, not a bag of fields, so the invariants the command flows rely
  * on are enforced in one place instead of being re-derived by every caller:
- * the machinery's reservation/idempotency/ledger objects stay private, a
- * record and its UI row are written together, and the F2 rollback
- * (`restoreInFlight`) is a single operation. The command flows still own the
- * *ordering* (validate → reserve → persist → bookkeep); the workspace owns the
- * *state transitions*.
+ * the machinery's idempotency/ledger objects stay private, a record and its UI
+ * row are written together, and the F2 rollback (`restoreInFlight`) is a
+ * single operation. The command flows still own the *ordering* (validate →
+ * reserve → persist → bookkeep); the workspace owns the *state transitions*.
+ *
+ * Reservations are delegated to `ConstructionReservations`, which is the only
+ * module that knows the pool internals — this class hands it the costs and
+ * never touches pool state itself.
  */
-
-/** The projected treasury + capacity one order commits. */
-export interface ProjectedCosts {
-  readonly projectedCost: number;
-  readonly projectedCapacityUnits: number;
-}
-
-export type ReservationFailure = {
-  readonly ok: false;
-  readonly reasonCode: string;
-  readonly diagnostics: string[];
-};
-
-export type ReserveOrderResult =
-  | { readonly ok: true; readonly recordIds: string[] }
-  | ReservationFailure;
-
-/** The phaseId recorded on every construction reservation. */
-const CONSTRUCTION_RESERVATION_PHASE = "construction_submission";
-
 export class ConstructionWorkspace {
   readonly sessionId: string;
   readonly playerSlotId: string;
 
   private readonly idempotency = new ScopedIdempotencyStore();
-  private readonly reservations = new ReservationManager();
+  private readonly reservations: ConstructionReservations;
   private readonly ledger = new CommandLedger();
   private readonly records = new Map<string, CommandRecord>();
   private uiCommands: ConstructionCommand[] = [];
   private ordinal = 1;
-  private readonly treasuryPool: ResourcePool;
-  private readonly capacityPool: ResourcePool;
 
   constructor(sessionId: string, playerSlotId: string, treasury: number, capacity: number) {
     this.sessionId = sessionId;
     this.playerSlotId = playerSlotId;
-    this.treasuryPool = makePool("TREASURY", playerSlotId, treasury);
-    this.capacityPool = makePool("CAPACITY", playerSlotId, capacity);
-    this.reservations.registerPool(this.treasuryPool);
-    this.reservations.registerPool(this.capacityPool);
+    this.reservations = new ConstructionReservations(playerSlotId, treasury, capacity);
   }
 
   nextSubmissionOrdinal(): number {
@@ -107,23 +95,7 @@ export class ConstructionWorkspace {
 
   /** Hold the projected treasury + capacity for a freshly accepted order. */
   reserve(record: CommandRecord, costs: ProjectedCosts): ReserveOrderResult {
-    const result = this.reservations.reserve(
-      record,
-      reservationRequirementsFor(this.playerSlotId, costs),
-      CONSTRUCTION_RESERVATION_PHASE,
-    );
-    if (result.ok) return { ok: true, recordIds: result.records.map((r) => r.reservationId) };
-    const reasonCode =
-      result.reasonCode === "INSUFFICIENT_FUNDS" || result.reasonCode === "INSUFFICIENT_CAPACITY"
-        ? result.reasonCode
-        : "RESERVATION_FAILED";
-    return {
-      ok: false,
-      reasonCode,
-      diagnostics: [
-        `${result.reasonCode}: could not reserve ${result.failedResource} for construction order ${record.commandId}`,
-      ],
-    };
+    return this.reservations.reserve(record, costs);
   }
 
   release(commandId: string): void {
@@ -150,76 +122,22 @@ export class ConstructionWorkspace {
 
   /**
    * F2 preflight: would the replacement's reservation fit once the original's
-   * supersession releases its hold? Mirrors `ReservationManager.reserve`'s own
-   * affordability check (`pool.available - totalReserved >= quantity`), run
-   * against the CURRENT pools with the original's released hold counted as
-   * available — so a rejected replace never mutates or persists anything.
+   * supersession releases its hold? Delegated to the reservation ledger; see
+   * `ConstructionReservations.canReserveReplacement`.
    */
   canReserveReplacement(
     originalCommandId: string,
     costs: ProjectedCosts,
   ): { readonly ok: true } | ReservationFailure {
-    const checks = [
-      {
-        pool: this.treasuryPool,
-        quantity: costs.projectedCost,
-        failCode: "INSUFFICIENT_FUNDS",
-        label: "treasury",
-      },
-      {
-        pool: this.capacityPool,
-        quantity: costs.projectedCapacityUnits,
-        failCode: "INSUFFICIENT_CAPACITY",
-        label: "shipyard capacity",
-      },
-    ] as const;
-    for (const check of checks) {
-      const totalReserved = [...check.pool.reserved.values()].reduce((sum, r) => sum + r, 0);
-      const originalHeld = check.pool.reserved.get(originalCommandId) ?? 0;
-      const availableForReplacement = check.pool.available - (totalReserved - originalHeld);
-      if (availableForReplacement < check.quantity) {
-        return {
-          ok: false,
-          reasonCode: check.failCode,
-          diagnostics: [
-            `${check.failCode}: replacement needs ${check.quantity} ${check.label}; only ${Math.max(0, availableForReplacement)} would be available after releasing ${originalCommandId}'s hold`,
-          ],
-        };
-      }
-    }
-    return { ok: true };
+    return this.reservations.canReserveReplacement(originalCommandId, costs);
   }
 
   /**
    * Re-point both pools at the session's current real numbers before a command
    * (`nation.treasury`, shipyard capacity), so reservations can never outrun
-   * the current snapshot even after `commitMonth` moved them. The pool objects
-   * are held by reference by `ReservationManager`, so the in-place `available`
-   * update preserves existing reservations.
+   * the current snapshot even after `commitMonth` moved them.
    */
   syncPools(treasury: number, capacity: number): void {
-    this.treasuryPool.available = treasury;
-    this.capacityPool.available = capacity;
+    this.reservations.sync(treasury, capacity);
   }
-}
-
-function makePool(
-  resourceTypeId: "TREASURY" | "CAPACITY",
-  resourceId: string,
-  available: number,
-): ResourcePool {
-  return { resourceTypeId, resourceId, available, reserved: new Map() };
-}
-
-/** The projected treasury amount a record reserved — read off its canonical
- * payload (written by `acceptConstructionRecord`), never recomputed. */
-export function forecastCostOf(record: CommandRecord): number {
-  const payload = record.canonicalPayload as { projectedCost?: number } | null;
-  return typeof payload?.projectedCost === "number" ? payload.projectedCost : 0;
-}
-
-/** The projected capacity units a record reserved — see `forecastCostOf`. */
-export function forecastCapacityUnitsOf(record: CommandRecord): number {
-  const payload = record.canonicalPayload as { projectedCapacityUnits?: number } | null;
-  return typeof payload?.projectedCapacityUnits === "number" ? payload.projectedCapacityUnits : 0;
 }

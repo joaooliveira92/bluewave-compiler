@@ -24,7 +24,7 @@ import {
   workspaceView,
   type ConstructionWorkspace,
 } from "../constructionWorkspace.js";
-import { forecastCostOf } from "../construction/workspaceState.js";
+import { forecastCostOf } from "../construction/commandRecord.js";
 import { verifyEnvelope } from "./commandEnvelope.js";
 import { deriveConstructionCommandId } from "./construction/command-id.js";
 import { isTerminal, uiStatusFor } from "./construction/command-status.js";
