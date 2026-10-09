@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Alert, AlertDescription } from "../components/ui/alert.js";
 import { SidebarInset, SidebarProvider } from "../components/ui/sidebar.js";
 import { BottomNav } from "./BottomNav.js";
@@ -31,10 +31,41 @@ export function AppFrame({
   children,
   onSelectScreen,
 }: AppFrameProps) {
+  // On the Overview the map runs behind the translucent top and bottom bars; the bars' measured
+  // heights are exposed as --chrome-top / --chrome-bottom so floating panels can clear them.
+  const underlay = screen === "overview";
+  const frameRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const frame = frameRef.current;
+    if (frame === null) return;
+    const measure = () => {
+      frame.style.setProperty("--chrome-top", `${topRef.current?.offsetHeight ?? 0}px`);
+      frame.style.setProperty("--chrome-bottom", `${bottomRef.current?.offsetHeight ?? 0}px`);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (topRef.current !== null) observer.observe(topRef.current);
+    if (bottomRef.current !== null) observer.observe(bottomRef.current);
+    return () => observer.disconnect();
+  }, [underlay, campaignSessionId]);
+
   return (
-    <SidebarProvider className="h-svh flex-col overflow-hidden bg-transparent">
-      {header}
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+    <SidebarProvider
+      ref={frameRef}
+      className="relative h-svh flex-col overflow-hidden bg-transparent"
+    >
+      <div ref={topRef} className="relative z-20 shrink-0">
+        {header}
+      </div>
+      <div
+        className={
+          underlay
+            ? "absolute inset-0 z-0 flex overflow-hidden"
+            : "flex min-h-0 flex-1 overflow-hidden"
+        }
+      >
         <SidebarInset className="relative min-h-0 overflow-auto bg-transparent">
           {saveMessage !== null && (
             <Alert
@@ -47,16 +78,18 @@ export function AppFrame({
           {children}
         </SidebarInset>
       </div>
-      {campaignSessionId !== null && campaignRevision !== null && (
-        <StatusStrip
-          sessionId={campaignSessionId}
-          revision={campaignRevision}
-          alertsCount={activeAlertsCount}
-        />
-      )}
-      {campaignSessionId !== null && (
-        <BottomNav screen={screen} onSelect={onSelectScreen} footer={campaignSessionId} />
-      )}
+      <div ref={bottomRef} className="relative z-20 mt-auto shrink-0">
+        {campaignSessionId !== null && campaignRevision !== null && (
+          <StatusStrip
+            sessionId={campaignSessionId}
+            revision={campaignRevision}
+            alertsCount={activeAlertsCount}
+          />
+        )}
+        {campaignSessionId !== null && (
+          <BottomNav screen={screen} onSelect={onSelectScreen} footer={campaignSessionId} />
+        )}
+      </div>
     </SidebarProvider>
   );
 }

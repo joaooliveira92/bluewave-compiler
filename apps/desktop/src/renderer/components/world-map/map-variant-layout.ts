@@ -36,7 +36,7 @@ const CONTROLS_PANEL =
 const INSPECTOR =
   "rounded-lg border p-3 text-xs shadow-lg backdrop-blur absolute right-3 top-3 w-72";
 const ROUTE_READOUT =
-  "absolute bottom-3 left-3 rounded-lg border px-3 py-2 text-xs shadow-lg backdrop-blur";
+  "absolute bottom-[calc(var(--chrome-bottom,0px)+0.75rem)] left-3 rounded-lg border px-3 py-2 text-xs shadow-lg backdrop-blur";
 
 export const MAP_VARIANT_LAYOUT: Readonly<Record<MapVariant, MapVariantLayout>> = {
   full: {
@@ -74,9 +74,9 @@ export const MAP_VARIANT_LAYOUT: Readonly<Record<MapVariant, MapVariantLayout>> 
     controlsHideWhenClosed: true,
     docked: true,
     leftDock:
-      "pointer-events-none absolute bottom-16 left-3 top-3 z-10 flex w-72 flex-col gap-2 overflow-y-auto",
+      "pointer-events-none absolute bottom-[calc(var(--chrome-bottom,0px)+0.75rem)] left-3 top-[calc(var(--chrome-top,0px)+0.75rem)] z-10 flex w-72 flex-col gap-2 overflow-y-auto",
     rightDock:
-      "pointer-events-none absolute bottom-16 right-3 top-3 z-10 flex w-72 flex-col items-stretch gap-2 overflow-y-auto",
+      "pointer-events-none absolute bottom-[calc(var(--chrome-bottom,0px)+0.75rem)] right-3 top-[calc(var(--chrome-top,0px)+0.75rem)] z-10 flex w-72 flex-col items-stretch gap-2 overflow-y-auto",
     inlineAreas: false,
     inspector: cn("rounded-lg border p-3 text-xs shadow-lg backdrop-blur", "pointer-events-auto"),
     inspectorHideWhenEmpty: true,

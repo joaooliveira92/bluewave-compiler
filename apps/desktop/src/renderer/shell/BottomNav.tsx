@@ -21,7 +21,7 @@ export function BottomNav({ screen, onSelect, footer }: BottomNavProps) {
     <nav
       aria-label="Campaign"
       data-testid="bottom-nav"
-      className="shrink-0 border-t bg-background/70 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] backdrop-blur-md select-none supports-[backdrop-filter]:bg-background/60"
+      className="shrink-0 border-t bg-background/40 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] backdrop-blur-sm select-none supports-[backdrop-filter]:bg-background/30"
     >
       <ul className="flex w-full items-stretch gap-1 overflow-x-auto px-2 py-1">
         {CAMPAIGN_NAVIGATION_SECTIONS.flatMap((section) => section.items).map((item) => {

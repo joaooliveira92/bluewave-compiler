@@ -49,7 +49,7 @@ export function SiteHeader({
 
   return (
     <header
-      className="sticky top-0 z-50 flex h-24 w-full shrink-0 flex-col border-b bg-background/70 backdrop-blur-md select-none supports-[backdrop-filter]:bg-background/60"
+      className="sticky top-0 z-50 flex h-24 w-full shrink-0 flex-col border-b bg-background/40 backdrop-blur-sm select-none supports-[backdrop-filter]:bg-background/30"
       style={DRAG}
     >
       {/* Row 1: primary header */}

@@ -139,7 +139,7 @@ export function WorldMapChart({
       {coastline.status !== "ready" && (
         <div
           role="status"
-          className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-md border px-2.5 py-1 text-xs"
+          className="absolute left-1/2 top-[calc(var(--chrome-top,0px)+0.75rem)] z-10 -translate-x-1/2 rounded-md border px-2.5 py-1 text-xs"
           style={{
             background: "oklch(0.16 0.025 245 / 0.85)",
             borderColor: "oklch(0.4 0.02 245)",
@@ -193,7 +193,10 @@ export function WorldMapChart({
         </tbody>
       </table>
 
-      <div data-map-obstacle className="absolute bottom-3 right-3 flex flex-col items-end gap-2">
+      <div
+        data-map-obstacle
+        className="absolute bottom-[calc(var(--chrome-bottom,0px)+0.75rem)] right-3 flex flex-col items-end gap-2"
+      >
         {coastline.status === "ready" && showMinimap && (
           <MapMinimap
             camera={camera}
