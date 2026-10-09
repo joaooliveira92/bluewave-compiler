@@ -1,38 +1,28 @@
-import { buildBudgetBar, type TreasuryBreakdown } from "./treasury-screen-state.js";
-
-const SEGMENT_STYLE = {
-  maintenance: "bg-primary",
-  construction: "bg-warning",
-  research: "bg-success",
-} as const;
+import { buildBudgetBar } from "../budget-bar.js";
+import type { TreasuryBreakdown } from "../treasury-summary.js";
 
 const percent = (share: number) => `${Math.round(share * 100)}%`;
 
 /**
  * Income against stacked expenditure on one scale. Never colour alone: the legend
  * names every segment with its value and share, and the whole bar has a text label.
+ * All geometry, labels, and colours come from `buildBudgetBar`; this only renders.
  */
 export function BudgetBar({ breakdown }: { readonly breakdown: TreasuryBreakdown }) {
   const bar = buildBudgetBar(breakdown);
-  const spent = bar.segments
-    .map((segment) => `${segment.label} ${segment.value.toLocaleString()}`)
-    .join(", ");
-  const label = `Monthly budget: income ${bar.income.toLocaleString()}; expenditure ${bar.totalExpenditure.toLocaleString()} (${spent}). ${
-    bar.overBudget ? "Spending exceeds income." : "Spending is within income."
-  }`;
 
   return (
     <div className="space-y-3" data-testid="budget-bar">
       <div className="relative">
         <div
           role="img"
-          aria-label={label}
+          aria-label={bar.label}
           className="flex h-4 w-full overflow-hidden rounded-full bg-muted ring-1 ring-border"
         >
           {bar.segments.map((segment) => (
             <div
               key={segment.id}
-              className={SEGMENT_STYLE[segment.id]}
+              className={segment.className}
               style={{ width: `${segment.width * 100}%` }}
             />
           ))}
@@ -49,7 +39,7 @@ export function BudgetBar({ breakdown }: { readonly breakdown: TreasuryBreakdown
           <li key={segment.id} className="flex items-center gap-1.5">
             <span
               aria-hidden="true"
-              className={`inline-block h-2.5 w-2.5 rounded-sm ${SEGMENT_STYLE[segment.id]}`}
+              className={`inline-block h-2.5 w-2.5 rounded-sm ${segment.className}`}
             />
             <span>{segment.label}</span>
             <span className="tabular-nums text-muted-foreground">
@@ -65,8 +55,7 @@ export function BudgetBar({ breakdown }: { readonly breakdown: TreasuryBreakdown
       </ul>
       {bar.overBudget && (
         <p className="text-xs text-destructive">
-          Spending exceeds income by {(bar.totalExpenditure - bar.income).toLocaleString()} this
-          month.
+          Spending exceeds income by {bar.overBudgetBy.toLocaleString()} this month.
         </p>
       )}
     </div>

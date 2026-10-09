@@ -59,7 +59,7 @@ vi.mock("../../lib/use-campaign-projection.js", () => ({
   useCampaignProjection: () => hookMocks.state(),
 }));
 
-vi.mock("./BudgetPolicyPanel.js", () => ({
+vi.mock("./components/BudgetPolicyPanel.js", () => ({
   BudgetPolicyPanel: () => <div data-testid="budget-policy-panel-stub" />,
 }));
 

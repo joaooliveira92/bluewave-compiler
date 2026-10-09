@@ -17,7 +17,7 @@ import { FleetOrganizationView } from "./screens/fleet/organization/FleetOrganiz
 import { initialDivisionOrganizationState } from "./screens/fleet/organization/division-organization-state.js";
 import { OptionsScreen } from "./screens/options/OptionsScreen.js";
 import { PrioritiesCard } from "./screens/overview/PrioritiesCard.js";
-import { BudgetBar } from "./screens/treasury/BudgetBar.js";
+import { BudgetBar } from "./screens/treasury/components/BudgetBar.js";
 import { BackgroundProvider } from "./shell/BackgroundContext.js";
 import { BottomNav } from "./shell/BottomNav.js";
 import { DensityProvider } from "./shell/DensityContext.js";

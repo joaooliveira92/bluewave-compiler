@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { PlayerProjection } from "@bluewave/campaign-engine";
 
-import {
-  buildBudgetBar,
-  summarizeTreasury,
-  type TreasuryBreakdown,
-} from "./treasury-screen-state.js";
+import { summarizeTreasury } from "./treasury-summary.js";
 
 const projection: PlayerProjection = {
   campaignIdentity: "campaign_1",
@@ -42,7 +38,7 @@ const projection: PlayerProjection = {
   snapshotHash: "hash_abc123",
 };
 
-describe("treasury-screen-state", () => {
+describe("treasury-summary", () => {
   it("summarizes every row from the projection (income, expenditure, result)", () => {
     const t = summarizeTreasury(projection);
     expect(t.income).toBe(4000);
@@ -64,62 +60,5 @@ describe("treasury-screen-state", () => {
     const t = summarizeTreasury(deficit);
     expect(t.projectedSurplusDeficit).toBe(-250);
     expect(t.projectedMonthEndFunds).toBe(49750);
-  });
-});
-
-describe("buildBudgetBar", () => {
-  const breakdown = (over: Partial<TreasuryBreakdown>): TreasuryBreakdown => ({
-    income: 100,
-    fleetMaintenance: 20,
-    constructionSpend: 10,
-    researchSpend: 10,
-    totalExpenditure: 40,
-    projectedSurplusDeficit: 60,
-    availableFunds: 0,
-    projectedMonthEndFunds: 60,
-    ...over,
-  });
-
-  it("scales segments and the income marker to one shared width", () => {
-    const bar = buildBudgetBar(breakdown({}));
-    expect(bar.overBudget).toBe(false);
-    expect(bar.incomeMarker).toBe(1);
-    expect(bar.segments.map((s) => [s.id, s.width])).toEqual([
-      ["maintenance", 0.2],
-      ["construction", 0.1],
-      ["research", 0.1],
-    ]);
-    expect(bar.segments.map((s) => s.shareOfSpend)).toEqual([0.5, 0.25, 0.25]);
-  });
-
-  it("shows over-spending as the stack running past the income marker", () => {
-    const bar = buildBudgetBar(
-      breakdown({
-        income: 50,
-        fleetMaintenance: 60,
-        constructionSpend: 30,
-        researchSpend: 10,
-        totalExpenditure: 100,
-      }),
-    );
-    expect(bar.overBudget).toBe(true);
-    // The scale becomes the spend (100): income sits at the halfway line.
-    expect(bar.incomeMarker).toBe(0.5);
-    expect(bar.segments.reduce((sum, s) => sum + s.width, 0)).toBeCloseTo(1, 10);
-  });
-
-  it("copes with a zero budget without dividing by zero", () => {
-    const bar = buildBudgetBar(
-      breakdown({
-        income: 0,
-        fleetMaintenance: 0,
-        constructionSpend: 0,
-        researchSpend: 0,
-        totalExpenditure: 0,
-      }),
-    );
-    expect(bar.incomeMarker).toBe(0);
-    expect(bar.overBudget).toBe(false);
-    expect(bar.segments.every((s) => s.width === 0 && s.shareOfSpend === 0)).toBe(true);
   });
 });

@@ -47,8 +47,3 @@ export function acceptBudgetAllocation(_value: BudgetCommandOutcome): {
     notice: "Budget allocation queued. The engine applies it when you advance the month.",
   };
 }
-
-/** Basis points as a percentage string, e.g. 2050 -> "20.5%". */
-export function formatRate(bp: number): string {
-  return `${(bp / 100).toFixed(1)}%`;
-}
