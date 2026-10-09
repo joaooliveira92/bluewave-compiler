@@ -1,3 +1,16 @@
+import brazil0Flag from "../assets/flags/brazil_empire_flag.png";
+import portugal1Flag from "../assets/flags/portugal_monarchy_flag.png";
+import netherlands2Flag from "../assets/flags/netherlands_flag.png";
+import belgium3Flag from "../assets/flags/belgium_flag.png";
+import denmark4Flag from "../assets/flags/denmark_flag.png";
+import greece5Flag from "../assets/flags/greece_flag_1822.png";
+import ottoman6Flag from "../assets/flags/ottoman_flag.png";
+import chile7Flag from "../assets/flags/chile_flag.png";
+import argentina8Flag from "../assets/flags/argentina_flag.png";
+import siam9Flag from "../assets/flags/siam_flag_1855.png";
+import korea10Flag from "../assets/flags/korea_joseon_flag.png";
+import egypt11Flag from "../assets/flags/egypt_khedivate_flag.png";
+import sweden12Flag from "../assets/flags/sweden_norway_union_jack.png";
 import austrianFlag from "../assets/flags/austria_hungary_flag.png";
 import frenchFlag from "../assets/flags/french_tricolor.png";
 import germanFlag from "../assets/flags/german_imperial_tricolor.png";
@@ -109,6 +122,65 @@ export const NATION_ASSET_MANIFEST: NationAssetManifest = {
     qing: {
       nation_flag: asset("qing.flag.1880", "nation_flag", qingFlag, "Qing dragon flag"),
       ship_silhouette: asset("qing.ship.1880", "ship_silhouette", qingShip, "Chinese ironclad"),
+    },
+    brazil: {
+      nation_flag: asset("brazil.flag.1880", "nation_flag", brazil0Flag, "Empire of Brazil flag"),
+    },
+    portugal: {
+      nation_flag: asset(
+        "portugal.flag.1880",
+        "nation_flag",
+        portugal1Flag,
+        "Portuguese monarchy flag",
+      ),
+    },
+    netherlands: {
+      nation_flag: asset(
+        "netherlands.flag.1880",
+        "nation_flag",
+        netherlands2Flag,
+        "Dutch tricolour",
+      ),
+    },
+    belgium: {
+      nation_flag: asset("belgium.flag.1880", "nation_flag", belgium3Flag, "Belgian tricolour"),
+    },
+    denmark: {
+      nation_flag: asset("denmark.flag.1880", "nation_flag", denmark4Flag, "Danish flag"),
+    },
+    greece: {
+      nation_flag: asset(
+        "greece.flag.1880",
+        "nation_flag",
+        greece5Flag,
+        "Greek flag (1822 pattern)",
+      ),
+    },
+    ottoman_empire: {
+      nation_flag: asset("ottoman_empire.flag.1880", "nation_flag", ottoman6Flag, "Ottoman flag"),
+    },
+    chile: {
+      nation_flag: asset("chile.flag.1880", "nation_flag", chile7Flag, "Chilean flag"),
+    },
+    argentina: {
+      nation_flag: asset("argentina.flag.1880", "nation_flag", argentina8Flag, "Argentine flag"),
+    },
+    siam: {
+      nation_flag: asset("siam.flag.1880", "nation_flag", siam9Flag, "Siamese flag (1855)"),
+    },
+    korea: {
+      nation_flag: asset("korea.flag.1880", "nation_flag", korea10Flag, "Joseon flag (1882)"),
+    },
+    egypt: {
+      nation_flag: asset("egypt.flag.1880", "nation_flag", egypt11Flag, "Khedivate of Egypt flag"),
+    },
+    sweden_norway: {
+      nation_flag: asset(
+        "sweden_norway.flag.1880",
+        "nation_flag",
+        sweden12Flag,
+        "Sweden-Norway union flag",
+      ),
     },
   },
   regimes: {},

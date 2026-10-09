@@ -67,11 +67,39 @@ describe("NationRail", () => {
     const items = within(screen.getByRole("list", { name: "Major powers" })).getAllByRole(
       "listitem",
     );
-    expect(items.map((i) => i.textContent)).toEqual([
-      "BritainYou",
-      "FranceWar5:2",
-      "GermanyPeace",
-    ]);
+    expect(items.map((i) => i.textContent)).toEqual(["BritainYou", "FranceWar5:2", "GermanyPeace"]);
+  });
+
+  it("renders flag art for every 1880 power, player first", () => {
+    const powers = [
+      "germany",
+      "usa",
+      "japan",
+      "france",
+      "italy",
+      "russia",
+      "austria_hungary",
+      "spain",
+      "qing",
+      "ottoman_empire",
+      "netherlands",
+      "portugal",
+      "brazil",
+    ];
+    const { container } = render(
+      <NationRail
+        state={{
+          status: "ready",
+          projection: {
+            ...projection,
+            knownNations: powers.map((nationId) => ({ nationId, name: nationId })),
+          },
+        }}
+        playerName="Britain"
+        onNavigate={() => undefined}
+      />,
+    );
+    expect(container.querySelectorAll("img")).toHaveLength(powers.length + 1);
   });
 
   it("selects a nation and shows its detail inline", () => {

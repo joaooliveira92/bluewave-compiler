@@ -32,6 +32,20 @@ const FLAG_COUNTRY_ID: Readonly<Record<string, string>> = {
   austria_hungary: "ah",
   spain: "es",
   qing: "qing",
+  // Non-playable powers: the manifest keys their flag art by the campaign id.
+  brazil: "brazil",
+  portugal: "portugal",
+  netherlands: "netherlands",
+  belgium: "belgium",
+  denmark: "denmark",
+  greece: "greece",
+  ottoman_empire: "ottoman_empire",
+  chile: "chile",
+  argentina: "argentina",
+  siam: "siam",
+  korea: "korea",
+  egypt: "egypt",
+  sweden_norway: "sweden_norway",
 };
 
 /** The nation's flag (or ensign) URL, or null for powers without flag art yet. */
