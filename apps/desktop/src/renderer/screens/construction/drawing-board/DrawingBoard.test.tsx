@@ -35,6 +35,40 @@ describe("DrawingBoard", () => {
     expect(metric("Top speed")).toMatch(/kn \(need 25\.5\)/);
   });
 
+  it("edits armour regions: size, plate, slope, and adds a new region from the hull", () => {
+    render(<DrawingBoard />);
+    fireEvent.change(screen.getByLabelText("Starting design"), {
+      target: { value: "majestic_like" },
+    });
+    const protection = () => region("Protection");
+    expect(within(protection()).getByText("Coverage")).toBeTruthy();
+    const regionsBefore = within(protection()).getAllByRole("listitem").length;
+    commit(/Length of BELT_MAIN/, "10");
+    openTab("History");
+    expect(
+      within(region("Edit history")).getByText(/Armour: set belt main \(.* 10\.0 m ×/),
+    ).toBeTruthy();
+    // Inclined plate: the checkbox sets cos(30 degrees).
+    fireEvent.click(within(protection()).getAllByRole("checkbox")[0]!);
+    openTab("History");
+    expect(within(region("Edit history")).getByText(/Armour: set .*, inclined\)/)).toBeTruthy();
+    // Add a region that is not yet fitted: the list grows by one.
+    fireEvent.click(within(protection()).getByRole("button", { name: "Add region" }));
+    expect(within(protection()).getAllByRole("listitem").length).toBe(regionsBefore + 1);
+  });
+
+  it("offers the armour materials weakest first, with the region's own material selected", () => {
+    render(<DrawingBoard />);
+    fireEvent.change(screen.getByLabelText("Starting design"), {
+      target: { value: "majestic_like" },
+    });
+    const select = within(region("Protection")).getAllByLabelText(/Material of /)[0]!;
+    const options = [...select.querySelectorAll("option")].map((o) => o.value);
+    expect(options.length).toBeGreaterThan(1);
+    expect(options.indexOf("wrought_iron")).toBeLessThan(options.indexOf("harvey"));
+    expect(options).toContain((select as HTMLSelectElement).value);
+  });
+
   it("shows the class code and lets the player declare the ship type, speed and range", () => {
     render(<DrawingBoard />);
     const brief = region("Design brief");

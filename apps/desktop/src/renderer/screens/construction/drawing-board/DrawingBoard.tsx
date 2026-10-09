@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { armourMaterialOptions } from "@bluewave/ship-design";
 import {
   Gauge,
   Hammer,
@@ -63,6 +64,12 @@ export function DrawingBoard({
   const campaignMonth = useCampaignMonthId();
   const { state, actions } = useDrawingBoard(campaignMonth);
   const { draft, view, content } = state;
+  const armourEnv = content.environmentFor(state.month).ctx;
+  const armourMaterials = armourMaterialOptions(
+    armourEnv.balance.armour,
+    state.month,
+    armourEnv.unlockedTechs,
+  );
   const [pendingPreset, setPendingPreset] = useState<string | null>(null);
   const [tab, setTab] = useState("hull");
   return (
@@ -160,7 +167,12 @@ export function DrawingBoard({
             edit={actions.edit}
           />
           <div className={TAB_GRID}>
-            <ArmourPanel draft={draft} edit={actions.edit} />
+            <ArmourPanel
+              draft={draft}
+              view={view}
+              materials={armourMaterials}
+              edit={actions.edit}
+            />
             <TopsidePanel view={view} />
           </div>
         </TabsContent>

@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vite-plus/test";
 import {
   compileArmour,
+  armourMaterialOptions,
+  newArmourRegion,
+  allOrNothingRegions,
+  applyEdit,
+  EditError,
+  changeKindOf,
   regionWeightKg,
   penetrationMarginBp,
   checkFindingShape,
@@ -204,6 +210,158 @@ describe("deck penetration factor", () => {
     );
     expect(b.marginBp.BELT_MAIN!.gun_12in!).toBe(
       penetrationMarginBp(belt({ thicknessUm: 100_000 }), gun12, bal),
+    );
+  });
+});
+
+describe("armourMaterialOptions", () => {
+  const b: ArmourBalance = {
+    ...bal,
+    materialAvailability: {
+      face_hardened: {
+        fromMonth: "1890-01",
+        requires: ["harvey_process"],
+        maxThicknessUm: 450_000,
+      },
+      iron: { fromMonth: "1860-01", obsoleteMonth: "1885-01" },
+    },
+  };
+  it("lists materials weakest first, then by id", () => {
+    expect(armourMaterialOptions(b, "1880-01", new Set()).map((o) => o.id)).toEqual([
+      "iron",
+      "compound",
+      "nickel_steel",
+      "face_hardened",
+    ]);
+  });
+  it("marks a material unavailable for a missing tech or a future month, with the reason", () => {
+    const o = (m: string, t: string[]) =>
+      armourMaterialOptions(b, m, new Set(t)).find((x) => x.id === "face_hardened")!;
+    expect(o("1895-01", [])).toMatchObject({
+      available: false,
+      unavailableReason: "needs harvey_process",
+    });
+    expect(o("1885-01", ["harvey_process"])).toMatchObject({
+      available: false,
+      unavailableReason: "introduced 1890-01",
+    });
+    expect(o("1890-01", ["harvey_process"])).toMatchObject({
+      available: true,
+      unavailableReason: null,
+      maxThicknessUm: 450_000,
+    });
+  });
+  it("flags an obsolete material and treats an unlisted one as unrestricted", () => {
+    const opts = armourMaterialOptions(b, "1886-01", new Set());
+    expect(opts.find((x) => x.id === "iron")!.obsolete).toBe(true);
+    expect(opts.find((x) => x.id === "compound")).toMatchObject({
+      available: true,
+      maxThicknessUm: null,
+      obsolete: false,
+    });
+  });
+});
+
+describe("newArmourRegion", () => {
+  const size = { lengthWlMm: 100_000, beamMm: 15_000, depthMm: 8_000, citadelLengthMm: 50_000 };
+  it("sizes belts and decks from the citadel and ends from the rest of the waterline", () => {
+    expect(newArmourRegion("BELT_MAIN", size, "compound")).toMatchObject({
+      lengthMm: 50_000,
+      heightMm: 2_400,
+      materialId: "compound",
+      cosObliquityBp: 10_000,
+    });
+    expect(newArmourRegion("BELT_ENDS", size, "compound").lengthMm).toBe(50_000);
+    expect(newArmourRegion("DECK_MAIN", size, "iron")).toMatchObject({
+      lengthMm: 50_000,
+      heightMm: 12_000,
+    });
+  });
+  it("falls back to 60% of the waterline with no citadel, and never goes negative", () => {
+    expect(newArmourRegion("BELT_MAIN", { ...size, citadelLengthMm: 0 }, "iron").lengthMm).toBe(
+      60_000,
+    );
+    const odd = newArmourRegion("BELT_ENDS", { ...size, citadelLengthMm: 200_000 }, "iron");
+    expect(odd.lengthMm).toBe(0);
+    const tiny = newArmourRegion(
+      "BELT_MAIN",
+      { lengthWlMm: 0, beamMm: 0, depthMm: 0, citadelLengthMm: 0 },
+      "iron",
+    );
+    expect([tiny.lengthMm, tiny.heightMm]).toEqual([0, 0]);
+  });
+  it("gives every region positive thickness and a valid weight", () => {
+    for (const region of [
+      "BELT_MAIN",
+      "BELT_UPPER",
+      "BELT_ENDS",
+      "DECK_MAIN",
+      "DECK_SLOPE",
+      "TURRET_FACE",
+      "BARBETTE",
+      "CONNING_TOWER",
+      "MAGAZINE_BOX",
+      "SPLINTER_PLATING",
+      "TORPEDO_BULKHEAD",
+      "TORPEDO_BELT",
+    ] as const) {
+      const r = newArmourRegion(region, size, "compound");
+      expect(r.thicknessUm).toBeGreaterThan(0);
+      expect(regionWeightKg(r, bal)).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("allOrNothingRegions", () => {
+  const r = (region: ArmourRegion["region"], lengthMm: number): ArmourRegion =>
+    belt({ region, lengthMm });
+  it("cuts belts and decks to the citadel, drops upper belt and ends, keeps the rest", () => {
+    const out = allOrNothingRegions(
+      [
+        r("BELT_MAIN", 90_000),
+        r("BELT_ENDS", 20_000),
+        r("BELT_UPPER", 70_000),
+        r("DECK_MAIN", 30_000),
+        r("BARBETTE", 6_000),
+      ],
+      50_000,
+    );
+    expect(out.map((x) => [x.region, x.lengthMm])).toEqual([
+      ["BELT_MAIN", 50_000],
+      ["DECK_MAIN", 30_000],
+      ["BARBETTE", 6_000],
+    ]);
+  });
+  it("is idempotent and pure", () => {
+    const input = [r("BELT_MAIN", 90_000), r("BELT_ENDS", 20_000)];
+    const once = allOrNothingRegions(input, 50_000);
+    expect(allOrNothingRegions(once, 50_000)).toEqual(once);
+    expect(input).toHaveLength(2);
+    expect(input[0]!.lengthMm).toBe(90_000);
+  });
+});
+
+describe("set_armour_regions edit", () => {
+  const draftLike = {
+    armour: { regions: [belt()], citadelLengthMm: 1, torpedoWarheadKg: 0, bunkerProtectionBp: 0 },
+  } as never;
+  it("replaces every region at once, keeping order, without mutating", () => {
+    const next = applyEdit(draftLike, {
+      kind: "set_armour_regions",
+      regions: [belt({ region: "DECK_MAIN" }), belt({ region: "BARBETTE" })],
+    });
+    expect(next.armour.regions.map((x) => x.region)).toEqual(["DECK_MAIN", "BARBETTE"]);
+    expect(next.armour.citadelLengthMm).toBe(1);
+    expect(draftLike.armour.regions).toHaveLength(1);
+  });
+  it("rejects a region listed twice", () => {
+    expect(() =>
+      applyEdit(draftLike, { kind: "set_armour_regions", regions: [belt(), belt()] }),
+    ).toThrow(EditError);
+  });
+  it("is an armour change for revisions", () => {
+    expect(changeKindOf({ kind: "set_armour_regions", regions: [] }, () => undefined)).toBe(
+      "ARMOUR",
     );
   });
 });

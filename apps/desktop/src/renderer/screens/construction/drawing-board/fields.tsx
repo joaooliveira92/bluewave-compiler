@@ -70,31 +70,39 @@ export function NumberField({
 
 export function SelectField({
   label,
+  shortLabel,
   value,
   options,
   onChange,
   className,
 }: {
   readonly label: string;
+  /** Compact text shown above the select; the full `label` stays its accessible name (for repeated rows). */
+  readonly shortLabel?: string;
   readonly value: string;
-  readonly options: readonly { readonly value: string; readonly label: string }[];
+  readonly options: readonly {
+    readonly value: string;
+    readonly label: string;
+    readonly disabled?: boolean;
+  }[];
   readonly onChange: (value: string) => void;
   readonly className?: string;
 }) {
   const id = useId();
   return (
     <div className={cn("space-y-1", className)}>
-      <label htmlFor={id} className="text-xs text-muted-foreground">
-        {label}
+      <label htmlFor={id} className="block text-xs text-muted-foreground">
+        {shortLabel ?? label}
       </label>
       <select
         id={id}
+        aria-label={shortLabel === undefined ? undefined : label}
         className={inputClass}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value}>
+          <option key={o.value} value={o.value} disabled={o.disabled}>
             {o.label}
           </option>
         ))}

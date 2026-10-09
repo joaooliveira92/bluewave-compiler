@@ -32,7 +32,9 @@ export type DraftEdit =
       readonly value: number;
     }
   | { readonly kind: "set_armour_region"; readonly region: ArmourRegion }
-  | { readonly kind: "remove_armour_region"; readonly region: ArmourRegion["region"] };
+  | { readonly kind: "remove_armour_region"; readonly region: ArmourRegion["region"] }
+  /** Replaces every armour region at once (an armour scheme), as one undoable step. Order is kept. */
+  | { readonly kind: "set_armour_regions"; readonly regions: readonly ArmourRegion[] };
 
 export class EditError extends Error {
   constructor(message: string) {
@@ -92,6 +94,14 @@ export function applyEdit(draft: DesignDraft, e: DraftEdit): DesignDraft {
     case "set_armour_region": {
       const rest = draft.armour.regions.filter((r) => r.region !== e.region.region);
       return { ...draft, armour: { ...draft.armour, regions: [...rest, e.region] } };
+    }
+    case "set_armour_regions": {
+      const seen = new Set<string>();
+      for (const r of e.regions) {
+        if (seen.has(r.region)) throw new EditError(`armour region '${r.region}' listed twice`);
+        seen.add(r.region);
+      }
+      return { ...draft, armour: { ...draft.armour, regions: [...e.regions] } };
     }
     case "remove_armour_region":
       return {

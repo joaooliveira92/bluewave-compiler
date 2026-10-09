@@ -17,8 +17,11 @@ drawing.
 - **F2 Ship type and class code (SB-32).** Show the natural class (existing) as a chosen-or-natural ship type with a class
   code line (type + main-gun count/calibre, e.g. `BB4X12`-style, derived) and a finding when the chosen type disagrees with
   the natural class. BC is deferred (arrives with the Dreadnought band).
-- **F3 Armour coverage and scheme (SB-33).** New draft fields: belt coverage, extended belt/deck, inclined belt, armour
-  scheme (all-or-nothing | sloped | none), with a coverage percentage and weight/cost effects through compile.
+- **F3 Armour coverage and scheme (SB-33).** Revised on inspection: our armour model already has per-region length,
+  height, thickness, material and obliquity, plus a compiled coverage figure, so no new draft fields are needed. The
+  panel exposes the model (add/remove any of the 12 regions with starting sizes from the hull, edit size, plate, material,
+  inclined), shows coverage and weight per region, and offers an "all or nothing" scheme as one atomic undoable edit
+  (`set_armour_regions`). Belt coverage/extended belt/extended deck are the lengths of BELT_MAIN, BELT_ENDS and DECK_MAIN.
 - **F4 Turret and battery editor (SB-34).** Named positions (A forward, B superimposed, Y aft...), add/delete/clear turret,
   guns per mount (turret | casemate | pedestal), battery view (calibre, number, rounds per gun, director flag), auto-place.
 - **F5 Click-to-place on the hull plan (SB-35).** Place, move and remove fittings by clicking the plan, with keyboard

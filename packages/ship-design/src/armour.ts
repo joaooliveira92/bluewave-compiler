@@ -418,3 +418,127 @@ export function armourAvailabilityFindings(
   }
   return out;
 }
+
+/** One armour material as the Drawing Board offers it for a month. */
+export interface ArmourMaterialOption {
+  readonly id: string;
+  /** Effective-thickness multiplier, bp (higher = better plate). */
+  readonly effBp: number;
+  /** False when the material is not yet introduced or its technology is missing. */
+  readonly available: boolean;
+  /** Why it is unavailable, or null. */
+  readonly unavailableReason: string | null;
+  /** Thickest plate that can be made, um, or null when unlimited. */
+  readonly maxThicknessUm: number | null;
+  readonly obsolete: boolean;
+}
+
+/** The armour materials of the balance, weakest first (then by id), with their availability for `month`. Pure. */
+export function armourMaterialOptions(
+  b: ArmourBalance,
+  month: string,
+  unlockedTechs: ReadonlySet<string>,
+): ArmourMaterialOption[] {
+  return Object.entries(b.materialEffBp)
+    .map(([id, effBp]): ArmourMaterialOption => {
+      const a = b.materialAvailability?.[id];
+      const missing = (a?.requires ?? []).filter((t) => !unlockedTechs.has(t));
+      const notYet = a !== undefined && a.fromMonth > month;
+      const unavailableReason =
+        missing.length > 0
+          ? `needs ${missing.join(", ")}`
+          : notYet
+            ? `introduced ${a.fromMonth}`
+            : null;
+      return {
+        id,
+        effBp,
+        available: unavailableReason === null,
+        unavailableReason,
+        maxThicknessUm: a?.maxThicknessUm ?? null,
+        obsolete: a?.obsoleteMonth != null && a.obsoleteMonth <= month,
+      };
+    })
+    .sort((x, y) => x.effBp - y.effBp || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
+}
+
+/** The hull and citadel measurements a new region's starting size is taken from. */
+export interface RegionSizing {
+  readonly lengthWlMm: number;
+  readonly beamMm: number;
+  readonly depthMm: number;
+  /** Citadel length; 0 means "not set", and the starting size falls back to 60% of the waterline length. */
+  readonly citadelLengthMm: number;
+}
+
+/** Starting plate thickness for a new region, um. A convention to start from, not a recommendation. */
+const START_THICKNESS_UM: Readonly<Record<ArmourRegionId, number>> = {
+  BELT_MAIN: 150_000,
+  BELT_UPPER: 75_000,
+  BELT_ENDS: 75_000,
+  DECK_MAIN: 50_000,
+  DECK_SLOPE: 75_000,
+  TURRET_FACE: 150_000,
+  BARBETTE: 150_000,
+  CONNING_TOWER: 150_000,
+  MAGAZINE_BOX: 50_000,
+  SPLINTER_PLATING: 12_000,
+  TORPEDO_BULKHEAD: 25_000,
+  TORPEDO_BELT: 25_000,
+};
+
+/**
+ * A new armour region with deterministic starting dimensions taken from the hull: belts and decks follow the citadel,
+ * ends take the rest of the waterline, turrets/barbettes/tower are small fixed blocks. All of it is a starting convention
+ * the player edits (`materialId` is the caller's choice, `cosObliquityBp` starts flat-on). Dimensions are floored at 0.
+ */
+export function newArmourRegion(
+  region: ArmourRegionId,
+  size: RegionSizing,
+  materialId: string,
+): ArmourRegion {
+  const citadel =
+    size.citadelLengthMm > 0 ? size.citadelLengthMm : Math.floor((size.lengthWlMm * 6) / 10);
+  const beltHeight = Math.max(0, Math.floor(Math.min(2_400, (size.depthMm * 35) / 100)));
+  const deckWidth = Math.max(0, Math.floor((size.beamMm * 8) / 10));
+  const dims: Record<ArmourRegionId, readonly [number, number]> = {
+    BELT_MAIN: [citadel, beltHeight],
+    BELT_UPPER: [citadel, beltHeight],
+    BELT_ENDS: [Math.max(0, size.lengthWlMm - citadel), beltHeight],
+    DECK_MAIN: [citadel, deckWidth],
+    DECK_SLOPE: [citadel, deckWidth],
+    TURRET_FACE: [4_000, 2_500],
+    BARBETTE: [6_000, 2_500],
+    CONNING_TOWER: [3_000, 2_000],
+    MAGAZINE_BOX: [citadel, deckWidth],
+    SPLINTER_PLATING: [citadel, beltHeight],
+    TORPEDO_BULKHEAD: [citadel, beltHeight],
+    TORPEDO_BELT: [citadel, beltHeight],
+  };
+  const [lengthMm, heightMm] = dims[region];
+  return {
+    region,
+    thicknessUm: START_THICKNESS_UM[region],
+    lengthMm,
+    heightMm,
+    materialId,
+    cosObliquityBp: 10_000,
+  };
+}
+
+/**
+ * "All or nothing": armour only the citadel. Belts and decks are cut to the citadel length; the upper belt and the
+ * unarmoured ends are dropped; everything else is kept as is. Pure. The caller supplies the citadel length.
+ */
+export function allOrNothingRegions(
+  regions: readonly ArmourRegion[],
+  citadelLengthMm: number,
+): ArmourRegion[] {
+  const cut = new Set<ArmourRegionId>(["BELT_MAIN", "DECK_MAIN", "DECK_SLOPE", "MAGAZINE_BOX"]);
+  const drop = new Set<ArmourRegionId>(["BELT_ENDS", "BELT_UPPER"]);
+  return regions
+    .filter((r) => !drop.has(r.region))
+    .map((r) =>
+      cut.has(r.region) ? { ...r, lengthMm: Math.min(r.lengthMm, citadelLengthMm) } : r,
+    );
+}

@@ -113,6 +113,7 @@ export function changeKindOf(
         : "FITTINGS";
     case "set_armour_region":
     case "remove_armour_region":
+    case "set_armour_regions":
       return "ARMOUR";
     case "add_placement":
       return "FITTINGS";
