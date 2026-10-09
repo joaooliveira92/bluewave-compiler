@@ -13,6 +13,7 @@ import type {
   VerifyCampaignResponse,
 } from "../../shared/continuity-contract.js";
 import { registerCampaignSession } from "../campaignSessions.js";
+import { restorePendingQueue } from "../pendingCommands.js";
 import { ledgerOf, parseMonthInput } from "../monthInput.js";
 import { promotePlayerSlotForExecution } from "./commitMonth/snapshot.js";
 import { loadShipBuildingContent, shipBuildingContentHash } from "../shipBuildingContent.js";
@@ -149,6 +150,8 @@ export async function loadCampaign(
     month,
     state,
   });
+  // Commands the player queued for this month before the app closed are queued again.
+  restorePendingQueue(sessionId);
 
   return {
     outcome: "success",

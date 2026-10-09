@@ -76,6 +76,11 @@ import { inspectPriorities } from "./commands/inspectPriorities.js";
 import { listNewGameOptions } from "./commands/listNewGameOptions.js";
 import { inspectResearchScreen, setResearchPriorityCommand } from "./commands/researchCommands.js";
 import { readUiState, writeUiState } from "./uiState.js";
+import {
+  readDrawingBoardDraft,
+  WriteDrawingBoardDraftPayloadSchema,
+  writeDrawingBoardDraft,
+} from "./drawingBoardDraft.js";
 
 /**
  * The `campaign:execute` command registry. Command name is Zod-validated at
@@ -193,6 +198,12 @@ export const defaultCommandRegistry: CommandRegistry = {
   ),
   loadProjectDraft: withSchema(LoadProjectDraftPayloadSchema, (payload) =>
     loadProjectDraft(payload),
+  ),
+  readDrawingBoardDraft: withSchema(SessionIdPayloadSchema, (sessionId) =>
+    readDrawingBoardDraft(sessionId),
+  ),
+  writeDrawingBoardDraft: withSchema(WriteDrawingBoardDraftPayloadSchema, (payload) =>
+    writeDrawingBoardDraft(payload),
   ),
   listRebuildableShips: withSchema(SessionIdPayloadSchema, (sessionId) =>
     listRebuildableShips(sessionId),

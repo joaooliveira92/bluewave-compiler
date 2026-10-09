@@ -36,7 +36,7 @@ export function DrawingBoardDialog({
         <DialogHeader>
           <DialogTitle>Drawing Board</DialogTitle>
           <DialogDescription>
-            Edits are a local draft until you submit the design for construction.
+            Your design is saved as you work. Nothing is built until you submit it.
           </DialogDescription>
         </DialogHeader>
         <div className="flex min-h-0 flex-1 flex-col">

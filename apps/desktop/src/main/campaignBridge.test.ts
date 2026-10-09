@@ -50,6 +50,8 @@ const IMPLEMENTED_COMMANDS = new Set([
   "submitDesignCommand",
   "reviseProjectCommand",
   "loadProjectDraft",
+  "readDrawingBoardDraft",
+  "writeDrawingBoardDraft",
   "listRebuildableShips",
   "loadShipDraft",
   "checkRebuild",

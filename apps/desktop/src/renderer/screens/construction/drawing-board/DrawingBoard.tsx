@@ -51,6 +51,7 @@ import { IDLE_TOOL, PlanModeButtons, type PlanTool } from "./panels/hull-plan/Pl
 import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
 import type { RevisionProject } from "./revisionPreview.js";
 import { useDrawingBoard } from "./useDrawingBoard.js";
+import { useDraftAutosave } from "./useDraftAutosave.js";
 import { entityExists, type EntityContext } from "./selection/facts.js";
 import { boardFindings } from "./validation/boardFindings.js";
 import {
@@ -93,6 +94,12 @@ export function DrawingBoard({
   const campaignMonth = useCampaignMonthId();
   const { state, actions } = useDrawingBoard(campaignMonth);
   const { draft, view, content } = state;
+  const autosave = useDraftAutosave({
+    sessionId,
+    presetId: state.preset.id,
+    log: state.log,
+    restore: actions.restore,
+  });
   const batteries = batteryCards(view, draft);
   const armourEnv = content.environmentFor(state.month).ctx;
   const armourMaterials = armourMaterialOptions(
@@ -230,6 +237,28 @@ export function DrawingBoard({
             setPendingPreset(null);
           }}
         />
+        {autosave.restored !== null && (
+          <Alert role="status" className="flex flex-wrap items-center gap-3">
+            <span className="flex-1">
+              Your unsubmitted design was restored, with its edit history (last changed{" "}
+              {new Date(autosave.restored.savedAt).toLocaleString()}). Changes are saved as you
+              work.
+            </span>
+            <Button variant="outline" size="sm" onClick={autosave.dismiss}>
+              Keep working
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                autosave.dismiss();
+                loadPreset(state.preset.id);
+              }}
+            >
+              Start over
+            </Button>
+          </Alert>
+        )}
         {state.editError !== null && <Alert variant="destructive">{state.editError}</Alert>}
         <button
           type="button"

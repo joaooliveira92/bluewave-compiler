@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -378,6 +378,45 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     if (replay.outcome !== "success") throw new Error("replay failed");
     expect(replay.value.revisions[0]).toMatchObject({ matched: false, expectedHash: "unreadable" });
     expect(replay.diagnostics.join(" ")).toMatch(/does not match its hash/);
+  });
+
+  it("a design queued before the app closed is still queued after reopening, and the month builds it", async () => {
+    const saveDir = resolve(saveRoot, "save-queue");
+    const sessionId = await compileAndSave(saveDir);
+    const queued = await dispatchCampaignCommand("submitDesignCommand", {
+      sessionId,
+      expectedRevision: 0,
+      transportRequestId: randomTransportRequestId(),
+      className: "Survives Restart",
+      draft: torpedoCruiserDraft(),
+    });
+    if (queued.outcome !== "success") throw new Error("submit failed");
+
+    restartApp();
+
+    const load = await loadCampaign(continuityDeps(saveDir));
+    if (load.outcome !== "success") throw new Error("load failed");
+    await advanceOneMonth(load.value.sessionId, 0);
+    const design = getCampaignSession(load.value.sessionId)!.state.snapshot.designs.get(
+      (queued.value as { designVersionId: string }).designVersionId,
+    );
+    expect(design?.className).toBe("Survives Restart");
+    expect(existsSync(join(saveDir, "pending-commands.json"))).toBe(false);
+  });
+
+  it("drops a queue left over from a month that has already run, instead of applying it twice", async () => {
+    const saveDir = resolve(saveRoot, "save-stale-queue");
+    const sessionId = await compileAndSave(saveDir);
+    await advanceOneMonth(sessionId, 0);
+    writeFileSync(
+      join(saveDir, "pending-commands.json"),
+      JSON.stringify({ schema: "pending_commands_v1", turnNumber: 0, entries: [] }),
+      "utf8",
+    );
+    restartApp();
+    const load = await loadCampaign(continuityDeps(saveDir));
+    if (load.outcome !== "success") throw new Error("load failed");
+    expect(existsSync(join(saveDir, "pending-commands.json"))).toBe(false);
   });
 
   it("replay reports a mismatch (not a confident pass) when the persisted history was tampered with", async () => {

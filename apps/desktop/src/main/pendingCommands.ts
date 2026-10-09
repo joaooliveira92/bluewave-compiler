@@ -1,6 +1,10 @@
 import type { CampaignSnapshot } from "@bluewave/campaign";
 import type { CommandBody, CommandEnvelope } from "@bluewave/commands";
+import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { z } from "zod";
+import { getCampaignSession } from "./campaignSessions.js";
 
 /**
  * Session-scoped queue of pending player command envelopes
@@ -26,9 +30,13 @@ import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
  *   demands the exact current hash (lifecycle.ts), and the refreshed envelope
  *   satisfies it.
  *
- * The queue is in-memory only (like the construction/research workspaces):
- * on a process restart, un-executed commands are lost and the snapshot simply
- * keeps its previous state — no durable record exists to reconstruct from.
+ * The queue is mirrored to `pending-commands.json` in the campaign's save
+ * directory on every change, stamped with the turn it was issued for, so a
+ * command the player was told is queued survives a restart: `loadCampaign`
+ * restores it while that turn is still current (`restorePendingQueue`). A
+ * file from an already-executed turn is discarded, never re-applied. Like
+ * `ui-state.json` it sits outside the save envelope and hash; the engine
+ * validates every restored envelope again when the month runs.
  */
 export interface PendingCommandEntry {
   readonly transportRequestId: string;
@@ -58,8 +66,82 @@ export function fingerprintOfBody(body: CommandBody): string {
   return sha256Hex(canonicalSerialize(body));
 }
 
+export const PENDING_COMMANDS_FILENAME = "pending-commands.json";
+
+const StoredQueueSchema = z.object({
+  schema: z.literal("pending_commands_v1"),
+  turnNumber: z.number().int().nonnegative(),
+  entries: z
+    .array(
+      z.object({
+        transportRequestId: z.string().min(1),
+        envelope: z.record(z.string(), z.unknown()),
+        payloadFingerprint: z.string().min(1),
+      }),
+    )
+    .max(1000),
+});
+
+/** Mirrors the session's queue to disk (removes the file when empty). A failed write never blocks the command. */
+function persistQueue(sessionId: string): void {
+  const record = getCampaignSession(sessionId);
+  if (!record) return;
+  const path = join(record.saveDir, PENDING_COMMANDS_FILENAME);
+  const entries = [...(pendingBySession.get(sessionId)?.values() ?? [])];
+  try {
+    if (entries.length === 0) {
+      rmSync(path, { force: true });
+      return;
+    }
+    const tmp = `${path}.tmp`;
+    writeFileSync(
+      tmp,
+      canonicalSerialize({
+        schema: "pending_commands_v1",
+        turnNumber: Number(record.state.snapshot.turnNumber),
+        entries,
+      }),
+      "utf8",
+    );
+    renameSync(tmp, path);
+  } catch {
+    // The in-memory queue is still authoritative for this run; only restart durability is lost.
+  }
+}
+
+/**
+ * Puts back the commands queued for this campaign before a restart, if they were issued for the session's current
+ * turn; a stale or malformed file is removed. Returns how many were restored.
+ */
+export function restorePendingQueue(sessionId: string): number {
+  const record = getCampaignSession(sessionId);
+  if (!record) return 0;
+  const path = join(record.saveDir, PENDING_COMMANDS_FILENAME);
+  if (!existsSync(path)) return 0;
+  let parsed: z.infer<typeof StoredQueueSchema> | null = null;
+  try {
+    const r = StoredQueueSchema.safeParse(JSON.parse(readFileSync(path, "utf8")));
+    parsed = r.success ? r.data : null;
+  } catch {
+    parsed = null;
+  }
+  if (parsed === null || parsed.turnNumber !== Number(record.state.snapshot.turnNumber)) {
+    rmSync(path, { force: true });
+    return 0;
+  }
+  const queue = pendingFor(sessionId);
+  for (const e of parsed.entries)
+    queue.set(e.transportRequestId, {
+      transportRequestId: e.transportRequestId,
+      envelope: e.envelope as unknown as CommandEnvelope<CommandBody>,
+      payloadFingerprint: e.payloadFingerprint,
+    });
+  return parsed.entries.length;
+}
+
 export function queuePendingEnvelope(sessionId: string, entry: PendingCommandEntry): void {
   pendingFor(sessionId).set(entry.transportRequestId, entry);
+  persistQueue(sessionId);
 }
 
 export function lookupPendingEnvelope(
@@ -100,6 +182,7 @@ export function pendingEntries(sessionId: string): PendingCommandEntry[] {
  * `SAVE_FAILED`; those leave the queue intact so a retry re-delivers). */
 export function clearPendingEnvelopes(sessionId: string): void {
   pendingBySession.delete(sessionId);
+  persistQueue(sessionId);
 }
 
 /** Remove a single queued envelope by transportRequestId — used to roll back
@@ -110,6 +193,7 @@ export function deletePendingEnvelope(sessionId: string, transportRequestId: str
   if (!sessionQueue) return;
   sessionQueue.delete(transportRequestId);
   if (sessionQueue.size === 0) pendingBySession.delete(sessionId);
+  persistQueue(sessionId);
 }
 
 /** Test-only: clears every session's queue so test files don't leak state. */

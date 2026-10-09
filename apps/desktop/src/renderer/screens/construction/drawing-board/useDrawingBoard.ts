@@ -39,6 +39,8 @@ export interface DrawingBoardState {
   readonly editCount: number;
   /** Every edit in the log (applied ones first), for the history list. */
   readonly history: readonly DraftEdit[];
+  /** The whole undoable log, for saving the working design. */
+  readonly log: EditLog;
 }
 
 export interface DrawingBoardActions {
@@ -55,6 +57,8 @@ export interface DrawingBoardActions {
   readonly generateAlternatives: () => Candidate[];
   /** Replaces the working design (and its history) with another draft, e.g. an AI candidate. */
   readonly loadDraft: (draft: DesignDraft) => void;
+  /** Puts back a saved working design: its starting design and its whole edit log. False if the start no longer exists. */
+  readonly restore: (presetId: string, log: EditLog) => boolean;
 }
 
 /** Local-only designer state: an undoable edit log over a draft, recompiled for display after every change. */
@@ -114,6 +118,7 @@ export function useDrawingBoard(fixedMonth: string | null = null): {
       editError,
       editCount: log.cursor,
       history: log.edits,
+      log,
     },
     actions: {
       edit,
@@ -144,6 +149,20 @@ export function useDrawingBoard(fixedMonth: string | null = null): {
       loadDraft: (d) => {
         commit(newLog(d));
         setEditError(null);
+      },
+      restore: (presetId, saved) => {
+        const p = content.references.find((r) => r.id === presetId);
+        if (!p) return false;
+        try {
+          currentDraft(saved);
+        } catch {
+          return false; // an edit no longer applies to this content: keep the fresh start
+        }
+        setPreset(p);
+        commit(saved);
+        if (fixedMonth === null) setMonthState(p.month);
+        setEditError(null);
+        return true;
       },
     },
   };

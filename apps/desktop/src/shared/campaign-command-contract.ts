@@ -17,6 +17,8 @@ import type { BridgeResult, CommandEnvelope } from "./bridge-contract.js";
 import type {
   DesignCommandOutcome,
   LoadProjectDraftPayload,
+  ReadDrawingBoardDraftResult,
+  WriteDrawingBoardDraftPayload,
   LoadShipDraftPayload,
   ProjectDraftView,
   RebuildableShipView,
@@ -237,6 +239,8 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "submitDesignCommand",
   "reviseProjectCommand",
   "loadProjectDraft",
+  "readDrawingBoardDraft",
+  "writeDrawingBoardDraft",
   "listRebuildableShips",
   "loadShipDraft",
   "checkRebuild",
@@ -363,6 +367,14 @@ export interface CampaignCommandClient {
     command: "loadProjectDraft",
     payload: LoadProjectDraftPayload,
   ): Promise<BridgeResult<ProjectDraftView>>;
+  execute(
+    command: "readDrawingBoardDraft",
+    payload: string,
+  ): Promise<BridgeResult<ReadDrawingBoardDraftResult>>;
+  execute(
+    command: "writeDrawingBoardDraft",
+    payload: WriteDrawingBoardDraftPayload,
+  ): Promise<BridgeResult<{ readonly saved: boolean }>>;
   execute(
     command: "listRebuildableShips",
     payload: string,

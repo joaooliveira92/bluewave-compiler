@@ -8,6 +8,22 @@ import { Panel } from "./Panel.js";
 
 let submitCounter = 0;
 
+/** What a refused submission means for the player; the engine's own lines follow it. */
+export function rejectionLead(reason: string): string {
+  switch (reason) {
+    case "DESIGN_REJECTED":
+      return "The game's own check found this design cannot be built:";
+    case "INVALID_COMMAND_PAYLOAD":
+      return "The design is incomplete and was not sent:";
+    case "SESSION_NOT_FOUND":
+      return "The campaign is no longer open. Reopen it from Campaign File and submit again.";
+    case "IDEMPOTENCY_CONFLICT":
+      return "A different design was already sent under this request. Submit again.";
+    default:
+      return `The design was not queued (${reason.replaceAll("_", " ").toLowerCase()}):`;
+  }
+}
+
 /**
  * Sends the working design to the engine (ADR-0066). The main process re-compiles it and queues a real `SubmitDesign`
  * command; the design appears in the Design Catalog when the month is committed.
@@ -29,8 +45,13 @@ export function SubmitPanel({
     readonly lines: readonly string[];
   } | null>(null);
   const [busy, setBusy] = useState(false);
+  // The exact design last queued this month, so the same one is not sent twice by a second click.
+  const [queuedKey, setQueuedKey] = useState<string | null>(null);
   if (!bridge) return null;
-  const canSubmit = valid && revision !== null && className.trim() !== "" && !busy;
+  const key = `${revision ?? ""}|${className.trim()}|${JSON.stringify(draft)}`;
+  const alreadyQueued = queuedKey === key;
+  const canSubmit =
+    valid && revision !== null && className.trim() !== "" && !busy && !alreadyQueued;
   const submit = async () => {
     if (revision === null) return;
     setBusy(true);
@@ -43,16 +64,32 @@ export function SubmitPanel({
         className: className.trim(),
         draft: draft as unknown as Record<string, unknown>,
       });
-      setResult(
-        r.outcome === "success"
-          ? {
-              tone: "ok",
-              lines: [
-                `Design queued. "${className.trim()}" joins the Design Catalog when the month is committed.`,
-              ],
-            }
-          : { tone: "bad", lines: r.diagnostics.length > 0 ? [...r.diagnostics] : [r.reason] },
-      );
+      if (r.outcome === "success") {
+        setQueuedKey(key);
+        setResult({
+          tone: "ok",
+          lines: [
+            `Design queued. "${className.trim()}" joins the Design Catalog when the month is advanced.`,
+          ],
+        });
+      } else {
+        setResult({
+          tone: "bad",
+          lines: [
+            rejectionLead(r.reason),
+            ...r.diagnostics,
+            "Your design is unchanged on the board.",
+          ],
+        });
+      }
+    } catch (e) {
+      setResult({
+        tone: "bad",
+        lines: [
+          `The game could not be reached (${e instanceof Error ? e.message : String(e)}).`,
+          "Your design is unchanged on the board; submit again.",
+        ],
+      });
     } finally {
       setBusy(false);
     }
@@ -73,7 +110,7 @@ export function SubmitPanel({
           />
         </div>
         <Button onClick={() => void submit()} disabled={!canSubmit}>
-          {busy ? "Submitting…" : "Submit design"}
+          {busy ? "Submitting…" : alreadyQueued ? "Queued" : "Submit design"}
         </Button>
       </div>
       {!valid && (

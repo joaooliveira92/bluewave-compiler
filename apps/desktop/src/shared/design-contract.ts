@@ -110,3 +110,21 @@ export interface RebuildCommandOutcome {
   readonly newDesignVersionId: string;
   readonly appliedOnNextTurn: true;
 }
+
+/** The Drawing Board's saved working design: its starting design and the encoded edit log (`encodeLog`). */
+export interface DrawingBoardDraftRecord {
+  readonly presetId: string;
+  readonly log: string;
+  /** ISO time of the last save. */
+  readonly savedAt: string;
+}
+
+export interface ReadDrawingBoardDraftResult {
+  readonly draft: DrawingBoardDraftRecord | null;
+}
+
+export interface WriteDrawingBoardDraftPayload {
+  readonly sessionId: string;
+  /** Null removes the saved draft. */
+  readonly draft: { readonly presetId: string; readonly log: string } | null;
+}
