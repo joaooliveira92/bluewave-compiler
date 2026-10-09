@@ -2,14 +2,17 @@ import type { CompiledDesignVersion } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
 import {
   computeCost,
+  constructionOrderPlan,
   toEngineDesign,
   treasuryCostUnits,
   type CompiledDesign,
   type DesignDraft,
+  type ConstructionBalance,
   type CostBalance,
   type CostContext,
   type EngineAdapterOptions,
   type ShipBuildingContent,
+  type Yard,
 } from "@bluewave/ship-design";
 
 /** What the cost model needs to price a design in treasury units. */
@@ -17,6 +20,12 @@ export interface DesignPricing {
   readonly costBalance: CostBalance;
   readonly costCtx: CostContext;
   readonly treasuryUnitMicro: number;
+  /** Inputs for the construction plan an order carries (ADR-0077); without them a design version has no plan. */
+  readonly construction?: {
+    readonly balance: ConstructionBalance;
+    readonly yards: readonly Yard[];
+    readonly industryBp?: number | undefined;
+  };
 }
 
 /** Pricing inputs for a month from the ship-building content: the same cost model the Drawing Board forecast uses. */
@@ -26,6 +35,11 @@ export function pricingFor(content: ShipBuildingContent, month: string): DesignP
     costBalance: env.costBalance,
     costCtx: env.costCtx,
     treasuryUnitMicro: content.treasuryUnitMicro,
+    construction: {
+      balance: env.constructionBalance,
+      yards: env.yards,
+      industryBp: env.industryBp,
+    },
   };
 }
 
@@ -41,6 +55,21 @@ export function buildDesignVersion(
 ): CompiledDesignVersion {
   const e = toEngineDesign(compiled, draft, options);
   const cost = computeCost(compiled, draft, pricing.costBalance, pricing.costCtx);
+  const units = treasuryCostUnits(cost.total, pricing.treasuryUnitMicro);
+  const orderPlan = pricing.construction
+    ? constructionOrderPlan(
+        {
+          compiled,
+          draft,
+          cost,
+          balance: pricing.construction.balance,
+          yards: pricing.construction.yards,
+          industryBp: pricing.construction.industryBp,
+          accelerated: pricing.costCtx.accelerated,
+        },
+        units,
+      )
+    : null;
   return {
     designVersionId: e.designVersionId,
     designFamilyId: e.designFamilyId,
@@ -58,7 +87,24 @@ export function buildDesignVersion(
     contentVersion: e.contentVersion,
     compiledHash: e.compiledHash,
     // A copy: the snapshot must not alias the command body (plain JSON, so structuredClone is exact).
-    constructionCostUnits: SafeInt(treasuryCostUnits(cost.total, pricing.treasuryUnitMicro)),
+    constructionCostUnits: SafeInt(units),
+    ...(orderPlan
+      ? {
+          constructionPlan: {
+            yardId: orderPlan.yardId,
+            packages: orderPlan.packages.map((p) => ({
+              id: p.id,
+              kind: p.kind,
+              line: p.line,
+              totalWork: SafeInt(p.totalWork),
+              dependsOn: [...p.dependsOn],
+            })),
+            capacityUnits: Object.fromEntries(
+              Object.entries(orderPlan.capacityUnits).map(([line, v]) => [line, SafeInt(v)]),
+            ),
+          },
+        }
+      : {}),
     sourceDraft: structuredClone(draft) as unknown as Readonly<Record<string, unknown>>,
     ...(e.torpedoArmament
       ? {

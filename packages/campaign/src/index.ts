@@ -37,6 +37,8 @@ export type {
   CompiledTorpedoMount,
   ConstructionPackage,
   ConstructionPackageKind,
+  ConstructionPlanRecord,
+  ConstructionPlanShare,
   ConstructionProject,
   DesignFamily,
   DiplomaticRelation,

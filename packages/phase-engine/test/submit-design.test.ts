@@ -251,3 +251,35 @@ describe("construction price of a designed ship (ADR-0074)", () => {
     expect(Number(d.constructionCostUnits)).not.toBe(byDisplacement);
   });
 });
+
+describe("construction plan of a designed ship (ADR-0077)", () => {
+  const submitted = () => {
+    const snapshot = snapshotIn(1895);
+    return run(snapshot, [submit(snapshot)]).designs.get("des_test_destroyer")!;
+  };
+  it("carries packages that sum to the construction cost in units, with the yard the forecast chooses", () => {
+    const d = submitted();
+    const plan = d.constructionPlan!;
+    expect(plan).toBeDefined();
+    expect(plan.packages.reduce((a, p) => a + Number(p.totalWork), 0)).toBe(
+      Number(d.constructionCostUnits),
+    );
+    const env = content.environmentFor("1895-07");
+    const forecast = buildWorkshopView(havockDraft as unknown as DesignDraft, env).forecast;
+    expect(plan.yardId).toBe(forecast.yardId);
+  });
+  it("keeps the package shape the engine needs: ids, lines, dependencies and per-line capacity", () => {
+    const plan = submitted().constructionPlan!;
+    const ids = new Set(plan.packages.map((p) => p.id));
+    expect(ids.size).toBe(plan.packages.length);
+    for (const p of plan.packages) for (const dep of p.dependsOn) expect(ids.has(dep)).toBe(true);
+    expect(plan.packages.map((p) => p.kind)).toContain("HULL");
+    expect(Object.values(plan.capacityUnits).every((v) => Number(v) >= 0)).toBe(true);
+    expect(Math.max(...Object.values(plan.capacityUnits).map(Number))).toBeGreaterThan(0);
+  });
+  it("is deterministic across two runs of the same command", () => {
+    expect(JSON.stringify(submitted().constructionPlan)).toBe(
+      JSON.stringify(submitted().constructionPlan),
+    );
+  });
+});

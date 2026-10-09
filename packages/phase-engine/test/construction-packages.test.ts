@@ -1,5 +1,6 @@
 import type {
   CampaignSnapshot,
+  CompiledDesignVersion,
   ConstructionPackage,
   ConstructionProject,
 } from "@bluewave/campaign";
@@ -112,5 +113,35 @@ describe("snapshot clone of package progress", () => {
     expect(a!["packages"]![1]!["dependsOn"]).not.toBe(withPackages["packages"]![1]!["dependsOn"]);
     expect("packages" in b!).toBe(false);
     expect("yardId" in b!).toBe(false);
+  });
+});
+
+describe("snapshot clone of a design version's construction plan", () => {
+  it("deep-copies the plan, its packages and its capacity", () => {
+    const design = {
+      designVersionId: "d1",
+      constructionPlan: {
+        yardId: "yard_small",
+        packages: [
+          { id: "hull", kind: "HULL", line: "slipway", totalWork: SafeInt(10), dependsOn: [] },
+          {
+            id: "launch",
+            kind: "LAUNCH",
+            line: "slipway",
+            totalWork: SafeInt(4),
+            dependsOn: ["hull"],
+          },
+        ],
+        capacityUnits: { slipway: SafeInt(3) },
+      },
+    } as unknown as CompiledDesignVersion;
+    const snap = { designs: new Map([["d1", design]]) } as unknown as CampaignSnapshot;
+    const copy = cloneSnapshot(snap).designs.get("d1")!;
+    expect(copy.constructionPlan).toEqual(design.constructionPlan);
+    expect(copy.constructionPlan).not.toBe(design.constructionPlan);
+    expect(copy.constructionPlan!.packages[1]!.dependsOn).not.toBe(
+      design.constructionPlan!.packages[1]!.dependsOn,
+    );
+    expect(copy.constructionPlan!.capacityUnits).not.toBe(design.constructionPlan!.capacityUnits);
   });
 });

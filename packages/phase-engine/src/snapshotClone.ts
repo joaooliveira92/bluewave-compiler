@@ -355,6 +355,7 @@ const F = {
     "torpedoArmament",
     "sourceDraft",
     "constructionCostUnits",
+    "constructionPlan",
   ),
   DesignFamily: fields<DesignFamily>()(
     "designFamilyId",

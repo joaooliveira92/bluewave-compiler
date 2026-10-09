@@ -76,6 +76,28 @@ export interface CompiledDesignVersion {
    * (ADR-0074). Absent for authored designs, which fall back to the displacement formula `construction_order_v1`.
    */
   constructionCostUnits?: SafeInt;
+  /** Work packages, yard and yard capacity for building this design (ADR-0077); absent when no yard can build it. */
+  constructionPlan?: ConstructionPlanRecord;
+}
+
+/** One package of a design's construction plan, in the design's treasury units (ADR-0077). */
+export interface ConstructionPlanShare {
+  id: string;
+  kind: ConstructionPackageKind;
+  line: string;
+  totalWork: SafeInt;
+  dependsOn: string[];
+}
+
+/**
+ * How a design is built (ADR-0077): its work packages scaled to `constructionCostUnits`, the yard that builds it and that
+ * yard's monthly capacity per production line in the same units. Fixed when the design is compiled, so the engine never
+ * needs the design or the content to advance a project.
+ */
+export interface ConstructionPlanRecord {
+  yardId: string;
+  packages: ConstructionPlanShare[];
+  capacityUnits: Record<string, SafeInt>;
 }
 
 export interface CompiledTorpedoMount {
