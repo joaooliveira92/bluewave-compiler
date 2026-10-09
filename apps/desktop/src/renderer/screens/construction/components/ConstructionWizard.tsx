@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import type { CompiledDesignVersion } from "@bluewave/campaign-engine";
 import { Alert, AlertDescription, AlertTitle } from "../../../components/ui/alert.js";
 import { Badge } from "../../../components/ui/badge.js";
@@ -11,6 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card.js";
+import { WizardSection } from "./WizardSection.js";
+import { constructionWizardView } from "./wizard-view.js";
 
 const COST_BASIS_TEXT: Record<CompiledDesignVersion["costBasis"], string> = {
   design_cost_model: "priced by the ship-design cost model",
@@ -39,19 +41,7 @@ export const ConstructionWizard = memo(function ConstructionWizard({
   onConfirm,
   onCancelWizard,
 }: ConstructionWizardProps) {
-  // The engine computes what an order costs and ships it with the design; the screen only displays it.
-  const costs = useMemo(
-    () =>
-      design
-        ? {
-            projectedCost: design.projectedCost,
-            projectedCapacityUnits: design.projectedCapacityUnits,
-          }
-        : null,
-    [design],
-  );
-
-  if (design === null || costs === null) {
+  if (design === null) {
     return (
       <Card data-testid="construction-wizard-empty">
         <CardHeader>
@@ -62,14 +52,8 @@ export const ConstructionWizard = memo(function ConstructionWizard({
     );
   }
 
-  const treasury = economy?.treasury ?? 0;
-  const capacity = economy?.shipyardCapacity ?? 0;
-  const reservedTreasury = workspace?.treasuryReserved ?? 0;
-  const reservedCapacity = workspace?.capacityReserved ?? 0;
-  const afterTreasury = reservedTreasury + costs.projectedCost;
-  const afterCapacity = reservedCapacity + costs.projectedCapacityUnits;
-  const treasuryOver = afterTreasury > treasury;
-  const capacityOver = afterCapacity > capacity;
+  // The engine computes what an order costs and ships it with the design; the screen only displays it.
+  const view = constructionWizardView(design, economy, workspace);
 
   return (
     <Card data-testid="construction-wizard">
@@ -80,10 +64,7 @@ export const ConstructionWizard = memo(function ConstructionWizard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div data-testid="wizard-design-summary" className="space-y-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Design summary
-          </h4>
+        <WizardSection title="Design summary" testId="wizard-design-summary" className="space-y-2">
           <div className="flex flex-wrap gap-1.5">
             <Badge variant="outline" className="font-mono text-xs">
               {design.className}
@@ -109,60 +90,63 @@ export const ConstructionWizard = memo(function ConstructionWizard({
               {design.requiredTechnologyIds.join(", ")}
             </p>
           )}
-        </div>
+        </WizardSection>
 
-        <div data-testid="wizard-dock-requirement" className="space-y-1">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Dock requirement
-          </h4>
+        <WizardSection
+          title="Dock requirement"
+          testId="wizard-dock-requirement"
+          className="space-y-1"
+        >
           <p className="font-mono text-sm">
-            {costs.projectedCapacityUnits.toLocaleString()} capacity units required
+            {view.projectedCapacityUnits.toLocaleString()} capacity units required
             <span className="text-muted-foreground">
               {" "}
-              · shipyard capacity {capacity.toLocaleString()}
+              · shipyard capacity {view.capacity.toLocaleString()}
             </span>
           </p>
-          {capacityOver && (
+          {view.capacityOver && (
             <p className="text-xs text-destructive">
               INSUFFICIENT_CAPACITY — required exceeds available capacity.
             </p>
           )}
-        </div>
+        </WizardSection>
 
-        <div data-testid="wizard-projected-cost" className="space-y-1">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Total projected cost
-          </h4>
+        <WizardSection
+          title="Total projected cost"
+          testId="wizard-projected-cost"
+          className="space-y-1"
+        >
           <p className="font-mono text-sm">
-            {costs.projectedCost.toLocaleString()} treasury units
+            {view.projectedCost.toLocaleString()} treasury units
             <span className="text-muted-foreground"> · {COST_BASIS_TEXT[design.costBasis]}</span>
           </p>
-        </div>
+        </WizardSection>
 
-        <div data-testid="wizard-reservation-impact" className="space-y-1">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Reservation impact
-          </h4>
+        <WizardSection
+          title="Reservation impact"
+          testId="wizard-reservation-impact"
+          className="space-y-1"
+        >
           <p className="font-mono text-xs">
-            Treasury reserved {reservedTreasury.toLocaleString()} → {afterTreasury.toLocaleString()}{" "}
-            / {treasury.toLocaleString()}
-            {treasuryOver ? " · exceeds treasury" : ""}
+            Treasury reserved {view.reservedTreasury.toLocaleString()} →{" "}
+            {view.afterTreasury.toLocaleString()} / {view.treasury.toLocaleString()}
+            {view.treasuryOver ? " · exceeds treasury" : ""}
           </p>
           <p className="font-mono text-xs">
-            Capacity reserved {reservedCapacity.toLocaleString()} → {afterCapacity.toLocaleString()}{" "}
-            / {capacity.toLocaleString()}
-            {capacityOver ? " · exceeds capacity" : ""}
+            Capacity reserved {view.reservedCapacity.toLocaleString()} →{" "}
+            {view.afterCapacity.toLocaleString()} / {view.capacity.toLocaleString()}
+            {view.capacityOver ? " · exceeds capacity" : ""}
           </p>
           <p className="text-xs text-muted-foreground">
             Order reserves the full projected cost immediately; low cash is INSUFFICIENT_FUNDS,
             never placed with warning.
           </p>
-          {treasuryOver && (
+          {view.treasuryOver && (
             <p className="text-xs text-destructive">
               INSUFFICIENT_FUNDS — treasury cannot cover projected cost.
             </p>
           )}
-        </div>
+        </WizardSection>
 
         {notice !== null && (
           <Alert variant="destructive">

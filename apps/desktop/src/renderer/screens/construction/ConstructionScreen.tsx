@@ -5,13 +5,15 @@ import { Badge } from "../../components/ui/badge.js";
 import { debugRevisionActions } from "../../components/shared/debugRevisionActions.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs.js";
-import { ProjectsCard } from "./components/ProjectsCard.js";
+import {
+  CommandTable,
+  ConstructionWizard,
+  DesignPicker,
+  LoadErrorCard,
+  ProjectsCard,
+  StatsPanel,
+} from "./components/index.js";
 import { projectRows } from "./project-progress.js";
-import { StatsPanel } from "./components/StatsPanel.js";
-import { ConstructionWizard } from "./components/ConstructionWizard.js";
-import { DesignPicker } from "./components/DesignPicker.js";
-import { CommandTable } from "./components/CommandTable.js";
-import { LoadErrorCard } from "./components/LoadErrorCard.js";
 import { useConstructionScreen } from "./hooks/useConstructionScreen.js";
 import { CollapsibleSection } from "../../components/shared/CollapsibleSection.js";
 import { DeferredFeaturesPanel } from "../../components/shared/DeferredFeaturesPanel.js";
