@@ -1,9 +1,9 @@
 # 28: REBUILD / CONVERSION projects (what a past-redesign change becomes)
 
 **Type:** implementation (engine milestone)
-**Status:** open (deferred)
-**Blocked by:** 29 (work-package progress), DESIGN-23 sections 17-22 as engine features
-**Frontier:** no
+**Status:** in progress (28a done; 28b-e open, see ADR-0078)
+**Blocked by:** none (29 resolved)
+**Frontier:** yes
 
 Spec: `.scratch/ship-building/spec.md` section 15.4 (T3) and AC-8; `docs/rules/construction-repair-and-rebuild.md` (DESIGN-23) sections 1, 17-23.
 
@@ -27,3 +27,9 @@ now tell the player what to do instead: finish the ship as designed, then submit
 - A completed ship can be rebuilt within the retained-hull limits; outside them the validator returns a report and changes nothing.
 - The ship is unavailable until trials pass; fleets and battle generation respect that.
 - Determinism and save/load round trips hold; the old design version stays loadable.
+
+## Comments
+
+### 2026-10-09 orchestrator
+
+Sliced in ADR-0078. **28a done:** `rebuild.ts` (`validateRebuild`, `rebuildFactsOf`, `checkRebuildBalance`), `balance.yaml` `rebuild:` with the rule's shipped values, `ShipBuildingContent.rebuild`. Tests: `rebuild.test.ts` (inclusive boundaries of each limit, all failures at once in a fixed order, finding shape, measures, dock, determinism, shipped values). ship-design 38 files / 410 tests; tsc and lint exit 0. Next: 28b (state and availability).

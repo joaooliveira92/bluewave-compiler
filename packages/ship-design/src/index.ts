@@ -35,3 +35,4 @@ export * from "./shipBuildingContent.js";
 export * from "./batteries.js";
 export * from "./constructionProgress.js";
 export * from "./yardChoice.js";
+export * from "./rebuild.js";

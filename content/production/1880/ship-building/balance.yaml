@@ -667,3 +667,11 @@ revision:
   redesignStudyCostBp: 6000
   redesignKeptBp: 5000
   t2DelayMonths: 4
+
+# Rebuild validation (ticket 28; DESIGN-23 section 21 "rebuild_validation_v1"). These are the rule's own shipped values, not
+# placeholders: displacement +20 %, designed speed +3 kn, hull length and beam +/-5 %. A change of hull form is always refused.
+rebuild:
+  maxDisplacementIncreaseBp: 2000
+  maxSpeedIncreaseMilliKnots: 3000
+  maxLengthChangeBp: 500
+  maxBeamChangeBp: 500
