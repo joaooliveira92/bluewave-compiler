@@ -1,6 +1,8 @@
 import {
   isConstructionComplete,
+  LINE_IDS,
   PACKAGE_ORDER,
+  type LineId,
   type ConstructionPlan,
   type PackageProgress,
 } from "./construction.js";
@@ -68,3 +70,58 @@ export function totalDone(plan: ConstructionPlan, progress: PackageProgress): nu
 
 /** Whole-project completion, re-exported next to its siblings for callers that only import this module. */
 export { isConstructionComplete };
+
+/**
+ * Rescales a plan whose work is in micro-units onto a project measured in treasury units (ADR-0074, ADR-0077): each
+ * package gets its proportional share of `totalUnits`, by largest remainder (ties by package id) so the packages sum to
+ * exactly `totalUnits`. A package may round to 0 units for a very small ship; such a package is complete from the start.
+ * Pure; throws on a plan with no work or a negative or non-integer total.
+ */
+export function scalePlanToUnits(plan: ConstructionPlan, totalUnits: number): ConstructionPlan {
+  if (!Number.isSafeInteger(totalUnits) || totalUnits < 0)
+    throw new RangeError(`totalUnits must be a non-negative integer, got ${totalUnits}`);
+  if (plan.totalWork <= 0) throw new RangeError("a plan with no work cannot be scaled");
+  const exact = plan.packages.map((p) => {
+    const product = BigInt(p.totalWork) * BigInt(totalUnits);
+    return {
+      p,
+      floor: Number(product / BigInt(plan.totalWork)),
+      rem: product % BigInt(plan.totalWork),
+    };
+  });
+  let left = totalUnits - exact.reduce((a, e) => a + e.floor, 0);
+  const byRemainder = [...exact].sort(
+    (a, b) => (a.rem === b.rem ? 0 : a.rem > b.rem ? -1 : 1) || (a.p.id < b.p.id ? -1 : 1),
+  );
+  const extra = new Map<string, number>();
+  for (const e of byRemainder) {
+    if (left <= 0) break;
+    extra.set(e.p.id, 1);
+    left--;
+  }
+  const packages = exact.map((e) => ({ ...e.p, totalWork: e.floor + (extra.get(e.p.id) ?? 0) }));
+  return { packages, totalWork: totalUnits };
+}
+
+/**
+ * A yard's monthly capacity per line, converted from the plan's micro-units to the project's treasury units with the same
+ * ratio as `scalePlanToUnits`: `floor(capacity x totalUnits / plan.totalWork)`, but at least 1 for a line that has any
+ * capacity, so a small ship is never stalled by rounding. Lines with no capacity stay 0. Pure.
+ */
+export function capacityInUnits(
+  capacity: Readonly<Record<LineId, number>>,
+  plan: ConstructionPlan,
+  totalUnits: number,
+): Record<LineId, number> {
+  if (plan.totalWork <= 0) throw new RangeError("a plan with no work has no scale");
+  return Object.fromEntries(
+    LINE_IDS.map((line) => {
+      const micro = capacity[line];
+      if (!(micro > 0)) return [line, 0];
+      const scaled = Number(
+        (BigInt(Math.floor(micro)) * BigInt(totalUnits)) / BigInt(plan.totalWork),
+      );
+      return [line, Math.max(1, scaled)];
+    }),
+  ) as Record<LineId, number>;
+}

@@ -5,7 +5,9 @@ import {
   emptyProgress,
   isConstructionComplete,
   LINE_IDS,
+  capacityInUnits,
   progressFromSingleFigure,
+  scalePlanToUnits,
   simulateConstruction,
   totalDone,
   type ConstructionPlan,
@@ -163,5 +165,67 @@ describe("progressFromSingleFigure (saves made before per-package progress)", ()
     expect(totalDone(plan, progressFromSingleFigure(plan, -5, 1_000))).toBe(0);
     expect(totalDone(plan, progressFromSingleFigure(plan, 5, 0))).toBe(0);
     expect(isConstructionComplete(plan, progressFromSingleFigure(plan, 5_000, 1_000))).toBe(true);
+  });
+});
+
+describe("scalePlanToUnits", () => {
+  const sum = (p: ConstructionPlan) => p.packages.reduce((a, x) => a + x.totalWork, 0);
+  it("makes the packages sum to exactly the requested units, in proportion", () => {
+    for (const units of [1, 7, 8, 11, 100, 1_000, 123_457]) {
+      const scaled = scalePlanToUnits(plan, units);
+      expect(sum(scaled)).toBe(units);
+      expect(scaled.totalWork).toBe(units);
+    }
+    const big = scalePlanToUnits(plan, plan.totalWork * 10);
+    for (const p of plan.packages)
+      expect(big.packages.find((x) => x.id === p.id)!.totalWork).toBe(p.totalWork * 10);
+  });
+  it("keeps ids, kinds, lines and dependencies, and never goes negative", () => {
+    const scaled = scalePlanToUnits(plan, 5);
+    expect(scaled.packages.map((p) => [p.id, p.kind, p.line, p.dependsOn])).toEqual(
+      plan.packages.map((p) => [p.id, p.kind, p.line, p.dependsOn]),
+    );
+    for (const p of scaled.packages) expect(p.totalWork).toBeGreaterThanOrEqual(0);
+  });
+  it("gives the extra units to the largest remainders, ties by id, deterministically", () => {
+    const a = scalePlanToUnits(plan, 13);
+    expect(scalePlanToUnits(plan, 13)).toEqual(a);
+    const even: ConstructionPlan = {
+      packages: [pk("b", "HULL", "slipway", 1), pk("a", "MACHINERY", "machinery", 1)],
+      totalWork: 2,
+    };
+    // 3 units over two equal packages: the extra unit goes to "a" (tie broken by id).
+    expect(scalePlanToUnits(even, 3).packages.map((p) => [p.id, p.totalWork])).toEqual([
+      ["b", 1],
+      ["a", 2],
+    ]);
+  });
+  it("a ship too small for every package leaves some at zero, which are complete from the start", () => {
+    const tiny = scalePlanToUnits(plan, 3);
+    expect(tiny.packages.some((p) => p.totalWork === 0)).toBe(true);
+    const month = advanceConstructionMonth(tiny, emptyProgress(tiny), capacity(1_000), null);
+    expect(month.progress["hull"]).toBe(tiny.packages.find((p) => p.id === "hull")!.totalWork);
+  });
+  it("rejects nonsense", () => {
+    expect(() => scalePlanToUnits(plan, -1)).toThrow(RangeError);
+    expect(() => scalePlanToUnits(plan, 1.5)).toThrow(RangeError);
+    expect(() => scalePlanToUnits({ packages: [], totalWork: 0 }, 5)).toThrow(RangeError);
+  });
+});
+
+describe("capacityInUnits", () => {
+  const micro = { ...capacity(0), slipway: 1_000, quay: 31, trials: 0 } as Record<LineId, number>;
+  it("scales with the same ratio as the plan, at least 1 for a line that has capacity", () => {
+    const units = capacityInUnits(micro, plan, plan.totalWork); // ratio 1
+    expect(units.slipway).toBe(1_000);
+    expect(units.quay).toBe(31);
+    expect(units.trials).toBe(0);
+    const small = capacityInUnits(micro, plan, 3);
+    expect(small.quay).toBe(1); // floor(31 * 3 / 315) = 0, raised to 1
+    expect(small.trials).toBe(0);
+    expect(small.armour_plate).toBe(0);
+  });
+  it("rejects a plan with no work", () => {
+    expect(() => capacityInUnits(micro, { packages: [], totalWork: 0 }, 5)).toThrow(RangeError);
   });
 });
