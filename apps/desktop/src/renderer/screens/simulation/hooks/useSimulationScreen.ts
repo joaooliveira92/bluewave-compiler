@@ -24,6 +24,7 @@ import {
   initialSimulationScreenState,
   reduceSimulationScreen,
 } from "../simulation-screen-state.js";
+import { TACTICAL_RESOLVER_MAX_TURNS } from "../tactical-resolver.js";
 
 export interface UseSimulationScreenReturn {
   readonly loading: boolean;
@@ -205,7 +206,7 @@ export function useSimulationScreen(
         bridge.campaign.execute("resolveTacticalBattle", {
           sessionId,
           battleId: manifest.battleId,
-          turnCount: 200,
+          turnCount: TACTICAL_RESOLVER_MAX_TURNS,
           scriptedOrders: SCRIPTED_TACTICAL_ORDERS,
         }),
       audit: (value) => auditInputFromDecisions(value.randomDecisions ?? []),
