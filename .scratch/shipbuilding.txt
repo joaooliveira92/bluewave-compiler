@@ -1,0 +1,555 @@
+You are working in the Bluewave Electron monorepo on branch `dev`.
+
+Baseline commit:
+
+081b82d feat(drawing-board): expand hull plan visualization
+
+The working tree should initially be clean. Do not modify or rewrite the baseline commit. Create a new, focused follow-up change.
+
+## Objective
+
+Polish the ship profile drawings in the Drawing Board's hull-plan panel so they look substantially more intentional, readable, and evocative of professional preliminary naval-architecture drawings.
+
+The existing implementation is functionally correct but visually schematic. Improve the visual quality of both:
+
+1. the longitudinal side-profile view; and
+2. the top-down hull-plan view where refinement is needed for consistency.
+
+This task is primarily about drawing quality, proportion, layering, visual hierarchy, and coherent ship silhouettes. It is not permission to replace the existing data model with fabricated naval-architecture data.
+
+## Existing implementation
+
+Relevant files are under:
+
+apps/desktop/src/renderer/screens/construction/drawing-board/panels/hull-plan/
+
+Important files include:
+
+- ProfileView.tsx
+- geometry.ts
+- layers.tsx
+- the hull-plan panel component
+- hull-plan.test.ts
+
+The containing Drawing Board test is:
+
+apps/desktop/src/renderer/screens/construction/drawing-board/DrawingBoard.test.tsx
+
+The baseline already provides:
+
+- a hull-form-driven top-down outline;
+- a longitudinal profile beneath the plan;
+- bow styles associated with hull forms;
+- waterline, draught, depth, keel rise, and sheer;
+- superstructure and funnel footprints driven by placements;
+- a schematic disclaimer;
+- drawing-board tests and geometry tests.
+
+The baseline passed:
+
+- `pnpm check`
+- 164 test files
+- 1,052 tests
+- 18 e2e tests
+- exit code 0
+
+Preserve that behavior and validation level.
+
+## Mandatory engineering constraints
+
+Follow AGENTS.md and all repository-local instructions.
+
+Before editing:
+
+1. Inspect the current implementation and its tests.
+2. Inspect how the panel is rendered using the repository's snapshot workflow.
+3. Identify the actual SVG structure, coordinate systems, scaling rules, placement mapping, accessible names, and styling conventions.
+4. Check whether the working tree is clean.
+5. Do not discard, overwrite, stage, or commit unrelated changes.
+6. Do not use `git reset --hard`, `git checkout --`, `git restore`, or other destructive Git operations on files you did not change.
+
+Keep strict TypeScript.
+
+Do not use `any`, unsafe casts, duplicated magic numbers, or large monolithic components.
+
+Use named types, named geometry helpers, and centralized drawing constants where appropriate.
+
+Prefer pure geometry functions that can be tested without rendering React.
+
+Keep rendering components declarative. Do not hide substantial geometry calculations inside large JSX expressions.
+
+Use stable React keys based on domain identity. Do not use array indexes where placement identifiers exist.
+
+Maintain accessible names for both plan and profile images.
+
+Do not commit unless explicitly instructed after reporting the completed work and validation results.
+
+## Design direction
+
+The result should resemble a clean preliminary ship-design drawing rather than a generic polygon with objects placed on it.
+
+Aim for:
+
+- a convincing continuous ship silhouette;
+- a visibly designed bow and stern;
+- an understandable relationship between hull, deck, superstructure, and funnels;
+- restrained drafting detail;
+- strong visual hierarchy;
+- consistent line weights and dash patterns;
+- clear separation between structural outlines, reference lines, and annotations;
+- useful differences between hull forms;
+- legibility at the panel's normal rendered size.
+
+Do not pursue photorealism.
+
+Do not add textures, gradients, drop shadows, glow, ornamental waves, fake rivets, or excessive decorative detail.
+
+Do not draw details that imply unsupported gameplay data.
+
+## 1. Refine the longitudinal hull silhouette
+
+The profile must become a coherent closed hull shape, not a loose collection of independent deck, keel, stem, and stern lines.
+
+Create or refine a pure geometry model that produces the longitudinal profile from normalized coordinates.
+
+The silhouette should include:
+
+- the upper deck or sheer line;
+- the bow stem profile;
+- the forefoot transition;
+- the keel or bottom run;
+- the stern cut-up;
+- the stern profile or transom;
+- closure back to the deck line.
+
+Ensure positional and tangent continuity where practical. Avoid accidental corners unless the selected hull form intentionally requires one, such as a defined transom or ram knuckle.
+
+Use smooth SVG paths with cubic or quadratic Bézier segments where appropriate.
+
+Avoid excessive control points. Each segment should have a meaningful geometric role.
+
+The hull should remain inside the view box with enough padding for strokes, labels, and markers.
+
+## 2. Improve vertical proportions
+
+Continue to use the established length scale for horizontal positioning.
+
+Use the available draught, depth, and sheer values consistently when establishing vertical dimensions.
+
+Do not claim that the drawing is an exact lines plan.
+
+Introduce clear geometry boundaries between:
+
+- baseline or keel datum;
+- waterline;
+- design draught;
+- hull depth;
+- deck or sheer line.
+
+If physical dimensions are converted into screen coordinates, isolate the conversion in named scale helpers.
+
+Prevent extreme or malformed data from producing:
+
+- negative hull depth;
+- inverted deck and keel;
+- self-intersecting paths;
+- stems outside the view box;
+- funnels below the deck;
+- superstructures floating above the deck;
+- unreadably thin or tall hulls.
+
+Use centralized, documented display clamps only where necessary for visual safety. Preserve raw domain values for labels and tooltips.
+
+## 3. Give the stern deliberate geometry
+
+The stern currently needs as much visual attention as the bow.
+
+Create a deliberate stern treatment that integrates:
+
+- the after sheer;
+- the sternpost or transom;
+- the keel cut-up;
+- the termination of the waterline;
+- the local deck overhang, where appropriate.
+
+Do not use the same stern shape for every hull if existing hull-form information supports meaningful variation.
+
+If no explicit stern-style field exists, derive only conservative differences from existing hull-form categories and document that they are schematic drawing choices.
+
+Do not invent a new persistent domain field solely for this visual treatment unless repository architecture clearly requires it.
+
+## 4. Refine hull-form-specific bows
+
+Preserve the established hull-form character:
+
+- torpedo boat: rounded spoon bow;
+- coast-defence ship: blunt or plumb bow;
+- cruiser: ram bow;
+- pre-dreadnought: ram bow.
+
+Make these profiles visually distinct in both plan and side view.
+
+### Torpedo-boat spoon bow
+
+The profile should have:
+
+- a fine entry;
+- a forward-rising curved stem;
+- a smooth stem-to-forefoot transition;
+- no accidental ram point.
+
+### Coast-defence plumb bow
+
+The profile should have:
+
+- a visibly fuller forward body;
+- a mostly upright stem;
+- a controlled, rounded forefoot;
+- no excessive knife-like point.
+
+### Cruiser and pre-dreadnought ram bows
+
+The profile should have:
+
+- a readable projecting ram near or slightly below the waterline;
+- an upper stem that returns toward the forecastle;
+- a smooth connection between the ram, forefoot, and keel;
+- restrained proportions that do not resemble a decorative spike.
+
+The plan view and profile view must describe the same conceptual bow family. They do not need to be an exact three-dimensional projection, but they must not contradict each other.
+
+Retain the existing area or coefficient behavior in the plan view. If geometry changes affect calculated area, update the calculation deliberately and extend its tests.
+
+## 5. Improve deck and sheer presentation
+
+Make the sheer visible without falsifying the underlying value.
+
+Use the hull form's sheer data to drive the rise. The bow rise should remain stronger than the stern rise unless existing data specifies otherwise.
+
+The sheer line should:
+
+- be smooth;
+- have no flat-to-curve kink;
+- meet the bow and stern cleanly;
+- support the placement of superstructure and funnels.
+
+If the current sample cruiser's approximately 10 percent sheer remains subtle, improve visibility through drafting hierarchy and coordinate mapping rather than arbitrarily exaggerating the domain value.
+
+A limited visual amplification may be used only if:
+
+- it is isolated in a named display function;
+- it is monotonic;
+- it preserves zero as zero;
+- it is documented as a display treatment;
+- tests cover representative low, medium, and high values;
+- the panel continues to disclose that the view is schematic.
+
+## 6. Make the superstructure follow the deck
+
+Do not render the superstructure as a generic rectangle that appears pasted over the hull.
+
+Use the existing superstructure placement or zone as the longitudinal authority.
+
+The profile superstructure should:
+
+- rest directly on the local deck line;
+- respect the deck's sheer;
+- remain within the usable deck length;
+- have a coherent forward and after termination;
+- avoid colliding visually with the stem or stern;
+- use restrained rounded corners only if consistent with the application's visual language.
+
+It may use a small number of stepped masses to produce a more credible silhouette, but these steps must be deterministic drawing conventions. They must not imply component data that does not exist.
+
+Prefer a helper such as a deck-height sampler so all deck-mounted features use the same underlying curve.
+
+Do not duplicate the sheer formula in multiple components.
+
+## 7. Refine funnel profiles and correspondence between views
+
+Funnels are found through the component's `funnel` tag. Continue to use the real placed components.
+
+In profile:
+
+- place each funnel at its actual longitudinal position;
+- anchor it to the local superstructure or deck elevation;
+- use a believable tapered or slightly raked silhouette;
+- prevent clipping;
+- preserve separation where multiple funnels are close together;
+- keep dimensions proportional to the local hull and superstructure rather than fixed arbitrary pixels.
+
+In plan:
+
+- retain a clear footprint for each placed funnel;
+- ensure its longitudinal position corresponds to the profile;
+- keep the footprint centered unless placement data explicitly provides transverse offset;
+- distinguish funnel outlines from the centerline and superstructure outline.
+
+Do not add funnels that are not present in the placement data.
+
+Add a stable title, description, or accessible label where appropriate, without creating noisy repeated screen-reader output.
+
+## 8. Add restrained naval-drafting detail
+
+Add only details that materially improve interpretation.
+
+Recommended details include:
+
+- a clearly differentiated design waterline;
+- short perpendicular or datum ticks at meaningful endpoints;
+- a subtle baseline;
+- a limited number of station ticks aligned between plan and profile;
+- optional short vertical construction guides at major placement boundaries;
+- a clear centre-of-buoyancy marker where relevant to the view;
+- restrained dimension indicators for draught and depth if they remain legible.
+
+Use no more detail than can be read at the rendered panel size.
+
+Reference geometry should be visually secondary to the hull outline.
+
+Use a consistent hierarchy similar to:
+
+1. primary hull silhouette: strongest stroke;
+2. deck edge and major fitted structures: medium stroke;
+3. waterline and key datums: medium-light, differentiated by pattern or color;
+4. station ticks and construction guides: lightest stroke;
+5. labels and symbols: readable but subordinate.
+
+Centralize stroke widths, dash arrays, marker sizes, and opacity values in named constants or tokens.
+
+Use `vector-effect="non-scaling-stroke"` where appropriate so stroke weight remains stable under SVG scaling, provided it is compatible with the existing rendering and snapshot setup.
+
+## 9. Improve composition of the two views
+
+Treat the plan and profile as a coordinated drawing set.
+
+They should:
+
+- use the same horizontal origin;
+- use the same effective length scale;
+- align major stations vertically;
+- use consistent bow-left or bow-right orientation;
+- have intentional spacing between views;
+- have comparable internal padding;
+- avoid excess unused space;
+- maintain readable proportions at responsive panel widths.
+
+Add concise view labels only if consistent with the existing UI. For example:
+
+- “Waterline plan”
+- “Profile”
+
+Do not embed large labels inside the SVG if ordinary accessible HTML captions provide better responsiveness and semantics.
+
+The two views should not look like separate unrelated widgets.
+
+## 10. Preserve and improve accessibility
+
+Each visual must retain an accessible image name.
+
+Now that the panel contains two images, tests and queries must select them by role and accessible name rather than by an ambiguous first match.
+
+Provide concise accessible descriptions that explain the meaningful generated content, including:
+
+- hull-form family;
+- bow treatment;
+- presence and count of funnels;
+- superstructure extent;
+- whether the view is schematic.
+
+Do not expose every station tick or SVG path as a separate accessible element.
+
+Decorative elements should be hidden from assistive technology.
+
+Interactive markers and tooltips must remain keyboard accessible if they are already interactive. Do not introduce pointer-only behavior.
+
+## 11. Maintain an explicit schematic boundary
+
+Update the disclaimer only if necessary.
+
+It must continue to make clear that:
+
+- the graphics are schematic design views;
+- they are not construction drawings or a true naval-architecture lines plan;
+- some proportions and fitted-structure shapes are visual conventions;
+- existing hull-form values and component placements drive the drawing where available.
+
+Do not present invented sheer geometry, superstructure steps, funnel rake, bow curvature, or stern character as simulation outputs unless the domain model actually provides them.
+
+## 12. Geometry architecture
+
+Before adding JSX, define the geometry model needed by the renderer.
+
+Prefer a structure conceptually similar to:
+
+- profile domain inputs;
+- normalized profile points or segments;
+- deck-height sampling;
+- keel-height sampling;
+- bow and stern segment generation;
+- fitted-structure placement geometry;
+- SVG serialization or path construction.
+
+The exact names should follow repository conventions.
+
+Keep functions deterministic and pure.
+
+Use explicit units or normalized-coordinate names. Avoid ambiguous variables such as `x1`, `v`, `k`, and `p` except inside tiny mathematical scopes where their meaning is obvious.
+
+Document:
+
+- coordinate origin;
+- axis direction;
+- normalized ranges;
+- whether a value is physical, normalized, or display-only;
+- any visual clamp or amplification.
+
+If `ProfileView.tsx` becomes too large, split it by responsibility. Suitable boundaries may include:
+
+- profile geometry;
+- profile hull layer;
+- profile fittings layer;
+- reference or annotation layer.
+
+Do not split files mechanically. Create a new module only when it owns a coherent responsibility and improves testability.
+
+Target approximately 400 lines or fewer per source file when practical, but prioritize cohesion over an arbitrary line limit.
+
+## 13. Testing requirements
+
+Do not rely only on snapshots.
+
+Add focused tests for pure geometry and rendered semantics.
+
+Cover at least:
+
+1. the profile path is closed;
+2. all generated coordinates are finite;
+3. the hull remains inside its normalized or SVG bounds;
+4. the deck remains above the keel for supported forms;
+5. increasing sheer increases the appropriate deck rise;
+6. bow rise exceeds stern rise when that is the intended mapping;
+7. spoon, plumb, and ram bows produce measurably distinct geometry;
+8. the ram extends forward without causing self-intersection;
+9. the stern cut-up joins the keel and stern cleanly;
+10. superstructure geometry rests on the sampled local deck;
+11. funnel positions correspond to their real longitudinal placements;
+12. zero funnels produces no synthetic funnel;
+13. multiple funnels preserve stable identities and ordering;
+14. both views have distinct accessible names;
+15. ambiguous `getByRole("img")` usage is not reintroduced;
+16. representative low and high values do not create invalid paths;
+17. the existing waterplane coefficient and plan-area behavior remains within its current tolerance.
+
+Where exact SVG path strings are brittle, test geometry invariants rather than large serialized strings.
+
+Use approximate numeric comparisons with deliberate tolerances.
+
+Do not weaken existing assertions merely to make the new implementation pass.
+
+## 14. Visual verification
+
+Use the repository's `pnpm snap` workflow after implementation.
+
+Inspect the rendered panel at its normal application size.
+
+Specifically check:
+
+- whether the hull reads as one continuous silhouette;
+- whether the bow style is immediately distinguishable;
+- whether the stern appears deliberately designed;
+- whether the sheer remains visible but restrained;
+- whether superstructure and funnels sit on the hull rather than float;
+- whether plan and profile align longitudinally;
+- whether line hierarchy remains clear;
+- whether narrow panel widths create clipping or label overlap;
+- whether station and datum details add information rather than clutter.
+
+If possible within the existing workflow, inspect at least:
+
+- one torpedo-boat form;
+- one coast-defence form;
+- one cruiser or pre-dreadnought form;
+- a ship with no funnels;
+- a ship with multiple funnels.
+
+Do not claim visual verification unless the render was actually inspected.
+
+## 15. Validation
+
+Run the smallest relevant checks while developing.
+
+Before reporting completion, run:
+
+1. the focused hull-plan and Drawing Board tests;
+2. the repository typecheck;
+3. `pnpm snap` and inspect the result;
+4. the full `pnpm check`.
+
+The baseline expectation is at least:
+
+- 164 test files;
+- 1,052 tests;
+- 18 e2e tests;
+
+The counts may increase because of new tests. They must not decrease without a concrete, justified repository change.
+
+Report exact commands, test counts, and exit codes.
+
+## 16. Required final report
+
+Do not commit automatically.
+
+When the implementation and validation are complete, report:
+
+### Files changed
+
+List each changed or added file and its responsibility.
+
+### Visual improvements
+
+Explain specifically what changed in:
+
+- hull silhouette;
+- bow;
+- stern;
+- sheer and deck;
+- superstructure;
+- funnels;
+- drafting lines;
+- plan/profile alignment.
+
+### Data-driven versus schematic
+
+Clearly separate:
+
+- geometry driven by existing hull-form data;
+- geometry driven by actual component placements;
+- deterministic display conventions;
+- any clamping or visual amplification.
+
+### Tests
+
+List the new or modified test cases and their purpose.
+
+### Validation
+
+Provide:
+
+- focused-test result;
+- typecheck result;
+- snapshot inspection result;
+- full `pnpm check` result;
+- final `git status --short`.
+
+### Risks or limitations
+
+Identify any remaining schematic behavior, scaling limitations, unsupported extreme values, or visual compromises.
+
+### Suggested commit
+
+If all validation passes and the worktree contains only the intended changes, suggest:
+
+feat(drawing-board): polish ship profile drawings
+
+Do not stage, commit, amend, rebase, pull, or push unless explicitly instructed after this report.
