@@ -356,8 +356,8 @@ construction:
   buildMonthsProvenance:
     - status: SECONDARY
       source: "Brassey's Naval Annual 1901 p. 264 (18 months the most a destroyer should take; Bat 16, Whiting 14 are the records, p. 263); the ~390 t displacement is from Wikipedia, not Brassey"
-    - status: SECONDARY
-      source: "Brassey's Naval Annual 1901 p. 262 (Hermes and Highflyer about 2.5 years); the 5,600 t displacement is not in the volumes read"
+    - status: VERIFIED
+      source: "Brassey's Naval Annual 1901 p. 262 (Hermes and Highflyer about 2.5 years); 5,600 t from Brassey 1898 p. 12 (three new second-class cruisers of 5600 tons)"
     - status: VERIFIED
       source: "Brassey's Naval Annual 1901 p. 262 (Diadem, laid 23 Jan 1896, pennant 19 Jul 1898); 11,000 t from p. 10"
     - status: VERIFIED
@@ -662,10 +662,11 @@ environment:
         maxDisplacementKg: 30000000,
         craneLiftKg: 250000,
       }
-  # PLACEHOLDER rate (ESTIMATE): 700 work micro-units per tonne of maxDisplacement per month per line. The large yard (30,000 t)
-  # keeps the 21,000,000 that ticket 20 needed for a Majestic-size hull (276M work) to finish inside maxMonths; the small yard
-  # (3,000 t) has 2,100,000 and cannot hold a battleship at all.
-  yardWorkPerTonneMonth: 700
+  # Rate (SECONDARY, derived): work micro-units per tonne of maxDisplacement per month per line. Brassey 1901 pp. 18-19 launch
+  # weights give 250-364 t of hull per month on a battleship slip (Russell 5,950 t in 23 months, Montagu 4,987 t in 15.4, Albemarle
+  # 5,100 t in 14). At 40,000 work per hull tonne the record (364 t/month) on the 30,000 t yard is 364 x 40,000 / 30,000 = 485;
+  # 480 is used so the record yards stay reachable: a Majestic hull's capacity schedule is about 30 months, under its historical time.
+  yardWorkPerTonneMonth: 480
   # Engine projection: displacement per hit point; the median of the 37 authored 1880-pack designs is ~214,000 kg.
   kgPerHitPoint: 214000
   # Micro-pounds per treasury unit: one unit of campaign treasury and project work is GBP 10,000. Calibrated so a Majestic-class battleship

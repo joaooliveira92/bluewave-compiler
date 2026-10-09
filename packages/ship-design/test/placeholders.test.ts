@@ -8,8 +8,8 @@ import { describe, expect, it } from "vite-plus/test";
  * justified in the review, because this test fails.
  */
 const CEILING: Record<string, number> = {
-  "balance.yaml": 2,
-  "components.yaml": 34,
+  "balance.yaml": 1,
+  "components.yaml": 26,
   "plants.yaml": 1,
   "hull-forms.yaml": 0,
   "reference-designs.yaml": 1,

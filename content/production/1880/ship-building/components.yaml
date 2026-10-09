@@ -55,13 +55,13 @@ components:
         mount_cost_micro: 16000000000,
       }
     weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
-    volumeLitre: "339300 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    volumeLitre: "332500 * barrels" # ESTIMATE: sourced barbette area x 5.0 m depth (depth backed out from Royal Sovereign 650 t of barbette armour, Brassey 1892 p.91)
     costMicro: "gun_kg * barrels * cost_per_kg_micro + mount_cost_micro * barrels" # gun GBP 200/long ton (Commons 1888, VERIFIED); mount cost: heavy = Trafalgar/Collingwood hydraulic mountings, QF = ESTIMATE
     crew: "14 * barrels"
     powerKw: "1 * barrels"
     upgradePath: []
     tags: [gun, heavy]
-    deckFootprintMm2: "53157000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    deckFootprintMm2: "66490000 * barrels" # SECONDARY: Royal Sovereign pear barbette 38 ft 2 in x 54 ft 1 in for two guns, Brassey 1892 p.91 (area derived)
     heightMm: "3200"
     zCgMm: "6500"
     fcClass: heavy
@@ -91,13 +91,13 @@ components:
         mount_cost_micro: 14000000000,
       }
     weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
-    volumeLitre: "236100 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    volumeLitre: "256500 * barrels" # ESTIMATE: sourced barbette area x 5.0 m depth (depth backed out from Royal Sovereign 650 t of barbette armour, Brassey 1892 p.91)
     costMicro: "gun_kg * barrels * cost_per_kg_micro + mount_cost_micro * barrels" # gun GBP 200/long ton (Commons 1888, VERIFIED); mount cost: heavy = Trafalgar/Collingwood hydraulic mountings, QF = ESTIMATE
     crew: "13 * barrels"
     powerKw: "1 * barrels"
     upgradePath: []
     tags: [gun, heavy]
-    deckFootprintMm2: "36989000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    deckFootprintMm2: "51300000 * barrels" # SECONDARY: Majestic barbette 37.5 ft for two guns, Brassey 1903 p.356 (circle, area derived)
     heightMm: "3200"
     zCgMm: "6500"
     fcClass: heavy
@@ -127,13 +127,13 @@ components:
         mount_cost_micro: 9000000000,
       }
     weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
-    volumeLitre: "150000 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    volumeLitre: "92350 * barrels" # ESTIMATE: sourced barbette area x 5.0 m depth (depth backed out from Royal Sovereign 650 t of barbette armour, Brassey 1892 p.91)
     costMicro: "gun_kg * barrels * cost_per_kg_micro + mount_cost_micro * barrels" # gun GBP 200/long ton (Commons 1888, VERIFIED); mount cost: heavy = Trafalgar/Collingwood hydraulic mountings, QF = ESTIMATE
     crew: "9 * barrels"
     powerKw: "1 * barrels"
     upgradePath: []
     tags: [gun, heavy]
-    deckFootprintMm2: "23500000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    deckFootprintMm2: "18470000 * barrels" # SECONDARY: twin 10-in barbette 22.5 ft (Libertad), Brassey 1903 p.357 (area derived)
     heightMm: "3200"
     zCgMm: "6500"
     fcClass: heavy
@@ -163,13 +163,13 @@ components:
         mount_cost_micro: 4000000000,
       }
     weightKg: "(gun_kg + mount_per_barrel_kg) * barrels + mount_fixed_kg"
-    volumeLitre: "112200 * barrels" # PLACEHOLDER: 3 L per kg of gun+mount (a 12-inch barbette core is ~225 m3)
+    volumeLitre: "131700 * barrels" # ESTIMATE: sourced barbette area x 5.0 m depth (depth backed out from Royal Sovereign 650 t of barbette armour, Brassey 1892 p.91)
     costMicro: "gun_kg * barrels * cost_per_kg_micro + mount_cost_micro * barrels" # gun GBP 200/long ton (Commons 1888, VERIFIED); mount cost: heavy = Trafalgar/Collingwood hydraulic mountings, QF = ESTIMATE
     crew: "7 * barrels"
     powerKw: "1 * barrels"
     upgradePath: []
     tags: [gun, medium]
-    deckFootprintMm2: "17578000 * barrels" # PLACEHOLDER: 470 mm2 per kg (a 12-inch barbette is ~35 m2)
+    deckFootprintMm2: "26340000 * barrels" # SECONDARY: Cressy 9.2-in barbette 19 ft, Brassey 1903 p.357 (area derived)
     heightMm: "2200"
     zCgMm: "6000"
     fcClass: medium

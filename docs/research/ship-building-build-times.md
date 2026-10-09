@@ -13,7 +13,7 @@ compilation, a derived value, or a primary duration with an unverified displacem
 | t      | months | status    | evidence |
 | ------ | ------ | --------- | -------- |
 | 390    | 18     | SECONDARY | Brassey 1901 p. 264: a destroyer should take 18 months at most (the standard, used here); p. 263: Whiting 14 months and Bat 16 are the records. Displacement about 390 t is from Wikipedia (Palmers 30-knotters), not Brassey. |
-| 5,600  | 30     | SECONDARY | Brassey 1901 p. 262: second-class cruisers Highflyer and Hermes "about two years and a half" from keel to Fleet Reserve; commissioned Oct and 7 Dec 1899. The 5,600 t displacement is not stated in the volumes read. |
+| 5,600  | 30     | VERIFIED  | Brassey 1901 p. 262: second-class cruisers Highflyer and Hermes "about two years and a half" from keel to Fleet Reserve; commissioned Oct and 7 Dec 1899. 5,600 t: "Three new second-class cruisers of 5600 tons have been laid down, the Hyacinth..., the Hermes and Highflyer at Fairfield" (Brassey 1898 p. 12). |
 | 11,000 | 30     | VERIFIED  | Brassey 1901 p. 262: Diadem laid 23 Jan 1896, pennant 19 Jul 1898 ("two years and six months"); Niobe 36 months. 11,000 t is on p. 10. |
 | 12,000 | 31     | VERIFIED  | Cressy, see below. |
 | 12,950 | 35     | VERIFIED  | Brassey 1901 p. 259 table: Canopus 4 Jan 1897 to 5 Dec 1899, 35 months; Ocean 36; Goliath 39; Glory 47. |
@@ -64,9 +64,10 @@ Builds ordered before 1895 stay "provisional" until the 1886 and 1890 points are
 
 ## Still not verified
 
-- The 5,600 t displacement of Hermes and Highflyer (the only SECONDARY point). Builds between 390 t and 11,000 t stay
-  "provisional" until a primary source states it or a verified point replaces it.
+- The ~390 t destroyer displacement (Wikipedia; the 18-month standard itself is Brassey 1901 p. 264). Builds below 5,600 t
+  stay "provisional" until a primary source states a destroyer displacement. (The 5,600 t point is VERIFIED since
+  2026-10-09, Brassey 1898 p. 12; see `ship-building-content-sourcing.md`.)
 - No Conway's, navweaps or Navypedia entry was usable: Conway's is lending-only on archive.org, navweaps covers guns not
   build dates, and the Navypedia pages tried were not reachable. Brassey was the primary source throughout.
-- Armoured cruisers around 9,000 t (Kent/Monmouth class, 9,800 t): laying-down dates are in Brassey 1901 p. 23 but no
-  completion date was found in the volumes read.
+- Armoured cruisers around 9,000 t (Kent/Monmouth class, 9,800 t): Kent laid 12 Feb 1900 (Brassey 1901 p. 21), in
+  commission by early 1904 (Brassey 1904 p. 4), so 40-48 months; no completion month is printed, so it is not a table point.

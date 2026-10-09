@@ -22,3 +22,9 @@ Provenance: new `buildMonthsProvenance` list (status VERIFIED/SECONDARY/ESTIMATE
 Not verified / remaining: (1) Hermes/Highflyer 5,600 t displacement (SECONDARY); (2) no Conway's/navweaps/Navypedia source was reachable, Brassey is the only primary; (3) no completion date for the 9,800 t Kent/Monmouth class. Design caveat: the 1906-10 battleship points (34, 28) are shorter than the 1897-1900 ones, so the table is no longer monotonic above 14,900 t (era effect; a follow-up could add an era multiplier). The monotonic test now covers up to 14,900 t.
 
 Commands: `cd packages/ship-design && npx vp test run` -> 29 files, 280 passed; `npx tsc --noEmit` clean; `npx vp lint .` clean. `cd apps/desktop && npx vp test run src/renderer/screens/construction` -> 28 passed; `npx tsc -b` clean. `cd packages/phase-engine && npx vp test run test/submit-design.test.ts` -> 8 passed. `npx vp fmt --check content packages/ship-design apps/desktop/src/renderer/screens/construction` clean.
+
+### 2026-10-09 orchestrator
+5,600 t point now VERIFIED: Brassey 1898 p. 12 states 5,600 tons for Hermes and Highflyer (research note
+`docs/research/ship-building-content-sourcing.md`). Remaining: the 390 t destroyer point is SECONDARY (Brassey's 18-month standard with a
+Wikipedia displacement), so builds below 5,600 t stay "provisional". Kent class bounded at 40-48 months, not a point. Left open for a
+primary destroyer displacement (e.g. Brassey's annual ship tables).
