@@ -2,13 +2,11 @@ import { useMemo, useState } from "react";
 import { Button } from "../../components/ui/button.js";
 import { CardShell } from "../../components/shared/CardShell.js";
 import { CardTitle } from "../../components/ui/card.js";
-import { campaignNationHue } from "../../components/world-map/campaign-map-join.js";
 import type { Screen } from "../../shell/campaign-screen-registry.js";
-import {
-  DEFERRED_NATION_RAIL_ITEMS,
-  buildNationRail,
-  type NationRailRow,
-} from "./nation-rail-state.js";
+import { NationDeferredIntel } from "./components/NationDeferredIntel.js";
+import { NationDetail } from "./components/NationDetail.js";
+import { NationSwatch } from "./components/NationSwatch.js";
+import { buildNationRail } from "./nation-rail-state.js";
 import type { NationRailLoad } from "./useNationRail.js";
 
 export interface NationRailProps {
@@ -17,29 +15,6 @@ export interface NationRailProps {
   readonly onNavigate: (screen: Screen) => void;
   /** Render only the body (a host panel supplies the chrome and the "Nations" title). */
   readonly embedded?: boolean;
-}
-
-function Swatch({ row }: { readonly row: NationRailRow }) {
-  const url = row.flagUrl;
-  if (url !== null) {
-    return (
-      <img
-        src={url}
-        alt=""
-        aria-hidden="true"
-        className="h-5 w-7 shrink-0 rounded-sm border object-cover"
-      />
-    );
-  }
-  return (
-    <span
-      aria-hidden="true"
-      className="inline-flex h-5 w-7 shrink-0 items-center justify-center rounded-sm border text-[12px] font-semibold"
-      style={{ backgroundColor: `hsl(${campaignNationHue(row.nationId)} 45% 35%)`, color: "#fff" }}
-    >
-      {row.name.slice(0, 1)}
-    </span>
-  );
 }
 
 /**
@@ -81,7 +56,7 @@ export function NationRail({ state, playerName, onNavigate, embedded = false }: 
                 onClick={() => setSelectedId(row.nationId === selectedId ? null : row.nationId)}
                 className="flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left hover:bg-accent aria-pressed:bg-accent"
               >
-                <Swatch row={row} />
+                <NationSwatch row={row} />
                 <span className="min-w-0 flex-1 truncate font-medium">{row.name}</span>
                 <span className="text-muted-foreground">{row.relationLabel}</span>
                 {row.warScore !== null && (
@@ -98,56 +73,9 @@ export function NationRail({ state, playerName, onNavigate, embedded = false }: 
         </ul>
       )}
 
-      {selected !== null && (
-        <div className="rounded-md border px-3 py-2" data-testid="nation-rail-detail">
-          <p className="font-medium">{selected.name}</p>
-          {selected.isPlayer ? (
-            <p className="text-muted-foreground">Your nation.</p>
-          ) : (
-            <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
-              <dt className="text-muted-foreground">Relation</dt>
-              <dd>{selected.relationLabel}</dd>
-              {selected.tension !== null && (
-                <>
-                  <dt className="text-muted-foreground">Tension</dt>
-                  <dd>{selected.tension}/10</dd>
-                </>
-              )}
-              {selected.since !== null && (
-                <>
-                  <dt className="text-muted-foreground">Since</dt>
-                  <dd>{selected.since}</dd>
-                </>
-              )}
-              {selected.warScore !== null && (
-                <>
-                  <dt className="text-muted-foreground">War score</dt>
-                  <dd>
-                    you {selected.warScore.yours} : {selected.warScore.enemy} them
-                  </dd>
-                </>
-              )}
-            </dl>
-          )}
-        </div>
-      )}
+      {selected !== null && <NationDetail selected={selected} />}
 
-      <details
-        data-testid="nation-rail-deferred"
-        className="rounded-md border border-dashed px-3 py-2"
-      >
-        <summary className="cursor-pointer font-medium text-muted-foreground">
-          Intel level / reports / Almanac: Not yet modelled
-        </summary>
-        <ul className="mt-1.5 space-y-1">
-          {DEFERRED_NATION_RAIL_ITEMS.map((item) => (
-            <li key={item.id}>
-              <span className="font-medium">{item.name}</span>
-              <span className="text-muted-foreground"> — {item.reason}</span>
-            </li>
-          ))}
-        </ul>
-      </details>
+      <NationDeferredIntel />
 
       <Button type="button" variant="outline" size="sm" onClick={() => onNavigate("diplomacy")}>
         All relations

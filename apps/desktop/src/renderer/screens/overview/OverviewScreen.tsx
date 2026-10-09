@@ -1,22 +1,15 @@
 import { lazy, Suspense } from "react";
-import { CollapsiblePanel } from "../../components/shared/CollapsiblePanel.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
-import { GlassCard } from "@/components/ui/glass-card.js";
-import { CardContent } from "../../components/ui/card.js";
-import { useWorldMapController } from "../../components/world-map/useWorldMapController.js";
-import { useMinWidth } from "../../lib/use-min-width.js";
-import { useCampaignProjection } from "../../lib/use-campaign-projection.js";
-import { humanizeId } from "../../lib/humanize-id.js";
 import type { Screen } from "../../shell/campaign-screen-registry.js";
-import { useMonthHistory } from "../../shell/CampaignShellContext.js";
-import { useDensity } from "../../shell/DensityContext.js";
 import { DEBUG_MODE } from "../../shell/debug-flag.js";
-import { MonthReportCard } from "./MonthReportCard.js";
+import {
+  OverviewMonthReportPanel,
+  OverviewNationsPanel,
+  OverviewPrioritiesPanel,
+} from "./components/OverviewPanels.js";
+import { OverviewLoadErrorState, OverviewLoadingState } from "./components/OverviewStates.js";
 import { monthLabel } from "./month-report-format.js";
-import { NationRail } from "./NationRail.js";
-import { PrioritiesCard } from "./PrioritiesCard.js";
-import { useNationRail } from "./useNationRail.js";
-import { usePriorities } from "./usePriorities.js";
+import { useOverviewModel } from "./hooks/useOverviewModel.js";
 
 // The map (Canvas renderer + 2 MB coastline) is the heaviest thing on the home screen, so it loads
 // lazily and never delays the panels.
@@ -25,9 +18,6 @@ const WorldMapChart = lazy(() =>
     default: module.WorldMapChart,
   })),
 );
-
-/** Below this width the panels stack under the map instead of floating over it (CC-9). */
-export const COMMAND_OVERLAY_MIN_WIDTH = 1024;
 
 export interface OverviewScreenProps {
   readonly sessionId: string;
@@ -41,76 +31,49 @@ export interface OverviewScreenProps {
  * first and the same panels stack beneath it.
  */
 export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
-  const priorities = usePriorities(sessionId);
-  const nationRail = useNationRail(sessionId);
-  const monthHistory = useMonthHistory();
-  const map = useWorldMapController(sessionId);
-  const { density } = useDensity();
-  const wide = useMinWidth(COMMAND_OVERLAY_MIN_WIDTH);
-  const { projection, loadError } = useCampaignProjection(sessionId);
+  const {
+    loadError,
+    projection,
+    areaName,
+    roomy,
+    priorityCount,
+    priorities,
+    nationRail,
+    monthHistory,
+    map,
+    wide,
+  } = useOverviewModel(sessionId);
 
   if (loadError !== null) {
-    return (
-      <div data-guided-target="overview" className="p-8">
-        <GlassCard glassVariant="liquid-refract" className="border-destructive/50">
-          <CardContent className="p-4 text-destructive">
-            Failed to load campaign overview: {loadError}
-          </CardContent>
-        </GlassCard>
-      </div>
-    );
+    return <OverviewLoadErrorState message={loadError} />;
   }
 
   if (projection === null) {
-    return (
-      <div data-guided-target="overview" className="h-full min-h-[28rem] p-3">
-        <Skeleton className="h-full w-full rounded-lg" />
-      </div>
-    );
+    return <OverviewLoadingState />;
   }
 
-  const areaNames = new Map(projection.strategicAreas.map((area) => [area.id, area.name]));
-  const areaName = (id: string): string => areaNames.get(id) ?? humanizeId(id);
-
-  // Compact density keeps every panel collapsed until the player opens it.
-  const roomy = density !== "compact";
-  const priorityCount = priorities.status === "ready" ? priorities.priorities.length : null;
-
-  const monthReport = (
-    <CollapsiblePanel
-      panelId="home-month-report"
-      title="Recent developments"
-      defaultOpen={roomy && monthHistory.length > 0}
-      testId="home-month-report"
-    >
-      <MonthReportCard history={monthHistory} areaName={areaName} embedded />
-    </CollapsiblePanel>
-  );
   const prioritiesPanel = (
-    <CollapsiblePanel
-      panelId="home-priorities"
-      title="Immediate priorities"
-      badge={priorityCount === null ? undefined : `(${priorityCount})`}
+    <OverviewPrioritiesPanel
+      state={priorities}
+      priorityCount={priorityCount}
       defaultOpen={roomy}
-      testId="home-priorities"
-    >
-      <PrioritiesCard state={priorities} onNavigate={onNavigate} embedded />
-    </CollapsiblePanel>
+      onNavigate={onNavigate}
+    />
+  );
+  const monthReport = (
+    <OverviewMonthReportPanel
+      history={monthHistory}
+      areaName={areaName}
+      defaultOpen={roomy && monthHistory.length > 0}
+    />
   );
   const nationsPanel = (
-    <CollapsiblePanel
-      panelId="home-nations"
-      title="Nations"
+    <OverviewNationsPanel
+      state={nationRail}
+      playerName={projection.nationName}
       defaultOpen={roomy}
-      testId="home-nations"
-    >
-      <NationRail
-        state={nationRail}
-        playerName={projection.nationName}
-        onNavigate={onNavigate}
-        embedded
-      />
-    </CollapsiblePanel>
+      onNavigate={onNavigate}
+    />
   );
 
   const heading = (
