@@ -52,7 +52,7 @@ export const NATION_HUE: Readonly<Record<string, number>> = {
   ottoman_empire: 35,
   spain: 325,
   portugal: 300,
-  qing: 45,
+  qing: 90,
   brazil: 95,
   usa: 285,
 };

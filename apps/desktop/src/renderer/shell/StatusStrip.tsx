@@ -127,7 +127,7 @@ export function StatusStripView({ model }: { readonly model: StatusStripModel })
       aria-label="Status strip"
       data-testid="status-strip"
       data-expanded={expanded}
-      className="relative shrink-0 border-t bg-background/40 px-3 py-1 backdrop-blur-sm supports-[backdrop-filter]:bg-background/30"
+      className="relative shrink-0 border-t bg-background/70 px-3 py-1 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 group-data-[underlay=true]/chrome:bg-linear-to-t group-data-[underlay=true]/chrome:from-background/75 group-data-[underlay=true]/chrome:to-background/10 group-data-[underlay=true]/chrome:border-transparent group-data-[underlay=true]/chrome:backdrop-blur-sm group-data-[underlay=true]/chrome:supports-[backdrop-filter]:bg-transparent"
     >
       <div className="flex items-center gap-4 text-xs">
         {!expanded && (

@@ -17,6 +17,7 @@ import {
 import { simplifyPolygons, type FlatPolygon } from "../../lib/simplify-geometry.js";
 import { runTimeSliced, type TimeSliceHandle } from "../../lib/time-slice.js";
 import type { MapCamera } from "./useMapCamera.js";
+import { snapBordersToIslands } from "./snap-borders-to-islands.js";
 import { WORLD_WRAP_TURNS, type Projection } from "./projection.js";
 
 interface BuiltPolygon {
@@ -141,8 +142,8 @@ export function CoastlineCanvas({
   const bordersRef = useRef<BuiltBorders[]>([]);
   const redrawRef = useRef<() => void>(() => undefined);
   const builtBorders = useMemo(
-    () => buildBorders(borders ?? [], projection, centre),
-    [borders, projection, centre],
+    () => buildBorders(snapBordersToIslands(borders ?? [], polygons), projection, centre),
+    [borders, polygons, projection, centre],
   );
   useEffect(() => {
     bordersRef.current = builtBorders;

@@ -76,7 +76,10 @@ export function WorldMapChart({
   const layout = MAP_VARIANT_LAYOUT[variant];
   const [toolsOpen, setToolsOpen] = useState(false);
   const projection = projectionById(state.projection);
-  const camera = useMapCamera(projection.width, projection.height);
+  const camera = useMapCamera(projection.width, projection.height, {
+    wrapHorizontally: true,
+    coverViewport: variant === "command",
+  });
   const palette = useMapPalette();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const coastline = useCoastline();

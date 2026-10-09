@@ -47,6 +47,33 @@ export const AUTO_RESOLUTION_BATTLE_START_MINUTES = 360 as const; // 06:00 -> mi
 export const GUNNERY_BASE_RELOAD_MS = 60_000 as const;
 export const GUNNERY_ACCURACY_BASE_BP = 4_000 as const;
 
+// ---------------------------------------------------------------------------
+// ADR-0072: speed advantage as range control + engagement geometry (ticket 11).
+//
+// The auto-resolver's pursuit steers every ship straight at the nearest enemy at
+// full designed speed, so speed conferred no tactical advantage (ADR-0053 sweep:
+// a 14 kn fleet beat an equal 30 kn fleet 30/30). ADR-0072 adds the missing
+// decision: the side with the greater maximum designed speed is the RANGE
+// CONTROLLER. On its own initiative it holds a standoff band
+// (`BATTLE_ENGAGEMENT_RANGE_UM` +/- `BATTLE_ENGAGEMENT_BAND_UM`, integer
+// micrometres, `rangeBetweenUm`-measured) instead of charging, and it fires from
+// a steady course; the slower side must close and manoeuvre to contest the range,
+// degrading its own fire control.
+//
+// Geometry is applied ONLY to the range-controlling side: equal maximum speeds
+// (including an absent/empty side) leave the battle exactly as ADR-0046 pursuit
+// left it, so equal-speed matchups (and the P-1 torpedo doctrine, whose
+// lead/intercept courses assume the ADR-0046 closing geometry) are byte-identical.
+//
+// BALANCE TARGET (like the ADR-0053 lethality constants): the contesting side's
+// DESIGN-39 §3 `ownManeuver` factor is multiplied to 4_100 bp (a 59% own-manoeuvre
+// fire-control penalty), calibrated so a 30 kn fleet beats an equal-gun 14 kn
+// fleet (acceptance >= 50%; sweep observed 73%). Versioned with the battle
+// auto-resolution contract; a re-fit is a new ADR, never an in-place edit.
+export const BATTLE_ENGAGEMENT_RANGE_UM = 2_000_000_000 as const;
+export const BATTLE_ENGAGEMENT_BAND_UM = 1_000_000_000 as const;
+export const RANGE_CONTEST_OWN_MANEUVER_BP = 4_100 as const;
+
 /** Conversion: designed speed µm/s -> movement speed units (knots × SPEED_BP_SCALE,
  *  the scale `speedBpKnotsToUmS` reads). Integer, floor:
  *  floor(ums * SPEED_BP_SCALE / KNOTS_TO_UM_S).
@@ -179,6 +206,10 @@ export interface BattleAutoResolutionContract {
   structureUnit: number;
   floatUnit: number;
   zones: readonly string[];
+  /** ADR-0072 speed advantage: standoff geometry + range-contest fire-control bp. */
+  engagementRangeUm: number;
+  engagementBandUm: number;
+  rangeContestOwnManeuverBp: number;
 }
 
 export const SHIPPED_BATTLE_AUTO_RESOLUTION_V1: BattleAutoResolutionContract = {
@@ -193,6 +224,9 @@ export const SHIPPED_BATTLE_AUTO_RESOLUTION_V1: BattleAutoResolutionContract = {
   structureUnit: STRUCTURE_UNIT,
   floatUnit: FLOAT_UNIT,
   zones: AUTO_ZONES,
+  engagementRangeUm: BATTLE_ENGAGEMENT_RANGE_UM,
+  engagementBandUm: BATTLE_ENGAGEMENT_BAND_UM,
+  rangeContestOwnManeuverBp: RANGE_CONTEST_OWN_MANEUVER_BP,
 };
 
 export function throwContractMismatch(contract: unknown, reason: string): never {
@@ -232,4 +266,10 @@ export function validateBattleAutoResolutionContract(
     throwContractMismatch(c, "battle_auto_resolution_v1 structural/flotation units");
   if (!c.zones || !arrayEquals(c.zones, AUTO_ZONES))
     throwContractMismatch(c, "battle_auto_resolution_v1 canonical zone set");
+  if (c.engagementRangeUm !== BATTLE_ENGAGEMENT_RANGE_UM)
+    throwContractMismatch(c, "battle_auto_resolution_v1 engagement range");
+  if (c.engagementBandUm !== BATTLE_ENGAGEMENT_BAND_UM)
+    throwContractMismatch(c, "battle_auto_resolution_v1 engagement band");
+  if (c.rangeContestOwnManeuverBp !== RANGE_CONTEST_OWN_MANEUVER_BP)
+    throwContractMismatch(c, "battle_auto_resolution_v1 range-contest own manoeuvre");
 }

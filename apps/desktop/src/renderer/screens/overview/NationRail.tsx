@@ -3,6 +3,7 @@ import { Button } from "../../components/ui/button.js";
 import { CardShell } from "../../components/shared/CardShell.js";
 import { CardTitle } from "../../components/ui/card.js";
 import { campaignNationHue } from "../../components/world-map/campaign-map-join.js";
+import { resolveNationAsset } from "../../content/resolveNationAsset.js";
 import type { Screen } from "../../shell/campaign-screen-registry.js";
 import {
   DEFERRED_NATION_RAIL_ITEMS,
@@ -19,11 +20,47 @@ export interface NationRailProps {
   readonly embedded?: boolean;
 }
 
+/** Campaign nation id -> the playable-slot country id its flag art is keyed by. */
+const FLAG_COUNTRY_ID: Readonly<Record<string, string>> = {
+  uk: "gb",
+  germany: "de",
+  usa: "us",
+  japan: "jp",
+  france: "fr",
+  italy: "it",
+  russia: "ru",
+  austria_hungary: "ah",
+  spain: "es",
+  qing: "qing",
+};
+
+/** The nation's flag (or ensign) URL, or null for powers without flag art yet. */
+function flagUrl(nationId: string): string | null {
+  const countryId = FLAG_COUNTRY_ID[nationId];
+  if (countryId === undefined) return null;
+  for (const kind of ["nation_flag", "nation_ensign"] as const) {
+    const resolved = resolveNationAsset({ countryId }, kind);
+    if (resolved.status === "resolved") return resolved.asset.url;
+  }
+  return null;
+}
+
 function Swatch({ row }: { readonly row: NationRailRow }) {
+  const url = flagUrl(row.nationId);
+  if (url !== null) {
+    return (
+      <img
+        src={url}
+        alt=""
+        aria-hidden="true"
+        className="h-5 w-7 shrink-0 rounded-sm border object-cover"
+      />
+    );
+  }
   return (
     <span
       aria-hidden="true"
-      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border text-[12px] font-semibold"
+      className="inline-flex h-5 w-7 shrink-0 items-center justify-center rounded-sm border text-[12px] font-semibold"
       style={{ backgroundColor: `hsl(${campaignNationHue(row.nationId)} 45% 35%)`, color: "#fff" }}
     >
       {row.name.slice(0, 1)}

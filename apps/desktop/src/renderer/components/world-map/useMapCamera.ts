@@ -87,6 +87,11 @@ export interface CameraOptions {
    * difference stops being cosmetic.
    */
   readonly wrapHorizontally: boolean;
+  /**
+   * Zoom floor covers the viewport instead of fitting the world, so a wide panel shows no empty
+   * bands above and below the map (the command screen runs it behind its translucent bars).
+   */
+  readonly coverViewport?: boolean;
 }
 
 export function useMapCamera(
@@ -94,7 +99,7 @@ export function useMapCamera(
   worldHeight: number,
   options: CameraOptions = { wrapHorizontally: true },
 ): MapCamera {
-  const { wrapHorizontally } = options;
+  const { wrapHorizontally, coverViewport = false } = options;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const worldRef = useRef<SVGGElement | null>(null);
   const meterRef = useRef<HTMLSpanElement | null>(null);
@@ -164,9 +169,10 @@ export function useMapCamera(
    */
   const minScale = useCallback((): number => {
     const visible = viewportUnits();
-    const fit = Math.min(visible.width / worldWidth, visible.height / worldHeight);
+    const ratios = [visible.width / worldWidth, visible.height / worldHeight];
+    const fit = coverViewport ? Math.max(...ratios) : Math.min(...ratios);
     return Number.isFinite(fit) && fit > 0 ? fit : MIN_SCALE;
-  }, [viewportUnits, worldHeight, worldWidth]);
+  }, [coverViewport, viewportUnits, worldHeight, worldWidth]);
 
   const clamp = useCallback(() => {
     const current = camera.current;
@@ -196,12 +202,15 @@ export function useMapCamera(
 
   const reset = useCallback(() => {
     // "Fit world": the clamp centres whatever margin is left over.
-    camera.current = { scale: minScale(), x: 0, y: 0 };
+    const scale = minScale();
+    const visible = viewportUnits();
+    // Centre vertically; the clamp does the same when the world is the shorter one.
+    camera.current = { scale, x: 0, y: visible.top + (visible.height - worldHeight * scale) / 2 };
     touched.current = false;
     resetFrameMeter();
     clamp();
     applyTransform();
-  }, [applyTransform, clamp, minScale, resetFrameMeter]);
+  }, [applyTransform, clamp, minScale, resetFrameMeter, viewportUnits, worldHeight]);
 
   const zoomAt = useCallback(
     (factor: number, clientX: number, clientY: number) => {

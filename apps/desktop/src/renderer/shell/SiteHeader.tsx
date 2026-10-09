@@ -49,13 +49,13 @@ export function SiteHeader({
 
   return (
     <header
-      className="sticky top-0 z-50 flex h-24 w-full shrink-0 flex-col border-b bg-background/40 backdrop-blur-sm select-none supports-[backdrop-filter]:bg-background/30"
+      className="sticky top-0 z-50 flex h-24 w-full shrink-0 flex-col border-b bg-background/70 backdrop-blur-md select-none supports-[backdrop-filter]:bg-background/60 group-data-[underlay=true]/chrome:bg-linear-to-b group-data-[underlay=true]/chrome:from-background/75 group-data-[underlay=true]/chrome:to-background/10 group-data-[underlay=true]/chrome:border-transparent group-data-[underlay=true]/chrome:backdrop-blur-sm group-data-[underlay=true]/chrome:supports-[backdrop-filter]:bg-transparent"
       style={DRAG}
     >
       {/* Row 1: primary header */}
       <div
         className={cn(
-          "flex h-14 w-full items-center gap-2 border-b pr-4",
+          "flex h-14 w-full items-center gap-2 border-b pr-4 group-data-[underlay=true]/chrome:border-foreground/5",
           isMac ? "pl-25" : "pl-4",
         )}
       >

@@ -56,7 +56,11 @@ export function AppFrame({
       ref={frameRef}
       className="relative h-svh flex-col overflow-hidden bg-transparent"
     >
-      <div ref={topRef} className="relative z-20 shrink-0">
+      <div
+        ref={topRef}
+        data-underlay={underlay}
+        className="group/chrome relative z-20 shrink-0"
+      >
         {header}
       </div>
       <div
@@ -78,7 +82,11 @@ export function AppFrame({
           {children}
         </SidebarInset>
       </div>
-      <div ref={bottomRef} className="relative z-20 mt-auto shrink-0">
+      <div
+        ref={bottomRef}
+        data-underlay={underlay}
+        className="group/chrome relative z-20 mt-auto shrink-0"
+      >
         {campaignSessionId !== null && campaignRevision !== null && (
           <StatusStrip
             sessionId={campaignSessionId}

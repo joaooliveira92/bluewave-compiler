@@ -42,6 +42,7 @@ import { initialDamageState, type DamageContext, type DamageTargetContext } from
 import {
   AUTO_RESOLUTION_COMPARTMENTS,
   AUTO_RESOLUTION_COMPONENTS,
+  RANGE_CONTEST_OWN_MANEUVER_BP,
   DEFAULT_AREA_BBOX,
   FLOAT_UNIT,
   GUNNERY_ACCURACY_BASE_BP,
@@ -50,6 +51,7 @@ import {
   autoZonesForBelt,
   designedSpeedBpKnots,
 } from "./constants.js";
+import { resolveRangeController } from "./engagement.js";
 import { BATTLE_AUTO_RESOLUTION_FAILED } from "./reasonCodes.js";
 import { projectTorpedoes } from "./torpedoProjection.js";
 import type { TorpedoContext } from "../torpedoes/index.js";
@@ -223,12 +225,21 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
   };
 
   // ---- main-battery gunnery surface (one battery per armed ship) -----------
+  // ADR-0072: the side with the greater maximum designed speed controls the
+  // range. The slower, contesting side must run its machinery hard and manoeuvre
+  // to hold the range, so its own fire control is degraded via the existing
+  // DESIGN-39 §3 `ownManeuver` factor (a bounded, versioned multiplier). Equal
+  // maximum speeds leave both sides neutral.
+  const rangeControl = resolveRangeController(units);
+  const contestedOwnManeuverBp =
+    rangeControl.controller === null ? null : RANGE_CONTEST_OWN_MANEUVER_BP;
   const batteries: GunneryBattery[] = [];
   for (const u of units) {
     const design = unitDesigns[u.assetId]!;
     const mainGunsCount = design.mainGunsCount as number;
     if (mainGunsCount <= 0) continue; // no main battery -> no gunnery (canonical)
     const batteryId = `${u.assetId}:MAIN`;
+    const isContesting = rangeControl.controller !== null && u.sideId !== rangeControl.controller;
     batteries.push({
       id: batteryId,
       ownerShipId: u.assetId,
@@ -242,6 +253,7 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
       accuracyFactors: {
         ...neutralAccuracyFactors(GUNNERY_ACCURACY_BASE_BP),
         officer: commanderAccuracyBp(u, attacker, defender),
+        ...(isContesting ? { ownManeuver: contestedOwnManeuverBp! } : {}),
       },
       state: withGunneryStateHash({
         batteryId,
