@@ -1,41 +1,22 @@
-import {
-  defaultArchetypeSelection,
-  serializeArchetypeSelection,
-  type ArchetypeSelection,
-} from "@bluewave/campaign-engine";
+import { type ArchetypeSelection } from "@bluewave/campaign-engine";
 import { useCallback, useMemo, useState } from "react";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import type { NewGameOptions } from "../../shared/new-game-contract.js";
 import {
   ADMIRAL_PRESET_VALUES,
   RECOMMENDED_FLEET_METHOD_ID,
-  type AdmiralPresetValues,
 } from "../screens/new-game/admiral-preset.js";
 import type { FleetMethodDraft } from "../screens/new-game/new-game-fleet-method-screen-state.js";
 import type { CampaignIdentityDraft } from "../screens/new-game/new-game-identity-screen-state.js";
-import { buildCampaignConfiguration } from "../screens/new-game/new-game-nation-screen-state.js";
 import type { DraftPreferences } from "../screens/new-game/new-game-preferences-screen-state.js";
 import { COSMETIC_MINIMUM_DURATION_MS } from "../screens/new-game/world-generation-presentation.js";
 import type { Screen } from "./campaign-screen-registry.js";
+import { compileNewGame, isLaunchableDraft } from "./new-game-compile.js";
+import { draftWithNation, type NewGameDraft } from "./new-game-draft.js";
 
-export interface NewGameDraft {
-  readonly nationId: string;
-  readonly preferences: DraftPreferences | null;
-  readonly options: NewGameOptions | null;
-  readonly archetype: ArchetypeSelection | null;
-  readonly identity: CampaignIdentityDraft | null;
-  readonly fleetMethod: FleetMethodDraft | null;
-  readonly recommendedPreset: AdmiralPresetValues | null;
-}
+export type { NewGameDraft } from "./new-game-draft.js";
 
 type NewGameBridge = Pick<BluewaveDesktopBridge, "campaign">;
-
-/**
- * The one `compileCampaign` rejection reason that isn't a failure (spec §7)
- * — the player hit Cancel on the native save-location dialog. Handled
- * silently: back to the review screen, selections intact, no error banner.
- */
-const SAVE_LOCATION_CANCELLED = "SAVE_LOCATION_CANCELLED";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -73,23 +54,11 @@ export interface NewGameFlow {
   };
 }
 
-/** Carries a `NewGameDraft`'s other fields forward while swapping in `nationId`. */
-function draftWithNation(current: NewGameDraft | null, nationId: string): NewGameDraft {
-  return {
-    nationId,
-    preferences: current?.preferences ?? null,
-    options: current?.options ?? null,
-    archetype: current?.archetype ?? null,
-    identity: current?.identity ?? null,
-    fleetMethod: current?.fleetMethod ?? null,
-    recommendedPreset: current?.recommendedPreset ?? null,
-  };
-}
-
 /**
  * Owns the new-campaign workflow independently from the application shell UI.
- * The hook coordinates draft state and compilation, while navigation and the
- * desktop bridge remain dependency-injected at the boundary. Step order:
+ * The hook coordinates draft state and navigation; compilation lives in
+ * `new-game-compile` and the draft model in `new-game-draft`. Navigation and
+ * the desktop bridge remain dependency-injected at the boundary. Step order:
  * nation -> preferences (Rules of the Naval Age) -> archetype -> identity ->
  * fleet method -> launch. Nation is confirmed first, before any preference
  * exists, so it carries no scenario/options dependency of its own.
@@ -194,51 +163,29 @@ export function useNewGameFlow(
    * presentation screen paces its own cosmetic checklist independently, but
    * on success we still wait out `COSMETIC_MINIMUM_DURATION_MS` here so a
    * fast resolution doesn't cut the sequence short. `SAVE_LOCATION_CANCELLED`
-   * returns silently to the review screen with no minimum wait; the other
-   * five rejection/error reasons surface immediately as `error` for the
-   * presentation screen's dedicated error state to show.
+   * returns silently to the review screen with no minimum wait; other failures
+   * surface immediately as `error` for the presentation screen's dedicated
+   * error state to show.
    */
   const launch = useCallback(async () => {
-    if (
-      bridge === undefined ||
-      draft === null ||
-      draft.preferences === null ||
-      draft.fleetMethod === null
-    ) {
-      return;
-    }
+    if (bridge === undefined || !isLaunchableDraft(draft)) return;
     navigation.selectScreen("new-game-launching");
     setStatus("launching");
     setError(null);
     try {
-      const archetypeToken = serializeArchetypeSelection(
-        draft.archetype ?? defaultArchetypeSelection(),
-      );
-      const config = {
-        ...buildCampaignConfiguration(
-          draft.nationId,
-          draft.preferences,
-          draft.fleetMethod.legacyFleetModeId,
-        ),
-        archetype: archetypeToken,
-      };
-      const result = await bridge.campaign.execute("compileCampaign", config);
-      if (result.outcome !== "success") {
-        if (result.reason === SAVE_LOCATION_CANCELLED) {
-          navigation.selectScreen("new-game-review");
-          return;
-        }
-        const diagnostics =
-          result.diagnostics.length > 0 ? ` ${result.diagnostics.join("; ")}` : "";
-        setError(`${result.reason}.${diagnostics}`);
+      const outcome = await compileNewGame(bridge, draft);
+      if (outcome.kind === "cancelled") {
+        navigation.selectScreen("new-game-review");
+        return;
+      }
+      if (outcome.kind === "failed") {
+        setError(outcome.message);
         return;
       }
       await delay(COSMETIC_MINIMUM_DURATION_MS);
       setDraft(null);
-      setBriefingSessionId(result.value.sessionId);
+      setBriefingSessionId(outcome.sessionId);
       navigation.selectScreen("opening-briefing");
-    } catch {
-      setError("COMPILE_FAILED.");
     } finally {
       setStatus("ready");
     }

@@ -1,60 +1,28 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 
-import type { PlayerProjection } from "@bluewave/campaign-engine";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
-import { countActiveAlerts } from "../lib/priorities.js";
-import { summarizeMonth } from "../lib/month-summary.js";
 import { emitWideEvent } from "../lib/telemetry.js";
+import { summarizeMonth } from "../lib/month-summary.js";
 import type { Screen } from "./campaign-screen-registry.js";
+import {
+  loadActiveAlertsCount,
+  overviewAfterCommit,
+  overviewFromProjection,
+} from "./campaign-overview.js";
 import {
   campaignShellMode,
   currentShellScreen,
   initialCampaignShellState,
   reduceCampaignShell,
 } from "./campaign-shell-state.js";
-import type { CampaignOverview } from "./campaign-shell-state.js";
 import { canGoBack, canGoForward, goBack, goForward } from "./navigation-history.js";
 import type { PrimaryAction } from "./primary-action.js";
 import { formatCampaignMonth } from "./site-header-state.js";
 
 const SAVE_MESSAGE_DURATION_MS = 8_000;
 
-/** Builds the shell's campaign summary from an `inspectCampaign` projection. */
-function overviewFromProjection(
-  sessionId: string,
-  projection: PlayerProjection,
-  activeAlertsCount: number | null,
-): CampaignOverview {
-  return {
-    month: projection.month,
-    treasury: projection.economy.treasury,
-    revision: projection.revision,
-    sessionId,
-    nationName: projection.nationName,
-    projectedSurplusDeficit: projection.projectedSurplusDeficit,
-    atWar: projection.knownEnemyNations.length > 0,
-    // Real count from the engine's priorities projection; null only when that
-    // projection could not be read, so the header omits the slot rather than
-    // showing a made-up number.
-    activeAlertsCount,
-  };
-}
-
 function diagnosticsSuffix(diagnostics: readonly string[]): string {
   return diagnostics.length > 0 ? ` ${diagnostics.join("; ")}` : "";
-}
-
-/** The number of warnings/criticals the engine reports, or null if unavailable. */
-async function loadActiveAlertsCount(
-  bridge: BluewaveDesktopBridge,
-  sessionId: string,
-): Promise<number | null> {
-  try {
-    const result = await bridge.campaign.execute("inspectPriorities", sessionId);
-    return result.outcome === "success" ? countActiveAlerts(result.value.priorities) : null;
-  } catch {
-    return null;
-  }
 }
 
 export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
@@ -198,24 +166,9 @@ export function useCampaignShell(bridge: BluewaveDesktopBridge | undefined) {
       if (result.outcome === "success") {
         emitWideEvent("campaign_month_advance", sessionId, duration, "success");
         const { value } = result;
-        const nextCampaign: CampaignOverview = {
-          month: value.closingSnapshot.month,
-          treasury: value.report.closingTreasury,
-          revision: value.closingSnapshot.revision,
-          sessionId,
-          // The commit response carries no projection surface (no
-          // nationName/projectedSurplusDeficit on ClosingSnapshotSummary), so
-          // the shell keeps the stable nation identity and the last-known
-          // projected balance until the next inspectCampaign refreshes them.
-          nationName: state.campaign.nationName,
-          projectedSurplusDeficit: state.campaign.projectedSurplusDeficit,
-          atWar: state.campaign.atWar,
-          // Last month's count would be wrong for this month; the refresh below fills it in.
-          activeAlertsCount: null,
-        };
         dispatch({
           type: "month-committed",
-          campaign: nextCampaign,
+          campaign: overviewAfterCommit(state.campaign, value, sessionId),
           summary: summarizeMonth(value),
         });
         // The commit response carries no projection surface; refresh the rest.

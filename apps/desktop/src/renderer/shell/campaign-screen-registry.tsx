@@ -11,167 +11,14 @@ import {
   Settings2,
   Ship,
   Terminal,
-  type LucideIcon,
 } from "lucide-react";
-import { lazy, Suspense, useCallback, type ComponentType } from "react";
-import { CampaignPreferencesScreen } from "../screens/campaign-preferences/CampaignPreferencesScreen.js";
-import { ConstructionScreen } from "../screens/construction/ConstructionScreen.js";
-import { FleetScreen } from "../screens/fleet/FleetScreen.js";
-import { OptionsScreen } from "../screens/options/OptionsScreen.js";
-import { OverviewScreen } from "../screens/overview/OverviewScreen.js";
+import { Suspense } from "react";
 import { useCampaignShellContext } from "./CampaignShellContext.js";
+import { CAMPAIGN_SCREEN_ROUTES } from "./campaign-screen-routes.js";
+import type { CampaignScreen, CampaignScreenDefinition, Screen } from "./campaign-screen-types.js";
 import { DEBUG_MODE } from "./debug-flag.js";
 
-const DebuggingScreen = lazy(() =>
-  import("../screens/debugging/DebuggingScreen.js").then((module) => ({
-    default: module.DebuggingScreen,
-  })),
-);
-const SimulationScreen = lazy(() =>
-  import("../screens/simulation/SimulationScreen.js").then((module) => ({
-    default: module.SimulationScreen,
-  })),
-);
-const ResearchScreen = lazy(() =>
-  import("../screens/research/ResearchScreen.js").then((module) => ({
-    default: module.ResearchScreen,
-  })),
-);
-const DiplomacyScreen = lazy(() =>
-  import("../screens/diplomacy/DiplomacyScreen.js").then((module) => ({
-    default: module.DiplomacyScreen,
-  })),
-);
-const TreasuryScreen = lazy(() =>
-  import("../screens/treasury/TreasuryScreen.js").then((module) => ({
-    default: module.TreasuryScreen,
-  })),
-);
-const TacticalSandboxScreen = lazy(() =>
-  import("../screens/tactical-sandbox/TacticalSandboxScreen.js").then((module) => ({
-    default: module.TacticalSandboxScreen,
-  })),
-);
-// PROTOTYPE — throwaway, ticket 06. Dev-only; see
-// screens/map-prototype/README.md. Delete this and its folder once the
-// rendering-technology question is settled.
-const MapPrototypeScreen = lazy(() =>
-  import("../screens/map-prototype/MapPrototypeScreen.js").then((module) => ({
-    default: module.MapPrototypeScreen,
-  })),
-);
-
-export type Screen =
-  | "file"
-  | "new-game-nation"
-  | "new-game-preferences"
-  | "new-game-archetype"
-  | "new-game-identity"
-  | "new-game-fleet-method"
-  | "new-game-review"
-  | "new-game-launching"
-  | "opening-briefing"
-  | CampaignScreen;
-
-export type CampaignScreen =
-  | "overview"
-  | "construction"
-  | "fleet"
-  | "simulation"
-  | "research"
-  | "diplomacy"
-  | "treasury"
-  | "tactical-sandbox"
-  | "debugging"
-  | "map-prototype"
-  | "campaign-preferences"
-  | "options";
-
-interface CampaignScreenRouteProps {
-  readonly sessionId: string;
-}
-
-type CampaignScreenRoute = ComponentType<CampaignScreenRouteProps>;
-
-export interface CampaignScreenDefinition {
-  readonly id: CampaignScreen;
-  readonly label: string;
-  /** Compact name for tight surfaces (the bottom bar); the full `label` is its tooltip. */
-  readonly shortLabel: string;
-  readonly icon: LucideIcon;
-  readonly group: "campaign" | "settings";
-  readonly searchable: boolean;
-  readonly route: CampaignScreenRoute;
-}
-
-function OverviewRoute({ sessionId }: CampaignScreenRouteProps) {
-  const { actions } = useCampaignShellContext();
-  return <OverviewScreen sessionId={sessionId} onNavigate={actions.selectScreen} />;
-}
-
-function ConstructionRoute({ sessionId }: CampaignScreenRouteProps) {
-  return <ConstructionScreen sessionId={sessionId} />;
-}
-
-function FleetRoute({ sessionId }: CampaignScreenRouteProps) {
-  return <FleetScreen sessionId={sessionId} />;
-}
-
-function SimulationRoute({ sessionId }: CampaignScreenRouteProps) {
-  const { state, actions } = useCampaignShellContext();
-  const onMonthCommitted = useCallback(
-    () => void actions.refreshCampaign(sessionId),
-    [actions.refreshCampaign, sessionId],
-  );
-  return (
-    <SimulationScreen
-      sessionId={sessionId}
-      onPrimaryActionChange={actions.setPrimaryAction}
-      campaignRevision={state.campaign?.revision}
-      onMonthCommitted={onMonthCommitted}
-    />
-  );
-}
-
-function ResearchRoute({ sessionId }: CampaignScreenRouteProps) {
-  return <ResearchScreen sessionId={sessionId} />;
-}
-
-function DiplomacyRoute({ sessionId }: CampaignScreenRouteProps) {
-  return <DiplomacyScreen sessionId={sessionId} />;
-}
-
-/**
- * Treasury — the read-only projection screen (INC-4). Replaces INC-14's
- * stub slot: the sidebar entry/search target were already final, only the
- * route was a placeholder.
- */
-function TreasuryRoute({ sessionId }: CampaignScreenRouteProps) {
-  return <TreasuryScreen sessionId={sessionId} />;
-}
-
-function TacticalSandboxRoute({ sessionId }: CampaignScreenRouteProps) {
-  return <TacticalSandboxScreen sessionId={sessionId} />;
-}
-
-function DebuggingRoute({ sessionId }: CampaignScreenRouteProps) {
-  return <DebuggingScreen sessionId={sessionId} />;
-}
-
-function MapPrototypeRoute() {
-  return <MapPrototypeScreen />;
-}
-
-function CampaignPreferencesRoute({ sessionId }: CampaignScreenRouteProps) {
-  const { actions } = useCampaignShellContext();
-  return (
-    <CampaignPreferencesScreen sessionId={sessionId} onCloseCampaign={actions.closeCampaign} />
-  );
-}
-
-function OptionsRoute() {
-  return <OptionsScreen />;
-}
+export type { CampaignScreen, Screen } from "./campaign-screen-types.js";
 
 // PROTOTYPE — throwaway, ticket 06. Never registered in a production build, so
 // a stray merge cannot ship a fixture world to players.
@@ -182,7 +29,7 @@ const MAP_PROTOTYPE_SCREEN: CampaignScreenDefinition = {
   icon: MapIcon,
   group: "campaign",
   searchable: true,
-  route: MapPrototypeRoute,
+  route: CAMPAIGN_SCREEN_ROUTES["map-prototype"],
 };
 
 // Debug-only screens below are gated by DEBUG_MODE (shell/debug-flag.ts, ADR-0029):
@@ -196,7 +43,7 @@ const SIMULATION_SCREEN: CampaignScreenDefinition = {
   icon: Activity,
   group: "campaign",
   searchable: true,
-  route: SimulationRoute,
+  route: CAMPAIGN_SCREEN_ROUTES.simulation,
 };
 const TACTICAL_SANDBOX_SCREEN: CampaignScreenDefinition = {
   id: "tactical-sandbox",
@@ -205,7 +52,7 @@ const TACTICAL_SANDBOX_SCREEN: CampaignScreenDefinition = {
   icon: Crosshair,
   group: "campaign",
   searchable: true,
-  route: TacticalSandboxRoute,
+  route: CAMPAIGN_SCREEN_ROUTES["tactical-sandbox"],
 };
 const DEBUGGING_SCREEN: CampaignScreenDefinition = {
   id: "debugging",
@@ -214,7 +61,7 @@ const DEBUGGING_SCREEN: CampaignScreenDefinition = {
   icon: Terminal,
   group: "campaign",
   searchable: true,
-  route: DebuggingRoute,
+  route: CAMPAIGN_SCREEN_ROUTES.debugging,
 };
 
 // Sixth campaign section (spec §5) — always registered, like the five real
@@ -226,7 +73,7 @@ const TREASURY_SCREEN: CampaignScreenDefinition = {
   icon: Coins,
   group: "campaign",
   searchable: true,
-  route: TreasuryRoute,
+  route: CAMPAIGN_SCREEN_ROUTES.treasury,
 };
 
 export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
@@ -237,7 +84,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
     icon: LayoutDashboard,
     group: "campaign",
     searchable: true,
-    route: OverviewRoute,
+    route: CAMPAIGN_SCREEN_ROUTES.overview,
   },
   {
     id: "construction",
@@ -246,7 +93,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
     icon: Hammer,
     group: "campaign",
     searchable: true,
-    route: ConstructionRoute,
+    route: CAMPAIGN_SCREEN_ROUTES.construction,
   },
   {
     id: "fleet",
@@ -255,7 +102,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
     icon: Ship,
     group: "campaign",
     searchable: true,
-    route: FleetRoute,
+    route: CAMPAIGN_SCREEN_ROUTES.fleet,
   },
   ...(DEBUG_MODE ? [SIMULATION_SCREEN] : []),
   {
@@ -265,7 +112,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
     icon: FlaskConical,
     group: "campaign",
     searchable: true,
-    route: ResearchRoute,
+    route: CAMPAIGN_SCREEN_ROUTES.research,
   },
   {
     id: "diplomacy",
@@ -274,7 +121,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
     icon: Handshake,
     group: "campaign",
     searchable: true,
-    route: DiplomacyRoute,
+    route: CAMPAIGN_SCREEN_ROUTES.diplomacy,
   },
   TREASURY_SCREEN,
   ...(DEBUG_MODE ? [TACTICAL_SANDBOX_SCREEN, DEBUGGING_SCREEN] : []),
@@ -286,7 +133,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
     icon: Settings2,
     group: "settings",
     searchable: false,
-    route: CampaignPreferencesRoute,
+    route: CAMPAIGN_SCREEN_ROUTES["campaign-preferences"],
   },
   {
     id: "options",
@@ -295,7 +142,7 @@ export const CAMPAIGN_SCREEN_REGISTRY: readonly CampaignScreenDefinition[] = [
     icon: Settings,
     group: "settings",
     searchable: false,
-    route: OptionsRoute,
+    route: CAMPAIGN_SCREEN_ROUTES.options,
   },
 ];
 
@@ -309,9 +156,7 @@ export const CAMPAIGN_SCREEN_SEARCH_TARGETS = CAMPAIGN_SCREEN_REGISTRY.filter(
   (screen) => screen.searchable,
 ).map(({ id, label }) => ({ id, label }));
 
-const CAMPAIGN_SCREEN_ROUTES = new Map(
-  CAMPAIGN_SCREEN_REGISTRY.map(({ id, route }) => [id, route]),
-);
+const ROUTE_COMPONENTS = new Map(CAMPAIGN_SCREEN_REGISTRY.map(({ id, route }) => [id, route]));
 
 export interface CampaignScreenOutletProps {
   readonly screen: Screen;
@@ -320,7 +165,7 @@ export interface CampaignScreenOutletProps {
 export function CampaignScreenOutlet({ screen }: CampaignScreenOutletProps) {
   const { state } = useCampaignShellContext();
   if (state.mode.kind !== "campaign") return null;
-  const Route = CAMPAIGN_SCREEN_ROUTES.get(screen as CampaignScreen);
+  const Route = ROUTE_COMPONENTS.get(screen as CampaignScreen);
   if (Route === undefined) return null;
   return (
     <Suspense fallback={<div className="text-sm text-muted-foreground">Loading screen…</div>}>
