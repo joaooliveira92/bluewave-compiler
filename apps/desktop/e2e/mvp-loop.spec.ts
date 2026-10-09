@@ -509,6 +509,93 @@ test("row 6j: a finding on the ship leads to its fix, and the fix clears it", as
   await expect(board.getByTestId("resolved-note")).toContainText("Resolved:");
 });
 
+// Rows 6k-6l share one copy of the campaign: 6k submits a design and closes the app, 6l is a fresh app instance on the
+// same package, so the queued design must have survived the restart (ADR-0082) before the month builds it.
+let designCopy = "";
+
+test("row 6k: a valid design is submitted from the Drawing Board and queued", async ({ e2e }) => {
+  // Not e2e.scratch: that is removed when this test's app closes, and 6l needs the package after the restart.
+  designCopy = await copyFixturePackage(
+    sharedSaveDir,
+    await mkdtemp(join(tmpdir(), "bluewave-design-")),
+  );
+  await e2e.retargetDialog(designCopy);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await dismissTour(e2e.page);
+  await navigateTo(e2e.page, "Construction");
+  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
+  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
+  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
+  // Earlier rows edited the shared campaign's board; start from the clean reference design.
+  const startOver = board.getByRole("button", { name: "Start over" });
+  if (await startOver.isVisible().catch(() => false)) await startOver.click();
+  await expect(board.getByText("Can be submitted")).toBeVisible();
+  await board.getByRole("tab", { name: /Build/ }).click();
+  await board.getByLabel("Class name").fill("Arethusa E2E");
+  await board.getByRole("button", { name: "Submit design" }).click();
+  await expect(board.getByText(/Design queued\. "Arethusa E2E"/)).toBeVisible({ timeout: 15_000 });
+  await expect(board.getByRole("button", { name: "Queued" })).toBeDisabled();
+});
+
+test("row 6l: after a restart the queued design is still there, and the month adds it to the catalog", async ({
+  e2e,
+}) => {
+  expect(designCopy).not.toBe("");
+  await e2e.retargetDialog(designCopy);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await dismissTour(e2e.page);
+  await advanceMonths(e2e.page, 1);
+  await navigateTo(e2e.page, "Construction");
+  await e2e.page.getByRole("tab", { name: /Design Catalog/ }).click();
+  await expect(e2e.page.getByText("Arethusa E2E").first()).toBeVisible({ timeout: 15_000 });
+});
+
+test("row 6m: the designed class is ordered, then revised from the Drawing Board while it is building", async ({
+  e2e,
+}) => {
+  expect(designCopy).not.toBe("");
+  await e2e.retargetDialog(designCopy);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await dismissTour(e2e.page);
+  await navigateTo(e2e.page, "Construction");
+  await e2e.page.getByRole("tab", { name: /Design Catalog/ }).click();
+  await e2e.page.getByRole("radio", { name: /Arethusa E2E/ }).click();
+  await e2e.page.getByRole("button", { name: "Submit Construction Command" }).click();
+  await e2e.page.getByRole("button", { name: "Confirm order" }).click();
+  await expect(e2e.page.getByText(/Command \S+ is submitted/)).toBeVisible();
+  await advanceMonths(e2e.page, 1);
+
+  await navigateTo(e2e.page, "Construction");
+  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
+  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
+  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
+  await board.getByRole("tab", { name: /Build/ }).click();
+  await board.getByLabel("If applied to project").click();
+  await e2e.page.getByRole("option", { name: /Arethusa E2E/ }).click();
+  await board.getByRole("button", { name: "Load this ship's design into the board" }).click();
+  const replace = e2e.page.getByRole("button", { name: "Replace my design" });
+  if (await replace.isVisible().catch(() => false)) await replace.click();
+  // A small change: a little more installed power.
+  await board.getByRole("tab", { name: /Hull and machinery/ }).click();
+  const power = board.getByLabel(/Installed power/);
+  const kw = Number(await power.inputValue());
+  await power.fill(String(kw + 100));
+  await power.press("Enter");
+  await board.getByRole("tab", { name: /Build/ }).click();
+  await board.getByRole("button", { name: "Apply revision to this ship" }).click();
+  await e2e.page.getByRole("button", { name: "Queue the revision" }).click();
+  await expect(board.getByText(/Revision queued/)).toBeVisible({ timeout: 15_000 });
+});
+
 test("row 6e: a fleet ordered to sail moves one hop when the month advances", async ({ e2e }) => {
   const copy = await copyFixturePackage(sharedSaveDir, e2e.scratch);
   await e2e.retargetDialog(copy);
