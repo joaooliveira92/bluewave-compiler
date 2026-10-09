@@ -68,9 +68,9 @@ describe("NationRail", () => {
       "listitem",
     );
     expect(items.map((i) => i.textContent)).toEqual([
-      "BBritainYou",
-      "FFranceWar5:2",
-      "GGermanyPeace",
+      "BritainYou",
+      "FranceWar5:2",
+      "GermanyPeace",
     ]);
   });
 
