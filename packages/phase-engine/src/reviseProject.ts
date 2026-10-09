@@ -13,6 +13,13 @@ import {
 } from "@bluewave/ship-design";
 import { buildDesignVersion } from "./designVersion.js";
 
+/** `YYYY-MM` plus `n` months. */
+export function addMonths(month: string, n: number): string {
+  const [y, m] = month.split("-").map(Number) as [number, number];
+  const index = y * 12 + (m - 1) + n;
+  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`;
+}
+
 /**
  * Canonical application of a ReviseProject command (ADR-0070). The new draft is compiled authoritatively, the change is
  * classified against the project's work with the spec 15.4 rules, and the outcome is applied:
@@ -22,8 +29,9 @@ import { buildDesignVersion } from "./designVersion.js";
  * - redesign (T2): as T0, but completed work shrinks to the share the rules keep.
  * - reconstruction (T3): refused (REVISION_REQUIRES_REBUILD); it needs a rebuild project, which does not exist yet.
  *
- * Not modelled (recorded in the ADR, not guessed): the T1/T2 delay in months (projects have no schedule), the T2 study
- * cost (design studies are not built), and armour/machinery-ordered or launched state (the engine does not track them).
+ * T1 and T2 also put the project on hold for the rule's delay months (`holdUntilMonth`): it cannot be funded until then.
+ * Not modelled (recorded in the ADR, not guessed): the T2 study cost (design studies are not built), and
+ * armour/machinery-ordered or launched state (the engine does not track them).
  * A rejected revision leaves the snapshot untouched.
  */
 export function applyReviseProject(
@@ -102,6 +110,8 @@ export function applyReviseProject(
     designVersionId: design.designVersionId,
     totalWork: SafeInt(total),
     completedWork: SafeInt(Math.min(kept, total)),
+    // A hold from an earlier revision stays until it lapses; a new delay replaces it.
+    ...(decision.delayMonths > 0 ? { holdUntilMonth: addMonths(month, decision.delayMonths) } : {}),
   };
   const updatedNation: NationState = {
     ...nation,

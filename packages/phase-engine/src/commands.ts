@@ -202,6 +202,15 @@ export function applyBudgetProject(
     return currentSnapshot;
   }
 
+  if (project["holdUntilMonth"] !== undefined && campaignMonth < project["holdUntilMonth"]) {
+    collector.addError(
+      "PROJECT_ON_HOLD",
+      `Project ${body["projectId"]} is on hold after a revision until ${project["holdUntilMonth"]}`,
+      { stage: "command_collection" },
+    );
+    return currentSnapshot;
+  }
+
   const budget = body["budget"];
   const previousTreasury = nation["treasury"];
   const newTreasury = SafeInt.sub(previousTreasury, budget);

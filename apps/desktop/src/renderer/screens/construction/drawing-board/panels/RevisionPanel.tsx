@@ -158,7 +158,7 @@ export function RevisionPanel({
         value={project.projectId}
         options={open.map((p) => ({
           value: p.projectId,
-          label: `${p.className} (${pct(p.totalWork > 0 ? Math.floor((p.completedWork * 10_000) / p.totalWork) : 10_000)} built)`,
+          label: `${p.className} (${pct(p.totalWork > 0 ? Math.floor((p.completedWork * 10_000) / p.totalWork) : 10_000)} built${p.holdUntilMonth ? `, on hold until ${p.holdUntilMonth}` : ""})`,
         }))}
         onChange={setChosen}
       />
@@ -175,6 +175,7 @@ export function RevisionPanel({
                 : 10_000,
             )}{" "}
             built · {revisable ? "design on file" : "authored design"}
+            {project.holdUntilMonth ? ` · on hold until ${project.holdUntilMonth}` : ""}
           </AttachmentDescription>
         </AttachmentContent>
       </Attachment>
@@ -207,7 +208,7 @@ export function RevisionPanel({
           <dl className="grid grid-cols-2 gap-x-4 tabular-nums">
             {d.delayMonths > 0 && (
               <>
-                <dt className="text-muted-foreground">Delay</dt>
+                <dt className="text-muted-foreground">Funding on hold for</dt>
                 <dd className="text-right">{d.delayMonths} month(s)</dd>
               </>
             )}

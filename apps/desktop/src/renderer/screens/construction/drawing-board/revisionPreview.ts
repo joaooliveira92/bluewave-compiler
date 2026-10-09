@@ -19,6 +19,8 @@ export interface RevisionProject {
   readonly completedWork: number;
   /** True when the engine kept the project's source draft, so a revision can be applied to it (ADR-0070). */
   readonly revisable?: boolean;
+  /** First month the project may be funded again after an earlier revision, if it is on hold. */
+  readonly holdUntilMonth?: string | null;
 }
 
 /** Only unfinished projects can be revised. */

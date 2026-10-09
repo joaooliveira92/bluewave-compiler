@@ -172,6 +172,8 @@ export interface ConstructionProjectQueueEntry {
   readonly commandId: string | null;
   /** True when the project's design kept its source draft (ADR-0070), so a `ReviseProject` can apply to it. */
   readonly revisable: boolean;
+  /** First month the project may be funded again after a revision, or null when it is not on hold. */
+  readonly holdUntilMonth: string | null;
 }
 
 export function buildConstructionProjectQueue(
@@ -194,6 +196,7 @@ export function buildConstructionProjectQueue(
       startedAt: project.startedAt,
       commandId: constructionCommandIdForProject(project.id),
       revisable: design?.sourceDraft !== undefined && project.status !== "COMPLETED",
+      holdUntilMonth: project.holdUntilMonth ?? null,
     };
   });
   entries.sort((a, b) => a.projectId.localeCompare(b.projectId));

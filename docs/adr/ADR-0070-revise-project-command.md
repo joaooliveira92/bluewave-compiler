@@ -14,6 +14,7 @@ Accepted 2026-10-08. Implements the revision commands left open by ADR-0066 (SB-
    - T1 revision: as T0, and `reworkBp` of the completed work is added to the work still owed.
    - T2 redesign: as T0, and completed work shrinks to `redesignKeptBp` of itself.
    - T3 reconstruction: refused with `REVISION_REQUIRES_REBUILD`; the snapshot is untouched.
+   T1 and T2 also put the project on hold: `ConstructionProject.holdUntilMonth` (optional, absent when never held) is set to the application month plus the rule's delay months, and `budget_project` refuses to fund the project before that month (`PROJECT_ON_HOLD`, snapshot untouched). The queue projection carries `holdUntilMonth`.
    The project's total work becomes the new design's `construction_order_v1` cost units (displacement / 100,000 kg) plus any rework. Paid work and the treasury are not touched.
 5. A revision that changes nothing, an invalid revised design, missing ship-building content or missing revision rules are all refused with a diagnostic and no state change.
 
@@ -23,7 +24,6 @@ Accepted 2026-10-08. Implements the revision commands left open by ADR-0066 (SB-
 
 ## Not done (recorded, not guessed)
 
-- **T1/T2 delay in months**: projects have no schedule, so the delay is not applied (the extra work and lost progress still cost money and time indirectly).
 - **T2 study cost** (`redesignStudyCostBp`): design studies (DESIGN-21 section 3) do not exist yet.
 - **Armour/machinery already ordered, and launched**: the engine tracks one work figure per project, so these are treated as false; the real tier can only be this tier or higher.
 - **T3 rebuild/conversion projects** (DESIGN-23 sections 20-23).

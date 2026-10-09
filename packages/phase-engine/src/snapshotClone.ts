@@ -198,6 +198,7 @@ const F = {
     "paidWork",
     "status",
     "startedAt",
+    "holdUntilMonth",
   ),
   Officer: fields<Officer>()("id", "name", "rank", "skill"),
   NationState: fields<NationState>()(

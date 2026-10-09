@@ -256,6 +256,11 @@ export interface ConstructionProject {
   paidWork: SafeInt;
   status: "PLANNED" | "AUTHORIZED" | "ACTIVE" | "COMPLETED";
   startedAt: string;
+  /**
+   * First month (YYYY-MM) the project may be funded again after a revision (ADR-0070). Absent when never held; an
+   * earlier month than the campaign month means the hold has ended.
+   */
+  holdUntilMonth?: string;
 }
 
 export interface WorldState {

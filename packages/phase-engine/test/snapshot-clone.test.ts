@@ -180,6 +180,7 @@ function makeRichSnapshot(): CampaignSnapshot {
       paidWork: SafeInt(50),
       status: "ACTIVE",
       startedAt: "1880-01",
+      holdUntilMonth: "1880-03",
     },
   ];
   gbr.aircraft = {} as any;

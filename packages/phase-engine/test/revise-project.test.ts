@@ -22,6 +22,10 @@ import {
 } from "@bluewave/ship-design";
 import { parse } from "yaml";
 import { describe, expect, it } from "vite-plus/test";
+import { EventLedger } from "@bluewave/events";
+import { applyBudgetProject } from "../src/commands.js";
+import { FinancialLedger } from "../src/financial-ledger.js";
+import { addMonths } from "../src/reviseProject.js";
 import { MonthExecutor } from "../src/index.js";
 import { ATTACKER_NATION, makeBattleSnapshot } from "./battle-fixtures.js";
 
@@ -264,6 +268,63 @@ describe("ReviseProject through the month", () => {
     const a = revise(before, fittingsChange).snapshot;
     const b = revise(before, fittingsChange).snapshot;
     expect(sha256Hex(canonicalSerialize(a))).toBe(sha256Hex(canonicalSerialize(b)));
+  });
+});
+
+// The month executor applies commands in the month after the snapshot's start month (1880-01).
+const APPLIED_MONTH = "1880-02";
+
+describe("revision hold", () => {
+  const budget = (snapshot: CampaignSnapshot, month: string) => {
+    const collector = new DiagnosticCollector();
+    const next = applyBudgetProject(
+      snapshot,
+      {
+        type: "budget_project",
+        nationId: ATTACKER_NATION,
+        projectId: "con_rev",
+        budget: SafeInt(1),
+      },
+      month,
+      SafeInt(0),
+      (() => {
+        let n = 0;
+        return () => SafeInt(n++);
+      })(),
+      new FinancialLedger(),
+      new EventLedger(),
+      collector,
+    );
+    return { next, codes: collector.all.map((x) => x.code) };
+  };
+
+  it("adds months across a year boundary", () => {
+    expect(addMonths("1880-11", 1)).toBe("1880-12");
+    expect(addMonths("1880-12", 1)).toBe("1881-01");
+    expect(addMonths("1880-01", 13)).toBe("1881-02");
+  });
+
+  it("a revision (T1) holds funding for its delay, then releases it", () => {
+    const { snapshot } = revise(withProject(4), fittingsChange);
+    const hold = projectOf(snapshot).holdUntilMonth;
+    expect(hold).toBe(addMonths(APPLIED_MONTH, content.revision!.t1DelayMonths));
+    const blocked = budget(snapshot, APPLIED_MONTH);
+    expect(blocked.codes).toContain("PROJECT_ON_HOLD");
+    expect(blocked.next).toBe(snapshot);
+    expect(budget(snapshot, hold!).codes).not.toContain("PROJECT_ON_HOLD");
+  });
+
+  it("a free change (T0) does not hold the project", () => {
+    const { snapshot } = revise(withProject(0), fittingsChange);
+    expect(projectOf(snapshot).holdUntilMonth).toBeUndefined();
+    expect(budget(snapshot, APPLIED_MONTH).codes).not.toContain("PROJECT_ON_HOLD");
+  });
+
+  it("a redesign (T2) holds funding for the longer redesign delay", () => {
+    const { snapshot } = revise(withProject(8), machineryChange);
+    expect(projectOf(snapshot).holdUntilMonth).toBe(
+      addMonths(APPLIED_MONTH, content.revision!.t2DelayMonths),
+    );
   });
 });
 
