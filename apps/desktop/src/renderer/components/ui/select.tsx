@@ -1,11 +1,18 @@
 "use client";
-// beui.dev/components/motion/select
 
 import { Check, ChevronDown } from "lucide-react";
-import { motion, type Transition, useReducedMotion, type Variants } from "motion/react";
+import {
+  motion,
+  type Transition,
+  useReducedMotion,
+  type Variants,
+} from "motion/react";
 import {
   createContext,
+  forwardRef,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
+  type Ref,
   type RefObject,
   useCallback,
   useContext,
@@ -17,14 +24,14 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+
 import { EASE_OUT } from "@/lib/ease";
 import { cn } from "@/lib/utils";
+
 import { FLOATING_LAYER } from "./menu-styles.js";
 
 const INSTANT_TRANSITION: Transition = { duration: 0 };
 
-// Spring with bounce powers the unfold/separation; per-property timings in the
-// content choreograph it (see SelectContent). Mirrors bouncy-accordion's feel.
 const CHEVRON_TRANSITION: Transition = {
   type: "spring",
   duration: 0.4,
@@ -33,351 +40,1342 @@ const CHEVRON_TRANSITION: Transition = {
 
 const LIST_VARIANTS: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.035, delayChildren: 0.05 } },
+  show: {
+    transition: {
+      staggerChildren: 0.025,
+      delayChildren: 0.025,
+    },
+  },
 };
+
 const ITEM_VARIANTS: Variants = {
-  hidden: { opacity: 0, y: -6, filter: "blur(3px)" },
-  show: { opacity: 1, y: 0, filter: "blur(0px)" },
+  hidden: {
+    opacity: 0,
+    y: -4,
+  },
+  show: {
+    opacity: 1,
+    y: 0,
+  },
 };
+
+const DEFAULT_SIDE_OFFSET = 8;
+const DEFAULT_VIEWPORT_PADDING = 8;
+const DEFAULT_MAX_HEIGHT = 320;
+const TYPEAHEAD_TIMEOUT_MS = 700;
 
 type Placement = "bottom" | "top";
+type SelectValue = string | null;
+
+interface SelectOptionRecord {
+  id: string;
+  value: string;
+  label: string;
+  disabled: boolean;
+  ref: RefObject<HTMLElement | null>;
+}
+
+interface FloatingPosition {
+  left: number;
+  width: number;
+  anchorTop: number;
+  anchorBottom: number;
+  placement: Placement;
+  availableHeight: number;
+}
 
 interface SelectContextValue {
-  value: string | undefined;
+  value: SelectValue;
+  activeValue: SelectValue;
   open: boolean;
-  setOpen: (open: boolean) => void;
-  select: (value: string) => void;
-  register: (value: string, label: string) => void;
-  unregister: (value: string) => void;
-  labelFor: (value: string | undefined) => string | undefined;
-  reduce: boolean;
-  triggerId: string;
-  listId: string;
   disabled: boolean;
-  placement: Placement;
-  setPlacement: (p: Placement) => void;
-  /** Node of the portaled panel, so the outside-pointer handler can ignore clicks inside it. */
-  floatingRef: RefObject<HTMLDivElement | null>;
-  /** The trigger button, so the panel can anchor to its viewport rect. */
+  required: boolean;
+  reduceMotion: boolean;
+
+  triggerId: string;
+  listboxId: string;
+
   triggerRef: RefObject<HTMLButtonElement | null>;
+  floatingRef: RefObject<HTMLDivElement | null>;
+
+  getOptions: () => SelectOptionRecord[];
+  getOptionByValue: (
+    value: SelectValue,
+  ) => SelectOptionRecord | undefined;
+
+  registerOption: (option: SelectOptionRecord) => void;
+  unregisterOption: (id: string) => void;
+
+  setActiveValue: (value: SelectValue) => void;
+  setOpen: (open: boolean) => void;
+  selectValue: (value: string) => void;
+
+  handleTriggerKeyDown: (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+  ) => void;
 }
 
 const SelectContext = createContext<SelectContextValue | null>(null);
 
-function useSelectContext(component: string) {
-  const ctx = useContext(SelectContext);
-  if (!ctx) throw new Error(`${component} must be used within <Select>`);
-  return ctx;
+function useSelectContext(componentName: string): SelectContextValue {
+  const context = useContext(SelectContext);
+
+  if (!context) {
+    throw new Error(
+      `${componentName} must be used within <Select>.`,
+    );
+  }
+
+  return context;
+}
+
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null): void {
+  if (!ref) {
+    return;
+  }
+
+  if (typeof ref === "function") {
+    ref(value);
+    return;
+  }
+
+  ref.current = value;
+}
+
+function getEnabledOptions(
+  options: SelectOptionRecord[],
+): SelectOptionRecord[] {
+  return options.filter((option) => !option.disabled);
+}
+
+function normalizeTypeaheadValue(value: string): string {
+  return value.trim().toLocaleLowerCase();
+}
+
+function findTypeaheadMatch(
+  options: SelectOptionRecord[],
+  query: string,
+  activeValue: SelectValue,
+): SelectOptionRecord | undefined {
+  const enabledOptions = getEnabledOptions(options);
+  const normalizedQuery = normalizeTypeaheadValue(query);
+
+  if (!normalizedQuery || enabledOptions.length === 0) {
+    return undefined;
+  }
+
+  const currentIndex = enabledOptions.findIndex(
+    (option) => option.value === activeValue,
+  );
+
+  const startIndex =
+    currentIndex >= 0
+      ? (currentIndex + 1) % enabledOptions.length
+      : 0;
+
+  for (let offset = 0; offset < enabledOptions.length; offset += 1) {
+    const index =
+      (startIndex + offset) % enabledOptions.length;
+
+    const option = enabledOptions[index];
+
+    if (!option) {
+      continue;
+    }
+
+    if (
+      normalizeTypeaheadValue(option.label).startsWith(
+        normalizedQuery,
+      )
+    ) {
+      return option;
+    }
+  }
+
+  return undefined;
+}
+
+function isPrintableKey(
+  event: ReactKeyboardEvent<HTMLElement>,
+): boolean {
+  return (
+    event.key.length === 1 &&
+    !event.altKey &&
+    !event.ctrlKey &&
+    !event.metaKey
+  );
 }
 
 export interface SelectProps {
-  value?: string;
-  defaultValue?: string;
+  value?: SelectValue;
+  defaultValue?: SelectValue;
   onValueChange?: (value: string) => void;
+
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+
+  name?: string;
+  form?: string;
+  required?: boolean;
   disabled?: boolean;
+
   className?: string;
   children: ReactNode;
 }
 
 export function Select({
   value,
-  defaultValue,
+  defaultValue = null,
   onValueChange,
+  open: controlledOpen,
+  defaultOpen = false,
+  onOpenChange,
+  name,
+  form,
+  required = false,
   disabled = false,
   className,
   children,
 }: SelectProps) {
-  const reduce = useReducedMotion() ?? false;
+  const reduceMotion = useReducedMotion() ?? false;
   const baseId = useId();
-  const rootRef = useRef<HTMLDivElement>(null);
-  const floatingRef = useRef<HTMLDivElement>(null);
+
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
-  const [internal, setInternal] = useState(defaultValue);
-  const [labels, setLabels] = useState<Map<string, string>>(new Map());
-  const [placement, setPlacement] = useState<Placement>("bottom");
+  const floatingRef = useRef<HTMLDivElement>(null);
 
-  const controlled = value !== undefined;
-  const current = controlled ? value : internal;
-
-  const select = useCallback(
-    (next: string) => {
-      if (!controlled) setInternal(next);
-      onValueChange?.(next);
-      setOpen(false);
-    },
-    [controlled, onValueChange],
+  const optionsRef = useRef(
+    new Map<string, SelectOptionRecord>(),
   );
 
-  const register = useCallback((v: string, label: string) => {
-    setLabels((m) => (m.get(v) === label ? m : new Map(m).set(v, label)));
-  }, []);
-  const unregister = useCallback((v: string) => {
-    setLabels((m) => {
-      if (!m.has(v)) return m;
-      const next = new Map(m);
-      next.delete(v);
-      return next;
+  const [optionsVersion, setOptionsVersion] = useState(0);
+
+  const typeaheadRef = useRef("");
+  const typeaheadTimeoutRef = useRef<
+    ReturnType<typeof setTimeout> | undefined
+  >(undefined);
+
+  const valueControlled = value !== undefined;
+  const openControlled = controlledOpen !== undefined;
+
+  const [internalValue, setInternalValue] =
+    useState<SelectValue>(defaultValue);
+
+  const [internalOpen, setInternalOpen] =
+    useState(defaultOpen);
+
+  const [activeValue, setActiveValue] =
+    useState<SelectValue>(null);
+
+  const currentValue = valueControlled
+    ? (value ?? null)
+    : internalValue;
+
+  const currentOpen = openControlled
+    ? controlledOpen
+    : internalOpen;
+
+  const triggerId = `${baseId}-trigger`;
+  const listboxId = `${baseId}-listbox`;
+
+  const getOptions = useCallback((): SelectOptionRecord[] => {
+    void optionsVersion;
+
+    const options = Array.from(optionsRef.current.values());
+
+    return options.sort((left, right) => {
+      const leftNode = left.ref.current;
+      const rightNode = right.ref.current;
+
+      if (
+        !leftNode ||
+        !rightNode ||
+        leftNode === rightNode
+      ) {
+        return 0;
+      }
+
+      const position =
+        leftNode.compareDocumentPosition(rightNode);
+
+      if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
+        return -1;
+      }
+
+      if (position & Node.DOCUMENT_POSITION_PRECEDING) {
+        return 1;
+      }
+
+      return 0;
     });
+  }, [optionsVersion]);
+
+  const getOptionByValue = useCallback(
+    (
+      optionValue: SelectValue,
+    ): SelectOptionRecord | undefined => {
+      if (optionValue === null) {
+        return undefined;
+      }
+
+      return getOptions().find(
+        (option) => option.value === optionValue,
+      );
+    },
+    [getOptions],
+  );
+
+  const registerOption = useCallback(
+    (option: SelectOptionRecord): void => {
+      if (process.env.NODE_ENV !== "production") {
+        const duplicate = Array.from(
+          optionsRef.current.values(),
+        ).find(
+          (registered) =>
+            registered.value === option.value &&
+            registered.id !== option.id,
+        );
+
+        if (duplicate) {
+          console.warn(
+            `Select contains duplicate value "${option.value}". ` +
+            "Every SelectItem value must be unique.",
+          );
+        }
+      }
+
+      optionsRef.current.set(option.id, option);
+      setOptionsVersion((version) => version + 1);
+    },
+    [],
+  );
+
+  const unregisterOption = useCallback(
+    (id: string): void => {
+      if (optionsRef.current.delete(id)) {
+        setOptionsVersion((version) => version + 1);
+      }
+    },
+    [],
+  );
+
+  const updateOpen = useCallback(
+    (nextOpen: boolean): void => {
+      if (disabled && nextOpen) {
+        return;
+      }
+
+      if (!openControlled) {
+        setInternalOpen(nextOpen);
+      }
+
+      onOpenChange?.(nextOpen);
+
+      if (!nextOpen) {
+        setActiveValue(null);
+        typeaheadRef.current = "";
+
+        if (typeaheadTimeoutRef.current) {
+          clearTimeout(typeaheadTimeoutRef.current);
+          typeaheadTimeoutRef.current = undefined;
+        }
+      }
+    },
+    [
+      disabled,
+      onOpenChange,
+      openControlled,
+    ],
+  );
+
+  const setInitialActiveOption = useCallback(
+    (direction: "first" | "last" | "selected"): void => {
+      const enabledOptions = getEnabledOptions(getOptions());
+
+      if (enabledOptions.length === 0) {
+        setActiveValue(null);
+        return;
+      }
+
+      const selectedOption = enabledOptions.find(
+        (option) => option.value === currentValue,
+      );
+
+      if (direction === "selected" && selectedOption) {
+        setActiveValue(selectedOption.value);
+        return;
+      }
+
+      if (direction === "last") {
+        setActiveValue(
+          enabledOptions[enabledOptions.length - 1]?.value ??
+          null,
+        );
+        return;
+      }
+
+      setActiveValue(enabledOptions[0]?.value ?? null);
+    },
+    [currentValue, getOptions],
+  );
+
+  const openSelect = useCallback(
+    (direction: "first" | "last" | "selected"): void => {
+      if (disabled) {
+        return;
+      }
+
+      setInitialActiveOption(direction);
+      updateOpen(true);
+    },
+    [
+      disabled,
+      setInitialActiveOption,
+      updateOpen,
+    ],
+  );
+
+  const selectValue = useCallback(
+    (nextValue: string): void => {
+      if (disabled) {
+        return;
+      }
+
+      const option = getOptionByValue(nextValue);
+
+      if (!option || option.disabled) {
+        return;
+      }
+
+      if (!valueControlled) {
+        setInternalValue(nextValue);
+      }
+
+      onValueChange?.(nextValue);
+      updateOpen(false);
+
+      requestAnimationFrame(() => {
+        triggerRef.current?.focus();
+      });
+    },
+    [
+      disabled,
+      getOptionByValue,
+      onValueChange,
+      updateOpen,
+      valueControlled,
+    ],
+  );
+
+  const moveActiveOption = useCallback(
+    (direction: 1 | -1): void => {
+      const enabledOptions = getEnabledOptions(getOptions());
+
+      if (enabledOptions.length === 0) {
+        setActiveValue(null);
+        return;
+      }
+
+      const currentIndex = enabledOptions.findIndex(
+        (option) => option.value === activeValue,
+      );
+
+      const fallbackIndex =
+        direction === 1 ? -1 : enabledOptions.length;
+
+      const baseIndex =
+        currentIndex >= 0 ? currentIndex : fallbackIndex;
+
+      const nextIndex =
+        (baseIndex + direction + enabledOptions.length) %
+        enabledOptions.length;
+
+      setActiveValue(enabledOptions[nextIndex]?.value ?? null);
+    },
+    [activeValue, getOptions],
+  );
+
+  const handleTypeahead = useCallback(
+    (character: string): void => {
+      if (typeaheadTimeoutRef.current) {
+        clearTimeout(typeaheadTimeoutRef.current);
+      }
+
+      const previousQuery = typeaheadRef.current;
+      const repeatedCharacter =
+        previousQuery.length > 0 &&
+        previousQuery
+          .split("")
+          .every(
+            (value) =>
+              value.toLocaleLowerCase() ===
+              character.toLocaleLowerCase(),
+          );
+
+      typeaheadRef.current = repeatedCharacter
+        ? character
+        : `${previousQuery}${character}`;
+
+      const match = findTypeaheadMatch(
+        getOptions(),
+        typeaheadRef.current,
+        activeValue ?? currentValue,
+      );
+
+      if (match) {
+        setActiveValue(match.value);
+      }
+
+      typeaheadTimeoutRef.current = setTimeout(() => {
+        typeaheadRef.current = "";
+        typeaheadTimeoutRef.current = undefined;
+      }, TYPEAHEAD_TIMEOUT_MS);
+    },
+    [
+      activeValue,
+      currentValue,
+      getOptions,
+    ],
+  );
+
+  const handleTriggerKeyDown = useCallback(
+    (
+      event: ReactKeyboardEvent<HTMLButtonElement>,
+    ): void => {
+      if (disabled) {
+        return;
+      }
+
+      switch (event.key) {
+        case "ArrowDown": {
+          event.preventDefault();
+
+          if (!currentOpen) {
+            openSelect("selected");
+          } else {
+            moveActiveOption(1);
+          }
+
+          return;
+        }
+
+        case "ArrowUp": {
+          event.preventDefault();
+
+          if (!currentOpen) {
+            openSelect("selected");
+          } else {
+            moveActiveOption(-1);
+          }
+
+          return;
+        }
+
+        case "Home": {
+          if (!currentOpen) {
+            return;
+          }
+
+          event.preventDefault();
+          setInitialActiveOption("first");
+          return;
+        }
+
+        case "End": {
+          if (!currentOpen) {
+            return;
+          }
+
+          event.preventDefault();
+          setInitialActiveOption("last");
+          return;
+        }
+
+        case "Enter":
+        case " ": {
+          event.preventDefault();
+
+          if (!currentOpen) {
+            openSelect("selected");
+            return;
+          }
+
+          if (activeValue !== null) {
+            selectValue(activeValue);
+          }
+
+          return;
+        }
+
+        case "Escape": {
+          if (!currentOpen) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+          updateOpen(false);
+          return;
+        }
+
+        case "Tab": {
+          if (currentOpen) {
+            updateOpen(false);
+          }
+
+          return;
+        }
+
+        default: {
+          if (!isPrintableKey(event)) {
+            return;
+          }
+
+          event.preventDefault();
+
+          if (!currentOpen) {
+            openSelect("selected");
+          }
+
+          handleTypeahead(event.key);
+        }
+      }
+    },
+    [
+      activeValue,
+      currentOpen,
+      disabled,
+      handleTypeahead,
+      moveActiveOption,
+      openSelect,
+      selectValue,
+      setInitialActiveOption,
+      updateOpen,
+    ],
+  );
+
+  useEffect(() => {
+    if (!currentOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent): void => {
+      const path = event.composedPath();
+
+      if (
+        triggerRef.current &&
+        path.includes(triggerRef.current)
+      ) {
+        return;
+      }
+
+      if (
+        floatingRef.current &&
+        path.includes(floatingRef.current)
+      ) {
+        return;
+      }
+
+      updateOpen(false);
+    };
+
+    window.addEventListener(
+      "pointerdown",
+      handlePointerDown,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pointerdown",
+        handlePointerDown,
+      );
+    };
+  }, [currentOpen, updateOpen]);
+
+  useEffect(() => {
+    if (disabled && currentOpen) {
+      updateOpen(false);
+    }
+  }, [
+    currentOpen,
+    disabled,
+    updateOpen,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (typeaheadTimeoutRef.current) {
+        clearTimeout(typeaheadTimeoutRef.current);
+      }
+    };
   }, []);
 
-  // close on outside pointer / escape
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    const onPointer = (e: PointerEvent) => {
-      const target = e.target as Node;
-      if (rootRef.current?.contains(target)) return;
-      if (floatingRef.current?.contains(target)) return;
-      setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("pointerdown", onPointer);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("pointerdown", onPointer);
-    };
-  }, [open]);
-
-  const ctx = useMemo<SelectContextValue>(
+  const contextValue = useMemo<SelectContextValue>(
     () => ({
-      value: current,
-      open,
-      setOpen,
-      select,
-      register,
-      unregister,
-      labelFor: (v) => (v === undefined ? undefined : labels.get(v)),
-      reduce,
-      triggerId: `${baseId}-trigger`,
-      listId: `${baseId}-list`,
+      value: currentValue,
+      activeValue,
+      open: currentOpen,
       disabled,
-      placement,
-      setPlacement,
-      floatingRef,
+      required,
+      reduceMotion,
+
+      triggerId,
+      listboxId,
+
       triggerRef,
+      floatingRef,
+
+      getOptions,
+      getOptionByValue,
+
+      registerOption,
+      unregisterOption,
+
+      setActiveValue,
+      setOpen: updateOpen,
+      selectValue,
+
+      handleTriggerKeyDown,
     }),
-    [current, open, select, register, unregister, labels, reduce, baseId, disabled, placement],
+    [
+      activeValue,
+      currentOpen,
+      currentValue,
+      disabled,
+      getOptionByValue,
+      getOptions,
+      handleTriggerKeyDown,
+      listboxId,
+      reduceMotion,
+      registerOption,
+      required,
+      selectValue,
+      triggerId,
+      unregisterOption,
+      updateOpen,
+    ],
   );
 
   return (
-    <SelectContext.Provider value={ctx}>
-      <div ref={rootRef} className={cn("relative", className)}>
+    <SelectContext.Provider value={contextValue}>
+      <div className={cn("relative", className)}>
         {children}
+
+        {name ? (
+          <input
+            type="hidden"
+            name={name}
+            form={form}
+            value={currentValue ?? ""}
+            disabled={disabled}
+          />
+        ) : null}
       </div>
     </SelectContext.Provider>
   );
 }
 
-export interface SelectTriggerProps {
-  readonly id?: string;
-  readonly "aria-label"?: string;
-  className?: string;
+export interface SelectTriggerProps
+  extends Omit<
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
+    | "children"
+    | "value"
+    | "defaultValue"
+    | "onDrag"
+    | "onDragStart"
+    | "onDragEnd"
+    | "onDragEnter"
+    | "onDragLeave"
+    | "onDragOver"
+    | "onDrop"
+    | "onAnimationStart"
+    | "onAnimationEnd"
+    | "onAnimationIteration"
+  > {
   children: ReactNode;
 }
 
-export function SelectTrigger({
-  id,
-  "aria-label": ariaLabel,
-  className,
-  children,
-}: SelectTriggerProps) {
-  const ctx = useSelectContext("SelectTrigger");
-  const isTop = ctx.placement === "top";
-  // edge facing the panel flattens then rounds; the far edge stays rounded.
-  // All four corners are specified so none gets stranded when placement flips.
-  const kf = ctx.open ? [0, 0, 12] : [12, 0, 12];
-  const kfT: Transition = ctx.reduce
-    ? { duration: 0 }
-    : ctx.open
-      ? { duration: 0.6, times: [0, 0.4, 1], ease: EASE_OUT }
-      : { duration: 0.42, times: [0, 0.5, 1], ease: EASE_OUT };
+export const SelectTrigger = forwardRef<
+  HTMLButtonElement,
+  SelectTriggerProps
+>(function SelectTrigger(
+  {
+    id,
+    className,
+    children,
+    onClick,
+    onKeyDown,
+    ...buttonProps
+  },
+  forwardedRef,
+) {
+  const context = useSelectContext("SelectTrigger");
+  const isTop = context.open
+    ? context.floatingRef.current?.dataset.placement === "top"
+    : false;
+
+  const nearRadiusKeyframes = context.open
+    ? [0, 0, 12]
+    : [12, 0, 12];
+
+  const radiusTransition: Transition =
+    context.reduceMotion
+      ? INSTANT_TRANSITION
+      : context.open
+        ? {
+          duration: 0.6,
+          times: [0, 0.4, 1],
+          ease: EASE_OUT,
+        }
+        : {
+          duration: 0.42,
+          times: [0, 0.5, 1],
+          ease: EASE_OUT,
+        };
+
+  const selectedOption = context.getOptionByValue(
+    context.value,
+  );
+
+  const activeOption = context.getOptionByValue(
+    context.activeValue,
+  );
+
+  const handleRef = useCallback(
+    (node: HTMLButtonElement | null): void => {
+      context.triggerRef.current = node;
+      assignRef(forwardedRef, node);
+    },
+    [context.triggerRef, forwardedRef],
+  );
+
   return (
     <motion.button
+      {...buttonProps}
+      ref={handleRef}
+      id={id ?? context.triggerId}
       type="button"
-      ref={ctx.triggerRef}
-      id={id ?? ctx.triggerId}
-      disabled={ctx.disabled}
-      aria-label={ariaLabel}
+      role="combobox"
+      disabled={context.disabled || buttonProps.disabled}
       aria-haspopup="listbox"
-      aria-expanded={ctx.open}
-      aria-controls={ctx.listId}
-      onClick={() => ctx.setOpen(!ctx.open)}
-      // Gooey: the edge facing the panel snaps flat (panel attached) then rounds
-      // back once the panel pulls away — the two pinch apart.
+      aria-expanded={context.open}
+      aria-controls={context.listboxId}
+      aria-activedescendant={
+        context.open ? activeOption?.id : undefined
+      }
+      aria-required={
+        context.required || undefined
+      }
+      aria-disabled={
+        context.disabled || undefined
+      }
+      aria-valuetext={selectedOption?.label}
+      onClick={(event) => {
+        onClick?.(event);
+
+        if (
+          event.defaultPrevented ||
+          context.disabled
+        ) {
+          return;
+        }
+
+        context.setOpen(!context.open);
+      }}
+      onKeyDown={(event) => {
+        onKeyDown?.(event);
+
+        if (event.defaultPrevented) {
+          return;
+        }
+
+        context.handleTriggerKeyDown(event);
+      }}
       initial={false}
       animate={{
-        borderTopLeftRadius: isTop ? kf : 12,
-        borderTopRightRadius: isTop ? kf : 12,
-        borderBottomLeftRadius: isTop ? 12 : kf,
-        borderBottomRightRadius: isTop ? 12 : kf,
+        borderTopLeftRadius: isTop
+          ? nearRadiusKeyframes
+          : 12,
+        borderTopRightRadius: isTop
+          ? nearRadiusKeyframes
+          : 12,
+        borderBottomLeftRadius: isTop
+          ? 12
+          : nearRadiusKeyframes,
+        borderBottomRightRadius: isTop
+          ? 12
+          : nearRadiusKeyframes,
       }}
       transition={{
-        borderTopLeftRadius: isTop ? kfT : INSTANT_TRANSITION,
-        borderTopRightRadius: isTop ? kfT : INSTANT_TRANSITION,
-        borderBottomLeftRadius: isTop ? INSTANT_TRANSITION : kfT,
-        borderBottomRightRadius: isTop ? INSTANT_TRANSITION : kfT,
+        borderTopLeftRadius: isTop
+          ? radiusTransition
+          : INSTANT_TRANSITION,
+        borderTopRightRadius: isTop
+          ? radiusTransition
+          : INSTANT_TRANSITION,
+        borderBottomLeftRadius: isTop
+          ? INSTANT_TRANSITION
+          : radiusTransition,
+        borderBottomRightRadius: isTop
+          ? INSTANT_TRANSITION
+          : radiusTransition,
       }}
       className={cn(
-        "relative z-10 flex w-full items-center justify-between gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors",
-        "hover:border-(--color-border-strong) focus-visible:ring-2 focus-visible:ring-foreground/20",
+        "relative z-10 flex w-full items-center justify-between gap-2",
+        "rounded-xl border border-border bg-background px-3 py-2",
+        "text-sm text-foreground outline-none transition-colors",
+        "hover:border-(--color-border-strong)",
+        "focus-visible:ring-2 focus-visible:ring-foreground/20",
         "disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
     >
       {children}
+
       <motion.span
-        aria-hidden
-        animate={{ rotate: ctx.open ? 180 : 0 }}
-        transition={ctx.reduce ? { duration: 0 } : CHEVRON_TRANSITION}
-        className="text-muted-foreground"
+        aria-hidden="true"
+        animate={{
+          rotate: context.open ? 180 : 0,
+        }}
+        transition={
+          context.reduceMotion
+            ? INSTANT_TRANSITION
+            : CHEVRON_TRANSITION
+        }
+        className="shrink-0 text-muted-foreground"
       >
         <ChevronDown className="h-4 w-4" />
       </motion.span>
     </motion.button>
   );
-}
+});
+
+SelectTrigger.displayName = "SelectTrigger";
 
 export interface SelectValueProps {
-  placeholder?: string;
+  placeholder?: ReactNode;
   className?: string;
 }
 
-export function SelectValue({ placeholder, className }: SelectValueProps) {
-  const ctx = useSelectContext("SelectValue");
-  const label = ctx.labelFor(ctx.value);
+export function SelectValue({
+  placeholder = "Select",
+  className,
+}: SelectValueProps) {
+  const context = useSelectContext("SelectValue");
+
+  const selectedOption = context.getOptionByValue(
+    context.value,
+  );
+
   return (
-    <span className={cn(label ? "text-foreground" : "text-muted-foreground", className)}>
-      {label ?? placeholder ?? "Select"}
+    <span
+      className={cn(
+        "min-w-0 flex-1 truncate text-left",
+        selectedOption
+          ? "text-foreground"
+          : "text-muted-foreground",
+        className,
+      )}
+    >
+      {selectedOption?.label ?? placeholder}
     </span>
   );
 }
 
 export interface SelectContentProps {
   className?: string;
+  viewportClassName?: string;
   children: ReactNode;
+
+  sideOffset?: number;
+  viewportPadding?: number;
+  maxHeight?: number;
 }
 
-export function SelectContent({ className, children }: SelectContentProps) {
-  const ctx = useSelectContext("SelectContent");
-  const innerRef = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState(0);
-  const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
-  const open = ctx.open;
-  const { setPlacement } = ctx;
+export function SelectContent({
+  className,
+  viewportClassName,
+  children,
+  sideOffset = DEFAULT_SIDE_OFFSET,
+  viewportPadding = DEFAULT_VIEWPORT_PADDING,
+  maxHeight = DEFAULT_MAX_HEIGHT,
+}: SelectContentProps) {
+  const context = useSelectContext("SelectContent");
+
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const animationFrameRef = useRef<number | null>(null);
+
+  const [mounted, setMounted] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [position, setPosition] =
+    useState<FloatingPosition | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const updatePosition = useCallback((): void => {
+    const trigger = context.triggerRef.current;
+    const viewport = viewportRef.current;
+
+    if (!trigger || !viewport) {
+      return;
+    }
+
+    const triggerRect =
+      trigger.getBoundingClientRect();
+
+    const measuredHeight = Math.max(
+      viewport.scrollHeight,
+      viewport.offsetHeight,
+    );
+
+    const availableBelow = Math.max(
+      0,
+      window.innerHeight -
+      triggerRect.bottom -
+      sideOffset -
+      viewportPadding,
+    );
+
+    const availableAbove = Math.max(
+      0,
+      triggerRect.top -
+      sideOffset -
+      viewportPadding,
+    );
+
+    const preferredHeight = Math.min(
+      measuredHeight,
+      maxHeight,
+    );
+
+    const placement: Placement =
+      availableBelow >= preferredHeight ||
+        availableBelow >= availableAbove
+        ? "bottom"
+        : "top";
+
+    const availableHeight = Math.max(
+      0,
+      Math.min(
+        maxHeight,
+        placement === "bottom"
+          ? availableBelow
+          : availableAbove,
+      ),
+    );
+
+    setContentHeight(
+      Math.min(measuredHeight, availableHeight),
+    );
+
+    setPosition((previous) => {
+      const next: FloatingPosition = {
+        left: Math.max(
+          viewportPadding,
+          Math.min(
+            triggerRect.left,
+            window.innerWidth -
+            viewportPadding -
+            triggerRect.width,
+          ),
+        ),
+        width: Math.min(
+          triggerRect.width,
+          window.innerWidth - viewportPadding * 2,
+        ),
+        anchorTop: triggerRect.top,
+        anchorBottom: triggerRect.bottom,
+        placement,
+        availableHeight,
+      };
+
+      if (
+        previous &&
+        previous.left === next.left &&
+        previous.width === next.width &&
+        previous.anchorTop === next.anchorTop &&
+        previous.anchorBottom === next.anchorBottom &&
+        previous.placement === next.placement &&
+        previous.availableHeight === next.availableHeight
+      ) {
+        return previous;
+      }
+
+      return next;
+    });
+  }, [
+    context.triggerRef,
+    maxHeight,
+    sideOffset,
+    viewportPadding,
+  ]);
+
+  const schedulePositionUpdate =
+    useCallback((): void => {
+      if (animationFrameRef.current !== null) {
+        return;
+      }
+
+      animationFrameRef.current =
+        requestAnimationFrame(() => {
+          animationFrameRef.current = null;
+          updatePosition();
+        });
+    }, [updatePosition]);
 
   useLayoutEffect(() => {
-    const node = innerRef.current;
-    if (!node) return;
-    const measure = () => setHeight(node.offsetHeight);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(node);
-    return () => observer.disconnect();
-  });
+    if (!mounted) {
+      return;
+    }
 
-  // The panel renders in a portal at the end of <body> so it escapes any
-  // clipped/z-indexed ancestor (e.g. the overflow-hidden liquid-glass card or a
-  // scrolling screen), so it tracks the trigger's viewport rect itself.
+    updatePosition();
+  }, [
+    children,
+    context.open,
+    mounted,
+    updatePosition,
+  ]);
+
   useLayoutEffect(() => {
-    const trigger = ctx.triggerRef.current;
-    if (!trigger) return;
-    const update = () => setTriggerRect(trigger.getBoundingClientRect());
-    update();
-    if (!open) return;
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
+    if (!mounted) {
+      return;
+    }
+
+    const trigger = context.triggerRef.current;
+    const viewport = viewportRef.current;
+
+    if (!trigger || !viewport) {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver(
+      schedulePositionUpdate,
+    );
+
+    resizeObserver.observe(trigger);
+    resizeObserver.observe(viewport);
+
+    window.addEventListener(
+      "resize",
+      schedulePositionUpdate,
+    );
+
+    window.addEventListener(
+      "scroll",
+      schedulePositionUpdate,
+      true,
+    );
+
+    window.visualViewport?.addEventListener(
+      "resize",
+      schedulePositionUpdate,
+    );
+
+    window.visualViewport?.addEventListener(
+      "scroll",
+      schedulePositionUpdate,
+    );
+
     return () => {
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
+      resizeObserver.disconnect();
+
+      window.removeEventListener(
+        "resize",
+        schedulePositionUpdate,
+      );
+
+      window.removeEventListener(
+        "scroll",
+        schedulePositionUpdate,
+        true,
+      );
+
+      window.visualViewport?.removeEventListener(
+        "resize",
+        schedulePositionUpdate,
+      );
+
+      window.visualViewport?.removeEventListener(
+        "scroll",
+        schedulePositionUpdate,
+      );
+
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(
+          animationFrameRef.current,
+        );
+
+        animationFrameRef.current = null;
+      }
     };
-  }, [open, ctx.triggerRef]);
+  }, [
+    context.triggerRef,
+    mounted,
+    schedulePositionUpdate,
+  ]);
 
-  // On open (or as the trigger moves), flip upward when there isn't room below
-  // and there's more above.
   useLayoutEffect(() => {
-    if (!open || !triggerRect) return;
-    const node = innerRef.current;
-    if (!node) return;
-    const h = node.offsetHeight;
-    const below = window.innerHeight - triggerRect.bottom;
-    const above = triggerRect.top;
-    setPlacement(below < h + 16 && above > below ? "top" : "bottom");
-  }, [open, triggerRect, setPlacement]);
+    if (!context.open || context.activeValue === null) {
+      return;
+    }
 
-  // Specify EVERY corner + both margins each render. The near edge (facing the
-  // trigger) animates flat->round and the gap opens on that side; the far edge
-  // stays rounded and its margin pinned to 0. Setting all of them avoids a
-  // stranded square corner when the placement flips between opens.
-  const isTop = ctx.placement === "top";
-  const nearGap = open ? 8 : 0;
-  const nearRadius = open ? 12 : 0;
+    const option = context.getOptionByValue(
+      context.activeValue,
+    );
 
-  const gapT: Transition = open
-    ? { type: "spring", duration: 0.6, bounce: 0.5, delay: 0.12 }
-    : { type: "spring", duration: 0.3, bounce: 0.1 };
-  const radiusT: Transition = open
-    ? { duration: 0.3, ease: EASE_OUT, delay: 0.14 }
-    : { duration: 0.16, ease: EASE_OUT };
+    option?.ref.current?.scrollIntoView({
+      block: "nearest",
+    });
+  }, [
+    context.activeValue,
+    context.getOptionByValue,
+    context.open,
+  ]);
 
-  if (!triggerRect) return null;
+  if (!mounted) {
+    return null;
+  }
 
-  // Items stay mounted (open just animates the panel) so each item's label
-  // registration persists — otherwise the trigger would fall back to the
-  // placeholder the moment the panel closes.
+  const placement = position?.placement ?? "bottom";
+  const isTop = placement === "top";
+
+  const nearGap = context.open ? sideOffset : 0;
+  const nearRadius = context.open ? 12 : 0;
+
+  const gapTransition: Transition =
+    context.open
+      ? {
+        type: "spring",
+        duration: 0.5,
+        bounce: 0.35,
+        delay: 0.08,
+      }
+      : {
+        type: "spring",
+        duration: 0.24,
+        bounce: 0.1,
+      };
+
+  const radiusTransition: Transition =
+    context.open
+      ? {
+        duration: 0.24,
+        ease: EASE_OUT,
+        delay: 0.08,
+      }
+      : {
+        duration: 0.14,
+        ease: EASE_OUT,
+      };
+
+  const targetHeight =
+    context.open && position
+      ? contentHeight
+      : 0;
+
   return createPortal(
     <motion.div
-      ref={ctx.floatingRef}
-      id={ctx.listId}
+      ref={context.floatingRef}
+      id={context.listboxId}
       role="listbox"
-      aria-labelledby={ctx.triggerId}
-      aria-hidden={!open}
-      inert={!open}
+      aria-hidden={!context.open}
+      data-placement={placement}
+      inert={!context.open}
       initial={false}
       animate={
-        ctx.reduce
-          ? { opacity: open ? 1 : 0, height: open ? height : 0 }
+        context.reduceMotion
+          ? {
+            opacity: context.open ? 1 : 0,
+            height: targetHeight,
+          }
           : {
-              opacity: open ? 1 : 0,
-              height: open ? height : 0,
-              // gap opens on the side facing the trigger
-              marginTop: isTop ? 0 : nearGap,
-              marginBottom: isTop ? nearGap : 0,
-              // near corners go flat->round; far corners stay rounded
-              borderTopLeftRadius: isTop ? 12 : nearRadius,
-              borderTopRightRadius: isTop ? 12 : nearRadius,
-              borderBottomLeftRadius: isTop ? nearRadius : 12,
-              borderBottomRightRadius: isTop ? nearRadius : 12,
-            }
+            opacity: context.open ? 1 : 0,
+            height: targetHeight,
+
+            marginTop: isTop ? 0 : nearGap,
+            marginBottom: isTop ? nearGap : 0,
+
+            borderTopLeftRadius: isTop
+              ? 12
+              : nearRadius,
+            borderTopRightRadius: isTop
+              ? 12
+              : nearRadius,
+            borderBottomLeftRadius: isTop
+              ? nearRadius
+              : 12,
+            borderBottomRightRadius: isTop
+              ? nearRadius
+              : 12,
+          }
       }
       transition={
-        ctx.reduce
-          ? { duration: 0.12 }
+        context.reduceMotion
+          ? INSTANT_TRANSITION
           : {
-              opacity: open ? { duration: 0.18 } : { duration: 0.16, delay: 0.12 },
-              height: open
-                ? { type: "spring", duration: 0.42, bounce: 0.14 }
-                : { duration: 0.26, ease: EASE_OUT, delay: 0.14 },
-              marginTop: isTop ? INSTANT_TRANSITION : gapT,
-              marginBottom: isTop ? gapT : INSTANT_TRANSITION,
-              borderTopLeftRadius: isTop ? INSTANT_TRANSITION : radiusT,
-              borderTopRightRadius: isTop ? INSTANT_TRANSITION : radiusT,
-              borderBottomLeftRadius: isTop ? radiusT : INSTANT_TRANSITION,
-              borderBottomRightRadius: isTop ? radiusT : INSTANT_TRANSITION,
-            }
+            opacity: context.open
+              ? { duration: 0.16 }
+              : { duration: 0.12 },
+
+            height: context.open
+              ? {
+                type: "spring",
+                duration: 0.36,
+                bounce: 0.12,
+              }
+              : {
+                duration: 0.2,
+                ease: EASE_OUT,
+              },
+
+            marginTop: isTop
+              ? INSTANT_TRANSITION
+              : gapTransition,
+
+            marginBottom: isTop
+              ? gapTransition
+              : INSTANT_TRANSITION,
+
+            borderTopLeftRadius: isTop
+              ? INSTANT_TRANSITION
+              : radiusTransition,
+
+            borderTopRightRadius: isTop
+              ? INSTANT_TRANSITION
+              : radiusTransition,
+
+            borderBottomLeftRadius: isTop
+              ? radiusTransition
+              : INSTANT_TRANSITION,
+
+            borderBottomRightRadius: isTop
+              ? radiusTransition
+              : INSTANT_TRANSITION,
+          }
       }
       style={{
         position: "fixed",
-        left: triggerRect.left,
-        width: triggerRect.width,
-        // anchor to the near edge of the trigger; the animated margin opens the gap
-        ...(isTop ? { bottom: window.innerHeight - triggerRect.top } : { top: triggerRect.bottom }),
+        left: position?.left ?? 0,
+        width: position?.width ?? 0,
+
+        ...(isTop
+          ? {
+            bottom: position
+              ? window.innerHeight -
+              position.anchorTop
+              : 0,
+          }
+          : {
+            top: position?.anchorBottom ?? 0,
+          }),
+
         transformOrigin: isTop ? "bottom" : "top",
         overflow: "hidden",
-        pointerEvents: open ? "auto" : "none",
+        pointerEvents: context.open ? "auto" : "none",
+        visibility: position ? "visible" : "hidden",
       }}
-      // flush against the trigger, then separates into its own rounded pill;
-      // sits above or below depending on available space
       className={cn(
         "rounded-xl border border-border bg-background shadow-lg",
         FLOATING_LAYER,
@@ -385,11 +1383,21 @@ export function SelectContent({ className, children }: SelectContentProps) {
       )}
     >
       <motion.div
-        ref={innerRef}
-        {...(ctx.reduce ? {} : { variants: LIST_VARIANTS })}
+        ref={viewportRef}
+        {...(context.reduceMotion
+          ? {}
+          : { variants: LIST_VARIANTS })}
         initial={false}
-        animate={open ? "show" : "hidden"}
-        className="p-1"
+        animate={context.open ? "show" : "hidden"}
+        style={{
+          maxHeight:
+            position?.availableHeight ??
+            DEFAULT_MAX_HEIGHT,
+        }}
+        className={cn(
+          "overflow-y-auto overscroll-contain p-1",
+          viewportClassName,
+        )}
       >
         {children}
       </motion.div>
@@ -400,42 +1408,146 @@ export function SelectContent({ className, children }: SelectContentProps) {
 
 export interface SelectItemProps {
   value: string;
+  textValue?: string;
   disabled?: boolean;
   className?: string;
   children: ReactNode;
 }
 
-export function SelectItem({ value, disabled = false, className, children }: SelectItemProps) {
-  const ctx = useSelectContext("SelectItem");
-  const selected = ctx.value === value;
-  const label = typeof children === "string" ? children : value;
+export function SelectItem({
+  value,
+  textValue,
+  disabled = false,
+  className,
+  children,
+}: SelectItemProps) {
+  const context = useSelectContext("SelectItem");
+
+  const generatedId = useId();
+  const optionId = `${generatedId}-option`;
+
+  const optionRef = useRef<HTMLDivElement>(null);
+
+  const resolvedTextValue =
+    textValue ??
+    (typeof children === "string"
+      ? children
+      : undefined);
+
+  const label = resolvedTextValue ?? value;
+  const selected = context.value === value;
+  const active = context.activeValue === value;
+  const effectivelyDisabled =
+    context.disabled || disabled;
 
   useLayoutEffect(() => {
-    ctx.register(value, label);
-    return () => ctx.unregister(value);
-  }, [ctx.register, ctx.unregister, value, label]);
+    if (
+      process.env.NODE_ENV !== "production" &&
+      !resolvedTextValue
+    ) {
+      console.warn(
+        `SelectItem with value "${value}" has non-text children. ` +
+        'Provide a textValue prop, for example textValue="São Paulo".',
+      );
+    }
+
+    const option: SelectOptionRecord = {
+      id: optionId,
+      value,
+      label,
+      disabled: effectivelyDisabled,
+      ref: optionRef,
+    };
+
+    context.registerOption(option);
+
+    return () => {
+      context.unregisterOption(optionId);
+    };
+  }, [
+    context.registerOption,
+    context.unregisterOption,
+    effectivelyDisabled,
+    label,
+    optionId,
+    resolvedTextValue,
+    value,
+  ]);
 
   return (
-    <motion.li {...(ctx.reduce ? {} : { variants: ITEM_VARIANTS })}>
-      <button
-        type="button"
-        role="option"
-        data-value={value}
-        aria-selected={selected}
-        disabled={disabled}
-        onClick={() => ctx.select(value)}
-        className={cn(
-          "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm outline-none transition-colors",
-          selected
-            ? "bg-muted text-foreground"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:bg-muted",
-          "disabled:pointer-events-none disabled:opacity-50",
-          className,
-        )}
-      >
+    <motion.div
+      ref={optionRef}
+      id={optionId}
+      role="option"
+      aria-selected={selected}
+      aria-disabled={
+        effectivelyDisabled || undefined
+      }
+      data-value={value}
+      data-selected={selected ? "" : undefined}
+      data-active={active ? "" : undefined}
+      data-disabled={
+        effectivelyDisabled ? "" : undefined
+      }
+      {...(context.reduceMotion
+        ? {}
+        : { variants: ITEM_VARIANTS })}
+      onPointerDown={(event) => {
+        /*
+         * Keep DOM focus on the combobox trigger. The active option
+         * is exposed with aria-activedescendant.
+         */
+        event.preventDefault();
+      }}
+      onPointerMove={(event) => {
+        if (
+          effectivelyDisabled ||
+          event.pointerType === "touch"
+        ) {
+          return;
+        }
+
+        context.setActiveValue(value);
+      }}
+      onClick={() => {
+        if (effectivelyDisabled) {
+          return;
+        }
+
+        context.selectValue(value);
+      }}
+      className={cn(
+        "flex w-full cursor-default select-none items-center",
+        "justify-between gap-2 rounded-lg px-2.5 py-1.5",
+        "text-left text-sm outline-none transition-colors",
+
+        selected
+          ? "bg-muted text-foreground"
+          : "text-muted-foreground",
+
+        active &&
+        !selected &&
+        "bg-muted text-foreground",
+
+        !effectivelyDisabled &&
+        "hover:bg-muted hover:text-foreground",
+
+        effectivelyDisabled &&
+        "pointer-events-none opacity-50",
+
+        className,
+      )}
+    >
+      <span className="min-w-0 flex-1 truncate">
         {children}
-        {selected ? <Check className="h-3.5 w-3.5 shrink-0" /> : null}
-      </button>
-    </motion.li>
+      </span>
+
+      {selected ? (
+        <Check
+          aria-hidden="true"
+          className="h-3.5 w-3.5 shrink-0"
+        />
+      ) : null}
+    </motion.div>
   );
 }
