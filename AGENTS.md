@@ -73,6 +73,16 @@ Five canonical triage roles, each label string equal to its name. See `docs/agen
 
 Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
+### Renderer components
+
+Screen UI lives under `apps/desktop/src/renderer/screens/<screen>/components/`.
+Keep one component per file and re-export the directory's public surface from a
+`components/index.ts` barrel (the shape the campaign-file, construction, diplomacy
+and fleet screens already use). Presentational components take derived view-model
+props and never read authoritative state. Where routing a child through the barrel
+would close an import cycle (e.g. a panel that renders the rail, and the rail that
+renders its leaves), import the leaf component directly.
+
 <!-- BEGIN:turborepo-agent-rules -->
 
 # This is NOT the Turborepo you know
