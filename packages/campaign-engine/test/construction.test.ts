@@ -159,3 +159,18 @@ describe("buildConstructionProjectQueue", () => {
 function makeDesignForCosts(displacementKg: SafeInt) {
   return fixtureDesign("uk", "des_amphitrite", { normalizedDisplacementKg: displacementKg });
 }
+
+describe("projectedConstructionOrderCosts and designed ships (ADR-0074)", () => {
+  const design = (extra: object = {}) =>
+    ({ normalizedDisplacementKg: 2_000_000, ...extra }) as unknown as Parameters<
+      typeof projectedConstructionOrderCosts
+    >[0];
+  it("keeps the displacement formula for authored designs", () => {
+    expect(projectedConstructionOrderCosts(design()).projectedCost).toBe(20);
+  });
+  it("uses the design's own price when the ship-design cost model set one", () => {
+    expect(
+      projectedConstructionOrderCosts(design({ constructionCostUnits: 11 })).projectedCost,
+    ).toBe(11);
+  });
+});

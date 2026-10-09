@@ -11,7 +11,7 @@ import {
   type DesignDraft,
   type ShipBuildingContent,
 } from "@bluewave/ship-design";
-import { buildDesignVersion } from "./designVersion.js";
+import { buildDesignVersion, pricingFor } from "./designVersion.js";
 
 /** `YYYY-MM` plus `n` months. */
 export function addMonths(month: string, n: number): string {
@@ -92,15 +92,20 @@ export function applyReviseProject(
       `Project ${project.id} is ${(decision.progressBp / 100).toFixed(1)}% built: this change would need a rebuild project (${decision.reasonCodes.join(", ")})`,
     );
 
-  const design = buildDesignVersion(compiled, draft, {
-    designVersionId: body.newDesignVersionId,
-    designFamilyId: oldDesign.designFamilyId,
-    className: oldDesign.className,
-    hullType: oldDesign.hullType,
-    machineryType: oldDesign.machineryType,
-    contentVersion: currentSnapshot.rulesetVersion,
-    kgPerHitPoint: content.kgPerHitPoint,
-  });
+  const design = buildDesignVersion(
+    compiled,
+    draft,
+    {
+      designVersionId: body.newDesignVersionId,
+      designFamilyId: oldDesign.designFamilyId,
+      className: oldDesign.className,
+      hullType: oldDesign.hullType,
+      machineryType: oldDesign.machineryType,
+      contentVersion: currentSnapshot.rulesetVersion,
+      kgPerHitPoint: content.kgPerHitPoint,
+    },
+    pricingFor(content, month),
+  );
   const newTotal = projectedConstructionOrderCosts(design).projectedCost;
   const total = newTotal + decision.reworkWorkMicro;
   const kept =

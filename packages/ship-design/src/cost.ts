@@ -118,3 +118,16 @@ export function computeCost(
     monthlyMaintenance: m(maintenance),
   };
 }
+
+/**
+ * Turns a cost in micro-pounds into whole treasury units (the engine counts campaign treasury and project work in
+ * these). Rounds up so a ship is never priced below its cost, and never to zero. Integer maths only.
+ */
+export function treasuryCostUnits(costMicro: number, unitMicro: number): number {
+  if (!Number.isSafeInteger(costMicro) || costMicro < 0)
+    throw new RangeError("costMicro must be a non-negative safe integer");
+  if (!Number.isSafeInteger(unitMicro) || unitMicro <= 0)
+    throw new RangeError("unitMicro must be a positive safe integer");
+  const units = (BigInt(costMicro) + BigInt(unitMicro) - 1n) / BigInt(unitMicro);
+  return Number(units < 1n ? 1n : units);
+}

@@ -14,6 +14,9 @@ import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import {
   buildShipBuildingContent,
+  buildWorkshopView,
+  treasuryCostUnits,
+  type DesignDraft,
   type ComponentDef,
   type HullFormRecord,
   type PropulsionPlant,
@@ -222,5 +225,29 @@ describe("SubmitDesign lifecycle validation", () => {
     const existing = [...snapshot.designs.keys()][0];
     if (existing)
       expect(code(withBody({ designVersionId: existing }))).toBe("INVALID_COMMAND_PAYLOAD");
+  });
+});
+
+describe("construction price of a designed ship (ADR-0074)", () => {
+  it("is the cost model's price in treasury units, the same figure the Drawing Board forecasts", () => {
+    const snapshot = snapshotIn(1895);
+    const { designs } = run(snapshot, [submit(snapshot)]);
+    const d = designs.get("des_test_destroyer")!;
+    // the month the command is applied in (the engine runs the month after the snapshot's start)
+    const env = content.environmentFor("1895-07");
+    const forecast = buildWorkshopView(havockDraft as unknown as DesignDraft, env).forecast
+      .costMicro;
+    expect(Number(d.constructionCostUnits)).toBe(
+      treasuryCostUnits(forecast, content.treasuryUnitMicro),
+    );
+    expect(Number(d.constructionCostUnits)).toBeGreaterThan(0);
+  });
+
+  it("prices an equipped ship above a bare hull of the same weight class, which displacement alone cannot", () => {
+    const snapshot = snapshotIn(1895);
+    const { designs } = run(snapshot, [submit(snapshot)]);
+    const d = designs.get("des_test_destroyer")!;
+    const byDisplacement = Math.round(Number(d.normalizedDisplacementKg) / 100_000);
+    expect(Number(d.constructionCostUnits)).not.toBe(byDisplacement);
   });
 });

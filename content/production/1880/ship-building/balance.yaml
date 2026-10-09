@@ -629,6 +629,9 @@ environment:
   yardWorkPerTonneMonth: 700
   # Engine projection: displacement per hit point; the median of the 37 authored 1880-pack designs is ~214,000 kg.
   kgPerHitPoint: 214000
+  # Micro-pounds per treasury unit: one unit of campaign treasury and project work is GBP 10,000. Calibrated so a Majestic-class battleship
+  # costs about as many units as the original displacement formula gave (about 125); designed ships are priced by the cost model.
+  treasuryUnitMicro: 10000000000
 # Revision tiers for changes during construction (spec section 15.4). Hull-progress thresholds 5 / 25 / 50 percent are the spec
 # values (bp of total hull work). The rework, delay, study-cost and kept-progress figures are PLACEHOLDER: no source, to be tuned
 # in the balance pass (ticket SB-12 follow-up).

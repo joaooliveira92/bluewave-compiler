@@ -343,6 +343,7 @@ const F = {
     "compiledHash",
     "torpedoArmament",
     "sourceDraft",
+    "constructionCostUnits",
   ),
   DesignFamily: fields<DesignFamily>()(
     "designFamilyId",

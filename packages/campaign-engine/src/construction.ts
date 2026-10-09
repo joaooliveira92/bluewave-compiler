@@ -78,7 +78,11 @@ export function projectedConstructionOrderCosts(
 ): ConstructionOrderCosts {
   const kilograms = Number(design.normalizedDisplacementKg);
   return {
-    projectedCost: Math.round(kilograms / KILOGRAMS_PER_COST_UNIT),
+    // A design priced by the ship-design cost model carries its own cost (ADR-0074); authored designs use the formula.
+    projectedCost:
+      design.constructionCostUnits !== undefined
+        ? Number(design.constructionCostUnits)
+        : Math.round(kilograms / KILOGRAMS_PER_COST_UNIT),
     projectedCapacityUnits: Math.round(kilograms / KILOGRAMS_PER_KILOTON),
   };
 }

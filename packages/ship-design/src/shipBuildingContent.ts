@@ -34,6 +34,8 @@ export interface ShipBuildingData {
       /** Work micro-units per month per line per tonne of a yard's maxDisplacement (ADR-0067 section 6). */
       readonly yardWorkPerTonneMonth: number;
       readonly kgPerHitPoint: number;
+      /** Micro-pounds per treasury unit (campaign treasury and project work are counted in these units). */
+      readonly treasuryUnitMicro: number;
     };
   };
   /** Technology id and the year it becomes available, from the scenario's technology list. */
@@ -48,6 +50,8 @@ export interface ShipBuildingContent {
   readonly environmentFor: (month: string) => WorkshopEnvironment;
   /** Ruleset constant for the engine projection (displacement per hit point). */
   readonly kgPerHitPoint: number;
+  /** Micro-pounds per treasury unit, to turn the cost model's pounds into the engine's units. */
+  readonly treasuryUnitMicro: number;
   readonly aiEnvironmentFor: (month: string) => AiEnvironment;
   /** Revision-tier thresholds, or null when the pack has none. */
   readonly revision: RevisionBalance | null;
@@ -93,6 +97,7 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
     hullForms: data.hullForms,
     environmentFor,
     kgPerHitPoint: data.balance.environment.kgPerHitPoint,
+    treasuryUnitMicro: data.balance.environment.treasuryUnitMicro,
     revision: data.balance.revision ?? null,
     aiEnvironmentFor: (month) => {
       if (!data.balance.ai) throw new Error("ship-building balance has no 'ai' section");

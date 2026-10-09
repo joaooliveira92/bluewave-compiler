@@ -65,3 +65,4 @@ Refresh this table from each file's H1 when one is added or re-titled.
 | 0070 | [ADR-0070-revise-project-command.md](ADR-0070-revise-project-command.md) | ReviseProject command and retained source drafts |
 | 0071 | [ADR-0071-command-screen-state-convention.md](ADR-0071-command-screen-state-convention.md) | One command-screen lifecycle convention |
 | 0073 | [ADR-0073-p1-withdrawal-disengagement.md](ADR-0073-p1-withdrawal-disengagement.md) | P-1 withdrawal / disengagement predicate (ticket 12) |
+| 0074 | [ADR-0074-designed-ship-treasury-cost.md](ADR-0074-designed-ship-treasury-cost.md) | Designed ships are priced by the cost model, in treasury units |

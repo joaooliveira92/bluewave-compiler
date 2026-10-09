@@ -71,6 +71,11 @@ export interface CompiledDesignVersion {
    * `SubmitDesign` carry one; authored pack designs have none. It lets a later revision start from the real design.
    */
   sourceDraft?: Readonly<Record<string, unknown>>;
+  /**
+   * Cost of building this design in treasury units, priced by the ship-design cost model when the design was compiled
+   * (ADR-0074). Absent for authored designs, which fall back to the displacement formula `construction_order_v1`.
+   */
+  constructionCostUnits?: SafeInt;
 }
 
 export interface CompiledTorpedoMount {

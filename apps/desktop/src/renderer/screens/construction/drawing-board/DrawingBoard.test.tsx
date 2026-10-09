@@ -283,3 +283,13 @@ describe("DrawingBoard", () => {
     ).toBeGreaterThan(0);
   });
 });
+
+describe("forecast and the treasury", () => {
+  it("states what the order will cost the treasury, in units", () => {
+    render(<DrawingBoard />);
+    const panel = region("Cost and construction forecast");
+    expect(within(panel).getByText(/Charged to the treasury when ordered/)).toBeTruthy();
+    const row = within(panel).getByText(/Charged to the treasury when ordered/).parentElement!;
+    expect(row.textContent).toMatch(/\d[\d,]* units \(£10,000 each\)/);
+  });
+});

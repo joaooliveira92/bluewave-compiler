@@ -16,7 +16,7 @@ import type {
 import { compileDesign, type DesignDraft, type ShipBuildingContent } from "@bluewave/ship-design";
 import { SafeInt } from "@bluewave/contracts";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
-import { buildDesignVersion } from "./designVersion.js";
+import { buildDesignVersion, pricingFor } from "./designVersion.js";
 import { EventLedger } from "@bluewave/events";
 import type { FinancialLedger } from "./financial-ledger.js";
 import { budgetChangedEvent, makeLedgerEntry } from "./events.js";
@@ -300,15 +300,20 @@ export function applySubmitDesign(
       `Design ${body["designVersionId"]} cannot be built: ${blocking.join(", ")}`,
     );
   }
-  const design = buildDesignVersion(compiled, draft, {
-    designVersionId: body["designVersionId"],
-    designFamilyId: body["designFamilyId"],
-    className: body["className"],
-    hullType: body["hullType"],
-    machineryType: body["machineryType"],
-    contentVersion: currentSnapshot["rulesetVersion"],
-    kgPerHitPoint: content.kgPerHitPoint,
-  });
+  const design = buildDesignVersion(
+    compiled,
+    draft,
+    {
+      designVersionId: body["designVersionId"],
+      designFamilyId: body["designFamilyId"],
+      className: body["className"],
+      hullType: body["hullType"],
+      machineryType: body["machineryType"],
+      contentVersion: currentSnapshot["rulesetVersion"],
+      kgPerHitPoint: content.kgPerHitPoint,
+    },
+    pricingFor(content, month),
+  );
   const existing = currentSnapshot["designFamilies"].get(body["designFamilyId"]);
   const family: DesignFamily = existing
     ? {

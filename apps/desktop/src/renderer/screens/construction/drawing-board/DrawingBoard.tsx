@@ -171,7 +171,7 @@ export function DrawingBoard({
           <div className="space-y-4">
             <MetricsPanel view={view} />
             <ComparePanel baseline={state.baseline} view={view} name={state.preset.name} />
-            <ForecastPanel view={view} />
+            <ForecastPanel view={view} treasuryUnitMicro={content.treasuryUnitMicro} />
           </div>
         </TabsContent>
 

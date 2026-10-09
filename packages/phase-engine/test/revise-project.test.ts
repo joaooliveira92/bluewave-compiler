@@ -193,9 +193,7 @@ describe("ReviseProject through the month", () => {
     const { snapshot, collector } = revise(before, fittingsChange);
     expect(codes(collector)).not.toContain("REVISION_REJECTED");
     const p = projectOf(snapshot);
-    const newCost = Math.round(
-      Number(snapshot.designs.get("des_rev_2")!.normalizedDisplacementKg) / 100_000,
-    );
+    const newCost = Number(snapshot.designs.get("des_rev_2")!.constructionCostUnits);
     expect(Number(p.totalWork)).toBe(
       newCost + Math.floor((4 * content.revision!.reworkBp) / 10_000),
     );
