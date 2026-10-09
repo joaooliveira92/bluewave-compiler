@@ -1,4 +1,5 @@
 export { AlternativesPanel } from "./AlternativesPanel.js";
+export { BriefPanel } from "./BriefPanel.js";
 export { ArmourPanel } from "./ArmourPanel.js";
 export { ComparePanel } from "./ComparePanel.js";
 export { FilePanel } from "./FilePanel.js";

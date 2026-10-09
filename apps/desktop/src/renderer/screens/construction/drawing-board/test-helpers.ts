@@ -4,6 +4,7 @@ import { fireEvent, screen } from "@testing-library/react";
 const PANEL_TAB: Record<string, string> = {
   "Hull plan": "Hull and machinery",
   "Hull and displacement": "Hull and machinery",
+  "Design brief": "Hull and machinery",
   "Machinery, fuel and range": "Hull and machinery",
   "Components and arrangement": "Arrangement",
   Protection: "Arrangement",

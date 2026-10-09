@@ -17,6 +17,7 @@ describe("applyEdit", () => {
     const edits: DraftEdit[] = [
       { kind: "set_hull", patch: { designMarginBp: bp(500) } },
       { kind: "set_machinery", patch: { installedKw: 3_000 } },
+      { kind: "set_requirement", patch: { category: "CL", requiredSpeedMilliKnots: 18_000 } },
       { kind: "move_placement", instanceId: "rf", zoneId: "SUPERSTRUCTURE", stationPermille: 560 },
       { kind: "set_param", instanceId: "c_6pdr_p", param: "rounds", value: 100 },
       { kind: "set_armour_region", region: { ...draft.armour.regions[0]!, thicknessUm: 40_000 } },
@@ -35,8 +36,13 @@ describe("applyEdit", () => {
     for (const e of edits) expect(applyEdit(draft, e)).not.toEqual(draft);
     expect(JSON.stringify(draft)).toBe(snapshot);
     expect(
-      applyEdit(draft, edits[4]!).armour.regions.filter((r) => r.region === "DECK_MAIN"),
+      applyEdit(draft, edits[5]!).armour.regions.filter((r) => r.region === "DECK_MAIN"),
     ).toHaveLength(1);
+  });
+  it("set_requirement changes only the brief, merging the patch", () => {
+    const next = applyEdit(draft, { kind: "set_requirement", patch: { requiredRangeNm: 4_321 } });
+    expect(next.requirement).toEqual({ ...draft.requirement, requiredRangeNm: 4_321 });
+    expect({ ...next, requirement: draft.requirement }).toEqual(draft);
   });
   it("rejects edits that reference nothing, and removing a magazine drops dangling links", () => {
     expect(() => applyEdit(draft, { kind: "remove_placement", instanceId: "ghost" })).toThrow(

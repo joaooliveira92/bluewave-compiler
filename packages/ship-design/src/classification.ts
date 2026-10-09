@@ -288,3 +288,21 @@ export function classificationFindings(
   }
   return { natural, findings: [] };
 }
+
+/**
+ * The class code shown beside the ship type: the type, then the number of main-gun mounts and the most barrels in a mount
+ * of the largest main calibre, e.g. `BB4X2`. A design with no main guns is just its type. Pure; mounts are read from the
+ * compiled components (MAIN_GUN category, `caliberUm` attribute, `barrels` parameter, default 1).
+ */
+export function classCode(
+  type: string,
+  components: readonly Pick<CompiledDesign["components"][number], "category" | "attr" | "params">[],
+): string {
+  const guns = components.filter((k) => k.category === "MAIN_GUN");
+  if (guns.length === 0) return type;
+  const largest = guns.reduce((m, k) => Math.max(m, k.attr.caliberUm ?? 0), 0);
+  const barrels = guns
+    .filter((k) => (k.attr.caliberUm ?? 0) === largest)
+    .reduce((m, k) => Math.max(m, k.params.barrels ?? 1), 1);
+  return `${type}${guns.length}X${barrels}`;
+}

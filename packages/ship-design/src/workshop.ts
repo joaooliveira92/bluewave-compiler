@@ -13,6 +13,7 @@ import {
   type ConstructionBalance,
   type LineId,
 } from "./construction.js";
+import { classCode } from "./classification.js";
 import { computeCost, type CostBalance, type CostContext } from "./cost.js";
 import { computeCve, CVE_LABEL, type CveBalance } from "./cve.js";
 import type { Finding, Severity } from "./findings.js";
@@ -65,6 +66,8 @@ export interface YardOption {
 export interface WorkshopView {
   readonly valid: boolean;
   readonly naturalClass: string | null;
+  /** The declared type and main battery, e.g. `BB4X2` (see `classCode`). */
+  readonly classCode: string;
   readonly totalKg: number;
   readonly buoyantKg: number;
   readonly ledger: readonly LedgerRow[];
@@ -257,6 +260,7 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
   return {
     valid: c.valid,
     naturalClass: c.naturalClass,
+    classCode: classCode(draft.requirement.category, c.components),
     totalKg: c.totalKg,
     buoyantKg: c.hull.buoyantKg,
     ledger,

@@ -26,6 +26,7 @@ import {
   ForecastPanel,
   HistoryPanel,
   HullPanel,
+  BriefPanel,
   HullPlanPanel,
   LedgerPanel,
   MachineryPanel,
@@ -144,6 +145,7 @@ export function DrawingBoard({
         <TabsContent value="hull" keepMounted className={TAB_GRID}>
           <HullPlanPanel draft={draft} content={content} view={view} />
           <div className="space-y-4">
+            <BriefPanel draft={draft} view={view} edit={actions.edit} />
             <HullPanel draft={draft} content={content} edit={actions.edit} />
             <MachineryPanel draft={draft} content={content} edit={actions.edit} />
           </div>

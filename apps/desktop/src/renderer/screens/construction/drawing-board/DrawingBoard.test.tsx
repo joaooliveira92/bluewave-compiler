@@ -35,6 +35,19 @@ describe("DrawingBoard", () => {
     expect(metric("Top speed")).toMatch(/kn \(need 25\.5\)/);
   });
 
+  it("shows the class code and lets the player declare the ship type, speed and range", () => {
+    render(<DrawingBoard />);
+    const brief = region("Design brief");
+    expect(within(brief).getByLabelText(/^Class code DD/)).toBeTruthy();
+    commit(/Required range/, "4321");
+    expect((screen.getByLabelText(/Required range/) as HTMLInputElement).value).toBe("4321");
+    fireEvent.change(screen.getByLabelText("Ship type"), { target: { value: "CL" } });
+    expect((screen.getByLabelText("Ship type") as HTMLSelectElement).value).toBe("CL");
+    // Declaring a type the destroyer does not qualify for is blocked by DESIGN-22, and the history says why.
+    openTab("History");
+    expect(within(region("Edit history")).getByText(/Brief: category → CL/)).toBeTruthy();
+  });
+
   it("lists the shipyards in the forecast with exactly one forecast yard", () => {
     render(<DrawingBoard />);
     openTab("Analysis");

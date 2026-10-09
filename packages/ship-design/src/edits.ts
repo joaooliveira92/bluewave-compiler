@@ -7,6 +7,7 @@ import {
   type ShipContext,
 } from "./compile.js";
 import type { ArmourRegion } from "./armour.js";
+import type { DesignRequirement } from "./compileShared.js";
 import type { HullSpec } from "./hull.js";
 import { SEVERITY_ORDER, type Severity } from "./findings.js";
 
@@ -14,6 +15,8 @@ import { SEVERITY_ORDER, type Severity } from "./findings.js";
 export type DraftEdit =
   | { readonly kind: "set_hull"; readonly patch: Partial<HullSpec> }
   | { readonly kind: "set_machinery"; readonly patch: Partial<MachineryPlan> }
+  /** The design brief: ship type, required speed and range, crew and accommodation. A brief is not a build change. */
+  | { readonly kind: "set_requirement"; readonly patch: Partial<DesignRequirement> }
   | { readonly kind: "add_placement"; readonly placement: PlacementSpec }
   | { readonly kind: "remove_placement"; readonly instanceId: string }
   | {
@@ -51,6 +54,8 @@ export function applyEdit(draft: DesignDraft, e: DraftEdit): DesignDraft {
       return { ...draft, hull: { ...draft.hull, ...e.patch } };
     case "set_machinery":
       return { ...draft, machinery: { ...draft.machinery, ...e.patch } };
+    case "set_requirement":
+      return { ...draft, requirement: { ...draft.requirement, ...e.patch } };
     case "add_placement":
       if (draft.placements.some((p) => p.instanceId === e.placement.instanceId))
         throw new EditError(`placement '${e.placement.instanceId}' exists`);

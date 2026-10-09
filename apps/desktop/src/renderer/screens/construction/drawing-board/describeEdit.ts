@@ -20,6 +20,10 @@ export function describeEdit(e: DraftEdit, nameOf: (componentId: string) => stri
       return `Machinery: ${Object.entries(e.patch)
         .map(([k, v]) => `${words(k)} → ${show(v)}`)
         .join(", ")}`;
+    case "set_requirement":
+      return `Brief: ${Object.entries(e.patch)
+        .map(([k, v]) => `${words(k)} → ${show(v)}`)
+        .join(", ")}`;
     case "add_placement":
       return `Add ${nameOf(e.placement.componentId)} to ${words(e.placement.zoneId)}`;
     case "remove_placement":

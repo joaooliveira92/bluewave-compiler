@@ -94,12 +94,17 @@ export const STRUCTURE_KEYS: ReadonlySet<string> = new Set([
   "subdivisionGrade",
 ]);
 
-/** Maps a draft edit to the kind of change it is. `categoryOf` resolves a placement's component category. */
+/**
+ * Maps a draft edit to the kind of change it is, or null when it changes the brief only (`set_requirement`: a brief is not
+ * a build change, as in `draftChangeKinds`). `categoryOf` resolves a placement's component category.
+ */
 export function changeKindOf(
   e: DraftEdit,
   categoryOf: (instanceId: string) => ComponentCategory | undefined,
-): ChangeKind {
+): ChangeKind | null {
   switch (e.kind) {
+    case "set_requirement":
+      return null;
     case "set_hull":
       return Object.keys(e.patch).some((k) => STRUCTURE_KEYS.has(k)) ? "STRUCTURE" : "FITTINGS";
     case "set_machinery":

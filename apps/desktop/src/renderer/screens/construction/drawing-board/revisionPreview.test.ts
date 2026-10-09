@@ -40,6 +40,10 @@ describe("revision preview", () => {
       stationPermille: 100,
     } as never;
     expect(changeKinds([hull], start, start, cat)).toEqual(["STRUCTURE"]);
+    // A brief edit is not a build change: it alone never produces a revision.
+    const brief = { kind: "set_requirement", patch: { category: "CL" } } as const;
+    expect(changeKinds([brief], start, start, cat)).toEqual([]);
+    expect(changeKinds([brief, hull], start, start, cat)).toEqual(["STRUCTURE"]);
     expect(changeKinds([move], start, start, cat)).toContain(
       cat(placement.componentId) === "MAIN_GUN" ? "MAIN_ARMAMENT" : "FITTINGS",
     );

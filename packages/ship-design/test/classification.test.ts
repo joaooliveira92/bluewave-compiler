@@ -4,6 +4,7 @@ import {
   naturalClass,
   classificationFindings,
   classFacts,
+  classCode,
   compileDesign,
   checkFindingShape,
   DESIGN_22_EARLY,
@@ -228,5 +229,37 @@ describe("compileDesign integration", () => {
     const r = compileDesign(draft, ctx);
     expect(r.naturalClass).toBeNull();
     expect(r.valid).toBe(true);
+  });
+});
+
+describe("classCode", () => {
+  const gun = (caliberUm: number, barrels?: number) =>
+    ({
+      category: "MAIN_GUN",
+      attr: { caliberUm },
+      params: barrels === undefined ? {} : { barrels },
+    }) as never;
+  it("is the type alone with no main guns", () => {
+    expect(classCode("DD", [])).toBe("DD");
+    expect(classCode("DD", [{ category: "RANGEFINDER", attr: {}, params: {} } as never])).toBe(
+      "DD",
+    );
+  });
+  it("counts mounts and the most barrels in a mount of the largest calibre", () => {
+    expect(
+      classCode("BB", [gun(305_000, 2), gun(305_000, 2), gun(305_000, 2), gun(305_000, 2)]),
+    ).toBe("BB4X2");
+    // A mixed battery: the largest calibre sets the barrels; every main mount counts.
+    expect(classCode("CA", [gun(203_000, 1), gun(152_000, 2), gun(203_000, 2)])).toBe("CA3X2");
+  });
+  it("defaults to one barrel and is deterministic", () => {
+    expect(classCode("CL", [gun(152_000)])).toBe("CL1X1");
+    expect(classCode("CL", [gun(152_000)])).toBe(classCode("CL", [gun(152_000)]));
+  });
+  it("is in the workshop view for the declared type", () => {
+    const c = compileDesign(draft, ctx);
+    expect(classCode(draft.requirement.category, c.components)).toMatch(
+      new RegExp(`^${draft.requirement.category}`),
+    );
   });
 });

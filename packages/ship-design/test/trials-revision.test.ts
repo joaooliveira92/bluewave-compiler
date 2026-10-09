@@ -219,6 +219,9 @@ describe("changeKindOf", () => {
     expect(changeKindOf({ kind: "remove_placement", instanceId: "rf" }, cat)).toBe("FITTINGS");
     expect(changeKindOf({ kind: "remove_armour_region", region: "BELT_MAIN" }, cat)).toBe("ARMOUR");
   });
+  it("a change to the brief is not a build change", () => {
+    expect(changeKindOf({ kind: "set_requirement", patch: { category: "CL" } }, cat)).toBeNull();
+  });
 });
 
 describe("checkRevisionBalance", () => {
