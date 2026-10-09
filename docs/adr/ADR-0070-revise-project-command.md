@@ -25,7 +25,7 @@ Accepted 2026-10-08. Implements the revision commands left open by ADR-0066 (SB-
 ## Not done (recorded, not guessed)
 
 - **T2 study cost** (`redesignStudyCostBp`): design studies (DESIGN-21 section 3) do not exist yet.
-- **Armour/machinery already ordered, and launched**: the engine tracks one work figure per project, so these are treated as false; the real tier can only be this tier or higher.
-- **T3 rebuild/conversion projects** (DESIGN-23 sections 20-23).
+- **Armour/machinery already ordered, and launched**: the engine tracks one work figure per project, so these are treated as false; the real tier can only be this tier or higher. Needs per-package progress: ticket 29.
+- **T3 rebuild/conversion projects** (DESIGN-23 sections 20-23): ticket 28. The player is told to finish the ship and submit the new version as a new class.
 - **Desktop apply flow**: the Drawing Board still only previews; the bridge and "Revise project" action are the next step.
 - **Authored designs** (the starting ships) have no source draft, so they cannot be revised. Blocked on content, not code: see `.scratch/ship-building/issues/27-authored-design-drafts.md`.

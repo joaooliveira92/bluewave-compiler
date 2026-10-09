@@ -219,7 +219,7 @@ export async function reviseProjectCommand(
       outcome: "rejected",
       reason: "REVISION_REQUIRES_REBUILD",
       diagnostics: [
-        `The ship is ${(decision.progressBp / 100).toFixed(1)}% built: this change would need a rebuild project, which is not available yet`,
+        `The ship is ${(decision.progressBp / 100).toFixed(1)}% built: it is too far along to revise, and rebuilding is not available yet. Finish it as designed, then submit this version as a new class and order it separately`,
       ],
     };
   const turn = Number(record.state.snapshot.turnNumber);
