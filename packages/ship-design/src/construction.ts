@@ -293,12 +293,17 @@ export interface MonthAdvance {
  * to it is limited by its line's capacity, the remaining work and the funds available (work units this month, or null for
  * unconstrained). Contended lines are allocated in PACKAGE_ORDER. Pure, deterministic; never negative, never above the
  * remaining work (invariant I6). `simulateConstruction` is this step repeated.
+ *
+ * `dependencyProgress` is the state a package's dependencies are judged against (default: `progress`). A caller that funds
+ * the same month in several steps passes the progress at the start of the month, so a package that finishes in one step
+ * does not let its dependents start in a later step of the same month, exactly as in one whole-month step.
  */
 export function advanceConstructionMonth(
   plan: ConstructionPlan,
   progress: PackageProgress,
   capacity: Readonly<Record<LineId, number>>,
   fundsWork: number | null,
+  dependencyProgress: PackageProgress = progress,
 ): MonthAdvance {
   const cap = new Map(LINE_IDS.map((l) => [l, capacity[l]]));
   let funds = fundsWork === null ? Number.MAX_SAFE_INTEGER : Math.max(0, Math.floor(fundsWork));
@@ -308,7 +313,8 @@ export function advanceConstructionMonth(
   const limited: LineId[] = [];
   for (const p of allocationOrder(plan)) {
     const done = progress[p.id] ?? 0;
-    if (done >= p.totalWork || !p.dependsOn.every((d) => isComplete(plan, progress, d))) continue;
+    if (done >= p.totalWork || !p.dependsOn.every((d) => isComplete(plan, dependencyProgress, d)))
+      continue;
     const rem = p.totalWork - done;
     const lineCap = cap.get(p.line)!;
     const a = Math.max(0, Math.min(rem, lineCap, funds));

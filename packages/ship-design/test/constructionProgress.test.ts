@@ -91,6 +91,24 @@ describe("advanceConstructionMonth", () => {
   });
 });
 
+describe("funding one month in several steps", () => {
+  it("with the month-start progress as the dependency state, two half-funded steps equal one whole step", () => {
+    const start = emptyProgress(plan);
+    const whole = advanceConstructionMonth(plan, start, capacity(1_000), null);
+    // Month 1: the first call finishes the hull; the second must not start launch (it depends on hull).
+    const first = advanceConstructionMonth(plan, start, capacity(1_000), 100, start);
+    const second = advanceConstructionMonth(plan, first.progress, capacity(1_000), null, start);
+    expect(second.progress["launch"]).toBe(0);
+    expect(second.progress).toEqual(whole.progress);
+  });
+  it("without it, a package finished by an earlier step lets its dependents start in the same month", () => {
+    const start = emptyProgress(plan);
+    const first = advanceConstructionMonth(plan, start, capacity(1_000), 100);
+    const second = advanceConstructionMonth(plan, first.progress, capacity(1_000), null);
+    expect(second.progress["launch"]).toBeGreaterThan(0);
+  });
+});
+
 describe("stepping equals simulating", () => {
   it("repeated steps reproduce simulateConstruction month for month, for several capacities and funding", () => {
     for (const cap of [15, 40, 1_000]) {
