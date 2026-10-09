@@ -18,6 +18,12 @@ export interface CompiledDesignVersion {
   readonly speed: number; // knots
   readonly machineryType: string;
   readonly requiredTechnologyIds: readonly string[];
+  /** What ordering one of these costs the treasury, in treasury units (engine-computed; screens never derive it). */
+  readonly projectedCost: number;
+  /** Shipyard capacity units an order reserves. */
+  readonly projectedCapacityUnits: number;
+  /** Where the cost comes from: the ship-design cost model, or the displacement formula for authored designs. */
+  readonly costBasis: "design_cost_model" | "displacement_formula";
   readonly carrierAttributes?: CarrierAttributes;
 }
 

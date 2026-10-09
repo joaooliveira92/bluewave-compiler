@@ -140,7 +140,10 @@ try {
       const label = suffix ? (suffix[1] as string) : arg;
       const matches = h.page
         .getByRole("button", { name: label })
-        .or(h.page.getByRole("link", { name: label }));
+        .or(h.page.getByRole("link", { name: label }))
+        .or(h.page.getByRole("tab", { name: label }))
+        .or(h.page.getByRole("menuitem", { name: label }))
+        .or(h.page.getByRole("checkbox", { name: label }));
       const which = suffix?.[2];
       const byRole =
         which === undefined

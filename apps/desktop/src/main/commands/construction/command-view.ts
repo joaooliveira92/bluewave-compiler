@@ -1,6 +1,7 @@
 import type { CommandRecord } from "@bluewave/commands";
 import {
   buildConstructionDesignCatalog,
+  projectedConstructionOrderCosts,
   type CompiledDesignVersion,
   type ConstructionCommand,
 } from "@bluewave/campaign-engine";
@@ -38,6 +39,11 @@ export function resolveUiDesign(
     speed: 0,
     machineryType: engine?.machineryType ?? "",
     requiredTechnologyIds: [],
+    ...(engine
+      ? projectedConstructionOrderCosts(engine)
+      : { projectedCost: 0, projectedCapacityUnits: 0 }),
+    costBasis:
+      engine?.constructionCostUnits !== undefined ? "design_cost_model" : "displacement_formula",
   };
 }
 

@@ -28,6 +28,9 @@ const design = createCompiledDesignVersion("design_majestic", {
   speed: 16,
   machineryType: "coal_vte",
   requiredTechnologyIds: ["tech_steel_hull"],
+  projectedCost: 160,
+  projectedCapacityUnits: 16,
+  costBasis: "displacement_formula",
 });
 
 const command = {

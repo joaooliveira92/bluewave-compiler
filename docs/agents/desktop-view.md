@@ -36,7 +36,7 @@ Output goes to `apps/desktop/.dev-data/view/` (git-ignored; override with `--out
 - `text.txt` — visible text
 - `console.log` — renderer console output and uncaught page errors
 
-`--click TEXT` matches a button/link by accessible name first, then falls back to visible text.
+`--click TEXT` matches a button, link, tab, menu item or checkbox by accessible name first, then falls back to visible text.
 Each run is a fresh app instance, so state does not persist between runs; chain every step in
 one invocation (the new-game flow takes ~10 clicks/fills; see `aria.yaml` after each step for the
 next control name). For multi-step flows that need real logic, write a spec in `apps/desktop/e2e/`.

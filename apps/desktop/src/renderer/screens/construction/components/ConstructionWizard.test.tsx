@@ -13,6 +13,9 @@ const design = createCompiledDesignVersion("design_majestic", {
   speed: 16,
   machineryType: "coal_vte",
   requiredTechnologyIds: [],
+  projectedCost: 160,
+  projectedCapacityUnits: 16,
+  costBasis: "displacement_formula",
 });
 
 describe("ConstructionWizard", () => {
@@ -63,6 +66,37 @@ describe("ConstructionWizard", () => {
     expect(html.toLowerCase()).not.toContain("months to complete");
     // confirm button
     expect(html).toContain("Confirm order");
+  });
+
+  it("shows the engine's price for a designed ship, and says where it comes from", () => {
+    const designed = createCompiledDesignVersion("des_probe", {
+      className: "Probe",
+      shipType: "cruiser",
+      nationId: "nation_uk",
+      year: 1880,
+      mass: 2037,
+      speed: 17,
+      machineryType: "compound_cylindrical",
+      requiredTechnologyIds: [],
+      projectedCost: 11,
+      projectedCapacityUnits: 2,
+      costBasis: "design_cost_model",
+    });
+    const html = renderToString(
+      createElement(ConstructionWizard, {
+        design: designed,
+        economy: { treasury: 1000, shipyardCapacity: 50 },
+        workspace: { treasuryReserved: 0, capacityReserved: 0 },
+        busy: false,
+        notice: null,
+        onConfirm: () => {},
+      }),
+    );
+    expect(html).toMatch(/>11(<!-- -->)? treasury units/);
+    expect(html).toContain("priced by the ship-design cost model");
+    expect(html).not.toContain("construction_order_v1");
+    // not the displacement formula (2,037 t / 100 = 20)
+    expect(html).not.toMatch(/>20(<!-- -->)? treasury units/);
   });
 
   it("surfaces verbatim rejection when notice carries INSUFFICIENT_FUNDS", () => {

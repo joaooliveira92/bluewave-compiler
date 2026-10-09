@@ -126,6 +126,9 @@ export function buildConstructionDesignCatalog(
       speed: Math.round(umsToKnots(Number(design.normalizedSpeedUms))),
       machineryType: design.machineryType,
       requiredTechnologyIds: [],
+      ...projectedConstructionOrderCosts(design),
+      costBasis:
+        design.constructionCostUnits !== undefined ? "design_cost_model" : "displacement_formula",
     });
   }
   designs.sort((a, b) => a.designId.localeCompare(b.designId));

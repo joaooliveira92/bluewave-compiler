@@ -12,17 +12,10 @@ import {
   CardTitle,
 } from "../../../components/ui/card.js";
 
-function derivedConstructionCosts(design: CompiledDesignVersion): {
-  projectedCost: number;
-  projectedCapacityUnits: number;
-} {
-  // Mirrors packages/campaign-engine/src/construction.ts construction_order_v1:
-  // 1 cost unit per 100t displacement, capacity in kilotons.
-  return {
-    projectedCost: Math.round(design.mass / 100),
-    projectedCapacityUnits: Math.round(design.mass / 1000),
-  };
-}
+const COST_BASIS_TEXT: Record<CompiledDesignVersion["costBasis"], string> = {
+  design_cost_model: "priced by the ship-design cost model",
+  displacement_formula: "construction_order_v1 · 1 per 100t",
+};
 
 export interface ConstructionWizardProps {
   readonly design: CompiledDesignVersion | null;
@@ -46,7 +39,17 @@ export const ConstructionWizard = memo(function ConstructionWizard({
   onConfirm,
   onCancelWizard,
 }: ConstructionWizardProps) {
-  const costs = useMemo(() => (design ? derivedConstructionCosts(design) : null), [design]);
+  // The engine computes what an order costs and ships it with the design; the screen only displays it.
+  const costs = useMemo(
+    () =>
+      design
+        ? {
+            projectedCost: design.projectedCost,
+            projectedCapacityUnits: design.projectedCapacityUnits,
+          }
+        : null,
+    [design],
+  );
 
   if (design === null || costs === null) {
     return (
@@ -132,7 +135,7 @@ export const ConstructionWizard = memo(function ConstructionWizard({
           </h4>
           <p className="font-mono text-sm">
             {costs.projectedCost.toLocaleString()} treasury units
-            <span className="text-muted-foreground"> · construction_order_v1 · 1 per 100t</span>
+            <span className="text-muted-foreground"> · {COST_BASIS_TEXT[design.costBasis]}</span>
           </p>
         </div>
 

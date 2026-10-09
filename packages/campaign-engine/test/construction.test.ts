@@ -52,6 +52,8 @@ describe("buildConstructionDesignCatalog", () => {
     expect(design.machineryType).toBe("reciprocating_compound");
     // No authored tech links in the compiled content — honest empty list.
     expect(design.requiredTechnologyIds).toEqual([]);
+    expect(design.costBasis).toBe("displacement_formula");
+    expect(design.projectedCost).toBeGreaterThan(0);
     // No family authored for this fixture → no fictional vintage.
     expect(design.year).toBe(0);
   });
