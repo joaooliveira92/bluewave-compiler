@@ -26,6 +26,16 @@ Live roadmap / next-action detail: `.ai/SPRINT-PLAN.md`.
 > **2026-10-08:** P-1 tickets 11 (speed as range control, ADR-0072) and 12 (withdrawal /
 > disengagement, ADR-0073) DONE; battles now end by `withdrawal_complete` /
 > `mutual_disengagement` before elimination. Report `.ai/reports/p1-ticket-12-withdrawal.md`.
+>
+> **2026-10-09: P-1 CLOSE-OUT / ACCEPTANCE GATE — PASS.** All P-1 AC-1..AC-8 proven; full
+> orchestrator gate green (build 19/19 uncached, typecheck 35/35, lint 0/0, format clean,
+> `pnpm test:run` EXIT=0, goldens 10/10, cross-process `success:true`, e2e 24 passed).
+> AC-7 proves torpedoes reachable from a compiled production-pack battle; AC-3 the as-built
+> 1880-roster fits; AC-8 the torpedo-armed battle-resolution child. The gate also repaired a
+> pre-existing committed regression (commit `84184d9`). Report
+> `.ai/reports/p1-battles-that-matter-acceptance.md`. **Next: P-2 ship designer** — the
+> `.scratch/ship-building/` implementation has largely landed (tickets 00–35, ADRs 0063–0078);
+> remaining frontier: tickets 22, 26, 28 (rebuild cancellation settlement), 30, then a P-2 gate.
 
 ---
 
