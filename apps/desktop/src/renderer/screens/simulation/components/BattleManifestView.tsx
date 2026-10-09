@@ -28,7 +28,9 @@ function BattleSideColumn({
     <div>
       <div className="text-[12px] text-muted-foreground">{label}</div>
       <div className="font-semibold text-foreground">
-        {side === undefined ? "" : `${nationDisplayName(nationId)}${roleSuffix(nationId, playerNationId)}`}
+        {side === undefined
+          ? ""
+          : `${nationDisplayName(nationId)}${roleSuffix(nationId, playerNationId)}`}
       </div>
       <div className="mt-1 text-[12px] text-muted-foreground">SQUADRONS:</div>
       {side?.participants.map((p, idx) => (

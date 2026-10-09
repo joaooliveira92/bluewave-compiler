@@ -65,9 +65,7 @@ describe("StrategicOverviewTab", () => {
   });
 
   it("states each empty theater section plainly instead of hiding it", () => {
-    render(
-      <StrategicOverviewTab submarinePools={[]} minePressure={[]} landTargetDamage={[]} />,
-    );
+    render(<StrategicOverviewTab submarinePools={[]} minePressure={[]} landTargetDamage={[]} />);
 
     expect(screen.getByText("No submarine deployments")).not.toBeNull();
     expect(screen.getByText("No active minefields")).not.toBeNull();
