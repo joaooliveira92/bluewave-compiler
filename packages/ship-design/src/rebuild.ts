@@ -144,7 +144,10 @@ export function validateRebuild(
         `Displacement rises ${pct(measures.displacementChangeBp)}; a rebuild may add at most ${pct(balance.maxDisplacementIncreaseBp)}.`,
         "The retained hull cannot carry that much more; the rebuild is refused.",
         [
-          ["reduce_weight", "Remove weight (guns, armour, machinery) until the increase is within the limit."],
+          [
+            "reduce_weight",
+            "Remove weight (guns, armour, machinery) until the increase is within the limit.",
+          ],
           ["smaller_changes", "Change less in this rebuild and do the rest in a later one."],
           ["new_construction", "Build the new design as a new ship instead."],
         ],
@@ -175,8 +178,22 @@ export function validateRebuild(
     );
 
   for (const [id, label, from, to, limit, change] of [
-    ["REBUILD_LENGTH_LIMIT", "length", source.lengthMm, target.lengthMm, balance.maxLengthChangeBp, measures.lengthChangeBp],
-    ["REBUILD_BEAM_LIMIT", "beam", source.beamMm, target.beamMm, balance.maxBeamChangeBp, measures.beamChangeBp],
+    [
+      "REBUILD_LENGTH_LIMIT",
+      "length",
+      source.lengthMm,
+      target.lengthMm,
+      balance.maxLengthChangeBp,
+      measures.lengthChangeBp,
+    ],
+    [
+      "REBUILD_BEAM_LIMIT",
+      "beam",
+      source.beamMm,
+      target.beamMm,
+      balance.maxBeamChangeBp,
+      measures.beamChangeBp,
+    ],
   ] as const) {
     if (differsBeyond(from, to, limit))
       findings.push(

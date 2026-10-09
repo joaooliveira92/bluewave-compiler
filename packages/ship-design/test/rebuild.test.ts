@@ -63,7 +63,9 @@ describe("validateRebuild: the retained-hull limits (DESIGN-23 section 21)", () 
   });
 
   it("a different hull form is always refused", () => {
-    expect(ids(target({ hullFormId: "protected_cruiser_form" }))).toEqual(["REBUILD_HULL_FORM_CHANGED"]);
+    expect(ids(target({ hullFormId: "protected_cruiser_form" }))).toEqual([
+      "REBUILD_HULL_FORM_CHANGED",
+    ]);
   });
 
   it("reports every failure at once, in a fixed order", () => {
@@ -91,7 +93,13 @@ describe("validateRebuild: the retained-hull limits (DESIGN-23 section 21)", () 
   it("every finding is a well-formed BLOCKING finding with evidence and enough remedies", () => {
     const r = validateRebuild(
       source,
-      target({ hullFormId: "x", displacementKg: 99_000_000, speedMilliKnots: 99_000, lengthMm: 1, beamMm: 1 }),
+      target({
+        hullFormId: "x",
+        displacementKg: 99_000_000,
+        speedMilliKnots: 99_000,
+        lengthMm: 1,
+        beamMm: 1,
+      }),
       balance,
       { demand: { lengthMm: 1e9, beamMm: 1e9, displacementKg: 1e12, heaviestKg: 1e12 }, yards: [] },
     );
@@ -104,7 +112,11 @@ describe("validateRebuild: the retained-hull limits (DESIGN-23 section 21)", () 
   });
 
   it("measures are signed, in bp of the current value, rounded toward zero", () => {
-    const r = validateRebuild(source, target({ displacementKg: 10_333_333, lengthMm: 99_000, speedMilliKnots: 17_000 }), balance);
+    const r = validateRebuild(
+      source,
+      target({ displacementKg: 10_333_333, lengthMm: 99_000, speedMilliKnots: 17_000 }),
+      balance,
+    );
     expect(r.measures).toEqual({
       displacementChangeBp: 333,
       speedChangeMilliKnots: -1_000,
@@ -121,7 +133,11 @@ describe("validateRebuild: the retained-hull limits (DESIGN-23 section 21)", () 
   });
 
   it("copes with a zero-sized source without dividing by zero", () => {
-    const r = validateRebuild(target({ lengthMm: 0, displacementKg: 0 }), target({ lengthMm: 5, displacementKg: 5 }), balance);
+    const r = validateRebuild(
+      target({ lengthMm: 0, displacementKg: 0 }),
+      target({ lengthMm: 5, displacementKg: 5 }),
+      balance,
+    );
     expect(Number.isFinite(r.measures.lengthChangeBp)).toBe(true);
     expect(r.measures.displacementChangeBp).toBe(0);
   });
@@ -168,7 +184,13 @@ describe("rebuildFactsOf and the shipped limits", () => {
     const c = compileDesign(majestic, earlyContext("1896-01"));
     const same = rebuildFactsOf(c, majestic);
     expect(validateRebuild(same, same, shipBuildingContent.rebuild!).legal).toBe(true);
-    expect(validateRebuild(same, { ...same, hullFormId: "torpedo_boat_form" }, shipBuildingContent.rebuild!).legal).toBe(false);
+    expect(
+      validateRebuild(
+        same,
+        { ...same, hullFormId: "torpedo_boat_form" },
+        shipBuildingContent.rebuild!,
+      ).legal,
+    ).toBe(false);
   });
 
   it("checkRebuildBalance rejects negative and fractional limits", () => {
