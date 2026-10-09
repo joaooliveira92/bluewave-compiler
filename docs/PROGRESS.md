@@ -22,6 +22,10 @@ Live roadmap / next-action detail: `.ai/SPRINT-PLAN.md`.
 > D-5 and M5 are paused in favour of **Track P — Playable Campaign**: P-0 green
 > gate → P-1 battles that matter → P-2 ship designer → P-3 intentful AI → P-4
 > living world → P-5 strategic map → P-6 player-fought battles.
+>
+> **2026-10-08:** P-1 tickets 11 (speed as range control, ADR-0072) and 12 (withdrawal /
+> disengagement, ADR-0073) DONE; battles now end by `withdrawal_complete` /
+> `mutual_disengagement` before elimination. Report `.ai/reports/p1-ticket-12-withdrawal.md`.
 
 ---
 

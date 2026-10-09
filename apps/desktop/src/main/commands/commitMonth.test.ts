@@ -384,7 +384,15 @@ describe("commitMonth", () => {
       };
     }
 
-    function registerWarSession(sessionId: string, saveDir: string): CampaignSnapshot {
+    // Seed whose auto-resolved battle sinks a loser ship before the ADR-0073
+    // withdrawal threshold is reached (the default seed now ends by break-off).
+    const DECISIVE_SEED = "decisive-04-xxxxxxxxxxxxxxxxxxxx";
+
+    function registerWarSession(
+      sessionId: string,
+      saveDir: string,
+      campaignSeed = "b".repeat(32),
+    ): CampaignSnapshot {
       const snapshot = makeWarSnapshot();
       const envelope = createEnvelope("campaign-snapshot", snapshot.compatibilityVersion, snapshot);
       const state = toSaveableState({ snapshot, envelope, rawHash: "" });
@@ -393,7 +401,7 @@ describe("commitMonth", () => {
         sessionId,
         saveDir,
         playerSlotId: "GBR",
-        campaignSeed: "b".repeat(32),
+        campaignSeed,
         month: { month: 1, year: 1880 },
         state,
       });
@@ -494,7 +502,7 @@ describe("commitMonth", () => {
 
     it("pins the decisive threshold: a battle that sinks a loser ship yields warScoreDelta 10 (lossFraction >= 0.5)", async () => {
       const saveDir = resolve(saveRoot, "save-war-decisive");
-      const preSnapshot = registerWarSession("session-war-decisive", saveDir);
+      const preSnapshot = registerWarSession("session-war-decisive", saveDir, DECISIVE_SEED);
 
       const result = await commitMonth({
         sessionId: "session-war-decisive",

@@ -31,12 +31,12 @@ detail inline (recorded in the component header).
 
 ## Requirements evidence
 
-| Requirement | Implementation | Proving test |
-| ----------- | -------------- | ------------ |
-| CC-5 relations + war score | `NationRail.tsx`, `nation-rail-state.ts` | `NationRail.test.tsx` — "lists the player first…" |
-| CC-5 inline relation detail | `NationRail.tsx` detail block | "selects a nation and shows its detail inline" |
-| CC-5 deferred intel items | `DEFERRED_NATION_RAIL_ITEMS` + disclosure | "collapses deferred intel items…" |
-| CC-5 All relations link | `onNavigate("diplomacy")` | "All relations opens Diplomacy & War" |
+| Requirement                    | Implementation                              | Proving test                                          |
+| ------------------------------ | ------------------------------------------- | ----------------------------------------------------- |
+| CC-5 relations + war score     | `NationRail.tsx`, `nation-rail-state.ts`    | `NationRail.test.tsx` — "lists the player first…"     |
+| CC-5 inline relation detail    | `NationRail.tsx` detail block               | "selects a nation and shows its detail inline"        |
+| CC-5 deferred intel items      | `DEFERRED_NATION_RAIL_ITEMS` + disclosure   | "collapses deferred intel items…"                     |
+| CC-5 All relations link        | `onNavigate("diplomacy")`                   | "All relations opens Diplomacy & War"                 |
 | CC-5 flag coverage (14 powers) | `nationAssetManifest.ts`, `FLAG_COUNTRY_ID` | "renders flag art for every 1880 power, player first" |
 
 ## Commands and observed results

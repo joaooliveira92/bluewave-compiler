@@ -4,9 +4,9 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** DONE (2026-10-08, ADR-0073; reviewer APPROVE)
 
-**Frontier:** yes
+**Frontier:** no
 
 ## Problem (evidence)
 

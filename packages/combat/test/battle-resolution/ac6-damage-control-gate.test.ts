@@ -39,8 +39,14 @@ const FIRE_BASELINE_INPUT = makeAutoInput({
 // (2e2de88b... at minute 1), later minutes changed. A forced-old-constant run
 // (FLOAT_UNIT 50_000, equal zone weights) reproduces c6b73c6f... exactly, so the
 // move is due to the tuning alone.
+// Re-pinned for ADR-0073 (P-1 ticket 12, withdrawal predicate: a side below 20%
+// fleet strength breaks off): RESULT f762c585... -> 24dd6c78...; minutes 0-51
+// byte-identical to the previous pin (the 52-entry list is a strict prefix of the
+// old 70), the fixture now ends withdrawal_complete at minute 52 (was
+// no_viable_combatants at 70) with no ship sunk. The cause is the new battle-end
+// predicate alone.
 const FIRE_BASELINE_RESULT_HASH =
-  "f762c5855afeca5e2251dd8e743bb03e108d9ffbf5eb7ae4454cbecce557f9d8";
+  "24dd6c7876d435229e724efadee395462de1e50471030ee76675db254abf9057";
 const FIRE_BASELINE_MINUTE_HASHES = [
   "704d9118704bb7ff99215a06c9eabcbda043c21f897e87accd311494f0c8f218",
   "2e2de88b6ed11699c2fdd380ff71340886c2f3fd2d3dd78bb1f2cd6d7665a275",
@@ -94,24 +100,6 @@ const FIRE_BASELINE_MINUTE_HASHES = [
   "5aac20e60813c86701a3aff7b22aa87f91da30f123c761138f1bd65652509324",
   "3441427c68a4c0da5b668a5e6bc9ed094ff51620539164cadc526e7d714fce08",
   "ccc3483a8d9f3ba146e8b83ba87a5b44d06a09ffad86ece071613b8b00e5a8f1",
-  "53070d3fa654d6b255e7ca504e5a8ae970e4c74ab3ad05c28d35c97f0a6f4a67",
-  "dc5b6adb196da4621e2443788076bc26cfeab34053c1c8d1df3418d090ebbadb",
-  "0c4f9038434546b5ae145c0427babb2933743589694749c47849b673d91f61a3",
-  "58904af25e36254c762503d1df826ab4123448a93685f5cf8c0833905f0cb010",
-  "274b91a0ca20a745910cb3e8991c2468895b93e885eac547663bc14e7b36f884",
-  "e6b1c8a9d67bcae2ff8350eeb1a9f5f236adf8fc7708e32d6c64cc246573ac5b",
-  "ab847cc547ad5991b1ba4e5b88bc4daddf436e5bb08a3c0283a942048049d40d",
-  "ea2831f8f8a39f22a8f10e36e61323ab0297cbc8d9d10ea95c110d86ecd0e146",
-  "79d46b9fb31c3e906dcb32798e3acd9ba321c1641b9a8fb24eedd285fd9e13c9",
-  "5881c38ae0810cdb9c41746e199dd7be1c6f3440c65b2f13a8e151825f822e88",
-  "e9d678994356e923f9503e56b3a1f54db6b31fd3a66490a95df402643b0c7754",
-  "2b60a55ac626268f3bd604829f876cfe9626cdcaab4ca1a0fc7c5f84b297270c",
-  "a79e93b2752c2b5baf5f15795d0bc09af098e17a709f13d2fd6ef790d7004686",
-  "8381e737338eb41e7cb956f7ef5f69f0b6beb5839f8ece65512ba5afe6e85fcb",
-  "3b12a8f95eabc3b2de4f2818d28826defd590330b530d6344b228eaf04d638e2",
-  "f9841843cf937b9f67902f9cf3819e5d3dfc7defd267f01f3d3e1d84abd95342",
-  "c9bf037f51362b0ab1c4657cb828eac8015bb1c06bfa416b46512c665e5b934e",
-  "e660e706edafcf08b95ff9bfd4e7b7ac3ba479fdeb0ce48ab22a3b183e35112d",
 ] as const;
 
 describe("unarmed damage control (P-1 ticket 09)", () => {
@@ -155,8 +143,8 @@ describe("unarmed damage control (P-1 ticket 09)", () => {
     expect(withoutLedger.minuteHashes).toEqual(result.minuteHashes);
 
     // ---- pinned baseline (captured 2026-10-06 on the reviewed implementation)
-    expect(result.battleEndReason).toBe("no_viable_combatants");
-    expect(result.elapsedMinutes).toBe(70);
+    expect(result.battleEndReason).toBe("withdrawal_complete");
+    expect(result.elapsedMinutes).toBe(52);
     expect(result.resultHash).toBe(FIRE_BASELINE_RESULT_HASH);
     expect(result.minuteHashes).toEqual([...FIRE_BASELINE_MINUTE_HASHES]);
     expect(result.minuteHashes).toHaveLength(FIRE_BASELINE_MINUTE_HASHES.length);

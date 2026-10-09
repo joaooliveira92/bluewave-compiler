@@ -4,9 +4,9 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** DONE (2026-10-08, ADR-0072; verified at boot: sweep test + goldens 10/10)
 
-**Frontier:** yes
+**Frontier:** no
 
 ## Problem (evidence)
 

@@ -138,7 +138,9 @@ describe("cause-of-loss in resolveBattleAuto", () => {
   });
 
   it("gun battle: causes are valid, cover exactly the sunk ships, and are not hashed", () => {
-    const r = resolveBattleAuto(makeAutoInput());
+    // ADR-0073: most gun battles now end by withdrawal before anything sinks;
+    // seed cause-8 is a fixed seed whose loser's ship has foundered by then.
+    const r = resolveBattleAuto({ ...makeAutoInput(), campaignSeed: "cause-8" });
     const sunk = [...r.attackerSunkIds, ...r.defenderSunkIds].sort();
     expect(sunk.length).toBeGreaterThan(0);
     expect(Object.keys(r.causeOfLoss!).sort()).toEqual(sunk);

@@ -206,17 +206,16 @@ describe("engine-level: a seeded FireRecord progresses without any gunnery", () 
 
 describe("§32 battle-end decision with persisted sources", () => {
   const seeds = ["fid-a", "fid-b", "fid-c", "fid-d", "fid-e"];
-  it("every unarmed battle still ends no_viable_combatants with exactly one side wiped out", () => {
+  it("every unarmed battle ends by one side breaking off (ADR-0073), with persisted sources deterministic", () => {
     for (const seed of seeds) {
       const r = resolveBattleAuto({
         ...makeAutoInput({ nations: makeNations({ attackerGuns: [4, 4], defenderGuns: [4, 4] }) }),
         campaignSeed: seed,
       });
-      expect(r.battleEndReason).toBe("no_viable_combatants");
-      const lost = (ids: string[]) => ids.every((id) => (r.damageReport[id] as number) === 100);
-      const attackersGone = lost(["a1", "a2"]);
-      const defendersGone = lost(["d1", "d2"]);
-      expect(attackersGone !== defendersGone).toBe(true);
+      expect(["withdrawal_complete", "mutual_disengagement"]).toContain(r.battleEndReason);
+      // nobody is wiped out any more: both sides keep at least one ship afloat
+      expect(r.attackerSurvivorIds.length).toBeGreaterThan(0);
+      expect(r.defenderSurvivorIds.length).toBeGreaterThan(0);
       // Re-running is byte-identical (cross-run determinism).
       const again = resolveBattleAuto({
         ...makeAutoInput({ nations: makeNations({ attackerGuns: [4, 4], defenderGuns: [4, 4] }) }),

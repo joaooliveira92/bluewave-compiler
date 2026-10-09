@@ -53,26 +53,36 @@ export const GUNNERY_ACCURACY_BASE_BP = 4_000 as const;
 // The auto-resolver's pursuit steers every ship straight at the nearest enemy at
 // full designed speed, so speed conferred no tactical advantage (ADR-0053 sweep:
 // a 14 kn fleet beat an equal 30 kn fleet 30/30). ADR-0072 adds the missing
-// decision: the side with the greater maximum designed speed is the RANGE
-// CONTROLLER. On its own initiative it holds a standoff band
-// (`BATTLE_ENGAGEMENT_RANGE_UM` +/- `BATTLE_ENGAGEMENT_BAND_UM`, integer
-// micrometres, `rangeBetweenUm`-measured) instead of charging, and it fires from
-// a steady course; the slower side must close and manoeuvre to contest the range,
-// degrading its own fire control.
+// decision: the side with the greater maximum designed speed over its committed
+// force is the RANGE CONTROLLER. Its design change is a standoff doctrine: the
+// controller steers by `engagementHeading` (CLOSE/OPEN/HOLD, `rangeBetweenUm`-
+// measured against `BATTLE_ENGAGEMENT_RANGE_UM` +/- `BATTLE_ENGAGEMENT_BAND_UM`,
+// integer micrometres) and dictates the engagement band, instead of both sides
+// charging.
+//
+// The contesting side is DENIED the range initiative: it still charges straight
+// under ADR-0046 pursuit and never manœuvres of its own. That denial is priced
+// by an explicitly versioned BALANCE TARGET (like the ADR-0053 lethality
+// constants), NOT an emergent consequence of manoeuvring the contesting side
+// performs: its DESIGN-39 §3 `ownManeuver` accuracy factor is multiplied to
+// 4_100 bp (a 59% own-manoeuvre factor), calibrated so a 30 kn fleet beats an
+// equal-gun 14 kn fleet (acceptance >= 50%; sweep observed 73%).
 //
 // Geometry is applied ONLY to the range-controlling side: equal maximum speeds
 // (including an absent/empty side) leave the battle exactly as ADR-0046 pursuit
 // left it, so equal-speed matchups (and the P-1 torpedo doctrine, whose
 // lead/intercept courses assume the ADR-0046 closing geometry) are byte-identical.
-//
-// BALANCE TARGET (like the ADR-0053 lethality constants): the contesting side's
-// DESIGN-39 §3 `ownManeuver` factor is multiplied to 4_100 bp (a 59% own-manoeuvre
-// fire-control penalty), calibrated so a 30 kn fleet beats an equal-gun 14 kn
-// fleet (acceptance >= 50%; sweep observed 73%). Versioned with the battle
-// auto-resolution contract; a re-fit is a new ADR, never an in-place edit.
+// Versioned with the battle auto-resolution contract; a re-fit is a new ADR,
+// never an in-place edit.
 export const BATTLE_ENGAGEMENT_RANGE_UM = 2_000_000_000 as const;
 export const BATTLE_ENGAGEMENT_BAND_UM = 1_000_000_000 as const;
 export const RANGE_CONTEST_OWN_MANEUVER_BP = 4_100 as const;
+
+// ADR-0073 (P-1 ticket 12): withdrawal / disengagement. A side whose fleet
+// strength fraction (mean per-ship ADR-0026 hp fraction, terminal = 0) is
+// strictly below this threshold breaks off at the end of the minute
+// (`withdrawal_complete`; both sides below -> `mutual_disengagement`).
+export const WITHDRAWAL_STRENGTH_THRESHOLD_BP = 2_000 as const;
 
 /** Conversion: designed speed µm/s -> movement speed units (knots × SPEED_BP_SCALE,
  *  the scale `speedBpKnotsToUmS` reads). Integer, floor:
@@ -210,6 +220,8 @@ export interface BattleAutoResolutionContract {
   engagementRangeUm: number;
   engagementBandUm: number;
   rangeContestOwnManeuverBp: number;
+  /** ADR-0073 withdrawal fleet-strength threshold (bp). */
+  withdrawalStrengthThresholdBp: number;
 }
 
 export const SHIPPED_BATTLE_AUTO_RESOLUTION_V1: BattleAutoResolutionContract = {
@@ -227,6 +239,7 @@ export const SHIPPED_BATTLE_AUTO_RESOLUTION_V1: BattleAutoResolutionContract = {
   engagementRangeUm: BATTLE_ENGAGEMENT_RANGE_UM,
   engagementBandUm: BATTLE_ENGAGEMENT_BAND_UM,
   rangeContestOwnManeuverBp: RANGE_CONTEST_OWN_MANEUVER_BP,
+  withdrawalStrengthThresholdBp: WITHDRAWAL_STRENGTH_THRESHOLD_BP,
 };
 
 export function throwContractMismatch(contract: unknown, reason: string): never {
@@ -272,4 +285,6 @@ export function validateBattleAutoResolutionContract(
     throwContractMismatch(c, "battle_auto_resolution_v1 engagement band");
   if (c.rangeContestOwnManeuverBp !== RANGE_CONTEST_OWN_MANEUVER_BP)
     throwContractMismatch(c, "battle_auto_resolution_v1 range-contest own manoeuvre");
+  if (c.withdrawalStrengthThresholdBp !== WITHDRAWAL_STRENGTH_THRESHOLD_BP)
+    throwContractMismatch(c, "battle_auto_resolution_v1 withdrawal strength threshold");
 }

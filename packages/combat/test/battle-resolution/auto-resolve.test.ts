@@ -44,7 +44,7 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     expect(result.provenance.manifestHash).toBe(computeManifestHash(input.manifest));
   });
 
-  it("winner/loser semantics: the armed fixture resolves no_viable_combatants and the loser's ships are all sunk", () => {
+  it("winner/loser semantics: the armed fixture resolves withdrawal_complete and the withdrawing side loses (ADR-0073)", () => {
     const input = makeAutoInput();
     const result = resolveBattleAuto(input);
 
@@ -53,19 +53,18 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     const losses = Object.values(result.damageReport);
     expect(losses.some((loss) => (loss as number) > 0)).toBe(true);
 
-    // The fixed fixture seed deterministically produces an eliminated side
-    // (§32 no_viable_combatants) before the 360-minute cap.
-    expect(result.battleEndReason).toBe("no_viable_combatants");
+    // The fixed fixture seed deterministically produces a side that breaks off
+    // (§32 withdrawal_complete) before the 360-minute cap; the other side wins.
+    expect(result.battleEndReason).toBe("withdrawal_complete");
     expect([input.attacker.nationId, input.defender.nationId]).toContain(result.winnerId);
     const loserId = result.winnerId === input.attacker.nationId ? "n-fr" : "n-uk";
     expect(result.loserId).toBe(loserId);
-    const loserShips = loserId === "n-fr" ? ["d1", "d2"] : ["a1", "a2"];
-    for (const ship of loserShips) {
-      expect([...result.attackerSunkIds, ...result.defenderSunkIds]).toContain(ship);
-    }
-    expect(
-      result.attackerSurvivorIds.filter((s) => s.startsWith(loserId === "n-uk" ? "a" : "d")),
-    ).toEqual([]);
+    // a withdrawing side keeps its survivors (no elimination)
+    const loserPrefix = loserId === "n-uk" ? "a" : "d";
+    const loserSurvivors = [...result.attackerSurvivorIds, ...result.defenderSurvivorIds].filter(
+      (s) => s.startsWith(loserPrefix),
+    );
+    expect(loserSurvivors.length).toBeGreaterThan(0);
   });
 
   it("identical inputs -> byte-identical results (in-process determinism)", () => {
@@ -102,11 +101,16 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     // at minute 54 (was 14); last minute 0493ad21... -> aaca0a19.... A
     // forced-old-constant run (FLOAT_UNIT 50_000, equal zone weights) reproduces
     // e017125e... exactly, so the move is due to the tuning alone.
+    // Re-pinned for ADR-0073 (P-1 ticket 12, withdrawal predicate: a side below
+    // 20% fleet strength breaks off): RESULT bee00786... -> 53b93ad7...; minutes 0-47
+    // byte-identical (minute 1 still 2c598e47...), the battle now ends
+    // withdrawal_complete at minute 48 (was no_viable_combatants at 54) with no
+    // ship sunk; last minute aaca0a19... -> 9205ea66....
     const result = resolveBattleAuto(makeAutoInput());
-    expect(result.battleEndReason).toBe("no_viable_combatants");
-    expect(result.elapsedMinutes).toBe(54);
+    expect(result.battleEndReason).toBe("withdrawal_complete");
+    expect(result.elapsedMinutes).toBe(48);
     expect(result.resultHash).toBe(
-      "bee00786083a802b2540925c12c2304fd3fcb29de61ae152727568924b8f4baf",
+      "53b93ad7252fdb04182a3999ea100f5f89421c9f1c495db8f4c5cb1212b3d7a2",
     );
     expect(result.minuteHashes[0]).toBe(
       "704d9118704bb7ff99215a06c9eabcbda043c21f897e87accd311494f0c8f218",
@@ -115,7 +119,7 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
       "2c598e47aaf75652fe048e2c27ad21bd39244937633566b98bdb5e54b874d7e4",
     );
     expect(result.minuteHashes[result.minuteHashes.length - 1]).toBe(
-      "aaca0a19665be2f339301869a9c36cd707ccfc1968f2c77d156ae181d8a72c83",
+      "9205ea66a54675d2cf246abf4da767c239677ff2ca55a3f6081b4c41023a633d",
     );
   });
 

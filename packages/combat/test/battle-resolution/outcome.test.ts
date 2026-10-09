@@ -8,14 +8,14 @@ import { DEFAULT_MAX_BATTLE_MINUTES } from "../../src/battleEnd.js";
 import { makeAutoInput } from "./fixtures.js";
 
 describe("AC-7: winner/loser viability rule", () => {
-  it("eliminated side loses: winner is the other nation, loser side fully sunk", () => {
+  it("withdrawing side loses: winner is the other nation, loser keeps its survivors (ADR-0073)", () => {
     const input = makeAutoInput();
     const result = resolveBattleAuto(input);
-    // The fixed fixture seed deterministically produces an eliminated side
-    // before the time cap (verified in auto-resolve.test.ts); assert the full
-    // proof unconditionally so a gunnery->damage wiring regression cannot slip
-    // past a vacuous early return.
-    expect(result.battleEndReason).toBe("no_viable_combatants");
+    // The fixed fixture seed deterministically ends by withdrawal before the
+    // time cap; assert the full proof unconditionally so a gunnery->damage
+    // wiring regression cannot slip past a vacuous early return. (Elimination
+    // winner/loser is proven at decision level below and in battle-end.test.ts.)
+    expect(result.battleEndReason).toBe("withdrawal_complete");
 
     const loserNation =
       result.winnerId === input.attacker.nationId
@@ -23,15 +23,14 @@ describe("AC-7: winner/loser viability rule", () => {
         : input.attacker.nationId;
     expect(result.loserId).toBe(loserNation);
 
-    // the losing side has NO survivors
     const loserSurvivors =
       result.winnerId === input.attacker.nationId
         ? result.defenderSurvivorIds
         : result.attackerSurvivorIds;
-    expect(loserSurvivors).toHaveLength(0);
+    expect(loserSurvivors.length).toBeGreaterThan(0);
     const loserSunk =
       result.winnerId === input.attacker.nationId ? result.defenderSunkIds : result.attackerSunkIds;
-    expect(loserSunk.length).toBeGreaterThan(0);
+    expect(loserSunk).toHaveLength(0);
   });
 
   it("eliminated side = non-viable; winner formation is a pure function of the seed", () => {

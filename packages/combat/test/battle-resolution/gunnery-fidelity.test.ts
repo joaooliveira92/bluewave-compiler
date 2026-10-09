@@ -45,7 +45,8 @@ describe("P-1 ticket 06 — auto-resolution responds to gun count and speed", ()
   });
 
   it("the 10-gun side deals more damage than the 4-gun side in the SAME battle shape", () => {
-    // Deterministic fixed-seed set; every battle ends no_viable_combatants.
+    // Deterministic fixed-seed set; every battle ends withdrawal_complete or
+    // mutual_disengagement (ADR-0073; previously no_viable_combatants).
     // Since ticket 10 / ADR-0050 persisted shell fires and floods sink ships,
     // so per-ship damage saturates at 100 and battle length differs per gun
     // count (seed fid-c: 361 vs 362 per-seed). The like-for-like scale proof
@@ -63,8 +64,8 @@ describe("P-1 ticket 06 — auto-resolution responds to gun count and speed", ()
         ...makeAutoInput({ nations: makeNations({ attackerGuns: [4, 4], defenderGuns: [4, 4] }) }),
         campaignSeed: seed,
       });
-      expect(heavy.battleEndReason).toBe("no_viable_combatants");
-      expect(light.battleEndReason).toBe("no_viable_combatants");
+      expect(["withdrawal_complete", "mutual_disengagement"]).toContain(heavy.battleEndReason);
+      expect(["withdrawal_complete", "mutual_disengagement"]).toContain(light.battleEndReason);
       heavyTotal += totalDamage(heavy.damageReport);
       lightTotal += totalDamage(light.damageReport);
     }

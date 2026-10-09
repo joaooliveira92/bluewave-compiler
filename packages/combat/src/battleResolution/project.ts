@@ -225,11 +225,14 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
   };
 
   // ---- main-battery gunnery surface (one battery per armed ship) -----------
-  // ADR-0072: the side with the greater maximum designed speed controls the
-  // range. The slower, contesting side must run its machinery hard and manoeuvre
-  // to hold the range, so its own fire control is degraded via the existing
-  // DESIGN-39 §3 `ownManeuver` factor (a bounded, versioned multiplier). Equal
-  // maximum speeds leave both sides neutral.
+  // ADR-0072: the side with the greater maximum designed speed is the RANGE
+  // CONTROLLER (standoff doctrine — it dictates the engagement band; see
+  // engagement.ts). The contesting side is denied the range initiative: it still
+  // charges straight under ADR-0046 pursuit. That denial is priced by an
+  // explicitly versioned BALANCE TARGET — the contesting side's DESIGN-39 §3
+  // `ownManeuver` factor is multiplied to RANGE_CONTEST_OWN_MANEUVER_BP — not by
+  // actual manoeuvring (the side performs none). Equal maximum speeds leave both
+  // sides neutral (controller = null, no penalty).
   const rangeControl = resolveRangeController(units);
   const contestedOwnManeuverBp =
     rangeControl.controller === null ? null : RANGE_CONTEST_OWN_MANEUVER_BP;

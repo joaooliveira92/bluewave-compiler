@@ -374,6 +374,7 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
   const minuteHashes: string[] = [];
   let endReason = "";
   let eliminatedSide: BattleSide | null = null;
+  let withdrawnSide: BattleSide | null = null;
   const observationTime = `${weather.battleDate}T06:00:00.000Z`;
   let elapsedMinutes = 0;
 
@@ -523,6 +524,7 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
     if (decision.ended) {
       endReason = decision.reason!;
       eliminatedSide = decision.eliminatedSide ?? null;
+      withdrawnSide = decision.withdrawnSide ?? null;
       break;
     }
   }
@@ -588,6 +590,15 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
       loserId = input.defender.nationId;
     }
     // eliminatedSide === null (both non-viable tie): winner/loser remain null (ADR-0026)
+  } else if (endReason === "withdrawal_complete") {
+    // ADR-0073: the side that broke off loses; mutual_disengagement -> no winner.
+    if (withdrawnSide === "ATTACKER") {
+      winnerId = input.defender.nationId;
+      loserId = input.attacker.nationId;
+    } else if (withdrawnSide === "DEFENDER") {
+      winnerId = input.attacker.nationId;
+      loserId = input.defender.nationId;
+    }
   }
 
   // canonical event ledger hash (§35 ordering)

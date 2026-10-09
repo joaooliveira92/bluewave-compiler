@@ -32,33 +32,47 @@ Root-cause investigation (this ticket):
   4.1 -> 32.9), battle length 70.6 -> 114.3 min. Torpedo lead/intercept courses
   assume the ADR-0046 closing geometry.
 
-The lever that moves the matchup is a one-sided fire-control handicap for the
-slower side; the design change that authorises it is who gets to choose the
-geometry: the faster side. Equal-speed battles must stay byte-identical.
+The lever that moves the matchup is the versioned fire-control balance target
+(`ownManeuver`) applied to the slower side; the design change that authorises
+it is who gets to choose the geometry: the faster side. Equal-speed battles must
+stay byte-identical.
 
 ## Decision
 
 1. **Range controller.** `resolveRangeController` (new `engagement.ts`) — the
-   side with the greater maximum live `designedSpeedUms` is the RANGE
-   CONTROLLER. Ties (including an absent/empty side) are neutral: controller =
-   null, and the battle is byte-identical to ADR-0046/0053.
+   side with the greater maximum **designed** speed over its committed force is
+   the RANGE CONTROLLER. `designedSpeedUms` is a fixed design attribute promoted
+   at battle start, and the auto-resolver's unit array is constant for the
+   battle (sunk ships stay in it, marked `terminalStatus`), so the controller is
+   evaluated at battle start, over all units, and is constant for the whole
+   battle: the projection-time penalty and the per-minute steering decision
+   always use the same controller identity (no viability filter, no mid-battle
+   re-evaluation). Ties (including an absent/empty side) are neutral: controller
+   = null, and the battle is byte-identical to ADR-0046/0053.
 
 2. **Controller-scoped standoff geometry (the design change).** The controller
    steers by `engagementHeading` instead of charging: range above centre+band ->
    CLOSE; below centre-band -> OPEN (directly away, never passing through);
-   else HOLD. The contesting side still charges under ADR-0046 pursuit. The law
-   is reflection-symmetric (CLOSE mirrors CLOSE, OPEN mirrors OPEN), so it
+   else HOLD (keep steering at the enemy, gently closing — the band is tracked
+   via the CLOSE/OPEN corrections, not held as a stationary position). The
+   contesting side still charges straight under ADR-0046 pursuit: it is denied
+   the range initiative and never manœuvres of its own. The law is
+   reflection-symmetric (CLOSE mirrors CLOSE, OPEN mirrors OPEN), so it
    introduces no attacker/defender bias of its own. Bands:
    `BATTLE_ENGAGEMENT_RANGE_UM = 2_000_000_000` (2 km) +/-
    `BATTLE_ENGAGEMENT_BAND_UM = 1_000_000_000` (1 km), measured by
    `rangeBetweenUm`. `headingToward` moved from `pursuit.ts` to `engagement.ts`
    so the two heading searches share one integer direction-table walk.
 
-3. **Range-contest fire-control penalty.** The contesting (slower) side's
-   existing DESIGN-39 §3 `ownManeuver` accuracy factor is multiplied to
-   `RANGE_CONTEST_OWN_MANEUVER_BP = 4_100` bp (a 59% own-manoeuvre penalty —
-   it must run its machinery hard and manoeuvre to hold the range). No new
-   accuracy factor key, no GUNNERY_RULESET_VERSION bump. Applied only when a
+3. **Range-contest balance target (not emergent).** The contesting (slower)
+   side's existing DESIGN-39 §3 `ownManeuver` accuracy factor is multiplied to
+   `RANGE_CONTEST_OWN_MANEUVER_BP = 4_100` bp (a 59% own-manoeuvre factor).
+   This is an explicitly versioned BALANCE TARGET, like the ADR-0053 lethality
+   constants: it represents the fire-control cost of being denied the range
+   initiative (running at speed against the controller's standoff doctrine,
+   unable to dictate the band). It does NOT model actual manoeuvring the
+   contesting side performs — the side charges straight and performs none. No
+   new accuracy factor key, no GUNNERY_RULESET_VERSION bump. Applied only when a
    controller exists.
 
 4. **Balance target, versioned.** Calibrated (30 seeds, 2 BB vs 2 BB, 1880
@@ -92,5 +106,7 @@ the sweep-documentation row for the 30 kn vs 14 kn matchup (documented in
 - Determinism unchanged: heading selection is still an integer direction-table
   search and the new comparisons are integer-only.
 - Semi-symmetric effectiveness: a faster fleet gains a real but bounded
-  advantage; reversing the matchup direction is symmetric (the same 4 100 bp
-  handicap applies to whoever is slower).
+  advantage; reversing the matchup direction is symmetric (the same balance
+  target applies to whoever is slower).
+
+- Superseding note (ADR-0073): with the withdrawal predicate the 30 kn vs 14 kn sweep row is 80% fast-side wins (sweep test asserts >= 50%); the 73-77% figures above are pre-ADR-0073.

@@ -7,10 +7,9 @@
 // (structuralIntegrity <= 0 AND flotationReserve <= 0) — DESIGN-41 terminal
 // seam semantics. The battle-end reason follows BATTLE_END_PRECEDENCE via
 // `evaluateBattleEnd`; the ONLY precedence slots reachable from this slice are
-// `no_viable_combatants` and `time_limit` (scenario-terminal / objective /
-// withdrawal / mutual-disengagement predicates are not implemented yet and
-// report false — the engine stage owning them lands later; they are never
-// invented here).
+// `no_viable_combatants`, `withdrawal_complete`, `mutual_disengagement` (ADR-0073
+// fleet-strength predicate) and `time_limit` (scenario-terminal / objective
+// predicates report false — never invented here).
 //
 // Deterministic tie-break (recorded in ADR-0026): when BOTH sides become
 // non-viable in the same minute, the battle ends with reason
@@ -19,6 +18,8 @@
 import { BluewaveError } from "@bluewave/contracts";
 import { evaluateBattleEnd } from "../battleEnd.js";
 import { type ShipDamageState } from "../damage/state.js";
+import { WITHDRAWAL_STRENGTH_THRESHOLD_BP } from "./constants.js";
+import { hpOfState } from "./damage.js";
 import { BATTLE_VIABILITY_EVALUATION_FAILED } from "./reasonCodes.js";
 
 export type BattleSide = "ATTACKER" | "DEFENDER";
@@ -52,12 +53,44 @@ export function sideEliminated(ships: readonly ShipViability[], sideId: BattleSi
   return sideShips.every((s) => isShipNonViable(s));
 }
 
+/** Per-ship strength in bp (0..10_000): the ADR-0026 hp mapping (50/50
+ *  structure + flotation, terminal ship = 0) taken at a 10_000 scale. */
+export function shipStrengthBp(ship: ShipViability): number {
+  return hpOfState(ship.damageState, 10_000) as number;
+}
+
+/** Side fleet-strength fraction in bp: floor(sum(ship strength) / ship count),
+ *  every ship weighted equally. An empty side fails closed. */
+export function sideStrengthBp(ships: readonly ShipViability[], sideId: BattleSide): number {
+  const sideShips = ships.filter((s) => s.sideId === sideId);
+  if (sideShips.length === 0) {
+    throw new BluewaveError(BATTLE_VIABILITY_EVALUATION_FAILED, {
+      code: BATTLE_VIABILITY_EVALUATION_FAILED,
+      sideId,
+      reason: "side has no ships to evaluate — the projection must not produce an empty side",
+    });
+  }
+  return Math.floor(sideShips.reduce((a, s) => a + shipStrengthBp(s), 0) / sideShips.length);
+}
+
+/** ADR-0073 withdrawal predicate: a (not eliminated) side whose strength
+ *  fraction is STRICTLY below the versioned threshold breaks off. */
+export function sideWithdraws(
+  ships: readonly ShipViability[],
+  sideId: BattleSide,
+  thresholdBp: number = WITHDRAWAL_STRENGTH_THRESHOLD_BP,
+): boolean {
+  return sideStrengthBp(ships, sideId) < thresholdBp;
+}
+
 export interface AutoResolutionEndDecision {
   ended: boolean;
   /** Exact §32 reason id when ended. */
   reason?: string;
   /** The eliminated side ("ATTACKER" | "DEFENDER"); null on the tie rule. */
   eliminatedSide?: BattleSide | null;
+  /** The side that broke off (`withdrawal_complete`); absent otherwise. */
+  withdrawnSide?: BattleSide;
 }
 
 /**
@@ -82,18 +115,38 @@ export function decideBattleEnd(
       ? ("DEFENDER" as BattleSide)
       : null;
 
+  // ADR-0073: withdrawal / mutual disengagement (only when nobody is eliminated).
+  const attackerWithdraws = !eliminated && sideWithdraws(ships, "ATTACKER");
+  const defenderWithdraws = !eliminated && sideWithdraws(ships, "DEFENDER");
+  const mutual = attackerWithdraws && defenderWithdraws;
+  const withdrawn: BattleSide | undefined = mutual
+    ? undefined
+    : attackerWithdraws
+      ? "ATTACKER"
+      : defenderWithdraws
+        ? "DEFENDER"
+        : undefined;
+
   const evaluation = evaluateBattleEnd({
     scenarioTerminal: false,
     sideEliminated: eliminated ?? undefined,
     objectiveImmediateEnd: false,
-    mutualDisengagement: false,
+    withdrawalCompletedSide: withdrawn,
+    mutualDisengagement: mutual,
     elapsedMinutes,
     maxMinutes,
     currentMinuteEffectsResolved: true,
   });
 
   if (evaluation.ended) {
-    return { ended: true, reason: evaluation.reason, eliminatedSide: eliminated };
+    return {
+      ended: true,
+      reason: evaluation.reason,
+      eliminatedSide: eliminated,
+      ...(evaluation.reason === "withdrawal_complete" && withdrawn
+        ? { withdrawnSide: withdrawn }
+        : {}),
+    };
   }
   return { ended: false };
 }
