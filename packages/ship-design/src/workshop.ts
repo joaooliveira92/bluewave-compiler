@@ -195,6 +195,7 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
       const plan = planConstruction(c, draft, cost, env.constructionBalance, true);
       const demand = yardDemandOf(c, draft);
       const choice = chooseYard(plan, demand, env.yards, env.constructionBalance, c.totalKg, {
+        month: env.ctx.month,
         industryBp: env.industryBp,
         accelerated: env.costCtx.accelerated,
       });
@@ -207,7 +208,11 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
             : `No shipyard that can hold this hull finishes it within ${env.constructionBalance.maxMonths} months (largest: ${fitting[fitting.length - 1]!.facility.id}).`;
       } else {
         historicalMonths = hist;
-        historicalProvisional = buildTimeIsProvisional(c.totalKg, env.constructionBalance);
+        historicalProvisional = buildTimeIsProvisional(
+          c.totalKg,
+          env.constructionBalance,
+          env.ctx.month,
+        );
         months = best.months;
         bottleneck = best.schedule.bottleneck;
         yardId = best.yard.facility.id;

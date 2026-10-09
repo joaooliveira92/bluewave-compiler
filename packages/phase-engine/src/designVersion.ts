@@ -25,6 +25,8 @@ export interface DesignPricing {
     readonly balance: ConstructionBalance;
     readonly yards: readonly Yard[];
     readonly industryBp?: number | undefined;
+    /** Keel-laying month for the era multiplier on build time (ADR-0080). */
+    readonly month?: string | undefined;
   };
 }
 
@@ -39,6 +41,7 @@ export function pricingFor(content: ShipBuildingContent, month: string): DesignP
       balance: env.constructionBalance,
       yards: env.yards,
       industryBp: env.industryBp,
+      month,
     },
   };
 }
@@ -65,6 +68,7 @@ export function buildDesignVersion(
           balance: pricing.construction.balance,
           yards: pricing.construction.yards,
           industryBp: pricing.construction.industryBp,
+          month: pricing.construction.month,
           accelerated: pricing.costCtx.accelerated,
         },
         units,

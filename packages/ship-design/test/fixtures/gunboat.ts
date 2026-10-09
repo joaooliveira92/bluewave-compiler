@@ -665,6 +665,8 @@ export const constructionBalance: ConstructionBalance = {
     { status: "ESTIMATE", source: "test fixture" },
     { status: "ESTIMATE", source: "test fixture" },
   ],
+  buildTimeEraBp: { points: [[1890, 10_000]] },
+  buildTimeEraProvenance: [{ status: "ESTIMATE", source: "test fixture" }],
   efficientIndustryBp: 6_700,
   accelerationTimeBp: 9_000,
 };

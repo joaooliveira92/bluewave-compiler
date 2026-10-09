@@ -39,6 +39,8 @@ export interface YardChoice {
 }
 
 export interface YardChoiceOptions {
+  /** Keel-laying month (`YYYY-MM`) for the era multiplier on the historical build time. */
+  readonly month?: string | undefined;
   readonly industryBp?: number | undefined;
   readonly accelerated?: boolean | undefined;
 }
@@ -58,6 +60,7 @@ export function chooseYard(
 ): YardChoice {
   const fitting = yards.filter((y) => yardFits(y.facility, demand));
   const historicalMonths = historicalBuildMonths(displacementKg, balance, {
+    month: options.month,
     industryBp: options.industryBp,
     accelerated: options.accelerated,
   });
@@ -95,6 +98,8 @@ export interface OrderPlanInput {
   readonly cost: CostBreakdown;
   readonly balance: ConstructionBalance;
   readonly yards: readonly Yard[];
+  /** Keel-laying month (`YYYY-MM`) for the era multiplier on the historical build time. */
+  readonly month?: string | undefined;
   readonly industryBp?: number | undefined;
   readonly accelerated?: boolean | undefined;
 }

@@ -5,6 +5,7 @@ import {
   planConstruction,
   simulateConstruction,
   historicalBuildMonths,
+  buildTimeEraBp,
   buildTimeIsProvisional,
   checkPlan,
   ConstructionPlanError,
@@ -204,13 +205,19 @@ describe("historical build time by displacement (ADR-0067 section 5)", () => {
     expect(months(12_950)).toBe(35); // Canopus, Brassey 1901
     expect(months(12_000)).toBe(31); // Cressy, laid Oct 1898, commissioned May 1901
     expect(months(14_900)).toBe(36);
-    expect(months(16_500)).toBe(34); // Lord Nelson, Brassey 1908 p. 27
-    expect(months(18_600)).toBe(28); // Bellerophon, Brassey 1910 p. 1
     expect(months(1)).toBe(18);
-    expect(months(100_000)).toBe(28);
+    expect(months(100_000)).toBe(36);
   });
-  it("interpolates monotonically through the 1890s range (boundary: just either side of a point)", () => {
-    // Above 14,900 t the sourced Dreadnought-era points fall (British yards were faster by 1906-10); see balance.yaml.
+  it("interpolates monotonically by displacement within an era (boundary: just either side of a point)", () => {
+    // The era lives in buildTimeEraBp, so the displacement table never falls (ADR-0080).
+    for (const month of [undefined, "1880-01", "1890-06", "1897-01", "1906-01", "1910-01"]) {
+      let prev = 0;
+      for (let t = 300; t <= 25_000; t += 250) {
+        const m = historicalBuildMonths(kg(t), earlyConstruction, { month });
+        expect(m).toBeGreaterThanOrEqual(prev);
+        prev = m;
+      }
+    }
     let prev = 0;
     for (let t = 300; t <= 14_900; t += 250) {
       const m = historicalBuildMonths(kg(t), earlyConstruction);
@@ -227,6 +234,32 @@ describe("historical build time by displacement (ADR-0067 section 5)", () => {
     expect(historicalBuildMonths(kg(14_900), earlyConstruction, { industryBp: 13_000 })).toBe(47);
     expect(historicalBuildMonths(kg(14_900), earlyConstruction, { accelerated: true })).toBe(32);
     expect(historicalBuildMonths(kg(300), constructionBalance, { industryBp: 1 })).toBe(1);
+  });
+  it("scales by the era of the keel-laying month, reproducing the sourced classes", () => {
+    const at = (t: number, month: string) =>
+      historicalBuildMonths(kg(t), earlyConstruction, { month });
+    expect(at(16_500, "1905-03")).toBe(34); // Lord Nelson, Brassey 1908 p. 27
+    expect(at(18_600, "1908-12")).toBe(28); // Bellerophon, Brassey 1910 p. 1
+    expect(at(14_150, "1890-01")).toBe(43); // Royal Sovereign class mean
+    expect(at(11_940, "1886-01")).toBe(54); // Trafalgar class, 48-63 months
+    expect(at(14_900, "1897-01")).toBe(36); // the table's own era is neutral
+    // Clamped at both ends; an oversized 1880 design no longer gets a 1910 duration.
+    expect(at(18_600, "1880-01")).toBe(at(18_600, "1886-06"));
+    expect(at(18_600, "1880-01")).toBeGreaterThan(at(18_600, "1910-01"));
+    expect(at(18_600, "1920-01")).toBe(at(18_600, "1908-01"));
+    // Later is never slower, and the table alone stays the 1894-1900 standard.
+    let prev = Infinity;
+    for (let y = 1880; y <= 1912; y++) {
+      const m = at(14_900, `${y}-01`);
+      expect(m).toBeLessThanOrEqual(prev);
+      prev = m;
+    }
+    expect(historicalBuildMonths(kg(14_900), earlyConstruction)).toBe(36);
+  });
+  it("rejects a malformed month instead of guessing an era", () => {
+    for (const month of ["1890", "1890-13", "90-01", ""])
+      expect(() => buildTimeEraBp(month, earlyConstruction)).toThrow(/YYYY-MM/);
+    expect(buildTimeEraBp("1897-06", earlyConstruction)).toBe(10_000);
   });
   it("every table point carries a source and none is an unsourced ESTIMATE (ticket 22)", () => {
     expect(earlyConstruction.buildMonthsProvenance).toHaveLength(
@@ -253,6 +286,16 @@ describe("historical build time by displacement (ADR-0067 section 5)", () => {
     expect(buildTimeIsProvisional(12_500_000, earlyConstruction)).toBe(false); // Cressy..Canopus, both VERIFIED
     expect(buildTimeIsProvisional(1_000, earlyConstruction)).toBe(true); // clamped onto the SECONDARY 390 t end
     expect(buildTimeIsProvisional(90_000_000, earlyConstruction)).toBe(false); // clamped on a VERIFIED end
+  });
+  it("is provisional while the era points bracketing the month are not VERIFIED", () => {
+    const verifiedHull = 12_500_000; // Cressy..Canopus
+    expect(buildTimeIsProvisional(verifiedHull, earlyConstruction, "1897-01")).toBe(false);
+    expect(buildTimeIsProvisional(verifiedHull, earlyConstruction, "1906-01")).toBe(false);
+    expect(buildTimeIsProvisional(verifiedHull, earlyConstruction, "1880-01")).toBe(true); // clamped onto 1886
+    expect(buildTimeIsProvisional(verifiedHull, earlyConstruction, "1892-01")).toBe(true); // 1890..1895
+    expect(() =>
+      buildTimeIsProvisional(verifiedHull, { ...earlyConstruction, buildTimeEraProvenance: [] }),
+    ).toThrow(/buildTimeEraProvenance/);
   });
   it("rejects provenance that does not match the table", () => {
     expect(() =>

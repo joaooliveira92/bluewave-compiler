@@ -353,8 +353,6 @@ construction:
       - [12000, 31]
       - [12950, 35]
       - [14900, 36]
-      - [16500, 34]
-      - [18600, 28]
   buildMonthsProvenance:
     - status: SECONDARY
       source: "Brassey's Naval Annual 1901 p. 264 (18 months the most a destroyer should take; Bat 16, Whiting 14 are the records, p. 263); the ~390 t displacement is from Wikipedia, not Brassey"
@@ -368,6 +366,29 @@ construction:
       source: "Brassey's Naval Annual 1901 p. 259 (Canopus laid 4 Jan 1897, completed 5 Dec 1899, 35 months)"
     - status: VERIFIED
       source: "Brassey's Naval Annual 1901 pp. 258-259 (Canopus class 35-39 months; Majestic class over three years each)"
+  # Era multiplier (ADR-0080): year the keel is laid -> bp on the table above, which is the 1894-1900 standard. Each factor is
+  # the class's keel-to-completion months over the table's months at its displacement. Clamped: before 1886 uses 1886.
+  #   1886 Trafalgar class 11,940 t: Nile 8 Apr 1886 - 10 Jul 1891 (63), Trafalgar 18 Jan 1886 - 1890 (48-59); vs 31 -> ~1.8.
+  #   1890 Royal Sovereign class 14,150 t, laid 1889-91: 32, 50, 52, 45, 38, 42, 37, 48 months (mean 43); vs 36 -> 1.22.
+  #   1905 Lord Nelson 34, King Edward VII class 32-36, ~16,500 t; vs 36 (table end) -> 34/36.
+  #   1908 Bellerophon class 28 months or less, 18,600 t; vs 36 -> 28/36.
+  buildTimeEraBp:
+    points:
+      - [1886, 18000]
+      - [1890, 12200]
+      - [1895, 10000]
+      - [1900, 10000]
+      - [1905, 9400]
+      - [1908, 7800]
+  buildTimeEraProvenance:
+    - status: SECONDARY
+      source: "Trafalgar-class battleship (Wikipedia): Nile laid 8 Apr 1886, completed 10 Jul 1891; Trafalgar laid 18 Jan 1886, completed 1890; 11,940 t designed"
+    - status: SECONDARY
+      source: "Royal Sovereign-class battleship (Wikipedia): eight ships laid Jul 1889 - Feb 1891, completed May 1892 - Jun 1894; 14,150 t"
+    - status: VERIFIED
+      source: "Brassey's Naval Annual 1901 pp. 258-259 (Majestic class over three years each; Canopus 35 months): the table's own standard"
+    - status: VERIFIED
+      source: "Brassey's Naval Annual 1901 pp. 259-262 (Canopus, Diadem, Cressy laid 1896-98): the table's own standard"
     - status: VERIFIED
       source: "Brassey's Naval Annual 1908 p. 27 (Lord Nelson 34 months; King Edward VII class 32-36); 16,500 t from Brassey 1907 p. 47"
     - status: VERIFIED

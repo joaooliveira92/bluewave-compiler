@@ -61,6 +61,13 @@ export interface ConstructionBalance {
   readonly buildMonthsByDisplacementT: LookupTable;
   /** Provenance of each build-time point, parallel to `buildMonthsByDisplacementT.points` (same length and order). */
   readonly buildMonthsProvenance: readonly BuildTimeProvenance[];
+  /**
+   * Year the keel is laid -> multiplier on the displacement table, bp (ADR-0080). The displacement table is the 1894-1900
+   * standard (10_000); earlier yards were slower, later ones faster. Clamped at both ends.
+   */
+  readonly buildTimeEraBp: LookupTable;
+  /** Provenance of each era point, parallel to `buildTimeEraBp.points`. */
+  readonly buildTimeEraProvenance: readonly BuildTimeProvenance[];
   /** Industry-efficiency multiplier on build time for an efficient shipbuilding industry, bp (10_000 = neutral). */
   readonly efficientIndustryBp: number;
   /** Accelerated construction time multiplier, bp (RTW3 manual p. 31: 10 % faster = 9_000). */
@@ -82,14 +89,32 @@ export interface BuildTimeProvenance {
 }
 
 export interface BuildTimeOptions {
+  /** Campaign month the keel is laid (`YYYY-MM`): selects the era multiplier. Without it the table is used as is. */
+  readonly month?: string | undefined;
   /** Shipbuilding-industry time multiplier, bp: below 10_000 efficient, above undeveloped. Default neutral. */
   readonly industryBp?: number;
   readonly accelerated?: boolean;
 }
 
+/** The year of a `YYYY-MM` month; throws on anything else, so a bad month cannot silently pick an era. */
+function yearOf(month: string): number {
+  const m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(month);
+  if (!m) throw new Error(`build time needs a YYYY-MM month, got '${month}'`);
+  return Number(m[1]);
+}
+
+/** The era multiplier on build time for a keel-laying month, bp (10_000 = the 1894-1900 standard). Pure. */
+export function buildTimeEraBp(month: string, b: ConstructionBalance): number {
+  return evaluate(parseFormula("lookup(t, x)"), {
+    vars: { x: yearOf(month) },
+    tables: { t: b.buildTimeEraBp },
+  });
+}
+
 /**
  * Historical build time (keel to commissioning) in whole months for a displacement, from the content table, scaled by the
- * industry multiplier and, if accelerated, the acceleration multiplier. Pure; round-half-up on each bp step; at least 1.
+ * era multiplier for the month (when given), the industry multiplier and, if accelerated, the acceleration multiplier.
+ * Pure; round-half-up on each bp step; at least 1.
  */
 export function historicalBuildMonths(
   displacementKg: number,
@@ -102,6 +127,7 @@ export function historicalBuildMonths(
     tables: { t: b.buildMonthsByDisplacementT },
   });
   let m = BigInt(base);
+  if (o.month !== undefined) m = mulBp(m, buildTimeEraBp(o.month, b));
   m = mulBp(m, o.industryBp ?? 10_000);
   if (o.accelerated) m = mulBp(m, b.accelerationTimeBp);
   return Math.max(1, Number(m));
@@ -112,35 +138,57 @@ export interface ConstructionPlan {
   readonly totalWork: number;
 }
 
-/**
- * True while any table point that brackets this displacement (the point itself on an exact hit, the first or last point
- * outside the table, otherwise the two surrounding points) is not VERIFIED. Throws if the provenance does not match the table.
- */
-export function buildTimeIsProvisional(displacementKg: number, b: ConstructionBalance): boolean {
-  const pts = b.buildMonthsByDisplacementT.points;
-  const prov = b.buildMonthsProvenance;
-  if (prov.length !== pts.length) {
-    throw new Error(
-      `buildMonthsProvenance has ${prov.length} entries for ${pts.length} buildMonthsByDisplacementT points`,
-    );
+function checkProvenance(
+  name: string,
+  points: LookupTable["points"],
+  prov: readonly BuildTimeProvenance[],
+): void {
+  if (prov.length !== points.length) {
+    throw new Error(`${name} has ${prov.length} entries for ${points.length} table points`);
   }
+  if (points.length === 0) throw new Error(`empty build-time table for ${name}`);
   for (const p of prov) {
     if (p.status !== "VERIFIED" && p.status !== "SECONDARY" && p.status !== "ESTIMATE") {
       throw new Error(`unknown build-time source status '${String(p.status)}'`);
     }
     if (p.source.trim() === "") throw new Error("build-time provenance needs a source citation");
   }
-  const t = Math.round(displacementKg / 1000);
-  const last = pts.length - 1;
-  if (last < 0) throw new Error("empty build-time table");
+}
+
+/** Whether every point bracketing `x` is VERIFIED: the point itself on an exact hit, the end point outside the table. */
+function bracketVerified(
+  points: LookupTable["points"],
+  prov: readonly BuildTimeProvenance[],
+  x: number,
+): boolean {
+  const last = points.length - 1;
   const verified = (i: number) => prov[i]!.status === "VERIFIED";
-  if (t <= pts[0]![0]) return !verified(0);
-  if (t >= pts[last]![0]) return !verified(last);
+  if (x <= points[0]![0]) return verified(0);
+  if (x >= points[last]![0]) return verified(last);
   for (let i = 1; i <= last; i++) {
-    if (t === pts[i]![0]) return !verified(i);
-    if (t < pts[i]![0]) return !(verified(i - 1) && verified(i));
+    if (x === points[i]![0]) return verified(i);
+    if (x < points[i]![0]) return verified(i - 1) && verified(i);
   }
-  return !verified(last);
+  return verified(last);
+}
+
+/**
+ * True while any table point that brackets this displacement (the point itself on an exact hit, the first or last point
+ * outside the table, otherwise the two surrounding points) is not VERIFIED, or, when a month is given, any era point that
+ * brackets its year. Throws if a provenance list does not match its table.
+ */
+export function buildTimeIsProvisional(
+  displacementKg: number,
+  b: ConstructionBalance,
+  month?: string,
+): boolean {
+  const pts = b.buildMonthsByDisplacementT.points;
+  checkProvenance("buildMonthsProvenance", pts, b.buildMonthsProvenance);
+  checkProvenance("buildTimeEraProvenance", b.buildTimeEraBp.points, b.buildTimeEraProvenance);
+  if (!bracketVerified(pts, b.buildMonthsProvenance, Math.round(displacementKg / 1000)))
+    return true;
+  if (month === undefined) return false;
+  return !bracketVerified(b.buildTimeEraBp.points, b.buildTimeEraProvenance, yearOf(month));
 }
 
 const BP = 10_000n;

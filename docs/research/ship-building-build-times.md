@@ -1,6 +1,6 @@
 # Ship-building: keel-to-commissioning build times (ticket 22)
 
-Backs `buildMonthsByDisplacementT` and `buildMonthsProvenance` in `content/production/1880/ship-building/balance.yaml`
+Backs `buildMonthsByDisplacementT`, `buildMonthsProvenance`, `buildTimeEraBp` and `buildTimeEraProvenance` in `content/production/1880/ship-building/balance.yaml`
 (ADR-0067 section 5). Researched 2026-10-08 from the OCR text of Brassey's Naval Annual on archive.org (ids
 `brassey-s-naval-annual-1901`, `brasseysnavala1902brasuoft`, `brassey-s-naval-annual-1907`, `navalannual1908`,
 `navalannual1910`, `CASGA_120403`). Page numbers are the printed running headers; OCR is imperfect.
@@ -12,14 +12,12 @@ compilation, a derived value, or a primary duration with an unverified displacem
 
 | t      | months | status    | evidence |
 | ------ | ------ | --------- | -------- |
-| 390    | 16     | VERIFIED  | Brassey 1901 p. 263: Whiting 14 months, Bat 16; p. 264: a destroyer should take 18 months at most. Displacement about 390 t (Wikipedia, Palmers 30-knotters). Wikipedia dates agree for Whiting (13 Apr 1896 to Jun 1897). |
+| 390    | 18     | SECONDARY | Brassey 1901 p. 264: a destroyer should take 18 months at most (the standard, used here); p. 263: Whiting 14 months and Bat 16 are the records. Displacement about 390 t is from Wikipedia (Palmers 30-knotters), not Brassey. |
 | 5,600  | 30     | SECONDARY | Brassey 1901 p. 262: second-class cruisers Highflyer and Hermes "about two years and a half" from keel to Fleet Reserve; commissioned Oct and 7 Dec 1899. The 5,600 t displacement is not stated in the volumes read. |
 | 11,000 | 30     | VERIFIED  | Brassey 1901 p. 262: Diadem laid 23 Jan 1896, pennant 19 Jul 1898 ("two years and six months"); Niobe 36 months. 11,000 t is on p. 10. |
 | 12,000 | 31     | VERIFIED  | Cressy, see below. |
 | 12,950 | 35     | VERIFIED  | Brassey 1901 p. 259 table: Canopus 4 Jan 1897 to 5 Dec 1899, 35 months; Ocean 36; Goliath 39; Glory 47. |
 | 14,900 | 36     | VERIFIED  | Brassey 1901 pp. 258-259: Majestic class five ships "over three years" each; Hannibal 1 May 1894 to 9 May 1898. Majestic 22 and Magnificent 24 months are the efficient record (also Brassey 1896 p. 408). |
-| 16,500 | 34     | VERIFIED  | Brassey 1908 p. 27: Lord Nelson 34 months; Africa, Hibernia, Britannia (King Edward VII class) 32-36. Displacement from Brassey 1907 p. 47. |
-| 18,600 | 28     | VERIFIED  | Brassey 1910 p. 1: Bellerophon class "completed in twenty-eight months or less from the date of laying down" (an upper bound). Displacement from Brassey 1907 p. 47. |
 
 ## Cressy: October 1900 versus 28 May 1901
 
@@ -46,11 +44,23 @@ Keel to commissioning is therefore about 31 months, the value in the table. The 
   outlier). Both Wikipedia only, not used.
 - Blake 9,150 t: about 43 months, laid Jul 1888, ready Feb 1892 (Wikipedia, 1880s outlier, not used).
 
-## Design caveat
+## Era multiplier (ticket 26, ADR-0080)
 
-The 1906-10 battleship points (34 and 28 months) are shorter than the 1897-1900 ones (35 to 36). Yards and supply chains were
-faster by then, and a displacement-only table cannot model era. The table is therefore not monotonic above 14,900 t. If the
-campaign needs era-dependent build times, add an industry-era multiplier rather than bending the table.
+The table above is the 1894-1900 standard. Yards were slower before the 1889 Naval Defence Act and faster after 1905, so
+`buildTimeEraBp` scales it by the year the keel is laid. Each factor is the class's keel-to-completion months over the
+table's months at its displacement.
+
+| year | bp     | status    | evidence |
+| ---- | ------ | --------- | -------- |
+| 1886 | 18,000 | SECONDARY | Trafalgar class, 11,940 t designed (Wikipedia): Nile laid 8 Apr 1886, completed 10 Jul 1891 (63 months); Trafalgar laid 18 Jan 1886, completed 1890 (48-59). Table 30 months. |
+| 1890 | 12,200 | SECONDARY | Royal Sovereign class, 14,150 t (Wikipedia): eight ships laid Jul 1889 - Feb 1891, 32, 50, 52, 45, 38, 42, 37 and 48 months (mean 43). Table 36. |
+| 1895 | 10,000 | VERIFIED  | The table's own era (Majestic, Canopus; Brassey 1901 pp. 258-259). |
+| 1900 | 10,000 | VERIFIED  | The table's own era (Diadem, Cressy; Brassey 1901 pp. 20-23, 262). |
+| 1905 | 9,400  | VERIFIED  | Brassey 1908 p. 27: Lord Nelson 34 months; King Edward VII class 32-36; 16,500 t (Brassey 1907 p. 47). 34 / 36. |
+| 1908 | 7,800  | VERIFIED  | Brassey 1910 p. 1: Bellerophon class 28 months or less; 18,600 t (Brassey 1907 p. 47). 28 / 36. |
+
+The Admiral class (laid 1880-83, 70-84 months) is not used: its delays came from the 13.5-inch gun supply, not the yards.
+Builds ordered before 1895 stay "provisional" until the 1886 and 1890 points are read in Brassey or Parkes.
 
 ## Still not verified
 
