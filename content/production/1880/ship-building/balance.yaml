@@ -632,15 +632,20 @@ environment:
   # Micro-pounds per treasury unit: one unit of campaign treasury and project work is GBP 10,000. Calibrated so a Majestic-class battleship
   # costs about as many units as the original displacement formula gave (about 125); designed ships are priced by the cost model.
   treasuryUnitMicro: 10000000000
-# Revision tiers for changes during construction (spec section 15.4). Hull-progress thresholds 5 / 25 / 50 percent are the spec
-# values (bp of total hull work). The rework, delay, study-cost and kept-progress figures are PLACEHOLDER: no source, to be tuned
-# in the balance pass (ticket SB-12 follow-up).
+# Revision tiers for changes during construction (spec section 15.4, ADR-0070). These are GAME-DESIGN CONSTANTS, not historical data, so
+# no source exists for them; they are decided here and checked by `checkRevisionBalance` (ranges, ascending thresholds, a redesign never
+# milder than a revision). Not yet play-tested: tune from play, never to fit a source.
+#   freeBelowBp / revisionBelowBp / redesignBelowBp: hull-progress thresholds, 5 / 25 / 50 percent (spec).
+#   reworkBp: a revision (T1) redoes 30 % of the work already done on what it changes.
+#   redesignKeptBp: a redesign (T2) keeps 50 % of the hull work (the structure is salvaged, the rest is scrapped).
+#   t1DelayMonths: 1 (spec: at least one month). t2DelayMonths: 4, a third of a year of redrawing and re-laying plates.
+#   redesignStudyCostBp: UNUSED until design studies exist (DESIGN-21 section 3); the multiplier is carried so the rule is complete.
 revision:
   freeBelowBp: 500
   revisionBelowBp: 2500
   redesignBelowBp: 5000
-  reworkBp: 3000 # PLACEHOLDER
-  t1DelayMonths: 1 # spec: delay of at least one month
-  redesignStudyCostBp: 6000 # PLACEHOLDER
-  redesignKeptBp: 5000 # PLACEHOLDER
-  t2DelayMonths: 4 # PLACEHOLDER
+  reworkBp: 3000
+  t1DelayMonths: 1
+  redesignStudyCostBp: 6000
+  redesignKeptBp: 5000
+  t2DelayMonths: 4

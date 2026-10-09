@@ -18,6 +18,47 @@ export interface RevisionBalance {
   readonly t2DelayMonths: number;
 }
 
+/**
+ * Structural checks on a revision balance, so a bad content value fails loudly when the content is built instead of
+ * producing odd tiers in play. Besides ranges it enforces the order of harshness the rules rely on: a redesign never costs
+ * less than a revision (in lost work or in delay), and thresholds ascend. Returns problems; empty means valid.
+ */
+export function checkRevisionBalance(b: RevisionBalance): string[] {
+  const problems: string[] = [];
+  const bp = (name: string, v: number) => {
+    if (!Number.isSafeInteger(v) || v < 0 || v > 10_000)
+      problems.push(`${name} must be an integer in 0..10000 bp, got ${String(v)}`);
+  };
+  const months = (name: string, v: number, min: number) => {
+    if (!Number.isSafeInteger(v) || v < min)
+      problems.push(
+        `${name} must be an integer of at least ${String(min)} months, got ${String(v)}`,
+      );
+  };
+  bp("freeBelowBp", b.freeBelowBp);
+  bp("revisionBelowBp", b.revisionBelowBp);
+  bp("redesignBelowBp", b.redesignBelowBp);
+  bp("reworkBp", b.reworkBp);
+  bp("redesignKeptBp", b.redesignKeptBp);
+  if (!Number.isSafeInteger(b.redesignStudyCostBp) || b.redesignStudyCostBp < 0)
+    problems.push(
+      `redesignStudyCostBp must be a non-negative integer, got ${String(b.redesignStudyCostBp)}`,
+    );
+  months("t1DelayMonths", b.t1DelayMonths, 1); // spec 15.4: a revision delays at least a month
+  months("t2DelayMonths", b.t2DelayMonths, 1);
+  if (!(b.freeBelowBp < b.revisionBelowBp && b.revisionBelowBp < b.redesignBelowBp))
+    problems.push("thresholds must ascend: freeBelowBp < revisionBelowBp < redesignBelowBp");
+  if (b.t2DelayMonths < b.t1DelayMonths)
+    problems.push(
+      "a redesign must not delay less than a revision (t2DelayMonths >= t1DelayMonths)",
+    );
+  if (b.reworkBp > 10_000 - b.redesignKeptBp)
+    problems.push(
+      "a redesign must not lose less work than a revision adds (reworkBp <= 10000 - redesignKeptBp)",
+    );
+  return problems;
+}
+
 export interface BuildProgress {
   readonly hullDoneWork: number;
   readonly hullTotalWork: number;

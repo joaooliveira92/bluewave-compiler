@@ -12,7 +12,7 @@ import type { Facility } from "./compile.js";
 import type { PropulsionPlant } from "./machinery.js";
 import type { ThreatProfile } from "./armour.js";
 import type { WorkshopEnvironment } from "./workshop.js";
-import type { RevisionBalance } from "./revision.js";
+import { checkRevisionBalance, type RevisionBalance } from "./revision.js";
 import { buildYards } from "./yards.js";
 
 /** Parsed (not yet interpreted) ship-building data: the YAML files of content/production/<scenario>/ship-building. */
@@ -67,6 +67,11 @@ export function unlockedTechIds(
 }
 
 export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingContent {
+  if (data.balance.revision !== undefined) {
+    const problems = checkRevisionBalance(data.balance.revision);
+    if (problems.length > 0)
+      throw new Error(`invalid ship-building revision balance: ${problems.join("; ")}`);
+  }
   const ship = shipBalanceFromRecord(data.balance.ship);
   const forms = hullFormsFromRecords(data.hullForms);
   const yards = buildYards(

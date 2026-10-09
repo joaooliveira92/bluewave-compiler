@@ -10,6 +10,7 @@ import {
   type RevisionBalance,
   type TrialsBalance,
   type TrialsInput,
+  checkRevisionBalance,
 } from "../src/index.js";
 import { ctx, draft, plant } from "./fixtures/gunboat.js";
 
@@ -217,5 +218,47 @@ describe("changeKindOf", () => {
     ).toBe("MAIN_ARMAMENT");
     expect(changeKindOf({ kind: "remove_placement", instanceId: "rf" }, cat)).toBe("FITTINGS");
     expect(changeKindOf({ kind: "remove_armour_region", region: "BELT_MAIN" }, cat)).toBe("ARMOUR");
+  });
+});
+
+describe("checkRevisionBalance", () => {
+  const good: RevisionBalance = {
+    freeBelowBp: 500,
+    revisionBelowBp: 2_500,
+    redesignBelowBp: 5_000,
+    reworkBp: 3_000,
+    t1DelayMonths: 1,
+    redesignStudyCostBp: 6_000,
+    redesignKeptBp: 5_000,
+    t2DelayMonths: 4,
+  };
+  it("accepts the shipped values", () => {
+    expect(checkRevisionBalance(good)).toEqual([]);
+  });
+  it.each([
+    ["a threshold above 100 %", { redesignBelowBp: 12_000 }, /redesignBelowBp/],
+    ["thresholds out of order", { revisionBelowBp: 400 }, /ascend/],
+    ["fractional basis points", { reworkBp: 10.5 }, /reworkBp/],
+    ["a revision with no delay (spec: at least a month)", { t1DelayMonths: 0 }, /t1DelayMonths/],
+    [
+      "a redesign that delays less than a revision",
+      { t1DelayMonths: 6, t2DelayMonths: 2 },
+      /delay less/,
+    ],
+    [
+      "a redesign that loses less work than a revision adds",
+      { reworkBp: 7_000, redesignKeptBp: 5_000 },
+      /lose less/,
+    ],
+    ["a negative study cost", { redesignStudyCostBp: -1 }, /redesignStudyCostBp/],
+  ])("rejects %s", (_name, patch, message) => {
+    const problems = checkRevisionBalance({ ...good, ...patch });
+    expect(problems.length).toBeGreaterThan(0);
+    expect(problems.join(" ")).toMatch(message);
+  });
+  it("reports every problem at once", () => {
+    expect(
+      checkRevisionBalance({ ...good, reworkBp: -1, t2DelayMonths: 0 }).length,
+    ).toBeGreaterThanOrEqual(2);
   });
 });

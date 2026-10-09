@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vite-plus/test";
-import { buildShipBuildingContent, unlockedTechIds, compileDesign } from "../src/index.js";
+import {
+  buildShipBuildingContent,
+  checkRevisionBalance,
+  unlockedTechIds,
+  compileDesign,
+} from "../src/index.js";
 import { shipBuildingData, shipBuildingContent } from "./helpers/earlyContext.js";
 import { havock } from "./helpers/references.js";
 
@@ -30,5 +35,25 @@ describe("buildShipBuildingContent", () => {
       balance: { ...shipBuildingData.balance, ai: undefined },
     });
     expect(() => noAi.aiEnvironmentFor("1895-06")).toThrow();
+  });
+  it("ships revision rules that pass the balance checks", () => {
+    expect(shipBuildingContent.revision).not.toBeNull();
+    expect(checkRevisionBalance(shipBuildingContent.revision!)).toEqual([]);
+  });
+  it("refuses a pack whose revision balance is invalid, naming the problem", () => {
+    const bad = { ...shipBuildingData.balance.revision!, t1DelayMonths: 0, reworkBp: 20_000 };
+    expect(() =>
+      buildShipBuildingContent({
+        ...shipBuildingData,
+        balance: { ...shipBuildingData.balance, revision: bad },
+      }),
+    ).toThrow(/invalid ship-building revision balance:.*t1DelayMonths.*reworkBp/);
+  });
+  it("accepts a pack with no revision section (revisions are then refused, not crashed)", () => {
+    const none = buildShipBuildingContent({
+      ...shipBuildingData,
+      balance: { ...shipBuildingData.balance, revision: undefined },
+    });
+    expect(none.revision).toBeNull();
   });
 });
