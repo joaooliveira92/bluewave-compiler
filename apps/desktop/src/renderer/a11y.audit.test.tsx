@@ -233,35 +233,60 @@ describe("accessibility audit (axe-core)", () => {
     await audit(<WorldMapChart {...props} variant="panel" />);
   });
 
-  it("Drawing Board — every tab on the battleship, with plan tools on and the legend popover open", async () => {
-    const { container } = render(<DrawingBoard />);
+  // The Drawing Board keeps every tab mounted, so each axe pass scans a large DOM. Each state is its own test with its
+  // own timeout, so one slow pass under full-suite load cannot leave a run pending for the next test.
+  const BOARD_TIMEOUT_MS = 120_000;
+  const openBattleship = () => {
+    const rendered = render(<DrawingBoard />);
     fireEvent.change(screen.getByLabelText("Starting design"), {
       target: { value: "majestic_like" },
     });
-    for (const tab of [
-      "Hull and machinery",
-      "Arrangement",
-      "Analysis",
-      "Build",
-      "History and files",
-    ]) {
-      fireEvent.click(screen.getByRole("tab", { name: new RegExp(tab, "i") }));
-      expect(await axeViolations(container), tab).toEqual([]);
-    }
-    // Plan tools in both modes (the toolbar and its status line).
-    fireEvent.click(screen.getByRole("tab", { name: /Hull and machinery/i }));
-    for (const mode of ["Place on plan", "Move on plan"]) {
-      fireEvent.click(screen.getByRole("button", { name: mode }));
-      expect(await axeViolations(container), mode).toEqual([]);
-    }
-    // The legend popover renders in a portal, so audit the whole document.
-    fireEvent.click(screen.getByRole("button", { name: /^Sheer \(Sheer/ }));
-    await screen.findByText("Data + convention");
-    // Auditing the whole body has no page landmarks, so the page-level "region" rule does not apply here.
-    expect((await axeViolations(document.body)).filter((v) => !v.startsWith("region "))).toEqual(
-      [],
-    );
-  });
+    return rendered.container;
+  };
+
+  it(
+    "Drawing Board — every tab on the battleship",
+    async () => {
+      const container = openBattleship();
+      for (const tab of [
+        "Hull and machinery",
+        "Arrangement",
+        "Analysis",
+        "Build",
+        "History and files",
+      ]) {
+        fireEvent.click(screen.getByRole("tab", { name: new RegExp(tab, "i") }));
+        expect(await axeViolations(container), tab).toEqual([]);
+      }
+    },
+    BOARD_TIMEOUT_MS,
+  );
+
+  it(
+    "Drawing Board — plan tools in both modes",
+    async () => {
+      const container = openBattleship();
+      for (const mode of ["Place on plan", "Move on plan"]) {
+        fireEvent.click(screen.getByRole("button", { name: mode }));
+        expect(await axeViolations(container), mode).toEqual([]);
+      }
+    },
+    BOARD_TIMEOUT_MS,
+  );
+
+  it(
+    "Drawing Board — the legend popover (a portal, so the whole document is audited)",
+    async () => {
+      openBattleship();
+      fireEvent.click(screen.getByRole("button", { name: /^Sheer \(Sheer/ }));
+      await screen.findByText("Data + convention");
+      // Auditing the whole body has no page landmarks, so the page-level "region" rule does not apply here.
+      expect((await axeViolations(document.body)).filter((v) => !v.startsWith("region "))).toEqual(
+        [],
+      );
+    },
+    BOARD_TIMEOUT_MS,
+  );
 
   it("control: the harness really catches violations (so a clean result means something)", async () => {
     const { container } = render(
