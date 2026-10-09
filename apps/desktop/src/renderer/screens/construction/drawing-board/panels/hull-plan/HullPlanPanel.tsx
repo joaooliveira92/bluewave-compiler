@@ -3,11 +3,18 @@ import type { DesignDraft, WorkshopView } from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../content.js";
 import { Checkbox } from "../../../../../components/ui/checkbox.js";
 import { Panel } from "../Panel.js";
-import { planFrame, PLAN_H, PLAN_W } from "./geometry.js";
-import { GunArcLayer, HullFittingLayer, HullOutlineLayer, HullZoneLayer } from "./layers.js";
+import { bowStyleFor, planFrame, PLAN_H, PLAN_W } from "./geometry.js";
+import { ProfileView } from "./ProfileView.js";
+import {
+  GunArcLayer,
+  HullFittingLayer,
+  HullOutlineLayer,
+  HullTopsideLayer,
+  HullZoneLayer,
+} from "./layers.js";
 
 /**
- * Top-down plan of the hull, composed of layers: outline, zones, gun arcs, fittings.
+ * Top-down plan of the hull, composed of layers: outline, zones, topside, gun arcs, fittings; plus a side profile.
  *
  * SCHEMATIC GEOMETRY: the outline is a parametric waterline scaled to length and beam. Its area follows the
  * hull form's waterplane coefficient and its bow/stern fullness follows the form's LCB, but it is not the
@@ -29,7 +36,11 @@ export function HullPlanPanel({
   const form = content.hullForms.find((f) => f.id === draft.hull.hullFormId);
   const frame = planFrame(
     draft.hull,
-    form && { waterplaneCoeffBp: form.waterplaneCoeffBp, lcbPermille: form.lcbPermille },
+    form && {
+      waterplaneCoeffBp: form.waterplaneCoeffBp,
+      lcbPermille: form.lcbPermille,
+      bow: bowStyleFor(form.id),
+    },
   );
   const zones = form?.zones ?? [];
   const mounts = view.compiled.weapons?.mounts ?? [];
@@ -52,13 +63,22 @@ export function HullPlanPanel({
       >
         <HullOutlineLayer frame={frame} />
         <HullZoneLayer frame={frame} zones={zones} />
+        <HullTopsideLayer frame={frame} draft={draft} content={content} zones={zones} />
         {showArcs && <GunArcLayer frame={frame} draft={draft} mounts={mounts} />}
         <HullFittingLayer frame={frame} draft={draft} content={content} />
       </svg>
+      <ProfileView
+        draft={draft}
+        content={content}
+        sheerBp={form?.sheerBp ?? 10000}
+        bow={frame.bow}
+        superstructure={zones.find((z) => z.id === "SUPERSTRUCTURE")}
+      />
       <p className="text-xs text-muted-foreground">
         {frame.lengthM.toFixed(0)} m × {frame.beamM.toFixed(1)} m · {draft.placements.length}{" "}
-        fitting(s). Outline follows the hull form's waterplane coefficient and LCB (⊕); only
-        station, side and arc width are data. Arcs show the effective beam arc after obstruction.
+        fitting(s). Outline follows the hull form's waterplane coefficient and LCB (⊕). Bow style,
+        sheer, superstructure and funnel footprints are schematic; only station, side and arc width
+        are data. Arcs show the effective beam arc after obstruction.
       </p>
     </Panel>
   );

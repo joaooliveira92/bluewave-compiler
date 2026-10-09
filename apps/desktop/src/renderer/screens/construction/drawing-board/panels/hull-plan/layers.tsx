@@ -7,6 +7,9 @@ import { fittingPoint, PLAN_H, PLAN_MID, PLAN_PAD, PLAN_W, type PlanFrame } from
 /** Label size in SVG user units (not CSS px): the 640-unit plan is scaled up to the panel width, so this renders at 12 px or more. */
 const PLAN_FONT = 8;
 
+/** Length of the drawn ram beak, px (into the left padding). */
+const RAM_LEN = 10;
+
 /** Closed outline polygon points for the hull scaled by `scale` about the centreline. */
 function outlinePoints(frame: PlanFrame, scale: number): string {
   const pts: string[] = [];
@@ -28,6 +31,13 @@ export function HullOutlineLayer({ frame }: { readonly frame: PlanFrame }) {
         strokeLinejoin="round"
         data-testid="hull-outline"
       />
+      {frame.bow === "ram" && (
+        <polygon
+          points={`${frame.x(0)},${PLAN_MID - 1.5} ${frame.x(0) - RAM_LEN},${PLAN_MID} ${frame.x(0)},${PLAN_MID + 1.5}`}
+          className="fill-foreground stroke-foreground"
+          data-testid="hull-ram"
+        />
+      )}
       <polygon
         points={outlinePoints(frame, 0.9)}
         className="fill-none stroke-muted-foreground"
@@ -189,6 +199,67 @@ export function GunArcLayer({
           </path>
         ));
       })}
+    </g>
+  );
+}
+
+/** Stations (permille) of the placed funnels, by the component\'s "funnel" tag. */
+export function funnelStations(draft: DesignDraft, content: DrawingBoardContent): number[] {
+  const funnelIds = new Set(
+    content.components.filter((c) => c.tags.includes("funnel")).map((c) => c.id),
+  );
+  return draft.placements.filter((p) => funnelIds.has(p.componentId)).map((p) => p.stationPermille);
+}
+
+/** Superstructure block (over its zone) and funnel ovals, in plan. Footprints are schematic: no data gives their width. */
+export function HullTopsideLayer({
+  frame,
+  draft,
+  content,
+  zones,
+}: {
+  readonly frame: PlanFrame;
+  readonly draft: DesignDraft;
+  readonly content: DrawingBoardContent;
+  readonly zones: readonly { id: string; startPermille: number; endPermille: number }[];
+}) {
+  const sup = zones.find((z) => z.id === "SUPERSTRUCTURE");
+  const funnels = funnelStations(draft, content);
+  const ry = Math.max(2, Math.min(frame.maxHalf * 0.4, 10));
+  return (
+    <g data-testid="hull-topside">
+      {sup && (
+        <rect
+          x={frame.x(sup.startPermille)}
+          width={frame.x(sup.endPermille) - frame.x(sup.startPermille)}
+          y={
+            PLAN_MID -
+            Math.min(frame.half(sup.startPermille / 1000), frame.half(sup.endPermille / 1000)) *
+              0.55
+          }
+          height={
+            Math.min(frame.half(sup.startPermille / 1000), frame.half(sup.endPermille / 1000)) * 1.1
+          }
+          rx={3}
+          className="fill-muted stroke-muted-foreground"
+          data-testid="hull-superstructure"
+        >
+          <title>Superstructure (schematic footprint)</title>
+        </rect>
+      )}
+      {funnels.map((s, i) => (
+        <ellipse
+          key={`${s}-${i}`}
+          cx={frame.x(s)}
+          cy={PLAN_MID}
+          rx={Math.max(3, ry * 0.7)}
+          ry={ry}
+          className="fill-background stroke-foreground"
+          data-testid="hull-funnel"
+        >
+          <title>{`Funnel @ ${s}‰ (schematic footprint)`}</title>
+        </ellipse>
+      ))}
     </g>
   );
 }

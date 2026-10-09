@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vite-plus/test";
 import { arcSectors, bearingVector, normaliseDeg, sectorPath } from "./arcs.js";
-import { fittingPoint, PLAN_MID, planFrame, waterplaneShape } from "./geometry.js";
+import {
+  bowStyleFor,
+  fittingPoint,
+  PLAN_MID,
+  planFrame,
+  profileFrame,
+  waterplaneShape,
+} from "./geometry.js";
 
 const hull = (lengthM: number, beamM: number) =>
   ({ lengthWl: lengthM * 1000, beam: beamM * 1000 }) as never;
@@ -109,5 +116,46 @@ describe("waterplaneShape", () => {
     const s = waterplaneShape();
     for (let i = 0; i <= 100; i++) expect(s(i / 100)).toBeGreaterThanOrEqual(0);
     expect(Math.max(...Array.from({ length: 101 }, (_, i) => s(i / 100)))).toBe(1);
+  });
+});
+
+describe("bow character and profile", () => {
+  it("picks a bow per hull form", () => {
+    expect([
+      bowStyleFor("torpedo_boat_form"),
+      bowStyleFor("coast_defence_form"),
+      bowStyleFor("protected_cruiser_form"),
+      bowStyleFor("pre_dreadnought_form"),
+    ]).toEqual(["spoon", "plumb", "ram", "ram"]);
+  });
+  it("blunt bows have a non-zero stem width and still match the coefficient", () => {
+    for (const bow of ["spoon", "plumb"] as const) {
+      const s = waterplaneShape({ waterplaneCoeffBp: 7400, lcbPermille: 500, bow });
+      expect(s(0)).toBeGreaterThan(0);
+      let a = 0;
+      for (let i = 0; i < 2000; i++) a += s((i + 0.5) / 2000) / 2000;
+      expect(a).toBeCloseTo(0.74, 2);
+    }
+    expect(waterplaneShape({ waterplaneCoeffBp: 7400, lcbPermille: 500, bow: "ram" })(0)).toBe(0);
+  });
+  it("sheer lifts the deck toward the bow more than the stern; no sheer is flat", () => {
+    const h = { lengthWl: 85000, beam: 12000, draught: 4200, depthToMainDeck: 7000 } as never;
+    const p = profileFrame(h, 11000);
+    expect(p.deckY(0)).toBeLessThan(p.deckY(0.5));
+    expect(p.deckY(0)).toBeLessThan(p.deckY(1));
+    expect(p.deckY(1)).toBeLessThan(p.deckY(0.5));
+    const flat = profileFrame(h, 10000);
+    expect(flat.deckY(0)).toBe(flat.deckY(0.5));
+  });
+  it("keel sits below the waterline by the draught and is cut up at the stem", () => {
+    const h = { lengthWl: 85000, beam: 12000, draught: 4200, depthToMainDeck: 7000 } as never;
+    const p = profileFrame(h, 11000);
+    expect(p.keelY(0.5)).toBeCloseTo(p.waterlineY + 4.2 * p.vScale, 5);
+    expect(p.keelY(0)).toBeCloseTo(p.waterlineY, 5);
+  });
+  it("tolerates degenerate hulls", () => {
+    const p = profileFrame({ lengthWl: 0, beam: 0, draught: 0, depthToMainDeck: 0 } as never, 0);
+    expect(Number.isFinite(p.deckY(0.3))).toBe(true);
+    expect(Number.isFinite(p.keelY(0.3))).toBe(true);
   });
 });

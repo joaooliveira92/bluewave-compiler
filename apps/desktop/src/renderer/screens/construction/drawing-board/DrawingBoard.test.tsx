@@ -38,7 +38,8 @@ describe("DrawingBoard", () => {
   it("draws a top-down hull plan with one marker per placed fitting", () => {
     render(<DrawingBoard />);
     const plan = region("Hull plan");
-    const img = within(plan).getByRole("img");
+    const img = within(plan).getByRole("img", { name: /Top-down plan/ });
+    expect(within(plan).getByRole("img", { name: /Side profile/ })).toBeTruthy();
     expect(img.querySelectorAll("circle").length).toBeGreaterThan(0);
     expect(img.getAttribute("aria-label")).toMatch(/Top-down plan/);
   });
