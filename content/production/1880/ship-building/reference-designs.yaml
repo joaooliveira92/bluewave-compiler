@@ -1,7 +1,8 @@
 # Reference designs for the EARLY band (starting points for the Drawing Board and regression fixtures).
 # Havock-like: first-class destroyer, 1893 (dimensions, 3,500 ihp, 57 t coal, armament from docs/research/ship-building-early-band.md).
 # Majestic-like: pre-dreadnought battleship, 1895 (naturally class B under DESIGN-22: two twin turrets).
-# Fittings and equipment weights are PLACEHOLDER pending research pass 2.
+# Fittings (magazines, quarters, pumps, ventilation) weigh nothing extra: White 1894 pp. 409-410 counts them in the hull weight (ADR-0083).
+# Equipment that is still unsourced (dynamo, rangefinder) is marked in components.yaml, not here.
 # Torpedo cruiser (1880): the only kind of ship January 1880 content can build (machine guns and torpedoes; a CL of ~2,200 t).
 designs:
   - id: havock_like
@@ -40,7 +41,7 @@ designs:
         stationPermille: 400
         fuelCapacityKg: 61000
         fuelZoneId: SUPERSTRUCTURE
-        fuelStationPermille: 560
+        fuelStationPermille: 550 # trimmed 10 permille forward when fittings stopped weighing extra (ADR-0083)
         foulingBp: 0
         rooms:
           - zoneId: CENTRAL_MACHINERY

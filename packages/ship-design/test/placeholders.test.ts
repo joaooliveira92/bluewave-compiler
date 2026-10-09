@@ -12,7 +12,7 @@ const CEILING: Record<string, number> = {
   "components.yaml": 26,
   "plants.yaml": 1,
   "hull-forms.yaml": 0,
-  "reference-designs.yaml": 1,
+  "reference-designs.yaml": 0,
 };
 const dir = join(process.cwd(), "..", "..", "content", "production", "1880", "ship-building");
 const count = (file: string) =>

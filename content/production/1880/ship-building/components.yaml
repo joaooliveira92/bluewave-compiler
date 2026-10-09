@@ -528,7 +528,7 @@ components:
     requires: []
     parameters: {}
     constants: { cap_litre: 8000 }
-    weightKg: "2000"
+    weightKg: "0" # 0: already inside the fitted hull weight (White 1894 pp. 409-410 count this fitting in "weight of hull"; ADR-0083)
     volumeLitre: "9000"
     costMicro: "300000000"
     crew: "2"
@@ -547,7 +547,7 @@ components:
     requires: []
     parameters: {}
     constants: { cap_litre: 30000 }
-    weightKg: "6000"
+    weightKg: "0" # 0: already inside the fitted hull weight (White 1894 pp. 409-410 count this fitting in "weight of hull"; ADR-0083)
     volumeLitre: "33000"
     costMicro: "900000000"
     crew: "4"
@@ -566,7 +566,7 @@ components:
     requires: []
     parameters: {}
     constants: { cap_litre: 120000 }
-    weightKg: "20000"
+    weightKg: "0" # 0: already inside the fitted hull weight (White 1894 pp. 409-410 count this fitting in "weight of hull"; ADR-0083)
     volumeLitre: "130000"
     costMicro: "3000000000"
     crew: "8"
@@ -625,7 +625,7 @@ components:
     requires: []
     parameters: { blocks: { min: 1, max: 80, step: 1 } }
     constants: { litre_per_block: 10000 }
-    weightKg: "150 * blocks"
+    weightKg: "0" # 0: already inside the fitted hull weight (White 1894 pp. 409-410 count this fitting in "weight of hull"; ADR-0083)
     volumeLitre: "litre_per_block * blocks"
     costMicro: "15000000 * blocks"
     crew: "0"
@@ -660,7 +660,7 @@ components:
     requires: [dc_watertight_bulkheads]
     parameters: {}
     constants: {}
-    weightKg: "1500"
+    weightKg: "0" # 0: already inside the fitted hull weight (White 1894 pp. 409-410 count this fitting in "weight of hull"; ADR-0083)
     volumeLitre: "3000"
     costMicro: "30000000"
     crew: "2"
@@ -678,7 +678,7 @@ components:
     requires: []
     parameters: {}
     constants: {}
-    weightKg: "2500"
+    weightKg: "0" # 0: already inside the fitted hull weight (White 1894 pp. 409-410 count this fitting in "weight of hull"; ADR-0083)
     volumeLitre: "4000"
     costMicro: "25000000"
     crew: "0"

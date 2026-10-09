@@ -74,3 +74,4 @@ Refresh this table from each file's H1 when one is added or re-titled.
 | 0080 | [ADR-0080-build-time-era-multiplier.md](ADR-0080-build-time-era-multiplier.md) | Build time era multiplier |
 | 0081 | [ADR-0081-month-input-replay.md](ADR-0081-month-input-replay.md) | Each save records its month's input, so replay runs the month the player played |
 | 0082 | [ADR-0082-drawing-board-durability.md](ADR-0082-drawing-board-durability.md) | The Drawing Board never loses work: draft sidecar and a durable command queue |
+| 0083 | [ADR-0083-fittings-inside-hull-weight.md](ADR-0083-fittings-inside-hull-weight.md) | Fittings are inside the hull weight; fitting components carry no extra mass |
