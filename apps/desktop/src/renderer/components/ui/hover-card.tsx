@@ -6,6 +6,8 @@ import { FLOATING_LAYER } from "./menu-styles.js";
 
 const HoverCard = HoverCardPrimitive.Root;
 const HoverCardTrigger = HoverCardPrimitive.Trigger;
+/** One card shared by several detached triggers: moving between them swaps the content instead of re-opening. */
+const createHoverCardHandle = HoverCardPrimitive.createHandle;
 
 interface HoverCardContentProps extends React.ComponentPropsWithoutRef<
   typeof HoverCardPrimitive.Popup
@@ -13,6 +15,12 @@ interface HoverCardContentProps extends React.ComponentPropsWithoutRef<
   align?: React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Positioner>["align"];
   side?: React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Positioner>["side"];
   sideOffset?: number;
+  /** Space kept between the card and the viewport edges when it flips or shifts to fit. */
+  collisionPadding?: React.ComponentPropsWithoutRef<
+    typeof HoverCardPrimitive.Positioner
+  >["collisionPadding"];
+  /** Element to position against instead of the trigger (e.g. the drawing a set of triggers describes). */
+  anchor?: React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Positioner>["anchor"];
   ref?: React.Ref<React.ComponentRef<typeof HoverCardPrimitive.Popup>> | undefined;
 }
 
@@ -21,6 +29,8 @@ const HoverCardContent = ({
   align = "center",
   side,
   sideOffset = 4,
+  collisionPadding,
+  anchor,
   ref,
   ...props
 }: HoverCardContentProps) => (
@@ -30,6 +40,8 @@ const HoverCardContent = ({
       align={align}
       side={side}
       sideOffset={sideOffset}
+      collisionPadding={collisionPadding}
+      anchor={anchor}
     >
       <HoverCardPrimitive.Popup
         ref={ref}
@@ -45,4 +57,4 @@ const HoverCardContent = ({
 );
 HoverCardContent.displayName = "HoverCardContent";
 
-export { HoverCard, HoverCardContent, HoverCardTrigger };
+export { createHoverCardHandle, HoverCard, HoverCardContent, HoverCardTrigger };

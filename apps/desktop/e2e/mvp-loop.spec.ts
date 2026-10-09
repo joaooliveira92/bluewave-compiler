@@ -253,7 +253,7 @@ test("row 6g: the Drawing Board keeps the ship view in sight on every tab, wide 
   await divider.focus();
   await e2e.page.keyboard.press("ArrowRight");
   await e2e.page.keyboard.press("ArrowRight");
-  await expect(divider).toHaveAttribute("aria-valuenow", "44");
+  await expect(divider).toHaveAttribute("aria-valuenow", "50");
   expect((await ship.boundingBox())!.width).toBeGreaterThan(before);
 
   // Narrow window: the panes stack, the splitter goes, and the ship view folds without unmounting.
@@ -268,6 +268,81 @@ test("row 6g: the Drawing Board keeps the ship view in sight on every tab, wide 
   await board.getByRole("button", { name: "Show ship view" }).click();
   await expect(plan).toBeVisible();
   await expect(plan).toHaveAttribute("data-e2e-mark", "kept");
+});
+
+test("row 6h: hull-section labels open a detailed hover card without flicker or clipping", async ({
+  e2e,
+}) => {
+  await e2e.retargetDialog(sharedSaveDir);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await navigateTo(e2e.page, "Construction");
+  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
+  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
+  const board = e2e.page.getByRole("dialog");
+  const strip = board.getByRole("group", { name: "Hull sections" });
+  await expect(strip.getByRole("button")).toHaveCount(8);
+  const card = e2e.page.getByTestId("section-card");
+  const highlight = board.getByTestId("section-highlight");
+
+  // Hover opens the card after a short delay; the plan highlights the same section.
+  await strip.getByRole("button", { name: "Forecastle" }).hover();
+  await expect(card).toHaveAttribute("data-section", "forecastle");
+  await expect(card.getByRole("img", { name: /Detailed drawing of the forecastle/ })).toBeVisible();
+  await expect(highlight).toHaveAttribute("data-zone", "FORECASTLE");
+
+  // Moving to the neighbouring label swaps the content inside the same popup: no close/re-open flicker.
+  await e2e.page.evaluate(() =>
+    document
+      .querySelector("[data-testid='section-card']")
+      ?.parentElement?.setAttribute("data-e2e-mark", "same"),
+  );
+  await strip.getByRole("button", { name: "Forward magazine" }).hover();
+  await expect(card).toHaveAttribute("data-section", "forward-magazine");
+  const samePopup = await e2e.page.evaluate(() =>
+    Boolean(document.querySelector("[data-e2e-mark='same'] [data-section='forward-magazine']")),
+  );
+  expect(samePopup).toBe(true);
+  await expect(highlight).toHaveAttribute("data-zone", "FWD_MAGAZINE");
+
+  // The pointer can travel from a label into the card (beside the drawing) without it closing.
+  await strip.getByRole("button", { name: "Quarterdeck" }).hover();
+  await expect(card).toHaveAttribute("data-section", "quarterdeck");
+  const box = (await card.boundingBox())!;
+  await e2e.page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 12 });
+  await e2e.page.waitForTimeout(600);
+  await expect(card).toHaveAttribute("data-section", "quarterdeck");
+
+  // The card fits the window and is not clipped by the dialog or the ship pane: its centre is its own pixel.
+  const viewport = await e2e.page.evaluate(() => ({ w: innerWidth, h: innerHeight }));
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(viewport.w);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.h);
+  const ownsCentre = await card.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+  });
+  expect(ownsCentre).toBe(true);
+
+  // Leaving both closes the card and clears the highlight.
+  await e2e.page.mouse.move(5, 5, { steps: 6 });
+  await expect(card).toBeHidden();
+  await expect(highlight).toHaveCount(0);
+
+  // The wider ship view still leaves the tab pane its minimum, even at the widest stored share.
+  await e2e.app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0]!.setSize(1100, 800),
+  );
+  const divider = board.getByRole("separator", { name: "Resize ship view" });
+  await divider.focus();
+  await e2e.page.keyboard.press("End");
+  const tabPane = (await board.getByTestId("tab-pane").boundingBox())!;
+  expect(tabPane.width).toBeGreaterThanOrEqual(34 * 16 - 1);
+  const overflow = await board.evaluate((el) => el.scrollWidth - el.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
 });
 
 test("row 6e: a fleet ordered to sail moves one hop when the month advances", async ({ e2e }) => {

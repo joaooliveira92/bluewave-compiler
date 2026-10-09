@@ -10,7 +10,7 @@ import {
   STATION_STEP_PERMILLE,
   STROKE,
 } from "./drafting.js";
-import { fittingPoint, PLAN_H, PLAN_MID, PLAN_PAD, PLAN_W, type PlanFrame } from "./geometry.js";
+import { fittingPoint, PLAN_MID, PLAN_PAD, PLAN_W, type PlanFrame } from "./geometry.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../../components/ui/tooltip.js";
 import type { FunnelInput } from "./profile-geometry.js";
 
@@ -29,8 +29,8 @@ function outlinePoints(frame: PlanFrame, scale: number): string {
   return pts.join(" ");
 }
 
-export function HullOutlineLayer({ frame }: { readonly frame: PlanFrame }) {
-  const lcbX = frame.x(frame.lcbPermille);
+/** Hull waterline, ram and deck edge: the hull's shape alone, also drawn magnified in the section cards. */
+export function HullShapeLayer({ frame }: { readonly frame: PlanFrame }) {
   return (
     <>
       <polygon
@@ -56,6 +56,15 @@ export function HullOutlineLayer({ frame }: { readonly frame: PlanFrame }) {
         {...NON_SCALING}
         data-testid="hull-deck-edge"
       />
+    </>
+  );
+}
+
+export function HullOutlineLayer({ frame }: { readonly frame: PlanFrame }) {
+  const lcbX = frame.x(frame.lcbPermille);
+  return (
+    <>
+      <HullShapeLayer frame={frame} />
       <line
         x1={frame.x(0)}
         x2={frame.x(1000)}
@@ -126,6 +135,7 @@ export function HullOutlineLayer({ frame }: { readonly frame: PlanFrame }) {
   );
 }
 
+/** Section boundaries. The section names are the interactive strip under the drawing (`SectionLabels`). */
 export function HullZoneLayer({
   frame,
   zones,
@@ -151,18 +161,42 @@ export function HullZoneLayer({
               strokeWidth={STROKE.guide}
               {...NON_SCALING}
             />
-            <text
-              x={(frame.x(z.startPermille) + frame.x(z.endPermille)) / 2}
-              y={PLAN_H - 6}
-              textAnchor="middle"
-              className="fill-muted-foreground"
-              fontSize={PLAN_FONT}
-            >
-              {z.id.replaceAll("_", " ").toLowerCase()}
-            </text>
           </g>
         ))}
     </>
+  );
+}
+
+/**
+ * Marks the section being inspected. Drawn above the hull fill and under everything else, so fittings, arcs
+ * and the superstructure stay visible through it.
+ */
+export function SectionHighlightLayer({
+  frame,
+  zone,
+}: {
+  readonly frame: PlanFrame;
+  readonly zone:
+    | { readonly id: string; readonly startPermille: number; readonly endPermille: number }
+    | undefined;
+}) {
+  if (!zone) return null;
+  return (
+    <rect
+      x={frame.x(zone.startPermille)}
+      width={frame.x(zone.endPermille) - frame.x(zone.startPermille)}
+      y={PLAN_MID - frame.maxHalf - 4}
+      height={frame.maxHalf * 2 + 8}
+      className="pointer-events-none fill-primary stroke-primary"
+      fillOpacity={0.1}
+      strokeOpacity={0.7}
+      strokeWidth={STROKE.structure}
+      strokeDasharray={DASH.zoneGuide}
+      {...NON_SCALING}
+      data-testid="section-highlight"
+      data-zone={zone.id}
+      aria-hidden="true"
+    />
   );
 }
 

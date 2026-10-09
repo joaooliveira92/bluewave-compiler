@@ -14,6 +14,7 @@ import {
   SPLIT_MAX,
   SPLIT_MIN,
   SPLIT_STORAGE_KEY,
+  TAB_PANE_MIN,
 } from "./useSplitWidth.js";
 
 afterEach(cleanup);
@@ -152,6 +153,27 @@ describe("resizable divider", () => {
     expect(readStoredSplit()).toBe(SPLIT_MAX);
     localStorage.setItem(SPLIT_STORAGE_KEY, "45");
     expect(readStoredSplit()).toBe(45);
+    localStorage.setItem(SPLIT_STORAGE_KEY, "12");
+    expect(readStoredSplit()).toBe(SPLIT_MIN);
+  });
+
+  it("defaults wider than the original 40%, but keeps a width the player already chose", () => {
+    expect(SPLIT_DEFAULT).toBeGreaterThan(40);
+    render(<DrawingBoard />);
+    expect(share()).toBe(SPLIT_DEFAULT);
+    cleanup();
+    localStorage.setItem(SPLIT_STORAGE_KEY, "40");
+    render(<DrawingBoard />);
+    expect(share()).toBe(40);
+    expect(localStorage.getItem(SPLIT_STORAGE_KEY)).toBe("40");
+  });
+
+  it("caps the ship pane so the tab pane keeps its minimum width", () => {
+    render(<DrawingBoard />);
+    const workspace = screen.getByTestId("ship-workspace");
+    expect(workspace.style.getPropertyValue("--tab-pane-min")).toBe(TAB_PANE_MIN);
+    expect(workspace.style.getPropertyValue("--ship-pane")).toBe(`${SPLIT_DEFAULT}%`);
+    expect(workspace.className).toContain("min(var(--ship-pane),calc(100%_-_var(--tab-pane-min)");
   });
 });
 

@@ -166,7 +166,7 @@ export function DrawingBoard({
           <TabsList className="h-auto w-full flex-wrap">
             {TABS.map(({ value, label, Icon }) => (
               <TabsTrigger key={value} value={value} className="flex-1 gap-2">
-                <Icon aria-hidden="true" className="size-4" />
+                <Icon aria-hidden="true" className="hidden size-4 @3xl:block" />
                 {label}
               </TabsTrigger>
             ))}

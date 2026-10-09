@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { DesignDraft, WorkshopView } from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../content.js";
 import { TooltipProvider } from "../../../../../components/ui/tooltip.js";
@@ -18,6 +18,9 @@ import {
   type PlanEdit,
 } from "./placement-tools.js";
 import { ProfileView } from "./ProfileView.js";
+import { SectionCard } from "./SectionCard.js";
+import { SectionLabels } from "./SectionLabels.js";
+import { SECTIONS, type SectionId } from "./sections.js";
 import type { Edit } from "../types.js";
 import {
   funnelPlacements,
@@ -26,6 +29,7 @@ import {
   HullOutlineLayer,
   HullTopsideLayer,
   HullZoneLayer,
+  SectionHighlightLayer,
 } from "./layers.js";
 
 /**
@@ -54,6 +58,9 @@ export function HullPlanPanel({
   const [showArcs, setShowArcs] = useState(true);
   const [tool, setTool] = useState<PlanTool>(IDLE_TOOL);
   const [notice, setNotice] = useState<string | null>(null);
+  // Presentation state only: which section card is open (and so highlighted). Never part of the design.
+  const [activeSection, setActiveSection] = useState<SectionId | null>(null);
+  const planRef = useRef<HTMLDivElement>(null);
   const form = content.hullForms.find((f) => f.id === draft.hull.hullFormId);
   const frame = planFrame(
     draft.hull,
@@ -143,7 +150,7 @@ export function HullPlanPanel({
           />
           <span aria-hidden="true">Show gun arcs</span>
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1" ref={planRef}>
           <p className="text-xs font-medium text-muted-foreground">Waterline plan</p>
           <svg
             viewBox={`0 0 ${PLAN_W} ${PLAN_H}`}
@@ -152,6 +159,14 @@ export function HullPlanPanel({
             aria-label={planLabel(facts)}
           >
             <HullOutlineLayer frame={frame} />
+            <SectionHighlightLayer
+              frame={frame}
+              zone={
+                activeSection === null
+                  ? undefined
+                  : zones.find((z) => z.id === SECTIONS[activeSection].zoneId)
+              }
+            />
             <HullZoneLayer frame={frame} zones={zones} />
             <HullTopsideLayer frame={frame} draft={draft} content={content} zones={zones} />
             {showArcs && <GunArcLayer frame={frame} draft={draft} mounts={mounts} />}
@@ -187,6 +202,18 @@ export function HullPlanPanel({
               />
             )}
           </svg>
+          <SectionLabels
+            zones={zones}
+            active={activeSection}
+            onActiveChange={setActiveSection}
+            anchor={planRef}
+            renderCard={(id) => (
+              <SectionCard
+                id={id}
+                ctx={{ draft, view, content, zones, frame, sheerBp: form?.sheerBp ?? 10000 }}
+              />
+            )}
+          />
         </div>
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground">
