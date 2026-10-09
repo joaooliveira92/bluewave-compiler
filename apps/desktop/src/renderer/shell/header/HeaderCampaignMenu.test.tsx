@@ -40,4 +40,22 @@ describe("HeaderCampaignMenu", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Close campaign" }));
     expect(h.onCloseCampaign).toHaveBeenCalledOnce();
   });
+
+  it("dismisses the menu on an outside pointer press", async () => {
+    setup();
+    expect(await screen.findByRole("button", { name: "Save" })).toBeTruthy();
+
+    fireEvent.pointerDown(document.body);
+
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+  });
+
+  it("dismisses the menu on Escape", async () => {
+    setup();
+    expect(await screen.findByRole("button", { name: "Save" })).toBeTruthy();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+  });
 });

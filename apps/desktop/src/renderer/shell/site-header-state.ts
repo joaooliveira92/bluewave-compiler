@@ -73,6 +73,13 @@ export type SecondaryRow =
       readonly detail: string;
     };
 
+/** The concrete member of the `SecondaryRow` union each focused presenter renders. */
+export type StatusRowModel = Extract<SecondaryRow, { kind: "status" }>;
+export type CampaignRowModel = Extract<SecondaryRow, { kind: "campaign" }>;
+export type EditorRowModel = Extract<SecondaryRow, { kind: "editor" }>;
+export type WizardRowModel = Extract<SecondaryRow, { kind: "wizard" }>;
+export type PreferencesRowModel = Extract<SecondaryRow, { kind: "preferences" }>;
+
 const MONTH_NAMES = [
   "January",
   "February",

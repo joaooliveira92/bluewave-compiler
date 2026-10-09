@@ -1,8 +1,17 @@
-import { ClockArrowRight, Play } from "lucide-react";
-
-import { Button } from "../components/ui/button.js";
 import { cn } from "../lib/utils.js";
-import { Header, type HeaderCampaignMenuProps, type NavAction } from "./header/index.js";
+import { GlobalSearch } from "./GlobalSearch.js";
+import {
+  HeaderAdvanceMonth,
+  HeaderCampaignMenu,
+  HeaderChrome,
+  HeaderContinueAction,
+  HeaderNav,
+  HeaderSecondaryRow,
+  HeaderTitle,
+  HeaderWindowControls,
+  type HeaderCampaignMenuProps,
+  type NavAction,
+} from "./header/index.js";
 import { DRAG, NO_DRAG } from "./header/drag-region.js";
 import type { PrimaryAction } from "./primary-action.js";
 import type { SearchTarget } from "./global-search-state.js";
@@ -59,53 +68,31 @@ export function SiteHeader({
           isMac ? "pl-25" : "pl-4",
         )}
       >
-        <Header.Nav back={back} forward={forward} />
+        <HeaderNav back={back} forward={forward} />
 
-        <Header.Title title={title} />
+        <HeaderTitle title={title} />
 
         <div className="ml-auto flex items-center gap-2" style={NO_DRAG}>
-          <Header.Search targets={searchTargets} onNavigate={(id) => onSearchNavigate?.(id)} />
+          <GlobalSearch targets={searchTargets} onNavigate={(id) => onSearchNavigate?.(id)} />
 
-          {continueAction !== undefined && (
-            <Button
-              variant="outline"
-              aria-label={continueAction.label}
-              onClick={continueAction.onTrigger}
-              disabled={continueAction.disabled}
-              className="w-44 shrink-0 justify-center gap-2"
-            >
-              <ClockArrowRight className="h-4 w-4" />
-              <span className="truncate">{continueAction.label}</span>
-            </Button>
-          )}
+          {continueAction !== undefined && <HeaderContinueAction action={continueAction} />}
 
           {campaign !== null && onAdvanceMonth !== undefined && (
-            <Button
-              variant="outline"
-              aria-label="Advance month"
-              data-guided-target="advance-month"
-              title="Resolve the current strategic month"
-              onClick={onAdvanceMonth}
-              disabled={advancingMonth}
-              className="h-8 shrink-0 justify-center gap-2 px-3"
-            >
-              <Play className="h-4 w-4" />
-              <span className="truncate">{advancingMonth ? "Advancing…" : "Advance Month"}</span>
-            </Button>
+            <HeaderAdvanceMonth onAdvance={onAdvanceMonth} advancing={advancingMonth} />
           )}
 
           {campaign !== null && campaignMenu !== undefined && (
-            <Header.CampaignMenu {...campaignMenu} />
+            <HeaderCampaignMenu {...campaignMenu} />
           )}
 
-          <Header.Chrome />
-          <Header.WindowControls />
+          <HeaderChrome />
+          <HeaderWindowControls />
         </div>
       </div>
 
       {/* Row 2: adaptive secondary bar */}
       <div className="flex h-10 w-full items-center px-4">
-        <Header.SecondaryRow
+        <HeaderSecondaryRow
           activeView={activeView}
           campaign={campaign}
           onActionClick={onActionClick}

@@ -1,29 +1,10 @@
-import { HeaderCampaignMenu } from "./HeaderCampaignMenu.js";
-import { HeaderChrome } from "./HeaderChrome.js";
-import { HeaderNav } from "./HeaderNav.js";
-import { HeaderSearch } from "./HeaderSearch.js";
-import { HeaderSecondaryRow } from "./HeaderSecondaryRow.js";
-import { HeaderTitle } from "./HeaderTitle.js";
-import { HeaderWindowControls } from "./HeaderWindowControls.js";
-
-export const Header = {
-  Nav: HeaderNav,
-  Title: HeaderTitle,
-  Search: HeaderSearch,
-  CampaignMenu: HeaderCampaignMenu,
-  Chrome: HeaderChrome,
-  WindowControls: HeaderWindowControls,
-  SecondaryRow: HeaderSecondaryRow,
-};
-
-export {
-  HeaderCampaignMenu,
-  HeaderChrome,
-  HeaderNav,
-  HeaderSearch,
-  HeaderSecondaryRow,
-  HeaderTitle,
-  HeaderWindowControls,
-};
-export type { HeaderNavProps, NavAction } from "./HeaderNav.js";
+export { HeaderAdvanceMonth } from "./HeaderAdvanceMonth.js";
+export { HeaderCampaignMenu } from "./HeaderCampaignMenu.js";
+export { HeaderChrome } from "./HeaderChrome.js";
+export { HeaderContinueAction } from "./HeaderContinueAction.js";
+export { HeaderNav } from "./HeaderNav.js";
+export { HeaderSecondaryRow } from "./HeaderSecondaryRow.js";
+export { HeaderTitle } from "./HeaderTitle.js";
+export { HeaderWindowControls } from "./HeaderWindowControls.js";
 export type { HeaderCampaignMenuProps } from "./HeaderCampaignMenu.js";
+export type { NavAction } from "./HeaderNav.js";
