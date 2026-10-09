@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Hammer } from "lucide-react";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
@@ -30,7 +30,19 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
   } = useConstructionScreen(sessionId);
   const [activeTab, setActiveTab] = useState("overview");
   const [wizardOpen, setWizardOpen] = useState(false);
-  const selectedDesign = state.designs.find((d) => d.designId === selectedDesignId) ?? null;
+  const selectedDesign = useMemo(
+    () => state.designs.find((d) => d.designId === selectedDesignId) ?? null,
+    [state.designs, selectedDesignId],
+  );
+
+  // Stable handlers so the memo()'d catalog and wizard only re-render on real changes.
+  const openWizard = useCallback(() => setWizardOpen(true), []);
+  const closeWizard = useCallback(() => setWizardOpen(false), []);
+  const refresh = useCallback(() => void loadScreen(), [loadScreen]);
+  const confirmOrder = useCallback(() => {
+    submit();
+    closeWizard();
+  }, [submit, closeWizard]);
 
   if (loadError !== null) {
     return (
@@ -89,8 +101,8 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
               designs={state.designs}
               selectedDesignId={selectedDesignId}
               onSelectDesign={setSelectedDesignId}
-              onSubmit={() => setWizardOpen(true)}
-              onRefresh={() => void loadScreen()}
+              onSubmit={openWizard}
+              onRefresh={refresh}
               busy={busy}
               hasPendingRequest={request.outcomeUnknown}
               onRetry={request.outcomeUnknown ? request.retry : undefined}
@@ -103,11 +115,8 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
               workspace={state.workspace}
               busy={busy}
               notice={state.notice}
-              onConfirm={() => {
-                submit();
-                setWizardOpen(false);
-              }}
-              onCancelWizard={() => setWizardOpen(false)}
+              onConfirm={confirmOrder}
+              onCancelWizard={closeWizard}
             />
           )}
         </TabsContent>

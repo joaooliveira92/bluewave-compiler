@@ -321,6 +321,15 @@ export function useCommandScreenWorkflow<
     if (command !== null) void run(command);
   }, [run]);
 
+  // Memoized so a screen can safely use it as a dependency of its own callbacks —
+  // otherwise every command handler a screen hands a memo() child changes each render.
+  const execute = useCallback(
+    (kind: RequestKind, send: CommandSender<Value>) => {
+      void run(prepareCommand(kind, revisionRef.current, send));
+    },
+    [run],
+  );
+
   useEffect(() => {
     void loadScreen();
   }, [loadScreen]);
@@ -343,6 +352,6 @@ export function useCommandScreenWorkflow<
     loadError,
     request: { outcomeUnknown, retry },
     loadScreen,
-    execute: (kind, send) => void run(prepareCommand(kind, revisionRef.current, send)),
+    execute,
   };
 }

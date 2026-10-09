@@ -61,6 +61,21 @@ export function acceptConstructionCommand(value: ConstructionCommandOutcome): {
 }
 
 /**
+ * The design to carry into a fresh projection: keep the current selection while it still
+ * exists, otherwise fall back to the first one (or none). Stops a refresh that drops a
+ * design from leaving a dangling selection behind.
+ */
+export function nextDesignSelection(
+  current: string | null,
+  designs: readonly { readonly designId: string }[],
+): string | null {
+  if (current !== null && designs.some((design) => design.designId === current)) {
+    return current;
+  }
+  return designs[0]?.designId ?? null;
+}
+
+/**
  * Projects that still count as "active construction" (anything not COMPLETED —
  * the same definition the engine uses). The single source of truth for every
  * surface that shows this number (Overview, Pre-turn review), so they cannot

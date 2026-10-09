@@ -16,6 +16,7 @@ import {
   activeConstructionProjects,
   expectedConstructionCompletions,
   initialConstructionScreenState,
+  nextDesignSelection,
   projectConstructionScreen,
 } from "./construction-screen-state.js";
 
@@ -237,6 +238,23 @@ describe("activeConstructionProjects", () => {
       { status: "QUEUED" },
     ]);
     expect(activeConstructionProjects([])).toEqual([]);
+  });
+});
+
+describe("nextDesignSelection", () => {
+  const designs = [{ designId: "d1" }, { designId: "d2" }];
+
+  it("keeps the selection while the design still exists", () => {
+    expect(nextDesignSelection("d2", designs)).toBe("d2");
+  });
+
+  it("falls back to the first design when the selection is gone", () => {
+    expect(nextDesignSelection("gone", designs)).toBe("d1");
+    expect(nextDesignSelection(null, designs)).toBe("d1");
+  });
+
+  it("is null when there are no designs", () => {
+    expect(nextDesignSelection("gone", [])).toBeNull();
   });
 });
 

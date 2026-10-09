@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useBridge } from "../../../lib/bridge-context.js";
 import type {
   ConstructionCommandOutcome,
@@ -10,6 +10,7 @@ import type { ConstructionScreenState } from "../construction-screen-state.js";
 import {
   acceptConstructionCommand,
   initialConstructionScreenState,
+  nextDesignSelection,
   projectConstructionScreen,
 } from "../construction-screen-state.js";
 
@@ -46,13 +47,15 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
       project: projectConstructionScreen,
       accept: acceptConstructionCommand,
       onProjection: (projection) =>
-        setSelectedDesignId((current) => current ?? projection.designs[0]?.designId ?? null),
+        setSelectedDesignId((current) => nextDesignSelection(current, projection.designs)),
     },
     { refreshKey: campaignRevision },
   );
-  function submit(): void {
+  const { execute } = workflow;
+
+  const submit = useCallback(() => {
     if (!bridge || selectedDesignId === null) return;
-    workflow.execute("submit", ({ expectedRevision, transportRequestId }) =>
+    execute("submit", ({ expectedRevision, transportRequestId }) =>
       bridge.campaign.execute("submitConstructionCommand", {
         sessionId,
         designId: selectedDesignId,
@@ -60,32 +63,38 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
         transportRequestId,
       }),
     );
-  }
+  }, [bridge, execute, sessionId, selectedDesignId]);
 
-  function replace(commandId: string): void {
-    if (!bridge || selectedDesignId === null) return;
-    workflow.execute("replace", ({ expectedRevision, transportRequestId }) =>
-      bridge.campaign.execute("replaceConstructionCommand", {
-        sessionId,
-        commandId,
-        designId: selectedDesignId,
-        expectedRevision,
-        transportRequestId,
-      }),
-    );
-  }
+  const replace = useCallback(
+    (commandId: string) => {
+      if (!bridge || selectedDesignId === null) return;
+      execute("replace", ({ expectedRevision, transportRequestId }) =>
+        bridge.campaign.execute("replaceConstructionCommand", {
+          sessionId,
+          commandId,
+          designId: selectedDesignId,
+          expectedRevision,
+          transportRequestId,
+        }),
+      );
+    },
+    [bridge, execute, sessionId, selectedDesignId],
+  );
 
-  function cancel(commandId: string): void {
-    if (!bridge) return;
-    workflow.execute("cancel", ({ expectedRevision, transportRequestId }) =>
-      bridge.campaign.execute("cancelConstructionCommand", {
-        sessionId,
-        commandId,
-        expectedRevision,
-        transportRequestId,
-      }),
-    );
-  }
+  const cancel = useCallback(
+    (commandId: string) => {
+      if (!bridge) return;
+      execute("cancel", ({ expectedRevision, transportRequestId }) =>
+        bridge.campaign.execute("cancelConstructionCommand", {
+          sessionId,
+          commandId,
+          expectedRevision,
+          transportRequestId,
+        }),
+      );
+    },
+    [bridge, execute, sessionId],
+  );
 
   return {
     state: workflow.state,
