@@ -9,7 +9,8 @@ import {
   isEarlyShipType,
 } from "./classification.js";
 import type { Finding } from "./findings.js";
-import { hasBlocking, sortFindings } from "./findings.js";
+import { hasBlocking, sortFindings, withoutSubjects } from "./findings.js";
+import { withRuleSubject } from "./findingSubjects.js";
 import { compileStability, type StabilityResult } from "./stability.js";
 import {
   num,
@@ -181,7 +182,7 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
     draft.requirement.protectionGoal === "NONE"
       ? findings.map((x) => (protectionIds.has(x.id) ? { ...x, severity: "ADVISORY" as const } : x))
       : findings;
-  const sorted = sortFindings(adjusted);
+  const sorted = sortFindings(adjusted.map(withRuleSubject));
   const costMicro = resolved.reduce((a, r) => a + r.costMicro, 0);
   const body = {
     ledger: hullRes.ledger,
@@ -199,5 +200,5 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
     findings: sorted,
     valid: !hasBlocking(sorted),
   };
-  return { ...body, hash: sha256Hex(canonicalSerialize(body)) };
+  return { ...body, hash: sha256Hex(canonicalSerialize(withoutSubjects(body))) };
 }

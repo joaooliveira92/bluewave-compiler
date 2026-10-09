@@ -1,16 +1,10 @@
 import { useId, type ReactNode } from "react";
 import { ArrowRight, X } from "lucide-react";
-import type { Finding } from "@bluewave/ship-design";
-import { Badge } from "../../../../components/ui/badge.js";
 import { Button } from "../../../../components/ui/button.js";
 import { sectionFacts, SECTIONS } from "../panels/hull-plan/sections.js";
-import {
-  entityFindings,
-  fittingFacts,
-  machineryRooms,
-  sectionOfZone,
-  type EntityContext,
-} from "./facts.js";
+import { findingsFor } from "../validation/boardFindings.js";
+import { FindingList } from "../validation/FindingList.js";
+import { fittingFacts, machineryRooms, sectionOfZone, type EntityContext } from "./facts.js";
 import { destinationFor, type Destination } from "./navigation.js";
 import type { ShipEntity } from "./store.js";
 import { useSelectionStore, useShipSelection } from "./useShipSelection.js";
@@ -23,7 +17,6 @@ const tonnes = (kg: number | undefined) =>
 const SIDE = { CENTRE: "centreline", PORT: "port", STBD: "starboard" } as const;
 /** Shown wherever the design model has no value: explicit, never blank or guessed. */
 const UNAVAILABLE = "Not available for this design";
-const FINDINGS_MAX = 3;
 
 function Facts({ rows }: { readonly rows: readonly (readonly [string, ReactNode | undefined])[] }) {
   return (
@@ -35,37 +28,6 @@ function Facts({ rows }: { readonly rows: readonly (readonly [string, ReactNode 
         </div>
       ))}
     </dl>
-  );
-}
-
-function Findings({
-  findings,
-  subject,
-}: {
-  readonly findings: readonly Finding[];
-  readonly subject: string;
-}) {
-  if (findings.length === 0)
-    return <p className="text-xs text-muted-foreground">No findings name this {subject}.</p>;
-  return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium">Findings that name this {subject}</p>
-      <ul className="space-y-1 text-xs">
-        {findings.slice(0, FINDINGS_MAX).map((f) => (
-          <li key={`${f.id}-${f.what}`} className="flex items-start gap-2">
-            <Badge variant={f.severity === "ADVISORY" ? "outline" : "destructive"}>
-              {f.severity}
-            </Badge>
-            <span>{f.what}</span>
-          </li>
-        ))}
-        {findings.length > FINDINGS_MAX && (
-          <li className="text-muted-foreground">
-            and {findings.length - FINDINGS_MAX} more on the Analysis tab
-          </li>
-        )}
-      </ul>
-    </div>
   );
 }
 
@@ -92,21 +54,27 @@ function SelectLink({
 interface Body {
   readonly kind: string;
   readonly title: string;
-  readonly subject: string;
   readonly content: ReactNode;
-  readonly findings: readonly Finding[];
 }
 
 function bodyFor(entity: ShipEntity, ctx: EntityContext): Body | null {
   switch (entity.kind) {
+    case "ship":
+      return {
+        kind: "Ship",
+        title: "Whole ship",
+        content: (
+          <p className="text-xs text-muted-foreground">
+            Findings about the design as a whole, which no one part of the drawing carries.
+          </p>
+        ),
+      };
     case "section": {
       const f = sectionFacts(entity.id, ctx);
       const z = f.zone;
       return {
         kind: "Section",
         title: f.meta.name,
-        subject: "section",
-        findings: entityFindings(entity, ctx),
         content: (
           <div className="space-y-2">
             <Facts
@@ -185,8 +153,6 @@ function bodyFor(entity: ShipEntity, ctx: EntityContext): Body | null {
       return {
         kind: "Fitting",
         title: f.battery ? `${f.name} · mount ${f.battery.mount}` : f.name,
-        subject: "fitting",
-        findings: f.findings,
         content: (
           <Facts
             rows={[
@@ -229,8 +195,6 @@ function bodyFor(entity: ShipEntity, ctx: EntityContext): Body | null {
       return {
         kind: "Machinery room",
         title: `Machinery room ${entity.index + 1}`,
-        subject: "room",
-        findings: [],
         content: (
           <Facts
             rows={[
@@ -260,6 +224,7 @@ export function SelectionInspector({
   readonly onClear: () => void;
 }) {
   const selected = useShipSelection((s) => s.selected);
+  const focused = useShipSelection((s) => s.finding);
   const headingId = useId();
   if (selected === null) return null;
   const body = bodyFor(selected, ctx);
@@ -284,7 +249,12 @@ export function SelectionInspector({
         </Button>
       </div>
       {body.content}
-      <Findings findings={body.findings} subject={body.subject} />
+      <FindingList
+        entityKey={JSON.stringify(selected)}
+        findings={findingsFor(selected, ctx.findings)}
+        focused={focused}
+        onGoTo={onGoTo}
+      />
       {destination && (
         <Button variant="outline" size="sm" onClick={() => onGoTo(destination)}>
           {destination.label}

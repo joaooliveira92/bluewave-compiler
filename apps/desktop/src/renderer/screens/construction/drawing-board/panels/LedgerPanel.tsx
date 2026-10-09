@@ -1,17 +1,35 @@
 import type { WorkshopView } from "@bluewave/ship-design";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../../../../components/ui/hover-card.js";
 import { Panel } from "./Panel.js";
+
+const tonnes = (kg: number) => Math.round(kg / 1000).toLocaleString("en-US");
 
 export function LedgerPanel({ view }: { readonly view: WorkshopView }) {
   return (
     <Panel title="Weight summary">
+      {/* Hover detail only: the table below carries the same figures for assistive tech. */}
       <div className="flex h-3 w-full overflow-hidden rounded bg-muted" aria-hidden="true">
         {view.ledger.map((r, i) => (
-          <div
-            key={r.category}
-            title={r.category}
-            style={{ width: `${r.shareBp / 100}%`, opacity: 0.35 + (i % 4) * 0.2 }}
-            className="bg-primary"
-          />
+          <HoverCard key={r.category}>
+            <HoverCardTrigger
+              delay={50}
+              closeDelay={50}
+              render={<div />}
+              style={{ width: `${r.shareBp / 100}%`, opacity: 0.35 + (i % 4) * 0.2 }}
+              className="bg-primary transition-opacity hover:opacity-100!"
+            />
+            <HoverCardContent side="top" className="w-48 space-y-1 p-3 text-sm">
+              <div className="font-medium capitalize">{r.category}</div>
+              <div className="flex justify-between tabular-nums text-muted-foreground">
+                <span>{tonnes(r.kg)} t</span>
+                <span>{(r.shareBp / 100).toFixed(1)}%</span>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
         ))}
       </div>
       <table className="w-full text-sm">
@@ -33,9 +51,7 @@ export function LedgerPanel({ view }: { readonly view: WorkshopView }) {
               <th scope="row" className="text-left font-normal">
                 {r.category}
               </th>
-              <td className="text-right tabular-nums">
-                {Math.round(r.kg / 1000).toLocaleString("en-US")}
-              </td>
+              <td className="text-right tabular-nums">{tonnes(r.kg)}</td>
               <td className="text-right tabular-nums">{(r.shareBp / 100).toFixed(1)}%</td>
             </tr>
           ))}
@@ -46,8 +62,7 @@ export function LedgerPanel({ view }: { readonly view: WorkshopView }) {
               Total / buoyancy at design draught
             </th>
             <td className="text-right tabular-nums" colSpan={2}>
-              {Math.round(view.totalKg / 1000).toLocaleString("en-US")} t /{" "}
-              {Math.round(view.buoyantKg / 1000).toLocaleString("en-US")} t
+              {tonnes(view.totalKg)} t / {tonnes(view.buoyantKg)} t
             </td>
           </tr>
         </tfoot>

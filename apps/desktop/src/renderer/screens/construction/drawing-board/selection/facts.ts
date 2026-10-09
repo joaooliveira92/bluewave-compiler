@@ -1,10 +1,4 @@
-import {
-  SEVERITY_ORDER,
-  type DesignDraft,
-  type Finding,
-  type MountSide,
-  type WorkshopView,
-} from "@bluewave/ship-design";
+import type { DesignDraft, MountSide, WorkshopView } from "@bluewave/ship-design";
 import type { BatteryCard } from "../batteryView.js";
 import type { DrawingBoardContent } from "../content.js";
 import {
@@ -15,6 +9,7 @@ import {
   type SectionId,
   type ZoneRange,
 } from "../panels/hull-plan/sections.js";
+import type { BoardFinding } from "../validation/boardFindings.js";
 import type { ShipEntity } from "./store.js";
 
 /** What the selection facts read: the live design, its compile, the catalogue and the hull form's zones. */
@@ -24,23 +19,9 @@ export interface EntityContext {
   readonly content: DrawingBoardContent;
   readonly zones: readonly ZoneRange[];
   readonly batteries: readonly BatteryCard[];
+  /** The design's findings as the board shows them (`boardFindings`), computed once per compile. */
+  readonly findings: readonly BoardFinding[];
 }
-
-const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-/**
- * Findings whose text names `token` as a whole word (an instance id or a zone id), most severe first. Findings
- * carry no structured subject, so this is a text match: callers present it as "findings that name this".
- */
-export function findingsNaming(view: WorkshopView, token: string): Finding[] {
-  const word = new RegExp(`(^|[^A-Za-z0-9_])${escape(token)}([^A-Za-z0-9_]|$)`);
-  return SEVERITY_ORDER.flatMap((s) =>
-    view.findingsBySeverity[s].filter((f) => word.test(f.what) || word.test(f.why)),
-  );
-}
-
-/** Whether a finding should mark the selection as "with warning" (anything above an advisory). */
-export const isWarning = (f: Finding) => f.severity !== "ADVISORY";
 
 export function sectionOfZone(zoneId: string): SectionId | undefined {
   return SECTION_IDS.find((id) => SECTIONS[id].zoneId === zoneId);
@@ -65,7 +46,6 @@ export interface FittingFacts {
   readonly arcDeg: number | undefined;
   /** Protection margin against the design threat, bp; magazines only. */
   readonly protectionBp: number | undefined;
-  readonly findings: readonly Finding[];
 }
 
 const words = (s: string) => s.replaceAll("_", " ").toLowerCase();
@@ -104,7 +84,6 @@ export function fittingFacts(instanceId: string, ctx: EntityContext): FittingFac
       ?.effectiveBeamArcDeg,
     protectionBp:
       kind === "magazine" ? ctx.view.compiled.armour?.magazineProtectionBp[instanceId] : undefined,
-    findings: findingsNaming(ctx.view, instanceId),
   };
 }
 
@@ -123,35 +102,13 @@ export function entityExists(
   zones: readonly ZoneRange[],
 ): boolean {
   switch (entity.kind) {
+    case "ship":
+      return true;
     case "section":
       return zones.some((z) => z.id === SECTIONS[entity.id].zoneId);
     case "fitting":
       return draft.placements.some((p) => p.instanceId === entity.instanceId);
     case "machinery-room":
       return entity.index < machineryRooms(draft).length;
-  }
-}
-
-/** Findings for an entity, for the "selected with warning" state and the inspector. */
-export function entityFindings(entity: ShipEntity, ctx: EntityContext): readonly Finding[] {
-  switch (entity.kind) {
-    case "section":
-      return findingsNaming(ctx.view, SECTIONS[entity.id].zoneId);
-    case "fitting":
-      return findingsNaming(ctx.view, entity.instanceId);
-    case "machinery-room":
-      return [];
-  }
-}
-
-/** Whether an entity has findings above advisory: the "selected with warning" state. */
-export function entityWarns(entity: ShipEntity, view: WorkshopView): boolean {
-  switch (entity.kind) {
-    case "section":
-      return findingsNaming(view, SECTIONS[entity.id].zoneId).some(isWarning);
-    case "fitting":
-      return findingsNaming(view, entity.instanceId).some(isWarning);
-    case "machinery-room":
-      return false;
   }
 }

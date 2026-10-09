@@ -119,8 +119,20 @@ export function FleetDispatchCard({
         }}
       />
 
-      {/* Bottom information shelf overlays the ship cover. */}
-      <div className="absolute inset-x-0 bottom-0 z-20 min-h-[4.8rem] border-t border-admiralty-ink/20 bg-admiralty-surface/35 px-5 py-3 text-admiralty-ink backdrop-blur-md">
+      {/* Active-nation emphasis: mounted only while active, so its animation
+          replays on every selection change (see globals.css). */}
+      {position.active ? (
+        <span aria-hidden="true" className="fleet-dispatch-activate-glow" />
+      ) : null}
+
+      {/* Bottom information shelf overlays the ship cover. The frosted blur is
+          reserved for the active card — running it on every stacked card is a
+          large per-frame paint cost during the selection transition. */}
+      <div
+        className={`absolute inset-x-0 bottom-0 z-20 min-h-[4.8rem] border-t border-admiralty-ink/20 px-5 py-3 text-admiralty-ink ${
+          position.active ? "bg-admiralty-surface/35 backdrop-blur-md" : "bg-admiralty-surface/55"
+        }`}
+      >
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="truncate text-base font-black uppercase tracking-wide sm:text-lg">
@@ -132,7 +144,7 @@ export function FleetDispatchCard({
           </div>
 
           {position.active ? (
-            <span className="flex shrink-0 items-center gap-1.5 rounded bg-admiralty-accent px-2.5 py-1 font-display text-[0.7rem] font-black uppercase tracking-wider text-admiralty-accent-foreground">
+            <span className="fleet-dispatch-badge-pop flex shrink-0 items-center gap-1.5 rounded bg-admiralty-accent px-2.5 py-1 font-display text-[0.7rem] font-black uppercase tracking-wider text-admiralty-accent-foreground">
               <Check className="h-3 w-3" aria-hidden="true" />
               Active
             </span>

@@ -1,5 +1,5 @@
 import type { Finding } from "./findings.js";
-import { sortFindings } from "./findings.js";
+import { placementTarget, sortFindings } from "./findings.js";
 import { evaluate, type LookupTable } from "./formula/eval.js";
 import { parseFormula } from "./formula/parse.js";
 import { toSafe } from "./units.js";
@@ -143,6 +143,7 @@ export function compileWeapons(
           threshold: balance.arcWarnLossDeg,
           value: lost,
         },
+        subject: { targets: [placementTarget(m.instanceId)] },
       });
     }
 

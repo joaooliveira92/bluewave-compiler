@@ -1,7 +1,7 @@
 import type { ZoneId } from "./arrangement.js";
 import type { ComponentCategory } from "./component.js";
 import type { Finding } from "./findings.js";
-import { sortFindings } from "./findings.js";
+import { placementTarget, sortFindings } from "./findings.js";
 import { toSafe } from "./units.js";
 
 export type LoadCase = "HARBOUR" | "CRUISING" | "ACTION";
@@ -265,6 +265,7 @@ export function compileSystems(i: SystemsInput, b: SystemsBalance): SystemsResul
             threshold: b.smokeInterferencePermille,
             value: Math.abs(i.funnelStationsPermille[0]! - d.stationPermille),
           },
+          subject: { targets: [placementTarget(d.instanceId)] },
         });
       }
     } else {
@@ -295,6 +296,7 @@ export function compileSystems(i: SystemsInput, b: SystemsBalance): SystemsResul
         threshold: 0,
         value: uncontrolled.length,
       },
+      subject: { targets: uncontrolled.map((u) => placementTarget(u.gunId)) },
     });
   }
 

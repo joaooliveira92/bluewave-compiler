@@ -21,7 +21,11 @@ import { ProfileView } from "./ProfileView.js";
 import { SectionCard } from "./SectionCard.js";
 import { SectionLabels } from "./SectionLabels.js";
 import { batteryCards, mountNameMap } from "../../batteryView.js";
-import { entityWarns } from "../../selection/facts.js";
+import { boardFindings, entityWarns, type BoardFinding } from "../../validation/boardFindings.js";
+import { FindingMarkers, layoutMarkers } from "../../validation/FindingMarkers.js";
+import { FindingsControl, useFindingsView } from "../../validation/FindingsControl.js";
+import { passesFilter } from "../../validation/severity.js";
+import { SECTIONS } from "./sections.js";
 import type { ShipEntity } from "../../selection/store.js";
 import { FittingTargets } from "./FittingTargets.js";
 import { SelectionLayer } from "./SelectionLayer.js";
@@ -51,17 +55,21 @@ export function HullPlanPanel({
   view,
   month,
   edit,
+  findings: given,
 }: {
   readonly draft: DesignDraft;
   readonly content: DrawingBoardContent;
   readonly view: WorkshopView;
   readonly month: string;
   readonly edit: Edit;
+  /** The board's findings (`boardFindings`); derived here only when the plan is shown on its own. */
+  readonly findings?: readonly BoardFinding[];
 }) {
   const [showArcs, setShowArcs] = useState(true);
   const [tool, setTool] = useState<PlanTool>(IDLE_TOOL);
   const [notice, setNotice] = useState<string | null>(null);
   const planRef = useRef<HTMLDivElement>(null);
+  const [findingsView, setFindingsView] = useFindingsView();
   const form = content.hullForms.find((f) => f.id === draft.hull.hullFormId);
   const frame = planFrame(
     draft.hull,
@@ -99,7 +107,10 @@ export function HullPlanPanel({
     }
   };
   const mounts = view.compiled.weapons?.mounts ?? [];
-  const mountNames = mountNameMap(batteryCards(view, draft));
+  const batteries = batteryCards(view, draft);
+  const mountNames = mountNameMap(batteries);
+  const findings = given ?? boardFindings(view, draft, batteries);
+  const shown = findings.filter((f) => passesFilter(f.severity, findingsView.filter));
   const targets = new Map(
     draft.placements.map((p) => [
       p.instanceId,
@@ -110,7 +121,21 @@ export function HullPlanPanel({
       },
     ]),
   );
-  const warns = (entity: ShipEntity) => entityWarns(entity, view);
+  const warns = (entity: ShipEntity) => entityWarns(entity, findings);
+  const entityName = (e: ShipEntity): string => {
+    switch (e.kind) {
+      case "ship":
+        return "whole ship";
+      case "section":
+        return SECTIONS[e.id].name;
+      case "fitting": {
+        const t = targets.get(e.instanceId);
+        return t ? `${t.name}${t.mount ? `, mount ${t.mount}` : ""}` : e.instanceId;
+      }
+      case "machinery-room":
+        return `machinery room ${e.index + 1}`;
+    }
+  };
   const superstructure = zones.find((z) => z.id === "SUPERSTRUCTURE");
   const placedFunnels = funnelPlacements(draft, content);
   const facts: DrawingFacts = {
@@ -163,6 +188,11 @@ export function HullPlanPanel({
           />
           <span aria-hidden="true">Show gun arcs</span>
         </div>
+        <FindingsControl
+          view={findingsView}
+          onChange={setFindingsView}
+          shipFindings={shown.filter((f) => f.entities.some((e) => e.kind === "ship"))}
+        />
         <div className="space-y-1" ref={planRef}>
           <p className="text-xs font-medium text-muted-foreground">Waterline plan</p>
           <div className="relative">
@@ -214,6 +244,11 @@ export function HullPlanPanel({
               targets={targets}
               disabled={tool.mode !== "off"}
               warns={(instanceId) => warns({ kind: "fitting", instanceId })}
+            />
+            <FindingMarkers
+              groups={findingsView.visible ? layoutMarkers(shown, frame, draft, zones) : []}
+              names={entityName}
+              hidden={tool.mode !== "off"}
             />
           </div>
           <SectionLabels

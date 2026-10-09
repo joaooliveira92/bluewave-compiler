@@ -32,6 +32,13 @@ export const MIN_PHI_DEG = -75;
 export const MAX_PHI_DEG = 40;
 const AUTOROTATE_DEG_PER_MS = 360 / 150_000; // one revolution per 150s
 export const FOCUS_SPIN_MS = 1000;
+// Re-projecting the whole world geometry (orthographic geoPath for every
+// country) is the globe's dominant per-frame cost; at 60fps it churns enough
+// short-lived path strings to trigger GC pauses that hitch the Fleet Dispatch
+// stack's selection transition. Direct manipulation (drag) renders every frame
+// for a 1:1 feel, while autorotate and the selection spin are capped to ~40fps —
+// imperceptible at one revolution per 150s / a 1s eased spin, but far cheaper.
+const GLOBE_RENDER_INTERVAL_MS = 1000 / 40;
 // Pin/ring size is intentionally *not* scaled by projection.scale() — they
 // stay a constant screen-pixel size at any zoom level, never ballooning (or
 // shrinking) as the globe zooms (wayfinder #150).
@@ -176,11 +183,13 @@ export function useSvgGlobe(): SvgGlobeHandles {
     let suspended = false;
     let documentHidden = document.hidden;
     let offScreen = false;
+    let lastRenderAt = 0;
 
     function tick(now: number): void {
       const dt = now - lastFrameAt;
       lastFrameAt = now;
       const anim = rotationAnimRef.current;
+      const dragging = draggingRef.current;
       if (anim) {
         const t = Math.min(1, (now - anim.start) / FOCUS_SPIN_MS);
         const eased = easeCubicInOut(t);
@@ -189,11 +198,16 @@ export function useSvgGlobe(): SvgGlobeHandles {
           anim.fromPhi + (anim.toPhi - anim.fromPhi) * eased,
         ]);
         if (t >= 1) rotationAnimRef.current = null;
-      } else if (!draggingRef.current) {
+      } else if (!dragging) {
         const [lambda, phi] = projection.rotate();
         projection.rotate([lambda + AUTOROTATE_DEG_PER_MS * dt, phi]);
       }
-      renderFrame();
+      // Direct drag renders every frame; autorotate and the selection spin are
+      // capped to keep the main thread free for the stack's transition.
+      if (dragging || now - lastRenderAt >= GLOBE_RENDER_INTERVAL_MS) {
+        renderFrame();
+        lastRenderAt = now;
+      }
       rafId = requestAnimationFrame(tick);
     }
 

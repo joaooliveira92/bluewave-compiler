@@ -6,69 +6,191 @@ import type {
   SuggestedFix,
   WorkshopView,
 } from "@bluewave/ship-design";
+import { CircleCheck, Crosshair, Lightbulb, OctagonX, TriangleAlert } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "../../../../components/ui/accordion.js";
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+} from "../../../../components/ui/alert.js";
 import { Badge } from "../../../../components/ui/badge.js";
 import { Button } from "../../../../components/ui/button.js";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../../../../components/ui/hover-card.js";
+import { cn } from "../../../../lib/utils.js";
 import { Panel } from "./Panel.js";
+import { findingAttrs } from "../selection/navigation.js";
+import type { BoardFinding } from "../validation/boardFindings.js";
+import { SEVERITY_ORDER, SEVERITY_STYLE } from "../validation/severity.js";
 
-const sevVariant: Record<Severity, "destructive" | "secondary" | "outline"> = {
-  BLOCKING: "destructive",
-  CRITICAL: "destructive",
-  WARNING: "secondary",
-  ADVISORY: "outline",
-};
-
-function FindingItem({ f, value }: { readonly f: Finding; readonly value: string }) {
+/** The rule id, with the computed evidence behind the finding on hover. */
+function RuleEvidence({ f }: { readonly f: Finding }) {
+  const inputs = Object.entries(f.evidence.inputs);
   return (
-    <AccordionItem value={value} className="rounded border px-2">
-      <AccordionTrigger className="gap-2 py-2 text-left font-normal hover:no-underline">
-        <span className="flex-1">
-          <Badge variant={sevVariant[f.severity]} className="mr-2">
+    <HoverCard>
+      <HoverCardTrigger
+        delay={100}
+        closeDelay={100}
+        render={<button type="button" />}
+        className="cursor-help text-xs text-muted-foreground underline decoration-dotted underline-offset-2"
+      >
+        Rule {f.id}
+      </HoverCardTrigger>
+      <HoverCardContent side="top" className="w-72 space-y-2 text-sm">
+        <div className="font-medium">Evidence</div>
+        <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-xs">
+          <dt className="text-muted-foreground">Formula</dt>
+          <dd className="text-right font-mono">{f.evidence.formulaId}</dd>
+          <dt className="text-muted-foreground">Computed value</dt>
+          <dd className="text-right tabular-nums">{f.evidence.value.toLocaleString("en-US")}</dd>
+          <dt className="text-muted-foreground">Limit</dt>
+          <dd className="text-right tabular-nums">
+            {f.evidence.threshold.toLocaleString("en-US")}
+          </dd>
+        </dl>
+        {inputs.length > 0 && (
+          <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 border-t pt-2 text-xs">
+            {inputs.map(([k, v]) => (
+              <div key={k} className="contents">
+                <dt className="font-mono text-muted-foreground">{k}</dt>
+                <dd className="text-right tabular-nums">{v.toLocaleString("en-US")}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
+function FindingItem({
+  bf,
+  onShowOnShip,
+}: {
+  readonly bf: BoardFinding;
+  readonly onShowOnShip: (f: BoardFinding) => void;
+}) {
+  const f = bf.finding;
+  const { Icon, tone, badge } = SEVERITY_STYLE[f.severity];
+  return (
+    <AccordionItem
+      value={bf.key}
+      className="rounded-lg border px-3 not-last:border-b"
+      {...findingAttrs(bf)}
+    >
+      <AccordionTrigger className="gap-2 py-2.5 text-left font-normal hover:no-underline">
+        <Icon aria-hidden="true" className={cn("size-4 shrink-0", tone)} />
+        <span className="flex flex-1 items-start gap-2">
+          <Badge variant={badge} className="shrink-0">
             {f.severity}
           </Badge>
-          {f.what}
+          <span>{f.what}</span>
         </span>
       </AccordionTrigger>
-      <AccordionContent>
-        <div className="space-y-1 text-sm">
+      <AccordionContent className="pt-0 pb-3 pl-6">
+        <div className="space-y-1.5 text-sm">
           <p>
-            <strong>Why:</strong> {f.why}
+            <strong>Why:</strong> <span className="text-muted-foreground">{f.why}</span>
           </p>
           <p>
-            <strong>Consequence:</strong> {f.consequence}
+            <strong>Consequence:</strong>{" "}
+            <span className="text-muted-foreground">{f.consequence}</span>
           </p>
           {f.remedies.length > 0 && (
             <div>
               <strong>Ways to fix it:</strong>
-              <ul className="ml-5 list-disc">
+              <ul className="ml-5 list-disc text-muted-foreground">
                 {f.remedies.map((r) => (
                   <li key={r.id}>{r.description}</li>
                 ))}
               </ul>
             </div>
           )}
-          <p className="text-xs text-muted-foreground">Rule {f.id}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <RuleEvidence f={f} />
+            {bf.entities.length > 0 && (
+              <Button size="sm" variant="outline" onClick={() => onShowOnShip(bf)}>
+                <Crosshair aria-hidden="true" className="mr-1 size-3.5" />
+                Show on ship
+              </Button>
+            )}
+            {bf.association === "inferred" && (
+              <span className="text-xs text-muted-foreground italic">
+                Ship link inferred from wording
+              </span>
+            )}
+          </div>
         </div>
       </AccordionContent>
     </AccordionItem>
   );
 }
 
-export function FindingsPanel({
+function Verdict({
   view,
-  suggest,
-  onApply,
+  order,
 }: {
   readonly view: WorkshopView;
+  readonly order: readonly Severity[];
+}) {
+  const flagged = view.counts.CRITICAL + view.counts.WARNING > 0;
+  const variant = !view.valid ? "destructive" : flagged ? "warning" : "success";
+  const Icon = !view.valid ? OctagonX : flagged ? TriangleAlert : CircleCheck;
+  return (
+    <Alert role="status" variant={variant}>
+      <Icon aria-hidden="true" />
+      <AlertTitle>
+        {view.valid
+          ? "Design can be submitted."
+          : "Design cannot be built: resolve the blocking findings."}
+      </AlertTitle>
+      <AlertDescription>
+        {order.map((s) => `${view.counts[s]} ${s.toLowerCase()}`).join(", ")}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function FixSummary({ f }: { readonly f: SuggestedFix }) {
+  return (
+    <>
+      Resolves{" "}
+      {f.resolved.length === 0
+        ? "nothing outright"
+        : f.resolved.map((r) => r.split(":")[1]).join(", ")}{" "}
+      · blocking {f.countsBefore.BLOCKING} → {f.countsAfter.BLOCKING}, critical{" "}
+      {f.countsBefore.CRITICAL} → {f.countsAfter.CRITICAL}, warnings {f.countsBefore.WARNING} →{" "}
+      {f.countsAfter.WARNING} · weight {f.totalKgDelta >= 0 ? "+" : ""}
+      {Math.round(f.totalKgDelta / 1000)} t
+    </>
+  );
+}
+
+export function FindingsPanel({
+  view,
+  findings,
+  suggest,
+  onApply,
+  onShowOnShip,
+}: {
+  readonly view: WorkshopView;
+  /** The board's findings: the same objects and identities the ship drawing shows. */
+  readonly findings: readonly BoardFinding[];
+  /** Pins the finding's entity on the ship drawing. */
+  readonly onShowOnShip: (f: BoardFinding) => void;
   readonly suggest: () => SuggestedFix[];
   readonly onApply: (e: DraftEdit) => void;
 }) {
-  const order: Severity[] = ["BLOCKING", "CRITICAL", "WARNING", "ADVISORY"];
+  const order: readonly Severity[] = SEVERITY_ORDER;
   const total = order.reduce((a, s) => a + view.counts[s], 0);
   const serious = view.counts.BLOCKING + view.counts.CRITICAL + view.counts.WARNING > 0;
   // Suggestions belong to one compiled design: they reset whenever the design changes.
@@ -79,23 +201,14 @@ export function FindingsPanel({
   const current = fixes !== null && fixes.forHash === view.compiled.hash ? fixes.list : null;
   return (
     <Panel title="Validation">
-      <p role="status" className="text-sm">
-        {view.valid
-          ? "Design can be submitted."
-          : "Design cannot be built: resolve the blocking findings."}{" "}
-        <span className="text-muted-foreground">
-          {order.map((s) => `${view.counts[s]} ${s.toLowerCase()}`).join(", ")}
-        </span>
-      </p>
+      <Verdict view={view} order={order} />
       {total === 0 ? (
         <p className="text-sm text-muted-foreground">No findings.</p>
       ) : (
         <Accordion multiple className="space-y-2" aria-label="Findings">
-          {order.flatMap((s) =>
-            view.findingsBySeverity[s].map((f, i) => (
-              <FindingItem key={`${s}-${f.id}-${i}`} value={`${s}-${f.id}-${i}`} f={f} />
-            )),
-          )}
+          {findings.map((bf) => (
+            <FindingItem key={bf.key} bf={bf} onShowOnShip={onShowOnShip} />
+          ))}
         </Accordion>
       )}
       {serious && (
@@ -108,33 +221,28 @@ export function FindingsPanel({
           </Button>
           {current !== null &&
             (current.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No single change improves this design; try changing more than one thing.
-              </p>
+              <Alert role="status" variant="info">
+                <Lightbulb aria-hidden="true" />
+                <AlertDescription>
+                  No single change improves this design; try changing more than one thing.
+                </AlertDescription>
+              </Alert>
             ) : (
               <ul className="space-y-2" aria-label="Suggested fixes">
                 {current.map((f) => (
-                  <li
-                    key={f.description}
-                    className="flex items-start justify-between gap-3 rounded border p-2 text-sm"
-                  >
-                    <div>
-                      <div>{f.description}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Resolves{" "}
-                        {f.resolved.length === 0
-                          ? "nothing outright"
-                          : f.resolved.map((r) => r.split(":")[1]).join(", ")}{" "}
-                        · blocking {f.countsBefore.BLOCKING} → {f.countsAfter.BLOCKING}, critical{" "}
-                        {f.countsBefore.CRITICAL} → {f.countsAfter.CRITICAL}, warnings{" "}
-                        {f.countsBefore.WARNING} → {f.countsAfter.WARNING} · weight{" "}
-                        {f.totalKgDelta >= 0 ? "+" : ""}
-                        {Math.round(f.totalKgDelta / 1000)} t
-                      </div>
-                    </div>
-                    <Button size="sm" onClick={() => onApply(f.edit)}>
-                      Apply
-                    </Button>
+                  <li key={f.description}>
+                    <Alert role={undefined} variant="info">
+                      <Lightbulb aria-hidden="true" />
+                      <AlertTitle>{f.description}</AlertTitle>
+                      <AlertDescription className="text-xs">
+                        <FixSummary f={f} />
+                      </AlertDescription>
+                      <AlertAction>
+                        <Button size="sm" onClick={() => onApply(f.edit)}>
+                          Apply
+                        </Button>
+                      </AlertAction>
+                    </Alert>
                   </li>
                 ))}
               </ul>

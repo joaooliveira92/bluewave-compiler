@@ -2,6 +2,8 @@ import type { SectionId } from "../panels/hull-plan/sections.js";
 
 /** A thing on the ship drawing the player can point at. Presentation only: never part of the design. */
 export type ShipEntity =
+  /** The ship as a whole: what ship-level findings are about. */
+  | { readonly kind: "ship" }
   | { readonly kind: "section"; readonly id: SectionId }
   | { readonly kind: "fitting"; readonly instanceId: string }
   /** Machinery rooms carry no id in the design model; `index` is their position in `machinery.rooms`. */
@@ -14,13 +16,25 @@ export interface SelectionState {
   readonly linked: readonly ShipEntity[];
   /** The section whose hover card is open (hover, focus or tap preview). */
   readonly preview: SectionId | null;
+  /** Key (`findingKey`) of the finding the player opened, from a marker or the Analysis tab; within `selected`. */
+  readonly finding: string | null;
+  /** True while a finding marker's preview is showing (Escape closes it before anything else). */
+  readonly markerPreview: boolean;
 }
 
-export const EMPTY_SELECTION: SelectionState = { selected: null, linked: [], preview: null };
+export const EMPTY_SELECTION: SelectionState = {
+  selected: null,
+  linked: [],
+  preview: null,
+  finding: null,
+  markerPreview: false,
+};
 
 export function sameEntity(a: ShipEntity | null, b: ShipEntity | null): boolean {
   if (a === null || b === null) return a === b;
   switch (a.kind) {
+    case "ship":
+      return b.kind === "ship";
     case "section":
       return b.kind === "section" && a.id === b.id;
     case "fitting":
@@ -33,8 +47,14 @@ export function sameEntity(a: ShipEntity | null, b: ShipEntity | null): boolean 
 export interface SelectionStore {
   readonly get: () => SelectionState;
   readonly subscribe: (listener: () => void) => () => void;
-  readonly select: (entity: ShipEntity) => void;
+  /** Pins an entity; a different entity drops the opened finding (it belonged to the old one). */
+  readonly select: (entity: ShipEntity, finding?: string | null) => void;
   readonly clear: () => void;
+  /** Escape's middle step: closes the opened finding but keeps its entity pinned. */
+  readonly clearFinding: () => void;
+  readonly setMarkerPreview: (open: boolean) => void;
+  /** Drops the opened finding once the design no longer raises it (it was resolved). */
+  readonly pruneFinding: (exists: (key: string) => boolean) => void;
   readonly setLinked: (entities: readonly ShipEntity[]) => void;
   readonly setPreview: (id: SectionId | null) => void;
   /** Drops any selection or link the current design no longer contains (a removed fitting, a missing zone). */
@@ -59,11 +79,24 @@ export function createSelectionStore(initial: SelectionState = EMPTY_SELECTION):
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    select: (entity) => {
-      if (!sameEntity(state.selected, entity)) set({ ...state, selected: entity });
+    select: (entity, finding) => {
+      const same = sameEntity(state.selected, entity);
+      const nextFinding = finding !== undefined ? finding : same ? state.finding : null;
+      if (!same || nextFinding !== state.finding)
+        set({ ...state, selected: entity, finding: nextFinding });
     },
     clear: () => {
-      if (state.selected !== null) set({ ...state, selected: null });
+      if (state.selected !== null || state.finding !== null)
+        set({ ...state, selected: null, finding: null });
+    },
+    clearFinding: () => {
+      if (state.finding !== null) set({ ...state, finding: null });
+    },
+    setMarkerPreview: (open) => {
+      if (open !== state.markerPreview) set({ ...state, markerPreview: open });
+    },
+    pruneFinding: (exists) => {
+      if (state.finding !== null && !exists(state.finding)) set({ ...state, finding: null });
     },
     setLinked: (entities) => {
       const same =
@@ -78,7 +111,7 @@ export function createSelectionStore(initial: SelectionState = EMPTY_SELECTION):
       const selected = state.selected && exists(state.selected) ? state.selected : null;
       const linked = state.linked.filter(exists);
       if (selected !== state.selected || linked.length !== state.linked.length)
-        set({ ...state, selected, linked });
+        set({ ...state, selected, linked, finding: selected ? state.finding : null });
     },
   };
 }

@@ -1,6 +1,6 @@
 import type { ComponentCategory } from "./component.js";
 import type { Finding } from "./findings.js";
-import { sortFindings } from "./findings.js";
+import { placementTarget, sortFindings, zoneTarget, type FindingTarget } from "./findings.js";
 import { toSafe } from "./units.js";
 
 /** The nine longitudinal zones (spec §8.1); order is bow to stern, MISSION overlays the upper decks. */
@@ -118,6 +118,7 @@ function mk(
   consequence: string,
   remedies: [string, string][],
   evidence: Finding["evidence"],
+  targets: readonly FindingTarget[],
 ): Finding {
   return {
     id,
@@ -127,6 +128,7 @@ function mk(
     consequence,
     remedies: remedies.map(([rid, description]) => ({ id: rid, description })),
     evidence,
+    subject: { targets },
   };
 }
 
@@ -174,6 +176,7 @@ export function analyseArrangement(
             ["merge", "Merge into one placement with a higher count."],
           ],
           { formulaId: "ARR", inputs: {}, threshold: 1, value: 2 },
+          [placementTarget(p.instanceId)],
         ),
       );
     }
@@ -198,6 +201,7 @@ export function analyseArrangement(
             threshold: z.startPermille,
             value: p.stationPermille,
           },
+          [placementTarget(p.instanceId), zoneTarget(p.zoneId)],
         ),
       );
     }
@@ -215,6 +219,7 @@ export function analyseArrangement(
             ["remove", "Remove it."],
           ],
           { formulaId: "ARR", inputs: {}, threshold: 0, value: 1 },
+          [placementTarget(p.instanceId)],
         ),
       );
     }
@@ -251,6 +256,7 @@ export function analyseArrangement(
             threshold: volumeCap,
             value: s.volumeUsedLitre,
           },
+          [zoneTarget(z.id)],
         ),
       );
     }
@@ -273,6 +279,7 @@ export function analyseArrangement(
             threshold: deckCap,
             value: s.deckUsedMm2,
           },
+          [zoneTarget(z.id)],
         ),
       );
     }
@@ -297,6 +304,7 @@ export function analyseArrangement(
               ["swap_component", "Use a component that tolerates co-location."],
             ],
             { formulaId: "ARR", inputs: {}, threshold: 0, value: 1 },
+            [placementTarget(p.instanceId), placementTarget(q.instanceId)],
           ),
         );
       }
@@ -323,6 +331,7 @@ export function analyseArrangement(
             ["remove_weapon", "Remove the weapon."],
           ],
           { formulaId: "F-G2", inputs: {}, threshold: p.ammoVolumeLitre, value: 0 },
+          [placementTarget(p.instanceId)],
         ),
       );
       continue;
@@ -343,6 +352,7 @@ export function analyseArrangement(
             ["relocate_mount", "Relocate the mount."],
           ],
           { formulaId: "F-G3", inputs: { dist }, threshold: p.maxFeedPermille, value: dist },
+          [placementTarget(p.instanceId), placementTarget(mag.instanceId)],
         ),
       );
     }
@@ -365,6 +375,7 @@ export function analyseArrangement(
             ["split_magazine", "Add a second magazine and re-link guns."],
           ],
           { formulaId: "F-G2", inputs: {}, threshold: mag.magazineLitre ?? 0, value: need },
+          [placementTarget(magId)],
         ),
       );
     }
@@ -396,6 +407,7 @@ export function analyseArrangement(
               threshold: warn ? balance.concentrationWarningBp : balance.concentrationAdvisoryBp,
               value: share,
             },
+            [zoneTarget(s.zoneId)],
           ),
         );
       }

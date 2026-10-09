@@ -33,13 +33,16 @@ const AccordionTrigger = ({ className, children, ref, ...props }: AccordionTrigg
       ref={ref}
       className={cn(
         "flex flex-1 items-center justify-between py-3 text-sm font-medium transition-all hover:underline",
-        "[&[data-open]>svg]:rotate-180",
+        "group/accordion-trigger [&[data-panel-open]>[data-slot=accordion-trigger-icon]]:rotate-180",
         className,
       )}
       {...props}
     >
       {children}
-      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
+      <ChevronDown
+        data-slot="accordion-trigger-icon"
+        className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200"
+      />
     </AccordionPrimitive.Trigger>
   </AccordionPrimitive.Header>
 );

@@ -453,6 +453,62 @@ test("row 6i: the ship drawing selects sections and fittings and links them to t
   await expect(inspector.getByText("Selected fitting")).toBeAttached();
 });
 
+test("row 6j: a finding on the ship leads to its fix, and the fix clears it", async ({ e2e }) => {
+  await e2e.retargetDialog(sharedSaveDir);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await dismissTour(e2e.page);
+  await navigateTo(e2e.page, "Construction");
+  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
+  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
+  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
+  const inspector = board.getByTestId("selection-inspector");
+
+  // The bow-most gun (fittings are listed bow to stern) and its station, read from the design's own form.
+  const gunId = await board.evaluate((root) =>
+    [...root.querySelectorAll('[role="toolbar"][aria-label="Fittings on the plan"] [data-target]')]
+      .find((el) => el.getAttribute("aria-label")!.includes("(mount "))!
+      .getAttribute("data-target")!,
+  );
+  await board.getByRole("tab", { name: /Arrangement/ }).click();
+  const station = board.getByLabel(new RegExp(`^Station of ${gunId} `));
+  const original = await station.inputValue();
+
+  // A known finding: the gun's station moved outside its zone (blocking).
+  await station.fill("500");
+  await station.press("Enter");
+  const marker = board.locator(`[data-marker="f:${gunId}"]`);
+  await expect(marker).toHaveAttribute("data-severity", "BLOCKING");
+  await expect(marker).toHaveAttribute("aria-label", /^Blocking: .*outside zone/);
+
+  // Activate the marker: the gun is pinned and the finding opens in the inspector.
+  await board.getByRole("tab", { name: /Build/ }).click();
+  await marker.click();
+  await expect(board.locator(`[data-target="${gunId}"]`)).toHaveAttribute("aria-pressed", "true");
+  const entry = inspector.locator('[data-inspector-finding^="ARR-STATION-OUT-OF-ZONE|"]');
+  await expect(entry).toHaveAttribute("aria-current", "true");
+  await expect(entry).toContainText("BLOCKING");
+
+  // Go to fix: the Arrangement tab opens with the gun's station field focused.
+  await entry.getByRole("button", { name: "Go to fix" }).click();
+  await expect(board.getByRole("tab", { name: /Arrangement/ })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(station).toBeFocused();
+  await expect(station).toBeInViewport();
+
+  // Correct it: the blocking marker goes, the gun stays pinned, and the fix is noted.
+  await station.fill(original);
+  await station.press("Enter");
+  await expect(marker).not.toHaveAttribute("data-severity", "BLOCKING");
+  await expect(board.locator('[data-marker^="s:"]')).toHaveCount(0);
+  await expect(board.locator(`[data-target="${gunId}"]`)).toHaveAttribute("aria-pressed", "true");
+  await expect(board.getByTestId("resolved-note")).toContainText("Resolved:");
+});
+
 test("row 6e: a fleet ordered to sail moves one hop when the month advances", async ({ e2e }) => {
   const copy = await copyFixturePackage(sharedSaveDir, e2e.scratch);
   await e2e.retargetDialog(copy);

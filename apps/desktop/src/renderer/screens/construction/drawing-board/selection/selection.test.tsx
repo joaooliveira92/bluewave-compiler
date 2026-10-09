@@ -6,7 +6,8 @@ import { loadDrawingBoardContent } from "../content.js";
 import { DrawingBoard } from "../DrawingBoard.js";
 import { chooseOption, openTab } from "../test-helpers.js";
 import { SECTION_IDS, SECTIONS } from "../panels/hull-plan/sections.js";
-import { entityWarns, fittingFacts, findingsNaming, type EntityContext } from "./facts.js";
+import { boardFindings, entityWarns, findingsFor } from "../validation/boardFindings.js";
+import { fittingFacts, type EntityContext } from "./facts.js";
 import { destinationFor } from "./navigation.js";
 import { SelectionInspector } from "./SelectionInspector.js";
 import { createSelectionStore } from "./store.js";
@@ -24,6 +25,7 @@ const ctx: EntityContext = {
   content,
   zones: form.zones,
   batteries: batteryCards(view, ref.draft),
+  findings: boardFindings(view, ref.draft, batteryCards(view, ref.draft)),
 };
 
 const strip = () => screen.getByRole("group", { name: "Hull sections" });
@@ -206,7 +208,9 @@ describe("selecting fittings", () => {
     fireEvent.blur(station);
     fireEvent.click(target("gun_12pdr"));
     expect(fittings().querySelector("[data-testid='selection-warning']")).not.toBeNull();
-    expect(within(inspector()!).getByText(/Findings that name this fitting/)).toBeTruthy();
+    expect(
+      within(inspector()!).getByRole("list", { name: "Findings for this selection" }).textContent,
+    ).toMatch(/outside zone/);
     fireEvent.click(label("Forecastle"));
     expect(
       document.querySelector("[data-testid='selection-layer'] [data-testid='selection-warning']"),
@@ -260,9 +264,9 @@ describe("contextual inspector", () => {
     expect(gun.magazine?.instanceId).toBe("mag_fwd");
     expect(gun.section).toBe("forecastle");
     expect(fittingFacts("nope", ctx)).toBeNull();
-    expect(findingsNaming(view, "mag_aft").map((f) => f.severity)).toEqual(["ADVISORY"]);
-    expect(findingsNaming(view, "mag")).toEqual([]);
-    expect(entityWarns({ kind: "fitting", instanceId: "mag_aft" }, view)).toBe(false);
+    const magAft = { kind: "fitting", instanceId: "mag_aft" } as const;
+    expect(findingsFor(magAft, ctx.findings).map((f) => f.severity)).toEqual(["ADVISORY"]);
+    expect(entityWarns(magAft, ctx.findings)).toBe(false);
   });
 });
 

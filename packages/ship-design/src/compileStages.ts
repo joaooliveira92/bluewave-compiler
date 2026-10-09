@@ -27,6 +27,7 @@ import {
   type ShipContext,
 } from "./compileShared.js";
 import type { Finding } from "./findings.js";
+import { about, placementTarget, type FindingTarget } from "./findings.js";
 import { compileHull, type HullResult } from "./hull.js";
 import { emptyLedger, withLine, type LedgerCategory } from "./ledger.js";
 import { compileMachinery, type MachineryResult, type PropulsionPlant } from "./machinery.js";
@@ -50,10 +51,12 @@ export function resolveDesignComponents(
     requires: readonly string[],
     fromMonth: string,
     obsoleteMonth: string | null,
+    targets: readonly FindingTarget[] = [],
   ) => {
+    const push = (x: Finding) => findings.push(targets.length > 0 ? about(x, ...targets) : x);
     const missing = requires.filter((t) => !ctx.unlockedTechs.has(t));
     if (missing.length > 0 || fromMonth > ctx.month) {
-      findings.push(
+      push(
         f(
           "TECH_UNAVAILABLE",
           "BLOCKING",
@@ -70,7 +73,7 @@ export function resolveDesignComponents(
         ),
       );
     } else if (obsoleteMonth !== null && obsoleteMonth <= ctx.month) {
-      findings.push(
+      push(
         f(
           "COMPONENT_OBSOLETE",
           "ADVISORY",
@@ -94,22 +97,27 @@ export function resolveDesignComponents(
     const def = catalogue.get(spec.componentId);
     if (!def) {
       findings.push(
-        f(
-          "COMPONENT_UNKNOWN",
-          "BLOCKING",
-          `Component ${spec.componentId} does not exist.`,
-          `Placement ${spec.instanceId} references an unknown id.`,
-          "The design cannot be priced or weighed.",
-          [
-            ["replace", "Choose a catalogue component."],
-            ["remove", "Remove the placement."],
-            ["update", "Update the design to the current content version."],
-          ],
+        about(
+          f(
+            "COMPONENT_UNKNOWN",
+            "BLOCKING",
+            `Component ${spec.componentId} does not exist.`,
+            `Placement ${spec.instanceId} references an unknown id.`,
+            "The design cannot be priced or weighed.",
+            [
+              ["replace", "Choose a catalogue component."],
+              ["remove", "Remove the placement."],
+              ["update", "Update the design to the current content version."],
+            ],
+          ),
+          placementTarget(spec.instanceId),
         ),
       );
       continue;
     }
-    techCheck(def.id, def.requires, def.introduction.fromMonth, def.introduction.obsoleteMonth);
+    techCheck(def.id, def.requires, def.introduction.fromMonth, def.introduction.obsoleteMonth, [
+      placementTarget(spec.instanceId),
+    ]);
     const params: Record<string, number> = {};
     let ok = true;
     for (const [pn, r] of Object.entries(def.parameters)) {
@@ -117,17 +125,20 @@ export function resolveDesignComponents(
       if (v < r.min || v > r.max || (v - r.min) % r.step !== 0) {
         ok = false;
         findings.push(
-          f(
-            "PARAM_RANGE",
-            "BLOCKING",
-            `${spec.instanceId}: parameter ${pn}=${v} is not allowed.`,
-            `Legal ${r.min}..${r.max} step ${r.step}.`,
-            "The component does not exist in that configuration.",
-            [
-              ["set_min", `Set ${pn} to ${r.min}.`],
-              ["set_max", `Set ${pn} to ${r.max}.`],
-              ["other_component", "Choose a different component."],
-            ],
+          about(
+            f(
+              "PARAM_RANGE",
+              "BLOCKING",
+              `${spec.instanceId}: parameter ${pn}=${v} is not allowed.`,
+              `Legal ${r.min}..${r.max} step ${r.step}.`,
+              "The component does not exist in that configuration.",
+              [
+                ["set_min", `Set ${pn} to ${r.min}.`],
+                ["set_max", `Set ${pn} to ${r.max}.`],
+                ["other_component", "Choose a different component."],
+              ],
+            ),
+            placementTarget(spec.instanceId),
           ),
         );
       }

@@ -2,6 +2,7 @@ import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { ComponentDef } from "./component.js";
 import type { CompiledDesign, DesignDraft } from "./compile.js";
 import { applyEdit, type DraftEdit } from "./edits.js";
+import { withoutSubjects } from "./findings.js";
 
 export const DESIGN_FILE_FORMAT = "bwdesign";
 export const DESIGN_SCHEMA_VERSION = 1;
@@ -166,7 +167,7 @@ export function decodeDesignFile(
 /** Recomputes the hash of a compiled design and compares it with the stored one. */
 export function verifyCompiledHash(c: CompiledDesign): boolean {
   const { hash, ...body } = c;
-  return sha256Hex(canonicalSerialize(body)) === hash;
+  return sha256Hex(canonicalSerialize(withoutSubjects(body))) === hash;
 }
 
 export function decodeCompiled(text: string): CompiledDesign {

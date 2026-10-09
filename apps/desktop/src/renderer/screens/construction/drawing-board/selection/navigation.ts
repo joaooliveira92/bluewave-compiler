@@ -1,4 +1,6 @@
 import type { SectionId } from "../panels/hull-plan/sections.js";
+import type { SettingGroup } from "@bluewave/ship-design";
+import type { BoardFinding } from "../validation/boardFindings.js";
 import { fittingFacts, machineryRooms, type EntityContext } from "./facts.js";
 import type { ShipEntity } from "./store.js";
 
@@ -8,6 +10,8 @@ export type BoardTab = (typeof BOARD_TABS)[number];
 
 /** Panel titles a destination can name; each is the panel's `role="region"` accessible name. */
 const PANEL = {
+  brief: "Design brief",
+  hull: "Hull and displacement",
   machinery: "Machinery, fuel and range",
   batteries: "Batteries",
   placements: "Components and arrangement",
@@ -17,17 +21,20 @@ type PanelKey = keyof typeof PANEL;
 
 /** Which tab holds each panel. */
 const PANEL_TAB: { readonly [K in PanelKey]: BoardTab } = {
+  brief: "hull",
+  hull: "hull",
   machinery: "hull",
   batteries: "arrangement",
   placements: "arrangement",
   protection: "arrangement",
 };
 
-/** A place in the forms: a whole panel, one battery card, or one placement row. */
+/** A place in the board: a whole panel, one battery card, one placement row, or one finding in Analysis. */
 export type FormTarget =
   | { readonly kind: "panel"; readonly panel: PanelKey }
   | { readonly kind: "battery"; readonly key: string }
-  | { readonly kind: "placement"; readonly instanceId: string };
+  | { readonly kind: "placement"; readonly instanceId: string }
+  | { readonly kind: "finding"; readonly key: string };
 
 export interface Destination {
   readonly tab: BoardTab;
@@ -49,6 +56,8 @@ const SECTION_DESTINATION: { readonly [K in SectionId]: PanelKey } = {
 };
 
 const PANEL_LABEL: { readonly [K in PanelKey]: string } = {
+  brief: "Go to the design brief",
+  hull: "Go to hull settings",
   machinery: "Go to machinery settings",
   batteries: "Go to battery settings",
   placements: "Go to arrangement settings",
@@ -68,6 +77,8 @@ const panel = (key: PanelKey): Destination => ({
  */
 export function destinationFor(entity: ShipEntity, ctx: EntityContext): Destination | null {
   switch (entity.kind) {
+    case "ship":
+      return panel("hull");
     case "section":
       return panel(SECTION_DESTINATION[entity.id]);
     case "machinery-room":
@@ -90,33 +101,60 @@ export function destinationFor(entity: ShipEntity, ctx: EntityContext): Destinat
   }
 }
 
+/** Where each settings group of a finding is configured. Exhaustive over the domain's groups. */
+const SETTINGS_PANEL: { readonly [K in SettingGroup]: PanelKey } = {
+  brief: "brief",
+  hull: "hull",
+  machinery: "machinery",
+  armour: "protection",
+  arrangement: "placements",
+};
+
+/**
+ * Where a finding is fixed: its settings group's panel, narrowed to the fitting's own row when an arrangement
+ * finding names exactly one fitting. Null when the rule names no settings: the UI then says so, never guesses.
+ */
+export function fixDestination(f: BoardFinding): Destination | null {
+  if (f.settings === undefined) return null;
+  const key = SETTINGS_PANEL[f.settings];
+  const fittings = f.entities.flatMap((e) => (e.kind === "fitting" ? [e.instanceId] : []));
+  if (key === "placements" && fittings.length === 1 && f.association === "structured")
+    return {
+      tab: PANEL_TAB.placements,
+      target: { kind: "placement", instanceId: fittings[0]! },
+      label: "Go to fix",
+    };
+  return { ...panel(key), label: "Go to fix" };
+}
+
+/** The finding's own entry in the Analysis tab. */
+export function analysisDestination(f: BoardFinding): Destination {
+  return { tab: "analysis", target: { kind: "finding", key: f.key }, label: "Open in Analysis" };
+}
+
 /** Attribute naming the battery card a form element belongs to. */
 export const BATTERY_ATTR = "data-battery";
 /** Attribute naming the placement row a form element belongs to. */
 export const PLACEMENT_ATTR = "data-placement";
+/** Attribute naming the finding an Analysis entry shows (its `BoardFinding.key`). */
+export const FINDING_ATTR = "data-finding-key";
 /** Attribute listing the ship entities a form group is about (see `shipLinkValue`). */
 export const SHIP_LINK_ATTR = "data-ship-link";
 
 /** The one place that turns a form target into an element. */
 export function findTarget(root: ParentNode, target: FormTarget): HTMLElement | null {
-  const all = (sel: string) => [...root.querySelectorAll<HTMLElement>(sel)];
+  const by = (sel: string, attr: string, value: string) =>
+    [...root.querySelectorAll<HTMLElement>(sel)].find((el) => el.getAttribute(attr) === value) ??
+    null;
   switch (target.kind) {
     case "panel":
-      return (
-        all('[role="region"]').find(
-          (el) => el.getAttribute("aria-label") === PANEL[target.panel],
-        ) ?? null
-      );
+      return by('[role="region"]', "aria-label", PANEL[target.panel]);
     case "battery":
-      return (
-        all(`[${BATTERY_ATTR}]`).find((el) => el.getAttribute(BATTERY_ATTR) === target.key) ?? null
-      );
+      return by(`[${BATTERY_ATTR}]`, BATTERY_ATTR, target.key);
     case "placement":
-      return (
-        all(`[${PLACEMENT_ATTR}]`).find(
-          (el) => el.getAttribute(PLACEMENT_ATTR) === target.instanceId,
-        ) ?? null
-      );
+      return by(`[${PLACEMENT_ATTR}]`, PLACEMENT_ATTR, target.instanceId);
+    case "finding":
+      return by(`[${FINDING_ATTR}]`, FINDING_ATTR, target.key);
   }
 }
 
@@ -129,6 +167,7 @@ const isEntity = (v: unknown): v is ShipEntity => {
   if (typeof v !== "object" || v === null) return false;
   const e = v as Record<string, unknown>;
   return (
+    e["kind"] === "ship" ||
     (e["kind"] === "section" && typeof e["id"] === "string") ||
     (e["kind"] === "fitting" && typeof e["instanceId"] === "string") ||
     (e["kind"] === "machinery-room" && typeof e["index"] === "number")
@@ -163,6 +202,11 @@ export function placementAttrs(instanceId: string): Record<string, string> {
   };
 }
 
+/** Attributes for an Analysis entry: a navigation target that lights its entities while focused. */
+export function findingAttrs(f: BoardFinding): Record<string, string> {
+  return { [FINDING_ATTR]: f.key, [SHIP_LINK_ATTR]: shipLinkValue(f.entities) };
+}
+
 /** Attributes for a battery card: a navigation target that lights all its mounts while focused. */
 export function batteryAttrs(key: string, instanceIds: readonly string[]): Record<string, string> {
   return {
@@ -183,6 +227,8 @@ export function findDrawingControl(
       (el) => el.getAttribute(attr) === value,
     ) ?? null;
   switch (entity.kind) {
+    case "ship":
+      return match("button[data-ship-findings]", "data-ship-findings", "true");
     case "section":
       return match("button[data-section]", "data-section", entity.id);
     case "fitting":

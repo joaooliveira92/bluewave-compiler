@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { armourMaterialOptions } from "@bluewave/ship-design";
 import { batteryCards, mountNameMap } from "./batteryView.js";
 import {
@@ -44,6 +44,7 @@ import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
 import type { RevisionProject } from "./revisionPreview.js";
 import { useDrawingBoard } from "./useDrawingBoard.js";
 import { entityExists, type EntityContext } from "./selection/facts.js";
+import { boardFindings } from "./validation/boardFindings.js";
 import {
   BOARD_TABS,
   findDrawingControl,
@@ -94,10 +95,20 @@ export function DrawingBoard({
   const [pendingPreset, setPendingPreset] = useState<string | null>(null);
   const [tab, setTab] = useState<BoardTab>("hull");
   const zones = content.hullForms.find((f) => f.id === draft.hull.hullFormId)?.zones ?? [];
-  const entityCtx: EntityContext = { draft, view, content, zones, batteries };
+  // One finding list per compile, shared by the drawing, the inspector and the Analysis tab.
+  const findings = useMemo(
+    () => boardFindings(view, draft, batteryCards(view, draft)),
+    [view, draft],
+  );
+  const entityCtx: EntityContext = { draft, view, content, zones, batteries, findings };
   // Presentation selection (pinned, form-linked, hover preview): one store for the board, never design state.
   const [selection] = useState(createSelectionStore);
   useEffect(() => selection.prune((e) => entityExists(e, draft, zones)), [selection, draft, zones]);
+  // A resolved finding drops out of the selection; its entity stays pinned while it exists.
+  useEffect(
+    () => selection.pruneFinding((key) => findings.some((f) => f.key === key)),
+    [selection, findings],
+  );
   const rootRef = useRef<HTMLDivElement>(null);
   const goTo = useFormNavigation(setTab, rootRef);
   const clearSelection = () => {
@@ -121,16 +132,17 @@ export function DrawingBoard({
         className="flex h-full min-h-0 flex-col gap-4"
         data-testid="drawing-board"
         onKeyDownCapture={(e) => {
-          // Escape clears a pinned selection from the drawing or the inspector, after any open hover card and
-          // before the dialog: layered, so one key press never does two things. Capture phase, so a control's
-          // own key handling (the fitting tooltips) cannot swallow it first.
+          // Escape, one step per press, from the drawing or the inspector: an open preview (hover card or
+          // finding marker) closes itself first; then the opened finding; then the pinned entity; only then does
+          // the dialog get the key. Capture phase, so a control's own key handling cannot swallow it first.
           if (e.key !== "Escape") return;
           const s = selection.get();
-          if (s.selected === null || s.preview !== null) return;
+          if (s.selected === null || s.preview !== null || s.markerPreview) return;
           if (!(e.target instanceof Element) || !e.target.closest("[data-selection-scope]")) return;
           e.preventDefault();
           e.stopPropagation();
-          clearSelection();
+          if (s.finding !== null) selection.clearFinding();
+          else clearSelection();
         }}
       >
         <div className="flex flex-wrap items-end gap-3">
@@ -208,6 +220,7 @@ export function DrawingBoard({
                   view={view}
                   month={state.month}
                   edit={actions.edit}
+                  findings={findings}
                 />
               </ShipViewBoundary>
             </div>
@@ -274,7 +287,16 @@ export function DrawingBoard({
 
               <TabsContent value="analysis" keepMounted className={TAB_GRID}>
                 <div className="space-y-4">
-                  <FindingsPanel view={view} suggest={actions.suggest} onApply={actions.edit} />
+                  <FindingsPanel
+                    view={view}
+                    findings={findings}
+                    suggest={actions.suggest}
+                    onApply={actions.edit}
+                    onShowOnShip={(f) => {
+                      const target = f.entities[0];
+                      if (target) selection.select(target, f.key);
+                    }}
+                  />
                   <LedgerPanel view={view} />
                 </div>
                 <div className="space-y-4">
