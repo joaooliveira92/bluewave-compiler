@@ -15,7 +15,14 @@ import { Alert } from "../../../components/ui/alert.js";
 import { Badge } from "../../../components/ui/badge.js";
 import { Button } from "../../../components/ui/button.js";
 import { ButtonGroup } from "../../../components/ui/button-group.js";
+import { Separator } from "../../../components/ui/separator.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs.js";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../../../components/ui/tooltip.js";
 import { ConfirmDialog } from "./ConfirmAction.js";
 import { RequirementChip } from "./RequirementChip.js";
 import { SelectField } from "./fields.js";
@@ -40,6 +47,7 @@ import {
   SubmitPanel,
   TopsidePanel,
 } from "./panels/index.js";
+import { IDLE_TOOL, PlanModeButtons, type PlanTool } from "./panels/hull-plan/PlanToolbar.js";
 import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
 import type { RevisionProject } from "./revisionPreview.js";
 import { useDrawingBoard } from "./useDrawingBoard.js";
@@ -94,6 +102,8 @@ export function DrawingBoard({
   );
   const [pendingPreset, setPendingPreset] = useState<string | null>(null);
   const [tab, setTab] = useState<BoardTab>("hull");
+  // Switched from the toolbar, used by the drawing: the one tool state survives tab changes with the ship view.
+  const [planTool, setPlanTool] = useState<PlanTool>(IDLE_TOOL);
   const zones = content.hullForms.find((f) => f.id === draft.hull.hullFormId)?.zones ?? [];
   // One finding list per compile, shared by the drawing, the inspector and the Analysis tab.
   const findings = useMemo(
@@ -145,40 +155,70 @@ export function DrawingBoard({
           else clearSelection();
         }}
       >
-        <div className="flex flex-wrap items-end gap-3">
-          <SelectField
-            className="min-w-64"
-            label="Starting design"
-            value={state.preset.id}
-            options={content.references.map((r) => ({ value: r.id, label: r.name }))}
-            onChange={(id) => (state.editCount > 0 ? setPendingPreset(id) : loadPreset(id))}
-          />
-          <SelectField
-            className="min-w-32"
-            label="Technology as of"
-            value={state.month}
-            options={(campaignMonth !== null
-              ? [campaignMonth]
-              : [...new Set([...MONTHS, state.month])].sort()
-            ).map((m) => ({
-              value: m,
-              label: campaignMonth !== null ? `${m} (campaign date)` : m,
-            }))}
-            onChange={actions.setMonth}
-          />
-          <ButtonGroup aria-label="History">
-            <Button variant="outline" onClick={actions.undo} disabled={!state.canUndo}>
-              <Undo2 aria-hidden="true" className="mr-1 size-4" />
-              Undo
-            </Button>
-            <Button variant="outline" onClick={actions.redo} disabled={!state.canRedo}>
-              <Redo2 aria-hidden="true" className="mr-1 size-4" />
-              Redo
-            </Button>
-          </ButtonGroup>
-          <Badge variant="secondary">{state.editCount} edit(s)</Badge>
-          <RequirementChip requirement={draft.requirement} />
-        </div>
+        <TooltipProvider>
+          <div
+            role="group"
+            aria-label="Design toolbar"
+            className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 p-2"
+          >
+            <SelectField
+              inline
+              label="Starting design"
+              shortLabel="Design"
+              value={state.preset.id}
+              options={content.references.map((r) => ({ value: r.id, label: r.name }))}
+              onChange={(id) => (state.editCount > 0 ? setPendingPreset(id) : loadPreset(id))}
+            />
+            <SelectField
+              inline
+              label="Technology as of"
+              shortLabel="Technology"
+              value={state.month}
+              options={(campaignMonth !== null
+                ? [campaignMonth]
+                : [...new Set([...MONTHS, state.month])].sort()
+              ).map((m) => ({
+                value: m,
+                label: campaignMonth !== null ? `${m} (campaign date)` : m,
+              }))}
+              onChange={actions.setMonth}
+            />
+            <Separator orientation="vertical" className="h-6" />
+            <ButtonGroup aria-label="History">
+              {(
+                [
+                  ["Undo", Undo2, actions.undo, state.canUndo],
+                  ["Redo", Redo2, actions.redo, state.canRedo],
+                ] as const
+              ).map(([name, Icon, run, can]) => (
+                <Tooltip key={name}>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        aria-label={name}
+                        onClick={run}
+                        disabled={!can}
+                      />
+                    }
+                  >
+                    <Icon aria-hidden="true" />
+                  </TooltipTrigger>
+                  <TooltipContent>{name}</TooltipContent>
+                </Tooltip>
+              ))}
+            </ButtonGroup>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {state.editCount} edit(s)
+            </span>
+            <Separator orientation="vertical" className="h-6" />
+            <PlanModeButtons tool={planTool} onTool={setPlanTool} />
+            <div className="ml-auto">
+              <RequirementChip requirement={draft.requirement} />
+            </div>
+          </div>
+        </TooltipProvider>
         <ConfirmDialog
           open={pendingPreset !== null}
           onOpenChange={(open) => !open && setPendingPreset(null)}
@@ -221,6 +261,8 @@ export function DrawingBoard({
                   month={state.month}
                   edit={actions.edit}
                   findings={findings}
+                  tool={planTool}
+                  onTool={setPlanTool}
                 />
               </ShipViewBoundary>
             </div>

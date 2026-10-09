@@ -1,5 +1,7 @@
 import type { ComponentDef, DesignDraft, MountSide } from "@bluewave/ship-design";
+import { Move, SquarePlus } from "lucide-react";
 import { Button } from "../../../../../components/ui/button.js";
+import { ButtonGroup } from "../../../../../components/ui/button-group.js";
 import { SelectField } from "../../fields.js";
 import { hasSide, NUDGE_PERMILLE } from "./placement-tools.js";
 
@@ -13,15 +15,54 @@ export interface PlanTool {
   readonly instanceId: string;
 }
 
-export const IDLE_TOOL: PlanTool = { mode: "off", componentId: "", instanceId: "" };
+export const IDLE_TOOL: PlanTool = {
+  mode: "off",
+  componentId: "",
+  instanceId: "",
+};
 
 const isMountSide = (v: string): v is MountSide => v === "CENTRE" || v === "PORT" || v === "STBD";
 
 /**
- * The keyboard-reachable controls for placing and moving fittings on the plan. The plan drawing itself is a static image;
- * clicking it is a pointer shortcut for exactly what these controls do, so every action here works without a mouse.
+ * The plan tool switches, shown in the board toolbar: at most one mode is on, and pressing the active one turns it off.
+ * The drawing itself picks up the mode (crosshair, click to place or move) and shows the options for it.
  */
-export function PlanToolbar({
+export function PlanModeButtons({
+  tool,
+  onTool,
+}: {
+  readonly tool: PlanTool;
+  readonly onTool: (next: PlanTool) => void;
+}) {
+  const toggle = (mode: PlanToolMode) =>
+    onTool({ ...tool, mode: tool.mode === mode ? "off" : mode });
+  return (
+    <ButtonGroup aria-label="Plan tools">
+      <Button
+        variant={tool.mode === "place" ? "default" : "outline"}
+        aria-pressed={tool.mode === "place"}
+        onClick={() => toggle("place")}
+      >
+        <SquarePlus aria-hidden="true" />
+        Place on plan
+      </Button>
+      <Button
+        variant={tool.mode === "move" ? "default" : "outline"}
+        aria-pressed={tool.mode === "move"}
+        onClick={() => toggle("move")}
+      >
+        <Move aria-hidden="true" />
+        Move on plan
+      </Button>
+    </ButtonGroup>
+  );
+}
+
+/**
+ * The keyboard-reachable options of the active plan tool. The plan drawing itself is a static image; clicking it is a
+ * pointer shortcut for exactly what these controls do, so every action here works without a mouse.
+ */
+export function PlanToolOptions({
   tool,
   onTool,
   draft,
@@ -43,55 +84,42 @@ export function PlanToolbar({
 }) {
   const selected = draft.placements.find((p) => p.instanceId === tool.instanceId);
   const selectedDef = selected ? defOf(selected.componentId) : undefined;
-  const toggle = (mode: PlanToolMode) =>
-    onTool({ ...tool, mode: tool.mode === mode ? "off" : mode });
   return (
-    <div className="space-y-2" role="group" aria-label="Plan tools">
-      <div className="flex flex-wrap items-end gap-2">
-        <Button
-          variant={tool.mode === "place" ? "default" : "outline"}
-          size="sm"
-          aria-pressed={tool.mode === "place"}
-          onClick={() => toggle("place")}
-        >
-          Place on plan
-        </Button>
-        <Button
-          variant={tool.mode === "move" ? "default" : "outline"}
-          size="sm"
-          aria-pressed={tool.mode === "move"}
-          onClick={() => toggle("move")}
-        >
-          Move on plan
-        </Button>
-        {tool.mode === "place" && (
-          <SelectField
-            className="min-w-56 flex-1"
-            label="Component to place"
-            value={tool.componentId}
-            options={[
-              { value: "", label: "Choose a component" },
-              ...available.map((c) => ({ value: c.id, label: c.displayName })),
-            ]}
-            onChange={(componentId) => onTool({ ...tool, componentId })}
-          />
-        )}
-        {tool.mode === "move" && (
-          <SelectField
-            className="min-w-56 flex-1"
-            label="Fitting to move"
-            value={tool.instanceId}
-            options={[
-              { value: "", label: "Choose a fitting" },
-              ...draft.placements.map((p) => ({
-                value: p.instanceId,
-                label: `${defOf(p.componentId)?.displayName ?? p.componentId} (${p.instanceId})`,
-              })),
-            ]}
-            onChange={(instanceId) => onTool({ ...tool, instanceId })}
-          />
-        )}
-      </div>
+    <div className="space-y-2" role="group" aria-label="Plan tool options">
+      {tool.mode !== "off" && (
+        <div className="flex flex-wrap items-end gap-2">
+          {tool.mode === "place" && (
+            <SelectField
+              className="min-w-56 flex-1"
+              label="Component to place"
+              value={tool.componentId}
+              options={[
+                { value: "", label: "Choose a component" },
+                ...available.map((c) => ({
+                  value: c.id,
+                  label: c.displayName,
+                })),
+              ]}
+              onChange={(componentId) => onTool({ ...tool, componentId })}
+            />
+          )}
+          {tool.mode === "move" && (
+            <SelectField
+              className="min-w-56 flex-1"
+              label="Fitting to move"
+              value={tool.instanceId}
+              options={[
+                { value: "", label: "Choose a fitting" },
+                ...draft.placements.map((p) => ({
+                  value: p.instanceId,
+                  label: `${defOf(p.componentId)?.displayName ?? p.componentId} (${p.instanceId})`,
+                })),
+              ]}
+              onChange={(instanceId) => onTool({ ...tool, instanceId })}
+            />
+          )}
+        </div>
+      )}
       {tool.mode === "move" && selected !== undefined && (
         <div className="flex flex-wrap items-end gap-2">
           {(
@@ -138,7 +166,7 @@ export function PlanToolbar({
               : "Click the plan to place it. Stations snap to 10‰."
             : tool.mode === "move"
               ? "Choose a fitting, then click the plan or use the buttons to move it."
-              : "Use Place on plan or Move on plan to edit the arrangement from this drawing.")}
+              : "Use Place on plan or Move on plan in the toolbar to edit the arrangement from this drawing.")}
       </p>
     </div>
   );

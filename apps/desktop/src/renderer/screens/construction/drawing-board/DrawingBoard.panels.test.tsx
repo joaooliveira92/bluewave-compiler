@@ -100,7 +100,7 @@ describe("DrawingBoard panels", () => {
       render(<DrawingBoard />);
       const panel = region("Hull plan");
       sized(within(panel).getByRole("img", { name: /^Top-down plan/ }));
-      fireEvent.click(within(panel).getByRole("button", { name: "Place on plan" }));
+      fireEvent.click(screen.getByRole("button", { name: "Place on plan" }));
       // Choosing nothing first says what to do instead of failing silently.
       fireEvent.click(screen.getByTestId("plan-click-layer"), {
         clientX: stationX(300),
@@ -120,7 +120,7 @@ describe("DrawingBoard panels", () => {
     it("moves a fitting with keyboard-reachable buttons, one undoable edit each", () => {
       render(<DrawingBoard />);
       const panel = region("Hull plan");
-      fireEvent.click(within(panel).getByRole("button", { name: "Move on plan" }));
+      fireEvent.click(screen.getByRole("button", { name: "Move on plan" }));
       fireEvent.click(within(panel).getByLabelText("Fitting to move"));
       fireEvent.click(screen.getAllByRole("option")[1]!);
       expect(screen.getByTestId("plan-selected-ring")).toBeTruthy();
@@ -136,7 +136,7 @@ describe("DrawingBoard panels", () => {
       render(<DrawingBoard />);
       const panel = region("Hull plan");
       sized(within(panel).getByRole("img", { name: /^Top-down plan/ }));
-      fireEvent.click(within(panel).getByRole("button", { name: "Move on plan" }));
+      fireEvent.click(screen.getByRole("button", { name: "Move on plan" }));
       fireEvent.click(screen.getByTestId("plan-click-layer"), {
         clientX: stationX(300),
         clientY: PLAN_MID,
@@ -151,6 +151,28 @@ describe("DrawingBoard panels", () => {
     it("is off by default: no click layer until a tool is chosen", () => {
       render(<DrawingBoard />);
       region("Hull plan");
+      expect(screen.queryByTestId("plan-click-layer")).toBeNull();
+    });
+
+    it("switches from the board toolbar, one mode at a time, and a switch clears the last notice", () => {
+      render(<DrawingBoard />);
+      const panel = region("Hull plan");
+      const toolbar = screen.getByRole("group", { name: "Design toolbar" });
+      const place = within(toolbar).getByRole("button", { name: "Place on plan" });
+      const move = within(toolbar).getByRole("button", { name: "Move on plan" });
+      expect(within(panel).queryByRole("button", { name: /on plan$/ })).toBeNull();
+      sized(within(panel).getByRole("img", { name: /^Top-down plan/ }));
+      fireEvent.click(place);
+      fireEvent.click(screen.getByTestId("plan-click-layer"), {
+        clientX: stationX(300),
+        clientY: PLAN_MID,
+      });
+      expect(within(panel).getByRole("status").textContent).toMatch(/Choose a component/);
+      fireEvent.click(move);
+      expect(place.getAttribute("aria-pressed")).toBe("false");
+      expect(move.getAttribute("aria-pressed")).toBe("true");
+      expect(within(panel).getByRole("status").textContent).toMatch(/^Choose a fitting, then/);
+      fireEvent.click(move);
       expect(screen.queryByTestId("plan-click-layer")).toBeNull();
     });
   });

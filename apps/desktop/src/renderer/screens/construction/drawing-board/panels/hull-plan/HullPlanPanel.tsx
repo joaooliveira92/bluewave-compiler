@@ -8,7 +8,7 @@ import { bowStyleFor, planFrame, PLAN_H, PLAN_W, sternStyleFor } from "./geometr
 import { type DrawingFacts, planLabel } from "./describe.js";
 import { HullPlanLegend } from "./HullPlanLegend.js";
 import { legendEntries } from "./legend.js";
-import { IDLE_TOOL, PlanToolbar, type PlanTool } from "./PlanToolbar.js";
+import { IDLE_TOOL, PlanToolOptions, type PlanTool } from "./PlanToolbar.js";
 import {
   clientToPlan,
   moveEdit,
@@ -56,6 +56,8 @@ export function HullPlanPanel({
   month,
   edit,
   findings: given,
+  tool: givenTool,
+  onTool,
 }: {
   readonly draft: DesignDraft;
   readonly content: DrawingBoardContent;
@@ -64,10 +66,20 @@ export function HullPlanPanel({
   readonly edit: Edit;
   /** The board's findings (`boardFindings`); derived here only when the plan is shown on its own. */
   readonly findings?: readonly BoardFinding[];
+  /** The plan tool, switched from the board toolbar; the plan keeps its own only when it is shown on its own. */
+  readonly tool?: PlanTool;
+  readonly onTool?: (next: PlanTool) => void;
 }) {
   const [showArcs, setShowArcs] = useState(true);
-  const [tool, setTool] = useState<PlanTool>(IDLE_TOOL);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [ownTool, setOwnTool] = useState<PlanTool>(IDLE_TOOL);
+  const tool = givenTool ?? ownTool;
+  const setTool = onTool ?? setOwnTool;
+  // A notice belongs to the tool state it was raised under: any tool change (here or in the toolbar) clears it.
+  const [raised, setRaised] = useState<{ readonly tool: PlanTool; readonly text: string } | null>(
+    null,
+  );
+  const notice = raised?.tool === tool ? raised.text : null;
+  const setNotice = (text: string) => setRaised({ tool, text });
   const planRef = useRef<HTMLDivElement>(null);
   const [findingsView, setFindingsView] = useFindingsView();
   const form = content.hullForms.find((f) => f.id === draft.hull.hullFormId);
@@ -153,12 +165,9 @@ export function HullPlanPanel({
   return (
     <Panel title="Hull plan">
       <TooltipProvider>
-        <PlanToolbar
+        <PlanToolOptions
           tool={tool}
-          onTool={(next) => {
-            setTool(next);
-            setNotice(null);
-          }}
+          onTool={setTool}
           draft={draft}
           available={available}
           defOf={defOf}

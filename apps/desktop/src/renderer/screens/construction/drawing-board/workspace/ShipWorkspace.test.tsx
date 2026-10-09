@@ -29,7 +29,7 @@ describe("Drawing Board workspace", () => {
   it("keeps one ship drawing mounted, with its tool state, across all five tabs", () => {
     render(<DrawingBoard />);
     const drawing = plan();
-    const placeTool = within(shipView()).getByRole("button", { name: "Place on plan" });
+    const placeTool = screen.getByRole("button", { name: "Place on plan" });
     fireEvent.click(placeTool);
     fireEvent.click(within(shipView()).getByLabelText("Show gun arcs"));
     for (const tab of TAB_NAMES) {
@@ -76,7 +76,7 @@ describe("Drawing Board workspace", () => {
   it("lets every tab use the plan tools without leaving it", () => {
     render(<DrawingBoard />);
     openTab("Analysis");
-    fireEvent.click(within(shipView()).getByRole("button", { name: "Move on plan" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move on plan" }));
     expect(within(shipView()).getByLabelText("Fitting to move")).toBeTruthy();
   });
 

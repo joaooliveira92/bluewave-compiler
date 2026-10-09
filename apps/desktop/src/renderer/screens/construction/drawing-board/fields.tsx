@@ -82,10 +82,13 @@ export function SelectField({
   options,
   onChange,
   className,
+  inline = false,
 }: {
   readonly label: string;
   /** Compact text shown above the select; the full `label` stays its accessible name (for repeated rows). */
   readonly shortLabel?: string;
+  /** Label beside the select instead of above it, at button height: for toolbars. */
+  readonly inline?: boolean;
   readonly value: string;
   readonly options: readonly {
     readonly value: string;
@@ -97,12 +100,19 @@ export function SelectField({
 }) {
   const id = useId();
   return (
-    <div className={cn("space-y-1", className)}>
-      <label htmlFor={id} className="block text-xs text-muted-foreground">
+    <div className={cn(inline ? "flex items-center gap-2" : "space-y-1", className)}>
+      <label
+        htmlFor={id}
+        className={cn("text-xs text-muted-foreground", inline ? "shrink-0" : "block")}
+      >
         {shortLabel ?? label}
       </label>
       <Select value={value} onValueChange={onChange} className="w-full">
-        <SelectTrigger id={id} aria-label={shortLabel === undefined ? undefined : label}>
+        <SelectTrigger
+          id={id}
+          aria-label={shortLabel === undefined ? undefined : label}
+          className={inline ? "h-9 py-0" : undefined}
+        >
           <SelectValue placeholder="Select" />
         </SelectTrigger>
         <SelectContent>
