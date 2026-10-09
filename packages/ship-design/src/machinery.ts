@@ -39,7 +39,8 @@ export interface MachineryBalance {
   /** Fraction of fuel unusable + reserved, bp. */
   readonly fuelUnusableBp: number;
   readonly fuelReserveBp: number;
-  readonly bunkerLitrePerKg: number;
+  /** Bunker volume per kg of fuel, bp of a litre (10_000 = 1 L/kg). Welsh coal stows at about 40 ft3 per long ton = 11_148. */
+  readonly bunkerLitreBpPerKg: number;
 }
 
 export interface MachineryInput {
@@ -229,7 +230,7 @@ export function compileMachinery(i: MachineryInput, b: MachineryBalance): Machin
   ) as Litre;
   const bunkerVolumeLitre = toSafe(
     "bunkerVol",
-    BigInt(i.fuelCapacityKg) * BigInt(b.bunkerLitrePerKg),
+    (BigInt(i.fuelCapacityKg) * BigInt(b.bunkerLitreBpPerKg) + BP - 1n) / BP,
   ) as Litre;
 
   if (findings.some((f) => f.severity === "BLOCKING")) {

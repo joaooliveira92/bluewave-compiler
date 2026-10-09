@@ -59,7 +59,7 @@ describe("DrawingBoard", () => {
     expect(within(protection()).getAllByRole("listitem").length).toBe(regionsBefore + 1);
   });
 
-  it("offers the armour materials weakest first, with the region's own material selected", () => {
+  it("offers the armour materials weakest first, disabling those not yet makeable", () => {
     render(<DrawingBoard />);
     fireEvent.change(screen.getByLabelText("Starting design"), {
       target: { value: "majestic_like" },
@@ -69,6 +69,16 @@ describe("DrawingBoard", () => {
     expect(options.length).toBeGreaterThan(1);
     expect(options.indexOf("wrought_iron")).toBeLessThan(options.indexOf("harvey"));
     expect(options).toContain((select as HTMLSelectElement).value);
+    // The 1896 battleship cannot make Krupp plate yet (technology year 1900): offered, disabled, with the reason.
+    const krupp = [...select.querySelectorAll("option")].find((o) => o.value === "krupp") as
+      | HTMLOptionElement
+      | undefined;
+    expect(krupp?.disabled).toBe(true);
+    expect(krupp?.textContent).toMatch(/needs hc_krupp_cemented_armor/);
+    const current = [...select.querySelectorAll("option")].find(
+      (o) => o.value === (select as HTMLSelectElement).value,
+    ) as HTMLOptionElement;
+    expect(current.disabled).toBe(false);
   });
 
   it("groups guns into named batteries, sets the mount side, and clears a battery as one undoable step", async () => {

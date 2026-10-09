@@ -22,7 +22,7 @@ const balance: MachineryBalance = {
   auxWeightBp: 1_500,
   fuelUnusableBp: 500,
   fuelReserveBp: 700,
-  bunkerLitrePerKg: 1,
+  bunkerLitreBpPerKg: 10_000,
 };
 const sfc = {
   points: [
@@ -163,5 +163,26 @@ describe("compileMachinery", () => {
     const a = JSON.stringify(compileMachinery({ ...base, installedKw: 3_300 }, balance));
     for (let i = 0; i < 5; i++)
       expect(JSON.stringify(compileMachinery({ ...base, installedKw: 3_300 }, balance))).toBe(a);
+  });
+});
+
+describe("bunker volume", () => {
+  const vol = (fuelKg: number, bp: number) =>
+    compileMachinery(
+      { ...base, installedKw: 3_300, fuelCapacityKg: fuelKg },
+      { ...balance, bunkerLitreBpPerKg: bp },
+    ).bunkerVolumeLitre;
+  it("is fuel mass times litres per kg, in bp", () => {
+    expect(vol(175_000, 10_000)).toBe(175_000);
+    // Welsh coal: 40 ft3 per long ton, 11_148 bp (1.1148 L/kg), so 60 t of coal needs about 66.9 m3.
+    expect(vol(60_000, 11_148)).toBe(66_888);
+  });
+  it("rounds up, so a fraction of a litre is never lost", () => {
+    expect(vol(1, 11_148)).toBe(2);
+    expect(vol(3, 3_334)).toBe(2);
+  });
+  it("scales linearly with fuel and never shrinks when the constant grows", () => {
+    expect(vol(120_000, 11_148)).toBeGreaterThanOrEqual(2 * vol(60_000, 11_148) - 1);
+    expect(vol(60_000, 11_148)).toBeGreaterThan(vol(60_000, 10_000));
   });
 });

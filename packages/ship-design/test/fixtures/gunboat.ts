@@ -44,7 +44,7 @@ export const balance: ShipBalance = {
     auxWeightBp: 1_500,
     fuelUnusableBp: 500,
     fuelReserveBp: 700,
-    bunkerLitrePerKg: 1,
+    bunkerLitreBpPerKg: 10_000,
   },
   arrangement: { concentrationAdvisoryBp: 6_000, concentrationWarningBp: 8_000 },
   weapons: {

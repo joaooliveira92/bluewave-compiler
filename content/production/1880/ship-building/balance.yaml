@@ -39,7 +39,9 @@ ship:
     auxWeightBp: 0 # White 1894 figures already cover the complete propelling machinery
     fuelUnusableBp: 500
     fuelReserveBp: 700
-    bunkerLitrePerKg: 1
+    # Bunker stowage: Welsh steam coal about 40 ft3 per long ton (research 2, section 4: VERIFIED), i.e.
+    # 40 x 28.3168 L / 1016.05 kg = 1.1148 L/kg. In bp of a litre per kg so the figure is not rounded to an integer.
+    bunkerLitreBpPerKg: 11148
   arrangement:
     concentrationAdvisoryBp: 6000
     concentrationWarningBp: 8000
@@ -69,6 +71,22 @@ ship:
       nickel_steel: 13500
       harvey: 19500
       krupp: 23000
+    # Armour material availability (ticket 25). Dates and technology ids come from the shipped tech tree
+    # (technologies.yaml; research: docs/research/content-1-research-tech-tree.md section 1.1, sourced to the Wikipedia
+    # "Harvey armor" article), so the Research screen and the Drawing Board agree. Maximum plate thickness is deliberately
+    # NOT set: no source gives a per-material limit (UNVERIFIED), and an invented cap would block legitimate designs.
+    # Iron and mild steel are open from the start: mild-steel deck and splinter plating predates the all-steel hull
+    # technology (it gates hulls, not plate), and the 1880 reference design carries it.
+    materialAvailability:
+      wrought_iron: { fromMonth: "1880-01" }
+      iron: { fromMonth: "1880-01" }
+      mild_steel: { fromMonth: "1880-01" }
+      steel: { fromMonth: "1880-01" }
+      # Tree: compound "appeared in the mid-1880s"; nickel-steel (1889) "rendered compound armor obsolete".
+      compound: { requires: [hc_compound_armor], fromMonth: "1886-01", obsoleteMonth: "1889-01" }
+      nickel_steel: { requires: [hc_nickel_steel_armor], fromMonth: "1889-01" }
+      harvey: { requires: [hc_harvey_armor], fromMonth: "1892-01" }
+      krupp: { requires: [hc_krupp_cemented_armor], fromMonth: "1900-01" }
     deckPenetrationBp: 3500 # gameplay abstraction (plunging fire at reduced velocity): ESTIMATE
     coverageWarnBp: 9000
     coverageCriticalBp: 6000
