@@ -4,9 +4,7 @@ import {
   applyGenerateFailed,
   applyManifestGenerated,
   applyTacticalOutcome,
-  groupEventsByType,
   initialTacticalSandboxScreenState,
-  parseScriptedOrders,
   updateScriptedOrdersText,
   updateTurnCount,
   updateWarId,
@@ -53,7 +51,7 @@ describe("tactical-sandbox-screen-state", () => {
     const state = initialTacticalSandboxScreenState();
     expect(state.warId).toBe("war_uk_germany");
     expect(state.turnCount).toBe(200);
-    expect(parseScriptedOrders(state.scriptedOrdersText).ok).toBe(true);
+    expect(state.scriptedOrdersText.length).toBeGreaterThan(0);
   });
 
   it("updates warId and turnCount independently", () => {
@@ -61,29 +59,6 @@ describe("tactical-sandbox-screen-state", () => {
     const updated = updateTurnCount(updateWarId(state, "war_custom"), 50);
     expect(updated.warId).toBe("war_custom");
     expect(updated.turnCount).toBe(50);
-  });
-
-  it("parses valid scripted orders JSON", () => {
-    const result = parseScriptedOrders(
-      '[{"issueTurn":1,"divisionId":"Channel Squadron","orderType":"disengage"}]',
-    );
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.orders).toHaveLength(1);
-  });
-
-  it("rejects malformed JSON", () => {
-    const result = parseScriptedOrders("not json");
-    expect(result.ok).toBe(false);
-  });
-
-  it("rejects a JSON value that is not an array", () => {
-    const result = parseScriptedOrders('{"issueTurn":1}');
-    expect(result.ok).toBe(false);
-  });
-
-  it("rejects an order missing required fields", () => {
-    const result = parseScriptedOrders('[{"issueTurn":1}]');
-    expect(result.ok).toBe(false);
   });
 
   it("records a generated manifest and clears prior resolution results", () => {
@@ -98,23 +73,6 @@ describe("tactical-sandbox-screen-state", () => {
     const state = applyGenerateFailed(initialTacticalSandboxScreenState(), "WAR_NOT_FOUND");
     expect(state.generateError).toBe("WAR_NOT_FOUND");
     expect(state.manifest).toBeNull();
-  });
-
-  it("groups battle events by type in descending count order", () => {
-    const outcome = {
-      battleEventLedger: {
-        battleId: "battle_1",
-        events: [
-          { turn: 1, eventType: "gunnery_shot", data: {} },
-          { turn: 1, eventType: "gunnery_shot", data: {} },
-          { turn: 2, eventType: "mine_strike", data: {} },
-        ],
-      },
-    } as unknown as TacticalBattleOutcome;
-
-    const grouped = groupEventsByType(outcome);
-    expect(grouped[0]).toEqual({ eventType: "gunnery_shot", count: 2 });
-    expect(grouped[1]).toEqual({ eventType: "mine_strike", count: 1 });
   });
 
   it("updates the scripted orders text field verbatim", () => {

@@ -1,9 +1,12 @@
-import { SandboxBody } from "./SandboxBody.js";
-import { SandboxEventLedger } from "./SandboxEventLedger.js";
-import { SandboxOutcomeCard } from "./SandboxOutcomeCard.js";
-import { SandboxProvider, useSandbox, type SandboxContextValue } from "./SandboxProvider.js";
-import { SandboxResolveCard } from "./SandboxResolveCard.js";
-import { SandboxSetupCard } from "./SandboxSetupCard.js";
+import {
+  SandboxBody,
+  SandboxEventLedger,
+  SandboxOutcomeCard,
+  SandboxResolveCard,
+  SandboxSetupCard,
+} from "./components/index.js";
+import { SandboxProvider } from "./SandboxProvider.js";
+import { useSandbox, type SandboxContextValue } from "./sandbox-context.js";
 
 export const Sandbox = {
   Provider: SandboxProvider,

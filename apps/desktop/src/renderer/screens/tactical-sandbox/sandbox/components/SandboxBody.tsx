@@ -1,5 +1,5 @@
 import { Crosshair } from "lucide-react";
-import { PageHeader } from "../../../components/shared/PageHeader.js";
+import { PageHeader } from "../../../../components/shared/PageHeader.js";
 import { SandboxEventLedger } from "./SandboxEventLedger.js";
 import { SandboxOutcomeCard } from "./SandboxOutcomeCard.js";
 import { SandboxResolveCard } from "./SandboxResolveCard.js";

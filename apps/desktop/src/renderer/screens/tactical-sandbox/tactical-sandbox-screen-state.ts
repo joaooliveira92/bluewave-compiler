@@ -1,19 +1,11 @@
 import type {
   BattleManifest,
   BattleResolution,
-  RawScriptedForceOrder,
   ReplayBattleBoundaryResponse,
   TacticalBattleOutcome,
 } from "@bluewave/campaign-engine";
 
-const DEFAULT_SCRIPTED_ORDERS: readonly RawScriptedForceOrder[] = [
-  {
-    issueTurn: 1,
-    divisionId: "Channel Squadron",
-    orderType: "change_lead_division",
-    newLeadShipId: "HMS Majestic",
-  },
-];
+import { DEFAULT_SCRIPTED_ORDERS_TEXT } from "./scripted-orders.js";
 
 export interface TacticalSandboxScreenState {
   readonly warId: string;
@@ -33,7 +25,7 @@ export function initialTacticalSandboxScreenState(): TacticalSandboxScreenState 
   return {
     warId: "war_uk_germany",
     turnCount: 200,
-    scriptedOrdersText: JSON.stringify(DEFAULT_SCRIPTED_ORDERS, null, 2),
+    scriptedOrdersText: DEFAULT_SCRIPTED_ORDERS_TEXT,
     manifest: null,
     generateError: null,
     autoResolution: null,
@@ -64,43 +56,6 @@ export function updateScriptedOrdersText(
   scriptedOrdersText: string,
 ): TacticalSandboxScreenState {
   return { ...state, scriptedOrdersText };
-}
-
-export type ParseScriptedOrdersResult =
-  | { readonly ok: true; readonly orders: readonly RawScriptedForceOrder[] }
-  | { readonly ok: false; readonly error: string };
-
-export function parseScriptedOrders(text: string): ParseScriptedOrdersResult {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch (err) {
-    return {
-      ok: false,
-      error: `Invalid JSON: ${err instanceof Error ? err.message : String(err)}`,
-    };
-  }
-
-  if (!Array.isArray(parsed)) {
-    return { ok: false, error: "Scripted orders must be a JSON array." };
-  }
-
-  for (const [index, entry] of parsed.entries()) {
-    if (
-      typeof entry !== "object" ||
-      entry === null ||
-      typeof (entry as Record<string, unknown>)["issueTurn"] !== "number" ||
-      typeof (entry as Record<string, unknown>)["divisionId"] !== "string" ||
-      typeof (entry as Record<string, unknown>)["orderType"] !== "string"
-    ) {
-      return {
-        ok: false,
-        error: `Order at index ${index} must include numeric issueTurn, divisionId, orderType.`,
-      };
-    }
-  }
-
-  return { ok: true, orders: parsed as readonly RawScriptedForceOrder[] };
 }
 
 export function beginRequest(state: TacticalSandboxScreenState): TacticalSandboxScreenState {
@@ -179,16 +134,4 @@ export function applyBoundaryReplayFailed(
     boundaryReplayError: error,
     boundaryReplay: null,
   };
-}
-
-export function groupEventsByType(
-  outcome: TacticalBattleOutcome,
-): readonly { readonly eventType: string; readonly count: number }[] {
-  const counts = new Map<string, number>();
-  for (const event of outcome.battleEventLedger.events) {
-    counts.set(event.eventType, (counts.get(event.eventType) ?? 0) + 1);
-  }
-  return [...counts.entries()]
-    .map(([eventType, count]) => ({ eventType, count }))
-    .sort((a, b) => b.count - a.count);
 }

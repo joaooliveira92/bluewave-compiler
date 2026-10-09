@@ -1,15 +1,15 @@
 import { Play, RefreshCw } from "lucide-react";
-import { Button } from "../../../components/ui/button.js";
+import { Button } from "../../../../components/ui/button.js";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../../../components/ui/card.js";
-import { Field, FieldLabel } from "../../../components/ui/field.js";
-import { Textarea } from "../../../components/ui/textarea.js";
-import { useSandbox } from "./SandboxProvider.js";
+} from "../../../../components/ui/card.js";
+import { Field, FieldLabel } from "../../../../components/ui/field.js";
+import { Textarea } from "../../../../components/ui/textarea.js";
+import { useSandbox } from "../sandbox-context.js";
 
 export function SandboxResolveCard() {
   const { state, actions } = useSandbox();

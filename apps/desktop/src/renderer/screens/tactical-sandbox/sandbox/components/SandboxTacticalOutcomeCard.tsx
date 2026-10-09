@@ -1,74 +1,19 @@
-import type { BattleResolution, TacticalBattleOutcome } from "@bluewave/campaign-engine";
-import { Radar, Sword, Waves } from "lucide-react";
+import type { TacticalBattleOutcome } from "@bluewave/campaign-engine";
+import { Radar, Waves } from "lucide-react";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../../../components/ui/card.js";
-import { useSandbox } from "./SandboxProvider.js";
+} from "../../../../components/ui/card.js";
+import { SandboxStat } from "./SandboxStat.js";
 
-export function SandboxOutcomeCard() {
-  const { state } = useSandbox();
-  const autoResolution = state.autoResolution;
-  const outcome = state.tacticalOutcome;
-  return (
-    <>
-      {autoResolution !== null && <AutoResolutionCard resolution={autoResolution} />}
-      {outcome !== null && <TacticalOutcomeSection outcome={outcome} />}
-    </>
-  );
-}
-
-function AutoResolutionCard({ resolution }: { readonly resolution: BattleResolution }) {
-  return (
-    <Card className="border-success/30 bg-success/5">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-1.5 text-sm font-medium text-success">
-          <Sword className="h-4 w-4" />
-          Auto-Resolution
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2 font-mono text-xs">
-        <p>
-          Winner:{" "}
-          <span className="font-medium">{resolution.missionOutcome.winner ?? "INCONCLUSIVE"}</span>{" "}
-          · Outcome: {resolution.missionOutcome.outcomeKind} · War Score:{" "}
-          {resolution.warScoreChange}
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-[12px] uppercase text-muted-foreground">Attacker Ships</p>
-            {resolution.attacker.ships.map((ship, idx) => (
-              <div
-                key={idx}
-                className="flex justify-between border-b py-0.5 text-[12px] last:border-0"
-              >
-                <span>{ship.shipId}</span>
-                <span className="font-medium">{ship.outcome}</span>
-              </div>
-            ))}
-          </div>
-          <div>
-            <p className="text-[12px] uppercase text-muted-foreground">Defender Ships</p>
-            {resolution.defender.ships.map((ship, idx) => (
-              <div
-                key={idx}
-                className="flex justify-between border-b py-0.5 text-[12px] last:border-0"
-              >
-                <span>{ship.shipId}</span>
-                <span className="font-medium">{ship.outcome}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function TacticalOutcomeSection({ outcome }: { readonly outcome: TacticalBattleOutcome }) {
+export function SandboxTacticalOutcomeCard({
+  outcome,
+}: {
+  readonly outcome: TacticalBattleOutcome;
+}) {
   return (
     <>
       <Card className="border-warning/30 bg-warning/5">
@@ -83,10 +28,10 @@ function TacticalOutcomeSection({ outcome }: { readonly outcome: TacticalBattleO
           </CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4 font-mono text-xs md:grid-cols-4">
-          <Stat label="Sea State" value={String(outcome.weather.seaState)} />
-          <Stat label="Visibility (nm)" value={String(outcome.weather.visibilityNm)} />
-          <Stat label="Precipitation" value={outcome.weather.precipitation} />
-          <Stat label="Time of Day" value={outcome.weather.timeOfDay} />
+          <SandboxStat label="Sea State" value={String(outcome.weather.seaState)} />
+          <SandboxStat label="Visibility (nm)" value={String(outcome.weather.visibilityNm)} />
+          <SandboxStat label="Precipitation" value={outcome.weather.precipitation} />
+          <SandboxStat label="Time of Day" value={outcome.weather.timeOfDay} />
         </CardContent>
       </Card>
 
@@ -162,14 +107,5 @@ function TacticalOutcomeSection({ outcome }: { readonly outcome: TacticalBattleO
         </CardContent>
       </Card>
     </>
-  );
-}
-
-function Stat({ label, value }: { readonly label: string; readonly value: string }) {
-  return (
-    <div className="rounded-md border bg-muted/40 p-2">
-      <div className="text-[12px] uppercase text-muted-foreground">{label}</div>
-      <div className="text-sm font-medium text-foreground">{value}</div>
-    </div>
   );
 }

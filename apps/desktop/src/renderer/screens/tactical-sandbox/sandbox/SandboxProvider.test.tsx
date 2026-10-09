@@ -8,7 +8,8 @@ import type {
 } from "@bluewave/campaign-engine";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { BluewaveDesktopBridge } from "../../../../preload/index.js";
-import { SandboxProvider, useSandbox } from "./SandboxProvider.js";
+import { SandboxProvider } from "./SandboxProvider.js";
+import { useSandbox } from "./sandbox-context.js";
 
 const manifest = { battleId: "battle_1" } as unknown as BattleManifest;
 
