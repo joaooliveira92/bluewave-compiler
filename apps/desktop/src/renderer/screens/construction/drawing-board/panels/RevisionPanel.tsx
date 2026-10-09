@@ -268,7 +268,7 @@ export function RevisionPanel({
           ? "Compared with this ship's real design. Armour and machinery orders are assumed not placed."
           : revisable
             ? "Loading this ship's design…"
-            : "This ship was built from an authored design, so it cannot be revised and this is only an estimate from your edits."}
+            : "This ship uses an authored design with no component-level drawing yet, so it cannot be revised; this is only an estimate from your edits."}
       </p>
     </Panel>
   );

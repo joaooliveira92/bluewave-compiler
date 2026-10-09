@@ -28,3 +28,4 @@ Accepted 2026-10-08. Implements the revision commands left open by ADR-0066 (SB-
 - **Armour/machinery already ordered, and launched**: the engine tracks one work figure per project, so these are treated as false; the real tier can only be this tier or higher.
 - **T3 rebuild/conversion projects** (DESIGN-23 sections 20-23).
 - **Desktop apply flow**: the Drawing Board still only previews; the bridge and "Revise project" action are the next step.
+- **Authored designs** (the starting ships) have no source draft, so they cannot be revised. Blocked on content, not code: see `.scratch/ship-building/issues/27-authored-design-drafts.md`.
