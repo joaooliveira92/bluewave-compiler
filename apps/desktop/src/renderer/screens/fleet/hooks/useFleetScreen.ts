@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import type { MovementCommand } from "@bluewave/campaign-engine";
 import { useBridge } from "../../../lib/bridge-context.js";
 import type {
+  FleetDivisionView,
   FleetScreenProjection,
   MovementCommandOutcome,
 } from "../../../../shared/fleet-contract.js";
@@ -10,6 +12,8 @@ import type { FleetScreenState } from "../fleet-screen-state.js";
 import {
   acceptMovementCommand,
   initialFleetScreenState,
+  nextDivisionSelection,
+  pendingRouteFor,
   projectFleetScreen,
   reachableAreas,
 } from "../fleet-screen-state.js";
@@ -18,6 +22,8 @@ export interface UseFleetScreenReturn {
   readonly state: FleetScreenState;
   readonly loadError: string | null;
   readonly selectedDivisionId: string | null;
+  readonly selectedDivision: FleetDivisionView | null;
+  readonly pendingRoute: MovementCommand | null;
   readonly destinationAreaId: string | null;
   readonly reachableAreas: readonly { readonly id: string; readonly name: string }[];
   readonly request: {
@@ -51,78 +57,113 @@ export function useFleetScreen(sessionId: string): UseFleetScreenReturn {
       project: projectFleetScreen,
       accept: acceptMovementCommand,
       onProjection: (projection) => {
-        setSelectedDivisionId((current) => current ?? projection.divisions[0]?.divisionId ?? null);
+        setSelectedDivisionId((current) => nextDivisionSelection(current, projection.divisions));
         setDestinationAreaId((current) => current ?? projection.areas[0]?.id ?? null);
       },
     },
     { refreshKey: campaignRevision },
   );
-  const reachable = (() => {
-    const division = workflow.state.divisions.find((d) => d.divisionId === selectedDivisionId);
-    return division
-      ? reachableAreas(workflow.state.areas, workflow.state.areaEdges, division.areaId)
-      : [];
-  })();
+  const { state, execute, loadScreen, loadError, request } = workflow;
+
+  const selectedDivision = useMemo(
+    () => state.divisions.find((division) => division.divisionId === selectedDivisionId) ?? null,
+    [state.divisions, selectedDivisionId],
+  );
+
+  const reachable = useMemo(
+    () =>
+      selectedDivision === null
+        ? []
+        : reachableAreas(state.areas, state.areaEdges, selectedDivision.areaId),
+    [state.areas, state.areaEdges, selectedDivision],
+  );
+
   // The chosen destination if it is one hop away, otherwise the first reachable area.
-  const effectiveDestinationAreaId = reachable.some((a) => a.id === destinationAreaId)
-    ? destinationAreaId
-    : (reachable[0]?.id ?? null);
+  const effectiveDestinationAreaId = useMemo(
+    () =>
+      reachable.some((area) => area.id === destinationAreaId)
+        ? destinationAreaId
+        : (reachable[0]?.id ?? null),
+    [reachable, destinationAreaId],
+  );
 
-  function selectedDivision() {
-    return workflow.state.divisions.find((division) => division.divisionId === selectedDivisionId);
-  }
+  const pendingRoute = useMemo(
+    () =>
+      selectedDivisionId === null
+        ? null
+        : pendingRouteFor(state.movementCommands, selectedDivisionId),
+    [state.movementCommands, selectedDivisionId],
+  );
 
-  function submit(): void {
-    const division = selectedDivision();
-    if (!bridge || !division || effectiveDestinationAreaId === null) return;
-    workflow.execute("submit", ({ expectedRevision, transportRequestId }) =>
+  // The destination both route commands share; null when an order cannot be sent.
+  const routeTarget = useMemo(() => {
+    if (selectedDivision === null || effectiveDestinationAreaId === null) return null;
+    return {
+      divisionId: selectedDivision.divisionId,
+      fromAreaId: selectedDivision.areaId,
+      toAreaId: effectiveDestinationAreaId,
+    };
+  }, [selectedDivision, effectiveDestinationAreaId]);
+
+  const submit = useCallback(() => {
+    if (!bridge || routeTarget === null) return;
+    const { divisionId, fromAreaId, toAreaId } = routeTarget;
+    execute("submit", ({ expectedRevision, transportRequestId }) =>
       bridge.campaign.execute("submitMovementCommand", {
         sessionId,
-        divisionId: division.divisionId,
-        fromAreaId: division.areaId,
-        toAreaId: effectiveDestinationAreaId,
+        divisionId,
+        fromAreaId,
+        toAreaId,
         expectedRevision,
         transportRequestId,
       }),
     );
-  }
+  }, [bridge, execute, routeTarget, sessionId]);
 
-  function replace(commandId: string): void {
-    const division = selectedDivision();
-    if (!bridge || !division || effectiveDestinationAreaId === null) return;
-    workflow.execute("replace", ({ expectedRevision, transportRequestId }) =>
-      bridge.campaign.execute("replaceMovementCommand", {
-        sessionId,
-        commandId,
-        divisionId: division.divisionId,
-        fromAreaId: division.areaId,
-        toAreaId: effectiveDestinationAreaId,
-        expectedRevision,
-        transportRequestId,
-      }),
-    );
-  }
+  const replace = useCallback(
+    (commandId: string) => {
+      if (!bridge || routeTarget === null) return;
+      const { divisionId, fromAreaId, toAreaId } = routeTarget;
+      execute("replace", ({ expectedRevision, transportRequestId }) =>
+        bridge.campaign.execute("replaceMovementCommand", {
+          sessionId,
+          commandId,
+          divisionId,
+          fromAreaId,
+          toAreaId,
+          expectedRevision,
+          transportRequestId,
+        }),
+      );
+    },
+    [bridge, execute, routeTarget, sessionId],
+  );
 
-  function cancel(commandId: string): void {
-    if (!bridge) return;
-    workflow.execute("cancel", ({ expectedRevision, transportRequestId }) =>
-      bridge.campaign.execute("cancelMovementCommand", {
-        sessionId,
-        commandId,
-        expectedRevision,
-        transportRequestId,
-      }),
-    );
-  }
+  const cancel = useCallback(
+    (commandId: string) => {
+      if (!bridge) return;
+      execute("cancel", ({ expectedRevision, transportRequestId }) =>
+        bridge.campaign.execute("cancelMovementCommand", {
+          sessionId,
+          commandId,
+          expectedRevision,
+          transportRequestId,
+        }),
+      );
+    },
+    [bridge, execute, sessionId],
+  );
 
   return {
-    state: workflow.state,
-    loadError: workflow.loadError,
+    state,
+    loadError,
     selectedDivisionId,
+    selectedDivision,
+    pendingRoute,
     destinationAreaId: effectiveDestinationAreaId,
     reachableAreas: reachable,
-    request: workflow.request,
-    loadScreen: workflow.loadScreen,
+    request,
+    loadScreen,
     setSelectedDivisionId,
     setDestinationAreaId,
     submit,

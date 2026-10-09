@@ -1,4 +1,8 @@
-import type { BattleHistoryEntry, DivisionView } from "@bluewave/campaign-engine";
+import type {
+  BattleHistoryEntry,
+  BattleHistoryView,
+  DivisionView,
+} from "@bluewave/campaign-engine";
 import type { DeferredFeature } from "../../components/shared/DeferredFeaturesPanel.js";
 import { humanizeId } from "../../lib/humanize-id.js";
 import { DEFERRED_SUBMARINE_ITEMS } from "./fleet-screen-state.js";
@@ -43,6 +47,30 @@ export function playerLossRows(battles: readonly BattleHistoryEntry[]): readonly
   return rows
     .sort((a, b) => (a.month < b.month ? 1 : a.month > b.month ? -1 : b.sequence - a.sequence))
     .map(({ sequence: _sequence, ...row }) => row);
+}
+
+export type PlayerLossesView =
+  | { readonly status: "loading" }
+  | { readonly status: "error"; readonly message: string }
+  | { readonly status: "ready"; readonly rows: readonly LossRow[] };
+
+/**
+ * The shape of the battle-history query this view consumes. Structural (not the hook's own
+ * union) so this state module owns no dependency on a renderer hook.
+ */
+export type LossesInput =
+  | { readonly status: "loading" }
+  | { readonly status: "error"; readonly message: string }
+  | { readonly status: "ready"; readonly history: BattleHistoryView };
+
+/**
+ * The player's losses as a view model, derived once so the section summary and the list
+ * below it read from the exact same rows.
+ */
+export function playerLossesView(state: LossesInput): PlayerLossesView {
+  if (state.status === "loading") return { status: "loading" };
+  if (state.status === "error") return { status: "error", message: state.message };
+  return { status: "ready", rows: playerLossRows(state.history.battles) };
 }
 
 export interface OfficerRow {

@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import type { MovementCommand } from "@bluewave/campaign-engine";
-import { MovementCommandsTable } from "./MovementCommandsTable.js";
+import type { MovementCommandRow } from "../fleet-screen-state.js";
+import { MovementCommandsTable, movementStatusVariant } from "./MovementCommandsTable.js";
 
 const debugFlag = vi.hoisted(() => ({ on: false }));
 vi.mock("../../../shell/debug-flag.js", () => ({
@@ -10,24 +10,28 @@ vi.mock("../../../shell/debug-flag.js", () => ({
   },
 }));
 
-const command: MovementCommand = {
+const row: MovementCommandRow = {
   commandId: "cmd_movement_0042",
-  divisionId: "fleet_gbr_home",
-  fromAreaId: "area_a",
-  toAreaId: "area_b",
+  divisionName: "Home Fleet",
+  fromName: "English Home Waters",
+  toName: "Malta",
   status: "submitted",
   submittedAtRevision: 9,
 };
 
 function renderTable() {
-  render(
-    <MovementCommandsTable
-      commands={[command]}
-      areaName={(id) => (id === "area_a" ? "English Home Waters" : "Malta")}
-      divisionName={(id) => (id === "fleet_gbr_home" ? "Home Fleet" : id)}
-    />,
-  );
+  render(<MovementCommandsTable rows={[row]} />);
 }
+
+describe("movementStatusVariant", () => {
+  it("maps each engine status to a distinct badge treatment", () => {
+    expect(movementStatusVariant("submitted")).toBe("default");
+    expect(movementStatusVariant("accepted")).toBe("secondary");
+    expect(movementStatusVariant("rejected")).toBe("outline");
+    expect(movementStatusVariant("superseded")).toBe("outline");
+    expect(movementStatusVariant("cancelled")).toBe("outline");
+  });
+});
 
 describe("MovementCommandsTable release/debug display (ADR-0058)", () => {
   afterEach(cleanup);
@@ -38,7 +42,6 @@ describe("MovementCommandsTable release/debug display (ADR-0058)", () => {
     expect(screen.getByText("Home Fleet")).toBeTruthy();
     expect(screen.getByText("English Home Waters")).toBeTruthy();
     expect(screen.queryByText("cmd_movement_0042")).toBeNull();
-    expect(screen.queryByText("fleet_gbr_home")).toBeNull();
     expect(screen.queryByText("Revision")).toBeNull();
     expect(screen.queryByText("9")).toBeNull();
   });
@@ -49,8 +52,6 @@ describe("MovementCommandsTable release/debug display (ADR-0058)", () => {
     expect(screen.getByText("cmd_movement_0042")).toBeTruthy();
     expect(screen.getByText("Revision")).toBeTruthy();
     expect(screen.getByText("9")).toBeTruthy();
-    // The division is still shown by name, never by id.
     expect(screen.getByText("Home Fleet")).toBeTruthy();
-    expect(screen.queryByText("fleet_gbr_home")).toBeNull();
   });
 });

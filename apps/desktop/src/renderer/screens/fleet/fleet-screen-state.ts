@@ -1,6 +1,7 @@
 import type { DeferredFeature } from "../../components/shared/DeferredFeaturesPanel.js";
 import type { MovementCommand } from "@bluewave/campaign-engine";
 import type {
+  FleetDivisionView,
   FleetScreenProjection,
   MovementCommandOutcome,
 } from "../../../shared/fleet-contract.js";
@@ -58,14 +59,29 @@ export function projectFleetScreen(projection: FleetScreenProjection): Partial<F
  * cancelled command stays in the workspace for audit but is no longer pending.
  */
 export function pendingRouteFor(
-  state: FleetScreenState,
+  movementCommands: readonly MovementCommand[],
   divisionId: string,
 ): MovementCommand | null {
   return (
-    state.movementCommands.find(
+    movementCommands.find(
       (command) => command.divisionId === divisionId && command.status === "submitted",
     ) ?? null
   );
+}
+
+/**
+ * The selection to carry into a fresh projection: keep the current division while it still
+ * exists, otherwise fall back to the first one (or none). Stops a refresh that drops a
+ * division from leaving a dangling selection behind.
+ */
+export function nextDivisionSelection(
+  current: string | null,
+  divisions: readonly FleetDivisionView[],
+): string | null {
+  if (current !== null && divisions.some((division) => division.divisionId === current)) {
+    return current;
+  }
+  return divisions[0]?.divisionId ?? null;
 }
 
 export function acceptMovementCommand(value: MovementCommandOutcome): {
@@ -148,6 +164,84 @@ export function buildAreaOverview(
       neighbours: [...(neighbours.get(area.id) ?? [])].sort(byName),
     }))
     .sort((a, b) => byName(a.name, b.name));
+}
+
+export interface MovementCommandRow {
+  readonly commandId: string;
+  readonly divisionName: string;
+  readonly fromName: string;
+  readonly toName: string;
+  readonly status: MovementCommand["status"];
+  readonly submittedAtRevision: number;
+}
+
+/**
+ * Resolve a movement command's ids to display names for the table. Mirrors the
+ * `playerLossRows`/`officerRows` projection convention: a pure function resolves, the
+ * component renders. The caller's resolvers own the id fallback.
+ */
+export function movementCommandRows(
+  commands: readonly MovementCommand[],
+  nameOfArea: (areaId: string) => string,
+  nameOfDivision: (divisionId: string) => string,
+): MovementCommandRow[] {
+  return commands.map((command) => ({
+    commandId: command.commandId,
+    divisionName: nameOfDivision(command.divisionId),
+    fromName: nameOfArea(command.fromAreaId),
+    toName: nameOfArea(command.toAreaId),
+    status: command.status,
+    submittedAtRevision: command.submittedAtRevision,
+  }));
+}
+
+export interface DivisionPickerRow {
+  readonly divisionId: string;
+  readonly fleetName: string;
+  readonly areaName: string;
+  readonly ships: FleetDivisionView["ships"];
+}
+
+/** Resolve each division's area to a display name for the division picker. */
+export function divisionPickerRows(
+  divisions: readonly FleetDivisionView[],
+  nameOfArea: (areaId: string) => string,
+): DivisionPickerRow[] {
+  return divisions.map((division) => ({
+    divisionId: division.divisionId,
+    fleetName: division.fleetName,
+    areaName: nameOfArea(division.areaId),
+    ships: division.ships,
+  }));
+}
+
+export interface OrderStatusView {
+  /** Selected division's fleet name, or null when none is selected. */
+  readonly divisionName: string | null;
+  /** Where that division is, or null when none is selected. */
+  readonly locationName: string | null;
+  readonly routeFromName: string | null;
+  readonly routeToName: string | null;
+}
+
+/**
+ * Resolve the order panel's status line once: the selected division, where it is, and its
+ * pending route (if any) as display names, so the summary component renders only strings.
+ */
+export function orderStatusView(
+  selectedDivision: FleetDivisionView | null,
+  pendingRoute: MovementCommand | null,
+  nameOfArea: (areaId: string) => string,
+): OrderStatusView {
+  if (selectedDivision === null) {
+    return { divisionName: null, locationName: null, routeFromName: null, routeToName: null };
+  }
+  return {
+    divisionName: selectedDivision.fleetName,
+    locationName: nameOfArea(selectedDivision.areaId),
+    routeFromName: pendingRoute === null ? null : nameOfArea(pendingRoute.fromAreaId),
+    routeToName: pendingRoute === null ? null : nameOfArea(pendingRoute.toAreaId),
+  };
 }
 
 /**

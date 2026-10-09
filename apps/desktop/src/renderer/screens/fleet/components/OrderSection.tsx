@@ -1,52 +1,44 @@
 import type { MovementCommand } from "@bluewave/campaign-engine";
 import { memo } from "react";
-import type {
-  FleetDivisionView,
-  FleetScreenProjection,
-} from "../../../../shared/fleet-contract.js";
-import { Alert, AlertDescription } from "../../../components/ui/alert.js";
-import { Button } from "../../../components/ui/button.js";
+import type { FleetScreenProjection } from "../../../../shared/fleet-contract.js";
+import type { OrderStatusView } from "../fleet-screen-state.js";
+import { DestinationPicker } from "./DestinationPicker.js";
+import { OrderActions } from "./OrderActions.js";
+import { OrderNotice } from "./OrderNotice.js";
+import { OrderStatusSummary } from "./OrderStatusSummary.js";
 import { Card, CardContent } from "../../../components/ui/card.js";
-import { Select } from "../../../components/ui/select.js";
-import {
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../../components/ui/select.js";
 
-export interface OrderSectionProps {
-  readonly areas: FleetScreenProjection["areas"];
-  readonly selectedDivision: FleetDivisionView | null;
-  readonly destinationAreaId: string | null;
-  readonly onDestinationChange: (areaId: string) => void;
+export interface OrderSectionOrder {
+  readonly status: OrderStatusView;
   readonly pendingRoute: MovementCommand | null;
+}
+
+export interface OrderSectionActions {
   readonly busy: boolean;
+  readonly hasPendingRequest: boolean;
   readonly onSubmit: () => void;
   readonly onReplace: (commandId: string) => void;
   readonly onCancel: (commandId: string) => void;
   readonly onRefresh: () => void;
-  readonly hasPendingRequest: boolean;
   readonly onRetry: () => void;
+}
+
+export interface OrderSectionProps {
+  readonly destinations: FleetScreenProjection["areas"];
+  readonly destinationAreaId: string | null;
+  readonly onDestinationChange: (areaId: string) => void;
+  readonly order: OrderSectionOrder;
+  readonly actions: OrderSectionActions;
   readonly notice: string | null;
-  readonly areaName: (areaId: string) => string;
 }
 
 export const OrderSection = memo(function OrderSection({
-  areas,
-  selectedDivision,
+  destinations,
   destinationAreaId,
   onDestinationChange,
-  pendingRoute,
-  busy,
-  onSubmit,
-  onReplace,
-  onCancel,
-  onRefresh,
-  hasPendingRequest,
-  onRetry,
+  order,
+  actions,
   notice,
-  areaName,
 }: OrderSectionProps) {
   return (
     <>
@@ -54,89 +46,31 @@ export const OrderSection = memo(function OrderSection({
         <h3 className="mb-3 text-sm font-medium">Order</h3>
         <Card className=" bg-background/80 backdrop-blur-md select-none">
           <CardContent className="space-y-4 py-4">
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium" htmlFor="destination">
-                Destination
-              </label>
-              <Select
-                value={destinationAreaId ?? ""}
-                onValueChange={onDestinationChange}
-                className="w-full"
-              >
-                <SelectTrigger id="destination">
-                  <SelectValue placeholder="Select a destination" />
-                </SelectTrigger>
-                <SelectContent>
-                  {areas.map((area) => (
-                    <SelectItem key={area.id} value={area.id}>
-                      {area.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <DestinationPicker
+              areas={destinations}
+              value={destinationAreaId}
+              onChange={onDestinationChange}
+            />
 
-            <p className="text-sm text-muted-foreground">
-              {selectedDivision === null ? (
-                "Select a division."
-              ) : pendingRoute === null ? (
-                <>
-                  <strong>{selectedDivision.fleetName}</strong> is in{" "}
-                  {areaName(selectedDivision.areaId)} with no pending route.
-                </>
-              ) : (
-                <>
-                  <strong>{selectedDivision.fleetName}</strong> has a pending route{" "}
-                  <strong>{areaName(pendingRoute.fromAreaId)}</strong> →{" "}
-                  <strong>{areaName(pendingRoute.toAreaId)}</strong>.
-                </>
-              )}
-            </p>
+            <OrderStatusSummary status={order.status} />
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="default"
-                onClick={onSubmit}
-                disabled={busy || selectedDivision === null || destinationAreaId === null}
-              >
-                Submit movement command
-              </Button>
-              {pendingRoute !== null && (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => onReplace(pendingRoute.commandId)}
-                    disabled={busy || destinationAreaId === null}
-                  >
-                    Replace pending route
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => onCancel(pendingRoute.commandId)}
-                    disabled={busy}
-                  >
-                    Cancel pending route
-                  </Button>
-                </>
-              )}
-              <Button variant="ghost" size="sm" onClick={onRefresh}>
-                Refresh
-              </Button>
-              {hasPendingRequest && (
-                <Button variant="secondary" size="sm" onClick={onRetry}>
-                  Retry pending request
-                </Button>
-              )}
-            </div>
+            <OrderActions
+              busy={actions.busy}
+              canSubmit={order.status.divisionName !== null && destinationAreaId !== null}
+              canReplace={destinationAreaId !== null}
+              pendingRoute={order.pendingRoute}
+              hasPendingRequest={actions.hasPendingRequest}
+              onSubmit={actions.onSubmit}
+              onReplace={actions.onReplace}
+              onCancel={actions.onCancel}
+              onRefresh={actions.onRefresh}
+              onRetry={actions.onRetry}
+            />
           </CardContent>
         </Card>
       </section>
 
-      {notice !== null && (
-        <Alert>
-          <AlertDescription className="whitespace-pre-line">{notice}</AlertDescription>
-        </Alert>
-      )}
+      <OrderNotice notice={notice} />
     </>
   );
 });

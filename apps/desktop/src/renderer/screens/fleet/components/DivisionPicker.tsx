@@ -1,32 +1,30 @@
 import { memo } from "react";
-import type { FleetDivisionView } from "../../../../shared/fleet-contract.js";
 import { Badge } from "../../../components/ui/badge.js";
 import { CardContent } from "../../../components/ui/card.js";
 import { Empty, EmptyDescription, EmptyIcon, EmptyTitle } from "../../../components/ui/empty.js";
 import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio-group.js";
+import type { DivisionPickerRow } from "../fleet-screen-state.js";
 
 export interface DivisionPickerProps {
-  readonly divisions: readonly FleetDivisionView[];
+  readonly rows: readonly DivisionPickerRow[];
   readonly selectedDivisionId: string | null;
   readonly onSelectDivision: (divisionId: string) => void;
-  readonly areaName: (areaId: string) => string;
 }
 
 export const DivisionPicker = memo(function DivisionPicker({
-  divisions,
+  rows,
   selectedDivisionId,
   onSelectDivision,
-  areaName,
 }: DivisionPickerProps) {
   return (
     <section>
       <div className="mb-3 flex items-center gap-2">
         <h3 className="text-sm font-medium">Divisions</h3>
         <Badge variant="secondary" className="text-xs">
-          {divisions.length}
+          {rows.length}
         </Badge>
       </div>
-      {divisions.length === 0 ? (
+      {rows.length === 0 ? (
         <Empty>
           <EmptyIcon />
           <EmptyTitle>No player division</EmptyTitle>
@@ -38,14 +36,14 @@ export const DivisionPicker = memo(function DivisionPicker({
           onValueChange={(value) => onSelectDivision(value as string)}
           className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {divisions.map((division) => (
-            <RadioGroupItem key={division.divisionId} value={division.divisionId}>
+          {rows.map((row) => (
+            <RadioGroupItem key={row.divisionId} value={row.divisionId}>
               <CardContent className="p-4">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{division.fleetName}</p>
-                  <p className="text-xs text-muted-foreground">{areaName(division.areaId)}</p>
+                  <p className="truncate font-medium">{row.fleetName}</p>
+                  <p className="text-xs text-muted-foreground">{row.areaName}</p>
                   <div className="mt-1.5 flex flex-wrap gap-1">
-                    {division.ships.slice(0, 4).map((ship) => (
+                    {row.ships.slice(0, 4).map((ship) => (
                       <span
                         key={ship.name}
                         className="inline-block rounded-sm bg-accent px-1.5 py-0.5 text-xs text-accent-foreground"
@@ -53,9 +51,9 @@ export const DivisionPicker = memo(function DivisionPicker({
                         {ship.name}
                       </span>
                     ))}
-                    {division.ships.length > 4 && (
+                    {row.ships.length > 4 && (
                       <span className="inline-block rounded-sm bg-accent px-1.5 py-0.5 text-xs text-muted-foreground">
-                        +{division.ships.length - 4}
+                        +{row.ships.length - 4}
                       </span>
                     )}
                   </div>

@@ -3,7 +3,11 @@ import type { FleetScreenProjection } from "../../../shared/fleet-contract.js";
 import type { FleetScreenState } from "./fleet-screen-state.js";
 import {
   acceptMovementCommand,
+  divisionPickerRows,
   initialFleetScreenState,
+  movementCommandRows,
+  nextDivisionSelection,
+  orderStatusView,
   pendingRouteFor,
   projectFleetScreen,
   reachableAreas,
@@ -107,8 +111,8 @@ describe("fleet screen state", () => {
   it("reports the submitted command as the pending route for a division", () => {
     const state = loaded();
 
-    expect(pendingRouteFor(state, "Channel Squadron")).toEqual(movementCommand);
-    expect(pendingRouteFor(state, "Mediterranean Squadron")).toBeNull();
+    expect(pendingRouteFor(state.movementCommands, "Channel Squadron")).toEqual(movementCommand);
+    expect(pendingRouteFor(state.movementCommands, "Mediterranean Squadron")).toBeNull();
   });
 
   it("ignores superseded and cancelled commands when reporting the pending route", () => {
@@ -128,7 +132,7 @@ describe("fleet screen state", () => {
       }),
     );
 
-    expect(pendingRouteFor(state, "Channel Squadron")).toBeNull();
+    expect(pendingRouteFor(state.movementCommands, "Channel Squadron")).toBeNull();
   });
 
   it("keeps the transport request identity of the request in flight", () => {
@@ -191,6 +195,93 @@ describe("fleet screen state", () => {
       transportRequestId: "tx-3",
     });
     expect(state.notice).toContain("TRANSPORT_FAILURE");
+  });
+});
+
+describe("movementCommandRows", () => {
+  it("resolves area and division ids to display names for the table", () => {
+    const rows = movementCommandRows(
+      [movementCommand],
+      (areaId) => (areaId === "area_northern_europe" ? "Northern Europe" : "Mediterranean"),
+      () => "Home Fleet",
+    );
+    expect(rows).toEqual([
+      {
+        commandId: "mcmd_1",
+        divisionName: "Home Fleet",
+        fromName: "Northern Europe",
+        toName: "Mediterranean",
+        status: "submitted",
+        submittedAtRevision: 0,
+      },
+    ]);
+  });
+});
+
+describe("divisionPickerRows", () => {
+  it("resolves each division's area to a display name", () => {
+    const rows = divisionPickerRows(projection.divisions, (areaId) =>
+      areaId === "area_northern_europe" ? "Northern Europe" : areaId,
+    );
+    expect(rows).toEqual([
+      {
+        divisionId: "Channel Squadron",
+        fleetName: "Home Fleet",
+        areaName: "Northern Europe",
+        ships: projection.divisions[0]?.ships,
+      },
+    ]);
+  });
+});
+
+describe("orderStatusView", () => {
+  const nameOfArea = (areaId: string) =>
+    ({ area_northern_europe: "Northern Europe", area_mediterranean: "Mediterranean" })[areaId] ??
+    areaId;
+
+  it("is empty until a division is selected", () => {
+    expect(orderStatusView(null, null, nameOfArea)).toEqual({
+      divisionName: null,
+      locationName: null,
+      routeFromName: null,
+      routeToName: null,
+    });
+  });
+
+  it("names the division, its location, and its pending route", () => {
+    const division = projection.divisions[0] ?? null;
+    expect(orderStatusView(division, movementCommand, nameOfArea)).toEqual({
+      divisionName: "Home Fleet",
+      locationName: "Northern Europe",
+      routeFromName: "Northern Europe",
+      routeToName: "Mediterranean",
+    });
+    expect(orderStatusView(division, null, nameOfArea)).toEqual({
+      divisionName: "Home Fleet",
+      locationName: "Northern Europe",
+      routeFromName: null,
+      routeToName: null,
+    });
+  });
+});
+
+describe("nextDivisionSelection", () => {
+  const divisions = [
+    { divisionId: "d1", fleetName: "One", areaId: "a", ships: [] },
+    { divisionId: "d2", fleetName: "Two", areaId: "a", ships: [] },
+  ];
+
+  it("keeps the selection while the division still exists", () => {
+    expect(nextDivisionSelection("d2", divisions)).toBe("d2");
+  });
+
+  it("falls back to the first division when the selection is gone", () => {
+    expect(nextDivisionSelection("gone", divisions)).toBe("d1");
+    expect(nextDivisionSelection(null, divisions)).toBe("d1");
+  });
+
+  it("is null when there are no divisions", () => {
+    expect(nextDivisionSelection("gone", [])).toBeNull();
   });
 });
 

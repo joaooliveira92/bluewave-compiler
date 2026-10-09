@@ -1,25 +1,23 @@
-import type { BattleHistoryState } from "../../diplomacy/hooks/useBattleHistory.js";
-import { playerLossRows } from "../fleet-sections-state.js";
+import type { PlayerLossesView } from "../fleet-sections-state.js";
 
 /** Ships the player has lost, from the engine's recorded battle results (ADR-0061). */
-export function FleetLossesSection({ state }: { readonly state: BattleHistoryState }) {
-  if (state.status === "loading") {
+export function FleetLossesSection({ losses }: { readonly losses: PlayerLossesView }) {
+  if (losses.status === "loading") {
     return <p className="text-sm text-muted-foreground">Loading losses…</p>;
   }
-  if (state.status === "error") {
+  if (losses.status === "error") {
     return (
       <p role="alert" className="text-sm text-destructive">
-        Losses unavailable: {state.message}
+        Losses unavailable: {losses.message}
       </p>
     );
   }
-  const rows = playerLossRows(state.history.battles);
-  if (rows.length === 0) {
+  if (losses.rows.length === 0) {
     return <p className="text-sm text-muted-foreground">No ships lost yet.</p>;
   }
   return (
     <ul className="space-y-1 text-sm" aria-label="Ships lost">
-      {rows.map((row) => (
+      {losses.rows.map((row) => (
         <li key={row.key} className="flex flex-wrap gap-x-2">
           <span className="font-medium">{row.name}</span>
           <span className="text-muted-foreground">

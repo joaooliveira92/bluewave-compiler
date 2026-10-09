@@ -1,6 +1,12 @@
 import type { BattleHistoryEntry, DivisionView } from "@bluewave/campaign-engine";
 import { describe, expect, it } from "vite-plus/test";
-import { DEFERRED_FLEET_ITEMS, officerRows, playerLossRows } from "./fleet-sections-state.js";
+import type { BattleHistoryState } from "../diplomacy/hooks/useBattleHistory.js";
+import {
+  DEFERRED_FLEET_ITEMS,
+  officerRows,
+  playerLossesView,
+  playerLossRows,
+} from "./fleet-sections-state.js";
 
 function battle(over: Partial<BattleHistoryEntry>): BattleHistoryEntry {
   return {
@@ -73,6 +79,54 @@ describe("playerLossRows", () => {
 
   it("is empty when nothing was lost", () => {
     expect(playerLossRows([battle({})])).toEqual([]);
+  });
+});
+
+describe("playerLossesView", () => {
+  const ready: BattleHistoryState = {
+    status: "ready",
+    history: {
+      battles: [
+        battle({
+          lostShips: [
+            {
+              name: "HMS Lost",
+              classId: "iron_clad",
+              nationName: "Britain",
+              ownedByPlayer: true,
+              month: "1880-04",
+              cause: "fire",
+            },
+          ],
+        }),
+      ],
+    },
+  };
+
+  it("derives the player's rows once for a ready history", () => {
+    const view = playerLossesView(ready);
+    expect(view.status).toBe("ready");
+    expect(view).toEqual({
+      status: "ready",
+      rows: [
+        {
+          key: "b1-0",
+          name: "HMS Lost",
+          classLabel: "Iron clad",
+          cause: "lost to fire",
+          month: "1880-04",
+          areaName: "Channel",
+        },
+      ],
+    });
+  });
+
+  it("passes loading and error through without deriving rows", () => {
+    expect(playerLossesView({ status: "loading" })).toEqual({ status: "loading" });
+    expect(playerLossesView({ status: "error", message: "boom" })).toEqual({
+      status: "error",
+      message: "boom",
+    });
   });
 });
 

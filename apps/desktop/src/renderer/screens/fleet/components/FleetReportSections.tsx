@@ -1,23 +1,29 @@
+import type { DivisionView } from "@bluewave/campaign-engine";
 import { DeferredFeaturesPanel } from "../../../components/shared/DeferredFeaturesPanel.js";
 import { useCampaignRevision } from "../../../shell/CampaignShellContext.js";
 import { useBattleHistory } from "../../diplomacy/hooks/useBattleHistory.js";
 import { useDivisionOrganization } from "../hooks/useDivisionOrganization.js";
-import { DEFERRED_FLEET_ITEMS, playerLossRows } from "../fleet-sections-state.js";
+import {
+  DEFERRED_FLEET_ITEMS,
+  type LossesInput,
+  playerLossesView,
+} from "../fleet-sections-state.js";
 import { CollapsibleSection } from "../../../components/shared/CollapsibleSection.js";
 import { FleetLossesSection } from "./FleetLossesSection.js";
 import { FleetOfficersSection } from "./FleetOfficersSection.js";
+
+export interface FleetReportSectionsViewProps {
+  readonly history: LossesInput;
+  readonly divisions: readonly DivisionView[];
+}
 
 /**
  * Fleet's report sections (CC-8): Losses, Officers and the not-yet-modelled list. All collapsed by
  * default so Fleet stays a working screen, not a wall; each is one click from the Fleet screen.
  */
-export function FleetReportSections({ sessionId }: { readonly sessionId: string }) {
-  const revision = useCampaignRevision();
-  const history = useBattleHistory(sessionId, revision ?? 0);
-  const organization = useDivisionOrganization(sessionId);
-  const lossCount =
-    history.status === "ready" ? playerLossRows(history.history.battles).length : null;
-  const divisions = organization.state.divisions;
+export function FleetReportSectionsView({ history, divisions }: FleetReportSectionsViewProps) {
+  const losses = playerLossesView(history);
+  const lossCount = losses.status === "ready" ? losses.rows.length : null;
   return (
     <div className="space-y-3" data-testid="fleet-report-sections">
       <CollapsibleSection
@@ -25,7 +31,7 @@ export function FleetReportSections({ sessionId }: { readonly sessionId: string 
         testId="fleet-losses"
         summary={lossCount === null ? undefined : `${lossCount} sunk`}
       >
-        <FleetLossesSection state={history} />
+        <FleetLossesSection losses={losses} />
       </CollapsibleSection>
       <CollapsibleSection
         title="Officers"
@@ -47,4 +53,12 @@ export function FleetReportSections({ sessionId }: { readonly sessionId: string 
       </CollapsibleSection>
     </div>
   );
+}
+
+/** Fleet report sections wired to the session: loads battle history and division organization. */
+export function FleetReportSections({ sessionId }: { readonly sessionId: string }) {
+  const revision = useCampaignRevision();
+  const history = useBattleHistory(sessionId, revision ?? 0);
+  const organization = useDivisionOrganization(sessionId);
+  return <FleetReportSectionsView history={history} divisions={organization.state.divisions} />;
 }

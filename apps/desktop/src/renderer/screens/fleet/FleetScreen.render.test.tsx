@@ -10,6 +10,8 @@ vi.mock("./hooks/useFleetScreen.js", () => ({
     state: hook.state,
     loadError: null,
     selectedDivisionId: "fleet_home",
+    selectedDivision: null,
+    pendingRoute: null,
     destinationAreaId: null,
     reachableAreas: [{ id: "channel", name: "English Channel" }],
     request: { outcomeUnknown: false, retry: () => undefined },

@@ -1,5 +1,4 @@
 import { memo } from "react";
-import type { MovementCommand } from "@bluewave/campaign-engine";
 import { Badge } from "../../../components/ui/badge.js";
 import { DEBUG_MODE } from "../../../shell/debug-flag.js";
 import { Empty, EmptyDescription, EmptyIcon, EmptyTitle } from "../../../components/ui/empty.js";
@@ -11,28 +10,38 @@ import {
   TableHeader,
   TableRow,
 } from "../../../components/ui/table.js";
+import type { MovementCommandRow } from "../fleet-screen-state.js";
+
+/** Badge presentation for a movement command's engine status. */
+export function movementStatusVariant(
+  status: MovementCommandRow["status"],
+): "default" | "secondary" | "outline" {
+  switch (status) {
+    case "submitted":
+      return "default";
+    case "accepted":
+      return "secondary";
+    default:
+      return "outline";
+  }
+}
 
 export interface MovementCommandsTableProps {
-  readonly commands: readonly MovementCommand[];
-  readonly areaName: (areaId: string) => string;
-  /** Display name for a division id (the fleet it belongs to). */
-  readonly divisionName: (divisionId: string) => string;
+  readonly rows: readonly MovementCommandRow[];
 }
 
 export const MovementCommandsTable = memo(function MovementCommandsTable({
-  commands,
-  areaName,
-  divisionName,
+  rows,
 }: MovementCommandsTableProps) {
   return (
     <section>
       <div className="mb-3 flex items-center gap-2">
         <h3 className="text-sm font-medium">Movement commands</h3>
         <Badge variant="secondary" className="text-xs">
-          {commands.length}
+          {rows.length}
         </Badge>
       </div>
-      {commands.length === 0 ? (
+      {rows.length === 0 ? (
         <Empty>
           <EmptyIcon />
           <EmptyTitle>No movement commands</EmptyTitle>
@@ -52,30 +61,20 @@ export const MovementCommandsTable = memo(function MovementCommandsTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {commands.map((command) => (
-                <TableRow key={command.commandId}>
+              {rows.map((row) => (
+                <TableRow key={row.commandId}>
                   {DEBUG_MODE && (
-                    <TableCell className="font-mono text-xs">{command.commandId}</TableCell>
+                    <TableCell className="font-mono text-xs">{row.commandId}</TableCell>
                   )}
-                  <TableCell className="font-medium">{divisionName(command.divisionId)}</TableCell>
-                  <TableCell>{areaName(command.fromAreaId)}</TableCell>
-                  <TableCell>{areaName(command.toAreaId)}</TableCell>
+                  <TableCell className="font-medium">{row.divisionName}</TableCell>
+                  <TableCell>{row.fromName}</TableCell>
+                  <TableCell>{row.toName}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        command.status === "submitted"
-                          ? "default"
-                          : command.status === "accepted"
-                            ? "secondary"
-                            : "outline"
-                      }
-                    >
-                      {command.status}
-                    </Badge>
+                    <Badge variant={movementStatusVariant(row.status)}>{row.status}</Badge>
                   </TableCell>
                   {DEBUG_MODE && (
                     <TableCell className="text-right font-mono text-xs">
-                      {command.submittedAtRevision}
+                      {row.submittedAtRevision}
                     </TableCell>
                   )}
                 </TableRow>

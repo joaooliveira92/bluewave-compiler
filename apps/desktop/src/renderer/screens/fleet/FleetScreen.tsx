@@ -1,10 +1,16 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { DEBUG_MODE } from "../../shell/debug-flag.js";
 import { Ship } from "lucide-react";
 import { PageHeader } from "../../components/shared/PageHeader.js";
+import { CollapsibleSection } from "../../components/shared/CollapsibleSection.js";
 import { Badge } from "../../components/ui/badge.js";
 import { Separator } from "../../components/ui/separator.js";
-import { buildAreaOverview, pendingRouteFor } from "./fleet-screen-state.js";
+import {
+  buildAreaOverview,
+  divisionPickerRows,
+  movementCommandRows,
+  orderStatusView,
+} from "./fleet-screen-state.js";
 import { FleetReportSections } from "./components/FleetReportSections.js";
 import { MovementCommandsTable } from "./components/MovementCommandsTable.js";
 import { OrderSection } from "./components/OrderSection.js";
@@ -21,6 +27,8 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
     state,
     loadError,
     selectedDivisionId,
+    selectedDivision,
+    pendingRoute,
     destinationAreaId,
     reachableAreas,
     request,
@@ -33,15 +41,61 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
   } = useFleetScreen(sessionId);
 
   const areaNameMap = useMemo(() => new Map(state.areas.map((a) => [a.id, a.name])), [state.areas]);
+  const divisionNameMap = useMemo(
+    () => new Map(state.divisions.map((d) => [d.divisionId, d.fleetName])),
+    [state.divisions],
+  );
 
   const areaOverview = useMemo(
     () => buildAreaOverview(state.areas, state.areaEdges, state.ports, state.divisions),
     [state.areas, state.areaEdges, state.ports, state.divisions],
   );
 
-  function areaName(areaId: string): string {
-    return areaNameMap.get(areaId) ?? areaId;
-  }
+  // Stable resolvers: a new function each render would defeat every memo() in this subtree.
+  const areaName = useCallback(
+    (areaId: string) => areaNameMap.get(areaId) ?? areaId,
+    [areaNameMap],
+  );
+  const divisionName = useCallback(
+    (divisionId: string) => divisionNameMap.get(divisionId) ?? divisionId,
+    [divisionNameMap],
+  );
+
+  // One projection per leaf: leaves render resolved view models, not raw ids.
+  const divisionRows = useMemo(
+    () => divisionPickerRows(state.divisions, areaName),
+    [state.divisions, areaName],
+  );
+  const movementRows = useMemo(
+    () => movementCommandRows(state.movementCommands, areaName, divisionName),
+    [state.movementCommands, areaName, divisionName],
+  );
+  const orderStatus = useMemo(
+    () => orderStatusView(selectedDivision, pendingRoute, areaName),
+    [selectedDivision, pendingRoute, areaName],
+  );
+  const order = useMemo(() => ({ status: orderStatus, pendingRoute }), [orderStatus, pendingRoute]);
+  const orderActions = useMemo(
+    () => ({
+      busy: state.pendingRequest !== null || state.requiresRefresh,
+      hasPendingRequest: request.outcomeUnknown,
+      onSubmit: submit,
+      onReplace: replace,
+      onCancel: cancel,
+      onRefresh: () => void loadScreen(),
+      onRetry: request.retry,
+    }),
+    [
+      state.pendingRequest,
+      state.requiresRefresh,
+      request.outcomeUnknown,
+      request.retry,
+      submit,
+      replace,
+      cancel,
+      loadScreen,
+    ],
+  );
 
   if (loadError !== null) {
     return (
@@ -58,9 +112,6 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
       </div>
     );
   }
-
-  const selectedDivision =
-    state.divisions.find((division) => division.divisionId === selectedDivisionId) ?? null;
 
   return (
     <div data-guided-target="fleet" className="space-y-6">
@@ -81,10 +132,9 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
         }
       />
       <DivisionPicker
-        divisions={state.divisions}
+        rows={divisionRows}
         selectedDivisionId={selectedDivisionId}
         onSelectDivision={setSelectedDivisionId}
-        areaName={areaName}
       />
       <Separator />
       <WorldMapPanel
@@ -93,40 +143,21 @@ function FleetScreen({ sessionId }: { readonly sessionId: string }) {
         focusAreaId={selectedDivision?.areaId ?? null}
         testId="fleet-map-panel"
       />
-      <details className="group rounded-md border px-4 py-3">
-        <summary className="cursor-pointer text-sm font-medium">Area overview</summary>
-        <div className="mt-3">
-          <AreaOverviewTable rows={areaOverview} />
-        </div>
-      </details>
+      <CollapsibleSection title="Area overview" testId="fleet-area-overview">
+        <AreaOverviewTable rows={areaOverview} />
+      </CollapsibleSection>
       <Separator />
       <FleetOrganizationSection sessionId={sessionId} />
       <Separator />
       <OrderSection
-        areas={reachableAreas}
-        selectedDivision={selectedDivision}
+        destinations={reachableAreas}
         destinationAreaId={destinationAreaId}
         onDestinationChange={setDestinationAreaId}
-        pendingRoute={
-          selectedDivisionId === null ? null : pendingRouteFor(state, selectedDivisionId)
-        }
-        busy={state.pendingRequest !== null || state.requiresRefresh}
-        onSubmit={submit}
-        onReplace={replace}
-        onCancel={cancel}
-        onRefresh={() => void loadScreen()}
-        hasPendingRequest={request.outcomeUnknown}
-        onRetry={request.retry}
+        order={order}
+        actions={orderActions}
         notice={state.notice}
-        areaName={areaName}
       />
-      <MovementCommandsTable
-        commands={state.movementCommands}
-        areaName={areaName}
-        divisionName={(divisionId) =>
-          state.divisions.find((d) => d.divisionId === divisionId)?.fleetName ?? divisionId
-        }
-      />
+      <MovementCommandsTable rows={movementRows} />
       <Separator />
       <FleetReportSections sessionId={sessionId} />
     </div>
