@@ -1,23 +1,18 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
-import { useBridge } from "../../lib/bridge-context.js";
+import { lazy, Suspense } from "react";
 import { CollapsiblePanel } from "../../components/shared/CollapsiblePanel.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
 import { CardContent } from "../../components/ui/card.js";
 import { useWorldMapController } from "../../components/world-map/useWorldMapController.js";
 import { useMinWidth } from "../../lib/use-min-width.js";
+import { useCampaignProjection } from "../../lib/use-campaign-projection.js";
 import { humanizeId } from "../../lib/humanize-id.js";
 import type { Screen } from "../../shell/campaign-screen-registry.js";
 import { useMonthHistory } from "../../shell/CampaignShellContext.js";
 import { useDensity } from "../../shell/DensityContext.js";
 import { DEBUG_MODE } from "../../shell/debug-flag.js";
-import {
-  applyLoadFailed,
-  applyProjectionLoaded,
-  initialOverviewScreenState,
-  monthLabel,
-} from "./overview-screen-state.js";
 import { MonthReportCard } from "./MonthReportCard.js";
+import { monthLabel } from "./month-report-format.js";
 import { NationRail } from "./NationRail.js";
 import { PrioritiesCard } from "./PrioritiesCard.js";
 import { useNationRail } from "./useNationRail.js";
@@ -52,27 +47,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
   const map = useWorldMapController(sessionId);
   const { density } = useDensity();
   const wide = useMinWidth(COMMAND_OVERLAY_MIN_WIDTH);
-  const bridge = useBridge();
-  const [state, setState] = useState(initialOverviewScreenState);
-
-  const loadScreen = useCallback(async () => {
-    if (bridge === undefined) {
-      setState((current) => applyLoadFailed(current, "Bluewave bridge not available"));
-      return;
-    }
-    const result = await bridge.campaign.execute("inspectCampaign", sessionId);
-    if (result.outcome !== "success") {
-      setState((current) => applyLoadFailed(current, result.reason));
-      return;
-    }
-    setState((current) => applyProjectionLoaded(current, result.value.projection));
-  }, [bridge, sessionId]);
-
-  useEffect(() => {
-    void loadScreen();
-  }, [loadScreen]);
-
-  const { projection, loadError } = state;
+  const { projection, loadError } = useCampaignProjection(sessionId);
 
   if (loadError !== null) {
     return (

@@ -4,10 +4,10 @@ import { Badge } from "../../components/ui/badge.js";
 import { CardContent, CardHeader, CardTitle } from "../../components/ui/card.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
+import { useCampaignProjection } from "../../lib/use-campaign-projection.js";
 import { BudgetBar } from "./BudgetBar.js";
 import { BudgetPolicyPanel } from "./BudgetPolicyPanel.js";
 import { summarizeTreasury } from "./treasury-screen-state.js";
-import { useTreasuryScreen } from "./useTreasuryScreen.js";
 
 function Row({ label, value, muted }: { label: string; value: number; muted?: boolean }) {
   return (
@@ -23,9 +23,7 @@ export interface TreasuryScreenProps {
 }
 
 export function TreasuryScreen({ sessionId }: TreasuryScreenProps) {
-  const { state } = useTreasuryScreen(sessionId);
-
-  const { projection, loadError } = state;
+  const { projection, loadError } = useCampaignProjection(sessionId);
 
   if (loadError !== null) {
     return (

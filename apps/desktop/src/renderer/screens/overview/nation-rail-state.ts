@@ -1,6 +1,7 @@
 import type { DiplomacyScreenProjection } from "../../../shared/diplomacy-contract.js";
 import type { DeferredFeature } from "../../components/shared/DeferredFeaturesPanel.js";
 import { warScoreSplit } from "../diplomacy/diplomacy-presentation.js";
+import { nationFlagUrl } from "./nation-flag.js";
 
 /** The relation of a nation to the player, as the rail states it in words. */
 export type NationRailRelation = "self" | "peace" | "pact" | "alliance" | "war" | "trade";
@@ -17,6 +18,8 @@ export interface NationRailRow {
   readonly warScore: { readonly yours: number; readonly enemy: number } | null;
   readonly tension: number | null;
   readonly since: string | null;
+  /** Resolved flag art URL, or null when the power has none — the view renders a value, not a lookup. */
+  readonly flagUrl: string | null;
 }
 
 const BASE_LABEL: Readonly<Record<NationRailRelation, string>> = {
@@ -27,6 +30,27 @@ const BASE_LABEL: Readonly<Record<NationRailRelation, string>> = {
   war: "War",
   trade: "Trade agreement",
 };
+
+type DiplomacyRelation = DiplomacyScreenProjection["relations"][number]["relation"];
+
+const RELATION_BY_DIPLOMACY: Readonly<Record<DiplomacyRelation, NationRailRelation>> = {
+  neutral: "peace",
+  at_war: "war",
+  allied: "alliance",
+  trade_agreement: "trade",
+};
+
+/**
+ * Engine precedence, preserved: war > alliance > non-aggression pact > trade
+ * agreement > peace. A pact overrides a trade agreement but never a war or alliance.
+ */
+function relationFor(
+  row: DiplomacyScreenProjection["relations"][number] | undefined,
+): NationRailRelation {
+  if (row === undefined) return "peace";
+  if (row.nap && row.relation !== "at_war" && row.relation !== "allied") return "pact";
+  return RELATION_BY_DIPLOMACY[row.relation];
+}
 
 /**
  * Pure view-model for the nation rail, derived from the Diplomacy & War
@@ -49,6 +73,7 @@ export function buildNationRail(
       warScore: null,
       tension: null,
       since: null,
+      flagUrl: nationFlagUrl(player),
     },
   ];
   const others = [...projection.knownNations].sort((a, b) => a.name.localeCompare(b.name));
@@ -59,11 +84,7 @@ export function buildNationRail(
         (b.blockaderId === player && b.blockadedNationId === nation.nationId) ||
         (b.blockaderId === nation.nationId && b.blockadedNationId === player),
     );
-    let relation: NationRailRelation = "peace";
-    if (row?.relation === "at_war") relation = "war";
-    else if (row?.relation === "allied") relation = "alliance";
-    else if (row?.nap === true) relation = "pact";
-    else if (row?.relation === "trade_agreement") relation = "trade";
+    const relation = relationFor(row);
     const war =
       relation === "war"
         ? projection.wars.find((w) => {
@@ -84,6 +105,7 @@ export function buildNationRail(
       warScore: split === null ? null : { yours: split.yours, enemy: split.enemy },
       tension: row?.tension ?? null,
       since: row?.since ?? null,
+      flagUrl: nationFlagUrl(nation.nationId),
     });
   }
   return rows;

@@ -1,5 +1,26 @@
 import type { MonthBattleSummary, MonthSummary } from "../../lib/month-summary.js";
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/** "March 1900"; falls back to the numeric month when out of range, never a blank. */
+export function monthLabel(month: { readonly year: number; readonly month: number }): string {
+  const name = MONTH_NAMES[month.month - 1] ?? String(month.month);
+  return `${name} ${month.year}`;
+}
+
 /** "+20", "−56" (a real minus sign), "0" — so a loss reads as a loss at a glance. */
 export function signed(value: number): string {
   if (value === 0) return "0";

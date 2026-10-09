@@ -3,7 +3,6 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import type { PlayerProjection } from "@bluewave/campaign-engine";
 
-import { applyProjectionLoaded, initialTreasuryScreenState } from "./treasury-screen-state.js";
 import { TreasuryScreen } from "./TreasuryScreen.js";
 
 /**
@@ -42,9 +41,8 @@ const projection: PlayerProjection = {
 };
 
 const hookMocks = vi.hoisted(() => {
-  const state = vi.fn(() => applyProjectionLoaded(initialTreasuryScreenState(), projection));
-  const reload = vi.fn().mockResolvedValue(undefined);
-  return { state, reload };
+  const state = vi.fn(() => ({ projection, loadError: null }));
+  return { state };
 });
 
 const ResizeObserverMock = vi.hoisted(
@@ -57,8 +55,8 @@ const ResizeObserverMock = vi.hoisted(
 );
 vi.stubGlobal("ResizeObserver", ResizeObserverMock);
 
-vi.mock("./useTreasuryScreen.js", () => ({
-  useTreasuryScreen: () => ({ state: hookMocks.state(), reload: hookMocks.reload }),
+vi.mock("../../lib/use-campaign-projection.js", () => ({
+  useCampaignProjection: () => hookMocks.state(),
 }));
 
 vi.mock("./BudgetPolicyPanel.js", () => ({
@@ -110,15 +108,13 @@ describe("TreasuryScreen", () => {
       projectedSurplusDeficit: -250,
       economy: { ...projection.economy, maintenanceCost: 2500 },
     };
-    hookMocks.state.mockReturnValue(applyProjectionLoaded(initialTreasuryScreenState(), deficit));
+    hookMocks.state.mockReturnValue({ projection: deficit, loadError: null });
     render(<TreasuryScreen sessionId="ses-1" />);
     expect(screen.getByText("Deficit")).not.toBeNull();
   });
 
   it("shows the budget at a glance with every segment named in text, not colour alone", () => {
-    hookMocks.state.mockReturnValue(
-      applyProjectionLoaded(initialTreasuryScreenState(), projection),
-    );
+    hookMocks.state.mockReturnValue({ projection, loadError: null });
     render(<TreasuryScreen sessionId="ses-1" />);
     const bar = screen.getByRole("img", { name: /Monthly budget: income 4,000/ });
     expect(bar.getAttribute("aria-label")).toContain("Fleet maintenance 200");

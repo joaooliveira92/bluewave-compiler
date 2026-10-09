@@ -108,4 +108,36 @@ describe("buildNationRail", () => {
     const rows = buildNationRail(projection({ wars: [ended] }), "Britain");
     expect(rows.find((r) => r.nationId === "france")!.warScore).toBeNull();
   });
+
+  it("carries resolved flag art, and null for a power without art", () => {
+    const rows = buildNationRail(
+      projection({
+        knownNations: [
+          { nationId: "france", name: "France" },
+          { nationId: "atlantis", name: "Atlantis" },
+        ],
+      }),
+      "Britain",
+    );
+    const by = Object.fromEntries(rows.map((r) => [r.nationId, r]));
+    expect(by.uk!.flagUrl).not.toBeNull();
+    expect(by.france!.flagUrl).not.toBeNull();
+    expect(by.atlantis!.flagUrl).toBeNull();
+  });
+
+  it("keeps an alliance above a non-aggression pact", () => {
+    const rows = buildNationRail(
+      projection({ relations: [rel("germany", "allied", true)] }),
+      "Britain",
+    );
+    expect(rows.find((r) => r.nationId === "germany")).toMatchObject({ relation: "alliance" });
+  });
+
+  it("lets a non-aggression pact override a trade agreement", () => {
+    const rows = buildNationRail(
+      projection({ relations: [rel("russia", "trade_agreement", true)] }),
+      "Britain",
+    );
+    expect(rows.find((r) => r.nationId === "russia")).toMatchObject({ relation: "pact" });
+  });
 });

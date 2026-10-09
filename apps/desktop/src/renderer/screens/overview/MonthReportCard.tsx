@@ -4,8 +4,7 @@ import { CardShell } from "../../components/shared/CardShell.js";
 import { CardDescription, CardTitle } from "../../components/ui/card.js";
 import { humanizeId } from "../../lib/humanize-id.js";
 import type { MonthSummary } from "../../lib/month-summary.js";
-import { describeBattle, progressLine, signed } from "./month-report-format.js";
-import { monthLabel } from "./overview-screen-state.js";
+import { describeBattle, monthLabel, progressLine, signed } from "./month-report-format.js";
 
 function Report({
   summary,

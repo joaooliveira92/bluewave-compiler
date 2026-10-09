@@ -3,7 +3,6 @@ import { Button } from "../../components/ui/button.js";
 import { CardShell } from "../../components/shared/CardShell.js";
 import { CardTitle } from "../../components/ui/card.js";
 import { campaignNationHue } from "../../components/world-map/campaign-map-join.js";
-import { resolveNationAsset } from "../../content/resolveNationAsset.js";
 import type { Screen } from "../../shell/campaign-screen-registry.js";
 import {
   DEFERRED_NATION_RAIL_ITEMS,
@@ -20,47 +19,8 @@ export interface NationRailProps {
   readonly embedded?: boolean;
 }
 
-/** Campaign nation id -> the playable-slot country id its flag art is keyed by. */
-const FLAG_COUNTRY_ID: Readonly<Record<string, string>> = {
-  uk: "gb",
-  germany: "de",
-  usa: "us",
-  japan: "jp",
-  france: "fr",
-  italy: "it",
-  russia: "ru",
-  austria_hungary: "ah",
-  spain: "es",
-  qing: "qing",
-  // Non-playable powers: the manifest keys their flag art by the campaign id.
-  brazil: "brazil",
-  portugal: "portugal",
-  netherlands: "netherlands",
-  belgium: "belgium",
-  denmark: "denmark",
-  greece: "greece",
-  ottoman_empire: "ottoman_empire",
-  chile: "chile",
-  argentina: "argentina",
-  siam: "siam",
-  korea: "korea",
-  egypt: "egypt",
-  sweden_norway: "sweden_norway",
-};
-
-/** The nation's flag (or ensign) URL, or null for powers without flag art yet. */
-function flagUrl(nationId: string): string | null {
-  const countryId = FLAG_COUNTRY_ID[nationId];
-  if (countryId === undefined) return null;
-  for (const kind of ["nation_flag", "nation_ensign"] as const) {
-    const resolved = resolveNationAsset({ countryId }, kind);
-    if (resolved.status === "resolved") return resolved.asset.url;
-  }
-  return null;
-}
-
 function Swatch({ row }: { readonly row: NationRailRow }) {
-  const url = flagUrl(row.nationId);
+  const url = row.flagUrl;
   if (url !== null) {
     return (
       <img

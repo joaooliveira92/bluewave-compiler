@@ -2,10 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import type { PlayerProjection } from "@bluewave/campaign-engine";
 
 import {
-  applyLoadFailed,
-  applyProjectionLoaded,
   buildBudgetBar,
-  initialTreasuryScreenState,
   summarizeTreasury,
   type TreasuryBreakdown,
 } from "./treasury-screen-state.js";
@@ -46,24 +43,6 @@ const projection: PlayerProjection = {
 };
 
 describe("treasury-screen-state", () => {
-  it("starts with no projection loaded", () => {
-    const state = initialTreasuryScreenState();
-    expect(state.projection).toBeNull();
-    expect(state.loadError).toBeNull();
-  });
-
-  it("applies a loaded projection and clears prior errors", () => {
-    const failed = applyLoadFailed(initialTreasuryScreenState(), "SESSION_NOT_FOUND");
-    const loaded = applyProjectionLoaded(failed, projection);
-    expect(loaded.projection).toBe(projection);
-    expect(loaded.loadError).toBeNull();
-  });
-
-  it("records a load failure", () => {
-    const state = applyLoadFailed(initialTreasuryScreenState(), "SESSION_NOT_FOUND");
-    expect(state.loadError).toBe("SESSION_NOT_FOUND");
-  });
-
   it("summarizes every row from the projection (income, expenditure, result)", () => {
     const t = summarizeTreasury(projection);
     expect(t.income).toBe(4000);

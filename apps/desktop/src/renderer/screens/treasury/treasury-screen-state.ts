@@ -1,25 +1,5 @@
 import type { PlayerProjection } from "@bluewave/campaign-engine";
 
-export interface TreasuryScreenState {
-  readonly projection: PlayerProjection | null;
-  readonly loadError: string | null;
-}
-
-export function initialTreasuryScreenState(): TreasuryScreenState {
-  return { projection: null, loadError: null };
-}
-
-export function applyProjectionLoaded(
-  state: TreasuryScreenState,
-  projection: PlayerProjection,
-): TreasuryScreenState {
-  return { projection, loadError: null };
-}
-
-export function applyLoadFailed(state: TreasuryScreenState, error: string): TreasuryScreenState {
-  return { ...state, loadError: error };
-}
-
 export interface TreasuryBreakdown {
   readonly income: number;
   readonly fleetMaintenance: number;

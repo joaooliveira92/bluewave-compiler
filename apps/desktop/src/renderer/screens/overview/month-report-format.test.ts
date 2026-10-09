@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { MonthBattleSummary, MonthSummary } from "../../lib/month-summary.js";
-import { describeBattle, progressLine, signed } from "./month-report-format.js";
+import { describeBattle, monthLabel, progressLine, signed } from "./month-report-format.js";
 
 const nation = (id: string) => ({ uk: "Britain", france: "France" })[id] ?? id;
 const area = (id: string) => ({ malta: "Malta" })[id] ?? id;
@@ -75,5 +75,15 @@ describe("progressLine", () => {
 
   it("is null for a month with no progress to report", () => {
     expect(progressLine(summary())).toBeNull();
+  });
+});
+
+describe("monthLabel", () => {
+  it("formats the campaign month as a human-readable label", () => {
+    expect(monthLabel({ year: 1900, month: 3 })).toBe("March 1900");
+  });
+
+  it("falls back to the numeric month when out of range", () => {
+    expect(monthLabel({ year: 1900, month: 13 })).toBe("13 1900");
   });
 });
