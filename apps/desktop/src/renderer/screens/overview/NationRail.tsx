@@ -5,7 +5,7 @@ import { CardTitle } from "../../components/ui/card.js";
 import type { Screen } from "../../shell/campaign-screen-registry.js";
 import { NationDeferredIntel } from "./components/NationDeferredIntel.js";
 import { NationDetail } from "./components/NationDetail.js";
-import { NationSwatch } from "./components/NationSwatch.js";
+import { NationRailList } from "./components/NationRailList.js";
 import { buildNationRail } from "./nation-rail-state.js";
 import type { NationRailLoad } from "./useNationRail.js";
 
@@ -32,6 +32,8 @@ export function NationRail({ state, playerName, onNavigate, embedded = false }: 
     [state, playerName],
   );
   const selected = rows.find((r) => r.nationId === selectedId) ?? null;
+  const toggle = (nationId: string) =>
+    setSelectedId((current) => (current === nationId ? null : nationId));
 
   return (
     <CardShell
@@ -47,30 +49,7 @@ export function NationRail({ state, playerName, onNavigate, embedded = false }: 
         </p>
       )}
       {state.status === "ready" && (
-        <ul className="space-y-1" aria-label="Major powers">
-          {rows.map((row) => (
-            <li key={row.nationId}>
-              <button
-                type="button"
-                aria-pressed={row.nationId === selectedId}
-                onClick={() => setSelectedId(row.nationId === selectedId ? null : row.nationId)}
-                className="flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left hover:bg-accent aria-pressed:bg-accent"
-              >
-                <NationSwatch row={row} />
-                <span className="min-w-0 flex-1 truncate font-medium">{row.name}</span>
-                <span className="text-muted-foreground">{row.relationLabel}</span>
-                {row.warScore !== null && (
-                  <span
-                    className="tabular-nums"
-                    aria-label={`War score ${row.warScore.yours} to ${row.warScore.enemy}`}
-                  >
-                    {row.warScore.yours}:{row.warScore.enemy}
-                  </span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <NationRailList rows={rows} selectedId={selectedId} onSelect={toggle} />
       )}
 
       {selected !== null && <NationDetail selected={selected} />}
