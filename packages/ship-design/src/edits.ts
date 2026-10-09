@@ -8,6 +8,7 @@ import {
 } from "./compile.js";
 import type { ArmourRegion } from "./armour.js";
 import type { DesignRequirement } from "./compileShared.js";
+import type { MountSide } from "./weapons.js";
 import type { HullSpec } from "./hull.js";
 import { SEVERITY_ORDER, type Severity } from "./findings.js";
 
@@ -33,6 +34,10 @@ export type DraftEdit =
     }
   | { readonly kind: "set_armour_region"; readonly region: ArmourRegion }
   | { readonly kind: "remove_armour_region"; readonly region: ArmourRegion["region"] }
+  /** Which side a mount fires from (centreline, port or starboard); it sets its arc and obstruction. */
+  | { readonly kind: "set_side"; readonly instanceId: string; readonly side: MountSide }
+  /** Several edits as one undoable step, applied in order; if any fails none is applied. Batches do not nest. */
+  | { readonly kind: "batch"; readonly edits: readonly Exclude<DraftEdit, { kind: "batch" }>[] }
   /** Replaces every armour region at once (an armour scheme), as one undoable step. Order is kept. */
   | { readonly kind: "set_armour_regions"; readonly regions: readonly ArmourRegion[] };
 
@@ -94,6 +99,19 @@ export function applyEdit(draft: DesignDraft, e: DraftEdit): DesignDraft {
     case "set_armour_region": {
       const rest = draft.armour.regions.filter((r) => r.region !== e.region.region);
       return { ...draft, armour: { ...draft.armour, regions: [...rest, e.region] } };
+    }
+    case "set_side": {
+      need(draft, e.instanceId);
+      return {
+        ...draft,
+        placements: draft.placements.map((p) =>
+          p.instanceId === e.instanceId ? { ...p, side: e.side } : p,
+        ),
+      };
+    }
+    case "batch": {
+      if (e.edits.length === 0) throw new EditError("an empty batch changes nothing");
+      return e.edits.reduce<DesignDraft>((d, inner) => applyEdit(d, inner), draft);
     }
     case "set_armour_regions": {
       const seen = new Set<string>();

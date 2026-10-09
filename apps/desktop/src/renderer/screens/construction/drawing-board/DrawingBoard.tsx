@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { armourMaterialOptions } from "@bluewave/ship-design";
+import { batteryCards, mountNameMap } from "./batteryView.js";
 import {
   Gauge,
   Hammer,
@@ -27,6 +28,7 @@ import {
   ForecastPanel,
   HistoryPanel,
   HullPanel,
+  BatteryPanel,
   BriefPanel,
   HullPlanPanel,
   LedgerPanel,
@@ -64,6 +66,7 @@ export function DrawingBoard({
   const campaignMonth = useCampaignMonthId();
   const { state, actions } = useDrawingBoard(campaignMonth);
   const { draft, view, content } = state;
+  const batteries = batteryCards(view, draft);
   const armourEnv = content.environmentFor(state.month).ctx;
   const armourMaterials = armourMaterialOptions(
     armourEnv.balance.armour,
@@ -159,7 +162,9 @@ export function DrawingBoard({
         </TabsContent>
 
         <TabsContent value="arrangement" keepMounted className="space-y-4">
+          <BatteryPanel cards={batteries} draft={draft} content={content} edit={actions.edit} />
           <PlacementsPanel
+            names={mountNameMap(batteries)}
             draft={draft}
             content={content}
             month={state.month}

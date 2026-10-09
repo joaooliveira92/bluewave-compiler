@@ -7,6 +7,7 @@ const PANEL_TAB: Record<string, string> = {
   "Design brief": "Hull and machinery",
   "Machinery, fuel and range": "Hull and machinery",
   "Components and arrangement": "Arrangement",
+  Batteries: "Arrangement",
   Protection: "Arrangement",
   "Topside load": "Arrangement",
   Validation: "Analysis",

@@ -69,6 +69,32 @@ describe("DrawingBoard", () => {
     expect(options).toContain((select as HTMLSelectElement).value);
   });
 
+  it("groups guns into named batteries, sets the mount side, and clears a battery as one undoable step", async () => {
+    render(<DrawingBoard />);
+    fireEvent.change(screen.getByLabelText("Starting design"), {
+      target: { value: "majestic_like" },
+    });
+    const batteries = () => region("Batteries");
+    const main = within(batteries()).getAllByRole("listitem")[0]!;
+    expect(main.textContent).toMatch(/Main battery, \d+\.\d-inch/);
+    expect(within(batteries()).getAllByText(/^A · /).length).toBeGreaterThan(0);
+    // Set a mount to port: its badge changes and the history says so.
+    const side = screen.getAllByLabelText(/^Side of /)[0] as HTMLSelectElement;
+    fireEvent.change(side, { target: { value: "PORT" } });
+    openTab("History");
+    expect(within(region("Edit history")).getByText(/ to port$/)).toBeTruthy();
+    // Clear the first battery: one confirmation, one history entry, one undo restores everything.
+    openTab("Arrangement");
+    const before = screen.getAllByRole("button", { name: /^Remove / }).length;
+    fireEvent.click(
+      within(batteries()).getAllByRole("button", { name: /^Clear Main battery/ })[0]!,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Clear battery" }));
+    expect(screen.getAllByRole("button", { name: /^Remove / }).length).toBeLessThan(before);
+    fireEvent.click(screen.getByRole("button", { name: /undo/i }));
+    expect(screen.getAllByRole("button", { name: /^Remove / }).length).toBe(before);
+  });
+
   it("shows the class code and lets the player declare the ship type, speed and range", () => {
     render(<DrawingBoard />);
     const brief = region("Design brief");

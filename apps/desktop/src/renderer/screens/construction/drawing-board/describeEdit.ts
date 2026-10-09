@@ -20,6 +20,12 @@ export function describeEdit(e: DraftEdit, nameOf: (componentId: string) => stri
       return `Machinery: ${Object.entries(e.patch)
         .map(([k, v]) => `${words(k)} → ${show(v)}`)
         .join(", ")}`;
+    case "set_side":
+      return `Set ${e.instanceId} to ${e.side === "CENTRE" ? "the centreline" : e.side === "PORT" ? "port" : "starboard"}`;
+    case "batch":
+      return e.edits.length === 1
+        ? describeEdit(e.edits[0]!, nameOf)
+        : `${e.edits.length} changes: ${describeEdit(e.edits[0]!, nameOf)}, ...`;
     case "set_requirement":
       return `Brief: ${Object.entries(e.patch)
         .map(([k, v]) => `${words(k)} → ${show(v)}`)

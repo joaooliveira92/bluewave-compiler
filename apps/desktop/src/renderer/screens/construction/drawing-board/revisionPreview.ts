@@ -1,5 +1,5 @@
 import {
-  changeKindOf,
+  changeKindsOf,
   classifyRevision,
   type BuildProgress,
   type ChangeKind,
@@ -56,7 +56,7 @@ export function changeKinds(
     return cid === undefined ? undefined : categoryOfComponent(cid);
   };
   const order: ChangeKind[] = ["FITTINGS", "MAIN_ARMAMENT", "ARMOUR", "MACHINERY", "STRUCTURE"];
-  const kinds = new Set(edits.map((e) => changeKindOf(e, categoryOf)));
+  const kinds = new Set(edits.flatMap((e) => changeKindsOf(e, categoryOf)));
   return order.filter((k) => kinds.has(k));
 }
 

@@ -105,6 +105,12 @@ export function changeKindOf(
   switch (e.kind) {
     case "set_requirement":
       return null;
+    case "batch":
+      // A batch has no single kind; use `changeKindsOf`. Reported as its first inner kind so callers that only know
+      // singles still see a build change.
+      return e.edits.length === 0 ? null : changeKindOf(e.edits[0]!, categoryOf);
+    case "set_side":
+      return categoryOf(e.instanceId) === "MAIN_GUN" ? "MAIN_ARMAMENT" : "FITTINGS";
     case "set_hull":
       return Object.keys(e.patch).some((k) => STRUCTURE_KEYS.has(k)) ? "STRUCTURE" : "FITTINGS";
     case "set_machinery":
@@ -122,6 +128,20 @@ export function changeKindOf(
     case "set_param":
       return categoryOf(e.instanceId) === "MAIN_GUN" ? "MAIN_ARMAMENT" : "FITTINGS";
   }
+}
+
+/** Every kind of change an edit makes (a batch contributes each inner edit's kind; a brief-only edit contributes none). */
+export function changeKindsOf(
+  e: DraftEdit,
+  categoryOf: (instanceId: string) => ComponentCategory | undefined,
+): ChangeKind[] {
+  const inner = e.kind === "batch" ? e.edits : [e];
+  const kinds = new Set<ChangeKind>();
+  for (const i of inner) {
+    const k = changeKindOf(i, categoryOf);
+    if (k !== null) kinds.add(k);
+  }
+  return [...kinds];
 }
 
 const TIER_RANK: Record<RevisionTier, number> = {

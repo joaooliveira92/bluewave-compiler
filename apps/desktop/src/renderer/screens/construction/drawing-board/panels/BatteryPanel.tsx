@@ -1,0 +1,97 @@
+import type { DesignDraft } from "@bluewave/ship-design";
+import { Badge } from "../../../../components/ui/badge.js";
+import { ConfirmAction } from "../ConfirmAction.js";
+import type { BatteryCard } from "../batteryView.js";
+import { clearBatteryEdit, setRoundsEdit } from "../batteryView.js";
+import type { DrawingBoardContent } from "../content.js";
+import { NumberField } from "../fields.js";
+import { Panel } from "./Panel.js";
+import type { Edit } from "./types.js";
+
+const tonnes = (kg: number) => (kg / 1000).toLocaleString("en-US", { maximumFractionDigits: 0 });
+/** "gun"/"guns", "tube"/"tubes". */
+const unitWord = (role: string, n: number) =>
+  `${role === "TORPEDO" ? "tube" : "gun"}${n === 1 ? "" : "s"}`;
+const sideText = { CENTRE: "centreline", PORT: "port", STBD: "starboard" } as const;
+
+/** The guns and tubes grouped as batteries: named mounts, totals, rounds per gun, and clearing a whole battery. */
+export function BatteryPanel({
+  cards,
+  draft,
+  content,
+  edit,
+}: {
+  readonly cards: readonly BatteryCard[];
+  readonly draft: DesignDraft;
+  readonly content: DrawingBoardContent;
+  readonly edit: Edit;
+}) {
+  const defOf = (id: string) => content.components.find((c) => c.id === id);
+  return (
+    <Panel title="Batteries">
+      {cards.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No guns or torpedo tubes are fitted. Add them under Components and arrangement.
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {cards.map(({ row, title, mounts }) => (
+            <li key={row.key} className="space-y-2 rounded-md border p-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="font-medium">{title}</span>
+                <span className="text-sm tabular-nums text-muted-foreground">
+                  {row.mounts} mount{row.mounts === 1 ? "" : "s"} · {row.barrels}{" "}
+                  {unitWord(row.role, row.barrels)} · {tonnes(row.weightKg)} t
+                </span>
+              </div>
+              <ul className="flex flex-wrap gap-1.5" aria-label={`${title} mounts`}>
+                {mounts.map((m) => (
+                  <li key={m.instanceId}>
+                    <Badge variant="outline" className="tabular-nums">
+                      {m.name} · {sideText[m.side]} · {m.stationPermille}‰
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap items-end gap-3">
+                {row.role !== "TORPEDO" && (
+                  <NumberField
+                    className="w-40"
+                    label={`Rounds per gun, ${title}`}
+                    shortLabel="Rounds per gun"
+                    value={row.roundsPerGun ?? 0}
+                    onCommit={(v) => {
+                      const e = setRoundsEdit(row, v, draft, defOf);
+                      if (e) edit(e);
+                    }}
+                  />
+                )}
+                {row.role !== "TORPEDO" && row.roundsPerGun === null && (
+                  <span className="pb-2 text-xs text-muted-foreground">
+                    Mounts differ; setting a value applies it to all.
+                  </span>
+                )}
+                <ConfirmAction
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto"
+                  confirm={row.mounts > 0}
+                  title={`Clear ${title.toLowerCase()}?`}
+                  description={`Removes all ${row.mounts} mount${row.mounts === 1 ? "" : "s"} as one step. Undo restores them.`}
+                  confirmLabel="Clear battery"
+                  onConfirm={() => {
+                    const e = clearBatteryEdit(row);
+                    if (e) edit(e);
+                  }}
+                  aria-label={`Clear ${title}`}
+                >
+                  Clear
+                </ConfirmAction>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}

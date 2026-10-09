@@ -32,3 +32,4 @@ export * from "./workshop.js";
 export * from "./yards.js";
 export * from "./suggest.js";
 export * from "./shipBuildingContent.js";
+export * from "./batteries.js";

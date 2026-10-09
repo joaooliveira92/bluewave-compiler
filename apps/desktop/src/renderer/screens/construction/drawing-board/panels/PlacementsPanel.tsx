@@ -4,6 +4,7 @@ import {
   ZONE_IDS,
   type ComponentDef,
   type DesignDraft,
+  type MountSide,
   type PlacementSpec,
   type WorkshopView,
   type ZoneId,
@@ -113,17 +114,22 @@ function ComponentHover({
   );
 }
 
+const isMountSide = (v: string): v is MountSide => v === "CENTRE" || v === "PORT" || v === "STBD";
+
 export function PlacementsPanel({
   draft,
   content,
   month,
   view,
+  names,
   edit,
 }: {
   readonly draft: DesignDraft;
   readonly content: DrawingBoardContent;
   readonly month: string;
   readonly view: WorkshopView;
+  /** Conventional mount names (A, B, X, Y...) by instance id; guns and tubes only. */
+  readonly names: ReadonlyMap<string, string>;
   readonly edit: Edit;
 }) {
   const defs = new Map(content.components.map((c) => [c.id, c]));
@@ -183,7 +189,14 @@ export function PlacementsPanel({
                   <ContextMenuTrigger render={<tr className="border-t align-top" />}>
                     <th scope="row" className="p-1 text-left font-normal">
                       <ComponentHover def={d} placement={p} view={view} />
-                      <div className="text-xs text-muted-foreground">{p.instanceId}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {names.has(p.instanceId) && (
+                          <Badge variant="secondary" className="mr-1">
+                            {names.get(p.instanceId)}
+                          </Badge>
+                        )}
+                        {p.instanceId}
+                      </div>
                     </th>
                     <td className="p-1">
                       <Badge variant="outline">{zoneLabel(p.zoneId)}</Badge>
@@ -206,6 +219,23 @@ export function PlacementsPanel({
                     </td>
                     <td className="p-1">
                       <div className="flex flex-wrap gap-2">
+                        {names.has(p.instanceId) && (
+                          <SelectField
+                            className="w-28"
+                            label={`Side of ${p.instanceId}`}
+                            shortLabel="Side"
+                            value={p.side ?? "CENTRE"}
+                            options={[
+                              { value: "CENTRE", label: "Centreline" },
+                              { value: "PORT", label: "Port" },
+                              { value: "STBD", label: "Starboard" },
+                            ]}
+                            onChange={(v) => {
+                              if (isMountSide(v))
+                                edit({ kind: "set_side", instanceId: p.instanceId, side: v });
+                            }}
+                          />
+                        )}
                         {Object.entries(d?.parameters ?? {}).map(([name, r]) => (
                           <NumberField
                             key={name}
