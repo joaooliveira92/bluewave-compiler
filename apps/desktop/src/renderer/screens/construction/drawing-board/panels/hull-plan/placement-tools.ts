@@ -1,12 +1,15 @@
-import type {
-  ComponentDef,
-  DesignDraft,
-  DraftEdit,
-  MountSide,
-  PlacementSpec,
-  ZoneId,
+import {
+  applyEdit,
+  compileDesign,
+  type ComponentDef,
+  type DesignDraft,
+  type DraftEdit,
+  type MountSide,
+  type PlacementSpec,
+  type ShipContext,
+  type ZoneId,
 } from "@bluewave/ship-design";
-import { PLAN_H, PLAN_MID, PLAN_PAD, PLAN_W, type PlanFrame } from "./geometry.js";
+import { fittingPoint, PLAN_H, PLAN_MID, PLAN_PAD, PLAN_W, type PlanFrame } from "./geometry.js";
 
 /**
  * Pure logic behind placing, moving and nudging fittings from the hull plan. Pointer clicks and the keyboard-reachable
@@ -195,4 +198,69 @@ export function clientToPlan(
     x: ((clientX - rect.left) * PLAN_W) / rect.width,
     y: ((clientY - rect.top) * PLAN_H) / rect.height,
   };
+}
+
+/** How close (plan units) a pointer must be to a fitting's dot to grab it. */
+export const GRAB_RADIUS = 10;
+
+/**
+ * The fitting under a plan point: the nearest dot within `GRAB_RADIUS`, using the same positions the drawing uses (centreline
+ * dots keep their cosmetic nudge). Null when none is close enough. Ties go to the earlier placement, so it is deterministic.
+ */
+export function fittingAt(
+  frame: PlanFrame,
+  draft: Pick<DesignDraft, "placements">,
+  svgX: number,
+  svgY: number,
+): string | null {
+  let best: string | null = null;
+  let bestD2 = GRAB_RADIUS ** 2;
+  for (const [index, p] of draft.placements.entries()) {
+    const pt = fittingPoint(frame, p.stationPermille, p.side, index);
+    const d2 = (pt.x - svgX) ** 2 + (pt.y - svgY) ** 2;
+    if (d2 < bestD2 || (best === null && d2 === bestD2)) {
+      best = p.instanceId;
+      bestD2 = d2;
+    }
+  }
+  return best;
+}
+
+/** Stations auto-place tries: every 10 permille, keeping clear of the very ends. */
+export const AUTO_PLACE_STATIONS: readonly number[] = Array.from(
+  { length: 97 },
+  (_, i) => 20 + i * 10,
+);
+
+/**
+ * Auto-place (ADR-0084): of every station the component may legally go (same zone rules as a click, centreline), the one
+ * that leaves the ship most level (smallest |trim|) without adding a blocking finding; a tie goes to the lowest station.
+ * Pure and deterministic: it compiles each candidate with the board's own rules. Refused when no station qualifies.
+ */
+export function autoPlace(
+  def: ComponentDef,
+  draft: DesignDraft,
+  zones: readonly ZoneSpan[],
+  ctx: ShipContext,
+): PlanEdit & { readonly stationPermille?: number } {
+  const blocking = (d: DesignDraft) =>
+    compileDesign(d, ctx).findings.filter((f) => f.severity === "BLOCKING").length;
+  const before = blocking(draft);
+  let best: { edit: DraftEdit; trim: number; station: number } | null = null;
+  for (const station of AUTO_PLACE_STATIONS) {
+    const r = placeEdit(
+      def,
+      { stationPermille: station, zoneId: zoneAtStation(zones, station), side: "CENTRE" },
+      draft,
+    );
+    if (!r.ok) continue;
+    const next = applyEdit(draft, r.edit);
+    const c = compileDesign(next, ctx);
+    if (c.findings.filter((f) => f.severity === "BLOCKING").length > before) continue;
+    const trim = c.stability === null ? Infinity : Math.abs(c.stability.trimBp);
+    if (best === null || trim < best.trim) best = { edit: r.edit, trim, station };
+  }
+  if (best === null)
+    return refuse(`No station takes ${def.displayName} without a new blocking problem.`);
+  return { ok: true, edit: best.edit, stationPermille: best.station };
 }

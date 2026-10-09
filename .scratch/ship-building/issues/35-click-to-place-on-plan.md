@@ -25,3 +25,9 @@ semantics). Note: the shipped components declare no `allowedZones`, so the zone-
 written, caught by an explicit `toBeDefined`, and replaced by the reachable "nothing selected" refusal.
 Tests: `placement-tools.test.ts` (pure), DrawingBoard render tests (place by click, move by buttons, missing-selection notice, off by default).
 construction screens: 16 files / 163 tests; typecheck and lint exit 0.
+
+### 2026-10-09 orchestrator (follow-up)
+
+Drag to move, click-to-pick and auto-place built (ADR-0084): `fittingAt` and `autoPlace` in `placement-tools.ts` (pure, tested
+at the grab-radius boundary, ties and refusal), pointer handling on the existing click layer, "Auto-place" in Place mode.
+Marker click was already provided by the finding markers overlay. Still not built: sponsons and asymmetric mounts (no mechanics).

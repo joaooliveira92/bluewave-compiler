@@ -138,6 +138,80 @@ describe("DrawingBoard panels", () => {
       expect(within(region("Edit history")).getByText(/Move .* at \d+‰/)).toBeTruthy();
     });
 
+    it("picks a fitting by clicking it, and drags a fitting to a new station as one edit", () => {
+      render(<DrawingBoard />);
+      const panel = region("Hull plan");
+      const svg = within(panel).getByRole("img", { name: /^Top-down plan/ });
+      sized(svg);
+      fireEvent.click(screen.getByRole("button", { name: "Move on plan" }));
+      const layer = screen.getByTestId("plan-click-layer");
+      const dot = svg.querySelector<SVGElement>("[data-fitting]");
+      const target = () => {
+        const d = svg.querySelector<SVGElement>("[data-fitting]")!;
+        return {
+          id: d.getAttribute("data-fitting")!,
+          x: Number(d.getAttribute("cx")),
+          y: Number(d.getAttribute("cy")),
+        };
+      };
+      expect(dot).not.toBeNull();
+      const first = target();
+      // Click on it: it becomes the fitting to move.
+      fireEvent.click(layer, { clientX: first.x, clientY: first.y });
+      expect(within(panel).getByRole("status").textContent).toMatch(
+        new RegExp(`^Picked ${first.id}`),
+      );
+      // Drag it 20 permille sternward along its own line (inside its zone): one move edit, a ghost while dragging.
+      const toX = first.x + (stationX(20) - stationX(0));
+      fireEvent.pointerDown(layer, { clientX: first.x, clientY: first.y, pointerId: 1 });
+      fireEvent.pointerMove(layer, { clientX: toX, clientY: first.y, pointerId: 1 });
+      expect(screen.getByTestId("plan-drag-ghost")).toBeTruthy();
+      fireEvent.pointerUp(layer, { clientX: toX, clientY: first.y, pointerId: 1 });
+      fireEvent.click(layer, { clientX: toX, clientY: first.y }); // the drop's own click must not act again
+      expect(screen.queryByTestId("plan-drag-ghost")).toBeNull();
+      expect(within(panel).getByRole("status").textContent).toMatch(
+        new RegExp(`^Moved ${first.id} to \\d+‰`),
+      );
+      openTab("History");
+      expect(within(region("Edit history")).getAllByText(/Move .* at \d+‰/)).toHaveLength(1);
+    });
+
+    it("auto-places a chosen component where the ship stays most level, as one edit", () => {
+      render(<DrawingBoard />);
+      const panel = region("Hull plan");
+      fireEvent.click(screen.getByRole("button", { name: "Place on plan" }));
+      const auto = within(panel).getByRole("button", { name: "Auto-place" }) as HTMLButtonElement;
+      expect(auto.disabled).toBe(true);
+      chooseOption(
+        "Component to place",
+        content.components.find((c) => c.id === "pumps_damage_control")!.displayName,
+      );
+      fireEvent.click(auto);
+      expect(within(panel).getByRole("status").textContent).toMatch(
+        /^Placed .* at \d+‰, where the ship stays most level/,
+      );
+      openTab("History");
+      expect(within(region("Edit history")).getAllByText(/^.*Add /)).toHaveLength(1);
+    });
+
+    it("treats a shaky click on a fitting as a click, not a drag", () => {
+      render(<DrawingBoard />);
+      const panel = region("Hull plan");
+      const svg = within(panel).getByRole("img", { name: /^Top-down plan/ });
+      sized(svg);
+      fireEvent.click(screen.getByRole("button", { name: "Move on plan" }));
+      const layer = screen.getByTestId("plan-click-layer");
+      const d = svg.querySelector<SVGElement>("[data-fitting]")!;
+      const x = Number(d.getAttribute("cx"));
+      const y = Number(d.getAttribute("cy"));
+      fireEvent.pointerDown(layer, { clientX: x, clientY: y, pointerId: 1 });
+      fireEvent.pointerMove(layer, { clientX: x + 2, clientY: y + 1, pointerId: 1 });
+      expect(screen.queryByTestId("plan-drag-ghost")).toBeNull();
+      fireEvent.pointerUp(layer, { clientX: x + 2, clientY: y + 1, pointerId: 1 });
+      fireEvent.click(layer, { clientX: x + 2, clientY: y + 1 });
+      expect(within(panel).getByRole("status").textContent).toMatch(/^Picked /);
+    });
+
     it("says what is missing instead of failing silently, and adds nothing", () => {
       render(<DrawingBoard />);
       const panel = region("Hull plan");
@@ -177,7 +251,7 @@ describe("DrawingBoard panels", () => {
       fireEvent.click(move);
       expect(place.getAttribute("aria-pressed")).toBe("false");
       expect(move.getAttribute("aria-pressed")).toBe("true");
-      expect(within(panel).getByRole("status").textContent).toMatch(/^Choose a fitting, then/);
+      expect(within(panel).getByRole("status").textContent).toMatch(/^Click a fitting on the plan/);
       fireEvent.click(move);
       expect(screen.queryByTestId("plan-click-layer")).toBeNull();
     });

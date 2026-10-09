@@ -70,6 +70,7 @@ export function PlanToolOptions({
   defOf,
   onNudge,
   onSide,
+  onAutoPlace,
   notice,
 }: {
   readonly tool: PlanTool;
@@ -80,6 +81,8 @@ export function PlanToolOptions({
   readonly defOf: (componentId: string) => ComponentDef | undefined;
   readonly onNudge: (deltaPermille: number) => void;
   readonly onSide: (side: MountSide) => void;
+  /** Places the chosen component at the most level legal station (place mode). */
+  readonly onAutoPlace: () => void;
   readonly notice: string | null;
 }) {
   const selected = draft.placements.find((p) => p.instanceId === tool.instanceId);
@@ -102,6 +105,16 @@ export function PlanToolOptions({
               ]}
               onChange={(componentId) => onTool({ ...tool, componentId })}
             />
+          )}
+          {tool.mode === "place" && (
+            <Button
+              variant="outline"
+              disabled={tool.componentId === ""}
+              onClick={onAutoPlace}
+              title="Place it where the ship stays most level"
+            >
+              Auto-place
+            </Button>
           )}
           {tool.mode === "move" && (
             <SelectField
@@ -162,10 +175,10 @@ export function PlanToolOptions({
         {notice ??
           (tool.mode === "place"
             ? tool.componentId === ""
-              ? "Choose a component, then click the plan: near the centreline places it on the centreline, above port or below starboard."
+              ? "Choose a component, then click the plan (near the centreline places it on the centreline, above port, below starboard), or use Auto-place."
               : "Click the plan to place it. Stations snap to 10‰."
             : tool.mode === "move"
-              ? "Choose a fitting, then click the plan or use the buttons to move it."
+              ? "Click a fitting on the plan (or choose it above), then click where it should go or drag it there."
               : "Use Place on plan or Move on plan in the toolbar to edit the arrangement from this drawing.")}
       </p>
     </div>
