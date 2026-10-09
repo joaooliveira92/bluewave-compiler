@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { armourMaterialOptions } from "@bluewave/ship-design";
 import { batteryCards, mountNameMap } from "./batteryView.js";
 import {
@@ -114,7 +114,14 @@ export function DrawingBoard({
     armourEnv.unlockedTechs,
   );
   const [pendingPreset, setPendingPreset] = useState<string | null>(null);
-  const [tab, setTab] = useState<BoardTab>("hull");
+  const [tab, setTabState] = useState<BoardTab>("hull");
+  // A tab's panels mount the first time it is opened and then stay mounted (typed values and scroll survive a switch).
+  // Mounting all five up front made the board's DOM five times larger than what the player sees.
+  const [visited, setVisited] = useState<ReadonlySet<BoardTab>>(() => new Set(["hull"]));
+  const setTab = useCallback((next: BoardTab) => {
+    setTabState(next);
+    setVisited((v) => (v.has(next) ? v : new Set(v).add(next)));
+  }, []);
   // Switched from the toolbar, used by the drawing: the one tool state survives tab changes with the ship view.
   const [planTool, setPlanTool] = useState<PlanTool>(IDLE_TOOL);
   const zones = content.hullForms.find((f) => f.id === draft.hull.hullFormId)?.zones ?? [];
@@ -358,106 +365,130 @@ export function DrawingBoard({
               <SelectionInspector ctx={entityCtx} onGoTo={goTo} onClear={clearSelection} />
 
               <TabsContent value="hull" keepMounted className={TAB_GRID}>
-                <BriefPanel draft={draft} view={view} edit={actions.edit} />
-                <div className="space-y-4">
-                  <HullPanel draft={draft} content={content} edit={actions.edit} />
-                  <MachineryPanel draft={draft} content={content} edit={actions.edit} />
-                </div>
+                {visited.has("hull") && (
+                  <>
+                    <BriefPanel draft={draft} view={view} edit={actions.edit} />
+                    <div className="space-y-4">
+                      <HullPanel draft={draft} content={content} edit={actions.edit} />
+                      <MachineryPanel draft={draft} content={content} edit={actions.edit} />
+                    </div>
+                  </>
+                )}
               </TabsContent>
 
               <TabsContent value="arrangement" keepMounted className="space-y-4">
-                <BatteryPanel
-                  cards={batteries}
-                  draft={draft}
-                  content={content}
-                  edit={actions.edit}
-                />
-                <PlacementsPanel
-                  names={mountNameMap(batteries)}
-                  draft={draft}
-                  content={content}
-                  month={state.month}
-                  view={view}
-                  edit={actions.edit}
-                />
-                <div className={TAB_GRID}>
-                  <ArmourPanel
-                    draft={draft}
-                    view={view}
-                    materials={armourMaterials}
-                    edit={actions.edit}
-                  />
-                  <TopsidePanel view={view} />
-                </div>
+                {visited.has("arrangement") && (
+                  <>
+                    <BatteryPanel
+                      cards={batteries}
+                      draft={draft}
+                      content={content}
+                      edit={actions.edit}
+                    />
+                    <PlacementsPanel
+                      names={mountNameMap(batteries)}
+                      draft={draft}
+                      content={content}
+                      month={state.month}
+                      view={view}
+                      edit={actions.edit}
+                    />
+                    <div className={TAB_GRID}>
+                      <ArmourPanel
+                        draft={draft}
+                        view={view}
+                        materials={armourMaterials}
+                        edit={actions.edit}
+                      />
+                      <TopsidePanel view={view} />
+                    </div>
+                  </>
+                )}
               </TabsContent>
 
               <TabsContent value="analysis" keepMounted className={TAB_GRID}>
-                <div className="space-y-4">
-                  <FindingsPanel
-                    view={view}
-                    findings={findings}
-                    suggest={actions.suggest}
-                    onApply={actions.edit}
-                    onShowOnShip={(f) => {
-                      const target = f.entities[0];
-                      if (target) selection.select(target, f.key);
-                    }}
-                  />
-                  <LedgerPanel view={view} />
-                </div>
-                <div className="space-y-4">
-                  <MetricsPanel view={view} />
-                  <ComparePanel baseline={state.baseline} view={view} name={state.preset.name} />
-                  <ForecastPanel view={view} treasuryUnitMicro={content.treasuryUnitMicro} />
-                </div>
+                {visited.has("analysis") && (
+                  <>
+                    <div className="space-y-4">
+                      <FindingsPanel
+                        view={view}
+                        findings={findings}
+                        suggest={actions.suggest}
+                        onApply={actions.edit}
+                        onShowOnShip={(f) => {
+                          const target = f.entities[0];
+                          if (target) selection.select(target, f.key);
+                        }}
+                      />
+                      <LedgerPanel view={view} />
+                    </div>
+                    <div className="space-y-4">
+                      <MetricsPanel view={view} />
+                      <ComparePanel
+                        baseline={state.baseline}
+                        view={view}
+                        name={state.preset.name}
+                      />
+                      <ForecastPanel view={view} treasuryUnitMicro={content.treasuryUnitMicro} />
+                    </div>
+                  </>
+                )}
               </TabsContent>
 
               <TabsContent value="build" keepMounted className={TAB_GRID}>
-                {sessionId !== undefined && (
-                  <SubmitPanel sessionId={sessionId} draft={draft} valid={view.valid} />
+                {visited.has("build") && (
+                  <>
+                    {sessionId !== undefined && (
+                      <SubmitPanel sessionId={sessionId} draft={draft} valid={view.valid} />
+                    )}
+                    <RevisionPanel
+                      sessionId={sessionId}
+                      projects={projects}
+                      history={state.history.slice(0, state.editCount)}
+                      draft={draft}
+                      startDraft={state.preset.draft}
+                      content={content}
+                      onLoad={loadDraft}
+                      dirty={state.editCount > 0}
+                    />
+                    <RebuildPanel
+                      sessionId={sessionId}
+                      draft={draft}
+                      content={content}
+                      onLoad={loadDraft}
+                      dirty={state.editCount > 0}
+                    />
+                  </>
                 )}
-                <RevisionPanel
-                  sessionId={sessionId}
-                  projects={projects}
-                  history={state.history.slice(0, state.editCount)}
-                  draft={draft}
-                  startDraft={state.preset.draft}
-                  content={content}
-                  onLoad={loadDraft}
-                  dirty={state.editCount > 0}
-                />
-                <RebuildPanel
-                  sessionId={sessionId}
-                  draft={draft}
-                  content={content}
-                  onLoad={loadDraft}
-                  dirty={state.editCount > 0}
-                />
               </TabsContent>
 
               <TabsContent value="tools" keepMounted className={TAB_GRID}>
-                <HistoryPanel
-                  history={state.history}
-                  cursor={state.editCount}
-                  startName={state.preset.name}
-                  content={content}
-                  jumpTo={actions.jumpTo}
-                />
-                <div className="space-y-4">
-                  <FilePanel
-                    draft={draft}
-                    view={view}
-                    content={content}
-                    presetName={state.preset.name}
-                    onLoad={loadDraft}
-                    dirty={state.editCount > 0}
-                  />
-                  <AlternativesPanel
-                    dirty={state.editCount > 0}
-                    generate={actions.generateAlternatives}
-                    onLoad={loadDraft}
-                  />
-                </div>
+                {visited.has("tools") && (
+                  <>
+                    <HistoryPanel
+                      history={state.history}
+                      cursor={state.editCount}
+                      startName={state.preset.name}
+                      content={content}
+                      jumpTo={actions.jumpTo}
+                    />
+                    <div className="space-y-4">
+                      <FilePanel
+                        draft={draft}
+                        view={view}
+                        content={content}
+                        presetName={state.preset.name}
+                        onLoad={loadDraft}
+                        dirty={state.editCount > 0}
+                      />
+                      <AlternativesPanel
+                        dirty={state.editCount > 0}
+                        generate={actions.generateAlternatives}
+                        onLoad={loadDraft}
+                      />
+                    </div>
+                  </>
+                )}
               </TabsContent>
             </Tabs>
           </div>

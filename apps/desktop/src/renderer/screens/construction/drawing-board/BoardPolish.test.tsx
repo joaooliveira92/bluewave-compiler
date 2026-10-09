@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { DrawingBoard } from "./DrawingBoard.js";
 import { plural } from "./plural.js";
+import { openTab } from "./test-helpers.js";
 
 vi.mock("../../../shell/CampaignShellContext.js", () => ({
   useCampaignRevision: () => null,
@@ -45,6 +46,15 @@ describe("Drawing Board polish", () => {
     expect(screen.queryByText(/waterplane coefficient, LCB, sheer/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "About this drawing" }));
     expect(screen.getByText(/waterplane coefficient, LCB, sheer/)).toBeTruthy();
+  });
+
+  it("mounts a tab's panels when first opened and keeps them mounted after", () => {
+    render(<DrawingBoard />);
+    expect(screen.queryByRole("region", { name: "Edit history", hidden: true })).toBeNull();
+    openTab("History and files");
+    const history = screen.getByRole("region", { name: "Edit history" });
+    openTab("Hull and machinery");
+    expect(history.isConnected).toBe(true);
   });
 
   it("words counts in English", () => {

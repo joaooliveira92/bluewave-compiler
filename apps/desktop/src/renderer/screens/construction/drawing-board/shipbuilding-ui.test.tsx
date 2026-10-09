@@ -7,7 +7,7 @@ import { componentFacts, componentsByCategory } from "./componentFacts.js";
 import { loadDrawingBoardContent } from "./content.js";
 import { exportDesign } from "./designFile.js";
 import { RequirementChip } from "./RequirementChip.js";
-import { region } from "./test-helpers.js";
+import { openTab, region } from "./test-helpers.js";
 
 afterEach(cleanup);
 const content = loadDrawingBoardContent();
@@ -55,6 +55,7 @@ describe("componentFacts", () => {
 describe("design file chip", () => {
   it("shows the opened file as an attachment, and a bad file as an error chip", async () => {
     render(<DrawingBoard />);
+    openTab("History and files");
     const input = screen.getByLabelText("Design file", { selector: "input" }) as HTMLInputElement;
     const good = exportDesign(
       ref.draft,

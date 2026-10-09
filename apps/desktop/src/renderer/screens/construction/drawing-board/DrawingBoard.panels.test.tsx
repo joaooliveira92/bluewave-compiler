@@ -7,8 +7,11 @@ import { chooseOption, openTab, region } from "./test-helpers.js";
 
 afterEach(cleanup);
 
-const commit = (label: string | RegExp, value: string) => {
-  const input = screen.getByLabelText(label) as HTMLInputElement;
+/** The fittings' remove buttons, by their aria-label: a whole-board role-and-name query is slow in jsdom on a battleship. */
+const removeButtons = () => document.querySelectorAll('button[aria-label^="Remove "]').length;
+/** Label queries are scoped to `scope` when given: whole-board label lookups are slow in jsdom on a battleship. */
+const commit = (label: string | RegExp, value: string, scope: HTMLElement = document.body) => {
+  const input = within(scope).getByLabelText(label) as HTMLInputElement;
   fireEvent.change(input, { target: { value } });
   fireEvent.blur(input);
 };
@@ -20,7 +23,7 @@ describe("DrawingBoard panels", () => {
     const protection = () => region("Protection");
     expect(within(protection()).getByText("Coverage")).toBeTruthy();
     const regionsBefore = within(protection()).getAllByRole("listitem").length;
-    commit(/Length of BELT_MAIN/, "10");
+    commit(/Length of BELT_MAIN/, "10", protection());
     openTab("History");
     expect(
       within(region("Edit history")).getByText(/Armour: set belt main \(.* 10\.0 m ×/),
@@ -59,21 +62,24 @@ describe("DrawingBoard panels", () => {
     expect(main.textContent).toMatch(/Main battery, \d+\.\d-inch/);
     expect(within(batteries()).getAllByText(/^A · /).length).toBeGreaterThan(0);
     // Set a mount to port: its badge changes and the history says so.
-    const side = screen.getAllByLabelText(/^Side of /)[0]!;
+    // Scoped to the panel: a whole-board label query is quadratic in jsdom on a battleship's many mounts.
+    const side = region("Components and arrangement").querySelector<HTMLElement>(
+      '[aria-label^="Side of "]',
+    )!;
     fireEvent.click(side);
     fireEvent.click(screen.getByRole("option", { name: "Port" }));
     openTab("History");
     expect(within(region("Edit history")).getByText(/ to port$/)).toBeTruthy();
     // Clear the first battery: one confirmation, one history entry, one undo restores everything.
     openTab("Arrangement");
-    const before = screen.getAllByRole("button", { name: /^Remove / }).length;
+    const before = removeButtons();
     fireEvent.click(
       within(batteries()).getAllByRole("button", { name: /^Clear Main battery/ })[0]!,
     );
     fireEvent.click(await screen.findByRole("button", { name: "Clear battery" }));
-    expect(screen.getAllByRole("button", { name: /^Remove / }).length).toBeLessThan(before);
+    expect(removeButtons()).toBeLessThan(before);
     fireEvent.click(screen.getByRole("button", { name: /undo/i }));
-    expect(screen.getAllByRole("button", { name: /^Remove / }).length).toBe(before);
+    expect(removeButtons()).toBe(before);
   });
 
   describe("plan tools", () => {
