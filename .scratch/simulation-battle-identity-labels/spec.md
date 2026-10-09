@@ -347,3 +347,34 @@ Full orchestrator gate:
 - the orchestrator's golden-hash verification (unchanged expected)
 - `pnpm snap:debug` — capture the Battle Arena and check the labels against
   AC-1..AC-6, console clean, no churn warning
+
+## Implementation record
+
+Landed on `dev` in commit `817c7b2`
+(`feat(simulation): derive battle identity labels from canonical nation data`).
+
+- **AC-1..AC-3, AC-5, AC-11** — `BattleManifestView` now takes `playerNationId`
+  and derives each side's name via `nationDisplayName(side.nationId)` and the
+  role via id comparison; five render tests cover UK/DE, France/France, the
+  player-as-defender flip, unknown player (no suffix) and unmapped-id fallback.
+- **AC-4, AC-9** — `PlayerProjection.playerNationId` added as a derived
+  read-only field; `inspectCampaign` surfaces it through the existing transport
+  (no new IPC/preload surface). Covered by projection + inspectCampaign tests.
+- **AC-6, AC-7, AC-12** — `nationDisplayName()` added in
+  `content/nationDisplayName.ts` over the existing bridge + flavor catalog, with
+  raw-id fallback; `SubmarinePoolsSection` uses it. Covered by helper and
+  overview render tests.
+- **AC-8** — projection builder is pure; no authoritative state, hash or save
+  change. `packages/campaign-engine` tests green (102).
+- **AC-10** — the screens stay debug-gated; no gate change.
+- **Wiring** — `playerNationId` threaded through the screen reducer, hook and
+  `BattleArenaTab`; `SimulationScreen` composition test added.
+
+Validation run: desktop `pnpm test` 1345 passed / 14 failed (all 14 pre-existing
+in `src/main/commands/{design,continuity}Commands`, unrelated in-flight design
+work); `pnpm typecheck` and `pnpm lint` clean; campaign-engine 102 passed.
+
+**Outstanding:** the debug `pnpm snap:debug` screen capture (AC-10 / DoD) is not
+yet attached — it requires a running debug campaign with a UK–Germany war to
+generate an engagement. The label behaviour is proven by the render tests above;
+the capture remains the one open DoD checkbox.
