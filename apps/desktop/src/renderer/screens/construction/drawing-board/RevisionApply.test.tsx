@@ -126,6 +126,12 @@ describe("Revision preview for a revisable project", () => {
     expect(screen.queryByRole("button", { name: /apply revision/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /load this ship/i })).toBeNull();
     expect(region("Revision preview").textContent).toMatch(/cannot be revised/);
-    expect(execute).not.toHaveBeenCalled();
+    // The Build tab keeps the rebuild panel mounted, so it lists rebuildable ships; the
+    // revision preview must not load or queue anything for this authored ship.
+    expect(
+      execute.mock.calls.some(
+        (c) => c[0] === "loadProjectDraft" || c[0] === "reviseProjectCommand",
+      ),
+    ).toBe(false);
   });
 });
