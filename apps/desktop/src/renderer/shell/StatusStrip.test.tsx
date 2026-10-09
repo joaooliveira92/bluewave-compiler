@@ -40,7 +40,7 @@ describe("StatusStripView", () => {
     expect(within(region).getByRole("group", { name: "Nation" })).toBeTruthy();
     expect(within(region).getByRole("group", { name: "Budget" })).toBeTruthy();
     expect(within(region).getByText("Monthly budget (projected)")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /collapse/i }).getAttribute("aria-expanded")).toBe(
+    expect(screen.getByRole("button", { name: /collapse/i }).getAttribute("aria-pressed")).toBe(
       "true",
     );
   });
@@ -53,17 +53,17 @@ describe("StatusStripView", () => {
     expect(within(region).getByText("Total expenses")).toBeTruthy();
   });
 
-  it("lists deferred rows with reasons in one disclosure that opens and closes", () => {
+  it("keeps deferred rows in one popover with their reasons, out of the expanded band", () => {
     renderStrip();
-    const toggle = screen.getByRole("button", { name: /Not yet modelled \(\d+\)/ });
-    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    const trigger = screen.getByRole("button", { name: /Not yet modelled \(\d+\)/ });
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByText("Prestige")).toBeNull();
-    fireEvent.click(toggle);
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
     const prestige = screen.getByText("Prestige").closest("[data-row]") as HTMLElement;
     expect(prestige.getAttribute("data-deferred")).toBe("true");
     expect(within(prestige).getByText(/no prestige mechanic/i)).toBeTruthy();
-    fireEvent.click(toggle);
+    fireEvent.click(trigger);
     expect(screen.queryByText("Prestige")).toBeNull();
   });
 
