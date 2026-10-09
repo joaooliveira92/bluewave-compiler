@@ -43,8 +43,13 @@ import {
 import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
 import type { RevisionProject } from "./revisionPreview.js";
 import { useDrawingBoard } from "./useDrawingBoard.js";
+import { ShipViewBoundary } from "./workspace/ShipViewBoundary.js";
+import { ShipWorkspace } from "./workspace/ShipWorkspace.js";
 
-/** Tabs with icons (ReUI c-tabs-6): the board is split by what the player is doing, so nothing needs a long scroll. */
+/**
+ * Tabs with icons (ReUI c-tabs-6): the board is split by what the player is doing, so nothing needs a long scroll.
+ * The hull plan is not a tab's content: it stays in the workspace's ship view whichever tab is open.
+ */
 const TABS: readonly { value: string; label: string; Icon: LucideIcon }[] = [
   { value: "hull", label: "Hull and machinery", Icon: Ship },
   { value: "arrangement", label: "Arrangement", Icon: LayoutGrid },
@@ -52,7 +57,8 @@ const TABS: readonly { value: string; label: string; Icon: LucideIcon }[] = [
   { value: "build", label: "Build", Icon: Hammer },
   { value: "tools", label: "History and files", Icon: Wrench },
 ];
-const TAB_GRID = "grid grid-cols-1 items-start gap-4 xl:grid-cols-2";
+/** Two columns once the tab pane (not the window) is wide enough: the pane shares the window with the ship view. */
+const TAB_GRID = "grid grid-cols-1 items-start gap-4 @4xl:grid-cols-2";
 
 const MONTHS = ["1885-01", "1890-01", "1893-06", "1895-06", "1896-01", "1899-12"];
 
@@ -77,7 +83,7 @@ export function DrawingBoard({
   const [pendingPreset, setPendingPreset] = useState<string | null>(null);
   const [tab, setTab] = useState("hull");
   return (
-    <div className="space-y-4" data-testid="drawing-board">
+    <div className="flex h-full min-h-0 flex-col gap-4" data-testid="drawing-board">
       <div className="flex flex-wrap items-end gap-3">
         <SelectField
           className="min-w-64"
@@ -143,112 +149,119 @@ export function DrawingBoard({
           </span>
         ))}
       </button>
-      <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
-        <TabsList className="h-auto w-full flex-wrap">
-          {TABS.map(({ value, label, Icon }) => (
-            <TabsTrigger key={value} value={value} className="flex-1 gap-2">
-              <Icon aria-hidden="true" className="size-4" />
-              {label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        <TabsContent value="hull" keepMounted className={TAB_GRID}>
-          <HullPlanPanel
-            draft={draft}
-            content={content}
-            view={view}
-            month={state.month}
-            edit={actions.edit}
-          />
-          <div className="space-y-4">
-            <BriefPanel draft={draft} view={view} edit={actions.edit} />
-            <HullPanel draft={draft} content={content} edit={actions.edit} />
-            <MachineryPanel draft={draft} content={content} edit={actions.edit} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="arrangement" keepMounted className="space-y-4">
-          <BatteryPanel cards={batteries} draft={draft} content={content} edit={actions.edit} />
-          <PlacementsPanel
-            names={mountNameMap(batteries)}
-            draft={draft}
-            content={content}
-            month={state.month}
-            view={view}
-            edit={actions.edit}
-          />
-          <div className={TAB_GRID}>
-            <ArmourPanel
+      <ShipWorkspace
+        ship={
+          <ShipViewBoundary resetKey={draft}>
+            <HullPlanPanel
               draft={draft}
+              content={content}
               view={view}
-              materials={armourMaterials}
+              month={state.month}
               edit={actions.edit}
             />
-            <TopsidePanel view={view} />
-          </div>
-        </TabsContent>
+          </ShipViewBoundary>
+        }
+      >
+        <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
+          <TabsList className="h-auto w-full flex-wrap">
+            {TABS.map(({ value, label, Icon }) => (
+              <TabsTrigger key={value} value={value} className="flex-1 gap-2">
+                <Icon aria-hidden="true" className="size-4" />
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        <TabsContent value="analysis" keepMounted className={TAB_GRID}>
-          <div className="space-y-4">
-            <FindingsPanel view={view} suggest={actions.suggest} onApply={actions.edit} />
-            <LedgerPanel view={view} />
-          </div>
-          <div className="space-y-4">
-            <MetricsPanel view={view} />
-            <ComparePanel baseline={state.baseline} view={view} name={state.preset.name} />
-            <ForecastPanel view={view} treasuryUnitMicro={content.treasuryUnitMicro} />
-          </div>
-        </TabsContent>
+          <TabsContent value="hull" keepMounted className={TAB_GRID}>
+            <BriefPanel draft={draft} view={view} edit={actions.edit} />
+            <div className="space-y-4">
+              <HullPanel draft={draft} content={content} edit={actions.edit} />
+              <MachineryPanel draft={draft} content={content} edit={actions.edit} />
+            </div>
+          </TabsContent>
 
-        <TabsContent value="build" keepMounted className={TAB_GRID}>
-          {sessionId !== undefined && (
-            <SubmitPanel sessionId={sessionId} draft={draft} valid={view.valid} />
-          )}
-          <RevisionPanel
-            sessionId={sessionId}
-            projects={projects}
-            history={state.history.slice(0, state.editCount)}
-            draft={draft}
-            startDraft={state.preset.draft}
-            content={content}
-            onLoad={actions.loadDraft}
-            dirty={state.editCount > 0}
-          />
-          <RebuildPanel
-            sessionId={sessionId}
-            draft={draft}
-            content={content}
-            onLoad={actions.loadDraft}
-            dirty={state.editCount > 0}
-          />
-        </TabsContent>
-
-        <TabsContent value="tools" keepMounted className={TAB_GRID}>
-          <HistoryPanel
-            history={state.history}
-            cursor={state.editCount}
-            startName={state.preset.name}
-            content={content}
-            jumpTo={actions.jumpTo}
-          />
-          <div className="space-y-4">
-            <FilePanel
+          <TabsContent value="arrangement" keepMounted className="space-y-4">
+            <BatteryPanel cards={batteries} draft={draft} content={content} edit={actions.edit} />
+            <PlacementsPanel
+              names={mountNameMap(batteries)}
               draft={draft}
-              view={view}
               content={content}
-              presetName={state.preset.name}
+              month={state.month}
+              view={view}
+              edit={actions.edit}
+            />
+            <div className={TAB_GRID}>
+              <ArmourPanel
+                draft={draft}
+                view={view}
+                materials={armourMaterials}
+                edit={actions.edit}
+              />
+              <TopsidePanel view={view} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analysis" keepMounted className={TAB_GRID}>
+            <div className="space-y-4">
+              <FindingsPanel view={view} suggest={actions.suggest} onApply={actions.edit} />
+              <LedgerPanel view={view} />
+            </div>
+            <div className="space-y-4">
+              <MetricsPanel view={view} />
+              <ComparePanel baseline={state.baseline} view={view} name={state.preset.name} />
+              <ForecastPanel view={view} treasuryUnitMicro={content.treasuryUnitMicro} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="build" keepMounted className={TAB_GRID}>
+            {sessionId !== undefined && (
+              <SubmitPanel sessionId={sessionId} draft={draft} valid={view.valid} />
+            )}
+            <RevisionPanel
+              sessionId={sessionId}
+              projects={projects}
+              history={state.history.slice(0, state.editCount)}
+              draft={draft}
+              startDraft={state.preset.draft}
+              content={content}
               onLoad={actions.loadDraft}
               dirty={state.editCount > 0}
             />
-            <AlternativesPanel
-              dirty={state.editCount > 0}
-              generate={actions.generateAlternatives}
+            <RebuildPanel
+              sessionId={sessionId}
+              draft={draft}
+              content={content}
               onLoad={actions.loadDraft}
+              dirty={state.editCount > 0}
             />
-          </div>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+
+          <TabsContent value="tools" keepMounted className={TAB_GRID}>
+            <HistoryPanel
+              history={state.history}
+              cursor={state.editCount}
+              startName={state.preset.name}
+              content={content}
+              jumpTo={actions.jumpTo}
+            />
+            <div className="space-y-4">
+              <FilePanel
+                draft={draft}
+                view={view}
+                content={content}
+                presetName={state.preset.name}
+                onLoad={actions.loadDraft}
+                dirty={state.editCount > 0}
+              />
+              <AlternativesPanel
+                dirty={state.editCount > 0}
+                generate={actions.generateAlternatives}
+                onLoad={actions.loadDraft}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </ShipWorkspace>
     </div>
   );
 }

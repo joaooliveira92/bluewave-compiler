@@ -11,7 +11,10 @@ import {
 import { DrawingBoard } from "./DrawingBoard.js";
 import type { RevisionProject } from "./revisionPreview.js";
 
-/** The ship designer opens in a near full-screen modal so the plan, panels and findings get the whole window. */
+/**
+ * The ship designer opens in a near full-screen modal so the plan, panels and findings get the whole window. The
+ * board fills the modal's height and scrolls inside its own panes, so the ship view never scrolls out of sight.
+ */
 export function DrawingBoardDialog({
   sessionId,
   projects,
@@ -36,7 +39,7 @@ export function DrawingBoardDialog({
             Edits are a local draft until you submit the design for construction.
           </DialogDescription>
         </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <div className="flex min-h-0 flex-1 flex-col">
           <DrawingBoard sessionId={sessionId} projects={projects} />
         </div>
       </DialogContent>

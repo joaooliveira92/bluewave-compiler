@@ -22,7 +22,10 @@ const click = (page: Page, name: string) => page.getByRole("button", { name }).f
 export async function startNewCampaign(page: Page, opts: NewCampaignOptions = {}): Promise<void> {
   const { nation = "United Kingdom", archetype = "Shipyard Baron" } = opts;
   await click(page, "New Campaign");
-  await click(page, `Continue as ${nation}`);
+  // Confirm through the console's own keyboard path ("Press Enter to confirm"): the dossier's
+  // "Continue as <nation>" button is not always rendered.
+  await page.getByRole("option", { name: nation }).click();
+  await page.getByRole("listbox", { name: "Playable nations" }).press("Enter");
   if (opts.seed !== undefined) await page.getByLabel("Campaign Seed").fill(opts.seed);
   await click(page, "Next: Choose Archetype");
   await click(page, archetype);

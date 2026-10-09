@@ -1,8 +1,10 @@
 import { fireEvent, screen } from "@testing-library/react";
 
+/** Panels in the workspace's ship view: visible on every tab, so no tab needs opening. */
+const SHIP_VIEW_PANELS: ReadonlySet<string> = new Set(["Hull plan"]);
+
 /** The tab each panel lives on, so a test can ask for a panel by name and land on the right tab. */
 const PANEL_TAB: Record<string, string> = {
-  "Hull plan": "Hull and machinery",
   "Hull and displacement": "Hull and machinery",
   "Design brief": "Hull and machinery",
   "Machinery, fuel and range": "Hull and machinery",
@@ -40,8 +42,9 @@ export function chooseOptionAt(trigger: string | RegExp, index: number): void {
   fireEvent.click(chosen);
 }
 
-/** Opens the tab that holds the named panel and returns the panel. */
+/** Opens the tab that holds the named panel (if it is on one) and returns the panel. */
 export function region(name: string): HTMLElement {
+  if (SHIP_VIEW_PANELS.has(name)) return screen.getByRole("region", { name });
   const tab = PANEL_TAB[name];
   if (tab === undefined) throw new Error(`no tab known for panel "${name}"`);
   openTab(tab);

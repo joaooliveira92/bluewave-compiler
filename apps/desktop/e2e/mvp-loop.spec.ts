@@ -206,6 +206,70 @@ test("row 6f: the Drawing Board edits the hull plan, batteries and armour in the
   await expect(history.getByText(/Add /)).toBeVisible();
 });
 
+test("row 6g: the Drawing Board keeps the ship view in sight on every tab, wide and narrow", async ({
+  e2e,
+}) => {
+  await e2e.retargetDialog(sharedSaveDir);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await navigateTo(e2e.page, "Construction");
+  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
+  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
+  const board = e2e.page.getByRole("dialog");
+  const ship = board.getByRole("region", { name: "Ship view" });
+  const plan = ship.getByRole("img", { name: /Top-down plan/ });
+  await expect(plan).toBeInViewport();
+
+  // Mark the drawing's DOM node: a remount on tab switch would drop the mark.
+  await plan.evaluate((el) => el.setAttribute("data-e2e-mark", "kept"));
+  for (const tab of [
+    "Arrangement",
+    "Analysis",
+    "Build",
+    "History and files",
+    "Hull and machinery",
+  ]) {
+    await board.getByRole("tab", { name: new RegExp(tab) }).click();
+    await expect(plan).toBeInViewport();
+    await expect(plan).toHaveAttribute("data-e2e-mark", "kept");
+  }
+
+  // The tab pane scrolls on its own; the ship view stays put.
+  await board.getByRole("tab", { name: /Arrangement/ }).click();
+  const pane = board.getByTestId("tab-pane");
+  const scrolled = await pane.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+    return el.scrollTop;
+  });
+  expect(scrolled).toBeGreaterThan(0);
+  await expect(plan).toBeInViewport();
+  await expect(board.getByRole("region", { name: "Protection" })).toBeInViewport();
+
+  // The divider is a keyboard-operable splitter that widens the ship view.
+  const divider = board.getByRole("separator", { name: "Resize ship view" });
+  const before = (await ship.boundingBox())!.width;
+  await divider.focus();
+  await e2e.page.keyboard.press("ArrowRight");
+  await e2e.page.keyboard.press("ArrowRight");
+  await expect(divider).toHaveAttribute("aria-valuenow", "44");
+  expect((await ship.boundingBox())!.width).toBeGreaterThan(before);
+
+  // Narrow window: the panes stack, the splitter goes, and the ship view folds without unmounting.
+  await e2e.app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0]!.setSize(960, 760),
+  );
+  await expect(divider).toBeHidden();
+  const toggle = board.getByRole("button", { name: "Hide ship view" });
+  await expect(toggle).toBeVisible();
+  await toggle.click();
+  await expect(plan).toBeHidden();
+  await board.getByRole("button", { name: "Show ship view" }).click();
+  await expect(plan).toBeVisible();
+  await expect(plan).toHaveAttribute("data-e2e-mark", "kept");
+});
+
 test("row 6e: a fleet ordered to sail moves one hop when the month advances", async ({ e2e }) => {
   const copy = await copyFixturePackage(sharedSaveDir, e2e.scratch);
   await e2e.retargetDialog(copy);
