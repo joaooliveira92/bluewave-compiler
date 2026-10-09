@@ -333,7 +333,13 @@ export interface ConstructionMonthUsage {
 export interface ConstructionProject {
   id: string;
   type: "ship" | "building" | "technology";
-  projectType: "NEW_CONSTRUCTION";
+  /**
+   * NEW_CONSTRUCTION builds a new ship; REBUILD works on an existing, completed ship, which is unavailable for the whole
+   * project (DESIGN-23 sections 20-22, ADR-0078).
+   */
+  projectType: "NEW_CONSTRUCTION" | "REBUILD";
+  /** For a REBUILD: the ship being rebuilt. Absent for new construction. */
+  targetShipId?: string;
   targetId: string;
   designVersionId: string;
   totalWork: SafeInt;

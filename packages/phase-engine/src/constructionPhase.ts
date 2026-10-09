@@ -42,8 +42,10 @@ function applyConstructionToNation(ctx: MonthContext, nationId: string, nation: 
       hasChanges = true;
     }
 
-    // Check for completion
+    // Check for completion. Only new construction completes into a new ship; a finished REBUILD is handled by the rebuild
+    // completion step (ADR-0078), so it must not spawn a second ship here.
     if (
+      project["projectType"] === "NEW_CONSTRUCTION" &&
       project["status"] !== "COMPLETED" &&
       (clampedWork as number) >= (project["totalWork"] as number) &&
       (project["totalWork"] as number) > 0

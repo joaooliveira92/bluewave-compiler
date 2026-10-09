@@ -1,7 +1,7 @@
 # 28: REBUILD / CONVERSION projects (what a past-redesign change becomes)
 
 **Type:** implementation (engine milestone)
-**Status:** in progress (28a done; 28b-e open, see ADR-0078)
+**Status:** in progress (28a, 28b done; 28c-e open, see ADR-0078)
 **Blocked by:** none (29 resolved)
 **Frontier:** yes
 
@@ -38,3 +38,8 @@ Sliced in ADR-0078. **28a done:** `rebuild.ts` (`validateRebuild`, `rebuildFacts
 
 **28b-1 done: ship availability, enforced.** `Ship.availability?: "DEGRADED" | "UNAVAILABLE"` and `availabilityProjectId?` (absent = available) and one shared `isShipOperational` (commissioned and not UNAVAILABLE) in `campaign`. Used wherever a ship would move, train or fight: `fleetMoveProblem` (a fleet with an unavailable ship aboard cannot sail, new code `SHIP_UNAVAILABLE`; one with no operational ship still gives `SHIP_NOT_OPERATIONAL`), battle loser ships (`phase-engine/battles.ts`), division formation and the opening briefing (`campaign-engine`), division asset eligibility (`divisionCommands.ts`), and combat strength, resolution and promotion (`combat`). DEGRADED still operates. Snapshot clone covers both fields. Nothing sets availability yet (28b-2/28c do), so no behaviour or golden changes.
 Tests: `ship-availability.test.ts` (campaign, 5), fleet-movement (+3, a fleet always has two ships so no silent skip), combat strength (+2), division screen (+1), clone audit. campaign 113, combat 3687, campaign-engine 102, phase-engine 224.
+
+### 2026-10-09 orchestrator (28b-2)
+
+**28b done: the REBUILD project type exists and is validated.** `ConstructionProject.projectType` is now `"NEW_CONSTRUCTION" | "REBUILD"` with `targetShipId` (new construction names none). `rebuildProjectProblems` (pure) checks, for every unfinished REBUILD: it names a target ship that exists in the nation's fleets; that ship is UNAVAILABLE with this project as the reason; no other unfinished rebuild targets it; closing validation reports `REBUILD_PROJECT_INCONSISTENT`. The construction phase completes only NEW_CONSTRUCTION projects into ships, so a finished REBUILD cannot spawn a second ship (28d does its completion). Nothing creates REBUILD projects yet.
+Tests: `rebuild-projects.test.ts` (consistency cases, validation wiring, completion guard through the real executor), clone audit fixture. phase-engine 24 files / 231. Next: 28c (the StartRebuild command, the rebuild plan with PLACEHOLDER work and cost, cancellation settlement).

@@ -172,7 +172,8 @@ function makeRichSnapshot(): CampaignSnapshot {
     {
       id: "proj-1",
       type: "ship",
-      projectType: "NEW_CONSTRUCTION",
+      projectType: "REBUILD",
+      targetShipId: "g1",
       targetId: "g3",
       designVersionId: "dv-b",
       totalWork: SafeInt(200),

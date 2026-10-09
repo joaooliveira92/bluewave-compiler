@@ -207,6 +207,7 @@ const F = {
     "packages",
     "yardId",
     "monthUsage",
+    "targetShipId",
   ),
   ConstructionMonthUsage: fields<ConstructionMonthUsage>()("month", "used", "startDone"),
   ConstructionPackage: fields<ConstructionPackage>()(

@@ -3,6 +3,7 @@
 import type { CampaignSnapshot } from "@bluewave/campaign";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { constructionPackageProblems } from "./constructionPackages.js";
+import { rebuildProjectProblems } from "./rebuildProjects.js";
 
 // Phase 1: opening_validation — reject an invalid starting snapshot before any
 // phase commits (negative treasury, construction overflow, ship in >1 battle).
@@ -77,6 +78,13 @@ export function runClosingValidationPhase(
         `Nation ${nationId} has negative treasury at closing`,
         { stage: "closing-validation" },
       );
+      hasErrors = true;
+    }
+
+    for (const problem of rebuildProjectProblems(nation)) {
+      collector.addError("REBUILD_PROJECT_INCONSISTENT", `Nation ${nationId}: ${problem}`, {
+        stage: "closing-validation",
+      });
       hasErrors = true;
     }
 

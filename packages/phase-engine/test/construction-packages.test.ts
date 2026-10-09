@@ -77,7 +77,7 @@ describe("constructionPackageProblems", () => {
 describe("closing validation of package progress", () => {
   const snapshotWith = (p: ConstructionProject) =>
     ({
-      nations: new Map([["n1", { treasury: SafeInt(0), constructionProjects: [p] }]]),
+      nations: new Map([["n1", { treasury: SafeInt(0), fleets: [], constructionProjects: [p] }]]),
     }) as unknown as CampaignSnapshot;
   it("passes consistent projects and flags inconsistent ones with a stable code", () => {
     const ok = new DiagnosticCollector();
