@@ -1,0 +1,48 @@
+import type { YardOption } from "@bluewave/ship-design";
+import { Badge } from "../../../../components/ui/badge.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../components/ui/tooltip.js";
+import { yardRows } from "./yardRows.js";
+
+/** Which shipyards could build this design, and why the others cannot. Informational: the forecast assumes the quickest fitting yard. */
+export function YardList({ yards }: { readonly yards: readonly YardOption[] }) {
+  if (yards.length === 0) return null;
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span>Shipyards</span>
+        <Tooltip>
+          <TooltipTrigger render={<span className="inline-flex" />}>
+            <Badge variant="outline" className="text-xs">
+              forecast only
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            The forecast assumes the quickest yard that can hold the hull. Construction does not yet
+            choose a yard.
+          </TooltipContent>
+        </Tooltip>
+      </div>
+      <ul className="space-y-1 text-sm" aria-label="Shipyards">
+        {yardRows(yards).map((row) => (
+          <li key={row.yardId} className="flex flex-wrap items-baseline justify-between gap-x-4">
+            <span className={row.tone === "chosen" ? "font-medium" : undefined}>
+              {row.name}
+              <span className="ml-2 text-xs text-muted-foreground">{row.capacity}</span>
+            </span>
+            <span
+              className={
+                row.tone === "blocked"
+                  ? "text-muted-foreground"
+                  : row.tone === "chosen"
+                    ? "text-emerald-600"
+                    : undefined
+              }
+            >
+              {row.status}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

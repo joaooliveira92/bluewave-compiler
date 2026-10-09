@@ -17,7 +17,7 @@ import { computeCost, type CostBalance, type CostContext } from "./cost.js";
 import { computeCve, CVE_LABEL, type CveBalance } from "./cve.js";
 import type { Finding, Severity } from "./findings.js";
 import { LEDGER_CATEGORIES, type LedgerCategory } from "./ledger.js";
-import { yardFits, type Yard } from "./yards.js";
+import { yardFits, yardMisfits, type Yard, type YardLimit } from "./yards.js";
 
 /** Everything the workshop needs besides the draft. Built once per campaign from content and nation state. */
 export interface WorkshopEnvironment {
@@ -47,6 +47,21 @@ export interface Metric {
   readonly tone: "ok" | "warn" | "bad" | "neutral";
 }
 
+/** What one shipyard would do with this design (informational: construction itself does not yet pick a yard). */
+export interface YardOption {
+  readonly yardId: string;
+  readonly maxLengthMm: number;
+  readonly maxBeamMm: number;
+  readonly maxDisplacementKg: number;
+  readonly craneLiftKg: number;
+  /** Limits the hull exceeds; empty when the yard can hold it. */
+  readonly exceeds: readonly YardLimit[];
+  /** Months to finish at this yard (max of historical and the capacity schedule); null when it cannot hold or finish the hull. */
+  readonly months: number | null;
+  /** True for the yard the forecast assumes. */
+  readonly chosen: boolean;
+}
+
 export interface WorkshopView {
   readonly valid: boolean;
   readonly naturalClass: string | null;
@@ -68,6 +83,8 @@ export interface WorkshopView {
     readonly bottleneck: LineId | null;
     /** Id of the yard the forecast assumes (the fitting yard with the shortest schedule, smallest on a tie); null if none. */
     readonly yardId: string | null;
+    /** Every yard in ascending capacity: whether it can hold the hull and how long it would take. Empty until the design is valid. */
+    readonly yards: readonly YardOption[];
     readonly note: string | null;
   };
   readonly cve: { readonly label: string; readonly cveBp: number };
@@ -171,6 +188,7 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
   let bottleneck: LineId | null = null;
   let note: string | null = null;
   let yardId: string | null = null;
+  let yardOptions: YardOption[] = [];
   if (c.valid) {
     try {
       const plan = planConstruction(c, draft, cost, env.constructionBalance, true);
@@ -185,12 +203,14 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
         industryBp: env.industryBp,
         accelerated: env.costCtx.accelerated,
       });
+      const monthsByYard = new Map<string, number | null>();
       let best: {
         yard: Yard;
         schedule: ReturnType<typeof simulateConstruction>;
         total: number;
       } | null = null;
       for (const yard of fitting) {
+        monthsByYard.set(yard.facility.id, null);
         try {
           const schedule = simulateConstruction(
             plan,
@@ -198,6 +218,7 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
             env.constructionBalance.maxMonths,
           );
           const total = Math.max(hist, schedule.durationMonths);
+          monthsByYard.set(yard.facility.id, total);
           // Yards are ascending in capacity, so a strict improvement keeps the smallest yard on a tie.
           if (best === null || total < best.total) best = { yard, schedule, total };
         } catch (e) {
@@ -216,6 +237,16 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
         bottleneck = best.schedule.bottleneck;
         yardId = best.yard.facility.id;
       }
+      yardOptions = env.yards.map((y) => ({
+        yardId: y.facility.id,
+        maxLengthMm: y.facility.maxLengthMm,
+        maxBeamMm: y.facility.maxBeamMm,
+        maxDisplacementKg: y.facility.maxDisplacementKg,
+        craneLiftKg: y.facility.craneLiftKg,
+        exceeds: yardMisfits(y.facility, demand),
+        months: monthsByYard.get(y.facility.id) ?? null,
+        chosen: y.facility.id === yardId,
+      }));
     } catch (e) {
       note = e instanceof Error ? e.message : String(e);
     }
@@ -240,6 +271,7 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
       historicalProvisional,
       bottleneck,
       yardId,
+      yards: yardOptions,
       note,
     },
     cve: { label: CVE_LABEL, cveBp: cve.cveBp },

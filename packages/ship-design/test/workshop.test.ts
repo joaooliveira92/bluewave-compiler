@@ -123,6 +123,31 @@ describe("buildWorkshopView", () => {
     const small = buildWorkshopView(havock, env("1895-06"));
     expect(small.forecast.yardId).toBe("yard_small");
   });
+  it("lists every yard with its fit, reasons and months; exactly the forecast yard is chosen", () => {
+    const big = buildWorkshopView(majestic, env("1896-01")).forecast;
+    expect(big.yards.map((y) => y.yardId)).toEqual(["yard_small", "yard_medium", "yard_large"]);
+    expect(big.yards.filter((y) => y.chosen).map((y) => y.yardId)).toEqual(["yard_large"]);
+    const small = big.yards.find((y) => y.yardId === "yard_small")!;
+    expect(small.exceeds.length).toBeGreaterThan(0);
+    expect(small.months).toBeNull();
+    const large = big.yards.find((y) => y.yardId === "yard_large")!;
+    expect(large.exceeds).toEqual([]);
+    expect(large.months).toBe(big.months);
+    // A destroyer fits everywhere; the smallest yard is chosen and every fitting yard has a finish time.
+    const dd = buildWorkshopView(havock, env("1895-06")).forecast;
+    expect(dd.yards.every((y) => y.exceeds.length === 0 && y.months !== null)).toBe(true);
+    expect(dd.yards.filter((y) => y.chosen).map((y) => y.yardId)).toEqual(["yard_small"]);
+  });
+  it("lists no yards until the design is valid, and none chosen when no yard fits", () => {
+    const none = buildWorkshopView(majestic, { ...env("1896-01"), yards: [] });
+    expect(none.forecast.yards).toEqual([]);
+    const e = env("1896-01");
+    const noFit = buildWorkshopView(majestic, {
+      ...e,
+      yards: e.yards.map((y) => ({ ...y, facility: { ...y.facility, maxLengthMm: 1 } })),
+    });
+    expect(noFit.forecast.yards.every((y) => !y.chosen && y.exceeds.includes("LENGTH"))).toBe(true);
+  });
   it("forecast = max(historical, schedule); a weaker large yard lengthens it and names the bottleneck", () => {
     const e = env("1896-01");
     const base = buildWorkshopView(majestic, e);

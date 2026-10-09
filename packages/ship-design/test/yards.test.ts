@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vite-plus/test";
-import { buildYards, yardCapacityFor, yardFits, LINE_IDS, type Facility } from "../src/index.js";
+import {
+  buildYards,
+  yardCapacityFor,
+  yardFits,
+  yardMisfits,
+  LINE_IDS,
+  type Facility,
+} from "../src/index.js";
 import { shipBuildingContent } from "./helpers/earlyContext.js";
 
 const fac = (id: string, tonnes: number): Facility => ({
@@ -54,5 +61,23 @@ describe("yard capacity (ADR-0067 section 6)", () => {
     expect(JSON.stringify(shipBuildingContent.environmentFor("1896-01").yards)).toBe(
       JSON.stringify(ys),
     );
+  });
+});
+
+describe("yardMisfits", () => {
+  const f = fac("a", 3_000);
+  const ok = { lengthMm: 100_000, beamMm: 20_000, displacementKg: 3_000_000, heaviestKg: 100_000 };
+  it("is empty exactly when yardFits is true, at the inclusive boundaries", () => {
+    expect(yardMisfits(f, ok)).toEqual([]);
+    expect(yardFits(f, ok)).toBe(true);
+  });
+  it("names each exceeded limit, in a fixed order", () => {
+    expect(yardMisfits(f, { ...ok, lengthMm: 100_001 })).toEqual(["LENGTH"]);
+    expect(yardMisfits(f, { ...ok, beamMm: 20_001 })).toEqual(["BEAM"]);
+    expect(yardMisfits(f, { ...ok, displacementKg: 3_000_001 })).toEqual(["DISPLACEMENT"]);
+    expect(yardMisfits(f, { ...ok, heaviestKg: 100_001 })).toEqual(["CRANE"]);
+    expect(
+      yardMisfits(f, { lengthMm: 1e9, beamMm: 1e9, displacementKg: 1e12, heaviestKg: 1e12 }),
+    ).toEqual(["LENGTH", "BEAM", "DISPLACEMENT", "CRANE"]);
   });
 });

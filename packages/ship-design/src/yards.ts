@@ -52,3 +52,16 @@ export function yardFits(f: Facility, d: YardDemand): boolean {
     f.craneLiftKg >= d.heaviestKg
   );
 }
+
+/** The limits a hull can exceed at a yard. */
+export type YardLimit = "LENGTH" | "BEAM" | "DISPLACEMENT" | "CRANE";
+
+/** Every limit of the yard the hull exceeds (empty when `yardFits`), in a fixed order. */
+export function yardMisfits(f: Facility, d: YardDemand): YardLimit[] {
+  const out: YardLimit[] = [];
+  if (f.maxLengthMm < d.lengthMm) out.push("LENGTH");
+  if (f.maxBeamMm < d.beamMm) out.push("BEAM");
+  if (f.maxDisplacementKg < d.displacementKg) out.push("DISPLACEMENT");
+  if (f.craneLiftKg < d.heaviestKg) out.push("CRANE");
+  return out;
+}

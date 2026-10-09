@@ -35,6 +35,16 @@ describe("DrawingBoard", () => {
     expect(metric("Top speed")).toMatch(/kn \(need 25\.5\)/);
   });
 
+  it("lists the shipyards in the forecast with exactly one forecast yard", () => {
+    render(<DrawingBoard />);
+    openTab("Analysis");
+    const forecast = region("Cost and construction forecast");
+    const yards = within(forecast).getByRole("list", { name: "Shipyards" });
+    const rows = within(yards).getAllByRole("listitem");
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.filter((r) => /Forecast yard/.test(r.textContent ?? ""))).toHaveLength(1);
+  });
+
   it("draws a distinct, described plan and profile that agree on the funnels", () => {
     render(<DrawingBoard />);
     const panel = region("Hull plan");
