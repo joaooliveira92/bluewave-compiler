@@ -7,11 +7,11 @@ import { componentFacts, componentsByCategory } from "./componentFacts.js";
 import { loadDrawingBoardContent } from "./content.js";
 import { exportDesign } from "./designFile.js";
 import { RequirementChip } from "./RequirementChip.js";
+import { region } from "./test-helpers.js";
 
 afterEach(cleanup);
 const content = loadDrawingBoardContent();
 const ref = content.references[0]!;
-const region = (name: string) => screen.getByRole("region", { name });
 
 describe("requirement chip", () => {
   it("shows the headline brief and opens every requirement in a popover", async () => {
@@ -108,6 +108,64 @@ describe("revision tier badge", () => {
     expect(within(status).getByText(/^(Redesign|Revision)$/)).toBeTruthy();
     expect(within(region("Revision preview")).getByLabelText("Selected ship").textContent).toMatch(
       /authored design/,
+    );
+  });
+});
+
+describe("tabbed layout", () => {
+  const tabs = () => screen.getAllByRole("tab").map((t) => t.textContent);
+
+  it("splits the board into five icon tabs and opens on hull and machinery", () => {
+    render(<DrawingBoard />);
+    expect(tabs()).toEqual([
+      "Hull and machinery",
+      "Arrangement",
+      "Analysis",
+      "Build",
+      "History and files",
+    ]);
+    for (const t of screen.getAllByRole("tab")) expect(t.querySelector("svg")).not.toBeNull();
+    expect(
+      screen.getByRole("tab", { name: "Hull and machinery" }).getAttribute("aria-selected"),
+    ).toBe("true");
+    // only the open tab's panels are on screen
+    expect(screen.queryByRole("region", { name: "Validation" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Hull plan" })).toBeTruthy();
+  });
+
+  it("the status strip shows validity and jumps to the analysis tab", () => {
+    render(<DrawingBoard />);
+    const strip = screen.getByRole("button", { name: /design status/i });
+    expect(strip.textContent).toMatch(/Can be submitted/);
+    expect(strip.textContent).toMatch(/blocking/);
+    fireEvent.click(strip);
+    expect(screen.getByRole("tab", { name: "Analysis" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
+    expect(screen.getByRole("region", { name: "Validation" })).toBeTruthy();
+  });
+
+  it("the strip reports a design that cannot be built", () => {
+    render(<DrawingBoard />);
+    const input = screen.getByLabelText(/coal bunkers/i) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "400" } });
+    fireEvent.blur(input);
+    const strip = screen.getByRole("button", { name: /design status/i });
+    expect(strip.textContent).toMatch(/Cannot be built/);
+  });
+
+  it("keeps a panel's state while another tab is open", async () => {
+    render(<DrawingBoard />);
+    const file = () =>
+      screen.getByLabelText("Design file", { selector: "input" }) as HTMLInputElement;
+    region("Design file");
+    fireEvent.change(file(), { target: { files: [new File(["nonsense"], "bad.bwdesign")] } });
+    await waitFor(() =>
+      expect(within(region("Design file")).getByLabelText("Last design file")).toBeTruthy(),
+    );
+    region("Hull plan"); // leave the tab
+    expect(within(region("Design file")).getByLabelText("Last design file").textContent).toMatch(
+      /bad\.bwdesign/,
     );
   });
 });

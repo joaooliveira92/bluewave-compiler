@@ -1,9 +1,19 @@
 import { useState } from "react";
-import { Redo2, Undo2 } from "lucide-react";
+import {
+  Gauge,
+  Hammer,
+  LayoutGrid,
+  Redo2,
+  Ship,
+  Undo2,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
 import { Alert } from "../../../components/ui/alert.js";
 import { Badge } from "../../../components/ui/badge.js";
 import { Button } from "../../../components/ui/button.js";
 import { ButtonGroup } from "../../../components/ui/button-group.js";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs.js";
 import { ConfirmDialog } from "./ConfirmAction.js";
 import { RequirementChip } from "./RequirementChip.js";
 import { SelectField } from "./fields.js";
@@ -29,6 +39,16 @@ import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
 import type { RevisionProject } from "./revisionPreview.js";
 import { useDrawingBoard } from "./useDrawingBoard.js";
 
+/** Tabs with icons (ReUI c-tabs-6): the board is split by what the player is doing, so nothing needs a long scroll. */
+const TABS: readonly { value: string; label: string; Icon: LucideIcon }[] = [
+  { value: "hull", label: "Hull and machinery", Icon: Ship },
+  { value: "arrangement", label: "Arrangement", Icon: LayoutGrid },
+  { value: "analysis", label: "Analysis", Icon: Gauge },
+  { value: "build", label: "Build", Icon: Hammer },
+  { value: "tools", label: "History and files", Icon: Wrench },
+];
+const TAB_GRID = "grid grid-cols-1 items-start gap-4 xl:grid-cols-2";
+
 const MONTHS = ["1885-01", "1890-01", "1893-06", "1895-06", "1896-01", "1899-12"];
 
 /**
@@ -43,6 +63,7 @@ export function DrawingBoard({
   const { state, actions } = useDrawingBoard(campaignMonth);
   const { draft, view, content } = state;
   const [pendingPreset, setPendingPreset] = useState<string | null>(null);
+  const [tab, setTab] = useState("hull");
   return (
     <div className="space-y-4" data-testid="drawing-board">
       <div className="flex flex-wrap items-end gap-3">
@@ -91,11 +112,44 @@ export function DrawingBoard({
         }}
       />
       {state.editError !== null && <Alert variant="destructive">{state.editError}</Alert>}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="space-y-4">
+      <button
+        type="button"
+        onClick={() => setTab("analysis")}
+        aria-label="Design status: open the analysis tab"
+        className="flex w-full flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Badge variant={view.valid ? "secondary" : "destructive"}>
+          {view.valid ? "Can be submitted" : "Cannot be built"}
+        </Badge>
+        <span className="text-muted-foreground">
+          {view.counts.BLOCKING} blocking · {view.counts.CRITICAL} critical · {view.counts.WARNING}{" "}
+          warning
+        </span>
+        {view.metrics.slice(0, 3).map((m) => (
+          <span key={m.id} className="tabular-nums">
+            <span className="text-muted-foreground">{m.label}:</span> {m.value}
+          </span>
+        ))}
+      </button>
+      <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
+        <TabsList className="h-auto w-full flex-wrap">
+          {TABS.map(({ value, label, Icon }) => (
+            <TabsTrigger key={value} value={value} className="flex-1 gap-2">
+              <Icon aria-hidden="true" className="size-4" />
+              {label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        <TabsContent value="hull" keepMounted className={TAB_GRID}>
           <HullPlanPanel draft={draft} content={content} view={view} />
-          <HullPanel draft={draft} content={content} edit={actions.edit} />
-          <MachineryPanel draft={draft} content={content} edit={actions.edit} />
+          <div className="space-y-4">
+            <HullPanel draft={draft} content={content} edit={actions.edit} />
+            <MachineryPanel draft={draft} content={content} edit={actions.edit} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="arrangement" keepMounted className={TAB_GRID}>
           <PlacementsPanel
             draft={draft}
             content={content}
@@ -103,15 +157,25 @@ export function DrawingBoard({
             view={view}
             edit={actions.edit}
           />
-          <ArmourPanel draft={draft} edit={actions.edit} />
-        </div>
-        <div className="space-y-4">
-          <FindingsPanel view={view} suggest={actions.suggest} onApply={actions.edit} />
-          <MetricsPanel view={view} />
-          <ComparePanel baseline={state.baseline} view={view} name={state.preset.name} />
-          <TopsidePanel view={view} />
-          <LedgerPanel view={view} />
-          <ForecastPanel view={view} />
+          <div className="space-y-4">
+            <ArmourPanel draft={draft} edit={actions.edit} />
+            <TopsidePanel view={view} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="analysis" keepMounted className={TAB_GRID}>
+          <div className="space-y-4">
+            <FindingsPanel view={view} suggest={actions.suggest} onApply={actions.edit} />
+            <LedgerPanel view={view} />
+          </div>
+          <div className="space-y-4">
+            <MetricsPanel view={view} />
+            <ComparePanel baseline={state.baseline} view={view} name={state.preset.name} />
+            <ForecastPanel view={view} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="build" keepMounted className={TAB_GRID}>
           {sessionId !== undefined && (
             <SubmitPanel sessionId={sessionId} draft={draft} valid={view.valid} />
           )}
@@ -125,6 +189,9 @@ export function DrawingBoard({
             onLoad={actions.loadDraft}
             dirty={state.editCount > 0}
           />
+        </TabsContent>
+
+        <TabsContent value="tools" keepMounted className={TAB_GRID}>
           <HistoryPanel
             history={state.history}
             cursor={state.editCount}
@@ -132,21 +199,23 @@ export function DrawingBoard({
             content={content}
             jumpTo={actions.jumpTo}
           />
-          <FilePanel
-            draft={draft}
-            view={view}
-            content={content}
-            presetName={state.preset.name}
-            onLoad={actions.loadDraft}
-            dirty={state.editCount > 0}
-          />
-          <AlternativesPanel
-            dirty={state.editCount > 0}
-            generate={actions.generateAlternatives}
-            onLoad={actions.loadDraft}
-          />
-        </div>
-      </div>
+          <div className="space-y-4">
+            <FilePanel
+              draft={draft}
+              view={view}
+              content={content}
+              presetName={state.preset.name}
+              onLoad={actions.loadDraft}
+              dirty={state.editCount > 0}
+            />
+            <AlternativesPanel
+              dirty={state.editCount > 0}
+              generate={actions.generateAlternatives}
+              onLoad={actions.loadDraft}
+            />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

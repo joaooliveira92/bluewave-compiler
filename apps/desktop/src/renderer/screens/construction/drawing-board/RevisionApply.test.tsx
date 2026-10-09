@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { DrawingBoard } from "./DrawingBoard.js";
 import { loadDrawingBoardContent } from "./content.js";
+import { openTab, region } from "./test-helpers.js";
 
 vi.mock("../../../shell/CampaignShellContext.js", () => ({
   useCampaignRevision: () => 7,
@@ -49,11 +50,10 @@ afterEach(() => {
   delete (window as unknown as { bluewave?: unknown }).bluewave;
 });
 
-const region = (name: string) => screen.getByRole("region", { name });
-
 describe("Revision preview for a revisable project", () => {
   it("loads the ship's real draft and compares against it, with the engine's own diff", async () => {
     render(<DrawingBoard sessionId="s1" projects={[project]} />);
+    openTab("Build");
     await screen.findByRole("button", { name: /load this ship's design/i });
     expect(execute).toHaveBeenCalledWith("loadProjectDraft", {
       sessionId: "s1",
@@ -74,6 +74,7 @@ describe("Revision preview for a revisable project", () => {
 
   it("applies the revision through the bridge and reports the queued tier", async () => {
     render(<DrawingBoard sessionId="s1" projects={[project]} />);
+    openTab("Build");
     await screen.findByRole("button", { name: /load this ship's design/i });
     const input = screen.getByLabelText(/installed power/i) as HTMLInputElement;
     fireEvent.change(input, { target: { value: String(Number(input.value) + 100) } });
@@ -106,6 +107,7 @@ describe("Revision preview for a revisable project", () => {
           },
     );
     render(<DrawingBoard sessionId="s1" projects={[project]} />);
+    openTab("Build");
     await screen.findByRole("button", { name: /load this ship's design/i });
     const input = screen.getByLabelText(/installed power/i) as HTMLInputElement;
     fireEvent.change(input, { target: { value: String(Number(input.value) + 100) } });

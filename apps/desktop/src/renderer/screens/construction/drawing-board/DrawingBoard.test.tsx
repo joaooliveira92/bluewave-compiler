@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { DrawingBoard } from "./DrawingBoard.js";
+import { openTab, region } from "./test-helpers.js";
 
 afterEach(cleanup);
 
@@ -9,7 +10,6 @@ const commit = (label: string | RegExp, value: string) => {
   fireEvent.change(input, { target: { value } });
   fireEvent.blur(input);
 };
-const region = (name: string) => screen.getByRole("region", { name });
 const metric = (label: string) =>
   within(region("Performance")).getByText(label).nextElementSibling!.textContent ?? "";
 
@@ -201,6 +201,7 @@ describe("DrawingBoard", () => {
     fireEvent.change(screen.getByLabelText("Starting design"), {
       target: { value: "torpedo_cruiser_1880" },
     });
+    openTab("Arrangement");
     fireEvent.click(screen.getByRole("button", { name: "Add component" }));
     const items = await screen.findAllByRole("menuitem");
     const later = items.filter((i) => /from \d{4}-\d{2}/.test(i.textContent ?? ""));
