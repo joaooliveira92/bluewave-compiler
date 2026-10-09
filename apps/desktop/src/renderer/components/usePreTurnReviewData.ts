@@ -1,16 +1,11 @@
-import { useEffect, useState } from "react";
-
 import type { StrategicPriority } from "@bluewave/campaign-engine";
 
-import type { BluewaveDesktopBridge } from "../../preload/index.js";
-import { useBridge } from "../lib/bridge-context.js";
+import { useBridgeQuery } from "../lib/use-bridge-query.js";
+import { useCampaignRevision } from "../shell/CampaignShellContext.js";
 import {
   activeConstructionProjects,
   expectedConstructionCompletions,
 } from "../screens/construction/construction-screen-state.js";
-
-/** The narrow transport the review needs; injectable so the dialog can be tested headlessly. */
-export type PreTurnReviewBridge = Pick<BluewaveDesktopBridge, "campaign">;
 
 export interface PreTurnReviewData {
   readonly priorities: readonly StrategicPriority[];
@@ -29,55 +24,47 @@ const EMPTY_PRE_TURN_REVIEW: PreTurnReviewData = {
 };
 
 /**
- * Loads the pre-turn review's three read-only projections while the dialog is
- * open. Owns the bridge access and the derived construction figures so the
- * dialog stays presentational; `bridge` falls back to the bridge port.
+ * Loads the pre-turn review's three read-only projections through the shared
+ * `useBridgeQuery` convention and folds them into the view's shape. The reads
+ * are gated on `open` — a closed dialog asks the bridge for nothing — and reload
+ * when the campaign revision changes.
  */
-export function usePreTurnReviewData(
-  sessionId: string,
-  open: boolean,
-  bridgeOption?: PreTurnReviewBridge,
-): PreTurnReviewData {
-  const contextBridge = useBridge();
-  const bridge = bridgeOption ?? contextBridge;
-  const [data, setData] = useState<PreTurnReviewData>(EMPTY_PRE_TURN_REVIEW);
+export function usePreTurnReviewData(sessionId: string, open: boolean): PreTurnReviewData {
+  const revision = useCampaignRevision();
+  const options = { enabled: open };
 
-  useEffect(() => {
-    if (!open || bridge === undefined) return;
-    let active = true;
-    setData((current) => ({ ...current, loading: true }));
+  const campaign = useBridgeQuery(
+    sessionId,
+    revision,
+    (bridge, id) => bridge.campaign.execute("inspectCampaign", id),
+    options,
+  );
+  const priorities = useBridgeQuery(
+    sessionId,
+    revision,
+    (bridge, id) => bridge.campaign.execute("inspectPriorities", id),
+    options,
+  );
+  const construction = useBridgeQuery(
+    sessionId,
+    revision,
+    (bridge, id) => bridge.campaign.execute("inspectConstructionScreen", id),
+    options,
+  );
 
-    void (async () => {
-      try {
-        const [campaignRes, prioritiesRes, constructionRes] = await Promise.all([
-          bridge.campaign.execute("inspectCampaign", sessionId),
-          bridge.campaign.execute("inspectPriorities", sessionId),
-          bridge.campaign.execute("inspectConstructionScreen", sessionId),
-        ]);
-        if (!active) return;
+  if (!open) return EMPTY_PRE_TURN_REVIEW;
 
-        const projects =
-          constructionRes.outcome === "success" ? constructionRes.value.projects : null;
-        setData({
-          researchSpend:
-            campaignRes.outcome === "success"
-              ? campaignRes.value.projection.economy.researchSpend
-              : null,
-          priorities: prioritiesRes.outcome === "success" ? prioritiesRes.value.priorities : [],
-          constructionCount: projects === null ? null : activeConstructionProjects(projects).length,
-          expectedCompletions: projects === null ? null : expectedConstructionCompletions(projects),
-          loading: false,
-        });
-      } catch {
-        if (!active) return;
-        setData((current) => ({ ...current, loading: false }));
-      }
-    })();
+  const projects = construction.status === "ready" ? construction.value.projects : null;
 
-    return () => {
-      active = false;
-    };
-  }, [open, sessionId, bridge]);
-
-  return data;
+  return {
+    priorities: priorities.status === "ready" ? priorities.value.priorities : [],
+    constructionCount: projects === null ? null : activeConstructionProjects(projects).length,
+    expectedCompletions: projects === null ? null : expectedConstructionCompletions(projects),
+    researchSpend:
+      campaign.status === "ready" ? campaign.value.projection.economy.researchSpend : null,
+    loading:
+      campaign.status === "loading" ||
+      priorities.status === "loading" ||
+      construction.status === "loading",
+  };
 }

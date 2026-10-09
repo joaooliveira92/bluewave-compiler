@@ -88,8 +88,10 @@ async function setupUi(recommendedPreset: AdmiralPresetValues | null = null) {
 function openSelectAndPick(labelText: string, optionName: string) {
   const trigger = screen.getByLabelText(labelText);
   fireEvent.click(trigger);
-  const selectRoot = trigger.parentElement as HTMLElement;
-  const option = within(selectRoot).getByRole("option", { name: optionName });
+  // The panel is portaled to <body>, so reach it through the trigger's aria-controls.
+  const listId = trigger.getAttribute("aria-controls");
+  const list = listId ? document.getElementById(listId) : null;
+  const option = within(list ?? document.body).getByRole("option", { name: optionName });
   fireEvent.click(option);
 }
 

@@ -10,6 +10,8 @@ export type BridgeQueryState<Value> =
   | { readonly status: "error"; readonly message: string };
 
 export interface UseBridgeQueryOptions {
+  /** Skips the read entirely while false; the state stays `loading`. Defaults to true. */
+  readonly enabled?: boolean;
   /** Shown when `window.bluewave` is unavailable; defaults to a generic line. */
   readonly bridgeUnavailableMessage?: string;
   /** Shown when the command throws a non-Error; defaults to a generic line. */
@@ -36,11 +38,13 @@ export function useBridgeQuery<Value>(
   const bridge = useBridge();
   const runRef = useRef(run);
   runRef.current = run;
+  const enabled = options.enabled ?? true;
   const unavailableMessage = options.bridgeUnavailableMessage ?? DEFAULT_UNAVAILABLE_MESSAGE;
   const transportFailureMessage =
     options.transportFailureMessage ?? DEFAULT_TRANSPORT_FAILURE_MESSAGE;
 
   useEffect(() => {
+    if (!enabled) return;
     if (bridge === undefined) {
       setState({ status: "error", message: unavailableMessage });
       return;
@@ -66,7 +70,7 @@ export function useBridgeQuery<Value>(
     return () => {
       active = false;
     };
-  }, [bridge, sessionId, revision, unavailableMessage, transportFailureMessage]);
+  }, [bridge, sessionId, revision, enabled, unavailableMessage, transportFailureMessage]);
 
   return state;
 }

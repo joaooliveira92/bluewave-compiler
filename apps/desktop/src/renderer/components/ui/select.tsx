@@ -6,6 +6,7 @@ import { motion, type Transition, useReducedMotion, type Variants } from "motion
 import {
   createContext,
   type ReactNode,
+  type RefObject,
   useCallback,
   useContext,
   useEffect,
@@ -15,8 +16,10 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { EASE_OUT } from "@/lib/ease";
 import { cn } from "@/lib/utils";
+import { FLOATING_LAYER } from "./menu-styles.js";
 
 const INSTANT_TRANSITION: Transition = { duration: 0 };
 
@@ -53,6 +56,10 @@ interface SelectContextValue {
   disabled: boolean;
   placement: Placement;
   setPlacement: (p: Placement) => void;
+  /** Node of the portaled panel, so the outside-pointer handler can ignore clicks inside it. */
+  floatingRef: RefObject<HTMLDivElement | null>;
+  /** The trigger button, so the panel can anchor to its viewport rect. */
+  triggerRef: RefObject<HTMLButtonElement | null>;
 }
 
 const SelectContext = createContext<SelectContextValue | null>(null);
@@ -83,6 +90,8 @@ export function Select({
   const reduce = useReducedMotion() ?? false;
   const baseId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const floatingRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [internal, setInternal] = useState(defaultValue);
   const [labels, setLabels] = useState<Map<string, string>>(new Map());
@@ -117,7 +126,10 @@ export function Select({
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     const onPointer = (e: PointerEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (floatingRef.current?.contains(target)) return;
+      setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("pointerdown", onPointer);
@@ -142,6 +154,8 @@ export function Select({
       disabled,
       placement,
       setPlacement,
+      floatingRef,
+      triggerRef,
     }),
     [current, open, select, register, unregister, labels, reduce, baseId, disabled, placement],
   );
@@ -175,6 +189,7 @@ export function SelectTrigger({ id, className, children }: SelectTriggerProps) {
   return (
     <motion.button
       type="button"
+      ref={ctx.triggerRef}
       id={id ?? ctx.triggerId}
       disabled={ctx.disabled}
       aria-haspopup="listbox"
@@ -240,6 +255,7 @@ export function SelectContent({ className, children }: SelectContentProps) {
   const ctx = useSelectContext("SelectContent");
   const innerRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
+  const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
   const open = ctx.open;
   const { setPlacement } = ctx;
 
@@ -253,18 +269,34 @@ export function SelectContent({ className, children }: SelectContentProps) {
     return () => observer.disconnect();
   });
 
-  // On open, flip upward when there isn't room below and there's more above.
+  // The panel renders in a portal at the end of <body> so it escapes any
+  // clipped/z-indexed ancestor (e.g. the overflow-hidden liquid-glass card or a
+  // scrolling screen), so it tracks the trigger's viewport rect itself.
   useLayoutEffect(() => {
+    const trigger = ctx.triggerRef.current;
+    if (!trigger) return;
+    const update = () => setTriggerRect(trigger.getBoundingClientRect());
+    update();
     if (!open) return;
-    const trigger = document.getElementById(ctx.triggerId);
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open, ctx.triggerRef]);
+
+  // On open (or as the trigger moves), flip upward when there isn't room below
+  // and there's more above.
+  useLayoutEffect(() => {
+    if (!open || !triggerRect) return;
     const node = innerRef.current;
-    if (!trigger || !node) return;
-    const rect = trigger.getBoundingClientRect();
+    if (!node) return;
     const h = node.offsetHeight;
-    const below = window.innerHeight - rect.bottom;
-    const above = rect.top;
+    const below = window.innerHeight - triggerRect.bottom;
+    const above = triggerRect.top;
     setPlacement(below < h + 16 && above > below ? "top" : "bottom");
-  }, [open, ctx.triggerId, setPlacement]);
+  }, [open, triggerRect, setPlacement]);
 
   // Specify EVERY corner + both margins each render. The near edge (facing the
   // trigger) animates flat->round and the gap opens on that side; the far edge
@@ -281,11 +313,14 @@ export function SelectContent({ className, children }: SelectContentProps) {
     ? { duration: 0.3, ease: EASE_OUT, delay: 0.14 }
     : { duration: 0.16, ease: EASE_OUT };
 
+  if (!triggerRect) return null;
+
   // Items stay mounted (open just animates the panel) so each item's label
   // registration persists — otherwise the trigger would fall back to the
   // placeholder the moment the panel closes.
-  return (
+  return createPortal(
     <motion.div
+      ref={ctx.floatingRef}
       id={ctx.listId}
       role="listbox"
       aria-labelledby={ctx.triggerId}
@@ -325,6 +360,11 @@ export function SelectContent({ className, children }: SelectContentProps) {
             }
       }
       style={{
+        position: "fixed",
+        left: triggerRect.left,
+        width: triggerRect.width,
+        // anchor to the near edge of the trigger; the animated margin opens the gap
+        ...(isTop ? { bottom: window.innerHeight - triggerRect.top } : { top: triggerRect.bottom }),
         transformOrigin: isTop ? "bottom" : "top",
         overflow: "hidden",
         pointerEvents: open ? "auto" : "none",
@@ -332,8 +372,8 @@ export function SelectContent({ className, children }: SelectContentProps) {
       // flush against the trigger, then separates into its own rounded pill;
       // sits above or below depending on available space
       className={cn(
-        "absolute left-0 right-0 z-20 rounded-xl border border-border bg-background shadow-lg",
-        isTop ? "bottom-full" : "top-full",
+        "rounded-xl border border-border bg-background shadow-lg",
+        FLOATING_LAYER,
         className,
       )}
     >
@@ -346,7 +386,8 @@ export function SelectContent({ className, children }: SelectContentProps) {
       >
         {children}
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }
 

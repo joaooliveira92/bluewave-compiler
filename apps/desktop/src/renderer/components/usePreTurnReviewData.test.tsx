@@ -1,13 +1,15 @@
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
-import type { PreTurnReviewBridge } from "./usePreTurnReviewData.js";
+import type { BluewaveDesktopBridge } from "../../preload/index.js";
+import { BridgeProvider } from "../lib/bridge-context.js";
 import { usePreTurnReviewData } from "./usePreTurnReviewData.js";
 
 afterEach(cleanup);
 
-function successfulBridge() {
-  const execute = vi.fn(async (command: string): Promise<unknown> => {
+function successfulExecute() {
+  return vi.fn(async (command: string): Promise<unknown> => {
     switch (command) {
       case "inspectCampaign":
         return {
@@ -39,14 +41,31 @@ function successfulBridge() {
         throw new Error(`unexpected command ${command}`);
     }
   });
-  return { bridge: { campaign: { execute } } as unknown as PreTurnReviewBridge, execute };
+}
+
+function renderReview(
+  open: boolean,
+  execute: ReturnType<typeof successfulExecute>,
+  sessionId = "ses_1",
+) {
+  const bridge = { campaign: { execute } } as unknown as BluewaveDesktopBridge;
+  const wrapper = ({ children }: { readonly children: ReactNode }) => (
+    <BridgeProvider bridge={bridge}>{children}</BridgeProvider>
+  );
+  return renderHook(
+    ({ isOpen }: { readonly isOpen: boolean }) => usePreTurnReviewData(sessionId, isOpen),
+    {
+      wrapper,
+      initialProps: { isOpen: open },
+    },
+  );
 }
 
 describe("usePreTurnReviewData", () => {
   it("loads the three projections and derives the construction figures", async () => {
-    const { bridge } = successfulBridge();
+    const execute = successfulExecute();
 
-    const { result } = renderHook(() => usePreTurnReviewData("ses_1", true, bridge));
+    const { result } = renderReview(true, execute);
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.researchSpend).toBe(1234);
@@ -56,23 +75,20 @@ describe("usePreTurnReviewData", () => {
   });
 
   it("does not touch the bridge while the dialog is closed", () => {
-    const { bridge, execute } = successfulBridge();
+    const execute = successfulExecute();
 
-    renderHook(() => usePreTurnReviewData("ses_1", false, bridge));
+    renderReview(false, execute);
 
     expect(execute).not.toHaveBeenCalled();
   });
 
   it("loads once the dialog opens", async () => {
-    const { bridge, execute } = successfulBridge();
+    const execute = successfulExecute();
 
-    const { result, rerender } = renderHook(
-      ({ open }: { open: boolean }) => usePreTurnReviewData("ses_1", open, bridge),
-      { initialProps: { open: false } },
-    );
+    const { result, rerender } = renderReview(false, execute);
     expect(execute).not.toHaveBeenCalled();
 
-    rerender({ open: true });
+    rerender({ isOpen: true });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(execute).toHaveBeenCalledTimes(3);
@@ -82,9 +98,11 @@ describe("usePreTurnReviewData", () => {
     const execute = vi.fn(
       async (): Promise<unknown> => ({ outcome: "rejected", reason: "x", diagnostics: [] }),
     );
-    const bridge = { campaign: { execute } } as unknown as PreTurnReviewBridge;
 
-    const { result } = renderHook(() => usePreTurnReviewData("ses_1", true, bridge));
+    const { result } = renderReview(
+      true,
+      execute as unknown as ReturnType<typeof successfulExecute>,
+    );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.researchSpend).toBeNull();
