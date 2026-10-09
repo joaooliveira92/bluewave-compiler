@@ -36,6 +36,34 @@ export function budgetChangedEvent(
   };
 }
 
+export function shipRebuiltEvent(
+  projectId: string,
+  nationId: string,
+  shipId: string,
+  fromDesignVersionId: string,
+  toDesignVersionId: string,
+  seq: SafeInt,
+  campaignMonth: string,
+): DomainEventEnvelope {
+  return {
+    eventId: `ShipRebuilt-${projectId}-${String(seq)}`,
+    version: CURRENT_VERSION,
+    aggregateType: "construction",
+    aggregateId: projectId,
+    eventType: "ShipRebuilt",
+    timestamp: `${campaignMonth}-01T00:00:00.000Z`,
+    body: {
+      kind: "ShipRebuilt",
+      projectId,
+      nationId,
+      shipId,
+      fromDesignVersionId,
+      toDesignVersionId,
+    },
+    sequenceNumber: seq,
+  };
+}
+
 export function constructionProgressedEvent(
   projectId: string,
   nationId: string,

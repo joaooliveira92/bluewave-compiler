@@ -1,7 +1,7 @@
 # 28: REBUILD / CONVERSION projects (what a past-redesign change becomes)
 
 **Type:** implementation (engine milestone)
-**Status:** in progress (28a, 28b, 28c done; 28d-e open, see ADR-0078)
+**Status:** in progress (28a-28d done; 28e and cancellation settlement open, see ADR-0078)
 **Blocked by:** none (29 resolved)
 **Frontier:** yes
 
@@ -49,3 +49,9 @@ Tests: `rebuild-projects.test.ts` (consistency cases, validation wiring, complet
 **28c done: `StartRebuild` works end to end in the engine.** Command: `{ type: "StartRebuild", nationId, shipId, projectId, newDesignVersionId, draft }` (`commands`: type, lifecycle result, payload validation: nation, ship is the nation's and operational (not under construction, not already unavailable) and not in a battle, ids, no existing design or project, the ship's design carries a source draft, draft shape and nation). `applyStartRebuild` (phase-engine) compiles the new draft authoritatively, refuses a draft that changes nothing, then runs `validateRebuild` with the dock check; a refusal is `REBUILD_REJECTED` naming each failed limit and changes nothing. A legal rebuild registers the new design version, marks the ship UNAVAILABLE (reason: the project), and starts a REBUILD project (PLANNED) whose packages are the new design's without the retained hull and the launch (`rebuildPackages`: dependencies on dropped packages removed, at least one unit of work), at the yard of the new design's plan; funding is exactly the new-construction rule of ADR-0077. The ship keeps its old design until completion (28d).
 Rebuild work and cost use no new numbers: they are the new design's packages minus the retained ones. Not modelled, recorded: removal of the old fittings, damage and defects, remaining service life, cancellation settlement (section 23, still open in this ticket).
 Tests: `rebuildPackages` (4), phase-engine integration through the real executor (6: legal rebuild state, unavailable ship, limits refusal changes nothing, no-op refused, no second rebuild, deterministic), `commands` StartRebuild validation (4). Next: 28d (completion: one new design version applied to the ship, a transition record, availability released) then 28e (bridge and Drawing Board entry), and cancellation settlement.
+
+### 2026-10-09 orchestrator (28d)
+
+**28d done: a rebuild completes into the new design.** When a REBUILD project's work is done, the construction phase marks it COMPLETED and the target ship atomically becomes the new design version: new design id and class, the new design's stats (shared derivation with new construction, `shipStatsFromDesign`) and full hit points (the rebuild repairs it), and it is released (availability removed); the old design version stays in the snapshot (section 22). The transition is a new `ShipRebuilt` domain event (`events` package: type, zod schema, exports) with project, nation, ship and both design ids. If the new design is missing the ship is still released unchanged (never stuck unavailable) and `REBUILD_TARGET_MISSING` is reported; no ship is ever spawned by a rebuild.
+Proof: through the real executor, a rebuild started with `StartRebuild` is funded month by month by the appropriation phase, stays unavailable on its old design while under way, completes, and the ship ends on the new design, available, with both design versions on record (`revise-project.test.ts` life cycle). Tests: events (ShipRebuilt, 2), rebuild-projects (completion: new stats, event, release, not-finished, missing design, deterministic), life cycle. events 27, phase-engine 24 files / 242.
+Open: 28e (desktop bridge and the Drawing Board "Rebuild this ship" entry with the validator's report) and cancellation with settlement (section 23).

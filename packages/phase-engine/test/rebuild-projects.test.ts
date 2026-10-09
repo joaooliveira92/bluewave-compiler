@@ -131,41 +131,151 @@ describe("closing validation of rebuild projects", () => {
   });
 });
 
-describe("a finished REBUILD does not become a new ship (ADR-0078)", () => {
-  it("leaves the fleet's ships alone when the project's work is complete", () => {
-    const n = nationWith(
+const designVersion = (id: string, over: Record<string, unknown> = {}) =>
+  ({
+    designVersionId: id,
+    designFamilyId: "fam",
+    className: "Rebuilt class",
+    nationId: "GBR",
+    hullType: "DD",
+    normalizedDisplacementKg: SafeInt(1_000_000),
+    normalizedSpeedUms: SafeInt(10 * 514_444),
+    normalizedArmorUm: SafeInt(50_000),
+    hitPoints: SafeInt(250),
+    mainGunsCaliber: SafeInt(152_000),
+    mainGunsCount: SafeInt(4),
+    machineryType: "steam",
+    crewComplement: SafeInt(10),
+    contentVersion: "t",
+    compiledHash: "h",
+    ...over,
+  }) as unknown as CampaignSnapshot["designs"] extends Map<string, infer D> ? D : never;
+
+const snapshotOfRebuild = (n: NationState, designs: [string, ReturnType<typeof designVersion>][]) =>
+  ({
+    version: "0.1.0",
+    turnNumber: SafeInt(1),
+    campaignId: "rebuild-done",
+    startYear: 1880,
+    startMonth: 1,
+    strategicWeather: [],
+    slots: [{ nationId: "GBR", type: "playable" as const }],
+    world: { areas: [], routes: [], ports: [] },
+    nations: new Map([["GBR", n]]),
+    wars: {
+      wars: [],
+      battles: [],
+      participantMemberships: [],
+      blockadeState: [],
+      battleManifests: [],
+    },
+    politics: { relations: [], shells: {} },
+    intelligence: { shells: {} },
+    designs: new Map(designs),
+    designFamilies: new Map(),
+    rulesetVersion: "0.1.0",
+    compatibilityVersion: "0.1.0",
+  }) as unknown as CampaignSnapshot;
+
+describe("a finished REBUILD completes into the new design (ADR-0078, DESIGN-23 section 22)", () => {
+  const finished = () =>
+    nationWith(
       [unavailable()],
-      [project({ completedWork: SafeInt(10), totalWork: SafeInt(10) })],
+      [
+        project({
+          designVersionId: "d_new",
+          completedWork: SafeInt(10),
+          totalWork: SafeInt(10),
+          status: "ACTIVE",
+        }),
+      ],
     );
-    const snapshot = {
-      version: "0.1.0",
-      turnNumber: SafeInt(1),
-      campaignId: "rebuild-guard",
-      startYear: 1880,
-      startMonth: 1,
-      strategicWeather: [],
-      slots: [{ nationId: "GBR", type: "playable" as const }],
-      world: { areas: [], routes: [], ports: [] },
-      nations: new Map([["GBR", n]]),
-      wars: {
-        wars: [],
-        battles: [],
-        participantMemberships: [],
-        blockadeState: [],
-        battleManifests: [],
-      },
-      politics: { relations: [], shells: {} },
-      intelligence: { shells: {} },
-      designs: new Map(),
-      designFamilies: new Map(),
-      rulesetVersion: "0.1.0",
-      compatibilityVersion: "0.1.0",
-    } as unknown as CampaignSnapshot;
-    const result = new MonthExecutor().execute(snapshot, [], "seed", new DiagnosticCollector());
-    const fleets = result.finalSnapshot.nations.get("GBR")!.fleets;
-    expect(fleets.flatMap((f) => f.ships).map((s) => s.id)).toEqual(["s1"]);
-    expect(result.finalSnapshot.nations.get("GBR")!.constructionProjects[0]!.status).not.toBe(
-      "COMPLETED",
+  const run = (snapshot: CampaignSnapshot) => {
+    const collector = new DiagnosticCollector();
+    const result = new MonthExecutor().execute(snapshot, [], "seed", collector);
+    return { result, collector, nation: result.finalSnapshot.nations.get("GBR")! };
+  };
+
+  it("makes the ship the new design with the new stats and full hit points, and releases it", () => {
+    const { nation, collector } = run(
+      snapshotOfRebuild(finished(), [
+        ["d_new", designVersion("d_new")],
+        ["d1", designVersion("d1")],
+      ]),
     );
+    expect(collector.errors).toEqual([]);
+    const ships = nation.fleets.flatMap((f) => f.ships);
+    expect(ships.map((s) => s.id)).toEqual(["s1"]); // no second ship
+    const s = ships[0]!;
+    expect(s).toMatchObject({
+      designVersionId: "d_new",
+      classId: "Rebuilt class",
+      hitPoints: 250,
+      maxHitPoints: 250,
+      speed: 10,
+    });
+    expect("availability" in s).toBe(false);
+    expect("availabilityProjectId" in s).toBe(false);
+    expect(nation.constructionProjects[0]!.status).toBe("COMPLETED");
+  });
+
+  it("keeps the old design version in the snapshot and records one ShipRebuilt transition", () => {
+    const { result } = run(
+      snapshotOfRebuild(finished(), [
+        ["d_new", designVersion("d_new")],
+        ["d1", designVersion("d1")],
+      ]),
+    );
+    expect(result.finalSnapshot.designs.has("d1")).toBe(true);
+    const events = result.eventLedger.all.filter((e) => e.eventType === "ShipRebuilt");
+    expect(events).toHaveLength(1);
+    expect(events[0]!.body).toEqual({
+      kind: "ShipRebuilt",
+      projectId: "proj-r",
+      nationId: "GBR",
+      shipId: "s1",
+      fromDesignVersionId: "d1",
+      toDesignVersionId: "d_new",
+    });
+  });
+
+  it("the released ship can sail again", () => {
+    const { nation } = run(
+      snapshotOfRebuild(finished(), [
+        ["d_new", designVersion("d_new")],
+        ["d1", designVersion("d1")],
+      ]),
+    );
+    expect(nation.fleets[0]!.ships[0]!.availability).toBeUndefined();
+  });
+
+  it("does nothing until the work is done: the ship stays unavailable and on its old design", () => {
+    const unfinished = nationWith(
+      [unavailable()],
+      [project({ designVersionId: "d_new", completedWork: SafeInt(4), totalWork: SafeInt(10) })],
+    );
+    const { nation } = run(snapshotOfRebuild(unfinished, [["d_new", designVersion("d_new")]]));
+    const s = nation.fleets[0]!.ships[0]!;
+    expect(s.availability).toBe("UNAVAILABLE");
+    expect(s.designVersionId).toBe("d1");
+    expect(nation.constructionProjects[0]!.status).toBe("ACTIVE");
+  });
+
+  it("reports a missing design, but never leaves the ship stuck unavailable, and spawns no ship", () => {
+    const { nation, collector, result } = run(snapshotOfRebuild(finished(), []));
+    expect(collector.errors.map((e) => e.code)).toContain("REBUILD_TARGET_MISSING");
+    const ships = nation.fleets.flatMap((f) => f.ships);
+    expect(ships.map((s) => s.id)).toEqual(["s1"]);
+    expect(ships[0]!.availability).toBeUndefined();
+    expect(ships[0]!.designVersionId).toBe("d1"); // unchanged
+    expect(result.eventLedger.all.some((e) => e.eventType === "ShipRebuilt")).toBe(false);
+  });
+
+  it("is deterministic", () => {
+    const a = run(snapshotOfRebuild(finished(), [["d_new", designVersion("d_new")]])).result
+      .finalSnapshot;
+    const b = run(snapshotOfRebuild(finished(), [["d_new", designVersion("d_new")]])).result
+      .finalSnapshot;
+    expect(JSON.stringify([...a.nations])).toBe(JSON.stringify([...b.nations]));
   });
 });

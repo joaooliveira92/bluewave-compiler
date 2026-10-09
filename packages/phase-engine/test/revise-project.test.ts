@@ -484,6 +484,62 @@ describe("StartRebuild through the month (ADR-0078)", () => {
     ).toHaveLength(1);
   });
 
+  it("runs the whole life cycle: funded month by month, it completes, the ship becomes the new design and is released", () => {
+    const { snapshot, shipId } = withBuiltShip();
+    const nation = snapshot.nations.get(ATTACKER_NATION)!;
+    // Plenty of money, so the yard's capacity (not the treasury) paces the rebuild.
+    const rich: CampaignSnapshot = {
+      ...snapshot,
+      nations: new Map([
+        ...snapshot.nations,
+        [
+          ATTACKER_NATION,
+          {
+            ...nation,
+            treasury: SafeInt(1_000_000),
+            baseResources: SafeInt(100_000_000),
+            isPlayable: true,
+          },
+        ],
+      ]),
+    };
+    let current = startRebuild(rich, shipId, machineryChange).snapshot;
+    expect(shipOf(current, shipId).availability).toBe("UNAVAILABLE");
+    const status: string[] = [];
+    for (let m = 0; m < 80; m++) {
+      const result = new MonthExecutor().execute(
+        { ...current, turnNumber: SafeInt(Number(current.turnNumber) + 1) },
+        [],
+        `life-${m}`,
+        new DiagnosticCollector(),
+        undefined,
+        { shipBuilding: content },
+      );
+      current = result.finalSnapshot;
+      const p = current.nations
+        .get(ATTACKER_NATION)!
+        .constructionProjects.find((x) => x.id === "con_rebuild")!;
+      status.push(p.status);
+      // While it is under way the ship stays unavailable on its old design.
+      if (p.status !== "COMPLETED") {
+        expect(shipOf(current, shipId).availability).toBe("UNAVAILABLE");
+        expect(shipOf(current, shipId).designVersionId).toBe("des_rev_base");
+      }
+      if (p.status === "COMPLETED") break;
+    }
+    expect(status.at(-1)).toBe("COMPLETED");
+    const ship = shipOf(current, shipId);
+    expect(ship.designVersionId).toBe("des_reb_2");
+    expect(ship.availability).toBeUndefined();
+    // No second ship appeared, and both design versions are still on record.
+    const ids = current.nations
+      .get(ATTACKER_NATION)!
+      .fleets.flatMap((f) => f.ships)
+      .map((s) => s.id);
+    expect(ids.filter((id) => id === shipId)).toHaveLength(1);
+    expect(current.designs.has("des_rev_base") && current.designs.has("des_reb_2")).toBe(true);
+  });
+
   it("is deterministic", () => {
     const { snapshot, shipId } = withBuiltShip();
     const a = startRebuild(snapshot, shipId, machineryChange).snapshot;
