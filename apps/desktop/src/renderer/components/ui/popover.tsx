@@ -2,6 +2,7 @@ import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import * as React from "react";
 
 import { cn } from "../../lib/utils.js";
+import { FLOATING_LAYER } from "./menu-styles.js";
 
 const Popover = PopoverPrimitive.Root;
 const PopoverTrigger = PopoverPrimitive.Trigger;
@@ -26,7 +27,12 @@ const PopoverContent = ({
   ...props
 }: PopoverContentProps) => (
   <PopoverPrimitive.Portal>
-    <PopoverPrimitive.Positioner align={align} side={side} sideOffset={sideOffset}>
+    <PopoverPrimitive.Positioner
+      className={FLOATING_LAYER}
+      align={align}
+      side={side}
+      sideOffset={sideOffset}
+    >
       <PopoverPrimitive.Popup
         ref={ref}
         className={cn(

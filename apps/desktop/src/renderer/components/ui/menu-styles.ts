@@ -8,3 +8,9 @@ export const MENU_INDICATOR = "absolute left-2 flex size-4 items-center justify-
 export const MENU_LABEL = "px-2 py-1.5 text-xs font-medium text-muted-foreground";
 export const MENU_SEPARATOR = "-mx-1 my-1 h-px bg-border";
 export const MENU_SHORTCUT = "ml-auto text-xs tracking-widest text-muted-foreground";
+
+/**
+ * Stacking for floating layers (popovers, tooltips, menus). They render in a portal at the end of <body>, so
+ * without their own z-index they paint under a modal dialog (fixed, z-50) that they were opened from.
+ */
+export const FLOATING_LAYER = "z-[60]";

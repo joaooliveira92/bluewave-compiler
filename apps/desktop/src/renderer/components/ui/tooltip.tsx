@@ -2,6 +2,7 @@ import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
 import * as React from "react";
 
 import { cn } from "../../lib/utils.js";
+import { FLOATING_LAYER } from "./menu-styles.js";
 
 const TooltipProvider = TooltipPrimitive.Provider;
 const Tooltip = TooltipPrimitive.Root;
@@ -23,7 +24,7 @@ const TooltipContent = ({
   ...props
 }: TooltipContentProps) => (
   <TooltipPrimitive.Portal>
-    <TooltipPrimitive.Positioner sideOffset={sideOffset} side={side}>
+    <TooltipPrimitive.Positioner className={FLOATING_LAYER} sideOffset={sideOffset} side={side}>
       <TooltipPrimitive.Popup
         ref={ref}
         className={cn(

@@ -2,6 +2,7 @@ import { PreviewCard as HoverCardPrimitive } from "@base-ui/react/preview-card";
 import * as React from "react";
 
 import { cn } from "../../lib/utils.js";
+import { FLOATING_LAYER } from "./menu-styles.js";
 
 const HoverCard = HoverCardPrimitive.Root;
 const HoverCardTrigger = HoverCardPrimitive.Trigger;
@@ -24,7 +25,12 @@ const HoverCardContent = ({
   ...props
 }: HoverCardContentProps) => (
   <HoverCardPrimitive.Portal>
-    <HoverCardPrimitive.Positioner align={align} side={side} sideOffset={sideOffset}>
+    <HoverCardPrimitive.Positioner
+      className={FLOATING_LAYER}
+      align={align}
+      side={side}
+      sideOffset={sideOffset}
+    >
       <HoverCardPrimitive.Popup
         ref={ref}
         className={cn(

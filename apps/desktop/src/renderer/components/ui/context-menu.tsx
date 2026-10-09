@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { cn } from "../../lib/utils.js";
 import {
+  FLOATING_LAYER,
   MENU_INDICATOR,
   MENU_INDICATOR_ITEM,
   MENU_ITEM,
@@ -27,7 +28,12 @@ type PopupProps = React.ComponentPropsWithoutRef<typeof Primitive.Popup> & {
 
 const ContextMenuContent = ({ className, align, side, sideOffset = 4, ...props }: PopupProps) => (
   <Primitive.Portal>
-    <Primitive.Positioner align={align} side={side} sideOffset={sideOffset}>
+    <Primitive.Positioner
+      className={FLOATING_LAYER}
+      align={align}
+      side={side}
+      sideOffset={sideOffset}
+    >
       <Primitive.Popup className={cn(MENU_POPUP, className)} {...props} />
     </Primitive.Positioner>
   </Primitive.Portal>
@@ -35,7 +41,7 @@ const ContextMenuContent = ({ className, align, side, sideOffset = 4, ...props }
 
 const ContextMenuSubContent = ({ className, ...props }: PopupProps) => (
   <Primitive.Portal>
-    <Primitive.Positioner sideOffset={2}>
+    <Primitive.Positioner className={FLOATING_LAYER} sideOffset={2}>
       <Primitive.Popup className={cn(MENU_POPUP, className)} {...props} />
     </Primitive.Positioner>
   </Primitive.Portal>
