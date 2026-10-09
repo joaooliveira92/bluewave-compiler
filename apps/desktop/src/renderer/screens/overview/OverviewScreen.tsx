@@ -3,11 +3,12 @@ import { Skeleton } from "../../components/ui/skeleton.js";
 import type { Screen } from "../../shell/campaign-screen-registry.js";
 import { DEBUG_MODE } from "../../shell/debug-flag.js";
 import {
+  OverviewLoadErrorState,
+  OverviewLoadingState,
   OverviewMonthReportPanel,
   OverviewNationsPanel,
   OverviewPrioritiesPanel,
-} from "./components/OverviewPanels.js";
-import { OverviewLoadErrorState, OverviewLoadingState } from "./components/OverviewStates.js";
+} from "./components/index.js";
 import { monthLabel } from "./month-report-format.js";
 import { useOverviewModel } from "./hooks/useOverviewModel.js";
 
