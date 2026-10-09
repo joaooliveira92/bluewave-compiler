@@ -8,7 +8,17 @@ import { bowStyleFor, planFrame, PLAN_H, PLAN_W, sternStyleFor } from "./geometr
 import { type DrawingFacts, planLabel } from "./describe.js";
 import { HullPlanLegend } from "./HullPlanLegend.js";
 import { legendEntries } from "./legend.js";
+import { IDLE_TOOL, PlanToolbar, type PlanTool } from "./PlanToolbar.js";
+import {
+  clientToPlan,
+  moveEdit,
+  nudgeEdit,
+  placeEdit,
+  planTarget,
+  type PlanEdit,
+} from "./placement-tools.js";
 import { ProfileView } from "./ProfileView.js";
+import type { Edit } from "../types.js";
 import {
   funnelPlacements,
   GunArcLayer,
@@ -32,12 +42,18 @@ export function HullPlanPanel({
   draft,
   content,
   view,
+  month,
+  edit,
 }: {
   readonly draft: DesignDraft;
   readonly content: DrawingBoardContent;
   readonly view: WorkshopView;
+  readonly month: string;
+  readonly edit: Edit;
 }) {
   const [showArcs, setShowArcs] = useState(true);
+  const [tool, setTool] = useState<PlanTool>(IDLE_TOOL);
+  const [notice, setNotice] = useState<string | null>(null);
   const form = content.hullForms.find((f) => f.id === draft.hull.hullFormId);
   const frame = planFrame(
     draft.hull,
@@ -49,6 +65,31 @@ export function HullPlanPanel({
     },
   );
   const zones = form?.zones ?? [];
+  const defOf = (id: string) => content.components.find((c) => c.id === id);
+  const available = content.components.filter((c) => c.introduction.fromMonth <= month);
+  const selected = draft.placements.find((x) => x.instanceId === tool.instanceId);
+  const run = (r: PlanEdit, done: string) => {
+    if (r.ok) {
+      edit(r.edit);
+      setNotice(done);
+    } else setNotice(r.reason);
+  };
+  const onPlanClick = (svgX: number, svgY: number) => {
+    const target = planTarget(frame, zones, svgX, svgY);
+    const where = `${target.stationPermille}‰${target.side === "CENTRE" ? "" : target.side === "PORT" ? ", port" : ", starboard"}`;
+    if (tool.mode === "place") {
+      const def = defOf(tool.componentId);
+      if (!def) setNotice("Choose a component to place first.");
+      else run(placeEdit(def, target, draft), `Placed ${def.displayName} at ${where}.`);
+    } else if (tool.mode === "move") {
+      if (!selected) setNotice("Choose a fitting to move first.");
+      else
+        run(
+          moveEdit(selected, defOf(selected.componentId), target),
+          `Moved ${selected.instanceId} to ${where}.`,
+        );
+    }
+  };
   const mounts = view.compiled.weapons?.mounts ?? [];
   const superstructure = zones.find((z) => z.id === "SUPERSTRUCTURE");
   const placedFunnels = funnelPlacements(draft, content);
@@ -67,6 +108,32 @@ export function HullPlanPanel({
   return (
     <Panel title="Hull plan">
       <TooltipProvider>
+        <PlanToolbar
+          tool={tool}
+          onTool={(next) => {
+            setTool(next);
+            setNotice(null);
+          }}
+          draft={draft}
+          available={available}
+          defOf={defOf}
+          notice={notice}
+          onNudge={(delta) => {
+            if (selected)
+              run(
+                nudgeEdit(selected, defOf(selected.componentId), zones, delta),
+                `Moved ${selected.instanceId} ${Math.abs(delta)}‰ ${delta < 0 ? "toward the bow" : "toward the stern"}.`,
+              );
+          }}
+          onSide={(side) => {
+            if (selected) {
+              edit({ kind: "set_side", instanceId: selected.instanceId, side });
+              setNotice(
+                `Set ${selected.instanceId} to ${side === "CENTRE" ? "the centreline" : side === "PORT" ? "port" : "starboard"}.`,
+              );
+            }
+          }}
+        />
         <div className="flex items-center gap-2 text-sm">
           <Checkbox
             id="show-gun-arcs"
@@ -88,7 +155,37 @@ export function HullPlanPanel({
             <HullZoneLayer frame={frame} zones={zones} />
             <HullTopsideLayer frame={frame} draft={draft} content={content} zones={zones} />
             {showArcs && <GunArcLayer frame={frame} draft={draft} mounts={mounts} />}
-            <HullFittingLayer frame={frame} draft={draft} content={content} />
+            <HullFittingLayer
+              frame={frame}
+              draft={draft}
+              content={content}
+              selectedId={tool.mode === "move" ? tool.instanceId : undefined}
+            />
+            {tool.mode !== "off" && (
+              <rect
+                x={0}
+                y={0}
+                width={PLAN_W}
+                height={PLAN_H}
+                fill="transparent"
+                className="cursor-crosshair"
+                aria-hidden="true"
+                data-testid="plan-click-layer"
+                onClick={(e) => {
+                  const point = clientToPlan(
+                    e.currentTarget.ownerSVGElement?.getBoundingClientRect() ?? {
+                      left: 0,
+                      top: 0,
+                      width: 0,
+                      height: 0,
+                    },
+                    e.clientX,
+                    e.clientY,
+                  );
+                  if (point) onPlanClick(point.x, point.y);
+                }}
+              />
+            )}
           </svg>
         </div>
         <div className="space-y-1">

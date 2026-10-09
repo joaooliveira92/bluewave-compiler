@@ -153,7 +153,13 @@ export function DrawingBoard({
         </TabsList>
 
         <TabsContent value="hull" keepMounted className={TAB_GRID}>
-          <HullPlanPanel draft={draft} content={content} view={view} />
+          <HullPlanPanel
+            draft={draft}
+            content={content}
+            view={view}
+            month={state.month}
+            edit={actions.edit}
+          />
           <div className="space-y-4">
             <BriefPanel draft={draft} view={view} edit={actions.edit} />
             <HullPanel draft={draft} content={content} edit={actions.edit} />

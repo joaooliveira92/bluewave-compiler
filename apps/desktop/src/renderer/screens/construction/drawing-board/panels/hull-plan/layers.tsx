@@ -170,10 +170,13 @@ export function HullFittingLayer({
   frame,
   draft,
   content,
+  selectedId,
 }: {
   readonly frame: PlanFrame;
   readonly draft: DesignDraft;
   readonly content: DrawingBoardContent;
+  /** Fitting to ring (the one being moved from the plan tools). */
+  readonly selectedId?: string;
 }) {
   const defs = new Map(content.components.map((c) => [c.id, c]));
   return (
@@ -181,14 +184,33 @@ export function HullFittingLayer({
       {draft.placements.map((p, i) => {
         const { x, y } = fittingPoint(frame, p.stationPermille, p.side, i);
         return (
-          <Tooltip key={p.instanceId}>
-            <TooltipTrigger
-              render={
-                <circle cx={x} cy={y} r={4} className="fill-primary" data-fitting={p.instanceId} />
-              }
-            />
-            <TooltipContent>{`${defs.get(p.componentId)?.displayName ?? p.componentId} (${p.instanceId}) @ ${p.stationPermille}‰`}</TooltipContent>
-          </Tooltip>
+          <g key={p.instanceId}>
+            {p.instanceId === selectedId && (
+              <circle
+                cx={x}
+                cy={y}
+                r={8}
+                className="fill-none stroke-primary"
+                strokeWidth={STROKE.structure}
+                {...NON_SCALING}
+                data-testid="plan-selected-ring"
+              />
+            )}
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={4}
+                    className="fill-primary"
+                    data-fitting={p.instanceId}
+                  />
+                }
+              />
+              <TooltipContent>{`${defs.get(p.componentId)?.displayName ?? p.componentId} (${p.instanceId}) @ ${p.stationPermille}‰`}</TooltipContent>
+            </Tooltip>
+          </g>
         );
       })}
     </>
