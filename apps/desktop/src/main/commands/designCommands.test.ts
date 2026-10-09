@@ -21,6 +21,26 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../
 const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
 
 /**
+ * Commits months until `designVersionId`'s study completes and the design joins the catalog (ADR-0085), so the wiring
+ * tests below can treat it as approved. The submission month already paid the first month of work; the production pack's
+ * study is four months of work, so this is three more commits.
+ */
+async function advanceUntilApproved(sessionId: string, designVersionId: string): Promise<void> {
+  for (let i = 0; i < 8; i++) {
+    const record = getCampaignSession(sessionId);
+    if (!record) throw new Error(`session ${sessionId} vanished`);
+    if (record.state.snapshot.designs.has(designVersionId)) return;
+    const committed = await commitMonth({
+      sessionId,
+      expectedRevision: Number(record.state.snapshot.turnNumber),
+      transportRequestId: `commit-${sessionId}-study-${i}`,
+    });
+    if (committed.outcome !== "success") throw new Error("study commit failed");
+  }
+  throw new Error(`design ${designVersionId} was not approved within 8 months`);
+}
+
+/**
  * An 1880-era torpedo cruiser (class CL, about 2,200 t): compound plant, machine guns and four above-water 14-inch tubes.
  * In January 1880 only machine guns and torpedoes exist, and DESIGN-22 gives no destroyer class below 19 knots.
  */
@@ -164,20 +184,20 @@ describe("submitDesignCommand (ADR-0066)", () => {
       ...over,
     });
 
-  it("queues a valid design, and committing the month adds it to the snapshot", async () => {
+  it("queues a valid design as a study, and the design joins the catalog when the study completes", async () => {
     const queued = await submit();
     expect(queued.outcome).toBe("success");
     if (queued.outcome !== "success") return;
-    const { designVersionId } = queued.value as { designVersionId: string };
+    const { designVersionId, study } = queued.value as {
+      designVersionId: string;
+      study?: { months: number; derived: boolean };
+    };
     expect(designVersionId).toMatch(/^des_uk_test_cruiser_t\d+$/);
+    // The production pack has study rules (ADR-0085): a new class is four months of work, not approved same-month.
+    expect(study).toMatchObject({ months: 4, derived: false });
     expect(getCampaignSession("ds")!.state.snapshot.designs.has(designVersionId)).toBe(false); // not before the month
 
-    const committed = await commitMonth({
-      sessionId: "ds",
-      expectedRevision: 0,
-      transportRequestId: "commit-ds",
-    });
-    expect(committed.outcome).toBe("success");
+    await advanceUntilApproved("ds", designVersionId);
     const design = getCampaignSession("ds")!.state.snapshot.designs.get(designVersionId)!;
     expect(design).toBeDefined();
     expect(design.nationId).toBe("uk");
@@ -259,12 +279,7 @@ describe("reviseProjectCommand and loadProjectDraft (ADR-0070)", () => {
     });
     if (queued.outcome !== "success") throw new Error("submit failed");
     const designVersionId = (queued.value as { designVersionId: string }).designVersionId;
-    const committed = await commitMonth({
-      sessionId: "rv",
-      expectedRevision: revision(),
-      transportRequestId: "commit-rv",
-    });
-    if (committed.outcome !== "success") throw new Error("commit failed");
+    await advanceUntilApproved("rv", designVersionId);
     const record = getCampaignSession("rv")!;
     const snapshot = record.state.snapshot;
     const nation = snapshot.nations.get("uk")!;
@@ -280,7 +295,7 @@ describe("reviseProjectCommand and loadProjectDraft (ADR-0070)", () => {
       completedWork: SafeInt(done),
       paidWork: SafeInt(done),
       status: "ACTIVE",
-      startedAt: "1880-02",
+      startedAt: `${record.month.year}-${String(record.month.month).padStart(2, "0")}`,
     } as unknown as (typeof nation.constructionProjects)[number];
     Object.assign(record.state, {
       snapshot: {
@@ -435,12 +450,7 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
     });
     if (queued.outcome !== "success") throw new Error("submit failed");
     const designVersionId = (queued.value as { designVersionId: string }).designVersionId;
-    const committed = await commitMonth({
-      sessionId: "rb",
-      expectedRevision: revision(),
-      transportRequestId: "commit-rb",
-    });
-    if (committed.outcome !== "success") throw new Error("commit failed");
+    await advanceUntilApproved("rb", designVersionId);
     const record = getCampaignSession("rb")!;
     const snapshot = record.state.snapshot;
     const nation = snapshot.nations.get("uk")!;

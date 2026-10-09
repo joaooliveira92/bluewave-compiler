@@ -380,7 +380,7 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     expect(replay.diagnostics.join(" ")).toMatch(/does not match its hash/);
   });
 
-  it("a design queued before the app closed is still queued after reopening, and the month builds it", async () => {
+  it("a design queued before the app closed is still queued after reopening, and its study approves it", async () => {
     const saveDir = resolve(saveRoot, "save-queue");
     const sessionId = await compileAndSave(saveDir);
     const queued = await dispatchCampaignCommand("submitDesignCommand", {
@@ -396,9 +396,16 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
 
     const load = await loadCampaign(continuityDeps(saveDir));
     if (load.outcome !== "success") throw new Error("load failed");
+    const designVersionId = (queued.value as { designVersionId: string }).designVersionId;
     await advanceOneMonth(load.value.sessionId, 0);
+    // The queued command was applied: it opened a design study (ADR-0085). Advance until the study approves it.
+    for (let i = 0; i < 8; i++) {
+      const current = getCampaignSession(load.value.sessionId)!;
+      if (current.state.snapshot.designs.has(designVersionId)) break;
+      await advanceOneMonth(load.value.sessionId, Number(current.state.snapshot.turnNumber));
+    }
     const design = getCampaignSession(load.value.sessionId)!.state.snapshot.designs.get(
-      (queued.value as { designVersionId: string }).designVersionId,
+      designVersionId,
     );
     expect(design?.className).toBe("Survives Restart");
     expect(existsSync(join(saveDir, "pending-commands.json"))).toBe(false);
