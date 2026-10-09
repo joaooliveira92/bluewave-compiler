@@ -5,6 +5,10 @@ import {
   draftHighCount,
   draftIsSubmittable,
   draftToPriorities,
+  seedDraft,
+  setDraftWeight,
+} from "./research-field-priorities.js";
+import {
   initialResearchScreenState,
   researchBeginLoading,
   researchBeginSubmit,
@@ -13,8 +17,6 @@ import {
   researchSubmitRejected,
   researchSubmitSuccess,
   researchTransportFailure,
-  seedDraft,
-  setDraftWeight,
 } from "./research-screen-state.js";
 
 function fixtureProjection(

@@ -3,7 +3,7 @@ import { FlaskConical } from "lucide-react";
 import { Button } from "../../../components/ui/button.js";
 import { Toggle } from "../../../components/ui/toggle.js";
 import { GlassSectionCard } from "../../../components/shared/GlassSectionCard.js";
-import { WEIGHT_OPTIONS } from "../research-screen-state.js";
+import { WEIGHT_OPTIONS } from "../research-field-priorities.js";
 import type { ResearchFieldRow } from "../research-view-model.js";
 
 export interface FieldPrioritiesEditorProps {

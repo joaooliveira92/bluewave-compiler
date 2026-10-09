@@ -4,11 +4,8 @@ import {
 } from "@bluewave/campaign-engine";
 import { describe, expect, it } from "vite-plus/test";
 import type { ResearchScreenProjection } from "../../../shared/research-contract.js";
-import {
-  initialResearchScreenState,
-  researchLoadSuccess,
-  setDraftWeight,
-} from "./research-screen-state.js";
+import { setDraftWeight } from "./research-field-priorities.js";
+import { initialResearchScreenState, researchLoadSuccess } from "./research-screen-state.js";
 import { buildResearchViewModel } from "./research-view-model.js";
 
 function fixtureProjection(

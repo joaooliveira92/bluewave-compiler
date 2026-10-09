@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useBridge } from "../../../lib/bridge-context.js";
 
 import type { ResearchPriorityOutcome } from "../../../../shared/research-contract.js";
-import type { BridgeResult } from "../../../../shared/bridge-contract.js";
-import { createTransportRequestId } from "../../../lib/command-screen-workflow.js";
-import type { ResearchScreenState } from "../research-screen-state.js";
+import {
+  createTransportRequestId,
+  foldCommandResult,
+} from "../../../lib/command-screen-workflow.js";
 import {
   draftIsSubmittable,
   draftToPriorities,
+  setDraftWeight,
+} from "../research-field-priorities.js";
+import type { ResearchScreenState } from "../research-screen-state.js";
+import {
   researchBeginLoading,
   researchBeginSubmit,
   researchLoadFailure,
@@ -14,7 +20,6 @@ import {
   researchSubmitRejected,
   researchSubmitSuccess,
   researchTransportFailure,
-  setDraftWeight,
 } from "../research-screen-state.js";
 
 export interface UseResearchScreenReturn {
@@ -27,7 +32,7 @@ export interface UseResearchScreenReturn {
 
 export function useResearchScreen(sessionId: string): UseResearchScreenReturn {
   const [state, setState] = useState<ResearchScreenState>({ kind: "idle", revision: 0 });
-  const bridge = window.bluewave;
+  const bridge = useBridge();
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -104,7 +109,13 @@ export function useResearchScreen(sessionId: string): UseResearchScreenReturn {
         fieldPriorities: draftToPriorities(current.draft),
       })
       .then((result) => {
-        setState((prev) => applySubmitResult(prev, result));
+        setState(
+          foldCommandResult<ResearchScreenState, ResearchPriorityOutcome>(result, {
+            success: researchSubmitSuccess,
+            rejected: researchSubmitRejected,
+            transportFailure: researchTransportFailure,
+          }),
+        );
       })
       .catch((error: unknown) => {
         setState((prev) =>
@@ -119,19 +130,4 @@ export function useResearchScreen(sessionId: string): UseResearchScreenReturn {
   const canSubmit = state.kind === "loaded" && draftIsSubmittable(state.draft);
 
   return { state, setFieldWeight, submit, reload, canSubmit };
-}
-
-function applySubmitResult(
-  state: ResearchScreenState,
-  result: BridgeResult<ResearchPriorityOutcome>,
-): ResearchScreenState {
-  if (result.outcome === "success") return researchSubmitSuccess(state, result.value);
-  if (result.outcome === "rejected") {
-    return researchSubmitRejected(state, {
-      reason: result.reason,
-      diagnostics: result.diagnostics,
-      currentRevision: result.currentRevision,
-    });
-  }
-  return researchTransportFailure(state, `${result.reason}: ${result.diagnostics.join("; ")}`);
 }

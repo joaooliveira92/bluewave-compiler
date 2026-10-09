@@ -4,12 +4,9 @@ import {
   RESEARCH_FIELD_PRIORITY_WEIGHTS,
 } from "@bluewave/campaign-engine";
 import { humanizeId } from "../../lib/humanize-id.js";
-import {
-  deriveProjectedResearchAllocations,
-  draftHighCount,
-  isDraftDirty,
-  type ResearchScreenActiveData,
-} from "./research-screen-state.js";
+import { deriveProjectedResearchAllocations } from "./research-allocation.js";
+import { draftHighCount, isDraftDirty } from "./research-field-priorities.js";
+import type { ResearchScreenActiveData } from "./research-screen-state.js";
 
 export interface ResearchFieldRow {
   readonly fieldId: string;
