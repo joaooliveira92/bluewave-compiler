@@ -1,23 +1,17 @@
-import { AlertCircle, FlaskConical } from "lucide-react";
-import { PageHeader } from "../../../components/shared/PageHeader.js";
+import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "../../../components/ui/alert.js";
 import { Button } from "../../../components/ui/button.js";
 import { Skeleton } from "../../../components/ui/skeleton.js";
+import { ResearchPageShell } from "./ResearchPageShell.js";
 
-export function ResearchLoadErrorState({
-  message,
-  onRetry,
-}: {
+export interface ResearchLoadErrorStateProps {
   readonly message: string;
   readonly onRetry: () => void;
-}) {
+}
+
+export function ResearchLoadErrorState({ message, onRetry }: ResearchLoadErrorStateProps) {
   return (
-    <div data-guided-target="research" className="space-y-6">
-      <PageHeader
-        icon={FlaskConical}
-        title="Research & Technology"
-        description="Direct the monthly research budget across fields."
-      />
+    <ResearchPageShell description="Direct the monthly research budget across fields.">
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Research screen failed to load</AlertTitle>
@@ -28,23 +22,18 @@ export function ResearchLoadErrorState({
           </Button>
         </AlertDescription>
       </Alert>
-    </div>
+    </ResearchPageShell>
   );
 }
 
 export function ResearchLoadingState() {
   return (
-    <div data-guided-target="research" className="space-y-6">
-      <PageHeader
-        icon={FlaskConical}
-        title="Research & Technology"
-        description="The monthly research budget across fields."
-      />
+    <ResearchPageShell description="The monthly research budget across fields.">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {[0, 1, 2].map((idx) => (
           <Skeleton key={idx} className="h-28" />
         ))}
       </div>
-    </div>
+    </ResearchPageShell>
   );
 }

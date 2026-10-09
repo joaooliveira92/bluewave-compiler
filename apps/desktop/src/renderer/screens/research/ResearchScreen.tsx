@@ -1,5 +1,3 @@
-import { FlaskConical } from "lucide-react";
-import { PageHeader } from "../../components/shared/PageHeader.js";
 import { debugRevisionActions } from "../../components/shared/debugRevisionActions.js";
 import {
   FieldPrioritiesEditor,
@@ -7,6 +5,7 @@ import {
   ResearchLoadErrorState,
   ResearchLoadingState,
   ResearchNotice,
+  ResearchPageShell,
   ResearchSummarySections,
 } from "./components/index.js";
 import { useResearchScreen } from "./hooks/useResearchScreen.js";
@@ -37,14 +36,10 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
   const vm = buildResearchViewModel(state);
 
   return (
-    <div data-guided-target="research" className="space-y-6">
-      <PageHeader
-        icon={FlaskConical}
-        title="Research & Technology"
-        description="Set field priorities; the engine applies them on the next turn advance."
-        actions={debugRevisionActions(state.month, state.revision)}
-      />
-
+    <ResearchPageShell
+      description="Set field priorities; the engine applies them on the next turn advance."
+      actions={debugRevisionActions(state.month, state.revision)}
+    >
       {state.notice !== null && (
         <ResearchNotice submitted={state.kind === "submitted"} notice={state.notice} />
       )}
@@ -67,6 +62,6 @@ export function ResearchScreen({ sessionId }: { readonly sessionId: string }) {
       />
 
       <InProgressTechnologiesCard technologies={vm.inProgressTechnologies} />
-    </div>
+    </ResearchPageShell>
   );
 }

@@ -1,10 +1,10 @@
 import { MAX_HIGH_PRIORITY_FIELDS } from "@bluewave/campaign-engine";
 import { FlaskConical } from "lucide-react";
 import { Button } from "../../../components/ui/button.js";
-import { Toggle } from "../../../components/ui/toggle.js";
 import { GlassSectionCard } from "../../../components/shared/GlassSectionCard.js";
-import { WEIGHT_OPTIONS } from "../research-field-priorities.js";
+import type { FieldWeightOption } from "../research-field-priorities.js";
 import type { ResearchFieldRow } from "../research-view-model.js";
+import { FieldPriorityRow } from "./FieldPriorityRow.js";
 
 export interface FieldPrioritiesEditorProps {
   readonly fields: readonly ResearchFieldRow[];
@@ -13,7 +13,7 @@ export interface FieldPrioritiesEditorProps {
   readonly dirty: boolean;
   readonly busy: boolean;
   readonly canSubmit: boolean;
-  readonly onSetFieldWeight: (fieldId: string, weight: 1 | 2 | 4) => void;
+  readonly onSetFieldWeight: (fieldId: string, weight: FieldWeightOption) => void;
   readonly onSubmit: () => void;
 }
 
@@ -27,6 +27,8 @@ export function FieldPrioritiesEditor({
   onSetFieldWeight,
   onSubmit,
 }: FieldPrioritiesEditorProps) {
+  const highCapReached = highCount >= MAX_HIGH_PRIORITY_FIELDS;
+
   return (
     <GlassSectionCard
       icon={<FlaskConical className="h-4 w-4 text-muted-foreground" />}
@@ -39,44 +41,15 @@ export function FieldPrioritiesEditor({
         </p>
       )}
       <div className="space-y-2.5">
-        {fields.map((field) => {
-          const wouldExceedHighCap = !field.isHigh && highCount >= MAX_HIGH_PRIORITY_FIELDS;
-          return (
-            <div
-              key={field.fieldId}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
-            >
-              <div className="flex flex-col gap-0.5">
-                <span className="text-sm">{field.label}</span>
-                <span className="text-xs text-muted-foreground">
-                  ~{field.projectedPoints.toLocaleString()} pts next month
-                </span>
-              </div>
-              <div className="flex items-center gap-1" role="group" aria-label={field.label}>
-                {WEIGHT_OPTIONS.map((option) => {
-                  const exceedsHighCap = option.weight === 4 && wouldExceedHighCap;
-                  return (
-                    <Toggle
-                      key={option.label}
-                      pressed={field.weight === option.weight}
-                      onPressedChange={() => onSetFieldWeight(field.fieldId, option.weight)}
-                      disabled={busy || exceedsHighCap}
-                      size="sm"
-                      aria-label={`${field.label} ${option.label}`}
-                      title={
-                        exceedsHighCap
-                          ? `At most ${MAX_HIGH_PRIORITY_FIELDS} fields may be High — lower another High field first`
-                          : undefined
-                      }
-                    >
-                      {option.label}
-                    </Toggle>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
+        {fields.map((field) => (
+          <FieldPriorityRow
+            key={field.fieldId}
+            field={field}
+            highCapReached={highCapReached}
+            busy={busy}
+            onSetWeight={(weight) => onSetFieldWeight(field.fieldId, weight)}
+          />
+        ))}
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">

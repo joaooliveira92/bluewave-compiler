@@ -3,11 +3,11 @@ import { Badge } from "../../../components/ui/badge.js";
 import { GlassSectionCard } from "../../../components/shared/GlassSectionCard.js";
 import type { ResearchProgressRow } from "../research-view-model.js";
 
-export function InProgressTechnologiesCard({
-  technologies,
-}: {
+export interface InProgressTechnologiesCardProps {
   readonly technologies: readonly ResearchProgressRow[];
-}) {
+}
+
+export function InProgressTechnologiesCard({ technologies }: InProgressTechnologiesCardProps) {
   return (
     <GlassSectionCard
       icon={<Beaker className="h-4 w-4 text-muted-foreground" />}
