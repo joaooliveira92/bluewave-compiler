@@ -374,7 +374,17 @@ Validation run: desktop `pnpm test` 1345 passed / 14 failed (all 14 pre-existing
 in `src/main/commands/{design,continuity}Commands`, unrelated in-flight design
 work); `pnpm typecheck` and `pnpm lint` clean; campaign-engine 102 passed.
 
-**Outstanding:** the debug `pnpm snap:debug` screen capture (AC-10 / DoD) is not
-yet attached — it requires a running debug campaign with a UK–Germany war to
-generate an engagement. The label behaviour is proven by the render tests above;
-the capture remains the one open DoD checkbox.
+**Outstanding:** the debug `pnpm snap:debug` screen capture (AC-10 / DoD) is
+**blocked by a pre-existing, explicitly-deferred bug** discovered while
+attempting it: `handleGenerateBattle` hardcodes `warId: "war_uk_germany"`, but
+the engine builds war ids as `war_<declarer>_<target>_<month>`, so the live
+command returns `WAR_NOT_FOUND` (verified: *"No war war_uk_germany in this
+campaign.; Known wars: war_uk_germany_1880-01"*). The Battle Arena therefore
+cannot generate an engagement through the UI at all — which is why the
+hardcoded labels were never seen live. Fixing it is the follow-up this spec's
+Further Notes already listed ("make the sandbox war selection generic instead of
+a fixed war id"), and is out of scope here. The label behaviour is proven by the
+render tests; the capture remains the one open DoD checkbox, gated on that fix.
+
+Gate pieces run: `pnpm preflight` clean; `pnpm test:cross-process`
+byte-identical (`success:true`) — no determinism/golden change (AC-8).
