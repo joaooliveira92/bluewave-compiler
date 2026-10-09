@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vite-plus/test";
+import { draft } from "./fixtures/gunboat.js";
 import {
   compileArmour,
   armourMaterialOptions,
@@ -342,21 +343,19 @@ describe("allOrNothingRegions", () => {
 });
 
 describe("set_armour_regions edit", () => {
-  const draftLike = {
-    armour: { regions: [belt()], citadelLengthMm: 1, torpedoWarheadKg: 0, bunkerProtectionBp: 0 },
-  } as never;
   it("replaces every region at once, keeping order, without mutating", () => {
-    const next = applyEdit(draftLike, {
+    const before = JSON.stringify(draft);
+    const next = applyEdit(draft, {
       kind: "set_armour_regions",
       regions: [belt({ region: "DECK_MAIN" }), belt({ region: "BARBETTE" })],
     });
     expect(next.armour.regions.map((x) => x.region)).toEqual(["DECK_MAIN", "BARBETTE"]);
-    expect(next.armour.citadelLengthMm).toBe(1);
-    expect(draftLike.armour.regions).toHaveLength(1);
+    expect(next.armour.citadelLengthMm).toBe(draft.armour.citadelLengthMm);
+    expect(JSON.stringify(draft)).toBe(before);
   });
   it("rejects a region listed twice", () => {
     expect(() =>
-      applyEdit(draftLike, { kind: "set_armour_regions", regions: [belt(), belt()] }),
+      applyEdit(draft, { kind: "set_armour_regions", regions: [belt(), belt()] }),
     ).toThrow(EditError);
   });
   it("is an armour change for revisions", () => {
