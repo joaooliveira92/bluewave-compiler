@@ -149,7 +149,7 @@ export function DrawingBoard({
           </div>
         </TabsContent>
 
-        <TabsContent value="arrangement" keepMounted className={TAB_GRID}>
+        <TabsContent value="arrangement" keepMounted className="space-y-4">
           <PlacementsPanel
             draft={draft}
             content={content}
@@ -157,7 +157,7 @@ export function DrawingBoard({
             view={view}
             edit={actions.edit}
           />
-          <div className="space-y-4">
+          <div className={TAB_GRID}>
             <ArmourPanel draft={draft} edit={actions.edit} />
             <TopsidePanel view={view} />
           </div>

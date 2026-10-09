@@ -61,7 +61,7 @@ export function SubmitPanel({
     <Panel title="Submit for construction">
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
-          <label htmlFor="class-name" className="text-xs text-muted-foreground">
+          <label htmlFor="class-name" className="block text-xs text-muted-foreground">
             Class name
           </label>
           <input

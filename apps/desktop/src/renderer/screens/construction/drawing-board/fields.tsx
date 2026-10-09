@@ -19,8 +19,11 @@ export function NumberField({
   unit,
   onCommit,
   className,
+  shortLabel,
 }: {
   readonly label: string;
+  /** Compact text shown above the input; the full `label` stays its accessible name (for repeated table rows). */
+  readonly shortLabel?: string;
   readonly value: number;
   readonly scale?: number;
   readonly decimals?: number;
@@ -41,13 +44,14 @@ export function NumberField({
   };
   return (
     <div className={cn("space-y-1", className)}>
-      <label htmlFor={id} className="text-xs text-muted-foreground">
-        {label}
+      <label htmlFor={id} className="block text-xs text-muted-foreground">
+        {shortLabel ?? label}
         {unit ? ` (${unit})` : ""}
       </label>
       <input
         key={value}
         id={id}
+        aria-label={shortLabel === undefined ? undefined : `${label}${unit ? ` (${unit})` : ""}`}
         className={inputClass}
         type="number"
         inputMode="decimal"

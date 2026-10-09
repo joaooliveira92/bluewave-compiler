@@ -162,10 +162,10 @@ export function PlacementsPanel({
   return (
     <Panel title="Components and arrangement">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="text-left text-xs text-muted-foreground">
-              <th className="p-1">Fitting</th>
+              <th className="w-1/4 p-1">Fitting</th>
               <th className="p-1">Zone</th>
               <th className="p-1">Station</th>
               <th className="p-1">Settings</th>
@@ -191,6 +191,7 @@ export function PlacementsPanel({
                     <td className="w-24 p-1">
                       <NumberField
                         label={`Station of ${p.instanceId}`}
+                        shortLabel="Station"
                         unit="‰"
                         value={p.stationPermille}
                         onCommit={(v) =>
@@ -210,6 +211,7 @@ export function PlacementsPanel({
                             key={name}
                             className="w-24"
                             label={`${name} of ${p.instanceId}`}
+                            shortLabel={name}
                             min={r.min}
                             max={r.max}
                             step={r.step}
