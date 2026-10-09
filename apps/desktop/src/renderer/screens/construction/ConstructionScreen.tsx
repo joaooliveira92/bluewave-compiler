@@ -5,6 +5,8 @@ import { Badge } from "../../components/ui/badge.js";
 import { debugRevisionActions } from "../../components/shared/debugRevisionActions.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs.js";
+import { ProjectsCard } from "./components/ProjectsCard.js";
+import { projectRows } from "./project-progress.js";
 import { StatsPanel } from "./components/StatsPanel.js";
 import { ConstructionWizard } from "./components/ConstructionWizard.js";
 import { DesignPicker } from "./components/DesignPicker.js";
@@ -92,7 +94,10 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
         </TabsList>
 
         <TabsContent value="overview">
-          <StatsPanel economy={state.economy} workspace={state.workspace} />
+          <div className="space-y-4">
+            <StatsPanel economy={state.economy} workspace={state.workspace} />
+            <ProjectsCard rows={projectRows(state.projects)} />
+          </div>
         </TabsContent>
 
         <TabsContent value="catalog">

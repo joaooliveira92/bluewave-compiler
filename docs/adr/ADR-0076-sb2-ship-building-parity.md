@@ -16,6 +16,10 @@ The owner compared the Drawing Board with the Rule the Waves 3 design screens an
 4. **Balance constants for new effects live in `balance.yaml`** and are marked PLACEHOLDER until research pass 2 is applied.
 5. **Era scope is the EARLY band.** Aircraft, CIWS, radar directors, HAA factor, oil/turbine/aluminium, mines, a custom-graphics tab and the BC type stay deferred.
 
+## Update 2026-10-09
+
+Decision 1 is superseded by ADR-0077: construction now builds a designed ship at the yard chosen when its design is compiled (the same rule as the forecast), so the Drawing Board's yard list is no longer "forecast only". A preferred-yard control is still not built; it would have to be an option on `SubmitDesign`, because the yard is fixed in the design version.
+
 ## Consequences
 
 Players see which yards could build a design and why not, without a control that implies the engine honours it. Later tickets build on optional draft fields, so older saves load unchanged.

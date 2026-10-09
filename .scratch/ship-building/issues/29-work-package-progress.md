@@ -1,7 +1,7 @@
 # 29: Run construction progress per work package
 
 **Type:** implementation (engine milestone)
-**Status:** in progress (29a-29d done; 29e open, see ADR-0077)
+**Status:** resolved (29a-29e done, see ADR-0077)
 **Blocked by:** none (ADR-0064 gives the package model)
 **Frontier:** yes
 
@@ -65,3 +65,9 @@ Known behaviour change (intended, ADR-0077): a designed ship now takes as many m
 **29d done: revision reads real state and keeps packages consistent.** Found while testing: after 29c, revising a project made from the Drawing Board would have left its `packages` stale against the new design (closing validation would fail), because the existing revise tests only used one-figure projects. Now `applyReviseProject` (a) classifies from `projectBuildProgress` (hull share, armour/machinery started, launched) for a project with packages, so a launched ship is T3 and `REVISION_REQUIRES_REBUILD` is raised; (b) rescales the packages onto the new design's plan with `revisePackages`: the share done is kept per package (`floor(done x newTotal / oldTotal)`), T1 rework is added to the package its change kind reworks (structure, armour, machinery, main armament, fittings, in that order) so remaining work grows by exactly the rework, T2 keeps only hull work up to what the rules keep, the yard follows the new design and this month's capacity use is carried; (c) falls back to the single figure when the new design has no plan. The desktop revision preview and the construction queue entry read the same packages, so preview and engine agree.
 **Bug fixed in 29a/29b code:** a package with no work (a very small ship rounds some packages to zero units) counted as complete from the start, so `launched` was true at 0% and later packages could start before the hull. `isPackageComplete` now requires a package's dependencies to be complete too; `advanceConstructionMonth`, `isConstructionComplete` and `buildProgressOf` use it (tests: tiny plan, launched flag, dependents wait).
 Tests: ship-design 37 files / 394; phase-engine 23 files / 221 (construction-revision 9, revise-project +6 package cases); campaign-engine 15 files / 101; desktop construction 17 files / 166. Open: 29e (Construction screen shows packages and the yard; the Drawing Board yard list drops "forecast only").
+
+### 2026-10-09 orchestrator (29e)
+
+**29e done: the screens show what the engine does.** The Shipyard Ledger tab gains an "Under construction" card (`ProjectsCard`, rows from the pure `projectRow`): overall progress, the yard, a hold badge, and for a project with packages each package's state (done, in progress with its percent, ready to start, waiting), leaving out packages with no work. Its description mentions work packages only when some ship has them (an authored ship such as the Inflexible has none). The Drawing Board yard list is no longer "forecast only": the chosen yard says "Builds here" and the badge reads "chosen automatically", because an order is now built at that yard (ADR-0076 decision 1 is superseded; a preferred-yard control would need to be a submit option, since the yard is fixed when the design is compiled).
+Tests: `project-progress.test.ts` (7), `ProjectsCard.test.tsx` (5, including axe), yardRows and the panel test updated. Desktop construction 18 files / 173+ tests. Visual: `pnpm snap` of the Shipyard Ledger inspected (authored project path).
+Ticket 29 is complete. Not done, recorded: T1/T2 study cost and delay beyond the hold, T3 rebuild projects (ticket 28), a preferred-yard option at submit.

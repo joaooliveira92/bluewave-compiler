@@ -47,9 +47,7 @@ export function yardRows(yards: readonly YardOption[]): YardRow[] {
       yardId: y.yardId,
       name: words(y.yardId),
       capacity,
-      status: y.chosen
-        ? `Forecast yard · ${months(y.months)}`
-        : `Could build · ${months(y.months)}`,
+      status: y.chosen ? `Builds here · ${months(y.months)}` : `Could build · ${months(y.months)}`,
       tone: y.chosen ? "chosen" : "ok",
     };
   });

@@ -17,7 +17,7 @@ const yard = (over: Partial<YardOption>): YardOption => ({
 describe("yardRows", () => {
   it("marks the forecast yard and the others that could build", () => {
     const rows = yardRows([yard({ chosen: true }), yard({ yardId: "yard_large", months: 1 })]);
-    expect(rows[0]).toMatchObject({ tone: "chosen", status: "Forecast yard · 12 months" });
+    expect(rows[0]).toMatchObject({ tone: "chosen", status: "Builds here · 12 months" });
     expect(rows[1]).toMatchObject({
       tone: "ok",
       status: "Could build · 1 month",

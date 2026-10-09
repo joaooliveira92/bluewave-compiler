@@ -3,7 +3,7 @@ import { Badge } from "../../../../components/ui/badge.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../components/ui/tooltip.js";
 import { yardRows } from "./yardRows.js";
 
-/** Which shipyards could build this design, and why the others cannot. Informational: the forecast assumes the quickest fitting yard. */
+/** Which shipyards could build this design, and why the others cannot. The order is built at the quickest fitting yard. */
 export function YardList({ yards }: { readonly yards: readonly YardOption[] }) {
   if (yards.length === 0) return null;
   return (
@@ -13,12 +13,12 @@ export function YardList({ yards }: { readonly yards: readonly YardOption[] }) {
         <Tooltip>
           <TooltipTrigger render={<span className="inline-flex" />}>
             <Badge variant="outline" className="text-xs">
-              forecast only
+              chosen automatically
             </Badge>
           </TooltipTrigger>
           <TooltipContent side="top">
-            The forecast assumes the quickest yard that can hold the hull. Construction does not yet
-            choose a yard.
+            An order is built at the quickest yard that can hold the hull, the smallest on a tie.
+            The choice is fixed when the design is submitted.
           </TooltipContent>
         </Tooltip>
       </div>

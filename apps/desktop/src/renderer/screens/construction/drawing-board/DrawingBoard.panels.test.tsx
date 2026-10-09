@@ -178,14 +178,14 @@ describe("DrawingBoard panels", () => {
     expect(within(region("Edit history")).getByText(/Brief: category → CL/)).toBeTruthy();
   });
 
-  it("lists the shipyards in the forecast with exactly one forecast yard", () => {
+  it("lists the shipyards in the forecast with exactly one yard that builds it", () => {
     render(<DrawingBoard />);
     openTab("Analysis");
     const forecast = region("Cost and construction forecast");
     const yards = within(forecast).getByRole("list", { name: "Shipyards" });
     const rows = within(yards).getAllByRole("listitem");
     expect(rows.length).toBeGreaterThan(0);
-    expect(rows.filter((r) => /Forecast yard/.test(r.textContent ?? ""))).toHaveLength(1);
+    expect(rows.filter((r) => /Builds here/.test(r.textContent ?? ""))).toHaveLength(1);
   });
 
   it("draws a distinct, described plan and profile that agree on the funnels", () => {
