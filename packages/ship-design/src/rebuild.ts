@@ -236,3 +236,31 @@ export function validateRebuild(
 
   return { legal: findings.length === 0, findings, measures };
 }
+
+/** Packages a rebuild does not repeat: the hull is retained and the ship is already launched (DESIGN-23 section 21). */
+const RETAINED_KINDS: readonly string[] = ["HULL", "LAUNCH"];
+
+/**
+ * The work packages of a rebuild, from the new design's construction packages (in treasury units, as `constructionOrderPlan`
+ * returns them): the retained hull and the launch are dropped, every dependency on a dropped package is removed, and the
+ * rest keep their work. The removal of the old fittings is not modelled (recorded in ADR-0078). A rebuild always has work:
+ * if everything left rounds to zero units, the last package that is still there takes one unit. Pure; ids, kinds and lines
+ * are kept, so the engine's funding rules apply unchanged.
+ */
+export function rebuildPackages<
+  P extends {
+    readonly id: string;
+    readonly kind: string;
+    readonly totalWork: number;
+    readonly dependsOn: readonly string[];
+  },
+>(packages: readonly P[]): P[] {
+  const dropped = new Set(packages.filter((p) => RETAINED_KINDS.includes(p.kind)).map((p) => p.id));
+  const kept = packages
+    .filter((p) => !dropped.has(p.id))
+    .map((p) => ({ ...p, dependsOn: p.dependsOn.filter((d) => !dropped.has(d)) }));
+  if (kept.length === 0 || kept.some((p) => p.totalWork > 0)) return kept;
+  // Everything left rounds to zero: the last package in plan order takes one unit so the project has something to do.
+  const last = kept.length - 1;
+  return kept.map((p, i) => (i === last ? { ...p, totalWork: 1 } : p));
+}

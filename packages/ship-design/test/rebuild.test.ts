@@ -4,6 +4,7 @@ import {
   checkRebuildBalance,
   compileDesign,
   rebuildFactsOf,
+  rebuildPackages,
   validateRebuild,
   yardDemandOf,
   type RebuildBalance,
@@ -197,5 +198,54 @@ describe("rebuildFactsOf and the shipped limits", () => {
     expect(checkRebuildBalance(balance)).toEqual([]);
     expect(checkRebuildBalance({ ...balance, maxBeamChangeBp: -1 })).toHaveLength(1);
     expect(checkRebuildBalance({ ...balance, maxLengthChangeBp: 1.5 })).toHaveLength(1);
+  });
+});
+
+describe("rebuildPackages", () => {
+  const pkg = (id: string, kind: string, totalWork: number, dependsOn: string[] = []) => ({
+    id,
+    kind,
+    line: "x",
+    totalWork,
+    dependsOn,
+  });
+  const plan = [
+    pkg("hull", "HULL", 50),
+    pkg("machinery", "MACHINERY", 20),
+    pkg("launch", "LAUNCH", 10, ["hull"]),
+    pkg("fit_out", "FIT_OUT", 20, ["launch", "machinery"]),
+  ];
+  it("drops the retained hull and the launch, and the dependencies on them", () => {
+    const r = rebuildPackages(plan);
+    expect(r.map((p) => p.id)).toEqual(["machinery", "fit_out"]);
+    expect(r.find((p) => p.id === "fit_out")!.dependsOn).toEqual(["machinery"]);
+    expect(r.reduce((a, p) => a + p.totalWork, 0)).toBe(40);
+  });
+  it("keeps ids, kinds and the work of what remains, and does not mutate the input", () => {
+    const snap = JSON.stringify(plan);
+    const r = rebuildPackages(plan);
+    expect(r.map((p) => [p.id, p.kind, p.totalWork])).toEqual([
+      ["machinery", "MACHINERY", 20],
+      ["fit_out", "FIT_OUT", 20],
+    ]);
+    expect(JSON.stringify(plan)).toBe(snap);
+  });
+  it("gives a rebuild with nothing left to do one unit of work, on the last package", () => {
+    const tiny = [
+      pkg("hull", "HULL", 5),
+      pkg("machinery", "MACHINERY", 0),
+      pkg("fit_out", "FIT_OUT", 0, ["machinery"]),
+    ];
+    const r = rebuildPackages(tiny);
+    expect(r.map((p) => [p.id, p.totalWork])).toEqual([
+      ["machinery", 0],
+      ["fit_out", 1],
+    ]);
+  });
+  it("is empty only when the plan has only retained packages, and deterministic", () => {
+    expect(rebuildPackages([pkg("hull", "HULL", 5), pkg("launch", "LAUNCH", 1, ["hull"])])).toEqual(
+      [],
+    );
+    expect(rebuildPackages(plan)).toEqual(rebuildPackages(plan));
   });
 });
