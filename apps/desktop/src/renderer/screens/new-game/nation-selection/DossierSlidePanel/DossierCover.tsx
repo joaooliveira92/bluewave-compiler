@@ -24,7 +24,7 @@ export function DossierCover({ countryId }: { countryId: PlayableSlotCountryId }
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 -z-20 flex items-center justify-center bg-[radial-gradient(circle_at_48%_38%,rgba(42,184,230,0.14),rgba(3,5,9,0.96)_70%)]"
         >
-          <span className="font-mono text-7xl font-black tracking-[0.18em] text-[#2ab8e6]/10">
+          <span className="font-display text-7xl font-black tracking-[0.18em] text-[#2ab8e6]/10">
             {getCountryCode(countryId)}
           </span>
         </div>

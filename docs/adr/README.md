@@ -70,3 +70,4 @@ Refresh this table from each file's H1 when one is added or re-titled.
 | 0076 | [ADR-0076-sb2-ship-building-parity.md](ADR-0076-sb2-ship-building-parity.md) | SB-2 ship-building parity: yards forecast-only, optional draft fields, era scope |
 | 0077 | [ADR-0077-construction-progress-per-package.md](ADR-0077-construction-progress-per-package.md) | Construction progress per work package: one resumable step, revision reads real state, legacy mapping, slices |
 | 0078 | [ADR-0078-rebuild-projects.md](ADR-0078-rebuild-projects.md) | REBUILD projects: the rule's retained-hull limits, a pure validator, availability, slicing |
+| 0079 | [ADR-0079-typography-system.md](ADR-0079-typography-system.md) | Typography system: semantic font roles, user-selectable Inter/Jakarta body font, self-hosted Geist Mono and Space Grotesk |

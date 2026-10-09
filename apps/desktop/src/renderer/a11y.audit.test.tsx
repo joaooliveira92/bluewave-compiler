@@ -21,6 +21,7 @@ import { BudgetBar } from "./screens/treasury/components/BudgetBar.js";
 import { BackgroundProvider } from "./shell/BackgroundContext.js";
 import { BottomNav } from "./shell/BottomNav.js";
 import { DensityProvider } from "./shell/DensityContext.js";
+import { FontProvider } from "./shell/FontContext.js";
 
 /**
  * Automated accessibility audit (axe-core) over the screens and components built for the RTW3
@@ -211,7 +212,9 @@ describe("accessibility audit (axe-core)", () => {
     await audit(
       <BackgroundProvider>
         <DensityProvider>
-          <OptionsScreen />
+          <FontProvider>
+            <OptionsScreen />
+          </FontProvider>
         </DensityProvider>
       </BackgroundProvider>,
     );

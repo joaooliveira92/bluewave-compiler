@@ -10,7 +10,7 @@ export function NationEmblem({ countryId }: { countryId: PlayableSlotCountryId }
 
   if (colours === null || imageFailed) {
     return (
-      <div className="flex h-12 w-16 flex-none items-center justify-center rounded-md border border-dashed border-[#d4a359]/30 bg-[#05080e]/80 font-mono text-[0.6rem] font-bold uppercase tracking-[0.16em] text-[#64778d]">
+      <div className="flex h-12 w-16 flex-none items-center justify-center rounded-md border border-dashed border-[#d4a359]/30 bg-[#05080e]/80 font-display text-[0.6rem] font-bold uppercase tracking-[0.16em] text-[#64778d]">
         N/A
       </div>
     );

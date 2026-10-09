@@ -64,7 +64,7 @@ export function FleetDispatchBoard({
     return (
       <aside className="relative z-10 flex min-h-112 w-full flex-col border-b border-border bg-background/94 p-6 lg:h-full lg:w-[min(38vw,34rem)] lg:border-b-0 lg:border-r">
         <div className="flex flex-1 items-center justify-center">
-          <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+          <p className="font-display text-sm uppercase tracking-widest text-muted-foreground">
             No fleet commissions available
           </p>
         </div>
@@ -98,13 +98,13 @@ export function FleetDispatchBoard({
     >
       <header className="relative z-30 flex flex-none items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="hidden sm:block font-mono text-[0.65rem] uppercase tracking-[0.32em] text-muted-foreground">
+          <p className="hidden sm:block font-display text-[0.65rem] uppercase tracking-[0.32em] text-muted-foreground">
             Admiralty Registry
           </p>
 
           <h2
             id={`${listboxId}-heading`}
-            className="mt-1 font-mono text-lg font-bold uppercase tracking-[0.16em] text-foreground sm:text-lg"
+            className="mt-1 font-display text-lg font-bold uppercase tracking-[0.16em] text-foreground sm:text-lg"
           >
             Fleet Dispatch
           </h2>
@@ -163,7 +163,7 @@ export function FleetDispatchBoard({
             className="pointer-events-none absolute inset-x-[12%] bottom-[4%] z-100 rounded-[50%] bg-background/55 blur-xl"
           />
 
-          <div className="pointer-events-none absolute bottom-3 left-1/2 z-110 -translate-x-1/2 whitespace-nowrap rounded-full border border-border bg-background/90 px-3 py-1.5 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-muted-foreground backdrop-blur-sm">
+          <div className="pointer-events-none absolute bottom-3 left-1/2 z-110 -translate-x-1/2 whitespace-nowrap rounded-full border border-border bg-background/90 px-3 py-1.5 font-display text-[0.58rem] uppercase tracking-[0.18em] text-muted-foreground backdrop-blur-sm">
             Scroll · ↑ ↓ · Enter
           </div>
         </div>

@@ -10,7 +10,7 @@ interface DossierFieldRowProps {
 
 function DossierFieldRow({ label, value }: DossierFieldRowProps): JSX.Element {
   return (
-    <p className="mt-2 font-mono text-[0.72rem] leading-relaxed">
+    <p className="mt-2 font-display text-[0.72rem] leading-relaxed">
       <span className="font-black uppercase tracking-[0.08em] text-[#d4a359]">{label}:</span>{" "}
       <span className="text-[#b4c1ce]">{value}</span>
     </p>
@@ -37,7 +37,7 @@ export function buildDossierTabs(
   return {
     economy: (
       <div>
-        <p className="font-mono text-[.85rem]">{flavor.economy}</p>
+        <p className="font-display text-[.85rem]">{flavor.economy}</p>
         <DossierFieldRow label="Budget category" value={fields.budgetCategory} />
         <DossierFieldRow label="Shipbuilding capacity" value={fields.shipbuildingCapacity} />
         <DossierFieldRow label="Research strengths" value={fields.researchStrengths} />
@@ -46,7 +46,7 @@ export function buildDossierTabs(
     ),
     military: (
       <div>
-        <p className="font-mono text-[.85rem]">{flavor.military}</p>
+        <p className="font-display text-[.85rem]">{flavor.military}</p>
         <DossierFieldRow label="Doctrine" value={fields.doctrine} />
         <DossierFieldRow label="Difficulty" value={`${fields.difficulty} / 5`} />
         <DossierFieldRow label="Likely rivals" value={fields.likelyRivals.join(", ")} />
@@ -54,7 +54,7 @@ export function buildDossierTabs(
     ),
     diplomacy: (
       <div>
-        <p className="font-mono text-[.85rem]">{flavor.diplomacy}</p>
+        <p className="font-display text-[.85rem]">{flavor.diplomacy}</p>
         <DossierFieldRow label="Strategic regions" value={fields.strategicRegions} />
         <DossierFieldRow label="National characteristics" value={fields.nationalCharacteristics} />
       </div>

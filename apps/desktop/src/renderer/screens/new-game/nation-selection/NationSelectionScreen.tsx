@@ -126,7 +126,7 @@ export function NationSelectionScreen({
 
   if (slotCount === 0) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-[#030509] p-8 text-center font-mono text-sm uppercase tracking-widest text-[#798fa8]">
+      <div className="flex h-full w-full items-center justify-center bg-[#030509] p-8 text-center font-display text-sm uppercase tracking-widest text-[#798fa8]">
         No playable nations for this scenario.
       </div>
     );
@@ -187,11 +187,11 @@ export function NationSelectionScreen({
             role="alert"
             className="absolute inset-x-0 bottom-4 z-40 mx-auto w-full max-w-md rounded-xl border border-[#dc2626]/40 bg-[#101622]/95 p-4 shadow-2xl backdrop-blur-md"
           >
-            <div className="flex items-center gap-2 font-mono text-base font-bold text-[#dc2626] uppercase mb-1">
+            <div className="flex items-center gap-2 font-display text-base font-bold text-[#dc2626] uppercase mb-1">
               <span className="h-2 w-2 rounded-full bg-[#dc2626]" />
               <span>Admiralty Failure Dispatch</span>
             </div>
-            <p className="font-mono text-base text-rose-200">{failure}</p>
+            <p className="font-display text-base text-rose-200">{failure}</p>
           </div>
         )}
       </main>

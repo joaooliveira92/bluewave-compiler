@@ -47,7 +47,7 @@ export function DossierAccordionItem({
             <Icon className={cn("h-4 w-4 shrink-0", accent.text)} aria-hidden="true" />
             <span
               className={cn(
-                "font-mono text-[0.75rem] font-black uppercase tracking-[0.16em]",
+                "font-display text-[0.75rem] font-black uppercase tracking-[0.16em]",
                 accent.text,
               )}
             >
@@ -63,7 +63,7 @@ export function DossierAccordionItem({
               accent.border,
             )}
           >
-            <div className="whitespace-normal font-mono break-words text-[.85rem]">
+            <div className="whitespace-normal font-display break-words text-[.85rem]">
               {section.text}
             </div>
           </section>

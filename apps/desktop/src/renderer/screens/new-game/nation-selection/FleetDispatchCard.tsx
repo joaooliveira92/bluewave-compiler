@@ -81,7 +81,7 @@ export function FleetDispatchCard({
         >
           <span
             aria-hidden="true"
-            className="font-mono text-5xl font-black tracking-[0.16em]"
+            className="font-display text-5xl font-black tracking-[0.16em]"
             style={{ color: palette.accent }}
           >
             {countryCode}
@@ -123,18 +123,18 @@ export function FleetDispatchCard({
             <p className="truncate text-base font-black uppercase tracking-wide sm:text-lg">
               {countryName}
             </p>
-            <p className="mt-0.5 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-white/60">
+            <p className="mt-0.5 font-display text-[0.6rem] uppercase tracking-[0.16em] text-white/60">
               Fleet silhouette registry
             </p>
           </div>
 
           {position.active ? (
-            <span className="flex shrink-0 items-center gap-1.5 rounded bg-[#d4a359] px-2.5 py-1 font-mono text-[0.7rem] font-black uppercase tracking-wider text-[#07101a]">
+            <span className="flex shrink-0 items-center gap-1.5 rounded bg-[#d4a359] px-2.5 py-1 font-display text-[0.7rem] font-black uppercase tracking-wider text-[#07101a]">
               <Check className="h-3 w-3" aria-hidden="true" />
               Active
             </span>
           ) : (
-            <span className="shrink-0 font-mono text-[0.58rem] uppercase tracking-wider text-white/65">
+            <span className="shrink-0 font-display text-[0.58rem] uppercase tracking-wider text-white/65">
               Select
             </span>
           )}

@@ -26,7 +26,7 @@ export function FlavorSummary({
         </span>
         <span
           className={cn(
-            "font-mono text-[0.65rem] font-black uppercase tracking-[0.18em]",
+            "font-display text-[0.65rem] font-black uppercase tracking-[0.18em]",
             accent.text,
           )}
         >

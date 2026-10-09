@@ -3,6 +3,47 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
+ * Self-hosted typography (ADR-0079). All faces are variable fonts served from
+ * the renderer bundle — no Google Fonts/CDN — so the packaged app stays offline
+ * and within the Electron CSP (`default-src 'self'`). Family names are stable
+ * and independent of Vite's emitted asset hashes.
+ *
+ * Roles (see @theme below): --font-sans is user-selectable (Inter | Plus Jakarta
+ * Sans), --font-mono is Geist Mono, --font-display is Space Grotesk.
+ */
+@font-face {
+  font-family: "Inter Variable";
+  src: url("../../assets/fonts/Inter/inter.ttf") format("truetype-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Plus Jakarta Sans Variable";
+  src: url("../../assets/fonts/JakartaSans/JakartaSans.ttf") format("truetype-variations");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("../../assets/fonts/Geist_Mono/geist-mono.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("../../assets/fonts/Space_Grotesk/space.ttf") format("truetype-variations");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
  * Standard shadcn/ui "neutral" token set — restored from the
  * desktop-ui-kit-migration map's styling foundation
  * (.scratch/desktop-ui-kit-migration/issues/02-styling-foundation.md,
@@ -11,6 +52,19 @@
  * status colors) per the desktop-mvp map, ticket 11.
  */
 @theme {
+  /*
+   * Semantic font roles (ADR-0079). `--font-inter`/`--font-jakarta` are the two
+   * user-selectable body faces; `--font-sans` points at whichever is active via
+   * the [data-font] mapping below. Components must consume the semantic
+   * utilities (font-sans, font-mono, font-display), never a family directly.
+   */
+  --font-inter: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-jakarta:
+    "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: var(--font-inter);
+  --font-mono:
+    "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --color-background: oklch(1 0 0);
   --color-foreground: oklch(0.145 0 0);
   --color-card: oklch(1 0 0);
@@ -89,8 +143,37 @@
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
+  /* Inter carries an optical-size axis; let the browser pick per size. */
+  font-optical-sizing: auto;
   margin: 0;
+}
+
+/*
+ * User-selectable body font (ADR-0079). FontProvider sets <html data-font> from
+ * the persisted preference; absent/unknown values keep the Inter default from
+ * @theme. `--font-sans` is what the `font-sans` utility and `body` resolve to,
+ * so overriding it here re-fonts the whole renderer without touching components.
+ */
+:root[data-font="inter"] {
+  --font-sans: var(--font-inter);
+}
+
+:root[data-font="jakarta"] {
+  --font-sans: var(--font-jakarta);
+}
+
+/*
+ * Settings-UI previews: render each option label in its own face so the user
+ * sees the difference before committing. Kept in CSS so the family names live in
+ * one place alongside the @font-face declarations.
+ */
+[data-font-option="inter"] {
+  font-family: var(--font-inter);
+}
+
+[data-font-option="jakarta"] {
+  font-family: var(--font-jakarta);
 }
 
 /*

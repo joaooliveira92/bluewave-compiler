@@ -6,6 +6,7 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from "../../compo
 import type { BackgroundStyle } from "../../shell/BackgroundContext.js";
 import { useBackground } from "../../shell/BackgroundContext.js";
 import { DENSITY_OPTIONS, useDensity } from "../../shell/DensityContext.js";
+import { SANS_FONT_OPTIONS, useFont } from "../../shell/FontContext.js";
 import { GlassCard } from "@/components/ui/glass-card.jsx";
 
 const BACKGROUND_OPTIONS: {
@@ -25,6 +26,7 @@ const BACKGROUND_OPTIONS: {
 export function OptionsScreen() {
   const { background, setBackground } = useBackground();
   const { density, setDensity } = useDensity();
+  const { font, setFont } = useFont();
   const activeOption =
     BACKGROUND_OPTIONS.find((option) => option.value === background) ?? BACKGROUND_OPTIONS[0];
   const activeLabel = activeOption?.label ?? "Background";
@@ -57,6 +59,31 @@ export function OptionsScreen() {
               if (option !== undefined) setBackground(option.value);
             }}
           />
+        </CardContent>
+      </GlassCard>
+
+      <GlassCard>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Application font</CardTitle>
+          <CardDescription>
+            The body typeface used across the app. Code and data stay monospaced.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div role="group" aria-label="Application font" className="flex flex-wrap gap-2">
+            {SANS_FONT_OPTIONS.map((option) => (
+              <Button
+                key={option.value}
+                type="button"
+                variant={option.value === font ? "default" : "outline"}
+                aria-pressed={option.value === font}
+                title={option.description}
+                onClick={() => setFont(option.value)}
+              >
+                <span data-font-option={option.value}>{option.label}</span>
+              </Button>
+            ))}
+          </div>
         </CardContent>
       </GlassCard>
 
