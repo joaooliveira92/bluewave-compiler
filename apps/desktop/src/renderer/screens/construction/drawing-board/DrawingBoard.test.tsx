@@ -35,6 +35,37 @@ describe("DrawingBoard", () => {
     expect(metric("Top speed")).toMatch(/kn \(need 25\.5\)/);
   });
 
+  it("draws a distinct, described plan and profile that agree on the funnels", () => {
+    render(<DrawingBoard />);
+    const panel = region("Hull plan");
+    const plan = within(panel).getByRole("img", { name: /^Top-down plan/ });
+    const profile = within(panel).getByRole("img", { name: /^Side profile/ });
+    expect(plan).not.toBe(profile);
+    for (const view of [plan, profile]) {
+      expect(view.getAttribute("aria-label")).toMatch(/schematic/);
+      expect(view.getAttribute("aria-label")).toMatch(/ram bow|spoon bow|plumb bow/);
+    }
+    const planFunnels = plan.querySelectorAll('[data-testid="hull-funnel"]').length;
+    const profileFunnels = profile.querySelectorAll('[data-testid="profile-funnel"]').length;
+    expect(profileFunnels).toBe(planFunnels);
+    const stated = /(\d+) funnels?|no funnels/.exec(plan.getAttribute("aria-label") ?? "");
+    expect(stated).not.toBeNull();
+    expect(stated![1] === undefined ? 0 : Number(stated![1])).toBe(planFunnels);
+    expect(profile.querySelector('[data-testid="profile-hull"]')).not.toBeNull();
+  });
+
+  it("explains the drawing through keyboard-reachable legend chips that open a popover", async () => {
+    render(<DrawingBoard />);
+    const panel = region("Hull plan");
+    const legend = within(panel).getByRole("group", { name: "Drawing legend" });
+    const bow = within(legend).getByRole("button", { name: /^(Ram|Spoon|Plumb) bow \(Bow:/ });
+    expect(bow.tagName).toBe("BUTTON");
+    fireEvent.click(bow);
+    const dialog = await screen.findByText(/drawing choice per hull form/i);
+    expect(dialog).toBeTruthy();
+    expect(screen.getByText("Drawing convention")).toBeTruthy();
+  });
+
   it("draws a top-down hull plan with one marker per placed fitting", () => {
     render(<DrawingBoard />);
     const plan = region("Hull plan");

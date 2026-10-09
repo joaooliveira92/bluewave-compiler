@@ -5,7 +5,8 @@ import {
   fittingPoint,
   PLAN_MID,
   planFrame,
-  profileFrame,
+  sternStyleFor,
+  stationX,
   waterplaneShape,
 } from "./geometry.js";
 
@@ -119,43 +120,42 @@ describe("waterplaneShape", () => {
   });
 });
 
-describe("bow character and profile", () => {
-  it("picks a bow per hull form", () => {
+describe("bow and stern character (plan)", () => {
+  const area = (bow: "ram" | "spoon" | "plumb", stern: "counter" | "transom" | "round") => {
+    const s = waterplaneShape({ waterplaneCoeffBp: 7400, lcbPermille: 500, bow, stern });
+    let a = 0;
+    for (let i = 0; i < 2000; i++) a += s((i + 0.5) / 2000) / 2000;
+    return { a, tip: s(0), end: s(1) };
+  };
+  it("picks a bow and a stern per hull form", () => {
     expect([
       bowStyleFor("torpedo_boat_form"),
       bowStyleFor("coast_defence_form"),
       bowStyleFor("protected_cruiser_form"),
       bowStyleFor("pre_dreadnought_form"),
     ]).toEqual(["spoon", "plumb", "ram", "ram"]);
+    expect([
+      sternStyleFor("torpedo_boat_form"),
+      sternStyleFor("coast_defence_form"),
+      sternStyleFor("protected_cruiser_form"),
+    ]).toEqual(["round", "transom", "counter"]);
   });
-  it("blunt bows have a non-zero stem width and still match the coefficient", () => {
-    for (const bow of ["spoon", "plumb"] as const) {
-      const s = waterplaneShape({ waterplaneCoeffBp: 7400, lcbPermille: 500, bow });
-      expect(s(0)).toBeGreaterThan(0);
-      let a = 0;
-      for (let i = 0; i < 2000; i++) a += s((i + 0.5) / 2000) / 2000;
-      expect(a).toBeCloseTo(0.74, 2);
-    }
-    expect(waterplaneShape({ waterplaneCoeffBp: 7400, lcbPermille: 500, bow: "ram" })(0)).toBe(0);
+  it("every bow and stern combination still matches the waterplane coefficient", () => {
+    for (const bow of ["ram", "spoon", "plumb"] as const)
+      for (const stern of ["counter", "transom", "round"] as const)
+        expect(area(bow, stern).a).toBeCloseTo(0.74, 2);
   });
-  it("sheer lifts the deck toward the bow more than the stern; no sheer is flat", () => {
-    const h = { lengthWl: 85000, beam: 12000, draught: 4200, depthToMainDeck: 7000 } as never;
-    const p = profileFrame(h, 11000);
-    expect(p.deckY(0)).toBeLessThan(p.deckY(0.5));
-    expect(p.deckY(0)).toBeLessThan(p.deckY(1));
-    expect(p.deckY(1)).toBeLessThan(p.deckY(0.5));
-    const flat = profileFrame(h, 10000);
-    expect(flat.deckY(0)).toBe(flat.deckY(0.5));
+  it("blunt bows have a stem width and a ram is pointed; stern width differs by style", () => {
+    expect(area("ram", "counter").tip).toBe(0);
+    expect(area("spoon", "counter").tip).toBeGreaterThan(0);
+    expect(area("plumb", "counter").tip).toBeGreaterThan(area("spoon", "counter").tip);
+    expect(area("ram", "transom").end).toBeGreaterThan(area("ram", "counter").end);
+    expect(area("ram", "counter").end).toBeGreaterThan(area("ram", "round").end);
   });
-  it("keel sits below the waterline by the draught and is cut up at the stem", () => {
-    const h = { lengthWl: 85000, beam: 12000, draught: 4200, depthToMainDeck: 7000 } as never;
-    const p = profileFrame(h, 11000);
-    expect(p.keelY(0.5)).toBeCloseTo(p.waterlineY + 4.2 * p.vScale, 5);
-    expect(p.keelY(0)).toBeCloseTo(p.waterlineY, 5);
-  });
-  it("tolerates degenerate hulls", () => {
-    const p = profileFrame({ lengthWl: 0, beam: 0, draught: 0, depthToMainDeck: 0 } as never, 0);
-    expect(Number.isFinite(p.deckY(0.3))).toBe(true);
-    expect(Number.isFinite(p.keelY(0.3))).toBe(true);
+});
+
+describe("plan/profile horizontal alignment", () => {
+  it("both views map stations through the same function", () => {
+    expect(planFrame(hull(100, 12)).x(250)).toBe(stationX(250));
   });
 });

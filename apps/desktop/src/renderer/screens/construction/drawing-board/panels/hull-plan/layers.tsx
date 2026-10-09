@@ -2,10 +2,19 @@ import type { DesignDraft, ZoneId } from "@bluewave/ship-design";
 import { ZONE_IDS } from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../content.js";
 import { arcSectors, sectorPath } from "./arcs.js";
+import {
+  DASH,
+  LABEL_FONT,
+  NON_SCALING,
+  OPACITY,
+  STATION_STEP_PERMILLE,
+  STROKE,
+} from "./drafting.js";
 import { fittingPoint, PLAN_H, PLAN_MID, PLAN_PAD, PLAN_W, type PlanFrame } from "./geometry.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../../components/ui/tooltip.js";
+import type { FunnelInput } from "./profile-geometry.js";
 
-/** Label size in SVG user units (not CSS px): the 640-unit plan is scaled up to the panel width, so this renders at 12 px or more. */
-const PLAN_FONT = 8;
+const PLAN_FONT = LABEL_FONT;
 
 /** Length of the drawn ram beak, px (into the left padding). */
 const RAM_LEN = 10;
@@ -27,8 +36,9 @@ export function HullOutlineLayer({ frame }: { readonly frame: PlanFrame }) {
       <polygon
         points={outlinePoints(frame, 1)}
         className="fill-background stroke-foreground"
-        strokeWidth={1.4}
+        strokeWidth={STROKE.hull}
         strokeLinejoin="round"
+        {...NON_SCALING}
         data-testid="hull-outline"
       />
       {frame.bow === "ram" && (
@@ -41,7 +51,9 @@ export function HullOutlineLayer({ frame }: { readonly frame: PlanFrame }) {
       <polygon
         points={outlinePoints(frame, 0.9)}
         className="fill-none stroke-muted-foreground"
-        strokeOpacity={0.5}
+        strokeWidth={STROKE.guide}
+        strokeOpacity={OPACITY.deckEdge}
+        {...NON_SCALING}
         data-testid="hull-deck-edge"
       />
       <line
@@ -50,10 +62,15 @@ export function HullOutlineLayer({ frame }: { readonly frame: PlanFrame }) {
         y1={PLAN_MID}
         y2={PLAN_MID}
         className="stroke-muted-foreground"
-        strokeOpacity={0.5}
-        strokeDasharray="8 2 1 2"
+        strokeWidth={STROKE.guide}
+        strokeOpacity={OPACITY.guide}
+        strokeDasharray={DASH.centreline}
+        {...NON_SCALING}
       />
-      {Array.from({ length: 9 }, (_, i) => (i + 1) * 100).map((p) => (
+      {Array.from(
+        { length: 1000 / STATION_STEP_PERMILLE - 1 },
+        (_, i) => (i + 1) * STATION_STEP_PERMILLE,
+      ).map((p) => (
         <line
           key={p}
           x1={frame.x(p)}
@@ -61,7 +78,9 @@ export function HullOutlineLayer({ frame }: { readonly frame: PlanFrame }) {
           y1={PLAN_MID - 3}
           y2={PLAN_MID + 3}
           className="stroke-muted-foreground"
-          strokeOpacity={0.6}
+          strokeWidth={STROKE.guide}
+          strokeOpacity={OPACITY.guide}
+          {...NON_SCALING}
         />
       ))}
       <g data-testid="hull-lcb">
@@ -128,7 +147,9 @@ export function HullZoneLayer({
               y1={PLAN_MID - frame.maxHalf}
               y2={PLAN_MID + frame.maxHalf}
               className="stroke-muted-foreground"
-              strokeDasharray="3 3"
+              strokeDasharray={DASH.zoneGuide}
+              strokeWidth={STROKE.guide}
+              {...NON_SCALING}
             />
             <text
               x={(frame.x(z.startPermille) + frame.x(z.endPermille)) / 2}
@@ -160,9 +181,14 @@ export function HullFittingLayer({
       {draft.placements.map((p, i) => {
         const { x, y } = fittingPoint(frame, p.stationPermille, p.side, i);
         return (
-          <circle key={p.instanceId} cx={x} cy={y} r={4} className="fill-primary">
-            <title>{`${defs.get(p.componentId)?.displayName ?? p.componentId} (${p.instanceId}) @ ${p.stationPermille}‰`}</title>
-          </circle>
+          <Tooltip key={p.instanceId}>
+            <TooltipTrigger
+              render={
+                <circle cx={x} cy={y} r={4} className="fill-primary" data-fitting={p.instanceId} />
+              }
+            />
+            <TooltipContent>{`${defs.get(p.componentId)?.displayName ?? p.componentId} (${p.instanceId}) @ ${p.stationPermille}‰`}</TooltipContent>
+          </Tooltip>
         );
       })}
     </>
@@ -203,12 +229,14 @@ export function GunArcLayer({
   );
 }
 
-/** Stations (permille) of the placed funnels, by the component\'s "funnel" tag. */
-export function funnelStations(draft: DesignDraft, content: DrawingBoardContent): number[] {
+/** The placed funnels (components tagged "funnel"), keyed by instance id so both views show the same ones. */
+export function funnelPlacements(draft: DesignDraft, content: DrawingBoardContent): FunnelInput[] {
   const funnelIds = new Set(
     content.components.filter((c) => c.tags.includes("funnel")).map((c) => c.id),
   );
-  return draft.placements.filter((p) => funnelIds.has(p.componentId)).map((p) => p.stationPermille);
+  return draft.placements
+    .filter((p) => funnelIds.has(p.componentId))
+    .map((p) => ({ instanceId: p.instanceId, stationPermille: p.stationPermille }));
 }
 
 /** Superstructure block (over its zone) and funnel ovals, in plan. Footprints are schematic: no data gives their width. */
@@ -224,7 +252,7 @@ export function HullTopsideLayer({
   readonly zones: readonly { id: string; startPermille: number; endPermille: number }[];
 }) {
   const sup = zones.find((z) => z.id === "SUPERSTRUCTURE");
-  const funnels = funnelStations(draft, content);
+  const funnels = funnelPlacements(draft, content);
   const ry = Math.max(2, Math.min(frame.maxHalf * 0.4, 10));
   return (
     <g data-testid="hull-topside">
@@ -247,17 +275,17 @@ export function HullTopsideLayer({
           <title>Superstructure (schematic footprint)</title>
         </rect>
       )}
-      {funnels.map((s, i) => (
+      {funnels.map((f) => (
         <ellipse
-          key={`${s}-${i}`}
-          cx={frame.x(s)}
+          key={f.instanceId}
+          cx={frame.x(f.stationPermille)}
           cy={PLAN_MID}
           rx={Math.max(3, ry * 0.7)}
           ry={ry}
           className="fill-background stroke-foreground"
           data-testid="hull-funnel"
         >
-          <title>{`Funnel @ ${s}‰ (schematic footprint)`}</title>
+          <title>{`Funnel @ ${f.stationPermille}‰ (schematic footprint)`}</title>
         </ellipse>
       ))}
     </g>
