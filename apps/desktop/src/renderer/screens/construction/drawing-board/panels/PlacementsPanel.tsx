@@ -45,6 +45,7 @@ import type { DrawingBoardContent } from "../content.js";
 import { NumberField, SelectField } from "../fields.js";
 import { Panel } from "./Panel.js";
 import type { Edit } from "./types.js";
+import { placementAttrs } from "../selection/navigation.js";
 
 const zoneLabel = (z: string) => z.replaceAll("_", " ").toLowerCase();
 
@@ -186,7 +187,9 @@ export function PlacementsPanel({
               const otherZones = zonesFor(d).filter((z) => z !== p.zoneId);
               return (
                 <ContextMenu key={p.instanceId}>
-                  <ContextMenuTrigger render={<tr className="border-t align-top" />}>
+                  <ContextMenuTrigger
+                    render={<tr className="border-t align-top" {...placementAttrs(p.instanceId)} />}
+                  >
                     <th scope="row" className="p-1 text-left font-normal">
                       <ComponentHover def={d} placement={p} view={view} />
                       <div className="text-xs text-muted-foreground">

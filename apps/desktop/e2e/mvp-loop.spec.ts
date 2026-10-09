@@ -345,6 +345,114 @@ test("row 6h: hull-section labels open a detailed hover card without flicker or 
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
+test("row 6i: the ship drawing selects sections and fittings and links them to the forms", async ({
+  e2e,
+}) => {
+  await e2e.retargetDialog(sharedSaveDir);
+  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
+  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await dismissTour(e2e.page);
+  await navigateTo(e2e.page, "Construction");
+  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
+  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
+  // By name: the first-month guided tour is also a dialog and can appear while the board is open.
+  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
+  const strip = board.getByRole("group", { name: "Hull sections" });
+  const inspector = board.getByTestId("selection-inspector");
+  const card = e2e.page.getByTestId("section-card");
+
+  // Keyboard: Enter on a focused label pins the section; the pin outlives the preview card.
+  await strip.getByRole("button", { name: "Central machinery" }).focus();
+  await e2e.page.keyboard.press("Enter");
+  await expect(strip.getByRole("button", { name: "Central machinery" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(inspector.getByRole("heading", { name: "Central machinery" })).toBeVisible();
+  await expect(card).toBeHidden();
+  await expect(board.getByTestId("section-selected")).toHaveAttribute(
+    "data-zone",
+    "CENTRAL_MACHINERY",
+  );
+
+  // A mouse click pins too, and the pending hover preview does not reappear over the inspector.
+  await strip.getByRole("button", { name: "Aft service" }).click();
+  await e2e.page.waitForTimeout(600);
+  await expect(card).toBeHidden();
+  await expect(inspector.getByRole("heading", { name: "Aft service" })).toBeVisible();
+  await strip.getByRole("button", { name: "Central machinery" }).click();
+  await expect(inspector.getByRole("heading", { name: "Central machinery" })).toBeVisible();
+
+  // Hover elsewhere previews without moving the pin.
+  await strip.getByRole("button", { name: "Quarterdeck" }).hover();
+  await expect(card).toHaveAttribute("data-section", "quarterdeck");
+  await e2e.page.mouse.move(5, 5);
+  await expect(card).toBeHidden();
+  await expect(inspector.getByRole("heading", { name: "Central machinery" })).toBeVisible();
+
+  // Escape clears the pin but leaves the dialog open; the next Escape closes the dialog as before.
+  await strip.getByRole("button", { name: "Forward service" }).focus();
+  await e2e.page.keyboard.press("Tab");
+  await expect(strip.getByRole("button", { name: "Central machinery" })).toBeFocused();
+  await expect(card).toBeVisible();
+  await e2e.page.keyboard.press("Escape");
+  await expect(card).toBeHidden();
+  await e2e.page.keyboard.press("Escape");
+  await expect(inspector).toHaveCount(0);
+  await expect(board).toBeVisible();
+
+  // A fitting's hit target sits exactly on its drawn marker, and a click selects it. The campaign's starting
+  // design depends on the date, so the gun (a fitting with a mount name) and a second fitting are looked up.
+  const ids = await board.evaluate((root) =>
+    [...root.querySelectorAll('[role="toolbar"] [data-target]')].map((el) => [
+      el.getAttribute("data-target")!,
+      el.getAttribute("aria-label")!,
+    ]),
+  );
+  const gunId = ids.find(([, name]) => name.includes("(mount "))![0];
+  const otherId = ids.find(([id, name]) => id !== gunId && !name.includes("(mount "))![0];
+  const gunTarget = board.locator(`[data-target="${gunId}"]`);
+  const gunDot = board.locator(`[data-fitting="${gunId}"]`);
+  const [t, d] = [(await gunTarget.boundingBox())!, (await gunDot.boundingBox())!];
+  expect(Math.abs(t.x + t.width / 2 - (d.x + d.width / 2))).toBeLessThan(1.5);
+  expect(Math.abs(t.y + t.height / 2 - (d.y + d.height / 2))).toBeLessThan(1.5);
+  await gunTarget.click();
+  await expect(gunTarget).toHaveAttribute("aria-pressed", "true");
+  await expect(inspector.getByText("Selected fitting")).toBeVisible();
+
+  // Go to settings: the battery card opens on its tab, scrolled into view, focused and outlined.
+  await inspector.getByRole("button", { name: "Go to battery settings" }).click();
+  await expect(board.getByRole("tab", { name: /Arrangement/ })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  const focused = e2e.page.locator(":focus");
+  await expect(focused).toHaveAttribute("aria-label", /^Rounds per gun, /);
+  await expect(focused).toBeInViewport();
+  await expect(board.locator("[data-battery][data-nav-flash]")).toHaveCount(1);
+  await expect(gunTarget).toHaveAttribute("aria-pressed", "true");
+
+  // Form to drawing: focus in another fitting's row lights it; leaving the form clears that, not the pin.
+  await board.getByLabel(new RegExp(`^Station of ${otherId} `)).focus();
+  await expect(board.locator(`[data-target="${otherId}"]`)).toHaveAttribute("data-state", "linked");
+  await expect(gunTarget).toHaveAttribute("data-state", "selected");
+  await strip.getByRole("button", { name: "Forecastle" }).focus();
+  await expect(board.locator(`[data-target="${otherId}"]`)).toHaveAttribute(
+    "data-state",
+    "default",
+  );
+
+  // Narrow window: the stacked layout keeps the selection and its inspector.
+  await e2e.app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0]!.setSize(960, 760),
+  );
+  await expect(board.getByRole("button", { name: "Hide ship view" })).toBeVisible();
+  await expect(gunTarget).toHaveAttribute("aria-pressed", "true");
+  await expect(inspector.getByText("Selected fitting")).toBeAttached();
+});
+
 test("row 6e: a fleet ordered to sail moves one hop when the month advances", async ({ e2e }) => {
   const copy = await copyFixturePackage(sharedSaveDir, e2e.scratch);
   await e2e.retargetDialog(copy);

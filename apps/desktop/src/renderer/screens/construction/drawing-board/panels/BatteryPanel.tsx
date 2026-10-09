@@ -7,6 +7,7 @@ import type { DrawingBoardContent } from "../content.js";
 import { NumberField } from "../fields.js";
 import { Panel } from "./Panel.js";
 import type { Edit } from "./types.js";
+import { batteryAttrs } from "../selection/navigation.js";
 
 const tonnes = (kg: number) => (kg / 1000).toLocaleString("en-US", { maximumFractionDigits: 0 });
 /** "gun"/"guns", "tube"/"tubes". */
@@ -36,7 +37,14 @@ export function BatteryPanel({
       ) : (
         <ul className="space-y-3">
           {cards.map(({ row, title, mounts }) => (
-            <li key={row.key} className="space-y-2 rounded-md border p-3">
+            <li
+              key={row.key}
+              className="space-y-2 rounded-md border p-3"
+              {...batteryAttrs(
+                row.key,
+                mounts.map((m) => m.instanceId),
+              )}
+            >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="font-medium">{title}</span>
                 <span className="text-sm tabular-nums text-muted-foreground">

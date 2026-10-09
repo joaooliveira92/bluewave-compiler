@@ -147,22 +147,13 @@ describe("section labels on the hull plan", () => {
 
   it("follows the zones it is given, and falls back to an even row without them", () => {
     const zones = form.zones.map((z) => (z.id === "FORECASTLE" ? { ...z, endPermille: 120 } : z));
-    const { rerender } = render(
-      <SectionLabels
-        zones={zones}
-        active={null}
-        onActiveChange={() => {}}
-        renderCard={() => null}
-      />,
-    );
+    const { rerender } = render(<SectionLabels zones={zones} renderCard={() => null} />);
     const left = parseFloat(label("Forecastle").style.left);
     expect(left).toBeCloseTo(
       sectionSpan(zones[0]!).leftPct + sectionSpan(zones[0]!).widthPct / 2,
       4,
     );
-    rerender(
-      <SectionLabels zones={[]} active={null} onActiveChange={() => {}} renderCard={() => null} />,
-    );
+    rerender(<SectionLabels zones={[]} renderCard={() => null} />);
     expect(strip().dataset["aligned"]).toBe("false");
     expect(within(strip()).getAllByRole("button")).toHaveLength(8);
   });
@@ -188,17 +179,24 @@ describe("section labels on the hull plan", () => {
     expect(highlight()?.getAttribute("data-zone")).toBe("FWD_MAGAZINE");
   });
 
-  it("opens on a tap or click, for pointers that cannot hover", async () => {
+  it("gives tap and click users the same details without hover, in the inspector", () => {
     render(<DrawingBoard />);
     fireEvent.click(label("Quarterdeck"));
-    await screen.findByRole("heading", { name: "Quarterdeck" });
-    expect(highlight()?.getAttribute("data-zone")).toBe("QUARTERDECK");
+    // A tap pins the section: the plan shows the selected state and the inspector holds the details, so the
+    // preview card is closed rather than left covering them.
+    expect(
+      document.querySelector("[data-testid='section-selected']")?.getAttribute("data-zone"),
+    ).toBe("QUARTERDECK");
+    const inspector = screen.getByTestId("selection-inspector");
+    expect(within(inspector).getByRole("heading", { name: "Quarterdeck" })).toBeTruthy();
+    expect(within(inspector).getByText(/‰ · .* m from the bow/)).toBeTruthy();
+    expect(card()).toBeNull();
   });
 
   it("renders the card outside the Drawing Board, so no panel overflow can clip it", async () => {
     render(<DrawingBoard />);
-    fireEvent.click(label("Superstructure"));
-    await screen.findByRole("heading", { name: "Superstructure" });
+    tabTo(label("Superstructure"));
+    await expect.poll(() => card()?.dataset["section"]).toBe("superstructure");
     expect(screen.getByTestId("drawing-board").contains(card())).toBe(false);
   });
 
@@ -211,8 +209,8 @@ describe("section labels on the hull plan", () => {
       expect(screen.getByRole("img", { name: /Top-down plan/ })).toBe(drawing);
       expect(drawing.querySelectorAll("[data-arc]")).toHaveLength(0);
     }
-    fireEvent.click(label("Aft service"));
-    await screen.findByRole("heading", { name: "Aft service" });
+    tabTo(label("Aft service"));
+    await expect.poll(() => card()?.dataset["section"]).toBe("aft-service");
     expect(screen.getByRole("button", { name: "Place on plan" })).toBeTruthy();
   });
 });

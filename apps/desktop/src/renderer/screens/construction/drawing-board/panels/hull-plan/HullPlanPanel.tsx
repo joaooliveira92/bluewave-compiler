@@ -20,7 +20,11 @@ import {
 import { ProfileView } from "./ProfileView.js";
 import { SectionCard } from "./SectionCard.js";
 import { SectionLabels } from "./SectionLabels.js";
-import { SECTIONS, type SectionId } from "./sections.js";
+import { batteryCards, mountNameMap } from "../../batteryView.js";
+import { entityWarns } from "../../selection/facts.js";
+import type { ShipEntity } from "../../selection/store.js";
+import { FittingTargets } from "./FittingTargets.js";
+import { SelectionLayer } from "./SelectionLayer.js";
 import type { Edit } from "../types.js";
 import {
   funnelPlacements,
@@ -29,7 +33,6 @@ import {
   HullOutlineLayer,
   HullTopsideLayer,
   HullZoneLayer,
-  SectionHighlightLayer,
 } from "./layers.js";
 
 /**
@@ -58,8 +61,6 @@ export function HullPlanPanel({
   const [showArcs, setShowArcs] = useState(true);
   const [tool, setTool] = useState<PlanTool>(IDLE_TOOL);
   const [notice, setNotice] = useState<string | null>(null);
-  // Presentation state only: which section card is open (and so highlighted). Never part of the design.
-  const [activeSection, setActiveSection] = useState<SectionId | null>(null);
   const planRef = useRef<HTMLDivElement>(null);
   const form = content.hullForms.find((f) => f.id === draft.hull.hullFormId);
   const frame = planFrame(
@@ -98,6 +99,18 @@ export function HullPlanPanel({
     }
   };
   const mounts = view.compiled.weapons?.mounts ?? [];
+  const mountNames = mountNameMap(batteryCards(view, draft));
+  const targets = new Map(
+    draft.placements.map((p) => [
+      p.instanceId,
+      {
+        instanceId: p.instanceId,
+        name: defOf(p.componentId)?.displayName ?? p.componentId,
+        mount: mountNames.get(p.instanceId),
+      },
+    ]),
+  );
+  const warns = (entity: ShipEntity) => entityWarns(entity, view);
   const superstructure = zones.find((z) => z.id === "SUPERSTRUCTURE");
   const placedFunnels = funnelPlacements(draft, content);
   const facts: DrawingFacts = {
@@ -152,60 +165,59 @@ export function HullPlanPanel({
         </div>
         <div className="space-y-1" ref={planRef}>
           <p className="text-xs font-medium text-muted-foreground">Waterline plan</p>
-          <svg
-            viewBox={`0 0 ${PLAN_W} ${PLAN_H}`}
-            className="w-full rounded bg-muted/40"
-            role="img"
-            aria-label={planLabel(facts)}
-          >
-            <HullOutlineLayer frame={frame} />
-            <SectionHighlightLayer
-              frame={frame}
-              zone={
-                activeSection === null
-                  ? undefined
-                  : zones.find((z) => z.id === SECTIONS[activeSection].zoneId)
-              }
-            />
-            <HullZoneLayer frame={frame} zones={zones} />
-            <HullTopsideLayer frame={frame} draft={draft} content={content} zones={zones} />
-            {showArcs && <GunArcLayer frame={frame} draft={draft} mounts={mounts} />}
-            <HullFittingLayer
+          <div className="relative">
+            <svg
+              viewBox={`0 0 ${PLAN_W} ${PLAN_H}`}
+              className="block w-full rounded bg-muted/40"
+              role="img"
+              aria-label={planLabel(facts)}
+            >
+              <HullOutlineLayer frame={frame} />
+              <SelectionLayer frame={frame} zones={zones} draft={draft} warns={warns} />
+              <HullZoneLayer frame={frame} zones={zones} />
+              <HullTopsideLayer frame={frame} draft={draft} content={content} zones={zones} />
+              {showArcs && <GunArcLayer frame={frame} draft={draft} mounts={mounts} />}
+              <HullFittingLayer
+                frame={frame}
+                draft={draft}
+                selectedId={tool.mode === "move" ? tool.instanceId : undefined}
+              />
+              {tool.mode !== "off" && (
+                <rect
+                  x={0}
+                  y={0}
+                  width={PLAN_W}
+                  height={PLAN_H}
+                  fill="transparent"
+                  className="cursor-crosshair"
+                  aria-hidden="true"
+                  data-testid="plan-click-layer"
+                  onClick={(e) => {
+                    const point = clientToPlan(
+                      e.currentTarget.ownerSVGElement?.getBoundingClientRect() ?? {
+                        left: 0,
+                        top: 0,
+                        width: 0,
+                        height: 0,
+                      },
+                      e.clientX,
+                      e.clientY,
+                    );
+                    if (point) onPlanClick(point.x, point.y);
+                  }}
+                />
+              )}
+            </svg>
+            <FittingTargets
               frame={frame}
               draft={draft}
-              content={content}
-              selectedId={tool.mode === "move" ? tool.instanceId : undefined}
+              targets={targets}
+              disabled={tool.mode !== "off"}
+              warns={(instanceId) => warns({ kind: "fitting", instanceId })}
             />
-            {tool.mode !== "off" && (
-              <rect
-                x={0}
-                y={0}
-                width={PLAN_W}
-                height={PLAN_H}
-                fill="transparent"
-                className="cursor-crosshair"
-                aria-hidden="true"
-                data-testid="plan-click-layer"
-                onClick={(e) => {
-                  const point = clientToPlan(
-                    e.currentTarget.ownerSVGElement?.getBoundingClientRect() ?? {
-                      left: 0,
-                      top: 0,
-                      width: 0,
-                      height: 0,
-                    },
-                    e.clientX,
-                    e.clientY,
-                  );
-                  if (point) onPlanClick(point.x, point.y);
-                }}
-              />
-            )}
-          </svg>
+          </div>
           <SectionLabels
             zones={zones}
-            active={activeSection}
-            onActiveChange={setActiveSection}
             anchor={planRef}
             renderCard={(id) => (
               <SectionCard

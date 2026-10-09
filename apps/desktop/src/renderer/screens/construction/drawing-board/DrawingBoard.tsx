@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { armourMaterialOptions } from "@bluewave/ship-design";
 import { batteryCards, mountNameMap } from "./batteryView.js";
 import {
@@ -43,6 +43,17 @@ import {
 import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
 import type { RevisionProject } from "./revisionPreview.js";
 import { useDrawingBoard } from "./useDrawingBoard.js";
+import { entityExists, type EntityContext } from "./selection/facts.js";
+import {
+  BOARD_TABS,
+  findDrawingControl,
+  linkedEntities,
+  type BoardTab,
+} from "./selection/navigation.js";
+import { SelectionInspector } from "./selection/SelectionInspector.js";
+import { createSelectionStore } from "./selection/store.js";
+import { useFormNavigation } from "./selection/useFormNavigation.js";
+import { ShipSelectionProvider } from "./selection/useShipSelection.js";
 import { ShipViewBoundary } from "./workspace/ShipViewBoundary.js";
 import { ShipWorkspace } from "./workspace/ShipWorkspace.js";
 
@@ -50,7 +61,7 @@ import { ShipWorkspace } from "./workspace/ShipWorkspace.js";
  * Tabs with icons (ReUI c-tabs-6): the board is split by what the player is doing, so nothing needs a long scroll.
  * The hull plan is not a tab's content: it stays in the workspace's ship view whichever tab is open.
  */
-const TABS: readonly { value: string; label: string; Icon: LucideIcon }[] = [
+const TABS: readonly { value: BoardTab; label: string; Icon: LucideIcon }[] = [
   { value: "hull", label: "Hull and machinery", Icon: Ship },
   { value: "arrangement", label: "Arrangement", Icon: LayoutGrid },
   { value: "analysis", label: "Analysis", Icon: Gauge },
@@ -81,187 +92,249 @@ export function DrawingBoard({
     armourEnv.unlockedTechs,
   );
   const [pendingPreset, setPendingPreset] = useState<string | null>(null);
-  const [tab, setTab] = useState("hull");
+  const [tab, setTab] = useState<BoardTab>("hull");
+  const zones = content.hullForms.find((f) => f.id === draft.hull.hullFormId)?.zones ?? [];
+  const entityCtx: EntityContext = { draft, view, content, zones, batteries };
+  // Presentation selection (pinned, form-linked, hover preview): one store for the board, never design state.
+  const [selection] = useState(createSelectionStore);
+  useEffect(() => selection.prune((e) => entityExists(e, draft, zones)), [selection, draft, zones]);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const goTo = useFormNavigation(setTab, rootRef);
+  const clearSelection = () => {
+    const was = selection.get().selected;
+    selection.clear();
+    if (was && rootRef.current) findDrawingControl(rootRef.current, was)?.focus();
+  };
+  // Another ship replaces everything the selection could point at.
+  const loadPreset = (id: string) => {
+    selection.clear();
+    actions.loadPreset(id);
+  };
+  const loadDraft: typeof actions.loadDraft = (d) => {
+    selection.clear();
+    actions.loadDraft(d);
+  };
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4" data-testid="drawing-board">
-      <div className="flex flex-wrap items-end gap-3">
-        <SelectField
-          className="min-w-64"
-          label="Starting design"
-          value={state.preset.id}
-          options={content.references.map((r) => ({ value: r.id, label: r.name }))}
-          onChange={(id) => (state.editCount > 0 ? setPendingPreset(id) : actions.loadPreset(id))}
-        />
-        <SelectField
-          className="min-w-32"
-          label="Technology as of"
-          value={state.month}
-          options={(campaignMonth !== null
-            ? [campaignMonth]
-            : [...new Set([...MONTHS, state.month])].sort()
-          ).map((m) => ({
-            value: m,
-            label: campaignMonth !== null ? `${m} (campaign date)` : m,
-          }))}
-          onChange={actions.setMonth}
-        />
-        <ButtonGroup aria-label="History">
-          <Button variant="outline" onClick={actions.undo} disabled={!state.canUndo}>
-            <Undo2 aria-hidden="true" className="mr-1 size-4" />
-            Undo
-          </Button>
-          <Button variant="outline" onClick={actions.redo} disabled={!state.canRedo}>
-            <Redo2 aria-hidden="true" className="mr-1 size-4" />
-            Redo
-          </Button>
-        </ButtonGroup>
-        <Badge variant="secondary">{state.editCount} edit(s)</Badge>
-        <RequirementChip requirement={draft.requirement} />
-      </div>
-      <ConfirmDialog
-        open={pendingPreset !== null}
-        onOpenChange={(open) => !open && setPendingPreset(null)}
-        title="Start from a different design?"
-        description="This replaces the design you are working on, and its edit history is cleared."
-        confirmLabel="Replace my design"
-        onConfirm={() => {
-          if (pendingPreset !== null) actions.loadPreset(pendingPreset);
-          setPendingPreset(null);
+    <ShipSelectionProvider store={selection}>
+      <div
+        ref={rootRef}
+        className="flex h-full min-h-0 flex-col gap-4"
+        data-testid="drawing-board"
+        onKeyDownCapture={(e) => {
+          // Escape clears a pinned selection from the drawing or the inspector, after any open hover card and
+          // before the dialog: layered, so one key press never does two things. Capture phase, so a control's
+          // own key handling (the fitting tooltips) cannot swallow it first.
+          if (e.key !== "Escape") return;
+          const s = selection.get();
+          if (s.selected === null || s.preview !== null) return;
+          if (!(e.target instanceof Element) || !e.target.closest("[data-selection-scope]")) return;
+          e.preventDefault();
+          e.stopPropagation();
+          clearSelection();
         }}
-      />
-      {state.editError !== null && <Alert variant="destructive">{state.editError}</Alert>}
-      <button
-        type="button"
-        onClick={() => setTab("analysis")}
-        aria-label="Design status: open the analysis tab"
-        className="flex w-full flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <Badge variant={view.valid ? "secondary" : "destructive"}>
-          {view.valid ? "Can be submitted" : "Cannot be built"}
-        </Badge>
-        <span className="text-muted-foreground">
-          {view.counts.BLOCKING} blocking · {view.counts.CRITICAL} critical · {view.counts.WARNING}{" "}
-          warning
-        </span>
-        {view.metrics.slice(0, 3).map((m) => (
-          <span key={m.id} className="tabular-nums">
-            <span className="text-muted-foreground">{m.label}:</span> {m.value}
+        <div className="flex flex-wrap items-end gap-3">
+          <SelectField
+            className="min-w-64"
+            label="Starting design"
+            value={state.preset.id}
+            options={content.references.map((r) => ({ value: r.id, label: r.name }))}
+            onChange={(id) => (state.editCount > 0 ? setPendingPreset(id) : loadPreset(id))}
+          />
+          <SelectField
+            className="min-w-32"
+            label="Technology as of"
+            value={state.month}
+            options={(campaignMonth !== null
+              ? [campaignMonth]
+              : [...new Set([...MONTHS, state.month])].sort()
+            ).map((m) => ({
+              value: m,
+              label: campaignMonth !== null ? `${m} (campaign date)` : m,
+            }))}
+            onChange={actions.setMonth}
+          />
+          <ButtonGroup aria-label="History">
+            <Button variant="outline" onClick={actions.undo} disabled={!state.canUndo}>
+              <Undo2 aria-hidden="true" className="mr-1 size-4" />
+              Undo
+            </Button>
+            <Button variant="outline" onClick={actions.redo} disabled={!state.canRedo}>
+              <Redo2 aria-hidden="true" className="mr-1 size-4" />
+              Redo
+            </Button>
+          </ButtonGroup>
+          <Badge variant="secondary">{state.editCount} edit(s)</Badge>
+          <RequirementChip requirement={draft.requirement} />
+        </div>
+        <ConfirmDialog
+          open={pendingPreset !== null}
+          onOpenChange={(open) => !open && setPendingPreset(null)}
+          title="Start from a different design?"
+          description="This replaces the design you are working on, and its edit history is cleared."
+          confirmLabel="Replace my design"
+          onConfirm={() => {
+            if (pendingPreset !== null) loadPreset(pendingPreset);
+            setPendingPreset(null);
+          }}
+        />
+        {state.editError !== null && <Alert variant="destructive">{state.editError}</Alert>}
+        <button
+          type="button"
+          onClick={() => setTab("analysis")}
+          aria-label="Design status: open the analysis tab"
+          className="flex w-full flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Badge variant={view.valid ? "secondary" : "destructive"}>
+            {view.valid ? "Can be submitted" : "Cannot be built"}
+          </Badge>
+          <span className="text-muted-foreground">
+            {view.counts.BLOCKING} blocking · {view.counts.CRITICAL} critical ·{" "}
+            {view.counts.WARNING} warning
           </span>
-        ))}
-      </button>
-      <ShipWorkspace
-        ship={
-          <ShipViewBoundary resetKey={draft}>
-            <HullPlanPanel
-              draft={draft}
-              content={content}
-              view={view}
-              month={state.month}
-              edit={actions.edit}
-            />
-          </ShipViewBoundary>
-        }
-      >
-        <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
-          <TabsList className="h-auto w-full flex-wrap">
-            {TABS.map(({ value, label, Icon }) => (
-              <TabsTrigger key={value} value={value} className="flex-1 gap-2">
-                <Icon aria-hidden="true" className="hidden size-4 @3xl:block" />
-                {label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          <TabsContent value="hull" keepMounted className={TAB_GRID}>
-            <BriefPanel draft={draft} view={view} edit={actions.edit} />
-            <div className="space-y-4">
-              <HullPanel draft={draft} content={content} edit={actions.edit} />
-              <MachineryPanel draft={draft} content={content} edit={actions.edit} />
+          {view.metrics.slice(0, 3).map((m) => (
+            <span key={m.id} className="tabular-nums">
+              <span className="text-muted-foreground">{m.label}:</span> {m.value}
+            </span>
+          ))}
+        </button>
+        <ShipWorkspace
+          ship={
+            <div data-selection-scope="">
+              <ShipViewBoundary resetKey={draft}>
+                <HullPlanPanel
+                  draft={draft}
+                  content={content}
+                  view={view}
+                  month={state.month}
+                  edit={actions.edit}
+                />
+              </ShipViewBoundary>
             </div>
-          </TabsContent>
+          }
+        >
+          <div
+            // Form-to-drawing linking: focus in a form group about ship elements lights them on the drawing.
+            onFocus={(e) => selection.setLinked(linkedEntities(e.target, entityCtx))}
+            onBlur={(e) => {
+              if (!(e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)))
+                selection.setLinked([]);
+            }}
+          >
+            <Tabs
+              value={tab}
+              onValueChange={(v) => {
+                const next = BOARD_TABS.find((t) => t === v);
+                if (next) setTab(next);
+              }}
+            >
+              <TabsList className="h-auto w-full flex-wrap">
+                {TABS.map(({ value, label, Icon }) => (
+                  <TabsTrigger key={value} value={value} className="flex-1 gap-2">
+                    <Icon aria-hidden="true" className="hidden size-4 @3xl:block" />
+                    {label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <SelectionInspector ctx={entityCtx} onGoTo={goTo} onClear={clearSelection} />
 
-          <TabsContent value="arrangement" keepMounted className="space-y-4">
-            <BatteryPanel cards={batteries} draft={draft} content={content} edit={actions.edit} />
-            <PlacementsPanel
-              names={mountNameMap(batteries)}
-              draft={draft}
-              content={content}
-              month={state.month}
-              view={view}
-              edit={actions.edit}
-            />
-            <div className={TAB_GRID}>
-              <ArmourPanel
-                draft={draft}
-                view={view}
-                materials={armourMaterials}
-                edit={actions.edit}
-              />
-              <TopsidePanel view={view} />
-            </div>
-          </TabsContent>
+              <TabsContent value="hull" keepMounted className={TAB_GRID}>
+                <BriefPanel draft={draft} view={view} edit={actions.edit} />
+                <div className="space-y-4">
+                  <HullPanel draft={draft} content={content} edit={actions.edit} />
+                  <MachineryPanel draft={draft} content={content} edit={actions.edit} />
+                </div>
+              </TabsContent>
 
-          <TabsContent value="analysis" keepMounted className={TAB_GRID}>
-            <div className="space-y-4">
-              <FindingsPanel view={view} suggest={actions.suggest} onApply={actions.edit} />
-              <LedgerPanel view={view} />
-            </div>
-            <div className="space-y-4">
-              <MetricsPanel view={view} />
-              <ComparePanel baseline={state.baseline} view={view} name={state.preset.name} />
-              <ForecastPanel view={view} treasuryUnitMicro={content.treasuryUnitMicro} />
-            </div>
-          </TabsContent>
+              <TabsContent value="arrangement" keepMounted className="space-y-4">
+                <BatteryPanel
+                  cards={batteries}
+                  draft={draft}
+                  content={content}
+                  edit={actions.edit}
+                />
+                <PlacementsPanel
+                  names={mountNameMap(batteries)}
+                  draft={draft}
+                  content={content}
+                  month={state.month}
+                  view={view}
+                  edit={actions.edit}
+                />
+                <div className={TAB_GRID}>
+                  <ArmourPanel
+                    draft={draft}
+                    view={view}
+                    materials={armourMaterials}
+                    edit={actions.edit}
+                  />
+                  <TopsidePanel view={view} />
+                </div>
+              </TabsContent>
 
-          <TabsContent value="build" keepMounted className={TAB_GRID}>
-            {sessionId !== undefined && (
-              <SubmitPanel sessionId={sessionId} draft={draft} valid={view.valid} />
-            )}
-            <RevisionPanel
-              sessionId={sessionId}
-              projects={projects}
-              history={state.history.slice(0, state.editCount)}
-              draft={draft}
-              startDraft={state.preset.draft}
-              content={content}
-              onLoad={actions.loadDraft}
-              dirty={state.editCount > 0}
-            />
-            <RebuildPanel
-              sessionId={sessionId}
-              draft={draft}
-              content={content}
-              onLoad={actions.loadDraft}
-              dirty={state.editCount > 0}
-            />
-          </TabsContent>
+              <TabsContent value="analysis" keepMounted className={TAB_GRID}>
+                <div className="space-y-4">
+                  <FindingsPanel view={view} suggest={actions.suggest} onApply={actions.edit} />
+                  <LedgerPanel view={view} />
+                </div>
+                <div className="space-y-4">
+                  <MetricsPanel view={view} />
+                  <ComparePanel baseline={state.baseline} view={view} name={state.preset.name} />
+                  <ForecastPanel view={view} treasuryUnitMicro={content.treasuryUnitMicro} />
+                </div>
+              </TabsContent>
 
-          <TabsContent value="tools" keepMounted className={TAB_GRID}>
-            <HistoryPanel
-              history={state.history}
-              cursor={state.editCount}
-              startName={state.preset.name}
-              content={content}
-              jumpTo={actions.jumpTo}
-            />
-            <div className="space-y-4">
-              <FilePanel
-                draft={draft}
-                view={view}
-                content={content}
-                presetName={state.preset.name}
-                onLoad={actions.loadDraft}
-                dirty={state.editCount > 0}
-              />
-              <AlternativesPanel
-                dirty={state.editCount > 0}
-                generate={actions.generateAlternatives}
-                onLoad={actions.loadDraft}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
-      </ShipWorkspace>
-    </div>
+              <TabsContent value="build" keepMounted className={TAB_GRID}>
+                {sessionId !== undefined && (
+                  <SubmitPanel sessionId={sessionId} draft={draft} valid={view.valid} />
+                )}
+                <RevisionPanel
+                  sessionId={sessionId}
+                  projects={projects}
+                  history={state.history.slice(0, state.editCount)}
+                  draft={draft}
+                  startDraft={state.preset.draft}
+                  content={content}
+                  onLoad={loadDraft}
+                  dirty={state.editCount > 0}
+                />
+                <RebuildPanel
+                  sessionId={sessionId}
+                  draft={draft}
+                  content={content}
+                  onLoad={loadDraft}
+                  dirty={state.editCount > 0}
+                />
+              </TabsContent>
+
+              <TabsContent value="tools" keepMounted className={TAB_GRID}>
+                <HistoryPanel
+                  history={state.history}
+                  cursor={state.editCount}
+                  startName={state.preset.name}
+                  content={content}
+                  jumpTo={actions.jumpTo}
+                />
+                <div className="space-y-4">
+                  <FilePanel
+                    draft={draft}
+                    view={view}
+                    content={content}
+                    presetName={state.preset.name}
+                    onLoad={loadDraft}
+                    dirty={state.editCount > 0}
+                  />
+                  <AlternativesPanel
+                    dirty={state.editCount > 0}
+                    generate={actions.generateAlternatives}
+                    onLoad={loadDraft}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </ShipWorkspace>
+      </div>
+    </ShipSelectionProvider>
   );
 }

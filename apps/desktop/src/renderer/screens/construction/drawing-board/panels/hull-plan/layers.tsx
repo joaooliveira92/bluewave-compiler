@@ -11,7 +11,6 @@ import {
   STROKE,
 } from "./drafting.js";
 import { fittingPoint, PLAN_MID, PLAN_PAD, PLAN_W, type PlanFrame } from "./geometry.js";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../../components/ui/tooltip.js";
 import type { FunnelInput } from "./profile-geometry.js";
 
 const PLAN_FONT = LABEL_FONT;
@@ -168,19 +167,42 @@ export function HullZoneLayer({
 }
 
 /**
- * Marks the section being inspected. Drawn above the hull fill and under everything else, so fittings, arcs
- * and the superstructure stay visible through it.
+ * How a section is lit, weakest first. Each differs in line pattern as well as fill, so the states read without
+ * colour: preview (hover card open) dashed; linked from a form, dotted with no fill; selected, solid and filled.
+ */
+export type SectionHighlight = "preview" | "linked" | "selected";
+
+const HIGHLIGHT: Record<
+  SectionHighlight,
+  { fill: number; width: number; dash: string | undefined; testId: string }
+> = {
+  preview: {
+    fill: 0.1,
+    width: STROKE.structure,
+    dash: DASH.zoneGuide,
+    testId: "section-highlight",
+  },
+  linked: { fill: 0, width: STROKE.structure, dash: "1 3", testId: "section-linked" },
+  selected: { fill: 0.16, width: 2.2, dash: undefined, testId: "section-selected" },
+};
+
+/**
+ * Marks a section. Drawn above the hull fill and under everything else, so fittings, arcs, boundaries and the
+ * superstructure stay visible through it.
  */
 export function SectionHighlightLayer({
   frame,
   zone,
+  variant = "preview",
 }: {
   readonly frame: PlanFrame;
   readonly zone:
     | { readonly id: string; readonly startPermille: number; readonly endPermille: number }
     | undefined;
+  readonly variant?: SectionHighlight;
 }) {
   if (!zone) return null;
+  const style = HIGHLIGHT[variant];
   return (
     <rect
       x={frame.x(zone.startPermille)}
@@ -188,31 +210,65 @@ export function SectionHighlightLayer({
       y={PLAN_MID - frame.maxHalf - 4}
       height={frame.maxHalf * 2 + 8}
       className="pointer-events-none fill-primary stroke-primary"
-      fillOpacity={0.1}
-      strokeOpacity={0.7}
-      strokeWidth={STROKE.structure}
-      strokeDasharray={DASH.zoneGuide}
+      fillOpacity={style.fill}
+      strokeOpacity={0.75}
+      strokeWidth={style.width}
+      strokeDasharray={style.dash}
       {...NON_SCALING}
-      data-testid="section-highlight"
+      data-testid={style.testId}
       data-zone={zone.id}
       aria-hidden="true"
     />
   );
 }
 
+/** A machinery room's station (rooms have no drawn extent in the model): a bar across the hull marked "M". */
+export function MachineryRoomMarker({
+  frame,
+  stationPermille,
+  variant,
+}: {
+  readonly frame: PlanFrame;
+  readonly stationPermille: number;
+  readonly variant: "linked" | "selected";
+}) {
+  const x = frame.x(stationPermille);
+  const top = PLAN_MID - frame.maxHalf - 2;
+  return (
+    <g
+      className="pointer-events-none"
+      aria-hidden="true"
+      data-testid={`room-${variant}`}
+      data-station={stationPermille}
+    >
+      <line
+        x1={x}
+        x2={x}
+        y1={top}
+        y2={PLAN_MID + frame.maxHalf + 2}
+        className="stroke-primary"
+        strokeWidth={variant === "selected" ? 2.2 : STROKE.structure}
+        strokeDasharray={variant === "linked" ? "1 3" : undefined}
+        {...NON_SCALING}
+      />
+      <text x={x + 3} y={top + 2} className="fill-primary font-medium" fontSize={LABEL_FONT}>
+        M
+      </text>
+    </g>
+  );
+}
+
+/** The fittings' markers. Names, hover and selection are on the `FittingTargets` overlay above the drawing. */
 export function HullFittingLayer({
   frame,
   draft,
-  content,
   selectedId,
 }: {
   readonly frame: PlanFrame;
   readonly draft: DesignDraft;
-  readonly content: DrawingBoardContent;
   /** Fitting to ring (the one being moved from the plan tools). */
   readonly selectedId?: string;
 }) {
-  const defs = new Map(content.components.map((c) => [c.id, c]));
   return (
     <>
       {draft.placements.map((p, i) => {
@@ -230,20 +286,7 @@ export function HullFittingLayer({
                 data-testid="plan-selected-ring"
               />
             )}
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={4}
-                    className="fill-primary"
-                    data-fitting={p.instanceId}
-                  />
-                }
-              />
-              <TooltipContent>{`${defs.get(p.componentId)?.displayName ?? p.componentId} (${p.instanceId}) @ ${p.stationPermille}‰`}</TooltipContent>
-            </Tooltip>
+            <circle cx={x} cy={y} r={4} className="fill-primary" data-fitting={p.instanceId} />
           </g>
         );
       })}
