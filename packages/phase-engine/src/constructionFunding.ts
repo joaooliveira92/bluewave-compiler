@@ -9,7 +9,7 @@ import {
 } from "@bluewave/ship-design";
 
 /** The ship-design plan view of a project's stored packages. */
-function planOf(packages: readonly ConstructionPackage[]): ConstructionPlan {
+export function planOf(packages: readonly ConstructionPackage[]): ConstructionPlan {
   const list = packages.map((p) => ({
     id: p["id"],
     kind: p["kind"],
@@ -20,7 +20,7 @@ function planOf(packages: readonly ConstructionPackage[]): ConstructionPlan {
   return { packages: list, totalWork: list.reduce((a, p) => a + p.totalWork, 0) };
 }
 
-const doneOf = (packages: readonly ConstructionPackage[]): Record<string, number> =>
+export const doneOf = (packages: readonly ConstructionPackage[]): Record<string, number> =>
   Object.fromEntries(packages.map((p) => [p["id"], p["doneWork"] as number]));
 
 export interface FundingResult {

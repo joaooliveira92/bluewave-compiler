@@ -181,6 +181,20 @@ export interface ConstructionProjectQueueEntry {
   readonly revisable: boolean;
   /** First month the project may be funded again after a revision, or null when it is not on hold. */
   readonly holdUntilMonth: string | null;
+  /** Per-package progress (ADR-0077); absent for a project with one work figure. */
+  readonly packages?: readonly ConstructionProjectPackageView[];
+  /** Id of the yard building the ship, when one was chosen (ADR-0077). */
+  readonly yardId?: string;
+}
+
+/** One work package of a project, in plain numbers (ADR-0077). */
+export interface ConstructionProjectPackageView {
+  readonly id: string;
+  readonly kind: string;
+  readonly line: string;
+  readonly totalWork: number;
+  readonly doneWork: number;
+  readonly dependsOn: readonly string[];
 }
 
 export function buildConstructionProjectQueue(
@@ -204,6 +218,19 @@ export function buildConstructionProjectQueue(
       commandId: constructionCommandIdForProject(project.id),
       revisable: design?.sourceDraft !== undefined && project.status !== "COMPLETED",
       holdUntilMonth: project.holdUntilMonth ?? null,
+      ...(project.packages
+        ? {
+            packages: project.packages.map((pk) => ({
+              id: pk.id,
+              kind: pk.kind,
+              line: pk.line,
+              totalWork: Number(pk.totalWork),
+              doneWork: Number(pk.doneWork),
+              dependsOn: [...pk.dependsOn],
+            })),
+          }
+        : {}),
+      ...(project.yardId !== undefined ? { yardId: project.yardId } : {}),
     };
   });
   entries.sort((a, b) => a.projectId.localeCompare(b.projectId));

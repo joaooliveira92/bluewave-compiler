@@ -1,7 +1,7 @@
 # 29: Run construction progress per work package
 
 **Type:** implementation (engine milestone)
-**Status:** in progress (29a, 29b, 29c done; 29d, 29e open, see ADR-0077)
+**Status:** in progress (29a-29d done; 29e open, see ADR-0077)
 **Blocked by:** none (ADR-0064 gives the package model)
 **Frontier:** yes
 
@@ -59,3 +59,9 @@ Next: 29c (the first slice that changes behaviour and golden hashes for designed
 Key proof: through the real month executor a package project completes in exactly `simulateConstruction`'s number of months for yard capacities 20, 45 and 1000 (`construction-engine.test.ts`), so the forecast and the engine agree. Legacy and authored projects (no packages) keep the single-figure arithmetic and every golden hash unchanged.
 Tests: ship-design 37 files / 390; phase-engine 22 files / 206 (construction-funding 8, construction-engine 8, clone audit); desktop main 22 files / 217 (snapshot-mutations 4). `pnpm check` exit 0 (173 desktop files, 1146 tests, 19 e2e, goldens and cross-process determinism unchanged).
 Known behaviour change (intended, ADR-0077): a designed ship now takes as many months as its yard allows, not one month per budget. Open: 29d (ReviseProject reads real state and rescales packages; a launched ship is T3), 29e (Construction screen shows packages and the yard; the Drawing Board yard list drops "forecast only").
+
+### 2026-10-09 orchestrator (29d)
+
+**29d done: revision reads real state and keeps packages consistent.** Found while testing: after 29c, revising a project made from the Drawing Board would have left its `packages` stale against the new design (closing validation would fail), because the existing revise tests only used one-figure projects. Now `applyReviseProject` (a) classifies from `projectBuildProgress` (hull share, armour/machinery started, launched) for a project with packages, so a launched ship is T3 and `REVISION_REQUIRES_REBUILD` is raised; (b) rescales the packages onto the new design's plan with `revisePackages`: the share done is kept per package (`floor(done x newTotal / oldTotal)`), T1 rework is added to the package its change kind reworks (structure, armour, machinery, main armament, fittings, in that order) so remaining work grows by exactly the rework, T2 keeps only hull work up to what the rules keep, the yard follows the new design and this month's capacity use is carried; (c) falls back to the single figure when the new design has no plan. The desktop revision preview and the construction queue entry read the same packages, so preview and engine agree.
+**Bug fixed in 29a/29b code:** a package with no work (a very small ship rounds some packages to zero units) counted as complete from the start, so `launched` was true at 0% and later packages could start before the hull. `isPackageComplete` now requires a package's dependencies to be complete too; `advanceConstructionMonth`, `isConstructionComplete` and `buildProgressOf` use it (tests: tiny plan, launched flag, dependents wait).
+Tests: ship-design 37 files / 394; phase-engine 23 files / 221 (construction-revision 9, revise-project +6 package cases); campaign-engine 15 files / 101; desktop construction 17 files / 166. Open: 29e (Construction screen shows packages and the yard; the Drawing Board yard list drops "forecast only").

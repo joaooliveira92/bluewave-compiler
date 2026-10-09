@@ -176,3 +176,60 @@ describe("projectedConstructionOrderCosts and designed ships (ADR-0074)", () => 
     ).toBe(11);
   });
 });
+
+describe("buildConstructionProjectQueue with work packages (ADR-0077)", () => {
+  const pk = (
+    id: string,
+    kind: "HULL" | "LAUNCH",
+    total: number,
+    done: number,
+    dependsOn: string[] = [],
+  ) => ({
+    id,
+    kind,
+    line: "slipway",
+    totalWork: SafeInt(total),
+    doneWork: SafeInt(done),
+    dependsOn,
+  });
+  const queue = (overrides: Parameters<typeof fixtureConstructionProject>[0]) =>
+    buildConstructionProjectQueue(
+      fixtureSnapshot(
+        [
+          fixtureNation({
+            id: "uk",
+            constructionProjects: [fixtureConstructionProject(overrides)],
+          }),
+        ],
+        [fixtureDesign("uk", "design-1")],
+      ),
+      "uk",
+    )[0]!;
+
+  it("exposes packages in plain numbers, with dependencies copied, and the yard", () => {
+    const entry = queue({
+      totalWork: SafeInt(10),
+      completedWork: SafeInt(4),
+      packages: [pk("hull", "HULL", 7, 4), pk("launch", "LAUNCH", 3, 0, ["hull"])],
+      yardId: "yard_small",
+    });
+    expect(entry.packages).toEqual([
+      { id: "hull", kind: "HULL", line: "slipway", totalWork: 7, doneWork: 4, dependsOn: [] },
+      {
+        id: "launch",
+        kind: "LAUNCH",
+        line: "slipway",
+        totalWork: 3,
+        doneWork: 0,
+        dependsOn: ["hull"],
+      },
+    ]);
+    expect(entry.yardId).toBe("yard_small");
+  });
+
+  it("omits both for a project with one work figure", () => {
+    const entry = queue({});
+    expect("packages" in entry).toBe(false);
+    expect("yardId" in entry).toBe(false);
+  });
+});

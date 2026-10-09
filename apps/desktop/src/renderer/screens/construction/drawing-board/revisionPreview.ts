@@ -1,13 +1,20 @@
 import {
+  buildProgressOf,
   changeKindsOf,
   classifyRevision,
   type BuildProgress,
   type ChangeKind,
   type ComponentCategory,
+  type ConstructionPlan,
   type DesignDraft,
   type DraftEdit,
+  type LineId,
+  type PackageKind,
   type RevisionBalance,
   type RevisionDecision,
+  type WorkPackage,
+  LINE_IDS,
+  PACKAGE_ORDER,
 } from "@bluewave/ship-design";
 
 /** The slice of an engine construction project the preview needs (work figures are engine numbers). */
@@ -21,25 +28,68 @@ export interface RevisionProject {
   readonly revisable?: boolean;
   /** First month the project may be funded again after an earlier revision, if it is on hold. */
   readonly holdUntilMonth?: string | null;
+  /** Per-package progress (ADR-0077); absent for a project with one work figure. */
+  readonly packages?: readonly RevisionPackage[];
+}
+
+/** One work package of a project, as the engine reports it. */
+export interface RevisionPackage {
+  readonly id: string;
+  readonly kind: string;
+  readonly line: string;
+  readonly totalWork: number;
+  readonly doneWork: number;
+  readonly dependsOn: readonly string[];
 }
 
 /** Only unfinished projects can be revised. */
 export const revisableProjects = (projects: readonly RevisionProject[]): RevisionProject[] =>
   projects.filter((p) => p.status !== "COMPLETED");
 
+const isPackageKind = (k: string): k is PackageKind =>
+  (PACKAGE_ORDER as readonly string[]).includes(k);
+const isLine = (l: string): l is LineId => (LINE_IDS as readonly string[]).includes(l);
+
+/** The project's packages as a ship-design plan and progress, or undefined when it has none or one is not recognised. */
+function packagePlan(
+  p: RevisionProject,
+): { plan: ConstructionPlan; progress: Record<string, number> } | undefined {
+  if (p.packages === undefined) return undefined;
+  const list: WorkPackage[] = [];
+  for (const pk of p.packages) {
+    if (!isPackageKind(pk.kind) || !isLine(pk.line)) return undefined;
+    list.push({
+      id: pk.id,
+      kind: pk.kind,
+      line: pk.line,
+      totalWork: pk.totalWork,
+      dependsOn: [...pk.dependsOn],
+    });
+  }
+  return {
+    plan: { packages: list, totalWork: list.reduce((a, x) => a + x.totalWork, 0) },
+    progress: Object.fromEntries(p.packages.map((pk) => [pk.id, pk.doneWork])),
+  };
+}
+
 /**
- * Progress for the classifier. The engine tracks one work figure per project, so hull progress is that ratio and
- * everything it does not track is stated here, not guessed: armour and machinery orders are treated as not started
- * and the ship as not launched. Rework is measured against all completed work (the conservative reading).
+ * Progress for the classifier, read the same way the engine reads it. A project with work packages (ADR-0077) is judged on
+ * its real state: hull progress, whether armour or machinery work has started, whether the ship is launched. A project with
+ * one work figure keeps the conservative reading of that figure: hull progress is the ratio, armour and machinery are
+ * treated as not started and the ship as not launched, and rework is measured against all completed work.
  */
-export const progressOf = (p: RevisionProject): BuildProgress => ({
-  hullDoneWork: p.completedWork,
-  hullTotalWork: p.totalWork,
-  armourStarted: false,
-  machineryStarted: false,
-  launched: false,
-  affectedDoneWork: p.completedWork,
-});
+export const progressOf = (p: RevisionProject): BuildProgress => {
+  const real = packagePlan(p);
+  if (real) return buildProgressOf(real.plan, real.progress);
+  return {
+    hullDoneWork: p.completedWork,
+    hullTotalWork: p.totalWork,
+    armourStarted: false,
+    machineryStarted: false,
+    launched: false,
+    affectedDoneWork: p.completedWork,
+  };
+};
 
 /** The distinct kinds of change the applied edits make, in a stable order. */
 export function changeKinds(

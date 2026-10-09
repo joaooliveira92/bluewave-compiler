@@ -11,6 +11,7 @@ import {
   type DesignDraft,
   type ShipBuildingContent,
 } from "@bluewave/ship-design";
+import { projectBuildProgress, revisePackages } from "./constructionRevision.js";
 import { buildDesignVersion, pricingFor } from "./designVersion.js";
 
 /** `YYYY-MM` plus `n` months. */
@@ -30,8 +31,9 @@ export function addMonths(month: string, n: number): string {
  * - reconstruction (T3): refused (REVISION_REQUIRES_REBUILD); it needs a rebuild project, which does not exist yet.
  *
  * T1 and T2 also put the project on hold for the rule's delay months (`holdUntilMonth`): it cannot be funded until then.
- * Not modelled (recorded in the ADR, not guessed): the T2 study cost (design studies are not built), and
- * armour/machinery-ordered or launched state (the engine does not track them).
+ * A project with work packages (ADR-0077) is classified from its real state, so a launched ship is T3, and its packages are
+ * rescaled onto the new design (`revisePackages`). Not modelled (recorded in the ADR, not guessed): the T2 study cost
+ * (design studies are not built), and armour/machinery-ordered or launched state for a project with one figure.
  * A rejected revision leaves the snapshot untouched.
  */
 export function applyReviseProject(
@@ -81,9 +83,12 @@ export function applyReviseProject(
   const kinds = draftChangeKinds(oldDraft, draft, (id) => categories.get(id));
   if (kinds.length === 0) return fail("REVISION_REJECTED", "The revision changes nothing");
 
+  // A project with work packages is classified from its real state (armour or machinery started, launched); a project
+  // with one figure keeps the conservative reading of that figure (ADR-0077).
   const decision = classifyRevision(
     kinds,
-    progressFromWork(Number(project.completedWork), Number(project.totalWork)),
+    projectBuildProgress(project) ??
+      progressFromWork(Number(project.completedWork), Number(project.totalWork)),
     content.revision,
   );
   if (decision.requiresRebuildProject)
@@ -110,14 +115,31 @@ export function applyReviseProject(
   const total = newTotal + decision.reworkWorkMicro;
   const kept =
     decision.tier === "T2_REDESIGN" ? decision.hullDoneWorkAfter : Number(project.completedWork);
-  const revised: ConstructionProject = {
-    ...project,
-    designVersionId: design.designVersionId,
-    totalWork: SafeInt(total),
-    completedWork: SafeInt(Math.min(kept, total)),
-    // A hold from an earlier revision stays until it lapses; a new delay replaces it.
-    ...(decision.delayMonths > 0 ? { holdUntilMonth: addMonths(month, decision.delayMonths) } : {}),
-  };
+  // Work packages follow the new design (ADR-0077). A design with no plan drops them: the project goes back to one figure.
+  const { packages: _packages, yardId: _yardId, monthUsage: _monthUsage, ...single } = project;
+  const revisedPackages = revisePackages(project, design.constructionPlan, decision, kinds);
+  const hold =
+    decision.delayMonths > 0 ? { holdUntilMonth: addMonths(month, decision.delayMonths) } : {};
+  const revised: ConstructionProject =
+    revisedPackages === null
+      ? {
+          ...single,
+          designVersionId: design.designVersionId,
+          totalWork: SafeInt(total),
+          completedWork: SafeInt(Math.min(kept, total)),
+          // A hold from an earlier revision stays until it lapses; a new delay replaces it.
+          ...hold,
+        }
+      : {
+          ...single,
+          designVersionId: design.designVersionId,
+          totalWork: SafeInt(revisedPackages.totalWork),
+          completedWork: SafeInt(revisedPackages.completedWork),
+          packages: revisedPackages.packages,
+          yardId: revisedPackages.yardId,
+          ...(revisedPackages.monthUsage ? { monthUsage: revisedPackages.monthUsage } : {}),
+          ...hold,
+        };
   const updatedNation: NationState = {
     ...nation,
     constructionProjects: nation.constructionProjects.map((p) =>

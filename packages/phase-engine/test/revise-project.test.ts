@@ -269,6 +269,109 @@ describe("ReviseProject through the month", () => {
   });
 });
 
+/**
+ * A snapshot holding a submitted design and a project built from that design's construction plan (ADR-0077), with each
+ * package `fractions[id]` (0..1, default 0) done.
+ */
+function withPackageProject(fractions: Record<string, number>): CampaignSnapshot {
+  const start = withProject(0);
+  const nation = start.nations.get(ATTACKER_NATION)!;
+  const plan = start.designs.get("des_rev_base")!.constructionPlan!;
+  const packages = plan.packages.map((p) => ({
+    id: p.id,
+    kind: p.kind,
+    line: p.line,
+    totalWork: p.totalWork,
+    doneWork: SafeInt(Math.floor(Number(p.totalWork) * (fractions[p.id] ?? 0))),
+    dependsOn: [...p.dependsOn],
+  }));
+  const total = packages.reduce((a, p) => a + Number(p.totalWork), 0);
+  const completed = packages.reduce((a, p) => a + Number(p.doneWork), 0);
+  const project = {
+    ...nation.constructionProjects[0]!,
+    totalWork: SafeInt(total),
+    completedWork: SafeInt(completed),
+    paidWork: SafeInt(completed),
+    packages,
+    yardId: plan.yardId,
+  };
+  return {
+    ...start,
+    nations: new Map([
+      ...start.nations,
+      [ATTACKER_NATION, { ...nation, constructionProjects: [project] }],
+    ]),
+  };
+}
+const packageInvariantsHold = (p: NationState["constructionProjects"][number]) =>
+  p.packages !== undefined &&
+  p.packages.reduce((a, x) => a + Number(x.totalWork), 0) === Number(p.totalWork) &&
+  p.packages.reduce((a, x) => a + Number(x.doneWork), 0) === Number(p.completedWork) &&
+  p.packages.every((x) => Number(x.doneWork) <= Number(x.totalWork));
+
+describe("ReviseProject on a project with work packages (ADR-0077)", () => {
+  it("a free change keeps the share done and the project consistent with the new design's plan", () => {
+    const before = withPackageProject({ hull: 0.02 });
+    const { snapshot, collector } = revise(before, fittingsChange);
+    expect(collector.errors.map((e) => `${e.code}: ${e.message}`)).toEqual([]);
+    const p = projectOf(snapshot);
+    expect(packageInvariantsHold(p)).toBe(true);
+    expect(p.designVersionId).toBe("des_rev_2");
+    expect(p.yardId).toBe(snapshot.designs.get("des_rev_2")!.constructionPlan!.yardId);
+    const hullBefore = projectOf(before).packages!.find((x) => x.id === "hull")!;
+    const hullAfter = p.packages!.find((x) => x.id === "hull")!;
+    // Same share of the hull is done (within one unit of rounding).
+    const shareBefore = Number(hullBefore.doneWork) / Number(hullBefore.totalWork);
+    const shareAfter = Number(hullAfter.doneWork) / Number(hullAfter.totalWork);
+    expect(Math.abs(shareAfter - shareBefore)).toBeLessThan(1 / Number(hullAfter.totalWork) + 1e-9);
+  });
+
+  it("a launched ship is reconstruction: the revision is refused and nothing changes", () => {
+    const before = withPackageProject({ hull: 1, launch: 1 });
+    const { snapshot, collector } = revise(before, fittingsChange);
+    expect(codes(collector)).toContain("REVISION_REQUIRES_REBUILD");
+    expect(projectOf(snapshot)).toEqual(projectOf(before));
+  });
+
+  it("the same hull progress classifies differently once machinery work has really started", () => {
+    // Little hull work (the free band) but machinery already under way: a machinery change is no longer free.
+    const idle = withPackageProject({ hull: 0.02 });
+    // The cruiser is a small project (machinery is 2 units), so a whole package is the smallest meaningful amount.
+    const started = withPackageProject({ hull: 0.02, machinery: 1 });
+    const free = revise(idle, machineryChange);
+    const costly = revise(started, machineryChange);
+    expect(projectOf(free.snapshot).holdUntilMonth).toBeUndefined();
+    expect(projectOf(costly.snapshot).holdUntilMonth).toBeDefined();
+    expect(costly.collector.errors).toEqual([]);
+    expect(packageInvariantsHold(projectOf(costly.snapshot))).toBe(true);
+  });
+
+  it("a redesign keeps only hull work and still passes closing validation", () => {
+    const before = withPackageProject({ hull: 0.3, machinery: 0.2 });
+    const { snapshot, collector } = revise(before, structureChange);
+    expect(collector.errors).toEqual([]);
+    const p = projectOf(snapshot);
+    expect(packageInvariantsHold(p)).toBe(true);
+    expect(
+      p.packages!.filter((x) => x.kind !== "HULL").every((x) => Number(x.doneWork) === 0),
+    ).toBe(true);
+    expect(Number(p.completedWork)).toBeLessThan(Number(projectOf(before).completedWork));
+  });
+
+  it("a project with one figure is classified exactly as before", () => {
+    const legacy = withProject(4);
+    const { snapshot } = revise(legacy, fittingsChange);
+    expect(projectOf(snapshot).packages).toBeUndefined();
+  });
+
+  it("is deterministic", () => {
+    const before = withPackageProject({ hull: 0.1, armour: 0.1 });
+    const a = revise(before, machineryChange).snapshot;
+    const b = revise(before, machineryChange).snapshot;
+    expect(sha256Hex(canonicalSerialize(a))).toBe(sha256Hex(canonicalSerialize(b)));
+  });
+});
+
 // The month executor applies commands in the month after the snapshot's start month (1880-01).
 const APPLIED_MONTH = "1880-02";
 
