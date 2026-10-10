@@ -13,6 +13,7 @@ import type {
   CreateDivisionCommand,
   DissolveDivisionCommand,
   RemoveShipFromDivisionCommand,
+  ReorderDivisionShipsCommand,
 } from "./envelope.js";
 import type { LifecycleStepResult } from "./types.js";
 import { rejectValidation } from "./validation.js";
@@ -279,6 +280,56 @@ export function validateChangeDivisionFlagship(
       snapshot,
       "DIVISION_FLAGSHIP_INVALID",
       `Ship ${body.newFlagshipShipId} not in division`,
+    );
+  return { ok: true };
+}
+
+/**
+ * DESIGN-26 §8/§12. A reorder MUST be a permutation of the division's current
+ * members with the flagship (canonical first ship) unmoved; anything else is a
+ * membership change or a flagship change and belongs to another command. An
+ * unchanged order is rejected so a no-op can never be charged the cohesion cost.
+ */
+export function validateReorderDivisionShips(
+  envelope: CommandEnvelope<CommandBody>,
+  snapshot: CampaignSnapshot,
+): LifecycleStepResult {
+  const body = envelope.body as ReorderDivisionShipsCommand;
+  const division = divisionById(snapshot, body.nationId, body.divisionId);
+  if (!division)
+    return rejectValidation(
+      envelope,
+      snapshot,
+      "DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE",
+      `Division ${body.divisionId} not found`,
+    );
+  const current = division["shipOrder"];
+  const next = body.shipOrder;
+  if (
+    !Array.isArray(next) ||
+    next.length !== current.length ||
+    new Set(next).size !== next.length ||
+    next.some((id) => !current.includes(id))
+  )
+    return rejectValidation(
+      envelope,
+      snapshot,
+      "DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE",
+      "shipOrder must be a permutation of the division's current ships",
+    );
+  if (next[0] !== division["flagshipShipId"])
+    return rejectValidation(
+      envelope,
+      snapshot,
+      "DIVISION_FLAGSHIP_INVALID",
+      `shipOrder must keep flagship ${division["flagshipShipId"]} first`,
+    );
+  if (next.every((id, index) => id === current[index]))
+    return rejectValidation(
+      envelope,
+      snapshot,
+      "DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE",
+      "ship order is unchanged",
     );
   return { ok: true };
 }

@@ -29,6 +29,7 @@ const DIVISION_TYPES = new Set([
   "AddShipToDivision",
   "RemoveShipFromDivision",
   "ChangeDivisionFlagship",
+  "ReorderDivisionShips",
   "DissolveDivision",
 ]);
 
@@ -335,6 +336,62 @@ describe("division commands", () => {
       // to a rejection (see docs/research/rtw3-parity-engine-roadmap.md).
       const now = await view("cross");
       expect(now.divisions[0]!.ships.map((s) => s.shipId)).toEqual([homeShip, farShip]);
+    });
+
+    it("reorders a division's ships at the engine's reorder cost, keeping the flagship", async () => {
+      registerSession("reorder");
+      const { v, byArea } = await shipsByArea("reorder");
+      // At least two ships share an area; the engine does not enforce the
+      // same-area rule on AddShipToDivision (pinned above), so a third may come
+      // from elsewhere to give the division something to reorder.
+      const pair = [...byArea.values()].find((ids) => ids.length >= 2)!;
+      const flagship = pair[0]!;
+      const second = pair[1]!;
+      const third = v.unassignedShips
+        .map((s) => s.shipId)
+        .find((id) => id !== flagship && id !== second)!;
+      expect(third).toBeDefined();
+
+      await create("reorder", flagship);
+      await commit("reorder", 0);
+      const divisionId = (await view("reorder")).divisions[0]!.divisionId;
+
+      let rev = 1;
+      for (const shipId of [second, third]) {
+        const add = await submitDivisionCommand(
+          payload(
+            "reorder",
+            { type: "AddShipToDivision", divisionId, shipId },
+            { expectedRevision: rev, transportRequestId: `req-add-${shipId}` },
+          ),
+        );
+        expect(add.outcome).toBe("success");
+        await commit("reorder", rev);
+        rev += 1;
+      }
+
+      const before = await view("reorder");
+      expect(before.divisions[0]!.ships.map((s) => s.shipId)).toEqual([flagship, second, third]);
+      const cohesionBefore = before.divisions[0]!.cohesion;
+
+      const reorder = await submitDivisionCommand(
+        payload(
+          "reorder",
+          { type: "ReorderDivisionShips", divisionId, shipOrder: [flagship, third, second] },
+          { expectedRevision: rev, transportRequestId: "req-reorder" },
+        ),
+      );
+      expect(reorder).toMatchObject({
+        outcome: "success",
+        value: { bodyType: "ReorderDivisionShips", appliedOnNextTurn: true },
+      });
+      expect(queued("reorder").some((e) => e.body.type === "ReorderDivisionShips")).toBe(true);
+
+      await commit("reorder", rev);
+      const after = await view("reorder");
+      expect(after.divisions[0]!.ships.map((s) => s.shipId)).toEqual([flagship, third, second]);
+      expect(after.divisions[0]!.flagshipShipId).toBe(flagship);
+      expect(after.divisions[0]!.cohesion).toBe(cohesionBefore - 3);
     });
   });
 });

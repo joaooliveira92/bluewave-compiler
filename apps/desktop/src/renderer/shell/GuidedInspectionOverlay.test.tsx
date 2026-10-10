@@ -57,6 +57,32 @@ describe("GuidedInspectionOverlay", () => {
     expect(onStepChange).toHaveBeenCalledWith(6, true);
   });
 
+  it("tracks nested-container scroll in the capture phase and disables the transition while scrolling", () => {
+    const target = document.createElement("div");
+    target.setAttribute("data-guided-target", "overview");
+    target.getBoundingClientRect = () =>
+      ({
+        x: 10,
+        y: 20,
+        width: 100,
+        height: 50,
+        top: 20,
+        left: 10,
+        right: 110,
+        bottom: 70,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    document.body.appendChild(target);
+    render(<GuidedInspectionOverlay stepIndex={0} onStepChange={vi.fn()} onDismiss={vi.fn()} />);
+    expect(screen.getByTestId("guided-inspection-highlight").style.transition).toBe(
+      "all 180ms ease-out",
+    );
+    // Scroll events do not bubble; a capture-phase listener on window must catch them.
+    fireEvent.scroll(window);
+    expect(screen.getByTestId("guided-inspection-highlight").style.transition).toBe("none");
+    target.remove();
+  });
+
   it("respects prefers-reduced-motion: highlight renders without matchMedia", () => {
     // Component should not crash when matchMedia is absent
     const original = (window as unknown as { matchMedia?: unknown }).matchMedia;

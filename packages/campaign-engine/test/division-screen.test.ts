@@ -188,6 +188,7 @@ describe("buildDivisionScreenView", () => {
       addShip: { experience: 5, cohesion: 10 },
       removeShip: { experience: 3, cohesion: 5 },
       changeFlagship: { experience: 5, cohesion: 10 },
+      reorder: { experience: 0, cohesion: 3 },
     });
   });
 

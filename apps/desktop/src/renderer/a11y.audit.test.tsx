@@ -109,6 +109,7 @@ describe("accessibility audit (axe-core)", () => {
         addShip: { experience: 5, cohesion: 10 },
         removeShip: { experience: 3, cohesion: 5 },
         changeFlagship: { experience: 5, cohesion: 10 },
+        reorder: { experience: 0, cohesion: 3 },
       },
       unassignedShips: [
         {
@@ -127,7 +128,7 @@ describe("accessibility audit (axe-core)", () => {
       outcomeUnknown: false,
       onRetry: noop,
       onReload: noop,
-      send: noop,
+      send: () => Promise.resolve("accepted" as const),
     };
     await audit(<FleetOrganizationView state={base} {...props} />);
     cleanup();

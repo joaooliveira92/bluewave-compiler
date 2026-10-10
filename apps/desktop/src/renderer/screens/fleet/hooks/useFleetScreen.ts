@@ -108,7 +108,7 @@ export function useFleetScreen(sessionId: string): UseFleetScreenReturn {
   const submit = useCallback(() => {
     if (!bridge || routeTarget === null) return;
     const { divisionId, fromAreaId, toAreaId } = routeTarget;
-    execute("submit", ({ expectedRevision, transportRequestId }) =>
+    void execute("submit", ({ expectedRevision, transportRequestId }) =>
       bridge.campaign.execute("submitMovementCommand", {
         sessionId,
         divisionId,
@@ -124,7 +124,7 @@ export function useFleetScreen(sessionId: string): UseFleetScreenReturn {
     (commandId: string) => {
       if (!bridge || routeTarget === null) return;
       const { divisionId, fromAreaId, toAreaId } = routeTarget;
-      execute("replace", ({ expectedRevision, transportRequestId }) =>
+      void execute("replace", ({ expectedRevision, transportRequestId }) =>
         bridge.campaign.execute("replaceMovementCommand", {
           sessionId,
           commandId,
@@ -142,7 +142,7 @@ export function useFleetScreen(sessionId: string): UseFleetScreenReturn {
   const cancel = useCallback(
     (commandId: string) => {
       if (!bridge) return;
-      execute("cancel", ({ expectedRevision, transportRequestId }) =>
+      void execute("cancel", ({ expectedRevision, transportRequestId }) =>
         bridge.campaign.execute("cancelMovementCommand", {
           sessionId,
           commandId,

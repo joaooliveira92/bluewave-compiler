@@ -65,7 +65,7 @@ export function useBudgetPolicyPanel(sessionId: string): BudgetPolicyPanelContro
 
   function apply(): void {
     if (!bridge) return;
-    workflow.execute("submit", ({ expectedRevision, transportRequestId }) =>
+    void workflow.execute("submit", ({ expectedRevision, transportRequestId }) =>
       bridge.campaign.execute("submitBudgetAllocation", {
         sessionId,
         expectedRevision,

@@ -1,6 +1,7 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { DivisionView, UnassignedShipView } from "@bluewave/campaign-engine";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import type { CommandOutcome } from "../../../lib/command-screen-workflow.js";
 import { FleetOrganizationView } from "./FleetOrganizationSection.js";
 import {
   initialDivisionOrganizationState,
@@ -44,6 +45,7 @@ function makeState(over: Partial<DivisionOrganizationState> = {}): DivisionOrgan
       addShip: { experience: 5, cohesion: 10 },
       removeShip: { experience: 3, cohesion: 5 },
       changeFlagship: { experience: 5, cohesion: 10 },
+      reorder: { experience: 0, cohesion: 3 },
     },
     ...over,
   };
@@ -51,9 +53,14 @@ function makeState(over: Partial<DivisionOrganizationState> = {}): DivisionOrgan
 
 function renderView(
   state: DivisionOrganizationState,
-  over: { busy?: boolean; loadError?: string | null; outcomeUnknown?: boolean } = {},
+  over: {
+    busy?: boolean;
+    loadError?: string | null;
+    outcomeUnknown?: boolean;
+    send?: (command: unknown) => Promise<CommandOutcome>;
+  } = {},
 ) {
-  const send = vi.fn();
+  const send = over.send ?? vi.fn((): Promise<CommandOutcome> => Promise.resolve("accepted"));
   const onRetry = vi.fn();
   const onReload = vi.fn();
   render(
@@ -137,9 +144,67 @@ describe("FleetOrganizationView", () => {
     expect(screen.getByText("Commander vacant")).toBeTruthy();
     expect(screen.getByText("35")).toBeTruthy();
     expect(screen.getByText("60")).toBeTruthy();
-    const list = screen.getByRole("list", { name: /Ships in Core division/ });
-    expect(within(list).getByRole("img", { name: "Flagship" })).toBeTruthy();
-    expect(within(list).getAllByRole("listitem")).toHaveLength(2);
+    const flagship = screen.getByRole("list", { name: /Flagship of Core division/ });
+    expect(within(flagship).getByRole("img", { name: "Flagship" })).toBeTruthy();
+    expect(within(flagship).getAllByRole("listitem")).toHaveLength(1);
+    expect(screen.getByText("HMS Dreadnought")).toBeTruthy();
+  });
+
+  it("reorders the non-flagship ships by keyboard and queues one command, keeping the flagship first", () => {
+    const { send } = renderView(
+      makeState({
+        divisions: [
+          division({
+            ships: [
+              { shipId: "alex", name: "HMS Alexandra" },
+              { shipId: "dread", name: "HMS Dreadnought" },
+              { shipId: "warspite", name: "HMS Warspite" },
+            ],
+          }),
+        ],
+      }),
+    );
+    // The flagship is pinned: it has no drag handle.
+    expect(screen.queryByRole("button", { name: "Reorder HMS Alexandra" })).toBeNull();
+
+    fireEvent.keyDown(screen.getByRole("button", { name: "Reorder HMS Dreadnought" }), {
+      key: "ArrowDown",
+    });
+    expect(screen.getByText(/Reordering ships costs 3 cohesion/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Apply order" }));
+    expect(send).toHaveBeenLastCalledWith({
+      type: "ReorderDivisionShips",
+      divisionId: "div_1",
+      shipOrder: ["alex", "warspite", "dread"],
+    });
+    // A second click cannot queue the same order twice.
+    expect(
+      (screen.getByRole("button", { name: "Reorder queued" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it("does not claim a reorder is queued when the engine rejects it", async () => {
+    const send = vi.fn((): Promise<CommandOutcome> => Promise.resolve("rejected"));
+    renderView(
+      makeState({
+        divisions: [
+          division({
+            ships: [
+              { shipId: "alex", name: "HMS Alexandra" },
+              { shipId: "dread", name: "HMS Dreadnought" },
+              { shipId: "warspite", name: "HMS Warspite" },
+            ],
+          }),
+        ],
+      }),
+      { send },
+    );
+    fireEvent.keyDown(screen.getByRole("button", { name: "Reorder HMS Dreadnought" }), {
+      key: "ArrowDown",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Apply order" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Apply order" })).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "Reorder queued" })).toBeNull();
   });
 
   it("changes flagship and removes a non-flagship ship, stating each cost", () => {
@@ -207,7 +272,7 @@ describe("FleetOrganizationView", () => {
         outcomeUnknown={false}
         onRetry={() => undefined}
         onReload={() => undefined}
-        send={() => undefined}
+        send={() => Promise.resolve("accepted" as CommandOutcome)}
       />,
     );
     expect(screen.getByText("No unassigned ships in English Home Waters to add.")).toBeTruthy();
@@ -227,7 +292,7 @@ describe("FleetOrganizationView", () => {
         outcomeUnknown={false}
         onRetry={() => undefined}
         onReload={() => undefined}
-        send={() => undefined}
+        send={() => Promise.resolve("accepted" as CommandOutcome)}
       />,
     );
     expect(screen.getByText("Full (5 ships maximum)")).toBeTruthy();

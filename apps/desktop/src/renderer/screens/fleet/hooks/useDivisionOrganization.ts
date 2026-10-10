@@ -4,7 +4,10 @@ import type {
   DivisionScreenProjection,
 } from "../../../../shared/division-contract.js";
 import { useBridge } from "../../../lib/bridge-context.js";
-import { useCommandScreenWorkflow } from "../../../lib/command-screen-workflow.js";
+import {
+  type CommandOutcome,
+  useCommandScreenWorkflow,
+} from "../../../lib/command-screen-workflow.js";
 import { useCampaignRevision } from "../../../shell/CampaignShellContext.js";
 import type { DivisionOrganizationState } from "../organization/division-organization-state.js";
 import {
@@ -20,7 +23,7 @@ export interface UseDivisionOrganizationReturn {
   readonly request: { readonly outcomeUnknown: boolean; readonly retry: () => void };
   readonly loadScreen: () => Promise<void>;
   /** Queue one engine division command; the engine validates it and applies it next month. */
-  readonly send: (command: DivisionCommandBody) => void;
+  readonly send: (command: DivisionCommandBody) => Promise<CommandOutcome>;
 }
 
 /** Fleet-organization data + command queueing, on the shared command-screen workflow. */
@@ -44,9 +47,9 @@ export function useDivisionOrganization(sessionId: string): UseDivisionOrganizat
     { refreshKey: campaignRevision },
   );
 
-  function send(command: DivisionCommandBody): void {
-    if (!bridge) return;
-    workflow.execute("submit", ({ expectedRevision, transportRequestId }) =>
+  function send(command: DivisionCommandBody): Promise<CommandOutcome> {
+    if (!bridge) return Promise.resolve("transport-failure");
+    return workflow.execute("submit", ({ expectedRevision, transportRequestId }) =>
       bridge.campaign.execute("submitDivisionCommand", {
         sessionId,
         expectedRevision,

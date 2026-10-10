@@ -2,6 +2,7 @@ import type { ComponentDef, DesignDraft, MountSide } from "@bluewave/ship-design
 import { Move, SquarePlus } from "lucide-react";
 import { Button } from "../../../../../components/ui/button.js";
 import { ButtonGroup } from "../../../../../components/ui/button-group.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../../components/ui/tooltip.js";
 import { SelectField } from "../../fields.js";
 import { hasSide, NUDGE_PERMILLE } from "./placement-tools.js";
 import { type PlanTool, type PlanToolMode } from "./plan-tool.js";
@@ -25,22 +26,31 @@ export function PlanModeButtons({
     onTool({ ...tool, mode: tool.mode === mode ? "off" : mode });
   return (
     <ButtonGroup aria-label="Plan tools">
-      <Button
-        variant={tool.mode === "place" ? "default" : "outline"}
-        aria-pressed={tool.mode === "place"}
-        onClick={() => toggle("place")}
-      >
-        <SquarePlus aria-hidden="true" />
-        Place on plan
-      </Button>
-      <Button
-        variant={tool.mode === "move" ? "default" : "outline"}
-        aria-pressed={tool.mode === "move"}
-        onClick={() => toggle("move")}
-      >
-        <Move aria-hidden="true" />
-        Move on plan
-      </Button>
+      {(
+        [
+          ["place", "Place on plan", SquarePlus, "click the plan to fit a new component"],
+          ["move", "Move on plan", Move, "click or drag a fitting to a new station"],
+        ] as const
+      ).map(([mode, name, Icon, hint]) => (
+        <Tooltip key={mode}>
+          <TooltipTrigger
+            render={
+              <Button
+                variant={tool.mode === mode ? "default" : "outline"}
+                size="icon"
+                aria-label={name}
+                aria-pressed={tool.mode === mode}
+                onClick={() => toggle(mode)}
+              />
+            }
+          >
+            <Icon aria-hidden="true" />
+          </TooltipTrigger>
+          <TooltipContent>
+            {name}: {hint}
+          </TooltipContent>
+        </Tooltip>
+      ))}
     </ButtonGroup>
   );
 }
@@ -166,7 +176,7 @@ export function PlanToolOptions({
               : "Click the plan to place it. Stations snap to 10‰."
             : tool.mode === "move"
               ? "Click a fitting on the plan (or choose it above), then click where it should go or drag it there."
-              : "Use Place on plan or Move on plan in the toolbar to edit the arrangement from this drawing.")}
+              : "Use the Place and Move tools in the toolbar to edit the arrangement from this drawing.")}
       </p>
     </div>
   );

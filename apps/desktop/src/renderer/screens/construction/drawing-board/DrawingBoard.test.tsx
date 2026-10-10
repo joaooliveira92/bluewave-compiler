@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { DrawingBoard } from "./DrawingBoard.js";
-import { chooseOption, openTab, region } from "./test-helpers.js";
+import { chooseOption, openPlanDisplay, openTab, region } from "./test-helpers.js";
 
 afterEach(cleanup);
 
@@ -48,6 +48,7 @@ describe("DrawingBoard", () => {
     render(<DrawingBoard />);
     const arcs = () => region("Hull plan").querySelectorAll("[data-arc]").length;
     expect(arcs()).toBeGreaterThan(0);
+    openPlanDisplay();
     fireEvent.click(screen.getByLabelText("Show gun arcs"));
     expect(arcs()).toBe(0);
   });

@@ -30,6 +30,7 @@ import {
   validateDissolveDivision,
   validateRelieveOfficer,
   validateRemoveShipFromDivision,
+  validateReorderDivisionShips,
 } from "./divisionValidation.js";
 import type { BudgetProjectCommand, CommandBody, CommandEnvelope } from "./envelope.js";
 import type { LifecycleStepResult } from "./types.js";
@@ -76,6 +77,8 @@ export function validatePayloadRules(
     return validateDissolveDivision(envelope, snapshot);
   if (envelope.body.type === "ChangeDivisionFlagship")
     return validateChangeDivisionFlagship(envelope, snapshot);
+  if (envelope.body.type === "ReorderDivisionShips")
+    return validateReorderDivisionShips(envelope, snapshot);
   if (envelope.body.type !== "budget_project") {
     return rejectValidation(
       envelope,

@@ -13,7 +13,11 @@ import { ProfileView } from "./ProfileView.js";
 import { SectionCard } from "./SectionCard.js";
 import { SectionLabels } from "./SectionLabels.js";
 import { FindingMarkers, layoutMarkers } from "../../validation/FindingMarkers.js";
-import { FindingsControl, useFindingsView } from "../../validation/FindingsControl.js";
+import {
+  FindingsControl,
+  useFindingsView,
+  type FindingsView,
+} from "../../validation/FindingsControl.js";
 import { passesFilter } from "../../validation/severity.js";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../../../components/ui/popover.js";
 import { FittingTargets } from "./FittingTargets.js";
@@ -48,6 +52,10 @@ export function HullPlanPanel({
   findings: given,
   tool: givenTool,
   onTool,
+  showArcs: givenShowArcs,
+  onShowArcs,
+  findingsView: givenFindingsView,
+  onFindingsView,
 }: {
   readonly draft: DesignDraft;
   readonly content: DrawingBoardContent;
@@ -59,9 +67,22 @@ export function HullPlanPanel({
   /** The plan tool, switched from the board toolbar; the plan keeps its own only when it is shown on its own. */
   readonly tool?: PlanTool;
   readonly onTool?: (next: PlanTool) => void;
+  /** Whether the gun arcs are drawn; the board toolbar owns it, the plan only when shown on its own. */
+  readonly showArcs?: boolean;
+  readonly onShowArcs?: (next: boolean) => void;
+  /** Which findings show on the plan; the board toolbar owns it, the plan only when shown on its own. */
+  readonly findingsView?: FindingsView;
+  readonly onFindingsView?: (next: FindingsView) => void;
 }) {
-  const [showArcs, setShowArcs] = useState(true);
-  const [findingsView, setFindingsView] = useFindingsView();
+  // Display preferences are lifted to the board toolbar; the plan falls back to its own state when shown on its own.
+  const [localShowArcs, setLocalShowArcs] = useState(true);
+  const [localFindingsView, setLocalFindingsView] = useFindingsView();
+  const showArcs = givenShowArcs ?? localShowArcs;
+  const setShowArcs = onShowArcs ?? setLocalShowArcs;
+  const findingsView = givenFindingsView ?? localFindingsView;
+  const setFindingsView = onFindingsView ?? setLocalFindingsView;
+  const arcsControl = onShowArcs === undefined;
+  const findingsControl = onFindingsView === undefined;
   const planRef = useRef<HTMLDivElement>(null);
   const model = planModel(draft, content, view, month, given);
   const editing = useHullPlanEditing({
@@ -92,20 +113,24 @@ export function HullPlanPanel({
           onAutoPlace={onAutoPlace}
           onSide={onSide}
         />
-        <div className="flex items-center gap-2 text-sm">
-          <Checkbox
-            id="show-gun-arcs"
-            aria-label="Show gun arcs"
-            checked={showArcs}
-            onCheckedChange={(v) => setShowArcs(v === true)}
+        {arcsControl && (
+          <div className="flex items-center gap-2 text-sm">
+            <Checkbox
+              id="show-gun-arcs"
+              aria-label="Show gun arcs"
+              checked={showArcs}
+              onCheckedChange={(v) => setShowArcs(v === true)}
+            />
+            <span aria-hidden="true">Show gun arcs</span>
+          </div>
+        )}
+        {findingsControl && (
+          <FindingsControl
+            view={findingsView}
+            onChange={setFindingsView}
+            shipFindings={shown.filter((f) => f.entities.some((e) => e.kind === "ship"))}
           />
-          <span aria-hidden="true">Show gun arcs</span>
-        </div>
-        <FindingsControl
-          view={findingsView}
-          onChange={setFindingsView}
-          shipFindings={shown.filter((f) => f.entities.some((e) => e.kind === "ship"))}
-        />
+        )}
         <div className="space-y-1" ref={planRef}>
           <p className="text-xs font-medium text-muted-foreground">Waterline plan</p>
           <div className="relative">

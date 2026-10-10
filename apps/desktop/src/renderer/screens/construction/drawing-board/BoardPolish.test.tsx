@@ -37,7 +37,7 @@ describe("Drawing Board polish", () => {
   it("shows the campaign's technology date as fixed text, not a one-option dropdown", () => {
     render(<DrawingBoard />);
     expect(screen.queryByLabelText("Technology as of")).toBeNull();
-    expect(screen.getByText("1880-01 (campaign date)")).toBeTruthy();
+    expect(screen.getByLabelText("Technology as of 1880-01 (campaign date)")).toBeTruthy();
   });
 
   it("keeps the long drawing disclaimer behind a short line", () => {

@@ -234,6 +234,22 @@ describe("DrawingBoard panels", () => {
       expect(screen.queryByTestId("plan-click-layer")).toBeNull();
     });
 
+    it("keeps the plan display controls in the toolbar, not the panel", () => {
+      render(<DrawingBoard />);
+      const toolbar = screen.getByRole("group", { name: "Design toolbar" });
+      const panel = region("Hull plan");
+      expect(within(panel).queryByLabelText("Show gun arcs")).toBeNull();
+      expect(within(panel).queryByLabelText("Findings to show")).toBeNull();
+      // The toolbar's display popover holds them, and its checkbox drives the drawing.
+      fireEvent.click(within(toolbar).getByRole("button", { name: "Plan display" }));
+      const display = screen.getByRole("dialog", { name: "Plan display" });
+      expect(within(display).getByLabelText("Findings to show")).toBeTruthy();
+      const arcs = () => panel.querySelectorAll("[data-arc]").length;
+      expect(arcs()).toBeGreaterThan(0);
+      fireEvent.click(within(display).getByLabelText("Show gun arcs"));
+      expect(arcs()).toBe(0);
+    });
+
     it("switches from the board toolbar, one mode at a time, and a switch clears the last notice", () => {
       render(<DrawingBoard />);
       const panel = region("Hull plan");

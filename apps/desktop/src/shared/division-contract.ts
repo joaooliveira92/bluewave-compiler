@@ -41,6 +41,12 @@ export type DivisionCommandBody =
       readonly divisionId: string;
       readonly newFlagshipShipId: string;
     }
+  | {
+      readonly type: "ReorderDivisionShips";
+      /** Full canonical order: a permutation of the current ships, flagship first. */
+      readonly divisionId: string;
+      readonly shipOrder: readonly string[];
+    }
   | { readonly type: "DissolveDivision"; readonly divisionId: string };
 
 export type DivisionCommandType = DivisionCommandBody["type"];

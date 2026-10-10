@@ -77,3 +77,4 @@ Refresh this table from each file's H1 when one is added or re-titled.
 | 0083 | [ADR-0083-fittings-inside-hull-weight.md](ADR-0083-fittings-inside-hull-weight.md) | Fittings are inside the hull weight; fitting components carry no extra mass |
 | 0084 | [ADR-0084-plan-drag-and-auto-place.md](ADR-0084-plan-drag-and-auto-place.md) | Drag to move and auto-place on the hull plan |
 | 0085 | [ADR-0085-design-studies.md](ADR-0085-design-studies.md) | Design studies gate design approval |
+| 0086 | [ADR-0086-division-ship-reorder.md](ADR-0086-division-ship-reorder.md) | Division ship reordering — flagship pinned, DESIGN-26 §12 penalty |

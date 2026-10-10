@@ -81,6 +81,7 @@ export interface DivisionScreenView {
     readonly addShip: DivisionPenalty;
     readonly removeShip: DivisionPenalty;
     readonly changeFlagship: DivisionPenalty;
+    readonly reorder: DivisionPenalty;
   };
 }
 
@@ -173,6 +174,7 @@ export function buildDivisionScreenView(
       addShip: cost(DIVISION_PENALTIES.addShip),
       removeShip: cost(DIVISION_PENALTIES.removeNonFlagship),
       changeFlagship: cost(DIVISION_PENALTIES.flagshipChange),
+      reorder: cost(DIVISION_PENALTIES.reorderWithoutFlagship),
     },
   };
 }

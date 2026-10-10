@@ -214,6 +214,7 @@ export type DivisionReorgReason =
   | "REMOVE_SHIP"
   | "DISSOLVE"
   | "CHANGE_FLAGSHIP"
+  | "REORDER"
   | "CHANGE_ROLE"
   | "CHANGE_FORMATION";
 
@@ -258,6 +259,7 @@ export function applyDivisionCommand(
     | { type: "add_ship"; shipId: string }
     | { type: "change_flagship"; newFlagshipShipId: string }
     | { type: "create"; shipId: string; creationMonth: string }
+    | { type: "reorder"; shipOrder: string[] }
     | { type: "dissolve" },
   month: string,
 ): ApplyDivisionResult {
@@ -318,6 +320,17 @@ export function applyDivisionCommand(
         };
         reorgReason = "CHANGE_FLAGSHIP";
       }
+      break;
+    }
+    case "reorder": {
+      // DESIGN-26 §12: reordering ships without changing the flagship costs
+      // cohesion only. The flagship (canonical first ship, §8) is unchanged.
+      shipOrder = [...op.shipOrder];
+      penalties = {
+        experience: DIVISION_PENALTIES.reorderWithoutFlagship.experience,
+        cohesion: DIVISION_PENALTIES.reorderWithoutFlagship.cohesion,
+      };
+      reorgReason = "REORDER";
       break;
     }
     case "dissolve": {

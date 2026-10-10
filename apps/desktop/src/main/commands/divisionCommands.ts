@@ -163,6 +163,15 @@ const DIVISION_COMMANDS: {
       newFlagshipShipId: command.newFlagshipShipId,
     }),
   }),
+  ReorderDivisionShips: planWith<"ReorderDivisionShips">({
+    discriminator: (command) => `${command.divisionId}\u0000${command.shipOrder.join(",")}`,
+    toEngineBody: (command, context) => ({
+      type: "ReorderDivisionShips",
+      nationId: context.nationId,
+      divisionId: command.divisionId,
+      shipOrder: [...command.shipOrder],
+    }),
+  }),
   DissolveDivision: planWith<"DissolveDivision">({
     discriminator: (command) => command.divisionId,
     toEngineBody: (command, context) => ({

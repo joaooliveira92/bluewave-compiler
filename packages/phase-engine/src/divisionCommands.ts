@@ -25,6 +25,7 @@ import type {
   CreateDivisionCommand,
   DissolveDivisionCommand,
   RemoveShipFromDivisionCommand,
+  ReorderDivisionShipsCommand,
 } from "@bluewave/commands";
 import { SafeInt } from "@bluewave/contracts";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
@@ -140,12 +141,14 @@ export function applyDivisionCommandMonth(
     body["type"] === "AddShipToDivision" ||
     body["type"] === "RemoveShipFromDivision" ||
     body["type"] === "ChangeDivisionFlagship" ||
+    body["type"] === "ReorderDivisionShips" ||
     body["type"] === "DissolveDivision"
   ) {
     const cb = body as
       | AddShipToDivisionCommand
       | RemoveShipFromDivisionCommand
       | ChangeDivisionFlagshipCommand
+      | ReorderDivisionShipsCommand
       | DissolveDivisionCommand;
     const nation = snapshot["nations"].get(cb["nationId"]);
     if (!nation) {
@@ -166,12 +169,35 @@ export function applyDivisionCommandMonth(
       return snapshot;
     }
     const division = nation["divisions"][idx]!;
+    if (body["type"] === "ReorderDivisionShips") {
+      // Commands are authorized against the month-start snapshot but applied in
+      // order, so an earlier command this month may have changed the membership.
+      // Re-check against the division being applied: a stale order must never be
+      // able to drop an added ship, resurrect a removed one, or desync the flagship.
+      const next = (body as ReorderDivisionShipsCommand)["shipOrder"];
+      const current = division["shipOrder"];
+      const stillValid =
+        Array.isArray(next) &&
+        next.length === current.length &&
+        new Set(next).size === next.length &&
+        next.every((id) => current.includes(id)) &&
+        next[0] === division["flagshipShipId"];
+      if (!stillValid) {
+        collector.addError(
+          DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE,
+          `Reorder of division ${cb["divisionId"]} no longer matches its current ships`,
+          { stage: "command-collection" },
+        );
+        return snapshot;
+      }
+    }
     let updated: { division: PermanentDivision };
     try {
       let op:
         | { type: "remove_ship"; shipId: string }
         | { type: "add_ship"; shipId: string }
         | { type: "change_flagship"; newFlagshipShipId: string }
+        | { type: "reorder"; shipOrder: string[] }
         | { type: "dissolve" };
       if (body["type"] === "AddShipToDivision")
         op = { type: "add_ship", shipId: (body as AddShipToDivisionCommand)["shipId"] };
@@ -181,6 +207,11 @@ export function applyDivisionCommandMonth(
         op = {
           type: "change_flagship",
           newFlagshipShipId: (body as ChangeDivisionFlagshipCommand)["newFlagshipShipId"],
+        };
+      else if (body["type"] === "ReorderDivisionShips")
+        op = {
+          type: "reorder",
+          shipOrder: [...(body as ReorderDivisionShipsCommand)["shipOrder"]],
         };
       else op = { type: "dissolve" };
       updated = applyDivisionCommand(division, op, campaignMonth);

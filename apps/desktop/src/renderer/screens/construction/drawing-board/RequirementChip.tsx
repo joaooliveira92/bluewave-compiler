@@ -2,11 +2,18 @@ import type { DesignRequirement } from "@bluewave/ship-design";
 import { Target } from "lucide-react";
 import { Badge } from "../../../components/ui/badge.js";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover.js";
+import { cn } from "../../../lib/utils.js";
 
 const words = (s: string) => s.replaceAll("_", " ").toLowerCase();
 
 /** The design brief as a compact chip; opening it shows every requirement the design is judged against. */
-export function RequirementChip({ requirement: r }: { readonly requirement: DesignRequirement }) {
+export function RequirementChip({
+  requirement: r,
+  className,
+}: {
+  readonly requirement: DesignRequirement;
+  readonly className?: string;
+}) {
   const rows: [string, string][] = [
     ["Class", r.category],
     ["Top speed", `${(r.requiredSpeedMilliKnots / 1000).toFixed(1)} kn`],
@@ -24,9 +31,12 @@ export function RequirementChip({ requirement: r }: { readonly requirement: Desi
       <PopoverTrigger
         aria-label={`Design requirement: ${summary}`}
         render={<button type="button" />}
-        className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className={cn(
+          "flex rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          className,
+        )}
       >
-        <Badge variant="outline" className="cursor-pointer gap-1">
+        <Badge variant="outline" className="h-full cursor-pointer gap-1">
           <Target aria-hidden="true" className="size-3" />
           {summary}
         </Badge>

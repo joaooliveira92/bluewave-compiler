@@ -1,9 +1,13 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+/**
+ * Aggregate test for the section strip and card (metadata, derived facts, labels, card), which all read one
+ * fixture. Per-module tests live beside each module; add focused cases there, not here.
+ */
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { buildWorkshopView, type DesignDraft, type WorkshopView } from "@bluewave/ship-design";
 import { loadDrawingBoardContent } from "../../content.js";
 import { DrawingBoard } from "../../DrawingBoard.js";
-import { openTab } from "../../test-helpers.js";
+import { openPlanDisplay, openTab } from "../../test-helpers.js";
 import { bowStyleFor, planFrame, sternStyleFor, stationX, PLAN_W } from "./geometry.js";
 import { SectionCard, type SectionCardContext } from "./SectionCard.js";
 import { SectionLabels } from "./SectionLabels.js";
@@ -203,7 +207,11 @@ describe("section labels on the hull plan", () => {
   it("keeps the labels, their card and the plan tools working on every tab", async () => {
     render(<DrawingBoard />);
     const drawing = screen.getByRole("img", { name: /Top-down plan/ });
+    openPlanDisplay();
     fireEvent.click(screen.getByLabelText("Show gun arcs"));
+    // Close the display popover (it hands focus back to its trigger) before tabbing to a label.
+    fireEvent.click(screen.getByRole("button", { name: "Plan display" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Plan display" })).toBeNull());
     for (const tab of ["Arrangement", "Analysis", "Build", "History and files"]) {
       openTab(tab);
       expect(screen.getByRole("img", { name: /Top-down plan/ })).toBe(drawing);

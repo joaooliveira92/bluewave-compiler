@@ -1,0 +1,337 @@
+- banner:
+  - group:
+    - button "Go back"
+    - button "Go forward" [disabled]
+  - text: Bluewave — March 1880
+  - button "Search"
+  - button "Advance month": Advance Month
+  - button "Campaign menu": Campaign
+  - 'button "Theme: system. Click to change."'
+  - text: "Nation: United Kingdom"
+  - separator
+  - text: "Budget: £892"
+  - separator
+  - text: "Projected balance: -£56"
+  - separator
+  - text: "Alerts: 1 Status: Armed peace"
+- main:
+  - alert: Month advanced to March 1880.
+  - heading "Fleet" [level=2]
+  - heading "Divisions" [level=3]
+  - text: "3"
+  - radiogroup:
+    - radio "Cape & East Indies Squadron Cape of Good Hope" [checked]:
+      - paragraph: Cape & East Indies Squadron
+      - paragraph: Cape of Good Hope
+    - radio "Home Fleet English Home Waters HMS Alexandra HMS Dreadnought HMS Inflexible":
+      - paragraph: Home Fleet
+      - paragraph: English Home Waters
+      - text: HMS Alexandra HMS Dreadnought HMS Inflexible
+    - radio "Mediterranean Fleet Malta HMS Mediterranean (Temeraire)":
+      - paragraph: Mediterranean Fleet
+      - paragraph: Malta
+      - text: HMS Mediterranean (Temeraire)
+  - separator
+  - text: Fleet positions F1 opens a larger map
+  - group "Map size":
+    - button "Compact" [pressed]
+    - button "Large"
+    - button "Fill"
+  - application "World map. Arrow keys pan, plus and minus zoom, zero resets.":
+    - 'button "Arctic and Barents Sea: unclaimed, no fleets"'
+    - 'button "Norwegian Sea: unclaimed, no fleets"'
+    - 'button "North Sea: unclaimed, 3 fleets"'
+    - 'button "Baltic Sea: unclaimed, 1 fleet"'
+    - 'button "Western Approaches: held by Spain, 3 fleets"'
+    - 'button "North Atlantic: unclaimed, no fleets"'
+    - 'button "Western Atlantic: held by United States, 1 fleet"'
+    - 'button "Caribbean and Gulf: held by United States, no fleets"'
+    - 'button "Central Atlantic: held by France, no fleets"'
+    - 'button "South Atlantic: unclaimed, 1 fleet"'
+    - 'button "Cape Waters: held by Britain, 1 fleet" [pressed]'
+    - 'button "Mediterranean Sea: held by Spain, 3 fleets"'
+    - 'button "Adriatic Sea: held by Italy, 1 fleet"'
+    - 'button "Aegean Sea: held by Ottoman Empire, 1 fleet"'
+    - 'button "Black Sea: unclaimed, 1 fleet"'
+    - 'button "Red Sea: unclaimed, no fleets"'
+    - 'button "Persian Gulf: unclaimed, no fleets"'
+    - 'button "Arabian Sea: unclaimed, no fleets"'
+    - 'button "Bay of Bengal: unclaimed, no fleets"'
+    - 'button "Western Indian Ocean: held by France, no fleets"'
+    - 'button "Southern Indian Ocean: held by Britain, no fleets"'
+    - 'button "Malacca and Singapore Approaches: held by Britain, no fleets"'
+    - 'button "Java Sea: unclaimed, 1 fleet"'
+    - 'button "South China Sea: unclaimed, no fleets"'
+    - 'button "East China Sea: held by Japan, no fleets"'
+    - 'button "Yellow Sea: held by Qing, 1 fleet"'
+    - 'button "Sea of Japan: held by Russia, no fleets"'
+    - 'button "Sea of Okhotsk: unclaimed, no fleets"'
+    - 'button "Philippine Sea: held by Spain, 1 fleet"'
+    - 'button "North Pacific: unclaimed, no fleets"'
+    - 'button "Northeast Pacific: held by United States, no fleets"'
+    - 'button "Central Pacific: held by united_states, no fleets"'
+    - 'button "Eastern Pacific: unclaimed, no fleets"'
+    - 'button "Coral Sea: held by France, no fleets"'
+    - 'button "Tasman Sea: held by Britain, no fleets"'
+    - 'button "South Pacific: unclaimed, no fleets"'
+    - text: S S C S S C S S S S 18 5 4 7 6 4 3 5 2 2 2 7 6 4 2 4 17 0 2 0 0 1
+  - table "Area control":
+    - caption: Area control
+    - rowgroup:
+      - row "Area Controlled by Fleets":
+        - columnheader "Area"
+        - columnheader "Controlled by"
+        - columnheader "Fleets"
+    - rowgroup:
+      - row "Adriatic Sea Italy 1":
+        - rowheader "Adriatic Sea"
+        - cell "Italy"
+        - cell "1"
+      - row "Aegean Sea Ottoman Empire 1":
+        - rowheader "Aegean Sea"
+        - cell "Ottoman Empire"
+        - cell "1"
+      - row "Arabian Sea Unclaimed 0":
+        - rowheader "Arabian Sea"
+        - cell "Unclaimed"
+        - cell "0"
+      - row "Arctic and Barents Sea Unclaimed 0":
+        - rowheader "Arctic and Barents Sea"
+        - cell "Unclaimed"
+        - cell "0"
+      - row "Baltic Sea Unclaimed 1":
+        - rowheader "Baltic Sea"
+        - cell "Unclaimed"
+        - cell "1"
+      - row "Bay of Bengal Unclaimed 0":
+        - rowheader "Bay of Bengal"
+        - cell "Unclaimed"
+        - cell "0"
+      - row "Black Sea Unclaimed 1":
+        - rowheader "Black Sea"
+        - cell "Unclaimed"
+        - cell "1"
+      - row "Cape Waters Britain 1" [selected]:
+        - rowheader "Cape Waters"
+        - cell "Britain"
+        - cell "1"
+      - row "Caribbean and Gulf United States 0":
+        - rowheader "Caribbean and Gulf"
+        - cell "United States"
+        - cell "0"
+      - row "Central Atlantic France 0":
+        - rowheader "Central Atlantic"
+        - cell "France"
+        - cell "0"
+      - row "Central Pacific united_states 0":
+        - rowheader "Central Pacific"
+        - cell "united_states"
+        - cell "0"
+      - row "Coral Sea France 0":
+        - rowheader "Coral Sea"
+        - cell "France"
+        - cell "0"
+      - row "East China Sea Japan 0":
+        - rowheader "East China Sea"
+        - cell "Japan"
+        - cell "0"
+      - row "Eastern Pacific Unclaimed 0":
+        - rowheader "Eastern Pacific"
+        - cell "Unclaimed"
+        - cell "0"
+      - row "Java Sea Unclaimed 1":
+        - rowheader "Java Sea"
+        - cell "Unclaimed"
+        - cell "1"
+      - row "Malacca and Singapore Approaches Britain 0":
+        - rowheader "Malacca and Singapore Approaches"
+        - cell "Britain"
+        - cell "0"
+      - row "Mediterranean Sea Spain 3":
+        - rowheader "Mediterranean Sea"
+        - cell "Spain"
+        - cell "3"
+      - row "North Atlantic Unclaimed 0":
+        - rowheader "North Atlantic"
+        - cell "Unclaimed"
+        - cell "0"
+      - row "North Pacific Unclaimed 0":
+        - rowheader "North Pacific"
+        - cell "Unclaimed"
+        - cell "0"
+      - row "North Sea Unclaimed 3":
+        - rowheader "North Sea"
+        - cell "Unclaimed"
+        - cell "3"
+      - row "Northeast Pacific United States 0":
+        - rowheader "Northeast Pacific"
+        - cell "United States"
+        - cell "0"
+      - row "Norwegian Sea Unclaimed 0":
+        - rowheader "Norwegian Sea"
+        - cell "Unclaimed"
+        - cell "0"
+      - row "Persian Gulf Unclaimed 0":
+        - rowheader "Persian Gulf"
+        - cell "Unclaimed"
+        - cell "0"
+      - row "Philippine Sea Spain 1":
+        - rowheader "Philippine Sea"
+        - cell "Spain"
+        - cell "1"
+      - row "Red Sea Unclaimed 0":
+        - rowheader "Red Sea"
+        - cell "Unclaimed"
+        - cell "0"
+      - row "Sea of Japan Russia 0":
+        - rowheader "Sea of Japan"
+        - cell "Russia"
+        - cell "0"
+      - row "Sea of Okhotsk Unclaimed 0":
+        - rowheader "Sea of Okhotsk"
+        - cell "Unclaimed"
+        - cell "0"
+      - row "South Atlantic Unclaimed 1":
+        - rowheader "South Atlantic"
+        - cell "Unclaimed"
+        - cell "1"
+      - row "South China Sea Unclaimed 0":
+        - rowheader "South China Sea"
+        - cell "Unclaimed"
+        - cell "0"
+      - row "South Pacific Unclaimed 0":
+        - rowheader "South Pacific"
+        - cell "Unclaimed"
+        - cell "0"
+      - row "Southern Indian Ocean Britain 0":
+        - rowheader "Southern Indian Ocean"
+        - cell "Britain"
+        - cell "0"
+      - row "Tasman Sea Britain 0":
+        - rowheader "Tasman Sea"
+        - cell "Britain"
+        - cell "0"
+      - row "Western Approaches Spain 3":
+        - rowheader "Western Approaches"
+        - cell "Spain"
+        - cell "3"
+      - row "Western Atlantic United States 1":
+        - rowheader "Western Atlantic"
+        - cell "United States"
+        - cell "1"
+      - row "Western Indian Ocean France 0":
+        - rowheader "Western Indian Ocean"
+        - cell "France"
+        - cell "0"
+      - row "Yellow Sea Qing 1":
+        - rowheader "Yellow Sea"
+        - cell "Qing"
+        - cell "1"
+  - button "Layers & areas"
+  - text: Cape Waters
+  - button "Clear selection": ×
+  - text: Britain · 2 possessions · 1 fleets
+  - list:
+    - listitem: Cape & East Indies Squadron 0
+  - text: Adjacent
+  - list:
+    - listitem:
+      - button "South Atlantic"
+    - listitem:
+      - button "Western Indian Ocean"
+    - listitem:
+      - button "Southern Indian Ocean"
+  - strong: "6"
+  - text: hops 7,313 nm 1,219 nm/hop ≈2.4 months
+  - button "avoiding closures"
+  - group: Area overview
+  - separator
+  - heading "Fleet organization" [level=3]
+  - text: "1"
+  - paragraph: Divisions fight together and build experience and cohesion. Changes are queued and applied by the engine when you advance the month; reorganizing costs experience and cohesion.
+  - heading "Core division — HMS Alexandra" [level=4]
+  - paragraph: English Home Waters
+  - text: Core Line ahead Commander vacant Experience 15
+  - progressbar "Experience": x
+  - text: Cohesion 20
+  - progressbar "Cohesion": x
+  - list "Flagship of Core division — HMS Alexandra":
+    - listitem:
+      - img "Flagship"
+      - text: HMS Alexandra
+      - button "Remove"
+  - paragraph: Drag the ships below, or focus a handle and use the arrow keys, to set their order. The flagship stays first.
+  - paragraph: Drag a handle to reorder. With a handle focused, use Up and Down to move, Home and End to move to the edges.
+  - list "Reorder Core division — HMS Alexandra ships":
+    - listitem:
+      - button "Reorder HMS Dreadnought"
+      - text: HMS Dreadnought
+      - button "Make flagship"
+      - button "Remove"
+  - status
+  - text: No unassigned ships in English Home Waters to add.
+  - button "Dissolve division"
+  - heading "Create a division" [level=4]
+  - paragraph: A division is founded on one ship, its flagship, which starts at 20 experience and 30 cohesion. Add more ships afterwards; each addition has a cost.
+  - text: Flagship
+  - combobox "Flagship"
+  - text: Role
+  - combobox "Role":
+    - option "Independent"
+    - option "Core" [selected]
+    - option "Support"
+    - option "Scout"
+    - option "Screen"
+    - option "Patrol"
+  - text: Formation
+  - combobox "Formation":
+    - option "Line ahead" [selected]
+    - option "Line abreast"
+    - option "Search line"
+    - option "Screen"
+  - button "Create division"
+  - separator
+  - heading "Order" [level=3]
+  - text: Destination
+  - combobox "Destination": Arabian Sea
+  - paragraph:
+    - strong: Cape & East Indies Squadron
+    - text: is in Cape of Good Hope with no pending route.
+  - button "Submit movement command"
+  - button "Refresh"
+  - heading "Movement commands" [level=3]
+  - text: "0"
+  - paragraph: No movement commands
+  - paragraph: No movement command has been submitted this month.
+  - separator
+  - group: Losses0 sunk
+  - group: Officers1 divisions
+  - group: Not yet modelled6 items
+- region "Status strip":
+  - text: Status
+  - button "Not yet modelled (9)"
+  - button "Collapse" [pressed]
+  - group "Nation":
+    - heading "Nation" [level=3]
+    - text: Ships on foreign stations 0 ships Shipyard capacity (port levels) 138
+  - group "Budget":
+    - heading "Budget" [level=3]
+    - text: Treasury £892 Monthly budget (projected) £20 Maintenance £16 Construction (committed) £0 Research £60 Total expenses £76 Monthly balance (projected) -£56 Deficit
+- navigation "Campaign":
+  - list:
+    - listitem:
+      - button "Overview"
+    - listitem:
+      - button "Construction": Build
+    - listitem:
+      - button "Fleet"
+    - listitem:
+      - button "Research & Technology": Research
+    - listitem:
+      - button "Treasury"
+    - listitem:
+      - button "Diplomacy & War": Diplomacy
+    - listitem:
+      - button "Campaign Preferences": Prefs
+    - listitem:
+      - button "Options"

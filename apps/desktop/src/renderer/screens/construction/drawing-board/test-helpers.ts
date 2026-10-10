@@ -27,6 +27,12 @@ const PANEL_TAB: Record<string, string> = {
 export const openTab = (name: string) =>
   fireEvent.click(screen.getByRole("tab", { name: new RegExp(name, "i") }));
 
+/** Opens the toolbar's plan display popover (gun arcs, findings), unless it is already open. */
+export function openPlanDisplay(): void {
+  if (screen.queryByRole("dialog", { name: "Plan display" }) !== null) return;
+  fireEvent.click(screen.getByRole("button", { name: "Plan display" }));
+}
+
 /** Opens a `<Select>` by its trigger's accessible name and clicks the option whose visible text matches. */
 export function chooseOption(trigger: string | RegExp, option: string | RegExp): void {
   fireEvent.click(screen.getByLabelText(trigger));

@@ -55,7 +55,7 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
 
   const submit = useCallback(() => {
     if (!bridge || selectedDesignId === null) return;
-    execute("submit", ({ expectedRevision, transportRequestId }) =>
+    void execute("submit", ({ expectedRevision, transportRequestId }) =>
       bridge.campaign.execute("submitConstructionCommand", {
         sessionId,
         designId: selectedDesignId,
@@ -68,7 +68,7 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
   const replace = useCallback(
     (commandId: string) => {
       if (!bridge || selectedDesignId === null) return;
-      execute("replace", ({ expectedRevision, transportRequestId }) =>
+      void execute("replace", ({ expectedRevision, transportRequestId }) =>
         bridge.campaign.execute("replaceConstructionCommand", {
           sessionId,
           commandId,
@@ -84,7 +84,7 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
   const cancel = useCallback(
     (commandId: string) => {
       if (!bridge) return;
-      execute("cancel", ({ expectedRevision, transportRequestId }) =>
+      void execute("cancel", ({ expectedRevision, transportRequestId }) =>
         bridge.campaign.execute("cancelConstructionCommand", {
           sessionId,
           commandId,

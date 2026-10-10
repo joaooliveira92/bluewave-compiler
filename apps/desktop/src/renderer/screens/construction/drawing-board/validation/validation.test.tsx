@@ -4,7 +4,7 @@ import { buildWorkshopView, type Finding, type WorkshopView } from "@bluewave/sh
 import { batteryCards } from "../batteryView.js";
 import { loadDrawingBoardContent } from "../content.js";
 import { DrawingBoard } from "../DrawingBoard.js";
-import { openTab } from "../test-helpers.js";
+import { openPlanDisplay, openTab } from "../test-helpers.js";
 import {
   bowStyleFor,
   fittingPoint,
@@ -309,14 +309,17 @@ describe("display controls", () => {
   it("filters by severity and hides all findings, as view state only", () => {
     render(<DrawingBoard />);
     expect(marker("f:mag_aft")).not.toBeNull();
+    openPlanDisplay();
     fireEvent.click(screen.getByLabelText("Findings to show"));
     fireEvent.click(screen.getByRole("option", { name: "Blocking and critical" }));
     expect(marker("f:mag_aft")).toBeNull();
     expect(marker("f:gun_12pdr")).toBeNull();
+    openPlanDisplay();
     fireEvent.click(screen.getByLabelText("Findings to show"));
     fireEvent.click(screen.getByRole("option", { name: "Advisories" }));
     expect(marker("f:mag_aft")).not.toBeNull();
     expect(marker("f:gun_12pdr")).toBeNull();
+    openPlanDisplay();
     fireEvent.click(screen.getByLabelText("Show findings on the plan"));
     expect(screen.queryByTestId("finding-markers")).toBeNull();
     expect(JSON.parse(localStorage.getItem(FINDINGS_VIEW_KEY)!)).toEqual({

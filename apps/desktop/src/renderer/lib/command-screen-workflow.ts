@@ -48,6 +48,9 @@ export interface CommandScreenAdapter<
   readonly onProjection?: (projection: Projection) => void;
 }
 
+/** How a submitted command settled, so a caller can react without re-reading state. */
+export type CommandOutcome = "accepted" | "rejected" | "transport-failure";
+
 export interface CommandScreenWorkflow<State extends RequestLifecycle, Value> {
   readonly state: State;
   readonly loadError: string | null;
@@ -56,7 +59,7 @@ export interface CommandScreenWorkflow<State extends RequestLifecycle, Value> {
     readonly retry: () => void;
   };
   readonly loadScreen: () => Promise<void>;
-  readonly execute: (kind: RequestKind, send: CommandSender<Value>) => void;
+  readonly execute: (kind: RequestKind, send: CommandSender<Value>) => Promise<CommandOutcome>;
 }
 
 export function describeRejection(
@@ -278,7 +281,7 @@ export function useCommandScreenWorkflow<
     }
   }, []);
 
-  const run = useCallback(async (command: PreparedCommand<Value>) => {
+  const run = useCallback(async (command: PreparedCommand<Value>): Promise<CommandOutcome> => {
     const executionId = command.context.transportRequestId;
     activeExecution.current = executionId;
     unresolvedCommand.current = command;
@@ -286,11 +289,12 @@ export function useCommandScreenWorkflow<
     setState((currentState) => beginRequest(currentState, command));
     try {
       const result = await command.send(command.context);
-      if (activeExecution.current !== executionId) return;
+      if (activeExecution.current !== executionId) return "transport-failure";
       activeExecution.current = null;
       unresolvedCommand.current = null;
       if (result.outcome === "rejected") {
         setState((currentState) => applyRejection(currentState, result));
+        return "rejected";
       } else if (result.outcome === "error") {
         setOutcomeUnknown(false);
         setState((currentState) =>
@@ -300,12 +304,14 @@ export function useCommandScreenWorkflow<
             diagnostics: result.diagnostics,
           }),
         );
+        return "rejected";
       } else {
         const { patch, notice } = adapterRef.current.accept(result.value);
         setState((currentState) => acceptCommand(currentState, patch, notice));
+        return "accepted";
       }
     } catch (error) {
-      if (activeExecution.current !== executionId) return;
+      if (activeExecution.current !== executionId) return "transport-failure";
       setOutcomeUnknown(true);
       setState((currentState) =>
         applyTransportFailure(
@@ -313,6 +319,7 @@ export function useCommandScreenWorkflow<
           error instanceof Error ? error.message : "unknown transport error",
         ),
       );
+      return "transport-failure";
     }
   }, []);
 
@@ -324,9 +331,8 @@ export function useCommandScreenWorkflow<
   // Memoized so a screen can safely use it as a dependency of its own callbacks —
   // otherwise every command handler a screen hands a memo() child changes each render.
   const execute = useCallback(
-    (kind: RequestKind, send: CommandSender<Value>) => {
-      void run(prepareCommand(kind, revisionRef.current, send));
-    },
+    (kind: RequestKind, send: CommandSender<Value>): Promise<CommandOutcome> =>
+      run(prepareCommand(kind, revisionRef.current, send)),
     [run],
   );
 

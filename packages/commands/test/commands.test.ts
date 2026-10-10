@@ -522,6 +522,85 @@ describe("division commands (AC-3)", () => {
     );
     expect(ok.type).toBe("success");
   });
+
+  function snapshotWithDivision(shipOrder: string[], flagshipShipId: string): CampaignSnapshot {
+    const snapshot = snapshotWithShip();
+    return {
+      ...snapshot,
+      nations: new Map(snapshot.nations).set("GBR", {
+        ...snapshot.nations.get("GBR")!,
+        divisions: [
+          {
+            divisionId: "div-1",
+            nationId: "GBR",
+            shipOrder,
+            flagshipShipId,
+            commanderOfficerId: "VACANT",
+            divisionRole: "CORE",
+            preferredFormation: "LINE_AHEAD",
+            experience: SafeInt(20),
+            cohesion: SafeInt(30),
+            locationAreaId: "lon",
+            creationMonth: "1880-01",
+            lastReorganizationMonth: "1880-01",
+            provenanceRefs: [],
+            rulesetVersion: "0.1.0",
+            aggregateHash: "x",
+          },
+        ],
+      }),
+    };
+  }
+
+  function reorderOutcome(preview: CampaignSnapshot, shipOrder: string[]) {
+    const lifecycle = new CommandLifecycle();
+    return lifecycle.process(
+      makeDivisionEnvelope(
+        { type: "ReorderDivisionShips", nationId: "GBR", divisionId: "div-1", shipOrder },
+        preview,
+      ),
+      preview,
+      slot,
+      new CommandIdempotencyMap(),
+    );
+  }
+
+  it("ReorderDivisionShips accepts a permutation with the flagship first", () => {
+    const preview = snapshotWithDivision(["s1", "s2", "s3"], "s1");
+    expect(reorderOutcome(preview, ["s1", "s3", "s2"]).type).toBe("success");
+  });
+
+  it("ReorderDivisionShips rejects a missing division", () => {
+    const preview = snapshotWithShip();
+    const outcome = reorderOutcome(preview, ["s1", "s2"]);
+    expect(outcome.type).toBe("rejected");
+    if (outcome.type === "rejected")
+      expect(outcome.diagnostic.code).toBe("DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE");
+  });
+
+  it("ReorderDivisionShips rejects a non-permutation", () => {
+    const preview = snapshotWithDivision(["s1", "s2", "s3"], "s1");
+    const outcome = reorderOutcome(preview, ["s1", "s2"]);
+    expect(outcome.type).toBe("rejected");
+    if (outcome.type === "rejected")
+      expect(outcome.diagnostic.code).toBe("DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE");
+  });
+
+  it("ReorderDivisionShips rejects moving the flagship", () => {
+    const preview = snapshotWithDivision(["s1", "s2", "s3"], "s1");
+    const outcome = reorderOutcome(preview, ["s2", "s1", "s3"]);
+    expect(outcome.type).toBe("rejected");
+    if (outcome.type === "rejected")
+      expect(outcome.diagnostic.code).toBe("DIVISION_FLAGSHIP_INVALID");
+  });
+
+  it("ReorderDivisionShips rejects an unchanged order", () => {
+    const preview = snapshotWithDivision(["s1", "s2", "s3"], "s1");
+    const outcome = reorderOutcome(preview, ["s1", "s2", "s3"]);
+    expect(outcome.type).toBe("rejected");
+    if (outcome.type === "rejected")
+      expect(outcome.diagnostic.code).toBe("DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE");
+  });
 });
 
 describe("StartRebuild validation (ADR-0078)", () => {

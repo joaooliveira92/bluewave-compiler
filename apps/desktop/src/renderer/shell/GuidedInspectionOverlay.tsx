@@ -43,7 +43,9 @@ export function GuidedInspectionOverlay({
   const clamped = Math.max(0, Math.min(stepIndex, GUIDED_STEP_COUNT - 1));
   const step: GuidedStep = GUIDED_INSPECTION_STEPS[clamped]!;
   const [rect, setRect] = useState<Rect | null>(null);
+  const [scrolling, setScrolling] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const scrollEndTimer = useRef<number | null>(null);
 
   const recompute = useCallback(() => {
     setRect(getTargetRect(step.targetSelector));
@@ -51,13 +53,26 @@ export function GuidedInspectionOverlay({
 
   useLayoutEffect(() => {
     recompute();
+    // The shell scrolls a nested `overflow-auto` element, not the window, and `scroll`
+    // does not bubble — so track it in the capture phase and keep the ring glued to the
+    // target instead of trailing it. Suppress the transition while scrolling so the ring
+    // does not animate lazily behind a moving target.
+    const handleScroll = () => {
+      recompute();
+      setScrolling(true);
+      if (scrollEndTimer.current !== null) window.clearTimeout(scrollEndTimer.current);
+      scrollEndTimer.current = window.setTimeout(() => setScrolling(false), 120);
+    };
     window.addEventListener("resize", recompute);
+    window.addEventListener("scroll", handleScroll, true);
     // Recompute on navigation/re-render — a short interval covers SPA re-mounts without
     // needing a MutationObserver; the interval is cleaned up on unmount.
     const id = window.setInterval(recompute, 300);
     return () => {
       window.removeEventListener("resize", recompute);
+      window.removeEventListener("scroll", handleScroll, true);
       window.clearInterval(id);
+      if (scrollEndTimer.current !== null) window.clearTimeout(scrollEndTimer.current);
     };
   }, [recompute]);
 
@@ -130,7 +145,7 @@ export function GuidedInspectionOverlay({
             top: rect.y - 6,
             width: rect.width + 12,
             height: rect.height + 12,
-            transition: prefersReducedMotion ? "none" : "all 180ms ease-out",
+            transition: prefersReducedMotion || scrolling ? "none" : "all 180ms ease-out",
             pointerEvents: "none",
             boxShadow: "0 0 0 9999px rgba(0,0,0,0.35), 0 0 18px rgba(255,255,255,0.6)",
           }}

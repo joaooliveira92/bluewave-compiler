@@ -152,6 +152,11 @@ export const DivisionCommandBodySchema = z.discriminatedUnion("type", [
     divisionId: z.string().min(1),
     newFlagshipShipId: z.string().min(1),
   }),
+  z.object({
+    type: z.literal("ReorderDivisionShips"),
+    divisionId: z.string().min(1),
+    shipOrder: z.array(z.string().min(1)).min(1).max(6),
+  }),
   z.object({ type: z.literal("DissolveDivision"), divisionId: z.string().min(1) }),
 ]);
 

@@ -1,6 +1,7 @@
 import { Button } from "../../../components/ui/button.js";
 import { Badge } from "../../../components/ui/badge.js";
 import type { DivisionCommandBody } from "../../../../shared/division-contract.js";
+import type { CommandOutcome } from "../../../lib/command-screen-workflow.js";
 import { useDivisionOrganization } from "../hooks/useDivisionOrganization.js";
 import { CreateDivisionForm } from "./CreateDivisionForm.js";
 import { DivisionCard } from "./DivisionCard.js";
@@ -13,7 +14,7 @@ export interface FleetOrganizationViewProps {
   readonly outcomeUnknown: boolean;
   readonly onRetry: () => void;
   readonly onReload: () => void;
-  readonly send: (command: DivisionCommandBody) => void;
+  readonly send: (command: DivisionCommandBody) => Promise<CommandOutcome>;
 }
 
 /** Presentational Fleet organization: divisions, the create form, and honest status. */

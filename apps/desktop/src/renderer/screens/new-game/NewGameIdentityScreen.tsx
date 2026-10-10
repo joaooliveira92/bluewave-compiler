@@ -60,7 +60,7 @@ export function NewGameIdentityScreen({
   usePrimaryAction(primaryAction, onPrimaryActionChange);
 
   return (
-    <NewGameScreenLayout size="sm">
+    <NewGameScreenLayout>
       <ScreenHeader
         icon={<Anchor className="h-5 w-5" />}
         title="Admiral & Campaign Identity"

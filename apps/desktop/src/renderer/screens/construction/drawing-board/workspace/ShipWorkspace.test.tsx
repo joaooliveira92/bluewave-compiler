@@ -5,7 +5,7 @@ import { DrawingBoard } from "../DrawingBoard.js";
 import { loadDrawingBoardContent } from "../content.js";
 import { HullPlanPanel } from "../panels/index.js";
 import { buildWorkshopView, type DesignDraft } from "@bluewave/ship-design";
-import { openTab } from "../test-helpers.js";
+import { openPlanDisplay, openTab } from "../test-helpers.js";
 import { ShipViewBoundary } from "./ShipViewBoundary.js";
 import { ShipWorkspace } from "./ShipWorkspace.js";
 import {
@@ -31,7 +31,8 @@ describe("Drawing Board workspace", () => {
     const drawing = plan();
     const placeTool = screen.getByRole("button", { name: "Place on plan" });
     fireEvent.click(placeTool);
-    fireEvent.click(within(shipView()).getByLabelText("Show gun arcs"));
+    openPlanDisplay();
+    fireEvent.click(screen.getByLabelText("Show gun arcs"));
     for (const tab of TAB_NAMES) {
       openTab(tab);
       expect(

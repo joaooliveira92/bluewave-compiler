@@ -226,7 +226,8 @@ function applyDivisionCommand(ctx: MonthContext, body: CommandBody): boolean {
     body["type"] === "AddShipToDivision" ||
     body["type"] === "RemoveShipFromDivision" ||
     body["type"] === "DissolveDivision" ||
-    body["type"] === "ChangeDivisionFlagship"
+    body["type"] === "ChangeDivisionFlagship" ||
+    body["type"] === "ReorderDivisionShips"
   ) {
     ctx.currentSnapshot = applyDivisionCommandMonth(
       ctx.currentSnapshot,

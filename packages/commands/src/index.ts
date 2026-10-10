@@ -18,6 +18,7 @@ export type {
   FormAllianceCommand,
   FormNonAggressionPactCommand,
   RemoveShipFromDivisionCommand,
+  ReorderDivisionShipsCommand,
   AssignOfficerCommand,
   MoveFleetCommand,
   SubmitDesignCommand,

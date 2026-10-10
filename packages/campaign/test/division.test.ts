@@ -172,6 +172,20 @@ describe("PermanentDivision aggregate (AC-2)", () => {
     expect(r.division.cohesion).toBe(SafeInt(30 - 10));
   });
 
+  it("§12: reorder ships without flagship change applies cohesion only", () => {
+    const d = makeDivision({ shipOrder: ["a", "b", "c"], flagshipShipId: "a" });
+    const r = applyDivisionCommand(d, { type: "reorder", shipOrder: ["a", "c", "b"] }, "1880-02");
+    expect(r.division.shipOrder).toEqual(["a", "c", "b"]);
+    expect(r.division.flagshipShipId).toBe("a");
+    expect(r.reorgReason).toBe("REORDER");
+    expect(r.penaltiesApplied).toEqual({
+      experience: DIVISION_PENALTIES.reorderWithoutFlagship.experience,
+      cohesion: DIVISION_PENALTIES.reorderWithoutFlagship.cohesion,
+    });
+    expect(r.division.experience).toBe(SafeInt(INITIAL_DIVISION_EXPERIENCE));
+    expect(r.division.cohesion).toBe(SafeInt(INITIAL_DIVISION_COHESION - 3));
+  });
+
   it("§3: dissolve leaves zero-member (handled by caller as removal)", () => {
     const r = applyDivisionCommand(makeDivision(), { type: "dissolve" }, "1880-02");
     expect(r.division.shipOrder).toEqual([]);

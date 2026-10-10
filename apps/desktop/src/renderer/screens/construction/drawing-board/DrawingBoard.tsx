@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { armourMaterialOptions } from "@bluewave/ship-design";
 import { batteryCards, mountNameMap } from "./batteryView.js";
 import {
+  CalendarClock,
   Gauge,
   Hammer,
   LayoutGrid,
@@ -15,6 +16,11 @@ import { Alert } from "../../../components/ui/alert.js";
 import { Badge } from "../../../components/ui/badge.js";
 import { Button } from "../../../components/ui/button.js";
 import { ButtonGroup } from "../../../components/ui/button-group.js";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../../../components/ui/hover-card.js";
 import { Separator } from "../../../components/ui/separator.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs.js";
 import {
@@ -55,6 +61,9 @@ import { useDraftAutosave } from "./useDraftAutosave.js";
 import { plural } from "./plural.js";
 import { entityExists, type EntityContext } from "./selection/facts.js";
 import { boardFindings } from "./validation/boardFindings.js";
+import { ShipFindingsButton, useFindingsView } from "./validation/FindingsControl.js";
+import { PlanDisplayMenu } from "./PlanDisplayMenu.js";
+import { passesFilter } from "./validation/severity.js";
 import {
   BOARD_TABS,
   findDrawingControl,
@@ -124,11 +133,18 @@ export function DrawingBoard({
   }, []);
   // Switched from the toolbar, used by the drawing: the one tool state survives tab changes with the ship view.
   const [planTool, setPlanTool] = useState<PlanTool>(IDLE_TOOL);
+  // Plan display preferences live in the toolbar too, so the drawing and its controls share one source.
+  const [showArcs, setShowArcs] = useState(true);
+  const [findingsView, setFindingsView] = useFindingsView();
   const zones = content.hullForms.find((f) => f.id === draft.hull.hullFormId)?.zones ?? [];
   // One finding list per compile, shared by the drawing, the inspector and the Analysis tab.
   const findings = useMemo(
     () => boardFindings(view, draft, batteryCards(view, draft)),
     [view, draft],
+  );
+  const shownFindings = useMemo(
+    () => findings.filter((f) => passesFilter(f.severity, findingsView.filter)),
+    [findings, findingsView.filter],
   );
   const entityCtx: EntityContext = { draft, view, content, zones, batteries, findings };
   // Presentation selection (pinned, form-linked, hover preview): one store for the board, never design state.
@@ -203,6 +219,7 @@ export function DrawingBoard({
           >
             <SelectField
               inline
+              className="w-80 max-w-full"
               label="Starting design"
               shortLabel="Design"
               value={state.preset.id}
@@ -211,13 +228,23 @@ export function DrawingBoard({
             />
             {campaignMonth !== null ? (
               // In a campaign the rules date is the campaign month (the engine uses the same), so it is shown, not chosen.
-              <p
-                className="flex h-9 items-center gap-2 text-sm"
-                title="Technology is fixed to the campaign date"
-              >
-                <span className="text-xs text-muted-foreground">Technology</span>
-                {campaignMonth} (campaign date)
-              </p>
+              <HoverCard>
+                <HoverCardTrigger
+                  render={<button type="button" />}
+                  aria-label={`Technology as of ${campaignMonth} (campaign date)`}
+                  className="flex h-9 items-center gap-1.5 rounded-md px-2 text-sm tabular-nums outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <CalendarClock aria-hidden="true" className="size-4 text-muted-foreground" />
+                  {campaignMonth}
+                </HoverCardTrigger>
+                <HoverCardContent className="w-64 text-sm">
+                  <div className="mb-1 font-medium">Technology as of {campaignMonth}</div>
+                  <p className="text-muted-foreground">
+                    Fixed to the campaign date: the design can use only what your navy has available
+                    this month.
+                  </p>
+                </HoverCardContent>
+              </HoverCard>
             ) : (
               <SelectField
                 inline
@@ -263,9 +290,18 @@ export function DrawingBoard({
             </span>
             <Separator orientation="vertical" className="h-6" />
             <PlanModeButtons tool={planTool} onTool={setPlanTool} />
-            <div className="ml-auto">
-              <RequirementChip requirement={draft.requirement} />
-            </div>
+            <PlanDisplayMenu
+              showArcs={showArcs}
+              onShowArcs={setShowArcs}
+              findingsView={findingsView}
+              onFindingsView={setFindingsView}
+            />
+            <ShipFindingsButton
+              className="h-9"
+              view={findingsView}
+              shipFindings={shownFindings.filter((f) => f.entities.some((e) => e.kind === "ship"))}
+            />
+            <RequirementChip requirement={draft.requirement} className="ml-auto h-9 shrink-0" />
           </div>
         </TooltipProvider>
         <ConfirmDialog
@@ -334,6 +370,10 @@ export function DrawingBoard({
                   findings={findings}
                   tool={planTool}
                   onTool={setPlanTool}
+                  showArcs={showArcs}
+                  onShowArcs={setShowArcs}
+                  findingsView={findingsView}
+                  onFindingsView={setFindingsView}
                 />
               </ShipViewBoundary>
             </div>

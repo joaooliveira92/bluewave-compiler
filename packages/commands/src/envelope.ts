@@ -32,7 +32,8 @@ export type CommandBody =
   | AddShipToDivisionCommand
   | RemoveShipFromDivisionCommand
   | DissolveDivisionCommand
-  | ChangeDivisionFlagshipCommand;
+  | ChangeDivisionFlagshipCommand
+  | ReorderDivisionShipsCommand;
 export interface BudgetProjectCommand {
   type: "budget_project";
   nationId: string;
@@ -181,4 +182,17 @@ export interface ChangeDivisionFlagshipCommand {
   nationId: string;
   divisionId: string;
   newFlagshipShipId: string;
+}
+/**
+ * Permutes a division's canonical ship order without changing the flagship
+ * (DESIGN-26 §8/§12). `shipOrder` MUST be a permutation of the current members
+ * with the flagship first; the engine applies the `reorderWithoutFlagship`
+ * cohesion penalty. Moving a different ship to the lead is a flagship change and
+ * belongs to `ChangeDivisionFlagshipCommand`.
+ */
+export interface ReorderDivisionShipsCommand {
+  type: "ReorderDivisionShips";
+  nationId: string;
+  divisionId: string;
+  shipOrder: string[];
 }

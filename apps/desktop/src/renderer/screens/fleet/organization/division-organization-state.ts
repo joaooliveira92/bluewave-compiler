@@ -34,6 +34,7 @@ export function initialDivisionOrganizationState(): DivisionOrganizationState {
       addShip: { experience: 0, cohesion: 0 },
       removeShip: { experience: 0, cohesion: 0 },
       changeFlagship: { experience: 0, cohesion: 0 },
+      reorder: { experience: 0, cohesion: 0 },
     },
     pendingRequest: null,
     requiresRefresh: false,
@@ -60,6 +61,7 @@ const COMMAND_LABELS: Record<DivisionCommandOutcome["bodyType"], string> = {
   AddShipToDivision: "Add ship",
   RemoveShipFromDivision: "Remove ship",
   ChangeDivisionFlagship: "Change flagship",
+  ReorderDivisionShips: "Reorder ships",
   DissolveDivision: "Dissolve division",
 };
 

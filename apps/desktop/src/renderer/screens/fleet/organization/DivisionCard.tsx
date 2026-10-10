@@ -16,7 +16,15 @@ import { Badge } from "../../../components/ui/badge.js";
 import { Button } from "../../../components/ui/button.js";
 import { Card, CardContent } from "../../../components/ui/card.js";
 import { Progress } from "../../../components/ui/progress.js";
+import {
+  SortableList,
+  SortableListGroup,
+  SortableListHandle,
+  SortableListItem,
+  SortableListItemContent,
+} from "../../../components/motion/sortable-list.js";
 import type { DivisionCommandBody } from "../../../../shared/division-contract.js";
+import type { CommandOutcome } from "../../../lib/command-screen-workflow.js";
 import {
   canRemoveShip,
   costText,
@@ -31,7 +39,7 @@ export interface DivisionCardProps {
   readonly division: DivisionView;
   readonly state: DivisionOrganizationState;
   readonly busy: boolean;
-  readonly send: (command: DivisionCommandBody) => void;
+  readonly send: (command: DivisionCommandBody) => Promise<CommandOutcome>;
 }
 
 function Meter({ label, value }: { readonly label: string; readonly value: number }) {
@@ -56,6 +64,26 @@ export function DivisionCard({ division, state, busy, send }: DivisionCardProps)
     ? toAdd
     : (addable[0]?.shipId ?? "");
   const title = divisionTitle(division);
+
+  // The flagship (canonical first ship, DESIGN-26 §8) is pinned; the remaining
+  // ships are reorderable. A reorder is a local draft sent as one engine command.
+  const flagship = division.ships.find((ship) => ship.shipId === division.flagshipShipId);
+  const shipName = new Map(division.ships.map((ship) => [ship.shipId, ship.name]));
+  const authoritativeRest = division.ships
+    .filter((ship) => ship.shipId !== division.flagshipShipId)
+    .map((ship) => ship.shipId);
+  const restKey = authoritativeRest.join("\u0000");
+  const [draftRest, setDraftRest] = useState(authoritativeRest);
+  const [syncedRestKey, setSyncedRestKey] = useState(restKey);
+  const [submittedRestKey, setSubmittedRestKey] = useState<string | null>(null);
+  if (syncedRestKey !== restKey) {
+    setSyncedRestKey(restKey);
+    setDraftRest(authoritativeRest);
+    setSubmittedRestKey(null);
+  }
+  const draftKey = draftRest.join("\u0000");
+  const reorderDirty = draftKey !== restKey;
+  const reorderSubmitted = submittedRestKey === draftKey;
 
   return (
     <Card>
@@ -84,66 +112,134 @@ export function DivisionCard({ division, state, busy, send }: DivisionCardProps)
           <Meter label="Cohesion" value={division.cohesion} />
         </div>
 
-        <ul className="space-y-1.5" aria-label={`Ships in ${title}`}>
-          {division.ships.map((ship) => {
-            const isFlagship = ship.shipId === division.flagshipShipId;
-            return (
-              <li
-                key={ship.shipId}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-1.5 text-sm"
-              >
-                <span className="flex items-center gap-1.5">
-                  {isFlagship && (
-                    <Star
-                      className="h-3.5 w-3.5 fill-current text-amber-500"
-                      aria-label="Flagship"
-                      role="img"
-                    />
-                  )}
-                  {ship.name}
+        {flagship !== undefined && (
+          <ul className="space-y-1.5" aria-label={`Flagship of ${title}`}>
+            <li className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-1.5 text-sm">
+              <span className="flex items-center gap-1.5">
+                <Star
+                  className="h-3.5 w-3.5 fill-current text-amber-500"
+                  aria-label="Flagship"
+                  role="img"
+                />
+                {flagship.name}
+              </span>
+              {canRemoveShip(division) && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  title={`Removing a ship ${costText(state.penalties.removeShip)}`}
+                  onClick={() =>
+                    send({
+                      type: "RemoveShipFromDivision",
+                      divisionId: division.divisionId,
+                      shipId: flagship.shipId,
+                    })
+                  }
+                >
+                  Remove
+                </Button>
+              )}
+            </li>
+          </ul>
+        )}
+
+        {authoritativeRest.length > 0 && (
+          <>
+            <p className="text-xs text-muted-foreground">
+              Drag the ships below, or focus a handle and use the arrow keys, to set their order.
+              The flagship stays first.
+            </p>
+            <SortableList
+              items={draftRest.map((id) => ({ id, name: shipName.get(id) ?? id }))}
+              onItemsChange={(items) => setDraftRest(items.map((item) => item.id))}
+              getItemLabel={(item) => item.name}
+              label={`Reorder ${title} ships`}
+              showUndo={false}
+              className="max-w-none"
+              itemClassName="rounded-md gap-2 p-2"
+            >
+              {(items) => (
+                <SortableListGroup>
+                  {items.map((item) => (
+                    <SortableListItem key={item.id} id={item.id}>
+                      <SortableListHandle />
+                      <SortableListItemContent>
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                          <span>{item.name}</span>
+                          <span className="flex gap-1.5">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={busy}
+                              title={`Changing the flagship ${costText(state.penalties.changeFlagship)}`}
+                              onClick={() =>
+                                send({
+                                  type: "ChangeDivisionFlagship",
+                                  divisionId: division.divisionId,
+                                  newFlagshipShipId: item.id,
+                                })
+                              }
+                            >
+                              Make flagship
+                            </Button>
+                            {canRemoveShip(division) && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={busy}
+                                title={`Removing a ship ${costText(state.penalties.removeShip)}`}
+                                onClick={() =>
+                                  send({
+                                    type: "RemoveShipFromDivision",
+                                    divisionId: division.divisionId,
+                                    shipId: item.id,
+                                  })
+                                }
+                              >
+                                Remove
+                              </Button>
+                            )}
+                          </span>
+                        </div>
+                      </SortableListItemContent>
+                    </SortableListItem>
+                  ))}
+                </SortableListGroup>
+              )}
+            </SortableList>
+            {(reorderDirty || reorderSubmitted) && (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">
+                  Reordering ships {costText(state.penalties.reorder)}.
                 </span>
-                <span className="flex gap-1.5">
-                  {!isFlagship && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={busy}
-                      title={`Changing the flagship ${costText(state.penalties.changeFlagship)}`}
-                      onClick={() =>
-                        send({
-                          type: "ChangeDivisionFlagship",
-                          divisionId: division.divisionId,
-                          newFlagshipShipId: ship.shipId,
-                        })
-                      }
-                    >
-                      Make flagship
-                    </Button>
-                  )}
-                  {canRemoveShip(division) && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={busy}
-                      title={`Removing a ship ${costText(state.penalties.removeShip)}`}
-                      onClick={() =>
-                        send({
-                          type: "RemoveShipFromDivision",
-                          divisionId: division.divisionId,
-                          shipId: ship.shipId,
-                        })
-                      }
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!reorderDirty || reorderSubmitted || busy}
+                  onClick={() => {
+                    // Mark queued immediately (blocks a double submit), then clear it
+                    // unless the engine actually accepted the command.
+                    setSubmittedRestKey(draftKey);
+                    void send({
+                      type: "ReorderDivisionShips",
+                      divisionId: division.divisionId,
+                      shipOrder: [division.flagshipShipId, ...draftRest],
+                    }).then((outcome) => {
+                      if (outcome !== "accepted")
+                        setSubmittedRestKey((key) => (key === draftKey ? null : key));
+                    });
+                  }}
+                >
+                  {reorderSubmitted ? "Reorder queued" : "Apply order"}
+                </Button>
+              </div>
+            )}
+          </>
+        )}
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
