@@ -270,6 +270,20 @@ describe("DrawingBoard panels", () => {
     expect(within(region("Edit history")).getByText(/Brief: category → CL/)).toBeTruthy();
   });
 
+  it("gives every ship type in the brief an icon and a description, without changing its name", () => {
+    render(<DrawingBoard />);
+    region("Design brief");
+    fireEvent.click(screen.getByLabelText("Ship type"));
+    const options = screen.getAllByRole("option");
+    expect(options).toHaveLength(5);
+    for (const option of options) {
+      expect(option.querySelector("svg")).not.toBeNull();
+      expect(option.getAttribute("aria-describedby")).toBeTruthy();
+    }
+    const light = screen.getByRole("option", { name: "CL · Light cruiser" });
+    expect(light.textContent).toMatch(/trade-protection cruiser/);
+  });
+
   it("lists the shipyards in the forecast with exactly one yard that builds it", () => {
     render(<DrawingBoard />);
     openTab("Analysis");

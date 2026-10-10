@@ -117,6 +117,8 @@ export function SelectField({
     readonly label: string;
     /** Optional leading visual (a lucide icon or a flag) shown before the label in the list and on the trigger. */
     readonly icon?: ReactNode;
+    /** Optional secondary line under the label in the list (ReUI "select with description text per option"). */
+    readonly description?: ReactNode;
     readonly disabled?: boolean;
   }[];
   readonly onChange: (value: string) => void;
@@ -141,7 +143,13 @@ export function SelectField({
         </SelectTrigger>
         <SelectContent>
           {options.map((o) => (
-            <SelectItem key={o.value} value={o.value} icon={o.icon} disabled={o.disabled}>
+            <SelectItem
+              key={o.value}
+              value={o.value}
+              icon={o.icon}
+              description={o.description}
+              disabled={o.disabled}
+            >
               {o.label}
             </SelectItem>
           ))}
