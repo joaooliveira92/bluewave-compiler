@@ -1,6 +1,6 @@
 # Spec — Restore the ADR-0053 auto-resolution lethality target after ADR-0094
 
-**Status:** ready-for-agent
+**Status:** delivered (ADR-0098)
 **Origin:** ADR-0094 §5/§7; `.ai/reports/p1-battles-that-matter-acceptance.md`; ADR-0053
 
 ## Problem

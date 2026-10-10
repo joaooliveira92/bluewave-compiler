@@ -29,7 +29,7 @@ ADRs that change a DESIGN rule (supersede, extend, or constrain it).
 | `DESIGN-38` Tactical Combat | ADR-0019, ADR-0034, ADR-0051, ADR-0052, ADR-0073 |
 | `DESIGN-39` Gunnery | ADR-0048, ADR-0072 |
 | `DESIGN-40` Torpedoes | ADR-0046 |
-| `DESIGN-41` Damage, Fire, And Flooding | ADR-0047, ADR-0049, ADR-0050 |
+| `DESIGN-41` Damage, Fire, And Flooding | ADR-0047, ADR-0049, ADR-0050, ADR-0098 |
 
 ## Scope and process (no design change)
 

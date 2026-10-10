@@ -50,7 +50,13 @@ import {
   type DamageContext,
   type DamageTargetContext,
 } from "./damage.js";
-import { decideBattleEnd, type BattleSide, type ShipViability } from "./viability.js";
+import {
+  decideBattleEnd,
+  type BattleSide,
+  type ShipViability,
+  type WithdrawalReason,
+} from "./viability.js";
+import { emptyTelemetry, finalizeTelemetry, type BattleTelemetry } from "./telemetry.js";
 import { createDefaultDamageControlResource } from "../damage/damageControl.js";
 import type { DamageControlContext } from "../damage/damageControlEngineWiring.js";
 import { DAMAGE_RULESET_VERSION } from "../damage/constants.js";
@@ -113,6 +119,17 @@ export interface BattleResolutionResult {
    * was lost. OBSERVATIONAL: excluded from `resultHash`.
    */
   causeOfLoss?: Record<string, LossCause>;
+  /**
+   * ADR-0098: the structured reason a side broke off (fleet-strength
+   * classification), present only for withdrawal / mutual-disengagement ends.
+   * OBSERVATIONAL: excluded from `resultHash`.
+   */
+  withdrawalReason?: WithdrawalReason;
+  /**
+   * ADR-0098: observational gunnery telemetry (salvoes fired/rounds/hits).
+   * OBSERVATIONAL: excluded from `resultHash`.
+   */
+  telemetry?: BattleTelemetry;
   /** P-1: torpedo activity — present only when a combatant carried torpedo armament. */
   torpedoSummary?: { tubesFired: number; hits: number };
   provenance: {
@@ -369,12 +386,14 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
   let torpedo: TorpedoContext | undefined = projected.torpedoes;
   const torpedoSummary = { tubesFired: 0, hits: 0 };
   const lossTracker = new CauseOfLossTracker();
+  const telemetry = emptyTelemetry();
 
   const allEvents: BattleEvent[] = [];
   const minuteHashes: string[] = [];
   let endReason = "";
   let eliminatedSide: BattleSide | null = null;
   let withdrawnSide: BattleSide | null = null;
+  let withdrawalReason: WithdrawalReason | undefined;
   const observationTime = `${weather.battleDate}T06:00:00.000Z`;
   let elapsedMinutes = 0;
 
@@ -455,6 +474,16 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
     minuteHashes.push(res.minuteHash);
     elapsedMinutes = minute;
 
+    // ADR-0098 observational telemetry (no draws, no state effect).
+    if (res.gunneryRecords) {
+      for (const rec of res.gunneryRecords) {
+        telemetry.salvosFired += 1;
+        telemetry.roundsExpended += Math.max(0, rec.ammunition.before - rec.ammunition.after);
+        if (rec.outcome === "HIT") telemetry.hits += 1;
+        else telemetry.misses += 1;
+      }
+    }
+
     // 3. thread per-minute state forward
     battleState = {
       ...battleState,
@@ -525,6 +554,7 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
       endReason = decision.reason!;
       eliminatedSide = decision.eliminatedSide ?? null;
       withdrawnSide = decision.withdrawnSide ?? null;
+      withdrawalReason = decision.withdrawalReason;
       break;
     }
   }
@@ -633,11 +663,19 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
     resultHash: "",
     ...(projected.torpedoes ? { torpedoSummary } : {}),
     ...(Object.keys(causeOfLoss).length > 0 ? { causeOfLoss } : {}),
+    ...(withdrawalReason ? { withdrawalReason } : {}),
+    telemetry: finalizeTelemetry(telemetry),
     provenance,
   };
   // resultHash: domain-separated envelope over the whole non-hash surface
   // causeOfLoss is observational (ADR-0052) and excluded so no baseline moves.
-  const { resultHash: _hash, causeOfLoss: _cause, ...hashBody } = result;
+  const {
+    resultHash: _hash,
+    causeOfLoss: _cause,
+    withdrawalReason: _withdrawalReason,
+    telemetry: _telemetry,
+    ...hashBody
+  } = result;
   result.resultHash = createEnvelope(
     "battle-auto-resolution-result",
     battleAutoResolutionPolicyId,

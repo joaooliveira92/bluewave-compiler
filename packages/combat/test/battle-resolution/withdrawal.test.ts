@@ -1,6 +1,7 @@
 // ADR-0073 (P-1 ticket 12): withdrawal / mutual-disengagement predicate.
 import { describe, expect, it } from "vite-plus/test";
 import {
+  classifyWithdrawalReason,
   decideBattleEnd,
   shipStrengthBp,
   sideStrengthBp,
@@ -76,6 +77,7 @@ describe("ADR-0073 withdrawal predicate", () => {
       reason: "withdrawal_complete",
       eliminatedSide: null,
       withdrawnSide: "ATTACKER",
+      withdrawalReason: "FLEET_STRENGTH_FLOODING",
     });
   });
 
@@ -102,8 +104,41 @@ describe("ADR-0073 withdrawal predicate", () => {
 
   it("both sides below the threshold -> mutual_disengagement, no withdrawn side", () => {
     const d = decide([atBp("ATTACKER", "a1", 1_000), atBp("DEFENDER", "d1", 1_500)]);
-    expect(d).toEqual({ ended: true, reason: "mutual_disengagement", eliminatedSide: null });
+    expect(d).toEqual({
+      ended: true,
+      reason: "mutual_disengagement",
+      eliminatedSide: null,
+      withdrawalReason: "MUTUAL_DISENGAGEMENT",
+    });
     expect(d.withdrawnSide).toBeUndefined();
+  });
+
+  it("classifies the withdrawal reason from the dominant loss (ADR-0098)", () => {
+    // Flotation loss dominant -> flooding.
+    expect(classifyWithdrawalReason([atBp("ATTACKER", "a1", 1_000)], "ATTACKER")).toBe(
+      "FLEET_STRENGTH_FLOODING",
+    );
+    // Pure structural loss (flotation intact) with an active fire -> fire.
+    const burning: ShipViability = {
+      assetId: "a1",
+      sideId: "ATTACKER",
+      damageState: {
+        ...initialDamageState("a1"),
+        structuralIntegrity: Math.floor(STRUCTURE_UNIT / 4),
+        fireRecords: [{ locationId: "BELT", intensityBp: 5_000, cause: "FIRE_SOURCE_CREATED" }],
+      },
+    };
+    expect(classifyWithdrawalReason([burning], "ATTACKER")).toBe("FLEET_STRENGTH_FIRE");
+    // Pure structural loss, no fire -> gunfire.
+    const holed: ShipViability = {
+      assetId: "a1",
+      sideId: "ATTACKER",
+      damageState: {
+        ...initialDamageState("a1"),
+        structuralIntegrity: Math.floor(STRUCTURE_UNIT / 4),
+      },
+    };
+    expect(classifyWithdrawalReason([holed], "ATTACKER")).toBe("FLEET_STRENGTH_GUNFIRE");
   });
 
   it("precedence: elimination beats withdrawal; withdrawal beats time_limit", () => {

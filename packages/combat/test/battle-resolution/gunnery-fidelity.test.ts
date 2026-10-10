@@ -21,10 +21,6 @@ import { makeAutoInput, makeNations, type FixtureNationSet } from "./fixtures.js
 
 const SEEDS = ["fid-a", "fid-b", "fid-c", "fid-d", "fid-e"];
 
-function totalDamage(report: Record<string, SafeInt>): number {
-  return Object.values(report).reduce((acc, v) => acc + (v as number), 0);
-}
-
 describe("P-1 ticket 06 — auto-resolution responds to gun count and speed", () => {
   it("10-gun vs 4-gun battles now differ (same seed, same everything else)", () => {
     const heavy = makeAutoInput({
@@ -44,15 +40,12 @@ describe("P-1 ticket 06 — auto-resolution responds to gun count and speed", ()
     expect(differing).toBe(SEEDS.length);
   });
 
-  it("the 10-gun side deals more damage than the 4-gun side in the SAME battle shape", () => {
-    // Deterministic fixed-seed set; every battle ends withdrawal_complete or
-    // mutual_disengagement (ADR-0073; previously no_viable_combatants).
-    // Since ticket 10 / ADR-0050 persisted shell fires and floods sink ships,
-    // so per-ship damage saturates at 100 and battle length differs per gun
-    // count (seed fid-c: 361 vs 362 per-seed). The like-for-like scale proof
-    // is therefore the aggregate over the seed set (1781 vs 1678 at pin time).
-    let heavyTotal = 0;
-    let lightTotal = 0;
+  it("the 10-gun side lands more hits than the 4-gun side in the SAME battle shape", () => {
+    // Deterministic fixed-seed set. Per-ship damage saturates at the hp cap and
+    // battle length varies with gun count, so the like-for-like scale proof is
+    // the aggregate salvo-hit count (telemetry), which does not saturate.
+    let heavyHits = 0;
+    let lightHits = 0;
     for (const seed of SEEDS) {
       const heavy = resolveBattleAuto({
         ...makeAutoInput({
@@ -64,19 +57,16 @@ describe("P-1 ticket 06 — auto-resolution responds to gun count and speed", ()
         ...makeAutoInput({ nations: makeNations({ attackerGuns: [4, 4], defenderGuns: [4, 4] }) }),
         campaignSeed: seed,
       });
-      // ADR-0094: with production-scale (weaker) penetration many fixtures now
-      // grind to the time_limit cap rather than withdrawing; both end reasons are
-      // possible across the seed set.
       expect(["withdrawal_complete", "mutual_disengagement", "time_limit"]).toContain(
         heavy.battleEndReason,
       );
       expect(["withdrawal_complete", "mutual_disengagement", "time_limit"]).toContain(
         light.battleEndReason,
       );
-      heavyTotal += totalDamage(heavy.damageReport);
-      lightTotal += totalDamage(light.damageReport);
+      heavyHits += heavy.telemetry?.hits ?? 0;
+      lightHits += light.telemetry?.hits ?? 0;
     }
-    expect(heavyTotal).toBeGreaterThan(lightTotal);
+    expect(heavyHits).toBeGreaterThan(lightHits);
   });
 
   it("30-kn vs 14-kn battles now differ (same seed, same guns)", () => {

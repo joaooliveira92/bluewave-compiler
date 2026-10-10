@@ -29,6 +29,7 @@ export function buildMinuteResult(run: MinuteRun): MinuteResult {
     airCombatSummary,
     airDefenseRecords,
     airDefenseStates,
+    salvos,
   } = run;
   const events = ledger.sorted();
   const hasTorpedoSurface =
@@ -154,6 +155,7 @@ export function buildMinuteResult(run: MinuteRun): MinuteResult {
     events: ledger.sorted(),
     minuteHash,
     ...(gunneryStates ? { gunneryStates } : {}),
+    ...(salvos && salvos.length > 0 ? { gunneryRecords: salvos } : {}),
     ...(weatherComponents ? { weatherComponents } : {}),
     ...(damageStates ? { damageStates } : {}),
     ...(torpedoStates ? { torpedoStates } : {}),

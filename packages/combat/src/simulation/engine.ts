@@ -7,6 +7,7 @@ import type { MovementState } from "../movement.js";
 import { BattleLedger, type BattleEvent } from "../battleLedger.js";
 import type { TacticalContact } from "../contact/lifecycle.js";
 import type { GunneryBattery, GunneryState } from "../gunnery/index.js";
+import type { GunneryEventRecord } from "../gunnery/event.js";
 import type { WeatherEngineContext } from "../weather/engine.js";
 import type { BattleWeatherComponents } from "../weather/components.js";
 import type { TacticalBattleState } from "../tactical/index.js";
@@ -115,6 +116,9 @@ export interface MinuteResult {
   // Updated per-battery GunneryState (batteryId -> state) after this minute's
   // gunnery stage. Present only when gunnery batteries were supplied.
   gunneryStates?: Record<string, GunneryState>;
+  // The salvo records fired this minute (DESIGN-39 §30). Present only when at
+  // least one battery fired; observational (not part of the minute snapshot/hash).
+  gunneryRecords?: readonly GunneryEventRecord[];
   // Updated weather components after this minute's weather stage. Present only
   // when weather context was supplied.
   weatherComponents?: BattleWeatherComponents;

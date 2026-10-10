@@ -18,7 +18,7 @@
 import { BluewaveError } from "@bluewave/contracts";
 import { evaluateBattleEnd } from "../battleEnd.js";
 import { type ShipDamageState } from "../damage/state.js";
-import { WITHDRAWAL_STRENGTH_THRESHOLD_BP } from "./constants.js";
+import { FLOAT_UNIT, STRUCTURE_UNIT, WITHDRAWAL_STRENGTH_THRESHOLD_BP } from "./constants.js";
 import { hpOfState } from "./damage.js";
 import { BATTLE_VIABILITY_EVALUATION_FAILED } from "./reasonCodes.js";
 
@@ -83,6 +83,41 @@ export function sideWithdraws(
   return sideStrengthBp(ships, sideId) < thresholdBp;
 }
 
+/**
+ * ADR-0098: a structured reason for a fleet-strength withdrawal. The engine's
+ * only withdrawal predicate is the ADR-0073 fleet-strength threshold, so the
+ * reason classifies WHY that side's strength fell below it: dominant flotation
+ * loss (progressive flooding / breaches), an active fire, dominant structural
+ * (gunfire) loss, or a mutual disengagement. Deterministic, integer-only,
+ * derived from the already-resolved per-ship states; never a new draw.
+ */
+export type WithdrawalReason =
+  | "FLEET_STRENGTH_FLOODING"
+  | "FLEET_STRENGTH_FIRE"
+  | "FLEET_STRENGTH_GUNFIRE"
+  | "FLEET_STRENGTH_STRUCTURAL"
+  | "MUTUAL_DISENGAGEMENT";
+
+export function classifyWithdrawalReason(
+  ships: readonly ShipViability[],
+  sideId: BattleSide,
+): WithdrawalReason {
+  const sideShips = ships.filter((s) => s.sideId === sideId);
+  let flotationLoss = 0;
+  let structuralLoss = 0;
+  let anyFire = false;
+  for (const s of sideShips) {
+    const st = s.damageState;
+    flotationLoss += Math.max(0, FLOAT_UNIT - st.flotationReserve);
+    structuralLoss += Math.max(0, STRUCTURE_UNIT - st.structuralIntegrity);
+    if (st.fireRecords.length > 0) anyFire = true;
+  }
+  if (flotationLoss > structuralLoss) return "FLEET_STRENGTH_FLOODING";
+  if (anyFire) return "FLEET_STRENGTH_FIRE";
+  if (structuralLoss > 0) return "FLEET_STRENGTH_GUNFIRE";
+  return "FLEET_STRENGTH_STRUCTURAL";
+}
+
 export interface AutoResolutionEndDecision {
   ended: boolean;
   /** Exact §32 reason id when ended. */
@@ -91,6 +126,8 @@ export interface AutoResolutionEndDecision {
   eliminatedSide?: BattleSide | null;
   /** The side that broke off (`withdrawal_complete`); absent otherwise. */
   withdrawnSide?: BattleSide;
+  /** ADR-0098 structured withdrawal reason; present only for withdrawal ends. */
+  withdrawalReason?: WithdrawalReason;
 }
 
 /**
@@ -139,6 +176,12 @@ export function decideBattleEnd(
   });
 
   if (evaluation.ended) {
+    const withdrawalReason: WithdrawalReason | undefined =
+      evaluation.reason === "mutual_disengagement"
+        ? "MUTUAL_DISENGAGEMENT"
+        : evaluation.reason === "withdrawal_complete" && withdrawn
+          ? classifyWithdrawalReason(ships, withdrawn)
+          : undefined;
     return {
       ended: true,
       reason: evaluation.reason,
@@ -146,6 +189,7 @@ export function decideBattleEnd(
       ...(evaluation.reason === "withdrawal_complete" && withdrawn
         ? { withdrawnSide: withdrawn }
         : {}),
+      ...(withdrawalReason ? { withdrawalReason } : {}),
     };
   }
   return { ended: false };

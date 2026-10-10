@@ -42,10 +42,20 @@ const DEFAULT_FIRE_RISK_BP = 10_000;
 const BASE_FIRE_INTENSITY_BP = 5_000;
 
 // Default flooding rate (kg/min) for a basic breach.
-const BASE_FLOODING_RATE_KG_MIN = 500;
+const BASE_FLOODING_RATE_KG_MIN = 800;
 
 // The set of penetration outcomes that qualify as ignition sources.
 const IGNITION_OUTCOMES = new Set(["FULL_PENETRATION", "CRITICAL_PENETRATION"]);
+
+// ADR-0098 (post-ADR-0094 lethality rebalance): a hull breach floods on a full
+// penetration at the historical 80% chance, and on a BOUNDED partial
+// penetration at a lower chance. Only a breach (`hullBreach`), which the impact
+// seam sets for waterline zones, reaches this stage; the partial case never
+// reaches the full-penetration chance. BALANCE_TARGET.
+const FLOODING_CHANCE_BP: Record<string, number> = {
+  FULL_PENETRATION: 8_000,
+  PARTIAL_PENETRATION: 3_000,
+};
 
 // ---------------------------------------------------------------------------
 // Input types
@@ -159,8 +169,11 @@ export function evaluateFloodingCreation(
     return null;
   }
 
-  // Requirement: full penetration outcome
-  if (penetrationOutcome !== "FULL_PENETRATION") {
+  // Requirement: a penetrating outcome that qualifies as a flooding breach.
+  // ADR-0098: full penetration keeps the 80% chance; a bounded partial
+  // penetration floods at a lower chance. Non-breach outcomes never reach here.
+  const floodingChanceBp = FLOODING_CHANCE_BP[penetrationOutcome];
+  if (floodingChanceBp === undefined) {
     return null;
   }
 
@@ -172,9 +185,6 @@ export function evaluateFloodingCreation(
   // RNG determines if flooding starts based on breach characteristics
   const draw = keyedRng("battle/ship/damage/flooding_creation");
   const drawBp = Math.floor(draw * 10_000);
-
-  // 80% base chance (8_000 bp) for a qualified breach
-  const floodingChanceBp = 8_000;
 
   if (drawBp >= floodingChanceBp) {
     return null; // flooding did not start (unusual — the hole exists but is sealed or below waterline only partially)

@@ -1,10 +1,18 @@
 # 01 — Re-tune auto-resolution lethality to the ADR-0053 target
 
 **Type:** implementation
-**Status:** open
+**Status:** done (ADR-0098)
 **Blocked by:** none
 **Frontier:** yes
 **Spec:** `.scratch/p1-lethality-rebalance/spec.md`
+
+## Outcome
+
+Delivered by ADR-0098 (post-caliber-correction lethality rebalance):
+bounded partial-penetration breaches + breach flood rate. Equal 2×10-gun
+fleets now resolve ~80 min (was ~321), `time_limit` 0% (was 30%), non-zero
+sinkings. Equal-fleet tripwire tightened to `30 <= lenMean <= 90`. Baselines
+and goldens re-pinned. See `docs/research/p1-tactical-benchmark.md`.
 
 ## Scope
 

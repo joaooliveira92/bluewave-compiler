@@ -44,7 +44,7 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     expect(result.provenance.manifestHash).toBe(computeManifestHash(input.manifest));
   });
 
-  it("the armed fixture deals real damage and (post ADR-0094) grinds to the time cap", () => {
+  it("the armed fixture deals real damage and resolves by fleet-strength withdrawal", () => {
     const input = makeAutoInput();
     const result = resolveBattleAuto(input);
 
@@ -53,19 +53,17 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     const losses = Object.values(result.damageReport);
     expect(losses.some((loss) => (loss as number) > 0)).toBe(true);
 
-    // ADR-0094 caliber unit correction: with production-scale penetration the
-    // equal-fixture battle no longer reaches the ADR-0073 withdrawal threshold
-    // before the 360-minute cap, so it ends by time_limit with no winner. This
-    // is the measured balance impact of the unit correction (a separate
-    // rebalancing pass is required; see ADR-0094). The withdrawal winner/loser
-    // rule itself is covered at decision level and by battle-end tests.
-    expect(result.battleEndReason).toBe("time_limit");
-    expect(result.elapsedMinutes).toBe(DEFAULT_MAX_BATTLE_MINUTES);
-    expect(result.winnerId).toBeNull();
-    expect(result.loserId).toBeNull();
-    // no side is eliminated: both keep every ship (structural-only damage);
-    expect(result.attackerSurvivorIds).toEqual(["a1", "a2"]);
-    expect(result.defenderSurvivorIds).toEqual(["d1", "d2"]);
+    // ADR-0098: after the ADR-0094 caliber correction the equal fixture had
+    // ground to the 360-minute cap with no sinkings. The lethality rebalance
+    // (bounded partial-penetration breaches + breach flood rate) restores the
+    // ADR-0053 target: the fixture now decides inside the 30-90 minute band by
+    // the ADR-0073 fleet-strength withdrawal, with a winner and no time_limit.
+    expect(result.battleEndReason).toBe("withdrawal_complete");
+    expect(result.elapsedMinutes).toBeGreaterThanOrEqual(30);
+    expect(result.elapsedMinutes).toBeLessThanOrEqual(90);
+    expect(result.winnerId).not.toBeNull();
+    expect(result.loserId).not.toBeNull();
+    expect(result.withdrawalReason).toBeDefined();
   });
 
   it("identical inputs -> byte-identical results (in-process determinism)", () => {
@@ -117,11 +115,18 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     // byte-identical (no reload completed); minute 1 is still 2c598e47... (the
     // first fired minute's pre-damage state), later minutes changed.
     // last minute 9205ea66... -> 5347d906....
+    //
+    // Re-pinned for ADR-0098 (post-correction lethality rebalance): bounded
+    // partial-penetration breaches + the breach flood rate give the dominant
+    // belt hit a progressive consequence again, so the equal fixture now decides
+    // at minute 58 by withdrawal_complete (was time_limit 360). Minute 0 and
+    // minute 1 are unchanged (no reload / first-fired-minute pre-damage state);
+    // RESULT 25aef0ba... -> a93b6c69...; last minute 5347d906... -> f2a8fded....
     const result = resolveBattleAuto(makeAutoInput());
-    expect(result.battleEndReason).toBe("time_limit");
-    expect(result.elapsedMinutes).toBe(360);
+    expect(result.battleEndReason).toBe("withdrawal_complete");
+    expect(result.elapsedMinutes).toBe(58);
     expect(result.resultHash).toBe(
-      "25aef0ba7e312ebdcee924ba8d7a31a23de396c17fc025642a99cba0d4d27bdc",
+      "a93b6c691f6eaaa184cd49ab45a0bf02ab79a3a75e9f5dafaa334dbc1836e35a",
     );
     expect(result.minuteHashes[0]).toBe(
       "704d9118704bb7ff99215a06c9eabcbda043c21f897e87accd311494f0c8f218",
@@ -130,7 +135,7 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
       "2c598e47aaf75652fe048e2c27ad21bd39244937633566b98bdb5e54b874d7e4",
     );
     expect(result.minuteHashes[result.minuteHashes.length - 1]).toBe(
-      "5347d9065626263ab0abcc1fc7c41055947b71757e988cba3d39460e78d25ee7",
+      "f2a8fded5facaf23b0ff8aa4d16a2e3f1caec20c67a118cc50b193afd15f3751",
     );
   });
 

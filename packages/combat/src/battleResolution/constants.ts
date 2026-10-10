@@ -118,6 +118,27 @@ export const HIT_DAMAGE_OUTCOME_BP = {
 /** Hull-breach flotation damage = floor(structural * FLOAT_LOSS_RATIO_BP / 10_000). */
 export const FLOAT_LOSS_RATIO_BP = 5_000 as const;
 
+// ADR-0098 (post-ADR-0094 lethality rebalance): bounded partial-penetration
+// consequence. After the caliber unit correction the dominant belt hit at
+// production scale resolves PARTIAL_PENETRATION (e.g. a 343 mm gun's 261 366 µm
+// capability against a 304 950 µm HARVEY belt), which previously had NO
+// progressive consequence at all: no breach, no flooding, no fire. Flotation
+// therefore drained almost only through the 3% magazine share, so ships rarely
+// sank and battles ground to the 360-minute cap. A partial penetration of a
+// waterline zone now opens a BOUNDED breach: it contributes a smaller share of
+// the full-penetration flotation loss and a lower flooding-source chance
+// (`FLOODING_CHANCE_BP` in immediateFireFlooding.ts), never the full-penetration
+// value, so the outcome ordering stays monotone (partial < full). BALANCE_TARGET.
+export const PARTIAL_BREACH_FLOAT_LOSS_RATIO_BP = 1_500 as const;
+
+// A partial penetration only opens its bounded breach when the shell came CLOSE
+// to defeating the plate (capability ≥ this fraction of resistance). A glancing
+// partial (e.g. a 343 mm gun's 261 366 µm capability against a 457 200 µm
+// effective 508 mm belt = 57%) stays a pure structural hit with no breach, so
+// the thick-belt non-breach property is preserved and monotone: thicker armor
+// (higher resistance) can only make a breach less likely. BALANCE_TARGET.
+export const PARTIAL_BREACH_MIN_RATIO_BP = 6_500 as const;
+
 /** Canonical armor-quality family must be a shipped family (fail-closed). */
 export function assertShippedArmorQualityFamily(family: string): void {
   if (!(ARMOR_QUALITY_FAMILIES as readonly string[]).includes(family)) {

@@ -2,7 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-41`
-> **Amended by:** ADR-0047, ADR-0049, ADR-0050.
+> **Amended by:** ADR-0047, ADR-0049, ADR-0050, ADR-0098.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Hit resolution, component damage, structure, flotation, fire, flooding, secondary hazards, terminal states, scoring, survivors, and rescue MUST use the explicit values, formulas, predicates, ordering, and failure behavior defined here. Runtime inference and silent fallback behavior are prohibited.
 
 ## 1. Damage State

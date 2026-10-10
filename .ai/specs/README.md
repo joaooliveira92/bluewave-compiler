@@ -23,3 +23,4 @@ Current specs:
 - SB-2 (ship-building parity with the reference design screen) → `.scratch/ship-building/parity-spec.md` (tickets 31-35)
 - Simulation battle identity labels (presentation-only) → `.scratch/simulation-battle-identity-labels/` (spec.md, AC-1..AC-12, ready for slicing)
 - Division ship reordering (DESIGN-26 §8/§12, ADR-0086) → `.scratch/division-ship-reorder/` (spec.md, AC-1..AC-5 / INC-1..3)
+- P-1 lethality rebalance after the ADR-0094 caliber correction → `.scratch/p1-lethality-rebalance/` (spec.md, issue 01; delivered by ADR-0098)

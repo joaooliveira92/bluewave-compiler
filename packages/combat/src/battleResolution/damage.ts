@@ -49,6 +49,8 @@ import {
   FLOAT_UNIT,
   HIT_DAMAGE_OUTCOME_BP,
   HIT_STRUCTURAL_DAMAGE_BASE,
+  PARTIAL_BREACH_FLOAT_LOSS_RATIO_BP,
+  PARTIAL_BREACH_MIN_RATIO_BP,
   SHELL_IMPACT_ANGLE_DEG,
   SHELL_MUZZLE_VELOCITY_MS,
   STABILITY_INITIAL_BP,
@@ -237,6 +239,9 @@ const HULL_BREACH_OUTCOMES: ReadonlySet<string> = new Set([
   "PASS_THROUGH",
 ]);
 
+/** Waterline zones: a breach here admits water. */
+const WATERLINE_ZONES: ReadonlySet<string> = new Set(["BELT", "MAGAZINE"]);
+
 export interface SynthesizeImpactInput {
   salvo: GunneryEventRecord;
   targetShipId: string;
@@ -267,10 +272,19 @@ export function synthesizeImpact(input: SynthesizeImpactInput): GunneryImpact {
 
   const dmgBp = HIT_DAMAGE_OUTCOME_BP[penetrationOutcome] as number;
   const structuralDamage = Math.floor((HIT_STRUCTURAL_DAMAGE_BASE * dmgBp) / 10_000);
-  const hullBreach =
-    HULL_BREACH_OUTCOMES.has(penetrationOutcome) && (zone.id === "BELT" || zone.id === "MAGAZINE");
+  // ADR-0098: a waterline hit breaches on full penetration (unchanged) OR on a
+  // partial penetration, where the breach is BOUNDED (a smaller flotation-loss
+  // ratio). Non-waterline zones never breach (unchanged).
+  const waterline = WATERLINE_ZONES.has(zone.id);
+  const fullBreach = waterline && HULL_BREACH_OUTCOMES.has(penetrationOutcome);
+  const nearPenetration =
+    penetrationCapability * 10_000 >= effectiveResistance * PARTIAL_BREACH_MIN_RATIO_BP;
+  const partialBreach =
+    waterline && penetrationOutcome === "PARTIAL_PENETRATION" && nearPenetration;
+  const hullBreach = fullBreach || partialBreach;
+  const flotationRatioBp = partialBreach ? PARTIAL_BREACH_FLOAT_LOSS_RATIO_BP : FLOAT_LOSS_RATIO_BP;
   const flotationDamage = hullBreach
-    ? Math.floor((structuralDamage * FLOAT_LOSS_RATIO_BP) / 10_000)
+    ? Math.floor((structuralDamage * flotationRatioBp) / 10_000)
     : 0;
 
   return {
