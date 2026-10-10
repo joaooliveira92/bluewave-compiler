@@ -12,6 +12,7 @@ const DOMAIN_PACKAGES = [
   "contracts",
   "deterministic",
   "diagnostics",
+  "armament",
   "content-schema",
   "content-compiler",
   "ship-design",

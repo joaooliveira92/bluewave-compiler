@@ -25,5 +25,8 @@
     "test": "vp test run",
     "lint": "vp lint .",
     "lint:fix": "echo 'ok'"
+  },
+  "devDependencies": {
+    "@bluewave/armament": "workspace:*"
   }
 }

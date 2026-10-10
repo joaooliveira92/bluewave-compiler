@@ -265,6 +265,12 @@ importers:
         specifier: workspace:*
         version: link:../random
 
+  packages/armament:
+    dependencies:
+      '@bluewave/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
   packages/campaign:
     dependencies:
       '@bluewave/content-compiler':
@@ -323,6 +329,10 @@ importers:
       '@bluewave/random':
         specifier: workspace:*
         version: link:../random
+    devDependencies:
+      '@bluewave/armament':
+        specifier: workspace:*
+        version: link:../armament
 
   packages/commands:
     dependencies:
@@ -541,6 +551,9 @@ importers:
 
   packages/ship-design:
     dependencies:
+      '@bluewave/armament':
+        specifier: workspace:*
+        version: link:../armament
       '@bluewave/contracts':
         specifier: workspace:*
         version: link:../contracts

@@ -19,6 +19,7 @@ Domain and authoritative primitives:
 - `packages/contracts` — branded integer (`SafeInt`) types, checked arithmetic, rounding modes. Root of the graph; no dependencies.
 - `packages/diagnostics` — structured diagnostic collector with stable codes, severity, stage, source location, and entity ID.
 - `packages/deterministic` — canonical JSON serializer (stable key ordering), SHA-256 hashing, domain-separated hash contexts, artifact envelopes, fixed-point math.
+- `packages/armament` — platform-independent authoritative armament domain model and resolver (ADR-0093); neutral so both ship-design and combat can consume it.
 - `packages/random` — SHA-256 domain-separated seeded PRNG with an audit ledger.
 - `packages/content-schema` — Zod schemas for pack manifest, ruleset manifest, and all entity types; safe YAML parser with size/nesting limits.
 - `packages/content-compiler` — typed immutable compiler stages (parse → validate → normalize → compile), orchestrator, structured diagnostics propagation.
@@ -47,10 +48,10 @@ Applications:
 
 ### Dependency direction
 
-- `contracts` is the root. `diagnostics`, `deterministic`, and `random` depend only on `contracts` (and `deterministic` on `@noble/hashes`).
+- `contracts` is the root. `armament`, `diagnostics`, `deterministic`, and `random` depend only on `contracts` (and `deterministic` on `@noble/hashes`).
 - `content-schema` depends on `contracts` + `diagnostics`; `content-compiler` adds `deterministic`.
 - `campaign` depends on `contracts`, `diagnostics`, `deterministic`, `content-schema`, `content-compiler`.
-- `ship-design` depends on `contracts`, `deterministic`, `random`; `events` depends on `campaign`, `contracts`, `deterministic`, `diagnostics`.
+- `ship-design` depends on `contracts`, `deterministic`, `random`, `armament`; `events` depends on `campaign`, `contracts`, `deterministic`, `diagnostics`.
 - `commands` depends on `contracts`, `deterministic`, `diagnostics`, `campaign`, `content-schema`, `ship-design`; `combat` depends on `contracts`, `deterministic`, `diagnostics`, `campaign`, `random`, `events`.
 - `ai` and `persistence` depend on the campaign/command layer; `campaign-engine` depends on `campaign` + `content-schema`.
 - `phase-engine` composes the domain packages (campaign, commands, combat, events, persistence, random, ship-design, ai, campaign-engine, content-schema, contracts, deterministic, diagnostics) and owns the authoritative turn loop.
@@ -58,7 +59,7 @@ Applications:
 
 ### Package rules
 
-- Domain/authoritative packages (`contracts`, `diagnostics`, `deterministic`, `content-schema`, `content-compiler`, `ship-design`, `campaign`, `commands`, `random`, `events`, `ai`, `combat`, `phase-engine`) must not import `os`, `process`, `child_process`, `timers`, or `perf_hooks`; file reads are permitted only at the compile/IO boundary in `content-compiler` and `campaign`. Enforced by the ambient-input audit in `packages/cross-process-test/test/ambient-input.test.ts`.
+- Domain/authoritative packages (`contracts`, `diagnostics`, `deterministic`, `armament`, `content-schema`, `content-compiler`, `ship-design`, `campaign`, `commands`, `random`, `events`, `ai`, `combat`, `phase-engine`) must not import `os`, `process`, `child_process`, `timers`, or `perf_hooks`; file reads are permitted only at the compile/IO boundary in `content-compiler` and `campaign`. Enforced by the ambient-input audit in `packages/cross-process-test/test/ambient-input.test.ts`.
 - Infrastructure/boundary packages (`persistence`, `campaign-engine`, `test-support`, `cross-process-test`) and `apps/*` may use Node and filesystem APIs.
 - Every package declares a `package.json` `exports` field with `types` and `default` entries.
 - Cross-package imports use the `workspace:*` protocol and never reach into another package's `src/`.

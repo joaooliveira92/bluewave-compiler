@@ -4,6 +4,7 @@
     { "path": "packages/contracts" },
     { "path": "packages/diagnostics" },
     { "path": "packages/deterministic" },
+    { "path": "packages/armament" },
     { "path": "packages/ship-design" },
     { "path": "packages/content-schema" },
     { "path": "packages/content-compiler" },

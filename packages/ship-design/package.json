@@ -10,6 +10,7 @@
     }
   },
   "dependencies": {
+    "@bluewave/armament": "workspace:*",
     "@bluewave/contracts": "workspace:*",
     "@bluewave/deterministic": "workspace:*",
     "@bluewave/random": "workspace:*"
