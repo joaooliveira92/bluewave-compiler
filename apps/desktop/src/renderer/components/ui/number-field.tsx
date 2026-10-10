@@ -86,8 +86,7 @@ function NumberFieldGroup({
   className,
   size: sizeProp,
   ...props
-}: NumberFieldPrimitive.Group.Props &
-  Partial<VariantProps<typeof numberFieldGroupVariants>>) {
+}: NumberFieldPrimitive.Group.Props & Partial<VariantProps<typeof numberFieldGroupVariants>>) {
   const context = useContext(NumberFieldContext);
   if (!context) {
     throw new Error("NumberFieldGroup must be used within a NumberField component.");

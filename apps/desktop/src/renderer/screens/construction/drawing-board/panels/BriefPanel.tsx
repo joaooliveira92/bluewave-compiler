@@ -1,8 +1,4 @@
-import {
-  EARLY_SHIP_TYPES,
-  type DesignDraft,
-  type WorkshopView,
-} from "@bluewave/ship-design";
+import { EARLY_SHIP_TYPES, type DesignDraft, type WorkshopView } from "@bluewave/ship-design";
 import type { ReactNode } from "react";
 import { Badge } from "../../../../components/ui/badge.js";
 import { shipTypeIcon } from "../../components/ship-type-icon.js";

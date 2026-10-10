@@ -521,24 +521,103 @@ designs:
           - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
       armour:
         regions:
-          - { region: BELT_MAIN, thicknessUm: 305000, lengthMm: 60000, heightMm: 3200, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: DECK_MAIN, thicknessUm: 76000, lengthMm: 86900, heightMm: 19000, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: MAGAZINE_BOX, thicknessUm: 305000, lengthMm: 60000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: BARBETTE, thicknessUm: 356000, lengthMm: 20000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
+          - {
+              region: BELT_MAIN,
+              thicknessUm: 305000,
+              lengthMm: 60000,
+              heightMm: 3200,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: DECK_MAIN,
+              thicknessUm: 76000,
+              lengthMm: 86900,
+              heightMm: 19000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 305000,
+              lengthMm: 60000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: BARBETTE,
+              thicknessUm: 356000,
+              lengthMm: 20000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
         citadelLengthMm: 60000
         torpedoWarheadKg: 30
         bunkerProtectionBp: 0
       placements:
-        - { instanceId: main_fwd, componentId: gun_rml_12in_35ton, zoneId: FORECASTLE, stationPermille: 40, params: { barrels: 2, rounds: 80 }, magazineRef: mag_fwd }
-        - { instanceId: main_aft, componentId: gun_rml_12in_35ton, zoneId: AFT_SERVICE, stationPermille: 700, params: { barrels: 2, rounds: 80 }, magazineRef: mag_aft }
-        - { instanceId: tubes, componentId: tube_14in_above_water, zoneId: QUARTERDECK, stationPermille: 900, params: { tubes: 2 } }
-        - { instanceId: mag_fwd, componentId: magazine_heavy, zoneId: FWD_MAGAZINE, stationPermille: 130 }
-        - { instanceId: mag_aft, componentId: magazine_heavy, zoneId: AFT_MAGAZINE, stationPermille: 820 }
+        - {
+            instanceId: main_fwd,
+            componentId: gun_rml_12in_35ton,
+            zoneId: FORECASTLE,
+            stationPermille: 40,
+            params: { barrels: 2, rounds: 80 },
+            magazineRef: mag_fwd,
+          }
+        - {
+            instanceId: main_aft,
+            componentId: gun_rml_12in_35ton,
+            zoneId: AFT_SERVICE,
+            stationPermille: 700,
+            params: { barrels: 2, rounds: 80 },
+            magazineRef: mag_aft,
+          }
+        - {
+            instanceId: tubes,
+            componentId: tube_14in_above_water,
+            zoneId: QUARTERDECK,
+            stationPermille: 900,
+            params: { tubes: 2 },
+          }
+        - {
+            instanceId: mag_fwd,
+            componentId: magazine_heavy,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+          }
+        - {
+            instanceId: mag_aft,
+            componentId: magazine_heavy,
+            zoneId: AFT_MAGAZINE,
+            stationPermille: 820,
+          }
         - { instanceId: dyn, componentId: dynamo_small, zoneId: FWD_SERVICE, stationPermille: 220 }
-        - { instanceId: vent, componentId: ventilation_plant, zoneId: FWD_SERVICE, stationPermille: 230 }
-        - { instanceId: quarters, componentId: quarters_crew, zoneId: FWD_SERVICE, stationPermille: 250, params: { blocks: 70 } }
-        - { instanceId: funnel_a, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 580 }
-        - { instanceId: funnel_b, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 620 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: FWD_SERVICE,
+            stationPermille: 230,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 70 },
+          }
+        - {
+            instanceId: funnel_a,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+          }
+        - {
+            instanceId: funnel_b,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 620,
+          }
 
   # HMS Dreadnought (1875): turret ironclad, 10,886 t, 14.5 kn, 2x2 12.5-in RML, 14-in iron belt.
   - id: dreadnought_1875
@@ -584,24 +663,103 @@ designs:
           - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
       armour:
         regions:
-          - { region: BELT_MAIN, thicknessUm: 356000, lengthMm: 70000, heightMm: 3200, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: DECK_MAIN, thicknessUm: 76000, lengthMm: 97500, heightMm: 19500, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: MAGAZINE_BOX, thicknessUm: 356000, lengthMm: 70000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: BARBETTE, thicknessUm: 356000, lengthMm: 22000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
+          - {
+              region: BELT_MAIN,
+              thicknessUm: 356000,
+              lengthMm: 70000,
+              heightMm: 3200,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: DECK_MAIN,
+              thicknessUm: 76000,
+              lengthMm: 97500,
+              heightMm: 19500,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 356000,
+              lengthMm: 70000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: BARBETTE,
+              thicknessUm: 356000,
+              lengthMm: 22000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
         citadelLengthMm: 70000
         torpedoWarheadKg: 30
         bunkerProtectionBp: 0
       placements:
-        - { instanceId: main_fwd, componentId: gun_rml_125in_38ton, zoneId: FORECASTLE, stationPermille: 40, params: { barrels: 2, rounds: 80 }, magazineRef: mag_fwd }
-        - { instanceId: main_aft, componentId: gun_rml_125in_38ton, zoneId: AFT_SERVICE, stationPermille: 700, params: { barrels: 2, rounds: 80 }, magazineRef: mag_aft }
-        - { instanceId: tubes, componentId: tube_14in_above_water, zoneId: QUARTERDECK, stationPermille: 900, params: { tubes: 2 } }
-        - { instanceId: mag_fwd, componentId: magazine_heavy, zoneId: FWD_MAGAZINE, stationPermille: 130 }
-        - { instanceId: mag_aft, componentId: magazine_heavy, zoneId: AFT_MAGAZINE, stationPermille: 820 }
+        - {
+            instanceId: main_fwd,
+            componentId: gun_rml_125in_38ton,
+            zoneId: FORECASTLE,
+            stationPermille: 40,
+            params: { barrels: 2, rounds: 80 },
+            magazineRef: mag_fwd,
+          }
+        - {
+            instanceId: main_aft,
+            componentId: gun_rml_125in_38ton,
+            zoneId: AFT_SERVICE,
+            stationPermille: 700,
+            params: { barrels: 2, rounds: 80 },
+            magazineRef: mag_aft,
+          }
+        - {
+            instanceId: tubes,
+            componentId: tube_14in_above_water,
+            zoneId: QUARTERDECK,
+            stationPermille: 900,
+            params: { tubes: 2 },
+          }
+        - {
+            instanceId: mag_fwd,
+            componentId: magazine_heavy,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+          }
+        - {
+            instanceId: mag_aft,
+            componentId: magazine_heavy,
+            zoneId: AFT_MAGAZINE,
+            stationPermille: 820,
+          }
         - { instanceId: dyn, componentId: dynamo_small, zoneId: FWD_SERVICE, stationPermille: 220 }
-        - { instanceId: vent, componentId: ventilation_plant, zoneId: FWD_SERVICE, stationPermille: 230 }
-        - { instanceId: quarters, componentId: quarters_crew, zoneId: FWD_SERVICE, stationPermille: 250, params: { blocks: 75 } }
-        - { instanceId: funnel_a, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 580 }
-        - { instanceId: funnel_b, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 620 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: FWD_SERVICE,
+            stationPermille: 230,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 75 },
+          }
+        - {
+            instanceId: funnel_a,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+          }
+        - {
+            instanceId: funnel_b,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 620,
+          }
 
   # HMS Alexandra (1877): central-battery ironclad, 9,492 t, 15.1 kn, 2x 11-in + 10x 10-in RML, 12-in iron belt.
   - id: alexandra_1877
@@ -647,26 +805,119 @@ designs:
           - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
       armour:
         regions:
-          - { region: BELT_MAIN, thicknessUm: 305000, lengthMm: 70000, heightMm: 3200, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: DECK_MAIN, thicknessUm: 55000, lengthMm: 99100, heightMm: 19500, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: MAGAZINE_BOX, thicknessUm: 305000, lengthMm: 70000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: BARBETTE, thicknessUm: 203000, lengthMm: 40000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
+          - {
+              region: BELT_MAIN,
+              thicknessUm: 305000,
+              lengthMm: 70000,
+              heightMm: 3200,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: DECK_MAIN,
+              thicknessUm: 55000,
+              lengthMm: 99100,
+              heightMm: 19500,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 305000,
+              lengthMm: 70000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: BARBETTE,
+              thicknessUm: 203000,
+              lengthMm: 40000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
         citadelLengthMm: 70000
         torpedoWarheadKg: 30
         bunkerProtectionBp: 0
       placements:
-        - { instanceId: main_fwd, componentId: gun_rml_11in_25ton, zoneId: FORECASTLE, stationPermille: 40, params: { barrels: 2, rounds: 100 }, magazineRef: mag_fwd }
-        - { instanceId: sec_p, componentId: gun_rml_10in_18ton_broadside, zoneId: SUPERSTRUCTURE, stationPermille: 560, side: PORT, params: { barrels: 5, rounds: 100 }, magazineRef: mag_sec }
-        - { instanceId: sec_s, componentId: gun_rml_10in_18ton_broadside, zoneId: SUPERSTRUCTURE, stationPermille: 560, side: STBD, params: { barrels: 5, rounds: 100 }, magazineRef: mag_sec }
-        - { instanceId: tubes, componentId: tube_14in_above_water, zoneId: QUARTERDECK, stationPermille: 900, params: { tubes: 4 } }
-        - { instanceId: mag_sec, componentId: magazine_heavy, zoneId: SUPERSTRUCTURE, stationPermille: 560 }
-        - { instanceId: mag_fwd, componentId: magazine_heavy, zoneId: FWD_MAGAZINE, stationPermille: 130 }
-        - { instanceId: mag_aft, componentId: magazine_heavy, zoneId: AFT_MAGAZINE, stationPermille: 820 }
+        - {
+            instanceId: main_fwd,
+            componentId: gun_rml_11in_25ton,
+            zoneId: FORECASTLE,
+            stationPermille: 40,
+            params: { barrels: 2, rounds: 100 },
+            magazineRef: mag_fwd,
+          }
+        - {
+            instanceId: sec_p,
+            componentId: gun_rml_10in_18ton_broadside,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+            side: PORT,
+            params: { barrels: 5, rounds: 100 },
+            magazineRef: mag_sec,
+          }
+        - {
+            instanceId: sec_s,
+            componentId: gun_rml_10in_18ton_broadside,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+            side: STBD,
+            params: { barrels: 5, rounds: 100 },
+            magazineRef: mag_sec,
+          }
+        - {
+            instanceId: tubes,
+            componentId: tube_14in_above_water,
+            zoneId: QUARTERDECK,
+            stationPermille: 900,
+            params: { tubes: 4 },
+          }
+        - {
+            instanceId: mag_sec,
+            componentId: magazine_heavy,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+          }
+        - {
+            instanceId: mag_fwd,
+            componentId: magazine_heavy,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+          }
+        - {
+            instanceId: mag_aft,
+            componentId: magazine_heavy,
+            zoneId: AFT_MAGAZINE,
+            stationPermille: 820,
+          }
         - { instanceId: dyn, componentId: dynamo_small, zoneId: AFT_SERVICE, stationPermille: 690 }
-        - { instanceId: vent, componentId: ventilation_plant, zoneId: AFT_SERVICE, stationPermille: 700 }
-        - { instanceId: quarters, componentId: quarters_crew, zoneId: FWD_SERVICE, stationPermille: 250, params: { blocks: 95 } }
-        - { instanceId: funnel_a, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 580 }
-        - { instanceId: funnel_b, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 620 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: AFT_SERVICE,
+            stationPermille: 700,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 95 },
+          }
+        - {
+            instanceId: funnel_a,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+          }
+        - {
+            instanceId: funnel_b,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 620,
+          }
 
   # HMS Iris (1879): steel dispatch vessel / early cruiser, 3,730 t, 17.9 kn, 10x 64-pdr RML, no armour (protectionGoal NONE).
   - id: iris_1879
@@ -716,13 +967,50 @@ designs:
         torpedoWarheadKg: 20
         bunkerProtectionBp: 0
       placements:
-        - { instanceId: mag_sec, componentId: magazine_heavy, zoneId: SUPERSTRUCTURE, stationPermille: 560 }
-        - { instanceId: sec_p, componentId: gun_rml_64pdr_71cwt, zoneId: SUPERSTRUCTURE, stationPermille: 560, side: PORT, params: { barrels: 5, rounds: 150 }, magazineRef: mag_sec }
-        - { instanceId: sec_s, componentId: gun_rml_64pdr_71cwt, zoneId: SUPERSTRUCTURE, stationPermille: 560, side: STBD, params: { barrels: 5, rounds: 150 }, magazineRef: mag_sec }
+        - {
+            instanceId: mag_sec,
+            componentId: magazine_heavy,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+          }
+        - {
+            instanceId: sec_p,
+            componentId: gun_rml_64pdr_71cwt,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+            side: PORT,
+            params: { barrels: 5, rounds: 150 },
+            magazineRef: mag_sec,
+          }
+        - {
+            instanceId: sec_s,
+            componentId: gun_rml_64pdr_71cwt,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+            side: STBD,
+            params: { barrels: 5, rounds: 150 },
+            magazineRef: mag_sec,
+          }
         - { instanceId: dyn, componentId: dynamo_small, zoneId: FWD_SERVICE, stationPermille: 220 }
-        - { instanceId: vent, componentId: ventilation_plant, zoneId: FWD_SERVICE, stationPermille: 230 }
-        - { instanceId: quarters, componentId: quarters_crew, zoneId: FWD_SERVICE, stationPermille: 250, params: { blocks: 28 } }
-        - { instanceId: funnel, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 600 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: FWD_SERVICE,
+            stationPermille: 230,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 28 },
+          }
+        - {
+            instanceId: funnel,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 600,
+          }
 
   # Redoutable (1878): French central-battery ironclad, steel hull, 9,224 t, 14.7 kn, 8x 27-cm M1875, 14-in iron belt.
   - id: redoutable_1878
@@ -768,24 +1056,103 @@ designs:
           - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
       armour:
         regions:
-          - { region: BELT_MAIN, thicknessUm: 350000, lengthMm: 70000, heightMm: 3200, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: DECK_MAIN, thicknessUm: 60000, lengthMm: 97100, heightMm: 19700, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: MAGAZINE_BOX, thicknessUm: 350000, lengthMm: 70000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: BARBETTE, thicknessUm: 300000, lengthMm: 30000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
+          - {
+              region: BELT_MAIN,
+              thicknessUm: 350000,
+              lengthMm: 70000,
+              heightMm: 3200,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: DECK_MAIN,
+              thicknessUm: 60000,
+              lengthMm: 97100,
+              heightMm: 19700,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 350000,
+              lengthMm: 70000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: BARBETTE,
+              thicknessUm: 300000,
+              lengthMm: 30000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
         citadelLengthMm: 70000
         torpedoWarheadKg: 30
         bunkerProtectionBp: 0
       placements:
-        - { instanceId: main_fwd, componentId: gun_bl_274mm_m1875, zoneId: CENTRAL_MACHINERY, stationPermille: 300, params: { barrels: 4, rounds: 80 }, magazineRef: mag_fwd }
-        - { instanceId: main_aft, componentId: gun_bl_274mm_m1875, zoneId: CENTRAL_MACHINERY, stationPermille: 480, params: { barrels: 4, rounds: 80 }, magazineRef: mag_aft }
-        - { instanceId: tubes, componentId: tube_14in_above_water, zoneId: QUARTERDECK, stationPermille: 900, params: { tubes: 2 } }
-        - { instanceId: mag_fwd, componentId: magazine_heavy, zoneId: FWD_MAGAZINE, stationPermille: 130 }
-        - { instanceId: mag_aft, componentId: magazine_heavy, zoneId: AFT_SERVICE, stationPermille: 700 }
+        - {
+            instanceId: main_fwd,
+            componentId: gun_bl_274mm_m1875,
+            zoneId: CENTRAL_MACHINERY,
+            stationPermille: 300,
+            params: { barrels: 4, rounds: 80 },
+            magazineRef: mag_fwd,
+          }
+        - {
+            instanceId: main_aft,
+            componentId: gun_bl_274mm_m1875,
+            zoneId: CENTRAL_MACHINERY,
+            stationPermille: 480,
+            params: { barrels: 4, rounds: 80 },
+            magazineRef: mag_aft,
+          }
+        - {
+            instanceId: tubes,
+            componentId: tube_14in_above_water,
+            zoneId: QUARTERDECK,
+            stationPermille: 900,
+            params: { tubes: 2 },
+          }
+        - {
+            instanceId: mag_fwd,
+            componentId: magazine_heavy,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+          }
+        - {
+            instanceId: mag_aft,
+            componentId: magazine_heavy,
+            zoneId: AFT_SERVICE,
+            stationPermille: 700,
+          }
         - { instanceId: dyn, componentId: dynamo_small, zoneId: FWD_SERVICE, stationPermille: 220 }
-        - { instanceId: vent, componentId: ventilation_plant, zoneId: FWD_SERVICE, stationPermille: 230 }
-        - { instanceId: quarters, componentId: quarters_crew, zoneId: FWD_SERVICE, stationPermille: 250, params: { blocks: 80 } }
-        - { instanceId: funnel_a, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 580 }
-        - { instanceId: funnel_b, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 620 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: FWD_SERVICE,
+            stationPermille: 230,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 80 },
+          }
+        - {
+            instanceId: funnel_a,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+          }
+        - {
+            instanceId: funnel_b,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 620,
+          }
 
   # SMS Kaiser (1875): German central-battery armoured frigate, steel armour, 8,799 t, 14.5 kn, 8x 26-cm RK, 10-in belt.
   - id: kaiser_1875
@@ -831,25 +1198,110 @@ designs:
           - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
       armour:
         regions:
-          - { region: BELT_MAIN, thicknessUm: 254000, lengthMm: 60000, heightMm: 3200, materialId: steel, cosObliquityBp: 10000 }
-          - { region: DECK_MAIN, thicknessUm: 51000, lengthMm: 88500, heightMm: 19100, materialId: steel, cosObliquityBp: 10000 }
-          - { region: MAGAZINE_BOX, thicknessUm: 254000, lengthMm: 60000, heightMm: 3000, materialId: steel, cosObliquityBp: 10000 }
-          - { region: BARBETTE, thicknessUm: 203000, lengthMm: 20000, heightMm: 3000, materialId: steel, cosObliquityBp: 10000 }
+          - {
+              region: BELT_MAIN,
+              thicknessUm: 254000,
+              lengthMm: 60000,
+              heightMm: 3200,
+              materialId: steel,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: DECK_MAIN,
+              thicknessUm: 51000,
+              lengthMm: 88500,
+              heightMm: 19100,
+              materialId: steel,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 254000,
+              lengthMm: 60000,
+              heightMm: 3000,
+              materialId: steel,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: BARBETTE,
+              thicknessUm: 203000,
+              lengthMm: 20000,
+              heightMm: 3000,
+              materialId: steel,
+              cosObliquityBp: 10000,
+            }
         citadelLengthMm: 60000
         torpedoWarheadKg: 30
         bunkerProtectionBp: 0
       placements:
-        - { instanceId: main_fwd, componentId: gun_bl_263mm_rkl20, zoneId: CENTRAL_MACHINERY, stationPermille: 300, params: { barrels: 4, rounds: 80 }, magazineRef: mag_fwd }
-        - { instanceId: main_aft, componentId: gun_bl_263mm_rkl20, zoneId: CENTRAL_MACHINERY, stationPermille: 480, params: { barrels: 4, rounds: 80 }, magazineRef: mag_aft }
-        - { instanceId: sec, componentId: gun_rml_8in_9ton, zoneId: SUPERSTRUCTURE, stationPermille: 560, params: { barrels: 1, rounds: 100 }, magazineRef: mag_sec }
-        - { instanceId: mag_sec, componentId: magazine_heavy, zoneId: SUPERSTRUCTURE, stationPermille: 560 }
-        - { instanceId: mag_fwd, componentId: magazine_heavy, zoneId: FWD_MAGAZINE, stationPermille: 130 }
-        - { instanceId: mag_aft, componentId: magazine_heavy, zoneId: AFT_SERVICE, stationPermille: 700 }
+        - {
+            instanceId: main_fwd,
+            componentId: gun_bl_263mm_rkl20,
+            zoneId: CENTRAL_MACHINERY,
+            stationPermille: 300,
+            params: { barrels: 4, rounds: 80 },
+            magazineRef: mag_fwd,
+          }
+        - {
+            instanceId: main_aft,
+            componentId: gun_bl_263mm_rkl20,
+            zoneId: CENTRAL_MACHINERY,
+            stationPermille: 480,
+            params: { barrels: 4, rounds: 80 },
+            magazineRef: mag_aft,
+          }
+        - {
+            instanceId: sec,
+            componentId: gun_rml_8in_9ton,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+            params: { barrels: 1, rounds: 100 },
+            magazineRef: mag_sec,
+          }
+        - {
+            instanceId: mag_sec,
+            componentId: magazine_heavy,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+          }
+        - {
+            instanceId: mag_fwd,
+            componentId: magazine_heavy,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+          }
+        - {
+            instanceId: mag_aft,
+            componentId: magazine_heavy,
+            zoneId: AFT_SERVICE,
+            stationPermille: 700,
+          }
         - { instanceId: dyn, componentId: dynamo_small, zoneId: FWD_SERVICE, stationPermille: 220 }
-        - { instanceId: vent, componentId: ventilation_plant, zoneId: FWD_SERVICE, stationPermille: 230 }
-        - { instanceId: quarters, componentId: quarters_crew, zoneId: FWD_SERVICE, stationPermille: 250, params: { blocks: 80 } }
-        - { instanceId: funnel_a, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 580 }
-        - { instanceId: funnel_b, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 620 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: FWD_SERVICE,
+            stationPermille: 230,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 80 },
+          }
+        - {
+            instanceId: funnel_a,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+          }
+        - {
+            instanceId: funnel_b,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 620,
+          }
 
   # SMS Sachsen (1878): German central-citadel armoured corvette, 7,677 t, 13.5 kn, 6x 26-cm RK, 10-in iron belt.
   - id: sachsen_1878
@@ -895,23 +1347,96 @@ designs:
           - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
       armour:
         regions:
-          - { region: BELT_MAIN, thicknessUm: 254000, lengthMm: 60000, heightMm: 3200, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: DECK_MAIN, thicknessUm: 75000, lengthMm: 93000, heightMm: 18400, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: MAGAZINE_BOX, thicknessUm: 254000, lengthMm: 60000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: BARBETTE, thicknessUm: 254000, lengthMm: 25000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
+          - {
+              region: BELT_MAIN,
+              thicknessUm: 254000,
+              lengthMm: 60000,
+              heightMm: 3200,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: DECK_MAIN,
+              thicknessUm: 75000,
+              lengthMm: 93000,
+              heightMm: 18400,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 254000,
+              lengthMm: 60000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: BARBETTE,
+              thicknessUm: 254000,
+              lengthMm: 25000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
         citadelLengthMm: 60000
         torpedoWarheadKg: 30
         bunkerProtectionBp: 0
       placements:
-        - { instanceId: main_fwd, componentId: gun_bl_263mm_rkl20, zoneId: CENTRAL_MACHINERY, stationPermille: 300, params: { barrels: 3, rounds: 80 }, magazineRef: mag_fwd }
-        - { instanceId: main_aft, componentId: gun_bl_263mm_rkl20, zoneId: CENTRAL_MACHINERY, stationPermille: 480, params: { barrels: 3, rounds: 80 }, magazineRef: mag_aft }
-        - { instanceId: mag_fwd, componentId: magazine_heavy, zoneId: FWD_MAGAZINE, stationPermille: 130 }
-        - { instanceId: mag_aft, componentId: magazine_heavy, zoneId: AFT_SERVICE, stationPermille: 700 }
+        - {
+            instanceId: main_fwd,
+            componentId: gun_bl_263mm_rkl20,
+            zoneId: CENTRAL_MACHINERY,
+            stationPermille: 300,
+            params: { barrels: 3, rounds: 80 },
+            magazineRef: mag_fwd,
+          }
+        - {
+            instanceId: main_aft,
+            componentId: gun_bl_263mm_rkl20,
+            zoneId: CENTRAL_MACHINERY,
+            stationPermille: 480,
+            params: { barrels: 3, rounds: 80 },
+            magazineRef: mag_aft,
+          }
+        - {
+            instanceId: mag_fwd,
+            componentId: magazine_heavy,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+          }
+        - {
+            instanceId: mag_aft,
+            componentId: magazine_heavy,
+            zoneId: AFT_SERVICE,
+            stationPermille: 700,
+          }
         - { instanceId: dyn, componentId: dynamo_small, zoneId: FWD_SERVICE, stationPermille: 220 }
-        - { instanceId: vent, componentId: ventilation_plant, zoneId: FWD_SERVICE, stationPermille: 230 }
-        - { instanceId: quarters, componentId: quarters_crew, zoneId: FWD_SERVICE, stationPermille: 250, params: { blocks: 45 } }
-        - { instanceId: funnel_a, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 580 }
-        - { instanceId: funnel_b, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 620 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: FWD_SERVICE,
+            stationPermille: 230,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 45 },
+          }
+        - {
+            instanceId: funnel_a,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+          }
+        - {
+            instanceId: funnel_b,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 620,
+          }
 
   # Principe Amedeo (1874): Italian central-battery ironclad, 5,761 t, 12.2 kn, 1x 11-in + 6x 10-in RML, 8.7-in iron belt.
   - id: principe_amedeo_1874
@@ -957,24 +1482,104 @@ designs:
           - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
       armour:
         regions:
-          - { region: BELT_MAIN, thicknessUm: 220000, lengthMm: 55000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: MAGAZINE_BOX, thicknessUm: 220000, lengthMm: 55000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: BARBETTE, thicknessUm: 140000, lengthMm: 25000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
+          - {
+              region: BELT_MAIN,
+              thicknessUm: 220000,
+              lengthMm: 55000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 220000,
+              lengthMm: 55000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: BARBETTE,
+              thicknessUm: 140000,
+              lengthMm: 25000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
         citadelLengthMm: 55000
         torpedoWarheadKg: 20
         bunkerProtectionBp: 0
       placements:
-        - { instanceId: main_fwd, componentId: gun_rml_11in_25ton, zoneId: FORECASTLE, stationPermille: 40, params: { barrels: 1, rounds: 80 }, magazineRef: mag_fwd }
-        - { instanceId: sec_p, componentId: gun_rml_10in_18ton_broadside, zoneId: SUPERSTRUCTURE, stationPermille: 560, side: PORT, params: { barrels: 3, rounds: 80 }, magazineRef: mag_sec }
-        - { instanceId: sec_s, componentId: gun_rml_10in_18ton_broadside, zoneId: SUPERSTRUCTURE, stationPermille: 560, side: STBD, params: { barrels: 3, rounds: 80 }, magazineRef: mag_sec }
-        - { instanceId: mag_sec, componentId: magazine_heavy, zoneId: SUPERSTRUCTURE, stationPermille: 560 }
-        - { instanceId: mag_fwd, componentId: magazine_heavy, zoneId: FWD_MAGAZINE, stationPermille: 130 }
-        - { instanceId: mag_aft, componentId: magazine_heavy, zoneId: AFT_MAGAZINE, stationPermille: 820 }
+        - {
+            instanceId: main_fwd,
+            componentId: gun_rml_11in_25ton,
+            zoneId: FORECASTLE,
+            stationPermille: 40,
+            params: { barrels: 1, rounds: 80 },
+            magazineRef: mag_fwd,
+          }
+        - {
+            instanceId: sec_p,
+            componentId: gun_rml_10in_18ton_broadside,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+            side: PORT,
+            params: { barrels: 3, rounds: 80 },
+            magazineRef: mag_sec,
+          }
+        - {
+            instanceId: sec_s,
+            componentId: gun_rml_10in_18ton_broadside,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+            side: STBD,
+            params: { barrels: 3, rounds: 80 },
+            magazineRef: mag_sec,
+          }
+        - {
+            instanceId: mag_sec,
+            componentId: magazine_heavy,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+          }
+        - {
+            instanceId: mag_fwd,
+            componentId: magazine_heavy,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+          }
+        - {
+            instanceId: mag_aft,
+            componentId: magazine_heavy,
+            zoneId: AFT_MAGAZINE,
+            stationPermille: 820,
+          }
         - { instanceId: dyn, componentId: dynamo_small, zoneId: FWD_SERVICE, stationPermille: 220 }
-        - { instanceId: vent, componentId: ventilation_plant, zoneId: FWD_SERVICE, stationPermille: 230 }
-        - { instanceId: quarters, componentId: quarters_crew, zoneId: FWD_SERVICE, stationPermille: 250, params: { blocks: 60 } }
-        - { instanceId: funnel_a, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 580 }
-        - { instanceId: funnel_b, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 620 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: FWD_SERVICE,
+            stationPermille: 230,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 60 },
+          }
+        - {
+            instanceId: funnel_a,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+          }
+        - {
+            instanceId: funnel_b,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 620,
+          }
 
   # Petr Velikiy (1876): Russian turret ship, 9,790 t, 12.3 kn, 2x2 12-in obr.1867 (British 12-in RML as catalogue proxy), 14-in belt.
   - id: petr_velikiy_1876
@@ -1020,23 +1625,96 @@ designs:
           - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
       armour:
         regions:
-          - { region: BELT_MAIN, thicknessUm: 356000, lengthMm: 70000, heightMm: 3200, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: DECK_MAIN, thicknessUm: 76000, lengthMm: 98100, heightMm: 19000, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: MAGAZINE_BOX, thicknessUm: 356000, lengthMm: 70000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: BARBETTE, thicknessUm: 356000, lengthMm: 22000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
+          - {
+              region: BELT_MAIN,
+              thicknessUm: 356000,
+              lengthMm: 70000,
+              heightMm: 3200,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: DECK_MAIN,
+              thicknessUm: 76000,
+              lengthMm: 98100,
+              heightMm: 19000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 356000,
+              lengthMm: 70000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: BARBETTE,
+              thicknessUm: 356000,
+              lengthMm: 22000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
         citadelLengthMm: 70000
         torpedoWarheadKg: 30
         bunkerProtectionBp: 0
       placements:
-        - { instanceId: main_fwd, componentId: gun_rml_12in_35ton, zoneId: FORECASTLE, stationPermille: 40, params: { barrels: 2, rounds: 80 }, magazineRef: mag_fwd }
-        - { instanceId: main_aft, componentId: gun_rml_12in_35ton, zoneId: AFT_SERVICE, stationPermille: 700, params: { barrels: 2, rounds: 80 }, magazineRef: mag_aft }
-        - { instanceId: mag_fwd, componentId: magazine_heavy, zoneId: FWD_MAGAZINE, stationPermille: 130 }
-        - { instanceId: mag_aft, componentId: magazine_heavy, zoneId: AFT_MAGAZINE, stationPermille: 820 }
+        - {
+            instanceId: main_fwd,
+            componentId: gun_rml_12in_35ton,
+            zoneId: FORECASTLE,
+            stationPermille: 40,
+            params: { barrels: 2, rounds: 80 },
+            magazineRef: mag_fwd,
+          }
+        - {
+            instanceId: main_aft,
+            componentId: gun_rml_12in_35ton,
+            zoneId: AFT_SERVICE,
+            stationPermille: 700,
+            params: { barrels: 2, rounds: 80 },
+            magazineRef: mag_aft,
+          }
+        - {
+            instanceId: mag_fwd,
+            componentId: magazine_heavy,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+          }
+        - {
+            instanceId: mag_aft,
+            componentId: magazine_heavy,
+            zoneId: AFT_MAGAZINE,
+            stationPermille: 820,
+          }
         - { instanceId: dyn, componentId: dynamo_small, zoneId: FWD_SERVICE, stationPermille: 220 }
-        - { instanceId: vent, componentId: ventilation_plant, zoneId: FWD_SERVICE, stationPermille: 230 }
-        - { instanceId: quarters, componentId: quarters_crew, zoneId: FWD_SERVICE, stationPermille: 250, params: { blocks: 70 } }
-        - { instanceId: funnel_a, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 580 }
-        - { instanceId: funnel_b, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 620 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: FWD_SERVICE,
+            stationPermille: 230,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 70 },
+          }
+        - {
+            instanceId: funnel_a,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+          }
+        - {
+            instanceId: funnel_b,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 620,
+          }
 
   # Mesudiye (1875): Ottoman central-battery ironclad, 8,938 t, 13.7 kn, 12x 10-in + 3x 7-in RML, 12-in iron belt.
   - id: mesudiye_1875
@@ -1082,21 +1760,99 @@ designs:
           - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
       armour:
         regions:
-          - { region: BELT_MAIN, thicknessUm: 305000, lengthMm: 75000, heightMm: 3200, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: MAGAZINE_BOX, thicknessUm: 305000, lengthMm: 75000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
-          - { region: BARBETTE, thicknessUm: 254000, lengthMm: 30000, heightMm: 3000, materialId: wrought_iron, cosObliquityBp: 10000 }
+          - {
+              region: BELT_MAIN,
+              thicknessUm: 305000,
+              lengthMm: 75000,
+              heightMm: 3200,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 305000,
+              lengthMm: 75000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: BARBETTE,
+              thicknessUm: 254000,
+              lengthMm: 30000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
         citadelLengthMm: 75000
         torpedoWarheadKg: 20
         bunkerProtectionBp: 0
       placements:
-        - { instanceId: main_fwd, componentId: gun_rml_10in_18ton, zoneId: CENTRAL_MACHINERY, stationPermille: 300, params: { barrels: 6, rounds: 80 }, magazineRef: mag_fwd }
-        - { instanceId: main_aft, componentId: gun_rml_10in_18ton, zoneId: CENTRAL_MACHINERY, stationPermille: 480, params: { barrels: 6, rounds: 80 }, magazineRef: mag_aft }
-        - { instanceId: sec, componentId: gun_rml_7in_7ton, zoneId: SUPERSTRUCTURE, stationPermille: 560, params: { barrels: 3, rounds: 100 }, magazineRef: mag_sec }
-        - { instanceId: mag_sec, componentId: magazine_heavy, zoneId: SUPERSTRUCTURE, stationPermille: 560 }
-        - { instanceId: mag_fwd, componentId: magazine_heavy, zoneId: FWD_MAGAZINE, stationPermille: 130 }
-        - { instanceId: mag_aft, componentId: magazine_heavy, zoneId: AFT_SERVICE, stationPermille: 700 }
+        - {
+            instanceId: main_fwd,
+            componentId: gun_rml_10in_18ton,
+            zoneId: CENTRAL_MACHINERY,
+            stationPermille: 300,
+            params: { barrels: 6, rounds: 80 },
+            magazineRef: mag_fwd,
+          }
+        - {
+            instanceId: main_aft,
+            componentId: gun_rml_10in_18ton,
+            zoneId: CENTRAL_MACHINERY,
+            stationPermille: 480,
+            params: { barrels: 6, rounds: 80 },
+            magazineRef: mag_aft,
+          }
+        - {
+            instanceId: sec,
+            componentId: gun_rml_7in_7ton,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+            params: { barrels: 3, rounds: 100 },
+            magazineRef: mag_sec,
+          }
+        - {
+            instanceId: mag_sec,
+            componentId: magazine_heavy,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+          }
+        - {
+            instanceId: mag_fwd,
+            componentId: magazine_heavy,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+          }
+        - {
+            instanceId: mag_aft,
+            componentId: magazine_heavy,
+            zoneId: AFT_SERVICE,
+            stationPermille: 700,
+          }
         - { instanceId: dyn, componentId: dynamo_small, zoneId: AFT_SERVICE, stationPermille: 690 }
-        - { instanceId: vent, componentId: ventilation_plant, zoneId: AFT_SERVICE, stationPermille: 700 }
-        - { instanceId: quarters, componentId: quarters_crew, zoneId: FWD_SERVICE, stationPermille: 250, params: { blocks: 90 } }
-        - { instanceId: funnel_a, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 580 }
-        - { instanceId: funnel_b, componentId: funnel_single, zoneId: SUPERSTRUCTURE, stationPermille: 620 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: AFT_SERVICE,
+            stationPermille: 700,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 90 },
+          }
+        - {
+            instanceId: funnel_a,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+          }
+        - {
+            instanceId: funnel_b,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 620,
+          }

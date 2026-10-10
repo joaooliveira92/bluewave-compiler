@@ -4,7 +4,6 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CampaignSnapshot } from "@bluewave/campaign";
 import type { CommandBody, CommandEnvelope } from "@bluewave/commands";
-import { CommandLifecycle } from "@bluewave/commands";
 import {
   PropulsionPlantCatalogueSchema,
   ShipComponentCatalogueSchema,
@@ -14,9 +13,6 @@ import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import {
   buildShipBuildingContent,
-  buildWorkshopView,
-  treasuryCostUnits,
-  type DesignDraft,
   type ComponentDef,
   type HullFormRecord,
   type PropulsionPlant,

@@ -70,7 +70,11 @@ export function PlanModeButtons({
       {MODES.map(({ mode, name, label, Icon, hint }) => {
         const active = tool.mode === mode;
         const trigger = (
-          <Button variant={active ? "default" : "outline"} aria-label={name} aria-pressed={active} />
+          <Button
+            variant={active ? "default" : "outline"}
+            aria-label={name}
+            aria-pressed={active}
+          />
         );
         const face = (
           <>
@@ -98,9 +102,7 @@ export function PlanModeButtons({
               <PopoverTrigger render={trigger}>{face}</PopoverTrigger>
             ) : (
               <Tooltip>
-                <TooltipTrigger render={<PopoverTrigger render={trigger} />}>
-                  {face}
-                </TooltipTrigger>
+                <TooltipTrigger render={<PopoverTrigger render={trigger} />}>{face}</TooltipTrigger>
                 <TooltipContent className="max-w-72">{hint}</TooltipContent>
               </Tooltip>
             )}

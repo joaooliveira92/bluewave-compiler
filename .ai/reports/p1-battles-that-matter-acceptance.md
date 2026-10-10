@@ -36,16 +36,16 @@ high-speed-loss and §1/§27 persistent damage-control resources; fleet depth
 
 ## Requirements evidence
 
-| AC   | Implementation                                                                                        | Proving test                                                                   |
-| ---- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| AC-1 | `DesignTemplateSchema` optional `torpedoArmament` (closed mount enum, tubes ≥ 1) — `content-schema`    | `packages/content-schema/test/research-design.test.ts` → "P-1 AC-1: accepts torpedoArmament and rejects bad mounts" |
+| AC   | Implementation                                                                                                 | Proving test                                                                                                                     |
+| ---- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 | `DesignTemplateSchema` optional `torpedoArmament` (closed mount enum, tubes ≥ 1) — `content-schema`            | `packages/content-schema/test/research-design.test.ts` → "P-1 AC-1: accepts torpedoArmament and rejects bad mounts"              |
 | AC-2 | Compiled designs carry `torpedoArmament`; unarmed designs keep their hash shape — `campaign/designCompilation` | `packages/campaign/test/campaign.test.ts` → "P-1 AC-2: compiles optional torpedoArmament; unarmed designs keep their hash shape" |
-| AC-3 | 1880-roster as-built fits — `content/production/1880/designs.yaml`                                     | `packages/cross-process-test/test/production-pack-loop.test.ts` → "P-1 AC-3: 1880 roster torpedo armament" |
-| AC-4 | `packages/combat/src/battleResolution/torpedoProjection.ts`, `project.ts`                              | `packages/combat/test/battle-resolution/torpedo-auto.test.ts` → "P-1 AC-4 projection" (2 tests) |
-| AC-5 | `packages/combat/src/battleResolution/resolve.ts` torpedo doctrine                                     | `torpedo-auto.test.ts` → "P-1 AC-5/AC-6 auto-resolution with torpedoes" (3 tests) |
-| AC-6 | Damage-control stage runs in every battle (ADR-0049)                                                   | `packages/combat/test/battle-resolution/ac6-damage-control-gate.test.ts` (1 test) + pinned unarmed baselines |
-| AC-7 | Compiled production-pack battle emits torpedo records + differs from stripped                          | `production-pack-loop.test.ts` → "P-1 AC-7: torpedoes reachable from a compiled production-pack battle" |
-| AC-8 | Battle-resolution child runs torpedo-armed battles                                                     | `packages/combat/src/simulation/run-battle-resolution-child.ts` + `packages/cross-process-test/test/cross-process.test.ts` |
+| AC-3 | 1880-roster as-built fits — `content/production/1880/designs.yaml`                                             | `packages/cross-process-test/test/production-pack-loop.test.ts` → "P-1 AC-3: 1880 roster torpedo armament"                       |
+| AC-4 | `packages/combat/src/battleResolution/torpedoProjection.ts`, `project.ts`                                      | `packages/combat/test/battle-resolution/torpedo-auto.test.ts` → "P-1 AC-4 projection" (2 tests)                                  |
+| AC-5 | `packages/combat/src/battleResolution/resolve.ts` torpedo doctrine                                             | `torpedo-auto.test.ts` → "P-1 AC-5/AC-6 auto-resolution with torpedoes" (3 tests)                                                |
+| AC-6 | Damage-control stage runs in every battle (ADR-0049)                                                           | `packages/combat/test/battle-resolution/ac6-damage-control-gate.test.ts` (1 test) + pinned unarmed baselines                     |
+| AC-7 | Compiled production-pack battle emits torpedo records + differs from stripped                                  | `production-pack-loop.test.ts` → "P-1 AC-7: torpedoes reachable from a compiled production-pack battle"                          |
+| AC-8 | Battle-resolution child runs torpedo-armed battles                                                             | `packages/combat/src/simulation/run-battle-resolution-child.ts` + `packages/cross-process-test/test/cross-process.test.ts`       |
 
 ## Commands and observed results
 
