@@ -18,7 +18,7 @@
 // Pure/deterministic: the ONLY randomness is the keyed damage streams derived
 // from the battle seed via RandomEngine (hit-zone selection; fire/flooding/
 // magazine draws inside resolveDamage). No ambient I/O/clock/random.
-import { SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { RandomEngine, RandomLedger, drawUniform } from "@bluewave/random";
 import type { GunneryEventRecord } from "../gunnery/event.js";
@@ -33,6 +33,7 @@ import {
 } from "../damage/state.js";
 import { DAMAGE_RULESET_VERSION, DAMAGE_FORMULA_VERSION } from "../damage/constants.js";
 import { DAMAGE_KEYED_DRAW } from "../damage/reasonCodes.js";
+import { BATTLE_AUTO_RESOLUTION_FAILED } from "./reasonCodes.js";
 import {
   determinePenetrationOutcome,
   lookupArmorQualityMultiplierBp,
@@ -181,12 +182,53 @@ export function effectiveResistanceUm(zone: { thicknessUm: number }): number {
   return Math.floor((armored * qualityBp) / 10_000);
 }
 
-// ADR-0021: linear penetration `caliber * velocity / 1000` (mm scale, floored),
-// then re-scaled to µm for the armor comparison.
+// ---------------------------------------------------------------------------
+// Caliber unit contract (ADR-0094; corrects the ADR-0021 unit-scale defect).
+//
+// Source unit:    micrometres (µm). This is the single canonical caliber unit
+//                 across the armament-to-combat boundary: first-class armament
+//                 content authors it as `caliberUm` (343 mm = 343_000), ship
+//                 design stores it on `CompiledDesignVersion` as
+//                 `mainGunsCaliber` (µm), and combat reads it as
+//                 `DamageTargetContext.mainGunsCaliberUm` (µm). No conversion
+//                 happens on any of those hops; they all carry micrometres.
+// Formula input:  the ADR-0021 linear model reads caliber in millimetres:
+//                 `caliberMm = caliberUm / 1_000` — an exact rational, since a
+//                 caliber need not be a whole number of millimetres
+//                 (e.g. 119_380 µm = 119.38 mm).
+// Conversion:     capability_um = floor(caliberUm * velocityMS / 1_000).
+//                 Composing `caliberMm * velocity / 1_000` (mm of penetration)
+//                 then re-scaling mm -> µm (× 1_000) cancels the two 1_000
+//                 factors, so the µm-to-mm and mm-to-µm steps are one exact
+//                 integer expression.
+// Rounding:       exactly once, `Math.floor`, at the very end. Never round the
+//                 intermediate millimetre value (that would discard up to
+//                 999 µm of fractional penetration).
+// Safe range:     caliberUm ∈ (0, 660_400] (the largest armor-zone gun caliber),
+//                 velocityMS ∈ [0, ~1_000]. The product is ≤ ~6.6e8, far inside
+//                 Number.MAX_SAFE_INTEGER, so the floor is exact.
+// Overflow:       a non-finite or non-positive caliber/velocity fails
+//                 structurally (BATTLE_AUTO_RESOLUTION_FAILED) rather than
+//                 silently flooring to zero — the pre-fix defect.
+export const CALIBER_CANONICAL_UNIT = "micrometre" as const;
+export const MICROMETRES_PER_MILLIMETRE = 1_000 as const;
+
 export function shellPenetrationUm(caliberUm: number, velocityMS: number): number {
-  const caliberMm = Math.floor(caliberUm / 1_000_000);
-  const penetrationMm = Math.floor((caliberMm * velocityMS) / 1_000);
-  return penetrationMm * 1_000_000;
+  if (!Number.isFinite(caliberUm) || caliberUm <= 0) {
+    throw new BluewaveError(BATTLE_AUTO_RESOLUTION_FAILED, {
+      code: BATTLE_AUTO_RESOLUTION_FAILED,
+      reason: "caliber must be a positive finite micrometre value",
+      caliberUm,
+    });
+  }
+  if (!Number.isFinite(velocityMS) || velocityMS < 0) {
+    throw new BluewaveError(BATTLE_AUTO_RESOLUTION_FAILED, {
+      code: BATTLE_AUTO_RESOLUTION_FAILED,
+      reason: "shell velocity must be a non-negative finite value",
+      velocityMS,
+    });
+  }
+  return Math.floor((caliberUm * velocityMS) / MICROMETRES_PER_MILLIMETRE);
 }
 
 const HULL_BREACH_OUTCOMES: ReadonlySet<string> = new Set([
@@ -209,7 +251,12 @@ export function synthesizeImpact(input: SynthesizeImpactInput): GunneryImpact {
   const { salvo, targetShipId, zone, mainGunsCaliberUm, shipType } = input;
   const hitLocation = zone.id;
   const effectiveResistance = effectiveResistanceUm(zone);
-  const penetrationCapability = shellPenetrationUm(mainGunsCaliberUm, SHELL_MUZZLE_VELOCITY_MS);
+  // The auto-resolution model reads the shell caliber from the target's compiled main-battery
+  // caliber (ADR-0026). A target with no main battery (caliber 0) cannot present a penetrating
+  // main-gun shell: the capability is zero (NO_EFFECT), exactly as before. Never call the strict
+  // unit conversion with an absent caliber — that is the explicit branch, not a silent floor.
+  const penetrationCapability =
+    mainGunsCaliberUm > 0 ? shellPenetrationUm(mainGunsCaliberUm, SHELL_MUZZLE_VELOCITY_MS) : 0;
   const penetrationOutcome = determinePenetrationOutcome(
     penetrationCapability,
     effectiveResistance,

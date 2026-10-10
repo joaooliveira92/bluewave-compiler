@@ -163,6 +163,15 @@ export function resolveFireProgression(
     const clampedSpreadChanceBp = clampBp(spreadChanceBp);
 
     for (const fire of decayed) {
+      // Bound spread to a single hop: a fire that was itself created by spread
+      // does not spread again. Without this, the synthetic `${locationId}_adj`
+      // chain (`BELT -> BELT_adj -> BELT_adj_adj -> ...`) grows without bound
+      // across a long battle (a latent blow-up only reachable once the corrected
+      // caliber scale lets a battle run to the minute cap — ADR-0094). One hop
+      // per originating fire keeps the active-fire set bounded by the real
+      // compartments; the single-hop behaviour the fire-resolution tests pin is
+      // unchanged.
+      if (fire.cause === FIRE_SPREAD_CREATED) continue;
       const draw = keyedRng(`battle/ship/damage/fire_spread/${fire.locationId}`);
       const drawBp = Math.floor(draw * 10_000);
 

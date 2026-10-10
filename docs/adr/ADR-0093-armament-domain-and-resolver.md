@@ -353,15 +353,15 @@ fire and reliability model is unchanged; identity is additive provenance.
 
 ### Unresolved finding — penetration caliber unit scale
 
-The live auto-resolution penetration model (`battleResolution/damage.ts::shellPenetrationUm`) converts
+**Resolved by ADR-0094 (combat caliber unit correction).** The live auto-resolution penetration model
+(`battleResolution/damage.ts::shellPenetrationUm`) converted
 `mainGunsCaliberUm` to millimetres with `floor(caliberUm / 1_000_000)`. Production gun content authors
-`caliberUm` in micrometres (343 mm = `343000`), so `floor(343000 / 1e6) = 0` and production gunfire records
-**zero penetration capability**. The combat test fixtures feed an inflated caliber (`343_000_000`) on which
-the model is non-degenerate. This unit-scale defect is pre-existing (ADR-0021) and is **not** changed in this
-pass: fixing it is an intentional-correction that would move many pinned combat baselines and belongs to a
-dedicated ballistics task. It is recorded here and in `docs/research/b3-m2-gunnery.md` as a known gap; the
-Step 4 reference cases pin the current (defective) behaviour as `LEGACY_EQUIVALENCE` and assert the
-fixture-scale behaviour as a regression guard.
+`caliberUm` in micrometres (343 mm = `343000`), so `floor(343000 / 1e6) = 0` and production gunfire
+recorded **zero penetration capability**. The combat test fixtures fed an inflated caliber
+(`343_000_000`) on which the model was non-degenerate. This unit-scale defect was pre-existing
+(ADR-0021); ADR-0094 now fixes the conversion exactly (`floor(caliberUm * velocityMs / 1_000)`),
+normalizes the fixtures to production scale, measures the resulting balance change, and scopes the
+future historically grounded ballistics model separately (`docs/research/ballistics-model-deferred.md`).
 
 ### Persistence and replay contract
 

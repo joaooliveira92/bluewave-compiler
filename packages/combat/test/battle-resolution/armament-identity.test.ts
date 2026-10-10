@@ -32,7 +32,7 @@ const mainArmament: CompiledArmamentMount = {
   mountType: "BARBETTE",
   gunCount: 4,
   accessStatus: "DOMESTIC",
-  caliberUm: 343_000_000,
+  caliberUm: 343_000,
   shellMassG: 567_000,
   appliedModifiers: [],
 };

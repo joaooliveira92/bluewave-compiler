@@ -44,27 +44,28 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     expect(result.provenance.manifestHash).toBe(computeManifestHash(input.manifest));
   });
 
-  it("winner/loser semantics: the armed fixture resolves withdrawal_complete and the withdrawing side loses (ADR-0073)", () => {
+  it("the armed fixture deals real damage and (post ADR-0094) grinds to the time cap", () => {
     const input = makeAutoInput();
     const result = resolveBattleAuto(input);
 
     // Lock the wiring: the armed scenario MUST deal real damage (a regression
-    // that silently starves gunnery->damage would flip this to time_limit).
+    // that silently starves gunnery->damage would make this vacuous).
     const losses = Object.values(result.damageReport);
     expect(losses.some((loss) => (loss as number) > 0)).toBe(true);
 
-    // The fixed fixture seed deterministically produces a side that breaks off
-    // (§32 withdrawal_complete) before the 360-minute cap; the other side wins.
-    expect(result.battleEndReason).toBe("withdrawal_complete");
-    expect([input.attacker.nationId, input.defender.nationId]).toContain(result.winnerId);
-    const loserId = result.winnerId === input.attacker.nationId ? "n-fr" : "n-uk";
-    expect(result.loserId).toBe(loserId);
-    // a withdrawing side keeps its survivors (no elimination)
-    const loserPrefix = loserId === "n-uk" ? "a" : "d";
-    const loserSurvivors = [...result.attackerSurvivorIds, ...result.defenderSurvivorIds].filter(
-      (s) => s.startsWith(loserPrefix),
-    );
-    expect(loserSurvivors.length).toBeGreaterThan(0);
+    // ADR-0094 caliber unit correction: with production-scale penetration the
+    // equal-fixture battle no longer reaches the ADR-0073 withdrawal threshold
+    // before the 360-minute cap, so it ends by time_limit with no winner. This
+    // is the measured balance impact of the unit correction (a separate
+    // rebalancing pass is required; see ADR-0094). The withdrawal winner/loser
+    // rule itself is covered at decision level and by battle-end tests.
+    expect(result.battleEndReason).toBe("time_limit");
+    expect(result.elapsedMinutes).toBe(DEFAULT_MAX_BATTLE_MINUTES);
+    expect(result.winnerId).toBeNull();
+    expect(result.loserId).toBeNull();
+    // no side is eliminated: both keep every ship (structural-only damage);
+    expect(result.attackerSurvivorIds).toEqual(["a1", "a2"]);
+    expect(result.defenderSurvivorIds).toEqual(["d1", "d2"]);
   });
 
   it("identical inputs -> byte-identical results (in-process determinism)", () => {
@@ -106,11 +107,21 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     // byte-identical (minute 1 still 2c598e47...), the battle now ends
     // withdrawal_complete at minute 48 (was no_viable_combatants at 54) with no
     // ship sunk; last minute aaca0a19... -> 9205ea66....
+    //
+    // Re-pinned for ADR-0094 (caliber unit-scale correction): the production-scale
+    // penetration (343 mm gun -> 261 366 µm vs a 304 950 µm HARVEY belt) is a
+    // PARTIAL penetration, where the legacy inflated-scale fixtures produced FULL.
+    // Damage is far weaker, so the equal fixture grinds the full 360 minutes and
+    // ends time_limit with no winner (balance impact measured in ADR-0094 and the
+    // P-1 sweep; a separate rebalancing pass is required). Minute 0 is still
+    // byte-identical (no reload completed); minute 1 is still 2c598e47... (the
+    // first fired minute's pre-damage state), later minutes changed.
+    // last minute 9205ea66... -> 5347d906....
     const result = resolveBattleAuto(makeAutoInput());
-    expect(result.battleEndReason).toBe("withdrawal_complete");
-    expect(result.elapsedMinutes).toBe(48);
+    expect(result.battleEndReason).toBe("time_limit");
+    expect(result.elapsedMinutes).toBe(360);
     expect(result.resultHash).toBe(
-      "53b93ad7252fdb04182a3999ea100f5f89421c9f1c495db8f4c5cb1212b3d7a2",
+      "25aef0ba7e312ebdcee924ba8d7a31a23de396c17fc025642a99cba0d4d27bdc",
     );
     expect(result.minuteHashes[0]).toBe(
       "704d9118704bb7ff99215a06c9eabcbda043c21f897e87accd311494f0c8f218",
@@ -119,7 +130,7 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
       "2c598e47aaf75652fe048e2c27ad21bd39244937633566b98bdb5e54b874d7e4",
     );
     expect(result.minuteHashes[result.minuteHashes.length - 1]).toBe(
-      "9205ea66a54675d2cf246abf4da767c239677ff2ca55a3f6081b4c41023a633d",
+      "5347d9065626263ab0abcc1fc7c41055947b71757e988cba3d39460e78d25ee7",
     );
   });
 

@@ -113,6 +113,30 @@ recorded in `ARMAMENT_ADAPTER_UNMAPPED_FIELDS`.
 - **Package boundary.** `@bluewave/combat` and `@bluewave/campaign` depend on `@bluewave/armament`;
   combat does **not** depend on ship-design. No nation-id branch is added to shared combat logic.
 
+## Canonical caliber unit contract (ADR-0094)
+
+`caliberUm` is the single canonical caliber unit across the armament-to-combat boundary, and it is
+**micrometres** everywhere: first-class content (`caliberUm`), ship design
+(`CompiledDesignVersion.mainGunsCaliber`), the persisted combat snapshot
+(`CompiledArmamentMount.caliberUm`), tactical projection (`TacticalShipUnit.mainGunsCaliberUm`), and
+the combat damage target (`DamageTargetContext.mainGunsCaliberUm`). The armor model
+(`normalizedArmorUm`, `autoZonesForBelt`, `effectiveResistanceUm`) is also micrometres, with its
+thick-armor threshold at `304_800` µm (12 in). No hop between these carries any other unit.
+
+The ADR-0021 linear penetration formula reads caliber in millimetres, so combat converts exactly once
+(`packages/combat/src/battleResolution/damage.ts`):
+
+```
+capabilityUm = floor(caliberUm * velocityMs / 1_000)
+```
+
+`caliberUm / 1_000` is an exact rational (a caliber need not be a whole number of millimetres); the
+mm → µm re-scale cancels the two `1_000` factors, so the formula rounds exactly once, with `floor`,
+and preserves fractional millimetres. `CALIBER_CANONICAL_UNIT = "micrometre"` and
+`MICROMETRES_PER_MILLIMETRE = 1_000` are exported from combat. A non-finite or non-positive caliber
+fails structurally (`BATTLE_AUTO_RESOLUTION_FAILED`) rather than flooring to zero. This supersedes the
+pre-existing `floor(caliberUm / 1_000_000)` defect (ADR-0094).
+
 ## Migration boundary
 
 - **Step 2:** author and validate content.

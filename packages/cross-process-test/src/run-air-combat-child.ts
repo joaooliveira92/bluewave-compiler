@@ -30,7 +30,7 @@ function unit(id: string): TacticalShipUnit {
     displacementKg: SafeInt(25_000_000),
     designedSpeedUms: SafeInt(15_433_320),
     armorBeltUm: SafeInt(100_000_000),
-    mainGunsCaliberUm: SafeInt(127_000_000),
+    mainGunsCaliberUm: SafeInt(127_000),
     mainGunsCount: SafeInt(8),
     crewComplement: SafeInt(1_500),
     hitPoints: SafeInt(80),

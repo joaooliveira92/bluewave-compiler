@@ -124,6 +124,17 @@ function ironclads(armed: boolean, guns: number): FixtureNationSet {
   };
 }
 
+/** ADR-0094 fixture: a thin (6 in / 152 400 µm, the battleship family minimum) HARVEY belt so production shells breach. */
+function thinArmor(n: FixtureNationSet): FixtureNationSet {
+  const map = (m: Map<string, CompiledDesignVersion>) =>
+    new Map([...m].map(([id, d]) => [id, { ...d, normalizedArmorUm: SafeInt(152_400) }]));
+  return {
+    ...n,
+    attacker: { ...n.attacker, designs: map(n.attacker.designs) },
+    defender: { ...n.defender, designs: map(n.defender.designs) },
+  };
+}
+
 describe("cause-of-loss in resolveBattleAuto", () => {
   it("torpedo-only battle: every sunk ship reports torpedo; deterministic; sunk ids match", () => {
     const input = { ...makeAutoInput({ nations: ironclads(true, 0) }), campaignSeed: "s1" };
@@ -138,9 +149,14 @@ describe("cause-of-loss in resolveBattleAuto", () => {
   });
 
   it("gun battle: causes are valid, cover exactly the sunk ships, and are not hashed", () => {
-    // ADR-0073: most gun battles now end by withdrawal before anything sinks;
-    // seed cause-8 is a fixed seed whose loser's ship has foundered by then.
-    const r = resolveBattleAuto({ ...makeAutoInput(), campaignSeed: "cause-8" });
+    // ADR-0094: production-scale penetration against the default 305 mm belt is
+    // only PARTIAL (no hull breach), so gunfire alone no longer sinks ships. Use
+    // a thin-armour fixture so shell hits breach and flood, preserving the
+    // gunfire-cause-of-loss coverage this test owns.
+    const r = resolveBattleAuto({
+      ...makeAutoInput({ nations: thinArmor(makeNations()) }),
+      campaignSeed: "cause-8",
+    });
     const sunk = [...r.attackerSunkIds, ...r.defenderSunkIds].sort();
     expect(sunk.length).toBeGreaterThan(0);
     expect(Object.keys(r.causeOfLoss!).sort()).toEqual(sunk);

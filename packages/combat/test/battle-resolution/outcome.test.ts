@@ -9,13 +9,14 @@ import { makeAutoInput } from "./fixtures.js";
 
 describe("AC-7: winner/loser viability rule", () => {
   it("withdrawing side loses: winner is the other nation, loser keeps its survivors (ADR-0073)", () => {
-    const input = makeAutoInput();
+    // ADR-0094: the default fixture seed now grinds to time_limit (weaker
+    // production-scale penetration), so this end-to-end withdrawal proof uses a
+    // fixed seed that still reaches the withdrawal threshold. The winner/loser
+    // rule under test is unchanged.
+    const input = { ...makeAutoInput(), campaignSeed: "cause-8" };
     const result = resolveBattleAuto(input);
-    // The fixed fixture seed deterministically ends by withdrawal before the
-    // time cap; assert the full proof unconditionally so a gunnery->damage
-    // wiring regression cannot slip past a vacuous early return. (Elimination
-    // winner/loser is proven at decision level below and in battle-end.test.ts.)
     expect(result.battleEndReason).toBe("withdrawal_complete");
+    expect([input.attacker.nationId, input.defender.nationId]).toContain(result.winnerId);
 
     const loserNation =
       result.winnerId === input.attacker.nationId

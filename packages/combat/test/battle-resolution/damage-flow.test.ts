@@ -37,7 +37,7 @@ function contact(contactId: string, assetId: string): TacticalContact {
 function target(shipId: string): DamageTargetContext {
   return {
     shipId,
-    zones: autoZonesForBelt(305_000_000),
+    zones: autoZonesForBelt(305_000),
     compartments: ["COMP-BELT-1"],
     components: ["TURRET-1", "ENGINE-1"],
     state: initialDamageState(shipId),
@@ -46,8 +46,8 @@ function target(shipId: string): DamageTargetContext {
     // 30 000 t design displacement; severity of flooding converts kg -> bp
     // against this denominator (ADR-0047 decision 4).
     designDisplacementKg: 30_000_000,
-    beltArmorUm: 305_000_000,
-    mainGunsCaliberUm: 343_000_000,
+    beltArmorUm: 305_000,
+    mainGunsCaliberUm: 343_000,
     shipType: "BB",
     maxHitPoints: 100,
   };
@@ -57,14 +57,14 @@ describe("AC: damage flow — HIT -> GunneryImpact -> resolveDamage -> damageRep
   it("a HIT salvo synthesizes an impact that reduces structure/flotation", () => {
     const state = initialDamageState("d1");
     const salvo = makeGunneryHitRecord({ batteryId: "a1:MAIN", targetContactId: "b1:d1" });
-    const zone = autoZonesForBelt(305_000_000)[0]!; // BELT
+    const zone = autoZonesForBelt(305_000)[0]!; // BELT
 
     const impact = synthesizeImpact({
       salvo,
       targetShipId: "d1",
       zone,
-      beltArmorUm: 305_000_000,
-      mainGunsCaliberUm: 343_000_000,
+      beltArmorUm: 305_000,
+      mainGunsCaliberUm: 343_000,
       shipType: "BB",
     });
 
@@ -151,10 +151,10 @@ describe("AC: damage flow — HIT -> GunneryImpact -> resolveDamage -> damageRep
     expect(differed).toBeGreaterThan(0);
   });
 
-  it("linear penetration: shellPenetrationUm matches caliber*velocity/1000", () => {
-    // caliber 305 mm (12"), velocity 762 m/s -> 305*762/1000 = 232 mm
-    expect(shellPenetrationUm(305_000_000, 762)).toBe(232_000_000);
-    expect(shellPenetrationUm(343_000_000, 762)).toBe(261_000_000);
+  it("linear penetration: shellPenetrationUm matches caliber*velocity/1000 at production scale", () => {
+    // caliber 305 mm (12"), velocity 762 m/s -> 305*762/1000 = 232.41 mm = 232_410 µm
+    expect(shellPenetrationUm(305_000, 762)).toBe(232_410);
+    expect(shellPenetrationUm(343_000, 762)).toBe(261_366);
   });
 
   it("terminal ship has 0 hp and full battle loss", () => {

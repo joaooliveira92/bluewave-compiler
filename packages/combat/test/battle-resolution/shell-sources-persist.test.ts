@@ -48,15 +48,19 @@ function contact(contactId: string, assetId: string): TacticalContact {
 function target(shipId: string): DamageTargetContext {
   return {
     shipId,
-    zones: autoZonesForBelt(305_000_000),
+    // ADR-0094: a 152 mm HARVEY belt so a production 343 mm shell FULLY
+    // penetrates and ignites (the corrected production-scale 305 mm belt is only
+    // PARTIALLY penetrated, which starts no fire). This keeps the fixture a
+    // shell-started-fire test rather than a penetration-ratio test.
+    zones: autoZonesForBelt(152_000),
     compartments: ["COMP-BELT-1"],
     components: ["TURRET-1", "ENGINE-1"],
     state: initialDamageState(shipId),
     designFlotationReserve: 50_000,
     designStabilityScore: 8_000,
     designDisplacementKg: HULL_KG,
-    beltArmorUm: 305_000_000,
-    mainGunsCaliberUm: 343_000_000,
+    beltArmorUm: 152_000,
+    mainGunsCaliberUm: 343_000,
     shipType: "BB",
     maxHitPoints: 100,
   };
@@ -212,7 +216,9 @@ describe("§32 battle-end decision with persisted sources", () => {
         ...makeAutoInput({ nations: makeNations({ attackerGuns: [4, 4], defenderGuns: [4, 4] }) }),
         campaignSeed: seed,
       });
-      expect(["withdrawal_complete", "mutual_disengagement"]).toContain(r.battleEndReason);
+      expect(["withdrawal_complete", "mutual_disengagement", "time_limit"]).toContain(
+        r.battleEndReason,
+      );
       // nobody is wiped out any more: both sides keep at least one ship afloat
       expect(r.attackerSurvivorIds.length).toBeGreaterThan(0);
       expect(r.defenderSurvivorIds.length).toBeGreaterThan(0);
