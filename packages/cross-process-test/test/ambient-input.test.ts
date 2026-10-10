@@ -14,10 +14,12 @@ const DOMAIN_PACKAGES = [
   "diagnostics",
   "content-schema",
   "content-compiler",
+  "ship-design",
   "campaign",
   "commands",
   "random",
   "events",
+  "ai",
   "combat",
   "phase-engine",
 ];

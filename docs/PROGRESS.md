@@ -281,7 +281,8 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 | `@bluewave/random`             | ACCEPTED                | SHA-256 domain-separated PRNG with audit ledger                                                                     |
 | `@bluewave/commands`           | ACCEPTED                | 7-step command lifecycle, idempotency, ledger                                                                       |
 | `@bluewave/events`             | ACCEPTED                | Domain event envelopes, 5 event types, explanation trees                                                            |
-| `@bluewave/phase-engine`       | ACCEPTED                | 14-phase turn pipeline (see registry below), month executor, replay verifier, financial ledger                       |
+| `@bluewave/ship-design`        | INTEGRATED_NOT_ACCEPTED | P-2 component-level ship compiler (design drafts, classification, cost, construction, national profiles); workshop integrated, pre-acceptance gate (see P-2 below) |
+| `@bluewave/phase-engine`       | ACCEPTED                | 17-phase turn pipeline (see registry below), month executor, replay verifier, financial ledger, AI procurement       |
 | `@bluewave/persistence`        | ACCEPTED                | Content-addressed atomic save/load, recovery                                                                        |
 | `@bluewave/combat`             | ACCEPTED                | Deterministic auto-resolution; M2 tactical simulation (minute-advance, gunnery, armor/damage, weather, auto-resolve) |
 | `@bluewave/ai`                 | ACCEPTED                | B10d: legal-only uniform-random AI planning (AiPlanner/AiCommandGenerator/AiPhaseExecutor) via keyed RNG            |
@@ -291,12 +292,12 @@ Each entry uses a _capability readiness state_: CONTENT_ONLY / IMPLEMENTED_UNVER
 | `compiler-cli`                 | INTEGRATED_NOT_ACCEPTED | CLI (bwc): validate, compile, inspect, verify, compare, campaign:_, turn:_, replay; `battle:generate`/`advance-minute`/`resolve-shot` debug surface |
 | `desktop`                      | INTEGRATED              | Electron (41) + React 19 game client: playable MVP loop + Research & Technology + Diplomacy & War + battle outcomes + debug-mode gating; E2E Playwright suite in progress |
 
-#### Phase Registry (16 ordered phases)
+#### Phase Registry (17 ordered phases)
 
 Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 `weather_generation` (B-5/B-6, ADR-0022/0025), `ai_planning` (B10d),
-`resolve_diplomacy` (B10c), `battle_generation` (B-1), `resolve_aircraft_development` (D-1),
-`resolve_carrier_operations` (D-2).
+`ai_procurement` (ADR-0091), `resolve_diplomacy` (B10c), `battle_generation` (B-1),
+`resolve_aircraft_development` (D-1), `resolve_carrier_operations` (D-2).
 
 | Order | Phase                  | RNG allowed | Notes                                        |
 | ----- | ---------------------- | ----------- | -------------------------------------------- |
@@ -304,6 +305,7 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 | 0.5   | `weather_generation`   | yes         | per-area strategic weather (B-5/B-6)         |
 | 1     | `monthly_revenue`      | no          | treasury income                              |
 | 1.5   | `ai_planning`          | yes         | legal-only AI command generation (B10d)      |
+| 1.6   | `ai_procurement`       | yes         | AI design studies + construction orders (ADR-0091) |
 | 2     | `command_collection`   | no          | player command processing                    |
 | 3     | `appropriation`        | no          | proportional construction funding            |
 | 4     | `maintenance`          | no          | `MAINTENANCE_EXPENDITURE` per fleet          |
@@ -322,7 +324,7 @@ Authoritative source: `packages/phase-engine/src/registry.ts`. Added since M1:
 - Deterministic by design: canonical serialization + SHA-256 end-to-end
 - Replay verifier compares ledgers across runs
 - Cross-process determinism proven
-- All 14 strategic turn phases execute and produce auditable state transitions
+- All 17 strategic turn phases execute and produce auditable state transitions
 - Tactical layer (B-1..B-6) is engine-only, deterministic, and slotted into the
   monthly pipeline via `battle_generation`/`battle_resolution`/`weather_generation`
 - Desktop surfaces are read-only over the engine (projection + bridge + renderer);
