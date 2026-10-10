@@ -5,12 +5,29 @@ the content compiler does not load these files until SB-14 wires them, so the sh
 
 | File | Contents |
 |---|---|
-| `components.yaml` | 15 weapons (13 guns and machine guns from 12-inch to .303 Maxim, 2 torpedo tubes), magazines, rangefinder and ship fittings |
+| `components.yaml` | Pre-1880 ordnance (RMLs, early BL, French 27-cm, German 26-cm) plus the 1885-95 band: 13 weapons (12-inch to .303 Maxim, 2 torpedo tubes), magazines, rangefinder and ship fittings |
 | `plants.yaml` | 4 propulsion plants (compound, triple-expansion, water-tube, locomotive-boiler torpedo-boat plant) |
 | `hull-forms.yaml` | 4 hull forms: torpedo boat, protected cruiser, coast-defence ship, pre-dreadnought battleship |
 | `balance.yaml` | balance constants for hull, machinery, armour, cost, construction, CVE, refit, AI |
 
 Source of record: `docs/research/ship-building-early-band.md` (confidence labels kept in comments).
+
+## Pre-1880 armament and the January-1880 reference set (2026-10-10)
+
+`components.yaml` previously had no gun introduced before 1883, so no gun-armed warship could be built at the
+`scen_1880` January 1880 start. A research pass added the pre-1880 ordnance (`docs/research/ship-building-1880-pre-era-armament.md`)
+and ten historical starting designs in service by 31 Dec 1879 (`docs/research/ship-building-1880-ships-by-nation.md`):
+
+- Guns: British RML 16-in/80-ton, 12.5-in/38-ton, 12-in/35-ton, 12-in/25-ton, 11-in/25-ton, 10-in/18-ton (main and
+  battery variants), 8-in/9-ton, 7-in/7-ton and 64-pdr; French 27-cm M1875 and German 26-cm RK L/20. Masses, charges,
+  projectiles and muzzle velocity are VERIFIED from Mackinlay's *Text Book of Gunnery 1887* Table XVI; penetration is
+  Brassey's *Naval Annual 1886* French Commission table; mount masses and rates of fire are ESTIMATE (no source).
+- Designs (`reference-designs.yaml`): Devastation, Dreadnought (1875), Alexandra and Iris (UK), Redoutable (France),
+  Kaiser and Sachsen (Germany), Principe Amedeo (Italy), Petr Velikiy (Russia) and Mesudiye (Ottoman Empire). The four
+  pre-1880 RML threats (`rml_16in` … `rml_9in`) were added to `balance.yaml`'s `environment.threats`.
+- Each design compiles with no BLOCKING/CRITICAL finding at its own month (`packages/ship-design/test/references1880.test.ts`).
+  Where the hull-weight model needs a moulded depth or a magazine-box thickness, that value is an ESTIMATE (no source
+  gives them); the model's lighter hull structure puts some of the smaller ironclads a little under their historical displacement.
 
 ## Sourced / fitted values
 - Hull weight law `W = 9.9 * (L*B*D)^1.26 kg` and the per-form factors: fitted to White (1894) hull fractions for Majestic (38 %), Edgar (38 %), Siegfried (~31 %), Havock (~33 %).

@@ -23,6 +23,7 @@ import {
   type DrawingBoardContent,
   type ReferenceDesign,
 } from "./content.js";
+import { selectInitialReference } from "./initialReference.js";
 
 export interface DrawingBoardState {
   readonly content: DrawingBoardContent;
@@ -67,13 +68,8 @@ export function useDrawingBoard(fixedMonth: string | null = null): {
   actions: DrawingBoardActions;
 } {
   const content = useMemo(() => loadDrawingBoardContent(), []);
-  // In a campaign start from the newest reference design that exists at the campaign date, else the first one.
-  const initial =
-    (fixedMonth === null
-      ? undefined
-      : [...content.references]
-          .filter((r) => r.month <= fixedMonth)
-          .sort((a, b) => (a.month < b.month ? 1 : -1))[0]) ?? content.references[0]!;
+  // In a campaign start from the newest reference design that exists at the campaign date (see selectInitialReference).
+  const initial = selectInitialReference(content.references, fixedMonth) ?? content.references[0]!;
   const [preset, setPreset] = useState<ReferenceDesign>(initial);
   const [log, setLog] = useState<EditLog>(() => newLog(initial.draft));
   const [chosenMonth, setMonthState] = useState(content.references[0]!.month);

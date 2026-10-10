@@ -637,6 +637,13 @@ environment:
     - { id: qf_6in, penetrationUm: 150000 }
     - { id: qf_47in, penetrationUm: 100000 }
     - { id: qf_12pdr, penetrationUm: 50000 }
+    # Pre-1880 rifled muzzle-loaders (point-blank wrought-iron perforation, Brassey's Naval Annual 1886 French
+    # Commission table; docs/research/ship-building-1880-pre-era-armament.md). The expected adversary of the 1880 ships.
+    - { id: rml_16in, penetrationUm: 740000 }
+    - { id: rml_125in, penetrationUm: 460000 }
+    - { id: rml_12in, penetrationUm: 370000 }
+    - { id: rml_10in, penetrationUm: 300000 }
+    - { id: rml_9in, penetrationUm: 250000 }
   # Yards (ADR-0067 section 6). Per-line capacity is maxDisplacement(t) x yardWorkPerTonneMonth, so a bigger yard works faster and
   # the "limited by <line>" bottleneck is meaningful. Limits and rate are ESTIMATES: sized to the 1880-1900 hull classes
   # (destroyer/torpedo boat, cruiser, battleship), not to named historical slips.
