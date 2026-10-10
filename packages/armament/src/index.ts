@@ -11,3 +11,4 @@ export * from "./model.js";
 export * from "./findings.js";
 export * from "./arithmetic.js";
 export * from "./resolver.js";
+export * from "./lint.js";

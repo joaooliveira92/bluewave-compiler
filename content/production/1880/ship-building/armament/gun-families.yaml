@@ -1,0 +1,305 @@
+# Shared armament gun families (ADR-0093 Step 2). One record per shared physical/technical family;
+# national models reference these and never duplicate them. Units are in field names.
+# Source of record: docs/research/ship-building-1880-pre-era-armament.md and the components.yaml comments.
+gunFamilies:
+  - id: gun_rml_16in_80ton
+    designation: RML 16-inch 80-ton gun in turret
+    category: MAIN_GUN
+    defaultMountType: TURRET
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: mackinlay-1887
+          title: Mackinlay, Text Book of Gunnery 1887, Table XVI
+  - id: gun_rml_125in_38ton
+    designation: RML 12.5-inch 38-ton gun in turret
+    category: MAIN_GUN
+    defaultMountType: TURRET
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: mackinlay-1887
+          title: Mackinlay, Text Book of Gunnery 1887, Table XVI
+  - id: gun_rml_12in_35ton
+    designation: RML 12-inch 35-ton gun in turret
+    category: MAIN_GUN
+    defaultMountType: TURRET
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: mackinlay-1887
+          title: Mackinlay, Text Book of Gunnery 1887, Table XVI
+  - id: gun_rml_12in_25ton
+    designation: RML 12-inch 25-ton gun in turret
+    category: MAIN_GUN
+    defaultMountType: TURRET
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: mackinlay-1887
+          title: Mackinlay, Text Book of Gunnery 1887, Table XVI
+  - id: gun_rml_11in_25ton
+    designation: RML 11-inch 25-ton gun in mount
+    category: MAIN_GUN
+    defaultMountType: BARBETTE
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: mackinlay-1887
+          title: Mackinlay, Text Book of Gunnery 1887, Table XVI
+  - id: gun_rml_10in_18ton
+    designation: RML 10-inch 18-ton gun in mount
+    category: MAIN_GUN
+    defaultMountType: BARBETTE
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: mackinlay-1887
+          title: Mackinlay, Text Book of Gunnery 1887, Table XVI
+  - id: gun_rml_10in_18ton_broadside
+    designation: RML 10-inch 18-ton gun in broadside battery
+    category: SECONDARY_GUN
+    defaultMountType: BROADSIDE_BATTERY
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: mackinlay-1887
+          title: Mackinlay, Text Book of Gunnery 1887, Table XVI
+  - id: gun_rml_8in_9ton
+    designation: RML 8-inch 9-ton gun in mount
+    category: SECONDARY_GUN
+    defaultMountType: BARBETTE
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: mackinlay-1887
+          title: Mackinlay, Text Book of Gunnery 1887, Table XVI
+  - id: gun_rml_7in_7ton
+    designation: RML 7-inch 7-ton gun in mount
+    category: SECONDARY_GUN
+    defaultMountType: BARBETTE
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: mackinlay-1887
+          title: Mackinlay, Text Book of Gunnery 1887, Table XVI
+  - id: gun_rml_64pdr_71cwt
+    designation: RML 64-pounder 71-cwt gun
+    category: SECONDARY_GUN
+    defaultMountType: DECK_OPEN
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: mackinlay-1887
+          title: Mackinlay, Text Book of Gunnery 1887, Table XVI
+  - id: gun_bl_274mm_m1875
+    designation: Canon de 27 cm modèle 1875
+    category: MAIN_GUN
+    defaultMountType: BARBETTE
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: brassey-1886
+          title: Brassey's Naval Annual 1886, French Commission table
+        - sourceId: mackinlay-1887
+          title: Mackinlay, Text Book of Gunnery 1887, Table XVI
+  - id: gun_bl_263mm_rkl20
+    designation: 26 cm Ringkanone L/20 C/74
+    category: MAIN_GUN
+    defaultMountType: TURRET
+    provenance:
+      sourceStatus: ESTIMATE
+      confidence: LOW
+      kind: historical_fact
+      sources:
+        - sourceId: brassey-1886
+          title: Brassey's Naval Annual 1886, French Commission table
+      note: Shell, charge and gun mass are estimates pending a print source.
+  - id: gun_bl_12in_25
+    designation: BL 12-inch/25 gun in barbette mount
+    category: MAIN_GUN
+    defaultMountType: BARBETTE
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: navweaps-british
+          title: navweaps.com British gun pages (WNBR_*)
+        - sourceId: commons-1888
+          title: Commons 1888 gun-cost return
+  - id: gun_bl_135in_30
+    designation: BL 13.5-inch/30 gun in barbette mount
+    category: MAIN_GUN
+    defaultMountType: BARBETTE
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: navweaps-british
+          title: navweaps.com British gun pages (WNBR_*)
+        - sourceId: commons-1888
+          title: Commons 1888 gun-cost return
+  - id: gun_bl_12in_35
+    designation: BL 12-inch/35 Mk VIII gun in turret
+    category: MAIN_GUN
+    defaultMountType: TURRET
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: navweaps-british
+          title: navweaps.com British gun pages (WNBR_*)
+        - sourceId: commons-1888
+          title: Commons 1888 gun-cost return
+  - id: gun_bl_10in_32
+    designation: BL 10-inch/32 gun in mount
+    category: MAIN_GUN
+    defaultMountType: BARBETTE
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: navweaps-british
+          title: navweaps.com British gun pages (WNBR_*)
+        - sourceId: commons-1888
+          title: Commons 1888 gun-cost return
+  - id: gun_bl_92in_315
+    designation: BL 9.2-inch/31.5 gun in mount
+    category: SECONDARY_GUN
+    defaultMountType: BARBETTE
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: navweaps-british
+          title: navweaps.com British gun pages (WNBR_*)
+        - sourceId: commons-1888
+          title: Commons 1888 gun-cost return
+  - id: gun_bl_6in_26
+    designation: BL 6-inch/26 gun in mount
+    category: SECONDARY_GUN
+    defaultMountType: CASEMATE
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: navweaps-british
+          title: navweaps.com British gun pages (WNBR_*)
+        - sourceId: commons-1888
+          title: Commons 1888 gun-cost return
+  - id: gun_qf_6in_40
+    designation: QF 6-inch/40 gun in shielded mount
+    category: SECONDARY_GUN
+    defaultMountType: DECK_SHIELDED
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: navweaps-british
+          title: navweaps.com British gun pages (WNBR_*)
+        - sourceId: commons-1888
+          title: Commons 1888 gun-cost return
+  - id: gun_qf_47in
+    designation: QF 4.7-inch gun in shielded mount
+    category: SECONDARY_GUN
+    defaultMountType: DECK_SHIELDED
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: navweaps-british
+          title: navweaps.com British gun pages (WNBR_*)
+        - sourceId: commons-1888
+          title: Commons 1888 gun-cost return
+  - id: gun_qf_12pdr
+    designation: QF 12-pounder 12-cwt gun on pedestal
+    category: SECONDARY_GUN
+    defaultMountType: DECK_OPEN
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: navweaps-british
+          title: navweaps.com British gun pages (WNBR_*)
+        - sourceId: commons-1888
+          title: Commons 1888 gun-cost return
+  - id: gun_qf_6pdr
+    designation: QF 6-pounder 8-cwt gun on pedestal
+    category: SECONDARY_GUN
+    defaultMountType: DECK_OPEN
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: navweaps-british
+          title: navweaps.com British gun pages (WNBR_*)
+        - sourceId: commons-1888
+          title: Commons 1888 gun-cost return
+  - id: gun_hotchkiss_3pdr
+    designation: Hotchkiss 3-pounder 47 mm gun
+    category: SECONDARY_GUN
+    defaultMountType: DECK_OPEN
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      sources:
+        - sourceId: navweaps-british
+          title: navweaps.com British gun pages (WNBR_*)
+        - sourceId: commons-1888
+          title: Commons 1888 gun-cost return
+  - id: gun_nordenfelt_1in
+    designation: Nordenfelt 1-inch 4-barrel machine gun
+    category: SECONDARY_GUN
+    defaultMountType: DECK_OPEN
+    provenance:
+      sourceStatus: ESTIMATE
+      confidence: LOW
+      kind: historical_fact
+      sources:
+        - sourceId: navweaps-british
+          title: navweaps.com British gun pages (WNBR_*)
+      note: Rate of fire is an estimate; mass and bullet are single-source.
+  - id: gun_maxim_303
+    designation: Maxim .303 machine gun on mount
+    category: SECONDARY_GUN
+    defaultMountType: DECK_OPEN
+    provenance:
+      sourceStatus: ESTIMATE
+      confidence: LOW
+      kind: historical_fact
+      sources:
+        - sourceId: navweaps-british
+          title: navweaps.com British gun pages (WNBR_*)

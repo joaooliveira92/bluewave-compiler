@@ -17,7 +17,9 @@ export const ARMAMENT_SEVERITY_ORDER: readonly ArmamentFindingSeverity[] = [
 /** The stable rule codes the resolver can emit. */
 export const ARMAMENT_FINDING_CODES = [
   "ARMAMENT_ID_INVALID",
+  "ARMAMENT_ID_DUPLICATE",
   "ARMAMENT_MONTH_INVALID",
+  "ARMAMENT_DATE_ORDER",
   "ARMAMENT_GUN_FAMILY_MISMATCH",
   "ARMAMENT_MOUNT_NOT_SUPPORTED",
   "ARMAMENT_AMMUNITION_INCOMPATIBLE",
@@ -26,13 +28,26 @@ export const ARMAMENT_FINDING_CODES = [
   "ARMAMENT_TECHNOLOGY_MISSING",
   "ARMAMENT_ACCESS_UNAVAILABLE",
   "ARMAMENT_ACCESS_FOREIGN",
+  "ARMAMENT_ACCESS_CONTRADICTION",
   "ARMAMENT_VALUE_OUT_OF_RANGE",
   "ARMAMENT_PROVENANCE_PLACEHOLDER",
+  "ARMAMENT_PROVENANCE_MISSING",
+  "ARMAMENT_REFERENCE_MISSING",
+  "ARMAMENT_DUPLICATE_CONTRADICTORY",
+  "ARMAMENT_NATION_UNKNOWN",
+  "ARMAMENT_PROVENANCE_INCONSISTENT",
+  "ARMAMENT_COMPAT_DRIFT",
 ] as const;
 export type ArmamentFindingCode = (typeof ARMAMENT_FINDING_CODES)[number];
 
 /** The entity a finding is about. */
-export const ARMAMENT_ENTITY_KINDS = ["armament", "gunModel", "gunMount", "ammunition"] as const;
+export const ARMAMENT_ENTITY_KINDS = [
+  "armament",
+  "gunFamily",
+  "gunModel",
+  "gunMount",
+  "ammunition",
+] as const;
 export type ArmamentEntityKind = (typeof ARMAMENT_ENTITY_KINDS)[number];
 
 export interface ArmamentEntityRef {

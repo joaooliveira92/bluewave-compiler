@@ -46,6 +46,7 @@ export * from "./shipTypeEnvelope.js";
 export * from "./nationProfile.js";
 export * from "./componentVariants.js";
 export * from "./armamentAdapter.js";
+export * from "./armamentContent.js";
 export * from "./nationalDesignPolicy.js";
 export * from "./nationalConstruction.js";
 export * from "./fleetProcurement.js";

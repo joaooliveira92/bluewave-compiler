@@ -6,12 +6,18 @@ import {
   fingerprintDistance,
   profileFingerprint,
   validateAllNations,
+  validateArmamentContent,
   validateNationCompleteness,
   type DesignDraft,
   type ReferenceDesignClass,
   type StarterDesign,
 } from "../src/index.js";
 import { components, navalProfiles, shipBuildingContent } from "./helpers/earlyContext.js";
+import {
+  armamentContent,
+  armamentStarters,
+  armamentTechnologies,
+} from "./helpers/armamentContext.js";
 
 const root = join(__dirname, "..", "..", "..", "content", "production", "1880");
 const starters = (
@@ -53,6 +59,12 @@ const opts = {
   knownComponentIds,
   classifications: CLASSIFICATIONS,
   release: true,
+  armament: {
+    content: armamentContent,
+    components,
+    starters: armamentStarters,
+    technologies: armamentTechnologies,
+  },
 };
 
 const NATIONS = ["uk", "france", "germany"] as const;
@@ -82,5 +94,10 @@ describe("national content completeness (UK / France / Germany)", () => {
     expect(fingerprintDistance(uk, de)).toBeGreaterThanOrEqual(2);
     expect(fingerprintDistance(fr, de)).toBeGreaterThanOrEqual(2);
     expect(fingerprintDistance(uk, fr)).toBeGreaterThanOrEqual(2);
+  });
+
+  it("passes the integrated armament release gate with no issues", () => {
+    expect(validateArmamentContent(opts)).toEqual([]);
+    expect(validateAllNations(opts)).toEqual([]);
   });
 });

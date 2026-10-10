@@ -136,3 +136,61 @@ inspection recorded:
 - `pnpm-lock.yaml` changes; no save or wire format changes; no golden hash changes.
 - Deferred (recorded, not dropped): every field listed in `ARMAMENT_ADAPTER_UNMAPPED_FIELDS`, and the
   five migration steps above.
+
+---
+
+## Addendum: Step 2 — content migration and armament lint gate (2026-10-10)
+
+Step 2 is complete. It remains **additive**: the legacy ship-design and combat paths are untouched
+and still authoritative for gameplay.
+
+### Decision
+
+1. **First-class authored armament content.** Four separately authored collections live under
+   `content/production/1880/ship-building/armament/`:
+   - `gun-families.yaml` — 25 shared physical/technical families, one record per `components.yaml`
+     gun family (never duplicated per nation);
+   - `gun-models.yaml` — national models that reference a shared family (the 16 legacy profile models
+     plus thin availability models for families a nation fields directly);
+   - `gun-mounts.yaml` — the mount catalogue, one form per required `(family, mount type)`;
+   - `ammunition.yaml` — national shell patterns (British Palliser/CPC, French Melinite/APC, German
+     Krupp AP/HE) as content, never runtime nation conditionals.
+
+   The content-schema layer owns the Zod schemas (`packages/content-schema/src/armament.ts`). Every
+   numeric field names its unit (`caliberUm`, `gunMassKg`, `shellMassG`, `...Bp`, `...KgM`,
+   `...Litre`, `...Mm`, `...Deg`); each object is `.strict()`, so an ambiguous field (`weight`,
+   `speed`, `rate`, `range`, `size`) is rejected. The model distinguishes VERIFIED, DERIVED,
+   ESTIMATE, BALANCE_TARGET and PLACEHOLDER provenance; release content carries none of the last.
+
+2. **One authoritative release validator, `lintArmament`.** It lives in the neutral package
+   (`packages/armament/src/lint.ts`), is pure and deterministic, and validates canonical/unique ids,
+   references, gun-family/model consistency, mount-family compatibility, ammunition compatibility,
+   explicit units, safe numeric ranges, introduction/retirement ordering, technology references,
+   national references, provenance completeness, no release PLACEHOLDER, duplicate contradictory
+   values, and deterministic finding order. A release fails on any `BLOCKING` finding; `WARNING` and
+   `ADVISORY` findings stay visible and are never promoted to blockers.
+
+3. **A thin ship-design wrapper, `lintArmamentContent`.** It builds the domain catalogue, runs
+   `lintArmament`, adds the **legacy-compatibility drift checks** while both representations
+   coexist, and proves every armament combination used by the 18 opening reference designs resolves
+   without a blocking finding. It is integrated into the national completeness release gate
+   (`validateArmamentContent`, called by `validateAllNations`); only `BLOCKING` findings become
+   completeness issues, so non-blocking findings remain visible without being promoted.
+
+4. **Temporary compatibility fields and drift checks.** `components.yaml` and `naval-profiles.yaml`
+   remain authoritative for runtime gameplay until the Step 3 cut-over. The release gate fails if the
+   authored armament content drifts from them: a mount's base/per-gun mass must equal the family's
+   `mount_fixed_kg`/`mount_per_barrel_kg`; a model's caliber/mass/charge/volume/rate and its shell
+   mass (against the national overlay) must match; a mount's firing arc must match `beamArcDeg`; an
+   ammunition pattern's shell type and penetration bias must match the legacy pattern. Legacy gun
+   models with no first-class counterpart are recorded as `ADVISORY`, never silently dropped.
+
+### Consequences
+
+- New content files and schemas; no package dependency changes; no `pnpm-lock.yaml` change.
+- No gameplay, compiled-ship, combat, persistence or golden-hash change. The new content is loaded
+  and validated by the release gate, not by the runtime compile.
+- The migration boundary is unchanged: **Step 3** cuts ship design over to `ResolvedArmament`
+  (`compileWeaponSet`/`catalogueForNation`) and retires the compatibility adapter and the duplicated
+  compatibility fields; **Step 4** cuts combat over. Compatibility fields may not be removed before
+  their consumers migrate.

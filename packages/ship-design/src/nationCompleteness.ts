@@ -7,6 +7,12 @@
  */
 import { compileDesign } from "./compile.js";
 import { lintNavalArms } from "./componentVariants.js";
+import {
+  lintArmamentContent,
+  type ArmamentStarter,
+  type AuthoredArmamentContent,
+} from "./armamentContent.js";
+import type { ComponentDef } from "./component.js";
 import { resolveNavalProfile, type NationNavalProfile } from "./nationProfile.js";
 import { PROCUREMENT_TYPES, roleGroupOf, type RoleGroup } from "./fleetProcurement.js";
 import type { ShipBuildingContent } from "./shipBuildingContent.js";
@@ -39,6 +45,16 @@ export interface NationCompletenessOptions {
   /** Explicit historical classification per starter id (one of REFERENCE_DESIGN_CLASSES). */
   readonly classifications: Readonly<Record<string, ReferenceDesignClass>>;
   readonly release: boolean;
+  /** The first-class armament content and its release gate (ADR-0093 Step 2). Optional and additive. */
+  readonly armament?: ArmamentCompletenessInput;
+}
+
+/** The authored armament content the completeness gate validates alongside the national profiles. */
+export interface ArmamentCompletenessInput {
+  readonly content: AuthoredArmamentContent;
+  readonly components: readonly ComponentDef[];
+  readonly starters: readonly ArmamentStarter[];
+  readonly technologies: readonly { readonly id: string; readonly year: number }[];
 }
 
 const err = (nationId: string, code: string, message: string): CompletenessIssue => ({
@@ -186,5 +202,27 @@ export function validateNationCompleteness(
 /** Validate every nation that has an authored profile. */
 export function validateAllNations(opts: NationCompletenessOptions): CompletenessIssue[] {
   const nations = [...new Set(opts.profiles.map((p) => p.nationId))].sort();
-  return nations.flatMap((nationId) => validateNationCompleteness(opts, nationId));
+  return [
+    ...nations.flatMap((nationId) => validateNationCompleteness(opts, nationId)),
+    ...validateArmamentContent(opts),
+  ];
+}
+
+/**
+ * The armament release gate (ADR-0093 Step 2), run once for the whole catalogue. It is the same gate
+ * the opening-design coverage uses: it fails release on a BLOCKING finding and keeps WARNING/ADVISORY
+ * findings visible. Returns nothing when no armament content is supplied (older packs).
+ */
+export function validateArmamentContent(opts: NationCompletenessOptions): CompletenessIssue[] {
+  if (opts.armament === undefined) return [];
+  const findings = lintArmamentContent({
+    ...opts.armament,
+    profiles: opts.profiles,
+    release: opts.release,
+  });
+  // Completeness issues are release blockers: WARNING/ADVISORY armament findings stay visible through
+  // `lintArmamentContent` and must never be promoted to blockers here.
+  return findings
+    .filter((f) => f.severity === "BLOCKING")
+    .map((f) => err(f.entity.id, f.code, f.message));
 }

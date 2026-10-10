@@ -101,6 +101,22 @@ export {
   SHIP_TYPE_ID_VALUES,
   SOURCE_STATUSES_SCHEMA,
 } from "./naval-profile-vocab.js";
+export type {
+  AmmunitionPatternData,
+  GunFamilyData,
+  GunModelData,
+  GunMountData,
+} from "./armament.js";
+export {
+  AmmunitionCatalogueSchema,
+  AmmunitionPatternSchema,
+  GunFamilyCatalogueSchema,
+  GunFamilySchema,
+  GunModelCatalogueSchema,
+  GunModelSchema,
+  GunMountCatalogueSchema,
+  GunMountSchema,
+} from "./armament.js";
 export type { TechnologyPrerequisite } from "./technology.js";
 export { TechnologyPrerequisiteChainSchema } from "./technology.js";
 export { parseYamlSafe, type SafeParseResult } from "./yaml-parser.js";
