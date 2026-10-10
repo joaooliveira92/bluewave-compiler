@@ -6,14 +6,9 @@ import {
   STATION_STEP_PERMILLE,
   STROKE,
 } from "./drafting.js";
-import {
-  type FunnelShape,
-  type HouseMasses,
-  type Point,
-  polygonPoints,
-  type ProfileFrame,
-  serializePath,
-} from "./profile-geometry.js";
+import { type Point, polygonPoints, serializePath } from "./path.js";
+import type { ProfileFrame } from "./profile-geometry.js";
+import type { FunnelShape, HouseMasses } from "./profile-structures.js";
 
 /** Datum offsets, px. */
 const BASELINE_DROP = 4;
