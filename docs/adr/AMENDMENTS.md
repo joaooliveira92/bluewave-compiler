@@ -46,4 +46,5 @@ change process without changing normative behaviour.
   (mine-pressure scope), ADR-0039 (coastal-defense scope), ADR-0040 (smoke/damage-control
   scope), ADR-0041 (carrier-operations boundary), ADR-0042 (air-defense decisions),
   ADR-0044 (air-defense merge resolution), ADR-0045 (playability re-prioritization),
-  ADR-0095 (docs/ADR authority), ADR-0096 (playable-nation coverage policy).
+  ADR-0095 (docs/ADR authority), ADR-0096 (playable-nation coverage policy),
+  ADR-0097 (first-release combat surface).

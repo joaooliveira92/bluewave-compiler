@@ -65,6 +65,9 @@ phases; it is their in-battle air combat/defense that is not reachable.
 
 ## Follow-ups
 
+The first-release decision on these gaps is ADR-0097 (defer, tracked). Wiring them is
+`.scratch/playable-loop/issues/03-wire-m3-m4-battle-modules.md`.
+
 - `../../.scratch/playable-loop/issues/01-playable-loop-acceptance.md` — prove the player
   path reaches a campaign-generated battle.
 - `../../.scratch/playable-loop/issues/03-wire-m3-m4-battle-modules.md` — wire the
