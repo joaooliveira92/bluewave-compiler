@@ -100,13 +100,19 @@ try {
     check(name, false, "canvas stayed empty");
   };
 
-  const panel = page.getByTestId("overview-map-panel");
-  await panel.getByRole("application", { name: /World map/ }).waitFor({ timeout: 15_000 });
-  check("home map panel present", true);
-  await awaitPainted("home map coastline painted from the packaged chunk", panel);
+  // The home screen's map, scoped to the map application landmark (the SVG) and
+  // its container (which also holds the coastline canvas). The Overview's map is
+  // the packaged app's heaviest lazy chunk, so painting it proves file:// loading
+  // and the coastline chunk work in a packaged build. This targets the app's
+  // world-map application, not a feature panel that may be renamed away.
+  const homeApp = page.getByRole("application", { name: /World map/ });
+  await homeApp.waitFor({ timeout: 15_000 });
+  check("home map application present", true);
+  const homeMap = homeApp.locator("xpath=..");
+  await awaitPainted("home map coastline painted from the packaged chunk", homeMap);
   check(
     "home map: 36 keyboard-reachable areas",
-    (await panel.locator('path[role="button"]').count()) === 36,
+    (await homeMap.locator('path[role="button"]').count()) === 36,
   );
 
   await page.keyboard.press("F1");

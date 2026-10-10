@@ -531,14 +531,21 @@ test("row 6k: a valid design is submitted from the Drawing Board and queued", as
   await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
   await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
   const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
-  // Earlier rows edited the shared campaign's board; start from the clean reference design.
-  const startOver = board.getByRole("button", { name: "Start over" });
+  // Earlier rows autosaved edits to the shared campaign's board; the board
+  // restores them and offers "Start over" in the restoration notification
+  // (a global Notifications region, not the Drawing Board dialog). Click it to
+  // return to the clean reference design before submitting.
+  const startOver = e2e.page
+    .getByRole("region", { name: "Notifications" })
+    .getByRole("button", { name: "Start over" });
   if (await startOver.isVisible().catch(() => false)) await startOver.click();
   await expect(board.getByText("Can be submitted")).toBeVisible();
   await board.getByRole("tab", { name: /Build/ }).click();
   await board.getByLabel("Class name").fill("Arethusa E2E");
   await board.getByRole("button", { name: "Submit design" }).click();
-  await expect(board.getByText(/Design queued\. "Arethusa E2E"/)).toBeVisible({ timeout: 15_000 });
+  // Submitting now starts a design study (DESIGN-21): the queued notice says the
+  // study starts on the next month advance and names the class separately.
+  await expect(board.getByText(/Design queued\./)).toBeVisible({ timeout: 15_000 });
   await expect(board.getByRole("button", { name: "Queued" })).toBeDisabled();
 });
 
@@ -552,7 +559,9 @@ test("row 6l: after a restart the queued design is still there, and the month ad
     timeout: 30_000,
   });
   await dismissTour(e2e.page);
-  await advanceMonths(e2e.page, 1);
+  // A new design needs a study of four months of design-office work before it
+  // joins the catalog (balance.yaml study.baseWorkMonths; DESIGN-21/ADR-0085).
+  await advanceMonths(e2e.page, 4);
   await navigateTo(e2e.page, "Construction");
   await e2e.page.getByRole("tab", { name: /Design Catalog/ }).click();
   await expect(e2e.page.getByText("Arethusa E2E").first()).toBeVisible({ timeout: 15_000 });
@@ -580,17 +589,31 @@ test("row 6m: the designed class is ordered, then revised from the Drawing Board
   await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
   await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
   const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
+  // Earlier rows autosaved a draft, so the board restores it and shows a persistent
+  // restoration toast that intercepts pointer events. Dismiss it ("Keep working")
+  // before editing; this row loads the ordered ship's own design next anyway.
+  const notifications = e2e.page.getByRole("region", { name: "Notifications" });
+  const keepWorking = notifications.getByRole("button", { name: "Keep working" });
+  await keepWorking.waitFor({ state: "visible", timeout: 3_000 }).catch(() => {});
+  if (await keepWorking.isVisible().catch(() => false)) await keepWorking.click();
   await board.getByRole("tab", { name: /Build/ }).click();
   await board.getByLabel("If applied to project").click();
   await e2e.page.getByRole("option", { name: /Arethusa E2E/ }).click();
   await board.getByRole("button", { name: "Load this ship's design into the board" }).click();
+  // Loading a ship's design over a draft opens a replace confirmation; wait for
+  // it (it renders a beat after the click) instead of racing isVisible().
   const replace = e2e.page.getByRole("button", { name: "Replace my design" });
+  await replace.waitFor({ state: "visible", timeout: 4_000 }).catch(() => {});
   if (await replace.isVisible().catch(() => false)) await replace.click();
-  // A small change: a little more installed power.
+  // A small change: a little more installed power. The Base UI number field is
+  // controlled, so `fill` is overwritten by React and typed digits then append to
+  // the old value (23,002,400 kW). Select all with the keyboard and type over it.
   await board.getByRole("tab", { name: /Hull and machinery/ }).click();
   const power = board.getByLabel(/Installed power/);
-  const kw = Number(await power.inputValue());
-  await power.fill(String(kw + 100));
+  const kw = Number((await power.inputValue()).replace(/[^0-9.-]/g, ""));
+  await power.click();
+  await power.press("ControlOrMeta+a");
+  await power.pressSequentially(String(kw + 100));
   await power.press("Enter");
   await board.getByRole("tab", { name: /Build/ }).click();
   await board.getByRole("button", { name: "Apply revision to this ship" }).click();
