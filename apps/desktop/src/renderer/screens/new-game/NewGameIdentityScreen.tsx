@@ -1,3 +1,4 @@
+import { Anchor } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "../../components/ui/button.js";
 import { Field, FieldGroup, FieldLabel } from "../../components/ui/field.js";
@@ -24,6 +25,7 @@ import {
   updateCampaignIdentity,
 } from "./new-game-identity-screen-state.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
+import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
 
 export interface NewGameIdentityScreenProps {
   readonly initialIdentity: CampaignIdentityDraft;
@@ -58,9 +60,9 @@ export function NewGameIdentityScreen({
   usePrimaryAction(primaryAction, onPrimaryActionChange);
 
   return (
-    <div className="mx-auto flex h-full max-w-2xl flex-col gap-6 overflow-y-auto p-8">
+    <NewGameScreenLayout size="sm">
       <ScreenHeader
-        icon={<span>⚓</span>}
+        icon={<Anchor className="h-5 w-5" />}
         title="Admiral & Campaign Identity"
         description="Give this command a name."
       />
@@ -174,10 +176,10 @@ export function NewGameIdentityScreen({
       </GlassCard>
 
       <div className="flex justify-between">
-        <Button type="button" variant="ghost" onClick={onBack}>
+        <Button type="button" variant="outline" onClick={onBack}>
           Back to Archetype
         </Button>
       </div>
-    </div>
+    </NewGameScreenLayout>
   );
 }

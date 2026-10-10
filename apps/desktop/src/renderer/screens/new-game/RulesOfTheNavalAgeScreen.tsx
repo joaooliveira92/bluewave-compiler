@@ -10,6 +10,7 @@ import { ErrorState } from "./components/ErrorState.js";
 import { HistoricalUncertaintySection } from "./components/HistoricalUncertaintySection.js";
 import { LoadingState } from "./components/LoadingState.js";
 import { PresetPickerSection } from "./components/PresetPickerSection.js";
+import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
 import type { DraftPreferences } from "./new-game-preferences-screen-state.js";
 import type { PresetId } from "./rules-of-the-naval-age-presets.js";
@@ -77,7 +78,7 @@ export function RulesOfTheNavalAgeScreen({
   usePrimaryAction(primaryAction, onPrimaryActionChange);
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
+    <NewGameScreenLayout>
       <ScreenHeader
         icon={<Anchor className="h-5 w-5" />}
         title="Rules of the Naval Age"
@@ -119,6 +120,6 @@ export function RulesOfTheNavalAgeScreen({
           Back
         </Button>
       </div>
-    </div>
+    </NewGameScreenLayout>
   );
 }

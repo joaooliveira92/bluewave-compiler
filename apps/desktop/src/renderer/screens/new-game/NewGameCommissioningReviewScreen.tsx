@@ -1,10 +1,12 @@
 import type { ArchetypeSelection } from "@bluewave/campaign-engine";
+import { Anchor } from "lucide-react";
 import { useCallback, useMemo, useRef } from "react";
 import { Button } from "../../components/ui/button.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
 import { Table, TableBody, TableCell, TableRow } from "../../components/ui/table.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
+import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
 import type { FleetMethodDraft } from "./new-game-fleet-method-screen-state.js";
 import type { CampaignIdentityDraft } from "./new-game-identity-screen-state.js";
@@ -73,9 +75,9 @@ export function NewGameCommissioningReviewScreen({
   const forecast = buildStrategicForecast(nationId, preferences);
 
   return (
-    <div className="mx-auto flex h-full max-w-4xl flex-col gap-6 overflow-y-auto p-8">
+    <NewGameScreenLayout>
       <ScreenHeader
-        icon={<span>⚓</span>}
+        icon={<Anchor className="h-5 w-5" />}
         title="Final commissioning review"
         description="Confirm every decision before your appointment is commissioned."
       />
@@ -124,10 +126,10 @@ export function NewGameCommissioningReviewScreen({
       )}
 
       <div className="flex justify-between">
-        <Button type="button" variant="ghost" onClick={onBack} disabled={launching}>
+        <Button type="button" variant="outline" onClick={onBack} disabled={launching}>
           Back to Fleet Method
         </Button>
       </div>
-    </div>
+    </NewGameScreenLayout>
   );
 }

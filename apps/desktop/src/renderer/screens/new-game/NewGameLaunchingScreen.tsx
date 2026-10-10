@@ -1,6 +1,7 @@
-import { Check } from "lucide-react";
+import { Anchor, Check } from "lucide-react";
 import { Button } from "../../components/ui/button.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
+import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
 import { useWorldGenerationChecklist } from "./useWorldGenerationChecklist.js";
 import { CHECKLIST_LINES } from "./world-generation-presentation.js";
@@ -22,19 +23,23 @@ export function NewGameLaunchingScreen({ error, onBackToReview }: NewGameLaunchi
 
   if (error !== null) {
     return (
-      <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center gap-6 p-8 text-center">
-        <ScreenHeader icon={<span>⚓</span>} title="Commissioning failed" description={error} />
-        <Button type="button" variant="ghost" onClick={onBackToReview}>
+      <NewGameScreenLayout size="sm" centered>
+        <ScreenHeader
+          icon={<Anchor className="h-5 w-5" />}
+          title="Commissioning failed"
+          description={error}
+        />
+        <Button type="button" variant="outline" onClick={onBackToReview}>
           Back to Commissioning Review
         </Button>
-      </div>
+      </NewGameScreenLayout>
     );
   }
 
   return (
-    <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center gap-8 p-8">
+    <NewGameScreenLayout size="sm" centered>
       <ScreenHeader
-        icon={<span>⚓</span>}
+        icon={<Anchor className="h-5 w-5" />}
         title="Establishing the Naval Order"
         description={flavorText}
       />
@@ -48,6 +53,6 @@ export function NewGameLaunchingScreen({ error, onBackToReview }: NewGameLaunchi
           ))}
         </ul>
       </GlassCard>
-    </div>
+    </NewGameScreenLayout>
   );
 }

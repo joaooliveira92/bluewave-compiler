@@ -5,9 +5,10 @@ import {
   type ArchetypeDimension,
   type ArchetypeSelection,
 } from "@bluewave/campaign-engine";
-import { RotateCcw, Wand2 } from "lucide-react";
+import { Compass, RotateCcw, Wand2 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "../../components/ui/button.js";
+import { CardContent, CardHeader, CardTitle } from "../../components/ui/card.js";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog.js";
+import { GlassCard } from "../../components/ui/glass-card.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
 import { buildArchetypeConsequence } from "./archetype-consequence.js";
@@ -26,6 +28,8 @@ import {
   ArchetypeEmptyPreview,
   ArchetypePresetCard,
 } from "./components/archetype/index.js";
+import { ScreenHeader } from "./components/ScreenHeader.js";
+import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
 import {
   type ArchetypeEditorState,
   allocationErrors,
@@ -125,33 +129,39 @@ export function NewGameArchetypeScreen({
   const draftValid = isAllocationValid(draft);
 
   return (
-    <div className="mx-auto flex h-full max-w-6xl flex-col gap-6 overflow-y-auto p-8">
-      <header>
-        <h2 className="text-2xl font-semibold">Choose your archetype</h2>
-        <p className="text-sm text-muted-foreground">
-          Pick a playstyle, or build your own with 20 points across three engine-backed attributes.
-        </p>
-      </header>
+    <NewGameScreenLayout>
+      <ScreenHeader
+        icon={<Compass className="h-5 w-5" />}
+        title="Choose your archetype"
+        description="Pick a playstyle, or build your own with 20 points across three engine-backed attributes."
+      />
 
       <section aria-label="Archetype choices">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {ARCHETYPE_PRESETS.map((preset) => (
-            <ArchetypePresetCard
-              key={preset.id}
-              preset={preset}
-              active={state.mode === "preset" && state.selectedPresetId === preset.id}
-              onSelect={() => handlePresetClick(preset.id)}
-            />
-          ))}
-          <ArchetypeCustomCard
-            selected={state.mode === "custom"}
-            allocation={state.mode === "custom" ? state.allocation : null}
-            onSelect={openCustomEditor}
-          />
-        </div>
+        <GlassCard glassVariant="liquid-refract">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Archetypes</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {ARCHETYPE_PRESETS.map((preset) => (
+                <ArchetypePresetCard
+                  key={preset.id}
+                  preset={preset}
+                  active={state.mode === "preset" && state.selectedPresetId === preset.id}
+                  onSelect={() => handlePresetClick(preset.id)}
+                />
+              ))}
+              <ArchetypeCustomCard
+                selected={state.mode === "custom"}
+                allocation={state.mode === "custom" ? state.allocation : null}
+                onSelect={openCustomEditor}
+              />
+            </div>
+          </CardContent>
+        </GlassCard>
       </section>
 
-      <section aria-label="Consequence preview" className="min-h-0 flex-1 content-start">
+      <section aria-label="Consequence preview">
         {hasSelection ? (
           <ArchetypeConsequencePanel consequence={consequence} />
         ) : (
@@ -160,13 +170,13 @@ export function NewGameArchetypeScreen({
       </section>
 
       <div className="flex justify-between">
-        <Button type="button" variant="ghost" onClick={onBack}>
+        <Button type="button" variant="outline" onClick={onBack}>
           Back to Preferences
         </Button>
       </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-h-[85vh] max-w-6xl overflow-y-auto pb-0">
+        <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto pb-0">
           <DialogHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted/40">
@@ -219,7 +229,7 @@ export function NewGameArchetypeScreen({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </NewGameScreenLayout>
   );
 }
 

@@ -12,11 +12,8 @@ import { NewGameIdentityScreen } from "../screens/new-game/NewGameIdentityScreen
 import { NewGameLaunchingScreen } from "../screens/new-game/NewGameLaunchingScreen.js";
 import { NewGameNationScreen } from "../screens/new-game/NewGameNationScreen.js";
 import { RulesOfTheNavalAgeScreen } from "../screens/new-game/RulesOfTheNavalAgeScreen.js";
-import type { AdmiralPresetValues } from "../screens/new-game/admiral-preset.js";
 import { defaultFleetMethod } from "../screens/new-game/new-game-fleet-method-screen-state.js";
 import { defaultCampaignIdentity } from "../screens/new-game/new-game-identity-screen-state.js";
-import type { DraftPreferences } from "../screens/new-game/new-game-preferences-screen-state.js";
-import type { NewGameOptions } from "../../shared/new-game-contract.js";
 import { useCampaignShellContext } from "./CampaignShellContext.js";
 import type { CampaignShellMode } from "./campaign-shell-state.js";
 import type { PrimaryAction } from "./primary-action.js";
@@ -60,7 +57,7 @@ const NEW_GAME_STEP_RENDERERS: Record<NewGameMode["kind"], NewGameStepRenderer> 
     />
   ),
   "new-game-preferences": ({ flow, onPrimaryActionChange }) => (
-    <CampaignPreferencesView
+    <RulesOfTheNavalAgeScreen
       onCancel={flow.actions.backToNation}
       onNext={flow.actions.acceptPreferences}
       recommendedPreset={flow.state.draft?.recommendedPreset ?? null}
@@ -235,31 +232,6 @@ function CampaignOpenErrorView({
       <div className="mt-4 rounded-md border border-destructive/50 bg-destructive/10 p-4">
         <p className="m-0 text-destructive">{message}</p>
       </div>
-    </div>
-  );
-}
-
-interface CampaignPreferencesViewProps {
-  readonly onCancel: () => void;
-  readonly onNext: (preferences: DraftPreferences, options: NewGameOptions) => void;
-  readonly recommendedPreset: AdmiralPresetValues | null;
-  readonly onPrimaryActionChange: (action: PrimaryAction | null) => void;
-}
-
-function CampaignPreferencesView({
-  onCancel,
-  onNext,
-  recommendedPreset,
-  onPrimaryActionChange,
-}: CampaignPreferencesViewProps) {
-  return (
-    <div className="p-8">
-      <RulesOfTheNavalAgeScreen
-        onCancel={onCancel}
-        onNext={onNext}
-        recommendedPreset={recommendedPreset}
-        onPrimaryActionChange={onPrimaryActionChange}
-      />
     </div>
   );
 }

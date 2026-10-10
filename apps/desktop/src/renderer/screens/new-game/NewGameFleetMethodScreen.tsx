@@ -1,8 +1,10 @@
+import { Anchor } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Badge } from "../../components/ui/badge.js";
 import { Button } from "../../components/ui/button.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
+import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
 import { FLEET_METHOD_CARDS, type FleetMethodCardContent } from "./fleet-method-content.js";
 import type { FleetMethodDraft } from "./new-game-fleet-method-screen-state.js";
@@ -47,9 +49,9 @@ export function NewGameFleetMethodScreen({
   usePrimaryAction(primaryAction, onPrimaryActionChange);
 
   return (
-    <div className="mx-auto flex h-full max-w-4xl flex-col gap-6 overflow-y-auto p-8">
+    <NewGameScreenLayout>
       <ScreenHeader
-        icon={<span>⚓</span>}
+        icon={<Anchor className="h-5 w-5" />}
         title="Starting-fleet method"
         description="Choose how your legacy navy comes together. Every option is available in every era."
       />
@@ -70,11 +72,11 @@ export function NewGameFleetMethodScreen({
       </section>
 
       <div className="flex justify-between">
-        <Button type="button" variant="ghost" onClick={onBack} disabled={launching}>
+        <Button type="button" variant="outline" onClick={onBack} disabled={launching}>
           Back to Identity
         </Button>
       </div>
-    </div>
+    </NewGameScreenLayout>
   );
 }
 

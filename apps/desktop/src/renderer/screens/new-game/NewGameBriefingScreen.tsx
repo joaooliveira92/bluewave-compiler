@@ -1,4 +1,4 @@
-import { ArrowLeft, Flag, Landmark, Radar } from "lucide-react";
+import { Flag, Landmark, Radar } from "lucide-react";
 import type { OpeningBriefingProjection } from "@bluewave/campaign-engine";
 import type { ReactNode } from "react";
 import { NATION_DOSSIER_FIELDS } from "../../content/nationDossierFields.js";
@@ -8,6 +8,7 @@ import { Button } from "../../components/ui/button.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { formatCampaignMonth, formatTreasury } from "../../shell/site-header-state.js";
+import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
 import { OPENING_BRIEFING_PAGE_TITLES, canGoBack } from "./new-game-briefing-screen-state.js";
 import { useBriefingPager } from "./useBriefingPager.js";
@@ -231,25 +232,25 @@ export function NewGameBriefingScreen({
 
   if (error !== null) {
     return (
-      <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center gap-6 p-8 text-center">
+      <NewGameScreenLayout size="sm" centered>
         <ScreenHeader
           icon={<Flag />}
           title="Briefing unavailable"
           description={`The opening briefing could not be prepared. ${error}`}
         />
-      </div>
+      </NewGameScreenLayout>
     );
   }
 
   if (projection === null) {
     return (
-      <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center gap-6 p-8 text-center">
+      <NewGameScreenLayout size="sm" centered>
         <ScreenHeader
           icon={<Landmark />}
           title="Opening strategic briefing"
           description="Preparing the briefing…"
         />
-      </div>
+      </NewGameScreenLayout>
     );
   }
 
@@ -269,7 +270,7 @@ export function NewGameBriefingScreen({
     );
 
   return (
-    <div className="mx-auto flex h-full max-w-3xl flex-col gap-6 overflow-y-auto p-8">
+    <NewGameScreenLayout size="md">
       <ScreenHeader icon={<Landmark />} title="Opening Strategic Briefing" description={title} />
 
       <div className="flex items-center gap-1.5" aria-label="Briefing progress">
@@ -285,8 +286,7 @@ export function NewGameBriefingScreen({
       {pageContent}
 
       <div className="flex items-center justify-between">
-        <Button type="button" variant="ghost" onClick={goBack} disabled={!canGoBack(pageIndex)}>
-          <ArrowLeft className="size-4" aria-hidden="true" />
+        <Button type="button" variant="outline" onClick={goBack} disabled={!canGoBack(pageIndex)}>
           Back
         </Button>
       </div>
@@ -298,6 +298,6 @@ export function NewGameBriefingScreen({
         <Radar className="size-3.5" />
         {formatCampaignMonth(projection.month)}
       </div>
-    </div>
+    </NewGameScreenLayout>
   );
 }
