@@ -14,7 +14,7 @@ The United Kingdom should therefore be defined as:
 
 Its greatest strength is that it already possesses the world’s most developed maritime system. Its greatest weakness is that this system is too large to defend effortlessly.
 
-The 1889 Naval Defence Act had just formalized the “two-power standard,” under which the Royal Navy was expected to maintain battleship strength at least equal to the next two largest navies, then principally France and Russia. The same act authorized a major expansion of battleships, cruisers, torpedo vessels, and related naval spending, making it central to Britain’s 1880 starting identity.  
+The 1889 Naval Defence Act had just formalized the “two-power standard,” under which the Royal Navy was expected to maintain battleship strength at least equal to the next two largest navies, then principally France and Russia. The same act authorized a major expansion of battleships, cruisers, torpedo vessels, and related naval spending, making it central to Britain’s 1880 starting identity.
 
 ---
 
@@ -26,16 +26,16 @@ Britain’s empire is geographically dispersed. Its colonies, dominions, naval s
 
 Britain’s national strategy is therefore built around several imperatives:
 
-* defend the British Isles;  
-* keep the Channel and North Sea secure;  
-* maintain access to the Mediterranean;  
-* protect the route to India through Gibraltar, Malta, Suez, and Aden;  
-* maintain naval presence in the Indian Ocean;  
-* defend East Asian stations and trade;  
-* protect imperial commerce;  
-* deter rival fleets;  
-* prevent any hostile power or coalition from gaining command of key sea routes;  
-* suppress threats to imperial prestige before they spread.
+- defend the British Isles;
+- keep the Channel and North Sea secure;
+- maintain access to the Mediterranean;
+- protect the route to India through Gibraltar, Malta, Suez, and Aden;
+- maintain naval presence in the Indian Ocean;
+- defend East Asian stations and trade;
+- protect imperial commerce;
+- deter rival fleets;
+- prevent any hostile power or coalition from gaining command of key sea routes;
+- suppress threats to imperial prestige before they spread.
 
 The Royal Navy’s task is not simply to win battles. It must make the empire usable.
 
@@ -67,20 +67,20 @@ The English Channel, North Sea approaches, Western Approaches, Irish Sea, and At
 
 Britain’s map is not primarily a land-front map. Its real geography is a network:
 
-* British Isles;  
-* Channel and North Sea;  
-* Gibraltar;  
-* Malta;  
-* Suez;  
-* Aden;  
-* Cape route;  
-* Indian Ocean;  
-* Ceylon;  
-* Singapore;  
-* Hong Kong;  
-* Caribbean stations;  
-* South Atlantic stations;  
-* Australasian and Pacific support points.
+- British Isles;
+- Channel and North Sea;
+- Gibraltar;
+- Malta;
+- Suez;
+- Aden;
+- Cape route;
+- Indian Ocean;
+- Ceylon;
+- Singapore;
+- Hong Kong;
+- Caribbean stations;
+- South Atlantic stations;
+- Australasian and Pacific support points.
 
 This should inform every later phase. For Britain, geography is not just territory; it is **route architecture**.
 
@@ -108,13 +108,13 @@ British prestige is both a resource and a vulnerability. Because Britain claims 
 
 Examples of prestige-sensitive events:
 
-* a cruiser lost to an inferior power;  
-* colonial bombardment by a rival;  
-* a trade route left undefended;  
-* a station captured or blockaded;  
-* enemy commerce raiders operating freely;  
-* inability to respond to a crisis in Asia or Africa;  
-* a rival battle fleet visibly approaching parity.
+- a cruiser lost to an inferior power;
+- colonial bombardment by a rival;
+- a trade route left undefended;
+- a station captured or blockaded;
+- enemy commerce raiders operating freely;
+- inability to respond to a crisis in Asia or Africa;
+- a rival battle fleet visibly approaching parity.
 
 Britain’s empire runs on credibility. If credibility falls, local resistance, rival probing, parliamentary pressure, and diplomatic challenges should increase.
 
@@ -124,13 +124,13 @@ Britain’s empire is not simply a bonus. It creates obligations.
 
 Each imperial station implies:
 
-* naval presence expectations;  
-* coaling and supply responsibilities;  
-* local defense assumptions;  
-* diplomatic commitments;  
-* vulnerability to raids;  
-* pressure to maintain prestige;  
-* possible colonial crises.
+- naval presence expectations;
+- coaling and supply responsibilities;
+- local defense assumptions;
+- diplomatic commitments;
+- vulnerability to raids;
+- pressure to maintain prestige;
+- possible colonial crises.
 
 The British player should often feel that reducing overseas commitments would be strategically rational but politically costly.
 
@@ -146,34 +146,34 @@ The player should not feel like an autocrat. British naval policy should be powe
 
 Key political actors and pressures include:
 
-* the Admiralty;  
-* the First Lord of the Admiralty;  
-* Parliament;  
-* Treasury restraint;  
-* navalist pressure groups;  
-* newspapers;  
-* shipbuilding interests;  
-* colonial lobbies;  
-* commercial and shipping interests;  
-* imperial defense committees;  
-* public fear of invasion or naval decline.
+- the Admiralty;
+- the First Lord of the Admiralty;
+- Parliament;
+- Treasury restraint;
+- navalist pressure groups;
+- newspapers;
+- shipbuilding interests;
+- colonial lobbies;
+- commercial and shipping interests;
+- imperial defense committees;
+- public fear of invasion or naval decline.
 
 ## **Naval Panic as Political Mechanic**
 
 Britain should be uniquely susceptible to naval panics. Because naval supremacy is treated as existential, even a perceived decline can trigger public and parliamentary reaction.
 
-The 1889 Naval Defence Act itself emerged from concern over the relative state of the navy and the buildup of rival French and Russian fleets; it formalized the two-power standard and authorized a significant shipbuilding program.  
+The 1889 Naval Defence Act itself emerged from concern over the relative state of the navy and the buildup of rival French and Russian fleets; it formalized the two-power standard and authorized a significant shipbuilding program.
 
 For design purposes, this means Britain’s politics should respond strongly to:
 
-* rival capital ship construction;  
-* hostile alliances;  
-* sudden technological shifts;  
-* intelligence reports of naval inferiority;  
-* loss of a major ship;  
-* colonial embarrassment;  
-* commerce raiding;  
-* invasion scares.
+- rival capital ship construction;
+- hostile alliances;
+- sudden technological shifts;
+- intelligence reports of naval inferiority;
+- loss of a major ship;
+- colonial embarrassment;
+- commerce raiding;
+- invasion scares.
 
 ## **Treasury vs Admiralty**
 
@@ -202,13 +202,13 @@ Britain should feel like a mature hegemon, not a limitless industrial upstart.
 
 Britain’s merchant marine is central to its identity. It is not merely background economy. It is:
 
-* a source of wealth;  
-* a logistical reserve;  
-* an imperial connector;  
-* a wartime vulnerability;  
-* a pool of maritime skills;  
-* a strategic justification for cruiser forces;  
-* a target for enemy commerce raiders.
+- a source of wealth;
+- a logistical reserve;
+- an imperial connector;
+- a wartime vulnerability;
+- a pool of maritime skills;
+- a strategic justification for cruiser forces;
+- a target for enemy commerce raiders.
 
 British naval strategy must therefore include protection of merchant shipping as a core requirement, not a secondary mission.
 
@@ -230,14 +230,14 @@ The Royal Navy is Britain’s premier military institution. It is older, more pr
 
 The Royal Navy should be represented as:
 
-* highly professional;  
-* experienced in global deployments;  
-* administratively mature;  
-* logistically sophisticated;  
-* confident, sometimes complacent;  
-* conservative in doctrine unless shocked;  
-* deeply committed to battle fleet superiority;  
-* highly attentive to prestige and tradition.
+- highly professional;
+- experienced in global deployments;
+- administratively mature;
+- logistically sophisticated;
+- confident, sometimes complacent;
+- conservative in doctrine unless shocked;
+- deeply committed to battle fleet superiority;
+- highly attentive to prestige and tradition.
 
 ## **Global Station Culture**
 
@@ -251,31 +251,31 @@ Cruisers in late Victorian service were expected to conduct independent operatio
 
 The Royal Navy’s institutional strengths:
 
-* global logistics;  
-* officer experience;  
-* seamanship;  
-* operational endurance;  
-* dockyard administration;  
-* maintenance culture;  
-* fleet signaling and station discipline;  
-* cruiser deployment;  
-* blockade experience;  
-* prestige and recruitment;  
-* political influence.
+- global logistics;
+- officer experience;
+- seamanship;
+- operational endurance;
+- dockyard administration;
+- maintenance culture;
+- fleet signaling and station discipline;
+- cruiser deployment;
+- blockade experience;
+- prestige and recruitment;
+- political influence.
 
 ## **Weaknesses of the Institution**
 
 The Royal Navy’s weaknesses should be just as important:
 
-* institutional conservatism;  
-* overconfidence from long supremacy;  
-* difficulty prioritizing among global commitments;  
-* bureaucratic inertia;  
-* possible underestimation of new technologies;  
-* rivalry between traditional battleship thinking and emerging torpedo/submarine threats;  
-* political vulnerability to scandal;  
-* cost of maintaining obsolete overseas ships;  
-* temptation to build for prestige rather than doctrine.
+- institutional conservatism;
+- overconfidence from long supremacy;
+- difficulty prioritizing among global commitments;
+- bureaucratic inertia;
+- possible underestimation of new technologies;
+- rivalry between traditional battleship thinking and emerging torpedo/submarine threats;
+- political vulnerability to scandal;
+- cost of maintaining obsolete overseas ships;
+- temptation to build for prestige rather than doctrine.
 
 Britain should be powerful, but not omniscient.
 
@@ -289,26 +289,26 @@ Britain’s fundamental doctrine is command of the sea. The Royal Navy seeks to 
 
 This includes:
 
-* defeating enemy fleets;  
-* blockading hostile ports;  
-* protecting trade;  
-* maintaining imperial communications;  
-* sustaining expeditionary options;  
-* enabling colonial defense;  
-* preventing invasion;  
-* isolating enemy colonies;  
-* forcing diplomatic concessions through maritime pressure.
+- defeating enemy fleets;
+- blockading hostile ports;
+- protecting trade;
+- maintaining imperial communications;
+- sustaining expeditionary options;
+- enabling colonial defense;
+- preventing invasion;
+- isolating enemy colonies;
+- forcing diplomatic concessions through maritime pressure.
 
 ## **Decisive Fleet and Distributed Control**
 
 Britain must maintain a battle fleet capable of defeating major rivals, but it cannot rely solely on battleships. Its doctrine requires both:
 
-1. **decisive combat power** in home or major theaters;  
+1. **decisive combat power** in home or major theaters;
 2. **distributed cruisers and station forces** across imperial routes.
 
 This duality is Britain’s defining naval tension.
 
-The 1889 expansion program itself reflected this dual requirement: battleships were the centerpiece, but cruisers were also essential for protecting supply lines and imperial routes.  
+The 1889 expansion program itself reflected this dual requirement: battleships were the centerpiece, but cruisers were also essential for protecting supply lines and imperial routes.
 
 ## **Blockade Mentality**
 
@@ -316,12 +316,12 @@ Britain should naturally prefer blockade, sea denial against enemy commerce, and
 
 A British war plan should often seek to:
 
-* contain enemy fleets;  
-* cut overseas colonies from support;  
-* protect British commerce;  
-* use cruisers to pressure enemy trade;  
-* concentrate battleships where decisive action is likely;  
-* avoid unnecessary army commitments.
+- contain enemy fleets;
+- cut overseas colonies from support;
+- protect British commerce;
+- use cruisers to pressure enemy trade;
+- concentrate battleships where decisive action is likely;
+- avoid unnecessary army commitments.
 
 ## **Limited War and Gunboat Diplomacy**
 
@@ -329,12 +329,12 @@ Britain should be excellent at coercive limited war. Because it has reach, bases
 
 Examples:
 
-* punitive bombardments;  
-* seizure of isolated colonies;  
-* blockade of weak powers;  
-* diplomatic displays;  
-* intervention to protect nationals or trade;  
-* coercive squadron deployment.
+- punitive bombardments;
+- seizure of isolated colonies;
+- blockade of weak powers;
+- diplomatic displays;
+- intervention to protect nationals or trade;
+- coercive squadron deployment.
 
 This should make Britain diplomatically flexible but also prone to overextension.
 
@@ -348,17 +348,17 @@ British ship design in 1880 should be practical, seaworthy, and globally oriente
 
 Default British preferences should include:
 
-* seaworthiness;  
-* endurance;  
-* reliability;  
-* maintainability;  
-* habitability for long deployments;  
-* adequate coal capacity;  
-* ability to operate from imperial bases;  
-* balanced armor, armament, and range;  
-* standardized classes where possible;  
-* large cruiser forces;  
-* first-class battleships for fleet superiority.
+- seaworthiness;
+- endurance;
+- reliability;
+- maintainability;
+- habitability for long deployments;
+- adequate coal capacity;
+- ability to operate from imperial bases;
+- balanced armor, armament, and range;
+- standardized classes where possible;
+- large cruiser forces;
+- first-class battleships for fleet superiority.
 
 The Royal Sovereign class, authorized under the Naval Defence Act program, represented the move toward powerful modern battleships and helped stabilize the pre-dreadnought pattern that would dominate the 1880s.
 
@@ -368,13 +368,13 @@ British battleships should be treated as the visible measure of national securit
 
 British battleship design should tend toward:
 
-* balanced heavy armament;  
-* strong seaworthiness;  
-* reliable engines;  
-* sufficient operational radius;  
-* armor adequate for line-of-battle combat;  
-* standardization across classes;  
-* avoidance of overly fragile experimental concepts.
+- balanced heavy armament;
+- strong seaworthiness;
+- reliable engines;
+- sufficient operational radius;
+- armor adequate for line-of-battle combat;
+- standardization across classes;
+- avoidance of overly fragile experimental concepts.
 
 Britain can experiment, but its main battle fleet should usually favor dependable superiority.
 
@@ -384,14 +384,14 @@ Cruisers are the empire’s working ships. Britain needs more cruisers than almo
 
 British cruiser design should support:
 
-* long-distance cruising;  
-* commerce protection;  
-* reconnaissance;  
-* colonial policing;  
-* distant station independence;  
-* trade-route defense;  
-* raider hunting;  
-* imperial presence.
+- long-distance cruising;
+- commerce protection;
+- reconnaissance;
+- colonial policing;
+- distant station independence;
+- trade-route defense;
+- raider hunting;
+- imperial presence.
 
 First-class cruisers may serve with the fleet or on powerful overseas stations. Second- and third-class cruisers are suitable for trade protection, patrol, and colonial service. The late Victorian cruiser classification reflected many such mission distinctions. ,
 
@@ -407,15 +407,15 @@ Britain can experiment because it has resources, but its institutional conservat
 
 Possible British experimental areas:
 
-* torpedo vessels;  
-* protected cruisers;  
-* improved armor;  
-* heavy guns;  
-* naval signaling;  
-* machinery reliability;  
-* gunnery training reforms;  
-* coaling efficiency;  
-* dockyard procedures.
+- torpedo vessels;
+- protected cruisers;
+- improved armor;
+- heavy guns;
+- naval signaling;
+- machinery reliability;
+- gunnery training reforms;
+- coaling efficiency;
+- dockyard procedures.
 
 But Britain should be slower to embrace disruptive technologies if existing superiority appears sufficient.
 
@@ -427,15 +427,15 @@ But Britain should be slower to embrace disruptive technologies if existing supe
 
 Britain begins with one of the world’s strongest shipbuilding ecosystems. This includes:
 
-* royal dockyards;  
-* private shipyards;  
-* marine engineering firms;  
-* armament manufacturers;  
-* armor production;  
-* coal supply;  
-* trained labor;  
-* merchant shipbuilding experience;  
-* global repair infrastructure.
+- royal dockyards;
+- private shipyards;
+- marine engineering firms;
+- armament manufacturers;
+- armor production;
+- coal supply;
+- trained labor;
+- merchant shipbuilding experience;
+- global repair infrastructure.
 
 British shipbuilding should be broad, deep, and capable of parallel construction. However, it should also face cost escalation, labor bottlenecks, dockyard congestion, and political scrutiny.
 
@@ -445,11 +445,11 @@ Britain’s naval construction should not be imagined as purely state-run. Priva
 
 This matters because shipbuilding decisions should have political consequences:
 
-* canceling ships may anger industrial interests;  
-* emergency programs may strain labor and material supply;  
-* private yards may innovate or lobby;  
-* dockyard modernization may compete with new construction;  
-* export shipbuilding may affect diplomacy.
+- canceling ships may anger industrial interests;
+- emergency programs may strain labor and material supply;
+- private yards may innovate or lobby;
+- dockyard modernization may compete with new construction;
+- export shipbuilding may affect diplomacy.
 
 ## **Repair and Maintenance Superiority**
 
@@ -467,39 +467,39 @@ Britain in 1880 is technologically advanced, especially in naval architecture, m
 
 Therefore, Britain’s technological personality should be:
 
-* strong baseline;  
-* excellent incremental development;  
-* high capacity for adoption once convinced;  
-* cautious toward unproven doctrines;  
-* sometimes slow to recognize revolutionary shifts;  
-* capable of rapid acceleration after a threat becomes clear.
+- strong baseline;
+- excellent incremental development;
+- high capacity for adoption once convinced;
+- cautious toward unproven doctrines;
+- sometimes slow to recognize revolutionary shifts;
+- capable of rapid acceleration after a threat becomes clear.
 
 ## **Areas of Natural Strength**
 
 Britain should be strong in:
 
-* battleship construction;  
-* cruiser design;  
-* marine engines;  
-* armor development;  
-* naval artillery;  
-* global logistics;  
-* dockyard engineering;  
-* coal efficiency;  
-* naval administration;  
-* hydrography and charting;  
-* communications infrastructure.
+- battleship construction;
+- cruiser design;
+- marine engines;
+- armor development;
+- naval artillery;
+- global logistics;
+- dockyard engineering;
+- coal efficiency;
+- naval administration;
+- hydrography and charting;
+- communications infrastructure.
 
 ## **Areas of Potential Vulnerability**
 
 Britain may lag or hesitate in:
 
-* radical torpedo doctrine;  
-* submarine adoption;  
-* centralized fire-control revolution before sufficient evidence;  
-* aircraft-related naval thinking later in the timeline;  
-* asymmetric warfare if it threatens existing capital investment;  
-* offensive commerce raiding strategy, because Britain is more exposed to commerce attack than most rivals.
+- radical torpedo doctrine;
+- submarine adoption;
+- centralized fire-control revolution before sufficient evidence;
+- aircraft-related naval thinking later in the timeline;
+- asymmetric warfare if it threatens existing capital investment;
+- offensive commerce raiding strategy, because Britain is more exposed to commerce attack than most rivals.
 
 This is not because Britain lacks intelligence or science. It is because Britain’s strategic system rewards proven reliability.
 
@@ -517,15 +517,15 @@ In 1880, Britain’s principal anxieties are traditionally connected to France a
 
 Britain’s preferred tools:
 
-* naval demonstrations;  
-* alliance ambiguity;  
-* colonial bargaining;  
-* economic pressure;  
-* recognition or denial of legitimacy;  
-* maritime blockade threats;  
-* limited interventions;  
-* balancing rival powers against each other;  
-* informal empire through finance and trade.
+- naval demonstrations;
+- alliance ambiguity;
+- colonial bargaining;
+- economic pressure;
+- recognition or denial of legitimacy;
+- maritime blockade threats;
+- limited interventions;
+- balancing rival powers against each other;
+- informal empire through finance and trade.
 
 ## **Diplomatic Weakness**
 
@@ -543,14 +543,14 @@ For game design, British colonies should not all be treated equally. Some are va
 
 For Britain, the most strategically important overseas possessions are often those that support movement:
 
-* ports;  
-* coaling stations;  
-* dockyards;  
-* cable stations;  
-* chokepoints;  
-* repair facilities;  
-* fortified anchorages;  
-* regional squadron bases.
+- ports;
+- coaling stations;
+- dockyards;
+- cable stations;
+- chokepoints;
+- repair facilities;
+- fortified anchorages;
+- regional squadron bases.
 
 The British Empire’s defended ports and coaling stations became a major concern in late nineteenth-century imperial defense planning, especially as steam fleets required dependable coal and secure routes.
 
@@ -558,14 +558,14 @@ The British Empire’s defended ports and coaling stations became a major concer
 
 Britain should react strongly to threats against:
 
-* India route;  
-* Suez route;  
-* Mediterranean bases;  
-* China trade;  
-* imperial communications;  
-* major dominions;  
-* prestigious colonies;  
-* sea-lane chokepoints.
+- India route;
+- Suez route;
+- Mediterranean bases;
+- China trade;
+- imperial communications;
+- major dominions;
+- prestigious colonies;
+- sea-lane chokepoints.
 
 British AI and politics should perceive loss of route integrity as more serious than loss of some inland colonial territory.
 
@@ -577,15 +577,15 @@ British AI and politics should perceive loss of route integrity as more serious 
 
 Britain needs good intelligence because it must monitor many rivals and regions. Its intelligence concerns include:
 
-* rival shipbuilding programs;  
-* colonial fortifications;  
-* coaling access;  
-* commerce raider threats;  
-* foreign naval doctrine;  
-* alliance formation;  
-* blockade vulnerability;  
-* technological breakthroughs;  
-* dockyard capacity abroad.
+- rival shipbuilding programs;
+- colonial fortifications;
+- coaling access;
+- commerce raider threats;
+- foreign naval doctrine;
+- alliance formation;
+- blockade vulnerability;
+- technological breakthroughs;
+- dockyard capacity abroad.
 
 British intelligence should be broad but not perfect. The empire provides information networks, but global obligations create noise and overconfidence.
 
@@ -593,14 +593,14 @@ British intelligence should be broad but not perfect. The empire provides inform
 
 Britain should be especially sensitive to:
 
-* rival battleship construction;  
-* cruiser raider fleets;  
-* enemy access to coaling stations;  
-* hostile control of chokepoints;  
-* combined rival naval tonnage;  
-* threats to India route;  
-* invasion scares;  
-* hostile alliances among major naval powers.
+- rival battleship construction;
+- cruiser raider fleets;
+- enemy access to coaling stations;
+- hostile control of chokepoints;
+- combined rival naval tonnage;
+- threats to India route;
+- invasion scares;
+- hostile alliances among major naval powers.
 
 Because Britain’s system depends on superiority, even potential threats may generate political pressure.
 
@@ -614,12 +614,12 @@ The Royal Navy occupies a central place in British identity. Naval victories, sh
 
 This should affect gameplay through:
 
-* public support for naval programs after scares;  
-* prestige loss from defeats;  
-* parliamentary outrage over perceived weakness;  
-* celebration of successful reviews or victories;  
-* pressure to maintain visible superiority;  
-* emotional value attached to famous ships.
+- public support for naval programs after scares;
+- prestige loss from defeats;
+- parliamentary outrage over perceived weakness;
+- celebration of successful reviews or victories;
+- pressure to maintain visible superiority;
+- emotional value attached to famous ships.
 
 ## **Class, Profession, and Tradition**
 
@@ -637,43 +637,43 @@ If controlled by AI, Britain should behave as a **status quo maritime hegemon**.
 
 British AI should prioritize:
 
-1. maintaining capital ship superiority;  
-2. protecting home waters;  
-3. protecting imperial routes;  
-4. maintaining cruiser coverage;  
-5. preserving Mediterranean and Suez access;  
-6. avoiding isolation against multiple naval rivals;  
-7. using diplomacy to prevent coalitions;  
-8. defending prestige;  
-9. responding strongly to naval panics;  
+1. maintaining capital ship superiority;
+2. protecting home waters;
+3. protecting imperial routes;
+4. maintaining cruiser coverage;
+5. preserving Mediterranean and Suez access;
+6. avoiding isolation against multiple naval rivals;
+7. using diplomacy to prevent coalitions;
+8. defending prestige;
+9. responding strongly to naval panics;
 10. avoiding overcommitment to land wars.
 
 ## **AI Behavioral Traits**
 
 British AI should be:
 
-* globally reactive;  
-* prestige-sensitive;  
-* cautious with decisive fleet risks;  
-* aggressive in defending sea control;  
-* willing to blockade;  
-* willing to use limited force overseas;  
-* reluctant to abandon colonies publicly;  
-* attentive to cruiser shortages;  
-* suspicious of rival naval buildups;  
-* politically vulnerable to naval embarrassment.
+- globally reactive;
+- prestige-sensitive;
+- cautious with decisive fleet risks;
+- aggressive in defending sea control;
+- willing to blockade;
+- willing to use limited force overseas;
+- reluctant to abandon colonies publicly;
+- attentive to cruiser shortages;
+- suspicious of rival naval buildups;
+- politically vulnerable to naval embarrassment.
 
 ## **AI Strategic Errors**
 
 To make Britain human and interesting, its AI may sometimes:
 
-* overbuild battleships while neglecting smaller needs;  
-* station ships for prestige rather than operational efficiency;  
-* underestimate new technologies;  
-* react too strongly to scares;  
-* preserve obsolete ships too long;  
-* defend too many stations simultaneously;  
-* assume rivals will respect British prestige.
+- overbuild battleships while neglecting smaller needs;
+- station ships for prestige rather than operational efficiency;
+- underestimate new technologies;
+- react too strongly to scares;
+- preserve obsolete ships too long;
+- defend too many stations simultaneously;
+- assume rivals will respect British prestige.
 
 These errors should emerge from its identity, not from randomness.
 
@@ -685,14 +685,14 @@ Playing Britain should feel like managing the greatest naval system on Earth at 
 
 The British player fantasy is not “build from nothing.” It is:
 
-* preserve supremacy;  
-* manage overstretch;  
-* decide where the empire can afford risk;  
-* modernize without losing continuity;  
-* deter coalitions;  
-* dominate oceans without bankrupting the state;  
-* choose between visible prestige and efficient strategy;  
-* transform Victorian naval power into twentieth-century naval supremacy.
+- preserve supremacy;
+- manage overstretch;
+- decide where the empire can afford risk;
+- modernize without losing continuity;
+- deter coalitions;
+- dominate oceans without bankrupting the state;
+- choose between visible prestige and efficient strategy;
+- transform Victorian naval power into twentieth-century naval supremacy.
 
 The British campaign should ask:
 
@@ -712,15 +712,15 @@ Britain must be modeled as a route-based empire centered on maritime chokepoints
 
 British overseas possessions must be differentiated by strategic function:
 
-* naval base;  
-* coaling station;  
-* trade hub;  
-* colonial prestige asset;  
-* dominion;  
-* fortress;  
-* repair point;  
-* cable/communication node;  
-* commercial colony.
+- naval base;
+- coaling station;
+- trade hub;
+- colonial prestige asset;
+- dominion;
+- fortress;
+- repair point;
+- cable/communication node;
+- commercial colony.
 
 ## **Resources Phase**
 
@@ -764,7 +764,7 @@ Britain’s starting situation must reflect the recent 1889 naval expansion and 
 
 ## **Assumption 1 — Britain Is the Starting Naval Benchmark**
 
-Britain is assumed to be the dominant naval reference point in January 1880\. This is justified by its imperial reach, Royal Navy tradition, global base network, and formal adoption of the two-power standard in 1889\.  
+Britain is assumed to be the dominant naval reference point in January 1880\. This is justified by its imperial reach, Royal Navy tradition, global base network, and formal adoption of the two-power standard in 1889\.
 
 ## **Assumption 2 — The Two-Power Standard Defines British Strategic Psychology**
 
