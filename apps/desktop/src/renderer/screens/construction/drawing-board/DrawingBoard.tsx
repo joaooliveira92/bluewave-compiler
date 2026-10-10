@@ -46,6 +46,7 @@ import {
   HullPanel,
   BatteryPanel,
   BriefPanel,
+  ShipTypePanel,
   HullPlanPanel,
   LedgerPanel,
   MachineryPanel,
@@ -124,7 +125,17 @@ export function DrawingBoard({
     restore: actions.restore,
   });
   const batteries = batteryCards(view, draft);
-  const armourEnv = content.environmentFor(state.month).ctx;
+  const boardEnv = useMemo(() => content.environmentFor(state.month), [content, state.month]);
+  const starters = useMemo(
+    () =>
+      content.references.flatMap((r) =>
+        r.starterFor === undefined
+          ? []
+          : [{ id: r.id, name: r.name, month: r.month, starterFor: r.starterFor, draft: r.draft }],
+      ),
+    [content],
+  );
+  const armourEnv = boardEnv.ctx;
   const armourMaterials = armourMaterialOptions(
     armourEnv.balance.armour,
     state.month,
@@ -463,7 +474,22 @@ export function DrawingBoard({
               <TabsContent value="hull" keepMounted className={TAB_GRID}>
                 {visited.has("hull") && (
                   <>
-                    <BriefPanel draft={draft} view={view} edit={actions.edit} />
+                    <div className="space-y-4">
+                      <ShipTypePanel
+                        env={boardEnv}
+                        starters={starters}
+                        currentCategory={draft.requirement.category}
+                        onStart={(id) =>
+                          state.editCount > 0 ? setPendingPreset(id) : loadPreset(id)
+                        }
+                      />
+                      <BriefPanel
+                        draft={draft}
+                        view={view}
+                        edit={actions.edit}
+                        ctx={boardEnv.ctx}
+                      />
+                    </div>
                     <div className="space-y-4">
                       <HullPanel draft={draft} content={content} edit={actions.edit} />
                       <MachineryPanel draft={draft} content={content} edit={actions.edit} />

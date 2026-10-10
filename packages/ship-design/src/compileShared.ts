@@ -81,6 +81,8 @@ export interface HullFormData {
   readonly deckFullnessBp: number;
   readonly lcbPermille: number;
   readonly buoyancyByZoneBp: readonly number[];
+  /** Hull-form traits (e.g. `merchant_derived`); absent = none. */
+  readonly traits?: readonly string[];
 }
 
 export interface Facility {
@@ -133,6 +135,12 @@ export interface ShipContext {
   readonly facilities: readonly Facility[];
   readonly treaty: TreatyLimits | null;
   readonly balance: ShipBalance;
+  /** Nation capabilities granted by the scenario (checked against a ship type's `requiresCapability`); absent = none. */
+  readonly capabilities?: ReadonlySet<string>;
+  /** Ship types a scenario forbids outright (treaty categories are handled by `treaty.forbiddenCategories`). */
+  readonly restrictedShipTypes?: readonly string[];
+  /** Scenario switch for colonial-service ships (KE); absent = allowed. */
+  readonly colonialServiceAllowed?: boolean;
 }
 
 export interface CompiledDesign {

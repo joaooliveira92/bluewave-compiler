@@ -179,7 +179,7 @@ test("row 6f: the Drawing Board edits the hull plan, batteries and armour in the
   await navigateTo(e2e.page, "Construction");
   await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
   await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
-  const board = e2e.page.getByRole("dialog");
+  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
   await expect(board.getByRole("tab", { name: /Hull and machinery/ })).toBeVisible();
 
   // Hull plan: move a fitting with the keyboard-reachable buttons, then place one by clicking the real drawing.
@@ -217,7 +217,7 @@ test("row 6g: the Drawing Board keeps the ship view in sight on every tab, wide 
   await navigateTo(e2e.page, "Construction");
   await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
   await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
-  const board = e2e.page.getByRole("dialog");
+  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
   const ship = board.getByRole("region", { name: "Ship view" });
   const plan = ship.getByRole("img", { name: /Top-down plan/ });
   await expect(plan).toBeInViewport();
@@ -283,7 +283,7 @@ test("row 6h: hull-section labels open a detailed hover card without flicker or 
   await navigateTo(e2e.page, "Construction");
   await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
   await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
-  const board = e2e.page.getByRole("dialog");
+  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
   const strip = board.getByRole("group", { name: "Hull sections" });
   await expect(strip.getByRole("button")).toHaveCount(8);
   const card = e2e.page.getByTestId("section-card");

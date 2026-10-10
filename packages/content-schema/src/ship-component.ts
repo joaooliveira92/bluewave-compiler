@@ -116,6 +116,8 @@ export const PropulsionPlantCatalogueSchema = z
   .object({ plants: z.array(PropulsionPlantSchema) })
   .strict();
 
+export const SHIP_HULL_TRAITS = ["merchant_derived"] as const;
+
 export const ShipHullFormSchema = z
   .object({
     id: stableId,
@@ -129,6 +131,8 @@ export const ShipHullFormSchema = z
     volumeFullnessBp: z.number().int().min(1).max(10_000),
     deckFullnessBp: z.number().int().min(1).max(10_000),
     lcbPermille: z.number().int().min(0).max(1000),
+    /** What the hull form is for: `merchant_derived` hulls may be designed as armed merchant cruisers (DESIGN-22 section 15). */
+    traits: z.array(z.enum(SHIP_HULL_TRAITS)).max(4).optional(),
     zones: z
       .array(
         z

@@ -64,7 +64,7 @@ describe("computeCve", () => {
       computeCve(compileDesign(draft, ctx), draft, 9_000, {
         ...cveBalance,
         weightsByCategory: {
-          torpedo_gunboat: {
+          DD: {
             offence: 1,
             protection: 1,
             mobility: 1,

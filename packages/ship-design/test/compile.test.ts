@@ -116,7 +116,7 @@ describe("compileDesign: invalid designs", () => {
       ids(compileDesign(draft, withCtx({ treaty: { maxMainGunCaliberUm: 100_000 } }))),
     ).not.toContain("TREATY_LIMIT_CALIBRE"); // secondary guns only
     expect(
-      ids(compileDesign(draft, withCtx({ treaty: { forbiddenCategories: ["torpedo_gunboat"] } }))),
+      ids(compileDesign(draft, withCtx({ treaty: { forbiddenCategories: ["DD"] } }))),
     ).toContain("TREATY_LIMIT_CATEGORY");
     const small = withCtx({
       facilities: [
@@ -182,9 +182,14 @@ describe("compileDesign: invalid designs", () => {
     expect(() =>
       compileDesign(withDraft({ machinery: { ...draft.machinery, plantId: "nope" } }), ctx),
     ).toThrow();
-    expect(() =>
-      compileDesign(withDraft({ requirement: { ...draft.requirement, category: "nope" } }), ctx),
-    ).toThrow();
+    // An unregistered ship type is a design error, not corrupt context: it is a blocking finding (ADR-0088),
+    // so a crafted command cannot make the month executor throw.
+    const unknownType = compileDesign(
+      withDraft({ requirement: { ...draft.requirement, category: "nope" } }),
+      ctx,
+    );
+    expect(unknownType.valid).toBe(false);
+    expect(unknownType.findings.map((x) => x.id)).toContain("SHIP_TYPE_UNREGISTERED");
     void balance;
     void kg;
   });

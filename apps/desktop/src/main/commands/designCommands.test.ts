@@ -203,6 +203,37 @@ describe("submitDesignCommand (ADR-0066)", () => {
     expect(design.nationId).toBe("uk");
     expect(design.className).toBe("Test Cruiser");
     expect(design.torpedoArmament?.[0]?.tubeCount).toBe(4);
+    // The hull type is the ship type's own (ADR-0088), never a fallback label.
+    expect(design.hullType).toBe("protected_cruiser");
+  });
+
+  it.each(["BB", "BC", "CV", "CVL", "AV", "SS", "MTB", "TR"])(
+    "refuses a %s design at the 1880 campaign date and queues nothing (ADR-0088)",
+    async (category) => {
+      const r = await submit({
+        draft: { ...cruiser, requirement: { ...cruiser.requirement, category } },
+      });
+      expect(r).toMatchObject({ outcome: "rejected", reason: "DESIGN_REJECTED" });
+      if (r.outcome === "rejected") expect(r.diagnostics.length).toBeGreaterThan(0);
+    },
+  );
+
+  it.each(["", "SUPER_BATTLESHIP", "cl", 7, null])(
+    "refuses an unregistered ship type %j by shape, before any compile",
+    async (category) => {
+      const r = await submit({
+        draft: { ...cruiser, requirement: { ...cruiser.requirement, category } },
+      });
+      expect(r).toMatchObject({ outcome: "rejected", reason: "INVALID_COMMAND_PAYLOAD" });
+      if (r.outcome === "rejected") expect(r.diagnostics.join(" ")).toMatch(/registered ship type/);
+    },
+  );
+
+  it("refuses a corvette that carries a torpedo tube, with the rule code in the diagnostics", async () => {
+    const r = await submit({
+      draft: { ...cruiser, requirement: { ...cruiser.requirement, category: "KE" } },
+    });
+    expect(r).toMatchObject({ outcome: "rejected", reason: "DESIGN_REJECTED" });
   });
 
   it("rejects an unbuildable design immediately with the blocking findings, queuing nothing", async () => {

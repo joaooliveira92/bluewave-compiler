@@ -14,7 +14,8 @@ const CEILING: Record<string, number> = {
   // docs/research/ship-building-1880-pre-era-armament.md. Every marker is justified in the review; the ceiling stays put otherwise.
   "components.yaml": 50,
   "plants.yaml": 1,
-  "hull-forms.yaml": 0,
+  // Raised 0 -> 1: merchant_liner_form borrows protected_cruiser_form's hull coefficients (no liner fit yet, ADR-0088).
+  "hull-forms.yaml": 1,
   "reference-designs.yaml": 0,
 };
 const dir = join(process.cwd(), "..", "..", "content", "production", "1880", "ship-building");

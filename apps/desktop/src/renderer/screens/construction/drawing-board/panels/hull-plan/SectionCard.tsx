@@ -1,5 +1,6 @@
 import type { DesignDraft, WorkshopView } from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../content.js";
+import { cn } from "../../../../../lib/utils.js";
 import type { PlanFrame } from "./geometry.js";
 import { profileFrame } from "./profile-geometry.js";
 import { SectionDrawing } from "./SectionDrawing.js";
@@ -32,8 +33,9 @@ function fittingLine(f: SectionFitting): string {
 }
 
 /**
- * Hover-card body for one section (layout after ReUI c-hover-card-5: drawing first, text under it). Read-only:
- * nothing here edits the design, which is why a hover card (not a popover) is the right container.
+ * Hover-card body for one section. On a wide card the drawing sits beside the text, so the card reads wide and
+ * shallow rather than a tall narrow column; on a narrow card it stacks (drawing over text). Read-only: nothing
+ * here edits the design, which is why a hover card (not a popover) is the right container.
  */
 export function SectionCard({
   id,
@@ -47,25 +49,36 @@ export function SectionCard({
   const form = ctx.content.hullForms.find((f) => f.id === ctx.draft.hull.hullFormId);
   const profile = profileFrame(ctx.draft.hull, ctx.sheerBp, ctx.frame.bow, ctx.frame.stern);
   const extra = facts.fittings.length - LIST_MAX;
+  const drawing = zone ? (
+    <SectionDrawing
+      facts={facts}
+      frame={ctx.frame}
+      profile={profile}
+      draft={ctx.draft}
+      content={ctx.content}
+      zones={ctx.zones}
+    />
+  ) : (
+    <p role="note" className="text-muted-foreground">
+      This hull form does not define a {meta.name.toLowerCase()} section, so there is nothing to
+      draw.
+    </p>
+  );
   return (
-    <article aria-label={meta.name} data-testid="section-card" data-section={id}>
-      {zone ? (
-        <div className="border-b p-2">
-          <SectionDrawing
-            facts={facts}
-            frame={ctx.frame}
-            profile={profile}
-            draft={ctx.draft}
-            content={ctx.content}
-            zones={ctx.zones}
-          />
-        </div>
-      ) : (
-        <p role="note" className="border-b p-3 text-muted-foreground">
-          This hull form does not define a {meta.name.toLowerCase()} section, so there is nothing to
-          draw.
-        </p>
-      )}
+    <article
+      aria-label={meta.name}
+      data-testid="section-card"
+      data-section={id}
+      className="grid grid-cols-1 @[26rem]:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]"
+    >
+      <div
+        className={cn(
+          "border-b p-3 @[26rem]:border-b-0 @[26rem]:border-r @[26rem]:p-2",
+          zone && "@[26rem]:bg-muted/20",
+        )}
+      >
+        {drawing}
+      </div>
       <div className="space-y-2 p-3 text-sm">
         <div>
           <h3 className="font-medium">{meta.name}</h3>

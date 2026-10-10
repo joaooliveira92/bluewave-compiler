@@ -6,8 +6,12 @@ import {
   classFacts,
   classificationFindings,
   DESIGN_22_EARLY,
-  isEarlyShipType,
+  isClassifiedShipType,
+  naturalClass,
+  typeAdvisories,
 } from "./classification.js";
+import { availabilityFindings, evaluateShipTypeAvailability } from "./shipTypeAvailability.js";
+import { colonialServiceAdvisory, colonialServiceEligibility } from "./colonialService.js";
 import type { Finding } from "./findings.js";
 import { hasBlocking, sortFindings, withoutSubjects } from "./findings.js";
 import { withRuleSubject } from "./findingSubjects.js";
@@ -50,6 +54,14 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
   const plant = ctx.plants.find((p) => p.id === draft.machinery.plantId);
   if (!plant) throw new Error(`unknown plant '${draft.machinery.plantId}'`);
   const catalogue = new Map(ctx.catalogue.map((c) => [c.id, c]));
+  const intended = draft.requirement.category;
+  // Whether the type may be designed at all is decided first: a locked or unknown type is a finding, never a throw.
+  const availability = evaluateShipTypeAvailability(intended, {
+    month: ctx.month,
+    unlockedTechs: ctx.unlockedTechs,
+    capabilities: ctx.capabilities,
+    restrictedTypes: ctx.restrictedShipTypes,
+  });
 
   // 1. Technology availability and parameter validity (stage VALIDATE_TECHNOLOGY)
   const resolved = resolveDesignComponents(draft, ctx, catalogue, plant, findings);
@@ -110,9 +122,12 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
     armour,
   });
   const window = b.stabilityWindowByCategory[draft.requirement.category];
-  if (!window) throw new Error(`no stability window for category '${draft.requirement.category}'`);
+  // A type that is not available has no window by definition and is rejected by a finding below, not by a throw. An
+  // available type without one is a content error.
+  if (!window && availability.available)
+    throw new Error(`no stability window for category '${draft.requirement.category}'`);
   let stability: StabilityResult | null = null;
-  if (!hasBlocking(hullRes.findings) && lumps.reduce((a, l) => a + l.kg, 0) > 0) {
+  if (window && !hasBlocking(hullRes.findings) && lumps.reduce((a, l) => a + l.kg, 0) > 0) {
     stability = compileStability(
       {
         items: lumps,
@@ -150,16 +165,36 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
     torpedoMount: r.def.torpedoMount ?? null,
   }));
 
-  // 7b. Intended classification (DESIGN-22 section 5). Only the types of the active band are checked.
+  // 7b. Ship-type availability, then intended classification (DESIGN-22 section 5). A type the ruleset does not
+  // register, or does not yet allow, is a blocking finding here: this is the authoritative gate (ADR-0088), so a
+  // stale UI, an imported file or a hand-built command cannot reach construction with a locked type.
   let naturalClassId: string | null = null;
-  if (isEarlyShipType(draft.requirement.category)) {
-    const cls = classificationFindings(
-      classFacts({ totalKg: hullRes.totalKg, machinery: machineryRaw, components }, draft),
-      draft.requirement.category,
-      b.classification ?? DESIGN_22_EARLY,
-    );
+  const rules = b.classification ?? DESIGN_22_EARLY;
+  const facts = classFacts(
+    { totalKg: hullRes.totalKg, machinery: machineryRaw, components },
+    draft,
+    rules,
+    formData.traits?.includes("merchant_derived") ?? false,
+  );
+  if (!availability.available) {
+    findings.push(...availabilityFindings(availability));
+    naturalClassId = naturalClass(facts, rules);
+  } else if (isClassifiedShipType(intended)) {
+    const cls = classificationFindings(facts, intended, rules);
     naturalClassId = cls.natural;
     findings.push(...cls.findings);
+    if (cls.findings.length === 0) findings.push(...typeAdvisories(intended, facts));
+    if (intended === "KE" && cls.findings.length === 0)
+      findings.push(
+        ...colonialServiceAdvisory(
+          colonialServiceEligibility({
+            displacementKg: hullRes.totalKg,
+            cruiseRangeNm: machineryRaw?.rangeNmAtCruise ?? 0,
+            accommodation: draft.requirement.accommodationStandard,
+            campaignAllows: ctx.colonialServiceAllowed ?? true,
+          }),
+        ),
+      );
   }
 
   // 8. Dock, treaty, modernization

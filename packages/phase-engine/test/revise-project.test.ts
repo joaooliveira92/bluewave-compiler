@@ -114,7 +114,7 @@ function withProject(done: number): CampaignSnapshot {
       designVersionId: "des_rev_base",
       designFamilyId: "fam_rev",
       className: "Rev class",
-      hullType: "destroyer",
+      hullType: "protected_cruiser", // the CL draft's own hull type (ADR-0088 checks the pair)
       machineryType: "locomotive_boiler",
       draft: baseDraft,
     },

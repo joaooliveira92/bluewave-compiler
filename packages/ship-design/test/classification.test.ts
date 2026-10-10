@@ -21,11 +21,13 @@ const facts = (o: Partial<ClassFacts>): ClassFacts => ({
   beltUm: 0,
   anyQualifyingArmourUm: 0,
   maxMainGunUm: 0,
+  maxGunUm: 0,
   mainTurretCount: 0,
   torpedoTubes: 1,
   aircraftCapacity: 0,
   deckUm: 0,
   maxHeavyMountBarrels: 0,
+  merchantHull: false,
   ...o,
 });
 const pass = (t: keyof typeof classPredicates, f: ClassFacts) =>
@@ -225,10 +227,11 @@ describe("compileDesign integration", () => {
       "INTENDED_CLASSIFICATION_ILLEGAL",
     );
   });
-  it("categories outside the active band are not classified (no false rejections)", () => {
-    const r = compileDesign(draft, ctx);
-    expect(r.naturalClass).toBeNull();
-    expect(r.valid).toBe(true);
+  it("an unregistered category is a blocking SHIP_TYPE_UNREGISTERED finding, never silently unclassified", () => {
+    const r = compileDesign(as("torpedo_gunboat"), ctx);
+    expect(r.valid).toBe(false);
+    expect(r.findings.map((x) => x.id)).toContain("SHIP_TYPE_UNREGISTERED");
+    expect(r.findings.every((x) => checkFindingShape(x).length === 0)).toBe(true);
   });
 });
 

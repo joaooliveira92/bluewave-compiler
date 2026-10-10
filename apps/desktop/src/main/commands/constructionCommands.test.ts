@@ -688,4 +688,66 @@ describe("construction commands", () => {
     if (cancel.outcome !== "success") return;
     expect(cancel.value.command.status).toBe("cancelled");
   });
+
+  it("refuses an armed merchant cruiser order past the auxiliary fleet limit (ADR-0088)", async () => {
+    registerProductionSession("session-amc", resolve(saveRoot, "save-amc"));
+    const record = getCampaignSession("session-amc")!;
+    const snapshot = record.state.snapshot;
+    const donor = snapshot.designs.get("des_gbr_inflexible")!;
+    const amc = {
+      ...donor,
+      designVersionId: "des_uk_test_liner",
+      designFamilyId: "fam_uk_test_liner",
+      className: "Test liner",
+      hullType: "armed_merchant_cruiser",
+      nationId: "uk",
+    };
+    // Cruiser fleet of the nation is whatever the pack gives; make the allowance the minimum of two by counting
+    // only AMC here: two AMC projects are already in flight.
+    const nation = snapshot.nations.get("uk")!;
+    const inFlight = [0, 1].map((n) => ({
+      id: `con_amc_${n}`,
+      type: "ship" as const,
+      projectType: "NEW_CONSTRUCTION" as const,
+      targetId: `ship_amc_${n}`,
+      designVersionId: amc.designVersionId,
+      totalWork: SafeInt(10),
+      completedWork: SafeInt(0),
+      paidWork: SafeInt(0),
+      status: "ACTIVE" as const,
+      startedAt: "1880-01",
+    }));
+    Object.assign(record.state, {
+      snapshot: {
+        ...snapshot,
+        designs: new Map([...snapshot.designs, [amc.designVersionId, amc]]),
+        nations: new Map([
+          ...snapshot.nations,
+          [
+            "uk",
+            {
+              ...nation,
+              // No cruisers at all, so the minimum allowance of two applies.
+              fleets: [],
+              constructionProjects: [...nation.constructionProjects, ...inFlight],
+            },
+          ],
+        ]),
+      },
+    });
+    const refused = await submitConstructionCommand({
+      sessionId: "session-amc",
+      designId: amc.designVersionId,
+      expectedRevision: 0,
+      transportRequestId: "req-amc-3",
+    });
+    expect(refused.outcome).toBe("rejected");
+    if (refused.outcome === "rejected") expect(refused.reason).toBe("AMC_FLEET_LIMIT_EXCEEDED");
+    // Nothing was queued.
+    expect(
+      requireSessionState("session-amc")
+        .snapshot.nations.get("uk")!
+        .constructionProjects.filter((p) => p.designVersionId === amc.designVersionId),
+    ).toHaveLength(2);
+  });
 });

@@ -135,7 +135,7 @@ export function SectionLabels({
             sideOffset={12}
             anchor={anchor}
             collisionPadding={12}
-            className="max-h-[var(--available-height)] w-[min(26rem,calc(100vw-1.5rem))] overflow-y-auto overflow-x-hidden p-0 motion-reduce:animate-none"
+            className="@container max-h-[var(--available-height)] w-[min(36rem,calc(100vw-1.5rem))] overflow-y-auto overflow-x-hidden p-0 motion-reduce:animate-none"
           >
             {payload !== undefined && renderCard(payload)}
           </HoverCardContent>

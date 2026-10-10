@@ -1,43 +1,49 @@
-import type { CompiledDesignVersion as EngineCompiledDesignVersion } from "@bluewave/campaign";
+import { placeConstructionOrder, type ConstructionOrderResult } from "@bluewave/phase-engine";
 import type { BridgeResult } from "../../../shared/bridge-contract.js";
 import type { ConstructionCommandOutcome } from "../../../shared/construction-contract.js";
 import type { CampaignSessionRecord } from "../../campaignSessions.js";
+import { loadShipBuildingContent } from "../../shipBuildingContent.js";
 
 /**
- * Design validation shared by submit and replace: `designId` must exist in the
- * compiled snapshot and belong to the player's nation. Extracted so replace can
- * run EXACTLY the same checks as submit, and run them BEFORE mutating (F2).
+ * The construction-order check shared by submit and replace, run BEFORE anything is reserved or persisted (F2). The
+ * rule itself (design exists and belongs to the player, revalidation, auxiliary fleet limits) is the engine-side
+ * `placeConstructionOrder` policy (ADR-0088); this adapter only supplies the session's snapshot and content and maps a
+ * refusal to the bridge result.
  */
-export type DesignValidation =
-  | { readonly ok: true; readonly design: EngineCompiledDesignVersion }
+export type PlacedOrder =
+  | Extract<ConstructionOrderResult, { readonly ok: true }>
   | { readonly ok: false; readonly result: BridgeResult<ConstructionCommandOutcome> };
 
-export function validateDesignForPlayer(
+export function placeOrderFor(
   record: CampaignSessionRecord,
+  commandId: string,
   designId: string,
-): DesignValidation {
-  const design = record.state.snapshot.designs.get(designId);
-  if (!design) {
-    return {
-      ok: false,
-      result: {
-        outcome: "rejected",
-        reason: "UNKNOWN_DESIGN",
-        diagnostics: [`No design ${designId} in the compiled snapshot`],
-      },
-    };
+  replacingCommandId?: string,
+): PlacedOrder {
+  let content;
+  try {
+    content = loadShipBuildingContent();
+  } catch {
+    content = undefined;
   }
-  if (design.nationId !== record.playerSlotId) {
-    return {
-      ok: false,
-      result: {
-        outcome: "rejected",
-        reason: "DESIGN_NOT_FOR_PLAYER",
-        diagnostics: [
-          `Design ${designId} belongs to ${design.nationId}, not player slot ${record.playerSlotId}`,
-        ],
-      },
-    };
-  }
-  return { ok: true, design };
+  const placed = placeConstructionOrder(
+    record.state.snapshot,
+    {
+      nationId: record.playerSlotId,
+      commandId,
+      designVersionId: designId,
+      month: record.month,
+      ...(replacingCommandId === undefined ? {} : { replacingCommandId }),
+    },
+    content,
+  );
+  if (placed.ok) return placed;
+  return {
+    ok: false,
+    result: {
+      outcome: "rejected",
+      reason: placed.reason,
+      diagnostics: [...placed.diagnostics],
+    },
+  };
 }

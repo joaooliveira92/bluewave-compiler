@@ -51,7 +51,8 @@ describe("toEngineDesign", () => {
           ...draft.armour.regions,
           {
             region: "BELT_MAIN" as const,
-            thicknessUm: 100_000,
+            // Splinter plating, below the 2-inch qualifying armour a destroyer may not carry.
+            thicknessUm: 50_000,
             lengthMm: 20_000,
             heightMm: 1_500,
             materialId: "mild_steel",
@@ -62,7 +63,7 @@ describe("toEngineDesign", () => {
       },
     };
     const bc = compileDesign(belted, ctx);
-    expect(toEngineDesign(bc, belted, opts).normalizedArmorUm).toBe(100_000);
+    expect(toEngineDesign(bc, belted, opts).normalizedArmorUm).toBe(50_000);
   });
   it("refuses invalid designs and bad options", () => {
     const bad = compileDesign(

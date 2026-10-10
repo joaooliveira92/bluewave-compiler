@@ -3,6 +3,7 @@ import type { ComponentDef } from "./component.js";
 import type { CompiledDesign, DesignDraft } from "./compile.js";
 import { applyEdit, type DraftEdit } from "./edits.js";
 import { withoutSubjects } from "./findings.js";
+import { isShipTypeId } from "./shipTypes.js";
 
 export const DESIGN_FILE_FORMAT = "bwdesign";
 export const DESIGN_SCHEMA_VERSION = 1;
@@ -76,6 +77,8 @@ export function validateDraftShape(raw: unknown): string[] {
         p.push(`placements[${i}].stationPermille must be an integer`);
     });
   }
+  if (isObj(raw.requirement) && !isShipTypeId(raw.requirement.category))
+    p.push(`requirement.category is not a registered ship type (SHIP_TYPE_UNREGISTERED)`);
   if (isObj(raw.hull) && typeof raw.hull.hullFormId !== "string")
     p.push("hull.hullFormId must be a string");
   if (isObj(raw.machinery) && typeof raw.machinery.plantId !== "string")

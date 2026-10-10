@@ -172,7 +172,6 @@ export const balance: ShipBalance = {
   stabilityWindowByCategory: {
     DD: { gmMinMm: 500, gmCapsizeMm: 100, gmMaxMm: 2_000 },
     CL: { gmMinMm: 500, gmCapsizeMm: 100, gmMaxMm: 2_000 },
-    torpedo_gunboat: { gmMinMm: 500, gmCapsizeMm: 100, gmMaxMm: 2_000 },
   },
   minReserveBpByExpectation: { NONE: 0, MINOR: 300, MAJOR: 800 },
 };
@@ -413,7 +412,8 @@ export const ctx: ShipContext = {
 export const draft: DesignDraft = {
   nationId: "uk",
   requirement: {
-    category: "torpedo_gunboat",
+    // A registered type: an unregistered category is a blocking SHIP_TYPE_UNREGISTERED finding (ADR-0088).
+    category: "DD",
     requiredSpeedMilliKnots: 20_000,
     cruiseSpeedMilliKnots: 10_000,
     requiredRangeNm: 2_500,
@@ -675,7 +675,7 @@ import type { CveBalance } from "../../src/index.js";
 
 export const cveBalance: CveBalance = {
   weightsByCategory: {
-    torpedo_gunboat: {
+    DD: {
       offence: 3_000,
       protection: 1_000,
       mobility: 2_500,

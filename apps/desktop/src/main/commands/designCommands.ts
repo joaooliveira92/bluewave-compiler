@@ -3,6 +3,7 @@ import {
   classifyRevision,
   compileDesign,
   draftChangeKinds,
+  HULL_TYPE_FOR_SHIP_TYPE,
   progressFromWork,
   rebuildFactsOf,
   validateDraftShape,
@@ -36,15 +37,6 @@ import {
 import { getCampaignSession } from "../campaignSessions.js";
 import { loadShipBuildingContent } from "../shipBuildingContent.js";
 import { submitPlayerCommand } from "./playerCommandSupport.js";
-
-/** Canonical ship-type label per DESIGN-22 intended class, as the construction screen's icons expect it. */
-const HULL_TYPE_BY_CLASS: Readonly<Record<string, string>> = {
-  DD: "destroyer",
-  CL: "light_cruiser",
-  CA: "heavy_cruiser",
-  B: "coast_defense_ship",
-  BB: "battleship",
-};
 
 function slug(name: string): string {
   const s = name
@@ -102,7 +94,18 @@ export async function submitDesignCommand(
   const turn = Number(record.state.snapshot.turnNumber);
   const designVersionId = `des_${record.playerSlotId.toLowerCase()}_${base}_t${turn}`.slice(0, 64);
   const designFamilyId = `fam_${record.playerSlotId.toLowerCase()}_${base}`.slice(0, 64);
-  const hullType = HULL_TYPE_BY_CLASS[draft.requirement.category] ?? "coast_defense_ship";
+  // The hull type is the ship type's own (domain mapping); there is no fallback label, so a type the ruleset cannot
+  // map is refused rather than filed as something else (ADR-0088).
+  const hullType = (HULL_TYPE_FOR_SHIP_TYPE as Readonly<Record<string, string | undefined>>)[
+    draft.requirement.category
+  ];
+  if (hullType === undefined) {
+    return {
+      outcome: "rejected",
+      reason: "DESIGN_REJECTED",
+      diagnostics: [`Ship type ${draft.requirement.category} cannot be built.`],
+    };
+  }
   const snapshot = record.state.snapshot;
   if (snapshot.designs.has(designVersionId) || studyExists(snapshot, designVersionId)) {
     return {

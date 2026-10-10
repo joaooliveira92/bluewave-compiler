@@ -45,7 +45,7 @@ describe("EARLY-band content integrity", () => {
   it("every component, plant and hull form passes its schema", () => {
     expect(components.length).toBeGreaterThanOrEqual(20);
     expect(plants.length).toBeGreaterThanOrEqual(3);
-    expect(hullRecords).toHaveLength(4);
+    expect(hullRecords).toHaveLength(5); // + merchant_liner_form (ADR-0088)
   });
   it("the catalogue lints clean against the real 1880 technology ids", () => {
     expect(lintCatalogue(components, techIds)).toEqual([]);
@@ -94,6 +94,7 @@ describe("EARLY-band content integrity", () => {
     const forms = hullFormsFromRecords(hullRecords);
     expect(Object.keys(forms).sort()).toEqual([
       "coast_defence_form",
+      "merchant_liner_form",
       "pre_dreadnought_form",
       "protected_cruiser_form",
       "torpedo_boat_form",

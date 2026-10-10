@@ -29,6 +29,7 @@ ship:
       protected_cruiser_form: 26000
       coast_defence_form: 15500
       pre_dreadnought_form: 26500
+      merchant_liner_form: 25000 # ESTIMATE: a fine merchant liner hull, set near protected_cruiser_form until a liner trial is sourced
     slr0X1000: 1300
     kSlBp: 600
     cFloorBp: 5000
@@ -215,6 +216,16 @@ ship:
       gmMinMm: 900
       gmCapsizeMm: 200
       gmMaxMm: 3500
+    # ESTIMATE (no source): KE takes the CL window (a small cruiser-type hull); AMC the CA window, since a liner hull
+    # carries its deck guns and bunkers high like a cruiser. Both want a research pass (ticket 30).
+    KE:
+      gmMinMm: 450
+      gmCapsizeMm: 100
+      gmMaxMm: 2200
+    AMC:
+      gmMinMm: 500
+      gmCapsizeMm: 150
+      gmMaxMm: 2500
   minReserveBpByExpectation:
     NONE: 0
     MINOR: 300
@@ -229,6 +240,7 @@ cost:
     protected_cruiser_form: 10500
     coast_defence_form: 10000
     pre_dreadnought_form: 10000
+    merchant_liner_form: 10000 # ESTIMATE: neutral until a merchant-yard source exists
   subdivisionComplexityBp:
     - 9000
     - 10000
@@ -409,6 +421,8 @@ cve:
     CA: *a1
     B: *a1
     BB: *a1
+    KE: *a1
+    AMC: *a1
   offence:
     points:
       - - 0

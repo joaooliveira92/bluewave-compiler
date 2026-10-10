@@ -7,7 +7,7 @@ the content compiler does not load these files until SB-14 wires them, so the sh
 |---|---|
 | `components.yaml` | Pre-1880 ordnance (RMLs, early BL, French 27-cm, German 26-cm) plus the 1885-95 band: 13 weapons (12-inch to .303 Maxim, 2 torpedo tubes), magazines, rangefinder and ship fittings |
 | `plants.yaml` | 4 propulsion plants (compound, triple-expansion, water-tube, locomotive-boiler torpedo-boat plant) |
-| `hull-forms.yaml` | 4 hull forms: torpedo boat, protected cruiser, coast-defence ship, pre-dreadnought battleship |
+| `hull-forms.yaml` | 5 hull forms: torpedo boat, protected cruiser, coast-defence ship, pre-dreadnought battleship, merchant liner (`traits: [merchant_derived]`) |
 | `balance.yaml` | balance constants for hull, machinery, armour, cost, construction, CVE, refit, AI |
 
 Source of record: `docs/research/ship-building-early-band.md` (confidence labels kept in comments).
@@ -49,3 +49,15 @@ Each VERIFIED / SINGLE-SOURCE value in `docs/research/ship-building-early-band-2
 ## Placeholders (no source; replace before release)
 Heavy mount masses (12/10/9.2-inch), tube and carriage masses, magazine/fitting data, QF unit prices, rangefinder mass, part-load fuel curves, plant volumes and reliability, zone shares, stability windows,
 crew per tonne, all cost/construction/CVE/refit/AI constants. Each is marked `PLACEHOLDER` or `ESTIMATE` in the files or in `balance.yaml`'s header.
+
+## Opening ship types and starter designs (2026-10-10, ADR-0088)
+
+The designer offers `B CA CL DD KE AMC` at the 1880 start. `reference-designs.yaml` entries with `starterFor: <type>` are the
+starting points the Drawing Board's "Ship types" panel loads; the newest one not after the campaign month is used. New, non-historical
+starters (`starter_*_1880`: DD, KE, AMC, CA, CL) are tuned to compile legally at 1880-01 under this content; their dimensions, power
+and armour are ESTIMATES, not real ships. `merchant_liner_form` borrows `protected_cruiser_form`'s hull coefficients (PLACEHOLDER) and
+its Admiralty coefficient, form complexity and stability windows are ESTIMATES; all need research pass 3. Before the 6-inch breech-loaders
+of 1883 the only gun at or below 6 inches is the 1-inch Nordenfelt, so KE and AMC starters carry machine guns only.
+
+**Status of the merchant hull (2026-10-10):** the repository holds no hull-weight or resistance source for a liner, so
+`merchant_liner_form` stays PLACEHOLDER/ESTIMATE and the armed merchant cruiser is not balanced for release. Needs research pass 3.

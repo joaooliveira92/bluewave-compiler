@@ -12,13 +12,17 @@ import {
 } from "./profile-geometry.js";
 import type { SectionFacts, ZoneRange } from "./sections.js";
 
-/** Card drawing size (SVG user units, drawn about 1:1 in the card). */
+/**
+ * Card drawing size (SVG user units). The bands are sized to the content they must hold (a plan whose half-beam
+ * is capped at `PLAN_MID - 14`, a profile as tall as the hull plus headroom) rather than padded square, so the
+ * card reads landscape instead of portrait.
+ */
 export const SECTION_W = 400;
 export const PAD_X = 14;
 export const PLAN_TOP = 6;
-export const PLAN_BAND = 230;
+export const PLAN_BAND = 160;
 export const PROFILE_TOP = PLAN_TOP + PLAN_BAND + 10;
-export const PROFILE_BAND = 230;
+export const PROFILE_BAND = 200;
 export const SCALE_Y = PROFILE_TOP + PROFILE_BAND + 16;
 export const SECTION_H = SCALE_Y + 6;
 

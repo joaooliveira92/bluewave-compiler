@@ -24,6 +24,8 @@ export interface ReferenceDesign {
   readonly id: string;
   readonly name: string;
   readonly month: string;
+  /** The ship type this design is the starting point of (ADR-0088); absent for plain historical references. */
+  readonly starterFor?: string;
   readonly draft: DesignDraft;
 }
 

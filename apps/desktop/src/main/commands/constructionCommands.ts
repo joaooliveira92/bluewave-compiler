@@ -1,7 +1,6 @@
 import {
   buildConstructionDesignCatalog,
   buildConstructionProjectQueue,
-  projectedConstructionOrderCosts,
   type ConstructionCommandStatus,
 } from "@bluewave/campaign-engine";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
@@ -29,18 +28,14 @@ import { verifyEnvelope } from "./commandEnvelope.js";
 import { deriveConstructionCommandId } from "./construction/command-id.js";
 import { isTerminal, uiStatusFor } from "./construction/command-status.js";
 import { resolveUiDesign, toUiCommand } from "./construction/command-view.js";
-import { validateDesignForPlayer } from "./construction/design-validation.js";
+import { placeOrderFor } from "./construction/design-validation.js";
 import { replayIdempotent } from "./construction/idempotency.js";
 import {
   canReserveReplacement,
   reserveForOrder,
   restoreInFlight,
 } from "./construction/reservations.js";
-import {
-  addProjectToNation,
-  constructionProjectFor,
-  removeProjectForCommand,
-} from "./construction/snapshot-mutations.js";
+import { removeProjectForCommand } from "./construction/snapshot-mutations.js";
 import { constructionSnapshotStore } from "./construction/snapshot-store.js";
 
 /**
@@ -119,9 +114,11 @@ export async function submitConstructionCommand(
   const replayed = replayIdempotent(workspace, payload.transportRequestId, commandId);
   if (replayed) return replayed;
 
-  const valid = validateDesignForPlayer(record, payload.designId);
-  if (!valid.ok) return valid.result;
-  const costs = projectedConstructionOrderCosts(valid.design);
+  // The engine-side policy decides (ownership, revalidation, auxiliary limits) and builds the project; this layer
+  // only orchestrates reservations and persistence around it (ADR-0088).
+  const placed = placeOrderFor(record, commandId, payload.designId);
+  if (!placed.ok) return placed.result;
+  const costs = placed.costs;
 
   const recordCreated = acceptConstructionRecord(
     workspace,
@@ -152,16 +149,7 @@ export async function submitConstructionCommand(
   // persist fails, the workspace has only the (rolled-back) pool reservation
   // and the command reports SAVE_FAILED with no record/command/idempotency
   // entry — no partial in-memory state is persisted under a failure (F2).
-  const project = constructionProjectFor(
-    commandId,
-    payload.designId,
-    costs.projectedCost,
-    record.month,
-    valid.design.constructionPlan,
-  );
-  const persisted = constructionSnapshotStore.persist(record, (snapshot) =>
-    addProjectToNation(snapshot, record.playerSlotId, project),
-  );
+  const persisted = constructionSnapshotStore.persist(record, () => placed.snapshot);
   if (!persisted.ok) {
     workspace.release(commandId);
     return persisted.result;
@@ -236,9 +224,9 @@ export async function replaceConstructionCommand(
   // the original exactly as it was (in-flight, project queued, no extra
   // save). The single snapshot persist below then removes the original's
   // project AND queues the replacement's in ONE SaveStore.save.
-  const valid = validateDesignForPlayer(record, payload.designId);
-  if (!valid.ok) return valid.result;
-  const costs = projectedConstructionOrderCosts(valid.design);
+  const placed = placeOrderFor(record, newCommandId, payload.designId, payload.commandId);
+  if (!placed.ok) return placed.result;
+  const costs = placed.costs;
 
   const affordable = canReserveReplacement(workspace, record, payload.commandId, costs);
   if (!affordable.ok) {
@@ -292,20 +280,7 @@ export async function replaceConstructionCommand(
   const uiDesign = resolveUiDesign(record, payload.designId);
 
   // The ONE authoritative persist: original's project out, replacement's in.
-  const replacementProject = constructionProjectFor(
-    newCommandId,
-    payload.designId,
-    costs.projectedCost,
-    record.month,
-    valid.design.constructionPlan,
-  );
-  const persisted = constructionSnapshotStore.persist(record, (snapshot) =>
-    addProjectToNation(
-      removeProjectForCommand(snapshot, record.playerSlotId, payload.commandId),
-      record.playerSlotId,
-      replacementProject,
-    ),
-  );
+  const persisted = constructionSnapshotStore.persist(record, () => placed.snapshot);
   if (!persisted.ok) {
     // Roll the whole supersession back: the original is in-flight again with
     // its reservation re-held, the replacement leaves no trace, and the

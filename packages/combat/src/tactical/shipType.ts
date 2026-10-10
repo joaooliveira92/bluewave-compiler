@@ -83,6 +83,24 @@ const HULL_FAMILY_MAP: Record<string, HullFamily> = {
   },
   light_cruiser: { canonical: "CL", minDisplacementKg: 2_000_000, minCaliberUm: 6 * UM_PER_INCH },
   destroyer: { canonical: "DD" },
+  // Opening-era families made by the ship designer (ADR-0088). The numeric guards repeat only the minimums the
+  // compiled design exposes; the designer's own validator is the authority and has already run.
+  pre_dreadnought: {
+    canonical: "B",
+    minDisplacementKg: 5_000_000,
+    minArmorUm: 6 * UM_PER_INCH,
+    minCaliberUm: 6 * UM_PER_INCH,
+    maxSpeedUms: 20 * UMS_PER_KNOT,
+  },
+  armoured_cruiser: {
+    canonical: "CA",
+    minDisplacementKg: 4_000_000,
+    minArmorUm: 2 * UM_PER_INCH,
+    minCaliberUm: 6 * UM_PER_INCH,
+  },
+  protected_cruiser: { canonical: "CL", minDisplacementKg: 2_000_000 },
+  corvette: { canonical: "KE" },
+  armed_merchant_cruiser: { canonical: "AMC", minDisplacementKg: 1_700_000 },
   monitor: {
     canonical: "B",
     minDisplacementKg: 5_000_000,

@@ -79,3 +79,4 @@ Refresh this table from each file's H1 when one is added or re-titled.
 | 0085 | [ADR-0085-design-studies.md](ADR-0085-design-studies.md) | Design studies gate design approval |
 | 0086 | [ADR-0086-division-ship-reorder.md](ADR-0086-division-ship-reorder.md) | Division ship reordering — flagship pinned, DESIGN-26 §12 penalty |
 | 0087 | [ADR-0087-section-card-faithful-crop.md](ADR-0087-section-card-faithful-crop.md) | Section hover card draws a faithful crop of the plan and profile |
+| 0088 | [ADR-0088-opening-ship-types.md](ADR-0088-opening-ship-types.md) | Opening ship types, availability policy and engine-side enforcement |

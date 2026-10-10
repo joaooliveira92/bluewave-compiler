@@ -1,170 +1,40 @@
 import type { CompiledDesign, DesignDraft } from "./compile.js";
-import type { Finding } from "./findings.js";
-import { UM_PER_INCH, UM_PER_KNOT } from "./units.js";
+import {
+  classPredicates,
+  classRuleFailures,
+  CLASSIFIED_SHIP_TYPES,
+  DESIGN_22_EARLY,
+  type ClassFacts,
+  type ClassificationRules,
+  type ClassifiedShipType,
+  type ClassRuleField,
+} from "./classificationRules.js";
+import { shipTarget, type Finding, type SettingGroup } from "./findings.js";
+import { UM_PER_KNOT } from "./units.js";
 
-/** Ship types reachable in the EARLY band (DESIGN-22 section 1, precedence order). BC arrives with the Dreadnought band. */
-export const EARLY_SHIP_TYPES = ["BB", "B", "CA", "CL", "DD"] as const;
-export type EarlyShipType = (typeof EARLY_SHIP_TYPES)[number];
+export * from "./classificationRules.js";
 
-/** Facts DESIGN-22 predicates read, all in canonical units. */
-export interface ClassFacts {
-  readonly displacementKg: number;
-  readonly speedUms: number;
-  /** Thickest main belt, micrometres (0 if none). */
-  readonly beltUm: number;
-  /** Thickest qualifying armour of any kind (belt, deck, turret, barbette, tower, box), micrometres. */
-  readonly anyQualifyingArmourUm: number;
-  /** Largest main-gun calibre, micrometres (0 if none). */
-  readonly maxMainGunUm: number;
-  readonly mainTurretCount: number;
-  readonly torpedoTubes: number;
-  readonly aircraftCapacity: number;
-  /** Thickest armour deck (DECK_MAIN or DECK_SLOPE), micrometres (0 if none). */
-  readonly deckUm: number;
-  /** Most barrels in any single main-gun mount whose calibre exceeds the normal CL gun limit (0 if none). */
-  readonly maxHeavyMountBarrels: number;
-}
-
-/** Normative thresholds from docs/rules/ship-classification.md, kept as data so a ruleset change is not a code change. */
-export interface ClassificationRules {
-  readonly ddMaxDisplacementKg: number;
-  readonly ddMinSpeedUms: number;
-  readonly qualifyingArmourUm: number;
-  readonly clMinDisplacementKg: number;
-  readonly clMaxDisplacementKg: number;
-  readonly clMinSpeedUms: number;
-  readonly clMaxGunUm: number;
-  /** Version of the protected-cruiser exception (ADR-0067; bump when its predicate changes). */
-  readonly protectedCruiserExceptionVersion: number;
-  /** Largest single-mounted gun a belt-less armoured-deck (protected) cruiser may carry and still be CL. */
-  readonly clProtectedMaxGunUm: number;
-  readonly caMinDisplacementKg: number;
-  readonly caMinSpeedUms: number;
-  readonly caBeltMinUm: number;
-  readonly caBeltMaxUm: number;
-  readonly caGunMaxUm: number;
-  readonly bMinDisplacementKg: number;
-  readonly bBeltMinUm: number;
-  readonly bMaxSpeedUms: number;
-  readonly bMaxTurrets: number;
-  readonly bbMinDisplacementKg: number;
-  readonly bbMinTurrets: number;
-  readonly bbBeltMinUm: number;
-  readonly bbGunMinUm: number;
-  readonly aircraftLimit: number;
-}
-
-/** DESIGN-22 values for the EARLY band (sections 7-13). */
-export const DESIGN_22_EARLY: ClassificationRules = {
-  ddMaxDisplacementKg: 2_000_000,
-  ddMinSpeedUms: 19 * UM_PER_KNOT + 1 - 1, // strictly greater than 19 kn (9_774_436)
-  qualifyingArmourUm: 2 * UM_PER_INCH,
-  clMinDisplacementKg: 2_000_000,
-  clMaxDisplacementKg: 8_000_000,
-  clMinSpeedUms: 16 * UM_PER_KNOT,
-  clMaxGunUm: 6 * UM_PER_INCH,
-  protectedCruiserExceptionVersion: 1,
-  clProtectedMaxGunUm: 8 * UM_PER_INCH,
-  caMinDisplacementKg: 4_000_000,
-  caMinSpeedUms: 19 * UM_PER_KNOT,
-  caBeltMinUm: 2 * UM_PER_INCH,
-  caBeltMaxUm: 12 * UM_PER_INCH,
-  caGunMaxUm: 11 * UM_PER_INCH,
-  bMinDisplacementKg: 5_000_000,
-  bBeltMinUm: 6 * UM_PER_INCH,
-  bMaxSpeedUms: 20 * UM_PER_KNOT,
-  bMaxTurrets: 2,
-  bbMinDisplacementKg: 8_000_000,
-  bbMinTurrets: 3,
-  bbBeltMinUm: 6 * UM_PER_INCH,
-  bbGunMinUm: 10 * UM_PER_INCH,
-  aircraftLimit: 4,
+/** Which group of design settings fixes a rule of each field (the UI maps a group to its controls). */
+const FIELD_SETTING: Readonly<Record<ClassRuleField, SettingGroup>> = {
+  displacement: "hull",
+  speed: "machinery",
+  belt: "armour",
+  qualifyingArmour: "armour",
+  mainGun: "arrangement",
+  turrets: "arrangement",
+  torpedoes: "arrangement",
+  aircraft: "arrangement",
+  hull: "hull",
 };
 
-/**
- * Protected-cruiser exception (DESIGN-22 section 9, ADR-0067): an armour-deck ship with no main belt whose guns
- * above the normal CL limit are all single mounts no larger than the protected limit. It changes only the CL gun
- * bound; displacement and speed bounds are untouched.
- */
-export const isProtectedCruiser = (f: ClassFacts, r: ClassificationRules): boolean =>
-  f.beltUm === 0 &&
-  f.deckUm > 0 &&
-  f.maxMainGunUm <= r.clProtectedMaxGunUm &&
-  f.maxHeavyMountBarrels <= 1;
-
-/** Strict/inclusive boundaries follow the document literally (see its section 21 boundary summary). */
-export const classPredicates: Record<
-  EarlyShipType,
-  (f: ClassFacts, r: ClassificationRules) => string[]
-> = {
-  DD: (f, r) => {
-    const why: string[] = [];
-    if (!(f.displacementKg > 0 && f.displacementKg < r.ddMaxDisplacementKg))
-      why.push(`displacement ${f.displacementKg} kg must be below ${r.ddMaxDisplacementKg}`);
-    if (!(f.speedUms > r.ddMinSpeedUms))
-      why.push(`speed must exceed ${r.ddMinSpeedUms} um/s (19 kn)`);
-    if (f.torpedoTubes < 1) why.push("needs at least one usable torpedo tube");
-    if (f.anyQualifyingArmourUm >= r.qualifyingArmourUm)
-      why.push(`has qualifying armour (>= ${r.qualifyingArmourUm} um)`);
-    if (f.aircraftCapacity !== 0) why.push("aircraft capacity must be 0");
-    return why;
-  },
-  CL: (f, r) => {
-    const why: string[] = [];
-    if (!(f.displacementKg >= r.clMinDisplacementKg && f.displacementKg < r.clMaxDisplacementKg))
-      why.push(`displacement must be ${r.clMinDisplacementKg}..${r.clMaxDisplacementKg - 1} kg`);
-    if (!(f.speedUms > r.clMinSpeedUms)) why.push("speed must exceed 16 kn");
-    if (!(f.maxMainGunUm <= r.clMaxGunUm) && !isProtectedCruiser(f, r))
-      why.push(
-        "main guns must be 6 inches or smaller (protected cruisers: single mounts up to 8 inches, armour deck, no main belt)",
-      );
-    if (f.aircraftCapacity >= r.aircraftLimit) why.push("aircraft capacity must be below 4");
-    return why;
-  },
-  CA: (f, r) => {
-    const why: string[] = [];
-    if (!(f.displacementKg > r.caMinDisplacementKg))
-      why.push(`displacement must exceed ${r.caMinDisplacementKg} kg`);
-    if (!(f.speedUms > r.caMinSpeedUms)) why.push("speed must exceed 19 kn");
-    if (!(f.beltUm > r.caBeltMinUm && f.beltUm <= r.caBeltMaxUm))
-      why.push("main belt must be over 2 and up to 12 inches");
-    if (!(f.maxMainGunUm > r.clMaxGunUm && f.maxMainGunUm <= r.caGunMaxUm))
-      why.push("main guns must be over 6 and up to 11 inches");
-    if (f.aircraftCapacity >= r.aircraftLimit) why.push("aircraft capacity must be below 4");
-    return why;
-  },
-  B: (f, r) => {
-    const why: string[] = [];
-    if (!(f.displacementKg >= r.bMinDisplacementKg))
-      why.push(`displacement must be at least ${r.bMinDisplacementKg} kg`);
-    if (!(f.beltUm >= r.bBeltMinUm)) why.push("main belt must be at least 6 inches");
-    if (!(f.maxMainGunUm > r.clMaxGunUm)) why.push("main guns must be over 6 inches");
-    if (!(f.speedUms < r.bMaxSpeedUms)) why.push("speed must be below 20 kn");
-    if (!(f.mainTurretCount === 1 || f.mainTurretCount === 2))
-      why.push("needs 1 or 2 main-battery turrets");
-    if (f.aircraftCapacity >= r.aircraftLimit) why.push("aircraft capacity must be below 4");
-    return why;
-  },
-  BB: (f, r) => {
-    const why: string[] = [];
-    if (!(f.displacementKg > r.bbMinDisplacementKg))
-      why.push(`displacement must exceed ${r.bbMinDisplacementKg} kg`);
-    if (!(f.mainTurretCount >= r.bbMinTurrets)) why.push("needs at least 3 main-battery turrets");
-    if (!(f.beltUm > r.bbBeltMinUm)) why.push("main belt must exceed 6 inches");
-    if (!(f.maxMainGunUm > r.bbGunMinUm)) why.push("main guns must exceed 10 inches");
-    if (f.aircraftCapacity >= r.aircraftLimit) why.push("aircraft capacity must be below 4");
-    return why;
-  },
-};
-
-export const isEarlyShipType = (s: string): s is EarlyShipType =>
-  (EARLY_SHIP_TYPES as readonly string[]).includes(s);
+const GUN_CATEGORIES: readonly string[] = ["MAIN_GUN", "SECONDARY_GUN", "DUAL_PURPOSE_GUN"];
 
 /** Reads the facts out of a compiled design. Main-gun turret count is the number of main-gun mounts fitted. */
 export function classFacts(
   c: Pick<CompiledDesign, "totalKg" | "machinery" | "components">,
   d: DesignDraft,
   rules: Pick<ClassificationRules, "clMaxGunUm"> = DESIGN_22_EARLY,
+  merchantHull = false,
 ): ClassFacts {
   const beltRegions = d.armour.regions.filter((r) => r.region === "BELT_MAIN");
   const guns = c.components.filter((k) => k.category === "MAIN_GUN");
@@ -188,6 +58,9 @@ export function classFacts(
       )
       .reduce((m, r) => Math.max(m, r.thicknessUm), 0),
     maxMainGunUm: guns.reduce((m, k) => Math.max(m, k.attr.caliberUm ?? 0), 0),
+    maxGunUm: c.components
+      .filter((k) => GUN_CATEGORIES.includes(k.category))
+      .reduce((m, k) => Math.max(m, k.attr.caliberUm ?? 0), 0),
     mainTurretCount: guns.length,
     torpedoTubes: c.components
       .filter((k) => k.category === "TORPEDO_TUBE")
@@ -199,21 +72,23 @@ export function classFacts(
     maxHeavyMountBarrels: guns
       .filter((k) => (k.attr.caliberUm ?? 0) > rules.clMaxGunUm)
       .reduce((m, k) => Math.max(m, k.params.barrels ?? 1), 0),
+    merchantHull,
   };
 }
 
 /** First type, in precedence order, whose predicates all pass; null if none. */
-export function naturalClass(f: ClassFacts, r: ClassificationRules): EarlyShipType | null {
-  return EARLY_SHIP_TYPES.find((t) => classPredicates[t](f, r).length === 0) ?? null;
+export function naturalClass(f: ClassFacts, r: ClassificationRules): ClassifiedShipType | null {
+  return CLASSIFIED_SHIP_TYPES.find((t) => classPredicates[t](f, r).length === 0) ?? null;
 }
 
 /** DESIGN-22 section 5 mismatch policy. All three rejections are BLOCKING (DESIGN-21 section 25). */
 export function classificationFindings(
   f: ClassFacts,
-  intended: EarlyShipType,
+  intended: ClassifiedShipType,
   r: ClassificationRules,
-): { natural: EarlyShipType | null; findings: Finding[] } {
-  const failures = classPredicates[intended](f, r);
+): { natural: ClassifiedShipType | null; findings: Finding[] } {
+  const ruleFailures = classRuleFailures[intended](f, r);
+  const failures = ruleFailures.map((x) => x.message);
   const natural = naturalClass(f, r);
   const ev = (value: number): Finding["evidence"] => ({
     formulaId: "DESIGN-22",
@@ -250,6 +125,29 @@ export function classificationFindings(
           ),
           evidence: ev(failures.length),
         },
+        // One finding per failed rule, so each reads next to the control that fixes it.
+        ...ruleFailures.map(
+          (x): Finding => ({
+            id: x.code,
+            severity: "BLOCKING",
+            what: `${intended}: ${x.message}.`,
+            why: `The design fails the ${intended} rule on ${x.field}.`,
+            consequence: `The ship cannot be built as ${intended} until this rule passes.`,
+            remedies: [
+              {
+                id: "adjust_design",
+                description: x.suggestion ?? "Change the design until this rule passes.",
+              },
+              {
+                id: "change_intended",
+                description: `Declare the type the ship actually is${natural ? ` (${natural})` : ""}.`,
+              },
+              { id: "check_rules", description: "Review the DESIGN-22 boundaries for this type." },
+            ],
+            evidence: ev(1),
+            subject: { targets: [shipTarget], settings: FIELD_SETTING[x.field] },
+          }),
+        ),
       ],
     };
   }
@@ -305,4 +203,57 @@ export function classCode(
     .filter((k) => (k.attr.caliberUm ?? 0) === largest)
     .reduce((m, k) => Math.max(m, k.params.barrels ?? 1), 1);
   return `${type}${guns.length}X${barrels}`;
+}
+
+/**
+ * Non-blocking guidance for a design that passes its intended type: a WARNING is a real weakness the player should
+ * weigh, an ADVISORY is context. Neither can make a design unbuildable (ADR-0088).
+ */
+export function typeAdvisories(intended: ClassifiedShipType, f: ClassFacts): Finding[] {
+  const note = (
+    id: string,
+    severity: "WARNING" | "ADVISORY",
+    what: string,
+    why: string,
+    consequence: string,
+    settings: SettingGroup,
+    remedies: Finding["remedies"] = [],
+  ): Finding => ({
+    id,
+    severity,
+    what,
+    why,
+    consequence,
+    remedies,
+    evidence: { formulaId: "DESIGN-22", inputs: {}, threshold: 0, value: 0 },
+    subject: { targets: [shipTarget], settings },
+  });
+  const out: Finding[] = [];
+  if (intended === "CL" && f.deckUm === 0)
+    out.push(
+      note(
+        "CL_ARMOUR_DECK_MISSING",
+        "WARNING",
+        "This cruiser has no armour deck.",
+        "A protected cruiser relies on an armoured deck over its machinery and magazines; this design has none.",
+        "It is a cruiser in name only: any shell that reaches the machinery spaces is not stopped.",
+        "armour",
+        [
+          { id: "add_deck", description: "Add an armoured deck over the machinery and magazines." },
+          { id: "accept", description: "Accept it for a cheap scout or dispatch vessel." },
+        ],
+      ),
+    );
+  if (intended === "AMC")
+    out.push(
+      note(
+        "AMC_AUXILIARY_STATUS",
+        "ADVISORY",
+        "An armed merchant cruiser is an auxiliary.",
+        "It is a merchant hull with a light armament, built as a special project.",
+        "It counts against the armed-merchant-cruiser fleet limit, is valued as an auxiliary in battle and does not serve in the battle line.",
+        "brief",
+      ),
+    );
+  return out;
 }

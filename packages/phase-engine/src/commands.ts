@@ -18,7 +18,12 @@ import type {
   SetBudgetAllocationCommand,
   SubmitDesignCommand,
 } from "@bluewave/commands";
-import { compileDesign, type DesignDraft, type ShipBuildingContent } from "@bluewave/ship-design";
+import {
+  compileDesign,
+  HULL_TYPE_FOR_SHIP_TYPE,
+  type DesignDraft,
+  type ShipBuildingContent,
+} from "@bluewave/ship-design";
 import { SafeInt } from "@bluewave/contracts";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { buildDesignVersion, pricingFor } from "./designVersion.js";
@@ -335,6 +340,16 @@ export function applySubmitDesign(
       `Design ${body["designVersionId"]} cannot be built: ${blocking.join(", ")}`,
     );
   }
+  // The engine stores the hull type the command names; it must be the one the design's ship type maps to, or a
+  // caller could file a corvette as a battleship (ADR-0088). Authored legacy labels stay valid for their types.
+  const expectedHull = (HULL_TYPE_FOR_SHIP_TYPE as Readonly<Record<string, string | undefined>>)[
+    draft.requirement.category
+  ];
+  if (expectedHull === undefined || body["hullType"] !== expectedHull)
+    return fail(
+      "DESIGN_REJECTED",
+      `Design ${body["designVersionId"]}: hull type '${body["hullType"]}' does not match ship type '${draft.requirement.category}'`,
+    );
   const design = buildDesignVersion(
     compiled,
     draft,

@@ -7,6 +7,7 @@ const SHIP_VIEW_PANELS: ReadonlySet<string> = new Set(["Hull plan"]);
 const PANEL_TAB: Record<string, string> = {
   "Hull and displacement": "Hull and machinery",
   "Design brief": "Hull and machinery",
+  "Ship types": "Hull and machinery",
   "Machinery, fuel and range": "Hull and machinery",
   "Components and arrangement": "Arrangement",
   Batteries: "Arrangement",

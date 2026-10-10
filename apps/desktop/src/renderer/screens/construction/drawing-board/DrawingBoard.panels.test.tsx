@@ -284,8 +284,8 @@ describe("DrawingBoard panels", () => {
     expect(within(brief).getByLabelText(/^Class code DD/)).toBeTruthy();
     commit(/Required range/, "4321");
     expect((screen.getByLabelText(/Required range/) as HTMLInputElement).value).toBe("4321");
-    chooseOption("Ship type", "CL · Light cruiser");
-    expect(screen.getByLabelText("Ship type").textContent).toContain("Light cruiser");
+    chooseOption("Ship type", "CL · Protected cruiser");
+    expect(screen.getByLabelText("Ship type").textContent).toContain("Protected cruiser");
     // Declaring a type the destroyer does not qualify for is blocked by DESIGN-22, and the history says why.
     openTab("History");
     expect(within(region("Edit history")).getByText(/Brief: category → CL/)).toBeTruthy();
@@ -296,13 +296,15 @@ describe("DrawingBoard panels", () => {
     region("Design brief");
     fireEvent.click(screen.getByLabelText("Ship type"));
     const options = screen.getAllByRole("option");
-    expect(options).toHaveLength(5);
+    // The six opening types (B, CA, CL, DD, KE, AMC); BB and the later types are not offered (ADR-0088).
+    expect(options).toHaveLength(6);
+    expect(screen.queryByRole("option", { name: /Dreadnought|Battlecruiser/ })).toBeNull();
     for (const option of options) {
       expect(option.querySelector("svg")).not.toBeNull();
       expect(option.getAttribute("aria-describedby")).toBeTruthy();
     }
-    const light = screen.getByRole("option", { name: "CL · Light cruiser" });
-    expect(light.textContent).toMatch(/trade-protection cruiser/);
+    const protectedCruiser = screen.getByRole("option", { name: "CL · Protected cruiser" });
+    expect(protectedCruiser.textContent).toMatch(/trade protection/);
   });
 
   it("lists the shipyards in the forecast with exactly one yard that builds it", () => {

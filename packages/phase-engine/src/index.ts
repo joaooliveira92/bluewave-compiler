@@ -37,3 +37,16 @@ export { resolveAircraftDevelopment } from "./aircraft.js";
 export { resolveCarrierOperations } from "./carrier-operations.js";
 export * from "./designStudies.js";
 export { buildDesignVersion, pricingFor, type DesignPricing } from "./designVersion.js";
+export {
+  auxiliaryFleetCounts,
+  constructionOrderEligibility,
+  type OrderEligibility,
+  type OrderRejection,
+  type OrderRejectionCode,
+} from "./orderEligibility.js";
+export {
+  constructionProjectFor,
+  placeConstructionOrder,
+  type ConstructionOrderRequest,
+  type ConstructionOrderResult,
+} from "./constructionOrder.js";

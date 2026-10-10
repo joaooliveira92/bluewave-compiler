@@ -16,6 +16,8 @@ export interface HullFormRecord {
   readonly volumeFullnessBp: number;
   readonly deckFullnessBp: number;
   readonly lcbPermille: number;
+  /** Optional traits such as `merchant_derived` (validated by content-schema). */
+  readonly traits?: readonly string[];
   readonly zones: readonly {
     readonly id: string;
     readonly startPermille: number;
@@ -63,6 +65,7 @@ export function hullFormsFromRecords(
       deckFullnessBp: r.deckFullnessBp,
       lcbPermille: r.lcbPermille,
       buoyancyByZoneBp: r.zones.map((z) => z.buoyancyBp),
+      traits: r.traits ?? [],
     };
   }
   return out;
