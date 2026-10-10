@@ -19,7 +19,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "../../../../../componen
 import { FittingTargets } from "./FittingTargets.js";
 import { SelectionLayer } from "./SelectionLayer.js";
 import { GunArcLayer, HullFittingLayer } from "./fitting-layers.js";
-import { HullOutlineLayer, HullTopsideLayer, HullZoneLayer } from "./plan-layers.js";
+import { HullOutlineLayer, HullZoneLayer } from "./plan-layers.js";
+import { HullTopsideLayer } from "./HullTopsideLayer.js";
 import { planModel } from "./planModel.js";
 import { useHullPlanEditing } from "./useHullPlanEditing.js";
 import { Info } from "lucide-react";

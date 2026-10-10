@@ -10,12 +10,8 @@ import {
   profileFrame,
 } from "./profile-geometry.js";
 import type { BowStyle, SternStyle } from "./geometry.js";
-import {
-  ProfileFittingsLayer,
-  ProfileHullLayer,
-  ProfileReferenceLayer,
-  ProfileWaterlineLayer,
-} from "./profile-layers.js";
+import { ProfileFittingsLayer, ProfileHullLayer, ProfileWaterlineLayer } from "./profile-layers.js";
+import { ProfileReferenceLayer } from "./ProfileReferenceLayer.js";
 
 /**
  * Side profile (bow left), drawn under the plan on the same horizontal scale. SCHEMATIC: see `profileFrame`;

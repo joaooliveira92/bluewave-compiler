@@ -22,6 +22,9 @@ export const PROFILE_BAND = 92;
 export const SCALE_Y = PROFILE_TOP + PROFILE_BAND + 16;
 export const SECTION_H = SCALE_Y + 6;
 
+/** Card label size, SVG user units, shared by the band captions, callouts and scale. */
+export const CARD_FONT = 12;
+
 /** Station window: the section plus some of its neighbours for context (dimmed). */
 function windowFor(zone: ZoneRange): { s: number; e: number } {
   const span = zone.endPermille - zone.startPermille;

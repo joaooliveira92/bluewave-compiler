@@ -1,38 +1,36 @@
 import { useId } from "react";
 import type { DesignDraft } from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../content.js";
-import { arcSectors, sectorPath } from "./arcs.js";
-import { DASH, NON_SCALING, OPACITY, STROKE } from "./drafting.js";
-import { FittingSymbol } from "./FittingSymbol.js";
-import { fittingPoint, type PlanFrame } from "./geometry.js";
-import { HullShapeLayer, HullTopsideLayer } from "./plan-layers.js";
+import { NON_SCALING, STROKE } from "./drafting.js";
+import type { PlanFrame } from "./geometry.js";
 import type { ProfileFrame } from "./profile-geometry.js";
-import { ProfileFittingsLayer, ProfileHullLayer } from "./profile-layers.js";
 import {
+  CARD_FONT,
   PAD_X,
   PLAN_BAND,
   PLAN_TOP,
   PROFILE_BAND,
   PROFILE_TOP,
-  SCALE_Y,
   SECTION_H,
   SECTION_W,
   sectionLayout,
 } from "./section-drawing.js";
+import { SectionFittingOverlay } from "./SectionFittingOverlay.js";
+import { SectionPlanBand } from "./SectionPlanBand.js";
+import { SectionProfileBand } from "./SectionProfileBand.js";
+import { SectionScale } from "./SectionScale.js";
 import type { SectionFacts, ZoneRange } from "./sections.js";
 
 export { SECTION_H, SECTION_W };
-
-/** Card label size, SVG user units. */
-const FONT = 12;
-/** Drawn radius of a gun's arc wedge, px: schematic, range is not data. */
-const ARC_R = 26;
 
 /**
  * The magnified section: a plan band and a profile band on one horizontal scale, cropped to the section with
  * its neighbours dimmed. The hull, deck houses and funnels are the main drawing's own layers under a transform,
  * so the card can never disagree with the plan; fittings, arcs, machinery rooms and bunkers are drawn over them
  * from the section's facts. Vertical scale may be compressed to fit the card (never exaggerated).
+ *
+ * This component owns only the card's frame, defs and layer order; the bands, callouts and scale are the focused
+ * components beside it.
  */
 export function SectionDrawing({
   facts,
@@ -52,31 +50,13 @@ export function SectionDrawing({
   const clip = `section-${useId().replace(/[^a-zA-Z0-9-]/g, "")}`;
   const layout = sectionLayout(facts, frame, profile, draft, content, zones);
   if (!layout) return null;
-  const {
-    zone,
-    a,
-    X,
-    b,
-    ky,
-    planCy,
-    planTy,
-    houses,
-    funnels,
-    kp,
-    profileTy,
-    pY,
-    x0,
-    x1,
-    step,
-    ticks,
-    label,
-  } = layout;
+  const { x0, x1 } = layout;
   return (
     <svg
       viewBox={`0 0 ${SECTION_W} ${SECTION_H}`}
       className="w-full rounded bg-muted/40"
       role="img"
-      aria-label={label}
+      aria-label={layout.label}
       data-testid="section-drawing"
       data-section={facts.id}
     >
@@ -98,102 +78,16 @@ export function SectionDrawing({
         </pattern>
       </defs>
 
-      <g clipPath={`url(#${clip}-plan)`}>
-        <g transform={`matrix(${a} 0 0 ${ky} ${b} ${planTy})`}>
-          <HullShapeLayer frame={frame} />
-          <HullTopsideLayer frame={frame} draft={draft} content={content} zones={zones} />
-        </g>
-        <line
-          x1={PAD_X}
-          x2={SECTION_W - PAD_X}
-          y1={planCy}
-          y2={planCy}
-          className="stroke-muted-foreground"
-          strokeWidth={STROKE.guide}
-          strokeOpacity={OPACITY.guide}
-          strokeDasharray={DASH.centreline}
-          {...NON_SCALING}
-        />
-      </g>
+      <SectionPlanBand
+        layout={layout}
+        frame={frame}
+        draft={draft}
+        content={content}
+        zones={zones}
+        clip={clip}
+      />
 
-      <g clipPath={`url(#${clip}-profile)`}>
-        <g transform={`matrix(${a} 0 0 ${kp} ${b} ${profileTy})`}>
-          <ProfileHullLayer frame={profile} />
-          <ProfileFittingsLayer houses={houses} funnels={funnels} />
-        </g>
-        <line
-          x1={PAD_X}
-          x2={SECTION_W - PAD_X}
-          y1={pY(profile.waterlineY)}
-          y2={pY(profile.waterlineY)}
-          className="stroke-primary"
-          strokeWidth={STROKE.datum}
-          strokeOpacity={OPACITY.datum}
-          strokeDasharray={DASH.waterline}
-          {...NON_SCALING}
-          data-testid="section-waterline"
-        />
-        {facts.machineryRooms.map((r) => (
-          <g key={`room-${r.stationPermille}`} data-testid="section-machinery-room">
-            <rect
-              x={X(r.stationPermille) - 11}
-              y={pY(profile.waterlineY) + 2}
-              width={22}
-              height={Math.max(8, pY(profile.keelBaseY) - pY(profile.waterlineY) - 5)}
-              className="fill-muted stroke-foreground"
-              strokeWidth={STROKE.structure}
-              strokeDasharray="2 2"
-              {...NON_SCALING}
-            />
-            <text
-              x={X(r.stationPermille)}
-              y={pY(profile.waterlineY) + 14}
-              textAnchor="middle"
-              className="fill-foreground"
-              fontSize={FONT - 2}
-            >
-              M
-            </text>
-          </g>
-        ))}
-        {facts.fuelStationPermille !== undefined && (
-          <g data-testid="section-fuel">
-            <circle
-              cx={X(facts.fuelStationPermille)}
-              cy={pY(profile.keelBaseY) - 9}
-              r={6}
-              className="fill-background stroke-foreground"
-              strokeWidth={STROKE.structure}
-              {...NON_SCALING}
-            />
-            <text
-              x={X(facts.fuelStationPermille)}
-              y={pY(profile.keelBaseY) - 5.5}
-              textAnchor="middle"
-              className="fill-foreground"
-              fontSize={FONT - 3}
-            >
-              F
-            </text>
-          </g>
-        )}
-        {facts.fittings.map((f) => {
-          const x = X(f.stationPermille);
-          const deck = pY(profile.deckY(f.stationPermille / 1000));
-          return (
-            <line
-              key={f.instanceId}
-              x1={x}
-              x2={x}
-              y1={deck}
-              y2={deck - 7}
-              className="stroke-primary"
-              strokeWidth={2}
-              {...NON_SCALING}
-            />
-          );
-        })}
-      </g>
+      <SectionProfileBand layout={layout} profile={profile} facts={facts} clip={clip} />
 
       {/* Neighbouring sections, dimmed: context, not part of this section. */}
       <rect
@@ -226,31 +120,7 @@ export function SectionDrawing({
         />
       ))}
 
-      <g clipPath={`url(#${clip}-plan)`}>
-        {facts.fittings.map((f) => {
-          const pt = fittingPoint(frame, f.stationPermille, f.side, f.placementIndex);
-          const x = a * pt.x + b;
-          const y = ky * pt.y + planTy;
-          return (
-            <g key={f.instanceId} data-fitting={f.instanceId} data-kind={f.kind}>
-              {f.kind === "gun" &&
-                arcSectors(f.instanceId, f.side, f.arcDeg).map((sec) => (
-                  <path
-                    key={sec.beam}
-                    d={sectorPath(x, y, ARC_R, sec)}
-                    className="fill-primary stroke-primary"
-                    fillOpacity={0.12}
-                    strokeOpacity={0.4}
-                  />
-                ))}
-              <FittingSymbol kind={f.kind} x={x} y={y} hatch={`url(#${clip}-hatch)`} />
-              <text x={x + 9} y={y - 7} className="fill-foreground font-medium" fontSize={FONT - 1}>
-                {f.n}
-              </text>
-            </g>
-          );
-        })}
-      </g>
+      <SectionFittingOverlay layout={layout} frame={frame} facts={facts} clip={clip} />
 
       {(
         [
@@ -261,53 +131,15 @@ export function SectionDrawing({
         <text
           key={caption}
           x={PAD_X + 3}
-          y={y + FONT}
+          y={y + CARD_FONT}
           className="fill-muted-foreground"
-          fontSize={FONT - 1}
+          fontSize={CARD_FONT - 1}
         >
           {caption}
         </text>
       ))}
 
-      {ticks.map((p) => (
-        <line
-          key={p}
-          x1={X(p)}
-          x2={X(p)}
-          y1={SCALE_Y - 12}
-          y2={SCALE_Y - (p % (step * 2) === 0 ? 6 : 9)}
-          className="stroke-muted-foreground"
-          strokeWidth={STROKE.guide}
-          {...NON_SCALING}
-        />
-      ))}
-      <line
-        x1={PAD_X}
-        x2={SECTION_W - PAD_X}
-        y1={SCALE_Y - 12}
-        y2={SCALE_Y - 12}
-        className="stroke-muted-foreground"
-        strokeWidth={STROKE.guide}
-        {...NON_SCALING}
-      />
-      <text
-        x={x0}
-        y={SCALE_Y + 4}
-        textAnchor="middle"
-        className="fill-muted-foreground"
-        fontSize={FONT}
-      >
-        {`${zone.startPermille}‰`}
-      </text>
-      <text
-        x={x1}
-        y={SCALE_Y + 4}
-        textAnchor="middle"
-        className="fill-muted-foreground"
-        fontSize={FONT}
-      >
-        {`${zone.endPermille}‰`}
-      </text>
+      <SectionScale layout={layout} />
     </svg>
   );
 }

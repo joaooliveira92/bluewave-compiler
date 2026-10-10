@@ -39,7 +39,7 @@ export function HullFittingLayer({
   );
 }
 
-/** Schematic radius of an arc wedge, px. Range is not data. */
+/** Schematic radius of an arc wedge, px. Range is not data. The section card draws its own (26) under magnification; do not unify them. */
 const ARC_R = 30;
 
 export function GunArcLayer({
