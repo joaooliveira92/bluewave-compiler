@@ -41,7 +41,8 @@ If two normative statements conflict, implementation must stop and report the co
 - Use `docs/delivery/` only for implementation order and scope.
 - See [Known specification issues](docs/OPEN-ISSUES.md) before creating implementation tickets.
 - See [Migration audit](docs/audit/MIGRATION-AUDIT.md) for coverage and limitations.
-- The untouched source is preserved at [SOURCE-DESIGN-v1.0.md](SOURCE-DESIGN-v1.0.md).
+- See [DESIGN amendments](docs/adr/AMENDMENTS.md) for which ADRs amend a DESIGN doc (ADR-0095).
+- [SOURCE-DESIGN-v1.0.md](SOURCE-DESIGN-v1.0.md) is frozen provenance (the migration audit's SHA anchor); do not edit it.
 
 ## Document Map
 
@@ -119,4 +120,14 @@ If two normative statements conflict, implementation must stop and report the co
 ### Delivery
 
 - [`DESIGN-55` Release Scope And Implementation Order](docs/delivery/release-scope-and-implementation-order.md)
+
+### Supplementary
+
+Not part of the numbered `DESIGN-*` canon but part of the living documentation:
+
+- [Armament content model](docs/domain/armament-content.md) (`ADR-0093`)
+- [Ships & nation orientation](docs/ships-nation-orientation.md)
+- [National content completeness](docs/nations/national-content-completeness.md)
+- Capability registries: [M1](docs/acceptance/m1-capability-registry.md), [M2](docs/acceptance/m2-capability-registry.md), [M3](docs/acceptance/m3-capability-registry.md)
+- [Progress](docs/PROGRESS.md) · [Known specification issues](docs/OPEN-ISSUES.md) · [DESIGN amendments](docs/adr/AMENDMENTS.md)
 

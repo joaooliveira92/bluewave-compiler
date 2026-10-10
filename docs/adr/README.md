@@ -1,9 +1,10 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0093).
+highest existing number + 1 (the next number is ADR-0096).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
+See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
 
 | # | File | Title |
 | --- | --- | --- |
@@ -98,3 +99,6 @@ Refresh this table from each file's H1 when one is added or re-titled.
 | 0090 | [ADR-0090-national-runtime-integration.md](ADR-0090-national-runtime-integration.md) | National naval profiles at runtime (construction economics, access, research, procurement) |
 | 0091 | [ADR-0091-live-ai-procurement.md](ADR-0091-live-ai-procurement.md) | Live AI naval procurement lifecycle |
 | 0092 | [ADR-0092-national-content-pipeline.md](ADR-0092-national-content-pipeline.md) | National content-production pipeline |
+| 0093 | [ADR-0093-armament-domain-and-resolver.md](ADR-0093-armament-domain-and-resolver.md) | Authoritative armament domain and resolver (national armament integration, Step 1) |
+| 0094 | [ADR-0094-combat-caliber-unit-correction.md](ADR-0094-combat-caliber-unit-correction.md) | Combat caliber unit correction (armament-to-combat boundary) |
+| 0095 | [ADR-0095-design-doc-adr-authority.md](ADR-0095-design-doc-adr-authority.md) | Design docs are normative; ADRs amend them and record the amendment |

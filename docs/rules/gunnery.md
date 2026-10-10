@@ -2,6 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-39`
+> **Amended by:** ADR-0048, ADR-0072.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Accuracy, rate of fire, gun quality, autoloaders, dual-purpose mounts, armor effectiveness, penetration, splinter protection, target allocation, ordering, and persistence MUST use the explicit values, formulas, predicates, and failure behavior defined here. Runtime inference and silent fallback behavior are prohibited.
 
 ## 1. Gunnery State

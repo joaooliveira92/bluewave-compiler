@@ -2,6 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-17`
+> **Amended by:** ADR-0010, ADR-0054.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Diplomatic relations, tension, alliances, incidents, access, event choices, and war risk MUST use the explicit fields, values, predicates, phase bindings, ordering, and failure behavior defined here. Runtime inference from descriptive text is prohibited.
 
 ## 1. Diplomatic Pair Registry

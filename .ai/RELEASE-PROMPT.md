@@ -1,5 +1,8 @@
 # Release and Validation Prompt
 
+> **Superseded (2026-10-10).** The validation gate is now owned by the orchestrator
+> (`AGENTS.md`, `.ai/ORCHESTRATION.md`) and `pnpm check`. Kept for historical reference only.
+
 Evaluate the candidate release or compatibility gate without changing authoritative artifacts unless an approved fix is required.
 
 ## Required checks

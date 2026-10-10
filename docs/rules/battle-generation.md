@@ -2,6 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-37`
+> **Amended by:** ADR-0015, ADR-0016, ADR-0056.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Mission opportunities, side selection, force requirements, asset eligibility, division preservation, optional selection, allied support, generated elements, composition repair, battle acceptance, command authority, intelligence presentation, and manifest hashing MUST use the explicit contracts, values, ordering, and failure behavior defined here. Runtime inference and silent fallback behavior are prohibited.
 
 ## 1. Battle-Generation Inputs

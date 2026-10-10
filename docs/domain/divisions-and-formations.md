@@ -2,6 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-26`
+> **Amended by:** ADR-0065, ADR-0086.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Permanent divisions, tactical projections, membership, compatibility, flagships, commanders, experience, training, roles, formations, and provenance MUST use the explicit values, predicates, ordering, and failure behavior defined here. Runtime inference and silent fallback behavior are prohibited.
 
 ## 1. Division Types

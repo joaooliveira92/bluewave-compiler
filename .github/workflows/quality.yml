@@ -24,6 +24,7 @@ jobs:
           node-version: "24.0.0"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
+      - run: pnpm preflight
       - run: pnpm format
       - run: pnpm lint
       - run: pnpm typecheck

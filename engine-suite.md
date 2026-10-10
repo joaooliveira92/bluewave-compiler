@@ -1,5 +1,10 @@
 # Bluewave Engine and Compiler Prompt Suite
 
+> **Superseded (2026-10-10).** This pre-`AGENTS.md` prompt suite described the original
+> bootstrap workflow. The living workflow is `AGENTS.md` + `.ai/ORCHESTRATION.md`
+> (with `.ai/ENGINEERING-CONTRACT.md` and `.ai/SPRINT-PLAN.md`). Kept for historical
+> reference only.
+
 This suite governs autonomous development of the Bluewave TypeScript engine and compiler.
 
 ## Canonical inputs

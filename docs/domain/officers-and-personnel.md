@@ -2,6 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-27`
+> **Amended by:** ADR-0065.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Officer identity, ability knowledge, promotion, trait change, vacancies, removal, academy output, recurring costs, and personnel sufficiency MUST use the explicit states, values, predicates, streams, ordering, and failure behavior defined here. Runtime inference and silent fallback behavior are prohibited.
 
 ## 1. Officer State

@@ -2,6 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-12`
+> **Amended by:** ADR-0089, ADR-0090, ADR-0092.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Every government and trait effect MUST use the concrete identifiers, fixed-point values, predicates, phase bindings, stacking rules, and failure behavior defined here. Runtime inference and descriptive-mechanics parsing are prohibited.
 
 ## 1. Nation State

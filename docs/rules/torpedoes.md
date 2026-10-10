@@ -2,6 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-40`
+> **Amended by:** ADR-0046.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Torpedo inventory, compatibility, fire control, automated and manual launch authority, underwater-tube speed limits, hit resolution, flooding, machinery damage, system loss, and tube-hit hazards MUST use the explicit fields, values, predicates, streams, ordering, and failure behavior defined here. Runtime inference and silent fallback behavior are prohibited.
 
 ## 1. Torpedo Model

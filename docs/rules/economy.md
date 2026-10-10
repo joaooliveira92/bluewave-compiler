@@ -2,6 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-13`
+> **Amended by:** ADR-0060.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. All authoritative monetary values MUST use integer currency micro-units under `DESIGN-07`. Every posting, priority, arrear, growth, surplus, research, construction, acceleration, and wartime-cost rule MUST use the explicit fields and formulas defined here. Runtime inference and silent fallback behavior are prohibited.
 
 ## 1. Economic State

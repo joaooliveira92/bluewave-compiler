@@ -2,6 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-24`
+> **Amended by:** ADR-0062.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Readiness, mission, dockyard, damage, availability, maintenance, training, reactivation, fleet exercises, and warnings MUST use the explicit states, values, predicates, phase bindings, ordering, and failure behavior defined here. Runtime inference and silent fallback behavior are prohibited.
 
 ## 1. Ship State Dimensions
