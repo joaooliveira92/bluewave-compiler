@@ -32,7 +32,7 @@ function fixtureProjection(
       status: "narrow",
     },
     foreignIntelligence: {
-      relations: [{ nationId: "de", name: "German Empire", relation: "at_war", tension: 10 }],
+      relations: [{ nationId: "germany", name: "German Empire", relation: "at_war", tension: 10 }],
     },
     immediateConcerns: [
       { category: "budget_shortfall", message: "The projected monthly budget runs a deficit." },
@@ -121,7 +121,9 @@ describe("NewGameBriefingScreen", () => {
     triggerPrimary();
     expect(screen.getByText("Foreign Intelligence")).toBeTruthy();
     expect(screen.getByText("German Empire")).toBeTruthy();
-    expect(screen.getByText("at war · tension 10")).toBeTruthy();
+    expect(screen.getByText("At war")).toBeTruthy();
+    expect(screen.getByText("War imminent")).toBeTruthy();
+    expect(screen.getByText("10/10")).toBeTruthy();
 
     // Page 4 -> 5.
     expect(primaryLabel()).toBe("Next");
@@ -139,6 +141,64 @@ describe("NewGameBriefingScreen", () => {
     expect(primaryLabel()).toBe("Take command");
     triggerPrimary();
     expect(onTakeCommand).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders flags and expressive relation/tension treatments on the Foreign Intelligence page", async () => {
+    const { view, primaryLabel, triggerPrimary } = renderScreen(
+      fixtureProjection({
+        foreignIntelligence: {
+          relations: [
+            { nationId: "germany", name: "German Empire", relation: "neutral", tension: 5 },
+            { nationId: "france", name: "France", relation: "allied", tension: 1 },
+          ],
+        },
+      }),
+    );
+    await screen.findByText("Opening Strategic Briefing");
+    await waitFor(() => expect(primaryLabel()).toBe("Review Naval Estimates"));
+    triggerPrimary(); // 1 -> 2
+    triggerPrimary(); // 2 -> 3
+    triggerPrimary(); // 3 -> 4
+    expect(screen.getByText("Foreign Intelligence")).toBeTruthy();
+
+    // A flag image renders for each power.
+    expect(view.container.querySelectorAll("img")).toHaveLength(2);
+
+    // Relation vocabulary is spelled out with its own pill.
+    expect(screen.getByText("Allied")).toBeTruthy();
+    // A "neutral" relation at the "neutral" band collapses to one word — the pill
+    // carries it; the band word is suppressed rather than repeating it.
+    expect(screen.getAllByText("Neutral")).toHaveLength(1);
+    expect(screen.getByText("Cordial")).toBeTruthy();
+
+    // The tension meter is a real 10-segment bar, tinted by the engine's band.
+    const neutralMeter = screen.getByRole("img", { name: "Tension 5 of 10" });
+    expect(neutralMeter.querySelectorAll(".bg-amber-500")).toHaveLength(5);
+    const cordialMeter = screen.getByRole("img", { name: "Tension 1 of 10" });
+    expect(cordialMeter.querySelectorAll(".bg-emerald-500")).toHaveLength(1);
+  });
+
+  it("orders relations most-hostile first so the forecast surfaces at the top", async () => {
+    const { primaryLabel, triggerPrimary } = renderScreen(
+      fixtureProjection({
+        foreignIntelligence: {
+          relations: [
+            { nationId: "france", name: "France", relation: "neutral", tension: 2 },
+            { nationId: "germany", name: "German Empire", relation: "at_war", tension: 10 },
+            { nationId: "japan", name: "Japan", relation: "neutral", tension: 6 },
+          ],
+        },
+      }),
+    );
+    await screen.findByText("Opening Strategic Briefing");
+    await waitFor(() => expect(primaryLabel()).toBe("Review Naval Estimates"));
+    triggerPrimary();
+    triggerPrimary();
+    triggerPrimary();
+    const names = screen
+      .getAllByText(/(German Empire|France|Japan)$/)
+      .map((node) => node.textContent);
+    expect(names).toEqual(["German Empire", "Japan", "France"]);
   });
 
   it("shows an error state when the inspection fails", async () => {

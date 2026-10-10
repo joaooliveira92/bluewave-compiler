@@ -1,13 +1,25 @@
 import { Flag, Landmark, Radar } from "lucide-react";
-import type { OpeningBriefingProjection } from "@bluewave/campaign-engine";
+import {
+  tensionLabel,
+  type OpeningBriefingProjection,
+  type OpeningBriefingRelationsRow,
+} from "@bluewave/campaign-engine";
 import type { ReactNode } from "react";
 import { NATION_DOSSIER_FIELDS } from "../../content/nationDossierFields.js";
 import { NATION_FLAVOR_TEXT } from "../../content/nationFlavorText.js";
 import type { PlayableSlotCountryId } from "../../content/nationAssetManifest.js";
 import { Button } from "../../components/ui/button.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
+import { cn } from "../../lib/utils.js";
+import { nationFlagUrl } from "../../content/nation-flag.js";
+import { tensionBadgeLabel } from "../diplomacy/diplomacy-presentation.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { formatCampaignMonth, formatTreasury } from "../../shell/site-header-state.js";
+import {
+  RELATION_PRESENTATION,
+  TENSION_PRESENTATION,
+  sortRelationsByTension,
+} from "./new-game-briefing-presentation.js";
 import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
 import { OPENING_BRIEFING_PAGE_TITLES, canGoBack } from "./new-game-briefing-screen-state.js";
@@ -164,27 +176,111 @@ function TreasuryPage({ projection }: { readonly projection: OpeningBriefingProj
   );
 }
 
+/** The power's flag art, or its initial on a muted chip when no art is authored. */
+function NationGlyph({ nationId, name }: { readonly nationId: string; readonly name: string }) {
+  const url = nationFlagUrl(nationId);
+  if (url !== null) {
+    return (
+      <img
+        src={url}
+        alt=""
+        aria-hidden="true"
+        className="h-6 w-9 shrink-0 rounded-sm border border-border/60 object-cover shadow-sm"
+      />
+    );
+  }
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex h-6 w-9 shrink-0 items-center justify-center rounded-sm border border-border/60 bg-muted text-xs font-semibold text-muted-foreground"
+    >
+      {name.slice(0, 1)}
+    </span>
+  );
+}
+
+function RelationPill({
+  relation,
+}: {
+  readonly relation: OpeningBriefingRelationsRow["relation"];
+}) {
+  const { label, icon: Icon, className } = RELATION_PRESENTATION[relation];
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
+        className,
+      )}
+    >
+      <Icon className="size-3.5" aria-hidden="true" />
+      {label}
+    </span>
+  );
+}
+
+function TensionMeter({
+  relation,
+  tension,
+}: {
+  readonly relation: OpeningBriefingRelationsRow["relation"];
+  readonly tension: number;
+}) {
+  const band = TENSION_PRESENTATION[tensionLabel(tension)];
+  const Icon = band.icon;
+  // Suppress the band word when it would only repeat the relation pill
+  // ("neutral" relation at a "neutral" band) — the icon and colour still carry it.
+  const bandLabel = tensionBadgeLabel(relation, tension);
+  const filled = Math.max(0, Math.min(10, tension));
+  return (
+    <div className="flex min-w-[11rem] flex-1 items-center gap-2">
+      <span
+        className={cn("inline-flex shrink-0 items-center gap-1 text-xs font-medium", band.text)}
+      >
+        <Icon className="size-3.5" aria-hidden="true" />
+        {bandLabel}
+      </span>
+      <div className="flex flex-1 gap-0.5" role="img" aria-label={`Tension ${tension} of 10`}>
+        {Array.from({ length: 10 }, (_, index) => (
+          <span
+            key={index}
+            className={cn("h-1.5 flex-1 rounded-full", index < filled ? band.bar : "bg-border/60")}
+          />
+        ))}
+      </div>
+      <span className="w-10 shrink-0 text-right text-xs font-medium text-muted-foreground tabular-nums">
+        {tension}/10
+      </span>
+    </div>
+  );
+}
+
 function ForeignIntelligencePage({
   projection,
 }: {
   readonly projection: OpeningBriefingProjection;
 }) {
-  const relations = projection.foreignIntelligence.relations;
+  const relations = sortRelationsByTension(projection.foreignIntelligence.relations);
   return (
     <GlassCard glassVariant="liquid-refract">
-      <div className="flex flex-col p-4">
-        <p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      <div className="flex flex-col gap-2 p-4">
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
           Relations by power
         </p>
         {relations.length === 0 ? (
           <p className="text-sm text-muted-foreground">No foreign relations on record.</p>
         ) : (
           relations.map((relation) => (
-            <DetailRow
+            <div
               key={relation.nationId}
-              label={relation.name}
-              value={`${relation.relation.replaceAll("_", " ")} · tension ${relation.tension}`}
-            />
+              className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-md border border-border/50 bg-background/40 px-3 py-2"
+            >
+              <NationGlyph nationId={relation.nationId} name={relation.name} />
+              <span className="min-w-[9rem] flex-1 truncate text-sm font-medium">
+                {relation.name}
+              </span>
+              <RelationPill relation={relation.relation} />
+              <TensionMeter relation={relation.relation} tension={relation.tension} />
+            </div>
           ))
         )}
       </div>

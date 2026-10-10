@@ -17,6 +17,8 @@ beforeAll(() => {
     }
     (globalThis as { ResizeObserver?: unknown }).ResizeObserver = ResizeObserverStub;
   }
+
+  Element.prototype.scrollIntoView = vi.fn();
 });
 
 function setupUi(initialIdentity: CampaignIdentityDraft = defaultCampaignIdentity()) {
@@ -58,6 +60,15 @@ describe("NewGameIdentityScreen", () => {
     expect(document.getElementById("naming-convention")?.textContent).toBe("Historical");
     expect(document.getElementById("ship-name-reuse")?.textContent).toBe("Disabled");
     expect(document.getElementById("measurement-system")?.textContent).toBe("Imperial");
+  });
+
+  it("shows a description line for each option in the identity selects", () => {
+    setupUi();
+    fireEvent.click(document.getElementById("naming-convention")!);
+
+    expect(screen.getByText("Real names from the period")).toBeTruthy();
+    expect(screen.getByText("The Admiralty names your ships")).toBeTruthy();
+    expect(screen.getByText("Name every ship yourself")).toBeTruthy();
   });
 
   it("shows the spec placeholders on the required text fields", () => {

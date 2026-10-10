@@ -1,4 +1,4 @@
-import { resolveNationAsset } from "../../content/resolveNationAsset.js";
+import { resolveNationAsset } from "./resolveNationAsset.js";
 
 /** Campaign nation id -> the playable-slot country id its flag art is keyed by. */
 const FLAG_COUNTRY_ID: Readonly<Record<string, string>> = {

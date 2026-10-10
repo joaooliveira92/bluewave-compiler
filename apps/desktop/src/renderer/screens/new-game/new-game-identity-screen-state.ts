@@ -5,23 +5,25 @@ export type MeasurementSystem = "imperial" | "metric";
 export interface IdentityFieldOption<V extends string> {
   readonly value: V;
   readonly label: string;
+  /** Optional one-line explanation shown under the label in the Select list (ReUI select-27 pattern). */
+  readonly description?: string;
 }
 
 /** Single settled source of the §4 identity enums' {value → label} vocabulary (spec §4/§6). */
 export const NAMING_CONVENTION_OPTIONS: ReadonlyArray<IdentityFieldOption<NamingConvention>> = [
-  { value: "historical", label: "Historical" },
-  { value: "generated", label: "Generated" },
-  { value: "custom", label: "Custom" },
+  { value: "historical", label: "Historical", description: "Real names from the period" },
+  { value: "generated", label: "Generated", description: "The Admiralty names your ships" },
+  { value: "custom", label: "Custom", description: "Name every ship yourself" },
 ];
 
 export const SHIP_NAME_REUSE_OPTIONS: ReadonlyArray<IdentityFieldOption<ShipNameReuse>> = [
-  { value: "disabled", label: "Disabled" },
-  { value: "allowed", label: "Allowed" },
+  { value: "disabled", label: "Disabled", description: "A lost name is retired for good" },
+  { value: "allowed", label: "Allowed", description: "Reuse the names of lost ships" },
 ];
 
 export const MEASUREMENT_SYSTEM_OPTIONS: ReadonlyArray<IdentityFieldOption<MeasurementSystem>> = [
-  { value: "imperial", label: "Imperial" },
-  { value: "metric", label: "Metric" },
+  { value: "imperial", label: "Imperial", description: "Inches, feet and yards" },
+  { value: "metric", label: "Metric", description: "Metres and kilometres" },
 ];
 
 export interface CampaignIdentityDraft {

@@ -178,6 +178,36 @@ describe("Select", () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("has non-text children"));
   });
 
+  it("renders a per-option description without changing the option name", () => {
+    render(
+      <Select>
+        <SelectTrigger>
+          <SelectValue placeholder="Select" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="a" description="Real names from the period">
+            Historical
+          </SelectItem>
+          <SelectItem value="b">Generated</SelectItem>
+        </SelectContent>
+      </Select>,
+    );
+
+    fireEvent.click(screen.getByRole("combobox"));
+
+    const historical = screen.getByRole("option", { name: "Historical" });
+    expect(historical.textContent).toContain("Real names from the period");
+
+    const descriptionId = historical.getAttribute("aria-describedby");
+    expect(descriptionId).toBeTruthy();
+    expect(historical.querySelector(`#${descriptionId}`)?.textContent).toBe(
+      "Real names from the period",
+    );
+
+    const generated = screen.getByRole("option", { name: "Generated" });
+    expect(generated.getAttribute("aria-describedby")).toBeNull();
+  });
+
   it("uses textValue for the trigger label and typeahead", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 

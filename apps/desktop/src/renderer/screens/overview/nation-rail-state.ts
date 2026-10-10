@@ -1,6 +1,6 @@
 import type { DiplomacyScreenProjection } from "../../../shared/diplomacy-contract.js";
 import { warScoreSplit } from "../diplomacy/diplomacy-presentation.js";
-import { nationFlagUrl } from "./nation-flag.js";
+import { nationFlagUrl } from "../../content/nation-flag.js";
 
 /** The relation of a nation to the player, as the rail states it in words. */
 export type NationRailRelation = "self" | "peace" | "pact" | "alliance" | "war" | "trade";

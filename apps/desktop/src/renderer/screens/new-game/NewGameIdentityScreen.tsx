@@ -117,7 +117,11 @@ export function NewGameIdentityScreen({
               </SelectTrigger>
               <SelectContent>
                 {NAMING_CONVENTION_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem
+                    key={option.value}
+                    value={option.value}
+                    description={option.description}
+                  >
                     {option.label}
                   </SelectItem>
                 ))}
@@ -141,7 +145,11 @@ export function NewGameIdentityScreen({
               </SelectTrigger>
               <SelectContent>
                 {SHIP_NAME_REUSE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem
+                    key={option.value}
+                    value={option.value}
+                    description={option.description}
+                  >
                     {option.label}
                   </SelectItem>
                 ))}
@@ -165,7 +173,11 @@ export function NewGameIdentityScreen({
               </SelectTrigger>
               <SelectContent>
                 {MEASUREMENT_SYSTEM_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem
+                    key={option.value}
+                    value={option.value}
+                    description={option.description}
+                  >
                     {option.label}
                   </SelectItem>
                 ))}

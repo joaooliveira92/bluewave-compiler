@@ -1162,6 +1162,8 @@ export interface SelectItemProps {
   textValue?: string;
   /** Optional leading visual shown before the item text and on the trigger when selected (a lucide icon or a flag). */
   icon?: ReactNode;
+  /** Optional secondary line under the item label (ReUI "select with description text per option"). */
+  description?: ReactNode;
   disabled?: boolean;
   className?: string;
   children: ReactNode;
@@ -1171,6 +1173,7 @@ export function SelectItem({
   value,
   textValue,
   icon,
+  description,
   disabled = false,
   className,
   children,
@@ -1179,6 +1182,7 @@ export function SelectItem({
 
   const generatedId = useId();
   const optionId = `${generatedId}-option`;
+  const descriptionId = `${generatedId}-option-description`;
 
   const optionRef = useRef<HTMLDivElement>(null);
 
@@ -1227,8 +1231,10 @@ export function SelectItem({
       ref={optionRef}
       id={optionId}
       role="option"
+      aria-label={label}
       aria-selected={selected}
       aria-disabled={effectivelyDisabled || undefined}
+      aria-describedby={description !== undefined ? descriptionId : undefined}
       data-value={value}
       data-selected={selected ? "" : undefined}
       data-active={active ? "" : undefined}
@@ -1257,6 +1263,7 @@ export function SelectItem({
       }}
       className={cn(
         "flex w-full cursor-default select-none items-center",
+        description !== undefined && "items-start",
         "justify-between gap-2 rounded-lg px-2.5 py-1.5",
         "text-left text-sm outline-none transition-colors",
 
@@ -1271,18 +1278,28 @@ export function SelectItem({
         className,
       )}
     >
-      {icon !== undefined ? (
-        <span className="flex min-w-0 flex-1 items-center gap-2">
+      <span className="flex min-w-0 flex-1 items-center gap-2">
+        {icon !== undefined ? (
           <span aria-hidden="true" className="inline-flex shrink-0 items-center">
             {icon}
           </span>
-          <span className="min-w-0 flex-1 truncate">{children}</span>
+        ) : null}
+        <span className="flex min-w-0 flex-1 flex-col items-start">
+          <span className="max-w-full min-w-0 truncate">{children}</span>
+          {description !== undefined ? (
+            <span id={descriptionId} className="text-xs text-muted-foreground">
+              {description}
+            </span>
+          ) : null}
         </span>
-      ) : (
-        <span className="min-w-0 flex-1 truncate">{children}</span>
-      )}
+      </span>
 
-      {selected ? <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0" /> : null}
+      {selected ? (
+        <Check
+          aria-hidden="true"
+          className={cn("h-3.5 w-3.5 shrink-0", description !== undefined && "mt-0.5")}
+        />
+      ) : null}
     </motion.div>
   );
 }
