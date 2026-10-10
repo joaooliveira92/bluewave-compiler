@@ -42,16 +42,16 @@ describe("DrawingBoard panels", () => {
     chooseOption("Starting design", "Majestic-like battleship (1895)");
     const select = within(region("Protection")).getAllByLabelText(/Material of /)[0]!;
     fireEvent.click(select);
-    const options = screen.getAllByRole("option") as HTMLButtonElement[];
+    const options = screen.getAllByRole("option");
     const values = options.map((o) => o.getAttribute("data-value"));
     expect(values.length).toBeGreaterThan(1);
     expect(values.indexOf("wrought_iron")).toBeLessThan(values.indexOf("harvey"));
     // The 1896 battleship cannot make Krupp plate yet (technology year 1900): offered, disabled, with the reason.
     const krupp = options.find((o) => o.getAttribute("data-value") === "krupp")!;
-    expect(krupp.disabled).toBe(true);
+    expect(krupp.getAttribute("aria-disabled")).toBe("true");
     expect(krupp.textContent).toMatch(/needs hc_krupp_cemented_armor/);
     const current = options.find((o) => o.getAttribute("aria-selected") === "true")!;
-    expect(current.disabled).toBe(false);
+    expect(current.getAttribute("aria-disabled")).toBeNull();
   });
 
   it("groups guns into named batteries, sets the mount side, and clears a battery as one undoable step", async () => {
