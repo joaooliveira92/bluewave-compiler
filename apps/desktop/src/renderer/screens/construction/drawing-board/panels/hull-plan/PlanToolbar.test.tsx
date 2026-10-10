@@ -1,9 +1,13 @@
 import { useState } from "react";
 import type { ComponentDef, DesignDraft, MountSide } from "@bluewave/ship-design";
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vite-plus/test";
+import { beforeAll, describe, expect, it, vi } from "vite-plus/test";
 import { PlanModeButtons, PlanToolOptions } from "./PlanToolbar.js";
 import { IDLE_TOOL, type PlanTool } from "./plan-tool.js";
+
+beforeAll(() => {
+  Element.prototype.scrollIntoView = vi.fn();
+});
 
 const gun = { id: "gun_a", displayName: "Gun A", category: "MAIN_GUN" } as ComponentDef;
 const pump = { id: "pump", displayName: "Pump", category: "AUXILIARY" } as unknown as ComponentDef;
@@ -68,9 +72,7 @@ describe("PlanToolOptions", () => {
     render(<PlanToolOptions {...base} tool={IDLE_TOOL} />);
     const options = screen.getByRole("group", { name: "Plan tool options" });
     expect(within(options).queryByLabelText("Component to place")).toBeNull();
-    expect(within(options).getByRole("status").textContent).toMatch(
-      /Use the Place and Move tools/,
-    );
+    expect(within(options).getByRole("status").textContent).toMatch(/Use the Place and Move tools/);
   });
 
   it("offers a component picker in place mode, with Auto-place disabled until one is chosen", () => {
@@ -80,6 +82,22 @@ describe("PlanToolOptions", () => {
       true,
     );
     expect(screen.getByRole("status").textContent).toMatch(/Choose a component/);
+  });
+
+  it("gives each placeable option its category icon and description", () => {
+    render(<PlanToolOptions {...base} tool={{ ...IDLE_TOOL, mode: "place" }} />);
+    fireEvent.click(screen.getByLabelText("Component to place"));
+    const option = screen.getByRole("option", { name: "Gun A" });
+    expect(within(option).getByText("Main-battery gun.")).toBeTruthy();
+    expect(option.querySelector("svg")).toBeTruthy();
+  });
+
+  it("gives each fitting option its category icon and description", () => {
+    render(<PlanToolOptions {...base} tool={{ ...IDLE_TOOL, mode: "move" }} />);
+    fireEvent.click(screen.getByLabelText("Fitting to move"));
+    const option = screen.getByRole("option", { name: "Gun A (gun_1)" });
+    expect(within(option).getByText("Main-battery gun.")).toBeTruthy();
+    expect(option.querySelector("svg")).toBeTruthy();
   });
 
   it("enables Auto-place once a component is chosen and runs it", () => {

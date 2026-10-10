@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 
 import { App } from "./shell/App.js";
+import { Toaster } from "./components/ui/toast.js";
 import { BackgroundProvider } from "./shell/BackgroundContext.js";
 import { DensityProvider } from "./shell/DensityContext.js";
 import { FontProvider } from "./shell/FontContext.js";
@@ -18,6 +19,7 @@ createRoot(container).render(
       <FontProvider>
         <DensityProvider>
           <App />
+          <Toaster />
         </DensityProvider>
       </FontProvider>
     </BackgroundProvider>

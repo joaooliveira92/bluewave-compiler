@@ -3,6 +3,7 @@ import { Move, SquarePlus } from "lucide-react";
 import { Button } from "../../../../../components/ui/button.js";
 import { ButtonGroup } from "../../../../../components/ui/button-group.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../../components/ui/tooltip.js";
+import { componentCategoryMeta } from "../../componentCategory.js";
 import { SelectField } from "../../fields.js";
 import { hasSide, NUDGE_PERMILLE } from "./placement-tools.js";
 import { type PlanTool, type PlanToolMode } from "./plan-tool.js";
@@ -95,10 +96,15 @@ export function PlanToolOptions({
               value={tool.componentId}
               options={[
                 { value: "", label: "Choose a component" },
-                ...available.map((c) => ({
-                  value: c.id,
-                  label: c.displayName,
-                })),
+                ...available.map((c) => {
+                  const { icon: Icon, description } = componentCategoryMeta(c.category);
+                  return {
+                    value: c.id,
+                    label: c.displayName,
+                    icon: <Icon aria-hidden="true" className="size-4" />,
+                    description,
+                  };
+                }),
               ]}
               onChange={(componentId) => onTool({ ...tool, componentId })}
             />
@@ -120,10 +126,16 @@ export function PlanToolOptions({
               value={tool.instanceId}
               options={[
                 { value: "", label: "Choose a fitting" },
-                ...draft.placements.map((p) => ({
-                  value: p.instanceId,
-                  label: `${defOf(p.componentId)?.displayName ?? p.componentId} (${p.instanceId})`,
-                })),
+                ...draft.placements.map((p) => {
+                  const def = defOf(p.componentId);
+                  const { icon: Icon, description } = componentCategoryMeta(def?.category ?? "");
+                  return {
+                    value: p.instanceId,
+                    label: `${def?.displayName ?? p.componentId} (${p.instanceId})`,
+                    icon: <Icon aria-hidden="true" className="size-4" />,
+                    description,
+                  };
+                }),
               ]}
               onChange={(instanceId) => onTool({ ...tool, instanceId })}
             />

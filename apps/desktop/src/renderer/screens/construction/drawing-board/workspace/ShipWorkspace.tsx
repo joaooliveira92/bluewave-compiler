@@ -33,7 +33,10 @@ export function ShipWorkspace({
       className="min-h-0 flex-1 space-y-4 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,min(var(--ship-pane),calc(100%_-_var(--tab-pane-min)_-_1.25rem)))_0.75rem_minmax(0,1fr)] lg:gap-1 lg:space-y-0 lg:overflow-hidden"
       style={{ "--ship-pane": `${split}%`, "--tab-pane-min": TAB_PANE_MIN } as CSSProperties}
     >
-      <section aria-label="Ship view" className="space-y-2 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+      <section
+        aria-label="Ship view"
+        className="themed-scrollbar space-y-2 lg:min-h-0 lg:overflow-y-auto lg:pr-1"
+      >
         <Button
           variant="outline"
           size="sm"

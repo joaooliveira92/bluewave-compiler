@@ -1,8 +1,9 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vite-plus/test";
-import { buildWorkshopView } from "@bluewave/ship-design";
+import { buildWorkshopView, COMPONENT_CATEGORIES } from "@bluewave/ship-design";
 import { Checkbox } from "../../../components/ui/checkbox.js";
 import { DrawingBoard } from "./DrawingBoard.js";
+import { componentCategoryMeta } from "./componentCategory.js";
 import { componentFacts, componentsByCategory } from "./componentFacts.js";
 import { loadDrawingBoardContent } from "./content.js";
 import { exportDesign } from "./designFile.js";
@@ -49,6 +50,18 @@ describe("componentFacts", () => {
       content.components.map((c) => c.id).sort(),
     );
     expect(new Set(groups.map((g) => g.category)).size).toBe(groups.length);
+  });
+});
+
+describe("componentCategoryMeta", () => {
+  it("gives every category an icon and a description, and falls back for an unknown one", () => {
+    for (const category of COMPONENT_CATEGORIES) {
+      const meta = componentCategoryMeta(category);
+      expect(meta.icon).toBeTruthy();
+      expect(meta.description.length).toBeGreaterThan(0);
+    }
+    const fallback = componentCategoryMeta("AUXILIARY");
+    expect(fallback.description).toBe("Ship component.");
   });
 });
 

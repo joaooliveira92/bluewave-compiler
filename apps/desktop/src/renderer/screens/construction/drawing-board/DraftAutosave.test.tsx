@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { decodeLog, encodeLog, newLog, pushEdit } from "@bluewave/ship-design";
+import { Toaster } from "../../../components/ui/toast.js";
 import { DrawingBoard } from "./DrawingBoard.js";
 import { loadDrawingBoardContent } from "./content.js";
 
@@ -8,6 +9,15 @@ vi.mock("../../../shell/CampaignShellContext.js", () => ({
   useCampaignRevision: () => 0,
   useCampaignMonthId: () => "1880-01",
 }));
+
+/** The board's restored-draft toast only renders when a Toaster is mounted (as the app root does). */
+const renderBoard = (props: Parameters<typeof DrawingBoard>[0] = {}): ReturnType<typeof render> =>
+  render(
+    <>
+      <Toaster />
+      <DrawingBoard {...props} />
+    </>,
+  );
 
 const content = loadDrawingBoardContent();
 const start = content.references.find((r) => r.month <= "1880-01")!;
@@ -54,14 +64,14 @@ const editPower = (kw: number) => {
 describe("Drawing Board autosave", () => {
   it("restores the saved design with its history, and says so", async () => {
     stored = { presetId: start.id, log: encodeLog(savedLog), savedAt: "2026-10-09T09:00:00.000Z" };
-    render(<DrawingBoard sessionId="s1" />);
+    renderBoard({ sessionId: "s1" });
     expect(await screen.findByText(/unsubmitted design was restored/)).toBeTruthy();
     expect(screen.getByText("1 edit")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Undo" }).hasAttribute("disabled")).toBe(false);
   });
 
   it("saves shortly after an edit, and flushes a waiting save when the board closes", async () => {
-    const { unmount } = render(<DrawingBoard sessionId="s1" />);
+    const { unmount } = renderBoard({ sessionId: "s1" });
     await waitFor(() => expect(execute).toHaveBeenCalledWith("readDrawingBoardDraft", "s1"));
     editPower(start.draft.machinery.installedKw + 250);
     await waitFor(() => expect(stored).not.toBeNull(), { timeout: 3000 });
@@ -74,7 +84,7 @@ describe("Drawing Board autosave", () => {
   it("never writes before the saved design has been read", async () => {
     holdRead = true;
     stored = { presetId: start.id, log: encodeLog(savedLog), savedAt: "2026-10-09T09:00:00.000Z" };
-    render(<DrawingBoard sessionId="s1" />);
+    renderBoard({ sessionId: "s1" });
     await new Promise((r) => setTimeout(r, 600));
     expect(writes()).toHaveLength(0);
     await act(async () => releaseRead());
@@ -84,7 +94,7 @@ describe("Drawing Board autosave", () => {
 
   it("start over drops the saved design and removes the file", async () => {
     stored = { presetId: start.id, log: encodeLog(savedLog), savedAt: "2026-10-09T09:00:00.000Z" };
-    render(<DrawingBoard sessionId="s1" />);
+    renderBoard({ sessionId: "s1" });
     fireEvent.click(await screen.findByRole("button", { name: "Start over" }));
     expect(screen.getByText("No edits")).toBeTruthy();
     await waitFor(() => expect(stored).toBeNull(), { timeout: 3000 });
@@ -93,7 +103,7 @@ describe("Drawing Board autosave", () => {
 
   it("keeps the fresh start when the saved log no longer applies to this content", async () => {
     stored = { presetId: "a_design_that_was_removed", log: encodeLog(savedLog), savedAt: "x" };
-    render(<DrawingBoard sessionId="s1" />);
+    renderBoard({ sessionId: "s1" });
     await waitFor(() => expect(execute).toHaveBeenCalledWith("readDrawingBoardDraft", "s1"));
     await new Promise((r) => setTimeout(r, 50));
     expect(screen.queryByText(/unsubmitted design was restored/)).toBeNull();

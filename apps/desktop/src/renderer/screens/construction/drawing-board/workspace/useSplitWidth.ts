@@ -2,11 +2,11 @@ import { useState } from "react";
 
 export const SPLIT_STORAGE_KEY = "bluewave-drawing-board-split";
 /**
- * Share of the workspace width given to the ship view, in percent. 46% is about 75 px wider than the original
- * 40% in the default 1280 px window, enough for the section strip's full names, with the tabs still roomy.
+ * Share of the workspace width given to the ship view, in percent. The ship drawing is the board's focus, so it
+ * opens at 58% — inside the 55–60% band the plan is read at — with the tab pane still wide enough for its forms.
  * A stored preference is never replaced by this default, only clamped to the limits below.
  */
-export const SPLIT_DEFAULT = 46;
+export const SPLIT_DEFAULT = 58;
 export const SPLIT_MIN = 30;
 export const SPLIT_MAX = 60;
 /** Narrowest the tab pane may get, whatever the stored share: its forms and tab strip stay usable. */

@@ -1,5 +1,12 @@
 import { useId, type ReactNode } from "react";
 import {
+  NumberField as NumberFieldBase,
+  NumberFieldDecrement,
+  NumberFieldGroup,
+  NumberFieldIncrement,
+  NumberFieldInput,
+} from "../../../components/ui/number-field.js";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -8,27 +15,23 @@ import {
 } from "../../../components/ui/select.js";
 import { cn } from "../../../lib/utils.js";
 
-const inputClass =
-  "h-8 w-full rounded-md border bg-background px-2 text-sm tabular-nums focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
-
 /**
- * Reads a typed number with either decimal mark ("16.5" or "16,5"); thousands separators are not accepted, so "1,500"
- * is refused rather than read as 1.5. Null when the text is not a number.
+ * Rewrites a lone comma used as a decimal mark ("16,5") to a point, so the Base UI number field
+ * (parsed with a fixed `en-US` locale) reads it as a decimal. A point already present, or more than
+ * one comma, is left untouched: those are not a single decimal mark.
  */
-export function parseTypedNumber(raw: string): number | null {
+export function normalizeDecimalMark(raw: string): string {
   const t = raw.trim();
-  if (!/^[-+]?(\d+([.,]\d*)?|[.,]\d+)$/.test(t)) return null;
-  const n = Number(t.replace(",", "."));
-  return Number.isFinite(n) ? n : null;
+  if (t.includes(".") || !t.includes(",")) return raw;
+  const first = t.indexOf(",");
+  if (t.indexOf(",", first + 1) !== -1) return raw;
+  return `${t.slice(0, first)}.${t.slice(first + 1)}`;
 }
 
 /**
- * Number input in display units that commits an integer in internal units on blur or Enter. Uncontrolled and keyed by the
- * committed value, so typing never creates an edit per keystroke and an undo resets the field.
- *
- * A text input, not `type="number"`: Chromium formats number inputs with the OS locale (a decimal-comma system shows
- * "16,0" next to "16.0 kn" everywhere else), so the value is always shown with a decimal point and either mark is
- * accepted when typing. ArrowUp/ArrowDown step by `step` within min/max, as a number input would.
+ * Number input in display units that commits an integer in internal units on blur, Enter or a step.
+ * The value is always shown with a decimal point whatever the system locale (the ReUI/Base UI field
+ * is pinned to `en-US`), and either decimal mark is accepted when typing.
  */
 export function NumberField({
   label,
@@ -57,42 +60,50 @@ export function NumberField({
   readonly className?: string;
 }) {
   const id = useId();
-  const shown = (value / scale).toFixed(decimals);
+  const shown = value / scale;
   const stepBy = step ?? (decimals > 0 ? Number((1 / 10 ** decimals).toFixed(decimals)) : 1);
   const clampShown = (n: number) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, n));
-  const commit = (raw: string) => {
-    const parsed = parseTypedNumber(raw);
-    if (parsed === null) return;
-    const internal = Math.round(clampShown(parsed) * scale);
-    if (internal !== value) onCommit(internal);
-  };
+  const accessibleName = `${label}${unit ? ` (${unit})` : ""}`;
   return (
     <div className={cn("space-y-1", className)}>
       <label htmlFor={id} className="block text-xs text-muted-foreground">
         {shortLabel ?? label}
         {unit ? ` (${unit})` : ""}
       </label>
-      <input
-        key={value}
+      <NumberFieldBase
         id={id}
-        aria-label={shortLabel === undefined ? undefined : `${label}${unit ? ` (${unit})` : ""}`}
-        className={inputClass}
-        type="text"
-        inputMode="decimal"
-        autoComplete="off"
-        spellCheck={false}
-        defaultValue={shown}
-        onBlur={(e) => commit(e.currentTarget.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") commit(e.currentTarget.value);
-          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-            const current = parseTypedNumber(e.currentTarget.value) ?? value / scale;
-            const next = clampShown(current + (e.key === "ArrowUp" ? stepBy : -stepBy));
-            e.currentTarget.value = next.toFixed(decimals);
-            e.preventDefault();
-          }
+        value={shown}
+        min={min}
+        max={max}
+        step={stepBy}
+        locale="en-US"
+        format={{
+          useGrouping: false,
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
         }}
-      />
+        onValueCommitted={(next) => {
+          if (next === null) return;
+          const internal = Math.round(clampShown(next) * scale);
+          if (internal !== value) onCommit(internal);
+        }}
+      >
+        <NumberFieldGroup>
+          <NumberFieldDecrement />
+          <NumberFieldInput
+            aria-label={accessibleName}
+            onChangeCapture={(e) => {
+              const raw = e.currentTarget.value;
+              const normalized = normalizeDecimalMark(raw);
+              if (normalized !== raw) e.currentTarget.value = normalized;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+            }}
+          />
+          <NumberFieldIncrement />
+        </NumberFieldGroup>
+      </NumberFieldBase>
     </div>
   );
 }

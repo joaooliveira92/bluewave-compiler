@@ -23,6 +23,7 @@ import {
 } from "../../../components/ui/hover-card.js";
 import { Separator } from "../../../components/ui/separator.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs.js";
+import { dismissToast, toast } from "../../../components/ui/toast.js";
 import {
   Tooltip,
   TooltipContent,
@@ -98,6 +99,9 @@ const SHIFT = IS_MAC ? "⇧" : "Shift+";
 
 const MONTHS = ["1885-01", "1890-01", "1893-06", "1895-06", "1896-01", "1899-12"];
 
+/** Stable id so re-restoring the same draft updates the toast instead of stacking another. */
+const RESTORED_TOAST_ID = "drawing-board-restored";
+
 /**
  * Component-level ship designer (SB-18 v1). Local to the renderer: edits an undoable draft and shows the live
  * compile result. Submitting a design to the engine arrives with the command wiring (SB-14).
@@ -171,11 +175,37 @@ export function DrawingBoard({
     selection.clear();
     actions.loadDraft(d);
   };
+  // A restored draft is announced as a bottom-right toast (not a page banner) carrying the same two choices.
+  const restoredRef = useRef({ loadPreset, dismiss: autosave.dismiss, presetId: state.preset.id });
+  restoredRef.current = { loadPreset, dismiss: autosave.dismiss, presetId: state.preset.id };
+  useEffect(() => {
+    if (autosave.restored === null) return;
+    const { loadPreset: restoreDesign, dismiss, presetId } = restoredRef.current;
+    const id = toast(
+      `Your unsubmitted design was restored, with its edit history (last changed ${new Date(
+        autosave.restored.savedAt,
+      ).toLocaleString()}). Changes are saved as you work.`,
+      {
+        id: RESTORED_TOAST_ID,
+        duration: 0,
+        onClose: dismiss,
+        cancel: { label: "Keep working", onClick: () => {} },
+        action: {
+          label: "Start over",
+          onClick: () => {
+            dismiss();
+            restoreDesign(presetId);
+          },
+        },
+      },
+    );
+    return () => dismissToast(id);
+  }, [autosave.restored]);
   return (
     <ShipSelectionProvider store={selection}>
       <div
         ref={rootRef}
-        className="flex h-full min-h-0 flex-col gap-4"
+        className="flex h-full min-h-0 flex-col gap-2 overflow-hidden bg-background p-2 @3xl:p-4"
         data-testid="drawing-board"
         onKeyDown={(e) => {
           // Undo/redo for the design: ⌘Z / Ctrl+Z, ⇧⌘Z / Ctrl+Shift+Z / Ctrl+Y. A text field keeps its own undo.
@@ -211,97 +241,122 @@ export function DrawingBoard({
           else clearSelection();
         }}
       >
+        {/* Toolbar and status share one border: the status band is attached directly beneath the
+            controls, the way the header's secondary row sits under its primary row. */}
         <TooltipProvider>
-          <div
-            role="group"
-            aria-label="Design toolbar"
-            className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 p-2"
-          >
-            <SelectField
-              inline
-              className="w-80 max-w-full"
-              label="Starting design"
-              shortLabel="Design"
-              value={state.preset.id}
-              options={content.references.map((r) => ({ value: r.id, label: r.name }))}
-              onChange={(id) => (state.editCount > 0 ? setPendingPreset(id) : loadPreset(id))}
-            />
-            {campaignMonth !== null ? (
-              // In a campaign the rules date is the campaign month (the engine uses the same), so it is shown, not chosen.
-              <HoverCard>
-                <HoverCardTrigger
-                  render={<button type="button" />}
-                  aria-label={`Technology as of ${campaignMonth} (campaign date)`}
-                  className="flex h-9 items-center gap-1.5 rounded-md px-2 text-sm tabular-nums outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <CalendarClock aria-hidden="true" className="size-4 text-muted-foreground" />
-                  {campaignMonth}
-                </HoverCardTrigger>
-                <HoverCardContent className="w-64 text-sm">
-                  <div className="mb-1 font-medium">Technology as of {campaignMonth}</div>
-                  <p className="text-muted-foreground">
-                    Fixed to the campaign date: the design can use only what your navy has available
-                    this month.
-                  </p>
-                </HoverCardContent>
-              </HoverCard>
-            ) : (
+          <div className="flex flex-col overflow-hidden rounded-lg border">
+            <div
+              role="group"
+              aria-label="Design toolbar"
+              className="flex flex-wrap items-center gap-2 bg-muted/40 p-2"
+            >
               <SelectField
                 inline
-                label="Technology as of"
-                shortLabel="Technology"
-                value={state.month}
-                options={[...new Set([...MONTHS, state.month])]
-                  .sort()
-                  .map((m) => ({ value: m, label: m }))}
-                onChange={actions.setMonth}
+                className="w-80 max-w-full"
+                label="Starting design"
+                shortLabel="Design"
+                value={state.preset.id}
+                options={content.references.map((r) => ({ value: r.id, label: r.name }))}
+                onChange={(id) => (state.editCount > 0 ? setPendingPreset(id) : loadPreset(id))}
               />
-            )}
-            <Separator orientation="vertical" className="h-6" />
-            <ButtonGroup aria-label="History">
-              {(
-                [
-                  ["Undo", Undo2, actions.undo, state.canUndo],
-                  ["Redo", Redo2, actions.redo, state.canRedo],
-                ] as const
-              ).map(([name, Icon, run, can]) => (
-                <Tooltip key={name}>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        aria-label={name}
-                        onClick={run}
-                        disabled={!can}
-                      />
-                    }
+              {campaignMonth !== null ? (
+                // In a campaign the rules date is the campaign month (the engine uses the same), so it is shown, not chosen.
+                <HoverCard>
+                  <HoverCardTrigger
+                    render={<button type="button" />}
+                    aria-label={`Technology as of ${campaignMonth} (campaign date)`}
+                    className="flex h-9 items-center gap-1.5 rounded-md px-2 text-sm tabular-nums outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <Icon aria-hidden="true" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {name} ({name === "Undo" ? `${MOD}Z` : `${SHIFT}${MOD}Z`})
-                  </TooltipContent>
-                </Tooltip>
+                    <CalendarClock aria-hidden="true" className="size-4 text-muted-foreground" />
+                    {campaignMonth}
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-64 text-sm">
+                    <div className="mb-1 font-medium">Technology as of {campaignMonth}</div>
+                    <p className="text-muted-foreground">
+                      Fixed to the campaign date: the design can use only what your navy has
+                      available this month.
+                    </p>
+                  </HoverCardContent>
+                </HoverCard>
+              ) : (
+                <SelectField
+                  inline
+                  label="Technology as of"
+                  shortLabel="Technology"
+                  value={state.month}
+                  options={[...new Set([...MONTHS, state.month])]
+                    .sort()
+                    .map((m) => ({ value: m, label: m }))}
+                  onChange={actions.setMonth}
+                />
+              )}
+              <Separator orientation="vertical" className="h-6" />
+              <ButtonGroup aria-label="History">
+                {(
+                  [
+                    ["Undo", Undo2, actions.undo, state.canUndo],
+                    ["Redo", Redo2, actions.redo, state.canRedo],
+                  ] as const
+                ).map(([name, Icon, run, can]) => (
+                  <Tooltip key={name}>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          aria-label={name}
+                          onClick={run}
+                          disabled={!can}
+                        />
+                      }
+                    >
+                      <Icon aria-hidden="true" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {name} ({name === "Undo" ? `${MOD}Z` : `${SHIFT}${MOD}Z`})
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </ButtonGroup>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {plural(state.editCount, "edit", "edits", "No edits")}
+              </span>
+              <Separator orientation="vertical" className="h-6" />
+              <PlanModeButtons tool={planTool} onTool={setPlanTool} />
+              <PlanDisplayMenu
+                showArcs={showArcs}
+                onShowArcs={setShowArcs}
+                findingsView={findingsView}
+                onFindingsView={setFindingsView}
+              />
+              <ShipFindingsButton
+                className="h-9"
+                view={findingsView}
+                shipFindings={shownFindings.filter((f) =>
+                  f.entities.some((e) => e.kind === "ship"),
+                )}
+              />
+              <RequirementChip requirement={draft.requirement} className="ml-auto h-9 shrink-0" />
+            </div>
+            <button
+              type="button"
+              onClick={() => setTab("analysis")}
+              aria-label="Design status: open the analysis tab"
+              className="flex w-full flex-wrap items-center gap-2 border-t px-3 py-2 text-left text-sm outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Badge variant={view.valid ? "secondary" : "destructive"}>
+                {view.valid ? "Can be submitted" : "Cannot be built"}
+              </Badge>
+              <span className="text-muted-foreground">
+                {view.counts.BLOCKING} blocking · {view.counts.CRITICAL} critical ·{" "}
+                {plural(view.counts.WARNING, "warning")}
+              </span>
+              {view.metrics.slice(0, 3).map((m) => (
+                <span key={m.id} className="tabular-nums">
+                  <span className="text-muted-foreground">{m.label}:</span> {m.value}
+                </span>
               ))}
-            </ButtonGroup>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {plural(state.editCount, "edit", "edits", "No edits")}
-            </span>
-            <Separator orientation="vertical" className="h-6" />
-            <PlanModeButtons tool={planTool} onTool={setPlanTool} />
-            <PlanDisplayMenu
-              showArcs={showArcs}
-              onShowArcs={setShowArcs}
-              findingsView={findingsView}
-              onFindingsView={setFindingsView}
-            />
-            <ShipFindingsButton
-              className="h-9"
-              view={findingsView}
-              shipFindings={shownFindings.filter((f) => f.entities.some((e) => e.kind === "ship"))}
-            />
-            <RequirementChip requirement={draft.requirement} className="ml-auto h-9 shrink-0" />
+            </button>
           </div>
         </TooltipProvider>
         <ConfirmDialog
@@ -315,48 +370,7 @@ export function DrawingBoard({
             setPendingPreset(null);
           }}
         />
-        {autosave.restored !== null && (
-          <Alert role="status" className="flex flex-wrap items-center gap-3">
-            <span className="flex-1">
-              Your unsubmitted design was restored, with its edit history (last changed{" "}
-              {new Date(autosave.restored.savedAt).toLocaleString()}). Changes are saved as you
-              work.
-            </span>
-            <Button variant="outline" size="sm" onClick={autosave.dismiss}>
-              Keep working
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                autosave.dismiss();
-                loadPreset(state.preset.id);
-              }}
-            >
-              Start over
-            </Button>
-          </Alert>
-        )}
         {state.editError !== null && <Alert variant="destructive">{state.editError}</Alert>}
-        <button
-          type="button"
-          onClick={() => setTab("analysis")}
-          aria-label="Design status: open the analysis tab"
-          className="flex w-full flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Badge variant={view.valid ? "secondary" : "destructive"}>
-            {view.valid ? "Can be submitted" : "Cannot be built"}
-          </Badge>
-          <span className="text-muted-foreground">
-            {view.counts.BLOCKING} blocking · {view.counts.CRITICAL} critical ·{" "}
-            {plural(view.counts.WARNING, "warning")}
-          </span>
-          {view.metrics.slice(0, 3).map((m) => (
-            <span key={m.id} className="tabular-nums">
-              <span className="text-muted-foreground">{m.label}:</span> {m.value}
-            </span>
-          ))}
-        </button>
         <ShipWorkspace
           ship={
             <div data-selection-scope="">

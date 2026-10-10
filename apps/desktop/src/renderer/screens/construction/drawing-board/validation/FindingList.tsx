@@ -82,14 +82,14 @@ export function FindingList({
                   isFocused && "border-primary ring-1 ring-primary",
                 )}
               >
-                <p className="flex items-start gap-1.5">
+                <div className="flex items-start gap-1.5">
                   <style.Icon
                     aria-hidden="true"
                     className={cn("mt-0.5 size-3.5 shrink-0", style.tone)}
                   />
                   <Badge variant={style.badge}>{f.severity}</Badge>
                   <span className="font-medium">{f.title}</span>
-                </p>
+                </div>
                 <p className="text-muted-foreground">{f.explanation}</p>
                 {values && <p className="tabular-nums">{values}</p>}
                 {f.association === "inferred" && (
