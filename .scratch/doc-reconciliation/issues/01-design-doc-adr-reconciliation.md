@@ -66,8 +66,8 @@ still referenced by the active roles/commands, so they were **not** marked super
 
 ## Remaining
 
-- Classify the 25 ADRs the gate currently flags as candidate amendments (add the real
-  ones to `docs/adr/AMENDMENTS.md`, ignore scope/integration-boundary ADRs).
+- None outstanding: all 25 DESIGN-referencing ADRs are classified in
+  `docs/adr/AMENDMENTS.md` and the check is now a hard failure.
 
 ## Proposed approach
 

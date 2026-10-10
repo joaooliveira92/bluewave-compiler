@@ -2,6 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-07`
+> **Amended by:** ADR-0037.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. All authoritative numeric behavior MUST use the representations, operations, scales, overflow rules, and rounding rules defined here. Runtime inference and platform-dependent numeric behavior are prohibited.
 
 ## 1. Scope

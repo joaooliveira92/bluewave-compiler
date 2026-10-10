@@ -34,15 +34,20 @@ try {
 const offenders = [];
 for (const [license, packages] of Object.entries(byLicense)) {
   if (!isDenied(license)) continue;
-  for (const pkg of packages) offenders.push(`${pkg.name}@${pkg.versions?.at?.(-1) ?? "?"} — ${license}`);
+  for (const pkg of packages)
+    offenders.push(`${pkg.name}@${pkg.versions?.at?.(-1) ?? "?"} — ${license}`);
 }
 
 if (offenders.length > 0) {
   console.error("license-check: FAILED — uncleared licenses in shipped dependencies\n");
   for (const o of offenders) console.error(`  - ${o}`);
-  console.error("\nReplace the dependency, clear the license, or extend scripts/license-check.cjs.");
+  console.error(
+    "\nReplace the dependency, clear the license, or extend scripts/license-check.cjs.",
+  );
   process.exit(1);
 }
 
 const total = Object.values(byLicense).reduce((n, p) => n + p.length, 0);
-console.log(`license-check: ok (${total} production dependencies across ${Object.keys(byLicense).length} licenses)`);
+console.log(
+  `license-check: ok (${total} production dependencies across ${Object.keys(byLicense).length} licenses)`,
+);

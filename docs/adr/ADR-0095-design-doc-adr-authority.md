@@ -41,9 +41,9 @@ supporting indexes had rotted — a stale ADR index and 151 dead links in
    - broken relative links between canonical docs; and
    - an ADR index (`docs/adr/README.md`) out of sync with the ADR files, or a
      stale "next number".
-   It **warns** on any ADR that references a `DESIGN-N` but is not yet classified
-   in `docs/adr/AMENDMENTS.md`, so new amendments surface as candidates rather
-   than drifting silently.
+   It **fails** on any ADR that references a `DESIGN-N` but is not classified in
+   `docs/adr/AMENDMENTS.md` (under either *Amendments* or *Scope and process*), so
+   every new amendment must be recorded rather than drifting silently.
 
 5. **`SOURCE-DESIGN-v1.0.md` is frozen provenance, not the living spec.** It is
    retained only as the migration audit's SHA anchor and MUST NOT be edited.
