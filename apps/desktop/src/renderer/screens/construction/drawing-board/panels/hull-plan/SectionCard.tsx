@@ -145,7 +145,8 @@ export function SectionCard({
         {zone && (
           <p className="text-xs text-muted-foreground">
             Schematic{form ? "" : " (hull form unknown)"}: hull, deck houses and funnels follow the
-            design; symbols are drawing conventions and the vertical scale may be compressed.
+            design; symbols are drawing conventions. The drawing is the main plan and profile,
+            cropped to this station window.
           </p>
         )}
       </div>

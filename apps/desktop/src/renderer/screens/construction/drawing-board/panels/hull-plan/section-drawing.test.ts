@@ -41,11 +41,21 @@ describe("sectionLayout", () => {
     expect(layout.a).toBeGreaterThan(0);
   });
 
-  it("never exaggerates the vertical scale (it may only compress)", () => {
+  it("uses one uniform scale on both axes and both bands, so neither view is distorted", () => {
     for (const id of SECTION_IDS) {
       const layout = layoutFor(id)!;
-      expect(layout.ky).toBeLessThanOrEqual(layout.a + 1e-9);
-      expect(layout.kp).toBeLessThanOrEqual(layout.a + 1e-9);
+      expect(layout.ky).toBeCloseTo(layout.a, 9);
+      expect(layout.kp).toBeCloseTo(layout.a, 9);
+    }
+  });
+
+  it("keeps the section and a sliver of each neighbour inside the window it shows", () => {
+    for (const id of SECTION_IDS) {
+      const layout = layoutFor(id)!;
+      expect(layout.s).toBeLessThanOrEqual(layout.zone.startPermille);
+      expect(layout.e).toBeGreaterThanOrEqual(layout.zone.endPermille);
+      expect(layout.x0).toBeGreaterThanOrEqual(PAD_X);
+      expect(layout.x1).toBeLessThanOrEqual(SECTION_W - PAD_X);
     }
   });
 

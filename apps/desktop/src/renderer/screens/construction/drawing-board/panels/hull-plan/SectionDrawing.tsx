@@ -24,10 +24,11 @@ import type { SectionFacts, ZoneRange } from "./sections.js";
 export { SECTION_H, SECTION_W };
 
 /**
- * The magnified section: a plan band and a profile band on one horizontal scale, cropped to the section with
- * its neighbours dimmed. The hull, deck houses and funnels are the main drawing's own layers under a transform,
- * so the card can never disagree with the plan; fittings, arcs, machinery rooms and bunkers are drawn over them
- * from the section's facts. Vertical scale may be compressed to fit the card (never exaggerated).
+ * The section card's drawing: a plan band and a profile band under one uniform transform, so each band is a
+ * faithful crop of the main drawing and can never disagree with it. Because a uniform scale cannot magnify past
+ * the band heights, the window widens to fill the card instead of squashing the drawing: the section sits centred
+ * with its neighbours dimmed. The hull, deck houses and funnels are the main drawing's own layers under that
+ * transform; fittings, arcs, machinery rooms and bunkers are drawn over them from the section's facts.
  *
  * This component owns only the card's frame, defs and layer order; the bands, callouts and scale are the focused
  * components beside it.

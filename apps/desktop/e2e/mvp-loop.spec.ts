@@ -249,11 +249,13 @@ test("row 6g: the Drawing Board keeps the ship view in sight on every tab, wide 
 
   // The divider is a keyboard-operable splitter that widens the ship view.
   const divider = board.getByRole("separator", { name: "Resize ship view" });
-  const before = (await ship.boundingBox())!.width;
   await divider.focus();
+  // From the left limit, two steps right: a fixed target that does not track the stored default.
+  await e2e.page.keyboard.press("Home");
+  const before = (await ship.boundingBox())!.width;
   await e2e.page.keyboard.press("ArrowRight");
   await e2e.page.keyboard.press("ArrowRight");
-  await expect(divider).toHaveAttribute("aria-valuenow", "50");
+  await expect(divider).toHaveAttribute("aria-valuenow", "34");
   expect((await ship.boundingBox())!.width).toBeGreaterThan(before);
 
   // Narrow window: the panes stack, the splitter goes, and the ship view folds without unmounting.
