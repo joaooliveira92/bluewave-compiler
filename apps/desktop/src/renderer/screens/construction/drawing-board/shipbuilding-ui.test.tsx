@@ -18,6 +18,7 @@ describe("requirement chip", () => {
   it("shows an icon-only brief chip that opens every requirement in a popover", async () => {
     render(<RequirementChip requirement={ref.draft.requirement} />);
     const chip = screen.getByRole("button", { name: /^Design requirement: .* kn · .* nm$/ });
+    expect(chip.querySelector("svg")).not.toBeNull();
     expect(chip.textContent).toBe("");
     fireEvent.click(chip);
     const dialog = await screen.findByText("Design requirement", { selector: "div" });

@@ -2,6 +2,7 @@ import type { DesignRequirement } from "@bluewave/ship-design";
 import { Target } from "lucide-react";
 import { Badge } from "../../../components/ui/badge.js";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover.js";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../../components/ui/tooltip.js";
 import { cn } from "../../../lib/utils.js";
 
 const words = (s: string) => s.replaceAll("_", " ").toLowerCase();
@@ -26,20 +27,28 @@ export function RequirementChip({
     ["Protection goal", words(r.protectionGoal ?? "STANDARD")],
   ];
   const summary = `${r.category} · ${(r.requiredSpeedMilliKnots / 1000).toFixed(1)} kn · ${r.requiredRangeNm.toLocaleString("en-US")} nm`;
+  const trigger = (
+    <button
+      type="button"
+      aria-label={`Design requirement: ${summary}`}
+      className={cn(
+        "flex rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        className,
+      )}
+    />
+  );
   return (
     <Popover>
-      <PopoverTrigger
-        aria-label={`Design requirement: ${summary}`}
-        render={<button type="button" />}
-        className={cn(
-          "flex rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          className,
-        )}
-      >
-        <Badge variant="outline" className="h-full cursor-pointer">
-          <Target aria-hidden="true" className="size-3" />
-        </Badge>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger render={<PopoverTrigger render={trigger} />}>
+          <Badge variant="outline" className="h-full cursor-pointer">
+            <Target aria-hidden="true" className="size-3" />
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-64">
+          {summary}
+        </TooltipContent>
+      </Tooltip>
       <PopoverContent aria-label="Design requirement" className="w-72 text-sm">
         <div className="mb-2 font-medium">Design requirement</div>
         <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
