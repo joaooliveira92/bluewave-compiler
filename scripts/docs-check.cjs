@@ -54,9 +54,11 @@ for (const file of LINK_SCOPE) {
 }
 
 // ---- 2. ADR index sync ----
-const adrFiles = tracked("docs/adr/ADR-*.md")
-  .map((f) => ({ f, n: path.basename(f).match(/ADR-(\d{4})/)?.[1] }))
-  .filter((x) => x.n);
+// Read the directory (not git) so a newly created, not-yet-staged ADR is counted.
+const adrFiles = fs
+  .readdirSync(path.join(root, "docs/adr"))
+  .filter((f) => /^ADR-\d{4}-.*\.md$/.test(f))
+  .map((f) => ({ f: `docs/adr/${f}`, n: f.match(/ADR-(\d{4})/)[1] }));
 const adrReadmePath = path.join(root, "docs/adr/README.md");
 if (!fs.existsSync(adrReadmePath)) {
   problems.push("docs/adr/README.md is missing");
