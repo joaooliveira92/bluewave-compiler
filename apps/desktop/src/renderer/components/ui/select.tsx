@@ -1,12 +1,7 @@
 "use client";
 
 import { Check, ChevronDown } from "lucide-react";
-import {
-  motion,
-  type Transition,
-  useReducedMotion,
-  type Variants,
-} from "motion/react";
+import { motion, type Transition, useReducedMotion, type Variants } from "motion/react";
 import {
   createContext,
   forwardRef,
@@ -71,6 +66,11 @@ interface SelectOptionRecord {
   id: string;
   value: string;
   label: string;
+  /**
+   * Optional leading visual for the option and its trigger (a lucide icon or a flag image). Captured when the option
+   * registers; pass a stable element per value.
+   */
+  icon?: ReactNode;
   disabled: boolean;
   ref: RefObject<HTMLElement | null>;
 }
@@ -80,7 +80,6 @@ interface FloatingPosition {
   width: number;
   anchorTop: number;
   anchorBottom: number;
-  placement: Placement;
   availableHeight: number;
 }
 
@@ -91,6 +90,7 @@ interface SelectContextValue {
   disabled: boolean;
   required: boolean;
   reduceMotion: boolean;
+  placement: Placement;
 
   triggerId: string;
   listboxId: string;
@@ -99,9 +99,7 @@ interface SelectContextValue {
   floatingRef: RefObject<HTMLDivElement | null>;
 
   getOptions: () => SelectOptionRecord[];
-  getOptionByValue: (
-    value: SelectValue,
-  ) => SelectOptionRecord | undefined;
+  getOptionByValue: (value: SelectValue) => SelectOptionRecord | undefined;
 
   registerOption: (option: SelectOptionRecord) => void;
   unregisterOption: (id: string) => void;
@@ -109,10 +107,9 @@ interface SelectContextValue {
   setActiveValue: (value: SelectValue) => void;
   setOpen: (open: boolean) => void;
   selectValue: (value: string) => void;
+  setPlacement: (placement: Placement) => void;
 
-  handleTriggerKeyDown: (
-    event: ReactKeyboardEvent<HTMLButtonElement>,
-  ) => void;
+  handleTriggerKeyDown: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
 }
 
 const SelectContext = createContext<SelectContextValue | null>(null);
@@ -121,9 +118,7 @@ function useSelectContext(componentName: string): SelectContextValue {
   const context = useContext(SelectContext);
 
   if (!context) {
-    throw new Error(
-      `${componentName} must be used within <Select>.`,
-    );
+    throw new Error(`${componentName} must be used within <Select>.`);
   }
 
   return context;
@@ -142,9 +137,7 @@ function assignRef<T>(ref: Ref<T> | undefined, value: T | null): void {
   ref.current = value;
 }
 
-function getEnabledOptions(
-  options: SelectOptionRecord[],
-): SelectOptionRecord[] {
+function getEnabledOptions(options: SelectOptionRecord[]): SelectOptionRecord[] {
   return options.filter((option) => !option.disabled);
 }
 
@@ -164,18 +157,12 @@ function findTypeaheadMatch(
     return undefined;
   }
 
-  const currentIndex = enabledOptions.findIndex(
-    (option) => option.value === activeValue,
-  );
+  const currentIndex = enabledOptions.findIndex((option) => option.value === activeValue);
 
-  const startIndex =
-    currentIndex >= 0
-      ? (currentIndex + 1) % enabledOptions.length
-      : 0;
+  const startIndex = currentIndex >= 0 ? (currentIndex + 1) % enabledOptions.length : 0;
 
   for (let offset = 0; offset < enabledOptions.length; offset += 1) {
-    const index =
-      (startIndex + offset) % enabledOptions.length;
+    const index = (startIndex + offset) % enabledOptions.length;
 
     const option = enabledOptions[index];
 
@@ -183,11 +170,7 @@ function findTypeaheadMatch(
       continue;
     }
 
-    if (
-      normalizeTypeaheadValue(option.label).startsWith(
-        normalizedQuery,
-      )
-    ) {
+    if (normalizeTypeaheadValue(option.label).startsWith(normalizedQuery)) {
       return option;
     }
   }
@@ -195,15 +178,8 @@ function findTypeaheadMatch(
   return undefined;
 }
 
-function isPrintableKey(
-  event: ReactKeyboardEvent<HTMLElement>,
-): boolean {
-  return (
-    event.key.length === 1 &&
-    !event.altKey &&
-    !event.ctrlKey &&
-    !event.metaKey
-  );
+function isPrintableKey(event: ReactKeyboardEvent<HTMLElement>): boolean {
+  return event.key.length === 1 && !event.altKey && !event.ctrlKey && !event.metaKey;
 }
 
 export interface SelectProps {
@@ -244,59 +220,61 @@ export function Select({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const floatingRef = useRef<HTMLDivElement>(null);
 
-  const optionsRef = useRef(
-    new Map<string, SelectOptionRecord>(),
-  );
-
-  const [optionsVersion, setOptionsVersion] = useState(0);
+  const [options, setOptions] = useState<SelectOptionRecord[]>([]);
 
   const typeaheadRef = useRef("");
-  const typeaheadTimeoutRef = useRef<
-    ReturnType<typeof setTimeout> | undefined
-  >(undefined);
+  const typeaheadTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const valueControlled = value !== undefined;
   const openControlled = controlledOpen !== undefined;
 
-  const [internalValue, setInternalValue] =
-    useState<SelectValue>(defaultValue);
+  const [internalValue, setInternalValue] = useState<SelectValue>(defaultValue);
 
-  const [internalOpen, setInternalOpen] =
-    useState(defaultOpen);
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
 
-  const [activeValue, setActiveValue] =
-    useState<SelectValue>(null);
+  const [activeValue, setActiveValue] = useState<SelectValue>(null);
 
-  const currentValue = valueControlled
-    ? (value ?? null)
-    : internalValue;
+  const [placement, setPlacement] = useState<Placement>("bottom");
 
-  const currentOpen = openControlled
-    ? controlledOpen
-    : internalOpen;
+  const currentValue = valueControlled ? (value ?? null) : internalValue;
+
+  const currentOpen = openControlled ? controlledOpen : internalOpen;
 
   const triggerId = `${baseId}-trigger`;
   const listboxId = `${baseId}-listbox`;
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") {
+      return;
+    }
+
+    const seen = new Set<string>();
+
+    for (const option of options) {
+      if (seen.has(option.value)) {
+        console.warn(
+          `Select contains duplicate value "${option.value}". ` +
+            "Every SelectItem value must be unique.",
+        );
+        return;
+      }
+
+      seen.add(option.value);
+    }
+  }, [options]);
+
   const getOptions = useCallback((): SelectOptionRecord[] => {
-    void optionsVersion;
+    const sorted = [...options];
 
-    const options = Array.from(optionsRef.current.values());
-
-    return options.sort((left, right) => {
+    sorted.sort((left, right) => {
       const leftNode = left.ref.current;
       const rightNode = right.ref.current;
 
-      if (
-        !leftNode ||
-        !rightNode ||
-        leftNode === rightNode
-      ) {
+      if (!leftNode || !rightNode || leftNode === rightNode) {
         return 0;
       }
 
-      const position =
-        leftNode.compareDocumentPosition(rightNode);
+      const position = leftNode.compareDocumentPosition(rightNode);
 
       if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
         return -1;
@@ -308,56 +286,53 @@ export function Select({
 
       return 0;
     });
-  }, [optionsVersion]);
+
+    return sorted;
+  }, [options]);
 
   const getOptionByValue = useCallback(
-    (
-      optionValue: SelectValue,
-    ): SelectOptionRecord | undefined => {
+    (optionValue: SelectValue): SelectOptionRecord | undefined => {
       if (optionValue === null) {
         return undefined;
       }
 
-      return getOptions().find(
-        (option) => option.value === optionValue,
-      );
+      return getOptions().find((option) => option.value === optionValue);
     },
     [getOptions],
   );
 
-  const registerOption = useCallback(
-    (option: SelectOptionRecord): void => {
-      if (process.env.NODE_ENV !== "production") {
-        const duplicate = Array.from(
-          optionsRef.current.values(),
-        ).find(
-          (registered) =>
-            registered.value === option.value &&
-            registered.id !== option.id,
-        );
+  const registerOption = useCallback((option: SelectOptionRecord): void => {
+    setOptions((current) => {
+      const index = current.findIndex((registered) => registered.id === option.id);
 
-        if (duplicate) {
-          console.warn(
-            `Select contains duplicate value "${option.value}". ` +
-            "Every SelectItem value must be unique.",
-          );
-        }
+      if (index === -1) {
+        return [...current, option];
       }
 
-      optionsRef.current.set(option.id, option);
-      setOptionsVersion((version) => version + 1);
-    },
-    [],
-  );
+      const existing = current[index];
 
-  const unregisterOption = useCallback(
-    (id: string): void => {
-      if (optionsRef.current.delete(id)) {
-        setOptionsVersion((version) => version + 1);
+      if (
+        existing &&
+        existing.value === option.value &&
+        existing.label === option.label &&
+        existing.disabled === option.disabled
+      ) {
+        return current;
       }
-    },
-    [],
-  );
+
+      const next = current.slice();
+      next[index] = option;
+      return next;
+    });
+  }, []);
+
+  const unregisterOption = useCallback((id: string): void => {
+    setOptions((current) =>
+      current.some((option) => option.id === id)
+        ? current.filter((option) => option.id !== id)
+        : current,
+    );
+  }, []);
 
   const updateOpen = useCallback(
     (nextOpen: boolean): void => {
@@ -381,11 +356,7 @@ export function Select({
         }
       }
     },
-    [
-      disabled,
-      onOpenChange,
-      openControlled,
-    ],
+    [disabled, onOpenChange, openControlled],
   );
 
   const setInitialActiveOption = useCallback(
@@ -397,9 +368,7 @@ export function Select({
         return;
       }
 
-      const selectedOption = enabledOptions.find(
-        (option) => option.value === currentValue,
-      );
+      const selectedOption = enabledOptions.find((option) => option.value === currentValue);
 
       if (direction === "selected" && selectedOption) {
         setActiveValue(selectedOption.value);
@@ -407,10 +376,7 @@ export function Select({
       }
 
       if (direction === "last") {
-        setActiveValue(
-          enabledOptions[enabledOptions.length - 1]?.value ??
-          null,
-        );
+        setActiveValue(enabledOptions[enabledOptions.length - 1]?.value ?? null);
         return;
       }
 
@@ -428,11 +394,7 @@ export function Select({
       setInitialActiveOption(direction);
       updateOpen(true);
     },
-    [
-      disabled,
-      setInitialActiveOption,
-      updateOpen,
-    ],
+    [disabled, setInitialActiveOption, updateOpen],
   );
 
   const selectValue = useCallback(
@@ -458,13 +420,7 @@ export function Select({
         triggerRef.current?.focus();
       });
     },
-    [
-      disabled,
-      getOptionByValue,
-      onValueChange,
-      updateOpen,
-      valueControlled,
-    ],
+    [disabled, getOptionByValue, onValueChange, updateOpen, valueControlled],
   );
 
   const moveActiveOption = useCallback(
@@ -476,19 +432,13 @@ export function Select({
         return;
       }
 
-      const currentIndex = enabledOptions.findIndex(
-        (option) => option.value === activeValue,
-      );
+      const currentIndex = enabledOptions.findIndex((option) => option.value === activeValue);
 
-      const fallbackIndex =
-        direction === 1 ? -1 : enabledOptions.length;
+      const fallbackIndex = direction === 1 ? -1 : enabledOptions.length;
 
-      const baseIndex =
-        currentIndex >= 0 ? currentIndex : fallbackIndex;
+      const baseIndex = currentIndex >= 0 ? currentIndex : fallbackIndex;
 
-      const nextIndex =
-        (baseIndex + direction + enabledOptions.length) %
-        enabledOptions.length;
+      const nextIndex = (baseIndex + direction + enabledOptions.length) % enabledOptions.length;
 
       setActiveValue(enabledOptions[nextIndex]?.value ?? null);
     },
@@ -506,15 +456,9 @@ export function Select({
         previousQuery.length > 0 &&
         previousQuery
           .split("")
-          .every(
-            (value) =>
-              value.toLocaleLowerCase() ===
-              character.toLocaleLowerCase(),
-          );
+          .every((value) => value.toLocaleLowerCase() === character.toLocaleLowerCase());
 
-      typeaheadRef.current = repeatedCharacter
-        ? character
-        : `${previousQuery}${character}`;
+      typeaheadRef.current = repeatedCharacter ? character : `${previousQuery}${character}`;
 
       const match = findTypeaheadMatch(
         getOptions(),
@@ -531,17 +475,11 @@ export function Select({
         typeaheadTimeoutRef.current = undefined;
       }, TYPEAHEAD_TIMEOUT_MS);
     },
-    [
-      activeValue,
-      currentValue,
-      getOptions,
-    ],
+    [activeValue, currentValue, getOptions],
   );
 
   const handleTriggerKeyDown = useCallback(
-    (
-      event: ReactKeyboardEvent<HTMLButtonElement>,
-    ): void => {
+    (event: ReactKeyboardEvent<HTMLButtonElement>): void => {
       if (disabled) {
         return;
       }
@@ -662,33 +600,21 @@ export function Select({
     const handlePointerDown = (event: PointerEvent): void => {
       const path = event.composedPath();
 
-      if (
-        triggerRef.current &&
-        path.includes(triggerRef.current)
-      ) {
+      if (triggerRef.current && path.includes(triggerRef.current)) {
         return;
       }
 
-      if (
-        floatingRef.current &&
-        path.includes(floatingRef.current)
-      ) {
+      if (floatingRef.current && path.includes(floatingRef.current)) {
         return;
       }
 
       updateOpen(false);
     };
 
-    window.addEventListener(
-      "pointerdown",
-      handlePointerDown,
-    );
+    window.addEventListener("pointerdown", handlePointerDown);
 
     return () => {
-      window.removeEventListener(
-        "pointerdown",
-        handlePointerDown,
-      );
+      window.removeEventListener("pointerdown", handlePointerDown);
     };
   }, [currentOpen, updateOpen]);
 
@@ -696,11 +622,7 @@ export function Select({
     if (disabled && currentOpen) {
       updateOpen(false);
     }
-  }, [
-    currentOpen,
-    disabled,
-    updateOpen,
-  ]);
+  }, [currentOpen, disabled, updateOpen]);
 
   useEffect(() => {
     return () => {
@@ -718,6 +640,7 @@ export function Select({
       disabled,
       required,
       reduceMotion,
+      placement,
 
       triggerId,
       listboxId,
@@ -734,6 +657,7 @@ export function Select({
       setActiveValue,
       setOpen: updateOpen,
       selectValue,
+      setPlacement,
 
       handleTriggerKeyDown,
     }),
@@ -746,10 +670,12 @@ export function Select({
       getOptions,
       handleTriggerKeyDown,
       listboxId,
+      placement,
       reduceMotion,
       registerOption,
       required,
       selectValue,
+      setPlacement,
       triggerId,
       unregisterOption,
       updateOpen,
@@ -775,180 +701,130 @@ export function Select({
   );
 }
 
-export interface SelectTriggerProps
-  extends Omit<
-    React.ButtonHTMLAttributes<HTMLButtonElement>,
-    | "children"
-    | "value"
-    | "defaultValue"
-    | "onDrag"
-    | "onDragStart"
-    | "onDragEnd"
-    | "onDragEnter"
-    | "onDragLeave"
-    | "onDragOver"
-    | "onDrop"
-    | "onAnimationStart"
-    | "onAnimationEnd"
-    | "onAnimationIteration"
-  > {
+export interface SelectTriggerProps extends Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  | "children"
+  | "value"
+  | "defaultValue"
+  | "onDrag"
+  | "onDragStart"
+  | "onDragEnd"
+  | "onDragEnter"
+  | "onDragLeave"
+  | "onDragOver"
+  | "onDrop"
+  | "onAnimationStart"
+  | "onAnimationEnd"
+  | "onAnimationIteration"
+> {
   children: ReactNode;
 }
 
-export const SelectTrigger = forwardRef<
-  HTMLButtonElement,
-  SelectTriggerProps
->(function SelectTrigger(
-  {
-    id,
-    className,
-    children,
-    onClick,
-    onKeyDown,
-    ...buttonProps
-  },
-  forwardedRef,
-) {
-  const context = useSelectContext("SelectTrigger");
-  const isTop = context.open
-    ? context.floatingRef.current?.dataset.placement === "top"
-    : false;
+export const SelectTrigger = forwardRef<HTMLButtonElement, SelectTriggerProps>(
+  function SelectTrigger(
+    { id, className, children, onClick, onKeyDown, ...buttonProps },
+    forwardedRef,
+  ) {
+    const context = useSelectContext("SelectTrigger");
+    const isTop = context.open ? context.placement === "top" : false;
 
-  const nearRadiusKeyframes = context.open
-    ? [0, 0, 12]
-    : [12, 0, 12];
+    const nearRadiusKeyframes = context.open ? [0, 0, 12] : [12, 0, 12];
 
-  const radiusTransition: Transition =
-    context.reduceMotion
+    const radiusTransition: Transition = context.reduceMotion
       ? INSTANT_TRANSITION
       : context.open
         ? {
-          duration: 0.6,
-          times: [0, 0.4, 1],
-          ease: EASE_OUT,
-        }
+            duration: 0.6,
+            times: [0, 0.4, 1],
+            ease: EASE_OUT,
+          }
         : {
-          duration: 0.42,
-          times: [0, 0.5, 1],
-          ease: EASE_OUT,
-        };
+            duration: 0.42,
+            times: [0, 0.5, 1],
+            ease: EASE_OUT,
+          };
 
-  const selectedOption = context.getOptionByValue(
-    context.value,
-  );
+    const activeOption = context.getOptionByValue(context.activeValue);
 
-  const activeOption = context.getOptionByValue(
-    context.activeValue,
-  );
+    const handleRef = useCallback(
+      (node: HTMLButtonElement | null): void => {
+        context.triggerRef.current = node;
+        assignRef(forwardedRef, node);
+      },
+      [context.triggerRef, forwardedRef],
+    );
 
-  const handleRef = useCallback(
-    (node: HTMLButtonElement | null): void => {
-      context.triggerRef.current = node;
-      assignRef(forwardedRef, node);
-    },
-    [context.triggerRef, forwardedRef],
-  );
+    return (
+      <motion.button
+        {...buttonProps}
+        ref={handleRef}
+        id={id ?? context.triggerId}
+        type="button"
+        role="combobox"
+        disabled={context.disabled || buttonProps.disabled}
+        aria-haspopup="listbox"
+        aria-expanded={context.open}
+        aria-controls={context.listboxId}
+        aria-activedescendant={context.open ? activeOption?.id : undefined}
+        aria-required={context.required || undefined}
+        aria-disabled={context.disabled || undefined}
+        onClick={(event) => {
+          onClick?.(event);
 
-  return (
-    <motion.button
-      {...buttonProps}
-      ref={handleRef}
-      id={id ?? context.triggerId}
-      type="button"
-      role="combobox"
-      disabled={context.disabled || buttonProps.disabled}
-      aria-haspopup="listbox"
-      aria-expanded={context.open}
-      aria-controls={context.listboxId}
-      aria-activedescendant={
-        context.open ? activeOption?.id : undefined
-      }
-      aria-required={
-        context.required || undefined
-      }
-      aria-disabled={
-        context.disabled || undefined
-      }
-      aria-valuetext={selectedOption?.label}
-      onClick={(event) => {
-        onClick?.(event);
+          if (event.defaultPrevented || context.disabled) {
+            return;
+          }
 
-        if (
-          event.defaultPrevented ||
-          context.disabled
-        ) {
-          return;
-        }
-
-        context.setOpen(!context.open);
-      }}
-      onKeyDown={(event) => {
-        onKeyDown?.(event);
-
-        if (event.defaultPrevented) {
-          return;
-        }
-
-        context.handleTriggerKeyDown(event);
-      }}
-      initial={false}
-      animate={{
-        borderTopLeftRadius: isTop
-          ? nearRadiusKeyframes
-          : 12,
-        borderTopRightRadius: isTop
-          ? nearRadiusKeyframes
-          : 12,
-        borderBottomLeftRadius: isTop
-          ? 12
-          : nearRadiusKeyframes,
-        borderBottomRightRadius: isTop
-          ? 12
-          : nearRadiusKeyframes,
-      }}
-      transition={{
-        borderTopLeftRadius: isTop
-          ? radiusTransition
-          : INSTANT_TRANSITION,
-        borderTopRightRadius: isTop
-          ? radiusTransition
-          : INSTANT_TRANSITION,
-        borderBottomLeftRadius: isTop
-          ? INSTANT_TRANSITION
-          : radiusTransition,
-        borderBottomRightRadius: isTop
-          ? INSTANT_TRANSITION
-          : radiusTransition,
-      }}
-      className={cn(
-        "relative z-10 flex w-full items-center justify-between gap-2",
-        "rounded-xl border border-border bg-background px-3 py-2",
-        "text-sm text-foreground outline-none transition-colors",
-        "hover:border-(--color-border-strong)",
-        "focus-visible:ring-2 focus-visible:ring-foreground/20",
-        "disabled:pointer-events-none disabled:opacity-50",
-        className,
-      )}
-    >
-      {children}
-
-      <motion.span
-        aria-hidden="true"
-        animate={{
-          rotate: context.open ? 180 : 0,
+          context.setOpen(!context.open);
         }}
-        transition={
-          context.reduceMotion
-            ? INSTANT_TRANSITION
-            : CHEVRON_TRANSITION
-        }
-        className="shrink-0 text-muted-foreground"
+        onKeyDown={(event) => {
+          onKeyDown?.(event);
+
+          if (event.defaultPrevented) {
+            return;
+          }
+
+          context.handleTriggerKeyDown(event);
+        }}
+        initial={false}
+        animate={{
+          borderTopLeftRadius: isTop ? nearRadiusKeyframes : 12,
+          borderTopRightRadius: isTop ? nearRadiusKeyframes : 12,
+          borderBottomLeftRadius: isTop ? 12 : nearRadiusKeyframes,
+          borderBottomRightRadius: isTop ? 12 : nearRadiusKeyframes,
+        }}
+        transition={{
+          borderTopLeftRadius: isTop ? radiusTransition : INSTANT_TRANSITION,
+          borderTopRightRadius: isTop ? radiusTransition : INSTANT_TRANSITION,
+          borderBottomLeftRadius: isTop ? INSTANT_TRANSITION : radiusTransition,
+          borderBottomRightRadius: isTop ? INSTANT_TRANSITION : radiusTransition,
+        }}
+        className={cn(
+          "relative z-10 flex w-full items-center justify-between gap-2",
+          "rounded-xl border border-border bg-background px-3 py-2",
+          "text-sm text-foreground outline-none transition-colors",
+          "hover:border-(--color-border-strong)",
+          "focus-visible:ring-2 focus-visible:ring-foreground/20",
+          "disabled:pointer-events-none disabled:opacity-50",
+          className,
+        )}
       >
-        <ChevronDown className="h-4 w-4" />
-      </motion.span>
-    </motion.button>
-  );
-});
+        {children}
+
+        <motion.span
+          aria-hidden="true"
+          animate={{
+            rotate: context.open ? 180 : 0,
+          }}
+          transition={context.reduceMotion ? INSTANT_TRANSITION : CHEVRON_TRANSITION}
+          className="shrink-0 text-muted-foreground"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </motion.span>
+      </motion.button>
+    );
+  },
+);
 
 SelectTrigger.displayName = "SelectTrigger";
 
@@ -957,27 +833,25 @@ export interface SelectValueProps {
   className?: string;
 }
 
-export function SelectValue({
-  placeholder = "Select",
-  className,
-}: SelectValueProps) {
+export function SelectValue({ placeholder = "Select", className }: SelectValueProps) {
   const context = useSelectContext("SelectValue");
 
-  const selectedOption = context.getOptionByValue(
-    context.value,
-  );
+  const selectedOption = context.getOptionByValue(context.value);
 
   return (
     <span
       className={cn(
-        "min-w-0 flex-1 truncate text-left",
-        selectedOption
-          ? "text-foreground"
-          : "text-muted-foreground",
+        "flex min-w-0 flex-1 items-center gap-2 text-left",
+        selectedOption ? "text-foreground" : "text-muted-foreground",
         className,
       )}
     >
-      {selectedOption?.label ?? placeholder}
+      {selectedOption?.icon !== undefined ? (
+        <span aria-hidden="true" className="inline-flex shrink-0 items-center">
+          {selectedOption.icon}
+        </span>
+      ) : null}
+      <span className="min-w-0 flex-1 truncate">{selectedOption?.label ?? placeholder}</span>
     </span>
   );
 }
@@ -1007,8 +881,7 @@ export function SelectContent({
 
   const [mounted, setMounted] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
-  const [position, setPosition] =
-    useState<FloatingPosition | null>(null);
+  const [position, setPosition] = useState<FloatingPosition | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -1022,72 +895,40 @@ export function SelectContent({
       return;
     }
 
-    const triggerRect =
-      trigger.getBoundingClientRect();
+    const triggerRect = trigger.getBoundingClientRect();
 
-    const measuredHeight = Math.max(
-      viewport.scrollHeight,
-      viewport.offsetHeight,
-    );
+    const measuredHeight = Math.max(viewport.scrollHeight, viewport.offsetHeight);
 
     const availableBelow = Math.max(
       0,
-      window.innerHeight -
-      triggerRect.bottom -
-      sideOffset -
-      viewportPadding,
+      window.innerHeight - triggerRect.bottom - sideOffset - viewportPadding,
     );
 
-    const availableAbove = Math.max(
-      0,
-      triggerRect.top -
-      sideOffset -
-      viewportPadding,
-    );
+    const availableAbove = Math.max(0, triggerRect.top - sideOffset - viewportPadding);
 
-    const preferredHeight = Math.min(
-      measuredHeight,
-      maxHeight,
-    );
+    const preferredHeight = Math.min(measuredHeight, maxHeight);
 
     const placement: Placement =
-      availableBelow >= preferredHeight ||
-        availableBelow >= availableAbove
-        ? "bottom"
-        : "top";
+      availableBelow >= preferredHeight || availableBelow >= availableAbove ? "bottom" : "top";
+
+    context.setPlacement(placement);
 
     const availableHeight = Math.max(
       0,
-      Math.min(
-        maxHeight,
-        placement === "bottom"
-          ? availableBelow
-          : availableAbove,
-      ),
+      Math.min(maxHeight, placement === "bottom" ? availableBelow : availableAbove),
     );
 
-    setContentHeight(
-      Math.min(measuredHeight, availableHeight),
-    );
+    setContentHeight(Math.min(measuredHeight, availableHeight));
 
     setPosition((previous) => {
       const next: FloatingPosition = {
         left: Math.max(
           viewportPadding,
-          Math.min(
-            triggerRect.left,
-            window.innerWidth -
-            viewportPadding -
-            triggerRect.width,
-          ),
+          Math.min(triggerRect.left, window.innerWidth - viewportPadding - triggerRect.width),
         ),
-        width: Math.min(
-          triggerRect.width,
-          window.innerWidth - viewportPadding * 2,
-        ),
+        width: Math.min(triggerRect.width, window.innerWidth - viewportPadding * 2),
         anchorTop: triggerRect.top,
         anchorBottom: triggerRect.bottom,
-        placement,
         availableHeight,
       };
 
@@ -1097,7 +938,6 @@ export function SelectContent({
         previous.width === next.width &&
         previous.anchorTop === next.anchorTop &&
         previous.anchorBottom === next.anchorBottom &&
-        previous.placement === next.placement &&
         previous.availableHeight === next.availableHeight
       ) {
         return previous;
@@ -1105,25 +945,18 @@ export function SelectContent({
 
       return next;
     });
-  }, [
-    context.triggerRef,
-    maxHeight,
-    sideOffset,
-    viewportPadding,
-  ]);
+  }, [context.setPlacement, context.triggerRef, maxHeight, sideOffset, viewportPadding]);
 
-  const schedulePositionUpdate =
-    useCallback((): void => {
-      if (animationFrameRef.current !== null) {
-        return;
-      }
+  const schedulePositionUpdate = useCallback((): void => {
+    if (animationFrameRef.current !== null) {
+      return;
+    }
 
-      animationFrameRef.current =
-        requestAnimationFrame(() => {
-          animationFrameRef.current = null;
-          updatePosition();
-        });
-    }, [updatePosition]);
+    animationFrameRef.current = requestAnimationFrame(() => {
+      animationFrameRef.current = null;
+      updatePosition();
+    });
+  }, [updatePosition]);
 
   useLayoutEffect(() => {
     if (!mounted) {
@@ -1131,12 +964,7 @@ export function SelectContent({
     }
 
     updatePosition();
-  }, [
-    children,
-    context.open,
-    mounted,
-    updatePosition,
-  ]);
+  }, [children, context.open, mounted, updatePosition]);
 
   useLayoutEffect(() => {
     if (!mounted) {
@@ -1150,130 +978,85 @@ export function SelectContent({
       return;
     }
 
-    const resizeObserver = new ResizeObserver(
-      schedulePositionUpdate,
-    );
+    const resizeObserver = new ResizeObserver(schedulePositionUpdate);
 
     resizeObserver.observe(trigger);
     resizeObserver.observe(viewport);
 
-    window.addEventListener(
-      "resize",
-      schedulePositionUpdate,
-    );
+    window.addEventListener("resize", schedulePositionUpdate);
 
-    window.addEventListener(
-      "scroll",
-      schedulePositionUpdate,
-      true,
-    );
+    window.addEventListener("scroll", schedulePositionUpdate, true);
 
-    window.visualViewport?.addEventListener(
-      "resize",
-      schedulePositionUpdate,
-    );
+    window.visualViewport?.addEventListener("resize", schedulePositionUpdate);
 
-    window.visualViewport?.addEventListener(
-      "scroll",
-      schedulePositionUpdate,
-    );
+    window.visualViewport?.addEventListener("scroll", schedulePositionUpdate);
 
     return () => {
       resizeObserver.disconnect();
 
-      window.removeEventListener(
-        "resize",
-        schedulePositionUpdate,
-      );
+      window.removeEventListener("resize", schedulePositionUpdate);
 
-      window.removeEventListener(
-        "scroll",
-        schedulePositionUpdate,
-        true,
-      );
+      window.removeEventListener("scroll", schedulePositionUpdate, true);
 
-      window.visualViewport?.removeEventListener(
-        "resize",
-        schedulePositionUpdate,
-      );
+      window.visualViewport?.removeEventListener("resize", schedulePositionUpdate);
 
-      window.visualViewport?.removeEventListener(
-        "scroll",
-        schedulePositionUpdate,
-      );
+      window.visualViewport?.removeEventListener("scroll", schedulePositionUpdate);
 
       if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(
-          animationFrameRef.current,
-        );
+        cancelAnimationFrame(animationFrameRef.current);
 
         animationFrameRef.current = null;
       }
     };
-  }, [
-    context.triggerRef,
-    mounted,
-    schedulePositionUpdate,
-  ]);
+  }, [context.triggerRef, mounted, schedulePositionUpdate]);
 
   useLayoutEffect(() => {
     if (!context.open || context.activeValue === null) {
       return;
     }
 
-    const option = context.getOptionByValue(
-      context.activeValue,
-    );
+    const option = context.getOptionByValue(context.activeValue);
 
     option?.ref.current?.scrollIntoView({
       block: "nearest",
     });
-  }, [
-    context.activeValue,
-    context.getOptionByValue,
-    context.open,
-  ]);
+  }, [context.activeValue, context.getOptionByValue, context.open]);
 
   if (!mounted) {
     return null;
   }
 
-  const placement = position?.placement ?? "bottom";
+  const placement = context.placement;
   const isTop = placement === "top";
 
   const nearGap = context.open ? sideOffset : 0;
   const nearRadius = context.open ? 12 : 0;
 
-  const gapTransition: Transition =
-    context.open
-      ? {
+  const gapTransition: Transition = context.open
+    ? {
         type: "spring",
         duration: 0.5,
         bounce: 0.35,
         delay: 0.08,
       }
-      : {
+    : {
         type: "spring",
         duration: 0.24,
         bounce: 0.1,
       };
 
-  const radiusTransition: Transition =
-    context.open
-      ? {
+  const radiusTransition: Transition = context.open
+    ? {
         duration: 0.24,
         ease: EASE_OUT,
         delay: 0.08,
       }
-      : {
+    : {
         duration: 0.14,
         ease: EASE_OUT,
       };
 
-  const targetHeight =
-    context.open && position
-      ? contentHeight
-      : 0;
+  const targetHeight = context.open && position ? contentHeight : 0;
 
   return createPortal(
     <motion.div
@@ -1287,73 +1070,51 @@ export function SelectContent({
       animate={
         context.reduceMotion
           ? {
-            opacity: context.open ? 1 : 0,
-            height: targetHeight,
-          }
+              opacity: context.open ? 1 : 0,
+              height: targetHeight,
+            }
           : {
-            opacity: context.open ? 1 : 0,
-            height: targetHeight,
+              opacity: context.open ? 1 : 0,
+              height: targetHeight,
 
-            marginTop: isTop ? 0 : nearGap,
-            marginBottom: isTop ? nearGap : 0,
+              marginTop: isTop ? 0 : nearGap,
+              marginBottom: isTop ? nearGap : 0,
 
-            borderTopLeftRadius: isTop
-              ? 12
-              : nearRadius,
-            borderTopRightRadius: isTop
-              ? 12
-              : nearRadius,
-            borderBottomLeftRadius: isTop
-              ? nearRadius
-              : 12,
-            borderBottomRightRadius: isTop
-              ? nearRadius
-              : 12,
-          }
+              borderTopLeftRadius: isTop ? 12 : nearRadius,
+              borderTopRightRadius: isTop ? 12 : nearRadius,
+              borderBottomLeftRadius: isTop ? nearRadius : 12,
+              borderBottomRightRadius: isTop ? nearRadius : 12,
+            }
       }
       transition={
         context.reduceMotion
           ? INSTANT_TRANSITION
           : {
-            opacity: context.open
-              ? { duration: 0.16 }
-              : { duration: 0.12 },
+              opacity: context.open ? { duration: 0.16 } : { duration: 0.12 },
 
-            height: context.open
-              ? {
-                type: "spring",
-                duration: 0.36,
-                bounce: 0.12,
-              }
-              : {
-                duration: 0.2,
-                ease: EASE_OUT,
-              },
+              height: context.open
+                ? {
+                    type: "spring",
+                    duration: 0.36,
+                    bounce: 0.12,
+                  }
+                : {
+                    duration: 0.2,
+                    ease: EASE_OUT,
+                  },
 
-            marginTop: isTop
-              ? INSTANT_TRANSITION
-              : gapTransition,
+              marginTop: isTop ? INSTANT_TRANSITION : gapTransition,
 
-            marginBottom: isTop
-              ? gapTransition
-              : INSTANT_TRANSITION,
+              marginBottom: isTop ? gapTransition : INSTANT_TRANSITION,
 
-            borderTopLeftRadius: isTop
-              ? INSTANT_TRANSITION
-              : radiusTransition,
+              borderTopLeftRadius: isTop ? INSTANT_TRANSITION : radiusTransition,
 
-            borderTopRightRadius: isTop
-              ? INSTANT_TRANSITION
-              : radiusTransition,
+              borderTopRightRadius: isTop ? INSTANT_TRANSITION : radiusTransition,
 
-            borderBottomLeftRadius: isTop
-              ? radiusTransition
-              : INSTANT_TRANSITION,
+              borderBottomLeftRadius: isTop ? radiusTransition : INSTANT_TRANSITION,
 
-            borderBottomRightRadius: isTop
-              ? radiusTransition
-              : INSTANT_TRANSITION,
-          }
+              borderBottomRightRadius: isTop ? radiusTransition : INSTANT_TRANSITION,
+            }
       }
       style={{
         position: "fixed",
@@ -1362,14 +1123,11 @@ export function SelectContent({
 
         ...(isTop
           ? {
-            bottom: position
-              ? window.innerHeight -
-              position.anchorTop
-              : 0,
-          }
+              bottom: position ? window.innerHeight - position.anchorTop : 0,
+            }
           : {
-            top: position?.anchorBottom ?? 0,
-          }),
+              top: position?.anchorBottom ?? 0,
+            }),
 
         transformOrigin: isTop ? "bottom" : "top",
         overflow: "hidden",
@@ -1384,20 +1142,13 @@ export function SelectContent({
     >
       <motion.div
         ref={viewportRef}
-        {...(context.reduceMotion
-          ? {}
-          : { variants: LIST_VARIANTS })}
+        {...(context.reduceMotion ? {} : { variants: LIST_VARIANTS })}
         initial={false}
         animate={context.open ? "show" : "hidden"}
         style={{
-          maxHeight:
-            position?.availableHeight ??
-            DEFAULT_MAX_HEIGHT,
+          maxHeight: position?.availableHeight ?? DEFAULT_MAX_HEIGHT,
         }}
-        className={cn(
-          "overflow-y-auto overscroll-contain p-1",
-          viewportClassName,
-        )}
+        className={cn("overflow-y-auto overscroll-contain p-1", viewportClassName)}
       >
         {children}
       </motion.div>
@@ -1409,6 +1160,8 @@ export function SelectContent({
 export interface SelectItemProps {
   value: string;
   textValue?: string;
+  /** Optional leading visual shown before the item text and on the trigger when selected (a lucide icon or a flag). */
+  icon?: ReactNode;
   disabled?: boolean;
   className?: string;
   children: ReactNode;
@@ -1417,6 +1170,7 @@ export interface SelectItemProps {
 export function SelectItem({
   value,
   textValue,
+  icon,
   disabled = false,
   className,
   children,
@@ -1428,26 +1182,18 @@ export function SelectItem({
 
   const optionRef = useRef<HTMLDivElement>(null);
 
-  const resolvedTextValue =
-    textValue ??
-    (typeof children === "string"
-      ? children
-      : undefined);
+  const resolvedTextValue = textValue ?? (typeof children === "string" ? children : undefined);
 
   const label = resolvedTextValue ?? value;
   const selected = context.value === value;
   const active = context.activeValue === value;
-  const effectivelyDisabled =
-    context.disabled || disabled;
+  const effectivelyDisabled = context.disabled || disabled;
 
   useLayoutEffect(() => {
-    if (
-      process.env.NODE_ENV !== "production" &&
-      !resolvedTextValue
-    ) {
+    if (process.env.NODE_ENV !== "production" && !resolvedTextValue) {
       console.warn(
         `SelectItem with value "${value}" has non-text children. ` +
-        'Provide a textValue prop, for example textValue="São Paulo".',
+          'Provide a textValue prop, for example textValue="São Paulo".',
       );
     }
 
@@ -1455,6 +1201,7 @@ export function SelectItem({
       id: optionId,
       value,
       label,
+      icon,
       disabled: effectivelyDisabled,
       ref: optionRef,
     };
@@ -1468,6 +1215,7 @@ export function SelectItem({
     context.registerOption,
     context.unregisterOption,
     effectivelyDisabled,
+    icon,
     label,
     optionId,
     resolvedTextValue,
@@ -1480,18 +1228,12 @@ export function SelectItem({
       id={optionId}
       role="option"
       aria-selected={selected}
-      aria-disabled={
-        effectivelyDisabled || undefined
-      }
+      aria-disabled={effectivelyDisabled || undefined}
       data-value={value}
       data-selected={selected ? "" : undefined}
       data-active={active ? "" : undefined}
-      data-disabled={
-        effectivelyDisabled ? "" : undefined
-      }
-      {...(context.reduceMotion
-        ? {}
-        : { variants: ITEM_VARIANTS })}
+      data-disabled={effectivelyDisabled ? "" : undefined}
+      {...(context.reduceMotion ? {} : { variants: ITEM_VARIANTS })}
       onPointerDown={(event) => {
         /*
          * Keep DOM focus on the combobox trigger. The active option
@@ -1500,10 +1242,7 @@ export function SelectItem({
         event.preventDefault();
       }}
       onPointerMove={(event) => {
-        if (
-          effectivelyDisabled ||
-          event.pointerType === "touch"
-        ) {
+        if (effectivelyDisabled || event.pointerType === "touch") {
           return;
         }
 
@@ -1521,33 +1260,29 @@ export function SelectItem({
         "justify-between gap-2 rounded-lg px-2.5 py-1.5",
         "text-left text-sm outline-none transition-colors",
 
-        selected
-          ? "bg-muted text-foreground"
-          : "text-muted-foreground",
+        selected ? "bg-muted text-foreground" : "text-muted-foreground",
 
-        active &&
-        !selected &&
-        "bg-muted text-foreground",
+        active && !selected && "bg-muted text-foreground",
 
-        !effectivelyDisabled &&
-        "hover:bg-muted hover:text-foreground",
+        !effectivelyDisabled && "hover:bg-muted hover:text-foreground",
 
-        effectivelyDisabled &&
-        "pointer-events-none opacity-50",
+        effectivelyDisabled && "pointer-events-none opacity-50",
 
         className,
       )}
     >
-      <span className="min-w-0 flex-1 truncate">
-        {children}
-      </span>
+      {icon !== undefined ? (
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          <span aria-hidden="true" className="inline-flex shrink-0 items-center">
+            {icon}
+          </span>
+          <span className="min-w-0 flex-1 truncate">{children}</span>
+        </span>
+      ) : (
+        <span className="min-w-0 flex-1 truncate">{children}</span>
+      )}
 
-      {selected ? (
-        <Check
-          aria-hidden="true"
-          className="h-3.5 w-3.5 shrink-0"
-        />
-      ) : null}
+      {selected ? <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0" /> : null}
     </motion.div>
   );
 }

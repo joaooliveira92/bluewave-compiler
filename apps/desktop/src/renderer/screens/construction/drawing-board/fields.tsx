@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import {
   Select,
   SelectContent,
@@ -115,6 +115,8 @@ export function SelectField({
   readonly options: readonly {
     readonly value: string;
     readonly label: string;
+    /** Optional leading visual (a lucide icon or a flag) shown before the label in the list and on the trigger. */
+    readonly icon?: ReactNode;
     readonly disabled?: boolean;
   }[];
   readonly onChange: (value: string) => void;
@@ -139,7 +141,7 @@ export function SelectField({
         </SelectTrigger>
         <SelectContent>
           {options.map((o) => (
-            <SelectItem key={o.value} value={o.value} disabled={o.disabled}>
+            <SelectItem key={o.value} value={o.value} icon={o.icon} disabled={o.disabled}>
               {o.label}
             </SelectItem>
           ))}
