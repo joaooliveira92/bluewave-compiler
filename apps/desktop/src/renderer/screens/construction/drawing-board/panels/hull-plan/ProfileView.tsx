@@ -1,7 +1,7 @@
 import type { DrawingBoardContent } from "../../content.js";
 import type { DesignDraft } from "@bluewave/ship-design";
 import { type DrawingFacts, profileLabel } from "./describe.js";
-import { funnelPlacements } from "./layers.js";
+import { funnelPlacements } from "./funnelPlacements.js";
 import {
   funnelShapes,
   houseMasses,

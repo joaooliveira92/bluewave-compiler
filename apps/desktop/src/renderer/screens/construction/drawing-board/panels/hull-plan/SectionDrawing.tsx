@@ -1,37 +1,32 @@
 import { useId } from "react";
+import type { DesignDraft } from "@bluewave/ship-design";
+import type { DrawingBoardContent } from "../../content.js";
 import { arcSectors, sectorPath } from "./arcs.js";
 import { DASH, NON_SCALING, OPACITY, STROKE } from "./drafting.js";
-import { fittingPoint, PLAN_MID, PLAN_PAD, PLAN_W, type PlanFrame } from "./geometry.js";
-import { funnelPlacements, HullShapeLayer, HullTopsideLayer } from "./layers.js";
-import type { DrawingBoardContent } from "../../content.js";
-import type { DesignDraft } from "@bluewave/ship-design";
-import { funnelShapes, houseMasses, type ProfileFrame } from "./profile-geometry.js";
+import { FittingSymbol } from "./FittingSymbol.js";
+import { fittingPoint, type PlanFrame } from "./geometry.js";
+import { HullShapeLayer, HullTopsideLayer } from "./plan-layers.js";
+import type { ProfileFrame } from "./profile-geometry.js";
 import { ProfileFittingsLayer, ProfileHullLayer } from "./profile-layers.js";
-import type { FittingKind, SectionFacts, ZoneRange } from "./sections.js";
-import { plural } from "../../plural.js";
+import {
+  PAD_X,
+  PLAN_BAND,
+  PLAN_TOP,
+  PROFILE_BAND,
+  PROFILE_TOP,
+  SCALE_Y,
+  SECTION_H,
+  SECTION_W,
+  sectionLayout,
+} from "./section-drawing.js";
+import type { SectionFacts, ZoneRange } from "./sections.js";
 
-/** Card drawing size (SVG user units, drawn about 1:1 in the card). */
-export const SECTION_W = 400;
-const PAD_X = 14;
-const PLAN_TOP = 6;
-const PLAN_BAND = 112;
-const PROFILE_TOP = PLAN_TOP + PLAN_BAND + 10;
-const PROFILE_BAND = 92;
-const SCALE_Y = PROFILE_TOP + PROFILE_BAND + 16;
-export const SECTION_H = SCALE_Y + 6;
+export { SECTION_H, SECTION_W };
+
+/** Card label size, SVG user units. */
 const FONT = 12;
 /** Drawn radius of a gun's arc wedge, px: schematic, range is not data. */
 const ARC_R = 26;
-
-/** Station window: the section plus some of its neighbours for context (dimmed). */
-function windowFor(zone: ZoneRange): { s: number; e: number } {
-  const span = zone.endPermille - zone.startPermille;
-  const margin = Math.max(20, span * 0.3);
-  return {
-    s: Math.max(-25, zone.startPermille - margin),
-    e: Math.min(1025, zone.endPermille + margin),
-  };
-}
 
 /**
  * The magnified section: a plan band and a profile band on one horizontal scale, cropped to the section with
@@ -55,38 +50,27 @@ export function SectionDrawing({
   readonly zones: readonly ZoneRange[];
 }) {
   const clip = `section-${useId().replace(/[^a-zA-Z0-9-]/g, "")}`;
-  const zone = facts.zone;
-  if (!zone) return null;
-  const { s, e } = windowFor(zone);
-  const unit = (PLAN_W - 2 * PLAN_PAD) / 1000;
-  const a = (SECTION_W - 2 * PAD_X) / ((e - s) * unit);
-  const X = (permille: number) => PAD_X + ((permille - s) / (e - s)) * (SECTION_W - 2 * PAD_X);
-  const b = X(0) - a * PLAN_PAD;
-  // Plan band: true proportions unless the beam would overflow the band.
-  const ky = Math.min(a, (PLAN_BAND / 2 - 6) / frame.maxHalf);
-  const planCy = PLAN_TOP + PLAN_BAND / 2;
-  const planTy = planCy - ky * PLAN_MID;
-  // Profile band: from the highest structure in the window down to the keel.
-  const superstructure = zones.find((z) => z.id === "SUPERSTRUCTURE");
-  const houses = houseMasses(profile, superstructure);
-  const funnels = funnelShapes(profile, funnelPlacements(draft, content), houses);
-  const tops = [
-    ...Array.from({ length: 21 }, (_, i) => profile.deckY((s + ((e - s) * i) / 20) / 1000)),
-    ...(houses ? [...houses.lower, ...houses.upper].map((p) => p.y) : []),
-    ...funnels.flatMap((f) => f.polygon.map((p) => p.y)),
-  ].filter(Number.isFinite);
-  const yTop = Math.min(...tops) - 4;
-  const yBot = profile.keelBaseY + 3;
-  const kp = Math.min(a, PROFILE_BAND / (yBot - yTop));
-  const profileTy = PROFILE_TOP + PROFILE_BAND - kp * yBot;
-  const pY = (y: number) => kp * y + profileTy;
-  const x0 = X(zone.startPermille);
-  const x1 = X(zone.endPermille);
-  const step = e - s <= 200 ? 10 : e - s <= 450 ? 25 : 50;
-  const ticks: number[] = [];
-  for (let p = Math.ceil(s / step) * step; p <= e; p += step)
-    if (p >= 0 && p <= 1000) ticks.push(p);
-  const label = `Detailed drawing of the ${facts.meta.name.toLowerCase()}, stations ${zone.startPermille} to ${zone.endPermille} permille: plan above, profile below, ${plural(facts.fittings.length, "fitting")} numbered${facts.machineryRooms.length ? `, ${plural(facts.machineryRooms.length, "machinery room")}` : ""}${facts.fuelStationPermille !== undefined ? ", fuel stowage" : ""}.`;
+  const layout = sectionLayout(facts, frame, profile, draft, content, zones);
+  if (!layout) return null;
+  const {
+    zone,
+    a,
+    X,
+    b,
+    ky,
+    planCy,
+    planTy,
+    houses,
+    funnels,
+    kp,
+    profileTy,
+    pY,
+    x0,
+    x1,
+    step,
+    ticks,
+    label,
+  } = layout;
   return (
     <svg
       viewBox={`0 0 ${SECTION_W} ${SECTION_H}`}
@@ -326,74 +310,4 @@ export function SectionDrawing({
       </text>
     </svg>
   );
-}
-
-/** Coarse symbol per fitting kind, in card units (not scaled with the hull). */
-function FittingSymbol({
-  kind,
-  x,
-  y,
-  hatch,
-}: {
-  readonly kind: FittingKind;
-  readonly x: number;
-  readonly y: number;
-  readonly hatch: string;
-}) {
-  const stroke = { strokeWidth: STROKE.structure, ...NON_SCALING };
-  switch (kind) {
-    case "gun":
-      return (
-        <>
-          <circle cx={x} cy={y} r={6.5} className="fill-background stroke-foreground" {...stroke} />
-          <circle cx={x} cy={y} r={2} className="fill-primary" />
-        </>
-      );
-    case "torpedo":
-      return (
-        <rect
-          x={x - 8}
-          y={y - 2.5}
-          width={16}
-          height={5}
-          rx={2.5}
-          className="fill-background stroke-foreground"
-          {...stroke}
-        />
-      );
-    case "magazine":
-      return (
-        <rect
-          x={x - 7}
-          y={y - 5}
-          width={14}
-          height={10}
-          fill={hatch}
-          className="stroke-foreground"
-          {...stroke}
-        />
-      );
-    case "machinery":
-      return (
-        <rect
-          x={x - 8}
-          y={y - 5}
-          width={16}
-          height={10}
-          className="fill-muted stroke-foreground"
-          {...stroke}
-        />
-      );
-    case "funnel":
-      return <circle cx={x} cy={y} r={2.5} className="fill-foreground" />;
-    case "other":
-      return (
-        <polygon
-          points={`${x},${y - 5} ${x + 5},${y} ${x},${y + 5} ${x - 5},${y}`}
-          className="fill-primary stroke-primary"
-          strokeWidth={STROKE.structure}
-          {...NON_SCALING}
-        />
-      );
-  }
 }

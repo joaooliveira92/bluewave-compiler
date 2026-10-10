@@ -5,6 +5,7 @@ import { sameEntity, type ShipEntity } from "../../selection/store.js";
 import { useSelectionStore, useShipSelection } from "../../selection/useShipSelection.js";
 import { NON_SCALING, STROKE } from "./drafting.js";
 import { fittingPoint, PLAN_H, PLAN_W, type PlanFrame } from "./geometry.js";
+import { WarningGlyph } from "./WarningGlyph.js";
 
 const SIDE = { CENTRE: "centreline", PORT: "port", STBD: "starboard" } as const;
 /** Hit radius around a fitting marker, plan units: larger than the 4-unit dot so it is easy to click. */
@@ -15,21 +16,6 @@ export interface FittingTarget {
   readonly name: string;
   /** Conventional mount name (A, B, X...) for guns and tubes. */
   readonly mount: string | undefined;
-}
-
-/** Warning glyph (triangle with a bar): the "selected with warning" state is shape, not just colour. */
-export function WarningGlyph({ x, y }: { readonly x: number; readonly y: number }) {
-  return (
-    <g data-testid="selection-warning" aria-hidden="true">
-      <polygon
-        points={`${x},${y - 6} ${x + 6},${y + 4} ${x - 6},${y + 4}`}
-        className="fill-warning stroke-foreground"
-        strokeWidth={STROKE.guide}
-        {...NON_SCALING}
-      />
-      <line x1={x} x2={x} y1={y - 3} y2={y + 1} className="stroke-foreground" strokeWidth={1.2} />
-    </g>
-  );
 }
 
 /**

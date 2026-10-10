@@ -4,22 +4,9 @@ import { Button } from "../../../../../components/ui/button.js";
 import { ButtonGroup } from "../../../../../components/ui/button-group.js";
 import { SelectField } from "../../fields.js";
 import { hasSide, NUDGE_PERMILLE } from "./placement-tools.js";
+import { type PlanTool, type PlanToolMode } from "./plan-tool.js";
 
-export type PlanToolMode = "off" | "place" | "move";
-
-export interface PlanTool {
-  readonly mode: PlanToolMode;
-  /** Component to place (place mode). */
-  readonly componentId: string;
-  /** Fitting to move (move mode). */
-  readonly instanceId: string;
-}
-
-export const IDLE_TOOL: PlanTool = {
-  mode: "off",
-  componentId: "",
-  instanceId: "",
-};
+export { IDLE_TOOL, type PlanTool, type PlanToolMode } from "./plan-tool.js";
 
 const isMountSide = (v: string): v is MountSide => v === "CENTRE" || v === "PORT" || v === "STBD";
 

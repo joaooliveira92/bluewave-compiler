@@ -2,9 +2,9 @@ import type { DesignDraft } from "@bluewave/ship-design";
 import { machineryRooms } from "../../selection/facts.js";
 import { sameEntity, type ShipEntity } from "../../selection/store.js";
 import { useShipSelection } from "../../selection/useShipSelection.js";
-import { WarningGlyph } from "./FittingTargets.js";
+import { WarningGlyph } from "./WarningGlyph.js";
 import { PLAN_MID, type PlanFrame } from "./geometry.js";
-import { MachineryRoomMarker, SectionHighlightLayer } from "./layers.js";
+import { MachineryRoomMarker, SectionHighlightLayer } from "./selection-layers.js";
 import { SECTIONS, type ZoneRange } from "./sections.js";
 
 /**

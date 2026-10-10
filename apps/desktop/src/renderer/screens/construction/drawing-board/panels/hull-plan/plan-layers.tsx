@@ -1,7 +1,6 @@
 import type { DesignDraft, ZoneId } from "@bluewave/ship-design";
 import { ZONE_IDS } from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../content.js";
-import { arcSectors, sectorPath } from "./arcs.js";
 import {
   DASH,
   LABEL_FONT,
@@ -10,8 +9,8 @@ import {
   STATION_STEP_PERMILLE,
   STROKE,
 } from "./drafting.js";
-import { fittingPoint, PLAN_MID, PLAN_PAD, PLAN_W, type PlanFrame } from "./geometry.js";
-import type { FunnelInput } from "./profile-geometry.js";
+import { funnelPlacements } from "./funnelPlacements.js";
+import { PLAN_MID, PLAN_PAD, PLAN_W, type PlanFrame } from "./geometry.js";
 
 const PLAN_FONT = LABEL_FONT;
 
@@ -164,178 +163,6 @@ export function HullZoneLayer({
         ))}
     </>
   );
-}
-
-/**
- * How a section is lit, weakest first. Each differs in line pattern as well as fill, so the states read without
- * colour: preview (hover card open) dashed; linked from a form, dotted with no fill; selected, solid and filled.
- */
-export type SectionHighlight = "preview" | "linked" | "selected";
-
-const HIGHLIGHT: Record<
-  SectionHighlight,
-  { fill: number; width: number; dash: string | undefined; testId: string }
-> = {
-  preview: {
-    fill: 0.1,
-    width: STROKE.structure,
-    dash: DASH.zoneGuide,
-    testId: "section-highlight",
-  },
-  linked: { fill: 0, width: STROKE.structure, dash: "1 3", testId: "section-linked" },
-  selected: { fill: 0.16, width: 2.2, dash: undefined, testId: "section-selected" },
-};
-
-/**
- * Marks a section. Drawn above the hull fill and under everything else, so fittings, arcs, boundaries and the
- * superstructure stay visible through it.
- */
-export function SectionHighlightLayer({
-  frame,
-  zone,
-  variant = "preview",
-}: {
-  readonly frame: PlanFrame;
-  readonly zone:
-    | { readonly id: string; readonly startPermille: number; readonly endPermille: number }
-    | undefined;
-  readonly variant?: SectionHighlight;
-}) {
-  if (!zone) return null;
-  const style = HIGHLIGHT[variant];
-  return (
-    <rect
-      x={frame.x(zone.startPermille)}
-      width={frame.x(zone.endPermille) - frame.x(zone.startPermille)}
-      y={PLAN_MID - frame.maxHalf - 4}
-      height={frame.maxHalf * 2 + 8}
-      className="pointer-events-none fill-primary stroke-primary"
-      fillOpacity={style.fill}
-      strokeOpacity={0.75}
-      strokeWidth={style.width}
-      strokeDasharray={style.dash}
-      {...NON_SCALING}
-      data-testid={style.testId}
-      data-zone={zone.id}
-      aria-hidden="true"
-    />
-  );
-}
-
-/** A machinery room's station (rooms have no drawn extent in the model): a bar across the hull marked "M". */
-export function MachineryRoomMarker({
-  frame,
-  stationPermille,
-  variant,
-}: {
-  readonly frame: PlanFrame;
-  readonly stationPermille: number;
-  readonly variant: "linked" | "selected";
-}) {
-  const x = frame.x(stationPermille);
-  const top = PLAN_MID - frame.maxHalf - 2;
-  return (
-    <g
-      className="pointer-events-none"
-      aria-hidden="true"
-      data-testid={`room-${variant}`}
-      data-station={stationPermille}
-    >
-      <line
-        x1={x}
-        x2={x}
-        y1={top}
-        y2={PLAN_MID + frame.maxHalf + 2}
-        className="stroke-primary"
-        strokeWidth={variant === "selected" ? 2.2 : STROKE.structure}
-        strokeDasharray={variant === "linked" ? "1 3" : undefined}
-        {...NON_SCALING}
-      />
-      <text x={x + 3} y={top + 2} className="fill-primary font-medium" fontSize={LABEL_FONT}>
-        M
-      </text>
-    </g>
-  );
-}
-
-/** The fittings' markers. Names, hover and selection are on the `FittingTargets` overlay above the drawing. */
-export function HullFittingLayer({
-  frame,
-  draft,
-  selectedId,
-}: {
-  readonly frame: PlanFrame;
-  readonly draft: DesignDraft;
-  /** Fitting to ring (the one being moved from the plan tools). */
-  readonly selectedId?: string;
-}) {
-  return (
-    <>
-      {draft.placements.map((p, i) => {
-        const { x, y } = fittingPoint(frame, p.stationPermille, p.side, i);
-        return (
-          <g key={p.instanceId}>
-            {p.instanceId === selectedId && (
-              <circle
-                cx={x}
-                cy={y}
-                r={8}
-                className="fill-none stroke-primary"
-                strokeWidth={STROKE.structure}
-                {...NON_SCALING}
-                data-testid="plan-selected-ring"
-              />
-            )}
-            <circle cx={x} cy={y} r={4} className="fill-primary" data-fitting={p.instanceId} />
-          </g>
-        );
-      })}
-    </>
-  );
-}
-
-/** Schematic radius of an arc wedge, px. Range is not data. */
-const ARC_R = 30;
-
-export function GunArcLayer({
-  frame,
-  draft,
-  mounts,
-}: {
-  readonly frame: PlanFrame;
-  readonly draft: DesignDraft;
-  readonly mounts: readonly { instanceId: string; effectiveBeamArcDeg: number }[];
-}) {
-  const arcByInstance = new Map(mounts.map((m) => [m.instanceId, m.effectiveBeamArcDeg]));
-  return (
-    <g data-testid="gun-arcs">
-      {draft.placements.flatMap((p, i) => {
-        const { x, y } = fittingPoint(frame, p.stationPermille, p.side, i);
-        return arcSectors(p.instanceId, p.side, arcByInstance.get(p.instanceId)).map((s) => (
-          <path
-            key={`${p.instanceId}-${s.beam}`}
-            d={sectorPath(x, y, ARC_R, s)}
-            className="fill-primary stroke-primary"
-            fillOpacity={0.12}
-            strokeOpacity={0.4}
-            data-arc={`${p.instanceId}:${s.beam}`}
-          >
-            <title>{`${p.instanceId}: ${Math.round(s.widthDeg)}° ${s.beam === "STBD" ? "starboard" : "port"} beam arc`}</title>
-          </path>
-        ));
-      })}
-    </g>
-  );
-}
-
-/** The placed funnels (components tagged "funnel"), keyed by instance id so both views show the same ones. */
-export function funnelPlacements(draft: DesignDraft, content: DrawingBoardContent): FunnelInput[] {
-  const funnelIds = new Set(
-    content.components.filter((c) => c.tags.includes("funnel")).map((c) => c.id),
-  );
-  return draft.placements
-    .filter((p) => funnelIds.has(p.componentId))
-    .map((p) => ({ instanceId: p.instanceId, stationPermille: p.stationPermille }));
 }
 
 /** Superstructure block (over its zone) and funnel ovals, in plan. Footprints are schematic: no data gives their width. */
