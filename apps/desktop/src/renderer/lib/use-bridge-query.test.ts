@@ -24,13 +24,11 @@ describe("useBridgeQuery", () => {
   it("resolves to ready with the command's value", async () => {
     const execute = vi.fn();
     bridgeWith(execute);
-    const run = vi.fn(
-      async (): Promise<BridgeResult<{ n: number }>> => ({
-        outcome: "success",
-        value: { n: 1 },
-        diagnostics: [],
-      }),
-    );
+    const run = vi.fn(async (): Promise<BridgeResult<{ n: number }>> => ({
+      outcome: "success",
+      value: { n: 1 },
+      diagnostics: [],
+    }));
 
     const { result } = renderHook(() => useBridgeQuery("s1", 0, run));
 
@@ -40,13 +38,11 @@ describe("useBridgeQuery", () => {
 
   it("resolves to error with the engine reason on any non-success outcome", async () => {
     bridgeWith(vi.fn());
-    const run = vi.fn(
-      async (): Promise<BridgeResult<number>> => ({
-        outcome: "rejected",
-        reason: "NOPE",
-        diagnostics: [],
-      }),
-    );
+    const run = vi.fn(async (): Promise<BridgeResult<number>> => ({
+      outcome: "rejected",
+      reason: "NOPE",
+      diagnostics: [],
+    }));
 
     const { result } = renderHook(() => useBridgeQuery("s1", 0, run));
 
@@ -94,13 +90,11 @@ describe("useBridgeQuery", () => {
   it("re-runs when the revision changes", async () => {
     bridgeWith(vi.fn());
     let value = 1;
-    const run = vi.fn(
-      async (): Promise<BridgeResult<number>> => ({
-        outcome: "success",
-        value,
-        diagnostics: [],
-      }),
-    );
+    const run = vi.fn(async (): Promise<BridgeResult<number>> => ({
+      outcome: "success",
+      value,
+      diagnostics: [],
+    }));
 
     const { result, rerender } = renderHook(
       ({ revision }: { revision: number }) => useBridgeQuery("s1", revision, run),

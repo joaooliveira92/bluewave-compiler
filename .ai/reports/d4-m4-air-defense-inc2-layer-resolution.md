@@ -26,7 +26,7 @@ second of six D-4 implementation tickets. Delivered:
   resource predicates.
 - **Light AA eligibility + windows** (`light-aa-eligibility.ts`) — AC-6, §9: base
   windows per profile (2/1/2/1/1 min), speed-band multipliers, `effectiveWindowMilliseconds
-= max(1_000, floor(base·bp/10_000))`, window-open test vs `timeToImpactMs`.
+  = max(1_000, floor(base·bp/10_000))`, window-open test vs `timeToImpactMs`.
 - **§18 eligibility matrix** (`eligibility.ts`) — layer×attack-type matrix restricted to
   the four AA layers with the canonical light-ASM exclusion on MEDIUM_AA and the
   heavy-AA dive/skip/torpedo exclusion; system-level gate via `profileEligibility`.

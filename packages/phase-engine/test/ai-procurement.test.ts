@@ -278,14 +278,18 @@ describe("live AI procurement simulation (2 nations x 3 seeds x 3 budgets x 36 m
     return counts;
   }
 
-  it("runs 36 months with zero unhandled exceptions for every nation/seed/budget", { timeout: 30000 }, () => {
-    for (const nation of NATIONS)
-      for (const seed of SEEDS)
-        for (const b of BUDGETS) {
-          const r = run(nation, seed, b);
-          expect(r.exceptions, `${nation} ${seed} ${String(b)}`).toBe(0);
-        }
-  });
+  it(
+    "runs 36 months with zero unhandled exceptions for every nation/seed/budget",
+    { timeout: 30000 },
+    () => {
+      for (const nation of NATIONS)
+        for (const seed of SEEDS)
+          for (const b of BUDGETS) {
+            const r = run(nation, seed, b);
+            expect(r.exceptions, `${nation} ${seed} ${String(b)}`).toBe(0);
+          }
+    },
+  );
 
   it("the sweep submits studies and places orders", { timeout: 30000 }, () => {
     const results = NATIONS.flatMap((n) => SEEDS.flatMap((s) => BUDGETS.map((b) => run(n, s, b))));

@@ -14,7 +14,7 @@
     "@bluewave/deterministic": "workspace:*",
     "@bluewave/diagnostics": "workspace:*",
     "@bluewave/campaign": "workspace:*",
-    "zod": "^3.24.0"
+    "zod": "^4.6.5"
   },
   "scripts": {
     "build": "tsc -b",

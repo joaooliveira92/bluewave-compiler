@@ -41,7 +41,7 @@ a dependency of `apps/desktop`. `SaveStore.load` returns a `CampaignState` whose
   in the returned snapshot to a plain object (`mapsToPlainObjects`, including the
   nested `activeCandidates` Map inside each nation's `research`) before returning it.
 - Renderer displays a curated subset only: `{ turnNumber, campaignId, nations, wars,
-diplomacy: politics.relations }`, rendered as plain `JSON.stringify(subset, null, 2)`
+  diplomacy: politics.relations }`, rendered as plain `JSON.stringify(subset, null, 2)`
   — no reordering, no summarization — into a dedicated `#saveStatus`/`#saveOutput`
   pair, separate from the `compile` output panel.
 - Diagnostics reuse the existing `diagnostics: [...]` shape (`CompileResult`'s
@@ -50,7 +50,7 @@ diplomacy: politics.relations }`, rendered as plain `JSON.stringify(subset, null
 - Zod validation of the IPC envelope (`src/main/campaignSaveSchema.ts`):
   `LoadSaveRequestSchema` (`z.string().optional()`), `LoadSaveResultSchema`
   (envelope-level; `snapshot`'s deep contents stay `z.record(z.string(),
-z.unknown())` rather than re-deriving `CampaignSnapshot`'s ~20 interfaces, since
+  z.unknown())` rather than re-deriving `CampaignSnapshot`'s ~20 interfaces, since
   correctness there is already guaranteed by `SaveStore`'s own hash/envelope
   verification).
 - Renderer UI: tabbed "Editor" / "Campaign Save Viewer" split (`#tabs`,

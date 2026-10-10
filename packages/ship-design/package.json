@@ -26,6 +26,6 @@
   },
   "devDependencies": {
     "@bluewave/content-schema": "workspace:*",
-    "yaml": "^2.7.0"
+    "yaml": "^2.9.1"
   }
 }

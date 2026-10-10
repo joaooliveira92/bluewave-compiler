@@ -71,7 +71,7 @@ describe("AC-17: versioned air-defense contracts", () => {
 
     it("rejects a mismatched reason-code catalog (one code swapped)", () => {
       const valid = makeValidAirDefensePolicy_v1();
-      const tampered = [...valid.reasonCodes];
+      const tampered: string[] = [...valid.reasonCodes];
       tampered[19] = "NOT_A_SHIPPED_CODE";
       const result = AirDefensePolicy_v1.safeParse({ ...valid, reasonCodes: tampered });
       expect(result.success).toBe(false);

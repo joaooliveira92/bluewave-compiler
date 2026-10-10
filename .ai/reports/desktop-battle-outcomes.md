@@ -126,7 +126,7 @@ the loser's fleet over the two snapshots.
   as a deferred follow-up ticket, not started for this read-only-over-engine
   sprint.
 - Pre-existing unrelated failures NOT introduced here: `content-schema/
-nation.test.ts` broken import; `prototype/desktop-e2e-harness/*.draft.ts`
+  nation.test.ts` broken import; `prototype/desktop-e2e-harness/*.draft.ts`
   lint errors; the parallel turbo-EPIPE test flake.
 
 ## Commits

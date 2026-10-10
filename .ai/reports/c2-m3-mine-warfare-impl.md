@@ -77,7 +77,7 @@ node scripts/verify-golden-hashes.cjs               # 10/10 at INC-2..INC-7 gate
   byte-compared): identical — **AC-23 PASS** (also spawned manually post-fix:
   `BYTE-IDENTICAL`, 804 bytes).
 - Record hash: domain-separated `createEnvelope("mine_warfare_resolution",
-"mine_warfare_resolution_v1", …)` over the non-hash surface; identical content
+  "mine_warfare_resolution_v1", …)` over the non-hash surface; identical content
   → identical 64-hex hash; tamper breaks verification (records.test).
 - No `Math.random`/`Date`/`process.env`/localeCompare/fs-order in mines source
   (grep-verified in integration-boundary test).

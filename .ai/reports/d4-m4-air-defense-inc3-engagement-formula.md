@@ -10,8 +10,8 @@ D-4 INC-3 of the AA air-defense vertical slice (`@bluewave/combat/src/air-defens
 third of six D-4 implementation tickets. Delivered:
 
 - **Engagement formula** (`engagement.ts`) — AC-11, §19: `effectiveDefenseBp =
-floor(baseDefenseBp × director × radar × crew × damage × ammunition × targetProfile ×
-weather × saturation / 10_000^8)` with one FLOOR. Bigint numerator (10^32 denominator),
+  floor(baseDefenseBp × director × radar × crew × damage × ammunition × targetProfile ×
+  weather × saturation / 10_000^8)` with one FLOOR. Bigint numerator (10^32 denominator),
   bound analysis documented (≤ 31_000 × 10^8 ≈ 3.1e37 > MAX_SAFE_INTEGER → bigint
   necessary, gunnery precedent). Exactly-one-primary-outcome mutually exclusive cumulative
   table (§5, §19 lines 328-330): KILL → DAMAGE → ABORT → DISRUPTION → NO_EFFECT, one keyed

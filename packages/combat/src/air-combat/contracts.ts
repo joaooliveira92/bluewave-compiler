@@ -52,8 +52,8 @@ export function validateAirCombatContract(value: unknown): AirCombatPolicyContra
   if (!result.success) {
     throw new BluewaveError(AIR_COMBAT_INVARIANT_FAILED, {
       code: AIR_COMBAT_INVARIANT_FAILED,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      field: result.error.issues[0]?.path.join(".") ?? "unknown",
+      reason: result.error.issues[0]?.message ?? "contract validation failed",
       value,
     });
   }

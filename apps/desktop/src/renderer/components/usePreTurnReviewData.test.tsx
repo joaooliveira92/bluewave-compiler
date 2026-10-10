@@ -95,9 +95,11 @@ describe("usePreTurnReviewData", () => {
   });
 
   it("reports nulls rather than stale figures when the engine rejects", async () => {
-    const execute = vi.fn(
-      async (): Promise<unknown> => ({ outcome: "rejected", reason: "x", diagnostics: [] }),
-    );
+    const execute = vi.fn(async (): Promise<unknown> => ({
+      outcome: "rejected",
+      reason: "x",
+      diagnostics: [],
+    }));
 
     const { result } = renderReview(
       true,

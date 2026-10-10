@@ -20,7 +20,7 @@
     "@bluewave/armament": "workspace:*",
     "@bluewave/content-schema": "workspace:*",
     "@bluewave/content-compiler": "workspace:*",
-    "yaml": "^2.7.0"
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@bluewave/test-support": "workspace:*"

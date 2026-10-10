@@ -33,8 +33,8 @@ function parseContract<T>(schema: z.ZodType<T>, value: unknown, code: string): T
   if (!result.success) {
     throw new BluewaveError(code, {
       code,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      field: result.error.issues[0]?.path.join(".") ?? "unknown",
+      reason: result.error.issues[0]?.message ?? "contract validation failed",
       value,
     });
   }

@@ -4,8 +4,8 @@ export const PackManifestSchema = z.object({
   name: z.string().min(1),
   version: z.string().min(1),
   type: z.enum(["production", "fixture", "mod"]),
-  files: z.record(z.array(z.string())).optional(),
-  dependencies: z.record(z.string()).optional(),
+  files: z.record(z.string(), z.array(z.string())).optional(),
+  dependencies: z.record(z.string(), z.string()).optional(),
 });
 
 export const RulesetManifestSchema = z.object({

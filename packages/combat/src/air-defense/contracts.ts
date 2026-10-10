@@ -57,16 +57,28 @@ export const AIR_DEFENSE_CIWS_REDUNDANCY_POLICY_ID = "ciws_redundancy_v1" as con
 // Build strict literal tuples straight from the `as const` shipped constants, so the schema
 // can never name a value the shipped sources do not contain (and vice versa).
 
+type LiteralStringTupleSchema<T extends readonly string[]> = {
+  [K in keyof T]: z.ZodLiteral<T[K]>;
+};
+
+type MutablePairOf<P extends readonly [number, number]> = { -readonly [K in keyof P]: P[K] };
+
+type LiteralPairTupleSchema<T extends readonly (readonly [number, number])[]> = {
+  [K in keyof T]: z.ZodType<MutablePairOf<T[K]>>;
+};
+
 function literalStringTuple<T extends readonly string[]>(values: T) {
-  return z.tuple(values.map((v) => z.literal(v)) as unknown as [z.ZodTypeAny, ...z.ZodTypeAny[]]);
+  return z.tuple(
+    values.map((v) => z.literal(v)) as unknown as LiteralStringTupleSchema<T> &
+      [z.ZodTypeAny, ...z.ZodTypeAny[]],
+  );
 }
 
 function literalPairTuple<T extends readonly (readonly [number, number])[]>(rows: T) {
   return z.tuple(
-    rows.map(([a, b]) => z.tuple([z.literal(a), z.literal(b)])) as unknown as [
-      z.ZodTypeAny,
-      ...z.ZodTypeAny[],
-    ],
+    rows.map(([a, b]) =>
+      z.tuple([z.literal(a), z.literal(b)]),
+    ) as unknown as LiteralPairTupleSchema<T> & [z.ZodTypeAny, ...z.ZodTypeAny[]],
   );
 }
 
@@ -258,12 +270,12 @@ export function makeValidCiwsRedundancyPolicy_v1(): CiwsRedundancyPolicyContract
 // Every validator throws a BluewaveError tagged with the canonical §28 invariant code when
 // the value deviates from the pinned literals — never clamps, never silently accepts.
 
-function contractFailure(policyId: string, result: z.SafeParseError<unknown>): BluewaveError {
+function contractFailure(policyId: string, result: z.ZodSafeParseError<unknown>): BluewaveError {
   return new BluewaveError(`${policyId} contract validation failed`, {
     code: AIR_DEFENSE_INVARIANT_FAILED,
     policyId,
-    field: result.error.errors[0]?.path.join(".") ?? "unknown",
-    reason: result.error.errors[0]?.message ?? "contract validation failed",
+    field: result.error.issues[0]?.path.join(".") ?? "unknown",
+    reason: result.error.issues[0]?.message ?? "contract validation failed",
   });
 }
 

@@ -42,7 +42,7 @@ which in turn drives peace eligibility and surrender.
   normally succeeds" (line 2542); no minor/major/decisive predicate.
 - `packages/combat/src/resolver.ts` `BattleResolver.resolve` returns
   `BattleResult` = `{ winnerId, loserId, attackerLosses, defenderLosses,
-damageReport, explanation }`. It computes an internal `damageRatio` but does
+  damageReport, explanation }`. It computes an internal `damageRatio` but does
   not expose it or any victory level. B10c criterion 15 requires the resolver
   to remain **unchanged**, so the classification must be derived from the
   exposed result fields.

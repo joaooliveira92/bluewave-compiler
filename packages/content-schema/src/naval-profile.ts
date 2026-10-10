@@ -75,7 +75,10 @@ const MOUNT_TYPE_VALUES = [
 const AMMUNITION_PATTERN_VALUES = ["AP", "APC", "CPC", "SAP", "HE", "MELINITE"] as const;
 
 /** Overrides are a shallow map of scalar/list values; keys are checked by the domain linter. */
-const OverridesSchema = z.record(z.union([z.string(), z.number(), z.array(z.string())]));
+const OverridesSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.number(), z.array(z.string())]),
+);
 
 const GunModelSchema = z
   .object({
@@ -195,8 +198,8 @@ const ProcurementPolicySchema = z
 
 const NamingPolicySchema = z
   .object({
-    stems: z.record(z.array(z.string())),
-    convention: z.record(z.string()),
+    stems: z.record(z.string(), z.array(z.string())),
+    convention: z.record(z.string(), z.string()),
   })
   .strict();
 
@@ -211,11 +214,11 @@ export const NationNavalProfileSchema = z
     industrialProfile: IndustrialProfileSchema,
     doctrineProfile: DoctrineProfileSchema,
     researchPreferences: z.array(ResearchPreferenceSchema),
-    componentAccess: z.record(ComponentAccessSchema),
+    componentAccess: z.record(z.string(), ComponentAccessSchema),
     gunModels: z.array(GunModelSchema),
     ammunitionPatterns: z.array(AmmunitionPatternSchema),
     componentVariants: z.array(ComponentVariantSchema),
-    designWeights: z.record(DesignWeightsSchema),
+    designWeights: z.record(z.string(), DesignWeightsSchema),
     procurementPolicy: ProcurementPolicySchema,
     namingPolicy: NamingPolicySchema,
     sourceReferences: z.array(SourceReferenceSchema),

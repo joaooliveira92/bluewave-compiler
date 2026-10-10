@@ -179,7 +179,7 @@ const AirDefenseAttackSchema = z
 export function validateAirDefenseAttack(value: unknown): AirDefenseAttack {
   const result = AirDefenseAttackSchema.safeParse(value);
   if (!result.success) {
-    const errors = result.error.errors.map((err) => ({
+    const errors = result.error.issues.map((err) => ({
       path: err.path.join("."),
       message: err.message,
     }));
@@ -201,7 +201,7 @@ export function createAirDefenseAttack(params: Partial<AirDefenseAttack>): AirDe
   // The partial schema permits missing fields, so any failure here is from invalid values.
   const inputCheck = AirDefenseAttackSchema.partial().safeParse(params);
   if (!inputCheck.success) {
-    const errors = inputCheck.error.errors.map((err) => ({
+    const errors = inputCheck.error.issues.map((err) => ({
       path: err.path.join("."),
       message: err.message,
     }));

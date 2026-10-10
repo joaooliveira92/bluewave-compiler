@@ -120,7 +120,7 @@ function invalidPayloadResult(issues: readonly string[]): BridgeResult<unknown> 
  * `switch` case (SRP).
  */
 function withSchema<TPayload>(
-  schema: z.ZodType<TPayload, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<TPayload, unknown>,
   execute: (payload: TPayload) => CommandOutcome | Promise<CommandOutcome>,
 ): CampaignCommandHandler {
   return (payload) => {

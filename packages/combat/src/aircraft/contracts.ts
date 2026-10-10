@@ -56,8 +56,8 @@ export function validateAircraftModelDefinitionContract(
   if (!result.success) {
     throw new BluewaveError(INVALID_AIRCRAFT_MODEL_DEFINITION, {
       code: INVALID_AIRCRAFT_MODEL_DEFINITION,
-      field: result.error.errors[0]?.path.join(".") ?? "unknown",
-      reason: result.error.errors[0]?.message ?? "contract validation failed",
+      field: result.error.issues[0]?.path.join(".") ?? "unknown",
+      reason: result.error.issues[0]?.message ?? "contract validation failed",
       value,
     });
   }

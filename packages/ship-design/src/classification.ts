@@ -126,28 +126,26 @@ export function classificationFindings(
           evidence: ev(failures.length),
         },
         // One finding per failed rule, so each reads next to the control that fixes it.
-        ...ruleFailures.map(
-          (x): Finding => ({
-            id: x.code,
-            severity: "BLOCKING",
-            what: `${intended}: ${x.message}.`,
-            why: `The design fails the ${intended} rule on ${x.field}.`,
-            consequence: `The ship cannot be built as ${intended} until this rule passes.`,
-            remedies: [
-              {
-                id: "adjust_design",
-                description: x.suggestion ?? "Change the design until this rule passes.",
-              },
-              {
-                id: "change_intended",
-                description: `Declare the type the ship actually is${natural ? ` (${natural})` : ""}.`,
-              },
-              { id: "check_rules", description: "Review the DESIGN-22 boundaries for this type." },
-            ],
-            evidence: ev(1),
-            subject: { targets: [shipTarget], settings: FIELD_SETTING[x.field] },
-          }),
-        ),
+        ...ruleFailures.map((x): Finding => ({
+          id: x.code,
+          severity: "BLOCKING",
+          what: `${intended}: ${x.message}.`,
+          why: `The design fails the ${intended} rule on ${x.field}.`,
+          consequence: `The ship cannot be built as ${intended} until this rule passes.`,
+          remedies: [
+            {
+              id: "adjust_design",
+              description: x.suggestion ?? "Change the design until this rule passes.",
+            },
+            {
+              id: "change_intended",
+              description: `Declare the type the ship actually is${natural ? ` (${natural})` : ""}.`,
+            },
+            { id: "check_rules", description: "Review the DESIGN-22 boundaries for this type." },
+          ],
+          evidence: ev(1),
+          subject: { targets: [shipTarget], settings: FIELD_SETTING[x.field] },
+        })),
       ],
     };
   }

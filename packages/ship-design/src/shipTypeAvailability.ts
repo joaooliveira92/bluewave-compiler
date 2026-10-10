@@ -136,20 +136,18 @@ export function evaluateAmcFleetLimit(
 
 /** The blocking findings for an unavailable type: one per reason, each with the three remedies a blocker needs. */
 export function availabilityFindings(a: ShipTypeAvailability): Finding[] {
-  return a.reasons.map(
-    (r): Finding => ({
-      id: r.code,
-      severity: "BLOCKING",
-      what: `The ship type ${a.type} cannot be designed.`,
-      why: r.message,
-      consequence: "A design of this type cannot be submitted or built.",
-      remedies: [
-        { id: "change_intended", description: "Choose a ship type that is available." },
-        { id: "wait", description: "Wait for the era or knowledge this type needs." },
-        { id: "check_rules", description: "Review which ship types the campaign allows." },
-      ],
-      evidence: { formulaId: "DESIGN-22", inputs: {}, threshold: 0, value: 0 },
-      subject: { targets: [shipTarget], settings: "brief" },
-    }),
-  );
+  return a.reasons.map((r): Finding => ({
+    id: r.code,
+    severity: "BLOCKING",
+    what: `The ship type ${a.type} cannot be designed.`,
+    why: r.message,
+    consequence: "A design of this type cannot be submitted or built.",
+    remedies: [
+      { id: "change_intended", description: "Choose a ship type that is available." },
+      { id: "wait", description: "Wait for the era or knowledge this type needs." },
+      { id: "check_rules", description: "Review which ship types the campaign allows." },
+    ],
+    evidence: { formulaId: "DESIGN-22", inputs: {}, threshold: 0, value: 0 },
+    subject: { targets: [shipTarget], settings: "brief" },
+  }));
 }

@@ -255,7 +255,7 @@ const AirDefenseSystemDefinitionSchema = z
 export function validateAirDefenseSystemDefinition(value: unknown): AirDefenseSystemDefinition {
   const result = AirDefenseSystemDefinitionSchema.safeParse(value);
   if (!result.success) {
-    const errors = result.error.errors.map((err) => ({
+    const errors = result.error.issues.map((err) => ({
       path: err.path.join("."),
       message: err.message,
     }));
@@ -280,7 +280,7 @@ export function createAirDefenseSystemDefinition(
   if (!inputCheck.success) {
     // Partial schema permits missing fields, so any failure here is from
     // invalid values, not from missing fields. Re-throw as validation error.
-    const errors = inputCheck.error.errors.map((err) => ({
+    const errors = inputCheck.error.issues.map((err) => ({
       path: err.path.join("."),
       message: err.message,
     }));
