@@ -17,6 +17,10 @@ mac:
     - zip
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.inherit.plist
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  # Notarization is automatic when APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD /
+  # APPLE_TEAM_ID are set (see docs/delivery/desktop-signing.md); skipped locally.
 win:
   artifactName: ${name}-${version}-setup.${ext}
   target:
