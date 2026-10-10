@@ -22,12 +22,16 @@ migration wave begins. No product code changes. Records exact observed results.
       in-progress merge/rebase or conflict markers (`MIG-WAVE0-ENTRY`).
 - [ ] Vendor present and integrity-verified (`node scripts/vendor-effect-sync.mjs
       --verify`) (`MIG-WAVE0-EXIT`).
-- [ ] Single-copy guard green inside `pnpm preflight` (`MIG-WAVE0-EXIT`).
+- [ ] Single-copy guard green inside `pnpm preflight`; `duplicatePackage` clean
+      under the tsgo/Oxlint gate (`MIG-WAVE0-EXIT`).
+- [ ] `repos/effect` read-only reference subtree present, excluded from
+      lint/format/editor search, and `AGENTS.md` documents it (`MIG-REF-1`).
 - [ ] `pnpm check` green end-to-end (`MIG-GATE-1`).
-- [ ] `effect-best-practices` lint gate green (`MIG-WAVE0-EXIT`).
-- [ ] `git diff --name-only` confined to `vendor/`, workspace/overrides,
-      `scripts/`, toolchain config, and `docs/adr/` — **zero domain-package
-      changes** (`MIG-WAVE0-EXIT`).
+- [ ] Effect LSP / Oxlint lint gate green (`MIG-WAVE0-EXIT`).
+- [ ] `git diff --name-only` confined to `vendor/`, `repos/effect`,
+      workspace/overrides, `scripts/`, toolchain config, `AGENTS.md`/
+      `agent-patterns/`, and `docs/adr/` — **zero domain-package changes**
+      (`MIG-WAVE0-EXIT`).
 - [ ] Rollback point recorded: Wave 0 is revertible with no domain code to unwind
       (`MIG-RB-0`).
 

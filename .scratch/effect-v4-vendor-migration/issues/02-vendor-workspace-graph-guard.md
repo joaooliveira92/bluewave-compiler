@@ -46,4 +46,4 @@ compile-only smoke may be used here to prove the wiring).
   zero-resolution case. The first real consumer (ticket 05) re-runs the guard.
 - Do not add Effect imports to any package here; wiring only.
 - Watch `strict-peer-dependencies`: confirm the vendored `package.json` version
-  strings satisfy `@effect/vitest`'s `effect ^4.0.0-rc.109` peer.
+  strings satisfy `@effect/vitest`'s `effect ^4.0.0` peer.

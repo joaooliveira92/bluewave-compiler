@@ -139,8 +139,8 @@ source build. **Decision to be recorded as an ADR.**
   the workspace copies, so any transitive `@effect/*` requesting the registry
   resolves to the vendored copy.
 - Versions: the vendored `package.json` keeps the upstream version string
-  (e.g. `4.0.0-rc.109`) so peer ranges (`@effect/vitest` peers
-  `effect ^4.0.0-rc.109`) are satisfied by the workspace package.
+  (e.g. `4.0.2`) so peer ranges (`@effect/vitest` peers
+  `effect ^4.0.0`) are satisfied by the workspace package.
 - `.npmrc` already has `strict-peer-dependencies=true` +
   `auto-install-peers=true`; verify peer resolution after wiring.
 

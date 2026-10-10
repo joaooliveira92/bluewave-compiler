@@ -35,5 +35,6 @@ key ordering, or envelope structure. `Effect` execution is **not** introduced.
 ## Notes
 
 - This is the load-bearing serializer; prefer zero behavioral change.
-- `msgpackr` (a new v4 dependency) must not become part of canonical hashing
-  without a pinned, documented decision.
+- The v4 core `effect` has zero runtime dependencies, so no new serialization
+  dependency (the RC-era `msgpackr` caveat does not apply to the stable pin —
+  re-verify `effect`'s `dependencies` at the pin).

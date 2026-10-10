@@ -44,6 +44,9 @@ cancellation) drives the IO. Public `SaveStore` API stays compatible.
 ## Notes
 
 - Full Effect runtime is permitted and expected in this package (IO boundary).
+- Consider the Effect `platform` services (FileSystem, Path, Runtime — bundled
+  into `effect` in v4) and `Effect.acquireRelease`/`Scope` for the IO instead of
+  raw `node:fs`, while keeping the atomic tmp→rename→pointer semantics identical.
 - Never change the on-disk wire shape (save packs) as a side effect; parity tests
   come from existing fixtures.
 - The `DiagnosticCollector` replacement question is resolved consistently with

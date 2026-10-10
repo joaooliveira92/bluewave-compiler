@@ -17,14 +17,13 @@ Extends, does not replace, the completed adoption map
 
 Bluewave has **no Effect anywhere today** (greenfield adoption), a single
 root-level `zod` devDependency used purely for validation at three kinds of
-boundary, and no way to adopt Effect v4 without depending on a moving npm
-registry line. Effect v4 is a **Release Candidate** (`latest` is still v3
-`3.22.1`; `rc` is `4.0.0-rc.109`; stable targeted Q3/Q4 2026), publishing
-multiple prereleases per week. An engine developer / release engineer who
-resolves `effect` from npm therefore gets an unpinned target that can shift
-underfoot, and any accidental mix of a registry `effect` with a locally patched
-one silently breaks Effect's `Context`/`Layer`/service identity at runtime
-(services not found, `instanceof` mismatches).
+boundary, and no in-repo control over its Effect dependency. Effect **4.0 is now
+stable** (`effect@latest` = `4.0.2`, released 2026-09-30) with an LTS policy, so
+the registry line is predictable — but an engine developer / release engineer
+who resolves `effect` from npm still gets an unpinned target and no frozen,
+auditable copy, and any accidental mix of a registry `effect` with a locally
+patched one silently breaks Effect's `Context`/`Layer`/service identity at
+runtime (services not found, `instanceof` mismatches).
 
 At the same time, the repo carries **two validator idioms** (Zod plus design
 intent for Effect Schema) and no sanctioned, dependency-ordered path to convert
@@ -79,7 +78,7 @@ Adopt **Effect v4 as the single monorepo idiom** using a **vendored dependency**
 
 1. As an **engine developer**, I want `effect` vendored at an exact pinned
    version, so that my package builds are reproducible and never shift under me
-   when the RC line publishes a new prerelease.
+   when the registry publishes a new release.
 2. As an **engine developer**, I want exactly one resolved `effect` in the whole
    pnpm graph, so that `Context`/`Layer`/service identity works and I never hit
    silent "service not found" failures from duplicate copies.
@@ -305,9 +304,13 @@ RNG authority; Effect's `Random` is a primitive, not a replacement.
   `.refine`/`.superRefine`→`Schema.transform`/`Schema.filter`; `z.discriminated
   Union`→`Schema.Union` of tagged `Schema.Struct`s; `safeParse`→
   `Schema.decodeUnknownResult`; `parse`→`Schema.decodeUnknownSync`; `z.infer`→
-  `Schema.Schema.Type`; the `ZodSchema` type→`Schema.Schema<A, I, R>`. In-process
-  domain errors become `Data.TaggedError`; wire/serializable errors become
-  `Schema.TaggedError` (v4's rename of `TaggedErrorClass`).
+  `typeof S.Type` (the v4 idiom; `preferSchemaTypeProperty` recommends it over
+  `Schema.Schema.Type<typeof S>`); the `ZodSchema` type→`Schema.Schema<A, I, R>`.
+  In-process domain errors become `Data.TaggedError`; wire/serializable errors
+  become `Schema.TaggedError` (v4's rename of `TaggedErrorClass`; note
+  `preferSchemaTaggedError` suggests the latter — keep the split, configure
+  severity). At IO boundaries prefer Effect `platform` services (FileSystem,
+  Path, Runtime) and `Scope`/`acquireRelease` over raw `node:fs`.
 - **Parity & safety.** Default/optional/strict semantics differ subtly between
   Zod and Schema (e.g. default arrays, excess-property rejection, refinement
   ordering); verify `Schema.Struct` closed-by-default parity per schema. Each
@@ -401,10 +404,10 @@ new or Effect-specific tests — do not rewrite the suite); renderer-side UI lib
 
 ### ADRs to be written
 
-1. **Adopt Effect v4** — v4 line; pinned `4.0.0-rc.109` → stable `4.0.0`;
-   runtime-free core vs full-Effect boundaries.
+1. **Adopt Effect v4** — stable line; pin exact `4.0.2` (or the exact stable at
+   execution time); runtime-free core vs full-Effect boundaries.
 2. **Vendor Effect** — vendor model V1, layout, sync procedure, single-copy
-   invariant, zero-patch default.
+   invariant, zero-patch default, read-only `repos/effect` agent reference.
 3. **Replace Zod with Effect Schema** — boundary-by-boundary, no dual
    maintenance, wire formats frozen.
 4. **DESIGN-08 determinism spine demoted** — conflict recorded (adoption ticket
@@ -418,11 +421,12 @@ stable and referenced by the sliced tickets.
 | AC id | Requirement / constraint | Proving test / command |
 | --- | --- | --- |
 | MIG-VENDOR-1 | `vendor/effect` + `vendor/effect-vitest` exist as V1 published-artifact copies (`src/`, `dist/`, `README.md`, `LICENSE`, `UPSTREAM.package.json`, `UPSTREAM.md`) plus a thin Bluewave wrapper `package.json` (identical name/version/exports, no build/lint/test scripts), with no in-repo source build in the default path. | File-presence check on `vendor/effect/{package.json,UPSTREAM.package.json,src,dist,UPSTREAM.md,LICENSE}` and the `effect-vitest` equivalent; wrapper `package.json` has no `build` script. |
-| MIG-VENDOR-2 | Vendored `package.json` carries the exact pin (`effect@4.0.0-rc.109`, or exact `4.0.0`); `UPSTREAM.md` records repo/tag/commit, exact version, tarball integrity hash, sync date, patch list. | `node scripts/vendor-effect-sync.mjs --verify` re-checks the integrity hash; grep the pinned version. |
+| MIG-VENDOR-2 | Vendored `package.json` carries the exact stable pin (`effect@4.0.2`, or the exact `4.0.x` at execution time — never an `rc`); `@effect/vitest` pinned in lockstep; `UPSTREAM.md` records repo/tag/commit, exact version, tarball integrity hash, sync date, patch list. | `node scripts/vendor-effect-sync.mjs --verify` re-checks the integrity hash; grep the pinned version. |
 | MIG-VENDOR-3 | `scripts/vendor-effect-sync.mjs` download → verify → unpack → copy → re-patch → rewrite `UPSTREAM.md` → `git diff --stat`; a no-op re-run against the pin is an empty diff. | Run the sync script twice at the pin; second `git diff --stat` is empty. |
 | MIG-VENDOR-4 | `pnpm-workspace.yaml` includes both vendored packages; consumers use `"effect": "workspace:*"`; root `pnpm.overrides` maps `effect` and `@effect/vitest` to the workspace copies. | `pnpm install --frozen-lockfile` green; grep workspace/overrides wiring. |
-| MIG-VENDOR-5 | `@effect/tsgo` is a pinned devDependency **external** to `vendor/`, powering the `effect-best-practices` lint gate. | `pnpm lint` (tsgo gate) green; no `vendor/@effect/tsgo` directory. |
+| MIG-VENDOR-5 | `@effect/tsgo` is a pinned devDependency **external** to `vendor/`, targeting v4, powering the Effect LSP + Oxlint type-aware lint gate (presets, `duplicatePackage`, `outdatedApi`), with native TS ≥ 7 alongside. | `pnpm lint`/`oxlint` (tsgo gate) green; no `vendor/@effect/tsgo` directory; `effect-tsgo patch --oxlint` recorded. |
 | MIG-VENDOR-6 | Zero-patch adoption at Wave 0; any future patch is explicit, documented in `UPSTREAM.md`, and re-applied by the sync script. | No `vendor/effect/patches/*` present; `UPSTREAM.md` patch list reads "none". |
+| MIG-REF-1 | `repos/effect` is a read-only `git subtree` of the Effect source at the stable tag; not a workspace member, never imported by app code, excluded from lint/format/editor search; `AGENTS.md` documents the read-only rule and `repos/effect/LLMS.md`; optional `agent-patterns/effect-*.md`. | `git subtree` history present; `repos/**` excluded in lint/format/editor config; `AGENTS.md` section present; no app import path resolves into `repos/`. |
 | MIG-GRAPH-1 | Exactly one resolved `effect` across the entire pnpm graph; no registry `effect`; guard is a hard `pnpm preflight` gate. | `node scripts/assert-single-effect.mjs` exits 0; a seeded duplicate-resolution fixture makes it exit non-zero. |
 | MIG-GRAPH-2 | Internal consumers use `workspace:*`; resolution enforced via root overrides; no registry `effect` resolves. | `pnpm why effect` shows one workspace path; lockfile has no registry `effect` resolution. |
 | MIG-WIRE-1 | Save files still load across the migration; `PERSISTENCE_*` codes survive as tagged errors. | `@bluewave/persistence` save/load + compatibility tests green (ADR-0023 / ADR-0024). |
@@ -523,16 +527,16 @@ stable and referenced by the sliced tickets.
   §4.1 concrete Zod sites, §5 waves, §6 migrate/do-not-migrate, §9 ADRs) remains
   the detailed companion. The completed adoption map
   `.scratch/effect-v4-adoption/map.md` and its tickets (01–09) supply the
-  decision rationale; this spec extends them and does not replace them.
+  decision rationale; this spec extends them and does not replace them. The
+  official-reference digest (Effect 4.0 stable, `git subtree` agent vendoring,
+  `@effect/tsgo`/Oxlint setup) is `docs/research/effect-v4-official-references.md`.
 - **Self-contained execution.** A fresh session with only this spec plus the
   repository has enough to execute: names, provenance rules, wave gates,
   rollback points, and proving commands are all stated. Where an implementation
   detail is intentionally deferred, the owning wave/ticket is named.
 - **Open flags / uncertainties (do not silently resolve):**
-  - The exact start version is `effect@4.0.0-rc.109` (reference) **or** exact
-    stable `4.0.0`; the rc→stable bump rides the official `MIGRATION.md`. The
-    implementation track's starting pin is a decision at Wave 0 (default:
-    pinned rc if stable has not shipped; exact stable otherwise).
+  - The exact pin is stable `effect@4.0.2` at time of writing; re-check the
+    exact `4.0.x` at Wave 0. `@effect/vitest` is pinned in lockstep. No `rc` pin.
   - `Schema.Struct` "closed by default" parity with Zod `.strict()` must be
     **verified per schema**, not assumed.
   - Whether the `DiagnosticCollector` contract itself is replaced is owned by the
@@ -541,6 +545,8 @@ stable and referenced by the sliced tickets.
     owned by a Wave 3 ticket; the default (this spec) is **no**.
   - `erasableSyntaxOnly: true` for consumer code is a Wave 0 policy call; the
     research proves feasibility, not requirement.
+  - `preferSchemaTaggedError` (Effect's lint) suggests `Schema.TaggedError` over
+    `Data.TaggedError`; we keep the in-process/wire split and configure severity.
   - Any change to a hash-surface output must be recorded as an ADR note
     (record, not block) — this is a documentation obligation, not a gate.
 - **Canonical-contract note.** Wire-format preservation is the only hard rule;
