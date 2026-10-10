@@ -84,7 +84,11 @@ export function useDrawingBoard(fixedMonth: string | null = null): {
   }, []);
 
   const draft = useMemo(() => currentDraft(log), [log]);
-  const env = useMemo(() => content.environmentFor(month), [content, month]);
+  // The board designs for the draft's nation: its catalogue, capabilities and identity brief come from the profile.
+  const env = useMemo(
+    () => content.environmentFor(month, draft.nationId),
+    [content, month, draft.nationId],
+  );
   const view = useMemo(() => buildWorkshopView(draft, env), [draft, env]);
 
   const baseline = useMemo(() => buildWorkshopView(preset.draft, env), [preset, env]);
@@ -135,7 +139,7 @@ export function useDrawingBoard(fixedMonth: string | null = null): {
       setMonth: setMonthState,
       suggest: () => suggestFixes(draft, env.ctx, 5, view.compiled),
       generateAlternatives: () =>
-        generateCandidates(content.aiEnvironmentFor(month), {
+        generateCandidates(content.aiEnvironmentFor(month, draft.nationId), {
           base: draft,
           seed: `drawing-board:${view.compiled.hash.slice(0, 16)}`,
           nationKey: draft.nationId,

@@ -54,6 +54,15 @@ export class PhaseRegistry {
       rngAllowed: true,
     },
     {
+      id: "ai_procurement",
+      name: "AI Procurement",
+      order: 1.6,
+      // ADR-0091: plans and submits design studies and places construction orders for AI nations.
+      readPermissions: ["nations", "constructions", "treasury", "research", "designs"],
+      writePermissions: ["nations", "constructions", "designs"],
+      rngAllowed: true,
+    },
+    {
       id: "command_collection",
       name: "Command Collection",
       order: 2,

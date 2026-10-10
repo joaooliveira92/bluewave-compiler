@@ -87,6 +87,20 @@ export {
 export type { RouteEdge } from "./route.js";
 export { RouteEdgeSchema } from "./route.js";
 export { validateAgainstSchema } from "./schema-validator.js";
+export type { NationNavalProfileData } from "./naval-profile.js";
+export {
+  NavalProfileCatalogueSchema,
+  NationNavalProfileSchema,
+  ProvenanceSchema,
+} from "./naval-profile.js";
+export {
+  COMPONENT_ACCESS_STATUSES_SCHEMA,
+  CONFIDENCE_LEVELS_SCHEMA,
+  NAVAL_POSTURES_SCHEMA,
+  PROVENANCE_KINDS_SCHEMA,
+  SHIP_TYPE_ID_VALUES,
+  SOURCE_STATUSES_SCHEMA,
+} from "./naval-profile-vocab.js";
 export type { TechnologyPrerequisite } from "./technology.js";
 export { TechnologyPrerequisiteChainSchema } from "./technology.js";
 export { parseYamlSafe, type SafeParseResult } from "./yaml-parser.js";

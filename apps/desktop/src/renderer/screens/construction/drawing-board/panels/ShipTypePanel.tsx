@@ -1,5 +1,6 @@
 import {
   buildShipTypeRoster,
+  nationProfileBrief,
   SHIP_TYPE_CATEGORIES,
   UNSIMULATED_ROLES,
   type RosterEntry,
@@ -11,6 +12,7 @@ import { Badge } from "../../../../components/ui/badge.js";
 import { Button } from "../../../../components/ui/button.js";
 import { plural } from "../plural.js";
 import { CATEGORY_LABEL, describeRange } from "../shipTypes.js";
+import { NationalIdentityPanel } from "./NationalIdentityPanel.js";
 import { Panel } from "./Panel.js";
 
 /** A relative 1-5 ordinal as text, so it never relies on a bar's colour or length alone. */
@@ -150,39 +152,43 @@ export function ShipTypePanel({
   const roster = useMemo(() => buildShipTypeRoster(env, starters), [env, starters]);
   const available = roster.filter((e) => e.availability.available);
   const lockedCount = roster.length - available.length;
+  const profile = env.ctx.navalProfile;
   return (
-    <Panel title="Ship types">
-      <p className="text-xs text-muted-foreground">
-        Choose a type to start from its starter design. Starter designs are balanced starting
-        points: edit them freely.
-      </p>
-      {SHIP_TYPE_CATEGORIES.map((cat) => {
-        const rows = available.filter((e) => e.definition.category === cat);
-        if (rows.length === 0) return null;
-        const headingId = `ship-type-group-${cat}`;
-        return (
-          <section key={cat} aria-labelledby={headingId} className="space-y-2">
-            <h3 id={headingId} className="text-xs font-semibold uppercase text-muted-foreground">
-              {CATEGORY_LABEL[cat]}
-            </h3>
-            <ul className="space-y-2">
-              {rows.map((e) => (
-                <RosterRow
-                  key={e.definition.id}
-                  entry={e}
-                  current={e.definition.id === currentCategory}
-                  onStart={onStart}
-                />
-              ))}
-            </ul>
-          </section>
-        );
-      })}
-      {lockedCount > 0 && (
+    <>
+      {profile !== undefined && <NationalIdentityPanel brief={nationProfileBrief(profile)} />}
+      <Panel title="Ship types">
         <p className="text-xs text-muted-foreground">
-          Other kinds of ship are not available in this era.
+          Choose a type to start from its starter design. Starter designs are balanced starting
+          points: edit them freely.
         </p>
-      )}
-    </Panel>
+        {SHIP_TYPE_CATEGORIES.map((cat) => {
+          const rows = available.filter((e) => e.definition.category === cat);
+          if (rows.length === 0) return null;
+          const headingId = `ship-type-group-${cat}`;
+          return (
+            <section key={cat} aria-labelledby={headingId} className="space-y-2">
+              <h3 id={headingId} className="text-xs font-semibold uppercase text-muted-foreground">
+                {CATEGORY_LABEL[cat]}
+              </h3>
+              <ul className="space-y-2">
+                {rows.map((e) => (
+                  <RosterRow
+                    key={e.definition.id}
+                    entry={e}
+                    current={e.definition.id === currentCategory}
+                    onStart={onStart}
+                  />
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+        {lockedCount > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Other kinds of ship are not available in this era.
+          </p>
+        )}
+      </Panel>
+    </>
   );
 }

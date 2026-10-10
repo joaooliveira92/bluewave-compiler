@@ -46,6 +46,18 @@ export function fundConstructionProject(
 ): FundingResult {
   const packages = project["packages"];
   if (packages === undefined) return { project, applied: 0 };
+  // National build-time (ADR-0090): a nation that builds faster does more work per month for the same yard capacity.
+  // Persisted on the project at order time, so a later profile change never re-paces an existing project.
+  const buildTimeBp = project["buildTimeMultiplierBp"];
+  const effectiveCapacity =
+    capacityUnits === undefined || buildTimeBp === undefined || buildTimeBp === 10_000
+      ? capacityUnits
+      : (Object.fromEntries(
+          Object.entries(capacityUnits).map(([line, v]) => [
+            line,
+            Math.floor((v * 10_000) / buildTimeBp),
+          ]),
+        ) as Readonly<Record<string, number>>);
   const plan = planOf(packages);
   const usage = project["monthUsage"];
   const sameMonth = usage !== undefined && usage["month"] === month;
@@ -58,9 +70,9 @@ export function fundConstructionProject(
   const remainingCapacity = Object.fromEntries(
     LINE_IDS.map((line) => [
       line,
-      capacityUnits === undefined
+      effectiveCapacity === undefined
         ? Number.MAX_SAFE_INTEGER
-        : Math.max(0, (capacityUnits[line] ?? 0) - (used[line] ?? 0)),
+        : Math.max(0, (effectiveCapacity[line] ?? 0) - (used[line] ?? 0)),
     ]),
   ) as Record<LineId, number>;
   const step = advanceConstructionMonth(

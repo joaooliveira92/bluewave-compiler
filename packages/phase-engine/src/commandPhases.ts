@@ -1,6 +1,7 @@
 // packages/phase-engine/src/commandPhases.ts
 // Player command + AI planning phases: command_collection (3) and ai_planning (3.5).
 import { AiPhaseExecutor } from "@bluewave/ai";
+import { researchPriorityAllocation } from "@bluewave/ship-design";
 import { TENSION_ALLIANCE, TENSION_PEACE } from "@bluewave/campaign";
 import {
   type AcceptPeaceCommand,
@@ -281,14 +282,27 @@ export function runAiPlanningPhase(ctx: MonthContext): void {
   const idempotencyMap = new CommandIdempotencyMap();
   const aiExecutor = new AiPhaseExecutor();
   const aiEngine = ctx.phaseGuard.rng("ai_planning", ctx.randomSeed)!;
+  const shipBuilding = ctx.engineOptions?.shipBuilding;
   for (const slot of ctx.slots) {
     if (slot["type"] !== "ai") continue;
+    // A nation with a naval profile researches by its doctrine (ADR-0090); the phase engine supplies the allocation,
+    // so the planner needs no dependency on ship-design. Nations without a profile keep the neutral fallback.
+    const nationId = slot["nationId"];
+    let researchAllocation: Record<string, number> | undefined;
+    const profile = shipBuilding?.navalProfileFor(nationId, ctx.campaignMonth) ?? null;
+    if (profile !== null) {
+      researchAllocation = {
+        ...researchPriorityAllocation(profile, {}, `${ctx.randomSeed}:research:${nationId}`)
+          .fieldPriorities,
+      };
+    }
     const { commands, diagnostics } = aiExecutor.run(
       slot,
       ctx.currentSnapshot,
       aiEngine,
       ctx.lifecycle,
       idempotencyMap,
+      researchAllocation,
     );
     for (const diagnostic of diagnostics) {
       collector.addError(diagnostic.code, diagnostic.message, {

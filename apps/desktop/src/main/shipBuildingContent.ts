@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  NavalProfileCatalogueSchema,
   PropulsionPlantCatalogueSchema,
   ShipComponentCatalogueSchema,
   ShipHullFormCatalogueSchema,
@@ -9,7 +10,9 @@ import {
   buildShipBuildingContent,
   type ComponentDef,
   type HullFormRecord,
+  type NationNavalProfile,
   type PropulsionPlant,
+  type RawReferenceDesign,
   type ShipBuildingContent,
   type ShipBuildingData,
 } from "@bluewave/ship-design";
@@ -25,6 +28,8 @@ const FILES = [
   "ship-building/plants.yaml",
   "ship-building/hull-forms.yaml",
   "ship-building/balance.yaml",
+  "ship-building/naval-profiles.yaml",
+  "ship-building/reference-designs.yaml",
   "technologies.yaml",
 ] as const;
 
@@ -46,6 +51,13 @@ export function loadShipBuildingContent(): ShipBuildingContent {
       .hullForms as HullFormRecord[],
     balance: read("ship-building/balance.yaml") as ShipBuildingData["balance"],
     technologies: read("technologies.yaml") as { id: string; year: number }[],
+    navalProfiles: NavalProfileCatalogueSchema.parse(read("ship-building/naval-profiles.yaml"))
+      .navalProfiles as unknown as NationNavalProfile[],
+    referenceDesigns: (
+      read("ship-building/reference-designs.yaml") as {
+        designs: RawReferenceDesign[];
+      }
+    ).designs,
   };
   cached = buildShipBuildingContent(data);
   cachedHash = sha256Hex(canonicalSerialize(Object.fromEntries(texts)));

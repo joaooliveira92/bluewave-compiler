@@ -289,10 +289,52 @@ export interface NationState {
   constructionProjects: ConstructionProject[];
   /** Design studies (DESIGN-21 section 3, ADR-0085); absent until the nation submits its first design. */
   designStudies?: DesignStudy[];
+  /** The nation's persisted AI procurement lifecycle (ADR-0091); absent until an AI nation plans its first order. */
+  procurementIntents?: ProcurementIntent[];
   aircraft?: Record<string, unknown>;
   carrierOperations?: Record<string, unknown>;
   isPlayable: boolean;
   isAI: boolean;
+}
+
+/** Explicit states of an AI procurement lifecycle record (ADR-0091). */
+export type ProcurementIntentStatus =
+  | "PLANNED"
+  | "STUDY_SUBMITTED"
+  | "STUDY_IN_PROGRESS"
+  | "APPROVED"
+  | "ORDER_PLACED"
+  | "REJECTED"
+  | "CANCELLED"
+  | "EXPIRED";
+
+/**
+ * A minimal, platform-independent record of one AI procurement attempt (ADR-0091): the decision, the submitted design
+ * and its study, and the construction project once ordered. It is the correlation record that makes the lifecycle
+ * idempotent and replayable; the authoritative design/study/project state still lives in `designs`, `designStudies`
+ * and `constructionProjects`. Stable ids only — never class names or display text.
+ */
+export interface ProcurementIntent {
+  procurementDecisionId: string;
+  nationId: string;
+  /** DESIGN-22 role/type the decision targets (e.g. "CL"); `roleGroup` is derived, not stored. */
+  role: string;
+  shipType: string;
+  candidateDesignId: string;
+  submittedDesignId: string | null;
+  designStudyId: string | null;
+  constructionProjectId: string | null;
+  status: ProcurementIntentStatus;
+  attemptNumber: number;
+  createdAtMonth: string;
+  lastUpdatedAtMonth: string;
+  budgetCeiling: SafeInt;
+  /** Dock the chosen candidate needs, or null when no candidate was chosen. */
+  dockRequirement: { lengthMm: number; beamMm: number; displacementKg: number } | null;
+  /** Deterministic seed that produced the candidate, kept so the decision replays exactly. */
+  decisionSeed: string;
+  /** Structured rejection/cancellation/deferral/expiry reason code, or null while healthy. */
+  reason: string | null;
 }
 
 /**
@@ -397,6 +439,14 @@ export interface ConstructionProject {
   packages?: ConstructionPackage[];
   /** Id of the yard building the ship (ADR-0077); absent when no yard was chosen. */
   yardId?: string;
+  /**
+   * National naval profile that priced this project at order time (ADR-0090); absent for nation-neutral orders.
+   * The resolved cost and build-time multipliers are persisted here so a replay reuses the price the order was
+   * placed at, even if the profile content changes afterwards.
+   */
+  nationalProfileId?: string;
+  costMultiplierBp?: number;
+  buildTimeMultiplierBp?: number;
   /** Capacity and starting progress of the month last funded; only on projects with `packages`. */
   monthUsage?: ConstructionMonthUsage;
 }

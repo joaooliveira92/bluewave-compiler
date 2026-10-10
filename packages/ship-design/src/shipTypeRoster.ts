@@ -39,16 +39,19 @@ export interface RosterEntry {
 
 /**
  * The starter for a type at a month: the newest design whose month is not after the campaign month; declaration
- * order breaks a tie, so the choice is deterministic. Never reaches into the future.
+ * order breaks a tie, so the choice is deterministic. Never reaches into the future. When `nationId` is given,
+ * only that nation's starter designs are considered (national identity); omitting it keeps the nation-neutral choice.
  */
 export function starterFor(
   type: string,
   starters: readonly StarterDesign[],
   month: string,
+  nationId?: string,
 ): StarterDesign | null {
   let best: StarterDesign | null = null;
   for (const s of starters) {
     if (s.starterFor !== type || s.month > month) continue;
+    if (nationId !== undefined && s.draft.nationId !== nationId) continue;
     if (best === null || s.month > best.month) best = s;
   }
   return best;
@@ -58,6 +61,7 @@ export function buildShipTypeRoster(
   env: WorkshopEnvironment,
   starters: readonly StarterDesign[],
   rules: ClassificationRules = DESIGN_22_EARLY,
+  nationId?: string,
 ): readonly RosterEntry[] {
   return SHIP_TYPE_LIST.map((definition) => {
     const availability = evaluateShipTypeAvailability(definition.id, {
@@ -67,7 +71,7 @@ export function buildShipTypeRoster(
       restrictedTypes: env.ctx.restrictedShipTypes,
     });
     const chosen = availability.available
-      ? starterFor(definition.id, starters, env.ctx.month)
+      ? starterFor(definition.id, starters, env.ctx.month, nationId)
       : null;
     let starter: RosterStarter | null = null;
     if (chosen !== null) {

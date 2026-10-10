@@ -17,6 +17,7 @@ import { resolveAircraftDevelopment } from "./aircraft.js";
 import { runBattleGenerationPhase, runBattleResolutionPhase } from "./battlePhases.js";
 import { resolveCarrierOperations } from "./carrier-operations.js";
 import { runAiPlanningPhase, runCommandCollectionPhase } from "./commandPhases.js";
+import { runAiProcurementPhase } from "./aiProcurement.js";
 import { runConstructionProcessingPhase } from "./constructionPhase.js";
 import { resolveDiplomacyPhase } from "./diplomacy.js";
 import {
@@ -119,6 +120,12 @@ export class MonthExecutor {
       return this.finish(ctx, false);
     }
     runAiPlanningPhase(ctx);
+
+    // Phase 3.6: ai_procurement
+    if (!this.assertPhase(phaseGuard, "ai_procurement", collector)) {
+      return this.finish(ctx, false);
+    }
+    runAiProcurementPhase(ctx);
 
     // Phase 4: appropriation
     if (!this.assertPhase(phaseGuard, "appropriation", collector)) {

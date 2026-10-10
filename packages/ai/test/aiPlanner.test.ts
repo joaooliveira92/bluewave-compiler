@@ -5,6 +5,7 @@ import { CommandIdempotencyMap } from "@bluewave/commands";
 
 import { RandomEngine } from "@bluewave/random";
 import {
+  CANONICAL_RESEARCH_FIELD_IDS,
   MAX_HIGH_PRIORITY_FIELDS,
   RESEARCH_FIELD_PRIORITY_WEIGHTS,
 } from "@bluewave/content-schema";
@@ -227,5 +228,49 @@ describe("AiPlanner", () => {
       new CommandIdempotencyMap(),
     );
     expect(canonicalSerialize(s)).toBe(before);
+  });
+
+  it("uses a supplied national research allocation for the research command", () => {
+    const planner = new AiPlanner();
+    const lifecycle = { process: vi.fn(() => ({ type: "success" })) } as any;
+    const allocation: Record<string, number> = {};
+    for (const f of CANONICAL_RESEARCH_FIELD_IDS) allocation[f] = 2;
+    allocation["MACHINERY"] = 4;
+    allocation["GUNNERY"] = 4;
+    const r = planner.generate(
+      snap(),
+      new RandomEngine("seed"),
+      lifecycle,
+      { nationId: "usa", type: "AI" } as any,
+      new CommandIdempotencyMap(),
+      allocation,
+    );
+    const research = r.envelopes.find(
+      (e) => (e.body as { type?: string }).type === "SetResearchPriority",
+    )!;
+    const fp = (research.body as { fieldPriorities: Record<string, number> }).fieldPriorities;
+    expect(fp["MACHINERY"]).toBe(4);
+    expect(fp["GUNNERY"]).toBe(4);
+    expect(fp["TORPEDOES"]).toBe(2);
+    expect(fp["SUBMARINES"]).toBe(2);
+  });
+
+  it("ignores an incomplete allocation and falls back to the neutral randomisation", () => {
+    const planner = new AiPlanner();
+    const lifecycle = { process: vi.fn(() => ({ type: "success" })) } as any;
+    const r = planner.generate(
+      snap(),
+      new RandomEngine("seed"),
+      lifecycle,
+      { nationId: "usa", type: "AI" } as any,
+      new CommandIdempotencyMap(),
+      { MACHINERY: 4 },
+    );
+    const research = r.envelopes.find(
+      (e) => (e.body as { type?: string }).type === "SetResearchPriority",
+    )!;
+    const fp = (research.body as { fieldPriorities: Record<string, number> }).fieldPriorities;
+    // Only 1 and 2 are used by the neutral fallback (HIGH is 4 but the fallback uses MEDIUM for the rest).
+    expect(Object.values(fp).every((v) => v === 4 || v === 2)).toBe(true);
   });
 });

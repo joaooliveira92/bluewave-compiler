@@ -62,23 +62,24 @@ function createNationState(id: string, treasury: SafeInt): NationState {
 describe("PhaseRegistry", () => {
   it("returns phases in correct order", () => {
     const phases = PhaseRegistry.all;
-    expect(phases.length).toBe(16);
+    expect(phases.length).toBe(17);
     expect(phases[0]!["id"]).toBe("opening_validation");
     expect(phases[1]!["id"]).toBe("weather_generation");
     expect(phases[2]!["id"]).toBe("monthly_revenue");
     expect(phases[3]!["id"]).toBe("ai_planning");
-    expect(phases[4]!["id"]).toBe("command_collection");
-    expect(phases[5]!["id"]).toBe("appropriation");
-    expect(phases[6]!["id"]).toBe("maintenance");
-    expect(phases[7]!["id"]).toBe("obligation");
-    expect(phases[8]!["id"]).toBe("construction_processing");
-    expect(phases[9]!["id"]).toBe("resolve_diplomacy");
-    expect(phases[10]!["id"]).toBe("resolve_research");
-    expect(phases[11]!["id"]).toBe("resolve_aircraft_development");
-    expect(phases[12]!["id"]).toBe("resolve_carrier_operations");
-    expect(phases[13]!["id"]).toBe("battle_generation");
-    expect(phases[14]!["id"]).toBe("battle_resolution");
-    expect(phases[15]!["id"]).toBe("closing_validation");
+    expect(phases[4]!["id"]).toBe("ai_procurement");
+    expect(phases[5]!["id"]).toBe("command_collection");
+    expect(phases[6]!["id"]).toBe("appropriation");
+    expect(phases[7]!["id"]).toBe("maintenance");
+    expect(phases[8]!["id"]).toBe("obligation");
+    expect(phases[9]!["id"]).toBe("construction_processing");
+    expect(phases[10]!["id"]).toBe("resolve_diplomacy");
+    expect(phases[11]!["id"]).toBe("resolve_research");
+    expect(phases[12]!["id"]).toBe("resolve_aircraft_development");
+    expect(phases[13]!["id"]).toBe("resolve_carrier_operations");
+    expect(phases[14]!["id"]).toBe("battle_generation");
+    expect(phases[15]!["id"]).toBe("battle_resolution");
+    expect(phases[16]!["id"]).toBe("closing_validation");
 
     for (let i = 0; i < phases.length - 1; i++) {
       expect(phases[i]!["order"]).toBeLessThan(phases[i + 1]!["order"]);

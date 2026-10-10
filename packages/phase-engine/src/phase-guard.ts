@@ -16,6 +16,7 @@ export const PhaseResource = {
   POLITICS: "politics",
   NATIONS: "nations",
   STRATEGIC_WEATHER: "strategicWeather",
+  DESIGNS: "designs",
 } as const;
 
 export interface PhaseFootprint {
@@ -55,6 +56,17 @@ export const PHASE_FOOTPRINTS: Readonly<Record<string, PhaseFootprint>> = {
   ai_planning: {
     reads: [PhaseResource.RESEARCH, PhaseResource.CONSTRUCTIONS, PhaseResource.TREASURY],
     writes: [PhaseResource.RESEARCH, PhaseResource.TREASURY, PhaseResource.CONSTRUCTIONS],
+    usesRng: true,
+  },
+  ai_procurement: {
+    reads: [
+      PhaseResource.NATIONS,
+      PhaseResource.CONSTRUCTIONS,
+      PhaseResource.TREASURY,
+      PhaseResource.RESEARCH,
+      PhaseResource.DESIGNS,
+    ],
+    writes: [PhaseResource.NATIONS, PhaseResource.CONSTRUCTIONS, PhaseResource.DESIGNS],
     usesRng: true,
   },
   command_collection: {

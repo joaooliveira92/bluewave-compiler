@@ -13,6 +13,7 @@ import type {
   ConstructionProject,
   DesignFamily,
   DesignStudy,
+  ProcurementIntent,
   DiplomaticRelation,
   FleetState,
   IntelligenceState,
@@ -209,6 +210,9 @@ const F = {
     "yardId",
     "monthUsage",
     "targetShipId",
+    "nationalProfileId",
+    "costMultiplierBp",
+    "buildTimeMultiplierBp",
   ),
   ConstructionMonthUsage: fields<ConstructionMonthUsage>()("month", "used", "startDone"),
   ConstructionPackage: fields<ConstructionPackage>()(
@@ -260,6 +264,7 @@ const F = {
     "research",
     "constructionProjects",
     "designStudies",
+    "procurementIntents",
     "aircraft",
     "carrierOperations",
     "isPlayable",
@@ -554,6 +559,13 @@ const cloneNation = (n: NationState): NationState =>
     constructionProjects: (v) => (v as ConstructionProject[]).map(cloneConstructionProject),
     designStudies: (v) =>
       v === undefined ? undefined : (v as DesignStudy[]).map(cloneDesignStudy),
+    procurementIntents: (v) =>
+      v === undefined
+        ? undefined
+        : (v as ProcurementIntent[]).map((p) => ({
+            ...p,
+            dockRequirement: p.dockRequirement === null ? null : { ...p.dockRequirement },
+          })),
   });
 const cloneBattleResult = (r: BattleResult): BattleResult =>
   recordClone(r, F.BattleResult, {

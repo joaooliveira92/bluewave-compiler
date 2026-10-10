@@ -33,9 +33,17 @@ export class AiPhaseExecutor {
     engine: RandomEngine,
     lifecycle: CommandLifecycle,
     idempotencyMap: CommandIdempotencyMap,
+    researchAllocation?: Readonly<Record<string, number>>,
   ): AiExecutionResult {
     try {
-      const result = this.planner.generate(snapshot, engine, lifecycle, slot, idempotencyMap);
+      const result = this.planner.generate(
+        snapshot,
+        engine,
+        lifecycle,
+        slot,
+        idempotencyMap,
+        researchAllocation,
+      );
       // Defensive copy + freeze to prevent caller mutation leaking back
       return {
         commands: Object.freeze([...result.accepted]),

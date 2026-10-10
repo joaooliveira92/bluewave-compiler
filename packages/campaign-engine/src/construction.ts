@@ -80,14 +80,19 @@ export interface ConstructionOrderCosts {
 
 export function projectedConstructionOrderCosts(
   design: CompiledEngineDesignVersion,
+  costMultiplierBp = 10_000,
 ): ConstructionOrderCosts {
   const kilograms = Number(design.normalizedDisplacementKg);
+  // A design priced by the ship-design cost model carries its own cost (ADR-0074); authored designs use the formula.
+  const base =
+    design.constructionCostUnits !== undefined
+      ? Number(design.constructionCostUnits)
+      : Math.round(kilograms / KILOGRAMS_PER_COST_UNIT);
+  // The national cost multiplier (ADR-0090) is applied once, rounding up so a ship is never under-costed.
+  const projectedCost =
+    costMultiplierBp === 10_000 ? base : Math.ceil((base * costMultiplierBp) / 10_000);
   return {
-    // A design priced by the ship-design cost model carries its own cost (ADR-0074); authored designs use the formula.
-    projectedCost:
-      design.constructionCostUnits !== undefined
-        ? Number(design.constructionCostUnits)
-        : Math.round(kilograms / KILOGRAMS_PER_COST_UNIT),
+    projectedCost,
     projectedCapacityUnits: Math.round(kilograms / KILOGRAMS_PER_KILOTON),
   };
 }

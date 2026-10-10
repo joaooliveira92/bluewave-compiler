@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import {
+  NavalProfileCatalogueSchema,
   PropulsionPlantCatalogueSchema,
   ShipComponentCatalogueSchema,
   ShipHullFormCatalogueSchema,
@@ -14,6 +15,7 @@ import {
   type CostBalance,
   type CveBalance,
   type HullFormRecord,
+  type NationNavalProfile,
   type PropulsionPlant,
   type ShipBuildingData,
   type ShipContext,
@@ -45,10 +47,16 @@ export const shipBuildingData: ShipBuildingData = {
   hullForms: hullRecords,
   balance: balanceFile as unknown as ShipBuildingData["balance"],
   technologies: techs,
+  navalProfiles: NavalProfileCatalogueSchema.parse(load("ship-building/naval-profiles.yaml"))
+    .navalProfiles as unknown as NationNavalProfile[],
 };
 export const shipBuildingContent = buildShipBuildingContent(shipBuildingData);
+export const navalProfiles = shipBuildingData.navalProfiles!;
 
 /** Same ship-building context the engine and the UI use, for a given campaign month. */
 export const earlyContext = (month: string): ShipContext =>
   shipBuildingContent.environmentFor(month).ctx;
+/** A nation's context: the shared context with that nation's catalogue and capabilities applied. */
+export const nationalContext = (month: string, nationId: string): ShipContext =>
+  shipBuildingContent.environmentFor(month, nationId).ctx;
 export const threats = shipBuildingData.balance.environment.threats;

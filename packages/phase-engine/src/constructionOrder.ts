@@ -10,7 +10,7 @@ import {
   type ConstructionOrderCosts,
 } from "@bluewave/campaign-engine";
 import { SafeInt } from "@bluewave/contracts";
-import type { ShipBuildingContent } from "@bluewave/ship-design";
+import { resolveNationalConstruction, type ShipBuildingContent } from "@bluewave/ship-design";
 import { constructionOrderEligibility } from "./orderEligibility.js";
 
 /**
@@ -45,6 +45,7 @@ export function constructionProjectFor(
   projectedCost: number,
   month: { month: number; year: number },
   plan?: ConstructionPlanRecord,
+  national?: { profileId: string; costMultiplierBp: number; buildTimeMultiplierBp: number },
 ): ConstructionProject {
   return {
     id: constructionProjectIdForCommand(commandId),
@@ -58,6 +59,13 @@ export function constructionProjectFor(
     status: "PLANNED",
     startedAt: `${String(month.year)}-${String(month.month).padStart(2, "0")}`,
     ...packagesFor(plan, projectedCost),
+    ...(national !== undefined
+      ? {
+          nationalProfileId: national.profileId,
+          costMultiplierBp: national.costMultiplierBp,
+          buildTimeMultiplierBp: national.buildTimeMultiplierBp,
+        }
+      : {}),
   };
 }
 
@@ -137,18 +145,45 @@ export function placeConstructionOrder(
       diagnostics: eligibility.rejections.map((r) => r.message),
     };
   }
-  const costs = projectedConstructionOrderCosts(design);
+  const costs = (() => {
+    // Resolve the nation's construction economics at order time (ADR-0090): cost/build-time multipliers are applied
+    // once here and persisted on the project, so a later profile-content change never re-prices an existing order.
+    const profile = content?.navalProfileFor(request.nationId, monthId) ?? null;
+    if (profile === null)
+      return { costs: projectedConstructionOrderCosts(design), national: undefined };
+    let modifiers;
+    try {
+      modifiers = resolveNationalConstruction(profile, monthId);
+    } catch {
+      return null; // fail closed: the nation cannot obtain its main armament or armour under the current policy
+    }
+    return {
+      costs: projectedConstructionOrderCosts(design, modifiers.costMultiplierBp),
+      national: {
+        profileId: profile.nationId,
+        costMultiplierBp: modifiers.costMultiplierBp,
+        buildTimeMultiplierBp: modifiers.buildTimeMultiplierBp,
+      },
+    };
+  })();
+  if (costs === null)
+    return {
+      ok: false,
+      reason: "NATIONAL_SUPPLY_UNAVAILABLE",
+      diagnostics: [`Nation ${request.nationId} cannot obtain its main armament or armour plate`],
+    };
   const project = constructionProjectFor(
     request.commandId,
     request.designVersionId,
-    costs.projectedCost,
+    costs.costs.projectedCost,
     request.month,
     design["constructionPlan"],
+    costs.national,
   );
   const kept = nation["constructionProjects"].filter((p) => p["id"] !== replacingProjectId);
   const nations = new Map(snapshot["nations"]).set(request.nationId, {
     ...nation,
     constructionProjects: [...kept, project],
   });
-  return { ok: true, snapshot: { ...snapshot, nations }, project, design, costs };
+  return { ok: true, snapshot: { ...snapshot, nations }, project, design, costs: costs.costs };
 }

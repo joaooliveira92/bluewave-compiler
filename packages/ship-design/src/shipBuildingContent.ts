@@ -16,6 +16,19 @@ import { checkRebuildBalance, type RebuildBalance } from "./rebuild.js";
 import { checkRevisionBalance, type RevisionBalance } from "./revision.js";
 import { checkStudyBalance, type StudyBalance } from "./study.js";
 import { buildYards } from "./yards.js";
+import { catalogueForNation } from "./componentVariants.js";
+import { type NationNavalProfile, resolveNavalProfile } from "./nationProfile.js";
+import type { StarterDesign } from "./shipTypeRoster.js";
+import type { DesignDraft } from "./compileShared.js";
+
+/** A raw reference-design entry as authored in `reference-designs.yaml` (its `starterFor` is optional). */
+export interface RawReferenceDesign {
+  readonly id: string;
+  readonly name: string;
+  readonly month: string;
+  readonly starterFor?: string;
+  readonly draft: DesignDraft;
+}
 
 /** Parsed (not yet interpreted) ship-building data: the YAML files of content/production/<scenario>/ship-building. */
 export interface ShipBuildingData {
@@ -46,6 +59,10 @@ export interface ShipBuildingData {
   };
   /** Technology id and the year it becomes available, from the scenario's technology list. */
   readonly technologies: readonly { readonly id: string; readonly year: number }[];
+  /** National naval profiles (optional): when present, a nation's catalogue and capabilities are derived from them. */
+  readonly navalProfiles?: readonly NationNavalProfile[];
+  /** Reference designs (optional): the starter designs the AI may base a procurement candidate on. */
+  readonly referenceDesigns?: readonly RawReferenceDesign[];
 }
 
 /** Everything a caller needs, built once. `environmentFor(month)` is pure: same data and month, same environment. */
@@ -53,18 +70,25 @@ export interface ShipBuildingContent {
   readonly components: readonly ComponentDef[];
   readonly plants: readonly PropulsionPlant[];
   readonly hullForms: readonly HullFormRecord[];
-  readonly environmentFor: (month: string) => WorkshopEnvironment;
+  /** `environmentFor(month)` is nation-neutral; passing a nationId derives that nation's catalogue and capabilities. */
+  readonly environmentFor: (month: string, nationId?: string) => WorkshopEnvironment;
   /** Ruleset constant for the engine projection (displacement per hit point). */
   readonly kgPerHitPoint: number;
   /** Micro-pounds per treasury unit, to turn the cost model's pounds into the engine's units. */
   readonly treasuryUnitMicro: number;
-  readonly aiEnvironmentFor: (month: string) => AiEnvironment;
+  readonly aiEnvironmentFor: (month: string, nationId?: string) => AiEnvironment;
   /** Revision-tier thresholds, or null when the pack has none. */
   readonly revision: RevisionBalance | null;
   /** Retained-hull limits of a rebuild, or null when the pack has none. */
   readonly rebuild: RebuildBalance | null;
   /** Design-study rules, or null when the pack has none (designs are then approved without a study). */
   readonly study: StudyBalance | null;
+  /** National naval profiles, or empty when the pack has none. */
+  readonly navalProfiles: readonly NationNavalProfile[];
+  /** The profile active for a nation at a month, or null. */
+  readonly navalProfileFor: (nationId: string, month: string) => NationNavalProfile | null;
+  /** Starter designs (a reference design with a `starterFor`), for AI procurement candidate generation. */
+  readonly starterDesigns: readonly StarterDesign[];
 }
 
 /** Technology is available once its year has begun; month ids are YYYY-MM. */
@@ -95,24 +119,37 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
     data.balance.environment.facilities,
     data.balance.environment.yardWorkPerTonneMonth,
   );
-  const environmentFor = (month: string): WorkshopEnvironment => ({
-    ctx: {
+  const profiles = data.navalProfiles ?? [];
+  const environmentFor = (month: string, nationId?: string): WorkshopEnvironment => {
+    const profile = nationId === undefined ? null : resolveNavalProfile(profiles, nationId, month);
+    const selection = profile === null ? null : catalogueForNation(data.components, profile, month);
+    const ctx: WorkshopEnvironment["ctx"] = {
       month,
       unlockedTechs: unlockedTechIds(data.technologies, month),
-      catalogue: data.components,
+      catalogue: selection?.catalogue ?? data.components,
       plants: data.plants,
       hullForms: forms,
       threats: data.balance.environment.threats,
       facilities: data.balance.environment.facilities,
       treaty: null,
       balance: ship,
-    },
-    costBalance: data.balance.cost,
-    costCtx: { maturityBpByTech: {}, firstOfClass: true },
-    constructionBalance: data.balance.construction,
-    cveBalance: data.balance.cve,
-    yards,
-  });
+      ...(profile !== null
+        ? {
+            capabilities: new Set(profile.hardCapabilities.grants),
+            restrictedShipTypes: profile.hardCapabilities.restrictedShipTypes,
+            navalProfile: profile,
+          }
+        : {}),
+    };
+    return {
+      ctx,
+      costBalance: data.balance.cost,
+      costCtx: { maturityBpByTech: {}, firstOfClass: true },
+      constructionBalance: data.balance.construction,
+      cveBalance: data.balance.cve,
+      yards,
+    };
+  };
   return {
     components: data.components,
     plants: data.plants,
@@ -123,9 +160,20 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
     revision: data.balance.revision ?? null,
     rebuild: data.balance.rebuild ?? null,
     study,
-    aiEnvironmentFor: (month) => {
+    navalProfiles: profiles,
+    navalProfileFor: (nationId, month) => resolveNavalProfile(profiles, nationId, month),
+    starterDesigns: (data.referenceDesigns ?? [])
+      .filter((r): r is RawReferenceDesign & { starterFor: string } => r.starterFor !== undefined)
+      .map((r) => ({
+        id: r.id,
+        name: r.name,
+        month: r.month,
+        starterFor: r.starterFor,
+        draft: r.draft,
+      })),
+    aiEnvironmentFor: (month, nationId) => {
       if (!data.balance.ai) throw new Error("ship-building balance has no 'ai' section");
-      const env = environmentFor(month);
+      const env = environmentFor(month, nationId);
       return {
         ctx: env.ctx,
         costBalance: env.costBalance,

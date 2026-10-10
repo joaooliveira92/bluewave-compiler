@@ -2,6 +2,7 @@ import type {
   BudgetProjectCommand,
   CommandEnvelope,
   SetResearchPriorityCommand,
+  SubmitDesignCommand,
 } from "@bluewave/commands";
 import type { SafeInt } from "@bluewave/contracts";
 import { sha256Hex } from "@bluewave/deterministic";
@@ -80,6 +81,11 @@ export class AiCommandGenerator {
 
   /** Canonical idempotency key. Private — use build* methods to ensure consistency. */
   private idempotencyKey(nationId: string, commandType: AiCommandType): string {
+    return this.idempotencyKeyFor(nationId, commandType);
+  }
+
+  /** Idempotency key for an arbitrary (possibly suffixed) command type; deterministic. */
+  private idempotencyKeyFor(nationId: string, commandType: string): string {
     assertNonEmptyString(nationId, "nationId");
     // turnNumber as decimal string via integer conversion (no [object Object])
     const turnStr = String(toNumber(this.turnNumber));
@@ -176,5 +182,48 @@ export class AiCommandGenerator {
       issuerParticipantId: nationId,
     };
     return Object.freeze(envelope) as CommandEnvelope<SetResearchPriorityCommand>;
+  }
+
+  /**
+   * A SubmitDesign command for an AI procurement decision. The idempotency key includes the decision id, so each
+   * procurement decision submits exactly once even if the planner runs again before the study is created.
+   */
+  buildSubmitDesignCommand(
+    nationId: string,
+    decisionId: string,
+    design: {
+      readonly designVersionId: string;
+      readonly designFamilyId: string;
+      readonly className: string;
+      readonly hullType: string;
+      readonly machineryType: string;
+      readonly draft: unknown;
+    },
+  ): CommandEnvelope<SubmitDesignCommand> {
+    assertNonEmptyString(nationId, "nationId");
+    assertNonEmptyString(decisionId, "decisionId");
+    assertNonEmptyString(design.designVersionId, "designVersionId");
+    assertNonEmptyString(design.hullType, "hullType");
+    const key = this.idempotencyKeyFor(nationId, `SubmitDesign:${decisionId}`);
+    const envelope: CommandEnvelope<SubmitDesignCommand> = {
+      commandId: this.commandIdFromKey(key),
+      version: AI_ENVELOPE_VERSION,
+      expectedSnapshotHash: this.expectedSnapshotHash,
+      idempotencyKey: key,
+      timestamp: this.deterministicTimestamp(),
+      body: {
+        type: "SubmitDesign",
+        nationId,
+        designVersionId: design.designVersionId,
+        designFamilyId: design.designFamilyId,
+        className: design.className,
+        hullType: design.hullType,
+        machineryType: design.machineryType,
+        draft: design.draft,
+      },
+      issuerClass: "AI",
+      issuerParticipantId: nationId,
+    };
+    return Object.freeze(envelope) as CommandEnvelope<SubmitDesignCommand>;
   }
 }

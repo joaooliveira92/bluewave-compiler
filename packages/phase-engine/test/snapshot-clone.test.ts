@@ -206,10 +206,33 @@ function makeRichSnapshot(): CampaignSnapshot {
         used: { slipway: SafeInt(50) },
         startDone: { hull: SafeInt(0), launch: SafeInt(0) },
       },
+      nationalProfileId: "uk",
+      costMultiplierBp: 9800,
+      buildTimeMultiplierBp: 9300,
     },
   ];
   gbr.aircraft = {} as any;
   gbr.carrierOperations = {} as any;
+  gbr.procurementIntents = [
+    {
+      procurementDecisionId: "uk:1:CL:1",
+      nationId: "uk",
+      role: "CL",
+      shipType: "CL",
+      candidateDesignId: "uk_CL_1",
+      submittedDesignId: "des_ai_uk_1_CL_1",
+      designStudyId: "study_des_ai_uk_1_CL_1",
+      constructionProjectId: null,
+      status: "STUDY_SUBMITTED",
+      attemptNumber: 1,
+      createdAtMonth: "1880-01",
+      lastUpdatedAtMonth: "1880-01",
+      budgetCeiling: SafeInt(800),
+      dockRequirement: null,
+      decisionSeed: "seed:procurement:uk:1:CL:1",
+      reason: null,
+    },
+  ];
 
   const fra = snapshot.nations.get(DEFENDER_NATION)!;
   fra.research = {

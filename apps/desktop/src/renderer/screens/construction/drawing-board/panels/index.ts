@@ -13,6 +13,7 @@ export { HullPanel } from "./HullPanel.js";
 export { LedgerPanel } from "./LedgerPanel.js";
 export { MachineryPanel } from "./MachineryPanel.js";
 export { MetricsPanel } from "./MetricsPanel.js";
+export { NationalIdentityPanel } from "./NationalIdentityPanel.js";
 export { PlacementsPanel } from "./PlacementsPanel.js";
 export { TopsidePanel } from "./TopsidePanel.js";
 export { RebuildPanel } from "./RebuildPanel.js";

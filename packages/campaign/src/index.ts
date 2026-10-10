@@ -47,6 +47,8 @@ export type {
   IntelligenceState,
   DesignStudy,
   NationState,
+  ProcurementIntent,
+  ProcurementIntentStatus,
   PersistenceManifest,
   PoliticalState,
   ResearchState,

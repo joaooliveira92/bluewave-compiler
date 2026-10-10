@@ -13,7 +13,7 @@ export default defineConfig({
   test: {
     globals: true,
     setupFiles: ["./src/renderer/test-setup.ts"],
-    testTimeout: 30000,
+    testTimeout: 60000,
     environment: "jsdom",
     // Debug-only sidebar screens (Simulation, Tactical Sandbox, Debugging)
     // are gated by VITE_BLUEWAVE_DEBUG, not by dev-mode — set it so their

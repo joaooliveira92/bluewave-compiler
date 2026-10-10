@@ -141,6 +141,8 @@ export interface ShipContext {
   readonly restrictedShipTypes?: readonly string[];
   /** Scenario switch for colonial-service ships (KE); absent = allowed. */
   readonly colonialServiceAllowed?: boolean;
+  /** The nation's naval profile, when the context was built for a nation (the UI reads this for the doctrine brief). */
+  readonly navalProfile?: import("./nationProfile.js").NationNavalProfile;
 }
 
 export interface CompiledDesign {

@@ -1,4 +1,5 @@
 import {
+  NavalProfileCatalogueSchema,
   PropulsionPlantCatalogueSchema,
   ShipComponentCatalogueSchema,
   ShipHullFormCatalogueSchema,
@@ -8,7 +9,9 @@ import {
   type ComponentDef,
   type DesignDraft,
   type HullFormRecord,
+  type NationNavalProfile,
   type PropulsionPlant,
+  type RawReferenceDesign,
   type ShipBuildingContent,
   type ShipBuildingData,
 } from "@bluewave/ship-design";
@@ -16,6 +19,7 @@ import { parse } from "yaml";
 import balanceYaml from "@content/ship-building/balance.yaml?raw";
 import componentsYaml from "@content/ship-building/components.yaml?raw";
 import hullFormsYaml from "@content/ship-building/hull-forms.yaml?raw";
+import navalProfilesYaml from "@content/ship-building/naval-profiles.yaml?raw";
 import plantsYaml from "@content/ship-building/plants.yaml?raw";
 import referencesYaml from "@content/ship-building/reference-designs.yaml?raw";
 import technologiesYaml from "@content/technologies.yaml?raw";
@@ -47,6 +51,9 @@ export function loadDrawingBoardContent(): DrawingBoardContent {
       .hullForms as HullFormRecord[],
     balance: parse(balanceYaml) as ShipBuildingData["balance"],
     technologies: parse(technologiesYaml) as { id: string; year: number }[],
+    navalProfiles: NavalProfileCatalogueSchema.parse(parse(navalProfilesYaml))
+      .navalProfiles as unknown as NationNavalProfile[],
+    referenceDesigns: (parse(referencesYaml) as { designs: RawReferenceDesign[] }).designs,
   };
   cached = {
     ...buildShipBuildingContent(data),

@@ -549,6 +549,7 @@ describe("Full-slice integration", () => {
     const rngPhases = phases.filter((p) => p.rngAllowed);
     expect(rngPhases.map((p) => p.id).sort()).toEqual([
       "ai_planning",
+      "ai_procurement",
       "battle_generation",
       "battle_resolution",
       "resolve_aircraft_development",

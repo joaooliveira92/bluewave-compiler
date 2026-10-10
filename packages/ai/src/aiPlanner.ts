@@ -69,6 +69,7 @@ export class AiPlanner {
     lifecycle: CommandLifecycle,
     slot: CampaignSlot,
     idempotencyMap: CommandIdempotencyMap,
+    researchAllocation?: Readonly<Record<string, number>>,
   ): AiPlanningResult {
     const envelopes: CommandEnvelope<CommandBody>[] = [];
     const accepted: CommandEnvelope<CommandBody>[] = [];
@@ -176,7 +177,12 @@ export class AiPlanner {
 
     // Research command — always legal if fields exist
     try {
-      const researchCommand = this.buildResearchPriorityCommand(nationId, engine, generator);
+      const researchCommand = this.buildResearchPriorityCommand(
+        nationId,
+        engine,
+        generator,
+        researchAllocation,
+      );
       if (researchCommand) {
         envelopes.push(researchCommand);
         const outcome = lifecycle.process(researchCommand, snapshot, slot, idempotencyMap);
@@ -279,8 +285,24 @@ export class AiPlanner {
     nationId: string,
     engine: RandomEngine,
     generator: AiCommandGenerator,
+    allocation?: Readonly<Record<string, number>>,
   ): CommandEnvelope<CommandBody> | undefined {
     const fields = CANONICAL_RESEARCH_FIELD_IDS;
+    // A national research allocation (from the NationNavalProfile) takes precedence when it covers every field with a
+    // valid priority: the AI then pursues its doctrine. Otherwise the planner falls back to its neutral randomisation.
+    if (allocation !== undefined) {
+      const priorities: Record<string, SafeInt> = {};
+      let complete = true;
+      for (const field of fields) {
+        const v = allocation[field];
+        if (v !== 1 && v !== 2 && v !== 4) {
+          complete = false;
+          break;
+        }
+        priorities[field] = SafeInt(v) as SafeInt;
+      }
+      if (complete) return generator.buildResearchPriorityCommand(nationId, priorities);
+    }
     const n = fields.length;
     const maxHigh = Math.min(
       toNumber(SafeInt(MAX_HIGH_PRIORITY_FIELDS) as unknown as SafeInt) ||
