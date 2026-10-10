@@ -10,6 +10,7 @@
     { "path": "../contracts" },
     { "path": "../diagnostics" },
     { "path": "../deterministic" },
+    { "path": "../armament" },
     { "path": "../content-schema" },
     { "path": "../content-compiler" }
   ]

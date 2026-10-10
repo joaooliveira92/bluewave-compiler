@@ -390,6 +390,7 @@ const F = {
     "crewComplement",
     "contentVersion",
     "compiledHash",
+    "armament",
     "torpedoArmament",
     "sourceDraft",
     "constructionCostUnits",

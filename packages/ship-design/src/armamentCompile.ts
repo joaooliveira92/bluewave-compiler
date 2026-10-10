@@ -13,6 +13,7 @@ import type {
   ArmamentFindingSeverity,
   ResolvedArmament,
 } from "@bluewave/armament";
+import { toCompiledArmamentMount } from "@bluewave/armament";
 import type { CompiledWeaponArmament, ShipContext } from "./compileShared.js";
 import { nationHasArmamentContent, resolveInstalledWeapon } from "./armamentContent.js";
 import type { Finding, Remedy, Severity } from "./findings.js";
@@ -144,38 +145,11 @@ export function resolvableWeaponFamilies(
   return resolvable;
 }
 
-/** The compiled weapon contract for one resolved armament. */
+/** The compiled weapon contract for one resolved armament (see `@bluewave/armament`'s `CompiledArmamentMount`). */
 export function toCompiledWeaponArmament(
   resolved: ResolvedArmament,
   mountType: string,
+  instanceId: string,
 ): CompiledWeaponArmament {
-  return {
-    gunFamilyId: String(resolved.gunFamilyId),
-    gunModelId: String(resolved.gunModelId),
-    mountId: String(resolved.mountId),
-    ammunitionId: String(resolved.ammunitionId),
-    mountType,
-    gunCount: resolved.gunCount,
-    accessStatus: resolved.accessStatus,
-    ...(resolved.caliberUm !== undefined ? { caliberUm: resolved.caliberUm } : {}),
-    ...(resolved.shellMassG !== undefined ? { shellMassG: resolved.shellMassG } : {}),
-    ...(resolved.propellantChargeBp !== undefined
-      ? { propellantChargeBp: resolved.propellantChargeBp }
-      : {}),
-    ...(resolved.mechanicalRateOfFireRoundsPerMinuteX100 !== undefined
-      ? { nominalRateOfFireX100: resolved.mechanicalRateOfFireRoundsPerMinuteX100 }
-      : {}),
-    ...(resolved.gunMassKg !== undefined ? { gunMassKg: resolved.gunMassKg } : {}),
-    ...(resolved.mountInstallationMassKg !== undefined
-      ? { mountInstallationMassKg: resolved.mountInstallationMassKg }
-      : {}),
-    ...(resolved.totalInstallationMassKg !== undefined
-      ? { totalInstallationMassKg: resolved.totalInstallationMassKg }
-      : {}),
-    ...(resolved.ammunitionUnitMassG !== undefined
-      ? { ammunitionUnitMassG: resolved.ammunitionUnitMassG }
-      : {}),
-    ...(resolved.firingArcDeg !== undefined ? { firingArcDeg: resolved.firingArcDeg } : {}),
-    appliedModifiers: resolved.appliedModifiers.map((m) => ({ ...m })),
-  };
+  return toCompiledArmamentMount(resolved, mountType, instanceId);
 }

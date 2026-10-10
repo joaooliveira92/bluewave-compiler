@@ -6,6 +6,7 @@ import type { ArrangementBalance, ArrangementResult, ZoneDef, ZoneId } from "./a
 import type { ArmourBalance, ArmourRegion, ArmourResult, ThreatProfile } from "./armour.js";
 import type { ClassificationRules } from "./classification.js";
 import type { ComponentCategory, ComponentDef } from "./component.js";
+import type { CompiledArmamentMount } from "@bluewave/armament";
 import type { Finding } from "./findings.js";
 import { evaluate } from "./formula/eval.js";
 import { parseFormula } from "./formula/parse.js";
@@ -198,26 +199,11 @@ export interface ComponentSummary {
  * The compiled weapon contract (ADR-0093 Step 3, section 5): the armament identity and mapped deterministic
  * values used to compile one installed weapon. Every value is grounded in `ResolvedArmament`; it carries no
  * combat penetration, hit probability or damage. Values absent from the content are omitted, never guessed.
+ *
+ * The type is owned by `@bluewave/armament` (as `CompiledArmamentMount`) so ship-design, campaign and combat
+ * share one contract; it is re-exported here under the ship-design name.
  */
-export interface CompiledWeaponArmament {
-  readonly gunFamilyId: string;
-  readonly gunModelId: string;
-  readonly mountId: string;
-  readonly ammunitionId: string;
-  readonly mountType: string;
-  readonly gunCount: number;
-  readonly accessStatus: string;
-  readonly caliberUm?: number;
-  readonly shellMassG?: number;
-  readonly propellantChargeBp?: number;
-  readonly nominalRateOfFireX100?: number;
-  readonly gunMassKg?: number;
-  readonly mountInstallationMassKg?: number;
-  readonly totalInstallationMassKg?: number;
-  readonly ammunitionUnitMassG?: number;
-  readonly firingArcDeg?: number;
-  readonly appliedModifiers: readonly { readonly source: string; readonly valueBp: number }[];
-}
+export type CompiledWeaponArmament = CompiledArmamentMount;
 
 export const WEAPON_CATEGORIES: readonly ComponentCategory[] = [
   "MAIN_GUN",

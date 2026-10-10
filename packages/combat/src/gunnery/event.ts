@@ -31,6 +31,17 @@ export interface AmmunitionAccountSnapshot {
   after: number;
 }
 
+/**
+ * The first-class armament identity a salvo fired under (ADR-0093 Step 4). Present only for batteries
+ * projected from a compiled design carrying a `CompiledArmamentMount` snapshot; absent for legacy designs.
+ */
+export interface GunneryWeaponIdentity {
+  readonly gunFamilyId?: string;
+  readonly gunModelId: string;
+  readonly mountId: string;
+  readonly ammunitionId?: string;
+}
+
 export interface GunneryEventRecord {
   eventId: string;
   battleId: string;
@@ -48,6 +59,8 @@ export interface GunneryEventRecord {
   impactInputs: ImpactArmorInputs; // reserved this slice
   outcome: GunneryOutcome; // penetration/armor outcome deferred to B-4
   damageEventRefs: readonly string[]; // reserved this slice (B-4 damage track)
+  /** First-class armament identity (ADR-0093 Step 4); absent on the legacy compatibility path. */
+  weaponIdentity?: GunneryWeaponIdentity;
   formulaVersion: string;
   rulesetVersion: string;
   eventHash: string;
@@ -70,6 +83,7 @@ export interface GunneryEventSeed {
   impactInputs?: ImpactArmorInputs;
   outcome: GunneryOutcome;
   damageEventRefs?: readonly string[];
+  weaponIdentity?: GunneryWeaponIdentity;
 }
 
 // The full record body over which the authoritative hash is computed: the record

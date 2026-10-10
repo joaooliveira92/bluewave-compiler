@@ -335,7 +335,10 @@ export function compileWeaponSet(args: {
       return legacy;
     }
     const a = resolution.resolved;
-    armaments.set(r.spec.instanceId, toCompiledWeaponArmament(a, resolution.mountType));
+    armaments.set(
+      r.spec.instanceId,
+      toCompiledWeaponArmament(a, resolution.mountType, r.spec.instanceId),
+    );
     return {
       ...legacy,
       barrels: a.gunCount,

@@ -27,6 +27,14 @@ export interface GunneryState {
   ownerShipId: string;
   gunDefinitionId: string;
   mountDefinitionId: string;
+  /**
+   * The first-class armament identity of the installation this battery projects (ADR-0093 Step 4).
+   * Present for compiled designs carrying a `CompiledArmamentMount` snapshot; absent for legacy designs
+   * (the documented compatibility path). `gunDefinitionId`/`mountDefinitionId` mirror the gun model and
+   * mount ids when present, and stay synthetic only when no first-class identity is available.
+   */
+  gunFamilyId?: string;
+  ammunitionPatternId?: string;
   targetContactId: string; // contact id or NO_TARGET
   acquisitionProgressBp: number; // integer basis points [0,10_000]
   rangeEstimateUm: number; // integer micrometres >= 0
@@ -76,6 +84,26 @@ export function assertFixedPointGunnery(s: GunneryState): void {
       "mountDefinitionId",
       s.mountDefinitionId,
       "mountDefinitionId must be a non-empty string",
+    );
+  if (
+    s.gunFamilyId !== undefined &&
+    (typeof s.gunFamilyId !== "string" || s.gunFamilyId.length === 0)
+  )
+    invariant(
+      s,
+      "gunFamilyId",
+      s.gunFamilyId,
+      "gunFamilyId must be a non-empty string when present",
+    );
+  if (
+    s.ammunitionPatternId !== undefined &&
+    (typeof s.ammunitionPatternId !== "string" || s.ammunitionPatternId.length === 0)
+  )
+    invariant(
+      s,
+      "ammunitionPatternId",
+      s.ammunitionPatternId,
+      "ammunitionPatternId must be a non-empty string when present",
     );
   if (typeof s.targetContactId !== "string" || s.targetContactId.length === 0)
     invariant(s, "targetContactId", s.targetContactId, "targetContactId must be a string or NONE");
@@ -172,6 +200,8 @@ export function computeGunneryStateHash(s: GunneryState): string {
     ownerShipId: s.ownerShipId,
     gunDefinitionId: s.gunDefinitionId,
     mountDefinitionId: s.mountDefinitionId,
+    gunFamilyId: s.gunFamilyId,
+    ammunitionPatternId: s.ammunitionPatternId,
     targetContactId: s.targetContactId,
     acquisitionProgressBp: s.acquisitionProgressBp,
     rangeEstimateUm: s.rangeEstimateUm,

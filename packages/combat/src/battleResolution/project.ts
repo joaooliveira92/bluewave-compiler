@@ -19,6 +19,7 @@
 import { sha256Hex } from "@bluewave/deterministic";
 import { canonicalSerialize } from "@bluewave/deterministic";
 import { BluewaveError } from "@bluewave/contracts";
+import type { CompiledArmamentMount } from "@bluewave/armament";
 import type { CompiledDesignVersion, Officer, PermanentDivision, Ship } from "@bluewave/campaign";
 import {
   isShipOperational,
@@ -109,6 +110,22 @@ function commanderAccuracyBp(
   if (!division) return 10_000;
   const officer = (nation.officers ?? []).find((o) => o.id === division.commanderOfficerId);
   return officer ? officerAccuracyBp(Number(officer.skill)) : VACANT_COMMANDER_ACCURACY_BP;
+}
+
+/**
+ * The main-battery armament installation of a compiled design (ADR-0093 Step 4): the deterministically
+ * first installation whose caliber matches the design's aggregated main-gun caliber, else the first
+ * installation by placement id. Absent when the design carries no first-class armament snapshot (a legacy
+ * or authored design), which projects through the documented compatibility path.
+ */
+function mainArmamentOf(design: CompiledDesignVersion): CompiledArmamentMount | undefined {
+  const list = design.armament;
+  if (!list || list.length === 0) return undefined;
+  const sorted = [...list].sort((a, b) =>
+    a.instanceId < b.instanceId ? -1 : a.instanceId > b.instanceId ? 1 : 0,
+  );
+  const caliber = design.mainGunsCaliber as number;
+  return sorted.find((a) => a.caliberUm === caliber) ?? sorted[0];
 }
 
 export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
@@ -246,6 +263,7 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
     const mainGunsCount = design.mainGunsCount as number;
     if (mainGunsCount <= 0) continue; // no main battery -> no gunnery (canonical)
     const batteryId = `${u.assetId}:MAIN`;
+    const armament = mainArmamentOf(design);
     const isContesting = rangeControl.controller !== null && u.sideId !== rangeControl.controller;
     batteries.push({
       id: batteryId,
@@ -265,8 +283,10 @@ export function projectBattle(input: ProjectBattleInput): ProjectBattleOutput {
       state: withGunneryStateHash({
         batteryId,
         ownerShipId: u.assetId,
-        gunDefinitionId: `${u.designVersionId}:MAIN`,
-        mountDefinitionId: "MAIN-BATTERY",
+        gunDefinitionId: armament?.gunModelId ?? `${u.designVersionId}:MAIN`,
+        mountDefinitionId: armament?.mountId ?? "MAIN-BATTERY",
+        ...(armament ? { gunFamilyId: armament.gunFamilyId } : {}),
+        ...(armament ? { ammunitionPatternId: armament.ammunitionId } : {}),
         targetContactId: NO_TARGET,
         acquisitionProgressBp: 10_000,
         rangeEstimateUm: 10_000_000_000,

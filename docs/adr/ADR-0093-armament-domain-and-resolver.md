@@ -282,3 +282,112 @@ Step 3 is complete. The authoritative ship-design pipeline now resolves every in
   `continuityCommands`, and the armament ammunition content lists.
 - No package dependency changes; no `pnpm-lock.yaml` change; no save/wire format change; no golden-hash
   change (the cross-process golden pipeline does not compile ship designs).
+
+---
+
+## Addendum: Step 4 — combat cut-over (2026-10-10)
+
+Step 4 is complete. Combat now receives stable gun-model, mount and ammunition identity from the compiled
+design. The cut-over is **behaviour-preserving**: the numeric firing, ammunition, penetration, damage,
+fire and reliability model is unchanged; identity is additive provenance.
+
+### Decision
+
+1. **One neutral compiled contract, `CompiledArmamentMount` (`@bluewave/armament/src/compiled.ts`).** The
+   ship-design `CompiledWeaponArmament` interface was moved into `@bluewave/armament` and is now a
+   re-export (`export type CompiledWeaponArmament = CompiledArmamentMount`). It gains `instanceId`. This is
+   the single immutable identity + grounded-values snapshot of one installed weapon, shared by ship-design,
+   campaign and combat (no drifting copies).
+
+2. **Persistence strategy: an immutable snapshot persisted on the compiled design.** `CompiledDesignVersion`
+   gains `armament?: readonly CompiledArmamentMount[]`, produced at compile time by `toEngineDesign` from the
+   Step 3 per-placement resolutions and immutably persisted. Combat consumes the snapshot; it never resolves
+   from mutable external content at battle time and never depends on ship-design. Chosen over
+   "resolve from ids + content version" because it guarantees:
+   - an approved ship's combat behaviour cannot change when armament content is edited later;
+   - replay does not depend on filesystem order or mutable content;
+   - old designs without a snapshot project through the documented compatibility path;
+   - missing content can never crash a battle.
+
+3. **Dependency direction.**
+   ```
+   content-schema ─┐
+   ship-design ────┼──► @bluewave/armament ──► @bluewave/contracts
+   campaign ───────┤
+   combat ─────────┘
+   ```
+   `@bluewave/combat` gains a **runtime** dependency on `@bluewave/armament` (was a devDependency);
+   `@bluewave/campaign` gains a dependency on `@bluewave/armament` for the persisted contract type. Both are
+   layer-legal (armament is layer 1). Combat does **not** depend on ship-design.
+
+4. **Identity projection.** `projectBattle` selects the design's main-battery installation
+   (`mainArmamentOf`: the first installation, by placement id, whose caliber matches the aggregated main-gun
+   caliber) and sets `GunneryState.gunDefinitionId`/`mountDefinitionId` to the gun-model/mount id, plus new
+   optional `gunFamilyId`/`ammunitionPatternId`. The fired salvo event carries a `weaponIdentity`. Legacy
+   designs (no snapshot) keep the synthetic `` `${designVersionId}:MAIN` `` / `"MAIN-BATTERY"` strings — the
+   bounded compatibility path.
+
+5. **Combat field ownership (post-Step-4).**
+   - Gun/mount/ammunition **identity**: `CompiledArmamentMount` (first-class armament content).
+   - `baseReloadMs` (`GUNNERY_BASE_RELOAD_MS`), `salvoCount` (design `mainGunsCount`), `preferredType`
+     (`ARMOR_PIERCING`), the §3/§4 factor manifests and neutral tables, penetration/damage/fire/magazine
+     constants: **combat constants** (unchanged).
+   - `mainGunsCaliberUm`, `normalizedArmorUm`, `mainGunsCount`: **compiled design** (unchanged).
+   - No nation-id conditional is added anywhere in shared combat logic; national difference continues to
+     enter only through resolved content.
+
+6. **Retained compatibility fields (with removal condition).**
+   - Synthetic `gunDefinitionId`/`mountDefinitionId`: retained only when `design.armament` is absent
+     (legacy/authored designs, unmigrated nations). Remove when every production design carries a snapshot
+     and the starter/persistence migration (Step 5) lands.
+   - `GUNNERY_BASE_RELOAD_MS` / `preferredType` / `salvoCount = mainGunsCount`: authoritative combat inputs
+     today; they retire when the corresponding first-class fields are authored and a combat model consumes
+     them (a later realism pass), proven by equivalence tests.
+
+7. **Unresolved realism fields (recorded, not fabricated):** barrel length, loading/breech system, muzzle
+   velocity (`nominalMuzzleVelocityUmPerSec` is unauthored), reliability (`reliabilityBp` unauthored; combat
+   has no weapon-specific reliability model — the only `DUD` is obliquity geometry), traverse/elevation,
+   top weight, supported armour, crew protection, vulnerability, mount/ammunition modifiers, explosive
+   filler, bursting/fire effect, storage hazard, ammunition cost. Combat consumes none of these; they stay
+   declared on the armament model and omitted from content.
+
+### Unresolved finding — penetration caliber unit scale
+
+The live auto-resolution penetration model (`battleResolution/damage.ts::shellPenetrationUm`) converts
+`mainGunsCaliberUm` to millimetres with `floor(caliberUm / 1_000_000)`. Production gun content authors
+`caliberUm` in micrometres (343 mm = `343000`), so `floor(343000 / 1e6) = 0` and production gunfire records
+**zero penetration capability**. The combat test fixtures feed an inflated caliber (`343_000_000`) on which
+the model is non-degenerate. This unit-scale defect is pre-existing (ADR-0021) and is **not** changed in this
+pass: fixing it is an intentional-correction that would move many pinned combat baselines and belongs to a
+dedicated ballistics task. It is recorded here and in `docs/research/b3-m2-gunnery.md` as a known gap; the
+Step 4 reference cases pin the current (defective) behaviour as `LEGACY_EQUIVALENCE` and assert the
+fixture-scale behaviour as a regression guard.
+
+### Persistence and replay contract
+
+- `CompiledDesignVersion.armament` is plain JSON, deep-cloned by `snapshotClone` (field added to
+  `F.CompiledDesignVersion` and `CLONE_COVERAGE`), and validated as `JsonRecord` by the persistence schema.
+  The save schema version is unchanged; old saves (no `armament`) load unchanged through the compatibility
+  path. Tactical battle state stays `DERIVED_REBUILDABLE` from the manifest + seed (ADR-0034), so the
+  persisted snapshot is the only new combat-relevant field and it is immutable per design version.
+- The cross-process golden pipeline compiles no designs and runs no tactical combat, so no golden hash
+  changes.
+
+### Consequences
+
+- New/changed files: `packages/armament/src/compiled.ts` (+ index), ship-design
+  `armamentCompile.ts`/`compileShared.ts`/`compileStages.ts`/`engineAdapter.ts`, campaign
+  `state.ts`/`package.json`/`tsconfig.json`, combat
+  `battleResolution/project.ts`/`gunnery/state.ts`/`gunnery/event.ts`/`gunnery/resolve.ts`/`package.json`/
+  `tsconfig.json`, phase-engine `designVersion.ts`/`snapshotClone.ts`, and Step 4 tests.
+- Package dependency changes: `campaign -> armament` (runtime), `combat -> armament` (runtime, was dev).
+  `pnpm-lock.yaml` changes. No save/wire format change; no golden-hash change.
+- Combat gameplay is unchanged; the only output change is the additive `weaponIdentity` on fired salvo
+  records and the first-class ids in `GunneryState` for designs that carry a snapshot.
+
+### Step 5 prerequisites (Drawing Board, not this pass)
+
+- Author the combat-only fields above and consume the ones that map to existing inputs.
+- Migrate starter and saved designs so every design carries a snapshot; then retire the synthetic identity
+  fallback.
+- Present armament resolution and findings in the Drawing Board comparison UX.

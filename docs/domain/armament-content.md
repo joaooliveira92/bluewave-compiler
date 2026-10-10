@@ -1,11 +1,12 @@
-# Armament content model (ADR-0093 Steps 2–3)
+# Armament content model (ADR-0093 Steps 2–4)
 
 The first-class armament catalogue is authored under
 `content/production/<scenario>/ship-building/armament/` and validated by the release gate. As of
 **Step 3** the ship-design compile resolves every installed weapon through this content and
-`resolveArmament` (`@bluewave/armament`); the legacy `components.yaml` / `naval-profiles.yaml`
-representations remain the source for combat and for the bounded compatibility path (a nation with no
-armament content, or a context with none).
+`resolveArmament` (`@bluewave/armament`). As of **Step 4** the compiled design persists an immutable
+`CompiledArmamentMount` snapshot that combat consumes for its battery identity; the legacy
+`components.yaml` / `naval-profiles.yaml` representations remain the source only for the bounded
+compatibility path (a nation with no armament content, or a design with no snapshot).
 
 ## The four collections
 
@@ -91,20 +92,39 @@ the component cost (`costMicro`) — both are read from the merged `ComponentDef
 to the armament installation mass by the migration tests. They are not a generic fallback: the
 component is the single owner of that authored value.
 
-Unresolved (absent, never fabricated) and deferred to the **Step 4 combat cut-over**: barrel length,
-loading system, muzzle velocity, gun reliability, top-weight, supported armour, traverse/elevation,
-crew protection, stability contribution, vulnerability, ammunition propellant interaction, explosive
-filler, bursting and fire effects, storage hazard and ammunition cost. These remain recorded in
-`ARMAMENT_ADAPTER_UNMAPPED_FIELDS` and are combat-only.
+Unresolved (absent, never fabricated) and combat-only as of **Step 4**: barrel length, loading system,
+muzzle velocity, gun reliability, top-weight, supported armour, traverse/elevation, crew protection,
+stability contribution, vulnerability, ammunition propellant interaction, explosive filler, bursting
+and fire effects, storage hazard and ammunition cost. Combat consumes none of them; the current combat
+model reads only compiled-design caliber/count/armour and its own versioned combat constants. They remain
+recorded in `ARMAMENT_ADAPTER_UNMAPPED_FIELDS`.
+
+## Combat consumption (Step 4)
+
+- **Persisted contract.** `toEngineDesign` maps the Step 3 per-placement resolutions into
+  `CompiledArmamentMount` records (identity + grounded values, `instanceId`-ordered) and
+  `buildDesignVersion` persists them as `CompiledDesignVersion.armament`. This is plain JSON, immutable
+  per design version, deep-cloned by `snapshotClone`, and validated as a JSON record by the persistence
+  schema. No save-schema version change; old saves (no `armament`) load through the compatibility path.
+- **Combat projection.** `projectBattle` selects the main-battery installation (`mainArmamentOf`) and sets
+  `GunneryState.gunDefinitionId`/`mountDefinitionId` to the gun-model/mount id plus optional
+  `gunFamilyId`/`ammunitionPatternId`; a fired salvo event carries a `weaponIdentity`. Legacy designs keep
+  the synthetic `` `${designVersionId}:MAIN` `` / `"MAIN-BATTERY"` ids.
+- **Package boundary.** `@bluewave/combat` and `@bluewave/campaign` depend on `@bluewave/armament`;
+  combat does **not** depend on ship-design. No nation-id branch is added to shared combat logic.
 
 ## Migration boundary
 
 - **Step 2:** author and validate content.
-- **Step 3 (this pass):** ship design resolves installed weapons through `resolveArmament`; errors map to
-  structured ship-design findings; candidate generation selects only resolvable armament; new saves
-  record a separate `armamentContentHash`. The legacy compile path is retained only as the bounded
-  compatibility path for contexts (or nations) with no first-class armament content. Combat is unchanged.
-- **Step 4:** combat cuts over; the combat-only unresolved values above become first-class and the legacy
-  compatibility reads are retired.
+- **Step 3:** ship design resolves installed weapons through `resolveArmament`; errors map to structured
+  ship-design findings; candidate generation selects only resolvable armament; new saves record a
+  separate `armamentContentHash`. The legacy compile path is retained only as the bounded compatibility
+  path for contexts (or nations) with no first-class armament content.
+- **Step 4 (this pass):** combat consumes the persisted `CompiledArmamentMount` snapshot for its battery
+  identity. Gameplay is unchanged — identity is additive provenance. The combat-only unresolved values
+  above stay unauthored and unconsumed; the synthetic identity fallback is retained only for designs with
+  no snapshot.
+- **Step 5 (Drawing Board):** author the combat-only fields, migrate starter/saved designs so every design
+  carries a snapshot, then retire the synthetic identity fallback and present resolution findings in the UI.
 
 Compatibility fields may not be removed before their consumers migrate.

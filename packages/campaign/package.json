@@ -17,6 +17,7 @@
     "@bluewave/contracts": "workspace:*",
     "@bluewave/diagnostics": "workspace:*",
     "@bluewave/deterministic": "workspace:*",
+    "@bluewave/armament": "workspace:*",
     "@bluewave/content-schema": "workspace:*",
     "@bluewave/content-compiler": "workspace:*",
     "yaml": "^2.7.0"

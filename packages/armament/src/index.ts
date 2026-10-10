@@ -8,6 +8,7 @@
 export * from "./ids.js";
 export * from "./provenance.js";
 export * from "./model.js";
+export * from "./compiled.js";
 export * from "./findings.js";
 export * from "./arithmetic.js";
 export * from "./resolver.js";

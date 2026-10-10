@@ -233,4 +233,35 @@ describe("cloneSnapshot hardening", () => {
     (b.politics.shells as any).nested.x = 2;
     expect(a.politics.shells.nested.x).toBe(1);
   });
+
+  it("deep-clones the persisted armament snapshot on a design version (ADR-0093 Step 4)", () => {
+    expect(snapshotClone.CLONE_COVERAGE["CompiledDesignVersion"]).toContain("armament");
+    const a = minimalSnapshot() as any;
+    a.designs = new Map([
+      [
+        "d1",
+        {
+          designVersionId: "d1",
+          armament: [
+            {
+              instanceId: "gun_1",
+              gunFamilyId: "gb_bl_13_5in",
+              gunModelId: "gb_bl_13_5in_30",
+              mountId: "gb_bl_13_5in_barbette",
+              ammunitionId: "gb_apc",
+              mountType: "BARBETTE",
+              gunCount: 4,
+              accessStatus: "DOMESTIC",
+              appliedModifiers: [],
+            },
+          ],
+        },
+      ],
+    ]);
+    const b = snapshotClone.cloneSnapshot(a);
+    expect(b.designs.get("d1")!.armament).toEqual(a.designs.get("d1").armament);
+    expect(b.designs.get("d1")!.armament).not.toBe(a.designs.get("d1").armament);
+    (b.designs.get("d1")!.armament![0] as { gunModelId: string }).gunModelId = "mutated";
+    expect(a.designs.get("d1").armament[0].gunModelId).toBe("gb_bl_13_5in_30");
+  });
 });

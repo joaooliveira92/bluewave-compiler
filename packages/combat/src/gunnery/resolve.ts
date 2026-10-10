@@ -298,6 +298,19 @@ function resolveOneBattery(b: GunneryBattery, ctx: BatteryContext): BatteryOutco
     outcome: hit.isHit ? "HIT" : "MISS",
   };
 
+  // ADR-0093 Step 4: carry the first-class armament identity when the battery was projected from a
+  // compiled design that carries a `CompiledArmamentMount` snapshot; legacy batteries omit it.
+  if (state.gunFamilyId !== undefined || state.ammunitionPatternId !== undefined) {
+    seed.weaponIdentity = {
+      ...(state.gunFamilyId !== undefined ? { gunFamilyId: state.gunFamilyId } : {}),
+      gunModelId: state.gunDefinitionId,
+      mountId: state.mountDefinitionId,
+      ...(state.ammunitionPatternId !== undefined
+        ? { ammunitionId: state.ammunitionPatternId }
+        : {}),
+    };
+  }
+
   const record = makeGunneryEventRecord(seed);
 
   const event: BattleEvent = {

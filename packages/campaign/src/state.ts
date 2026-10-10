@@ -1,5 +1,6 @@
 //packages/campaign/src/state.ts
 import type { SafeInt } from "@bluewave/contracts";
+import type { CompiledArmamentMount } from "@bluewave/armament";
 import type { CanonicalEnvelope } from "@bluewave/deterministic";
 import type { PermanentDivision } from "./division.js";
 import type { Officer } from "./officers.js";
@@ -85,6 +86,13 @@ export interface CompiledDesignVersion {
   crewComplement: SafeInt;
   contentVersion: string;
   compiledHash: string;
+  /**
+   * The immutable compiled armament identity of every installed gun placement (ADR-0093 Step 4). Produced
+   * from `ResolvedArmament` at compile time and persisted so combat behaviour cannot change when external
+   * armament content is edited later. Absent for legacy/authored designs, which project through the
+   * documented compatibility path.
+   */
+  armament?: readonly CompiledArmamentMount[];
   /** P-1: as-built torpedo mounts (absent = no torpedo armament). */
   torpedoArmament?: readonly CompiledTorpedoMount[];
   /**

@@ -1,4 +1,5 @@
 import type { CompiledDesign, DesignDraft } from "./compile.js";
+import type { CompiledWeaponArmament } from "./compileShared.js";
 import { UM_PER_KNOT } from "./units.js";
 
 /**
@@ -21,6 +22,12 @@ export interface EngineDesignFields {
   readonly crewComplement: number;
   readonly contentVersion: string;
   readonly compiledHash: string;
+  /**
+   * The immutable compiled armament identity of every installed gun placement (ADR-0093 Step 4), sorted
+   * by placement instance id for deterministic persistence. Absent when the design compiled on the legacy
+   * compatibility path (no first-class armament content).
+   */
+  readonly armament?: readonly CompiledWeaponArmament[];
   readonly torpedoArmament?: readonly {
     mountType: string;
     tubeCount: number;
@@ -91,6 +98,13 @@ export function toEngineDesign(
     .sort((x, y) => (x[0] < y[0] ? -1 : 1))
     .map(([, v]) => v);
 
+  // ADR-0093 Step 4: carry every resolved gun installation's armament identity, deterministically ordered
+  // by placement instance id. Absent when the compile used the legacy compatibility path.
+  const armament = c.components
+    .map((k) => k.armament)
+    .filter((a): a is CompiledWeaponArmament => a !== undefined)
+    .sort((x, y) => (x.instanceId < y.instanceId ? -1 : x.instanceId > y.instanceId ? 1 : 0));
+
   return {
     designVersionId: o.designVersionId,
     designFamilyId: o.designFamilyId,
@@ -107,6 +121,7 @@ export function toEngineDesign(
     crewComplement: c.systems?.crewRequired ?? 0,
     contentVersion: o.contentVersion,
     compiledHash: c.hash,
+    ...(armament.length > 0 ? { armament } : {}),
     ...(torpedoArmament.length > 0 ? { torpedoArmament } : {}),
   };
 }

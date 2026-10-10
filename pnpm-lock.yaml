@@ -273,6 +273,9 @@ importers:
 
   packages/campaign:
     dependencies:
+      '@bluewave/armament':
+        specifier: workspace:*
+        version: link:../armament
       '@bluewave/content-compiler':
         specifier: workspace:*
         version: link:../content-compiler
@@ -311,6 +314,9 @@ importers:
 
   packages/combat:
     dependencies:
+      '@bluewave/armament':
+        specifier: workspace:*
+        version: link:../armament
       '@bluewave/campaign':
         specifier: workspace:*
         version: link:../campaign
@@ -329,10 +335,6 @@ importers:
       '@bluewave/random':
         specifier: workspace:*
         version: link:../random
-    devDependencies:
-      '@bluewave/armament':
-        specifier: workspace:*
-        version: link:../armament
 
   packages/commands:
     dependencies:

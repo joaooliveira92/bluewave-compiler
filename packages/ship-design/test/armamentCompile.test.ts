@@ -300,7 +300,8 @@ describe("Step 3 armament cut-over: compiled weapon contract", () => {
       componentAccess: {},
     });
     expect(r.resolved).not.toBeNull();
-    const c = toCompiledWeaponArmament(r.resolved!, r.mountType);
+    const c = toCompiledWeaponArmament(r.resolved!, r.mountType, "gun_1");
+    expect(c.instanceId).toBe("gun_1");
     expect(c.gunFamilyId).toBe("gun_bl_12in_25");
     expect(c.gunModelId).toBe("uk_bl_12in_25_mk1");
     expect(c.mountId).toContain("gun_bl_12in_25");

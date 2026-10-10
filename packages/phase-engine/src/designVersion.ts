@@ -110,6 +110,8 @@ export function buildDesignVersion(
         }
       : {}),
     sourceDraft: structuredClone(draft) as unknown as Readonly<Record<string, unknown>>,
+    // A copy: the immutable armament snapshot must not alias the command body (plain JSON).
+    ...(e.armament ? { armament: structuredClone(e.armament) } : {}),
     ...(e.torpedoArmament
       ? {
           torpedoArmament: e.torpedoArmament.map((m) => ({
