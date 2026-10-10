@@ -137,7 +137,7 @@ historically grounded ballistics model is scoped separately in
   `p1-balance-sweep.test.ts` (length tripwire records the corrected ~321 min and the unmet ADR-0053
   target), and the app/desktop fixtures.
 - **No arbitrary rebalance is bundled.** Restoring the ADR-0053 length/lethality target is isolated for
-  a separate balancing change.
+  a separate balancing change: see `.scratch/p1-lethality-rebalance/`.
 
 ### 8. Persistence / compatibility
 

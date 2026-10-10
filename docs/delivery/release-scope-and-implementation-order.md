@@ -2,6 +2,7 @@
 
 > **Canonical status:** Normative delivery and release specification.
 > **Stable document ID:** `DESIGN-55`
+> **Release status:** This document defines the milestone *order* and release gates, not a claim that every listed subsystem ships. The shipped scope today is the single-era 1880 campaign; M3/M4 modules are not yet all reachable from a campaign and M5 is not started. Live per-milestone status is `docs/PROGRESS.md`; the content release gate (a pack MUST NOT expose unreachable content — §12) runs against the production pack in the test suite (`packages/ship-design/test/nationCompleteness.test.ts`).
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Milestone completion, feature readiness, scenario support, era coverage, acceptance evidence, packaging, and release claims MUST use the explicit contracts, states, predicates, and failure behavior defined here. Presence of content in a pack does not imply runtime or scenario support.
 
 ## 1. Delivery Milestones
