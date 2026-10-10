@@ -689,13 +689,13 @@ designs:
         hullFormId: merchant_liner_form
         lengthWl: 115000
         beam: 14000
-        draught: 3000
+        draught: 3500
         depthToMainDeck: 8000
         blockCoeffBp: 6200
         materialId: mild_steel
         structuralSchemeId: mixed
         subdivisionGrade: 2
-        targetDisplacementKg: 3100000
+        targetDisplacementKg: 3500000
         limitDisplacementKg: null
         designMarginBp: 300
         growthReserveBp: 0

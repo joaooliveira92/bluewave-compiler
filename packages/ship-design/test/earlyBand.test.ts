@@ -138,6 +138,22 @@ describe("calibration against sourced ships", () => {
     expect(hullShare("coast_defence_form", 76.4, 14.9, 8.4, 3_500_000)).toBeCloseTo(31, 0);
     expect(hullShare("torpedo_boat_form", 54.9, 5.64, 4.0, 244_000)).toBeCloseTo(33, 0);
   });
+  it("the merchant-liner hull fraction reproduces White 1894's passenger-steamer 47.6 % (formBp 13400)", () => {
+    // White's worked steel passenger-steamer: 500 ft (152.4 m), 12,500 t load displacement, hull+outfit 5,950 t = 47.6 %.
+    // Sources: docs/research/ship-building-merchant-liner.md sections 3 and 9.
+    expect(hullShare("merchant_liner_form", 152.4, 16.46, 12.19, 12_500_000)).toBeCloseTo(47.6, 0);
+  });
+  it("the merchant-liner Admiralty coefficient sits inside the sourced 25,000-29,000 liner range", () => {
+    // Etruria 14,000 ihp / 18.8 kn, Campania ~30,000 ihp / 22 kn, City of Paris 18,500 ihp: C2 x100 ~25,000-29,000.
+    const c = ship.machinery.cFormX100.merchant_liner_form!;
+    expect(c).toBeGreaterThanOrEqual(25_000);
+    expect(c).toBeLessThanOrEqual(29_000);
+  });
+  it("the merchant-liner L/B band covers the sourced 1880s liners (Oregon 9.26, Campania 9.09)", () => {
+    const form = forms.merchant_liner_form!.form;
+    expect(form.lbMinX100).toBeLessThanOrEqual(818);
+    expect(form.lbMaxX100).toBeGreaterThanOrEqual(926);
+  });
   const power = (formId: string, L: number, dispT: number, knots: number) => {
     const i = {
       plant: plants[0]!,

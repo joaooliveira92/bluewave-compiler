@@ -55,9 +55,14 @@ crew per tonne, all cost/construction/CVE/refit/AI constants. Each is marked `PL
 The designer offers `B CA CL DD KE AMC` at the 1880 start. `reference-designs.yaml` entries with `starterFor: <type>` are the
 starting points the Drawing Board's "Ship types" panel loads; the newest one not after the campaign month is used. New, non-historical
 starters (`starter_*_1880`: DD, KE, AMC, CA, CL) are tuned to compile legally at 1880-01 under this content; their dimensions, power
-and armour are ESTIMATES, not real ships. `merchant_liner_form` borrows `protected_cruiser_form`'s hull coefficients (PLACEHOLDER) and
-its Admiralty coefficient, form complexity and stability windows are ESTIMATES; all need research pass 3. Before the 6-inch breech-loaders
+and armour are ESTIMATES, not real ships. Before the 6-inch breech-loaders
 of 1883 the only gun at or below 6 inches is the 1-inch Nordenfelt, so KE and AMC starters carry machine guns only.
 
-**Status of the merchant hull (2026-10-10):** the repository holds no hull-weight or resistance source for a liner, so
-`merchant_liner_form` stays PLACEHOLDER/ESTIMATE and the armed merchant cruiser is not balanced for release. Needs research pass 3.
+**Status of the merchant hull (2026-10-10, research pass 3):** `merchant_liner_form` is now fitted from White 1894's
+passenger-steamer hull-and-outfit fraction of displacement (45-55 % iron, 47.6 % steel for a 500 ft / 12,500 t liner,
+pp. 411-413): `formBp 13400` returns 47.6 % at the Oregon's dimensions, replacing the borrowed `protected_cruiser_form`
+coefficient. The Admiralty coefficient `cFormX100 26000` is bounded by the period liners Etruria, Campania and City of Paris
+(25,000-29,000); the L/B band was widened to 8.0-10.5 for the sourced 9.1-9.3 ratio. Both are ESTIMATE/SINGLE-SOURCE
+(derived from verified fractions and trial data, not a weighed liner), documented in `docs/research/ship-building-merchant-liner.md`.
+The waterplane, sheer, fullness, LCB, cost complexity and the AMC GM ceiling stay BALANCE TARGET. The armed merchant cruiser
+is now balanced enough for release; a ship-specific liner hull-weight measurement would upgrade the labels.

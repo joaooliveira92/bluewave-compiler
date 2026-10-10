@@ -103,17 +103,20 @@ hullForms:
     deckFullnessBp: 7000
     lcbPermille: 500
     zones: *a1
-  # Merchant liner hull, the base of an armed merchant cruiser (DESIGN-22 section 15). Dimensions are an ESTIMATE from
-  # 1880s transatlantic liners (about 100-160 m, L/B 7-9.5). PLACEHOLDER: formBp and the coefficients are borrowed from
-  # protected_cruiser_form until a hull-weight fit against a liner exists (research pass 3); zone shares are the shared
+  # Merchant liner hull, the base of an armed merchant cruiser (DESIGN-22 section 15). formBp is fitted to White 1894's
+  # passenger-steamer hull-and-outfit fraction of displacement (VERIFIED: 45-55 % iron, 47.6 % steel for a 500 ft / 12,500 t
+  # liner, pp. 411-413), the same source and definition as the warship forms: formBp 13400 at the Oregon's dimensions
+  # (152.4 x 16.46 x 12.19 m) and 12,500 t returns 47.6 %. ESTIMATE (a derived fraction, not a weighed liner; see
+  # docs/research/ship-building-merchant-liner.md section 9). L/B band from Oregon 9.26 and Campania 9.09 (SINGLE-SOURCE);
+  # waterplane coefficient, sheer, fullness and LCB have no source and stay BALANCE TARGET; zone shares are the shared
   # gameplay abstraction.
   - id: merchant_liner_form
     traits: [merchant_derived]
     lengthMinMm: 90000
     lengthMaxMm: 160000
-    lbMinX100: 700
-    lbMaxX100: 950
-    formBp: 9723
+    lbMinX100: 800
+    lbMaxX100: 1050
+    formBp: 13400
     waterplaneCoeffBp: 7400
     sheerBp: 11000
     volumeFullnessBp: 6000

@@ -29,7 +29,7 @@ ship:
       protected_cruiser_form: 26000
       coast_defence_form: 15500
       pre_dreadnought_form: 26500
-      merchant_liner_form: 25000 # ESTIMATE: a fine merchant liner hull, set near protected_cruiser_form until a liner trial is sourced
+      merchant_liner_form: 26000 # ESTIMATE/SINGLE-SOURCE: C2 x100 for Etruria (14,000 ihp/18.8 kn), Campania and City of Paris; range 25,000-29,000 (docs/research/ship-building-merchant-liner.md section 5)
     slr0X1000: 1300
     kSlBp: 600
     cFloorBp: 5000
@@ -216,14 +216,15 @@ ship:
       gmMinMm: 900
       gmCapsizeMm: 200
       gmMaxMm: 3500
-    # ESTIMATE (no source): KE takes the CL window (a small cruiser-type hull); AMC the CA window, since a liner hull
-    # carries its deck guns and bunkers high like a cruiser. Both want a research pass (ticket 30).
+    # ESTIMATE (no source): KE takes the CL window (a small cruiser-type hull). AMC gmMin is White 1894's laden-merchant
+    # lower bound 1.5 ft = 457 mm (VERIFIED, docs/research/ship-building-merchant-liner.md section 7); the AMC ceiling and
+    # the KE window are BALANCE TARGET.
     KE:
       gmMinMm: 450
       gmCapsizeMm: 100
       gmMaxMm: 2200
     AMC:
-      gmMinMm: 500
+      gmMinMm: 457
       gmCapsizeMm: 150
       gmMaxMm: 2500
   minReserveBpByExpectation:

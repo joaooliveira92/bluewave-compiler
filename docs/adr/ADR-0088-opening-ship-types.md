@@ -106,11 +106,29 @@ independent duty. Implementing DESIGN-33 sections 10 and 11 is outside this chan
 
 ## Merchant hull data status
 
-No source in the repository gives hull-weight or resistance data for a merchant liner (the only figure is the 25 kn
-fast-liner ceiling). `merchant_liner_form`'s hull coefficients are borrowed from `protected_cruiser_form` (PLACEHOLDER in
-`hull-forms.yaml`, counted by the release ratchet), and its Admiralty coefficient, form complexity and stability windows
-are ESTIMATES in `balance.yaml`. They are isolated as named per-form entries, not code. **The AMC is therefore not
-production-ready as a balanced ship**: the rules, enforcement and limits are complete, the numbers behind its hull are not.
+`merchant_liner_form` is fitted from White 1894's passenger-steamer hull-and-outfit fraction of load displacement
+(VERIFIED: 45-55 % iron; 47.6 % steel for a 500 ft / 12,500 t liner, pp. 411-413), the same primary source and definition
+the warship forms use. `formBp 13400` reproduces 47.6 % at the Oregon's dimensions; it replaces the borrowed
+`protected_cruiser_form` coefficient (9,723), which was on the wrong side — a liner's hull-and-outfit is a *heavier*
+fraction than a cruiser's. The Admiralty coefficient `cFormX100 26000` is bounded by the period trial ships Etruria
+(14,000 ihp / 18.8 kn), Campania (~30,000 ihp / 22 kn) and City of Paris (18,500 ihp), range 25,000-29,000. The L/B band
+was widened to 8.0-10.5 for the sourced 9.09-9.26 ratio. Waterplane coefficient, sheer, fullness, LCB, cost complexity
+and the AMC GM ceiling remain BALANCE TARGET. All values and conversions: `docs/research/ship-building-merchant-liner.md`.
+`formBp` and `cFormX100` are ESTIMATE/SINGLE-SOURCE (derived from a verified fraction and trial data, not a weighed
+liner). **The AMC is now balanced enough for release**; a ship-specific liner hull-weight measurement or trial
+displacement would upgrade them from ESTIMATE.
+
+### Before / after (White-derived fit, 2026-10-10)
+
+| quantity (AMC starter `starter_armed_liner_1880`) | before (borrowed) | after (sourced fit) | note |
+|---|---|---|---|
+| `formBp` | 9,723 (cruiser) | 13,400 | ~1.38x; hull-and-outfit fraction 38 % -> 47.6 % at reference |
+| `cFormX100` | 25,000 | 26,000 | within the sourced 25,000-29,000 band |
+| L/B band | 7.0-9.5 | 8.0-10.5 | Oregon 9.26, Campania 9.09 |
+| hull weight (starter) | 1,452 t | 2,001 t | heavier liner hull (correct direction) |
+| displacement / draught (starter) | 3,100 t / 3.0 m | 3,500 t / 3.5 m | resized to the heavier hull, still legal |
+| speed / range | unchanged requirement | still met | no new warning |
+| construction cost / time | — | rises with hull weight | driven by the hull line, not a code change |
 
 ## Alternatives considered
 
@@ -133,8 +151,10 @@ production-ready as a balanced ship**: the rules, enforcement and limits are com
   checked (all reference designs compile with no blocking finding at their month).
 - KE and AMC at the 1880 start can mount only the 1-inch machine gun (no other gun at or below 6 inches exists before
   1883); this is a content fact, not a rule.
-- `merchant_liner_form` coefficients are borrowed from `protected_cruiser_form` (PLACEHOLDER, ratchet 0 to 1) and its
-  stability windows and Admiralty coefficient are ESTIMATES; all want research pass 3 (ticket 30).
+- `merchant_liner_form` is no longer a borrowed-coefficient PLACEHOLDER: `formBp 13400` and `cFormX100 26000` are fitted
+  from White 1894 and period liner trials (ESTIMATE/SINGLE-SOURCE), the release ratchet for `hull-forms.yaml` is 0, and
+  the AMC starter was resized to the heavier hull (ticket 30). Remaining BALANCE TARGET fields are waterplane coefficient,
+  sheer, fullness, LCB, cost complexity and the AMC GM ceiling.
 - AMC combat value, maintenance and fleet organisation as an auxiliary beyond the construction limit and its advisory
   are **not** implemented here; the engine has no auxiliary role to attach them to.
 
