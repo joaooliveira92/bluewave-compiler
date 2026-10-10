@@ -15,6 +15,11 @@ export default defineConfig({
     setupFiles: ["./src/renderer/test-setup.ts"],
     testTimeout: 60000,
     environment: "jsdom",
+    // The renderer suite is heavy (jsdom + axe-core audits over large DOMs). Left at the default
+    // (one worker per core) the load starves the axe passes and they time out mid-run. A bounded
+    // pool keeps them well inside their per-test timeouts.
+    maxWorkers: 4,
+    minWorkers: 1,
     // Debug-only sidebar screens (Simulation, Tactical Sandbox, Debugging)
     // are gated by VITE_BLUEWAVE_DEBUG, not by dev-mode — set it so their
     // routes are still exercised by campaign-screen-registry.test.tsx.
