@@ -69,7 +69,7 @@ describe("PlanToolOptions", () => {
     const options = screen.getByRole("group", { name: "Plan tool options" });
     expect(within(options).queryByLabelText("Component to place")).toBeNull();
     expect(within(options).getByRole("status").textContent).toMatch(
-      /Use Place on plan or Move on plan/,
+      /Use the Place and Move tools/,
     );
   });
 

@@ -32,7 +32,7 @@ describe("HullPlanPanel", () => {
     const panel = screen.getByRole("region", { name: "Hull plan" });
     expect(screen.queryByTestId("plan-click-layer")).toBeNull();
     expect(within(panel).getByRole("status").textContent).toMatch(
-      /Use Place on plan or Move on plan/,
+      /Use the Place and Move tools/,
     );
   });
 
