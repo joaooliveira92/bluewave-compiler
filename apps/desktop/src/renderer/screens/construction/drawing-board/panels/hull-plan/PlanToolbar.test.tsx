@@ -24,7 +24,13 @@ const draft = {
 } as unknown as DesignDraft;
 const defOf = (id: string) => (id === "gun_a" ? gun : id === "pump" ? pump : undefined);
 
-const ModeButtons = ({ onChange }: { readonly onChange: (t: PlanTool) => void }) => {
+const ModeButtons = ({
+  onChange,
+  onAutoPlace = () => {},
+}: {
+  readonly onChange: (t: PlanTool) => void;
+  readonly onAutoPlace?: () => void;
+}) => {
   const [tool, setTool] = useState<PlanTool>(IDLE_TOOL);
   return (
     <PlanModeButtons
@@ -33,59 +39,92 @@ const ModeButtons = ({ onChange }: { readonly onChange: (t: PlanTool) => void })
         setTool(next);
         onChange(next);
       }}
+      draft={draft}
+      available={[gun, pump]}
+      defOf={defOf}
+      onAutoPlace={onAutoPlace}
     />
   );
 };
 
 describe("PlanModeButtons", () => {
-  it("turns a mode on, switches between modes, and off when the active one is pressed again", () => {
+  it("opens a menu and turns the tool on; pressing the active tool again turns it off", () => {
     const onChange = vi.fn<(t: PlanTool) => void>();
     render(<ModeButtons onChange={onChange} />);
     const place = screen.getByRole("button", { name: "Place on plan" });
-    const move = screen.getByRole("button", { name: "Move on plan" });
     expect(place.getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(place);
     expect(place.getAttribute("aria-pressed")).toBe("true");
     expect(onChange).toHaveBeenLastCalledWith({ ...IDLE_TOOL, mode: "place" });
+    expect(screen.getByLabelText("Component to place")).toBeTruthy();
+    fireEvent.click(place);
+    expect(place.getAttribute("aria-pressed")).toBe("false");
+    expect(onChange).toHaveBeenLastCalledWith({ ...IDLE_TOOL, mode: "off" });
+    expect(screen.queryByLabelText("Component to place")).toBeNull();
+  });
+
+  it("switches between modes, one at a time, keeping a single picker open", () => {
+    const onChange = vi.fn<(t: PlanTool) => void>();
+    render(<ModeButtons onChange={onChange} />);
+    const place = screen.getByRole("button", { name: "Place on plan" });
+    const move = screen.getByRole("button", { name: "Move on plan" });
+    fireEvent.click(place);
+    // The other mode's menu replaces it, so only one picker is offered at a time.
     fireEvent.click(move);
     expect(place.getAttribute("aria-pressed")).toBe("false");
     expect(move.getAttribute("aria-pressed")).toBe("true");
+    expect(onChange).toHaveBeenLastCalledWith({ ...IDLE_TOOL, mode: "move" });
+    expect(screen.getByLabelText("Fitting to move")).toBeTruthy();
+    expect(screen.queryByLabelText("Component to place")).toBeNull();
+  });
+
+  it("keeps the place menu open on a choice so Auto-place stays reachable, and runs it", () => {
+    const onChange = vi.fn<(t: PlanTool) => void>();
+    const onAutoPlace = vi.fn<() => void>();
+    render(<ModeButtons onChange={onChange} onAutoPlace={onAutoPlace} />);
+    const place = screen.getByRole("button", { name: "Place on plan" });
+    fireEvent.click(place);
+    const auto = () => screen.getByRole("button", { name: "Auto-place" }) as HTMLButtonElement;
+    expect(auto().disabled).toBe(true);
+    fireEvent.click(screen.getByLabelText("Component to place"));
+    fireEvent.click(screen.getByRole("option", { name: "Gun A" }));
+    // The menu stays open and Auto-place is now enabled.
+    expect(screen.getByLabelText("Component to place")).toBeTruthy();
+    expect(auto().disabled).toBe(false);
+    fireEvent.click(auto());
+    expect(onAutoPlace).toHaveBeenCalledOnce();
+    expect(screen.queryByLabelText("Component to place")).toBeNull();
+    expect(place.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(place);
+    expect(place.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("closes the move menu on a choice; pressing the active tool again turns it off", () => {
+    const onChange = vi.fn<(t: PlanTool) => void>();
+    render(<ModeButtons onChange={onChange} />);
+    const move = screen.getByRole("button", { name: "Move on plan" });
+    fireEvent.click(move);
+    fireEvent.click(screen.getByLabelText("Fitting to move"));
+    fireEvent.click(screen.getByRole("option", { name: "Gun A (gun_1)" }));
+    // The move menu's controls live on the panel, so it closes on a choice; the tool stays on.
+    expect(screen.queryByLabelText("Fitting to move")).toBeNull();
+    expect(move.getAttribute("aria-pressed")).toBe("true");
+    // Pressing the active tool again turns it off.
     fireEvent.click(move);
     expect(move.getAttribute("aria-pressed")).toBe("false");
-    expect(onChange).toHaveBeenLastCalledWith({ ...IDLE_TOOL, mode: "off" });
-  });
-});
-
-describe("PlanToolOptions", () => {
-  const base = {
-    onTool: vi.fn<(t: PlanTool) => void>(),
-    draft,
-    available: [gun, pump],
-    defOf,
-    onNudge: vi.fn<(d: number) => void>(),
-    onSide: vi.fn<(s: MountSide) => void>(),
-    onAutoPlace: vi.fn<() => void>(),
-    notice: null,
-  };
-
-  it("explains the tool when idle, with no options and no notice", () => {
-    render(<PlanToolOptions {...base} tool={IDLE_TOOL} />);
-    const options = screen.getByRole("group", { name: "Plan tool options" });
-    expect(within(options).queryByLabelText("Component to place")).toBeNull();
-    expect(within(options).getByRole("status").textContent).toMatch(/Use the Place and Move tools/);
+    expect(onChange).toHaveBeenLastCalledWith({ ...IDLE_TOOL, mode: "off", instanceId: "gun_1" });
   });
 
-  it("offers a component picker in place mode, with Auto-place disabled until one is chosen", () => {
-    render(<PlanToolOptions {...base} tool={{ ...IDLE_TOOL, mode: "place" }} />);
-    expect(screen.getByLabelText("Component to place")).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Auto-place" }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
-    expect(screen.getByRole("status").textContent).toMatch(/Choose a component/);
+  it("explains how to use the place tool in a hover tooltip on its button", async () => {
+    render(<ModeButtons onChange={() => {}} />);
+    fireEvent.focus(screen.getByRole("button", { name: "Place on plan" }));
+    const tip = await screen.findByText(/Choose a component in the Place menu/);
+    expect(tip).toBeTruthy();
   });
 
   it("gives each placeable option its category icon and description", () => {
-    render(<PlanToolOptions {...base} tool={{ ...IDLE_TOOL, mode: "place" }} />);
+    render(<ModeButtons onChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Place on plan" }));
     fireEvent.click(screen.getByLabelText("Component to place"));
     const option = screen.getByRole("option", { name: "Gun A" });
     expect(within(option).getByText("Main-battery gun.")).toBeTruthy();
@@ -93,25 +132,29 @@ describe("PlanToolOptions", () => {
   });
 
   it("gives each fitting option its category icon and description", () => {
-    render(<PlanToolOptions {...base} tool={{ ...IDLE_TOOL, mode: "move" }} />);
+    render(<ModeButtons onChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Move on plan" }));
     fireEvent.click(screen.getByLabelText("Fitting to move"));
     const option = screen.getByRole("option", { name: "Gun A (gun_1)" });
     expect(within(option).getByText("Main-battery gun.")).toBeTruthy();
     expect(option.querySelector("svg")).toBeTruthy();
   });
+});
 
-  it("enables Auto-place once a component is chosen and runs it", () => {
-    const onAutoPlace = vi.fn<() => void>();
-    render(
-      <PlanToolOptions
-        {...base}
-        onAutoPlace={onAutoPlace}
-        tool={{ ...IDLE_TOOL, mode: "place", componentId: "gun_a" }}
-      />,
-    );
-    expect(screen.getByRole("status").textContent).toMatch(/Stations snap to 10‰/);
-    fireEvent.click(screen.getByRole("button", { name: "Auto-place" }));
-    expect(onAutoPlace).toHaveBeenCalledOnce();
+describe("PlanToolOptions", () => {
+  const base = {
+    draft,
+    defOf,
+    onNudge: vi.fn<(d: number) => void>(),
+    onSide: vi.fn<(s: MountSide) => void>(),
+    notice: null,
+  };
+
+  it("explains the tool when idle, with no actions and no notice", () => {
+    render(<PlanToolOptions {...base} tool={IDLE_TOOL} />);
+    const options = screen.getByRole("group", { name: "Plan tool options" });
+    expect(within(options).queryByRole("button", { name: /permille/ })).toBeNull();
+    expect(within(options).getByRole("status").textContent).toMatch(/Use the Place and Move tools/);
   });
 
   it("offers the selected fitting nudge buttons and a side picker for mounts", () => {
@@ -123,7 +166,6 @@ describe("PlanToolOptions", () => {
         tool={{ ...IDLE_TOOL, mode: "move", instanceId: "gun_1" }}
       />,
     );
-    expect(screen.getByLabelText("Fitting to move")).toBeTruthy();
     const bow = screen.getByRole("button", { name: /Move 10 permille toward the bow/ });
     fireEvent.click(bow);
     expect(onNudge).toHaveBeenCalledWith(-10);

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vite-plus/test";
 import { loadDrawingBoardContent } from "./content.js";
 import { DrawingBoard } from "./DrawingBoard.js";
 import { PLAN_H, PLAN_MID, PLAN_W, stationX } from "./panels/hull-plan/geometry.js";
-import { chooseOption, openTab, region } from "./test-helpers.js";
+import { chooseOption, openPlanTool, openTab, region } from "./test-helpers.js";
 
 afterEach(cleanup);
 
@@ -113,6 +113,8 @@ describe("DrawingBoard panels", () => {
         clientY: PLAN_MID,
       });
       expect(within(panel).getByRole("status").textContent).toMatch(/Choose a component/);
+      // The picker lives in the toolbar menu, so reopen it to choose.
+      openPlanTool("Place on plan");
       chooseOption("Component to place", placeable.displayName);
       fireEvent.click(screen.getByTestId("plan-click-layer"), {
         clientX: stationX(300),
@@ -127,7 +129,7 @@ describe("DrawingBoard panels", () => {
       render(<DrawingBoard />);
       const panel = region("Hull plan");
       fireEvent.click(screen.getByRole("button", { name: "Move on plan" }));
-      fireEvent.click(within(panel).getByLabelText("Fitting to move"));
+      fireEvent.click(screen.getByLabelText("Fitting to move"));
       fireEvent.click(screen.getAllByRole("option")[1]!);
       expect(screen.getByTestId("plan-selected-ring")).toBeTruthy();
       fireEvent.click(
@@ -180,13 +182,15 @@ describe("DrawingBoard panels", () => {
       render(<DrawingBoard />);
       const panel = region("Hull plan");
       fireEvent.click(screen.getByRole("button", { name: "Place on plan" }));
-      const auto = within(panel).getByRole("button", { name: "Auto-place" }) as HTMLButtonElement;
-      expect(auto.disabled).toBe(true);
+      openPlanTool("Place on plan");
+      const auto = () => screen.getByRole("button", { name: "Auto-place" }) as HTMLButtonElement;
+      expect(auto().disabled).toBe(true);
       chooseOption(
         "Component to place",
         content.components.find((c) => c.id === "pumps_damage_control")!.displayName,
       );
-      fireEvent.click(auto);
+      expect(auto().disabled).toBe(false);
+      fireEvent.click(auto());
       expect(within(panel).getByRole("status").textContent).toMatch(
         /^Placed .* at \d+‰, where the ship stays most level/,
       );
@@ -269,6 +273,7 @@ describe("DrawingBoard panels", () => {
       expect(move.getAttribute("aria-pressed")).toBe("true");
       expect(within(panel).getByRole("status").textContent).toMatch(/^Click a fitting on the plan/);
       fireEvent.click(move);
+      expect(move.getAttribute("aria-pressed")).toBe("false");
       expect(screen.queryByTestId("plan-click-layer")).toBeNull();
     });
   });

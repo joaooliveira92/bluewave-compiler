@@ -78,7 +78,7 @@ describe("Drawing Board workspace", () => {
     render(<DrawingBoard />);
     openTab("Analysis");
     fireEvent.click(screen.getByRole("button", { name: "Move on plan" }));
-    expect(within(shipView()).getByLabelText("Fitting to move")).toBeTruthy();
+    expect(screen.getByLabelText("Fitting to move")).toBeTruthy();
   });
 
   it("gives the ship view and the tab pane their own scroll containers on wide layouts", () => {

@@ -33,6 +33,16 @@ export function openPlanDisplay(): void {
   fireEvent.click(screen.getByRole("button", { name: "Plan display" }));
 }
 
+/** Opens a plan tool's picker menu from its button, unless it is already open. */
+export function openPlanTool(name: string): void {
+  if (screen.queryByRole("dialog", { name }) !== null) return;
+  const trigger = screen.getByRole("button", { name });
+  // The tool is a toggle: a first press on an active (but dismissed) tool turns it off, a second turns it on again.
+  fireEvent.click(trigger);
+  if (screen.queryByRole("dialog", { name }) !== null) return;
+  fireEvent.click(trigger);
+}
+
 /** Opens a `<Select>` by its trigger's accessible name and clicks the option whose visible text matches. */
 export function chooseOption(trigger: string | RegExp, option: string | RegExp): void {
   fireEvent.click(screen.getByLabelText(trigger));

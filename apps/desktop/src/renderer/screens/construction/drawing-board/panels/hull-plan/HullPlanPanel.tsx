@@ -25,8 +25,8 @@ import { SelectionLayer } from "./SelectionLayer.js";
 import { GunArcLayer, HullFittingLayer } from "./fitting-layers.js";
 import { HullOutlineLayer, HullZoneLayer } from "./plan-layers.js";
 import { HullTopsideLayer } from "./HullTopsideLayer.js";
-import { planModel } from "./planModel.js";
-import { useHullPlanEditing } from "./useHullPlanEditing.js";
+import { planModel, type PlanModel } from "./planModel.js";
+import { useHullPlanEditing, type HullPlanEditing } from "./useHullPlanEditing.js";
 import { Info } from "lucide-react";
 import { plural } from "../../plural.js";
 import type { BoardFinding } from "../../validation/boardFindings.js";
@@ -50,6 +50,8 @@ export function HullPlanPanel({
   month,
   edit,
   findings: given,
+  model: givenModel,
+  editing: givenEditing,
   tool: givenTool,
   onTool,
   showArcs: givenShowArcs,
@@ -64,6 +66,10 @@ export function HullPlanPanel({
   readonly edit: Edit;
   /** The board's findings (`boardFindings`); derived here only when the plan is shown on its own. */
   readonly findings?: readonly BoardFinding[];
+  /** The board's derived plan model; built here only when the plan is shown on its own. */
+  readonly model?: PlanModel;
+  /** The board's plan-editing (tool, notice, click/drag handlers); the plan keeps its own only when shown on its own. */
+  readonly editing?: HullPlanEditing;
   /** The plan tool, switched from the board toolbar; the plan keeps its own only when it is shown on its own. */
   readonly tool?: PlanTool;
   readonly onTool?: (next: PlanTool) => void;
@@ -84,8 +90,9 @@ export function HullPlanPanel({
   const arcsControl = onShowArcs === undefined;
   const findingsControl = onFindingsView === undefined;
   const planRef = useRef<HTMLDivElement>(null);
-  const model = planModel(draft, content, view, month, given);
-  const editing = useHullPlanEditing({
+  const model = givenModel ?? planModel(draft, content, view, month, given);
+  // The board owns the plan tool when its toolbar (with the pickers) is shown; the plan keeps its own when alone.
+  const ownEditing = useHullPlanEditing({
     draft,
     content,
     month,
@@ -96,21 +103,19 @@ export function HullPlanPanel({
     givenTool,
     onTool,
   });
-  const { tool, setTool, notice, ghost, planHandlers, onNudge, onAutoPlace, onSide } = editing;
+  const editing = givenEditing ?? ownEditing;
+  const { tool, notice, ghost, planHandlers, onNudge, onSide } = editing;
   const { frame, zones, form, facts, superstructure, placedFunnels, mounts, targets } = model;
   const shown = model.findings.filter((f) => passesFilter(f.severity, findingsView.filter));
   return (
-    <Panel title="Hull plan">
+    <Panel title="Hull plan" className="rounded-none border-0 bg-transparent">
       <TooltipProvider>
         <PlanToolOptions
           tool={tool}
-          onTool={setTool}
           draft={draft}
-          available={model.available}
           defOf={model.defOf}
           notice={notice}
           onNudge={onNudge}
-          onAutoPlace={onAutoPlace}
           onSide={onSide}
         />
         {arcsControl && (

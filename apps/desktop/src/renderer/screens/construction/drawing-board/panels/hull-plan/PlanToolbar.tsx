@@ -1,7 +1,8 @@
 import type { ComponentDef, DesignDraft, MountSide } from "@bluewave/ship-design";
-import { Move, SquarePlus } from "lucide-react";
+import { Move, SquarePlus, type LucideIcon } from "lucide-react";
+import { useState } from "react";
 import { Button } from "../../../../../components/ui/button.js";
-import { ButtonGroup } from "../../../../../components/ui/button-group.js";
+import { Popover, PopoverContent, PopoverTrigger } from "../../../../../components/ui/popover.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../../components/ui/tooltip.js";
 import { componentCategoryMeta } from "../../componentCategory.js";
 import { SelectField } from "../../fields.js";
@@ -12,64 +13,39 @@ export { IDLE_TOOL, type PlanTool, type PlanToolMode } from "./plan-tool.js";
 
 const isMountSide = (v: string): v is MountSide => v === "CENTRE" || v === "PORT" || v === "STBD";
 
-/**
- * The plan tool switches, shown in the board toolbar: at most one mode is on, and pressing the active one turns it off.
- * The drawing itself picks up the mode (crosshair, click to place or move) and shows the options for it.
- */
-export function PlanModeButtons({
-  tool,
-  onTool,
-}: {
-  readonly tool: PlanTool;
-  readonly onTool: (next: PlanTool) => void;
-}) {
-  const toggle = (mode: PlanToolMode) =>
-    onTool({ ...tool, mode: tool.mode === mode ? "off" : mode });
-  return (
-    <ButtonGroup aria-label="Plan tools">
-      {(
-        [
-          ["place", "Place on plan", SquarePlus, "click the plan to fit a new component"],
-          ["move", "Move on plan", Move, "click or drag a fitting to a new station"],
-        ] as const
-      ).map(([mode, name, Icon, hint]) => (
-        <Tooltip key={mode}>
-          <TooltipTrigger
-            render={
-              <Button
-                variant={tool.mode === mode ? "default" : "outline"}
-                size="icon"
-                aria-label={name}
-                aria-pressed={tool.mode === mode}
-                onClick={() => toggle(mode)}
-              />
-            }
-          >
-            <Icon aria-hidden="true" />
-          </TooltipTrigger>
-          <TooltipContent>
-            {name}: {hint}
-          </TooltipContent>
-        </Tooltip>
-      ))}
-    </ButtonGroup>
-  );
-}
+type ToolMode = Extract<PlanToolMode, "place" | "move">;
+
+/** The two plan tools. Each is one button: pressing it turns the tool on and opens its picker; pressing it again turns it off. */
+const MODES: readonly {
+  readonly mode: ToolMode;
+  readonly name: string;
+  readonly label: string;
+  readonly Icon: LucideIcon;
+  /** How to use the tool, shown on hover of the button (so the drawing's status line stays for notices). */
+  readonly hint?: string;
+}[] = [
+  {
+    mode: "place",
+    name: "Place on plan",
+    label: "Place",
+    Icon: SquarePlus,
+    hint: "Choose a component in the Place menu, then click the plan (near the centreline places it on the centreline, above port, below starboard), or use Auto-place there.",
+  },
+  { mode: "move", name: "Move on plan", label: "Move", Icon: Move },
+];
 
 /**
- * The keyboard-reachable options of the active plan tool. The plan drawing itself is a static image; clicking it is a
- * pointer shortcut for exactly what these controls do, so every action here works without a mouse.
+ * The plan tool switches, shown in the board toolbar. Each is a single button that both switches the tool on and
+ * opens its picker; pressing it again turns the tool off. The drawing itself picks up the mode and shows the rest
+ * of its options.
  */
-export function PlanToolOptions({
+export function PlanModeButtons({
   tool,
   onTool,
   draft,
   available,
   defOf,
-  onNudge,
-  onSide,
   onAutoPlace,
-  notice,
 }: {
   readonly tool: PlanTool;
   readonly onTool: (next: PlanTool) => void;
@@ -77,71 +53,174 @@ export function PlanToolOptions({
   /** Components that can be fitted this month. */
   readonly available: readonly ComponentDef[];
   readonly defOf: (componentId: string) => ComponentDef | undefined;
+  /** Places the chosen component at the most level legal station (place menu). */
+  readonly onAutoPlace: () => void;
+}) {
+  const [open, setOpen] = useState<ToolMode | null>(null);
+  const activate = (mode: ToolMode) => {
+    if (tool.mode !== mode) onTool({ ...tool, mode });
+    setOpen(mode);
+  };
+  const deactivate = () => {
+    onTool({ ...tool, mode: "off" });
+    setOpen(null);
+  };
+  return (
+    <>
+      {MODES.map(({ mode, name, label, Icon, hint }) => {
+        const active = tool.mode === mode;
+        const trigger = (
+          <Button variant={active ? "default" : "outline"} aria-label={name} aria-pressed={active} />
+        );
+        const face = (
+          <>
+            <Icon aria-hidden="true" />
+            {label}
+          </>
+        );
+        return (
+          <Popover
+            key={mode}
+            open={open === mode}
+            onOpenChange={(next, details) => {
+              if (details.reason === "trigger-press") {
+                // The button is the tool's switch and its picker: it turns the tool on (and opens the picker), and
+                // turns it off again when it is already on.
+                if (tool.mode === mode) deactivate();
+                else activate(mode);
+                return;
+              }
+              // Any other close (Escape, a click on the drawing, the other menu) hides the picker but keeps the mode.
+              if (!next) setOpen((current) => (current === mode ? null : current));
+            }}
+          >
+            {hint === undefined ? (
+              <PopoverTrigger render={trigger}>{face}</PopoverTrigger>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger render={<PopoverTrigger render={trigger} />}>
+                  {face}
+                </TooltipTrigger>
+                <TooltipContent className="max-w-72">{hint}</TooltipContent>
+              </Tooltip>
+            )}
+            <PopoverContent align="start" aria-label={name} className="w-72 space-y-3 text-sm">
+              <div className="font-medium">{name}</div>
+              <PlanToolPicker
+                tool={tool}
+                draft={draft}
+                available={available}
+                defOf={defOf}
+                onChange={(next) => {
+                  onTool(next);
+                  // The place menu keeps its Auto-place action in view; the move menu's controls live on the panel,
+                  // so only the move menu closes on a choice (the drawing stays reachable).
+                  if (mode === "move") setOpen(null);
+                }}
+              />
+              {mode === "place" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={tool.componentId === ""}
+                  onClick={() => {
+                    onAutoPlace();
+                    setOpen(null);
+                  }}
+                  title="Place it where the ship stays most level"
+                >
+                  Auto-place
+                </Button>
+              )}
+            </PopoverContent>
+          </Popover>
+        );
+      })}
+    </>
+  );
+}
+
+/** The picker for the active mode, rendered inside the toolbar menu: the component to place, or the fitting to move. */
+function PlanToolPicker({
+  tool,
+  draft,
+  available,
+  defOf,
+  onChange,
+}: {
+  readonly tool: PlanTool;
+  readonly draft: DesignDraft;
+  readonly available: readonly ComponentDef[];
+  readonly defOf: (componentId: string) => ComponentDef | undefined;
+  readonly onChange: (next: PlanTool) => void;
+}) {
+  if (tool.mode === "place")
+    return (
+      <SelectField
+        label="Component to place"
+        value={tool.componentId}
+        options={[
+          { value: "", label: "Choose a component" },
+          ...available.map((c) => {
+            const { icon: Icon, description } = componentCategoryMeta(c.category);
+            return {
+              value: c.id,
+              label: c.displayName,
+              icon: <Icon aria-hidden="true" className="size-4" />,
+              description,
+            };
+          }),
+        ]}
+        onChange={(componentId) => onChange({ ...tool, componentId })}
+      />
+    );
+  if (tool.mode === "move")
+    return (
+      <SelectField
+        label="Fitting to move"
+        value={tool.instanceId}
+        options={[
+          { value: "", label: "Choose a fitting" },
+          ...draft.placements.map((p) => {
+            const def = defOf(p.componentId);
+            const { icon: Icon, description } = componentCategoryMeta(def?.category ?? "");
+            return {
+              value: p.instanceId,
+              label: `${def?.displayName ?? p.componentId} (${p.instanceId})`,
+              icon: <Icon aria-hidden="true" className="size-4" />,
+              description,
+            };
+          }),
+        ]}
+        onChange={(instanceId) => onChange({ ...tool, instanceId })}
+      />
+    );
+  return null;
+}
+
+/**
+ * The keyboard-reachable actions of the active plan tool, shown on the drawing: the nudge and side controls (move
+ * mode), plus the notice for the last click or drag. The picker and Auto-place live in the toolbar menu.
+ */
+export function PlanToolOptions({
+  tool,
+  draft,
+  defOf,
+  onNudge,
+  onSide,
+  notice,
+}: {
+  readonly tool: PlanTool;
+  readonly draft: DesignDraft;
+  readonly defOf: (componentId: string) => ComponentDef | undefined;
   readonly onNudge: (deltaPermille: number) => void;
   readonly onSide: (side: MountSide) => void;
-  /** Places the chosen component at the most level legal station (place mode). */
-  readonly onAutoPlace: () => void;
   readonly notice: string | null;
 }) {
   const selected = draft.placements.find((p) => p.instanceId === tool.instanceId);
   const selectedDef = selected ? defOf(selected.componentId) : undefined;
   return (
     <div className="space-y-2" role="group" aria-label="Plan tool options">
-      {tool.mode !== "off" && (
-        <div className="flex flex-wrap items-end gap-2">
-          {tool.mode === "place" && (
-            <SelectField
-              className="min-w-56 flex-1"
-              label="Component to place"
-              value={tool.componentId}
-              options={[
-                { value: "", label: "Choose a component" },
-                ...available.map((c) => {
-                  const { icon: Icon, description } = componentCategoryMeta(c.category);
-                  return {
-                    value: c.id,
-                    label: c.displayName,
-                    icon: <Icon aria-hidden="true" className="size-4" />,
-                    description,
-                  };
-                }),
-              ]}
-              onChange={(componentId) => onTool({ ...tool, componentId })}
-            />
-          )}
-          {tool.mode === "place" && (
-            <Button
-              variant="outline"
-              disabled={tool.componentId === ""}
-              onClick={onAutoPlace}
-              title="Place it where the ship stays most level"
-            >
-              Auto-place
-            </Button>
-          )}
-          {tool.mode === "move" && (
-            <SelectField
-              className="min-w-56 flex-1"
-              label="Fitting to move"
-              value={tool.instanceId}
-              options={[
-                { value: "", label: "Choose a fitting" },
-                ...draft.placements.map((p) => {
-                  const def = defOf(p.componentId);
-                  const { icon: Icon, description } = componentCategoryMeta(def?.category ?? "");
-                  return {
-                    value: p.instanceId,
-                    label: `${def?.displayName ?? p.componentId} (${p.instanceId})`,
-                    icon: <Icon aria-hidden="true" className="size-4" />,
-                    description,
-                  };
-                }),
-              ]}
-              onChange={(instanceId) => onTool({ ...tool, instanceId })}
-            />
-          )}
-        </div>
-      )}
       {tool.mode === "move" && selected !== undefined && (
         <div className="flex flex-wrap items-end gap-2">
           {(
@@ -180,11 +259,12 @@ export function PlanToolOptions({
           )}
         </div>
       )}
+      {/* With nothing chosen, the guidance is the Place button's hover tooltip, so the status line stays quiet. */}
       <p role="status" className="min-h-4 text-xs text-muted-foreground">
         {notice ??
           (tool.mode === "place"
             ? tool.componentId === ""
-              ? "Choose a component, then click the plan (near the centreline places it on the centreline, above port, below starboard), or use Auto-place."
+              ? null
               : "Click the plan to place it. Stations snap to 10‰."
             : tool.mode === "move"
               ? "Click a fitting on the plan (or choose it above), then click where it should go or drag it there."

@@ -183,13 +183,13 @@ test("row 6f: the Drawing Board edits the hull plan, batteries and armour in the
   await expect(board.getByRole("tab", { name: /Hull and machinery/ })).toBeVisible();
 
   // Hull plan: move a fitting with the keyboard-reachable buttons, then place one by clicking the real drawing.
-  await board.getByRole("button", { name: "Move on plan" }).click();
-  await board.getByLabel("Fitting to move").click();
+  await board.getByRole("button", { name: "Move on plan", exact: true }).click();
+  await e2e.page.getByLabel("Fitting to move").click();
   await e2e.page.getByRole("option").nth(1).click();
   await board.getByRole("button", { name: /Move 10 permille toward the stern/ }).click();
   await expect(board.getByRole("status").filter({ hasText: /toward the stern/ })).toBeVisible();
-  await board.getByRole("button", { name: "Place on plan" }).click();
-  await board.getByLabel("Component to place").click();
+  await board.getByRole("button", { name: "Place on plan", exact: true }).click();
+  await e2e.page.getByLabel("Component to place").click();
   await e2e.page.getByRole("option").nth(1).click();
   await board.getByTestId("plan-click-layer").click();
   await expect(board.getByRole("status").filter({ hasText: /^Placed / })).toBeVisible();

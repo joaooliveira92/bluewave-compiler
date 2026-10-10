@@ -40,6 +40,25 @@ describe("Drawing Board polish", () => {
     expect(screen.getByLabelText("Technology as of 1880-01 (campaign date)")).toBeTruthy();
   });
 
+  it("in a campaign, opens on the first design that exists at the campaign date", () => {
+    render(<DrawingBoard />);
+    expect(screen.getByLabelText("Starting design").textContent).toMatch(/Torpedo cruiser \(1880/);
+  });
+
+  it("in a campaign, disables starting designs whose technology does not exist yet", () => {
+    render(<DrawingBoard />);
+    fireEvent.click(screen.getByLabelText("Starting design"));
+    const option = (value: string) =>
+      screen.getAllByRole("option").find((o) => o.getAttribute("data-value") === value)!;
+    // The 1893/1895 designs need guns introduced in 1886+; at the 1880 campaign date they are shown but not selectable.
+    const havock = option("havock_like");
+    expect(havock.getAttribute("aria-disabled")).toBe("true");
+    expect(havock.textContent).toMatch(/Not available until 1895-06/);
+    // The 1880 designs (the generic cruiser and the historical ironclads) exist at the campaign date.
+    expect(option("torpedo_cruiser_1880").getAttribute("aria-disabled")).toBeNull();
+    expect(option("devastator_1873").getAttribute("aria-disabled")).toBeNull();
+  });
+
   it("keeps the long drawing disclaimer behind a short line", () => {
     render(<DrawingBoard />);
     expect(screen.getByText(/Schematic, not a lines plan\./)).toBeTruthy();

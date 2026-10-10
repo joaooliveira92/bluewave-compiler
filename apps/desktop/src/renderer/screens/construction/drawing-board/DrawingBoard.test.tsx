@@ -35,6 +35,19 @@ describe("DrawingBoard", () => {
     expect(metric("Top speed")).toMatch(/kn \(need 25\.5\)/);
   });
 
+  it("offers each starting design with a ship-type icon and a one-line description", () => {
+    render(<DrawingBoard />);
+    fireEvent.click(screen.getByLabelText("Starting design"));
+    const options = screen.getAllByRole("option");
+    expect(options.length).toBeGreaterThan(0);
+    for (const option of options) {
+      expect(option.querySelector("svg")).toBeTruthy();
+      const describedBy = option.getAttribute("aria-describedby");
+      expect(describedBy).toBeTruthy();
+      expect(document.getElementById(describedBy!)?.textContent?.length).toBeGreaterThan(0);
+    }
+  });
+
   it("draws a top-down hull plan with one marker per placed fitting", () => {
     render(<DrawingBoard />);
     const plan = region("Hull plan");

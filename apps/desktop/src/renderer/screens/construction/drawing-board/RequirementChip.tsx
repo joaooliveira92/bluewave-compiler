@@ -36,9 +36,8 @@ export function RequirementChip({
           className,
         )}
       >
-        <Badge variant="outline" className="h-full cursor-pointer gap-1">
+        <Badge variant="outline" className="h-full cursor-pointer">
           <Target aria-hidden="true" className="size-3" />
-          {summary}
         </Badge>
       </PopoverTrigger>
       <PopoverContent aria-label="Design requirement" className="w-72 text-sm">

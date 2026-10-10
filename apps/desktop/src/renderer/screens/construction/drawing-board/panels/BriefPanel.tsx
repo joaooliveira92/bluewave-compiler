@@ -1,33 +1,15 @@
 import {
   EARLY_SHIP_TYPES,
   type DesignDraft,
-  type EarlyShipType,
   type WorkshopView,
 } from "@bluewave/ship-design";
 import type { ReactNode } from "react";
 import { Badge } from "../../../../components/ui/badge.js";
 import { shipTypeIcon } from "../../components/ship-type-icon.js";
 import { NumberField, SelectField } from "../fields.js";
+import { SHIP_TYPE_NAME as TYPE_NAME, SHIP_TYPE_ROLE as TYPE_ROLE } from "../shipTypes.js";
 import { Panel } from "./Panel.js";
 import type { Edit } from "./types.js";
-
-/** Display names only: DESIGN-22 defines the codes, not the names. */
-const TYPE_NAME: Record<EarlyShipType, string> = {
-  BB: "Battleship",
-  B: "Pre-dreadnought battleship",
-  CA: "Armoured cruiser",
-  CL: "Light cruiser",
-  DD: "Destroyer",
-};
-
-/** One-line role of each type. General naval usage, not design data. */
-const TYPE_ROLE: Record<EarlyShipType, string> = {
-  BB: "The capital ship of the line: the heaviest guns and armour, and the fleet's centre of gravity.",
-  B: "An early battleship: a mixed heavy and secondary battery, built for the battle line.",
-  CA: "An armoured cruiser: fast and protected enough for the line, and a raider hunter on distant stations.",
-  CL: "A light cruiser: a fast, lightly armoured scout and trade-protection cruiser.",
-  DD: "A destroyer: a fast, lightly built torpedo craft and fleet screening vessel.",
-};
 
 /** The design brief: the ship type the design must qualify as, and the speed and range it is judged against. */
 export function BriefPanel({

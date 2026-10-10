@@ -30,9 +30,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../../../components/ui/tooltip.js";
+import { shipTypeIcon } from "../components/ship-type-icon.js";
 import { ConfirmDialog } from "./ConfirmAction.js";
 import { RequirementChip } from "./RequirementChip.js";
 import { SelectField } from "./fields.js";
+import { shipTypeRole } from "./shipTypes.js";
 import {
   AlternativesPanel,
   ArmourPanel,
@@ -55,6 +57,8 @@ import {
   TopsidePanel,
 } from "./panels/index.js";
 import { IDLE_TOOL, PlanModeButtons, type PlanTool } from "./panels/hull-plan/PlanToolbar.js";
+import { planModel } from "./panels/hull-plan/planModel.js";
+import { useHullPlanEditing } from "./panels/hull-plan/useHullPlanEditing.js";
 import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
 import type { RevisionProject } from "./revisionPreview.js";
 import { useDrawingBoard } from "./useDrawingBoard.js";
@@ -150,6 +154,23 @@ export function DrawingBoard({
     () => findings.filter((f) => passesFilter(f.severity, findingsView.filter)),
     [findings, findingsView.filter],
   );
+  // The toolbar owns the plan tool (its pickers and Auto-place live in the menus), so the drawing's model and editing
+  // session are built here and shared: a notice from the menu and one from a click on the drawing agree.
+  const planModelData = useMemo(
+    () => planModel(draft, content, view, state.month, findings),
+    [draft, content, view, state.month, findings],
+  );
+  const planEditing = useHullPlanEditing({
+    draft,
+    content,
+    month: state.month,
+    frame: planModelData.frame,
+    zones: planModelData.zones,
+    defOf: planModelData.defOf,
+    edit: actions.edit,
+    givenTool: planTool,
+    onTool: setPlanTool,
+  });
   const entityCtx: EntityContext = { draft, view, content, zones, batteries, findings };
   // Presentation selection (pinned, form-linked, hover preview): one store for the board, never design state.
   const [selection] = useState(createSelectionStore);
@@ -256,7 +277,21 @@ export function DrawingBoard({
                 label="Starting design"
                 shortLabel="Design"
                 value={state.preset.id}
-                options={content.references.map((r) => ({ value: r.id, label: r.name }))}
+                options={content.references.map((r) => {
+                  const Icon = shipTypeIcon(r.draft.requirement.category);
+                  // In a campaign the rules date is fixed: a design whose technology does not exist yet cannot be built,
+                  // so it is offered but disabled with the reason instead of letting the player select a doomed start.
+                  const notYet = campaignMonth !== null && r.month > campaignMonth;
+                  return {
+                    value: r.id,
+                    label: r.name,
+                    icon: <Icon aria-hidden="true" className="size-4" />,
+                    description: notYet
+                      ? `Not available until ${r.month}.`
+                      : shipTypeRole(r.draft.requirement.category),
+                    disabled: notYet,
+                  };
+                })}
                 onChange={(id) => (state.editCount > 0 ? setPendingPreset(id) : loadPreset(id))}
               />
               {campaignMonth !== null ? (
@@ -322,7 +357,14 @@ export function DrawingBoard({
                 {plural(state.editCount, "edit", "edits", "No edits")}
               </span>
               <Separator orientation="vertical" className="h-6" />
-              <PlanModeButtons tool={planTool} onTool={setPlanTool} />
+              <PlanModeButtons
+                tool={planTool}
+                onTool={setPlanTool}
+                draft={draft}
+                available={planModelData.available}
+                defOf={planModelData.defOf}
+                onAutoPlace={planEditing.onAutoPlace}
+              />
               <PlanDisplayMenu
                 showArcs={showArcs}
                 onShowArcs={setShowArcs}
@@ -382,8 +424,8 @@ export function DrawingBoard({
                   month={state.month}
                   edit={actions.edit}
                   findings={findings}
-                  tool={planTool}
-                  onTool={setPlanTool}
+                  model={planModelData}
+                  editing={planEditing}
                   showArcs={showArcs}
                   onShowArcs={setShowArcs}
                   findingsView={findingsView}

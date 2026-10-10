@@ -15,10 +15,10 @@ const content = loadDrawingBoardContent();
 const ref = content.references[0]!;
 
 describe("requirement chip", () => {
-  it("shows the headline brief and opens every requirement in a popover", async () => {
+  it("shows an icon-only brief chip that opens every requirement in a popover", async () => {
     render(<RequirementChip requirement={ref.draft.requirement} />);
     const chip = screen.getByRole("button", { name: /^Design requirement: .* kn · .* nm$/ });
-    expect(chip.textContent).toMatch(/.* kn · .* nm/);
+    expect(chip.textContent).toBe("");
     fireEvent.click(chip);
     const dialog = await screen.findByText("Design requirement", { selector: "div" });
     const body = dialog.parentElement!.textContent!;
