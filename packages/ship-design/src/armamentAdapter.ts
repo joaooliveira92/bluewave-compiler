@@ -1,15 +1,19 @@
 /**
- * Compatibility adapter (ADR-0093): map the *current* armament content — a shared `components.yaml`
+ * Compatibility adapter (ADR-0093): map the *current* legacy armament content — a shared `components.yaml`
  * family, a national `GunModelDef`/`AmmunitionPatternDef`, and a `NationNavalProfile` — into the
  * authoritative armament domain in `@bluewave/armament`, and resolve it.
  *
- * This adapter is additive and temporary. It preserves current content unchanged, invents no
- * defaults, and does not alter compilation, construction, candidate generation or combat. It is not
- * a second authoritative representation: it is the bridge the migration order in ADR-0093 retires
- * as content moves to first-class armament data.
+ * Since the Step 3 ship-design cut-over the runtime compile no longer uses this adapter: it resolves the
+ * first-class armament content (`ship-building/armament/*.yaml`) through `resolveInstalledWeapon`
+ * (`armamentContent.ts`). This adapter is retained for the migration path and legacy tooling/tests that
+ * still hold the merged `ComponentDef` + `NationNavalProfile` shape. It is not a second authoritative
+ * representation.
  *
- * Fields the adapter cannot yet map from current content are reported explicitly in
- * `ARMAMENT_ADAPTER_UNMAPPED_FIELDS`; they are omitted (undefined), never guessed.
+ * Fields the adapter cannot yet map from legacy content are reported explicitly in
+ * `ARMAMENT_ADAPTER_UNMAPPED_FIELDS`; they are omitted (undefined), never guessed. These are the values the
+ * first-class model does not yet own; the ones ship design needs are carried through the explicitly named
+ * legacy compatibility path (`ComponentSummary` keeps the component's own weight/cost/volume), and the rest
+ * are combat-only and deferred to the Step 4 combat cut-over.
  */
 import type { ComponentDef } from "./component.js";
 import { applyGunModel } from "./componentVariants.js";

@@ -11,6 +11,8 @@ import { computeCost, type CostBalance, type CostContext } from "./cost.js";
 import { computeCve, type CveBalance, type CveWeights } from "./cve.js";
 import { applyEdit, type DraftEdit } from "./edits.js";
 import { bp, kg, mm } from "./units.js";
+import { WEAPON_CATEGORIES } from "./compileShared.js";
+import { resolvableWeaponFamilies } from "./armamentCompile.js";
 
 export type ArchetypeId =
   | "CONSERVATIVE"
@@ -85,11 +87,15 @@ const scale = (v: number, pct: number) => Math.max(1, Math.floor((v * (100 + pct
 
 /** One random neighbouring edit. Pure function of the stream and inputs. */
 function propose(s: RandomStream, d: DesignDraft, ctx: ShipContext): DraftEdit | null {
+  // Candidate generation must not select armament that does not resolve: filter guns to the families the
+  // authoritative resolver accepts for this nation at this month, technology and access (ADR-0093 Step 3).
+  const resolvable = resolvableWeaponFamilies(ctx, d.nationId);
   const available = ctx.catalogue.filter(
     (c) =>
       c.introduction.fromMonth <= ctx.month &&
       c.requires.every((t) => ctx.unlockedTechs.has(t)) &&
-      c.category !== "ACCOMMODATION",
+      c.category !== "ACCOMMODATION" &&
+      (!WEAPON_CATEGORIES.includes(c.category) || resolvable === null || resolvable.has(c.id)),
   );
   const form = ctx.hullForms[d.hull.hullFormId]!;
   switch (int(s, 0, 9)) {

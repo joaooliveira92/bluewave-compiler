@@ -6,7 +6,11 @@ import { createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
 import { MonthExecutor } from "@bluewave/phase-engine";
-import { loadShipBuildingContent, shipBuildingContentHash } from "../shipBuildingContent.js";
+import {
+  armamentContentHash,
+  loadShipBuildingContent,
+  shipBuildingContentHash,
+} from "../shipBuildingContent.js";
 import { monthInputOf } from "../monthInput.js";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type { CommitMonthPayload } from "../../shared/campaign-command-contract.js";
@@ -198,6 +202,7 @@ export async function commitMonth(
         pendingCommands,
         result.commandLedger.all,
         shipBuildingContentHash(),
+        armamentContentHash(),
       ),
     });
   } catch (err) {

@@ -69,7 +69,14 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
   const hull = draft.hull;
 
   // 2-3. Weapons, then machinery/systems.
-  const { weapons, ammoById, gunRes } = compileWeaponSet({ draft, resolved, byId, b, findings });
+  const { weapons, ammoById, gunRes, armaments } = compileWeaponSet({
+    draft,
+    ctx,
+    resolved,
+    byId,
+    b,
+    findings,
+  });
   const { systems, machineryRaw } = compileSystemsAndMachinery({
     draft,
     ctx,
@@ -163,6 +170,7 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
     params: r.params,
     attr: r.attr,
     torpedoMount: r.def.torpedoMount ?? null,
+    ...(armaments.has(r.spec.instanceId) ? { armament: armaments.get(r.spec.instanceId)! } : {}),
   }));
 
   // 7b. Ship-type availability, then intended classification (DESIGN-22 section 5). A type the ruleset does not

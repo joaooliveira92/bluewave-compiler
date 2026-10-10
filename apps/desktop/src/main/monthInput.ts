@@ -12,6 +12,8 @@ export interface MonthInput {
   readonly commands: readonly CommandEnvelope<CommandBody>[];
   readonly commandOutcomes: readonly CommandOutcome[];
   readonly shipBuildingContentHash: string;
+  /** First-class armament content hash (ADR-0093 Step 3); absent on saves written before the cut-over. */
+  readonly armamentContentHash?: string;
 }
 
 // Saves are trust-class data: check the outer shape here; the engine validates every envelope again when it replays.
@@ -20,14 +22,22 @@ const MonthInputSchema = z.object({
   commands: z.array(z.record(z.string(), z.unknown())),
   commandOutcomes: z.array(z.record(z.string(), z.unknown())),
   shipBuildingContentHash: z.string().min(1),
+  armamentContentHash: z.string().min(1).optional(),
 });
 
 export function monthInputOf(
   commands: readonly CommandEnvelope<CommandBody>[],
   outcomes: readonly CommandOutcome[],
   shipBuildingContentHash: string,
+  armamentContentHash?: string,
 ): MonthInput {
-  return { schema: "month_input_v1", commands, commandOutcomes: outcomes, shipBuildingContentHash };
+  return {
+    schema: "month_input_v1",
+    commands,
+    commandOutcomes: outcomes,
+    shipBuildingContentHash,
+    ...(armamentContentHash !== undefined ? { armamentContentHash } : {}),
+  };
 }
 
 /** Parses a stored month input; null when it is not a `month_input_v1` record. */

@@ -19,6 +19,15 @@ ammunition:
       - gun_qf_6in_40
       - gun_qf_47in
       - gun_qf_12pdr
+      - gun_qf_6pdr
+      - gun_rml_16in_80ton
+      - gun_rml_125in_38ton
+      - gun_rml_12in_35ton
+      - gun_rml_12in_25ton
+      - gun_rml_8in_9ton
+      - gun_rml_7in_7ton
+      - gun_hotchkiss_3pdr
+      - gun_maxim_303
     penetrationBiasBp: 9000
     introductionMonth: 1880-01
     retirementMonth: null
@@ -48,6 +57,15 @@ ammunition:
       - gun_qf_6in_40
       - gun_qf_47in
       - gun_qf_12pdr
+      - gun_qf_6pdr
+      - gun_rml_16in_80ton
+      - gun_rml_125in_38ton
+      - gun_rml_12in_35ton
+      - gun_rml_12in_25ton
+      - gun_rml_8in_9ton
+      - gun_rml_7in_7ton
+      - gun_hotchkiss_3pdr
+      - gun_maxim_303
     penetrationBiasBp: 6000
     introductionMonth: 1880-01
     retirementMonth: null
@@ -112,6 +130,7 @@ ammunition:
       - gun_nordenfelt_1in
       - gun_rml_10in_18ton
       - gun_rml_64pdr_71cwt
+      - gun_rml_8in_9ton
     penetrationBiasBp: 8500
     introductionMonth: 1880-01
     retirementMonth: null
@@ -134,6 +153,7 @@ ammunition:
       - gun_nordenfelt_1in
       - gun_rml_10in_18ton
       - gun_rml_64pdr_71cwt
+      - gun_rml_8in_9ton
     penetrationBiasBp: 2500
     introductionMonth: 1880-01
     retirementMonth: null

@@ -236,6 +236,8 @@ export interface ResolvedArmament {
   readonly caliberUm?: number;
   /** Projectile mass, grams. */
   readonly shellMassG?: number;
+  /** Propellant charge as basis points of shell mass (10000 = charge equals shell mass). */
+  readonly propellantChargeBp?: number;
   /** Mass of one complete round (shell + propellant), grams. */
   readonly ammunitionUnitMassG?: number;
   /** Stowed volume of one complete round, millilitres. */
@@ -254,6 +256,8 @@ export interface ResolvedArmament {
   readonly totalInstallationMassKg?: number;
   /** Above-deck contribution, kilograms. */
   readonly topWeightKg?: number;
+  /** Degrees that can bear on one beam before obstruction (from the mount). */
+  readonly firingArcDeg?: number;
   /** Hull space the mount occupies, litres. */
   readonly hullSpaceUsageLitre?: number;
   /** Mechanical reliability, basis points. */

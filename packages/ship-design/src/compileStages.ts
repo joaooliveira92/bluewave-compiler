@@ -15,11 +15,18 @@ import {
   type ArmourResult,
 } from "./armour.js";
 import type { ComponentDef } from "./component.js";
+import { resolveInstalledWeapon, nationHasArmamentContent } from "./armamentContent.js";
+import {
+  componentAccessOf,
+  mapArmamentFindings,
+  toCompiledWeaponArmament,
+} from "./armamentCompile.js";
 import {
   cmpStr,
   f,
   num,
   WEAPON_CATEGORIES,
+  type CompiledWeaponArmament,
   type DesignDraft,
   type HullFormData,
   type Resolved,
@@ -273,18 +280,29 @@ export function buildPlacementsAndArrangement(args: {
 // Stage 2 - weapons: build gun mounts + arc obstacles and compile the battery.
 export function compileWeaponSet(args: {
   draft: DesignDraft;
+  ctx: ShipContext;
   resolved: Resolved[];
   byId: Map<string, Resolved>;
   b: ShipBalance;
   findings: Finding[];
-}): { weapons: WeaponsResult; ammoById: Map<string, AmmoMount>; gunRes: Resolved[] } {
-  const { draft, resolved, byId, b, findings } = args;
+}): {
+  weapons: WeaponsResult;
+  ammoById: Map<string, AmmoMount>;
+  gunRes: Resolved[];
+  armaments: Map<string, CompiledWeaponArmament>;
+} {
+  const { draft, ctx, resolved, byId, b, findings } = args;
   const station = (id: string | undefined) => (id ? byId.get(id)?.spec.stationPermille : undefined);
 
   const gunRes = resolved.filter((r) => WEAPON_CATEGORIES.includes(r.def.category));
+  const armaments = new Map<string, CompiledWeaponArmament>();
+  const access = componentAccessOf(ctx.navalProfile);
+  const armamentContent = ctx.armamentContent ?? null;
+  const useArmament =
+    armamentContent !== null && nationHasArmamentContent(armamentContent, draft.nationId);
   const mounts: GunMount[] = gunRes.map((r) => {
     const magSt = station(r.spec.magazineRef);
-    return {
+    const legacy: GunMount = {
       instanceId: r.spec.instanceId,
       stationPermille: r.spec.stationPermille,
       side: r.spec.side ?? "CENTRE",
@@ -296,6 +314,36 @@ export function compileWeaponSet(args: {
       rofBaseX100: r.attr.rofBaseX100 ?? 0,
       beamArcDeg: r.attr.beamArcDeg ?? 0,
       feedDistancePermille: magSt === undefined ? 0 : Math.abs(r.spec.stationPermille - magSt),
+    };
+    // No first-class armament content (or a nation with none): the documented compatibility path uses
+    // the legacy component values.
+    if (!useArmament) return legacy;
+    const resolution = resolveInstalledWeapon({
+      content: armamentContent!,
+      components: ctx.catalogue,
+      nationId: draft.nationId,
+      familyId: r.def.id,
+      gunCount: legacy.barrels,
+      month: ctx.month,
+      unlockedTechnologyIds: ctx.unlockedTechs,
+      componentAccess: access,
+    });
+    findings.push(...mapArmamentFindings(resolution.findings, r.spec.instanceId));
+    if (resolution.resolved === null) {
+      // A blocking armament error still compiles the legacy mount so the rest of the pipeline behaves as before;
+      // the blocking finding above is what makes the design invalid.
+      return legacy;
+    }
+    const a = resolution.resolved;
+    armaments.set(r.spec.instanceId, toCompiledWeaponArmament(a, resolution.mountType));
+    return {
+      ...legacy,
+      barrels: a.gunCount,
+      shellMassG: a.shellMassG ?? legacy.shellMassG,
+      chargeBp: a.propellantChargeBp ?? legacy.chargeBp,
+      roundVolumeMl: a.ammunitionUnitVolumeMl ?? legacy.roundVolumeMl,
+      rofBaseX100: a.mechanicalRateOfFireRoundsPerMinuteX100 ?? legacy.rofBaseX100,
+      beamArcDeg: a.firingArcDeg ?? legacy.beamArcDeg,
     };
   });
   const obstacles: ArcObstacle[] = resolved
@@ -310,7 +358,7 @@ export function compileWeaponSet(args: {
   const weapons = compileWeapons(mounts, obstacles, draft.requirement.crewQualityBp, b.weapons);
   findings.push(...weapons.findings);
   const ammoById = new Map(weapons.mounts.map((m) => [m.instanceId, m]));
-  return { weapons, ammoById, gunRes };
+  return { weapons, ammoById, gunRes, armaments };
 }
 
 // Stage 3 - machinery: systems balance, installed power and propulsion plant.

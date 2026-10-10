@@ -1,9 +1,11 @@
-# Armament content model (ADR-0093 Step 2)
+# Armament content model (ADR-0093 Steps 2–3)
 
 The first-class armament catalogue is authored under
-`content/production/<scenario>/ship-building/armament/` and validated by the release gate. It is
-**additive**: the legacy `components.yaml` / `naval-profiles.yaml` representations still drive the
-runtime compile, construction and combat until the Step 3 ship-design cut-over.
+`content/production/<scenario>/ship-building/armament/` and validated by the release gate. As of
+**Step 3** the ship-design compile resolves every installed weapon through this content and
+`resolveArmament` (`@bluewave/armament`); the legacy `components.yaml` / `naval-profiles.yaml`
+representations remain the source for combat and for the bounded compatibility path (a nation with no
+armament content, or a context with none).
 
 ## The four collections
 
@@ -76,22 +78,33 @@ model with no counterpart yet) stay visible and are never promoted to blockers.
 
 ## Mapped and unresolved values
 
-Mapped today: caliber, gun mass, shell mass, propellant charge, round volume, mechanical rate of
-fire, mount base/per-gun mass, firing arc, introduction/retirement dates, supported mount types,
-required technology, national access, penetration bias and shell type.
+Mapped and consumed by ship design after Step 3: caliber, gun mass, shell mass, propellant charge,
+round volume, mechanical rate of fire, mount base/per-gun mass, firing arc, introduction/retirement
+dates, supported mount types, required technology and national access. The compiled weapon contract
+(`ComponentSummary.armament`) records the gun family/model/mount/ammunition ids, gun count, caliber,
+shell mass, charge, rate of fire, gun mass, mount mass, total installation mass, ammunition unit mass,
+firing arc, access status and applied modifiers.
 
-Unresolved (absent, never fabricated): barrel length, loading system, muzzle velocity, gun
-reliability, top-weight, supported armour, traverse/elevation, crew protection, hull-space usage,
-stability contribution, vulnerability, ammunition propellant interaction, explosive filler, bursting
-and fire effects, storage hazard and ammunition cost. These remain recorded in
-`ARMAMENT_ADAPTER_UNMAPPED_FIELDS` and are deferred to the ship-design and combat cut-overs.
+Retained through the explicitly named legacy compatibility path (not yet owned by the first-class
+model): the component's hull-space volume (`ComponentSummary.weightKg` and the arrangement volume) and
+the component cost (`costMicro`) — both are read from the merged `ComponentDef` and proven equivalent
+to the armament installation mass by the migration tests. They are not a generic fallback: the
+component is the single owner of that authored value.
+
+Unresolved (absent, never fabricated) and deferred to the **Step 4 combat cut-over**: barrel length,
+loading system, muzzle velocity, gun reliability, top-weight, supported armour, traverse/elevation,
+crew protection, stability contribution, vulnerability, ammunition propellant interaction, explosive
+filler, bursting and fire effects, storage hazard and ammunition cost. These remain recorded in
+`ARMAMENT_ADAPTER_UNMAPPED_FIELDS` and are combat-only.
 
 ## Migration boundary
 
-- **Step 2 (this pass):** author and validate content. Legacy runtime paths still control ship design
-  and combat.
-- **Step 3:** ship design cuts over to `ResolvedArmament`; the compatibility adapter and the
-  duplicated compatibility fields are retired.
-- **Step 4:** combat cuts over.
+- **Step 2:** author and validate content.
+- **Step 3 (this pass):** ship design resolves installed weapons through `resolveArmament`; errors map to
+  structured ship-design findings; candidate generation selects only resolvable armament; new saves
+  record a separate `armamentContentHash`. The legacy compile path is retained only as the bounded
+  compatibility path for contexts (or nations) with no first-class armament content. Combat is unchanged.
+- **Step 4:** combat cuts over; the combat-only unresolved values above become first-class and the legacy
+  compatibility reads are retired.
 
 Compatibility fields may not be removed before their consumers migrate.

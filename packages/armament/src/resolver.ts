@@ -498,7 +498,6 @@ export function resolveArmament(
     shellMassG !== undefined && chargeBp !== undefined
       ? scaleByBp(shellMassG, ARMAMENT_BP_ONE + chargeBp)
       : undefined;
-
   const mountStructureMassKg =
     mount.baseInstallationMassKg !== undefined || mount.perGunInstallationMassKg !== undefined
       ? (mount.baseInstallationMassKg ?? 0) + (mount.perGunInstallationMassKg ?? 0) * mount.gunCount
@@ -516,6 +515,7 @@ export function resolveArmament(
     gunCount: mount.gunCount,
     ...(gunModel.caliberUm !== undefined ? { caliberUm: gunModel.caliberUm } : {}),
     ...(shellMassG !== undefined ? { shellMassG } : {}),
+    ...(chargeBp !== undefined ? { propellantChargeBp: chargeBp } : {}),
     ...(ammunitionUnitMassG !== undefined ? { ammunitionUnitMassG } : {}),
     ...(gunModel.roundVolumeMl !== undefined
       ? { ammunitionUnitVolumeMl: gunModel.roundVolumeMl }
@@ -535,6 +535,7 @@ export function resolveArmament(
       : {}),
     ...(totalInstallationMassKg !== undefined ? { totalInstallationMassKg } : {}),
     ...(mount.topWeightKg !== undefined ? { topWeightKg: mount.topWeightKg } : {}),
+    ...(mount.firingArcDeg !== undefined ? { firingArcDeg: mount.firingArcDeg } : {}),
     ...(mount.hullSpaceUsageLitre !== undefined
       ? { hullSpaceUsageLitre: mount.hullSpaceUsageLitre }
       : {}),

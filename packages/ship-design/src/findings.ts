@@ -53,6 +53,11 @@ export interface Finding {
     readonly value: number;
   };
   /**
+   * Machine-readable rule parameters (e.g. armament ids and values), when a rule carries structured data
+   * that does not fit the numeric `evidence.inputs`. Part of the finding identity surface; absent for most rules.
+   */
+  readonly parameters?: Readonly<Record<string, string | number | boolean>>;
+  /**
    * Structured subject (targets, settings, bound, unit). Presentation metadata: excluded from the compiled
    * design's hash (`withoutSubjects`), so adding or refining it never changes a design's identity.
    */

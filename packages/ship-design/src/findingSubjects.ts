@@ -90,6 +90,28 @@ const RULES: Readonly<Record<string, RuleMeta>> = {
   TREATY_LIMIT_DISPLACEMENT: { settings: "hull", ship: true },
   TREATY_LIMIT_CALIBRE: { settings: "arrangement", ship: true },
   TREATY_LIMIT_CATEGORY: { settings: "brief", ship: true },
+  // Armament resolution (ADR-0093 Step 3): the placement is the target; weapons live in the arrangement.
+  ARMAMENT_ID_INVALID: { settings: "arrangement" },
+  ARMAMENT_ID_DUPLICATE: { settings: "arrangement" },
+  ARMAMENT_MONTH_INVALID: { settings: "arrangement" },
+  ARMAMENT_DATE_ORDER: { settings: "arrangement" },
+  ARMAMENT_GUN_FAMILY_MISMATCH: { settings: "arrangement" },
+  ARMAMENT_MOUNT_NOT_SUPPORTED: { settings: "arrangement" },
+  ARMAMENT_AMMUNITION_INCOMPATIBLE: { settings: "arrangement" },
+  ARMAMENT_BEFORE_INTRODUCTION: { settings: "arrangement" },
+  ARMAMENT_AFTER_RETIREMENT: { settings: "arrangement" },
+  ARMAMENT_TECHNOLOGY_MISSING: { settings: "arrangement" },
+  ARMAMENT_ACCESS_UNAVAILABLE: { settings: "arrangement" },
+  ARMAMENT_ACCESS_FOREIGN: { settings: "arrangement" },
+  ARMAMENT_ACCESS_CONTRADICTION: { settings: "arrangement" },
+  ARMAMENT_VALUE_OUT_OF_RANGE: { settings: "arrangement" },
+  ARMAMENT_PROVENANCE_PLACEHOLDER: { settings: "arrangement" },
+  ARMAMENT_PROVENANCE_MISSING: { settings: "arrangement" },
+  ARMAMENT_PROVENANCE_INCONSISTENT: { settings: "arrangement" },
+  ARMAMENT_REFERENCE_MISSING: { settings: "arrangement" },
+  ARMAMENT_DUPLICATE_CONTRADICTORY: { settings: "arrangement" },
+  ARMAMENT_NATION_UNKNOWN: { settings: "arrangement" },
+  ARMAMENT_COMPAT_DRIFT: { settings: "arrangement" },
 };
 
 /** Rule codes with metadata, for tests and docs. */

@@ -16,7 +16,11 @@ import { registerCampaignSession } from "../campaignSessions.js";
 import { restorePendingQueue } from "../pendingCommands.js";
 import { ledgerOf, parseMonthInput } from "../monthInput.js";
 import { promotePlayerSlotForExecution } from "./commitMonth/snapshot.js";
-import { loadShipBuildingContent, shipBuildingContentHash } from "../shipBuildingContent.js";
+import {
+  armamentContentHash,
+  loadShipBuildingContent,
+  shipBuildingContentHash,
+} from "../shipBuildingContent.js";
 import { readSessionMetadata } from "../campaignSessionMetadata.js";
 
 /**
@@ -379,6 +383,26 @@ export async function replayCampaign(
         matched: false,
         expectedHash: "content-changed",
         actualHash: "content-changed",
+      });
+      continue;
+    }
+    // Older saves carry no armament hash; only a recorded-and-different armament hash is a divergence (ADR-0093 Step 3).
+    if (
+      input !== null &&
+      input.armamentContentHash !== undefined &&
+      input.armamentContentHash !== armamentContentHash()
+    ) {
+      collector.addWarning(
+        "REPLAY_CONTENT_CHANGED" as DiagnosticCode,
+        `Revision ${String(postTurn)} was played with different armament content; it cannot be reproduced by this version.`,
+        { stage: "replay" },
+      );
+      allMatched = false;
+      revisions.push({
+        revision: postTurn,
+        matched: false,
+        expectedHash: "armament-content-changed",
+        actualHash: "armament-content-changed",
       });
       continue;
     }

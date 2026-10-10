@@ -2,6 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import {
+  AmmunitionCatalogueSchema,
+  GunFamilyCatalogueSchema,
+  GunModelCatalogueSchema,
+  GunMountCatalogueSchema,
   NavalProfileCatalogueSchema,
   PropulsionPlantCatalogueSchema,
   ShipComponentCatalogueSchema,
@@ -10,6 +14,7 @@ import {
 import {
   buildShipBuildingContent,
   shipBalanceFromRecord,
+  type AuthoredArmamentContent,
   type ComponentDef,
   type ConstructionBalance,
   type CostBalance,
@@ -17,6 +22,7 @@ import {
   type HullFormRecord,
   type NationNavalProfile,
   type PropulsionPlant,
+  type RawReferenceDesign,
   type ShipBuildingData,
   type ShipContext,
 } from "../../src/index.js";
@@ -24,6 +30,18 @@ import {
 const root = join(__dirname, "..", "..", "..", "..", "content", "production", "1880");
 const load = (rel: string) =>
   parse(readFileSync(join(root, rel), "utf8")) as Record<string, unknown>;
+
+const armamentDir = join(root, "ship-building", "armament");
+const loadArmament = (rel: string) =>
+  parse(readFileSync(join(armamentDir, rel), "utf8")) as Record<string, unknown>;
+
+/** First-class armament content, schema-validated as the runtime loader sees it (ADR-0093 Step 3). */
+export const armamentContent: AuthoredArmamentContent = {
+  gunFamilies: GunFamilyCatalogueSchema.parse(loadArmament("gun-families.yaml")).gunFamilies,
+  gunModels: GunModelCatalogueSchema.parse(loadArmament("gun-models.yaml")).gunModels,
+  gunMounts: GunMountCatalogueSchema.parse(loadArmament("gun-mounts.yaml")).gunMounts,
+  ammunition: AmmunitionCatalogueSchema.parse(loadArmament("ammunition.yaml")).ammunition,
+} as unknown as AuthoredArmamentContent;
 
 export const components = ShipComponentCatalogueSchema.parse(load("ship-building/components.yaml"))
   .components as ComponentDef[];
@@ -49,6 +67,10 @@ export const shipBuildingData: ShipBuildingData = {
   technologies: techs,
   navalProfiles: NavalProfileCatalogueSchema.parse(load("ship-building/naval-profiles.yaml"))
     .navalProfiles as unknown as NationNavalProfile[],
+  armament: armamentContent,
+  referenceDesigns: (
+    load("ship-building/reference-designs.yaml") as { designs: RawReferenceDesign[] }
+  ).designs,
 };
 export const shipBuildingContent = buildShipBuildingContent(shipBuildingData);
 export const navalProfiles = shipBuildingData.navalProfiles!;

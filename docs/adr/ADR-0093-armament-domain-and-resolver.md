@@ -194,3 +194,91 @@ and still authoritative for gameplay.
   (`compileWeaponSet`/`catalogueForNation`) and retires the compatibility adapter and the duplicated
   compatibility fields; **Step 4** cuts combat over. Compatibility fields may not be removed before
   their consumers migrate.
+
+---
+
+## Addendum: Step 3 — ship-design cut-over (2026-10-10)
+
+Step 3 is complete. The authoritative ship-design pipeline now resolves every installed weapon through
+`@bluewave/armament`. Combat is untouched and still on its legacy path.
+
+### Decision
+
+1. **Runtime armament content loading.** The desktop main loader
+   (`apps/desktop/src/main/shipBuildingContent.ts`) and the Drawing-Board renderer loader
+   (`.../drawing-board/content.ts`) read and schema-validate the four `ship-building/armament/*.yaml`
+   collections, attach them to `ShipBuildingData.armament`, and `buildShipBuildingContent` threads them
+   into `ShipContext.armamentContent` (and exposes `ShipBuildingContent.armament`).
+
+2. **Content-hash and save-compatibility strategy.** `shipBuildingContentHash` keeps its exact previous
+   semantics (a hash over the same seven files), so older saves retain a stable content identity. A
+   **separately versioned** `armamentContentHash` hashes the four armament files (bytes keyed by relative
+   path, never absolute paths or file order). It is recorded in the month input
+   (`MonthInput.armamentContentHash`, optional) and compared on replay; an absent value (an older save) is
+   not a divergence, a present-and-different value raises `REPLAY_CONTENT_CHANGED`. The save schema
+   version is unchanged and no migration is forced.
+
+3. **Authoritative resolution path.** `compileWeaponSet` resolves each installed weapon through
+   `resolveInstalledWeapon` (`armamentContent.ts`), which selects the national model
+   (`armamentModelFor`), mount (`armamentMountFor`) and ammunition (`armamentAmmunitionFor`) and calls
+   `resolveArmament`. The resolved values drive the `GunMount` the battery compiles from (gun count, shell
+   mass, charge, round volume, rate of fire, firing arc); the compiled weapon contract
+   (`ComponentSummary.armament`) records the identity and mapped values.
+
+4. **Legacy/new equivalence policy.** For a legal design the armament path produces byte-identical
+   gameplay values to the legacy path (mass, ammunition mass/volume, broadsides, sustained fire, blast,
+   cost, stability, capacity); this is proven by field-level equivalence tests over all 18 opening
+   reference designs. The only intentional differences are additive, non-blocking armament findings (e.g.
+   `ARMAMENT_ACCESS_FOREIGN` for an imported component), the recorded `armament` contract, and the new
+   `ARMAMENT_*` rule codes. The content's `gun-models`/`gun-mounts` were corrected (ammunition
+   `compatibleGunFamilies` completed for the families each nation fields) so every reference design stays
+   legal; the release drift gate still holds.
+
+5. **Named compatibility contributions.** Where the first-class model does not yet own a value ship design
+   needs, it is read from the merged `ComponentDef` through one explicitly named, single-owner path rather
+   than a generic fallback:
+   - hull-space volume and layout weight: `ComponentSummary.weightKg` / the component's `volumeLitre`
+     (owner: `components.yaml`), proven equal to `ResolvedArmament.totalInstallationMassKg` by the
+     equivalence tests;
+   - component cost: `ComponentSummary.costMicro` (owner: `components.yaml`), unchanged;
+   - these retire when a later step authors the corresponding first-class fields.
+
+6. **Persistence migration.** None is required: a design placement already stores the shared family
+   component id, and the national model/mount/ammunition are resolved from the nation, month and
+   technology context. Old drafts (legacy component ids, no model/mount/ammunition ids) load safely and
+   compile through first-class resolution; ambiguous or retired ids become structured
+   `ARMAMENT_REFERENCE_MISSING` blocking findings. Approved legacy designs keep their historical compiled
+   values because the resolved values are equivalent.
+
+7. **Compatibility path (bounded).** When `ShipContext.armamentContent` is absent, or the nation has no
+   first-class armament content (e.g. a non-release historical nation with no naval profile), the compile
+   uses the legacy component attributes and records no armament identity. This is the only remaining
+   dual-path and it is a documented, test-covered fallback; the release gate requires armament content for
+   every release nation. Candidate generation filters guns to the families that resolve
+   (`resolvableWeaponFamilies`), so an unavailable or incompatible combination is never selected.
+
+8. **Retained combat fields.** Combat continues to consume the legacy abstract gun/mount ids and
+   `AMMUNITION_TYPES`; ship design does not import or alter combat. The combat-only unresolved values
+   (penetration inputs, effect parameters, reliability, top-weight, armour support, traverse/elevation)
+   stay on the legacy content until Step 4.
+
+9. **Rollback.** Reverting the ship-design cut-over is a code revert only: no save or wire format changed,
+   the legacy compile path is intact, and `armamentContentHash` is optional and ignored by older builds.
+
+### Step 4 prerequisites
+
+- Author the combat-only fields (barrel length, muzzle velocity, reliability, top-weight, armour support,
+  traverse/elevation, ammunition effects, storage hazard, ammunition cost) as first-class content.
+- Make `@bluewave/combat` a runtime consumer of `@bluewave/armament` and resolve its batteries through
+  `ResolvedArmament`.
+- Retire the `armamentAdapter` and the remaining legacy ship-design/combat compatibility reads once no
+  consumer or migration path needs them.
+
+### Consequences
+
+- New/changed files: `@bluewave/armament` model/resolver (additive `propellantChargeBp`, `firingArcDeg`),
+  ship-design `armamentCompile.ts`/`armamentContent.ts`/`compileStages.ts`/`compileShared.ts`/`compile.ts`/
+  `shipBuildingContent.ts`/`ai.ts`/`findingSubjects.ts`, the desktop loaders and `monthInput`/`commitMonth`/
+  `continuityCommands`, and the armament ammunition content lists.
+- No package dependency changes; no `pnpm-lock.yaml` change; no save/wire format change; no golden-hash
+  change (the cross-process golden pipeline does not compile ship designs).

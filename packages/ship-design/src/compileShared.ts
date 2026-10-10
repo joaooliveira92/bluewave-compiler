@@ -143,6 +143,13 @@ export interface ShipContext {
   readonly colonialServiceAllowed?: boolean;
   /** The nation's naval profile, when the context was built for a nation (the UI reads this for the doctrine brief). */
   readonly navalProfile?: import("./nationProfile.js").NationNavalProfile;
+  /**
+   * First-class armament content (ADR-0093 Step 3). When present, every installed weapon resolves through
+   * `@bluewave/armament`'s `resolveArmament` and the compiled weapon contract records the armament identity.
+   * When absent (older packs, fixtures), the compile falls back to the legacy component attributes — the
+   * explicitly documented compatibility path.
+   */
+  readonly armamentContent?: import("./armamentContent.js").AuthoredArmamentContent | null;
 }
 
 export interface CompiledDesign {
@@ -180,6 +187,36 @@ export interface ComponentSummary {
   readonly params: Readonly<Record<string, number>>;
   readonly attr: Readonly<Record<string, number>>;
   readonly torpedoMount: { readonly mountType: string; readonly torpedoModelId: string } | null;
+  /**
+   * The armament identity a gun placement compiled from (ADR-0093 Step 3). Present for gun categories
+   * when the context carried first-class armament content and the combination resolved; absent otherwise.
+   */
+  readonly armament?: CompiledWeaponArmament;
+}
+
+/**
+ * The compiled weapon contract (ADR-0093 Step 3, section 5): the armament identity and mapped deterministic
+ * values used to compile one installed weapon. Every value is grounded in `ResolvedArmament`; it carries no
+ * combat penetration, hit probability or damage. Values absent from the content are omitted, never guessed.
+ */
+export interface CompiledWeaponArmament {
+  readonly gunFamilyId: string;
+  readonly gunModelId: string;
+  readonly mountId: string;
+  readonly ammunitionId: string;
+  readonly mountType: string;
+  readonly gunCount: number;
+  readonly accessStatus: string;
+  readonly caliberUm?: number;
+  readonly shellMassG?: number;
+  readonly propellantChargeBp?: number;
+  readonly nominalRateOfFireX100?: number;
+  readonly gunMassKg?: number;
+  readonly mountInstallationMassKg?: number;
+  readonly totalInstallationMassKg?: number;
+  readonly ammunitionUnitMassG?: number;
+  readonly firingArcDeg?: number;
+  readonly appliedModifiers: readonly { readonly source: string; readonly valueBp: number }[];
 }
 
 export const WEAPON_CATEGORIES: readonly ComponentCategory[] = [

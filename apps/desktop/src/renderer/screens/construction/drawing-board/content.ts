@@ -1,4 +1,8 @@
 import {
+  AmmunitionCatalogueSchema,
+  GunFamilyCatalogueSchema,
+  GunModelCatalogueSchema,
+  GunMountCatalogueSchema,
   NavalProfileCatalogueSchema,
   PropulsionPlantCatalogueSchema,
   ShipComponentCatalogueSchema,
@@ -6,6 +10,7 @@ import {
 } from "@bluewave/content-schema";
 import {
   buildShipBuildingContent,
+  type AuthoredArmamentContent,
   type ComponentDef,
   type DesignDraft,
   type HullFormRecord,
@@ -16,6 +21,10 @@ import {
   type ShipBuildingData,
 } from "@bluewave/ship-design";
 import { parse } from "yaml";
+import ammunitionYaml from "@content/ship-building/armament/ammunition.yaml?raw";
+import gunFamiliesYaml from "@content/ship-building/armament/gun-families.yaml?raw";
+import gunModelsYaml from "@content/ship-building/armament/gun-models.yaml?raw";
+import gunMountsYaml from "@content/ship-building/armament/gun-mounts.yaml?raw";
 import balanceYaml from "@content/ship-building/balance.yaml?raw";
 import componentsYaml from "@content/ship-building/components.yaml?raw";
 import hullFormsYaml from "@content/ship-building/hull-forms.yaml?raw";
@@ -42,6 +51,12 @@ let cached: DrawingBoardContent | null = null;
 
 export function loadDrawingBoardContent(): DrawingBoardContent {
   if (cached) return cached;
+  const armament: AuthoredArmamentContent = {
+    gunFamilies: GunFamilyCatalogueSchema.parse(parse(gunFamiliesYaml)).gunFamilies,
+    gunModels: GunModelCatalogueSchema.parse(parse(gunModelsYaml)).gunModels,
+    gunMounts: GunMountCatalogueSchema.parse(parse(gunMountsYaml)).gunMounts,
+    ammunition: AmmunitionCatalogueSchema.parse(parse(ammunitionYaml)).ammunition,
+  } as unknown as AuthoredArmamentContent;
   const data: ShipBuildingData = {
     components: ShipComponentCatalogueSchema.parse(parse(componentsYaml))
       .components as ComponentDef[],
@@ -53,6 +68,7 @@ export function loadDrawingBoardContent(): DrawingBoardContent {
     technologies: parse(technologiesYaml) as { id: string; year: number }[],
     navalProfiles: NavalProfileCatalogueSchema.parse(parse(navalProfilesYaml))
       .navalProfiles as unknown as NationNavalProfile[],
+    armament,
     referenceDesigns: (parse(referencesYaml) as { designs: RawReferenceDesign[] }).designs,
   };
   cached = {

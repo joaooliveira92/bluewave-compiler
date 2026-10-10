@@ -35,6 +35,7 @@ import {
   type GunFamily,
   type GunModel as ArmamentGunModel,
   type GunMountDef as ArmamentGunMountDef,
+  type ResolvedArmament,
 } from "@bluewave/armament";
 import type { ComponentDef } from "./component.js";
 import type { GunModelDef, NationNavalProfile, Provenance } from "./nationProfile.js";
@@ -498,6 +499,146 @@ export function buildArmamentUsageManifest(input: ArmamentCoverageInput): readon
     }
   }
   return usages;
+}
+
+// -------------------------------------------------------------------------------------------------
+// Runtime weapon resolution (ADR-0093 Step 3: the ship-design cut-over)
+// -------------------------------------------------------------------------------------------------
+
+/** One installed weapon resolved through the authoritative armament domain. */
+export interface InstalledWeaponResolution {
+  /** The resolved armament, present only when resolution produced no BLOCKING finding. */
+  readonly resolved: ResolvedArmament | null;
+  readonly model: ArmamentGunModel | null;
+  readonly mount: ArmamentGunMountDef | null;
+  readonly ammunition: ArmamentAmmunitionPattern | null;
+  readonly mountType: ArmamentMountType;
+  /** Structured findings from the domain resolver plus any lookup failure, in deterministic order. */
+  readonly findings: readonly ArmamentResolutionFinding[];
+}
+
+export interface ResolveInstalledWeaponInput {
+  readonly content: AuthoredArmamentContent;
+  readonly components: readonly ComponentDef[];
+  readonly nationId: string;
+  readonly familyId: string;
+  readonly gunCount: number;
+  /** The mount type; when absent the model's first supported mount type is used. */
+  readonly mountType?: ArmamentMountType;
+  readonly month: string;
+  readonly unlockedTechnologyIds: ReadonlySet<string>;
+  readonly componentAccess: Readonly<Record<string, ArmamentAccessStatus>>;
+}
+
+/**
+ * Resolve one installed weapon (a family id + gun count + nation + month/tech/access context) through
+ * `resolveArmament`. Expected errors are returned as structured findings, never thrown: a missing
+ * family/model/mount/ammunition becomes `ARMAMENT_REFERENCE_MISSING`; incompatibility, dates, technology
+ * and access failures come from the domain resolver. Pure and deterministic.
+ */
+export function resolveInstalledWeapon(
+  input: ResolveInstalledWeaponInput,
+): InstalledWeaponResolution {
+  const model = armamentModelFor(input.content, input.components, input.nationId, input.familyId);
+  const mountType = input.mountType ?? model?.supportedMountTypes?.[0] ?? "DECK_OPEN";
+  if (model === null) {
+    return {
+      resolved: null,
+      model: null,
+      mount: null,
+      ammunition: null,
+      mountType,
+      findings: [
+        missingFinding(
+          "BLOCKING",
+          "ARMAMENT_REFERENCE_MISSING",
+          { kind: "gunModel", id: input.familyId },
+          "familyId",
+          { nationId: input.nationId, familyId: input.familyId },
+          `No armament model for family '${input.familyId}' available to '${input.nationId}'.`,
+        ),
+      ],
+    };
+  }
+  const mount = armamentMountFor(
+    input.content,
+    input.components,
+    input.familyId,
+    mountType,
+    input.gunCount,
+  );
+  if (mount === null) {
+    return {
+      resolved: null,
+      model,
+      mount: null,
+      ammunition: null,
+      mountType,
+      findings: [
+        missingFinding(
+          "BLOCKING",
+          "ARMAMENT_REFERENCE_MISSING",
+          { kind: "gunMount", id: `${input.familyId}_${mountType.toLowerCase()}` },
+          "mountType",
+          { familyId: input.familyId, mountType },
+          `No armament mount for family '${input.familyId}' in a ${mountType} mount.`,
+        ),
+      ],
+    };
+  }
+  const ammunition = armamentAmmunitionFor(input.content, input.nationId, input.familyId);
+  if (ammunition === null) {
+    return {
+      resolved: null,
+      model,
+      mount,
+      ammunition: null,
+      mountType,
+      findings: [
+        missingFinding(
+          "BLOCKING",
+          "ARMAMENT_REFERENCE_MISSING",
+          { kind: "ammunition", id: input.nationId },
+          "nationId",
+          { nationId: input.nationId, familyId: input.familyId },
+          `No armament ammunition pattern for nation '${input.nationId}'.`,
+        ),
+      ],
+    };
+  }
+  const result = resolveArmament(
+    model,
+    mount,
+    ammunition,
+    {
+      month: input.month,
+      unlockedTechnologyIds: new Set([...input.unlockedTechnologyIds].map(armamentTechnologyId)),
+    },
+    { nationId: armamentNationId(input.nationId), componentAccess: input.componentAccess },
+  );
+  return {
+    resolved: result.resolved,
+    model,
+    mount,
+    ammunition,
+    mountType,
+    findings: result.findings,
+  };
+}
+
+/**
+ * Whether a nation has any first-class armament content (an authored model or an ammunition pattern).
+ * A nation with none (e.g. a non-release historical nation with no naval profile) compiles on the
+ * documented compatibility path: the release gate requires armament content for every release nation.
+ */
+export function nationHasArmamentContent(
+  content: AuthoredArmamentContent,
+  nationId: string,
+): boolean {
+  return (
+    content.gunModels.some((m) => m.nationId === nationId) ||
+    content.ammunition.some((a) => a.nationId === nationId)
+  );
 }
 
 // -------------------------------------------------------------------------------------------------

@@ -18,6 +18,7 @@ import { checkStudyBalance, type StudyBalance } from "./study.js";
 import { buildYards } from "./yards.js";
 import { catalogueForNation } from "./componentVariants.js";
 import { type NationNavalProfile, resolveNavalProfile } from "./nationProfile.js";
+import type { AuthoredArmamentContent } from "./armamentContent.js";
 import type { StarterDesign } from "./shipTypeRoster.js";
 import type { DesignDraft } from "./compileShared.js";
 
@@ -61,6 +62,8 @@ export interface ShipBuildingData {
   readonly technologies: readonly { readonly id: string; readonly year: number }[];
   /** National naval profiles (optional): when present, a nation's catalogue and capabilities are derived from them. */
   readonly navalProfiles?: readonly NationNavalProfile[];
+  /** First-class armament content (optional, ADR-0093 Step 3): drives authoritative weapon resolution. */
+  readonly armament?: AuthoredArmamentContent;
   /** Reference designs (optional): the starter designs the AI may base a procurement candidate on. */
   readonly referenceDesigns?: readonly RawReferenceDesign[];
 }
@@ -85,6 +88,8 @@ export interface ShipBuildingContent {
   readonly study: StudyBalance | null;
   /** National naval profiles, or empty when the pack has none. */
   readonly navalProfiles: readonly NationNavalProfile[];
+  /** First-class armament content, or null when the pack has none (the compatibility path). */
+  readonly armament: AuthoredArmamentContent | null;
   /** The profile active for a nation at a month, or null. */
   readonly navalProfileFor: (nationId: string, month: string) => NationNavalProfile | null;
   /** Starter designs (a reference design with a `starterFor`), for AI procurement candidate generation. */
@@ -133,6 +138,7 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
       facilities: data.balance.environment.facilities,
       treaty: null,
       balance: ship,
+      armamentContent: data.armament ?? null,
       ...(profile !== null
         ? {
             capabilities: new Set(profile.hardCapabilities.grants),
@@ -161,6 +167,7 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
     rebuild: data.balance.rebuild ?? null,
     study,
     navalProfiles: profiles,
+    armament: data.armament ?? null,
     navalProfileFor: (nationId, month) => resolveNavalProfile(profiles, nationId, month),
     starterDesigns: (data.referenceDesigns ?? [])
       .filter((r): r is RawReferenceDesign & { starterFor: string } => r.starterFor !== undefined)
