@@ -1,10 +1,11 @@
 // packages/combat/src/air-defense/air-defense-system-definition.ts
 // D-4 M4 Aviation: Air Defense — AirDefenseSystemDefinition interface
-// per DESIGN-45 §3. Strict Zod validation at construction boundaries, fail-closed guards.
+// per DESIGN-45 §3. Strict validation at construction boundaries, fail-closed guards.
 
-import { z } from "zod";
-import { AIR_DEFENSE_MODEL_VERSION, INVALID_AIR_DEFENSE_SYSTEM_DEFINITION } from "./constants.js";
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { Result, Schema } from "effect";
+import { formatContractIssues } from "../schema-issues.js";
+import { AIR_DEFENSE_MODEL_VERSION, INVALID_AIR_DEFENSE_SYSTEM_DEFINITION } from "./constants.js";
 
 export const AIR_DEFENSE_RULESET_VERSION = "air_defense_v1" as const;
 
@@ -13,7 +14,7 @@ export const AIR_DEFENSE_RULESET_VERSION = "air_defense_v1" as const;
  * (§3). Contracted verbatim by air_defense_v1 so a versioned contract pins the exact
  * system-definition schema surface (ADR-0042 decision 12 consequence). Derived from the
  * schema below — the list is asserted by the air_defense_v1 contract test to equal
- * Object.keys(AirDefenseSystemDefinitionSchema.shape).
+ * Object.keys(AirDefenseSystemDefinitionSchema.fields).
  */
 export const AIR_DEFENSE_SYSTEM_DEFINITION_FIELD_KEYS = [
   "systemId",
@@ -64,48 +65,40 @@ export const Category = {
 
 export type CategoryId = (typeof Category)[keyof typeof Category];
 
-// ---- Zod literal types for strict validation ----
+// ---- Literal types for strict validation ----
 
-const LayerLiteral = z.enum([
+const LayerLiteral = Schema.Literals([
   "HEAVY_AA",
   "MEDIUM_AA",
   "LIGHT_AA",
   "CIWS_TERMINAL_DEFENSE",
-] as const);
-const CategoryLiteral = z.enum([
+]);
+const CategoryLiteral = Schema.Literals([
   "HEAVY_AA",
   "MEDIUM_AA",
   "LIGHT_AA",
   "CIWS_TERMINAL_DEFENSE",
-] as const);
+]);
 
-// Standard SafeInt schema: accept a number (or SafeInt), validate integer + safe range.
+/**
+ * Standard SafeInt schema: accept a number, validate integer + safe range. The
+ * `message` is surfaced verbatim on failure, matching the previous Zod custom
+ * schema's `{ message }` behavior.
+ */
 function safeIntSchema(
   message: string,
   opts?: { min?: number; max?: number; nonNegative?: boolean; positive?: boolean },
-): z.ZodType<SafeInt> {
-  if (opts?.positive) {
-    return z.custom<SafeInt>(
-      (val) => typeof val === "number" && SafeInt.isSafeInt(val) && val > 0,
-      { message },
-    );
-  }
-  if (opts?.nonNegative) {
-    return z.custom<SafeInt>(
-      (val) => typeof val === "number" && SafeInt.isSafeInt(val) && val >= 0,
-      { message },
-    );
-  }
-  if (opts?.min !== undefined || opts?.max !== undefined) {
-    return z.custom<SafeInt>(
-      (val) => {
-        if (typeof val !== "number" || !SafeInt.isSafeInt(val)) return false;
-        return val >= (opts?.min ?? -Infinity) && val <= (opts?.max ?? Infinity);
-      },
-      { message },
-    );
-  }
-  return z.custom<SafeInt>((val) => typeof val === "number" && SafeInt.isSafeInt(val), { message });
+) {
+  return Schema.Finite.check(
+    Schema.makeFilter((val: number) => {
+      if (!SafeInt.isSafeInt(val)) return message;
+      if (opts?.positive && !(val > 0)) return message;
+      if (opts?.nonNegative && !(val >= 0)) return message;
+      if (opts?.min !== undefined && val < opts.min) return message;
+      if (opts?.max !== undefined && val > opts.max) return message;
+      return undefined;
+    }),
+  );
 }
 
 // ---- AirDefenseSystemDefinition interface ----
@@ -148,123 +141,117 @@ export interface AirDefenseSystemDefinition {
   contentHash: string;
 }
 
-// ---- Zod schema for AirDefenseSystemDefinition ----
+// ---- Effect Schema for AirDefenseSystemDefinition (strict: unknown fields rejected) ----
 
-const AirDefenseSystemDefinitionSchema = z
-  .object({
-    systemId: z.string().min(1, "systemId must be a non-empty string"),
+const AirDefenseSystemDefinitionSchema = Schema.Struct({
+  systemId: Schema.String.check(
+    Schema.isMinLength(1, { message: "systemId must be a non-empty string" }),
+  ),
 
-    layer: LayerLiteral,
+  layer: LayerLiteral,
 
-    category: CategoryLiteral,
+  category: CategoryLiteral,
 
-    mountCount: safeIntSchema("mountCount must be a non-negative integer", { nonNegative: true }),
+  mountCount: safeIntSchema("mountCount must be a non-negative integer", { nonNegative: true }),
 
-    barrels: safeIntSchema("barrels must be a positive integer", { positive: true }),
+  barrels: safeIntSchema("barrels must be a positive integer", { positive: true }),
 
-    rangeMinM: safeIntSchema("rangeMinM must be a non-negative integer", { nonNegative: true }),
+  rangeMinM: safeIntSchema("rangeMinM must be a non-negative integer", { nonNegative: true }),
 
-    rangeMaxM: safeIntSchema("rangeMaxM must be a positive integer", { positive: true }),
+  rangeMaxM: safeIntSchema("rangeMaxM must be a positive integer", { positive: true }),
 
-    altitudeMinM: safeIntSchema("altitudeMinM must be a non-negative integer", {
+  altitudeMinM: safeIntSchema("altitudeMinM must be a non-negative integer", {
+    nonNegative: true,
+  }),
+
+  altitudeMaxM: safeIntSchema("altitudeMaxM must be a non-negative integer", {
+    nonNegative: true,
+  }),
+
+  targetSpeedLimitMps: safeIntSchema("targetSpeedLimitMps must be a non-negative integer", {
+    nonNegative: true,
+  }),
+
+  arcDegreesMax: safeIntSchema("arcDegreesMax must be 0-360", { min: 0, max: 360 }),
+
+  profileEligibility: Schema.ReadonlySet(Schema.String).check(
+    Schema.isMinSize(1, { message: "profileEligibility must not be empty" }),
+  ),
+
+  fireControl: Schema.Struct({
+    trackingRangeM: safeIntSchema("trackingRangeM must be a non-negative integer", {
       nonNegative: true,
     }),
+    maxElevationDegrees: safeIntSchema("maxElevationDegrees must be 0-90", { min: 0, max: 90 }),
+    updateRateHz: safeIntSchema("updateRateHz must be a positive integer", { positive: true }),
+  }),
 
-    altitudeMaxM: safeIntSchema("altitudeMaxM must be a non-negative integer", {
-      nonNegative: true,
-    }),
-
-    targetSpeedLimitMps: safeIntSchema("targetSpeedLimitMps must be a non-negative integer", {
-      nonNegative: true,
-    }),
-
-    arcDegreesMax: safeIntSchema("arcDegreesMax must be 0-360", { min: 0, max: 360 }),
-
-    profileEligibility: z
-      .set(z.string())
-      .transform((set) => new Set(set) as ReadonlySet<string>)
-      .refine((set) => set.size > 0, {
-        message: "profileEligibility must not be empty",
-      }),
-
-    fireControl: z
-      .object({
-        trackingRangeM: safeIntSchema("trackingRangeM must be a non-negative integer", {
-          nonNegative: true,
-        }),
-        maxElevationDegrees: safeIntSchema("maxElevationDegrees must be 0-90", {
-          min: 0,
-          max: 90,
-        }),
-        updateRateHz: safeIntSchema("updateRateHz must be a positive integer", { positive: true }),
-      })
-      .strict(),
-
-    radar: z
-      .object({
-        frequencyBand: z.enum(["S", "X", "K", "Ka"] as const),
-        peakPowerW: safeIntSchema("peakPowerW must be a non-negative integer", {
-          nonNegative: true,
-        }),
-        maxRangeM: safeIntSchema("maxRangeM must be a positive integer", { positive: true }),
-        resolutionDegrees: safeIntSchema("resolutionDegrees must be a positive integer", {
-          positive: true,
-        }),
-      })
-      .strict(),
-
-    engagementChannels: z
-      .set(z.string())
-      .transform((set) => new Set(set) as ReadonlySet<string>)
-      .refine((set) => set.size > 0, {
-        message: "engagementChannels must not be empty",
-      }),
-
-    baseKillBp: safeIntSchema("baseKillBp must be a non-negative integer", {
-      nonNegative: true,
-    }).optional(),
-    baseDamageBp: safeIntSchema("baseDamageBp must be a non-negative integer", {
-      nonNegative: true,
-    }).optional(),
-    baseAbortBp: safeIntSchema("baseAbortBp must be a non-negative integer", {
-      nonNegative: true,
-    }).optional(),
-    baseDisruptionBp: safeIntSchema("baseDisruptionBp must be a non-negative integer", {
-      nonNegative: true,
-    }).optional(),
-    rate: safeIntSchema("rate must be a positive integer", { positive: true }).optional(),
-    roundsPerEngagement: safeIntSchema("roundsPerEngagement must be a positive integer", {
+  radar: Schema.Struct({
+    frequencyBand: Schema.Literals(["S", "X", "K", "Ka"]),
+    peakPowerW: safeIntSchema("peakPowerW must be a non-negative integer", { nonNegative: true }),
+    maxRangeM: safeIntSchema("maxRangeM must be a positive integer", { positive: true }),
+    resolutionDegrees: safeIntSchema("resolutionDegrees must be a positive integer", {
       positive: true,
-    }).optional(),
-    magazineCapacity: safeIntSchema("magazineCapacity must be a positive integer", {
-      positive: true,
-    }).optional(),
-    localControlSupported: z.boolean().optional(),
-    saturationGroup: safeIntSchema("saturationGroup must be a non-negative integer", {
-      nonNegative: true,
-    }).optional(),
+    }),
+  }),
 
-    contentVersion: z.string().min(1, "contentVersion must be a non-empty string"),
+  engagementChannels: Schema.ReadonlySet(Schema.String).check(
+    Schema.isMinSize(1, { message: "engagementChannels must not be empty" }),
+  ),
 
-    contentHash: z.string().length(64, "contentHash must be a 64-character SHA-256 hex string"),
-  })
-  .strict();
+  baseKillBp: Schema.optional(
+    safeIntSchema("baseKillBp must be a non-negative integer", { nonNegative: true }),
+  ),
+  baseDamageBp: Schema.optional(
+    safeIntSchema("baseDamageBp must be a non-negative integer", { nonNegative: true }),
+  ),
+  baseAbortBp: Schema.optional(
+    safeIntSchema("baseAbortBp must be a non-negative integer", { nonNegative: true }),
+  ),
+  baseDisruptionBp: Schema.optional(
+    safeIntSchema("baseDisruptionBp must be a non-negative integer", { nonNegative: true }),
+  ),
+  rate: Schema.optional(safeIntSchema("rate must be a positive integer", { positive: true })),
+  roundsPerEngagement: Schema.optional(
+    safeIntSchema("roundsPerEngagement must be a positive integer", { positive: true }),
+  ),
+  magazineCapacity: Schema.optional(
+    safeIntSchema("magazineCapacity must be a positive integer", { positive: true }),
+  ),
+  localControlSupported: Schema.optional(Schema.Boolean),
+  saturationGroup: Schema.optional(
+    safeIntSchema("saturationGroup must be a non-negative integer", { nonNegative: true }),
+  ),
+
+  contentVersion: Schema.String.check(
+    Schema.isMinLength(1, { message: "contentVersion must be a non-empty string" }),
+  ),
+
+  contentHash: Schema.String.check(
+    Schema.isBetweenLength(64, 64, {
+      message: "contentHash must be a 64-character SHA-256 hex string",
+    }),
+  ),
+});
+
+/** Unmodeled (excess) keys are rejected, preserving the previous Zod `.strict()` behavior. */
+const parseOptions = { onExcessProperty: "error" } as const;
 
 // ---- fail-closed guard: rejects unknown fields ----
 
 export function validateAirDefenseSystemDefinition(value: unknown): AirDefenseSystemDefinition {
-  const result = AirDefenseSystemDefinitionSchema.safeParse(value);
-  if (!result.success) {
-    const errors = result.error.issues.map((err) => ({
-      path: err.path.join("."),
-      message: err.message,
+  const result = Schema.decodeUnknownResult(AirDefenseSystemDefinitionSchema, parseOptions)(value);
+  if (Result.isFailure(result)) {
+    const errors = formatContractIssues(result.failure).map((issue) => ({
+      path: issue.path,
+      message: issue.message,
     }));
     throw new BluewaveError(
       `AirDefenseSystemDefinition validation failed: ${JSON.stringify(errors, null, 2)}`,
       { code: INVALID_AIR_DEFENSE_SYSTEM_DEFINITION, errors },
     );
   }
-  return result.data as AirDefenseSystemDefinition;
+  return result.success as AirDefenseSystemDefinition;
 }
 
 // ---- createAirDefenseSystemDefinition ----
@@ -272,27 +259,9 @@ export function validateAirDefenseSystemDefinition(value: unknown): AirDefenseSy
 export function createAirDefenseSystemDefinition(
   params: Partial<AirDefenseSystemDefinition>,
 ): AirDefenseSystemDefinition {
-  // First, validate that the input does not contain unknown fields.
-  // This is the "fail-closed" guarantee for the Partial<...> input.
-  // We strip optionality (all fields become required) for this check,
-  // and we keep the partial schema identical to the strict one.
-  const inputCheck = AirDefenseSystemDefinitionSchema.partial().safeParse(params);
-  if (!inputCheck.success) {
-    // Partial schema permits missing fields, so any failure here is from
-    // invalid values, not from missing fields. Re-throw as validation error.
-    const errors = inputCheck.error.issues.map((err) => ({
-      path: err.path.join("."),
-      message: err.message,
-    }));
-    throw new BluewaveError(
-      `AirDefenseSystemDefinition validation failed: ${JSON.stringify(errors, null, 2)}`,
-      { code: INVALID_AIR_DEFENSE_SYSTEM_DEFINITION, errors },
-    );
-  }
-
-  // Detect unknown fields by re-parsing the original key set
-  // against the strict (non-partial) schema via Object.keys comparison.
-  const knownKeys = new Set(Object.keys(AirDefenseSystemDefinitionSchema.shape));
+  // Fail-closed on unknown fields: the defaults merge below only carries known
+  // keys, so unknown input keys are rejected here rather than silently dropped.
+  const knownKeys = new Set(Object.keys(AirDefenseSystemDefinitionSchema.fields));
   for (const key of Object.keys(params)) {
     if (!knownKeys.has(key)) {
       throw new BluewaveError(
@@ -341,8 +310,7 @@ export function createAirDefenseSystemDefinition(
       params.contentHash ?? "0000000000000000000000000000000000000000000000000000000000000000",
   };
 
-  // Validate the merged result with the strict schema
-  // Cast through `unknown` since Zod infers `number` from z.number()
+  // Validate the merged result with the strict schema.
   return validateAirDefenseSystemDefinition(merged as unknown as AirDefenseSystemDefinition);
 }
 

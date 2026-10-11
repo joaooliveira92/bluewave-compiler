@@ -2,10 +2,11 @@
 // D-4 M4 Aviation: Air Defense — AirDefenseAttack incoming attack model per DESIGN-45 §4.
 // Every attack declares release range, release altitude, speed profile, terminal profile,
 // formation size, cohesion, defensive susceptibility, and target identifier (§4 line 84).
-// Strict Zod validation at construction boundaries, fail-closed guards.
+// Strict validation at construction boundaries, fail-closed guards.
 
-import { z } from "zod";
 import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { Result, Schema } from "effect";
+import { formatContractIssues } from "../schema-issues.js";
 import { AIR_DEFENSE_MODEL_VERSION } from "./constants.js";
 import { INVALID_AIR_DEFENSE_ATTACK } from "./reasonCodes.js";
 
@@ -42,9 +43,9 @@ export const ATTACK_TYPES: readonly AttackTypeId[] = [
   AttackType.SPECIAL_EXPLICIT_ATTACK,
 ];
 
-// ---- Zod literal for attack types ----
+// ---- Attack-type literal ----
 
-const AttackTypeLiteral = z.enum([
+const AttackTypeLiteral = Schema.Literals([
   "AIRCRAFT_LEVEL_BOMBING",
   "AIRCRAFT_DIVE_BOMBING",
   "AIRCRAFT_SKIP_BOMBING",
@@ -56,35 +57,27 @@ const AttackTypeLiteral = z.enum([
   "LIGHT_ASM",
   "ANTI_RADIATION_WEAPON",
   "SPECIAL_EXPLICIT_ATTACK",
-] as const);
+]);
 
-// Standard SafeInt schema: accept a number (or SafeInt), validate integer + safe range.
+/**
+ * Standard SafeInt schema: accept a number, validate integer + safe range. The
+ * `message` is surfaced verbatim on failure, matching the previous Zod custom
+ * schema's `{ message }` behavior.
+ */
 function safeIntSchema(
   message: string,
   opts?: { min?: number; max?: number; nonNegative?: boolean; positive?: boolean },
-): z.ZodType<SafeInt> {
-  if (opts?.positive) {
-    return z.custom<SafeInt>(
-      (val) => typeof val === "number" && SafeInt.isSafeInt(val) && val > 0,
-      { message },
-    );
-  }
-  if (opts?.nonNegative) {
-    return z.custom<SafeInt>(
-      (val) => typeof val === "number" && SafeInt.isSafeInt(val) && val >= 0,
-      { message },
-    );
-  }
-  if (opts?.min !== undefined || opts?.max !== undefined) {
-    return z.custom<SafeInt>(
-      (val) => {
-        if (typeof val !== "number" || !SafeInt.isSafeInt(val)) return false;
-        return val >= (opts?.min ?? -Infinity) && val <= (opts?.max ?? Infinity);
-      },
-      { message },
-    );
-  }
-  return z.custom<SafeInt>((val) => typeof val === "number" && SafeInt.isSafeInt(val), { message });
+) {
+  return Schema.Finite.check(
+    Schema.makeFilter((val: number) => {
+      if (!SafeInt.isSafeInt(val)) return message;
+      if (opts?.positive && !(val > 0)) return message;
+      if (opts?.nonNegative && !(val >= 0)) return message;
+      if (opts?.min !== undefined && val < opts.min) return message;
+      if (opts?.max !== undefined && val > opts.max) return message;
+      return undefined;
+    }),
+  );
 }
 
 // ---- AirDefenseAttack interface (§4) ----
@@ -111,77 +104,88 @@ export interface AirDefenseAttack {
   contentHash: string;
 }
 
-// ---- Zod schema for AirDefenseAttack ----
+// ---- Effect Schema for AirDefenseAttack (strict: unknown fields rejected) ----
 
-const AirDefenseAttackSchema = z
-  .object({
-    attackId: z.string().min(1, "attackId must be a non-empty string"),
+const AirDefenseAttackSchema = Schema.Struct({
+  attackId: Schema.String.check(
+    Schema.isMinLength(1, { message: "attackId must be a non-empty string" }),
+  ),
 
-    formationId: z.string().min(1, "formationId must be a non-empty string"),
+  formationId: Schema.String.check(
+    Schema.isMinLength(1, { message: "formationId must be a non-empty string" }),
+  ),
 
-    targetId: z.string().min(1, "targetId must be a non-empty string"),
+  targetId: Schema.String.check(
+    Schema.isMinLength(1, { message: "targetId must be a non-empty string" }),
+  ),
 
-    attackType: AttackTypeLiteral,
+  attackType: AttackTypeLiteral,
 
-    speedKnots: safeIntSchema("speedKnots must be a non-negative integer", {
-      nonNegative: true,
+  speedKnots: safeIntSchema("speedKnots must be a non-negative integer", { nonNegative: true }),
+
+  speedMps: safeIntSchema("speedMps must be a non-negative integer", { nonNegative: true }),
+
+  currentRangeM: safeIntSchema("currentRangeM must be a non-negative integer", {
+    nonNegative: true,
+  }),
+
+  currentAltitudeM: safeIntSchema("currentAltitudeM must be a non-negative integer", {
+    nonNegative: true,
+  }),
+
+  bearingDegrees: safeIntSchema("bearingDegrees must be 0-360", { min: 0, max: 360 }),
+
+  releaseRangeM: safeIntSchema("releaseRangeM must be a non-negative integer", {
+    nonNegative: true,
+  }),
+
+  releaseAltitudeM: safeIntSchema("releaseAltitudeM must be a non-negative integer", {
+    nonNegative: true,
+  }),
+
+  isReleased: Schema.Boolean,
+
+  fireControlSolutionBp: safeIntSchema("fireControlSolutionBp must be a non-negative integer", {
+    nonNegative: true,
+  }),
+
+  timeToImpactMs: safeIntSchema("timeToImpactMs must be a non-negative integer", {
+    nonNegative: true,
+  }),
+
+  formationSize: safeIntSchema("formationSize must be a positive integer", { positive: true }),
+
+  cohesionBp: safeIntSchema("cohesionBp must be a non-negative integer", {
+    nonNegative: true,
+  }),
+
+  defensiveSusceptibilityBp: safeIntSchema(
+    "defensiveSusceptibilityBp must be a non-negative integer",
+    { nonNegative: true },
+  ),
+
+  contentVersion: Schema.String.check(
+    Schema.isMinLength(1, { message: "contentVersion must be a non-empty string" }),
+  ),
+
+  contentHash: Schema.String.check(
+    Schema.isBetweenLength(64, 64, {
+      message: "contentHash must be a 64-character SHA-256 hex string",
     }),
+  ),
+});
 
-    speedMps: safeIntSchema("speedMps must be a non-negative integer", { nonNegative: true }),
-
-    currentRangeM: safeIntSchema("currentRangeM must be a non-negative integer", {
-      nonNegative: true,
-    }),
-
-    currentAltitudeM: safeIntSchema("currentAltitudeM must be a non-negative integer", {
-      nonNegative: true,
-    }),
-
-    bearingDegrees: safeIntSchema("bearingDegrees must be 0-360", { min: 0, max: 360 }),
-
-    releaseRangeM: safeIntSchema("releaseRangeM must be a non-negative integer", {
-      nonNegative: true,
-    }),
-
-    releaseAltitudeM: safeIntSchema("releaseAltitudeM must be a non-negative integer", {
-      nonNegative: true,
-    }),
-
-    isReleased: z.boolean(),
-
-    fireControlSolutionBp: safeIntSchema("fireControlSolutionBp must be a non-negative integer", {
-      nonNegative: true,
-    }),
-
-    timeToImpactMs: safeIntSchema("timeToImpactMs must be a non-negative integer", {
-      nonNegative: true,
-    }),
-
-    formationSize: safeIntSchema("formationSize must be a positive integer", { positive: true }),
-
-    cohesionBp: safeIntSchema("cohesionBp must be a non-negative integer", {
-      nonNegative: true,
-    }),
-
-    defensiveSusceptibilityBp: safeIntSchema(
-      "defensiveSusceptibilityBp must be a non-negative integer",
-      { nonNegative: true },
-    ),
-
-    contentVersion: z.string().min(1, "contentVersion must be a non-empty string"),
-
-    contentHash: z.string().length(64, "contentHash must be a 64-character SHA-256 hex string"),
-  })
-  .strict();
+/** Unmodeled (excess) keys are rejected, preserving the previous Zod `.strict()` behavior. */
+const parseOptions = { onExcessProperty: "error" } as const;
 
 // ---- fail-closed guard: rejects unknown fields ----
 
 export function validateAirDefenseAttack(value: unknown): AirDefenseAttack {
-  const result = AirDefenseAttackSchema.safeParse(value);
-  if (!result.success) {
-    const errors = result.error.issues.map((err) => ({
-      path: err.path.join("."),
-      message: err.message,
+  const result = Schema.decodeUnknownResult(AirDefenseAttackSchema, parseOptions)(value);
+  if (Result.isFailure(result)) {
+    const errors = formatContractIssues(result.failure).map((issue) => ({
+      path: issue.path,
+      message: issue.message,
     }));
     throw new BluewaveError(
       `AirDefenseAttack validation failed: ${JSON.stringify(errors, null, 2)}`,
@@ -191,31 +195,15 @@ export function validateAirDefenseAttack(value: unknown): AirDefenseAttack {
       },
     );
   }
-  return result.data as AirDefenseAttack;
+  return result.success as AirDefenseAttack;
 }
 
 // ---- createAirDefenseAttack ----
 
 export function createAirDefenseAttack(params: Partial<AirDefenseAttack>): AirDefenseAttack {
-  // First, validate that the input does not contain invalid values or unknown fields.
-  // The partial schema permits missing fields, so any failure here is from invalid values.
-  const inputCheck = AirDefenseAttackSchema.partial().safeParse(params);
-  if (!inputCheck.success) {
-    const errors = inputCheck.error.issues.map((err) => ({
-      path: err.path.join("."),
-      message: err.message,
-    }));
-    throw new BluewaveError(
-      `AirDefenseAttack validation failed: ${JSON.stringify(errors, null, 2)}`,
-      {
-        code: INVALID_AIR_DEFENSE_ATTACK,
-        errors,
-      },
-    );
-  }
-
-  // Detect unknown fields by re-parsing the original key set against the strict schema shape.
-  const knownKeys = new Set(Object.keys(AirDefenseAttackSchema.shape));
+  // Fail-closed on unknown fields: the defaults merge below only carries known
+  // keys, so unknown input keys are rejected here rather than silently dropped.
+  const knownKeys = new Set(Object.keys(AirDefenseAttackSchema.fields));
   for (const key of Object.keys(params)) {
     if (!knownKeys.has(key)) {
       throw new BluewaveError(`AirDefenseAttack validation failed: unknown field "${key}"`, {

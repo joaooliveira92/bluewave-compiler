@@ -1,117 +1,139 @@
-import { z } from "zod";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError } from "@bluewave/contracts";
+import { Result, Schema } from "effect";
+import { formatContractIssues } from "../schema-issues.js";
 import {
   CARRIER_CLASSIFICATIONS,
-  DECK_CYCLE_STATES,
   CARRIER_OPERATIONS_RULESET_VERSION,
+  DECK_CYCLE_STATES,
   JET_CARRIER_CAPABILITIES,
   OVERSIZED_CARRIER_THRESHOLD,
-  OVERSIZED_DECK_CYCLE_EFFICIENCY_BP,
-  OVERSIZED_SORTIE_GENERATION_BP,
-  OVERSIZED_MAINTENANCE_COST_BP,
   OVERSIZED_COORDINATION_BP,
+  OVERSIZED_DECK_CYCLE_EFFICIENCY_BP,
   OVERSIZED_HAZARD_BP,
+  OVERSIZED_MAINTENANCE_COST_BP,
+  OVERSIZED_SORTIE_GENERATION_BP,
 } from "./constants.js";
 import {
-  INVALID_CARRIER_OPERATIONS_STATE,
   CARRIER_OPERATIONS_INVARIANT_FAILED,
+  INVALID_CARRIER_OPERATIONS_STATE,
 } from "./reasonCodes.js";
 
-const safeIntSchema = z.custom<SafeInt>((v) => SafeInt.isSafeInt(v as number), {
-  message: "must be a SafeInt",
-});
+const nonEmptyString = Schema.String.check(Schema.isMinLength(1));
 
-const nonNegativeSafeIntSchema = safeIntSchema.refine((v) => Number(v) >= 0, {
-  message: "must be non-negative",
-});
+const safeInt = Schema.Finite.check(
+  Schema.isInt(),
+  Schema.isBetween({ minimum: Number.MIN_SAFE_INTEGER, maximum: Number.MAX_SAFE_INTEGER }),
+);
 
-const basisPointSchema = z.number().int().min(0).max(10_000);
+const nonNegativeSafeInt = safeInt.check(Schema.isGreaterThanOrEqualTo(0));
+
+const nonNegativeInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
+
+const positiveInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThan(0));
+
+const basisPoint = Schema.Finite.check(
+  Schema.isInt(),
+  Schema.isGreaterThanOrEqualTo(0),
+  Schema.isLessThanOrEqualTo(10_000),
+);
+
+const nonNegativeNumber = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
+
+const degrees = Schema.Finite.check(
+  Schema.isGreaterThanOrEqualTo(0),
+  Schema.isLessThanOrEqualTo(360),
+);
 
 /** Parse a carrier-operations contract, failing closed with a stable BluewaveError. */
-function parseContract<T>(schema: z.ZodType<T>, value: unknown, code: string): T {
-  const result = schema.safeParse(value);
-  if (!result.success) {
+function parseContract<A>(
+  schema: Schema.ConstraintDecoder<A, never>,
+  value: unknown,
+  code: string,
+): A {
+  const result = Schema.decodeUnknownResult(schema)(value);
+  if (Result.isFailure(result)) {
+    const first = formatContractIssues(result.failure)[0];
     throw new BluewaveError(code, {
       code,
-      field: result.error.issues[0]?.path.join(".") ?? "unknown",
-      reason: result.error.issues[0]?.message ?? "contract validation failed",
+      field: first?.path ?? "unknown",
+      reason: first?.message ?? "contract validation failed",
       value,
     });
   }
-  return result.data;
+  return result.success;
 }
 
-const catapultDefinitionSchema = z.object({
-  catapultId: z.string().min(1),
-  compatible: z.boolean(),
-  operational: z.boolean(),
-  steamPowered: z.boolean(),
-  conditionBp: basisPointSchema,
+const catapultDefinitionSchema = Schema.Struct({
+  catapultId: nonEmptyString,
+  compatible: Schema.Boolean,
+  operational: Schema.Boolean,
+  steamPowered: Schema.Boolean,
+  conditionBp: basisPoint,
 });
 
-const liftDefinitionSchema = z.object({
-  liftId: z.string().min(1),
-  operational: z.boolean(),
-  conditionBp: basisPointSchema,
+const liftDefinitionSchema = Schema.Struct({
+  liftId: nonEmptyString,
+  operational: Schema.Boolean,
+  conditionBp: basisPoint,
 });
 
-const fuelStateSchema = z.object({
-  fuelRemainingBp: nonNegativeSafeIntSchema,
-  fuelCapacityBp: nonNegativeSafeIntSchema,
+const fuelStateSchema = Schema.Struct({
+  fuelRemainingBp: nonNegativeSafeInt,
+  fuelCapacityBp: nonNegativeSafeInt,
 });
 
-const ordnanceEntrySchema = z.object({
-  ordnanceTypeId: z.string().min(1),
-  quantity: nonNegativeSafeIntSchema,
+const ordnanceEntrySchema = Schema.Struct({
+  ordnanceTypeId: nonEmptyString,
+  quantity: nonNegativeSafeInt,
 });
 
-const reservationSchema = z.object({
-  reservationId: z.string().min(1),
-  squadronId: z.string().min(1),
-  aircraftModelId: z.string().min(1),
-  count: nonNegativeSafeIntSchema,
+const reservationSchema = Schema.Struct({
+  reservationId: nonEmptyString,
+  squadronId: nonEmptyString,
+  aircraftModelId: nonEmptyString,
+  count: nonNegativeSafeInt,
 });
 
-const weatherOperabilitySchema = z.object({
-  currentSeaState: nonNegativeSafeIntSchema,
-  windOverDeckKnots: nonNegativeSafeIntSchema,
-  precipitationIntensityBp: basisPointSchema,
-  visibilityNauticalMiles: nonNegativeSafeIntSchema,
-  deckFireIntensityBp: basisPointSchema,
-  nightOperationsActive: z.boolean(),
+const weatherOperabilitySchema = Schema.Struct({
+  currentSeaState: nonNegativeSafeInt,
+  windOverDeckKnots: nonNegativeSafeInt,
+  precipitationIntensityBp: basisPoint,
+  visibilityNauticalMiles: nonNegativeSafeInt,
+  deckFireIntensityBp: basisPoint,
+  nightOperationsActive: Schema.Boolean,
 });
 
-export const CarrierOperationsState_v1 = z.object({
-  shipId: z.string().min(1),
-  compiledDesignId: z.string().min(1),
-  classification: z.enum(CARRIER_CLASSIFICATIONS),
-  physicalCapacityUnits: nonNegativeSafeIntSchema,
-  occupiedCapacityUnits: nonNegativeSafeIntSchema,
-  currentSpotValue: nonNegativeSafeIntSchema,
-  deckCycleState: z.enum(DECK_CYCLE_STATES),
-  deckConfigurationId: z.string().min(1),
-  catapultDefinitions: z.array(catapultDefinitionSchema),
-  liftDefinitions: z.array(liftDefinitionSchema),
-  flightDeckCondition: basisPointSchema,
-  hangarCondition: basisPointSchema,
+export const CarrierOperationsState_v1 = Schema.Struct({
+  shipId: nonEmptyString,
+  compiledDesignId: nonEmptyString,
+  classification: Schema.Literals(CARRIER_CLASSIFICATIONS),
+  physicalCapacityUnits: nonNegativeSafeInt,
+  occupiedCapacityUnits: nonNegativeSafeInt,
+  currentSpotValue: nonNegativeSafeInt,
+  deckCycleState: Schema.Literals(DECK_CYCLE_STATES),
+  deckConfigurationId: nonEmptyString,
+  catapultDefinitions: Schema.Array(catapultDefinitionSchema),
+  liftDefinitions: Schema.Array(liftDefinitionSchema),
+  flightDeckCondition: basisPoint,
+  hangarCondition: basisPoint,
   aviationFuelState: fuelStateSchema,
-  ordnanceInventory: z.array(ordnanceEntrySchema),
-  assignedAirGroupSquadronIds: z.array(z.string().min(1)),
-  spottedAircraftCount: nonNegativeSafeIntSchema,
-  fueledAircraftCount: nonNegativeSafeIntSchema,
-  armedAircraftCount: nonNegativeSafeIntSchema,
-  airborneAircraftCount: nonNegativeSafeIntSchema,
-  returningAircraftCount: nonNegativeSafeIntSchema,
-  damagedAircraftCount: nonNegativeSafeIntSchema,
-  activeLaunchReservations: z.array(reservationSchema),
-  activeRecoveryReservations: z.array(reservationSchema),
+  ordnanceInventory: Schema.Array(ordnanceEntrySchema),
+  assignedAirGroupSquadronIds: Schema.Array(nonEmptyString),
+  spottedAircraftCount: nonNegativeSafeInt,
+  fueledAircraftCount: nonNegativeSafeInt,
+  armedAircraftCount: nonNegativeSafeInt,
+  airborneAircraftCount: nonNegativeSafeInt,
+  returningAircraftCount: nonNegativeSafeInt,
+  damagedAircraftCount: nonNegativeSafeInt,
+  activeLaunchReservations: Schema.Array(reservationSchema),
+  activeRecoveryReservations: Schema.Array(reservationSchema),
   weatherOperabilityState: weatherOperabilitySchema,
-  rulesetVersion: z.literal(CARRIER_OPERATIONS_RULESET_VERSION),
-  formulaVersion: z.string().min(1),
-  stateHash: z.string().min(1),
+  rulesetVersion: Schema.Literal(CARRIER_OPERATIONS_RULESET_VERSION),
+  formulaVersion: nonEmptyString,
+  stateHash: nonEmptyString,
 });
 
-export type CarrierOperationsStateContract = z.infer<typeof CarrierOperationsState_v1>;
+export type CarrierOperationsStateContract = typeof CarrierOperationsState_v1.Type;
 
 export function validateCarrierOperationsStateContract(
   value: unknown,
@@ -119,21 +141,25 @@ export function validateCarrierOperationsStateContract(
   return parseContract(CarrierOperationsState_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
-const assignmentSchema = z.object({
-  squadronId: z.string().min(1),
-  aircraftModelId: z.string().min(1),
-  aircraftType: z.string().min(1),
-  capacityUnits: nonNegativeSafeIntSchema,
-  assignmentPriority: z.number().int().min(1).max(8),
+const assignmentSchema = Schema.Struct({
+  squadronId: nonEmptyString,
+  aircraftModelId: nonEmptyString,
+  aircraftType: nonEmptyString,
+  capacityUnits: nonNegativeSafeInt,
+  assignmentPriority: Schema.Finite.check(
+    Schema.isInt(),
+    Schema.isGreaterThanOrEqualTo(1),
+    Schema.isLessThanOrEqualTo(8),
+  ),
 });
 
-export const CarrierCapacityAssignment_v1 = z.object({
-  assignments: z.array(assignmentSchema),
-  physicalCapacityUnits: nonNegativeSafeIntSchema,
-  occupiedCapacityUnits: nonNegativeSafeIntSchema,
+export const CarrierCapacityAssignment_v1 = Schema.Struct({
+  assignments: Schema.Array(assignmentSchema),
+  physicalCapacityUnits: nonNegativeSafeInt,
+  occupiedCapacityUnits: nonNegativeSafeInt,
 });
 
-export type CarrierCapacityAssignmentContract = z.infer<typeof CarrierCapacityAssignment_v1>;
+export type CarrierCapacityAssignmentContract = typeof CarrierCapacityAssignment_v1.Type;
 
 export function validateCarrierCapacityAssignmentContract(
   value: unknown,
@@ -141,16 +167,16 @@ export function validateCarrierCapacityAssignmentContract(
   return parseContract(CarrierCapacityAssignment_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
-export const OversizedCarrierPolicy_v1 = z.object({
-  threshold: z.literal(OVERSIZED_CARRIER_THRESHOLD),
-  deckCycleEfficiencyBp: z.literal(OVERSIZED_DECK_CYCLE_EFFICIENCY_BP),
-  sortieGenerationBp: z.literal(OVERSIZED_SORTIE_GENERATION_BP),
-  maintenanceCostBp: z.literal(OVERSIZED_MAINTENANCE_COST_BP),
-  coordinationBp: z.literal(OVERSIZED_COORDINATION_BP),
-  hazardBp: z.literal(OVERSIZED_HAZARD_BP),
+export const OversizedCarrierPolicy_v1 = Schema.Struct({
+  threshold: Schema.Literal(OVERSIZED_CARRIER_THRESHOLD),
+  deckCycleEfficiencyBp: Schema.Literal(OVERSIZED_DECK_CYCLE_EFFICIENCY_BP),
+  sortieGenerationBp: Schema.Literal(OVERSIZED_SORTIE_GENERATION_BP),
+  maintenanceCostBp: Schema.Literal(OVERSIZED_MAINTENANCE_COST_BP),
+  coordinationBp: Schema.Literal(OVERSIZED_COORDINATION_BP),
+  hazardBp: Schema.Literal(OVERSIZED_HAZARD_BP),
 });
 
-export type OversizedCarrierPolicyContract = z.infer<typeof OversizedCarrierPolicy_v1>;
+export type OversizedCarrierPolicyContract = typeof OversizedCarrierPolicy_v1.Type;
 
 export function validateOversizedCarrierPolicyContract(
   value: unknown,
@@ -158,27 +184,27 @@ export function validateOversizedCarrierPolicyContract(
   return parseContract(OversizedCarrierPolicy_v1, value, CARRIER_OPERATIONS_INVARIANT_FAILED);
 }
 
-export const CarrierSpotValue_v1 = z.object({
-  baseSpotValue: nonNegativeSafeIntSchema,
-  operationalCatapultCount: z.number().int().min(0),
-  speedKnots: z.number().min(0),
-  deckConfigurationId: z.string().min(1),
-  flightDeckConditionBp: basisPointSchema,
-  technologyLevel: z.string().min(1),
-  compiledAircraftCapacity: z.number().int().min(0),
-  finalSpotValue: nonNegativeSafeIntSchema,
+export const CarrierSpotValue_v1 = Schema.Struct({
+  baseSpotValue: nonNegativeSafeInt,
+  operationalCatapultCount: nonNegativeInt,
+  speedKnots: nonNegativeNumber,
+  deckConfigurationId: nonEmptyString,
+  flightDeckConditionBp: basisPoint,
+  technologyLevel: nonEmptyString,
+  compiledAircraftCapacity: nonNegativeInt,
+  finalSpotValue: nonNegativeSafeInt,
 });
 
-export type CarrierSpotValueContract = z.infer<typeof CarrierSpotValue_v1>;
+export type CarrierSpotValueContract = typeof CarrierSpotValue_v1.Type;
 
-export const CarrierDeckCycleState_v1 = z.object({
-  fromState: z.enum(DECK_CYCLE_STATES),
-  toState: z.enum(DECK_CYCLE_STATES),
-  timestamp: z.number().int().min(0),
-  transitionValidated: z.boolean(),
+export const CarrierDeckCycleState_v1 = Schema.Struct({
+  fromState: Schema.Literals(DECK_CYCLE_STATES),
+  toState: Schema.Literals(DECK_CYCLE_STATES),
+  timestamp: nonNegativeInt,
+  transitionValidated: Schema.Boolean,
 });
 
-export type CarrierDeckCycleStateContract = z.infer<typeof CarrierDeckCycleState_v1>;
+export type CarrierDeckCycleStateContract = typeof CarrierDeckCycleState_v1.Type;
 
 export function validateCarrierDeckCycleStateContract(
   value: unknown,
@@ -186,7 +212,7 @@ export function validateCarrierDeckCycleStateContract(
   return parseContract(CarrierDeckCycleState_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
-const operationClassSchema = z.enum([
+const operationClassSchema = Schema.Literals([
   "EMERGENCY_RECOVERY",
   "ORDINARY_RECOVERY",
   "ALERT_CAP_LAUNCH",
@@ -198,23 +224,23 @@ const operationClassSchema = z.enum([
   "STRIKE_DOWN",
 ]);
 
-const contentionPredicatesSchema = z.object({
-  hasAngledDeck: z.boolean(),
-  deckDamagePermitsOverlap: z.boolean(),
-  weatherPermitsOverlap: z.boolean(),
-  trafficPermitsOverlap: z.boolean(),
-  hasFueledArmedAircraftOnDeck: z.boolean(),
-  clearDeckCapacitySufficient: z.boolean(),
+const contentionPredicatesSchema = Schema.Struct({
+  hasAngledDeck: Schema.Boolean,
+  deckDamagePermitsOverlap: Schema.Boolean,
+  weatherPermitsOverlap: Schema.Boolean,
+  trafficPermitsOverlap: Schema.Boolean,
+  hasFueledArmedAircraftOnDeck: Schema.Boolean,
+  clearDeckCapacitySufficient: Schema.Boolean,
 });
 
-export const CarrierDeckContention_v1 = z.object({
+export const CarrierDeckContention_v1 = Schema.Struct({
   requested: operationClassSchema,
-  currentOperations: z.array(operationClassSchema),
+  currentOperations: Schema.Array(operationClassSchema),
   predicates: contentionPredicatesSchema,
-  permitted: z.boolean(),
+  permitted: Schema.Boolean,
 });
 
-export type CarrierDeckContentionContract = z.infer<typeof CarrierDeckContention_v1>;
+export type CarrierDeckContentionContract = typeof CarrierDeckContention_v1.Type;
 
 export function validateCarrierDeckContentionContract(
   value: unknown,
@@ -222,56 +248,56 @@ export function validateCarrierDeckContentionContract(
   return parseContract(CarrierDeckContention_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
-export const JetCarrierCapability_v1 = z.object({
-  trueStandardDisplacementKg: nonNegativeSafeIntSchema,
-  hasCompatibleOperationalSteamCatapult: z.boolean(),
-  hasAngledDeck: z.boolean(),
-  hasStrengthenedArrestingGear: z.boolean(),
-  hasJetCompatibleLiftsAndHangar: z.boolean(),
-  hasAdequateDeckStrengthAndHeatResistance: z.boolean(),
-  adoptedTechnologies: z.array(z.string().min(1)),
-  determinedCapability: z.enum(JET_CARRIER_CAPABILITIES),
+export const JetCarrierCapability_v1 = Schema.Struct({
+  trueStandardDisplacementKg: nonNegativeSafeInt,
+  hasCompatibleOperationalSteamCatapult: Schema.Boolean,
+  hasAngledDeck: Schema.Boolean,
+  hasStrengthenedArrestingGear: Schema.Boolean,
+  hasJetCompatibleLiftsAndHangar: Schema.Boolean,
+  hasAdequateDeckStrengthAndHeatResistance: Schema.Boolean,
+  adoptedTechnologies: Schema.Array(nonEmptyString),
+  determinedCapability: Schema.Literals(JET_CARRIER_CAPABILITIES),
 });
 
-export type JetCarrierCapabilityContract = z.infer<typeof JetCarrierCapability_v1>;
+export type JetCarrierCapabilityContract = typeof JetCarrierCapability_v1.Type;
 
-const strikeSquadronAllocationSchema = z.object({
-  squadronId: z.string().min(1),
-  aircraftModelId: z.string().min(1),
-  count: nonNegativeSafeIntSchema,
+const strikeSquadronAllocationSchema = Schema.Struct({
+  squadronId: nonEmptyString,
+  aircraftModelId: nonEmptyString,
+  count: nonNegativeSafeInt,
 });
 
-const strikeOrdnanceReservationSchema = z.object({
-  ordnanceTypeId: z.string().min(1),
-  quantity: nonNegativeSafeIntSchema,
+const strikeOrdnanceReservationSchema = Schema.Struct({
+  ordnanceTypeId: nonEmptyString,
+  quantity: nonNegativeSafeInt,
 });
 
-const strikeRecoveryPlanSchema = z.object({
-  returnCarrierId: z.string().min(1),
-  recoveryWindowStart: z.number().int().min(0),
-  recoveryWindowEnd: z.number().int().min(0),
-  fuelReserveBp: nonNegativeSafeIntSchema,
-  divertFieldIds: z.array(z.string().min(1)),
+const strikeRecoveryPlanSchema = Schema.Struct({
+  returnCarrierId: nonEmptyString,
+  recoveryWindowStart: nonNegativeInt,
+  recoveryWindowEnd: nonNegativeInt,
+  fuelReserveBp: nonNegativeSafeInt,
+  divertFieldIds: Schema.Array(nonEmptyString),
 });
 
-export const CarrierStrikeState_v1 = z.object({
-  strikeId: z.string().min(1),
-  originCarrierIds: z.array(z.string().min(1)),
-  targetReportId: z.string().min(1),
-  targetConfidenceBp: basisPointSchema,
-  allocatedSquadrons: z.array(strikeSquadronAllocationSchema),
-  escortAllocationIds: z.array(z.string().min(1)),
-  loadoutId: z.string().min(1),
-  ordnanceReservations: z.array(strikeOrdnanceReservationSchema),
-  coordinationMode: z.enum(["UNCOORDINATED", "COORDINATED"]),
-  readinessStartMinute: z.number().int().min(0),
-  plannedLaunchMinute: z.number().int().min(0),
-  actualLaunchMinute: z.number().int().min(0),
-  fuelRequirementBp: nonNegativeSafeIntSchema,
-  fuelReserveBp: nonNegativeSafeIntSchema,
-  spotValueRequirement: nonNegativeSafeIntSchema,
-  formationState: z.enum(["FORMING", "FORMED", "DISPERSED", "SCATTERED"]),
-  missionState: z.enum([
+export const CarrierStrikeState_v1 = Schema.Struct({
+  strikeId: nonEmptyString,
+  originCarrierIds: Schema.Array(nonEmptyString),
+  targetReportId: nonEmptyString,
+  targetConfidenceBp: basisPoint,
+  allocatedSquadrons: Schema.Array(strikeSquadronAllocationSchema),
+  escortAllocationIds: Schema.Array(nonEmptyString),
+  loadoutId: nonEmptyString,
+  ordnanceReservations: Schema.Array(strikeOrdnanceReservationSchema),
+  coordinationMode: Schema.Literals(["UNCOORDINATED", "COORDINATED"]),
+  readinessStartMinute: nonNegativeInt,
+  plannedLaunchMinute: nonNegativeInt,
+  actualLaunchMinute: nonNegativeInt,
+  fuelRequirementBp: nonNegativeSafeInt,
+  fuelReserveBp: nonNegativeSafeInt,
+  spotValueRequirement: nonNegativeSafeInt,
+  formationState: Schema.Literals(["FORMING", "FORMED", "DISPERSED", "SCATTERED"]),
+  missionState: Schema.Literals([
     "PREPARING",
     "READY",
     "LAUNCHING",
@@ -286,82 +312,82 @@ export const CarrierStrikeState_v1 = z.object({
     "LOST",
   ]),
   recoveryPlan: strikeRecoveryPlanSchema,
-  rulesetVersion: z.string().min(1),
-  strikeHash: z.string().min(1),
+  rulesetVersion: nonEmptyString,
+  strikeHash: nonEmptyString,
 });
 
-export type CarrierStrikeStateContract = z.infer<typeof CarrierStrikeState_v1>;
+export type CarrierStrikeStateContract = typeof CarrierStrikeState_v1.Type;
 
 export function validateCarrierStrikeStateContract(value: unknown): CarrierStrikeStateContract {
   return parseContract(CarrierStrikeState_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
-export const CarrierLaunchRate_v1 = z.object({
-  operationalCatapultCount: z.number().int().min(0),
-  usingSteamCatapults: z.boolean(),
-  isLightJet: z.boolean(),
-  isHeavyJet: z.boolean(),
-  isPiston: z.boolean(),
-  effectiveRate: z.number().int().min(1),
-  durationMinutes: z.number().int().min(1),
-  aircraftCount: z.number().int().min(1),
+export const CarrierLaunchRate_v1 = Schema.Struct({
+  operationalCatapultCount: nonNegativeInt,
+  usingSteamCatapults: Schema.Boolean,
+  isLightJet: Schema.Boolean,
+  isHeavyJet: Schema.Boolean,
+  isPiston: Schema.Boolean,
+  effectiveRate: positiveInt,
+  durationMinutes: positiveInt,
+  aircraftCount: positiveInt,
 });
 
-export type CarrierLaunchRateContract = z.infer<typeof CarrierLaunchRate_v1>;
+export type CarrierLaunchRateContract = typeof CarrierLaunchRate_v1.Type;
 
 export function validateCarrierLaunchRateContract(value: unknown): CarrierLaunchRateContract {
   return parseContract(CarrierLaunchRate_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
-const courseIntervalSchema = z.object({
-  minDegrees: z.number().min(0).max(360),
-  maxDegrees: z.number().min(0).max(360),
+const courseIntervalSchema = Schema.Struct({
+  minDegrees: degrees,
+  maxDegrees: degrees,
 });
 
-const speedIntervalSchema = z.object({
-  minKnots: z.number().min(0),
-  maxKnots: z.number().min(0),
+const speedIntervalSchema = Schema.Struct({
+  minKnots: nonNegativeNumber,
+  maxKnots: nonNegativeNumber,
 });
 
-const windVectorSchema = z.object({
-  ambientWindSpeedKnots: z.number().min(0),
-  ambientWindDirectionDegrees: z.number().min(0).max(360),
-  carrierSpeedKnots: z.number().min(0),
-  carrierCourseDegrees: z.number().min(0).max(360),
+const windVectorSchema = Schema.Struct({
+  ambientWindSpeedKnots: nonNegativeNumber,
+  ambientWindDirectionDegrees: degrees,
+  carrierSpeedKnots: nonNegativeNumber,
+  carrierCourseDegrees: degrees,
 });
 
-export const CarrierWindOverDeck_v1 = z.object({
+export const CarrierWindOverDeck_v1 = Schema.Struct({
   requiredCourse: courseIntervalSchema,
   requiredSpeed: speedIntervalSchema,
   windVector: windVectorSchema,
-  deckOperationId: z.string().min(1),
-  relativeWodKnots: z.number().min(0),
-  aircraftClass: z.enum(["PISTON", "LIGHT_JET", "HEAVY_JET", "HELICOPTER", "UNKNOWN"]),
-  isLaunch: z.boolean(),
-  wodSufficient: z.boolean(),
+  deckOperationId: nonEmptyString,
+  relativeWodKnots: nonNegativeNumber,
+  aircraftClass: Schema.Literals(["PISTON", "LIGHT_JET", "HEAVY_JET", "HELICOPTER", "UNKNOWN"]),
+  isLaunch: Schema.Boolean,
+  wodSufficient: Schema.Boolean,
 });
 
-export type CarrierWindOverDeckContract = z.infer<typeof CarrierWindOverDeck_v1>;
+export type CarrierWindOverDeckContract = typeof CarrierWindOverDeck_v1.Type;
 
 export function validateCarrierWindOverDeckContract(value: unknown): CarrierWindOverDeckContract {
   return parseContract(CarrierWindOverDeck_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
-const hazardExposureInputsSchema = z.object({
-  fueledAircraftCount: nonNegativeSafeIntSchema,
-  armedAircraftCount: nonNegativeSafeIntSchema,
-  torpedoLoadedAircraftCount: nonNegativeSafeIntSchema,
-  guidedWeaponLoadedAircraftCount: nonNegativeSafeIntSchema,
-  fuelingTransferActive: z.boolean(),
-  ordnanceHandlingActive: z.boolean(),
+const hazardExposureInputsSchema = Schema.Struct({
+  fueledAircraftCount: nonNegativeSafeInt,
+  armedAircraftCount: nonNegativeSafeInt,
+  torpedoLoadedAircraftCount: nonNegativeSafeInt,
+  guidedWeaponLoadedAircraftCount: nonNegativeSafeInt,
+  fuelingTransferActive: Schema.Boolean,
+  ordnanceHandlingActive: Schema.Boolean,
 });
 
-export const CarrierHazardExposure_v1 = z.object({
+export const CarrierHazardExposure_v1 = Schema.Struct({
   inputs: hazardExposureInputsSchema,
-  totalExposure: nonNegativeSafeIntSchema,
+  totalExposure: nonNegativeSafeInt,
 });
 
-export type CarrierHazardExposureContract = z.infer<typeof CarrierHazardExposure_v1>;
+export type CarrierHazardExposureContract = typeof CarrierHazardExposure_v1.Type;
 
 export function validateCarrierHazardExposureContract(
   value: unknown,
@@ -369,50 +395,50 @@ export function validateCarrierHazardExposureContract(
   return parseContract(CarrierHazardExposure_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
-const nightRecoveryPredicatesSchema = z.object({
-  hasNightCarrierOperationsTech: z.boolean(),
-  hasOperationalDeckLighting: z.boolean(),
-  hasValidContact: z.boolean(),
-  windOverDeckKnots: z.number().min(0),
-  aircraftClass: z.string().min(1),
-  weatherNotSuspended: z.boolean(),
-  carrierCommandAccepts: z.boolean(),
-  hasSufficientFuel: z.boolean(),
-  isEmergency: z.boolean(),
+const nightRecoveryPredicatesSchema = Schema.Struct({
+  hasNightCarrierOperationsTech: Schema.Boolean,
+  hasOperationalDeckLighting: Schema.Boolean,
+  hasValidContact: Schema.Boolean,
+  windOverDeckKnots: nonNegativeNumber,
+  aircraftClass: nonEmptyString,
+  weatherNotSuspended: Schema.Boolean,
+  carrierCommandAccepts: Schema.Boolean,
+  hasSufficientFuel: Schema.Boolean,
+  isEmergency: Schema.Boolean,
 });
 
-export const CarrierNightRecovery_v1 = z.object({
+export const CarrierNightRecovery_v1 = Schema.Struct({
   predicates: nightRecoveryPredicatesSchema,
-  eligible: z.boolean(),
-  lossBasisBp: z.number().int().min(0).max(10_000),
+  eligible: Schema.Boolean,
+  lossBasisBp: basisPoint,
 });
 
-export type CarrierNightRecoveryContract = z.infer<typeof CarrierNightRecovery_v1>;
+export type CarrierNightRecoveryContract = typeof CarrierNightRecovery_v1.Type;
 
 export function validateCarrierNightRecoveryContract(value: unknown): CarrierNightRecoveryContract {
   return parseContract(CarrierNightRecovery_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
-const weatherSuspensionPredicatesSchema = z.object({
-  currentSeaState: nonNegativeSafeIntSchema,
-  windOverDeckKnots: nonNegativeSafeIntSchema,
-  aircraftClass: z.string().min(1),
-  isLaunchOperation: z.boolean(),
-  isHeavyPrecipitation: z.boolean(),
-  isExtremePrecipitation: z.boolean(),
-  visibilityNauticalMiles: nonNegativeSafeIntSchema,
-  hasInstrumentLandingTechnology: z.boolean(),
-  deckFireIntensityBp: basisPointSchema,
+const weatherSuspensionPredicatesSchema = Schema.Struct({
+  currentSeaState: nonNegativeSafeInt,
+  windOverDeckKnots: nonNegativeSafeInt,
+  aircraftClass: nonEmptyString,
+  isLaunchOperation: Schema.Boolean,
+  isHeavyPrecipitation: Schema.Boolean,
+  isExtremePrecipitation: Schema.Boolean,
+  visibilityNauticalMiles: nonNegativeSafeInt,
+  hasInstrumentLandingTechnology: Schema.Boolean,
+  deckFireIntensityBp: basisPoint,
 });
 
-export const CarrierWeatherSuspension_v1 = z.object({
+export const CarrierWeatherSuspension_v1 = Schema.Struct({
   predicates: weatherSuspensionPredicatesSchema,
-  suspended: z.boolean(),
-  rateMultiplierBp: basisPointSchema.optional(),
-  reason: z.string(),
+  suspended: Schema.Boolean,
+  rateMultiplierBp: Schema.optional(basisPoint),
+  reason: Schema.String,
 });
 
-export type CarrierWeatherSuspensionContract = z.infer<typeof CarrierWeatherSuspension_v1>;
+export type CarrierWeatherSuspensionContract = typeof CarrierWeatherSuspension_v1.Type;
 
 export function validateCarrierWeatherSuspensionContract(
   value: unknown,
@@ -420,9 +446,9 @@ export function validateCarrierWeatherSuspensionContract(
   return parseContract(CarrierWeatherSuspension_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
-const recoveryRequestSchema = z.object({
-  aircraftId: z.string().min(1),
-  priorityLevel: z.enum([
+const recoveryRequestSchema = Schema.Struct({
+  aircraftId: nonEmptyString,
+  priorityLevel: Schema.Literals([
     "EMERGENCY_FUEL",
     "DAMAGED_AIRCRAFT",
     "HAZARDOUS_ORDNANCE",
@@ -431,21 +457,21 @@ const recoveryRequestSchema = z.object({
     "SEARCH",
     "NORMAL_CAP",
   ]),
-  squadronId: z.string().min(1),
-  fuelStateBp: basisPointSchema,
-  isDamaged: z.boolean(),
-  hasHazardousOrdnance: z.boolean(),
+  squadronId: nonEmptyString,
+  fuelStateBp: basisPoint,
+  isDamaged: Schema.Boolean,
+  hasHazardousOrdnance: Schema.Boolean,
 });
 
-export const CarrierRecoveryPriority_v1 = z.object({
-  requests: z.array(recoveryRequestSchema),
-  deckCapacityAvailable: nonNegativeSafeIntSchema,
-  requestedSlots: nonNegativeSafeIntSchema,
-  carrierHasAlternateLanding: z.boolean(),
-  sortedAircraftIds: z.array(z.string()),
+export const CarrierRecoveryPriority_v1 = Schema.Struct({
+  requests: Schema.Array(recoveryRequestSchema),
+  deckCapacityAvailable: nonNegativeSafeInt,
+  requestedSlots: nonNegativeSafeInt,
+  carrierHasAlternateLanding: Schema.Boolean,
+  sortedAircraftIds: Schema.Array(Schema.String),
 });
 
-export type CarrierRecoveryPriorityContract = z.infer<typeof CarrierRecoveryPriority_v1>;
+export type CarrierRecoveryPriorityContract = typeof CarrierRecoveryPriority_v1.Type;
 
 export function validateCarrierRecoveryPriorityContract(
   value: unknown,
@@ -453,22 +479,22 @@ export function validateCarrierRecoveryPriorityContract(
   return parseContract(CarrierRecoveryPriority_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
 
-const ordnanceTransactionSchema = z.object({
-  ordnanceTypeId: z.string().min(1),
-  quantity: nonNegativeSafeIntSchema,
-  transactionType: z.enum(["RESERVE", "CONSUME", "RETURN_TO_STORAGE", "JETTISON"]),
-  timestamp: z.number().int().min(0),
+const ordnanceTransactionSchema = Schema.Struct({
+  ordnanceTypeId: nonEmptyString,
+  quantity: nonNegativeSafeInt,
+  transactionType: Schema.Literals(["RESERVE", "CONSUME", "RETURN_TO_STORAGE", "JETTISON"]),
+  timestamp: nonNegativeInt,
 });
 
-export const CarrierOrdnanceState_v1 = z.object({
-  transactions: z.array(ordnanceTransactionSchema),
-  inventoryTypeId: z.string().min(1),
-  availableQuantity: nonNegativeSafeIntSchema,
-  requestedQuantity: nonNegativeSafeIntSchema,
-  sufficient: z.boolean(),
+export const CarrierOrdnanceState_v1 = Schema.Struct({
+  transactions: Schema.Array(ordnanceTransactionSchema),
+  inventoryTypeId: nonEmptyString,
+  availableQuantity: nonNegativeSafeInt,
+  requestedQuantity: nonNegativeSafeInt,
+  sufficient: Schema.Boolean,
 });
 
-export type CarrierOrdnanceStateContract = z.infer<typeof CarrierOrdnanceState_v1>;
+export type CarrierOrdnanceStateContract = typeof CarrierOrdnanceState_v1.Type;
 
 export function validateCarrierOrdnanceStateContract(value: unknown): CarrierOrdnanceStateContract {
   return parseContract(CarrierOrdnanceState_v1, value, INVALID_CARRIER_OPERATIONS_STATE);

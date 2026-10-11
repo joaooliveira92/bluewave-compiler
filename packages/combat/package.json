@@ -16,7 +16,8 @@
     "@bluewave/armament": "workspace:*",
     "@bluewave/campaign": "workspace:*",
     "@bluewave/random": "workspace:*",
-    "@bluewave/events": "workspace:*"
+    "@bluewave/events": "workspace:*",
+    "effect": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

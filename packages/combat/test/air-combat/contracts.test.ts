@@ -2,6 +2,7 @@
 // AC-20 (INC-7): air_combat_v1 contract with 6-factor manifest + validateAirCombatContract.
 import { describe, expect, it } from "vite-plus/test";
 import { BluewaveError } from "@bluewave/contracts";
+import { Result, Schema } from "effect";
 import {
   AirCombatPolicy_v1,
   validateAirCombatContract,
@@ -22,6 +23,11 @@ import {
   AIR_COMBAT_DESTROYED_DAMAGE_RATIO_BP,
 } from "../../src/air-combat/index.js";
 
+/** Schema accept/reject helper — the Effect decode equivalent of Zod `safeParse().success`. */
+function parses(schema: Schema.ConstraintDecoder<unknown, never>, value: unknown): boolean {
+  return Result.isSuccess(Schema.decodeUnknownResult(schema)(value));
+}
+
 function makeValidPolicy() {
   return {
     rulesetVersion: AIR_COMBAT_RULESET_VERSION,
@@ -41,40 +47,43 @@ function makeValidPolicy() {
 
 describe("AC-20: air_combat_v1 contract", () => {
   it("validates a correct policy object", () => {
-    const result = AirCombatPolicy_v1.safeParse(makeValidPolicy());
-    expect(result.success).toBe(true);
+    expect(parses(AirCombatPolicy_v1, makeValidPolicy())).toBe(true);
   });
 
   it("rejects wrong rulesetVersion", () => {
-    const result = AirCombatPolicy_v1.safeParse({
-      ...makeValidPolicy(),
-      rulesetVersion: "wrong-version",
-    });
-    expect(result.success).toBe(false);
+    expect(
+      parses(AirCombatPolicy_v1, {
+        ...makeValidPolicy(),
+        rulesetVersion: "wrong-version",
+      }),
+    ).toBe(false);
   });
 
   it("rejects wrong basisPoints", () => {
-    const result = AirCombatPolicy_v1.safeParse({
-      ...makeValidPolicy(),
-      basisPoints: 100,
-    });
-    expect(result.success).toBe(false);
+    expect(
+      parses(AirCombatPolicy_v1, {
+        ...makeValidPolicy(),
+        basisPoints: 100,
+      }),
+    ).toBe(false);
   });
 
   it("rejects missing factor key", () => {
-    const result = AirCombatPolicy_v1.safeParse({
-      ...makeValidPolicy(),
-      factorKeys: ["quality", "numericalAdvantage", "altitude", "surprise", "defenderSurvival"],
-    });
-    expect(result.success).toBe(false);
+    expect(
+      parses(AirCombatPolicy_v1, {
+        ...makeValidPolicy(),
+        factorKeys: ["quality", "numericalAdvantage", "altitude", "surprise", "defenderSurvival"],
+      }),
+    ).toBe(false);
   });
 
   it("rejects extra factors", () => {
-    const result = AirCombatPolicy_v1.safeParse({
-      ...makeValidPolicy(),
-      factorKeys: [...AIR_COMBAT_EXCHANGE_FACTOR_KEYS, "extra"],
-    });
-    expect(result.success).toBe(false);
+    expect(
+      parses(AirCombatPolicy_v1, {
+        ...makeValidPolicy(),
+        factorKeys: [...AIR_COMBAT_EXCHANGE_FACTOR_KEYS, "extra"],
+      }),
+    ).toBe(false);
   });
 
   it("validateAirCombatContract passes on valid input", () => {

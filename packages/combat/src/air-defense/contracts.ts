@@ -1,5 +1,5 @@
 // packages/combat/src/air-defense/contracts.ts
-// D-4 M4 Aviation: Air Defense — AC-17 versioned contracts (fail-closed Zod literals).
+// D-4 M4 Aviation: Air Defense — AC-17 versioned contracts (fail-closed literals).
 // Parallel to air-combat/contracts.ts pattern.
 //
 // Four shipped contracts (registry order in contractRollup.js):
@@ -10,13 +10,13 @@
 //   radar_saturation_v1      — §14 radar-directed medium-AA marginal saturation table;
 //   ciws_redundancy_v1       — §16 CIWS marginal redundancy table.
 //
-// Every schema is a strict Zod object whose values are LITERALS pinned to the shipped
+// Every schema is a strict object whose values are LITERALS pinned to the shipped
 // constants; the shipped value factories build the exact same values FROM those constants,
 // so the acceptance gate (validateAllAirDefenseContracts + the pinned golden hash) proves
 // the schema and the shipped content can never silently drift apart.
 
-import { z } from "zod";
 import { BluewaveError } from "@bluewave/contracts";
+import { Result, Schema } from "effect";
 import {
   AIR_DEFENSE_BASIS_POINTS,
   AIR_DEFENSE_FORMULA_VERSION,
@@ -36,6 +36,7 @@ import {
 import { DIRECTOR_NORMAL_SCALING_CAP } from "./director-scaling.js";
 import { ENGAGEMENT_FACTOR_SLOT_NAMES } from "./engagement.js";
 import { DEFENSE_LAYER_ORDER } from "./layer-resolution.js";
+import { formatContractIssues } from "../schema-issues.js";
 import {
   AIR_DEFENSE_RULESET_VERSION,
   AIR_DEFENSE_SYSTEM_DEFINITION_FIELD_KEYS,
@@ -46,6 +47,9 @@ import {
   AIR_DEFENSE_SHIPPED_REASON_CODE_LIST,
 } from "./reasonCodes.js";
 
+/** Unmodeled (excess) keys are rejected, preserving the previous Zod `.strict()` behavior. */
+const parseOptions = { onExcessProperty: "error" } as const;
+
 // ---- Policy ids ----
 
 export const AIR_DEFENSE_CONTRACT_POLICY_ID = "air_defense_v1" as const;
@@ -55,30 +59,32 @@ export const AIR_DEFENSE_CIWS_REDUNDANCY_POLICY_ID = "ciws_redundancy_v1" as con
 
 // ---- Tuple-of-literals schema builders ----
 // Build strict literal tuples straight from the `as const` shipped constants, so the schema
-// can never name a value the shipped sources do not contain (and vice versa).
-
-type LiteralStringTupleSchema<T extends readonly string[]> = {
-  [K in keyof T]: z.ZodLiteral<T[K]>;
+// can never name a value the shipped sources do not contain (and vice versa). The mapped
+// tuple type preserves positional literal types across the dynamic `.map`, mirroring the
+// previous Zod tuple-builder signatures.
+type LiteralStringTuple<T extends readonly [string, ...string[]]> = {
+  readonly [K in keyof T]: Schema.Literal<T[K]>;
 };
 
-type MutablePairOf<P extends readonly [number, number]> = { -readonly [K in keyof P]: P[K] };
-
-type LiteralPairTupleSchema<T extends readonly (readonly [number, number])[]> = {
-  [K in keyof T]: z.ZodType<MutablePairOf<T[K]>>;
+type LiteralPairTuple<T extends readonly (readonly [number, number])[]> = {
+  readonly [K in keyof T]: T[K] extends readonly [infer A extends number, infer B extends number]
+    ? Schema.Tuple<[Schema.Literal<A>, Schema.Literal<B>]>
+    : never;
 };
 
-function literalStringTuple<T extends readonly string[]>(values: T) {
-  return z.tuple(
-    values.map((v) => z.literal(v)) as unknown as LiteralStringTupleSchema<T> &
-      [z.ZodTypeAny, ...z.ZodTypeAny[]],
-  );
+function literalStringTuple<const T extends readonly [string, ...string[]]>(
+  values: T,
+): Schema.Tuple<LiteralStringTuple<T>> {
+  return Schema.Tuple(values.map((v) => Schema.Literal(v)) as unknown as LiteralStringTuple<T>);
 }
 
-function literalPairTuple<T extends readonly (readonly [number, number])[]>(rows: T) {
-  return z.tuple(
+function literalPairTuple<const T extends readonly (readonly [number, number])[]>(
+  rows: T,
+): Schema.Tuple<LiteralPairTuple<T>> {
+  return Schema.Tuple(
     rows.map(([a, b]) =>
-      z.tuple([z.literal(a), z.literal(b)]),
-    ) as unknown as LiteralPairTupleSchema<T> & [z.ZodTypeAny, ...z.ZodTypeAny[]],
+      Schema.Tuple([Schema.Literal(a), Schema.Literal(b)]),
+    ) as unknown as LiteralPairTuple<T>,
   );
 }
 
@@ -102,98 +108,86 @@ function copyPairs<T extends readonly (readonly [number, number])[]>(rows: T): M
 // ---- Disruption multiplier pairs (§6) ----
 
 /** Exact §6 severity multiplier pairs (accuracy, cohesion) in basis points. */
-export const DisruptionMultipliers_v1 = z
-  .object({
-    LIGHT: z.object({ accuracyBp: z.literal(9_000), cohesionBp: z.literal(9_500) }).strict(),
-    MODERATE: z.object({ accuracyBp: z.literal(7_500), cohesionBp: z.literal(8_500) }).strict(),
-    SEVERE: z.object({ accuracyBp: z.literal(5_000), cohesionBp: z.literal(6_500) }).strict(),
-    MISSION_ABORT: z.object({ accuracyBp: z.literal(0), cohesionBp: z.literal(0) }).strict(),
-  })
-  .strict();
+export const DisruptionMultipliers_v1 = Schema.Struct({
+  LIGHT: Schema.Struct({ accuracyBp: Schema.Literal(9_000), cohesionBp: Schema.Literal(9_500) }),
+  MODERATE: Schema.Struct({ accuracyBp: Schema.Literal(7_500), cohesionBp: Schema.Literal(8_500) }),
+  SEVERE: Schema.Struct({ accuracyBp: Schema.Literal(5_000), cohesionBp: Schema.Literal(6_500) }),
+  MISSION_ABORT: Schema.Struct({ accuracyBp: Schema.Literal(0), cohesionBp: Schema.Literal(0) }),
+});
 
 // ---- air_defense_v1 ----
 
-export const AirDefensePolicy_v1 = z
-  .object({
-    policyId: z.literal(AIR_DEFENSE_CONTRACT_POLICY_ID),
-    rulesetVersion: z.literal(AIR_DEFENSE_RULESET_VERSION),
-    formulaVersion: z.literal(AIR_DEFENSE_FORMULA_VERSION),
-    reasonCodesVersion: z.literal(AIR_DEFENSE_REASON_CODES_VERSION),
-    basisPoints: z.literal(AIR_DEFENSE_BASIS_POINTS),
-    /** §1 full 8-layer order (CAP … CIWS_TERMINAL_DEFENSE) — also the §27.2 ordering key. */
-    layerOrder: literalStringTuple(FULL_DEFENSE_LAYER_ORDER),
-    /** The shipped 4-layer AA resolution subset (layer-resolution.js). */
-    aaLayerOrder: literalStringTuple(DEFENSE_LAYER_ORDER),
-    /** §19 nine-factor product order (engagement.js ENGAGEMENT_FACTOR_SLOT_NAMES). */
-    factorKeys: literalStringTuple(ENGAGEMENT_FACTOR_SLOT_NAMES),
-    formulaDenominator: z.literal(FORMULA_DENOMINATOR),
-    formulaExponent: z.literal(FORMULA_EXPONENT),
-    /** §19 line 326: the exact rational product MUST be rounded once with FLOOR. */
-    floorOnce: z.literal(true),
-    directorScalingTable: literalPairTuple(DIRECTOR_SCALING_TABLE),
-    radarSaturationTable: literalPairTuple(RADAR_SATURATION_TABLE),
-    ciwsRedundancyTable: literalPairTuple(CIWS_REDUNDANCY_TABLE),
-    disruptionMultipliers: DisruptionMultipliers_v1,
-    /** §29.8: every eligible light-AA system receives at least one disruption check of one
-     *  authoritative substep — the shipped policy grants exactly one substep. */
-    guaranteedLightAaDisruption: z
-      .object({ exactlyOneAuthoritativeSubstep: z.literal(1) })
-      .strict(),
-    /** §7: heavy AA protects its own ship and nearby ships only within exactly five nm. */
-    protectedRadiusNm: z.literal(HEAVY_AA_PROTECTED_RADIUS_NM),
-    protectedRadiusM: z.literal(HEAVY_AA_PROTECTED_RADIUS_M),
-    /** §8: medium AA may engage only when the fire-control solution is at least 4_000 bp. */
-    mediumAaFireControlMinimumBp: z.literal(MEDIUM_AA_FIRE_CONTROL_MINIMUM_BP),
-    /** §21: intact gun + destroyed director → local control at exactly 5_000 bp when supported. */
-    localControlMultiplierBp: z.literal(LOCAL_CONTROL_MULTIPLIER_BP),
-    /** §3: the exact system-definition schema key surface (ADR-0042 decision 12). */
-    systemDefinitionFieldKeys: literalStringTuple(AIR_DEFENSE_SYSTEM_DEFINITION_FIELD_KEYS),
-    /** §28: the exact 20-code reason catalog in §28 document order. */
-    reasonCodes: literalStringTuple(AIR_DEFENSE_SHIPPED_REASON_CODE_LIST),
-  })
-  .strict();
+export const AirDefensePolicy_v1 = Schema.Struct({
+  policyId: Schema.Literal(AIR_DEFENSE_CONTRACT_POLICY_ID),
+  rulesetVersion: Schema.Literal(AIR_DEFENSE_RULESET_VERSION),
+  formulaVersion: Schema.Literal(AIR_DEFENSE_FORMULA_VERSION),
+  reasonCodesVersion: Schema.Literal(AIR_DEFENSE_REASON_CODES_VERSION),
+  basisPoints: Schema.Literal(AIR_DEFENSE_BASIS_POINTS),
+  /** §1 full 8-layer order (CAP … CIWS_TERMINAL_DEFENSE) — also the §27.2 ordering key. */
+  layerOrder: literalStringTuple(FULL_DEFENSE_LAYER_ORDER),
+  /** The shipped 4-layer AA resolution subset (layer-resolution.js). */
+  aaLayerOrder: literalStringTuple(DEFENSE_LAYER_ORDER),
+  /** §19 nine-factor product order (engagement.js ENGAGEMENT_FACTOR_SLOT_NAMES). */
+  factorKeys: literalStringTuple(ENGAGEMENT_FACTOR_SLOT_NAMES),
+  formulaDenominator: Schema.Literal(FORMULA_DENOMINATOR),
+  formulaExponent: Schema.Literal(FORMULA_EXPONENT),
+  /** §19 line 326: the exact rational product MUST be rounded once with FLOOR. */
+  floorOnce: Schema.Literal(true),
+  directorScalingTable: literalPairTuple(DIRECTOR_SCALING_TABLE),
+  radarSaturationTable: literalPairTuple(RADAR_SATURATION_TABLE),
+  ciwsRedundancyTable: literalPairTuple(CIWS_REDUNDANCY_TABLE),
+  disruptionMultipliers: DisruptionMultipliers_v1,
+  /** §29.8: every eligible light-AA system receives at least one disruption check of one
+   *  authoritative substep — the shipped policy grants exactly one substep. */
+  guaranteedLightAaDisruption: Schema.Struct({ exactlyOneAuthoritativeSubstep: Schema.Literal(1) }),
+  /** §7: heavy AA protects its own ship and nearby ships only within exactly five nm. */
+  protectedRadiusNm: Schema.Literal(HEAVY_AA_PROTECTED_RADIUS_NM),
+  protectedRadiusM: Schema.Literal(HEAVY_AA_PROTECTED_RADIUS_M),
+  /** §8: medium AA may engage only when the fire-control solution is at least 4_000 bp. */
+  mediumAaFireControlMinimumBp: Schema.Literal(MEDIUM_AA_FIRE_CONTROL_MINIMUM_BP),
+  /** §21: intact gun + destroyed director → local control at exactly 5_000 bp when supported. */
+  localControlMultiplierBp: Schema.Literal(LOCAL_CONTROL_MULTIPLIER_BP),
+  /** §3: the exact system-definition schema key surface (ADR-0042 decision 12). */
+  systemDefinitionFieldKeys: literalStringTuple(AIR_DEFENSE_SYSTEM_DEFINITION_FIELD_KEYS),
+  /** §28: the exact 20-code reason catalog in §28 document order. */
+  reasonCodes: literalStringTuple(AIR_DEFENSE_SHIPPED_REASON_CODE_LIST),
+});
 
-export type AirDefensePolicyContract = z.infer<typeof AirDefensePolicy_v1>;
+export type AirDefensePolicyContract = typeof AirDefensePolicy_v1.Type;
 
 // ---- aa_director_scaling_v1 ----
 
-export const AaDirectorScalingPolicy_v1 = z
-  .object({
-    policyId: z.literal(AIR_DEFENSE_DIRECTOR_SCALING_POLICY_ID),
-    rulesetVersion: z.literal(AIR_DEFENSE_RULESET_VERSION),
-    /** §12 shipped normal-scaling cap — exactly 4 (the last scaling-table row). */
-    normalScalingCap: z.literal(DIRECTOR_NORMAL_SCALING_CAP),
-    scalingTable: literalPairTuple(DIRECTOR_SCALING_TABLE),
-  })
-  .strict();
+export const AaDirectorScalingPolicy_v1 = Schema.Struct({
+  policyId: Schema.Literal(AIR_DEFENSE_DIRECTOR_SCALING_POLICY_ID),
+  rulesetVersion: Schema.Literal(AIR_DEFENSE_RULESET_VERSION),
+  /** §12 shipped normal-scaling cap — exactly 4 (the last scaling-table row). */
+  normalScalingCap: Schema.Literal(DIRECTOR_NORMAL_SCALING_CAP),
+  scalingTable: literalPairTuple(DIRECTOR_SCALING_TABLE),
+});
 
-export type AaDirectorScalingPolicyContract = z.infer<typeof AaDirectorScalingPolicy_v1>;
+export type AaDirectorScalingPolicyContract = typeof AaDirectorScalingPolicy_v1.Type;
 
 // ---- radar_saturation_v1 ----
 
-export const RadarSaturationPolicy_v1 = z
-  .object({
-    policyId: z.literal(AIR_DEFENSE_RADAR_SATURATION_POLICY_ID),
-    rulesetVersion: z.literal(AIR_DEFENSE_RULESET_VERSION),
-    /** §14 marginal schedule: 1-4 → 10_000, 5-6 → 5_000, 7-8 → 2_500, 9+ → 500. */
-    saturationTable: literalPairTuple(RADAR_SATURATION_TABLE),
-  })
-  .strict();
+export const RadarSaturationPolicy_v1 = Schema.Struct({
+  policyId: Schema.Literal(AIR_DEFENSE_RADAR_SATURATION_POLICY_ID),
+  rulesetVersion: Schema.Literal(AIR_DEFENSE_RULESET_VERSION),
+  /** §14 marginal schedule: 1-4 → 10_000, 5-6 → 5_000, 7-8 → 2_500, 9+ → 500. */
+  saturationTable: literalPairTuple(RADAR_SATURATION_TABLE),
+});
 
-export type RadarSaturationPolicyContract = z.infer<typeof RadarSaturationPolicy_v1>;
+export type RadarSaturationPolicyContract = typeof RadarSaturationPolicy_v1.Type;
 
 // ---- ciws_redundancy_v1 ----
 
-export const CiwsRedundancyPolicy_v1 = z
-  .object({
-    policyId: z.literal(AIR_DEFENSE_CIWS_REDUNDANCY_POLICY_ID),
-    rulesetVersion: z.literal(AIR_DEFENSE_RULESET_VERSION),
-    /** §16 marginal schedule: 1-4 → 10_000, 5-6 → 5_000, 7-8 → 1_500, 9+ → 500. */
-    redundancyTable: literalPairTuple(CIWS_REDUNDANCY_TABLE),
-  })
-  .strict();
+export const CiwsRedundancyPolicy_v1 = Schema.Struct({
+  policyId: Schema.Literal(AIR_DEFENSE_CIWS_REDUNDANCY_POLICY_ID),
+  rulesetVersion: Schema.Literal(AIR_DEFENSE_RULESET_VERSION),
+  /** §16 marginal schedule: 1-4 → 10_000, 5-6 → 5_000, 7-8 → 1_500, 9+ → 500. */
+  redundancyTable: literalPairTuple(CIWS_REDUNDANCY_TABLE),
+});
 
-export type CiwsRedundancyPolicyContract = z.infer<typeof CiwsRedundancyPolicy_v1>;
+export type CiwsRedundancyPolicyContract = typeof CiwsRedundancyPolicy_v1.Type;
 
 // ---- Shipped value factories (built FROM the constants) ----
 
@@ -270,37 +264,42 @@ export function makeValidCiwsRedundancyPolicy_v1(): CiwsRedundancyPolicyContract
 // Every validator throws a BluewaveError tagged with the canonical §28 invariant code when
 // the value deviates from the pinned literals — never clamps, never silently accepts.
 
-function contractFailure(policyId: string, result: z.ZodSafeParseError<unknown>): BluewaveError {
+function contractFailure(policyId: string, error: Schema.SchemaError): BluewaveError {
+  const first = formatContractIssues(error)[0];
   return new BluewaveError(`${policyId} contract validation failed`, {
     code: AIR_DEFENSE_INVARIANT_FAILED,
     policyId,
-    field: result.error.issues[0]?.path.join(".") ?? "unknown",
-    reason: result.error.issues[0]?.message ?? "contract validation failed",
+    field: first?.path ?? "unknown",
+    reason: first?.message ?? "contract validation failed",
   });
 }
 
 export function validateAirDefenseContract(value: unknown): AirDefensePolicyContract {
-  const result = AirDefensePolicy_v1.safeParse(value);
-  if (!result.success) throw contractFailure(AIR_DEFENSE_CONTRACT_POLICY_ID, result);
-  return result.data;
+  const result = Schema.decodeUnknownResult(AirDefensePolicy_v1, parseOptions)(value);
+  if (Result.isFailure(result))
+    throw contractFailure(AIR_DEFENSE_CONTRACT_POLICY_ID, result.failure);
+  return result.success;
 }
 
 export function validateAaDirectorScalingContract(value: unknown): AaDirectorScalingPolicyContract {
-  const result = AaDirectorScalingPolicy_v1.safeParse(value);
-  if (!result.success) throw contractFailure(AIR_DEFENSE_DIRECTOR_SCALING_POLICY_ID, result);
-  return result.data;
+  const result = Schema.decodeUnknownResult(AaDirectorScalingPolicy_v1, parseOptions)(value);
+  if (Result.isFailure(result))
+    throw contractFailure(AIR_DEFENSE_DIRECTOR_SCALING_POLICY_ID, result.failure);
+  return result.success;
 }
 
 export function validateRadarSaturationContract(value: unknown): RadarSaturationPolicyContract {
-  const result = RadarSaturationPolicy_v1.safeParse(value);
-  if (!result.success) throw contractFailure(AIR_DEFENSE_RADAR_SATURATION_POLICY_ID, result);
-  return result.data;
+  const result = Schema.decodeUnknownResult(RadarSaturationPolicy_v1, parseOptions)(value);
+  if (Result.isFailure(result))
+    throw contractFailure(AIR_DEFENSE_RADAR_SATURATION_POLICY_ID, result.failure);
+  return result.success;
 }
 
 export function validateCiwsRedundancyContract(value: unknown): CiwsRedundancyPolicyContract {
-  const result = CiwsRedundancyPolicy_v1.safeParse(value);
-  if (!result.success) throw contractFailure(AIR_DEFENSE_CIWS_REDUNDANCY_POLICY_ID, result);
-  return result.data;
+  const result = Schema.decodeUnknownResult(CiwsRedundancyPolicy_v1, parseOptions)(value);
+  if (Result.isFailure(result))
+    throw contractFailure(AIR_DEFENSE_CIWS_REDUNDANCY_POLICY_ID, result.failure);
+  return result.success;
 }
 
 // ---- Shipped contract schemas (mirrors air-combat SHIPPED_AIR_COMBAT_CONTRACT) ----
