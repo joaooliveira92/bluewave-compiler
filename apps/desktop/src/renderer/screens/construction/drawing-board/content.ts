@@ -34,7 +34,7 @@ export function hasDrawingBoardContent(): boolean {
 }
 
 /** The effect-free runtime view of a decoded DTO: rebuilds the catalogue and attaches the references. */
-export function buildDrawingBoardContent(dto: DrawingBoardContentDto): DrawingBoardContent {
+function buildDrawingBoardContent(dto: DrawingBoardContentDto): DrawingBoardContent {
   return {
     ...buildShipBuildingContent(dto.catalogue),
     references: dto.catalogue.referenceDesigns ?? [],
