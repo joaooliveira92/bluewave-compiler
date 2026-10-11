@@ -681,6 +681,26 @@ throughout. Pre-existing unrelated failures: `content-schema/test/nation.test.ts
 
 ---
 
+## 🧩 Effect v4 migration (EFFECT-V4 — vendored)
+
+> **Status (2026-10-11): Wave 0 in progress.** `.scratch/effect-v4-vendor-migration/`
+> (spec + plan + 38 frontier-ordered tickets) vendors Effect v4 as first-class
+> pnpm workspace packages and migrates every Zod boundary to Effect Schema.
+> **Ticket 01** (vendor `effect@4.0.2` + `@effect/vitest@4.0.2`, V1, plus the
+> read-only `repos/effect` source subtree) **DONE** (`6fc7ed9d`). **Ticket 02**
+> (workspace wiring + single-copy guard) **DONE 2026-10-11 — PASS**:
+> `vendor/effect` + `vendor/effect-vitest` are pnpm workspace members;
+> `pnpm-workspace.yaml` top-level `overrides:` map `effect`/`@effect/vitest` to
+> `workspace:*`; `scripts/assert-single-effect.mjs` is a fail-closed hard
+> `pnpm preflight` gate with 9 self-test fixtures; root `test:run` excludes the
+> vendored members. Gate green (build 20/20 uncached, typecheck 37/37, lint 0/0,
+> format clean, `pnpm test:run` 241 files / 1554 tests, goldens 10/10, cross-process
+> `success:true`). Report:
+> `.ai/reports/effect-v4-ticket-02-vendor-workspace-guard.md`. Next: **ticket 03**
+> (toolchain `@effect/tsgo` Oxlint gate + governing ADRs).
+
+---
+
 ## 🎯 Open Design Decisions
 
 See [`docs/OPEN-ISSUES.md`](OPEN-ISSUES.md) — reconciled at the M1 gate

@@ -135,9 +135,10 @@ source build. **Decision to be recorded as an ADR.**
   to `pnpm-workspace.yaml` → `packages`.
 - Consumers declare `"effect": "workspace:*"` (and `"@effect/vitest":
   "workspace:*"` in dev).
-- Root `package.json` → `pnpm.overrides` maps `effect` and `@effect/vitest` to
-  the workspace copies, so any transitive `@effect/*` requesting the registry
-  resolves to the vendored copy.
+- Root `overrides` map (in `pnpm-workspace.yaml` top-level `overrides:`; pnpm 11
+  reads overrides there, not `package.json#pnpm.overrides`) maps `effect` and
+  `@effect/vitest` to the workspace copies, so any transitive `@effect/*`
+  requesting the registry resolves to the vendored copy.
 - Versions: the vendored `package.json` keeps the upstream version string
   (e.g. `4.0.2`) so peer ranges (`@effect/vitest` peers
   `effect ^4.0.0`) are satisfied by the workspace package.

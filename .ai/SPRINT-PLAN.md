@@ -282,7 +282,25 @@ ownership during the relevant scoping sprint rather than guessing now:
 **Order per ADR-0045:** ~~D-4 INC-6~~ (DONE 2026-10-06, report `.ai/reports/d4-m4-air-defense-inc6-engine-wiring-gate.md`) → ~~P-0~~ (DONE 2026-10-06: root `test:run` used plain `vitest` instead of `vp test`; `pnpm check` green) → ~~P-1~~ (DONE 2026-10-09 — CLOSE-OUT/ACCEPTANCE GATE PASS; report `.ai/reports/p1-battles-that-matter-acceptance.md`) → **EFFECT-V4 (next: vendored migration)** → P-2 (ship designer) → P-3 → P-4 → P-5 →
 P-6. D-5 and Track E are paused.
 
-**EFFECT-V4 (next action as of 2026-10-10) — Vendored Effect v4 migration, NOT STARTED.** The `.scratch/effect-v4-vendor-migration/` effort (spec `.scratch/effect-v4-vendor-migration/spec.md`; index `.ai/specs/effect-v4-vendor-migration.md`; plan `.scratch/effect-v4-vendor-migration/plan.md`) is sliced into **38 frontier-ordered tickets** at `.scratch/effect-v4-vendor-migration/issues/` (01 vendor → 34 facade unification → 38 final gate) across Waves 0–5. Next action: start at **ticket 01** (vendor `effect` + `@effect/vitest` V1 published artifacts + read-only `repos/effect` agent reference) and work the frontier per `.ai/ORCHESTRATION.md`. Vendor the Effect v4 runtime as first-class pnpm workspace packages (no registry resolution), enforce the single-copy graph invariant, migrate every Zod boundary to Effect Schema, and flip cross-package facades to Effect-typed interfaces; determinism-gate drift is recorded via ADR, never a blocker (ticket 05).
+**EFFECT-V4 — Vendored Effect v4 migration, IN PROGRESS (updated 2026-10-11).** The
+`.scratch/effect-v4-vendor-migration/` effort (spec `.scratch/effect-v4-vendor-migration/spec.md`;
+index `.ai/specs/effect-v4-vendor-migration.md`; plan `.scratch/effect-v4-vendor-migration/plan.md`)
+is sliced into **38 frontier-ordered tickets** at `.scratch/effect-v4-vendor-migration/issues/`
+(01 vendor → 34 facade unification → 38 final gate) across Waves 0–5. **Ticket 01 (vendor
+`effect@4.0.2` + `@effect/vitest@4.0.2` V1 + read-only `repos/effect`) DONE** (`6fc7ed9d` +
+subtree merge). **Ticket 02 (workspace wiring + single-copy guard) DONE 2026-10-11 — PASS**
+(`.ai/reports/effect-v4-ticket-02-vendor-workspace-guard.md`): `vendor/effect` +
+`vendor/effect-vitest` are pnpm workspace members; `pnpm-workspace.yaml` top-level `overrides:`
+maps `effect`/`@effect/vitest` to `workspace:*`; `scripts/assert-single-effect.mjs` is a
+fail-closed hard `pnpm preflight` gate (9 self-test fixtures); `test:run` excludes vendor
+members. Gate green: build 20/20 uncached, typecheck 37/37, lint 0/0, format clean,
+`pnpm test:run` 241 files / 1554 tests, goldens 10/10, cross-process `success:true`. Next
+action: **ticket 03** (toolchain: pinned `@effect/tsgo` Oxlint gate, tsconfig policy,
+`AGENTS.md` "Vendored repositories", governing ADRs), then work the frontier per
+`.ai/ORCHESTRATION.md`. Vendor the Effect v4 runtime as first-class pnpm workspace packages
+(no registry resolution), enforce the single-copy graph invariant, migrate every Zod boundary
+to Effect Schema, and flip cross-package facades to Effect-typed interfaces; determinism-gate
+drift is recorded via ADR, never a blocker (ticket 05).
 
 **P-1 CLOSE-OUT / ACCEPTANCE GATE — DONE 2026-10-09 — PASS.** All 12 tickets (01–12; 05 superseded by 07) and AC-1..AC-8 are proven. Full orchestrator gate green: clean uncached build 19/19, typecheck (`tsc -b`) 35/35, lint 0/0, format clean, `pnpm test:run` EXIT=0 (18 package suites; desktop 194 files/1302 tests), golden hashes 10/10, `test:cross-process` `success:true`, `test:e2e` 24 passed. AC-7 proves campaign reachability from a compiled production-pack battle (`production-pack-loop.test.ts`); AC-3 proves the as-built 1880-roster fits; AC-8 is the torpedo-armed battle-resolution child. The gate also repaired a **pre-existing** committed regression (commit `84184d9` had deleted the dossier nation-name heading and commented out `DossierControls`, failing lint/format/4 tests); repaired behaviour-preservingly. Report `.ai/reports/p1-battles-that-matter-acceptance.md`.
 

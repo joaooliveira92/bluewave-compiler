@@ -223,11 +223,13 @@ Adopt **Effect v4 as the single monorepo idiom** using a **vendored dependency**
   `UPSTREAM.md`, and re-applied by the sync script.
 - **pnpm mechanics.** Add `vendor/effect` and `vendor/effect-vitest` to
   `pnpm-workspace.yaml` → `packages`. Consumers declare
-  `"effect": "workspace:*"` (and `"@effect/vitest": "workspace:*"` in dev). Root
-  `pnpm.overrides` maps `effect` and `@effect/vitest` to the workspace copies so
-  any transitive `@effect/*` requesting the registry resolves to the vendored
-  copy. Re-verify peer resolution after wiring under the existing
-  `strict-peer-dependencies=true` + `auto-install-peers=true`.
+  `"effect": "workspace:*"` (and `"@effect/vitest": "workspace:*"` in dev). The
+  root `overrides` map (in `pnpm-workspace.yaml`'s top-level `overrides:` — pnpm 11
+  reads overrides here, not `package.json#pnpm.overrides`) maps `effect` and
+  `@effect/vitest` to the workspace copies so any transitive `@effect/*`
+  requesting the registry resolves to the vendored copy. Re-verify peer resolution
+  after wiring under the existing `strict-peer-dependencies=true` +
+  `auto-install-peers=true`.
 - **Single-copy guard.** `scripts/assert-single-effect.mjs` inspects
   `pnpm why effect` / `pnpm-lock.yaml` and fails if more than one resolution of
   `effect` exists or if any registry `effect` is resolved. It is wired into

@@ -8,7 +8,7 @@
   "packageManager": "pnpm@11.21.0",
   "scripts": {
     "build": "turbo run build",
-    "preflight": "node scripts/preflight.cjs && node scripts/docs-check.cjs",
+    "preflight": "node scripts/preflight.cjs && node scripts/assert-single-effect.mjs --self-test && node scripts/assert-single-effect.mjs && node scripts/docs-check.cjs",
     "adr:index": "node scripts/adr-index.cjs",
     "check:licenses": "node scripts/license-check.cjs",
     "check:balance-reports": "node scripts/check-balance-reports.cjs",
@@ -23,7 +23,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:e2e": "pnpm --filter @bluewave/desktop test:e2e",
-    "test:run": "pnpm -r --filter='!prototype' exec vp test run",
+    "test:run": "pnpm -r --filter='!prototype' --filter='!./vendor/*' exec vp test run",
     "test:cross-process": "node packages/cross-process-test/dist/run-child.js",
     "clean": "turbo run clean && rimraf .turbo",
     "clean:all": "pnpm clean && rimraf node_modules",

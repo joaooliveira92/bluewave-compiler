@@ -3,7 +3,7 @@
 **Type:** implementation
 **Status:** open
 **Blocked by:** 02 (workspace + guard)
-**Frontier:** no
+**Frontier:** yes
 
 ## What to build
 
