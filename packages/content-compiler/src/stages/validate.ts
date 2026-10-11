@@ -493,126 +493,140 @@ function stringArray(value: unknown): string[] {
 }
 
 /**
- * Validates the technology prerequisite graph (DESIGN-20 §16): no technology
- * may list itself as a prerequisite, and the prerequisite graph must be acyclic.
- * A self-edge fails with SELF_REFERENCE; a cycle fails with
- * TECHNOLOGY_PREREQUISITE_CYCLE naming the cycle members (each with its source
- * file) so the designer can see exactly what to break.
+ * Source file per id, keyed from the raw parsed documents (which stay
+ * index-aligned with `sourcePaths`). The validated arrays are schema-filtered,
+ * so indexing them against `sourcePaths` would name the wrong file once an item
+ * fails schema validation.
+ */
+function sourceById(input: ParseOutput, key: string, idField: string): Map<string, string> {
+  const docs = input.collectionDocs.get(key) ?? [];
+  const sources = input.sourcePaths.get(key) ?? [];
+  const map = new Map<string, string>();
+  docs.forEach((doc, index) => {
+    const id = (doc as Record<string, unknown>)[idField];
+    if (typeof id === "string") map.set(id, sources[index] ?? `${key}.yaml`);
+  });
+  return map;
+}
+
+interface GraphInvariantSpec {
+  /** The cycle diagnostic code. */
+  readonly code: string;
+  /** Human label used in messages ("Technology prerequisite", …). */
+  readonly label: string;
+  /** The field that carries the edges, named in the self-reference message. */
+  readonly edgeField: string;
+  readonly fallbackSource: string;
+}
+
+/**
+ * Shared graph invariant check: no node may list itself as an edge
+ * (`SELF_REFERENCE`), and the edge graph must be acyclic (`spec.code`, naming
+ * the concrete cycle members with their source files).
+ */
+function validateGraphInvariant(
+  items: readonly unknown[],
+  idField: string,
+  edgesOf: (record: Record<string, unknown>) => string[],
+  sources: Map<string, string>,
+  spec: GraphInvariantSpec,
+  collector: DiagnosticCollector,
+): void {
+  if (items.length === 0) return;
+  const sourceFor = (id: string): string => sources.get(id) ?? spec.fallbackSource;
+
+  const adjacency = new Map<string, string[]>();
+  for (const item of items) {
+    const id = (item as Record<string, unknown>)[idField];
+    if (typeof id === "string") adjacency.set(id, []);
+  }
+
+  for (const item of items) {
+    const record = item as Record<string, unknown>;
+    const id = String(record[idField]);
+    for (const edge of edgesOf(record)) {
+      if (edge === id) {
+        collector.addError(
+          "SELF_REFERENCE",
+          `${spec.label} '${id}' lists itself in its ${spec.edgeField}`,
+          {
+            stage: "validate",
+            sourceLocation: { path: sourceFor(id), line: 1 },
+            entityId: id,
+            remediation: `Remove '${id}' from its own ${spec.edgeField}`,
+          },
+        );
+        continue;
+      }
+      if (adjacency.has(edge)) adjacency.get(id)!.push(edge);
+    }
+  }
+
+  const cycle = findCycle(adjacency);
+  if (cycle !== null) {
+    const path = [...cycle, cycle[0]!].join(" -> ");
+    collector.addError(spec.code, `${spec.label} cycle detected: ${path}`, {
+      stage: "validate",
+      sourceLocation: { path: sourceFor(cycle[0]!), line: 1 },
+      entityId: cycle[0],
+      relatedLocations: cycle.map((id) => ({ path: sourceFor(id), line: 1 })),
+      remediation: `Break the ${spec.label.toLowerCase()} cycle among: ${cycle.join(", ")}`,
+    });
+  }
+}
+
+/**
+ * Validates the technology prerequisite graph (DESIGN-20 §16): no technology may
+ * list itself as a prerequisite, and the prerequisite graph must be acyclic.
  */
 function validateTechnologyGraph(
   validated: Record<string, unknown[]>,
   input: ParseOutput,
   collector: DiagnosticCollector,
 ): void {
-  const techs = validated["technologies"] ?? [];
-  if (techs.length === 0) return;
-  const sources = input.sourcePaths.get("technologies") ?? [];
-  const sourceFor = (id: string): string => {
-    const index = techs.findIndex((t) => (t as Record<string, unknown>)["id"] === id);
-    return sources[index] ?? "technologies.yaml";
-  };
-
-  const adjacency = new Map<string, string[]>();
-  for (const t of techs) {
-    const id = (t as Record<string, unknown>)["id"];
-    if (typeof id === "string") adjacency.set(id, []);
-  }
-
-  for (const t of techs) {
-    const record = t as Record<string, unknown>;
-    const id = String(record["id"]);
-    const prereqs = record["prerequisites"];
-    if (!Array.isArray(prereqs)) continue;
-    for (const prereq of prereqs) {
-      const techId = (prereq as Record<string, unknown>)["techId"];
-      if (typeof techId !== "string") continue;
-      if (techId === id) {
-        collector.addError("SELF_REFERENCE", `Technology '${id}' lists itself as a prerequisite`, {
-          stage: "validate",
-          sourceLocation: { path: sourceFor(id), line: 1 },
-          entityId: id,
-          remediation: `Remove '${id}' from its own prerequisites`,
-        });
-        continue;
-      }
-      if (adjacency.has(techId)) adjacency.get(id)!.push(techId);
-    }
-  }
-
-  const cycle = findCycle(adjacency);
-  if (cycle !== null) {
-    reportCycle(
-      "TECHNOLOGY_PREREQUISITE_CYCLE",
-      "Technology prerequisite",
-      cycle,
-      sourceFor,
-      collector,
-    );
-  }
+  validateGraphInvariant(
+    validated["technologies"] ?? [],
+    "id",
+    (record) => {
+      const prereqs = record["prerequisites"];
+      if (!Array.isArray(prereqs)) return [];
+      return prereqs
+        .map((prereq) => (prereq as Record<string, unknown>)["techId"])
+        .filter((techId): techId is string => typeof techId === "string");
+    },
+    sourceById(input, "technologies", "id"),
+    {
+      code: "TECHNOLOGY_PREREQUISITE_CYCLE",
+      label: "Technology prerequisite",
+      edgeField: "prerequisites",
+      fallbackSource: "technologies.yaml",
+    },
+    collector,
+  );
 }
 
 /**
  * Validates the ship-component upgrade graph: no component may upgrade from
- * itself, and the `upgradePath` graph must be acyclic. Mirrors the technology
- * graph checks with COMPONENT_UPGRADE_CYCLE / SELF_REFERENCE.
+ * itself, and the `upgradePath` graph must be acyclic.
  */
 function validateComponentUpgradeGraph(
   catalogue: ValidatedCatalogue,
   input: ParseOutput,
   collector: DiagnosticCollector,
 ): void {
-  const components = catalogue.shipComponents;
-  if (components.length === 0) return;
-  const sources = input.sourcePaths.get("shipComponents") ?? [];
-  const sourceFor = (id: string): string => {
-    const index = components.findIndex((c) => (c as Record<string, unknown>)["id"] === id);
-    return sources[index] ?? "ship-building/components.yaml";
-  };
-
-  const adjacency = new Map<string, string[]>();
-  for (const c of components) {
-    const id = (c as Record<string, unknown>)["id"];
-    if (typeof id === "string") adjacency.set(id, []);
-  }
-
-  for (const c of components) {
-    const record = c as Record<string, unknown>;
-    const id = String(record["id"]);
-    for (const upgrade of stringArray(record["upgradePath"])) {
-      if (upgrade === id) {
-        collector.addError("SELF_REFERENCE", `Component '${id}' lists itself in its upgradePath`, {
-          stage: "validate",
-          sourceLocation: { path: sourceFor(id), line: 1 },
-          entityId: id,
-          remediation: `Remove '${id}' from its own upgradePath`,
-        });
-        continue;
-      }
-      if (adjacency.has(upgrade)) adjacency.get(id)!.push(upgrade);
-    }
-  }
-
-  const cycle = findCycle(adjacency);
-  if (cycle !== null) {
-    reportCycle("COMPONENT_UPGRADE_CYCLE", "Ship component upgrade", cycle, sourceFor, collector);
-  }
-}
-
-function reportCycle(
-  code: string,
-  label: string,
-  cycle: string[],
-  sourceFor: (id: string) => string,
-  collector: DiagnosticCollector,
-): void {
-  const path = [...cycle, cycle[0]!].join(" -> ");
-  collector.addError(code, `${label} cycle detected: ${path}`, {
-    stage: "validate",
-    sourceLocation: { path: sourceFor(cycle[0]!), line: 1 },
-    entityId: cycle[0],
-    relatedLocations: cycle.map((id) => ({ path: sourceFor(id), line: 1 })),
-    remediation: `Break the ${label.toLowerCase()} cycle among: ${cycle.join(", ")}`,
-  });
+  validateGraphInvariant(
+    catalogue.shipComponents,
+    "id",
+    (record) => stringArray(record["upgradePath"]),
+    sourceById(input, "shipComponents", "id"),
+    {
+      code: "COMPONENT_UPGRADE_CYCLE",
+      label: "Ship component upgrade",
+      edgeField: "upgradePath",
+      fallbackSource: "ship-building/components.yaml",
+    },
+    collector,
+  );
 }
 
 /**

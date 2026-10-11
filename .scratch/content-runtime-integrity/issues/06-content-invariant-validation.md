@@ -1,7 +1,7 @@
 # 06 — Extend compile validation: graph and reference invariants
 
 **Type:** implementation
-**Status:** open (partial — 2 of 6 invariants landed; 3 deferred, see Comments)
+**Status:** open (partial — CRI-INV-1/2 landed; CRI-INV-3/4/5 deferred, see Comments)
 **Blocked by:** 02
 **Frontier:** no
 
@@ -66,7 +66,9 @@ Landed in `packages/content-compiler/src/stages/validate.ts`:
 - **CRI-INV-6 (paired tests).** Each landed invariant has a bad fixture and a
   positive control: technology cycle (bad) + acyclic chain (positive); component
   upgrade cycle (bad) + acyclic upgrade chain (positive); technology self-ref
-  (bad); component upgrade self-ref (bad). The production pack still compiles
+  (bad); component upgrade self-ref (bad). The acyclic positive controls exercise
+  the same edge field with a valid, non-self value, so they double as the
+  self-reference positive controls. The production pack still compiles
   (`content:check` green, artifact hash unchanged `b54fd387…`), which is the
   full-surface positive control.
 

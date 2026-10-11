@@ -75,22 +75,7 @@ function nationYaml(id: string, tag: string, name: string, isPlayable = false): 
 
 /** A strict-ShipComponentSchema-compliant component as one `components` array item. */
 function componentYaml(id: string): string {
-  return `
-  - id: "${id}"
-    displayName: "${id}"
-    category: "MATERIAL"
-    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
-    requires: []
-    parameters: {}
-    constants: {}
-    weightKg: "1"
-    volumeLitre: "1"
-    costMicro: "1"
-    crew: "0"
-    powerKw: "0"
-    upgradePath: []
-    tags: []
-`;
+  return componentYamlWith(id, []);
 }
 
 /** A strict-ShipComponentSchema-compliant component with explicit upgrade edges. */
