@@ -25,7 +25,7 @@ const AREAS = [
   {
     name: "Foundations",
     blurb: "Core engine geometry, determinism, persistence, and the compiler pipeline.",
-    nums: [1, 2, 3, 4, 5, 6, 7, 8, 9, 32, 34, 35, 36, 37],
+    nums: [1, 2, 3, 4, 5, 6, 7, 8, 9, 32, 34, 35, 36, 37, 113],
   },
   {
     name: "Effect adoption",
@@ -44,7 +44,7 @@ const AREAS = [
       "Battle generation, tactical resolution, gunnery, torpedoes, mines, air, coastal defense, damage, weather.",
     nums: [
       12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 31, 33, 39, 40, 41, 42, 44, 46, 47, 48,
-      49, 50, 51, 52, 53, 56, 72, 73, 93, 94, 97, 98,
+      49, 50, 51, 52, 53, 56, 72, 73, 93, 94, 97, 98, 112,
     ],
   },
   {
@@ -60,7 +60,7 @@ const AREAS = [
   {
     name: "Desktop & UI",
     blurb: "Electron boundary, renderer screens, UX, and presentation.",
-    nums: [23, 24, 28, 29, 30, 38, 55, 57, 58, 59, 69, 79, 82, 84, 87],
+    nums: [23, 24, 28, 29, 30, 38, 55, 57, 58, 59, 69, 79, 82, 84, 87, 115],
   },
   {
     name: "Process & documentation",

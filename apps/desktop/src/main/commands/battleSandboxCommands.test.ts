@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CampaignSnapshot, CampaignState, WarDeclaration } from "@bluewave/campaign";
+import { buildBattleHistory } from "@bluewave/campaign-engine";
 import { createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
@@ -23,6 +24,7 @@ import {
   replayBattleBoundary,
   resolveBattle,
   resolveTacticalBattle,
+  seedCampaignBattleDrill,
   type BattleSandboxDeps,
 } from "./battleSandboxCommands.js";
 
@@ -394,6 +396,47 @@ describe("battle sandbox commands (ADR-0057)", () => {
         outcome: "rejected",
         reason: "BOUNDARY_REPLAY_UNAVAILABLE",
       });
+    });
+  });
+
+  describe("seedCampaignBattleDrill (desktop E2E acceptance slice)", () => {
+    it("rejects DEBUG_ONLY in a non-debug build", async () => {
+      registerSession("s1", withWar);
+      expect(await seedCampaignBattleDrill({ sessionId: "s1" }, OFF)).toMatchObject({
+        outcome: "rejected",
+        reason: "DEBUG_ONLY",
+      });
+    });
+
+    it("stages the LIVE session so the next real month generates and resolves a battle", async () => {
+      // A committed month (turn 1) gives the war committed strategic weather.
+      await warSessionWithWeather("s1");
+      expect(getCampaignSession("s1")!.state.snapshot.wars.battles).toHaveLength(0);
+
+      const drilled = await seedCampaignBattleDrill({ sessionId: "s1" }, ON);
+      expect(drilled.outcome).toBe("success");
+      if (drilled.outcome !== "success") return;
+      expect(drilled.value.warId).toBe(WAR_ID);
+      expect(drilled.value.strengthScale).toBeGreaterThan(1);
+
+      // The drill staged the snapshot but did NOT inject a battle.
+      const staged = getCampaignSession("s1")!;
+      expect(Number(staged.state.snapshot.turnNumber)).toBe(1);
+      expect(staged.state.snapshot.wars.battles).toHaveLength(0);
+
+      // The real month phases (battle_generation + battle_resolution) run here.
+      const committed = await commitMonth({
+        sessionId: "s1",
+        expectedRevision: 1,
+        transportRequestId: "drill-commit",
+      });
+      expect(committed.outcome).toBe("success");
+
+      const after = getCampaignSession("s1")!;
+      const resolved = after.state.snapshot.wars.battles.filter((b) => b.phase === "resolved");
+      expect(resolved.length).toBeGreaterThanOrEqual(1);
+      const history = buildBattleHistory(after.state.snapshot, "uk");
+      expect(history.battles.some((b) => b.involvesPlayer)).toBe(true);
     });
   });
 });

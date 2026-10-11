@@ -41,6 +41,11 @@ import { BATTLE_AUTO_RESOLUTION_FAILED } from "./reasonCodes.js";
 import { CauseOfLossTracker, type LossCause } from "./causeOfLoss.js";
 import { type AutoResolverNation, projectBattle, type ProjectBattleOutput } from "./project.js";
 import { buildBattleWeather } from "./weather.js";
+import {
+  projectAirCombatContext,
+  projectAirDefenseContext,
+  projectSmokeContext,
+} from "./capabilities.js";
 import { planTorpedoCommands } from "./torpedoDoctrine.js";
 import { pursuitOrders } from "./pursuit.js";
 import { TORPEDO_HIT_RESOLVED, type TorpedoContext } from "../torpedoes/index.js";
@@ -132,6 +137,30 @@ export interface BattleResolutionResult {
   telemetry?: BattleTelemetry;
   /** P-1: torpedo activity — present only when a combatant carried torpedo armament. */
   torpedoSummary?: { tubesFired: number; hits: number };
+  /**
+   * C-5 reachability: smoke lifecycle events resolved during the battle. Present
+   * only when the battle had committed smoke sources. OBSERVATIONAL: excluded
+   * from `resultHash`.
+   */
+  smokeActivity?: { events: number };
+  /**
+   * D-3 reachability: air-combat activity (CAP engagements / strike attacks).
+   * Present only when the battle had committed air groups. OBSERVATIONAL:
+   * excluded from `resultHash`.
+   */
+  airCombatActivity?: { capEngagements: number; strikeAttacks: number; losses: number };
+  /**
+   * D-4 reachability: air-defense activity (engagements / kills / aborts /
+   * disruptions). Present only when the battle had committed air-defense
+   * installations and an attacking strike. OBSERVATIONAL: excluded from
+   * `resultHash`.
+   */
+  airDefenseActivity?: {
+    engagements: number;
+    kills: number;
+    aborts: number;
+    disruptions: number;
+  };
   provenance: {
     battleId: string;
     manifestHash: string;
@@ -385,6 +414,17 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
   // P-1 (AC-5): torpedo launchers/targets/tracks; absent when no unit is armed (AC-6).
   let torpedo: TorpedoContext | undefined = projected.torpedoes;
   const torpedoSummary = { tubesFired: 0, hits: 0 };
+  // C-5/D-3/D-4 reachability: project the manifest's optional capability
+  // declarations into the stage contexts. Each is ALWAYS supplied (empty when the
+  // manifest declares no capability) so the smoke / air-combat / air-defense
+  // stages are reachable through the production auto-resolution path; an empty
+  // context is a strict, byte-identical no-op, never a fabricated capability.
+  let smoke = projectSmokeContext(input.manifest, weather.context.components);
+  let airCombat = projectAirCombatContext(input.manifest, projected.state.battleId);
+  let airDefense = projectAirDefenseContext(input.manifest, engine);
+  let smokeEventCount = 0;
+  const airCombatActivity = { capEngagements: 0, strikeAttacks: 0, losses: 0 };
+  const airDefenseActivity = { engagements: 0, kills: 0, aborts: 0, disruptions: 0 };
   const lossTracker = new CauseOfLossTracker();
   const telemetry = emptyTelemetry();
 
@@ -468,11 +508,31 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
       damage,
       ...(torpedo ? { torpedoes: torpedo } : {}),
       ...(damageControl ? { damageControl } : {}),
+      smoke,
+      airCombat,
+      airDefense,
     });
 
     allEvents.push(...res.events);
     minuteHashes.push(res.minuteHash);
     elapsedMinutes = minute;
+
+    // C-5/D-3/D-4 observational activity (excluded from resultHash).
+    if (res.smokeRecords) smokeEventCount += res.smokeRecords.length;
+    if (res.airCombatSummary) {
+      airCombatActivity.capEngagements += res.airCombatSummary.capEngagements;
+      airCombatActivity.strikeAttacks += res.airCombatSummary.strikeAttacks;
+      airCombatActivity.losses += res.airCombatSummary.losses;
+    }
+    if (res.airDefenseRecords) {
+      for (const rec of res.airDefenseRecords) {
+        if (rec.outcome === "INELIGIBLE") continue;
+        airDefenseActivity.engagements += 1;
+        if (rec.outcome === "KILL") airDefenseActivity.kills += 1;
+        else if (rec.outcome === "ABORT") airDefenseActivity.aborts += 1;
+        else if (rec.outcome === "DISRUPTION") airDefenseActivity.disruptions += 1;
+      }
+    }
 
     // ADR-0098 observational telemetry (no draws, no state effect).
     if (res.gunneryRecords) {
@@ -540,6 +600,24 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
               return next ? { ...w, launcher: next } : w;
             })
           : torpedo.launchers,
+      };
+    }
+
+    // Thread the C-5/D-3/D-4 stage state forward (mirrors advanceMinutes):
+    // smoke clouds drift/decay; air-combat records accumulate; air-defense
+    // per-defender ammunition is carried to the next minute.
+    if (res.smokeClouds) smoke = { ...smoke, clouds: res.smokeClouds };
+    if (res.airCombatRecords) {
+      airCombat = { ...airCombat, existingRecords: res.airCombatRecords.map((r) => ({ ...r })) };
+    }
+    if (res.airDefenseStates) {
+      const nextStates = res.airDefenseStates;
+      airDefense = {
+        ...airDefense,
+        defenders: airDefense.defenders.map((d) => {
+          const ns = nextStates[d.state.defenderId];
+          return ns ? { ...d, state: ns } : d;
+        }),
       };
     }
 
@@ -664,6 +742,11 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
     ...(projected.torpedoes ? { torpedoSummary } : {}),
     ...(Object.keys(causeOfLoss).length > 0 ? { causeOfLoss } : {}),
     ...(withdrawalReason ? { withdrawalReason } : {}),
+    ...(smokeEventCount > 0 ? { smokeActivity: { events: smokeEventCount } } : {}),
+    ...(airCombatActivity.capEngagements + airCombatActivity.strikeAttacks > 0
+      ? { airCombatActivity }
+      : {}),
+    ...(airDefenseActivity.engagements > 0 ? { airDefenseActivity } : {}),
     telemetry: finalizeTelemetry(telemetry),
     provenance,
   };
@@ -674,6 +757,9 @@ export function resolveBattleAuto(input: ResolveBattleAutoInput): BattleResoluti
     causeOfLoss: _cause,
     withdrawalReason: _withdrawalReason,
     telemetry: _telemetry,
+    smokeActivity: _smoke,
+    airCombatActivity: _airCombat,
+    airDefenseActivity: _airDefense,
     ...hashBody
   } = result;
   result.resultHash = createEnvelope(

@@ -335,6 +335,16 @@ export const BattleIdPayloadSchema = Schema.Struct({
   battleId: nonEmptyString,
 });
 
+/**
+ * Campaign Battle Drill payload (debug-only; the desktop E2E acceptance slice).
+ * Same wire-shape discipline as the other debug battle commands: a session id
+ * plus an optional war id; the handler is the sole authority on war eligibility.
+ */
+export const SeedCampaignBattleDrillPayloadSchema = Schema.Struct({
+  sessionId: nonEmptyString,
+  warId: Schema.optional(nonEmptyString),
+});
+
 export const ResolveTacticalBattlePayloadSchema = Schema.Struct({
   ...BattleIdPayloadSchema.fields,
   turnCount: positiveInt,

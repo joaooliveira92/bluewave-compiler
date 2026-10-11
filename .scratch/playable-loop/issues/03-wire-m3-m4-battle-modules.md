@@ -1,7 +1,7 @@
 # 03 — Wire (or explicitly defer) the unreachable M3/M4 battle modules
 
 **Type:** decision + implementation
-**Status:** open
+**Status:** resolved (2026-10-11, ADR-0112)
 **Blocked by:** none
 **Frontier:** yes
 **Spec:** `.scratch/playable-loop/spec.md`; `docs/architecture/module-reachability.md`
@@ -29,3 +29,17 @@ only wrong answer.
 Cheapest first: supplying a `SmokeContext`/`AirCombatContext`/`AirDefenseContext` in
 `resolveBattleAuto` (projected from the manifest) may reach C-5/D-3/D-4 without new
 strategic phases. Mine/submarine/coastal need strategic phases (or an explicit defer).
+
+## Resolution (2026-10-11)
+
+- **Smoke, air combat and air defense are wired.** `resolveBattleAuto` now projects the
+  three contexts from optional `BattleManifest` capability declarations
+  (`smokeSources`, `airGroups`, `airDefenseInstallations`) via
+  `packages/combat/src/battleResolution/capabilities.ts` and always supplies them to
+  `advanceMinute`; the stages run in the production path. An empty capability is a strict,
+  byte-identical no-op, so no golden re-pin. Proof:
+  `packages/combat/test/battle-resolution/reachability.test.ts`.
+- **Mine warfare, submarines and coastal defense are explicitly deferred** (ADR-0112,
+  `docs/DEFERRALS.md` D-7) with their strategic invocation boundary and minimum future
+  integration point recorded in `docs/architecture/module-reachability.md`.
+- `docs/architecture/module-reachability.md` updated to the outcome.

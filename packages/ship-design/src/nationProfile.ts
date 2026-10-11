@@ -482,7 +482,9 @@ export function validateNavalProfile(
         err(p, "PROFILE_UNKNOWN_COMPONENT", `componentAccess names unknown family '${familyId}'`),
       );
     if (access.provenance !== undefined)
-      out.push(...placeholderIssues(p, `componentAccess.${familyId}`, access.provenance, ctx));
+      out.push(
+        ...placeholderIssues(p, `componentAccess.${familyId}`, access.provenance, ctx.release),
+      );
   }
   const visitVariant = (
     v: {
@@ -520,12 +522,12 @@ export function validateNavalProfile(
           `${kind} '${v.id}' obsoleteMonth precedes introductionMonth`,
         ),
       );
-    out.push(...placeholderIssues(p, `${kind}.${v.id}`, v.provenance, ctx));
+    out.push(...placeholderIssues(p, `${kind}.${v.id}`, v.provenance, ctx.release));
   };
   for (const g of profile.gunModels) visitVariant(g, "gunModel");
   for (const v of profile.componentVariants) visitVariant(v, "componentVariant");
   for (const a of profile.ammunitionPatterns)
-    out.push(...placeholderIssues(p, `ammunition.${a.id}`, a.provenance, ctx));
+    out.push(...placeholderIssues(p, `ammunition.${a.id}`, a.provenance, ctx.release));
 
   // Design weights must cover every opening type and stay positive.
   const opening: ShipTypeId[] = ["B", "CA", "CL", "DD", "KE", "AMC"];
@@ -551,18 +553,24 @@ export function validateNavalProfile(
       out.push(err(p, "PROFILE_BUILD_ORDER_INCOMPLETE", `procurement buildOrder omits ${t}`));
 
   // Profile-level provenance.
-  out.push(...placeholderIssues(p, "profile", profile.provenance, ctx));
+  out.push(...placeholderIssues(p, "profile", profile.provenance, ctx.release));
   return out;
 }
 
-function placeholderIssues(
+/**
+ * The single source of truth for the provenance release rules, shared by the profile lint and the national
+ * completeness gate (ADR-0092): a PLACEHOLDER blocks at release, and any non-PLACEHOLDER status must cite at
+ * least one source. `subject` names the provenance-bearing field for the message. Never rejects ESTIMATE or
+ * BALANCE_TARGET on its own. Deterministic; never throws.
+ */
+export function placeholderIssues(
   nationId: string,
   subject: string,
   prov: Provenance,
-  ctx: NavalProfileValidationContext,
+  release: boolean,
 ): ProfileIssue[] {
   const out: ProfileIssue[] = [];
-  if (ctx.release && prov.sourceStatus === "PLACEHOLDER")
+  if (release && prov.sourceStatus === "PLACEHOLDER")
     out.push(
       err(nationId, "PROFILE_PLACEHOLDER", `${subject} has a PLACEHOLDER provenance at release`),
     );

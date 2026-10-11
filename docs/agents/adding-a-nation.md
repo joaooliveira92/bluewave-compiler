@@ -9,34 +9,37 @@ domain: express the difference through profile data.
 node scripts/new-nation.mjs <nationId>
 ```
 
-This writes `docs/nations/<nationId>-profile-draft.yaml` (every value a `PLACEHOLDER`) and
-`docs/research/<nationId>-naval-profile.md`. It never writes into release content.
+Writes `docs/nations/<nationId>-profile-draft.yaml` (every value a `PLACEHOLDER`) and
+`docs/research/<nationId>-naval-profile.md`; never release content. The draft is already a full
+`{ navalProfiles: [ … ] }` catalogue — the shape of
+`content/production/<scenario>/ship-building/naval-profiles/<nationId>.yaml` (ADR-0109) — with every required
+`provenance` block.
 
 ## 2. Research
 
-Fill the note using the method in `docs/research/national-naval-profiles-uk-france.md`: name a source for every
-figure, show unit conversions, and label each value `VERIFIED` / `DERIVED` / `ESTIMATE` / `BALANCE_TARGET`. Wikipedia is not a source. State the strategic posture, industry, gunnery/protection/propulsion/
-torpedo doctrine, obligations, risk tolerance, research preferences, 8–15 national component variants, six opening
-designs and naming.
+Follow `docs/research/national-naval-profiles-uk-france.md`: source every figure, show unit conversions, and label
+each `VERIFIED` / `DERIVED` / `ESTIMATE` / `BALANCE_TARGET`. Wikipedia is not a source. Cover posture, industry,
+gunnery/protection/propulsion/torpedo doctrine, obligations, risk tolerance, research preferences, 8–15 variants,
+six opening designs, naming.
 
 ## 3. Author the profile
 
-Copy the draft block into `content/production/<scenario>/ship-building/naval-profiles/<nationId>.yaml` (one file per
-nation). Replace every
-`PLACEHOLDER` with a sourced/classified value and give each a `provenance` block:
-- `sourceStatus`, `confidence`, `kind` (`historical_fact` | `game_conversion` | `balance_adjustment`);
-- `sources` with `sourceId`, title, author/year and page/section;
-- `derivation` with the original value+unit, conversion, converted value+unit.
-Prefer shared component families (`components.yaml` ids) with a national model; never duplicate the catalog.
+Copy the `navalProfiles` block into
+`content/production/<scenario>/ship-building/naval-profiles/<nationId>.yaml` (one file per nation). Replace every
+`PLACEHOLDER` with a sourced value and a `provenance` block: `sourceStatus`, `confidence`, `kind`, `sources`,
+`derivation`. Top-level, `industrialProfile` and `doctrineProfile` provenance are required, as is every `gunModels` /
+`ammunitionPatterns` / `componentVariants` entry. Use `VERIFIED` only with a source; otherwise `ESTIMATE` (with a
+source) or `PLACEHOLDER` — never `VERIFIED` with empty `sources`. Prefer shared component families; never duplicate
+the catalog.
 
 ## 4. Six opening starters
 
-Author `starter_*` designs in `reference-designs/<nationId>/starters.yaml` with `starterFor: B|CA|CL|DD|KE|AMC` and `nationId: <id>`.
-Each must compile legal under the nation's catalogue. Classify each exactly one of:
-`HISTORICAL_RECONSTRUCTION | HISTORICALLY_INSPIRED | DOCTRINE_TEMPLATE | BALANCE_TEMPLATE` (supply it in the
-shared classification map `packages/ship-design/test/helpers/referenceClassifications.ts`, or replace a shared
-template). Do not weaken global classification to make a
-starter legal — fix the design or the profile.
+Author `starter_*` designs in
+`content/production/<scenario>/ship-building/reference-designs/<nationId>/starters.yaml` with `starterFor: B|CA|CL|DD|KE|AMC`.
+Each must compile legal; classify each exactly one of
+`HISTORICAL_RECONSTRUCTION | HISTORICALLY_INSPIRED | DOCTRINE_TEMPLATE | BALANCE_TEMPLATE` in
+`packages/ship-design/test/helpers/referenceClassifications.ts`. Do not weaken classification to make a starter
+legal — fix the design or the profile.
 
 ## 5. Validate
 
@@ -44,4 +47,4 @@ starter legal — fix the design or the profile.
 pnpm --filter @bluewave/ship-design exec vp test run nationCompleteness
 ```
 
-Fix every issue. Then run the full gate (`pnpm check` plus the packaged smoke) and update the completeness report.
+Fix every issue, then run the full gate (`pnpm check` plus the packaged smoke).

@@ -13,7 +13,12 @@ import {
   type AuthoredArmamentContent,
 } from "./armamentContent.js";
 import type { ComponentDef } from "./component.js";
-import { resolveNavalProfile, type NationNavalProfile } from "./nationProfile.js";
+import {
+  placeholderIssues,
+  resolveNavalProfile,
+  type NationNavalProfile,
+  type Provenance,
+} from "./nationProfile.js";
 import { PROCUREMENT_TYPES, roleGroupOf, type RoleGroup } from "./fleetProcurement.js";
 import type { ShipBuildingContent } from "./shipBuildingContent.js";
 import { starterFor, type StarterDesign } from "./shipTypeRoster.js";
@@ -31,6 +36,8 @@ export type ReferenceDesignClass = (typeof REFERENCE_DESIGN_CLASSES)[number];
 export interface CompletenessIssue {
   readonly nationId: string;
   readonly code: string;
+  /** The failing field path (e.g. `industrialProfile.provenance`, `gunModels.<id>.provenance`), when the check is field-scoped. */
+  readonly path?: string;
   readonly message: string;
 }
 
@@ -64,6 +71,35 @@ const err = (nationId: string, code: string, message: string): CompletenessIssue
 });
 
 const monthIndex = (m: string): number => Number(m.slice(0, 4)) * 12 + (Number(m.slice(5, 7)) - 1);
+
+/**
+ * Validate every provenance-bearing field of a resolved profile with the shared domain rules
+ * (`placeholderIssues`). Each finding carries the failing field path so a nation id alone is never
+ * ambiguous. Optional fields (e.g. `componentAccess[*].provenance` absent) are skipped, not failed.
+ */
+function provenanceIssues(
+  nationId: string,
+  profile: NationNavalProfile,
+  release: boolean,
+): CompletenessIssue[] {
+  const out: CompletenessIssue[] = [];
+  const visit = (path: string, prov: Provenance): void => {
+    for (const issue of placeholderIssues(nationId, path, prov, release))
+      out.push({ nationId, code: issue.code, path, message: issue.message });
+  };
+  visit("profile.provenance", profile.provenance);
+  visit("industrialProfile.provenance", profile.industrialProfile.provenance);
+  visit("doctrineProfile.provenance", profile.doctrineProfile.provenance);
+  for (const [familyId, access] of Object.entries(profile.componentAccess))
+    if (access.provenance !== undefined)
+      visit(`componentAccess.${familyId}.provenance`, access.provenance);
+  for (const g of profile.gunModels) visit(`gunModels.${g.id}.provenance`, g.provenance);
+  for (const a of profile.ammunitionPatterns)
+    visit(`ammunitionPatterns.${a.id}.provenance`, a.provenance);
+  for (const v of profile.componentVariants)
+    visit(`componentVariants.${v.id}.provenance`, v.provenance);
+  return out;
+}
 
 /** Validate one nation's content completeness. Deterministic; never throws. */
 export function validateNationCompleteness(
@@ -131,11 +167,12 @@ export function validateNationCompleteness(
         err(nationId, "NATION_UNKNOWN_COMPONENT", `componentAccess names unknown family '${key}'`),
       );
 
-  // No release placeholders + arms lint.
+  // A release must carry no PLACEHOLDER provenance and every non-PLACEHOLDER provenance must cite sources.
+  // `provenanceIssues` is the single source of truth for provenance findings (uniform codes + field path);
+  // `lintNavalArms` keeps the non-provenance arms lint (override keys, duplicate ids) only.
   for (const issue of lintNavalArms(opening, opts.release))
-    out.push(err(nationId, issue.code, issue.message));
-  if (opts.release && opening.provenance.sourceStatus === "PLACEHOLDER")
-    out.push(err(nationId, "NATION_PLACEHOLDER", "profile provenance is a PLACEHOLDER at release"));
+    if (issue.code !== "VARIANT_PLACEHOLDER") out.push(err(nationId, issue.code, issue.message));
+  out.push(...provenanceIssues(nationId, opening, opts.release));
 
   // Six legal, classified opening designs + a viable procurement path per role group + affordability.
   const env = opts.content.environmentFor(opts.openingMonth, nationId);

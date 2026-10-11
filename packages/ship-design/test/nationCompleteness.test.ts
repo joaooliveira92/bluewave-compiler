@@ -5,6 +5,8 @@ import {
   validateAllNations,
   validateArmamentContent,
   validateNationCompleteness,
+  type NationNavalProfile,
+  type Provenance,
   type StarterDesign,
 } from "../src/index.js";
 import {
@@ -77,5 +79,155 @@ describe("national content completeness (UK / France / Germany)", () => {
   it("passes the integrated armament release gate with no issues", () => {
     expect(validateArmamentContent(opts)).toEqual([]);
     expect(validateAllNations(opts)).toEqual([]);
+  });
+});
+
+const ukProfile = navalProfiles.find((p) => p.nationId === "uk")!;
+
+const withUkProfile = (profile: NationNavalProfile) => ({
+  ...opts,
+  profiles: navalProfiles.map((p) => (p.nationId === "uk" ? profile : p)),
+});
+const asPlaceholder = (prov: Provenance): Provenance => ({ ...prov, sourceStatus: "PLACEHOLDER" });
+const asEstimate = (prov: Provenance, withSources: boolean): Provenance => ({
+  ...prov,
+  sourceStatus: "ESTIMATE",
+  ...(withSources ? {} : { sources: [] }),
+});
+
+describe("provenance completeness across every provenance-bearing field", () => {
+  it("a fully-provenanced profile has no provenance findings", () => {
+    const issues = validateNationCompleteness(opts, "uk");
+    expect(
+      issues.filter(
+        (i) => i.code === "PROFILE_PLACEHOLDER" || i.code === "PROFILE_PROVENANCE_MISSING",
+      ),
+    ).toEqual([]);
+  });
+
+  it("rejects a PLACEHOLDER profile provenance at release, naming the field path", () => {
+    const profile = { ...ukProfile, provenance: asPlaceholder(ukProfile.provenance) };
+    expect(validateNationCompleteness(withUkProfile(profile), "uk")).toContainEqual(
+      expect.objectContaining({
+        nationId: "uk",
+        code: "PROFILE_PLACEHOLDER",
+        path: "profile.provenance",
+      }),
+    );
+  });
+
+  it("rejects PLACEHOLDER industrialProfile and doctrineProfile provenance at release", () => {
+    const industrial = {
+      ...ukProfile,
+      industrialProfile: {
+        ...ukProfile.industrialProfile,
+        provenance: asPlaceholder(ukProfile.industrialProfile.provenance),
+      },
+    };
+    const doctrine = {
+      ...ukProfile,
+      doctrineProfile: {
+        ...ukProfile.doctrineProfile,
+        provenance: asPlaceholder(ukProfile.doctrineProfile.provenance),
+      },
+    };
+    expect(validateNationCompleteness(withUkProfile(industrial), "uk")).toContainEqual(
+      expect.objectContaining({
+        nationId: "uk",
+        code: "PROFILE_PLACEHOLDER",
+        path: "industrialProfile.provenance",
+      }),
+    );
+    expect(validateNationCompleteness(withUkProfile(doctrine), "uk")).toContainEqual(
+      expect.objectContaining({
+        nationId: "uk",
+        code: "PROFILE_PLACEHOLDER",
+        path: "doctrineProfile.provenance",
+      }),
+    );
+  });
+
+  it("rejects a per-gun PLACEHOLDER at release with the gun id in the path", () => {
+    const gun = ukProfile.gunModels[0]!;
+    const profile = {
+      ...ukProfile,
+      gunModels: [
+        { ...gun, provenance: asPlaceholder(gun.provenance) },
+        ...ukProfile.gunModels.slice(1),
+      ],
+    };
+    expect(validateNationCompleteness(withUkProfile(profile), "uk")).toContainEqual(
+      expect.objectContaining({
+        nationId: "uk",
+        code: "PROFILE_PLACEHOLDER",
+        path: `gunModels.${gun.id}.provenance`,
+      }),
+    );
+  });
+
+  it("allows an ESTIMATE that cites sources but rejects one without", () => {
+    const withSources = {
+      ...ukProfile,
+      industrialProfile: {
+        ...ukProfile.industrialProfile,
+        provenance: asEstimate(ukProfile.industrialProfile.provenance, true),
+      },
+    };
+    const withoutSources = {
+      ...ukProfile,
+      industrialProfile: {
+        ...ukProfile.industrialProfile,
+        provenance: asEstimate(ukProfile.industrialProfile.provenance, false),
+      },
+    };
+    expect(validateNationCompleteness(withUkProfile(withSources), "uk")).not.toContainEqual(
+      expect.objectContaining({
+        path: "industrialProfile.provenance",
+        code: "PROFILE_PROVENANCE_MISSING",
+      }),
+    );
+    expect(validateNationCompleteness(withUkProfile(withoutSources), "uk")).toContainEqual(
+      expect.objectContaining({
+        nationId: "uk",
+        code: "PROFILE_PROVENANCE_MISSING",
+        path: "industrialProfile.provenance",
+      }),
+    );
+  });
+
+  it("reports a nested placeholder uniformly (PROFILE_PLACEHOLDER with a path, not VARIANT_PLACEHOLDER)", () => {
+    const gun = ukProfile.gunModels[0]!;
+    const profile = {
+      ...ukProfile,
+      gunModels: [
+        { ...gun, provenance: asPlaceholder(gun.provenance) },
+        ...ukProfile.gunModels.slice(1),
+      ],
+    };
+    const issues = validateNationCompleteness(withUkProfile(profile), "uk");
+    expect(issues.some((i) => i.code === "VARIANT_PLACEHOLDER")).toBe(false);
+    expect(issues).toContainEqual(
+      expect.objectContaining({
+        code: "PROFILE_PLACEHOLDER",
+        path: `gunModels.${gun.id}.provenance`,
+      }),
+    );
+  });
+
+  it("REGRESSION: a nested release placeholder cannot pass completeness validation", () => {
+    const profile = {
+      ...ukProfile,
+      doctrineProfile: {
+        ...ukProfile.doctrineProfile,
+        provenance: asPlaceholder(ukProfile.doctrineProfile.provenance),
+      },
+    };
+    const issues = validateNationCompleteness(withUkProfile(profile), "uk");
+    expect(issues.length).toBeGreaterThan(0);
+    expect(
+      issues.some(
+        (i) => i.code === "PROFILE_PLACEHOLDER" && i.path === "doctrineProfile.provenance",
+      ),
+    ).toBe(true);
   });
 });

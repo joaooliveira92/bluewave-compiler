@@ -122,6 +122,30 @@ export interface ReplayBattleBoundaryPayload {
   readonly battleId: string;
 }
 
+/**
+ * Debug-only Campaign Battle Drill payload (desktop E2E acceptance slice).
+ * Prepares the LIVE campaign session so the real month phases
+ * (`battle_generation` + `battle_resolution`) generate and resolve a battle:
+ * it co-locates the war's completed fleets, scales their `firepower` for the
+ * engine's eligibility floors only, and persists the mutated snapshot as the
+ * live session state. Gated by `isBattleSandboxEnabled()` (DEBUG_ONLY otherwise)
+ * and validated at the IPC boundary.
+ */
+export interface SeedCampaignBattleDrillPayload {
+  readonly sessionId: string;
+  /** The war to stage. Omitted → the player's first active war (deterministic). */
+  readonly warId?: string;
+}
+
+export interface SeedCampaignBattleDrillResult {
+  readonly warId: string;
+  readonly areaId: string;
+  readonly strengthScale: number;
+  /** True when the attacker fleets had to be relocated to reach the defender. */
+  readonly moved: boolean;
+  readonly excludedShipIds: readonly string[];
+}
+
 export interface CompileCampaignResult {
   readonly sessionId: string;
 }
@@ -228,6 +252,7 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "resolveBattle",
   "resolveTacticalBattle",
   "replayBattleBoundary",
+  "seedCampaignBattleDrill",
   "loadCampaign",
   "listCampaigns",
   "verifyCampaign",
@@ -315,6 +340,10 @@ export interface CampaignCommandClient {
     command: "replayBattleBoundary",
     payload: ReplayBattleBoundaryPayload,
   ): Promise<BridgeResult<ReplayBattleBoundaryResponse>>;
+  execute(
+    command: "seedCampaignBattleDrill",
+    payload: SeedCampaignBattleDrillPayload,
+  ): Promise<BridgeResult<SeedCampaignBattleDrillResult>>;
   execute(command: "loadCampaign", payload: undefined): Promise<BridgeResult<LoadCampaignResponse>>;
   execute(
     command: "listCampaigns",

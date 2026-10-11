@@ -14,6 +14,7 @@ import {
   ReplaceMovementCommandPayloadSchema,
   ResolveTacticalBattlePayloadSchema,
   SessionIdPayloadSchema,
+  SeedCampaignBattleDrillPayloadSchema,
   SetResearchPriorityCommandPayloadSchema,
   SubmitBudgetAllocationPayloadSchema,
   LoadProjectDraftPayloadSchema,
@@ -32,6 +33,7 @@ import {
   replayBattleBoundary,
   resolveBattle,
   resolveTacticalBattle,
+  seedCampaignBattleDrill,
 } from "./commands/battleSandboxCommands.js";
 import { commitMonth } from "./commands/commitMonth.js";
 import { compileCampaign, defaultCompileCampaignDeps } from "./commands/compileCampaign.js";
@@ -261,6 +263,9 @@ export const defaultCommandRegistry: CommandRegistry = {
   ),
   replayBattleBoundary: withSchema(BattleIdPayloadSchema, (payload) =>
     replayBattleBoundary(payload),
+  ),
+  seedCampaignBattleDrill: withSchema(SeedCampaignBattleDrillPayloadSchema, (payload) =>
+    seedCampaignBattleDrill(payload),
   ),
 };
 

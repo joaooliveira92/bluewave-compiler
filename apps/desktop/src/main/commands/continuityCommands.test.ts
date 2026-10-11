@@ -219,6 +219,40 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     expect(after.month).toEqual({ month: 3, year: 1880 });
   });
 
+  it("surfaces a human-readable incompatible-version message through the load bridge result (ADR-0113)", async () => {
+    const saveDir = resolve(saveRoot, "save-incompat");
+    await compileAndSave(saveDir);
+
+    // Rewrite ONLY the stored compatibility version to a prior release. The
+    // compatibility check is stage 1 of the load (before the structural/hash
+    // checks), so the failure must be the stable diagnostic, not corruption.
+    const pointer = JSON.parse(readFileSync(join(saveDir, "pointer.json"), "utf8")) as {
+      activeSaveId: string;
+    };
+    const campaignPath = join(saveDir, pointer.activeSaveId, "campaign.json");
+    const parsed = JSON.parse(readFileSync(campaignPath, "utf8")) as {
+      snapshot: { compatibilityVersion: string };
+    };
+    parsed.snapshot.compatibilityVersion = "1.0.0";
+    writeFileSync(campaignPath, JSON.stringify(parsed), "utf8");
+
+    restartApp();
+
+    const result = await loadCampaign(continuityDeps(saveDir));
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("LOAD_FAILED");
+    // `useCampaignFiles.openCampaign` renders
+    // `Load failed: <reason> — <diagnostics joined by "; ">`, so the message
+    // reaching this bridge result is exactly what the player reads.
+    expect(result.diagnostics.some((m) => m.includes('Save compatibility version "1.0.0"'))).toBe(
+      true,
+    );
+    expect(
+      result.diagnostics.some((m) => m.includes("does not match current engine version")),
+    ).toBe(true);
+  });
+
   // -------------------------------------------------------------------------
   // Acceptance 2: verify reports a real pass/fail against hash/envelope
   // -------------------------------------------------------------------------

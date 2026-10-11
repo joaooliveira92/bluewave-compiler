@@ -21,6 +21,7 @@ const IMPLEMENTED_COMMANDS = new Set([
   "resolveBattle",
   "resolveTacticalBattle",
   "replayBattleBoundary",
+  "seedCampaignBattleDrill",
   "listNewGameOptions",
   "compileCampaign",
   "inspectCampaign",
@@ -94,6 +95,7 @@ describe("dispatchCampaignCommand", () => {
         { sessionId: "s", battleId: "b", turnCount: 0, scriptedOrders: [] },
       ],
       ["replayBattleBoundary", {}],
+      ["seedCampaignBattleDrill", { sessionId: "s", warId: 7 }],
     ] as const) {
       const result = await dispatchCampaignCommand(command, payload);
       expect(result).toMatchObject({ outcome: "error", reason: "INVALID_PAYLOAD" });
@@ -112,6 +114,7 @@ describe("dispatchCampaignCommand", () => {
         { sessionId: "s", battleId: "b", turnCount: 1, scriptedOrders: [] },
       ],
       ["replayBattleBoundary", { sessionId: "s", battleId: "b" }],
+      ["seedCampaignBattleDrill", { sessionId: "s", warId: "w" }],
     ] as const) {
       const result = await dispatchCampaignCommand(command, payload);
       expect(result).toMatchObject({ outcome: "rejected", reason: "DEBUG_ONLY" });

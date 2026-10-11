@@ -1,7 +1,7 @@
 # 01 — Minimum playable-loop acceptance gate
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved (2026-10-11)
 **Blocked by:** none
 **Frontier:** yes
 **Spec:** `.scratch/playable-loop/spec.md`
@@ -42,3 +42,16 @@ between "built" and "reachable" are the real work.
   fires torpedoes.
 - Remaining: prove the **player path** reaches a *campaign-generated* battle (declare
   war → advance until a battle is generated/resolved), and the e2e slice (AC-5).
+
+## Resolution (2026-10-11)
+
+- Smoke/air reachability wired (ticket 03, ADR-0112).
+- Player path proven by `apps/desktop/e2e/campaign-battle-drill.debug.spec.ts`: declare
+  war through the real UI → advance (war active + strategic weather committed) → the
+  debug-only `seedCampaignBattleDrill` prepares the live session (co-location + an
+  eligibility-only firepower scale; movement and the 300/150 floors are real content
+  limits) → advance again runs the real `battle_generation` + `battle_resolution` →
+  the resolved battle surfaces in `Diplomacy & War` → `Battle history` and the war score
+  moves (campaign state reflects it). ADR-0115 records the debug-only drill.
+- The spec runs in CI (`.github/workflows/desktop-e2e.yml`) against a debug build; the
+  default `pnpm test:e2e` and a normal build stay green.

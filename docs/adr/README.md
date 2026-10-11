@@ -31,6 +31,7 @@ Core engine geometry, determinism, persistence, and the compiler pipeline.
 | 0035 | [ADR-0035-engine-event-timestamp-contract.md](ADR-0035-engine-event-timestamp-contract.md) | Engine Event Timestamps — Deterministic ISO-8601 Contract | accepted | — |
 | 0036 | [ADR-0036-contract-phase-registry.md](ADR-0036-contract-phase-registry.md) | Contract the PhaseRegistry into the Real Execution Path | accepted | — |
 | 0037 | [ADR-0037-design-unit-normalization.md](ADR-0037-design-unit-normalization.md) | Normalize Authored Design Units at Compile | accepted | — |
+| 0113 | [ADR-0113-save-compatibility-policy.md](ADR-0113-save-compatibility-policy.md) | First-release save-compatibility policy — reject on mismatch | accepted | — |
 
 ## Effect adoption
 
@@ -103,8 +104,9 @@ Battle generation, tactical resolution, gunnery, torpedoes, mines, air, coastal 
 | 0073 | [ADR-0073-p1-withdrawal-disengagement.md](ADR-0073-p1-withdrawal-disengagement.md) | P-1 — Withdrawal / Disengagement So Battles Can End Without Elimination (Ticket 12) | accepted | — |
 | 0093 | [ADR-0093-armament-domain-and-resolver.md](ADR-0093-armament-domain-and-resolver.md) | Authoritative armament domain and resolver (national armament integration, Step 1) | accepted | — |
 | 0094 | [ADR-0094-combat-caliber-unit-correction.md](ADR-0094-combat-caliber-unit-correction.md) | Combat caliber unit correction (armament-to-combat boundary) | accepted | — |
-| 0097 | [ADR-0097-first-release-combat-surface.md](ADR-0097-first-release-combat-surface.md) | First-release combat surface — defer the unreachable M3/M4 modules | accepted | — |
+| 0097 | [ADR-0097-first-release-combat-surface.md](ADR-0097-first-release-combat-surface.md) | First-release combat surface — defer the unreachable M3/M4 modules | superseded | ADR-0112 |
 | 0098 | [ADR-0098-post-caliber-correction-lethality-rebalance.md](ADR-0098-post-caliber-correction-lethality-rebalance.md) | Post-caliber-correction auto-resolution lethality rebalance | accepted | — |
+| 0112 | [ADR-0112-wire-smoke-air-battle-stages.md](ADR-0112-wire-smoke-air-battle-stages.md) | Wire the smoke and air battle stages; defer mine, submarine and coastal warfare | accepted | — |
 
 ## Ship design & construction
 
@@ -166,6 +168,7 @@ Electron boundary, renderer screens, UX, and presentation.
 | 0082 | [ADR-0082-drawing-board-durability.md](ADR-0082-drawing-board-durability.md) | The Drawing Board never loses work: draft sidecar and a durable command queue | accepted | — |
 | 0084 | [ADR-0084-plan-drag-and-auto-place.md](ADR-0084-plan-drag-and-auto-place.md) | Drag to move and auto-place on the hull plan | accepted | — |
 | 0087 | [ADR-0087-section-card-faithful-crop.md](ADR-0087-section-card-faithful-crop.md) | Section hover card draws a faithful crop of the plan and profile | accepted | — |
+| 0115 | [ADR-0115-debug-campaign-battle-drill.md](ADR-0115-debug-campaign-battle-drill.md) | Debug-only campaign battle drill for the playable-loop E2E | accepted | — |
 
 ## Process & documentation
 

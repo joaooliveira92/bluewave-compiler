@@ -7,32 +7,36 @@
  *
  *   node scripts/new-nation.mjs <nationId>
  *
- * Then: research the nation into `docs/research/<nationId>-naval-profile.md`, replace every PLACEHOLDER with a sourced
- * or explicitly classified value, write the profile block to `content/production/1880/ship-building/naval-profiles/<nationId>.yaml`,
- * author six classified opening starters under `reference-designs/<nationId>/starters.yaml`, and run the completeness validator.
+ * The draft is a complete per-nation catalogue file (ADR-0109: `{ navalProfiles: [ … ] }`) matching
+ * `content/production/<scenario>/ship-building/naval-profiles/<nationId>.yaml`, so it can be dropped straight in once
+ * every PLACEHOLDER is replaced. Then: research the nation into `docs/research/<nationId>-naval-profile.md`, replace
+ * every PLACEHOLDER with a sourced or explicitly classified value, author six classified opening starters under
+ * `content/production/<scenario>/ship-building/reference-designs/<nationId>/starters.yaml`, and run the completeness
+ * validator.
  */
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 
-const nationId = process.argv[2];
-if (!nationId || !/^[a-z][a-z0-9_]*$/.test(nationId)) {
-  console.error("usage: node scripts/new-nation.mjs <lower_snake_nation_id>");
-  process.exit(2);
-}
-
-const due = {
-  sourceStatus: "PLACEHOLDER",
-  confidence: "LOW",
-  kind: "balance_adjustment",
-  sources: [],
-};
-const profile = `# DRAFT NationNavalProfile for '${nationId}' — every value below is a PLACEHOLDER.
-# Do not move this into content/production until every PLACEHOLDER is replaced with a sourced (VERIFIED/DERIVED/ESTIMATE)
-# or explicitly classified (BALANCE_TARGET) value and the completeness validator passes. See docs/agents/adding-a-nation.md.
+/**
+ * Build the draft `navalProfiles` catalogue YAML for a nation. Every value is a PLACEHOLDER, every required
+ * provenance block is present, and the file shape matches the per-nation release layout (ADR-0109).
+ */
+export function buildProfileYaml(nationId) {
+  const due = {
+    sourceStatus: "PLACEHOLDER",
+    confidence: "LOW",
+    kind: "balance_adjustment",
+    sources: [],
+  };
+  return `# DRAFT naval-profiles catalogue for '${nationId}' (one nation per file, ADR-0109).
+# Every value below is a PLACEHOLDER. Do not move this file into content/production until every PLACEHOLDER is
+# replaced with a sourced (VERIFIED/DERIVED/ESTIMATE) or explicitly classified (BALANCE_TARGET) value that carries a
+# provenance block, and the completeness validator passes. See docs/agents/adding-a-nation.md.
+navalProfiles:
   - nationId: ${nationId}
     activeFrom: "1880-01"
     activeUntil: null
@@ -60,8 +64,8 @@ const profile = `# DRAFT NationNavalProfile for '${nationId}' — every value be
       constructionQualityVarianceBp: 2500 # PLACEHOLDER
       maxPracticalDisplacementKg:
         - { fromMonth: "1880-01", value: 8000000 } # PLACEHOLDER
-      heavyGunProduction: PLACEHOLDER
-      armourPlateProduction: PLACEHOLDER
+      heavyGunProduction: UNAVAILABLE # PLACEHOLDER: DOMESTIC | LICENSE_BUILT | IMPORTED | CAPTURED_OR_STUDIED | UNAVAILABLE
+      armourPlateProduction: UNAVAILABLE # PLACEHOLDER
       provenance: { sourceStatus: PLACEHOLDER, confidence: LOW, kind: balance_adjustment, sources: [] }
     doctrineProfile:
       engagementRangeM: 2000 # PLACEHOLDER
@@ -71,6 +75,8 @@ const profile = `# DRAFT NationNavalProfile for '${nationId}' — every value be
     researchPreferences:
       - { field: GUNNERY, priority: 2 } # PLACEHOLDER: use the canonical research-field ids
     componentAccess: {}
+    # Entries in the three catalogues below are optional, but EVERY entry MUST carry its own provenance block:
+    # sourceStatus/confidence/kind/sources. Never mark an entry VERIFIED without at least one source.
     gunModels: []
     ammunitionPatterns: []
     componentVariants: []
@@ -95,8 +101,11 @@ const profile = `# DRAFT NationNavalProfile for '${nationId}' — every value be
     sourceReferences: [{ sourceId: "PLACEHOLDER", title: "PLACEHOLDER" }]
     provenance: ${JSON.stringify(due)}
 `;
+}
 
-const note = `# Research: national naval profile — ${nationId} (1880–1899)
+/** Build the research-note stub for a nation. */
+export function buildResearchNote(nationId) {
+  return `# Research: national naval profile — ${nationId} (1880–1899)
 
 **Question.** Ground the date-banded NationNavalProfile for '${nationId}' (hard capability, soft doctrine, industry,
 research, component access, gun models, procurement, naming). Method and confidence labels as in
@@ -114,32 +123,60 @@ not a source).
 ## Deferred / low-confidence
 - (list every figure that could not be grounded)
 `;
-
-const nationsDir = join(root, "docs", "nations");
-mkdirSync(nationsDir, { recursive: true });
-const profilePath = join(nationsDir, `${nationId}-profile-draft.yaml`);
-const notePath = join(root, "docs", "research", `${nationId}-naval-profile.md`);
-if (existsSync(profilePath)) {
-  console.error(`refusing to overwrite ${profilePath}`);
-  process.exit(1);
 }
-writeFileSync(profilePath, profile);
-if (!existsSync(notePath)) writeFileSync(notePath, note);
 
-console.log(`draft profile -> ${profilePath}`);
-console.log(`research note -> ${notePath}`);
-console.log("");
-console.log("Next steps (see docs/agents/adding-a-nation.md):");
-console.log(
-  `  1. Research ${nationId} into the note; replace every PLACEHOLDER with a sourced/classified value.`,
-);
-console.log(
-  "  2. Write the profile block to content/production/1880/ship-building/naval-profiles/<nationId>.yaml.",
-);
-console.log(
-  "  3. Author six classified opening starters in reference-designs/<nationId>/starters.yaml.",
-);
-console.log(
-  "  4. Run the completeness validator: pnpm --filter @bluewave/ship-design exec vp test run nationCompleteness.",
-);
-console.log("  5. Run the full gate: pnpm check (plus packaged smoke).");
+/**
+ * Write the draft catalogue and research-note stub under `rootDir` (the repo root by default). Refuses to overwrite an
+ * existing draft. Returns the written paths so callers (and tests) can assert them.
+ */
+export function scaffoldNation(nationId, { rootDir = root } = {}) {
+  const nationsDir = join(rootDir, "docs", "nations");
+  mkdirSync(nationsDir, { recursive: true });
+  mkdirSync(join(rootDir, "docs", "research"), { recursive: true });
+  const profilePath = join(nationsDir, `${nationId}-profile-draft.yaml`);
+  const notePath = join(rootDir, "docs", "research", `${nationId}-naval-profile.md`);
+  if (existsSync(profilePath)) {
+    throw new Error(`refusing to overwrite ${profilePath}`);
+  }
+  writeFileSync(profilePath, buildProfileYaml(nationId));
+  if (!existsSync(notePath)) writeFileSync(notePath, buildResearchNote(nationId));
+  return { profilePath, notePath };
+}
+
+function main() {
+  const nationId = process.argv[2];
+  if (!nationId || !/^[a-z][a-z0-9_]*$/.test(nationId)) {
+    console.error("usage: node scripts/new-nation.mjs <lower_snake_nation_id>");
+    process.exit(2);
+  }
+
+  let paths;
+  try {
+    paths = scaffoldNation(nationId);
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+
+  console.log(`draft profile -> ${paths.profilePath}`);
+  console.log(`research note -> ${paths.notePath}`);
+  console.log("");
+  console.log("Next steps (see docs/agents/adding-a-nation.md):");
+  console.log(
+    `  1. Research ${nationId} into the note; replace every PLACEHOLDER with a sourced/classified value.`,
+  );
+  console.log(
+    "  2. Copy the draft catalogue to content/production/1880/ship-building/naval-profiles/<nationId>.yaml.",
+  );
+  console.log(
+    "  3. Author six classified opening starters in content/production/1880/ship-building/reference-designs/<nationId>/starters.yaml.",
+  );
+  console.log(
+    "  4. Run the completeness validator: pnpm --filter @bluewave/ship-design exec vp test run nationCompleteness.",
+  );
+  console.log("  5. Run the full gate: pnpm check (plus packaged smoke).");
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}

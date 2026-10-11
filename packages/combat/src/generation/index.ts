@@ -1,5 +1,6 @@
 //packages/combat/src/generation/index.ts
 export * from "./reasonCodes.js";
+export * from "./capabilities.js";
 export * from "./mission.js";
 export * from "./opportunity.js";
 export * from "./sides.js";

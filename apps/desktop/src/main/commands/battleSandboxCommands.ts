@@ -2,6 +2,8 @@ import { campaignMonthId } from "@bluewave/campaign";
 import type { CampaignSnapshot, NationState, WarDeclaration } from "@bluewave/campaign";
 import type { BattleManifest, BattleResolution } from "@bluewave/campaign-engine";
 import { generateBattles, resolveBattleAuto } from "@bluewave/combat";
+import { SafeInt } from "@bluewave/contracts";
+import { createEnvelope } from "@bluewave/deterministic";
 import { resolveShipStrength } from "@bluewave/phase-engine";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
@@ -11,9 +13,12 @@ import type {
   ResolveBattlePayload,
   ResolveBattleResult,
   ResolveTacticalBattlePayload,
+  SeedCampaignBattleDrillPayload,
+  SeedCampaignBattleDrillResult,
 } from "../../shared/campaign-command-contract.js";
 import type { ReplayBattleBoundaryResponse } from "@bluewave/campaign-engine";
-import { getCampaignSession } from "../campaignSessions.js";
+import { getCampaignSession, registerCampaignSession } from "../campaignSessions.js";
+import { toSaveableState } from "../saveHelpers.js";
 import { isBattleSandboxEnabled } from "../debugGate.js";
 
 /**
@@ -202,10 +207,48 @@ export function colocateWarSides(
   return { snapshot: { ...snapshot, nations }, areaId: target, moved: true };
 }
 
+/**
+ * The documented drill strength scale for the Campaign Battle Drill: mirrors
+ * `SANDBOX_DEFAULT_STRENGTH_SCALE` (the engine's 300/150 eligibility floors
+ * exceed what shipped 1880 ships sum to). It is applied to the belligerents'
+ * committed `firepower` so the REAL `battle_generation` month phase admits a
+ * battle; tactical auto-resolution reads ship designs, not `firepower`, so the
+ * resolution itself is unchanged by the scale.
+ */
+export const DRILL_STRENGTH_SCALE = SANDBOX_DEFAULT_STRENGTH_SCALE;
+
+/**
+ * Multiplies the `firepower` of every completed belligerent ship in `areaId` by
+ * `scale` (eligibility-only; see {@link DRILL_STRENGTH_SCALE}). Pure: never
+ * mutates the input.
+ */
+export function scaleBelligerentFirepower(
+  snapshot: CampaignSnapshot,
+  nationIds: readonly string[],
+  areaId: string,
+  scale: number,
+): CampaignSnapshot {
+  const nations = new Map(snapshot.nations);
+  let changed = false;
+  for (const nationId of nationIds) {
+    const nation = nations.get(nationId);
+    if (!nation) continue;
+    const fleets = nation.fleets.map((fleet) => ({
+      ...fleet,
+      ships: fleet.ships.map((ship) => {
+        if (ship.isUnderConstruction || ship.locationAreaId !== areaId) return ship;
+        changed = true;
+        return { ...ship, firepower: SafeInt((ship.firepower as number) * scale) };
+      }),
+    }));
+    nations.set(nationId, { ...nation, fleets });
+  }
+  return changed ? { ...snapshot, nations } : snapshot;
+}
+
 // ---------------------------------------------------------------------------
 // mapping engine -> renderer shapes
 // ---------------------------------------------------------------------------
-
 function toRendererManifest(
   snapshot: CampaignSnapshot,
   manifest: CombatManifest,
@@ -504,6 +547,109 @@ export async function resolveBattle(
     value: { resolution },
     diagnostics: [
       "Sandbox result: no campaign state was changed, so war score change is reported as 0.",
+    ],
+  };
+}
+
+/**
+ * Debug-only Campaign Battle Drill (the desktop E2E acceptance slice). Unlike
+ * the observational sandbox commands above, this one INTENTIONALLY mutates the
+ * live session: it prepares the snapshot so the REAL month phases
+ * (`battle_generation` order 7.5 + `battle_resolution` order 8) generate and
+ * resolve a battle on the next month advance, applying real consequences (war
+ * score, per-ship losses, battle history).
+ *
+ * It never fabricates a battle or its outcome: generation is left to the month's
+ * own `generateBattles` call. The drill only does what a real turn cannot do with
+ * today's content:
+ *   - co-locates the war's completed fleets (`colocateWarSides`) — movement is
+ *     not implemented in the desktop app;
+ *   - scales the belligerents' committed `firepower` for the engine's 300/150
+ *     eligibility floors (`DRILL_STRENGTH_SCALE`) — production ships sum below
+ *     them;
+ *   - marks ships with no compiled design as unavailable (the same
+ *     `excludeUndesignedShips` used by the sandbox) so tactical auto-resolution
+ *     can promote every participant.
+ *
+ * Gated by `isBattleSandboxEnabled()` and validated at the IPC boundary; a
+ * normal build rejects with `DEBUG_ONLY`.
+ */
+export async function seedCampaignBattleDrill(
+  payload: SeedCampaignBattleDrillPayload,
+  deps: BattleSandboxDeps = defaultDeps,
+): Promise<BridgeResult<SeedCampaignBattleDrillResult>> {
+  const blocked = debugOnly(deps);
+  if (blocked) return blocked;
+
+  const record = getCampaignSession(payload.sessionId);
+  if (!record) {
+    return {
+      outcome: "error",
+      reason: "SESSION_NOT_FOUND",
+      diagnostics: [`No active campaign session ${payload.sessionId}`],
+    };
+  }
+
+  const snapshot = record.state.snapshot;
+  const war =
+    payload.warId !== undefined
+      ? snapshot.wars.wars.find((w) => w.id === payload.warId)
+      : pickPlayerActiveWar(snapshot.wars.wars, record.playerSlotId);
+  if (!war) {
+    return rejected(
+      "WAR_NOT_FOUND",
+      payload.warId !== undefined
+        ? `No war ${payload.warId} in this campaign.`
+        : `No active war for ${record.playerSlotId}.`,
+    );
+  }
+  if (war.status !== "ACTIVE" && war.status !== "DECLARED_NOT_ACTIVE") {
+    return rejected("WAR_NOT_ACTIVE", `War ${war.id} is ${war.status}.`);
+  }
+
+  const designed = excludeUndesignedShips(snapshot);
+  const colocated = colocateWarSides(designed.snapshot, war.attackerId, war.defenderId, undefined);
+  if ("error" in colocated) return rejected(colocated.error, colocated.detail);
+
+  const prepared = scaleBelligerentFirepower(
+    colocated.snapshot,
+    [war.attackerId, war.defenderId],
+    colocated.areaId,
+    DRILL_STRENGTH_SCALE,
+  );
+
+  // Persist the prepared snapshot as the live session state (re-hashing the
+  // envelope the same way `commitMonth` does), so the next real month advance
+  // executes against it.
+  const envelope = createEnvelope("campaign-snapshot", prepared.compatibilityVersion, prepared);
+  const nextState = toSaveableState({
+    snapshot: prepared,
+    envelope,
+    rawHash: record.state.rawHash,
+  });
+  registerCampaignSession({ ...record, state: nextState });
+
+  return {
+    outcome: "success",
+    value: {
+      warId: war.id,
+      areaId: colocated.areaId,
+      strengthScale: DRILL_STRENGTH_SCALE,
+      moved: colocated.moved,
+      excludedShipIds: designed.excluded,
+    },
+    diagnostics: [
+      ...(colocated.moved
+        ? [
+            `Drill: ${war.attackerId}'s completed fleets were placed in ${colocated.areaId} (movement is not implemented).`,
+          ]
+        : []),
+      ...(designed.excluded.length > 0
+        ? [
+            `Drill: ${designed.excluded.join(", ")} treated as unavailable — no compiled design (content data defect).`,
+          ]
+        : []),
+      `Drill: belligerent firepower scaled x${DRILL_STRENGTH_SCALE} for the engine's eligibility floors only (real turns cannot reach them with current content).`,
     ],
   };
 }

@@ -39,6 +39,15 @@ jobs:
         run: pnpm --filter @bluewave/desktop run snap --make-save "$RUNNER_TEMP/bw-smoke-save"
       - name: Smoke the packaged app
         run: pnpm --filter @bluewave/desktop run smoke:packaged --save "$RUNNER_TEMP/bw-smoke-save"
+      # Debug-build acceptance slice: the campaign battle drill spec needs the
+      # debug-gated main-process command + debug UI, so it runs against a
+      # `VITE_BLUEWAVE_DEBUG=true` build (excluded from the default run above via
+      # `testIgnore`). Rebuild AFTER packaging so the release artifacts stay on
+      # the normal build.
+      - name: Build the app in debug mode
+        run: pnpm --filter @bluewave/desktop run build:debug
+      - name: Run the debug-only E2E drill spec
+        run: pnpm --filter @bluewave/desktop run test:e2e:debug
       - name: Upload test-results on failure
         if: failure()
         uses: actions/upload-artifact@v4

@@ -4,6 +4,11 @@ import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { BATTLE_MANIFEST_INVALID } from "./reasonCodes.js";
 import type { TacticalSideId } from "../tactical/state.js";
 import type { TacticalDivision } from "../tactical/division.js";
+import type {
+  AirDefenseInstallationDeclaration,
+  AirGroupDeclaration,
+  SmokeSourceDeclaration,
+} from "./capabilities.js";
 
 export const MANIFEST_HASH_V1 = "manifest_hash_v1" as const;
 
@@ -40,6 +45,24 @@ export interface BattleManifest {
   rngVersion: string;
   contentVersion: string;
   manifestHash: string;
+  /**
+   * Optional committed smoke sources present at battle start (DESIGN-42 / C-5).
+   * Absent => the battle has no smoke capability (a valid no-op). When present the
+   * auto-resolver projects a `SmokeContext` and the smoke stage resolves.
+   */
+  smokeSources?: SmokeSourceDeclaration[];
+  /**
+   * Optional committed CAP/strike air groups (DESIGN-43/44 / D-3). Absent => the
+   * battle has no air-combat capability (a valid no-op). When present the
+   * auto-resolver projects an `AirCombatContext` and the air-combat stage resolves.
+   */
+  airGroups?: AirGroupDeclaration[];
+  /**
+   * Optional committed ship air-defense installations (DESIGN-45 / D-4). Absent =>
+   * the battle has no air-defense capability (a valid no-op). When present the
+   * auto-resolver projects an `AirDefenseContext` and the air-defense stage resolves.
+   */
+  airDefenseInstallations?: AirDefenseInstallationDeclaration[];
 }
 
 export function canonicalizeManifest(manifest: BattleManifest): BattleManifest {
