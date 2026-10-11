@@ -63,7 +63,10 @@ export function buildDossierTabs(
         <p className="font-display text-[.85rem] leading-relaxed">{flavor.diplomacy}</p>
         <dl className="mt-3">
           <DossierFieldRow label="Strategic regions" value={fields.strategicRegions} />
-          <DossierFieldRow label="National characteristics" value={fields.nationalCharacteristics} />
+          <DossierFieldRow
+            label="National characteristics"
+            value={fields.nationalCharacteristics}
+          />
         </dl>
       </div>
     ),
