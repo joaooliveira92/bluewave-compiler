@@ -104,3 +104,12 @@ change to the low-level `bwc` verbs.
 - ADR-0004 (compiler stage architecture)
 - ADR-0005 (content parsing and schema validation; strict-YAML policy v1)
 - ADR-0109 (ship-building content per nation)
+
+## Amendments
+
+- **2026-10-11 — campaign-file collections (`ADR-0124`).** The six campaign-file
+  collections (`fleets`/`economies`/`constructions`/`diplomacy`/`research`/
+  `designs`) join the artifact as a `ContentBundle.campaign` section, compiled
+  through the same four stages, and `CampaignCompiler` consumes them decoded from
+  the bundle. The `campaign` section is omitted for content-pack-only builds, so
+  §5's byte-compatibility holds.

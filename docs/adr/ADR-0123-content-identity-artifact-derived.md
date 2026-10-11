@@ -69,3 +69,11 @@ tampered artifact raises a stable `ContentArtifactError` and the app fails close
 - ADR-0093 (first-class armament content)
 - ADR-0109 (ship-building content per nation)
 - ADR-0122 (compiled content bundle)
+
+## Amendments
+
+- **2026-10-11 — campaign-file collections (`ADR-0124`).** The bundle now also
+  carries the six campaign-file collections, so `bodyHash` (and therefore both
+  recorded identities) moved: an expected content update, never a determinism
+  failure. The identity remains artifact-derived and content-derived; older saves
+  keep the identities they recorded.

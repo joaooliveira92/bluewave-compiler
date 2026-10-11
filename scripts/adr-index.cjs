@@ -25,7 +25,7 @@ const AREAS = [
   {
     name: "Foundations",
     blurb: "Core engine geometry, determinism, persistence, and the compiler pipeline.",
-    nums: [1, 2, 3, 4, 5, 6, 7, 8, 9, 32, 34, 35, 36, 37, 113, 122, 123],
+    nums: [1, 2, 3, 4, 5, 6, 7, 8, 9, 32, 34, 35, 36, 37, 113, 122, 123, 124],
   },
   {
     name: "Effect adoption",

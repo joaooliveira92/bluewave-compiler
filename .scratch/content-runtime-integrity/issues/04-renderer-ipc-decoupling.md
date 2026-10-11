@@ -3,7 +3,7 @@
 **Type:** implementation
 **Status:** open
 **Blocked by:** 03
-**Frontier:** no
+**Frontier:** yes
 
 ## What to build
 

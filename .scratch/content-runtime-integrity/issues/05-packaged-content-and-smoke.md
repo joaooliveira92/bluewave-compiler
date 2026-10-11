@@ -34,3 +34,30 @@ packaging config never includes the content tree.
 - The existing packaged smoke opens a compiled save; extend it to cover a fresh
   game, which is the path that actually reads shipped content at runtime.
 - Depends on 03 (there must be an artifact for main to load and ship).
+## Comments
+
+**Partial (2026-10-11).** Packaged content resolution and packaging inclusion
+landed; the fresh-game smoke is written and runs in CI but was not executed in
+the reviewing environment.
+
+- `src/main/contentPack.ts` now resolves both `content/generated/1880` (the
+  artifact) and `content/production/1880` from `process.resourcesPath` in a
+  packaged build (guarded by `process.defaultApp`), falling back to the
+  repo-root path in dev/under node (CRI-PKG-1). Unit-tested in
+  `src/main/contentPack.test.ts` (packaged vs dev vs plain-node).
+- `electron-builder.yml` ships both trees as `extraResources` (CRI-PKG-2).
+  The production tree ships so a packaged build can compile a fresh campaign;
+  it is folded into the artifact by ticket 07.
+- `scripts/packaged-smoke.mjs` now starts a **fresh game** (mirroring
+  `e2e/flows.ts`) and asserts the drawing board renders the artifact-backed
+  ship-building catalogue (hull sections + ship plan) plus the packaged
+  coastline chunk; CI runs it without a precompiled save (CRI-PKG-3/4).
+- Explicit `pnpm content:build` CI steps added to `quality.yml` and
+  `desktop-e2e.yml`; the desktop vitest global setup rebuilds
+  `@bluewave/content-compiler` so tests cannot run against a stale dist.
+
+**Remaining.** The packaged fresh-game path still reads the raw production tree
+via `resolveProductionPackDir()` for `compileCampaign`/`listNewGameOptions`; a
+packaged app without that tree works only because it currently ships. Ticket 07
+removes the runtime dependency on the raw tree. The packaged smoke needs one run
+against a real `electron-builder` build to confirm.

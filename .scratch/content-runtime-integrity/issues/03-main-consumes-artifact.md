@@ -83,6 +83,20 @@ parser (not raw `yaml` in main); folding those into the runtime artifact too wou
 require the campaign-file collections in the bundle and is a larger change than
 this ticket's raw-YAML-at-runtime scope. Recorded, not silently dropped.
 
+**Follow-up (2026-10-11).** That remaining half is now tracked as ticket **07**
+(`07-campaign-collections-through-artifact.md`): the campaign-file collections
+(`fleets`/`economies`/`constructions`/`diplomacy`/`research`/`designs`) are
+neither in the artifact nor validated by `content:build`, and
+`CampaignCompiler` still parses the content-pack collections from raw files at
+runtime. Until 07 lands, a manageable pack that diverges from the artifact can
+still execute through `compileCampaign`/`listNewGameOptions`, so CRI-MAIN-2 is
+half-satisfied.
+
+**Resolved by ticket 07 (2026-10-11).** Ticket 07 landed: the six campaign-file
+collections are now in the artifact and consumed decoded at runtime, so
+`compileCampaign`/`listNewGameOptions` read no campaign YAML — CRI-MAIN-2 is now
+fully satisfied. See ADR-0124.
+
 Tests: content-compiler 18; compiler-cli 99 (incl. content-surface 4); desktop
 246 files / 1628 tests (incl. new `contentArtifact.test.ts` and the
 artifact-derived identity assertions). `pnpm preflight` green; `pnpm typecheck`
