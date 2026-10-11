@@ -110,6 +110,7 @@ navalProfiles:
       gun_rml_12in_25ton: { status: UNAVAILABLE }
       gun_rml_7in_7ton: { status: UNAVAILABLE }
       gun_bl_263mm_rkl20: { status: IMPORTED, producer: "Krupp" }
+      gun_bl_283mm_krupp: { status: IMPORTED, producer: "Krupp" }
       gun_rml_8in_9ton: { status: IMPORTED, producer: "Krupp" }
       gun_rml_11in_25ton: { status: IMPORTED, producer: "Armstrong" }
       gun_rml_10in_18ton: { status: IMPORTED, producer: "Krupp" }
@@ -121,17 +122,17 @@ navalProfiles:
       tube_14in_above_water: { status: IMPORTED, producer: "Whitehead" }
     gunModels:
       - id: nl_krupp_283
-        familyId: gun_bl_263mm_rkl20
-        designation: "28 cm Krupp RK L/20"
+        familyId: gun_bl_283mm_krupp
+        designation: "28 cm Krupp RK No.1"
         overrides:
-          displayName: "28 cm Krupp Ringkanone in monitor turret"
-          attributes.shellMassG: "250000"
+          displayName: "28 cm Krupp Ringkanone No.1 in monitor turret"
+          attributes.shellMassG: "253000"
         mounts: [TURRET]
         provenance: &nl_prov
-          sourceStatus: ESTIMATE
-          confidence: LOW
+          sourceStatus: DERIVED
+          confidence: MEDIUM
           kind: historical_fact
-          note: "Krupp guns imported; shell masses ESTIMATE (no family for the 283 mm bore)."
+          note: "Krupp guns imported; the 283 mm family is sourced at bore/mount level (shell 253 kg and charge borrowed from the Austrian Krupp 28 cm row)."
           sources:
             - {
                 sourceId: "netherlands-note",

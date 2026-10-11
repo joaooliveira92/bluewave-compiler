@@ -109,6 +109,7 @@ navalProfiles:
       gun_qf_6in_40: { status: UNAVAILABLE }
       gun_qf_47in: { status: UNAVAILABLE }
       gun_bl_263mm_rkl20: { status: IMPORTED, producer: "Krupp" }
+      gun_bl_209mm_gl20: { status: IMPORTED, producer: "Krupp" }
       gun_bl_6in_26: { status: IMPORTED, producer: "Krupp" }
       gun_rml_8in_9ton: { status: IMPORTED, producer: "Krupp" }
       gun_rml_64pdr_71cwt: { status: IMPORTED, producer: "Krupp" }
@@ -134,7 +135,7 @@ navalProfiles:
                 page: "F",
               }
       - id: ah_krupp_209
-        familyId: gun_rml_8in_9ton
+        familyId: gun_bl_209mm_gl20
         designation: "20.9 cm Krupp G. L/20"
         overrides:
           displayName: "20.9 cm Krupp G. L/20 in casemate"

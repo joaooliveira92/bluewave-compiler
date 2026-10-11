@@ -18,29 +18,32 @@ viable procurement path per role group, and no release placeholder.
 | france | yes | full | redoutable_1878 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
 | germany | yes | full | sachsen_1878 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
 | usa | yes | full | canonicus_1879 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
-| japan | yes | full | six DOCTRINE_TEMPLATEs |
+| japan | yes | full | fuso_1878 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
 | italy | yes | full | principe_amedeo_1874 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
 | russia | yes | full | petr_velikiy_1876 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
-| austria_hungary | yes | full | six DOCTRINE_TEMPLATEs |
-| spain | yes | full | six DOCTRINE_TEMPLATEs |
+| austria_hungary | yes | full | kaiser_max_1876 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
+| spain | yes | full | numancia_1864 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
 | qing | yes | full | six DOCTRINE_TEMPLATEs |
 | ottoman_empire | no | full | mesudiye_1875 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
-| netherlands | no | full | six DOCTRINE_TEMPLATEs |
-| portugal | no | full | six DOCTRINE_TEMPLATEs |
-| brazil | no | full | six DOCTRINE_TEMPLATEs |
+| netherlands | no | full | matador_1879 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
+| portugal | no | full | vasco_da_gama_1876 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
+| brazil | no | full | sete_de_setembro_1874 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
 
-The eight remaining nations beyond the original UK/France/Germany slices, plus the
+The remaining nations beyond the original UK/France/Germany slices, plus the
 cruiser-through-auxiliary starters of every nation, use doctrine-template starters
 cloned from the shared 1880 templates; their national identity is carried by the
 profile (posture, doctrine, industrial multipliers, gun and component variants,
 procurement shares, naming). Italy, Russia and the Ottoman Empire begin with a
 `HISTORICAL_RECONSTRUCTION` capital ship promoted from their canonical reference
 design (ADR-0111); the United States begins with the coast-defence monitor
-*Canonicus* (ADR-0117), admitted by the 1880 per-scenario classification ruleset
-(ADR-0116). The remaining candidates (Matador, Vasco da Gama, Sete de Setembro,
-Fusō, Numancia/Vitoria, Wei Yuen, Kaiser Max) stay on their `DOCTRINE_TEMPLATE`
-design because the shared catalogue does not yet model their ordnance (ADR-0117
-lists each); Wei Yuen (belt 0) cannot be a B at all.
+*Canonicus* (ADR-0117), and Netherlands, Portugal, Brazil, Japan, Spain and
+Austria-Hungary each begin with their canonical coast-defence/casemate ironclad
+(ADR-0119), all admitted by the 1880 per-scenario classification ruleset
+(ADR-0116). Only Qing remains on its `DOCTRINE_TEMPLATE` capital design: its
+candidate *Wei Yuen* has no belt and cannot be a B at all (ADR-0117). The
+candidates' ordnance (Krupp 283/235/209/149/67 mm, Whitworth 9-in, Armstrong
+10-inch 12-ton 300-pdr) is now modelled as its own gun family, never substituted
+onto a numerically close one.
 
 ## Provenance summary
 

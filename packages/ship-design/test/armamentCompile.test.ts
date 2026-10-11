@@ -35,11 +35,12 @@ const gunPlacements = (d: DesignDraft) =>
   d.placements.filter((p) => GUN_CATEGORIES.has(byId.get(p.componentId)?.category ?? ""));
 
 describe("Step 3 armament cut-over: opening reference designs", () => {
-  it("verifies the first-class armament catalogue scale (26/26/35/6)", () => {
+  it("verifies the first-class armament catalogue scale (34/26/36/6)", () => {
+    // ADR-0119 added eight coast-defence/casemate gun families (+1 CASEMATE mount) but no authored models or ammunition.
     const catalogue = buildArmamentCatalogue(armamentContent);
-    expect(catalogue.families).toHaveLength(26);
+    expect(catalogue.families).toHaveLength(34);
     expect(catalogue.models).toHaveLength(26);
-    expect(catalogue.mounts).toHaveLength(35);
+    expect(catalogue.mounts).toHaveLength(36);
     expect(catalogue.ammunition).toHaveLength(6);
   });
 

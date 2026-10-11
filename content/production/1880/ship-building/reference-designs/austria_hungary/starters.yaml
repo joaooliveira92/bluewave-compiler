@@ -2,163 +2,122 @@
 # One directory per nation: starters.yaml (a `starterFor` opening design) and historical.yaml.
 # Fittings (magazines, quarters, pumps, ventilation) weigh nothing extra (White 1894, ADR-0083).
 designs:
-  # Battleship starter for Austria-Hungary (doctrine template; cloned from alexandra_1877).
-  - id: starter_b_austria_hungary_1880
+  # Kaiser Max (1876, in service Jan 1880): Austro-Hungarian central-battery ironclad, 3,548 t, 13.3 kn, 8 x 209 mm
+  # G. L/20 C.68 in a central casemate, 205 mm belt. The central battery is modelled as two side mounts of four guns to
+  # satisfy B's 1-2 main-mount rule. Promoted to the Austro-Hungarian capital (B) starter (ADR-0119). Source:
+  # docs/research/ship-building-1880-ships-by-nation.md §6.3; armament §2.2.
+  - id: kaiser_max_1876
     starterFor: B
-    name: Battleship (starter, B) — Austria-Hungary
+    name: Kaiser Max (1876, central-battery ironclad)
     month: 1880-01
     draft:
       nationId: austria_hungary
       requirement:
         category: B
-        requiredSpeedMilliKnots: 15100
+        requiredSpeedMilliKnots: 13300
         cruiseSpeedMilliKnots: 8000
-        requiredRangeNm: 2700
+        requiredRangeNm: 1500
         designThreatId: rml_10in
-        modernizationExpectation: MINOR
+        modernizationExpectation: NONE
         crewQualityBp: 10000
         accommodationStandard: STANDARD
         protectionGoal: STANDARD
       hull:
         hullFormId: coast_defence_form
-        lengthWl: 99100
-        beam: 19500
-        draught: 8000
-        depthToMainDeck: 10500
+        lengthWl: 75900
+        beam: 15300
+        draught: 6150
+        depthToMainDeck: 7500
         blockCoeffBp: 6000
         materialId: iron
         structuralSchemeId: mixed
         subdivisionGrade: 2
-        targetDisplacementKg: 9492000
+        targetDisplacementKg: 3548000
         limitDisplacementKg: null
         designMarginBp: 300
-        growthReserveBp: 300
+        growthReserveBp: 0
       machinery:
         plantId: compound_cylindrical
-        installedKw: 7400
+        installedKw: 3300
         zoneId: CENTRAL_MACHINERY
-        stationPermille: 400
-        fuelCapacityKg: 680000
+        stationPermille: 500
+        fuelCapacityKg: 380000
         fuelZoneId: CENTRAL_MACHINERY
-        fuelStationPermille: 450
+        fuelStationPermille: 510
         foulingBp: 0
-        rooms:
-          - { zoneId: CENTRAL_MACHINERY, stationPermille: 400, shareBp: 6000 }
-          - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
       armour:
         regions:
           - {
               region: BELT_MAIN,
-              thicknessUm: 305000,
-              lengthMm: 70000,
-              heightMm: 3200,
-              materialId: wrought_iron,
-              cosObliquityBp: 10000,
-            }
-          - {
-              region: DECK_MAIN,
-              thicknessUm: 55000,
-              lengthMm: 99100,
-              heightMm: 19500,
-              materialId: wrought_iron,
-              cosObliquityBp: 10000,
-            }
-          - {
-              region: MAGAZINE_BOX,
-              thicknessUm: 305000,
-              lengthMm: 70000,
-              heightMm: 3000,
+              thicknessUm: 205000,
+              lengthMm: 75900,
+              heightMm: 2400,
               materialId: wrought_iron,
               cosObliquityBp: 10000,
             }
           - {
               region: BARBETTE,
-              thicknessUm: 203000,
-              lengthMm: 40000,
+              thicknessUm: 125000,
+              lengthMm: 30000,
               heightMm: 3000,
               materialId: wrought_iron,
               cosObliquityBp: 10000,
             }
-        citadelLengthMm: 70000
-        torpedoWarheadKg: 30
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 205000,
+              lengthMm: 25000,
+              heightMm: 2400,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+        citadelLengthMm: 35000
+        torpedoWarheadKg: 0
         bunkerProtectionBp: 0
       placements:
         - {
-            instanceId: main_fwd,
-            componentId: gun_rml_11in_25ton,
-            zoneId: FORECASTLE,
-            stationPermille: 40,
-            params: { barrels: 2, rounds: 100 },
-            magazineRef: mag_fwd,
-          }
-        - {
-            instanceId: sec_p,
-            componentId: gun_rml_10in_18ton_broadside,
+            instanceId: main_p,
+            componentId: gun_bl_209mm_gl20,
             zoneId: SUPERSTRUCTURE,
-            stationPermille: 560,
+            stationPermille: 540,
             side: PORT,
-            params: { barrels: 5, rounds: 100 },
-            magazineRef: mag_sec,
+            params: { barrels: 4, rounds: 60 },
+            magazineRef: mag_main,
           }
         - {
-            instanceId: sec_s,
-            componentId: gun_rml_10in_18ton_broadside,
+            instanceId: main_s,
+            componentId: gun_bl_209mm_gl20,
             zoneId: SUPERSTRUCTURE,
-            stationPermille: 560,
+            stationPermille: 540,
             side: STBD,
-            params: { barrels: 5, rounds: 100 },
-            magazineRef: mag_sec,
+            params: { barrels: 4, rounds: 60 },
+            magazineRef: mag_main,
           }
         - {
-            instanceId: tubes,
-            componentId: tube_14in_above_water,
-            zoneId: QUARTERDECK,
-            stationPermille: 900,
-            params: { tubes: 4 },
-          }
-        - {
-            instanceId: mag_sec,
+            instanceId: mag_main,
             componentId: magazine_heavy,
-            zoneId: SUPERSTRUCTURE,
-            stationPermille: 560,
+            zoneId: CENTRAL_MACHINERY,
+            stationPermille: 500,
           }
-        - {
-            instanceId: mag_fwd,
-            componentId: magazine_heavy,
-            zoneId: FWD_MAGAZINE,
-            stationPermille: 130,
-          }
-        - {
-            instanceId: mag_aft,
-            componentId: magazine_heavy,
-            zoneId: AFT_MAGAZINE,
-            stationPermille: 820,
-          }
-        - { instanceId: dyn, componentId: dynamo_small, zoneId: AFT_SERVICE, stationPermille: 690 }
+        - { instanceId: dyn, componentId: dynamo_small, zoneId: AFT_SERVICE, stationPermille: 680 }
         - {
             instanceId: vent,
             componentId: ventilation_plant,
             zoneId: AFT_SERVICE,
-            stationPermille: 700,
+            stationPermille: 690,
           }
         - {
             instanceId: quarters,
             componentId: quarters_crew,
             zoneId: FWD_SERVICE,
             stationPermille: 250,
-            params: { blocks: 95 },
+            params: { blocks: 48 },
           }
         - {
-            instanceId: funnel_a,
+            instanceId: funnel,
             componentId: funnel_single,
             zoneId: SUPERSTRUCTURE,
-            stationPermille: 580,
-          }
-        - {
-            instanceId: funnel_b,
-            componentId: funnel_single,
-            zoneId: SUPERSTRUCTURE,
-            stationPermille: 620,
+            stationPermille: 600,
           }
 
   # Armoured cruiser starter for Austria-Hungary (doctrine template; cloned from starter_armoured_cruiser_1880).

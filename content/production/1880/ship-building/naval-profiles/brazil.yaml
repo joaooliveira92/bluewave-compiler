@@ -108,6 +108,7 @@ navalProfiles:
       gun_rml_12in_25ton: { status: UNAVAILABLE }
       gun_rml_10in_18ton: { status: IMPORTED, producer: "Whitworth" }
       gun_rml_10in_18ton_broadside: { status: IMPORTED, producer: "Whitworth" }
+      gun_rml_229mm_whitworth: { status: IMPORTED, producer: "Whitworth" }
       gun_rml_11in_25ton: { status: IMPORTED, producer: "Armstrong" }
       gun_rml_8in_9ton: { status: IMPORTED, producer: "Armstrong" }
       gun_rml_64pdr_71cwt: { status: IMPORTED, producer: "Whitworth" }
@@ -143,7 +144,7 @@ navalProfiles:
                 page: "F",
               }
       - id: br_whitworth_229
-        familyId: gun_rml_10in_18ton_broadside
+        familyId: gun_rml_229mm_whitworth
         designation: "229 mm Whitworth 300-pdr RML"
         overrides:
           displayName: "229 mm Whitworth 300-pdr RML in casemate"

@@ -17,7 +17,9 @@ import {
   readReferenceDesignEntries,
   shipBuildingContent,
 } from "./helpers/earlyContext.js";
+import { armamentContent } from "./helpers/armamentContext.js";
 import {
+  FOREIGN_BUILT_B_STARTERS,
   HISTORICAL_B_STARTERS,
   REFERENCE_DESIGN_CLASSIFICATIONS,
 } from "./helpers/referenceClassifications.js";
@@ -81,23 +83,21 @@ describe("promoted historical national starters", () => {
       "starter_b_russia_1880",
       "starter_b_ottoman_empire_1880",
       "starter_b_usa_1880",
+      "starter_b_netherlands_1880",
+      "starter_b_portugal_1880",
+      "starter_b_brazil_1880",
+      "starter_b_japan_1880",
+      "starter_b_spain_1880",
+      "starter_b_austria_hungary_1880",
     ])
       expect(designs.find((d) => d.id === id)).toBeUndefined();
   });
 
-  // ADR-0114/ADR-0116: these nations' named candidates cannot legally classify under DESIGN_22_EARLY, but the 1880
-  // scenario ruleset (ADR-0116) admits the slow coast-defence ships; those promoted under it are usa (ADR-0117).
-  // The remainder stay on their doctrine template until the missing ordnance lands.
+  // ADR-0114/ADR-0116/ADR-0119: the 1880 scenario ruleset (rulesetVersion 2, ADR-0116) admits the slow coast-defence /
+  // casemate ships; usa promoted under it in ADR-0117 and the remaining six in ADR-0119. Qing *Wei Yuen* cannot be a B
+  // at all (no belt), so it alone stays on its doctrine template until its ordnance can be modelled honestly.
   it("leaves the still-deferred candidates on their doctrine template (no false substitution)", () => {
-    for (const nation of [
-      "netherlands",
-      "portugal",
-      "brazil",
-      "japan",
-      "spain",
-      "qing",
-      "austria_hungary",
-    ]) {
+    for (const nation of ["qing"]) {
       const chosen = starterFor("B", starters, OPENING_MONTH, nation);
       expect(chosen, `${nation} B starter`).not.toBeNull();
       expect(chosen!.id.startsWith("starter_b_")).toBe(true);
@@ -137,9 +137,12 @@ describe("promoted historical national starters", () => {
       const importCeiling = caps.maxImportedGunCaliberUm ?? caps.maxGunCaliberUm;
       const construction = resolveConstructionModifiers(profile, OPENING_MONTH);
       const draft = byId(id).draft;
-      expect(draft.hull.targetDisplacementKg).toBeLessThanOrEqual(
-        construction.maxPracticalDisplacementKg,
-      );
+      // A foreign-built reconstruction (its hull was bought abroad) may exceed the nation's domestic build ceiling:
+      // the reference ship is an inherited asset, not a new domestic order; the ceiling itself is never inflated.
+      if (!FOREIGN_BUILT_B_STARTERS.has(id))
+        expect(draft.hull.targetDisplacementKg).toBeLessThanOrEqual(
+          construction.maxPracticalDisplacementKg,
+        );
       for (const region of draft.armour.regions)
         expect(region.thicknessUm).toBeLessThanOrEqual(caps.maxArmourThicknessUm);
       const { ctx } = shipBuildingContent.environmentFor(OPENING_MONTH, nation);
@@ -168,6 +171,14 @@ describe("promoted historical national starters", () => {
     ["ottoman_empire", "gun_rml_10in_18ton", "IMPORTED"],
     ["ottoman_empire", "gun_rml_7in_7ton", "IMPORTED"],
     ["russia", "gun_rml_12in_25ton", "DOMESTIC"],
+    ["netherlands", "gun_bl_283mm_krupp", "IMPORTED"],
+    ["portugal", "gun_bl_149mm_rkl22", "IMPORTED"],
+    ["portugal", "gun_bl_67mm_krupp", "IMPORTED"],
+    ["brazil", "gun_rml_229mm_whitworth", "IMPORTED"],
+    ["japan", "gun_bl_235mm_rkl22", "IMPORTED"],
+    ["japan", "gun_bl_173mm_rkl25", "IMPORTED"],
+    ["spain", "gun_rml_10in_12ton_300pdr", "IMPORTED"],
+    ["austria_hungary", "gun_bl_209mm_gl20", "IMPORTED"],
   ])("%s models %s as %s", (nation, familyId, status) => {
     const profile = resolveNavalProfile(navalProfiles, nation, OPENING_MONTH)!;
     expect(profile.componentAccess[familyId]?.status).toBe(status);
@@ -179,11 +190,12 @@ describe("promoted historical national starters", () => {
       const guns = byId(id).draft.placements.filter((p) => p.componentId.startsWith("gun_"));
       expect(guns.length).toBeGreaterThan(0);
       for (const gun of guns)
-        expect(gun.componentId, `${id} ${gun.componentId}`).toMatch(/^gun_(rml|sb)_/);
-      // The US coast-defence monitor carries a smoothbore, never mapped onto rifled-RML ballistics.
+        expect(gun.componentId, `${id} ${gun.componentId}`).toMatch(/^gun_(rml|sb|bl)_/);
+      // The US coast-defence monitor carries a smoothbore, never mapped onto rifled-RML ballistics; no other promoted
+      // starter carries a smoothbore at all (a smoothbore must never inherit rifled-RML ballistics).
       if (nation === "usa")
         expect(guns.every((g) => g.componentId.startsWith("gun_sb_"))).toBe(true);
-      else expect(guns.every((g) => g.componentId.startsWith("gun_rml_"))).toBe(true);
+      else expect(guns.some((g) => g.componentId.startsWith("gun_sb_"))).toBe(false);
     },
   );
 
@@ -250,5 +262,83 @@ describe("smoothbore ordnance (ADR-0117)", () => {
     // A smoothbore reloads far slower than a rifle of comparable bore, so the mechanism cannot be substituted.
     const rifle = components.find((c) => c.id === "gun_rml_11in_25ton")!;
     expect(Number(sb.attributes?.rofBaseX100)).toBeLessThan(Number(rifle.attributes?.rofBaseX100));
+  });
+});
+
+// ADR-0119: the new coast-defence / casemate gun families. Each new family has a matching component with the same id and
+// category (the armament release gate requires family/category parity), and the national overlay that used to point at a
+// numerically-close family now points at its own family (no false substitution).
+const NEW_FAMILIES: ReadonlyArray<readonly [string, string, "MAIN_GUN" | "SECONDARY_GUN"]> = [
+  ["gun_bl_283mm_krupp", "netherlands", "MAIN_GUN"],
+  ["gun_bl_149mm_rkl22", "portugal", "SECONDARY_GUN"],
+  ["gun_bl_67mm_krupp", "portugal", "SECONDARY_GUN"],
+  ["gun_rml_229mm_whitworth", "brazil", "MAIN_GUN"],
+  ["gun_bl_235mm_rkl22", "japan", "MAIN_GUN"],
+  ["gun_bl_173mm_rkl25", "japan", "SECONDARY_GUN"],
+  ["gun_rml_10in_12ton_300pdr", "spain", "MAIN_GUN"],
+  ["gun_bl_209mm_gl20", "austria_hungary", "MAIN_GUN"],
+];
+
+describe("coast-defence / casemate ordnance (ADR-0119)", () => {
+  it.each(NEW_FAMILIES)(
+    "%s has a matching %s-category component and a first-class family record",
+    (familyId, _nation, category) => {
+      const component = components.find((c) => c.id === familyId);
+      expect(component, `${familyId} component`).toBeDefined();
+      expect(component!.category).toBe(category);
+      const family = armamentContent.gunFamilies.find((f) => f.id === familyId);
+      expect(family, `${familyId} family`).toBeDefined();
+      expect(family!.category).toBe(category);
+    },
+  );
+
+  it.each([
+    ["netherlands", "nl_krupp_283", "gun_bl_283mm_krupp"],
+    ["portugal", "pt_krupp_149", "gun_bl_149mm_rkl22"],
+    ["brazil", "br_whitworth_229", "gun_rml_229mm_whitworth"],
+    ["japan", "jp_krupp_235mm", "gun_bl_235mm_rkl22"],
+    ["japan", "jp_krupp_173mm", "gun_bl_173mm_rkl25"],
+    ["spain", "es_armstrong_254", "gun_rml_10in_12ton_300pdr"],
+    ["austria_hungary", "ah_krupp_209", "gun_bl_209mm_gl20"],
+  ])(
+    "%s overlay %s points at its own family %s (no false substitution)",
+    (nation, id, familyId) => {
+      const profile = navalProfiles.find((p) => p.nationId === nation)!;
+      expect(profile.gunModels.find((g) => g.id === id)?.familyId).toBe(familyId);
+    },
+  );
+
+  it("the Spanish 254 mm 300-pdr is a distinct, lighter family from the 10-inch 18-ton", () => {
+    const threeHundred = components.find((c) => c.id === "gun_rml_10in_12ton_300pdr")!;
+    const eighteen = components.find((c) => c.id === "gun_rml_10in_18ton")!;
+    // Same bore (10 in), but a 300-pdr shell and a ~12-ton (not 18-ton) gun: not the same weapon.
+    expect(Number(threeHundred.attributes?.caliberUm)).toBe(Number(eighteen.attributes?.caliberUm));
+    expect(Number(threeHundred.attributes?.shellMassG)).toBeLessThan(
+      Number(eighteen.attributes?.shellMassG),
+    );
+    expect(Number(threeHundred.constants.gun_kg)).toBeLessThan(Number(eighteen.constants.gun_kg));
+  });
+
+  it("the Portuguese 263 mm is the existing Krupp family in a CASEMATE use", () => {
+    const portugal = navalProfiles.find((p) => p.nationId === "portugal")!;
+    const overlay = portugal.gunModels.find((g) => g.id === "pt_krupp_263")!;
+    expect(overlay.familyId).toBe("gun_bl_263mm_rkl20");
+    expect(overlay.mounts).toContain("CASEMATE");
+  });
+
+  it("leaves maxImportedGunCaliberUm absent for every import-dependent nation (no sourced domestic ceiling)", () => {
+    for (const nation of [
+      "netherlands",
+      "portugal",
+      "brazil",
+      "japan",
+      "spain",
+      "austria_hungary",
+      "qing",
+    ]) {
+      const profile = navalProfiles.find((p) => p.nationId === nation)!;
+      expect(profile.hardCapabilities.maxImportedGunCaliberUm, nation).toBeUndefined();
+      expect(profile.industrialProfile.heavyGunProduction).toBe("IMPORTED");
+    }
   });
 });

@@ -107,6 +107,8 @@ navalProfiles:
       gun_rml_12in_25ton: { status: UNAVAILABLE }
       gun_rml_7in_7ton: { status: UNAVAILABLE }
       gun_bl_263mm_rkl20: { status: IMPORTED, producer: "Krupp" }
+      gun_bl_235mm_rkl22: { status: IMPORTED, producer: "Krupp" }
+      gun_bl_173mm_rkl25: { status: IMPORTED, producer: "Krupp" }
       gun_bl_12in_25: { status: IMPORTED, producer: "Canet" }
       gun_qf_6in_40: { status: IMPORTED, producer: "Armstrong" }
       gun_qf_47in: { status: IMPORTED, producer: "Armstrong" }
@@ -132,15 +134,15 @@ navalProfiles:
                 page: "F",
               }
       - id: jp_krupp_235mm
-        familyId: gun_rml_10in_18ton
-        designation: "23.5 cm Krupp RK L/22"
+        familyId: gun_bl_235mm_rkl22
+        designation: "23.5 cm Krupp RKL/22 C/72"
         overrides:
-          displayName: "23.5 cm Krupp Ringkanone in casemate"
-        mounts: [CASEMATE]
+          displayName: "23.5 cm Krupp Ringkanone in central battery"
+        mounts: [CASEMATE, BARBETTE]
         provenance: *jp_prov
       - id: jp_krupp_173mm
-        familyId: gun_rml_8in_9ton
-        designation: "17.3 cm Krupp RK L/25"
+        familyId: gun_bl_173mm_rkl25
+        designation: "17.3 cm Krupp RKL/25 C/72"
         overrides:
           displayName: "17.3 cm Krupp Ringkanone in casemate"
         mounts: [CASEMATE, DECK_SHIELDED]

@@ -126,6 +126,25 @@ gunMounts:
         - sourceId: brassey-1886
           title: Brassey's Naval Annual 1886, French Commission table
       note: Shell, charge and gun mass are estimates pending a print source.
+  - id: gun_bl_263mm_rkl20_casemate
+    mountType: CASEMATE
+    compatibleGunFamilies:
+      - gun_bl_263mm_rkl20
+    gunCount: 1
+    baseInstallationMassKg: 12000
+    perGunInstallationMassKg: 20000
+    firingArcDeg: 120
+    introductionMonth: 1880-01
+    retirementMonth: null
+    requiredTechnologyIds: []
+    provenance:
+      sourceStatus: ESTIMATE
+      confidence: LOW
+      kind: historical_fact
+      sources:
+        - sourceId: navypedia-pt
+          title: navypedia.org Portuguese class pages (pr_bb_vasco_da_gama)
+      note: The Portuguese *Vasco da Gama* mounts the 26 cm RK L/20 in a casemate (ADR-0119); mount masses ESTIMATE.
   - id: gun_bl_263mm_rkl20_turret
     mountType: TURRET
     compatibleGunFamilies:

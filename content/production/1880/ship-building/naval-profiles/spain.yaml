@@ -110,6 +110,7 @@ navalProfiles:
       gun_qf_6in_40: { status: UNAVAILABLE }
       gun_rml_10in_18ton: { status: IMPORTED, producer: "Armstrong" }
       gun_rml_10in_18ton_broadside: { status: IMPORTED, producer: "Armstrong" }
+      gun_rml_10in_12ton_300pdr: { status: IMPORTED, producer: "Armstrong" }
       gun_rml_8in_9ton: { status: IMPORTED, producer: "Armstrong" }
       gun_rml_64pdr_71cwt: { status: IMPORTED, producer: "Armstrong" }
       gun_bl_6in_26: { status: DOMESTIC, producer: "Hontoria" }
@@ -118,10 +119,10 @@ navalProfiles:
       tube_14in_above_water: { status: IMPORTED, producer: "Whitehead" }
     gunModels:
       - id: es_armstrong_254
-        familyId: gun_rml_10in_18ton
-        designation: "254 mm Armstrong 300-pdr RML"
+        familyId: gun_rml_10in_12ton_300pdr
+        designation: "254 mm Armstrong 12-ton 300-pdr RML"
         overrides:
-          displayName: "254 mm Armstrong 300-pdr RML in broadside"
+          displayName: "254 mm Armstrong 12-ton 300-pdr RML in broadside"
         mounts: [BROADSIDE_BATTERY, DECK_OPEN]
         provenance: &es_prov
           sourceStatus: ESTIMATE

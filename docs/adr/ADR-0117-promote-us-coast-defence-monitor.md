@@ -52,14 +52,14 @@ rifled substitution ADR-0114 forbade.
 - Reference designs sit outside `pack.json`, so the compiled pack hash is
   unchanged; `shipBuildingContentHash` changes (a non-fatal replay-divergence
   warning per ADR-0113 §4).
-- **Still deferred (recorded, not dropped).** The remaining ADR-0114 candidates
-  need ordnance the shared catalogue does not yet model and are not promoted:
-  netherlands *Matador* (283 mm Krupp), portugal *Vasco da Gama* (263 mm Krupp —
-  an exact match to `gun_bl_263mm_rkl20` but needs a CASEMATE mount — plus
-  149/67 mm Krupp), brazil *Sete de Setembro* (Whitworth 9-in/229 mm 300-pdr
-  RML), japan *Fusō* (235/173 mm Krupp), spain *Numancia*/*Vitoria* (254 mm
-  Armstrong 300-pdr), qing *Wei Yuen* (160/121 mm Armstrong; belt 0 — cannot be
-  a B), austria_hungary *Kaiser Max* (209 mm G L/20 C.68). Each needs one or more
-  well-sourced families (`docs/research/ship-building-1880-coast-defence-armament.md`
-  labels which are author-ready and which stay ESTIMATE); *Wei Yuen* and US
-  *Trenton* (belt 0, unarmoured) can never be B.
+- **Resolved by ADR-0119 (2026-10-11).** The remaining ADR-0114 candidates are now
+  promoted with their own well-sourced families: netherlands *Matador* (283 mm
+  Krupp), portugal *Vasco da Gama* (263 mm Krupp in a new CASEMATE use, plus
+  149/67 mm Krupp), brazil *Sete de Setembro* (Whitworth 9-in/229 mm 300-pdr RML),
+  japan *Fusō* (235/173 mm Krupp), spain *Numancia* (254 mm Armstrong 12-ton
+  300-pdr) and austria_hungary *Kaiser Max* (209 mm G L/20 C.68). See ADR-0119.
+- **Still deferred (recorded, not dropped).** qing *Wei Yuen* (160/121 mm
+  Armstrong; belt 0 — cannot be a B) and US *Trenton* (belt 0, unarmoured) can
+  never be B. The German `gun_bl_263mm_rkl20` re-source (Von Müller 1879) is
+  deferred to a Germany-content sprint; the Spanish 300-pdr charge/MV and the
+  Portuguese 67 mm shell stay ESTIMATE.
