@@ -20,6 +20,14 @@ hand-edited report must not merge).
 
 ## Branch protection (repository setting)
 
+> **Prerequisites (account/plan, not code):** GitHub Actions must be enabled and
+> the account's payment method healthy (`gh api repos/:owner/:repo/actions/permissions`
+> must return `"enabled": true`), and **branch protection requires GitHub Pro or a
+> public repository** — on a private repo without Pro the protection endpoints
+> return HTTP 403. Until both hold, the workflows below exist but never run, and
+> branch protection cannot be enforced. Do not add required status checks while
+> Actions are disabled: no check would ever report, and every PR would be blocked.
+
 Both `dev` and `main` must:
 
 - require the status checks above (`Quality Gate / quality`, `Desktop E2E Gate /
