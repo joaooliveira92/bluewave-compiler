@@ -289,6 +289,13 @@ describe("AirDefenseAttack default-merging parity", () => {
     expect(() => createAirDefenseAttack({})).toThrow("attackId must be a non-empty string");
   });
 
+  it("fails closed with a BluewaveError (not a raw TypeError) for an undefined input (12-F2)", () => {
+    // @ts-expect-error 12-F2: deliberately violate the non-optional signature to prove the runtime guard.
+    const call = () => createAirDefenseAttack(undefined);
+    expect(call).toThrow(BluewaveError);
+    expect(call).not.toThrow(TypeError);
+  });
+
   it("applies defaults for partially supplied input", () => {
     const attack = createAirDefenseAttack(required);
     expect(Number(attack.speedKnots)).toBe(0);

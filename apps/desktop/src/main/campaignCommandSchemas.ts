@@ -37,9 +37,6 @@ const int = Schema.Finite.check(Schema.isInt());
 const boundedString = (min: number, max: number) =>
   Schema.String.check(Schema.isMinLength(min), Schema.isMaxLength(max));
 
-/** `z.record(z.string(), z.unknown())` — a plain object of unknown values. */
-const JsonObject = Schema.Record(Schema.String, Schema.Unknown);
-
 export const CampaignConfigurationPayloadSchema = Schema.Struct({
   scenarioId: Schema.Literals(CANONICAL_SCENARIO_IDS),
   playerSlotId: nonEmptyString,
@@ -108,7 +105,15 @@ export const CancelConstructionOrderPayloadSchema = Schema.Struct({
  */
 export const SetResearchPriorityCommandPayloadSchema = Schema.Struct({
   ...CommandEnvelopePayloadSchema.fields,
-  fieldPriorities: Schema.Record(nonEmptyString, nonNegativeInt).check(
+  fieldPriorities: Schema.Record(Schema.String, nonNegativeInt).check(
+    // `Schema.Record` selects only matching keys and silently drops the rest, so a
+    // key schema of `nonEmptyString` would fail open (an `""` key would vanish). The
+    // key schema is therefore `Schema.String` and empty keys are rejected explicitly.
+    Schema.makeFilter((record) =>
+      Object.keys(record).every((key) => key.length > 0)
+        ? undefined
+        : "fieldPriorities keys must be non-empty",
+    ),
     Schema.makeFilter((record) =>
       Object.keys(record).length <= CANONICAL_RESEARCH_FIELD_IDS.length
         ? undefined
@@ -210,11 +215,18 @@ export const CancelMovementCommandPayloadSchema = Schema.Struct({
 });
 
 /**
- * The `@bluewave/ship-design` draft as JSON. The wire boundary only proves it is
- * a plain object of unknown values (mirroring the previous `z.custom` predicate);
- * the engine and the ship-design compiler validate the draft's contents.
+ * The `@bluewave/ship-design` draft as JSON. The wire boundary only proves it is a
+ * non-null object of unknown values, mirroring the previous
+ * `z.custom<Record<string, unknown>>((v) => typeof v === "object" && v !== null)`
+ * predicate (which also accepted arrays and other object instances); the engine and
+ * the ship-design compiler validate the draft's contents. `Schema.Record` cannot
+ * express this: it rejects arrays and silently drops non-string keys, so a
+ * `Schema.declare` carrying the exact pre-migration guard is used instead.
  */
-const DraftObjectSchema = JsonObject;
+const DraftObjectSchema = Schema.declare<Record<string, unknown>>(
+  (value): value is Record<string, unknown> => typeof value === "object" && value !== null,
+  { expected: "object" },
+);
 
 /** Wire shape for `submitDesignCommand`; the draft is validated by the engine (`SubmitDesign`) and the ship-design compiler. */
 export const SubmitDesignCommandPayloadSchema = Schema.Struct({

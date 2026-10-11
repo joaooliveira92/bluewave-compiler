@@ -217,10 +217,15 @@ function withDefault<T>(value: T | undefined, fallback: T): T {
 }
 
 export function createAirDefenseAttack(params: Partial<AirDefenseAttack>): AirDefenseAttack {
+  // `params` is typed non-null but JS callers can pass `undefined`; normalizing to `{}`
+  // keeps the unknown-field scan below from throwing a raw TypeError, so an empty input
+  // fails closed through `validateAirDefenseAttack` as a BluewaveError (12-F2 parity).
+  const input = params ?? {};
+
   // Fail-closed on unknown fields: the defaults merge below only carries known
   // keys, so unknown input keys are rejected here rather than silently dropped.
   const knownKeys = new Set(Object.keys(AirDefenseAttackSchema.fields));
-  for (const key of Object.keys(params)) {
+  for (const key of Object.keys(input)) {
     if (!knownKeys.has(key)) {
       throw new BluewaveError(`AirDefenseAttack validation failed: unknown field "${key}"`, {
         code: INVALID_AIR_DEFENSE_ATTACK,
@@ -230,26 +235,26 @@ export function createAirDefenseAttack(params: Partial<AirDefenseAttack>): AirDe
   }
 
   const merged = {
-    attackId: withDefault(params.attackId, ""),
-    formationId: withDefault(params.formationId, ""),
-    targetId: withDefault(params.targetId, ""),
-    attackType: withDefault(params.attackType, AttackType.AIRCRAFT_LEVEL_BOMBING),
-    speedKnots: withDefault(params.speedKnots, SafeInt.ZERO),
-    speedMps: withDefault(params.speedMps, SafeInt.ZERO),
-    currentRangeM: withDefault(params.currentRangeM, SafeInt.ZERO),
-    currentAltitudeM: withDefault(params.currentAltitudeM, SafeInt.ZERO),
-    bearingDegrees: withDefault(params.bearingDegrees, SafeInt.ZERO),
-    releaseRangeM: withDefault(params.releaseRangeM, SafeInt.ZERO),
-    releaseAltitudeM: withDefault(params.releaseAltitudeM, SafeInt.ZERO),
-    isReleased: withDefault(params.isReleased, false),
-    fireControlSolutionBp: withDefault(params.fireControlSolutionBp, SafeInt(10_000)),
-    timeToImpactMs: withDefault(params.timeToImpactMs, SafeInt(120_000)),
-    formationSize: withDefault(params.formationSize, SafeInt(1)),
-    cohesionBp: withDefault(params.cohesionBp, SafeInt(10_000)),
-    defensiveSusceptibilityBp: withDefault(params.defensiveSusceptibilityBp, SafeInt(10_000)),
-    contentVersion: withDefault(params.contentVersion, AIR_DEFENSE_MODEL_VERSION),
+    attackId: withDefault(input.attackId, ""),
+    formationId: withDefault(input.formationId, ""),
+    targetId: withDefault(input.targetId, ""),
+    attackType: withDefault(input.attackType, AttackType.AIRCRAFT_LEVEL_BOMBING),
+    speedKnots: withDefault(input.speedKnots, SafeInt.ZERO),
+    speedMps: withDefault(input.speedMps, SafeInt.ZERO),
+    currentRangeM: withDefault(input.currentRangeM, SafeInt.ZERO),
+    currentAltitudeM: withDefault(input.currentAltitudeM, SafeInt.ZERO),
+    bearingDegrees: withDefault(input.bearingDegrees, SafeInt.ZERO),
+    releaseRangeM: withDefault(input.releaseRangeM, SafeInt.ZERO),
+    releaseAltitudeM: withDefault(input.releaseAltitudeM, SafeInt.ZERO),
+    isReleased: withDefault(input.isReleased, false),
+    fireControlSolutionBp: withDefault(input.fireControlSolutionBp, SafeInt(10_000)),
+    timeToImpactMs: withDefault(input.timeToImpactMs, SafeInt(120_000)),
+    formationSize: withDefault(input.formationSize, SafeInt(1)),
+    cohesionBp: withDefault(input.cohesionBp, SafeInt(10_000)),
+    defensiveSusceptibilityBp: withDefault(input.defensiveSusceptibilityBp, SafeInt(10_000)),
+    contentVersion: withDefault(input.contentVersion, AIR_DEFENSE_MODEL_VERSION),
     contentHash: withDefault(
-      params.contentHash,
+      input.contentHash,
       "0000000000000000000000000000000000000000000000000000000000000000",
     ),
   };

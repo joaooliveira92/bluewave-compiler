@@ -477,6 +477,13 @@ describe("AirDefenseSystemDefinition default-merging parity", () => {
     );
   });
 
+  it("fails closed with a BluewaveError (not a raw TypeError) for an undefined input (12-F2)", () => {
+    // @ts-expect-error 12-F2: deliberately violate the non-optional signature to prove the runtime guard.
+    const call = () => createAirDefenseSystemDefinition(undefined);
+    expect(call).toThrow(BluewaveError);
+    expect(call).not.toThrow(TypeError);
+  });
+
   it("applies defaults for partially supplied input", () => {
     const system = createAirDefenseSystemDefinition({ systemId: "sys_merge" });
     expect(system.layer).toBe("HEAVY_AA");

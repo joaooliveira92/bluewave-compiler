@@ -158,6 +158,16 @@ describe("SetResearchPriorityCommandPayloadSchema", () => {
     });
   });
 
+  it("rejects an empty-string field key instead of silently dropping it (13-F2)", () => {
+    // Pre-migration `z.record(z.string().min(1), …)` rejected `""`; the migrated
+    // `Schema.Record(nonEmptyString, …)` silently selected only matching keys and
+    // dropped the rest, so `{ "": 1, "a": 2 }` decoded to `{ "a": 2 }` (fail-open).
+    expectFailure(SetResearchPriorityCommandPayloadSchema, {
+      ...VALID_ENVELOPE,
+      fieldPriorities: { "": 1, a: 2 },
+    });
+  });
+
   it("rejects a record larger than the canonical research field set (refine)", () => {
     const tooMany = Object.fromEntries(
       Array.from({ length: CANONICAL_RESEARCH_FIELD_IDS.length + 1 }, (_, i) => [`FIELD_${i}`, 1]),
@@ -271,6 +281,22 @@ describe("SubmitDesignCommandPayloadSchema (trim + object draft)", () => {
       ...VALID_ENVELOPE,
       className: "x",
       draft: 3,
+    });
+  });
+
+  it("accepts an array/Date draft (pre-migration z.custom predicate parity, 13-F1)", () => {
+    // The removed Zod was `z.custom<Record<string, unknown>>((v) => typeof v ===
+    // "object" && v !== null)`, which accepted arrays and Date instances;
+    // `Schema.Record` rejects arrays, so a `Schema.declare` restores the predicate.
+    expectSuccess(SubmitDesignCommandPayloadSchema, {
+      ...VALID_ENVELOPE,
+      className: "x",
+      draft: [{ hull: "x" }],
+    });
+    expectSuccess(SubmitDesignCommandPayloadSchema, {
+      ...VALID_ENVELOPE,
+      className: "x",
+      draft: new Date(0),
     });
   });
 });

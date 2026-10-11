@@ -275,10 +275,15 @@ function withDefault<T>(value: T | undefined, fallback: T): T {
 export function createAirDefenseSystemDefinition(
   params: Partial<AirDefenseSystemDefinition>,
 ): AirDefenseSystemDefinition {
+  // `params` is typed non-null but JS callers can pass `undefined`; normalizing to `{}`
+  // keeps the unknown-field scan below from throwing a raw TypeError, so an empty input
+  // fails closed through the merged-schema validation as a BluewaveError (12-F2 parity).
+  const input = params ?? {};
+
   // Fail-closed on unknown fields: the defaults merge below only carries known
   // keys, so unknown input keys are rejected here rather than silently dropped.
   const knownKeys = new Set(Object.keys(AirDefenseSystemDefinitionSchema.fields));
-  for (const key of Object.keys(params)) {
+  for (const key of Object.keys(input)) {
     if (!knownKeys.has(key)) {
       throw new BluewaveError(
         `AirDefenseSystemDefinition validation failed: unknown field "${key}"`,
@@ -288,42 +293,42 @@ export function createAirDefenseSystemDefinition(
   }
 
   const merged = {
-    systemId: withDefault(params.systemId, ""),
-    layer: withDefault(params.layer, Layer.HEAVY_AA),
-    category: withDefault(params.category, Category.HEAVY_AA),
-    mountCount: withDefault(params.mountCount, SafeInt.ZERO),
-    barrels: withDefault(params.barrels, SafeInt(1)),
-    rangeMinM: withDefault(params.rangeMinM, SafeInt.ZERO),
-    rangeMaxM: withDefault(params.rangeMaxM, SafeInt(10_000)),
-    altitudeMinM: withDefault(params.altitudeMinM, SafeInt.ZERO),
-    altitudeMaxM: withDefault(params.altitudeMaxM, SafeInt(30_000)),
-    targetSpeedLimitMps: withDefault(params.targetSpeedLimitMps, SafeInt(500)),
-    arcDegreesMax: withDefault(params.arcDegreesMax, SafeInt(360)),
-    profileEligibility: withDefault(params.profileEligibility, new Set(["DEFAULT"])),
-    fireControl: withDefault(params.fireControl, {
+    systemId: withDefault(input.systemId, ""),
+    layer: withDefault(input.layer, Layer.HEAVY_AA),
+    category: withDefault(input.category, Category.HEAVY_AA),
+    mountCount: withDefault(input.mountCount, SafeInt.ZERO),
+    barrels: withDefault(input.barrels, SafeInt(1)),
+    rangeMinM: withDefault(input.rangeMinM, SafeInt.ZERO),
+    rangeMaxM: withDefault(input.rangeMaxM, SafeInt(10_000)),
+    altitudeMinM: withDefault(input.altitudeMinM, SafeInt.ZERO),
+    altitudeMaxM: withDefault(input.altitudeMaxM, SafeInt(30_000)),
+    targetSpeedLimitMps: withDefault(input.targetSpeedLimitMps, SafeInt(500)),
+    arcDegreesMax: withDefault(input.arcDegreesMax, SafeInt(360)),
+    profileEligibility: withDefault(input.profileEligibility, new Set(["DEFAULT"])),
+    fireControl: withDefault(input.fireControl, {
       trackingRangeM: SafeInt(10_000),
       maxElevationDegrees: SafeInt(85),
       updateRateHz: SafeInt(10),
     }),
-    radar: withDefault(params.radar, {
+    radar: withDefault(input.radar, {
       frequencyBand: "S",
       peakPowerW: SafeInt(1_000),
       maxRangeM: SafeInt(50_000),
       resolutionDegrees: SafeInt(1),
     }),
-    engagementChannels: withDefault(params.engagementChannels, new Set(["default"])),
-    baseKillBp: withDefault(params.baseKillBp, SafeInt(100)),
-    baseDamageBp: withDefault(params.baseDamageBp, SafeInt(50)),
-    baseAbortBp: withDefault(params.baseAbortBp, SafeInt(30)),
-    baseDisruptionBp: withDefault(params.baseDisruptionBp, SafeInt(15)),
-    rate: withDefault(params.rate, SafeInt(100)),
-    roundsPerEngagement: withDefault(params.roundsPerEngagement, SafeInt.ONE),
-    magazineCapacity: withDefault(params.magazineCapacity, SafeInt(1_000)),
-    localControlSupported: withDefault(params.localControlSupported, false),
-    saturationGroup: withDefault(params.saturationGroup, SafeInt.ZERO),
-    contentVersion: withDefault(params.contentVersion, AIR_DEFENSE_MODEL_VERSION),
+    engagementChannels: withDefault(input.engagementChannels, new Set(["default"])),
+    baseKillBp: withDefault(input.baseKillBp, SafeInt(100)),
+    baseDamageBp: withDefault(input.baseDamageBp, SafeInt(50)),
+    baseAbortBp: withDefault(input.baseAbortBp, SafeInt(30)),
+    baseDisruptionBp: withDefault(input.baseDisruptionBp, SafeInt(15)),
+    rate: withDefault(input.rate, SafeInt(100)),
+    roundsPerEngagement: withDefault(input.roundsPerEngagement, SafeInt.ONE),
+    magazineCapacity: withDefault(input.magazineCapacity, SafeInt(1_000)),
+    localControlSupported: withDefault(input.localControlSupported, false),
+    saturationGroup: withDefault(input.saturationGroup, SafeInt.ZERO),
+    contentVersion: withDefault(input.contentVersion, AIR_DEFENSE_MODEL_VERSION),
     contentHash: withDefault(
-      params.contentHash,
+      input.contentHash,
       "0000000000000000000000000000000000000000000000000000000000000000",
     ),
   };

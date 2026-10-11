@@ -4,9 +4,11 @@
 // the 4-entry registry in canonical order, and a pinned golden hash of the shipped values.
 //
 // Strictness is a parse-time option in Effect v4 (it cannot be embedded in the schema AST),
-// so the policy schemas are module-private and every decode path below goes through the
-// public `validate*Contract` guard, which applies `{ onExcessProperty: "error" }`.
+// so every strict decode path below goes through the public `validate*Contract` guard, which
+// applies `{ onExcessProperty: "error" }`. The policy schemas themselves are exported for
+// public-surface parity (12-F1); a bare decode strips excess keys instead of failing closed.
 import { describe, expect, it } from "vite-plus/test";
+import { Schema } from "effect";
 import { BluewaveError } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
 import {
@@ -29,6 +31,11 @@ import {
   AIR_DEFENSE_SYSTEM_DEFINITION_FIELD_KEYS,
   ENGAGEMENT_FACTOR_SLOT_NAMES,
   DISRUPTION_MULTIPLIERS,
+  DisruptionMultipliers_v1,
+  AirDefensePolicy_v1,
+  AaDirectorScalingPolicy_v1,
+  RadarSaturationPolicy_v1,
+  CiwsRedundancyPolicy_v1,
 } from "../../src/air-defense/index.js";
 
 /** Pinned golden hash of the canonical serialization of the 4 shipped contract values.
@@ -329,6 +336,47 @@ describe("AC-17: versioned air-defense contracts", () => {
       }));
       const envelope = createEnvelope("air-defense-contracts", "inc5", body);
       expect(envelope.bodyHash).toBe(AIR_DEFENSE_CONTRACTS_GOLDEN_HASH);
+    });
+  });
+
+  // 12-F1: the migration silently made these five schemas module-private; restore and pin
+  // the public surface, and document that strict excess-property rejection is a parse-time
+  // option carried by the validate*Contract guards, not by the exported schema AST.
+  describe("public surface parity (12-F1)", () => {
+    it("exports the five pre-migration policy schemas", () => {
+      for (const schema of [
+        DisruptionMultipliers_v1,
+        AirDefensePolicy_v1,
+        AaDirectorScalingPolicy_v1,
+        RadarSaturationPolicy_v1,
+        CiwsRedundancyPolicy_v1,
+      ]) {
+        expect(schema).toBeDefined();
+      }
+    });
+
+    it("the exported schemas decode the shipped values", () => {
+      expect(() =>
+        Schema.decodeUnknownSync(AirDefensePolicy_v1)(makeValidAirDefensePolicy_v1()),
+      ).not.toThrow();
+      expect(() =>
+        Schema.decodeUnknownSync(AaDirectorScalingPolicy_v1)(makeValidAaDirectorScalingPolicy_v1()),
+      ).not.toThrow();
+      expect(() =>
+        Schema.decodeUnknownSync(RadarSaturationPolicy_v1)(makeValidRadarSaturationPolicy_v1()),
+      ).not.toThrow();
+      expect(() =>
+        Schema.decodeUnknownSync(CiwsRedundancyPolicy_v1)(makeValidCiwsRedundancyPolicy_v1()),
+      ).not.toThrow();
+      expect(() =>
+        Schema.decodeUnknownSync(DisruptionMultipliers_v1)(DISRUPTION_MULTIPLIERS),
+      ).not.toThrow();
+    });
+
+    it("strictness stays with validate*Contract, not the exported AST", () => {
+      const withExcess = { ...makeValidAirDefensePolicy_v1(), unexpected: true };
+      expect(() => Schema.decodeUnknownSync(AirDefensePolicy_v1)(withExcess)).not.toThrow();
+      expect(() => validateAirDefenseContract(withExcess)).toThrow(BluewaveError);
     });
   });
 });
