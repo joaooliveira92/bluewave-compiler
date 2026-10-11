@@ -15,18 +15,24 @@ import {
 import { ContentArtifactError, readContentArtifact } from "./contentArtifact.js";
 import { resolveGeneratedContentDir } from "./contentPack.js";
 
+interface LoadedShipBuilding {
+  readonly data: ShipBuildingData;
+  readonly hash: string;
+  readonly armamentHash: string;
+}
+
+let loaded: LoadedShipBuilding | null = null;
 let cached: ShipBuildingContent | null = null;
-let cachedHash: string | null = null;
-let cachedArmamentHash: string | null = null;
 
 /**
- * Loads the ship-building content from the compiled content artifact (ADR-0122)
- * once per process — never from raw YAML. The same content must be given to
- * every month execution so replays compile identically, and it is exactly the
- * content the compiler validated (ticket 03, CRI-MAIN-1).
+ * Reads and decodes the ship-building catalogue from the compiled content
+ * artifact (ADR-0122) once per process — never from raw YAML. The decoded data
+ * is the wire DTO the renderer receives (`inspectDrawingBoardContent`) and the
+ * input the runtime `ShipBuildingContent` is built from; both derive from
+ * exactly the content the compiler validated (ticket 03, CRI-MAIN-1).
  */
-export function loadShipBuildingContent(): ShipBuildingContent {
-  if (cached) return cached;
+function loadShipBuilding(): LoadedShipBuilding {
+  if (loaded) return loaded;
   const { bundle, manifest } = readContentArtifact(resolveGeneratedContentDir());
   const catalogue = bundle.shipBuilding as ShipBuildingCatalogue | undefined;
   if (catalogue === undefined) {
@@ -45,12 +51,34 @@ export function loadShipBuildingContent(): ShipBuildingContent {
     armament: catalogue.armament as unknown as AuthoredArmamentContent,
     referenceDesigns: catalogue.referenceDesigns as RawReferenceDesign[],
   };
-  cached = buildShipBuildingContent(data);
-  // Artifact-derived identity (ADR-0123): the recorded content hash is the
-  // artifact's canonical body hash under a domain-separated envelope, so the
-  // identity is exactly the thing CI validated — never the raw file bytes.
-  cachedHash = hashWithContext(manifest.bodyHash, "ship-building-content");
-  cachedArmamentHash = hashWithContext(manifest.bodyHash, "armament-content");
+  loaded = {
+    data,
+    // Artifact-derived identity (ADR-0123): the recorded content hash is the
+    // artifact's canonical body hash under a domain-separated envelope, so the
+    // identity is exactly the thing CI validated — never the raw file bytes.
+    hash: hashWithContext(manifest.bodyHash, "ship-building-content"),
+    armamentHash: hashWithContext(manifest.bodyHash, "armament-content"),
+  };
+  return loaded;
+}
+
+/**
+ * The decoded ship-building catalogue (data-only), exactly as it crosses the
+ * content-query IPC to the renderer. Never populated from raw YAML.
+ */
+export function loadShipBuildingData(): ShipBuildingData {
+  return loadShipBuilding().data;
+}
+
+/**
+ * Loads the ship-building content from the compiled content artifact (ADR-0122)
+ * once per process. The same content must be given to every month execution so
+ * replays compile identically, and it is exactly the content the compiler
+ * validated (ticket 03, CRI-MAIN-1).
+ */
+export function loadShipBuildingContent(): ShipBuildingContent {
+  if (cached) return cached;
+  cached = buildShipBuildingContent(loadShipBuilding().data);
   return cached;
 }
 
@@ -61,8 +89,7 @@ export function loadShipBuildingContent(): ShipBuildingContent {
  * domain-separated, so it is content-derived and tamper-evident (ADR-0123).
  */
 export function shipBuildingContentHash(): string {
-  loadShipBuildingContent();
-  return cachedHash!;
+  return loadShipBuilding().hash;
 }
 
 /**
@@ -72,6 +99,5 @@ export function shipBuildingContentHash(): string {
  * content change on its own. Deterministic across processes.
  */
 export function armamentContentHash(): string {
-  loadShipBuildingContent();
-  return cachedArmamentHash!;
+  return loadShipBuilding().armamentHash;
 }

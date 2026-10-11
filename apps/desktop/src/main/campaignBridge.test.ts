@@ -29,6 +29,7 @@ const IMPLEMENTED_COMMANDS = new Set([
   "inspectMap",
   "inspectBattleHistory",
   "inspectPriorities",
+  "inspectDrawingBoardContent",
   "commitMonth",
   "inspectConstructionScreen",
   "submitConstructionCommand",
@@ -124,6 +125,22 @@ describe("dispatchCampaignCommand", () => {
   it("routes listNewGameOptions to the real handler against production content", async () => {
     const result = await dispatchCampaignCommand("listNewGameOptions", undefined);
     expect(result.outcome).toBe("success");
+  });
+
+  it("serves the decoded drawing-board catalogue over the content IPC", async () => {
+    const result = await dispatchCampaignCommand("inspectDrawingBoardContent", undefined);
+    expect(result.outcome).toBe("success");
+    if (result.outcome !== "success") return;
+    const { catalogue } = result.value as {
+      catalogue: {
+        components: readonly unknown[];
+        hullForms: readonly unknown[];
+        referenceDesigns?: readonly unknown[];
+      };
+    };
+    expect(catalogue.components.length).toBeGreaterThan(0);
+    expect(catalogue.hullForms.length).toBeGreaterThan(0);
+    expect(catalogue.referenceDesigns?.length ?? 0).toBeGreaterThan(0);
   });
 
   it("rejects a structurally invalid compileCampaign payload before touching the compiler", async () => {
