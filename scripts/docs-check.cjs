@@ -35,13 +35,18 @@ function tracked(pattern) {
 
 // ---- 1. relative link integrity ----
 // git pathspecs are recursive for `*.md`, so filter to the canonical scope:
-// everything under docs/, the root markdown files, and .ai/*.md. A relative
-// target must exist; a `#fragment` onto a Markdown target (a same-file
-// `#anchor` included) must name a real GitHub heading slug or explicit
-// `<a id>`. Scheme-qualified, protocol-relative, and root-absolute targets are
-// excluded; fenced code and HTML comments are not scanned.
+// docs/**, the root markdown files, .ai/*.md, and every authored folder README
+// (the repo map's entry points). Read-only subtrees (vendor/, repos/) are
+// excluded. A relative target must exist; a `#fragment` onto a Markdown target
+// (a same-file `#anchor` included) must name a real GitHub heading slug or
+// explicit `<a id>`. Scheme-qualified, protocol-relative, and root-absolute
+// targets are excluded; fenced code and HTML comments are not scanned.
 const LINK_SCOPE = tracked("*.md").filter(
-  (f) => f.startsWith("docs/") || !f.includes("/") || /^\.ai\/[^/]+\.md$/.test(f),
+  (f) =>
+    f.startsWith("docs/") ||
+    !f.includes("/") ||
+    /^\.ai\/[^/]+\.md$/.test(f) ||
+    (/(^|\/)README\.md$/.test(f) && !f.startsWith("vendor/") && !f.startsWith("repos/")),
 );
 
 const { sanitizeForScan, documentAnchors } = require("./lib/doc-anchors.cjs");

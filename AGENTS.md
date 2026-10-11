@@ -52,6 +52,12 @@
 
 ## Agent skills
 
+### Repository map
+
+Folder-by-folder entry points: `docs/agents/repo-map.md`. Each of `apps/`,
+`packages/`, `content/`, `scripts/` and `agent-patterns/` also carries a
+`README.md` that says what lives there and where the authoritative docs are.
+
 ### Viewing the desktop UI
 
 Agents can screenshot, inspect and click through the Electron app via Playwright. See
