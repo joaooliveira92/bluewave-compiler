@@ -89,7 +89,12 @@ void app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  app.quit();
 });
+
+// A stopping dev run (Ctrl+C in the terminal) signals SIGINT/SIGTERM to the
+// process group; without an explicit quit the Electron window is left orphaned,
+// pointing at the now-dead dev server and rendering blank. Quit cleanly instead.
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.on(signal, () => app.quit());
+}
