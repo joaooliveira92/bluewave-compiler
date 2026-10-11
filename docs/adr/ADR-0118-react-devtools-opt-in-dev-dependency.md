@@ -53,6 +53,9 @@ concerns:
   remaining in plain dev.
 - The Chrome-Web-Store fetch (unpinned CRX) is confined to an explicit,
   developer-invoked mode.
+- The installer's use of the deprecated `session.loadExtension` /
+  `session.getAllExtensions` is adapted to Electron's modern `session.extensions.*`
+  API (`src/main/extensionSession.ts`), so the shell emits no deprecation warnings.
 
 ## Alternatives considered
 

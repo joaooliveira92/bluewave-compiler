@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { applyContentSecurityPolicy } from "./csp.js";
 import { dispatchCampaignCommand } from "./campaignBridge.js";
 import { isDebugModeEnabled } from "./debugGate.js";
+import { withModernExtensionApi } from "./extensionSession.js";
 import {
   canRecoverRenderer,
   isActionableLoadFailure,
@@ -187,7 +188,9 @@ if (!app.requestSingleInstanceLock()) {
       try {
         const { installExtension, REACT_DEVELOPER_TOOLS } =
           await import("electron-devtools-installer");
-        const { name } = await installExtension(REACT_DEVELOPER_TOOLS);
+        const { name } = await installExtension(REACT_DEVELOPER_TOOLS, {
+          session: withModernExtensionApi(session.defaultSession),
+        });
         console.log(`Added extension: ${name}`);
       } catch (error) {
         console.warn("Failed to install React DevTools extension:", error);
