@@ -30,7 +30,10 @@ jobs:
       - run: pnpm format
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm build
+      # --force: typecheck's `^build` populates the turbo cache first, and a
+      # replayed desktop build then reads a stale phase-engine `dist`. Build
+      # from source here so the gate is not at the mercy of cache replay.
+      - run: pnpm exec turbo run build --force
       - run: pnpm test:run
       - name: Balance reports match the deterministic benchmark
         run: pnpm check:balance-reports
