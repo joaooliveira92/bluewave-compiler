@@ -63,9 +63,15 @@ recorded.
 - The remaining hole in the central invariant is closed: the artifact is the
   single thing CI validated and the single thing the runtime compiles campaigns
   from.
-- `buildFullSurfaceInput` now discovers the campaign collections from `pack.json`;
-  the raw production tree is still shipped for the packaged build only until the
-  same pipeline covers any remaining raw reads.
+- `buildFullSurfaceInput` now discovers the campaign collections from `pack.json`.
+  **Amended (2026-10-11, ticket 05):** the raw production tree is no longer
+  shipped as a packaged resource. With this ADR's decoded path in place the
+  artifact is the sole runtime content boundary, so `electron-builder.yml` ships
+  only `content/generated/1880` and the dead `resolveProductionPackDir` is
+  removed (`src/main/contentPack.ts`). The packaged fresh-game smoke loads the
+  drawing board from app resources alone, with no `content/production/1880` in
+  `Contents/Resources`. The production tree remains a **build-time** input to
+  `content:build` (ADR-0122), never a runtime one.
 - Adding the collections changes the bundle body hash (an expected content
   update). Any golden/replay movement is recorded, never accommodated by
   weakening a test.

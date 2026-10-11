@@ -28,8 +28,12 @@ Four verification gaps surfaced while closing out ADR-0098:
 
 1. **The packaged smoke is a required gate.** `desktop-e2e.yml` builds the
    unpackaged app (`electron-builder --mac --dir --config electron-builder.yml`),
-   compiles a campaign save (`snap --make-save`), and runs `smoke:packaged`. A
-   change that ships a broken packaged artifact now fails CI.
+   compiles the content artifact (`pnpm content:build`), and runs
+   `smoke:packaged`. **Amended (2026-10-11, ticket 05):** the smoke now starts a
+   **fresh** game — the path that reads the shipped content artifact from app
+   resources — rather than opening a pre-compiled save, and captures the
+   drawing-board screenshot as reviewer evidence. A change that ships a broken
+   packaged artifact now fails CI.
 2. **Reports are generated, never authored.** `scripts/check-balance-reports.cjs`
    re-runs both balance tests with the `*_WRITE=1` flags and fails if the tracked
    report files change. Wired into `quality.yml` and exposed as
