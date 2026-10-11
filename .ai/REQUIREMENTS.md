@@ -45,10 +45,10 @@ Requirement ID: BW-CMP-001
 Canonical section: Compiler
 Normative summary: Missing required canonical input causes campaign compilation failure
 Status: implemented
-Packages or symbols: content-compiler (ValidateStage), diagnostics (DiagnosticCollector)
-Tests: content-compiler compiler.test.ts — valid pack compiles; invalid manifests produce diagnostics
-ADR references: ADR-0004, ADR-0005
-Validation evidence: `validateAgainstSchema` returns undefined for invalid inputs; collector.hasErrors blocks downstream stages
+Packages or symbols: content-compiler (ValidateStage, ParseStage), compiler-cli (content:check/content:build), diagnostics (DiagnosticCollector)
+Tests: content-compiler compiler.test.ts — valid pack compiles; invalid manifests produce diagnostics; duplicate IDs and dangling ship-building references fail with file + field path; compiler-cli content-surface.test.ts — content:check/content:build reject a broken pack
+ADR references: ADR-0004, ADR-0005, ADR-0122
+Validation evidence: `validateAgainstSchema` returns undefined for invalid inputs; collector.hasErrors blocks downstream stages; the full authored surface (content-pack collections + ship-building catalogue) is validated by `content:check`
 ```
 
 ```text
@@ -56,10 +56,10 @@ Requirement ID: BW-CMP-002
 Canonical section: Compiler
 Normative summary: Compiler output ordering and identifiers are canonicalized reproducibly
 Status: implemented
-Packages or symbols: content-compiler (NormalizeStage canonicalizeEntityOrder), deterministic (canonicalSerialize)
-Tests: deterministic deterministic.test.ts — canonical key ordering; content-compiler compiler.test.ts — repeated compilation produces identical hashes
-ADR references: ADR-0003, ADR-0004
-Validation evidence: `canonicalSerialize` sorts keys; NormalizeStage sorts entities by stable ID
+Packages or symbols: content-compiler (NormalizeStage sortById/sortByField, CompileStage), deterministic (canonicalSerialize), compiler-cli (content:build)
+Tests: deterministic deterministic.test.ts — canonical key ordering; content-compiler compiler.test.ts — repeated compilation produces identical hashes; compiler-cli content-surface.test.ts — two builds over unchanged content are byte-identical
+ADR references: ADR-0003, ADR-0004, ADR-0122
+Validation evidence: `canonicalSerialize` sorts keys; NormalizeStage sorts entities by stable ID; the content bundle + manifest carry a SHA-256 body hash and are byte-identical across builds
 ```
 
 ```text

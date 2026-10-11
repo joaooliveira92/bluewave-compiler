@@ -13,17 +13,31 @@ export interface NormalizeOutput {
   possessions: Record<string, unknown>[];
   ports: Record<string, unknown>[];
   technologies: Record<string, unknown>[];
+  shipComponents: Record<string, unknown>[];
+  propulsionPlants: Record<string, unknown>[];
+  shipHullForms: Record<string, unknown>[];
+  shipBalance: unknown;
+  gunFamilies: Record<string, unknown>[];
+  gunModels: Record<string, unknown>[];
+  gunMounts: Record<string, unknown>[];
+  ammunition: Record<string, unknown>[];
+  navalProfiles: Record<string, unknown>[];
+  referenceDesigns: Record<string, unknown>[];
 }
 
-function sortById<T extends Record<string, unknown>>(items: T[]): T[] {
+function sortByField<T extends Record<string, unknown>>(items: T[], field: string): T[] {
   return [...items].sort((a, b) => {
-    const aId = a["id"];
-    const bId = b["id"];
+    const aId = a[field];
+    const bId = b[field];
     if (typeof aId === "string" && typeof bId === "string") {
       return aId.localeCompare(bId);
     }
     return 0;
   });
+}
+
+function sortById<T extends Record<string, unknown>>(items: T[]): T[] {
+  return sortByField(items, "id");
 }
 
 export class NormalizeStage implements CompilerStage<ValidateOutput, NormalizeOutput> {
@@ -43,6 +57,22 @@ export class NormalizeStage implements CompilerStage<ValidateOutput, NormalizeOu
       possessions: sortById(input.possessions as Record<string, unknown>[]),
       ports: sortById(input.ports as Record<string, unknown>[]),
       technologies: sortById(input.technologies as Record<string, unknown>[]),
+      shipComponents: sortById((input.shipComponents ?? []) as Record<string, unknown>[]),
+      propulsionPlants: sortById((input.propulsionPlants ?? []) as Record<string, unknown>[]),
+      shipHullForms: sortById((input.shipHullForms ?? []) as Record<string, unknown>[]),
+      shipBalance: input.shipBalance,
+      gunFamilies: sortById((input.gunFamilies ?? []) as Record<string, unknown>[]),
+      gunModels: sortById((input.gunModels ?? []) as Record<string, unknown>[]),
+      gunMounts: sortById((input.gunMounts ?? []) as Record<string, unknown>[]),
+      ammunition: sortById((input.ammunition ?? []) as Record<string, unknown>[]),
+      navalProfiles: sortByField(
+        (input.navalProfiles ?? []) as Record<string, unknown>[],
+        "nationId",
+      ),
+      // Reference designs keep their discovery order (UK-first, starters then
+      // historical) because that order is meaningful at runtime (ADR-0109) — the
+      // first starter stays the historical default.
+      referenceDesigns: [...((input.referenceDesigns ?? []) as Record<string, unknown>[])],
     };
   }
 }

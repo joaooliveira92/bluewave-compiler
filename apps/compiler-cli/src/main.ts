@@ -7,6 +7,8 @@ import {
   runInspect,
   runVerify,
   runCompare,
+  runContentCheck,
+  runContentBuild,
   runCampaignCompile,
   runCampaignSave,
   runCampaignLoad,
@@ -30,6 +32,10 @@ const USAGE = `Usage: bwc <command> [options]
 Commands:
   validate           Validate content pack without producing output
   compile            Compile content pack to canonical artifact
+  content:check      Validate the whole authored surface (content pack +
+                     ship-building catalogue) without writing
+  content:build      Compile the whole authored surface to a generated
+                     content artifact + manifest
   inspect            Inspect compiled artifact and envelope
   verify             Verify compiled artifact against envelope
   compare            Compare compiled artifact hash against envelope
@@ -115,7 +121,15 @@ function main(): void {
     process.exit(0);
   }
   const command = args[0] as string;
-  const existingCommands = ["validate", "compile", "inspect", "verify", "compare"];
+  const existingCommands = [
+    "validate",
+    "compile",
+    "inspect",
+    "verify",
+    "compare",
+    "content:check",
+    "content:build",
+  ];
   const newCommands = [
     "campaign:compile",
     "campaign:save",
@@ -165,6 +179,12 @@ function main(): void {
       break;
     case "compare":
       exitCategory = runCompare(options);
+      break;
+    case "content:check":
+      exitCategory = runContentCheck(options);
+      break;
+    case "content:build":
+      exitCategory = runContentBuild(options);
       break;
     case "campaign:compile": {
       const co = options as CampaignCliOptions;

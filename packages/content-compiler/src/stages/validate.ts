@@ -1,13 +1,21 @@
 //packages/content-compiler/src/stages/validate.ts
 
 import {
+  AmmunitionPatternSchema,
   AreaSchema,
+  GunFamilySchema,
+  GunModelSchema,
+  GunMountSchema,
+  NationNavalProfileSchema,
   NationSchema,
   PackManifestSchema,
   PortSchema,
   PossessionSchema,
+  PropulsionPlantSchema,
   RouteEdgeSchema,
   RulesetManifestSchema,
+  ShipComponentSchema,
+  ShipHullFormSchema,
   TechnologyPrerequisiteChainSchema,
   validateAgainstSchema,
   type ContentSchema,
@@ -26,6 +34,16 @@ export interface ValidateOutput {
   possessions: unknown[];
   ports: unknown[];
   technologies: unknown[];
+  shipComponents?: unknown[];
+  propulsionPlants?: unknown[];
+  shipHullForms?: unknown[];
+  shipBalance?: unknown;
+  gunFamilies?: unknown[];
+  gunModels?: unknown[];
+  gunMounts?: unknown[];
+  ammunition?: unknown[];
+  navalProfiles?: unknown[];
+  referenceDesigns?: unknown[];
 }
 
 const COLLECTION_KEYS = [
@@ -37,6 +55,55 @@ const COLLECTION_KEYS = [
   "ports",
   "technologies",
 ] as const;
+
+interface ShipBuildingCollection {
+  key: keyof ValidateOutput;
+  schema?: ContentSchema;
+  label: string;
+  idField: string;
+}
+
+/** The fully-populated ship-building catalogue section of a validated build. */
+interface ValidatedCatalogue {
+  shipComponents: unknown[];
+  propulsionPlants: unknown[];
+  shipHullForms: unknown[];
+  shipBalance: unknown;
+  gunFamilies: unknown[];
+  gunModels: unknown[];
+  gunMounts: unknown[];
+  ammunition: unknown[];
+  navalProfiles: unknown[];
+  referenceDesigns: unknown[];
+}
+
+/**
+ * The ship-building catalogue collections and their structural schemas, in the
+ * order they are validated. `referenceDesigns` has no content schema yet (its
+ * draft is the drawing board's domain shape); it is still duplicate-ID checked
+ * and cross-referenced, and its full invariant validation is owned by ticket 06.
+ */
+const SHIP_BUILDING_COLLECTIONS: readonly ShipBuildingCollection[] = [
+  { key: "shipComponents", schema: ShipComponentSchema, label: "ShipComponent", idField: "id" },
+  {
+    key: "propulsionPlants",
+    schema: PropulsionPlantSchema,
+    label: "PropulsionPlant",
+    idField: "id",
+  },
+  { key: "shipHullForms", schema: ShipHullFormSchema, label: "ShipHullForm", idField: "id" },
+  { key: "gunFamilies", schema: GunFamilySchema, label: "GunFamily", idField: "id" },
+  { key: "gunModels", schema: GunModelSchema, label: "GunModel", idField: "id" },
+  { key: "gunMounts", schema: GunMountSchema, label: "GunMount", idField: "id" },
+  { key: "ammunition", schema: AmmunitionPatternSchema, label: "AmmunitionPattern", idField: "id" },
+  {
+    key: "navalProfiles",
+    schema: NationNavalProfileSchema,
+    label: "NationNavalProfile",
+    idField: "nationId",
+  },
+  { key: "referenceDesigns", label: "ReferenceDesign", idField: "id" },
+];
 
 export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput> {
   readonly name = "validate";
@@ -104,6 +171,10 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
     validateMissingReferences(validated, collector);
     validateTechnologyAcyclic(validated, collector);
 
+    const catalogue = validateShipBuildingCatalogue(input, collector);
+    validateShipBuildingDuplicates(catalogue, input, collector);
+    validateShipBuildingReferences(validated, catalogue, input, collector);
+
     if (collector.hasErrors) return undefined;
 
     return {
@@ -115,8 +186,309 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
       possessions: validated["possessions"] ?? [],
       ports: validated["ports"] ?? [],
       technologies: validated["technologies"] ?? [],
+      ...catalogue,
     };
   }
+}
+
+/**
+ * Structurally validates each ship-building catalogue collection that the input
+ * actually carries. A content-pack-only input (no ship-building files) yields
+ * empty collections, so the pack boundary is untouched.
+ */
+function validateShipBuildingCatalogue(
+  input: ParseOutput,
+  collector: DiagnosticCollector,
+): ValidatedCatalogue {
+  const out: Record<string, unknown[]> = {};
+  for (const spec of SHIP_BUILDING_COLLECTIONS) {
+    const raw = input.collectionDocs.get(spec.key) ?? [];
+    const sources = input.sourcePaths.get(spec.key) ?? [];
+    if (spec.schema === undefined) {
+      out[spec.key] = raw;
+      continue;
+    }
+    const items: unknown[] = [];
+    raw.forEach((item, index) => {
+      const sourcePath = sources[index] ?? `${spec.key}.yaml`;
+      const result = validateAgainstSchema(item, spec.schema!, spec.label, sourcePath, collector);
+      if (result !== undefined) items.push(result);
+    });
+    out[spec.key] = items;
+  }
+  return {
+    shipComponents: out["shipComponents"] ?? [],
+    propulsionPlants: out["propulsionPlants"] ?? [],
+    shipHullForms: out["shipHullForms"] ?? [],
+    shipBalance: input.objectDocs.get("shipBalance"),
+    gunFamilies: out["gunFamilies"] ?? [],
+    gunModels: out["gunModels"] ?? [],
+    gunMounts: out["gunMounts"] ?? [],
+    ammunition: out["ammunition"] ?? [],
+    navalProfiles: out["navalProfiles"] ?? [],
+    referenceDesigns: out["referenceDesigns"] ?? [],
+  };
+}
+
+/**
+ * Projects the validated ship-building collections onto a keyed map so the
+ * generic duplicate/reference passes can iterate the collection specs without an
+ * untyped cast.
+ */
+function catalogueArrays(catalogue: ValidatedCatalogue): Record<string, unknown[]> {
+  return {
+    shipComponents: catalogue.shipComponents,
+    propulsionPlants: catalogue.propulsionPlants,
+    shipHullForms: catalogue.shipHullForms,
+    gunFamilies: catalogue.gunFamilies,
+    gunModels: catalogue.gunModels,
+    gunMounts: catalogue.gunMounts,
+    ammunition: catalogue.ammunition,
+    navalProfiles: catalogue.navalProfiles,
+    referenceDesigns: catalogue.referenceDesigns,
+  };
+}
+
+function validateShipBuildingDuplicates(
+  catalogue: ValidatedCatalogue,
+  input: ParseOutput,
+  collector: DiagnosticCollector,
+): void {
+  const arrays = catalogueArrays(catalogue);
+  for (const spec of SHIP_BUILDING_COLLECTIONS) {
+    const items = arrays[spec.key] ?? [];
+    const sources = input.sourcePaths.get(spec.key) ?? [];
+    const seen = new Set<string>();
+    items.forEach((item, index) => {
+      const id = (item as Record<string, unknown>)[spec.idField];
+      if (typeof id !== "string") return;
+      if (seen.has(id)) {
+        collector.addError("DUP-ID", `Duplicate ${spec.label} id '${id}'`, {
+          stage: "validate",
+          sourceLocation: { path: sources[index] ?? `${spec.key}.yaml`, line: 1 },
+          entityId: id,
+          remediation: `Give each ${spec.label} a unique '${spec.idField}'`,
+        });
+      }
+      seen.add(id);
+    });
+  }
+}
+
+function validateShipBuildingReferences(
+  core: Record<string, unknown[]>,
+  catalogue: ValidatedCatalogue,
+  input: ParseOutput,
+  collector: DiagnosticCollector,
+): void {
+  const arrays = catalogueArrays(catalogue);
+  const idFieldByKey = new Map<string, string>(
+    SHIP_BUILDING_COLLECTIONS.map((spec) => [spec.key, spec.idField]),
+  );
+  const ids = (key: keyof ValidateOutput, field = "id"): Set<string> => {
+    const items = arrays[key] ?? [];
+    return new Set(
+      items
+        .map((item) => (item as Record<string, unknown>)[field])
+        .filter((v): v is string => typeof v === "string"),
+    );
+  };
+  const coreIds = (key: string): Set<string> => {
+    const items = core[key] ?? [];
+    return new Set(
+      items
+        .map((item) => (item as Record<string, unknown>)["id"])
+        .filter((v): v is string => typeof v === "string"),
+    );
+  };
+  const sourceFor = (key: keyof ValidateOutput, id: string): string => {
+    const items = arrays[key] ?? [];
+    const sources = input.sourcePaths.get(key) ?? [];
+    const field = idFieldByKey.get(key) ?? "id";
+    const index = items.findIndex((item) => (item as Record<string, unknown>)[field] === id);
+    return sources[index] ?? `${String(key)}.yaml`;
+  };
+
+  const componentIds = ids("shipComponents");
+  const plantIds = ids("propulsionPlants");
+  const hullFormIds = ids("shipHullForms");
+  const familyIds = ids("gunFamilies");
+  const gunModelIds = ids("gunModels");
+  const techIds = coreIds("technologies");
+
+  const ref = (
+    sourceKey: keyof ValidateOutput,
+    entityId: string,
+    fieldPath: string,
+    message: string,
+  ) => {
+    collector.addError("REF", message, {
+      stage: "validate",
+      sourceLocation: { path: sourceFor(sourceKey, entityId), line: 1 },
+      entityId,
+      remediation: `Add the missing reference or fix '${fieldPath}'`,
+    });
+  };
+
+  for (const item of catalogue.gunModels) {
+    const rec = item as Record<string, unknown>;
+    const id = String(rec["id"]);
+    const familyId = rec["familyId"];
+    if (typeof familyId === "string" && !familyIds.has(familyId)) {
+      ref(
+        "gunModels",
+        id,
+        "familyId",
+        `Gun model '${id}' references unknown gun family '${familyId}'`,
+      );
+    }
+    for (const techId of stringArray(rec["requiredTechnologyIds"])) {
+      if (!techIds.has(techId)) {
+        ref(
+          "gunModels",
+          id,
+          "requiredTechnologyIds",
+          `Gun model '${id}' references unknown technology '${techId}'`,
+        );
+      }
+    }
+  }
+
+  for (const item of catalogue.gunMounts) {
+    const rec = item as Record<string, unknown>;
+    const id = String(rec["id"]);
+    for (const familyId of stringArray(rec["compatibleGunFamilies"])) {
+      if (!familyIds.has(familyId)) {
+        ref(
+          "gunMounts",
+          id,
+          "compatibleGunFamilies",
+          `Gun mount '${id}' references unknown gun family '${familyId}'`,
+        );
+      }
+    }
+  }
+
+  for (const item of catalogue.ammunition) {
+    const rec = item as Record<string, unknown>;
+    const id = String(rec["id"]);
+    for (const familyId of stringArray(rec["compatibleGunFamilies"])) {
+      if (!familyIds.has(familyId)) {
+        ref(
+          "ammunition",
+          id,
+          "compatibleGunFamilies",
+          `Ammunition '${id}' references unknown gun family '${familyId}'`,
+        );
+      }
+    }
+    for (const modelId of stringArray(rec["compatibleGunModelIds"])) {
+      if (!gunModelIds.has(modelId)) {
+        ref(
+          "ammunition",
+          id,
+          "compatibleGunModelIds",
+          `Ammunition '${id}' references unknown gun model '${modelId}'`,
+        );
+      }
+    }
+  }
+
+  for (const item of catalogue.shipComponents) {
+    const rec = item as Record<string, unknown>;
+    const id = String(rec["id"]);
+    for (const required of stringArray(rec["requires"])) {
+      if (!techIds.has(required)) {
+        ref(
+          "shipComponents",
+          id,
+          "requires",
+          `Component '${id}' requires unknown technology '${required}'`,
+        );
+      }
+    }
+    for (const upgrade of stringArray(rec["upgradePath"])) {
+      if (!componentIds.has(upgrade)) {
+        ref(
+          "shipComponents",
+          id,
+          "upgradePath",
+          `Component '${id}' upgradePath references unknown component '${upgrade}'`,
+        );
+      }
+    }
+  }
+
+  for (const item of catalogue.navalProfiles) {
+    const rec = item as Record<string, unknown>;
+    const nationId = String(rec["nationId"]);
+    const hard = rec["hardCapabilities"] as Record<string, unknown> | undefined;
+    if (hard) {
+      for (const hullFormId of stringArray(hard["hullForms"])) {
+        if (!hullFormIds.has(hullFormId)) {
+          ref(
+            "navalProfiles",
+            nationId,
+            "hardCapabilities.hullForms",
+            `Naval profile '${nationId}' references unknown hull form '${hullFormId}'`,
+          );
+        }
+      }
+      for (const plantId of stringArray(hard["domesticPlants"])) {
+        if (!plantIds.has(plantId)) {
+          ref(
+            "navalProfiles",
+            nationId,
+            "hardCapabilities.domesticPlants",
+            `Naval profile '${nationId}' references unknown propulsion plant '${plantId}'`,
+          );
+        }
+      }
+    }
+    const componentAccess = rec["componentAccess"];
+    if (componentAccess && typeof componentAccess === "object") {
+      for (const componentId of Object.keys(componentAccess)) {
+        if (!componentIds.has(componentId)) {
+          ref(
+            "navalProfiles",
+            nationId,
+            "componentAccess",
+            `Naval profile '${nationId}' references unknown component '${componentId}'`,
+          );
+        }
+      }
+    }
+  }
+
+  for (const item of catalogue.referenceDesigns) {
+    const rec = item as Record<string, unknown>;
+    const id = String(rec["id"]);
+    const draft = rec["draft"] as Record<string, unknown> | undefined;
+    const hull = draft?.["hull"] as Record<string, unknown> | undefined;
+    const hullFormId = hull?.["hullFormId"];
+    if (typeof hullFormId === "string" && !hullFormIds.has(hullFormId)) {
+      ref(
+        "referenceDesigns",
+        id,
+        "draft.hull.hullFormId",
+        `Reference design '${id}' references unknown hull form '${hullFormId}'`,
+      );
+    }
+    const machinery = draft?.["machinery"] as Record<string, unknown> | undefined;
+    const plantId = machinery?.["plantId"];
+    if (typeof plantId === "string" && !plantIds.has(plantId)) {
+      ref(
+        "referenceDesigns",
+        id,
+        "draft.machinery.plantId",
+        `Reference design '${id}' references unknown propulsion plant '${plantId}'`,
+      );
+    }
+  }
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 }
 
 /**

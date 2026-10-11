@@ -73,7 +73,207 @@ function nationYaml(id: string, tag: string, name: string, isPlayable = false): 
 `;
 }
 
+/** A strict-ShipComponentSchema-compliant component as one `components` array item. */
+function componentYaml(id: string): string {
+  return `
+  - id: "${id}"
+    displayName: "${id}"
+    category: "MATERIAL"
+    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
+    requires: []
+    parameters: {}
+    constants: {}
+    weightKg: "1"
+    volumeLitre: "1"
+    costMicro: "1"
+    crew: "0"
+    powerKw: "0"
+    upgradePath: []
+    tags: []
+`;
+}
+
+function shipBuildingInput(fixturePath: string): Record<string, string[]> {
+  return {
+    shipComponentFiles: [resolve(fixturePath, "ship-building/components.yaml")],
+    shipBalanceFiles: [resolve(fixturePath, "ship-building/balance.yaml")],
+  };
+}
+
 describe("Compiler", () => {
+  it("compiles the full ship-building surface into one bundled artifact", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({ name: "test-pack", version: "0.4.0", type: "production", files: {} }),
+      );
+      writeFixture(
+        fixture.path,
+        "ship-building/components.yaml",
+        `components:${componentYaml("comp_a")}${componentYaml("comp_b")}`,
+      );
+      writeFixture(fixture.path, "ship-building/balance.yaml", `ship:\n  dummy: 1\n`);
+
+      const collector = new DiagnosticCollector();
+      const output = new Compiler().compile(
+        {
+          manifestPath: "pack.json",
+          contentDir: fixture.path,
+          rulesetFiles: [],
+          countryFiles: [],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [],
+          ...shipBuildingInput(fixture.path),
+        },
+        new AbortController().signal,
+        collector,
+      );
+
+      expect(collector.hasErrors).toBe(false);
+      expect(output).toBeDefined();
+      expect(output!.contentVersion).toBe("0.4.0");
+      expect(output!.bundle.shipBuilding).toBeDefined();
+      expect(output!.bundle.shipBuilding!.components).toHaveLength(2);
+      expect(output!.bundle.shipBuilding!.balance).toEqual({ ship: { dummy: 1 } });
+      expect(output!.bundle.generatedBy).toContain("content:build");
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("omits shipBuilding from the bundle for a content-pack-only input", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({ name: "test-pack", version: "0.1.0", type: "fixture", files: {} }),
+      );
+      const collector = new DiagnosticCollector();
+      const output = new Compiler().compile(
+        {
+          manifestPath: "pack.json",
+          contentDir: fixture.path,
+          rulesetFiles: [],
+          countryFiles: [],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [],
+        },
+        new AbortController().signal,
+        collector,
+      );
+      expect(output).toBeDefined();
+      expect(output!.bundle.shipBuilding).toBeUndefined();
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("rejects duplicate ship-building ids with the source file", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({ name: "test-pack", version: "0.1.0", type: "fixture", files: {} }),
+      );
+      writeFixture(
+        fixture.path,
+        "ship-building/components.yaml",
+        `components:${componentYaml("comp_a")}${componentYaml("comp_a")}`,
+      );
+
+      const collector = new DiagnosticCollector();
+      const output = new Compiler().compile(
+        {
+          manifestPath: "pack.json",
+          contentDir: fixture.path,
+          rulesetFiles: [],
+          countryFiles: [],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [],
+          shipComponentFiles: [resolve(fixture.path, "ship-building/components.yaml")],
+        },
+        new AbortController().signal,
+        collector,
+      );
+
+      expect(output).toBeUndefined();
+      const dup = collector.errors.find((d) => d.code === "DUP-ID");
+      expect(dup).toBeDefined();
+      expect(dup!.sourceLocation?.path).toBe(
+        resolve(fixture.path, "ship-building/components.yaml"),
+      );
+      expect(dup!.entityId).toBe("comp_a");
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("rejects a dangling cross-file ship-building reference with file + field path", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({ name: "test-pack", version: "0.1.0", type: "fixture", files: {} }),
+      );
+      writeFixture(
+        fixture.path,
+        "ship-building/reference-designs/uk/starters.yaml",
+        `
+designs:
+  - id: "rd_1"
+    name: "Reference One"
+    month: "1880-01"
+    draft:
+      hull: { hullFormId: "missing_form" }
+      machinery: { plantId: "missing_plant" }
+`,
+      );
+
+      const collector = new DiagnosticCollector();
+      const output = new Compiler().compile(
+        {
+          manifestPath: "pack.json",
+          contentDir: fixture.path,
+          rulesetFiles: [],
+          countryFiles: [],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [],
+          referenceDesignFiles: [
+            resolve(fixture.path, "ship-building/reference-designs/uk/starters.yaml"),
+          ],
+        },
+        new AbortController().signal,
+        collector,
+      );
+
+      expect(output).toBeUndefined();
+      const refs = collector.errors.filter((d) => d.code === "REF");
+      expect(refs.some((d) => d.message.includes("missing_form"))).toBe(true);
+      expect(refs.some((d) => d.message.includes("missing_plant"))).toBe(true);
+      const refSource = resolve(fixture.path, "ship-building/reference-designs/uk/starters.yaml");
+      expect(refs.every((d) => d.sourceLocation?.path === refSource)).toBe(true);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
   it("compiles a valid content pack", () => {
     const fixture = createFixtureDir();
     try {

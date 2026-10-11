@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0122).
+highest existing number + 1 (the next number is ADR-0123).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -32,6 +32,7 @@ Core engine geometry, determinism, persistence, and the compiler pipeline.
 | 0036 | [ADR-0036-contract-phase-registry.md](ADR-0036-contract-phase-registry.md) | Contract the PhaseRegistry into the Real Execution Path | accepted | — |
 | 0037 | [ADR-0037-design-unit-normalization.md](ADR-0037-design-unit-normalization.md) | Normalize Authored Design Units at Compile | accepted | — |
 | 0113 | [ADR-0113-save-compatibility-policy.md](ADR-0113-save-compatibility-policy.md) | First-release save-compatibility policy — reject on mismatch | accepted | — |
+| 0122 | [ADR-0122-compiled-content-bundle.md](ADR-0122-compiled-content-bundle.md) | Compiled content bundle — one hash-pinned artifact for the full authored surface | accepted | — |
 
 ## Effect adoption
 

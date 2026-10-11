@@ -1,8 +1,8 @@
-import { Compiler } from "@bluewave/content-compiler";
+import { Compiler, BUNDLE_GENERATED_BY } from "@bluewave/content-compiler";
 import type { CompilerInput } from "@bluewave/content-compiler";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
-import { resolve, normalize, join } from "node:path";
+import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync, renameSync } from "node:fs";
+import { resolve, join } from "node:path";
 import {
   canonicalSerialize,
   sha256Hex,
@@ -43,6 +43,10 @@ import {
 } from "@bluewave/combat";
 import { RandomEngine } from "@bluewave/random";
 import { runCombatOperation } from "./combatDiagnostics.js";
+import { safePath } from "./safePath.js";
+import { discoverShipBuildingFiles } from "./shipBuildingDiscovery.js";
+
+export { safePath } from "./safePath.js";
 
 export type OutputMode = "human" | "json";
 export type ExitCategory =
@@ -972,17 +976,128 @@ export function buildCampaignFiles(
   };
 }
 
-export function safePath(file: string): string {
-  // must check raw before normalize() collapses a/../b -> b
-  if (file.split(/[/\\]+/).includes("..")) {
-    throw new Error(`Path traversal detected: ${file}`);
+export function buildContentSurfaceInput(
+  options: CliOptions,
+  collector: DiagnosticCollector,
+): CompilerInput | undefined {
+  const base = buildInput(options, collector);
+  if (!base) return undefined;
+  const contentDir = resolve(options.contentDir);
+  const groups = discoverShipBuildingFiles(contentDir);
+  const toAbsolute = (file: string) => resolve(contentDir, safePath(file));
+  return {
+    ...base,
+    shipComponentFiles: groups.shipComponentFiles.map(toAbsolute),
+    propulsionPlantFiles: groups.propulsionPlantFiles.map(toAbsolute),
+    hullFormFiles: groups.hullFormFiles.map(toAbsolute),
+    shipBalanceFiles: groups.shipBalanceFiles.map(toAbsolute),
+    gunFamilyFiles: groups.gunFamilyFiles.map(toAbsolute),
+    gunModelFiles: groups.gunModelFiles.map(toAbsolute),
+    gunMountFiles: groups.gunMountFiles.map(toAbsolute),
+    ammunitionFiles: groups.ammunitionFiles.map(toAbsolute),
+    navalProfileFiles: groups.navalProfileFiles.map(toAbsolute),
+    referenceDesignFiles: groups.referenceDesignFiles.map(toAbsolute),
+  };
+}
+
+/**
+ * `content:check` — the designer-facing alias over the existing compiler that
+ * validates the **whole** authored surface (content-pack collections plus the
+ * ship-building catalogue) and writes nothing (BW-CLI-001, BW-CMP-001).
+ */
+export function runContentCheck(options: CliOptions): ExitCategory {
+  const collector = new DiagnosticCollector();
+  const input = buildContentSurfaceInput(options, collector);
+  if (!input) return "usage-error";
+  const output = new Compiler().compile(input, new AbortController().signal, collector);
+  printDiagnostics(collector, options.outputMode);
+  if (collector.hasErrors) return "validation-error";
+  if (!output) return "compile-error";
+  const contentHash = createEnvelope("content-bundle", "0.1.0", output.bundle).bodyHash;
+  if (options.outputMode === "json") {
+    printResult(
+      JSON.stringify({
+        contentVersion: output.contentVersion,
+        contentHash,
+        shipBuilding: output.bundle.shipBuilding !== undefined,
+      }),
+      "human",
+    );
+  } else {
+    printResult("Content check passed", "human");
+    printResult(`  Content version: ${output.contentVersion}`, "human");
+    printResult(`  Content hash: ${contentHash}`, "human");
+    printResult(
+      `  Ship-building catalogue: ${output.bundle.shipBuilding ? "included" : "absent"}`,
+      "human",
+    );
   }
-  const normalized = normalize(file);
-  const segments = normalized.split(/[/\\]+/);
-  if (segments.includes("..")) {
-    throw new Error(`Path traversal detected: ${file}`);
+  return "success";
+}
+
+/**
+ * `content:build` — validates the whole surface and emits the generated
+ * content artifact + manifest (semantic content version + SHA-256 body hash).
+ * The artifact is inert JSON carrying a do-not-edit marker; two builds over
+ * unchanged content are byte-identical (BW-CMP-002, BW-DET-003).
+ */
+export function runContentBuild(options: CliOptions): ExitCategory {
+  const collector = new DiagnosticCollector();
+  const input = buildContentSurfaceInput(options, collector);
+  if (!input) return "usage-error";
+  const output = new Compiler().compile(input, new AbortController().signal, collector);
+  printDiagnostics(collector, options.outputMode);
+  if (collector.hasErrors) return "validation-error";
+  if (!output) return "compile-error";
+
+  const outDir = resolve(options.outputDir);
+  mkdirSync(outDir, { recursive: true });
+  const artifactPath = resolve(outDir, "content-artifact.json");
+  const manifestPath = resolve(outDir, "content-manifest.json");
+  const envelope = createEnvelope("content-bundle", "0.1.0", output.bundle);
+  const artifactJson = canonicalSerialize(output.bundle);
+  const manifest = {
+    manifestVersion: 1,
+    doNotEdit: BUNDLE_GENERATED_BY,
+    contentVersion: output.contentVersion,
+    artifactKind: envelope.artifactKind,
+    compatibilityVersion: envelope.compatibilityVersion,
+    algorithm: envelope.algorithm,
+    bodyHash: envelope.bodyHash,
+    bodyLength: envelope.bodyLength,
+  };
+  const manifestJson = canonicalSerialize(manifest);
+  const tempArtifact = artifactPath + ".tmp";
+  const tempManifest = manifestPath + ".tmp";
+  try {
+    writeFileSync(tempArtifact, artifactJson, "utf8");
+    writeFileSync(tempManifest, manifestJson, "utf8");
+    // Rename is atomic per file: the manifest lands first so a reader never sees
+    // a new artifact described by an old manifest. The final paths are never
+    // left partially written.
+    renameSync(tempManifest, manifestPath);
+    renameSync(tempArtifact, artifactPath);
+  } finally {
+    rmSync(tempArtifact, { force: true });
+    rmSync(tempManifest, { force: true });
   }
-  return normalized;
+  if (options.outputMode === "json") {
+    printResult(
+      JSON.stringify({
+        contentVersion: output.contentVersion,
+        contentHash: envelope.bodyHash,
+        artifactPath,
+        manifestPath,
+      }),
+      "human",
+    );
+  } else {
+    printResult("Content built successfully", "human");
+    printResult(`  Artifact: ${artifactPath} (SHA-256: ${envelope.bodyHash})`, "human");
+    printResult(`  Manifest: ${manifestPath}`, "human");
+    printResult(`  Content version: ${output.contentVersion}`, "human");
+  }
+  return "success";
 }
 
 function printDiagnostics(collector: DiagnosticCollector, mode: OutputMode): void {

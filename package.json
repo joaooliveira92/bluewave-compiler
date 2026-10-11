@@ -19,6 +19,8 @@
     "change-scope": "node scripts/change-scope.mjs",
     "check:balance-reports": "node scripts/check-balance-reports.cjs",
     "check:commit-msgs": "node scripts/check-commit-msgs.cjs",
+    "content:check": "pnpm --filter @bluewave/compiler-cli build && node apps/compiler-cli/dist/main.js content:check --manifest content/production/1880/pack.json --content-dir content/production/1880",
+    "content:build": "pnpm --filter @bluewave/compiler-cli build && node apps/compiler-cli/dist/main.js content:build --manifest content/production/1880/pack.json --content-dir content/production/1880 --output-dir content/generated/1880",
     "snap": "pnpm --filter @bluewave/desktop build && pnpm --filter @bluewave/desktop run snap",
     "snap:debug": "pnpm --filter @bluewave/desktop exec cross-env VITE_BLUEWAVE_DEBUG=true electron-vite build && pnpm --filter @bluewave/desktop run snap",
     "dev": "pnpm preflight && turbo run dev",

@@ -4,7 +4,8 @@ vi.mock("node:fs", () => ({
   readFileSync: vi.fn(),
 }));
 
-vi.mock("@bluewave/content-schema", () => ({
+vi.mock("@bluewave/content-schema", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   parseYamlSafe: vi.fn(),
 }));
 

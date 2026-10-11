@@ -13,6 +13,10 @@ playwright-report/
 *.tgz
 .dev-data/
 
+# Generated content artifacts (rebuilt by `pnpm content:build`; never a source
+# of truth — DESIGN-05). See docs/adr for the artifact ADR.
+content/generated/
+
 .turbo
 apps/desktop/dist-electron/
 # tsc -b emits alongside the sources it compiles
