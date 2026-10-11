@@ -45,8 +45,10 @@ Live roadmap / next-action detail: `.ai/SPRINT-PLAN.md`.
 > "error"` policy centralized in `decode.ts` (ADR-0105), every transitive consumer
 > migrated. Gate green (build 20/20, typecheck 37/37, lint 0/0, `test:run` 241
 > files/1554 tests, goldens 10/10, cross-process `success:true`, e2e 30). Report
-> `.ai/reports/effect-v4-ticket-08-content-schema.md`. **Next: ticket 10** (`events`
-> validation), then 11–15 to close Wave 2.
+> `.ai/reports/effect-v4-ticket-08-content-schema.md`. **Ticket 10 (`events`
+> validation Zod→Effect Schema) DONE — PASS** (report
+> `.ai/reports/effect-v4-ticket-10-events-validation.md`; same gate green).
+> **Next: ticket 11** (`campaign-engine` priorities), then 12–15 to close Wave 2.
 
 ---
 

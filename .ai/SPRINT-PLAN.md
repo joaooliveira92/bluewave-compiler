@@ -331,10 +331,14 @@ strict `onExcessProperty: "error"` policy centralized in `decode.ts` (`ADR-0105`
 every transitive consumer migrated (`ship-design`, `phase-engine`, `campaign`,
 desktop). Gate: build 20/20 uncached, typecheck 37/37, lint 0/0, `lint:effect` 0
 errors, format clean, `test:run` 241 files/1554 tests, goldens 10/10,
-cross-process byte-identical `success:true`, e2e 30 passed. **Next action: ticket
-10** (Wave 2 — `events` validation Zod→Effect Schema, atomic), then continue the
-frontier per `.ai/ORCHESTRATION.md` (11 `campaign-engine` priorities, 12 `combat`
-contracts, 13 desktop main schemas, 14 remove `zod`, 15 Wave 2 exit gate). Vendor
+cross-process byte-identical `success:true`, e2e 30 passed. **Ticket 10 (Wave 2 —
+`events` validation Zod→Effect Schema, atomic) DONE 2026-10-11 — PASS**
+(`.ai/reports/effect-v4-ticket-10-events-validation.md`): `events/validation.ts`
+on Effect Schema (trim/`Schema.Finite`/verbatim Zod datetime-offset regex/union +
+`eventType === body.kind` filter), `zod` removed; same gate green. **Next action:
+ticket 11** (`campaign-engine` priorities Zod→Effect Schema), then 12 (`combat`
+contracts), 13 (desktop main schemas), 14 (remove `zod` everywhere), 15 (Wave 2
+exit gate), continuing the frontier per `.ai/ORCHESTRATION.md`. Vendor
 the Effect v4 runtime as first-class pnpm workspace packages
 (no registry resolution), enforce the single-copy graph invariant, migrate every Zod boundary
 to Effect Schema, and flip cross-package facades to Effect-typed interfaces; determinism-gate

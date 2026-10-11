@@ -41,15 +41,15 @@ documented, not hidden.
 
 ## Requirements evidence
 
-| Requirement | Implementation | Proving test / evidence |
-| --- | --- | --- |
-| MIG-ZOD-1/2 | 16 files on Effect Schema; `decode.ts`; `zod` removed | `rg '"zod"\|from "zod"' packages/content-schema packages/content-compiler` → empty; `pnpm --filter @bluewave/content-schema test` 48 passed |
-| Strict parity per schema | `decode.ts` strict option; nested rejection | `test/parity.test.ts` (top-level + nested-array excess reject, record keys still accepted), `test/nation.test.ts` strict, `test/naval-profile.test.ts` real catalogue + nested excess |
-| Non-finite parity | `Schema.Finite` everywhere | `test/parity.test.ts` rejects `NaN`/`±Infinity` where Zod did |
-| MIG-WIRE-2 | real production pack + compiler fixtures decode identically | `apps/desktop/test/production-pack.test.ts` (zero diagnostics, stable hashes); `pnpm --filter @bluewave/content-compiler test` 14 passed; compiler fixture codes `DUP-ID`/`REF`/`TECHNOLOGY_PREREQUISITE_CYCLE` unchanged |
-| MIG-RUNTIME-1 | only `Schema`/`SchemaIssue` imported | grep: no `Effect`/`Layer`/`ManagedRuntime`/`Effect.run*` in `content-schema/src` |
-| validator diagnostics | `schema-validator.ts` | `test/schema-validator.test.ts` (success, excess → `SCHEMA` + `Expected no excess property`, missing key → remediation, `(root)`) |
-| ticket 09 coupling | `validate.ts` uses `ContentSchema` | `pnpm --filter @bluewave/content-compiler test` green; `zod` gone |
+| Requirement              | Implementation                                              | Proving test / evidence                                                                                                                                                                                                   |
+| ------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MIG-ZOD-1/2              | 16 files on Effect Schema; `decode.ts`; `zod` removed       | `rg '"zod"\|from "zod"' packages/content-schema packages/content-compiler` → empty; `pnpm --filter @bluewave/content-schema test` 48 passed                                                                               |
+| Strict parity per schema | `decode.ts` strict option; nested rejection                 | `test/parity.test.ts` (top-level + nested-array excess reject, record keys still accepted), `test/nation.test.ts` strict, `test/naval-profile.test.ts` real catalogue + nested excess                                     |
+| Non-finite parity        | `Schema.Finite` everywhere                                  | `test/parity.test.ts` rejects `NaN`/`±Infinity` where Zod did                                                                                                                                                             |
+| MIG-WIRE-2               | real production pack + compiler fixtures decode identically | `apps/desktop/test/production-pack.test.ts` (zero diagnostics, stable hashes); `pnpm --filter @bluewave/content-compiler test` 14 passed; compiler fixture codes `DUP-ID`/`REF`/`TECHNOLOGY_PREREQUISITE_CYCLE` unchanged |
+| MIG-RUNTIME-1            | only `Schema`/`SchemaIssue` imported                        | grep: no `Effect`/`Layer`/`ManagedRuntime`/`Effect.run*` in `content-schema/src`                                                                                                                                          |
+| validator diagnostics    | `schema-validator.ts`                                       | `test/schema-validator.test.ts` (success, excess → `SCHEMA` + `Expected no excess property`, missing key → remediation, `(root)`)                                                                                         |
+| ticket 09 coupling       | `validate.ts` uses `ContentSchema`                          | `pnpm --filter @bluewave/content-compiler test` green; `zod` gone                                                                                                                                                         |
 
 ## Commands and observed results
 
