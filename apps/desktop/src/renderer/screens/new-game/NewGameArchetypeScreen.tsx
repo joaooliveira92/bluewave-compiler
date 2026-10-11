@@ -176,7 +176,7 @@ export function NewGameArchetypeScreen({
       </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto pb-0">
+        <DialogContent className="flex h-[96vh] w-[98vw] max-w-none flex-col gap-3 overflow-hidden p-4">
           <DialogHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted/40">
@@ -201,7 +201,7 @@ export function NewGameArchetypeScreen({
             </Button>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 overflow-y-auto lg:grid-cols-2">
             <div className="min-w-0 space-y-4">
               <ArchetypeAllocationEditor
                 allocation={draft.allocation}
@@ -219,7 +219,7 @@ export function NewGameArchetypeScreen({
             </div>
           </div>
 
-          <DialogFooter className="sticky bottom-0 -mx-6 -mb-6 flex-row border-t bg-background px-6 py-4 sm:justify-end sm:space-x-2">
+          <DialogFooter className="-mx-4 -mb-4 flex-row border-t bg-background px-4 py-4 sm:justify-end sm:space-x-2">
             <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
