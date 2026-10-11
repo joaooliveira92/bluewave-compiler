@@ -1,9 +1,9 @@
 # 04 — Renderer decoupling: main serves content over a narrow IPC
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** 03
-**Frontier:** yes
+**Frontier:** no
 
 ## What to build
 
@@ -45,3 +45,43 @@ contract by deleting the old loader and the raw YAML imports.
   schema/effect import should remove the need for it.
 - If the migration batches cannot stay green on their own, share an integration
   branch and make this ticket the integrate-and-verify gate.
+
+## Comments
+
+**Resolved (2026-10-11).** The renderer stops parsing content; `yaml` and
+`effect` left the built renderer bundle (ADR-0125, executing ADR-0105
+`MIG-EXCL-1`).
+
+- **Narrow content IPC (CRI-IPC-1).** A new `inspectDrawingBoardContent` command
+  on the existing `campaign:execute` boundary returns the data-only
+  `DrawingBoardContentDto` (`{ catalogue: ShipBuildingData }`, in
+  `src/shared/content-contract.ts`). Main decodes it once from the verified
+  artifact (`loadShipBuildingData` extracted from `shipBuildingContent.ts`;
+  `commands/contentCommands.ts`). No path, generic file-read, or parse capability
+  is exposed.
+- **Renderer seam (CRI-IPC-2/4).** `drawing-board/content.ts` no longer imports
+  `yaml`, `@bluewave/content-schema`, `node:fs`, or `?raw` documents; it rebuilds
+  the runtime catalogue from the injected DTO with the effect-free
+  `buildShipBuildingContent`. `useDrawingBoardContentSource` fetches the DTO over
+  IPC once and injects it; `DrawingBoardDialog` renders the board only when ready
+  and fails closed otherwise. The vitest setup seeds the same seam from the
+  compiled artifact, so every drawing-board/panel test renders decoded content
+  instead of parsing YAML (60 construction files / 433 tests green).
+- **Bundle exit (CRI-IPC-3).** Removing the renderer's `content-schema` import
+  removed `yaml`; `effect` survived via `campaign-engine`'s module-scope Effect
+  schemas and `content-schema`'s barrel. Fixed by `"sideEffects": false` on
+  `campaign-engine` and `content-schema` and moving the two plain priority
+  constants (`MIN_RESEARCH_SHARE_BP`, `NEAR_COMPLETION_WORK_RATIO`) into an
+  effect-free `priorityConstants.ts` (public surface unchanged). The built
+  renderer is now clean across all 20 chunks.
+- **Guards (CRI-IPC-5).** `src/renderer/content-boundary.test.ts` scans renderer
+  sources for forbidden imports/raw docs; `scripts/check-renderer-bundle.mjs`
+  (wired into the desktop `build`/`build:debug` scripts) fails the build if
+  `YAMLParseError`/`EffectTypeId` reappear in any renderer chunk.
+- `@content` vite/vitest/tsconfig aliases and `raw.d.ts` deleted (no longer
+  needed).
+
+Tests: desktop 252 files / 1656 green (incl. new `useDrawingBoardContent`,
+`content-boundary`, and the bridge content-command test); `pnpm typecheck` green;
+renderer build emits a clean bundle. ADR-0125 records the decision; ADR-0105's
+deviation #1 is marked executed.

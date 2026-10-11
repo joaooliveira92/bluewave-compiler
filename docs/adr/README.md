@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0125).
+highest existing number + 1 (the next number is ADR-0126).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -176,6 +176,7 @@ Electron boundary, renderer screens, UX, and presentation.
 | 0118 | [ADR-0118-react-devtools-opt-in-dev-dependency.md](ADR-0118-react-devtools-opt-in-dev-dependency.md) | React DevTools are an opt-in dev dependency kept out of the production main bundle | accepted | — |
 | 0120 | [ADR-0120-desktop-quit-on-close-and-signals.md](ADR-0120-desktop-quit-on-close-and-signals.md) | The desktop app quits on window close and on termination signals | accepted | — |
 | 0121 | [ADR-0121-desktop-shell-hardening.md](ADR-0121-desktop-shell-hardening.md) | Desktop shell hardening — renderer recovery, single instance, and a bounded flushing quit | accepted | — |
+| 0125 | [ADR-0125-renderer-content-ipc.md](ADR-0125-renderer-content-ipc.md) | Renderer decoupling over a narrow content IPC — executing `MIG-EXCL-1` | accepted | — |
 
 ## Process & documentation
 

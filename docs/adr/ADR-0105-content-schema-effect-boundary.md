@@ -99,8 +99,8 @@ Two semantic gaps had to be closed before the swap could be called parity-safe:
 
 1. **Renderer bundle (MIG-EXCL-1 deviation).** The renderer
    (`apps/desktop/src/renderer/screens/construction/drawing-board/content.ts`)
-   validates bundled ship-building YAML through the content-schema decode helpers
-   and therefore **transitively bundles Effect Schema**, contradicting the
+   validated bundled ship-building YAML through the content-schema decode helpers
+   and therefore **transitively bundled Effect Schema**, contradicting the
    final-state MIG-EXCL-1 intent ("renderer imports no `effect`; bundle delta ≈ 0").
    This is pre-existing off-architecture content validation: the renderer already
    imported `@bluewave/content-schema` (on Zod) and `@bluewave/ship-design`
@@ -108,6 +108,12 @@ Two semantic gaps had to be closed before the swap could be called parity-safe:
    It is recorded, not hidden. The renderer decoupling (move validation to the main
    process and pass decoded content over IPC) and the renderer bundle-size + `snap`
    gate are scheduled to **Wave 5** (spec §5.2), which owns `MIG-EXCL-1`.
+   **Executed (2026-10-11) by ADR-0125** (ticket 04): the renderer now receives
+   decoded content over a narrow `inspectDrawingBoardContent` IPC, parses no
+   YAML, and bundles neither `yaml` nor `effect`. The effect removal also needed
+   `"sideEffects": false` on `campaign-engine`/`content-schema` and moving two
+   plain priority constants out of the effect-tainted `priorities.ts` — see
+   ADR-0125 for the full record.
 2. **Exported types are the readonly Effect view.** Schemas export
    `typeof S.Type`, which is deeply `readonly` (unlike Zod's mutable `z.infer`).
    ADR-0104 applied a package-local `Mutable<>` alias where an existing caller
