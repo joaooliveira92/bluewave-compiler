@@ -8,6 +8,7 @@ import {
   canRecoverRenderer,
   isActionableLoadFailure,
   MAX_RENDERER_RECOVERIES,
+  shouldReloadForDevToolsHook,
 } from "./shellPolicy.js";
 
 const isDev = process.env.NODE_ENV === "development" || process.argv.includes("--dev");
@@ -78,6 +79,34 @@ function attachFailureRecovery(win: BrowserWindow): void {
   });
 }
 
+/**
+ * React DevTools' page hook is installed by the extension's background worker,
+ * which can land after the first navigation — leaving React already initialised
+ * and unregistered, so the panel shows "this page doesn't have React". Reload
+ * once so the hook runs at `document_start` ahead of React (ADR-0118).
+ */
+function attachDevToolsPageHook(win: BrowserWindow): void {
+  let reloaded = false;
+  win.webContents.on("did-finish-load", () => {
+    if (reloaded) return;
+    void win.webContents
+      .executeJavaScript(
+        "window.__REACT_DEVTOOLS_GLOBAL_HOOK__ ? window.__REACT_DEVTOOLS_GLOBAL_HOOK__.renderers?.size : -1",
+      )
+      .then((rendererCount: unknown) => {
+        if (
+          typeof rendererCount === "number" &&
+          shouldReloadForDevToolsHook(rendererCount, reloaded)
+        ) {
+          reloaded = true;
+          console.log("[shell] React DevTools hook not attached yet; reloading once");
+          win.webContents.reload();
+        }
+      })
+      .catch(() => undefined);
+  });
+}
+
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
@@ -107,6 +136,7 @@ function createWindow(): BrowserWindow {
   if (isDev) {
     void win.loadURL("http://localhost:5173");
     win.webContents.openDevTools();
+    if (reactDevToolsRequested) attachDevToolsPageHook(win);
   } else {
     void win.loadFile(resolve(import.meta.dirname, "../renderer/index.html"));
   }

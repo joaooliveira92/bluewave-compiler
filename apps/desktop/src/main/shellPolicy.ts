@@ -23,3 +23,16 @@ export function canRecoverRenderer(
 ): boolean {
   return recoveries < max;
 }
+
+/**
+ * The React DevTools page hook is installed by the extension's background
+ * worker, which can land after the first navigation — leaving React already
+ * initialised and never registered (the panel shows "this page doesn't have
+ * React"). Reload once so the hook runs at `document_start` ahead of React.
+ */
+export function shouldReloadForDevToolsHook(
+  rendererCount: number,
+  alreadyReloaded: boolean,
+): boolean {
+  return !alreadyReloaded && rendererCount === 0;
+}

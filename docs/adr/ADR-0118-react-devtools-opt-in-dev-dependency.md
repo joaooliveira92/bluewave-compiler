@@ -56,6 +56,9 @@ concerns:
 - The installer's use of the deprecated `session.loadExtension` /
   `session.getAllExtensions` is adapted to Electron's modern `session.extensions.*`
   API (`src/main/extensionSession.ts`), so the shell emits no deprecation warnings.
+- The extension's page hook can arrive after the first navigation; a dev run
+  reloads the window once when React has not registered yet, so the panel shows
+  the tree instead of "this page doesn't have React".
 
 ## Alternatives considered
 
