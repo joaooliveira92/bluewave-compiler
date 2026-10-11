@@ -34,7 +34,8 @@ Prefer shared component families (`components.yaml` ids) with a national model; 
 Author `starter_*` designs in `reference-designs/<nationId>/starters.yaml` with `starterFor: B|CA|CL|DD|KE|AMC` and `nationId: <id>`.
 Each must compile legal under the nation's catalogue. Classify each exactly one of:
 `HISTORICAL_RECONSTRUCTION | HISTORICALLY_INSPIRED | DOCTRINE_TEMPLATE | BALANCE_TEMPLATE` (supply it in the
-completeness test's classification map, or replace a shared template). Do not weaken global classification to make a
+shared classification map `packages/ship-design/test/helpers/referenceClassifications.ts`, or replace a shared
+template). Do not weaken global classification to make a
 starter legal — fix the design or the profile.
 
 ## 5. Validate

@@ -19,20 +19,24 @@ viable procurement path per role group, and no release placeholder.
 | germany | yes | full | sachsen_1878 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
 | usa | yes | full | six DOCTRINE_TEMPLATEs |
 | japan | yes | full | six DOCTRINE_TEMPLATEs |
-| italy | yes | full | six DOCTRINE_TEMPLATEs |
-| russia | yes | full | six DOCTRINE_TEMPLATEs |
+| italy | yes | full | principe_amedeo_1874 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
+| russia | yes | full | petr_velikiy_1876 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
 | austria_hungary | yes | full | six DOCTRINE_TEMPLATEs |
 | spain | yes | full | six DOCTRINE_TEMPLATEs |
 | qing | yes | full | six DOCTRINE_TEMPLATEs |
-| ottoman_empire | no | full | six DOCTRINE_TEMPLATEs |
+| ottoman_empire | no | full | mesudiye_1875 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
 | netherlands | no | full | six DOCTRINE_TEMPLATEs |
 | portugal | no | full | six DOCTRINE_TEMPLATEs |
 | brazil | no | full | six DOCTRINE_TEMPLATEs |
 
-The eleven nations beyond the original UK/France/Germany slices use doctrine-template starters cloned from
-the shared 1880 templates; their national identity is carried by the profile (posture, doctrine, industrial
-multipliers, gun and component variants, procurement shares, naming). Historical-reconstruction starters are
-deferred (ADR-0108/ADR-0110).
+The eight remaining nations beyond the original UK/France/Germany slices, plus the
+cruiser-through-auxiliary starters of every nation, use doctrine-template starters
+cloned from the shared 1880 templates; their national identity is carried by the
+profile (posture, doctrine, industrial multipliers, gun and component variants,
+procurement shares, naming). Italy, Russia and the Ottoman Empire now begin with a
+`HISTORICAL_RECONSTRUCTION` capital ship promoted from their canonical reference
+design (ADR-0111); the remaining nations' historical-reconstruction starters are
+deferred (ADR-0108/ADR-0110) because the shared catalogue lacks their ordnance.
 
 ## Provenance summary
 
@@ -60,5 +64,6 @@ not a source anywhere; navypedia.org class pages (built on Conway's *1860–1905
 - Sourced shell masses for most non-British guns (only the German 26 cm and Austro-Hungarian 26/28 cm are
   grounded); a print ordnance table would upgrade these.
 - Moulded depths (UNVERIFIED for every 1880 hull), per-nation dock/throughput and budget sources.
-- The eleven new nations' starters are `DOCTRINE_TEMPLATE`; upgrading them to `HISTORICAL_RECONSTRUCTION`
-  needs per-nation design sourcing.
+- The remaining nations' starters are `DOCTRINE_TEMPLATE`; upgrading one to
+  `HISTORICAL_RECONSTRUCTION` needs a canonical design whose ordnance the shared
+  catalogue already models (ADR-0111 promoted Italy, Russia and the Ottoman Empire).

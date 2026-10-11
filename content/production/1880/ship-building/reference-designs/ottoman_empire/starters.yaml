@@ -1,44 +1,45 @@
 # Reference designs for the EARLY band (starting points for the Drawing Board and regression fixtures).
-# One directory per nation: starters.yaml (a `starterFor` opening design) and historical.yaml.
+# One directory per nation: openable starters (`starterFor`) and, when present, extra historical references.
+# A capital starter may itself be a HISTORICAL_RECONSTRUCTION promoted from the canonical reference (ADR-0111).
 # Fittings (magazines, quarters, pumps, ventilation) weigh nothing extra (White 1894, ADR-0083).
 designs:
-  # Battleship starter for Ottoman Empire (doctrine template; cloned from alexandra_1877).
-  - id: starter_b_ottoman_empire_1880
-    starterFor: B
-    name: Battleship (starter, B) — Ottoman Empire
+  # Mesudiye (1875): Ottoman central-battery ironclad, 8,938 t, 13.7 kn, 12x 10-in + 3x 7-in RML, 12-in iron belt.
+  - id: mesudiye_1875
+    name: Mesudiye (1875, central-battery ironclad)
     month: 1880-01
+    starterFor: B
     draft:
       nationId: ottoman_empire
       requirement:
         category: B
-        requiredSpeedMilliKnots: 15100
+        requiredSpeedMilliKnots: 13700
         cruiseSpeedMilliKnots: 8000
-        requiredRangeNm: 2700
+        requiredRangeNm: 2500
         designThreatId: rml_10in
         modernizationExpectation: MINOR
         crewQualityBp: 10000
         accommodationStandard: STANDARD
         protectionGoal: STANDARD
       hull:
-        hullFormId: coast_defence_form
-        lengthWl: 99100
-        beam: 19500
-        draught: 8000
+        hullFormId: pre_dreadnought_form
+        lengthWl: 102400
+        beam: 17900
+        draught: 7900
         depthToMainDeck: 10500
         blockCoeffBp: 6000
         materialId: iron
         structuralSchemeId: mixed
         subdivisionGrade: 2
-        targetDisplacementKg: 9492000
+        targetDisplacementKg: 8938000
         limitDisplacementKg: null
         designMarginBp: 300
         growthReserveBp: 300
       machinery:
         plantId: compound_cylindrical
-        installedKw: 7400
+        installedKw: 3500
         zoneId: CENTRAL_MACHINERY
         stationPermille: 400
-        fuelCapacityKg: 680000
+        fuelCapacityKg: 600000
         fuelZoneId: CENTRAL_MACHINERY
         fuelStationPermille: 450
         foulingBp: 0
@@ -50,71 +51,54 @@ designs:
           - {
               region: BELT_MAIN,
               thicknessUm: 305000,
-              lengthMm: 70000,
+              lengthMm: 75000,
               heightMm: 3200,
-              materialId: wrought_iron,
-              cosObliquityBp: 10000,
-            }
-          - {
-              region: DECK_MAIN,
-              thicknessUm: 55000,
-              lengthMm: 99100,
-              heightMm: 19500,
               materialId: wrought_iron,
               cosObliquityBp: 10000,
             }
           - {
               region: MAGAZINE_BOX,
               thicknessUm: 305000,
-              lengthMm: 70000,
+              lengthMm: 75000,
               heightMm: 3000,
               materialId: wrought_iron,
               cosObliquityBp: 10000,
             }
           - {
               region: BARBETTE,
-              thicknessUm: 203000,
-              lengthMm: 40000,
+              thicknessUm: 254000,
+              lengthMm: 30000,
               heightMm: 3000,
               materialId: wrought_iron,
               cosObliquityBp: 10000,
             }
-        citadelLengthMm: 70000
-        torpedoWarheadKg: 30
+        citadelLengthMm: 75000
+        torpedoWarheadKg: 20
         bunkerProtectionBp: 0
       placements:
         - {
             instanceId: main_fwd,
-            componentId: gun_rml_11in_25ton,
-            zoneId: FORECASTLE,
-            stationPermille: 40,
-            params: { barrels: 2, rounds: 100 },
+            componentId: gun_rml_10in_18ton,
+            zoneId: CENTRAL_MACHINERY,
+            stationPermille: 300,
+            params: { barrels: 6, rounds: 80 },
             magazineRef: mag_fwd,
           }
         - {
-            instanceId: sec_p,
-            componentId: gun_rml_10in_18ton_broadside,
-            zoneId: SUPERSTRUCTURE,
-            stationPermille: 560,
-            side: PORT,
-            params: { barrels: 5, rounds: 100 },
-            magazineRef: mag_sec,
+            instanceId: main_aft,
+            componentId: gun_rml_10in_18ton,
+            zoneId: CENTRAL_MACHINERY,
+            stationPermille: 480,
+            params: { barrels: 6, rounds: 80 },
+            magazineRef: mag_aft,
           }
         - {
-            instanceId: sec_s,
-            componentId: gun_rml_10in_18ton_broadside,
+            instanceId: sec,
+            componentId: gun_rml_7in_7ton,
             zoneId: SUPERSTRUCTURE,
             stationPermille: 560,
-            side: STBD,
-            params: { barrels: 5, rounds: 100 },
+            params: { barrels: 3, rounds: 100 },
             magazineRef: mag_sec,
-          }
-        - {
-            instanceId: tubes,
-            componentId: tube_14in_above_water,
-            zoneId: QUARTERDECK,
-            stationPermille: 900,
-            params: { tubes: 4 },
           }
         - {
             instanceId: mag_sec,
@@ -131,8 +115,8 @@ designs:
         - {
             instanceId: mag_aft,
             componentId: magazine_heavy,
-            zoneId: AFT_MAGAZINE,
-            stationPermille: 820,
+            zoneId: AFT_SERVICE,
+            stationPermille: 700,
           }
         - { instanceId: dyn, componentId: dynamo_small, zoneId: AFT_SERVICE, stationPermille: 690 }
         - {
@@ -146,7 +130,7 @@ designs:
             componentId: quarters_crew,
             zoneId: FWD_SERVICE,
             stationPermille: 250,
-            params: { blocks: 95 },
+            params: { blocks: 90 },
           }
         - {
             instanceId: funnel_a,

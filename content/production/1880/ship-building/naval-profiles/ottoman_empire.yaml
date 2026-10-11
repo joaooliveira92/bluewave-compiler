@@ -109,7 +109,7 @@ navalProfiles:
       gun_rml_125in_38ton: { status: UNAVAILABLE }
       gun_rml_12in_35ton: { status: UNAVAILABLE }
       gun_rml_12in_25ton: { status: UNAVAILABLE }
-      gun_rml_7in_7ton: { status: UNAVAILABLE }
+      gun_rml_7in_7ton: { status: IMPORTED, producer: "Armstrong" }
       gun_rml_10in_18ton: { status: IMPORTED, producer: "Armstrong" }
       gun_rml_10in_18ton_broadside: { status: IMPORTED, producer: "Armstrong" }
       gun_rml_8in_9ton: { status: IMPORTED, producer: "Armstrong" }
