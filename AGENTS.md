@@ -107,6 +107,16 @@ search/auto-import, and from file watching (see `vite.config.ts` and
 workspace and the graph is protected by a hard single-copy guard
 (`scripts/assert-single-effect.mjs`, wired into `pnpm preflight`).
 
+Effect code is additionally linted by the type-aware `@effect/tsgo` Oxlint gate
+(`pnpm lint:effect`, config `oxlint.effect.json`; part of `pnpm check`). It
+extends `@effect/tsgo/oxlint-presets/recommended.json`, runs `duplicatePackage`
+as an error to reinforce the single-copy invariant, and surfaces the determinism
+rules (`globalRandom`/`globalDate`/`cryptoRandomUUID`/`processEnv`/
+`nodeBuiltinImport`) as warnings per the runtime-usage policy. `@effect/tsgo` is
+a pinned **exact** devDependency **external** to `vendor/` — never vendor it; the
+standalone `oxlint`/`oxlint-tsgolint` invoker is pinned exact to the versions
+`vite-plus` resolves. See ADR-0100/ADR-0101 (adoption, vendoring).
+
 <!-- BEGIN:turborepo-agent-rules -->
 
 # This is NOT the Turborepo you know

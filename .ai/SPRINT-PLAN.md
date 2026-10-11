@@ -294,9 +294,15 @@ subtree merge). **Ticket 02 (workspace wiring + single-copy guard) DONE 2026-10-
 maps `effect`/`@effect/vitest` to `workspace:*`; `scripts/assert-single-effect.mjs` is a
 fail-closed hard `pnpm preflight` gate (9 self-test fixtures); `test:run` excludes vendor
 members. Gate green: build 20/20 uncached, typecheck 37/37, lint 0/0, format clean,
-`pnpm test:run` 241 files / 1554 tests, goldens 10/10, cross-process `success:true`. Next
-action: **ticket 03** (toolchain: pinned `@effect/tsgo` Oxlint gate, tsconfig policy,
-`AGENTS.md` "Vendored repositories", governing ADRs), then work the frontier per
+`pnpm test:run` 241 files / 1554 tests, goldens 10/10, cross-process `success:true`.
+**Ticket 03 (toolchain `@effect/tsgo` Oxlint gate + tsconfig policy + governing ADRs) DONE
+2026-10-11 — PASS** (`.ai/reports/effect-v4-ticket-03-toolchain-tsgo-gate.md`): `@effect/tsgo@0.51.1`
+pinned exact, external to `vendor/`; new `lint:effect` (root script + `oxlint.effect.json`,
+extends the tsgo recommended preset, `duplicatePackage: error`, determinism rules warn) wired
+into `pnpm check`; ADR-0100..0103 (adopt / vendor / Zod→Schema / DESIGN-08 demotion) + index.
+Gate green: build 20/20, typecheck 37/37, lint 0/0, `lint:effect` 0 errors, format clean,
+`pnpm test:run` 1554 tests, goldens 10/10, cross-process `success:true`. Next action:
+**ticket 04** (Wave 0 exit gate & rollback checkpoint), then work the frontier per
 `.ai/ORCHESTRATION.md`. Vendor the Effect v4 runtime as first-class pnpm workspace packages
 (no registry resolution), enforce the single-copy graph invariant, migrate every Zod boundary
 to Effect Schema, and flip cross-package facades to Effect-typed interfaces; determinism-gate

@@ -28,6 +28,12 @@ const AREAS = [
     nums: [1, 2, 3, 4, 5, 6, 7, 8, 9, 32, 34, 35, 36, 37],
   },
   {
+    name: "Effect adoption",
+    blurb:
+      "Adopting and vendoring Effect v4: the validator/runtime idiom, the read-only agent reference, and the determinism demotion.",
+    nums: [100, 101, 102, 103],
+  },
+  {
     name: "Campaign & strategy",
     blurb: "Strategic layer: diplomacy, economy, fleet, officers, command screens, and time.",
     nums: [10, 11, 54, 60, 61, 62, 65, 68, 71, 75, 81, 86],

@@ -16,6 +16,7 @@ ADRs that change a DESIGN rule (supersede, extend, or constrain it).
 | DESIGN doc | Amending ADRs |
 | --- | --- |
 | `DESIGN-07` Numeric And Temporal Contract | ADR-0037 |
+| `DESIGN-08` Determinism And Randomness | ADR-0103 |
 | `DESIGN-12` Nations And Governments | ADR-0089, ADR-0090, ADR-0092 |
 | `DESIGN-13` Economy And Accounting | ADR-0060 |
 | `DESIGN-17` Diplomacy | ADR-0010, ADR-0054 |

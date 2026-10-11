@@ -30,11 +30,11 @@ domain/application code.
 
 ## Requirements evidence
 
-| Requirement | Implementation | Proving test / evidence |
-| --- | --- | --- |
-| MIG-VENDOR-4 | `pnpm-workspace.yaml:4-5` (`packages:` += vendor dirs); `pnpm-workspace.yaml:13-20` (`overrides`) | lockfile importers `vendor/effect`, `vendor/effect-vitest`; `pnpm install --frozen-lockfile` no-op |
-| MIG-GRAPH-1 | `scripts/assert-single-effect.mjs` (`checkLockfile`, `runSelfTest`); `package.json` `preflight`; `test:run` filter | `node scripts/assert-single-effect.mjs` exit 0; `--self-test` 9/9; seeded duplicate fixtures + empty/garbage fixtures exit non-zero |
-| MIG-GRAPH-2 | `pnpm-workspace.yaml` overrides + vendored wrapper `package.json` version `4.0.2` satisfying `@effect/vitest` peer `effect ^4.0.2` | lockfile has zero `packages:`/`snapshots:` key `effect@<version>`; only `link:../effect` |
+| Requirement  | Implementation                                                                                                                     | Proving test / evidence                                                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| MIG-VENDOR-4 | `pnpm-workspace.yaml:4-5` (`packages:` += vendor dirs); `pnpm-workspace.yaml:13-20` (`overrides`)                                  | lockfile importers `vendor/effect`, `vendor/effect-vitest`; `pnpm install --frozen-lockfile` no-op                                  |
+| MIG-GRAPH-1  | `scripts/assert-single-effect.mjs` (`checkLockfile`, `runSelfTest`); `package.json` `preflight`; `test:run` filter                 | `node scripts/assert-single-effect.mjs` exit 0; `--self-test` 9/9; seeded duplicate fixtures + empty/garbage fixtures exit non-zero |
+| MIG-GRAPH-2  | `pnpm-workspace.yaml` overrides + vendored wrapper `package.json` version `4.0.2` satisfying `@effect/vitest` peer `effect ^4.0.2` | lockfile has zero `packages:`/`snapshots:` key `effect@<version>`; only `link:../effect`                                            |
 
 ## Commands and observed results
 

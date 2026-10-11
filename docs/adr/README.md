@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0100).
+highest existing number + 1 (the next number is ADR-0104).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -31,6 +31,17 @@ Core engine geometry, determinism, persistence, and the compiler pipeline.
 | 0035 | [ADR-0035-engine-event-timestamp-contract.md](ADR-0035-engine-event-timestamp-contract.md) | Engine Event Timestamps — Deterministic ISO-8601 Contract | accepted | — |
 | 0036 | [ADR-0036-contract-phase-registry.md](ADR-0036-contract-phase-registry.md) | Contract the PhaseRegistry into the Real Execution Path | accepted | — |
 | 0037 | [ADR-0037-design-unit-normalization.md](ADR-0037-design-unit-normalization.md) | Normalize Authored Design Units at Compile | accepted | — |
+
+## Effect adoption
+
+Adopting and vendoring Effect v4: the validator/runtime idiom, the read-only agent reference, and the determinism demotion.
+
+| # | File | Title | Status | Superseded by |
+| --- | --- | --- | --- | --- |
+| 0100 | [ADR-0100-adopt-effect-v4.md](ADR-0100-adopt-effect-v4.md) | Adopt Effect v4 | accepted | — |
+| 0101 | [ADR-0101-vendor-effect.md](ADR-0101-vendor-effect.md) | Vendor Effect | accepted | — |
+| 0102 | [ADR-0102-replace-zod-with-effect-schema.md](ADR-0102-replace-zod-with-effect-schema.md) | Replace Zod with Effect Schema | accepted | — |
+| 0103 | [ADR-0103-design-08-determinism-spine-demoted.md](ADR-0103-design-08-determinism-spine-demoted.md) | DESIGN-08 determinism spine demoted | accepted | — |
 
 ## Campaign & strategy
 

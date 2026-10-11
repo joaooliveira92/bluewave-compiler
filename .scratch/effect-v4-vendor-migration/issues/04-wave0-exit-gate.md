@@ -3,7 +3,7 @@
 **Type:** gate
 **Status:** open
 **Blocked by:** 01, 02, 03
-**Frontier:** no
+**Frontier:** yes
 
 ## What to build
 

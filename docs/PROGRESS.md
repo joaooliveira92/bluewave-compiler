@@ -696,8 +696,15 @@ throughout. Pre-existing unrelated failures: `content-schema/test/nation.test.ts
 > vendored members. Gate green (build 20/20 uncached, typecheck 37/37, lint 0/0,
 > format clean, `pnpm test:run` 241 files / 1554 tests, goldens 10/10, cross-process
 > `success:true`). Report:
-> `.ai/reports/effect-v4-ticket-02-vendor-workspace-guard.md`. Next: **ticket 03**
-> (toolchain `@effect/tsgo` Oxlint gate + governing ADRs).
+> `.ai/reports/effect-v4-ticket-02-vendor-workspace-guard.md`. **Ticket 03**
+> (toolchain `@effect/tsgo` Oxlint gate + tsconfig policy + governing ADRs)
+> **DONE 2026-10-11 — PASS**: `@effect/tsgo@0.51.1` pinned exact, external to
+> `vendor/`; new `lint:effect` (root script + `oxlint.effect.json`, extends the
+> tsgo recommended preset, `duplicatePackage: error`, determinism rules warn)
+> wired into `pnpm check`; ADR-0100..0103 (adopt / vendor / Zod→Schema /
+> DESIGN-08 demotion) + index. Report:
+> `.ai/reports/effect-v4-ticket-03-toolchain-tsgo-gate.md`. Next: **ticket 04**
+> (Wave 0 exit gate & rollback checkpoint).
 
 ---
 
