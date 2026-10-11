@@ -73,6 +73,8 @@ describe("Electron boundary", () => {
       "windowMinimize:",
       "windowMaximizeToggle:",
       "windowClose:",
+      "onQuitFlush:",
+      "notifyQuitFlushComplete:",
     ];
     expect(exposed.length).toBe(allowed.length);
     for (const method of allowed) {

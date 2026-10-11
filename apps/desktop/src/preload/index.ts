@@ -20,6 +20,14 @@ export interface BluewaveDesktopBridge {
   windowMinimize(): void;
   windowMaximizeToggle(): void;
   windowClose(): void;
+  /**
+   * Registers the renderer's flush handler for the shell's bounded quit
+   * handshake (ADR-0121). Optional so test doubles need not implement it; the
+   * real preload always provides it.
+   */
+  onQuitFlush?(handler: () => void): void;
+  /** Acknowledges the flush request so a bounded quit may proceed. */
+  notifyQuitFlushComplete?(): void;
 }
 
 declare global {
@@ -39,4 +47,10 @@ contextBridge.exposeInMainWorld("bluewave", {
   windowMinimize: () => ipcRenderer.send("window:minimize"),
   windowMaximizeToggle: () => ipcRenderer.send("window:maximize-toggle"),
   windowClose: () => ipcRenderer.send("window:close"),
+  onQuitFlush: (handler: () => void) => {
+    ipcRenderer.on("app:quit-flush", () => handler());
+  },
+  notifyQuitFlushComplete: () => {
+    ipcRenderer.send("app:quit-flush-complete");
+  },
 } satisfies BluewaveDesktopBridge);

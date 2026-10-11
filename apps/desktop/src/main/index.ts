@@ -1,10 +1,73 @@
-import { app, BrowserWindow, ipcMain, session } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
 import { resolve } from "node:path";
 import { applyContentSecurityPolicy } from "./csp.js";
 import { dispatchCampaignCommand } from "./campaignBridge.js";
 import { isDebugModeEnabled } from "./debugGate.js";
+import {
+  canRecoverRenderer,
+  isActionableLoadFailure,
+  MAX_RENDERER_RECOVERIES,
+} from "./shellPolicy.js";
 
 const isDev = process.env.NODE_ENV === "development" || process.argv.includes("--dev");
+
+/** A quit waits this long for the renderer to flush pending work before proceeding anyway. */
+const QUIT_FLUSH_TIMEOUT_MS = 1_500;
+
+/** Set once a quit is underway, so recovery/close handlers stop fighting it. */
+let quitting = false;
+
+/**
+ * Surface an unrecoverable failure and exit — never leave a blank window behind
+ * (ADR-0121).
+ */
+function hardFail(message: string): void {
+  dialog.showErrorBox("Bluewave", message);
+  quitting = true;
+  app.quit();
+}
+
+/**
+ * Keep the window recoverable (ADR-0121): a crashed renderer, an unresponsive
+ * window or a failed main-frame load reloads at most once; past that the shell
+ * gives up instead of leaving a blank window. In development a failed
+ * main-frame load means the Vite dev server is gone, so quit rather than
+ * reloading into nothing.
+ */
+function attachFailureRecovery(win: BrowserWindow): void {
+  let recoveries = 0;
+
+  const recover = (label: string): void => {
+    if (quitting || win.isDestroyed()) return;
+    if (!canRecoverRenderer(recoveries)) {
+      hardFail(`The window could not recover (${label}).`);
+      return;
+    }
+    recoveries += 1;
+    console.warn(`[shell] ${label}; reloading (${recoveries}/${MAX_RENDERER_RECOVERIES})`);
+    win.reload();
+  };
+
+  win.webContents.on("render-process-gone", (_event, details) => {
+    recover(`renderer process gone (${details.reason})`);
+  });
+  win.on("unresponsive", () => {
+    recover("window unresponsive");
+  });
+  win.on("responsive", () => {
+    recoveries = 0;
+  });
+  win.webContents.on("did-fail-load", (_event, code, description, url, isMainFrame) => {
+    if (!isActionableLoadFailure(code, isMainFrame)) return;
+    if (isDev) {
+      console.warn(`[shell] dev server unavailable (${description}); quitting`);
+      quitting = true;
+      app.quit();
+      return;
+    }
+    recover(`failed to load ${url} (${description}, ${code})`);
+  });
+}
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -27,6 +90,8 @@ function createWindow(): BrowserWindow {
     });
   });
 
+  attachFailureRecovery(win);
+
   win.on("maximize", () => win.webContents.send("window:state-changed"));
   win.on("unmaximize", () => win.webContents.send("window:state-changed"));
 
@@ -40,19 +105,7 @@ function createWindow(): BrowserWindow {
   return win;
 }
 
-void app.whenReady().then(async () => {
-  if (isDev && isDebugModeEnabled()) {
-    try {
-      const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import(
-        "electron-devtools-installer"
-      );
-      const { name } = await installExtension(REACT_DEVELOPER_TOOLS);
-      console.log(`Added extension: ${name}`);
-    } catch (error) {
-      console.warn("Failed to install React DevTools extension:", error);
-    }
-  }
-
+function registerIpc(): void {
   ipcMain.handle("campaign:execute", (event, command: string, payload: unknown) =>
     dispatchCampaignCommand(command, payload),
   );
@@ -78,23 +131,82 @@ void app.whenReady().then(async () => {
   ipcMain.on("window:close", (event) => {
     BrowserWindow.fromWebContents(event.sender)?.close();
   });
+}
 
-  createWindow();
+/**
+ * Bounded shutdown (ADR-0121): ask the renderer to flush pending work (the
+ * drawing-board draft autosave, ADR-0082), then proceed even if it never
+ * answers — a quit must never hang on an unresponsive renderer.
+ */
+function installBoundedShutdown(): void {
+  app.on("before-quit", (event) => {
+    if (quitting) return;
+    const win = BrowserWindow.getAllWindows().find((candidate) => !candidate.isDestroyed());
+    if (win === undefined || win.webContents.isDestroyed()) return;
 
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+    event.preventDefault();
+    quitting = true;
+
+    let settled = false;
+    const proceed = (): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      ipcMain.removeListener("app:quit-flush-complete", proceed);
+      app.quit();
+    };
+    const timer = setTimeout(proceed, QUIT_FLUSH_TIMEOUT_MS);
+    timer.unref?.();
+    ipcMain.once("app:quit-flush-complete", proceed);
+    win.webContents.send("app:quit-flush");
   });
-});
+}
 
-app.on("window-all-closed", () => {
+// Single-instance (ADR-0121): a second launch focuses the running window
+// instead of starting a rival instance.
+if (!app.requestSingleInstanceLock()) {
   app.quit();
-});
+} else {
+  app.on("second-instance", () => {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win === undefined) return;
+    if (win.isMinimized()) win.restore();
+    win.focus();
+  });
 
-// A stopping dev run (Ctrl+C in the terminal) signals SIGINT/SIGTERM to the
-// process group; without an explicit quit the Electron window is left orphaned,
-// pointing at the now-dead dev server and rendering blank. Quit cleanly instead.
-for (const signal of ["SIGINT", "SIGTERM"] as const) {
-  process.on(signal, () => app.quit());
+  void app.whenReady().then(async () => {
+    if (isDev && isDebugModeEnabled()) {
+      try {
+        const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import(
+          "electron-devtools-installer"
+        );
+        const { name } = await installExtension(REACT_DEVELOPER_TOOLS);
+        console.log(`Added extension: ${name}`);
+      } catch (error) {
+        console.warn("Failed to install React DevTools extension:", error);
+      }
+    }
+
+    registerIpc();
+    installBoundedShutdown();
+
+    createWindow();
+
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
+  });
+
+  app.on("window-all-closed", () => {
+    app.quit();
+  });
+
+  // A stopping dev run (Ctrl+C in the terminal) signals SIGINT/SIGTERM to the
+  // process group; without an explicit quit the Electron window is left
+  // orphaned, pointing at the now-dead dev server and rendering blank.
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.on(signal, () => app.quit());
+  }
 }

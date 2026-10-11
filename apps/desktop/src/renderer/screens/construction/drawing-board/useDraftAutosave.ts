@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { decodeLog, encodeLog, type EditLog } from "@bluewave/ship-design";
+import { registerAppFlush } from "../../../lib/app-flush.js";
 import { useBridge } from "../../../lib/bridge-context.js";
 
 /** Writes wait this long after the last edit, so typing a value is one write, not one per keystroke. */
@@ -80,6 +81,11 @@ export function useDraftAutosave({
   }, [enabled, loaded, presetId, log]);
   // Closing the board flushes a write that is still waiting.
   useEffect(() => () => writeRef.current(), []);
+  // A bounded quit (Cmd+Q / SIGINT) flushes a write that is still waiting too.
+  useEffect(() => {
+    if (!enabled) return;
+    return registerAppFlush(() => writeRef.current());
+  }, [enabled]);
 
   return { restored, dismiss: () => setRestored(null) };
 }
