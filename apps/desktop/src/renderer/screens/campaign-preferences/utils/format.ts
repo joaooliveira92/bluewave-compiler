@@ -1,20 +1,7 @@
 import type { PlayerProjection } from "@bluewave/campaign-engine";
+import { formatMonthYear } from "../../../lib/campaign-month.js";
 
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
+/** "January 1880"; a month outside 1–12 falls back to its number, never a blank. */
 export function formatDate(month: PlayerProjection["month"]): string {
-  return `${MONTH_NAMES[month.month - 1] ?? month.month} ${month.year}`;
+  return formatMonthYear(month);
 }

@@ -5,6 +5,8 @@
  * explicit placeholders rather than invented values.
  */
 
+import { monthName } from "../lib/campaign-month.js";
+
 /** Which shell the toolbar is decorating. Drives the adaptive second row. */
 export type ActiveView = "menu" | "new_game" | "playing" | "options" | "editor";
 
@@ -80,21 +82,6 @@ export type EditorRowModel = Extract<SecondaryRow, { kind: "editor" }>;
 export type WizardRowModel = Extract<SecondaryRow, { kind: "wizard" }>;
 export type PreferencesRowModel = Extract<SecondaryRow, { kind: "preferences" }>;
 
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-] as const;
-
 const NO_VALUE = "—";
 const THOUSAND = 1000;
 const groupDigits = new Intl.NumberFormat("en-GB", { useGrouping: true });
@@ -114,7 +101,7 @@ export function formatTreasury(treasury: number): string {
 }
 
 export function formatCampaignMonth(month: CampaignMonth): string {
-  const name = MONTH_NAMES[month.month - 1];
+  const name = monthName(month.month);
   if (name === undefined) return `${month.month}/${month.year}`;
   return `${name} ${month.year}`;
 }

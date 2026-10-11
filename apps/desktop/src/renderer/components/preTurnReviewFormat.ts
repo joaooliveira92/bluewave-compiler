@@ -1,22 +1,8 @@
-const MONTH_NAMES = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
+import { formatMonthYear } from "../lib/campaign-month.js";
 
 /** "Mar 1900"; falls back to the numeric month when out of range, never a blank. */
 export function formatMonth(month: { readonly year: number; readonly month: number }): string {
-  const name = MONTH_NAMES[month.month - 1] ?? String(month.month);
-  return `${name} ${month.year}`;
+  return formatMonthYear(month, "short");
 }
 
 /** "£1,234". */
