@@ -74,20 +74,30 @@ from resources now that ticket 07 makes the artifact the sole runtime boundary.
   unmounted, so `getByRole("application", { name: /World map/ })` never appeared
   and the run timed out before printing any check. The map block now runs while
   the fresh campaign is still on Overview (its home screen); the drawing-board
-  checks follow. No product code changed.
-- **CRI-PKG-1/2/4.** `resolveProductionPackDir` (the last consumer of
-  `content/production/1880` at runtime) was dead after ticket 07, so it and the
-  raw tree's `extraResources` entry were removed: the packaged app now ships only
-  `content/generated/1880`. `contentPack.ts` resolves the artifact from
-  `process.resourcesPath`; `contentPack.test.ts` covers packaged / dev / plain-node.
-- **Proof.** `smoke:packaged` against the real build passes all 14 checks
+  checks follow. This reorder is script-only; the resource removal below is the
+  only product change.
+- **Screenshot leg in the gate (CRI-PKG-3).** The drawing-board screenshot is now
+  captured on every smoke run (default `test-results/packaged-smoke.png`, `--shot`
+  overrides) and `desktop-e2e.yml` uploads it as `packaged-smoke-screenshot`, so a
+  green packaged smoke always leaves the reviewer a screen to inspect.
+- **CRI-PKG-1/2/4.** `resolveProductionPackDir` (the last packaged-runtime consumer
+  of `content/production/1880`; only a test-only determinism child still names the
+  path) was dead after ticket 07, so it and the raw tree's `extraResources` entry
+  were removed: the packaged app now ships only `content/generated/1880`.
+  `contentPack.ts` resolves the artifact from `process.resourcesPath`;
+  `contentPack.test.ts` covers packaged / dev / plain-node. ADR-0124's
+  "still shipped" consequence is amended; ADR-0099's smoke description is updated.
+- **Proof.** `smoke:packaged` against the real build passes all 15 checks
   (fresh game compiles onto Overview, month header, debug gate, home map paints
   the packaged coastline chunk with 36 reachable areas, drawing board opens on
-  the artifact-backed catalogue with 8 hull sections and a rendered plan, no
-  uncaught exceptions, no unexpected console errors). It also passes with the
-  `Bluewave.app` copied to a temp dir outside the repository, and with the raw
-  production tree no longer present in `Contents/Resources/content` — so the
-  packaged app loads its shipped content from app resources alone.
+  the artifact-backed catalogue with 8 hull sections and a rendered plan,
+  drawing-board screenshot captured, no uncaught exceptions, no unexpected
+  console errors). It also passes with the `Bluewave.app` copied to a temp dir
+  outside the repository, and with the raw production tree no longer present in
+  `Contents/Resources/content` — so the packaged app loads its shipped content
+  from app resources alone.
 
 Artifact shipped: `content/generated/1880/{content-artifact.json,content-manifest.json}`
-(hash `b54fd387…`).
+(manifest `bodyHash` `f7b574c3…`, stable across rebuilds; the earlier
+`b54fd387…` in tickets 02/03 predates the campaign-file collections added by
+ticket 07, which changed the bundle — an expected content update, ADR-0124).
