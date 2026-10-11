@@ -33,3 +33,11 @@ packages/*/src/**/*.d.ts.map
 .pnpm-store/
 .claude/
 .muse/
+
+# Vendored Effect artifacts are committed verbatim (V1 vendor model) — the
+# global `dist/` rule above must not swallow their published `dist/`.
+# See scripts/vendor-effect-sync.mjs and vendor/effect/UPSTREAM.md.
+!vendor/effect/dist/
+!vendor/effect/dist/**
+!vendor/effect-vitest/dist/
+!vendor/effect-vitest/dist/**

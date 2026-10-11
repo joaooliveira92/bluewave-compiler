@@ -19,6 +19,11 @@ export default defineConfig({
       "golden/**",
       "dist/**",
       "out/**",
+      // Vendored upstream code (byte-identical published artifacts) and the
+      // read-only Effect source subtree are reference material — never ours to
+      // lint or reformat (see AGENTS.md "Vendored repositories").
+      "vendor/**",
+      "repos/**",
       "pnpm-lock.yaml",
       "docs/audit/MANIFEST.json",
       "docs/contracts/**",
@@ -29,6 +34,7 @@ export default defineConfig({
     ],
   },
   lint: {
+    ignorePatterns: ["vendor/**", "repos/**"],
     plugins: ["typescript", "unicorn", "oxc"],
     categories: {
       correctness: "error",

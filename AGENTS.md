@@ -83,6 +83,30 @@ props and never read authoritative state. Where routing a child through the barr
 would close an import cycle (e.g. a panel that renders the rail, and the rail that
 renders its leaves), import the leaf component directly.
 
+### Vendored repositories
+
+Two trees under the repo root are **read-only reference material**, not our code:
+
+- `vendor/effect/`, `vendor/effect-vitest/` — the exact published `effect@4.0.2`
+  and `@effect/vitest@4.0.2` artifacts (vendor model V1), the single-`effect`
+  dependency for the whole workspace. Never edit `src/`, `dist/`, `LICENSE`, or
+  `README.md` by hand: they are byte-identical to the npm tarballs and verified by
+  `node scripts/vendor-effect-sync.mjs --verify`. The only authored files are the
+  thin wrapper `package.json` and `UPSTREAM.md`; regenerate both with
+  `node scripts/vendor-effect-sync.mjs` (never `pnpm add`/registry resolution).
+- `repos/effect/` — a **read-only** `git subtree` of the Effect source repository
+  at the `effect@4.0.2` tag, kept as reference for coding agents. Do **not** edit
+  it and do **not** import from it (application code imports the `vendor/effect`
+  workspace package). Read `repos/effect/LLMS.md` (and the relevant
+  `repos/effect/packages/*` source) before writing Effect code; distilled idioms
+  live in `agent-patterns/effect-*.md`.
+
+`repos/**` and `vendor/**` are excluded from `vp lint`/`vp fmt`, from editor
+search/auto-import, and from file watching (see `vite.config.ts` and
+`.vscode/settings.json`). The vendored packages are registered in the pnpm
+workspace and the graph is protected by a hard single-copy guard
+(`scripts/assert-single-effect.mjs`, wired into `pnpm preflight`).
+
 <!-- BEGIN:turborepo-agent-rules -->
 
 # This is NOT the Turborepo you know
