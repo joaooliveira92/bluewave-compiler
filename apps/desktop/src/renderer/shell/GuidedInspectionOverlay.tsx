@@ -125,7 +125,7 @@ export function GuidedInspectionOverlay({
       ref={overlayRef}
       data-testid="guided-inspection-overlay"
       aria-live="polite"
-      className="fixed inset-0 z-[60] pointer-events-none"
+      className="fixed inset-0 z-40 pointer-events-none"
     >
       {/* Scrim */}
       <div

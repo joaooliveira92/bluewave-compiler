@@ -66,7 +66,7 @@ export function AppFrame({
             : "flex min-h-0 flex-1 overflow-hidden"
         }
       >
-        <SidebarInset className="relative min-h-0 overflow-auto bg-transparent">
+        <SidebarInset className="themed-scrollbar relative min-h-0 overflow-auto bg-transparent">
           {saveMessage !== null && (
             <Alert
               variant="default"
@@ -78,10 +78,12 @@ export function AppFrame({
           {children}
         </SidebarInset>
       </div>
+      {/* The bottom chrome sits above the guided-inspection spotlight (z-40) so the status
+          strip and navigation are never dimmed by its scrim; still below dialogs (z-50). */}
       <div
         ref={bottomRef}
         data-underlay={underlay}
-        className="group/chrome relative z-20 mt-auto shrink-0"
+        className="group/chrome relative z-[45] mt-auto shrink-0"
       >
         {campaignSessionId !== null && campaignRevision !== null && (
           <StatusStrip
