@@ -298,10 +298,12 @@ RNG authority; Effect's `Random` is a primitive, not a replacement.
   shipped (Zod is validation-only here; there are no downstream Zod consumers).
 - **API mapping (conceptual, v4 names).** Representative mappings —
   `z.object`→`Schema.Struct`; `z.string`/`z.number`/`z.boolean`/`z.unknown`→
-  `Schema.String`/`Schema.Number`/`Schema.Boolean`/`Schema.Unknown`;
+  `Schema.String`/**`Schema.Finite`** (Zod v4 `z.number()` rejects
+  `NaN`/`Infinity`/`-Infinity`; `Schema.Number` would accept them)/`Schema.Boolean`/`Schema.Unknown`;
   `z.array`/`z.record`→`Schema.Array`/`Schema.Record`; `z.literal`/`z.enum`→
   `Schema.Literal`/`Schema.Literals`; `.optional`/`.nullable`/`.default`→
-  `Schema.optional`/`Schema.NullOr`/`Schema.optionalWith`; `.regex`/`.min`/
+  `Schema.optional`/`Schema.NullOr`/`Schema.withDecodingDefaultType(Effect.succeed(v))`
+  (v4 removed `optionalWith({default})`); `.regex`/`.min`/
   `.max`/`.int`→`Schema.pattern`/`Schema.int`/`Schema.between`; `.transform`/
   `.refine`/`.superRefine`→`Schema.transform`/`Schema.filter`; `z.discriminated
   Union`→`Schema.Union` of tagged `Schema.Struct`s; `safeParse`→

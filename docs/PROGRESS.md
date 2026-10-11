@@ -713,9 +713,14 @@ throughout. Pre-existing unrelated failures: `content-schema/test/nation.test.ts
 > `@bluewave/diagnostics` is the first real `workspace:*` consumer of `effect`;
 > adds runtime-free `DiagnosticError` (`Data.TaggedError`) with `toDiagnostic()`;
 > the `DiagnosticCollector` facade and `DiagnosticCode` are unchanged. Report:
-> `.ai/reports/effect-v4-ticket-05-diagnostics-typed-errors.md`. Next: **ticket
-> 06** (persistence beachhead — Effect Schema at the save boundary, Effect
-> runtime + `Scope`/`AbortSignal` cancellation, tagged `PERSISTENCE_*` errors).
+> `.ai/reports/effect-v4-ticket-05-diagnostics-typed-errors.md`. **Ticket 06**
+> (Wave 1 beachhead — `persistence` Schema save boundary + tagged errors)
+> **DONE 2026-10-11 — PASS**: Zod→Effect Schema on the save boundary (`zod`
+> removed from the package); `PERSISTENCE_*` codes as `Data.TaggedError`; the
+> `DiagnosticCollector` retained; wire shape frozen and proven byte-identical
+> (MIG-WIRE-4); cancellation/rollback untouched; ADR-0104. Report:
+> `.ai/reports/effect-v4-ticket-06-persistence-beachhead.md`. Next: **ticket 07**
+> (Wave 1 exit gate & rollback checkpoint).
 
 ---
 

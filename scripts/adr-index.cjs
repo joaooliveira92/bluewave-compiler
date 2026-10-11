@@ -31,7 +31,7 @@ const AREAS = [
     name: "Effect adoption",
     blurb:
       "Adopting and vendoring Effect v4: the validator/runtime idiom, the read-only agent reference, and the determinism demotion.",
-    nums: [100, 101, 102, 103],
+    nums: [100, 101, 102, 103, 104],
   },
   {
     name: "Campaign & strategy",

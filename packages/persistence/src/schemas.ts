@@ -1,8 +1,8 @@
-// Shared Zod schemas + runtime-validated types for every on-disk artifact the
-// persistence package reads back. Casting parsed JSON to a TS type is only a
-// compile-time assertion; these schemas are the runtime authority that turns
-// "trust me" into "prove it" before any reconstruction or integrity work reads
-// attacker/mutation-controlled surface (TODOs #9/#14).
+// Shared Effect Schema schemas + runtime-validated types for every on-disk
+// artifact the persistence package reads back. Casting parsed JSON to a TS type
+// is only a compile-time assertion; these schemas are the runtime authority that
+// turns "trust me" into "prove it" before any reconstruction or integrity work
+// reads attacker/mutation-controlled surface (TODOs #9/#14).
 //
 // NOTE on depth: `StorableSnapshotSchema` validates the *shape* of the storable
 // snapshot (the container fields and their JSON-safe record types) rather than
@@ -14,102 +14,130 @@
 // hash alone would still choke on ambiguously. Keeping deep leaves permissive
 // avoids duplicating the entire (fast-evolving) `@bluewave/campaign` schema as
 // a frozen mirror.
+//
+// `Schema.Struct` in Effect v4 strips unmodeled keys by default, matching the
+// Zod `z.object` default (not `.strict()`); parity is proven by the existing
+// save/compatibility/corruption suites plus the focused schema parity test.
 
-import { z } from "zod";
+import { Effect, Schema } from "effect";
 
-export const SaveHeaderSchema = z.object({
-  snapshot: z.object({
-    compatibilityVersion: z.string(),
+// Zod's `z.infer` produced mutable object and array types; Effect Schema's
+// `.Type` is deeply readonly. The decoded runtime value is already plain,
+// mutable JavaScript, so these aliases restore the mutable shapes existing
+// callers compile against (e.g. tampering a parsed `SigFile` in a test) without
+// changing the decoder or the wire shape.
+type Mutable<T> =
+  T extends ReadonlyArray<infer U>
+    ? Mutable<U>[]
+    : T extends object
+      ? { -readonly [K in keyof T]: Mutable<T[K]> }
+      : T;
+
+export const SaveHeaderSchema = Schema.Struct({
+  snapshot: Schema.Struct({
+    compatibilityVersion: Schema.String,
   }),
 });
 
-export type DecodedSaveHeader = z.infer<typeof SaveHeaderSchema>;
+export type DecodedSaveHeader = Mutable<typeof SaveHeaderSchema.Type>;
 
-const JsonRecord = z.record(z.string(), z.unknown());
+const JsonRecord = Schema.Record(Schema.String, Schema.Unknown);
 
-const StorableSnapshotSchema = z.object({
-  version: z.string(),
-  turnNumber: z.number(),
-  campaignId: z.string(),
-  startYear: z.number(),
-  startMonth: z.number(),
-  slots: z.array(z.object({ nationId: z.string(), type: z.string() })).default([]),
-  world: z.object({
-    areas: z.array(z.record(z.string(), z.unknown())).default([]),
-    routes: z.array(z.unknown()).default([]),
-    ports: z.array(z.unknown()).default([]),
+// v4 removed Zod's `optionalWith({ default })`. The official migration mapping
+// for `.default(v)` is `withDecodingDefaultType(Effect.succeed(v))`: the key may
+// be absent or `undefined` on input, and the decoded value is required and
+// defaulted. This matches Zod's `.default([])` accept/default semantics exactly.
+const emptyArrayDefault = Effect.succeed([]);
+
+const StorableSnapshotSchema = Schema.Struct({
+  version: Schema.String,
+  turnNumber: Schema.Finite,
+  campaignId: Schema.String,
+  startYear: Schema.Finite,
+  startMonth: Schema.Finite,
+  slots: Schema.Array(Schema.Struct({ nationId: Schema.String, type: Schema.String })).pipe(
+    Schema.withDecodingDefaultType(emptyArrayDefault),
+  ),
+  world: Schema.Struct({
+    areas: Schema.Array(Schema.Record(Schema.String, Schema.Unknown)).pipe(
+      Schema.withDecodingDefaultType(emptyArrayDefault),
+    ),
+    routes: Schema.Array(Schema.Unknown).pipe(Schema.withDecodingDefaultType(emptyArrayDefault)),
+    ports: Schema.Array(Schema.Unknown).pipe(Schema.withDecodingDefaultType(emptyArrayDefault)),
   }),
   nations: JsonRecord,
-  wars: z.object({
-    wars: z.array(z.unknown()),
-    battles: z.array(z.unknown()),
-    participantMemberships: z.array(z.unknown()),
-    blockadeState: z.array(z.unknown()),
-    battleManifests: z.array(z.unknown()),
+  wars: Schema.Struct({
+    wars: Schema.Array(Schema.Unknown),
+    battles: Schema.Array(Schema.Unknown),
+    participantMemberships: Schema.Array(Schema.Unknown),
+    blockadeState: Schema.Array(Schema.Unknown),
+    battleManifests: Schema.Array(Schema.Unknown),
   }),
-  politics: z.object({
-    relations: z.array(z.unknown()),
+  politics: Schema.Struct({
+    relations: Schema.Array(Schema.Unknown),
     shells: JsonRecord,
   }),
-  intelligence: z.object({
+  intelligence: Schema.Struct({
     shells: JsonRecord,
   }),
   designs: JsonRecord,
   designFamilies: JsonRecord,
-  strategicWeather: z.array(z.unknown()).default([]),
-  rulesetVersion: z.string(),
-  compatibilityVersion: z.string(),
+  strategicWeather: Schema.Array(Schema.Unknown).pipe(
+    Schema.withDecodingDefaultType(emptyArrayDefault),
+  ),
+  rulesetVersion: Schema.String,
+  compatibilityVersion: Schema.String,
 });
 
-export const StorableCampaignStateSchema = z.object({
+export const StorableCampaignStateSchema = Schema.Struct({
   snapshot: StorableSnapshotSchema,
-  envelope: z.object({
-    algorithm: z.string(),
-    artifactKind: z.string(),
-    compatibilityVersion: z.string(),
-    bodyHash: z.string(),
-    bodyLength: z.number(),
+  envelope: Schema.Struct({
+    algorithm: Schema.String,
+    artifactKind: Schema.String,
+    compatibilityVersion: Schema.String,
+    bodyHash: Schema.String,
+    bodyLength: Schema.Finite,
   }),
-  rawHash: z.string(),
+  rawHash: Schema.String,
 });
 
-export type StorableCampaignState = z.infer<typeof StorableCampaignStateSchema>;
+export type StorableCampaignState = Mutable<typeof StorableCampaignStateSchema.Type>;
 
-export const PointerFileSchema = z.object({
-  activeSaveId: z.string(),
-  previousSaveId: z.string().optional(),
-  recoveredAt: z.string().optional(),
+export const PointerFileSchema = Schema.Struct({
+  activeSaveId: Schema.String,
+  previousSaveId: Schema.optional(Schema.String),
+  recoveredAt: Schema.optional(Schema.String),
 });
 
-export type PointerFile = z.infer<typeof PointerFileSchema>;
+export type PointerFile = Mutable<typeof PointerFileSchema.Type>;
 
-// Integrity contract (see ADR-NNN, TODO #1):
+// Integrity contract (see ADR-0032):
 //  - `serializedHash`: sha256 of the exact on-disk `campaign.json` bytes.
 //  - `stateHash`:     the semantic hash of the reconstituted in-memory state
 //                     (identical to `state.rawHash`).
 //  - `compatibilityVersion`: the snapshot's compatibility version.
-export const SigFileSchema = z.object({
-  serializedHash: z.string(),
-  stateHash: z.string(),
-  compatibilityVersion: z.string(),
+export const SigFileSchema = Schema.Struct({
+  serializedHash: Schema.String,
+  stateHash: Schema.String,
+  compatibilityVersion: Schema.String,
 });
 
-export type SigFile = z.infer<typeof SigFileSchema>;
+export type SigFile = Mutable<typeof SigFileSchema.Type>;
 
-export const SaveMetadataSchema = z.object({
-  saveId: z.string(),
-  previousSaveId: z.string().optional(),
-  timestamp: z.string(),
-  turnNumber: z.number(),
-  campaignId: z.string(),
-  snapshotHash: z.string(),
-  compatibilityVersion: z.string(),
-  contentArtifactHash: z.string(),
-  campaignName: z.string().optional(),
-  nationId: z.string().optional(),
-  campaignDate: z.object({ year: z.number(), month: z.number() }).optional(),
+export const SaveMetadataSchema = Schema.Struct({
+  saveId: Schema.String,
+  previousSaveId: Schema.optional(Schema.String),
+  timestamp: Schema.String,
+  turnNumber: Schema.Finite,
+  campaignId: Schema.String,
+  snapshotHash: Schema.String,
+  compatibilityVersion: Schema.String,
+  contentArtifactHash: Schema.String,
+  campaignName: Schema.optional(Schema.String),
+  nationId: Schema.optional(Schema.String),
+  campaignDate: Schema.optional(Schema.Struct({ year: Schema.Finite, month: Schema.Finite })),
   /** sha256 of `month-input.json`, written only by a save that closes an executed month (absent on older saves). */
-  monthInputHash: z.string().optional(),
+  monthInputHash: Schema.optional(Schema.String),
 });
 
-export type SaveMetadata = z.infer<typeof SaveMetadataSchema>;
+export type SaveMetadata = Mutable<typeof SaveMetadataSchema.Type>;

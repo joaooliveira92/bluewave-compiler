@@ -3,6 +3,19 @@ export {
   CompatibilityError,
   CURRENT_COMPATIBILITY_VERSION,
 } from "./compatibility.js";
+export {
+  CANCELLED_CODE,
+  COMPATIBILITY_MISMATCH_CODE,
+  CORRUPT_SAVE_CODE,
+  MISSING_SAVE_CODE,
+  PersistenceCancelledError,
+  PersistenceCompatibilityMismatchError,
+  PersistenceCorruptSaveError,
+  PersistenceMissingSaveError,
+  PersistenceUnsignedSaveError,
+  UNSIGNED_SAVE_CODE,
+} from "./errors.js";
+export type { PersistenceError, PersistenceErrorFields } from "./errors.js";
 export { cleanup, RecoveryManager } from "./recovery.js";
 export type { MonthInputLoad, SaveExtras, SaveMetadata, SaveResult } from "./store.js";
 export { SaveStore } from "./store.js";

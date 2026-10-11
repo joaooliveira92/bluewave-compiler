@@ -11,8 +11,15 @@ import {
 import { isAbsolute, join, relative } from "node:path";
 import type { CampaignState } from "@bluewave/campaign";
 import { canonicalSerialize, sha256Hex, verifyEnvelope } from "@bluewave/deterministic";
-import type { DiagnosticCode, DiagnosticCollector } from "@bluewave/diagnostics";
+import type { DiagnosticCollector } from "@bluewave/diagnostics";
+import { Result, Schema } from "effect";
 import { CompatibilityChecker } from "./compatibility.js";
+import {
+  CANCELLED_CODE,
+  CORRUPT_SAVE_CODE,
+  MISSING_SAVE_CODE,
+  UNSIGNED_SAVE_CODE,
+} from "./errors.js";
 import { cleanup } from "./recovery.js";
 import {
   PointerFileSchema,
@@ -30,10 +37,14 @@ import {
   toStorableSnapshot,
 } from "./snapshotSerialization.js";
 
-export const CORRUPT_SAVE_CODE = "PERSISTENCE_CORRUPT_SAVE" as DiagnosticCode;
-export const MISSING_SAVE_CODE = "PERSISTENCE_MISSING_SAVE" as DiagnosticCode;
-export const CANCELLED_CODE = "PERSISTENCE_CANCELLED" as DiagnosticCode;
-export const UNSIGNED_SAVE_CODE = "PERSISTENCE_UNSIGNED_SAVE" as DiagnosticCode;
+// The PERSISTENCE_* codes are defined in `errors.ts` (tagged-error vocabulary)
+// and re-exported here to keep the existing module import path working.
+export {
+  CANCELLED_CODE,
+  CORRUPT_SAVE_CODE,
+  MISSING_SAVE_CODE,
+  UNSIGNED_SAVE_CODE,
+} from "./errors.js";
 
 export type { SaveMetadata } from "./schemas.js";
 
@@ -228,7 +239,9 @@ export class SaveStore {
 
     let pointer: PointerFile;
     try {
-      pointer = PointerFileSchema.parse(JSON.parse(readFileSync(pointerPath, "utf8")));
+      pointer = Schema.decodeUnknownSync(PointerFileSchema)(
+        JSON.parse(readFileSync(pointerPath, "utf8")),
+      );
     } catch {
       diagnostics.addError(CORRUPT_SAVE_CODE, "Pointer file is corrupt or unreadable", {
         stage: "persistence.load",
@@ -265,7 +278,7 @@ export class SaveStore {
     }
     let metadata: SaveMetadata;
     try {
-      metadata = SaveMetadataSchema.parse(
+      metadata = Schema.decodeUnknownSync(SaveMetadataSchema)(
         JSON.parse(readFileSync(join(savePath, "metadata.json"), "utf8")),
       );
     } catch {
@@ -382,15 +395,17 @@ export class SaveStore {
       return null;
     }
 
-    const headerResult = SaveHeaderSchema.safeParse(raw);
-    if (!headerResult.success) {
+    const headerResult = Schema.decodeUnknownResult(SaveHeaderSchema)(raw);
+    if (!Result.isSuccess(headerResult)) {
       diagnostics.addError(CORRUPT_SAVE_CODE, "Save data is missing required fields", {
         stage: "persistence.load",
       });
       return null;
     }
 
-    if (!CompatibilityChecker.check(headerResult.data.snapshot.compatibilityVersion, diagnostics)) {
+    if (
+      !CompatibilityChecker.check(headerResult.success.snapshot.compatibilityVersion, diagnostics)
+    ) {
       return null;
     }
 
@@ -404,8 +419,8 @@ export class SaveStore {
     // Stage 2 — runtime-structural validation of the accepted compatibility
     // version (TODO #9). The deep value-fidelity is then enforced by the
     // envelope + rawHash checks below.
-    const parsedResult = StorableCampaignStateSchema.safeParse(raw);
-    if (!parsedResult.success) {
+    const parsedResult = Schema.decodeUnknownResult(StorableCampaignStateSchema)(raw);
+    if (!Result.isSuccess(parsedResult)) {
       diagnostics.addError(CORRUPT_SAVE_CODE, "Save data is structurally invalid", {
         stage: "persistence.load",
       });
@@ -427,9 +442,9 @@ export class SaveStore {
     let state: CampaignState;
     try {
       state = {
-        ...parsedResult.data,
+        ...parsedResult.success,
         snapshot: fromStorableSnapshot(
-          parsedResult.data.snapshot as unknown as StorableCampaignSnapshot,
+          parsedResult.success.snapshot as unknown as StorableCampaignSnapshot,
         ),
       };
     } catch {
@@ -510,7 +525,7 @@ export class SaveStore {
 
     let sig: SigFile;
     try {
-      sig = SigFileSchema.parse(JSON.parse(readFileSync(sigPath, "utf8")));
+      sig = Schema.decodeUnknownSync(SigFileSchema)(JSON.parse(readFileSync(sigPath, "utf8")));
     } catch {
       diagnostics.addError(CORRUPT_SAVE_CODE, "Save signature file is invalid", {
         stage: "persistence.load",
@@ -559,7 +574,9 @@ export class SaveStore {
       // directory with no/invalid metadata but a valid signature still lists.
       if (existsSync(metaPath)) {
         try {
-          const meta = SaveMetadataSchema.parse(JSON.parse(readFileSync(metaPath, "utf8")));
+          const meta = Schema.decodeUnknownSync(SaveMetadataSchema)(
+            JSON.parse(readFileSync(metaPath, "utf8")),
+          );
           saves.push(meta);
           continue;
         } catch {
@@ -569,7 +586,9 @@ export class SaveStore {
 
       if (existsSync(sigPath)) {
         try {
-          const sig = SigFileSchema.parse(JSON.parse(readFileSync(sigPath, "utf8")));
+          const sig = Schema.decodeUnknownSync(SigFileSchema)(
+            JSON.parse(readFileSync(sigPath, "utf8")),
+          );
           saves.push({
             saveId: dirName,
             timestamp: "",
@@ -640,7 +659,9 @@ export class SaveStore {
     const pointerPath = join(saveDir, "pointer.json");
     if (!existsSync(pointerPath)) return null;
     try {
-      const pointer = PointerFileSchema.parse(JSON.parse(readFileSync(pointerPath, "utf8")));
+      const pointer = Schema.decodeUnknownSync(PointerFileSchema)(
+        JSON.parse(readFileSync(pointerPath, "utf8")),
+      );
       return pointer.activeSaveId;
     } catch {
       return null;
@@ -657,7 +678,9 @@ export class SaveStore {
     const pointerPath = join(saveDir, "pointer.json");
     if (!existsSync(pointerPath)) return null;
     try {
-      const pointer = PointerFileSchema.parse(JSON.parse(readFileSync(pointerPath, "utf8")));
+      const pointer = Schema.decodeUnknownSync(PointerFileSchema)(
+        JSON.parse(readFileSync(pointerPath, "utf8")),
+      );
       return pointer.previousSaveId ?? null;
     } catch {
       return null;

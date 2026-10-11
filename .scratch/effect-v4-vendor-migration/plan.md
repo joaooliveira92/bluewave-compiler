@@ -249,7 +249,7 @@ root package.json devDependency "zod"
 | Zod | Effect Schema (v4) |
 | --- | --- |
 | `z.object({...})` | `Schema.Struct({...})` |
-| `z.string()` / `z.number()` / `z.boolean()` / `z.unknown()` | `Schema.String` / `Schema.Number` / `Schema.Boolean` / `Schema.Unknown` |
+| `z.string()` / `z.number()` / `z.boolean()` / `z.unknown()` | `Schema.String` / **`Schema.Finite`** (Zod v4 `z.number()` rejects `NaN`/`Infinity`; `Schema.Number` would accept them) / `Schema.Boolean` / `Schema.Unknown` |
 | `z.array(x)` / `z.record(k, v)` | `Schema.Array(x)` / `Schema.Record({key, value})` |
 | `z.literal("x")` / `z.enum([...])` | `Schema.Literal("x")` / `Schema.Literal(...)` union or `Schema.Literals([...])` |
 | `.optional()` | `Schema.optional(x)` |

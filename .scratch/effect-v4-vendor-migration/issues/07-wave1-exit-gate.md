@@ -3,7 +3,7 @@
 **Type:** gate
 **Status:** open
 **Blocked by:** 06 (persistence beachhead)
-**Frontier:** no
+**Frontier:** yes
 
 ## What to build
 

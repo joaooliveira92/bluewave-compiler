@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { Schema } from "effect";
 import { SaveMetadataSchema, type PointerFile } from "./schemas.js";
 
 export class RecoveryManager {
@@ -19,7 +20,9 @@ export class RecoveryManager {
     try {
       const metaPath = join(saveDir, previousSaveId, "metadata.json");
       if (existsSync(metaPath)) {
-        const meta = SaveMetadataSchema.parse(JSON.parse(readFileSync(metaPath, "utf8")));
+        const meta = Schema.decodeUnknownSync(SaveMetadataSchema)(
+          JSON.parse(readFileSync(metaPath, "utf8")),
+        );
         predecessor = meta.previousSaveId;
       }
     } catch {

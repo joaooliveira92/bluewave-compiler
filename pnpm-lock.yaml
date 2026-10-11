@@ -500,9 +500,9 @@ importers:
       '@bluewave/diagnostics':
         specifier: workspace:*
         version: link:../diagnostics
-      zod:
-        specifier: ^4.6.5
-        version: 4.6.5
+      effect:
+        specifier: workspace:*
+        version: link:../../vendor/effect
 
   packages/phase-engine:
     dependencies:
