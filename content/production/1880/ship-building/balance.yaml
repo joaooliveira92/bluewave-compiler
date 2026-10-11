@@ -231,6 +231,52 @@ ship:
     NONE: 0
     MINOR: 300
     MAJOR: 800
+  # Per-scenario classification ruleset (ADR-0116). This is the DESIGN-22 EARLY band (version 1) with three
+  # boundaries adjusted for the 1880 opening so that slow, belted, heavy-gun coast-defence/casemate ironclads
+  # classify as capital (B) ships — the true unblocker for the ADR-0111/0114 candidates. It only ever ADMITS
+  # ships the canonical EARLY band rejected; the tightened speed bound keeps it from capturing cruisers:
+  #   bMinDisplacementKg 5,000 t -> 1,500 t   (monitors and casemate ironclads of ~1,500-4,000 t)
+  #   bBeltMinUm        152,400 -> 101,600 µm (6 in -> 4 in belt)
+  #   bMaxSpeedUms      20 kn   -> 18 kn      (the 1880 battle line is slower than 18 kn; a faster ship is a cruiser,
+  #                                            so the lower belt/floor cannot capture the 21-kn CA starters)
+  # Every other value is DESIGN_22_EARLY. `classificationRulesFromRecord` requires all keys to be present.
+  classification:
+    rulesetVersion: 2
+    ddMaxDisplacementKg: 2000000
+    ddMinSpeedUms: 9774436
+    ddMaxGunUm: 152400
+    qualifyingArmourUm: 50800
+    clMinDisplacementKg: 2000000
+    clMaxDisplacementKg: 8000000
+    clMinSpeedUms: 8231104
+    clMaxGunUm: 152400
+    clBeltMaxUm: 50800
+    protectedCruiserExceptionVersion: 1
+    clProtectedMaxGunUm: 203200
+    caMinDisplacementKg: 4000000
+    caMinSpeedUms: 9774436
+    caBeltMinUm: 50800
+    caBeltMaxUm: 304800
+    caGunMaxUm: 279400
+    bMinDisplacementKg: 1500000
+    bBeltMinUm: 101600
+    bMaxSpeedUms: 9259992
+    bMaxTurrets: 2
+    bbMinDisplacementKg: 8000000
+    bbMinTurrets: 3
+    bbBeltMinUm: 152400
+    bbGunMinUm: 254000
+    aircraftLimit: 4
+    keMaxDisplacementKg: 2500000
+    keBeltMaxUm: 50800
+    keGunMaxUm: 152400
+    amcMinDisplacementKg: 1700000
+    amcGunMaxUm: 152400
+    amcFleetShareBp: 2000
+    amcFleetMinAllowance: 2
+    amcFastShareBp: 2500
+    amcFastMinAllowance: 1
+    amcFastSpeedUms: 11317768
 cost:
   hullCostPerTonneMicro:
     iron: 55000000 # GBP per tonne of hull weight: 48 (1873) to 80 (1885), Brassey; mid-range 70 chosen for mild steel (research 2)

@@ -24,7 +24,7 @@ export const REFERENCE_DESIGN_CLASSIFICATIONS: Record<string, ReferenceDesignCla
   starter_torpedoboat_de_1880: "DOCTRINE_TEMPLATE",
   starter_gunboat_de_1880: "DOCTRINE_TEMPLATE",
   starter_armed_liner_de_1880: "DOCTRINE_TEMPLATE",
-  starter_b_usa_1880: "DOCTRINE_TEMPLATE",
+  canonicus_1879: "HISTORICAL_RECONSTRUCTION",
   starter_ca_usa_1880: "DOCTRINE_TEMPLATE",
   starter_cl_usa_1880: "DOCTRINE_TEMPLATE",
   starter_dd_usa_1880: "DOCTRINE_TEMPLATE",
@@ -97,4 +97,5 @@ export const HISTORICAL_B_STARTERS: Readonly<Record<string, string>> = {
   italy: "principe_amedeo_1874",
   russia: "petr_velikiy_1876",
   ottoman_empire: "mesudiye_1875",
+  usa: "canonicus_1879",
 };

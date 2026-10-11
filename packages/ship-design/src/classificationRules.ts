@@ -38,6 +38,12 @@ export interface ClassFacts {
 
 /** Normative thresholds from docs/rules/ship-classification.md, kept as data so a ruleset change is not a code change. */
 export interface ClassificationRules {
+  /**
+   * Version of this ruleset. `DESIGN_22_EARLY` is version 1; a scenario may author a higher-versioned ruleset
+   * (e.g. `content/production/1880/ship-building/balance.yaml` → `ship.classification`, version 2) that adjusts
+   * boundaries for that scenario without editing the canonical EARLY band (ADR-0116).
+   */
+  readonly rulesetVersion: number;
   readonly ddMaxDisplacementKg: number;
   readonly ddMinSpeedUms: number;
   /** Largest gun of any role a DD may carry: heavier guns are cruiser-scale weapons (gameplay rule, ADR-0088). */
@@ -85,6 +91,7 @@ export interface ClassificationRules {
 
 /** DESIGN-22 values for the EARLY band (sections 7-13). */
 export const DESIGN_22_EARLY: ClassificationRules = {
+  rulesetVersion: 1,
   ddMaxDisplacementKg: 2_000_000,
   ddMinSpeedUms: 19 * UM_PER_KNOT + 1 - 1, // strictly greater than 19 kn (9_774_436)
   ddMaxGunUm: 6 * UM_PER_INCH,
@@ -440,3 +447,58 @@ export const classPredicates: Record<
 
 export const isClassifiedShipType = (s: string): s is ClassifiedShipType =>
   (CLASSIFIED_SHIP_TYPES as readonly string[]).includes(s);
+
+/** Every field of a `ClassificationRules`, in declaration order (all numeric). Used to validate authored rulesets. */
+export const CLASSIFICATION_RULE_KEYS = [
+  "rulesetVersion",
+  "ddMaxDisplacementKg",
+  "ddMinSpeedUms",
+  "ddMaxGunUm",
+  "qualifyingArmourUm",
+  "clMinDisplacementKg",
+  "clMaxDisplacementKg",
+  "clMinSpeedUms",
+  "clMaxGunUm",
+  "clBeltMaxUm",
+  "protectedCruiserExceptionVersion",
+  "clProtectedMaxGunUm",
+  "caMinDisplacementKg",
+  "caMinSpeedUms",
+  "caBeltMinUm",
+  "caBeltMaxUm",
+  "caGunMaxUm",
+  "bMinDisplacementKg",
+  "bBeltMinUm",
+  "bMaxSpeedUms",
+  "bMaxTurrets",
+  "bbMinDisplacementKg",
+  "bbMinTurrets",
+  "bbBeltMinUm",
+  "bbGunMinUm",
+  "aircraftLimit",
+  "keMaxDisplacementKg",
+  "keBeltMaxUm",
+  "keGunMaxUm",
+  "amcMinDisplacementKg",
+  "amcGunMaxUm",
+  "amcFleetShareBp",
+  "amcFleetMinAllowance",
+  "amcFastShareBp",
+  "amcFastMinAllowance",
+  "amcFastSpeedUms",
+] as const satisfies readonly (keyof ClassificationRules)[];
+
+/**
+ * Decode an authored classification ruleset (balance.yaml `ship.classification`). Every field must be present and a
+ * finite number: a partial ruleset would silently make a boundary `undefined` and break classification, so it is a
+ * content error, never a silent default. The returned value is a complete `ClassificationRules`.
+ */
+export function classificationRulesFromRecord(raw: unknown): ClassificationRules {
+  if (raw === null || typeof raw !== "object")
+    throw new Error("classification rules must be an object");
+  const rec = raw as Record<string, unknown>;
+  for (const k of CLASSIFICATION_RULE_KEYS)
+    if (typeof rec[k] !== "number" || !Number.isFinite(rec[k]))
+      throw new Error(`classification rules '${k}' must be a finite number`);
+  return raw as ClassificationRules;
+}

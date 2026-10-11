@@ -35,9 +35,9 @@ const gunPlacements = (d: DesignDraft) =>
   d.placements.filter((p) => GUN_CATEGORIES.has(byId.get(p.componentId)?.category ?? ""));
 
 describe("Step 3 armament cut-over: opening reference designs", () => {
-  it("verifies the first-class armament catalogue scale (25/26/35/6)", () => {
+  it("verifies the first-class armament catalogue scale (26/26/35/6)", () => {
     const catalogue = buildArmamentCatalogue(armamentContent);
-    expect(catalogue.families).toHaveLength(25);
+    expect(catalogue.families).toHaveLength(26);
     expect(catalogue.models).toHaveLength(26);
     expect(catalogue.mounts).toHaveLength(35);
     expect(catalogue.ammunition).toHaveLength(6);

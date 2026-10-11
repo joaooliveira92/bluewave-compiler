@@ -60,9 +60,12 @@ export function starterFor(
 export function buildShipTypeRoster(
   env: WorkshopEnvironment,
   starters: readonly StarterDesign[],
-  rules: ClassificationRules = DESIGN_22_EARLY,
+  rules?: ClassificationRules,
   nationId?: string,
 ): readonly RosterEntry[] {
+  // The envelope follows the ruleset actually in force for this scenario (`balance.classification`), so the
+  // roster, the Brief panel and the validator cannot disagree (ADR-0116).
+  const effectiveRules = rules ?? env.ctx.balance.classification ?? DESIGN_22_EARLY;
   return SHIP_TYPE_LIST.map((definition) => {
     const availability = evaluateShipTypeAvailability(definition.id, {
       month: env.ctx.month,
@@ -86,6 +89,11 @@ export function buildShipTypeRoster(
         speedMilliKnots: view.compiled.machinery?.maxSpeedMilliKnots ?? null,
       };
     }
-    return { definition, availability, envelope: shipTypeEnvelope(definition.id, rules), starter };
+    return {
+      definition,
+      availability,
+      envelope: shipTypeEnvelope(definition.id, effectiveRules),
+      starter,
+    };
   });
 }

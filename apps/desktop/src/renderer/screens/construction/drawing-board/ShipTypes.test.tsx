@@ -70,7 +70,10 @@ describe("ship-type roster", () => {
     expect(dd.textContent).toMatch(/Relative cost\s*Very low/);
     expect(dd.textContent).toMatch(/Speed\s*over 19 kn/);
     expect(dd.textContent).toMatch(/Displacement\s*under 2,000 t/);
-    expect(row(/Pre-dreadnought battleship/).textContent).toMatch(/Speed\s*under 20 kn/);
+    // The envelope follows the scenario ruleset (ADR-0116): the 1880 B band is 1,500 t / under 18 kn.
+    const b = row(/Pre-dreadnought battleship/).textContent ?? "";
+    expect(b).toMatch(/Speed\s*under 18 kn/);
+    expect(b).toMatch(/Displacement\s*1,500 t or more/);
   });
 
   it("discloses detail on demand through a labelled, keyboard-operable button", () => {

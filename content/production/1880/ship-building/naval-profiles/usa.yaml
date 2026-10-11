@@ -125,20 +125,21 @@ navalProfiles:
       gun_rml_8in_9ton: { status: DOMESTIC, producer: "West Point" }
       gun_rml_7in_7ton: { status: DOMESTIC, producer: "West Point" }
       gun_rml_64pdr_71cwt: { status: DOMESTIC, producer: "West Point" }
+      gun_sb_15in_dahlgren: { status: DOMESTIC, producer: "West Point" }
       tube_14in_above_water: { status: IMPORTED, producer: "Whitehead" }
     gunModels:
       - id: us_dahlgren_15in
-        familyId: gun_rml_16in_80ton
+        familyId: gun_sb_15in_dahlgren
         designation: "XV-inch Dahlgren smoothbore"
         overrides:
           displayName: "XV-inch Dahlgren smoothbore in monitor turret"
-          attributes.shellMassG: "150000"
+          attributes.shellMassG: "149700"
         mounts: [TURRET]
         provenance: &us_prov
           sourceStatus: ESTIMATE
           confidence: LOW
           kind: historical_fact
-          note: "US Dahlgren/Parrott figures are UNVERIFIED; mapped to the nearest RML family."
+          note: "US Dahlgren/Parrott figures are ESTIMATE. The XV-inch smoothbore has its own family (gun_sb_15in_dahlgren); the smaller Parrott/Dahlgren rifles map to the nearest shared family."
           sources:
             - {
                 sourceId: "usa-note",

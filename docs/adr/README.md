@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0115).
+highest existing number + 1 (the next number is ADR-0118).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -126,6 +126,7 @@ Ship design, classification, construction, repair, and rebuild.
 | 0083 | [ADR-0083-fittings-inside-hull-weight.md](ADR-0083-fittings-inside-hull-weight.md) | Fittings are inside the hull weight; fitting components carry no extra mass | accepted | — |
 | 0085 | [ADR-0085-design-studies.md](ADR-0085-design-studies.md) | Design studies gate design approval | accepted | — |
 | 0088 | [ADR-0088-opening-ship-types.md](ADR-0088-opening-ship-types.md) | Opening ship types, availability policy and engine-side enforcement | accepted | — |
+| 0116 | [ADR-0116-per-scenario-1880-classification-ruleset.md](ADR-0116-per-scenario-1880-classification-ruleset.md) | Per-scenario 1880 classification ruleset — coast-defence ships as capital | accepted | — |
 
 ## National content
 
@@ -142,6 +143,7 @@ National naval profiles, the content pipeline, and AI procurement.
 | 0110 | [ADR-0110-all-scenario-nations-profiled.md](ADR-0110-all-scenario-nations-profiled.md) | Every scenario nation has an authored naval profile | accepted | — |
 | 0111 | [ADR-0111-historical-national-starters.md](ADR-0111-historical-national-starters.md) | Promote canonical historical ships to national capital starters | accepted | — |
 | 0114 | [ADR-0114-domestic-vs-imported-gun-ceiling.md](ADR-0114-domestic-vs-imported-gun-ceiling.md) | Domestic vs imported gun ceiling, and the coast-defence starter blocker | accepted | — |
+| 0117 | [ADR-0117-promote-us-coast-defence-monitor.md](ADR-0117-promote-us-coast-defence-monitor.md) | Promote the US coast-defence monitor and model smoothbore ordnance | accepted | — |
 
 ## Desktop & UI
 

@@ -2,163 +2,122 @@
 # One directory per nation: starters.yaml (a `starterFor` opening design) and historical.yaml.
 # Fittings (magazines, quarters, pumps, ventilation) weigh nothing extra (White 1894, ADR-0083).
 designs:
-  # Battleship starter for United States (doctrine template; cloned from alexandra_1877).
-  - id: starter_b_usa_1880
+  # Canonicus (1864, in service Jan 1880): US coast-defence monitor, 2,100 t, 8 kn, 1 x 2 15-in Dahlgren SMOOTHBORE in
+  # a turret, 127 mm side / 254 mm turret iron. Promoted to the US capital (B) starter (ADR-0117), replacing the British
+  # doctrine clone. Source: docs/research/ship-building-1880-ships-by-nation.md §6.5; gun: docs/research/ship-building-1880-coast-defence-armament.md §2.5.
+  - id: canonicus_1879
     starterFor: B
-    name: Battleship (starter, B) — United States
+    name: Canonicus (1864/1880, coast-defence monitor)
     month: 1880-01
     draft:
       nationId: usa
       requirement:
         category: B
-        requiredSpeedMilliKnots: 15100
-        cruiseSpeedMilliKnots: 8000
-        requiredRangeNm: 2700
-        designThreatId: rml_10in
-        modernizationExpectation: MINOR
+        requiredSpeedMilliKnots: 8000
+        cruiseSpeedMilliKnots: 6000
+        requiredRangeNm: 1200
+        designThreatId: qf_6in
+        modernizationExpectation: NONE
         crewQualityBp: 10000
-        accommodationStandard: STANDARD
+        accommodationStandard: SPARTAN
         protectionGoal: STANDARD
       hull:
         hullFormId: coast_defence_form
-        lengthWl: 99100
-        beam: 19500
-        draught: 8000
-        depthToMainDeck: 10500
+        lengthWl: 68300
+        beam: 13200
+        draught: 3900
+        depthToMainDeck: 5500
         blockCoeffBp: 6000
         materialId: iron
-        structuralSchemeId: mixed
-        subdivisionGrade: 2
-        targetDisplacementKg: 9492000
+        structuralSchemeId: transverse
+        subdivisionGrade: 1
+        targetDisplacementKg: 2100000
         limitDisplacementKg: null
         designMarginBp: 300
-        growthReserveBp: 300
+        growthReserveBp: 0
       machinery:
         plantId: compound_cylindrical
-        installedKw: 7400
+        installedKw: 420
         zoneId: CENTRAL_MACHINERY
-        stationPermille: 400
-        fuelCapacityKg: 680000
+        stationPermille: 500
+        fuelCapacityKg: 145000
         fuelZoneId: CENTRAL_MACHINERY
-        fuelStationPermille: 450
+        fuelStationPermille: 510
         foulingBp: 0
         rooms:
-          - { zoneId: CENTRAL_MACHINERY, stationPermille: 400, shareBp: 6000 }
-          - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
+          - { zoneId: CENTRAL_MACHINERY, stationPermille: 500, shareBp: 6000 }
+          - { zoneId: AFT_SERVICE, stationPermille: 700, shareBp: 4000 }
       armour:
         regions:
           - {
               region: BELT_MAIN,
-              thicknessUm: 305000,
-              lengthMm: 70000,
-              heightMm: 3200,
+              thicknessUm: 127000,
+              lengthMm: 68300,
+              heightMm: 3000,
               materialId: wrought_iron,
               cosObliquityBp: 10000,
             }
           - {
               region: DECK_MAIN,
-              thicknessUm: 55000,
-              lengthMm: 99100,
-              heightMm: 19500,
+              thicknessUm: 38000,
+              lengthMm: 68300,
+              heightMm: 13200,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: TURRET_FACE,
+              thicknessUm: 254000,
+              lengthMm: 6000,
+              heightMm: 4000,
               materialId: wrought_iron,
               cosObliquityBp: 10000,
             }
           - {
               region: MAGAZINE_BOX,
-              thicknessUm: 305000,
-              lengthMm: 70000,
-              heightMm: 3000,
+              thicknessUm: 127000,
+              lengthMm: 20000,
+              heightMm: 2400,
               materialId: wrought_iron,
               cosObliquityBp: 10000,
             }
-          - {
-              region: BARBETTE,
-              thicknessUm: 203000,
-              lengthMm: 40000,
-              heightMm: 3000,
-              materialId: wrought_iron,
-              cosObliquityBp: 10000,
-            }
-        citadelLengthMm: 70000
-        torpedoWarheadKg: 30
+        citadelLengthMm: 50000
+        torpedoWarheadKg: 0
         bunkerProtectionBp: 0
       placements:
         - {
-            instanceId: main_fwd,
-            componentId: gun_rml_11in_25ton,
-            zoneId: FORECASTLE,
-            stationPermille: 40,
-            params: { barrels: 2, rounds: 100 },
-            magazineRef: mag_fwd,
-          }
-        - {
-            instanceId: sec_p,
-            componentId: gun_rml_10in_18ton_broadside,
+            instanceId: main,
+            componentId: gun_sb_15in_dahlgren,
             zoneId: SUPERSTRUCTURE,
-            stationPermille: 560,
-            side: PORT,
-            params: { barrels: 5, rounds: 100 },
-            magazineRef: mag_sec,
+            stationPermille: 580,
+            params: { barrels: 2, rounds: 50 },
+            magazineRef: mag_main,
           }
         - {
-            instanceId: sec_s,
-            componentId: gun_rml_10in_18ton_broadside,
-            zoneId: SUPERSTRUCTURE,
-            stationPermille: 560,
-            side: STBD,
-            params: { barrels: 5, rounds: 100 },
-            magazineRef: mag_sec,
-          }
-        - {
-            instanceId: tubes,
-            componentId: tube_14in_above_water,
-            zoneId: QUARTERDECK,
-            stationPermille: 900,
-            params: { tubes: 4 },
-          }
-        - {
-            instanceId: mag_sec,
+            instanceId: mag_main,
             componentId: magazine_heavy,
-            zoneId: SUPERSTRUCTURE,
-            stationPermille: 560,
+            zoneId: CENTRAL_MACHINERY,
+            stationPermille: 500,
           }
-        - {
-            instanceId: mag_fwd,
-            componentId: magazine_heavy,
-            zoneId: FWD_MAGAZINE,
-            stationPermille: 130,
-          }
-        - {
-            instanceId: mag_aft,
-            componentId: magazine_heavy,
-            zoneId: AFT_MAGAZINE,
-            stationPermille: 820,
-          }
-        - { instanceId: dyn, componentId: dynamo_small, zoneId: AFT_SERVICE, stationPermille: 690 }
+        - { instanceId: dyn, componentId: dynamo_small, zoneId: AFT_SERVICE, stationPermille: 680 }
         - {
             instanceId: vent,
             componentId: ventilation_plant,
             zoneId: AFT_SERVICE,
-            stationPermille: 700,
+            stationPermille: 690,
           }
         - {
             instanceId: quarters,
             componentId: quarters_crew,
-            zoneId: FWD_SERVICE,
-            stationPermille: 250,
-            params: { blocks: 95 },
+            zoneId: AFT_SERVICE,
+            stationPermille: 720,
+            params: { blocks: 20 },
           }
         - {
-            instanceId: funnel_a,
+            instanceId: funnel,
             componentId: funnel_single,
             zoneId: SUPERSTRUCTURE,
-            stationPermille: 580,
-          }
-        - {
-            instanceId: funnel_b,
-            componentId: funnel_single,
-            zoneId: SUPERSTRUCTURE,
-            stationPermille: 620,
+            stationPermille: 600,
           }
 
   # Armoured cruiser starter for United States (doctrine template; cloned from starter_armoured_cruiser_1880).

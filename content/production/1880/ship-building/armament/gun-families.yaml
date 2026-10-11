@@ -303,3 +303,19 @@ gunFamilies:
       sources:
         - sourceId: navweaps-british
           title: navweaps.com British gun pages (WNBR_*)
+  # 15in Dahlgren smoothbore (US monitor / Canonicus class): a SMOOTH BORE, deliberately a distinct family so it never
+  # inherits rifled-RML ballistics (ADR-0117). Bore and gun mass from the 1866 US Ordnance Instructions (VERIFIED).
+  - id: gun_sb_15in_dahlgren
+    designation: XV-inch Dahlgren smoothbore in monitor turret
+    category: MAIN_GUN
+    defaultMountType: TURRET
+    provenance:
+      sourceStatus: DERIVED
+      confidence: MEDIUM
+      kind: historical_fact
+      note: "Smoothbore: 381 mm bore and 43,000 lb gun mass, plus the 330 lb shell and 50/35/60 lb black-powder charges, are read from the 1866 US Ordnance Instructions; muzzle velocity and rate of fire are ESTIMATE. Not an armour-piercing rifle."
+      sources:
+        - sourceId: oi66
+          title: US Navy, Ordnance Instructions 1866 (4th ed.), powder-proof and service-charge tables
+        - sourceId: navypedia-us
+          title: navypedia.org US monitor class pages

@@ -12,6 +12,7 @@ import {
   type StarterDesign,
 } from "../src/index.js";
 import {
+  components,
   navalProfiles,
   readReferenceDesignEntries,
   shipBuildingContent,
@@ -79,14 +80,15 @@ describe("promoted historical national starters", () => {
       "starter_b_italy_1880",
       "starter_b_russia_1880",
       "starter_b_ottoman_empire_1880",
+      "starter_b_usa_1880",
     ])
       expect(designs.find((d) => d.id === id)).toBeUndefined();
   });
 
-  // ADR-0114: these nations' named candidates cannot legally classify as a B capital under DESIGN_22_EARLY
-  // (displacement < 5,000 t and/or belt < 6 in), so promoting one would be a false substitution. They stay on
-  // their doctrine template until a classification-schema change admits slow coast-defence ships.
-  it("leaves the ADR-0114-deferred candidates on their doctrine template (no false substitution)", () => {
+  // ADR-0114/ADR-0116: these nations' named candidates cannot legally classify under DESIGN_22_EARLY, but the 1880
+  // scenario ruleset (ADR-0116) admits the slow coast-defence ships; those promoted under it are usa (ADR-0117).
+  // The remainder stay on their doctrine template until the missing ordnance lands.
+  it("leaves the still-deferred candidates on their doctrine template (no false substitution)", () => {
     for (const nation of [
       "netherlands",
       "portugal",
@@ -94,7 +96,6 @@ describe("promoted historical national starters", () => {
       "japan",
       "spain",
       "qing",
-      "usa",
       "austria_hungary",
     ]) {
       const chosen = starterFor("B", starters, OPENING_MONTH, nation);
@@ -173,11 +174,16 @@ describe("promoted historical national starters", () => {
   });
 
   it.each(CONVERTED)(
-    "%s: every gun in %s is a rifled muzzle-loader (no smoothbore/breech-loader substitution)",
-    (_nation, id) => {
+    "%s: every gun in %s uses its correct rifling mechanism (no smoothbore/rifled substitution)",
+    (nation, id) => {
       const guns = byId(id).draft.placements.filter((p) => p.componentId.startsWith("gun_"));
       expect(guns.length).toBeGreaterThan(0);
-      for (const gun of guns) expect(gun.componentId).toMatch(/^gun_rml_/);
+      for (const gun of guns)
+        expect(gun.componentId, `${id} ${gun.componentId}`).toMatch(/^gun_(rml|sb)_/);
+      // The US coast-defence monitor carries a smoothbore, never mapped onto rifled-RML ballistics.
+      if (nation === "usa")
+        expect(guns.every((g) => g.componentId.startsWith("gun_sb_"))).toBe(true);
+      else expect(guns.every((g) => g.componentId.startsWith("gun_rml_"))).toBe(true);
     },
   );
 
@@ -227,5 +233,22 @@ describe("promoted historical national starters", () => {
     const first = compileDesign(byId("principe_amedeo_1874").draft, ctx);
     const again = compileDesign(byId("principe_amedeo_1874").draft, ctx);
     expect(again.hash).toBe(first.hash);
+  });
+});
+
+describe("smoothbore ordnance (ADR-0117)", () => {
+  it("models the US 15-in Dahlgren as a distinct smoothbore, never mapped onto rifled-RML ballistics", () => {
+    const sb = components.find((c) => c.id === "gun_sb_15in_dahlgren")!;
+    expect(sb.category).toBe("MAIN_GUN");
+    expect(sb.tags).toContain("smoothbore");
+    expect(Number(sb.attributes?.caliberUm)).toBe(381000);
+    // The USA overlay that used to point at a rifled RML family now points at the smoothbore family.
+    const usa = navalProfiles.find((p) => p.nationId === "usa")!;
+    const overlay = usa.gunModels.find((g) => g.id === "us_dahlgren_15in")!;
+    expect(overlay.familyId).toBe("gun_sb_15in_dahlgren");
+    expect(overlay.familyId).not.toMatch(/^gun_rml_/);
+    // A smoothbore reloads far slower than a rifle of comparable bore, so the mechanism cannot be substituted.
+    const rifle = components.find((c) => c.id === "gun_rml_11in_25ton")!;
+    expect(Number(sb.attributes?.rofBaseX100)).toBeLessThan(Number(rifle.attributes?.rofBaseX100));
   });
 });

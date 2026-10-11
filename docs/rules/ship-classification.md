@@ -2,7 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-22`
-> **Amended by:** ADR-0037, ADR-0067, ADR-0088.
+> **Amended by:** ADR-0037, ADR-0067, ADR-0088, ADR-0116.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Classification types, thresholds, precedence, boundaries, warnings, rebuild reclassification, administrative reclassification, and caching MUST use the explicit values, predicates, versions, and failure behavior defined here. Runtime inference and silent fallback behavior are prohibited.
 
 ## 1. Canonical Ship-Type Registry
