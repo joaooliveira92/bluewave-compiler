@@ -12,8 +12,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "paths": {
-      "@/*": ["./src/renderer/*"],
-      "@content/*": ["../../content/production/1880/*"]
+      "@/*": ["./src/renderer/*"]
     },
     "resolveJsonModule": true
   },
@@ -30,7 +29,6 @@
     "src/renderer/lib/**/*.ts",
     "src/renderer/lib/**/*.tsx",
     "src/shared/**/*.ts",
-    "src/renderer/raw.d.ts",
     "src/renderer/main.tsx",
     "src/renderer/zodJitless.ts",
     "src/renderer/index.html"

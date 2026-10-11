@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "../../../components/ui/dialog.js";
 import { DrawingBoard } from "./DrawingBoard.js";
+import { useDrawingBoardContentSource } from "./useDrawingBoardContent.js";
 import type { RevisionProject } from "./revisionPreview.js";
 
 /**
@@ -20,6 +21,8 @@ export function DrawingBoardDialog({
   projects,
 }: { readonly sessionId?: string; readonly projects?: readonly RevisionProject[] } = {}) {
   const [open, setOpen] = useState(false);
+  // The catalogue is decoded in main and fetched over IPC; the board renders only once it is ready.
+  const contentStatus = useDrawingBoardContentSource();
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <div className="flex flex-col items-start gap-3 rounded border p-4">
@@ -40,7 +43,17 @@ export function DrawingBoardDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="flex min-h-0 flex-1 flex-col">
-          <DrawingBoard sessionId={sessionId} projects={projects} />
+          {contentStatus === "ready" ? (
+            <DrawingBoard sessionId={sessionId} projects={projects} />
+          ) : contentStatus === "error" ? (
+            <p role="alert" className="text-sm text-destructive">
+              Could not load ship-building content from the campaign service.
+            </p>
+          ) : (
+            <p role="status" className="text-sm text-muted-foreground">
+              Loading ship-building content…
+            </p>
+          )}
         </div>
       </DialogContent>
     </Dialog>

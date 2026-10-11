@@ -1,5 +1,17 @@
 import { configure } from "@testing-library/react";
 
+import { loadShipBuildingData } from "../main/shipBuildingContent.js";
+import { setDrawingBoardContent } from "./screens/construction/drawing-board/content.js";
+
+/**
+ * Renderer tests inject decoded content instead of parsing raw YAML (ticket 04,
+ * CRI-IPC-4): seed the drawing board's content seam from the compiled artifact
+ * the vitest global setup produced. In the app the same DTO arrives over the
+ * `inspectDrawingBoardContent` IPC; here it comes from the shared main loader so
+ * tests render exactly the content the compiler validated.
+ */
+setDrawingBoardContent({ catalogue: loadShipBuildingData() });
+
 /**
  * Testing Library's default async wait is 1s. Under the full suite, files run in parallel and
  * a lazily loaded chunk (the map and its coastline) or a multi-step flow can take longer than
