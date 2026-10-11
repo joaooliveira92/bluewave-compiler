@@ -93,6 +93,26 @@ function componentYaml(id: string): string {
 `;
 }
 
+/** A strict-ShipComponentSchema-compliant component with explicit upgrade edges. */
+function componentYamlWith(id: string, upgradePath: readonly string[]): string {
+  return `
+  - id: "${id}"
+    displayName: "${id}"
+    category: "MATERIAL"
+    introduction: { fromMonth: "1880-01", obsoleteMonth: null }
+    requires: []
+    parameters: {}
+    constants: {}
+    weightKg: "1"
+    volumeLitre: "1"
+    costMicro: "1"
+    crew: "0"
+    powerKw: "0"
+    upgradePath: [${upgradePath.map((u) => `"${u}"`).join(", ")}]
+    tags: []
+`;
+}
+
 function shipBuildingInput(fixturePath: string): Record<string, string[]> {
   return {
     shipComponentFiles: [resolve(fixturePath, "ship-building/components.yaml")],
@@ -613,6 +633,305 @@ designs:
       expect(output).toBeUndefined();
       expect(collector.hasErrors).toBe(true);
       expect(collector.errors.some((d) => d.code === "TECHNOLOGY_PREREQUISITE_CYCLE")).toBe(true);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("names the cycle members and their source files in the technology-cycle diagnostic", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({
+          name: "test-pack",
+          version: "0.1.0",
+          type: "fixture",
+          files: { technologies: ["technologies.yaml"] },
+        }),
+      );
+      writeFixture(
+        fixture.path,
+        "technologies.yaml",
+        `
+- id: "tech_a"
+  name: "Tech A"
+  category: "hull"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "tech_b" }
+- id: "tech_b"
+  name: "Tech B"
+  category: "hull"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "tech_a" }
+      `,
+      );
+
+      const collector = new DiagnosticCollector();
+      const output = new Compiler().compile(
+        {
+          manifestPath: "pack.json",
+          contentDir: fixture.path,
+          rulesetFiles: [],
+          countryFiles: [],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [resolve(fixture.path, "technologies.yaml")],
+        },
+        new AbortController().signal,
+        collector,
+      );
+
+      expect(output).toBeUndefined();
+      const cycle = collector.errors.find((d) => d.code === "TECHNOLOGY_PREREQUISITE_CYCLE");
+      expect(cycle).toBeDefined();
+      expect(cycle!.message).toContain("tech_a");
+      expect(cycle!.message).toContain("tech_b");
+      expect(cycle!.sourceLocation?.path).toBe(resolve(fixture.path, "technologies.yaml"));
+      expect((cycle!.relatedLocations ?? []).length).toBeGreaterThanOrEqual(2);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("rejects a technology that lists itself as a prerequisite (SELF_REFERENCE)", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({
+          name: "test-pack",
+          version: "0.1.0",
+          type: "fixture",
+          files: { technologies: ["technologies.yaml"] },
+        }),
+      );
+      writeFixture(
+        fixture.path,
+        "technologies.yaml",
+        `
+- id: "tech_a"
+  name: "Tech A"
+  category: "hull"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "tech_a" }
+      `,
+      );
+
+      const collector = new DiagnosticCollector();
+      const output = new Compiler().compile(
+        {
+          manifestPath: "pack.json",
+          contentDir: fixture.path,
+          rulesetFiles: [],
+          countryFiles: [],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [resolve(fixture.path, "technologies.yaml")],
+        },
+        new AbortController().signal,
+        collector,
+      );
+
+      expect(output).toBeUndefined();
+      const selfRef = collector.errors.find((d) => d.code === "SELF_REFERENCE");
+      expect(selfRef).toBeDefined();
+      expect(selfRef!.entityId).toBe("tech_a");
+      expect(selfRef!.sourceLocation?.path).toBe(resolve(fixture.path, "technologies.yaml"));
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("accepts an acyclic technology prerequisite chain (positive control)", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({
+          name: "test-pack",
+          version: "0.1.0",
+          type: "fixture",
+          files: { technologies: ["technologies.yaml"] },
+        }),
+      );
+      writeFixture(
+        fixture.path,
+        "technologies.yaml",
+        `
+- id: "tech_a"
+  name: "Tech A"
+  category: "hull"
+  researchFieldId: "HULL_CONSTRUCTION"
+- id: "tech_b"
+  name: "Tech B"
+  category: "hull"
+  researchFieldId: "HULL_CONSTRUCTION"
+  prerequisites:
+    - { techId: "tech_a" }
+      `,
+      );
+
+      const collector = new DiagnosticCollector();
+      const output = new Compiler().compile(
+        {
+          manifestPath: "pack.json",
+          contentDir: fixture.path,
+          rulesetFiles: [],
+          countryFiles: [],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [resolve(fixture.path, "technologies.yaml")],
+        },
+        new AbortController().signal,
+        collector,
+      );
+
+      expect(collector.hasErrors).toBe(false);
+      expect(output).toBeDefined();
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("rejects a ship component that upgrades from itself (SELF_REFERENCE)", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({ name: "test-pack", version: "0.1.0", type: "fixture", files: {} }),
+      );
+      writeFixture(
+        fixture.path,
+        "ship-building/components.yaml",
+        `components:${componentYamlWith("comp_a", ["comp_a"])}`,
+      );
+      writeFixture(fixture.path, "ship-building/balance.yaml", `ship:\n  dummy: 1\n`);
+
+      const collector = new DiagnosticCollector();
+      const output = new Compiler().compile(
+        {
+          manifestPath: "pack.json",
+          contentDir: fixture.path,
+          rulesetFiles: [],
+          countryFiles: [],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [],
+          ...shipBuildingInput(fixture.path),
+        },
+        new AbortController().signal,
+        collector,
+      );
+
+      expect(output).toBeUndefined();
+      const selfRef = collector.errors.find((d) => d.code === "SELF_REFERENCE");
+      expect(selfRef).toBeDefined();
+      expect(selfRef!.entityId).toBe("comp_a");
+      expect(selfRef!.sourceLocation?.path).toBe(
+        resolve(fixture.path, "ship-building/components.yaml"),
+      );
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("detects a ship component upgrade cycle naming the members (COMPONENT_UPGRADE_CYCLE)", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({ name: "test-pack", version: "0.1.0", type: "fixture", files: {} }),
+      );
+      writeFixture(
+        fixture.path,
+        "ship-building/components.yaml",
+        `components:${componentYamlWith("comp_a", ["comp_b"])}${componentYamlWith("comp_b", ["comp_a"])}`,
+      );
+      writeFixture(fixture.path, "ship-building/balance.yaml", `ship:\n  dummy: 1\n`);
+
+      const collector = new DiagnosticCollector();
+      const output = new Compiler().compile(
+        {
+          manifestPath: "pack.json",
+          contentDir: fixture.path,
+          rulesetFiles: [],
+          countryFiles: [],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [],
+          ...shipBuildingInput(fixture.path),
+        },
+        new AbortController().signal,
+        collector,
+      );
+
+      expect(output).toBeUndefined();
+      const cycle = collector.errors.find((d) => d.code === "COMPONENT_UPGRADE_CYCLE");
+      expect(cycle).toBeDefined();
+      expect(cycle!.message).toContain("comp_a");
+      expect(cycle!.message).toContain("comp_b");
+      expect(cycle!.sourceLocation?.path).toBe(
+        resolve(fixture.path, "ship-building/components.yaml"),
+      );
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("accepts an acyclic component upgrade chain (positive control)", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({ name: "test-pack", version: "0.1.0", type: "fixture", files: {} }),
+      );
+      writeFixture(
+        fixture.path,
+        "ship-building/components.yaml",
+        `components:${componentYamlWith("comp_a", ["comp_b"])}${componentYamlWith("comp_b", [])}`,
+      );
+      writeFixture(fixture.path, "ship-building/balance.yaml", `ship:\n  dummy: 1\n`);
+
+      const collector = new DiagnosticCollector();
+      const output = new Compiler().compile(
+        {
+          manifestPath: "pack.json",
+          contentDir: fixture.path,
+          rulesetFiles: [],
+          countryFiles: [],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [],
+          ...shipBuildingInput(fixture.path),
+        },
+        new AbortController().signal,
+        collector,
+      );
+
+      expect(collector.hasErrors).toBe(false);
+      expect(output).toBeDefined();
     } finally {
       fixture.cleanup();
     }

@@ -169,11 +169,12 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
 
     validateDuplicateIds(validated, collector);
     validateMissingReferences(validated, collector);
-    validateTechnologyAcyclic(validated, collector);
+    validateTechnologyGraph(validated, input, collector);
 
     const catalogue = validateShipBuildingCatalogue(input, collector);
     validateShipBuildingDuplicates(catalogue, input, collector);
     validateShipBuildingReferences(validated, catalogue, input, collector);
+    validateComponentUpgradeGraph(catalogue, input, collector);
 
     if (collector.hasErrors) return undefined;
 
@@ -492,82 +493,164 @@ function stringArray(value: unknown): string[] {
 }
 
 /**
- * Validates that the technology prerequisite graph is acyclic (DESIGN-20 §16)
- * using Kahn's algorithm over canonical technology identifiers. A cycle fails
- * with TECHNOLOGY_PREREQUISITE_CYCLE.
+ * Validates the technology prerequisite graph (DESIGN-20 §16): no technology
+ * may list itself as a prerequisite, and the prerequisite graph must be acyclic.
+ * A self-edge fails with SELF_REFERENCE; a cycle fails with
+ * TECHNOLOGY_PREREQUISITE_CYCLE naming the cycle members (each with its source
+ * file) so the designer can see exactly what to break.
  */
-function validateTechnologyAcyclic(
+function validateTechnologyGraph(
   validated: Record<string, unknown[]>,
+  input: ParseOutput,
   collector: DiagnosticCollector,
 ): void {
   const techs = validated["technologies"] ?? [];
   if (techs.length === 0) return;
-
-  const byId = new Map<string, Record<string, unknown>>();
-  for (const t of techs) {
-    const tRecord = t as Record<string, unknown>;
-    const tId = tRecord["id"];
-    if (typeof tId === "string") byId.set(tId, tRecord);
-  }
+  const sources = input.sourcePaths.get("technologies") ?? [];
+  const sourceFor = (id: string): string => {
+    const index = techs.findIndex((t) => (t as Record<string, unknown>)["id"] === id);
+    return sources[index] ?? "technologies.yaml";
+  };
 
   const adjacency = new Map<string, string[]>();
-  const inDegree = new Map<string, number>();
   for (const t of techs) {
-    const tRecord = t as Record<string, unknown>;
-    const tId = String(tRecord["id"]);
-    adjacency.set(tId, []);
-    inDegree.set(tId, 0);
+    const id = (t as Record<string, unknown>)["id"];
+    if (typeof id === "string") adjacency.set(id, []);
   }
 
   for (const t of techs) {
-    const tRecord = t as Record<string, unknown>;
-    const tId = String(tRecord["id"]);
-    const prereqs = tRecord["prerequisites"];
-    if (Array.isArray(prereqs)) {
-      for (const prereq of prereqs) {
-        const prereqRecord = prereq as Record<string, unknown>;
-        const techId = prereqRecord["techId"];
-        if (typeof techId === "string" && techId !== tId && adjacency.has(techId)) {
-          adjacency.get(techId)!.push(tId);
-          inDegree.set(tId, (inDegree.get(tId) ?? 0) + 1);
-        }
+    const record = t as Record<string, unknown>;
+    const id = String(record["id"]);
+    const prereqs = record["prerequisites"];
+    if (!Array.isArray(prereqs)) continue;
+    for (const prereq of prereqs) {
+      const techId = (prereq as Record<string, unknown>)["techId"];
+      if (typeof techId !== "string") continue;
+      if (techId === id) {
+        collector.addError("SELF_REFERENCE", `Technology '${id}' lists itself as a prerequisite`, {
+          stage: "validate",
+          sourceLocation: { path: sourceFor(id), line: 1 },
+          entityId: id,
+          remediation: `Remove '${id}' from its own prerequisites`,
+        });
+        continue;
       }
+      if (adjacency.has(techId)) adjacency.get(id)!.push(techId);
     }
   }
 
-  const resolved: string[] = [];
-  const ready = [...inDegree.entries()]
-    .filter(([, d]) => d === 0)
-    .map(([id]) => id)
-    .sort();
-  while (ready.length > 0) {
-    const id = ready.shift()!;
-    resolved.push(id);
-    const next = adjacency.get(id) ?? [];
-    const newlyReady: string[] = [];
-    for (const dep of next) {
-      const deg = (inDegree.get(dep) ?? 1) - 1;
-      inDegree.set(dep, deg);
-      if (deg === 0) newlyReady.push(dep);
-    }
-    newlyReady.sort();
-    ready.push(...newlyReady);
-  }
-
-  if (resolved.length !== byId.size) {
-    const remaining = [...inDegree.entries()]
-      .filter(([, d]) => d > 0)
-      .map(([id]) => id)
-      .sort();
-    collector.addError(
+  const cycle = findCycle(adjacency);
+  if (cycle !== null) {
+    reportCycle(
       "TECHNOLOGY_PREREQUISITE_CYCLE",
-      `Technology prerequisite cycle detected among: ${remaining.join(", ")}`,
-      {
-        stage: "validate",
-        entityId: remaining[0],
-      },
+      "Technology prerequisite",
+      cycle,
+      sourceFor,
+      collector,
     );
   }
+}
+
+/**
+ * Validates the ship-component upgrade graph: no component may upgrade from
+ * itself, and the `upgradePath` graph must be acyclic. Mirrors the technology
+ * graph checks with COMPONENT_UPGRADE_CYCLE / SELF_REFERENCE.
+ */
+function validateComponentUpgradeGraph(
+  catalogue: ValidatedCatalogue,
+  input: ParseOutput,
+  collector: DiagnosticCollector,
+): void {
+  const components = catalogue.shipComponents;
+  if (components.length === 0) return;
+  const sources = input.sourcePaths.get("shipComponents") ?? [];
+  const sourceFor = (id: string): string => {
+    const index = components.findIndex((c) => (c as Record<string, unknown>)["id"] === id);
+    return sources[index] ?? "ship-building/components.yaml";
+  };
+
+  const adjacency = new Map<string, string[]>();
+  for (const c of components) {
+    const id = (c as Record<string, unknown>)["id"];
+    if (typeof id === "string") adjacency.set(id, []);
+  }
+
+  for (const c of components) {
+    const record = c as Record<string, unknown>;
+    const id = String(record["id"]);
+    for (const upgrade of stringArray(record["upgradePath"])) {
+      if (upgrade === id) {
+        collector.addError("SELF_REFERENCE", `Component '${id}' lists itself in its upgradePath`, {
+          stage: "validate",
+          sourceLocation: { path: sourceFor(id), line: 1 },
+          entityId: id,
+          remediation: `Remove '${id}' from its own upgradePath`,
+        });
+        continue;
+      }
+      if (adjacency.has(upgrade)) adjacency.get(id)!.push(upgrade);
+    }
+  }
+
+  const cycle = findCycle(adjacency);
+  if (cycle !== null) {
+    reportCycle("COMPONENT_UPGRADE_CYCLE", "Ship component upgrade", cycle, sourceFor, collector);
+  }
+}
+
+function reportCycle(
+  code: string,
+  label: string,
+  cycle: string[],
+  sourceFor: (id: string) => string,
+  collector: DiagnosticCollector,
+): void {
+  const path = [...cycle, cycle[0]!].join(" -> ");
+  collector.addError(code, `${label} cycle detected: ${path}`, {
+    stage: "validate",
+    sourceLocation: { path: sourceFor(cycle[0]!), line: 1 },
+    entityId: cycle[0],
+    relatedLocations: cycle.map((id) => ({ path: sourceFor(id), line: 1 })),
+    remediation: `Break the ${label.toLowerCase()} cycle among: ${cycle.join(", ")}`,
+  });
+}
+
+/**
+ * Finds one concrete cycle in a directed graph via depth-first search, returning
+ * the cycle members in order (or `null` when the graph is acyclic). Edges to
+ * nodes not in the graph are ignored (dangling references are reported
+ * elsewhere).
+ */
+function findCycle(adjacency: Map<string, string[]>): string[] | null {
+  const WHITE = 0;
+  const GRAY = 1;
+  const BLACK = 2;
+  const color = new Map<string, number>();
+  for (const id of adjacency.keys()) color.set(id, WHITE);
+  const stack: string[] = [];
+  let found: string[] | null = null;
+
+  const visit = (id: string): boolean => {
+    color.set(id, GRAY);
+    stack.push(id);
+    for (const next of adjacency.get(id) ?? []) {
+      if (!adjacency.has(next)) continue;
+      const state = color.get(next);
+      if (state === GRAY) {
+        found = stack.slice(stack.indexOf(next));
+        return true;
+      }
+      if (state === WHITE && visit(next)) return true;
+    }
+    stack.pop();
+    color.set(id, BLACK);
+    return false;
+  };
+
+  for (const id of [...adjacency.keys()].sort()) {
+    if (color.get(id) === WHITE && visit(id)) break;
+  }
+  return found;
 }
 
 function validateDuplicateIds(
