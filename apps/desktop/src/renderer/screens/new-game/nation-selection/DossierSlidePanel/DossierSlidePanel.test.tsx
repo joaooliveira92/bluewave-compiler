@@ -36,11 +36,16 @@ describe("DossierSlidePanel", () => {
     cleanup();
   });
 
-  it("shows the appointment title and nation name, with no date", () => {
+  it("shows the nation name with the appointment title only on the flag's hover", async () => {
     renderPanel("gb");
 
-    expect(screen.getByText(/You have been appointed First Sea Lord/i)).toBeTruthy();
     expect(screen.getByRole("heading", { name: "United Kingdom" })).toBeTruthy();
+    expect(screen.queryByText(/You have been appointed First Sea Lord/i)).toBeNull();
+
+    const flag = screen.getByLabelText(/You have been appointed First Sea Lord/i);
+    fireEvent.focus(flag);
+    expect(await screen.findByText(/You have been appointed First Sea Lord/i)).toBeTruthy();
+
     expect(screen.queryByText(/Admiralty Intelligence Dossier/i)).toBeNull();
     expect(screen.queryByText(/1880/)).toBeNull();
   });
