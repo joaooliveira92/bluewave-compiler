@@ -35,23 +35,67 @@ function tracked(pattern) {
 
 // ---- 1. relative link integrity ----
 // git pathspecs are recursive for `*.md`, so filter to the canonical scope:
-// everything under docs/, the root markdown files, and .ai/*.md.
+// everything under docs/, the root markdown files, and .ai/*.md. A relative
+// target must exist; a `#fragment` onto a Markdown target (a same-file
+// `#anchor` included) must name a real GitHub heading slug or explicit
+// `<a id>`. Scheme-qualified, protocol-relative, and root-absolute targets are
+// excluded; fenced code and HTML comments are not scanned.
 const LINK_SCOPE = tracked("*.md").filter(
   (f) => f.startsWith("docs/") || !f.includes("/") || /^\.ai\/[^/]+\.md$/.test(f),
 );
+
+const { sanitizeForScan, documentAnchors } = require("./lib/doc-anchors.cjs");
+
+const anchorCache = new Map();
+function anchorsFor(absPath) {
+  let anchors = anchorCache.get(absPath);
+  if (!anchors) {
+    anchors = documentAnchors(fs.readFileSync(absPath, "utf8"));
+    anchorCache.set(absPath, anchors);
+  }
+  return anchors;
+}
+
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value; // malformed escape names no real path/anchor
+  }
+}
+
 const LINK_RE = /\]\(([^)]+)\)/g;
 let linkCount = 0;
+let anchorLinkCount = 0;
 for (const file of LINK_SCOPE) {
-  const dir = path.dirname(path.join(root, file));
-  const text = fs.readFileSync(path.join(root, file), "utf8");
+  const abs = path.join(root, file);
+  const dir = path.dirname(abs);
+  const text = sanitizeForScan(fs.readFileSync(abs, "utf8"));
   for (const m of text.matchAll(LINK_RE)) {
-    const target = m[1].split("#")[0].trim();
-    if (!target || target.startsWith("<") || /^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
-    if (!target.endsWith(".md")) continue;
+    const raw = m[1].trim();
+    if (!raw || raw.startsWith("<") || /^[a-z][a-z0-9+.-]*:/i.test(raw) || raw.startsWith("/")) {
+      continue;
+    }
+    const hashIdx = raw.indexOf("#");
+    const target = (hashIdx === -1 ? raw : raw.slice(0, hashIdx)).trim();
+    const fragment =
+      hashIdx === -1 ? null : safeDecode(raw.slice(hashIdx + 1).replace(/\?.*$/, ""));
+    const sameFile = target === "";
+    if (!target.endsWith(".md") && !sameFile) continue;
     linkCount++;
-    const resolved = path.resolve(dir, decodeURIComponent(target));
+    const resolved = sameFile ? abs : path.resolve(dir, safeDecode(target));
     if (!fs.existsSync(resolved)) {
       problems.push(`broken link: ${file} -> ${m[1]}`);
+      continue;
+    }
+    if (fragment !== null && resolved.endsWith(".md")) {
+      anchorLinkCount++;
+      if (!anchorsFor(resolved).has(fragment)) {
+        problems.push(
+          `broken anchor: ${file} -> ${m[1]} (no heading "#${fragment}" in ` +
+            `${path.relative(root, resolved)})`,
+        );
+      }
     }
   }
 }
@@ -207,4 +251,6 @@ if (problems.length) {
   for (const p of problems) console.error(`  - ${p}`);
   process.exit(1);
 }
-console.log(`docs-check: ok (${linkCount} links, ${adrFiles.length} ADRs indexed)`);
+console.log(
+  `docs-check: ok (${linkCount} links, ${anchorLinkCount} anchored, ${adrFiles.length} ADRs indexed)`,
+);

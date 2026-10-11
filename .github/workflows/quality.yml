@@ -29,6 +29,7 @@ jobs:
       - run: pnpm preflight
       - run: pnpm format
       - run: pnpm lint
+      - run: pnpm test:scripts
       - run: pnpm typecheck
       # --force: typecheck's `^build` populates the turbo cache first, and a
       # replayed desktop build then reads a stale phase-engine `dist`. Build
@@ -37,3 +38,16 @@ jobs:
       - run: pnpm test:run
       - name: Balance reports match the deterministic benchmark
         run: pnpm check:balance-reports
+      # Informational only: publishes the change scope for change-based CI
+      # filtering (see docs/agents/change-scope.md). Never gates the job — a
+      # scope error must not be able to turn a required check green or red.
+      - name: Change scope (informational)
+        continue-on-error: true
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "no base ref (workflow_dispatch or new branch); skipping change-scope"
+          else
+            pnpm change-scope --base "$BASE"
+          fi

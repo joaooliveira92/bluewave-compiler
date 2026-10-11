@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0106).
+highest existing number + 1 (the next number is ADR-0107).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -170,3 +170,4 @@ Repo process, docs/ADR authority, and release gates.
 | 0095 | [ADR-0095-design-doc-adr-authority.md](ADR-0095-design-doc-adr-authority.md) | Design docs are normative; ADRs amend them and record the amendment | accepted | — |
 | 0096 | [ADR-0096-playable-nation-coverage.md](ADR-0096-playable-nation-coverage.md) | Playable nations must have an authored national profile | accepted | — |
 | 0099 | [ADR-0099-release-verification-gates.md](ADR-0099-release-verification-gates.md) | Release verification gates and push discipline | accepted | — |
+| 0106 | [ADR-0106-documentation-and-type-safety-ratchet-gates.md](ADR-0106-documentation-and-type-safety-ratchet-gates.md) | Documentation and type-safety ratchet gates | accepted | — |

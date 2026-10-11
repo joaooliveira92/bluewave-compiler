@@ -117,6 +117,16 @@ a pinned **exact** devDependency **external** to `vendor/` — never vendor it; 
 standalone `oxlint`/`oxlint-tsgolint` invoker is pinned exact to the versions
 `vite-plus` resolves. See ADR-0100/ADR-0101 (adoption, vendoring).
 
+Three `pnpm preflight` gates freeze qualities that would otherwise only decay
+(ADR-0106): `scripts/verify-no-unknown-casts.mjs` ratchets `as unknown`
+assertions out of the authored source against
+`scripts/no-unknown-casts.baseline.json`, `scripts/verify-doc-budgets.mjs`
+enforces word ceilings from `scripts/doc-budgets.manifest.json`, and
+`docs-check.cjs` validates Markdown `#fragment` anchors. Their fixtures live in
+`scripts/test/` (`pnpm test:scripts`, part of `pnpm check`). `scripts/change-scope.mjs`
+(`pnpm change-scope`) prints a JSON change scope for change-based CI filtering
+([usage](docs/agents/change-scope.md)).
+
 <!-- BEGIN:turborepo-agent-rules -->
 
 # This is NOT the Turborepo you know
