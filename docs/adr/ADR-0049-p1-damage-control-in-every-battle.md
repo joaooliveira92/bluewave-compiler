@@ -4,6 +4,8 @@
 
 Accepted (2026-10-07). Supersedes ADR-0047 decisions 1 and 2 (the gate and its recorded deviation); decision 3's follow-up is this ADR plus ticket 10.
 
+Supersedes: ADR-0047 (decisions 1 and 2).
+
 ## Context
 
 ADR-0047 gated the per-ship damage-control stage on the battle containing a unit

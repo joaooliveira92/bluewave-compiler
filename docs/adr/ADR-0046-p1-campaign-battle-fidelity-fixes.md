@@ -4,6 +4,9 @@
 
 Accepted (2026-10-06)
 
+Superseded by: ADR-0051 (decision 2 — auto-resolution heading override).
+Supersedes: ADR-0031 (decision 3 — swept-segment hits).
+
 ## Context
 
 P-1 (ADR-0045) wires the M3 torpedo module into `resolveBattleAuto`, the path every

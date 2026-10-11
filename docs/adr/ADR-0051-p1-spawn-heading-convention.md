@@ -4,6 +4,8 @@
 
 Accepted (2026-10-07). Supersedes ADR-0046 decision 2 (auto-resolution heading override).
 
+Supersedes: ADR-0046 (decision 2).
+
 ## Context
 
 `computeInitialMovementStates` labelled 90/270 as east/west, but `directionBp`

@@ -4,6 +4,8 @@
 
 Accepted 2026-10-09. Implements ticket 29 on top of ADR-0064 (work packages) and ADR-0067 (yards, build time). First slice delivered.
 
+Supersedes: ADR-0076 (decision 1).
+
 ## Context
 
 A `ConstructionProject` carries one `completedWork` figure that a player's budget advances one-to-one (`applyBudgetProject`). The workshop forecast, the revision rules and the yard model all reason about packages (hull, machinery, armour, ordnance, launch, fit-out, trials, acceptance) and per-line capacity, but the engine never does. So `ReviseProject` must assume nothing is armoured or launched, and the forecast's build time is unrelated to the time a project really takes.

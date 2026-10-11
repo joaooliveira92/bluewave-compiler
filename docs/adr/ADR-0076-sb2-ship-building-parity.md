@@ -4,6 +4,8 @@
 
 Accepted 2026-10-09. Beneath DESIGN-21/22/23 and ADR-0063/0064 (SB-1). Spec: `.scratch/ship-building/parity-spec.md`.
 
+Superseded by: ADR-0077 (decision 1 — the Drawing Board yard list).
+
 ## Context
 
 The owner compared the Drawing Board with the Rule the Waves 3 design screens and approved five parity features: yard fit, ship type and class code, armour coverage and scheme, a turret and battery editor, and click-to-place on the hull plan. Mechanics are matched; the UI is not cloned.

@@ -9,6 +9,7 @@
   "scripts": {
     "build": "turbo run build",
     "preflight": "node scripts/preflight.cjs && node scripts/docs-check.cjs",
+    "adr:index": "node scripts/adr-index.cjs",
     "check:licenses": "node scripts/license-check.cjs",
     "check:balance-reports": "node scripts/check-balance-reports.cjs",
     "check:commit-msgs": "node scripts/check-commit-msgs.cjs",

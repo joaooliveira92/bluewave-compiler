@@ -4,6 +4,8 @@
 
 Accepted 2026-10-08. Implements SB-14 of `.scratch/ship-building/spec.md` (builds on ADR-0063/0064).
 
+Superseded by: ADR-0085 (same-month design approval).
+
 ## Decision
 
 1. New engine command `SubmitDesign { nationId, designVersionId, designFamilyId, className, hullType, machineryType, draft }` (17th command). `draft` is a `@bluewave/ship-design` `DesignDraft` as JSON.

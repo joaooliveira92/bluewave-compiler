@@ -4,6 +4,8 @@
 
 accepted locally; **licence sign-off pending before any release**.
 
+Tracked in `docs/DEFERRALS.md` (D-2).
+
 ## Context
 
 The world map should show where each playable nation's territory lay in 1880. The

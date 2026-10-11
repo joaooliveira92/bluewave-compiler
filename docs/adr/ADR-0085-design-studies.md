@@ -4,6 +4,8 @@
 
 Accepted 2026-10-09. Implements DESIGN-21 sections 3 and 8-18 in the phase engine; supersedes the same-month approval ADR-0066 introduced.
 
+Supersedes: ADR-0066 (same-month design approval).
+
 ## Context
 
 DESIGN-21 requires every design submitted for approval to create or reference one `DesignStudy` (section 3), and defines

@@ -4,6 +4,8 @@
 
 Accepted (2026-10-07). Part 1 implemented; part 2 recorded as a deferral with a concrete next step.
 
+Tracked in `docs/DEFERRALS.md` (D-1).
+
 ## Context
 
 Building the desktop Tactical Sandbox (ADR-0057) showed that no real turn can generate a battle. The

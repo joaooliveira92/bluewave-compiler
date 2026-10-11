@@ -4,6 +4,8 @@
 
 Accepted (2026-10-06)
 
+Superseded by: ADR-0049 (decisions 1 and 2 — the damage-control gate and its recorded deviation).
+
 ## Context
 
 P-1 ticket 07 makes the DESIGN-41 damage-control stage real inside

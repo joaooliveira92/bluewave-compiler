@@ -5,6 +5,8 @@
 Accepted 2026-10-08. Decision + first shared step only; the full migration is a
 follow-up ticket (see "Deferred").
 
+Tracked in `docs/DEFERRALS.md` (D-3).
+
 ## Context
 
 Two conventions coexist for screens that load a projection and issue a

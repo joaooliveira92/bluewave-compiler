@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // Documentation hygiene gate (ADR-0095).
 //
-// Four checks over the canonical docs, cheapest failures first:
+// Six checks over the canonical docs, cheapest failures first:
 //   1. relative markdown links resolve (docs/**, root *.md, .ai/*.md)   -> FAIL
-//   2. docs/adr/README.md index matches the ADR files + next number      -> FAIL
-//   3. every ADR has a valid `## Status` section, matching its index row -> FAIL
-//   4. ADRs referencing a DESIGN-N are classified in AMENDMENTS.md       -> FAIL
+//   2. docs/adr/README.md equals the generated index                     -> FAIL
+//   3. every ADR has a valid `## Status` section                         -> FAIL
+//   4. `Supersedes:` / `Superseded by:` links resolve and reciprocate    -> FAIL
+//   5. deferred work in an ADR Status is listed in docs/DEFERRALS.md     -> FAIL
+//   6. AMENDMENTS.md matches every DESIGN doc's `Amended by:` header     -> FAIL
 //
 // Wired into `pnpm preflight` (and therefore `pnpm dev` / `pnpm check`).
 // Standalone: `node scripts/docs-check.cjs`.
@@ -54,13 +56,31 @@ for (const file of LINK_SCOPE) {
   }
 }
 
-// ---- 2. ADR index sync ----
-// Read the directory (not git) so a newly created, not-yet-staged ADR is counted.
+// ---- 2. ADR index is exactly the generator's output ----
+// The index is a build artefact of the ADR corpus (scripts/adr-index.cjs), so a
+// drift in titles, status, or supersession shows up here rather than silently.
 const adrFiles = fs
   .readdirSync(path.join(root, "docs/adr"))
   .filter((f) => /^ADR-\d{4}-.*\.md$/.test(f))
   .map((f) => ({ f: `docs/adr/${f}`, n: f.match(/ADR-(\d{4})/)[1] }));
+const adrNums = new Set(adrFiles.map((x) => x.n));
+const adrText = new Map(adrFiles.map((x) => [x.n, fs.readFileSync(path.join(root, x.f), "utf8")]));
+const readAdr = (n) => adrText.get(n);
 
+const adrReadmePath = path.join(root, "docs/adr/README.md");
+try {
+  const { buildIndex } = require("./adr-index.cjs");
+  const expected = buildIndex();
+  if (!fs.existsSync(adrReadmePath)) {
+    problems.push("docs/adr/README.md is missing (run `pnpm adr:index`)");
+  } else if (fs.readFileSync(adrReadmePath, "utf8") !== expected) {
+    problems.push("docs/adr/README.md is stale (run `pnpm adr:index`)");
+  }
+} catch (err) {
+  problems.push(`ADR index could not be generated: ${err.message}`);
+}
+
+// ---- 3. ADR status sections ----
 // Canonical status keyword: the first word of the `## Status` section body.
 // The free-text note after it is unconstrained; the lead word is not.
 const STATUS_OK = new Set(["accepted", "proposed", "deprecated", "superseded"]);
@@ -70,69 +90,110 @@ function adrStatus(text) {
   const kw = m[1].trim().match(/^([a-z]+)/i);
   return kw ? kw[1].toLowerCase() : null;
 }
-
-const adrReadmePath = path.join(root, "docs/adr/README.md");
-if (!fs.existsSync(adrReadmePath)) {
-  problems.push("docs/adr/README.md is missing");
-} else {
-  const readme = fs.readFileSync(adrReadmePath, "utf8");
-  // Index rows end in a Status cell, so a row without one counts as missing.
-  const rowRe = /^\|\s*(\d{4})\s*\|.*\[ADR-\d{4}-[^\]]*\]\([^)]+\)\s*\|.*\|\s*([a-z]+)\s*\|\s*$/;
-  const rows = new Map(); // number -> status cell
-  for (const line of readme.split("\n")) {
-    const m = line.match(rowRe);
-    if (!m) continue;
-    if (rows.has(m[1])) problems.push(`docs/adr/README.md lists ADR-${m[1]} more than once`);
-    rows.set(m[1], m[2].toLowerCase());
-  }
-  const missing = adrFiles.filter((x) => !rows.has(x.n)).map((x) => x.n);
-  if (missing.length)
-    problems.push(
-      `docs/adr/README.md is missing rows for: ${missing.map((n) => "ADR-" + n).join(", ")}`,
-    );
-  const max = Math.max(...adrFiles.map((x) => Number(x.n)));
-  const next = String(max + 1).padStart(4, "0");
-  const declared = readme.match(/next number is ADR-(\d{4})/)?.[1];
-  if (declared !== next)
-    problems.push(`docs/adr/README.md says next is ADR-${declared ?? "?"}; should be ADR-${next}`);
-
-  for (const { f, n } of adrFiles) {
-    if (!rows.has(n)) continue;
-    const kw = adrStatus(fs.readFileSync(path.join(root, f), "utf8"));
-    if (kw !== rows.get(n))
-      problems.push(
-        `docs/adr/README.md row ADR-${n} status "${rows.get(n)}" ` +
-          `does not match the ADR's status "${kw ?? "none"}"`,
-      );
-  }
-}
-
-// ---- 3. ADR status sections ----
-for (const { f, n } of adrFiles) {
-  const kw = adrStatus(fs.readFileSync(path.join(root, f), "utf8"));
+for (const { n } of adrFiles) {
+  const kw = adrStatus(readAdr(n));
   if (kw === null) problems.push(`ADR-${n} has no "## Status" section`);
   else if (!STATUS_OK.has(kw))
     problems.push(`ADR-${n} status "${kw}" is not one of {${[...STATUS_OK].join(", ")}}`);
 }
 
-// ---- 4. amendment classification ----
+// ---- 4. supersession links resolve and reciprocate ----
+const SUPERSEDES_RE = /^Supersedes:\s*(ADR-\d{4})/gm;
+const SUPERSEDED_BY_RE = /^Superseded by:\s*(ADR-\d{4})/gm;
+for (const { n } of adrFiles) {
+  const text = readAdr(n);
+  for (const m of text.matchAll(SUPERSEDES_RE)) {
+    const target = m[1].slice(4);
+    if (!adrNums.has(target)) {
+      problems.push(`ADR-${n} has "Supersedes: ${m[1]}" but ${m[1]} does not exist`);
+    } else if (!new RegExp(`^Superseded by:\\s*ADR-${n}\\b`, "m").test(readAdr(target))) {
+      problems.push(`ADR-${n} supersedes ${m[1]}, which has no matching "Superseded by: ADR-${n}"`);
+    }
+  }
+  for (const m of text.matchAll(SUPERSEDED_BY_RE)) {
+    const target = m[1].slice(4);
+    if (!adrNums.has(target)) {
+      problems.push(`ADR-${n} has "Superseded by: ${m[1]}" but ${m[1]} does not exist`);
+    } else if (!new RegExp(`^Supersedes:\\s*ADR-${n}\\b`, "m").test(readAdr(target))) {
+      problems.push(
+        `ADR-${n} is superseded by ${m[1]}, which has no matching "Supersedes: ADR-${n}"`,
+      );
+    }
+  }
+}
+
+// ---- 5. deferred work is listed in the ledger ----
+// An ADR whose Status flags a deferral must have a docs/DEFERRALS.md row, so
+// mechanics-gated work cannot be recorded as deferred and then silently dropped.
+const DEFERRAL_FLAG = /deferr|\bpending\b(?!-)/i;
+const deferralsPath = path.join(root, "docs/DEFERRALS.md");
+if (!fs.existsSync(deferralsPath)) {
+  problems.push("docs/DEFERRALS.md is missing — deferred work has no ledger");
+} else {
+  const ledger = fs.readFileSync(deferralsPath, "utf8");
+  const ledgerAdrs = new Set([...ledger.matchAll(/ADR-(\d{4})/g)].map((m) => m[1]));
+  for (const n of ledgerAdrs)
+    if (!adrNums.has(n))
+      problems.push(`docs/DEFERRALS.md references ADR-${n}, which does not exist`);
+  for (const { n } of adrFiles) {
+    const body = readAdr(n).match(/^## Status\s*\n+([\s\S]*?)(?=\n## )/m);
+    if (body && DEFERRAL_FLAG.test(body[1]) && !ledgerAdrs.has(n))
+      problems.push(
+        `ADR-${n} records a deferral in its Status but is absent from docs/DEFERRALS.md`,
+      );
+  }
+}
+
+// ---- 6. amendment classification + AMENDMENTS <-> DESIGN header sync ----
 const amendPath = path.join(root, "docs/adr/AMENDMENTS.md");
 if (!fs.existsSync(amendPath)) {
   problems.push("docs/adr/AMENDMENTS.md is missing — amendment classification cannot be checked");
 } else {
   const amend = fs.readFileSync(amendPath, "utf8");
-  const classified = new Set();
-  for (const a of amend.matchAll(/ADR-(\d{4})/g)) classified.add(a[1]);
-  for (const { f, n } of adrFiles) {
+  const classified = new Set([...amend.matchAll(/ADR-(\d{4})/g)].map((m) => m[1]));
+  for (const { n } of adrFiles) {
     if (classified.has(n)) continue;
-    const text = fs.readFileSync(path.join(root, f), "utf8");
-    for (const d of new Set([...text.matchAll(/DESIGN-(\d+)/g)].map((m) => m[1]))) {
+    for (const d of new Set([...readAdr(n).matchAll(/DESIGN-(\d+)/g)].map((m) => m[1]))) {
       problems.push(
         `ADR-${n} references DESIGN-${d} but is classified in neither the Amendments nor ` +
           `the Scope/process section of docs/adr/AMENDMENTS.md`,
       );
       break;
     }
+  }
+
+  // AMENDMENTS.md Amendments table vs each DESIGN doc's `Amended by:` header.
+  const table = new Map(); // "07" -> Set("0037")
+  for (const m of amend.matchAll(/\|\s*`DESIGN-(\d+)`[^|]*\|([^|]*)\|/g)) {
+    table.set(m[1].padStart(2, "0"), new Set([...m[2].matchAll(/ADR-(\d{4})/g)].map((x) => x[1])));
+  }
+  const docs = new Map(); // "07" -> { file, adrs:Set }
+  for (const file of LINK_SCOPE.filter((f) => f.startsWith("docs/"))) {
+    const text = fs.readFileSync(path.join(root, file), "utf8");
+    const id = text.match(/^> \*\*Stable document ID:\*\*\s*`DESIGN-(\d+)`/m);
+    if (!id) continue;
+    const amended = text.match(/^> \*\*Amended by:\*\*\s*(.+)$/m);
+    if (!amended) continue;
+    docs.set(id[1], {
+      file,
+      adrs: new Set([...amended[1].matchAll(/ADR-(\d{4})/g)].map((x) => x[1])),
+    });
+  }
+  const eqSet = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
+  for (const [num, adrs] of table) {
+    const doc = docs.get(num);
+    if (!doc) problems.push(`AMENDMENTS.md lists DESIGN-${num} but no such DESIGN doc exists`);
+    else if (!eqSet(adrs, doc.adrs))
+      problems.push(
+        `AMENDMENTS.md DESIGN-${num} amenders ${[...adrs].map((a) => "ADR-" + a).join(", ")} ` +
+          `!= ${doc.file} "Amended by:" header ${[...doc.adrs].map((a) => "ADR-" + a).join(", ")}`,
+      );
+  }
+  for (const [num, doc] of docs) {
+    if (!table.has(num))
+      problems.push(
+        `${doc.file} has an "Amended by:" header but DESIGN-${num} is not in the AMENDMENTS.md table`,
+      );
   }
 }
 

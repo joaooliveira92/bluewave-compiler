@@ -4,6 +4,8 @@
 
 Accepted 2026-08-16
 
+Superseded by: ADR-0046 (decision 3 — swept-segment hits).
+
 ## Context
 
 C-1 is the M3 (Track C) torpedo fire-resolution vertical slice of DESIGN-40,
