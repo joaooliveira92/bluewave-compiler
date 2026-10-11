@@ -28,9 +28,9 @@ import {
   type ContinuityDeps,
 } from "./continuityCommands.js";
 import { inspectCampaign } from "./inspectCampaign.js";
-import { parse } from "yaml";
 import { dispatchCampaignCommand } from "../campaignBridge.js";
 import { clearPendingWorkspacesForTest } from "../pendingCommands.js";
+import { readReferenceDesigns } from "../referenceDesigns.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
@@ -125,10 +125,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
 
   /** The 1880 torpedo cruiser reference draft, valid at the campaign start. */
   function torpedoCruiserDraft(): Record<string, unknown> {
-    const refs = parse(
-      readFileSync(resolve(PRODUCTION_PACK, "ship-building", "reference-designs.yaml"), "utf8"),
-    ) as { designs: { id: string; draft: Record<string, unknown> }[] };
-    return { ...refs.designs.find((d) => d.id === "torpedo_cruiser_1880")!.draft, nationId: "uk" };
+    const ref = readReferenceDesigns().find((d) => d.id === "torpedo_cruiser_1880")!;
+    return { ...ref.draft, nationId: "uk" };
   }
 
   /**

@@ -22,7 +22,7 @@ and ten historical starting designs in service by 31 Dec 1879 (`docs/research/sh
   battery variants), 8-in/9-ton, 7-in/7-ton and 64-pdr; French 27-cm M1875 and German 26-cm RK L/20. Masses, charges,
   projectiles and muzzle velocity are VERIFIED from Mackinlay's *Text Book of Gunnery 1887* Table XVI; penetration is
   Brassey's *Naval Annual 1886* French Commission table; mount masses and rates of fire are ESTIMATE (no source).
-- Designs (`reference-designs.yaml`): Devastation, Dreadnought (1875), Alexandra and Iris (UK), Redoutable (France),
+- Designs (`reference-designs/<nation>/`): Devastation, Dreadnought (1875), Alexandra and Iris (UK), Redoutable (France),
   Kaiser and Sachsen (Germany), Principe Amedeo (Italy), Petr Velikiy (Russia) and Mesudiye (Ottoman Empire). The four
   pre-1880 RML threats (`rml_16in` … `rml_9in`) were added to `balance.yaml`'s `environment.threats`.
 - Each design compiles with no BLOCKING/CRITICAL finding at its own month (`packages/ship-design/test/references1880.test.ts`).
@@ -52,7 +52,7 @@ crew per tonne, all cost/construction/CVE/refit/AI constants. Each is marked `PL
 
 ## Opening ship types and starter designs (2026-10-10, ADR-0088)
 
-The designer offers `B CA CL DD KE AMC` at the 1880 start. `reference-designs.yaml` entries with `starterFor: <type>` are the
+The designer offers `B CA CL DD KE AMC` at the 1880 start. `reference-designs/<nation>/starters.yaml` entries with `starterFor: <type>` are the
 starting points the Drawing Board's "Ship types" panel loads; the newest one not after the campaign month is used. New, non-historical
 starters (`starter_*_1880`: DD, KE, AMC, CA, CL) are tuned to compile legally at 1880-01 under this content; their dimensions, power
 and armour are ESTIMATES, not real ships. Before the 6-inch breech-loaders

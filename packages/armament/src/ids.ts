@@ -13,7 +13,7 @@ export type AmmunitionId = Brand<string, "ArmamentAmmunitionId">;
 export type ArmamentTechnologyId = Brand<string, "ArmamentTechnologyId">;
 export type ArmamentNationId = Brand<string, "ArmamentNationId">;
 
-/** Canonical stable-id shape shared by every authored content id (components.yaml, naval-profiles.yaml). */
+/** Canonical stable-id shape shared by every authored content id (components.yaml, naval-profiles/). */
 const ARMAMENT_ID_RE = /^[a-z][a-z0-9_]*$/;
 
 export const isArmamentId = (value: string): boolean => ARMAMENT_ID_RE.test(value);

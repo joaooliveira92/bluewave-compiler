@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import {
@@ -29,8 +29,40 @@ import {
 } from "../../src/index.js";
 
 const root = join(__dirname, "..", "..", "..", "..", "content", "production", "1880");
+const sbDir = join(root, "ship-building");
 const load = (rel: string) =>
   parse(readFileSync(join(root, rel), "utf8")) as Record<string, unknown>;
+
+/** Naval profiles live one file per nation under `ship-building/naval-profiles/` (ADR-0109). */
+export const readNavalProfileEntries = (): unknown[] =>
+  readdirSync(join(sbDir, "naval-profiles"))
+    .filter((f) => f.endsWith(".yaml"))
+    .sort()
+    .flatMap(
+      (f) =>
+        (
+          parse(readFileSync(join(sbDir, "naval-profiles", f), "utf8")) as {
+            navalProfiles: unknown[];
+          }
+        ).navalProfiles,
+    );
+
+/** Deterministic nation order: the UK set leads, so `references[0]` stays the historical default. */
+const nationOrder = (a: string, b: string): number =>
+  a === b ? 0 : a === "uk" ? -1 : b === "uk" ? 1 : a < b ? -1 : 1;
+
+/** Reference designs live one directory per nation (`starters.yaml` + `historical.yaml`) (ADR-0109). */
+export const readReferenceDesignEntries = (): RawReferenceDesign[] =>
+  readdirSync(join(sbDir, "reference-designs"))
+    .sort(nationOrder)
+    .flatMap((nation) =>
+      ["starters.yaml", "historical.yaml"].flatMap((name) => {
+        const path = join(sbDir, "reference-designs", nation, name);
+        return existsSync(path)
+          ? (parse(readFileSync(path, "utf8")) as { designs: RawReferenceDesign[] }).designs
+          : [];
+      }),
+    );
 
 const armamentDir = join(root, "ship-building", "armament");
 const loadArmament = (rel: string) =>
@@ -73,14 +105,11 @@ export const shipBuildingData: ShipBuildingData = {
   hullForms: hullRecords,
   balance: balanceFile as unknown as ShipBuildingData["balance"],
   technologies: techs,
-  navalProfiles: decodeStrict(
-    NavalProfileCatalogueSchema,
-    load("ship-building/naval-profiles.yaml"),
-  ).navalProfiles as unknown as NationNavalProfile[],
+  navalProfiles: decodeStrict(NavalProfileCatalogueSchema, {
+    navalProfiles: readNavalProfileEntries(),
+  }).navalProfiles as unknown as NationNavalProfile[],
   armament: armamentContent,
-  referenceDesigns: (
-    load("ship-building/reference-designs.yaml") as { designs: RawReferenceDesign[] }
-  ).designs,
+  referenceDesigns: readReferenceDesignEntries(),
 };
 export const shipBuildingContent = buildShipBuildingContent(shipBuildingData);
 export const navalProfiles = shipBuildingData.navalProfiles!;

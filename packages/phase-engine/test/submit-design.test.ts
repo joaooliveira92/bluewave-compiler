@@ -28,6 +28,8 @@ import { describe, expect, it } from "vite-plus/test";
 import { MonthExecutor } from "../src/index.js";
 import { ATTACKER_NATION, makeBattleSnapshot } from "./battle-fixtures.js";
 
+import { readReferenceDesignEntries } from "./helpers/contentFiles.js";
+
 const root = join(
   dirname(fileURLToPath(import.meta.url)),
   "..",
@@ -55,11 +57,7 @@ const data: ShipBuildingData = {
 // Without study rules a submitted design is approved the same month, which these tests rely on; studies themselves are
 // covered in design-study.test.ts (ADR-0085).
 const content = { ...buildShipBuildingContent(data), study: null };
-const reference = (
-  parse(readFileSync(join(root, "ship-building", "reference-designs.yaml"), "utf8")) as {
-    designs: { id: string; draft: Record<string, unknown> }[];
-  }
-).designs;
+const reference = readReferenceDesignEntries();
 const havockDraft: Record<string, unknown> = {
   ...reference.find((d) => d.id === "havock_like")!.draft,
   nationId: ATTACKER_NATION,

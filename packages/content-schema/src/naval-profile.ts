@@ -10,7 +10,7 @@ import {
 } from "./naval-profile-vocab.js";
 
 /**
- * Content schema for `content/production/<scenario>/ship-building/naval-profiles.yaml` (NationNavalProfile).
+ * Content schema for `content/production/<scenario>/ship-building/naval-profiles/<nation>.yaml` (NationNavalProfile).
  * Structural authority only: cross-references (component families, plants, hull forms, nations) and semantic
  * rules are enforced by the domain validator `validateNavalProfiles` in `@bluewave/ship-design`, so a schema
  * change here cannot silently widen what a nation may build.

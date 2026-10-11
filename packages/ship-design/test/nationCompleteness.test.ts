@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { parse } from "yaml";
 import { describe, it, expect } from "vite-plus/test";
 import {
   fingerprintDistance,
@@ -8,23 +5,24 @@ import {
   validateAllNations,
   validateArmamentContent,
   validateNationCompleteness,
-  type DesignDraft,
   type ReferenceDesignClass,
   type StarterDesign,
 } from "../src/index.js";
-import { components, navalProfiles, shipBuildingContent } from "./helpers/earlyContext.js";
+import {
+  components,
+  navalProfiles,
+  readReferenceDesignEntries,
+  shipBuildingContent,
+} from "./helpers/earlyContext.js";
 import {
   armamentContent,
   armamentStarters,
   armamentTechnologies,
 } from "./helpers/armamentContext.js";
 
-const root = join(__dirname, "..", "..", "..", "content", "production", "1880");
-const starters = (
-  parse(readFileSync(join(root, "ship-building/reference-designs.yaml"), "utf8")) as {
-    designs: { id: string; name: string; month: string; starterFor?: string; draft: DesignDraft }[];
-  }
-).designs.filter((d) => d.starterFor !== undefined) as unknown as StarterDesign[];
+const starters = (readReferenceDesignEntries() as { starterFor?: string }[]).filter(
+  (d) => d.starterFor !== undefined,
+) as unknown as StarterDesign[];
 
 const knownComponentIds = new Set(components.map((c) => c.id));
 
@@ -48,6 +46,72 @@ const CLASSIFICATIONS: Record<string, ReferenceDesignClass> = {
   starter_torpedoboat_de_1880: "DOCTRINE_TEMPLATE",
   starter_gunboat_de_1880: "DOCTRINE_TEMPLATE",
   starter_armed_liner_de_1880: "DOCTRINE_TEMPLATE",
+  starter_b_usa_1880: "DOCTRINE_TEMPLATE",
+  starter_ca_usa_1880: "DOCTRINE_TEMPLATE",
+  starter_cl_usa_1880: "DOCTRINE_TEMPLATE",
+  starter_dd_usa_1880: "DOCTRINE_TEMPLATE",
+  starter_ke_usa_1880: "DOCTRINE_TEMPLATE",
+  starter_amc_usa_1880: "DOCTRINE_TEMPLATE",
+  starter_b_japan_1880: "DOCTRINE_TEMPLATE",
+  starter_ca_japan_1880: "DOCTRINE_TEMPLATE",
+  starter_cl_japan_1880: "DOCTRINE_TEMPLATE",
+  starter_dd_japan_1880: "DOCTRINE_TEMPLATE",
+  starter_ke_japan_1880: "DOCTRINE_TEMPLATE",
+  starter_amc_japan_1880: "DOCTRINE_TEMPLATE",
+  starter_b_italy_1880: "DOCTRINE_TEMPLATE",
+  starter_ca_italy_1880: "DOCTRINE_TEMPLATE",
+  starter_cl_italy_1880: "DOCTRINE_TEMPLATE",
+  starter_dd_italy_1880: "DOCTRINE_TEMPLATE",
+  starter_ke_italy_1880: "DOCTRINE_TEMPLATE",
+  starter_amc_italy_1880: "DOCTRINE_TEMPLATE",
+  starter_b_russia_1880: "DOCTRINE_TEMPLATE",
+  starter_ca_russia_1880: "DOCTRINE_TEMPLATE",
+  starter_cl_russia_1880: "DOCTRINE_TEMPLATE",
+  starter_dd_russia_1880: "DOCTRINE_TEMPLATE",
+  starter_ke_russia_1880: "DOCTRINE_TEMPLATE",
+  starter_amc_russia_1880: "DOCTRINE_TEMPLATE",
+  starter_b_austria_hungary_1880: "DOCTRINE_TEMPLATE",
+  starter_ca_austria_hungary_1880: "DOCTRINE_TEMPLATE",
+  starter_cl_austria_hungary_1880: "DOCTRINE_TEMPLATE",
+  starter_dd_austria_hungary_1880: "DOCTRINE_TEMPLATE",
+  starter_ke_austria_hungary_1880: "DOCTRINE_TEMPLATE",
+  starter_amc_austria_hungary_1880: "DOCTRINE_TEMPLATE",
+  starter_b_spain_1880: "DOCTRINE_TEMPLATE",
+  starter_ca_spain_1880: "DOCTRINE_TEMPLATE",
+  starter_cl_spain_1880: "DOCTRINE_TEMPLATE",
+  starter_dd_spain_1880: "DOCTRINE_TEMPLATE",
+  starter_ke_spain_1880: "DOCTRINE_TEMPLATE",
+  starter_amc_spain_1880: "DOCTRINE_TEMPLATE",
+  starter_b_qing_1880: "DOCTRINE_TEMPLATE",
+  starter_ca_qing_1880: "DOCTRINE_TEMPLATE",
+  starter_cl_qing_1880: "DOCTRINE_TEMPLATE",
+  starter_dd_qing_1880: "DOCTRINE_TEMPLATE",
+  starter_ke_qing_1880: "DOCTRINE_TEMPLATE",
+  starter_amc_qing_1880: "DOCTRINE_TEMPLATE",
+  starter_b_ottoman_empire_1880: "DOCTRINE_TEMPLATE",
+  starter_ca_ottoman_empire_1880: "DOCTRINE_TEMPLATE",
+  starter_cl_ottoman_empire_1880: "DOCTRINE_TEMPLATE",
+  starter_dd_ottoman_empire_1880: "DOCTRINE_TEMPLATE",
+  starter_ke_ottoman_empire_1880: "DOCTRINE_TEMPLATE",
+  starter_amc_ottoman_empire_1880: "DOCTRINE_TEMPLATE",
+  starter_b_netherlands_1880: "DOCTRINE_TEMPLATE",
+  starter_ca_netherlands_1880: "DOCTRINE_TEMPLATE",
+  starter_cl_netherlands_1880: "DOCTRINE_TEMPLATE",
+  starter_dd_netherlands_1880: "DOCTRINE_TEMPLATE",
+  starter_ke_netherlands_1880: "DOCTRINE_TEMPLATE",
+  starter_amc_netherlands_1880: "DOCTRINE_TEMPLATE",
+  starter_b_portugal_1880: "DOCTRINE_TEMPLATE",
+  starter_ca_portugal_1880: "DOCTRINE_TEMPLATE",
+  starter_cl_portugal_1880: "DOCTRINE_TEMPLATE",
+  starter_dd_portugal_1880: "DOCTRINE_TEMPLATE",
+  starter_ke_portugal_1880: "DOCTRINE_TEMPLATE",
+  starter_amc_portugal_1880: "DOCTRINE_TEMPLATE",
+  starter_b_brazil_1880: "DOCTRINE_TEMPLATE",
+  starter_ca_brazil_1880: "DOCTRINE_TEMPLATE",
+  starter_cl_brazil_1880: "DOCTRINE_TEMPLATE",
+  starter_dd_brazil_1880: "DOCTRINE_TEMPLATE",
+  starter_ke_brazil_1880: "DOCTRINE_TEMPLATE",
+  starter_amc_brazil_1880: "DOCTRINE_TEMPLATE",
 };
 
 const opts = {
@@ -78,7 +142,7 @@ describe("national content completeness (UK / France / Germany)", () => {
     expect(validateAllNations(opts)).toEqual([]);
   });
   it("rejects a nation with no profile", () => {
-    expect(validateNationCompleteness(opts, "japan").map((i) => i.code)).toContain(
+    expect(validateNationCompleteness(opts, "atlantis").map((i) => i.code)).toContain(
       "NATION_NO_PROFILE",
     );
   });

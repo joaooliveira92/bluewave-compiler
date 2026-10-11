@@ -21,7 +21,8 @@ designs and naming.
 
 ## 3. Author the profile
 
-Copy the draft block into `content/production/<scenario>/ship-building/naval-profiles.yaml`. Replace every
+Copy the draft block into `content/production/<scenario>/ship-building/naval-profiles/<nationId>.yaml` (one file per
+nation). Replace every
 `PLACEHOLDER` with a sourced/classified value and give each a `provenance` block:
 - `sourceStatus`, `confidence`, `kind` (`historical_fact` | `game_conversion` | `balance_adjustment`);
 - `sources` with `sourceId`, title, author/year and page/section;
@@ -30,7 +31,7 @@ Prefer shared component families (`components.yaml` ids) with a national model; 
 
 ## 4. Six opening starters
 
-Author `starter_*` designs in `reference-designs.yaml` with `starterFor: B|CA|CL|DD|KE|AMC` and `nationId: <id>`.
+Author `starter_*` designs in `reference-designs/<nationId>/starters.yaml` with `starterFor: B|CA|CL|DD|KE|AMC` and `nationId: <id>`.
 Each must compile legal under the nation's catalogue. Classify each exactly one of:
 `HISTORICAL_RECONSTRUCTION | HISTORICALLY_INSPIRED | DOCTRINE_TEMPLATE | BALANCE_TEMPLATE` (supply it in the
 completeness test's classification map, or replace a shared template). Do not weaken global classification to make a

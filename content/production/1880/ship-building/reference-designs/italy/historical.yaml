@@ -1,0 +1,146 @@
+# Reference designs for the EARLY band (starting points for the Drawing Board and regression fixtures).
+# One directory per nation: starters.yaml (a `starterFor` opening design) and historical.yaml.
+# Fittings (magazines, quarters, pumps, ventilation) weigh nothing extra (White 1894, ADR-0083).
+designs:
+  # Principe Amedeo (1874): Italian central-battery ironclad, 5,761 t, 12.2 kn, 1x 11-in + 6x 10-in RML, 8.7-in iron belt.
+  - id: principe_amedeo_1874
+    name: Principe Amedeo (1874, central-battery ironclad)
+    month: 1880-01
+    draft:
+      nationId: italy
+      requirement:
+        category: B
+        requiredSpeedMilliKnots: 12200
+        cruiseSpeedMilliKnots: 8000
+        requiredRangeNm: 2000
+        designThreatId: rml_10in
+        modernizationExpectation: NONE
+        crewQualityBp: 10000
+        accommodationStandard: SPARTAN
+        protectionGoal: STANDARD
+      hull:
+        hullFormId: coast_defence_form
+        lengthWl: 79700
+        beam: 17400
+        draught: 7900
+        depthToMainDeck: 9500
+        blockCoeffBp: 6000
+        materialId: iron
+        structuralSchemeId: mixed
+        subdivisionGrade: 2
+        targetDisplacementKg: 5761000
+        limitDisplacementKg: null
+        designMarginBp: 300
+        growthReserveBp: 0
+      machinery:
+        plantId: compound_cylindrical
+        installedKw: 5200
+        zoneId: CENTRAL_MACHINERY
+        stationPermille: 400
+        fuelCapacityKg: 800000
+        fuelZoneId: CENTRAL_MACHINERY
+        fuelStationPermille: 450
+        foulingBp: 0
+        rooms:
+          - { zoneId: CENTRAL_MACHINERY, stationPermille: 400, shareBp: 6000 }
+          - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
+      armour:
+        regions:
+          - {
+              region: BELT_MAIN,
+              thicknessUm: 220000,
+              lengthMm: 55000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 220000,
+              lengthMm: 55000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: BARBETTE,
+              thicknessUm: 140000,
+              lengthMm: 25000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+        citadelLengthMm: 55000
+        torpedoWarheadKg: 20
+        bunkerProtectionBp: 0
+      placements:
+        - {
+            instanceId: main_fwd,
+            componentId: gun_rml_11in_25ton,
+            zoneId: FORECASTLE,
+            stationPermille: 40,
+            params: { barrels: 1, rounds: 80 },
+            magazineRef: mag_fwd,
+          }
+        - {
+            instanceId: sec_p,
+            componentId: gun_rml_10in_18ton_broadside,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+            side: PORT,
+            params: { barrels: 3, rounds: 80 },
+            magazineRef: mag_sec,
+          }
+        - {
+            instanceId: sec_s,
+            componentId: gun_rml_10in_18ton_broadside,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+            side: STBD,
+            params: { barrels: 3, rounds: 80 },
+            magazineRef: mag_sec,
+          }
+        - {
+            instanceId: mag_sec,
+            componentId: magazine_heavy,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+          }
+        - {
+            instanceId: mag_fwd,
+            componentId: magazine_heavy,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+          }
+        - {
+            instanceId: mag_aft,
+            componentId: magazine_heavy,
+            zoneId: AFT_MAGAZINE,
+            stationPermille: 820,
+          }
+        - { instanceId: dyn, componentId: dynamo_small, zoneId: FWD_SERVICE, stationPermille: 220 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: FWD_SERVICE,
+            stationPermille: 230,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 60 },
+          }
+        - {
+            instanceId: funnel_a,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+          }
+        - {
+            instanceId: funnel_b,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 620,
+          }

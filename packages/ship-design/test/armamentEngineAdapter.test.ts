@@ -11,7 +11,11 @@ import { buildShipBuildingContent, compileDesign, toEngineDesign } from "../src/
 import { nationalContext, shipBuildingContent, shipBuildingData } from "./helpers/earlyContext.js";
 
 const OPENING_MONTH = "1880-01";
-const openingStarters = shipBuildingContent.starterDesigns.filter((s) => s.month === OPENING_MONTH);
+/** The first-class armament content covers the original three nations; other nations use the legacy path. */
+const ARMAMENT_NATIONS = new Set(["uk", "france", "germany"]);
+const openingStarters = shipBuildingContent.starterDesigns.filter(
+  (s) => s.month === OPENING_MONTH && ARMAMENT_NATIONS.has(s.draft.nationId),
+);
 const legacyContent = buildShipBuildingContent({ ...shipBuildingData, armament: undefined });
 
 function engineOptions(id: string) {

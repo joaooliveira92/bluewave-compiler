@@ -1,33 +1,18 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { parse } from "yaml";
 import { describe, it, expect } from "vite-plus/test";
 import { compileDesign, type DesignDraft } from "../src/index.js";
-import { earlyContext } from "./helpers/earlyContext.js";
+import { earlyContext, readReferenceDesignEntries } from "./helpers/earlyContext.js";
 
 /**
  * The historical reference designs (starting points in the Drawing Board). Every design must be a valid,
  * buildable ship at its own month, using only technology that exists then — this is what makes it a legal
  * starting point for the campaign. Source: docs/research/ship-building-1880-ships-by-nation.md.
  */
-const designs = (
-  parse(
-    readFileSync(
-      join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "content",
-        "production",
-        "1880",
-        "ship-building",
-        "reference-designs.yaml",
-      ),
-      "utf8",
-    ),
-  ) as { designs: { id: string; name: string; month: string; draft: DesignDraft }[] }
-).designs;
+const designs = readReferenceDesignEntries() as {
+  id: string;
+  name: string;
+  month: string;
+  draft: DesignDraft;
+}[];
 
 const byId = (id: string) => designs.find((d) => d.id === id)!;
 

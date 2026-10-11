@@ -1,22 +1,8 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
-import { parse } from "yaml";
 import { draftChangeKinds, progressFromWork, type DesignDraft } from "../src/index.js";
+import { readReferenceDesignEntries } from "./helpers/earlyContext.js";
 
-const ref = (
-  parse(
-    readFileSync(
-      join(
-        process.cwd(),
-        "..",
-        "..",
-        "content/production/1880/ship-building/reference-designs.yaml",
-      ),
-      "utf8",
-    ),
-  ) as { designs: { draft: DesignDraft }[] }
-).designs[0]!.draft;
+const ref = (readReferenceDesignEntries() as { draft: DesignDraft }[])[0]!.draft;
 const cat = (id: string) =>
   (id.startsWith("gun_") && id.includes("12in") ? "MAIN_GUN" : "SECONDARY_GUN") as never;
 const withHull = (patch: object): DesignDraft => ({ ...ref, hull: { ...ref.hull, ...patch } });

@@ -42,7 +42,10 @@ describe("Drawing Board polish", () => {
 
   it("in a campaign, opens on the first design that exists at the campaign date", () => {
     render(<DrawingBoard />);
-    expect(screen.getByLabelText("Starting design").textContent).toMatch(/Torpedo cruiser \(1880/);
+    // Per-nation files (ADR-0109): the first design at or before the campaign date is the UK torpedo-gunboat starter.
+    expect(screen.getByLabelText("Starting design").textContent).toMatch(
+      /Torpedo gunboat \(starter, DD\)/,
+    );
   });
 
   it("in a campaign, disables starting designs whose technology does not exist yet", () => {

@@ -5,7 +5,7 @@ The first-class armament catalogue is authored under
 **Step 3** the ship-design compile resolves every installed weapon through this content and
 `resolveArmament` (`@bluewave/armament`). As of **Step 4** the compiled design persists an immutable
 `CompiledArmamentMount` snapshot that combat consumes for its battery identity; the legacy
-`components.yaml` / `naval-profiles.yaml` representations remain the source only for the bounded
+`components.yaml` / `naval-profiles/` representations remain the source only for the bounded
 compatibility path (a nation with no armament content, or a design with no snapshot).
 
 ## The four collections
@@ -62,7 +62,7 @@ explanation. The content distinguishes VERIFIED, DERIVED, ESTIMATE, BALANCE_TARG
 - **Legacy drift.** While both representations coexist, the release gate fails (`ARMAMENT_COMPAT_DRIFT`)
   if the authored mount masses, model numbers (caliber, mass, charge, volume, rate, shell mass against
   the national overlay), firing arcs, or ammunition shell type / penetration bias differ from
-  `components.yaml` / `naval-profiles.yaml`.
+  `components.yaml` / `naval-profiles/`.
 
 ## Release lint rules
 

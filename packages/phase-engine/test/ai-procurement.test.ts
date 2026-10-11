@@ -5,7 +5,6 @@ import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
   decodeStrict,
-  NavalProfileCatalogueSchema,
   PropulsionPlantCatalogueSchema,
   ShipComponentCatalogueSchema,
   ShipHullFormCatalogueSchema,
@@ -18,9 +17,7 @@ import {
   buildShipBuildingContent,
   type ComponentDef,
   type HullFormRecord,
-  type NationNavalProfile,
   type PropulsionPlant,
-  type RawReferenceDesign,
   type ShipBuildingContent,
   type ShipBuildingData,
 } from "@bluewave/ship-design";
@@ -28,6 +25,7 @@ import { runAiProcurementPhase } from "../src/aiProcurement.js";
 import { fundDesignStudies } from "../src/designStudies.js";
 import { PhaseGuard } from "../src/phase-guard.js";
 import type { MonthContext } from "../src/monthContext.js";
+import { readNavalProfileEntries, readReferenceDesignEntries } from "./helpers/contentFiles.js";
 
 const root = join(__dirname, "..", "..", "..", "content", "production", "1880");
 const load = (rel: string) =>
@@ -42,13 +40,8 @@ const content: ShipBuildingContent = buildShipBuildingContent({
     .hullForms as HullFormRecord[],
   balance: load("ship-building/balance.yaml") as ShipBuildingData["balance"],
   technologies: load("technologies.yaml") as unknown as { id: string; year: number }[],
-  navalProfiles: decodeStrict(
-    NavalProfileCatalogueSchema,
-    load("ship-building/naval-profiles.yaml"),
-  ).navalProfiles as unknown as NationNavalProfile[],
-  referenceDesigns: (
-    load("ship-building/reference-designs.yaml") as { designs: RawReferenceDesign[] }
-  ).designs,
+  navalProfiles: readNavalProfileEntries(),
+  referenceDesigns: readReferenceDesignEntries(),
 } satisfies ShipBuildingData);
 
 const ledgerStub = { append: () => {} };

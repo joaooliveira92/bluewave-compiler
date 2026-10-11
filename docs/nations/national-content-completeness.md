@@ -1,38 +1,64 @@
-# National content completeness report (UK / France / Germany)
+# National content completeness report (all fourteen scenario nations)
 
 Validated by `validateAllNations` (`@bluewave/ship-design/test/nationCompleteness.test.ts`) at release:
-all three nations return **zero issues**. Reference designs are classified in the test's classification map.
+all fourteen nations in `countries.yaml` return **zero issues**, and `productionNationCoverage.test.ts`
+asserts every scenario nation has a profile. Reference designs are classified in the test's classification
+map. See ADR-0108/ADR-0110 (coverage), ADR-0109 (one file per nation) and ADR-0092 (the pipeline).
 
 ## Completeness (per nation)
-| Check | UK | France | Germany |
-| --- | --- | --- | --- |
-| Resolvable opening profile (1880-01) | yes | yes | yes |
-| Hard capability + doctrine sections complete | yes | yes | yes |
-| Component references valid; variant dates ordered | yes | yes | yes |
-| Date bands non-overlapping and ordered | yes | yes | yes |
-| Six legal classified starters (B/CA/CL/DD/KE/AMC) | yes | yes | yes |
-| Viable procurement path per role group | yes | yes | yes |
-| Dock/industrial fit + standard-budget affordability | yes | yes | yes |
-| No release placeholder | yes | yes | yes |
-| Deterministic runtime resolution | yes | yes | yes |
 
-## Opening starters and classification
-| Nation | B | CA | CL | DD | KE | AMC |
-| --- | --- | --- | --- | --- | --- | --- |
-| UK | alexandra_1877 (HISTORICAL_RECONSTRUCTION) | starter_armoured_cruiser_1880 | starter_protected_cruiser_1880 | starter_torpedo_gunboat_1880 | starter_corvette_1880 | starter_armed_liner_1880 |
-| France | redoutable_1878 (HISTORICAL_RECONSTRUCTION) | starter_armoured_cruiser_fr_1880 | starter_protected_cruiser_fr_1880 | starter_torpedo_gunboat_fr_1880 | starter_corvette_fr_1880 | starter_armed_liner_fr_1880 |
-| Germany | sachsen_1878 (HISTORICAL_RECONSTRUCTION) | starter_armoured_cruiser_de_1880 | starter_protected_cruiser_de_1880 | starter_torpedoboat_de_1880 | starter_gunboat_de_1880 | starter_armed_liner_de_1880 |
-(Everything not marked otherwise is `DOCTRINE_TEMPLATE`.)
+Every nation below passes every check: a resolvable opening profile (1880-01), complete hard/doctrine
+sections, valid component references and ordered variant dates, non-overlapping date bands, six legal
+classified starters (B/CA/CL/DD/KE/AMC) that are their own type and fit a dock and the standard budget, a
+viable procurement path per role group, and no release placeholder.
+
+| Nation | Playable | Profile | Starters (B/CA/CL/DD/KE/AMC) |
+| --- | --- | --- | --- |
+| uk | yes | full | alexandra_1877 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
+| france | yes | full | redoutable_1878 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
+| germany | yes | full | sachsen_1878 (B, HISTORICAL_RECONSTRUCTION) + five shared templates |
+| usa | yes | full | six DOCTRINE_TEMPLATEs |
+| japan | yes | full | six DOCTRINE_TEMPLATEs |
+| italy | yes | full | six DOCTRINE_TEMPLATEs |
+| russia | yes | full | six DOCTRINE_TEMPLATEs |
+| austria_hungary | yes | full | six DOCTRINE_TEMPLATEs |
+| spain | yes | full | six DOCTRINE_TEMPLATEs |
+| qing | yes | full | six DOCTRINE_TEMPLATEs |
+| ottoman_empire | no | full | six DOCTRINE_TEMPLATEs |
+| netherlands | no | full | six DOCTRINE_TEMPLATEs |
+| portugal | no | full | six DOCTRINE_TEMPLATEs |
+| brazil | no | full | six DOCTRINE_TEMPLATEs |
+
+The eleven nations beyond the original UK/France/Germany slices use doctrine-template starters cloned from
+the shared 1880 templates; their national identity is carried by the profile (posture, doctrine, industrial
+multipliers, gun and component variants, procurement shares, naming). Historical-reconstruction starters are
+deferred (ADR-0108/ADR-0110).
 
 ## Provenance summary
-- **VERIFIED / DERIVED:** UK and France component-variant gun values (navweaps/Text Book of Gunnery relayed), White
-  1894 hull fractions, the shared component catalogue and plants.
-- **ESTIMATE:** hull-form and profile shape, dimensions, dates where a source named them only indirectly.
-- **BALANCE_TARGET:** all industrial multipliers, displacement ceilings, design weights, procurement shares,
-  engagement range/research priorities, and Germany's industrial profile.
 
-## Remaining low-confidence values
-- Germany build-time/cost/reliability/variance multipliers and 26 cm / 15 cm shell masses (Jordan/Gröner print
-  sources needed).
-- French yard/dock capacities and moulded depths (carried from the UK/France note).
-- Greek/Italian/etc. nations are not authored (out of scope).
+- **VERIFIED / DERIVED:** uk/france component-variant gun values (navweaps / *Text Book of Gunnery* relayed),
+  White 1894 hull fractions, the shared component catalogue and plants, and the 1880 in-service ship figures
+  in `docs/research/ship-building-1880-ships-by-nation.md`.
+- **ESTIMATE:** the eleven new profiles' strategic shape, doctrine range, and hull/design shapes; most
+  imported-gun shell masses; the 1880 completion dates and industrial direction.
+- **BALANCE_TARGET:** all industrial multipliers, displacement ceilings, design weights, procurement
+  shares, engagement range, research priorities, and the eleven new nations' component-access statuses.
+
+## Per-nation research notes
+
+`docs/research/{usa,japan,italy,russia,austria_hungary,spain,qing,ottoman_empire,netherlands,portugal,brazil}-naval-profile.md`,
+plus the earlier `national-naval-profiles-uk-france.md` and `national-naval-profiles-germany.md`. Wikipedia is
+not a source anywhere; navypedia.org class pages (built on Conway's *1860–1905*) and Brassey's *Naval Annual
+1886* are the principal sources.
+
+## Remaining low-confidence values (deferred, not fabricated)
+
+- Nation-specific heavy-gun *families* the shared catalogue lacks: the Italian 450 mm (100-ton), the Spanish
+  320 mm Hontoria, the Qing 30.5 cm Krupp, the Ottoman 229 mm Armstrong, the Dutch 283 mm Krupp, the
+  Brazilian Whitworth 300-pdr and the Portuguese 121 mm Armstrong. These are overlaid on the nearest shared
+  family and labelled ESTIMATE.
+- Sourced shell masses for most non-British guns (only the German 26 cm and Austro-Hungarian 26/28 cm are
+  grounded); a print ordnance table would upgrade these.
+- Moulded depths (UNVERIFIED for every 1880 hull), per-nation dock/throughput and budget sources.
+- The eleven new nations' starters are `DOCTRINE_TEMPLATE`; upgrading them to `HISTORICAL_RECONSTRUCTION`
+  needs per-nation design sourcing.

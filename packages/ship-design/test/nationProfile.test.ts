@@ -22,7 +22,6 @@ import {
   treasuryCostUnits,
   validateNavalProfiles,
   varyDesignWeights,
-  type DesignDraft,
   type ProfileIssue,
   type StarterDesign,
 } from "../src/index.js";
@@ -31,6 +30,7 @@ import {
   navalProfiles,
   nationalContext,
   plants,
+  readReferenceDesignEntries,
   shipBuildingContent,
 } from "./helpers/earlyContext.js";
 
@@ -58,11 +58,9 @@ const validationCtx = {
   release: true,
 };
 
-const starters = (
-  load("ship-building/reference-designs.yaml") as {
-    designs: { id: string; name: string; month: string; starterFor?: string; draft: DesignDraft }[];
-  }
-).designs.filter((d) => d.starterFor !== undefined) as unknown as StarterDesign[];
+const starters = (readReferenceDesignEntries() as { starterFor?: string }[]).filter(
+  (d) => d.starterFor !== undefined,
+) as unknown as StarterDesign[];
 
 const OPENING = ["B", "CA", "CL", "DD", "KE", "AMC"] as const;
 const NATIONS = ["uk", "france"] as const;
@@ -85,7 +83,7 @@ describe("naval profile content integrity", () => {
     expect(resolveNavalProfile(navalProfiles, "uk", "1880-01")?.nationId).toBe("uk");
     expect(resolveNavalProfile(navalProfiles, "france", "1890-06")?.nationId).toBe("france");
     expect(resolveNavalProfile(navalProfiles, "uk", "1879-12")).toBeNull();
-    expect(resolveNavalProfile(navalProfiles, "japan", "1880-01")).toBeNull();
+    expect(resolveNavalProfile(navalProfiles, "atlantis", "1880-01")).toBeNull();
   });
   it("resolveConstructionModifiers returns a dated displacement ceiling", () => {
     expect(resolveConstructionModifiers(uk, "1880-01").maxPracticalDisplacementKg).toBe(10_000_000);

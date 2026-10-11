@@ -1,0 +1,480 @@
+# Reference designs for the EARLY band (starting points for the Drawing Board and regression fixtures).
+# One directory per nation: starters.yaml (a `starterFor` opening design) and historical.yaml.
+# Fittings (magazines, quarters, pumps, ventilation) weigh nothing extra (White 1894, ADR-0083).
+designs:
+  - id: torpedo_cruiser_1880
+    name: Torpedo cruiser (1880, CL)
+    month: 1880-01
+    draft:
+      nationId: uk
+      requirement:
+        category: CL
+        requiredSpeedMilliKnots: 16000
+        cruiseSpeedMilliKnots: 10000
+        requiredRangeNm: 1500
+        designThreatId: qf_12pdr
+        modernizationExpectation: NONE
+        crewQualityBp: 10000
+        accommodationStandard: SPARTAN
+        protectionGoal: NONE
+      hull:
+        hullFormId: protected_cruiser_form
+        lengthWl: 85000
+        beam: 12000
+        draught: 4200
+        depthToMainDeck: 7000
+        blockCoeffBp: 5000
+        materialId: mild_steel
+        structuralSchemeId: mixed
+        subdivisionGrade: 2
+        targetDisplacementKg: 2200000
+        limitDisplacementKg: null
+        designMarginBp: 300
+        growthReserveBp: 0
+      machinery:
+        plantId: compound_cylindrical
+        installedKw: 2300
+        zoneId: CENTRAL_MACHINERY
+        stationPermille: 400
+        fuelCapacityKg: 800000
+        fuelZoneId: CENTRAL_MACHINERY
+        fuelStationPermille: 450
+        foulingBp: 0
+        rooms:
+          - zoneId: CENTRAL_MACHINERY
+            stationPermille: 400
+            shareBp: 6000
+          - zoneId: AFT_SERVICE
+            stationPermille: 680
+            shareBp: 4000
+      armour:
+        regions: []
+        citadelLengthMm: 0
+        torpedoWarheadKg: 12
+        bunkerProtectionBp: 0
+      placements:
+        - instanceId: mg_fwd
+          componentId: gun_nordenfelt_1in
+          zoneId: FORECASTLE
+          stationPermille: 40
+          params:
+            barrels: 1
+            rounds: 1000
+          magazineRef: mag_fwd
+        - instanceId: mg_aft
+          componentId: gun_nordenfelt_1in
+          zoneId: QUARTERDECK
+          stationPermille: 950
+          params:
+            barrels: 1
+            rounds: 1000
+          magazineRef: mag_aft
+        - instanceId: tubes
+          componentId: tube_14in_above_water
+          zoneId: SUPERSTRUCTURE
+          stationPermille: 580
+          params:
+            tubes: 4
+        - instanceId: mag_fwd
+          componentId: magazine_small
+          zoneId: FWD_MAGAZINE
+          stationPermille: 130
+        - instanceId: mag_aft
+          componentId: magazine_small
+          zoneId: AFT_MAGAZINE
+          stationPermille: 830
+        - instanceId: dyn
+          componentId: dynamo_small
+          zoneId: FWD_SERVICE
+          stationPermille: 200
+        - instanceId: vent
+          componentId: ventilation_plant
+          zoneId: FWD_SERVICE
+          stationPermille: 210
+        - instanceId: quarters
+          componentId: quarters_crew
+          zoneId: FWD_SERVICE
+          stationPermille: 230
+          params:
+            blocks: 12
+        - instanceId: funnel
+          componentId: funnel_single
+          zoneId: SUPERSTRUCTURE
+          stationPermille: 600
+
+  # HMS Devastation (1873): mastless sea-going turret ship, 9,387 t, 13.8 kn, 2x2 12-in RML, 12-in iron belt.
+  - id: devastator_1873
+    name: Devastation (1873, turret ironclad)
+    month: 1880-01
+    draft:
+      nationId: uk
+      requirement:
+        category: B
+        requiredSpeedMilliKnots: 13800
+        cruiseSpeedMilliKnots: 8000
+        requiredRangeNm: 4700
+        designThreatId: rml_10in
+        modernizationExpectation: MINOR
+        crewQualityBp: 10000
+        accommodationStandard: STANDARD
+        protectionGoal: STANDARD
+      hull:
+        hullFormId: coast_defence_form
+        lengthWl: 86900
+        beam: 19000
+        draught: 8400
+        depthToMainDeck: 10800
+        blockCoeffBp: 6200
+        materialId: iron
+        structuralSchemeId: mixed
+        subdivisionGrade: 2
+        targetDisplacementKg: 9387000
+        limitDisplacementKg: null
+        designMarginBp: 300
+        growthReserveBp: 300
+      machinery:
+        plantId: compound_cylindrical
+        installedKw: 5700
+        zoneId: CENTRAL_MACHINERY
+        stationPermille: 400
+        fuelCapacityKg: 1600000
+        fuelZoneId: CENTRAL_MACHINERY
+        fuelStationPermille: 450
+        foulingBp: 0
+        rooms:
+          - { zoneId: CENTRAL_MACHINERY, stationPermille: 400, shareBp: 6000 }
+          - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
+      armour:
+        regions:
+          - {
+              region: BELT_MAIN,
+              thicknessUm: 305000,
+              lengthMm: 60000,
+              heightMm: 3200,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: DECK_MAIN,
+              thicknessUm: 76000,
+              lengthMm: 86900,
+              heightMm: 19000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 305000,
+              lengthMm: 60000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: BARBETTE,
+              thicknessUm: 356000,
+              lengthMm: 20000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+        citadelLengthMm: 60000
+        torpedoWarheadKg: 30
+        bunkerProtectionBp: 0
+      placements:
+        - {
+            instanceId: main_fwd,
+            componentId: gun_rml_12in_35ton,
+            zoneId: FORECASTLE,
+            stationPermille: 40,
+            params: { barrels: 2, rounds: 80 },
+            magazineRef: mag_fwd,
+          }
+        - {
+            instanceId: main_aft,
+            componentId: gun_rml_12in_35ton,
+            zoneId: AFT_SERVICE,
+            stationPermille: 700,
+            params: { barrels: 2, rounds: 80 },
+            magazineRef: mag_aft,
+          }
+        - {
+            instanceId: tubes,
+            componentId: tube_14in_above_water,
+            zoneId: QUARTERDECK,
+            stationPermille: 900,
+            params: { tubes: 2 },
+          }
+        - {
+            instanceId: mag_fwd,
+            componentId: magazine_heavy,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+          }
+        - {
+            instanceId: mag_aft,
+            componentId: magazine_heavy,
+            zoneId: AFT_MAGAZINE,
+            stationPermille: 820,
+          }
+        - { instanceId: dyn, componentId: dynamo_small, zoneId: FWD_SERVICE, stationPermille: 220 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: FWD_SERVICE,
+            stationPermille: 230,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 70 },
+          }
+        - {
+            instanceId: funnel_a,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+          }
+        - {
+            instanceId: funnel_b,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 620,
+          }
+
+  # HMS Dreadnought (1875): turret ironclad, 10,886 t, 14.5 kn, 2x2 12.5-in RML, 14-in iron belt.
+  - id: dreadnought_1875
+    name: Dreadnought (1875, turret ironclad)
+    month: 1880-01
+    draft:
+      nationId: uk
+      requirement:
+        category: B
+        requiredSpeedMilliKnots: 14500
+        cruiseSpeedMilliKnots: 8000
+        requiredRangeNm: 5700
+        designThreatId: rml_10in
+        modernizationExpectation: MINOR
+        crewQualityBp: 10000
+        accommodationStandard: STANDARD
+        protectionGoal: STANDARD
+      hull:
+        hullFormId: coast_defence_form
+        lengthWl: 97500
+        beam: 19500
+        draught: 8600
+        depthToMainDeck: 10500
+        blockCoeffBp: 6600
+        materialId: iron
+        structuralSchemeId: mixed
+        subdivisionGrade: 2
+        targetDisplacementKg: 10886000
+        limitDisplacementKg: null
+        designMarginBp: 300
+        growthReserveBp: 300
+      machinery:
+        plantId: compound_cylindrical
+        installedKw: 7300
+        zoneId: CENTRAL_MACHINERY
+        stationPermille: 400
+        fuelCapacityKg: 1800000
+        fuelZoneId: CENTRAL_MACHINERY
+        fuelStationPermille: 450
+        foulingBp: 0
+        rooms:
+          - { zoneId: CENTRAL_MACHINERY, stationPermille: 400, shareBp: 6000 }
+          - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
+      armour:
+        regions:
+          - {
+              region: BELT_MAIN,
+              thicknessUm: 356000,
+              lengthMm: 70000,
+              heightMm: 3200,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: DECK_MAIN,
+              thicknessUm: 76000,
+              lengthMm: 97500,
+              heightMm: 19500,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 356000,
+              lengthMm: 70000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: BARBETTE,
+              thicknessUm: 356000,
+              lengthMm: 22000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+        citadelLengthMm: 70000
+        torpedoWarheadKg: 30
+        bunkerProtectionBp: 0
+      placements:
+        - {
+            instanceId: main_fwd,
+            componentId: gun_rml_125in_38ton,
+            zoneId: FORECASTLE,
+            stationPermille: 40,
+            params: { barrels: 2, rounds: 80 },
+            magazineRef: mag_fwd,
+          }
+        - {
+            instanceId: main_aft,
+            componentId: gun_rml_125in_38ton,
+            zoneId: AFT_SERVICE,
+            stationPermille: 700,
+            params: { barrels: 2, rounds: 80 },
+            magazineRef: mag_aft,
+          }
+        - {
+            instanceId: tubes,
+            componentId: tube_14in_above_water,
+            zoneId: QUARTERDECK,
+            stationPermille: 900,
+            params: { tubes: 2 },
+          }
+        - {
+            instanceId: mag_fwd,
+            componentId: magazine_heavy,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+          }
+        - {
+            instanceId: mag_aft,
+            componentId: magazine_heavy,
+            zoneId: AFT_MAGAZINE,
+            stationPermille: 820,
+          }
+        - { instanceId: dyn, componentId: dynamo_small, zoneId: FWD_SERVICE, stationPermille: 220 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: FWD_SERVICE,
+            stationPermille: 230,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 75 },
+          }
+        - {
+            instanceId: funnel_a,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+          }
+        - {
+            instanceId: funnel_b,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 620,
+          }
+
+  # HMS Iris (1879): steel dispatch vessel / early cruiser, 3,730 t, 17.9 kn, 10x 64-pdr RML, no armour (protectionGoal NONE).
+  - id: iris_1879
+    name: Iris (1879, dispatch vessel)
+    month: 1880-01
+    draft:
+      nationId: uk
+      requirement:
+        category: CL
+        requiredSpeedMilliKnots: 17900
+        cruiseSpeedMilliKnots: 10000
+        requiredRangeNm: 6000
+        designThreatId: qf_6in
+        modernizationExpectation: NONE
+        crewQualityBp: 10000
+        accommodationStandard: SPARTAN
+        protectionGoal: NONE
+      hull:
+        hullFormId: protected_cruiser_form
+        lengthWl: 91400
+        beam: 14000
+        draught: 6710
+        depthToMainDeck: 8000
+        blockCoeffBp: 5000
+        materialId: mild_steel
+        structuralSchemeId: mixed
+        subdivisionGrade: 3
+        targetDisplacementKg: 3730000
+        limitDisplacementKg: null
+        designMarginBp: 300
+        growthReserveBp: 0
+      machinery:
+        plantId: compound_cylindrical
+        installedKw: 6200
+        zoneId: CENTRAL_MACHINERY
+        stationPermille: 400
+        fuelCapacityKg: 780000
+        fuelZoneId: CENTRAL_MACHINERY
+        fuelStationPermille: 450
+        foulingBp: 0
+        rooms:
+          - { zoneId: CENTRAL_MACHINERY, stationPermille: 400, shareBp: 6000 }
+          - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
+      armour:
+        regions: []
+        citadelLengthMm: 0
+        torpedoWarheadKg: 20
+        bunkerProtectionBp: 0
+      placements:
+        - {
+            instanceId: mag_sec,
+            componentId: magazine_heavy,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+          }
+        - {
+            instanceId: sec_p,
+            componentId: gun_rml_64pdr_71cwt,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+            side: PORT,
+            params: { barrels: 5, rounds: 150 },
+            magazineRef: mag_sec,
+          }
+        - {
+            instanceId: sec_s,
+            componentId: gun_rml_64pdr_71cwt,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 560,
+            side: STBD,
+            params: { barrels: 5, rounds: 150 },
+            magazineRef: mag_sec,
+          }
+        - { instanceId: dyn, componentId: dynamo_small, zoneId: FWD_SERVICE, stationPermille: 220 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: FWD_SERVICE,
+            stationPermille: 230,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 28 },
+          }
+        - {
+            instanceId: funnel,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 600,
+          }

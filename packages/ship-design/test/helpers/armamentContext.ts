@@ -13,11 +13,15 @@ import {
   type AuthoredArmamentContent,
   type ArmamentStarter,
   type ComponentDef,
-  type DesignDraft,
   type NationNavalProfile,
   type StarterDesign,
 } from "../../src/index.js";
-import { components, navalProfiles, shipBuildingData } from "./earlyContext.js";
+import {
+  components,
+  navalProfiles,
+  readReferenceDesignEntries,
+  shipBuildingData,
+} from "./earlyContext.js";
 
 const root = join(__dirname, "..", "..", "..", "..", "content", "production", "1880");
 const armamentDir = join(root, "ship-building", "armament");
@@ -34,13 +38,9 @@ export const armamentContent: AuthoredArmamentContent = {
 const GUN_CATEGORIES = new Set(["MAIN_GUN", "SECONDARY_GUN", "DUAL_PURPOSE_GUN", "AA_WEAPON"]);
 const byComponent = new Map(components.map((c) => [c.id, c]));
 
-const designs = (
-  parse(readFileSync(join(root, "ship-building", "reference-designs.yaml"), "utf8")) as {
-    designs: { id: string; name: string; month: string; starterFor?: string; draft: DesignDraft }[];
-  }
-).designs;
+const designs = readReferenceDesignEntries();
 
-const starters = designs.filter((d) => d.starterFor !== undefined) as unknown as StarterDesign[];
+const starters = designs.filter((d) => d.starterFor !== undefined) as StarterDesign[];
 
 /** The 18 opening reference designs: six per nation (B, CA, CL, DD, KE, AMC) at January 1880. */
 export const OPENING_MONTH = "1880-01";

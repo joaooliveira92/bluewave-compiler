@@ -1,7 +1,4 @@
 // ADR-0088: the ship-type registry, availability policy, opening-type rules and starter designs.
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { parse } from "yaml";
 import { describe, expect, it } from "vite-plus/test";
 import {
   availabilityMessage,
@@ -31,17 +28,14 @@ import {
   type DesignDraft,
   type StarterDesign,
 } from "../src/index.js";
-import { earlyContext, shipBuildingContent } from "./helpers/earlyContext.js";
+import {
+  earlyContext,
+  readReferenceDesignEntries,
+  shipBuildingContent,
+} from "./helpers/earlyContext.js";
 
 const R = DESIGN_22_EARLY;
-const refs = (
-  parse(
-    readFileSync(
-      join(__dirname, "../../../content/production/1880/ship-building/reference-designs.yaml"),
-      "utf8",
-    ),
-  ) as { designs: (StarterDesign & { starterFor?: string })[] }
-).designs;
+const refs = readReferenceDesignEntries();
 const starters = refs.filter((r) => r.starterFor !== undefined) as StarterDesign[];
 const OPENING = ["B", "CA", "CL", "DD", "KE", "AMC"] as const;
 const FUTURE = ["BB", "BC", "CV", "CVL", "AV", "SS", "MTB", "TR"] as const;
@@ -461,9 +455,9 @@ describe("starter designs", () => {
     }
   });
   it("never reaches into the future: a later starter is not used before its month", () => {
-    expect(starterFor("DD", starters, "1880-01")?.id).toBe("starter_torpedo_gunboat_1880");
-    expect(starterFor("DD", starters, "1895-06")?.id).toBe("havock_like");
-    expect(starterFor("DD", starters, "1879-12")).toBeNull();
+    expect(starterFor("DD", starters, "1880-01", "uk")?.id).toBe("starter_torpedo_gunboat_1880");
+    expect(starterFor("DD", starters, "1895-06", "uk")?.id).toBe("havock_like");
+    expect(starterFor("DD", starters, "1879-12", "uk")).toBeNull();
   });
 });
 

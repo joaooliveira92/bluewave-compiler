@@ -23,7 +23,11 @@ import {
 const legacyContent = buildShipBuildingContent({ ...shipBuildingData, armament: undefined });
 
 const OPENING_MONTH = "1880-01";
-const openingStarters = shipBuildingContent.starterDesigns.filter((s) => s.month === OPENING_MONTH);
+/** The first-class armament content covers the original three nations; other nations use the legacy path. */
+const ARMAMENT_NATIONS = new Set(["uk", "france", "germany"]);
+const openingStarters = shipBuildingContent.starterDesigns.filter(
+  (s) => s.month === OPENING_MONTH && ARMAMENT_NATIONS.has(s.draft.nationId),
+);
 
 const GUN_CATEGORIES = new Set(["MAIN_GUN", "SECONDARY_GUN", "DUAL_PURPOSE_GUN", "AA_WEAPON"]);
 const byId = new Map(components.map((c) => [c.id, c]));

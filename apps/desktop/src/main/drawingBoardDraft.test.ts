@@ -1,22 +1,14 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { encodeLog, newLog, pushEdit, type DesignDraft } from "@bluewave/ship-design";
-import { parse } from "yaml";
+import { encodeLog, newLog, pushEdit } from "@bluewave/ship-design";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { dispatchCampaignCommand } from "./campaignBridge.js";
 import { clearCampaignSessionsForTest, registerCampaignSession } from "./campaignSessions.js";
 import { DRAWING_BOARD_DRAFT_FILENAME } from "./drawingBoardDraft.js";
-import { resolveProductionPackDir } from "./contentPack.js";
+import { readReferenceDesigns } from "./referenceDesigns.js";
 
-const reference = (
-  parse(
-    readFileSync(
-      join(resolveProductionPackDir(), "ship-building", "reference-designs.yaml"),
-      "utf8",
-    ),
-  ) as { designs: { id: string; draft: DesignDraft }[] }
-).designs.find((d) => d.id === "torpedo_cruiser_1880")!;
+const reference = readReferenceDesigns().find((d) => d.id === "torpedo_cruiser_1880")!;
 
 describe("Drawing Board draft sidecar", () => {
   let saveDir: string;

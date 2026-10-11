@@ -1,10 +1,16 @@
 # 02 — Author national profiles for the remaining playable nations
 
 **Type:** implementation
-**Status:** open
+**Status:** done
 **Blocked by:** none
-**Frontier:** yes
-**Spec:** `.scratch/playable-loop/spec.md`; ADR-0096
+**Frontier:** no
+**Spec:** `.scratch/playable-loop/spec.md`; ADR-0096, ADR-0108
+
+## Outcome
+
+All seven nations (usa, japan, italy, russia, austria_hungary, spain, qing) are profiled with six
+classified `DOCTRINE_TEMPLATE` starters each; `UNAUTHORED_PLAYABLE` is empty and the gate asserts full
+playable-nation coverage. See ADR-0108 and `docs/nations/national-content-completeness.md`.
 
 ## Scope
 

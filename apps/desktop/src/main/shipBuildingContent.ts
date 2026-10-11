@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
   decodeStrict,
@@ -30,16 +30,18 @@ let cached: ShipBuildingContent | null = null;
 let cachedHash: string | null = null;
 let cachedArmamentHash: string | null = null;
 
-/** The ship-building files that define the legacy content identity (`shipBuildingContentHash`). */
-const FILES = [
+/** The fixed ship-building files that define the legacy content identity (`shipBuildingContentHash`). */
+const FIXED_FILES = [
   "ship-building/components.yaml",
   "ship-building/plants.yaml",
   "ship-building/hull-forms.yaml",
   "ship-building/balance.yaml",
-  "ship-building/naval-profiles.yaml",
-  "ship-building/reference-designs.yaml",
   "technologies.yaml",
 ] as const;
+
+/** Naval profiles live one file per nation; reference designs one directory per nation (ADR-0109). */
+const NAVAL_PROFILE_DIR = "ship-building/naval-profiles";
+const REFERENCE_DESIGN_DIR = "ship-building/reference-designs";
 
 /** The first-class armament files, hashed separately (`armamentContentHash`, ADR-0093 Step 3). */
 const ARMAMENT_FILES = [
@@ -49,15 +51,47 @@ const ARMAMENT_FILES = [
   "ship-building/armament/ammunition.yaml",
 ] as const;
 
+/** Every `.yaml` file under a directory, recursively, in sorted order (deterministic). */
+function listYamlFiles(dir: string, rel: string): string[] {
+  const abs = join(dir, rel);
+  return readdirSync(abs)
+    .sort()
+    .flatMap((entry) => {
+      const child = join(rel, entry);
+      if (statSync(join(dir, child)).isDirectory()) return listYamlFiles(dir, child);
+      return entry.endsWith(".yaml") ? [child] : [];
+    });
+}
+
+/** Deterministic nation order: the UK set leads, so the first reference design stays the historical default. */
+const nationOrder = (a: string, b: string): number =>
+  a === b ? 0 : a === "uk" ? -1 : b === "uk" ? 1 : a < b ? -1 : 1;
+
+/** Reference-design files, one directory per nation, UK first (starters.yaml + historical.yaml). */
+function listReferenceDesignFiles(dir: string): string[] {
+  return readdirSync(join(dir, REFERENCE_DESIGN_DIR))
+    .sort(nationOrder)
+    .flatMap((nation) =>
+      ["starters.yaml", "historical.yaml"]
+        .map((name) => join(REFERENCE_DESIGN_DIR, nation, name))
+        .filter((rel) => existsSync(join(dir, rel))),
+    );
+}
+
 /**
- * Loads the ship-building content that sits beside the production pack (`ship-building/*.yaml`) once per process.
+ * Loads the ship-building content that sits beside the production pack (`ship-building/**`) once per process.
  * The same content must be given to every month execution so replays compile identically.
  */
 export function loadShipBuildingContent(): ShipBuildingContent {
   if (cached) return cached;
   const dir = resolveProductionPackDir();
-  const texts = new Map(FILES.map((rel) => [rel, readFileSync(join(dir, rel), "utf8")]));
-  const read = (rel: (typeof FILES)[number]): unknown => parse(texts.get(rel)!);
+  const contentFiles = [
+    ...FIXED_FILES,
+    ...listYamlFiles(dir, NAVAL_PROFILE_DIR),
+    ...listReferenceDesignFiles(dir),
+  ];
+  const texts = new Map(contentFiles.map((rel) => [rel, readFileSync(join(dir, rel), "utf8")]));
+  const read = (rel: string): unknown => parse(texts.get(rel)!);
   const armamentTexts = new Map(
     ARMAMENT_FILES.map((rel) => [rel, readFileSync(join(dir, rel), "utf8")]),
   );
@@ -90,19 +124,18 @@ export function loadShipBuildingContent(): ShipBuildingContent {
       .hullForms as HullFormRecord[],
     balance: read("ship-building/balance.yaml") as ShipBuildingData["balance"],
     technologies: read("technologies.yaml") as { id: string; year: number }[],
-    navalProfiles: decodeStrict(
-      NavalProfileCatalogueSchema,
-      read("ship-building/naval-profiles.yaml"),
-    ).navalProfiles as unknown as NationNavalProfile[],
+    navalProfiles: decodeStrict(NavalProfileCatalogueSchema, {
+      navalProfiles: listYamlFiles(dir, NAVAL_PROFILE_DIR).flatMap(
+        (rel) => (parse(texts.get(rel)!) as { navalProfiles: unknown[] }).navalProfiles,
+      ),
+    }).navalProfiles as unknown as NationNavalProfile[],
     armament,
-    referenceDesigns: (
-      read("ship-building/reference-designs.yaml") as {
-        designs: RawReferenceDesign[];
-      }
-    ).designs,
+    referenceDesigns: listReferenceDesignFiles(dir).flatMap(
+      (rel) => (parse(texts.get(rel)!) as { designs: RawReferenceDesign[] }).designs,
+    ),
   };
   cached = buildShipBuildingContent(data);
-  // The legacy content hash keeps its exact semantics: the same seven files as before the cut-over.
+  // The legacy content hash keeps its semantics: the bytes of every ship-building content file, keyed by path.
   cachedHash = sha256Hex(canonicalSerialize(Object.fromEntries(texts)));
   cachedArmamentHash = sha256Hex(canonicalSerialize(Object.fromEntries(armamentTexts)));
   return cached;

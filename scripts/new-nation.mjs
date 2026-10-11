@@ -8,8 +8,8 @@
  *   node scripts/new-nation.mjs <nationId>
  *
  * Then: research the nation into `docs/research/<nationId>-naval-profile.md`, replace every PLACEHOLDER with a sourced
- * or explicitly classified value, move the profile block into `content/production/1880/ship-building/naval-profiles.yaml`,
- * author six classified opening starters in `reference-designs.yaml`, and run the completeness validator.
+ * or explicitly classified value, write the profile block to `content/production/1880/ship-building/naval-profiles/<nationId>.yaml`,
+ * author six classified opening starters under `reference-designs/<nationId>/starters.yaml`, and run the completeness validator.
  */
 import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -134,9 +134,11 @@ console.log(
   `  1. Research ${nationId} into the note; replace every PLACEHOLDER with a sourced/classified value.`,
 );
 console.log(
-  "  2. Move the profile block into content/production/1880/ship-building/naval-profiles.yaml.",
+  "  2. Write the profile block to content/production/1880/ship-building/naval-profiles/<nationId>.yaml.",
 );
-console.log("  3. Author six classified opening starters in reference-designs.yaml.");
+console.log(
+  "  3. Author six classified opening starters in reference-designs/<nationId>/starters.yaml.",
+);
 console.log(
   "  4. Run the completeness validator: pnpm --filter @bluewave/ship-design exec vp test run nationCompleteness.",
 );

@@ -7,7 +7,7 @@
  * combination used by the opening reference designs resolves without blocking findings.
  *
  * It is additive: it never changes the legacy compile, construction, candidate generation, combat or
- * persistence. The legacy `components.yaml`/`naval-profiles.yaml` representations remain authoritative
+ * persistence. The legacy `components.yaml`/`naval-profiles/` representations remain authoritative
  * for runtime gameplay until the Step 3 ship-design cut-over; the consistency checks below stop the
  * two representations from drifting apart while they coexist.
  */

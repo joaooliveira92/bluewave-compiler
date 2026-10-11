@@ -13,7 +13,8 @@ const file = join(
   "production",
   "1880",
   "ship-building",
-  "naval-profiles.yaml",
+  "naval-profiles",
+  "uk.yaml",
 );
 const read = () => parse(readFileSync(file, "utf8"));
 

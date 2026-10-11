@@ -1,0 +1,138 @@
+# Reference designs for the EARLY band (starting points for the Drawing Board and regression fixtures).
+# One directory per nation: starters.yaml (a `starterFor` opening design) and historical.yaml.
+# Fittings (magazines, quarters, pumps, ventilation) weigh nothing extra (White 1894, ADR-0083).
+designs:
+  # Petr Velikiy (1876): Russian turret ship, 9,790 t, 12.3 kn, 2x2 12-in obr.1867 (British 12-in RML as catalogue proxy), 14-in belt.
+  - id: petr_velikiy_1876
+    name: Petr Velikiy (1876, turret ship)
+    month: 1880-01
+    draft:
+      nationId: russia
+      requirement:
+        category: B
+        requiredSpeedMilliKnots: 12300
+        cruiseSpeedMilliKnots: 8000
+        requiredRangeNm: 2500
+        designThreatId: rml_10in
+        modernizationExpectation: MINOR
+        crewQualityBp: 10000
+        accommodationStandard: STANDARD
+        protectionGoal: STANDARD
+      hull:
+        hullFormId: coast_defence_form
+        lengthWl: 98100
+        beam: 19000
+        draught: 8280
+        depthToMainDeck: 10000
+        blockCoeffBp: 6000
+        materialId: iron
+        structuralSchemeId: mixed
+        subdivisionGrade: 2
+        targetDisplacementKg: 9790000
+        limitDisplacementKg: null
+        designMarginBp: 300
+        growthReserveBp: 300
+      machinery:
+        plantId: compound_cylindrical
+        installedKw: 5500
+        zoneId: CENTRAL_MACHINERY
+        stationPermille: 400
+        fuelCapacityKg: 1200000
+        fuelZoneId: CENTRAL_MACHINERY
+        fuelStationPermille: 450
+        foulingBp: 0
+        rooms:
+          - { zoneId: CENTRAL_MACHINERY, stationPermille: 400, shareBp: 6000 }
+          - { zoneId: AFT_SERVICE, stationPermille: 680, shareBp: 4000 }
+      armour:
+        regions:
+          - {
+              region: BELT_MAIN,
+              thicknessUm: 356000,
+              lengthMm: 70000,
+              heightMm: 3200,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: DECK_MAIN,
+              thicknessUm: 76000,
+              lengthMm: 98100,
+              heightMm: 19000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: MAGAZINE_BOX,
+              thicknessUm: 356000,
+              lengthMm: 70000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+          - {
+              region: BARBETTE,
+              thicknessUm: 356000,
+              lengthMm: 22000,
+              heightMm: 3000,
+              materialId: wrought_iron,
+              cosObliquityBp: 10000,
+            }
+        citadelLengthMm: 70000
+        torpedoWarheadKg: 30
+        bunkerProtectionBp: 0
+      placements:
+        - {
+            instanceId: main_fwd,
+            componentId: gun_rml_12in_35ton,
+            zoneId: FORECASTLE,
+            stationPermille: 40,
+            params: { barrels: 2, rounds: 80 },
+            magazineRef: mag_fwd,
+          }
+        - {
+            instanceId: main_aft,
+            componentId: gun_rml_12in_35ton,
+            zoneId: AFT_SERVICE,
+            stationPermille: 700,
+            params: { barrels: 2, rounds: 80 },
+            magazineRef: mag_aft,
+          }
+        - {
+            instanceId: mag_fwd,
+            componentId: magazine_heavy,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+          }
+        - {
+            instanceId: mag_aft,
+            componentId: magazine_heavy,
+            zoneId: AFT_MAGAZINE,
+            stationPermille: 820,
+          }
+        - { instanceId: dyn, componentId: dynamo_small, zoneId: FWD_SERVICE, stationPermille: 220 }
+        - {
+            instanceId: vent,
+            componentId: ventilation_plant,
+            zoneId: FWD_SERVICE,
+            stationPermille: 230,
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_SERVICE,
+            stationPermille: 250,
+            params: { blocks: 70 },
+          }
+        - {
+            instanceId: funnel_a,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+          }
+        - {
+            instanceId: funnel_b,
+            componentId: funnel_single,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 620,
+          }

@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { parse } from "yaml";
 import { describe, it, expect } from "vite-plus/test";
 import {
   assessFleet,
@@ -9,19 +6,19 @@ import {
   planProcurementDecision,
   PROCUREMENT_TYPES,
   shipTypeForHullType,
-  type DesignDraft,
   type FleetShipView,
   type ProcurementDecision,
   type StarterDesign,
 } from "../src/index.js";
-import { navalProfiles, shipBuildingContent } from "./helpers/earlyContext.js";
+import {
+  navalProfiles,
+  readReferenceDesignEntries,
+  shipBuildingContent,
+} from "./helpers/earlyContext.js";
 
-const root = join(__dirname, "..", "..", "..", "content", "production", "1880");
-const starters = (
-  parse(readFileSync(join(root, "ship-building/reference-designs.yaml"), "utf8")) as {
-    designs: { id: string; name: string; month: string; starterFor?: string; draft: DesignDraft }[];
-  }
-).designs.filter((d) => d.starterFor !== undefined) as unknown as StarterDesign[];
+const starters = (readReferenceDesignEntries() as { starterFor?: string }[]).filter(
+  (d) => d.starterFor !== undefined,
+) as unknown as StarterDesign[];
 
 const uk = navalProfiles.find((p) => p.nationId === "uk")!;
 const france = navalProfiles.find((p) => p.nationId === "france")!;

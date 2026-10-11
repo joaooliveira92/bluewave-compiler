@@ -6,7 +6,7 @@
  * AI design evaluation and procurement, and never blocks a legal design on its own.
  *
  * The model is pure domain data: no React, no Electron, no filesystem. Content authors the values in
- * `content/production/<scenario>/ship-building/naval-profiles.yaml`; this module resolves and validates them.
+ * `content/production/<scenario>/ship-building/naval-profiles/<nation>.yaml`; this module resolves and validates them.
  */
 import type { ShipTypeId } from "./shipTypes.js";
 
