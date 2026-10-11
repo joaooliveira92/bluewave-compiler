@@ -32,13 +32,18 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      # The app hard-depends on the compiled content artifact; build it
+      # explicitly before the E2E suite and packaging so a green run cannot
+      # mean tests/packaging used a stale or missing artifact.
+      - name: Build the compiled content artifact
+        run: pnpm content:build
       - run: pnpm --filter @bluewave/desktop test:e2e
       - name: Package the app (unpacked)
         run: CSC_IDENTITY_AUTO_DISCOVERY=false pnpm --filter @bluewave/desktop exec electron-builder --mac --dir --config electron-builder.yml
-      - name: Compile a campaign save for the packaged smoke
-        run: pnpm --filter @bluewave/desktop run snap --make-save "$RUNNER_TEMP/bw-smoke-save"
+      # The smoke starts a fresh game, which is the path that reads the shipped
+      # content artifact from app resources (ticket 05); no precompiled save.
       - name: Smoke the packaged app
-        run: pnpm --filter @bluewave/desktop run smoke:packaged --save "$RUNNER_TEMP/bw-smoke-save"
+        run: pnpm --filter @bluewave/desktop run smoke:packaged
       # Debug-build acceptance slice: the campaign battle drill spec needs the
       # debug-gated main-process command + debug UI, so it runs against a
       # `VITE_BLUEWAVE_DEBUG=true` build (excluded from the default run above via

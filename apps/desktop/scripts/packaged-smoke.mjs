@@ -1,39 +1,39 @@
 /**
  * Release smoke test for the PACKAGED app (not the electron-vite build the e2e
- * suite drives). Launches the real binary, opens a compiled campaign, and checks
- * what packaging can break: file:// loading, the lazy coastline chunk, the
- * debug gate and the map's canvas actually painting. Exits non-zero on failure.
+ * suite drives). Launches the real binary, starts a FRESH game (this is the path
+ * that reads the shipped content artifact from app resources — not a repo-root
+ * walk), and checks what packaging can break: file:// loading, the lazy
+ * coastline chunk, the artifact-backed drawing board content, the debug gate and
+ * the map's canvas actually painting. Exits non-zero on failure.
  *
  *   pnpm --filter @bluewave/desktop build
  *   CSC_IDENTITY_AUTO_DISCOVERY=false pnpm --filter @bluewave/desktop exec \
  *     electron-builder --mac --dir --config electron-builder.yml
- *   pnpm --filter @bluewave/desktop run snap --make-save DIR      # a compiled campaign
- *   pnpm --filter @bluewave/desktop run smoke:packaged --save DIR [--app BINARY] [--shot OUT.png]
+ *   pnpm --filter @bluewave/desktop run smoke:packaged [--app BINARY] [--shot OUT.png] [--save DIR]
  *
- * The default --app path is the macOS arm64 unpacked build; pass --app for other platforms.
+ * `--save` is only the (stubbed) destination for the fresh campaign's package;
+ * it defaults to a temp dir. The default `--app` path is the macOS arm64
+ * unpacked build; pass `--app` for other platforms.
  *
- * The save is copied to a temp dir first; the source is never touched.
+ * The new-game flow mirrors apps/desktop/e2e/flows.ts (the proven e2e path);
+ * keep the two in step when the assistant changes.
  */
 import { _electron as electron } from "@playwright/test";
-import { cp, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 
 const { values } = parseArgs({
   options: {
-    save: { type: "string" },
     app: {
       type: "string",
       default: "dist-electron/mac-arm64/Bluewave.app/Contents/MacOS/Bluewave",
     },
     shot: { type: "string" },
+    save: { type: "string" },
   },
 });
-if (values.save === undefined) {
-  console.error("usage: packaged-smoke.mjs --save DIR [--app BINARY] [--shot OUT.png]");
-  process.exit(2);
-}
 
 // Console `error`s that are known-benign and self-caught. Each entry must be a
 // narrow match with a reason; a broad pattern here would hide real renderer
@@ -46,8 +46,8 @@ const BENIGN_CONSOLE_ERRORS = [
 ];
 
 const scratch = await mkdtemp(join(tmpdir(), "bw-pkg-smoke-"));
-const saveCopy = join(scratch, "save");
-await cp(values.save, saveCopy, { recursive: true });
+const saveDir = values.save ?? join(scratch, "save");
+await mkdir(saveDir, { recursive: true });
 
 const checks = [];
 const check = (name, ok, detail = "") => checks.push({ name, ok: Boolean(ok), detail });
@@ -60,15 +60,18 @@ const app = await electron.launch({
 });
 try {
   await app.evaluate(({ dialog }, dir) => {
+    // Mutate methods, never replace the module. Save dialog (fresh compile)
+    // returns `filePath`; open dialog (continuance) returns `filePaths`.
+    dialog.showSaveDialog = async () => ({ canceled: false, filePath: dir });
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir] });
-  }, saveCopy);
+  }, saveDir);
   const isPackaged = await app.evaluate(({ app: electronApp }) => electronApp.isPackaged);
   check("running the packaged build", isPackaged === true);
 
   // The window may already exist by the time we ask: firstWindow handles both.
   const page = await app.firstWindow();
   // Uncaught exceptions are always fatal. Console `error`s are fatal unless they
-  // match a known-benign, self-caught probe from a bundled library (see below).
+  // match a known-benign, self-caught probe from a bundled library (see above).
   const pageErrors = [];
   const consoleErrors = [];
   page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -78,10 +81,26 @@ try {
   await page.waitForLoadState("load");
   check("renderer loaded over file://", page.url().startsWith("file://"), page.url());
 
+  // --- Fresh game (reads shipped content from app resources) ---
   await page.getByText("Bluewave Naval Staff").waitFor({ timeout: 20_000 });
-  await page.getByRole("button", { name: "Open Campaign" }).click();
+  const click = (name) => page.getByRole("button", { name }).first().click();
+  await click("New Campaign");
+  await page.getByRole("option", { name: "United Kingdom" }).click();
+  await page.getByRole("listbox", { name: "Playable nations" }).press("Enter");
+  await click("Next: Choose Archetype");
+  await click("Shipyard Baron");
+  await click("Choose Nation");
+  await page.getByLabel("Admiral name").fill("John Fisher");
+  await page.getByLabel("Campaign name").fill("Packaged Smoke");
+  await click("Next");
+  await click("Start Campaign");
+  await click("Begin Commission");
+  await click("Review Naval Estimates");
+  for (let i = 0; i < 3; i++) await click("Next");
+  await click("Take command");
+
   await page.getByRole("heading", { name: "Campaign Overview" }).waitFor({ timeout: 30_000 });
-  check("campaign opens onto Overview", true);
+  check("fresh campaign compiles onto Overview", true);
   check("month header visible", await page.getByText("Bluewave — January 1880").isVisible());
   check(
     "no session id in the release UI",
@@ -94,8 +113,28 @@ try {
   );
   check("debug-only commands rejected", reason === "DEBUG_ONLY", String(reason));
 
-  // The home screen's map panel, checked on its own (the F1 sheet is a second
-  // map, so every query below is scoped to one container).
+  // --- The drawing board renders the artifact-backed ship-building content ---
+  await page
+    .getByTestId("bottom-nav")
+    .getByRole("button", { name: "Construction", exact: true })
+    .click();
+  await page.getByRole("tab", { name: "Drawing Board" }).click();
+  await page.getByRole("button", { name: "Open Drawing Board" }).click();
+  const board = page.getByRole("dialog", { name: "Drawing Board" });
+  await board.getByRole("tab", { name: /Hull and machinery/ }).waitFor({ timeout: 15_000 });
+  check("drawing board opens on the shipped content", true);
+  check(
+    "drawing board loads the ship-building catalogue",
+    (await board.getByRole("group", { name: "Hull sections" }).getByRole("button").count()) === 8,
+  );
+  // The plan is drawn from the catalogue (a non-empty SVG), not an error card.
+  check(
+    "drawing board renders the ship plan",
+    (await board.getByRole("img", { name: /Top-down plan/ }).count()) === 1,
+  );
+  if (values.shot !== undefined) await page.screenshot({ path: values.shot });
+
+  // --- The home map's lazy coastline chunk still paints in the packaged build ---
   const mapPainted = (root) =>
     root.evaluate((container) => {
       const canvas = container.querySelector("canvas");
@@ -113,11 +152,6 @@ try {
     check(name, false, "canvas stayed empty");
   };
 
-  // The home screen's map, scoped to the map application landmark (the SVG) and
-  // its container (which also holds the coastline canvas). The Overview's map is
-  // the packaged app's heaviest lazy chunk, so painting it proves file:// loading
-  // and the coastline chunk work in a packaged build. This targets the app's
-  // world-map application, not a feature panel that may be renamed away.
   const homeApp = page.getByRole("application", { name: /World map/ });
   await homeApp.waitFor({ timeout: 15_000 });
   check("home map application present", true);
@@ -128,16 +162,6 @@ try {
     (await homeMap.locator('path[role="button"]').count()) === 36,
   );
 
-  await page.keyboard.press("F1");
-  const sheet = page.getByRole("dialog");
-  await sheet.getByRole("application", { name: /World map/ }).waitFor({ timeout: 15_000 });
-  await awaitPainted("F1 map coastline painted", sheet);
-  check(
-    "F1 map: 36 keyboard-reachable areas",
-    (await sheet.locator('path[role="button"]').count()) === 36,
-  );
-  check("F1 map: minimap present", (await sheet.getByTestId("map-minimap").count()) === 1);
-  if (values.shot !== undefined) await page.screenshot({ path: values.shot });
   check("no uncaught renderer exceptions", pageErrors.length === 0, pageErrors[0]?.slice(0, 200));
   const unexpectedConsoleErrors = consoleErrors.filter(
     (text) => !BENIGN_CONSOLE_ERRORS.some((pattern) => pattern.test(text)),

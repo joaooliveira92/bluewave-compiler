@@ -35,6 +35,12 @@ jobs:
       # replayed desktop build then reads a stale phase-engine `dist`. Build
       # from source here so the gate is not at the mercy of cache replay.
       - run: pnpm exec turbo run build --force
+      # The app hard-depends on the compiled content artifact; build it
+      # explicitly so a green run cannot mean the tests executed against a
+      # stale or missing artifact (it is otherwise only produced as a side
+      # effect of the desktop build and the desktop vitest global setup).
+      - name: Build the compiled content artifact
+        run: pnpm content:build
       - run: pnpm test:run
       - name: Balance reports match the deterministic benchmark
         run: pnpm check:balance-reports

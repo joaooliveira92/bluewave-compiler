@@ -10,6 +10,16 @@ files:
   - "!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,CHANGELOG.md,README.md}"
   - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
   - "!{tsconfig.tsbuildinfo,.gitignore}"
+# Content ships as application resources (resolved from process.resourcesPath,
+# see src/main/contentPack.ts), not by a repo-root walk. The compiled artifact
+# is the runtime content boundary (ADR-0122); the production tree ships so a
+# packaged build can compile a fresh campaign (ticket 05; folded into the
+# artifact by ticket 07).
+extraResources:
+  - from: ../../content/generated/1880
+    to: content/generated/1880
+  - from: ../../content/production/1880
+    to: content/production/1880
 mac:
   artifactName: ${name}-${version}-${arch}.${ext}
   target:
