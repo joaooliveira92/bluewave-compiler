@@ -30,8 +30,10 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck
       # The runners have few cores; turbo's default concurrency oversubscribes
-      # them and tips heavy-but-legitimate suites past their timeouts.
-      - run: pnpm test -- --concurrency=2
+      # them and tips heavy-but-legitimate suites past their timeouts. Invoke
+      # turbo directly (not `pnpm test -- ...`, which forwards the flag to the
+      # per-package test scripts, where vitest rejects it).
+      - run: pnpm exec turbo run test --concurrency=2
       - name: Cross-process determinism
         run: node packages/cross-process-test/dist/run-child.js
       - name: Upload hash artifact
