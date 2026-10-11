@@ -58,6 +58,7 @@
     "@bluewave/test-support": "workspace:*",
     "electron": "44.7.0",
     "electron-builder": "^26.15.3",
+    "electron-devtools-installer": "4.0.0",
     "electron-vite": "^5.0.0",
     "vite": "catalog:",
     "typescript": "7.0.2",

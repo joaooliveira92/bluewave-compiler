@@ -2,6 +2,9 @@ import { app, BrowserWindow, ipcMain, session } from "electron";
 import { resolve } from "node:path";
 import { applyContentSecurityPolicy } from "./csp.js";
 import { dispatchCampaignCommand } from "./campaignBridge.js";
+import { isDebugModeEnabled } from "./debugGate.js";
+
+const isDev = process.env.NODE_ENV === "development" || process.argv.includes("--dev");
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -17,8 +20,6 @@ function createWindow(): BrowserWindow {
       sandbox: false,
     },
   });
-
-  const isDev = process.env.NODE_ENV === "development" || process.argv.includes("--dev");
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
@@ -39,7 +40,19 @@ function createWindow(): BrowserWindow {
   return win;
 }
 
-void app.whenReady().then(() => {
+void app.whenReady().then(async () => {
+  if (isDev && isDebugModeEnabled()) {
+    try {
+      const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import(
+        "electron-devtools-installer"
+      );
+      const { name } = await installExtension(REACT_DEVELOPER_TOOLS);
+      console.log(`Added extension: ${name}`);
+    } catch (error) {
+      console.warn("Failed to install React DevTools extension:", error);
+    }
+  }
+
   ipcMain.handle("campaign:execute", (event, command: string, payload: unknown) =>
     dispatchCampaignCommand(command, payload),
   );

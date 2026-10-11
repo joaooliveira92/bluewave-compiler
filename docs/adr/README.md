@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0118).
+highest existing number + 1 (the next number is ADR-0119).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -169,6 +169,7 @@ Electron boundary, renderer screens, UX, and presentation.
 | 0084 | [ADR-0084-plan-drag-and-auto-place.md](ADR-0084-plan-drag-and-auto-place.md) | Drag to move and auto-place on the hull plan | accepted | — |
 | 0087 | [ADR-0087-section-card-faithful-crop.md](ADR-0087-section-card-faithful-crop.md) | Section hover card draws a faithful crop of the plan and profile | accepted | — |
 | 0115 | [ADR-0115-debug-campaign-battle-drill.md](ADR-0115-debug-campaign-battle-drill.md) | Debug-only campaign battle drill for the playable-loop E2E | accepted | — |
+| 0118 | [ADR-0118-react-devtools-opt-in-dev-dependency.md](ADR-0118-react-devtools-opt-in-dev-dependency.md) | React DevTools are an opt-in dev dependency kept out of the production main bundle | accepted | — |
 
 ## Process & documentation
 
