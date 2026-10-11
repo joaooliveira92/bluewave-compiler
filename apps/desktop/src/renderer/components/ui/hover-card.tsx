@@ -9,6 +9,9 @@ const HoverCardTrigger = HoverCardPrimitive.Trigger;
 /** One card shared by several detached triggers: moving between them swaps the content instead of re-opening. */
 const createHoverCardHandle = HoverCardPrimitive.createHandle;
 
+/** A shared card handle: pass the same one to a `HoverCard` and its detached `HoverCardTrigger`s. */
+type HoverCardHandle<Payload> = HoverCardPrimitive.Handle<Payload>;
+
 interface HoverCardContentProps extends React.ComponentPropsWithoutRef<
   typeof HoverCardPrimitive.Popup
 > {
@@ -58,3 +61,4 @@ const HoverCardContent = ({
 HoverCardContent.displayName = "HoverCardContent";
 
 export { createHoverCardHandle, HoverCard, HoverCardContent, HoverCardTrigger };
+export type { HoverCardHandle };

@@ -1,71 +1,46 @@
 import { Anchor, Coins, Scroll } from "lucide-react";
-import {
-  type CSSProperties,
-  type KeyboardEvent,
-  type ReactNode,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type JSX, type KeyboardEvent, useMemo, useState } from "react";
+import { createHoverCardHandle, HoverCard, HoverCardContent } from "@/components/ui/hover-card.js";
+import { cn } from "@/lib/utils.js";
+import { ACCENT_STYLES } from "./constants.js";
 import { DossierAccordionItem } from "./DossierAccordionItem.js";
 import type { DossierSection, DossierSectionId } from "./types.js";
 
 interface DossierAccordionProps {
-  economy: ReactNode;
-  military: ReactNode;
-  diplomacy: ReactNode;
+  economy: React.ReactNode;
+  military: React.ReactNode;
+  diplomacy: React.ReactNode;
 }
 
-const COLLAPSED_TAB_WIDTH = "clamp(2.75rem, 5vw, 3.5rem)";
+const isSectionId = (value: string | undefined): value is DossierSectionId =>
+  value === "economy" || value === "military" || value === "diplomacy";
 
-function getGridTemplate(expandedIndex: number): string {
-  return [0, 1, 2]
-    .map((index) => (index === expandedIndex ? "minmax(0, 1fr)" : COLLAPSED_TAB_WIDTH))
-    .join(" ");
-}
-
+/**
+ * The dossier's three intelligence sections as a hover strip. Each tab opens one shared card
+ * (Base UI's detached-handle preview card) rather than expanding a fixed-height inline panel, so
+ * moving between sections swaps the card's content and nothing ever needs to be scrolled. Hover,
+ * keyboard focus and a click/tap all open it; Escape or a press outside closes it.
+ */
 export function DossierAccordion({
   economy,
   military,
   diplomacy,
-}: DossierAccordionProps): React.JSX.Element {
-  const [expanded, setExpanded] = useState<DossierSectionId>("economy");
-  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+}: DossierAccordionProps): JSX.Element {
+  const [handle] = useState(() => createHoverCardHandle<DossierSectionId>());
+  const [active, setActive] = useState<DossierSectionId | null>(null);
 
   const sections = useMemo<DossierSection[]>(
     () => [
-      {
-        id: "economy",
-        label: "Economy",
-        text: economy,
-        icon: Coins,
-        accent: "gold",
-      },
-      {
-        id: "military",
-        label: "Military",
-        text: military,
-        icon: Anchor,
-        accent: "red",
-      },
-      {
-        id: "diplomacy",
-        label: "Diplomacy",
-        text: diplomacy,
-        icon: Scroll,
-        accent: "blue",
-      },
+      { id: "economy", label: "Economy", text: economy, icon: Coins, accent: "gold" },
+      { id: "military", label: "Military", text: military, icon: Anchor, accent: "red" },
+      { id: "diplomacy", label: "Diplomacy", text: diplomacy, icon: Scroll, accent: "blue" },
     ],
     [economy, military, diplomacy],
   );
 
-  const expandedIndex = sections.findIndex((section) => section.id === expanded);
+  const triggerId = (id: DossierSectionId): string => `dossier-${id}-trigger`;
 
-  const gridStyle = {
-    gridTemplateColumns: getGridTemplate(expandedIndex),
-  } satisfies CSSProperties;
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number): void => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>, index: number): void => {
     let target: number | null = null;
 
     if (event.key === "ArrowRight" || event.key === "ArrowDown") {
@@ -81,24 +56,81 @@ export function DossierAccordion({
 
     if (target !== null) {
       event.preventDefault();
-      buttonRefs.current[target]?.focus();
+      const next = sections[target];
+      if (next !== undefined) document.getElementById(triggerId(next.id))?.focus();
     }
   };
 
   return (
-    <div className="grid h-[15rem] min-h-0 w-full overflow-hidden sm:h-[10rem]" style={gridStyle}>
-      {sections.map((section, index) => (
-        <DossierAccordionItem
-          key={section.id}
-          ref={(node) => {
-            buttonRefs.current[index] = node;
-          }}
-          section={section}
-          state={expanded === section.id ? "expanded" : "collapsed"}
-          onSelect={() => setExpanded(section.id)}
-          onKeyDown={(event) => handleKeyDown(event, index)}
-        />
-      ))}
+    <div className="relative">
+      <div
+        role="group"
+        aria-label="Nation dossier sections"
+        className="flex items-stretch gap-1.5 border-t border-admiralty-border/60 bg-admiralty-surface/40 px-3 py-2.5 backdrop-blur-md sm:px-5"
+      >
+        {sections.map((section, index) => (
+          <DossierAccordionItem
+            key={section.id}
+            section={section}
+            active={active === section.id}
+            handle={handle}
+            onSelect={() => setActive(section.id)}
+            onKeyDown={(event) => handleKeyDown(event, index)}
+          />
+        ))}
+      </div>
+
+      <HoverCard
+        handle={handle}
+        open={active !== null}
+        triggerId={active === null ? null : triggerId(active)}
+        onOpenChange={(open, details) => {
+          const id =
+            details.trigger instanceof HTMLElement
+              ? details.trigger.dataset["dossierSection"]
+              : undefined;
+          setActive(open && isSectionId(id) ? id : open ? active : null);
+        }}
+      >
+        {({ payload }) => {
+          const section = sections.find((candidate) => candidate.id === payload);
+          if (section === undefined) return null;
+          const Icon = section.icon;
+          const accent = ACCENT_STYLES[section.accent];
+          return (
+            <HoverCardContent
+              id={`dossier-${section.id}-panel`}
+              side="top"
+              align="center"
+              sideOffset={12}
+              collisionPadding={12}
+              className="w-[min(34rem,calc(100vw-1.5rem))] max-h-[min(70vh,var(--available-height))] overflow-y-auto overscroll-contain rounded-lg border border-admiralty-accent/30 bg-admiralty-surface-raised/95 p-0 text-admiralty-ink shadow-[0_18px_60px_rgba(0,0,0,0.6)] backdrop-blur-md motion-reduce:animate-none"
+            >
+              <div
+                className={cn(
+                  "sticky top-0 flex items-center gap-2 border-b px-4 py-2.5 backdrop-blur-md",
+                  accent.border,
+                  accent.bg,
+                )}
+              >
+                <Icon className={cn("h-4 w-4 shrink-0", accent.text)} aria-hidden="true" />
+                <span
+                  className={cn(
+                    "font-display text-[0.7rem] font-black uppercase tracking-[0.18em]",
+                    accent.text,
+                  )}
+                >
+                  {section.label}
+                </span>
+                <span className="ml-auto font-display text-[0.55rem] uppercase tracking-[0.18em] text-admiralty-ink-faint">
+                  Intelligence
+                </span>
+              </div>
+              <div className="px-4 py-3">{section.text}</div>
+            </HoverCardContent>
+          );
+        }}
+      </HoverCard>
     </div>
   );
 }

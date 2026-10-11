@@ -56,7 +56,8 @@ describe("DossierSlidePanel", () => {
     const flavor = NATION_FLAVOR_TEXT[countryId];
     const fields = NATION_DOSSIER_FIELDS[countryId];
 
-    // Economy tab is expanded by default.
+    // Economy is the default intelligence card.
+    fireEvent.click(screen.getByRole("button", { name: "Economy" }));
     expect(screen.getByText(flavor.economy)).toBeTruthy();
     expect(screen.getByText(new RegExp(fields.budgetCategory))).toBeTruthy();
     expect(screen.getByText(new RegExp(fields.shipbuildingCapacity))).toBeTruthy();

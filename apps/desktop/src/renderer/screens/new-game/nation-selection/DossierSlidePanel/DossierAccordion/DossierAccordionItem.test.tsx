@@ -2,8 +2,9 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { Coins } from "lucide-react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { createHoverCardHandle } from "@/components/ui/hover-card.js";
 import { DossierAccordionItem } from "./DossierAccordionItem.js";
-import type { DossierSection } from "./types.js";
+import type { DossierSection, DossierSectionId } from "./types.js";
 
 const section: DossierSection = {
   id: "economy",
@@ -13,9 +14,16 @@ const section: DossierSection = {
   accent: "gold",
 };
 
-function renderItem(state: "expanded" | "collapsed") {
+function renderItem(active: boolean) {
+  const handle = createHoverCardHandle<DossierSectionId>();
   return render(
-    <DossierAccordionItem section={section} state={state} onSelect={vi.fn()} onKeyDown={vi.fn()} />,
+    <DossierAccordionItem
+      section={section}
+      active={active}
+      handle={handle}
+      onSelect={vi.fn()}
+      onKeyDown={vi.fn()}
+    />,
   );
 }
 
@@ -24,19 +32,19 @@ describe("DossierAccordionItem", () => {
     cleanup();
   });
 
-  it("renders the expanded panel variant with the section text", () => {
-    renderItem("expanded");
+  it("renders a labelled tab that controls its intelligence panel", () => {
+    renderItem(true);
 
     const trigger = screen.getByRole("button", { name: "Economy" });
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
-    expect(screen.getByText("The Admiralty funds ship construction.")).toBeTruthy();
+    expect(trigger.getAttribute("aria-controls")).toBe("dossier-economy-panel");
   });
 
-  it("renders the collapsed tab variant without the panel text", () => {
-    renderItem("collapsed");
+  it("leaves the panel unlinked while the card is closed", () => {
+    renderItem(false);
 
     const trigger = screen.getByRole("button", { name: "Economy" });
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByText("The Admiralty funds ship construction.")).toBeNull();
+    expect(trigger.getAttribute("aria-controls")).toBeNull();
   });
 });

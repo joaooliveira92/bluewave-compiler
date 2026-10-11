@@ -1,10 +1,11 @@
 import { X } from "lucide-react";
 
 import { Button } from "../../../components/ui/button.js";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card.js";
+import { CardContent, CardHeader, CardTitle } from "../../../components/ui/card.js";
 import { Item, ItemActions, ItemContent } from "../../../components/ui/item.js";
 import type { RecentFile } from "../types.js";
 import { campaignFileName } from "../utils/recent-files.js";
+import { GlassCard } from "@/components/ui/glass-card.jsx";
 
 interface RecentCampaignsProps {
   readonly files: readonly RecentFile[];
@@ -17,7 +18,7 @@ export function RecentCampaigns({ files, disabled, onOpen, onRemove }: RecentCam
   if (files.length === 0) return null;
 
   return (
-    <Card>
+    <GlassCard glassVariant="liquid-refract">
       <CardHeader>
         <CardTitle className="text-sm font-medium">Recent Campaigns</CardTitle>
       </CardHeader>
@@ -48,6 +49,6 @@ export function RecentCampaigns({ files, disabled, onOpen, onRemove }: RecentCam
           </Item>
         ))}
       </CardContent>
-    </Card>
+    </GlassCard>
   );
 }

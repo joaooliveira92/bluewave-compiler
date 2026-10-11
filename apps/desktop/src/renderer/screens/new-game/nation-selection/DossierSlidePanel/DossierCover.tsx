@@ -22,7 +22,7 @@ export function DossierCover({ countryId }: { countryId: PlayableSlotCountryId }
       ) : (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -z-20 flex items-center justify-center bg-[radial-gradient(circle_at_48%_38%,color-mix(in_srgb,var(--color-admiralty-signal)_14%,transparent),var(--color-admiralty-surface)_70%)]"
+          className="pointer-events-none absolute inset-0 -z-20 flex items-center justify-center bg-[radial-gradient(circle_at_48%_38%,color-mix(in_srgb,var(--color-admiralty-signal)_14%,transparent),color-mix(in_srgb,var(--color-admiralty-surface)_55%,transparent))]"
         >
           <span className="font-display text-7xl font-black tracking-[0.18em] text-admiralty-signal/10">
             {getCountryCode(countryId)}
@@ -31,7 +31,7 @@ export function DossierCover({ countryId }: { countryId: PlayableSlotCountryId }
       )}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-admiralty-surface/70 via-admiralty-surface/75 to-admiralty-surface/95"
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-admiralty-surface/25 via-admiralty-surface/35 to-admiralty-surface/60"
       />
       <div
         aria-hidden="true"
