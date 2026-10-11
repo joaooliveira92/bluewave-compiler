@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { Result, Schema } from "effect";
 import type { BridgeResult } from "../shared/bridge-contract.js";
 import type {
   ReadUiStateResult,
@@ -65,11 +66,13 @@ export function loadUiState(saveDir: string, currentTurnNumber: number): UiState
     return emptyUiState(currentTurnNumber);
   }
   try {
-    const parsed = UiStateSchema.safeParse(JSON.parse(readFileSync(path, "utf8")));
-    if (!parsed.success) {
+    const parsed = Schema.decodeUnknownResult(UiStateSchema)(
+      JSON.parse(readFileSync(path, "utf8")),
+    );
+    if (Result.isFailure(parsed)) {
       return emptyUiState(currentTurnNumber);
     }
-    return resolveUiState(parsed.data, currentTurnNumber);
+    return resolveUiState(parsed.success, currentTurnNumber);
   } catch {
     return emptyUiState(currentTurnNumber);
   }

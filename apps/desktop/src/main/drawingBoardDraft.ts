@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { decodeLog, PersistenceError } from "@bluewave/ship-design";
-import { z } from "zod";
+import { Result, Schema } from "effect";
 import type { BridgeResult } from "../shared/bridge-contract.js";
 import type {
   DrawingBoardDraftRecord,
@@ -21,11 +21,11 @@ export const DRAWING_BOARD_DRAFT_FILENAME = "drawing-board-draft.json";
 /** An edit log is at most 500 edits of small objects; anything far larger is not ours. */
 const MAX_LOG_CHARS = 4_000_000;
 
-const StoredSchema = z.object({
-  schema: z.literal("drawing_board_draft_v1"),
-  savedAt: z.string(),
-  presetId: z.string().min(1).max(200),
-  log: z.string().min(1).max(MAX_LOG_CHARS),
+const StoredSchema = Schema.Struct({
+  schema: Schema.Literal("drawing_board_draft_v1"),
+  savedAt: Schema.String,
+  presetId: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(200)),
+  log: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(MAX_LOG_CHARS)),
 });
 
 function sessionMissing(sessionId: string) {
@@ -41,10 +41,14 @@ export function loadDrawingBoardDraft(saveDir: string): DrawingBoardDraftRecord 
   const path = join(saveDir, DRAWING_BOARD_DRAFT_FILENAME);
   if (!existsSync(path)) return null;
   try {
-    const parsed = StoredSchema.safeParse(JSON.parse(readFileSync(path, "utf8")));
-    if (!parsed.success) return null;
-    decodeLog(parsed.data.log);
-    return { presetId: parsed.data.presetId, log: parsed.data.log, savedAt: parsed.data.savedAt };
+    const parsed = Schema.decodeUnknownResult(StoredSchema)(JSON.parse(readFileSync(path, "utf8")));
+    if (Result.isFailure(parsed)) return null;
+    decodeLog(parsed.success.log);
+    return {
+      presetId: parsed.success.presetId,
+      log: parsed.success.log,
+      savedAt: parsed.success.savedAt,
+    };
   } catch {
     return null;
   }
@@ -105,12 +109,12 @@ export async function writeDrawingBoardDraft(
 }
 
 /** Wire shape of `writeDrawingBoardDraft` (semantic checks live in the handler). */
-export const WriteDrawingBoardDraftPayloadSchema = z.object({
-  sessionId: z.string().min(1),
-  draft: z
-    .object({
-      presetId: z.string().min(1).max(200),
-      log: z.string().min(1).max(MAX_LOG_CHARS),
-    })
-    .nullable(),
+export const WriteDrawingBoardDraftPayloadSchema = Schema.Struct({
+  sessionId: Schema.String.check(Schema.isMinLength(1)),
+  draft: Schema.NullOr(
+    Schema.Struct({
+      presetId: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(200)),
+      log: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(MAX_LOG_CHARS)),
+    }),
+  ),
 });

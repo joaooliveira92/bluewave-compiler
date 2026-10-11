@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { Result, Schema, SchemaIssue } from "effect";
 import type { BridgeResult } from "../shared/bridge-contract.js";
 import { CAMPAIGN_COMMAND_NAMES } from "../shared/campaign-command-contract.js";
 import type { ResolveTacticalBattlePayload } from "../shared/campaign-command-contract.js";
@@ -83,14 +83,14 @@ import {
 } from "./drawingBoardDraft.js";
 
 /**
- * The `campaign:execute` command registry. Command name is Zod-validated at
+ * The `campaign:execute` command registry. Command name is validated at
  * this IPC boundary (ENGINEERING-CONTRACT "Electron boundary"); each command's
  * `{schema, execute}` pair is registered below and the dispatcher itself knows
  * nothing about individual commands. Adding a command means adding one registry
  * entry — the router never changes (ADR-0021's boundary, ADR-0057 debug-gated
  * battle commands, ADR-0062 fleet movement, linked from the desktop-mvp map).
  */
-const CommandNameSchema = z.enum(CAMPAIGN_COMMAND_NAMES);
+const CommandNameSchema = Schema.Literals(CAMPAIGN_COMMAND_NAMES);
 
 type CampaignCommandName = (typeof CAMPAIGN_COMMAND_NAMES)[number];
 
@@ -104,6 +104,13 @@ type CommandOutcome = BridgeResult<unknown>;
 export type CampaignCommandHandler = (payload: unknown) => CommandOutcome | Promise<CommandOutcome>;
 
 export type CommandRegistry = Partial<Record<CampaignCommandName, CampaignCommandHandler>>;
+
+/** Formats an Effect `SchemaError`'s issue tree into Zod-style per-field messages. */
+const formatIssues = SchemaIssue.makeFormatterStandardSchemaV1();
+
+function issueMessages(error: Schema.SchemaError): readonly string[] {
+  return formatIssues(error.issue).issues.map((issue) => issue.message);
+}
 
 function invalidPayloadResult(issues: readonly string[]): BridgeResult<unknown> {
   return {
@@ -119,16 +126,16 @@ function invalidPayloadResult(issues: readonly string[]): BridgeResult<unknown> 
  * "validate then execute" responsibility once, instead of repeating it per
  * `switch` case (SRP).
  */
-function withSchema<TPayload>(
-  schema: z.ZodType<TPayload, unknown>,
-  execute: (payload: TPayload) => CommandOutcome | Promise<CommandOutcome>,
+function withSchema<T>(
+  schema: Schema.ConstraintDecoder<T, never>,
+  execute: (payload: T) => CommandOutcome | Promise<CommandOutcome>,
 ): CampaignCommandHandler {
   return (payload) => {
-    const parsed = schema.safeParse(payload);
-    if (!parsed.success) {
-      return invalidPayloadResult(parsed.error.issues.map((issue) => issue.message));
+    const decoded = Schema.decodeUnknownResult(schema)(payload);
+    if (Result.isFailure(decoded)) {
+      return invalidPayloadResult(issueMessages(decoded.failure));
     }
-    return execute(parsed.data);
+    return execute(decoded.success);
   };
 }
 
@@ -266,8 +273,8 @@ export function createCampaignCommandDispatcher(
   registry: CommandRegistry,
 ): (command: string, payload: unknown) => Promise<BridgeResult<unknown>> {
   return async (command, payload) => {
-    const parsedCommand = CommandNameSchema.safeParse(command);
-    if (!parsedCommand.success) {
+    const parsedCommand = Schema.decodeUnknownResult(CommandNameSchema)(command);
+    if (Result.isFailure(parsedCommand)) {
       return {
         outcome: "error",
         reason: "UNKNOWN_COMMAND",
@@ -275,13 +282,13 @@ export function createCampaignCommandDispatcher(
       };
     }
 
-    const handler = registry[parsedCommand.data];
+    const handler = registry[parsedCommand.success];
     if (handler === undefined) {
       return {
         outcome: "error",
         reason: "NOT_IMPLEMENTED",
         diagnostics: [
-          `${parsedCommand.data} is not implemented yet (desktop-mvp ticket 11 scaffold).`,
+          `${parsedCommand.success} is not implemented yet (desktop-mvp ticket 11 scaffold).`,
         ],
       };
     }

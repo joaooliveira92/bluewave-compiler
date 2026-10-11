@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, renameSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { CANONICAL_SCENARIO_IDS } from "@bluewave/campaign";
-import { z } from "zod";
+import { Result, Schema } from "effect";
 
 /**
  * App-owned `session.json` sidecar at a `SaveStore` package's root directory
@@ -23,19 +23,20 @@ import { z } from "zod";
  * its integrity envelope. `compileCampaign` writes it once; `loadCampaign`
  * reads it to restore a real session; `replayCampaign` reads it for the
  * replay seed. Saves are trust-class data (ENGINEERING-CONTRACT "Security"),
- * so reads are Zod-validated; writes go through tmp+rename like
- * `SaveStore`'s own `updatePointer`, never leaving a partial file.
+ * so reads are validated (Effect Schema, ADR-0102); writes go through
+ * tmp+rename like `SaveStore`'s own `updatePointer`, never leaving a partial
+ * file.
  */
 export const SESSION_METADATA_FILENAME = "session.json";
 
-export const SessionMetadataSchema = z.object({
-  schemaVersion: z.literal("session_meta_v1"),
-  scenarioId: z.enum(CANONICAL_SCENARIO_IDS),
-  playerSlotId: z.string().min(1),
-  campaignSeed: z.string().min(1),
+export const SessionMetadataSchema = Schema.Struct({
+  schemaVersion: Schema.Literal("session_meta_v1"),
+  scenarioId: Schema.Literals(CANONICAL_SCENARIO_IDS),
+  playerSlotId: Schema.String.check(Schema.isMinLength(1)),
+  campaignSeed: Schema.String.check(Schema.isMinLength(1)),
 });
 
-export type SessionMetadata = z.infer<typeof SessionMetadataSchema>;
+export type SessionMetadata = typeof SessionMetadataSchema.Type;
 
 export function writeSessionMetadata(saveDir: string, metadata: SessionMetadata): void {
   const target = join(saveDir, SESSION_METADATA_FILENAME);
@@ -44,13 +45,15 @@ export function writeSessionMetadata(saveDir: string, metadata: SessionMetadata)
   renameSync(tmp, target);
 }
 
-/** `null` when the sidecar is missing or fails Zod/structure validation. */
+/** `null` when the sidecar is missing or fails schema/structure validation. */
 export function readSessionMetadata(saveDir: string): SessionMetadata | null {
   const target = join(saveDir, SESSION_METADATA_FILENAME);
   if (!existsSync(target)) return null;
   try {
-    const parsed = SessionMetadataSchema.safeParse(JSON.parse(readFileSync(target, "utf8")));
-    return parsed.success ? parsed.data : null;
+    const parsed = Schema.decodeUnknownResult(SessionMetadataSchema)(
+      JSON.parse(readFileSync(target, "utf8")),
+    );
+    return Result.isSuccess(parsed) ? parsed.success : null;
   } catch {
     return null;
   }

@@ -1,35 +1,62 @@
 import { CANONICAL_SCENARIO_IDS, FLEET_SIZE_IDS, RESEARCH_IDS } from "@bluewave/campaign";
 import { CANONICAL_RESEARCH_FIELD_IDS } from "@bluewave/campaign-engine";
-import { z } from "zod";
+import { Schema } from "effect";
 
 /**
- * ENGINEERING-CONTRACT.md's Electron boundary rule requires IPC requests to
- * be Zod-validated. This validates the payload's wire shape (fields present,
- * correct primitive types, and — for the fixed-catalog fields — one of the
- * known ids) at the process boundary; deeper semantic validation (does this
- * *combination* of scenario/nation/setting actually exist, e.g. is this
- * fleet-size setting supported by this scenario) stays in
- * `@bluewave/campaign`'s `validateCampaignConfiguration` /
- * `createInitialCampaignState`, matching `campaignSaveSchema.ts`'s existing
- * split between wire-shape Zod and domain-code semantics.
+ * ENGINEERING-CONTRACT.md's Electron boundary rule requires IPC requests to be
+ * validated. This validates the payload's wire shape (fields present, correct
+ * primitive types, and — for the fixed-catalog fields — one of the known ids)
+ * at the process boundary; deeper semantic validation (does this *combination*
+ * of scenario/nation/setting actually exist, e.g. is this fleet-size setting
+ * supported by this scenario) stays in `@bluewave/campaign`'s
+ * `validateCampaignConfiguration` / `createInitialCampaignState`, matching
+ * `campaignSaveSchema.ts`'s existing split between wire-shape validation and
+ * domain-code semantics.
+ *
+ * Migrated from Zod to Effect Schema (ADR-0102). `Schema.Struct` strips
+ * unmodeled keys by default, matching Zod's `z.object` default; the wire shape
+ * is unchanged.
  */
-export const CampaignConfigurationPayloadSchema = z.object({
-  scenarioId: z.enum(CANONICAL_SCENARIO_IDS),
-  playerSlotId: z.string().min(1),
-  continuityModeId: z.enum(["historical", "alternate_continuity_v1"]),
-  fleetSizeSettingId: z.enum(FLEET_SIZE_IDS),
-  researchSpeedSettingId: z.enum(RESEARCH_IDS),
-  technologyVariationSettingId: z.enum(["none", "some", "considerable"]),
-  historicalBudgetOptionId: z.string().min(1),
-  legacyFleetModeId: z.string().min(1),
-  tacticalRealismModeId: z.string().min(1),
-  difficultyProfileId: z.string().min(1),
-  campaignSeed: z.string().min(1),
-  configurationSchemaVersion: z.string().min(1),
-  archetype: z.string().optional(),
+
+/** `z.string().min(1)` — non-empty, not trimmed (decode is identity). */
+const nonEmptyString = Schema.String.check(Schema.isMinLength(1));
+
+/** `z.number().int().nonnegative()` — finite integer `>= 0`. */
+const nonNegativeInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
+
+/** `z.number().int().positive()` — finite integer `> 0`. */
+const positiveInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThan(0));
+
+/** `z.number().int()` — finite integer (any sign). */
+const int = Schema.Finite.check(Schema.isInt());
+
+/**
+ * A bounded string: `z.string().min(min).max(max)`. Array/string `length` is
+ * what `Schema.isMinLength`/`Schema.isMaxLength` inspect.
+ */
+const boundedString = (min: number, max: number) =>
+  Schema.String.check(Schema.isMinLength(min), Schema.isMaxLength(max));
+
+/** `z.record(z.string(), z.unknown())` — a plain object of unknown values. */
+const JsonObject = Schema.Record(Schema.String, Schema.Unknown);
+
+export const CampaignConfigurationPayloadSchema = Schema.Struct({
+  scenarioId: Schema.Literals(CANONICAL_SCENARIO_IDS),
+  playerSlotId: nonEmptyString,
+  continuityModeId: Schema.Literals(["historical", "alternate_continuity_v1"]),
+  fleetSizeSettingId: Schema.Literals(FLEET_SIZE_IDS),
+  researchSpeedSettingId: Schema.Literals(RESEARCH_IDS),
+  technologyVariationSettingId: Schema.Literals(["none", "some", "considerable"]),
+  historicalBudgetOptionId: nonEmptyString,
+  legacyFleetModeId: nonEmptyString,
+  tacticalRealismModeId: nonEmptyString,
+  difficultyProfileId: nonEmptyString,
+  campaignSeed: nonEmptyString,
+  configurationSchemaVersion: nonEmptyString,
+  archetype: Schema.optional(Schema.String),
 });
 
-export const SessionIdPayloadSchema = z.string().min(1);
+export const SessionIdPayloadSchema = nonEmptyString;
 
 /**
  * `CommandEnvelope` (`shared/bridge-contract.ts`) — the
@@ -38,10 +65,10 @@ export const SessionIdPayloadSchema = z.string().min(1);
  * command wired against it; construction/fleet submit/replace/cancel
  * (ticket 10) reuse this same schema when they land.
  */
-export const CommandEnvelopePayloadSchema = z.object({
-  sessionId: z.string().min(1),
-  expectedRevision: z.number().int().nonnegative(),
-  transportRequestId: z.string().min(1),
+export const CommandEnvelopePayloadSchema = Schema.Struct({
+  sessionId: nonEmptyString,
+  expectedRevision: nonNegativeInt,
+  transportRequestId: nonEmptyString,
 });
 
 /**
@@ -51,16 +78,19 @@ export const CommandEnvelopePayloadSchema = z.object({
  * `commands/constructionCommands.ts`, matching the wire-shape/semantics split
  * used everywhere else.
  */
-export const ConstructionOrderPayloadSchema = CommandEnvelopePayloadSchema.extend({
-  designId: z.string().min(1),
+export const ConstructionOrderPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  designId: nonEmptyString,
 });
 
-export const ReplaceConstructionOrderPayloadSchema = ConstructionOrderPayloadSchema.extend({
-  commandId: z.string().min(1),
+export const ReplaceConstructionOrderPayloadSchema = Schema.Struct({
+  ...ConstructionOrderPayloadSchema.fields,
+  commandId: nonEmptyString,
 });
 
-export const CancelConstructionOrderPayloadSchema = CommandEnvelopePayloadSchema.extend({
-  commandId: z.string().min(1),
+export const CancelConstructionOrderPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  commandId: nonEmptyString,
 });
 
 /**
@@ -76,14 +106,16 @@ export const CancelConstructionOrderPayloadSchema = CommandEnvelopePayloadSchema
  * engine itself does not reject unknown field keys; the desktop mirror is
  * intentionally stricter, recorded in the feature-gate ticket trail.)
  */
-export const SetResearchPriorityCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
-  fieldPriorities: z
-    .record(z.string().min(1), z.number().int().nonnegative())
-    .refine(
-      (record) => Object.keys(record).length <= CANONICAL_RESEARCH_FIELD_IDS.length,
-      "fieldPriorities cannot exceed the canonical research field set",
+export const SetResearchPriorityCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  fieldPriorities: Schema.Record(nonEmptyString, nonNegativeInt).check(
+    Schema.makeFilter((record) =>
+      Object.keys(record).length <= CANONICAL_RESEARCH_FIELD_IDS.length
+        ? undefined
+        : "fieldPriorities cannot exceed the canonical research field set",
     ),
-  exactTechId: z.string().min(1).optional(),
+  ),
+  exactTechId: Schema.optional(nonEmptyString),
 });
 
 /**
@@ -94,33 +126,34 @@ export const SetResearchPriorityCommandPayloadSchema = CommandEnvelopePayloadSch
  * `CommandLifecycle.validate()` at issue time — never a desktop mirror (spec
  * D1/D2).
  */
-export const DiplomacyCommandBodySchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("DeclareWar"),
-    targetNationId: z.string().min(1),
-    warGoalsId: z.string().min(1).optional(),
+export const DiplomacyCommandBodySchema = Schema.Union([
+  Schema.Struct({
+    type: Schema.Literal("DeclareWar"),
+    targetNationId: nonEmptyString,
+    warGoalsId: Schema.optional(nonEmptyString),
   }),
-  z.object({ type: z.literal("AcceptPeace"), warId: z.string().min(1) }),
-  z.object({ type: z.literal("FormAlliance"), partnerNationId: z.string().min(1) }),
-  z.object({ type: z.literal("BreakAlliance"), partnerNationId: z.string().min(1) }),
-  z.object({
-    type: z.literal("FormNonAggressionPact"),
-    partnerNationId: z.string().min(1),
+  Schema.Struct({ type: Schema.Literal("AcceptPeace"), warId: nonEmptyString }),
+  Schema.Struct({ type: Schema.Literal("FormAlliance"), partnerNationId: nonEmptyString }),
+  Schema.Struct({ type: Schema.Literal("BreakAlliance"), partnerNationId: nonEmptyString }),
+  Schema.Struct({
+    type: Schema.Literal("FormNonAggressionPact"),
+    partnerNationId: nonEmptyString,
   }),
-  z.object({
-    type: z.literal("BreakNonAggressionPact"),
-    partnerNationId: z.string().min(1),
+  Schema.Struct({
+    type: Schema.Literal("BreakNonAggressionPact"),
+    partnerNationId: nonEmptyString,
   }),
-  z.object({
-    type: z.literal("DeclareBlockade"),
-    targetNationId: z.string().min(1),
-    areaId: z.string().min(1),
+  Schema.Struct({
+    type: Schema.Literal("DeclareBlockade"),
+    targetNationId: nonEmptyString,
+    areaId: nonEmptyString,
   }),
 ]);
 
 /** Wire shape for `submitDiplomacyCommand` — the `CommandEnvelope` triple plus
  * the discriminated command body. */
-export const SubmitDiplomacyCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+export const SubmitDiplomacyCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
   command: DiplomacyCommandBodySchema,
 });
 
@@ -130,103 +163,107 @@ export const SubmitDiplomacyCommandPayloadSchema = CommandEnvelopePayloadSchema.
  * legality — ship-type compatibility, size by type, same location, ownership — is
  * the ENGINE's own `CommandLifecycle.validate()` at issue time, never a desktop mirror.
  */
-export const DivisionCommandBodySchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("CreateDivision"),
-    flagshipShipId: z.string().min(1),
-    role: z.string().min(1),
-    formation: z.string().min(1),
+export const DivisionCommandBodySchema = Schema.Union([
+  Schema.Struct({
+    type: Schema.Literal("CreateDivision"),
+    flagshipShipId: nonEmptyString,
+    role: nonEmptyString,
+    formation: nonEmptyString,
   }),
-  z.object({
-    type: z.literal("AddShipToDivision"),
-    divisionId: z.string().min(1),
-    shipId: z.string().min(1),
+  Schema.Struct({
+    type: Schema.Literal("AddShipToDivision"),
+    divisionId: nonEmptyString,
+    shipId: nonEmptyString,
   }),
-  z.object({
-    type: z.literal("RemoveShipFromDivision"),
-    divisionId: z.string().min(1),
-    shipId: z.string().min(1),
+  Schema.Struct({
+    type: Schema.Literal("RemoveShipFromDivision"),
+    divisionId: nonEmptyString,
+    shipId: nonEmptyString,
   }),
-  z.object({
-    type: z.literal("ChangeDivisionFlagship"),
-    divisionId: z.string().min(1),
-    newFlagshipShipId: z.string().min(1),
+  Schema.Struct({
+    type: Schema.Literal("ChangeDivisionFlagship"),
+    divisionId: nonEmptyString,
+    newFlagshipShipId: nonEmptyString,
   }),
-  z.object({
-    type: z.literal("ReorderDivisionShips"),
-    divisionId: z.string().min(1),
-    shipOrder: z.array(z.string().min(1)).min(1).max(6),
+  Schema.Struct({
+    type: Schema.Literal("ReorderDivisionShips"),
+    divisionId: nonEmptyString,
+    shipOrder: Schema.Array(nonEmptyString).check(Schema.isMinLength(1), Schema.isMaxLength(6)),
   }),
-  z.object({ type: z.literal("DissolveDivision"), divisionId: z.string().min(1) }),
+  Schema.Struct({ type: Schema.Literal("DissolveDivision"), divisionId: nonEmptyString }),
 ]);
 
 /** Wire shapes for the fleet movement commands; legality is the engine's (`MoveFleet`). */
-export const SubmitMovementCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
-  divisionId: z.string().min(1),
-  fromAreaId: z.string(),
-  toAreaId: z.string().min(1),
+export const SubmitMovementCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  divisionId: nonEmptyString,
+  fromAreaId: Schema.String,
+  toAreaId: nonEmptyString,
 });
-export const ReplaceMovementCommandPayloadSchema = SubmitMovementCommandPayloadSchema.extend({
-  commandId: z.string().min(1),
+export const ReplaceMovementCommandPayloadSchema = Schema.Struct({
+  ...SubmitMovementCommandPayloadSchema.fields,
+  commandId: nonEmptyString,
 });
-export const CancelMovementCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
-  commandId: z.string().min(1),
+export const CancelMovementCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  commandId: nonEmptyString,
 });
 
+/**
+ * The `@bluewave/ship-design` draft as JSON. The wire boundary only proves it is
+ * a plain object of unknown values (mirroring the previous `z.custom` predicate);
+ * the engine and the ship-design compiler validate the draft's contents.
+ */
+const DraftObjectSchema = JsonObject;
+
 /** Wire shape for `submitDesignCommand`; the draft is validated by the engine (`SubmitDesign`) and the ship-design compiler. */
-export const SubmitDesignCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
-  className: z.string().trim().min(1).max(60),
-  draft: z.custom<Record<string, unknown>>(
-    (v) => typeof v === "object" && v !== null,
-    "draft must be an object",
-  ),
+export const SubmitDesignCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  className: Schema.Trim.check(Schema.isMinLength(1), Schema.isMaxLength(60)),
+  draft: DraftObjectSchema,
 });
 
 /** Wire shape for `reviseProjectCommand`; the engine and the ship-design compiler validate the draft. */
-export const ReviseProjectCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
-  projectId: z.string().min(1),
-  draft: z.custom<Record<string, unknown>>(
-    (v) => typeof v === "object" && v !== null,
-    "draft must be an object",
-  ),
+export const ReviseProjectCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  projectId: nonEmptyString,
+  draft: DraftObjectSchema,
 });
 
-const DraftObjectSchema = z.custom<Record<string, unknown>>(
-  (v) => typeof v === "object" && v !== null,
-  "draft must be an object",
-);
-
-export const LoadShipDraftPayloadSchema = z.object({
-  sessionId: z.string().min(1),
-  shipId: z.string().min(1),
+export const LoadShipDraftPayloadSchema = Schema.Struct({
+  sessionId: nonEmptyString,
+  shipId: nonEmptyString,
 });
 
 /** Wire shape for `checkRebuild`; the ship-design compiler and the rebuild rules validate the draft. */
-export const RebuildCheckPayloadSchema = z.object({
-  sessionId: z.string().min(1),
-  shipId: z.string().min(1),
+export const RebuildCheckPayloadSchema = Schema.Struct({
+  sessionId: nonEmptyString,
+  shipId: nonEmptyString,
   draft: DraftObjectSchema,
 });
 
 /** Wire shape for `startRebuildCommand`. */
-export const StartRebuildCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
-  shipId: z.string().min(1),
+export const StartRebuildCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  shipId: nonEmptyString,
   draft: DraftObjectSchema,
 });
 
-export const LoadProjectDraftPayloadSchema = z.object({
-  sessionId: z.string().min(1),
-  projectId: z.string().min(1),
+export const LoadProjectDraftPayloadSchema = Schema.Struct({
+  sessionId: nonEmptyString,
+  projectId: nonEmptyString,
 });
 
 /** Wire shape for `submitBudgetAllocation`; bounds are the engine's own (validated at issue). */
-export const SubmitBudgetAllocationPayloadSchema = CommandEnvelopePayloadSchema.extend({
-  appropriationRateBp: z.number().int(),
-  researchBudget: z.number().int(),
+export const SubmitBudgetAllocationPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  appropriationRateBp: int,
+  researchBudget: int,
 });
 
 /** Wire shape for `submitDivisionCommand`. */
-export const SubmitDivisionCommandPayloadSchema = CommandEnvelopePayloadSchema.extend({
+export const SubmitDivisionCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
   command: DivisionCommandBodySchema,
 });
 
@@ -239,16 +276,19 @@ export const SubmitDivisionCommandPayloadSchema = CommandEnvelopePayloadSchema.e
  * at this IPC boundary; the file read tolerantly falls back to empty defaults
  * on any mismatch. Never authoritative.
  */
-export const FirstMonthInspectionSchema = z.object({
-  status: z.enum(["not_started", "in_progress", "completed", "dismissed"]),
-  lastCompletedStep: z.number().int().nonnegative().max(6),
+export const FirstMonthInspectionSchema = Schema.Struct({
+  status: Schema.Literals(["not_started", "in_progress", "completed", "dismissed"]),
+  lastCompletedStep: Schema.Finite.check(
+    Schema.isInt(),
+    Schema.isBetween({ minimum: 0, maximum: 6 }),
+  ),
 });
 
 /** The full on-disk `ui-state.json` shape (also the read command's result). */
-export const UiStateSchema = z.object({
-  turnNumber: z.number().int().nonnegative(),
-  dismissedFingerprints: z.array(z.string().min(1).max(256)).max(64),
-  firstMonthInspection: FirstMonthInspectionSchema.optional(),
+export const UiStateSchema = Schema.Struct({
+  turnNumber: nonNegativeInt,
+  dismissedFingerprints: Schema.Array(boundedString(1, 256)).check(Schema.isMaxLength(64)),
+  firstMonthInspection: Schema.optional(FirstMonthInspectionSchema),
 });
 
 /**
@@ -262,26 +302,29 @@ export const UiStateSchema = z.object({
  * exists, save dir writable) live in `uiState.ts`, matching the
  * wire-shape/semantics split.
  */
-export const WriteUiStatePayloadSchema = z.object({
-  sessionId: z.string().min(1),
-  dismissedFingerprints: z.array(z.string().min(1).max(256)).max(64),
-  firstMonthInspection: FirstMonthInspectionSchema.optional(),
+export const WriteUiStatePayloadSchema = Schema.Struct({
+  sessionId: nonEmptyString,
+  dismissedFingerprints: Schema.Array(boundedString(1, 256)).check(Schema.isMaxLength(64)),
+  firstMonthInspection: Schema.optional(FirstMonthInspectionSchema),
 });
 
 /** Tactical Sandbox payloads (debug-only; ADR-0057). */
-export const GenerateBattlePayloadSchema = z.object({
-  sessionId: z.string().min(1),
-  warId: z.string().min(1).optional(),
-  areaId: z.string().min(1).optional(),
-  strengthScale: z.number().int().min(1).max(1000).optional(),
+export const GenerateBattlePayloadSchema = Schema.Struct({
+  sessionId: nonEmptyString,
+  warId: Schema.optional(nonEmptyString),
+  areaId: Schema.optional(nonEmptyString),
+  strengthScale: Schema.optional(
+    Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 1000 })),
+  ),
 });
 
-export const BattleIdPayloadSchema = z.object({
-  sessionId: z.string().min(1),
-  battleId: z.string().min(1),
+export const BattleIdPayloadSchema = Schema.Struct({
+  sessionId: nonEmptyString,
+  battleId: nonEmptyString,
 });
 
-export const ResolveTacticalBattlePayloadSchema = BattleIdPayloadSchema.extend({
-  turnCount: z.number().int().positive(),
-  scriptedOrders: z.array(z.unknown()),
+export const ResolveTacticalBattlePayloadSchema = Schema.Struct({
+  ...BattleIdPayloadSchema.fields,
+  turnCount: positiveInt,
+  scriptedOrders: Schema.Array(Schema.Unknown),
 });

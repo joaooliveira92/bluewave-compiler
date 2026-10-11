@@ -3,7 +3,7 @@ import type { CommandBody, CommandEnvelope } from "@bluewave/commands";
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
-import { z } from "zod";
+import { Result, Schema } from "effect";
 import { getCampaignSession } from "./campaignSessions.js";
 
 /**
@@ -68,18 +68,16 @@ export function fingerprintOfBody(body: CommandBody): string {
 
 export const PENDING_COMMANDS_FILENAME = "pending-commands.json";
 
-const StoredQueueSchema = z.object({
-  schema: z.literal("pending_commands_v1"),
-  turnNumber: z.number().int().nonnegative(),
-  entries: z
-    .array(
-      z.object({
-        transportRequestId: z.string().min(1),
-        envelope: z.record(z.string(), z.unknown()),
-        payloadFingerprint: z.string().min(1),
-      }),
-    )
-    .max(1000),
+const StoredQueueSchema = Schema.Struct({
+  schema: Schema.Literal("pending_commands_v1"),
+  turnNumber: Schema.Finite.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
+  entries: Schema.Array(
+    Schema.Struct({
+      transportRequestId: Schema.String.check(Schema.isMinLength(1)),
+      envelope: Schema.Record(Schema.String, Schema.Unknown),
+      payloadFingerprint: Schema.String.check(Schema.isMinLength(1)),
+    }),
+  ).check(Schema.isMaxLength(1000)),
 });
 
 /** Mirrors the session's queue to disk (removes the file when empty). A failed write never blocks the command. */
@@ -118,10 +116,10 @@ export function restorePendingQueue(sessionId: string): number {
   if (!record) return 0;
   const path = join(record.saveDir, PENDING_COMMANDS_FILENAME);
   if (!existsSync(path)) return 0;
-  let parsed: z.infer<typeof StoredQueueSchema> | null = null;
+  let parsed: typeof StoredQueueSchema.Type | null = null;
   try {
-    const r = StoredQueueSchema.safeParse(JSON.parse(readFileSync(path, "utf8")));
-    parsed = r.success ? r.data : null;
+    const r = Schema.decodeUnknownResult(StoredQueueSchema)(JSON.parse(readFileSync(path, "utf8")));
+    parsed = Result.isSuccess(r) ? r.success : null;
   } catch {
     parsed = null;
   }

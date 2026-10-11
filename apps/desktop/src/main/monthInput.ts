@@ -1,6 +1,6 @@
 import type { CommandBody, CommandEnvelope, CommandOutcome } from "@bluewave/commands";
 import { CommandLedger } from "@bluewave/commands";
-import { z } from "zod";
+import { Result, Schema } from "effect";
 
 /**
  * What one executed month ran on, stored beside the save that closes it (`SaveStore` month input), so `replayCampaign`
@@ -17,12 +17,12 @@ export interface MonthInput {
 }
 
 // Saves are trust-class data: check the outer shape here; the engine validates every envelope again when it replays.
-const MonthInputSchema = z.object({
-  schema: z.literal("month_input_v1"),
-  commands: z.array(z.record(z.string(), z.unknown())),
-  commandOutcomes: z.array(z.record(z.string(), z.unknown())),
-  shipBuildingContentHash: z.string().min(1),
-  armamentContentHash: z.string().min(1).optional(),
+const MonthInputSchema = Schema.Struct({
+  schema: Schema.Literal("month_input_v1"),
+  commands: Schema.Array(Schema.Record(Schema.String, Schema.Unknown)),
+  commandOutcomes: Schema.Array(Schema.Record(Schema.String, Schema.Unknown)),
+  shipBuildingContentHash: Schema.String.check(Schema.isMinLength(1)),
+  armamentContentHash: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
 });
 
 export function monthInputOf(
@@ -42,8 +42,8 @@ export function monthInputOf(
 
 /** Parses a stored month input; null when it is not a `month_input_v1` record. */
 export function parseMonthInput(value: unknown): MonthInput | null {
-  const parsed = MonthInputSchema.safeParse(value);
-  return parsed.success ? (parsed.data as unknown as MonthInput) : null;
+  const parsed = Schema.decodeUnknownResult(MonthInputSchema)(value);
+  return Result.isSuccess(parsed) ? (parsed.success as unknown as MonthInput) : null;
 }
 
 /** The original command ledger of a month, rebuilt from its stored outcomes, for `ReplayVerifier.verify`. */

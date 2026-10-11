@@ -1,18 +1,6 @@
 import { SaveStore } from "@bluewave/persistence";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-
-export interface LoadSaveResult {
-  success: boolean;
-  snapshot?: Record<string, unknown>;
-  envelope?: Record<string, unknown>;
-  rawHash?: string;
-  diagnostics: Array<{
-    code: string;
-    severity: string;
-    message: string;
-  }>;
-  error?: string;
-}
+import type { LoadSaveResult } from "./campaignSaveSchema.js";
 
 /**
  * Electron's structured-clone IPC preserves `Map`, but the renderer's output

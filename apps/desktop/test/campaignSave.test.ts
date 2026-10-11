@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vite-plus/test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { Schema } from "effect";
 import { SafeInt } from "@bluewave/contracts";
 import { SaveStore } from "@bluewave/persistence";
 import type { CampaignSnapshot, CampaignState, NationState } from "@bluewave/campaign";
@@ -94,13 +95,13 @@ describe("campaignSave module", () => {
     expect(result.rawHash).toBeDefined();
     expect(result.envelope).toBeDefined();
     expect(result.snapshot).toBeDefined();
-    expect(() => LoadSaveResultSchema.parse(result)).not.toThrow();
+    expect(() => Schema.decodeUnknownSync(LoadSaveResultSchema)(result)).not.toThrow();
   });
 
   it("produces a result matching the IPC boundary schema on failure too", () => {
     const result = loadCampaignSave("/nonexistent/save/dir");
 
-    expect(() => LoadSaveResultSchema.parse(result)).not.toThrow();
+    expect(() => Schema.decodeUnknownSync(LoadSaveResultSchema)(result)).not.toThrow();
   });
 
   it("converts Map-valued snapshot fields to plain objects", () => {
