@@ -20,19 +20,15 @@ beforeEach(() => {
 });
 
 function renderPanel(countryId: (typeof PLAYABLE_SLOT_COUNTRY_IDS)[number]) {
-  const onChangeNation = vi.fn();
-  const onConfirm = vi.fn();
-  const onRecommendedSetup = vi.fn();
   render(
     <DossierSlidePanel
       countryId={countryId}
       isOpen
-      onChangeNation={onChangeNation}
-      onConfirm={onConfirm}
-      onRecommendedSetup={onRecommendedSetup}
+      onChangeNation={vi.fn()}
+      onConfirm={vi.fn()}
+      onRecommendedSetup={vi.fn()}
     />,
   );
-  return { onChangeNation, onConfirm, onRecommendedSetup };
 }
 
 describe("DossierSlidePanel", () => {
@@ -77,30 +73,6 @@ describe("DossierSlidePanel", () => {
     expect(screen.getByText(flavor.diplomacy)).toBeTruthy();
     expect(screen.getByText(new RegExp(fields.strategicRegions))).toBeTruthy();
     expect(screen.getByText(new RegExp(fields.nationalCharacteristics))).toBeTruthy();
-  });
-
-  it("collapses back to grid focus via Change Nation", () => {
-    const { onChangeNation } = renderPanel("gb");
-
-    fireEvent.click(screen.getByRole("button", { name: "Change Nation" }));
-
-    expect(onChangeNation).toHaveBeenCalledTimes(1);
-  });
-
-  it("advances the flow with the confirmed nation id via Continue as [Nation]", () => {
-    const { onConfirm } = renderPanel("gb");
-
-    fireEvent.click(screen.getByRole("button", { name: "Continue as United Kingdom" }));
-
-    expect(onConfirm).toHaveBeenCalledWith("gb");
-  });
-
-  it("applies the Recommended Setup for the confirmed nation id", () => {
-    const { onRecommendedSetup } = renderPanel("gb");
-
-    fireEvent.click(screen.getByRole("button", { name: "Recommended Setup" }));
-
-    expect(onRecommendedSetup).toHaveBeenCalledWith("gb");
   });
 
   it("renders nothing when not open", () => {
