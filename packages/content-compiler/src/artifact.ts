@@ -6,7 +6,12 @@ import { canonicalSerialize, createEnvelope, verifyEnvelope } from "@bluewave/de
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 
 import { Compiler } from "./compiler.js";
-import type { CompilerInput, ContentBundle } from "./index.js";
+import type {
+  CampaignCollections,
+  CompilerInput,
+  ContentBundle,
+  ShipBuildingCatalogue,
+} from "./index.js";
 import { BUNDLE_GENERATED_BY } from "./stages/compile.js";
 
 /**
@@ -51,19 +56,35 @@ export interface ContentBundleArtifact {
   readonly manifestJson: string;
 }
 
-/** The minimum shape a generated bundle must have for verification. */
-export interface ContentBundleLike {
-  readonly generatedBy: string;
-  readonly [key: string]: unknown;
-}
-
 export type ContentBundleVerification =
   | {
       readonly ok: true;
-      readonly bundle: ContentBundleLike;
+      readonly bundle: ContentBundle;
       readonly manifest: ContentBundleManifest;
     }
   | { readonly ok: false; readonly code: string; readonly message: string };
+
+/**
+ * Presents a verified (marker + hash checked) bundle value as the typed
+ * `ContentBundle`. The optional sections are asserted individually rather than
+ * through an `unknown` cast; each is structurally validated by the compiler that
+ * produced it (the hash check guarantees the value is that exact serialization).
+ */
+function asContentBundle(value: Record<string, unknown>): ContentBundle {
+  return {
+    generatedBy: value.generatedBy as string,
+    manifest: value.manifest,
+    rulesets: value.rulesets as unknown[],
+    nations: value.nations as unknown[],
+    areas: value.areas as unknown[],
+    routes: value.routes as unknown[],
+    possessions: value.possessions as unknown[],
+    ports: value.ports as unknown[],
+    technologies: value.technologies as unknown[],
+    shipBuilding: value.shipBuilding as ShipBuildingCatalogue | undefined,
+    campaign: value.campaign as CampaignCollections | undefined,
+  };
+}
 
 /**
  * Runs the compiler over the full surface and produces the artifact in memory.
@@ -263,5 +284,5 @@ export function verifyContentBundleArtifact(
       message: "The content artifact does not match its recorded SHA-256 body hash.",
     };
   }
-  return { ok: true, bundle: bundleValue as ContentBundleLike, manifest };
+  return { ok: true, bundle: asContentBundle(bundleValue), manifest };
 }

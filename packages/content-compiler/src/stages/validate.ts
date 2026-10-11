@@ -22,7 +22,7 @@ import {
 } from "@bluewave/content-schema";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 
-import type { CompilerStage } from "../index.js";
+import type { CampaignCollections, CompilerStage } from "../index.js";
 import type { ParseOutput } from "./parse.js";
 
 export interface ValidateOutput {
@@ -44,6 +44,12 @@ export interface ValidateOutput {
   ammunition?: unknown[];
   navalProfiles?: unknown[];
   referenceDesigns?: unknown[];
+  fleets?: unknown[];
+  economies?: unknown[];
+  constructions?: unknown[];
+  diplomacy?: unknown[];
+  research?: unknown[];
+  designs?: unknown[];
 }
 
 const COLLECTION_KEYS = [
@@ -104,6 +110,26 @@ const SHIP_BUILDING_COLLECTIONS: readonly ShipBuildingCollection[] = [
   },
   { key: "referenceDesigns", label: "ReferenceDesign", idField: "id" },
 ];
+
+/**
+ * The campaign-file collections and the field that identifies a record within
+ * each (ticket 07). These have no content schemas yet; they are duplicate-ID
+ * checked, cross-referenced, and carried into the bundle.
+ */
+const CAMPAIGN_COLLECTIONS: readonly CampaignCollection[] = [
+  { key: "fleets", label: "Fleet", idField: "id" },
+  { key: "economies", label: "Economy", idField: "nationId" },
+  { key: "constructions", label: "Construction", idField: "id" },
+  { key: "research", label: "Research programme", idField: "nationId" },
+  { key: "designs", label: "Design", idField: "designId" },
+  { key: "diplomacy", label: "Diplomacy record", idField: "id" },
+];
+
+interface CampaignCollection {
+  key: keyof ValidateOutput;
+  label: string;
+  idField: string;
+}
 
 export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput> {
   readonly name = "validate";
@@ -176,6 +202,8 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
     validateShipBuildingReferences(validated, catalogue, input, collector);
     validateComponentUpgradeGraph(catalogue, input, collector);
 
+    const campaign = validateCampaignCollections(validated, input, collector);
+
     if (collector.hasErrors) return undefined;
 
     return {
@@ -188,8 +216,172 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
       ports: validated["ports"] ?? [],
       technologies: validated["technologies"] ?? [],
       ...catalogue,
+      ...campaign,
     };
   }
+}
+
+/**
+ * Duplicate-ID checks the campaign-file collections and validates their
+ * cross-file references (nation, technology, and design-version links), each
+ * failure naming the source file and the offending field path (ticket 07).
+ */
+function validateCampaignCollections(
+  core: Record<string, unknown[]>,
+  input: ParseOutput,
+  collector: DiagnosticCollector,
+): CampaignCollections {
+  const out: Partial<Record<keyof ValidateOutput, unknown[]>> = {};
+  for (const spec of CAMPAIGN_COLLECTIONS) {
+    const items = input.collectionDocs.get(spec.key) ?? [];
+    out[spec.key] = [...items];
+    const sources = input.sourcePaths.get(spec.key) ?? [];
+    const seen = new Set<string>();
+    items.forEach((item, index) => {
+      const id = (item as Record<string, unknown>)[spec.idField];
+      if (typeof id !== "string") return;
+      if (seen.has(id)) {
+        collector.addError("DUP-ID", `Duplicate ${spec.label} id '${id}'`, {
+          stage: "validate",
+          sourceLocation: { path: sources[index] ?? `${spec.key}.yaml`, line: 1 },
+          entityId: id,
+          remediation: `Give each ${spec.label} a unique '${spec.idField}'`,
+        });
+      }
+      seen.add(id);
+    });
+  }
+
+  validateCampaignReferences(core, out, input, collector);
+
+  return {
+    fleets: out["fleets"] ?? [],
+    economies: out["economies"] ?? [],
+    constructions: out["constructions"] ?? [],
+    diplomacy: out["diplomacy"] ?? [],
+    research: out["research"] ?? [],
+    designs: out["designs"] ?? [],
+  };
+}
+
+/**
+ * Cross-file references within/between the campaign collections and the
+ * content-pack collections. A reference is only checked when the referenced
+ * collection is present, so a single-collection fixture is not a false
+ * positive.
+ */
+function validateCampaignReferences(
+  core: Record<string, unknown[]>,
+  campaign: Partial<Record<keyof ValidateOutput, unknown[]>>,
+  input: ParseOutput,
+  collector: DiagnosticCollector,
+): void {
+  const stringIds = (items: readonly unknown[], field: string): Set<string> =>
+    new Set(
+      items
+        .map((item) => (item as Record<string, unknown>)[field])
+        .filter((v): v is string => typeof v === "string"),
+    );
+
+  const nationIds = stringIds(core["countries"] ?? [], "id");
+  const technologyIds = stringIds(core["technologies"] ?? [], "id");
+  const designVersionIds = stringIds(campaign["designs"] ?? [], "designVersionId");
+
+  const sources = (key: keyof ValidateOutput, idField: string): Map<string, string> =>
+    sourceById(input, key, idField);
+
+  const ref = (
+    key: keyof ValidateOutput,
+    idField: string,
+    entityId: string,
+    fieldPath: string,
+    message: string,
+  ) => {
+    collector.addError("REF", message, {
+      stage: "validate",
+      sourceLocation: { path: sources(key, idField).get(entityId) ?? `${key}.yaml`, line: 1 },
+      entityId,
+      remediation: `Add the missing reference or fix '${fieldPath}'`,
+    });
+  };
+
+  if (nationIds.size > 0) {
+    for (const spec of CAMPAIGN_COLLECTIONS) {
+      for (const item of campaign[spec.key] ?? []) {
+        const rec = item as Record<string, unknown>;
+        const nationId = rec["nationId"];
+        if (typeof nationId === "string" && !nationIds.has(nationId)) {
+          const entityId = stringValue(rec[spec.idField]) || nationId;
+          ref(
+            spec.key,
+            spec.idField,
+            entityId,
+            "nationId",
+            `${spec.label} '${entityId}' references unknown nation '${nationId}'`,
+          );
+        }
+      }
+    }
+  }
+
+  if (designVersionIds.size > 0) {
+    for (const item of campaign["fleets"] ?? []) {
+      const fleet = item as Record<string, unknown>;
+      const fleetId = stringValue(fleet["id"]);
+      for (const ship of Array.isArray(fleet["ships"]) ? (fleet["ships"] as unknown[]) : []) {
+        const designVersionId = (ship as Record<string, unknown>)["designVersionId"];
+        if (typeof designVersionId === "string" && !designVersionIds.has(designVersionId)) {
+          ref(
+            "fleets",
+            "id",
+            fleetId,
+            "ships[].designVersionId",
+            `Fleet '${fleetId}' ship references unknown design version '${designVersionId}'`,
+          );
+        }
+      }
+    }
+    for (const item of campaign["constructions"] ?? []) {
+      const construction = item as Record<string, unknown>;
+      const id = stringValue(construction["id"]);
+      const designVersionId = construction["designVersionId"];
+      if (typeof designVersionId === "string" && !designVersionIds.has(designVersionId)) {
+        ref(
+          "constructions",
+          "id",
+          id,
+          "designVersionId",
+          `Construction '${id}' references unknown design version '${designVersionId}'`,
+        );
+      }
+    }
+  }
+
+  if (technologyIds.size > 0) {
+    for (const item of campaign["research"] ?? []) {
+      const programme = item as Record<string, unknown>;
+      const nationId = stringValue(programme["nationId"]);
+      for (const tech of Array.isArray(programme["technologies"])
+        ? (programme["technologies"] as unknown[])
+        : []) {
+        const techId = (tech as Record<string, unknown>)["techId"];
+        if (typeof techId === "string" && !technologyIds.has(techId)) {
+          ref(
+            "research",
+            "nationId",
+            nationId,
+            "technologies[].techId",
+            `Research programme '${nationId}' references unknown technology '${techId}'`,
+          );
+        }
+      }
+    }
+  }
+}
+
+/** A string field value, or `""` when the authored value is not a string. */
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value : "";
 }
 
 /**

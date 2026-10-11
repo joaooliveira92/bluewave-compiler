@@ -58,5 +58,11 @@ export function buildFullSurfaceInput(manifestPath: string, contentDir: string):
     ammunitionFiles: groups.ammunitionFiles.map(toAbsolute),
     navalProfileFiles: groups.navalProfileFiles.map(toAbsolute),
     referenceDesignFiles: groups.referenceDesignFiles.map(toAbsolute),
+    fleetFiles: (files.fleets ?? []).map(toAbsolute),
+    economyFiles: (files.economies ?? []).map(toAbsolute),
+    constructionFiles: (files.constructions ?? []).map(toAbsolute),
+    diplomacyFiles: (files.diplomacy ?? []).map(toAbsolute),
+    researchFiles: (files.research ?? []).map(toAbsolute),
+    designFiles: (files.designs ?? []).map(toAbsolute),
   };
 }

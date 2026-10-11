@@ -29,6 +29,19 @@ export interface CompilerInput {
   ammunitionFiles?: string[];
   navalProfileFiles?: string[];
   referenceDesignFiles?: string[];
+  /**
+   * Campaign-file collections (the authored campaign surface). Optional like the
+   * ship-building groups: a content-pack-only `bwc compile` leaves them undefined
+   * and its artifact stays byte-compatible; `content:build`/`content:check`
+   * supply them so the campaigns flow through the same four compiler stages and
+   * land in the bundle (ticket 07, CRI-MAIN-2).
+   */
+  fleetFiles?: string[];
+  economyFiles?: string[];
+  constructionFiles?: string[];
+  diplomacyFiles?: string[];
+  researchFiles?: string[];
+  designFiles?: string[];
 }
 
 /**
@@ -53,9 +66,24 @@ export interface ShipBuildingCatalogue {
 }
 
 /**
+ * The compiled campaign-file collections (`fleets`/`economies`/`constructions`/
+ * `diplomacy`/`research`/`designs`): canonical, sorted, inert JSON the runtime
+ * `CampaignCompiler` consumes instead of re-reading raw campaign YAML.
+ */
+export interface CampaignCollections {
+  fleets: unknown[];
+  economies: unknown[];
+  constructions: unknown[];
+  diplomacy: unknown[];
+  research: unknown[];
+  designs: unknown[];
+}
+
+/**
  * The full compiled content bundle: the content-pack collections plus the
- * ship-building catalogue, under one inert, hash-pinned artifact. `generatedBy`
- * is the do-not-edit marker (BW-RUL-002, DESIGN-05).
+ * ship-building catalogue and the campaign-file collections, under one inert,
+ * hash-pinned artifact. `generatedBy` is the do-not-edit marker (BW-RUL-002,
+ * DESIGN-05).
  */
 export interface ContentBundle {
   generatedBy: string;
@@ -68,6 +96,7 @@ export interface ContentBundle {
   ports: unknown[];
   technologies: unknown[];
   shipBuilding?: ShipBuildingCatalogue;
+  campaign?: CampaignCollections;
 }
 
 export interface CompilerOutput {
@@ -91,7 +120,12 @@ export interface CompilerStage<I, O> {
 }
 
 export { Compiler } from "./compiler.js";
-export { BUNDLE_GENERATED_BY, CompileStage } from "./stages/compile.js";
+export {
+  BUNDLE_GENERATED_BY,
+  CompileStage,
+  contentPackFromArtifact,
+  type ContentPackArtifact,
+} from "./stages/compile.js";
 export { NormalizeStage } from "./stages/normalize.js";
 export { ParseStage } from "./stages/parse.js";
 export { ValidateStage } from "./stages/validate.js";
@@ -108,7 +142,6 @@ export {
   verifyContentBundleArtifact,
   writeContentBundleArtifact,
   type ContentBundleArtifact,
-  type ContentBundleLike,
   type ContentBundleManifest,
   type ContentBundleVerification,
 } from "./artifact.js";

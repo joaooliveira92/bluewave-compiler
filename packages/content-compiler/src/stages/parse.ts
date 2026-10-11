@@ -67,6 +67,12 @@ export class ParseStage implements CompilerStage<CompilerInput, ParseOutput> {
       ammunition: input.ammunitionFiles ?? [],
       navalProfiles: input.navalProfileFiles ?? [],
       referenceDesigns: input.referenceDesignFiles ?? [],
+      fleets: input.fleetFiles ?? [],
+      economies: input.economyFiles ?? [],
+      constructions: input.constructionFiles ?? [],
+      diplomacy: input.diplomacyFiles ?? [],
+      research: input.researchFiles ?? [],
+      designs: input.designFiles ?? [],
     };
 
     let manifest: unknown = undefined;

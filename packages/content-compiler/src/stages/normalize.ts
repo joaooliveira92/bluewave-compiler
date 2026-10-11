@@ -23,6 +23,12 @@ export interface NormalizeOutput {
   ammunition: Record<string, unknown>[];
   navalProfiles: Record<string, unknown>[];
   referenceDesigns: Record<string, unknown>[];
+  fleets: Record<string, unknown>[];
+  economies: Record<string, unknown>[];
+  constructions: Record<string, unknown>[];
+  diplomacy: Record<string, unknown>[];
+  research: Record<string, unknown>[];
+  designs: Record<string, unknown>[];
 }
 
 function sortByField<T extends Record<string, unknown>>(items: T[], field: string): T[] {
@@ -73,6 +79,15 @@ export class NormalizeStage implements CompilerStage<ValidateOutput, NormalizeOu
       // historical) because that order is meaningful at runtime (ADR-0109) — the
       // first starter stays the historical default.
       referenceDesigns: [...((input.referenceDesigns ?? []) as Record<string, unknown>[])],
+      // Campaign-file collections sort canonically: entity collections by id,
+      // per-nation collections by nationId, diplomacy by its pair id (stable for
+      // records without one).
+      fleets: sortById((input.fleets ?? []) as Record<string, unknown>[]),
+      economies: sortByField((input.economies ?? []) as Record<string, unknown>[], "nationId"),
+      constructions: sortById((input.constructions ?? []) as Record<string, unknown>[]),
+      diplomacy: sortById((input.diplomacy ?? []) as Record<string, unknown>[]),
+      research: sortByField((input.research ?? []) as Record<string, unknown>[], "nationId"),
+      designs: sortByField((input.designs ?? []) as Record<string, unknown>[], "designId"),
     };
   }
 }

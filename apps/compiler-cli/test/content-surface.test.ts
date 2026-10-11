@@ -66,6 +66,13 @@ describe("content:check / content:build over the production pack", () => {
       expect((armament[key] as unknown[]).length).toBeGreaterThan(0);
     }
 
+    const campaign = artifact["campaign"] as Record<string, unknown>;
+    expect(campaign).toBeDefined();
+    for (const key of ["fleets", "economies", "constructions", "research", "designs"]) {
+      expect(Array.isArray(campaign[key])).toBe(true);
+      expect((campaign[key] as unknown[]).length).toBeGreaterThan(0);
+    }
+
     const manifestJson = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
     expect(manifestJson["contentVersion"]).toBe("0.4.0");
     expect(typeof manifestJson["doNotEdit"]).toBe("string");
