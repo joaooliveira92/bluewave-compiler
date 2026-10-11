@@ -212,15 +212,6 @@
   "packages/campaign/src/compiler.ts": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
-  "packages/combat/src/air-defense/air-defense-system-definition.ts": {
-    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
-  },
-  "packages/combat/src/air-defense/attack.ts": {
-    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
-  },
-  "packages/combat/src/air-defense/contracts.ts": {
-    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 2
-  },
   "packages/combat/src/commandRecord.ts": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },

@@ -47,7 +47,12 @@ import {
   AIR_DEFENSE_SHIPPED_REASON_CODE_LIST,
 } from "./reasonCodes.js";
 
-/** Unmodeled (excess) keys are rejected, preserving the previous Zod `.strict()` behavior. */
+// Effect v4 cannot embed excess-property rejection in a schema AST: `onExcessProperty`
+// is a parse-time option only (SchemaAST.ParseOptions: "schema annotations do not override
+// them"). The four policy schemas below are therefore module-private and every public decode
+// path goes through the `validate*Contract` guards, which pass this option. Do not export a
+// bare policy schema: decoding one without the option would silently strip excess keys
+// instead of failing closed, which is the behavior the previous Zod `.strict()` provided.
 const parseOptions = { onExcessProperty: "error" } as const;
 
 // ---- Policy ids ----
@@ -60,8 +65,10 @@ export const AIR_DEFENSE_CIWS_REDUNDANCY_POLICY_ID = "ciws_redundancy_v1" as con
 // ---- Tuple-of-literals schema builders ----
 // Build strict literal tuples straight from the `as const` shipped constants, so the schema
 // can never name a value the shipped sources do not contain (and vice versa). The mapped
-// tuple type preserves positional literal types across the dynamic `.map`, mirroring the
-// previous Zod tuple-builder signatures.
+// tuple types preserve positional literal types across the dynamic `.map`, which TypeScript
+// widens to an array; `Schema.Tuple` has no variadic tuple inference from a mapped array, so
+// one narrowed assertion bridges the array back to the exact tuple type. The runtime value is
+// the same schema array in the same order, so the value and the asserted type cannot diverge.
 type LiteralStringTuple<T extends readonly [string, ...string[]]> = {
   readonly [K in keyof T]: Schema.Literal<T[K]>;
 };
@@ -75,7 +82,7 @@ type LiteralPairTuple<T extends readonly (readonly [number, number])[]> = {
 function literalStringTuple<const T extends readonly [string, ...string[]]>(
   values: T,
 ): Schema.Tuple<LiteralStringTuple<T>> {
-  return Schema.Tuple(values.map((v) => Schema.Literal(v)) as unknown as LiteralStringTuple<T>);
+  return Schema.Tuple(values.map((v) => Schema.Literal(v)) as LiteralStringTuple<T>);
 }
 
 function literalPairTuple<const T extends readonly (readonly [number, number])[]>(
@@ -84,7 +91,7 @@ function literalPairTuple<const T extends readonly (readonly [number, number])[]
   return Schema.Tuple(
     rows.map(([a, b]) =>
       Schema.Tuple([Schema.Literal(a), Schema.Literal(b)]),
-    ) as unknown as LiteralPairTuple<T>,
+    ) as LiteralPairTuple<T>,
   );
 }
 
@@ -108,7 +115,7 @@ function copyPairs<T extends readonly (readonly [number, number])[]>(rows: T): M
 // ---- Disruption multiplier pairs (§6) ----
 
 /** Exact §6 severity multiplier pairs (accuracy, cohesion) in basis points. */
-export const DisruptionMultipliers_v1 = Schema.Struct({
+const DisruptionMultipliers_v1 = Schema.Struct({
   LIGHT: Schema.Struct({ accuracyBp: Schema.Literal(9_000), cohesionBp: Schema.Literal(9_500) }),
   MODERATE: Schema.Struct({ accuracyBp: Schema.Literal(7_500), cohesionBp: Schema.Literal(8_500) }),
   SEVERE: Schema.Struct({ accuracyBp: Schema.Literal(5_000), cohesionBp: Schema.Literal(6_500) }),
@@ -117,7 +124,7 @@ export const DisruptionMultipliers_v1 = Schema.Struct({
 
 // ---- air_defense_v1 ----
 
-export const AirDefensePolicy_v1 = Schema.Struct({
+const AirDefensePolicy_v1 = Schema.Struct({
   policyId: Schema.Literal(AIR_DEFENSE_CONTRACT_POLICY_ID),
   rulesetVersion: Schema.Literal(AIR_DEFENSE_RULESET_VERSION),
   formulaVersion: Schema.Literal(AIR_DEFENSE_FORMULA_VERSION),
@@ -157,7 +164,7 @@ export type AirDefensePolicyContract = typeof AirDefensePolicy_v1.Type;
 
 // ---- aa_director_scaling_v1 ----
 
-export const AaDirectorScalingPolicy_v1 = Schema.Struct({
+const AaDirectorScalingPolicy_v1 = Schema.Struct({
   policyId: Schema.Literal(AIR_DEFENSE_DIRECTOR_SCALING_POLICY_ID),
   rulesetVersion: Schema.Literal(AIR_DEFENSE_RULESET_VERSION),
   /** §12 shipped normal-scaling cap — exactly 4 (the last scaling-table row). */
@@ -169,7 +176,7 @@ export type AaDirectorScalingPolicyContract = typeof AaDirectorScalingPolicy_v1.
 
 // ---- radar_saturation_v1 ----
 
-export const RadarSaturationPolicy_v1 = Schema.Struct({
+const RadarSaturationPolicy_v1 = Schema.Struct({
   policyId: Schema.Literal(AIR_DEFENSE_RADAR_SATURATION_POLICY_ID),
   rulesetVersion: Schema.Literal(AIR_DEFENSE_RULESET_VERSION),
   /** §14 marginal schedule: 1-4 → 10_000, 5-6 → 5_000, 7-8 → 2_500, 9+ → 500. */
@@ -180,7 +187,7 @@ export type RadarSaturationPolicyContract = typeof RadarSaturationPolicy_v1.Type
 
 // ---- ciws_redundancy_v1 ----
 
-export const CiwsRedundancyPolicy_v1 = Schema.Struct({
+const CiwsRedundancyPolicy_v1 = Schema.Struct({
   policyId: Schema.Literal(AIR_DEFENSE_CIWS_REDUNDANCY_POLICY_ID),
   rulesetVersion: Schema.Literal(AIR_DEFENSE_RULESET_VERSION),
   /** §16 marginal schedule: 1-4 → 10_000, 5-6 → 5_000, 7-8 → 1_500, 9+ → 500. */

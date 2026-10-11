@@ -467,3 +467,144 @@ describe("AirDefenseSystemDefinition", () => {
     });
   });
 });
+
+// Characterization of the default-merging behavior that replaced the previous
+// Zod `.partial().safeParse(params)` pre-validation pass.
+describe("AirDefenseSystemDefinition default-merging parity", () => {
+  it("rejects empty input (systemId defaults to empty and fails)", () => {
+    expect(() => createAirDefenseSystemDefinition({})).toThrow(
+      "systemId must be a non-empty string",
+    );
+  });
+
+  it("applies defaults for partially supplied input", () => {
+    const system = createAirDefenseSystemDefinition({ systemId: "sys_merge" });
+    expect(system.layer).toBe("HEAVY_AA");
+    expect(system.category).toBe("HEAVY_AA");
+    expect(Number(system.mountCount)).toBe(0);
+    expect(Number(system.barrels)).toBe(1);
+    expect(system.localControlSupported).toBe(false);
+    expect(system.profileEligibility.has("DEFAULT")).toBe(true);
+    expect(system.engagementChannels.has("default")).toBe(true);
+  });
+
+  it("treats an explicit undefined as omitted and applies the default", () => {
+    const system = createAirDefenseSystemDefinition({ systemId: "sys_merge", layer: undefined });
+    expect(system.layer).toBe("HEAVY_AA");
+  });
+
+  it("rejects a supplied null instead of defaulting it (Zod .partial() parity)", () => {
+    const params: Partial<AirDefenseSystemDefinition> = { systemId: "sys_merge" };
+    (params as Record<string, unknown>).mountCount = null;
+    expect(() => createAirDefenseSystemDefinition(params)).toThrow(BluewaveError);
+  });
+
+  it("rejects missing required fields after default application", () => {
+    expect(() => createAirDefenseSystemDefinition({ layer: Layer.HEAVY_AA })).toThrow(
+      "systemId must be a non-empty string",
+    );
+  });
+
+  it("reports every invalid supplied field in deterministic struct order", () => {
+    const valid = {
+      systemId: "sys_merge",
+      layer: "HEAVY_AA",
+      category: "HEAVY_AA",
+      mountCount: 0,
+      barrels: 1,
+      rangeMinM: 0,
+      rangeMaxM: 1,
+      altitudeMinM: 0,
+      altitudeMaxM: 1,
+      targetSpeedLimitMps: 1,
+      arcDegreesMax: 0,
+      profileEligibility: new Set(["CA"]),
+      fireControl: { trackingRangeM: 1, maxElevationDegrees: 0, updateRateHz: 1 },
+      radar: { frequencyBand: "S", peakPowerW: 1, maxRangeM: 1, resolutionDegrees: 1 },
+      engagementChannels: new Set(["ch"]),
+      contentVersion: "air_defense_v1",
+      contentHash: "a".repeat(64),
+    };
+    let caught: unknown;
+    try {
+      validateAirDefenseSystemDefinition({ ...valid, mountCount: -1, barrels: 0 });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(BluewaveError);
+    const errors = (caught as BluewaveError).context.errors as ReadonlyArray<{
+      path: string;
+      message: string;
+    }>;
+    expect(errors.map((issue) => issue.path)).toEqual(["mountCount", "barrels"]);
+    expect(errors[0].message).toBe("mountCount must be a non-negative integer");
+    expect(errors[1].message).toBe("barrels must be a positive integer");
+  });
+});
+
+describe("AirDefenseSystemDefinition Set semantics", () => {
+  const base = { systemId: "sys_set" };
+
+  it("accepts a non-empty Set", () => {
+    const system = createAirDefenseSystemDefinition({
+      ...base,
+      profileEligibility: new Set(["CA"]),
+    });
+    expect(system.profileEligibility.size).toBe(1);
+  });
+
+  it("rejects an empty Set", () => {
+    expect(() =>
+      createAirDefenseSystemDefinition({ ...base, profileEligibility: new Set() }),
+    ).toThrow("profileEligibility must not be empty");
+    expect(() =>
+      createAirDefenseSystemDefinition({ ...base, engagementChannels: new Set() }),
+    ).toThrow("engagementChannels must not be empty");
+  });
+
+  it("rejects an invalid member", () => {
+    const params: Partial<AirDefenseSystemDefinition> = { ...base };
+    (params as Record<string, unknown>).profileEligibility = new Set([1]);
+    expect(() => createAirDefenseSystemDefinition(params)).toThrow(BluewaveError);
+  });
+
+  it("decodes to a runtime Set (not merely a ReadonlySet type)", () => {
+    const system = createAirDefenseSystemDefinition({
+      ...base,
+      profileEligibility: new Set(["CA"]),
+    });
+    expect(system.profileEligibility).toBeInstanceOf(Set);
+    expect(system.engagementChannels).toBeInstanceOf(Set);
+  });
+
+  it("clones the input Set rather than sharing its identity", () => {
+    const input = new Set(["CA", "CV"]);
+    const system = createAirDefenseSystemDefinition({ ...base, profileEligibility: input });
+    expect(system.profileEligibility).not.toBe(input);
+    expect([...system.profileEligibility]).toEqual(["CA", "CV"]);
+  });
+
+  it("is unaffected by later mutation of the input Set", () => {
+    const input = new Set(["CA"]);
+    const system = createAirDefenseSystemDefinition({ ...base, profileEligibility: input });
+    input.add("CV");
+    expect([...system.profileEligibility]).toEqual(["CA"]);
+  });
+
+  it("collapses duplicate members (Set semantics)", () => {
+    const system = createAirDefenseSystemDefinition({
+      ...base,
+      profileEligibility: new Set(["CA", "CA", "CV"]),
+    });
+    expect([...system.profileEligibility]).toEqual(["CA", "CV"]);
+    expect(system.profileEligibility.size).toBe(2);
+  });
+
+  it("preserves insertion/iteration order", () => {
+    const system = createAirDefenseSystemDefinition({
+      ...base,
+      engagementChannels: new Set(["b", "a", "c"]),
+    });
+    expect([...system.engagementChannels]).toEqual(["b", "a", "c"]);
+  });
+});

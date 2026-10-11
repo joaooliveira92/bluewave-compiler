@@ -175,8 +175,14 @@ const AirDefenseAttackSchema = Schema.Struct({
   ),
 });
 
-/** Unmodeled (excess) keys are rejected, preserving the previous Zod `.strict()` behavior. */
-const parseOptions = { onExcessProperty: "error" } as const;
+/**
+ * Strict + collect-all options: unmodeled keys are rejected and every failing
+ * field is reported, matching the previous Zod `.strict().safeParse()` which
+ * surfaced the full `issue` list. `onExcessProperty` is a parse-time option in
+ * Effect v4 (it cannot be embedded in the schema AST), so decoding is
+ * centralized through `validateAirDefenseAttack`.
+ */
+const parseOptions = { onExcessProperty: "error", errors: "all" } as const;
 
 // ---- fail-closed guard: rejects unknown fields ----
 
@@ -200,6 +206,16 @@ export function validateAirDefenseAttack(value: unknown): AirDefenseAttack {
 
 // ---- createAirDefenseAttack ----
 
+/**
+ * Only `undefined` selects a default. The pre-migration Zod `.partial()` pass
+ * accepted `undefined` for an omitted field but rejected a supplied `null`;
+ * using `??` would silently turn `null` into the default, so a supplied `null`
+ * must flow to the schema and fail closed like any other invalid value.
+ */
+function withDefault<T>(value: T | undefined, fallback: T): T {
+  return value === undefined ? fallback : value;
+}
+
 export function createAirDefenseAttack(params: Partial<AirDefenseAttack>): AirDefenseAttack {
   // Fail-closed on unknown fields: the defaults merge below only carries known
   // keys, so unknown input keys are rejected here rather than silently dropped.
@@ -214,30 +230,32 @@ export function createAirDefenseAttack(params: Partial<AirDefenseAttack>): AirDe
   }
 
   const merged = {
-    attackId: params.attackId ?? "",
-    formationId: params.formationId ?? "",
-    targetId: params.targetId ?? "",
-    attackType: params.attackType ?? AttackType.AIRCRAFT_LEVEL_BOMBING,
-    speedKnots: params.speedKnots ?? SafeInt.ZERO,
-    speedMps: params.speedMps ?? SafeInt.ZERO,
-    currentRangeM: params.currentRangeM ?? SafeInt.ZERO,
-    currentAltitudeM: params.currentAltitudeM ?? SafeInt.ZERO,
-    bearingDegrees: params.bearingDegrees ?? SafeInt.ZERO,
-    releaseRangeM: params.releaseRangeM ?? SafeInt.ZERO,
-    releaseAltitudeM: params.releaseAltitudeM ?? SafeInt.ZERO,
-    isReleased: params.isReleased ?? false,
-    fireControlSolutionBp: params.fireControlSolutionBp ?? SafeInt(10_000),
-    timeToImpactMs: params.timeToImpactMs ?? SafeInt(120_000),
-    formationSize: params.formationSize ?? SafeInt(1),
-    cohesionBp: params.cohesionBp ?? SafeInt(10_000),
-    defensiveSusceptibilityBp: params.defensiveSusceptibilityBp ?? SafeInt(10_000),
-    contentVersion: params.contentVersion ?? AIR_DEFENSE_MODEL_VERSION,
-    contentHash:
-      params.contentHash ?? "0000000000000000000000000000000000000000000000000000000000000000",
+    attackId: withDefault(params.attackId, ""),
+    formationId: withDefault(params.formationId, ""),
+    targetId: withDefault(params.targetId, ""),
+    attackType: withDefault(params.attackType, AttackType.AIRCRAFT_LEVEL_BOMBING),
+    speedKnots: withDefault(params.speedKnots, SafeInt.ZERO),
+    speedMps: withDefault(params.speedMps, SafeInt.ZERO),
+    currentRangeM: withDefault(params.currentRangeM, SafeInt.ZERO),
+    currentAltitudeM: withDefault(params.currentAltitudeM, SafeInt.ZERO),
+    bearingDegrees: withDefault(params.bearingDegrees, SafeInt.ZERO),
+    releaseRangeM: withDefault(params.releaseRangeM, SafeInt.ZERO),
+    releaseAltitudeM: withDefault(params.releaseAltitudeM, SafeInt.ZERO),
+    isReleased: withDefault(params.isReleased, false),
+    fireControlSolutionBp: withDefault(params.fireControlSolutionBp, SafeInt(10_000)),
+    timeToImpactMs: withDefault(params.timeToImpactMs, SafeInt(120_000)),
+    formationSize: withDefault(params.formationSize, SafeInt(1)),
+    cohesionBp: withDefault(params.cohesionBp, SafeInt(10_000)),
+    defensiveSusceptibilityBp: withDefault(params.defensiveSusceptibilityBp, SafeInt(10_000)),
+    contentVersion: withDefault(params.contentVersion, AIR_DEFENSE_MODEL_VERSION),
+    contentHash: withDefault(
+      params.contentHash,
+      "0000000000000000000000000000000000000000000000000000000000000000",
+    ),
   };
 
   // Validate the merged result with the strict schema.
-  return validateAirDefenseAttack(merged as unknown as AirDefenseAttack);
+  return validateAirDefenseAttack(merged);
 }
 
 // ---- isValidAttackType ----

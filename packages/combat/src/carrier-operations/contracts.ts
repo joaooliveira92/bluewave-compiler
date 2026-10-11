@@ -1,6 +1,8 @@
 import { BluewaveError } from "@bluewave/contracts";
+import type { SafeInt } from "@bluewave/contracts";
 import { Result, Schema } from "effect";
 import { formatContractIssues } from "../schema-issues.js";
+import { safeIntSchema as safeInt } from "../safe-int-schema.js";
 import {
   CARRIER_CLASSIFICATIONS,
   CARRIER_OPERATIONS_RULESET_VERSION,
@@ -19,11 +21,6 @@ import {
 } from "./reasonCodes.js";
 
 const nonEmptyString = Schema.String.check(Schema.isMinLength(1));
-
-const safeInt = Schema.Finite.check(
-  Schema.isInt(),
-  Schema.isBetween({ minimum: Number.MIN_SAFE_INTEGER, maximum: Number.MAX_SAFE_INTEGER }),
-);
 
 const nonNegativeSafeInt = safeInt.check(Schema.isGreaterThanOrEqualTo(0));
 
@@ -499,6 +496,51 @@ export type CarrierOrdnanceStateContract = typeof CarrierOrdnanceState_v1.Type;
 export function validateCarrierOrdnanceStateContract(value: unknown): CarrierOrdnanceStateContract {
   return parseContract(CarrierOrdnanceState_v1, value, INVALID_CARRIER_OPERATIONS_STATE);
 }
+
+// Compile-time guard: the exported contracts must keep the nominal `SafeInt`
+// leaves the pre-migration `z.custom<SafeInt>` schemas produced. If any leaf
+// ever widens back to `number` this file stops compiling (mirrors
+// phase-engine's `_assert` pattern).
+type _AssertSafeInt<T> = T extends SafeInt ? true : never;
+const _assertSafeIntLeaves: [
+  _AssertSafeInt<CarrierOperationsStateContract["physicalCapacityUnits"]>,
+  _AssertSafeInt<CarrierOperationsStateContract["occupiedCapacityUnits"]>,
+  _AssertSafeInt<CarrierOperationsStateContract["currentSpotValue"]>,
+  _AssertSafeInt<CarrierOperationsStateContract["spottedAircraftCount"]>,
+  _AssertSafeInt<CarrierOperationsStateContract["aviationFuelState"]["fuelRemainingBp"]>,
+  _AssertSafeInt<CarrierOperationsStateContract["ordnanceInventory"][number]["quantity"]>,
+  _AssertSafeInt<CarrierOperationsStateContract["weatherOperabilityState"]["currentSeaState"]>,
+  _AssertSafeInt<CarrierCapacityAssignmentContract["physicalCapacityUnits"]>,
+  _AssertSafeInt<CarrierCapacityAssignmentContract["assignments"][number]["capacityUnits"]>,
+  _AssertSafeInt<JetCarrierCapabilityContract["trueStandardDisplacementKg"]>,
+  _AssertSafeInt<CarrierStrikeStateContract["fuelRequirementBp"]>,
+  _AssertSafeInt<CarrierStrikeStateContract["recoveryPlan"]["fuelReserveBp"]>,
+  _AssertSafeInt<CarrierHazardExposureContract["totalExposure"]>,
+  _AssertSafeInt<CarrierRecoveryPriorityContract["deckCapacityAvailable"]>,
+  _AssertSafeInt<CarrierOrdnanceStateContract["availableQuantity"]>,
+  _AssertSafeInt<CarrierOrdnanceStateContract["transactions"][number]["quantity"]>,
+  _AssertSafeInt<CarrierSpotValueContract["baseSpotValue"]>,
+  _AssertSafeInt<CarrierWeatherSuspensionContract["predicates"]["currentSeaState"]>,
+] = [
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+];
 
 export const SHIPPED_CARRIER_OPERATIONS_CONTRACT = {
   state: CarrierOperationsState_v1,

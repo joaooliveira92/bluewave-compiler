@@ -3,8 +3,10 @@
 // INC-1 ships the model-definition contract that the §2 boundary exercises.
 // Mirrors packages/combat/src/submarines/contracts.ts pattern.
 import { BluewaveError } from "@bluewave/contracts";
+import type { SafeInt } from "@bluewave/contracts";
 import { Result, Schema } from "effect";
 import { formatContractIssues } from "../schema-issues.js";
+import { safeIntSchema as safeInt } from "../safe-int-schema.js";
 import {
   AIRCRAFT_BASING_CLASSES,
   AIRCRAFT_SCORE_MAX,
@@ -14,11 +16,6 @@ import {
 import { INVALID_AIRCRAFT_MODEL_DEFINITION } from "./reasonCodes.js";
 
 const nonEmptyString = Schema.String.check(Schema.isMinLength(1));
-
-const safeInt = Schema.Finite.check(
-  Schema.isInt(),
-  Schema.isBetween({ minimum: Number.MIN_SAFE_INTEGER, maximum: Number.MAX_SAFE_INTEGER }),
-);
 
 const score = safeInt.check(
   Schema.isBetween({ minimum: AIRCRAFT_SCORE_MIN, maximum: AIRCRAFT_SCORE_MAX }),
@@ -51,6 +48,24 @@ export const AircraftModelDefinition_v1 = Schema.Struct({
 });
 
 export type AircraftModelDefinitionContract = typeof AircraftModelDefinition_v1.Type;
+
+// Compile-time guard: the exported contract must keep the nominal `SafeInt`
+// leaves the pre-migration `z.infer` produced. `Schema.declare<SafeInt>` keeps
+// them; if any leaf ever widens back to `number` this file stops compiling
+// (mirrors phase-engine's `_assert` pattern).
+type _AssertSafeInt<T> = T extends SafeInt ? true : never;
+const _assertSafeIntLeaves: [
+  _AssertSafeInt<AircraftModelDefinitionContract["speed"]>,
+  _AssertSafeInt<AircraftModelDefinitionContract["firepower"]>,
+  _AssertSafeInt<AircraftModelDefinitionContract["maneuverability"]>,
+  _AssertSafeInt<AircraftModelDefinitionContract["toughness"]>,
+  _AssertSafeInt<AircraftModelDefinitionContract["payloadCapacity"]>,
+  _AssertSafeInt<AircraftModelDefinitionContract["rangeDistance"]>,
+  _AssertSafeInt<AircraftModelDefinitionContract["productionWork"]>,
+  _AssertSafeInt<AircraftModelDefinitionContract["unitCost"]>,
+  _AssertSafeInt<AircraftModelDefinitionContract["maintenanceRequirement"]>,
+  _AssertSafeInt<AircraftModelDefinitionContract["crewRequirement"]>,
+] = [true, true, true, true, true, true, true, true, true, true];
 
 export function validateAircraftModelDefinitionContract(
   value: unknown,

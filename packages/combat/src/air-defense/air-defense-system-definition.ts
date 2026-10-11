@@ -234,8 +234,14 @@ const AirDefenseSystemDefinitionSchema = Schema.Struct({
   ),
 });
 
-/** Unmodeled (excess) keys are rejected, preserving the previous Zod `.strict()` behavior. */
-const parseOptions = { onExcessProperty: "error" } as const;
+/**
+ * Strict + collect-all options: unmodeled keys are rejected and every failing
+ * field is reported, matching the previous Zod `.strict().safeParse()` which
+ * surfaced the full `issue` list. `onExcessProperty` is a parse-time option in
+ * Effect v4 (it cannot be embedded in the schema AST), so decoding is
+ * centralized through `validateAirDefenseSystemDefinition`.
+ */
+const parseOptions = { onExcessProperty: "error", errors: "all" } as const;
 
 // ---- fail-closed guard: rejects unknown fields ----
 
@@ -256,6 +262,16 @@ export function validateAirDefenseSystemDefinition(value: unknown): AirDefenseSy
 
 // ---- createAirDefenseSystemDefinition ----
 
+/**
+ * Only `undefined` selects a default. The pre-migration Zod `.partial()` pass
+ * accepted `undefined` for an omitted field but rejected a supplied `null`;
+ * using `??` would silently turn `null` into the default, so a supplied `null`
+ * must flow to the schema and fail closed like any other invalid value.
+ */
+function withDefault<T>(value: T | undefined, fallback: T): T {
+  return value === undefined ? fallback : value;
+}
+
 export function createAirDefenseSystemDefinition(
   params: Partial<AirDefenseSystemDefinition>,
 ): AirDefenseSystemDefinition {
@@ -272,46 +288,48 @@ export function createAirDefenseSystemDefinition(
   }
 
   const merged = {
-    systemId: params.systemId ?? "",
-    layer: params.layer ?? Layer.HEAVY_AA,
-    category: params.category ?? Category.HEAVY_AA,
-    mountCount: params.mountCount ?? SafeInt.ZERO,
-    barrels: params.barrels ?? SafeInt(1),
-    rangeMinM: params.rangeMinM ?? SafeInt.ZERO,
-    rangeMaxM: params.rangeMaxM ?? SafeInt(10_000),
-    altitudeMinM: params.altitudeMinM ?? SafeInt.ZERO,
-    altitudeMaxM: params.altitudeMaxM ?? SafeInt(30_000),
-    targetSpeedLimitMps: params.targetSpeedLimitMps ?? SafeInt(500),
-    arcDegreesMax: params.arcDegreesMax ?? SafeInt(360),
-    profileEligibility: params.profileEligibility ?? new Set(["DEFAULT"]),
-    fireControl: params.fireControl ?? {
+    systemId: withDefault(params.systemId, ""),
+    layer: withDefault(params.layer, Layer.HEAVY_AA),
+    category: withDefault(params.category, Category.HEAVY_AA),
+    mountCount: withDefault(params.mountCount, SafeInt.ZERO),
+    barrels: withDefault(params.barrels, SafeInt(1)),
+    rangeMinM: withDefault(params.rangeMinM, SafeInt.ZERO),
+    rangeMaxM: withDefault(params.rangeMaxM, SafeInt(10_000)),
+    altitudeMinM: withDefault(params.altitudeMinM, SafeInt.ZERO),
+    altitudeMaxM: withDefault(params.altitudeMaxM, SafeInt(30_000)),
+    targetSpeedLimitMps: withDefault(params.targetSpeedLimitMps, SafeInt(500)),
+    arcDegreesMax: withDefault(params.arcDegreesMax, SafeInt(360)),
+    profileEligibility: withDefault(params.profileEligibility, new Set(["DEFAULT"])),
+    fireControl: withDefault(params.fireControl, {
       trackingRangeM: SafeInt(10_000),
       maxElevationDegrees: SafeInt(85),
       updateRateHz: SafeInt(10),
-    },
-    radar: params.radar ?? {
+    }),
+    radar: withDefault(params.radar, {
       frequencyBand: "S",
       peakPowerW: SafeInt(1_000),
       maxRangeM: SafeInt(50_000),
       resolutionDegrees: SafeInt(1),
-    },
-    engagementChannels: params.engagementChannels ?? new Set(["default"]),
-    baseKillBp: params.baseKillBp ?? SafeInt(100),
-    baseDamageBp: params.baseDamageBp ?? SafeInt(50),
-    baseAbortBp: params.baseAbortBp ?? SafeInt(30),
-    baseDisruptionBp: params.baseDisruptionBp ?? SafeInt(15),
-    rate: params.rate ?? SafeInt(100),
-    roundsPerEngagement: params.roundsPerEngagement ?? SafeInt.ONE,
-    magazineCapacity: params.magazineCapacity ?? SafeInt(1_000),
-    localControlSupported: params.localControlSupported ?? false,
-    saturationGroup: params.saturationGroup ?? SafeInt.ZERO,
-    contentVersion: params.contentVersion ?? AIR_DEFENSE_MODEL_VERSION,
-    contentHash:
-      params.contentHash ?? "0000000000000000000000000000000000000000000000000000000000000000",
+    }),
+    engagementChannels: withDefault(params.engagementChannels, new Set(["default"])),
+    baseKillBp: withDefault(params.baseKillBp, SafeInt(100)),
+    baseDamageBp: withDefault(params.baseDamageBp, SafeInt(50)),
+    baseAbortBp: withDefault(params.baseAbortBp, SafeInt(30)),
+    baseDisruptionBp: withDefault(params.baseDisruptionBp, SafeInt(15)),
+    rate: withDefault(params.rate, SafeInt(100)),
+    roundsPerEngagement: withDefault(params.roundsPerEngagement, SafeInt.ONE),
+    magazineCapacity: withDefault(params.magazineCapacity, SafeInt(1_000)),
+    localControlSupported: withDefault(params.localControlSupported, false),
+    saturationGroup: withDefault(params.saturationGroup, SafeInt.ZERO),
+    contentVersion: withDefault(params.contentVersion, AIR_DEFENSE_MODEL_VERSION),
+    contentHash: withDefault(
+      params.contentHash,
+      "0000000000000000000000000000000000000000000000000000000000000000",
+    ),
   };
 
   // Validate the merged result with the strict schema.
-  return validateAirDefenseSystemDefinition(merged as unknown as AirDefenseSystemDefinition);
+  return validateAirDefenseSystemDefinition(merged);
 }
 
 // ---- isValidLayer ----

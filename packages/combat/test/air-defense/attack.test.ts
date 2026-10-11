@@ -10,6 +10,7 @@ import {
   createAirDefenseAttack,
   validateAirDefenseAttack,
   INVALID_AIR_DEFENSE_ATTACK,
+  type AirDefenseAttack,
 } from "../../src/air-defense/index.js";
 
 function validAttack(overrides: Record<string, unknown> = {}) {
@@ -271,5 +272,90 @@ describe("AirDefenseAttack", () => {
       expect(caught).toBeInstanceOf(BluewaveError);
       expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_ATTACK);
     });
+  });
+});
+
+// Characterization of the default-merging behavior that replaced the previous
+// Zod `.partial().safeParse(params)` pre-validation pass.
+describe("AirDefenseAttack default-merging parity", () => {
+  const required = {
+    attackId: "atk_merge",
+    formationId: "frm_merge",
+    targetId: "ship_merge",
+    contentHash: "f".repeat(64),
+  };
+
+  it("rejects empty input (required fields default to empty and fail)", () => {
+    expect(() => createAirDefenseAttack({})).toThrow("attackId must be a non-empty string");
+  });
+
+  it("applies defaults for partially supplied input", () => {
+    const attack = createAirDefenseAttack(required);
+    expect(Number(attack.speedKnots)).toBe(0);
+    expect(Number(attack.formationSize)).toBe(1);
+    expect(Number(attack.fireControlSolutionBp)).toBe(10_000);
+    expect(attack.isReleased).toBe(false);
+  });
+
+  it("treats an explicit undefined as omitted and applies the default", () => {
+    const attack = createAirDefenseAttack({ ...required, speedKnots: undefined });
+    expect(Number(attack.speedKnots)).toBe(0);
+  });
+
+  it("rejects a supplied null instead of defaulting it (Zod .partial() parity)", () => {
+    const params: Partial<AirDefenseAttack> = { ...required };
+    (params as Record<string, unknown>).speedKnots = null;
+    expect(() => createAirDefenseAttack(params)).toThrow(BluewaveError);
+  });
+
+  it("rejects missing required fields after default application", () => {
+    expect(() =>
+      createAirDefenseAttack({ formationId: "frm_merge", targetId: "ship_merge" }),
+    ).toThrow("attackId must be a non-empty string");
+  });
+
+  it("reports every invalid supplied field in deterministic struct order", () => {
+    const valid = {
+      ...required,
+      attackType: "HEAVY_ASM",
+      speedKnots: 1,
+      speedMps: 1,
+      currentRangeM: 1,
+      currentAltitudeM: 1,
+      bearingDegrees: 0,
+      releaseRangeM: 1,
+      releaseAltitudeM: 1,
+      isReleased: false,
+      fireControlSolutionBp: 1,
+      timeToImpactMs: 1,
+      formationSize: 1,
+      cohesionBp: 1,
+      defensiveSusceptibilityBp: 1,
+      contentVersion: "air_defense_v1",
+    };
+    let caught: unknown;
+    try {
+      validateAirDefenseAttack({ ...valid, speedKnots: -1, formationSize: 0 });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(BluewaveError);
+    const errors = (caught as BluewaveError).context.errors as ReadonlyArray<{
+      path: string;
+      message: string;
+    }>;
+    expect(errors.map((issue) => issue.path)).toEqual(["speedKnots", "formationSize"]);
+    expect(errors[0].message).toBe("speedKnots must be a non-negative integer");
+    expect(errors[1].message).toBe("formationSize must be a positive integer");
+  });
+
+  it("keeps the BluewaveError code on a default-merge failure", () => {
+    let caught: unknown;
+    try {
+      createAirDefenseAttack({});
+    } catch (error) {
+      caught = error;
+    }
+    expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_ATTACK);
   });
 });
