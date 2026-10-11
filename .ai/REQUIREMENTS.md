@@ -32,10 +32,10 @@ Requirement ID: BW-ARC-001
 Canonical section: Architecture rules
 Normative summary: Domain/authoritative logic independent of presentation and platform adapters
 Status: partial
-Packages or symbols: contracts, diagnostics, deterministic
-Tests: N/A — architectural constraint verified by package dependency graph
-ADR references: ADR-0001
-Validation evidence: `contracts`, `diagnostics`, `deterministic` have no Node/filesystem dependencies
+Packages or symbols: contracts, diagnostics, deterministic, desktop (renderer)
+Tests: content-boundary.test.ts + check-renderer-bundle.mjs
+ADR references: ADR-0001, ADR-0125
+Validation evidence: `contracts`, `diagnostics`, `deterministic` have no Node/filesystem dependencies; renderer parses no YAML, bundles no `yaml`/`effect`
 Deferred milestone: B0
 Approved interpretation notes: Platform independence verified at the package level; Electron boundary deferred to B9
 ```

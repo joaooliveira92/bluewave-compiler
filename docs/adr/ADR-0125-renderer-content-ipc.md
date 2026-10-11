@@ -50,9 +50,10 @@ so no renderer test parses YAML.
 
 Three changes were required and are recorded because they constrain bundling:
 
-- `campaign-engine` declares `"sideEffects": false`. It is a pure package (only
-  schemas and pure functions; no top-level registration), so this lets Rollup
-  drop the Effect-schema module when none of its runtime exports is used.
+- `campaign-engine` declares `"sideEffects": false`. Its modules are schema and
+  plain-constant definitions plus pure functions (no top-level registration or
+  external side effects), so this lets Rollup drop the Effect-schema module when
+  none of its runtime exports is used.
 - `content-schema` declares `"sideEffects": false`. Its modules are pure schema
   definitions; this lets the renderer keep the effect-free `research-fields`
   constants without pulling the `effect`/`SchemaIssue` subtree through the barrel

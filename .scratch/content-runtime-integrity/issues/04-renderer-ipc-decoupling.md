@@ -83,5 +83,16 @@ contract by deleting the old loader and the raw YAML imports.
 
 Tests: desktop 252 files / 1656 green (incl. new `useDrawingBoardContent`,
 `content-boundary`, and the bridge content-command test); `pnpm typecheck` green;
-renderer build emits a clean bundle. ADR-0125 records the decision; ADR-0105's
-deviation #1 is marked executed.
+renderer build emits a clean bundle.
+
+**CRI-IPC-2 proof (real app).** `pnpm snap` captured the drawing board opened
+from a fresh campaign (`.dev-data/board-snap`): the dialog, "Ship types" region
+and "Hull and machinery" tab render; `aria.yaml` is stable; `console.log` shows
+only `[snap] idle mutations/s: structural=0 attributes=0` (no errors, no churn).
+The `e2e/ship-types.spec.ts` "opening roster" test (which opens the board and
+builds/submits a battleship) passes against the real Electron binary — the board
+renders the IPC-delivered catalogue end-to-end.
+
+ADR-0125 records the decision; ADR-0105's deviation #1 is marked executed;
+`.ai/REQUIREMENTS.md` BW-ARC-001 carries the bundle-exit evidence.
+
