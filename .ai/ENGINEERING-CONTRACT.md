@@ -137,6 +137,17 @@ A build alone is not evidence of authoritative correctness. For relevant work, p
 
 Create an ADR for decisions that materially constrain architecture, determinism, compatibility, persistence, security, or replacement cost. This includes package boundaries, numeric representation, RNG, canonicalization, hashing, persistence, command/event models, formula registry, migrations, Electron boundaries, major production dependencies, and approved deviations from the canonical design.
 
+## Definition of done (machine-checked)
+
+A change is done only when, on the exact commit:
+
+- `pnpm preflight` is green — git state, single-copy `effect`, dependency policy, docs links/anchors/ADR index/deferrals/amendments, doc budgets, and no new `as unknown` casts (scheduled by `scripts/run-gates.mjs`);
+- `pnpm test:scripts` is green (the gate fixtures);
+- `pnpm check` is green end-to-end (format, lint, `lint:effect`, licences, typecheck, build, tests, balance reports, desktop E2E);
+- subjects are Conventional Commits, the working tree is clean, and the ticket's acceptance criteria are met.
+
+Local git hooks run `preflight` and the commit-message check; CI re-runs everything and is the authority. Never weaken a gate or its fixtures to pass — fix the cause.
+
 ## Delivery contract
 
 Every completed increment includes:

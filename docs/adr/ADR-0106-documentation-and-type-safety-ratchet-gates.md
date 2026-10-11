@@ -2,9 +2,9 @@
 
 ## Status
 
-Accepted (2026-10-11). Three follow-ups are deferred: gating required checks on
-`change-scope`, paying down the production `as unknown` inventory, and a
-bounded-concurrency gate runner (D-4, D-5, D-6).
+Accepted (2026-10-11). Two follow-ups remain deferred — gating required checks on
+`change-scope` and paying down the production `as unknown` inventory (D-4, D-5);
+the bounded-concurrency gate runner (D-6) closed in ADR-0107.
 
 ## Context
 

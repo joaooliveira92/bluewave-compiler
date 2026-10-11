@@ -1,0 +1,3 @@
+#!/bin/sh
+# Validate the Conventional-Commit subject (ADR-0099/0107).
+exec node scripts/check-commit-msgs.cjs --message-file "$1"

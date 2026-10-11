@@ -6,7 +6,9 @@
 - **Session start:** sync the branch (`git pull --rebase` on `dev`) and run
   `pnpm preflight` before the first edit — red on an in-progress merge or conflict
   markers in tracked files (the 2026-10-06 `origin/dev` divergence cost a whole
-  merge-resolution session; ADR-0044).
+  merge-resolution session; ADR-0044). Local git hooks (`.githooks/`, installed on
+  `pnpm install`) re-run `preflight` on commit/push and check the commit subject
+  (ADR-0107); CI is the authority.
 - **Fully autonomous:** plan, research, implement, review, and validate every
   sprint end-to-end without a human in the loop. Do not pause to ask for
   direction or to surface medium/small tickets. Use your own judgement to resolve

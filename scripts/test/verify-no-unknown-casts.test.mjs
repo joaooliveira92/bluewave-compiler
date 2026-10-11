@@ -4,7 +4,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { countUnknownCasts, findUnknownCasts } from "../verify-no-unknown-casts.mjs";
+import {
+  countUnknownCasts,
+  findUnknownCasts,
+  isStrictEnvironment,
+} from "../verify-no-unknown-casts.mjs";
 
 const count = (file, text) => findUnknownCasts(file, text).length;
 
@@ -66,4 +70,12 @@ void test("grouping order is by code unit, not locale", () => {
 
 void test("fails closed on a parse error rather than silently reporting zero", () => {
   assert.throws(() => findUnknownCasts("a.ts", "const x = (y as unknown"), /failing closed/u);
+});
+
+void test("strict mode is on in CI and off locally (ADR-0107)", () => {
+  assert.equal(isStrictEnvironment({ CI: "true" }), true);
+  assert.equal(isStrictEnvironment({ CI: "1" }), true);
+  assert.equal(isStrictEnvironment({ CI: "false" }), false);
+  assert.equal(isStrictEnvironment({ CI: "0" }), false);
+  assert.equal(isStrictEnvironment({}), false);
 });

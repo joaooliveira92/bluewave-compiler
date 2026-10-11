@@ -214,13 +214,26 @@ function writeBaseline(repoRoot, baseline) {
 }
 
 /**
+ * True when the run should treat retired baseline entries as fatal. CI is the
+ * authority on the committed tree, so it is strict; a local run only warns,
+ * because a concurrent editor retiring casts elsewhere must not block an
+ * unrelated commit (ADR-0107). `--strict` opts a local run in.
+ * @returns {boolean}
+ */
+export function isStrictEnvironment(env = process.env) {
+  const value = env.CI;
+  return value !== undefined && value !== "" && value !== "0" && value.toLowerCase() !== "false";
+}
+
+/**
  * Enforce the recorded assertion inventory.
  * @param {string} repoRoot
  * @param {"verify"|"write"|"prune"} mode
+ * @param {boolean} strict - treat retired (stale) entries as fatal.
  * @returns {number} the number of assertions observed.
- * @throws on new assertions, malformed inventory, or stale entries without prune.
+ * @throws on new assertions or malformed inventory, and on stale entries when strict.
  */
-export function verifyNoUnknownCasts(repoRoot, mode = "verify") {
+export function verifyNoUnknownCasts(repoRoot, mode = "verify", strict = false) {
   const casts = scanUnknownCasts(repoRoot);
   const current = countUnknownCasts(casts);
 
@@ -250,13 +263,19 @@ export function verifyNoUnknownCasts(repoRoot, mode = "verify") {
       .map(([fingerprint]) => `  ${file} (${fingerprint})`),
   );
   if (stale.length > 0) {
-    if (mode !== "prune") {
+    if (mode === "prune") {
+      writeBaseline(repoRoot, current);
+    } else if (strict) {
       throw new Error(
         "verify-no-unknown-casts: remove retired baseline entries with `node scripts/verify-no-unknown-casts.mjs --prune`.\n" +
           stale.join("\n"),
       );
+    } else {
+      console.warn(
+        `verify-no-unknown-casts: ${stale.length} retired baseline entr${stale.length === 1 ? "y" : "ies"} ` +
+          "(casts removed since the baseline). Run with `--prune` to tighten; CI enforces this.",
+      );
     }
-    writeBaseline(repoRoot, current);
   }
   return casts.length;
 }
@@ -265,11 +284,15 @@ if (process.argv[1] && import.meta.filename === resolve(process.argv[1])) {
   try {
     const args = process.argv.slice(2);
     const mode = args.includes("--write") ? "write" : args.includes("--prune") ? "prune" : "verify";
-    const extra = args.filter((arg) => arg !== "--write" && arg !== "--prune");
+    const strict = args.includes("--strict") || isStrictEnvironment();
+    const known = new Set(["--write", "--prune", "--strict"]);
+    const extra = args.filter((arg) => !known.has(arg));
     if (extra.length > 0 || (args.includes("--write") && args.includes("--prune"))) {
-      throw new Error("Usage: node scripts/verify-no-unknown-casts.mjs [--write|--prune]");
+      throw new Error(
+        "Usage: node scripts/verify-no-unknown-casts.mjs [--write|--prune] [--strict]",
+      );
     }
-    const count = verifyNoUnknownCasts(root, mode);
+    const count = verifyNoUnknownCasts(root, mode, strict);
     if (mode === "write") {
       console.log(
         `verify-no-unknown-casts: baseline written with ${String(count)} existing assertions.`,
