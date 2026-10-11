@@ -1,10 +1,24 @@
 # 01 — Fixed-seed 36-month campaign regression harness
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** none
-**Frontier:** yes
+**Frontier:** no
 **Spec:** (this ticket; a full spec is authored when the ticket is picked up)
+
+## Outcome
+
+Delivered as `packages/phase-engine/test/campaign-regression-36mo.test.ts`
+(3 seeds x 36 months, real `MonthExecutor`, ~3.3s): zero exceptions, every
+produced battle resolves to a §32 reason (none left pending), fleet hp is
+non-increasing, hp stays in [0, max], `turnNumber`/calendar advance, treasuries
+stay finite, `time_limit` share is bounded, and the same seed replays
+byte-identically (ledger + snapshot hashes) while distinct seeds diverge.
+
+Scoped out (recorded): cross-process determinism of the shared campaign path is
+already covered by `@bluewave/cross-process-test` (determinism.yml); this harness
+adds the multi-month dimension in-process. Hosting a 36-month leg in the
+cross-process child (with its own golden) is a separate follow-up if wanted.
 
 ## Why
 
