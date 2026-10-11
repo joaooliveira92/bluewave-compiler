@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { cn } from "../../lib/utils.js";
+import { NEBULORE_PALETTE } from "../../shell/background-palettes.js";
 import { hexToNormalizedRgb, normalizeHexColor } from "./shader-color.js";
-import { createShaderProgram } from "./shader-program.js";
+import { createShaderProgram, type ShaderProgram } from "./shader-program.js";
 
 const vertexShaderGLSL = `
 attribute vec2 position;
@@ -111,8 +112,8 @@ interface NebuloreProps extends React.HTMLAttributes<HTMLDivElement> {
   height?: string;
 }
 
-const DEFAULT_COLORS: readonly [string, string, string] = ["#312e81", "#9333ea", "#22d3ee"];
-const DEFAULT_COLOR_BACK = "#010103";
+const DEFAULT_COLORS = NEBULORE_PALETTE.dark.colors;
+const DEFAULT_COLOR_BACK = NEBULORE_PALETTE.dark.colorBack;
 
 const Nebulore = ({
   colors = DEFAULT_COLORS,
@@ -132,7 +133,7 @@ const Nebulore = ({
       colors: colors
         .slice(0, 3)
         .map((color, index) =>
-          normalizeHexColor(color, DEFAULT_COLORS[index] ?? DEFAULT_COLORS[0]),
+          normalizeHexColor(color, DEFAULT_COLORS[index] ?? DEFAULT_COLORS[0] ?? color),
         ),
       colorBack,
       speed,
@@ -150,42 +151,92 @@ const Nebulore = ({
 
     const gl = canvas.getContext("webgl", { antialias: true, alpha: true });
     if (!gl) {
-      console.error("WebGL not supported");
       return;
     }
 
-    const shaderProgram = createShaderProgram(gl, vertexShaderGLSL, fragmentShaderGLSL);
-    if (shaderProgram === null) return;
+    const colorBackVector = new Float32Array(
+      hexToNormalizedRgb(settings.colorBack, DEFAULT_COLOR_BACK),
+    );
+    const colorsVector = new Float32Array(
+      settings.colors.flatMap((color) => hexToNormalizedRgb(color, DEFAULT_COLORS[0] ?? color)),
+    );
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
-    const glProgram = shaderProgram.program;
-    gl.useProgram(glProgram);
-
-    const vertexPositionAttribLocation = gl.getAttribLocation(glProgram, "position");
-    const screenQuadVertexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, screenQuadVertexBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(vertexPositionAttribLocation);
-    gl.vertexAttribPointer(vertexPositionAttribLocation, 2, gl.FLOAT, false, 0, 0);
-
-    const resolutionUniformLocation = gl.getUniformLocation(glProgram, "u_resolution");
-    const timeUniformLocation = gl.getUniformLocation(glProgram, "u_time");
-    const speedUniformLocation = gl.getUniformLocation(glProgram, "u_speed");
-    const grainUniformLocation = gl.getUniformLocation(glProgram, "u_grain");
-    const colorBackUniformLocation = gl.getUniformLocation(glProgram, "u_colorBack");
-    const colorsUniformLocation = gl.getUniformLocation(glProgram, "u_colors");
-
-    if (
-      !resolutionUniformLocation ||
-      !timeUniformLocation ||
-      !speedUniformLocation ||
-      !grainUniformLocation ||
-      !colorBackUniformLocation ||
-      !colorsUniformLocation
-    ) {
-      gl.deleteBuffer(screenQuadVertexBuffer);
-      shaderProgram.dispose();
-      return;
+    interface Uniforms {
+      resolution: WebGLUniformLocation;
+      time: WebGLUniformLocation;
+      speed: WebGLUniformLocation;
+      grain: WebGLUniformLocation;
+      colorBack: WebGLUniformLocation;
+      colors: WebGLUniformLocation;
     }
+
+    let program: ShaderProgram | null = null;
+    let buffer: WebGLBuffer | null = null;
+    let uniforms: Uniforms | null = null;
+    let frameId = 0;
+    let startedAt = 0;
+
+    const destroyResources = () => {
+      if (buffer !== null) {
+        gl.deleteBuffer(buffer);
+        buffer = null;
+      }
+      program?.dispose();
+      program = null;
+      uniforms = null;
+    };
+
+    const buildResources = () => {
+      const shaderProgram = createShaderProgram(gl, vertexShaderGLSL, fragmentShaderGLSL);
+      if (shaderProgram === null) return false;
+
+      const nextBuffer = gl.createBuffer();
+      if (nextBuffer === null) {
+        shaderProgram.dispose();
+        return false;
+      }
+
+      gl.useProgram(shaderProgram.program);
+      gl.bindBuffer(gl.ARRAY_BUFFER, nextBuffer);
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+        gl.STATIC_DRAW,
+      );
+      const position = gl.getAttribLocation(shaderProgram.program, "position");
+      if (position < 0) {
+        gl.deleteBuffer(nextBuffer);
+        shaderProgram.dispose();
+        return false;
+      }
+      gl.enableVertexAttribArray(position);
+      gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+
+      const resolution = gl.getUniformLocation(shaderProgram.program, "u_resolution");
+      const time = gl.getUniformLocation(shaderProgram.program, "u_time");
+      const speed = gl.getUniformLocation(shaderProgram.program, "u_speed");
+      const grain = gl.getUniformLocation(shaderProgram.program, "u_grain");
+      const colorBack = gl.getUniformLocation(shaderProgram.program, "u_colorBack");
+      const colors = gl.getUniformLocation(shaderProgram.program, "u_colors");
+      if (
+        resolution === null ||
+        time === null ||
+        speed === null ||
+        grain === null ||
+        colorBack === null ||
+        colors === null
+      ) {
+        gl.deleteBuffer(nextBuffer);
+        shaderProgram.dispose();
+        return false;
+      }
+
+      program = shaderProgram;
+      buffer = nextBuffer;
+      uniforms = { resolution, time, speed, grain, colorBack, colors };
+      return true;
+    };
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -193,46 +244,83 @@ const Nebulore = ({
       canvas.width = Math.max(1, Math.floor(width * dpr));
       canvas.height = Math.max(1, Math.floor(height * dpr));
       gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.uniform2f(resolutionUniformLocation, canvas.width, canvas.height);
+      if (uniforms !== null) gl.uniform2f(uniforms.resolution, canvas.width, canvas.height);
     };
 
-    resize();
-    const resizeObserver = new ResizeObserver(resize);
-    resizeObserver.observe(host);
-
-    let animationFrameId = 0;
-    const start = performance.now();
-
-    const render = (now: number) => {
-      const elapsedSec = (now - start) / 1000;
-      const rgbColors = settings.colors.flatMap((color) =>
-        hexToNormalizedRgb(color, DEFAULT_COLORS[0]),
-      );
-
+    const draw = (elapsedSec: number) => {
+      if (program === null || uniforms === null) return;
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
-
-      gl.uniform1f(timeUniformLocation, elapsedSec);
-      gl.uniform1f(speedUniformLocation, settings.speed);
-      gl.uniform1f(grainUniformLocation, settings.grain);
-      gl.uniform3fv(
-        colorBackUniformLocation,
-        hexToNormalizedRgb(settings.colorBack, DEFAULT_COLOR_BACK),
-      );
-      gl.uniform3fv(colorsUniformLocation, new Float32Array(rgbColors));
-
+      gl.uniform1f(uniforms.time, elapsedSec);
+      gl.uniform1f(uniforms.speed, settings.speed);
+      gl.uniform1f(uniforms.grain, settings.grain);
+      gl.uniform3fv(uniforms.colorBack, colorBackVector);
+      gl.uniform3fv(uniforms.colors, colorsVector);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-      animationFrameId = requestAnimationFrame(render);
     };
 
-    animationFrameId = requestAnimationFrame(render);
+    const frame = (now: number) => {
+      frameId = 0;
+      if (document.hidden || program === null) return;
+      draw((now - startedAt) / 1000);
+      frameId = requestAnimationFrame(frame);
+    };
+
+    const start = () => {
+      if (frameId !== 0 || document.hidden || program === null) return;
+      if (reducedMotion) {
+        draw(0);
+        return;
+      }
+      startedAt = performance.now();
+      frameId = requestAnimationFrame(frame);
+    };
+
+    const stop = () => {
+      if (frameId === 0) return;
+      cancelAnimationFrame(frameId);
+      frameId = 0;
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) stop();
+      else start();
+    };
+
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      stop();
+      destroyResources();
+    };
+
+    const handleContextRestored = () => {
+      if (!buildResources()) return;
+      resize();
+      start();
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      resize();
+      start();
+    });
+    resizeObserver.observe(host);
+    document.addEventListener("visibilitychange", handleVisibility);
+    canvas.addEventListener("webglcontextlost", handleContextLost);
+    canvas.addEventListener("webglcontextrestored", handleContextRestored);
+
+    if (buildResources()) {
+      resize();
+      start();
+    }
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      stop();
       resizeObserver.disconnect();
-      gl.deleteBuffer(screenQuadVertexBuffer);
-      shaderProgram.dispose();
+      document.removeEventListener("visibilitychange", handleVisibility);
+      canvas.removeEventListener("webglcontextlost", handleContextLost);
+      canvas.removeEventListener("webglcontextrestored", handleContextRestored);
+      destroyResources();
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
   }, [settings]);
 

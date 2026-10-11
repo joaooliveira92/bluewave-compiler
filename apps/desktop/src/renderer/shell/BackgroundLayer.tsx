@@ -4,9 +4,18 @@ import Nebulore from "../components/backgrounds/nebulore.js";
 import PatternWaves from "../components/backgrounds/pattern-waves.js";
 import { StarsBackground } from "../components/backgrounds/starts.js";
 import { ShaderBackground } from "../components/motion/shader-background.js";
+import {
+  AURALIS_PALETTE,
+  MESH_CITRUS_PALETTE,
+  MESH_LAGOON_PALETTE,
+  NEBULORE_PALETTE,
+  PATTERN_WAVES_PALETTE,
+  type ResolvedTheme,
+  WATER_PALETTE,
+} from "./background-palettes.js";
 import type { BackgroundStyle } from "./BackgroundContext.js";
 
-export type ResolvedTheme = "light" | "dark";
+export type { ResolvedTheme } from "./background-palettes.js";
 
 export interface BackgroundLayerProps {
   readonly background: BackgroundStyle;
@@ -15,32 +24,31 @@ export interface BackgroundLayerProps {
 
 /**
  * One renderer per selectable background, keyed by the `BackgroundStyle` union.
- * Adding a background is a new map entry and a new `BackgroundStyle` member —
+ * Adding a background is a new palette entry and a new `BackgroundStyle` member —
  * this component never changes. The theme is passed in so each renderer picks
  * its own light/dark palette rather than the component branching on style.
  */
 type BackgroundRenderer = (resolvedTheme: ResolvedTheme) => ReactNode;
 
 const BACKGROUND_RENDERERS: Record<BackgroundStyle, BackgroundRenderer> = {
-  water: (theme) => (
-    <ShaderBackground
-      variant="water"
-      className="fixed inset-0 -z-10"
-      colorBack={theme === "dark" ? "#010101" : "#dbe9f4"}
-      colorHighlight={theme === "dark" ? "#121212" : "#ffffff"}
-      speed={0.125}
-    />
-  ),
+  water: (theme) => {
+    const palette = WATER_PALETTE[theme];
+    return (
+      <ShaderBackground
+        variant="water"
+        className="fixed inset-0 -z-10"
+        colorBack={palette.colorBack}
+        colorHighlight={palette.colorHighlight}
+        speed={0.125}
+      />
+    );
+  },
   stars: () => <StarsBackground className="fixed inset-0 -z-10" />,
   "mesh-citrus": (theme) => (
     <ShaderBackground
       variant="mesh-gradient"
       className="fixed inset-0 -z-10"
-      colors={
-        theme === "dark"
-          ? ["#020202", "#2b1400", "#0f1a05", "#402008"]
-          : ["#fff8e8", "#ffd166", "#d4f0a0", "#ffb84d"]
-      }
+      colors={[...MESH_CITRUS_PALETTE[theme].colors]}
       distortion={0.8}
       swirl={0.4}
       speed={0.125}
@@ -50,46 +58,47 @@ const BACKGROUND_RENDERERS: Record<BackgroundStyle, BackgroundRenderer> = {
     <ShaderBackground
       variant="mesh-gradient"
       className="fixed inset-0 -z-10"
-      colors={
-        theme === "dark"
-          ? ["#020a0a", "#0a2e2e", "#042a40", "#1a0a40"]
-          : ["#f0fffa", "#5eead4", "#38bdf8", "#a78bfa"]
-      }
+      colors={[...MESH_LAGOON_PALETTE[theme].colors]}
       distortion={0.8}
       swirl={0.4}
       speed={0.15}
     />
   ),
-  auralis: (theme) => (
-    <Auralis
-      className="fixed inset-0 -z-10"
-      speed={0.03}
-      colorBack={theme === "dark" ? "#010103" : "#fff5f5"}
-      colors={
-        theme === "dark" ? ["#ef4444", "#dc2626", "#b91c1c"] : ["#ffb3b3", "#ff8a8a", "#ff6b6b"]
-      }
-    />
-  ),
-  nebulore: (theme) => (
-    <Nebulore
-      className="fixed inset-0 -z-10"
-      speed={0.025}
-      colorBack={theme === "dark" ? "#010103" : "#f5f5ff"}
-      colors={
-        theme === "dark" ? ["#312e81", "#9333ea", "#22d3ee"] : ["#c7d2fe", "#d8b4fe", "#a5f3fc"]
-      }
-    />
-  ),
-  "pattern-waves": (theme) => (
-    <PatternWaves
-      className="fixed inset-0 -z-10"
-      preset="silk"
-      speed={0.2}
-      opacity={0.4}
-      color={theme === "dark" ? "#dbe4f0" : "#243044"}
-      backgroundColor={theme === "dark" ? "#010103" : "#eef3f8"}
-    />
-  ),
+  auralis: (theme) => {
+    const palette = AURALIS_PALETTE[theme];
+    return (
+      <Auralis
+        className="fixed inset-0 -z-10"
+        speed={0.03}
+        colorBack={palette.colorBack}
+        colors={palette.colors}
+      />
+    );
+  },
+  nebulore: (theme) => {
+    const palette = NEBULORE_PALETTE[theme];
+    return (
+      <Nebulore
+        className="fixed inset-0 -z-10"
+        speed={0.025}
+        colorBack={palette.colorBack}
+        colors={palette.colors}
+      />
+    );
+  },
+  "pattern-waves": (theme) => {
+    const palette = PATTERN_WAVES_PALETTE[theme];
+    return (
+      <PatternWaves
+        className="fixed inset-0 -z-10"
+        preset="silk"
+        speed={0.2}
+        opacity={0.4}
+        color={palette.color}
+        backgroundColor={palette.backgroundColor}
+      />
+    );
+  },
   none: () => null,
 };
 
