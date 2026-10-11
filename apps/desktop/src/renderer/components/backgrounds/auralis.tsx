@@ -20,6 +20,7 @@ varying vec2 vUv;
 uniform vec2  u_resolution;
 uniform float u_time;
 uniform float u_grain;
+uniform vec3  u_colorBack;
 uniform vec3  u_colors[3];
 
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -59,7 +60,7 @@ void main() {
 
   float light = pow(abs(n2), 2.5) * 0.5;
 
-  vec3 col = vec3(0.02, 0.01, 0.01);
+  vec3 col = u_colorBack;
 
   col += u_colors[0] * smoothstep(0.1, 1.0, n1) * 0.5;
   col += u_colors[1] * light;
@@ -76,6 +77,7 @@ void main() {
 
 export interface AuralisProps {
   colors?: string[];
+  colorBack?: string;
   speed?: number;
   grain?: number;
   height?: string;
@@ -83,9 +85,11 @@ export interface AuralisProps {
 }
 
 const DEFAULT_COLORS = ["#ef4444", "#dc2626", "#b91c1c"];
+const DEFAULT_COLOR_BACK = "#010103";
 
 const Auralis = ({
   colors = DEFAULT_COLORS,
+  colorBack = DEFAULT_COLOR_BACK,
   speed = 0.3,
   grain = 0.6,
   height = "100vh",
@@ -127,6 +131,7 @@ const Auralis = ({
       res: gl.getUniformLocation(program, "u_resolution"),
       time: gl.getUniformLocation(program, "u_time"),
       grain: gl.getUniformLocation(program, "u_grain"),
+      colorBack: gl.getUniformLocation(program, "u_colorBack"),
       colors: gl.getUniformLocation(program, "u_colors"),
     };
 
@@ -145,6 +150,7 @@ const Auralis = ({
       gl.uniform2f(locs.res, canvas.width, canvas.height);
       gl.uniform1f(locs.time, t * 0.001 * speed);
       gl.uniform1f(locs.grain, grain);
+      gl.uniform3fv(locs.colorBack, hexToNormalizedRgb(colorBack, DEFAULT_COLOR_BACK));
 
       const flat = new Float32Array(
         colors
@@ -165,13 +171,13 @@ const Auralis = ({
       cancelAnimationFrame(raf);
       gl.deleteProgram(program);
     };
-  }, [colors, speed, grain]);
+  }, [colors, colorBack, speed, grain]);
 
   return (
     <div
       ref={containerRef}
-      style={{ height }}
-      className={cn("relative w-full overflow-hidden bg-[#010103]", className)}
+      style={{ height, backgroundColor: colorBack }}
+      className={cn("relative w-full overflow-hidden", className)}
     >
       <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
       <div className="relative z-10 flex h-full w-full flex-col items-center justify-center" />

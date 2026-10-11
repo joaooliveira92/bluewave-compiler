@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Auralis from "../components/backgrounds/auralis.js";
 import Nebulore from "../components/backgrounds/nebulore.js";
+import PatternWaves from "../components/backgrounds/pattern-waves.js";
 import { StarsBackground } from "../components/backgrounds/starts.js";
 import { ShaderBackground } from "../components/motion/shader-background.js";
 import type { BackgroundStyle } from "./BackgroundContext.js";
@@ -63,6 +64,7 @@ const BACKGROUND_RENDERERS: Record<BackgroundStyle, BackgroundRenderer> = {
     <Auralis
       className="fixed inset-0 -z-10"
       speed={0.03}
+      colorBack={theme === "dark" ? "#010103" : "#fff5f5"}
       colors={
         theme === "dark" ? ["#ef4444", "#dc2626", "#b91c1c"] : ["#ffb3b3", "#ff8a8a", "#ff6b6b"]
       }
@@ -72,9 +74,20 @@ const BACKGROUND_RENDERERS: Record<BackgroundStyle, BackgroundRenderer> = {
     <Nebulore
       className="fixed inset-0 -z-10"
       speed={0.025}
+      colorBack={theme === "dark" ? "#010103" : "#f5f5ff"}
       colors={
         theme === "dark" ? ["#312e81", "#9333ea", "#22d3ee"] : ["#c7d2fe", "#d8b4fe", "#a5f3fc"]
       }
+    />
+  ),
+  "pattern-waves": (theme) => (
+    <PatternWaves
+      className="fixed inset-0 -z-10"
+      preset="silk"
+      speed={0.2}
+      opacity={0.4}
+      color={theme === "dark" ? "#dbe4f0" : "#243044"}
+      backgroundColor={theme === "dark" ? "#010103" : "#eef3f8"}
     />
   ),
   none: () => null,

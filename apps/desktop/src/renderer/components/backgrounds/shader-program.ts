@@ -3,11 +3,9 @@ export interface ShaderProgram {
   dispose(): void;
 }
 
-function compileShader(
-  gl: WebGLRenderingContext,
-  type: number,
-  source: string,
-): WebGLShader | null {
+type AnyWebGlContext = WebGLRenderingContext | WebGL2RenderingContext;
+
+function compileShader(gl: AnyWebGlContext, type: number, source: string): WebGLShader | null {
   const shader = gl.createShader(type);
   if (shader === null) return null;
 
@@ -22,7 +20,7 @@ function compileShader(
 
 /** Compiles, links, and owns one WebGL program and both of its shaders. */
 export function createShaderProgram(
-  gl: WebGLRenderingContext,
+  gl: AnyWebGlContext,
   vertexSource: string,
   fragmentSource: string,
 ): ShaderProgram | null {

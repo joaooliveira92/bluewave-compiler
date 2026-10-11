@@ -7,6 +7,7 @@ export type BackgroundStyle =
   | "mesh-lagoon"
   | "auralis"
   | "nebulore"
+  | "pattern-waves"
   | "none";
 
 export const BACKGROUND_STORAGE_KEY = "bluewave-background";
@@ -26,6 +27,7 @@ export function readStoredBackground(): BackgroundStyle {
     stored === "mesh-lagoon" ||
     stored === "auralis" ||
     stored === "nebulore" ||
+    stored === "pattern-waves" ||
     stored === "none"
     ? stored
     : "water";

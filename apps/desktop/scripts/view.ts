@@ -20,6 +20,7 @@
  *             "Open Campaign", and starts from there (the source is never touched).
  * --size     resizes the window (CSS pixels, e.g. 900x700) before the first action.
  * --theme     "light" or "dark": starts the app in that theme (via its storage key).
+ * --background starts the app with that animated backdrop, e.g. "auralis" (via its storage key).
  * --selector  screenshots only the first element matching the CSS selector.
  *
  * Actions run in the order given. Output (default `.dev-data/view`, git-ignored):
@@ -56,6 +57,7 @@ const { values } = parseArgs({
     "make-save": { type: "string" },
     size: { type: "string" },
     theme: { type: "string" },
+    background: { type: "string" },
   },
   strict: true,
 });
@@ -89,11 +91,17 @@ h.page.on("console", (m) => log.push(`[${m.type()}] ${m.text()}`));
 h.page.on("pageerror", (e) => log.push(`[pageerror] ${e.message}`));
 
 try {
-  if (values.theme) {
-    // Through the app's own storage key, before anything is opened, so the theme
+  if (values.theme || values.background) {
+    // Through the app's own storage keys, before anything is opened, so the theme
     // provider (and everything keyed off it) starts in the requested theme
     // rather than having a class flipped under it.
-    await h.page.evaluate((theme) => localStorage.setItem("bluewave-theme", theme), values.theme);
+    await h.page.evaluate(
+      ({ theme, background }) => {
+        if (theme) localStorage.setItem("bluewave-theme", theme);
+        if (background) localStorage.setItem("bluewave-background", background);
+      },
+      { theme: values.theme, background: values.background },
+    );
     await h.page.reload();
     await h.page.getByText("Bluewave Naval Staff").waitFor({ timeout: 15_000 });
   }

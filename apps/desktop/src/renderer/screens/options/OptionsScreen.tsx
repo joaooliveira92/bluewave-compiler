@@ -1,4 +1,15 @@
-import { Ban, Citrus, Flame, Gem, Orbit, Palette, Settings, Sparkles, Waves } from "lucide-react";
+import {
+  AudioWaveform,
+  Ban,
+  Citrus,
+  Flame,
+  Gem,
+  Orbit,
+  Palette,
+  Settings,
+  Sparkles,
+  Waves,
+} from "lucide-react";
 import { BloomMenu } from "../../components/motion/bloom-menu.js";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Button } from "../../components/ui/button.js";
@@ -20,6 +31,7 @@ const BACKGROUND_OPTIONS: {
   { label: "Mesh - Lagoon", value: "mesh-lagoon", icon: Gem },
   { label: "Auralis", value: "auralis", icon: Flame },
   { label: "Nebulore", value: "nebulore", icon: Orbit },
+  { label: "Pattern Waves", value: "pattern-waves", icon: AudioWaveform },
   { label: "None", value: "none", icon: Ban },
 ];
 

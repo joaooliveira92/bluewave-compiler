@@ -24,6 +24,7 @@ uniform vec2 u_resolution;
 uniform float u_time;
 uniform float u_speed;
 uniform float u_grain;
+uniform vec3 u_colorBack;
 uniform vec3 u_colors[3];
 
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -87,8 +88,8 @@ void main() {
   nebula *= smoothstep(-0.4, 0.8, drift + 0.2);
   nebula *= smoothstep(0.05, 0.55, uv.y) * smoothstep(1.0, 0.35, uv.y);
 
-  vec3 col = vec3(0.01, 0.005, 0.03);
-  col = mix(col, u_colors[0] * 0.35, smoothstep(-0.2, 0.9, drift));
+  vec3 col = u_colorBack;
+  col = mix(col, u_colors[0], smoothstep(-0.2, 0.9, drift) * 0.35);
   col = mix(col, u_colors[1], nebula * 0.85);
   col += u_colors[2] * pow(nebula, 3.5) * 0.75;
 
@@ -104,15 +105,18 @@ void main() {
 
 interface NebuloreProps extends React.HTMLAttributes<HTMLDivElement> {
   colors?: readonly string[];
+  colorBack?: string;
   speed?: number;
   grain?: number;
   height?: string;
 }
 
 const DEFAULT_COLORS: readonly [string, string, string] = ["#312e81", "#9333ea", "#22d3ee"];
+const DEFAULT_COLOR_BACK = "#010103";
 
 const Nebulore = ({
   colors = DEFAULT_COLORS,
+  colorBack = DEFAULT_COLOR_BACK,
   speed = 0.6,
   grain = 0.5,
   height = "100vh",
@@ -130,10 +134,11 @@ const Nebulore = ({
         .map((color, index) =>
           normalizeHexColor(color, DEFAULT_COLORS[index] ?? DEFAULT_COLORS[0]),
         ),
+      colorBack,
       speed,
       grain,
     }),
-    [colors, speed, grain],
+    [colors, colorBack, speed, grain],
   );
 
   useEffect(() => {
@@ -166,6 +171,7 @@ const Nebulore = ({
     const timeUniformLocation = gl.getUniformLocation(glProgram, "u_time");
     const speedUniformLocation = gl.getUniformLocation(glProgram, "u_speed");
     const grainUniformLocation = gl.getUniformLocation(glProgram, "u_grain");
+    const colorBackUniformLocation = gl.getUniformLocation(glProgram, "u_colorBack");
     const colorsUniformLocation = gl.getUniformLocation(glProgram, "u_colors");
 
     if (
@@ -173,6 +179,7 @@ const Nebulore = ({
       !timeUniformLocation ||
       !speedUniformLocation ||
       !grainUniformLocation ||
+      !colorBackUniformLocation ||
       !colorsUniformLocation
     ) {
       gl.deleteBuffer(screenQuadVertexBuffer);
@@ -208,6 +215,10 @@ const Nebulore = ({
       gl.uniform1f(timeUniformLocation, elapsedSec);
       gl.uniform1f(speedUniformLocation, settings.speed);
       gl.uniform1f(grainUniformLocation, settings.grain);
+      gl.uniform3fv(
+        colorBackUniformLocation,
+        hexToNormalizedRgb(settings.colorBack, DEFAULT_COLOR_BACK),
+      );
       gl.uniform3fv(colorsUniformLocation, new Float32Array(rgbColors));
 
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -228,8 +239,8 @@ const Nebulore = ({
   return (
     <div
       ref={hostRef}
-      className={cn("relative flex w-full items-center overflow-hidden bg-[#010103]", className)}
-      style={{ height, containerType: "size", ...style }}
+      className={cn("relative flex w-full items-center overflow-hidden", className)}
+      style={{ height, backgroundColor: settings.colorBack, containerType: "size", ...style }}
       {...props}
     >
       <canvas
