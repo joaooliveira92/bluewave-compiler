@@ -83,6 +83,36 @@ describe("promoted historical national starters", () => {
       expect(designs.find((d) => d.id === id)).toBeUndefined();
   });
 
+  // ADR-0114: these nations' named candidates cannot legally classify as a B capital under DESIGN_22_EARLY
+  // (displacement < 5,000 t and/or belt < 6 in), so promoting one would be a false substitution. They stay on
+  // their doctrine template until a classification-schema change admits slow coast-defence ships.
+  it("leaves the ADR-0114-deferred candidates on their doctrine template (no false substitution)", () => {
+    for (const nation of [
+      "netherlands",
+      "portugal",
+      "brazil",
+      "japan",
+      "spain",
+      "qing",
+      "usa",
+      "austria_hungary",
+    ]) {
+      const chosen = starterFor("B", starters, OPENING_MONTH, nation);
+      expect(chosen, `${nation} B starter`).not.toBeNull();
+      expect(chosen!.id.startsWith("starter_b_")).toBe(true);
+      expect(REFERENCE_DESIGN_CLASSIFICATIONS[chosen!.id]).toBe("DOCTRINE_TEMPLATE");
+      expect(HISTORICAL_B_STARTERS[nation]).toBeUndefined();
+    }
+  });
+
+  it("never sets an import ceiling below the domestic one (it widens, never restricts)", () => {
+    for (const profile of navalProfiles) {
+      const caps = profile.hardCapabilities;
+      if (caps.maxImportedGunCaliberUm !== undefined)
+        expect(caps.maxImportedGunCaliberUm).toBeGreaterThanOrEqual(caps.maxGunCaliberUm);
+    }
+  });
+
   it.each(CONVERTED)(
     "%s: %s validates as a production draft and compiles legal as a capital ship",
     (nation, id) => {
@@ -103,6 +133,7 @@ describe("promoted historical national starters", () => {
     (nation, id) => {
       const profile = resolveNavalProfile(navalProfiles, nation, OPENING_MONTH)!;
       const caps = profile.hardCapabilities;
+      const importCeiling = caps.maxImportedGunCaliberUm ?? caps.maxGunCaliberUm;
       const construction = resolveConstructionModifiers(profile, OPENING_MONTH);
       const draft = byId(id).draft;
       expect(draft.hull.targetDisplacementKg).toBeLessThanOrEqual(
@@ -114,7 +145,12 @@ describe("promoted historical national starters", () => {
       const r = compileDesign(draft, ctx);
       for (const c of r.components) {
         const caliber = c.attr.caliberUm;
-        if (caliber !== undefined) expect(caliber).toBeLessThanOrEqual(caps.maxGunCaliberUm);
+        if (caliber === undefined) continue;
+        // An imported family may reach the import ceiling; a domestic one is capped by the domestic ceiling
+        // (ADR-0114). The domestic ceiling itself is never inflated to admit an import.
+        const status = profile.componentAccess[c.componentId]?.status ?? "DOMESTIC";
+        const ceiling = status === "DOMESTIC" ? caps.maxGunCaliberUm : importCeiling;
+        expect(caliber).toBeLessThanOrEqual(ceiling);
       }
     },
   );

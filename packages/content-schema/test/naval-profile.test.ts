@@ -33,4 +33,27 @@ describe("NavalProfileCatalogueSchema — authored production catalogue", () => 
     data.navalProfiles[0] = { ...first, excess: 1 };
     expect(decodeOk(NavalProfileCatalogueSchema, data)).toBe(false);
   });
+
+  it("accepts an optional imported gun ceiling on hardCapabilities (ADR-0114)", () => {
+    const data = read();
+    const first = data.navalProfiles[0];
+    data.navalProfiles[0] = {
+      ...first,
+      hardCapabilities: { ...first.hardCapabilities, maxImportedGunCaliberUm: 381000 },
+    };
+    expect(
+      decodeOk(NavalProfileCatalogueSchema, data),
+      decodeIssue(NavalProfileCatalogueSchema, data),
+    ).toBe(true);
+  });
+
+  it("rejects a non-positive imported gun ceiling", () => {
+    const data = read();
+    const first = data.navalProfiles[0];
+    data.navalProfiles[0] = {
+      ...first,
+      hardCapabilities: { ...first.hardCapabilities, maxImportedGunCaliberUm: 0 },
+    };
+    expect(decodeOk(NavalProfileCatalogueSchema, data)).toBe(false);
+  });
 });

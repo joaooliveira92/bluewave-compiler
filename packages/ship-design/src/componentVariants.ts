@@ -124,7 +124,7 @@ export interface CatalogueSelection {
  *
  * Order of operations (all restrict-or-relabel, never widen):
  *  1. drop families whose access is UNAVAILABLE;
- *  2. enforce the hard-capability gun calibre ceiling;
+ *  2. enforce the hard-capability gun calibre ceiling (domestic, or the import ceiling for imported families, ADR-0114);
  *  3. overlay the newest applicable national gun model or component variant;
  *  4. apply a variant's introduction floor.
  */
@@ -170,9 +170,17 @@ export function catalogueForNation(
       unavailable.push(def.id);
       continue;
     }
-    // Hard-capability calibre ceiling: only restricts, never grants.
+    // Hard-capability calibre ceiling: only restricts, never grants. A family the profile obtains from
+    // abroad (IMPORTED/LICENSE_BUILT/CAPTURED_OR_STUDIED) may exceed the domestic ceiling up to the
+    // nation's import ceiling; the domestic ceiling itself is never inflated (ADR-0114).
     const caliber = attrOf(def, "caliberUm");
-    if (caliber !== undefined && caliber > profile.hardCapabilities.maxGunCaliberUm) continue;
+    const importCeiling =
+      profile.hardCapabilities.maxImportedGunCaliberUm ?? profile.hardCapabilities.maxGunCaliberUm;
+    const ceiling =
+      access !== undefined && access.status !== "DOMESTIC"
+        ? importCeiling
+        : profile.hardCapabilities.maxGunCaliberUm;
+    if (caliber !== undefined && caliber > ceiling) continue;
 
     const gun = gunByFamily.get(def.id);
     if (gun !== undefined) {

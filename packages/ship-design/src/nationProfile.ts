@@ -168,6 +168,12 @@ export interface ComponentVariantDef {
 export interface HardCapabilities {
   /** Largest gun calibre the domestic industry can produce, µm. */
   readonly maxGunCaliberUm: number;
+  /**
+   * Largest obtainable *imported* gun calibre, µm, when it exceeds the domestic ceiling (ADR-0114).
+   * Absent means imports are capped at `maxGunCaliberUm`. It can only ever admit an IMPORTED/LICENSED
+   * family above the domestic ceiling; it never raises the domestic ceiling itself.
+   */
+  readonly maxImportedGunCaliberUm?: number;
   /** Thickest armour plate the domestic industry can roll, µm. */
   readonly maxArmourThicknessUm: number;
   /** Domestic torpedo bore, µm (a variant family may still import a different bore). */
@@ -444,6 +450,22 @@ export function validateNavalProfile(
       out.push(err(p, "PROFILE_UNKNOWN_PLANT", `hard capability names unknown plant '${id}'`));
   if (profile.hardCapabilities.maxGunCaliberUm <= 0)
     out.push(err(p, "PROFILE_VALUE_RANGE", "maxGunCaliberUm must be positive"));
+  if (profile.hardCapabilities.maxImportedGunCaliberUm !== undefined) {
+    if (profile.hardCapabilities.maxImportedGunCaliberUm <= 0)
+      out.push(err(p, "PROFILE_VALUE_RANGE", "maxImportedGunCaliberUm must be positive"));
+    // The import ceiling only ever *widens* what may be obtained from abroad; it must not be set below the
+    // domestic ceiling, which would silently restrict domestic production instead of admitting imports.
+    else if (
+      profile.hardCapabilities.maxImportedGunCaliberUm < profile.hardCapabilities.maxGunCaliberUm
+    )
+      out.push(
+        err(
+          p,
+          "PROFILE_VALUE_RANGE",
+          `maxImportedGunCaliberUm ${profile.hardCapabilities.maxImportedGunCaliberUm} is below maxGunCaliberUm ${profile.hardCapabilities.maxGunCaliberUm}`,
+        ),
+      );
+  }
 
   // Research fields.
   for (const r of profile.researchPreferences) {

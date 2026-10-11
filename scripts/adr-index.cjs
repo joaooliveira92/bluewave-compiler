@@ -55,7 +55,7 @@ const AREAS = [
   {
     name: "National content",
     blurb: "National naval profiles, the content pipeline, and AI procurement.",
-    nums: [89, 90, 91, 92, 108, 109, 110, 111],
+    nums: [89, 90, 91, 92, 108, 109, 110, 111, 114],
   },
   {
     name: "Desktop & UI",

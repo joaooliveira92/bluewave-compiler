@@ -108,6 +108,7 @@ const ComponentVariantSchema = Schema.Struct({
 
 const HardCapabilitiesSchema = Schema.Struct({
   maxGunCaliberUm: positiveInt,
+  maxImportedGunCaliberUm: Schema.optional(positiveInt),
   maxArmourThicknessUm: positiveInt,
   domesticTorpedoDiameterUm: positiveInt,
   hullForms: Schema.Array(Schema.String),

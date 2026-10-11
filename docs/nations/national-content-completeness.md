@@ -36,7 +36,12 @@ profile (posture, doctrine, industrial multipliers, gun and component variants,
 procurement shares, naming). Italy, Russia and the Ottoman Empire now begin with a
 `HISTORICAL_RECONSTRUCTION` capital ship promoted from their canonical reference
 design (ADR-0111); the remaining nations' historical-reconstruction starters are
-deferred (ADR-0108/ADR-0110) because the shared catalogue lacks their ordnance.
+**blocked by the classification ruleset, not the catalogue** (ADR-0114): the
+candidates (Matador, Vasco da Gama, Sete de Setembro, Fusō, Numancia/Vitoria,
+Wei Yuen, Canonicus/Trenton, Kaiser Max) are all below the 5,000 t / 6 in belt
+B-capital boundary and too slow for CA/CL/DD/KE, so none classifies as any opening
+type and each stays on its `DOCTRINE_TEMPLATE` design. Adding their ordnance
+(R1) would not unblock them.
 
 ## Provenance summary
 
@@ -60,10 +65,13 @@ not a source anywhere; navypedia.org class pages (built on Conway's *1860–1905
 - Nation-specific heavy-gun *families* the shared catalogue lacks: the Italian 450 mm (100-ton), the Spanish
   320 mm Hontoria, the Qing 30.5 cm Krupp, the Ottoman 229 mm Armstrong, the Dutch 283 mm Krupp, the
   Brazilian Whitworth 300-pdr and the Portuguese 121 mm Armstrong. These are overlaid on the nearest shared
-  family and labelled ESTIMATE.
+  family and labelled ESTIMATE. Adding them is recorded as deferred in ADR-0114 (advisory only: the guns do
+  not unblock the candidates, whose blocker is classification).
 - Sourced shell masses for most non-British guns (only the German 26 cm and Austro-Hungarian 26/28 cm are
   grounded); a print ordnance table would upgrade these.
 - Moulded depths (UNVERIFIED for every 1880 hull), per-nation dock/throughput and budget sources.
 - The remaining nations' starters are `DOCTRINE_TEMPLATE`; upgrading one to
-  `HISTORICAL_RECONSTRUCTION` needs a canonical design whose ordnance the shared
-  catalogue already models (ADR-0111 promoted Italy, Russia and the Ottoman Empire).
+  `HISTORICAL_RECONSTRUCTION` needs both a canonical design the classification ruleset admits (ADR-0114) and
+  ordnance the shared catalogue already models.
+- Per-nation `maxImportedGunCaliberUm` values (ADR-0114 split the mechanism from the domestic ceiling; no
+  print source yet justifies a separate domestic figure for an 1880 nation, so none is authored).
