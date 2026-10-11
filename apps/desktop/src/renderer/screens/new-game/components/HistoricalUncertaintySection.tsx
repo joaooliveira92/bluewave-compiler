@@ -1,7 +1,7 @@
 import { memo } from "react";
 import type { SupportedConfigurationValues } from "@bluewave/campaign-engine";
 import { CardContent, CardHeader, CardTitle } from "../../../components/ui/card.js";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "../../../components/ui/field.js";
+import { Field, FieldGroup, FieldLabel } from "../../../components/ui/field.js";
 import {
   Select,
   SelectContent,
@@ -17,6 +17,7 @@ import {
   uncertaintyValueContent,
   type UncertaintyField,
 } from "../rules-of-the-naval-age-content.js";
+import { uncertaintyFieldIcon } from "./option-icons.js";
 
 export interface HistoricalUncertaintySectionProps {
   readonly preferences: DraftPreferences;
@@ -39,6 +40,7 @@ export const HistoricalUncertaintySection = memo(function HistoricalUncertaintyS
           {UNCERTAINTY_FIELDS.map((field) => {
             const values = supportedValues[field] ?? [];
             const currentValue = preferences[field];
+            const Icon = uncertaintyFieldIcon(field);
             return (
               <Field key={field}>
                 <FieldLabel htmlFor={field}>{UNCERTAINTY_FIELD_LABELS[field]}</FieldLabel>
@@ -52,18 +54,21 @@ export const HistoricalUncertaintySection = memo(function HistoricalUncertaintyS
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    {values.map((value) => (
-                      <SelectItem key={value} value={value}>
-                        {uncertaintyValueContent(field, value).label}
-                      </SelectItem>
-                    ))}
+                    {values.map((value) => {
+                      const content = uncertaintyValueContent(field, value);
+                      return (
+                        <SelectItem
+                          key={value}
+                          value={value}
+                          icon={<Icon aria-hidden="true" className="size-4" />}
+                          description={content.blurb}
+                        >
+                          {content.label}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
-                {currentValue !== "" && (
-                  <FieldDescription>
-                    {uncertaintyValueContent(field, currentValue).blurb}
-                  </FieldDescription>
-                )}
               </Field>
             );
           })}

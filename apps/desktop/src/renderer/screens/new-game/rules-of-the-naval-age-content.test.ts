@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   fleetSizeLabel,
   fleetSizeReadout,
+  scenarioEraDescription,
   uncertaintyValueContent,
   UNCERTAINTY_FIELDS,
 } from "./rules-of-the-naval-age-content.js";
@@ -46,5 +47,31 @@ describe("rules-of-the-naval-age-content", () => {
     for (const valueId of FLEET_SIZE_IDS) {
       expect(fleetSizeReadout(valueId)).not.toMatch(/\d/);
     }
+  });
+
+  it("formats a scenario's era line with its month, year and nation count", () => {
+    expect(
+      scenarioEraDescription({
+        id: "scen_1880",
+        name: "January 1880",
+        startYear: 1880,
+        startMonth: 1,
+        participantNationIds: ["a", "b", "c", "d", "e", "f", "g", "h"],
+        playableNationIds: [],
+      }),
+    ).toBe("Begins January 1880 · 8 nations");
+  });
+
+  it("uses the singular when a scenario seats a single nation", () => {
+    expect(
+      scenarioEraDescription({
+        id: "scen_solo",
+        name: "Solo",
+        startYear: 1900,
+        startMonth: 12,
+        participantNationIds: ["a"],
+        playableNationIds: ["a"],
+      }),
+    ).toBe("Begins December 1900 · 1 nation");
   });
 });

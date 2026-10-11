@@ -1,5 +1,3 @@
-import type { LucideIcon } from "lucide-react";
-import { Hourglass, Signal, SignalHigh, SignalLow, SignalMedium } from "lucide-react";
 import { memo } from "react";
 import type { NewGameScenario } from "../../../../shared/new-game-contract.js";
 import { CardContent, CardHeader, CardTitle } from "../../../components/ui/card.js";
@@ -18,18 +16,7 @@ import {
   fleetSizeReadout,
   scenarioEraDescription,
 } from "../rules-of-the-naval-age-content.js";
-
-/** A rising signal-strength glyph reads as fleet scale, one step per size. */
-const FLEET_SIZE_ICONS: Record<string, LucideIcon> = {
-  small: SignalLow,
-  standard: SignalMedium,
-  large: SignalHigh,
-  very_large: Signal,
-};
-
-function fleetSizeIcon(valueId: string): LucideIcon {
-  return FLEET_SIZE_ICONS[valueId] ?? SignalMedium;
-}
+import { fleetSizeIcon, ScenarioEraIcon } from "./option-icons.js";
 
 export interface EraScaleSectionProps {
   readonly scenarioId: string;
@@ -70,7 +57,7 @@ export const EraScaleSection = memo(function EraScaleSection({
                   <SelectItem
                     key={option.id}
                     value={option.id}
-                    icon={<Hourglass aria-hidden="true" className="size-4" />}
+                    icon={<ScenarioEraIcon aria-hidden="true" className="size-4" />}
                     description={scenarioEraDescription(option)}
                   >
                     {option.name}

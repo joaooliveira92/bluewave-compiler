@@ -1,4 +1,13 @@
-import { Anchor } from "lucide-react";
+import {
+  Anchor,
+  LockKeyhole,
+  PenLine,
+  RotateCcw,
+  Ruler,
+  RulerDimensionLine,
+  ScrollText,
+  Wand2,
+} from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "../../components/ui/button.js";
 import { Field, FieldGroup, FieldLabel } from "../../components/ui/field.js";
@@ -26,6 +35,22 @@ import {
 } from "./new-game-identity-screen-state.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
 import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
+
+const NAMING_CONVENTION_ICONS = {
+  historical: <ScrollText className="h-4 w-4" />,
+  generated: <Wand2 className="h-4 w-4" />,
+  custom: <PenLine className="h-4 w-4" />,
+} as const;
+
+const SHIP_NAME_REUSE_ICONS = {
+  disabled: <LockKeyhole className="h-4 w-4" />,
+  allowed: <RotateCcw className="h-4 w-4" />,
+} as const;
+
+const MEASUREMENT_SYSTEM_ICONS = {
+  imperial: <Ruler className="h-4 w-4" />,
+  metric: <RulerDimensionLine className="h-4 w-4" />,
+} as const;
 
 export interface NewGameIdentityScreenProps {
   readonly initialIdentity: CampaignIdentityDraft;
@@ -120,6 +145,7 @@ export function NewGameIdentityScreen({
                   <SelectItem
                     key={option.value}
                     value={option.value}
+                    icon={NAMING_CONVENTION_ICONS[option.value]}
                     description={option.description}
                   >
                     {option.label}
@@ -148,6 +174,7 @@ export function NewGameIdentityScreen({
                   <SelectItem
                     key={option.value}
                     value={option.value}
+                    icon={SHIP_NAME_REUSE_ICONS[option.value]}
                     description={option.description}
                   >
                     {option.label}
@@ -176,6 +203,7 @@ export function NewGameIdentityScreen({
                   <SelectItem
                     key={option.value}
                     value={option.value}
+                    icon={MEASUREMENT_SYSTEM_ICONS[option.value]}
                     description={option.description}
                   >
                     {option.label}

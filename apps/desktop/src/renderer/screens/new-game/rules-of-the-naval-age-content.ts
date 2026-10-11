@@ -7,25 +7,11 @@
  */
 
 import type { NewGameScenario } from "../../../shared/new-game-contract.js";
-
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
+import { monthName } from "../../lib/campaign-month.js";
 
 /** The secondary line under a scenario in the Starting Era select: when it opens and how many nations it seats. */
 export function scenarioEraDescription(scenario: NewGameScenario): string {
-  const month = MONTH_NAMES[scenario.startMonth - 1] ?? String(scenario.startMonth);
+  const month = monthName(scenario.startMonth) ?? String(scenario.startMonth);
   const nations = scenario.participantNationIds.length;
   return `Begins ${month} ${scenario.startYear} · ${nations} ${nations === 1 ? "nation" : "nations"}`;
 }

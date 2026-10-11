@@ -135,6 +135,28 @@ describe("RulesOfTheNavalAgeScreen", () => {
     expect(screen.getByText(expectedText)).toBeTruthy();
   });
 
+  it("presents each Era & Scale option with an icon and a secondary description", async () => {
+    await setupUi();
+
+    const scenarioTrigger = screen.getByLabelText("Starting Era");
+    fireEvent.click(scenarioTrigger);
+    const scenarioList = document.getElementById(
+      scenarioTrigger.getAttribute("aria-controls") ?? "",
+    );
+    const scenarioOption = within(scenarioList ?? document.body).getByRole("option", {
+      name: "January 1900",
+    });
+    expect(scenarioOption.querySelector("svg")).toBeTruthy();
+    expect(within(scenarioOption).getByText("Begins January 1900 · 2 nations")).toBeTruthy();
+
+    const fleetTrigger = screen.getByLabelText("Fleet Size");
+    fireEvent.click(fleetTrigger);
+    const fleetList = document.getElementById(fleetTrigger.getAttribute("aria-controls") ?? "");
+    const fleetOption = within(fleetList ?? document.body).getByRole("option", { name: "Large" });
+    expect(fleetOption.querySelector("svg")).toBeTruthy();
+    expect(within(fleetOption).getByText(/more ships to manage, slower turns/)).toBeTruthy();
+  });
+
   it("disables Next until options finish loading, then advances with the current preferences", async () => {
     const { onNext, getPrimary } = await setupUi();
 
