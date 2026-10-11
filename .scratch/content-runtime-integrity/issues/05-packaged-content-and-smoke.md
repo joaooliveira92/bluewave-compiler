@@ -1,7 +1,7 @@
 # 05 — Packaged content resolution + fresh-game packaged smoke
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** 03
 **Frontier:** no
 
@@ -36,9 +36,9 @@ packaging config never includes the content tree.
 - Depends on 03 (there must be an artifact for main to load and ship).
 ## Comments
 
-**Partial (2026-10-11).** Packaged content resolution and packaging inclusion
-landed; the fresh-game smoke is written and runs in CI but was not executed in
-the reviewing environment.
+**Partial (2026-10-11, superseded by the resolution below).** Packaged content
+resolution and packaging inclusion landed; the fresh-game smoke is written and
+runs in CI but was not executed in the reviewing environment.
 
 - `src/main/contentPack.ts` now resolves both `content/generated/1880` (the
   artifact) and `content/production/1880` from `process.resourcesPath` in a
@@ -64,3 +64,30 @@ still listed as an `extraResources` entry, now needed only as a build-time input
 for `content:build`, not at runtime — it can be dropped from resources once the
 packaged smoke confirms the artifact path). The packaged smoke still needs one run
 against a real `electron-builder` build to confirm CRI-PKG-3/4 end-to-end.
+
+**Resolved (2026-10-11).** The packaged smoke was run end-to-end against a real
+`electron-builder --mac --dir` build, and the raw production tree was dropped
+from resources now that ticket 07 makes the artifact the sole runtime boundary.
+
+- **Smoke script fix (CRI-PKG-3).** The home-map regression check was misplaced:
+  it ran *after* the shell navigated to Construction, where the Overview map is
+  unmounted, so `getByRole("application", { name: /World map/ })` never appeared
+  and the run timed out before printing any check. The map block now runs while
+  the fresh campaign is still on Overview (its home screen); the drawing-board
+  checks follow. No product code changed.
+- **CRI-PKG-1/2/4.** `resolveProductionPackDir` (the last consumer of
+  `content/production/1880` at runtime) was dead after ticket 07, so it and the
+  raw tree's `extraResources` entry were removed: the packaged app now ships only
+  `content/generated/1880`. `contentPack.ts` resolves the artifact from
+  `process.resourcesPath`; `contentPack.test.ts` covers packaged / dev / plain-node.
+- **Proof.** `smoke:packaged` against the real build passes all 14 checks
+  (fresh game compiles onto Overview, month header, debug gate, home map paints
+  the packaged coastline chunk with 36 reachable areas, drawing board opens on
+  the artifact-backed catalogue with 8 hull sections and a rendered plan, no
+  uncaught exceptions, no unexpected console errors). It also passes with the
+  `Bluewave.app` copied to a temp dir outside the repository, and with the raw
+  production tree no longer present in `Contents/Resources/content` — so the
+  packaged app loads its shipped content from app resources alone.
+
+Artifact shipped: `content/generated/1880/{content-artifact.json,content-manifest.json}`
+(hash `b54fd387…`).
