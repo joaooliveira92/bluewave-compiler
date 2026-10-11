@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { CampaignCompiler, type CampaignCompilerOutput } from "@bluewave/campaign/compiler";
 import { CURRENT_COMPATIBILITY_VERSION } from "@bluewave/persistence";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { readContentArtifact, type LoadedContentArtifact } from "./contentArtifact.js";
 
 export interface CompileResult {
   success: boolean;
@@ -158,6 +159,47 @@ export function compileProductionCampaign(
       // campaign month id; the compiled snapshot stamps it authoritatively.
       // When absent the compiler falls back to the canonical default
       // (scen_1880: January 1880).
+      campaignStart,
+    },
+    signal,
+    collector,
+  );
+}
+
+/**
+ * Compiles the production campaign from the verified compiled content artifact
+ * (ticket 07, CRI-MAIN-2): the content-pack collections and the campaign-file
+ * collections come from the bundle exactly as CI validated them — no campaign
+ * YAML is read or parsed at runtime. A missing, tampered, or version-mismatched
+ * artifact fails closed with a stable diagnostic (never a silent fallback).
+ */
+export function compileProductionCampaignFromArtifact(
+  artifactDir: string,
+  signal: AbortSignal,
+  collector: DiagnosticCollector,
+  campaignStart?: { startYear: number; startMonth: number },
+): CampaignCompilerOutput | undefined {
+  let loaded: LoadedContentArtifact;
+  try {
+    loaded = readContentArtifact(artifactDir);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    collector.addError("CONTENT_ARTIFACT_INVALID", message, { stage: "campaign-compile" });
+    return undefined;
+  }
+
+  if (signal.aborted) {
+    collector.addInfo("ABORT", "Compilation aborted before content compilation");
+    return undefined;
+  }
+
+  return new CampaignCompiler().compile(
+    {
+      contentBundle: loaded.bundle,
+      // Artifact-derived identity (ADR-0123): the manifest's SHA-256 body hash.
+      contentHash: loaded.manifest.bodyHash,
+      rulesetVersion: "1.0",
+      compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
       campaignStart,
     },
     signal,

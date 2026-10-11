@@ -35,6 +35,7 @@ import { readReferenceDesigns } from "../referenceDesigns.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
 const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
+const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
 
 /**
  * Desktop-mvp ticket 16 acceptance tests. Every test drives the real
@@ -83,7 +84,7 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
 
   function compileDeps(saveDir: string): CompileCampaignDeps {
     return {
-      contentDir: PRODUCTION_PACK,
+      artifactDir: GENERATED_ARTIFACT,
       chooseSaveDirectory: async () => saveDir,
       generateSessionId: () => `compile-${nextSessionOrdinal++}`,
     };
@@ -652,7 +653,7 @@ describe("listCampaigns (campaign-list screen backing query)", () => {
 
   function compileDeps(saveDir: string) {
     return {
-      contentDir: PRODUCTION_PACK,
+      artifactDir: GENERATED_ARTIFACT,
       chooseSaveDirectory: async () => saveDir,
       generateSessionId: () => `list-${nextSessionOrdinal++}`,
     };

@@ -5,7 +5,7 @@ import { listNewGameOptions } from "./listNewGameOptions.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
-const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
+const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
 
 // Ticket 02/06's research: content/production/1880 has 14 nations, 10
 // playable, and 5 zero-design/zero-construction nations (spain plus 4
@@ -14,7 +14,7 @@ const ZERO_CONTENT_NATIONS = ["spain", "ottoman_empire", "netherlands", "portuga
 
 describe("listNewGameOptions", () => {
   it("runs New Game preferences against real content/production/1880 data", async () => {
-    const result = await listNewGameOptions(PRODUCTION_PACK);
+    const result = await listNewGameOptions(GENERATED_ARTIFACT);
     expect(result.outcome).toBe("success");
     if (result.outcome !== "success") return;
 
@@ -33,7 +33,7 @@ describe("listNewGameOptions", () => {
   });
 
   it("excludes Spain and the 4 other zero-design/zero-construction nations from playerSlotId", async () => {
-    const result = await listNewGameOptions(PRODUCTION_PACK);
+    const result = await listNewGameOptions(GENERATED_ARTIFACT);
     expect(result.outcome).toBe("success");
     if (result.outcome !== "success") return;
 
@@ -46,7 +46,7 @@ describe("listNewGameOptions", () => {
   });
 
   it("only lists supportedValues.playerSlotId nations among the scenario's playable nations", async () => {
-    const result = await listNewGameOptions(PRODUCTION_PACK);
+    const result = await listNewGameOptions(GENERATED_ARTIFACT);
     expect(result.outcome).toBe("success");
     if (result.outcome !== "success") return;
 
@@ -57,7 +57,7 @@ describe("listNewGameOptions", () => {
   });
 
   it("derives supportedValues from the real canonical id catalogs", async () => {
-    const result = await listNewGameOptions(PRODUCTION_PACK);
+    const result = await listNewGameOptions(GENERATED_ARTIFACT);
     expect(result.outcome).toBe("success");
     if (result.outcome !== "success") return;
 

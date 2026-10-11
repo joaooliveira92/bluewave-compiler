@@ -10,7 +10,7 @@ import { compileCampaign, type CompileCampaignDeps } from "./compileCampaign.js"
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
-const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
+const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
 
 function baseConfiguration(overrides: Partial<CampaignConfiguration> = {}): CampaignConfiguration {
   return {
@@ -43,7 +43,7 @@ describe("compileCampaign", () => {
 
   function deps(overrides: Partial<CompileCampaignDeps> = {}): CompileCampaignDeps {
     return {
-      contentDir: PRODUCTION_PACK,
+      artifactDir: GENERATED_ARTIFACT,
       chooseSaveDirectory: async () => resolve(saveRoot, "save"),
       generateSessionId: () => "session-fixed",
       ...overrides,

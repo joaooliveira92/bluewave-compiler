@@ -5,7 +5,7 @@ import {
   CONTENT_ARTIFACT_FILENAME,
   CONTENT_MANIFEST_FILENAME,
   verifyContentBundleArtifact,
-  type ContentBundleLike,
+  type ContentBundle,
   type ContentBundleManifest,
 } from "@bluewave/content-compiler";
 
@@ -31,7 +31,7 @@ export class ContentArtifactError extends Error {
 }
 
 export interface LoadedContentArtifact {
-  readonly bundle: ContentBundleLike;
+  readonly bundle: ContentBundle;
   readonly manifest: ContentBundleManifest;
 }
 

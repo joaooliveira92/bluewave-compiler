@@ -7,13 +7,13 @@ import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type { CompileCampaignResult } from "../../shared/campaign-command-contract.js";
 import { registerCampaignSession } from "../campaignSessions.js";
 import { writeSessionMetadata } from "../campaignSessionMetadata.js";
-import { compileProductionCampaign } from "../compiler.js";
-import { resolveProductionPackDir } from "../contentPack.js";
+import { compileProductionCampaignFromArtifact } from "../compiler.js";
+import { resolveGeneratedContentDir } from "../contentPack.js";
 import { toSaveableState } from "../saveHelpers.js";
 
 export interface CompileCampaignDeps {
-  /** Directory of the content pack to compile against. */
-  readonly contentDir: string;
+  /** Directory holding the compiled content artifact the campaign runs on. */
+  readonly artifactDir: string;
   /**
    * Prompts the user for a directory to write the campaign's `SaveStore`
    * package into. Returns `null` if the user cancels. Main-process-driven,
@@ -64,12 +64,12 @@ export async function compileCampaign(
 
   const signal = new AbortController().signal;
   const compileCollector = new DiagnosticCollector();
-  let output: ReturnType<typeof compileProductionCampaign>;
+  let output: ReturnType<typeof compileProductionCampaignFromArtifact>;
   try {
     // B-6/ADR-0025: thread the scenario's start calendar date into the compile
     // so the snapshot stamps authoritative startYear/startMonth (the month ids
     // every later campaign month — incl. the weather stream — derive from).
-    output = compileProductionCampaign(deps.contentDir, signal, compileCollector, {
+    output = compileProductionCampaignFromArtifact(deps.artifactDir, signal, compileCollector, {
       startYear: session.currentYear,
       startMonth: session.currentMonth,
     });
@@ -166,7 +166,7 @@ export async function compileCampaign(
 }
 
 export const defaultCompileCampaignDeps: CompileCampaignDeps = {
-  contentDir: resolveProductionPackDir(),
+  artifactDir: resolveGeneratedContentDir(),
   generateSessionId: () => randomUUID(),
   chooseSaveDirectory: async (suggestedName: string) => {
     const { dialog } = await import("electron");

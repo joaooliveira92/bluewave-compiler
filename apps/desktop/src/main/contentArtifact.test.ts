@@ -6,6 +6,9 @@ import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import { CONTENT_ARTIFACT_FILENAME, CONTENT_MANIFEST_FILENAME } from "@bluewave/content-compiler";
 
+import { DiagnosticCollector } from "@bluewave/diagnostics";
+
+import { compileProductionCampaignFromArtifact } from "./compiler.js";
 import { ContentArtifactError, readContentArtifact } from "./contentArtifact.js";
 import { resolveGeneratedContentDir } from "./contentPack.js";
 
@@ -96,5 +99,49 @@ describe("compiled content artifact loader (ticket 03)", () => {
     manifest.doNotEdit = "";
     writeFileSync(manifestPath, JSON.stringify(manifest), "utf8");
     expect(expectError(() => readContentArtifact(dir)).code).toBe("CONTENT_ARTIFACT_INVALID");
+  });
+});
+
+describe("campaign compile from the verified artifact (ticket 07)", () => {
+  it("carries the campaign-file collections in the bundle", () => {
+    const { bundle } = readContentArtifact(resolveGeneratedContentDir());
+    const campaign = bundle.campaign;
+    expect(campaign).toBeDefined();
+    expect(campaign!.fleets.length).toBeGreaterThan(0);
+    expect(campaign!.designs.length).toBeGreaterThan(0);
+    expect(campaign!.economies.length).toBeGreaterThan(0);
+  });
+
+  it("compiles a campaign from the artifact with an artifact-derived identity", () => {
+    const dir = resolveGeneratedContentDir();
+    const { manifest } = readContentArtifact(dir);
+    const collector = new DiagnosticCollector();
+    const output = compileProductionCampaignFromArtifact(
+      dir,
+      new AbortController().signal,
+      collector,
+    );
+    expect(collector.hasErrors).toBe(false);
+    expect(output).toBeDefined();
+    // Identity is exactly the verified artifact body hash, never raw file bytes.
+    expect(output!.contentHash).toBe(manifest.bodyHash);
+    expect(output!.state.snapshot.nations.size).toBeGreaterThan(0);
+  });
+
+  it("fails closed before month execution on a tampered artifact", () => {
+    const dir = copyArtifact();
+    const artifactPath = join(dir, CONTENT_ARTIFACT_FILENAME);
+    const value = JSON.parse(readFileSync(artifactPath, "utf8")) as Record<string, unknown>;
+    (value as { campaign?: { fleets: unknown[] } }).campaign = { fleets: [] };
+    writeFileSync(artifactPath, JSON.stringify(value), "utf8");
+
+    const collector = new DiagnosticCollector();
+    const output = compileProductionCampaignFromArtifact(
+      dir,
+      new AbortController().signal,
+      collector,
+    );
+    expect(output).toBeUndefined();
+    expect(collector.all.some((d) => d.code === "CONTENT_ARTIFACT_INVALID")).toBe(true);
   });
 });

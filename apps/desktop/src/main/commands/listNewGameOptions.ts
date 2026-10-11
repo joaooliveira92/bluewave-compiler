@@ -12,8 +12,8 @@ import type {
   NewGameOptions,
   NewGameScenario,
 } from "../../shared/new-game-contract.js";
-import { compileProductionCampaign } from "../compiler.js";
-import { resolveProductionPackDir } from "../contentPack.js";
+import { compileProductionCampaignFromArtifact } from "../compiler.js";
+import { resolveGeneratedContentDir } from "../contentPack.js";
 
 /**
  * `content/production/1880` is the only pack this MVP compiles against, and
@@ -33,14 +33,14 @@ function humanizePoliticalSystem(id: string): string {
 }
 
 export async function listNewGameOptions(
-  contentDir: string = resolveProductionPackDir(),
+  artifactDir: string = resolveGeneratedContentDir(),
 ): Promise<BridgeResult<NewGameOptions>> {
   const signal = new AbortController().signal;
   const collector = new DiagnosticCollector();
 
-  let output: ReturnType<typeof compileProductionCampaign>;
+  let output: ReturnType<typeof compileProductionCampaignFromArtifact>;
   try {
-    output = compileProductionCampaign(contentDir, signal, collector);
+    output = compileProductionCampaignFromArtifact(artifactDir, signal, collector);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { outcome: "error", reason: "COMPILE_FAILED", diagnostics: [message] };
