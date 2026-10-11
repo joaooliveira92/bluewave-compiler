@@ -29,16 +29,8 @@ export function RulesOfTheNavalAgeScreen({
   onNext,
   onPrimaryActionChange,
 }: RulesOfTheNavalAgeScreenProps) {
-  const {
-    state,
-    options,
-    preferences,
-    scenario,
-    ready,
-    activePreset,
-    setPreference,
-    selectPreset,
-  } = useNavalAgePreferences(recommendedPreset);
+  const { state, options, preferences, ready, activePreset, setPreference, selectPreset } =
+    useNavalAgePreferences(recommendedPreset);
 
   const handlePreferenceChange = useCallback(
     (field: keyof DraftPreferences, value: string) => {
@@ -100,7 +92,6 @@ export function RulesOfTheNavalAgeScreen({
             campaignSeed={preferences.campaignSeed}
             fleetSize={preferences.fleetSize}
             scenarios={options.scenarios}
-            selectedScenario={scenario}
             fleetSizeOptions={options.supportedValues.fleetSize ?? []}
             onScenarioChange={onScenarioChange}
             onFleetSizeChange={onFleetSizeChange}

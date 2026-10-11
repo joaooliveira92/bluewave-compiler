@@ -1,7 +1,9 @@
+import type { LucideIcon } from "lucide-react";
+import { Hourglass, Signal, SignalHigh, SignalLow, SignalMedium } from "lucide-react";
 import { memo } from "react";
 import type { NewGameScenario } from "../../../../shared/new-game-contract.js";
 import { CardContent, CardHeader, CardTitle } from "../../../components/ui/card.js";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "../../../components/ui/field.js";
+import { Field, FieldGroup, FieldLabel } from "../../../components/ui/field.js";
 import { Input } from "../../../components/ui/input.js";
 import {
   Select,
@@ -11,14 +13,29 @@ import {
   SelectValue,
 } from "../../../components/ui/select.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
-import { fleetSizeLabel, fleetSizeReadout } from "../rules-of-the-naval-age-content.js";
+import {
+  fleetSizeLabel,
+  fleetSizeReadout,
+  scenarioEraDescription,
+} from "../rules-of-the-naval-age-content.js";
+
+/** A rising signal-strength glyph reads as fleet scale, one step per size. */
+const FLEET_SIZE_ICONS: Record<string, LucideIcon> = {
+  small: SignalLow,
+  standard: SignalMedium,
+  large: SignalHigh,
+  very_large: Signal,
+};
+
+function fleetSizeIcon(valueId: string): LucideIcon {
+  return FLEET_SIZE_ICONS[valueId] ?? SignalMedium;
+}
 
 export interface EraScaleSectionProps {
   readonly scenarioId: string;
   readonly campaignSeed: string;
   readonly fleetSize: string;
   readonly scenarios: readonly NewGameScenario[];
-  readonly selectedScenario: NewGameScenario | null;
   readonly fleetSizeOptions: readonly string[];
   readonly onScenarioChange: (id: string) => void;
   readonly onFleetSizeChange: (value: string) => void;
@@ -30,7 +47,6 @@ export const EraScaleSection = memo(function EraScaleSection({
   campaignSeed,
   fleetSize,
   scenarios,
-  selectedScenario,
   fleetSizeOptions,
   onScenarioChange,
   onFleetSizeChange,
@@ -51,18 +67,17 @@ export const EraScaleSection = memo(function EraScaleSection({
               </SelectTrigger>
               <SelectContent>
                 {scenarios.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
+                  <SelectItem
+                    key={option.id}
+                    value={option.id}
+                    icon={<Hourglass aria-hidden="true" className="size-4" />}
+                    description={scenarioEraDescription(option)}
+                  >
                     {option.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {selectedScenario !== null && (
-              <FieldDescription>
-                Begins {selectedScenario.startMonth}/{selectedScenario.startYear} ·{" "}
-                {selectedScenario.participantNationIds.length} nations
-              </FieldDescription>
-            )}
           </Field>
 
           <Field>
@@ -77,14 +92,21 @@ export const EraScaleSection = memo(function EraScaleSection({
                 <SelectValue placeholder="Select fleet size" />
               </SelectTrigger>
               <SelectContent>
-                {fleetSizeOptions.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {fleetSizeLabel(option)}
-                  </SelectItem>
-                ))}
+                {fleetSizeOptions.map((option) => {
+                  const Icon = fleetSizeIcon(option);
+                  return (
+                    <SelectItem
+                      key={option}
+                      value={option}
+                      icon={<Icon aria-hidden="true" className="size-4" />}
+                      description={fleetSizeReadout(option)}
+                    >
+                      {fleetSizeLabel(option)}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
-            {fleetSize !== "" && <FieldDescription>{fleetSizeReadout(fleetSize)}</FieldDescription>}
           </Field>
 
           <Field>
