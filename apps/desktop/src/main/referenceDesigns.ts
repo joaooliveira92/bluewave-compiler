@@ -1,8 +1,8 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { DesignDraft } from "@bluewave/ship-design";
-import { parse } from "yaml";
-import { resolveProductionPackDir } from "./contentPack.js";
+import type { ShipBuildingCatalogue } from "@bluewave/content-compiler";
+
+import { ContentArtifactError, readContentArtifact } from "./contentArtifact.js";
+import { resolveGeneratedContentDir } from "./contentPack.js";
 
 /** A raw reference design as authored under `ship-building/reference-designs/<nation>/` (ADR-0109). */
 export interface RawReferenceDesignFile {
@@ -13,17 +13,20 @@ export interface RawReferenceDesignFile {
   readonly draft: DesignDraft;
 }
 
-/** Read every reference design from the per-nation directory tree (starters.yaml + historical.yaml). */
+/**
+ * Every reference design, read from the compiled content artifact (ADR-0122) —
+ * never from raw YAML. The artifact preserves the authored discovery order
+ * (UK-first, starters then historical), so the first starter stays the
+ * historical default (ADR-0109).
+ */
 export function readReferenceDesigns(): RawReferenceDesignFile[] {
-  const base = join(resolveProductionPackDir(), "ship-building", "reference-designs");
-  return readdirSync(base)
-    .sort()
-    .flatMap((nation) =>
-      ["starters.yaml", "historical.yaml"].flatMap((name) => {
-        const path = join(base, nation, name);
-        return existsSync(path)
-          ? (parse(readFileSync(path, "utf8")) as { designs: RawReferenceDesignFile[] }).designs
-          : [];
-      }),
+  const { bundle } = readContentArtifact(resolveGeneratedContentDir());
+  const catalogue = bundle.shipBuilding as ShipBuildingCatalogue | undefined;
+  if (catalogue === undefined) {
+    throw new ContentArtifactError(
+      "CONTENT_ARTIFACT_INVALID",
+      "The compiled content artifact carries no ship-building catalogue.",
     );
+  }
+  return catalogue.referenceDesigns as RawReferenceDesignFile[];
 }

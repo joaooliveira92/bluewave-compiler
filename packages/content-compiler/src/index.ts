@@ -95,3 +95,20 @@ export { BUNDLE_GENERATED_BY, CompileStage } from "./stages/compile.js";
 export { NormalizeStage } from "./stages/normalize.js";
 export { ParseStage } from "./stages/parse.js";
 export { ValidateStage } from "./stages/validate.js";
+export { safePath } from "./safePath.js";
+export { discoverShipBuildingFiles, type ShipBuildingFileGroups } from "./shipBuildingDiscovery.js";
+export { buildFullSurfaceInput } from "./fullSurface.js";
+export {
+  CONTENT_ARTIFACT_FILENAME,
+  CONTENT_BUNDLE_ARTIFACT_KIND,
+  CONTENT_BUNDLE_COMPATIBILITY_VERSION,
+  CONTENT_BUNDLE_MANIFEST_VERSION,
+  CONTENT_MANIFEST_FILENAME,
+  buildContentBundleArtifact,
+  verifyContentBundleArtifact,
+  writeContentBundleArtifact,
+  type ContentBundleArtifact,
+  type ContentBundleLike,
+  type ContentBundleManifest,
+  type ContentBundleVerification,
+} from "./artifact.js";

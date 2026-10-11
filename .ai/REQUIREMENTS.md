@@ -78,10 +78,10 @@ Requirement ID: BW-DET-003
 Canonical section: Determinism
 Normative summary: Identical authoritative inputs produce identical hashes across supported operating systems
 Status: verified
-Packages or symbols: deterministic (canonicalSerialize, sha256Hex, createEnvelope, verifyEnvelope), cross-process-test (run-child, cross-process.test)
-Tests: deterministic deterministic.test.ts — 11 tests covering serialization, hashing, envelope creation/verification; cross-process-test cross-process.test.ts — 2 cross-process child-process tests
-ADR references: ADR-0003, ADR-0007
-Validation evidence: Cross-process child-process test proves identical hashes across clean process restarts; CI matrix verifies Linux, Windows, and macOS; golden hash file committed
+Packages or symbols: deterministic (canonicalSerialize, sha256Hex, createEnvelope, verifyEnvelope), content-compiler (buildContentBundleArtifact), compiler-cli (content:build), cross-process-test (run-child, cross-process.test)
+Tests: deterministic deterministic.test.ts — 11 tests; content-compiler compiler.test.ts — repeated compilation identical hashes; compiler-cli content-surface.test.ts — two full-surface builds byte-identical; cross-process-test cross-process.test.ts — 2 tests
+ADR references: ADR-0003, ADR-0007, ADR-0122
+Validation evidence: Cross-process child-process test proves identical hashes across clean process restarts; the compiled content artifact is byte-identical across builds; CI matrix verifies Linux, Windows, and macOS; golden hash file committed
 ```
 
 ```text
@@ -89,10 +89,21 @@ Requirement ID: BW-RUL-002
 Canonical section: Content rules
 Normative summary: Authored normal events and content do not execute arbitrary scripts
 Status: implemented
-Packages or symbols: content-schema (parseYamlSafe)
-Tests: content-schema yaml-parser.test.ts — malformed YAML rejected; excessive size rejected
-ADR references: ADR-0005
-Validation evidence: YAML parser uses `yaml` package with no executable tags; size and nesting limits enforced
+Packages or symbols: content-schema (parseYamlSafe), content-compiler (inert artifact), desktop (contentArtifact)
+Tests: content-schema yaml-parser.test.ts — malformed YAML rejected; compiler-cli content-surface.test.ts — do-not-edit marker; desktop contentArtifact.test.ts — tampered/absent artifact fails closed
+ADR references: ADR-0005, ADR-0122, ADR-0123
+Validation evidence: YAML parser uses `yaml` package with no executable tags; size, nesting and alias limits enforced; the compiled artifact is inert JSON, verified before the app runs on it
+```
+
+```text
+Requirement ID: BW-PER-001
+Canonical section: Persistence
+Normative summary: Save files pin content, formula, AI, RNG, and format compatibility versions
+Status: implemented
+Packages or symbols: desktop (contentArtifact, shipBuildingContent)
+Tests: shipBuildingContent.test.ts; continuityCommands.test.ts
+ADR references: ADR-0093, ADR-0109, ADR-0123
+Validation evidence: Recorded content identity is the artifact's canonical body hash, domain-separated; startup verification fails closed on a tampered or absent artifact
 ```
 
 ```text

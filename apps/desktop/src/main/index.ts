@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
 import { resolve } from "node:path";
 import { applyContentSecurityPolicy } from "./csp.js";
 import { dispatchCampaignCommand } from "./campaignBridge.js";
+import { ContentArtifactError, loadContentArtifact } from "./contentArtifact.js";
 import { isDebugModeEnabled } from "./debugGate.js";
 import { withModernExtensionApi } from "./extensionSession.js";
 import {
@@ -229,6 +230,22 @@ if (!app.requestSingleInstanceLock()) {
 
     registerIpc();
     installBoundedShutdown();
+
+    // The app runs only on compiled, validated content (ticket 03). Verify the
+    // artifact before any window exists; a missing/tampered artifact fails
+    // closed with an explicit error rather than silently running raw content.
+    try {
+      loadContentArtifact();
+    } catch (error) {
+      const message =
+        error instanceof ContentArtifactError
+          ? error.message
+          : `The compiled content artifact could not be verified: ${
+              error instanceof Error ? error.message : String(error)
+            }`;
+      hardFail(message);
+      return;
+    }
 
     createWindow();
 

@@ -1,11 +1,21 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vite-plus/test";
+import { hashWithContext } from "@bluewave/deterministic";
+
+import { readContentArtifact } from "./contentArtifact.js";
+import { resolveGeneratedContentDir } from "./contentPack.js";
 import {
   armamentContentHash,
   loadShipBuildingContent,
   shipBuildingContentHash,
 } from "./shipBuildingContent.js";
 
-describe("ship-building runtime content (ADR-0093 Step 3)", () => {
+const mainDir = dirname(fileURLToPath(import.meta.url));
+
+describe("ship-building runtime content (ADR-0093 Step 3, ADR-0123)", () => {
   it("loads first-class armament content into the runtime context", () => {
     const content = loadShipBuildingContent();
     expect(content.armament).not.toBeNull();
@@ -22,5 +32,29 @@ describe("ship-building runtime content (ADR-0093 Step 3)", () => {
     // Deterministic across repeated calls in the same process.
     expect(shipBuildingContentHash()).toBe(legacy);
     expect(armamentContentHash()).toBe(armament);
+  });
+
+  it("derives the recorded identity from the artifact body hash, not raw file bytes", () => {
+    const { manifest } = readContentArtifact(resolveGeneratedContentDir());
+    expect(shipBuildingContentHash()).toBe(
+      hashWithContext(manifest.bodyHash, "ship-building-content"),
+    );
+    expect(armamentContentHash()).toBe(hashWithContext(manifest.bodyHash, "armament-content"));
+  });
+
+  it("reads no raw ship-building or reference-design YAML in the main process", () => {
+    // No main-process module imports the raw `yaml` parser at runtime.
+    const sources = readdirSync(mainDir, { recursive: true })
+      .map(String)
+      .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"));
+    for (const file of sources) {
+      expect(readFileSync(join(mainDir, file), "utf8"), file).not.toMatch(/from "yaml"/);
+    }
+    // The content loaders read neither the filesystem nor the schema package.
+    for (const file of ["./shipBuildingContent.ts", "./referenceDesigns.ts"]) {
+      const source = readFileSync(new URL(file, import.meta.url), "utf8");
+      expect(source).not.toMatch(/node:fs/);
+      expect(source).not.toMatch(/@bluewave\/content-schema/);
+    }
   });
 });

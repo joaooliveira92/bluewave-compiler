@@ -1,7 +1,7 @@
 # 03 — Main process runs on the compiled artifact (no raw YAML at runtime)
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** 02
 **Frontier:** no
 
@@ -41,3 +41,49 @@ what CI proved is now exactly what executes.
   something weaker than today's file-bytes hash.
 - Runtime-free validation stays in the schema package; main consumes already
   decoded/normalized artifact data.
+
+## Comments
+
+**Resolved.** The Electron main process now runs on the compiled artifact
+(ADR-0122) instead of reading raw ship-building / reference-design YAML:
+
+- `@bluewave/content-compiler` gained the shared artifact contract:
+  `buildContentBundleArtifact` / `writeContentBundleArtifact` /
+  `verifyContentBundleArtifact` (+ the `content-bundle` kind/version constants and
+  `ContentBundleManifest`). `buildFullSurfaceInput` and the ship-building file
+  discovery + `safePath` moved into the package so the CLI and the runtime share
+  one discovery path. `compiler-cli`'s `content:check`/`content:build` are now
+  thin aliases over the shared builder (byte-identical output; production hash
+  `b54fd387…` unchanged).
+- `apps/desktop/src/main/contentArtifact.ts` reads and **verifies** the artifact
+  (manifest kind/version/algorithm, do-not-edit marker, and SHA-256 body hash via
+  `verifyEnvelope`); a missing, unreadable, tampered, or version-mismatched
+  artifact raises a stable `ContentArtifactError` and the app fails closed.
+  `index.ts` verifies at startup before any window exists (CRI-MAIN-4).
+- `shipBuildingContent.ts` and `referenceDesigns.ts` no longer import `yaml`,
+  `node:fs`, or `@bluewave/content-schema`; they hand the artifact's
+  already-decoded catalogue to `buildShipBuildingContent` (CRI-MAIN-1). A source
+  test asserts the forbidden imports stay gone.
+- **Content identity is artifact-derived** (ADR-0123): `shipBuildingContentHash`
+  / `armamentContentHash` are the artifact manifest's canonical `bodyHash` under a
+  domain-separated envelope. A content change is an expected content update
+  (still `REPLAY_CONTENT_CHANGED`), never a divergence; older saves keep the hash
+  they recorded (CRI-MAIN-3).
+- The artifact is generated before the app/tests run: desktop `dev`/`build`
+  scripts and the vitest `globalSetup` call `scripts/build-content.mjs` (the same
+  pipeline), and `content/generated/<scenario>/` stays git-ignored.
+
+**Interpretation recorded (CRI-MAIN-2).** "Campaign compile / new-game option
+listing / month execution run on artifact-derived content" is satisfied for the
+ship-building + reference-design content these flows execute: month execution
+injects `loadShipBuildingContent()` (artifact-derived), and the recorded identity
+is artifact-derived. The content-pack *collections* (rulesets/nations/areas/…)
+are still compiled by `CampaignCompiler` through the hardened `parseYamlSafe`
+parser (not raw `yaml` in main); folding those into the runtime artifact too would
+require the campaign-file collections in the bundle and is a larger change than
+this ticket's raw-YAML-at-runtime scope. Recorded, not silently dropped.
+
+Tests: content-compiler 18; compiler-cli 99 (incl. content-surface 4); desktop
+246 files / 1628 tests (incl. new `contentArtifact.test.ts` and the
+artifact-derived identity assertions). `pnpm preflight` green; `pnpm typecheck`
+green; production artifact byte-stable.

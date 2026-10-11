@@ -14,3 +14,14 @@ import { resolve } from "node:path";
 export function resolveProductionPackDir(): string {
   return resolve(import.meta.dirname, "../../../..", "content", "production", "1880");
 }
+
+/**
+ * Resolves the generated content artifact directory (`content/generated/1880`)
+ * relative to this file, using the same repo-root depth as
+ * `resolveProductionPackDir`. The artifact is produced by `content:build`
+ * (ADR-0122) and consumed read-only by the main process (ticket 03); the
+ * packaged-app resolution from application resources is ticket 05.
+ */
+export function resolveGeneratedContentDir(): string {
+  return resolve(import.meta.dirname, "../../../..", "content", "generated", "1880");
+}

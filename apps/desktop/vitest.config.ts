@@ -12,6 +12,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    globalSetup: ["./scripts/content-global-setup.mjs"],
     setupFiles: ["./src/renderer/test-setup.ts"],
     testTimeout: 60000,
     environment: "jsdom",
