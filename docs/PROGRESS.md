@@ -719,8 +719,11 @@ throughout. Pre-existing unrelated failures: `content-schema/test/nation.test.ts
 > removed from the package); `PERSISTENCE_*` codes as `Data.TaggedError`; the
 > `DiagnosticCollector` retained; wire shape frozen and proven byte-identical
 > (MIG-WIRE-4); cancellation/rollback untouched; ADR-0104. Report:
-> `.ai/reports/effect-v4-ticket-06-persistence-beachhead.md`. Next: **ticket 07**
-> (Wave 1 exit gate & rollback checkpoint).
+> `.ai/reports/effect-v4-ticket-06-persistence-beachhead.md`. **Ticket 07**
+> (Wave 1 exit gate & rollback checkpoint) **DONE 2026-10-11 — PASS**: both Wave 1
+> packages accepted; `pnpm check` EXIT 0; rollback point `6cc0e414`. **Wave 1
+> COMPLETE.** Report: `.ai/reports/effect-v4-wave1-exit-gate.md`. Next: **ticket
+> 08** (Wave 2 — `content-schema` Zod→Effect Schema boundary, atomic).
 
 ---
 

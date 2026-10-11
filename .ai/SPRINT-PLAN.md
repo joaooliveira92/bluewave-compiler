@@ -319,8 +319,12 @@ boundary (`zod` removed from the package), `PERSISTENCE_*` codes as `Data.Tagged
 `DiagnosticCollector` retained, wire shape frozen and proven byte-identical (MIG-WIRE-4),
 cancellation/rollback untouched; **ADR-0104**. Reviewer HIGH (Zod-v4 `z.number()` non-finite
 parity) repaired via `Schema.Finite` + regression test. `pnpm check` EXIT 0; goldens 10/10;
-cross-process `success:true`. Next action: **ticket 07** (Wave 1 exit gate & rollback checkpoint),
-then work the frontier per `.ai/ORCHESTRATION.md`. Vendor the Effect v4 runtime as first-class pnpm workspace packages
+cross-process `success:true`. **Ticket 07 (Wave 1 exit gate & rollback checkpoint) DONE
+2026-10-11 — PASS** (`.ai/reports/effect-v4-wave1-exit-gate.md`): `diagnostics` + `persistence`
+beachhead accepted; `PERSISTENCE_*` tagged errors survive; saves round-trip loadably; `pnpm check`
+EXIT 0; rollback point `6cc0e414` (Wave 0 exit). **Wave 1 COMPLETE.** Next action: **ticket 08**
+(Wave 2 — `content-schema` Zod→Effect Schema boundary, atomic), then work the frontier per
+`.ai/ORCHESTRATION.md`. Vendor the Effect v4 runtime as first-class pnpm workspace packages
 (no registry resolution), enforce the single-copy graph invariant, migrate every Zod boundary
 to Effect Schema, and flip cross-package facades to Effect-typed interfaces; determinism-gate
 drift is recorded via ADR, never a blocker (ticket 05).
