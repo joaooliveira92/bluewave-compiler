@@ -464,6 +464,9 @@ importers:
       '@bluewave/contracts':
         specifier: workspace:*
         version: link:../contracts
+      effect:
+        specifier: workspace:*
+        version: link:../../vendor/effect
 
   packages/events:
     dependencies:

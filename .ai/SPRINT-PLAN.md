@@ -306,13 +306,20 @@ exit gate & rollback checkpoint) DONE 2026-10-11 — PASS**
 (`.ai/reports/effect-v4-wave0-exit-gate.md`): vendor integrity-verified; single-copy guard
 green; `repos/effect` excluded and documented; `pnpm check` green end-to-end; Wave 0 delta
 confined to vendor/repos/toolchain/scripts/docs with **zero domain-package changes**; rollback
-point recorded (`95efface` baseline, no domain code to unwind). **Wave 0 COMPLETE.** Next
-action: **ticket 05** (Wave 1 beachhead — `diagnostics` typed-error foundation using
-`Data.TaggedError`, first real `workspace:*` consumer of `effect`), then work the frontier per
-`.ai/ORCHESTRATION.md`. Vendor the Effect v4 runtime as first-class pnpm workspace packages
-(no registry resolution), enforce the single-copy graph invariant, migrate every Zod boundary
-to Effect Schema, and flip cross-package facades to Effect-typed interfaces; determinism-gate
-drift is recorded via ADR, never a blocker (ticket 05).
+point recorded (`95efface` baseline, no domain code to unwind). **Wave 0 COMPLETE.** **Ticket 05
+(Wave 1 beachhead — `diagnostics` typed-error foundation) DONE 2026-10-11 — PASS**
+(`.ai/reports/effect-v4-ticket-05-diagnostics-typed-errors.md`): `@bluewave/diagnostics` is the
+first real `workspace:*` consumer of `effect`; adds `DiagnosticError` (`Data.TaggedError`,
+runtime-free) with `toDiagnostic()`; `DiagnosticCollector` facade and `DiagnosticCode` unchanged;
+diagnostics 10/10. Gate green: build 20/20, typecheck 37/37, lint 0/0, `lint:effect` 0 errors,
+format clean, `pnpm test:run` 1554 tests, goldens 10/10, cross-process `success:true`. Next
+action: **ticket 06** (persistence beachhead — Effect Schema at the save boundary, Effect runtime
+
+- `Scope`/`AbortSignal` cancellation, tagged `PERSISTENCE_*` errors), then work the frontier per
+  `.ai/ORCHESTRATION.md`. Vendor the Effect v4 runtime as first-class pnpm workspace packages
+  (no registry resolution), enforce the single-copy graph invariant, migrate every Zod boundary
+  to Effect Schema, and flip cross-package facades to Effect-typed interfaces; determinism-gate
+  drift is recorded via ADR, never a blocker (ticket 05).
 
 **P-1 CLOSE-OUT / ACCEPTANCE GATE — DONE 2026-10-09 — PASS.** All 12 tickets (01–12; 05 superseded by 07) and AC-1..AC-8 are proven. Full orchestrator gate green: clean uncached build 19/19, typecheck (`tsc -b`) 35/35, lint 0/0, format clean, `pnpm test:run` EXIT=0 (18 package suites; desktop 194 files/1302 tests), golden hashes 10/10, `test:cross-process` `success:true`, `test:e2e` 24 passed. AC-7 proves campaign reachability from a compiled production-pack battle (`production-pack-loop.test.ts`); AC-3 proves the as-built 1880-roster fits; AC-8 is the torpedo-armed battle-resolution child. The gate also repaired a **pre-existing** committed regression (commit `84184d9` had deleted the dossier nation-name heading and commented out `DossierControls`, failing lint/format/4 tests); repaired behaviour-preservingly. Report `.ai/reports/p1-battles-that-matter-acceptance.md`.
 

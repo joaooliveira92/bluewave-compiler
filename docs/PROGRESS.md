@@ -708,9 +708,14 @@ throughout. Pre-existing unrelated failures: `content-schema/test/nation.test.ts
 > integrity-verified, single-copy guard green, `repos/effect` excluded and
 > documented, `pnpm check` green end-to-end, Wave 0 delta confined with **zero
 > domain-package changes**, rollback point recorded. **Wave 0 COMPLETE.** Report:
-> `.ai/reports/effect-v4-wave0-exit-gate.md`. Next: **ticket 05** (Wave 1
-> beachhead — `diagnostics` typed-error foundation; first real `workspace:*`
-> consumer of `effect`).
+> `.ai/reports/effect-v4-wave0-exit-gate.md`. **Ticket 05** (Wave 1 beachhead —
+> `diagnostics` typed-error foundation) **DONE 2026-10-11 — PASS**:
+> `@bluewave/diagnostics` is the first real `workspace:*` consumer of `effect`;
+> adds runtime-free `DiagnosticError` (`Data.TaggedError`) with `toDiagnostic()`;
+> the `DiagnosticCollector` facade and `DiagnosticCode` are unchanged. Report:
+> `.ai/reports/effect-v4-ticket-05-diagnostics-typed-errors.md`. Next: **ticket
+> 06** (persistence beachhead — Effect Schema at the save boundary, Effect
+> runtime + `Scope`/`AbortSignal` cancellation, tagged `PERSISTENCE_*` errors).
 
 ---
 

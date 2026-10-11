@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vite-plus/test";
-import { DiagnosticCollector } from "../src/index.js";
+import { DiagnosticCollector, DiagnosticError, type DiagnosticCode } from "../src/index.js";
 
 describe("DiagnosticCollector", () => {
   it("starts empty", () => {
@@ -56,5 +56,65 @@ describe("DiagnosticCollector", () => {
     c.addError("TEST-ERR", "failure", { stage: "test" });
     c.clear();
     expect(c.all).toHaveLength(0);
+  });
+});
+
+describe("DiagnosticError", () => {
+  it("is a tagged, yieldable Error carrying the diagnostic fields", () => {
+    const error = new DiagnosticError({
+      code: "TEST-ERR" as DiagnosticCode,
+      message: "Something went wrong",
+      stage: "test",
+    });
+    expect(error._tag).toBe("DiagnosticError");
+    expect(error).toBeInstanceOf(Error);
+    expect(error.code).toBe("TEST-ERR");
+    expect(error.message).toBe("Something went wrong");
+    expect(error.stage).toBe("test");
+  });
+
+  it("projects onto a Diagnostic with error severity and default stage", () => {
+    const error = new DiagnosticError({
+      code: "TEST-ERR" as DiagnosticCode,
+      message: "failure",
+      sourceLocation: { path: "file.yaml", line: 5 },
+      entityId: "ship-1",
+      remediation: "fix it",
+    });
+    expect(error.toDiagnostic()).toEqual({
+      code: "TEST-ERR",
+      severity: "error",
+      stage: "unknown",
+      message: "failure",
+      sourceLocation: { path: "file.yaml", line: 5 },
+      entityId: "ship-1",
+      relatedLocations: undefined,
+      remediation: "fix it",
+    });
+  });
+
+  it("collects identically to addError for the same input (facade parity)", () => {
+    const direct = new DiagnosticCollector();
+    direct.addError("TEST-ERR", "failure", {
+      stage: "check",
+      sourceLocation: { path: "file.yaml", line: 5 },
+      entityId: "ship-1",
+      remediation: "fix it",
+    });
+
+    const viaError = new DiagnosticCollector();
+    viaError.add(
+      new DiagnosticError({
+        code: "TEST-ERR" as DiagnosticCode,
+        message: "failure",
+        stage: "check",
+        sourceLocation: { path: "file.yaml", line: 5 },
+        entityId: "ship-1",
+        remediation: "fix it",
+      }).toDiagnostic(),
+    );
+
+    expect(viaError.toJSON()).toBe(direct.toJSON());
+    expect(viaError.toHuman()).toBe(direct.toHuman());
   });
 });

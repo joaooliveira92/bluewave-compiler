@@ -1,3 +1,5 @@
+import { Data } from "effect";
+
 export type Severity = "error" | "warning" | "info";
 
 export type DiagnosticCode = string & { readonly __diagnosticCode: never };
@@ -17,6 +19,39 @@ export interface Diagnostic {
   entityId?: string;
   relatedLocations?: SourceLocation[];
   remediation?: string;
+}
+
+/**
+ * In-process, yieldable diagnostics error.
+ *
+ * `Data.TaggedError` (not `Schema.TaggedError`) is the idiom for domain errors
+ * that never cross a wire/serialization boundary; diagnostics are raised and
+ * handled inside the process, so this stays runtime-free (`MIG-RUNTIME-1`).
+ * The `_tag` discriminator is `"DiagnosticError"`, so later waves can recover
+ * on it with `Effect.catchTag` without this package importing the runtime.
+ */
+export class DiagnosticError extends Data.TaggedError("DiagnosticError")<{
+  readonly code: DiagnosticCode;
+  readonly message: string;
+  readonly stage?: string;
+  readonly sourceLocation?: SourceLocation;
+  readonly entityId?: string;
+  readonly relatedLocations?: SourceLocation[];
+  readonly remediation?: string;
+}> {
+  /** Project this error onto the plain `Diagnostic` shape the collector accepts. */
+  toDiagnostic(): Diagnostic {
+    return {
+      code: this.code,
+      severity: "error",
+      stage: this.stage ?? "unknown",
+      message: this.message,
+      sourceLocation: this.sourceLocation,
+      entityId: this.entityId,
+      relatedLocations: this.relatedLocations,
+      remediation: this.remediation,
+    };
+  }
 }
 
 export class DiagnosticCollector {

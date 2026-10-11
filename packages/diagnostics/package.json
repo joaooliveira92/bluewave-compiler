@@ -10,7 +10,8 @@
     }
   },
   "dependencies": {
-    "@bluewave/contracts": "workspace:*"
+    "@bluewave/contracts": "workspace:*",
+    "effect": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

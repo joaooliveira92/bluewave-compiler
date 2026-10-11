@@ -3,7 +3,7 @@
 **Type:** implementation
 **Status:** open
 **Blocked by:** 05 (typed-error foundation)
-**Frontier:** no
+**Frontier:** yes
 
 ## What to build
 
