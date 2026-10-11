@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0105).
+highest existing number + 1 (the next number is ADR-0106).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -43,6 +43,7 @@ Adopting and vendoring Effect v4: the validator/runtime idiom, the read-only age
 | 0102 | [ADR-0102-replace-zod-with-effect-schema.md](ADR-0102-replace-zod-with-effect-schema.md) | Replace Zod with Effect Schema | accepted | — |
 | 0103 | [ADR-0103-design-08-determinism-spine-demoted.md](ADR-0103-design-08-determinism-spine-demoted.md) | DESIGN-08 determinism spine demoted | accepted | — |
 | 0104 | [ADR-0104-persistence-effect-beachhead.md](ADR-0104-persistence-effect-beachhead.md) | `persistence` Effect beachhead — Schema save boundary + tagged errors | accepted | — |
+| 0105 | [ADR-0105-content-schema-effect-boundary.md](ADR-0105-content-schema-effect-boundary.md) | `content-schema` Effect Schema boundary — strict excess-key policy | accepted | — |
 
 ## Campaign & strategy
 

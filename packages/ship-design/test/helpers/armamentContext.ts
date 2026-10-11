@@ -6,6 +6,7 @@ import {
   GunFamilyCatalogueSchema,
   GunModelCatalogueSchema,
   GunMountCatalogueSchema,
+  decodeStrict,
 } from "@bluewave/content-schema";
 import {
   starterFor,
@@ -24,10 +25,10 @@ const read = (rel: string) => parse(readFileSync(join(armamentDir, rel), "utf8")
 
 /** The authored armament content, schema-validated exactly as the release gate sees it. */
 export const armamentContent: AuthoredArmamentContent = {
-  gunFamilies: GunFamilyCatalogueSchema.parse(read("gun-families.yaml")).gunFamilies,
-  gunModels: GunModelCatalogueSchema.parse(read("gun-models.yaml")).gunModels,
-  gunMounts: GunMountCatalogueSchema.parse(read("gun-mounts.yaml")).gunMounts,
-  ammunition: AmmunitionCatalogueSchema.parse(read("ammunition.yaml")).ammunition,
+  gunFamilies: decodeStrict(GunFamilyCatalogueSchema, read("gun-families.yaml")).gunFamilies,
+  gunModels: decodeStrict(GunModelCatalogueSchema, read("gun-models.yaml")).gunModels,
+  gunMounts: decodeStrict(GunMountCatalogueSchema, read("gun-mounts.yaml")).gunMounts,
+  ammunition: decodeStrict(AmmunitionCatalogueSchema, read("ammunition.yaml")).ammunition,
 } as unknown as AuthoredArmamentContent;
 
 const GUN_CATEGORIES = new Set(["MAIN_GUN", "SECONDARY_GUN", "DUAL_PURPOSE_GUN", "AA_WEAPON"]);

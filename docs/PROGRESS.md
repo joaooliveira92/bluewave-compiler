@@ -36,6 +36,17 @@ Live roadmap / next-action detail: `.ai/SPRINT-PLAN.md`.
 > `.ai/reports/p1-battles-that-matter-acceptance.md`. **Next: P-2 ship designer** — the
 > `.scratch/ship-building/` implementation has largely landed (tickets 00–35, ADRs 0063–0078);
 > remaining frontier: tickets 22, 26, 28 (rebuild cancellation settlement), 30, then a P-2 gate.
+>
+> **2026-10-11: EFFECT-V4 vendored migration — Wave 1 COMPLETE; Wave 2 begun.**
+> Tickets 01–07 (vendor, guard, tsgo gate, Wave 0/1 exit) DONE. **Ticket 08
+> (`content-schema` Zod→Effect Schema, atomic) + paired ticket 09
+> (`content-compiler` validate coupling) DONE — PASS**: all 16 schema files on
+> Effect Schema, `zod` removed from both packages, strict `onExcessProperty:
+> "error"` policy centralized in `decode.ts` (ADR-0105), every transitive consumer
+> migrated. Gate green (build 20/20, typecheck 37/37, lint 0/0, `test:run` 241
+> files/1554 tests, goldens 10/10, cross-process `success:true`, e2e 30). Report
+> `.ai/reports/effect-v4-ticket-08-content-schema.md`. **Next: ticket 10** (`events`
+> validation), then 11–15 to close Wave 2.
 
 ---
 

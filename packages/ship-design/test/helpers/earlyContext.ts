@@ -10,6 +10,7 @@ import {
   PropulsionPlantCatalogueSchema,
   ShipComponentCatalogueSchema,
   ShipHullFormCatalogueSchema,
+  decodeStrict,
 } from "@bluewave/content-schema";
 import {
   buildShipBuildingContent,
@@ -37,18 +38,25 @@ const loadArmament = (rel: string) =>
 
 /** First-class armament content, schema-validated as the runtime loader sees it (ADR-0093 Step 3). */
 export const armamentContent: AuthoredArmamentContent = {
-  gunFamilies: GunFamilyCatalogueSchema.parse(loadArmament("gun-families.yaml")).gunFamilies,
-  gunModels: GunModelCatalogueSchema.parse(loadArmament("gun-models.yaml")).gunModels,
-  gunMounts: GunMountCatalogueSchema.parse(loadArmament("gun-mounts.yaml")).gunMounts,
-  ammunition: AmmunitionCatalogueSchema.parse(loadArmament("ammunition.yaml")).ammunition,
+  gunFamilies: decodeStrict(GunFamilyCatalogueSchema, loadArmament("gun-families.yaml"))
+    .gunFamilies,
+  gunModels: decodeStrict(GunModelCatalogueSchema, loadArmament("gun-models.yaml")).gunModels,
+  gunMounts: decodeStrict(GunMountCatalogueSchema, loadArmament("gun-mounts.yaml")).gunMounts,
+  ammunition: decodeStrict(AmmunitionCatalogueSchema, loadArmament("ammunition.yaml")).ammunition,
 } as unknown as AuthoredArmamentContent;
 
-export const components = ShipComponentCatalogueSchema.parse(load("ship-building/components.yaml"))
-  .components as ComponentDef[];
-export const plants = PropulsionPlantCatalogueSchema.parse(load("ship-building/plants.yaml"))
-  .plants as unknown as PropulsionPlant[];
-export const hullRecords = ShipHullFormCatalogueSchema.parse(load("ship-building/hull-forms.yaml"))
-  .hullForms as HullFormRecord[];
+export const components = decodeStrict(
+  ShipComponentCatalogueSchema,
+  load("ship-building/components.yaml"),
+).components as ComponentDef[];
+export const plants = decodeStrict(
+  PropulsionPlantCatalogueSchema,
+  load("ship-building/plants.yaml"),
+).plants as unknown as PropulsionPlant[];
+export const hullRecords = decodeStrict(
+  ShipHullFormCatalogueSchema,
+  load("ship-building/hull-forms.yaml"),
+).hullForms as HullFormRecord[];
 const balanceFile = load("ship-building/balance.yaml");
 export const shipBalance = shipBalanceFromRecord(balanceFile.ship);
 export const costBalance = balanceFile.cost as CostBalance;
@@ -65,8 +73,10 @@ export const shipBuildingData: ShipBuildingData = {
   hullForms: hullRecords,
   balance: balanceFile as unknown as ShipBuildingData["balance"],
   technologies: techs,
-  navalProfiles: NavalProfileCatalogueSchema.parse(load("ship-building/naval-profiles.yaml"))
-    .navalProfiles as unknown as NationNavalProfile[],
+  navalProfiles: decodeStrict(
+    NavalProfileCatalogueSchema,
+    load("ship-building/naval-profiles.yaml"),
+  ).navalProfiles as unknown as NationNavalProfile[],
   armament: armamentContent,
   referenceDesigns: (
     load("ship-building/reference-designs.yaml") as { designs: RawReferenceDesign[] }

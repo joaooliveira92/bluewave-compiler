@@ -10,9 +10,9 @@ import {
   RulesetManifestSchema,
   TechnologyPrerequisiteChainSchema,
   validateAgainstSchema,
+  type ContentSchema,
 } from "@bluewave/content-schema";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
-import type { ZodSchema } from "zod";
 
 import type { CompilerStage } from "../index.js";
 import type { ParseOutput } from "./parse.js";
@@ -63,7 +63,7 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
 
     if (!manifest) return undefined;
 
-    const schemas: Record<string, { schema: ZodSchema<unknown>; label: string }> = {
+    const schemas: Record<string, { schema: ContentSchema; label: string }> = {
       rulesets: { schema: RulesetManifestSchema, label: "RulesetManifest" },
       countries: { schema: NationSchema, label: "Nation" },
       areas: { schema: AreaSchema, label: "Area" },

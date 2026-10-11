@@ -322,9 +322,20 @@ parity) repaired via `Schema.Finite` + regression test. `pnpm check` EXIT 0; gol
 cross-process `success:true`. **Ticket 07 (Wave 1 exit gate & rollback checkpoint) DONE
 2026-10-11 — PASS** (`.ai/reports/effect-v4-wave1-exit-gate.md`): `diagnostics` + `persistence`
 beachhead accepted; `PERSISTENCE_*` tagged errors survive; saves round-trip loadably; `pnpm check`
-EXIT 0; rollback point `6cc0e414` (Wave 0 exit). **Wave 1 COMPLETE.** Next action: **ticket 08**
-(Wave 2 — `content-schema` Zod→Effect Schema boundary, atomic), then work the frontier per
-`.ai/ORCHESTRATION.md`. Vendor the Effect v4 runtime as first-class pnpm workspace packages
+EXIT 0; rollback point `6cc0e414` (Wave 0 exit). **Wave 1 COMPLETE.** **Ticket 08
+(Wave 2 — `content-schema` Zod→Effect Schema boundary, atomic) + paired ticket 09
+(`content-compiler` validate coupling) DONE 2026-10-11 — PASS**
+(`.ai/reports/effect-v4-ticket-08-content-schema.md`): all 16 `content-schema/src`
+files on Effect Schema, `zod` removed from `content-schema` + `content-compiler`;
+strict `onExcessProperty: "error"` policy centralized in `decode.ts` (`ADR-0105`);
+every transitive consumer migrated (`ship-design`, `phase-engine`, `campaign`,
+desktop). Gate: build 20/20 uncached, typecheck 37/37, lint 0/0, `lint:effect` 0
+errors, format clean, `test:run` 241 files/1554 tests, goldens 10/10,
+cross-process byte-identical `success:true`, e2e 30 passed. **Next action: ticket
+10** (Wave 2 — `events` validation Zod→Effect Schema, atomic), then continue the
+frontier per `.ai/ORCHESTRATION.md` (11 `campaign-engine` priorities, 12 `combat`
+contracts, 13 desktop main schemas, 14 remove `zod`, 15 Wave 2 exit gate). Vendor
+the Effect v4 runtime as first-class pnpm workspace packages
 (no registry resolution), enforce the single-copy graph invariant, migrate every Zod boundary
 to Effect Schema, and flip cross-package facades to Effect-typed interfaces; determinism-gate
 drift is recorded via ADR, never a blocker (ticket 05).

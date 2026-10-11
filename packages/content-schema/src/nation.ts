@@ -1,10 +1,11 @@
-import { z } from "zod";
+import { Schema } from "effect";
 
 // ══════════════════════════════════════════════════════════════════════
 // Nation IDs — 24 canonical nations, January 1880
 // ══════════════════════════════════════════════════════════════════════
 
-export const NationIdSchema = z.enum([
+/** Canonical 24-nation id list (January 1880). Exported so consumers/tests have a stable tuple. */
+export const NATION_IDS = [
   "uk",
   "germany",
   "usa",
@@ -29,18 +30,20 @@ export const NationIdSchema = z.enum([
   "korea",
   "persia",
   "siam",
-]);
-export type NationId = z.infer<typeof NationIdSchema>;
+] as const;
+
+export const NationIdSchema = Schema.Literals(NATION_IDS);
+export type NationId = typeof NationIdSchema.Type;
 
 // ══════════════════════════════════════════════════════════════════════
 // Regime enums — 1880-accurate
 // ══════════════════════════════════════════════════════════════════════
 
-export const RegimeTypeSchema = z.enum(["monarchy", "republic"]);
-export type RegimeType = z.infer<typeof RegimeTypeSchema>;
+export const RegimeTypeSchema = Schema.Literals(["monarchy", "republic"]);
+export type RegimeType = typeof RegimeTypeSchema.Type;
 
 /** Specific political systems that existed in January 1880 */
-export const PoliticalSystemSchema = z.enum([
+export const PoliticalSystemSchema = Schema.Literals([
   "constitutional_monarchy",
   "federal_constitutional_monarchy",
   "dual_monarchy",
@@ -52,9 +55,9 @@ export const PoliticalSystemSchema = z.enum([
   "khedivate_autonomous",
   "union_monarchy",
 ]);
-export type PoliticalSystem = z.infer<typeof PoliticalSystemSchema>;
+export type PoliticalSystem = typeof PoliticalSystemSchema.Type;
 
-export const StabilityLevelSchema = z.enum([
+export const StabilityLevelSchema = Schema.Literals([
   "very_high",
   "high",
   "moderate",
@@ -62,13 +65,13 @@ export const StabilityLevelSchema = z.enum([
   "fragile",
   "unstable",
 ]);
-export type StabilityLevel = z.infer<typeof StabilityLevelSchema>;
+export type StabilityLevel = typeof StabilityLevelSchema.Type;
 
 // ══════════════════════════════════════════════════════════════════════
 // Canon sub-model enums
 // ══════════════════════════════════════════════════════════════════════
 
-export const NavalPurposeSchema = z.enum([
+export const NavalPurposeSchema = Schema.Literals([
   "sustain_global_empire",
   "gain_world_power_status",
   "defend_hemisphere_expand",
@@ -88,9 +91,9 @@ export const NavalPurposeSchema = z.enum([
   "survive_as_buffer",
   "contest_southern_cone",
 ]);
-export type NavalPurpose = z.infer<typeof NavalPurposeSchema>;
+export type NavalPurpose = typeof NavalPurposeSchema.Type;
 
-export const IndustrialBaseSchema = z.enum([
+export const IndustrialBaseSchema = Schema.Literals([
   "mature_global",
   "rising_dynamic",
   "latent_giant",
@@ -101,18 +104,18 @@ export const IndustrialBaseSchema = z.enum([
   "agrarian_colonial",
   "resource_export",
 ]);
-export type IndustrialBase = z.infer<typeof IndustrialBaseSchema>;
+export type IndustrialBase = typeof IndustrialBaseSchema.Type;
 
-export const SenioritySchema = z.enum([
+export const SenioritySchema = Schema.Literals([
   "senior_service",
   "junior_to_army",
   "prestige_service",
   "fragmented",
   "coastal_only",
 ]);
-export type Seniority = z.infer<typeof SenioritySchema>;
+export type Seniority = typeof SenioritySchema.Type;
 
-export const AiArchetypeSchema = z.enum([
+export const AiArchetypeSchema = Schema.Literals([
   "status_quo_maritime_hegemon",
   "restless_industrial_challenger",
   "cautious_industrial_giant_awakening",
@@ -138,9 +141,9 @@ export const AiArchetypeSchema = z.enum([
   "neutral_industrial_minor",
   "great_game_buffer",
 ]);
-export type AiArchetype = z.infer<typeof AiArchetypeSchema>;
+export type AiArchetype = typeof AiArchetypeSchema.Type;
 
-export const AiRoleSchema = z.enum([
+export const AiRoleSchema = Schema.Literals([
   "strait_guardian",
   "colonial_power",
   "regional_balancer",
@@ -148,10 +151,10 @@ export const AiRoleSchema = z.enum([
   "southern_cone_rival",
   "crisis_flashpoint",
 ]);
-export type AiRole = z.infer<typeof AiRoleSchema>;
+export type AiRole = typeof AiRoleSchema.Type;
 
 /** 24 distinct canonical anxieties (one per nation) */
-export const CoreAnxietySchema = z.enum([
+export const CoreAnxietySchema = Schema.Literals([
   "loss_of_sea_control_overstretch",
   "encirclement_insufficient_recognition",
   "foreign_interference_americas",
@@ -177,10 +180,10 @@ export const CoreAnxietySchema = z.enum([
   "partition_between_britain_and_france",
   "great_power_violation_of_neutrality",
 ]);
-export type CoreAnxiety = z.infer<typeof CoreAnxietySchema>;
+export type CoreAnxiety = typeof CoreAnxietySchema.Type;
 
 /** Canonical gameplay feels, one per nation (not all values distinct) */
-export const GameplayFeelSchema = z.enum([
+export const GameplayFeelSchema = Schema.Literals([
   "manage_supremacy",
   "build_concentrated_relevance",
   "awaken_latent_power",
@@ -206,27 +209,27 @@ export const GameplayFeelSchema = z.enum([
   "survive_as_buffer_via_diplomacy",
   "survive_as_neutral_industrial",
 ]);
-export type GameplayFeel = z.infer<typeof GameplayFeelSchema>;
+export type GameplayFeel = typeof GameplayFeelSchema.Type;
 
-export const GdpTierSchema = z.enum([
+export const GdpTierSchema = Schema.Literals([
   "global_hegemon",
   "great_power",
   "regional_power",
   "minor_power",
   "small_power",
 ]);
-export type GdpTier = z.infer<typeof GdpTierSchema>;
+export type GdpTier = typeof GdpTierSchema.Type;
 
-export const IndustrializationLevelSchema = z.enum([
+export const IndustrializationLevelSchema = Schema.Literals([
   "world_leading",
   "industrial",
   "developing_industrial",
   "agrarian",
   "pre_industrial",
 ]);
-export type IndustrializationLevel = z.infer<typeof IndustrializationLevelSchema>;
+export type IndustrializationLevel = typeof IndustrializationLevelSchema.Type;
 
-export const NavalBudgetLevelSchema = z.enum([
+export const NavalBudgetLevelSchema = Schema.Literals([
   "very_low",
   "low",
   "moderate",
@@ -234,244 +237,215 @@ export const NavalBudgetLevelSchema = z.enum([
   "very_high",
   "crisis",
 ]);
-export type NavalBudgetLevel = z.infer<typeof NavalBudgetLevelSchema>;
+export type NavalBudgetLevel = typeof NavalBudgetLevelSchema.Type;
 
-export const ArmyNavyBalanceSchema = z.enum([
+export const ArmyNavyBalanceSchema = Schema.Literals([
   "army_dominant",
   "army_heavy",
   "balanced",
   "navy_prestige",
   "navy_focused",
 ]);
-export type ArmyNavyBalance = z.infer<typeof ArmyNavyBalanceSchema>;
+export type ArmyNavyBalance = typeof ArmyNavyBalanceSchema.Type;
 
 // ══════════════════════════════════════════════════════════════════════
 // Primitives
 // ══════════════════════════════════════════════════════════════════════
 
-const HexColorSchema = z
-  .string()
-  .regex(/^#[0-9A-Fa-f]{6}$/)
-  .describe("CSS hex color, e.g. #C8102E");
+const HexColorSchema = Schema.String.check(Schema.isPattern(/^#[0-9A-Fa-f]{6}$/)).annotate({
+  description: "CSS hex color, e.g. #C8102E",
+});
 
 // ══════════════════════════════════════════════════════════════════════
 // Sub-objects
 // ══════════════════════════════════════════════════════════════════════
 
-export const PresentationSchema = z
-  .object({
-    colorBg: HexColorSchema,
-    colorFg: HexColorSchema,
-  })
-  .strict()
-  .describe("Nation flag/presentation colors");
+export const PresentationSchema = Schema.Struct({
+  colorBg: HexColorSchema,
+  colorFg: HexColorSchema,
+}).annotate({ description: "Nation flag/presentation colors" });
 
-export const NationSlotSchema = z
-  .object({
-    id: z.string(),
-    order: z.number(),
-    participation: z.enum(["active", "inactive", "conditional"]),
-  })
-  .strict();
+export const NationSlotSchema = Schema.Struct({
+  id: Schema.String,
+  order: Schema.Finite,
+  participation: Schema.Literals(["active", "inactive", "conditional"]),
+});
 
-export const StabilityProfileSchema = z
-  .object({
-    level: StabilityLevelSchema,
-    factors: z.array(z.string()),
-  })
-  .strict()
-  .describe("Domestic stability level and contributing factors");
+export const StabilityProfileSchema = Schema.Struct({
+  level: StabilityLevelSchema,
+  factors: Schema.Array(Schema.String),
+}).annotate({ description: "Domestic stability level and contributing factors" });
 
 // ══════════════════════════════════════════════════════════════════════
 // Phase 1 additive fields — spec-driven
 // ══════════════════════════════════════════════════════════════════════
 
-export const StrategicObjectivesSchema = z
-  .object({
-    primary: z.string(),
-    secondary: z.string(),
-  })
-  .strict()
-  .describe("Primary and secondary strategic objectives per scenario era");
+export const StrategicObjectivesSchema = Schema.Struct({
+  primary: Schema.String,
+  secondary: Schema.String,
+}).annotate({ description: "Primary and secondary strategic objectives per scenario era" });
 
-export const BaseResourcesSchema = z
-  .object({
-    gdpTier: GdpTierSchema,
-    gdpDescription: z
-      .string()
-      .describe("Free-text elaboration on GDP tier, e.g. 'largest in Europe, #1 globally'"),
-    population: z
-      .string()
-      .describe("Population as free-text string, e.g. '~35M (UK proper); ~300M (empire)'"),
-    industrialization: IndustrializationLevelSchema,
-    industrializationDescription: z.string().describe("Free-text elaboration on industrial level"),
-  })
-  .strict()
-  .describe("Base resource indicators, January 1880");
+export const BaseResourcesSchema = Schema.Struct({
+  gdpTier: GdpTierSchema,
+  gdpDescription: Schema.String.annotate({
+    description: "Free-text elaboration on GDP tier, e.g. 'largest in Europe, #1 globally'",
+  }),
+  population: Schema.String.annotate({
+    description: "Population as free-text string, e.g. '~35M (UK proper); ~300M (empire)'",
+  }),
+  industrialization: IndustrializationLevelSchema,
+  industrializationDescription: Schema.String.annotate({
+    description: "Free-text elaboration on industrial level",
+  }),
+}).annotate({ description: "Base resource indicators, January 1880" });
 
-export const NavalAppropriationSchema = z
-  .object({
-    budgetLevel: NavalBudgetLevelSchema,
-    justification: z.string().describe("Narrative justification for the naval budget level"),
-  })
-  .strict()
-  .describe("Naval budget appropriation for the scenario era");
+export const NavalAppropriationSchema = Schema.Struct({
+  budgetLevel: NavalBudgetLevelSchema,
+  justification: Schema.String.annotate({
+    description: "Narrative justification for the naval budget level",
+  }),
+}).annotate({ description: "Naval budget appropriation for the scenario era" });
 
 // ══════════════════════════════════════════════════════════════════════
 // Regime — 1880-accurate political system
 // ══════════════════════════════════════════════════════════════════════
 
-export const NationRegimeSchema = z
-  .object({
-    type: RegimeTypeSchema,
-    politicalSystem: PoliticalSystemSchema.describe("Specific 1880 political system"),
-    governmentForm: z.string().optional().describe("Deprecated — prefer politicalSystem"),
-    headOfState: z.string(),
-    headOfGovernment: z.string(),
-    leaderTitle: z.string(),
-    navalPolicyActors: z.array(z.string()),
-    governmentModifiers: z
-      .array(z.string())
-      .describe("Tags e.g. federal_structure, fragmented_legislature"),
-    navyMinister: z
-      .object({
-        name: z.string(),
-        title: z.string(),
-        traits: z.string().optional(),
-      })
-      .strict()
-      .optional(),
-    stabilityProfile: StabilityProfileSchema,
-    description: z.string(),
-  })
-  .strict()
-  .describe("Political regime, January 1880");
+export const NationRegimeSchema = Schema.Struct({
+  type: RegimeTypeSchema,
+  politicalSystem: PoliticalSystemSchema.annotate({
+    description: "Specific 1880 political system",
+  }),
+  governmentForm: Schema.optional(Schema.String).annotate({
+    description: "Deprecated — prefer politicalSystem",
+  }),
+  headOfState: Schema.String,
+  headOfGovernment: Schema.String,
+  leaderTitle: Schema.String,
+  navalPolicyActors: Schema.Array(Schema.String),
+  governmentModifiers: Schema.Array(Schema.String).annotate({
+    description: "Tags e.g. federal_structure, fragmented_legislature",
+  }),
+  navyMinister: Schema.optional(
+    Schema.Struct({
+      name: Schema.String,
+      title: Schema.String,
+      traits: Schema.optional(Schema.String),
+    }),
+  ),
+  stabilityProfile: StabilityProfileSchema,
+  description: Schema.String,
+}).annotate({ description: "Political regime, January 1880" });
 
 // ══════════════════════════════════════════════════════════════════════
 // Domain sub-models
 // ══════════════════════════════════════════════════════════════════════
 
-export const IdentitySchema = z
-  .object({
-    oneSentence: z.string().describe("Phase 1 canonical one-sentence identity"),
-    fullIdentity: z.string().describe("Phase 1 full national identity"),
-    strategicProblem: z.string().describe("Core strategic problem the nation faces"),
-  })
-  .strict();
+export const IdentitySchema = Schema.Struct({
+  oneSentence: Schema.String.annotate({ description: "Phase 1 canonical one-sentence identity" }),
+  fullIdentity: Schema.String.annotate({ description: "Phase 1 full national identity" }),
+  strategicProblem: Schema.String.annotate({
+    description: "Core strategic problem the nation faces",
+  }),
+});
 
-export const EconomySchema = z
-  .object({
-    description: z.string(),
-    character: z.string(),
-    strengths: z.array(z.string()),
-    weaknesses: z.array(z.string()),
-    industrialBase: IndustrialBaseSchema,
-  })
-  .strict();
+export const EconomySchema = Schema.Struct({
+  description: Schema.String,
+  character: Schema.String,
+  strengths: Schema.Array(Schema.String),
+  weaknesses: Schema.Array(Schema.String),
+  industrialBase: IndustrialBaseSchema,
+});
 
-export const NavalInstitutionSchema = z
-  .object({
-    description: z.string(),
-    character: z.array(z.string()),
-    seniority: SenioritySchema,
-    cruiserRole: z.string().optional(),
-    formativeExperience: z.string().optional(),
-  })
-  .strict();
+export const NavalInstitutionSchema = Schema.Struct({
+  description: Schema.String,
+  character: Schema.Array(Schema.String),
+  seniority: SenioritySchema,
+  cruiserRole: Schema.optional(Schema.String),
+  formativeExperience: Schema.optional(Schema.String),
+});
 
-export const DoctrineSchema = z
-  .object({
-    summary: z.string(),
-    schools: z.array(z.string()),
-    isFragmented: z.boolean().optional(),
-    isTheaterSpecific: z.boolean().optional(),
-  })
-  .strict();
+export const DoctrineSchema = Schema.Struct({
+  summary: Schema.String,
+  schools: Schema.Array(Schema.String),
+  isFragmented: Schema.optional(Schema.Boolean),
+  isTheaterSpecific: Schema.optional(Schema.Boolean),
+});
 
-export const ShipDesignSchema = z
-  .object({
-    summary: z.string(),
-    principles: z.array(z.string()),
-    favoredTypes: z.array(z.string()),
-    tradeOffs: z.string().optional(),
-    exemplarClass: z.string().optional(),
-  })
-  .strict();
+export const ShipDesignSchema = Schema.Struct({
+  summary: Schema.String,
+  principles: Schema.Array(Schema.String),
+  favoredTypes: Schema.Array(Schema.String),
+  tradeOffs: Schema.optional(Schema.String),
+  exemplarClass: Schema.optional(Schema.String),
+});
 
-export const AiSchema = z
-  .object({
-    archetype: AiArchetypeSchema,
-    behavior: z.array(z.string()),
-    aiRole: AiRoleSchema.optional(),
-    triggers: z.array(z.string()).optional(),
-  })
-  .strict();
+export const AiSchema = Schema.Struct({
+  archetype: AiArchetypeSchema,
+  behavior: Schema.Array(Schema.String),
+  aiRole: Schema.optional(AiRoleSchema),
+  triggers: Schema.optional(Schema.Array(Schema.String)),
+});
 
 // ══════════════════════════════════════════════════════════════════════
 // Military — Phase 1 Nations
 // ══════════════════════════════════════════════════════════════════════
 
-export const MilitarySchema = z
-  .object({
-    description: z.string().describe("Army/military profile overview"),
-    size: z.string().optional().describe("Free-text army size, e.g. 'peacetime ~900,000'"),
-    character: z.array(z.string()).optional(),
-    armyNavyBalance: ArmyNavyBalanceSchema.optional(),
-  })
-  .strict()
-  .describe("Army/military profile for the scenario era");
+export const MilitarySchema = Schema.Struct({
+  description: Schema.String.annotate({ description: "Army/military profile overview" }),
+  size: Schema.optional(Schema.String).annotate({
+    description: "Free-text army size, e.g. 'peacetime ~900,000'",
+  }),
+  character: Schema.optional(Schema.Array(Schema.String)),
+  armyNavyBalance: Schema.optional(ArmyNavyBalanceSchema),
+}).annotate({ description: "Army/military profile for the scenario era" });
 
 // ══════════════════════════════════════════════════════════════════════
 // Nation entity — single source of truth for the canon
 // ══════════════════════════════════════════════════════════════════════
 
-export const NationSchema = z
-  .object({
-    id: NationIdSchema,
-    tag: z
-      .string()
-      .regex(/^[A-Z]{3}$/)
-      .describe("Uppercase 3-letter code, e.g. GBR"),
-    name: z.string(),
-    displayNameKey: z.string(),
-    isPlayable: z.boolean(),
-    slot: z.nullable(NationSlotSchema),
-    presentation: PresentationSchema,
-    identity: IdentitySchema,
-    regime: NationRegimeSchema,
-    strategicObjectives: StrategicObjectivesSchema,
-    baseResources: BaseResourcesSchema,
-    navalAppropriation: NavalAppropriationSchema,
-    economy: EconomySchema,
-    navalInstitution: NavalInstitutionSchema,
-    doctrine: DoctrineSchema,
-    shipDesign: ShipDesignSchema,
-    ai: AiSchema,
-    military: MilitarySchema.optional(),
-    navalPurpose: NavalPurposeSchema,
-    coreAnxiety: CoreAnxietySchema,
-    gameplayFeel: GameplayFeelSchema,
-    historicalAssumptions: z.array(z.string()),
-  })
-  .strict()
-  .describe("Canonical nation definition, January 1880");
+export const NationSchema = Schema.Struct({
+  id: NationIdSchema,
+  tag: Schema.String.check(Schema.isPattern(/^[A-Z]{3}$/)).annotate({
+    description: "Uppercase 3-letter code, e.g. GBR",
+  }),
+  name: Schema.String,
+  displayNameKey: Schema.String,
+  isPlayable: Schema.Boolean,
+  slot: Schema.NullOr(NationSlotSchema),
+  presentation: PresentationSchema,
+  identity: IdentitySchema,
+  regime: NationRegimeSchema,
+  strategicObjectives: StrategicObjectivesSchema,
+  baseResources: BaseResourcesSchema,
+  navalAppropriation: NavalAppropriationSchema,
+  economy: EconomySchema,
+  navalInstitution: NavalInstitutionSchema,
+  doctrine: DoctrineSchema,
+  shipDesign: ShipDesignSchema,
+  ai: AiSchema,
+  military: Schema.optional(MilitarySchema),
+  navalPurpose: NavalPurposeSchema,
+  coreAnxiety: CoreAnxietySchema,
+  gameplayFeel: GameplayFeelSchema,
+  historicalAssumptions: Schema.Array(Schema.String),
+}).annotate({ description: "Canonical nation definition, January 1880" });
 
 // ══════════════════════════════════════════════════════════════════════
 // Inferred types
 // ══════════════════════════════════════════════════════════════════════
 
-export type NationRegime = z.infer<typeof NationRegimeSchema>;
-export type Nation = z.infer<typeof NationSchema>;
-export type NationSlot = z.infer<typeof NationSlotSchema>;
-export type StabilityProfile = z.infer<typeof StabilityProfileSchema>;
-export type Presentation = z.infer<typeof PresentationSchema>;
-export type Identity = z.infer<typeof IdentitySchema>;
-export type Economy = z.infer<typeof EconomySchema>;
-export type NavalInstitution = z.infer<typeof NavalInstitutionSchema>;
-export type Doctrine = z.infer<typeof DoctrineSchema>;
-export type ShipDesign = z.infer<typeof ShipDesignSchema>;
-export type Ai = z.infer<typeof AiSchema>;
-export type Military = z.infer<typeof MilitarySchema>;
-export type StrategicObjectives = z.infer<typeof StrategicObjectivesSchema>;
-export type BaseResources = z.infer<typeof BaseResourcesSchema>;
-export type NavalAppropriation = z.infer<typeof NavalAppropriationSchema>;
+export type NationRegime = typeof NationRegimeSchema.Type;
+export type Nation = typeof NationSchema.Type;
+export type NationSlot = typeof NationSlotSchema.Type;
+export type StabilityProfile = typeof StabilityProfileSchema.Type;
+export type Presentation = typeof PresentationSchema.Type;
+export type Identity = typeof IdentitySchema.Type;
+export type Economy = typeof EconomySchema.Type;
+export type NavalInstitution = typeof NavalInstitutionSchema.Type;
+export type Doctrine = typeof DoctrineSchema.Type;
+export type ShipDesign = typeof ShipDesignSchema.Type;
+export type Ai = typeof AiSchema.Type;
+export type Military = typeof MilitarySchema.Type;
+export type StrategicObjectives = typeof StrategicObjectivesSchema.Type;
+export type BaseResources = typeof BaseResourcesSchema.Type;
+export type NavalAppropriation = typeof NavalAppropriationSchema.Type;

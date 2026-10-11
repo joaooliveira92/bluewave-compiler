@@ -1,11 +1,11 @@
-import { z } from "zod";
+import { Schema } from "effect";
 
-export const RouteEdgeSchema = z.object({
-  id: z.string().min(1),
-  from: z.string().min(1),
-  to: z.string().min(1),
-  type: z.enum(["land", "sea", "rail"]),
-  distance: z.number().int().positive(),
+export const RouteEdgeSchema = Schema.Struct({
+  id: Schema.NonEmptyString,
+  from: Schema.NonEmptyString,
+  to: Schema.NonEmptyString,
+  type: Schema.Literals(["land", "sea", "rail"]),
+  distance: Schema.Finite.check(Schema.isInt(), Schema.isGreaterThan(0)),
 });
 
-export interface RouteEdge extends z.infer<typeof RouteEdgeSchema> {}
+export type RouteEdge = typeof RouteEdgeSchema.Type;

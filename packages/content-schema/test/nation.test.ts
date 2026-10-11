@@ -1,6 +1,15 @@
 import { describe, it, expect } from "vite-plus/test";
-import { type Nation, type NationId, NationIdSchema, NationSchema } from "../src/index.js";
+import {
+  type Nation,
+  type NationId,
+  NATION_IDS,
+  NationIdSchema,
+  NationSchema,
+  decodeStrict,
+  decodeStrictResult,
+} from "../src/index.js";
 import { fixtureNations } from "./nation-fixtures.js";
+import { decodeOk } from "./decode-helpers.js";
 
 const EXPECTED_TAGS: Record<NationId, string> = {
   uk: "GBR",
@@ -35,14 +44,15 @@ function corpusNations(): Nation[] {
 
 describe("NationSchema", () => {
   it("exports a 24-member lowercase NationId enum", () => {
-    expect(NationIdSchema.options).toHaveLength(24);
-    for (const id of NationIdSchema.options) {
+    expect(NATION_IDS).toHaveLength(24);
+    expect(decodeOk(NationIdSchema, NATION_IDS[0])).toBe(true);
+    for (const id of NATION_IDS) {
       expect(id).toMatch(/^[a-z_]+$/);
     }
   });
 
   it("accepted ids exactly cover the research canon ids", () => {
-    const enumIds = new Set(NationIdSchema.options);
+    const enumIds = new Set(NATION_IDS);
     const corpusIds = new Set(corpusNations().map((n) => n.id));
     expect([...enumIds].sort()).toEqual([...corpusIds].sort());
   });
@@ -51,10 +61,11 @@ describe("NationSchema", () => {
     const nations = corpusNations();
     expect(nations).toHaveLength(24);
     for (const nation of nations) {
-      const result = NationSchema.safeParse(nation);
-      expect(result.success, `nations/${nation.id} failed: ${JSON.stringify(result.error)}`).toBe(
-        true,
-      );
+      const result = decodeStrictResult(NationSchema, nation);
+      expect(
+        result._tag,
+        `nations/${nation.id} failed: ${result._tag === "Failure" ? JSON.stringify(result.failure.issue) : ""}`,
+      ).toBe("Success");
     }
   });
 
@@ -67,45 +78,44 @@ describe("NationSchema", () => {
 
   it("is strict and rejects unknown keys", () => {
     const nation = corpusNations()[0]!;
-    const result = NationSchema.safeParse({ ...nation, unknownField: "x" });
-    expect(result.success).toBe(false);
+    expect(decodeOk(NationSchema, { ...nation, unknownField: "x" })).toBe(false);
   });
 
   it("rejects an id outside the canonical 24-member enum", () => {
     const nation = { ...corpusNations()[0]!, id: "atlantis" };
-    const result = NationSchema.safeParse(nation);
-    expect(result.success).toBe(false);
+    expect(decodeOk(NationSchema, nation)).toBe(false);
   });
 
   it("rejects a lowercase or non-3-letter tag", () => {
     const base = corpusNations()[0]!;
-    expect(NationSchema.safeParse({ ...base, tag: "gbr" }).success).toBe(false);
-    expect(NationSchema.safeParse({ ...base, tag: "GB" }).success).toBe(false);
+    expect(decodeOk(NationSchema, { ...base, tag: "gbr" })).toBe(false);
+    expect(decodeOk(NationSchema, { ...base, tag: "GB" })).toBe(false);
   });
 
   it("rejects non-hex presentation colors", () => {
     const base = corpusNations()[0]!;
-    const result = NationSchema.safeParse({
-      ...base,
-      presentation: { colorBg: "red", colorFg: "#FFFFFF" },
-    });
-    expect(result.success).toBe(false);
+    expect(
+      decodeOk(NationSchema, {
+        ...base,
+        presentation: { colorBg: "red", colorFg: "#FFFFFF" },
+      }),
+    ).toBe(false);
   });
 
   it("requires the rich canon fields", () => {
     const base = corpusNations()[0]!;
     const { identity: _identity, ...withoutIdentity } = base;
-    expect(NationSchema.safeParse(withoutIdentity).success).toBe(false);
+    expect(decodeOk(NationSchema, withoutIdentity)).toBe(false);
   });
 
   it("requires slot.id", () => {
     const base = corpusNations()[0]!;
     const { slot: _slot, ...rest } = base;
     expect(
-      NationSchema.safeParse({
+      decodeOk(NationSchema, {
         ...rest,
         slot: { order: 1, participation: "active" as const },
-      }).success,
+      }),
     ).toBe(false);
   });
 
@@ -116,6 +126,11 @@ describe("NationSchema", () => {
       return;
     }
     const { military: _military, ...withoutMilitary } = nation;
-    expect(NationSchema.safeParse(withoutMilitary).success).toBe(true);
+    expect(decodeOk(NationSchema, withoutMilitary)).toBe(true);
+  });
+
+  it("decodes a valid nation through the throwing helper", () => {
+    const nation = corpusNations()[0]!;
+    expect(() => decodeStrict(NationSchema, nation)).not.toThrow();
   });
 });

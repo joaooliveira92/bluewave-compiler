@@ -1,11 +1,13 @@
-import { z } from "zod";
+import { Schema } from "effect";
 
-export const PortSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  areaId: z.string().min(1),
-  nationId: z.string().min(1),
-  level: z.number().int().min(1).max(10).optional(),
+export const PortSchema = Schema.Struct({
+  id: Schema.NonEmptyString,
+  name: Schema.NonEmptyString,
+  areaId: Schema.NonEmptyString,
+  nationId: Schema.NonEmptyString,
+  level: Schema.optional(
+    Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 10 })),
+  ),
 });
 
-export interface Port extends z.infer<typeof PortSchema> {}
+export type Port = typeof PortSchema.Type;

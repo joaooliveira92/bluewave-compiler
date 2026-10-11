@@ -6,6 +6,7 @@ import {
   ShipHullFormSchema,
   SHIP_COMPONENT_CATEGORIES,
 } from "../src/index.js";
+import { decodeOk } from "./decode-helpers.js";
 
 const comp = {
   id: "qf_47in",
@@ -26,8 +27,8 @@ const comp = {
 
 describe("ShipComponentSchema", () => {
   it("accepts a valid component and a catalogue", () => {
-    expect(ShipComponentSchema.safeParse(comp).success).toBe(true);
-    expect(ShipComponentCatalogueSchema.safeParse({ components: [comp] }).success).toBe(true);
+    expect(decodeOk(ShipComponentSchema, comp)).toBe(true);
+    expect(decodeOk(ShipComponentCatalogueSchema, { components: [comp] })).toBe(true);
   });
   it("rejects unknown keys, bad ids, bad months, non-integer constants and unknown categories", () => {
     for (const bad of [
@@ -39,7 +40,7 @@ describe("ShipComponentSchema", () => {
       { ...comp, parameters: { b: { min: 3, max: 1, step: 1 } } },
       { ...comp, allowedZones: ["BRIDGE"] },
     ])
-      expect(ShipComponentSchema.safeParse(bad).success).toBe(false);
+      expect(decodeOk(ShipComponentSchema, bad)).toBe(false);
   });
   it("has 28 categories", () => {
     expect(SHIP_COMPONENT_CATEGORIES).toHaveLength(28);
@@ -65,11 +66,9 @@ describe("plant and hull form", () => {
     requires: [],
   };
   it("validates plants", () => {
-    expect(PropulsionPlantSchema.safeParse(plant).success).toBe(true);
-    expect(PropulsionPlantSchema.safeParse({ ...plant, minKw: 50_000 }).success).toBe(false);
-    expect(PropulsionPlantSchema.safeParse({ ...plant, reliabilityBp: 20_000 }).success).toBe(
-      false,
-    );
+    expect(decodeOk(PropulsionPlantSchema, plant)).toBe(true);
+    expect(decodeOk(PropulsionPlantSchema, { ...plant, minKw: 50_000 })).toBe(false);
+    expect(decodeOk(PropulsionPlantSchema, { ...plant, reliabilityBp: 20_000 })).toBe(false);
   });
   const ids = [
     "FORECASTLE",
@@ -105,15 +104,13 @@ describe("plant and hull form", () => {
     })),
   };
   it("requires nine zones whose shares sum to 10000", () => {
-    expect(ShipHullFormSchema.safeParse(form).success).toBe(true);
-    expect(ShipHullFormSchema.safeParse({ ...form, zones: form.zones.slice(1) }).success).toBe(
-      false,
-    );
+    expect(decodeOk(ShipHullFormSchema, form)).toBe(true);
+    expect(decodeOk(ShipHullFormSchema, { ...form, zones: form.zones.slice(1) })).toBe(false);
     expect(
-      ShipHullFormSchema.safeParse({
+      decodeOk(ShipHullFormSchema, {
         ...form,
         zones: form.zones.map((z, i) => (i === 0 ? { ...z, volumeBp: 1 } : z)),
-      }).success,
+      }),
     ).toBe(false);
   });
 });

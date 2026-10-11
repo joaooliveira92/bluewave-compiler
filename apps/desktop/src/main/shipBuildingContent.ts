@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  decodeStrict,
   AmmunitionCatalogueSchema,
   GunFamilyCatalogueSchema,
   GunModelCatalogueSchema,
@@ -63,28 +64,36 @@ export function loadShipBuildingContent(): ShipBuildingContent {
   const readArmament = (rel: (typeof ARMAMENT_FILES)[number]): unknown =>
     parse(armamentTexts.get(rel)!);
   const armament: AuthoredArmamentContent = {
-    gunFamilies: GunFamilyCatalogueSchema.parse(
+    gunFamilies: decodeStrict(
+      GunFamilyCatalogueSchema,
       readArmament("ship-building/armament/gun-families.yaml"),
     ).gunFamilies,
-    gunModels: GunModelCatalogueSchema.parse(readArmament("ship-building/armament/gun-models.yaml"))
-      .gunModels,
-    gunMounts: GunMountCatalogueSchema.parse(readArmament("ship-building/armament/gun-mounts.yaml"))
-      .gunMounts,
-    ammunition: AmmunitionCatalogueSchema.parse(
+    gunModels: decodeStrict(
+      GunModelCatalogueSchema,
+      readArmament("ship-building/armament/gun-models.yaml"),
+    ).gunModels,
+    gunMounts: decodeStrict(
+      GunMountCatalogueSchema,
+      readArmament("ship-building/armament/gun-mounts.yaml"),
+    ).gunMounts,
+    ammunition: decodeStrict(
+      AmmunitionCatalogueSchema,
       readArmament("ship-building/armament/ammunition.yaml"),
     ).ammunition,
   } as unknown as AuthoredArmamentContent;
   const data: ShipBuildingData = {
-    components: ShipComponentCatalogueSchema.parse(read("ship-building/components.yaml"))
+    components: decodeStrict(ShipComponentCatalogueSchema, read("ship-building/components.yaml"))
       .components as ComponentDef[],
-    plants: PropulsionPlantCatalogueSchema.parse(read("ship-building/plants.yaml"))
+    plants: decodeStrict(PropulsionPlantCatalogueSchema, read("ship-building/plants.yaml"))
       .plants as unknown as PropulsionPlant[],
-    hullForms: ShipHullFormCatalogueSchema.parse(read("ship-building/hull-forms.yaml"))
+    hullForms: decodeStrict(ShipHullFormCatalogueSchema, read("ship-building/hull-forms.yaml"))
       .hullForms as HullFormRecord[],
     balance: read("ship-building/balance.yaml") as ShipBuildingData["balance"],
     technologies: read("technologies.yaml") as { id: string; year: number }[],
-    navalProfiles: NavalProfileCatalogueSchema.parse(read("ship-building/naval-profiles.yaml"))
-      .navalProfiles as unknown as NationNavalProfile[],
+    navalProfiles: decodeStrict(
+      NavalProfileCatalogueSchema,
+      read("ship-building/naval-profiles.yaml"),
+    ).navalProfiles as unknown as NationNavalProfile[],
     armament,
     referenceDesigns: (
       read("ship-building/reference-designs.yaml") as {

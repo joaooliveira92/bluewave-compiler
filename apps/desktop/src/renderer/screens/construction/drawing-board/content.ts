@@ -1,4 +1,5 @@
 import {
+  decodeStrict,
   AmmunitionCatalogueSchema,
   GunFamilyCatalogueSchema,
   GunModelCatalogueSchema,
@@ -52,21 +53,21 @@ let cached: DrawingBoardContent | null = null;
 export function loadDrawingBoardContent(): DrawingBoardContent {
   if (cached) return cached;
   const armament: AuthoredArmamentContent = {
-    gunFamilies: GunFamilyCatalogueSchema.parse(parse(gunFamiliesYaml)).gunFamilies,
-    gunModels: GunModelCatalogueSchema.parse(parse(gunModelsYaml)).gunModels,
-    gunMounts: GunMountCatalogueSchema.parse(parse(gunMountsYaml)).gunMounts,
-    ammunition: AmmunitionCatalogueSchema.parse(parse(ammunitionYaml)).ammunition,
+    gunFamilies: decodeStrict(GunFamilyCatalogueSchema, parse(gunFamiliesYaml)).gunFamilies,
+    gunModels: decodeStrict(GunModelCatalogueSchema, parse(gunModelsYaml)).gunModels,
+    gunMounts: decodeStrict(GunMountCatalogueSchema, parse(gunMountsYaml)).gunMounts,
+    ammunition: decodeStrict(AmmunitionCatalogueSchema, parse(ammunitionYaml)).ammunition,
   } as unknown as AuthoredArmamentContent;
   const data: ShipBuildingData = {
-    components: ShipComponentCatalogueSchema.parse(parse(componentsYaml))
+    components: decodeStrict(ShipComponentCatalogueSchema, parse(componentsYaml))
       .components as ComponentDef[],
-    plants: PropulsionPlantCatalogueSchema.parse(parse(plantsYaml))
+    plants: decodeStrict(PropulsionPlantCatalogueSchema, parse(plantsYaml))
       .plants as unknown as PropulsionPlant[],
-    hullForms: ShipHullFormCatalogueSchema.parse(parse(hullFormsYaml))
+    hullForms: decodeStrict(ShipHullFormCatalogueSchema, parse(hullFormsYaml))
       .hullForms as HullFormRecord[],
     balance: parse(balanceYaml) as ShipBuildingData["balance"],
     technologies: parse(technologiesYaml) as { id: string; year: number }[],
-    navalProfiles: NavalProfileCatalogueSchema.parse(parse(navalProfilesYaml))
+    navalProfiles: decodeStrict(NavalProfileCatalogueSchema, parse(navalProfilesYaml))
       .navalProfiles as unknown as NationNavalProfile[],
     armament,
     referenceDesigns: (parse(referencesYaml) as { designs: RawReferenceDesign[] }).designs,

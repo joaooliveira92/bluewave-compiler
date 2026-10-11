@@ -57,6 +57,7 @@ export {
   IndustrialBaseSchema,
   IndustrializationLevelSchema,
   MilitarySchema,
+  NATION_IDS,
   NationIdSchema,
   NationRegimeSchema,
   NationSchema,
@@ -74,6 +75,12 @@ export {
   StabilityProfileSchema,
   StrategicObjectivesSchema,
 } from "./nation.js";
+export {
+  CONTENT_DECODE_OPTIONS,
+  decodeStrict,
+  decodeStrictResult,
+  type ContentSchema,
+} from "./decode.js";
 export type { Port } from "./port.js";
 export { PortSchema } from "./port.js";
 export type { Possession } from "./possession.js";

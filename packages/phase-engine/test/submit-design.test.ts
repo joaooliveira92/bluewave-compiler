@@ -6,6 +6,7 @@ import type { CampaignSnapshot } from "@bluewave/campaign";
 import type { CommandBody, CommandEnvelope } from "@bluewave/commands";
 import { CommandLifecycle } from "@bluewave/commands";
 import {
+  decodeStrict,
   PropulsionPlantCatalogueSchema,
   ShipComponentCatalogueSchema,
   ShipHullFormCatalogueSchema,
@@ -39,11 +40,11 @@ const root = join(
 const load = (rel: string) =>
   parse(readFileSync(join(root, rel), "utf8")) as Record<string, unknown>;
 const data: ShipBuildingData = {
-  components: ShipComponentCatalogueSchema.parse(load("ship-building/components.yaml"))
+  components: decodeStrict(ShipComponentCatalogueSchema, load("ship-building/components.yaml"))
     .components as ComponentDef[],
-  plants: PropulsionPlantCatalogueSchema.parse(load("ship-building/plants.yaml"))
+  plants: decodeStrict(PropulsionPlantCatalogueSchema, load("ship-building/plants.yaml"))
     .plants as unknown as PropulsionPlant[],
-  hullForms: ShipHullFormCatalogueSchema.parse(load("ship-building/hull-forms.yaml"))
+  hullForms: decodeStrict(ShipHullFormCatalogueSchema, load("ship-building/hull-forms.yaml"))
     .hullForms as HullFormRecord[],
   balance: load("ship-building/balance.yaml") as unknown as ShipBuildingData["balance"],
   technologies: parse(readFileSync(join(root, "technologies.yaml"), "utf8")) as {

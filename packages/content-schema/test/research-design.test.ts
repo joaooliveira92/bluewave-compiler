@@ -5,6 +5,7 @@ import {
   RESEARCH_FIELD_PRIORITY_WEIGHTS,
   TechnologyPrerequisiteChainSchema,
 } from "../src/index.js";
+import { decodeOk } from "./decode-helpers.js";
 
 describe("DesignTemplateSchema", () => {
   it("accepts a valid design template", () => {
@@ -21,8 +22,7 @@ describe("DesignTemplateSchema", () => {
       hitPoints: 100,
       crewComplement: 800,
     };
-    const result = DesignTemplateSchema.safeParse(valid);
-    expect(result.success).toBe(true);
+    expect(decodeOk(DesignTemplateSchema, valid)).toBe(true);
   });
 
   it("P-1 AC-1: accepts torpedoArmament and rejects bad mounts", () => {
@@ -44,9 +44,7 @@ describe("DesignTemplateSchema", () => {
       tubeCount: 2,
       torpedoModelId: "whitehead_14in_1886",
     };
-    expect(DesignTemplateSchema.safeParse({ ...base, torpedoArmament: [mount] }).success).toBe(
-      true,
-    );
+    expect(decodeOk(DesignTemplateSchema, { ...base, torpedoArmament: [mount] })).toBe(true);
     for (const bad of [
       [{ ...mount, mountType: "DECK" }],
       [{ ...mount, tubeCount: 0 }],
@@ -54,14 +52,13 @@ describe("DesignTemplateSchema", () => {
       [{ ...mount, extra: 1 }],
       [],
     ]) {
-      expect(DesignTemplateSchema.safeParse({ ...base, torpedoArmament: bad }).success).toBe(false);
+      expect(decodeOk(DesignTemplateSchema, { ...base, torpedoArmament: bad })).toBe(false);
     }
   });
 
   it("rejects a template missing required fields", () => {
     const invalid = { designId: "gbr-dreadnought-v1", className: "Dreadnought" };
-    const result = DesignTemplateSchema.safeParse(invalid);
-    expect(result.success).toBe(false);
+    expect(decodeOk(DesignTemplateSchema, invalid)).toBe(false);
   });
 
   it("rejects a template with invalid main gun values", () => {
@@ -78,8 +75,7 @@ describe("DesignTemplateSchema", () => {
       hitPoints: 100,
       crewComplement: 800,
     };
-    const result = DesignTemplateSchema.safeParse(invalid);
-    expect(result.success).toBe(false);
+    expect(decodeOk(DesignTemplateSchema, invalid)).toBe(false);
   });
 });
 
@@ -96,8 +92,7 @@ describe("TechnologyPrerequisiteChainSchema", () => {
       availabilityMonth: 0,
       year: 1880,
     };
-    const result = TechnologyPrerequisiteChainSchema.safeParse(valid);
-    expect(result.success).toBe(true);
+    expect(decodeOk(TechnologyPrerequisiteChainSchema, valid)).toBe(true);
   });
 
   it("rejects discovery weight outside 1..1_000_000", () => {
@@ -108,8 +103,7 @@ describe("TechnologyPrerequisiteChainSchema", () => {
       researchFieldId: "GUNNERY",
       discoveryWeight: 0,
     };
-    const result = TechnologyPrerequisiteChainSchema.safeParse(invalid);
-    expect(result.success).toBe(false);
+    expect(decodeOk(TechnologyPrerequisiteChainSchema, invalid)).toBe(false);
   });
 });
 

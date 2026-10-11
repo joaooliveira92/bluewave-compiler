@@ -1,10 +1,10 @@
-import { z } from "zod";
+import { Schema } from "effect";
 
-export const PossessionSchema = z.object({
-  id: z.string().min(1),
-  nationId: z.string().min(1),
-  areaId: z.string().min(1),
-  since: z.string().optional(),
+export const PossessionSchema = Schema.Struct({
+  id: Schema.NonEmptyString,
+  nationId: Schema.NonEmptyString,
+  areaId: Schema.NonEmptyString,
+  since: Schema.optional(Schema.String),
 });
 
-export interface Possession extends z.infer<typeof PossessionSchema> {}
+export type Possession = typeof PossessionSchema.Type;

@@ -6,6 +6,7 @@ import {
   ShipComponentCatalogueSchema,
   PropulsionPlantCatalogueSchema,
   ShipHullFormCatalogueSchema,
+  decodeStrict,
 } from "@bluewave/content-schema";
 import {
   lintCatalogue,
@@ -27,11 +28,11 @@ const root = join(__dirname, "..", "..", "..", "content", "production", "1880");
 const load = (rel: string) =>
   parse(readFileSync(join(root, rel), "utf8")) as Record<string, unknown>;
 
-const components = ShipComponentCatalogueSchema.parse(load("ship-building/components.yaml"))
+const components = decodeStrict(ShipComponentCatalogueSchema, load("ship-building/components.yaml"))
   .components as ComponentDef[];
-const plants = PropulsionPlantCatalogueSchema.parse(load("ship-building/plants.yaml"))
+const plants = decodeStrict(PropulsionPlantCatalogueSchema, load("ship-building/plants.yaml"))
   .plants as unknown as PropulsionPlant[];
-const hullRecords = ShipHullFormCatalogueSchema.parse(load("ship-building/hull-forms.yaml"))
+const hullRecords = decodeStrict(ShipHullFormCatalogueSchema, load("ship-building/hull-forms.yaml"))
   .hullForms as HullFormRecord[];
 const balanceFile = load("ship-building/balance.yaml");
 const ship = shipBalanceFromRecord(balanceFile.ship);

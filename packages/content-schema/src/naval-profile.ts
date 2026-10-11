@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { Schema } from "effect";
 import { CANONICAL_RESEARCH_FIELD_IDS } from "./research-fields.js";
 import {
   COMPONENT_ACCESS_STATUSES_SCHEMA,
@@ -16,51 +16,49 @@ import {
  * change here cannot silently widen what a nation may build.
  */
 
-const SourceReferenceSchema = z
-  .object({
-    sourceId: z.string().optional(),
-    title: z.string().min(1),
-    author: z.string().optional(),
-    year: z.number().int().optional(),
-    page: z.string().optional(),
-    section: z.string().optional(),
-    archiveOrUrl: z.string().optional(),
-    accessedAt: z.string().optional(),
-  })
-  .strict();
+const int = Schema.Finite.check(Schema.isInt());
+const nonNegativeInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
+const positiveInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThan(0));
+const bp = Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 0, maximum: 10_000 }));
+const priority = Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 4 }));
 
-const DerivationSchema = z
-  .object({
-    sourceValue: z.string(),
-    sourceUnit: z.string(),
-    conversion: z.string(),
-    gameValue: z.string(),
-    roundingRule: z.string().optional(),
-    originalValue: z.string().optional(),
-    originalUnit: z.string().optional(),
-    convertedValue: z.string().optional(),
-    convertedUnit: z.string().optional(),
-  })
-  .strict();
+const SourceReferenceSchema = Schema.Struct({
+  sourceId: Schema.optional(Schema.String),
+  title: Schema.NonEmptyString,
+  author: Schema.optional(Schema.String),
+  year: Schema.optional(int),
+  page: Schema.optional(Schema.String),
+  section: Schema.optional(Schema.String),
+  archiveOrUrl: Schema.optional(Schema.String),
+  accessedAt: Schema.optional(Schema.String),
+});
 
-export const ProvenanceSchema = z
-  .object({
-    sourceStatus: SOURCE_STATUSES_SCHEMA,
-    confidence: CONFIDENCE_LEVELS_SCHEMA,
-    kind: PROVENANCE_KINDS_SCHEMA,
-    sources: z.array(SourceReferenceSchema),
-    derivation: DerivationSchema.optional(),
-    note: z.string().optional(),
-  })
-  .strict();
+const DerivationSchema = Schema.Struct({
+  sourceValue: Schema.String,
+  sourceUnit: Schema.String,
+  conversion: Schema.String,
+  gameValue: Schema.String,
+  roundingRule: Schema.optional(Schema.String),
+  originalValue: Schema.optional(Schema.String),
+  originalUnit: Schema.optional(Schema.String),
+  convertedValue: Schema.optional(Schema.String),
+  convertedUnit: Schema.optional(Schema.String),
+});
 
-const ComponentAccessSchema = z
-  .object({
-    status: COMPONENT_ACCESS_STATUSES_SCHEMA,
-    producer: z.string().optional(),
-    provenance: ProvenanceSchema.optional(),
-  })
-  .strict();
+export const ProvenanceSchema = Schema.Struct({
+  sourceStatus: SOURCE_STATUSES_SCHEMA,
+  confidence: CONFIDENCE_LEVELS_SCHEMA,
+  kind: PROVENANCE_KINDS_SCHEMA,
+  sources: Schema.Array(SourceReferenceSchema),
+  derivation: Schema.optional(DerivationSchema),
+  note: Schema.optional(Schema.String),
+});
+
+const ComponentAccessSchema = Schema.Struct({
+  status: COMPONENT_ACCESS_STATUSES_SCHEMA,
+  producer: Schema.optional(Schema.String),
+  provenance: Schema.optional(ProvenanceSchema),
+});
 
 const MOUNT_TYPE_VALUES = [
   "TURRET",
@@ -75,159 +73,133 @@ const MOUNT_TYPE_VALUES = [
 const AMMUNITION_PATTERN_VALUES = ["AP", "APC", "CPC", "SAP", "HE", "MELINITE"] as const;
 
 /** Overrides are a shallow map of scalar/list values; keys are checked by the domain linter. */
-const OverridesSchema = z.record(
-  z.string(),
-  z.union([z.string(), z.number(), z.array(z.string())]),
+const OverridesSchema = Schema.Record(
+  Schema.String,
+  Schema.Union([Schema.String, Schema.Finite, Schema.Array(Schema.String)]),
 );
 
-const GunModelSchema = z
-  .object({
-    id: z.string().min(1),
-    familyId: z.string().min(1),
-    designation: z.string().min(1),
-    overrides: OverridesSchema,
-    mounts: z.array(z.enum(MOUNT_TYPE_VALUES)).min(1),
-    introductionMonth: z.string().optional(),
-    obsoleteMonth: z.string().nullable().optional(),
-    provenance: ProvenanceSchema,
-  })
-  .strict();
+const GunModelSchema = Schema.Struct({
+  id: Schema.NonEmptyString,
+  familyId: Schema.NonEmptyString,
+  designation: Schema.NonEmptyString,
+  overrides: OverridesSchema,
+  mounts: Schema.Array(Schema.Literals(MOUNT_TYPE_VALUES)).check(Schema.isMinLength(1)),
+  introductionMonth: Schema.optional(Schema.String),
+  obsoleteMonth: Schema.optional(Schema.NullOr(Schema.String)),
+  provenance: ProvenanceSchema,
+});
 
-const AmmunitionPatternSchema = z
-  .object({
-    id: z.string().min(1),
-    pattern: z.enum(AMMUNITION_PATTERN_VALUES),
-    penetrationBiasBp: z.number().int().min(0).max(10_000),
-    provenance: ProvenanceSchema,
-  })
-  .strict();
+const AmmunitionPatternSchema = Schema.Struct({
+  id: Schema.NonEmptyString,
+  pattern: Schema.Literals(AMMUNITION_PATTERN_VALUES),
+  penetrationBiasBp: bp,
+  provenance: ProvenanceSchema,
+});
 
-const ComponentVariantSchema = z
-  .object({
-    id: z.string().min(1),
-    familyId: z.string().min(1),
-    designation: z.string().min(1),
-    overrides: OverridesSchema,
-    introductionMonth: z.string().optional(),
-    obsoleteMonth: z.string().nullable().optional(),
-    provenance: ProvenanceSchema,
-  })
-  .strict();
+const ComponentVariantSchema = Schema.Struct({
+  id: Schema.NonEmptyString,
+  familyId: Schema.NonEmptyString,
+  designation: Schema.NonEmptyString,
+  overrides: OverridesSchema,
+  introductionMonth: Schema.optional(Schema.String),
+  obsoleteMonth: Schema.optional(Schema.NullOr(Schema.String)),
+  provenance: ProvenanceSchema,
+});
 
-const HardCapabilitiesSchema = z
-  .object({
-    maxGunCaliberUm: z.number().int().positive(),
-    maxArmourThicknessUm: z.number().int().positive(),
-    domesticTorpedoDiameterUm: z.number().int().positive(),
-    hullForms: z.array(z.string()),
-    domesticPlants: z.array(z.string()),
-    restrictedShipTypes: z.array(z.enum(SHIP_TYPE_ID_VALUES)),
-    grants: z.array(z.string()),
-  })
-  .strict();
+const HardCapabilitiesSchema = Schema.Struct({
+  maxGunCaliberUm: positiveInt,
+  maxArmourThicknessUm: positiveInt,
+  domesticTorpedoDiameterUm: positiveInt,
+  hullForms: Schema.Array(Schema.String),
+  domesticPlants: Schema.Array(Schema.String),
+  restrictedShipTypes: Schema.Array(Schema.Literals(SHIP_TYPE_ID_VALUES)),
+  grants: Schema.Array(Schema.String),
+});
 
-const SoftPreferencesSchema = z
-  .object({
-    speedOverArmourBp: z.number().int().min(0).max(10_000),
-    secondaryBatteryWeightBp: z.number().int().positive(),
-    enduranceWeightBp: z.number().int().positive(),
-    riskToleranceBp: z.number().int().min(0).max(10_000),
-    colonialServiceWeightBp: z.number().int().positive(),
-    torpedoOnCruisersBp: z.number().int().positive(),
-    accommodationStandard: z.enum(["SPARTAN", "STANDARD", "GENEROUS"]),
-  })
-  .strict();
+const SoftPreferencesSchema = Schema.Struct({
+  speedOverArmourBp: bp,
+  secondaryBatteryWeightBp: positiveInt,
+  enduranceWeightBp: positiveInt,
+  riskToleranceBp: bp,
+  colonialServiceWeightBp: positiveInt,
+  torpedoOnCruisersBp: positiveInt,
+  accommodationStandard: Schema.Literals(["SPARTAN", "STANDARD", "GENEROUS"]),
+});
 
-const DatedValueSchema = z
-  .object({ fromMonth: z.string(), value: z.number().int().nonnegative() })
-  .strict();
+const DatedValueSchema = Schema.Struct({ fromMonth: Schema.String, value: nonNegativeInt });
 
-const IndustrialProfileSchema = z
-  .object({
-    buildTimeMultiplierBp: z.number().int().positive(),
-    costMultiplierBp: z.number().int().positive(),
-    machineryReliabilityBp: z.number().int().min(0).max(10_000),
-    constructionQualityVarianceBp: z.number().int().nonnegative(),
-    maxPracticalDisplacementKg: z.array(DatedValueSchema).min(1),
-    heavyGunProduction: COMPONENT_ACCESS_STATUSES_SCHEMA,
-    armourPlateProduction: COMPONENT_ACCESS_STATUSES_SCHEMA,
-    provenance: ProvenanceSchema,
-  })
-  .strict();
+const IndustrialProfileSchema = Schema.Struct({
+  buildTimeMultiplierBp: positiveInt,
+  costMultiplierBp: positiveInt,
+  machineryReliabilityBp: bp,
+  constructionQualityVarianceBp: nonNegativeInt,
+  maxPracticalDisplacementKg: Schema.Array(DatedValueSchema).check(Schema.isMinLength(1)),
+  heavyGunProduction: COMPONENT_ACCESS_STATUSES_SCHEMA,
+  armourPlateProduction: COMPONENT_ACCESS_STATUSES_SCHEMA,
+  provenance: ProvenanceSchema,
+});
 
-const DoctrineProfileSchema = z
-  .object({
-    engagementRangeM: z.number().int().positive(),
-    hePreferenceBp: z.number().int().min(0).max(10_000),
-    postures: z.array(NAVAL_POSTURES_SCHEMA).min(1),
-    provenance: ProvenanceSchema,
-  })
-  .strict();
+const DoctrineProfileSchema = Schema.Struct({
+  engagementRangeM: positiveInt,
+  hePreferenceBp: bp,
+  postures: Schema.Array(NAVAL_POSTURES_SCHEMA).check(Schema.isMinLength(1)),
+  provenance: ProvenanceSchema,
+});
 
-const ResearchPreferenceSchema = z
-  .object({
-    field: z.enum(CANONICAL_RESEARCH_FIELD_IDS),
-    priority: z.number().int().min(1).max(4),
-  })
-  .strict();
+const ResearchPreferenceSchema = Schema.Struct({
+  field: Schema.Literals(CANONICAL_RESEARCH_FIELD_IDS),
+  priority,
+});
 
-const DesignWeightsSchema = z
-  .object({
-    firepowerBp: z.number().int().positive(),
-    protectionBp: z.number().int().positive(),
-    speedBp: z.number().int().positive(),
-    enduranceBp: z.number().int().positive(),
-    torpedoBp: z.number().int().positive(),
-    reliabilityBp: z.number().int().positive(),
-    colonialBp: z.number().int().positive(),
-    costBp: z.number().int().positive(),
-  })
-  .strict();
+const DesignWeightsSchema = Schema.Struct({
+  firepowerBp: positiveInt,
+  protectionBp: positiveInt,
+  speedBp: positiveInt,
+  enduranceBp: positiveInt,
+  torpedoBp: positiveInt,
+  reliabilityBp: positiveInt,
+  colonialBp: positiveInt,
+  costBp: positiveInt,
+});
 
-const ProcurementPolicySchema = z
-  .object({
-    battleLineShareBp: z.number().int().nonnegative(),
-    cruiserShareBp: z.number().int().nonnegative(),
-    torpedoCraftShareBp: z.number().int().nonnegative(),
-    colonialShareBp: z.number().int().nonnegative(),
-    foreignProcurementAppetiteBp: z.number().int().min(0).max(10_000),
-    unprovenTechAppetiteBp: z.number().int().min(0).max(10_000),
-    buildOrder: z.array(z.enum(SHIP_TYPE_ID_VALUES)).min(1),
-  })
-  .strict();
+const ProcurementPolicySchema = Schema.Struct({
+  battleLineShareBp: nonNegativeInt,
+  cruiserShareBp: nonNegativeInt,
+  torpedoCraftShareBp: nonNegativeInt,
+  colonialShareBp: nonNegativeInt,
+  foreignProcurementAppetiteBp: bp,
+  unprovenTechAppetiteBp: bp,
+  buildOrder: Schema.Array(Schema.Literals(SHIP_TYPE_ID_VALUES)).check(Schema.isMinLength(1)),
+});
 
-const NamingPolicySchema = z
-  .object({
-    stems: z.record(z.string(), z.array(z.string())),
-    convention: z.record(z.string(), z.string()),
-  })
-  .strict();
+const NamingPolicySchema = Schema.Struct({
+  stems: Schema.Record(Schema.String, Schema.Array(Schema.String)),
+  convention: Schema.Record(Schema.String, Schema.String),
+});
 
-export const NationNavalProfileSchema = z
-  .object({
-    nationId: z.string().min(1),
-    activeFrom: z.string(),
-    activeUntil: z.string().nullable(),
-    strategicSituation: z.string().min(1),
-    hardCapabilities: HardCapabilitiesSchema,
-    softPreferences: SoftPreferencesSchema,
-    industrialProfile: IndustrialProfileSchema,
-    doctrineProfile: DoctrineProfileSchema,
-    researchPreferences: z.array(ResearchPreferenceSchema),
-    componentAccess: z.record(z.string(), ComponentAccessSchema),
-    gunModels: z.array(GunModelSchema),
-    ammunitionPatterns: z.array(AmmunitionPatternSchema),
-    componentVariants: z.array(ComponentVariantSchema),
-    designWeights: z.record(z.string(), DesignWeightsSchema),
-    procurementPolicy: ProcurementPolicySchema,
-    namingPolicy: NamingPolicySchema,
-    sourceReferences: z.array(SourceReferenceSchema),
-    provenance: ProvenanceSchema,
-  })
-  .strict();
+export const NationNavalProfileSchema = Schema.Struct({
+  nationId: Schema.NonEmptyString,
+  activeFrom: Schema.String,
+  activeUntil: Schema.NullOr(Schema.String),
+  strategicSituation: Schema.NonEmptyString,
+  hardCapabilities: HardCapabilitiesSchema,
+  softPreferences: SoftPreferencesSchema,
+  industrialProfile: IndustrialProfileSchema,
+  doctrineProfile: DoctrineProfileSchema,
+  researchPreferences: Schema.Array(ResearchPreferenceSchema),
+  componentAccess: Schema.Record(Schema.String, ComponentAccessSchema),
+  gunModels: Schema.Array(GunModelSchema),
+  ammunitionPatterns: Schema.Array(AmmunitionPatternSchema),
+  componentVariants: Schema.Array(ComponentVariantSchema),
+  designWeights: Schema.Record(Schema.String, DesignWeightsSchema),
+  procurementPolicy: ProcurementPolicySchema,
+  namingPolicy: NamingPolicySchema,
+  sourceReferences: Schema.Array(SourceReferenceSchema),
+  provenance: ProvenanceSchema,
+});
 
-export const NavalProfileCatalogueSchema = z
-  .object({ navalProfiles: z.array(NationNavalProfileSchema) })
-  .strict();
+export const NavalProfileCatalogueSchema = Schema.Struct({
+  navalProfiles: Schema.Array(NationNavalProfileSchema),
+});
 
-export type NationNavalProfileData = z.infer<typeof NationNavalProfileSchema>;
+export type NationNavalProfileData = typeof NationNavalProfileSchema.Type;

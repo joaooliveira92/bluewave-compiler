@@ -4,6 +4,7 @@ import {
   SHIP_COMPONENT_CATEGORIES,
   SHIP_ZONE_IDS,
   PropulsionPlantSchema,
+  decodeStrict,
 } from "@bluewave/content-schema";
 import {
   COMPONENT_CATEGORIES,
@@ -20,29 +21,26 @@ describe("content-schema stays in lock-step with ship-design", () => {
     expect([...SHIP_ZONE_IDS]).toEqual([...ZONE_IDS]);
   });
   it("every fixture component passes the schema, and parsed output is a valid ComponentDef that lints clean", () => {
-    const parsed: ComponentDef[] = catalogue.map((c) => {
-      const r = ShipComponentSchema.safeParse(c);
-      expect(r.success, c.id).toBe(true);
-      return r.data as ComponentDef;
-    });
+    const parsed: ComponentDef[] = catalogue.map(
+      (c) => decodeStrict(ShipComponentSchema, c) as ComponentDef,
+    );
     expect(lintCatalogue(parsed, new Set(["tech_qf_guns", "tech_whitehead"]))).toEqual([]);
   });
   it("plants parse into the runtime shape", () => {
-    const r = PropulsionPlantSchema.safeParse({
+    const decoded = decodeStrict(PropulsionPlantSchema, {
       ...plant,
       introduction: { fromMonth: "1881-01", obsoleteMonth: null },
       requires: [],
     });
-    expect(r.success).toBe(true);
     const p: PropulsionPlant = {
-      id: r.data!.id,
-      fuelType: r.data!.fuelType,
-      weightMilliKgPerKw: r.data!.weightMilliKgPerKw,
-      volumeLitrePerKw: r.data!.volumeLitrePerKw,
-      sfcGramPerKwh: r.data!.sfcGramPerKwh as never,
-      reliabilityBp: r.data!.reliabilityBp,
-      minKw: r.data!.minKw,
-      maxKw: r.data!.maxKw,
+      id: decoded.id,
+      fuelType: decoded.fuelType,
+      weightMilliKgPerKw: decoded.weightMilliKgPerKw,
+      volumeLitrePerKw: decoded.volumeLitrePerKw,
+      sfcGramPerKwh: decoded.sfcGramPerKwh as never,
+      reliabilityBp: decoded.reliabilityBp,
+      minKw: decoded.minKw,
+      maxKw: decoded.maxKw,
     };
     expect(p.id).toBe(plant.id);
   });

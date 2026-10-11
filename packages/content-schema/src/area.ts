@@ -1,10 +1,10 @@
-import { z } from "zod";
+import { Schema } from "effect";
 
-export const AreaSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  type: z.enum(["land", "sea", "coastal"]),
-  controller: z.string().optional(),
+export const AreaSchema = Schema.Struct({
+  id: Schema.NonEmptyString,
+  name: Schema.NonEmptyString,
+  type: Schema.Literals(["land", "sea", "coastal"]),
+  controller: Schema.optional(Schema.String),
 });
 
-export interface Area extends z.infer<typeof AreaSchema> {}
+export type Area = typeof AreaSchema.Type;

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { Schema } from "effect";
 import { ProvenanceSchema } from "./naval-profile.js";
 
 /**
@@ -12,14 +12,17 @@ import { ProvenanceSchema } from "./naval-profile.js";
  * - `ammunition.yaml`    — national ammunition patterns.
  *
  * Every numeric field names its unit (`caliberUm`, `gunMassKg`, `shellMassG`, `...UmPerSec`,
- * `...Bp`, `...KgM`, `...Litre`, `...Mm`, `...Deg`). Each object is `.strict()`, so an ambiguous
- * field such as `weight`, `speed`, `rate`, `range` or `size` is rejected rather than silently
- * accepted. Structural authority only: cross-references, ranges and provenance completeness are
- * enforced by `lintArmament` in `@bluewave/armament` and the ship-design release wrapper.
+ * `...Bp`, `...KgM`, `...Litre`, `...Mm`, `...Deg`). Unknown fields are rejected at decode
+ * (`onExcessProperty: "error"`), so an ambiguous field such as `weight`, `speed`, `rate`, `range`
+ * or `size` is rejected rather than silently accepted. Structural authority only: cross-references,
+ * ranges and provenance completeness are enforced by `lintArmament` in `@bluewave/armament` and the
+ * ship-design release wrapper.
  */
 
 const ID_RE = /^[a-z][a-z0-9_]*$/;
-const id = z.string().regex(ID_RE, "must be a canonical lower snake_case id");
+const id = Schema.String.check(
+  Schema.isPattern(ID_RE, { message: "must be a canonical lower snake_case id" }),
+);
 
 const MOUNT_TYPE_VALUES = [
   "TURRET",
@@ -34,107 +37,114 @@ const MOUNT_TYPE_VALUES = [
 const GUN_CATEGORY_VALUES = ["MAIN_GUN", "SECONDARY_GUN", "DUAL_PURPOSE_GUN", "AA_WEAPON"] as const;
 const SHELL_TYPE_VALUES = ["AP", "APC", "CPC", "SAP", "HE", "MELINITE"] as const;
 
-const nonNegativeInt = z.number().int().nonnegative();
-const positiveInt = z.number().int().positive();
+const nonNegativeInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
+const positiveInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThan(0));
+const bp = Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 0, maximum: 10_000 }));
 
-export const GunFamilySchema = z
-  .object({
-    id,
-    designation: z.string().min(1),
-    category: z.enum(GUN_CATEGORY_VALUES),
-    /** The canonical installation a family is fielded in when a national model does not override it. */
-    defaultMountType: z.enum(MOUNT_TYPE_VALUES),
-    provenance: ProvenanceSchema,
-  })
-  .strict();
+export const GunFamilySchema = Schema.Struct({
+  id,
+  designation: Schema.NonEmptyString,
+  category: Schema.Literals(GUN_CATEGORY_VALUES),
+  /** The canonical installation a family is fielded in when a national model does not override it. */
+  defaultMountType: Schema.Literals(MOUNT_TYPE_VALUES),
+  provenance: ProvenanceSchema,
+});
 
-export const GunFamilyCatalogueSchema = z
-  .object({ gunFamilies: z.array(GunFamilySchema) })
-  .strict();
+export const GunFamilyCatalogueSchema = Schema.Struct({
+  gunFamilies: Schema.Array(GunFamilySchema),
+});
 
-export const GunModelSchema = z
-  .object({
-    id,
-    familyId: z.string().min(1),
-    /** The nation that fields this model. Purely data; the resolver has no nation-id branch. */
-    nationId: z.string().min(1),
-    designation: z.string().min(1),
-    caliberUm: positiveInt.optional(),
-    barrelLengthCalibers: z.number().positive().optional(),
-    gunMassKg: nonNegativeInt.optional(),
-    loadingSystem: z.string().optional(),
-    nominalMuzzleVelocityUmPerSec: positiveInt.optional(),
-    mechanicalRateOfFireRoundsPerMinuteX100: positiveInt.optional(),
-    propellantChargeBp: nonNegativeInt.optional(),
-    shellMassG: nonNegativeInt.optional(),
-    roundVolumeMl: nonNegativeInt.optional(),
-    reliabilityBp: z.number().int().min(0).max(10_000).optional(),
-    introductionMonth: z.string().optional(),
-    retirementMonth: z.string().nullable().optional(),
-    supportedMountTypes: z.array(z.enum(MOUNT_TYPE_VALUES)).min(1),
-    requiredTechnologyIds: z.array(z.string()),
-    provenance: ProvenanceSchema,
-  })
-  .strict();
+export const GunModelSchema = Schema.Struct({
+  id,
+  familyId: Schema.NonEmptyString,
+  /** The nation that fields this model. Purely data; the resolver has no nation-id branch. */
+  nationId: Schema.NonEmptyString,
+  designation: Schema.NonEmptyString,
+  caliberUm: Schema.optional(positiveInt),
+  barrelLengthCalibers: Schema.optional(Schema.Finite.check(Schema.isGreaterThan(0))),
+  gunMassKg: Schema.optional(nonNegativeInt),
+  loadingSystem: Schema.optional(Schema.String),
+  nominalMuzzleVelocityUmPerSec: Schema.optional(positiveInt),
+  mechanicalRateOfFireRoundsPerMinuteX100: Schema.optional(positiveInt),
+  propellantChargeBp: Schema.optional(nonNegativeInt),
+  shellMassG: Schema.optional(nonNegativeInt),
+  roundVolumeMl: Schema.optional(nonNegativeInt),
+  reliabilityBp: Schema.optional(bp),
+  introductionMonth: Schema.optional(Schema.String),
+  retirementMonth: Schema.optional(Schema.NullOr(Schema.String)),
+  supportedMountTypes: Schema.Array(Schema.Literals(MOUNT_TYPE_VALUES)).check(
+    Schema.isMinLength(1),
+  ),
+  requiredTechnologyIds: Schema.Array(Schema.String),
+  provenance: ProvenanceSchema,
+});
 
-export const GunModelCatalogueSchema = z.object({ gunModels: z.array(GunModelSchema) }).strict();
+export const GunModelCatalogueSchema = Schema.Struct({
+  gunModels: Schema.Array(GunModelSchema),
+});
 
-export const GunMountSchema = z
-  .object({
-    id,
-    mountType: z.enum(MOUNT_TYPE_VALUES),
-    compatibleGunFamilies: z.array(z.string()).optional(),
-    gunCount: positiveInt,
-    baseInstallationMassKg: nonNegativeInt.optional(),
-    perGunInstallationMassKg: nonNegativeInt.optional(),
-    topWeightKg: nonNegativeInt.optional(),
-    supportedArmorMm: nonNegativeInt.optional(),
-    traverseDeg: z.number().int().min(0).max(360).optional(),
-    elevationMinDeg: z.number().int().min(-90).max(90).optional(),
-    elevationMaxDeg: z.number().int().min(-90).max(90).optional(),
-    firingArcDeg: z.number().int().min(0).max(360).optional(),
-    rateOfFireModifierBp: z.number().int().nonnegative().optional(),
-    ammunitionHandlingModifierBp: z.number().int().nonnegative().optional(),
-    crewProtection: z.string().optional(),
-    hullSpaceUsageLitre: nonNegativeInt.optional(),
-    stabilityContributionKgM: z.number().int().optional(),
-    vulnerability: z.string().optional(),
-    introductionMonth: z.string().optional(),
-    retirementMonth: z.string().nullable().optional(),
-    requiredTechnologyIds: z.array(z.string()),
-    provenance: ProvenanceSchema,
-  })
-  .strict();
+export const GunMountSchema = Schema.Struct({
+  id,
+  mountType: Schema.Literals(MOUNT_TYPE_VALUES),
+  compatibleGunFamilies: Schema.optional(Schema.Array(Schema.String)),
+  gunCount: positiveInt,
+  baseInstallationMassKg: Schema.optional(nonNegativeInt),
+  perGunInstallationMassKg: Schema.optional(nonNegativeInt),
+  topWeightKg: Schema.optional(nonNegativeInt),
+  supportedArmorMm: Schema.optional(nonNegativeInt),
+  traverseDeg: Schema.optional(
+    Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 0, maximum: 360 })),
+  ),
+  elevationMinDeg: Schema.optional(
+    Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: -90, maximum: 90 })),
+  ),
+  elevationMaxDeg: Schema.optional(
+    Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: -90, maximum: 90 })),
+  ),
+  firingArcDeg: Schema.optional(
+    Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 0, maximum: 360 })),
+  ),
+  rateOfFireModifierBp: Schema.optional(nonNegativeInt),
+  ammunitionHandlingModifierBp: Schema.optional(nonNegativeInt),
+  crewProtection: Schema.optional(Schema.String),
+  hullSpaceUsageLitre: Schema.optional(nonNegativeInt),
+  stabilityContributionKgM: Schema.optional(Schema.Finite.check(Schema.isInt())),
+  vulnerability: Schema.optional(Schema.String),
+  introductionMonth: Schema.optional(Schema.String),
+  retirementMonth: Schema.optional(Schema.NullOr(Schema.String)),
+  requiredTechnologyIds: Schema.Array(Schema.String),
+  provenance: ProvenanceSchema,
+});
 
-export const GunMountCatalogueSchema = z.object({ gunMounts: z.array(GunMountSchema) }).strict();
+export const GunMountCatalogueSchema = Schema.Struct({
+  gunMounts: Schema.Array(GunMountSchema),
+});
 
-export const AmmunitionPatternSchema = z
-  .object({
-    id,
-    shellType: z.enum(SHELL_TYPE_VALUES),
-    nationId: z.string().min(1),
-    compatibleGunFamilies: z.array(z.string()).optional(),
-    compatibleGunModelIds: z.array(z.string()).optional(),
-    shellMassG: nonNegativeInt.optional(),
-    propellantInteractionBp: z.number().int().nonnegative().optional(),
-    penetrationBiasBp: z.number().int().min(0).max(10_000).optional(),
-    explosiveFillerG: nonNegativeInt.optional(),
-    burstingEffectBp: z.number().int().nonnegative().optional(),
-    fireEffectBp: z.number().int().nonnegative().optional(),
-    storageHazard: z.string().optional(),
-    ammunitionCostMicro: nonNegativeInt.optional(),
-    rateOfFireModifierBp: z.number().int().nonnegative().optional(),
-    introductionMonth: z.string().optional(),
-    retirementMonth: z.string().nullable().optional(),
-    provenance: ProvenanceSchema,
-  })
-  .strict();
+export const AmmunitionPatternSchema = Schema.Struct({
+  id,
+  shellType: Schema.Literals(SHELL_TYPE_VALUES),
+  nationId: Schema.NonEmptyString,
+  compatibleGunFamilies: Schema.optional(Schema.Array(Schema.String)),
+  compatibleGunModelIds: Schema.optional(Schema.Array(Schema.String)),
+  shellMassG: Schema.optional(nonNegativeInt),
+  propellantInteractionBp: Schema.optional(nonNegativeInt),
+  penetrationBiasBp: Schema.optional(bp),
+  explosiveFillerG: Schema.optional(nonNegativeInt),
+  burstingEffectBp: Schema.optional(nonNegativeInt),
+  fireEffectBp: Schema.optional(nonNegativeInt),
+  storageHazard: Schema.optional(Schema.String),
+  ammunitionCostMicro: Schema.optional(nonNegativeInt),
+  rateOfFireModifierBp: Schema.optional(nonNegativeInt),
+  introductionMonth: Schema.optional(Schema.String),
+  retirementMonth: Schema.optional(Schema.NullOr(Schema.String)),
+  provenance: ProvenanceSchema,
+});
 
-export const AmmunitionCatalogueSchema = z
-  .object({ ammunition: z.array(AmmunitionPatternSchema) })
-  .strict();
+export const AmmunitionCatalogueSchema = Schema.Struct({
+  ammunition: Schema.Array(AmmunitionPatternSchema),
+});
 
-export type GunFamilyData = z.infer<typeof GunFamilySchema>;
-export type GunModelData = z.infer<typeof GunModelSchema>;
-export type GunMountData = z.infer<typeof GunMountSchema>;
-export type AmmunitionPatternData = z.infer<typeof AmmunitionPatternSchema>;
+export type GunFamilyData = typeof GunFamilySchema.Type;
+export type GunModelData = typeof GunModelSchema.Type;
+export type GunMountData = typeof GunMountSchema.Type;
+export type AmmunitionPatternData = typeof AmmunitionPatternSchema.Type;

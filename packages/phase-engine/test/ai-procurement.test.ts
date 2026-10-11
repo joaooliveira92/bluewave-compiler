@@ -4,6 +4,7 @@ import { parse } from "yaml";
 import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
+  decodeStrict,
   NavalProfileCatalogueSchema,
   PropulsionPlantCatalogueSchema,
   ShipComponentCatalogueSchema,
@@ -33,16 +34,18 @@ const load = (rel: string) =>
   parse(readFileSync(join(root, rel), "utf8")) as Record<string, unknown>;
 
 const content: ShipBuildingContent = buildShipBuildingContent({
-  components: ShipComponentCatalogueSchema.parse(load("ship-building/components.yaml"))
+  components: decodeStrict(ShipComponentCatalogueSchema, load("ship-building/components.yaml"))
     .components as ComponentDef[],
-  plants: PropulsionPlantCatalogueSchema.parse(load("ship-building/plants.yaml"))
+  plants: decodeStrict(PropulsionPlantCatalogueSchema, load("ship-building/plants.yaml"))
     .plants as unknown as PropulsionPlant[],
-  hullForms: ShipHullFormCatalogueSchema.parse(load("ship-building/hull-forms.yaml"))
+  hullForms: decodeStrict(ShipHullFormCatalogueSchema, load("ship-building/hull-forms.yaml"))
     .hullForms as HullFormRecord[],
   balance: load("ship-building/balance.yaml") as ShipBuildingData["balance"],
   technologies: load("technologies.yaml") as unknown as { id: string; year: number }[],
-  navalProfiles: NavalProfileCatalogueSchema.parse(load("ship-building/naval-profiles.yaml"))
-    .navalProfiles as unknown as NationNavalProfile[],
+  navalProfiles: decodeStrict(
+    NavalProfileCatalogueSchema,
+    load("ship-building/naval-profiles.yaml"),
+  ).navalProfiles as unknown as NationNavalProfile[],
   referenceDesigns: (
     load("ship-building/reference-designs.yaml") as { designs: RawReferenceDesign[] }
   ).designs,

@@ -1,19 +1,25 @@
-import { z } from "zod";
+import { Schema } from "effect";
 
-export const TechPrerequisiteSchema = z.object({
-  techId: z.string().min(1),
+export const TechPrerequisiteSchema = Schema.Struct({
+  techId: Schema.NonEmptyString,
 });
 
-export const TechnologyPrerequisiteChainSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  category: z.string().min(1),
-  researchFieldId: z.string().min(1).optional(),
-  prerequisites: z.array(TechPrerequisiteSchema).optional(),
-  cost: z.number().int().positive().optional(),
-  discoveryWeight: z.number().int().min(1).max(1_000_000).optional(),
-  availabilityMonth: z.number().int().min(0).optional(),
-  year: z.number().int().min(1880).max(1970).optional(),
+export const TechnologyPrerequisiteChainSchema = Schema.Struct({
+  id: Schema.NonEmptyString,
+  name: Schema.NonEmptyString,
+  category: Schema.NonEmptyString,
+  researchFieldId: Schema.optional(Schema.NonEmptyString),
+  prerequisites: Schema.optional(Schema.Array(TechPrerequisiteSchema)),
+  cost: Schema.optional(Schema.Finite.check(Schema.isInt(), Schema.isGreaterThan(0))),
+  discoveryWeight: Schema.optional(
+    Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 1_000_000 })),
+  ),
+  availabilityMonth: Schema.optional(
+    Schema.Finite.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
+  ),
+  year: Schema.optional(
+    Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 1880, maximum: 1970 })),
+  ),
 });
 
-export interface TechnologyPrerequisite extends z.infer<typeof TechnologyPrerequisiteChainSchema> {}
+export type TechnologyPrerequisite = typeof TechnologyPrerequisiteChainSchema.Type;
