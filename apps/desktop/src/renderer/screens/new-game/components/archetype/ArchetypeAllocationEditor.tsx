@@ -8,14 +8,9 @@ import {
 import { Gauge, Minus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge.js";
 import { Button } from "@/components/ui/button.js";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card.js";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.js";
 import { Progress } from "@/components/ui/progress.js";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip.js";
 import { ARCHETYPE_DIMENSION_DESCRIPTORS } from "../../archetype-dimensions.js";
 import { ArchetypeAllocationBar } from "./ArchetypeAllocationBar.js";
 
@@ -34,45 +29,43 @@ export function ArchetypeAllocationEditor({
 }: ArchetypeAllocationEditorProps) {
   return (
     <div className="space-y-4">
-      <TooltipProvider>
-        <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
-          <Tooltip>
-            <TooltipTrigger
-              render={<span className="flex items-center gap-2 text-sm text-muted-foreground" />}
-            >
-              <Gauge className="h-4 w-4" />
-              Points
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              Each dimension is between {ARCHETYPE_DIMENSION_MIN} and {ARCHETYPE_DIMENSION_MAX}; the
-              total must equal {ARCHETYPE_POINT_TOTAL}.
-            </TooltipContent>
-          </Tooltip>
-          {errors.length > 0 ? (
-            <Popover>
-              <PopoverTrigger render={<span className="inline-flex" />} nativeButton={false}>
-                <Badge variant="destructive" className="cursor-pointer tabular-nums">
-                  {points} / {ARCHETYPE_POINT_TOTAL}
-                </Badge>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Allocation needs fixing</p>
-                  <ul className="space-y-1.5 text-xs text-muted-foreground">
-                    {errors.map((error) => (
-                      <li key={error}>{error}</li>
-                    ))}
-                  </ul>
-                </div>
-              </PopoverContent>
-            </Popover>
-          ) : (
-            <Badge variant="secondary" className="tabular-nums">
-              {points} / {ARCHETYPE_POINT_TOTAL}
-            </Badge>
-          )}
-        </div>
-      </TooltipProvider>
+      <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+        <HoverCard>
+          <HoverCardTrigger
+            render={<span className="flex items-center gap-2 text-sm text-muted-foreground" />}
+          >
+            <Gauge className="h-4 w-4" />
+            Points
+          </HoverCardTrigger>
+          <HoverCardContent className="w-72">
+            Each dimension is between {ARCHETYPE_DIMENSION_MIN} and {ARCHETYPE_DIMENSION_MAX}; the
+            total must equal {ARCHETYPE_POINT_TOTAL}.
+          </HoverCardContent>
+        </HoverCard>
+        {errors.length > 0 ? (
+          <Popover>
+            <PopoverTrigger render={<span className="inline-flex" />} nativeButton={false}>
+              <Badge variant="destructive" className="cursor-pointer tabular-nums">
+                {points} / {ARCHETYPE_POINT_TOTAL}
+              </Badge>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Allocation needs fixing</p>
+                <ul className="space-y-1.5 text-xs text-muted-foreground">
+                  {errors.map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <Badge variant="secondary" className="tabular-nums">
+            {points} / {ARCHETYPE_POINT_TOTAL}
+          </Badge>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 gap-2 rounded-lg border p-2">
         <div className="flex items-center justify-between px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">

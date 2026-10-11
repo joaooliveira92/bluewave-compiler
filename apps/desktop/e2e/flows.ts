@@ -12,14 +12,14 @@ export interface NewCampaignOptions {
 const click = (page: Page, name: string) => page.getByRole("button", { name }).first().click();
 
 /**
- * Drives the new-game assistant from the landing screen through the opening
- * briefing's "Take command". Shared by `scripts/view.ts` (`--make-save`) and specs so the
- * flow lives in one place; when the assistant changes, fix it here.
- *
- * Returns once command is taken — the caller decides what to wait
- * for next (the compile writes the package to the stubbed save dialog path).
+ * Drives the new-game assistant from the landing screen up to the
+ * Starting-fleet method screen (§5b), leaving the "Start Campaign" primary
+ * action unclicked so a caller can inspect or interact with the picker.
  */
-export async function startNewCampaign(page: Page, opts: NewCampaignOptions = {}): Promise<void> {
+export async function reachFleetMethodScreen(
+  page: Page,
+  opts: NewCampaignOptions = {},
+): Promise<void> {
   const { nation = "United Kingdom", archetype = "Shipyard Baron" } = opts;
   await click(page, "New Campaign");
   // Confirm through the console's own keyboard path ("Press Enter to confirm"): the dossier's
@@ -33,6 +33,18 @@ export async function startNewCampaign(page: Page, opts: NewCampaignOptions = {}
   await page.getByLabel("Admiral name").fill(opts.admiral ?? "John Fisher");
   await page.getByLabel("Campaign name").fill(opts.campaign ?? "Test Run");
   await click(page, "Next");
+}
+
+/**
+ * Drives the new-game assistant from the landing screen through the opening
+ * briefing's "Take command". Shared by `scripts/view.ts` (`--make-save`) and specs so the
+ * flow lives in one place; when the assistant changes, fix it here.
+ *
+ * Returns once command is taken — the caller decides what to wait
+ * for next (the compile writes the package to the stubbed save dialog path).
+ */
+export async function startNewCampaign(page: Page, opts: NewCampaignOptions = {}): Promise<void> {
+  await reachFleetMethodScreen(page, opts);
   await click(page, "Start Campaign");
   await click(page, "Begin Commission");
 

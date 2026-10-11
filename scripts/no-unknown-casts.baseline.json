@@ -62,9 +62,6 @@
   "apps/desktop/src/renderer/screens/construction/drawing-board/RevisionApply.test.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 2
   },
-  "apps/desktop/src/renderer/screens/construction/drawing-board/content.ts": {
-    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 3
-  },
   "apps/desktop/src/renderer/screens/construction/drawing-board/panels/RebuildPanel.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 2
   },
@@ -126,9 +123,6 @@
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
   "apps/desktop/src/renderer/screens/new-game/nation-selection/DossierSlidePanel/DossierSlidePanel.test.tsx": {
-    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
-  },
-  "apps/desktop/src/renderer/screens/new-game/nation-selection/useStackedCarousel.ts": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
   "apps/desktop/src/renderer/screens/new-game/nation-selection/useSvgGlobe.ts": {

@@ -1,7 +1,6 @@
 import type { DesignDraft } from "@bluewave/ship-design";
 import { act, fireEvent, render } from "@testing-library/react";
 import { describe, expect, it } from "vite-plus/test";
-import { TooltipProvider } from "../../../../../components/ui/tooltip.js";
 import { createSelectionStore } from "../../selection/store.js";
 import { ShipSelectionProvider } from "../../selection/useShipSelection.js";
 import { planFrame } from "./geometry.js";
@@ -30,16 +29,14 @@ const draw = (
 ) =>
   render(
     <ShipSelectionProvider store={store}>
-      <TooltipProvider>
-        <FittingTargets
-          frame={frame}
-          draft={draft}
-          targets={targets}
-          disabled={false}
-          warns={() => false}
-          {...over}
-        />
-      </TooltipProvider>
+      <FittingTargets
+        frame={frame}
+        draft={draft}
+        targets={targets}
+        disabled={false}
+        warns={() => false}
+        {...over}
+      />
     </ShipSelectionProvider>,
   );
 

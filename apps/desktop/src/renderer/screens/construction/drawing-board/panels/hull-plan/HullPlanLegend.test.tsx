@@ -1,6 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vite-plus/test";
-import { TooltipProvider } from "../../../../../components/ui/tooltip.js";
 import type { DrawingFacts } from "./describe.js";
 import { HullPlanLegend } from "./HullPlanLegend.js";
 import { legendEntries } from "./legend.js";
@@ -24,12 +23,7 @@ const entries = legendEntries({
   sheerBp: 11000,
   funnels: [{ instanceId: "f1", stationPermille: 560 }],
 });
-const draw = () =>
-  render(
-    <TooltipProvider>
-      <HullPlanLegend entries={entries} />
-    </TooltipProvider>,
-  );
+const draw = () => render(<HullPlanLegend entries={entries} />);
 
 describe("HullPlanLegend", () => {
   it("renders one keyboard-reachable chip per entry, each named by its title and label", () => {

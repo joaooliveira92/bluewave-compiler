@@ -2,7 +2,11 @@ import type { DesignRequirement } from "@bluewave/ship-design";
 import { Target } from "lucide-react";
 import { Badge } from "../../../components/ui/badge.js";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover.js";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../../../components/ui/tooltip.js";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../../../components/ui/hover-card.js";
 import { cn } from "../../../lib/utils.js";
 
 const words = (s: string) => s.replaceAll("_", " ").toLowerCase();
@@ -39,16 +43,16 @@ export function RequirementChip({
   );
   return (
     <Popover>
-      <Tooltip>
-        <TooltipTrigger render={<PopoverTrigger render={trigger} />}>
+      <HoverCard>
+        <HoverCardTrigger render={<PopoverTrigger render={trigger} />}>
           <Badge variant="outline" className="h-full cursor-pointer">
             <Target aria-hidden="true" className="size-3" />
           </Badge>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-64">
+        </HoverCardTrigger>
+        <HoverCardContent side="top" className="w-auto max-w-64 px-3 py-1.5 text-xs">
           {summary}
-        </TooltipContent>
-      </Tooltip>
+        </HoverCardContent>
+      </HoverCard>
       <PopoverContent aria-label="Design requirement" className="w-72 text-sm">
         <div className="mb-2 font-medium">Design requirement</div>
         <dl className="grid grid-cols-2 gap-x-3 gap-y-1">

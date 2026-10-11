@@ -50,6 +50,6 @@ export const MESH_LAGOON_PALETTE = freezeTheme<MeshPalette>(
 );
 
 export const PATTERN_WAVES_PALETTE = freezeTheme<PatternWavesPalette>(
-  { color: "#243044", backgroundColor: "#eef3f8" },
-  { color: "#dbe4f0", backgroundColor: "#010103" },
+  { color: "#cdd6e2", backgroundColor: "#eef3f8" },
+  { color: "#232833", backgroundColor: "#010103" },
 );

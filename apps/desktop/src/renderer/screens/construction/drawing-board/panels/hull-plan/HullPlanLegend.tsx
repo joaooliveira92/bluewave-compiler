@@ -1,6 +1,10 @@
 import { Badge } from "../../../../../components/ui/badge.js";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../../../components/ui/popover.js";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../../components/ui/tooltip.js";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../../../../../components/ui/hover-card.js";
 import { type LegendEntry, type LegendSource } from "./legend.js";
 
 const SOURCE_LABEL: Record<LegendSource, string> = {
@@ -13,8 +17,8 @@ const SOURCE_LABEL: Record<LegendSource, string> = {
 function LegendChip({ entry }: { readonly entry: LegendEntry }) {
   return (
     <Popover>
-      <Tooltip>
-        <TooltipTrigger
+      <HoverCard>
+        <HoverCardTrigger
           render={
             <PopoverTrigger
               render={<button type="button" />}
@@ -26,9 +30,11 @@ function LegendChip({ entry }: { readonly entry: LegendEntry }) {
           <Badge variant="outline" className="cursor-pointer text-xs">
             {entry.label}
           </Badge>
-        </TooltipTrigger>
-        <TooltipContent side="top">{entry.tooltip}</TooltipContent>
-      </Tooltip>
+        </HoverCardTrigger>
+        <HoverCardContent side="top" className="w-auto max-w-64 px-3 py-1.5 text-xs">
+          {entry.tooltip}
+        </HoverCardContent>
+      </HoverCard>
       <PopoverContent aria-label={entry.title} className="w-72 space-y-2 text-sm">
         <div className="flex items-center justify-between gap-2">
           <span className="font-medium">{entry.title}</span>

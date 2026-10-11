@@ -3,7 +3,11 @@ import { Move, SquarePlus, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../../../components/ui/button.js";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../../../components/ui/popover.js";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../../components/ui/tooltip.js";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../../../../../components/ui/hover-card.js";
 import { componentCategoryMeta } from "../../componentCategory.js";
 import { SelectField } from "../../fields.js";
 import { hasSide, NUDGE_PERMILLE } from "./placement-tools.js";
@@ -101,10 +105,12 @@ export function PlanModeButtons({
             {hint === undefined ? (
               <PopoverTrigger render={trigger}>{face}</PopoverTrigger>
             ) : (
-              <Tooltip>
-                <TooltipTrigger render={<PopoverTrigger render={trigger} />}>{face}</TooltipTrigger>
-                <TooltipContent className="max-w-72">{hint}</TooltipContent>
-              </Tooltip>
+              <HoverCard>
+                <HoverCardTrigger render={<PopoverTrigger render={trigger} />}>
+                  {face}
+                </HoverCardTrigger>
+                <HoverCardContent className="w-72">{hint}</HoverCardContent>
+              </HoverCard>
             )}
             <PopoverContent align="start" aria-label={name} className="w-72 space-y-3 text-sm">
               <div className="font-medium">{name}</div>

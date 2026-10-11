@@ -1,6 +1,10 @@
 import type { YardOption } from "@bluewave/ship-design";
 import { Badge } from "../../../../components/ui/badge.js";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../components/ui/tooltip.js";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../../../../components/ui/hover-card.js";
 import { yardRows } from "./yardRows.js";
 
 /** Which shipyards could build this design, and why the others cannot. The order is built at the quickest fitting yard. */
@@ -10,17 +14,17 @@ export function YardList({ yards }: { readonly yards: readonly YardOption[] }) {
     <div className="space-y-1">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>Shipyards</span>
-        <Tooltip>
-          <TooltipTrigger render={<span className="inline-flex" />}>
+        <HoverCard>
+          <HoverCardTrigger render={<span className="inline-flex" />}>
             <Badge variant="outline" className="text-xs">
               chosen automatically
             </Badge>
-          </TooltipTrigger>
-          <TooltipContent side="top">
+          </HoverCardTrigger>
+          <HoverCardContent side="top">
             An order is built at the quickest yard that can hold the hull, the smallest on a tie.
             The choice is fixed when the design is submitted.
-          </TooltipContent>
-        </Tooltip>
+          </HoverCardContent>
+        </HoverCard>
       </div>
       <ul className="space-y-1 text-sm" aria-label="Shipyards">
         {yardRows(yards).map((row) => (

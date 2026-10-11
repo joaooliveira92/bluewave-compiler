@@ -1,5 +1,4 @@
 import { treasuryCostUnits, type WorkshopView } from "@bluewave/ship-design";
-import { TooltipProvider } from "../../../../components/ui/tooltip.js";
 import { Panel } from "./Panel.js";
 import { YardList } from "./YardList.js";
 
@@ -46,9 +45,7 @@ export function ForecastPanel({
           <dd className="tabular-nums">{(view.cve.cveBp / 100).toFixed(0)} / 100</dd>
         </div>
       </dl>
-      <TooltipProvider>
-        <YardList yards={view.forecast.yards} />
-      </TooltipProvider>
+      <YardList yards={view.forecast.yards} />
     </Panel>
   );
 }

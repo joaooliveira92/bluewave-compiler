@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import type { DesignDraft, WorkshopView } from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../content.js";
-import { TooltipProvider } from "../../../../../components/ui/tooltip.js";
 import { Checkbox } from "../../../../../components/ui/checkbox.js";
 import { Panel } from "../Panel.js";
 import { PLAN_H, PLAN_W } from "./geometry.js";
@@ -109,150 +108,148 @@ export function HullPlanPanel({
   const shown = model.findings.filter((f) => passesFilter(f.severity, findingsView.filter));
   return (
     <Panel title="Hull plan" className="rounded-none border-0 bg-transparent">
-      <TooltipProvider>
-        <PlanToolOptions
-          tool={tool}
-          draft={draft}
-          defOf={model.defOf}
-          notice={notice}
-          onNudge={onNudge}
-          onSide={onSide}
-        />
-        {arcsControl && (
-          <div className="flex items-center gap-2 text-sm">
-            <Checkbox
-              id="show-gun-arcs"
-              aria-label="Show gun arcs"
-              checked={showArcs}
-              onCheckedChange={(v) => setShowArcs(v === true)}
-            />
-            <span aria-hidden="true">Show gun arcs</span>
-          </div>
-        )}
-        {findingsControl && (
-          <FindingsControl
-            view={findingsView}
-            onChange={setFindingsView}
-            shipFindings={shown.filter((f) => f.entities.some((e) => e.kind === "ship"))}
+      <PlanToolOptions
+        tool={tool}
+        draft={draft}
+        defOf={model.defOf}
+        notice={notice}
+        onNudge={onNudge}
+        onSide={onSide}
+      />
+      {arcsControl && (
+        <div className="flex items-center gap-2 text-sm">
+          <Checkbox
+            id="show-gun-arcs"
+            aria-label="Show gun arcs"
+            checked={showArcs}
+            onCheckedChange={(v) => setShowArcs(v === true)}
           />
-        )}
-        <div className="space-y-1" ref={planRef}>
-          <p className="text-xs font-medium text-muted-foreground">Waterline plan</p>
-          <div className="relative">
-            <svg
-              viewBox={`0 0 ${PLAN_W} ${PLAN_H}`}
-              className="block w-full rounded bg-muted/40"
-              role="img"
-              aria-label={planLabel(facts)}
-            >
-              <HullOutlineLayer frame={frame} />
-              <SelectionLayer frame={frame} zones={zones} draft={draft} warns={model.warns} />
-              <HullZoneLayer frame={frame} zones={zones} />
-              <HullTopsideLayer frame={frame} draft={draft} content={content} zones={zones} />
-              {showArcs && <GunArcLayer frame={frame} draft={draft} mounts={mounts} />}
-              <HullFittingLayer
-                frame={frame}
-                draft={draft}
-                selectedId={tool.mode === "move" ? tool.instanceId : undefined}
-              />
-              {tool.mode !== "off" && (
-                <rect
-                  x={0}
-                  y={0}
-                  width={PLAN_W}
-                  height={PLAN_H}
-                  fill="transparent"
-                  className="cursor-crosshair"
-                  aria-hidden="true"
-                  data-testid="plan-click-layer"
-                  {...planHandlers}
-                />
-              )}
-              {ghost !== null && (
-                <circle
-                  cx={ghost.x}
-                  cy={ghost.y}
-                  r={7}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeDasharray="3 2"
-                  pointerEvents="none"
-                  data-testid="plan-drag-ghost"
-                  aria-hidden="true"
-                />
-              )}
-            </svg>
-            <FittingTargets
+          <span aria-hidden="true">Show gun arcs</span>
+        </div>
+      )}
+      {findingsControl && (
+        <FindingsControl
+          view={findingsView}
+          onChange={setFindingsView}
+          shipFindings={shown.filter((f) => f.entities.some((e) => e.kind === "ship"))}
+        />
+      )}
+      <div className="space-y-1" ref={planRef}>
+        <p className="text-xs font-medium text-muted-foreground">Waterline plan</p>
+        <div className="relative">
+          <svg
+            viewBox={`0 0 ${PLAN_W} ${PLAN_H}`}
+            className="block w-full rounded bg-muted/40"
+            role="img"
+            aria-label={planLabel(facts)}
+          >
+            <HullOutlineLayer frame={frame} />
+            <SelectionLayer frame={frame} zones={zones} draft={draft} warns={model.warns} />
+            <HullZoneLayer frame={frame} zones={zones} />
+            <HullTopsideLayer frame={frame} draft={draft} content={content} zones={zones} />
+            {showArcs && <GunArcLayer frame={frame} draft={draft} mounts={mounts} />}
+            <HullFittingLayer
               frame={frame}
               draft={draft}
-              targets={targets}
-              disabled={tool.mode !== "off"}
-              warns={(instanceId) => model.warns({ kind: "fitting", instanceId })}
+              selectedId={tool.mode === "move" ? tool.instanceId : undefined}
             />
-            <FindingMarkers
-              groups={findingsView.visible ? layoutMarkers(shown, frame, draft, zones) : []}
-              names={model.entityName}
-              hidden={tool.mode !== "off"}
-            />
-          </div>
-          <SectionLabels
-            zones={zones}
-            anchor={planRef}
-            renderCard={(id) => (
-              <SectionCard
-                id={id}
-                ctx={{ draft, view, content, zones, frame, sheerBp: form?.sheerBp ?? 10000 }}
+            {tool.mode !== "off" && (
+              <rect
+                x={0}
+                y={0}
+                width={PLAN_W}
+                height={PLAN_H}
+                fill="transparent"
+                className="cursor-crosshair"
+                aria-hidden="true"
+                data-testid="plan-click-layer"
+                {...planHandlers}
               />
             )}
-          />
-        </div>
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">
-            Profile · depth {facts.depthM.toFixed(1)} m · draught {facts.draughtM.toFixed(1)} m
-          </p>
-          <ProfileView
+            {ghost !== null && (
+              <circle
+                cx={ghost.x}
+                cy={ghost.y}
+                r={7}
+                fill="none"
+                stroke="currentColor"
+                strokeDasharray="3 2"
+                pointerEvents="none"
+                data-testid="plan-drag-ghost"
+                aria-hidden="true"
+              />
+            )}
+          </svg>
+          <FittingTargets
+            frame={frame}
             draft={draft}
-            content={content}
-            sheerBp={form?.sheerBp ?? 10000}
-            bow={frame.bow}
-            stern={frame.stern}
-            lcbPermille={frame.lcbPermille}
-            superstructure={superstructure}
-            facts={facts}
+            targets={targets}
+            disabled={tool.mode !== "off"}
+            warns={(instanceId) => model.warns({ kind: "fitting", instanceId })}
+          />
+          <FindingMarkers
+            groups={findingsView.visible ? layoutMarkers(shown, frame, draft, zones) : []}
+            names={model.entityName}
+            hidden={tool.mode !== "off"}
           />
         </div>
-        <HullPlanLegend
-          entries={legendEntries({
-            facts,
-            waterplaneCoeffBp: form?.waterplaneCoeffBp,
-            lcbPermille: form?.lcbPermille,
-            sheerBp: form?.sheerBp,
-            funnels: placedFunnels,
-          })}
+        <SectionLabels
+          zones={zones}
+          anchor={planRef}
+          renderCard={(id) => (
+            <SectionCard
+              id={id}
+              ctx={{ draft, view, content, zones, frame, sheerBp: form?.sheerBp ?? 10000 }}
+            />
+          )}
         />
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span>
-            {frame.lengthM.toFixed(0)} m × {frame.beamM.toFixed(1)} m ·{" "}
-            {plural(draft.placements.length, "fitting")} · Schematic, not a lines plan.
-          </span>
-          <Popover>
-            <PopoverTrigger
-              render={<button type="button" />}
-              className="inline-flex items-center gap-1 rounded underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Info aria-hidden="true" className="size-3" />
-              About this drawing
-            </PopoverTrigger>
-            <PopoverContent aria-label="About this drawing" className="w-80 text-xs">
-              Schematic design views, not construction drawings or a true lines plan. The hull
-              form's waterplane coefficient, LCB, sheer and the placed fittings drive the drawing;
-              bow and stern character, sheer emphasis, deck-house steps and funnel shape are visual
-              conventions. Only station, side and arc width of fittings are data. Arcs show the
-              effective beam arc after obstruction.
-            </PopoverContent>
-          </Popover>
-        </div>
-      </TooltipProvider>
+      </div>
+      <div className="space-y-1">
+        <p className="text-xs font-medium text-muted-foreground">
+          Profile · depth {facts.depthM.toFixed(1)} m · draught {facts.draughtM.toFixed(1)} m
+        </p>
+        <ProfileView
+          draft={draft}
+          content={content}
+          sheerBp={form?.sheerBp ?? 10000}
+          bow={frame.bow}
+          stern={frame.stern}
+          lcbPermille={frame.lcbPermille}
+          superstructure={superstructure}
+          facts={facts}
+        />
+      </div>
+      <HullPlanLegend
+        entries={legendEntries({
+          facts,
+          waterplaneCoeffBp: form?.waterplaneCoeffBp,
+          lcbPermille: form?.lcbPermille,
+          sheerBp: form?.sheerBp,
+          funnels: placedFunnels,
+        })}
+      />
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <span>
+          {frame.lengthM.toFixed(0)} m × {frame.beamM.toFixed(1)} m ·{" "}
+          {plural(draft.placements.length, "fitting")} · Schematic, not a lines plan.
+        </span>
+        <Popover>
+          <PopoverTrigger
+            render={<button type="button" />}
+            className="inline-flex items-center gap-1 rounded underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Info aria-hidden="true" className="size-3" />
+            About this drawing
+          </PopoverTrigger>
+          <PopoverContent aria-label="About this drawing" className="w-80 text-xs">
+            Schematic design views, not construction drawings or a true lines plan. The hull form's
+            waterplane coefficient, LCB, sheer and the placed fittings drive the drawing; bow and
+            stern character, sheer emphasis, deck-house steps and funnel shape are visual
+            conventions. Only station, side and arc width of fittings are data. Arcs show the
+            effective beam arc after obstruction.
+          </PopoverContent>
+        </Popover>
+      </div>
     </Panel>
   );
 }

@@ -10,11 +10,10 @@ import {
 } from "../../../components/ui/card.js";
 import { Separator } from "../../../components/ui/separator.js";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../../../components/ui/tooltip.js";
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../../../components/ui/hover-card.js";
 import { formatDate } from "../utils/format.js";
 import type { CampaignConfigDisplay } from "../types.js";
 import { GlassCard } from "@/components/ui/glass-card.jsx";
@@ -69,25 +68,23 @@ export const ScenarioPanel = memo(function ScenarioPanel({
               <p className="font-mono text-xs text-muted-foreground">
                 {projection.campaignIdentity.slice(0, 24)}&hellip;
               </p>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <button
-                        type="button"
-                        aria-label={copied ? "Copied" : "Copy campaign ID"}
-                        className="rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:text-foreground"
-                      />
-                    }
-                    onClick={onCopyId}
-                  >
-                    <Copy className="h-3 w-3" />
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p className="text-[12px]">{copied ? "Copied!" : "Copy full ID"}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <HoverCard>
+                <HoverCardTrigger
+                  render={
+                    <button
+                      type="button"
+                      aria-label={copied ? "Copied" : "Copy campaign ID"}
+                      className="rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:text-foreground"
+                    />
+                  }
+                  onClick={onCopyId}
+                >
+                  <Copy className="h-3 w-3" />
+                </HoverCardTrigger>
+                <HoverCardContent side="top" className="w-auto px-3 py-1.5 text-xs">
+                  <p className="text-[12px]">{copied ? "Copied!" : "Copy full ID"}</p>
+                </HoverCardContent>
+              </HoverCard>
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import type { BluewaveDesktopBridge } from "../../../preload/index.js";
 import type { AdmiralPresetValues } from "./admiral-preset.js";
 import type { PrimaryAction } from "../../shell/primary-action.js";
+import { PRESET_DEFINITIONS } from "./rules-of-the-naval-age-presets.js";
 import { RulesOfTheNavalAgeScreen } from "./RulesOfTheNavalAgeScreen.js";
 
 beforeAll(() => {
@@ -104,6 +105,44 @@ describe("RulesOfTheNavalAgeScreen", () => {
     expect(screen.getByRole("button", { name: /Cadet/ }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByLabelText("Fleet Size").textContent).toContain("Small");
     expect(screen.getByLabelText("Difficulty").textContent).toContain("Easy");
+  });
+
+  it("lists every preset's name and tagline before one is chosen", async () => {
+    await setupUi();
+
+    const list = screen.getByRole("list", { name: "Preset comparison" });
+    for (const preset of PRESET_DEFINITIONS) {
+      expect(within(list).getByText(preset.name)).toBeTruthy();
+      expect(within(list).getByText(preset.tagline)).toBeTruthy();
+    }
+  });
+
+  it("shows each preset's name and select state on its own card", async () => {
+    await setupUi();
+
+    const admiralCard = screen.getByRole("button", { name: /Admiral/ });
+    expect(admiralCard.textContent).toContain("Admiral");
+    expect(admiralCard.textContent).toContain("Select");
+  });
+
+  it("previews a card on hover/focus without committing the preset", async () => {
+    await setupUi();
+
+    const cadetCard = screen.getByRole("button", { name: /Cadet/ });
+    expect(cadetCard.getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.focusIn(cadetCard);
+
+    const status = screen.getByRole("status");
+    expect(within(status).getByText("Cadet")).toBeTruthy();
+    expect(within(status).getByText(/more information, manageable fleets/i)).toBeTruthy();
+    expect(cadetCard.getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByRole("button", { name: /Custom/ }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+
+    fireEvent.click(cadetCard);
+    expect(cadetCard.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("reverts to Custom after editing a single setting post-preset", async () => {

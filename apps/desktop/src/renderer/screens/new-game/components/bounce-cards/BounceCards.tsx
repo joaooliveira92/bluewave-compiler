@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, useEffect, useRef } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useRef } from "react";
 
 import "./BounceCards.css";
 
@@ -13,7 +13,14 @@ export interface BounceCardsProps {
   images?: ReadonlyArray<string | BounceCardImage>;
   containerWidth?: number;
   containerHeight?: number;
+  /** Card width in CSS pixels. */
   cardSize?: number;
+  /**
+   * Card width-to-height ratio (`width / height`). Defaults to `1` (square).
+   * Set it to the artwork's own ratio (e.g. `1.5` for 3:2 paintings) so
+   * `object-fit: cover` has nothing left to crop.
+   */
+  cardAspect?: number;
   spread?: number;
   rotation?: number;
   arc?: number;
@@ -29,7 +36,26 @@ export interface BounceCardsProps {
   shadow?: boolean;
   /** Index of the selected card; adds `aria-pressed` and a selected outline. */
   activeIndex?: number;
+  /**
+   * Id of the element describing the selected card (e.g. a caption beside the
+   * deck). Applied as `aria-describedby` to the selected card only, so a screen
+   * reader announces the description alongside the card's name.
+   */
+  activeDescriptionId?: string;
+  /**
+   * Optional body painted inside each card, above its image. Kept
+   * `pointer-events: none` by `.bounce-cards__overlay`, so hover/click still
+   * reach the card itself. Use it to give every option an identity shelf
+   * without a separate legend.
+   */
+  cardOverlays?: ReadonlyArray<ReactNode>;
   onCardClick?: (index: number) => void;
+  /**
+   * Fires whenever the hovered/focused card changes, with `null` when the
+   * pointer leaves the deck. Lets a parent preview the option under the
+   * cursor before it is clicked.
+   */
+  onCardHover?: (index: number | null) => void;
   transformStyles?: ReadonlyArray<string>;
   className?: string;
   style?: CSSProperties;
@@ -71,6 +97,7 @@ type CardBody = {
 type Settings = {
   slots: Slot[];
   cardSize: number;
+  cardAspect: number;
   delay: number;
   stagger: number;
   bounciness: number;
@@ -89,6 +116,7 @@ export function BounceCards({
   containerWidth = 400,
   containerHeight = 400,
   cardSize = 200,
+  cardAspect = 1,
   spread = 85,
   rotation = 10,
   arc = 0,
@@ -103,8 +131,11 @@ export function BounceCards({
   radius = 25,
   shadow = true,
   activeIndex,
+  activeDescriptionId,
+  cardOverlays,
   transformStyles,
   onCardClick,
+  onCardHover,
 }: BounceCardsProps): React.JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -127,6 +158,7 @@ export function BounceCards({
   const settings: Settings = {
     slots,
     cardSize: Math.max(10, cardSize),
+    cardAspect: cardAspect > 0 ? cardAspect : 1,
     delay: Math.max(0, animationDelay),
     stagger: Math.max(0, animationStagger),
     bounciness: clamp(bounciness, 0, 1),
@@ -139,6 +171,8 @@ export function BounceCards({
   settingsRef.current = settings;
   const clickRef = useRef(onCardClick);
   clickRef.current = onCardClick;
+  const hoverRef = useRef(onCardHover);
+  hoverRef.current = onCardHover;
 
   useEffect(() => {
     const root = rootRef.current;
@@ -293,8 +327,9 @@ export function BounceCards({
       if (best < 0) return -1;
       const slot = s.slots[best];
       if (!slot) return -1;
-      const half = s.cardSize / 2;
-      if (Math.abs(py - slot.y) > half + 12 || distance > half + 12) return -1;
+      const halfWidth = s.cardSize / 2;
+      const halfHeight = s.cardSize / s.cardAspect / 2;
+      if (Math.abs(py - slot.y) > halfHeight + 12 || distance > halfWidth + 12) return -1;
       const currentIndex = state.hovered;
       if (currentIndex >= 0 && currentIndex !== best) {
         const current = s.slots[currentIndex];
@@ -313,24 +348,28 @@ export function BounceCards({
     };
     selectRef.current = activate;
 
+    const emitHover = (next: number): void => {
+      if (next === state.hovered) return;
+      state.hovered = next;
+      hoverRef.current?.(next < 0 ? null : next);
+      wake();
+    };
+
     const onMove = (event: PointerEvent): void => {
       const next = pick(event);
       if (next !== state.hovered) {
-        state.hovered = next;
-        wake();
+        emitHover(next);
       }
     };
     const onLeave = (): void => {
       if (state.hovered !== -1) {
-        state.hovered = -1;
-        wake();
+        emitHover(-1);
       }
     };
     const onFocus = (event: FocusEvent): void => {
       const index = cardRefs.current.indexOf(event.target as HTMLDivElement);
       if (index >= 0) {
-        state.hovered = index;
-        wake();
+        emitHover(index);
       }
     };
 
@@ -367,6 +406,7 @@ export function BounceCards({
           width: containerWidth,
           height: containerHeight,
           "--bounce-cards-size": `${settings.cardSize}px`,
+          "--bounce-cards-aspect": String(settings.cardAspect),
           "--bounce-cards-border": `${Math.max(0, borderWidth)}px`,
           "--bounce-cards-border-color": borderColor,
           "--bounce-cards-radius": `${Math.max(0, radius)}px`,
@@ -396,19 +436,31 @@ export function BounceCards({
             tabIndex={settings.clickable ? 0 : undefined}
             aria-pressed={settings.clickable ? selected : undefined}
             aria-label={settings.clickable ? card.alt || `Card ${i + 1}` : undefined}
+            aria-describedby={settings.clickable && selected ? activeDescriptionId : undefined}
             data-selected={settings.clickable && selected ? "" : undefined}
             onClick={settings.clickable ? () => selectRef.current?.(i) : undefined}
             onKeyDown={
               settings.clickable
                 ? (event) => {
-                    if (event.key !== "Enter" && event.key !== " ") return;
-                    event.preventDefault();
-                    selectRef.current?.(i);
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      selectRef.current?.(i);
+                      return;
+                    }
+                    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+                      event.preventDefault();
+                      const step = event.key === "ArrowRight" ? 1 : -1;
+                      const next = (i + step + count) % count;
+                      cardRefs.current[next]?.focus();
+                    }
                   }
                 : undefined
             }
           >
-            {card.src && <img src={card.src} alt={card.alt} draggable={false} />}
+            {card.src && <img src={card.src} alt="" draggable={false} />}
+            {cardOverlays?.[i] != null && (
+              <div className="bounce-cards__overlay">{cardOverlays[i]}</div>
+            )}
           </div>
         );
       })}

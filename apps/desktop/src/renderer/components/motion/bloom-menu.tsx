@@ -19,6 +19,12 @@ const ITEMS: MenuItem[] = [
   { label: "Link", icon: Link },
 ];
 
+// Open panel dimensions, shared by the CSS sizing and the viewport clamp so
+// the two never disagree. Width is `min(86vw, 420px)`, height a fixed 300px.
+const PANEL_WIDTH_VW = 0.86;
+const PANEL_MAX_WIDTH = 420;
+const PANEL_HEIGHT = 300;
+
 // Folder-open feel: a touch of overshoot as the panel expands, kept subtle.
 const SPRING_FOLDER = {
   type: "spring",
@@ -75,14 +81,25 @@ export function BloomMenu({
 
   // Track the trigger's screen position so the portaled panel (escaping any
   // clipped/z-indexed ancestor, e.g. the sidebar) can still center on it.
+  // Clamp to the viewport: the panel is wider/taller than the trigger, so an
+  // edge-anchored trigger would otherwise push it off-screen and clip it.
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const update = () => {
       const rect = el.getBoundingClientRect();
+      const gutter = 8;
+      const halfW = Math.min(window.innerWidth * PANEL_WIDTH_VW, PANEL_MAX_WIDTH) / 2;
+      const halfH = PANEL_HEIGHT / 2;
       setAnchor({
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
+        x: Math.min(
+          Math.max(rect.left + rect.width / 2, gutter + halfW),
+          window.innerWidth - gutter - halfW,
+        ),
+        y: Math.min(
+          Math.max(rect.top + rect.height / 2, gutter + halfH),
+          window.innerHeight - gutter - halfH,
+        ),
       });
     };
     update();

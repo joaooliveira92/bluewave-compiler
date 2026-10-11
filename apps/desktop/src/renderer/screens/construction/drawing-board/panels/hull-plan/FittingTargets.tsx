@@ -1,6 +1,10 @@
 import { type KeyboardEvent, useRef, useState } from "react";
 import type { DesignDraft } from "@bluewave/ship-design";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../../components/ui/tooltip.js";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../../../../../components/ui/hover-card.js";
 import { sameEntity, type ShipEntity } from "../../selection/store.js";
 import { useSelectionStore, useShipSelection } from "../../selection/useShipSelection.js";
 import { NON_SCALING, STROKE } from "./drafting.js";
@@ -73,8 +77,8 @@ export function FittingTargets({
         const isLinked = linked.some((l) => sameEntity(l, entity));
         const name = label(p.instanceId, p.side ?? "CENTRE", p.stationPermille);
         return (
-          <Tooltip key={p.instanceId}>
-            <TooltipTrigger
+          <HoverCard key={p.instanceId}>
+            <HoverCardTrigger
               render={
                 <g
                   ref={(el) => {
@@ -145,9 +149,11 @@ export function FittingTargets({
                   {warns(p.instanceId) && <WarningGlyph x={x + HIT_R + 6} y={y - HIT_R - 4} />}
                 </g>
               )}
-            </TooltipTrigger>
-            <TooltipContent>{name}</TooltipContent>
-          </Tooltip>
+            </HoverCardTrigger>
+            <HoverCardContent side="top" className="w-auto max-w-64 px-3 py-1.5 text-xs">
+              {name}
+            </HoverCardContent>
+          </HoverCard>
         );
       })}
     </svg>

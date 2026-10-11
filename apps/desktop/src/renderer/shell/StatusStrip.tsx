@@ -16,12 +16,6 @@ import { Badge } from "../components/ui/badge.js";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "../components/ui/hover-card.js";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover.js";
 import { Toggle } from "../components/ui/toggle.js";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../components/ui/tooltip.js";
 import { cn } from "../lib/utils.js";
 import { useBridgeQuery } from "../lib/use-bridge-query.js";
 import { useDensity } from "./DensityContext.js";
@@ -84,8 +78,8 @@ function ReadoutLabel({ row }: { readonly row: StripRow }) {
     return <span className={cn(LABEL_FIELD, "truncate")}>{row.label}</span>;
   }
   return (
-    <Tooltip>
-      <TooltipTrigger
+    <HoverCard>
+      <HoverCardTrigger
         delay={200}
         render={<span tabIndex={0} />}
         className={cn(
@@ -94,11 +88,11 @@ function ReadoutLabel({ row }: { readonly row: StripRow }) {
         )}
       >
         {row.label}
-      </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-64 text-xs leading-snug">
+      </HoverCardTrigger>
+      <HoverCardContent side="top" className="w-64 text-xs leading-snug">
         {description}
-      </TooltipContent>
-    </Tooltip>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
@@ -274,8 +268,8 @@ function BalanceChip({
 
 function TreasuryChip({ treasury }: { readonly treasury: string }) {
   return (
-    <Tooltip>
-      <TooltipTrigger
+    <HoverCard>
+      <HoverCardTrigger
         delay={150}
         render={<button type="button" />}
         aria-label={`Treasury ${treasury}`}
@@ -284,19 +278,19 @@ function TreasuryChip({ treasury }: { readonly treasury: string }) {
         <Landmark className="size-3.5 text-muted-foreground" aria-hidden="true" />
         <span className="text-muted-foreground">Treasury</span>
         <span className="tabular-nums font-semibold">{treasury}</span>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-64 text-xs">
+      </HoverCardTrigger>
+      <HoverCardContent side="top" className="w-auto max-w-64 px-3 py-1.5 text-xs">
         Cash on hand at the start of the month.
-      </TooltipContent>
-    </Tooltip>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
 function AlertsChip({ alerts }: { readonly alerts: string }) {
   const unavailable = alerts.toLowerCase().includes("unavailable");
   return (
-    <Tooltip>
-      <TooltipTrigger
+    <HoverCard>
+      <HoverCardTrigger
         delay={150}
         render={<button type="button" />}
         aria-label={`Priorities: ${alerts}`}
@@ -308,11 +302,11 @@ function AlertsChip({ alerts }: { readonly alerts: string }) {
           <Bell className="size-3.5 text-muted-foreground" aria-hidden="true" />
         )}
         <span>{alerts}</span>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-64 text-xs">
+      </HoverCardTrigger>
+      <HoverCardContent side="top" className="w-auto max-w-64 px-3 py-1.5 text-xs">
         Strategic priorities the campaign has raised for attention.
-      </TooltipContent>
-    </Tooltip>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
@@ -339,47 +333,45 @@ export function StatusStripView({ model }: { readonly model: StatusStripModel })
       data-expanded={expanded}
       className="relative shrink-0 border-t bg-background/70 px-3 py-0 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 group-data-[underlay=true]/chrome:border-transparent group-data-[underlay=true]/chrome:bg-linear-to-t group-data-[underlay=true]/chrome:from-background/75 group-data-[underlay=true]/chrome:to-background/10 group-data-[underlay=true]/chrome:backdrop-blur-sm group-data-[underlay=true]/chrome:supports-[backdrop-filter]:bg-transparent"
     >
-      <TooltipProvider delay={200} closeDelay={80}>
-        <div className="flex items-center gap-2 text-xs">
-          {expanded ? (
-            <span className="flex items-center gap-1.5 font-semibold">
-              <Activity className="size-3.5 text-muted-foreground" aria-hidden="true" />
-              Status
-            </span>
-          ) : (
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-              <BalanceChip summary={summary} budgetRows={model.budget} />
-              <TreasuryChip treasury={summary.treasury} />
-              <AlertsChip alerts={summary.alerts} />
-            </div>
-          )}
-
-          <div className="ml-auto flex shrink-0 items-center gap-1.5">
-            <DeferredPopover rows={model.deferredRows} />
-            <Toggle
-              variant="outline"
-              size="sm"
-              pressed={expanded}
-              onPressedChange={setChosen}
-              className="h-5 min-w-0 gap-1 px-1.5 text-xs"
-            >
-              {expanded ? (
-                <ChevronDown className="size-3.5" aria-hidden="true" />
-              ) : (
-                <ChevronUp className="size-3.5" aria-hidden="true" />
-              )}
-              <span>{expanded ? "Collapse" : "Expand"}</span>
-            </Toggle>
-          </div>
-        </div>
-
-        {expanded && (
-          <div className="mt-0.5 grid gap-x-8 gap-y-0.5 border-t border-border/60 pt-0.5 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-            <ReadoutColumn name="Nation" rows={real(model.nation)} />
-            <ReadoutColumn name="Budget" rows={real(model.budget)} multiColumn />
+      <div className="flex items-center gap-2 text-xs">
+        {expanded ? (
+          <span className="flex items-center gap-1.5 font-semibold">
+            <Activity className="size-3.5 text-muted-foreground" aria-hidden="true" />
+            Status
+          </span>
+        ) : (
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            <BalanceChip summary={summary} budgetRows={model.budget} />
+            <TreasuryChip treasury={summary.treasury} />
+            <AlertsChip alerts={summary.alerts} />
           </div>
         )}
-      </TooltipProvider>
+
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          <DeferredPopover rows={model.deferredRows} />
+          <Toggle
+            variant="outline"
+            size="sm"
+            pressed={expanded}
+            onPressedChange={setChosen}
+            className="h-5 min-w-0 gap-1 px-1.5 text-xs"
+          >
+            {expanded ? (
+              <ChevronDown className="size-3.5" aria-hidden="true" />
+            ) : (
+              <ChevronUp className="size-3.5" aria-hidden="true" />
+            )}
+            <span>{expanded ? "Collapse" : "Expand"}</span>
+          </Toggle>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-0.5 grid gap-x-8 gap-y-0.5 border-t border-border/60 pt-0.5 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+          <ReadoutColumn name="Nation" rows={real(model.nation)} />
+          <ReadoutColumn name="Budget" rows={real(model.budget)} multiColumn />
+        </div>
+      )}
     </section>
   );
 }

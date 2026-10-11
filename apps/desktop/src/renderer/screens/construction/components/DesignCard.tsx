@@ -3,7 +3,11 @@ import type { CompiledDesignVersion } from "@bluewave/campaign-engine";
 import { Badge } from "../../../components/ui/badge.js";
 import { CardContent } from "../../../components/ui/card.js";
 import { RadioGroupItem } from "../../../components/ui/radio-group.js";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../../../components/ui/tooltip.js";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../../../components/ui/hover-card.js";
 import { shipTypeIcon } from "./ship-type-icon.js";
 
 export interface DesignCardProps {
@@ -51,15 +55,17 @@ export function DesignCard({ design }: DesignCardProps) {
           )}
         </div>
         {design.requiredTechnologyIds.length > 0 && (
-          <Tooltip>
-            <TooltipTrigger render={<span className="inline-flex" />}>
+          <HoverCard>
+            <HoverCardTrigger render={<span className="inline-flex" />}>
               <Badge variant="secondary" className="text-xs">
                 {design.requiredTechnologyIds.length} required tech
                 {design.requiredTechnologyIds.length === 1 ? "" : "s"}
               </Badge>
-            </TooltipTrigger>
-            <TooltipContent side="top">{design.requiredTechnologyIds.join(", ")}</TooltipContent>
-          </Tooltip>
+            </HoverCardTrigger>
+            <HoverCardContent side="top">
+              {design.requiredTechnologyIds.join(", ")}
+            </HoverCardContent>
+          </HoverCard>
         )}
       </CardContent>
     </RadioGroupItem>

@@ -6,9 +6,10 @@
  * is the curated-generation option, not the manual-build one — that's
  * `disabled`.
  */
+import type { FleetMethodArtworkId } from "../../content/fleetMethodArtworkManifest.js";
 
 export interface FleetMethodCardContent {
-  readonly id: string;
+  readonly id: FleetMethodArtworkId;
   readonly title: string;
   readonly tagline: string;
   readonly description: string;

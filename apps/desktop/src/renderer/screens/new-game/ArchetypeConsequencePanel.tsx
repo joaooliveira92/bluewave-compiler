@@ -17,12 +17,6 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from "../../compo
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "../../components/ui/hover-card.js";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover.js";
 import { Progress } from "../../components/ui/progress.js";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../../components/ui/tooltip.js";
 import { type ArchetypeNumericEffect, type ArchetypeConsequence } from "./archetype-consequence.js";
 import { archetypeDimensionDescriptor } from "./archetype-dimensions.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
@@ -104,35 +98,33 @@ function DimensionDeltas({ consequence }: { consequence: ArchetypeConsequence })
         const variance =
           delta.delta > 0 ? "default" : delta.delta < 0 ? "destructive" : "secondary";
         return (
-          <TooltipProvider key={delta.dimension}>
-            <div className="rounded-lg border p-3">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-sm font-medium">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                  {delta.label}
-                </span>
-                <Tooltip>
-                  <TooltipTrigger render={<span className="inline-flex" />}>
-                    <Badge variant={variance} className="gap-1">
-                      <DeltaIcon className="h-3 w-3" />
-                      {delta.delta > 0 ? `+${delta.delta}` : delta.delta}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {delta.delta > 0
-                      ? `${delta.delta} points above balanced`
-                      : delta.delta < 0
-                        ? `${Math.abs(delta.delta)} points below balanced`
-                        : "At the balanced baseline"}
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Progress value={(delta.invested / 10) * 100} className="mt-3" />
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                {delta.invested} pts invested · balanced {delta.balanced}
-              </p>
+          <div key={delta.dimension} className="rounded-lg border p-3">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-sm font-medium">
+                <Icon className="h-4 w-4 text-muted-foreground" />
+                {delta.label}
+              </span>
+              <HoverCard>
+                <HoverCardTrigger render={<span className="inline-flex" />}>
+                  <Badge variant={variance} className="gap-1">
+                    <DeltaIcon className="h-3 w-3" />
+                    {delta.delta > 0 ? `+${delta.delta}` : delta.delta}
+                  </Badge>
+                </HoverCardTrigger>
+                <HoverCardContent side="top" className="w-auto max-w-64 px-3 py-1.5 text-xs">
+                  {delta.delta > 0
+                    ? `${delta.delta} points above balanced`
+                    : delta.delta < 0
+                      ? `${Math.abs(delta.delta)} points below balanced`
+                      : "At the balanced baseline"}
+                </HoverCardContent>
+              </HoverCard>
             </div>
-          </TooltipProvider>
+            <Progress value={(delta.invested / 10) * 100} className="mt-3" />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {delta.invested} pts invested · balanced {delta.balanced}
+            </p>
+          </div>
         );
       })}
     </div>

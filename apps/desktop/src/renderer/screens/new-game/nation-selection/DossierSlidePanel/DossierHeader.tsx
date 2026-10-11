@@ -1,11 +1,6 @@
 import { Anchor } from "lucide-react";
 import type { JSX } from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip.js";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card.js";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 import { NationEmblem } from "./NationEmblem.js";
 import { getCountryCode } from "./nationArtwork.js";
@@ -25,20 +20,18 @@ export function DossierHeader({
 
   return (
     <header className="relative flex items-center gap-3 border-b border-admiralty-accent/25 bg-gradient-to-b from-admiralty-surface-raised/65 via-admiralty-surface/35 to-transparent px-4 py-3 backdrop-blur-md sm:gap-4 sm:px-5">
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger
-            render={<span tabIndex={0} />}
-            aria-label={appointmentMessage}
-            className="inline-flex flex-none cursor-help rounded-md outline-none focus-visible:ring-2 focus-visible:ring-admiralty-accent"
-          >
-            <NationEmblem countryId={countryId} />
-          </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-64 text-xs leading-snug">
-            {appointmentMessage}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <HoverCard>
+        <HoverCardTrigger
+          render={<span tabIndex={0} />}
+          aria-label={appointmentMessage}
+          className="inline-flex flex-none cursor-help rounded-md outline-none focus-visible:ring-2 focus-visible:ring-admiralty-accent"
+        >
+          <NationEmblem countryId={countryId} />
+        </HoverCardTrigger>
+        <HoverCardContent side="top" className="w-auto max-w-64 px-3 py-1.5 text-xs leading-snug">
+          {appointmentMessage}
+        </HoverCardContent>
+      </HoverCard>
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <h3
           id={`nation-dossier-heading-${countryId}`}

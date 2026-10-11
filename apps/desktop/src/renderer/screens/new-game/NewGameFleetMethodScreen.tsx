@@ -1,12 +1,18 @@
 import { Anchor } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Badge } from "../../components/ui/badge.js";
+import { useCallback, useId, useMemo, useRef, useState } from "react";
 import { Button } from "../../components/ui/button.js";
+import { getFleetMethodArtwork } from "../../content/fleetMethodArtworkManifest.js";
+import { cn } from "../../lib/utils.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
+import {
+  BounceCards,
+  NEW_GAME_BOUNCE_CARDS_PROPS,
+  type BounceCardImage,
+} from "./components/bounce-cards/index.js";
 import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
-import { FLEET_METHOD_CARDS, type FleetMethodCardContent } from "./fleet-method-content.js";
+import { FLEET_METHOD_CARDS } from "./fleet-method-content.js";
 import type { FleetMethodDraft } from "./new-game-fleet-method-screen-state.js";
 
 export interface NewGameFleetMethodScreenProps {
@@ -28,6 +34,7 @@ export function NewGameFleetMethodScreen({
 }: NewGameFleetMethodScreenProps) {
   const [fleetMethod, setFleetMethod] = useState<FleetMethodDraft>(initialFleetMethod);
   const launching = status === "launching";
+  const captionId = useId();
 
   const fleetMethodRef = useRef(fleetMethod);
   fleetMethodRef.current = fleetMethod;
@@ -48,8 +55,31 @@ export function NewGameFleetMethodScreen({
   );
   usePrimaryAction(primaryAction, onPrimaryActionChange);
 
+  const images = useMemo<ReadonlyArray<BounceCardImage>>(
+    () =>
+      FLEET_METHOD_CARDS.map((card) => ({
+        src: getFleetMethodArtwork(card.id),
+        alt: card.title,
+      })),
+    [],
+  );
+
+  const activeIndex = useMemo(
+    () => FLEET_METHOD_CARDS.findIndex((card) => card.id === fleetMethod.legacyFleetModeId),
+    [fleetMethod.legacyFleetModeId],
+  );
+
+  const activeCard =
+    FLEET_METHOD_CARDS.find((card) => card.id === fleetMethod.legacyFleetModeId) ??
+    FLEET_METHOD_CARDS[0];
+
+  const handleCardClick = useCallback((index: number) => {
+    const card = FLEET_METHOD_CARDS[index];
+    if (card) setFleetMethod({ legacyFleetModeId: card.id });
+  }, []);
+
   return (
-    <NewGameScreenLayout>
+    <NewGameScreenLayout size="md">
       <ScreenHeader
         icon={<Anchor className="h-5 w-5" />}
         title="Starting-fleet method"
@@ -58,17 +88,48 @@ export function NewGameFleetMethodScreen({
 
       {error !== null && <p className="text-sm text-destructive">{error}</p>}
 
-      <section aria-label="Starting-fleet method choices">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {FLEET_METHOD_CARDS.map((card) => (
-            <FleetMethodCard
-              key={card.id}
-              card={card}
-              active={fleetMethod.legacyFleetModeId === card.id}
-              onSelect={() => setFleetMethod({ legacyFleetModeId: card.id })}
-            />
-          ))}
-        </div>
+      <section
+        aria-label="Starting-fleet method choices"
+        className="flex flex-col items-center gap-4"
+      >
+        <BounceCards
+          images={images}
+          activeIndex={activeIndex}
+          activeDescriptionId={captionId}
+          onCardClick={handleCardClick}
+          {...NEW_GAME_BOUNCE_CARDS_PROPS}
+        />
+
+        <ul
+          aria-label="Starting-fleet method comparison"
+          className="flex w-full max-w-md flex-col gap-1"
+        >
+          {FLEET_METHOD_CARDS.map((card) => {
+            const active = card.id === activeCard?.id;
+            return (
+              <li
+                key={card.id}
+                aria-current={active ? "true" : undefined}
+                className={cn(
+                  "flex items-baseline justify-between gap-3 rounded-md px-2 py-1 text-left",
+                  active ? "bg-muted" : "opacity-70",
+                )}
+              >
+                <span className="text-sm font-medium">{card.title}</span>
+                <span className="text-xs text-muted-foreground">{card.tagline}</span>
+              </li>
+            );
+          })}
+        </ul>
+
+        {activeCard !== undefined && (
+          <div id={captionId} className="flex max-w-md flex-col items-center gap-1 text-center">
+            <p className="text-xs text-muted-foreground">{activeCard.description}</p>
+            {activeCard.note !== null && (
+              <p className="text-xs italic text-muted-foreground">{activeCard.note}</p>
+            )}
+          </div>
+        )}
       </section>
 
       <div className="flex justify-between">
@@ -77,33 +138,5 @@ export function NewGameFleetMethodScreen({
         </Button>
       </div>
     </NewGameScreenLayout>
-  );
-}
-
-function FleetMethodCard({
-  card,
-  active,
-  onSelect,
-}: {
-  card: FleetMethodCardContent;
-  active: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={active}
-      className={`flex flex-col gap-2 rounded-lg border p-4 text-left transition-colors ${
-        active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-semibold">{card.title}</span>
-        <Badge variant="secondary">{card.tagline}</Badge>
-      </div>
-      <p className="text-xs text-muted-foreground">{card.description}</p>
-      {card.note !== null && <p className="text-xs italic text-muted-foreground">{card.note}</p>}
-    </button>
   );
 }

@@ -93,7 +93,7 @@ const BACKGROUND_RENDERERS: Record<BackgroundStyle, BackgroundRenderer> = {
         className="fixed inset-0 -z-10"
         preset="silk"
         speed={0.2}
-        opacity={0.4}
+        opacity={0.18}
         color={palette.color}
         backgroundColor={palette.backgroundColor}
       />

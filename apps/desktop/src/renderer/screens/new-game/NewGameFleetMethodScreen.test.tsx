@@ -45,9 +45,67 @@ describe("NewGameFleetMethodScreen", () => {
 
   it("renders three cards with the spec §5a copy mapping", () => {
     setupUi();
-    expect(screen.getByText("Inherit an Existing Navy")).toBeTruthy();
-    expect(screen.getByText("Build the Legacy Fleet Manually")).toBeTruthy();
-    expect(screen.getByText("Curated Historical-Inspired Fleet")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Inherit an Existing Navy/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Build the Legacy Fleet Manually/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Curated Historical-Inspired Fleet/ })).toBeTruthy();
+  });
+
+  it("shows artwork for each of the three fleet methods", () => {
+    const { container } = setupUi();
+    const images = [...container.querySelectorAll("img")];
+    expect(images).toHaveLength(3);
+    expect(images[0]?.getAttribute("src")).toMatch(/dockyard/);
+    expect(images[1]?.getAttribute("src")).toMatch(/blueprint/);
+    expect(images[2]?.getAttribute("src")).toMatch(/cannons/);
+  });
+
+  it("treats the card artwork as decorative, keeping the name on the card button", () => {
+    const { container } = setupUi();
+    for (const image of container.querySelectorAll("img")) {
+      expect(image.getAttribute("alt")).toBe("");
+    }
+    expect(screen.getByRole("button", { name: /Inherit an Existing Navy/ })).toBeTruthy();
+  });
+
+  it("lists all three methods in an always-visible comparison legend, marking the active one", () => {
+    setupUi();
+    const legend = screen.getByRole("list", { name: "Starting-fleet method comparison" });
+    const items = legend.querySelectorAll("li");
+    expect(items).toHaveLength(3);
+    expect(legend.textContent).toContain("Inherit an Existing Navy");
+    expect(legend.textContent).toContain("Build the Legacy Fleet Manually");
+    expect(legend.textContent).toContain("Curated Historical-Inspired Fleet");
+    expect(items[0]?.getAttribute("aria-current")).toBe("true");
+
+    click("Build the Legacy Fleet Manually");
+    const after = screen
+      .getByRole("list", { name: "Starting-fleet method comparison" })
+      .querySelectorAll("li");
+    expect(after[1]?.getAttribute("aria-current")).toBe("true");
+    expect(after[0]?.getAttribute("aria-current")).toBeNull();
+  });
+
+  it("associates the selected card with the caption via aria-describedby", () => {
+    setupUi();
+    const inherit = screen.getByRole("button", { name: /Inherit an Existing Navy/ });
+    const captionId = inherit.getAttribute("aria-describedby");
+    expect(captionId).toBeTruthy();
+    const caption = document.getElementById(captionId!);
+    expect(caption?.textContent).toContain(
+      "Start with an operational-but-aging navy and modernize it as you play",
+    );
+    expect(
+      screen
+        .getByRole("button", { name: /Build the Legacy Fleet Manually/ })
+        .getAttribute("aria-describedby"),
+    ).toBeNull();
+
+    click("Build the Legacy Fleet Manually");
+    const manual = screen.getByRole("button", { name: /Build the Legacy Fleet Manually/ });
+    expect(manual.getAttribute("aria-describedby")).toBe(captionId);
+    expect(document.getElementById(captionId!)?.textContent).toContain(
+      "Detailed fleet construction isn't available yet",
+    );
   });
 
   it("defaults to the generated (Inherit an Existing Navy) card on first visit", () => {
@@ -56,16 +114,15 @@ describe("NewGameFleetMethodScreen", () => {
     expect(card.getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("shows the manual-build not-yet-available note only on the disabled card", () => {
+  it("shows the manual-build not-yet-available note only when the disabled card is selected", () => {
     setupUi();
+    expect(screen.queryByText(/Detailed fleet construction isn't available yet/)).toBeNull();
+
+    click("Build the Legacy Fleet Manually");
     expect(screen.getByText(/Detailed fleet construction isn't available yet/)).toBeTruthy();
 
-    const generatedCard = screen.getByRole("button", { name: /Inherit an Existing Navy/ });
-    const historicalCard = screen.getByRole("button", {
-      name: /Curated Historical-Inspired Fleet/,
-    });
-    expect(generatedCard.textContent).not.toMatch(/not.*available/i);
-    expect(historicalCard.textContent).not.toMatch(/not.*available/i);
+    click("Curated Historical-Inspired Fleet");
+    expect(screen.queryByText(/Detailed fleet construction isn't available yet/)).toBeNull();
   });
 
   it("shows no numeric allocation figures, ship counts, or phase breakdowns", () => {

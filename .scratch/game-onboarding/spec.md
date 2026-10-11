@@ -244,8 +244,18 @@ yet produce a real starting fleet.**
   equally real, equally unimplemented.
 - **`generated`/`historical` cards**: same descriptive-only treatment — no
   numeric/statistical preview (no ship counts, no allocation figures).
-- **Layout**: three-card select pattern, matching the Archetype screen and
-  preset picker for visual consistency.
+- **Layout — BounceCards deck + comparison legend**: the screen uses the shared
+  `BounceCards` deck component (the same one the preset picker uses, with the
+  new-game tuning extracted to one preset so the two cannot drift), not a
+  static 3-up grid. The deck stays the *selector*. Because the deck only shows
+  one card's copy at a time, an **always-visible comparison legend** sits under
+  it listing all three titles + taglines (copy verbatim from
+  `fleet-method-content.ts`), with the active row highlighted and marked
+  `aria-current="true"`.
+- **Caption association**: the active card's description and (for `disabled`)
+  its not-yet-available note render in a caption that the selected card points
+  at with `aria-describedby`, so a screen reader announces the description and
+  note, not just the card's title.
 
 ---
 

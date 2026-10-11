@@ -1,6 +1,10 @@
 import { type KeyboardEvent, useRef, useState } from "react";
 import type { DesignDraft } from "@bluewave/ship-design";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../../../../components/ui/tooltip.js";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../../../../components/ui/hover-card.js";
 import { NON_SCALING, STROKE } from "../panels/hull-plan/drafting.js";
 import {
   fittingPoint,
@@ -167,8 +171,8 @@ export function FindingMarkers({
         const activate = () => store.select(g.entity, top.key);
         const values = valueLine(top);
         return (
-          <Tooltip key={k} onOpenChange={(open) => store.setMarkerPreview(open)}>
-            <TooltipTrigger
+          <HoverCard key={k} onOpenChange={(open) => store.setMarkerPreview(open)}>
+            <HoverCardTrigger
               render={
                 <g
                   ref={(el) => {
@@ -251,8 +255,8 @@ export function FindingMarkers({
                   </text>
                 </g>
               )}
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs space-y-0.5 text-left">
+            </HoverCardTrigger>
+            <HoverCardContent className="w-80 space-y-0.5 text-left">
               <p className="font-medium">
                 {style.label}: {top.title}
               </p>
@@ -262,8 +266,8 @@ export function FindingMarkers({
                   And {more} more finding{more === 1 ? "" : "s"} here.
                 </p>
               )}
-            </TooltipContent>
-          </Tooltip>
+            </HoverCardContent>
+          </HoverCard>
         );
       })}
     </svg>

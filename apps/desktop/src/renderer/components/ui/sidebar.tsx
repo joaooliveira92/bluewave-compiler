@@ -7,7 +7,7 @@ import { Input } from "./input.js";
 import { Separator } from "./separator.js";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "./sheet.js";
 import { Skeleton } from "./skeleton.js";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip.js";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "./hover-card.js";
 import { useIsMobile } from "../../lib/use-mobile.js";
 import { cn } from "../../lib/utils.js";
 
@@ -96,22 +96,20 @@ const SidebarProvider = ({
 
   return (
     <SidebarContext.Provider value={contextValue}>
-      <TooltipProvider delay={0}>
-        <div
-          ref={ref}
-          style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH,
-              "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
-              ...style,
-            } as React.CSSProperties
-          }
-          className={cn("group/sidebar-wrapper flex min-h-svh w-full", className)}
-          {...props}
-        >
-          {children}
-        </div>
-      </TooltipProvider>
+      <div
+        ref={ref}
+        style={
+          {
+            "--sidebar-width": SIDEBAR_WIDTH,
+            "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+            ...style,
+          } as React.CSSProperties
+        }
+        className={cn("group/sidebar-wrapper flex min-h-svh w-full", className)}
+        {...props}
+      >
+        {children}
+      </div>
     </SidebarContext.Provider>
   );
 };
@@ -495,12 +493,14 @@ const SidebarMenuButton = ({
   if (tooltip === undefined) return buttonElement;
 
   return (
-    <Tooltip>
-      <TooltipTrigger render={buttonElement} />
+    <HoverCard>
+      <HoverCardTrigger render={buttonElement} />
       {state === "collapsed" && !isMobile && (
-        <TooltipContent side="right">{tooltip}</TooltipContent>
+        <HoverCardContent side="right" className="w-auto max-w-64 px-3 py-1.5 text-xs">
+          {tooltip}
+        </HoverCardContent>
       )}
-    </Tooltip>
+    </HoverCard>
   );
 };
 SidebarMenuButton.displayName = "SidebarMenuButton";

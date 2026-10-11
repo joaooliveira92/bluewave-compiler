@@ -13,7 +13,6 @@ import {
 } from "../../../components/ui/card.js";
 import { Empty, EmptyDescription, EmptyIcon, EmptyTitle } from "../../../components/ui/empty.js";
 import { RadioGroup } from "../../../components/ui/radio-group.js";
-import { TooltipProvider } from "../../../components/ui/tooltip.js";
 import { DesignCard } from "./DesignCard.js";
 
 export interface DesignPickerProps {
@@ -55,17 +54,15 @@ export const DesignPicker = memo(function DesignPicker({
             <EmptyDescription>No approved design is available for this campaign.</EmptyDescription>
           </Empty>
         ) : (
-          <TooltipProvider>
-            <RadioGroup
-              value={selectedDesignId}
-              onValueChange={(value) => onSelectDesign(value as string)}
-              className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-            >
-              {designs.map((design) => (
-                <DesignCard key={design.designId} design={design} />
-              ))}
-            </RadioGroup>
-          </TooltipProvider>
+          <RadioGroup
+            value={selectedDesignId}
+            onValueChange={(value) => onSelectDesign(value as string)}
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            {designs.map((design) => (
+              <DesignCard key={design.designId} design={design} />
+            ))}
+          </RadioGroup>
         )}
 
         <div className="flex flex-wrap items-center gap-2 pt-1">

@@ -15,6 +15,8 @@ import { AreaOverviewTable } from "./screens/fleet/components/AreaOverviewTable.
 import { MovementCommandsTable } from "./screens/fleet/components/MovementCommandsTable.js";
 import { FleetOrganizationView } from "./screens/fleet/organization/FleetOrganizationSection.js";
 import { initialDivisionOrganizationState } from "./screens/fleet/organization/division-organization-state.js";
+import { NewGameFleetMethodScreen } from "./screens/new-game/NewGameFleetMethodScreen.js";
+import { defaultFleetMethod } from "./screens/new-game/new-game-fleet-method-screen-state.js";
 import { OptionsScreen } from "./screens/options/OptionsScreen.js";
 import { PrioritiesCard } from "./screens/overview/PrioritiesCard.js";
 import { BudgetBar } from "./screens/treasury/components/BudgetBar.js";
@@ -218,6 +220,19 @@ describe("accessibility audit (axe-core)", () => {
           </FontProvider>
         </DensityProvider>
       </BackgroundProvider>,
+    );
+  });
+
+  it("Starting-fleet method picker (BounceCards deck, caption and comparison legend)", async () => {
+    await audit(
+      <NewGameFleetMethodScreen
+        initialFleetMethod={defaultFleetMethod()}
+        status="ready"
+        error={null}
+        onBack={noop}
+        onNext={noop}
+        onPrimaryActionChange={noop}
+      />,
     );
   });
 
