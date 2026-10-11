@@ -61,13 +61,13 @@ beforeAll(() => {
   }
 });
 
-function setupUi() {
+function setupUi(nationId = "gb") {
   const onPrimaryActionChange = vi.fn() as unknown as SetPrimaryAction;
   const onBeginCommission = vi.fn();
   const onBack = vi.fn();
   const utils = render(
     <NewGameCommissioningReviewScreen
-      nationId="gb"
+      nationId={nationId}
       options={options}
       preferences={preferences}
       archetype={archetype}
@@ -122,10 +122,31 @@ describe("NewGameCommissioningReviewScreen", () => {
     expect(screen.queryByText("Preset")).toBeNull();
   });
 
+  it("folds the summary into three icon-headed sections, each row marked with an icon", () => {
+    setupUi();
+    expect(screen.getByRole("heading", { name: "The Command" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Historical Uncertainty" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Admiralty Identity" })).toBeTruthy();
+
+    for (const label of ["Nation", "Difficulty", "Campaign name"]) {
+      const cell = screen.getByText(label).closest("td");
+      expect(cell?.querySelector("svg")).toBeTruthy();
+    }
+  });
+
   it("renders a non-empty strategic forecast panel with expected pressures", () => {
     setupUi();
     expect(screen.getByText(/Strategic forecast/)).toBeTruthy();
+    expect(screen.getByText("Doctrine")).toBeTruthy();
+    expect(screen.getByText("Strategic regions")).toBeTruthy();
+    expect(screen.getByText("National character")).toBeTruthy();
     expect(screen.getByText("Expected pressures")).toBeTruthy();
+  });
+
+  it("renders the forecast even when the draft carries a compiled nation id", () => {
+    setupUi("uk");
+    expect(screen.getByText("United Kingdom")).toBeTruthy();
+    expect(screen.getByText(/Strategic forecast/)).toBeTruthy();
   });
 
   it("shows only Back and Begin Commission, no Save-as-Preset or reroll buttons", () => {

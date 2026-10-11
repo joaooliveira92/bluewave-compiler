@@ -109,6 +109,33 @@ describe("buildSummaryRows", () => {
     });
     expect(rows.find((row) => row.label === "Archetype")?.value).toBe("Custom");
   });
+
+  it("resolves the draft's compiled nation id (uk) to its presentation name", () => {
+    const rows = buildSummaryRows({
+      nationId: "uk",
+      options,
+      preferences,
+      archetype,
+      identity,
+      fleetMethod: defaultFleetMethod(),
+    });
+    expect(rows.find((row) => row.label === "Nation")?.value).toBe("United Kingdom");
+  });
+
+  it("groups and icon-tags every row", () => {
+    const rows = buildSummaryRows({
+      nationId: "uk",
+      options,
+      preferences,
+      archetype,
+      identity,
+      fleetMethod: defaultFleetMethod(),
+    });
+    expect(rows.find((row) => row.label === "Nation")?.group).toBe("command");
+    expect(rows.find((row) => row.label === "Difficulty")?.group).toBe("uncertainty");
+    expect(rows.find((row) => row.label === "Campaign name")?.group).toBe("identity");
+    expect(rows.every((row) => row.icon.length > 0)).toBe(true);
+  });
 });
 
 describe("activePresetAnnotation", () => {
@@ -150,5 +177,11 @@ describe("buildStrategicForecast", () => {
 
   it("returns null for a non-playable nation id", () => {
     expect(buildStrategicForecast("unknown", preferences)).toBeNull();
+  });
+
+  it("templates a forecast from the draft's compiled nation id (uk)", () => {
+    const forecast = buildStrategicForecast("uk", preferences);
+    expect(forecast).not.toBeNull();
+    expect(forecast?.appointmentTitle.length).toBeGreaterThan(0);
   });
 });

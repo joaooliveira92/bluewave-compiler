@@ -1,10 +1,12 @@
 import { findPreset, type ArchetypeSelection } from "@bluewave/campaign-engine";
+import type { PlayableSlotCountryId } from "../../content/nationAssetManifest.js";
 import {
   NATION_DOSSIER_FIELDS,
   type NationDossierFields,
 } from "../../content/nationDossierFields.js";
 import { isPlayableSlotCountryId } from "../../content/nationPresentationCatalog.js";
 import { NATION_PRESENTATION_CATALOG } from "../../content/nationPresentationCatalog.js";
+import { nationIdToCountryId } from "../../content/nationSlotMapping.js";
 import type { NewGameOptions } from "../../../shared/new-game-contract.js";
 import type { FleetMethodDraft } from "./new-game-fleet-method-screen-state.js";
 import { FLEET_METHOD_CARDS } from "./fleet-method-content.js";
@@ -42,9 +44,36 @@ export interface CommissioningReviewInput {
   readonly fleetMethod: FleetMethodDraft;
 }
 
+/** The three scannable blocks the 15 summary rows fold into, in reading order. */
+export type SummaryGroup = "command" | "uncertainty" | "identity";
+
+/**
+ * A semantic icon key per row — the presentation layer maps each to a lucide
+ * glyph (see `components/commissioning-review-icons.ts`), keeping React out of
+ * this pure templating module.
+ */
+export type SummaryRowIcon =
+  | "nation"
+  | "era"
+  | "fleetSize"
+  | "researchSpeed"
+  | "technologyVariation"
+  | "historicalBudget"
+  | "tacticalRealism"
+  | "difficulty"
+  | "fleetMethod"
+  | "archetype"
+  | "namingConvention"
+  | "shipNameReuse"
+  | "measurementSystem"
+  | "admiral"
+  | "campaignName";
+
 export interface SummaryRow {
   readonly label: string;
   readonly value: string;
+  readonly group: SummaryGroup;
+  readonly icon: SummaryRowIcon;
 }
 
 function identityLabel<V extends string>(
@@ -54,8 +83,18 @@ function identityLabel<V extends string>(
   return options.find((option) => option.value === value)?.label ?? value;
 }
 
+/**
+ * The draft carries the campaign's nation-record id (`uk`, `germany`, …); the
+ * presentation catalog keys art and names by stable country id (`gb`, `de`, …).
+ * Accept either so callers holding a country id (tests, diplomacy) still work.
+ */
+function resolveCountryId(nationId: string): PlayableSlotCountryId | null {
+  return isPlayableSlotCountryId(nationId) ? nationId : nationIdToCountryId(nationId);
+}
+
 function nationLabel(nationId: string): string {
-  return isPlayableSlotCountryId(nationId) ? NATION_PRESENTATION_CATALOG[nationId].name : nationId;
+  const countryId = resolveCountryId(nationId);
+  return countryId === null ? nationId : NATION_PRESENTATION_CATALOG[countryId].name;
 }
 
 function eraLabel(options: NewGameOptions | null, scenarioId: string): string {
@@ -76,31 +115,59 @@ function archetypeLabel(archetype: ArchetypeSelection): string {
 /** Builds the summary table's 15 rows (spec §6), top to bottom, verbatim order. */
 export function buildSummaryRows(input: CommissioningReviewInput): readonly SummaryRow[] {
   const { nationId, options, preferences, archetype, identity, fleetMethod } = input;
-  const uncertaintyRows = UNCERTAINTY_FIELDS.map((field) => ({
+  const uncertaintyRows: SummaryRow[] = UNCERTAINTY_FIELDS.map((field) => ({
     label: UNCERTAINTY_FIELD_LABELS[field],
     value: uncertaintyValueContent(field, preferences[field]).label,
+    group: "uncertainty",
+    icon: field,
   }));
   return [
-    { label: "Nation", value: nationLabel(nationId) },
-    { label: "Era", value: eraLabel(options, preferences.scenarioId) },
-    { label: "Fleet size", value: fleetSizeLabel(preferences.fleetSize) },
+    { label: "Nation", value: nationLabel(nationId), group: "command", icon: "nation" },
+    {
+      label: "Era",
+      value: eraLabel(options, preferences.scenarioId),
+      group: "command",
+      icon: "era",
+    },
+    {
+      label: "Fleet size",
+      value: fleetSizeLabel(preferences.fleetSize),
+      group: "command",
+      icon: "fleetSize",
+    },
     ...uncertaintyRows,
-    { label: "Starting fleet method", value: fleetMethodLabel(fleetMethod.legacyFleetModeId) },
-    { label: "Archetype", value: archetypeLabel(archetype) },
+    {
+      label: "Starting fleet method",
+      value: fleetMethodLabel(fleetMethod.legacyFleetModeId),
+      group: "identity",
+      icon: "fleetMethod",
+    },
+    { label: "Archetype", value: archetypeLabel(archetype), group: "identity", icon: "archetype" },
     {
       label: "Naming convention",
       value: identityLabel(NAMING_CONVENTION_OPTIONS, identity.namingConvention),
+      group: "identity",
+      icon: "namingConvention",
     },
     {
       label: "Ship name reuse",
       value: identityLabel(SHIP_NAME_REUSE_OPTIONS, identity.shipNameReuse),
+      group: "identity",
+      icon: "shipNameReuse",
     },
     {
       label: "Measurement system",
       value: identityLabel(MEASUREMENT_SYSTEM_OPTIONS, identity.measurementSystem),
+      group: "identity",
+      icon: "measurementSystem",
     },
-    { label: "Admiral", value: identity.admiralName },
-    { label: "Campaign name", value: identity.campaignName },
+    { label: "Admiral", value: identity.admiralName, group: "identity", icon: "admiral" },
+    {
+      label: "Campaign name",
+      value: identity.campaignName,
+      group: "identity",
+      icon: "campaignName",
+    },
   ];
 }
 
@@ -137,8 +204,9 @@ export function buildStrategicForecast(
   nationId: string,
   preferences: DraftPreferences,
 ): StrategicForecast | null {
-  if (!isPlayableSlotCountryId(nationId)) return null;
-  const dossier: NationDossierFields = NATION_DOSSIER_FIELDS[nationId];
+  const countryId = resolveCountryId(nationId);
+  if (countryId === null) return null;
+  const dossier: NationDossierFields = NATION_DOSSIER_FIELDS[countryId];
   const expectedPressures = SIX_SETTING_FIELDS.map((field) =>
     field === "fleetSize"
       ? fleetSizeReadout(preferences.fleetSize)
