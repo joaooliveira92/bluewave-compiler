@@ -1,0 +1,28 @@
+name: Commit Convention
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+
+concurrency:
+  group: commit-convention-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  commit-msgs:
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth 0 so both ends of the range are present.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.18.0"
+      - name: Check commit subjects are Conventional Commits
+        env:
+          COMMIT_RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || format('{0}..{1}', github.event.before, github.sha) }}
+        run: node scripts/check-commit-msgs.cjs

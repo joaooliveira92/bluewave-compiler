@@ -35,6 +35,16 @@ if (values.save === undefined) {
   process.exit(2);
 }
 
+// Console `error`s that are known-benign and self-caught. Each entry must be a
+// narrow match with a reason; a broad pattern here would hide real renderer
+// faults. (The renderer configures Zod jitless so its `new Function` eval probe
+// no longer runs — src/renderer/zodJitless.ts — but any library that
+// feature-detects `unsafe-eval` inside a try/catch would emit the same Chromium
+// CSP note, which is harmless because the throw is swallowed.)
+const BENIGN_CONSOLE_ERRORS = [
+  /Note that 'script-src' was not explicitly set, so 'default-src' is used as a fallback\./,
+];
+
 const scratch = await mkdtemp(join(tmpdir(), "bw-pkg-smoke-"));
 const saveCopy = join(scratch, "save");
 await cp(values.save, saveCopy, { recursive: true });
@@ -57,10 +67,13 @@ try {
 
   // The window may already exist by the time we ask: firstWindow handles both.
   const page = await app.firstWindow();
-  const errors = [];
-  page.on("pageerror", (error) => errors.push(String(error)));
+  // Uncaught exceptions are always fatal. Console `error`s are fatal unless they
+  // match a known-benign, self-caught probe from a bundled library (see below).
+  const pageErrors = [];
+  const consoleErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(String(error)));
   page.on("console", (message) => {
-    if (message.type() === "error") errors.push(message.text());
+    if (message.type() === "error") consoleErrors.push(message.text());
   });
   await page.waitForLoadState("load");
   check("renderer loaded over file://", page.url().startsWith("file://"), page.url());
@@ -125,7 +138,15 @@ try {
   );
   check("F1 map: minimap present", (await sheet.getByTestId("map-minimap").count()) === 1);
   if (values.shot !== undefined) await page.screenshot({ path: values.shot });
-  check("no renderer errors", errors.length === 0, errors[0]?.slice(0, 200));
+  check("no uncaught renderer exceptions", pageErrors.length === 0, pageErrors[0]?.slice(0, 200));
+  const unexpectedConsoleErrors = consoleErrors.filter(
+    (text) => !BENIGN_CONSOLE_ERRORS.some((pattern) => pattern.test(text)),
+  );
+  check(
+    "no unexpected console errors",
+    unexpectedConsoleErrors.length === 0,
+    unexpectedConsoleErrors[0]?.slice(0, 200),
+  );
 } finally {
   await app.close().catch(() => {});
   await rm(scratch, { recursive: true, force: true }).catch(() => {});

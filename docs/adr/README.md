@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0099).
+highest existing number + 1 (the next number is ADR-0100).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -105,3 +105,4 @@ See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
 | 0096 | [ADR-0096-playable-nation-coverage.md](ADR-0096-playable-nation-coverage.md) | Playable nations must have an authored national profile |
 | 0097 | [ADR-0097-first-release-combat-surface.md](ADR-0097-first-release-combat-surface.md) | First-release combat surface — defer the unreachable M3/M4 modules |
 | 0098 | [ADR-0098-post-caliber-correction-lethality-rebalance.md](ADR-0098-post-caliber-correction-lethality-rebalance.md) | Post-caliber-correction auto-resolution lethality rebalance |
+| 0099 | [ADR-0099-release-verification-gates.md](ADR-0099-release-verification-gates.md) | Release verification gates and push discipline |

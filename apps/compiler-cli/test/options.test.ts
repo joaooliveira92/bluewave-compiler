@@ -6,7 +6,7 @@ describe("parseOptions", () => {
   });
 
   it("defaults without extended", async () => {
-    const { parseOptions } = await import("../src/main.js");
+    const { parseOptions } = await import("../src/options.js");
     expect(parseOptions([], false)).toEqual({
       manifest: "pack.json",
       contentDir: "content",
@@ -16,7 +16,7 @@ describe("parseOptions", () => {
   });
 
   it("parses all flags extended", async () => {
-    const { parseOptions } = await import("../src/main.js");
+    const { parseOptions } = await import("../src/options.js");
     const opts: any = parseOptions(
       [
         "--manifest",
@@ -44,18 +44,18 @@ describe("parseOptions", () => {
   });
 
   it("extended false omits campaign fields", async () => {
-    const { parseOptions } = await import("../src/main.js");
+    const { parseOptions } = await import("../src/options.js");
     const opts: any = parseOptions(["--save-dir", "s", "--seed", "x"], false);
     expect(opts.saveDir).toBeUndefined();
   });
 
   it("ignores unknown flag", async () => {
-    const { parseOptions } = await import("../src/main.js");
+    const { parseOptions } = await import("../src/options.js");
     expect(parseOptions(["--unknown", "foo"], false).manifest).toBe("pack.json");
   });
 
   it("exitCodes map correctly", async () => {
-    const { exitCodes } = await import("../src/main.js");
+    const { exitCodes } = await import("../src/options.js");
     expect(exitCodes).toEqual({
       success: 0,
       "validation-error": 1,

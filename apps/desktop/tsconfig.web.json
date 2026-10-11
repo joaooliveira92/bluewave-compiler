@@ -32,6 +32,7 @@
     "src/shared/**/*.ts",
     "src/renderer/raw.d.ts",
     "src/renderer/main.tsx",
+    "src/renderer/zodJitless.ts",
     "src/renderer/index.html"
   ]
 }
