@@ -301,8 +301,14 @@ pinned exact, external to `vendor/`; new `lint:effect` (root script + `oxlint.ef
 extends the tsgo recommended preset, `duplicatePackage: error`, determinism rules warn) wired
 into `pnpm check`; ADR-0100..0103 (adopt / vendor / Zod→Schema / DESIGN-08 demotion) + index.
 Gate green: build 20/20, typecheck 37/37, lint 0/0, `lint:effect` 0 errors, format clean,
-`pnpm test:run` 1554 tests, goldens 10/10, cross-process `success:true`. Next action:
-**ticket 04** (Wave 0 exit gate & rollback checkpoint), then work the frontier per
+`pnpm test:run` 1554 tests, goldens 10/10, cross-process `success:true`. **Ticket 04 (Wave 0
+exit gate & rollback checkpoint) DONE 2026-10-11 — PASS**
+(`.ai/reports/effect-v4-wave0-exit-gate.md`): vendor integrity-verified; single-copy guard
+green; `repos/effect` excluded and documented; `pnpm check` green end-to-end; Wave 0 delta
+confined to vendor/repos/toolchain/scripts/docs with **zero domain-package changes**; rollback
+point recorded (`95efface` baseline, no domain code to unwind). **Wave 0 COMPLETE.** Next
+action: **ticket 05** (Wave 1 beachhead — `diagnostics` typed-error foundation using
+`Data.TaggedError`, first real `workspace:*` consumer of `effect`), then work the frontier per
 `.ai/ORCHESTRATION.md`. Vendor the Effect v4 runtime as first-class pnpm workspace packages
 (no registry resolution), enforce the single-copy graph invariant, migrate every Zod boundary
 to Effect Schema, and flip cross-package facades to Effect-typed interfaces; determinism-gate

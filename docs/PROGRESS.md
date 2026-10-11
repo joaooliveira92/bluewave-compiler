@@ -703,8 +703,14 @@ throughout. Pre-existing unrelated failures: `content-schema/test/nation.test.ts
 > tsgo recommended preset, `duplicatePackage: error`, determinism rules warn)
 > wired into `pnpm check`; ADR-0100..0103 (adopt / vendor / Zod→Schema /
 > DESIGN-08 demotion) + index. Report:
-> `.ai/reports/effect-v4-ticket-03-toolchain-tsgo-gate.md`. Next: **ticket 04**
-> (Wave 0 exit gate & rollback checkpoint).
+> `.ai/reports/effect-v4-ticket-03-toolchain-tsgo-gate.md`. **Ticket 04**
+> (Wave 0 exit gate & rollback checkpoint) **DONE 2026-10-11 — PASS**: vendor
+> integrity-verified, single-copy guard green, `repos/effect` excluded and
+> documented, `pnpm check` green end-to-end, Wave 0 delta confined with **zero
+> domain-package changes**, rollback point recorded. **Wave 0 COMPLETE.** Report:
+> `.ai/reports/effect-v4-wave0-exit-gate.md`. Next: **ticket 05** (Wave 1
+> beachhead — `diagnostics` typed-error foundation; first real `workspace:*`
+> consumer of `effect`).
 
 ---
 
