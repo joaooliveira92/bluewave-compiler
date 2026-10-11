@@ -56,8 +56,11 @@ the reviewing environment.
   `desktop-e2e.yml`; the desktop vitest global setup rebuilds
   `@bluewave/content-compiler` so tests cannot run against a stale dist.
 
-**Remaining.** The packaged fresh-game path still reads the raw production tree
-via `resolveProductionPackDir()` for `compileCampaign`/`listNewGameOptions`; a
-packaged app without that tree works only because it currently ships. Ticket 07
-removes the runtime dependency on the raw tree. The packaged smoke needs one run
-against a real `electron-builder` build to confirm.
+**Remaining.** The packaged fresh-game path no longer reads the raw production
+tree for `compileCampaign`/`listNewGameOptions`: after ticket **07** those
+commands compile from the verified artifact (`compileProductionCampaignFromArtifact`),
+so the runtime dependency on `content/production/1880` is gone (the raw tree is
+still listed as an `extraResources` entry, now needed only as a build-time input
+for `content:build`, not at runtime — it can be dropped from resources once the
+packaged smoke confirms the artifact path). The packaged smoke still needs one run
+against a real `electron-builder` build to confirm CRI-PKG-3/4 end-to-end.
