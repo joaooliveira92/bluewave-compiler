@@ -11,17 +11,19 @@
  *     electron-builder --mac --dir --config electron-builder.yml
  *   pnpm --filter @bluewave/desktop run smoke:packaged [--app BINARY] [--shot OUT.png] [--save DIR]
  *
- * `--save` is only the (stubbed) destination for the fresh campaign's package;
- * it defaults to a temp dir. The default `--app` path is the macOS arm64
- * unpacked build; pass `--app` for other platforms.
+ * `--shot` overrides the drawing-board screenshot path; it defaults to
+ * `test-results/packaged-smoke.png` and is captured on every run (CI uploads
+ * it). `--save` is only the (stubbed) destination for the fresh campaign's
+ * package; it defaults to a temp dir. The default `--app` path is the macOS
+ * arm64 unpacked build; pass `--app` for other platforms.
  *
  * The new-game flow mirrors apps/desktop/e2e/flows.ts (the proven e2e path);
  * keep the two in step when the assistant changes.
  */
 import { _electron as electron } from "@playwright/test";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 const { values } = parseArgs({
@@ -48,6 +50,13 @@ const BENIGN_CONSOLE_ERRORS = [
 const scratch = await mkdtemp(join(tmpdir(), "bw-pkg-smoke-"));
 const saveDir = values.save ?? join(scratch, "save");
 await mkdir(saveDir, { recursive: true });
+
+// The drawing-board screenshot is the reviewer's visible evidence (ticket 05,
+// CRI-PKG-3). Capture it on every run — CI uploads it — not only when `--shot`
+// is passed, so a green packaged smoke always leaves a screen to inspect.
+const shotPath =
+  values.shot ?? resolve(import.meta.dirname, "..", "test-results", "packaged-smoke.png");
+await mkdir(dirname(shotPath), { recursive: true });
 
 const checks = [];
 const check = (name, ok, detail = "") => checks.push({ name, ok: Boolean(ok), detail });
@@ -162,7 +171,8 @@ try {
     "drawing board renders the ship plan",
     (await board.getByRole("img", { name: /Top-down plan/ }).count()) === 1,
   );
-  if (values.shot !== undefined) await page.screenshot({ path: values.shot });
+  await page.screenshot({ path: shotPath });
+  check("drawing-board screenshot captured", (await stat(shotPath)).size > 0, shotPath);
 
   check("no uncaught renderer exceptions", pageErrors.length === 0, pageErrors[0]?.slice(0, 200));
   const unexpectedConsoleErrors = consoleErrors.filter(
