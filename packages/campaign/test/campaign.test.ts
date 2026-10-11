@@ -4,6 +4,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { Compiler } from "@bluewave/content-compiler";
 import { nationsYaml, nationYaml } from "@bluewave/test-support";
 import { describe, expect, it } from "vite-plus/test";
 import { CampaignCompiler } from "../src/compiler-public.js";
@@ -758,5 +759,111 @@ ${extra}`,
     } finally {
       fixture.cleanup();
     }
+  });
+});
+
+describe("CampaignCompiler decoded-bundle path (ticket 07)", () => {
+  function buildFixtureBundle(fixturePath: string) {
+    const collector = new DiagnosticCollector();
+    const output = new Compiler().compile(
+      {
+        manifestPath: resolve(fixturePath, "pack.json"),
+        contentDir: fixturePath,
+        rulesetFiles: ["rulesets.yaml"],
+        countryFiles: ["countries.yaml"],
+        areaFiles: ["areas.yaml"],
+        routeFiles: ["routes.yaml"],
+        possessionFiles: ["possessions.yaml"],
+        portFiles: ["ports.yaml"],
+        technologyFiles: ["technologies.yaml"],
+        fleetFiles: ["fleets.yaml"],
+        economyFiles: ["economies.yaml"],
+        constructionFiles: ["constructions.yaml"],
+        diplomacyFiles: ["diplomacy.yaml"],
+        researchFiles: ["research.yaml"],
+        designFiles: [],
+      },
+      new AbortController().signal,
+      collector,
+    );
+    expect(collector.hasErrors).toBe(false);
+    expect(output).toBeDefined();
+    return output!.bundle;
+  }
+
+  it("produces the same snapshot from the decoded bundle as from raw files", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeContentFixture(fixture.path);
+      const bundle = buildFixtureBundle(fixture.path);
+      const signal = new AbortController().signal;
+
+      const raw = new CampaignCompiler().compile(
+        minimalInput(fixture.path),
+        signal,
+        new DiagnosticCollector(),
+      );
+      const decoded = new CampaignCompiler().compile(
+        {
+          contentBundle: bundle,
+          contentHash: "a".repeat(64),
+          rulesetVersion: "1.0",
+          compatibilityVersion: "0.1.0",
+        },
+        signal,
+        new DiagnosticCollector(),
+      );
+
+      expect(raw).toBeDefined();
+      expect(decoded).toBeDefined();
+      expect(decoded!.state.rawHash).toBe(raw!.state.rawHash);
+      expect(decoded!.contentHash).toBe("a".repeat(64));
+      expect(decoded!.state.snapshot.nations.size).toBe(2);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("ignores campaign-file YAML that diverges from the verified bundle", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeContentFixture(fixture.path);
+      const bundle = buildFixtureBundle(fixture.path);
+      const signal = new AbortController().signal;
+
+      // Corrupt the raw campaign files on disk after the bundle was built.
+      writeFile(fixture.path, "fleets.yaml", '- id: "bogus"\n  nationId: "uk"\n');
+      writeFile(fixture.path, "economies.yaml", "[]\n");
+
+      const decoded = new CampaignCompiler().compile(
+        {
+          contentBundle: bundle,
+          contentHash: "a".repeat(64),
+          rulesetVersion: "1.0",
+          compatibilityVersion: "0.1.0",
+        },
+        signal,
+        new DiagnosticCollector(),
+      );
+
+      expect(decoded).toBeDefined();
+      const uk = decoded!.state.snapshot.nations.get("uk")!;
+      // The bundle's fleet (2 ships), not the corrupted raw file, is executed.
+      expect(uk.fleets[0]?.ships).toHaveLength(2);
+      expect(decoded!.state.snapshot.nations.get("uk")!.income).toBe(150);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("fails closed when neither a bundle nor raw inputs are supplied", () => {
+    const collector = new DiagnosticCollector();
+    const output = new CampaignCompiler().compile(
+      { rulesetVersion: "1.0", compatibilityVersion: "0.1.0" },
+      new AbortController().signal,
+      collector,
+    );
+    expect(output).toBeUndefined();
+    expect(collector.all.some((d) => d.code === "CAMPAIGN-CONTENT")).toBe(true);
   });
 });
