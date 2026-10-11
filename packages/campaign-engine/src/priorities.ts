@@ -3,6 +3,7 @@ import type { CampaignSnapshot } from "@bluewave/campaign";
 import { scaleValue } from "@bluewave/campaign";
 import { HIGH_TENSION_THRESHOLD, isHighTension } from "./diplomacy.js";
 import { shipMaintenanceCost, totalPaidWork } from "./opening-briefing.js";
+import { MIN_RESEARCH_SHARE_BP, NEAR_COMPLETION_WORK_RATIO } from "./priorityConstants.js";
 
 /**
  * Immediate Priorities projection — INC-2 (spec §7).
@@ -20,10 +21,6 @@ export { HIGH_TENSION_THRESHOLD, isHighTension } from "./diplomacy.js";
 export interface InspectPrioritiesResult {
   readonly priorities: readonly StrategicPriority[];
 }
-
-/** Real `0..10` tension threshold is 8 — imported, never  re-declared. */
-export const MIN_RESEARCH_SHARE_BP = 800;
-export const NEAR_COMPLETION_WORK_RATIO = 0.9;
 
 export const prioritySeveritySchema = Schema.Literals([
   "information",

@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import {
-  buildPrioritiesProjection,
-  MIN_RESEARCH_SHARE_BP,
-  NEAR_COMPLETION_WORK_RATIO,
-} from "../src/priorities.js";
+import { buildPrioritiesProjection } from "../src/priorities.js";
+import { MIN_RESEARCH_SHARE_BP, NEAR_COMPLETION_WORK_RATIO } from "../src/priorityConstants.js";
 import { HIGH_TENSION_THRESHOLD, isHighTension } from "../src/diplomacy.js";
 import type { CampaignSnapshot } from "@bluewave/campaign";
 
