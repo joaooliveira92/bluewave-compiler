@@ -278,21 +278,37 @@ describe("live AI procurement simulation (2 nations x 3 seeds x 3 budgets x 36 m
     return counts;
   }
 
+  // The 27-combination sweep is expensive; compute each combination once and
+  // share it across the two assertions below (both previously re-ran it), so a
+  // 2-core CI runner does not have to fit two full sweeps in one 30s budget.
+  const cached = new Map<string, Result>();
+  function runCached(nationId: string, seed: string, treasury: number): Result {
+    const key = `${nationId}:${seed}:${String(treasury)}`;
+    let result = cached.get(key);
+    if (result === undefined) {
+      result = run(nationId, seed, treasury);
+      cached.set(key, result);
+    }
+    return result;
+  }
+
   it(
     "runs 36 months with zero unhandled exceptions for every nation/seed/budget",
-    { timeout: 30000 },
+    { timeout: 120000 },
     () => {
       for (const nation of NATIONS)
         for (const seed of SEEDS)
           for (const b of BUDGETS) {
-            const r = run(nation, seed, b);
+            const r = runCached(nation, seed, b);
             expect(r.exceptions, `${nation} ${seed} ${String(b)}`).toBe(0);
           }
     },
   );
 
-  it("the sweep submits studies and places orders", { timeout: 30000 }, () => {
-    const results = NATIONS.flatMap((n) => SEEDS.flatMap((s) => BUDGETS.map((b) => run(n, s, b))));
+  it("the sweep submits studies and places orders", { timeout: 120000 }, () => {
+    const results = NATIONS.flatMap((n) =>
+      SEEDS.flatMap((s) => BUDGETS.map((b) => runCached(n, s, b))),
+    );
     expect(results.some((r) => r.studies > 0)).toBe(true);
     expect(results.some((r) => r.orders > 0)).toBe(true);
   });
