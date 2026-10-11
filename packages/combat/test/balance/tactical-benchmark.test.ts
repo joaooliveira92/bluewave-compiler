@@ -452,5 +452,5 @@ describe("ADR-0098 tactical balance benchmark", () => {
     const b = runBattle(SCENARIOS[0]!.build(), "bench-0").result;
     expect(a.resultHash).toBe(b.resultHash);
     expect(a.minuteHashes).toEqual(b.minuteHashes);
-  }, 180_000);
+  }, 300_000);
 });

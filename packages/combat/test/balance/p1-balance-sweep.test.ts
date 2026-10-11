@@ -251,5 +251,5 @@ describe("P-1 balance sweep (loose tripwire)", () => {
       mkdirSync(dirname(out), { recursive: true });
       writeFileSync(out, renderMarkdown(rows));
     }
-  }, 180_000);
+  }, 300_000);
 });

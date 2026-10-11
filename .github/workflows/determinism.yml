@@ -24,8 +24,14 @@ jobs:
           node-version: "24.18.0"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
+      # build first (fresh), then typecheck: some desktop tests spawn a `tsc -b`
+      # child (researchDeterminismChild.js), and building before typechecking
+      # avoids the turbo cache-replay that bites when typecheck runs first.
       - run: pnpm build
-      - run: pnpm test
+      - run: pnpm typecheck
+      # The runners have few cores; turbo's default concurrency oversubscribes
+      # them and tips heavy-but-legitimate suites past their timeouts.
+      - run: pnpm test -- --concurrency=2
       - name: Cross-process determinism
         run: node packages/cross-process-test/dist/run-child.js
       - name: Upload hash artifact
