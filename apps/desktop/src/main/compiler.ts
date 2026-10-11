@@ -193,6 +193,15 @@ export function compileProductionCampaignFromArtifact(
     return undefined;
   }
 
+  if (loaded.bundle.campaign === undefined) {
+    collector.addError(
+      "CONTENT_ARTIFACT_INVALID",
+      "The compiled content artifact carries no campaign-file collections; rebuild it with `pnpm content:build`.",
+      { stage: "campaign-compile" },
+    );
+    return undefined;
+  }
+
   return new CampaignCompiler().compile(
     {
       contentBundle: loaded.bundle,

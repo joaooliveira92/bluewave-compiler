@@ -4,7 +4,12 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
-import { CONTENT_ARTIFACT_FILENAME, CONTENT_MANIFEST_FILENAME } from "@bluewave/content-compiler";
+import {
+  CONTENT_ARTIFACT_FILENAME,
+  CONTENT_MANIFEST_FILENAME,
+  buildContentBundleArtifact,
+  writeContentBundleArtifact,
+} from "@bluewave/content-compiler";
 
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 
@@ -134,6 +139,43 @@ describe("campaign compile from the verified artifact (ticket 07)", () => {
     const value = JSON.parse(readFileSync(artifactPath, "utf8")) as Record<string, unknown>;
     (value as { campaign?: { fleets: unknown[] } }).campaign = { fleets: [] };
     writeFileSync(artifactPath, JSON.stringify(value), "utf8");
+
+    const collector = new DiagnosticCollector();
+    const output = compileProductionCampaignFromArtifact(
+      dir,
+      new AbortController().signal,
+      collector,
+    );
+    expect(output).toBeUndefined();
+    expect(collector.all.some((d) => d.code === "CONTENT_ARTIFACT_INVALID")).toBe(true);
+  });
+
+  it("fails closed on a content-pack-only artifact with no campaign section", () => {
+    const dir = mkdtempSync(join(tmpdir(), "bw-artifact-nocampaign-"));
+    scratchDirs.push(dir);
+    writeFileSync(
+      join(dir, "pack.json"),
+      JSON.stringify({ name: "x", version: "0.1.0", type: "fixture", files: {} }),
+      "utf8",
+    );
+    const buildCollector = new DiagnosticCollector();
+    const artifact = buildContentBundleArtifact(
+      {
+        manifestPath: join(dir, "pack.json"),
+        contentDir: dir,
+        rulesetFiles: [],
+        countryFiles: [],
+        areaFiles: [],
+        routeFiles: [],
+        possessionFiles: [],
+        portFiles: [],
+        technologyFiles: [],
+      },
+      new AbortController().signal,
+      buildCollector,
+    );
+    expect(artifact).toBeDefined();
+    writeContentBundleArtifact(dir, artifact!);
 
     const collector = new DiagnosticCollector();
     const output = compileProductionCampaignFromArtifact(
