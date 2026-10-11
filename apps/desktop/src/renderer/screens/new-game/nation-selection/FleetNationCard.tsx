@@ -1,35 +1,31 @@
 import { Check } from "lucide-react";
-import { type CSSProperties, type MouseEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 import {
   type CardPalette,
   getCountryCode,
   getCountryName,
   resolveNationShip,
-  type StackPosition,
 } from "./fleetDispatchUtils.js";
 
-interface FleetDispatchCardProps {
+interface FleetNationCardProps {
   countryId: PlayableSlotCountryId;
-  index: number;
-  position: StackPosition;
   palette: CardPalette;
-  style: CSSProperties;
+  active: boolean;
   listboxId: string;
-  dragState: "idle" | "dragging";
-  onClick: (event: MouseEvent<HTMLDivElement>, index: number) => void;
 }
 
-export function FleetDispatchCard({
+/**
+ * A single Fleet Dispatch nation card's *content*. The stack owns positioning,
+ * scale, depth shading and drag physics; this component only paints one card,
+ * so it fills whatever box `FleetStack` gives it.
+ */
+export function FleetNationCard({
   countryId,
-  index,
-  position,
   palette,
-  style,
+  active,
   listboxId,
-  dragState,
-  onClick,
-}: FleetDispatchCardProps): React.JSX.Element {
+}: FleetNationCardProps): React.JSX.Element {
   const [imageFailed, setImageFailed] = useState(false);
   const countryName = getCountryName(countryId);
   const countryCode = getCountryCode(countryId);
@@ -42,28 +38,16 @@ export function FleetDispatchCard({
       role="option"
       tabIndex={-1}
       aria-label={countryName}
-      aria-selected={position.active}
-      aria-hidden={position.visible ? undefined : true}
-      onClick={(event) => onClick(event, index)}
+      aria-selected={active}
       style={{
-        ...style,
         // Per-nation cover gradient stays invariant: it is only ever visible
         // behind missing ship artwork, and is documented as decorative data.
         background: palette.background,
-        borderColor: position.active ? "var(--color-admiralty-accent)" : palette.border,
+        borderColor: active ? "var(--color-admiralty-accent)" : palette.border,
       }}
       className={`
-        absolute left-1/2 top-[48%] h-[17rem] w-[min(94%,29rem)]
-        origin-center select-none overflow-hidden rounded-[1.15rem] border
-        shadow-[0_20px_45px_rgba(0,0,0,0.52)]
-        transition-[transform,opacity,filter,border-color,box-shadow] duration-500
-        ease-&lsqb;cubic-bezier(0.22,1,0.36,1)&rsqb; motion-reduce:duration-0 sm:h-[19rem]
-        ${
-          position.active
-            ? "shadow-[0_28px_65px_rgba(0,0,0,0.72),0_0_0_1px_color-mix(in_srgb,var(--color-admiralty-accent)_20%,transparent)]"
-            : "cursor-pointer hover:brightness-110"
-        }
-        ${dragState === "dragging" ? "cursor-grabbing duration-75" : "cursor-grab"}
+        absolute inset-0 h-full w-full select-none overflow-hidden rounded-[1.15rem] border
+        ${active ? "shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-admiralty-accent)_20%,transparent)]" : ""}
       `}
     >
       {/* Full-card naval cover */}
@@ -115,22 +99,20 @@ export function FleetDispatchCard({
         style={{
           // Per-nation identity stripe (decorative data), invariant across themes.
           backgroundColor: palette.accent,
-          boxShadow: position.active ? `0 0 18px ${palette.accent}` : undefined,
+          boxShadow: active ? `0 0 18px ${palette.accent}` : undefined,
         }}
       />
 
       {/* Active-nation emphasis: mounted only while active, so its animation
           replays on every selection change (see globals.css). */}
-      {position.active ? (
-        <span aria-hidden="true" className="fleet-dispatch-activate-glow" />
-      ) : null}
+      {active ? <span aria-hidden="true" className="fleet-dispatch-activate-glow" /> : null}
 
       {/* Bottom information shelf overlays the ship cover. The frosted blur is
           reserved for the active card — running it on every stacked card is a
           large per-frame paint cost during the selection transition. */}
       <div
         className={`absolute inset-x-0 bottom-0 z-20 min-h-[4.8rem] border-t border-admiralty-ink/20 px-5 py-3 text-admiralty-ink ${
-          position.active ? "bg-admiralty-surface/35 backdrop-blur-md" : "bg-admiralty-surface/55"
+          active ? "bg-admiralty-surface/35 backdrop-blur-md" : "bg-admiralty-surface/55"
         }`}
       >
         <div className="flex items-center justify-between gap-4">
@@ -143,7 +125,7 @@ export function FleetDispatchCard({
             </p>
           </div>
 
-          {position.active ? (
+          {active ? (
             <span className="fleet-dispatch-badge-pop flex shrink-0 items-center gap-1.5 rounded bg-admiralty-accent px-2.5 py-1 font-display text-[0.7rem] font-black uppercase tracking-wider text-admiralty-accent-foreground">
               <Check className="h-3 w-3" aria-hidden="true" />
               Active

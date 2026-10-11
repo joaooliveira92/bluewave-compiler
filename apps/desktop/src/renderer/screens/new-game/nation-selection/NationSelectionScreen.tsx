@@ -165,7 +165,6 @@ export function NationSelectionScreen({
           focusedIndex={focusedIndex}
           listboxId={listboxId}
           onSelect={handleSlotSelect}
-          onConfirm={confirm}
           onKeyDown={handleListboxKeyDown}
         />
 

@@ -1,0 +1,45 @@
+.fleet-stack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+.fleet-stack-card {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fleet-stack-card-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.fleet-stack-card-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.fleet-stack-card-content img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.fleet-stack-card-shade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  pointer-events: none;
+}
