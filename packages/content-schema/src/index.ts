@@ -126,7 +126,14 @@ export {
 } from "./armament.js";
 export type { TechnologyPrerequisite } from "./technology.js";
 export { TechnologyPrerequisiteChainSchema } from "./technology.js";
-export { parseYamlSafe, type SafeParseResult } from "./yaml-parser.js";
+export {
+  MAX_YAML_ALIAS_COUNT,
+  MAX_YAML_BYTES,
+  MAX_YAML_NESTING,
+  parseYamlSafe,
+  type SafeParseResult,
+  YAML_POLICY_VERSION,
+} from "./yaml-parser.js";
 export type { PropulsionPlantData, ShipComponentData, ShipHullFormData } from "./ship-component.js";
 export {
   PropulsionPlantCatalogueSchema,

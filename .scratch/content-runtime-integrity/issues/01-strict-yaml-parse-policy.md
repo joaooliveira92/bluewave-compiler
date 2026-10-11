@@ -1,9 +1,9 @@
 # 01 — Explicit, versioned strict-YAML parse policy
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** None (can start immediately)
-**Frontier:** yes
+**Frontier:** no
 
 ## What to build
 
@@ -30,8 +30,10 @@ only the alias cap is configured; the rest is inherited library default.
 - [ ] Existing valid production content and the full compiler fixture corpus
       parse unchanged (no false rejections).
 - [ ] The policy is documented and linked from the content-parsing ADR; the
-      parser remains the single parse entry point for compiler and runtime
-      loaders.
+      parser is the single parse entry point for the **compiler** today. The
+      runtime loaders (desktop main + renderer) still parse raw YAML until they
+      switch to the compiled artifact — that adoption is **ticket 03**
+      (`CRI-MAIN-*`), a recorded deferral, not a silent gap.
 
 ## Notes
 
@@ -41,3 +43,27 @@ only the alias cap is configured; the rest is inherited library default.
   boundary. It is infrastructure-shaped (parser + tests), not end-to-end UI.
 - Do not change any accepted-content bytes; this only tightens rejection of
   malformed input.
+
+## Comments
+
+**Resolved.** `parseYamlSafe` now owns a versioned strict policy
+(`YAML_POLICY_VERSION = 1`): core schema, `uniqueKeys`, `resolveKnownTags:
+false`, a core-tag allowlist, duplicate-key rejection, and a message-independent
+alias-node cap. New diagnostics: `YAML-DUPLICATE-KEY`, `YAML-UNSUPPORTED-TAG`,
+`YAML-ALIAS-LIMIT`; existing `YAML-SIZE`/`YAML-NESTING`/`YAML-PARSE`/`YAML-ROOT`
+retained.
+
+Adversarial review (read-only) verdict was NEEDS_REWORK on two items, both
+closed before landing:
+- **B1 — ADR not amended:** ADR-0005 gained a dated "strict-YAML parse policy v1"
+  section naming the constants, the new codes, the `resolveKnownTags: false`
+  decision, and the alias-cap semantics.
+- **M2 — single runtime parse entry point:** corrected. The parser is the single
+  entry point for the compiler today; runtime loaders adopt it via ticket 03
+  (recorded deferral above), not this ticket.
+- **M1 (recommended):** alias-cap detection was made message-independent (explicit
+  `Alias`-node count) so a `yaml` upgrade cannot silently demote
+  `YAML-ALIAS-LIMIT`.
+
+Accepted trade-off (recorded in ADR-0005): a nested alias-expansion bomb using
+≤100 alias nodes surfaces as `YAML-PARSE`, not `YAML-ALIAS-LIMIT`.

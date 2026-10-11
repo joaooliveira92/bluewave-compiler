@@ -38,6 +38,35 @@ Content is authored in YAML and compiled to canonical artifacts. The engineering
 - `PortSchema` — id, name, areaId, countryId, optional level (1-10).
 - `TechnologyPrerequisiteChainSchema` — id, name, category, optional prerequisites, cost, year.
 
+## Update (2026-10-11): strict-YAML parse policy v1
+
+The YAML parsing above is owned by `parseYamlSafe`, the single parse entry point
+(the compiler routes every file through it today; runtime loaders adopt it when
+they consume the compiled artifact — `content-runtime-integrity`, ticket 03).
+The policy is versioned (`YAML_POLICY_VERSION = 1`) and stricter than the
+original text:
+
+- Parsed with `schema: "core"`, `uniqueKeys: true`, `resolveKnownTags: false`,
+  and a line counter for positional diagnostics.
+- **Tags.** Only the core scalar/collection tags (`str`, `int`, `float`, `bool`,
+  `null`, `seq`, `map`) are accepted; any other explicit tag — including YAML 1.1
+  `!!binary`/`!!timestamp` and custom tags such as `!!js/function` — is rejected
+  before `toJS`, so no tag constructs or executes a value (`YAML-UNSUPPORTED-TAG`).
+- **Duplicate mapping keys** are rejected, naming the key and its location
+  (`YAML-DUPLICATE-KEY`).
+- **Aliases.** An explicit `Alias`-node count caps alias use at
+  `MAX_YAML_ALIAS_COUNT = 100`: at most 100 alias nodes are accepted and the
+  101st is rejected at its own location (`YAML-ALIAS-LIMIT`). `toJS` is also
+  bounded by `MAX_YAML_ALIAS_COUNT + 1` as a resource-exhaustion safety net; a
+  throw there maps to `YAML-PARSE` and is never promoted to `YAML-ALIAS-LIMIT`.
+  The classification is deliberately message-independent, so a `yaml` upgrade
+  cannot silently demote the code. A nested alias-expansion bomb that uses ≤100
+  alias nodes therefore surfaces as `YAML-PARSE`.
+- Caps preserved: `MAX_YAML_BYTES` (10 MB) → `YAML-SIZE`; `MAX_YAML_NESTING`
+  (64) → `YAML-NESTING`. Malformed syntax remains `YAML-PARSE`.
+
+The `zod` schema text above is superseded by ADR-0102 / ADR-0105.
+
 ## Consequences
 
 - Unknown fields are silently stripped by Zod (`.strip()` is the default). Future work should add `.strict()` to reject unknown fields explicitly.
