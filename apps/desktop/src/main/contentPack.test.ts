@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vite-plus/test";
-import { resolveGeneratedContentDir, resolveProductionPackDir } from "./contentPack.js";
+import { resolveGeneratedContentDir } from "./contentPack.js";
 
 const proc = process as { defaultApp?: boolean; resourcesPath?: string };
 const originalDefaultApp = proc.defaultApp;
@@ -24,7 +24,6 @@ describe("content path resolution", () => {
     delete proc.resourcesPath;
 
     expect(resolveGeneratedContentDir()).toMatch(/content[/\\]generated[/\\]1880$/);
-    expect(resolveProductionPackDir()).toMatch(/content[/\\]production[/\\]1880$/);
   });
 
   it("resolves from application resources in a packaged build", () => {
@@ -33,9 +32,6 @@ describe("content path resolution", () => {
 
     expect(resolveGeneratedContentDir()).toBe(
       "/Applications/Bluewave.app/Contents/Resources/content/generated/1880",
-    );
-    expect(resolveProductionPackDir()).toBe(
-      "/Applications/Bluewave.app/Contents/Resources/content/production/1880",
     );
   });
 

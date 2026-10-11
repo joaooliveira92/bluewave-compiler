@@ -1,8 +1,8 @@
 import { join, resolve } from "node:path";
 
 /**
- * In a packaged Electron app the artifact and the production content tree ship
- * as application resources and are resolved from `process.resourcesPath`
+ * In a packaged Electron app the compiled content artifact ships as an
+ * application resource and is resolved from `process.resourcesPath`
  * (electron-builder `extraResources`, see `electron-builder.yml`) — never by
  * walking up to the repository root, which cannot exist inside an installed /
  * asar build. `process.defaultApp` is set to `true` when Electron is launched
@@ -24,22 +24,12 @@ function resolveContentDir(...segments: readonly string[]): string {
 }
 
 /**
- * Resolves `content/production/1880` — works from source (`src/main`), the
- * electron-vite build output (`out/main`) and a packaged build's resources.
- *
- * The production tree still ships as a resource so a packaged build can compile
- * a fresh campaign; folding the campaign-file collections into the compiled
- * artifact (so this raw tree is no longer read at runtime) is ticket 07.
- */
-export function resolveProductionPackDir(): string {
-  return resolveContentDir("production", "1880");
-}
-
-/**
  * Resolves the generated content artifact directory (`content/generated/1880`).
  * The artifact is produced by `content:build` (ADR-0122) and consumed read-only
- * by the main process (ticket 03). In a packaged build it is resolved from
- * `process.resourcesPath` (ticket 05), not the repository root.
+ * by the main process (ticket 03). It is the only runtime content boundary: the
+ * campaign compiler and the ship-building/reference-design loaders all read it,
+ * so no raw production tree ships as a resource (tickets 05/07). In a packaged
+ * build it is resolved from `process.resourcesPath`, not the repository root.
  */
 export function resolveGeneratedContentDir(): string {
   return resolveContentDir("generated", "1880");

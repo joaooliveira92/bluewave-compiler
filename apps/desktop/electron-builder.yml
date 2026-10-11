@@ -11,15 +11,14 @@ files:
   - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
   - "!{tsconfig.tsbuildinfo,.gitignore}"
 # Content ships as application resources (resolved from process.resourcesPath,
-# see src/main/contentPack.ts), not by a repo-root walk. The compiled artifact
-# is the runtime content boundary (ADR-0122); the production tree ships so a
-# packaged build can compile a fresh campaign (ticket 05; folded into the
-# artifact by ticket 07).
+# see src/main/contentPack.ts), not by a repo-root walk. The compiled artifact is
+# the only runtime content boundary (ADR-0122/ADR-0124): the campaign compiler
+# and the ship-building/reference-design loaders all read it, so the raw
+# production tree is a build-time input to `content:build`, not a shipped
+# resource (tickets 05/07).
 extraResources:
   - from: ../../content/generated/1880
     to: content/generated/1880
-  - from: ../../content/production/1880
-    to: content/production/1880
 mac:
   artifactName: ${name}-${version}-${arch}.${ext}
   target:
