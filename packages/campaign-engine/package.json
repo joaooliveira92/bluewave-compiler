@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@bluewave/campaign": "workspace:*",
-    "@bluewave/content-schema": "workspace:*"
+    "@bluewave/content-schema": "workspace:*",
+    "effect": "workspace:*"
   },
   "devDependencies": {
     "@bluewave/contracts": "workspace:*"

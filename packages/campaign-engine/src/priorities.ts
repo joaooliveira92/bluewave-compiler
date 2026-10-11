@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { Schema } from "effect";
 import type { CampaignSnapshot } from "@bluewave/campaign";
 import { scaleValue } from "@bluewave/campaign";
 import { HIGH_TENSION_THRESHOLD, isHighTension } from "./diplomacy.js";
@@ -25,10 +25,15 @@ export interface InspectPrioritiesResult {
 export const MIN_RESEARCH_SHARE_BP = 800;
 export const NEAR_COMPLETION_WORK_RATIO = 0.9;
 
-export const prioritySeveritySchema = z.enum(["information", "advisory", "warning", "critical"]);
-export type PrioritySeverity = z.infer<typeof prioritySeveritySchema>;
+export const prioritySeveritySchema = Schema.Literals([
+  "information",
+  "advisory",
+  "warning",
+  "critical",
+]);
+export type PrioritySeverity = typeof prioritySeveritySchema.Type;
 
-export const strategicPriorityTypeSchema = z.enum([
+export const strategicPriorityTypeSchema = Schema.Literals([
   "monthly_deficit",
   "critical_cash_reserve",
   "low_research_spending",
@@ -36,7 +41,7 @@ export const strategicPriorityTypeSchema = z.enum([
   "high_foreign_tension",
   "no_active_construction",
 ]);
-export type StrategicPriorityType = z.infer<typeof strategicPriorityTypeSchema>;
+export type StrategicPriorityType = typeof strategicPriorityTypeSchema.Type;
 
 export type StrategicDestinationSection =
   | "overview"

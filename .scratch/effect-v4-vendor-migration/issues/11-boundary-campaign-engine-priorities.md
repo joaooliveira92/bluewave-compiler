@@ -1,9 +1,9 @@
 # 11 — Boundary: `campaign-engine` priorities Zod → Effect Schema (atomic)
 
 **Type:** implementation
-**Status:** open
+**Status:** done
 **Blocked by:** 07 (Wave 1 exit)
-**Frontier:** no
+**Frontier:** yes
 
 ## What to build
 
@@ -19,15 +19,27 @@ other Zod use) to Effect Schema atomically.
 
 ## Acceptance criteria
 
-- [ ] Zod enum/schema use in `priorities.ts` (and any other file in the package)
+- [x] Zod enum/schema use in `priorities.ts` (and any other file in the package)
       converted to Effect Schema; no `zod` import remains; dependency removed;
       no dual definition (`MIG-ZOD-1`).
-- [ ] Exported types (`PrioritySeverity`, `StrategicPriorityType`) preserve their
+- [x] Exported types (`PrioritySeverity`, `StrategicPriorityType`) preserve their
       previous literal unions (`Schema.Schema.Type`) — structurally identical.
-- [ ] Pure/runtime-free: no `Effect`/`Layer`/`ManagedRuntime`.
-- [ ] `pnpm --filter @bluewave/campaign-engine test` green; `pnpm typecheck`
+- [x] Pure/runtime-free: no `Effect`/`Layer`/`ManagedRuntime`.
+- [x] `pnpm --filter @bluewave/campaign-engine test` green; `pnpm typecheck`
       green.
 
 ## Notes
 
 - This projection is a pure read over the immutable snapshot; keep it pure.
+
+## Comments
+
+**DONE 2026-10-11 — PASS (orchestrator pipeline).** `priorities.ts`'s two
+`z.enum`s → `Schema.Literals` with member order preserved; types →
+`typeof s.Type`; `effect` added to the package (it had no declared `zod` — the
+import previously resolved via hoisting, now removed). No decode call site
+(these schemas are type-only; zero consumers). Reviewer APPROVE (LOW-only).
+Gate: build 20/20 uncached, typecheck 37/37 forced, `pnpm check` exit 0
+(test:run 241 files/1554 tests, e2e 30), goldens 10/10, cross-process
+byte-identical `success:true`. Report
+`.ai/reports/effect-v4-ticket-11-campaign-engine-priorities.md`.

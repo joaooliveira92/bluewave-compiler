@@ -48,7 +48,9 @@ Live roadmap / next-action detail: `.ai/SPRINT-PLAN.md`.
 > `.ai/reports/effect-v4-ticket-08-content-schema.md`. **Ticket 10 (`events`
 > validation Zod→Effect Schema) DONE — PASS** (report
 > `.ai/reports/effect-v4-ticket-10-events-validation.md`; same gate green).
-> **Next: ticket 11** (`campaign-engine` priorities), then 12–15 to close Wave 2.
+> **Ticket 11 (`campaign-engine` priorities Zod→Effect Schema) DONE — PASS**
+> (report `.ai/reports/effect-v4-ticket-11-campaign-engine-priorities.md`).
+> **Next: ticket 12** (`combat` contracts), then 13–15 to close Wave 2.
 
 ---
 

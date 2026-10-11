@@ -318,6 +318,9 @@ importers:
       '@bluewave/content-schema':
         specifier: workspace:*
         version: link:../content-schema
+      effect:
+        specifier: workspace:*
+        version: link:../../vendor/effect
     devDependencies:
       '@bluewave/contracts':
         specifier: workspace:*
