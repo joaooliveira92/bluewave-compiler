@@ -25,7 +25,13 @@ export function registerAppFlush(flush: Flush): () => void {
 
 /** Runs every registered flush, isolating failures, resolving when all settle. */
 export async function runAppFlushes(): Promise<void> {
-  await Promise.all([...flushes].map((flush) => Promise.resolve().then(flush).catch(() => undefined)));
+  await Promise.all(
+    [...flushes].map((flush) =>
+      Promise.resolve()
+        .then(flush)
+        .catch(() => undefined),
+    ),
+  );
 }
 
 /**

@@ -11,6 +11,14 @@ import {
 
 const isDev = process.env.NODE_ENV === "development" || process.argv.includes("--dev");
 
+/**
+ * React DevTools install into the app when debug mode is on, or when explicitly
+ * requested with `VITE_BLUEWAVE_DEVTOOLS=true` (`pnpm dev:devtools`) — so the
+ * panel is available without also enabling the debug screens (ADR-0118).
+ */
+const reactDevToolsRequested =
+  isDebugModeEnabled() || process.env.VITE_BLUEWAVE_DEVTOOLS === "true";
+
 /** A quit waits this long for the renderer to flush pending work before proceeding anyway. */
 const QUIT_FLUSH_TIMEOUT_MS = 1_500;
 
@@ -175,11 +183,10 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   void app.whenReady().then(async () => {
-    if (isDev && isDebugModeEnabled()) {
+    if (isDev && reactDevToolsRequested) {
       try {
-        const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import(
-          "electron-devtools-installer"
-        );
+        const { installExtension, REACT_DEVELOPER_TOOLS } =
+          await import("electron-devtools-installer");
         const { name } = await installExtension(REACT_DEVELOPER_TOOLS);
         console.log(`Added extension: ${name}`);
       } catch (error) {

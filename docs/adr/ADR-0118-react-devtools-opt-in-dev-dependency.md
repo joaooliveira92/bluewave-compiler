@@ -27,8 +27,10 @@ concerns:
 ## Decision
 
 1. **Dev-only and opt-in.** The extension is installed only when the app is in
-   development *and* debug mode is on: behind the existing
-   `VITE_BLUEWAVE_DEBUG=true` flag (`pnpm dev:debug`), read in the main process
+   development *and* the panel is requested — either debug mode is on (the
+   `VITE_BLUEWAVE_DEBUG=true` flag, `pnpm dev:debug`) or the dedicated
+   `VITE_BLUEWAVE_DEVTOOLS=true` flag is set (`pnpm dev:devtools`, which does not
+   enable the debug screens). The debug-mode path is read in the main process
    through `isDebugModeEnabled()` (`apps/desktop/src/main/debugGate.ts`), the same
    build-time constant that gates the renderer debug screens (ADR-0029). Plain
    `pnpm dev` performs no network fetch.
@@ -46,8 +48,9 @@ concerns:
 - Production `out/main/index.js` drops the installer's bytes (verified:
   2,362,875 → 2,044,554, ≈ −318 KB); the bundle shrinks and a dev tool never
   reaches players.
-- `pnpm dev:debug` gets a working React tab; `pnpm dev` stays hermetic (no startup
-  network call), at the cost of the React notice remaining in plain dev.
+- `pnpm dev:debug` (or `pnpm dev:devtools`) gets a working React tab; `pnpm dev`
+  stays hermetic (no startup network call), at the cost of the React notice
+  remaining in plain dev.
 - The Chrome-Web-Store fetch (unpinned CRX) is confined to an explicit,
   developer-invoked mode.
 

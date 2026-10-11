@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "electron-vite dev",
     "dev:debug": "cross-env VITE_BLUEWAVE_DEBUG=true electron-vite dev",
+    "dev:devtools": "cross-env VITE_BLUEWAVE_DEVTOOLS=true electron-vite dev",
     "build": "electron-vite build",
     "build:debug": "cross-env VITE_BLUEWAVE_DEBUG=true electron-vite build",
     "preview": "electron-vite preview",

@@ -22,6 +22,7 @@
     "snap": "pnpm --filter @bluewave/desktop build && pnpm --filter @bluewave/desktop run snap",
     "snap:debug": "pnpm --filter @bluewave/desktop exec cross-env VITE_BLUEWAVE_DEBUG=true electron-vite build && pnpm --filter @bluewave/desktop run snap",
     "dev": "pnpm preflight && turbo run dev",
+    "dev:devtools": "pnpm --filter @bluewave/desktop dev:devtools",
     "lint": "vp lint .",
     "lint:fix": "vp lint --fix .",
     "lint:effect": "effect-tsgo patch --no-typescript --oxlint && oxlint --config oxlint.effect.json packages apps",
