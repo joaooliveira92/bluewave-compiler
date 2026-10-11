@@ -1,6 +1,8 @@
 # ADR-0061: Persisted ship-loss records (the "ships sunk" ledger)
 
-Status: accepted (2026-10-07). Roadmap item 3 (`docs/research/rtw3-parity-engine-roadmap.md`), ticket 08.
+## Status
+
+accepted (2026-10-07). Roadmap item 3 (`docs/research/rtw3-parity-engine-roadmap.md`), ticket 08.
 
 ## Decision
 - `BattleResult` gains optional `lostShips: LostShipRecord[]` = `{ shipId, name, classId, nationId, month, cause? }`.

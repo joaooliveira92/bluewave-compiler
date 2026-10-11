@@ -1,6 +1,8 @@
 # ADR-0058: Release UI hides engine detail; debug builds show it
 
-Status: accepted (2026-10-07). Context: RTW3 parity / UX modernization
+## Status
+
+accepted (2026-10-07). Context: RTW3 parity / UX modernization
 (`.scratch/rtw3-parity-ux-overhaul`, V-1..V-5), ADR-0029 (debug-mode screens).
 
 ## Context

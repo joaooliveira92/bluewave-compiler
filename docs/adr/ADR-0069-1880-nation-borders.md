@@ -1,6 +1,8 @@
 # ADR-0069: 1880 borders for the playable nations (presentation layer)
 
-Status: accepted locally; **licence sign-off pending before any release**.
+## Status
+
+accepted locally; **licence sign-off pending before any release**.
 
 ## Context
 

@@ -1,6 +1,8 @@
 # ADR-0062: Fleet movement orders (`MoveFleet`) and a connected 1880 map
 
-Status: accepted (2026-10-08). Roadmap item 4 (`docs/research/rtw3-parity-engine-roadmap.md`).
+## Status
+
+accepted (2026-10-08). Roadmap item 4 (`docs/research/rtw3-parity-engine-roadmap.md`).
 
 ## Decision
 - New engine command `MoveFleet { nationId, fleetId, toAreaId }` (16th player command). One fleet moves **one route

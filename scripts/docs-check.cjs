@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // Documentation hygiene gate (ADR-0095).
 //
-// Three checks over the canonical docs, cheapest failures first:
+// Four checks over the canonical docs, cheapest failures first:
 //   1. relative markdown links resolve (docs/**, root *.md, .ai/*.md)   -> FAIL
 //   2. docs/adr/README.md index matches the ADR files + next number      -> FAIL
-//   3. ADRs referencing a DESIGN-N are classified in AMENDMENTS.md       -> FAIL
+//   3. every ADR has a valid `## Status` section, matching its index row -> FAIL
+//   4. ADRs referencing a DESIGN-N are classified in AMENDMENTS.md       -> FAIL
 //
 // Wired into `pnpm preflight` (and therefore `pnpm dev` / `pnpm check`).
 // Standalone: `node scripts/docs-check.cjs`.
@@ -59,13 +60,32 @@ const adrFiles = fs
   .readdirSync(path.join(root, "docs/adr"))
   .filter((f) => /^ADR-\d{4}-.*\.md$/.test(f))
   .map((f) => ({ f: `docs/adr/${f}`, n: f.match(/ADR-(\d{4})/)[1] }));
+
+// Canonical status keyword: the first word of the `## Status` section body.
+// The free-text note after it is unconstrained; the lead word is not.
+const STATUS_OK = new Set(["accepted", "proposed", "deprecated", "superseded"]);
+function adrStatus(text) {
+  const m = text.match(/^## Status\s*\n+([^\n]+)/m);
+  if (!m) return null;
+  const kw = m[1].trim().match(/^([a-z]+)/i);
+  return kw ? kw[1].toLowerCase() : null;
+}
+
 const adrReadmePath = path.join(root, "docs/adr/README.md");
 if (!fs.existsSync(adrReadmePath)) {
   problems.push("docs/adr/README.md is missing");
 } else {
   const readme = fs.readFileSync(adrReadmePath, "utf8");
-  const listed = new Set([...readme.matchAll(/\[ADR-(\d{4})-/g)].map((m) => m[1]));
-  const missing = adrFiles.filter((x) => !listed.has(x.n)).map((x) => x.n);
+  // Index rows end in a Status cell, so a row without one counts as missing.
+  const rowRe = /^\|\s*(\d{4})\s*\|.*\[ADR-\d{4}-[^\]]*\]\([^)]+\)\s*\|.*\|\s*([a-z]+)\s*\|\s*$/;
+  const rows = new Map(); // number -> status cell
+  for (const line of readme.split("\n")) {
+    const m = line.match(rowRe);
+    if (!m) continue;
+    if (rows.has(m[1])) problems.push(`docs/adr/README.md lists ADR-${m[1]} more than once`);
+    rows.set(m[1], m[2].toLowerCase());
+  }
+  const missing = adrFiles.filter((x) => !rows.has(x.n)).map((x) => x.n);
   if (missing.length)
     problems.push(
       `docs/adr/README.md is missing rows for: ${missing.map((n) => "ADR-" + n).join(", ")}`,
@@ -75,9 +95,27 @@ if (!fs.existsSync(adrReadmePath)) {
   const declared = readme.match(/next number is ADR-(\d{4})/)?.[1];
   if (declared !== next)
     problems.push(`docs/adr/README.md says next is ADR-${declared ?? "?"}; should be ADR-${next}`);
+
+  for (const { f, n } of adrFiles) {
+    if (!rows.has(n)) continue;
+    const kw = adrStatus(fs.readFileSync(path.join(root, f), "utf8"));
+    if (kw !== rows.get(n))
+      problems.push(
+        `docs/adr/README.md row ADR-${n} status "${rows.get(n)}" ` +
+          `does not match the ADR's status "${kw ?? "none"}"`,
+      );
+  }
 }
 
-// ---- 3. amendment classification ----
+// ---- 3. ADR status sections ----
+for (const { f, n } of adrFiles) {
+  const kw = adrStatus(fs.readFileSync(path.join(root, f), "utf8"));
+  if (kw === null) problems.push(`ADR-${n} has no "## Status" section`);
+  else if (!STATUS_OK.has(kw))
+    problems.push(`ADR-${n} status "${kw}" is not one of {${[...STATUS_OK].join(", ")}}`);
+}
+
+// ---- 4. amendment classification ----
 const amendPath = path.join(root, "docs/adr/AMENDMENTS.md");
 if (!fs.existsSync(amendPath)) {
   problems.push("docs/adr/AMENDMENTS.md is missing — amendment classification cannot be checked");

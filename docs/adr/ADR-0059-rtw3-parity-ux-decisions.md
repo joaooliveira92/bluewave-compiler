@@ -1,6 +1,8 @@
 # ADR-0059: RTW3 parity / UX modernization — decisions
 
-Status: accepted (2026-10-07). Spec: `.scratch/rtw3-parity-ux-overhaul/spec.md`. Builds on ADR-0055
+## Status
+
+accepted (2026-10-07). Spec: `.scratch/rtw3-parity-ux-overhaul/spec.md`. Builds on ADR-0055
 (map renderer), ADR-0058 (release UI hides engine detail).
 
 These are the decisions the owner delegated ("decide the best approach") during the parity sprint.

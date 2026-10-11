@@ -1,6 +1,8 @@
 # ADR-0068: Campaign command screen — decisions
 
-Status: accepted (2026-10-08). Spec: `.scratch/campaign-command-screen/spec.md`; map and decision tickets in the same folder. Builds on ADR-0059.
+## Status
+
+accepted (2026-10-08). Spec: `.scratch/campaign-command-screen/spec.md`; map and decision tickets in the same folder. Builds on ADR-0059.
 
 ## Decisions
 1. **Features, not layout.** The home screen becomes a map-first command screen; RTW3's tab strip and 15-button action grid are not copied. BottomNav stays the only screen navigation; RTW3 buttons map to existing screens or contextual actions, and engine-absent ones appear as "Not yet modelled" items inside their eventual screen.

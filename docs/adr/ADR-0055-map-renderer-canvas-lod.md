@@ -1,6 +1,8 @@
 # ADR-0055: Map renderer — Canvas 2D with pre-simplified LOD tiers
 
-Status: accepted (2026-10-07). Spec: `.scratch/rtw3-parity-ux-overhaul` (M-2, M-5..M-7).
+## Status
+
+accepted (2026-10-07). Spec: `.scratch/rtw3-parity-ux-overhaul` (M-2, M-5..M-7).
 
 ## Context
 Owner wants a powerful world map with deep zoom. Current coastline is already

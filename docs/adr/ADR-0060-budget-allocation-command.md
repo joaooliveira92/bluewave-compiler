@@ -1,6 +1,8 @@
 # ADR-0060: Player budget allocation (`SetBudgetAllocation`)
 
-Status: accepted (2026-10-07). Spec: `.scratch/rtw3-parity-ux-overhaul` F-12; roadmap item 2
+## Status
+
+accepted (2026-10-07). Spec: `.scratch/rtw3-parity-ux-overhaul` F-12; roadmap item 2
 (`docs/research/rtw3-parity-engine-roadmap.md`). Owner approved the roadmap ("approve all", autonomous).
 
 ## Decision
