@@ -113,28 +113,9 @@ try {
   );
   check("debug-only commands rejected", reason === "DEBUG_ONLY", String(reason));
 
-  // --- The drawing board renders the artifact-backed ship-building content ---
-  await page
-    .getByTestId("bottom-nav")
-    .getByRole("button", { name: "Construction", exact: true })
-    .click();
-  await page.getByRole("tab", { name: "Drawing Board" }).click();
-  await page.getByRole("button", { name: "Open Drawing Board" }).click();
-  const board = page.getByRole("dialog", { name: "Drawing Board" });
-  await board.getByRole("tab", { name: /Hull and machinery/ }).waitFor({ timeout: 15_000 });
-  check("drawing board opens on the shipped content", true);
-  check(
-    "drawing board loads the ship-building catalogue",
-    (await board.getByRole("group", { name: "Hull sections" }).getByRole("button").count()) === 8,
-  );
-  // The plan is drawn from the catalogue (a non-empty SVG), not an error card.
-  check(
-    "drawing board renders the ship plan",
-    (await board.getByRole("img", { name: /Top-down plan/ }).count()) === 1,
-  );
-  if (values.shot !== undefined) await page.screenshot({ path: values.shot });
-
-  // --- The home map's lazy coastline chunk still paints in the packaged build ---
+  // --- The home map's lazy coastline chunk still paints in the packaged build.
+  // Checked while the fresh campaign is still on Overview, its home screen; the
+  // map unmounts when the shell navigates away to Construction below.
   const mapPainted = (root) =>
     root.evaluate((container) => {
       const canvas = container.querySelector("canvas");
@@ -161,6 +142,27 @@ try {
     "home map: 36 keyboard-reachable areas",
     (await homeMap.locator('path[role="button"]').count()) === 36,
   );
+
+  // --- The drawing board renders the artifact-backed ship-building content ---
+  await page
+    .getByTestId("bottom-nav")
+    .getByRole("button", { name: "Construction", exact: true })
+    .click();
+  await page.getByRole("tab", { name: "Drawing Board" }).click();
+  await page.getByRole("button", { name: "Open Drawing Board" }).click();
+  const board = page.getByRole("dialog", { name: "Drawing Board" });
+  await board.getByRole("tab", { name: /Hull and machinery/ }).waitFor({ timeout: 15_000 });
+  check("drawing board opens on the shipped content", true);
+  check(
+    "drawing board loads the ship-building catalogue",
+    (await board.getByRole("group", { name: "Hull sections" }).getByRole("button").count()) === 8,
+  );
+  // The plan is drawn from the catalogue (a non-empty SVG), not an error card.
+  check(
+    "drawing board renders the ship plan",
+    (await board.getByRole("img", { name: /Top-down plan/ }).count()) === 1,
+  );
+  if (values.shot !== undefined) await page.screenshot({ path: values.shot });
 
   check("no uncaught renderer exceptions", pageErrors.length === 0, pageErrors[0]?.slice(0, 200));
   const unexpectedConsoleErrors = consoleErrors.filter(
