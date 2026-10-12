@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { normalizeIndex } from "@/components/card-deck/index.js";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 import { NATION_COORDINATES } from "@/content/nationCoordinates.js";
 import { playMechanicalAcoustic } from "@/shell/controller/mechanicalAcoustic.js";
@@ -45,8 +46,7 @@ export function NationSelectionScreen({
   const [isDossierOpen, setDossierOpen] = useState(true);
 
   const slotCount = slots.length;
-  const normalizedFocusedIndex =
-    slotCount === 0 ? 0 : ((focusedIndex % slotCount) + slotCount) % slotCount;
+  const normalizedFocusedIndex = normalizeIndex(focusedIndex, slotCount);
   const focusedSlotId = slots[normalizedFocusedIndex] as PlayableSlotCountryId;
   const coords = NATION_COORDINATES[focusedSlotId];
 

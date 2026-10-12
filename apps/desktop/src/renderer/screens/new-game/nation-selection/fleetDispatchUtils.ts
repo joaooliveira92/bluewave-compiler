@@ -41,11 +41,6 @@ export const CARD_PALETTES = [
 
 export type CardPalette = (typeof CARD_PALETTES)[number];
 
-export function normalizeIndex(index: number, count: number): number {
-  if (count === 0) return 0;
-  return ((index % count) + count) % count;
-}
-
 export function getCountryName(countryId: PlayableSlotCountryId): string {
   return getNationPresentation(countryId).name;
 }

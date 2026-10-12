@@ -17,20 +17,21 @@ import {
   useRef,
   useState,
 } from "react";
-import "./FleetStack.css";
+import "./CardDeck.css";
 
 /**
- * `FleetStack` is Bluewave's local port of the React Bits `<Stack />` card
- * stack, specialized for the Fleet Dispatch nation selector.
+ * `CardDeck` is Bluewave's local port of the React Bits `<Stack />` card stack,
+ * shared by every master/detail surface that browses options as a deck (Fleet
+ * Dispatch nations, Rules-of-the-Naval-Age presets).
  *
  * It keeps the upstream physics (fan / cascade / deck / pile placement,
- * drag-to-fling, depth shading) and adds two things the nation selector needs:
+ * drag-to-fling, depth shading) and adds two things the selectors need:
  *
- * - `topIndex` (controlled): the parent owns "which nation is focused"; when it
+ * - `topIndex` (controlled): the parent owns "which card is focused"; when it
  *   changes, the matching card is brought smoothly to the front.
  * - `onCardActivate`: a tap on *any* visible card selects it. Upstream
  *   `<Stack />` only lets the top card receive pointer input, which is exactly
- *   why "click a nation to select it" never registered here.
+ *   why "click a card to select it" never registered there.
  *
  * Keyboard and listbox semantics stay with the parent, so this component never
  * owns focus or `role`.
@@ -193,7 +194,7 @@ interface PlaceAllOptions {
   kind?: SpringKind;
 }
 
-export interface FleetStackProps {
+export interface CardDeckProps {
   cards?: ReactNode[];
   layout?: Layout;
   visible?: number;
@@ -220,7 +221,7 @@ export interface FleetStackProps {
   style?: CSSProperties;
 }
 
-export function FleetStack({
+export function CardDeck({
   cards,
   layout = "fan",
   visible = 4,
@@ -242,7 +243,7 @@ export function FleetStack({
   onCardActivate,
   className = "",
   style,
-}: FleetStackProps): React.JSX.Element {
+}: CardDeckProps): React.JSX.Element {
   const items =
     cards && cards.length
       ? cards
@@ -622,7 +623,7 @@ export function FleetStack({
     if (flyingRef.current.has(index)) return;
     // Only the top card can be dragged; any other visible card is a tap that
     // brings it to the front. Upstream `<Stack />` ignored these taps entirely,
-    // which is why clicking a nation never changed the selection.
+    // which is why clicking a card never changed the selection.
     if (orderRef.current[0] !== index) {
       event.preventDefault();
       onCardActivateRef.current?.(index);
@@ -751,7 +752,7 @@ export function FleetStack({
   return (
     <div
       ref={rootRef}
-      className={`fleet-stack ${className}`.trim()}
+      className={`card-deck ${className}`.trim()}
       style={style}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -767,7 +768,7 @@ export function FleetStack({
               if (element) elementsRef.current.set(index, element);
               else elementsRef.current.delete(index);
             }}
-            className="fleet-stack-card"
+            className="card-deck-card"
             data-top={isTop ? "" : undefined}
             style={{
               x: values.x,
@@ -785,7 +786,7 @@ export function FleetStack({
             onPointerDown={(event) => onDown(event, index)}
           >
             <motion.div
-              className="fleet-stack-card-face"
+              className="card-deck-card-face"
               style={{
                 rotateX: values.tiltX,
                 rotateY: values.tiltY,
@@ -800,11 +801,11 @@ export function FleetStack({
                 boxShadow: shadow ? SHADOW : "none",
               }}
             >
-              <div className="fleet-stack-card-content" style={{ borderRadius: innerRadius }}>
+              <div className="card-deck-card-content" style={{ borderRadius: innerRadius }}>
                 {card}
               </div>
               <motion.div
-                className="fleet-stack-card-shade"
+                className="card-deck-card-shade"
                 style={{ opacity: values.shade, borderRadius: radius }}
               />
             </motion.div>
