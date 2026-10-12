@@ -248,6 +248,13 @@ export class CommandLifecycle {
         snapshotHash,
         result: { nationId: body.nationId, fleetId: body.fleetId, toAreaId: body.toAreaId },
       };
+    if (body.type === "HaltConstruction" || body.type === "ResumeConstruction")
+      return {
+        type: "success",
+        commandId: envelope.commandId,
+        snapshotHash,
+        result: { nationId: body.nationId, projectId: body.projectId },
+      };
     if (body.type === "SetBudgetAllocation")
       return {
         type: "success",

@@ -8,7 +8,10 @@ import { describe, expect, it } from "vite-plus/test";
  * justified in the review, because this test fails.
  */
 const CEILING: Record<string, number> = {
-  "balance.yaml": 1,
+  // Raised 1 -> 2 by SB-3/INC-3: the mothballed-maintenance base `mothballedMaintenancePerMonthMicro` has no manual
+  // number (the RTW3 manual gives only the HALF rule a halted hull pays, which is the sourced `preservationCostBp`),
+  // so it is a PLACEHOLDER BALANCE TARGET; its sibling `preservationCostBp: 5000` is the manual's rule, not unsourced.
+  "balance.yaml": 2,
   // Raised 26 -> 50 by the pre-1880 armament pass: the new RML/early-BL and foreign guns carry PLACEHOLDER volume and deck
   // footprint figures (no source gives a per-gun volume), while their mass/charge/projectile/M.V. are sourced. Sources:
   // docs/research/ship-building-1880-pre-era-armament.md. Every marker is justified in the review; the ceiling stays put otherwise.

@@ -57,6 +57,14 @@ export const ConstructionProgressedSchema = Schema.Struct({
   workAdded: nonNegativeSafeInt,
 });
 
+export const ConstructionDelayedSchema = Schema.Struct({
+  kind: Schema.Literal("ConstructionDelayed"),
+  projectId: nonEmptyString,
+  nationId: nonEmptyString,
+  reason: nonEmptyString,
+  delayMonth: discoveryMonth,
+});
+
 export const ShipRebuiltSchema = Schema.Struct({
   kind: Schema.Literal("ShipRebuilt"),
   projectId: nonEmptyString,
@@ -101,6 +109,7 @@ export const TechnologyDiscoveredSchema = Schema.Struct({
 export const DomainEventBodySchema = Schema.Union([
   NationBudgetChangedSchema,
   ConstructionProgressedSchema,
+  ConstructionDelayedSchema,
   ShipRebuiltSchema,
   ResearchProgressedSchema,
   BattleInitiatedSchema,

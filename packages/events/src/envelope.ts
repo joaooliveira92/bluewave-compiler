@@ -37,6 +37,19 @@ export interface ShipRebuilt {
   readonly toDesignVersionId: string;
 }
 
+/**
+ * The one explicit record of a delayed construction month (DESIGN-23 section 7): the project advanced no work and
+ * paid no ordinary charge this month. `reason` is the stable reason code the resolving contract names
+ * (`PROJECT_DELAYED_ZERO_WORK`, or a specific pressure reason such as `ACCELERATION_CAPACITY_PRESSURE_DELAY`).
+ */
+export interface ConstructionDelayed {
+  readonly kind: "ConstructionDelayed";
+  readonly projectId: string;
+  readonly nationId: string;
+  readonly reason: Reason;
+  readonly delayMonth: string;
+}
+
 export interface ResearchProgressed {
   readonly kind: "ResearchProgressed";
   readonly nationId: string;
@@ -72,6 +85,7 @@ export interface TechnologyDiscovered {
 export type DomainEventBody =
   | NationBudgetChanged
   | ConstructionProgressed
+  | ConstructionDelayed
   | ShipRebuilt
   | ResearchProgressed
   | BattleInitiated

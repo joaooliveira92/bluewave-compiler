@@ -669,6 +669,9 @@ export const constructionBalance: ConstructionBalance = {
   buildTimeEraProvenance: [{ status: "ESTIMATE", source: "test fixture" }],
   efficientIndustryBp: 6_700,
   accelerationTimeBp: 9_000,
+  // Test fixture only: invented base (PLACEHOLDER in production), the manual's half rule is the same.
+  mothballedMaintenancePerMonthMicro: 40_000_000_000,
+  preservationCostBp: 5_000,
 };
 
 import type { CveBalance } from "../../src/index.js";

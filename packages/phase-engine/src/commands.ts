@@ -6,15 +6,20 @@ import type {
 } from "@bluewave/campaign";
 import {
   applyCommanderChange,
+  ConstructionProjectTransitionError,
   DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE,
   fleetMoveProblem,
+  isTerminalConstructionProjectStatus,
+  transitionConstructionProject,
   VACANT,
 } from "@bluewave/campaign";
 import type {
   AssignOfficerCommand,
   BudgetProjectCommand,
+  HaltConstructionCommand,
   MoveFleetCommand,
   RelieveOfficerCommand,
+  ResumeConstructionCommand,
   SetBudgetAllocationCommand,
   SubmitDesignCommand,
 } from "@bluewave/commands";
@@ -29,6 +34,10 @@ import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { buildDesignVersion, pricingFor } from "./designVersion.js";
 import { startDesignStudy, studyExists } from "./designStudies.js";
 import { fundConstructionProject } from "./constructionFunding.js";
+import {
+  constructionResumeTarget,
+  type ConstructionResumeTarget,
+} from "./constructionHaltResume.js";
 import { EventLedger } from "@bluewave/events";
 import type { FinancialLedger } from "./financial-ledger.js";
 import { budgetChangedEvent, makeLedgerEntry } from "./events.js";
@@ -214,6 +223,25 @@ export function applyBudgetProject(
     return currentSnapshot;
   }
 
+  // DESIGN-23 section 7: a halted or delayed project receives exactly zero work and zero ordinary charge, so an explicit
+  // budget for one is refused rather than silently spent. A terminal project cannot be funded at all.
+  if (isTerminalConstructionProjectStatus(project["status"])) {
+    collector.addError(
+      "INVALID_DOCKYARD_PROJECT_TRANSITION",
+      `Project ${body["projectId"]} is ${project["status"]} and cannot receive work`,
+      { stage: "command_collection", entityId: body["projectId"] },
+    );
+    return currentSnapshot;
+  }
+  if (project["status"] === "HALTED" || project["status"] === "DELAYED") {
+    collector.addError(
+      "PROJECT_NOT_ACTIVE",
+      `Project ${body["projectId"]} is ${project["status"]} and receives no ordinary work charge`,
+      { stage: "command_collection", entityId: body["projectId"] },
+    );
+    return currentSnapshot;
+  }
+
   if (project["holdUntilMonth"] !== undefined && campaignMonth < project["holdUntilMonth"]) {
     collector.addError(
       "PROJECT_ON_HOLD",
@@ -261,10 +289,9 @@ export function applyBudgetProject(
       p["id"] !== body["projectId"]
         ? p
         : (fundedProject ?? {
-            ...p,
+            ...transitionConstructionProject(p, "ACTIVE"),
             completedWork: clampedWork,
             paidWork: SafeInt.add(p["paidWork"], budget),
-            status: "ACTIVE" as const,
           }),
     ),
   };
@@ -395,4 +422,110 @@ export function applySubmitDesign(
       [family.designFamilyId, family],
     ]),
   };
+}
+
+/** The nation's project, or a diagnostic naming what was missing. */
+function dockyardProject(
+  currentSnapshot: CampaignSnapshot,
+  nationId: string,
+  projectId: string,
+  collector: DiagnosticCollector,
+): { nation: NationState; project: ConstructionProject } | undefined {
+  const nation = currentSnapshot["nations"].get(nationId);
+  if (!nation) {
+    collector.addError("NATION_NOT_FOUND", `Nation ${nationId} not found`, {
+      stage: "command_collection",
+    });
+    return undefined;
+  }
+  const project = nation["constructionProjects"].find((p) => p["id"] === projectId);
+  if (!project) {
+    collector.addError("INVALID_DOCKYARD_PROJECT", `Project ${projectId} is not ${nationId}'s`, {
+      stage: "command_collection",
+      entityId: projectId,
+    });
+    return undefined;
+  }
+  return { nation, project };
+}
+
+/**
+ * Moves a project's status through the shared transition table. The single status write path for halt and resume, so no
+ * engine site can invent a state DESIGN-23 section 2 does not allow; an illegal move fails closed with
+ * `INVALID_DOCKYARD_PROJECT_TRANSITION` and changes nothing.
+ */
+function setProjectStatus(
+  currentSnapshot: CampaignSnapshot,
+  nation: NationState,
+  project: ConstructionProject,
+  to: ConstructionResumeTarget["status"] | "HALTED",
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  let updated: ConstructionProject;
+  try {
+    updated = transitionConstructionProject(project, to);
+  } catch (error) {
+    if (error instanceof ConstructionProjectTransitionError) {
+      collector.addError("INVALID_DOCKYARD_PROJECT_TRANSITION", error.message, {
+        stage: "command_collection",
+        entityId: project["id"],
+      });
+      return currentSnapshot;
+    }
+    throw error;
+  }
+  if (updated === project) return currentSnapshot;
+  const updatedNation: NationState = {
+    ...nation,
+    constructionProjects: nation["constructionProjects"].map((p) =>
+      p["id"] === project["id"] ? updated : p,
+    ),
+  };
+  const updatedNations = new Map(currentSnapshot["nations"]);
+  updatedNations.set(nation["id"], updatedNation);
+  return { ...currentSnapshot, nations: updatedNations };
+}
+
+/**
+ * Canonical application of a `HaltConstruction` command (DESIGN-23 section 7): the project becomes `HALTED`, so it
+ * receives no work and no ordinary charge and pays the preservation cost until it is resumed. A halt of an already
+ * halted project is a no-op.
+ */
+export function applyHaltConstruction(
+  currentSnapshot: CampaignSnapshot,
+  body: HaltConstructionCommand,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const found = dockyardProject(currentSnapshot, body["nationId"], body["projectId"], collector);
+  if (found === undefined) return currentSnapshot;
+  return setProjectStatus(currentSnapshot, found.nation, found.project, "HALTED", collector);
+}
+
+/**
+ * Canonical application of a `ResumeConstruction` command (DESIGN-23 section 7): the project returns to `ACTIVE`, or to
+ * `AWAITING_CAPACITY` when the design records no usable construction capacity. The chosen reason is recorded as an info
+ * diagnostic, so a resume is never silent.
+ */
+export function applyResumeConstruction(
+  currentSnapshot: CampaignSnapshot,
+  body: ResumeConstructionCommand,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const found = dockyardProject(currentSnapshot, body["nationId"], body["projectId"], collector);
+  if (found === undefined) return currentSnapshot;
+  const design = currentSnapshot["designs"].get(found.project["designVersionId"]);
+  const target = constructionResumeTarget(design);
+  const next = setProjectStatus(
+    currentSnapshot,
+    found.nation,
+    found.project,
+    target.status,
+    collector,
+  );
+  if (next !== currentSnapshot)
+    collector.addInfo(target.reason, `Project ${body["projectId"]} resumed as ${target.status}`, {
+      stage: "command_collection",
+      entityId: body["projectId"],
+    });
+  return next;
 }

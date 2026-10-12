@@ -161,6 +161,56 @@ export const BUDGET_PROJECT_COMMAND_DEFINITION: CommandTypeDefinition = {
 const budgetProjectRegistry = new CommandRegistry();
 budgetProjectRegistry.register(BUDGET_PROJECT_COMMAND_DEFINITION);
 
+export const HALT_CONSTRUCTION_COMMAND_TYPE_ID = "HaltConstruction" as const;
+export const HALT_CONSTRUCTION_COMMAND_SCHEMA_VERSION = "1.0.0" as const;
+export const RESUME_CONSTRUCTION_COMMAND_TYPE_ID = "ResumeConstruction" as const;
+export const RESUME_CONSTRUCTION_COMMAND_SCHEMA_VERSION = "1.0.0" as const;
+
+/** The modeled definition of a construction-status command (halt/resume): no reservation, one locked status write. */
+function dockyardStatusDefinition(
+  commandTypeId:
+    | typeof HALT_CONSTRUCTION_COMMAND_TYPE_ID
+    | typeof RESUME_CONSTRUCTION_COMMAND_TYPE_ID,
+  schemaVersion: string,
+): CommandTypeDefinition {
+  return {
+    commandTypeId,
+    commandSchemaVersion: schemaVersion,
+    allowedIssuerClasses: ["PLAYER", "AI"],
+    targetAggregateType: "construction",
+    submissionPhaseId: "command_collection",
+    authorizationPolicyId: "player_nation_self",
+    validationPolicyId: "dockyard_status_validation",
+    reservationPolicyId: "none",
+    lockPhaseId: "command_collection_lock",
+    irreversiblePhaseId: "command_collection",
+    resolutionPhaseId: "command_collection_resolution",
+    cancellationPolicyId: "UNTIL_IRREVERSIBLE_PHASE",
+    settlementPolicyId: "dockyard_status_settlement",
+    resultSchemaId: "dockyard_status_acceptance_result",
+    reasonCodeNamespace: "construction",
+    idempotencyScope: `campaign:${commandTypeId}`,
+    owningDesignContractId: "bluewave:halt-resume-construction:v1",
+    handlerImplementationId: "phase-engine/halt-resume-construction-commands/v1",
+    handlerVersion: "1.0.0",
+    testVectorIds: [],
+    contentHash: sha256Hex(canonicalSerialize({ commandTypeId, version: schemaVersion })),
+  };
+}
+
+export const HALT_CONSTRUCTION_COMMAND_DEFINITION: CommandTypeDefinition = dockyardStatusDefinition(
+  HALT_CONSTRUCTION_COMMAND_TYPE_ID,
+  HALT_CONSTRUCTION_COMMAND_SCHEMA_VERSION,
+);
+export const RESUME_CONSTRUCTION_COMMAND_DEFINITION: CommandTypeDefinition =
+  dockyardStatusDefinition(
+    RESUME_CONSTRUCTION_COMMAND_TYPE_ID,
+    RESUME_CONSTRUCTION_COMMAND_SCHEMA_VERSION,
+  );
+
+budgetProjectRegistry.register(HALT_CONSTRUCTION_COMMAND_DEFINITION);
+budgetProjectRegistry.register(RESUME_CONSTRUCTION_COMMAND_DEFINITION);
+
 /** Canonical settlement branch id this module walks through on completion. */
 export const BUDGET_COMPLETION_BRANCH_ID: SettlementBranchId = "completion";
 

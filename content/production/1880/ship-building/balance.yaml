@@ -456,6 +456,13 @@ construction:
   efficientIndustryBp: 6700
   # Accelerated construction: 10 % faster (RTW3 official manual p. 31, a game rule).
   accelerationTimeBp: 9000
+  # Mothballing and halting (DESIGN-23 section 7; RTW3 official manual pp. 30-31). The manual gives only the HALF
+  # rule: a halted hull pays "half its mothballed maintenance" (preservation cost) while stopped. It never gives the
+  # mothballing base, so `mothballedMaintenancePerMonthMicro` is a PLACEHOLDER BALANCE TARGET (currency micro-units per
+  # month for a capital hull; at treasuryUnitMicro below, 4 x 10^10 micro = 4 treasury units, so half = 2 units).
+  # `preservationCostBp` is the manual's rule (5_000 bp = one half), not a placeholder. Calibrate the base from play.
+  mothballedMaintenancePerMonthMicro: 40000000000
+  preservationCostBp: 5000
 cve:
   weightsByCategory:
     DD: &a1

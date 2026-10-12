@@ -72,6 +72,17 @@ export interface ConstructionBalance {
   readonly efficientIndustryBp: number;
   /** Accelerated construction time multiplier, bp (RTW3 manual p. 31: 10 % faster = 9_000). */
   readonly accelerationTimeBp: number;
+  /**
+   * Mothballed-maintenance cost per month, in currency micro-units, for a completed-but-stored hull. The RTW3 manual
+   * gives only the HALF rule a halted hull pays (`preservationCostBp`), never a base, so this is a PLACEHOLDER
+   * (BALANCE TARGET) awaiting a source: calibrate from play, never fit to one.
+   */
+  readonly mothballedMaintenancePerMonthMicro: number;
+  /**
+   * Fraction of the mothballed-maintenance cost a `HALTED` project pays each month, basis points (RTW3 manual
+   * pp. 30-31: half = `5_000`). This is the manual's rule, not a placeholder.
+   */
+  readonly preservationCostBp: number;
 }
 
 /**
@@ -81,6 +92,18 @@ export interface ConstructionBalance {
  * brackets the displacement is VERIFIED.
  */
 export type BuildTimeSourceStatus = "VERIFIED" | "SECONDARY" | "ESTIMATE";
+
+/**
+ * The preservation cost a `HALTED` project pays each month, in currency micro-units: the mothballed-maintenance base
+ * times the half rule, floored to a whole micro-unit (DESIGN-23 section 7; RTW3 manual pp. 30-31). Pure and
+ * deterministic; the base is a versioned balance constant, never a number in the engine. Zero when no base is authored.
+ */
+export function preservationCostPerMonthMicro(balance: ConstructionBalance): number {
+  const base = balance.mothballedMaintenancePerMonthMicro;
+  const bp = balance.preservationCostBp;
+  if (!Number.isFinite(base) || !Number.isFinite(bp) || base <= 0 || bp <= 0) return 0;
+  return Math.floor((base * bp) / 10_000);
+}
 
 export interface BuildTimeProvenance {
   readonly status: BuildTimeSourceStatus;

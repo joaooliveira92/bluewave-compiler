@@ -93,6 +93,35 @@ export function constructionProgressedEvent(
   };
 }
 
+/**
+ * The one explicit record of a construction month that was delayed (DESIGN-23 section 7): the project advanced no work
+ * and paid no ordinary charge this month. Deterministic timestamp from the campaign month, like every other domain event.
+ */
+export function constructionDelayedEvent(
+  projectId: string,
+  nationId: string,
+  reason: string,
+  seq: SafeInt,
+  campaignMonth: string,
+): DomainEventEnvelope {
+  return {
+    eventId: `ConstructionDelayed-${projectId}-${String(seq)}`,
+    version: CURRENT_VERSION,
+    aggregateType: "construction",
+    aggregateId: projectId,
+    eventType: "ConstructionDelayed",
+    timestamp: `${campaignMonth}-01T00:00:00.000Z`,
+    body: {
+      kind: "ConstructionDelayed",
+      projectId,
+      nationId,
+      reason,
+      delayMonth: campaignMonth,
+    },
+    sequenceNumber: seq,
+  };
+}
+
 export function researchProgressedEvent(
   nationId: string,
   techId: string,

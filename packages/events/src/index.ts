@@ -3,6 +3,7 @@ export type {
   AggregateType,
   BattleInitiated,
   BattleResolved,
+  ConstructionDelayed,
   ConstructionProgressed,
   DomainEventBody,
   DomainEventEnvelope,
@@ -27,6 +28,7 @@ export { EventLedger } from "./ledger.js";
 export {
   BattleInitiatedSchema,
   BattleResolvedSchema,
+  ConstructionDelayedSchema,
   ConstructionProgressedSchema,
   DomainEventBodySchema,
   DomainEventEnvelopeSchema,

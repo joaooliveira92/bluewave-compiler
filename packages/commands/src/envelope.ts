@@ -13,6 +13,8 @@ export interface CommandEnvelope<TBody> {
 }
 export type CommandBody =
   | BudgetProjectCommand
+  | HaltConstructionCommand
+  | ResumeConstructionCommand
   | SetResearchPriorityCommand
   | SetBudgetAllocationCommand
   | MoveFleetCommand
@@ -39,6 +41,26 @@ export interface BudgetProjectCommand {
   nationId: string;
   projectId: string;
   budget: SafeInt;
+}
+/**
+ * Halts a dockyard project that is under construction (DESIGN-23 section 7, RTW3 manual pp. 30-31). A halted project
+ * receives zero work and zero ordinary work charge and pays the preservation cost (half the mothballed maintenance)
+ * each month until it is resumed. The command only names the project; the status change goes through the shared
+ * transition table.
+ */
+export interface HaltConstructionCommand {
+  type: "HaltConstruction";
+  nationId: string;
+  projectId: string;
+}
+/**
+ * Resumes a halted or delayed dockyard project (DESIGN-23 section 7). The project returns to `ACTIVE`, or to
+ * `AWAITING_CAPACITY` when the design carries no usable construction capacity.
+ */
+export interface ResumeConstructionCommand {
+  type: "ResumeConstruction";
+  nationId: string;
+  projectId: string;
 }
 export interface SetResearchPriorityCommand {
   type: "SetResearchPriority";

@@ -15,8 +15,10 @@ import {
   type DeclareWarCommand,
   type FormAllianceCommand,
   type FormNonAggressionPactCommand,
+  type HaltConstructionCommand,
   type MoveFleetCommand,
   type RelieveOfficerCommand,
+  type ResumeConstructionCommand,
   type SetBudgetAllocationCommand,
   type SetResearchPriorityCommand,
   type ReviseProjectCommand,
@@ -26,8 +28,10 @@ import {
 import {
   applyBudgetProject,
   applyDivisionCommandMonth,
+  applyHaltConstruction,
   applyMoveFleet,
   applyOfficerCommand,
+  applyResumeConstruction,
   applySetBudgetAllocation,
   applySetResearchPriority,
   applySubmitDesign,
@@ -69,7 +73,7 @@ function applyPlayerCommand(ctx: MonthContext, body: CommandBody): void {
   if (applyAdministrativeCommand(ctx, body)) return;
   if (applyDiplomacyCommand(ctx, body)) return;
   if (applyDivisionCommand(ctx, body)) return;
-  applyConstructionCommand(ctx, body as BudgetProjectCommand);
+  applyConstructionCommand(ctx, body);
 }
 
 function applyAdministrativeCommand(ctx: MonthContext, body: CommandBody): boolean {
@@ -241,8 +245,33 @@ function applyDivisionCommand(ctx: MonthContext, body: CommandBody): boolean {
   return false;
 }
 
-function applyConstructionCommand(ctx: MonthContext, body: BudgetProjectCommand): void {
+function applyConstructionCommand(ctx: MonthContext, body: CommandBody): void {
   const { campaignMonth, turnNumber, financialLedger, eventLedger, collector } = ctx;
+
+  if (body["type"] === "HaltConstruction") {
+    ctx.currentSnapshot = applyHaltConstruction(
+      ctx.currentSnapshot,
+      body as HaltConstructionCommand,
+      collector,
+    );
+    return;
+  }
+
+  if (body["type"] === "ResumeConstruction") {
+    ctx.currentSnapshot = applyResumeConstruction(
+      ctx.currentSnapshot,
+      body as ResumeConstructionCommand,
+      collector,
+    );
+    return;
+  }
+
+  if (body["type"] !== "budget_project") {
+    collector.addError("UNKNOWN_COMMAND_TYPE", `Unknown command type: ${String(body["type"])}`, {
+      stage: "command-collection",
+    });
+    return;
+  }
 
   const nation = ctx.currentSnapshot["nations"].get(body["nationId"]);
   if (!nation) {
