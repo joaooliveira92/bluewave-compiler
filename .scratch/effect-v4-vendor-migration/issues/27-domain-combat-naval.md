@@ -1,8 +1,8 @@
 # 27 — Domain: `combat` naval modules on runtime-free Effect idioms
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 22 (`campaign`)
+**Status:** resolved
+**Blocked by:** none
 **Frontier:** no
 
 ## What to build
@@ -33,3 +33,11 @@ all pure combat math and reason codes.
 ## Notes
 
 - Do not modify aviation (ticket 26) or engagement/foundation (ticket 28).
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Closed — not needed; folded into 26.** The naval modules throw only
+`BluewaveError` (63 `mines`, 41 `torpedoes`, 25 `gunnery`, …). The two plain
+throws in `mines/contracts.ts:153,170` moved to ticket 26.

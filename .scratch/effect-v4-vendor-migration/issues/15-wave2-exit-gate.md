@@ -36,3 +36,11 @@ foundation wave begins.
 - On failure, revert Wave 2 to the Wave 1 exit state (ticket 07) and re-open the
   failing ticket; do not proceed to Wave 3.
 - This ticket gates tickets 16–20.
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+Criterion 2 ("every §4.1 boundary is on Effect Schema") is already true in code
+(ticket 00 §2); this gate reduces to ticket 14's removal, a green `pnpm check`,
+and recording the rollback point.

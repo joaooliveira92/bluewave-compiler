@@ -2,7 +2,7 @@
 
 **Type:** gate
 **Status:** open
-**Blocked by:** 31, 32 (`phase-engine` complete)
+**Blocked by:** 30 (`phase-engine`)
 **Frontier:** no
 
 ## What to build
@@ -19,8 +19,10 @@ wave begins.
 ## Acceptance criteria
 
 - [ ] Entry gate satisfied: Wave 3 exit met (`MIG-WAVE4-ENTRY`).
-- [ ] `campaign`, `ship-design`, `commands`, `campaign-engine`, `combat`, `ai`,
-      `phase-engine` migrated bottom-up (`MIG-WAVE4-EXIT`).
+- [ ] `commands`, `combat` (residual), `ai`, `phase-engine` migrated
+      (tickets 24, 26, 29, 30); `campaign`, `ship-design`, `campaign-engine`
+      closed not-needed (22, 23, 25) because the renderer reaches them
+      (`MIG-WAVE4-EXIT`, `MIG-EXCL-1`).
 - [ ] Pure packages runtime-free; full-Effect only at justified boundaries
       (`MIG-RUNTIME-1`).
 - [ ] Cross-package facades still plain-TS-compatible (facade rule).
@@ -34,3 +36,11 @@ wave begins.
 - On failure, revert Wave 4 to the Wave 3 exit state (ticket 21) and re-open the
   failing ticket; do not proceed to Wave 5.
 - This ticket gates the Wave 5 tickets (34–38).
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+Wave 4 shrank to 24, 26, 29, 30. Re-run
+`node apps/desktop/scripts/check-renderer-bundle.mjs` (with the `~effect/`
+marker added by ticket 14) against a fresh renderer build as part of this gate.

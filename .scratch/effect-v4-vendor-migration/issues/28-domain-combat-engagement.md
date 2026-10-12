@@ -1,8 +1,8 @@
 # 28 — Domain: `combat` engagement/foundation modules on runtime-free Effect idioms
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 22 (`campaign`)
+**Status:** resolved
+**Blocked by:** none
 **Frontier:** no
 
 ## What to build
@@ -40,3 +40,12 @@ files (`resolver`, `strength`, `targeting`, `withdrawal`, `battleEnd`,
 - This is the largest single module group; if a fresh context cannot hold it,
   split by subdirectory into child tickets that share this ticket's blockers,
   keeping the same acceptance criteria.
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Closed — not needed.** Every throw in the engagement/foundation modules is
+`BluewaveError`; the only async sites in `combat` are determinism-harness child
+mains (`simulation/run-{minutes,gunnery,weather,torpedo}-child.ts`), which are
+deprecated machinery (ADR-0103) and not an orchestration boundary.

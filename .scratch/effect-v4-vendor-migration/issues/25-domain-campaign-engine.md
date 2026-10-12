@@ -1,8 +1,8 @@
 # 25 — Domain: `campaign-engine` (remainder) on runtime-free Effect idioms
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 22 (`campaign`)
+**Status:** resolved
+**Blocked by:** none
 **Frontier:** no
 
 ## What to build
@@ -31,3 +31,16 @@ keeping all projections pure and byte-identical.
 ## Notes
 
 - Ticket 11 already converted `priorities.ts`; this is the rest of the package.
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Closed — not needed.** Renderer-reachable package: a top-level
+`Data.TaggedError(...)` would bundle `effect` into the renderer
+(`MIG-EXCL-1`/ADR-0125; ticket 00 §5-A, confirmed by experiment). It keeps its
+plain error classes. Reopen only with an ADR giving the renderer an Effect-free
+error contract.
+
+Also: `campaign-engine` has 0 throws, 0 error classes and no async/IO;
+`priorities.ts` is already Effect Schema and the package is `sideEffects:false`.

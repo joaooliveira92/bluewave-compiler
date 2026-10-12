@@ -34,3 +34,15 @@ runtime-free.
 
 - Do not introduce nondeterministic AI behavior; live-AI is a separate ADR-0091
   concern.
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Rescoped to runtime-free typed errors.** `ai` is 651 LOC with no async, no
+`node:` import and no IO, so `Layer`/`ManagedRuntime` would be "blind wrapping"
+(ADR-0100 §2). Findings: plain throws `aiPlanner.ts:36,41,49`,
+`aiCommandGenerator.ts:24,37,46,74,131,158`; local SafeInt coercions at
+`aiPlanner.ts:36-49` and `aiCommandGenerator.ts:37-46` duplicate
+`@bluewave/contracts`. Target: `Data.TaggedError` + reuse `SafeInt`.
+`ai` is not renderer-reachable.

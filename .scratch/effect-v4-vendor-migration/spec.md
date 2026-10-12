@@ -510,6 +510,16 @@ stable and referenced by the sliced tickets.
 | 4 — Domain core (bottom-up) | `campaign`, `ship-design`, `commands`, `campaign-engine`, `combat`, `ai`, `phase-engine` | Wave 3 exit | Migrated bottom-up; facades plain-TS-compatible; `pnpm check` green | Revert to Wave 3 exit — MIG-RB-4 |
 | 5 — Unification & entrypoints | cross-package facades, one `ManagedRuntime`, desktop `src/main` entrypoint + IPC handlers, `compiler-cli` | Wave 4 exit | One long-lived runtime; `runPromise` facades; packaged Electron smoke + e2e green | Revert to Wave 4 exit — MIG-RB-5 |
 
+> **Reconciliation (2026-10-12, ticket 00).** Waves 2–4 were re-scoped against the
+> code: the Zod conversion is finished apart from ticket 14's renderer shim;
+> `contracts`, `deterministic`, `random`, `armament`, `campaign`, `ship-design`
+> and `campaign-engine` are renderer-reachable and keep plain error classes
+> (`MIG-EXCL-1`, ADR-0125), so tickets 16–19, 22, 23, 25 are closed not-needed.
+> `MIG-WAVE3-EXIT`/`MIG-WAVE4-EXIT` therefore apply only to `events`,
+> `commands`, `combat` (residual), `ai`, `phase-engine`, which stay runtime-free
+> typed-error work. Evidence and the corrected edges:
+> `issues/00-reconcile-migration-tracker.md` §2, §5, §6.
+
 ## Out of Scope
 
 - Renderer React adoption: Effect-React / effect-atom, UI-framework migration.

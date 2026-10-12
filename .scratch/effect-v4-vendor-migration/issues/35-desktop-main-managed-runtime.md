@@ -39,3 +39,13 @@ orchestration run through it. Renderer and sandboxed preload remain runtime-free
 
 - Keep `contextIsolation`/sandbox posture intact; validate IPC at the main
   boundary (Effect Schema).
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+Concrete targets: `apps/desktop/src/main/index.ts:149-171` (6 `ipcMain`
+handlers), `:217` (`whenReady`), the 12 plain throws and the two
+`Error` subclasses `project.ts:25`, `contentArtifact.ts:20` (ticket 00 §5-B).
+`src/main` is not renderer-reachable, so `Data.TaggedError` is fine here.
+Run the bundle guard and `pnpm snap` as the criteria already require.

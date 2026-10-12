@@ -2,7 +2,7 @@
 
 **Type:** implementation
 **Status:** open
-**Blocked by:** 22 (`campaign`), 23 (`ship-design`)
+**Blocked by:** 21 (Wave 3 exit)
 **Frontier:** no
 
 ## What to build
@@ -32,3 +32,19 @@ preserving the command/event contract and the reason-code vocabulary.
 ## Notes
 
 - Keep the package domain-pure (no Node/fs/Electron/IPC imports).
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Rescoped to the concrete gap.** `commands` is not reachable from the renderer.
+22 throws, none `BluewaveError`: 5 plain `Error` (`settlement.ts:19,22,24,31,33`) and
+17 `throw Object.assign(new Error(msg), { code })` (`lifecycle.ts:60,65,426`,
+`canonicalization.ts:68`, `definition.ts:236`, `settlement.ts:162,167`,
+`specRules.ts:62,69,183,215`, `validation.ts:93`, `registry.ts:11,17,35,45,49`).
+Codes are also embedded in message text. Target:
+`Data.TaggedError` keeping message text and `code` identical.
+`validatePayloadSchema` (`canonicalization.ts:51`) is a field-allow-list
+check, not a schema boundary; the `diplomacyValidation`/`divisionValidation`
+validators return reason-code results and are deferred (ticket 00 §6 item 2).
+Blocked-by corrected: 22 and 23 are closed.

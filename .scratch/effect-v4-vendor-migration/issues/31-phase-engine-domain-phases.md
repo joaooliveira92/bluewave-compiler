@@ -1,8 +1,8 @@
 # 31 — `phase-engine` domain phases
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 30 (`phase-engine` foundation)
+**Status:** resolved
+**Blocked by:** none
 **Frontier:** no
 
 ## What to build
@@ -35,3 +35,10 @@ construction (`constructionFunding`, `constructionOrder`,
 
 - Split into child tickets by phase group if a fresh context cannot hold it,
   sharing this ticket's blockers.
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Closed — not needed; folded into 30.** The only throw in the listed domain
+phase modules is `financial-ledger.ts:33` (now ticket 30). They contain no IO.

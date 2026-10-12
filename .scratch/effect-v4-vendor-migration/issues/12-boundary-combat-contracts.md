@@ -1,8 +1,8 @@
 # 12 — Boundary: `combat` contract schemas Zod → Effect Schema (atomic)
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 07 (Wave 1 exit)
+**Status:** done
+**Blocked by:** 00 (reconciliation audit), 07 (Wave 1 exit)
 **Frontier:** no
 
 ## What to build
@@ -22,15 +22,15 @@ Schema atomically: `air-combat/contracts`, `aircraft/contracts`,
 
 ## Acceptance criteria
 
-- [ ] The six contract/definition files are converted to Effect Schema; no `zod`
+- [x] The six contract/definition files are converted to Effect Schema; no `zod`
       import remains in those files; no dual definition (`MIG-ZOD-1`).
-- [ ] Any reason codes / contract constants emitted from these schemas keep
+- [x] Any reason codes / contract constants emitted from these schemas keep
       identical values and semantics.
-- [ ] `zod` removed from `combat`'s resolved dependency surface if no other Zod
+- [x] `zod` removed from `combat`'s resolved dependency surface if no other Zod
       use remains in the package (otherwise leave until its last user lands in a
       later wave and record which file still uses it).
-- [ ] Runtime-free: no `Effect`/`Layer`/`ManagedRuntime` in these files.
-- [ ] `pnpm --filter @bluewave/combat test` green for the affected schema tests;
+- [x] Runtime-free: no `Effect`/`Layer`/`ManagedRuntime` in these files.
+- [x] `pnpm --filter @bluewave/combat test` green for the affected schema tests;
       `pnpm typecheck` green.
 
 ## Notes
@@ -38,3 +38,23 @@ Schema atomically: `air-combat/contracts`, `aircraft/contracts`,
 - Do **not** refactor pure combat math here; that is Wave 4.
 - Existing `combat` non-contract Zod use must be enumerated and handed to the
   Wave 4 `combat` tickets / ticket 14.
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Already satisfied in code — closed.** Landed in `5df46569` (migration),
+`652da67e` (SafeInt/strictness hardening) and `248cd6ed` (parity repairs);
+the tracker was never updated.
+
+- The six files import only `{ Result, Schema }` from `effect`
+  (`air-combat/contracts.ts:5`, `aircraft/contracts.ts:7`,
+  `carrier-operations/contracts.ts:3`, `air-defense/contracts.ts:19`,
+  `air-defense/attack.ts:8`, `air-defense/air-defense-system-definition.ts:6`);
+  support modules `safe-int-schema.ts`, `schema-issues.ts`.
+- No `zod` in `packages/combat/package.json` (`effect: workspace:*` only); no
+  `Effect`/`Layer`/`ManagedRuntime` import in the package.
+- `pnpm --filter @bluewave/combat test`: 288 files / 3797 tests passed;
+  `pnpm --filter @bluewave/combat typecheck`: exit 0.
+- Non-contract Zod use in `combat`: none (repo-wide `zod` import search → only
+  `apps/desktop/src/renderer/zodJitless.ts`).

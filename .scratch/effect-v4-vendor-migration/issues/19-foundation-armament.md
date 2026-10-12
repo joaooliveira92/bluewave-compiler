@@ -1,8 +1,8 @@
 # 19 — Foundation: `armament` on Effect `Schema`/`Data`
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 18 (`random`)
+**Status:** resolved
+**Blocked by:** none
 **Frontier:** no
 
 ## What to build
@@ -32,3 +32,16 @@ error is warranted, keeping the resolver pure.
 
 - `armament` may have uncommitted in-flight work in the shared tree; re-read files
   before editing and do not overwrite concurrent changes.
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Closed — not needed.** Renderer-reachable package: a top-level
+`Data.TaggedError(...)` would bundle `effect` into the renderer
+(`MIG-EXCL-1`/ADR-0125; ticket 00 §5-A, confirmed by experiment). It keeps its
+plain error classes. Reopen only with an ADR giving the renderer an Effect-free
+error contract.
+
+Also: `armament` defines no error type; its four throws
+(`arithmetic.ts:16,30,47,50`) are `BluewaveError`, which stays plain.

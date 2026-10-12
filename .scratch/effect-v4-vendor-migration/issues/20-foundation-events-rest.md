@@ -2,7 +2,7 @@
 
 **Type:** implementation
 **Status:** open
-**Blocked by:** 19 (`armament`)
+**Blocked by:** 15 (Wave 2 exit)
 **Frontier:** no
 
 ## What to build
@@ -31,3 +31,14 @@ unchanged.
 
 - Ticket 10 already converted `events/validation.ts`; this covers the rest of the
   package.
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Rescoped to the concrete gap.** `events` is not reachable from the renderer.
+Remaining plain throws: `ledger.ts:22,28` (`Error`: duplicate/ordering),
+`explanation.ts:15,44` (`TypeError`). Target: `Data.TaggedError` subclasses
+(runtime-free, `_tag` = existing code/message prefix; the message text must stay
+identical for callers that match it). Envelope wire format unchanged.
+Blocked-by corrected: 16–19 are closed, so this follows the Wave 2 exit directly.

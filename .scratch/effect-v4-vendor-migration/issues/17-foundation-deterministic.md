@@ -1,8 +1,8 @@
 # 17 — Foundation: `deterministic` on Effect `Schema`/`Data` (runtime-free)
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 16 (`contracts`)
+**Status:** resolved
+**Blocked by:** none
 **Frontier:** no
 
 ## What to build
@@ -38,3 +38,17 @@ key ordering, or envelope structure. `Effect` execution is **not** introduced.
 - The v4 core `effect` has zero runtime dependencies, so no new serialization
   dependency (the RC-era `msgpackr` caveat does not apply to the stable pin —
   re-verify `effect`'s `dependencies` at the pin).
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Closed — not needed.** Renderer-reachable package: a top-level
+`Data.TaggedError(...)` would bundle `effect` into the renderer
+(`MIG-EXCL-1`/ADR-0125; ticket 00 §5-A, confirmed by experiment). It keeps its
+plain error classes. Reopen only with an ADR giving the renderer an Effect-free
+error contract.
+
+Also: `deterministic` has no schema and no IO; its three `RangeError`
+precondition throws (`fixedMath.ts:8,9,27`) are idiomatic, and the package is
+hash-critical (`MIG-WIRE-4`), so there is nothing to adopt.

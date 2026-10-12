@@ -1,8 +1,8 @@
 # 16 — Foundation: `contracts` on Effect `Schema`/`Data`
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 15 (Wave 2 exit)
+**Status:** resolved
+**Blocked by:** none
 **Frontier:** no
 
 ## What to build
@@ -35,3 +35,17 @@ pure (no Effect runtime).
 
 - `contracts` has no current Zod use; this is an idiom adoption, not a boundary
   migration. Keep changes minimal and semantically neutral.
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Closed — not needed.** Renderer-reachable package: a top-level
+`Data.TaggedError(...)` would bundle `effect` into the renderer
+(`MIG-EXCL-1`/ADR-0125; ticket 00 §5-A, confirmed by experiment). It keeps its
+plain error classes. Reopen only with an ADR giving the renderer an Effect-free
+error contract.
+
+`BluewaveError` (`packages/contracts/src/index.ts:57`) is reachable from the
+renderer through `SafeInt`; 1707 references in 310 files.
+Throw sites: `index.ts:9,12,42,49,109,117,125,133`.

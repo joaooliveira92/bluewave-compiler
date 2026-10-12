@@ -1,8 +1,8 @@
 # 32 — `phase-engine` battle + replay modules
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 30 (`phase-engine` foundation)
+**Status:** resolved
+**Blocked by:** none
 **Frontier:** no
 
 ## What to build
@@ -31,3 +31,11 @@ determinism and battle-integration semantics.
 ## Notes
 
 - The cross-process harness stays informational (`MIG-DET-1`); do not gate on it.
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Closed — not needed.** `battles`, `battlePhases`, `replay` and
+`tacticalReplay` contain no `throw`, no async and no IO; replay determinism is
+already covered by the existing harness. Nothing to adopt.

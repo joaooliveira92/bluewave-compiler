@@ -1,8 +1,8 @@
 # 18 — Foundation: `random` (keep the DESIGN-08 named-stream ledger)
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 17 (`deterministic`)
+**Status:** resolved
+**Blocked by:** none
 **Frontier:** no
 
 ## What to build
@@ -35,3 +35,11 @@ ledger with Effect `Random`. The RNG authority stays Bluewave-owned.
 
 - If a future ticket wants Effect `Random`, it requires its own decision + ADR;
   out of scope here.
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Closed — not needed.** `random` is 94 LOC with 0 throws, 0 error classes, no
+schema and no IO. `MIG-RUNTIME-2` forbids replacing the named-stream ledger with
+Effect `Random`. There is nothing to adopt.

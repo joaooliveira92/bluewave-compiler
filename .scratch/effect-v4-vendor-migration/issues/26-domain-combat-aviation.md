@@ -2,7 +2,7 @@
 
 **Type:** implementation
 **Status:** open
-**Blocked by:** 22 (`campaign`)
+**Blocked by:** 21 (Wave 3 exit)
 **Frontier:** no
 
 ## What to build
@@ -33,3 +33,14 @@ and reason codes.
 
 - Do not modify `gunnery`/`damage`/`torpedoes`/`mines`/`smoke`/`coastal-defense`
   (ticket 27) or the engagement/foundation modules (ticket 28).
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**Rescoped and merged with 27/28.** 429 of `combat`'s 432 throws are
+`BluewaveError` (stays plain, renderer-reachable class from `contracts`). The
+residual plain throws are: `air-combat/records.ts:43`,
+`mines/contracts.ts:153,170`. Convert those three to a `Data.TaggedError`
+(combat-local) or to `BluewaveError`; keep reason codes and messages. Combat
+is not renderer-reachable. Blocked-by corrected: 22 is closed.

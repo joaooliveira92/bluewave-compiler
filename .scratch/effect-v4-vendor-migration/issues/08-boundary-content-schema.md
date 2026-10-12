@@ -3,7 +3,7 @@
 **Type:** implementation
 **Status:** done
 **Blocked by:** 07 (Wave 1 exit)
-**Frontier:** yes
+**Frontier:** no
 
 ## What to build
 

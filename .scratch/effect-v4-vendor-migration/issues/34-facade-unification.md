@@ -35,3 +35,18 @@ package by package, keeping `pnpm check` green throughout.
 
 - This is the migration's only wide, fan-out change; size batches by blast radius
   (per package) and keep the old form until no caller remains.
+
+## Comments
+
+### Audit note (ticket 00, 2026-10-12)
+
+**First deliverable is an inventory, not a flip.** Nothing in the tree exposes an
+Effect-typed interface today and there is no list of "deferred" surfaces to flip.
+Before changing any signature, list the surfaces that actually need Effect
+types. Candidates (ticket 00 §5-B): `persistence` `SaveStore`
+(`store.ts:1-11`, sync by contract, ADR-0104 §6), `content-compiler`
+(`stages/parse.ts`, `fullSurface.ts`, `artifact.ts`), desktop `src/main`
+handlers, `compiler-cli`. Each must justify itself against ADR-0100 §2; a
+synchronous pure API is **not** flipped. Renderer-reachable packages stay
+Effect-free. If the inventory is empty, close this ticket and let 35/36 proceed
+directly.
