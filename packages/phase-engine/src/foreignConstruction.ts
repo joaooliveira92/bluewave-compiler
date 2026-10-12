@@ -191,6 +191,10 @@ export function isCompleteForeignConstructionContract(c: ForeignConstructionCont
     if (!Number.isSafeInteger(i.workShareBp) || i.workShareBp < 0 || i.workShareBp > 10_000)
       return false;
   }
+  // INC-9e MINOR-4: duplicate due months would collapse the `paidDueMonths` key, letting a partial budget underpay
+  // while unlocking full work. A complete contract has at most one instalment per due month.
+  if (new Set(c.paymentSchedule.map((i) => i.dueMonth)).size !== c.paymentSchedule.length)
+    return false;
   for (const r of c.capacityReservationSchedule) {
     if (!MONTH_RE.test(r.month)) return false;
     if (!Number.isSafeInteger(r.reservedMassKg) || r.reservedMassKg < 0) return false;

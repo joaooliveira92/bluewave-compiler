@@ -121,6 +121,8 @@ export function validatePayloadRules(
 
 const DOCKYARD_STATUS_TRANSITION_REJECTION = "INVALID_DOCKYARD_PROJECT_TRANSITION";
 const DOCKYARD_PROJECT_REJECTION = "INVALID_DOCKYARD_PROJECT";
+/** DESIGN-16 section 13.4: a foreign-contract project is funded by its instalment schedule, not by domestic commands. */
+const FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE = "FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE";
 
 /**
  * Issue-time rules for `HaltConstruction` / `ResumeConstruction` (DESIGN-23 section 7): the project must exist, belong
@@ -199,6 +201,11 @@ function validateSetAcceleration(
     return reject(
       DOCKYARD_STATUS_TRANSITION_REJECTION,
       `Project ${body.projectId} is ${project.status} and cannot be steered`,
+    );
+  if (project.foreignContractId !== undefined)
+    return reject(
+      FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE,
+      `Project ${body.projectId} is a foreign contract order funded by its instalment schedule and cannot be accelerated`,
     );
   if (body.accelerated && !constructionAccelerationAllowed(project.projectType))
     return reject(
@@ -465,6 +472,13 @@ function validateReviseProject(
       snapshot,
       "INVALID_COMMAND_PAYLOAD",
       `Project ${body.projectId} not found`,
+    );
+  if (project.foreignContractId !== undefined)
+    return rejectValidation(
+      envelope,
+      snapshot,
+      FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE,
+      `Project ${body.projectId} is a foreign contract order funded by its instalment schedule and cannot be revised`,
     );
   if (project.status === "COMPLETED")
     return rejectValidation(

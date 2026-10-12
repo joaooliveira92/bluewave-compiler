@@ -10,7 +10,12 @@ import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { EventLedger } from "@bluewave/events";
 import { dockRecordFromDefinition, validateForeignBuilderCapability } from "@bluewave/ship-design";
 import { describe, expect, it } from "vite-plus/test";
-import { applyBudgetProject, applyResumeConstruction } from "../src/commands.js";
+import {
+  applyBudgetProject,
+  applyResumeConstruction,
+  applySetAcceleration,
+} from "../src/commands.js";
+import { applyReviseProject } from "../src/reviseProject.js";
 import {
   FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
   FOREIGN_BUILDER_CAPACITY_UNAVAILABLE,
@@ -33,6 +38,7 @@ import {
   foreignPaymentLedgerEntries,
   foreignUnlockedWork,
   isForeignPaymentDefaultProject,
+  isCompleteForeignConstructionContract,
   nationalConstructionCapacity,
   placeForeignConstructionOrder,
   resolveForeignPaymentMonth,
@@ -1031,5 +1037,95 @@ describe("DESIGN-16 section 18 reason-code reconciliation (INC-9f)", () => {
       availableNewConstructionCapacityKg: FRANCE_CAP_KG,
     });
     expect(capabilityFailureCode(over)).toBe(FOREIGN_BUILDER_CAPACITY_UNAVAILABLE);
+  });
+});
+
+describe("INC-9e foreign-project command guards and monthly hardening", () => {
+  it("MINOR-1: a successful non-payment resume clears a stale delay reason", () => {
+    const placed = order(snapshot());
+    if (!placed.ok) throw new Error("order failed");
+    const nation = placed.snapshot.nations.get(ORDERING)!;
+    const held = {
+      ...placed.project,
+      status: "HALTED" as const,
+      delayReasonCode: FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+    };
+    const withHeld = {
+      ...placed.snapshot,
+      nations: new Map([
+        [ORDERING, { ...nation, constructionProjects: [held] }],
+        [BUILDER, placed.snapshot.nations.get(BUILDER)!],
+      ]),
+    };
+    const next = applyResumeConstruction(
+      withHeld,
+      { type: "ResumeConstruction", nationId: ORDERING, projectId: held.id },
+      new DiagnosticCollector(),
+    );
+    const resumed = next.nations.get(ORDERING)!.constructionProjects[0]!;
+    expect(resumed.status).not.toBe("HALTED");
+    expect(resumed.delayReasonCode).toBeUndefined();
+  });
+
+  it("MINOR-4: a schedule with duplicate due months is not a complete contract", () => {
+    const duplicate = buildForeignConstructionContract({
+      contractId: "fc-dup",
+      orderingNationId: ORDERING,
+      builderNationId: BUILDER,
+      designVersionId: "dv-1",
+      terms: {
+        builderShipyardId: "yard-1",
+        quantity: 1,
+        totalWorkPerUnit: 100,
+        totalPriceUnits: 1_000,
+        paymentSchedule: [
+          { dueMonth: "1880-01", amountUnits: 500, workShareBp: 5_000 },
+          { dueMonth: "1880-01", amountUnits: 500, workShareBp: 5_000 },
+        ],
+        authorizationMonth: "1880-01",
+        plannedKeelMonth: "1880-02",
+        plannedDeliveryMonth: "1880-06",
+      },
+      reservedMassKg: 1_000_000,
+      builderCapabilitySnapshotHash: "h",
+    });
+    expect(isCompleteForeignConstructionContract(duplicate)).toBe(false);
+  });
+
+  it("MINOR-5: SetAcceleration and ReviseProject refuse a foreign-contract project", () => {
+    const placed = order(snapshot());
+    if (!placed.ok) throw new Error("order failed");
+    const accelCollector = new DiagnosticCollector();
+    const accelerated = applySetAcceleration(
+      placed.snapshot,
+      {
+        type: "SetAcceleration",
+        nationId: ORDERING,
+        projectId: placed.project.id,
+        accelerated: true,
+      },
+      accelCollector,
+    );
+    expect(accelerated).toBe(placed.snapshot);
+    expect(accelCollector.errors.map((e) => e.code)).toContain(FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE);
+
+    const reviseCollector = new DiagnosticCollector();
+    const revised = applyReviseProject(
+      placed.snapshot,
+      {
+        type: "ReviseProject",
+        nationId: ORDERING,
+        projectId: placed.project.id,
+        newDesignVersionId: "dv-2",
+        draft: {},
+      },
+      content,
+      MONTH_ID,
+      reviseCollector,
+    );
+    expect(revised).toBe(placed.snapshot);
+    expect(reviseCollector.errors.map((e) => e.code)).toContain(
+      FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE,
+    );
   });
 });

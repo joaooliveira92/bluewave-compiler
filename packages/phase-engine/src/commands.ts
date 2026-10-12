@@ -495,6 +495,7 @@ function setProjectStatus(
   project: ConstructionProject,
   to: ConstructionResumeTarget["status"] | "HALTED",
   collector: DiagnosticCollector,
+  clearDelayReason = false,
 ): CampaignSnapshot {
   let updated: ConstructionProject;
   try {
@@ -510,6 +511,11 @@ function setProjectStatus(
     throw error;
   }
   if (updated === project) return currentSnapshot;
+  if (clearDelayReason) {
+    const cleared: ConstructionProject = { ...updated };
+    delete cleared.delayReasonCode;
+    updated = cleared;
+  }
   const updatedNation: NationState = {
     ...nation,
     constructionProjects: nation["constructionProjects"].map((p) =>
@@ -562,12 +568,16 @@ export function applyResumeConstruction(
   }
   const design = currentSnapshot["designs"].get(found.project["designVersionId"]);
   const target = constructionResumeTarget(design);
+  // INC-9e MINOR-1: a successful non-payment resume clears any stale `delayReasonCode` (e.g. a builder-capability
+  // delay), preserving the "reason only on a delayed month" invariant. The payment-default early return above keeps a
+  // payment default held.
   const next = setProjectStatus(
     currentSnapshot,
     found.nation,
     found.project,
     target.status,
     collector,
+    true,
   );
   if (next !== currentSnapshot)
     collector.addInfo(target.reason, `Project ${body["projectId"]} resumed as ${target.status}`, {
@@ -592,6 +602,16 @@ export function applySetAcceleration(
   const found = dockyardProject(currentSnapshot, body["nationId"], body["projectId"], collector);
   if (found === undefined) return currentSnapshot;
   const { nation, project } = found;
+  // INC-9e MINOR-5: a foreign-contract project's work is funded by its instalment schedule; the acceleration premium
+  // would raise `totalWork` and unlock free progress for already-paid instalments, so acceleration is refused.
+  if (project["foreignContractId"] !== undefined) {
+    collector.addError(
+      FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE,
+      `Project ${body["projectId"]} is a foreign contract order funded by its instalment schedule and cannot be accelerated`,
+      { stage: "command_collection", entityId: body["projectId"] },
+    );
+    return currentSnapshot;
+  }
   if (body["accelerated"] && !constructionAccelerationAllowed(project["projectType"])) {
     collector.addError(
       ACCELERATION_NOT_ALLOWED,

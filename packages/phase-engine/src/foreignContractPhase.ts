@@ -117,6 +117,9 @@ export function runForeignContractPhase(
   let changed = false;
 
   for (const [nationId, nation0] of ctx.currentSnapshot["nations"]) {
+    // INC-9e MINOR-6: mirror every other economy phase — a non-participating (neither playable nor AI) nation is never
+    // debited. Foreign settlement is for the nations the war/economy actually run.
+    if (!nation0["isPlayable"] && !nation0["isAI"]) continue;
     const foreignProjects = nation0["constructionProjects"].filter(
       (p) => p["foreignContractId"] !== undefined,
     );
@@ -142,6 +145,8 @@ export function runForeignContractPhase(
     for (const project0 of [...foreignProjects].sort((a, b) => byContractThenId(contracts, a, b))) {
       const contractId = project0["foreignContractId"]!;
       const contract = contracts.get(contractId);
+      // INC-9e NIT: a terminal foreign project has no month left to resolve.
+      if (project0["status"] === "COMPLETED" || project0["status"] === "CANCELLED") continue;
 
       if (contract === undefined) {
         ctx.collector.addError(
@@ -156,6 +161,18 @@ export function runForeignContractPhase(
         ctx.collector.addError(
           FOREIGN_CONTRACT_HASH_MISMATCH,
           `Foreign contract ${contractId} does not match its stored hash; it is refused this month`,
+          { stage: "appropriation", entityId: project0["id"] },
+        );
+        skipIds.add(project0["id"]);
+        continue;
+      }
+
+      // INC-9e MINOR-2: the holder nation must be the contract's ordering nation. A contract relocated into another
+      // nation's array (array order is not hashed) would debit one nation and ledger another; skip it with a diagnostic.
+      if (contract.orderingNationId !== nationId) {
+        ctx.collector.addError(
+          FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED,
+          `Foreign contract ${contractId} is held by ${nationId} but orders for ${contract.orderingNationId}; it is refused this month`,
           { stage: "appropriation", entityId: project0["id"] },
         );
         skipIds.add(project0["id"]);
@@ -211,7 +228,9 @@ export function runForeignContractPhase(
       // Settle every due instalment the ordering treasury covers, oldest first. A partial settlement still leaves the
       // project on zero progress (unpaid work); the ledger pair credits the builder for each instalment paid.
       const paidDueMonths = [...(records.get(contractId) ?? [])];
-      const probe = advanceForeignContractMonth({
+      // INC-9e NIT: build the monthly-step input once (only `paidDueMonths` differs between the probe and the settled
+      // resolution) instead of repeating the same argument object twice.
+      const monthInput = (paid: readonly string[]) => ({
         contract,
         campaignMonth,
         demand: demandFor(snapshotNow(), contract),
@@ -230,17 +249,35 @@ export function runForeignContractPhase(
           shipBuilding,
           campaignMonth,
         ),
-        paidDueMonths,
+        paidDueMonths: paid,
         alreadyDefaulted: isForeignPaymentDefaultProject(project0),
       });
+      const probe = advanceForeignContractMonth(monthInput(paidDueMonths));
       for (const installment of probe.payment["unpaidInstallments"]) {
         const amount = installment["amountUnits"];
-        if (!Number.isSafeInteger(amount) || amount <= 0) continue;
+        if (!Number.isSafeInteger(amount)) continue;
+        const builder = nations.get(contract["builderNationId"]);
+        // INC-9e MINOR-3: a missing builder nation would debit the ordering treasury and post an INFLOW without
+        // crediting anyone (destroying money). Refuse the instalment with a stable diagnostic instead.
+        if (builder === undefined) {
+          ctx.collector.addError(
+            "FOREIGN_CONTRACT_BUILDER_NATION_MISSING",
+            `Builder ${contract["builderNationId"]} for contract ${contractId} is not in the campaign; the instalment is not paid`,
+            { stage: "appropriation", entityId: project0["id"] },
+          );
+          break;
+        }
+        // INC-9e MINOR-4: a zero-amount due instalment is auto-satisfied (nothing to pay), so it can never leave the
+        // contract permanently in default.
+        if (amount <= 0) {
+          paidDueMonths.push(installment["dueMonth"]);
+          changed = true;
+          continue;
+        }
         const ordering = nations.get(nationId)!;
         const orderingBalance = Number(ordering["treasury"]);
         if (orderingBalance < amount) break;
-        const builder = nations.get(contract["builderNationId"]);
-        const builderBalance = builder === undefined ? 0 : Number(builder["treasury"]);
+        const builderBalance = Number(builder["treasury"]);
         for (const entry of foreignPaymentLedgerEntries(contract, installment, {
           campaignMonth,
           phaseId: "appropriation",
@@ -254,39 +291,17 @@ export function runForeignContractPhase(
           ...ordering,
           treasury: SafeInt.sub(ordering["treasury"], SafeInt(amount)),
         });
-        if (builder !== undefined)
-          nations.set(contract["builderNationId"], {
-            ...builder,
-            treasury: SafeInt.add(builder["treasury"], SafeInt(amount)),
-          });
+        nations.set(contract["builderNationId"], {
+          ...builder,
+          treasury: SafeInt.add(builder["treasury"], SafeInt(amount)),
+        });
         paidDueMonths.push(installment["dueMonth"]);
         changed = true;
       }
       records.set(contractId, paidDueMonths);
 
       // Resolve the month's outcome against the now-settled schedule (no `paidThisMonth`: postings were already posted).
-      const settled = advanceForeignContractMonth({
-        contract,
-        campaignMonth,
-        demand: demandFor(snapshotNow(), contract),
-        dock:
-          builderDockRecord(
-            snapshotNow(),
-            contract["builderNationId"],
-            shipBuilding,
-            campaignMonth,
-          ) ?? {},
-        conditions: FOREIGN_BUILDER_CONDITIONS_SATISFIED,
-        reservedMassKg: foreignContractReservedMassKg(contract),
-        availableNewConstructionCapacityKg: availableBuilderCapacityKg(
-          snapshotNow(),
-          contract,
-          shipBuilding,
-          campaignMonth,
-        ),
-        paidDueMonths,
-        alreadyDefaulted: isForeignPaymentDefaultProject(project0),
-      });
+      const settled = advanceForeignContractMonth(monthInput(paidDueMonths));
 
       const resumeStatus = constructionResumeTarget(
         ctx.currentSnapshot["designs"].get(contract["designVersionId"]),

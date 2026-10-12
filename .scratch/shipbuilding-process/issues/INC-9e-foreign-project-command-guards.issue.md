@@ -1,6 +1,6 @@
 # INC-9e — Foreign-project command-path guards and monthly-step hardening
 
-**State:** open · **Frontier:** yes · **Blocked by:** INC-9
+**State:** done · **Frontier:** no · **Blocked by:** INC-9
 **Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R22) · **ADR:** none new (DESIGN-16 §13.4)
 **Parent:** `INC-9-foreign-contract-capability-payment.issue.md` (engine slice + monthly wiring landed; these are the
 fourth-pass review's MINOR findings, recorded so they are not dropped)
@@ -35,12 +35,15 @@ surface for foreign orders lands (`INC-9b`), so they should be closed **before**
 
 ## Acceptance criteria
 
-- [ ] Each MINOR above is fixed with a unit/integration test that fails without the fix.
-- [ ] No new `as unknown`; optional-only state; `snapshotClone.ts` coverage complete.
-- [ ] `pnpm check:golden` and `pnpm check:determinism` unchanged for runs with no foreign contracts.
+- [x] Each MINOR above is fixed with a unit/integration test that fails without the fix.
+      — `packages/phase-engine/test/foreign-construction.test.ts` (`INC-9e foreign-project command guards and monthly
+      hardening`); the shared `monthInput` closure addresses the NIT.
+- [x] No new `as unknown`; optional-only state; `snapshotClone.ts` coverage complete. — no new state field.
+- [x] `pnpm check:golden` and `pnpm check:determinism` unchanged for runs with no foreign contracts.
 
 ## Notes for implementator
 
 These are guards, not new mechanics. Follow the existing reason-code conventions in
 `packages/phase-engine/src/foreignConstruction.ts` / `foreignContractPhase.ts`. The order-path guards already exist
 (`placeForeignConstructionOrder`); this ticket closes the **consume/command** path.
+

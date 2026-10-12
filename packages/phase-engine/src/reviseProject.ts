@@ -15,6 +15,7 @@ import {
 } from "@bluewave/ship-design";
 import { projectBuildProgress, revisePackages } from "./constructionRevision.js";
 import { buildDesignVersion, pricingFor } from "./designVersion.js";
+import { FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE } from "./foreignConstruction.js";
 
 /** `YYYY-MM` plus `n` months. */
 export function addMonths(month: string, n: number): string {
@@ -53,6 +54,13 @@ export function applyReviseProject(
   if (!nation) return fail("INVALID_NATION_ID", `Nation ${body.nationId} not found`);
   const project = nation.constructionProjects.find((p) => p.id === body.projectId);
   if (!project) return fail("PROJECT_NOT_FOUND", `Project ${body.projectId} not found`);
+  // INC-9e MINOR-5: a foreign-contract project is funded by its contract schedule, so a revision (which would raise
+  // `totalWork` and unlock free progress for already-paid instalments) is refused like a domestic budget.
+  if (project["foreignContractId"] !== undefined)
+    return fail(
+      FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE,
+      `Project ${project.id} is a foreign contract order funded by its instalment schedule and cannot be revised`,
+    );
   if (project.status === "COMPLETED")
     return fail("REVISION_REJECTED", `Project ${project.id} is complete`);
   if (currentSnapshot.designs.has(body.newDesignVersionId))
