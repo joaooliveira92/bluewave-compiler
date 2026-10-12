@@ -338,10 +338,20 @@ on Effect Schema (trim/`Schema.Finite`/verbatim Zod datetime-offset regex/union 
 `eventType === body.kind` filter), `zod` removed; same gate green. **Ticket 11
 (Wave 2 — `campaign-engine` priorities Zod→Effect Schema) DONE 2026-10-11 — PASS**
 (`.ai/reports/effect-v4-ticket-11-campaign-engine-priorities.md`): two
-`Schema.Literals` + `typeof s.Type`, `effect` added; same gate green. **Next
-action: ticket 12** (`combat` contract schemas Zod→Effect Schema), then 13
-(desktop main schemas), 14 (remove `zod` everywhere), 15 (Wave 2 exit gate),
-continuing the frontier per `.ai/ORCHESTRATION.md`. Vendor
+`Schema.Literals` + `typeof s.Type`, `effect` added; same gate green. **Ticket 12
+(`combat` contract schemas Zod→Effect Schema) DONE** (`5df46569`, hardened by
+`652da67e`/`248cd6ed`); **ticket 13 (desktop main IPC schemas) DONE** (`0c7370d4`);
+**ticket 14 (remove `zod` from every `package.json` + the renderer jitless shim)
+DONE 2026-10-12** (`0f67bedd`): `pnpm why zod` empty, `--frozen-lockfile` green,
+renderer bundle guard hardened with the `~effect/` marker. **Ticket 15 (Wave 2 exit
+gate & rollback checkpoint) DONE 2026-10-12 — PASS**
+(`.ai/reports/effect-v4-wave2-exit-gate.md`): every plan.md §4.1 boundary on Effect
+Schema, no dual Zod definition, `zod` gone, `pnpm check` EXIT 0 (e2e 33 passed);
+rollback point `8c4f7199` (Wave 1 exit). Three pre-existing new-game reds
+(`6dbe595d` regressions) were repaired under
+`.scratch/desktop-test-failures/issues/02-new-game-master-detail-regressions.md`.
+**Wave 2 COMPLETE.** Next action: **ticket 20** (`events` remainder typed errors),
+then 21 (Wave 3 exit gate), continuing the frontier per `.ai/ORCHESTRATION.md`. Vendor
 the Effect v4 runtime as first-class pnpm workspace packages
 (no registry resolution), enforce the single-copy graph invariant, migrate every Zod boundary
 to Effect Schema, and flip cross-package facades to Effect-typed interfaces; determinism-gate

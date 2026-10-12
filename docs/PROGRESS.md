@@ -50,7 +50,15 @@ Live roadmap / next-action detail: `.ai/SPRINT-PLAN.md`.
 > `.ai/reports/effect-v4-ticket-10-events-validation.md`; same gate green).
 > **Ticket 11 (`campaign-engine` priorities Zod→Effect Schema) DONE — PASS**
 > (report `.ai/reports/effect-v4-ticket-11-campaign-engine-priorities.md`).
-> **Next: ticket 12** (`combat` contracts), then 13–15 to close Wave 2.
+> **Tickets 12–15 DONE 2026-10-12.** 12 (`combat` contracts, `5df46569`/`652da67e`/
+> `248cd6ed`), 13 (desktop main IPC schemas, `0c7370d4`), 14 (remove `zod`
+> everywhere + the renderer jitless shim, `0f67bedd`), 15 (Wave 2 exit gate &
+> rollback checkpoint) **PASS**: every §4.1 boundary on Effect Schema, no dual Zod
+> definition, `pnpm why zod` empty, `pnpm check` EXIT 0 (e2e 33). Three pre-existing
+> new-game reds (`6dbe595d` regressions) repaired under
+> `.scratch/desktop-test-failures/issues/02-new-game-master-detail-regressions.md`.
+> **Wave 2 COMPLETE.** Report `.ai/reports/effect-v4-wave2-exit-gate.md`. **Next:
+> ticket 20** (`events` remainder typed errors), then 21 (Wave 3 exit gate).
 
 ---
 
@@ -738,7 +746,18 @@ throughout. Pre-existing unrelated failures: `content-schema/test/nation.test.ts
 > (Wave 1 exit gate & rollback checkpoint) **DONE 2026-10-11 — PASS**: both Wave 1
 > packages accepted; `pnpm check` EXIT 0; rollback point `6cc0e414`. **Wave 1
 > COMPLETE.** Report: `.ai/reports/effect-v4-wave1-exit-gate.md`. Next: **ticket
-> 08** (Wave 2 — `content-schema` Zod→Effect Schema boundary, atomic).
+> 08** (Wave 2 — `content-schema` Zod→Effect Schema boundary, atomic). **Tickets
+> 08–15 DONE 2026-10-11/12 — Wave 2 COMPLETE.** 08/09 (`content-schema` +
+> `content-compiler`, ADR-0105), 10 (`events/validation`), 11 (`campaign-engine`
+> priorities), 12 (`combat` contracts, hardened), 13 (desktop main IPC schemas),
+> 14 (remove `zod` everywhere + the renderer jitless shim), and **15 (Wave 2 exit
+> gate & rollback checkpoint) PASS**: every plan.md §4.1 boundary on Effect Schema,
+> no dual Zod definition, `pnpm why zod` empty, `pnpm check` EXIT 0 (e2e 33 passed),
+> rollback point `8c4f7199` (Wave 1 exit). Three pre-existing new-game reds
+> (`6dbe595d` regressions) were repaired under
+> `.scratch/desktop-test-failures/issues/02-new-game-master-detail-regressions.md`.
+> Report: `.ai/reports/effect-v4-wave2-exit-gate.md`. Next: **ticket 20** (`events`
+> remainder typed errors), then 21 (Wave 3 exit gate).
 
 ---
 
