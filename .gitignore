@@ -45,3 +45,6 @@ packages/*/src/**/*.d.ts.map
 !vendor/effect/dist/**
 !vendor/effect-vitest/dist/
 !vendor/effect-vitest/dist/**
+
+# Session handoff prompts are working notes, not tracked specs/tickets.
+.scratch/handoff/
