@@ -124,18 +124,26 @@ export const AuthorizeDockExpansionCommandPayloadSchema = Schema.Struct({
   possessionId: nonEmptyString,
 });
 
+/** A `YYYY-MM` month string (`z.string().length(7).regex(...)`). */
+const monthString = Schema.String.check(
+  Schema.isMinLength(7),
+  Schema.isMaxLength(7),
+  Schema.isPattern(/^\d{4}-(0[1-9]|1[0-2])$/),
+);
+
 /**
- * The foreign-yard order (DESIGN-16 sections 13.1-13.4; SB3-R20..R22). `terms` and `capability` are opaque at the wire
- * boundary; the engine's `placeForeignConstructionOrder` validates the contract's completeness and every
- * builder-capability predicate when the month applies the command, so a malformed contract is refused with
- * `FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED` rather than a wire error.
+ * The foreign-yard order (DESIGN-16 sections 13.1-13.4; SB3-R20..R22). The payload carries only the player's choices —
+ * design, builder, quantity and an optional delivery month. The engine derives the contract `terms` and the builder
+ * `capability` from authoritative content; this schema is decoded with `onExcessProperty: "error"` (see
+ * `campaignBridge.ts`), so a payload that still carries `terms`/`capability` is rejected at the IPC boundary
+ * (`INVALID_PAYLOAD`) rather than trusted.
  */
 export const PlaceForeignConstructionCommandPayloadSchema = Schema.Struct({
   ...CommandEnvelopePayloadSchema.fields,
   designVersionId: nonEmptyString,
   builderNationId: nonEmptyString,
-  terms: Schema.Unknown,
-  capability: Schema.optional(Schema.Unknown),
+  quantity: positiveInt,
+  plannedDeliveryMonth: Schema.optional(monthString),
 });
 
 /**

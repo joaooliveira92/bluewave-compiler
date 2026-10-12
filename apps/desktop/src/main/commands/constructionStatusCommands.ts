@@ -138,8 +138,10 @@ export async function placeForeignConstructionCommand(
         nationId: record.playerSlotId,
         designVersionId: payload.designVersionId,
         builderNationId: payload.builderNationId,
-        terms: payload.terms,
-        ...(payload.capability === undefined ? {} : { capability: payload.capability }),
+        quantity: payload.quantity,
+        ...(payload.plannedDeliveryMonth === undefined
+          ? {}
+          : { plannedDeliveryMonth: payload.plannedDeliveryMonth }),
       },
       discriminator: `${payload.designVersionId}:${payload.builderNationId}`,
     }),

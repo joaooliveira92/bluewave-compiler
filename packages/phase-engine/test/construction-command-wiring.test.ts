@@ -9,7 +9,7 @@ import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { HULL_TYPE_FOR_SHIP_TYPE } from "@bluewave/ship-design";
 import { describe, expect, it } from "vite-plus/test";
-import { MonthExecutor } from "../src/index.js";
+import { FOREIGN_INSTALMENT_COUNT, MonthExecutor } from "../src/index.js";
 import { DOCK_EXPANSION_PROJECT_TYPE } from "../src/dockExpansion.js";
 import { productionShipBuildingContent } from "./helpers/contentFiles.js";
 
@@ -167,21 +167,8 @@ describe("AuthorizeDockExpansion reaches the engine through command_collection (
 });
 
 describe("OrderForeignConstruction reaches the engine through command_collection (SB3-R20)", () => {
-  it("records an accepted contract and project on the ordering nation from caller terms", () => {
+  it("derives the contract server-side from player choices and records it", () => {
     const from = snapshot([design("dv-b")], ["uk", "france"]);
-    const terms = {
-      builderShipyardId: "yard-fr",
-      quantity: 1,
-      totalWorkPerUnit: 1_000,
-      totalPriceUnits: 1_000,
-      paymentSchedule: [
-        { dueMonth: "1880-01", amountUnits: 500, workShareBp: 5_000 },
-        { dueMonth: "1880-02", amountUnits: 500, workShareBp: 5_000 },
-      ],
-      authorizationMonth: "1880-01",
-      plannedKeelMonth: "1880-01",
-      plannedDeliveryMonth: "1880-02",
-    };
     const result = executeMonth(from, [
       envelope(
         {
@@ -189,16 +176,27 @@ describe("OrderForeignConstruction reaches the engine through command_collection
           nationId: "uk",
           designVersionId: "dv-b",
           builderNationId: "france",
-          terms,
+          quantity: 1,
         },
         from,
       ),
     ]);
     const uk = result.finalSnapshot.nations.get("uk")!;
     expect(uk.foreignContracts ?? []).toHaveLength(1);
+    const contract = uk.foreignContracts![0]!;
     const project = uk.constructionProjects.find((p) => p.foreignContractId !== undefined);
     expect(project).toBeDefined();
     expect(project?.foreignBuilderNationId).toBe("france");
+    // The engine derived the price/work from the design's projected cost (1 work unit = 1 price unit).
+    expect(contract.totalPriceUnits).toBeGreaterThan(0);
+    expect(contract.totalWorkPerUnit).toBe(contract.totalPriceUnits);
+    expect(contract.quantity).toBe(1);
+    // The versioned 6-instalment policy: amounts sum exactly to the price, shares exactly to 10,000 bp.
+    expect(contract.paymentSchedule).toHaveLength(FOREIGN_INSTALMENT_COUNT);
+    expect(contract.paymentSchedule.reduce((sum, i) => sum + i.amountUnits, 0)).toBe(
+      contract.totalPriceUnits,
+    );
+    expect(contract.paymentSchedule.reduce((sum, i) => sum + i.workShareBp, 0)).toBe(10_000);
     // The ordering nation's own concurrency pool is untouched (the builder's capacity is consumed).
     expect(project?.newConstructionReservedMassKg).toBe(0);
   });

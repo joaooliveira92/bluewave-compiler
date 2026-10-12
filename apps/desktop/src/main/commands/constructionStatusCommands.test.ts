@@ -235,19 +235,7 @@ describe("construction status commands (end-to-end)", () => {
       transportRequestId: "req-foreign",
       designVersionId: design.designVersionId,
       builderNationId: "france",
-      terms: {
-        builderShipyardId: "yard_fr",
-        quantity: 1,
-        totalWorkPerUnit: 1_000,
-        totalPriceUnits: 1_000,
-        paymentSchedule: [
-          { dueMonth: "1880-01", amountUnits: 500, workShareBp: 5_000 },
-          { dueMonth: "1880-02", amountUnits: 500, workShareBp: 5_000 },
-        ],
-        authorizationMonth: "1880-01",
-        plannedKeelMonth: "1880-01",
-        plannedDeliveryMonth: "1880-02",
-      },
+      quantity: 1,
     });
     expect(issued.outcome).toBe("success");
     if (issued.outcome !== "success") return;

@@ -10,6 +10,7 @@ import {
   DivisionCommandBodySchema,
   FirstMonthInspectionSchema,
   GenerateBattlePayloadSchema,
+  PlaceForeignConstructionCommandPayloadSchema,
   ResolveTacticalBattlePayloadSchema,
   SessionIdPayloadSchema,
   SetResearchPriorityCommandPayloadSchema,
@@ -464,6 +465,100 @@ describe("LoadSaveResultSchema (IPC response envelope)", () => {
 
   it("rejects a result missing diagnostics", () => {
     expectFailure(LoadSaveResultSchema, { success: true });
+  });
+});
+
+/**
+ * The foreign-order wire schema must reject renderer-supplied `terms`/`capability`: the bridge decodes it with
+ * `onExcessProperty: "error"` (INC-17), so any unmodeled key is an error rather than a silently-stripped value.
+ */
+describe("PlaceForeignConstructionCommandPayloadSchema (strict, INC-17)", () => {
+  const strictDecode = (input: unknown) =>
+    Schema.decodeUnknownResult(PlaceForeignConstructionCommandPayloadSchema, {
+      onExcessProperty: "error",
+    })(input);
+
+  it("accepts the player-choice fields (with and without a delivery month)", () => {
+    expect(
+      Result.isSuccess(
+        strictDecode({
+          ...VALID_ENVELOPE,
+          designVersionId: "dv-1",
+          builderNationId: "france",
+          quantity: 1,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      Result.isSuccess(
+        strictDecode({
+          ...VALID_ENVELOPE,
+          designVersionId: "dv-1",
+          builderNationId: "france",
+          quantity: 2,
+          plannedDeliveryMonth: "1880-06",
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a payload carrying a fabricated terms or capability field", () => {
+    expect(
+      Result.isFailure(
+        strictDecode({
+          ...VALID_ENVELOPE,
+          designVersionId: "dv-1",
+          builderNationId: "france",
+          quantity: 1,
+          terms: { totalPriceUnits: 1 },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      Result.isFailure(
+        strictDecode({
+          ...VALID_ENVELOPE,
+          designVersionId: "dv-1",
+          builderNationId: "france",
+          quantity: 1,
+          capability: { physicallyCapable: true },
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a fabricated terms payload through the bridge with INVALID_PAYLOAD", async () => {
+    const result = await dispatchCampaignCommand("placeForeignConstructionCommand", {
+      ...VALID_ENVELOPE,
+      designVersionId: "dv-1",
+      builderNationId: "france",
+      quantity: 1,
+      terms: { totalPriceUnits: 1 },
+    });
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("INVALID_PAYLOAD");
+  });
+
+  it("rejects a non-positive quantity, a non-integer, and a malformed delivery month", () => {
+    for (const bad of [
+      { quantity: 0 },
+      { quantity: -1 },
+      { quantity: 1.5 },
+      { quantity: 1, plannedDeliveryMonth: "1880/06" },
+      { quantity: 1, plannedDeliveryMonth: "1880-6" },
+    ]) {
+      expect(
+        Result.isFailure(
+          strictDecode({
+            ...VALID_ENVELOPE,
+            designVersionId: "dv-1",
+            builderNationId: "france",
+            ...bad,
+          }),
+        ),
+      ).toBe(true);
+    }
   });
 });
 

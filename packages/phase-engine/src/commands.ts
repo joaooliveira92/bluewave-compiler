@@ -56,14 +56,21 @@ import {
 import { EventLedger } from "@bluewave/events";
 import type { FinancialLedger } from "./financial-ledger.js";
 import { budgetChangedEvent, makeLedgerEntry } from "./events.js";
-import { placeConstructionBatch } from "./constructionOrder.js";
-import { authorizeDockExpansion } from "./dockExpansion.js";
 import {
-  placeForeignConstructionOrder,
-  type ForeignBuilderCapabilityConditions,
-  type ForeignContractTerms,
-} from "./foreignConstruction.js";
-import { FOREIGN_BUILDER_CONDITIONS_SATISFIED } from "./foreignContractPhase.js";
+  CONSTRUCTION_BATCH_MAX_QUANTITY,
+  CONSTRUCTION_BATCH_MIN_QUANTITY,
+  placeConstructionBatch,
+  resolveOrderTargets,
+} from "./constructionOrder.js";
+import { authorizeDockExpansion } from "./dockExpansion.js";
+import { builderDockRecord, placeForeignConstructionOrder } from "./foreignConstruction.js";
+import {
+  FOREIGN_CONSTRUCTION_QUANTITY_INVALID,
+  FOREIGN_CONTRACT_TERMS_NOT_ACCEPTED,
+  deriveForeignContractTerms,
+  resolveBuilderConstructionSupply,
+  resolveForeignBuilderCapability,
+} from "./foreignTerms.js";
 
 export { applyDivisionCommandMonth } from "./divisionCommands.js";
 
@@ -744,19 +751,73 @@ export function applyOrderForeignConstruction(
   campaignMonth: string,
   collector: DiagnosticCollector,
 ): CampaignSnapshot {
-  const capability =
-    body["capability"] === undefined
-      ? FOREIGN_BUILDER_CONDITIONS_SATISFIED
-      : (body["capability"] as ForeignBuilderCapabilityConditions);
+  // INC-17: the engine derives the contract; any runtime-excess `terms`/`capability` (a renderer that still sends the
+  // old, untrusted shape) is refused outright. Nothing is written: a fabricated price, schedule or capability never
+  // reaches `placeForeignConstructionOrder`.
+  if (
+    Object.prototype.hasOwnProperty.call(body, "terms") ||
+    Object.prototype.hasOwnProperty.call(body, "capability")
+  ) {
+    collector.addError(
+      FOREIGN_CONTRACT_TERMS_NOT_ACCEPTED,
+      "The foreign order carries client-supplied terms/capability; the engine derives the contract server-side",
+      { stage: "command_collection" },
+    );
+    return currentSnapshot;
+  }
+  const quantity = body["quantity"];
+  if (
+    !Number.isInteger(quantity) ||
+    quantity < CONSTRUCTION_BATCH_MIN_QUANTITY ||
+    quantity > CONSTRUCTION_BATCH_MAX_QUANTITY
+  ) {
+    collector.addError(
+      FOREIGN_CONSTRUCTION_QUANTITY_INVALID,
+      `A foreign order is ${String(CONSTRUCTION_BATCH_MIN_QUANTITY)}..${String(CONSTRUCTION_BATCH_MAX_QUANTITY)} ships; got ${String(quantity)}`,
+      { stage: "command_collection" },
+    );
+    return currentSnapshot;
+  }
+  const targets = resolveOrderTargets(currentSnapshot, body["nationId"], body["designVersionId"]);
+  if (!targets.ok) {
+    collector.addError(targets.reason, targets.diagnostics.join("; "), {
+      stage: "command_collection",
+    });
+    return currentSnapshot;
+  }
+  const { design } = targets;
+  const builderNationId = body["builderNationId"];
+  // The builder's dock and construction supply are the two volatile predicates the engine can resolve from content; the
+  // DOCK and CAPACITY predicates are re-derived inside `placeForeignConstructionOrder` against the same snapshot.
+  const dock = builderDockRecord(currentSnapshot, builderNationId, content, campaignMonth);
+  const supply = resolveBuilderConstructionSupply(content, builderNationId, campaignMonth);
+  const capability = resolveForeignBuilderCapability(currentSnapshot, content, {
+    orderingNationId: body["nationId"],
+    builderNationId,
+    design,
+    campaignMonth,
+    constructionSupplyAvailable: supply.available,
+    dock,
+  });
+  const terms = deriveForeignContractTerms({
+    design,
+    quantity,
+    builderNationId,
+    builderCostMultiplierBp: supply.costMultiplierBp,
+    authorizationMonth: campaignMonth,
+    ...(body["plannedDeliveryMonth"] === undefined
+      ? {}
+      : { plannedDeliveryMonth: body["plannedDeliveryMonth"] }),
+  });
   const placed = placeForeignConstructionOrder(
     currentSnapshot,
     {
       nationId: body["nationId"],
       commandId,
       designVersionId: body["designVersionId"],
-      builderNationId: body["builderNationId"],
+      builderNationId,
       month: monthPairOf(campaignMonth),
-      terms: body["terms"] as ForeignContractTerms,
+      terms,
       capability,
     },
     content,

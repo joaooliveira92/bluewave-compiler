@@ -157,6 +157,26 @@ function withSchema<T>(
 }
 
 /**
+ * Like {@link withSchema} but decodes with `onExcessProperty: "error"`, so a
+ * payload carrying a key the schema does not model is rejected rather than
+ * silently stripped. Used only where an extra field would be an authority leak
+ * (`placeForeignConstructionCommand`, whose renderer must not supply contract
+ * `terms`/`capability`).
+ */
+function withStrictSchema<T>(
+  schema: Schema.ConstraintDecoder<T, never>,
+  execute: (payload: T) => CommandOutcome | Promise<CommandOutcome>,
+): CampaignCommandHandler {
+  return (payload) => {
+    const decoded = Schema.decodeUnknownResult(schema, { onExcessProperty: "error" })(payload);
+    if (Result.isFailure(decoded)) {
+      return invalidPayloadResult(issueMessages(decoded.failure));
+    }
+    return execute(decoded.success);
+  };
+}
+
+/**
  * Commands whose payload is intentionally `undefined` (`listNewGameOptions`,
  * and the Campaign File continuance commands grounded in
  * `useCampaignFiles.ts`) — no wire schema, same as before.
@@ -218,7 +238,7 @@ export const defaultCommandRegistry: CommandRegistry = {
   authorizeDockExpansionCommand: withSchema(AuthorizeDockExpansionCommandPayloadSchema, (payload) =>
     authorizeDockExpansionCommand(payload),
   ),
-  placeForeignConstructionCommand: withSchema(
+  placeForeignConstructionCommand: withStrictSchema(
     PlaceForeignConstructionCommandPayloadSchema,
     (payload) => placeForeignConstructionCommand(payload),
   ),

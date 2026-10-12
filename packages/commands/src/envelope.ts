@@ -71,22 +71,22 @@ export interface AuthorizeDockExpansionCommand {
   possessionId: string;
 }
 /**
- * Orders a ship from a foreign builder (DESIGN-16 sections 13.1-13.4, SB3-R20..R22). `terms` is the complete
- * `ForeignConstructionContract` input (a `ForeignContractTerms` as JSON); `capability` is the builder's resolved
- * predicate set. Both are opaque at the wire boundary and validated by the engine's `placeForeignConstructionOrder`,
- * which forms the immutable contract, checks every builder-capability predicate against the builder's dock and free
- * `NEW_CONSTRUCTION` capacity, and records the contract on the ordering nation. The order-path builder-terms assembly
- * (price and payment schedule from content) is the player-surface ticket's job.
+ * Orders a ship from a foreign builder (DESIGN-16 sections 13.1-13.4, SB3-R20..R22). The body carries only the player's
+ * choices: the ordering nation, the compiled design version, the builder nation, the quantity and an optional delivery
+ * month. The engine derives the contract `terms` (price from the builder's content-grounded construction cost, a
+ * versioned instalment schedule) and the builder `capability` predicates server-side, then applies the whole order
+ * through `placeForeignConstructionOrder`. A body that still carries `terms`/`capability` is refused with
+ * `FOREIGN_CONTRACT_TERMS_NOT_ACCEPTED` — a fabricated contract is never accepted.
  */
 export interface OrderForeignConstructionCommand {
   type: "OrderForeignConstruction";
   nationId: string;
   designVersionId: string;
   builderNationId: string;
-  /** Opaque `ForeignContractTerms`; the engine validates completeness. */
-  terms: unknown;
-  /** Opaque `ForeignBuilderCapabilityConditions`; omitted means the shipped satisfied default. */
-  capability?: unknown;
+  /** Ship count, an integer in `1..12`. */
+  quantity: number;
+  /** The player's requested delivery month (`YYYY-MM`); the engine derives a default when absent or invalid. */
+  plannedDeliveryMonth?: string;
 }
 /**
  * Halts a dockyard project that is under construction (DESIGN-23 section 7, RTW3 manual pp. 30-31). A halted project

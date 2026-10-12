@@ -35,3 +35,51 @@ reachable only from tests/e2e.
 - [ ] `terms`/`capability` are derived server-side from authoritative content, not accepted from the renderer.
 - [ ] A fabricated `totalPriceUnits`/schedule/capability payload is rejected (test).
 - [ ] Golden/determinism unchanged (no foreign contract in the reference run).
+
+## Decision (orchestrator, 2026-10-12)
+
+The derivation is owned by the **engine** (it already holds `content` + `snapshot`). The pure policy
+`placeForeignConstructionOrder(snapshot, {…terms, capability}, content)` is left **unchanged** (INC-9
+posture; caller-resolved), so its tests are untouched. Only the command boundary changes:
+
+- **Command body carries player choices only** (`packages/commands/src/envelope.ts`):
+  `{ type, nationId, designVersionId, builderNationId, quantity, plannedDeliveryMonth? }`. `terms` and
+  `capability` are removed.
+- **Desktop wire schema** (`campaignCommandSchemas.ts`) keeps only those fields and decodes with
+  `onExcessProperty: "error"`, so a renderer payload carrying `terms`/`capability` is rejected at the IPC
+  boundary (`INVALID_PAYLOAD`). A dedicated strict decoder is used only for this command.
+- **Engine** (`applyOrderForeignConstruction`): derives `terms` via `deriveForeignContractTerms` and
+  `capability` via `resolveForeignBuilderCapability` (new pure helpers in
+  `packages/phase-engine/src/foreignTerms.ts`). If a command body still carries `terms`/`capability`
+  (runtime excess), it is refused with the new stable code
+  `FOREIGN_CONTRACT_TERMS_NOT_ACCEPTED` — nothing is written.
+- **Terms** (BALANCE TARGET where the manual gives no formula):
+  - `projected = projectedConstructionOrderCosts(design, builderCostMultiplierBp)` where the multiplier is
+    the **builder's** resolved `resolveNationalConstruction` cost modifier (the builder builds the hull),
+    resolved through `resolveBuilderConstructionSupply`, which fails closed (no throw) when the builder
+    cannot obtain its armament/armour.
+    `totalWorkPerUnit = projected.projectedCost`; `totalPriceUnits = totalWorkPerUnit × quantity` so
+    payment, the capacity reservation and the project's stored work all agree.
+  - schedule per versioned policy `foreign_instalment_policy_v1`: `FOREIGN_INSTALMENT_COUNT = 6` equal
+    monthly instalments starting at the authorization month; work shares sum exactly `10_000`; amounts sum
+    exactly `totalPriceUnits` (largest-remainder split, integer-only).
+  - `authorizationMonth` = the campaign month; `plannedKeelMonth` = authorization month;
+    `plannedDeliveryMonth` = the player's choice when it is a valid `YYYY-MM` at or after the last due
+    month, else authorization + (`FOREIGN_INSTALMENT_COUNT` − 1) months.
+  - `builderShipyardId` = `yard:<builderNationId>` (a stable national yard id; the campaign models one
+    national yard per nation). Duplicate-free by construction.
+  - **Deferral:** a foreign contract still produces a single dockyard project; delivering `quantity`
+    distinct hulls (and the naming/reservation split that implies) is owned by INC-9b (foreign builder
+    flow surface).
+- **Capability** (grounded, fail-closed):
+  - `shipyardCapabilitySatisfied` = the builder's dock record resolves (materialised or profile).
+  - `requiredTechnologySatisfied` = the design's ship type is not in the builder profile's
+    `hardCapabilities.restrictedShipTypes` (and the profile resolves).
+  - `componentSourcingSatisfied` = the builder profile resolves a construction environment.
+  - `governmentPermissionSatisfied` = the ordering↔builder relation is not `at_war`.
+  - `physicallyCapable` = the ordering↔builder relation is not `at_war` (occupation not modelled — a
+    recorded deferral carried by INC-10's war-effects owner).
+- **Quantity**: integer `1..12`; outside the range the engine refuses with
+  `FOREIGN_CONSTRUCTION_QUANTITY_INVALID`.
+- **Golden/determinism**: no foreign contract exists in the reference run, so goldens are unchanged; no new
+  persisted fields (the contract fields already persist).

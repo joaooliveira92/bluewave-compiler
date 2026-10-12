@@ -200,6 +200,18 @@ export {
   type ForeignPaymentPosting,
 } from "./foreignConstruction.js";
 export {
+  FOREIGN_CONSTRUCTION_QUANTITY_INVALID,
+  FOREIGN_CONTRACT_TERMS_NOT_ACCEPTED,
+  FOREIGN_INSTALMENT_COUNT,
+  FOREIGN_INSTALMENT_POLICY_ID,
+  deriveForeignContractTerms,
+  resolveBuilderConstructionSupply,
+  resolveForeignBuilderCapability,
+  type BuilderConstructionSupply,
+  type ForeignBuilderCapabilityResolutionInput,
+  type ForeignContractTermsInput,
+} from "./foreignTerms.js";
+export {
   DELIVERY_GUARANTEE_ACTIVE,
   FOREIGN_CONTRACT_DELIVERY_DELAYED,
   FOREIGN_CONTRACT_IMPOUNDMENT_NOT_AUTHORIZED,

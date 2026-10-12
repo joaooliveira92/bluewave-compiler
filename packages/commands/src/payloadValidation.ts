@@ -220,6 +220,7 @@ function validateSetAcceleration(
   return { ok: true };
 }
 
+const CONSTRUCTION_BATCH_MIN_QUANTITY = 1;
 const CONSTRUCTION_BATCH_MAX_QUANTITY = 12;
 const CONSTRUCTION_BATCH_LIMIT_EXCEEDED = "CONSTRUCTION_BATCH_LIMIT_EXCEEDED";
 
@@ -282,9 +283,10 @@ function validateAuthorizeDockExpansion(
 
 /**
  * Issue-time rules for `OrderForeignConstruction` (DESIGN-16 sections 13.1-13.4; SB3-R20..R22): the ordering nation and
- * the design must exist and belong together, the builder must be a distinct real nation, and `terms` must be a
- * non-null object. The complete-contract gate, the builder-capability predicates and the capacity admission are the
- * engine's `placeForeignConstructionOrder`, applied when the month runs the command.
+ * the design must exist and belong together, the builder must be a distinct real nation, and `quantity` must be an
+ * integer in 1..12. The engine derives the contract `terms` and `capability` from authoritative content; the complete
+ * gate, the builder-capability predicates and the capacity admission are the engine's `placeForeignConstructionOrder`,
+ * applied when the month runs the command.
  */
 function validateOrderForeignConstruction(
   envelope: CommandEnvelope<CommandBody>,
@@ -313,10 +315,14 @@ function validateOrderForeignConstruction(
       "FOREIGN_BUILDER_NATION_INVALID",
       `Builder ${String(body.builderNationId)} is not a distinct nation in the campaign`,
     );
-  if (body.terms === null || typeof body.terms !== "object")
+  if (
+    !Number.isInteger(body.quantity) ||
+    body.quantity < CONSTRUCTION_BATCH_MIN_QUANTITY ||
+    body.quantity > CONSTRUCTION_BATCH_MAX_QUANTITY
+  )
     return reject(
-      "FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED",
-      "A foreign order requires complete contract terms (DESIGN-16 section 13.1)",
+      "FOREIGN_CONSTRUCTION_QUANTITY_INVALID",
+      `A foreign order is 1..${String(CONSTRUCTION_BATCH_MAX_QUANTITY)} ships; got ${String(body.quantity)}`,
     );
   return { ok: true };
 }

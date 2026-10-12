@@ -525,7 +525,7 @@ export function placeForeignConstructionOrder(
     ...constructionProjectFor(
       request.commandId,
       request.designVersionId,
-      contract.totalWorkPerUnit,
+      contract.totalWorkPerUnit * contract.quantity,
       request.month,
       design["constructionPlan"],
     ),
