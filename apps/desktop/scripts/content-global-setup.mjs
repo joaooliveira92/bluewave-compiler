@@ -18,6 +18,9 @@ export default function globalSetup() {
   execFileSync(PNPM, ["--filter", "@bluewave/content-compiler", "build"], {
     cwd: repoRoot,
     stdio: "inherit",
+    // Node refuses to exec a `.cmd` directly on Windows (EINVAL); run it through
+    // the shell there so the determinism gate is green on Windows too.
+    shell: process.platform === "win32",
   });
   const script = resolve(import.meta.dirname, "build-content.mjs");
   execFileSync(process.execPath, [script], { stdio: "inherit" });
