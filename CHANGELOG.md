@@ -6,8 +6,16 @@ to `main` (see `AGENTS.md`).
 
 ## Unreleased
 
+_No unreleased changes yet._
+
+## 1.2.0 — 2026-10-12
+
 ### Added
 
+- **Crash support bundle.** If the app hits an unexpected error it writes a small, local support
+  bundle — error text with your username and home path redacted, the app version and platform — and
+  tells you where it is, so you can attach it to a bug report. Nothing is ever sent anywhere
+  (ADR-0133).
 - **Fleet movement orders.** Order a fleet to sail to a neighbouring area from the Fleet screen; it moves when
   you advance the month. One order per fleet; replace or cancel it before then. The 1880 map was also
   connected: most home coasts and colonies had no sea routes at all.
@@ -60,6 +68,14 @@ orders. See `docs/research/rtw3-parity-engine-roadmap.md`.
 ### Internal
 
 - Canvas coastline renderer with level-of-detail tiers (ADR-0055); baked binary coastline asset.
-- Packaged-app smoke script (`pnpm --filter @bluewave/desktop run smoke:packaged`).
+- Packaged-app smoke script (`pnpm --filter @bluewave/desktop run smoke:packaged`), which now also
+  forces a crash in the packaged binary and asserts the support bundle is written.
+- `pnpm check` now runs the golden-hash and cross-process determinism proofs, so local green equals
+  CI green; a commit that changes authoritative source without re-pinning `golden/hashes.json` fails.
+- The pre-commit hook format-checks the staged files, and `pnpm preflight` gains tracker-consistency
+  and version-coherence gates.
+- Long simulation suites (36-month regression, AI procurement) run in a dedicated bounded-concurrency
+  step instead of the default parallel suite.
+- `scripts/changelog.mjs` drafts the changelog from Conventional Commit subjects (ADR-0134).
 - Type-floor, click-depth and content-coverage guard tests.
 - Automated accessibility audit (axe-core) over the new screens, with a control test proving it detects violations.

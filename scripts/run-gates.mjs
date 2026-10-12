@@ -82,6 +82,12 @@ export const GATE_SETS = {
       needs: ["git-state"],
       args: ["scripts/verify-tracker-consistency.mjs"],
     },
+    {
+      id: "version-coherence",
+      label: "version coherence",
+      needs: ["git-state"],
+      args: ["scripts/verify-version-coherence.mjs"],
+    },
   ],
 };
 
