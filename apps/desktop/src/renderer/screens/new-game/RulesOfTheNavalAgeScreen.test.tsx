@@ -140,6 +140,24 @@ describe("RulesOfTheNavalAgeScreen", () => {
     expect(within(master as HTMLElement).queryByLabelText("Fleet Size")).toBeNull();
   });
 
+  it("crowns the detail column with a decorative globe that offers nothing to pick", async () => {
+    await setupUi();
+
+    const detail = screen.getByRole("region", { name: "Preset details" });
+    const globe = detail.querySelector("[data-testid='preset-globe-band']");
+    expect(globe).not.toBeNull();
+    // It leads the column, above the focused-preset panel and the forms.
+    expect(detail.firstElementChild).toBe(globe);
+    expect(globe?.getAttribute("aria-hidden")).toBe("true");
+    expect(globe?.querySelector("svg")).not.toBeNull();
+    // Nothing inside it is a control, a nation pin or an option.
+    expect(globe?.querySelector("button, a, input, select, [role], [tabindex]")).toBeNull();
+    expect(globe?.querySelector("[data-country-id]")).toBeNull();
+    // The only option set on the screen is the preset deck.
+    expect(within(presetListbox()).getAllByRole("option")).toHaveLength(4);
+    expect(screen.queryByRole("img", { name: "World map" })).toBeNull();
+  });
+
   it("lists exactly the four preset bundles as options of one listbox", async () => {
     await setupUi();
 

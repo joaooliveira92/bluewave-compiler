@@ -1,7 +1,7 @@
 # INC-4 — Decorative globe hero band in the detail column
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** 02, 03
 **Frontier:** no
 **Requirements:** NAM-3; AC-8; BW-ARC-001, BW-ARC-002, DESIGN-51
@@ -24,3 +24,11 @@ focused-preset panel and the forms, and nothing about it implies nation selectio
 - [ ] It reads no authoritative/campaign module (boundary or import check clean) and exposes no nation-selection semantics.
 - [ ] It respects `prefers-reduced-motion` and offers no second nation-picker affordance.
 - [ ] An external-behaviour test covers the decorative contract (non-interactive, hidden from assistive tech).
+
+## Answer
+
+`components/preset-deck/PresetGlobeBand.tsx` renders the shared `DecorativeGlobe`
+(`aria-hidden`, `pointer-events-none`, idle spin off under reduced motion) as the
+first element of the "Preset details" column. Proven by the "crowns the detail
+column with a decorative globe" screen test, `DecorativeGlobe.test.tsx`, and the
+`globeBoundary.test.ts` import allowlist.

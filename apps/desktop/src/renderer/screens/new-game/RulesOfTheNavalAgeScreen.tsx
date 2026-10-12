@@ -10,7 +10,11 @@ import { ErrorState } from "./components/ErrorState.js";
 import { HistoricalUncertaintySection } from "./components/HistoricalUncertaintySection.js";
 import { LoadingState } from "./components/LoadingState.js";
 import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
-import { PresetDeckPane, PresetDetailPanel } from "./components/preset-deck/index.js";
+import {
+  PresetDeckPane,
+  PresetDetailPanel,
+  PresetGlobeBand,
+} from "./components/preset-deck/index.js";
 import { ScreenHeader } from "./components/ScreenHeader.js";
 import type { DraftPreferences } from "./new-game-preferences-screen-state.js";
 import { PRESET_DEFINITIONS } from "./rules-of-the-naval-age-presets.js";
@@ -123,6 +127,8 @@ export function RulesOfTheNavalAgeScreen({
             aria-label="Preset details"
             className="themed-scrollbar relative z-10 min-w-0 flex-1 lg:h-full lg:overflow-y-auto"
           >
+            <PresetGlobeBand />
+
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6 lg:p-8">
               <p role="status" className="text-sm text-muted-foreground">
                 Current setup:{" "}
