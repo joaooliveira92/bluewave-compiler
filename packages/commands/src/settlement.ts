@@ -1,4 +1,5 @@
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { CommandError } from "./errors.js";
 import type {
   CommandSettlementBranch,
   CommandSettlementRecord,
@@ -16,21 +17,26 @@ export function computeSettlement(
     !Number.isInteger(consumedAmount) ||
     !Number.isInteger(fixedNonRefundableAmount)
   ) {
-    throw new Error("INCOMPLETE_COMMAND_SETTLEMENT_POLICY: amounts must be integers");
+    throw new CommandError({
+      message: "INCOMPLETE_COMMAND_SETTLEMENT_POLICY: amounts must be integers",
+    });
   }
   if (reservedAmount < 0 || consumedAmount < 0 || fixedNonRefundableAmount < 0)
-    throw new Error("amounts must be non-negative");
+    throw new CommandError({ message: "amounts must be non-negative" });
   if (refundBasisPoints < 0 || refundBasisPoints > 10000)
-    throw new Error("refundBasisPoints out of range");
+    throw new CommandError({ message: "refundBasisPoints out of range" });
   if (consumedAmount + fixedNonRefundableAmount > reservedAmount) {
     // per spec, max(0, reserved - consumed - fixed) handles overage
   }
   const base = Math.max(0, reservedAmount - consumedAmount - fixedNonRefundableAmount);
   const releasedAmount = Math.floor((base * refundBasisPoints) / 10000);
   const lostAmount = reservedAmount - consumedAmount - releasedAmount;
-  if (releasedAmount < 0 || lostAmount < 0) throw new Error("settlement produced negative");
+  if (releasedAmount < 0 || lostAmount < 0)
+    throw new CommandError({ message: "settlement produced negative" });
   if (consumedAmount + releasedAmount + lostAmount !== reservedAmount)
-    throw new Error("INCOMPLETE_COMMAND_SETTLEMENT_POLICY: settlement must sum to reservedAmount");
+    throw new CommandError({
+      message: "INCOMPLETE_COMMAND_SETTLEMENT_POLICY: settlement must sum to reservedAmount",
+    });
   return { releasedAmount, lostAmount };
 }
 
@@ -159,15 +165,16 @@ export function validateSettlementPolicy(
         ].includes(b)
       )
         continue;
-      throw Object.assign(new Error(`INCOMPLETE_COMMAND_SETTLEMENT_POLICY: missing branch ${b}`), {
+      throw new CommandError({
         code: "INCOMPLETE_COMMAND_SETTLEMENT_POLICY",
+        message: `INCOMPLETE_COMMAND_SETTLEMENT_POLICY: missing branch ${b}`,
       });
     }
     if (branch.refundBasisPoints < 0 || branch.refundBasisPoints > 10000)
-      throw Object.assign(
-        new Error(`INCOMPLETE_COMMAND_SETTLEMENT_POLICY: refundBasisPoints out of range for ${b}`),
-        { code: "INCOMPLETE_COMMAND_SETTLEMENT_POLICY" },
-      );
+      throw new CommandError({
+        code: "INCOMPLETE_COMMAND_SETTLEMENT_POLICY",
+        message: `INCOMPLETE_COMMAND_SETTLEMENT_POLICY: refundBasisPoints out of range for ${b}`,
+      });
   }
   return true;
 }

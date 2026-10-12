@@ -3,6 +3,7 @@ import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { DiagnosticCode } from "@bluewave/diagnostics";
 import { AuditChain } from "./audit.js";
 import type { BudgetProjectCommand, CommandBody, CommandEnvelope } from "./envelope.js";
+import { CommandError } from "./errors.js";
 import { validatePayloadRules } from "./payloadValidation.js";
 import type {
   CommandOutcome,
@@ -57,15 +58,16 @@ export function transitionRecord(
   previousHash: string,
 ): CommandStatusTransitionRecord {
   if (!canTransition(rec.status, to)) {
-    throw Object.assign(new Error(`INVALID_COMMAND_STATUS_TRANSITION: ${rec.status} -> ${to}`), {
+    throw new CommandError({
       code: "INVALID_COMMAND_STATUS_TRANSITION",
+      message: `INVALID_COMMAND_STATUS_TRANSITION: ${rec.status} -> ${to}`,
     });
   }
   if (TERMINAL_STATUSES.has(rec.status)) {
-    throw Object.assign(
-      new Error(`INVALID_COMMAND_STATUS_TRANSITION: terminal ${rec.status} cannot transition`),
-      { code: "INVALID_COMMAND_STATUS_TRANSITION" },
-    );
+    throw new CommandError({
+      code: "INVALID_COMMAND_STATUS_TRANSITION",
+      message: `INVALID_COMMAND_STATUS_TRANSITION: terminal ${rec.status} cannot transition`,
+    });
   }
   const tr: CommandStatusTransitionRecord = {
     commandId: rec.commandId,
@@ -423,10 +425,10 @@ export class ScopedIdempotencyStore {
     if (this.store.has(k)) {
       const existing = this.store.get(k)!;
       if (existing.commandId !== rec.commandId) {
-        throw Object.assign(
-          new Error(`Idempotency key ${rec.idempotencyKey} already used by ${existing.commandId}`),
-          { code: "IDEMPOTENCY_CONFLICT" },
-        );
+        throw new CommandError({
+          code: "IDEMPOTENCY_CONFLICT",
+          message: `Idempotency key ${rec.idempotencyKey} already used by ${existing.commandId}`,
+        });
       }
       return; // idempotent return existing
     }

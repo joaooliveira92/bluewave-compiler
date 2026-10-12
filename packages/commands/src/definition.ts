@@ -1,5 +1,6 @@
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { CommandError } from "./errors.js";
 import type { CancellationPolicy, CommandTypeDefinition } from "./types.js";
 import { ISSUER_CLASSES } from "./types.js";
 
@@ -233,9 +234,10 @@ export function assertValidDefinitionOrThrow(def: unknown): CommandTypeDefinitio
   const c = new DiagnosticCollector();
   if (!validateCommandTypeDefinition(def, c)) {
     const msg = c.errors.map((e) => e.message).join("; ");
-    throw Object.assign(new Error(`INVALID_COMMAND_TYPE_DEFINITION: ${msg}`), {
+    throw new CommandError({
       code: "INVALID_COMMAND_TYPE_DEFINITION",
       diagnostics: c.all,
+      message: `INVALID_COMMAND_TYPE_DEFINITION: ${msg}`,
     });
   }
   return def as CommandTypeDefinition;

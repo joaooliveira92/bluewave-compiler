@@ -2,6 +2,7 @@ import type { CampaignSnapshot } from "@bluewave/campaign";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { DiagnosticCode } from "@bluewave/diagnostics";
 import type { CommandBody, CommandEnvelope } from "./envelope.js";
+import { CommandError } from "./errors.js";
 import type {
   CommandOutcome,
   CommandRecord,
@@ -90,10 +91,10 @@ export function pureValidate(
   const results = predicates.map((p) => p(command, snapshot));
   const after = sha256Hex(canonicalSerialize(snapshot));
   if (before !== after)
-    throw Object.assign(
-      new Error("DIRECT_COMMAND_STATE_MUTATION_PROHIBITED: validation mutated snapshot"),
-      { code: "DIRECT_COMMAND_STATE_MUTATION_PROHIBITED" },
-    );
+    throw new CommandError({
+      code: "DIRECT_COMMAND_STATE_MUTATION_PROHIBITED",
+      message: "DIRECT_COMMAND_STATE_MUTATION_PROHIBITED: validation mutated snapshot",
+    });
   return createValidationRecord(
     command,
     definition.validationPolicyId,

@@ -1,9 +1,9 @@
 # 24 — Domain: `commands` on Effect `Schema`/`Data`/typed errors
 
 **Type:** implementation
-**Status:** open
+**Status:** done
 **Blocked by:** none (21 done)
-**Frontier:** yes
+**Frontier:** no
 
 ## What to build
 
@@ -21,13 +21,13 @@ preserving the command/event contract and the reason-code vocabulary.
 
 ## Acceptance criteria
 
-- [ ] `commands` uses Effect `Schema`/`Data`/typed errors where appropriate;
+- [x] `commands` uses Effect `Schema`/`Data`/typed errors where appropriate;
       payload validation boundaries use Effect Schema (`MIG-RUNTIME-1`).
-- [ ] Command reason codes and the accept/reject contract unchanged
+- [x] Command reason codes and the accept/reject contract unchanged
       (`MIG-WIRE-3`).
-- [ ] Runtime-free unless a genuine async/IO boundary exists in the package
+- [x] Runtime-free unless a genuine async/IO boundary exists in the package
       (documented if so); no fibers in pure validation.
-- [ ] `pnpm --filter @bluewave/commands test` green; `pnpm typecheck` green.
+- [x] `pnpm --filter @bluewave/commands test` green; `pnpm typecheck` green.
 
 ## Notes
 
@@ -48,3 +48,25 @@ Codes are also embedded in message text. Target:
 check, not a schema boundary; the `diplomacyValidation`/`divisionValidation`
 validators return reason-code results and are deferred (ticket 00 §6 item 2).
 Blocked-by corrected: 22 and 23 are closed.
+
+### Evidence (2026-10-12)
+
+**Delivered.** Added `packages/commands/src/errors.ts` —
+`CommandError extends Data.TaggedError("CommandError")<{ message; code?;
+diagnostics? }>` (imports only `{ Data } from "effect"` plus a type-only
+`Diagnostic`; runtime-free). Converted all 22 throws (5 plain `Error` + 17
+`Object.assign(new Error, { code })`), preserving every `message` string and
+`code` byte-for-byte; `registry.ts`/`definition.ts` keep the attached
+`diagnostics`. Re-exported from `index.ts`; added `effect` to
+`packages/commands/package.json`.
+
+| Check | Result |
+| --- | --- |
+| `rg "throw Object.assign\(new Error\|throw new (Error\|TypeError\|RangeError)" packages/commands/src` | no matches |
+| `pnpm --filter @bluewave/commands test` | 2 files / 29 tests passed (+4 new `errors.test.ts`) |
+| `pnpm --filter @bluewave/commands typecheck` | exit 0 |
+| `pnpm typecheck` | 37/37 successful |
+| `pnpm lint:effect` | 0 errors (278 pre-existing warnings) |
+
+**Residual:** none. `code` is optional (the 5 plain settlement throws had none);
+their reason code remains inside the message text as before.

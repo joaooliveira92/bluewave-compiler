@@ -376,6 +376,9 @@ importers:
       '@bluewave/ship-design':
         specifier: workspace:*
         version: link:../ship-design
+      effect:
+        specifier: workspace:*
+        version: link:../../vendor/effect
 
   packages/content-compiler:
     dependencies:

@@ -1,6 +1,7 @@
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { hashCommandRecord } from "./canonicalization.js";
 import type { CommandBody, CommandEnvelope } from "./envelope.js";
+import { CommandError } from "./errors.js";
 import type {
   CommandImpossibilityOutcome,
   CommandRecord,
@@ -59,15 +60,14 @@ export function createCommandRecord(
 
 export function enforceLockImmutability(rec: CommandRecord, attemptedMutation: string): never {
   if (rec.status === "LOCKED" || rec.status === "RESOLVING") {
-    throw Object.assign(
-      new Error(
-        `LOCKED_COMMAND_IMMUTABLE: cannot ${attemptedMutation} on ${rec.status} command ${rec.commandId}`,
-      ),
-      { code: "LOCKED_COMMAND_IMMUTABLE" },
-    );
+    throw new CommandError({
+      code: "LOCKED_COMMAND_IMMUTABLE",
+      message: `LOCKED_COMMAND_IMMUTABLE: cannot ${attemptedMutation} on ${rec.status} command ${rec.commandId}`,
+    });
   }
-  throw Object.assign(new Error(`LOCKED_COMMAND_IMMUTABLE`), {
+  throw new CommandError({
     code: "LOCKED_COMMAND_IMMUTABLE",
+    message: `LOCKED_COMMAND_IMMUTABLE`,
   });
 }
 
@@ -180,12 +180,10 @@ export function assertNoDirectMutation(caller: string): void {
     "CommandEnvelope",
   ];
   if (prohibited.some((p) => caller.includes(p))) {
-    throw Object.assign(
-      new Error(
-        `DIRECT_COMMAND_STATE_MUTATION_PROHIBITED: ${caller} must not mutate authoritative state`,
-      ),
-      { code: "DIRECT_COMMAND_STATE_MUTATION_PROHIBITED" },
-    );
+    throw new CommandError({
+      code: "DIRECT_COMMAND_STATE_MUTATION_PROHIBITED",
+      message: `DIRECT_COMMAND_STATE_MUTATION_PROHIBITED: ${caller} must not mutate authoritative state`,
+    });
   }
 }
 
@@ -212,11 +210,9 @@ export function verifyReplay(expected: CommandResult, actual: CommandResult): vo
     expected.resultHash !== actual.resultHash ||
     expected.terminalStatus !== actual.terminalStatus
   ) {
-    throw Object.assign(
-      new Error(
-        `COMMAND_REPLAY_MISMATCH: expected ${expected.resultHash} got ${actual.resultHash}`,
-      ),
-      { code: "COMMAND_REPLAY_MISMATCH" },
-    );
+    throw new CommandError({
+      code: "COMMAND_REPLAY_MISMATCH",
+      message: `COMMAND_REPLAY_MISMATCH: expected ${expected.resultHash} got ${actual.resultHash}`,
+    });
   }
 }

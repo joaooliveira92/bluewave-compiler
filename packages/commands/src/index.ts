@@ -2,6 +2,7 @@ export * from "./audit.js";
 export * from "./authorization.js";
 export * from "./canonicalization.js";
 export * from "./definition.js";
+export * from "./errors.js";
 export type {
   AcceptPeaceCommand,
   AddShipToDivisionCommand,

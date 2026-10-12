@@ -1,4 +1,5 @@
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { CommandError } from "./errors.js";
 import type { CommandRecord } from "./types.js";
 
 export function normalizeUnorderedSets(payload: unknown): unknown {
@@ -65,10 +66,10 @@ export function canonicalizePayload(
 ): { canonicalPayload: Record<string, unknown>; canonicalPayloadHash: string } {
   const schemaCheck = validatePayloadSchema(rawPayload, allowedFields, allowVersionedExtensions);
   if (!schemaCheck.ok)
-    throw Object.assign(
-      new Error(`INVALID_COMMAND_PAYLOAD: unknown fields ${schemaCheck.unknownFields.join(",")}`),
-      { code: "INVALID_COMMAND_PAYLOAD" },
-    );
+    throw new CommandError({
+      code: "INVALID_COMMAND_PAYLOAD",
+      message: `INVALID_COMMAND_PAYLOAD: unknown fields ${schemaCheck.unknownFields.join(",")}`,
+    });
   const converted = convertPresentationUnits(rawPayload);
   const normalized = normalizeUnorderedSets(converted) as Record<string, unknown>;
   const hash = sha256Hex(canonicalSerialize(normalized));

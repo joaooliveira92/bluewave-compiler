@@ -1,5 +1,6 @@
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { validateCommandTypeDefinition } from "./definition.js";
+import { CommandError } from "./errors.js";
 import type { CommandTypeDefinition } from "./types.js";
 
 export class CommandRegistry {
@@ -8,16 +9,16 @@ export class CommandRegistry {
   register(def: CommandTypeDefinition): void {
     const c = new DiagnosticCollector();
     if (!validateCommandTypeDefinition(def, c)) {
-      throw Object.assign(
-        new Error(`INVALID_COMMAND_TYPE_DEFINITION: ${c.errors.map((e) => e.message).join("; ")}`),
-        { code: "INVALID_COMMAND_TYPE_DEFINITION" },
-      );
+      throw new CommandError({
+        code: "INVALID_COMMAND_TYPE_DEFINITION",
+        message: `INVALID_COMMAND_TYPE_DEFINITION: ${c.errors.map((e) => e.message).join("; ")}`,
+      });
     }
     if (this.defs.has(def.commandTypeId))
-      throw Object.assign(
-        new Error(`INVALID_COMMAND_TYPE_DEFINITION: duplicate ${def.commandTypeId}`),
-        { code: "INVALID_COMMAND_TYPE_DEFINITION" },
-      );
+      throw new CommandError({
+        code: "INVALID_COMMAND_TYPE_DEFINITION",
+        message: `INVALID_COMMAND_TYPE_DEFINITION: duplicate ${def.commandTypeId}`,
+      });
     this.defs.set(def.commandTypeId, Object.freeze({ ...def }));
   }
 
@@ -32,9 +33,10 @@ export class CommandRegistry {
     const c = new DiagnosticCollector();
     for (const def of this.defs.values()) validateCommandTypeDefinition(def, c);
     if (c.hasErrors)
-      throw Object.assign(new Error(`INVALID_COMMAND_TYPE_DEFINITION: startup validation failed`), {
+      throw new CommandError({
         code: "INVALID_COMMAND_TYPE_DEFINITION",
         diagnostics: c.all,
+        message: `INVALID_COMMAND_TYPE_DEFINITION: startup validation failed`,
       });
   }
 
@@ -42,12 +44,14 @@ export class CommandRegistry {
   assertIssuerParity(commandTypeId: string, issuerClass: string): void {
     const def = this.defs.get(commandTypeId);
     if (!def)
-      throw Object.assign(new Error("INVALID_COMMAND_TYPE_DEFINITION"), {
+      throw new CommandError({
         code: "INVALID_COMMAND_TYPE_DEFINITION",
+        message: "INVALID_COMMAND_TYPE_DEFINITION",
       });
     if (!def.allowedIssuerClasses.includes(issuerClass as never)) {
-      throw Object.assign(new Error("COMMAND_ISSUER_NOT_ALLOWED"), {
+      throw new CommandError({
         code: "COMMAND_ISSUER_NOT_ALLOWED",
+        message: "COMMAND_ISSUER_NOT_ALLOWED",
       });
     }
   }
