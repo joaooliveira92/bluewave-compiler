@@ -47,6 +47,19 @@ limit — rejects it with `REVISION_LIMITS_EXCEEDED`, naming the breached limits
 A change already classified T2/T3 is on the redesign/rebuild path and is not
 blocked by the in-place limits.
 
+### 4. Secondary >6 in: recorded deviation
+
+WS1 re-read the manual (printed p27): "Main guns over 6 in cannot be changed.
+Secondary guns over 6 in **can be changed to a limited extent**." The two rules
+are deliberately contrasted. The shipped rule treats a secondary gun above 6 in
+as **refresh-only** (blocked on any calibre change) — the same as the main-gun
+rule and therefore **stricter than the manual's wording**. The manual gives no
+magnitude for "a limited extent", and inventing one is prohibited
+(`docs/research/manual-designing-ships-revision-limits.md`), so this conservative
+reading is kept and recorded here as a deliberate deviation, not presented as the
+manual's rule. A future owner who sources a bound must implement it as a versioned
+`balance.yaml` constant plus an ADR, not in code. See ticket `INC-14b`.
+
 ## Consequences
 
 - A player modifying a class before building is bounded by the manual's limits,

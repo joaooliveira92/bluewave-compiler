@@ -1,6 +1,6 @@
 # INC-14b — p27 secondary-gun revision limit deviation
 
-**State:** READY_FOR_AGENT · **Frontier:** yes · **Blocked by:** none
+**State:** RESOLVED · **Frontier:** yes · **Blocked by:** none
 **Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R28) · **ADR:** amends ADR-0132 (in-place revision limits)
 
 ## What to build
@@ -32,3 +32,11 @@ resolution is to **record the refresh-only reading as a deliberate deviation** i
 
 Doc/ADR-only. The alternative (author `secondaryHeavyGunChangeLimitBp` and allow a bounded change)
 is explicitly deferred: the manual supplies no magnitude.
+
+## Answer
+
+Resolved as a recorded deviation (ADR-0132 §4). The manual's p27 secondary rule ("over 6 in can be
+changed to a limited extent") has no magnitude, so the shipped refresh-only rule is kept and
+recorded as a deliberate, conservative deviation from the manual wording — not presented as the
+manual's rule. No behaviour change; the existing `REVISION_SECONDARY_GUN_LIMIT` boundary test
+stands. `docs/research/manual-designing-ships-revision-limits.md` is cited.

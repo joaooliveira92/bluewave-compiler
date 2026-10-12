@@ -39,6 +39,30 @@ engine already performs. It retains `PLANNED → ACTIVE` (a queued project funde
 before an explicit authorization step still activates; the authorization gate
 arrives with the batch order, `INC-8`).
 
+**Normative transition table** (the exact `CONSTRUCTION_PROJECT_TRANSITIONS`
+value; a status not listed as a target is illegal and fails with
+`INVALID_DOCKYARD_PROJECT_TRANSITION`):
+
+| From | Legal targets |
+| --- | --- |
+| `PLANNED` | `AUTHORIZED`, `AWAITING_CAPACITY`, `ACTIVE`, `COMPLETED`, `CANCELLED` |
+| `AUTHORIZED` | `AWAITING_CAPACITY`, `ACTIVE`, `HALTED`, `DELAYED`, `COMPLETED`, `CANCELLED` |
+| `AWAITING_CAPACITY` | `ACTIVE`, `HALTED`, `DELAYED`, `COMPLETED`, `CANCELLED` |
+| `ACTIVE` | `AWAITING_CAPACITY`, `HALTED`, `DELAYED`, `ACCELERATED`, `COMPLETED`, `CANCELLED`, `IMPOUNDED` |
+| `HALTED` | `AWAITING_CAPACITY`, `ACTIVE`, `DELAYED`, `COMPLETED`, `CANCELLED`, `IMPOUNDED` |
+| `DELAYED` | `AWAITING_CAPACITY`, `ACTIVE`, `HALTED`, `COMPLETED`, `CANCELLED`, `IMPOUNDED` |
+| `ACCELERATED` | `AWAITING_CAPACITY`, `ACTIVE`, `HALTED`, `DELAYED`, `COMPLETED`, `CANCELLED`, `IMPOUNDED` |
+| `IMPOUNDED` | `ACTIVE`, `COMPLETED`, `CANCELLED` |
+| `COMPLETED` | (none — terminal) |
+| `CANCELLED` | (none — terminal) |
+
+**Interim allowance (to be tightened by `INC-8`).** `PLANNED → ACTIVE` and
+`PLANNED → COMPLETED` exist only because the engine currently skips the
+authorization step. When `INC-8` lands the `PLANNED → AUTHORIZED → ACTIVE` gate,
+those two edges MUST be removed from the table and from this ADR; a direct
+`PLANNED → ACTIVE` or `PLANNED → COMPLETED` will then fail with
+`INVALID_DOCKYARD_PROJECT_TRANSITION`.
+
 ### 2. Existing status writes go through the table
 
 The funding path (`constructionFunding.ts`, `economyPhases.ts`) and the
