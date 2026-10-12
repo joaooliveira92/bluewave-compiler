@@ -43,5 +43,9 @@ linux:
   artifactName: ${name}-${version}.${ext}
   target:
     - AppImage
+  # Without this, electron-builder derives the executable name from the scoped
+  # package name (`@bluewave/desktop` -> `@bluewavedesktop`), which the AppImage
+  # tool rejects as unsafe in a file path.
+  executableName: bluewave
   category: Utility
   maintainer: bluewave@example.com
