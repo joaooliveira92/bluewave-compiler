@@ -51,10 +51,11 @@ export function syncSkillLinks(options = {}) {
 
   for (const name of names) {
     const linkPath = join(claudeDir, name);
-    // POSIX-style target so the link (and its stored text) is identical on every
-    // OS; Windows resolves "/" in symlink targets, and the cross-OS gate compares
-    // the raw target string.
+    // Compare separator-agnostically: the target is written POSIX-style so the
+    // link is identical on every OS, but Windows `readlink` normalizes it back to
+    // backslashes, so the raw strings differ by platform.
     const expectedTarget = relative(claudeDir, join(agentsDir, name)).split(sep).join("/");
+    const toPosix = (p) => p.split(sep).join("/");
 
     let stats;
     try {
@@ -78,7 +79,7 @@ export function syncSkillLinks(options = {}) {
       continue;
     }
 
-    if (readlinkSync(linkPath) === expectedTarget) {
+    if (toPosix(readlinkSync(linkPath)) === expectedTarget) {
       result.present.push(name);
       continue;
     }

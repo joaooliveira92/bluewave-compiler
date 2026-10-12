@@ -17,6 +17,9 @@ import { test } from "node:test";
 
 import { syncSkillLinks } from "../link-claude-skills.mjs";
 
+/** Windows `readlink` returns a backslash target; compare in POSIX form. */
+const posix = (p) => p.replace(/\\/gu, "/");
+
 /** Build a throwaway root with three skills under `.agents/skills`. */
 function scaffold(t) {
   const root = mkdtempSync(join(tmpdir(), "link-claude-skills-"));
@@ -36,7 +39,7 @@ void test("creates a relative symlink for every skill on a fresh tree", (t) => {
 
   assert.deepEqual(result.created, ["implement", "resolving-merge-conflicts", "tdd"]);
   assert.deepEqual(result.missing, []);
-  assert.equal(readlinkSync(join(claudeDir, "implement")), "../../.agents/skills/implement");
+  assert.equal(posix(readlinkSync(join(claudeDir, "implement"))), "../../.agents/skills/implement");
 });
 
 void test("is idempotent — a second run only reports present", (t) => {
@@ -56,7 +59,7 @@ void test("repairs a link pointing somewhere else", (t) => {
 
   const result = syncSkillLinks({ root });
   assert.deepEqual(result.repaired, ["implement"]);
-  assert.equal(readlinkSync(join(claudeDir, "implement")), "../../.agents/skills/implement");
+  assert.equal(posix(readlinkSync(join(claudeDir, "implement"))), "../../.agents/skills/implement");
 });
 
 void test("leaves a real file/dir in place (never clobbers)", (t) => {
@@ -66,7 +69,7 @@ void test("leaves a real file/dir in place (never clobbers)", (t) => {
 
   const result = syncSkillLinks({ root });
   assert.ok(result.skipped.includes("implement"));
-  assert.equal(readlinkSync(join(claudeDir, "tdd")), "../../.agents/skills/tdd");
+  assert.equal(posix(readlinkSync(join(claudeDir, "tdd"))), "../../.agents/skills/tdd");
 });
 
 void test("--check reports missing links without touching the tree", (t) => {
