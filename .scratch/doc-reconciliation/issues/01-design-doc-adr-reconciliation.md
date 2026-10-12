@@ -1,9 +1,9 @@
 # 01 — Reconcile the canonical design docs with the ADR record
 
 **Type:** task
-**Status:** open
+**Status:** resolved
 **Blocked by:** none
-**Frontier:** yes
+**Frontier:** no
 
 ## Problem
 
@@ -88,3 +88,14 @@ still referenced by the active roles/commands, so they were **not** marked super
 - No unlabelled doc from the legacy-bootstrap set remains.
 
 ## Comments
+
+## Answer (2026-10-12, production-hardening WS7)
+
+Re-verified: `scripts/docs-check.cjs` (in `pnpm preflight`) fails on any ADR that
+references a `DESIGN-N` but is classified in neither section of
+`docs/adr/AMENDMENTS.md`, and on drift between that table and each DESIGN doc's
+`> **Amended by:**` header. All 25 DESIGN-referencing ADRs are classified and the
+gate is green (`pnpm preflight` 12/12), so a new amendment cannot land
+unrecorded. Behaviour-changing ADRs that map to no DESIGN doc are recorded under
+AMENDMENTS.md's "Scope and process (no design change)" section rather than left
+unmanaged.
