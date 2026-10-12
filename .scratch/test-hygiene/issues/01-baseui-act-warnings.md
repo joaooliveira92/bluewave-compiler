@@ -1,7 +1,7 @@
 # INC-1 — Silence base-ui HoverCard `act()` warnings in DrawingBoard tests
 
 **Type:** task
-**Status:** open
+**Status:** resolved
 **Blocked by:** none
 **Frontier:** yes
 
@@ -36,3 +36,22 @@ pnpm --filter @bluewave/desktop exec vp test run \
   warning with a documented reason (last resort).
 
 Do not silence all console errors globally; the goal is a clean stderr, not a muted one.
+
+## Answer
+
+Fixed with the first direction: `sections.aggregate.test.tsx` now runs under fake
+timers (`setTimeout`, `requestAnimationFrame`) for the duration of the file.
+`tabTo` and the direct focus/close interactions advance the base-ui open/close
+delay inside `act`, and an `afterEach` drains any straggler timers inside `act`
+before unmount. `findBy*`/`expect.poll`/`waitFor` were replaced with synchronous
+assertions once the flush makes the state deterministic.
+
+Result: the file's stderr is clean — `grep -c "not wrapped in act"` drops from
+109 to 0 — with all 15 tests still passing:
+
+```
+pnpm --filter @bluewave/desktop exec vp test run \
+  src/renderer/screens/construction/drawing-board/panels/hull-plan/sections.aggregate.test.tsx
+```
+
+No global console silencing was added.

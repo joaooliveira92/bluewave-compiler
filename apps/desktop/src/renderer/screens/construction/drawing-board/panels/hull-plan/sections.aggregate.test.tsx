@@ -2,18 +2,35 @@
  * Aggregate test for the section strip and card (metadata, derived facts, labels, card), which all read one
  * fixture. Per-module tests live beside each module; add focused cases there, not here.
  */
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vite-plus/test";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { buildWorkshopView, type DesignDraft, type WorkshopView } from "@bluewave/ship-design";
 import { loadDrawingBoardContent } from "../../content.js";
 import { DrawingBoard } from "../../DrawingBoard.js";
 import { openPlanDisplay, openTab } from "../../test-helpers.js";
 import { bowStyleFor, planFrame, sternStyleFor, stationX, PLAN_W } from "./geometry.js";
 import { SectionCard, type SectionCardContext } from "./SectionCard.js";
-import { SectionLabels } from "./SectionLabels.js";
+import { SECTION_CLOSE_DELAY, SECTION_OPEN_DELAY, SectionLabels } from "./SectionLabels.js";
 import { SECTION_IDS, SECTIONS, sectionFacts, sectionSpan } from "./sections.js";
 
-afterEach(cleanup);
+/**
+ * The hull-plan section strip uses base-ui's hover card, whose open/close runs on
+ * a timer and whose floating-ui positioner repositions on rAF. Under real timers
+ * those callbacks fire after the tests' synchronous events, so React warns that
+ * updates were not wrapped in `act` (hundreds of lines per run). Fake timers make
+ * the flush deterministic: hover interactions advance the delay inside `act`, and
+ * any stragglers are drained in `afterEach` before unmount (test-hygiene INC-1).
+ */
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "requestAnimationFrame"] });
+});
+afterEach(async () => {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(SECTION_OPEN_DELAY + SECTION_CLOSE_DELAY + 40);
+  });
+  vi.useRealTimers();
+  cleanup();
+});
 
 const content = loadDrawingBoardContent();
 const ref = content.references[0]!;
@@ -47,10 +64,13 @@ const strip = () => screen.getByRole("group", { name: "Hull sections" });
 const label = (name: string) => within(strip()).getByRole("button", { name });
 const card = () => document.querySelector<HTMLElement>("[data-testid='section-card']");
 const highlight = () => document.querySelector("[data-testid='section-highlight']");
-/** Keyboard focus as a user tabbing in produces it (a key press first, so focus counts as keyboard focus). */
-const tabTo = (el: HTMLElement) => {
+/** Keyboard focus as a user tabbing in produces it, flushed through the hover open delay inside `act`. */
+const tabTo = async (el: HTMLElement) => {
   fireEvent.keyDown(document.body, { key: "Tab" });
-  act(() => el.focus());
+  await act(async () => {
+    el.focus();
+    await vi.advanceTimersByTimeAsync(SECTION_OPEN_DELAY + 1);
+  });
 };
 
 describe("section metadata", () => {
@@ -125,16 +145,19 @@ describe("section cards", () => {
 });
 
 describe("section labels on the hull plan", () => {
-  it("renders all eight sections as keyboard-reachable buttons named in full", () => {
+  it("renders all eight sections as keyboard-reachable buttons named in full", async () => {
     render(<DrawingBoard />);
     const buttons = within(strip()).getAllByRole("button");
     expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual(NAMES);
-    for (const b of buttons) {
-      expect(b.tagName).toBe("BUTTON");
-      expect(b.tabIndex).toBe(0);
-      act(() => b.focus());
-      expect(document.activeElement).toBe(b);
-    }
+    await act(async () => {
+      for (const b of buttons) {
+        expect(b.tagName).toBe("BUTTON");
+        expect(b.tabIndex).toBe(0);
+        b.focus();
+        expect(document.activeElement).toBe(b);
+      }
+      await vi.advanceTimersByTimeAsync(SECTION_OPEN_DELAY + 1);
+    });
   });
 
   it("aligns each label with its section's span of the drawing", () => {
@@ -164,20 +187,23 @@ describe("section labels on the hull plan", () => {
 
   it("opens the section's card on keyboard focus and highlights the section on the plan", async () => {
     render(<DrawingBoard />);
-    tabTo(label("Forward magazine"));
-    await screen.findByRole("heading", { name: "Forward magazine" });
+    await tabTo(label("Forward magazine"));
+    screen.getByRole("heading", { name: "Forward magazine" });
     expect(card()!.dataset["section"]).toBe("forward-magazine");
     expect(highlight()?.getAttribute("data-zone")).toBe("FWD_MAGAZINE");
-    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
-    await expect.poll(() => highlight()).toBeNull();
+    await act(async () => {
+      fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+      await vi.advanceTimersByTimeAsync(SECTION_CLOSE_DELAY + 1);
+    });
+    expect(highlight()).toBeNull();
   });
 
   it("swaps to the next section's content when focus moves along the strip", async () => {
     render(<DrawingBoard />);
-    tabTo(label("Forecastle"));
-    await screen.findByRole("heading", { name: "Forecastle" });
-    tabTo(label("Forward magazine"));
-    await screen.findByRole("heading", { name: "Forward magazine" });
+    await tabTo(label("Forecastle"));
+    screen.getByRole("heading", { name: "Forecastle" });
+    await tabTo(label("Forward magazine"));
+    screen.getByRole("heading", { name: "Forward magazine" });
     expect(screen.queryByRole("heading", { name: "Forecastle" })).toBeNull();
     expect(document.querySelectorAll("[data-testid='section-card']")).toHaveLength(1);
     expect(highlight()?.getAttribute("data-zone")).toBe("FWD_MAGAZINE");
@@ -199,8 +225,8 @@ describe("section labels on the hull plan", () => {
 
   it("renders the card outside the Drawing Board, so no panel overflow can clip it", async () => {
     render(<DrawingBoard />);
-    tabTo(label("Superstructure"));
-    await expect.poll(() => card()?.dataset["section"]).toBe("superstructure");
+    await tabTo(label("Superstructure"));
+    expect(card()?.dataset["section"]).toBe("superstructure");
     expect(screen.getByTestId("drawing-board").contains(card())).toBe(false);
   });
 
@@ -211,14 +237,17 @@ describe("section labels on the hull plan", () => {
     fireEvent.click(screen.getByLabelText("Show gun arcs"));
     // Close the display popover (it hands focus back to its trigger) before tabbing to a label.
     fireEvent.click(screen.getByRole("button", { name: "Plan display" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Plan display" })).toBeNull());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(SECTION_OPEN_DELAY + 1);
+    });
+    expect(screen.queryByRole("dialog", { name: "Plan display" })).toBeNull();
     for (const tab of ["Arrangement", "Analysis", "Build", "History and files"]) {
       openTab(tab);
       expect(screen.getByRole("img", { name: /Top-down plan/ })).toBe(drawing);
       expect(drawing.querySelectorAll("[data-arc]")).toHaveLength(0);
     }
-    tabTo(label("Aft service"));
-    await expect.poll(() => card()?.dataset["section"]).toBe("aft-service");
+    await tabTo(label("Aft service"));
+    expect(card()?.dataset["section"]).toBe("aft-service");
     expect(screen.getByRole("button", { name: "Place on plan" })).toBeTruthy();
   });
 });
