@@ -359,11 +359,22 @@ EXIT 0 (e2e 33); single-copy and renderer-bundle guards green; rollback point
 `88de12f9` (Wave 2 exit). **Wave 3 COMPLETE.** Next action: **tickets 24 and 26**
 (Wave 4 — `commands` typed errors; `combat` residual), then 29, 30 (with the
 ADR-0100 table amendment), 33 (Wave 4 exit), continuing the frontier per
-`.ai/ORCHESTRATION.md`. Vendor
-the Effect v4 runtime as first-class pnpm workspace packages
-(no registry resolution), enforce the single-copy graph invariant, migrate every Zod boundary
-to Effect Schema, and flip cross-package facades to Effect-typed interfaces; determinism-gate
-drift is recorded via ADR, never a blocker (ticket 05).
+`.ai/ORCHESTRATION.md`. **EFFECT-V4 MIGRATION COMPLETE 2026-10-12.** Wave 4: 24
+(`e5bb77f1`), 26 (`2e668e99`), 29 (`ca0ea1d2`), 30 (`a2cc02eb`); gate 33 PASS
+(`.ai/reports/effect-v4-wave4-exit-gate.md`). Wave 5 (34–38) **resolved as a
+documented decision — ADR-0128**: facade flips are barred by renderer
+reachability (`MIG-EXCL-1`/ADR-0125) and the blind-wrapping prohibition
+(ADR-0100 §2); no `ManagedRuntime`/`runPromise` facade is introduced (no
+composable async service graph). Final acceptance 37 + Wave 5 gate 38 PASS
+(`.ai/reports/effect-v4-final-acceptance.md`): `pnpm check` EXIT 0 (e2e 33),
+packaged Electron smoke 14/14, cross-process hashes unchanged, 127 ADRs. All
+tickets 00–38 `done`/`resolved`; `dev` is a release-boundary candidate. The
+effort vendored the Effect v4 runtime as first-class pnpm workspace packages (no
+registry resolution), enforced the single-copy graph invariant, migrated every
+Zod boundary to Effect Schema, and typed the engine's throw sites with
+runtime-free `Data.TaggedError`; determinism-gate drift was recorded via ADR,
+never a blocker (ticket 05). The cross-package "facade flip" was declined under
+ADR-0128.
 
 **P-1 CLOSE-OUT / ACCEPTANCE GATE — DONE 2026-10-09 — PASS.** All 12 tickets (01–12; 05 superseded by 07) and AC-1..AC-8 are proven. Full orchestrator gate green: clean uncached build 19/19, typecheck (`tsc -b`) 35/35, lint 0/0, format clean, `pnpm test:run` EXIT=0 (18 package suites; desktop 194 files/1302 tests), golden hashes 10/10, `test:cross-process` `success:true`, `test:e2e` 24 passed. AC-7 proves campaign reachability from a compiled production-pack battle (`production-pack-loop.test.ts`); AC-3 proves the as-built 1880-roster fits; AC-8 is the torpedo-armed battle-resolution child. The gate also repaired a **pre-existing** committed regression (commit `84184d9` had deleted the dossier nation-name heading and commented out `DossierControls`, failing lint/format/4 tests); repaired behaviour-preservingly. Report `.ai/reports/p1-battles-that-matter-acceptance.md`.
 

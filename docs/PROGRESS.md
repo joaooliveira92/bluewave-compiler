@@ -771,6 +771,20 @@ throughout. Pre-existing unrelated failures: `content-schema/test/nation.test.ts
 > rollback point `88de12f9` (Wave 2 exit). Report:
 > `.ai/reports/effect-v4-wave3-exit-gate.md`. Next: **tickets 24 and 26** (Wave 4
 > — `commands` typed errors; `combat` residual), then 29, 30, 33.
+>
+> **EFFECT-V4 MIGRATION COMPLETE (2026-10-12).** Waves 4 and 5 closed. Wave 4:
+> 24 (`commands`, `e5bb77f1`), 26 (`combat` residual, `2e668e99`), 29 (`ai`,
+> `ca0ea1d2`), 30 (`phase-engine` + the ADR-0100 runtime-table amendment,
+> `a2cc02eb`); exit gate 33 **PASS** (`.ai/reports/effect-v4-wave4-exit-gate.md`).
+> Wave 5 (34–38): **resolved as a documented decision, ADR-0128** — cross-package
+> facade flips are barred by renderer reachability (`MIG-EXCL-1`/ADR-0125) and the
+> blind-wrapping prohibition (ADR-0100 §2), and no `ManagedRuntime`/`runPromise`
+> facade is introduced because `src/main` and `compiler-cli` are synchronous
+> `node:fs` pipelines with no composable async service graph. Final acceptance 37
+> and Wave 5 exit gate 38 **PASS** (`.ai/reports/effect-v4-final-acceptance.md`):
+> `pnpm check` EXIT 0 (e2e 33), packaged Electron smoke 14/14, cross-process
+> hashes unchanged, renderer bundle clean, 127 ADRs. All tickets 00–38 are
+> `done`/`resolved`; the `dev` branch is a release-boundary candidate.
 
 ---
 
