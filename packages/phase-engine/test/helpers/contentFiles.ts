@@ -1,10 +1,24 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { NationNavalProfile, RawReferenceDesign } from "@bluewave/ship-design";
+import {
+  decodeStrict,
+  PropulsionPlantCatalogueSchema,
+  ShipComponentCatalogueSchema,
+  ShipHullFormCatalogueSchema,
+} from "@bluewave/content-schema";
+import {
+  buildShipBuildingContent,
+  type NationNavalProfile,
+  type RawReferenceDesign,
+  type ShipBuildingContent,
+  type ShipBuildingData,
+} from "@bluewave/ship-design";
 import { parse } from "yaml";
 
 const root = join(__dirname, "..", "..", "..", "..", "content", "production", "1880");
 const sbDir = join(root, "ship-building");
+
+const loadRaw = (rel: string): unknown => parse(readFileSync(join(root, rel), "utf8"));
 
 /** Naval profiles live one file per nation under `ship-building/naval-profiles/` (ADR-0109). */
 export const readNavalProfileEntries = (): NationNavalProfile[] =>
@@ -36,3 +50,38 @@ export const readReferenceDesignEntries = (): RawReferenceDesign[] =>
           : [];
       }),
     );
+
+/**
+ * The production ship-building data (SB-3 WS2), typed and with no `as unknown`
+ * bridge: the component/plant/hull-form catalogues are decoded through their
+ * content schemas, so the only casts are the single `as` the parsed balance and
+ * technology mappings need. One builder for every phase-engine suite that wants
+ * real 1880 content.
+ */
+export function productionShipBuildingData(
+  options: { readonly navalProfiles?: boolean } = {},
+): ShipBuildingData {
+  return {
+    components: decodeStrict(ShipComponentCatalogueSchema, loadRaw("ship-building/components.yaml"))
+      .components,
+    plants: decodeStrict(PropulsionPlantCatalogueSchema, loadRaw("ship-building/plants.yaml"))
+      .plants,
+    hullForms: decodeStrict(ShipHullFormCatalogueSchema, loadRaw("ship-building/hull-forms.yaml"))
+      .hullForms,
+    balance: loadRaw("ship-building/balance.yaml") as ShipBuildingData["balance"],
+    technologies: loadRaw("technologies.yaml") as ShipBuildingData["technologies"],
+    ...(options.navalProfiles ? { navalProfiles: readNavalProfileEntries() } : {}),
+  };
+}
+
+/**
+ * The production ship-building content. `withStudyRules` is off by default so a
+ * submitted design is approved the same month (the fixtures' assumption; study
+ * rules themselves are exercised in design-study.test.ts, ADR-0085).
+ */
+export function productionShipBuildingContent(
+  options: { readonly navalProfiles?: boolean; readonly withStudyRules?: boolean } = {},
+): ShipBuildingContent {
+  const content = buildShipBuildingContent(productionShipBuildingData(options));
+  return options.withStudyRules ? content : { ...content, study: null };
+}

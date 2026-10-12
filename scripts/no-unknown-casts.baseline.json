@@ -360,13 +360,10 @@
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
   "packages/phase-engine/test/construction-order.test.ts": {
-    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 3
+    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
   "packages/phase-engine/test/construction-packages.test.ts": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 4
-  },
-  "packages/phase-engine/test/design-study.test.ts": {
-    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 2
   },
   "packages/phase-engine/test/national-construction.test.ts": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
@@ -375,16 +372,13 @@
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 4
   },
   "packages/phase-engine/test/revise-project.test.ts": {
-    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 3
-  },
-  "packages/phase-engine/test/ship-type-enforcement.test.ts": {
-    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 2
+    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
   "packages/phase-engine/test/snapshotClone.test.ts": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
   "packages/phase-engine/test/submit-design.test.ts": {
-    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 5
+    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 3
   },
   "packages/ship-design/src/componentVariants.ts": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1

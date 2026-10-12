@@ -1,62 +1,22 @@
 // ADR-0066: SubmitDesign - authoritative component-level design compile at month application.
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { CampaignSnapshot } from "@bluewave/campaign";
 import type { CommandBody, CommandEnvelope } from "@bluewave/commands";
 import { CommandLifecycle } from "@bluewave/commands";
-import {
-  decodeStrict,
-  PropulsionPlantCatalogueSchema,
-  ShipComponentCatalogueSchema,
-  ShipHullFormCatalogueSchema,
-} from "@bluewave/content-schema";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-import {
-  buildShipBuildingContent,
-  buildWorkshopView,
-  treasuryCostUnits,
-  type DesignDraft,
-  type ComponentDef,
-  type HullFormRecord,
-  type PropulsionPlant,
-  type ShipBuildingData,
-} from "@bluewave/ship-design";
-import { parse } from "yaml";
+import { buildWorkshopView, treasuryCostUnits, type DesignDraft } from "@bluewave/ship-design";
 import { describe, expect, it } from "vite-plus/test";
 import { MonthExecutor } from "../src/index.js";
 import { ATTACKER_NATION, makeBattleSnapshot } from "./battle-fixtures.js";
 
-import { readReferenceDesignEntries } from "./helpers/contentFiles.js";
+import {
+  productionShipBuildingContent,
+  readReferenceDesignEntries,
+} from "./helpers/contentFiles.js";
 
-const root = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-  "..",
-  "content",
-  "production",
-  "1880",
-);
-const load = (rel: string) =>
-  parse(readFileSync(join(root, rel), "utf8")) as Record<string, unknown>;
-const data: ShipBuildingData = {
-  components: decodeStrict(ShipComponentCatalogueSchema, load("ship-building/components.yaml"))
-    .components as ComponentDef[],
-  plants: decodeStrict(PropulsionPlantCatalogueSchema, load("ship-building/plants.yaml"))
-    .plants as unknown as PropulsionPlant[],
-  hullForms: decodeStrict(ShipHullFormCatalogueSchema, load("ship-building/hull-forms.yaml"))
-    .hullForms as HullFormRecord[],
-  balance: load("ship-building/balance.yaml") as unknown as ShipBuildingData["balance"],
-  technologies: parse(readFileSync(join(root, "technologies.yaml"), "utf8")) as {
-    id: string;
-    year: number;
-  }[],
-};
 // Without study rules a submitted design is approved the same month, which these tests rely on; studies themselves are
 // covered in design-study.test.ts (ADR-0085).
-const content = { ...buildShipBuildingContent(data), study: null };
+const content = productionShipBuildingContent();
 const reference = readReferenceDesignEntries();
 const havockDraft: Record<string, unknown> = {
   ...reference.find((d) => d.id === "havock_like")!.draft,
