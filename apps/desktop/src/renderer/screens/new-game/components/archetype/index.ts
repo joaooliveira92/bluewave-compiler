@@ -14,6 +14,10 @@ export {
   isCustomDeckIndex,
   type ArchetypeDeckPaneProps,
 } from "./ArchetypeDeckPane.js";
-export { ArchetypeDetailPanel, type ArchetypeDetailPanelProps } from "./ArchetypeDetailPanel.js";
+export {
+  ArchetypeDetailPanel,
+  type ArchetypeDetailEditor,
+  type ArchetypeDetailPanelProps,
+} from "./ArchetypeDetailPanel.js";
 export { ArchetypeEmptyPreview } from "./ArchetypeEmptyPreview.js";
 export { ArchetypePresetCard } from "./ArchetypePresetCard.js";

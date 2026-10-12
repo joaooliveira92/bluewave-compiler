@@ -243,4 +243,163 @@ describe("NewGameArchetypeScreen", () => {
 
     expect(onBack).toHaveBeenCalledTimes(1);
   });
+
+  describe("inline custom allocator", () => {
+    /** Focus the custom slot (the deck's last card, one step left of the first). */
+    function focusCustomSlot(): void {
+      fireEvent.keyDown(archetypeListbox(), { key: "ArrowLeft" });
+    }
+
+    function press(name: string): void {
+      fireEvent.click(screen.getByRole("button", { name }));
+    }
+
+    function sliderValues(): string[] {
+      return screen.getAllByRole("slider").map((el) => (el as HTMLInputElement).value);
+    }
+
+    it("shows three editable, labelled sliders inline, with no dialog", () => {
+      setupUi();
+      focusCustomSlot();
+
+      const sliders = screen.getAllByRole("slider");
+      expect(sliders.map((el) => el.getAttribute("aria-label"))).toEqual([
+        "Economy allocation",
+        "Industry allocation",
+        "Combat allocation",
+      ]);
+      expect(sliders.every((el) => (el as HTMLInputElement).disabled === false)).toBe(true);
+      expect(within(detailPanel("Create Your Own")).getByText("Budget used")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Reset" })).toBeTruthy();
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("keeps the allocator and its live consequence preview in the focused panel", () => {
+      setupUi();
+      focusCustomSlot();
+
+      const panel = detailPanel("Create Your Own");
+      expect(within(panel).getByText("Consequences")).toBeTruthy();
+      expect(within(panel).getByText("Balanced")).toBeTruthy();
+
+      press("Increase Combat");
+      press("Decrease Economy");
+
+      expect(within(panel).getByText("Custom build")).toBeTruthy();
+    });
+
+    it("moves focus into the allocator on Enter, applying nothing", () => {
+      const { getPrimary } = setupUi();
+      focusCustomSlot();
+
+      fireEvent.keyDown(archetypeListbox(), { key: "Enter" });
+
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(document.activeElement).toBe(screen.getByRole("slider", { name: "Economy allocation" }));
+      expect(archetypeOption("Create Your Own").getAttribute("aria-selected")).toBe("false");
+      expect(getPrimary()?.label).toBe("Select");
+    });
+
+    it("blocks committing an invalid allocation and shows why", () => {
+      const { getPrimary } = setupUi();
+      focusCustomSlot();
+      press("Increase Combat");
+      press("Increase Combat");
+
+      expect(getPrimary()?.disabled).toBe(true);
+
+      fireEvent.click(screen.getAllByText("22 / 20")[0]!);
+      expect(screen.getByText("Allocation needs fixing")).toBeTruthy();
+      expect(screen.getByText(/allocation totals 22, expected 20/)).toBeTruthy();
+    });
+
+    it("permits committing once the allocation is corrected", () => {
+      const { getPrimary } = setupUi();
+      focusCustomSlot();
+      press("Increase Combat");
+      press("Increase Combat");
+      press("Decrease Economy");
+      press("Decrease Economy");
+
+      expect(getPrimary()?.disabled).toBe(false);
+      expect(getPrimary()?.label).toBe("Select");
+    });
+
+    it("resets the allocator to the balanced baseline", () => {
+      setupUi();
+      focusCustomSlot();
+      press("Increase Combat");
+      expect(sliderValues()).toEqual(["7", "7", "7"]);
+
+      press("Reset");
+
+      expect(sliderValues()).toEqual(["7", "7", "6"]);
+    });
+
+    it("applies a valid custom build on the primary action and reads Active", () => {
+      const { getPrimary, onNext } = setupUi();
+      focusCustomSlot();
+      press("Increase Combat");
+      press("Decrease Economy");
+
+      act(() => getPrimary()?.onTrigger());
+
+      expect(onNext).not.toHaveBeenCalled();
+      expect(archetypeOption("Create Your Own").getAttribute("aria-selected")).toBe("true");
+      expect(within(detailPanel("Create Your Own")).getByText("Active")).toBeTruthy();
+      expect(appliedArchetype()).toBe("Custom");
+      expect(getPrimary()?.label).toBe("Choose Nation");
+
+      act(() => getPrimary()?.onTrigger());
+
+      expect(onNext).toHaveBeenCalledTimes(1);
+      expect(onNext).toHaveBeenCalledWith({
+        kind: "custom",
+        allocation: { economy: 6, industry: 7, combat: 7 },
+      });
+    });
+
+    it("re-offers Select when an applied custom build is edited", () => {
+      const { getPrimary } = setupUi({
+        kind: "custom",
+        allocation: { economy: 8, industry: 6, combat: 6 },
+      });
+      expect(getPrimary()?.label).toBe("Choose Nation");
+      expect(sliderValues()).toEqual(["8", "6", "6"]);
+
+      press("Decrease Economy");
+      press("Increase Industry");
+
+      expect(getPrimary()?.label).toBe("Select");
+      expect(within(detailPanel("Create Your Own")).getByText("Applies on Next")).toBeTruthy();
+
+      act(() => getPrimary()?.onTrigger());
+
+      expect(getPrimary()?.label).toBe("Choose Nation");
+      expect(within(detailPanel("Create Your Own")).getByText("Active")).toBeTruthy();
+    });
+
+    it("restores a persisted custom selection focused and Active", () => {
+      setupUi({ kind: "custom", allocation: { economy: 9, industry: 5, combat: 6 } });
+
+      expect(archetypeOption("Create Your Own").getAttribute("aria-selected")).toBe("true");
+      expect(within(detailPanel("Create Your Own")).getByText("Active")).toBeTruthy();
+      expect(sliderValues()).toEqual(["9", "5", "6"]);
+    });
+
+    it("switches back to a preset without losing the working build", () => {
+      const { getPrimary } = setupUi();
+      focusCustomSlot();
+      press("Increase Combat");
+      press("Decrease Economy");
+
+      fireEvent.keyDown(archetypeListbox(), { key: "ArrowRight" });
+      expect(detailPanel("Merchant Prince")).toBeTruthy();
+      expect(screen.queryAllByRole("slider")).toHaveLength(0);
+
+      fireEvent.keyDown(archetypeListbox(), { key: "ArrowLeft" });
+      expect(sliderValues()).toEqual(["6", "7", "7"]);
+      expect(getPrimary()?.label).toBe("Select");
+    });
+  });
 });

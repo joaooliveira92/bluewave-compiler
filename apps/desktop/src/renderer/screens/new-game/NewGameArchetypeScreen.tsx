@@ -1,28 +1,17 @@
 import {
   ARCHETYPE_DIMENSION_MAX,
   ARCHETYPE_DIMENSION_MIN,
+  ARCHETYPE_DIMENSIONS,
   ARCHETYPE_PRESETS,
   type ArchetypeDimension,
   type ArchetypeSelection,
 } from "@bluewave/campaign-engine";
-import { RotateCcw, Wand2 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../../components/ui/button.js";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../components/ui/dialog.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
-import { buildArchetypeConsequence } from "./archetype-consequence.js";
-import { ArchetypeConsequencePanel } from "./ArchetypeConsequencePanel.js";
 import {
   ARCHETYPE_DECK_ENTRIES,
-  ArchetypeAllocationEditor,
   ArchetypeDeckPane,
   ArchetypeDetailPanel,
   CUSTOM_ARCHETYPE_ID,
@@ -59,16 +48,26 @@ function slotIdAt(index: number): string | null {
   return entry.kind === "custom" ? CUSTOM_ARCHETYPE_ID : entry.id;
 }
 
+function sameAllocation(a: ArchetypeEditorState, b: ArchetypeEditorState): boolean {
+  return ARCHETYPE_DIMENSIONS.every((dimension) => a.allocation[dimension] === b.allocation[dimension]);
+}
+
+function clampDimensionValue(value: number): number {
+  return Math.max(ARCHETYPE_DIMENSION_MIN, Math.min(ARCHETYPE_DIMENSION_MAX, value));
+}
+
 export function NewGameArchetypeScreen({
   initialArchetype,
   onBack,
   onNext,
   onPrimaryActionChange,
 }: NewGameArchetypeScreenProps) {
+  // The applied selection: the only state that becomes `onNext`'s payload.
   const [state, setState] = useState<ArchetypeEditorState>(() =>
     restoreArchetypeEditorState(initialArchetype),
   );
-  const [modalOpen, setModalOpen] = useState(false);
+  // The custom slot's working allocation, edited inline. It becomes the
+  // selection only when the player applies it.
   const [draft, setDraft] = useState<ArchetypeEditorState>(() =>
     state.mode === "custom" ? state : createCustomArchetype(),
   );
@@ -93,51 +92,48 @@ export function NewGameArchetypeScreen({
   const focusedIsCustom = focusedEntry?.kind === "custom";
   const focusedSlotId = focusedIsCustom ? CUSTOM_ARCHETYPE_ID : (focusedPreset?.id ?? null);
 
-  const hasSelection = appliedId !== null;
-  const needsSelect = pendingSlotId !== null && pendingSlotId !== appliedId;
+  const customApplied = state.mode === "custom";
+  // An applied custom build whose working allocation has since been edited.
+  const customDirty = customApplied && !sameAllocation(draft, state);
   const draftValid = isAllocationValid(draft);
+
+  const hasSelection = appliedId !== null;
+  const needsSelect =
+    pendingSlotId !== null &&
+    (pendingSlotId !== appliedId || (pendingSlotId === CUSTOM_ARCHETYPE_ID && customDirty));
+  const customBlocked = needsSelect && pendingSlotId === CUSTOM_ARCHETYPE_ID && !draftValid;
 
   const appliedName =
     state.mode === "preset"
       ? (ARCHETYPE_PRESETS.find((preset) => preset.id === state.selectedPresetId)?.name ?? "Custom")
       : "Custom";
 
-  const draftConsequence = useMemo(
-    () => buildArchetypeConsequence(draft.allocation),
-    [draft.allocation],
-  );
+  // Enter or a tap on the custom card reveals the allocator and moves focus
+  // into it. The request is a counter so repeating it refocuses.
+  const detailRef = useRef<HTMLElement | null>(null);
+  const [allocatorFocusRequest, setAllocatorFocusRequest] = useState(0);
+  useEffect(() => {
+    if (allocatorFocusRequest === 0) return;
+    detailRef.current?.querySelector<HTMLInputElement>('input[type="range"]')?.focus();
+  }, [allocatorFocusRequest]);
 
   const onFocusIndex = useCallback((index: number) => {
     setFocusOverride(index);
     setPendingSlotId(slotIdAt(index));
   }, []);
 
-  const openCustomEditor = useCallback(() => {
-    setDraft((current) => (state.mode === "custom" ? state : current));
-    setModalOpen(true);
-  }, [state]);
-
-  const onActivateIndex = useCallback(
-    (index: number) => {
-      const entry = ARCHETYPE_DECK_ENTRIES[index];
-      if (entry === undefined) return;
-      setFocusOverride(index);
-      if (entry.kind === "custom") {
-        setPendingSlotId(CUSTOM_ARCHETYPE_ID);
-        openCustomEditor();
-        return;
-      }
-      setPendingSlotId(null);
-      setState((current) => selectPreset(current, entry.id));
-    },
-    [openCustomEditor],
-  );
-
-  const commitCustom = useCallback(() => {
-    setState({ ...createCustomArchetype(), allocation: { ...draft.allocation } });
+  const onActivateIndex = useCallback((index: number) => {
+    const entry = ARCHETYPE_DECK_ENTRIES[index];
+    if (entry === undefined) return;
+    setFocusOverride(index);
+    if (entry.kind === "custom") {
+      setPendingSlotId(CUSTOM_ARCHETYPE_ID);
+      setAllocatorFocusRequest((request) => request + 1);
+      return;
+    }
     setPendingSlotId(null);
-    setModalOpen(false);
-  }, [draft.allocation]);
+    setState((current) => selectPreset(current, entry.id));
+  }, []);
 
   const handleNext = useCallback(() => {
     if (needsSelect && pendingSlotId !== null) {
@@ -154,7 +150,6 @@ export function NewGameArchetypeScreen({
     onNext(editorToSelection(state));
   }, [needsSelect, pendingSlotId, draftValid, draft.allocation, hasSelection, state, onNext]);
 
-  const customBlocked = needsSelect && pendingSlotId === CUSTOM_ARCHETYPE_ID && !draftValid;
   const primaryAction = useMemo(
     () => ({
       label: needsSelect ? "Select" : "Choose Nation",
@@ -166,18 +161,31 @@ export function NewGameArchetypeScreen({
   usePrimaryAction(primaryAction, onPrimaryActionChange);
 
   const handleReset = useCallback(() => {
+    setPendingSlotId(CUSTOM_ARCHETYPE_ID);
     setDraft((current) => resetCustomAllocation(current));
   }, []);
 
   const handleDimensionChange = useCallback((dimension: ArchetypeDimension, value: number) => {
-    const clamped = clampDimensionValue(value);
-    setDraft((current) => setDimension(current, dimension, clamped));
+    setPendingSlotId(CUSTOM_ARCHETYPE_ID);
+    setDraft((current) => setDimension(current, dimension, clampDimensionValue(value)));
   }, []);
 
-  const customApplied = state.mode === "custom";
-  const customAllocation = customApplied ? state.allocation : null;
-  const panelAllocation = focusedPreset?.allocation ?? customAllocation ?? draft.allocation;
-  const panelApplied = focusedSlotId !== null && focusedSlotId === appliedId;
+  const editor = useMemo(
+    () => ({
+      points: usedPoints(draft),
+      errors: allocationErrors(draft),
+      onDimensionChange: handleDimensionChange,
+      onReset: handleReset,
+    }),
+    [draft, handleDimensionChange, handleReset],
+  );
+
+  const panelAllocation = focusedPreset?.allocation ?? draft.allocation;
+  const panelApplied =
+    focusedSlotId !== null &&
+    focusedSlotId === appliedId &&
+    !(focusedIsCustom && customDirty);
+  const panelPending = focusedSlotId !== null && pendingSlotId === focusedSlotId && !panelApplied;
 
   return (
     <NewGameScreenLayout fullBleed>
@@ -188,10 +196,11 @@ export function NewGameArchetypeScreen({
           onActivateIndex={onActivateIndex}
           appliedPresetId={state.mode === "preset" ? state.selectedPresetId : null}
           customApplied={customApplied}
-          customAllocation={customAllocation}
+          customAllocation={customApplied ? state.allocation : null}
         />
 
         <section
+          ref={detailRef}
           aria-label="Archetype details"
           className="themed-scrollbar relative z-10 min-w-0 flex-1 lg:h-full lg:overflow-y-auto"
         >
@@ -205,9 +214,8 @@ export function NewGameArchetypeScreen({
               entry={focusedPreset === undefined ? {} : { preset: focusedPreset }}
               allocation={panelAllocation}
               applied={panelApplied}
-              pending={
-                focusedSlotId !== null && pendingSlotId === focusedSlotId && !panelApplied
-              }
+              pending={panelPending}
+              editor={focusedIsCustom ? editor : undefined}
             />
 
             <div className="flex justify-between">
@@ -218,65 +226,6 @@ export function NewGameArchetypeScreen({
           </div>
         </section>
       </div>
-
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="flex h-[96vh] w-[98vw] max-w-none flex-col gap-3 overflow-hidden p-4">
-          <DialogHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted/40">
-                <Wand2 className="h-5 w-5 text-primary" />
-              </div>
-              <div className="space-y-1.5">
-                <DialogTitle>Create your own archetype</DialogTitle>
-                <DialogDescription>
-                  Distribute exactly 20 points across economy, industry, and combat.
-                </DialogDescription>
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 text-xs"
-              onClick={handleReset}
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Reset
-            </Button>
-          </DialogHeader>
-
-          <div className="themed-scrollbar grid min-h-0 flex-1 grid-cols-1 gap-6 overflow-y-auto lg:grid-cols-2">
-            <div className="min-w-0 space-y-4">
-              <ArchetypeAllocationEditor
-                allocation={draft.allocation}
-                points={usedPoints(draft)}
-                errors={allocationErrors(draft)}
-                onDimensionChange={handleDimensionChange}
-              />
-            </div>
-
-            <div className="min-w-0">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Live preview
-              </p>
-              <ArchetypeConsequencePanel consequence={draftConsequence} compact />
-            </div>
-          </div>
-
-          <DialogFooter className="-mx-4 -mb-4 flex-row border-t bg-background px-4 py-4 sm:justify-end sm:space-x-2">
-            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={commitCustom} disabled={!draftValid}>
-              Confirm
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </NewGameScreenLayout>
   );
-}
-
-function clampDimensionValue(value: number): number {
-  return Math.max(ARCHETYPE_DIMENSION_MIN, Math.min(ARCHETYPE_DIMENSION_MAX, value));
 }
