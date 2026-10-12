@@ -19,14 +19,16 @@ walks a human through the one-time credential setup.
 
 1. **Credentials** — Developer ID Application cert (macOS) and an EV/OV
    code-signing cert (Windows). See the wizard.
-2. **Icons are placeholders** — `apps/desktop/build/icon.{icns,ico}` are 70-byte
-   stubs. Replace with real artwork (1024² PNG → `icon.icns`/`icon.ico`).
-3. **Notarization** — electron-builder notarizes automatically when `APPLE_ID`,
+2. **Notarization** — electron-builder notarizes automatically when `APPLE_ID`,
    `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID` are present (skipped for
    local/unsigned builds). Verify a notarized build once with `spctl -a -vvv` and
    `xcrun stapler validate`.
-4. **Publisher identity** — `nsis` has no `publisherName`; set it to the signed
+3. **Publisher identity** — `nsis` has no `publisherName`; set it to the signed
    certificate's subject once known.
+
+Resolved: the placeholder icons were replaced on 2026-10-12 with a 1024²
+`build/icon.png` and derived `build/icon.{icns,ico}` (electron-builder now packs
+all three platforms without an icon error).
 
 ## Required GitHub secrets
 
