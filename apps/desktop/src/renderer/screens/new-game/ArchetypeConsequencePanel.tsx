@@ -52,46 +52,51 @@ export function ArchetypeConsequencePanel({
   consequence: ArchetypeConsequence;
   compact?: boolean;
 }) {
+  // The preview sits in columns of very different widths (the full detail pane, or
+  // half of it beside the inline allocator), so its grids respond to the width of
+  // the panel itself, not the viewport.
   return (
-    <GlassCard glassVariant="liquid-refract">
-      <CardHeader className="flex flex-col gap-4 space-y-0 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 space-y-1.5">
-          <CardTitle className="flex items-center gap-2">
-            <Target aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span>Consequences</span>
-          </CardTitle>
+    <div className="@container">
+      <GlassCard glassVariant="liquid-refract">
+        <CardHeader className="flex flex-col gap-4 space-y-0 @lg:flex-row @lg:items-start @lg:justify-between">
+          <div className="min-w-0 space-y-1.5">
+            <CardTitle className="flex items-center gap-2">
+              <Target aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span>Consequences</span>
+            </CardTitle>
 
-          <CardDescription>How this allocation shapes your campaign.</CardDescription>
-        </div>
+            <CardDescription>How this allocation shapes your campaign.</CardDescription>
+          </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <Badge variant={consequence.isBalanced ? "outline" : "default"}>
-            {consequence.isBalanced ? "Balanced" : "Custom build"}
-          </Badge>
+          <div className="flex shrink-0 items-center gap-2">
+            <Badge variant={consequence.isBalanced ? "outline" : "default"}>
+              {consequence.isBalanced ? "Balanced" : "Custom build"}
+            </Badge>
 
-          <ScoringPopover consequence={consequence} />
-        </div>
-      </CardHeader>
+            <ScoringPopover consequence={consequence} />
+          </div>
+        </CardHeader>
 
-      <CardContent className="space-y-6">
-        <DimensionDeltas consequence={consequence} />
+        <CardContent className="space-y-6">
+          <DimensionDeltas consequence={consequence} />
 
-        {!compact && <NumericEffects consequence={consequence} />}
+          {!compact && <NumericEffects consequence={consequence} />}
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <Strengths consequence={consequence} />
-          <OpportunityCosts consequence={consequence} />
-        </div>
+          <div className="grid grid-cols-1 gap-6 @lg:grid-cols-2">
+            <Strengths consequence={consequence} />
+            <OpportunityCosts consequence={consequence} />
+          </div>
 
-        {!compact && <Systems consequence={consequence} />}
-      </CardContent>
-    </GlassCard>
+          {!compact && <Systems consequence={consequence} />}
+        </CardContent>
+      </GlassCard>
+    </div>
   );
 }
 
 function DimensionDeltas({ consequence }: { consequence: ArchetypeConsequence }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 @lg:grid-cols-3">
       {consequence.dimensionDeltas.map((delta) => {
         const Icon = archetypeDimensionDescriptor(delta.dimension).icon;
         const DeltaIcon = delta.delta > 0 ? TrendingUp : delta.delta < 0 ? TrendingDown : Minus;
