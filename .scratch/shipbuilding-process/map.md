@@ -83,6 +83,23 @@ implementation plan** over SB-1/SB-2 — implement the specified-but-unbuilt mec
 batch ordering, engine acceleration, dock ceiling/growth, national capacity, foreign yards, bulges
 and armament-change validation) plus the player surface. Hand off to `to-spec` → `to-tickets`.
 
+### Implementation progress (2026-10-12)
+
+- **Reachability wired end-to-end** (the sprint's first priority): `placeConstructionBatch`,
+  `authorizeDockExpansion`, `placeForeignConstructionOrder`, and the halt/resume/`SetAcceleration`
+  commands are reachable through the command registry (`packages/commands`) and the desktop main
+  bridge, each proven by a `MonthExecutor` dispatch test and/or a desktop `commitMonth` round-trip.
+- **INC-10** foreign war effects + impoundment + delivery guarantee landed and wired into the monthly
+  appropriation.
+- **Review debt:** INC-9f reason codes and INC-9e guards landed; the duplicated order guards/cost
+  resolution refactored; the ship-dimension deferral recorded with owner `INC-16`.
+- **Player surface:** Construction halt/resume/accelerate controls (INC-3b partial, INC-4b) landed
+  with render tests, `pnpm snap` and a `construction-steering` e2e.
+- **Remaining frontier:** cost/time readouts (INC-3b), dock/capacity/batch/foreign surfaces
+  (INC-5b..INC-9b), rebuild surfaces (INC-12b/INC-15b), builder priority (INC-9c), and INC-11
+  (blocked on content-technology materialisation; owner `.scratch/content-runtime-integrity/`).
+
+
 ## Not yet specified
 
 - **Era-threshold content:** exact values and period bands for DD/CL/CV maximum-displacement
