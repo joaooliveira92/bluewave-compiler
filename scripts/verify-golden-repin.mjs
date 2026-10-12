@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Same-commit golden re-pin guard (ADR-0007, production-hardening WS2).
+// Same-commit golden re-pin guard (ADR-0007; precision in ADR-0136).
 //
 // `verify-golden-hashes.cjs` proves the reference run matches `golden/hashes.json`.
 // That catches a behavioural change that moves the reference hashes, but not a
@@ -11,17 +11,32 @@
 // refactor, type-only edit, or comment) records that assertion explicitly with a
 // `Golden-Repin: not-needed` trailer in the commit body, alongside a reason.
 //
+// What "authoritative" means here is scoped to what actually feeds the reference
+// run, not a blanket "any packages/*/src or content/ change":
+//
+//   * The reference run is `packages/cross-process-test/src/run-child.ts`, which
+//     `verify-golden-hashes.cjs` executes. It compiles an *in-code synthetic
+//     fixture* and never reads authored content, so no `content/**` path can move
+//     `golden/hashes.json` — authored content is exempt.
+//   * The fixture declares only rulesets/countries/areas/routes/possessions/
+//     ports/technologies/fleets/economies/constructions/diplomacy/research. It
+//     declares no naval-profile or ship-building/design collection, so the
+//     dock-record plumbing modules listed in `REFERENCE_RUN_INERT` are never
+//     exercised and cannot move the hashes either.
+//   * Everything else under `packages/<authoritative>/src` stays gated.
+//
 //   COMMIT_RANGE="origin/dev..HEAD" node scripts/verify-golden-repin.mjs
 //   node scripts/verify-golden-repin.mjs --range HEAD~1..HEAD
 //
-// Defaults to HEAD~1..HEAD. Merge commits are skipped. If the range cannot be
-// resolved the check is skipped rather than failed (shallow checkout, new branch).
+// Defaults to the recorded ratchet baseline..HEAD. Merge commits are skipped. If
+// the range cannot be resolved the check is skipped rather than failed (shallow
+// checkout, new branch).
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-/** Packages whose compiled output feeds the golden reference run. */
+/** Packages whose compiled output can feed the golden reference run. */
 export const AUTHORITATIVE_PACKAGES = [
   "contracts",
   "deterministic",
@@ -40,17 +55,80 @@ export const AUTHORITATIVE_PACKAGES = [
   "armament",
 ];
 
+/**
+ * Reviewed, reasoned exemptions from the golden-repin guard: paths that cannot
+ * move `golden/hashes.json` because the reference run (run-child.ts) never
+ * consumes them. Each entry is either a `path` (exact file) or a `prefix` (tree).
+ * Adding to this list is a gate change and must cite its evidence (ADR-0136).
+ *
+ * @type {{ path?: string, prefix?: string, reason: string }[]}
+ */
+export const REFERENCE_RUN_EXEMPTIONS = [
+  {
+    prefix: "content/",
+    reason:
+      "The reference run compiles an in-code synthetic fixture; no authored content is read, so content/ cannot move golden/hashes.json.",
+  },
+  {
+    path: "packages/ship-design/src/dock.ts",
+    reason:
+      "Dock-record derivation (ADR-0135); the reference fixture declares no naval profiles, so it is inert.",
+  },
+  {
+    path: "packages/ship-design/src/nationCompleteness.ts",
+    reason:
+      "Naval-profile completeness check (ADR-0135); the reference fixture declares no naval profiles, so it is inert.",
+  },
+  {
+    path: "packages/ship-design/src/nationProfile.ts",
+    reason:
+      "Naval-profile resolution (ADR-0135); the reference fixture declares no naval profiles, so it is inert.",
+  },
+  {
+    path: "packages/campaign/src/state.ts",
+    reason:
+      "Carries the optional NationDockState type only; the reference fixture sets no dock, so serialization is unchanged.",
+  },
+  {
+    path: "packages/content-schema/src/naval-profile.ts",
+    reason:
+      "Naval-profile schema (ADR-0135); the reference fixture declares no naval profiles, so it is never parsed.",
+  },
+  {
+    path: "packages/phase-engine/src/orderEligibility.ts",
+    reason:
+      "Dock order eligibility (ADR-0135); the reference fixture orders no ship-building project through it.",
+  },
+  {
+    path: "packages/phase-engine/src/snapshotClone.ts",
+    reason:
+      "Clones the optional dock field (ADR-0135); the reference fixture has no dock, so the clone is a no-op.",
+  },
+];
+
 const SOURCE_RE = new RegExp(
   `^packages/(?:${AUTHORITATIVE_PACKAGES.join("|")})/src/.*\\.(ts|tsx)$`,
 );
-const CONTENT_RE = /^content\/production\//;
 const GOLDEN_PATH = "golden/hashes.json";
 const TRAILER_RE = /^\s*Golden-Repin:\s*not-needed\b/im;
 
-/** @param {string} path */
+/**
+ * @param {string} path
+ * @returns {boolean} true when `path` is a reviewed reference-run exemption
+ */
+export function isReferenceRunExempt(path) {
+  return REFERENCE_RUN_EXEMPTIONS.some((entry) =>
+    entry.path ? path === entry.path : path.startsWith(entry.prefix),
+  );
+}
+
+/**
+ * @param {string} path
+ * @returns {boolean} true when a change to `path` can move the golden reference run
+ */
 export function isAuthoritativeSource(path) {
   if (path === GOLDEN_PATH) return false;
-  if (CONTENT_RE.test(path)) return true;
+  if (isReferenceRunExempt(path)) return false;
   // Only source, not tests/fixtures under the package.
   return SOURCE_RE.test(path);
 }

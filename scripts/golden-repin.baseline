@@ -1,11 +1,10 @@
 # Goldens re-pin ratchet baseline (ADR-0007, production-hardening WS2).
 # Commits at or before this SHA predate the golden-repin guard and are grandfathered.
 #
-# deff5d30 (authored national dock record, ADR-0135) changed content/production
-# naval profiles and pure package source that do NOT feed the golden reference
-# run: `pnpm check:golden` verified all 10 reference hashes unchanged, so there
-# was nothing to re-pin. The commit should have carried a `Golden-Repin:
-# not-needed` trailer; it was pushed to origin/dev by a concurrent writer before
-# the omission was caught, and force-push is prohibited, so the ratchet baseline
-# is advanced past it instead. The guard still applies to every later commit.
-deff5d301a70a087accac2ff57b574b36ff5af5c
+# The guard was introduced at dae32d79; bee03042 is the commit it landed on top of.
+# The guard is now precise (ADR-0136): it reads the reference run's inputs
+# (packages/cross-process-test/src/run-child.ts + verify-golden-hashes.cjs +
+# golden/hashes.json) and exempts authored content and the reference-inert
+# dock-record plumbing, so deff5d30's no-output changes need neither a trailer
+# nor a baseline move. The baseline is therefore restored to bee03042.
+bee03042eb2ad1e13de08aef296bbb43ce8fd667

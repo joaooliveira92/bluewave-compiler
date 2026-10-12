@@ -26,9 +26,12 @@ regression — investigate, do not re-pin.
 
 ## Guard
 
-`pnpm check` and CI run `verify-golden-hashes.cjs` plus a two-process
-cross-process determinism proof. `verify-golden-repin.mjs` additionally fails any
-commit that edits authoritative `packages/*/src` or `content/production/` without
-re-pinning `golden/hashes.json` in the same commit; a deliberate no-output change
-records a `Golden-Repin: not-needed` trailer. Pre-guard history is grandfathered
-via `scripts/golden-repin.baseline`.
+`pnpm check` and CI run `verify-golden-hashes.cjs` plus a cross-process
+determinism proof. `verify-golden-repin.mjs` additionally fails any commit that
+edits authoritative source without re-pinning `golden/hashes.json` in the same
+commit; a deliberate no-output change records a `Golden-Repin: not-needed`
+trailer. Pre-guard history is grandfathered via `scripts/golden-repin.baseline`.
+
+The guard is scoped to the reference run's inputs (`run-child.ts`): authored
+`content/**` is exempt, as is the reference-inert dock plumbing in
+`REFERENCE_RUN_EXEMPTIONS` (ADR-0136); other package source stays gated.
