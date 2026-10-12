@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "main": "./out/main/index.js",
+  "desktopName": "com.bluewave.app",
   "scripts": {
     "dev": "node scripts/build-content.mjs && electron-vite dev",
     "dev:debug": "node scripts/build-content.mjs && cross-env VITE_BLUEWAVE_DEBUG=true electron-vite dev",

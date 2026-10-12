@@ -49,5 +49,9 @@ linux:
   # package name (`@bluewave/desktop` -> `@bluewavedesktop`), which the AppImage
   # tool rejects as unsafe in a file path.
   executableName: bluewave
+  # Name the installed .desktop file from `desktopName` so it matches Electron's
+  # Linux app_id / WM_CLASS (and the portal identity). Without this electron-builder
+  # warns that desktop environments cannot link the running window to the launcher.
+  syncDesktopName: true
   category: Utility
   maintainer: bluewave@example.com
