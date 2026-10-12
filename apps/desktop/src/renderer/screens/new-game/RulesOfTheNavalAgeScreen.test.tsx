@@ -169,16 +169,29 @@ describe("RulesOfTheNavalAgeScreen", () => {
     ).toEqual(["Small", "Standard", "Historical", "Standard", "Standard", "Easy"]);
   });
 
-  it("offers Select for a preset that is not applied, and Active once it is", async () => {
+  it("has no Select button: the panel only reports whether the preset is applied", async () => {
     await setupUi();
 
-    expect(within(detailPanel("Cadet")).getByRole("button", { name: "Select Cadet" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Select/ })).toBeNull();
     expect(within(detailPanel("Cadet")).queryByText("Active")).toBeNull();
 
-    fireEvent.click(within(detailPanel("Cadet")).getByRole("button", { name: "Select Cadet" }));
+    fireEvent.keyDown(presetListbox(), { key: "Enter" });
 
     expect(within(detailPanel("Cadet")).getByText("Active")).toBeTruthy();
-    expect(within(detailPanel("Cadet")).queryByRole("button", { name: "Select Cadet" })).toBeNull();
+  });
+
+  it("says a previewed preset will be applied by Next, until it is applied", async () => {
+    await setupUi();
+
+    // Looking at the default card promises nothing.
+    expect(within(detailPanel("Cadet")).queryByText("Applies on Next")).toBeNull();
+
+    fireEvent.keyDown(presetListbox(), { key: "ArrowRight" });
+    expect(within(detailPanel("Admiral")).getByText("Applies on Next")).toBeTruthy();
+
+    fireEvent.keyDown(presetListbox(), { key: "Enter" });
+    expect(within(detailPanel("Admiral")).queryByText("Applies on Next")).toBeNull();
+    expect(within(detailPanel("Admiral")).getByText("Active")).toBeTruthy();
   });
 
   it("starts on Custom because the loaded defaults match no preset", async () => {
@@ -340,6 +353,52 @@ describe("RulesOfTheNavalAgeScreen", () => {
     }
     openSelectAndPick("Research Pace", "Fast");
     expect(screen.getByLabelText("Research Pace").textContent).toContain("Fast");
+  });
+
+  it("applies the previewed preset when Next is pressed", async () => {
+    const { onNext, getPrimary } = await setupUi();
+
+    fireEvent.keyDown(presetListbox(), { key: "ArrowRight" });
+    expect(appliedSetup()).toBe("Custom");
+    await waitFor(() => expect(getPrimary()?.disabled).toBe(false));
+    act(() => getPrimary()?.onTrigger());
+
+    await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
+    const [preferences] = onNext.mock.calls[0] as [Record<string, string>, NewGameOptions];
+    expect(preferences).toMatchObject({
+      fleetSize: "standard",
+      researchSpeed: "standard",
+      technologyVariation: "some",
+      historicalBudget: "standard",
+      tacticalRealism: "standard",
+      difficulty: "normal",
+    });
+  });
+
+  it("leaves hand-set values alone when Next is pressed without previewing a preset", async () => {
+    const { onNext, getPrimary } = await setupUi();
+
+    await waitFor(() => expect(getPrimary()?.disabled).toBe(false));
+    act(() => getPrimary()?.onTrigger());
+
+    await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
+    const [preferences] = onNext.mock.calls[0] as [Record<string, string>, NewGameOptions];
+    // The loaded defaults, not Cadet's bundle (which differs in Research Pace).
+    expect(preferences.researchSpeed).toBe("slow");
+  });
+
+  it("does not overwrite a setting edited after previewing a preset", async () => {
+    const { onNext, getPrimary } = await setupUi();
+
+    fireEvent.keyDown(presetListbox(), { key: "ArrowRight" });
+    openSelectAndPick("Difficulty", "Hard");
+    expect(within(detailPanel("Admiral")).queryByText("Applies on Next")).toBeNull();
+    act(() => getPrimary()?.onTrigger());
+
+    await waitFor(() => expect(onNext).toHaveBeenCalledTimes(1));
+    const [preferences] = onNext.mock.calls[0] as [Record<string, string>, NewGameOptions];
+    expect(preferences.difficulty).toBe("hard");
+    expect(preferences.fleetSize).toBe("small");
   });
 
   it("returns to nation selection through Back", async () => {

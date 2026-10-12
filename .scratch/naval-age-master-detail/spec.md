@@ -14,7 +14,9 @@ independent; all decisions are resolved in this spec.
 > panel: "Rules of the Naval Age" / "Set the era, scale, and historical uncertainty
 > for this campaign." replace the shell header's "Campaign setup assistant" /
 > "Select the historical scenario to continue" for this step. Everything else stands.
-> See ADR-0127.
+> A second amendment the same day removes the detail panel's Select button: the
+> primary action "Next: Choose Archetype" applies a previewed preset (Enter and
+> tap still apply immediately; a hand edit after previewing wins). See ADR-0127.
 
 ## Problem Statement
 

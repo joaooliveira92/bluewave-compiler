@@ -1,7 +1,6 @@
 import { Check } from "lucide-react";
 import { memo, useMemo } from "react";
 import { SlidePanel } from "@/components/slide-panel/index.js";
-import { Button } from "@/components/ui/button.js";
 import { CardContent, CardHeader } from "@/components/ui/card.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
 import { presetSettingRows } from "../../preset-detail-view.js";
@@ -12,18 +11,21 @@ export interface PresetDetailPanelProps {
   readonly preset: PresetDefinition;
   /** Whether the previewed preset's bundle is the one currently applied. */
   readonly applied: boolean;
-  readonly onSelect: () => void;
+  /** Previewed and not yet applied: the step's primary action will apply it. */
+  readonly pending: boolean;
 }
 
 /**
  * The detail pane's focused-preset slide panel: name, tagline and the six
- * engine settings the bundle fixes, with an Active/Select state. Keyed by
+ * engine settings the bundle fixes, with an Active state, or a note that the
+ * step's primary action will apply it. The panel has no control of its own:
+ * applying is Enter, a tap on the card, or the primary action. Keyed by
  * preset in the caller, so it eases in again each time focus moves.
  */
 export const PresetDetailPanel = memo(function PresetDetailPanel({
   preset,
   applied,
-  onSelect,
+  pending,
 }: PresetDetailPanelProps) {
   const rows = useMemo(() => presetSettingRows(preset.bundle), [preset]);
   const headingId = `preset-detail-heading-${preset.id}`;
@@ -44,11 +46,11 @@ export const PresetDetailPanel = memo(function PresetDetailPanel({
               <Check className="h-3 w-3" aria-hidden="true" />
               Active
             </span>
-          ) : (
-            <Button type="button" size="sm" aria-label={`Select ${preset.name}`} onClick={onSelect}>
-              Select
-            </Button>
-          )}
+          ) : pending ? (
+            <span className="shrink-0 font-display text-[0.65rem] uppercase tracking-wider text-muted-foreground">
+              Applies on Next
+            </span>
+          ) : null}
         </CardHeader>
         <CardContent className="pt-0">
           <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">

@@ -33,7 +33,10 @@ the two steps coincidental rather than structural.
 3. **Focus and selection are different state.** Moving focus (arrows, wheel,
    drag-to-fling) only previews; Enter or a tap calls the existing
    `selectPreset`, and the active preset stays derived by `detectActivePreset`.
-   Preview state is screen-local React state and is never persisted.
+   The detail panel has no Select control: the step's primary action
+   ("Next: Choose Archetype") applies a previewed-but-unapplied preset, unless a
+   setting was edited by hand after previewing it (the edit wins). Preview state
+   is screen-local React state and is never persisted.
 4. **No globe on the preset step.** The first design put a decorative globe at
    the top of the detail column; the owner rejected it, so the globe shell and
    `InteractiveGlobe` stay in `nation-selection/`, unchanged. The step's title

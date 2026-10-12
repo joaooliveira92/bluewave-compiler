@@ -11,7 +11,11 @@ import { LoadingState } from "./components/LoadingState.js";
 import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
 import { PresetDeckPane, PresetDetailPanel } from "./components/preset-deck/index.js";
 import type { DraftPreferences } from "./new-game-preferences-screen-state.js";
-import { PRESET_DEFINITIONS } from "./rules-of-the-naval-age-presets.js";
+import {
+  applyPreset,
+  PRESET_DEFINITIONS,
+  type PresetId,
+} from "./rules-of-the-naval-age-presets.js";
 import { useNavalAgePreferences } from "./useNavalAgePreferences.js";
 
 export interface RulesOfTheNavalAgeScreenProps {
@@ -30,8 +34,14 @@ export function RulesOfTheNavalAgeScreen({
   const { state, options, preferences, ready, activePreset, setPreference, selectPreset } =
     useNavalAgePreferences(recommendedPreset);
 
+  // The preset the player has previewed but not applied. The primary action
+  // applies it, unless a setting is edited by hand first: a hand edit takes
+  // precedence, so a previewed card never overwrites it.
+  const [pendingPresetId, setPendingPresetId] = useState<PresetId | null>(null);
+
   const handlePreferenceChange = useCallback(
     (field: keyof DraftPreferences, value: string) => {
+      setPendingPresetId(null);
       setPreference(field, value);
     },
     [setPreference],
@@ -43,7 +53,10 @@ export function RulesOfTheNavalAgeScreen({
   );
 
   const onFleetSizeChange = useCallback(
-    (value: string) => setPreference("fleetSize", value),
+    (value: string) => {
+      setPendingPresetId(null);
+      setPreference("fleetSize", value);
+    },
     [setPreference],
   );
 
@@ -63,13 +76,20 @@ export function RulesOfTheNavalAgeScreen({
   const appliedPresetName =
     PRESET_DEFINITIONS.find((preset) => preset.id === activePreset)?.name ?? "Custom";
 
-  const onSelectFocusedPreset = useCallback(() => {
-    if (focusedPreset !== undefined) selectPreset(focusedPreset.id);
-  }, [focusedPreset, selectPreset]);
+  const onFocusIndex = useCallback((index: number) => {
+    setFocusOverride(index);
+    setPendingPresetId(PRESET_DEFINITIONS[index]?.id ?? null);
+  }, []);
 
   const handleNext = useCallback(() => {
-    if (options !== null && ready) onNext(preferences, options);
-  }, [options, ready, preferences, onNext]);
+    if (options === null || !ready) return;
+    if (pendingPresetId === null) {
+      onNext(preferences, options);
+      return;
+    }
+    selectPreset(pendingPresetId);
+    onNext(applyPreset(preferences, pendingPresetId), options);
+  }, [options, ready, preferences, pendingPresetId, selectPreset, onNext]);
 
   const primaryAction = useMemo(
     () => ({ label: "Next: Choose Archetype", disabled: !ready, onTrigger: handleNext }),
@@ -92,11 +112,11 @@ export function RulesOfTheNavalAgeScreen({
       )}
 
       {options !== null && focusedPreset !== undefined && (
-        <div className="flex min-h-0 flex-1 flex-col bg-admiralty-surface lg:flex-row lg:overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:overflow-hidden">
           <PresetDeckPane
             activePreset={activePreset}
             focusedIndex={focusedIndex}
-            onFocusIndex={setFocusOverride}
+            onFocusIndex={onFocusIndex}
             onSelectPreset={selectPreset}
           />
 
@@ -114,7 +134,7 @@ export function RulesOfTheNavalAgeScreen({
                 key={focusedPreset.id}
                 preset={focusedPreset}
                 applied={focusedPreset.id === activePreset}
-                onSelect={onSelectFocusedPreset}
+                pending={pendingPresetId === focusedPreset.id && focusedPreset.id !== activePreset}
               />
 
               <EraScaleSection

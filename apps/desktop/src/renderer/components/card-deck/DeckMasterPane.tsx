@@ -160,7 +160,7 @@ export function DeckMasterPane({
         flex-none flex-col
         overflow-hidden
         border-b border-admiralty-border
-        bg-admiralty-surface-raised/94
+        bg-admiralty-surface-raised/60
         py-4
 
         sm:min-h-172
