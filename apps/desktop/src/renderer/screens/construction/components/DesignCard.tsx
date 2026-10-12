@@ -8,7 +8,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "../../../components/ui/hover-card.js";
-import { shipTypeIcon } from "./ship-type-icon.js";
+import { shipTypeIcon } from "../../../components/design-workspace/index.js";
 
 export interface DesignCardProps {
   readonly design: CompiledDesignVersion;

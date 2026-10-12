@@ -1,7 +1,9 @@
 import { configure } from "@testing-library/react";
 
 import { loadShipBuildingData } from "../main/shipBuildingContent.js";
-import { setDrawingBoardContent } from "./screens/construction/drawing-board/content.js";
+// The seam module directly, not the barrel: loading the whole layer here would cache it before a
+// test file's `vi.mock` of one of its dependencies takes effect.
+import { setDrawingBoardContent } from "./components/design-workspace/content.js";
 
 /**
  * Renderer tests inject decoded content instead of parsing raw YAML (ticket 04,

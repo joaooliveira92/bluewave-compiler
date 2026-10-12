@@ -9,8 +9,10 @@ import {
   DialogTitle,
 } from "../../../components/ui/dialog.js";
 import { DrawingBoard } from "./DrawingBoard.js";
-import { useDrawingBoardContentSource } from "./useDrawingBoardContent.js";
-import type { RevisionProject } from "./revisionPreview.js";
+import {
+  useDrawingBoardContentSource,
+  type RevisionProject,
+} from "../../../components/design-workspace/index.js";
 
 /**
  * The ship designer opens in a near full-screen modal so the plan, panels and findings get the whole window. The

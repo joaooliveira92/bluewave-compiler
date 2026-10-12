@@ -62,40 +62,40 @@
   "apps/desktop/src/renderer/screens/construction/drawing-board/RevisionApply.test.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 2
   },
-  "apps/desktop/src/renderer/screens/construction/drawing-board/panels/RebuildPanel.tsx": {
+  "apps/desktop/src/renderer/components/design-workspace/panels/RebuildPanel.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 2
   },
-  "apps/desktop/src/renderer/screens/construction/drawing-board/panels/RevisionPanel.tsx": {
+  "apps/desktop/src/renderer/components/design-workspace/panels/RevisionPanel.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 2
   },
-  "apps/desktop/src/renderer/screens/construction/drawing-board/panels/SubmitPanel.test.tsx": {
+  "apps/desktop/src/renderer/components/design-workspace/panels/SubmitPanel.test.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 2
   },
-  "apps/desktop/src/renderer/screens/construction/drawing-board/panels/SubmitPanel.tsx": {
+  "apps/desktop/src/renderer/components/design-workspace/panels/SubmitPanel.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
-  "apps/desktop/src/renderer/screens/construction/drawing-board/panels/hull-plan/FittingTargets.test.tsx": {
+  "apps/desktop/src/renderer/components/design-workspace/panels/hull-plan/FittingTargets.test.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
-  "apps/desktop/src/renderer/screens/construction/drawing-board/panels/hull-plan/HullTopsideLayer.test.tsx": {
+  "apps/desktop/src/renderer/components/design-workspace/panels/hull-plan/HullTopsideLayer.test.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
-  "apps/desktop/src/renderer/screens/construction/drawing-board/panels/hull-plan/PlanToolbar.test.tsx": {
+  "apps/desktop/src/renderer/components/design-workspace/panels/hull-plan/PlanToolbar.test.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 2
   },
-  "apps/desktop/src/renderer/screens/construction/drawing-board/panels/hull-plan/arc-radius.test.tsx": {
+  "apps/desktop/src/renderer/components/design-workspace/panels/hull-plan/arc-radius.test.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
-  "apps/desktop/src/renderer/screens/construction/drawing-board/panels/hull-plan/autoPlace.test.ts": {
+  "apps/desktop/src/renderer/components/design-workspace/panels/hull-plan/autoPlace.test.ts": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
-  "apps/desktop/src/renderer/screens/construction/drawing-board/panels/hull-plan/fitting-layers.test.tsx": {
+  "apps/desktop/src/renderer/components/design-workspace/panels/hull-plan/fitting-layers.test.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
-  "apps/desktop/src/renderer/screens/construction/drawing-board/panels/hull-plan/funnelPlacements.test.ts": {
+  "apps/desktop/src/renderer/components/design-workspace/panels/hull-plan/funnelPlacements.test.ts": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
-  "apps/desktop/src/renderer/screens/construction/drawing-board/panels/hull-plan/planModel.test.ts": {
+  "apps/desktop/src/renderer/components/design-workspace/panels/hull-plan/planModel.test.ts": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
   "apps/desktop/src/renderer/screens/diplomacy/DiplomacyScreen.test.tsx": {

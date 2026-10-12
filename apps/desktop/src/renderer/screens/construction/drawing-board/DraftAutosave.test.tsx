@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import { decodeLog, encodeLog, newLog, pushEdit } from "@bluewave/ship-design";
 import { Toaster } from "../../../components/ui/toast.js";
 import { DrawingBoard } from "./DrawingBoard.js";
-import { loadDrawingBoardContent } from "./content.js";
+import { loadDrawingBoardContent } from "../../../components/design-workspace/content.js";
 
 vi.mock("../../../shell/CampaignShellContext.js", () => ({
   useCampaignRevision: () => 0,

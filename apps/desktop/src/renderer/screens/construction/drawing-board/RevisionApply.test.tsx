@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { DrawingBoard } from "./DrawingBoard.js";
-import { loadDrawingBoardContent } from "./content.js";
+import { loadDrawingBoardContent } from "../../../components/design-workspace/content.js";
 import { openTab, region } from "./test-helpers.js";
 
 vi.mock("../../../shell/CampaignShellContext.js", () => ({

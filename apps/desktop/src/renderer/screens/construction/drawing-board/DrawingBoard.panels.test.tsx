@@ -1,8 +1,13 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vite-plus/test";
-import { loadDrawingBoardContent } from "./content.js";
+import { loadDrawingBoardContent } from "../../../components/design-workspace/content.js";
 import { DrawingBoard } from "./DrawingBoard.js";
-import { PLAN_H, PLAN_MID, PLAN_W, stationX } from "./panels/hull-plan/geometry.js";
+import {
+  PLAN_H,
+  PLAN_MID,
+  PLAN_W,
+  stationX,
+} from "../../../components/design-workspace/panels/hull-plan/geometry.js";
 import { chooseOption, openPlanTool, openTab, region } from "./test-helpers.js";
 
 afterEach(cleanup);

@@ -3,11 +3,14 @@ import { afterEach, describe, expect, it } from "vite-plus/test";
 import { buildWorkshopView, COMPONENT_CATEGORIES } from "@bluewave/ship-design";
 import { Checkbox } from "../../../components/ui/checkbox.js";
 import { DrawingBoard } from "./DrawingBoard.js";
-import { componentCategoryMeta } from "./componentCategory.js";
-import { componentFacts, componentsByCategory } from "./componentFacts.js";
-import { loadDrawingBoardContent } from "./content.js";
-import { exportDesign } from "./designFile.js";
-import { RequirementChip } from "./RequirementChip.js";
+import { componentCategoryMeta } from "../../../components/design-workspace/componentCategory.js";
+import {
+  componentFacts,
+  componentsByCategory,
+} from "../../../components/design-workspace/componentFacts.js";
+import { loadDrawingBoardContent } from "../../../components/design-workspace/content.js";
+import { exportDesign } from "../../../components/design-workspace/designFile.js";
+import { RequirementChip } from "../../../components/design-workspace/RequirementChip.js";
 import { openTab, region } from "./test-helpers.js";
 
 afterEach(cleanup);

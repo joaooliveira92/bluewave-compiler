@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { DrawingBoard } from "./DrawingBoard.js";
-import { plural } from "./plural.js";
+import { plural } from "../../../components/design-workspace/plural.js";
 import { openTab } from "./test-helpers.js";
 
 vi.mock("../../../shell/CampaignShellContext.js", () => ({

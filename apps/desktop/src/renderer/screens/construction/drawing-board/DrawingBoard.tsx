@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { armourMaterialOptions } from "@bluewave/ship-design";
-import { batteryCards, mountNameMap } from "./batteryView.js";
 import {
   CalendarClock,
   Gauge,
@@ -24,58 +23,62 @@ import {
 import { Separator } from "../../../components/ui/separator.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs.js";
 import { dismissToast, toast } from "../../../components/ui/toast.js";
-import { shipTypeIcon } from "../components/ship-type-icon.js";
-import { ConfirmDialog } from "./ConfirmAction.js";
-import { RequirementChip } from "./RequirementChip.js";
-import { SelectField } from "./fields.js";
-import { shipTypeRole } from "./shipTypes.js";
 import {
   AlternativesPanel,
   ArmourPanel,
+  BOARD_TABS,
+  BatteryPanel,
+  BriefPanel,
+  ComparePanel,
+  ConfirmDialog,
   FilePanel,
   FindingsPanel,
-  ComparePanel,
   ForecastPanel,
   HistoryPanel,
   HullPanel,
-  BatteryPanel,
-  BriefPanel,
-  ShipTypePanel,
   HullPlanPanel,
+  IDLE_TOOL,
   LedgerPanel,
   MachineryPanel,
   MetricsPanel,
   PlacementsPanel,
+  PlanDisplayMenu,
+  PlanModeButtons,
   RebuildPanel,
+  RequirementChip,
   RevisionPanel,
+  SelectField,
+  SelectionInspector,
+  ShipFindingsButton,
+  ShipSelectionProvider,
+  ShipTypePanel,
+  ShipViewBoundary,
+  ShipWorkspace,
   SubmitPanel,
   TopsidePanel,
-} from "./panels/index.js";
-import { IDLE_TOOL, PlanModeButtons, type PlanTool } from "./panels/hull-plan/PlanToolbar.js";
-import { planModel } from "./panels/hull-plan/planModel.js";
-import { useHullPlanEditing } from "./panels/hull-plan/useHullPlanEditing.js";
-import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
-import type { RevisionProject } from "./revisionPreview.js";
-import { useDrawingBoard } from "./useDrawingBoard.js";
-import { useDraftAutosave } from "./useDraftAutosave.js";
-import { plural } from "./plural.js";
-import { entityExists, type EntityContext } from "./selection/facts.js";
-import { boardFindings } from "./validation/boardFindings.js";
-import { ShipFindingsButton, useFindingsView } from "./validation/FindingsControl.js";
-import { PlanDisplayMenu } from "./PlanDisplayMenu.js";
-import { passesFilter } from "./validation/severity.js";
-import {
-  BOARD_TABS,
+  batteryCards,
+  boardFindings,
+  createSelectionStore,
+  entityExists,
   findDrawingControl,
   linkedEntities,
+  mountNameMap,
+  passesFilter,
+  planModel,
+  plural,
+  shipTypeIcon,
+  shipTypeRole,
+  useDraftAutosave,
+  useDrawingBoard,
+  useFindingsView,
+  useFormNavigation,
+  useHullPlanEditing,
   type BoardTab,
-} from "./selection/navigation.js";
-import { SelectionInspector } from "./selection/SelectionInspector.js";
-import { createSelectionStore } from "./selection/store.js";
-import { useFormNavigation } from "./selection/useFormNavigation.js";
-import { ShipSelectionProvider } from "./selection/useShipSelection.js";
-import { ShipViewBoundary } from "./workspace/ShipViewBoundary.js";
-import { ShipWorkspace } from "./workspace/ShipWorkspace.js";
+  type EntityContext,
+  type PlanTool,
+  type RevisionProject,
+} from "../../../components/design-workspace/index.js";
+import { useCampaignMonthId } from "../../../shell/CampaignShellContext.js";
 
 /**
  * Tabs with icons (ReUI c-tabs-6): the board is split by what the player is doing, so nothing needs a long scroll.
