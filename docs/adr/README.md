@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0137).
+highest existing number + 1 (the next number is ADR-0138).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -138,6 +138,7 @@ Ship design, classification, construction, repair, and rebuild.
 | 0131 | [ADR-0131-rearmament-armament-change-conditions.md](ADR-0131-rearmament-armament-change-conditions.md) | REARMAMENT armament-change conditions | accepted | — |
 | 0132 | [ADR-0132-in-place-revision-limits.md](ADR-0132-in-place-revision-limits.md) | In-place design-revision limits (manual p27) | accepted | — |
 | 0135 | [ADR-0135-authored-national-dock-record.md](ADR-0135-authored-national-dock-record.md) | Authored national dock record (distinct from the production ceiling) | accepted | — |
+| 0137 | [ADR-0137-national-construction-concurrency-cap.md](ADR-0137-national-construction-concurrency-cap.md) | National construction concurrency cap and AMC/small-corvette exemptions | accepted | — |
 
 ## National content
 

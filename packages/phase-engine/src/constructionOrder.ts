@@ -172,14 +172,21 @@ export function placeConstructionOrder(
       reason: "NATIONAL_SUPPLY_UNAVAILABLE",
       diagnostics: [`Nation ${request.nationId} cannot obtain its main armament or armour plate`],
     };
-  const project = constructionProjectFor(
-    request.commandId,
-    request.designVersionId,
-    costs.costs.projectedCost,
-    request.month,
-    design["constructionPlan"],
-    costs.national,
-  );
+  const project = {
+    ...constructionProjectFor(
+      request.commandId,
+      request.designVersionId,
+      costs.costs.projectedCost,
+      request.month,
+      design["constructionPlan"],
+      costs.national,
+    ),
+    // Persist the reservation the eligibility check computed, so the concurrency cap (SB3-R18) is enforced against
+    // the order-time value even if content later changes.
+    ...(eligibility.newConstructionReservedMassKg !== undefined
+      ? { newConstructionReservedMassKg: eligibility.newConstructionReservedMassKg }
+      : {}),
+  };
   const kept = nation["constructionProjects"].filter((p) => p["id"] !== replacingProjectId);
   const nations = new Map(snapshot["nations"]).set(request.nationId, {
     ...nation,

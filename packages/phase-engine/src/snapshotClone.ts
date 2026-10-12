@@ -215,6 +215,7 @@ const F = {
     "nationalProfileId",
     "costMultiplierBp",
     "buildTimeMultiplierBp",
+    "newConstructionReservedMassKg",
     "accelerationPremiumAppliedAtWorkPosition",
   ),
   ConstructionMonthUsage: fields<ConstructionMonthUsage>()("month", "used", "startDone"),

@@ -2,6 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-16`
+> **Amended by:** ADR-0137.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Infrastructure capacity, dock eligibility, expansion, construction allocation, support, and foreign construction MUST use the explicit fields, values, predicates, ordering, and failure behavior defined here. Runtime inference and silent fallback behavior are prohibited.
 
 ## 1. Infrastructure Types

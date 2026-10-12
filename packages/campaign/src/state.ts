@@ -473,6 +473,13 @@ export interface ConstructionProject {
   nationalProfileId?: string;
   costMultiplierBp?: number;
   buildTimeMultiplierBp?: number;
+  /**
+   * Displacement reserved against the national concurrency cap at order time (SB3-R18), in kilograms: the design's
+   * non-exempt share under the AMC/small-corvette exemption (DESIGN-16 section 9). Absent on projects made before the
+   * cap existed, in which case the cap is recomputed from the design. Kept as a plain number so campaign state has no
+   * dependency on the ship-design package.
+   */
+  newConstructionReservedMassKg?: number;
   /** Capacity and starting progress of the month last funded; only on projects with `packages`. */
   monthUsage?: ConstructionMonthUsage;
   /**

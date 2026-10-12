@@ -15,6 +15,11 @@ import {
   type DesignDraft,
   type ShipBuildingContent,
 } from "@bluewave/ship-design";
+import {
+  committedNewConstructionMassKg,
+  designNewConstructionReservedMassKg,
+  nationalConstructionCapacity,
+} from "./newConstructionCapacity.js";
 
 /** Stable codes the construction-order check adds to the ship-type availability reasons. */
 export type OrderRejectionCode =
@@ -22,6 +27,7 @@ export type OrderRejectionCode =
   | "DESIGN_REVALIDATION_FAILED"
   | "DESIGN_REVALIDATION_UNAVAILABLE"
   | "SHIP_EXCEEDS_DOMESTIC_DOCK_LIMIT"
+  | "INSUFFICIENT_PROJECT_CAPACITY"
   | "DOCK_LIMIT_MISSING";
 
 export interface OrderRejection {
@@ -32,6 +38,11 @@ export interface OrderRejection {
 export interface OrderEligibility {
   readonly eligible: boolean;
   readonly rejections: readonly OrderRejection[];
+  /**
+   * The displacement reserved against the national concurrency cap (SB3-R18), when the nation's dock is known. The
+   * order path persists it on the project so a later content change cannot re-reserve an existing order.
+   */
+  readonly newConstructionReservedMassKg?: number;
 }
 
 /**
@@ -165,5 +176,36 @@ export function constructionOrderEligibility(
     });
     for (const r of dock.rejections) rejections.push({ code: r.code, message: r.message });
   }
-  return { eligible: rejections.length === 0, rejections };
+  // National concurrency cap (SB3-R18): the total displacement under construction in the NEW_CONSTRUCTION pool may
+  // not exceed `shipyardCapacityMultipleBp` x the dock size. Rebuilds book to REFIT_REBUILD and are not counted;
+  // submarines book to NEW_CONSTRUCTION and are. A pack with no balance or dock skips the check (nation-neutral).
+  let newConstructionReservedMassKg: number | undefined;
+  if (dockRecord !== null && content !== undefined) {
+    const balance = content.environmentFor(month).constructionBalance;
+    const capacity = nationalConstructionCapacity(
+      balance,
+      dockRecord.maximumNewConstructionMassKg ?? 0,
+    );
+    newConstructionReservedMassKg = designNewConstructionReservedMassKg(
+      design.hullType,
+      Number(design.normalizedDisplacementKg),
+      capacity,
+    );
+    const committed = committedNewConstructionMassKg(
+      snapshot,
+      design.nationId,
+      capacity,
+      replacingProjectId,
+    );
+    if (committed + newConstructionReservedMassKg > capacity.maxConcurrentMassKg)
+      rejections.push({
+        code: "INSUFFICIENT_PROJECT_CAPACITY",
+        message: `Reserving ${newConstructionReservedMassKg} kg for ${design.designVersionId} would put ${committed + newConstructionReservedMassKg} kg under construction, above the nation's cap of ${capacity.maxConcurrentMassKg} kg.`,
+      });
+  }
+  return {
+    eligible: rejections.length === 0,
+    rejections,
+    ...(newConstructionReservedMassKg !== undefined ? { newConstructionReservedMassKg } : {}),
+  };
 }

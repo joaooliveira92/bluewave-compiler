@@ -83,6 +83,24 @@ export interface ConstructionBalance {
    * pp. 30-31: half = `5_000`). This is the manual's rule, not a placeholder.
    */
   readonly preservationCostBp: number;
+  /**
+   * The manual's "total tonnage under construction cannot exceed a multiple of dock size" (p33), as basis points of
+   * the nation's `maximumNewConstructionMassKg` (`10_000` = 1x). The manual gives no number, so this is a PLACEHOLDER
+   * BALANCE TARGET (SB3-R18); it feeds `maxConcurrentConstructionMassKg` in `constructionCapacity.ts`.
+   */
+  readonly shipyardCapacityMultipleBp: number;
+  /**
+   * The exempt share of an AMC or small-corvette new construction against the normal `NEW_CONSTRUCTION` pool, basis
+   * points within `0..10_000` (SB3-R19; DESIGN-16 section 9). The manual excludes AMC and small corvettes from the
+   * tonnage cap but gives no percentage, so this is a PLACEHOLDER BALANCE TARGET. The exempt share is backed by the
+   * declared external source; the non-exempt share still competes for normal capacity.
+   */
+  readonly amcCapacityExemptionBp: number;
+  /**
+   * Displacement at or below which a corvette (KE) is a "small corvette" and so qualifies for the exemption
+   * (SB3-R19). The manual and DESIGN-16 leave "small corvette" unstated, so this is a PLACEHOLDER BALANCE TARGET.
+   */
+  readonly smallCorvetteMaxDisplacementKg: number;
 }
 
 /**

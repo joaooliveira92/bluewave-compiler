@@ -11,7 +11,11 @@ const CEILING: Record<string, number> = {
   // Raised 1 -> 2 by SB-3/INC-3: the mothballed-maintenance base `mothballedMaintenancePerMonthMicro` has no manual
   // number (the RTW3 manual gives only the HALF rule a halted hull pays, which is the sourced `preservationCostBp`),
   // so it is a PLACEHOLDER BALANCE TARGET; its sibling `preservationCostBp: 5000` is the manual's rule, not unsourced.
-  "balance.yaml": 2,
+  // Raised 2 -> 5 by SB-3/INC-7: the three SB3-R18/R19 constants `shipyardCapacityMultipleBp`,
+  // `amcCapacityExemptionBp` and `smallCorvetteMaxDisplacementKg` have no manual number (the manual says only "a
+  // multiple of dock size", excludes AMC/small corvettes without a percentage, and never defines "small corvette"),
+  // so each is a PLACEHOLDER BALANCE TARGET with an in-file justification; the ceiling must not rise again without one.
+  "balance.yaml": 5,
   // Raised 26 -> 50 by the pre-1880 armament pass: the new RML/early-BL and foreign guns carry PLACEHOLDER volume and deck
   // footprint figures (no source gives a per-gun volume), while their mass/charge/projectile/M.V. are sourced. Sources:
   // docs/research/ship-building-1880-pre-era-armament.md. Every marker is justified in the review; the ceiling stays put otherwise.

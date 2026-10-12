@@ -209,6 +209,7 @@ function makeRichSnapshot(): CampaignSnapshot {
       nationalProfileId: "uk",
       costMultiplierBp: 9800,
       buildTimeMultiplierBp: 9300,
+      newConstructionReservedMassKg: 2_000_000,
       accelerationPremiumAppliedAtWorkPosition: SafeInt(50),
     },
   ];

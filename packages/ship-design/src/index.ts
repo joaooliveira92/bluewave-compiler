@@ -18,6 +18,7 @@ export * from "./compile.js";
 export * from "./edits.js";
 export * from "./cost.js";
 export * from "./construction.js";
+export * from "./constructionCapacity.js";
 export * from "./trials.js";
 export * from "./revision.js";
 export * from "./cve.js";

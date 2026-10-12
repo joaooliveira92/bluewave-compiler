@@ -463,6 +463,22 @@ construction:
   # `preservationCostBp` is the manual's rule (5_000 bp = one half), not a placeholder. Calibrate the base from play.
   mothballedMaintenancePerMonthMicro: 40000000000
   preservationCostBp: 5000
+  # National concurrency cap (SB3-R18). The RTW3 manual (p33) says the total tonnage under construction "cannot exceed
+  # a multiple of dock size" but gives no number, so this is a PLACEHOLDER BALANCE TARGET. 30000 bp = 3 x the nation's
+  # maximumNewConstructionMassKg: a nation can have roughly three dock-sized hulls under construction at once. It is a
+  # displacement reservation layered on top of the section 7 work-micro-unit pools (how fast work advances), never a
+  # replacement for them. Calibrate from play.
+  shipyardCapacityMultipleBp: 30000
+  # AMC / small-corvette construction-capacity exemption (SB3-R19; amends DESIGN-16 section 9). The RTW3 manual (p33)
+  # excludes AMC and small corvettes from the cap but gives no percentage, so this is a PLACEHOLDER BALANCE TARGET.
+  # 8000 bp = 80 % of the hull is charged to the declared external capacity source (merchant/civilian yards) and the
+  # remaining 20 % still competes for normal NEW_CONSTRUCTION capacity. Calibrate from play.
+  amcCapacityExemptionBp: 8000
+  # The displacement at or below which a corvette (KE) counts as a "small corvette" for the exemption above (SB3-R19).
+  # The manual and DESIGN-16 leave "small corvette" unstated, so this is a PLACEHOLDER BALANCE TARGET. 1,000,000 kg
+  # (1,000 t): the 1880 KE starter is 620 t and colonial corvettes of the era were at or under about 1,000 t, while a
+  # larger sloop or cruiser is not a "small corvette".
+  smallCorvetteMaxDisplacementKg: 1000000
 cve:
   weightsByCategory:
     DD: &a1

@@ -103,3 +103,10 @@ export {
   type ConstructionOrderRequest,
   type ConstructionOrderResult,
 } from "./constructionOrder.js";
+export {
+  INSUFFICIENT_PROJECT_CAPACITY,
+  committedNewConstructionMassKg,
+  designNewConstructionReservedMassKg,
+  nationalConstructionCapacity,
+  type NationalConstructionCapacity,
+} from "./newConstructionCapacity.js";

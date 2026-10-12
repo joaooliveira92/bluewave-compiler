@@ -672,6 +672,10 @@ export const constructionBalance: ConstructionBalance = {
   // Test fixture only: invented base (PLACEHOLDER in production), the manual's half rule is the same.
   mothballedMaintenancePerMonthMicro: 40_000_000_000,
   preservationCostBp: 5_000,
+  // SB3-R18/R19 fixture values (production values are PLACEHOLDER BALANCE TARGETs in balance.yaml).
+  shipyardCapacityMultipleBp: 30_000,
+  amcCapacityExemptionBp: 8_000,
+  smallCorvetteMaxDisplacementKg: 1_000_000,
 };
 
 import type { CveBalance } from "../../src/index.js";
