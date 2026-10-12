@@ -201,3 +201,25 @@ export {
   runForeignContractPhase,
   type ForeignContractPhaseResult,
 } from "./foreignContractPhase.js";
+export {
+  FOREIGN_INSIGHT_ELIGIBLE_FAMILIES,
+  FOREIGN_INSIGHT_MILESTONE_MICRO_POINTS,
+  FOREIGN_INSIGHT_MILESTONES,
+  FOREIGN_INSIGHT_PER_FAMILY_CAP_MICRO_POINTS,
+  FOREIGN_INSIGHT_POLICY_ID,
+  applyForeignInsightAwards,
+  applyForeignInsightMilestone,
+  foreignInsightEligibleFamilies,
+  foreignInsightMilestonesDue,
+  isForeignInsightContract,
+  makeRemainingRequirementFor,
+  mergeForeignInsightAwardRecord,
+  resolveForeignInsight,
+  type ForeignInsightApplication,
+  type ForeignInsightAward,
+  type ForeignInsightMilestone,
+  type ForeignInsightMilestonesDueInput,
+  type ForeignInsightResolution,
+  type ForeignInsightResolveInput,
+} from "./foreignInsight.js";
+export { researchCostOf } from "./research.js";

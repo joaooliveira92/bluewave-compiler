@@ -15,6 +15,7 @@ import type {
   DesignStudy,
   ForeignConstructionContract,
   ForeignContractPaymentRecord,
+  ForeignInsightAwardRecord,
   ProcurementIntent,
   DiplomaticRelation,
   FleetState,
@@ -297,6 +298,11 @@ const F = {
     "contractId",
     "paidDueMonths",
   ),
+  ForeignInsightAwardRecord: fields<ForeignInsightAwardRecord>()(
+    "contractId",
+    "milestones",
+    "awardedByFamily",
+  ),
   NationState: fields<NationState>()(
     "id",
     "name",
@@ -318,6 +324,7 @@ const F = {
     "procurementIntents",
     "foreignContracts",
     "foreignContractPayments",
+    "foreignInsightAwards",
     "aircraft",
     "carrierOperations",
     "isPlayable",
@@ -536,9 +543,11 @@ const _assert: [
   _Assert<DesignStudy, typeof F.DesignStudy>,
   _Assert<ForeignConstructionContract, typeof F.ForeignConstructionContract>,
   _Assert<ForeignContractPaymentRecord, typeof F.ForeignContractPaymentRecord>,
+  _Assert<ForeignInsightAwardRecord, typeof F.ForeignInsightAwardRecord>,
   _Assert<CampaignWeatherState, typeof F.CampaignWeatherState>,
   _Assert<CampaignSnapshot, typeof F.CampaignSnapshot>,
 ] = [
+  true,
   true,
   true,
   true,
@@ -622,6 +631,11 @@ const cloneForeignContractPayment = (
   recordClone(r, F.ForeignContractPaymentRecord, {
     paidDueMonths: (v) => [...(v as string[])],
   });
+const cloneForeignInsightAward = (r: ForeignInsightAwardRecord): ForeignInsightAwardRecord =>
+  recordClone(r, F.ForeignInsightAwardRecord, {
+    milestones: (v) => [...(v as string[])],
+    awardedByFamily: (v) => ({ ...(v as Record<string, number>) }),
+  });
 const cloneNation = (n: NationState): NationState =>
   recordClone(n, F.NationState, {
     fleets: (v) => (v as FleetState[]).map(cloneFleet),
@@ -644,6 +658,10 @@ const cloneNation = (n: NationState): NationState =>
       v === undefined
         ? undefined
         : (v as ForeignContractPaymentRecord[]).map(cloneForeignContractPayment),
+    foreignInsightAwards: (v) =>
+      v === undefined
+        ? undefined
+        : (v as ForeignInsightAwardRecord[]).map(cloneForeignInsightAward),
   });
 const cloneBattleResult = (r: BattleResult): BattleResult =>
   recordClone(r, F.BattleResult, {

@@ -1,9 +1,10 @@
 // packages/phase-engine/src/foreignConstruction.ts
-// DESIGN-16 section 13 (spec SB3-R20..R22): the foreign construction contract, the builder-capability acceptance gate,
-// builder-capacity consumption, the payment schedule and its one-month grace. The immutable contract and its hash come
-// from section 13.1; the capability predicates from section 13.2 (pure, in `@bluewave/ship-design`); capacity from
-// section 13.3; payment, the grace and the `PAYMENT_DEFAULT_DELAYED` reason from section 13.4. War effects (13.6-13.7)
-// and technology insight (13.5) are left to INC-10/INC-11: this module only carries their policy identifiers.
+// DESIGN-16 section 13 (spec SB3-R20..R24): the foreign construction contract, the builder-capability acceptance gate,
+// builder-capacity consumption, the payment schedule and its one-month grace, and the acceptance technology-insight
+// milestone. The immutable contract and its hash come from section 13.1; the capability predicates from section 13.2
+// (pure, in `@bluewave/ship-design`); capacity from section 13.3; payment, the grace and the
+// `PAYMENT_DEFAULT_DELAYED` reason from section 13.4. Technology insight (13.5) lives in `foreignInsight.ts` and is
+// awarded here at acceptance; war effects (13.6-13.7) are left to INC-10.
 import type {
   CampaignSnapshot,
   CompiledDesignVersion,
@@ -11,6 +12,7 @@ import type {
   ConstructionProjectStatus,
   ForeignConstructionContract,
   ForeignContractPaymentInstallment,
+  NationState,
 } from "@bluewave/campaign";
 import { canTransitionConstructionProject, monthId, toLinear } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
@@ -34,6 +36,14 @@ import type { LedgerTransactionInput } from "./financial-ledger.js";
 import { constructionProjectFor } from "./constructionOrder.js";
 import { makeLedgerEntry } from "./events.js";
 import {
+  FOREIGN_INSIGHT_POLICY_ID,
+  applyForeignInsightMilestone,
+  isForeignInsightContract,
+  makeRemainingRequirementFor,
+  mergeForeignInsightAwardRecord,
+} from "./foreignInsight.js";
+import { researchCostOf } from "./research.js";
+import {
   committedNewConstructionMassKg,
   designNewConstructionReservedMassKg,
   nationalConstructionCapacity,
@@ -53,8 +63,12 @@ export {
 export const FOREIGN_CONTRACT_FORMULA_ID = "foreign_construction_contract_v1" as const;
 export const FOREIGN_CONTRACT_RULESET_VERSION = "1.0.0" as const;
 
-/** Shipped policy identifiers; the effect modules land with INC-10 (war/impoundment) and INC-11 (insight). */
-export const FOREIGN_TECHNOLOGY_TRANSFER_POLICY_ID = "foreign_construction_insight_v1" as const;
+/**
+ * Shipped policy identifiers; the effect modules land with INC-10 (war/impoundment) and `foreignInsight.ts`
+ * (insight, section 13.5). The insight id is the canonical declaration in `foreignInsight.ts`, re-exported here so
+ * the order path has one stable name.
+ */
+export const FOREIGN_TECHNOLOGY_TRANSFER_POLICY_ID = FOREIGN_INSIGHT_POLICY_ID;
 export const FOREIGN_WAR_DELAY_POLICY_ID = "foreign_contract_war_policy_v1" as const;
 export const FOREIGN_IMPOUNDMENT_POLICY_ID = "foreign_contract_impoundment_v1" as const;
 export const FOREIGN_OCCUPATION_DESTRUCTION_POLICY_ID =
@@ -535,12 +549,16 @@ export function placeForeignConstructionOrder(
     newConstructionReservedMassKg: 0,
   };
 
-  const updatedNation = {
+  const updatedNation: NationState = {
     ...nation,
     constructionProjects: [...nation["constructionProjects"], project],
     foreignContracts: [...(nation["foreignContracts"] ?? []), contract],
   };
-  const nations = new Map(snapshot["nations"]).set(request.nationId, updatedNation);
+  // DESIGN-16 section 13.5 (SB3-R24): award the design-study insight at acceptance, when the contract selects the
+  // insight policy and the ordering nation still lacks the family's technology. It posts micro-points into the
+  // existing research model and never grants a technology. The award record is absent until the first award.
+  const acceptedNation = applyAcceptanceInsight(updatedNation, contract);
+  const nations = new Map(snapshot["nations"]).set(request.nationId, acceptedNation);
   return {
     ok: true,
     snapshot: { ...snapshot, nations },
@@ -549,6 +567,35 @@ export function placeForeignConstructionOrder(
     design,
     capability,
     reservedMassKg,
+  };
+}
+
+/**
+ * DESIGN-16 section 13.5: apply the acceptance (design-study) insight to a nation that has just accepted a foreign
+ * contract. Returns the nation unchanged when the contract does not select the policy or no award is due, so a
+ * foreign order that transfers no insight is byte-identical to the INC-9 result. Pure.
+ */
+function applyAcceptanceInsight(
+  nation: NationState,
+  contract: ForeignConstructionContract,
+): NationState {
+  if (!isForeignInsightContract(contract)) return nation;
+  const research = nation["research"];
+  const application = applyForeignInsightMilestone({
+    contract,
+    milestone: "DESIGN_STUDY",
+    research,
+    remainingRequirementFor: makeRemainingRequirementFor(research, researchCostOf),
+  });
+  if (application.awards.length === 0) return nation;
+  const foreignInsightAwards = mergeForeignInsightAwardRecord(
+    nation["foreignInsightAwards"],
+    application.record,
+  );
+  return {
+    ...nation,
+    research: application.research,
+    ...(foreignInsightAwards === undefined ? {} : { foreignInsightAwards }),
   };
 }
 

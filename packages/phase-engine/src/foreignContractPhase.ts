@@ -16,6 +16,7 @@ import type {
   CampaignSnapshot,
   ConstructionProject,
   ForeignConstructionContract,
+  ResearchState,
 } from "@bluewave/campaign";
 import { canTransitionConstructionProject } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
@@ -37,6 +38,14 @@ import {
   verifyForeignContractHash,
   type ForeignBuilderCapabilityConditions,
 } from "./foreignConstruction.js";
+import {
+  applyForeignInsightMilestone,
+  foreignInsightMilestonesDue,
+  isForeignInsightContract,
+  makeRemainingRequirementFor,
+  mergeForeignInsightAwardRecord,
+} from "./foreignInsight.js";
+import { researchCostOf } from "./research.js";
 import { nationalConstructionCapacity } from "./newConstructionCapacity.js";
 import type { MonthContext } from "./monthContext.js";
 
@@ -111,6 +120,11 @@ export function runForeignContractPhase(ctx: MonthContext): ForeignContractPhase
         (r) => [r["contractId"], r["paidDueMonths"]] as const,
       ),
     );
+    // DESIGN-16 section 13.5: the award record per contract and the research model the month's insight posts into.
+    const insightRecords = new Map(
+      (nation0["foreignInsightAwards"] ?? []).map((r) => [r["contractId"], r] as const),
+    );
+    let insightResearch: ResearchState = nation0["research"];
     const updatedById = new Map<string, ConstructionProject>();
     const skipIds = new Set<string>();
     const snapshotNow = (): typeof ctx.currentSnapshot => ({ ...ctx.currentSnapshot, nations });
@@ -260,6 +274,31 @@ export function runForeignContractPhase(ctx: MonthContext): ForeignContractPhase
             paidWork: SafeInt(Math.max(unlocked, Number(updated["paidWork"]))),
           };
       }
+      // DESIGN-16 section 13.5 (SB3-R24): post the construction-observation insight once half the work is paid and
+      // the delivery insight once the project is complete. Each milestone is awarded at most once per contract; the
+      // award posts micro-points into the ordering nation's research and never grants a technology.
+      if (isForeignInsightContract(contract)) {
+        const dueMilestones = foreignInsightMilestonesDue({
+          paidWork: Number(updated["paidWork"]),
+          completedWork: Number(updated["completedWork"]),
+          totalWork: Number(project0["totalWork"]),
+          completed: updated["status"] === "COMPLETED",
+          record: insightRecords.get(contractId),
+        });
+        for (const milestone of dueMilestones) {
+          const application = applyForeignInsightMilestone({
+            contract,
+            milestone,
+            record: insightRecords.get(contractId),
+            research: insightResearch,
+            remainingRequirementFor: makeRemainingRequirementFor(insightResearch, researchCostOf),
+          });
+          if (application.awards.length === 0) continue;
+          insightResearch = application.research;
+          if (application.record !== undefined) insightRecords.set(contractId, application.record);
+        }
+      }
+
       // A foreign project is always excluded from ordinary appropriation: its progress comes from the schedule alone.
       skipIds.add(project0["id"]);
       updatedById.set(project0["id"], updated);
@@ -291,12 +330,20 @@ export function runForeignContractPhase(ctx: MonthContext): ForeignContractPhase
     const payments =
       mergedRecords.length > 0 ? mergedRecords : finalNation["foreignContractPayments"];
 
+    // DESIGN-16 section 13.5: merge this month's insight records, keeping the field absent until the first award so
+    // a foreign run that transfers no insight does not add hash-perturbing state.
+    let insightAwards = finalNation["foreignInsightAwards"];
+    for (const record of insightRecords.values())
+      insightAwards = mergeForeignInsightAwardRecord(insightAwards, record);
+
     nations.set(nationId, {
       ...finalNation,
+      research: insightResearch,
       constructionProjects: finalNation["constructionProjects"].map(
         (p) => updatedById.get(p["id"]) ?? p,
       ),
       ...(payments === undefined ? {} : { foreignContractPayments: payments }),
+      ...(insightAwards === undefined ? {} : { foreignInsightAwards: insightAwards }),
     });
     changed = true;
     if (skipIds.size > 0) skip.set(nationId, skipIds);

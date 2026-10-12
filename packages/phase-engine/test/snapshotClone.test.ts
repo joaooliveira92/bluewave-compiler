@@ -71,6 +71,7 @@ function minimalSnapshot(): CampaignSnapshot {
           procurementIntents: [],
           foreignContracts: [],
           foreignContractPayments: [],
+          foreignInsightAwards: [],
           aircraft: {} as any,
           carrierOperations: {} as any,
           dock: {

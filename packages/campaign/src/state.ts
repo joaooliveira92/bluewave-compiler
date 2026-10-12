@@ -407,6 +407,20 @@ export interface ForeignContractPaymentRecord {
   paidDueMonths: string[];
 }
 
+/**
+ * DESIGN-16 section 13.5 / SB3-R24: the insight a foreign construction contract has already transferred to the
+ * ordering nation. It is what stops a milestone being awarded twice and what enforces the per-family and
+ * per-contract `3_000` micro-point cap. Plain values only; absent until the first award, so the field never
+ * perturbs an existing save hash.
+ */
+export interface ForeignInsightAwardRecord {
+  contractId: string;
+  /** Milestones already awarded, in canonical milestone order (`DESIGN_STUDY`, `CONSTRUCTION_OBSERVATION`, `DELIVERY`). */
+  milestones: string[];
+  /** Total research micro-points awarded per technology family, ascending by family id. */
+  awardedByFamily: Record<string, number>;
+}
+
 export interface NationState {
   id: string;
   name: string;
@@ -450,6 +464,11 @@ export interface NationState {
    * instalment is paid, so it never perturbs an existing save hash; the monthly phase reads and extends it.
    */
   foreignContractPayments?: ForeignContractPaymentRecord[];
+  /**
+   * The technology-insight milestones a foreign contract has transferred (DESIGN-16 section 13.5). Absent until the
+   * first award, so it never perturbs an existing save hash; the monthly step reads and extends it.
+   */
+  foreignInsightAwards?: ForeignInsightAwardRecord[];
   aircraft?: Record<string, unknown>;
   carrierOperations?: Record<string, unknown>;
   isPlayable: boolean;

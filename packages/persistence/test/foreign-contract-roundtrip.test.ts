@@ -91,6 +91,13 @@ function state(): CampaignState {
     constructionProjects: [project],
     foreignContracts: [contract],
     foreignContractPayments: [{ contractId: "fc-1", paidDueMonths: ["1880-01"] }],
+    foreignInsightAwards: [
+      {
+        contractId: "fc-1",
+        milestones: ["DESIGN_STUDY"],
+        awardedByFamily: { HULL_CONSTRUCTION: 500 },
+      },
+    ],
     isPlayable: true,
     isAI: false,
   };
@@ -147,6 +154,13 @@ describe("foreign construction contract persistence (INC-9)", () => {
       { contractId: "fc-1", paidDueMonths: ["1880-01"] },
     ]);
     expect(nation.constructionProjects).toEqual([project]);
+    expect(nation.foreignInsightAwards).toEqual([
+      {
+        contractId: "fc-1",
+        milestones: ["DESIGN_STUDY"],
+        awardedByFamily: { HULL_CONSTRUCTION: 500 },
+      },
+    ]);
     expect(loaded!.rawHash).toBe(saved.rawHash);
   });
 });

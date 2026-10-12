@@ -294,6 +294,13 @@ function makeRichSnapshot(): CampaignSnapshot {
   };
   gbr.foreignContracts = [foreignContract];
   gbr.foreignContractPayments = [{ contractId: "fc-1", paidDueMonths: ["1880-01"] }];
+  gbr.foreignInsightAwards = [
+    {
+      contractId: "fc-1",
+      milestones: ["DESIGN_STUDY"],
+      awardedByFamily: { HULL_CONSTRUCTION: 500 },
+    },
+  ];
 
   const fra = snapshot.nations.get(DEFENDER_NATION)!;
   fra.research = {
@@ -492,6 +499,7 @@ const CANONICAL_CLONE_TYPES = [
   "DesignStudy",
   "ForeignConstructionContract",
   "ForeignContractPaymentRecord",
+  "ForeignInsightAwardRecord",
   "CampaignWeatherState",
   "CampaignSnapshot",
 ] as const;
@@ -532,6 +540,9 @@ describe("snapshotClone — field-exhaustive clone coverage audit", () => {
     );
     expect(Object.keys(gbr.constructionProjects[0]!.monthUsage!).sort()).toEqual(
       [...CLONE_COVERAGE.ConstructionMonthUsage!].sort(),
+    );
+    expect(Object.keys(gbr.foreignInsightAwards![0]!).sort()).toEqual(
+      [...CLONE_COVERAGE.ForeignInsightAwardRecord!].sort(),
     );
     expect(Object.keys(clone.wars.wars[0]!).sort()).toEqual(
       [...CLONE_COVERAGE.WarDeclaration!].sort(),
@@ -596,6 +607,14 @@ describe("snapshotClone — deep isolation (identity checks, not value equality)
     expect(cloneFamily).not.toBe(inputFamily);
     cloneFamily.memberDesignVersionIds.push("SHARED");
     expect(inputFamily.memberDesignVersionIds).toHaveLength(2);
+    // foreign insight award (nested record + per-family number map)
+    const inputAwards = input.nations.get(ATTACKER_NATION)!.foreignInsightAwards!;
+    const cloneAwards = cloneNation.foreignInsightAwards!;
+    expect(cloneAwards[0]).not.toBe(inputAwards[0]);
+    cloneAwards[0]!.awardedByFamily["HULL_CONSTRUCTION"] = 9_999;
+    expect(inputAwards[0]!.awardedByFamily["HULL_CONSTRUCTION"]).toBe(500);
+    cloneAwards[0]!.milestones.push("DELIVERY");
+    expect(inputAwards[0]!.milestones).toHaveLength(1);
     // world route
     const inputRoute = input.world.routes[0]!;
     const cloneRoute = clone.world.routes[0]!;

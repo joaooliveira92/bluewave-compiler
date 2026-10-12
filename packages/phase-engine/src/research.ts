@@ -481,3 +481,14 @@ const TECH_DEFINITIONS: Record<string, TechDefinition> = {
 function findTechCost(techId: string): SafeInt {
   return TECH_DEFINITIONS[techId]?.["cost"] ?? SafeInt(100);
 }
+
+/**
+ * The research model's authoritative cost for a technology id, or `undefined` when the model carries none. The
+ * engine's cost table is the stub `TECH_DEFINITIONS` today (real content technologies are not materialised into
+ * it). Foreign insight reads this only to cap an award at the technology's remaining requirement and never
+ * fabricates a cost it does not know: an unknown cost applies no per-technology cap (the family cap still holds).
+ */
+export function researchCostOf(techId: string): number | undefined {
+  const def = TECH_DEFINITIONS[techId];
+  return def === undefined ? undefined : (def["cost"] as number);
+}
