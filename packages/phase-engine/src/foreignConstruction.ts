@@ -21,10 +21,12 @@ import {
   dockRecordFor,
   dockRecordFromDefinition,
   FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+  FOREIGN_BUILDER_CAPACITY_UNAVAILABLE,
   FOREIGN_BUILDER_NATION_INVALID,
   FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED,
   FOREIGN_PAYMENT_DEFAULT_DELAYED,
   FOREIGN_PAYMENT_GRACE_MONTHS,
+  capabilityFailureCode,
   validateForeignBuilderCapability,
   type DockRecord,
   type ForeignBuilderCapabilityCheck,
@@ -53,10 +55,13 @@ import {
 /** Re-exported so the order path has one stable, documented set of reason codes. */
 export {
   FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+  FOREIGN_BUILDER_CAPACITY_UNAVAILABLE,
   FOREIGN_BUILDER_NATION_INVALID,
   FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED,
+  FOREIGN_CONTRACT_PAYMENT_DEFAULT,
   FOREIGN_PAYMENT_DEFAULT_DELAYED,
   FOREIGN_PAYMENT_GRACE_MONTHS,
+  capabilityFailureCode,
 } from "@bluewave/ship-design";
 
 /** DESIGN-16 section 13.1: the shipped formula/ruleset identity stamped on every contract. */
@@ -476,7 +481,7 @@ export function placeForeignConstructionOrder(
   if (dock !== null && capacity === null)
     return {
       ok: false,
-      reason: FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+      reason: FOREIGN_BUILDER_CAPACITY_UNAVAILABLE,
       diagnostics: [
         "CAPACITY: The builder's construction balance could not be resolved, so no NEW_CONSTRUCTION capacity is available.",
       ],
@@ -527,7 +532,7 @@ export function placeForeignConstructionOrder(
   if (!capability.satisfied)
     return {
       ok: false,
-      reason: FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+      reason: capabilityFailureCode(capability),
       diagnostics: capability.reasons.map((r) => `${r.field}: ${r.message}`),
     };
 

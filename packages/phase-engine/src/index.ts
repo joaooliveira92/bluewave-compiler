@@ -149,9 +149,11 @@ export {
 } from "./newConstructionCapacity.js";
 export {
   FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+  FOREIGN_BUILDER_CAPACITY_UNAVAILABLE,
   FOREIGN_BUILDER_NATION_INVALID,
   FOREIGN_CANCELLATION_REFUND_POLICY_ID,
   FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED,
+  FOREIGN_CONTRACT_PAYMENT_DEFAULT,
   FOREIGN_CONTRACT_FORMULA_ID,
   FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE,
   FOREIGN_CONTRACT_HASH_MISMATCH,
@@ -170,6 +172,7 @@ export {
   applyForeignPaymentOutcome,
   builderDockRecord,
   buildForeignConstructionContract,
+  capabilityFailureCode,
   compareForeignConstructionContracts,
   foreignBuilderCapabilitySnapshotHash,
   foreignBuilderCommittedMassKg,

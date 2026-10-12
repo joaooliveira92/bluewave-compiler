@@ -13,10 +13,12 @@ import { describe, expect, it } from "vite-plus/test";
 import { applyBudgetProject, applyResumeConstruction } from "../src/commands.js";
 import {
   FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+  FOREIGN_BUILDER_CAPACITY_UNAVAILABLE,
   FOREIGN_BUILDER_NATION_INVALID,
   FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED,
   FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE,
   FOREIGN_CONTRACT_HASH_MISMATCH,
+  FOREIGN_CONTRACT_PAYMENT_DEFAULT,
   FOREIGN_PAYMENT_CATEGORY_ID,
   FOREIGN_PAYMENT_DEFAULT_DELAYED,
   FOREIGN_PAYMENT_DEFAULT_RESUME_BLOCKED,
@@ -24,6 +26,7 @@ import {
   advanceForeignContractMonth,
   applyForeignPaymentOutcome,
   buildForeignConstructionContract,
+  capabilityFailureCode,
   committedNewConstructionMassKg,
   compareForeignConstructionContracts,
   foreignBuilderCommittedMassKg,
@@ -168,9 +171,11 @@ describe("builder capability predicates (SB3-R20, DESIGN-16 section 13.2)", () =
     const result = validateForeignBuilderCapability({ ...base, ...override });
     expect(result.satisfied).toBe(false);
     expect(result.reasons.map((r) => r.field)).toContain(field);
-    expect(result.reasons.every((r) => r.code === FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT)).toBe(
-      true,
-    );
+    const expected =
+      field === "CAPACITY"
+        ? FOREIGN_BUILDER_CAPACITY_UNAVAILABLE
+        : FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT;
+    expect(result.reasons.every((r) => r.code === expected)).toBe(true);
   });
 });
 
@@ -290,7 +295,7 @@ describe("foreign construction consumes the builder's capacity (SB3-R21, DESIGN-
     }
     expect(foreignBuilderCommittedMassKg(current, BUILDER, builderCapacity())).toBe(FRANCE_CAP_KG);
     const fourth = order(current, { commandId: "cmd-4" });
-    expect(fourth).toMatchObject({ ok: false, reason: FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT });
+    expect(fourth).toMatchObject({ ok: false, reason: FOREIGN_BUILDER_CAPACITY_UNAVAILABLE });
   });
 
   it("orders foreign contracts deterministically by builder nation, shipyard, authorization month, contract id", () => {
@@ -919,7 +924,7 @@ describe("monthly step integration (M1/M2, DESIGN-16 section 13.4)", () => {
     );
     expect(result).toMatchObject({
       ok: false,
-      reason: FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+      reason: FOREIGN_BUILDER_CAPACITY_UNAVAILABLE,
     });
     if (!result.ok) expect(result.diagnostics.some((d) => d.startsWith("CAPACITY"))).toBe(true);
   });
@@ -1000,5 +1005,31 @@ describe("foreign war effects in the monthly phase (SB3-R23, INC-10)", () => {
       }
     }
     expect(impounded).toBe(true);
+  });
+});
+
+describe("DESIGN-16 section 18 reason-code reconciliation (INC-9f)", () => {
+  it("the section 18 payment-default name is the alias of the single emitted code", () => {
+    expect(FOREIGN_CONTRACT_PAYMENT_DEFAULT).toBe(FOREIGN_PAYMENT_DEFAULT_DELAYED);
+  });
+
+  it("a capacity-predicate failure is reported with the dedicated section 18 code", () => {
+    const over = validateForeignBuilderCapability({
+      demand: { lengthMm: 0, beamMm: 0, displacementKg: 1_000_000, heaviestKg: 0 },
+      dock: {
+        maximumNewConstructionMassKg: FRANCE_DOCK_KG,
+        maximumMajorRepairMassKg: FRANCE_DOCK_KG,
+        maximumRebuildMassKg: FRANCE_DOCK_KG,
+        maximumConversionMassKg: FRANCE_DOCK_KG,
+      },
+      requiredTechnologySatisfied: true,
+      shipyardCapabilitySatisfied: true,
+      governmentPermissionSatisfied: true,
+      componentSourcingSatisfied: true,
+      physicallyCapable: true,
+      reservedMassKg: FRANCE_CAP_KG + 1,
+      availableNewConstructionCapacityKg: FRANCE_CAP_KG,
+    });
+    expect(capabilityFailureCode(over)).toBe(FOREIGN_BUILDER_CAPACITY_UNAVAILABLE);
   });
 });

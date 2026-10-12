@@ -15,11 +15,21 @@ export const FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED =
   "FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED" as const;
 
 /**
- * DESIGN-16 section 13.2: the builder fails one of the capability predicates. One stable code carries every predicate
- * failure; the `field` discriminator names which one, so a caller can always report a specific reason.
+ * DESIGN-16 section 13.2: the builder fails one of the capability predicates. One stable code carries every
+ * non-capacity predicate failure; the `field` discriminator names which one, so a caller can always report a specific
+ * reason. A capacity-predicate failure uses the dedicated section 18 code `FOREIGN_BUILDER_CAPACITY_UNAVAILABLE`.
  */
 export const FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT =
   "FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT" as const;
+
+/**
+ * DESIGN-16 section 18: the dedicated code for a builder-capacity admission failure (the capacity predicate). It is a
+ * "MUST define" §18 reason code; section 13.2 otherwise carries one stable code per predicate.
+ */
+export const FOREIGN_BUILDER_CAPACITY_UNAVAILABLE = "FOREIGN_BUILDER_CAPACITY_UNAVAILABLE" as const;
+export type ForeignBuilderCapabilityFailureCode =
+  | typeof FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT
+  | typeof FOREIGN_BUILDER_CAPACITY_UNAVAILABLE;
 
 /**
  * DESIGN-16 sections 13.1/13.4: a foreign order names an ordering nation as its own builder, or a builder nation that
@@ -30,10 +40,18 @@ export const FOREIGN_BUILDER_NATION_INVALID = "FOREIGN_BUILDER_NATION_INVALID" a
 
 /**
  * DESIGN-16 section 13.4: the reason a foreign project is held in the existing `DELAYED` status after the shipped
- * one-month payment grace expires. `PAYMENT_DEFAULT_DELAYED` is a reason code, not a DESIGN-23 section 2 status; the
- * status union is not widened (see INC-9 `## Answer`).
+ * one-month payment grace expires. This is the canonical emitted value (also the sprint spec's SB3-R22 code);
+ * `PAYMENT_DEFAULT_DELAYED` is a reason code, not a DESIGN-23 section 2 status, so the status union is not widened
+ * (see INC-9 `## Answer`).
  */
 export const FOREIGN_PAYMENT_DEFAULT_DELAYED = "PAYMENT_DEFAULT_DELAYED" as const;
+/**
+ * DESIGN-16 section 18 lists `FOREIGN_CONTRACT_PAYMENT_DEFAULT` as a MUST-define reason code, while section 13.4 and
+ * sprint spec SB3-R22 use `PAYMENT_DEFAULT_DELAYED` for the same default. INC-9f decision (documented, deterministic):
+ * the emitted code stays `PAYMENT_DEFAULT_DELAYED`; `FOREIGN_CONTRACT_PAYMENT_DEFAULT` is the section 18 alias for that
+ * one value, so state and events carry exactly one code. Pinned by a test asserting the two constants are equal.
+ */
+export const FOREIGN_CONTRACT_PAYMENT_DEFAULT = FOREIGN_PAYMENT_DEFAULT_DELAYED;
 
 /** DESIGN-16 section 13.4: the shipped payment grace is exactly one month. */
 export const FOREIGN_PAYMENT_GRACE_MONTHS = 1 as const;
@@ -51,7 +69,7 @@ export const FOREIGN_BUILDER_CAPABILITY_FIELDS = [
 export type ForeignBuilderCapabilityField = (typeof FOREIGN_BUILDER_CAPABILITY_FIELDS)[number];
 
 export interface ForeignBuilderCapabilityReason {
-  readonly code: typeof FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT;
+  readonly code: ForeignBuilderCapabilityFailureCode;
   /** Which section-13.2 predicate failed. */
   readonly field: ForeignBuilderCapabilityField;
   readonly message: string;
@@ -85,11 +103,8 @@ export interface ForeignBuilderCapabilityInput {
 const reason = (
   field: ForeignBuilderCapabilityField,
   message: string,
-): ForeignBuilderCapabilityReason => ({
-  code: FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
-  field,
-  message,
-});
+  code: ForeignBuilderCapabilityFailureCode = FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+): ForeignBuilderCapabilityReason => ({ code, field, message });
 
 /**
  * Judge every DESIGN-16 section 13.2 predicate for the BUILDER. The dock ceiling is the builder's own dock (section
@@ -135,8 +150,22 @@ export function validateForeignBuilderCapability(
       reason(
         "CAPACITY",
         `Reserving ${reserved} kg exceeds the builder's available NEW_CONSTRUCTION capacity of ${available} kg.`,
+        FOREIGN_BUILDER_CAPACITY_UNAVAILABLE,
       ),
     );
 
   return { satisfied: reasons.length === 0, reasons };
+}
+
+/**
+ * DESIGN-16 section 18: the stable code an order reports for a failed capability check. A failure where every failing
+ * predicate is `CAPACITY` uses the dedicated `FOREIGN_BUILDER_CAPACITY_UNAVAILABLE`; any other failure set (including a
+ * mixed set) uses `FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT`. Pure.
+ */
+export function capabilityFailureCode(
+  check: ForeignBuilderCapabilityCheck,
+): ForeignBuilderCapabilityFailureCode {
+  if (check.reasons.length > 0 && check.reasons.every((r) => r.field === "CAPACITY"))
+    return FOREIGN_BUILDER_CAPACITY_UNAVAILABLE;
+  return FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT;
 }

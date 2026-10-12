@@ -23,12 +23,12 @@ import { SafeInt } from "@bluewave/contracts";
 import type { ShipBuildingContent } from "@bluewave/ship-design";
 import { constructionResumeTarget } from "./constructionHaltResume.js";
 import {
-  FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
   FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED,
   FOREIGN_CONTRACT_HASH_MISMATCH,
   advanceForeignContractMonth,
   applyForeignPaymentOutcome,
   builderDockRecord,
+  capabilityFailureCode,
   compareForeignConstructionContracts,
   foreignBuilderCommittedMassKg,
   foreignContractReservedMassKg,
@@ -294,8 +294,9 @@ export function runForeignContractPhase(
       let updated = applyForeignPaymentOutcome(project0, settled.payment, resumeStatus);
 
       if (!settled.capability["satisfied"]) {
+        const capabilityCode = capabilityFailureCode(settled.capability);
         ctx.collector.addWarning(
-          FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+          capabilityCode,
           `Builder ${contract["builderNationId"]} fails capacity revalidation for contract ${contractId}: ${settled.capability[
             "reasons"
           ]
@@ -311,7 +312,7 @@ export function runForeignContractPhase(
             updated = {
               ...updated,
               status: "DELAYED",
-              delayReasonCode: FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+              delayReasonCode: capabilityCode,
             };
           if (updated["status"] === "DELAYED") capabilityDelayed.add(project0["id"]);
         }
