@@ -4,32 +4,19 @@ import type { SvgGlobeRefs } from "./useSvgGlobe.js";
 
 export interface GlobeShellProps {
   readonly refs: SvgGlobeRefs;
-  /**
-   * Inert backdrop: hidden from assistive technology, never the target of the
-   * pointer, and without pin or selection-ring layers. The default is the
-   * interactive nation globe's labelled image.
-   */
-  readonly decorative?: boolean;
 }
 
 // The static D3 globe `<svg>` skeleton shared by both variants. The rAF loop
 // (owned by useSvgGlobe) draws into the refs' element groups each frame.
-export function GlobeShell({ refs, decorative = false }: GlobeShellProps): JSX.Element {
+export function GlobeShell({ refs }: GlobeShellProps): JSX.Element {
   return (
-    <div
-      ref={refs.containerRef}
-      className={
-        decorative
-          ? "pointer-events-none absolute inset-0 overflow-hidden"
-          : "absolute inset-0 overflow-hidden"
-      }
-      {...(decorative ? { "aria-hidden": true } : {})}
-    >
+    <div ref={refs.containerRef} className="absolute inset-0 overflow-hidden">
       <svg
         ref={refs.svgRef}
         className="h-full w-full"
         style={{ touchAction: "none" }}
-        {...(decorative ? {} : { role: "img", "aria-label": "World map" })}
+        role="img"
+        aria-label="World map"
       >
         <defs>
           <radialGradient id="svg-globe-ocean" cx="50%" cy="50%" r="55%">
@@ -58,15 +45,10 @@ export function GlobeShell({ refs, decorative = false }: GlobeShellProps): JSX.E
           stroke="var(--globe-land-stroke)"
           strokeWidth={1.25}
         />
-        {decorative ? null : (
-          <>
-            <g ref={refs.pinRef} />
-            <g ref={refs.ringRef} className="svg-globe-ring-group" />
-          </>
-        )}
+        <g ref={refs.pinRef} />
+        <g ref={refs.ringRef} className="svg-globe-ring-group" />
       </svg>
-      {decorative ? null : (
-        <style>{`
+      <style>{`
         .svg-globe-ring {
           animation: svg-globe-ring-pulse 1.6s ease-out infinite;
         }
@@ -78,7 +60,6 @@ export function GlobeShell({ refs, decorative = false }: GlobeShellProps): JSX.E
           .svg-globe-ring { animation: none; opacity: 0.7; }
         }
       `}</style>
-      )}
     </div>
   );
 }

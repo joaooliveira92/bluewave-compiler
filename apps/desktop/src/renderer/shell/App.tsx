@@ -5,6 +5,10 @@ import {
   MonthlyResolutionFailure,
   MonthlyResolutionLoading,
 } from "../components/MonthlyResolutionLoading.js";
+import {
+  RULES_OF_THE_NAVAL_AGE_HEADING,
+  RULES_OF_THE_NAVAL_AGE_HINT,
+} from "../screens/new-game/rules-of-the-naval-age-content.js";
 import { PreTurnReviewDialog } from "../components/PreTurnReviewDialog.js";
 import { BridgeProvider } from "../lib/bridge-context.js";
 import {
@@ -21,7 +25,12 @@ import { CampaignShellProvider, useCampaignShellContext } from "./CampaignShellC
 import { GuidedInspectionOverlay } from "./GuidedInspectionOverlay.js";
 import { MapSheet } from "./MapSheet.js";
 import { SiteHeader } from "./SiteHeader.js";
-import { type ActiveView, type HeaderCampaign, headerTitleFor } from "./site-header-state.js";
+import {
+  type ActiveView,
+  type HeaderCampaign,
+  type WizardStepCopy,
+  headerTitleFor,
+} from "./site-header-state.js";
 import { useGuidedInspection } from "./useGuidedInspection.js";
 import { useTheme } from "./ThemeContext.js";
 import { WindowContextProvider } from "./WindowContext.js";
@@ -52,6 +61,17 @@ const NEW_GAME_MODE_KINDS: ReadonlySet<CampaignShellMode["kind"]> = new Set([
   "new-game-launching",
   "opening-briefing",
 ]);
+
+/**
+ * New-game steps that name themselves in the header's secondary row instead of
+ * the generic "Campaign setup assistant" copy. Steps absent here keep it.
+ */
+const WIZARD_STEP_COPY: Partial<Record<CampaignShellMode["kind"], WizardStepCopy>> = {
+  "new-game-preferences": {
+    heading: RULES_OF_THE_NAVAL_AGE_HEADING,
+    hint: RULES_OF_THE_NAVAL_AGE_HINT,
+  },
+};
 
 function activeViewFor(mode: CampaignShellMode): ActiveView {
   if (mode.kind === "campaign") return "playing";
@@ -138,6 +158,7 @@ function CampaignShellApplication({
       title={headerTitleFor(headerCampaign)}
       activeView={activeView}
       campaign={headerCampaign}
+      wizardStep={WIZARD_STEP_COPY[shell.state.mode.kind]}
       back={{
         disabled: !shell.state.canGoBack,
         onTrigger: shell.actions.goBack,

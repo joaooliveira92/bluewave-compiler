@@ -1,4 +1,9 @@
-import type { ActiveView, HeaderCampaign, SecondaryRow } from "../site-header-state.js";
+import type {
+  ActiveView,
+  HeaderCampaign,
+  SecondaryRow,
+  WizardStepCopy,
+} from "../site-header-state.js";
 import { describeSecondaryRow } from "../site-header-state.js";
 import { CampaignRow } from "./secondary-row/CampaignRow.js";
 import { EditorRow } from "./secondary-row/EditorRow.js";
@@ -9,6 +14,8 @@ import { WizardRow } from "./secondary-row/WizardRow.js";
 export interface HeaderSecondaryRowProps {
   readonly activeView: ActiveView;
   readonly campaign?: HeaderCampaign | null;
+  /** Replaces the generic new-game heading and hint when the current step has its own. */
+  readonly wizardStep?: WizardStepCopy | undefined;
   readonly onActionClick?: ((actionCode: string) => void) | undefined;
 }
 
@@ -24,11 +31,12 @@ export interface SecondaryRowViewProps {
 export function HeaderSecondaryRow({
   activeView,
   campaign = null,
+  wizardStep,
   onActionClick,
 }: HeaderSecondaryRowProps) {
   return (
     <SecondaryRowView
-      row={describeSecondaryRow(activeView, campaign)}
+      row={describeSecondaryRow(activeView, campaign, wizardStep)}
       onActionClick={onActionClick}
     />
   );

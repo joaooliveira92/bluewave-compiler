@@ -32,3 +32,8 @@ focused-preset panel and the forms, and nothing about it implies nation selectio
 first element of the "Preset details" column. Proven by the "crowns the detail
 column with a decorative globe" screen test, `DecorativeGlobe.test.tsx`, and the
 `globeBoundary.test.ts` import allowlist.
+
+## Amendment 2026-10-11
+
+**Withdrawn.** The owner does not want a globe on the Rules of the Naval Age
+screen; `PresetGlobeBand` and `DecorativeGlobe` were removed.

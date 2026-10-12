@@ -15,7 +15,7 @@ import {
 import { DRAG, NO_DRAG } from "./header/drag-region.js";
 import type { PrimaryAction } from "./primary-action.js";
 import type { SearchTarget } from "./global-search-state.js";
-import type { ActiveView, HeaderCampaign } from "./site-header-state.js";
+import type { ActiveView, HeaderCampaign, WizardStepCopy } from "./site-header-state.js";
 import { useWindowContext } from "./WindowContext.js";
 
 const EMPTY_SEARCH_TARGETS: readonly SearchTarget[] = [];
@@ -24,6 +24,8 @@ export interface SiteHeaderProps {
   readonly title?: string;
   readonly activeView?: ActiveView;
   readonly campaign?: HeaderCampaign | null;
+  /** The current new-game step's own heading and hint for the secondary row. */
+  readonly wizardStep?: WizardStepCopy | undefined;
   readonly onActionClick?: (actionCode: string) => void;
   readonly back?: NavAction;
   readonly forward?: NavAction;
@@ -43,6 +45,7 @@ export function SiteHeader({
   title = "Naval Ministry",
   activeView = "menu",
   campaign = null,
+  wizardStep,
   onActionClick,
   back = DISABLED_NAV,
   forward = DISABLED_NAV,
@@ -95,6 +98,7 @@ export function SiteHeader({
         <HeaderSecondaryRow
           activeView={activeView}
           campaign={campaign}
+          wizardStep={wizardStep}
           onActionClick={onActionClick}
         />
       </div>

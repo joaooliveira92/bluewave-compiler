@@ -41,3 +41,10 @@ decorative globe composition exists and is covered by an external-behaviour test
 - `no-unknown-casts.baseline.json` key renamed for the moved `useSvgGlobe.ts`
   (same four existing assertions; no new ones). `test-setup.ts` gained an
   `IntersectionObserver` stub for jsdom.
+
+## Amendment 2026-10-11
+
+The globe/decorative-composition half of this ticket was **reverted** at the
+owner's direction (no globe on the preset step); `GlobeShell`, `useSvgGlobe` and
+`InteractiveGlobe` are back in `nation-selection/`, unchanged. The slide-panel
+extraction stands (`components/slide-panel/`).

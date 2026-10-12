@@ -68,9 +68,8 @@ async function setupUi(recommendedPreset: AdmiralPresetValues | null = null) {
       }}
     />,
   );
-  await screen.findByRole("heading", { name: "Rules of the Naval Age" });
-  // The heading is there at once; the deck and the setting controls only render once the options
-  // have loaded through the bridge. Wait for them, or the tests below race the load on a busy machine.
+  // The deck and the setting controls only render once the options have loaded through the
+  // bridge. Wait for them, or the tests below race the load on a busy machine.
   await screen.findByLabelText("Fleet Size");
   await screen.findByRole("listbox", { name: "Campaign presets" });
   return { ...utils, onCancel, onNext, getPrimary: () => primary };
@@ -129,22 +128,16 @@ describe("RulesOfTheNavalAgeScreen", () => {
     expect(within(master as HTMLElement).queryByLabelText("Fleet Size")).toBeNull();
   });
 
-  it("crowns the detail column with a decorative globe that offers nothing to pick", async () => {
-    await setupUi();
+  it("carries no globe, and leaves the title and description to the shell header", async () => {
+    const { container } = await setupUi();
 
-    const detail = screen.getByRole("region", { name: "Preset details" });
-    const globe = detail.querySelector("[data-testid='preset-globe-band']");
-    expect(globe).not.toBeNull();
-    // It leads the column, above the focused-preset panel and the forms.
-    expect(detail.firstElementChild).toBe(globe);
-    expect(globe?.getAttribute("aria-hidden")).toBe("true");
-    expect(globe?.querySelector("svg")).not.toBeNull();
-    // Nothing inside it is a control, a nation pin or an option.
-    expect(globe?.querySelector("button, a, input, select, [role], [tabindex]")).toBeNull();
-    expect(globe?.querySelector("[data-country-id]")).toBeNull();
-    // The only option set on the screen is the preset deck.
-    expect(within(presetListbox()).getAllByRole("option")).toHaveLength(4);
-    expect(screen.queryByRole("img", { name: "World map" })).toBeNull();
+    expect(container.querySelector("svg[aria-label='World map']")).toBeNull();
+    expect(screen.queryByTestId("preset-globe-band")).toBeNull();
+    // The shell header's secondary row shows these now; the screen no longer repeats them.
+    expect(
+      screen.queryByText("Set the era, scale, and historical uncertainty for this campaign."),
+    ).toBeNull();
+    expect(screen.queryByText("Rules of the Naval Age")).toBeNull();
   });
 
   it("lists exactly the four preset bundles as options of one listbox", async () => {

@@ -248,6 +248,22 @@ describe("SiteHeader", () => {
     expect(screen.getByText("Preferences:")).toBeTruthy();
   });
 
+  it("shows a wizard step's own heading and hint in place of the generic setup copy", () => {
+    renderHeader("linux", {
+      activeView: "new_game",
+      wizardStep: {
+        heading: "Rules of the Naval Age",
+        hint: "Set the era, scale, and historical uncertainty for this campaign.",
+      },
+    });
+    expect(screen.getByText("Rules of the Naval Age")).toBeTruthy();
+    expect(
+      screen.getByText("Set the era, scale, and historical uncertainty for this campaign."),
+    ).toBeTruthy();
+    expect(screen.queryByText("Campaign setup assistant")).toBeNull();
+    expect(screen.queryByText("Select the historical scenario to continue")).toBeNull();
+  });
+
   it("shows the Campaign menu only in a campaign with its handlers, beside the single Advance control", () => {
     renderHeader();
     expect(screen.queryByRole("button", { name: "Campaign menu" })).toBeNull();

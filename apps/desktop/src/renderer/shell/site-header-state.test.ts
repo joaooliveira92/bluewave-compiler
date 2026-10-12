@@ -171,6 +171,26 @@ describe("describeSecondaryRow", () => {
     expect(describeSecondaryRow("editor", null).kind).toBe("editor");
   });
 
+  it("lets a wizard step replace the default heading and hint", () => {
+    const row = describeSecondaryRow("new_game", null, {
+      heading: "Rules of the Naval Age",
+      hint: "Set the era, scale, and historical uncertainty for this campaign.",
+    });
+    expect(row).toEqual({
+      kind: "wizard",
+      heading: "Rules of the Naval Age",
+      hint: "Set the era, scale, and historical uncertainty for this campaign.",
+    });
+  });
+
+  it("keeps the generic wizard copy when no step supplies its own", () => {
+    expect(describeSecondaryRow("new_game", null)).toEqual({
+      kind: "wizard",
+      heading: "Campaign setup assistant",
+      hint: "Select the historical scenario to continue",
+    });
+  });
+
   it("names the scenario year on the editor view", () => {
     const row = describeSecondaryRow("editor", campaign);
     if (row.kind !== "editor") throw new Error("expected an editor row");

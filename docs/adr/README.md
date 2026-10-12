@@ -178,7 +178,7 @@ Electron boundary, renderer screens, UX, and presentation.
 | 0121 | [ADR-0121-desktop-shell-hardening.md](ADR-0121-desktop-shell-hardening.md) | Desktop shell hardening — renderer recovery, single instance, and a bounded flushing quit | accepted | — |
 | 0125 | [ADR-0125-renderer-content-ipc.md](ADR-0125-renderer-content-ipc.md) | Renderer decoupling over a narrow content IPC — executing `MIG-EXCL-1` | accepted | — |
 | 0126 | [ADR-0126-unified-hover-card.md](ADR-0126-unified-hover-card.md) | One hover popover — the ReUI hover card (Base UI PreviewCard) replaces the tooltip | accepted | — |
-| 0127 | [ADR-0127-shared-master-detail-primitives.md](ADR-0127-shared-master-detail-primitives.md) | Shared master/detail primitives — card deck, globe shell, slide panel — and an inert decorative globe | accepted | — |
+| 0127 | [ADR-0127-shared-master-detail-primitives.md](ADR-0127-shared-master-detail-primitives.md) | Shared master/detail primitives — card deck and slide panel | accepted | — |
 
 ## Process & documentation
 

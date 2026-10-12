@@ -80,6 +80,9 @@ export type StatusRowModel = Extract<SecondaryRow, { kind: "status" }>;
 export type CampaignRowModel = Extract<SecondaryRow, { kind: "campaign" }>;
 export type EditorRowModel = Extract<SecondaryRow, { kind: "editor" }>;
 export type WizardRowModel = Extract<SecondaryRow, { kind: "wizard" }>;
+
+/** A new-game step's own heading and hint, replacing the generic setup-assistant copy. */
+export type WizardStepCopy = Pick<WizardRowModel, "heading" | "hint">;
 export type PreferencesRowModel = Extract<SecondaryRow, { kind: "preferences" }>;
 
 const NO_VALUE = "—";
@@ -119,6 +122,7 @@ const EDITOR_ACTIONS: readonly HeaderAction[] = [
 export function describeSecondaryRow(
   view: ActiveView,
   campaign: HeaderCampaign | null,
+  wizardStep?: WizardStepCopy,
 ): SecondaryRow {
   switch (view) {
     case "editor":
@@ -138,8 +142,8 @@ export function describeSecondaryRow(
     case "new_game":
       return {
         kind: "wizard",
-        heading: "Campaign setup assistant",
-        hint: "Select the historical scenario to continue",
+        heading: wizardStep?.heading ?? "Campaign setup assistant",
+        hint: wizardStep?.hint ?? "Select the historical scenario to continue",
       };
 
     case "options":

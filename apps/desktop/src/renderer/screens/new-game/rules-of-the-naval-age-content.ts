@@ -9,6 +9,15 @@
 import type { NewGameScenario } from "../../../shared/new-game-contract.js";
 import { monthName } from "../../lib/campaign-month.js";
 
+/**
+ * The step's title and one-line brief. The shell header's secondary row shows
+ * them (the screen itself does not repeat them), so they live with the step's
+ * other copy rather than in the shell.
+ */
+export const RULES_OF_THE_NAVAL_AGE_HEADING = "Rules of the Naval Age";
+export const RULES_OF_THE_NAVAL_AGE_HINT =
+  "Set the era, scale, and historical uncertainty for this campaign.";
+
 /** The secondary line under a scenario in the Starting Era select: when it opens and how many nations it seats. */
 export function scenarioEraDescription(scenario: NewGameScenario): string {
   const month = monthName(scenario.startMonth) ?? String(scenario.startMonth);

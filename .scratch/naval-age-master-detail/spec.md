@@ -8,6 +8,14 @@ no engine, compiler, or authoritative-state change.
 the owner delegated every decision recorded below. **Blocked by:** none. **Frontier:**
 independent; all decisions are resolved in this spec.
 
+> **Amendment 2026-10-11 (owner):** the decorative globe (NAM-3, AC-8, Decision 5,
+> shared globe shell in Decision 3, tickets 02/04) is **dropped** from the Rules of
+> the Naval Age screen, and the screen no longer shows its own title/description
+> panel: "Rules of the Naval Age" / "Set the era, scale, and historical uncertainty
+> for this campaign." replace the shell header's "Campaign setup assistant" /
+> "Select the historical scenario to continue" for this step. Everything else stands.
+> See ADR-0127.
+
 ## Problem Statement
 
 The **Rules of the Naval Age** new-game screen is the step where a player sets
