@@ -74,7 +74,27 @@ describe("NewGameArchetypeScreen", () => {
     const names = within(archetypeListbox())
       .getAllByRole("option")
       .map((option) => option.getAttribute("aria-label"));
-    expect(names).toEqual(["Merchant Prince", "Shipyard Baron", "Grand Admiral", "Create Your Own"]);
+    expect(names).toEqual([
+      "Merchant Prince",
+      "Shipyard Baron",
+      "Grand Admiral",
+      "Create Your Own",
+    ]);
+  });
+
+  it("paints each preset card with its archetype artwork, decorative to assistive tech", () => {
+    const { container } = setupUi();
+
+    for (const [name, artwork] of [
+      ["Merchant Prince", /merchant_prince-1/],
+      ["Shipyard Baron", /shipyard_baron-1/],
+      ["Grand Admiral", /grand_admiral-1/],
+    ] as const) {
+      const image = archetypeOption(name).querySelector("img");
+      expect(image?.getAttribute("src")).toMatch(artwork);
+      expect(image?.getAttribute("alt")).toBe("");
+    }
+    expect(container.querySelectorAll("img").length).toBeGreaterThanOrEqual(3);
   });
 
   it("wraps arrow navigation at both ends of the deck", () => {
@@ -295,7 +315,9 @@ describe("NewGameArchetypeScreen", () => {
       fireEvent.keyDown(archetypeListbox(), { key: "Enter" });
 
       expect(screen.queryByRole("dialog")).toBeNull();
-      expect(document.activeElement).toBe(screen.getByRole("slider", { name: "Economy allocation" }));
+      expect(document.activeElement).toBe(
+        screen.getByRole("slider", { name: "Economy allocation" }),
+      );
       expect(archetypeOption("Create Your Own").getAttribute("aria-selected")).toBe("false");
       expect(getPrimary()?.label).toBe("Select");
     });

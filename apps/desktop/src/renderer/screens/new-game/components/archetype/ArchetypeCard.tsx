@@ -2,7 +2,7 @@ import type { ArchetypePreset } from "@bluewave/campaign-engine";
 import { Check } from "lucide-react";
 import { memo } from "react";
 import type { CardPalette } from "@/components/card-deck/index.js";
-import { getArchetypeArtwork } from "@/content/archetypeArtworkManifest.js";
+import { getArchetypeArtwork, isArchetypeArtworkId } from "@/content/archetypeArtworkManifest.js";
 
 export interface ArchetypeCardProps {
   readonly preset: ArchetypePreset;
@@ -46,12 +46,14 @@ export const ArchetypeCard = memo(function ArchetypeCard({
       }}
       className="absolute inset-0 h-full w-full select-none overflow-hidden rounded-[1.15rem] border"
     >
-      <img
-        src={getArchetypeArtwork(preset.id)}
-        alt=""
-        draggable={false}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+      {isArchetypeArtworkId(preset.id) && (
+        <img
+          src={getArchetypeArtwork(preset.id)}
+          alt=""
+          draggable={false}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
 
       <div
         aria-hidden="true"
