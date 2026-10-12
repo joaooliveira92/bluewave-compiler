@@ -16,6 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so the golden-repin ratchet can resolve its baseline
+          # commit and scan the range since it.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 11.21.0
@@ -30,6 +34,11 @@ jobs:
       - run: pnpm format
       - run: pnpm lint
       - run: pnpm test:scripts
+      # Fails a commit that changes authoritative source without re-pinning
+      # `golden/hashes.json` in the same commit (or recording a
+      # `Golden-Repin: not-needed` trailer). Runs from the ratchet baseline in
+      # `scripts/golden-repin.baseline`, so pre-guard history is grandfathered.
+      - run: pnpm check:golden-repin
       - run: pnpm typecheck
       # --force: typecheck's `^build` populates the turbo cache first, and a
       # replayed desktop build then reads a stale phase-engine `dist`. Build

@@ -1,0 +1,3 @@
+# Goldens re-pin ratchet baseline (ADR-0007, production-hardening WS2).
+# Commits at or before this SHA predate the golden-repin guard and are grandfathered.
+bee03042eb2ad1e13de08aef296bbb43ce8fd667

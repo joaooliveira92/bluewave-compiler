@@ -26,6 +26,9 @@ regression — investigate, do not re-pin.
 
 ## Guard
 
-`pnpm check` and CI run `verify-golden-hashes.cjs`, so an un-pinned behavioural
-change fails the gate. A re-pin must appear in the diff of the same change that
-caused it.
+`pnpm check` and CI run `verify-golden-hashes.cjs` plus a two-process
+cross-process determinism proof. `verify-golden-repin.mjs` additionally fails any
+commit that edits authoritative `packages/*/src` or `content/production/` without
+re-pinning `golden/hashes.json` in the same commit; a deliberate no-output change
+records a `Golden-Repin: not-needed` trailer. Pre-guard history is grandfathered
+via `scripts/golden-repin.baseline`.
