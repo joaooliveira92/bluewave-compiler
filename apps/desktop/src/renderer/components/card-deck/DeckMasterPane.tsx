@@ -164,17 +164,16 @@ export function DeckMasterPane({
   return (
     <aside
       aria-labelledby={`${listboxId}-heading`}
-      className="
+      className={`
         relative z-10
         flex min-h-152 w-full
         flex-none flex-col
         overflow-hidden
         border-b border-admiralty-border
         bg-admiralty-surface-raised/60
-        py-4
+        ${hasFooter ? "pt-4 sm:pt-5" : "py-4 sm:py-5"}
 
         sm:min-h-172
-        sm:py-5
 
         lg:h-full
         lg:min-h-0
@@ -183,7 +182,7 @@ export function DeckMasterPane({
         lg:border-r
 
         xl:w-[min(36vw,39rem)]
-      "
+      `}
     >
       <header className="relative z-30 flex flex-none items-start justify-between gap-4 px-4 sm:px-6">
         <div className="min-w-0">

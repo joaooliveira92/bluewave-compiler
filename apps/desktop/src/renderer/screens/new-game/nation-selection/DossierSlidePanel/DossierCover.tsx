@@ -17,7 +17,7 @@ export function DossierCover({ countryId }: { countryId: PlayableSlotCountryId }
           aria-hidden="true"
           draggable={false}
           onError={() => setImageFailed(true)}
-          className="pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover object-center opacity-45"
+          className="pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover object-center opacity-25"
         />
       ) : (
         <div
@@ -31,7 +31,7 @@ export function DossierCover({ countryId }: { countryId: PlayableSlotCountryId }
       )}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-admiralty-surface/25 via-admiralty-surface/35 to-admiralty-surface/60"
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-admiralty-surface/40 via-admiralty-surface/55 to-admiralty-surface/80"
       />
       <div
         aria-hidden="true"

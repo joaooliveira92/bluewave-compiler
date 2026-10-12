@@ -1,5 +1,5 @@
 import { Anchor, Coins, Scroll } from "lucide-react";
-import { type JSX, type KeyboardEvent, useMemo, useState } from "react";
+import { type JSX, type KeyboardEvent, useMemo, useRef, useState } from "react";
 import { createHoverCardHandle, HoverCard, HoverCardContent } from "@/components/ui/hover-card.js";
 import { cn } from "@/lib/utils.js";
 import { ACCENT_STYLES } from "./constants.js";
@@ -20,6 +20,10 @@ const isSectionId = (value: string | undefined): value is DossierSectionId =>
  * (Base UI's detached-handle preview card) rather than expanding a fixed-height inline panel, so
  * moving between sections swaps the card's content and nothing ever needs to be scrolled. Hover,
  * keyboard focus and a click/tap all open it; Escape or a press outside closes it.
+ *
+ * Base UI owns whether the card is open and for which tab. `active` only mirrors that for the
+ * tabs' ARIA state: feeding it back as a controlled `open`/`triggerId` raced the hover delays and
+ * left the wrong card (or none) showing.
  */
 export function DossierAccordion({
   economy,
@@ -28,6 +32,7 @@ export function DossierAccordion({
 }: DossierAccordionProps): JSX.Element {
   const [handle] = useState(() => createHoverCardHandle<DossierSectionId>());
   const [active, setActive] = useState<DossierSectionId | null>(null);
+  const stripRef = useRef<HTMLDivElement | null>(null);
 
   const sections = useMemo<DossierSection[]>(
     () => [
@@ -64,9 +69,10 @@ export function DossierAccordion({
   return (
     <div className="relative">
       <div
+        ref={stripRef}
         role="group"
         aria-label="Nation dossier sections"
-        className="flex items-stretch gap-1.5 border-t border-admiralty-border/60 bg-admiralty-surface/40 px-3 py-2.5 backdrop-blur-md sm:px-5"
+        className="grid grid-cols-3 items-stretch gap-2 border-t border-admiralty-border/60 bg-admiralty-surface-raised/80 px-3 py-3 backdrop-blur-md sm:px-4"
       >
         {sections.map((section, index) => (
           <DossierAccordionItem
@@ -74,7 +80,7 @@ export function DossierAccordion({
             section={section}
             active={active === section.id}
             handle={handle}
-            onSelect={() => setActive(section.id)}
+            onSelect={() => handle.open(triggerId(section.id))}
             onKeyDown={(event) => handleKeyDown(event, index)}
           />
         ))}
@@ -82,14 +88,23 @@ export function DossierAccordion({
 
       <HoverCard
         handle={handle}
-        open={active !== null}
-        triggerId={active === null ? null : triggerId(active)}
         onOpenChange={(open, details) => {
           const id =
             details.trigger instanceof HTMLElement
               ? details.trigger.dataset["dossierSection"]
               : undefined;
-          setActive(open && isSectionId(id) ? id : open ? active : null);
+          // The tab just left still has its close timer running when the pointer lands on the
+          // next one; that stale hover-close must not take down the card the new tab opened.
+          if (
+            !open &&
+            details.reason === "trigger-hover" &&
+            stripRef.current?.querySelector("[data-dossier-section]:hover") != null
+          ) {
+            details.cancel();
+            return;
+          }
+          if (!open) setActive(null);
+          else if (isSectionId(id)) setActive(id);
         }}
       >
         {({ payload }) => {
@@ -102,9 +117,10 @@ export function DossierAccordion({
               id={`dossier-${section.id}-panel`}
               side="top"
               align="center"
-              sideOffset={12}
+              sideOffset={8}
               collisionPadding={12}
-              className="w-[min(34rem,calc(100vw-1.5rem))] max-h-[min(70vh,var(--available-height))] overflow-y-auto overscroll-contain rounded-lg border border-admiralty-accent/30 bg-admiralty-surface-raised/95 p-0 text-admiralty-ink shadow-[0_18px_60px_rgba(0,0,0,0.6)] backdrop-blur-md motion-reduce:animate-none"
+              anchor={stripRef}
+              className="w-(--anchor-width) min-w-72 max-w-[calc(100vw-1.5rem)] max-h-[min(70vh,var(--available-height))] overflow-y-auto overscroll-contain rounded-lg border border-admiralty-accent/30 bg-admiralty-surface-raised p-0 text-admiralty-ink shadow-[0_18px_60px_rgba(0,0,0,0.45)] motion-reduce:animate-none"
             >
               <div
                 className={cn(
@@ -126,7 +142,7 @@ export function DossierAccordion({
                   Intelligence
                 </span>
               </div>
-              <div className="px-4 py-3">{section.text}</div>
+              <div className="px-4 py-3.5">{section.text}</div>
             </HoverCardContent>
           );
         }}

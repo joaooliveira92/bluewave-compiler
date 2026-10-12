@@ -19,7 +19,7 @@ export function DossierHeader({
   const appointmentMessage = `You have been appointed ${appointmentTitle}`;
 
   return (
-    <header className="relative flex items-center gap-3 border-b border-admiralty-accent/25 bg-gradient-to-b from-admiralty-surface-raised/65 via-admiralty-surface/35 to-transparent px-3 py-2 backdrop-blur-md sm:gap-4 sm:px-4">
+    <header className="relative flex items-center gap-3 border-b border-admiralty-accent/25 bg-admiralty-surface-raised/80 px-3 py-3 backdrop-blur-md sm:gap-4 sm:px-4">
       <HoverCard>
         <HoverCardTrigger
           render={<span tabIndex={0} />}
@@ -32,21 +32,21 @@ export function DossierHeader({
           {appointmentMessage}
         </HoverCardContent>
       </HoverCard>
-      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-1.5 font-display text-[0.58rem] uppercase tracking-[0.2em] text-admiralty-accent/80">
+          <Anchor className="h-3 w-3 shrink-0" aria-hidden="true" />
+          Fleet record
+        </p>
         <h3
           id={`nation-dossier-heading-${countryId}`}
-          className="truncate font-display text-base font-black uppercase tracking-[0.1em] text-admiralty-ink drop-shadow-[0_1px_0_rgba(0,0,0,0.25)] sm:text-xl sm:tracking-[0.12em]"
+          className="mt-0.5 line-clamp-2 text-balance font-display text-base font-black uppercase leading-tight tracking-[0.08em] text-admiralty-ink sm:text-lg"
         >
           {nationName}
         </h3>
-        <span className="inline-flex shrink-0 items-center rounded-sm border border-admiralty-accent/40 bg-admiralty-accent/10 px-1.5 py-0.5 font-display text-[0.55rem] font-black uppercase tracking-[0.2em] text-admiralty-accent">
-          {getCountryCode(countryId)}
-        </span>
-        <p className="ml-auto hidden shrink-0 items-center gap-1.5 font-display text-[0.55rem] uppercase tracking-[0.18em] text-admiralty-accent/80 sm:flex sm:text-[0.6rem]">
-          <Anchor className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          Fleet record
-        </p>
       </div>
+      <span className="inline-flex shrink-0 items-center rounded-sm border border-admiralty-accent/40 bg-admiralty-accent/10 px-1.5 py-0.5 font-display text-[0.6rem] font-black uppercase tracking-[0.2em] text-admiralty-accent">
+        {getCountryCode(countryId)}
+      </span>
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-admiralty-accent/60 to-transparent"

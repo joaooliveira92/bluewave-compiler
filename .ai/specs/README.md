@@ -26,3 +26,4 @@ Current specs:
 - P-1 lethality rebalance after the ADR-0094 caliber correction → `.scratch/p1-lethality-rebalance/` (spec.md, issue 01; delivered by ADR-0098)
 - Content-runtime integrity (full-surface content artifact; main consumes/verifies; renderer IPC decoupling; packaged smoke; strict YAML + invariants) → `.scratch/content-runtime-integrity/` (spec.md, CRI-* ACs / issues 01..06)
 - Naval Age master/detail rework (live "Rules of the Naval Age" screen adopts the Fleet Dispatch master/detail pattern; shared deck + globe primitives) → `.scratch/naval-age-master-detail/` (spec.md, AC-1..18 / NAM-1..10; issues 01..05)
+- Archetype master/detail rework (live "Choose your archetype" screen becomes the third master/detail consumer; reuses the unwired archetype deck/detail components and moves the custom allocator inline) → `.scratch/archetype-master-detail/` (spec.md, AC-1..19 / ARC-1..10; ready-for-agent, tickets via `to-tickets`)

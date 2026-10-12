@@ -17,8 +17,8 @@ export interface DossierAccordionItemProps {
 /**
  * One section tab in the dossier strip. Hovering, focusing or tapping it opens the shared
  * intelligence card (see `DossierAccordion`) — the card floats above the strip, so the reader
- * never has to scroll a cramped inline panel. The dotted underline is the hover affordance,
- * matching the ship-part names on the Drawing Board.
+ * never has to scroll a cramped inline panel. The tab keeps its accent border while its card is
+ * open, so it is always clear which section the card belongs to.
  */
 export function DossierAccordionItem({
   section,
@@ -47,17 +47,17 @@ export function DossierAccordionItem({
       onKeyDown={onKeyDown}
       render={<button type="button" />}
       className={cn(
-        "group flex min-h-11 flex-1 cursor-help items-center justify-center gap-2 rounded-md border px-3 py-2 outline-none transition-colors",
+        "group flex min-h-11 min-w-0 cursor-pointer items-center justify-center gap-2 rounded-md border px-2 py-2 outline-none transition-colors",
         "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-admiralty-accent",
         active
           ? cn(accent.border, accent.bg)
-          : "border-transparent hover:border-admiralty-border hover:bg-admiralty-ink/[0.04]",
+          : "border-admiralty-border/70 bg-admiralty-surface/50 hover:border-admiralty-border hover:bg-admiralty-ink/[0.05]",
       )}
     >
       <Icon className={cn("h-4 w-4 shrink-0", accent.text)} aria-hidden="true" />
       <span
         className={cn(
-          "font-display text-[0.68rem] font-black uppercase tracking-[0.16em] underline decoration-dotted underline-offset-4",
+          "truncate font-display text-[0.68rem] font-black uppercase tracking-[0.16em]",
           accent.text,
         )}
       >
