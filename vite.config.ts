@@ -17,6 +17,9 @@ export default defineConfig({
       "docs/**",
       "codefetch/**",
       "golden/**",
+      // Frozen save artifacts: `campaign.json` is hashed byte-for-byte by its
+      // signature, so reformatting it would break the fixture (ADR-0113 §5).
+      "packages/persistence/test/fixtures/**",
       "dist/**",
       "out/**",
       // Vendored upstream code (byte-identical published artifacts) and the

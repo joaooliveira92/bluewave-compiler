@@ -57,4 +57,17 @@ Acceptance mapping:
   across calls + distinctness from the armament hash); left unchanged, no
   production hash semantics touched.
 
+## Follow-up (2026-10-12, WS3)
+
+The per-version corpus is now a first-class artifact, not only the runtime
+round-trip seed: `packages/persistence/test/fixtures/save-corpus/1.2.0/` holds a
+frozen save written by the current release, and
+`packages/persistence/test/save-compatibility-corpus.test.ts` loads every fixture
+directory — the current version must load clean, a superseded version must be
+rejected with the stable `PERSISTENCE_COMPATIBILITY_MISMATCH` code (never
+`CORRUPT_SAVE`). Add a new directory on each future compatibility bump; the test
+discovers versions from the filesystem, so no test edit is needed. The fixture
+JSON is excluded from `vp fmt` (`vite.config.ts`) because `campaign.json` is
+hashed byte-for-byte by its signature.
+
 ## Comments
