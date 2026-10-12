@@ -39,6 +39,17 @@ The manual gives directions, not numbers. Two authored constants are declared:
 and `bulgeSpeedPenaltyBp` (the nominal speed penalty recorded for evidence).
 The realised speed penalty is the compile's own, from the added mass.
 
+### 4. The protection effect is recorded, not yet consumed
+
+WS1/INC-12c checked the EARLY band for a torpedo-protection consumer: the
+compiled design and the combat model carry **no** torpedo-protection stat, so
+there is nothing for `bulgeProtectionGainBp` to raise without inventing a combat
+formula. The constant is therefore **recorded on the refit evaluation and
+persisted, but not yet consumed** by combat. Wiring it is deferred to the
+torpedo-protection work (recorded, not dropped); a future implementation MUST
+consume the authored constant rather than invent a gain. The speed penalty is
+real today (it emerges from the compile's added mass).
+
 ## Consequences
 
 - The manual's bulge action is available inside the existing rebuild validation

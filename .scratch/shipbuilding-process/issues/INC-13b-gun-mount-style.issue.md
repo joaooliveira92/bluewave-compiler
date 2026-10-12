@@ -1,6 +1,6 @@
 # INC-13b — Real gun mount style (casemate vs turret)
 
-**State:** READY_FOR_AGENT · **Frontier:** yes · **Blocked by:** none
+**State:** DEFERRED (needs a gun-catalogue content pass) · **Frontier:** yes · **Blocked by:** none
 **Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R26) · **ADR:** amends ADR-0131 (armament-change validation)
 
 ## What to build
@@ -26,3 +26,14 @@ of 6 inches or less**. ADR-0131 currently infers the mount style from the barrel
 
 Touch the component schema + catalogue + `refit.ts`; keep the change compile-compatible
 (a default keeps existing content valid). No new refit kind.
+
+## Deferral (WS2 session, 2026-10-12)
+
+Deferred, not dropped. The barrel-count inference (`casemate: barrels <= 1`, ADR-0131) is the
+documented approximation. Replacing it needs a **content pass over the whole gun catalogue**
+(`content/production/1880/ship-building/components.yaml`): the mount style is currently only in
+free-text display names ("in turret", "in barbette mount", "in broadside battery", "in shielded
+mount", "on pedestal"), and the manual's rule distinguishes casemates from turrets ≤6 in. The
+mechanism (a typed `ComponentDef.mountStyle` read by `gunChangeOf` with the barrel-count fallback)
+and the authoring must land together, or the trap (a single-barrel turret above 6 in wrongly
+re-batterable) is not actually closed. ADR-0131 continues to record the approximation until then.

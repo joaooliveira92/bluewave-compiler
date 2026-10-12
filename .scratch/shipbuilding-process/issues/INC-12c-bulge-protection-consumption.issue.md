@@ -1,6 +1,6 @@
 # INC-12c — Wire bulge protection into torpedo defence (or defer it)
 
-**State:** READY_FOR_AGENT · **Frontier:** yes · **Blocked by:** none
+**State:** RESOLVED (recorded deferral) · **Frontier:** yes · **Blocked by:** none
 **Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R25) · **ADR:** amends ADR-0130 (bulge refit kind)
 
 ## What to build
@@ -24,3 +24,11 @@ protection effect as explicitly deferred in ADR-0130 (no silent gap).
 Check whether a torpedo-protection stat exists on the compiled design or the combat model first. If
 no consumer exists in the EARLY band, the honest outcome is the ADR deferral plus a recorded
 follow-up; do not invent a combat formula.
+
+## Answer
+
+Checked: no torpedo-protection stat exists on the compiled design or in the combat model, so there is
+nothing to raise without inventing a combat formula. ADR-0130 §4 now states plainly that
+`bulgeProtectionGainBp` is **recorded but not yet consumed** by combat, and that a future
+torpedo-protection implementation MUST consume the authored constant. The speed penalty remains real
+(emergent from the compile's added mass). No behaviour change.
