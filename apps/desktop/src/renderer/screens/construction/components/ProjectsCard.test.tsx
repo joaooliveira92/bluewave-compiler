@@ -20,6 +20,13 @@ const row = (over: Partial<ProjectRow> = {}): ProjectRow => ({
     { id: "fit_out", label: "Fit-out", percent: 0, state: "ready" },
   ],
   isForeign: false,
+  readout: {
+    totalCostUnits: 100,
+    monthlyInstalmentUnits: 0,
+    remainingMonths: 0,
+    launchMonth: null,
+    haltedCarryingCostUnits: null,
+  },
   ...over,
 });
 
@@ -57,6 +64,29 @@ describe("ProjectsCard", () => {
     render(<ProjectsCard rows={[]} />);
     expect(screen.getByText("No ships under construction")).toBeTruthy();
     expect(screen.queryByRole("list", { name: "Ships under construction" })).toBeNull();
+  });
+
+  it("shows the compiled instalment, months left, total cost and launch month for a row with a readout", () => {
+    render(
+      <ProjectsCard
+        rows={[
+          row({
+            readout: {
+              totalCostUnits: 640,
+              monthlyInstalmentUnits: 120,
+              remainingMonths: 6,
+              launchMonth: "1880-07",
+              haltedCarryingCostUnits: null,
+            },
+          }),
+        ]}
+      />,
+    );
+    const readout = screen.getByRole("list", { name: "Havock class cost and schedule" });
+    expect(within(readout).getByText("120/mo")).toBeTruthy();
+    expect(within(readout).getByText("6")).toBeTruthy();
+    expect(within(readout).getByText("640")).toBeTruthy();
+    expect(within(readout).getByText("1880-07")).toBeTruthy();
   });
 
   it("has no accessibility violations in any of those states", async () => {

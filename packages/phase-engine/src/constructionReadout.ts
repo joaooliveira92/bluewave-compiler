@@ -6,9 +6,16 @@
 import {
   advanceMonth,
   monthId,
+  type CampaignSnapshot,
   type CompiledDesignVersion,
   type ConstructionProject,
 } from "@bluewave/campaign";
+import {
+  buildConstructionProjectQueue,
+  type ConstructionProjectQueueEntry,
+} from "@bluewave/campaign-engine";
+import type { ShipBuildingContent } from "@bluewave/ship-design";
+import { preservationCostUnits } from "./economyPhases.js";
 
 export interface ConstructionProjectReadout {
   /** The project's total cost in treasury/work units (its total work). */
@@ -62,4 +69,50 @@ export function constructionProjectReadout(
     remainingMonths,
     launchMonth: remainingMonths <= 0 ? null : addMonths(campaignMonth, remainingMonths),
   };
+}
+
+/**
+ * `buildConstructionProjectQueue` with each entry's compiled readout attached (SB3-R31): the instalment, remaining
+ * months, total cost and launch month from `constructionProjectReadout`, plus the half-mothball carrying cost a
+ * `HALTED` project pays each month (DESIGN-23 section 7). Pure and deterministic.
+ *
+ * The carrying cost needs the campaign month's ship-building balance and the treasury unit; when `content` is
+ * undefined the readout reports `haltedCarryingCostUnits: null` — honestly unknown, never a fabricated zero. Non-halted
+ * projects always report `null`.
+ */
+export function constructionProjectQueueWithReadouts(
+  snapshot: CampaignSnapshot,
+  nationId: string,
+  content: ShipBuildingContent | undefined,
+  campaignMonth: string,
+): ConstructionProjectQueueEntry[] {
+  const entries = buildConstructionProjectQueue(snapshot, nationId);
+  const projects = new Map(
+    (snapshot.nations.get(nationId)?.constructionProjects ?? []).map(
+      (p): [string, ConstructionProject] => [p.id, p],
+    ),
+  );
+  const haltedCarryingCostUnits =
+    content === undefined
+      ? null
+      : preservationCostUnits(
+          content.environmentFor(campaignMonth).constructionBalance,
+          content.treasuryUnitMicro,
+        );
+  return entries.map((entry) => {
+    const project = projects.get(entry.projectId);
+    if (project === undefined) return entry;
+    const readout = constructionProjectReadout(
+      project,
+      snapshot.designs.get(entry.designVersionId),
+      campaignMonth,
+    );
+    return {
+      ...entry,
+      readout: {
+        ...readout,
+        haltedCarryingCostUnits: project.status === "HALTED" ? haltedCarryingCostUnits : null,
+      },
+    };
+  });
 }

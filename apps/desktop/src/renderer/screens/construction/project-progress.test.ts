@@ -108,6 +108,22 @@ describe("projectRow", () => {
     expect(row.percent).toBe(0);
     expect(row.packages.map((p) => [p.label, p.percent])).toEqual([["new kind", 100]]);
   });
+
+  it("propagates the compiled readout when the entry carries one", () => {
+    const readout = {
+      totalCostUnits: 640,
+      monthlyInstalmentUnits: 120,
+      remainingMonths: 6,
+      launchMonth: "1880-07",
+      haltedCarryingCostUnits: 3,
+    };
+    const row = projectRow(entry({ readout }));
+    expect(row.readout).toEqual(readout);
+  });
+
+  it("reports no readout as null rather than a fabricated default", () => {
+    expect(projectRow(entry({ totalWork: 250 })).readout).toBeNull();
+  });
 });
 
 describe("projectRows", () => {

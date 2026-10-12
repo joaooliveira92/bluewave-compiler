@@ -1,4 +1,7 @@
-import type { ConstructionProjectQueueEntry } from "@bluewave/campaign-engine";
+import type {
+  ConstructionProjectQueueEntry,
+  ConstructionProjectReadoutView,
+} from "@bluewave/campaign-engine";
 
 export type PackageState = "done" | "active" | "ready" | "waiting";
 
@@ -23,6 +26,11 @@ export interface ProjectRow {
   readonly holdUntilMonth: string | null;
   /** True when the project is a foreign construction contract (DESIGN-16 section 13); it cannot be accelerated. */
   readonly isForeign: boolean;
+  /**
+   * The compiled engine readout (SB3-R31), or `null` when the projection carried none. The UI renders these verbatim
+   * and authors no figure of its own; `null` shows an honest "unavailable", never a fabricated zero/complete.
+   */
+  readonly readout: ConstructionProjectReadoutView | null;
 }
 
 const PACKAGE_LABEL: Readonly<Record<string, string>> = {
@@ -75,6 +83,7 @@ export function projectRow(entry: ConstructionProjectQueueEntry): ProjectRow {
     packages,
     holdUntilMonth: entry.holdUntilMonth,
     isForeign: entry.isForeign,
+    readout: entry.readout ?? null,
   };
 }
 

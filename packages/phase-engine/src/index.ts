@@ -27,6 +27,7 @@ export {
   type ConstructionResumeTarget,
 } from "./constructionHaltResume.js";
 export {
+  constructionProjectQueueWithReadouts,
   constructionProjectReadout,
   type ConstructionProjectReadout,
 } from "./constructionReadout.js";

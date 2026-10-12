@@ -8,6 +8,7 @@ import { SafeInt } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
+import { constructionProjectReadout } from "@bluewave/phase-engine";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   clearCampaignSessionsForTest,
@@ -195,6 +196,18 @@ describe("construction commands", () => {
     expect(projection.workspace.commands).toEqual([]);
     expect(projection.workspace.treasuryReserved).toBe(0);
     expect(projection.workspace.capacityReserved).toBe(0);
+
+    // Every project carries its compiled readout (SB3-R31), attached by the main process from the
+    // engine's own `constructionProjectReadout` — the renderer authors none of these figures.
+    expect(projection.projects.length).toBeGreaterThan(0);
+    for (const entry of projection.projects) {
+      const project = uk.constructionProjects.find((p) => p.id === entry.projectId)!;
+      const design = state.snapshot.designs.get(entry.designVersionId);
+      expect(entry.readout).toMatchObject(constructionProjectReadout(project, design, "1880-01"));
+      if (project.status === "HALTED")
+        expect(entry.readout!.haltedCarryingCostUnits).not.toBeNull();
+      else expect(entry.readout!.haltedCarryingCostUnits).toBeNull();
+    }
   });
 
   it("submitting against a real design queues a real project, visible on next inspect and round-tripped through save/load", async () => {

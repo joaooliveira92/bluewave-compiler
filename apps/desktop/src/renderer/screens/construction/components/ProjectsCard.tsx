@@ -11,6 +11,7 @@ import {
 import { Empty, EmptyDescription, EmptyTitle } from "../../../components/ui/empty.js";
 import { Progress } from "../../../components/ui/progress.js";
 import type { PackageState, ProjectRow } from "../project-progress.js";
+import { ProjectReadout } from "./ProjectReadout.js";
 
 const STATE_TEXT: Record<PackageState, string> = {
   done: "Done",
@@ -170,6 +171,7 @@ export const ProjectsCard = memo(function ProjectsCard({
                   {...(onResume === undefined ? {} : { onResume })}
                   {...(onAccelerate === undefined ? {} : { onAccelerate })}
                 />
+                <ProjectReadout row={row} />
                 {row.packages.length > 0 && (
                   <ul
                     className="grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2"

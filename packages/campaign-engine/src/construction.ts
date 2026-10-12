@@ -176,6 +176,21 @@ export function constructionBatchProjectIdForCommand(commandId: string, ordinal:
 }
 
 /**
+ * Compiled display readouts for one construction project, projected into a queue entry so the renderer can show the
+ * instalment, schedule and cost without deriving any figure itself (SB3-R31): the monthly instalment, remaining months,
+ * total cost, launch month and — for a `HALTED` project only — the half-mothball carrying cost it pays each month
+ * (DESIGN-23 section 7). Every value is compiled by the engine; the UI renders them verbatim.
+ */
+export interface ConstructionProjectReadoutView {
+  readonly totalCostUnits: number;
+  readonly monthlyInstalmentUnits: number;
+  readonly remainingMonths: number;
+  readonly launchMonth: string | null;
+  /** The half-mothball carrying cost a HALTED project pays each month; null for a non-halted project. */
+  readonly haltedCarryingCostUnits: number | null;
+}
+
+/**
  * The Construction screen's "Projects in Yard" list — a deterministic,
  * keyed-by-project-id projection of `nation.constructionProjects` (authored
  * starting builds AND orders queued by the desktop construction commands)
@@ -206,6 +221,12 @@ export interface ConstructionProjectQueueEntry {
   readonly yardId?: string;
   /** True when the project is a foreign construction contract (DESIGN-16 section 13); it cannot be accelerated. */
   readonly isForeign: boolean;
+  /**
+   * The compiled cost/time readout (SB3-R31), when the caller projected one. Absent from
+   * `buildConstructionProjectQueue`, which is a pure snapshot projection and does not need the campaign month or the
+   * ship-building content; `constructionProjectQueueWithReadouts` fills it.
+   */
+  readonly readout?: ConstructionProjectReadoutView;
 }
 
 /** One work package of a project, in plain numbers (ADR-0077). */

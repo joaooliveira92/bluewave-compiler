@@ -1,8 +1,8 @@
 import {
   buildConstructionDesignCatalog,
-  buildConstructionProjectQueue,
   type ConstructionCommandStatus,
 } from "@bluewave/campaign-engine";
+import { constructionProjectQueueWithReadouts } from "@bluewave/phase-engine";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
   CancelConstructionCommandPayload,
@@ -23,7 +23,8 @@ import {
   workspaceView,
   type ConstructionWorkspace,
 } from "../constructionWorkspace.js";
-import { forecastCostOf } from "../construction/commandRecord.js";
+import { forecastCostOf, campaignMonthKey } from "../construction/commandRecord.js";
+import { loadShipBuildingContent } from "../shipBuildingContent.js";
 import { verifyEnvelope } from "./commandEnvelope.js";
 import { deriveConstructionCommandId } from "./construction/command-id.js";
 import { isTerminal, uiStatusFor } from "./construction/command-status.js";
@@ -84,7 +85,12 @@ export async function inspectConstructionScreen(
     month: record.month,
     economy: constructionEconomy(record),
     designs: buildConstructionDesignCatalog(record.state.snapshot, record.playerSlotId),
-    projects: buildConstructionProjectQueue(record.state.snapshot, record.playerSlotId),
+    projects: constructionProjectQueueWithReadouts(
+      record.state.snapshot,
+      record.playerSlotId,
+      loadShipBuildingContent(),
+      campaignMonthKey(record),
+    ),
     workspace: workspaceView(workspace),
   };
 
