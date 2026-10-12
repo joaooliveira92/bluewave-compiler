@@ -770,6 +770,15 @@ revision:
   redesignStudyCostBp: 6000
   redesignKeptBp: 5000
   t2DelayMonths: 4
+  # In-place design-revision limits (manual printed p27; ADR-0132): displacement +10 % or 1000 t (whichever is larger),
+  # speed +/-1 kn, vertical armour +/-1 in, horizontal armour +/-0.5 in, main guns above 6 in unchangeable.
+  inPlace:
+    displacementIncreaseBp: 1000
+    displacementMinAllowanceKg: 1000000
+    speedChangeMilliKnots: 1000
+    verticalArmourChangeUm: 25400
+    horizontalArmourChangeUm: 12700
+    mainGunMaxUm: 152400
 
 # Rebuild validation (ticket 28; DESIGN-23 section 21 "rebuild_validation_v1"). These are the rule's own shipped values, not
 # placeholders: displacement +20 %, designed speed +3 kn, hull length and beam +/-5 %. A change of hull form is always refused.

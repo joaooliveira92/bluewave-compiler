@@ -6,11 +6,13 @@ import {
   trialsStreamId,
   classifyRevision,
   changeKindOf,
+  checkRevisionBalance,
+  inPlaceRevisionFindings,
   type BuildProgress,
   type RevisionBalance,
+  type RevisionFacts,
   type TrialsBalance,
   type TrialsInput,
-  checkRevisionBalance,
 } from "../src/index.js";
 import { ctx, draft, plant } from "./fixtures/gunboat.js";
 
@@ -125,6 +127,14 @@ const rb: RevisionBalance = {
   redesignStudyCostBp: 6_000,
   redesignKeptBp: 5_000,
   t2DelayMonths: 4,
+  inPlace: {
+    displacementIncreaseBp: 1_000,
+    displacementMinAllowanceKg: 1_000_000,
+    speedChangeMilliKnots: 1_000,
+    verticalArmourChangeUm: 25_400,
+    horizontalArmourChangeUm: 12_700,
+    mainGunMaxUm: 152_400,
+  },
 };
 const prog = (hullBp: number, o: Partial<BuildProgress> = {}): BuildProgress => ({
   hullDoneWork: hullBp * 100,
@@ -234,6 +244,7 @@ describe("checkRevisionBalance", () => {
     redesignStudyCostBp: 6_000,
     redesignKeptBp: 5_000,
     t2DelayMonths: 4,
+    inPlace: rb.inPlace,
   };
   it("accepts the shipped values", () => {
     expect(checkRevisionBalance(good)).toEqual([]);
@@ -263,5 +274,59 @@ describe("checkRevisionBalance", () => {
     expect(
       checkRevisionBalance({ ...good, reworkBp: -1, t2DelayMonths: 0 }).length,
     ).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("in-place design-revision limits (manual p27, ADR-0132)", () => {
+  const limits = rb.inPlace;
+  const facts = (o: Partial<RevisionFacts> = {}): RevisionFacts => ({
+    displacementKg: 10_000_000,
+    speedMilliKnots: 16_000,
+    verticalArmourUm: 0,
+    horizontalArmourUm: 0,
+    maxMainGunUm: 0,
+    ...o,
+  });
+  const ids = (f: RevisionFacts, t: RevisionFacts) =>
+    inPlaceRevisionFindings(f, t, limits).map((x) => x.id);
+
+  it("allows displacement up to 10 % (or 1000 t, whichever is larger)", () => {
+    expect(ids(facts(), facts({ displacementKg: 11_000_000 }))).toEqual([]);
+    expect(ids(facts(), facts({ displacementKg: 11_000_001 }))).toContain(
+      "REVISION_DISPLACEMENT_EXCEEDED",
+    );
+    // A small ship gets the 1000 t minimum allowance, not just its 10 %.
+    expect(ids(facts({ displacementKg: 2_000_000 }), facts({ displacementKg: 3_000_000 }))).toEqual(
+      [],
+    );
+  });
+
+  it("allows speed within ±1 kn", () => {
+    expect(ids(facts(), facts({ speedMilliKnots: 17_000 }))).toEqual([]);
+    expect(ids(facts(), facts({ speedMilliKnots: 15_000 }))).toEqual([]);
+    expect(ids(facts(), facts({ speedMilliKnots: 17_001 }))).toContain("REVISION_SPEED_EXCEEDED");
+    expect(ids(facts(), facts({ speedMilliKnots: 14_999 }))).toContain("REVISION_SPEED_EXCEEDED");
+  });
+
+  it("allows vertical armour within ±1 in and horizontal within ±0.5 in", () => {
+    expect(ids(facts(), facts({ verticalArmourUm: 25_400 }))).toEqual([]);
+    expect(ids(facts(), facts({ verticalArmourUm: 25_401 }))).toContain(
+      "REVISION_VERTICAL_ARMOUR_EXCEEDED",
+    );
+    expect(ids(facts(), facts({ horizontalArmourUm: 12_700 }))).toEqual([]);
+    expect(ids(facts(), facts({ horizontalArmourUm: 12_701 }))).toContain(
+      "REVISION_HORIZONTAL_ARMOUR_EXCEEDED",
+    );
+  });
+
+  it("does not change main guns above 6 in", () => {
+    const twelve = facts({ maxMainGunUm: 12 * 25_400 });
+    expect(ids(twelve, { ...twelve })).toEqual([]);
+    expect(ids(twelve, { ...twelve, maxMainGunUm: 11 * 25_400 })).toContain(
+      "REVISION_MAIN_GUN_UNCHANGEABLE",
+    );
+    // A ≤6 in main battery may be re-chosen.
+    const six = facts({ maxMainGunUm: 6 * 25_400 });
+    expect(ids(six, { ...six, maxMainGunUm: 5 * 25_400 })).toEqual([]);
   });
 });

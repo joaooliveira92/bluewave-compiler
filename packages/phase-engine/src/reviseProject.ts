@@ -7,7 +7,9 @@ import {
   classifyRevision,
   compileDesign,
   draftChangeKinds,
+  inPlaceRevisionFindings,
   progressFromWork,
+  revisionFactsOf,
   type DesignDraft,
   type ShipBuildingContent,
 } from "@bluewave/ship-design";
@@ -96,6 +98,25 @@ export function applyReviseProject(
       "REVISION_REQUIRES_REBUILD",
       `Project ${project.id} is ${(decision.progressBp / 100).toFixed(1)}% built: this change would need a rebuild project (${decision.reasonCodes.join(", ")})`,
     );
+
+  // The manual's in-place revision limits (printed p27; ADR-0132): a change beyond them is no longer a revision but a
+  // redesign or a rebuild. They bound the T0/T1 tiers only; a T2/T3 outcome is already the redesign/rebuild path.
+  if (decision.tier === "T0_FREE" || decision.tier === "T1_REVISION") {
+    const envCtx = content.environmentFor(month).ctx;
+    const beforeCompiled = compileDesign(oldDraft, envCtx);
+    if (beforeCompiled.valid) {
+      const breaches = inPlaceRevisionFindings(
+        revisionFactsOf(beforeCompiled, oldDraft),
+        revisionFactsOf(compiled, draft),
+        content.revision.inPlace,
+      );
+      if (breaches.length > 0)
+        return fail(
+          "REVISION_LIMITS_EXCEEDED",
+          `Project ${project.id} would exceed the in-place revision limits: ${breaches.map((x) => x.id).join(", ")}; plan a redesign or a rebuild instead`,
+        );
+    }
+  }
 
   const design = buildDesignVersion(
     compiled,

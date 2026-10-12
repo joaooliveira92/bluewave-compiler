@@ -20,7 +20,7 @@ ADRs that change a DESIGN rule (supersede, extend, or constrain it).
 | `DESIGN-12` Nations And Governments | ADR-0089, ADR-0090, ADR-0092 |
 | `DESIGN-13` Economy And Accounting | ADR-0060 |
 | `DESIGN-17` Diplomacy | ADR-0010, ADR-0054 |
-| `DESIGN-21` Ship Design | ADR-0063, ADR-0066, ADR-0070, ADR-0076, ADR-0085, ADR-0093 |
+| `DESIGN-21` Ship Design | ADR-0063, ADR-0066, ADR-0070, ADR-0076, ADR-0085, ADR-0093, ADR-0132 |
 | `DESIGN-22` Ship Classification | ADR-0037, ADR-0067, ADR-0088, ADR-0116 |
 | `DESIGN-23` Construction, Repair, And Rebuild | ADR-0064, ADR-0077, ADR-0078, ADR-0080, ADR-0083 |
 | `DESIGN-24` Fleet Management | ADR-0062 |

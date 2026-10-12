@@ -2,7 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-21`
-> **Amended by:** ADR-0063, ADR-0066, ADR-0070, ADR-0076, ADR-0085, ADR-0093.
+> **Amended by:** ADR-0063, ADR-0066, ADR-0070, ADR-0076, ADR-0085, ADR-0093, ADR-0132.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Design derivation, similarity, study discounts, displacement tolerance, stability, flotation, compilation, and rejection MUST use the explicit fields, values, formulas, ordering, and failure behavior defined here. Runtime inference and silent fallback behavior are prohibited.
 
 ## 1. Design Layers

@@ -1,4 +1,6 @@
+import type { CompiledDesign, DesignDraft } from "./compileShared.js";
 import type { DraftEdit } from "./edits.js";
+import type { Finding } from "./findings.js";
 import type { ComponentCategory } from "./component.js";
 
 export type ChangeKind = "FITTINGS" | "MAIN_ARMAMENT" | "ARMOUR" | "MACHINERY" | "STRUCTURE";
@@ -16,6 +18,27 @@ export interface RevisionBalance {
   readonly redesignStudyCostBp: number;
   readonly redesignKeptBp: number;
   readonly t2DelayMonths: number;
+  /**
+   * The manual's in-place design-revision limits (printed p27; ADR-0132): the largest change that may still be made as a
+   * revision before it must become a redesign or a rebuild. Distinct from the retained-hull rebuild limits (DESIGN-23 §21).
+   */
+  readonly inPlace: RevisionLimits;
+}
+
+/** The p27 in-place revision limits, all magnitudes (ADR-0132), in canonical units. */
+export interface RevisionLimits {
+  /** Largest displacement increase, bp of the current (1_000 = 10 %). */
+  readonly displacementIncreaseBp: number;
+  /** Displacement may always rise by at least this much, kg (1_000_000 = 1_000 t), even below the percentage. */
+  readonly displacementMinAllowanceKg: number;
+  /** Largest designed-speed change either way, milli-knots (1_000 = 1 kn). */
+  readonly speedChangeMilliKnots: number;
+  /** Largest vertical (belt) armour change either way, micrometres (25_400 = 1 in). */
+  readonly verticalArmourChangeUm: number;
+  /** Largest horizontal (deck) armour change either way, micrometres (12_700 = 0.5 in). */
+  readonly horizontalArmourChangeUm: number;
+  /** Main-gun calibre at or below which the main battery may be re-chosen; above it, only a refresh is allowed. */
+  readonly mainGunMaxUm: number;
 }
 
 /**
@@ -56,7 +79,154 @@ export function checkRevisionBalance(b: RevisionBalance): string[] {
     problems.push(
       "a redesign must not lose less work than a revision adds (reworkBp <= 10000 - redesignKeptBp)",
     );
+  const l = b.inPlace;
+  if (l === undefined || typeof l !== "object") {
+    problems.push("inPlace revision limits are required (ADR-0132)");
+  } else {
+    const nonNegative = (name: string, v: number) => {
+      if (!Number.isSafeInteger(v) || v < 0)
+        problems.push(`inPlace.${name} must be a non-negative integer, got ${String(v)}`);
+    };
+    nonNegative("displacementIncreaseBp", l.displacementIncreaseBp);
+    nonNegative("displacementMinAllowanceKg", l.displacementMinAllowanceKg);
+    nonNegative("speedChangeMilliKnots", l.speedChangeMilliKnots);
+    nonNegative("verticalArmourChangeUm", l.verticalArmourChangeUm);
+    nonNegative("horizontalArmourChangeUm", l.horizontalArmourChangeUm);
+    nonNegative("mainGunMaxUm", l.mainGunMaxUm);
+  }
   return problems;
+}
+
+/** The design facts the in-place revision limits compare (ADR-0132). */
+export interface RevisionFacts {
+  readonly displacementKg: number;
+  readonly speedMilliKnots: number;
+  /** Thickest vertical (belt) armour, micrometres (0 if none). */
+  readonly verticalArmourUm: number;
+  /** Thickest horizontal (deck) armour, micrometres (0 if none). */
+  readonly horizontalArmourUm: number;
+  /** Largest main-gun calibre, micrometres (0 if none). */
+  readonly maxMainGunUm: number;
+}
+
+/** Read the revision facts from a compiled design and its draft. */
+export function revisionFactsOf(compiled: CompiledDesign, draft: DesignDraft): RevisionFacts {
+  const belt = draft.armour.regions.filter((r) => r.region.startsWith("BELT_"));
+  const deck = draft.armour.regions.filter((r) => r.region.startsWith("DECK_"));
+  const mainGuns = compiled.components.filter((k) => k.category === "MAIN_GUN");
+  return {
+    displacementKg: compiled.totalKg,
+    speedMilliKnots: compiled.machinery?.maxSpeedMilliKnots ?? 0,
+    verticalArmourUm: belt.reduce((m, r) => Math.max(m, r.thicknessUm), 0),
+    horizontalArmourUm: deck.reduce((m, r) => Math.max(m, r.thicknessUm), 0),
+    maxMainGunUm: mainGuns.reduce((m, k) => Math.max(m, k.attr.caliberUm ?? 0), 0),
+  };
+}
+
+const revFinding = (
+  id: string,
+  what: string,
+  why: string,
+  consequence: string,
+  inputs: Record<string, number>,
+  threshold: number,
+  value: number,
+): Finding => ({
+  id,
+  severity: "BLOCKING",
+  what,
+  why,
+  consequence,
+  remedies: [
+    { id: "smaller_change", description: "Change less so the revision stays in place." },
+    { id: "redesign", description: "Ask for a redesign or a rebuild instead." },
+    { id: "new_design", description: "Leave the project and design a new class." },
+  ],
+  evidence: { formulaId: "DESIGN-21-27", inputs, threshold, value },
+});
+
+/**
+ * The manual's in-place design-revision limits (printed p27; ADR-0132): a change beyond any of these is no longer a
+ * revision but a redesign or rebuild. Pure and deterministic. The main-gun rule reads the largest main-gun calibre:
+ * above the limit it may not change, at or below it it may.
+ */
+export function inPlaceRevisionFindings(
+  source: RevisionFacts,
+  target: RevisionFacts,
+  limits: RevisionLimits,
+): Finding[] {
+  const findings: Finding[] = [];
+  const allowance = Math.max(
+    Math.ceil((source.displacementKg * limits.displacementIncreaseBp) / 10_000),
+    limits.displacementMinAllowanceKg,
+  );
+  if (target.displacementKg - source.displacementKg > allowance)
+    findings.push(
+      revFinding(
+        "REVISION_DISPLACEMENT_EXCEEDED",
+        "The revision would grow the ship too much.",
+        `Displacement rises ${target.displacementKg - source.displacementKg} kg; an in-place revision allows ${allowance} kg.`,
+        "Instead of a revision, this is a redesign or a rebuild.",
+        { fromKg: source.displacementKg, toKg: target.displacementKg },
+        allowance,
+        target.displacementKg - source.displacementKg,
+      ),
+    );
+  const speedDelta = target.speedMilliKnots - source.speedMilliKnots;
+  if (Math.abs(speedDelta) > limits.speedChangeMilliKnots)
+    findings.push(
+      revFinding(
+        "REVISION_SPEED_EXCEEDED",
+        "The revision would change the speed too much.",
+        `Speed changes ${speedDelta} milli-knots; an in-place revision allows ${limits.speedChangeMilliKnots} either way.`,
+        "Instead of a revision, this is a redesign or a rebuild.",
+        { fromMilliKnots: source.speedMilliKnots, toMilliKnots: target.speedMilliKnots },
+        limits.speedChangeMilliKnots,
+        Math.abs(speedDelta),
+      ),
+    );
+  const verticalDelta = target.verticalArmourUm - source.verticalArmourUm;
+  if (Math.abs(verticalDelta) > limits.verticalArmourChangeUm)
+    findings.push(
+      revFinding(
+        "REVISION_VERTICAL_ARMOUR_EXCEEDED",
+        "The revision would change the belt armour too much.",
+        `Vertical armour changes ${verticalDelta} um; an in-place revision allows ${limits.verticalArmourChangeUm} either way.`,
+        "Instead of a revision, this is a redesign or a rebuild.",
+        { fromUm: source.verticalArmourUm, toUm: target.verticalArmourUm },
+        limits.verticalArmourChangeUm,
+        Math.abs(verticalDelta),
+      ),
+    );
+  const horizontalDelta = target.horizontalArmourUm - source.horizontalArmourUm;
+  if (Math.abs(horizontalDelta) > limits.horizontalArmourChangeUm)
+    findings.push(
+      revFinding(
+        "REVISION_HORIZONTAL_ARMOUR_EXCEEDED",
+        "The revision would change the deck armour too much.",
+        `Horizontal armour changes ${horizontalDelta} um; an in-place revision allows ${limits.horizontalArmourChangeUm} either way.`,
+        "Instead of a revision, this is a redesign or a rebuild.",
+        { fromUm: source.horizontalArmourUm, toUm: target.horizontalArmourUm },
+        limits.horizontalArmourChangeUm,
+        Math.abs(horizontalDelta),
+      ),
+    );
+  if (
+    source.maxMainGunUm > limits.mainGunMaxUm &&
+    target.maxMainGunUm !== source.maxMainGunUm
+  )
+    findings.push(
+      revFinding(
+        "REVISION_MAIN_GUN_UNCHANGEABLE",
+        "The main guns above 6 inches cannot be changed.",
+        `A ${source.maxMainGunUm} um main gun may only be refreshed with a gun of the same calibre in place.`,
+        "Changing the main battery above 6 inches needs a redesign or a rebuild.",
+        { fromUm: source.maxMainGunUm, toUm: target.maxMainGunUm },
+        limits.mainGunMaxUm,
+        target.maxMainGunUm,
+      ),
+    );
+  return findings;
 }
 
 export interface BuildProgress {
