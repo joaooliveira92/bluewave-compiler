@@ -1,8 +1,8 @@
 # 29 — Domain: `ai` (planner/generator/executor)
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 24 (`commands`)
+**Status:** done
+**Blocked by:** none (24 done)
 **Frontier:** no
 
 ## What to build
@@ -22,13 +22,13 @@ runtime-free.
 
 ## Acceptance criteria
 
-- [ ] `ai` uses Effect idioms appropriate to each boundary; any full-Effect use
+- [x] `ai` uses Effect idioms appropriate to each boundary; any full-Effect use
       is justified by real async/IO/orchestration (`MIG-RUNTIME-1`).
-- [ ] AI decisions remain deterministic for a fixed seed/inputs; no ambient
+- [x] AI decisions remain deterministic for a fixed seed/inputs; no ambient
       randomness or wall-clock reads (`MIG-DET-1`).
-- [ ] Generated commands/procurement outcomes unchanged (any hash-surface change
+- [x] Generated commands/procurement outcomes unchanged (any hash-surface change
       → ADR note).
-- [ ] `pnpm --filter @bluewave/ai test` green; `pnpm typecheck` green.
+- [x] `pnpm --filter @bluewave/ai test` green; `pnpm typecheck` green.
 
 ## Notes
 
@@ -46,3 +46,31 @@ runtime-free.
 `aiPlanner.ts:36-49` and `aiCommandGenerator.ts:37-46` duplicate
 `@bluewave/contracts`. Target: `Data.TaggedError` + reuse `SafeInt`.
 `ai` is not renderer-reachable.
+
+### Evidence (2026-10-12)
+
+**Delivered.** Added `packages/ai/src/errors.ts` —
+`AiError extends Data.TaggedError("AiError")<{ message: string }>` (imports only
+`{ Data } from "effect"`, so the package stays runtime-free per ADR-0100 §2; no
+`Layer`/`ManagedRuntime`/"blind wrapping"). Converted all nine plain throws
+(`aiPlanner.ts` ×3, `aiCommandGenerator.ts` ×6), preserving every `message`
+byte-for-byte. Re-exported `AiError` from `index.ts`; added `effect` to
+`packages/ai/package.json`. De-duplicated the hand-rolled SafeInt checks by
+routing them through `SafeInt.isSafeInt` from `@bluewave/contracts` (identical
+accept/reject to `Number.isSafeInteger`, same messages); no decision, random
+draw, timestamp, or hash-surface changed.
+
+| Check | Result |
+| --- | --- |
+| `rg "throw new (Error\|TypeError\|RangeError)\|throw Object\.assign" packages/ai/src` | no matches |
+| `pnpm --filter @bluewave/ai test` | 4 files / 37 tests passed (+13 new `errors.test.ts`) |
+| `pnpm --filter @bluewave/ai typecheck` | exit 0 |
+| `pnpm typecheck` | 37/37 successful |
+| `pnpm lint:effect` | 0 errors (278 pre-existing warnings) |
+| `pnpm install --no-frozen-lockfile` | lockfile `+3` for the new `effect` dep; `assert-single-effect` ok |
+| `node scripts/verify-no-unknown-casts.mjs` | no new assertions (300 remain; `as unknown` counts unchanged) |
+
+**Residual:** none. The three `aiPlanner` throws (`Invalid SafeInt`, `Not
+SafeInt`, `SafeInt overflow sub`) are fail-closed inside `buildBudgetCommand`'s
+local `try/catch`, so only the `aiCommandGenerator` throws are reachable from
+the public API and are covered directly by `test/errors.test.ts`.

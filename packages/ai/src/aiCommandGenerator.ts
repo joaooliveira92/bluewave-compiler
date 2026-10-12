@@ -4,8 +4,9 @@ import type {
   SetResearchPriorityCommand,
   SubmitDesignCommand,
 } from "@bluewave/commands";
-import type { SafeInt } from "@bluewave/contracts";
+import { SafeInt } from "@bluewave/contracts";
 import { sha256Hex } from "@bluewave/deterministic";
+import { AiError } from "./errors.js";
 
 export const AI_ENVELOPE_VERSION = "0.1.0" as const;
 export const AI_COMMAND_TYPE_BUDGET = "budget_project" as const;
@@ -21,7 +22,7 @@ export interface AiCommandContext {
 
 function assertNonEmptyString(value: string, name: string): void {
   if (typeof value !== "string" || value.length === 0) {
-    throw new Error(`${name} must be non-empty string`);
+    throw new AiError({ message: `${name} must be non-empty string` });
   }
 }
 
@@ -33,8 +34,10 @@ function assertSafeInt(value: unknown, name: string): asserts value is SafeInt {
       : typeof (value as { valueOf?: unknown })?.valueOf === "function"
         ? Number((value as { valueOf(): unknown }).valueOf())
         : NaN;
-  if (!Number.isSafeInteger(n)) {
-    throw new Error(`${name} must be SafeInt (safe integer), got ${String(value)}`);
+  if (!SafeInt.isSafeInt(n)) {
+    throw new AiError({
+      message: `${name} must be SafeInt (safe integer), got ${String(value)}`,
+    });
   }
 }
 
@@ -42,8 +45,8 @@ function toNumber(s: SafeInt): number {
   if (typeof s === "number") return s;
   // future-proof: SafeInt as object with valueOf
   const v = (s as unknown as { valueOf(): number }).valueOf();
-  if (typeof v === "number" && Number.isSafeInteger(v)) return v;
-  throw new Error(`Invalid SafeInt: ${String(s)}`);
+  if (typeof v === "number" && SafeInt.isSafeInt(v)) return v;
+  throw new AiError({ message: `Invalid SafeInt: ${String(s)}` });
 }
 
 function encodePart(s: string): string {
@@ -71,7 +74,7 @@ export class AiCommandGenerator {
     assertSafeInt(context.turnNumber, "turnNumber");
     assertNonEmptyString(context.expectedSnapshotHash, "expectedSnapshotHash");
     if (!isHex64(context.expectedSnapshotHash)) {
-      throw new Error(`expectedSnapshotHash must be 64 hex chars`);
+      throw new AiError({ message: `expectedSnapshotHash must be 64 hex chars` });
     }
     this.campaignId = context.campaignId;
     this.turnNumber = context.turnNumber;
@@ -128,7 +131,7 @@ export class AiCommandGenerator {
     assertNonEmptyString(nationId, "nationId");
     assertNonEmptyString(projectId, "projectId");
     assertSafeInt(amount, "amount");
-    if (toNumber(amount) < 1) throw new Error(`budget amount must be >=1`);
+    if (toNumber(amount) < 1) throw new AiError({ message: `budget amount must be >=1` });
 
     const key = this.idempotencyKey(nationId, AI_COMMAND_TYPE_BUDGET);
     const envelope: CommandEnvelope<BudgetProjectCommand> = {
@@ -155,7 +158,7 @@ export class AiCommandGenerator {
   ): CommandEnvelope<SetResearchPriorityCommand> {
     assertNonEmptyString(nationId, "nationId");
     if (typeof fieldPriorities !== "object" || fieldPriorities === null) {
-      throw new Error(`fieldPriorities must be object`);
+      throw new AiError({ message: `fieldPriorities must be object` });
     }
     // validate each priority is SafeInt and freeze copy
     const copy: Record<string, SafeInt> = {};

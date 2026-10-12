@@ -278,6 +278,9 @@ importers:
       '@bluewave/random':
         specifier: workspace:*
         version: link:../random
+      effect:
+        specifier: workspace:*
+        version: link:../../vendor/effect
 
   packages/armament:
     dependencies:

@@ -16,7 +16,8 @@
     "@bluewave/random": "workspace:*",
     "@bluewave/deterministic": "workspace:*",
     "@bluewave/diagnostics": "workspace:*",
-    "@bluewave/content-schema": "workspace:*"
+    "@bluewave/content-schema": "workspace:*",
+    "effect": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

@@ -20,6 +20,7 @@ import {
   AI_COMMAND_TYPE_RESEARCH,
   AiCommandGenerator,
 } from "./aiCommandGenerator.js";
+import { AiError } from "./errors.js";
 
 export const AI_RNG_STREAM_PREFIX = "ai/planning:" as const;
 
@@ -32,13 +33,13 @@ export interface AiPlanningResult {
 function toNumber(s: SafeInt): number {
   if (typeof s === "number") return s;
   const v = (s as unknown as { valueOf(): number }).valueOf();
-  if (typeof v === "number" && Number.isSafeInteger(v)) return v;
-  throw new Error(`Invalid SafeInt`);
+  if (typeof v === "number" && SafeInt.isSafeInt(v)) return v;
+  throw new AiError({ message: `Invalid SafeInt` });
 }
 
 function assertSafeInt(n: unknown): number {
   const v = toNumber(n as SafeInt);
-  if (!Number.isSafeInteger(v)) throw new Error(`Not SafeInt`);
+  if (!SafeInt.isSafeInt(v)) throw new AiError({ message: `Not SafeInt` });
   return v;
 }
 
@@ -46,7 +47,7 @@ function safeSub(a: SafeInt, b: SafeInt): SafeInt {
   const av = toNumber(a);
   const bv = toNumber(b);
   const r = av - bv;
-  if (!Number.isSafeInteger(r)) throw new Error(`SafeInt overflow sub`);
+  if (!SafeInt.isSafeInt(r)) throw new AiError({ message: `SafeInt overflow sub` });
   return r as unknown as SafeInt;
 }
 
