@@ -16,9 +16,9 @@ export interface NewGameScreenLayoutProps {
   readonly centered?: boolean;
   /**
    * A master/detail step that owns the whole content area: no page padding and
-   * no centred column. At `lg`+ it fills the shell's height (so panes can
-   * scroll independently); narrower, it grows with its content and the shell
-   * scrolls. `size` and `centered` do not apply.
+   * no centred column. At `lg`+ it is exactly the shell's height, so the shell
+   * never scrolls and each pane scrolls on its own; narrower, it grows with its
+   * content and the shell scrolls. `size` and `centered` do not apply.
    */
   readonly fullBleed?: boolean;
   readonly className?: string;
@@ -38,11 +38,7 @@ export function NewGameScreenLayout({
   children,
 }: NewGameScreenLayoutProps) {
   if (fullBleed) {
-    return (
-      <div className={cn("flex min-h-full flex-col lg:h-full lg:min-h-160", className)}>
-        {children}
-      </div>
-    );
+    return <div className={cn("flex min-h-full flex-col lg:h-full", className)}>{children}</div>;
   }
 
   return (

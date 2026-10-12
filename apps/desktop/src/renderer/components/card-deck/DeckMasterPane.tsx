@@ -215,7 +215,7 @@ export function DeckMasterPane({
             className="pointer-events-none absolute inset-x-[12%] bottom-[7%] top-[12%] rounded-[50%] bg-[radial-gradient(ellipse_at_center,color-mix(in_srgb,var(--color-admiralty-signal)_10%,transparent),transparent_68%)] blur-xl"
           />
 
-          <div className="absolute inset-x-0 top-1/2 mx-auto h-[19.5rem] w-[min(94%,29rem)] -translate-y-1/2 sm:h-[21.5rem]">
+          <div className="absolute inset-x-0 top-1/2 mx-auto h-[min(19.5rem,80%)] w-[min(94%,29rem)] -translate-y-1/2 sm:h-[min(21.5rem,80%)]">
             <CardDeck
               cards={[...cards]}
               {...DECK_SETTINGS}
