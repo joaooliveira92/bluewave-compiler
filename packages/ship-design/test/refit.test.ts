@@ -3,8 +3,10 @@ import {
   evaluateRefit,
   compileDesign,
   checkFindingShape,
+  armamentChangeFindings,
   type ArmourRegion,
   type ComponentDef,
+  type GunChange,
   type RefitPlan,
   type ShipContext,
   type ShipState,
@@ -68,6 +70,59 @@ const run = (plan: RefitPlan, s: ShipState = ship, c: ShipContext = ctx) =>
     { maturityBpByTech: {}, firstOfClass: false },
     2_000_000,
   );
+
+describe("REARMAMENT armament-change conditions (RTW3 manual pp31-32)", () => {
+  const g = (
+    role: "MAIN" | "SECONDARY",
+    inch: number,
+    barrels: number,
+    casemate = false,
+  ): GunChange => ({ role, caliberUm: inch * 25_400, barrels, casemate });
+  it("allows the manual's worked compatible swaps", () => {
+    expect(armamentChangeFindings([g("MAIN", 8, 2)], [g("MAIN", 10, 1)])).toEqual([]);
+    expect(armamentChangeFindings([g("MAIN", 12, 3)], [g("MAIN", 16, 2)])).toEqual([]);
+  });
+  it("allows a same-calibre main refresh but refuses a calibre change at the same barrel count", () => {
+    expect(armamentChangeFindings([g("MAIN", 12, 3)], [g("MAIN", 12, 3)])).toEqual([]);
+    expect(
+      armamentChangeFindings([g("MAIN", 8, 1)], [g("MAIN", 10, 1)]).map((x) => x.id),
+    ).toContain("ARMAMENT_INCOMPATIBLE_CALIBRE");
+  });
+  it("refuses removing an above-6 in main gun without a replacement", () => {
+    expect(armamentChangeFindings([g("MAIN", 12, 1)], []).map((x) => x.id)).toContain(
+      "ARMAMENT_MAIN_GUN_UNCHANGEABLE",
+    );
+  });
+  it("changes secondaries only from casemates or ≤6 in turrets, and only to ≤6 in guns", () => {
+    expect(
+      armamentChangeFindings([g("SECONDARY", 8, 2)], [g("SECONDARY", 6, 2)]).map((x) => x.id),
+    ).toContain("ARMAMENT_SECONDARY_CHANGE_NOT_ALLOWED");
+    expect(
+      armamentChangeFindings([g("SECONDARY", 8, 1, true)], [g("SECONDARY", 6, 1)]).map((x) => x.id),
+    ).not.toContain("ARMAMENT_SECONDARY_CHANGE_NOT_ALLOWED");
+    expect(
+      armamentChangeFindings([g("SECONDARY", 4, 1)], [g("SECONDARY", 8, 1)]).map((x) => x.id),
+    ).toContain("ARMAMENT_SECONDARY_TOO_LARGE");
+  });
+  it("runs inside the normal refit evaluation", () => {
+    const plan: RefitPlan = {
+      kind: "REARMAMENT",
+      removeInstanceIds: ["a_gun_fwd"],
+      add: [
+        {
+          instanceId: "new_gun",
+          componentId: "qf_47in",
+          zoneId: "FORECASTLE",
+          stationPermille: 40,
+          params: { barrels: 1, rounds: 100 },
+        },
+      ],
+    };
+    const r = run(plan, { ...ship, growthBudgetKg: 40_000 });
+    expect(r.projectType).toBe("REBUILD");
+    expect(r.findings.map((x) => x.id)).not.toContain("ARMAMENT_SECONDARY_CHANGE_NOT_ALLOWED");
+  });
+});
 
 describe("BULGE (RTW3 manual p. 32)", () => {
   const bulge = (massKg: number): RefitPlan => ({

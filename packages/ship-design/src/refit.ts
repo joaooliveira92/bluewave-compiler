@@ -10,7 +10,157 @@ import {
 import { computeCost, type CostBalance, type CostContext } from "./cost.js";
 import type { Finding } from "./findings.js";
 import { sortFindings } from "./findings.js";
-import { bp, kg } from "./units.js";
+import { bp, kg, UM_PER_INCH } from "./units.js";
+
+/** DESIGN-22 §9/§11 gun boundary the armament rules read: 6 inches. */
+const ARMAMENT_MAIN_GUN_MAX_UM = 6 * UM_PER_INCH;
+
+/** A gun touched by a REARMAMENT refit, as the armament-change rules see it. */
+export interface GunChange {
+  readonly role: "MAIN" | "SECONDARY";
+  readonly caliberUm: number;
+  /** Barrels in the mount (1 = single, 2 = double/twin, 3 = triple). */
+  readonly barrels: number;
+  /** True when the existing gun is a casemate/broadside mounting rather than a turret. */
+  readonly casemate: boolean;
+}
+
+const gunFinding = (
+  id: string,
+  what: string,
+  why: string,
+  consequence: string,
+  remedies: readonly (readonly [string, string])[],
+  inputs: Record<string, number> = {},
+  threshold = 0,
+  value = 1,
+): Finding => ({
+  id,
+  severity: "BLOCKING",
+  what,
+  why,
+  consequence,
+  remedies: remedies.map(([rid, description]) => ({ id: rid, description })),
+  evidence: { formulaId: "DESIGN-23-21-armament", inputs, threshold, value },
+});
+
+const inches = (um: number) => (um / UM_PER_INCH).toFixed(1);
+const barrelsWord = (n: number) => (n === 1 ? "single" : n === 2 ? "double" : n === 3 ? "triple" : `${n}-barrel`);
+
+/**
+ * The manual's armament-change conditions for a `REARMAMENT` rebuild (BUILDING SHIPS, printed pp31–32; ADR-0131):
+ * main guns are refreshed to a more modern gun of the same calibre, or traded barrel-count-against-calibre within a
+ * compatible limit; secondary/tertiary batteries may change only from casemates or ≤6 in turrets, and only to ≤6 in
+ * guns. Pure and deterministic; the findings are BLOCKING and in a fixed order.
+ */
+export function armamentChangeFindings(
+  removed: readonly GunChange[],
+  added: readonly GunChange[],
+  mainGunMaxUm: number = ARMAMENT_MAIN_GUN_MAX_UM,
+): Finding[] {
+  const findings: Finding[] = [];
+  const mains = (g: GunChange) => g.role === "MAIN";
+
+  // Secondary/tertiary: the existing guns must be casemates or ≤6 in turrets; the replacements must all be ≤6 in.
+  for (const g of removed.filter((x) => !mains(x)))
+    if (!(g.casemate || g.caliberUm <= mainGunMaxUm))
+      findings.push(
+        gunFinding(
+          "ARMAMENT_SECONDARY_CHANGE_NOT_ALLOWED",
+          "The secondary battery cannot be changed.",
+          `The existing ${barrelsWord(g.barrels)} ${inches(g.caliberUm)} in turret is neither a casemate nor a 6-inch-or-under mounting.`,
+          "Only casemates and turrets of 6 inches or smaller may be re-battered.",
+          [
+            ["keep_battery", "Keep the existing secondary guns."],
+            ["reconstruct", "Plan a major reconstruction instead."],
+            ["casemate_only", "Change only the casemate or small-turret guns."],
+          ],
+          { caliberUm: g.caliberUm },
+          mainGunMaxUm,
+          g.caliberUm,
+        ),
+      );
+  for (const g of added.filter((x) => !mains(x)))
+    if (g.caliberUm > mainGunMaxUm)
+      findings.push(
+        gunFinding(
+          "ARMAMENT_SECONDARY_TOO_LARGE",
+          "A secondary gun would be too large.",
+          `A ${inches(g.caliberUm)} in gun cannot be fitted as a secondary; the limit is 6 inches.`,
+          "Secondary and tertiary batteries are limited to 6-inch guns.",
+          [
+            ["smaller_gun", "Choose a gun of 6 inches or less."],
+            ["main_battery", "Make it part of the main battery instead."],
+            ["drop", "Drop the change."],
+          ],
+          { caliberUm: g.caliberUm },
+          mainGunMaxUm,
+          g.caliberUm,
+        ),
+      );
+
+  // Main battery: refresh same-calibre, or trade barrels against calibre within a compatible limit.
+  const remMains = removed.filter(mains);
+  const addMains = added.filter(mains);
+  const used = new Set<number>();
+  const byCaliber = (cal: number, excl: Set<number>) =>
+    addMains.findIndex((a, i) => !excl.has(i) && a.caliberUm === cal);
+  for (const r of remMains) {
+    // A same-calibre refresh is always allowed.
+    const refresh = byCaliber(r.caliberUm, used);
+    if (refresh >= 0) {
+      used.add(refresh);
+      continue;
+    }
+    // Otherwise a barrel/calibre trade with an unmatched added main gun.
+    const tradeIndex = addMains.findIndex((a, i) => !used.has(i));
+    if (tradeIndex < 0) {
+      if (r.caliberUm > mainGunMaxUm)
+        findings.push(
+          gunFinding(
+            "ARMAMENT_MAIN_GUN_UNCHANGEABLE",
+            "A main gun above 6 inches cannot be removed.",
+            `A ${inches(r.caliberUm)} in main gun may only be refreshed with a modern gun of the same calibre.`,
+            "The main battery above 6 inches is fixed for the ship's life.",
+            [
+              ["refresh", "Fit a modern gun of the same calibre."],
+              ["keep", "Keep the existing main guns."],
+              ["new_build", "Build a new ship with the armament you want."],
+            ],
+            { caliberUm: r.caliberUm },
+            mainGunMaxUm,
+            r.caliberUm,
+          ),
+        );
+      continue;
+    }
+    const a = addMains[tradeIndex]!;
+    used.add(tradeIndex);
+    const broadsideOk =
+      a.barrels < r.barrels
+        ? a.caliberUm * a.barrels <= r.caliberUm * r.barrels
+        : a.caliberUm <= r.caliberUm;
+    if (!broadsideOk)
+      findings.push(
+        gunFinding(
+          "ARMAMENT_INCOMPATIBLE_CALIBRE",
+          "The main-battery change is not a compatible swap.",
+          `${barrelsWord(r.barrels)} ${inches(r.caliberUm)} in to ${barrelsWord(a.barrels)} ${inches(a.caliberUm)} in raises the weight of broadside beyond the guns replaced.`,
+          "A refit may trade barrel count against calibre only within a compatible limit.",
+          [
+            ["fewer_barrels", "Reduce the number of barrels further."],
+            ["smaller_calibre", "Choose a smaller calibre."],
+            ["keep", "Keep the existing main guns."],
+          ],
+          { removedBroadside: r.caliberUm * r.barrels, addedBroadside: a.caliberUm * a.barrels },
+          r.caliberUm * r.barrels,
+          a.caliberUm * a.barrels,
+        ),
+      );
+  }
+  return findings;
+}
+
 
 export type RefitKind =
   | "MAINTENANCE_REFIT"
@@ -240,6 +390,31 @@ export function evaluateRefit(
         ),
       );
     }
+  }
+  // REARMAMENT (RTW3 manual pp31-32): the manual's armament-change conditions, as a validation rule set.
+  if (plan.kind === "REARMAMENT") {
+    const gunChangeOf = (p: PlacementSpec): GunChange | null => {
+      const def = ctx.catalogue.find((c) => c.id === p.componentId);
+      if (def === undefined) return null;
+      if (!["MAIN_GUN", "SECONDARY_GUN", "DUAL_PURPOSE_GUN"].includes(def.category)) return null;
+      const barrels = p.params?.["barrels"] ?? 1;
+      return {
+        role: def.category === "MAIN_GUN" ? "MAIN" : "SECONDARY",
+        caliberUm: Number(def.attributes?.["caliberUm"] ?? 0),
+        barrels,
+        // The model does not carry a mount style; a single-barrel mounting is a broadside/casemate, a multi-barrel
+        // one is a turret (recorded in ADR-0131).
+        casemate: barrels <= 1,
+      };
+    };
+    const removedGuns = ship.design.placements
+      .filter((p) => plan.removeInstanceIds.includes(p.instanceId))
+      .map(gunChangeOf)
+      .filter((g): g is GunChange => g !== null);
+    const addedGuns = plan.add
+      .map(gunChangeOf)
+      .filter((g): g is GunChange => g !== null);
+    findings.push(...armamentChangeFindings(removedGuns, addedGuns));
   }
   const stripped = ship.design.placements.filter(
     (p) =>

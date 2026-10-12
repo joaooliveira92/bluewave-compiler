@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0131).
+highest existing number + 1 (the next number is ADR-0132).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -135,6 +135,7 @@ Ship design, classification, construction, repair, and rebuild.
 | 0116 | [ADR-0116-per-scenario-1880-classification-ruleset.md](ADR-0116-per-scenario-1880-classification-ruleset.md) | Per-scenario 1880 classification ruleset — coast-defence ships as capital | accepted | — |
 | 0129 | [ADR-0129-dockyard-project-status-model.md](ADR-0129-dockyard-project-status-model.md) | Dockyard-project status model and save-compatibility bump | accepted | — |
 | 0130 | [ADR-0130-bulge-refit-kind.md](ADR-0130-bulge-refit-kind.md) | BULGE refit kind | accepted | — |
+| 0131 | [ADR-0131-rearmament-armament-change-conditions.md](ADR-0131-rearmament-armament-change-conditions.md) | REARMAMENT armament-change conditions | accepted | — |
 
 ## National content
 
