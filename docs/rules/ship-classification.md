@@ -189,6 +189,8 @@ The following explicit exceptions are permitted:
 
 A main caliber exactly `6` inches is legal. A caliber above `6` inches is not CL, except under `protected_cruiser_exception` (exactly `8` inches is legal there, `8` inches plus one micrometre is not).
 
+A design at exactly `2_000` tons is a legal `CL`: the reference (`docs/manual.pdf` p131, APPENDIX 1) leaves exactly 2000 t in neither `DD` (`< 2000`) nor `CL` (`> 2000`), and this document fills that gap by making the CL lower bound inclusive (`≥ 2_000_000` kg). Every 2000 t design is therefore a light cruiser; no constant changes and no design is left illegal.
+
 ## 10. B Classification
 
 A design is `B` only when all conditions hold:

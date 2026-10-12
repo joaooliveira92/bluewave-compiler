@@ -7,6 +7,7 @@ import {
   classCode,
   compileDesign,
   checkFindingShape,
+  CLASSIFIED_SHIP_TYPES,
   DESIGN_22_EARLY,
   UM_PER_INCH,
   UM_PER_KNOT,
@@ -93,6 +94,53 @@ describe("DESIGN-22 boundaries (strict versus inclusive)", () => {
     expect(pass("BB", { ...bb, beltUm: 6 * UM_PER_INCH })).toBe(false);
     expect(pass("BB", { ...bb, displacementKg: 8_000_000 })).toBe(false);
     expect(pass("BB", { ...bb, maxMainGunUm: 10 * UM_PER_INCH })).toBe(false);
+  });
+  it("KE: below 2,500 t, belt up to 2 in, any-role gun up to 6 in, no torpedoes", () => {
+    const ke = facts({
+      displacementKg: 1_500_000,
+      beltUm: 2 * UM_PER_INCH,
+      maxGunUm: 6 * UM_PER_INCH,
+      torpedoTubes: 0,
+    });
+    expect(pass("KE", ke)).toBe(true);
+    expect(pass("KE", { ...ke, displacementKg: 2_500_000 })).toBe(false);
+    expect(pass("KE", { ...ke, beltUm: 2 * UM_PER_INCH + 1 })).toBe(false);
+    expect(pass("KE", { ...ke, maxGunUm: 6 * UM_PER_INCH + 1 })).toBe(false);
+    expect(pass("KE", { ...ke, torpedoTubes: 1 })).toBe(false);
+    // KE reads the largest gun of ANY role, so a big secondary disqualifies it (ADR-0088).
+    expect(pass("KE", { ...ke, maxGunUm: 0, maxMainGunUm: 0 })).toBe(true);
+    expect(pass("KE", { ...ke, maxGunUm: 0, maxMainGunUm: 8 * UM_PER_INCH })).toBe(true);
+  });
+  it("AMC: above 1,700 t, merchant hull, no qualifying armour, any-role gun up to 6 in", () => {
+    const amc = facts({ displacementKg: 3_000_000, merchantHull: true });
+    expect(pass("AMC", amc)).toBe(true);
+    expect(pass("AMC", { ...amc, displacementKg: 1_700_000 })).toBe(false);
+    expect(pass("AMC", { ...amc, merchantHull: false })).toBe(false);
+    expect(pass("AMC", { ...amc, anyQualifyingArmourUm: 2 * UM_PER_INCH })).toBe(false);
+    // AMC reads the largest gun of any role too.
+    expect(pass("AMC", { ...amc, maxGunUm: 6 * UM_PER_INCH })).toBe(true);
+    expect(pass("AMC", { ...amc, maxGunUm: 6 * UM_PER_INCH + 1 })).toBe(false);
+  });
+  it("fills the manual's 2000 t gap: exactly 2000 t is naturally a light cruiser", () => {
+    // The manual leaves 2000 t in neither DD (< 2000) nor CL (> 2000); DESIGN-22 §9 makes CL inclusive.
+    const twoThousand = facts({ displacementKg: 2_000_000 });
+    expect(pass("DD", twoThousand)).toBe(false);
+    expect(pass("CL", twoThousand)).toBe(true);
+    expect(naturalClass(twoThousand, R)).toBe("CL");
+  });
+  it("keeps the locked types unclassifiable: a battlecruiser-like design is a BB, never a BC", () => {
+    // BC/CV/CVL/AV/SS/MTB/TR have no natural-classification predicate in the EARLY band (ADR-0088 §4).
+    const battlecruiserLike = facts({
+      displacementKg: 20_000_000,
+      speedUms: 26 * UM_PER_KNOT,
+      beltUm: 7 * UM_PER_INCH,
+      maxMainGunUm: 12 * UM_PER_INCH,
+      mainTurretCount: 4,
+    });
+    expect(naturalClass(battlecruiserLike, R)).toBe("BB");
+    expect(CLASSIFIED_SHIP_TYPES as readonly string[]).not.toContain("BC");
+    for (const locked of ["BC", "CV", "CVL", "AV", "SS", "MTB", "TR"])
+      expect(CLASSIFIED_SHIP_TYPES as readonly string[]).not.toContain(locked);
   });
   it("natural class follows precedence BB > B > CA > CL > DD", () => {
     const slowBelted = facts({

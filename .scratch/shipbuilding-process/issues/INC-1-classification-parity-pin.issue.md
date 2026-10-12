@@ -1,6 +1,6 @@
 # INC-1 — Classification parity pin
 
-**State:** READY_FOR_AGENT · **Frontier:** yes · **Blocked by:** none
+**State:** RESOLVED · **Frontier:** yes · **Blocked by:** none
 **Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R1..R3) · **ADR:** none (verification + doc annotation only)
 
 ## What to build
@@ -31,3 +31,19 @@ test-vector fixture, pin the locked types, and add the one documentation annotat
 No production behaviour changes. Ship the fixtures wherever the existing classification suite lives
 (`@bluewave/ship-design`); do not weaken existing assertions. The DESIGN-22 §9 edit is one sentence and
 needs no ADR (easy to reverse, unsurprising — ticket 04).
+
+## Answer
+
+Classification parity is confirmed and pinned; no production classification code changed.
+
+- Added Appendix-1 test-vector fixtures for the two types missing from `classification.test.ts`
+  (`KE`, `AMC`), including the "largest gun of any role" reading (ADR-0088).
+- Added the manual's 2000 t gap-fill boundary: exactly 2000 t is naturally `CL`, never `DD`.
+- Added the locked-type pin: a battlecruiser-like design is recognised as `BB`, and `BC`/`CV`/`CVL`/
+  `AV`/`SS`/`MTB`/`TR` are absent from `CLASSIFIED_SHIP_TYPES`.
+- Added the DESIGN-22 §9 one-line annotation recording the 2000 t gap-fill (no constant change).
+- Existing suites already pin the remaining deviations (CA strict `>6`, DD 2 in threshold, CL belt
+  `≤2` + missing-deck WARNING, AMC fast limits, the 1880 ruleset relaxation) and the locked-type
+  refusal (`shipTypes.test.ts`); they were left unchanged.
+
+Commands: `vp test run test/classification.test.ts` → 26 passed; `tsc --noEmit` → clean.
