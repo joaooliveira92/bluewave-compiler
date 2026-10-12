@@ -47,6 +47,7 @@ export * from "./colonialService.js";
 export * from "./shipTypeRoster.js";
 export * from "./shipTypeEnvelope.js";
 export * from "./nationProfile.js";
+export * from "./naming.js";
 export * from "./componentVariants.js";
 export * from "./armamentAdapter.js";
 export * from "./armamentContent.js";

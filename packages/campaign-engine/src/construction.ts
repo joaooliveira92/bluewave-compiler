@@ -167,6 +167,15 @@ export function constructionProjectIdForCommand(commandId: string): string {
 }
 
 /**
+ * The snapshot project id for ship `ordinal` (1-based) of a construction batch (DESIGN-23 section 4, SB3-R11). A batch
+ * needs one stable id per ship, so the single-order id is suffixed with the ship's batch ordinal. Batch ids are always
+ * ordinaled, even at quantity one, so a batch is never mistaken for a single order.
+ */
+export function constructionBatchProjectIdForCommand(commandId: string, ordinal: number): string {
+  return `${constructionProjectIdForCommand(commandId)}-${String(ordinal)}`;
+}
+
+/**
  * The Construction screen's "Projects in Yard" list — a deterministic,
  * keyed-by-project-id projection of `nation.constructionProjects` (authored
  * starting builds AND orders queued by the desktop construction commands)

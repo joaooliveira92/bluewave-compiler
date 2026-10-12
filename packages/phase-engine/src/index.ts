@@ -98,8 +98,14 @@ export {
   type OrderRejectionCode,
 } from "./orderEligibility.js";
 export {
+  CONSTRUCTION_BATCH_LIMIT_EXCEEDED,
+  CONSTRUCTION_BATCH_MAX_QUANTITY,
+  CONSTRUCTION_BATCH_MIN_QUANTITY,
   constructionProjectFor,
+  placeConstructionBatch,
   placeConstructionOrder,
+  type ConstructionBatchRequest,
+  type ConstructionBatchResult,
   type ConstructionOrderRequest,
   type ConstructionOrderResult,
 } from "./constructionOrder.js";

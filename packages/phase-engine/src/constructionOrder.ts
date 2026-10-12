@@ -5,12 +5,20 @@ import type {
   ConstructionProject,
 } from "@bluewave/campaign";
 import {
+  constructionBatchProjectIdForCommand,
   constructionProjectIdForCommand,
   projectedConstructionOrderCosts,
   type ConstructionOrderCosts,
 } from "@bluewave/campaign-engine";
 import { SafeInt } from "@bluewave/contracts";
-import { resolveNationalConstruction, type ShipBuildingContent } from "@bluewave/ship-design";
+import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import {
+  allocateShipNames,
+  resolveNationalConstruction,
+  shipTypeForHullType,
+  type ShipBuildingContent,
+  type ShipNameAllocation,
+} from "@bluewave/ship-design";
 import { constructionOrderEligibility } from "./orderEligibility.js";
 
 /**
@@ -193,4 +201,241 @@ export function placeConstructionOrder(
     constructionProjects: [...kept, project],
   });
   return { ok: true, snapshot: { ...snapshot, nations }, project, design, costs: costs.costs };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Class-order batch (DESIGN-23 sections 3-5, SB3-R11..R14)
+// ---------------------------------------------------------------------------------------------------------------
+
+/** DESIGN-23 section 4: one command orders from `1` through exactly `12` ships of one approved compiled version. */
+export const CONSTRUCTION_BATCH_MIN_QUANTITY = 1;
+export const CONSTRUCTION_BATCH_MAX_QUANTITY = 12;
+
+/** DESIGN-23 section 4: a quantity above `12` (or below `1`, or non-integer) is rejected with this code. */
+export const CONSTRUCTION_BATCH_LIMIT_EXCEEDED = "CONSTRUCTION_BATCH_LIMIT_EXCEEDED" as const;
+
+export interface ConstructionBatchRequest {
+  readonly nationId: string;
+  readonly commandId: string;
+  readonly designVersionId: string;
+  /** Ship count, an integer in `1..12` (DESIGN-23 section 4). */
+  readonly quantity: number;
+  readonly month: { readonly month: number; readonly year: number };
+}
+
+export type ConstructionBatchResult =
+  | {
+      readonly ok: true;
+      readonly snapshot: CampaignSnapshot;
+      /** The batch's projects, in canonical order: batch ordinal, then ship/project id. */
+      readonly projects: readonly ConstructionProject[];
+      readonly design: CompiledDesignVersion;
+      /** The per-ship projected cost; the batch reservation is `quantity` times as much. */
+      readonly costs: ConstructionOrderCosts;
+      /** The deterministic name allocations, one per ship. */
+      readonly names: readonly ShipNameAllocation[];
+      /** True when the name pool could not supply `quantity` distinct fresh base names (SB3-R13). */
+      readonly namePoolExhausted: boolean;
+      readonly batchId: string;
+      readonly namedClassId: string;
+      /** The batch's stable canonical hash (design version, class, quantity, ships). */
+      readonly batchHash: string;
+    }
+  | {
+      readonly ok: false;
+      readonly reason: string;
+      readonly diagnostics: readonly string[];
+    };
+
+/**
+ * The names already spoken for by `nationId`: every commissioned ship's name, every design's class name, and every
+ * in-flight project's already-allocated `shipName`. Handing this to the naming policy keeps a new batch from reusing a
+ * name another order already claimed. Pure.
+ */
+function takenShipNames(snapshot: CampaignSnapshot, nationId: string): string[] {
+  const nation = snapshot["nations"].get(nationId);
+  const names: string[] = [];
+  if (!nation) return names;
+  for (const fleet of nation["fleets"]) for (const ship of fleet["ships"]) names.push(ship["name"]);
+  for (const design of snapshot["designs"].values())
+    if (design.nationId === nationId) names.push(design.className);
+  for (const project of nation["constructionProjects"])
+    if (project["shipName"] !== undefined) names.push(project["shipName"]);
+  return names;
+}
+
+/**
+ * The one way a class-order batch (DESIGN-23 sections 3-5, SB3-R11..R14) enters a snapshot. It reuses the single-order
+ * authorization policy (`constructionOrderEligibility`) for the design — revalidation, auxiliary limits, the dock
+ * ceiling and the national concurrency cap (reserving the WHOLE batch) — and only then creates `quantity` projects that
+ * share one `batchId`/`namedClassId`, carry deterministic per-ship names, and reference the same compiled design
+ * version. A failed gate creates no project and no reservation. Platform-independent and deterministic.
+ */
+export function placeConstructionBatch(
+  snapshot: CampaignSnapshot,
+  request: ConstructionBatchRequest,
+  content: ShipBuildingContent | undefined,
+): ConstructionBatchResult {
+  if (
+    !Number.isInteger(request.quantity) ||
+    request.quantity < CONSTRUCTION_BATCH_MIN_QUANTITY ||
+    request.quantity > CONSTRUCTION_BATCH_MAX_QUANTITY
+  )
+    return {
+      ok: false,
+      reason: CONSTRUCTION_BATCH_LIMIT_EXCEEDED,
+      diagnostics: [
+        `A class order is 1..${String(CONSTRUCTION_BATCH_MAX_QUANTITY)} ships; got ${String(request.quantity)}. A second batch needs a second command.`,
+      ],
+    };
+  const nation = snapshot["nations"].get(request.nationId);
+  if (!nation)
+    return {
+      ok: false,
+      reason: "NATION_NOT_FOUND",
+      diagnostics: [`Nation ${request.nationId} not found`],
+    };
+  const design = snapshot["designs"].get(request.designVersionId);
+  if (!design)
+    return {
+      ok: false,
+      reason: "UNKNOWN_DESIGN",
+      diagnostics: [`No design ${request.designVersionId} in the compiled snapshot`],
+    };
+  if (design["nationId"] !== request.nationId)
+    return {
+      ok: false,
+      reason: "DESIGN_NOT_FOR_PLAYER",
+      diagnostics: [
+        `Design ${request.designVersionId} belongs to ${design["nationId"]}, not player slot ${request.nationId}`,
+      ],
+    };
+  // DESIGN-23 section 5: a repeated order of an existing, already-approved compiled version needs no new study. A
+  // mechanically changed design cannot reach the order path at all — it is a new draft, compiled into a new immutable
+  // version that only the design-study path (`SubmitDesign` -> `planDesignStudy`) can approve. The manual-parity rule
+  // is therefore enforced structurally at the study boundary, not here; cosmetic-only changes keep the approved
+  // version's compiled hash and need no study.
+  const monthId = `${String(request.month.year)}-${String(request.month.month).padStart(2, "0")}`;
+  const eligibility = constructionOrderEligibility(
+    snapshot,
+    design,
+    content,
+    monthId,
+    undefined,
+    request.quantity,
+  );
+  if (!eligibility.eligible)
+    return {
+      ok: false,
+      reason: eligibility.rejections[0]!.code,
+      diagnostics: eligibility.rejections.map((r) => r.message),
+    };
+  const costs = (() => {
+    const profile = content?.navalProfileFor(request.nationId, monthId) ?? null;
+    if (profile === null)
+      return { costs: projectedConstructionOrderCosts(design), national: undefined };
+    let modifiers;
+    try {
+      modifiers = resolveNationalConstruction(profile, monthId);
+    } catch {
+      return null; // fail closed: the nation cannot obtain its main armament or armour under the current policy
+    }
+    return {
+      costs: projectedConstructionOrderCosts(design, modifiers.costMultiplierBp),
+      national: {
+        profileId: profile.nationId,
+        costMultiplierBp: modifiers.costMultiplierBp,
+        buildTimeMultiplierBp: modifiers.buildTimeMultiplierBp,
+      },
+    };
+  })();
+  if (costs === null)
+    return {
+      ok: false,
+      reason: "NATIONAL_SUPPLY_UNAVAILABLE",
+      diagnostics: [`Nation ${request.nationId} cannot obtain its main armament or armour plate`],
+    };
+
+  const strippedCommandId = request.commandId.replace(/^cmd-/, "");
+  const batchId = `batch-${strippedCommandId}`;
+  const namedClassId =
+    design["designFamilyId"] !== ""
+      ? design["designFamilyId"]
+      : `class-${design["designVersionId"]}`;
+  const shipType = shipTypeForHullType(design["hullType"]);
+  const profile = content?.navalProfileFor(request.nationId, monthId) ?? null;
+  const stems =
+    (shipType !== null ? profile?.namingPolicy.stems[shipType] : undefined) ??
+    ([] as readonly string[]);
+  const naming = allocateShipNames({
+    pool: { poolId: `name_pool:${request.nationId}:${shipType ?? design["hullType"]}`, stems },
+    count: request.quantity,
+    taken: takenShipNames(snapshot, request.nationId),
+    placeholderStem: design["className"],
+  });
+
+  const baseProject = constructionProjectFor(
+    request.commandId,
+    request.designVersionId,
+    costs.costs.projectedCost,
+    request.month,
+    design["constructionPlan"],
+    costs.national,
+  );
+  const projects = naming.allocations
+    .map((allocation, index): ConstructionProject => {
+      const ordinal = index + 1;
+      return {
+        ...baseProject,
+        id: constructionBatchProjectIdForCommand(request.commandId, ordinal),
+        shipName: allocation.name,
+        namePoolId: allocation.pool,
+        namePoolOrdinal: allocation.ordinal,
+        batchId,
+        namedClassId,
+        batchOrdinal: ordinal,
+        ...(eligibility.newConstructionReservedMassKg !== undefined
+          ? { newConstructionReservedMassKg: eligibility.newConstructionReservedMassKg }
+          : {}),
+      };
+    })
+    .sort(
+      (a, b) =>
+        (a["batchOrdinal"] ?? 0) - (b["batchOrdinal"] ?? 0) ||
+        (a["id"] < b["id"] ? -1 : a["id"] > b["id"] ? 1 : 0),
+    );
+
+  const batchHash = sha256Hex(
+    canonicalSerialize({
+      artifactKind: "construction-batch",
+      designVersionId: request.designVersionId,
+      designCompiledHash: design.compiledHash,
+      namedClassId,
+      batchId,
+      quantity: request.quantity,
+      ships: projects.map((p) => ({
+        projectId: p["id"],
+        ordinal: p["batchOrdinal"],
+        shipName: p["shipName"],
+      })),
+    }),
+  );
+
+  const kept = nation["constructionProjects"];
+  const nations = new Map(snapshot["nations"]).set(request.nationId, {
+    ...nation,
+    constructionProjects: [...kept, ...projects],
+  });
+  return {
+    ok: true,
+    snapshot: { ...snapshot, nations },
+    projects,
+    design,
+    costs: costs.costs,
+    names: naming.allocations,
+    namePoolExhausted: naming.exhausted,
+    batchId,
+    namedClassId,
+    batchHash,
+  };
 }

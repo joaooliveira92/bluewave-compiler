@@ -116,6 +116,11 @@ export function constructionOrderEligibility(
   content: ShipBuildingContent | undefined,
   month: string,
   replacingProjectId?: string,
+  /**
+   * The number of ships of `design` the order lays down (DESIGN-23 section 4, `1..12`; default `1`). The dock ceiling
+   * is judged per ship (every hull must fit the dock), while the national concurrency cap reserves the whole batch.
+   */
+  batchQuantity = 1,
 ): OrderEligibility {
   const rejections: OrderRejection[] = [];
   if (design.sourceDraft !== undefined) {
@@ -197,10 +202,11 @@ export function constructionOrderEligibility(
       capacity,
       replacingProjectId,
     );
-    if (committed + newConstructionReservedMassKg > capacity.maxConcurrentMassKg)
+    const batchReservation = newConstructionReservedMassKg * batchQuantity;
+    if (committed + batchReservation > capacity.maxConcurrentMassKg)
       rejections.push({
         code: "INSUFFICIENT_PROJECT_CAPACITY",
-        message: `Reserving ${newConstructionReservedMassKg} kg for ${design.designVersionId} would put ${committed + newConstructionReservedMassKg} kg under construction, above the nation's cap of ${capacity.maxConcurrentMassKg} kg.`,
+        message: `Reserving ${batchReservation} kg for ${batchQuantity === 1 ? design.designVersionId : `${String(batchQuantity)} x ${design.designVersionId}`} would put ${committed + batchReservation} kg under construction, above the nation's cap of ${capacity.maxConcurrentMassKg} kg.`,
       });
   }
   return {

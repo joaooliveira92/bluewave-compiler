@@ -517,6 +517,25 @@ export interface ConstructionProject {
    * dependency on the ship-design package.
    */
   newConstructionReservedMassKg?: number;
+  /**
+   * Class-order batch (DESIGN-23 section 4, SB3-R11): the canonical ship name allocated at order time by the naming
+   * policy. `buildCompletedShip` uses it when the hull is launched; absent on single orders and authored projects, which
+   * keep the `Ship <class>` fallback. Plain text so campaign state has no dependency on the ship-design package.
+   */
+  shipName?: string;
+  /** Stable id of the class-order batch all ships of one `OrderConstructionCommand` share (SB3-R11). */
+  batchId?: string;
+  /** The batch's named-class id, shared by every ship of the batch (SB3-R13). */
+  namedClassId?: string;
+  /** 1-based position of this ship within its batch, used for canonical ordering (SB3-R11). */
+  batchOrdinal?: number;
+  /**
+   * Naming provenance (SB3-R13): the id of the authored name pool the ship's name was drawn from, and the 1-based
+   * position of the chosen stem in that pool (`0` for a placeholder name). Plain values, so campaign state keeps no
+   * dependency on the ship-design package. Absent on single orders and authored projects.
+   */
+  namePoolId?: string;
+  namePoolOrdinal?: number;
   /** Capacity and starting progress of the month last funded; only on projects with `packages`. */
   monthUsage?: ConstructionMonthUsage;
   /**

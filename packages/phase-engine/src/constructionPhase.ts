@@ -269,9 +269,17 @@ function buildCompletedShip(
     if (design) stats = shipStatsFromDesign(design);
   }
 
+  // A batch lays down several ships of one design; two completing in the same month would otherwise share
+  // `ship-<design>-<turn>` (SB3-R11 "stable ship identifiers"). A batch project's stable, ordinaled id keeps each hull
+  // distinct; a single order keeps the historical id so existing save hashes and replays do not move.
+  const shipId =
+    project["batchOrdinal"] !== undefined
+      ? `ship-${project["id"]}`
+      : `ship-${project["targetId"]}-${String(ctx.turnNumber)}`;
+
   return {
-    id: `ship-${project["targetId"]}-${String(ctx.turnNumber)}`,
-    name: `Ship ${stats.className}`,
+    id: shipId,
+    name: project["shipName"] ?? `Ship ${stats.className}`,
     classId: stats.className,
     nationId,
     locationAreaId: fleet["locationAreaId"],
