@@ -41,6 +41,12 @@ jobs:
       # effect of the desktop build and the desktop vitest global setup).
       - name: Build the compiled content artifact
         run: pnpm content:build
+      # A deterministic fixed-seed month-advance over the production pack. Gated
+      # behind BLUEWAVE_PERF so it is a dedicated step, not timing flake in the
+      # default suite; a 3x-baseline ceiling catches order-of-magnitude
+      # regressions (release-readiness ticket 01).
+      - name: Performance tripwire (month advance)
+        run: pnpm --filter @bluewave/desktop exec cross-env BLUEWAVE_PERF=1 vp test run src/main/perf/monthAdvance.perf.test.ts
       - run: pnpm test:run
       - name: Balance reports match the deterministic benchmark
         run: pnpm check:balance-reports
