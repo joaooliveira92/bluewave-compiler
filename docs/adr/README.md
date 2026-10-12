@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0134).
+highest existing number + 1 (the next number is ADR-0135).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -198,3 +198,4 @@ Repo process, docs/ADR authority, and release gates.
 | 0099 | [ADR-0099-release-verification-gates.md](ADR-0099-release-verification-gates.md) | Release verification gates and push discipline | accepted | — |
 | 0106 | [ADR-0106-documentation-and-type-safety-ratchet-gates.md](ADR-0106-documentation-and-type-safety-ratchet-gates.md) | Documentation and type-safety ratchet gates | accepted | — |
 | 0107 | [ADR-0107-verification-hardening.md](ADR-0107-verification-hardening.md) | Verification hardening — local hooks, a gate runner, and a dependency policy | accepted | — |
+| 0134 | [ADR-0134-versioning-and-changelog-policy.md](ADR-0134-versioning-and-changelog-policy.md) | Versioning and changelog policy | accepted | — |
