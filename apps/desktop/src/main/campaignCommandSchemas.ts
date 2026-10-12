@@ -91,6 +91,40 @@ export const CancelConstructionOrderPayloadSchema = Schema.Struct({
 });
 
 /**
+ * Wire shapes for the construction-status commands (DESIGN-23 sections 7-8; SB3-R5/R8) — halt, resume and the
+ * acceleration toggle. Deeper checks (the project exists, belongs to the issuing nation, and the transition is legal)
+ * are the engine's own `validatePayloadRules`, run at issue time by `submitPlayerCommand`.
+ */
+export const HaltConstructionCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  projectId: nonEmptyString,
+});
+
+export const ResumeConstructionCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  projectId: nonEmptyString,
+});
+
+export const SetAccelerationCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  projectId: nonEmptyString,
+  accelerated: Schema.Boolean,
+});
+
+/** The class-order batch (DESIGN-23 sections 3-5; SB3-R11): a positive integer quantity, capped at the batch limit. */
+export const OrderConstructionBatchCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  designVersionId: nonEmptyString,
+  quantity: positiveInt,
+});
+
+/** The dock-expansion authorization (DESIGN-16 sections 5-6; SB3-R16). */
+export const AuthorizeDockExpansionCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  possessionId: nonEmptyString,
+});
+
+/**
  * Wire shape for `setResearchPriorityCommand` (desktop-engine-feature-gate
  * INC-2): the `CommandEnvelope` triple plus strict field priorities. The wire
  * boundary enforces integer values and caps the record at the canonical field

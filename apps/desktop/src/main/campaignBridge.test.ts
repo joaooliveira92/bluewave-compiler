@@ -35,6 +35,11 @@ const IMPLEMENTED_COMMANDS = new Set([
   "submitConstructionCommand",
   "replaceConstructionCommand",
   "cancelConstructionCommand",
+  "haltConstructionCommand",
+  "resumeConstructionCommand",
+  "setAccelerationCommand",
+  "orderConstructionBatchCommand",
+  "authorizeDockExpansionCommand",
   "inspectFleetScreen",
   "inspectResearchScreen",
   "setResearchPriorityCommand",
@@ -261,6 +266,102 @@ describe("dispatchCampaignCommand", () => {
     expect(result.outcome).toBe("error");
     if (result.outcome !== "error") return;
     expect(result.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("rejects structurally invalid construction steering payloads before touching the handlers", async () => {
+    for (const [command, payload] of [
+      ["haltConstructionCommand", { sessionId: "s", expectedRevision: 0, transportRequestId: "r" }],
+      [
+        "resumeConstructionCommand",
+        { sessionId: "s", expectedRevision: 0, transportRequestId: "r" },
+      ],
+      [
+        "setAccelerationCommand",
+        {
+          sessionId: "s",
+          expectedRevision: 0,
+          transportRequestId: "r",
+          projectId: "p",
+          accelerated: "yes",
+        },
+      ],
+      [
+        "orderConstructionBatchCommand",
+        {
+          sessionId: "s",
+          expectedRevision: 0,
+          transportRequestId: "r",
+          designVersionId: "d",
+          quantity: 0,
+        },
+      ],
+      [
+        "authorizeDockExpansionCommand",
+        { sessionId: "s", expectedRevision: 0, transportRequestId: "r" },
+      ],
+    ] as const) {
+      const result = await dispatchCampaignCommand(command, payload);
+      expect(result.outcome).toBe("error");
+      if (result.outcome !== "error") return;
+      expect(result.reason).toBe("INVALID_PAYLOAD");
+    }
+  });
+
+  it("returns SESSION_NOT_FOUND for well-formed construction steering payloads against an unknown session", async () => {
+    for (const [command, payload] of [
+      [
+        "haltConstructionCommand",
+        {
+          sessionId: "no-such-session",
+          expectedRevision: 0,
+          transportRequestId: "r",
+          projectId: "p",
+        },
+      ],
+      [
+        "resumeConstructionCommand",
+        {
+          sessionId: "no-such-session",
+          expectedRevision: 0,
+          transportRequestId: "r",
+          projectId: "p",
+        },
+      ],
+      [
+        "setAccelerationCommand",
+        {
+          sessionId: "no-such-session",
+          expectedRevision: 0,
+          transportRequestId: "r",
+          projectId: "p",
+          accelerated: true,
+        },
+      ],
+      [
+        "orderConstructionBatchCommand",
+        {
+          sessionId: "no-such-session",
+          expectedRevision: 0,
+          transportRequestId: "r",
+          designVersionId: "d",
+          quantity: 3,
+        },
+      ],
+      [
+        "authorizeDockExpansionCommand",
+        {
+          sessionId: "no-such-session",
+          expectedRevision: 0,
+          transportRequestId: "r",
+          possessionId: "pos",
+        },
+      ],
+    ] as const) {
+      const result = await dispatchCampaignCommand(command, payload);
+      expect(result.outcome).toBe("error");
+      if (result.outcome !== "error") return;
+      expect(result.reason).toBe("SESSION_NOT_FOUND");
+    }
   });
 
   it("rejects a structurally invalid setResearchPriorityCommand payload before touching the handler", async () => {

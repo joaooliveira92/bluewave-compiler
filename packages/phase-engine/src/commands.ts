@@ -15,9 +15,11 @@ import {
 } from "@bluewave/campaign";
 import type {
   AssignOfficerCommand,
+  AuthorizeDockExpansionCommand,
   BudgetProjectCommand,
   HaltConstructionCommand,
   MoveFleetCommand,
+  OrderConstructionCommand,
   RelieveOfficerCommand,
   ResumeConstructionCommand,
   SetAccelerationCommand,
@@ -53,6 +55,8 @@ import {
 import { EventLedger } from "@bluewave/events";
 import type { FinancialLedger } from "./financial-ledger.js";
 import { budgetChangedEvent, makeLedgerEntry } from "./events.js";
+import { placeConstructionBatch } from "./constructionOrder.js";
+import { authorizeDockExpansion } from "./dockExpansion.js";
 
 export { applyDivisionCommandMonth } from "./divisionCommands.js";
 
@@ -626,4 +630,74 @@ export function applySetAcceleration(
   const updatedNations = new Map(currentSnapshot["nations"]);
   updatedNations.set(nation["id"], updatedNation);
   return { ...currentSnapshot, nations: updatedNations };
+}
+
+/** `YYYY-MM` to the month pair `constructionProjectFor`/`placeConstructionBatch` record on a new project. */
+function monthPairOf(campaignMonth: string): { month: number; year: number } {
+  return { year: Number(campaignMonth.slice(0, 4)), month: Number(campaignMonth.slice(5, 7)) };
+}
+
+/**
+ * Canonical application of an `OrderConstruction` command (DESIGN-23 sections 3-5; SB3-R11..R14). The whole class
+ * batch — one approved compiled design version, `1..12` ships — enters the snapshot through the single engine-side
+ * `placeConstructionBatch` policy: revalidation, auxiliary limits, the dock ceiling and the national concurrency cap
+ * reserve the batch BEFORE any project is added, and a failed gate creates no project and no reservation. A refused
+ * batch records the engine's stable reason code and leaves the snapshot untouched. Pure except for the collector.
+ */
+export function applyOrderConstruction(
+  currentSnapshot: CampaignSnapshot,
+  body: OrderConstructionCommand,
+  commandId: string,
+  content: ShipBuildingContent | undefined,
+  campaignMonth: string,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const placed = placeConstructionBatch(
+    currentSnapshot,
+    {
+      nationId: body["nationId"],
+      commandId,
+      designVersionId: body["designVersionId"],
+      quantity: body["quantity"],
+      month: monthPairOf(campaignMonth),
+    },
+    content,
+  );
+  if (!placed.ok) {
+    collector.addError(placed.reason, placed.diagnostics.join("; "), {
+      stage: "command_collection",
+    });
+    return currentSnapshot;
+  }
+  return placed.snapshot;
+}
+
+/**
+ * Canonical application of an `AuthorizeDockExpansion` command (DESIGN-16 sections 5-6; SB3-R16). The engine locks the
+ * applicable era step at the current campaign month and creates a normal `INFRASTRUCTURE` project; it never raises the
+ * dock immediately. A month with no era step or an invalid duration records the engine's stable reason and changes
+ * nothing. Pure except for the collector.
+ */
+export function applyAuthorizeDockExpansion(
+  currentSnapshot: CampaignSnapshot,
+  body: AuthorizeDockExpansionCommand,
+  campaignMonth: string,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const authorized = authorizeDockExpansion(currentSnapshot, {
+    nationId: body["nationId"],
+    possessionId: body["possessionId"],
+    campaignMonth,
+  });
+  if (!authorized.ok) {
+    collector.addError(
+      authorized.reason,
+      `Dock expansion for ${body["possessionId"]} was refused`,
+      {
+        stage: "command_collection",
+      },
+    );
+    return currentSnapshot;
+  }
+  return authorized.snapshot;
 }

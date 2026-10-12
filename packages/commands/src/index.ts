@@ -6,6 +6,7 @@ export * from "./errors.js";
 export type {
   AcceptPeaceCommand,
   AddShipToDivisionCommand,
+  AuthorizeDockExpansionCommand,
   BreakAllianceCommand,
   BreakNonAggressionPactCommand,
   BudgetProjectCommand,
@@ -19,6 +20,7 @@ export type {
   FormAllianceCommand,
   FormNonAggressionPactCommand,
   HaltConstructionCommand,
+  OrderConstructionCommand,
   RemoveShipFromDivisionCommand,
   ReorderDivisionShipsCommand,
   ResumeConstructionCommand,

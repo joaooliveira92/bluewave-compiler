@@ -87,6 +87,10 @@ export function validatePayloadRules(
   if (envelope.body.type === "ResumeConstruction")
     return validateDockyardStatusCommand(envelope, snapshot, "ResumeConstruction");
   if (envelope.body.type === "SetAcceleration") return validateSetAcceleration(envelope, snapshot);
+  if (envelope.body.type === "OrderConstruction")
+    return validateOrderConstruction(envelope, snapshot);
+  if (envelope.body.type === "AuthorizeDockExpansion")
+    return validateAuthorizeDockExpansion(envelope, snapshot);
   if (envelope.body.type !== "budget_project") {
     return rejectValidation(
       envelope,
@@ -204,6 +208,66 @@ function validateSetAcceleration(
       DOCKYARD_STATUS_TRANSITION_REJECTION,
       `Project ${body.projectId} cannot change acceleration from ${project.status}`,
     );
+  return { ok: true };
+}
+
+const CONSTRUCTION_BATCH_MAX_QUANTITY = 12;
+const CONSTRUCTION_BATCH_LIMIT_EXCEEDED = "CONSTRUCTION_BATCH_LIMIT_EXCEEDED";
+
+/**
+ * Issue-time rules for `OrderConstruction` (DESIGN-23 sections 3-5, SB3-R11..R14): the nation must exist, the design
+ * must exist in the compiled snapshot and belong to that nation, and the quantity must be an integer in `1..12`. The
+ * full authorization policy (revalidation, auxiliary limits, dock ceiling, national concurrency cap, batch reservation)
+ * is the engine-side `placeConstructionBatch`, applied when the month runs the command.
+ */
+function validateOrderConstruction(
+  envelope: CommandEnvelope<CommandBody>,
+  snapshot: CampaignSnapshot,
+): LifecycleStepResult {
+  const body = envelope.body as Extract<CommandBody, { type: "OrderConstruction" }>;
+  const reject = (code: string, message: string): LifecycleStepResult =>
+    rejectValidation(envelope, snapshot, code, message);
+  if (typeof body.nationId !== "string" || body.nationId.length === 0)
+    return reject("INVALID_NATION_ID", "nationId must be a non-empty string");
+  const nation = snapshot.nations.get(body.nationId);
+  if (!nation) return reject("INVALID_NATION_ID", `Nation ${body.nationId} not found`);
+  if (
+    !Number.isInteger(body.quantity) ||
+    body.quantity < 1 ||
+    body.quantity > CONSTRUCTION_BATCH_MAX_QUANTITY
+  )
+    return reject(
+      CONSTRUCTION_BATCH_LIMIT_EXCEEDED,
+      `A class order is 1..${String(CONSTRUCTION_BATCH_MAX_QUANTITY)} ships; got ${String(body.quantity)}`,
+    );
+  const design = snapshot.designs.get(body.designVersionId);
+  if (!design) return reject("UNKNOWN_DESIGN", `No design ${body.designVersionId} in the snapshot`);
+  if (design.nationId !== body.nationId)
+    return reject(
+      "DESIGN_NOT_FOR_PLAYER",
+      `Design ${body.designVersionId} belongs to ${design.nationId}, not ${body.nationId}`,
+    );
+  return { ok: true };
+}
+
+/**
+ * Issue-time rules for `AuthorizeDockExpansion` (DESIGN-16 sections 5-6, SB3-R16): the nation must exist and the
+ * possession id must be a non-empty string. The applicable era step and duration are resolved by the engine-side
+ * `authorizeDockExpansion` at apply time (a month with no era step fails with `NO_ERA_STEP`).
+ */
+function validateAuthorizeDockExpansion(
+  envelope: CommandEnvelope<CommandBody>,
+  snapshot: CampaignSnapshot,
+): LifecycleStepResult {
+  const body = envelope.body as Extract<CommandBody, { type: "AuthorizeDockExpansion" }>;
+  const reject = (code: string, message: string): LifecycleStepResult =>
+    rejectValidation(envelope, snapshot, code, message);
+  if (typeof body.nationId !== "string" || body.nationId.length === 0)
+    return reject("INVALID_NATION_ID", "nationId must be a non-empty string");
+  if (!snapshot.nations.has(body.nationId))
+    return reject("INVALID_NATION_ID", `Nation ${body.nationId} not found`);
+  if (typeof body.possessionId !== "string" || body.possessionId.length === 0)
+    return reject("INVALID_COMMAND_PAYLOAD", "possessionId must be a non-empty string");
   return { ok: true };
 }
 

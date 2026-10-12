@@ -13,6 +13,8 @@ export interface CommandEnvelope<TBody> {
 }
 export type CommandBody =
   | BudgetProjectCommand
+  | OrderConstructionCommand
+  | AuthorizeDockExpansionCommand
   | HaltConstructionCommand
   | ResumeConstructionCommand
   | SetAccelerationCommand
@@ -42,6 +44,30 @@ export interface BudgetProjectCommand {
   nationId: string;
   projectId: string;
   budget: SafeInt;
+}
+/**
+ * Orders a class batch of `1..12` ships of one approved compiled design version (DESIGN-23 sections 3-5, SB3-R11..R14;
+ * RTW3 manual p. 31 "up to 12 ships of the same class laid down"). The engine applies the whole batch through
+ * `placeConstructionBatch`: one authorization, one capacity reservation for the whole batch, deterministic automatic
+ * names and one `batchId`/`namedClassId`. A quantity above 12 is refused with `CONSTRUCTION_BATCH_LIMIT_EXCEEDED`; a
+ * second batch needs a second command.
+ */
+export interface OrderConstructionCommand {
+  type: "OrderConstruction";
+  nationId: string;
+  designVersionId: string;
+  /** Ship count, an integer in `1..12`. */
+  quantity: number;
+}
+/**
+ * Authorizes a twelve-month dock expansion for one possession (DESIGN-16 sections 5-6, SB3-R16; RTW3 manual pp. 32-33).
+ * The engine locks the applicable era step at the current campaign month and creates a normal `INFRASTRUCTURE`
+ * project; it never raises the dock until the project completes through the ordinary work pipeline.
+ */
+export interface AuthorizeDockExpansionCommand {
+  type: "AuthorizeDockExpansion";
+  nationId: string;
+  possessionId: string;
 }
 /**
  * Halts a dockyard project that is under construction (DESIGN-23 section 7, RTW3 manual pp. 30-31). A halted project

@@ -39,10 +39,16 @@ import type {
 } from "./continuity-contract.js";
 import type { NewGameOptions } from "./new-game-contract.js";
 import type {
+  AuthorizeDockExpansionCommandPayload,
   CancelConstructionCommandPayload,
   ConstructionCommandOutcome,
+  ConstructionCommandQueuedOutcome,
   ConstructionScreenProjection,
+  HaltConstructionCommandPayload,
+  OrderConstructionBatchCommandPayload,
   ReplaceConstructionCommandPayload,
+  ResumeConstructionCommandPayload,
+  SetAccelerationCommandPayload,
   SubmitConstructionCommandPayload,
 } from "./construction-contract.js";
 import type { DrawingBoardContentDto } from "./content-contract.js";
@@ -264,6 +270,11 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "submitConstructionCommand",
   "replaceConstructionCommand",
   "cancelConstructionCommand",
+  "haltConstructionCommand",
+  "resumeConstructionCommand",
+  "setAccelerationCommand",
+  "orderConstructionBatchCommand",
+  "authorizeDockExpansionCommand",
   "inspectFleetScreen",
   "submitMovementCommand",
   "replaceMovementCommand",
@@ -383,6 +394,26 @@ export interface CampaignCommandClient {
     command: "cancelConstructionCommand",
     payload: CancelConstructionCommandPayload,
   ): Promise<BridgeResult<ConstructionCommandOutcome>>;
+  execute(
+    command: "haltConstructionCommand",
+    payload: HaltConstructionCommandPayload,
+  ): Promise<BridgeResult<ConstructionCommandQueuedOutcome>>;
+  execute(
+    command: "resumeConstructionCommand",
+    payload: ResumeConstructionCommandPayload,
+  ): Promise<BridgeResult<ConstructionCommandQueuedOutcome>>;
+  execute(
+    command: "setAccelerationCommand",
+    payload: SetAccelerationCommandPayload,
+  ): Promise<BridgeResult<ConstructionCommandQueuedOutcome>>;
+  execute(
+    command: "orderConstructionBatchCommand",
+    payload: OrderConstructionBatchCommandPayload,
+  ): Promise<BridgeResult<ConstructionCommandQueuedOutcome>>;
+  execute(
+    command: "authorizeDockExpansionCommand",
+    payload: AuthorizeDockExpansionCommandPayload,
+  ): Promise<BridgeResult<ConstructionCommandQueuedOutcome>>;
   execute(
     command: "inspectFleetScreen",
     payload: string,

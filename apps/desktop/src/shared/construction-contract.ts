@@ -45,3 +45,43 @@ export interface ReplaceConstructionCommandPayload extends SubmitConstructionCom
 export interface CancelConstructionCommandPayload extends CommandEnvelope {
   readonly commandId: string;
 }
+
+/**
+ * The construction-status commands (DESIGN-23 sections 7-8; SB3-R5/R8): halt, resume and the acceleration toggle. They
+ * queue a real engine command envelope through the shared pending-queue seam and apply on the next `commitMonth`, so
+ * the engine's `command_collection` phase is the sole mutator of the project status/premium.
+ */
+export interface HaltConstructionCommandPayload extends CommandEnvelope {
+  readonly projectId: string;
+}
+
+export interface ResumeConstructionCommandPayload extends CommandEnvelope {
+  readonly projectId: string;
+}
+
+export interface SetAccelerationCommandPayload extends CommandEnvelope {
+  readonly projectId: string;
+  readonly accelerated: boolean;
+}
+
+/**
+ * The class-order batch command (DESIGN-23 sections 3-5; SB3-R11): order `1..12` ships of one approved compiled design
+ * version in a single command. The engine's `placeConstructionBatch` policy reserves the whole batch before adding any
+ * project.
+ */
+export interface OrderConstructionBatchCommandPayload extends CommandEnvelope {
+  readonly designVersionId: string;
+  readonly quantity: number;
+}
+
+/** The dock-expansion authorization (DESIGN-16 sections 5-6; SB3-R16): a twelve-month step for one possession. */
+export interface AuthorizeDockExpansionCommandPayload extends CommandEnvelope {
+  readonly possessionId: string;
+}
+
+/** The shape every queued construction command returns: the deterministic envelope id and the next-turn contract. */
+export interface ConstructionCommandQueuedOutcome {
+  readonly commandId: string;
+  readonly bodyType: string;
+  readonly appliedOnNextTurn: true;
+}

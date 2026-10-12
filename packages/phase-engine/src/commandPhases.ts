@@ -6,6 +6,7 @@ import { TENSION_ALLIANCE, TENSION_PEACE } from "@bluewave/campaign";
 import {
   type AcceptPeaceCommand,
   type AssignOfficerCommand,
+  type AuthorizeDockExpansionCommand,
   type BreakAllianceCommand,
   type BreakNonAggressionPactCommand,
   type BudgetProjectCommand,
@@ -17,6 +18,7 @@ import {
   type FormNonAggressionPactCommand,
   type HaltConstructionCommand,
   type MoveFleetCommand,
+  type OrderConstructionCommand,
   type RelieveOfficerCommand,
   type ResumeConstructionCommand,
   type SetAccelerationCommand,
@@ -27,11 +29,13 @@ import {
   type SubmitDesignCommand,
 } from "@bluewave/commands";
 import {
+  applyAuthorizeDockExpansion,
   applyBudgetProject,
   applyDivisionCommandMonth,
   applyHaltConstruction,
   applyMoveFleet,
   applyOfficerCommand,
+  applyOrderConstruction,
   applyResumeConstruction,
   applySetAcceleration,
   applySetBudgetAllocation,
@@ -65,17 +69,17 @@ export function runCommandCollectionPhase(ctx: MonthContext): void {
     ctx.commandLedger.add(outcome);
 
     if (outcome["type"] !== "success") continue;
-    applyPlayerCommand(ctx, cmd["body"]);
+    applyPlayerCommand(ctx, cmd["body"], cmd["commandId"]);
   }
 }
 
 // Dispatch a successfully-authorized player command to its applier. Body types
 // are disjoint, so the first matching group wins.
-function applyPlayerCommand(ctx: MonthContext, body: CommandBody): void {
+function applyPlayerCommand(ctx: MonthContext, body: CommandBody, commandId: string): void {
   if (applyAdministrativeCommand(ctx, body)) return;
   if (applyDiplomacyCommand(ctx, body)) return;
   if (applyDivisionCommand(ctx, body)) return;
-  applyConstructionCommand(ctx, body);
+  applyConstructionCommand(ctx, body, commandId);
 }
 
 function applyAdministrativeCommand(ctx: MonthContext, body: CommandBody): boolean {
@@ -247,8 +251,30 @@ function applyDivisionCommand(ctx: MonthContext, body: CommandBody): boolean {
   return false;
 }
 
-function applyConstructionCommand(ctx: MonthContext, body: CommandBody): void {
+function applyConstructionCommand(ctx: MonthContext, body: CommandBody, commandId: string): void {
   const { campaignMonth, turnNumber, financialLedger, eventLedger, collector } = ctx;
+
+  if (body["type"] === "OrderConstruction") {
+    ctx.currentSnapshot = applyOrderConstruction(
+      ctx.currentSnapshot,
+      body as OrderConstructionCommand,
+      commandId,
+      ctx.engineOptions?.shipBuilding,
+      campaignMonth,
+      collector,
+    );
+    return;
+  }
+
+  if (body["type"] === "AuthorizeDockExpansion") {
+    ctx.currentSnapshot = applyAuthorizeDockExpansion(
+      ctx.currentSnapshot,
+      body as AuthorizeDockExpansionCommand,
+      campaignMonth,
+      collector,
+    );
+    return;
+  }
 
   if (body["type"] === "HaltConstruction") {
     ctx.currentSnapshot = applyHaltConstruction(
