@@ -25,3 +25,4 @@ Current specs:
 - Division ship reordering (DESIGN-26 §8/§12, ADR-0086) → `.scratch/division-ship-reorder/` (spec.md, AC-1..AC-5 / INC-1..3)
 - P-1 lethality rebalance after the ADR-0094 caliber correction → `.scratch/p1-lethality-rebalance/` (spec.md, issue 01; delivered by ADR-0098)
 - Content-runtime integrity (full-surface content artifact; main consumes/verifies; renderer IPC decoupling; packaged smoke; strict YAML + invariants) → `.scratch/content-runtime-integrity/` (spec.md, CRI-* ACs / issues 01..06)
+- Naval Age master/detail rework (live "Rules of the Naval Age" screen adopts the Fleet Dispatch master/detail pattern; shared deck + globe primitives) → `.scratch/naval-age-master-detail/` (spec.md, AC-1..18 / NAM-1..10; issues 01..05)
