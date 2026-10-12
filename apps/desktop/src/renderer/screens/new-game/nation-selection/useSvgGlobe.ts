@@ -84,7 +84,6 @@ export interface SvgGlobeRefs {
   containerRef: ElementRef<HTMLDivElement>;
   svgRef: ElementRef<SVGSVGElement>;
   oceanRef: ElementRef<SVGCircleElement>;
-  atmosphereRef: ElementRef<SVGCircleElement>;
   gratRef: ElementRef<SVGGElement>;
   landRef: ElementRef<SVGGElement>;
   pinRef: ElementRef<SVGGElement>;
@@ -111,7 +110,6 @@ function useStableRefs(): SvgGlobeRefs {
     containerRef: useRef<HTMLDivElement>(null),
     svgRef: useRef<SVGSVGElement>(null),
     oceanRef: useRef<SVGCircleElement>(null),
-    atmosphereRef: useRef<SVGCircleElement>(null),
     gratRef: useRef<SVGGElement>(null),
     landRef: useRef<SVGGElement>(null),
     pinRef: useRef<SVGGElement>(null),
@@ -147,7 +145,6 @@ export function useSvgGlobe(): SvgGlobeHandles {
     projectionRef.current = projection;
 
     const oceanSel = d3Selection.select(refs.oceanRef.current);
-    const atmosphereSel = d3Selection.select(refs.atmosphereRef.current);
     const gratSel = d3Selection.select(refs.gratRef.current);
     const landSel = d3Selection.select(refs.landRef.current);
 
@@ -157,10 +154,6 @@ export function useSvgGlobe(): SvgGlobeHandles {
       const [cx, cy] = projection.translate();
       const sphereRadius = projection.scale();
       oceanSel.attr("cx", cx).attr("cy", cy).attr("r", sphereRadius);
-      atmosphereSel
-        .attr("cx", cx)
-        .attr("cy", cy)
-        .attr("r", sphereRadius * 1.14);
 
       gratSel
         .selectAll("path")

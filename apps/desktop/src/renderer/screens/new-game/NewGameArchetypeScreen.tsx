@@ -201,7 +201,7 @@ export function NewGameArchetypeScreen({
             </Button>
           </DialogHeader>
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 overflow-y-auto lg:grid-cols-2">
+          <div className="themed-scrollbar grid min-h-0 flex-1 grid-cols-1 gap-6 overflow-y-auto lg:grid-cols-2">
             <div className="min-w-0 space-y-4">
               <ArchetypeAllocationEditor
                 allocation={draft.allocation}

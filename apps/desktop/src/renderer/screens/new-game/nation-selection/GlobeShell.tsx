@@ -23,12 +23,7 @@ export function GlobeShell({ refs }: GlobeShellProps): JSX.Element {
             <stop offset="0%" stopColor="var(--globe-ocean-inner)" />
             <stop offset="100%" stopColor="var(--globe-ocean-outer)" />
           </radialGradient>
-          <radialGradient id="svg-globe-atmosphere" cx="50%" cy="50%" r="52%">
-            <stop offset="88%" stopColor="var(--globe-accent)" stopOpacity="0" />
-            <stop offset="100%" stopColor="var(--globe-accent)" stopOpacity="0.3" />
-          </radialGradient>
         </defs>
-        <circle ref={refs.atmosphereRef} fill="url(#svg-globe-atmosphere)" />
         <circle
           ref={refs.oceanRef}
           fill="url(#svg-globe-ocean)"

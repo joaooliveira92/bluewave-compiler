@@ -19,7 +19,7 @@ export function DossierHeader({
   const appointmentMessage = `You have been appointed ${appointmentTitle}`;
 
   return (
-    <header className="relative flex items-center gap-3 border-b border-admiralty-accent/25 bg-gradient-to-b from-admiralty-surface-raised/65 via-admiralty-surface/35 to-transparent px-4 py-3 backdrop-blur-md sm:gap-4 sm:px-5">
+    <header className="relative flex items-center gap-3 border-b border-admiralty-accent/25 bg-gradient-to-b from-admiralty-surface-raised/65 via-admiralty-surface/35 to-transparent px-3 py-2 backdrop-blur-md sm:gap-4 sm:px-4">
       <HoverCard>
         <HoverCardTrigger
           render={<span tabIndex={0} />}
@@ -35,7 +35,7 @@ export function DossierHeader({
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <h3
           id={`nation-dossier-heading-${countryId}`}
-          className="truncate font-display text-lg font-black uppercase tracking-[0.1em] text-admiralty-ink drop-shadow-[0_1px_0_rgba(0,0,0,0.25)] sm:text-2xl sm:tracking-[0.12em]"
+          className="truncate font-display text-base font-black uppercase tracking-[0.1em] text-admiralty-ink drop-shadow-[0_1px_0_rgba(0,0,0,0.25)] sm:text-xl sm:tracking-[0.12em]"
         >
           {nationName}
         </h3>

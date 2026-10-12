@@ -90,6 +90,7 @@ export const PresetPickerSection = memo(function PresetPickerSection({
         <BounceCards
           images={images}
           activeIndex={activeIndex}
+          activeOnTop
           cardOverlays={cardOverlays}
           onCardClick={handleCardClick}
           onCardHover={handleCardHover}

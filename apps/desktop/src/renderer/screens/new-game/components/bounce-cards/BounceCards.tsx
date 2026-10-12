@@ -37,6 +37,13 @@ export interface BounceCardsProps {
   /** Index of the selected card; adds `aria-pressed` and a selected outline. */
   activeIndex?: number;
   /**
+   * Bring the selected card to the front of the deck when it is not being
+   * hovered: the active card takes the top layer and a raised, straightened
+   * transform so it reads as sitting on top of its siblings. Off by default so
+   * decks that do not want the selected card to lead keep the even fan.
+   */
+  activeOnTop?: boolean;
+  /**
    * Id of the element describing the selected card (e.g. a caption beside the
    * deck). Applied as `aria-describedby` to the selected card only, so a screen
    * reader announces the description alongside the card's name.
@@ -105,6 +112,8 @@ type Settings = {
   pushDistance: number;
   hoverScale: number;
   clickable: boolean;
+  activeOnTop: boolean;
+  activeIndex: number;
 };
 
 type AnimatorState = { hovered: number; time: number; layer: number };
@@ -131,6 +140,7 @@ export function BounceCards({
   radius = 25,
   shadow = true,
   activeIndex,
+  activeOnTop = false,
   activeDescriptionId,
   cardOverlays,
   transformStyles,
@@ -166,6 +176,8 @@ export function BounceCards({
     pushDistance,
     hoverScale: clamp(hoverScale, 0.5, 2),
     clickable: typeof onCardClick === "function",
+    activeOnTop,
+    activeIndex: typeof activeIndex === "number" ? activeIndex : -1,
   };
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -225,6 +237,7 @@ export function BounceCards({
       state.time += dt;
 
       const hovered = s.enableHover ? state.hovered : -1;
+      const front = hovered >= 0 ? hovered : s.activeOnTop ? s.activeIndex : -1;
       const popStiffness = 170;
       const popDamping = 2 * (1 - 0.85 * s.bounciness) * Math.sqrt(popStiffness);
       const moveStiffness = 210;
@@ -252,6 +265,10 @@ export function BounceCards({
           } else {
             targetX = slot.x + Math.sign(i - hovered) * s.pushDistance;
           }
+        } else if (appeared && front >= 0 && i === front) {
+          targetY = slot.y - s.cardSize * 0.04;
+          targetRotate = 0;
+          targetScale = s.hoverScale;
         }
         for (let k = 0; k < substeps; k++) {
           [card.x, card.vx] = step(card.x, card.vx, targetX, moveStiffness, moveDamping, h);
@@ -291,11 +308,11 @@ export function BounceCards({
         el.style.transform = `translate(-50%, -50%) translate3d(${card.x.toFixed(2)}px, ${card.y.toFixed(2)}px, 0) rotate(${card.rotate.toFixed(3)}deg) scale(${Math.max(0, card.scale).toFixed(4)})`;
       }
 
-      if (state.layer !== hovered) {
-        state.layer = hovered;
+      if (state.layer !== front) {
+        state.layer = front;
         cardRefs.current.forEach((el, i) => {
           if (!el) return;
-          el.style.zIndex = i === hovered ? String(s.slots.length + 1) : String(i + 1);
+          el.style.zIndex = i === front ? String(s.slots.length + 1) : String(i + 1);
           el.toggleAttribute("data-active", i === hovered);
         });
       }
@@ -431,7 +448,7 @@ export function BounceCards({
             className={`bounce-cards__card${settings.clickable ? " bounce-cards__card--clickable" : ""}${
               selected ? " bounce-cards__card--selected" : ""
             }`}
-            style={{ zIndex: i + 1 }}
+            style={{ zIndex: activeOnTop && i === settings.activeIndex ? count + 1 : i + 1 }}
             role={settings.clickable ? "button" : undefined}
             tabIndex={settings.clickable ? 0 : undefined}
             aria-pressed={settings.clickable ? selected : undefined}
