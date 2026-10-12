@@ -1,4 +1,4 @@
-import { ARCHETYPE_PRESETS } from "@bluewave/campaign-engine";
+import { ARCHETYPE_POINT_TOTAL, ARCHETYPE_PRESETS } from "@bluewave/campaign-engine";
 import { paletteForIndex } from "@/components/card-deck/index.js";
 import { DeckMasterPane } from "@/components/card-deck/index.js";
 import { memo, useId, useMemo } from "react";
@@ -104,7 +104,7 @@ export const ArchetypeDeckPane = memo(function ArchetypeDeckPane({
       listboxId={listboxId}
       eyebrow="Playstyle"
       heading="Archetype"
-      instructions="Drag a card away, scroll, or use the arrow keys to inspect each archetype. Press Enter or tap a preset to apply it; the custom card builds your own 20-point split."
+      instructions={`Drag a card away, scroll, or use the arrow keys to inspect each archetype. Press Enter or tap a preset to apply it; the custom card builds your own ${ARCHETYPE_POINT_TOTAL}-point split.`}
       ariaLabel="Archetype presets"
       hint="Drag · Scroll · ← → · Enter"
       emptyMessage="No archetypes available"
@@ -117,8 +117,3 @@ export const ArchetypeDeckPane = memo(function ArchetypeDeckPane({
     />
   );
 });
-
-/** Convenience: whether a deck index refers to the custom slot. */
-export function isCustomDeckIndex(index: number): boolean {
-  return ARCHETYPE_DECK_ENTRIES[index]?.kind === "custom";
-}

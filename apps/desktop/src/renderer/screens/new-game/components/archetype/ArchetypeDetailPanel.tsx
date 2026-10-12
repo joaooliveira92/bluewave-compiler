@@ -1,4 +1,5 @@
 import {
+  ARCHETYPE_POINT_TOTAL,
   type ArchetypeAllocation,
   type ArchetypeDimension,
   type ArchetypePreset,
@@ -62,7 +63,7 @@ export const ArchetypeDetailPanel = memo(function ArchetypeDetailPanel({
   const isCustom = entry.preset === undefined;
   const name = isCustom ? "Create Your Own" : entry.preset.name;
   const tagline = isCustom
-    ? "Distribute exactly 20 points across three engine-backed attributes."
+    ? `Distribute exactly ${ARCHETYPE_POINT_TOTAL} points across three engine-backed attributes.`
     : entry.preset.tagline;
 
   const consequence = useMemo(() => buildArchetypeConsequence(allocation), [allocation]);

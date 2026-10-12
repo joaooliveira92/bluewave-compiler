@@ -10,7 +10,6 @@ export {
   ArchetypeDeckPane,
   ARCHETYPE_DECK_ENTRIES,
   archetypeDeckOptionId,
-  isCustomDeckIndex,
   type ArchetypeDeckPaneProps,
 } from "./ArchetypeDeckPane.js";
 export {

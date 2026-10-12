@@ -180,6 +180,46 @@ describe("NewGameArchetypeScreen", () => {
     }
   });
 
+  it("leaves the applied selection and the continue payload alone while focus only previews", () => {
+    const { getPrimary, onNext } = setupUi({
+      kind: "preset",
+      id: "grand_admiral",
+      allocation: { economy: 5, industry: 5, combat: 10 },
+    });
+
+    fireEvent.keyDown(archetypeListbox(), { key: "ArrowLeft" });
+
+    expect(detailPanel("Shipyard Baron")).toBeTruthy();
+    expect(appliedArchetype()).toBe("Grand Admiral");
+    expect(within(detailPanel("Shipyard Baron")).queryByText("Active")).toBeNull();
+    expect(onNext).not.toHaveBeenCalled();
+
+    act(() => getPrimary()?.onTrigger());
+
+    expect(onNext).not.toHaveBeenCalled();
+    expect(appliedArchetype()).toBe("Shipyard Baron");
+  });
+
+  it("applies the top card when it is tapped", () => {
+    setupUi();
+
+    fireEvent.pointerDown(archetypeOption("Merchant Prince"), { button: 0, pointerId: 1 });
+    fireEvent.pointerUp(window, { button: 0, pointerId: 1 });
+
+    expect(archetypeOption("Merchant Prince").getAttribute("aria-selected")).toBe("true");
+    expect(appliedArchetype()).toBe("Merchant Prince");
+  });
+
+  it("restores nothing applied when there is no persisted selection", () => {
+    const { getPrimary } = setupUi(null);
+
+    for (const option of within(archetypeListbox()).getAllByRole("option")) {
+      expect(option.getAttribute("aria-selected")).toBe("false");
+    }
+    expect(screen.queryByText("Active")).toBeNull();
+    expect(getPrimary()?.disabled).toBe(true);
+  });
+
   it("shows the focused archetype's name, tagline, description, allocation and consequences", () => {
     setupUi();
 
@@ -315,6 +355,18 @@ describe("NewGameArchetypeScreen", () => {
       fireEvent.keyDown(archetypeListbox(), { key: "Enter" });
 
       expect(screen.queryByRole("dialog")).toBeNull();
+      expect(document.activeElement).toBe(
+        screen.getByRole("slider", { name: "Economy allocation" }),
+      );
+      expect(archetypeOption("Create Your Own").getAttribute("aria-selected")).toBe("false");
+      expect(getPrimary()?.label).toBe("Select");
+    });
+
+    it("reveals the allocator and moves focus into it when the custom card is tapped", () => {
+      const { getPrimary } = setupUi();
+
+      fireEvent.pointerDown(archetypeOption("Create Your Own"), { button: 0, pointerId: 1 });
+
       expect(document.activeElement).toBe(
         screen.getByRole("slider", { name: "Economy allocation" }),
       );
