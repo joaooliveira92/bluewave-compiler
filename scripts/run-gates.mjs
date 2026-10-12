@@ -76,6 +76,12 @@ export const GATE_SETS = {
       needs: ["git-state"],
       args: ["scripts/verify-test-focus.mjs"],
     },
+    {
+      id: "tracker-consistency",
+      label: "tracker consistency",
+      needs: ["git-state"],
+      args: ["scripts/verify-tracker-consistency.mjs"],
+    },
   ],
 };
 

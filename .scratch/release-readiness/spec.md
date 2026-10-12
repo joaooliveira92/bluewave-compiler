@@ -1,6 +1,6 @@
 # Spec — Release-readiness hardening
 
-**Status:** ready-for-agent
+**Status:** done — all three tickets resolved (2026-10-12; see `.ai/reports/release-readiness-status.md`)
 **Origin:** production-readiness recommendations 2026-10-10
 
 ## Problem
