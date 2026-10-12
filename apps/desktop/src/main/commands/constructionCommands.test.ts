@@ -506,7 +506,7 @@ describe("construction commands", () => {
     const replaced = await replaceConstructionCommand({
       sessionId: "session-replace",
       commandId: originalCommandId,
-      designId: "des_pw_uk_dreadnought",
+      designId: "des_gbr_alexandra",
       expectedRevision: 0,
       transportRequestId: "req-replacement",
     });
@@ -537,7 +537,7 @@ describe("construction commands", () => {
       (p) => p.id === `project-${replacementCommandId.replace(/^cmd-/, "")}`,
     );
     expect(replacement).toBeDefined();
-    expect(replacement!.designVersionId).toBe("des_pw_uk_dreadnought");
+    expect(replacement!.designVersionId).toBe("des_gbr_alexandra");
   });
 
   it("F1: after a restart, the loaded package still shows the order — project visible, cancel works on the reconstructed record", async () => {
@@ -619,11 +619,21 @@ describe("construction commands", () => {
     const saveDir = resolve(saveRoot, "save-atomic");
     registerProductionSession("session-atomic", saveDir);
     // Treasury 150 covers the Inflexible's ~119 order but not the
-    // dreadnought's ~184 replacement.
+    // dreadnought's ~184 replacement. The dock is widened so the replacement is
+    // refused for funds, not dock size (the 1906 dreadnought exceeds the 1880 dock).
     const record = getCampaignSession("session-atomic")!;
     const snapshot = record.state.snapshot;
     const uk = snapshot.nations.get("uk")!;
-    const poorNation = { ...uk, treasury: SafeInt(150) };
+    const poorNation = {
+      ...uk,
+      treasury: SafeInt(150),
+      dock: {
+        maximumNewConstructionMassKg: 20_000_000,
+        maximumMajorRepairMassKg: 20_000_000,
+        maximumRebuildMassKg: 20_000_000,
+        maximumConversionMassKg: 20_000_000,
+      },
+    };
     const poorSnapshot = { ...snapshot, nations: new Map(snapshot.nations).set("uk", poorNation) };
     const poorEnvelope = createEnvelope(
       "campaign-snapshot",
