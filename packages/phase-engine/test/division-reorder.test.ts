@@ -104,7 +104,7 @@ function makeSnapshot(): CampaignSnapshot {
     designs: new Map(),
     designFamilies: new Map(),
     rulesetVersion: "1.0",
-    compatibilityVersion: "1.1.0",
+    compatibilityVersion: "1.2.0",
   } as CampaignSnapshot;
 }
 

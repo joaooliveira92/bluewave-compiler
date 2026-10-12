@@ -1,6 +1,7 @@
 // packages/phase-engine/src/economyPhases.ts
 // Economy phases: monthly_revenue, appropriation, maintenance, obligation.
 import type { CampaignSnapshot, ConstructionProject, NationState, Ship } from "@bluewave/campaign";
+import { transitionConstructionProject } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
 import { fundConstructionProject } from "./constructionFunding.js";
 import { fundDesignStudies } from "./designStudies.js";
@@ -149,10 +150,9 @@ export function runAppropriationPhase(ctx: MonthContext): void {
       updatedProjects = updatedProjects.map((p) =>
         p["id"] === project["id"]
           ? {
-              ...p,
+              ...transitionConstructionProject(p, "ACTIVE"),
               completedWork: SafeInt.add(p["completedWork"], clampedAlloc),
               paidWork: SafeInt.add(p["paidWork"], clampedAlloc),
-              status: "ACTIVE" as const,
             }
           : p,
       );
@@ -258,10 +258,9 @@ function applyLeftoverFunding(
     projects: projects.map((p) =>
       p["id"] === firstIncomplete["id"]
         ? {
-            ...p,
+            ...transitionConstructionProject(p, "ACTIVE"),
             completedWork: SafeInt.add(p["completedWork"], cappedExtra),
             paidWork: SafeInt.add(p["paidWork"], cappedExtra),
-            status: "ACTIVE" as const,
           }
         : p,
     ),

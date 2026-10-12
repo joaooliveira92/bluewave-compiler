@@ -105,7 +105,7 @@ function compileProductionPack(): { state: CampaignState; contentHash: string } 
         designFiles: (files.designs ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
       },
       rulesetVersion: "1.0",
-      compatibilityVersion: "1.1.0",
+      compatibilityVersion: "1.2.0",
     },
     signal,
     collector,

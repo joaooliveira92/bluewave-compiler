@@ -176,6 +176,6 @@ describe("battle-generation persistence (AC-13)", () => {
   });
 
   it("schema version is pinned and recorded", () => {
-    expect(CURRENT_COMPATIBILITY_VERSION).toBe("1.1.0");
+    expect(CURRENT_COMPATIBILITY_VERSION).toBe("1.2.0");
   });
 });

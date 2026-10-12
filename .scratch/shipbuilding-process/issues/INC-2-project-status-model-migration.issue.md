@@ -1,7 +1,7 @@
 # INC-2 — Project status model + save migration
 
-**State:** READY_FOR_AGENT · **Frontier:** yes · **Blocked by:** none
-**Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R7) · **ADR:** project-status model + save migration (new)
+**State:** RESOLVED · **Frontier:** yes · **Blocked by:** none
+**Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R7) · **ADR:** project-status model + save migration (ADR-0129)
 
 ## What to build
 
@@ -28,3 +28,23 @@ Prefactor ticket — "make the change easy". Add the enum + transitions + migrat
 The status enum today is the narrow `PLANNED|AUTHORIZED|ACTIVE|COMPLETED`; extend the single
 authoritative union rather than adding parallel flags. Proving tests: the transition table (legal and
 illegal), a round-trip, and a migration/rejection test.
+
+## Answer
+
+The DESIGN-23 §2 status model is in place, enforced in one place, with the save-compatibility bump.
+
+- `@bluewave/campaign` gains `constructionStatus.ts`: the ten-status
+  `ConstructionProjectStatus`, `CONSTRUCTION_PROJECT_TRANSITIONS`, terminal-status helper,
+  `canTransitionConstructionProject` / `assertConstructionProjectTransition` (throwing
+  `ConstructionProjectTransitionError` with code `INVALID_DOCKYARD_PROJECT_TRANSITION`), and
+  `transitionConstructionProject` (same-status is a no-op).
+- `ConstructionProject.status` now uses that type; the funding (`constructionFunding.ts`,
+  `economyPhases.ts`) and completion (`constructionPhase.ts`) write sites go through
+  `transitionConstructionProject`. No new commands.
+- `CURRENT_COMPATIBILITY_VERSION` bumped `1.1.0 → 1.2.0`; a pre-change save is **rejected** with
+  `PERSISTENCE_COMPATIBILITY_MISMATCH` (no released save, so no migration engine — ADR-0129 /
+  ADR-0113 §5).
+- ADR-0129 records the model, the table and the rejection; registered in `docs/adr/README.md`.
+
+Commands: `vp test run` in `@bluewave/campaign` (7 new), `@bluewave/phase-engine` (315 passed),
+`@bluewave/persistence` (69 passed, incl. the `1.1.0` rejection case); `tsc --noEmit` clean.

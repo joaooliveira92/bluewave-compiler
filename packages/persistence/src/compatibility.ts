@@ -5,10 +5,13 @@ export { COMPATIBILITY_MISMATCH_CODE } from "./errors.js";
 
 // B-6/ADR-0025: bumped 1.0.0 -> 1.1.0 because the campaign snapshot schema
 // gains authoritative startYear/startMonth + the per-area strategicWeather
-// collection. Old 1.0.0 saves are REJECTED with
-// PERSISTENCE_COMPATIBILITY_MISMATCH (stable diagnostic, spec §1.4 migration
-// stance: no silent continuation with mismatched shapes).
-export const CURRENT_COMPATIBILITY_VERSION = "1.1.0";
+// collection.
+// SB-3/INC-2 (ADR-0129): bumped 1.1.0 -> 1.2.0 because the dockyard-project
+// status vocabulary widens to the DESIGN-23 section 2 set (HALTED, DELAYED,
+// ACCELERATED, AWAITING_CAPACITY, IMPOUNDED). Pre-change saves are REJECTED
+// with PERSISTENCE_COMPATIBILITY_MISMATCH (no released save exists, so no
+// migration engine ships; ADR-0113 section 5 documented rejection).
+export const CURRENT_COMPATIBILITY_VERSION = "1.2.0";
 
 export class CompatibilityChecker {
   static check(saveVersion: string, diagnostics: DiagnosticCollector): boolean {

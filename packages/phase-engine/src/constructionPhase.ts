@@ -1,7 +1,7 @@
 // packages/phase-engine/src/constructionPhase.ts
 // Phase 7: construction_processing — advance construction projects, complete
 // finished projects into fleet ships, and emit construction-progressed events.
-import { KNOTS_TO_UMS, MM_TO_UM } from "@bluewave/campaign";
+import { KNOTS_TO_UMS, MM_TO_UM, transitionConstructionProject } from "@bluewave/campaign";
 import type { CompiledDesignVersion, FleetState, NationState, Ship } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
 import { constructionProgressedEvent, shipRebuiltEvent } from "./events.js";
@@ -52,7 +52,10 @@ function applyConstructionToNation(ctx: MonthContext, nationId: string, nation: 
     ) {
       updatedProjects = updatedProjects.map((p) =>
         p["id"] === project["id"]
-          ? { ...p, status: "COMPLETED" as const, completedWork: project["totalWork"] }
+          ? {
+              ...transitionConstructionProject(p, "COMPLETED"),
+              completedWork: project["totalWork"],
+            }
           : p,
       );
       hasChanges = true;
@@ -73,7 +76,10 @@ function applyConstructionToNation(ctx: MonthContext, nationId: string, nation: 
     ) {
       updatedProjects = updatedProjects.map((p) =>
         p["id"] === project["id"]
-          ? { ...p, status: "COMPLETED" as const, completedWork: project["totalWork"] }
+          ? {
+              ...transitionConstructionProject(p, "COMPLETED"),
+              completedWork: project["totalWork"],
+            }
           : p,
       );
       hasChanges = true;

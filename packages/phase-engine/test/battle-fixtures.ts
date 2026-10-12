@@ -269,6 +269,6 @@ export function makeBattleSnapshot(opts: BattleSnapshotOptions = {}): CampaignSn
     designFamilies: new Map(),
     strategicWeather: [],
     rulesetVersion: "0.1.0",
-    compatibilityVersion: "1.1.0",
+    compatibilityVersion: "1.2.0",
   };
 }

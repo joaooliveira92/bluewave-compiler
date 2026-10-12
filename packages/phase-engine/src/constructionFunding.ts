@@ -1,4 +1,5 @@
 import type { ConstructionPackage, ConstructionProject } from "@bluewave/campaign";
+import { transitionConstructionProject } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
 import {
   advanceConstructionMonth,
@@ -93,14 +94,15 @@ export function fundConstructionProject(
     dependsOn: [...p["dependsOn"]],
   }));
   const completed = nextPackages.reduce((a, p) => a + (p["doneWork"] as number), 0);
+  const advanced =
+    applied > 0 ? transitionConstructionProject(project, "ACTIVE") : project;
   return {
     applied,
     project: {
-      ...project,
+      ...advanced,
       packages: nextPackages,
       completedWork: SafeInt(completed),
       paidWork: SafeInt.add(project["paidWork"], SafeInt(applied)),
-      status: applied > 0 ? ("ACTIVE" as const) : project["status"],
       monthUsage: {
         month,
         used: Object.fromEntries(Object.entries(usedAfter).map(([l, v]) => [l, SafeInt(v)])),

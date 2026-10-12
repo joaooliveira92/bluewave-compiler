@@ -69,11 +69,13 @@ describe("save-compatibility policy (ADR-0113)", () => {
     if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("locks CURRENT_COMPATIBILITY_VERSION to the first-release constant", () => {
+  it("locks CURRENT_COMPATIBILITY_VERSION to the current release constant", () => {
     // The first public release pins the v1 format. A deliberate bump (see
     // ADR-0113) must update this test, add a per-version fixture and register a
     // migration or a documented rejection — never edit the constant silently.
-    expect(CURRENT_COMPATIBILITY_VERSION).toBe("1.1.0");
+    // 1.1.0 -> 1.2.0 widens the dockyard-project status vocabulary (ADR-0129);
+    // no released save exists, so the old version is a documented rejection.
+    expect(CURRENT_COMPATIBILITY_VERSION).toBe("1.2.0");
   });
 
   it("round-trips a snapshot saved at the current compatibility version", () => {
@@ -122,4 +124,26 @@ describe("save-compatibility policy (ADR-0113)", () => {
     expect(diagnostics.errors[0]!.message).toContain(CURRENT_COMPATIBILITY_VERSION);
     expect(diagnostics.errors[0]!.stage).toBe("persistence.load");
   });
+
+  it.each(["1.0.0", "1.1.0"])(
+    "rejects a pre-change save at %s with the stable mismatch code (documented rejection, ADR-0129)",
+    (prior) => {
+      const state = createFixtureState();
+      store.save(state, tmpDir);
+      const saveId = store.getActiveSaveId(tmpDir);
+      const campaignPath = join(tmpDir, saveId!, "campaign.json");
+      const parsed = JSON.parse(readFileSync(campaignPath, "utf8")) as {
+        snapshot: { compatibilityVersion: string };
+      };
+      parsed.snapshot.compatibilityVersion = prior;
+      writeFileSync(campaignPath, JSON.stringify(parsed), "utf8");
+
+      const diagnostics = new DiagnosticCollector();
+      const loaded = store.load(tmpDir, diagnostics);
+
+      expect(loaded).toBeNull();
+      expect(diagnostics.errors.map((d) => d.code)).toEqual([COMPATIBILITY_MISMATCH_CODE]);
+      expect(diagnostics.errors.some((d) => d.code === CORRUPT_SAVE_CODE)).toBe(false);
+    },
+  );
 });

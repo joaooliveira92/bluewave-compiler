@@ -114,7 +114,7 @@ function compileCampaign(fixtureDir: string): CampaignState {
         designFiles: [],
       },
       rulesetVersion: "1.0",
-      compatibilityVersion: "1.1.0",
+      compatibilityVersion: "1.2.0",
     },
     signal,
     collector,

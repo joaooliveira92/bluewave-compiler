@@ -14,7 +14,7 @@ const modern: SaveMetadata = {
   turnNumber: 4,
   campaignId: "campaign_1",
   snapshotHash: "hash_1",
-  compatibilityVersion: "1.1.0",
+  compatibilityVersion: "1.2.0",
   contentArtifactHash: "art_1",
   campaignName: "Admiralty Board",
   nationId: "uk",
@@ -29,7 +29,7 @@ const legacy: SaveMetadata = {
   turnNumber: 0,
   campaignId: "",
   snapshotHash: "",
-  compatibilityVersion: "1.1.0",
+  compatibilityVersion: "1.2.0",
   contentArtifactHash: "art_2",
 };
 

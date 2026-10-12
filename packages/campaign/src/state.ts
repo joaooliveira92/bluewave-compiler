@@ -4,6 +4,7 @@ import type { CompiledArmamentMount } from "@bluewave/armament";
 import type { CanonicalEnvelope } from "@bluewave/deterministic";
 import type { PermanentDivision } from "./division.js";
 import type { Officer } from "./officers.js";
+import type { ConstructionProjectStatus } from "./constructionStatus.js";
 
 /**
  * Operational availability of a ship while a project works on it (DESIGN-23 section 20). Absent means AVAILABLE. An
@@ -432,7 +433,7 @@ export interface ConstructionProject {
   totalWork: SafeInt;
   completedWork: SafeInt;
   paidWork: SafeInt;
-  status: "PLANNED" | "AUTHORIZED" | "ACTIVE" | "COMPLETED";
+  status: ConstructionProjectStatus;
   startedAt: string;
   /**
    * First month (YYYY-MM) the project may be funded again after a revision (ADR-0070). Absent when never held; an

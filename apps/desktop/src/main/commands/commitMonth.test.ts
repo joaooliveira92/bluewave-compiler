@@ -216,7 +216,7 @@ describe("commitMonth", () => {
       expect(updated.state.envelope).toEqual({
         algorithm: "sha256",
         artifactKind: "campaign-snapshot",
-        compatibilityVersion: "1.1.0",
+        compatibilityVersion: "1.2.0",
         bodyHash: "1706ae2bfc07e02213d28b02649cc37341fd6c1dcbb9157a521e4462b95f4f3f",
         bodyLength: 87677,
       });
@@ -380,7 +380,7 @@ describe("commitMonth", () => {
         designs,
         designFamilies: new Map(),
         rulesetVersion: "1.0",
-        compatibilityVersion: "1.1.0",
+        compatibilityVersion: "1.2.0",
       };
     }
 
@@ -677,7 +677,7 @@ describe("mapBattleOutcome (pre-battle-snapshot war-score re-derivation, INC-2 f
       designs: new Map(),
       designFamilies: new Map(),
       rulesetVersion: "1.0",
-      compatibilityVersion: "1.1.0",
+      compatibilityVersion: "1.2.0",
     } as CampaignSnapshot;
   }
 
