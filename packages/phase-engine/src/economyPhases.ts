@@ -131,18 +131,18 @@ export function preservationCostUnits(
 export function runAppropriationPhase(ctx: MonthContext): void {
   // Design studies are paid first: design-office work is small and gates every new class (ADR-0085).
   fundDesignStudies(ctx);
+  // ADR-0036/INC-4: the appropriation phase draws the keyed acceleration-pressure delay decisions; obtain the
+  // phase-scoped engine through the guard. With no accelerated project nothing is drawn, so a run without
+  // acceleration consumes no randomness and its hashes are unchanged. The same engine also serves the foreign
+  // discretionary-impoundment draw (INC-10), which draws only for a hostile contract.
+  const accelerationRng = ctx.phaseGuard.rng("appropriation", ctx.randomSeed);
   // DESIGN-16 section 13.4 (INC-9): resolve every foreign contract's month before domestic funding. Payments debit the
   // ordering treasury and credit the builder; work is unlocked solely by the paid instalments (INC-9d), so a foreign
   // project is always skipped by ordinary appropriation. The returned capability-delayed set keeps a builder-capability
-  // `DELAYED` from being unwound by the same-month auto-resume (MAJOR-1).
-  const foreign = runForeignContractPhase(ctx);
+  // `DELAYED` from being unwound by the same-month auto-resume (MAJOR-1). War effects (INC-10) resolve inside it.
+  const foreign = runForeignContractPhase(ctx, accelerationRng);
   const { campaignMonth, eventLedger, financialLedger, nextSeq, collector } = ctx;
   const shipBuilding = ctx.engineOptions?.shipBuilding;
-
-  // ADR-0036/INC-4: the appropriation phase now draws the keyed acceleration-pressure delay decisions; obtain the
-  // phase-scoped engine through the guard. With no accelerated project nothing is drawn, so a run without
-  // acceleration consumes no randomness and its hashes are unchanged.
-  const accelerationRng = ctx.phaseGuard.rng("appropriation", ctx.randomSeed);
 
   for (const [nationId, nation] of ctx.currentSnapshot["nations"]) {
     if (!nation["isPlayable"] && !nation["isAI"]) continue;

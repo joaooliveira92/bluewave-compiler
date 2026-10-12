@@ -14,6 +14,7 @@ import type {
   DesignFamily,
   DesignStudy,
   ForeignConstructionContract,
+  ForeignContractImpoundmentRecord,
   ForeignContractPaymentRecord,
   ForeignInsightAwardRecord,
   ProcurementIntent,
@@ -303,6 +304,18 @@ const F = {
     "milestones",
     "awardedByFamily",
   ),
+  ForeignContractImpoundmentRecord: fields<ForeignContractImpoundmentRecord>()(
+    "contractId",
+    "authorizingPredicate",
+    "custodyNationId",
+    "legalTitle",
+    "paidAmountUnits",
+    "unpaidAmountUnits",
+    "compensationOrForfeiture",
+    "projectStatus",
+    "futureDeliveryEligible",
+    "month",
+  ),
   NationState: fields<NationState>()(
     "id",
     "name",
@@ -325,6 +338,7 @@ const F = {
     "foreignContracts",
     "foreignContractPayments",
     "foreignInsightAwards",
+    "foreignContractImpoundments",
     "aircraft",
     "carrierOperations",
     "isPlayable",
@@ -544,9 +558,11 @@ const _assert: [
   _Assert<ForeignConstructionContract, typeof F.ForeignConstructionContract>,
   _Assert<ForeignContractPaymentRecord, typeof F.ForeignContractPaymentRecord>,
   _Assert<ForeignInsightAwardRecord, typeof F.ForeignInsightAwardRecord>,
+  _Assert<ForeignContractImpoundmentRecord, typeof F.ForeignContractImpoundmentRecord>,
   _Assert<CampaignWeatherState, typeof F.CampaignWeatherState>,
   _Assert<CampaignSnapshot, typeof F.CampaignSnapshot>,
 ] = [
+  true,
   true,
   true,
   true,
@@ -636,6 +652,9 @@ const cloneForeignInsightAward = (r: ForeignInsightAwardRecord): ForeignInsightA
     milestones: (v) => [...(v as string[])],
     awardedByFamily: (v) => ({ ...(v as Record<string, number>) }),
   });
+const cloneForeignContractImpoundment = (
+  r: ForeignContractImpoundmentRecord,
+): ForeignContractImpoundmentRecord => recordClone(r, F.ForeignContractImpoundmentRecord);
 const cloneNation = (n: NationState): NationState =>
   recordClone(n, F.NationState, {
     fleets: (v) => (v as FleetState[]).map(cloneFleet),
@@ -662,6 +681,10 @@ const cloneNation = (n: NationState): NationState =>
       v === undefined
         ? undefined
         : (v as ForeignInsightAwardRecord[]).map(cloneForeignInsightAward),
+    foreignContractImpoundments: (v) =>
+      v === undefined
+        ? undefined
+        : (v as ForeignContractImpoundmentRecord[]).map(cloneForeignContractImpoundment),
   });
 const cloneBattleResult = (r: BattleResult): BattleResult =>
   recordClone(r, F.BattleResult, {

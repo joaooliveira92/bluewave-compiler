@@ -301,6 +301,20 @@ function makeRichSnapshot(): CampaignSnapshot {
       awardedByFamily: { HULL_CONSTRUCTION: 500 },
     },
   ];
+  gbr.foreignContractImpoundments = [
+    {
+      contractId: "fc-1",
+      authorizingPredicate: "foreign_contract_war_policy_v1:IMPOUND",
+      custodyNationId: DEFENDER_NATION,
+      legalTitle: "ORDERING_NATION",
+      paidAmountUnits: 500,
+      unpaidAmountUnits: 500,
+      compensationOrForfeiture: "COMPENSATION",
+      projectStatus: "IMPOUNDED",
+      futureDeliveryEligible: false,
+      month: "1880-02",
+    },
+  ];
 
   const fra = snapshot.nations.get(DEFENDER_NATION)!;
   fra.research = {
@@ -499,6 +513,7 @@ const CANONICAL_CLONE_TYPES = [
   "DesignStudy",
   "ForeignConstructionContract",
   "ForeignContractPaymentRecord",
+  "ForeignContractImpoundmentRecord",
   "ForeignInsightAwardRecord",
   "CampaignWeatherState",
   "CampaignSnapshot",
@@ -543,6 +558,9 @@ describe("snapshotClone — field-exhaustive clone coverage audit", () => {
     );
     expect(Object.keys(gbr.foreignInsightAwards![0]!).sort()).toEqual(
       [...CLONE_COVERAGE.ForeignInsightAwardRecord!].sort(),
+    );
+    expect(Object.keys(gbr.foreignContractImpoundments![0]!).sort()).toEqual(
+      [...CLONE_COVERAGE.ForeignContractImpoundmentRecord!].sort(),
     );
     expect(Object.keys(clone.wars.wars[0]!).sort()).toEqual(
       [...CLONE_COVERAGE.WarDeclaration!].sort(),

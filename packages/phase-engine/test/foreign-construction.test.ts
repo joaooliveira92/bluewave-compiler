@@ -20,6 +20,7 @@ import {
   FOREIGN_PAYMENT_CATEGORY_ID,
   FOREIGN_PAYMENT_DEFAULT_DELAYED,
   FOREIGN_PAYMENT_DEFAULT_RESUME_BLOCKED,
+  DELIVERY_GUARANTEE_ACTIVE,
   advanceForeignContractMonth,
   applyForeignPaymentOutcome,
   buildForeignConstructionContract,
@@ -921,5 +922,83 @@ describe("monthly step integration (M1/M2, DESIGN-16 section 13.4)", () => {
       reason: FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
     });
     if (!result.ok) expect(result.diagnostics.some((d) => d.startsWith("CAPACITY"))).toBe(true);
+  });
+});
+
+describe("foreign war effects in the monthly phase (SB3-R23, INC-10)", () => {
+  const hostileRelation = (snap: CampaignSnapshot, tension: number): CampaignSnapshot => ({
+    ...snap,
+    politics: {
+      ...snap.politics,
+      relations: [
+        {
+          nationA: ORDERING,
+          nationB: BUILDER,
+          relation: "at_war",
+          tension,
+          nap: false,
+          since: MONTH_ID,
+        },
+      ],
+    },
+  });
+
+  const orderedSnapshot = (over: Partial<ForeignContractTerms> = {}): CampaignSnapshot => {
+    const placed = order(snapshot(), { terms: terms(over) });
+    if (!placed.ok) throw new Error(`order failed: ${placed.reason}`);
+    return placed.snapshot;
+  };
+
+  it("holds a guaranteed contract DELAYED rather than impounding it when the parties are enemies", () => {
+    const snap = hostileRelation(
+      orderedSnapshot({ deliveryGuaranteeClauseId: "treaty_clause_1" }),
+      10,
+    );
+    const result = new MonthExecutor().execute(
+      snap,
+      [],
+      "war-seed",
+      new DiagnosticCollector(),
+      undefined,
+      {
+        shipBuilding: content,
+      },
+    );
+    const project = result.finalSnapshot.nations
+      .get(ORDERING)!
+      .constructionProjects.find((p) => p.foreignContractId !== undefined)!;
+    expect(project.status).toBe("DELAYED");
+    expect(project.delayReasonCode).toBe(DELIVERY_GUARANTEE_ACTIVE);
+    expect(
+      result.finalSnapshot.nations.get(ORDERING)!.foreignContractImpoundments ?? [],
+    ).toHaveLength(0);
+  });
+
+  it("impounds an unguranteed contract when the tension-scaled draw fires, recording the contract", () => {
+    // Tension 10 → a 9_000 bp impoundment probability; search the fixed seed space for a drawn outcome so the assertion
+    // is deterministic. At least one seed in this range must impound (P(no impound) = 0.1 per seed).
+    let impounded = false;
+    for (let i = 0; i < 8 && !impounded; i++) {
+      const snap = hostileRelation(orderedSnapshot(), 10);
+      const result = new MonthExecutor().execute(
+        snap,
+        [],
+        `war-seed-${String(i)}`,
+        new DiagnosticCollector(),
+        undefined,
+        { shipBuilding: content },
+      );
+      const nation = result.finalSnapshot.nations.get(ORDERING)!;
+      const project = nation.constructionProjects.find((p) => p.foreignContractId !== undefined)!;
+      expect(["IMPOUNDED", "DELAYED"]).toContain(project.status);
+      if (project.status === "IMPOUNDED") {
+        impounded = true;
+        expect(nation.foreignContractImpoundments ?? []).toHaveLength(1);
+        expect(nation.foreignContractImpoundments![0]!.authorizingPredicate).toBe(
+          "foreign_contract_war_policy_v1:IMPOUND",
+        );
+      }
+    }
+    expect(impounded).toBe(true);
   });
 });

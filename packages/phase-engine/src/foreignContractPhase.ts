@@ -48,6 +48,13 @@ import {
 import { researchCostOf } from "./research.js";
 import { nationalConstructionCapacity } from "./newConstructionCapacity.js";
 import type { MonthContext } from "./monthContext.js";
+import type { RandomEngine } from "@bluewave/random";
+import {
+  authorizeForeignImpoundment,
+  isDeliveryGuaranteeActive,
+  resolveForeignWarPolicy,
+  type ForeignWarPolicyResolution,
+} from "./foreignWarEffects.js";
 
 /**
  * The volatile builder predicates INC-9 does not model yet. Occupation/destruction and war effects arrive with INC-10;
@@ -98,7 +105,10 @@ export interface ForeignContractPhaseResult {
  * schedule work and payment records. Returns the per-nation zero-work skip set and the capability-delayed project ids.
  * Pure except for the ledgers and collector on the context.
  */
-export function runForeignContractPhase(ctx: MonthContext): ForeignContractPhaseResult {
+export function runForeignContractPhase(
+  ctx: MonthContext,
+  warRng: RandomEngine | null = null,
+): ForeignContractPhaseResult {
   const shipBuilding = ctx.engineOptions?.shipBuilding;
   const campaignMonth = ctx.campaignMonth;
   const nations = new Map(ctx.currentSnapshot["nations"]);
@@ -148,6 +158,52 @@ export function runForeignContractPhase(ctx: MonthContext): ForeignContractPhase
           `Foreign contract ${contractId} does not match its stored hash; it is refused this month`,
           { stage: "appropriation", entityId: project0["id"] },
         );
+        skipIds.add(project0["id"]);
+        continue;
+      }
+
+      // DESIGN-16 sections 13.6-13.7 (SB3-R23): evaluate the war policy. Physical impossibility, an embargo, or a
+      // hostile ordering/builder relation resolves the contract to a declared outcome; a `CONTINUE` outcome leaves the
+      // ordinary payment/capability/work path untouched. The discretionary-impoundment draw is keyed and recorded.
+      const war = foreignWarResolution(ctx, nationId, contract, campaignMonth, warRng);
+      if (war.outcome !== "CONTINUE") {
+        const paidAmountUnits = paidAmountOf(contract, records.get(contractId) ?? []);
+        const currentNation = nations.get(nationId)!;
+        const impound =
+          war.outcome === "IMPOUND"
+            ? authorizeForeignImpoundment({
+                nation: currentNation,
+                projectId: project0["id"],
+                contract,
+                resolution: war,
+                campaignMonth,
+                paidAmountUnits,
+                custodyNationId: contract["builderNationId"],
+              })
+            : null;
+        if (impound !== null && impound.ok) {
+          nations.set(nationId, impound.nation);
+          updatedById.set(
+            project0["id"],
+            impound.nation["constructionProjects"].find((p) => p["id"] === project0["id"])!,
+          );
+          capabilityDelayed.add(project0["id"]);
+          changed = true;
+        } else {
+          const target = war.outcome === "CANCEL_WITH_SETTLEMENT" ? "CANCELLED" : "DELAYED";
+          if (canTransitionConstructionProject(project0["status"], target)) {
+            nations.set(nationId, currentNation);
+            updatedById.set(project0["id"], {
+              ...project0,
+              status: target,
+              ...(target === "DELAYED" ? { delayReasonCode: war.reasonCode } : {}),
+            });
+            // A war-held DELAYED project must not be unwound by the same-month auto-resume (like a capability delay).
+            if (target === "DELAYED") capabilityDelayed.add(project0["id"]);
+            changed = true;
+          }
+        }
+        // A war-resolved contract is always excluded from ordinary appropriation this month.
         skipIds.add(project0["id"]);
         continue;
       }
@@ -393,3 +449,57 @@ function availableBuilderCapacityKg(
 
 /** Re-exported for tests: the volatile-capability default the INC-9 monthly step applies. */
 export { FOREIGN_BUILDER_CONDITIONS_SATISFIED };
+
+/** The ordering↔builder diplomatic relation and tension, or `null`/`0` when none is recorded. */
+function relationBetween(
+  snapshot: CampaignSnapshot,
+  a: string,
+  b: string,
+): { relation: "neutral" | "allied" | "at_war" | "trade_agreement" | null; tension: number } {
+  const rel = snapshot["politics"].relations.find(
+    (r) => (r["nationA"] === a && r["nationB"] === b) || (r["nationA"] === b && r["nationB"] === a),
+  );
+  if (rel === undefined) return { relation: null, tension: 0 };
+  return { relation: rel["relation"], tension: rel["tension"] };
+}
+
+/**
+ * DESIGN-16 section 13.6: resolve a contract's war policy from the current snapshot. Occupation/destruction, embargo
+ * and co-belligerence predicates are not yet modelled (they default to their non-triggering values and are a recorded
+ * deferral); the ordering↔builder relation and tension are authoritative and drive the discretionary-impoundment draw.
+ */
+function foreignWarResolution(
+  ctx: MonthContext,
+  orderingNationId: string,
+  contract: ForeignConstructionContract,
+  campaignMonth: string,
+  warRng: RandomEngine | null,
+): ForeignWarPolicyResolution {
+  const rel = relationBetween(ctx.currentSnapshot, orderingNationId, contract["builderNationId"]);
+  return resolveForeignWarPolicy({
+    contract,
+    campaignMonth,
+    relation: rel.relation,
+    tension: rel.tension,
+    deliveryGuaranteeActive: isDeliveryGuaranteeActive(contract),
+    physicallyImpossible: false,
+    embargo: false,
+    coBelligerent: false,
+    builderControllerHostile: false,
+    ...(warRng === null ? {} : { randomEngine: warRng }),
+    randomLedger: ctx.randomLedger,
+  });
+}
+
+/** The cumulative amount already paid on a contract, summed from its paid instalments (treasury units). */
+function paidAmountOf(
+  contract: ForeignConstructionContract,
+  paidDueMonths: readonly string[],
+): number {
+  const paid = new Set(paidDueMonths);
+  let total = 0;
+  for (const installment of contract.paymentSchedule)
+    if (paid.has(installment["dueMonth"]) && Number.isSafeInteger(installment["amountUnits"]))
+      total += installment["amountUnits"];
+  return total;
+}

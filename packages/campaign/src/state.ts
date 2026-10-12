@@ -421,6 +421,32 @@ export interface ForeignInsightAwardRecord {
   awardedByFamily: Record<string, number>;
 }
 
+/**
+ * DESIGN-16 sections 13.6-13.7 / SB3-R23: the causal record of one authorised foreign-contract impoundment. A valid
+ * impoundment transfers custody of the incomplete or completed asset to the builder or controlling authority, and MUST
+ * record the authorizing predicate, custody, legal title, paid and unpaid amounts, compensation or forfeiture, the
+ * project status, and whether the hull remains eligible for future delivery. Plain values only; absent until the first
+ * impoundment, so the field never perturbs an existing save hash.
+ */
+export interface ForeignContractImpoundmentRecord {
+  contractId: string;
+  /** The authorizing policy predicate (`foreign_contract_war_policy_v1:<OUTCOME>`). */
+  authorizingPredicate: string;
+  /** The nation holding custody of the asset after impoundment. */
+  custodyNationId: string;
+  /** Who holds legal title after impoundment (impoundment does not silently transfer title). */
+  legalTitle: "ORDERING_NATION" | "BUILDER" | "CONTROLLING_AUTHORITY";
+  paidAmountUnits: number;
+  unpaidAmountUnits: number;
+  compensationOrForfeiture: "COMPENSATION" | "FORFEITURE" | "NONE";
+  /** The project status the impoundment set (`IMPOUNDED`). */
+  projectStatus: string;
+  /** Whether the hull remains eligible for delivery to the ordering nation if the dispute resolves. */
+  futureDeliveryEligible: boolean;
+  /** The campaign month the impoundment was recorded (`YYYY-MM`). */
+  month: string;
+}
+
 export interface NationState {
   id: string;
   name: string;
@@ -469,6 +495,12 @@ export interface NationState {
    * first award, so it never perturbs an existing save hash; the monthly step reads and extends it.
    */
   foreignInsightAwards?: ForeignInsightAwardRecord[];
+  /**
+   * The causal records of this nation's AUTHORISED foreign-contract impoundments (DESIGN-16 sections 13.6-13.7;
+   * SB3-R23). One entry per impounded contract. Absent until the first impoundment, so the field never perturbs an
+   * existing save hash.
+   */
+  foreignContractImpoundments?: ForeignContractImpoundmentRecord[];
   aircraft?: Record<string, unknown>;
   carrierOperations?: Record<string, unknown>;
   isPlayable: boolean;

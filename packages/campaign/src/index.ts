@@ -51,6 +51,7 @@ export type {
   ForeignContractCapacityReservation,
   ForeignContractPaymentInstallment,
   ForeignContractPaymentRecord,
+  ForeignContractImpoundmentRecord,
   ForeignInsightAwardRecord,
   IntelligenceState,
   DesignStudy,
