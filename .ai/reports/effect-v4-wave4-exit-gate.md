@@ -13,14 +13,14 @@ Wave 4 is signed off; tickets 34–38 (Wave 5) are the frontier.
 
 ## Requirements evidence
 
-| Requirement     | Evidence                                                                                                                                          |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MIG-WAVE4-ENTRY | Wave 3 exit met (ticket 21 PASS, `.ai/reports/effect-v4-wave3-exit-gate.md`)                                                                      |
+| Requirement     | Evidence                                                                                                                                                                                                                                     |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MIG-WAVE4-ENTRY | Wave 3 exit met (ticket 21 PASS, `.ai/reports/effect-v4-wave3-exit-gate.md`)                                                                                                                                                                 |
 | MIG-WAVE4-EXIT  | `commands` (24, `e5bb77f1`), `combat` residual (26, `2e668e99`), `ai` (29, `ca0ea1d2`), `phase-engine` (30, `a2cc02eb`) migrated; `campaign`/`ship-design`/`campaign-engine` closed not-needed (22/23/25, renderer-reachable per MIG-EXCL-1) |
-| MIG-RUNTIME-1   | No `Layer`/`ManagedRuntime`/`Context`/`Effect.run*` in any migrated package; each conversion imports only `{ Data } from "effect"` (runtime-free) except `persistence/src/schemas.ts:50` (`Effect.succeed` decoding default) |
-| MIG-EXCL-1      | Renderer bundle guard clean on a fresh build (20 chunks); `~effect/` marker present, 0 hits                                                     |
-| MIG-GATE-1      | `pnpm check` EXIT 0 end-to-end; single-copy guard ok                                                                                              |
-| MIG-RB-4        | rollback point recorded: Wave 3 exit `0f2cd986` is the known-green checkpoint; reverting the Wave 4 code delta restores it                        |
+| MIG-RUNTIME-1   | No `Layer`/`ManagedRuntime`/`Context`/`Effect.run*` in any migrated package; each conversion imports only `{ Data } from "effect"` (runtime-free) except `persistence/src/schemas.ts:50` (`Effect.succeed` decoding default)                 |
+| MIG-EXCL-1      | Renderer bundle guard clean on a fresh build (20 chunks); `~effect/` marker present, 0 hits                                                                                                                                                  |
+| MIG-GATE-1      | `pnpm check` EXIT 0 end-to-end; single-copy guard ok                                                                                                                                                                                         |
+| MIG-RB-4        | rollback point recorded: Wave 3 exit `0f2cd986` is the known-green checkpoint; reverting the Wave 4 code delta restores it                                                                                                                   |
 
 ## Commands and observed results
 
