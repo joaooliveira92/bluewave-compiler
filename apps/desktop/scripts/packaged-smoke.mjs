@@ -97,12 +97,19 @@ try {
   await page.getByRole("option", { name: "United Kingdom" }).click();
   await page.getByRole("listbox", { name: "Playable nations" }).press("Enter");
   await click("Next: Choose Archetype");
-  await click("Shipyard Baron");
+  // The deck's cards overlap: step the listbox to the archetype and confirm with Enter.
+  const deck = page.getByRole("listbox", { name: "Archetype presets" });
+  const target = await page.getByRole("option", { name: "Shipyard Baron" }).getAttribute("id");
+  for (let step = 0; step < 4; step++) {
+    if ((await deck.getAttribute("aria-activedescendant")) === target) break;
+    await deck.press("ArrowRight");
+  }
+  await deck.press("Enter");
   await click("Choose Nation");
   await page.getByLabel("Admiral name").fill("John Fisher");
   await page.getByLabel("Campaign name").fill("Packaged Smoke");
   await click("Next");
-  await click("Start Campaign");
+  await click("Next: Review Campaign");
   await click("Begin Commission");
   await click("Review Naval Estimates");
   for (let i = 0; i < 3; i++) await click("Next");

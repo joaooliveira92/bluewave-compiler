@@ -13,7 +13,7 @@ const click = (page: Page, name: string) => page.getByRole("button", { name }).f
 
 /**
  * Drives the new-game assistant from the landing screen up to the
- * Starting-fleet method screen (§5b), leaving the "Start Campaign" primary
+ * Starting-fleet method screen (§5b), leaving the "Next: Review Campaign" primary
  * action unclicked so a caller can inspect or interact with the picker.
  */
 export async function reachFleetMethodScreen(
@@ -28,7 +28,16 @@ export async function reachFleetMethodScreen(
   await page.getByRole("listbox", { name: "Playable nations" }).press("Enter");
   if (opts.seed !== undefined) await page.getByLabel("Campaign Seed").fill(opts.seed);
   await click(page, "Next: Choose Archetype");
-  await click(page, archetype);
+  // The archetype deck's cards overlap, so a centre-click lands on the top card. Step the
+  // listbox to the named archetype and confirm with Enter, as the nation step does; the
+  // header's primary action then reads "Choose Nation".
+  const deck = page.getByRole("listbox", { name: "Archetype presets" });
+  const target = await page.getByRole("option", { name: archetype }).getAttribute("id");
+  for (let step = 0; step < 4; step++) {
+    if ((await deck.getAttribute("aria-activedescendant")) === target) break;
+    await deck.press("ArrowRight");
+  }
+  await deck.press("Enter");
   await click(page, "Choose Nation");
   await page.getByLabel("Admiral name").fill(opts.admiral ?? "John Fisher");
   await page.getByLabel("Campaign name").fill(opts.campaign ?? "Test Run");
@@ -45,7 +54,7 @@ export async function reachFleetMethodScreen(
  */
 export async function startNewCampaign(page: Page, opts: NewCampaignOptions = {}): Promise<void> {
   await reachFleetMethodScreen(page, opts);
-  await click(page, "Start Campaign");
+  await click(page, "Next: Review Campaign");
   await click(page, "Begin Commission");
 
   // Five-page opening briefing: "Review Naval Estimates", "Next" x3, "Take command".
