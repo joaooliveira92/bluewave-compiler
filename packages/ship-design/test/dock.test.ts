@@ -56,10 +56,7 @@ describe("domestic new-construction eligibility (DESIGN-16 section 4.2)", () => 
   });
 
   it("fails a partial dock with DOCK_LIMIT_MISSING before any mass check", () => {
-    const r = newConstructionDockEligibility(
-      { maximumNewConstructionMassKg: 1_000_000 },
-      demand(),
-    );
+    const r = newConstructionDockEligibility({ maximumNewConstructionMassKg: 1_000_000 }, demand());
     expect(r.rejections.map((x) => x.code)).toEqual([DOCK_LIMIT_MISSING]);
   });
 
@@ -69,7 +66,9 @@ describe("domestic new-construction eligibility (DESIGN-16 section 4.2)", () => 
     });
     expect(newConstructionDockEligibility(dock, demand()).eligible).toBe(true);
     expect(
-      newConstructionDockEligibility(dock, demand({ beamMm: 20_001 })).rejections.map((x) => x.code),
+      newConstructionDockEligibility(dock, demand({ beamMm: 20_001 })).rejections.map(
+        (x) => x.code,
+      ),
     ).toEqual([SHIP_EXCEEDS_DOMESTIC_DOCK_LIMIT]);
     expect(dockDimensionMisfits(dock.dimensions!, demand({ lengthMm: 200_000 }))).toEqual([
       "LENGTH",

@@ -211,10 +211,7 @@ export function inPlaceRevisionFindings(
         Math.abs(horizontalDelta),
       ),
     );
-  if (
-    source.maxMainGunUm > limits.mainGunMaxUm &&
-    target.maxMainGunUm !== source.maxMainGunUm
-  )
+  if (source.maxMainGunUm > limits.mainGunMaxUm && target.maxMainGunUm !== source.maxMainGunUm)
     findings.push(
       revFinding(
         "REVISION_MAIN_GUN_UNCHANGEABLE",

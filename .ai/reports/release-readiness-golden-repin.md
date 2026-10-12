@@ -21,11 +21,11 @@ node scripts/verify-golden-hashes.cjs                # All 10 hashes match
 
 ## Old -> new hash pairs
 
-| Hash | Old | New |
-| --- | --- | --- |
-| `initialSnapshotHash` | `16708259cc8018447fbe3c88c2ddfb737a27c3e51e8892c9b5fa112f6be896a5` | `081cce36fc73cd53364c95b90dc9d0338ec65109ec5d03234848df5a3e80cf92` |
-| `closingSnapshotHash` | `bdc8d346ad7662be2911ffc839826f25a29eed937218351dd6e15de6a9c0efe5` | `5539aa54cd6abd841db043875b5b8e3fcb5c8cf7e9dd5390752edc6b6be0b099` |
-| `commandLedgerHash` | `48fa215feeaea217c0f3906ebf99c3deddb8697eb6090dd6ae3fa84ea3841a20` | `fed751490b0dae0eec86380c8685fb3b5099258c2d6ff1996fb29146c250b130` |
+| Hash                     | Old                                                                | New                                                                |
+| ------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `initialSnapshotHash`    | `16708259cc8018447fbe3c88c2ddfb737a27c3e51e8892c9b5fa112f6be896a5` | `081cce36fc73cd53364c95b90dc9d0338ec65109ec5d03234848df5a3e80cf92` |
+| `closingSnapshotHash`    | `bdc8d346ad7662be2911ffc839826f25a29eed937218351dd6e15de6a9c0efe5` | `5539aa54cd6abd841db043875b5b8e3fcb5c8cf7e9dd5390752edc6b6be0b099` |
+| `commandLedgerHash`      | `48fa215feeaea217c0f3906ebf99c3deddb8697eb6090dd6ae3fa84ea3841a20` | `fed751490b0dae0eec86380c8685fb3b5099258c2d6ff1996fb29146c250b130` |
 | `replayVerificationHash` | `097f992919bdcf70707c8e549a43d008a8169aa90ca67245fcc5d0cdee14b711` | `fa8aa3893d79653c2e1e8be6290767e761bcfc9c0f45ed7cbf9dac6ef3a4d288` |
 
 `contentArtifactHash`, `eventLedgerHash`, `financialLedgerHash`,

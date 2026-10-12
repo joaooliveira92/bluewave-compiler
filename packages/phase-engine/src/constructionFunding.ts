@@ -94,8 +94,7 @@ export function fundConstructionProject(
     dependsOn: [...p["dependsOn"]],
   }));
   const completed = nextPackages.reduce((a, p) => a + (p["doneWork"] as number), 0);
-  const advanced =
-    applied > 0 ? transitionConstructionProject(project, "ACTIVE") : project;
+  const advanced = applied > 0 ? transitionConstructionProject(project, "ACTIVE") : project;
   return {
     applied,
     project: {

@@ -24,14 +24,14 @@ empirical `Data.TaggedError` probe against vendored `effect@4.0.2`.
 
 **Verdict: ACCEPT** — no blocker or high findings. Findings:
 
-| ID | Sev | File / symbol | Finding | Disposition |
-| --- | --- | --- | --- | --- |
-| F1 | low | `packages/phase-engine/test/errors.test.ts:36,61,91` | Three `as any` casts; the private-`walk` test is introspection over a private seam | **Fixed** — file rewritten to drive public APIs with typed fixtures; private-`walk` test removed (canonical public guard now covered in `commands`) |
-| F2 | low | `packages/combat/src/mines/contracts.ts:154,174` | The two `CombatInvariantError` rollup throws have no direct test | **Deferred** with rationale (see ticket 26 note): fail-closed guards reachable only on a registry bug; exercising them needs an injectable registry (scope creep); happy path + tamper-rejection covered by `contracts-rollup.test.ts` |
-| F3 | low | `packages/combat/src/mines/contracts.ts:148` | Stale comment said the rollup throws `BluewaveError` | **Fixed** — comment now names `CombatInvariantError` (rollup) and `BluewaveError` (per-contract guard) |
-| F4 | low | `.scratch/effect-v4-vendor-migration/spec.md` runtime-usage table | Spec table still listed `ai`/`phase-engine` as IO and contradicted the ADR-0100 amendment | **Fixed** — pointer added to the authoritative ADR-0100 §2 amendment |
-| F5 | info | all four `errors.ts` | `JSON.stringify`/`structuredClone` of a tagged error adds `_tag` / drops it — latent trap | **No action** — audit found no consumer serializes a migrated error (§3); recorded here |
-| F6 | info | `tacticalReplay.ts:203`, `battleSandboxCommands.ts:525` | Top-level `code` coupling is latent | **No action** — traced: the migrated throws are not on those call chains |
+| ID  | Sev  | File / symbol                                                     | Finding                                                                                   | Disposition                                                                                                                                                                                                                            |
+| --- | ---- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1  | low  | `packages/phase-engine/test/errors.test.ts:36,61,91`              | Three `as any` casts; the private-`walk` test is introspection over a private seam        | **Fixed** — file rewritten to drive public APIs with typed fixtures; private-`walk` test removed (canonical public guard now covered in `commands`)                                                                                    |
+| F2  | low  | `packages/combat/src/mines/contracts.ts:154,174`                  | The two `CombatInvariantError` rollup throws have no direct test                          | **Deferred** with rationale (see ticket 26 note): fail-closed guards reachable only on a registry bug; exercising them needs an injectable registry (scope creep); happy path + tamper-rejection covered by `contracts-rollup.test.ts` |
+| F3  | low  | `packages/combat/src/mines/contracts.ts:148`                      | Stale comment said the rollup throws `BluewaveError`                                      | **Fixed** — comment now names `CombatInvariantError` (rollup) and `BluewaveError` (per-contract guard)                                                                                                                                 |
+| F4  | low  | `.scratch/effect-v4-vendor-migration/spec.md` runtime-usage table | Spec table still listed `ai`/`phase-engine` as IO and contradicted the ADR-0100 amendment | **Fixed** — pointer added to the authoritative ADR-0100 §2 amendment                                                                                                                                                                   |
+| F5  | info | all four `errors.ts`                                              | `JSON.stringify`/`structuredClone` of a tagged error adds `_tag` / drops it — latent trap | **No action** — audit found no consumer serializes a migrated error (§3); recorded here                                                                                                                                                |
+| F6  | info | `tacticalReplay.ts:203`, `battleSandboxCommands.ts:525`           | Top-level `code` coupling is latent                                                       | **No action** — traced: the migrated throws are not on those call chains                                                                                                                                                               |
 
 Reviewer behaviour-preservation analysis (independently reproduced here):
 every catch site in the migrated closure matches on `instanceof Error` +
@@ -51,20 +51,20 @@ ADR note required.
 
 **Consumer-site verification.**
 
-| Site | Match | Result |
-| --- | --- | --- |
-| `packages/phase-engine/src/tacticalReplay.ts:203` | `"code" in e` | Migrated throws unreachable on this chain; fallback `TACTICAL_REPLAY_ERROR` preserved. Covered by new `test/error-consumers.test.ts`. |
-| `packages/phase-engine/src/battlePhases.ts:291` | `instanceof BluewaveError` | Cannot receive a migrated error (they are not `BluewaveError`). |
-| `packages/combat/src/damage/pipeline.ts:197,225` | `instanceof BluewaveError` | Same; migrated combat throws not on these chains. |
-| `apps/compiler-cli/src/combatDiagnostics.ts:43` | `instanceof BluewaveError` | A tagged `CombatInvariantError` correctly falls to `internal-error` (same as the old plain `Error`). New regression case added. |
-| `apps/desktop/src/main/commands/{contentCommands,battleSandboxCommands}.ts` | `err.code` / `"code" in error` | Only string `reason`/`diagnostics` cross IPC; no migrated error object is serialized. |
+| Site                                                                        | Match                          | Result                                                                                                                                |
+| --------------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/phase-engine/src/tacticalReplay.ts:203`                           | `"code" in e`                  | Migrated throws unreachable on this chain; fallback `TACTICAL_REPLAY_ERROR` preserved. Covered by new `test/error-consumers.test.ts`. |
+| `packages/phase-engine/src/battlePhases.ts:291`                             | `instanceof BluewaveError`     | Cannot receive a migrated error (they are not `BluewaveError`).                                                                       |
+| `packages/combat/src/damage/pipeline.ts:197,225`                            | `instanceof BluewaveError`     | Same; migrated combat throws not on these chains.                                                                                     |
+| `apps/compiler-cli/src/combatDiagnostics.ts:43`                             | `instanceof BluewaveError`     | A tagged `CombatInvariantError` correctly falls to `internal-error` (same as the old plain `Error`). New regression case added.       |
+| `apps/desktop/src/main/commands/{contentCommands,battleSandboxCommands}.ts` | `err.code` / `"code" in error` | Only string `reason`/`diagnostics` cross IPC; no migrated error object is serialized.                                                 |
 
 **Regression tests added (public consumer paths).**
 
 - `packages/commands/test/error-consumers.test.ts` — invalid transition via the
   public `transitionRecord` (now re-exported) caught by `code`; settlement policy
-  + settlement invariant rejections; registry issuer-parity — all assert
-  `code`/`message` reach the caller unchanged.
+  - settlement invariant rejections; registry issuer-parity — all assert
+    `code`/`message` reach the caller unchanged.
 - `packages/phase-engine/test/error-consumers.test.ts` — `TacticalReplayVerifier`
   fail-closed catch surfaces a stable `TACTICAL_REPLAY_ERROR: <message>`.
 - `apps/compiler-cli/test/combatDiagnostics.test.ts` — tagged
@@ -138,21 +138,21 @@ is un-gated (frontier 22, 26, 28, 30, then a P-2 gate). P-2 was **not started**.
 
 ## Validation gate — exact commands & observed results
 
-| Command | Result |
-| --- | --- |
-| `pnpm preflight` | **10/10 passed** (incl. new runtime-free self-test + real gate) |
-| `pnpm format` | All matched files use the correct format (2319 files) |
-| `pnpm lint` | 0 warnings, 0 errors |
-| `pnpm lint:effect` | 0 errors, 278 pre-existing warnings |
-| `pnpm test:scripts` | 59 tests pass (incl. the new 13-test runtime-free fixture) |
-| `pnpm typecheck` | 37/37 successful |
-| `pnpm -w turbo run build --force` | 20/20 (0 cached); `renderer bundle clean: no yaml/effect across 20 chunk(s)` |
-| `pnpm test:run` | green (all packages; `phase-engine` 33 files/315 tests, `commands` 3, `ai` 4, `combat` 288, `compiler-cli` 8) |
-| `pnpm check:balance-reports` | ok |
-| `node scripts/verify-golden-hashes.cjs` | All 10 hashes match golden reference |
-| `pnpm test:cross-process` (×2) | byte-identical, `success:true` — no hash change |
-| `pnpm test:e2e` | **33 passed** |
-| `pnpm check` | **green end-to-end** |
+| Command                                 | Result                                                                                                        |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `pnpm preflight`                        | **10/10 passed** (incl. new runtime-free self-test + real gate)                                               |
+| `pnpm format`                           | All matched files use the correct format (2319 files)                                                         |
+| `pnpm lint`                             | 0 warnings, 0 errors                                                                                          |
+| `pnpm lint:effect`                      | 0 errors, 278 pre-existing warnings                                                                           |
+| `pnpm test:scripts`                     | 59 tests pass (incl. the new 13-test runtime-free fixture)                                                    |
+| `pnpm typecheck`                        | 37/37 successful                                                                                              |
+| `pnpm -w turbo run build --force`       | 20/20 (0 cached); `renderer bundle clean: no yaml/effect across 20 chunk(s)`                                  |
+| `pnpm test:run`                         | green (all packages; `phase-engine` 33 files/315 tests, `commands` 3, `ai` 4, `combat` 288, `compiler-cli` 8) |
+| `pnpm check:balance-reports`            | ok                                                                                                            |
+| `node scripts/verify-golden-hashes.cjs` | All 10 hashes match golden reference                                                                          |
+| `pnpm test:cross-process` (×2)          | byte-identical, `success:true` — no hash change                                                               |
+| `pnpm test:e2e`                         | **33 passed**                                                                                                 |
+| `pnpm check`                            | **green end-to-end**                                                                                          |
 
 No authoritative hash changed (errors are not hash-surface inputs). No ADR-0007
 regeneration was required.

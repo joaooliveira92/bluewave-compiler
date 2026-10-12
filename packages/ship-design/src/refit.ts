@@ -45,7 +45,8 @@ const gunFinding = (
 });
 
 const inches = (um: number) => (um / UM_PER_INCH).toFixed(1);
-const barrelsWord = (n: number) => (n === 1 ? "single" : n === 2 ? "double" : n === 3 ? "triple" : `${n}-barrel`);
+const barrelsWord = (n: number) =>
+  n === 1 ? "single" : n === 2 ? "double" : n === 3 ? "triple" : `${n}-barrel`;
 
 /**
  * The manual's armament-change conditions for a `REARMAMENT` rebuild (BUILDING SHIPS, printed pp31–32; ADR-0131):
@@ -160,7 +161,6 @@ export function armamentChangeFindings(
   }
   return findings;
 }
-
 
 export type RefitKind =
   | "MAINTENANCE_REFIT"
@@ -299,7 +299,9 @@ export function evaluateRefit(
 
   // BULGE (RTW3 manual p. 32): a blister is required, and only a BULGE refit may add one.
   const bulgeMassKg =
-    plan.bulge !== undefined && plan.kind === "BULGE" ? Math.max(0, Math.floor(plan.bulge.massKg)) : 0;
+    plan.bulge !== undefined && plan.kind === "BULGE"
+      ? Math.max(0, Math.floor(plan.bulge.massKg))
+      : 0;
   if (plan.kind === "BULGE" && plan.bulge === undefined)
     findings.push(
       f(
@@ -411,9 +413,7 @@ export function evaluateRefit(
       .filter((p) => plan.removeInstanceIds.includes(p.instanceId))
       .map(gunChangeOf)
       .filter((g): g is GunChange => g !== null);
-    const addedGuns = plan.add
-      .map(gunChangeOf)
-      .filter((g): g is GunChange => g !== null);
+    const addedGuns = plan.add.map(gunChangeOf).filter((g): g is GunChange => g !== null);
     findings.push(...armamentChangeFindings(removedGuns, addedGuns));
   }
   const stripped = ship.design.placements.filter(
@@ -677,7 +677,8 @@ export function evaluateRefit(
     costRatioBp,
     monthsOutOfService,
     projectType: rule.projectType,
-    bulgeProtectionGainBp: plan.kind === "BULGE" && plan.bulge !== undefined ? balance.bulgeProtectionGainBp : 0,
+    bulgeProtectionGainBp:
+      plan.kind === "BULGE" && plan.bulge !== undefined ? balance.bulgeProtectionGainBp : 0,
     nextState,
   };
 }

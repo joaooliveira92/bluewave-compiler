@@ -110,10 +110,9 @@ export function nextConstructionProjectStatus(
  * Move a project to `to`, asserting the transition. Equal status returns the same object unchanged (no-op), so a
  * no-work funding pass does not fail. Pure; the caller keeps its own immutable update.
  */
-export function transitionConstructionProject<T extends { readonly status: ConstructionProjectStatus }>(
-  project: T,
-  to: ConstructionProjectStatus,
-): T {
+export function transitionConstructionProject<
+  T extends { readonly status: ConstructionProjectStatus },
+>(project: T, to: ConstructionProjectStatus): T {
   const next = nextConstructionProjectStatus(project.status, to);
   return next === undefined ? project : { ...project, status: next };
 }

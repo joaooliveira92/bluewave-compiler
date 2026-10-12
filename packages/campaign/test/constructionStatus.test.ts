@@ -70,7 +70,9 @@ describe("dockyard project status model (DESIGN-23 section 2)", () => {
       expect((e as ConstructionProjectTransitionError).from).toBe<ConstructionProjectStatus>(
         "COMPLETED",
       );
-      expect((e as ConstructionProjectTransitionError).to).toBe<ConstructionProjectStatus>("ACTIVE");
+      expect((e as ConstructionProjectTransitionError).to).toBe<ConstructionProjectStatus>(
+        "ACTIVE",
+      );
     }
   });
 
