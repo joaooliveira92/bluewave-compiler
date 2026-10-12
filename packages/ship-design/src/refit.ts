@@ -10,7 +10,7 @@ import {
 import { computeCost, type CostBalance, type CostContext } from "./cost.js";
 import type { Finding } from "./findings.js";
 import { sortFindings } from "./findings.js";
-import { bp } from "./units.js";
+import { bp, kg } from "./units.js";
 
 export type RefitKind =
   | "MAINTENANCE_REFIT"
@@ -19,6 +19,7 @@ export type RefitKind =
   | "MACHINERY_REFIT"
   | "REARMAMENT"
   | "ARMOUR_MODIFICATION"
+  | "BULGE"
   | "AVIATION_CONVERSION"
   | "MAJOR_RECONSTRUCTION"
   | "ROLE_CONVERSION";
@@ -49,6 +50,13 @@ export interface RefitBalance {
   readonly uneconomicalHardBp: number;
   /** Money that buys one work unit, to turn cost into dock time. */
   readonly costPerWorkMicro: number;
+  /**
+   * BULGE refit (RTW3 manual p. 32; ADR-0067 §3): the torpedo-protection gain credited to a bulged ship, bp. The
+   * speed penalty is realised by the blister's added hull mass through the normal compile (BALANCE TARGET).
+   */
+  readonly bulgeProtectionGainBp: number;
+  /** Declared nominal speed penalty of a bulge, bp of the ship's speed, recorded for evidence (BALANCE TARGET). */
+  readonly bulgeSpeedPenaltyBp: number;
 }
 
 /** What a built ship carries between refits: the finite budgets that stop unlimited upgrading (spec §16.3). */
@@ -71,6 +79,11 @@ export interface RefitPlan {
   readonly armourSet?: readonly ArmourRegion[];
   /** Armour regions to strip (e.g. CONNING_TOWER). Legal only under ARMOUR_MODIFICATION. */
   readonly armourRemove?: readonly ArmourRegionId[];
+  /**
+   * The blister a `BULGE` refit adds (RTW3 manual p. 32): its added hull mass drives the speed penalty through the
+   * normal compile, which also accounts for the displacement and stability it brings. Legal only under `BULGE`.
+   */
+  readonly bulge?: { readonly massKg: number };
 }
 
 export interface RefitEvaluation {
@@ -85,6 +98,8 @@ export interface RefitEvaluation {
   readonly costRatioBp: number;
   readonly monthsOutOfService: number;
   readonly projectType: RefitProjectType;
+  /** Torpedo-protection gain credited by a `BULGE` refit, bp; 0 for every other kind (RTW3 manual p. 32). */
+  readonly bulgeProtectionGainBp: number;
   /** The ship as it would be after the refit; identical to the input when not legal. */
   readonly nextState: ShipState;
 }
@@ -131,6 +146,40 @@ export function evaluateRefit(
   const rule = balance.rules[plan.kind];
   const findings: Finding[] = [];
   const catOf = (componentId: string) => ctx.catalogue.find((c) => c.id === componentId)?.category;
+
+  // BULGE (RTW3 manual p. 32): a blister is required, and only a BULGE refit may add one.
+  const bulgeMassKg =
+    plan.bulge !== undefined && plan.kind === "BULGE" ? Math.max(0, Math.floor(plan.bulge.massKg)) : 0;
+  if (plan.kind === "BULGE" && plan.bulge === undefined)
+    findings.push(
+      f(
+        "REFIT_BULGE_REQUIRED",
+        "BLOCKING",
+        "A bulge refit needs a blister.",
+        "No bulge mass was given, so there is nothing to build.",
+        "The plan cannot be carried out.",
+        [
+          ["add_bulge", "Specify the blister's added mass."],
+          ["use_kind", "Choose a different refit kind."],
+          ["drop", "Drop the bulge from the plan."],
+        ],
+      ),
+    );
+  if (plan.bulge !== undefined && plan.kind !== "BULGE")
+    findings.push(
+      f(
+        "REFIT_BULGE_KIND_MISMATCH",
+        "BLOCKING",
+        `A bulge cannot be added in a ${plan.kind} refit.`,
+        "Only a BULGE refit adds a torpedo blister.",
+        "A refit of this kind cannot bulge the hull.",
+        [
+          ["use_kind", "Plan a BULGE refit instead."],
+          ["drop", "Remove the bulge from the plan."],
+          ["reconstruct", "Plan a major reconstruction instead."],
+        ],
+      ),
+    );
 
   // Build the modified design.
   const existing = new Map(ship.design.placements.map((p) => [p.instanceId, p]));
@@ -257,7 +306,19 @@ export function evaluateRefit(
   };
 
   const before = compileDesign(ship.design, ctx);
-  const rawAfter = compileDesign(newDesign, ctx);
+  // A bulge grows the hull: the added blister mass is carried into the compile, so displacement, stability and speed
+  // are re-derived and the speed penalty emerges from the heavier hull with the same installed power.
+  const shaped: DesignDraft =
+    bulgeMassKg > 0
+      ? {
+          ...newDesign,
+          hull: {
+            ...newDesign.hull,
+            targetDisplacementKg: kg(newDesign.hull.targetDisplacementKg + bulgeMassKg),
+          },
+        }
+      : newDesign;
+  const rawAfter = compileDesign(shaped, ctx);
   const netAddedKg =
     rawAfter.ledger.armament +
     rawAfter.ledger.ammunition +
@@ -274,7 +335,8 @@ export function evaluateRefit(
       before.ledger.auxiliary +
       before.ledger.machinery +
       before.ledger.crew +
-      before.ledger.armour);
+      before.ledger.armour) +
+    bulgeMassKg;
   // The refit spends the ship's growth budget instead of paying a fresh margin: keep margin and reserve as built.
   const subtotalAfter = rawAfter.totalKg - rawAfter.ledger.margin - rawAfter.ledger.reserve;
   const marginBp =
@@ -284,8 +346,8 @@ export function evaluateRefit(
     (reserveAfter * 10_000) / Math.max(1, ship.design.hull.targetDisplacementKg),
   );
   const adjusted: DesignDraft = {
-    ...newDesign,
-    hull: { ...newDesign.hull, designMarginBp: bp(marginBp), growthReserveBp: bp(reserveBp) },
+    ...shaped,
+    hull: { ...shaped.hull, designMarginBp: bp(marginBp), growthReserveBp: bp(reserveBp) },
   };
   const after = compileDesign(adjusted, ctx);
 
@@ -440,6 +502,7 @@ export function evaluateRefit(
     costRatioBp,
     monthsOutOfService,
     projectType: rule.projectType,
+    bulgeProtectionGainBp: plan.kind === "BULGE" && plan.bulge !== undefined ? balance.bulgeProtectionGainBp : 0,
     nextState,
   };
 }

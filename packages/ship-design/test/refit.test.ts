@@ -69,6 +69,40 @@ const run = (plan: RefitPlan, s: ShipState = ship, c: ShipContext = ctx) =>
     2_000_000,
   );
 
+describe("BULGE (RTW3 manual p. 32)", () => {
+  const bulge = (massKg: number): RefitPlan => ({
+    kind: "BULGE",
+    removeInstanceIds: [],
+    add: [],
+    bulge: { massKg },
+  });
+  it("adds the blister mass, lowers speed and credits torpedo protection", () => {
+    const r = run(bulge(4_000), { ...ship, growthBudgetKg: 40_000 });
+    expect(r.legal).toBe(true);
+    expect(r.projectType).toBe("REBUILD");
+    expect(r.netAddedKg).toBeGreaterThanOrEqual(4_000);
+    expect(r.bulgeProtectionGainBp).toBe(2_000);
+    expect(r.after.machinery!.maxSpeedMilliKnots).toBeLessThan(
+      r.before.machinery!.maxSpeedMilliKnots,
+    );
+  });
+  it("requires a blister on a BULGE refit", () => {
+    const r = run({ kind: "BULGE", removeInstanceIds: [], add: [] });
+    expect(r.legal).toBe(false);
+    expect(r.findings.map((x) => x.id)).toContain("REFIT_BULGE_REQUIRED");
+  });
+  it("refuses a bulge inside another refit kind", () => {
+    const r = run(upgrade("director_mk1", { bulge: { massKg: 1_000 } }));
+    expect(r.legal).toBe(false);
+    expect(r.findings.map((x) => x.id)).toContain("REFIT_BULGE_KIND_MISMATCH");
+  });
+  it("fails when the blister exceeds the growth budget", () => {
+    const r = run(bulge(999_000));
+    expect(r.legal).toBe(false);
+    expect(r.findings.map((x) => x.id)).toContain("REFIT_GROWTH_EXCEEDED");
+  });
+});
+
 describe("SENSOR_FC_UPDATE", () => {
   const r = run(upgrade());
   it("is legal, accounts for added mass and improves fire control", () => {

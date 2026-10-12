@@ -582,6 +582,15 @@ refit:
       costMultiplierBp: 12000
       minMonths: 8
       lifeExtensionMonths: 12
+    BULGE:
+      projectType: REBUILD
+      allowedCategories: []
+      minRemainingLifeMonths: 24
+      maxHullFatigueBp: 5000
+      fatigueGainBp: 1000
+      costMultiplierBp: 12000
+      minMonths: 8
+      lifeExtensionMonths: 12
     AVIATION_CONVERSION:
       projectType: CONVERSION
       allowedCategories:
@@ -615,6 +624,10 @@ refit:
   uneconomicalBp: 6000
   uneconomicalHardBp: 9000
   costPerWorkMicro: 3000
+  # BALANCE TARGET (the manual gives directions, not numbers): torpedo protection credited to a bulged ship and the
+  # nominal speed penalty recorded for evidence. The realised speed penalty comes from the blister's hull mass.
+  bulgeProtectionGainBp: 2000
+  bulgeSpeedPenaltyBp: 500
 ai:
   CONSERVATIVE:
     weights:

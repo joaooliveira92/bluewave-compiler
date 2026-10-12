@@ -861,6 +861,13 @@ export const refitBalance: RefitBalance = {
       fatigueGainBp: 1_000,
       minMonths: 8,
     }),
+    BULGE: rule({
+      projectType: "REBUILD",
+      allowedCategories: [],
+      maxHullFatigueBp: 5_000,
+      fatigueGainBp: 1_000,
+      minMonths: 8,
+    }),
     AVIATION_CONVERSION: rule({
       projectType: "CONVERSION",
       allowedCategories: ["AIRCRAFT_FACILITY"],
@@ -889,4 +896,6 @@ export const refitBalance: RefitBalance = {
   uneconomicalBp: 6_000,
   uneconomicalHardBp: 9_000,
   costPerWorkMicro: 3_000,
+  bulgeProtectionGainBp: 2_000,
+  bulgeSpeedPenaltyBp: 500,
 };
