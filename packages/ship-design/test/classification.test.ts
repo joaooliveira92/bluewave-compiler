@@ -3,10 +3,12 @@ import {
   classPredicates,
   naturalClass,
   classificationFindings,
+  classificationRejected,
   classFacts,
   classCode,
   compileDesign,
   checkFindingShape,
+  CLASSIFICATION_REJECTION_IDS,
   CLASSIFIED_SHIP_TYPES,
   DESIGN_22_EARLY,
   UM_PER_INCH,
@@ -245,6 +247,47 @@ describe("classification findings", () => {
     );
     expect(mismatch.natural).toBe("B");
     expect(mismatch.findings[0]!.id).toBe("NATURAL_CLASSIFICATION_MISMATCH");
+  });
+});
+
+describe("classificationRejected (DESIGN-22 section 22 reclassification)", () => {
+  const ca = facts({
+    displacementKg: 7_700_000,
+    speedUms: 20 * UM_PER_KNOT,
+    beltUm: 6 * UM_PER_INCH,
+    maxMainGunUm: 234_000,
+  });
+  it("names exactly the shipped mismatch-policy rejections", () => {
+    expect([...CLASSIFICATION_REJECTION_IDS]).toEqual([
+      "INTENDED_CLASSIFICATION_ILLEGAL",
+      "NATURAL_CLASSIFICATION_MISMATCH",
+      "NO_NATURAL_CLASSIFICATION_MATCH",
+    ]);
+  });
+  it("accepts a design whose intended type still validates and is natural (type unchanged)", () => {
+    const r = classificationFindings(ca, "CA", R);
+    expect(r.natural).toBe("CA");
+    expect(classificationRejected(r.findings)).toBe(false);
+  });
+  it("rejects an intended type that has become illegal", () => {
+    const r = classificationFindings(ca, "BB", R);
+    expect(classificationRejected(r.findings)).toBe(true);
+  });
+  it("rejects a design that no longer matches its natural type", () => {
+    const merchantCruiser = facts({ displacementKg: 6_000_000, merchantHull: true });
+    const r = classificationFindings(merchantCruiser, "CL", R);
+    expect(r.natural).toBe("AMC");
+    expect(classificationRejected(r.findings)).toBe(true);
+  });
+  it("rejects a design that matches no natural type", () => {
+    const unmatched = facts({
+      displacementKg: 12_000_000,
+      torpedoTubes: 0,
+      speedUms: 5 * UM_PER_KNOT,
+    });
+    const r = classificationFindings(unmatched, "CL", R);
+    expect(r.natural).toBeNull();
+    expect(classificationRejected(r.findings)).toBe(true);
   });
 });
 

@@ -204,6 +204,28 @@ export function classCode(
 }
 
 /**
+ * The blocking finding ids `classificationFindings` emits when the shipped DESIGN-22 section 5 mismatch policy
+ * rejects a design: the intended type is illegal, the natural type differs, or no natural type matches. A rebuild
+ * completion re-runs classification and refuses on any of these (DESIGN-22 section 22).
+ */
+export const CLASSIFICATION_REJECTION_IDS: readonly string[] = [
+  "INTENDED_CLASSIFICATION_ILLEGAL",
+  "NATURAL_CLASSIFICATION_MISMATCH",
+  "NO_NATURAL_CLASSIFICATION_MATCH",
+];
+
+/**
+ * True when compiled-design findings carry a blocking intended/natural classification rejection. Callers that
+ * re-run classification (e.g. a completed rebuild, DESIGN-22 section 22) use this to tell a classification
+ * failure from an unrelated blocking finding.
+ */
+export function classificationRejected(findings: readonly Finding[]): boolean {
+  return findings.some(
+    (f) => f.severity === "BLOCKING" && CLASSIFICATION_REJECTION_IDS.includes(f.id),
+  );
+}
+
+/**
  * Non-blocking guidance for a design that passes its intended type: a WARNING is a real weakness the player should
  * weigh, an ADVISORY is context. Neither can make a design unbuildable (ADR-0088).
  */

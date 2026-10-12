@@ -18,6 +18,7 @@ import {
 } from "./dockExpansion.js";
 import { constructionProgressedEvent, shipRebuiltEvent } from "./events.js";
 import type { MonthContext } from "./monthContext.js";
+import { checkRebuildClassification } from "./rebuildClassification.js";
 
 export function runConstructionProcessingPhase(ctx: MonthContext): void {
   for (const [nationId, nation] of ctx.currentSnapshot["nations"]) {
@@ -134,38 +135,54 @@ function applyConstructionToNation(ctx: MonthContext, nationId: string, nation: 
       (clampedWork as number) >= (project["totalWork"] as number) &&
       (project["totalWork"] as number) > 0
     ) {
-      updatedProjects = updatedProjects.map((p) =>
-        p["id"] === project["id"]
-          ? {
-              ...transitionConstructionProject(p, "COMPLETED"),
-              completedWork: project["totalWork"],
-            }
-          : p,
+      // DESIGN-22 section 22 / DESIGN-23 section 22: re-run intended/natural classification on the rebuilt design
+      // BEFORE any mutation. A failure leaves the project unfinished, the ship on its old design and no ShipRebuilt
+      // event; because nothing in `updatedProjects`/`updatedFleets` is touched, the whole completion is atomic.
+      const classification = checkRebuildClassification(
+        ctx.currentSnapshot["designs"]?.get(project["designVersionId"]),
+        ctx.engineOptions?.shipBuilding,
+        campaignMonth,
       );
-      hasChanges = true;
-      const done = completeRebuild(ctx, project, updatedFleets);
-      if (done === null || !done.rebuilt) {
+      if (!classification.ok) {
         collector.addError(
-          "REBUILD_TARGET_MISSING",
-          `Rebuild ${project["id"]} finished but its ship or design is missing`,
+          "REBUILD_CLASSIFICATION_INVALID",
+          `Rebuild ${project["id"]} cannot complete: the rebuilt design ${project["designVersionId"]} fails classification (${classification.reasons.join(", ")})`,
           { stage: "construction-processing" },
         );
-      }
-      if (done !== null) {
-        updatedFleets = done.fleets;
-      }
-      if (done !== null && done.rebuilt) {
-        eventLedger.append(
-          shipRebuiltEvent(
-            project["id"],
-            nationId,
-            done.shipId,
-            done.fromDesignVersionId,
-            project["designVersionId"],
-            nextSeq(),
-            campaignMonth,
-          ),
+      } else {
+        updatedProjects = updatedProjects.map((p) =>
+          p["id"] === project["id"]
+            ? {
+                ...transitionConstructionProject(p, "COMPLETED"),
+                completedWork: project["totalWork"],
+              }
+            : p,
         );
+        hasChanges = true;
+        const done = completeRebuild(ctx, project, updatedFleets);
+        if (done === null || !done.rebuilt) {
+          collector.addError(
+            "REBUILD_TARGET_MISSING",
+            `Rebuild ${project["id"]} finished but its ship or design is missing`,
+            { stage: "construction-processing" },
+          );
+        }
+        if (done !== null) {
+          updatedFleets = done.fleets;
+        }
+        if (done !== null && done.rebuilt) {
+          eventLedger.append(
+            shipRebuiltEvent(
+              project["id"],
+              nationId,
+              done.shipId,
+              done.fromDesignVersionId,
+              project["designVersionId"],
+              nextSeq(),
+              campaignMonth,
+            ),
+          );
+        }
       }
     }
 
