@@ -20,7 +20,9 @@ extraResources:
   - from: ../../content/generated/1880
     to: content/generated/1880
 mac:
-  artifactName: ${name}-${version}-${arch}.${ext}
+  # `${name}` is the scoped package name (`@bluewave/desktop`); its `/` becomes a
+  # path separator and breaks artifact packaging. Use the product name instead.
+  artifactName: ${productName}-${version}-${arch}.${ext}
   target:
     - dmg
     - zip
@@ -31,7 +33,7 @@ mac:
   # Notarization is automatic when APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD /
   # APPLE_TEAM_ID are set (see docs/delivery/desktop-signing.md); skipped locally.
 win:
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: ${productName}-${version}-setup.${ext}
   target:
     - nsis
   executableName: bluewave
@@ -40,7 +42,7 @@ nsis:
   allowToChangeInstallationDirectory: true
   deleteAppDataOnUninstall: false
 linux:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${productName}-${version}.${ext}
   target:
     - AppImage
   # Without this, electron-builder derives the executable name from the scoped
