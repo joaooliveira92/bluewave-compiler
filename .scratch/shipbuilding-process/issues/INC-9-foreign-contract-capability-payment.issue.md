@@ -19,6 +19,9 @@ size".
       occupation/destruction. A missing contract fails with `FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED`;
       missing capability fails with `FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT` (or an explicit
       delayed/impossible outcome), never a silent downgrade. Capability is revalidated monthly.
+      *Mass is checked; the **dimension** predicate reads no data because `CompiledDesignVersion`
+      carries no length/beam fields (the domestic path has the same structural limitation) — recorded
+      as deferred in the Answer, not silently claimed.*
 - [x] Foreign construction consumes the **builder's** capacity, not the ordering nation's; a builder never sells
       the same capacity twice (the admission gate + `foreignBuilderCommittedMassKg`).
 - [ ] Reservations compete with the builder's domestic and other foreign work **under the builder's declared
@@ -192,7 +195,10 @@ single entry at the authorization month (derived by the engine); genuine per-mon
 the type but not authored yet. Residual command-path/monthly-step MINOR findings from the fourth-pass review
 (non-payment resume clearing the delay reason, holder-vs-ordering mismatch, missing builder nation, zero/duplicate
 instalments, `ReviseProject`/`SetAcceleration` foreign guards, non-playable-nation guard) →
-`INC-9e-foreign-project-command-guards.issue.md`.
+`INC-9e-foreign-project-command-guards.issue.md`. DESIGN-16 §18 reason-code reconciliation (the required
+`FOREIGN_BUILDER_CAPACITY_UNAVAILABLE` and `FOREIGN_CONTRACT_PAYMENT_DEFAULT` names) →
+`INC-9f-design16-section18-reason-codes.issue.md`. The builder dock **dimension** predicate is not enforced
+because `CompiledDesignVersion` carries no length/beam fields (shared with the domestic order path) — deferred.
 
 ## Notes for implementator
 

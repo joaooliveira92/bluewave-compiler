@@ -26,11 +26,12 @@ and the dock/capacity panel.
 - [x] Names are allocated from a per-nation, per-type name pool in deterministic order with defined
       collision handling; the named-class id is assigned once; allocation consumes no ambient randomness
       and records its pool and ordinal. Name pools ship as PLACEHOLDER content.
-- [x] Repeat orders of an unchanged design version/hash need no new study; a mechanically changed design
-      fails with `NEW_DESIGN_STUDY_REQUIRED`; cosmetic-only changes do not. *Enforced structurally at
-      the design-study boundary (a mechanical change is a new compiled version that only
-      `SubmitDesign`→`planDesignStudy` can approve), not at the order boundary — see the Answer for why
-      the review rejected a contrived caller-hash guard.*
+- [x] Repeat orders of an unchanged design version/hash need no new study; cosmetic-only changes do not.
+- [ ] A mechanically changed design fails with the literal `NEW_DESIGN_STUDY_REQUIRED` code. **Not emitted**:
+      the rule is enforced structurally at the design-study boundary (a mechanical change is a new compiled
+      version that only `SubmitDesign`→`planDesignStudy` can approve), not at the order boundary — see the
+      Answer for why the review rejected a contrived caller-hash guard. The code-review flagged this tick as
+      an overclaim of the spec's literal wording; if the literal code is required it is a follow-up.
 - [ ] UI: the build dialog picks design version, builder and quantity 1..12 with auto-names, and shows
       per-yard fit and the dock-size ceiling; the dock/capacity panel shows cap and utilisation and
       offers the expansion action (INC-6). **Split to INC-8b.**
