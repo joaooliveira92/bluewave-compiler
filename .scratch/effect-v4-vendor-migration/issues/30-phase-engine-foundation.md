@@ -1,8 +1,8 @@
 # 30 — `phase-engine` foundation + orchestration
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 24 (`commands`), 26 (`combat`), 29 (`ai`)
+**Status:** done
+**Blocked by:** none (24, 26, 29 done)
 **Frontier:** no
 
 ## What to build
@@ -22,12 +22,12 @@ lifecycle replace ad-hoc failure handling.
 
 ## Acceptance criteria
 
-- [ ] The listed modules use Effect `Layer`/`Context.Service`/typed errors as
+- [x] The listed modules use Effect `Layer`/`Context.Service`/typed errors as
       appropriate for orchestration (`MIG-RUNTIME-1`).
-- [ ] Monthly phase execution order and outputs unchanged; deterministic
+- [x] Monthly phase execution order and outputs unchanged; deterministic
       behavior preserved (fixed seed/inputs ⇒ identical results) (`MIG-DET-1`).
-- [ ] Public entry surface remains compatible (facade rule).
-- [ ] `pnpm --filter @bluewave/phase-engine typecheck` green; focused tests
+- [x] Public entry surface remains compatible (facade rule).
+- [x] `pnpm --filter @bluewave/phase-engine typecheck` green; focused tests
       green.
 
 ## Notes
@@ -51,3 +51,32 @@ spine. Scope: type the 8 throws (`snapshotClone.ts:61,124,595,604,614,636`,
 `phase-engine` sit in the runtime-free row, `content-compiler` is listed as an
 IO package, and `campaign`'s filesystem read is acknowledged. Not renderer-reachable.
 Blocked-by corrected: 25, 27, 28 are closed.
+
+### Evidence (2026-10-12)
+
+**Delivered (code).** Added `packages/phase-engine/src/errors.ts` —
+`PhaseEngineError extends Data.TaggedError("PhaseEngineError")<{ message; code? }>`
+(imports only `{ Data } from "effect"`; runtime-free — no `Layer`/`Context`/
+`ManagedRuntime`/`Effect.run*`). Converted all 8 throws: 6 in
+`snapshotClone.ts`, 1 in `financial-ledger.ts`, and the
+`Object.assign(new Error(msg), { code })` in `commandLifecycle.ts:524`
+(`code`/`message` verbatim). Re-exported from `index.ts`; added `effect` to
+`packages/phase-engine/package.json`. The `BluewaveError` consumer at
+`battlePhases.ts:291` is untouched.
+
+**Delivered (docs).** Amended ADR-0100 §2's runtime-usage table: `ai` and
+`phase-engine` moved to the runtime-free row (no IO), `content-compiler` added
+to the IO row (fs-bound), `commands`/`content-schema`/`diagnostics` added to the
+runtime-free row, and `campaignInput.ts`'s in-package filesystem read
+acknowledged as policy debt (with a dated amendment note).
+
+| Check | Result |
+| --- | --- |
+| `rg "throw new (Error\|TypeError\|RangeError)\|throw Object\.assign" packages/phase-engine/src` | no matches |
+| `pnpm --filter @bluewave/phase-engine test` | 32 files / 314 tests passed (+5 new `errors.test.ts`) |
+| `pnpm --filter @bluewave/phase-engine typecheck` | exit 0 |
+| `pnpm typecheck` | 37/37 successful |
+| `pnpm lint:effect` | 0 errors (278 pre-existing warnings) |
+| `node scripts/docs-check.cjs` | ok (126 ADRs indexed) |
+
+**Residual:** none for phase-engine's throws; the ADR table is now accurate.

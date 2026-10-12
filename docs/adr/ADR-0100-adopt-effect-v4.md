@@ -35,9 +35,23 @@ demotion is ADR-0103.
 
    | Layer | Adopt | Do **not** add |
    | --- | --- | --- |
-   | Pure synchronous computation (`combat` math, `ship-design`, `campaign` derivations, `random`, `deterministic`, `contracts`, `armament`, `events` validation) | Runtime-free subset: `Schema` (sync decode/encode), `Data`/`Data.TaggedError`, `Result`, `Option`, `Predicate`, `Equal`/`Hash` | `Effect`/`Layer`/`ManagedRuntime`, fibers, live services |
-   | IO / async / orchestration (`persistence`, desktop `src/main`, `compiler-cli`, `ai`, `phase-engine`) | Full Effect: `Effect`, `Layer`, `Context.Service`, `ManagedRuntime`, cancellation via `Scope`, typed `Cause` | Blind wrapping of pure functions in `Effect` |
+   | Pure synchronous computation (`combat` math, `ship-design`, `campaign` derivations, `random`, `deterministic`, `contracts`, `armament`, `events` validation, `commands`, `ai`, `phase-engine`, `content-schema`, `diagnostics`) | Runtime-free subset: `Schema` (sync decode/encode), `Data`/`Data.TaggedError`, `Result`, `Option`, `Predicate`, `Equal`/`Hash` | `Effect`/`Layer`/`ManagedRuntime`, fibers, live services |
+   | IO / async / orchestration (`persistence`, desktop `src/main`, `compiler-cli`, `content-compiler`) | Full Effect: `Effect`, `Layer`, `Context.Service`, `ManagedRuntime`, cancellation via `Scope`, typed `Cause` | Blind wrapping of pure functions in `Effect` |
    | React renderer (`apps/desktop/src/renderer/**`) | Nothing — talks over IPC | Any Effect import |
+
+   **Amendment (2026-10-12).** The table above reflects the migration audit
+   (ticket 00). `ai` (651 LOC) and `phase-engine` (8244 LOC) were originally
+   listed as IO/orchestration but contain no async, no `node:` import and no IO —
+   they are synchronous deterministic pipelines, so wrapping them in
+   `Layer`/`Context.Service` would be the blind wrapping this ADR forbids; both
+   moved to the runtime-free row. `content-compiler` was in no row despite being
+   filesystem-bound (`stages/parse.ts`, `fullSurface.ts`, `artifact.ts`,
+   `shipBuildingDiscovery.ts`) and is now listed as an IO package.
+   `commands`/`content-schema`/`diagnostics` were added to the runtime-free row
+   (`Data`/`Schema` only). `campaign` remains a pure-derivation package, but its
+   `campaignInput.ts` performs a filesystem read inside an otherwise pure package
+   — an acknowledged policy debt (whether to move it to the
+   `content-compiler`/main boundary) that is not itself an Effect gap.
 
 3. **The runtime is introduced where an effect is run**, not inside pure
    derivations. In-process domain errors are `Data.TaggedError`; serializable/wire

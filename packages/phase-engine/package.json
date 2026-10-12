@@ -22,7 +22,8 @@
     "@bluewave/events": "workspace:*",
     "@bluewave/persistence": "workspace:*",
     "@bluewave/random": "workspace:*",
-    "@bluewave/ship-design": "workspace:*"
+    "@bluewave/ship-design": "workspace:*",
+    "effect": "workspace:*"
   },
   "devDependencies": {
     "@bluewave/test-support": "workspace:*",

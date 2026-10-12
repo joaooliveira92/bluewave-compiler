@@ -30,6 +30,7 @@ import type {
   WorldState,
 } from "@bluewave/campaign";
 import type { SafeInt } from "@bluewave/contracts";
+import { PhaseEngineError } from "./errors.js";
 
 type AreaData = WorldState["areas"][number];
 type RouteData = WorldState["routes"][number];
@@ -58,7 +59,8 @@ function cloneValue(value: unknown, seen = new WeakMap<object, unknown>()): unkn
   if (t !== "object") return value; // string, number, boolean, bigint, symbol
 
   const obj = value as object;
-  if (seen.has(obj)) throw new Error("cloneValue: circular reference detected");
+  if (seen.has(obj))
+    throw new PhaseEngineError({ message: "cloneValue: circular reference detected" });
 
   if (value instanceof Date) return new Date(value.getTime());
   if (value instanceof RegExp) return new RegExp(value.source, value.flags);
@@ -121,7 +123,7 @@ function recordClone<T extends object>(
   seen = new WeakMap<object, unknown>(),
 ): T {
   if (source === null || typeof source !== "object") {
-    throw new Error("recordClone: source must be a non-null object");
+    throw new PhaseEngineError({ message: "recordClone: source must be a non-null object" });
   }
   const out: Record<string, unknown> = {};
   for (const field of fields) {
@@ -592,7 +594,7 @@ const cloneDesignFamily = (d: DesignFamily): DesignFamily => recordClone(d, F.De
 const cloneDesigns = (designs: CampaignSnapshot["designs"]): CampaignSnapshot["designs"] => {
   if (designs instanceof Map)
     return new Map([...designs].map(([id, d]) => [id, cloneDesign(d as CompiledDesignVersion)]));
-  throw new Error("cloneSnapshot: designs must be a Map");
+  throw new PhaseEngineError({ message: "cloneSnapshot: designs must be a Map" });
 };
 const cloneDesignFamilies = (
   designFamilies: CampaignSnapshot["designFamilies"],
@@ -601,7 +603,7 @@ const cloneDesignFamilies = (
     return new Map(
       [...designFamilies].map(([id, d]) => [id, cloneDesignFamily(d as DesignFamily)]),
     );
-  throw new Error("cloneSnapshot: designFamilies must be a Map");
+  throw new PhaseEngineError({ message: "cloneSnapshot: designFamilies must be a Map" });
 };
 
 /**
@@ -611,7 +613,7 @@ const cloneDesignFamilies = (
  */
 export function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
   if (snapshot === null || typeof snapshot !== "object")
-    throw new Error("cloneSnapshot: snapshot must be a non-null object");
+    throw new PhaseEngineError({ message: "cloneSnapshot: snapshot must be a non-null object" });
   const seen = new WeakMap<object, unknown>();
   return recordClone(
     snapshot,
@@ -633,7 +635,8 @@ export function cloneSnapshot(snapshot: CampaignSnapshot): CampaignSnapshot {
           seen,
         ),
       nations: (v) => {
-        if (!(v instanceof Map)) throw new Error("cloneSnapshot: nations must be a Map");
+        if (!(v instanceof Map))
+          throw new PhaseEngineError({ message: "cloneSnapshot: nations must be a Map" });
         return new Map([...(v as Map<string, NationState>)].map(([id, n]) => [id, cloneNation(n)]));
       },
       wars: (v) =>

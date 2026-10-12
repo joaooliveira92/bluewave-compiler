@@ -26,6 +26,7 @@ import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { EventLedger } from "@bluewave/events";
 import { applyBudgetProject } from "./commands.js";
+import { PhaseEngineError } from "./errors.js";
 import { makeLedgerEntry } from "./events.js";
 import type { FinancialLedger } from "./financial-ledger.js";
 
@@ -521,10 +522,10 @@ export class BudgetProjectLifecycle {
     let current = record;
     for (const next of statuses) {
       if (!canTransition(current.status, next)) {
-        throw Object.assign(
-          new Error(`INVALID_COMMAND_STATUS_TRANSITION: ${current.status} -> ${next}`),
-          { code: "INVALID_COMMAND_STATUS_TRANSITION" },
-        );
+        throw new PhaseEngineError({
+          message: `INVALID_COMMAND_STATUS_TRANSITION: ${current.status} -> ${next}`,
+          code: "INVALID_COMMAND_STATUS_TRANSITION",
+        });
       }
       const tr: CommandStatusTransitionRecord = {
         commandId: current.commandId,

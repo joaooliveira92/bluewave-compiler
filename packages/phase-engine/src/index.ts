@@ -1,3 +1,4 @@
+export { PhaseEngineError } from "./errors.js";
 export type { LedgerTransaction, LedgerTransactionInput } from "./financial-ledger.js";
 export { FinancialLedger } from "./financial-ledger.js";
 export {

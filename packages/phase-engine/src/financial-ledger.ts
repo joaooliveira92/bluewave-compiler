@@ -1,5 +1,6 @@
 import type { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import { PhaseEngineError } from "./errors.js";
 
 export interface LedgerTransaction {
   transactionId: string;
@@ -30,9 +31,9 @@ export class FinancialLedger {
 
   append(transaction: LedgerTransactionInput): void {
     if (transaction.debit !== transaction.credit) {
-      throw new Error(
-        `Unbalanced ledger transaction: debit ${String(transaction.debit)} != credit ${String(transaction.credit)}`,
-      );
+      throw new PhaseEngineError({
+        message: `Unbalanced ledger transaction: debit ${String(transaction.debit)} != credit ${String(transaction.credit)}`,
+      });
     }
 
     const preTransactionHash = this.hash();
