@@ -75,6 +75,30 @@ export const NATION_LABEL: Readonly<Record<string, string>> = {
 };
 
 /**
+ * Production-pack nation id -> the campaign area that is its home waters (the sea its principal
+ * base sits on). Hand-authored for the same reason as `NATION_HUE`/`NATION_LABEL`: the map's
+ * fixture geometry has no notion of which production sea a nation calls home, and inferring it
+ * from port levels or id spellings would be the silent, version-dependent guesswork the repo's
+ * determinism rules forbid. Used to open the Overview centred on the player's own waters.
+ */
+export const NATION_HOME_AREA: Readonly<Record<string, string>> = {
+  uk: "eng_home_coast",
+  france: "fra_chan_coast",
+  germany: "ger_baltic_coast",
+  russia: "rus_baltic_coast",
+  austria_hungary: "auh_adriatic_coast",
+  italy: "ita_tyrrhenian_coast",
+  usa: "usa_atlantic_coast",
+  japan: "jpn_home_coast",
+  ottoman_empire: "ott_marmara_coast",
+  spain: "spa_med_coast",
+  netherlands: "ned_home_coast",
+  portugal: "por_home_coast",
+  qing: "chi_north_coast",
+  brazil: "bra_rio_coast",
+};
+
+/**
  * Campaign (production-pack) area id -> fixture area id. Covers every area in
  * `content/production/1880/areas.yaml` (audited 2026-08). Kept as a lookup so
  * an unknown future id degrades gracefully (dropped) rather than guessing.
@@ -180,6 +204,12 @@ export function campaignNationLabel(nationId: string): string {
   return NATION_LABEL[nationId] ?? nationId;
 }
 
+/** The home-waters campaign area id for a nation, or null when unknown. */
+export function nationHomeArea(nationId: string | null): string | null {
+  if (nationId === null) return null;
+  return NATION_HOME_AREA[nationId] ?? null;
+}
+
 /** The live, campaign-derived overlay the map draws when a campaign is active. */
 export interface LiveWorldMapOverlay {
   /** fixture area id -> owning nation (nullable unclaimed). */
@@ -283,4 +313,16 @@ export const EMPTY_LIVE_OVERLAY: LiveWorldMapOverlay = {
 /** Lon/lat anchor for a fixture area (its hand-placed label), for placement. */
 export function fixtureAnchor(area: AreaId): readonly [number, number] | null {
   return AREAS_BY_ID.get(area)?.label ?? null;
+}
+
+/**
+ * The map point to centre the camera on when a nation's home waters should be
+ * brought into view: the label anchor of the fixture polygon its home campaign
+ * area is drawn on. Null when the area is unknown or has no geometry, so an
+ * unmapped nation centres nowhere rather than guessing.
+ */
+export function homeFocusPoint(campaignAreaId: string | null): readonly [number, number] | null {
+  if (campaignAreaId === null) return null;
+  const fixture = fixtureAreaId(campaignAreaId);
+  return fixture === null ? null : fixtureAnchor(fixture);
 }

@@ -9,6 +9,7 @@ import {
   OverviewNationsPanel,
   OverviewPrioritiesPanel,
 } from "./components/index.js";
+import { nationHomeArea } from "../../components/world-map/campaign-map-join.js";
 import { monthLabel } from "./month-report-format.js";
 import { useOverviewModel } from "./hooks/useOverviewModel.js";
 
@@ -52,6 +53,9 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
   if (projection === null) {
     return <OverviewLoadingState />;
   }
+
+  // The map opens centred on the player's own waters (their nation's home area).
+  const homeAreaId = nationHomeArea(projection.playerNationId);
 
   const prioritiesPanel = (
     <OverviewPrioritiesPanel
@@ -97,6 +101,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
             variant="command"
             showMinimap={false}
             treeDefaultOpen={false}
+            initialFocusAreaId={homeAreaId}
             leftPanels={
               <>
                 {prioritiesPanel}
@@ -116,7 +121,12 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
       {heading}
       <div className="h-[60vh] min-h-[22rem]">
         <Suspense fallback={<Skeleton className="h-full w-full rounded-lg" />}>
-          <WorldMapChart className="h-full" variant="panel" {...map} />
+          <WorldMapChart
+            className="h-full"
+            variant="panel"
+            initialFocusAreaId={homeAreaId}
+            {...map}
+          />
         </Suspense>
       </div>
       {prioritiesPanel}

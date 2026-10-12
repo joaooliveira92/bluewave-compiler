@@ -1,6 +1,16 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 import type { WorldMapView } from "@bluewave/campaign-engine";
-import { CAMPAIGN_AREA_TO_FIXTURE, fixtureAreaId, joinWorldMap } from "./campaign-map-join.js";
+import {
+  CAMPAIGN_AREA_TO_FIXTURE,
+  NATION_HOME_AREA,
+  fixtureAnchor,
+  fixtureAreaId,
+  homeFocusPoint,
+  joinWorldMap,
+  nationHomeArea,
+} from "./campaign-map-join.js";
 
 /**
  * Authored-join tests: the campaign world (ids from the production pack) must
@@ -189,5 +199,53 @@ describe("fixtureAreaId", () => {
   it("returns the polygon a campaign area is drawn on, or null when it has none", () => {
     expect(fixtureAreaId("eng_home_coast")).toBe("area_north_sea");
     expect(fixtureAreaId("not_a_real_area")).toBeNull();
+  });
+});
+
+describe("nationHomeArea", () => {
+  it("resolves a nation's home waters and degrades to null for unknown nations", () => {
+    expect(nationHomeArea("uk")).toBe("eng_home_coast");
+    expect(nationHomeArea("japan")).toBe("jpn_home_coast");
+    expect(nationHomeArea("atlantis")).toBeNull();
+    expect(nationHomeArea(null)).toBeNull();
+  });
+});
+
+describe("homeFocusPoint", () => {
+  it("returns the mapped fixture anchor for a home area", () => {
+    // eng_home_coast is drawn on the North Sea polygon; its label is the focus point.
+    expect(homeFocusPoint("eng_home_coast")).toEqual(fixtureAnchor("area_north_sea"));
+    const point = homeFocusPoint("eng_home_coast");
+    expect(point).not.toBeNull();
+    expect(point!.every((value) => Number.isFinite(value))).toBe(true);
+  });
+
+  it("centres nowhere for an unknown or unmapped area rather than guessing", () => {
+    expect(homeFocusPoint("not_a_real_area")).toBeNull();
+    expect(homeFocusPoint(null)).toBeNull();
+  });
+});
+
+describe("NATION_HOME_AREA (production 1880 pack)", () => {
+  // Package tests run with the package dir (apps/desktop) as cwd.
+  const COUNTRIES_YAML = resolve(process.cwd(), "../../content/production/1880/countries.yaml");
+
+  const productionNationIds = [
+    ...readFileSync(COUNTRIES_YAML, "utf8").matchAll(/^\s*-\s+id:\s*"?([a-z0-9_]+)"?\s*$/gm),
+  ].map((match) => match[1] as string);
+
+  it("covers every production nation", () => {
+    expect(productionNationIds.length).toBeGreaterThan(0);
+    expect(productionNationIds.filter((id) => NATION_HOME_AREA[id] === undefined)).toEqual([]);
+  });
+
+  it("has no stale keys for nations the pack no longer defines", () => {
+    const known = new Set(productionNationIds);
+    expect(Object.keys(NATION_HOME_AREA).filter((id) => !known.has(id))).toEqual([]);
+  });
+
+  it("maps every home area to fixture geometry", () => {
+    const unmapped = Object.values(NATION_HOME_AREA).filter((id) => fixtureAreaId(id) === null);
+    expect(unmapped).toEqual([]);
   });
 });

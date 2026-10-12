@@ -26,6 +26,7 @@ import { MapScaleBar } from "./MapScaleBar.js";
 import { RouteReadout } from "./RouteReadout.js";
 import { MAP_VARIANT_LAYOUT, type MapVariant } from "./map-variant-layout.js";
 import { useCoastline } from "./useCoastline.js";
+import { useInitialFocusArea } from "./useInitialFocusArea.js";
 import { useMapCamera } from "./useMapCamera.js";
 import { useMapPalette } from "./map-palette.js";
 import { useWorldMapModel } from "./useWorldMapModel.js";
@@ -54,6 +55,11 @@ export interface WorldMapChartProps extends MapViewProps {
   readonly rightPanels?: ReactNode;
   /** "command" only: whether the area tree starts open (compact density passes false). */
   readonly treeDefaultOpen?: boolean;
+  /**
+   * A campaign area id whose home waters the camera should centre on when the chart mounts (the
+   * Overview passes the player nation's home area). Null/undefined leaves the camera at "fit world".
+   */
+  readonly initialFocusAreaId?: string | null;
 }
 
 export function WorldMapChart({
@@ -72,6 +78,7 @@ export function WorldMapChart({
   leftPanels,
   rightPanels,
   treeDefaultOpen = true,
+  initialFocusAreaId = null,
 }: WorldMapChartProps) {
   const layout = MAP_VARIANT_LAYOUT[variant];
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -84,6 +91,11 @@ export function WorldMapChart({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const coastline = useCoastline();
   const model = useWorldMapModel({ state, route, overlay, projection, palette, camera, rootRef });
+
+  // Open centred on the player's home waters (once per mount). This runs after the camera's own
+  // reset effect, declared earlier in `useMapCamera`, so the focus is not immediately undone; the
+  // Overview remounts the chart each time the screen opens, so it fires on every visit.
+  useInitialFocusArea(camera, initialFocusAreaId);
 
   /** Keyboard parity for pan/zoom (wheel and drag stay the pointer path). */
   function handleMapKey(event: React.KeyboardEvent<SVGSVGElement>): void {
