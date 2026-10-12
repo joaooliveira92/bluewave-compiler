@@ -1,6 +1,6 @@
 # INC-5 — National dock ceiling
 
-**State:** RESOLVED (engine + domain core; UI readout split to INC-5b) · **Frontier:** yes · **Blocked by:** none
+**State:** PARTIAL (domain model + eligibility done; UI split to INC-5b, order-time binding to INC-5c) · **Frontier:** yes · **Blocked by:** none
 **Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R15) · **ADR:** none new (DESIGN-16 §4 shipped)
 
 ## What to build
@@ -47,3 +47,17 @@ Engine + domain core landed; the Construction readout is split to **INC-5b** (UI
 
 Commands: `@bluewave/ship-design` `vp test run test/dock.test.ts` (6 passed) + `tsc -b`; `@bluewave/phase-engine`
 `vp test run` (315 passed) + `tsc --noEmit`.
+
+## Answer (revised)
+
+The domain model landed; order-time enforcement and the UI readout are split out after a cross-check.
+
+- `@bluewave/ship-design` `dock.ts` (DESIGN-16 §4): `DockRecord` + `DOCK_LIMIT_MISSING` /
+  `SHIP_EXCEEDS_DOMESTIC_DOCK_LIMIT`, `dockRecordFromCeiling`, `newConstructionDockEligibility`; unit + boundary
+  tests in `dock.test.ts`.
+- **Order-time enforcement reverted to INC-5c.** Wiring the ceiling from the profile's industrial
+  `maxPracticalDisplacementKg` refused real, domestically-built ships (UK 1880 ceiling 10,000 t < the
+  `des_gbr_inflexible` reference design at 10,886 t). A dedicated authored dock record is needed first.
+- **UI readout split to INC-5b.**
+
+Commands: `@bluewave/ship-design` `vp test run test/dock.test.ts` (6 passed); `tsc --noEmit` clean.
