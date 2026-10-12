@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite-plus";
+import { sharedTestConfig } from "../../scripts/vitest-shared.mjs";
 
 export default defineConfig({
   plugins: [react()],
@@ -10,6 +11,7 @@ export default defineConfig({
     },
   },
   test: {
+    ...sharedTestConfig,
     globals: true,
     globalSetup: ["./scripts/content-global-setup.mjs"],
     setupFiles: ["./src/renderer/test-setup.ts"],

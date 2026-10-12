@@ -1,4 +1,5 @@
 import { defineConfig } from "vite-plus";
+import { sharedTestConfig } from "../../scripts/vitest-shared.mjs";
 
 /**
  * The long simulation suites (the 36-month campaign regression and the AI
@@ -13,6 +14,7 @@ const heavyOnly = process.env.BLUEWAVE_HEAVY === "1";
 
 export default defineConfig({
   test: {
+    ...sharedTestConfig,
     include: heavyOnly ? HEAVY : ["test/**/*.test.ts"],
     exclude: heavyOnly ? [] : HEAVY,
     // This package's suites (month loops, battle resolution, replay round-trips)
