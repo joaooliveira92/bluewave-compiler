@@ -1,17 +1,12 @@
-import { Anchor } from "lucide-react";
-import { useCallback, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "../../components/ui/button.js";
-import { getFleetMethodArtwork } from "../../content/fleetMethodArtworkManifest.js";
-import { cn } from "../../lib/utils.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
 import {
-  BounceCards,
-  NEW_GAME_BOUNCE_CARDS_PROPS,
-  type BounceCardImage,
-} from "./components/bounce-cards/index.js";
+  FleetMethodDeckPane,
+  FleetMethodDetailPanel,
+} from "./components/fleet-method-deck/index.js";
 import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
-import { ScreenHeader } from "./components/ScreenHeader.js";
 import { FLEET_METHOD_CARDS } from "./fleet-method-content.js";
 import type { FleetMethodDraft } from "./new-game-fleet-method-screen-state.js";
 
@@ -34,109 +29,101 @@ export function NewGameFleetMethodScreen({
 }: NewGameFleetMethodScreenProps) {
   const [fleetMethod, setFleetMethod] = useState<FleetMethodDraft>(initialFleetMethod);
   const launching = status === "launching";
-  const captionId = useId();
 
-  const fleetMethodRef = useRef(fleetMethod);
-  fleetMethodRef.current = fleetMethod;
-  const onNextRef = useRef(onNext);
-  onNextRef.current = onNext;
+  const [pendingFleetMethodId, setPendingFleetMethodId] = useState<string | null>(null);
 
-  const triggerNext = useCallback(() => {
-    onNextRef.current(fleetMethodRef.current);
+  const [focusOverride, setFocusOverride] = useState<number | null>(null);
+  const activeIndex = FLEET_METHOD_CARDS.findIndex(
+    (card) => card.id === fleetMethod.legacyFleetModeId,
+  );
+  const focusedIndex = focusOverride ?? Math.max(0, activeIndex);
+
+  const focusedCard = FLEET_METHOD_CARDS[focusedIndex] ?? FLEET_METHOD_CARDS[0];
+  const activeCardName =
+    FLEET_METHOD_CARDS.find((card) => card.id === fleetMethod.legacyFleetModeId)?.title ?? "";
+
+  const onFocusIndex = useCallback((index: number) => {
+    setFocusOverride(index);
+    setPendingFleetMethodId(FLEET_METHOD_CARDS[index]?.id ?? null);
   }, []);
+
+  const handleSelectMethod = useCallback((cardId: string) => {
+    setFleetMethod({ legacyFleetModeId: cardId });
+    setPendingFleetMethodId(null);
+  }, []);
+
+  const needsSelect =
+    pendingFleetMethodId !== null && pendingFleetMethodId !== fleetMethod.legacyFleetModeId;
+
+  const handleNext = useCallback(() => {
+    if (launching) return;
+    if (needsSelect && pendingFleetMethodId !== null) {
+      setFleetMethod({ legacyFleetModeId: pendingFleetMethodId });
+      setPendingFleetMethodId(null);
+      return;
+    }
+    onNext(fleetMethod);
+  }, [launching, fleetMethod, pendingFleetMethodId, needsSelect, onNext]);
 
   const primaryAction = useMemo(
     () => ({
-      label: launching ? "Starting…" : "Start Campaign",
+      label: needsSelect ? "Select" : launching ? "Starting…" : "Next: Review Campaign",
       disabled: launching,
-      onTrigger: triggerNext,
+      onTrigger: handleNext,
     }),
-    [launching, triggerNext],
+    [launching, handleNext, needsSelect],
   );
   usePrimaryAction(primaryAction, onPrimaryActionChange);
 
-  const images = useMemo<ReadonlyArray<BounceCardImage>>(
-    () =>
-      FLEET_METHOD_CARDS.map((card) => ({
-        src: getFleetMethodArtwork(card.id),
-        alt: card.title,
-      })),
-    [],
-  );
-
-  const activeIndex = useMemo(
-    () => FLEET_METHOD_CARDS.findIndex((card) => card.id === fleetMethod.legacyFleetModeId),
-    [fleetMethod.legacyFleetModeId],
-  );
-
-  const activeCard =
-    FLEET_METHOD_CARDS.find((card) => card.id === fleetMethod.legacyFleetModeId) ??
-    FLEET_METHOD_CARDS[0];
-
-  const handleCardClick = useCallback((index: number) => {
-    const card = FLEET_METHOD_CARDS[index];
-    if (card) setFleetMethod({ legacyFleetModeId: card.id });
-  }, []);
-
   return (
-    <NewGameScreenLayout size="md">
-      <ScreenHeader
-        icon={<Anchor className="h-5 w-5" />}
-        title="Starting-fleet method"
-        description="Choose how your legacy navy comes together. Every option is available in every era."
-      />
+    <NewGameScreenLayout fullBleed>
+      {error !== null && (
+        <div className="flex flex-col items-start gap-6 p-8">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button type="button" variant="outline" onClick={onBack} disabled={launching}>
+            Back to Identity
+          </Button>
+        </div>
+      )}
 
-      {error !== null && <p className="text-sm text-destructive">{error}</p>}
+      {error === null && focusedCard !== undefined && (
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:overflow-hidden">
+          <FleetMethodDeckPane
+            activeId={fleetMethod.legacyFleetModeId}
+            focusedIndex={focusedIndex}
+            onFocusIndex={onFocusIndex}
+            onSelectMethod={handleSelectMethod}
+          />
 
-      <section
-        aria-label="Starting-fleet method choices"
-        className="flex flex-col items-center gap-4"
-      >
-        <BounceCards
-          images={images}
-          activeIndex={activeIndex}
-          activeDescriptionId={captionId}
-          onCardClick={handleCardClick}
-          {...NEW_GAME_BOUNCE_CARDS_PROPS}
-        />
+          <section
+            aria-label="Fleet method details"
+            className="themed-scrollbar relative z-10 min-w-0 flex-1 lg:h-full lg:overflow-y-auto"
+          >
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6 lg:p-8">
+              <p role="status" className="text-sm text-muted-foreground">
+                Current method:{" "}
+                <span className="font-medium text-foreground">{activeCardName}</span>
+              </p>
 
-        <ul
-          aria-label="Starting-fleet method comparison"
-          className="flex w-full max-w-md flex-col gap-1"
-        >
-          {FLEET_METHOD_CARDS.map((card) => {
-            const active = card.id === activeCard?.id;
-            return (
-              <li
-                key={card.id}
-                aria-current={active ? "true" : undefined}
-                className={cn(
-                  "flex items-baseline justify-between gap-3 rounded-md px-2 py-1 text-left",
-                  active ? "bg-muted" : "opacity-70",
-                )}
-              >
-                <span className="text-sm font-medium">{card.title}</span>
-                <span className="text-xs text-muted-foreground">{card.tagline}</span>
-              </li>
-            );
-          })}
-        </ul>
+              <FleetMethodDetailPanel
+                key={focusedCard.id}
+                card={focusedCard}
+                applied={focusedCard.id === fleetMethod.legacyFleetModeId}
+                pending={
+                  pendingFleetMethodId === focusedCard.id &&
+                  focusedCard.id !== fleetMethod.legacyFleetModeId
+                }
+              />
 
-        {activeCard !== undefined && (
-          <div id={captionId} className="flex max-w-md flex-col items-center gap-1 text-center">
-            <p className="text-xs text-muted-foreground">{activeCard.description}</p>
-            {activeCard.note !== null && (
-              <p className="text-xs italic text-muted-foreground">{activeCard.note}</p>
-            )}
-          </div>
-        )}
-      </section>
-
-      <div className="flex justify-between">
-        <Button type="button" variant="outline" onClick={onBack} disabled={launching}>
-          Back to Identity
-        </Button>
-      </div>
+              <div className="flex justify-between">
+                <Button type="button" variant="outline" onClick={onBack} disabled={launching}>
+                  Back to Identity
+                </Button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
     </NewGameScreenLayout>
   );
 }

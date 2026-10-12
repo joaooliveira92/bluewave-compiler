@@ -1,17 +1,12 @@
 import type { JSX } from "react";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 
-import { DossierSlidePanel } from "./DossierSlidePanel/index.js";
 import { GLOBE_TRANSITION_MS, useArmedAfterMount } from "./globeHandoffTransition.js";
 import { InteractiveGlobe } from "./InteractiveGlobe.js";
 
 interface GlobePanelProps {
   focusedSlotId: PlayableSlotCountryId;
-  isDossierOpen: boolean;
   onNationClick: (countryId: string) => void;
-  onChangeNation: () => void;
-  onConfirm: (countryId: PlayableSlotCountryId) => void;
-  onRecommendedSetup: (countryId: PlayableSlotCountryId) => void;
 }
 
 const TARGETING_BEZEL = (
@@ -23,14 +18,7 @@ const TARGETING_BEZEL = (
   </div>
 );
 
-export function GlobePanel({
-  focusedSlotId,
-  isDossierOpen,
-  onNationClick,
-  onChangeNation,
-  onConfirm,
-  onRecommendedSetup,
-}: GlobePanelProps): JSX.Element {
+export function GlobePanel({ focusedSlotId, onNationClick }: GlobePanelProps): JSX.Element {
   // Fades the interactive globe in on mount so the viewport settles rather than
   // snapping in at full opacity.
   const globeVisible = useArmedAfterMount(true);
@@ -43,7 +31,7 @@ export function GlobePanel({
         relative z-10
         h-full min-h-0 min-w-0
         flex-1 overflow-hidden
-        bg-admiralty-surface
+        
       "
     >
       {/* Globe viewport */}
@@ -57,15 +45,6 @@ export function GlobePanel({
           <InteractiveGlobe focusedCountryId={focusedSlotId} onNationClick={onNationClick} />
         </div>
       </div>
-
-      {/* Dossier remains pinned to this panel at every width */}
-      <DossierSlidePanel
-        countryId={focusedSlotId}
-        isOpen={isDossierOpen}
-        onChangeNation={onChangeNation}
-        onConfirm={onConfirm}
-        onRecommendedSetup={onRecommendedSetup}
-      />
     </section>
   );
 }

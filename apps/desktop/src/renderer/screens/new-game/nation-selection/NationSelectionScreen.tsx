@@ -3,6 +3,7 @@ import { normalizeIndex } from "@/components/card-deck/index.js";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 import { NATION_COORDINATES } from "@/content/nationCoordinates.js";
 import { playMechanicalAcoustic } from "@/shell/controller/mechanicalAcoustic.js";
+import { DossierSlidePanel } from "./DossierSlidePanel/index.js";
 import { FleetDispatchBoard } from "./FleetDispatchBoard.js";
 import { GlobePanel } from "./GlobePanel.js";
 import { TelemetryBar } from "./TelemetryBar.js";
@@ -166,17 +167,19 @@ export function NationSelectionScreen({
           listboxId={listboxId}
           onSelect={handleSlotSelect}
           onKeyDown={handleListboxKeyDown}
+          footerChildren={
+            <DossierSlidePanel
+              countryId={focusedSlotId}
+              isOpen={isDossierOpen}
+              onChangeNation={handleChangeNation}
+              onConfirm={onConfirm}
+              onRecommendedSetup={onRecommendedSetup}
+            />
+          }
         />
 
-        {/* ── Right Panel: Globe + Dossier ── */}
-        <GlobePanel
-          focusedSlotId={focusedSlotId}
-          isDossierOpen={isDossierOpen}
-          onNationClick={handleNationClick}
-          onChangeNation={handleChangeNation}
-          onConfirm={onConfirm}
-          onRecommendedSetup={onRecommendedSetup}
-        />
+        {/* ── Right Panel: Globe ── */}
+        <GlobePanel focusedSlotId={focusedSlotId} onNationClick={handleNationClick} />
 
         {/* ── Failure Notice: surfaces a rejected campaign start (e.g. an
             unsupported nation), which otherwise fails silently on this screen
@@ -185,7 +188,7 @@ export function NationSelectionScreen({
         {failure && (
           <div
             role="alert"
-            className="absolute inset-x-0 bottom-4 z-40 mx-auto w-full max-w-md rounded-xl border border-destructive/40 bg-admiralty-surface-raised/95 p-4 shadow-2xl backdrop-blur-md"
+            className="absolute inset-x-0 bottom-4 z-40 mx-auto w-full max-w-md rounded-xl border border-destructive/40 p-4 shadow-2xl backdrop-blur-md"
           >
             <div className="flex items-center gap-2 font-display text-base font-bold text-destructive uppercase mb-1">
               <span className="h-2 w-2 rounded-full bg-destructive" />

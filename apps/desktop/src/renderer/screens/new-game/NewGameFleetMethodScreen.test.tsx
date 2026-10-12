@@ -1,14 +1,16 @@
 /* @vitest-environment jsdom */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { NewGameFleetMethodScreen } from "./NewGameFleetMethodScreen.js";
 import { defaultFleetMethod, type FleetMethodDraft } from "./new-game-fleet-method-screen-state.js";
+import { FLEET_METHOD_CARDS } from "./fleet-method-content.js";
 
 function setupUi(initialFleetMethod: FleetMethodDraft = defaultFleetMethod()) {
   const onPrimaryActionChange = vi.fn() as unknown as SetPrimaryAction;
   const onNext = vi.fn();
   const onBack = vi.fn();
+  let primary: { label?: string; disabled?: boolean; onTrigger?: () => void } | null = null;
   const utils = render(
     <NewGameFleetMethodScreen
       initialFleetMethod={initialFleetMethod}
@@ -16,26 +18,30 @@ function setupUi(initialFleetMethod: FleetMethodDraft = defaultFleetMethod()) {
       error={null}
       onBack={onBack}
       onNext={onNext}
-      onPrimaryActionChange={onPrimaryActionChange}
+      onPrimaryActionChange={(action) => {
+        primary = action;
+      }}
     />,
   );
-  return { ...utils, onNext, onBack, onPrimaryActionChange };
+  return { ...utils, onNext, onBack, onPrimaryActionChange, getPrimary: () => primary };
 }
 
-function lastPrimary(onPrimaryActionChange: ReturnType<typeof setupUi>["onPrimaryActionChange"]): {
-  label?: string;
-  disabled?: boolean;
-  onTrigger?: () => void;
-} {
-  const calls = vi
-    .mocked(onPrimaryActionChange)
-    .mock.calls.map((call) => call[0])
-    .filter(Boolean);
-  return calls[calls.length - 1] ?? {};
+function fleetMethodListbox(): HTMLElement {
+  return screen.getByRole("listbox", { name: "Starting-fleet methods" });
 }
 
-function click(name: string): void {
-  fireEvent.click(screen.getByRole("button", { name: new RegExp(name) }));
+function fleetMethodOption(title: string): HTMLElement {
+  return within(fleetMethodListbox()).getByRole("option", { name: title });
+}
+
+/** The focused-card detail panel is the region named after the card's title. */
+function detailPanel(title: string): HTMLElement {
+  return screen.getByRole("region", { name: title });
+}
+
+function appliedMethod(): string {
+  const text = screen.getByRole("status").textContent ?? "";
+  return text.replace(/^Current method:\s*/u, "");
 }
 
 describe("NewGameFleetMethodScreen", () => {
@@ -43,86 +49,95 @@ describe("NewGameFleetMethodScreen", () => {
     cleanup();
   });
 
+  it("splits into a deck and a detail column that sit side by side", () => {
+    setupUi();
+
+    const master = fleetMethodListbox().closest("aside");
+    const detail = screen.getByRole("region", { name: "Fleet method details" });
+    expect(master).not.toBeNull();
+    expect(master?.parentElement).toBe(detail.parentElement);
+    expect(master?.contains(detail)).toBe(false);
+  });
+
+  it("lists exactly the three fleet method cards as options of one listbox", () => {
+    setupUi();
+
+    expect(screen.getAllByRole("listbox")).toHaveLength(1);
+    const names = within(fleetMethodListbox())
+      .getAllByRole("option")
+      .map((option) => option.getAttribute("aria-label"));
+    expect(names).toEqual(FLEET_METHOD_CARDS.map((card) => card.title));
+    expect(names).toEqual([
+      "Inherit an Existing Navy",
+      "Build the Legacy Fleet Manually",
+      "Curated Historical-Inspired Fleet",
+    ]);
+  });
+
   it("renders three cards with the spec §5a copy mapping", () => {
     setupUi();
-    expect(screen.getByRole("button", { name: /Inherit an Existing Navy/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Build the Legacy Fleet Manually/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Curated Historical-Inspired Fleet/ })).toBeTruthy();
+
+    expect(fleetMethodOption("Inherit an Existing Navy")).toBeTruthy();
+    expect(fleetMethodOption("Build the Legacy Fleet Manually")).toBeTruthy();
+    expect(fleetMethodOption("Curated Historical-Inspired Fleet")).toBeTruthy();
   });
 
   it("shows artwork for each of the three fleet methods", () => {
     const { container } = setupUi();
     const images = [...container.querySelectorAll("img")];
     expect(images).toHaveLength(3);
-    expect(images[0]?.getAttribute("src")).toMatch(/dockyard/);
-    expect(images[1]?.getAttribute("src")).toMatch(/blueprint/);
-    expect(images[2]?.getAttribute("src")).toMatch(/cannons/);
+    expect(images[0]?.getAttribute("src")).toMatch(/inherit-an-existing-navy/);
+    expect(images[1]?.getAttribute("src")).toMatch(/build-the-legacy-fleet-manually/);
+    expect(images[2]?.getAttribute("src")).toMatch(/curated-historical-inspired-fleet/);
   });
 
-  it("treats the card artwork as decorative, keeping the name on the card button", () => {
+  it("treats the card artwork as decorative, keeping the name on the card option", () => {
     const { container } = setupUi();
     for (const image of container.querySelectorAll("img")) {
       expect(image.getAttribute("alt")).toBe("");
     }
-    expect(screen.getByRole("button", { name: /Inherit an Existing Navy/ })).toBeTruthy();
+    expect(fleetMethodOption("Inherit an Existing Navy")).toBeTruthy();
   });
 
-  it("lists all three methods in an always-visible comparison legend, marking the active one", () => {
+  it("reports the applied method in a status line", () => {
     setupUi();
-    const legend = screen.getByRole("list", { name: "Starting-fleet method comparison" });
-    const items = legend.querySelectorAll("li");
-    expect(items).toHaveLength(3);
-    expect(legend.textContent).toContain("Inherit an Existing Navy");
-    expect(legend.textContent).toContain("Build the Legacy Fleet Manually");
-    expect(legend.textContent).toContain("Curated Historical-Inspired Fleet");
-    expect(items[0]?.getAttribute("aria-current")).toBe("true");
 
-    click("Build the Legacy Fleet Manually");
-    const after = screen
-      .getByRole("list", { name: "Starting-fleet method comparison" })
-      .querySelectorAll("li");
-    expect(after[1]?.getAttribute("aria-current")).toBe("true");
-    expect(after[0]?.getAttribute("aria-current")).toBeNull();
+    expect(appliedMethod()).toBe("Inherit an Existing Navy");
   });
 
-  it("associates the selected card with the caption via aria-describedby", () => {
+  it("shows the focused card's details in the detail panel", () => {
     setupUi();
-    const inherit = screen.getByRole("button", { name: /Inherit an Existing Navy/ });
-    const captionId = inherit.getAttribute("aria-describedby");
-    expect(captionId).toBeTruthy();
-    const caption = document.getElementById(captionId!);
-    expect(caption?.textContent).toContain(
-      "Start with an operational-but-aging navy and modernize it as you play",
-    );
-    expect(
-      screen
-        .getByRole("button", { name: /Build the Legacy Fleet Manually/ })
-        .getAttribute("aria-describedby"),
-    ).toBeNull();
 
-    click("Build the Legacy Fleet Manually");
-    const manual = screen.getByRole("button", { name: /Build the Legacy Fleet Manually/ });
-    expect(manual.getAttribute("aria-describedby")).toBe(captionId);
-    expect(document.getElementById(captionId!)?.textContent).toContain(
-      "Detailed fleet construction isn't available yet",
-    );
+    const panel = detailPanel("Inherit an Existing Navy");
+    expect(within(panel).getByText("Recommended for your first campaign")).toBeTruthy();
+    expect(within(panel).getByText(/Start with an operational-but-aging navy/)).toBeTruthy();
   });
 
   it("defaults to the generated (Inherit an Existing Navy) card on first visit", () => {
     setupUi();
-    const card = screen.getByRole("button", { name: /Inherit an Existing Navy/ });
-    expect(card.getAttribute("aria-pressed")).toBe("true");
+
+    const option = fleetMethodOption("Inherit an Existing Navy");
+    expect(option.getAttribute("aria-selected")).toBe("true");
+    for (const other of within(fleetMethodListbox()).getAllByRole("option")) {
+      if (other !== option) {
+        expect(other.getAttribute("aria-selected")).toBe("false");
+      }
+    }
   });
 
-  it("shows the manual-build not-yet-available note only when the disabled card is selected", () => {
+  it("shows the manual-build not-yet-available note only when the disabled card is previewed and active", () => {
     setupUi();
+
     expect(screen.queryByText(/Detailed fleet construction isn't available yet/)).toBeNull();
 
-    click("Build the Legacy Fleet Manually");
-    expect(screen.getByText(/Detailed fleet construction isn't available yet/)).toBeTruthy();
+    fireEvent.keyDown(fleetMethodListbox(), { key: "ArrowRight" });
 
-    click("Curated Historical-Inspired Fleet");
-    expect(screen.queryByText(/Detailed fleet construction isn't available yet/)).toBeNull();
+    expect(detailPanel("Build the Legacy Fleet Manually")).toBeTruthy();
+    expect(
+      within(detailPanel("Build the Legacy Fleet Manually")).getByText(
+        /Detailed fleet construction isn't available yet/,
+      ),
+    ).toBeTruthy();
   });
 
   it("shows no numeric allocation figures, ship counts, or phase breakdowns", () => {
@@ -135,47 +150,76 @@ describe("NewGameFleetMethodScreen", () => {
 
   it("allows selecting any of the three cards, with no gating", () => {
     setupUi();
-    click("Build the Legacy Fleet Manually");
-    expect(
-      screen
-        .getByRole("button", { name: /Build the Legacy Fleet Manually/ })
-        .getAttribute("aria-pressed"),
-    ).toBe("true");
 
-    click("Curated Historical-Inspired Fleet");
+    fireEvent.pointerDown(fleetMethodOption("Build the Legacy Fleet Manually"), {
+      button: 0,
+      pointerId: 1,
+    });
+    expect(fleetMethodOption("Build the Legacy Fleet Manually").getAttribute("aria-selected")).toBe(
+      "true",
+    );
+
+    fireEvent.pointerDown(fleetMethodOption("Curated Historical-Inspired Fleet"), {
+      button: 0,
+      pointerId: 1,
+    });
     expect(
-      screen
-        .getByRole("button", { name: /Curated Historical-Inspired Fleet/ })
-        .getAttribute("aria-pressed"),
+      fleetMethodOption("Curated Historical-Inspired Fleet").getAttribute("aria-selected"),
     ).toBe("true");
-    expect(
-      screen
-        .getByRole("button", { name: /Build the Legacy Fleet Manually/ })
-        .getAttribute("aria-pressed"),
-    ).toBe("false");
+    expect(fleetMethodOption("Build the Legacy Fleet Manually").getAttribute("aria-selected")).toBe(
+      "false",
+    );
   });
 
   it("the primary action is never blocked, since a selection always exists", () => {
-    const { onPrimaryActionChange } = setupUi();
-    expect(lastPrimary(onPrimaryActionChange).disabled).toBe(false);
-    click("Build the Legacy Fleet Manually");
-    expect(lastPrimary(onPrimaryActionChange).disabled).toBe(false);
+    const { getPrimary } = setupUi();
+    expect(getPrimary()?.disabled).toBe(false);
+  });
+
+  it("previews on arrow key focus without selecting anything, showing Select until applied", () => {
+    const { getPrimary } = setupUi();
+
+    expect(getPrimary()?.label).toBe("Next: Review Campaign");
+
+    fireEvent.keyDown(fleetMethodListbox(), { key: "ArrowRight" });
+
+    expect(detailPanel("Build the Legacy Fleet Manually")).toBeTruthy();
+    expect(appliedMethod()).toBe("Inherit an Existing Navy");
+    expect(getPrimary()?.label).toBe("Select");
+
+    fireEvent.keyDown(fleetMethodListbox(), { key: "Enter" });
+
+    expect(appliedMethod()).toBe("Build the Legacy Fleet Manually");
+    expect(getPrimary()?.label).toBe("Next: Review Campaign");
+  });
+
+  it("applies the previewed card when the Select primary action is pressed", () => {
+    const { getPrimary } = setupUi();
+
+    fireEvent.keyDown(fleetMethodListbox(), { key: "ArrowRight" });
+
+    act(() => getPrimary()?.onTrigger?.());
+
+    expect(appliedMethod()).toBe("Build the Legacy Fleet Manually");
+    expect(getPrimary()?.label).toBe("Next: Review Campaign");
   });
 
   it("emits the selected legacyFleetModeId on continue", () => {
-    const { onPrimaryActionChange, onNext } = setupUi();
-    click("Curated Historical-Inspired Fleet");
-    lastPrimary(onPrimaryActionChange).onTrigger?.();
+    const { onNext, getPrimary } = setupUi();
+
+    fireEvent.pointerDown(fleetMethodOption("Curated Historical-Inspired Fleet"), {
+      button: 0,
+      pointerId: 1,
+    });
+    act(() => getPrimary()?.onTrigger?.());
     expect(onNext).toHaveBeenCalledWith({ legacyFleetModeId: "historical" });
   });
 
   it("starts from the provided initial fleet method", () => {
     setupUi({ legacyFleetModeId: "disabled" });
-    expect(
-      screen
-        .getByRole("button", { name: /Build the Legacy Fleet Manually/ })
-        .getAttribute("aria-pressed"),
-    ).toBe("true");
+    expect(fleetMethodOption("Build the Legacy Fleet Manually").getAttribute("aria-selected")).toBe(
+      "true",
+    );
   });
 
   it("calls onBack when Back to Identity is clicked", () => {

@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { useMemo } from "react";
 import { DeckMasterPane, normalizeIndex, paletteForIndex } from "@/components/card-deck/index.js";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
@@ -10,6 +10,7 @@ interface FleetDispatchBoardProps {
   listboxId: string;
   onSelect: (index: number) => void;
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
+  footerChildren?: ReactNode;
 }
 
 /**
@@ -24,6 +25,7 @@ export function FleetDispatchBoard({
   listboxId,
   onSelect,
   onKeyDown,
+  footerChildren,
 }: FleetDispatchBoardProps): React.JSX.Element {
   const normalizedFocusedIndex = normalizeIndex(focusedIndex, slots.length);
 
@@ -48,7 +50,6 @@ export function FleetDispatchBoard({
   return (
     <DeckMasterPane
       listboxId={listboxId}
-      eyebrow="Admiralty Registry"
       heading="Fleet Dispatch"
       instructions="Drag a card away, scroll, or use the arrow keys to inspect each nation. Press Enter to confirm."
       ariaLabel="Playable nations"
@@ -60,6 +61,7 @@ export function FleetDispatchBoard({
       onFocusIndex={onSelect}
       onActivateIndex={onSelect}
       onKeyDown={onKeyDown}
+      footerChildren={footerChildren}
     />
   );
 }

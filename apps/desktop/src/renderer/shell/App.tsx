@@ -6,6 +6,10 @@ import {
   MonthlyResolutionLoading,
 } from "../components/MonthlyResolutionLoading.js";
 import {
+  CHOOSE_YOUR_ARCHETYPE_HEADING,
+  CHOOSE_YOUR_ARCHETYPE_HINT,
+} from "../screens/new-game/choose-your-archetype-content.js";
+import {
   RULES_OF_THE_NAVAL_AGE_HEADING,
   RULES_OF_THE_NAVAL_AGE_HINT,
 } from "../screens/new-game/rules-of-the-naval-age-content.js";
@@ -70,6 +74,10 @@ const WIZARD_STEP_COPY: Partial<Record<CampaignShellMode["kind"], WizardStepCopy
   "new-game-preferences": {
     heading: RULES_OF_THE_NAVAL_AGE_HEADING,
     hint: RULES_OF_THE_NAVAL_AGE_HINT,
+  },
+  "new-game-archetype": {
+    heading: CHOOSE_YOUR_ARCHETYPE_HEADING,
+    hint: CHOOSE_YOUR_ARCHETYPE_HINT,
   },
 };
 

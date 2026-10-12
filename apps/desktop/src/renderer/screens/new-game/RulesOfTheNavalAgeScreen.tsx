@@ -11,11 +11,7 @@ import { LoadingState } from "./components/LoadingState.js";
 import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
 import { PresetDeckPane, PresetDetailPanel } from "./components/preset-deck/index.js";
 import type { DraftPreferences } from "./new-game-preferences-screen-state.js";
-import {
-  applyPreset,
-  PRESET_DEFINITIONS,
-  type PresetId,
-} from "./rules-of-the-naval-age-presets.js";
+import { PRESET_DEFINITIONS, type PresetId } from "./rules-of-the-naval-age-presets.js";
 import { useNavalAgePreferences } from "./useNavalAgePreferences.js";
 
 export interface RulesOfTheNavalAgeScreenProps {
@@ -81,19 +77,34 @@ export function RulesOfTheNavalAgeScreen({
     setPendingPresetId(PRESET_DEFINITIONS[index]?.id ?? null);
   }, []);
 
+  const needsSelect = pendingPresetId !== null && pendingPresetId !== activePreset;
+
   const handleNext = useCallback(() => {
     if (options === null || !ready) return;
-    if (pendingPresetId === null) {
-      onNext(preferences, options);
+    if (needsSelect) {
+      selectPreset(pendingPresetId);
+      setPendingPresetId(null);
       return;
     }
-    selectPreset(pendingPresetId);
-    onNext(applyPreset(preferences, pendingPresetId), options);
-  }, [options, ready, preferences, pendingPresetId, selectPreset, onNext]);
+    onNext(preferences, options);
+  }, [
+    options,
+    ready,
+    preferences,
+    pendingPresetId,
+    activePreset,
+    selectPreset,
+    setPendingPresetId,
+    onNext,
+  ]);
 
   const primaryAction = useMemo(
-    () => ({ label: "Next: Choose Archetype", disabled: !ready, onTrigger: handleNext }),
-    [ready, handleNext],
+    () => ({
+      label: needsSelect ? "Select" : "Next: Choose Archetype",
+      disabled: !ready,
+      onTrigger: handleNext,
+    }),
+    [ready, handleNext, needsSelect],
   );
   usePrimaryAction(primaryAction, onPrimaryActionChange);
 

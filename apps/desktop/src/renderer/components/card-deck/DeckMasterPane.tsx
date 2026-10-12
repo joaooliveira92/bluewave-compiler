@@ -32,6 +32,13 @@ export interface DeckMasterPaneProps {
    * handler that calls `preventDefault()` claims the key and skips the built-in.
    */
   readonly onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void;
+  /**
+   * Optional content rendered below the deck, inside the aside. When set, the
+   * deck area gets a bounded height and the footer fills the remaining
+   * flex-column space — used to host the nation dossier below the card stack
+   * instead of overlaying the globe.
+   */
+  readonly footerChildren?: ReactNode;
 }
 
 const DECK_SETTINGS = {
@@ -69,6 +76,7 @@ export function DeckMasterPane({
   onActivateIndex,
   onConfirmIndex,
   onKeyDown,
+  footerChildren,
 }: DeckMasterPaneProps): React.JSX.Element {
   const count = cards.length;
   const normalizedFocusedIndex = normalizeIndex(focusedIndex, count);
@@ -151,6 +159,8 @@ export function DeckMasterPane({
     );
   }
 
+  const hasFooter = footerChildren !== undefined;
+
   return (
     <aside
       aria-labelledby={`${listboxId}-heading`}
@@ -191,14 +201,16 @@ export function DeckMasterPane({
           </h2>
           <p
             id={`${listboxId}-instructions`}
-            className="mt-1 max-w-sm text-sm leading-relaxed text-admiralty-ink-muted"
+            className="mt-1  text-sm leading-relaxed text-admiralty-ink-muted"
           >
             {instructions}
           </p>
         </div>
       </header>
 
-      <div className="relative min-h-0 flex-1">
+      <div
+        className={`relative min-h-0 ${hasFooter ? "flex-[0_1_26rem]" : "flex-1"} overflow-hidden`}
+      >
         <div
           ref={containerRef}
           id={listboxId}
@@ -235,6 +247,8 @@ export function DeckMasterPane({
           </div>
         </div>
       </div>
+
+      {hasFooter && <div className="relative flex-1 overflow-hidden">{footerChildren}</div>}
     </aside>
   );
 }
