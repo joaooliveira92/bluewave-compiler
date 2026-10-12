@@ -198,7 +198,8 @@ instalments, `ReviseProject`/`SetAcceleration` foreign guards, non-playable-nati
 `INC-9e-foreign-project-command-guards.issue.md`. DESIGN-16 §18 reason-code reconciliation (the required
 `FOREIGN_BUILDER_CAPACITY_UNAVAILABLE` and `FOREIGN_CONTRACT_PAYMENT_DEFAULT` names) →
 `INC-9f-design16-section18-reason-codes.issue.md`. The builder dock **dimension** predicate is not enforced
-because `CompiledDesignVersion` carries no length/beam fields (shared with the domestic order path) — deferred.
+because `CompiledDesignVersion` carries no length/beam fields (shared with the domestic order path) — deferred to
+`INC-16-ship-dimension-dock-predicate.issue.md` (owner: ship-design / design-model work).
 
 ## Notes for implementator
 

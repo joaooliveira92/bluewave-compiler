@@ -35,7 +35,7 @@ import {
   type YardDemand,
 } from "@bluewave/ship-design";
 import type { LedgerTransactionInput } from "./financial-ledger.js";
-import { constructionProjectFor } from "./constructionOrder.js";
+import { constructionProjectFor, resolveOrderTargets } from "./constructionOrder.js";
 import { makeLedgerEntry } from "./events.js";
 import {
   FOREIGN_INSIGHT_POLICY_ID,
@@ -406,28 +406,9 @@ export function placeForeignConstructionOrder(
   request: ForeignConstructionOrderRequest,
   content: ShipBuildingContent | undefined,
 ): ForeignConstructionOrderResult {
-  const nation = snapshot["nations"].get(request.nationId);
-  if (!nation)
-    return {
-      ok: false,
-      reason: "NATION_NOT_FOUND",
-      diagnostics: [`Nation ${request.nationId} not found`],
-    };
-  const design = snapshot["designs"].get(request.designVersionId);
-  if (!design)
-    return {
-      ok: false,
-      reason: "UNKNOWN_DESIGN",
-      diagnostics: [`No design ${request.designVersionId} in the compiled snapshot`],
-    };
-  if (design["nationId"] !== request.nationId)
-    return {
-      ok: false,
-      reason: "DESIGN_NOT_FOR_PLAYER",
-      diagnostics: [
-        `Design ${request.designVersionId} belongs to ${design["nationId"]}, not player slot ${request.nationId}`,
-      ],
-    };
+  const targets = resolveOrderTargets(snapshot, request.nationId, request.designVersionId);
+  if (!targets.ok) return { ok: false, reason: targets.reason, diagnostics: targets.diagnostics };
+  const { nation, design } = targets;
   // DESIGN-16 sections 13.1/13.4: a builder that is not a distinct nation of the campaign would let an instalment
   // debit the ordering treasury without crediting a real yard (destroying money), or have the ordering nation pay
   // itself. Refuse the order at the boundary rather than persist such a contract.

@@ -3,6 +3,7 @@ import type {
   CompiledDesignVersion,
   ConstructionPlanRecord,
   ConstructionProject,
+  NationState,
 } from "@bluewave/campaign";
 import {
   constructionBatchProjectIdForCommand,
@@ -77,6 +78,85 @@ export function constructionProjectFor(
   };
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Shared order-path guards and cost resolution (single order, batch, foreign order)
+// ---------------------------------------------------------------------------------------------------------------
+
+/** The nation + design an order targets, or the stable refusal shared by every order path. */
+type OrderTargetResolution =
+  | { readonly ok: true; readonly nation: NationState; readonly design: CompiledDesignVersion }
+  | { readonly ok: false; readonly reason: string; readonly diagnostics: readonly string[] };
+
+/** The nation/design/ownership guard every order path shares (single order, batch, foreign order): the nation must
+ * exist, the compiled design must exist, and it must belong to the ordering nation. Pure. */
+export function resolveOrderTargets(
+  snapshot: CampaignSnapshot,
+  nationId: string,
+  designVersionId: string,
+): OrderTargetResolution {
+  const nation = snapshot["nations"].get(nationId);
+  if (!nation)
+    return { ok: false, reason: "NATION_NOT_FOUND", diagnostics: [`Nation ${nationId} not found`] };
+  const design = snapshot["designs"].get(designVersionId);
+  if (!design)
+    return {
+      ok: false,
+      reason: "UNKNOWN_DESIGN",
+      diagnostics: [`No design ${designVersionId} in the compiled snapshot`],
+    };
+  if (design["nationId"] !== nationId)
+    return {
+      ok: false,
+      reason: "DESIGN_NOT_FOR_PLAYER",
+      diagnostics: [
+        `Design ${designVersionId} belongs to ${design["nationId"]}, not player slot ${nationId}`,
+      ],
+    };
+  return { ok: true, nation, design };
+}
+
+/** The projected costs plus the persisted national modifiers, or `null` when the nation cannot obtain its supply. */
+interface ResolvedOrderCosts {
+  readonly costs: ConstructionOrderCosts;
+  readonly national:
+    | {
+        readonly profileId: string;
+        readonly costMultiplierBp: number;
+        readonly buildTimeMultiplierBp: number;
+      }
+    | undefined;
+}
+
+/**
+ * Resolve the nation's construction economics at order time (ADR-0090): cost/build-time multipliers are applied once
+ * here and persisted on the project, so a later profile-content change never re-prices an existing order. Returns
+ * `null` when the nation cannot obtain its main armament or armour under the current policy (fail closed).
+ */
+function resolveOrderCosts(
+  content: ShipBuildingContent | undefined,
+  nationId: string,
+  design: CompiledDesignVersion,
+  monthId: string,
+): ResolvedOrderCosts | null {
+  const profile = content?.navalProfileFor(nationId, monthId) ?? null;
+  if (profile === null)
+    return { costs: projectedConstructionOrderCosts(design), national: undefined };
+  let modifiers;
+  try {
+    modifiers = resolveNationalConstruction(profile, monthId);
+  } catch {
+    return null;
+  }
+  return {
+    costs: projectedConstructionOrderCosts(design, modifiers.costMultiplierBp),
+    national: {
+      profileId: profile.nationId,
+      costMultiplierBp: modifiers.costMultiplierBp,
+      buildTimeMultiplierBp: modifiers.buildTimeMultiplierBp,
+    },
+  };
+}
+
 export interface ConstructionOrderRequest {
   readonly nationId: string;
   readonly commandId: string;
@@ -112,28 +192,9 @@ export function placeConstructionOrder(
   request: ConstructionOrderRequest,
   content: ShipBuildingContent | undefined,
 ): ConstructionOrderResult {
-  const nation = snapshot["nations"].get(request.nationId);
-  if (!nation)
-    return {
-      ok: false,
-      reason: "NATION_NOT_FOUND",
-      diagnostics: [`Nation ${request.nationId} not found`],
-    };
-  const design = snapshot["designs"].get(request.designVersionId);
-  if (!design)
-    return {
-      ok: false,
-      reason: "UNKNOWN_DESIGN",
-      diagnostics: [`No design ${request.designVersionId} in the compiled snapshot`],
-    };
-  if (design["nationId"] !== request.nationId)
-    return {
-      ok: false,
-      reason: "DESIGN_NOT_FOR_PLAYER",
-      diagnostics: [
-        `Design ${request.designVersionId} belongs to ${design["nationId"]}, not player slot ${request.nationId}`,
-      ],
-    };
+  const targets = resolveOrderTargets(snapshot, request.nationId, request.designVersionId);
+  if (!targets.ok) return { ok: false, reason: targets.reason, diagnostics: targets.diagnostics };
+  const { nation, design } = targets;
   const replacingProjectId =
     request.replacingCommandId === undefined
       ? undefined
@@ -153,27 +214,7 @@ export function placeConstructionOrder(
       diagnostics: eligibility.rejections.map((r) => r.message),
     };
   }
-  const costs = (() => {
-    // Resolve the nation's construction economics at order time (ADR-0090): cost/build-time multipliers are applied
-    // once here and persisted on the project, so a later profile-content change never re-prices an existing order.
-    const profile = content?.navalProfileFor(request.nationId, monthId) ?? null;
-    if (profile === null)
-      return { costs: projectedConstructionOrderCosts(design), national: undefined };
-    let modifiers;
-    try {
-      modifiers = resolveNationalConstruction(profile, monthId);
-    } catch {
-      return null; // fail closed: the nation cannot obtain its main armament or armour under the current policy
-    }
-    return {
-      costs: projectedConstructionOrderCosts(design, modifiers.costMultiplierBp),
-      national: {
-        profileId: profile.nationId,
-        costMultiplierBp: modifiers.costMultiplierBp,
-        buildTimeMultiplierBp: modifiers.buildTimeMultiplierBp,
-      },
-    };
-  })();
+  const costs = resolveOrderCosts(content, request.nationId, design, monthId);
   if (costs === null)
     return {
       ok: false,
@@ -288,28 +329,9 @@ export function placeConstructionBatch(
         `A class order is 1..${String(CONSTRUCTION_BATCH_MAX_QUANTITY)} ships; got ${String(request.quantity)}. A second batch needs a second command.`,
       ],
     };
-  const nation = snapshot["nations"].get(request.nationId);
-  if (!nation)
-    return {
-      ok: false,
-      reason: "NATION_NOT_FOUND",
-      diagnostics: [`Nation ${request.nationId} not found`],
-    };
-  const design = snapshot["designs"].get(request.designVersionId);
-  if (!design)
-    return {
-      ok: false,
-      reason: "UNKNOWN_DESIGN",
-      diagnostics: [`No design ${request.designVersionId} in the compiled snapshot`],
-    };
-  if (design["nationId"] !== request.nationId)
-    return {
-      ok: false,
-      reason: "DESIGN_NOT_FOR_PLAYER",
-      diagnostics: [
-        `Design ${request.designVersionId} belongs to ${design["nationId"]}, not player slot ${request.nationId}`,
-      ],
-    };
+  const targets = resolveOrderTargets(snapshot, request.nationId, request.designVersionId);
+  if (!targets.ok) return { ok: false, reason: targets.reason, diagnostics: targets.diagnostics };
+  const { nation, design } = targets;
   // DESIGN-23 section 5: a repeated order of an existing, already-approved compiled version needs no new study. A
   // mechanically changed design cannot reach the order path at all — it is a new draft, compiled into a new immutable
   // version that only the design-study path (`SubmitDesign` -> `planDesignStudy`) can approve. The manual-parity rule
@@ -330,25 +352,7 @@ export function placeConstructionBatch(
       reason: eligibility.rejections[0]!.code,
       diagnostics: eligibility.rejections.map((r) => r.message),
     };
-  const costs = (() => {
-    const profile = content?.navalProfileFor(request.nationId, monthId) ?? null;
-    if (profile === null)
-      return { costs: projectedConstructionOrderCosts(design), national: undefined };
-    let modifiers;
-    try {
-      modifiers = resolveNationalConstruction(profile, monthId);
-    } catch {
-      return null; // fail closed: the nation cannot obtain its main armament or armour under the current policy
-    }
-    return {
-      costs: projectedConstructionOrderCosts(design, modifiers.costMultiplierBp),
-      national: {
-        profileId: profile.nationId,
-        costMultiplierBp: modifiers.costMultiplierBp,
-        buildTimeMultiplierBp: modifiers.buildTimeMultiplierBp,
-      },
-    };
-  })();
+  const costs = resolveOrderCosts(content, request.nationId, design, monthId);
   if (costs === null)
     return {
       ok: false,
