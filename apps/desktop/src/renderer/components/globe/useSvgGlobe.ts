@@ -21,12 +21,14 @@ interface Topology<T> {
 
 import worldTopology from "@/content/world-110m.json";
 
-// Shared drawing piece behind the interactive globe — the D3 (d3-geo) SVG
-// orthographic sphere ("Blueprint" style, wayfinder #152). InteractiveGlobe
-// drives this hook, which owns the projection, the rAF spin/render loop, and
-// the suspend-on-hidden/resize lifecycle. Everything that differs per variant —
+// Shared drawing piece behind every globe — the D3 (d3-geo) SVG orthographic
+// sphere ("Blueprint" style, wayfinder #152). InteractiveGlobe (nation
+// selection) and DecorativeGlobe (Rules of the Naval Age) drive this hook,
+// which owns the projection, the rAF spin/render loop, and the
+// suspend-on-hidden/resize lifecycle. Everything that differs per variant —
 // pins, the selection ring, drag/zoom/click — is layered on by the consuming
-// component through the returned handles.
+// component through the returned handles. It reads only the static world
+// topology; it never touches authoritative state.
 
 export const MIN_PHI_DEG = -75;
 export const MAX_PHI_DEG = 40;
@@ -117,8 +119,18 @@ function useStableRefs(): SvgGlobeRefs {
   };
 }
 
-export function useSvgGlobe(): SvgGlobeHandles {
+export interface SvgGlobeOptions {
+  /**
+   * Idle spin. Defaults to on. Read every frame, so a change (e.g. the player
+   * toggling reduced motion) takes effect without rebuilding the sphere.
+   */
+  readonly autorotate?: boolean;
+}
+
+export function useSvgGlobe({ autorotate = true }: SvgGlobeOptions = {}): SvgGlobeHandles {
   const refs = useStableRefs();
+  const autorotateRef = useRef(autorotate);
+  autorotateRef.current = autorotate;
   const rotationAnimRef = useRef<RotationAnim | null>(null);
   const projectionRef = useRef<d3Geo.GeoProjection | undefined>(undefined);
   const frameRenderersRef = useRef<Array<() => void>>([]);
@@ -177,6 +189,9 @@ export function useSvgGlobe(): SvgGlobeHandles {
     let documentHidden = document.hidden;
     let offScreen = false;
     let lastRenderAt = 0;
+    // A still sphere (no idle spin, no animation, no drag) only needs painting
+    // on the first frame and after a resize.
+    let needsRender = true;
 
     function tick(now: number): void {
       const dt = now - lastFrameAt;
@@ -191,15 +206,17 @@ export function useSvgGlobe(): SvgGlobeHandles {
           anim.fromPhi + (anim.toPhi - anim.fromPhi) * eased,
         ]);
         if (t >= 1) rotationAnimRef.current = null;
-      } else if (!dragging) {
+      } else if (!dragging && autorotateRef.current) {
         const [lambda, phi] = projection.rotate();
         projection.rotate([lambda + AUTOROTATE_DEG_PER_MS * dt, phi]);
       }
+      const still = !autorotateRef.current && !anim && !dragging && !needsRender;
       // Direct drag renders every frame; autorotate and the selection spin are
       // capped to keep the main thread free for the stack's transition.
-      if (dragging || now - lastRenderAt >= GLOBE_RENDER_INTERVAL_MS) {
+      if (!still && (dragging || now - lastRenderAt >= GLOBE_RENDER_INTERVAL_MS)) {
         renderFrame();
         lastRenderAt = now;
+        needsRender = false;
       }
       rafId = requestAnimationFrame(tick);
     }
@@ -241,6 +258,7 @@ export function useSvgGlobe(): SvgGlobeHandles {
       height = h;
       baseScale = Math.min(width, height) * 0.42;
       projection.translate([width / 2, height / 2]);
+      needsRender = true;
       if (resizeHandlersRef.current.length) {
         for (const handler of resizeHandlersRef.current) {
           handler({ width, height, baseScale, projection });

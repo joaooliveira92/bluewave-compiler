@@ -28,3 +28,20 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     disconnect(): void {}
   };
 }
+
+/** jsdom has no IntersectionObserver; the shared globe suspends its frame loop off-screen. */
+class IntersectionObserverStub implements IntersectionObserver {
+  readonly root = null;
+  readonly rootMargin = "";
+  readonly scrollMargin = "";
+  readonly thresholds: readonly number[] = [];
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+}
+if (typeof globalThis.IntersectionObserver === "undefined") {
+  globalThis.IntersectionObserver = IntersectionObserverStub;
+}

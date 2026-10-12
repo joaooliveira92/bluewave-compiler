@@ -1,7 +1,7 @@
 # INC-2 — Extract shared globe shell + slide-panel primitive (with decorative mode)
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** none
 **Frontier:** yes
 **Requirements:** NAM-3, NAM-7; AC-8, AC-15; BW-ARC-001
@@ -25,3 +25,19 @@ decorative globe composition exists and is covered by an external-behaviour test
 - [ ] Decorative composition present: no interactive handlers, `aria-hidden` (no `listbox`/`option`/`button` semantics), respects `prefers-reduced-motion`, reads only static world data + theme CSS variables.
 - [ ] Slide-visibility / panel-chrome primitive shared; the nation dossier consumes it unchanged; the preset detail panel's body stays preset-specific.
 - [ ] No new dependency; no new `as unknown` casts; barrel surfaces respected.
+
+## Answer
+
+- `apps/desktop/src/renderer/components/globe/` (barrel `index.ts`): `GlobeShell`
+  and `useSvgGlobe` moved here (git rename) and gained a `decorative` mode /
+  `autorotate` option; new `DecorativeGlobe` composes them with no pins, ring,
+  drag/zoom/click, `aria-hidden`, `pointer-events-none`, idle spin off under
+  `prefers-reduced-motion`. `InteractiveGlobe` imports the shared barrel; its
+  behaviour is unchanged. `globeBoundary.test.ts` import-allowlists the module.
+- `apps/desktop/src/renderer/components/slide-panel/` (barrel `index.ts`):
+  `useSlideVisibility` + `PANEL_TRANSITION_MS` moved here; new `SlidePanel`
+  (`overlay` / `inline` placement, `animateOnMount`) is the shared chrome the
+  nation dossier now wraps its body in.
+- `no-unknown-casts.baseline.json` key renamed for the moved `useSvgGlobe.ts`
+  (same four existing assertions; no new ones). `test-setup.ts` gained an
+  `IntersectionObserver` stub for jsdom.

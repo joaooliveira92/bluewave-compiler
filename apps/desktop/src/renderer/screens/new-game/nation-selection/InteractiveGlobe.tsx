@@ -3,10 +3,8 @@ import * as d3Selection from "d3-selection";
 import * as d3Zoom from "d3-zoom";
 import { type JSX, useEffect, useRef } from "react";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
-
-import { DOMINANT_FLAG_COLORS, POINTS_DATA } from "./globePins.js";
-import { GlobeShell } from "./GlobeShell.js";
 import {
+  GlobeShell,
   isVisible,
   MAX_PHI_DEG,
   MIN_PHI_DEG,
@@ -17,7 +15,8 @@ import {
   type RotationAnim,
   type SvgGlobeResizeContext,
   useSvgGlobe,
-} from "./useSvgGlobe.js";
+} from "@/components/globe/index.js";
+import { DOMINANT_FLAG_COLORS, POINTS_DATA } from "./globePins.js";
 
 // Old WebGL clamp was OrbitControls' minPolarAngle/maxPolarAngle (π*0.1 to
 // π*0.55), preventing the camera from looking straight over a pole or

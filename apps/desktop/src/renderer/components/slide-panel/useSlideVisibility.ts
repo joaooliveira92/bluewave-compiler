@@ -6,9 +6,17 @@ export interface SlideVisibility {
   entered: boolean;
 }
 
-export function useSlideVisibility(isOpen: boolean): SlideVisibility {
+/**
+ * Drives a slide panel's mount/enter/exit lifecycle from `isOpen`: `mounted`
+ * keeps the panel in the tree through its exit transition, `entered` flips on
+ * two frames after mounting so the CSS transition has a start state to leave.
+ *
+ * `animateOnMount` makes a panel that is open from its first render ease in
+ * rather than appear fully entered.
+ */
+export function useSlideVisibility(isOpen: boolean, animateOnMount = false): SlideVisibility {
   const [mounted, setMounted] = useState(isOpen);
-  const [entered, setEntered] = useState(isOpen);
+  const [entered, setEntered] = useState(isOpen && !animateOnMount);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const frameOneRef = useRef<number | null>(null);
   const frameTwoRef = useRef<number | null>(null);
@@ -30,7 +38,7 @@ export function useSlideVisibility(isOpen: boolean): SlideVisibility {
     };
 
     clearPendingWork();
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
 
     if (isOpen) {
       setMounted(true);
