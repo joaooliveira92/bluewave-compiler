@@ -11,7 +11,8 @@ try {
   hasElectron = false;
 }
 
-const describeIf = hasElectron ? describe : describe.skip;
+// Electron is only present in the packaged e2e job; locally the suite is skipped.
+const describeIf = hasElectron ? describe : describe.skip; // test-focus-allow-skip: Electron optional outside e2e
 
 describeIf("Desktop smoke test", () => {
   it("Electron resolves successfully", () => {

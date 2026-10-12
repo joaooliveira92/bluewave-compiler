@@ -70,6 +70,12 @@ export const GATE_SETS = {
       needs: ["git-state"],
       args: ["scripts/verify-no-unknown-casts.mjs"],
     },
+    {
+      id: "test-focus",
+      label: "no focused/unexplained-skip tests",
+      needs: ["git-state"],
+      args: ["scripts/verify-test-focus.mjs"],
+    },
   ],
 };
 
