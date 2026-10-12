@@ -4,6 +4,7 @@ import type { CampaignSnapshot, ConstructionProject, NationState, Ship } from "@
 import { transitionConstructionProject } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
 import {
+  FOREIGN_PAYMENT_DEFAULT_DELAYED,
   preservationCostPerMonthMicro,
   treasuryCostUnits,
   type ConstructionBalance,
@@ -18,6 +19,7 @@ import {
 } from "./constructionAcceleration.js";
 import { fundDesignStudies } from "./designStudies.js";
 import { resolvePrivateDockExpansion } from "./dockExpansion.js";
+import { runForeignContractPhase } from "./foreignContractPhase.js";
 import { budgetChangedEvent, constructionDelayedEvent, makeLedgerEntry } from "./events.js";
 import type { MonthContext } from "./monthContext.js";
 
@@ -99,6 +101,17 @@ function capacityOf(
 export const PROJECT_DELAYED_ZERO_WORK = "PROJECT_DELAYED_ZERO_WORK" as const;
 
 /**
+ * Remove a project's delay reason. The reason describes why the project was held; once the ordinary auto-resume
+ * returns it to work, keeping it would violate the "reason only on a delayed month" invariant.
+ */
+function withoutDelayReason(project: ConstructionProject): ConstructionProject {
+  if (!("delayReasonCode" in project)) return project;
+  const next = { ...project };
+  delete next.delayReasonCode;
+  return next;
+}
+
+/**
  * The preservation cost one `HALTED` project pays for a month, in treasury units: half the mothballed maintenance,
  * rounded up to a whole treasury unit (RTW3 manual pp. 30-31; DESIGN-23 section 7). Pure; zero when no base is authored.
  */
@@ -118,6 +131,11 @@ export function preservationCostUnits(
 export function runAppropriationPhase(ctx: MonthContext): void {
   // Design studies are paid first: design-office work is small and gates every new class (ADR-0085).
   fundDesignStudies(ctx);
+  // DESIGN-16 section 13.4 (INC-9): resolve every foreign contract's month before domestic funding. Payments debit the
+  // ordering treasury and credit the builder; work is unlocked solely by the paid instalments (INC-9d), so a foreign
+  // project is always skipped by ordinary appropriation. The returned capability-delayed set keeps a builder-capability
+  // `DELAYED` from being unwound by the same-month auto-resume (MAJOR-1).
+  const foreign = runForeignContractPhase(ctx);
   const { campaignMonth, eventLedger, financialLedger, nextSeq, collector } = ctx;
   const shipBuilding = ctx.engineOptions?.shipBuilding;
 
@@ -131,6 +149,7 @@ export function runAppropriationPhase(ctx: MonthContext): void {
 
     const designs = ctx.currentSnapshot["designs"];
     const projects = nation["constructionProjects"];
+    const foreignSkip = foreign.zeroWork.get(nationId);
     const haltedProjects = projects.filter((p) => p["status"] === "HALTED");
     const delayedAtStart = projects.filter((p) => p["status"] === "DELAYED");
 
@@ -180,9 +199,10 @@ export function runAppropriationPhase(ctx: MonthContext): void {
         constructionDelayedEvent(
           project["id"],
           nationId,
-          delayedByPressure.has(project["id"])
-            ? ACCELERATION_CAPACITY_PRESSURE_DELAY
-            : PROJECT_DELAYED_ZERO_WORK,
+          project["delayReasonCode"] ??
+            (delayedByPressure.has(project["id"])
+              ? ACCELERATION_CAPACITY_PRESSURE_DELAY
+              : PROJECT_DELAYED_ZERO_WORK),
           nextSeq(),
           campaignMonth,
         ),
@@ -218,7 +238,8 @@ export function runAppropriationPhase(ctx: MonthContext): void {
               (p["completedWork"] as number) < (p["totalWork"] as number) &&
               p["status"] !== "COMPLETED" &&
               p["status"] !== "HALTED" &&
-              p["status"] !== "DELAYED",
+              p["status"] !== "DELAYED" &&
+              !(foreignSkip?.has(p["id"]) ?? false),
           )
         : [];
     if (fundable.length > 0) {
@@ -284,6 +305,7 @@ export function runAppropriationPhase(ctx: MonthContext): void {
           remainingCap,
           ctx.currentSnapshot["designs"],
           campaignMonth,
+          foreignSkip,
         );
         updatedProjects = leftover.projects;
         totalDelta = SafeInt.add(totalDelta, leftover.delta);
@@ -296,10 +318,19 @@ export function runAppropriationPhase(ctx: MonthContext): void {
     // is exactly one month and its premium is preserved.
     if (delayedAtStart.length > 0) {
       updatedProjects = updatedProjects.map((p) =>
-        p["status"] === "DELAYED" && delayedAtStartIds.has(p["id"])
-          ? transitionConstructionProject(
-              p,
-              constructionResumeTarget(designs.get(p["designVersionId"])).status,
+        p["status"] === "DELAYED" &&
+        delayedAtStartIds.has(p["id"]) &&
+        // A foreign payment default (DESIGN-16 section 13.4) is held until payment or termination; it is not the
+        // ordinary one-month capacity delay, so it must not auto-resume here.
+        p["delayReasonCode"] !== FOREIGN_PAYMENT_DEFAULT_DELAYED &&
+        // A builder-capability delay set this month (MAJOR-1) is held the same way. The foreign step ran before this
+        // set was computed, so an explicit exclusion is required or the same month would resume it.
+        !foreign.capabilityDelayed.has(p["id"])
+          ? withoutDelayReason(
+              transitionConstructionProject(
+                p,
+                constructionResumeTarget(designs.get(p["designVersionId"])).status,
+              ),
             )
           : p,
       );
@@ -392,16 +423,19 @@ function applyLeftoverFunding(
   remainingCap: SafeInt,
   designs: CampaignSnapshot["designs"],
   campaignMonth: string,
+  foreignSkip: ReadonlySet<string> | undefined,
 ): { projects: ConstructionProject[]; delta: SafeInt } {
   if ((remainingFunds as number) <= 0 || (remainingCap as number) <= 0) {
     return { projects, delta: SafeInt.ZERO };
   }
+  const skipped = (p: ConstructionProject): boolean => foreignSkip?.has(p["id"]) ?? false;
   // Projects with work packages take leftover funds in order, skipping one the yard cannot work on this month (ADR-0077).
   const offered =
     (remainingFunds as number) > (remainingCap as number) ? remainingCap : remainingFunds;
   for (const candidate of projects) {
     if (candidate["packages"] === undefined || candidate["status"] === "COMPLETED") continue;
     if (candidate["status"] === "HALTED" || candidate["status"] === "DELAYED") continue;
+    if (skipped(candidate)) continue;
     if ((candidate["completedWork"] as number) >= (candidate["totalWork"] as number)) continue;
     const funded = fundConstructionProject(
       candidate,
@@ -421,7 +455,8 @@ function applyLeftoverFunding(
       (p["completedWork"] as number) < (p["totalWork"] as number) &&
       p["status"] !== "COMPLETED" &&
       p["status"] !== "HALTED" &&
-      p["status"] !== "DELAYED",
+      p["status"] !== "DELAYED" &&
+      !skipped(p),
   );
   if (!firstIncomplete) return { projects, delta: SafeInt.ZERO };
 

@@ -45,6 +45,11 @@ import {
   constructionAccelerationAllowed,
   constructionWorkStatus,
 } from "./constructionAcceleration.js";
+import {
+  FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE,
+  FOREIGN_PAYMENT_DEFAULT_DELAYED,
+  FOREIGN_PAYMENT_DEFAULT_RESUME_BLOCKED,
+} from "./foreignConstruction.js";
 import { EventLedger } from "@bluewave/events";
 import type { FinancialLedger } from "./financial-ledger.js";
 import { budgetChangedEvent, makeLedgerEntry } from "./events.js";
@@ -244,6 +249,18 @@ export function applyBudgetProject(
     collector.addError(
       "PROJECT_NOT_ACTIVE",
       `Project ${body["projectId"]} is ${project["status"]} and receives no ordinary work charge`,
+      { stage: "command_collection", entityId: body["projectId"] },
+    );
+    return currentSnapshot;
+  }
+
+  // DESIGN-16 section 13.4: a foreign-contract project's work is driven by the contract instalment schedule resolved in
+  // the appropriation phase, not by a domestic budget command. Refusing the direct budget keeps "no progress without
+  // payment" true on the command path; an unpaid month stays at zero work.
+  if (project["foreignContractId"] !== undefined) {
+    collector.addError(
+      FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE,
+      `Project ${body["projectId"]} is a foreign contract order funded by its instalment schedule, not a domestic budget`,
       { stage: "command_collection", entityId: body["projectId"] },
     );
     return currentSnapshot;
@@ -520,6 +537,18 @@ export function applyResumeConstruction(
 ): CampaignSnapshot {
   const found = dockyardProject(currentSnapshot, body["nationId"], body["projectId"], collector);
   if (found === undefined) return currentSnapshot;
+  // DESIGN-16 section 13.4 (M4, MINOR-6): a project held by a foreign payment default cannot be resumed by command.
+  // The default clears only when the monthly step settles the arrears (or the contract is terminated); until then the
+  // resume is refused with a specific reason and no state change. The guard keys on the persisted reason code, not the
+  // current status: a halt in the default month (`DELAYED -> HALTED`) must not clear the hold by changing the status.
+  if (found.project["delayReasonCode"] === FOREIGN_PAYMENT_DEFAULT_DELAYED) {
+    collector.addError(
+      FOREIGN_PAYMENT_DEFAULT_RESUME_BLOCKED,
+      `Project ${body["projectId"]} is held by a foreign payment default and cannot resume until payment clears it`,
+      { stage: "command_collection", entityId: body["projectId"] },
+    );
+    return currentSnapshot;
+  }
   const design = currentSnapshot["designs"].get(found.project["designVersionId"]);
   const target = constructionResumeTarget(design);
   const next = setProjectStatus(

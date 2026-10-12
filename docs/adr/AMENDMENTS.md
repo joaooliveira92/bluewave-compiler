@@ -51,4 +51,4 @@ change process without changing normative behaviour.
   ADR-0095 (docs/ADR authority), ADR-0096 (playable-nation coverage policy),
   ADR-0097 (first-release combat surface), ADR-0129 (dockyard-project status model),
   ADR-0130 (BULGE refit kind), ADR-0131 (REARMAMENT armament-change conditions),
-  ADR-0135 (authored national dock record).
+  ADR-0135 (authored national dock record), ADR-0138 (foreign-construction save state).

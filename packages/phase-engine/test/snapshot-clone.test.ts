@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { CampaignSnapshot, Ship } from "@bluewave/campaign";
+import type { CampaignSnapshot, ForeignConstructionContract, Ship } from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
@@ -220,6 +220,9 @@ function makeRichSnapshot(): CampaignSnapshot {
       elapsedActiveMonths: 3,
       dockExpansionDurationMonths: 12,
       dockExpansionStepKg: 1_000_000,
+      foreignContractId: "fc-1",
+      foreignBuilderNationId: DEFENDER_NATION,
+      delayReasonCode: "PAYMENT_DEFAULT_DELAYED",
     },
   ];
   gbr.aircraft = {} as any;
@@ -260,6 +263,37 @@ function makeRichSnapshot(): CampaignSnapshot {
       reason: null,
     },
   ];
+  const foreignContract: ForeignConstructionContract = {
+    contractId: "fc-1",
+    orderingNationId: ATTACKER_NATION,
+    builderNationId: DEFENDER_NATION,
+    builderShipyardId: "yard-fra-1",
+    designVersionId: "dv-b",
+    quantity: 1,
+    totalWorkPerUnit: 200,
+    totalPriceUnits: 2_000,
+    currencyUnit: "treasury_unit",
+    paymentSchedule: [{ dueMonth: "1880-01", amountUnits: 2_000, workShareBp: 10_000 }],
+    capacityReservationSchedule: [
+      { month: "1880-01", reservedMassKg: 2_000_000, pool: "NEW_CONSTRUCTION" },
+    ],
+    authorizationMonth: "1880-01",
+    plannedKeelMonth: "1880-02",
+    plannedDeliveryMonth: "1880-06",
+    builderCapabilitySnapshotHash: "cap-hash",
+    technologyTransferPolicyId: "foreign_construction_insight_v1",
+    warDelayPolicyId: "foreign_contract_war_policy_v1",
+    impoundmentPolicyId: "foreign_contract_impoundment_v1",
+    deliveryGuaranteeClauseId: "NONE",
+    occupationDestructionPolicyId: "foreign_contract_occupation_destruction_v1",
+    cancellationRefundPolicyId: "foreign_contract_cancellation_refund_v1",
+    governingTreatyIds: ["treaty-1"],
+    rulesetVersion: "1.0.0",
+    formulaVersion: "foreign_construction_contract_v1",
+    contractHash: "0".repeat(64),
+  };
+  gbr.foreignContracts = [foreignContract];
+  gbr.foreignContractPayments = [{ contractId: "fc-1", paidDueMonths: ["1880-01"] }];
 
   const fra = snapshot.nations.get(DEFENDER_NATION)!;
   fra.research = {
@@ -456,6 +490,8 @@ const CANONICAL_CLONE_TYPES = [
   "CompiledDesignVersion",
   "DesignFamily",
   "DesignStudy",
+  "ForeignConstructionContract",
+  "ForeignContractPaymentRecord",
   "CampaignWeatherState",
   "CampaignSnapshot",
 ] as const;

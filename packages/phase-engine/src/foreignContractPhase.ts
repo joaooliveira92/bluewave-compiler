@@ -1,0 +1,348 @@
+// packages/phase-engine/src/foreignContractPhase.ts
+// The monthly foreign-contract step (DESIGN-16 section 13.2/13.4; spec SB3-R20/R22). It is called from the appropriation
+// phase, which already holds the treasury/constructions/nations read-write permissions it needs. For every project that
+// carries a `foreignContractId` it:
+//   - resolves the contract and verifies its stored hash (a tampered contract is refused, never consumed);
+//   - revalidates the builder's capability against the current snapshot;
+//   - resolves the month's instalments, paying every due instalment the ordering treasury covers, and posts the balanced
+//     ordering-OUTFLOW / builder-INFLOW ledger pair so the builder is credited;
+//   - applies the payment outcome: an unpaid instalment after the shipped one-month grace holds the project in
+//     `DELAYED` with `PAYMENT_DEFAULT_DELAYED`; a paid instalment clears that default and resumes it;
+//   - unlocks the paid instalments' `workShareBp` share of the project's work (INC-9d) while the builder is capable,
+//     and holds a builder-capability failure in `DELAYED`.
+// Unpaid work receives zero progress: every foreign project is returned in the appropriation skip set, so the ordinary
+// appropriation never funds or charges it. Deterministic: integer arithmetic only, no wall clock, no randomness.
+import type {
+  CampaignSnapshot,
+  ConstructionProject,
+  ForeignConstructionContract,
+} from "@bluewave/campaign";
+import { canTransitionConstructionProject } from "@bluewave/campaign";
+import { SafeInt } from "@bluewave/contracts";
+import type { ShipBuildingContent } from "@bluewave/ship-design";
+import { constructionResumeTarget } from "./constructionHaltResume.js";
+import {
+  FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+  FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED,
+  FOREIGN_CONTRACT_HASH_MISMATCH,
+  advanceForeignContractMonth,
+  applyForeignPaymentOutcome,
+  builderDockRecord,
+  compareForeignConstructionContracts,
+  foreignBuilderCommittedMassKg,
+  foreignContractReservedMassKg,
+  foreignPaymentLedgerEntries,
+  foreignUnlockedWork,
+  isForeignPaymentDefaultProject,
+  verifyForeignContractHash,
+  type ForeignBuilderCapabilityConditions,
+} from "./foreignConstruction.js";
+import { nationalConstructionCapacity } from "./newConstructionCapacity.js";
+import type { MonthContext } from "./monthContext.js";
+
+/**
+ * The volatile builder predicates INC-9 does not model yet. Occupation/destruction and war effects arrive with INC-10;
+ * until then every predicate is satisfied and capability can only fail on the dock or free capacity resolved from the
+ * snapshot (the §13.2 checks that are already authoritative).
+ */
+const FOREIGN_BUILDER_CONDITIONS_SATISFIED: ForeignBuilderCapabilityConditions = {
+  requiredTechnologySatisfied: true,
+  shipyardCapabilitySatisfied: true,
+  governmentPermissionSatisfied: true,
+  componentSourcingSatisfied: true,
+  physicallyCapable: true,
+};
+
+const byContractThenId = (
+  contracts: ReadonlyMap<string, ForeignConstructionContract>,
+  a: ConstructionProject,
+  b: ConstructionProject,
+): number => {
+  const ca = contracts.get(a["foreignContractId"]!);
+  const cb = contracts.get(b["foreignContractId"]!);
+  const byContract =
+    ca !== undefined && cb !== undefined ? compareForeignConstructionContracts(ca, cb) : 0;
+  if (byContract !== 0) return byContract;
+  return a["id"] < b["id"] ? -1 : a["id"] > b["id"] ? 1 : 0;
+};
+
+/**
+ * The result of one monthly foreign-contract pass.
+ */
+export interface ForeignContractPhaseResult {
+  /**
+   * Per ordering-nation id, the foreign project ids the ordinary appropriation must skip this month. A foreign project
+   * is always skipped: its work is unlocked solely by its paid instalments (INC-9d), so an unpaid month receives zero
+   * progress and a paid month is never charged an ordinary construction charge on top of its instalment.
+   */
+  readonly zeroWork: ReadonlyMap<string, ReadonlySet<string>>;
+  /**
+   * Project ids the step moved into — or held in — a builder-capability `DELAYED` this month. The appropriation's
+   * ordinary one-month auto-resume must exclude them exactly like `delayedByPressure`, or the same-month resume would
+   * unwind the capability delay immediately (MAJOR-1).
+   */
+  readonly capabilityDelayed: ReadonlySet<string>;
+}
+
+/**
+ * Run the monthly foreign-contract step over the whole snapshot, committing treasury, project status/reason, unlocked
+ * schedule work and payment records. Returns the per-nation zero-work skip set and the capability-delayed project ids.
+ * Pure except for the ledgers and collector on the context.
+ */
+export function runForeignContractPhase(ctx: MonthContext): ForeignContractPhaseResult {
+  const shipBuilding = ctx.engineOptions?.shipBuilding;
+  const campaignMonth = ctx.campaignMonth;
+  const nations = new Map(ctx.currentSnapshot["nations"]);
+  const skip = new Map<string, ReadonlySet<string>>();
+  const capabilityDelayed = new Set<string>();
+  let changed = false;
+
+  for (const [nationId, nation0] of ctx.currentSnapshot["nations"]) {
+    const foreignProjects = nation0["constructionProjects"].filter(
+      (p) => p["foreignContractId"] !== undefined,
+    );
+    if (foreignProjects.length === 0) continue;
+
+    const contracts = new Map(
+      (nation0["foreignContracts"] ?? []).map((c) => [c["contractId"], c] as const),
+    );
+    const records = new Map(
+      (nation0["foreignContractPayments"] ?? []).map(
+        (r) => [r["contractId"], r["paidDueMonths"]] as const,
+      ),
+    );
+    const updatedById = new Map<string, ConstructionProject>();
+    const skipIds = new Set<string>();
+    const snapshotNow = (): typeof ctx.currentSnapshot => ({ ...ctx.currentSnapshot, nations });
+
+    for (const project0 of [...foreignProjects].sort((a, b) => byContractThenId(contracts, a, b))) {
+      const contractId = project0["foreignContractId"]!;
+      const contract = contracts.get(contractId);
+
+      if (contract === undefined) {
+        ctx.collector.addError(
+          FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED,
+          `Project ${project0["id"]} carries foreign contract ${contractId} but the ordering nation has no such contract`,
+          { stage: "appropriation", entityId: project0["id"] },
+        );
+        skipIds.add(project0["id"]);
+        continue;
+      }
+      if (!verifyForeignContractHash(contract)) {
+        ctx.collector.addError(
+          FOREIGN_CONTRACT_HASH_MISMATCH,
+          `Foreign contract ${contractId} does not match its stored hash; it is refused this month`,
+          { stage: "appropriation", entityId: project0["id"] },
+        );
+        skipIds.add(project0["id"]);
+        continue;
+      }
+
+      // Settle every due instalment the ordering treasury covers, oldest first. A partial settlement still leaves the
+      // project on zero progress (unpaid work); the ledger pair credits the builder for each instalment paid.
+      const paidDueMonths = [...(records.get(contractId) ?? [])];
+      const probe = advanceForeignContractMonth({
+        contract,
+        campaignMonth,
+        demand: demandFor(snapshotNow(), contract),
+        dock:
+          builderDockRecord(
+            snapshotNow(),
+            contract["builderNationId"],
+            shipBuilding,
+            campaignMonth,
+          ) ?? {},
+        conditions: FOREIGN_BUILDER_CONDITIONS_SATISFIED,
+        reservedMassKg: foreignContractReservedMassKg(contract),
+        availableNewConstructionCapacityKg: availableBuilderCapacityKg(
+          snapshotNow(),
+          contract,
+          shipBuilding,
+          campaignMonth,
+        ),
+        paidDueMonths,
+        alreadyDefaulted: isForeignPaymentDefaultProject(project0),
+      });
+      for (const installment of probe.payment["unpaidInstallments"]) {
+        const amount = installment["amountUnits"];
+        if (!Number.isSafeInteger(amount) || amount <= 0) continue;
+        const ordering = nations.get(nationId)!;
+        const orderingBalance = Number(ordering["treasury"]);
+        if (orderingBalance < amount) break;
+        const builder = nations.get(contract["builderNationId"]);
+        const builderBalance = builder === undefined ? 0 : Number(builder["treasury"]);
+        for (const entry of foreignPaymentLedgerEntries(contract, installment, {
+          campaignMonth,
+          phaseId: "appropriation",
+          balances: {
+            [nationId]: orderingBalance,
+            [contract["builderNationId"]]: builderBalance,
+          },
+        }))
+          ctx.financialLedger.append(entry);
+        nations.set(nationId, {
+          ...ordering,
+          treasury: SafeInt.sub(ordering["treasury"], SafeInt(amount)),
+        });
+        if (builder !== undefined)
+          nations.set(contract["builderNationId"], {
+            ...builder,
+            treasury: SafeInt.add(builder["treasury"], SafeInt(amount)),
+          });
+        paidDueMonths.push(installment["dueMonth"]);
+        changed = true;
+      }
+      records.set(contractId, paidDueMonths);
+
+      // Resolve the month's outcome against the now-settled schedule (no `paidThisMonth`: postings were already posted).
+      const settled = advanceForeignContractMonth({
+        contract,
+        campaignMonth,
+        demand: demandFor(snapshotNow(), contract),
+        dock:
+          builderDockRecord(
+            snapshotNow(),
+            contract["builderNationId"],
+            shipBuilding,
+            campaignMonth,
+          ) ?? {},
+        conditions: FOREIGN_BUILDER_CONDITIONS_SATISFIED,
+        reservedMassKg: foreignContractReservedMassKg(contract),
+        availableNewConstructionCapacityKg: availableBuilderCapacityKg(
+          snapshotNow(),
+          contract,
+          shipBuilding,
+          campaignMonth,
+        ),
+        paidDueMonths,
+        alreadyDefaulted: isForeignPaymentDefaultProject(project0),
+      });
+
+      const resumeStatus = constructionResumeTarget(
+        ctx.currentSnapshot["designs"].get(contract["designVersionId"]),
+      ).status;
+      let updated = applyForeignPaymentOutcome(project0, settled.payment, resumeStatus);
+
+      if (!settled.capability["satisfied"]) {
+        ctx.collector.addWarning(
+          FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+          `Builder ${contract["builderNationId"]} fails capacity revalidation for contract ${contractId}: ${settled.capability[
+            "reasons"
+          ]
+            .map((r) => r["field"])
+            .join(", ")}`,
+          { stage: "appropriation", entityId: project0["id"] },
+        );
+        // MAJOR-1: move the project into DELAYED only when the transition is legal, and never write a reason unless
+        // it ends DELAYED. A project already delayed for another reason (e.g. an acceleration-pressure delay) is held
+        // too; either way it is recorded so the appropriation's ordinary auto-resume cannot unwind it this month.
+        if (!isForeignPaymentDefaultProject(updated)) {
+          if (canTransitionConstructionProject(updated["status"], "DELAYED"))
+            updated = {
+              ...updated,
+              status: "DELAYED",
+              delayReasonCode: FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT,
+            };
+          if (updated["status"] === "DELAYED") capabilityDelayed.add(project0["id"]);
+        }
+      } else {
+        // INC-9d (MEDIUM-3): work is unlocked solely by the paid instalments' `workShareBp`, applied while the builder
+        // is capable. The ordinary appropriation never funds or charges the work again.
+        const unlocked = foreignUnlockedWork(
+          Number(project0["totalWork"]),
+          contract,
+          paidDueMonths,
+        );
+        if (unlocked > Number(updated["completedWork"]))
+          updated = {
+            ...updated,
+            completedWork: SafeInt(unlocked),
+            paidWork: SafeInt(Math.max(unlocked, Number(updated["paidWork"]))),
+          };
+      }
+      // A foreign project is always excluded from ordinary appropriation: its progress comes from the schedule alone.
+      skipIds.add(project0["id"]);
+      updatedById.set(project0["id"], updated);
+    }
+
+    if (updatedById.size === 0) {
+      if (skipIds.size > 0) skip.set(nationId, skipIds);
+      continue;
+    }
+
+    const finalNation = nations.get(nationId)!;
+    const existingRecords = finalNation["foreignContractPayments"] ?? [];
+    const mergedRecords = existingRecords.map((r) => ({
+      ...r,
+      paidDueMonths: [...r.paidDueMonths],
+    }));
+    for (const [cid, paid] of records)
+      if (paid.length > 0) {
+        const at = mergedRecords.findIndex((r) => r["contractId"] === cid);
+        if (at >= 0) mergedRecords[at] = { contractId: cid, paidDueMonths: [...paid].sort() };
+        else mergedRecords.push({ contractId: cid, paidDueMonths: [...paid].sort() });
+      }
+    mergedRecords.sort((a, b) =>
+      a["contractId"] < b["contractId"] ? -1 : a["contractId"] > b["contractId"] ? 1 : 0,
+    );
+
+    // Keep the field absent until the first instalment is actually paid, so a foreign run that never pays does not
+    // add hash-perturbing state.
+    const payments =
+      mergedRecords.length > 0 ? mergedRecords : finalNation["foreignContractPayments"];
+
+    nations.set(nationId, {
+      ...finalNation,
+      constructionProjects: finalNation["constructionProjects"].map(
+        (p) => updatedById.get(p["id"]) ?? p,
+      ),
+      ...(payments === undefined ? {} : { foreignContractPayments: payments }),
+    });
+    changed = true;
+    if (skipIds.size > 0) skip.set(nationId, skipIds);
+  }
+
+  if (changed) ctx.currentSnapshot = { ...ctx.currentSnapshot, nations };
+  return { zeroWork: skip, capabilityDelayed };
+}
+
+/** The compiled displacement demand the builder-capability dock check reads. */
+function demandFor(
+  snapshot: CampaignSnapshot,
+  contract: ForeignConstructionContract,
+): { lengthMm: number; beamMm: number; displacementKg: number; heaviestKg: number } {
+  const design = snapshot["designs"].get(contract["designVersionId"]);
+  return {
+    lengthMm: 0,
+    beamMm: 0,
+    displacementKg: design === undefined ? 0 : Number(design["normalizedDisplacementKg"]),
+    heaviestKg: 0,
+  };
+}
+
+/**
+ * The builder's free `NEW_CONSTRUCTION` capacity for THIS contract: its cap minus every other commitment, with the
+ * contract's own reservation added back (so revalidating a live contract does not count it against itself).
+ */
+function availableBuilderCapacityKg(
+  snapshot: CampaignSnapshot,
+  contract: ForeignConstructionContract,
+  shipBuilding: ShipBuildingContent | undefined,
+  campaignMonth: string,
+): number {
+  const builderNationId = contract["builderNationId"];
+  const dock = builderDockRecord(snapshot, builderNationId, shipBuilding, campaignMonth);
+  const balance = shipBuilding?.environmentFor(campaignMonth, builderNationId)[
+    "constructionBalance"
+  ];
+  if (dock === null || balance === undefined) return 0;
+  const capacity = nationalConstructionCapacity(balance, dock["maximumNewConstructionMassKg"] ?? 0);
+  const committed = foreignBuilderCommittedMassKg(snapshot, builderNationId, capacity);
+  return Math.max(
+    0,
+    capacity.maxConcurrentMassKg - committed + foreignContractReservedMassKg(contract),
+  );
+}
+
+/** Re-exported for tests: the volatile-capability default the INC-9 monthly step applies. */
+export { FOREIGN_BUILDER_CONDITIONS_SATISFIED };

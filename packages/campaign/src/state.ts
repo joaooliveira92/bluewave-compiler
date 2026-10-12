@@ -321,6 +321,92 @@ export interface NationDockExpansionState {
   lastOpportunityMonth?: string;
 }
 
+/**
+ * DESIGN-16 section 13.4: one scheduled instalment of a foreign construction contract, in the contract's currency
+ * unit. `workShareBp` is the share of total work the instalment unlocks (basis points `0..10_000`); the shipped
+ * schedule splits work evenly across instalments, but the type does not require it.
+ */
+export interface ForeignContractPaymentInstallment {
+  /** Campaign month id (`YYYY-MM`) the instalment is due. */
+  dueMonth: string;
+  /** Instalment amount in the contract's currency unit. */
+  amountUnits: number;
+  /** Fraction of the contract's total work this instalment unlocks, basis points `0..10_000`. */
+  workShareBp: number;
+}
+
+/**
+ * DESIGN-16 section 13.3: one reservation a foreign contract makes against the BUILDER's construction capacity. The
+ * shipped schedule places the contract's whole reservation in one entry at the authorization month; the type allows a
+ * genuine per-month schedule.
+ */
+export interface ForeignContractCapacityReservation {
+  /** Campaign month id (`YYYY-MM`) the reservation begins. */
+  month: string;
+  /** Reserved displacement in kilograms. */
+  reservedMassKg: number;
+  /** The construction pool the reservation competes in (`NEW_CONSTRUCTION`). */
+  pool: string;
+}
+
+/**
+ * DESIGN-16 section 13.1: the immutable contract every foreign construction order MUST create. Plain values only, so
+ * campaign state keeps no dependency on the ship-design package; the contract hash binds every field and is computed
+ * once, at order time, through `@bluewave/deterministic` (phase-engine's `buildForeignConstructionContract`).
+ */
+export interface ForeignConstructionContract {
+  contractId: string;
+  /** The nation that ordered and pays for the ship. */
+  orderingNationId: string;
+  /** The nation whose yard builds the ship; its capacity is consumed (section 13.3). */
+  builderNationId: string;
+  builderShipyardId: string;
+  /** The compiled design version being built. */
+  designVersionId: string;
+  quantity: number;
+  /** Total work per unit, in the project's work micro-units. */
+  totalWorkPerUnit: number;
+  /** Total price across all units, in `currencyUnit`. */
+  totalPriceUnits: number;
+  currencyUnit: string;
+  paymentSchedule: ForeignContractPaymentInstallment[];
+  capacityReservationSchedule: ForeignContractCapacityReservation[];
+  authorizationMonth: string;
+  plannedKeelMonth: string;
+  plannedDeliveryMonth: string;
+  /** Hash of the builder-capability snapshot the contract was accepted against (section 13.2). */
+  builderCapabilitySnapshotHash: string;
+  /** `foreign_construction_insight_v1` or `NONE` (section 13.5; INC-11 implements the effect). */
+  technologyTransferPolicyId: string;
+  /** `foreign_contract_war_policy_v1` (section 13.6; INC-10 implements the outcomes). */
+  warDelayPolicyId: string;
+  /** Impoundment policy identifier (section 13.7; INC-10). */
+  impoundmentPolicyId: string;
+  /** Delivery-guarantee clause identifier, or `NONE` (section 14; INC-10). */
+  deliveryGuaranteeClauseId: string;
+  /** Occupation/destruction policy identifier (section 13.2/13.6). */
+  occupationDestructionPolicyId: string;
+  /** Cancellation and refund policy identifier (section 13.4). */
+  cancellationRefundPolicyId: string;
+  governingTreatyIds: string[];
+  rulesetVersion: string;
+  formulaVersion: string;
+  /** sha256 of the canonical serialization of every other field. */
+  contractHash: string;
+}
+
+/**
+ * DESIGN-16 section 13.4: the payment ledger state the engine keeps for one foreign contract — the campaign months
+ * (`YYYY-MM`) of its instalments already paid. It is what lets a payment one month clear an earlier default and stops
+ * the schedule being charged twice. Plain values only; absent until an instalment is paid, so the field never perturbs
+ * existing save hashes.
+ */
+export interface ForeignContractPaymentRecord {
+  contractId: string;
+  /** Due months paid so far, ascending. Matched exactly against the contract's schedule. */
+  paidDueMonths: string[];
+}
+
 export interface NationState {
   id: string;
   name: string;
@@ -353,6 +439,17 @@ export interface NationState {
   designStudies?: DesignStudy[];
   /** The nation's persisted AI procurement lifecycle (ADR-0091); absent until an AI nation plans its first order. */
   procurementIntents?: ProcurementIntent[];
+  /**
+   * The foreign construction contracts this nation has ORDERED (DESIGN-16 section 13.1). Such a contract consumes the
+   * BUILDER's capacity, not this nation's, but is stored here so the ordering player's state carries its obligations.
+   * Absent until the nation places its first foreign order, so the field never perturbs existing save hashes.
+   */
+  foreignContracts?: ForeignConstructionContract[];
+  /**
+   * The paid instalments the engine has resolved for those foreign contracts (DESIGN-16 section 13.4). Absent until an
+   * instalment is paid, so it never perturbs an existing save hash; the monthly phase reads and extends it.
+   */
+  foreignContractPayments?: ForeignContractPaymentRecord[];
   aircraft?: Record<string, unknown>;
   carrierOperations?: Record<string, unknown>;
   isPlayable: boolean;
@@ -554,6 +651,20 @@ export interface ConstructionProject {
   elapsedActiveMonths?: number;
   dockExpansionDurationMonths?: number;
   dockExpansionStepKg?: number;
+  /**
+   * Foreign construction (DESIGN-16 section 13): the contract this project fulfils, and the nation whose yard builds
+   * it. Present only on foreign orders. The reservation is stored as `0` because a foreign contract consumes the
+   * BUILDER's capacity (section 13.3) and must leave the ordering nation's pool provably untouched. Plain values, so
+   * campaign state keeps no dependency on the ship-design package.
+   */
+  foreignContractId?: string;
+  foreignBuilderNationId?: string;
+  /**
+   * The stable reason a delayed month carries (e.g. `PAYMENT_DEFAULT_DELAYED`, DESIGN-16 section 13.4), when the
+   * delay is not the ordinary one-month capacity delay. Absent on every other project, so the field never perturbs
+   * existing save hashes. It lets a foreign payment default hold the project in `DELAYED` until payment/termination.
+   */
+  delayReasonCode?: string;
 }
 
 export interface WorldState {

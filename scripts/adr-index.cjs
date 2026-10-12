@@ -52,6 +52,7 @@ const AREAS = [
     blurb: "Ship design, classification, construction, repair, and rebuild.",
     nums: [
       13, 63, 64, 66, 67, 70, 74, 76, 77, 78, 80, 83, 85, 88, 116, 129, 130, 131, 132, 135, 137,
+      138,
     ],
   },
   {

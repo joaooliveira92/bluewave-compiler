@@ -13,6 +13,8 @@ import type {
   ConstructionProject,
   DesignFamily,
   DesignStudy,
+  ForeignConstructionContract,
+  ForeignContractPaymentRecord,
   ProcurementIntent,
   DiplomaticRelation,
   FleetState,
@@ -226,6 +228,9 @@ const F = {
     "elapsedActiveMonths",
     "dockExpansionDurationMonths",
     "dockExpansionStepKg",
+    "foreignContractId",
+    "foreignBuilderNationId",
+    "delayReasonCode",
   ),
   ConstructionMonthUsage: fields<ConstructionMonthUsage>()("month", "used", "startDone"),
   ConstructionPackage: fields<ConstructionPackage>()(
@@ -261,6 +266,37 @@ const F = {
     "projectHash",
     "design",
   ),
+  ForeignConstructionContract: fields<ForeignConstructionContract>()(
+    "contractId",
+    "orderingNationId",
+    "builderNationId",
+    "builderShipyardId",
+    "designVersionId",
+    "quantity",
+    "totalWorkPerUnit",
+    "totalPriceUnits",
+    "currencyUnit",
+    "paymentSchedule",
+    "capacityReservationSchedule",
+    "authorizationMonth",
+    "plannedKeelMonth",
+    "plannedDeliveryMonth",
+    "builderCapabilitySnapshotHash",
+    "technologyTransferPolicyId",
+    "warDelayPolicyId",
+    "impoundmentPolicyId",
+    "deliveryGuaranteeClauseId",
+    "occupationDestructionPolicyId",
+    "cancellationRefundPolicyId",
+    "governingTreatyIds",
+    "rulesetVersion",
+    "formulaVersion",
+    "contractHash",
+  ),
+  ForeignContractPaymentRecord: fields<ForeignContractPaymentRecord>()(
+    "contractId",
+    "paidDueMonths",
+  ),
   NationState: fields<NationState>()(
     "id",
     "name",
@@ -280,6 +316,8 @@ const F = {
     "dockExpansion",
     "designStudies",
     "procurementIntents",
+    "foreignContracts",
+    "foreignContractPayments",
     "aircraft",
     "carrierOperations",
     "isPlayable",
@@ -496,9 +534,13 @@ const _assert: [
   _Assert<CompiledDesignVersion, typeof F.CompiledDesignVersion>,
   _Assert<DesignFamily, typeof F.DesignFamily>,
   _Assert<DesignStudy, typeof F.DesignStudy>,
+  _Assert<ForeignConstructionContract, typeof F.ForeignConstructionContract>,
+  _Assert<ForeignContractPaymentRecord, typeof F.ForeignContractPaymentRecord>,
   _Assert<CampaignWeatherState, typeof F.CampaignWeatherState>,
   _Assert<CampaignSnapshot, typeof F.CampaignSnapshot>,
 ] = [
+  true,
+  true,
   true,
   true,
   true,
@@ -566,6 +608,20 @@ const cloneDesignStudy = (st: DesignStudy): DesignStudy =>
     failedCriteria: (v) => [...(v as string[])],
     design: (v) => cloneDesign(v as CompiledDesignVersion),
   });
+const cloneForeignContract = (c: ForeignConstructionContract): ForeignConstructionContract =>
+  recordClone(c, F.ForeignConstructionContract, {
+    paymentSchedule: (v) =>
+      (v as ForeignConstructionContract["paymentSchedule"]).map((i) => ({ ...i })),
+    capacityReservationSchedule: (v) =>
+      (v as ForeignConstructionContract["capacityReservationSchedule"]).map((r) => ({ ...r })),
+    governingTreatyIds: (v) => [...(v as string[])],
+  });
+const cloneForeignContractPayment = (
+  r: ForeignContractPaymentRecord,
+): ForeignContractPaymentRecord =>
+  recordClone(r, F.ForeignContractPaymentRecord, {
+    paidDueMonths: (v) => [...(v as string[])],
+  });
 const cloneNation = (n: NationState): NationState =>
   recordClone(n, F.NationState, {
     fleets: (v) => (v as FleetState[]).map(cloneFleet),
@@ -582,6 +638,12 @@ const cloneNation = (n: NationState): NationState =>
             ...p,
             dockRequirement: p.dockRequirement === null ? null : { ...p.dockRequirement },
           })),
+    foreignContracts: (v) =>
+      v === undefined ? undefined : (v as ForeignConstructionContract[]).map(cloneForeignContract),
+    foreignContractPayments: (v) =>
+      v === undefined
+        ? undefined
+        : (v as ForeignContractPaymentRecord[]).map(cloneForeignContractPayment),
   });
 const cloneBattleResult = (r: BattleResult): BattleResult =>
   recordClone(r, F.BattleResult, {

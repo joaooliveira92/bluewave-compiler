@@ -33,6 +33,7 @@ export * from "./workshop.js";
 export * from "./yards.js";
 export * from "./dock.js";
 export * from "./dockExpansion.js";
+export * from "./foreignConstruction.js";
 export * from "./suggest.js";
 export * from "./shipBuildingContent.js";
 export * from "./batteries.js";
