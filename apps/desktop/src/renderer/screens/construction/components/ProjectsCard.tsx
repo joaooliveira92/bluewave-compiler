@@ -63,12 +63,15 @@ function SteeringControls({
 }) {
   const isHeld =
     row.status === "HALTED" || row.status === "DELAYED" || row.status === "AWAITING_CAPACITY";
+  // A foreign-contract project's work is driven by its instalment schedule, not by halt/resume, so it offers no
+  // steering controls (the status badge still shows its state).
   const steerable =
-    row.status === "ACTIVE" ||
-    row.status === "ACCELERATED" ||
-    row.status === "HALTED" ||
-    row.status === "DELAYED" ||
-    row.status === "AWAITING_CAPACITY";
+    !row.isForeign &&
+    (row.status === "ACTIVE" ||
+      row.status === "ACCELERATED" ||
+      row.status === "HALTED" ||
+      row.status === "DELAYED" ||
+      row.status === "AWAITING_CAPACITY");
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Badge variant="secondary">{STATUS_LABEL[row.status] ?? row.status.toLowerCase()}</Badge>

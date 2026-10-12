@@ -2,16 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 
-export type RequestKind =
-  | "submit"
-  | "replace"
-  | "cancel"
-  | "halt"
-  | "resume"
-  | "accelerate"
-  | "dock-expansion"
-  | "batch-order"
-  | "foreign-order";
+export type RequestKind = "submit" | "replace" | "cancel" | "halt" | "resume" | "accelerate";
 
 export interface PendingRequest {
   readonly kind: RequestKind;

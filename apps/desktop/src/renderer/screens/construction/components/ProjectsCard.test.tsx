@@ -109,10 +109,19 @@ describe("ProjectsCard steering controls (SB3-R5, SB3-R8)", () => {
     expect(screen.getByRole("button", { name: "Havock class stop accelerating" })).toBeTruthy();
   });
 
-  it("never offers acceleration for a foreign-contract project", () => {
-    render(<ProjectsCard rows={[row({ isForeign: true })]} onHalt={noop} onAccelerate={noop2} />);
+  it("offers no steering controls for a foreign-contract project (its work follows the contract schedule)", () => {
+    render(
+      <ProjectsCard
+        rows={[row({ isForeign: true })]}
+        onHalt={noop}
+        onResume={noop}
+        onAccelerate={noop2}
+      />,
+    );
     expect(screen.queryByRole("button", { name: "Havock class accelerate" })).toBeNull();
-    // Halt is still available for a foreign project (the engine accepts ACTIVE -> HALTED).
-    expect(screen.getByRole("button", { name: "Havock class halt" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Havock class halt" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Havock class resume" })).toBeNull();
+    // The status badge still shows the project's state.
+    expect(screen.getByText("active")).toBeTruthy();
   });
 });

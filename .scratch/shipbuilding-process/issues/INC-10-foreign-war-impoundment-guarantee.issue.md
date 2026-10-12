@@ -46,3 +46,13 @@ your ships will be impounded … if you have a treaty … always delivered".
 Depends on the full status model (INC-2, `IMPOUNDED`) and the contract (INC-9). The policy predicate
 must be a typed keyed decision, never inferred.
 
+## Deferred (code review, spec axis MEDIUM)
+
+`FOREIGN_WAR_OUTCOME_EFFECTS` **declares** each outcome's payment/work/capacity/ownership/refund/delivery
+values, and the monthly step applies the *status* transition (`IMPOUNDED`/`DELAYED`/`CANCELLED`). It does
+**not yet post** the refund/settlement/compensation ledger entries for `CANCEL_WITH_SETTLEMENT` or
+`IMPOUND` (the impoundment record captures paid/unpaid and compensation-vs-forfeiture, but no money moves).
+The occupation/destruction, embargo, co-belligerence and builder-controller-hostile predicates default to
+their non-triggering values (unmodelled subsystems); the ordering↔builder relation and tension are
+authoritative. Tracked as the settlement-effect follow-up.
+
