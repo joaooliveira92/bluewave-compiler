@@ -2,6 +2,7 @@ import { NEAR_COMPLETION_WORK_RATIO } from "@bluewave/campaign-engine";
 import type { DeferredFeature } from "../../components/shared/DeferredFeaturesPanel.js";
 import type {
   ConstructionCommandOutcome,
+  ConstructionCommandQueuedOutcome,
   ConstructionScreenProjection,
 } from "../../../shared/construction-contract.js";
 import type { RequestLifecycle } from "../../lib/command-screen-workflow.js";
@@ -50,13 +51,23 @@ export function projectConstructionScreen(
   };
 }
 
-export function acceptConstructionCommand(value: ConstructionCommandOutcome): {
+/**
+ * Accept either the direct construction commands (which return the mutated workspace) or the steering commands
+ * (halt/resume/accelerate, batch order, dock expansion), which queue an engine envelope that applies on the next
+ * `commitMonth`. A queued command carries no workspace patch; it reports what was queued.
+ */
+export function acceptConstructionCommand(
+  value: ConstructionCommandOutcome | ConstructionCommandQueuedOutcome,
+): {
   readonly patch: Partial<ConstructionScreenState>;
   readonly notice: string;
 } {
+  if ("workspace" in value) {
+    return { patch: { workspace: value.workspace }, notice: commandNotice(value.command) };
+  }
   return {
-    patch: { workspace: value.workspace },
-    notice: commandNotice(value.command),
+    patch: {},
+    notice: `${value.bodyType} queued; it applies when you advance the month.`,
   };
 }
 

@@ -31,6 +31,9 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
     submit,
     replace,
     cancel,
+    halt,
+    resume,
+    setAcceleration,
   } = useConstructionScreen(sessionId);
   const [activeTab, setActiveTab] = useState("overview");
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -98,7 +101,17 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
         <TabsContent value="overview">
           <div className="space-y-4">
             <StatsPanel economy={state.economy} workspace={state.workspace} />
-            <ProjectsCard rows={projectRows(state.projects)} />
+            {state.notice !== null && (
+              <p role="status" className="text-sm whitespace-pre-line text-muted-foreground">
+                {state.notice}
+              </p>
+            )}
+            <ProjectsCard
+              rows={projectRows(state.projects)}
+              onHalt={halt}
+              onResume={resume}
+              onAccelerate={setAcceleration}
+            />
           </div>
         </TabsContent>
 

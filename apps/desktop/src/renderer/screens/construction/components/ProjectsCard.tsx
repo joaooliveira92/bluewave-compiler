@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Badge } from "../../../components/ui/badge.js";
+import { Button } from "../../../components/ui/button.js";
 import {
   Card,
   CardContent,
@@ -27,10 +28,107 @@ const STATE_CLASS: Record<PackageState, string> = {
 
 export interface ProjectsCardProps {
   readonly rows: readonly ProjectRow[];
+  /** Halt a project (DESIGN-23 section 7); absent disables the control. */
+  readonly onHalt?: (projectId: string) => void;
+  /** Resume a halted or delayed project. */
+  readonly onResume?: (projectId: string) => void;
+  /** Toggle engine-side acceleration (DESIGN-23 section 8): `true` enables, `false` disables. */
+  readonly onAccelerate?: (projectId: string, accelerated: boolean) => void;
+  /** True while a steering command for this project is in flight, so the controls disable. */
+  readonly pendingProjectId?: string | null;
 }
 
-/** Ships under construction: overall progress, the yard, and each work package's state. */
-export const ProjectsCard = memo(function ProjectsCard({ rows }: ProjectsCardProps) {
+const STATUS_LABEL: Readonly<Record<string, string>> = {
+  ACTIVE: "active",
+  ACCELERATED: "accelerated",
+  HALTED: "halted",
+  DELAYED: "delayed",
+  AWAITING_CAPACITY: "awaiting capacity",
+  IMPOUNDED: "impounded",
+};
+
+/** The halt/resume/accelerate controls for one project row, keyed off its DESIGN-23 section 2 status. */
+function SteeringControls({
+  row,
+  pending,
+  onHalt,
+  onResume,
+  onAccelerate,
+}: {
+  readonly row: ProjectRow;
+  readonly pending: boolean;
+  readonly onHalt?: (projectId: string) => void;
+  readonly onResume?: (projectId: string) => void;
+  readonly onAccelerate?: (projectId: string, accelerated: boolean) => void;
+}) {
+  const isHeld =
+    row.status === "HALTED" || row.status === "DELAYED" || row.status === "AWAITING_CAPACITY";
+  const steerable =
+    row.status === "ACTIVE" ||
+    row.status === "ACCELERATED" ||
+    row.status === "HALTED" ||
+    row.status === "DELAYED" ||
+    row.status === "AWAITING_CAPACITY";
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Badge variant="secondary">{STATUS_LABEL[row.status] ?? row.status.toLowerCase()}</Badge>
+      {steerable && isHeld && onResume !== undefined && (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={pending}
+          aria-label={`${row.className} resume`}
+          onClick={() => onResume(row.projectId)}
+        >
+          Resume
+        </Button>
+      )}
+      {steerable && !isHeld && onHalt !== undefined && (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={pending}
+          aria-label={`${row.className} halt`}
+          onClick={() => onHalt(row.projectId)}
+        >
+          Halt
+        </Button>
+      )}
+      {onAccelerate !== undefined && !row.isForeign && row.status === "ACTIVE" && (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={pending}
+          aria-label={`${row.className} accelerate`}
+          title="Builds 10% faster for a one-time 5% cost premium; accelerating many ships risks delaying others (capacity pressure)."
+          onClick={() => onAccelerate(row.projectId, true)}
+        >
+          Accelerate
+        </Button>
+      )}
+      {onAccelerate !== undefined && !row.isForeign && row.status === "ACCELERATED" && (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={pending}
+          aria-label={`${row.className} stop accelerating`}
+          onClick={() => onAccelerate(row.projectId, false)}
+        >
+          Stop accelerating
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/** Ships under construction: overall progress, the yard, each work package's state, and the steering controls. */
+export const ProjectsCard = memo(function ProjectsCard({
+  rows,
+  onHalt,
+  onResume,
+  onAccelerate,
+  pendingProjectId = null,
+}: ProjectsCardProps) {
   return (
     <Card>
       <CardHeader>
@@ -62,6 +160,13 @@ export const ProjectsCard = memo(function ProjectsCard({ rows }: ProjectsCardPro
                   </span>
                 </div>
                 <Progress value={row.percent} aria-label={`${row.className} progress`} />
+                <SteeringControls
+                  row={row}
+                  pending={pendingProjectId === row.projectId}
+                  {...(onHalt === undefined ? {} : { onHalt })}
+                  {...(onResume === undefined ? {} : { onResume })}
+                  {...(onAccelerate === undefined ? {} : { onAccelerate })}
+                />
                 {row.packages.length > 0 && (
                   <ul
                     className="grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2"

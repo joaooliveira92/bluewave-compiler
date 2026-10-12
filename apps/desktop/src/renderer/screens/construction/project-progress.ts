@@ -21,6 +21,8 @@ export interface ProjectRow {
   /** Packages with work, in plan order; empty for a project with one figure. */
   readonly packages: readonly PackageRow[];
   readonly holdUntilMonth: string | null;
+  /** True when the project is a foreign construction contract (DESIGN-16 section 13); it cannot be accelerated. */
+  readonly isForeign: boolean;
 }
 
 const PACKAGE_LABEL: Readonly<Record<string, string>> = {
@@ -72,6 +74,7 @@ export function projectRow(entry: ConstructionProjectQueueEntry): ProjectRow {
     yard: entry.yardId === undefined ? null : words(entry.yardId),
     packages,
     holdUntilMonth: entry.holdUntilMonth,
+    isForeign: entry.isForeign,
   };
 }
 

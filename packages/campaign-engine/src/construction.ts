@@ -204,6 +204,8 @@ export interface ConstructionProjectQueueEntry {
   readonly packages?: readonly ConstructionProjectPackageView[];
   /** Id of the yard building the ship, when one was chosen (ADR-0077). */
   readonly yardId?: string;
+  /** True when the project is a foreign construction contract (DESIGN-16 section 13); it cannot be accelerated. */
+  readonly isForeign: boolean;
 }
 
 /** One work package of a project, in plain numbers (ADR-0077). */
@@ -237,6 +239,7 @@ export function buildConstructionProjectQueue(
       commandId: constructionCommandIdForProject(project.id),
       revisable: design?.sourceDraft !== undefined && project.status !== "COMPLETED",
       holdUntilMonth: project.holdUntilMonth ?? null,
+      isForeign: project.foreignContractId !== undefined,
       ...(project.packages
         ? {
             packages: project.packages.map((pk) => ({

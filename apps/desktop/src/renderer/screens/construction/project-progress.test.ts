@@ -25,6 +25,7 @@ const entry = (
   commandId: null,
   revisable: true,
   holdUntilMonth: null,
+  isForeign: false,
   ...over,
 });
 const withPackages = (done: Record<string, number>): ConstructionProjectQueueEntry =>

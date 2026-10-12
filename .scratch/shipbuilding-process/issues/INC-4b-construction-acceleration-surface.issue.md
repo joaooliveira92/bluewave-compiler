@@ -1,6 +1,6 @@
 # INC-4b — Construction acceleration player surface
 
-**State:** READY_FOR_AGENT · **Frontier:** yes · **Blocked by:** INC-4
+**State:** done · **Frontier:** no · **Blocked by:** INC-4
 **Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R8, R32) · **ADR:** none new
 **Parent:** `INC-4-accelerate-capacity-pressure-delay.issue.md` (engine slice landed)
 
@@ -12,15 +12,19 @@ badges accelerated rows. Halted rows already show the half-mothball carrying cos
 
 ## Acceptance criteria
 
-- [ ] An accelerate toggle per construction row issues the `SetAcceleration` command through the
-      bridge.
-- [ ] The control discloses the +5 % remaining-work premium and the delay risk before enabling.
-- [ ] Accelerated rows are badged.
-- [ ] Desktop render test + `pnpm snap` of the toggle, disclosure and badge (screenshot + `aria.yaml`,
-      console clean, no churn warning).
+- [x] An accelerate toggle per construction row issues the `SetAcceleration` command through the
+      bridge. — `ProjectsCard` steering controls → `useConstructionScreen.setAcceleration` →
+      `setAccelerationCommand` (queued envelope, applied on the next `commitMonth`).
+- [x] The control discloses the +5 % remaining-work premium and the delay risk before enabling.
+      — the control's `title`/accessible description.
+- [x] Accelerated rows are badged. — the status badge shows `accelerated`.
+- [x] Desktop render test + `pnpm snap` of the toggle, disclosure and badge (screenshot + `aria.yaml`,
+      console clean, no churn warning). — `ProjectsCard.test.tsx`; `pnpm snap` of the Construction
+      screen (clean console).
 
 ## Notes for implementator
 
 Part of WS5. The command body and engine behaviour already exist (`SetAcceleration`,
 `constructionAcceleration.ts`). Keep the disclosure a compiled/presentational value, never authored
 state.
+

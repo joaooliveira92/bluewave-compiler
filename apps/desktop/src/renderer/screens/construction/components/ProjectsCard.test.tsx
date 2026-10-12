@@ -19,6 +19,7 @@ const row = (over: Partial<ProjectRow> = {}): ProjectRow => ({
     { id: "launch", label: "Launch", percent: 0, state: "waiting" },
     { id: "fit_out", label: "Fit-out", percent: 0, state: "ready" },
   ],
+  isForeign: false,
   ...over,
 });
 
@@ -64,5 +65,54 @@ describe("ProjectsCard", () => {
       expect(await axeViolations(container)).toEqual([]);
       cleanup();
     }
+  });
+});
+
+describe("ProjectsCard steering controls (SB3-R5, SB3-R8)", () => {
+  const noop = () => {};
+  const noop2 = (_id: string, _a: boolean) => {};
+
+  it("offers halt and accelerate for an active project, and issues the command", () => {
+    let halted: string | null = null;
+    let accelerated: [string, boolean] | null = null;
+    render(
+      <ProjectsCard
+        rows={[row()]}
+        onHalt={(id) => {
+          halted = id;
+        }}
+        onAccelerate={(id, a) => {
+          accelerated = [id, a];
+        }}
+      />,
+    );
+    const halt = screen.getByRole("button", { name: "Havock class halt" });
+    const accelerate = screen.getByRole("button", { name: "Havock class accelerate" });
+    // The acceleration control discloses the 5% premium and the capacity-pressure risk (SB3-R32).
+    expect(accelerate.getAttribute("title")).toMatch(/5% cost premium/);
+    expect(accelerate.getAttribute("title")).toMatch(/delaying others/);
+    halt.click();
+    accelerate.click();
+    expect(halted).toBe("project-1");
+    expect(accelerated).toEqual(["project-1", true]);
+  });
+
+  it("offers resume for a halted project and stop-accelerating for an accelerated one", () => {
+    render(
+      <ProjectsCard rows={[row({ status: "HALTED" })]} onResume={noop} onAccelerate={noop2} />,
+    );
+    expect(screen.getByRole("button", { name: "Havock class resume" })).toBeTruthy();
+    cleanup();
+    render(
+      <ProjectsCard rows={[row({ status: "ACCELERATED" })]} onHalt={noop} onAccelerate={noop2} />,
+    );
+    expect(screen.getByRole("button", { name: "Havock class stop accelerating" })).toBeTruthy();
+  });
+
+  it("never offers acceleration for a foreign-contract project", () => {
+    render(<ProjectsCard rows={[row({ isForeign: true })]} onHalt={noop} onAccelerate={noop2} />);
+    expect(screen.queryByRole("button", { name: "Havock class accelerate" })).toBeNull();
+    // Halt is still available for a foreign project (the engine accepts ACTIVE -> HALTED).
+    expect(screen.getByRole("button", { name: "Havock class halt" })).toBeTruthy();
   });
 });

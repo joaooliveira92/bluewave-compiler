@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useBridge } from "../../../lib/bridge-context.js";
 import type {
   ConstructionCommandOutcome,
+  ConstructionCommandQueuedOutcome,
   ConstructionScreenProjection,
 } from "../../../../shared/construction-contract.js";
 import { useCommandScreenWorkflow } from "../../../lib/command-screen-workflow.js";
@@ -27,6 +28,9 @@ export interface UseConstructionScreenReturn {
   readonly submit: () => void;
   readonly replace: (commandId: string) => void;
   readonly cancel: (commandId: string) => void;
+  readonly halt: (projectId: string) => void;
+  readonly resume: (projectId: string) => void;
+  readonly setAcceleration: (projectId: string, accelerated: boolean) => void;
 }
 
 export function useConstructionScreen(sessionId: string): UseConstructionScreenReturn {
@@ -36,7 +40,7 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
   const workflow = useCommandScreenWorkflow<
     ConstructionScreenState,
     ConstructionScreenProjection,
-    ConstructionCommandOutcome
+    ConstructionCommandOutcome | ConstructionCommandQueuedOutcome
   >(
     {
       initialState: initialConstructionScreenState,
@@ -96,6 +100,54 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
     [bridge, execute, sessionId],
   );
 
+  // DESIGN-23 sections 7-8: halt, resume and the acceleration toggle queue a real engine envelope that applies on the
+  // next `commitMonth`; the current month's readouts stay the engine's own compiled values until then.
+  const halt = useCallback(
+    (projectId: string) => {
+      if (!bridge) return;
+      void execute("halt", ({ expectedRevision, transportRequestId }) =>
+        bridge.campaign.execute("haltConstructionCommand", {
+          sessionId,
+          projectId,
+          expectedRevision,
+          transportRequestId,
+        }),
+      );
+    },
+    [bridge, execute, sessionId],
+  );
+
+  const resume = useCallback(
+    (projectId: string) => {
+      if (!bridge) return;
+      void execute("resume", ({ expectedRevision, transportRequestId }) =>
+        bridge.campaign.execute("resumeConstructionCommand", {
+          sessionId,
+          projectId,
+          expectedRevision,
+          transportRequestId,
+        }),
+      );
+    },
+    [bridge, execute, sessionId],
+  );
+
+  const setAcceleration = useCallback(
+    (projectId: string, accelerated: boolean) => {
+      if (!bridge) return;
+      void execute("accelerate", ({ expectedRevision, transportRequestId }) =>
+        bridge.campaign.execute("setAccelerationCommand", {
+          sessionId,
+          projectId,
+          accelerated,
+          expectedRevision,
+          transportRequestId,
+        }),
+      );
+    },
+    [bridge, execute, sessionId],
+  );
+
   return {
     state: workflow.state,
     loadError: workflow.loadError,
@@ -106,5 +158,8 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
     submit,
     replace,
     cancel,
+    halt,
+    resume,
+    setAcceleration,
   };
 }
