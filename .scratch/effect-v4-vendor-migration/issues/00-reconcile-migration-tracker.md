@@ -274,3 +274,20 @@ targets). Closed-not-needed tickets use the documented `resolved` status and
 `.ai/specs/effect-v4-vendor-migration.md` pointer line (which introduced this
 ticket) was already modified before the audit started and is committed with it.
 No production code, config, content or test file was touched.
+
+### Final status (2026-10-12) — migration complete
+
+The corrected delta plan (§6) was executed to completion on `dev`:
+
+- **Wave 4:** tickets 24 (`e5bb77f1`), 26 (`2e668e99`), 29 (`ca0ea1d2`),
+  30 (`a2cc02eb`, incl. the ADR-0100 table amendment); exit gate 33
+  (`.ai/reports/effect-v4-wave4-exit-gate.md`).
+- **Wave 5:** tickets 34/35/36 closed as a documented decision (**ADR-0128**):
+  facade flips are barred by renderer reachability (`MIG-EXCL-1`/ADR-0125) and
+  the blind-wrapping prohibition (ADR-0100 §2); no `ManagedRuntime`/`runPromise`
+  facade introduced (no composable async service graph). Ticket 37 final
+  acceptance and 38 Wave 5 exit gate passed
+  (`.ai/reports/effect-v4-final-acceptance.md`): `pnpm check` EXIT 0, packaged
+  Electron smoke 14/14, cross-process hashes unchanged, renderer bundle clean,
+  127 ADRs indexed.
+- **State:** every ticket 00–38 is `done`/`resolved`; no ticket remains open.

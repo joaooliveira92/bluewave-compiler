@@ -1,8 +1,8 @@
 # 36 — Compiler-CLI: `runPromise` entrypoint facade
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 34 (facades unified)
+**Status:** resolved
+**Blocked by:** none (34 closed)
 **Frontier:** no
 
 ## What to build
@@ -31,3 +31,14 @@ Effect-typed; the CLI boundary stays a plain-`Promise` entrypoint via a
 
 - Entrypoints are converted after the services they call (adoption-ticket-03
   order). Keep stdout/stderr/exit-code contract stable.
+
+### Decision (2026-10-12) — resolved, not needed
+
+**No `runPromise` facade is added.** `compiler-cli` is a thin synchronous
+entrypoint (`apps/compiler-cli/src/main.ts:2` `readFileSync`) over the
+synchronous `content-compiler` pipeline; there is no Effect-typed internal
+surface to hide behind a Promise facade. Adding `Effect` internals here would be
+blind wrapping (ADR-0100 §2) with no async IO to justify it, and
+`content-compiler` is renderer-reachable so it cannot expose `effect` types
+anyway. The CLI keeps its plain entrypoint and its stdout/stderr/exit-code
+contract. Recorded as **ADR-0128**.

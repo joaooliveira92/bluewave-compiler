@@ -1,8 +1,8 @@
 # 35 — Desktop main: one `ManagedRuntime` + IPC handler orchestration
 
 **Type:** implementation
-**Status:** open
-**Blocked by:** 34 (facades unified)
+**Status:** resolved
+**Blocked by:** none (34 closed)
 **Frontier:** no
 
 ## What to build
@@ -49,3 +49,17 @@ handlers), `:217` (`whenReady`), the 12 plain throws and the two
 `Error` subclasses `project.ts:25`, `contentArtifact.ts:20` (ticket 00 §5-B).
 `src/main` is not renderer-reachable, so `Data.TaggedError` is fine here.
 Run the bundle guard and `pnpm snap` as the criteria already require.
+
+### Decision (2026-10-12) — resolved, not needed
+
+**No `ManagedRuntime` is introduced.** `apps/desktop/src/main` is a synchronous
+`node:fs` pipeline (`drawingBoardDraft.ts`, `uiState.ts`, `pendingCommands.ts`,
+`campaignSessionMetadata.ts`, `compiler.ts`, `project.ts`) with no composable
+async service graph; its IPC handlers are synchronous command dispatch plus
+Electron window operations. Routing deterministic command dispatch through
+`Effect` would be the "blind wrapping of pure functions" ADR-0100 §2 forbids, and
+converting the sync filesystem pipeline to an async runtime is a wide behaviour
+change (sync → async) with no present need. `main` keeps its plain
+`whenReady`/`ipcMain` entrypoint and its existing runtime-free `Schema`/`Result`
+decoding. Recorded as **ADR-0128**; reopen only if `main` gains a genuine async IO
+seam that is not renderer-reachable.

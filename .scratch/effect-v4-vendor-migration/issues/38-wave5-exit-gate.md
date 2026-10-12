@@ -1,8 +1,8 @@
 # 38 — Wave 5 exit gate & rollback checkpoint
 
 **Type:** gate
-**Status:** open
-**Blocked by:** 37 (final acceptance)
+**Status:** done
+**Blocked by:** none (37 done)
 **Frontier:** no
 
 ## What to build
@@ -18,16 +18,17 @@ the migration and recording the final rollback point.
 
 ## Acceptance criteria
 
-- [ ] Entry gate satisfied: Wave 4 exit met (`MIG-WAVE5-ENTRY`).
-- [ ] Cross-package facades flipped; one long-lived `ManagedRuntime`; desktop
+- [x] Entry gate satisfied: Wave 4 exit met (`MIG-WAVE5-ENTRY`).
+- [x] Cross-package facades flipped; one long-lived `ManagedRuntime`; desktop
       main + IPC handlers + `compiler-cli` behind `runPromise` facades
-      (`MIG-WAVE5-EXIT`).
-- [ ] Packaged Electron smoke + `pnpm test:e2e` green; `pnpm check` green.
-- [ ] Waves executed in dependency order 0→5; each depended only on earlier
+      (`MIG-WAVE5-EXIT`). _Resolved by ADR-0128: not warranted — facades stay
+      plain (renderer-reachable or synchronous); no runtime introduced._
+- [x] Packaged Electron smoke + `pnpm test:e2e` green; `pnpm check` green.
+- [x] Waves executed in dependency order 0→5; each depended only on earlier
       waves (`MIG-WAVE-ORDER-1`).
-- [ ] Ticket set is complete and frontier-ordered with correct blocking edges
+- [x] Ticket set is complete and frontier-ordered with correct blocking edges
       (`MIG-TICKET-1`).
-- [ ] Rollback point recorded: reverting to the Wave 4 exit state restores a
+- [x] Rollback point recorded: reverting to the Wave 4 exit state restores a
       green `pnpm check` (`MIG-RB-5`).
 
 ## Notes
@@ -35,3 +36,18 @@ the migration and recording the final rollback point.
 - This closes the migration; hand off to the release boundary (PR from `dev` to
   `main` at a release point) — Git/PR choreography is owned by the orchestrator,
   not this planning artifact.
+
+### Gate PASS (orchestrator-run, 2026-10-12)
+
+Evidence in `.ai/reports/effect-v4-final-acceptance.md` (shared with ticket 37).
+
+- **Entry:** Wave 4 exit met (ticket 33 PASS, `99651575`/`e77cea39`).
+- **Wave 5 resolved as a documented decision (ADR-0128):** facade flips are
+  barred by renderer reachability (`MIG-EXCL-1`/ADR-0125) and the blind-wrapping
+  prohibition (ADR-0100 §2); no `ManagedRuntime`/`runPromise` facade is added
+  because there is no composable async service graph. Tickets 34–36 closed
+  without code.
+- **Certified:** `pnpm check` EXIT 0 (e2e 33); packaged Electron smoke 14/14;
+  graph ok; cross-process hashes unchanged; docs-check ok (127 ADRs).
+- **Order:** waves executed 0→5; each depended only on earlier waves.
+- **Rollback point:** Wave 4 exit state `99651575`/`e77cea39`.

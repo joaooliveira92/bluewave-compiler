@@ -455,7 +455,7 @@ stable and referenced by the sliced tickets.
 | MIG-WAVE4-ENTRY | Wave 3 exit met. | Review of Wave 3 exit evidence. |
 | MIG-WAVE4-EXIT | `campaign`/`ship-design`/`commands`/`campaign-engine`/`combat`/`ai`/`phase-engine` migrated bottom-up; facades still plain-TS-compatible; tests green. | `pnpm check`; facade-compat tests green. |
 | MIG-WAVE5-ENTRY | Wave 4 exit met. | Review of Wave 4 exit evidence. |
-| MIG-WAVE5-EXIT | Cross-package facades flipped to Effect-typed interfaces; one long-lived `ManagedRuntime`; desktop main + IPC handlers + `compiler-cli` behind `runPromise` facades; deprecated wiring retired. | `pnpm check`; `pnpm test:e2e`; packaged Electron smoke. |
+| MIG-WAVE5-EXIT | ~~Cross-package facades flipped to Effect-typed interfaces; one long-lived `ManagedRuntime`; desktop main + IPC handlers + `compiler-cli` behind `runPromise` facades; deprecated wiring retired.~~ Resolved by ADR-0128: facades stay plain (renderer-reachable or synchronous), no `ManagedRuntime`/`runPromise` is introduced (no composable async service graph); migration certified by the ticket-37 objective gate. | `pnpm check`; `pnpm test:e2e`; packaged Electron smoke; ADR-0128. |
 | MIG-RB-0 | Rollback point for Wave 0 (vendor + workspace/overrides wiring) — revertible with no domain code to unwind. | `git revert`/checkout of Wave 0 commit(s) returns `pnpm preflight` green. |
 | MIG-RB-1..5 | Rollback point for each migration wave: the wave is a merge point revertible to the prior green `pnpm check`; no wave depends on a partial later wave. | Revert the wave commit to the prior wave exit state; `pnpm check` green at that state. |
 | MIG-GATE-1 | Per-wave full orchestrator gate green before merge. | `pnpm check` (preflight incl. single-copy guard → format → lint → typecheck → build → `test:run` → `test:e2e`). |
@@ -519,6 +519,17 @@ stable and referenced by the sliced tickets.
 > `commands`, `combat` (residual), `ai`, `phase-engine`, which stay runtime-free
 > typed-error work. Evidence and the corrected edges:
 > `issues/00-reconcile-migration-tracker.md` §2, §5, §6.
+>
+> **Reconciliation (2026-10-12, tickets 34–38 / ADR-0128).** Wave 5's premise —
+> flipping cross-package facades to Effect-typed interfaces and introducing a
+> desktop `ManagedRuntime` — was tested against the code and is not warranted:
+> every candidate facade is renderer-reachable (must stay Effect-free,
+> `MIG-EXCL-1`/ADR-0125) or a synchronous pure API (ADR-0100 §2 forbids blind
+> wrapping), and `src/main`/`compiler-cli` are synchronous `node:fs` pipelines
+> with no composable async service graph. Tickets 34–36 are closed as a
+> documented decision; the migration is certified by ticket 37's objective gate
+> (graph, typecheck, tests, cross-process determinism, packaged Electron smoke,
+> exclusions, ADR set) and ticket 38 records the Wave 4-exit rollback point.
 
 ## Out of Scope
 
