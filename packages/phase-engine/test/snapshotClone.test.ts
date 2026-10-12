@@ -71,6 +71,12 @@ function minimalSnapshot(): CampaignSnapshot {
           procurementIntents: [],
           aircraft: {} as any,
           carrierOperations: {} as any,
+          dock: {
+            maximumNewConstructionMassKg: 1,
+            maximumMajorRepairMassKg: 1,
+            maximumRebuildMassKg: 1,
+            maximumConversionMassKg: 1,
+          },
           isPlayable: true,
           isAI: false,
         } as any,

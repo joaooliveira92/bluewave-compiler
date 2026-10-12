@@ -6,8 +6,11 @@ import {
 import {
   compileDesign,
   DESIGN_22_EARLY,
+  dockRecordFor,
+  dockRecordFromDefinition,
   evaluateAmcFleetLimit,
   HULL_TYPE_FOR_SHIP_TYPE,
+  newConstructionDockEligibility,
   type AvailabilityReason,
   type DesignDraft,
   type ShipBuildingContent,
@@ -17,7 +20,9 @@ import {
 export type OrderRejectionCode =
   | AvailabilityReason["code"]
   | "DESIGN_REVALIDATION_FAILED"
-  | "DESIGN_REVALIDATION_UNAVAILABLE";
+  | "DESIGN_REVALIDATION_UNAVAILABLE"
+  | "SHIP_EXCEEDS_DOMESTIC_DOCK_LIMIT"
+  | "DOCK_LIMIT_MISSING";
 
 export interface OrderRejection {
   readonly code: OrderRejectionCode;
@@ -139,6 +144,26 @@ export function constructionOrderEligibility(
       rules,
     );
     rejections.push(...limit.reasons);
+  }
+  // National dock ceiling (DESIGN-16 section 4, ADR-0135): a domestic new construction may not exceed the nation's
+  // dock. A materialised dock on the nation wins (dock expansion mutates it); otherwise it is resolved from the naval
+  // profile; a pack with neither skips the check (nation-neutral orders).
+  const nationDock = snapshot["nations"].get(design.nationId)?.dock;
+  const profile = content?.navalProfileFor(design.nationId, month) ?? null;
+  const dockRecord =
+    nationDock !== undefined
+      ? dockRecordFromDefinition(nationDock)
+      : profile !== null
+        ? dockRecordFor(profile)
+        : null;
+  if (dockRecord !== null) {
+    const dock = newConstructionDockEligibility(dockRecord, {
+      lengthMm: 0,
+      beamMm: 0,
+      displacementKg: Number(design.normalizedDisplacementKg),
+      heaviestKg: 0,
+    });
+    for (const r of dock.rejections) rejections.push({ code: r.code, message: r.message });
   }
   return { eligible: rejections.length === 0, rejections };
 }

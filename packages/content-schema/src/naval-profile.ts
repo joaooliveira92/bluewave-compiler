@@ -140,6 +140,22 @@ const IndustrialProfileSchema = Schema.Struct({
   provenance: ProvenanceSchema,
 });
 
+const DockDimensionsSchema = Schema.Struct({
+  maxLengthMm: positiveInt,
+  maxBeamMm: positiveInt,
+  maxHeaviestComponentKg: positiveInt,
+});
+
+/** The nation's dock (DESIGN-16 section 4, ADR-0135): four authored mass limits, an optional dimension predicate. */
+const DockSchema = Schema.Struct({
+  maximumNewConstructionMassKg: positiveInt,
+  maximumMajorRepairMassKg: positiveInt,
+  maximumRebuildMassKg: positiveInt,
+  maximumConversionMassKg: positiveInt,
+  dimensions: Schema.optional(Schema.NullOr(DockDimensionsSchema)),
+  provenance: ProvenanceSchema,
+});
+
 const DoctrineProfileSchema = Schema.Struct({
   engagementRangeM: positiveInt,
   hePreferenceBp: bp,
@@ -186,6 +202,7 @@ export const NationNavalProfileSchema = Schema.Struct({
   hardCapabilities: HardCapabilitiesSchema,
   softPreferences: SoftPreferencesSchema,
   industrialProfile: IndustrialProfileSchema,
+  dock: DockSchema,
   doctrineProfile: DoctrineProfileSchema,
   researchPreferences: Schema.Array(ResearchPreferenceSchema),
   componentAccess: Schema.Record(Schema.String, ComponentAccessSchema),

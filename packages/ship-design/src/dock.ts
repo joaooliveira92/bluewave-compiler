@@ -1,8 +1,10 @@
 // packages/ship-design/src/dock.ts
 // DESIGN-16 section 4: the national dock — its mass ceilings and dimension predicate — and the new-construction
 // eligibility it governs. Pure and dependency-free; composes with (never replaces) the per-yard fit in `yards.ts`.
-// The manual gives no numbers, so a nation's ceiling is authored content (`maxPracticalDisplacementKg`), projected
-// onto DESIGN-16's four limits with provenance; nothing is invented in code.
+// The manual gives no numbers, so a nation's dock is authored content (`NationNavalProfile.dock`) with provenance;
+// nothing is invented in code. It is distinct from the production/throughput ceiling `maxPracticalDisplacementKg`
+// (ADR-0135): that figure wrongly refused real domestic ships when used as a dock limit.
+import type { NationNavalProfile } from "./nationProfile.js";
 import type { YardDemand } from "./yards.js";
 
 /** DESIGN-16 section 4.1/4.2/4.4: the four mass ceilings a dock must declare, in canonical kilograms. */
@@ -49,22 +51,49 @@ export interface DockEligibility {
 }
 
 /**
- * Project an authored industrial ceiling onto a full `DockRecord`. The ceiling is the largest hull the nation's own
- * yards can build (`maxPracticalDisplacementKg`); every limit is set to it, and the dimensions are left null (the
- * per-yard `YardDemand` fit already bounds length/beam/crane). Explicit, never a silent copy from another dock.
+ * Build a partial `DockRecord` from an authored dock definition. Every limit is read explicitly from the definition; a
+ * missing limit is left absent so `missingDockLimits` fails it with `DOCK_LIMIT_MISSING` (never copied across limits).
+ * The dimension predicate is optional and defaults to none.
  */
-export function dockRecordFromCeiling(
-  ceilingKg: number,
-  overrides: Partial<Omit<DockRecord, "maximumNewConstructionMassKg">> = {},
-): DockRecord {
+export function dockRecordFromDefinition(def: {
+  maximumNewConstructionMassKg?: number;
+  maximumMajorRepairMassKg?: number;
+  maximumRebuildMassKg?: number;
+  maximumConversionMassKg?: number;
+  dimensions?: DockDimensions | null;
+  emergencyRepairPolicyId?: string;
+  dockPolicyVersion?: number;
+}): Partial<DockRecord> {
   return {
-    maximumNewConstructionMassKg: ceilingKg,
-    maximumMajorRepairMassKg: overrides.maximumMajorRepairMassKg ?? ceilingKg,
-    maximumRebuildMassKg: overrides.maximumRebuildMassKg ?? ceilingKg,
-    maximumConversionMassKg: overrides.maximumConversionMassKg ?? ceilingKg,
-    dimensions: overrides.dimensions ?? null,
-    emergencyRepairPolicyId: overrides.emergencyRepairPolicyId ?? "none",
-    dockPolicyVersion: overrides.dockPolicyVersion ?? 1,
+    ...(def.maximumNewConstructionMassKg !== undefined
+      ? { maximumNewConstructionMassKg: def.maximumNewConstructionMassKg }
+      : {}),
+    ...(def.maximumMajorRepairMassKg !== undefined
+      ? { maximumMajorRepairMassKg: def.maximumMajorRepairMassKg }
+      : {}),
+    ...(def.maximumRebuildMassKg !== undefined
+      ? { maximumRebuildMassKg: def.maximumRebuildMassKg }
+      : {}),
+    ...(def.maximumConversionMassKg !== undefined
+      ? { maximumConversionMassKg: def.maximumConversionMassKg }
+      : {}),
+    dimensions: def.dimensions ?? null,
+    emergencyRepairPolicyId: def.emergencyRepairPolicyId ?? "none",
+    dockPolicyVersion: def.dockPolicyVersion ?? 1,
+  };
+}
+
+/** The complete `DockRecord` a resolved naval profile authors (DESIGN-16 section 4, ADR-0135). */
+export function dockRecordFor(profile: NationNavalProfile): DockRecord {
+  const d = profile.dock;
+  return {
+    maximumNewConstructionMassKg: d.maximumNewConstructionMassKg,
+    maximumMajorRepairMassKg: d.maximumMajorRepairMassKg,
+    maximumRebuildMassKg: d.maximumRebuildMassKg,
+    maximumConversionMassKg: d.maximumConversionMassKg,
+    dimensions: d.dimensions ?? null,
+    emergencyRepairPolicyId: "none",
+    dockPolicyVersion: 1,
   };
 }
 

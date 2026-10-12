@@ -1,7 +1,7 @@
 # INC-5 — National dock ceiling
 
-**State:** PARTIAL (domain model + eligibility done; UI split to INC-5b, order-time binding to INC-5c) · **Frontier:** yes · **Blocked by:** none
-**Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R15) · **ADR:** none new (DESIGN-16 §4 shipped)
+**State:** RESOLVED (domain model + order-time binding via INC-5c; UI readout in INC-5b) · **Frontier:** yes · **Blocked by:** none
+**Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R15) · **ADR:** ADR-0135 (authored national dock record)
 
 ## What to build
 
@@ -61,3 +61,9 @@ The domain model landed; order-time enforcement and the UI readout are split out
 - **UI readout split to INC-5b.**
 
 Commands: `@bluewave/ship-design` `vp test run test/dock.test.ts` (6 passed); `tsc --noEmit` clean.
+
+## Answer (final)
+
+Closed. The domain model (INC-5) plus the authored dock record and order-time binding (INC-5c,
+ADR-0135) now enforce the manual's dock ceiling with `SHIP_EXCEEDS_DOMESTIC_DOCK_LIMIT`. The
+Construction-screen readout remains split to INC-5b (UI needs a captured screen).

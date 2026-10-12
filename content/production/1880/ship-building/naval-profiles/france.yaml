@@ -67,6 +67,26 @@ navalProfiles:
             gameValue: "buildTimeMultiplierBp 10600, costMultiplierBp 10700",
             roundingRule: "±15%",
           }
+    dock:
+      maximumNewConstructionMassKg: 12000000
+      maximumMajorRepairMassKg: 12000000
+      maximumRebuildMassKg: 12000000
+      maximumConversionMassKg: 12000000
+      provenance:
+        sourceStatus: DERIVED
+        confidence: MEDIUM
+        kind: game_conversion
+        sources:
+          - { title: "1880 national dock capacity research note", page: "findings table" }
+        derivation:
+          {
+            sourceValue: "Amiral Duperre 11,200 t (largest 1880 hull)",
+            sourceUnit: "t",
+            conversion: "largest 1880 hull the nation fields, rounded up to the next 1,000 t dock step",
+            gameValue: "maximumNewConstructionMassKg 12000000",
+            roundingRule: "ceiling to next 1,000 t",
+          }
+        note: "historical flagship rounded up to the next 1,000 t"
     doctrineProfile:
       engagementRangeM: 2000
       hePreferenceBp: 7000

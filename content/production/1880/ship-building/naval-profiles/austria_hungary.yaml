@@ -68,6 +68,26 @@ navalProfiles:
             gameValue: "buildTimeMultiplierBp 10700, costMultiplierBp 10800",
             roundingRule: "±15%",
           }
+    dock:
+      maximumNewConstructionMassKg: 8000000
+      maximumMajorRepairMassKg: 8000000
+      maximumRebuildMassKg: 8000000
+      maximumConversionMassKg: 8000000
+      provenance:
+        sourceStatus: DERIVED
+        confidence: MEDIUM
+        kind: game_conversion
+        sources:
+          - { title: "1880 national dock capacity research note", page: "findings table" }
+        derivation:
+          {
+            sourceValue: "SMS Custoza 7,609 t (largest 1880 hull)",
+            sourceUnit: "t",
+            conversion: "largest 1880 hull the nation fields, rounded up to the next 1,000 t dock step",
+            gameValue: "maximumNewConstructionMassKg 8000000",
+            roundingRule: "ceiling to next 1,000 t",
+          }
+        note: "historical flagship rounded up to the next 1,000 t"
     doctrineProfile:
       engagementRangeM: 1500
       hePreferenceBp: 4000

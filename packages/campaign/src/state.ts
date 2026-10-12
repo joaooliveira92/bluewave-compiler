@@ -280,6 +280,17 @@ export interface BlockadeState {
   establishedMonth: string;
 }
 
+/**
+ * A nation's dock limits (DESIGN-16 section 4, ADR-0135): the four mass ceilings, materialised from the naval profile
+ * when a campaign starts and mutated by dock expansion. Plain numbers keep campaign state free of ship-design types.
+ */
+export interface NationDockState {
+  maximumNewConstructionMassKg: number;
+  maximumMajorRepairMassKg: number;
+  maximumRebuildMassKg: number;
+  maximumConversionMassKg: number;
+}
+
 export interface NationState {
   id: string;
   name: string;
@@ -296,6 +307,12 @@ export interface NationState {
   officers?: Officer[];
   research: ResearchState;
   constructionProjects: ConstructionProject[];
+  /**
+   * The nation's dock limits (DESIGN-16 section 4, ADR-0135). Absent until materialised; once present it overrides
+   * the content-derived dock, and dock expansion mutates it. Kept as plain numbers so campaign state has no
+   * dependency on the ship-design package.
+   */
+  dock?: NationDockState;
   /** Design studies (DESIGN-21 section 3, ADR-0085); absent until the nation submits its first design. */
   designStudies?: DesignStudy[];
   /** The nation's persisted AI procurement lifecycle (ADR-0091); absent until an AI nation plans its first order. */

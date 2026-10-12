@@ -213,6 +213,12 @@ function makeRichSnapshot(): CampaignSnapshot {
   ];
   gbr.aircraft = {} as any;
   gbr.carrierOperations = {} as any;
+  gbr.dock = {
+    maximumNewConstructionMassKg: 13_000_000,
+    maximumMajorRepairMassKg: 13_000_000,
+    maximumRebuildMassKg: 13_000_000,
+    maximumConversionMassKg: 13_000_000,
+  };
   gbr.procurementIntents = [
     {
       procurementDecisionId: "uk:1:CL:1",

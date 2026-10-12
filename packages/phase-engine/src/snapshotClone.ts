@@ -265,6 +265,7 @@ const F = {
     "officers",
     "research",
     "constructionProjects",
+    "dock",
     "designStudies",
     "procurementIntents",
     "aircraft",

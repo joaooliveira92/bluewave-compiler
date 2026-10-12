@@ -7,6 +7,7 @@
  */
 import { compileDesign } from "./compile.js";
 import { lintNavalArms } from "./componentVariants.js";
+import { dockRecordFor, newConstructionDockEligibility } from "./dock.js";
 import {
   lintArmamentContent,
   type ArmamentStarter,
@@ -89,6 +90,7 @@ function provenanceIssues(
   };
   visit("profile.provenance", profile.provenance);
   visit("industrialProfile.provenance", profile.industrialProfile.provenance);
+  visit("dock.provenance", profile.dock.provenance);
   visit("doctrineProfile.provenance", profile.doctrineProfile.provenance);
   for (const [familyId, access] of Object.entries(profile.componentAccess))
     if (access.provenance !== undefined)
@@ -208,6 +210,21 @@ export function validateNationCompleteness(
       );
     if (compiled.findings.some((f) => f.id === "NO_FACILITY_FITS"))
       out.push(err(nationId, "NATION_STARTER_NO_DOCK", `${starter.id} fits no dock`));
+    // The nation's own dock (DESIGN-16 section 4, ADR-0135) must admit its own opening designs.
+    const dock = newConstructionDockEligibility(dockRecordFor(opening), {
+      lengthMm: 0,
+      beamMm: 0,
+      displacementKg: compiled.totalKg,
+      heaviestKg: 0,
+    });
+    if (!dock.eligible)
+      out.push(
+        err(
+          nationId,
+          "NATION_STARTER_EXCEEDS_DOCK",
+          `${starter.id}: ${dock.rejections.map((r) => r.code).join(", ")}`,
+        ),
+      );
     const cost = treasuryCostUnits(
       computeCost(compiled, starter.draft, env.costBalance, env.costCtx).total,
       opts.content.treasuryUnitMicro,

@@ -72,6 +72,26 @@ navalProfiles:
             gameValue: "buildTimeMultiplierBp 9300",
             roundingRule: "within the ±15% band",
           }
+    dock:
+      maximumNewConstructionMassKg: 13000000
+      maximumMajorRepairMassKg: 13000000
+      maximumRebuildMassKg: 13000000
+      maximumConversionMassKg: 13000000
+      provenance:
+        sourceStatus: DERIVED
+        confidence: MEDIUM
+        kind: game_conversion
+        sources:
+          - { title: "1880 national dock capacity research note", page: "findings table" }
+        derivation:
+          {
+            sourceValue: "scenario B starter 12,679 t (Majestic-like, largest 1880 hull); HMS Inflexible 11,880 t",
+            sourceUnit: "t",
+            conversion: "largest 1880 hull the nation fields, rounded up to the next 1,000 t dock step",
+            gameValue: "maximumNewConstructionMassKg 13000000",
+            roundingRule: "ceiling to next 1,000 t",
+          }
+        note: "max(historical flagship 11,880 t, scenario largest hull 12,679 t) rounded up to the next 1,000 t"
     doctrineProfile:
       engagementRangeM: 2000
       hePreferenceBp: 2000

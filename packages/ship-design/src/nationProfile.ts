@@ -231,6 +231,25 @@ export interface IndustrialProfile {
   readonly provenance: Provenance;
 }
 
+/**
+ * The nation's dock (DESIGN-16 section 4): the largest hull it can build, repair, rebuild and convert. Distinct from
+ * `IndustrialProfile.maxPracticalDisplacementKg`, which is a production/throughput figure and must not be used as a
+ * dock limit (ADR-0135). Every limit is authored explicitly; a missing one fails rather than being copied.
+ */
+export interface DockDefinition {
+  readonly maximumNewConstructionMassKg: number;
+  readonly maximumMajorRepairMassKg: number;
+  readonly maximumRebuildMassKg: number;
+  readonly maximumConversionMassKg: number;
+  /** Optional extra national dimension bound beyond the per-yard fit; absent = none. */
+  readonly dimensions?: {
+    readonly maxLengthMm: number;
+    readonly maxBeamMm: number;
+    readonly maxHeaviestComponentKg: number;
+  } | null;
+  readonly provenance: Provenance;
+}
+
 export interface DoctrineProfile {
   /** Preferred battle range, metres. */
   readonly engagementRangeM: number;
@@ -292,6 +311,8 @@ export interface NationNavalProfile {
   readonly hardCapabilities: HardCapabilities;
   readonly softPreferences: SoftPreferences;
   readonly industrialProfile: IndustrialProfile;
+  /** The nation's dock limits (DESIGN-16 section 4, ADR-0135). Authored, distinct from the production ceiling. */
+  readonly dock: DockDefinition;
   readonly doctrineProfile: DoctrineProfile;
   readonly researchPreferences: readonly ResearchPreference[];
   readonly componentAccess: Readonly<Record<string, ComponentAccess>>;
@@ -438,6 +459,30 @@ export function validateNavalProfile(
     profile.industrialProfile.machineryReliabilityBp > 10000
   )
     out.push(err(p, "PROFILE_VALUE_RANGE", "machineryReliabilityBp must be 0..10000"));
+
+  // Dock limits (DESIGN-16 section 4, ADR-0135): every limit authored, positive and distinct from the production ceiling.
+  for (const [k, v] of [
+    ["maximumNewConstructionMassKg", profile.dock.maximumNewConstructionMassKg],
+    ["maximumMajorRepairMassKg", profile.dock.maximumMajorRepairMassKg],
+    ["maximumRebuildMassKg", profile.dock.maximumRebuildMassKg],
+    ["maximumConversionMassKg", profile.dock.maximumConversionMassKg],
+  ] as const)
+    if (!Number.isSafeInteger(v) || v <= 0)
+      out.push(
+        err(p, "PROFILE_DOCK_LIMIT_INVALID", `dock.${k} = ${v} must be a positive safe integer`),
+      );
+  if (profile.dock.dimensions != null) {
+    for (const [k, v] of [
+      ["maxLengthMm", profile.dock.dimensions.maxLengthMm],
+      ["maxBeamMm", profile.dock.dimensions.maxBeamMm],
+      ["maxHeaviestComponentKg", profile.dock.dimensions.maxHeaviestComponentKg],
+    ] as const)
+      if (!Number.isSafeInteger(v) || v <= 0)
+        out.push(
+          err(p, "PROFILE_DOCK_LIMIT_INVALID", `dock.dimensions.${k} = ${v} must be positive`),
+        );
+  }
+  out.push(...placeholderIssues(p, "dock", profile.dock.provenance, ctx.release));
 
   // Hard capability references.
   for (const id of profile.hardCapabilities.hullForms)

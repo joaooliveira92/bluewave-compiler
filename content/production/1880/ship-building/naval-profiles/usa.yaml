@@ -74,6 +74,26 @@ navalProfiles:
             gameValue: "buildTimeMultiplierBp 10500, costMultiplierBp 10000",
             roundingRule: "±15%",
           }
+    dock:
+      maximumNewConstructionMassKg: 5000000
+      maximumMajorRepairMassKg: 5000000
+      maximumRebuildMassKg: 5000000
+      maximumConversionMassKg: 5000000
+      provenance:
+        sourceStatus: DERIVED
+        confidence: MEDIUM
+        kind: game_conversion
+        sources:
+          - { title: "1880 national dock capacity research note", page: "findings table" }
+        derivation:
+          {
+            sourceValue: "scenario CA starter 4,865 t (largest 1880 hull); Amphitrite 3,990 t",
+            sourceUnit: "t",
+            conversion: "largest 1880 hull the nation fields, rounded up to the next 1,000 t dock step",
+            gameValue: "maximumNewConstructionMassKg 5000000",
+            roundingRule: "ceiling to next 1,000 t",
+          }
+        note: "max(historical flagship 3,990 t, scenario largest hull 4,865 t) rounded up to the next 1,000 t"
     doctrineProfile:
       engagementRangeM: 1200
       hePreferenceBp: 5500

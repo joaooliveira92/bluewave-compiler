@@ -68,6 +68,26 @@ navalProfiles:
             gameValue: "buildTimeMultiplierBp 10800, costMultiplierBp 10900",
             roundingRule: "±15%",
           }
+    dock:
+      maximumNewConstructionMassKg: 10000000
+      maximumMajorRepairMassKg: 10000000
+      maximumRebuildMassKg: 10000000
+      maximumConversionMassKg: 10000000
+      provenance:
+        sourceStatus: DERIVED
+        confidence: MEDIUM
+        kind: game_conversion
+        sources:
+          - { title: "1880 national dock capacity research note", page: "findings table" }
+        derivation:
+          {
+            sourceValue: "scenario B starter 9,377 t (largest 1880 hull); Dingyuan 7,220 t",
+            sourceUnit: "t",
+            conversion: "largest 1880 hull the nation fields, rounded up to the next 1,000 t dock step",
+            gameValue: "maximumNewConstructionMassKg 10000000",
+            roundingRule: "ceiling to next 1,000 t",
+          }
+        note: "max(historical flagship 7,220 t, scenario largest hull 9,377 t) rounded up to the next 1,000 t"
     doctrineProfile:
       engagementRangeM: 1500
       hePreferenceBp: 4500

@@ -68,6 +68,26 @@ navalProfiles:
             gameValue: "buildTimeMultiplierBp 10900, costMultiplierBp 11100",
             roundingRule: "±15%",
           }
+    dock:
+      maximumNewConstructionMassKg: 9000000
+      maximumMajorRepairMassKg: 9000000
+      maximumRebuildMassKg: 9000000
+      maximumConversionMassKg: 9000000
+      provenance:
+        sourceStatus: DERIVED
+        confidence: MEDIUM
+        kind: game_conversion
+        sources:
+          - { title: "1880 national dock capacity research note", page: "findings table" }
+        derivation:
+          {
+            sourceValue: "Mesudiye 8,938 t (largest 1880 hull)",
+            sourceUnit: "t",
+            conversion: "largest 1880 hull the nation fields, rounded up to the next 1,000 t dock step",
+            gameValue: "maximumNewConstructionMassKg 9000000",
+            roundingRule: "ceiling to next 1,000 t",
+          }
+        note: "historical flagship rounded up to the next 1,000 t"
     doctrineProfile:
       engagementRangeM: 1500
       hePreferenceBp: 4000
