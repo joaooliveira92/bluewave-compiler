@@ -1,4 +1,6 @@
 #!/bin/sh
-# Fast gates before a commit (ADR-0107). Bypass with `git commit --no-verify`
-# only when justified; CI re-runs everything regardless.
+# Fast gates before a commit (ADR-0107). Format-check the staged files first so
+# unformatted code cannot enter history, then run the preflight gate set. Bypass
+# with `git commit --no-verify` only when justified; CI re-runs everything.
+node scripts/precommit-staged.mjs || exit 1
 exec node scripts/run-gates.mjs preflight
