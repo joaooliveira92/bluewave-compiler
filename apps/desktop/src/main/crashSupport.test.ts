@@ -3,16 +3,18 @@
 // asserts a user-shareable bundle is produced; validates the renderer IPC
 // boundary.
 import { EventEmitter } from "node:events";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   bundleFilename,
   captureCrash,
+  createCrashLimiter,
   detailsFromError,
   installProcessCrashHandlers,
   parseRendererCrashInput,
+  redactText,
   type CrashContext,
   type CrashReport,
 } from "./crashSupport.js";
@@ -27,6 +29,7 @@ const context = (): CrashContext => ({
   platform: "darwin",
   arch: "arm64",
   processId: 4242,
+  homeDir: "/Users/tester",
   now: () => FIXED,
   log: (message) => logs.push(message),
 });
@@ -124,5 +127,70 @@ describe("renderer crash IPC boundary", () => {
     expect(parseRendererCrashInput({ kind: "nope", message: "x" })).toBeNull();
     expect(parseRendererCrashInput({ kind: "window-error", message: "" })).toBeNull();
     expect(parseRendererCrashInput(undefined)).toBeNull();
+  });
+});
+
+describe("privacy and bounded writes (ADR-0133 hardening)", () => {
+  it("redacts the home directory and username segments from trace text", () => {
+    expect(redactText("at /Users/tester/dev/app.ts:1", "/Users/tester")).toBe("at ~/dev/app.ts:1");
+    expect(redactText("at /Users/someone/x.ts", "/Users/tester")).toBe("at /Users/[user]/x.ts");
+    expect(redactText("C:\\Users\\joao\\app.ts", "")).toBe("C:\\Users\\[user]\\app.ts");
+  });
+
+  it("redacts and truncates a stack before writing the bundle", () => {
+    const long = `at /Users/tester/app.js:1\n${"x".repeat(70_000)}`;
+    const path = captureCrash(
+      "main",
+      "uncaughtException",
+      { message: "boom at /Users/other/secret.ts", stack: long },
+      context(),
+    );
+    const report = JSON.parse(readFileSync(path!, "utf8")) as CrashReport;
+    expect(report.message).not.toContain("/Users/other");
+    expect(report.stack).toContain("~/app.js");
+    expect((report.stack ?? "").length).toBeLessThan(65_000);
+    expect(report.stack).toMatch(/truncated/);
+  });
+
+  it("dedups an identical crash and caps writes per window", () => {
+    let clock = 1_000;
+    const limiter = createCrashLimiter({
+      maxPerWindow: 2,
+      windowMs: 1_000,
+      dedupWindowMs: 1_000,
+      now: () => clock,
+    });
+    const ctx: CrashContext = { ...context(), limiter };
+    // Same key twice inside the dedup window: one bundle.
+    expect(captureCrash("renderer", "window-error", { message: "loop" }, ctx)).not.toBeNull();
+    expect(captureCrash("renderer", "window-error", { message: "loop" }, ctx)).toBeNull();
+    // A different key is allowed until the cap, then suppressed.
+    expect(captureCrash("renderer", "window-error", { message: "other" }, ctx)).not.toBeNull();
+    expect(captureCrash("renderer", "window-error", { message: "third" }, ctx)).toBeNull();
+    // A new window resets the cap.
+    clock += 2_000;
+    expect(captureCrash("renderer", "window-error", { message: "loop" }, ctx)).not.toBeNull();
+  });
+
+  it("rotates old bundles beyond maxBundles", () => {
+    let tick = 0;
+    const ctx: CrashContext = {
+      ...context(),
+      maxBundles: 3,
+      now: () => new Date(FIXED.getTime() + tick++ * 1_000),
+    };
+    for (let i = 0; i < 8; i += 1) {
+      captureCrash("main", "uncaughtException", { message: `crash ${String(i)}` }, ctx);
+    }
+    const kept = readdirSync(dir).filter((name) => name.startsWith("crash-"));
+    expect(kept).toHaveLength(3);
+  });
+
+  it("never reaches the network from the capture path", () => {
+    for (const file of ["crashSupport.ts", "../renderer/lib/crash-report.ts"]) {
+      const source = readFileSync(join(import.meta.dirname, file), "utf8");
+      expect(source).not.toMatch(/\b(fetch|XMLHttpRequest|WebSocket)\s*\(/u);
+      expect(source).not.toMatch(/from "node:(http|https|net|dns|tls)"/u);
+    }
   });
 });

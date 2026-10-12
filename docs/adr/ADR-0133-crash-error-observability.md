@@ -71,3 +71,18 @@ file the user can choose to share.
   reason; consent must be affirmative.
 - **No capture at all.** Rejected: it leaves shipped failures invisible and
   contradicts the shell's existing "never leave a blank window" principle.
+
+## Amended (2026-10-12)
+
+Production hardening closed the gap between the decision's "no filesystem paths"
+claim and the first implementation:
+
+- **Redaction.** The crash context carries the user's home directory; message and
+  stack are redacted (home directory → `~`, remaining `/Users|/home/<name>` →
+  `[user]`) and truncated (8 KB message, 64 KB stack) before the bundle is
+  written, so a shareable bundle does not leak a username.
+- **Bounded writes.** A `CrashLimiter` caps writes per time window and dedups an
+  identical crash; the support directory keeps the newest 20 bundles and prunes
+  the rest, so a render loop cannot fill the disk.
+- **Packaged proof.** `packaged-smoke.mjs` forces a real uncaught renderer error in
+  the packaged binary and asserts the bundle is written and local-only.

@@ -1,10 +1,12 @@
 import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { applyContentSecurityPolicy } from "./csp.js";
 import { dispatchCampaignCommand } from "./campaignBridge.js";
 import { ContentArtifactError, loadContentArtifact } from "./contentArtifact.js";
 import {
   captureCrash,
+  createCrashLimiter,
   installProcessCrashHandlers,
   parseRendererCrashInput,
   type CrashContext,
@@ -56,8 +58,13 @@ const crashContext: CrashContext = {
   platform: process.platform,
   arch: process.arch,
   processId: process.pid,
+  homeDir: homedir(),
   now: () => new Date(),
   log: (message: string) => console.error(message),
+  // A render loop can emit thousands of identical errors: cap writes and dedup
+  // an identical crash, keeping the support directory bounded.
+  limiter: createCrashLimiter({ maxPerWindow: 5, windowMs: 60_000, dedupWindowMs: 60_000 }),
+  maxBundles: 20,
 };
 
 installProcessCrashHandlers(crashContext, (error, bundlePath) => {

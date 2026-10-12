@@ -21,7 +21,7 @@
  * keep the two in step when the assistant changes.
  */
 import { _electron as electron } from "@playwright/test";
-import { mkdir, mkdtemp, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
@@ -189,6 +189,48 @@ try {
     unexpectedConsoleErrors.length === 0,
     unexpectedConsoleErrors[0]?.slice(0, 200),
   );
+
+  // --- Crash support bundle (ADR-0133 hardening): force a real uncaught renderer
+  // error in the packaged binary and assert the local-only bundle is written.
+  // Done after the pageerror assertions above so the deliberate crash does not
+  // trip them. No network call is made anywhere in the capture path.
+  const userDataDir = await app.evaluate(({ app: electronApp }) => electronApp.getPath("userData"));
+  const supportDir = join(userDataDir, "support");
+  await page.evaluate(() => {
+    setTimeout(() => {
+      throw new Error("packaged-smoke forced crash");
+    }, 0);
+  });
+  let bundlePath = null;
+  let bundle = null;
+  {
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      try {
+        const name = (await readdir(supportDir)).find((entry) => entry.startsWith("crash-"));
+        if (name) {
+          bundlePath = join(supportDir, name);
+          bundle = JSON.parse(await readFile(bundlePath, "utf8"));
+          break;
+        }
+      } catch {
+        // support dir not created yet
+      }
+      await page.waitForTimeout(150);
+    }
+  }
+  check("crash support bundle written by the packaged binary", Boolean(bundle), supportDir);
+  if (bundle) {
+    check(
+      "support bundle carries the forced crash",
+      String(bundle.message).includes("packaged-smoke forced crash"),
+      String(bundle.message),
+    );
+    check(
+      "support bundle is local-only (no network note)",
+      /no network/i.test(String(bundle.note)),
+    );
+  }
 } finally {
   await app.close().catch(() => {});
   await rm(scratch, { recursive: true, force: true }).catch(() => {});
