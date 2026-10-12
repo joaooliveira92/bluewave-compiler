@@ -4,7 +4,8 @@ import type { DraftPreferences } from "./new-game-preferences-screen-state.js";
 /** Same six real engine setting ids as `AdmiralPresetValues` (spec §1/§2) — one preset among several here, not admiral-specific. */
 export type SixSettingBundle = AdmiralPresetValues;
 
-const SIX_SETTING_FIELDS = [
+/** The six engine settings every preset bundle fixes, in display order. */
+export const SIX_SETTING_FIELDS = [
   "fleetSize",
   "researchSpeed",
   "technologyVariation",
@@ -12,6 +13,8 @@ const SIX_SETTING_FIELDS = [
   "tacticalRealism",
   "difficulty",
 ] as const satisfies readonly (keyof SixSettingBundle)[];
+
+export type SixSettingField = (typeof SIX_SETTING_FIELDS)[number];
 
 export type PresetId = "cadet" | "admiral" | "naval_historian" | "alternate_history";
 export type ActivePresetId = PresetId | "custom";

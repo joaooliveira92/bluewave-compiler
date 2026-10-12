@@ -1,12 +1,8 @@
 import { Check } from "lucide-react";
 import { useMemo, useState } from "react";
+import type { CardPalette } from "@/components/card-deck/index.js";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
-import {
-  type CardPalette,
-  getCountryCode,
-  getCountryName,
-  resolveNationShip,
-} from "./fleetDispatchUtils.js";
+import { getCountryCode, getCountryName, resolveNationShip } from "./fleetDispatchUtils.js";
 
 interface FleetNationCardProps {
   countryId: PlayableSlotCountryId;

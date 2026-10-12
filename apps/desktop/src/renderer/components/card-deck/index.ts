@@ -1,3 +1,4 @@
+export { CARD_PALETTES, type CardPalette } from "./cardPalettes.js";
 export { CardDeck, type CardDeckProps } from "./CardDeck.js";
 export {
   createWheelStepper,

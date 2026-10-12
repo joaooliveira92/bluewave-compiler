@@ -146,6 +146,9 @@ export const FLEET_SIZE_READOUTS: Record<string, string> = {
   very_large: "Sprawling fleet — the most ships to manage, and the slowest turns.",
 };
 
+/** The field label for the fleet-size setting, shared by the form and the preset summary. */
+export const FLEET_SIZE_FIELD_LABEL = "Fleet Size";
+
 export const FLEET_SIZE_LABELS: Record<string, string> = {
   small: "Small",
   standard: "Standard",

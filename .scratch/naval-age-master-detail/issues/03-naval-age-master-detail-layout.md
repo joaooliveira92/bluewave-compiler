@@ -1,7 +1,7 @@
 # INC-3 — Rework Rules of the Naval Age into two-pane master/detail
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** 01
 **Frontier:** no
 **Requirements:** NAM-1, NAM-2, NAM-4, NAM-5, NAM-6, NAM-8; AC-1, AC-2, AC-5, AC-7, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14; DESIGN-51, DESIGN-03, DESIGN-02, BW-ARC-002
@@ -42,3 +42,21 @@ shows each preset's actual six settings, and keeps every existing control workin
 - [ ] `Back` and `"Next: Choose Archetype"` / `onNext(preferences, options)` are preserved with an unchanged payload.
 - [ ] Screen render tests are reworked in place so the pre-rework `BounceCards`/single-column code fails them.
 - [ ] No new `as unknown` casts; one component per file; barrel public surface.
+
+## Answer
+
+- `RulesOfTheNavalAgeScreen` is a full-bleed master/detail split
+  (`NewGameScreenLayout fullBleed`): `PresetDeckPane` (shared `DeckMasterPane`
+  configured with the four `PRESET_DEFINITIONS`) beside a scrollable
+  "Preset details" column holding the applied-setup status, the focused
+  `PresetDetailPanel` (shared inline `SlidePanel`), `EraScaleSection` and
+  `HistoricalUncertaintySection`. At narrow widths the panes stack.
+- Focus (`focusedIndex`, screen-local) only previews; Enter or a tap calls the
+  existing `selectPreset`, and `detectActivePreset` still derives Active/Custom.
+  `Back` moved to the header strip; `"Next: Choose Archetype"` is unchanged.
+- New: `components/preset-deck/` (`PresetCard`, `PresetDeckPane`,
+  `PresetDetailPanel`, barrel), `preset-detail-view.ts` (six-setting rows from
+  the existing content modules), shared `CARD_PALETTES` in `card-deck`.
+  `PresetPickerSection` removed (its only consumer); `BounceCards` stays.
+- Tests: `RulesOfTheNavalAgeScreen.test.tsx` reworked in place,
+  `preset-detail-view.test.ts` added.

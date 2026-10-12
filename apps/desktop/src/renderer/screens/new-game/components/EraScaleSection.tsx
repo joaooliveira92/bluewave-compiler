@@ -12,6 +12,7 @@ import {
 } from "../../../components/ui/select.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
 import {
+  FLEET_SIZE_FIELD_LABEL,
   fleetSizeLabel,
   fleetSizeReadout,
   scenarioEraDescription,
@@ -68,7 +69,7 @@ export const EraScaleSection = memo(function EraScaleSection({
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="fleetSize">Fleet Size</FieldLabel>
+            <FieldLabel htmlFor="fleetSize">{FLEET_SIZE_FIELD_LABEL}</FieldLabel>
             <Select
               value={fleetSize}
               onValueChange={onFleetSizeChange}

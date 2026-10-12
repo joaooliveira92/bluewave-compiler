@@ -14,6 +14,13 @@ export interface NewGameScreenLayoutProps {
   readonly size?: NewGameScreenSize;
   /** Center a short message (loading/failure states) both axes. */
   readonly centered?: boolean;
+  /**
+   * A master/detail step that owns the whole content area: no page padding and
+   * no centred column. At `lg`+ it fills the shell's height (so panes can
+   * scroll independently); narrower, it grows with its content and the shell
+   * scrolls. `size` and `centered` do not apply.
+   */
+  readonly fullBleed?: boolean;
   readonly className?: string;
   readonly children: ReactNode;
 }
@@ -26,9 +33,18 @@ export interface NewGameScreenLayoutProps {
 export function NewGameScreenLayout({
   size = "lg",
   centered = false,
+  fullBleed = false,
   className,
   children,
 }: NewGameScreenLayoutProps) {
+  if (fullBleed) {
+    return (
+      <div className={cn("flex min-h-full flex-col lg:h-full lg:min-h-160", className)}>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className={cn("p-8", centered && "flex h-full flex-col", className)}>
       <div

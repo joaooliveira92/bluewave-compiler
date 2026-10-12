@@ -1,9 +1,8 @@
 import type { KeyboardEvent } from "react";
 import { useMemo } from "react";
-import { DeckMasterPane, normalizeIndex } from "@/components/card-deck/index.js";
+import { CARD_PALETTES, DeckMasterPane, normalizeIndex } from "@/components/card-deck/index.js";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 import { FleetNationCard } from "./FleetNationCard.js";
-import { CARD_PALETTES } from "./fleetDispatchUtils.js";
 
 interface FleetDispatchBoardProps {
   slots: readonly PlayableSlotCountryId[];
