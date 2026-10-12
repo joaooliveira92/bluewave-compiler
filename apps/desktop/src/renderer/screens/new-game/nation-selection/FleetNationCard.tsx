@@ -14,7 +14,7 @@ interface FleetNationCardProps {
 /**
  * A single Fleet Dispatch nation card's *content*. The stack owns positioning,
  * scale, depth shading and drag physics; this component only paints one card,
- * so it fills whatever box `FleetStack` gives it.
+ * so it fills whatever box the shared `CardDeck` gives it.
  */
 export function FleetNationCard({
   countryId,

@@ -1,9 +1,9 @@
 import { Check } from "lucide-react";
 import { memo, useMemo } from "react";
 import { SlidePanel } from "@/components/slide-panel/index.js";
+import { Button } from "@/components/ui/button.js";
+import { CardContent, CardHeader } from "@/components/ui/card.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
-import { Button } from "../../../../components/ui/button.js";
-import { CardContent, CardHeader } from "../../../../components/ui/card.js";
 import { presetSettingRows } from "../../preset-detail-view.js";
 import type { PresetDefinition } from "../../rules-of-the-naval-age-presets.js";
 

@@ -1,5 +1,5 @@
 import { memo, useCallback, useId, useMemo } from "react";
-import { CARD_PALETTES, DeckMasterPane } from "@/components/card-deck/index.js";
+import { DeckMasterPane, paletteForIndex } from "@/components/card-deck/index.js";
 import {
   PRESET_DEFINITIONS,
   type ActivePresetId,
@@ -36,7 +36,7 @@ export const PresetDeckPane = memo(function PresetDeckPane({
         <PresetCard
           key={preset.id}
           preset={preset}
-          palette={CARD_PALETTES[index % CARD_PALETTES.length] as (typeof CARD_PALETTES)[number]}
+          palette={paletteForIndex(index)}
           applied={preset.id === activePreset}
           listboxId={listboxId}
         />

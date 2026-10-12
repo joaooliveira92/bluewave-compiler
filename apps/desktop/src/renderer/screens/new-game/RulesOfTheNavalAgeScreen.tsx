@@ -1,5 +1,5 @@
 import { Anchor } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { NewGameOptions } from "../../../shared/new-game-contract.js";
 import { Button } from "../../components/ui/button.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
@@ -58,18 +58,12 @@ export function RulesOfTheNavalAgeScreen({
     [setPreference],
   );
 
-  // Which deck card is previewed. Presentation state only: it follows the
-  // applied preset when one is applied, and never touches the draft by itself.
-  const [focusedIndex, setFocusedIndex] = useState(() =>
-    Math.max(
-      0,
-      PRESET_DEFINITIONS.findIndex((preset) => preset.id === activePreset),
-    ),
-  );
-  useEffect(() => {
-    const appliedIndex = PRESET_DEFINITIONS.findIndex((preset) => preset.id === activePreset);
-    if (appliedIndex >= 0) setFocusedIndex(appliedIndex);
-  }, [activePreset]);
+  // Which deck card is previewed. Presentation state only, and never the draft:
+  // until the player moves focus it simply shows the applied preset (or the
+  // first card while the settings are Custom); moving focus overrides it.
+  const [focusOverride, setFocusOverride] = useState<number | null>(null);
+  const appliedIndex = PRESET_DEFINITIONS.findIndex((preset) => preset.id === activePreset);
+  const focusedIndex = focusOverride ?? Math.max(0, appliedIndex);
 
   const focusedPreset = PRESET_DEFINITIONS[focusedIndex] ?? PRESET_DEFINITIONS[0];
   const appliedPresetName =
@@ -119,7 +113,7 @@ export function RulesOfTheNavalAgeScreen({
           <PresetDeckPane
             activePreset={activePreset}
             focusedIndex={focusedIndex}
-            onFocusIndex={setFocusedIndex}
+            onFocusIndex={setFocusOverride}
             onSelectPreset={selectPreset}
           />
 

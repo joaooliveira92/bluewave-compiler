@@ -1,6 +1,6 @@
 import type { KeyboardEvent } from "react";
 import { useMemo } from "react";
-import { CARD_PALETTES, DeckMasterPane, normalizeIndex } from "@/components/card-deck/index.js";
+import { DeckMasterPane, normalizeIndex, paletteForIndex } from "@/components/card-deck/index.js";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 import { FleetNationCard } from "./FleetNationCard.js";
 
@@ -33,7 +33,7 @@ export function FleetDispatchBoard({
         <FleetNationCard
           key={countryId}
           countryId={countryId}
-          palette={CARD_PALETTES[index % CARD_PALETTES.length] as (typeof CARD_PALETTES)[number]}
+          palette={paletteForIndex(index)}
           active={index === normalizedFocusedIndex}
           listboxId={listboxId}
         />

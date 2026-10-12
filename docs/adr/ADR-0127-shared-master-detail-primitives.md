@@ -56,8 +56,9 @@ be chosen risks a player reading it as a second nation picker.
 
 - A third master/detail step is composition: supply cards, option ids and
   callbacks to `DeckMasterPane`, and a detail column.
-- Fleet Dispatch behaviour and DOM are unchanged; its tests are the parity
-  proof. `FleetStack`, `GlobeShell`, `useSvgGlobe` and the slide-visibility hook
+- Fleet Dispatch behaviour and semantics are unchanged (its listbox, options
+  and tests are the parity proof); only the deck's CSS class names moved from
+  `fleet-stack-*` to `card-deck-*`. `FleetStack`, `GlobeShell`, `useSvgGlobe` and the slide-visibility hook
   moved (history preserved); the four existing `useSvgGlobe` `as unknown` casts
   moved with it and the ratchet baseline key was renamed, not extended.
 - `BounceCards` stays for the Starting-fleet method picker; only this screen

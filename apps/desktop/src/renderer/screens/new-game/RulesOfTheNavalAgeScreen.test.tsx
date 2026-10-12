@@ -1,23 +1,12 @@
 /* @vitest-environment jsdom */
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { NewGameOptions } from "../../../shared/new-game-contract.js";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { BluewaveDesktopBridge } from "../../../preload/index.js";
 import type { AdmiralPresetValues } from "./admiral-preset.js";
 import type { PrimaryAction } from "../../shell/primary-action.js";
 import { PRESET_DEFINITIONS } from "./rules-of-the-naval-age-presets.js";
 import { RulesOfTheNavalAgeScreen } from "./RulesOfTheNavalAgeScreen.js";
-
-beforeAll(() => {
-  if (typeof globalThis.ResizeObserver === "undefined") {
-    class ResizeObserverStub {
-      observe(): void {}
-      unobserve(): void {}
-      disconnect(): void {}
-    }
-    (globalThis as { ResizeObserver?: unknown }).ResizeObserver = ResizeObserverStub;
-  }
-});
 
 const options: NewGameOptions = {
   scenarios: [
@@ -234,6 +223,19 @@ describe("RulesOfTheNavalAgeScreen", () => {
     expect(appliedSetup()).toBe("Custom");
     expect(screen.getByLabelText("Fleet Size").textContent).toContain("Small");
     expect(screen.getByLabelText("Difficulty").textContent).toContain("Easy");
+  });
+
+  it("keeps the previewed card when edited settings happen to match another preset", async () => {
+    await setupUi();
+
+    fireEvent.keyDown(presetListbox(), { key: "ArrowRight" });
+    expect(detailPanel("Admiral")).toBeTruthy();
+
+    // The loaded defaults differ from Cadet only in Research Pace.
+    openSelectAndPick("Research Pace", "Standard");
+
+    expect(appliedSetup()).toBe("Cadet");
+    expect(detailPanel("Admiral")).toBeTruthy();
   });
 
   it("confirms the focused preset on Enter", async () => {

@@ -36,3 +36,8 @@ export const CARD_PALETTES = [
 ] as const;
 
 export type CardPalette = (typeof CARD_PALETTES)[number];
+
+/** The palette for the card at `index`, cycling when there are more cards than palettes. */
+export function paletteForIndex(index: number): CardPalette {
+  return CARD_PALETTES[index % CARD_PALETTES.length] as CardPalette;
+}
