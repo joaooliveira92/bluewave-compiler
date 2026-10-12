@@ -20,6 +20,7 @@ import type {
   HaltConstructionCommand,
   MoveFleetCommand,
   OrderConstructionCommand,
+  OrderForeignConstructionCommand,
   RelieveOfficerCommand,
   ResumeConstructionCommand,
   SetAccelerationCommand,
@@ -57,6 +58,12 @@ import type { FinancialLedger } from "./financial-ledger.js";
 import { budgetChangedEvent, makeLedgerEntry } from "./events.js";
 import { placeConstructionBatch } from "./constructionOrder.js";
 import { authorizeDockExpansion } from "./dockExpansion.js";
+import {
+  placeForeignConstructionOrder,
+  type ForeignBuilderCapabilityConditions,
+  type ForeignContractTerms,
+} from "./foreignConstruction.js";
+import { FOREIGN_BUILDER_CONDITIONS_SATISFIED } from "./foreignContractPhase.js";
 
 export { applyDivisionCommandMonth } from "./divisionCommands.js";
 
@@ -700,4 +707,45 @@ export function applyAuthorizeDockExpansion(
     return currentSnapshot;
   }
   return authorized.snapshot;
+}
+
+/**
+ * Canonical application of an `OrderForeignConstruction` command (DESIGN-16 sections 13.1-13.4; SB3-R20..R22). The whole
+ * contract enters the snapshot through the single engine-side `placeForeignConstructionOrder` policy: the immutable
+ * contract is formed and its completeness checked, every builder-capability predicate is checked against the BUILDER's
+ * dock and free `NEW_CONSTRUCTION` capacity, and the ordering nation's own concurrency pool is left untouched. A
+ * refused order records the engine's stable reason code and changes nothing. Pure except for the collector.
+ */
+export function applyOrderForeignConstruction(
+  currentSnapshot: CampaignSnapshot,
+  body: OrderForeignConstructionCommand,
+  commandId: string,
+  content: ShipBuildingContent | undefined,
+  campaignMonth: string,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const capability =
+    body["capability"] === undefined
+      ? FOREIGN_BUILDER_CONDITIONS_SATISFIED
+      : (body["capability"] as ForeignBuilderCapabilityConditions);
+  const placed = placeForeignConstructionOrder(
+    currentSnapshot,
+    {
+      nationId: body["nationId"],
+      commandId,
+      designVersionId: body["designVersionId"],
+      builderNationId: body["builderNationId"],
+      month: monthPairOf(campaignMonth),
+      terms: body["terms"] as ForeignContractTerms,
+      capability,
+    },
+    content,
+  );
+  if (!placed.ok) {
+    collector.addError(placed.reason, placed.diagnostics.join("; "), {
+      stage: "command_collection",
+    });
+    return currentSnapshot;
+  }
+  return placed.snapshot;
 }

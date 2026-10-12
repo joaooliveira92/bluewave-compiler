@@ -2,6 +2,7 @@ import type {
   AuthorizeDockExpansionCommand,
   HaltConstructionCommand,
   OrderConstructionCommand,
+  OrderForeignConstructionCommand,
   ResumeConstructionCommand,
   SetAccelerationCommand,
 } from "@bluewave/commands";
@@ -11,6 +12,7 @@ import type {
   ConstructionCommandQueuedOutcome,
   HaltConstructionCommandPayload,
   OrderConstructionBatchCommandPayload,
+  PlaceForeignConstructionCommandPayload,
   ResumeConstructionCommandPayload,
   SetAccelerationCommandPayload,
 } from "../../shared/construction-contract.js";
@@ -118,6 +120,28 @@ export async function authorizeDockExpansionCommand(
         possessionId: payload.possessionId,
       },
       discriminator: payload.possessionId,
+    }),
+  };
+  return await submitPlayerCommand(request);
+}
+
+export async function placeForeignConstructionCommand(
+  payload: PlaceForeignConstructionCommandPayload,
+): Promise<BridgeResult<ConstructionCommandQueuedOutcome>> {
+  const request: PlayerCommandRequest<OrderForeignConstructionCommand> = {
+    sessionId: payload.sessionId,
+    expectedRevision: payload.expectedRevision,
+    transportRequestId: payload.transportRequestId,
+    build: (record) => ({
+      body: {
+        type: "OrderForeignConstruction",
+        nationId: record.playerSlotId,
+        designVersionId: payload.designVersionId,
+        builderNationId: payload.builderNationId,
+        terms: payload.terms,
+        ...(payload.capability === undefined ? {} : { capability: payload.capability }),
+      },
+      discriminator: `${payload.designVersionId}:${payload.builderNationId}`,
     }),
   };
   return await submitPlayerCommand(request);

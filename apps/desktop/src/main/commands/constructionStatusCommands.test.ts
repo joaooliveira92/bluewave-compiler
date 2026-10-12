@@ -20,6 +20,7 @@ import {
   authorizeDockExpansionCommand,
   haltConstructionCommand,
   orderConstructionBatchCommand,
+  placeForeignConstructionCommand,
   resumeConstructionCommand,
   setAccelerationCommand,
 } from "./constructionStatusCommands.js";
@@ -217,5 +218,46 @@ describe("construction status commands (end-to-end)", () => {
       .get("uk")!
       .constructionProjects.filter((p) => p.projectType === "INFRASTRUCTURE");
     expect(expansions.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("places a foreign order through the queue and records the contract after the month", async () => {
+    const sessionId = "s-foreign";
+    registerProductionSession(sessionId, resolve(saveRoot, "save"));
+    const record = getCampaignSession(sessionId)!;
+    const design = [...record.state.snapshot.designs.values()].find(
+      (d) => d.nationId === "uk" && Number(d.normalizedDisplacementKg) <= 10_000_000,
+    );
+    if (!design) throw new Error("no orderable uk design in the production pack");
+
+    const issued = await placeForeignConstructionCommand({
+      sessionId,
+      expectedRevision: Number(record.state.snapshot.turnNumber),
+      transportRequestId: "req-foreign",
+      designVersionId: design.designVersionId,
+      builderNationId: "france",
+      terms: {
+        builderShipyardId: "yard_fr",
+        quantity: 1,
+        totalWorkPerUnit: 1_000,
+        totalPriceUnits: 1_000,
+        paymentSchedule: [
+          { dueMonth: "1880-01", amountUnits: 500, workShareBp: 5_000 },
+          { dueMonth: "1880-02", amountUnits: 500, workShareBp: 5_000 },
+        ],
+        authorizationMonth: "1880-01",
+        plannedKeelMonth: "1880-01",
+        plannedDeliveryMonth: "1880-02",
+      },
+    });
+    expect(issued.outcome).toBe("success");
+    if (issued.outcome !== "success") return;
+    expect(issued.value.bodyType).toBe("OrderForeignConstruction");
+
+    await commit(sessionId);
+
+    const after = getCampaignSession(sessionId)!;
+    const uk = after.state.snapshot.nations.get("uk")!;
+    expect(uk.foreignContracts ?? []).toHaveLength(1);
+    expect(uk.constructionProjects.some((p) => p.foreignBuilderNationId === "france")).toBe(true);
   });
 });

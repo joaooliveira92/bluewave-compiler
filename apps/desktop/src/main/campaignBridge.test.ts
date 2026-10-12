@@ -40,6 +40,7 @@ const IMPLEMENTED_COMMANDS = new Set([
   "setAccelerationCommand",
   "orderConstructionBatchCommand",
   "authorizeDockExpansionCommand",
+  "placeForeignConstructionCommand",
   "inspectFleetScreen",
   "inspectResearchScreen",
   "setResearchPriorityCommand",

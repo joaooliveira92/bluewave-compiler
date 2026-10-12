@@ -21,6 +21,7 @@ export type {
   FormNonAggressionPactCommand,
   HaltConstructionCommand,
   OrderConstructionCommand,
+  OrderForeignConstructionCommand,
   RemoveShipFromDivisionCommand,
   ReorderDivisionShipsCommand,
   ResumeConstructionCommand,

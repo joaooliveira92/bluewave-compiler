@@ -125,6 +125,20 @@ export const AuthorizeDockExpansionCommandPayloadSchema = Schema.Struct({
 });
 
 /**
+ * The foreign-yard order (DESIGN-16 sections 13.1-13.4; SB3-R20..R22). `terms` and `capability` are opaque at the wire
+ * boundary; the engine's `placeForeignConstructionOrder` validates the contract's completeness and every
+ * builder-capability predicate when the month applies the command, so a malformed contract is refused with
+ * `FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED` rather than a wire error.
+ */
+export const PlaceForeignConstructionCommandPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  designVersionId: nonEmptyString,
+  builderNationId: nonEmptyString,
+  terms: Schema.Unknown,
+  capability: Schema.optional(Schema.Unknown),
+});
+
+/**
  * Wire shape for `setResearchPriorityCommand` (desktop-engine-feature-gate
  * INC-2): the `CommandEnvelope` triple plus strict field priorities. The wire
  * boundary enforces integer values and caps the record at the canonical field

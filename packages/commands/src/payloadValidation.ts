@@ -91,6 +91,8 @@ export function validatePayloadRules(
     return validateOrderConstruction(envelope, snapshot);
   if (envelope.body.type === "AuthorizeDockExpansion")
     return validateAuthorizeDockExpansion(envelope, snapshot);
+  if (envelope.body.type === "OrderForeignConstruction")
+    return validateOrderForeignConstruction(envelope, snapshot);
   if (envelope.body.type !== "budget_project") {
     return rejectValidation(
       envelope,
@@ -268,6 +270,47 @@ function validateAuthorizeDockExpansion(
     return reject("INVALID_NATION_ID", `Nation ${body.nationId} not found`);
   if (typeof body.possessionId !== "string" || body.possessionId.length === 0)
     return reject("INVALID_COMMAND_PAYLOAD", "possessionId must be a non-empty string");
+  return { ok: true };
+}
+
+/**
+ * Issue-time rules for `OrderForeignConstruction` (DESIGN-16 sections 13.1-13.4; SB3-R20..R22): the ordering nation and
+ * the design must exist and belong together, the builder must be a distinct real nation, and `terms` must be a
+ * non-null object. The complete-contract gate, the builder-capability predicates and the capacity admission are the
+ * engine's `placeForeignConstructionOrder`, applied when the month runs the command.
+ */
+function validateOrderForeignConstruction(
+  envelope: CommandEnvelope<CommandBody>,
+  snapshot: CampaignSnapshot,
+): LifecycleStepResult {
+  const body = envelope.body as Extract<CommandBody, { type: "OrderForeignConstruction" }>;
+  const reject = (code: string, message: string): LifecycleStepResult =>
+    rejectValidation(envelope, snapshot, code, message);
+  if (typeof body.nationId !== "string" || body.nationId.length === 0)
+    return reject("INVALID_NATION_ID", "nationId must be a non-empty string");
+  if (!snapshot.nations.has(body.nationId))
+    return reject("INVALID_NATION_ID", `Nation ${body.nationId} not found`);
+  const design = snapshot.designs.get(body.designVersionId);
+  if (!design) return reject("UNKNOWN_DESIGN", `No design ${body.designVersionId} in the snapshot`);
+  if (design.nationId !== body.nationId)
+    return reject(
+      "DESIGN_NOT_FOR_PLAYER",
+      `Design ${body.designVersionId} belongs to ${design.nationId}, not ${body.nationId}`,
+    );
+  if (
+    typeof body.builderNationId !== "string" ||
+    body.builderNationId === body.nationId ||
+    !snapshot.nations.has(body.builderNationId)
+  )
+    return reject(
+      "FOREIGN_BUILDER_NATION_INVALID",
+      `Builder ${String(body.builderNationId)} is not a distinct nation in the campaign`,
+    );
+  if (body.terms === null || typeof body.terms !== "object")
+    return reject(
+      "FOREIGN_CONSTRUCTION_CONTRACT_REQUIRED",
+      "A foreign order requires complete contract terms (DESIGN-16 section 13.1)",
+    );
   return { ok: true };
 }
 

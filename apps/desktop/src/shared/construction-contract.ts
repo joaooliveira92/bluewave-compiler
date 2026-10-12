@@ -79,6 +79,18 @@ export interface AuthorizeDockExpansionCommandPayload extends CommandEnvelope {
   readonly possessionId: string;
 }
 
+/**
+ * The foreign-yard order (DESIGN-16 sections 13.1-13.4; SB3-R20..R22). `terms` is the complete contract input and
+ * `capability` the builder's resolved predicates; both are validated by the engine's `placeForeignConstructionOrder`,
+ * which forms the immutable contract and checks every builder-capability predicate.
+ */
+export interface PlaceForeignConstructionCommandPayload extends CommandEnvelope {
+  readonly designVersionId: string;
+  readonly builderNationId: string;
+  readonly terms: unknown;
+  readonly capability?: unknown;
+}
+
 /** The shape every queued construction command returns: the deterministic envelope id and the next-turn contract. */
 export interface ConstructionCommandQueuedOutcome {
   readonly commandId: string;

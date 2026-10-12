@@ -38,11 +38,11 @@ function design(id: string, over: Partial<Design> = {}): Design {
   } as Design;
 }
 
-function nation(): NationState {
+function nation(id = "uk"): NationState {
   return {
-    id: "uk",
-    name: "United Kingdom",
-    tag: "UK",
+    id,
+    name: id,
+    tag: id.toUpperCase(),
     treasury: SafeInt(1_000_000),
     income: SafeInt(0),
     expenses: SafeInt(0),
@@ -52,7 +52,7 @@ function nation(): NationState {
     fleets: [],
     divisions: [],
     research: {
-      nationId: "uk",
+      nationId: id,
       technologies: [],
       fieldPriorities: {},
       researchBudget: SafeInt(0),
@@ -60,12 +60,15 @@ function nation(): NationState {
       discoveredTechs: [],
     },
     constructionProjects: [],
-    isPlayable: true,
-    isAI: false,
+    isPlayable: id === "uk",
+    isAI: id !== "uk",
   };
 }
 
-function snapshot(designs: readonly Design[]): CampaignSnapshot {
+function snapshot(
+  designs: readonly Design[],
+  nationIds: readonly string[] = ["uk"],
+): CampaignSnapshot {
   return {
     version: "0.1.0",
     turnNumber: SafeInt(1),
@@ -75,7 +78,7 @@ function snapshot(designs: readonly Design[]): CampaignSnapshot {
     strategicWeather: [],
     slots: [{ nationId: "uk", type: "playable" }],
     world: { areas: [], routes: [], ports: [] },
-    nations: new Map([["uk", nation()]]),
+    nations: new Map(nationIds.map((id) => [id, nation(id)])),
     wars: {
       wars: [],
       battles: [],
@@ -160,5 +163,43 @@ describe("AuthorizeDockExpansion reaches the engine through command_collection (
     expect(projects[0]!.dockExpansionStepKg).toBeGreaterThan(0);
     // The authorization does not raise the dock itself.
     expect(result.finalSnapshot.nations.get("uk")!.dock?.maximumNewConstructionMassKg ?? 0).toBe(0);
+  });
+});
+
+describe("OrderForeignConstruction reaches the engine through command_collection (SB3-R20)", () => {
+  it("records an accepted contract and project on the ordering nation from caller terms", () => {
+    const from = snapshot([design("dv-b")], ["uk", "france"]);
+    const terms = {
+      builderShipyardId: "yard-fr",
+      quantity: 1,
+      totalWorkPerUnit: 1_000,
+      totalPriceUnits: 1_000,
+      paymentSchedule: [
+        { dueMonth: "1880-01", amountUnits: 500, workShareBp: 5_000 },
+        { dueMonth: "1880-02", amountUnits: 500, workShareBp: 5_000 },
+      ],
+      authorizationMonth: "1880-01",
+      plannedKeelMonth: "1880-01",
+      plannedDeliveryMonth: "1880-02",
+    };
+    const result = executeMonth(from, [
+      envelope(
+        {
+          type: "OrderForeignConstruction",
+          nationId: "uk",
+          designVersionId: "dv-b",
+          builderNationId: "france",
+          terms,
+        },
+        from,
+      ),
+    ]);
+    const uk = result.finalSnapshot.nations.get("uk")!;
+    expect(uk.foreignContracts ?? []).toHaveLength(1);
+    const project = uk.constructionProjects.find((p) => p.foreignContractId !== undefined);
+    expect(project).toBeDefined();
+    expect(project?.foreignBuilderNationId).toBe("france");
+    // The ordering nation's own concurrency pool is untouched (the builder's capacity is consumed).
+    expect(project?.newConstructionReservedMassKg).toBe(0);
   });
 });

@@ -19,6 +19,7 @@ import {
   type HaltConstructionCommand,
   type MoveFleetCommand,
   type OrderConstructionCommand,
+  type OrderForeignConstructionCommand,
   type RelieveOfficerCommand,
   type ResumeConstructionCommand,
   type SetAccelerationCommand,
@@ -36,6 +37,7 @@ import {
   applyMoveFleet,
   applyOfficerCommand,
   applyOrderConstruction,
+  applyOrderForeignConstruction,
   applyResumeConstruction,
   applySetAcceleration,
   applySetBudgetAllocation,
@@ -270,6 +272,18 @@ function applyConstructionCommand(ctx: MonthContext, body: CommandBody, commandI
     ctx.currentSnapshot = applyAuthorizeDockExpansion(
       ctx.currentSnapshot,
       body as AuthorizeDockExpansionCommand,
+      campaignMonth,
+      collector,
+    );
+    return;
+  }
+
+  if (body["type"] === "OrderForeignConstruction") {
+    ctx.currentSnapshot = applyOrderForeignConstruction(
+      ctx.currentSnapshot,
+      body as OrderForeignConstructionCommand,
+      commandId,
+      ctx.engineOptions?.shipBuilding,
       campaignMonth,
       collector,
     );

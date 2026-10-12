@@ -14,6 +14,7 @@ export interface CommandEnvelope<TBody> {
 export type CommandBody =
   | BudgetProjectCommand
   | OrderConstructionCommand
+  | OrderForeignConstructionCommand
   | AuthorizeDockExpansionCommand
   | HaltConstructionCommand
   | ResumeConstructionCommand
@@ -68,6 +69,24 @@ export interface AuthorizeDockExpansionCommand {
   type: "AuthorizeDockExpansion";
   nationId: string;
   possessionId: string;
+}
+/**
+ * Orders a ship from a foreign builder (DESIGN-16 sections 13.1-13.4, SB3-R20..R22). `terms` is the complete
+ * `ForeignConstructionContract` input (a `ForeignContractTerms` as JSON); `capability` is the builder's resolved
+ * predicate set. Both are opaque at the wire boundary and validated by the engine's `placeForeignConstructionOrder`,
+ * which forms the immutable contract, checks every builder-capability predicate against the builder's dock and free
+ * `NEW_CONSTRUCTION` capacity, and records the contract on the ordering nation. The order-path builder-terms assembly
+ * (price and payment schedule from content) is the player-surface ticket's job.
+ */
+export interface OrderForeignConstructionCommand {
+  type: "OrderForeignConstruction";
+  nationId: string;
+  designVersionId: string;
+  builderNationId: string;
+  /** Opaque `ForeignContractTerms`; the engine validates completeness. */
+  terms: unknown;
+  /** Opaque `ForeignBuilderCapabilityConditions`; omitted means the shipped satisfied default. */
+  capability?: unknown;
 }
 /**
  * Halts a dockyard project that is under construction (DESIGN-23 section 7, RTW3 manual pp. 30-31). A halted project
