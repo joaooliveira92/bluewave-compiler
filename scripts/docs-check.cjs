@@ -117,12 +117,16 @@ const adrText = new Map(adrFiles.map((x) => [x.n, fs.readFileSync(path.join(root
 const readAdr = (n) => adrText.get(n);
 
 const adrReadmePath = path.join(root, "docs/adr/README.md");
+// Compare with normalized line endings: the generator emits LF, but a Windows
+// checkout (core.autocrlf) can present the committed file with CRLF, which would
+// otherwise read as a spurious "stale" index (ADR-0107 cross-OS gate).
+const normalizeEol = (s) => s.replace(/\r\n/g, "\n");
 try {
   const { buildIndex } = require("./adr-index.cjs");
   const expected = buildIndex();
   if (!fs.existsSync(adrReadmePath)) {
     problems.push("docs/adr/README.md is missing (run `pnpm adr:index`)");
-  } else if (fs.readFileSync(adrReadmePath, "utf8") !== expected) {
+  } else if (normalizeEol(fs.readFileSync(adrReadmePath, "utf8")) !== normalizeEol(expected)) {
     problems.push("docs/adr/README.md is stale (run `pnpm adr:index`)");
   }
 } catch (err) {

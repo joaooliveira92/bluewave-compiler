@@ -18,6 +18,10 @@ overrides:
   effect: "workspace:*"
   "@effect/vitest": "workspace:*"
   vite: "catalog:"
+  # GHSA-68fv-2mgg-jv7q: source-map-js <1.2.2 (via postcss/vitest toolchain)
+  # allows an event-loop DoS. Pin the patched release; satisfies every ^1.x
+  # consumer. Remove once the tree resolves >=1.2.2 on its own.
+  "source-map-js": "1.2.2"
 peerDependencyRules:
   allowAny:
     - vite
