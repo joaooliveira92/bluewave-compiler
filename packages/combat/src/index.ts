@@ -2,6 +2,7 @@
 export { BattleResolver } from "./resolver.js";
 export type { BattleManifest } from "./resolver.js";
 export { StrengthCalculator } from "./strength.js";
+export * from "./errors.js";
 
 export * from "./reasonCodes.js";
 export * from "./tacticalTime.js";

@@ -3,6 +3,7 @@
 // Parallel to aircraft/records.ts pattern.
 import { SafeInt } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
+import { CombatInvariantError } from "../errors.js";
 import { AIR_COMBAT_RECORD_INTEGRITY_FAILURE } from "./reasonCodes.js";
 
 export const AIR_COMBAT_RECORD_POLICY_ID = "air_combat_record_v1" as const;
@@ -40,6 +41,10 @@ export function verifyAirCombatRecordHash(record: AirCombatRecord): boolean {
 
 export function assertAirCombatRecordHash(record: AirCombatRecord): void {
   if (!verifyAirCombatRecordHash(record)) {
-    throw new Error(AIR_COMBAT_RECORD_INTEGRITY_FAILURE);
+    throw new CombatInvariantError({
+      message: AIR_COMBAT_RECORD_INTEGRITY_FAILURE,
+      code: AIR_COMBAT_RECORD_INTEGRITY_FAILURE,
+      context: { recordId: record.recordId },
+    });
   }
 }

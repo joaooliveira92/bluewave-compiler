@@ -3,12 +3,14 @@
 import { describe, expect, it } from "vite-plus/test";
 import { SafeInt } from "@bluewave/contracts";
 import {
+  assertAirCombatRecordHash,
   createAirCombatRecord,
   computeAirCombatRecordHash,
   verifyAirCombatRecordHash,
   type AirCombatRecord,
 } from "../../src/air-combat/index.js";
 import { AIR_COMBAT_RULESET_VERSION } from "../../src/air-combat/index.js";
+import { CombatInvariantError } from "../../src/errors.js";
 
 function makeDefaultRecordParams() {
   return {
@@ -107,5 +109,30 @@ describe("AC-17: AirCombatRecord", () => {
     const hash1 = computeAirCombatRecordHash(makeDefaultRecordParams());
     const hash2 = computeAirCombatRecordHash(makeDefaultRecordParams());
     expect(hash1).toBe(hash2);
+  });
+
+  it("assertAirCombatRecordHash accepts a valid record", () => {
+    const record = createAirCombatRecord(makeDefaultRecordParams());
+    expect(() => assertAirCombatRecordHash(record)).not.toThrow();
+  });
+
+  it("assertAirCombatRecordHash throws a tagged CombatInvariantError on a tampered record", () => {
+    const record = createAirCombatRecord(makeDefaultRecordParams());
+    const tampered: AirCombatRecord = { ...record, description: "tampered description" };
+
+    let thrown: unknown;
+    try {
+      assertAirCombatRecordHash(tampered);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(CombatInvariantError);
+    expect(thrown).toBeInstanceOf(Error);
+    const tagged = thrown as CombatInvariantError;
+    expect(tagged._tag).toBe("CombatInvariantError");
+    expect(tagged.name).toBe("CombatInvariantError");
+    expect(tagged.code).toBe("AIR_COMBAT_RECORD_INTEGRITY_FAILURE");
+    expect(tagged.message).toBe("AIR_COMBAT_RECORD_INTEGRITY_FAILURE");
   });
 });

@@ -21,6 +21,7 @@
 // it ships on the registry as a bonus even though spec §1.3 lists only the seven
 // above — the registry is additive and the route contract already shipped in
 // INC-5 with its own SHIPPED_MINE_ROUTE_RISK_CONTRACT + guard.
+import { CombatInvariantError } from "../errors.js";
 import {
   SHIPPED_MINE_DECAY_CONTRACT,
   mineDecayPolicyId,
@@ -150,7 +151,10 @@ export function validateAllMineContracts(): void {
   // every REQUIRED id must be present on the registry (nothing forgotten)
   for (const required of REQUIRED_MINE_CONTRACT_POLICY_IDS) {
     if (!shippedIds.has(required)) {
-      throw new Error(`validateAllMineContracts: missing required contract policy ${required}`);
+      throw new CombatInvariantError({
+        message: `validateAllMineContracts: missing required contract policy ${required}`,
+        context: { requiredPolicyId: required },
+      });
     }
   }
   for (const entry of SHIPPED_MINE_CONTRACTS) {
@@ -167,7 +171,8 @@ function expectContractRejects<C>(entry: MineContractEntry<C>, tampered: unknown
   } catch {
     return; // fail-closed: the tampered contract threw
   }
-  throw new Error(
-    `validateAllMineContracts: contract ${String(entry.policyId)} accepted tampering`,
-  );
+  throw new CombatInvariantError({
+    message: `validateAllMineContracts: contract ${String(entry.policyId)} accepted tampering`,
+    context: { policyId: entry.policyId },
+  });
 }
