@@ -28,6 +28,15 @@ export interface BluewaveDesktopBridge {
   onQuitFlush?(handler: () => void): void;
   /** Acknowledges the flush request so a bounded quit may proceed. */
   notifyQuitFlushComplete?(): void;
+  /**
+   * Forwards a renderer crash to the main process, which writes a local-only
+   * support bundle (ADR-0133). Optional so test doubles need not implement it.
+   */
+  reportCrash?(report: {
+    readonly kind: "window-error" | "unhandledrejection";
+    readonly message: string;
+    readonly stack?: string;
+  }): void;
 }
 
 declare global {
@@ -52,5 +61,8 @@ contextBridge.exposeInMainWorld("bluewave", {
   },
   notifyQuitFlushComplete: () => {
     ipcRenderer.send("app:quit-flush-complete");
+  },
+  reportCrash: (report) => {
+    ipcRenderer.send("support:report-crash", report);
   },
 } satisfies BluewaveDesktopBridge);

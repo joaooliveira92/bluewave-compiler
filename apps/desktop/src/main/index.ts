@@ -1,8 +1,14 @@
 import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { applyContentSecurityPolicy } from "./csp.js";
 import { dispatchCampaignCommand } from "./campaignBridge.js";
 import { ContentArtifactError, loadContentArtifact } from "./contentArtifact.js";
+import {
+  captureCrash,
+  installProcessCrashHandlers,
+  parseRendererCrashInput,
+  type CrashContext,
+} from "./crashSupport.js";
 import { isDebugModeEnabled } from "./debugGate.js";
 import { withModernExtensionApi } from "./extensionSession.js";
 import {
@@ -37,6 +43,33 @@ function hardFail(message: string): void {
   quitting = true;
   app.quit();
 }
+
+/**
+ * Local-only crash capture (ADR-0133): an uncaught error in main writes a
+ * user-shareable support bundle beside the user data, surfaces it explicitly,
+ * and quits — never leaving a blank window and never hiding the failure. No
+ * network call is made.
+ */
+const crashContext: CrashContext = {
+  bundleDir: join(app.getPath("userData"), "support"),
+  appVersion: app.getVersion(),
+  platform: process.platform,
+  arch: process.arch,
+  processId: process.pid,
+  now: () => new Date(),
+  log: (message: string) => console.error(message),
+};
+
+installProcessCrashHandlers(crashContext, (error, bundlePath) => {
+  console.error("[crash] uncaught error:", error);
+  dialog.showErrorBox(
+    "Bluewave",
+    "Bluewave hit an unexpected error and needs to close." +
+      (bundlePath !== null ? `\n\nA support bundle was saved to:\n${bundlePath}` : ""),
+  );
+  quitting = true;
+  app.quit();
+});
 
 /**
  * Keep the window recoverable (ADR-0121): a crashed renderer, an unresponsive
@@ -149,6 +182,20 @@ function registerIpc(): void {
   ipcMain.handle("campaign:execute", (event, command: string, payload: unknown) =>
     dispatchCampaignCommand(command, payload),
   );
+
+  // Renderer crash capture (ADR-0133): validate the renderer's payload at the
+  // boundary, then write the local-only support bundle. A malformed payload is
+  // dropped rather than trusted.
+  ipcMain.on("support:report-crash", (_event, payload: unknown) => {
+    const parsed = parseRendererCrashInput(payload);
+    if (parsed === null) return;
+    captureCrash(
+      "renderer",
+      parsed.kind,
+      { message: parsed.message, stack: parsed.stack },
+      crashContext,
+    );
+  });
 
   ipcMain.handle("window:get-state", (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
