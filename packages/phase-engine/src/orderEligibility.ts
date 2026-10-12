@@ -6,8 +6,11 @@ import {
 import {
   compileDesign,
   DESIGN_22_EARLY,
+  dockRecordFromCeiling,
   evaluateAmcFleetLimit,
   HULL_TYPE_FOR_SHIP_TYPE,
+  newConstructionDockEligibility,
+  resolveConstructionModifiers,
   type AvailabilityReason,
   type DesignDraft,
   type ShipBuildingContent,
@@ -17,7 +20,9 @@ import {
 export type OrderRejectionCode =
   | AvailabilityReason["code"]
   | "DESIGN_REVALIDATION_FAILED"
-  | "DESIGN_REVALIDATION_UNAVAILABLE";
+  | "DESIGN_REVALIDATION_UNAVAILABLE"
+  | "SHIP_EXCEEDS_DOMESTIC_DOCK_LIMIT"
+  | "DOCK_LIMIT_MISSING";
 
 export interface OrderRejection {
   readonly code: OrderRejectionCode;
@@ -139,6 +144,20 @@ export function constructionOrderEligibility(
       rules,
     );
     rejections.push(...limit.reasons);
+  }
+  // DESIGN-16 section 4.2: a domestic order must fit the nation's dock ceiling (the largest hull its own yards can
+  // build, authored as the industrial `maxPracticalDisplacementKg`). Foreign orders bypass this via the design's
+  // foreign-yard contract (SB3-R20, later increment).
+  const profile = content?.navalProfileFor(design.nationId, month) ?? null;
+  if (profile !== null) {
+    const ceiling = resolveConstructionModifiers(profile, month).maxPracticalDisplacementKg;
+    const fit = newConstructionDockEligibility(dockRecordFromCeiling(ceiling), {
+      lengthMm: 0,
+      beamMm: 0,
+      displacementKg: Number(design.normalizedDisplacementKg),
+      heaviestKg: 0,
+    });
+    rejections.push(...fit.rejections);
   }
   return { eligible: rejections.length === 0, rejections };
 }

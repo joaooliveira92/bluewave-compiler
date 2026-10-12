@@ -26,7 +26,7 @@ import { constructionProjectIdForCommand } from "@bluewave/campaign-engine";
 import { classifyShip, roleEligibility } from "@bluewave/combat";
 import { SafeInt } from "@bluewave/contracts";
 import { DESIGN_22_EARLY } from "@bluewave/ship-design";
-import { MonthExecutor, placeConstructionOrder } from "../src/index.js";
+import { MonthExecutor, placeConstructionOrder, constructionOrderEligibility } from "../src/index.js";
 import { ATTACKER_NATION, makeBattleSnapshot } from "./battle-fixtures.js";
 
 import { readReferenceDesignEntries } from "./helpers/contentFiles.js";
@@ -345,6 +345,37 @@ describe("placeConstructionOrder is the only way a new-ship project enters a sna
       relaxed,
     );
     expect(r.ok).toBe(true);
+  });
+
+  it("refuses a domestic order above the nation's dock ceiling (DESIGN-16 section 4.2)", () => {
+    const dockContent = {
+      ...content,
+      navalProfileFor: (nationId: string, _month: string) =>
+        nationId === "uk"
+          ? ({
+              nationId: "uk",
+              industrialProfile: {
+                maxPracticalDisplacementKg: [{ fromMonth: "1880-01", value: 10_000_000 }],
+                buildTimeMultiplierBp: 10_000,
+                costMultiplierBp: 10_000,
+                machineryReliabilityBp: 10_000,
+                constructionQualityVarianceBp: 0,
+              },
+            } as never)
+          : null,
+    };
+    const dd = base.designs.get("des_dd_3")! as Design;
+    const tooBig = {
+      ...dd,
+      nationId: "uk",
+      normalizedDisplacementKg: SafeInt(20_000_000),
+    } as Design;
+    const over = constructionOrderEligibility(base, tooBig, dockContent, "1880-01");
+    expect(over.eligible).toBe(false);
+    expect(over.rejections.map((x) => x.code)).toContain("SHIP_EXCEEDS_DOMESTIC_DOCK_LIMIT");
+
+    const fits = { ...tooBig, normalizedDisplacementKg: SafeInt(1_000_000) } as Design;
+    expect(constructionOrderEligibility(base, fits, dockContent, "1880-01").eligible).toBe(true);
   });
 
   it("replacing an order does not count the replaced project and removes it in the same step", () => {
