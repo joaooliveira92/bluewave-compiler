@@ -49,7 +49,9 @@ function slotIdAt(index: number): string | null {
 }
 
 function sameAllocation(a: ArchetypeEditorState, b: ArchetypeEditorState): boolean {
-  return ARCHETYPE_DIMENSIONS.every((dimension) => a.allocation[dimension] === b.allocation[dimension]);
+  return ARCHETYPE_DIMENSIONS.every(
+    (dimension) => a.allocation[dimension] === b.allocation[dimension],
+  );
 }
 
 function clampDimensionValue(value: number): number {
@@ -182,9 +184,7 @@ export function NewGameArchetypeScreen({
 
   const panelAllocation = focusedPreset?.allocation ?? draft.allocation;
   const panelApplied =
-    focusedSlotId !== null &&
-    focusedSlotId === appliedId &&
-    !(focusedIsCustom && customDirty);
+    focusedSlotId !== null && focusedSlotId === appliedId && !(focusedIsCustom && customDirty);
   const panelPending = focusedSlotId !== null && pendingSlotId === focusedSlotId && !panelApplied;
 
   return (

@@ -107,9 +107,6 @@
   "apps/desktop/src/renderer/screens/fleet/components/FleetReportSections.test.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
-  "apps/desktop/src/renderer/screens/new-game/NewGameArchetypeScreen.test.tsx": {
-    "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
-  },
   "apps/desktop/src/renderer/screens/new-game/NewGameCommissioningReviewScreen.test.tsx": {
     "b23a6a8439c0dde5515893e7c90c1e3233b8616e634470f20dc4928bcf3609bc": 1
   },
