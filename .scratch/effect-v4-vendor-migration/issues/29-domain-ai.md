@@ -74,3 +74,12 @@ draw, timestamp, or hash-surface changed.
 SafeInt`, `SafeInt overflow sub`) are fail-closed inside `buildBudgetCommand`'s
 local `try/catch`, so only the `aiCommandGenerator` throws are reachable from
 the public API and are covered directly by `test/errors.test.ts`.
+
+### Hardening follow-up (2026-10-12)
+
+Independent adversarial review returned **ACCEPT** (no findings for ticket 29).
+The `SafeInt.isSafeInt` swap was verified accept/reject-identical to
+`Number.isSafeInteger` (including `NaN`/`Infinity`); `test/errors.test.ts` drives
+the public `AiCommandGenerator` API only. Report:
+`.ai/reports/effect-v4-hardening.md`.
+

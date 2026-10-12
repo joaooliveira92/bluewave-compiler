@@ -70,3 +70,13 @@ diagnostics? }>` (imports only `{ Data } from "effect"` plus a type-only
 
 **Residual:** none. `code` is optional (the 5 plain settlement throws had none);
 their reason code remains inside the message text as before.
+
+### Hardening follow-up (2026-10-12)
+
+Independent adversarial review returned **ACCEPT** (no findings for ticket 24).
+Consumer-path regression added: `packages/commands/test/error-consumers.test.ts`
+drives the public `transitionRecord` (now re-exported from the barrel),
+`validateSettlementPolicy`, `computeSettlement` and `CommandRegistry` guards and
+asserts the caught `CommandError.code`/`message` reaches the caller unchanged.
+Report: `.ai/reports/effect-v4-hardening.md`.
+

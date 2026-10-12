@@ -77,6 +77,31 @@ throw sites, the vendored `effect@4.0.2`, and runtime-free pure packages.
   ADR-0100's policy; this ADR does not forbid it, it only declines to add one
   where none is warranted today.
 
+## Revisit triggers
+
+This decision is kept, but it is **not permanent**. Reopen tickets 34–36 (and
+implement per the original Wave 5 spec) the moment any of these becomes true:
+
+1. **A non-renderer-reachable async IO seam appears** that has a composable
+   service graph — the first such seam introduces one long-lived
+   `ManagedRuntime` there, under ADR-0100 §2. (Today `apps/desktop/src/main`'s
+   `async` functions are thin `Promise` wrappers over a synchronous `node:fs`
+   pipeline; `compiler-cli` and `content-compiler` are synchronous. There is no
+   graph to compose.)
+2. **A runtime-free package gains genuine async IO/orchestration** — it moves to
+   the IO row of ADR-0100 §2 rather than being wrapped in `Effect` in place.
+3. **Cancellation/`AbortSignal` or typed `Cause` becomes a requirement** on a
+   path where the hand-rolled implementation is demonstrably insufficient.
+4. **A renderer-reachable package needs an Effect-typed public surface** — this
+   must be resolved by moving the seam out of the renderer's import graph, never
+   by exposing the runtime to the renderer (`MIG-EXCL-1`, ADR-0125).
+
+The boundary these triggers protect is machine-checked: `pnpm preflight` runs
+`scripts/assert-runtime-free.mjs` (ADR-0100 §2), which fails closed on any
+runtime import in the pure packages or `apps/desktop/src/main`
+([usage](../agents/runtime-free-gate.md)). A deliberate reversal of this
+ADR must update that gate's `RUNTIME_FREE_ROOTS` in the same change.
+
 ## Alternatives considered
 
 - **Flip facades literally.** Rejected: pulls `effect` into the renderer

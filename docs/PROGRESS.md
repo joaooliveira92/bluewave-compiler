@@ -65,6 +65,17 @@ Live roadmap / next-action detail: `.ai/SPRINT-PLAN.md`.
 > point `88de12f9` (Wave 2 exit). Report `.ai/reports/effect-v4-wave3-exit-gate.md`.
 > **Next: tickets 24 and 26** (Wave 4 — `commands` typed errors; `combat`
 > residual), then 29, 30, 33.
+>
+> **2026-10-12: EFFECT-V4 migration hardening COMPLETE — release blocker is P-2,
+> not the migration.** The vendored Effect v4 migration is functionally complete
+> and certified (tickets 00–38 done; `pnpm check` green, e2e 33, packaged smoke
+> 14/14, cross-process hashes stable; ADR-0128 keeps the runtime wave
+> unwarranted). The remaining **likely release blocker is P-2 (ship designer)**:
+> `.scratch/ship-building/` has largely landed (tickets 00–35, ADRs 0063–0078)
+> but is **un-gated** — frontier tickets 22, 26, 28 (rebuild cancellation
+> settlement), 30, then a P-2 acceptance gate. This is recorded here as the next
+> release-critical work; it is **not** started by the migration hardening.
+> Migration evidence: `.ai/reports/effect-v4-hardening.md`.
 
 ---
 

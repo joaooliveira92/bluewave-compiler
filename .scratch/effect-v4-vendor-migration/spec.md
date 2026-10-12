@@ -268,6 +268,13 @@ Adopt **Effect v4 as the single monorepo idiom** using a **vendored dependency**
 
 ### Runtime-usage policy
 
+> **Amended 2026-10-12:** the authoritative table is
+> [`docs/adr/ADR-0100-adopt-effect-v4.md`](../../docs/adr/ADR-0100-adopt-effect-v4.md) §2
+> (amendment). `ai` and `phase-engine` moved to the runtime-free row (no async /
+> no IO), `content-compiler` was added to the IO row, and
+> `commands`/`content-schema`/`diagnostics` joined the runtime-free row. The
+> table below is the original pre-audit draft and is kept for history only.
+
 | Package kind | Adopt | Do **not** add |
 | --- | --- | --- |
 | Pure synchronous computation (`combat` math, `ship-design`, `campaign` derivations, `random`, `deterministic`, `contracts`, `armament`, `events` validation) | Runtime-free subset: `Schema` (sync decode/encode), `Data`/`Data.TaggedError`, `Result`, `Option`, `Predicate`, `Equal`/`Hash` | `Effect`/`Layer`/`ManagedRuntime`, fibers, live services |

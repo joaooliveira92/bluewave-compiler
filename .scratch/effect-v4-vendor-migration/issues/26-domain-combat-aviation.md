@@ -66,3 +66,24 @@ from `packages/combat/src/index.ts`. Added a focused test
 
 **Residual:** none. Every remaining `combat` throw is `BluewaveError`
 (`instances` retained) or the new tagged local error; no `Layer`/`Runtime`.
+
+### Hardening follow-up (2026-10-12)
+
+Independent adversarial review (`.ai/REVIEW-PROMPT.md`) over this commit returned
+**ACCEPT** with two low findings for ticket 26:
+
+- **F2 (low, deferred):** the two `mines/contracts.ts` `CombatInvariantError`
+  throws are fail-closed guards reachable only on a registry bug (a missing
+  required policy, or a guard that accepts tampering); they have no direct test.
+  Deferred: exercising them needs an injectable contract registry that does not
+  exist and would be scope creep for a fail-closed proof. The happy path +
+  tamper-rejection logic is covered by `test/mines/contracts-rollup.test.ts`.
+- **F3 (low, fixed):** the `validateAllMineContracts` header comment mis-named
+  `BluewaveError` for the rollup guard; corrected to name `CombatInvariantError`
+  (and `BluewaveError` for each contract's own guard).
+
+Consumer-path regression: `apps/compiler-cli/test/combatDiagnostics.test.ts`
+adds a case proving a tagged `CombatInvariantError` still routes to
+`internal-error` (it is not a `BluewaveError`), preserving the pre-migration
+plain-`Error` behaviour. Report: `.ai/reports/effect-v4-hardening.md`.
+

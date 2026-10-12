@@ -36,6 +36,7 @@ export {
   canTransition,
   PERMITTED_TRANSITIONS,
   ScopedIdempotencyStore,
+  transitionRecord,
 } from "./lifecycle.js";
 export * from "./reasonCodes.js";
 export * from "./registry.js";

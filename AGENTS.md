@@ -133,7 +133,10 @@ enforces word ceilings from `scripts/doc-budgets.manifest.json`, and
 `docs-check.cjs` validates Markdown `#fragment` anchors. Their fixtures live in
 `scripts/test/` (`pnpm test:scripts`, part of `pnpm check`). `scripts/change-scope.mjs`
 (`pnpm change-scope`) prints a JSON change scope for change-based CI filtering
-([usage](docs/agents/change-scope.md)).
+([usage](docs/agents/change-scope.md)). The runtime-usage boundary is frozen by
+`scripts/assert-runtime-free.mjs` (ADR-0100 §2, ADR-0128), which fails closed on
+any Effect-runtime import in the pure packages or `apps/desktop/src/main`
+([usage](docs/agents/runtime-free-gate.md)).
 
 <!-- BEGIN:turborepo-agent-rules -->
 

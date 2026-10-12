@@ -145,7 +145,9 @@ export const REQUIRED_MINE_CONTRACT_POLICY_IDS: readonly string[] = [
 ];
 
 // AC-24: fail-closed proof that every shipped contract validates against its
-// own guard. ANY tampered contract object fails here (throws BluewaveError).
+// own guard. A tampered contract fails its own guard (throws `BluewaveError`);
+// a registry missing a required policy, or a guard that accepts tampering,
+// throws `CombatInvariantError`.
 export function validateAllMineContracts(): void {
   const shippedIds = new Set(SHIPPED_MINE_CONTRACTS.map((entry) => entry.policyId));
   // every REQUIRED id must be present on the registry (nothing forgotten)

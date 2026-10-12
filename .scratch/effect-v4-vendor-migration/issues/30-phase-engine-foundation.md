@@ -80,3 +80,18 @@ acknowledged as policy debt (with a dated amendment note).
 | `node scripts/docs-check.cjs` | ok (126 ADRs indexed) |
 
 **Residual:** none for phase-engine's throws; the ADR table is now accurate.
+
+### Hardening follow-up (2026-10-12)
+
+Independent adversarial review returned **ACCEPT** with one low finding (F1): the
+three `as any` casts in `test/errors.test.ts`. **Fixed** — the file now drives
+only public APIs (`cloneSnapshot`, `FinancialLedger.append`) with typed fixtures
+(a `null` non-null-assertion for the null guard; a self-referential
+`politics.shells` for the circular-reference guard) and a direct
+`PhaseEngineError` construction for the `code` contract. The private-`walk`
+introspection test was removed; the canonical public invalid-transition guard is
+now covered by `packages/commands/test/error-consumers.test.ts` via the public
+`transitionRecord`. A new `test/error-consumers.test.ts` exercises
+`TacticalReplayVerifier.verify`'s fail-closed catch. Report:
+`.ai/reports/effect-v4-hardening.md`.
+

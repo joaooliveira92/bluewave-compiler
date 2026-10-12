@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vite-plus/test";
+import { CombatInvariantError } from "@bluewave/combat";
 import { BluewaveError } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { reportBluewaveError, runCombatOperation } from "../src/combatDiagnostics.js";
@@ -59,6 +60,28 @@ describe("runCombatOperation", () => {
     expect(collector.errors).toHaveLength(1);
     expect(collector.errors[0].code).toBe("INTERNAL_ERROR");
     expect(collector.errors[0].message).toBe("unexpected engine bug");
+  });
+
+  it("routes a tagged CombatInvariantError to internal-error (it is not a BluewaveError)", () => {
+    // Ticket 26 converted the residual combat invariant throws to
+    // `CombatInvariantError` (a `Data.TaggedError`). The CLI adapter keys on
+    // `instanceof BluewaveError`, so a tagged invariant failure must keep the
+    // same internal-error routing the previous plain `Error` had.
+    const collector = new DiagnosticCollector();
+    const result = runCombatOperation(
+      () => {
+        throw new CombatInvariantError({
+          message: "AIR_COMBAT_RECORD_INTEGRITY_FAILURE",
+          code: "AIR_COMBAT_RECORD_INTEGRITY_FAILURE",
+        });
+      },
+      collector,
+      "battle:resolve-shot",
+    );
+    expect(result).toEqual({ outcome: "internal-error" });
+    expect(collector.errors).toHaveLength(1);
+    expect(collector.errors[0].code).toBe("INTERNAL_ERROR");
+    expect(collector.errors[0].message).toBe("AIR_COMBAT_RECORD_INTEGRITY_FAILURE");
   });
 
   it("reports a thrown non-Error value as an internal-error outcome", () => {

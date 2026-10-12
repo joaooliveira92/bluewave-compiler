@@ -34,6 +34,18 @@ export const GATE_SETS = {
       args: ["scripts/assert-single-effect.mjs"],
     },
     {
+      id: "runtime-free-self-test",
+      label: "runtime-free guard self-test",
+      needs: ["git-state"],
+      args: ["scripts/assert-runtime-free.mjs", "--self-test"],
+    },
+    {
+      id: "runtime-free",
+      label: "runtime-free imports",
+      needs: ["runtime-free-self-test"],
+      args: ["scripts/assert-runtime-free.mjs"],
+    },
+    {
       id: "claude-skill-links",
       label: "claude skill links",
       needs: ["git-state"],
