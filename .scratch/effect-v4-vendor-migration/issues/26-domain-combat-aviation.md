@@ -2,8 +2,8 @@
 
 **Type:** implementation
 **Status:** open
-**Blocked by:** 21 (Wave 3 exit)
-**Frontier:** no
+**Blocked by:** none (21 done)
+**Frontier:** yes
 
 ## What to build
 

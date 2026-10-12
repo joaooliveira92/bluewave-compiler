@@ -57,8 +57,14 @@ Live roadmap / next-action detail: `.ai/SPRINT-PLAN.md`.
 > definition, `pnpm why zod` empty, `pnpm check` EXIT 0 (e2e 33). Three pre-existing
 > new-game reds (`6dbe595d` regressions) repaired under
 > `.scratch/desktop-test-failures/issues/02-new-game-master-detail-regressions.md`.
-> **Wave 2 COMPLETE.** Report `.ai/reports/effect-v4-wave2-exit-gate.md`. **Next:
-> ticket 20** (`events` remainder typed errors), then 21 (Wave 3 exit gate).
+> **Wave 2 COMPLETE.** Report `.ai/reports/effect-v4-wave2-exit-gate.md`. **Tickets
+> 20–21 DONE 2026-10-12 — Wave 3 COMPLETE.** 20 (`events` remainder →
+> `Data.TaggedError`, `80f60f89`), 21 (Wave 3 exit gate & rollback checkpoint)
+> **PASS**: no pure package imports `Effect`/`Layer`/`ManagedRuntime`,
+> `pnpm typecheck` 37/37, `pnpm check` EXIT 0 (e2e 33), guards green; rollback
+> point `88de12f9` (Wave 2 exit). Report `.ai/reports/effect-v4-wave3-exit-gate.md`.
+> **Next: tickets 24 and 26** (Wave 4 — `commands` typed errors; `combat`
+> residual), then 29, 30, 33.
 
 ---
 
@@ -756,8 +762,15 @@ throughout. Pre-existing unrelated failures: `content-schema/test/nation.test.ts
 > rollback point `8c4f7199` (Wave 1 exit). Three pre-existing new-game reds
 > (`6dbe595d` regressions) were repaired under
 > `.scratch/desktop-test-failures/issues/02-new-game-master-detail-regressions.md`.
-> Report: `.ai/reports/effect-v4-wave2-exit-gate.md`. Next: **ticket 20** (`events`
-> remainder typed errors), then 21 (Wave 3 exit gate).
+> Report: `.ai/reports/effect-v4-wave2-exit-gate.md`. **Tickets 20–21 DONE
+> 2026-10-12 — Wave 3 COMPLETE.** 20 (`events` remainder → `Data.TaggedError`,
+> `80f60f89`): four runtime-free tagged errors, message text verbatim, envelope
+> unchanged. 21 (Wave 3 exit gate & rollback checkpoint) **PASS**: no pure
+> package imports `Effect`/`Layer`/`ManagedRuntime`; `pnpm typecheck` 37/37;
+> `pnpm check` EXIT 0 (e2e 33); single-copy and renderer-bundle guards green;
+> rollback point `88de12f9` (Wave 2 exit). Report:
+> `.ai/reports/effect-v4-wave3-exit-gate.md`. Next: **tickets 24 and 26** (Wave 4
+> — `commands` typed errors; `combat` residual), then 29, 30, 33.
 
 ---
 

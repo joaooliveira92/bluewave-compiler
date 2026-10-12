@@ -350,8 +350,16 @@ Schema, no dual Zod definition, `zod` gone, `pnpm check` EXIT 0 (e2e 33 passed);
 rollback point `8c4f7199` (Wave 1 exit). Three pre-existing new-game reds
 (`6dbe595d` regressions) were repaired under
 `.scratch/desktop-test-failures/issues/02-new-game-master-detail-regressions.md`.
-**Wave 2 COMPLETE.** Next action: **ticket 20** (`events` remainder typed errors),
-then 21 (Wave 3 exit gate), continuing the frontier per `.ai/ORCHESTRATION.md`. Vendor
+**Wave 2 COMPLETE.** **Ticket 20 (`events` remainder → `Data.TaggedError`) DONE
+2026-10-12** (`80f60f89`): four runtime-free tagged errors, message text verbatim,
+envelope unchanged. **Ticket 21 (Wave 3 exit gate & rollback checkpoint) DONE
+2026-10-12 — PASS** (`.ai/reports/effect-v4-wave3-exit-gate.md`): no pure package
+imports `Effect`/`Layer`/`ManagedRuntime`; `pnpm typecheck` 37/37; `pnpm check`
+EXIT 0 (e2e 33); single-copy and renderer-bundle guards green; rollback point
+`88de12f9` (Wave 2 exit). **Wave 3 COMPLETE.** Next action: **tickets 24 and 26**
+(Wave 4 — `commands` typed errors; `combat` residual), then 29, 30 (with the
+ADR-0100 table amendment), 33 (Wave 4 exit), continuing the frontier per
+`.ai/ORCHESTRATION.md`. Vendor
 the Effect v4 runtime as first-class pnpm workspace packages
 (no registry resolution), enforce the single-copy graph invariant, migrate every Zod boundary
 to Effect Schema, and flip cross-package facades to Effect-typed interfaces; determinism-gate
