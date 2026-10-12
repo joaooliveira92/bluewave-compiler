@@ -52,6 +52,9 @@ describe("Electron boundary", () => {
       'ipcMain.on("window:minimize"',
       'ipcMain.on("window:maximize-toggle"',
       'ipcMain.on("window:close"',
+      // Local-only crash support bundle (ADR-0133): the renderer forwards a
+      // validated crash payload; no other renderer→main channel is added.
+      'ipcMain.on("support:report-crash"',
     ];
     for (const handler of [...allowedHandle, ...allowedOn]) {
       expect(mainSource).toContain(handler);
@@ -75,6 +78,8 @@ describe("Electron boundary", () => {
       "windowClose:",
       "onQuitFlush:",
       "notifyQuitFlushComplete:",
+      // ADR-0133: renderer crash forwarding (validated in main).
+      "reportCrash:",
     ];
     expect(exposed.length).toBe(allowed.length);
     for (const method of allowed) {
@@ -91,6 +96,8 @@ describe("Electron boundary", () => {
     // command set grows.
     expect(mainSource).toContain("dispatchCampaignCommand");
     const registered = mainSource.match(/ipcMain\.(handle|on)\("([^"]+)"/g) ?? [];
-    expect(registered.every((r) => /"(campaign:execute|window:[a-z-]+)"/.test(r))).toBe(true);
+    expect(
+      registered.every((r) => /"(campaign:execute|window:[a-z-]+|support:report-crash)"/.test(r)),
+    ).toBe(true);
   });
 });

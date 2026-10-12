@@ -14,7 +14,7 @@ export {
   verifyCampaignTechnologyManifest,
 } from "./campaignSession.js";
 export * from "./continuity.js";
-// DESIGN-23 section 2: the dockyard-project status vocabulary and its legal transition table (ADR-0130).
+// DESIGN-23 section 2: the dockyard-project status vocabulary and its legal transition table (ADR-0129).
 export * from "./constructionStatus.js";
 // DESIGN-26 divisions (types + constants + aggregate commands).
 export * from "./division.js";

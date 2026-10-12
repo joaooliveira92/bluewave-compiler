@@ -24,6 +24,8 @@ legitimate order and was reverted.
 - [ ] `constructionOrderEligibility` rejects a domestic order over the authored ceiling with
       `SHIP_EXCEEDS_DOMESTIC_DOCK_LIMIT`; foreign orders route through the foreign-yard contract (SB3-R20).
 - [ ] A test proves a real domestic reference design still orders while a too-large one is refused.
+- [ ] The dock record round-trips through save/load (INC-5's persistence AC, carried here because the record
+      enters campaign state with this ticket).
 
 ## Notes for implementator
 

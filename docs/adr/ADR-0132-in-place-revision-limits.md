@@ -31,12 +31,13 @@ canonical units, authored in `balance.yaml` and validated by
 
 `inPlaceRevisionFindings(source, target, limits)` in `@bluewave/ship-design`
 compares two `RevisionFacts` (displacement, designed speed, thickest vertical and
-horizontal armour, largest main-gun calibre) and returns BLOCKING findings for
-each breached limit: `REVISION_DISPLACEMENT_EXCEEDED`, `REVISION_SPEED_EXCEEDED`,
-`REVISION_VERTICAL_ARMOUR_EXCEEDED`, `REVISION_HORIZONTAL_ARMOUR_EXCEEDED`,
-`REVISION_MAIN_GUN_UNCHANGEABLE`. The displacement allowance is
-`max(10 % of current, 1000 t)`; the main-gun rule fires only when the current
-calibre is above 6 inches and the calibre changes.
+horizontal armour, largest main-gun and secondary-gun calibre) and returns
+BLOCKING findings for each breached limit: `REVISION_DISPLACEMENT_EXCEEDED`,
+`REVISION_SPEED_EXCEEDED`, `REVISION_VERTICAL_ARMOUR_EXCEEDED`,
+`REVISION_HORIZONTAL_ARMOUR_EXCEEDED`, `REVISION_MAIN_GUN_UNCHANGEABLE`,
+`REVISION_SECONDARY_GUN_LIMIT`. The displacement allowance is
+`max(10 % of current, 1000 t)`; the main- and secondary-gun rules fire only when
+the current calibre is above 6 inches and the calibre changes.
 
 ### 3. Enforcement at revision time
 

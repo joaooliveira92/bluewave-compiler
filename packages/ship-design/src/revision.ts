@@ -107,6 +107,8 @@ export interface RevisionFacts {
   readonly horizontalArmourUm: number;
   /** Largest main-gun calibre, micrometres (0 if none). */
   readonly maxMainGunUm: number;
+  /** Largest secondary/dual-purpose gun calibre, micrometres (0 if none). */
+  readonly maxSecondaryGunUm: number;
 }
 
 /** Read the revision facts from a compiled design and its draft. */
@@ -114,12 +116,16 @@ export function revisionFactsOf(compiled: CompiledDesign, draft: DesignDraft): R
   const belt = draft.armour.regions.filter((r) => r.region.startsWith("BELT_"));
   const deck = draft.armour.regions.filter((r) => r.region.startsWith("DECK_"));
   const mainGuns = compiled.components.filter((k) => k.category === "MAIN_GUN");
+  const secondaries = compiled.components.filter(
+    (k) => k.category === "SECONDARY_GUN" || k.category === "DUAL_PURPOSE_GUN",
+  );
   return {
     displacementKg: compiled.totalKg,
     speedMilliKnots: compiled.machinery?.maxSpeedMilliKnots ?? 0,
     verticalArmourUm: belt.reduce((m, r) => Math.max(m, r.thicknessUm), 0),
     horizontalArmourUm: deck.reduce((m, r) => Math.max(m, r.thicknessUm), 0),
     maxMainGunUm: mainGuns.reduce((m, k) => Math.max(m, k.attr.caliberUm ?? 0), 0),
+    maxSecondaryGunUm: secondaries.reduce((m, k) => Math.max(m, k.attr.caliberUm ?? 0), 0),
   };
 }
 
@@ -221,6 +227,21 @@ export function inPlaceRevisionFindings(
         { fromUm: source.maxMainGunUm, toUm: target.maxMainGunUm },
         limits.mainGunMaxUm,
         target.maxMainGunUm,
+      ),
+    );
+  if (
+    source.maxSecondaryGunUm > limits.mainGunMaxUm &&
+    target.maxSecondaryGunUm !== source.maxSecondaryGunUm
+  )
+    findings.push(
+      revFinding(
+        "REVISION_SECONDARY_GUN_LIMIT",
+        "The heavy secondary guns cannot be changed.",
+        `A ${source.maxSecondaryGunUm} um secondary gun may only be refreshed with a gun of the same calibre in place.`,
+        "Changing the secondary battery above 6 inches needs a redesign or a rebuild.",
+        { fromUm: source.maxSecondaryGunUm, toUm: target.maxSecondaryGunUm },
+        limits.mainGunMaxUm,
+        target.maxSecondaryGunUm,
       ),
     );
   return findings;

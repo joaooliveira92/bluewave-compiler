@@ -42,3 +42,9 @@ Cross-checked: the revision model enforced no magnitude limits, so the manual's 
 
 Commands: `@bluewave/ship-design` `vp test run test/trials-revision.test.ts` (28 passed) and full suite (886 passed);
 `@bluewave/phase-engine` `vp test run` (316 passed); `tsc --noEmit` clean; `pnpm preflight` green.
+
+## Review follow-up (SB3-R28 secondary limit)
+
+The review noted the ticket's "secondary `>6 in` limited" was not implemented. Added: `RevisionFacts.maxSecondaryGunUm`
++ `revisionFactsOf` and the `REVISION_SECONDARY_GUN_LIMIT` finding (a secondary gun above 6 in may only be refreshed
+at the same calibre), mirrored from the main-gun rule and pinned by a boundary test. ADR-0132 records it.

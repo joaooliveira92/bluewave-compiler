@@ -285,6 +285,7 @@ describe("in-place design-revision limits (manual p27, ADR-0132)", () => {
     verticalArmourUm: 0,
     horizontalArmourUm: 0,
     maxMainGunUm: 0,
+    maxSecondaryGunUm: 0,
     ...o,
   });
   const ids = (f: RevisionFacts, t: RevisionFacts) =>
@@ -328,5 +329,13 @@ describe("in-place design-revision limits (manual p27, ADR-0132)", () => {
     // A ≤6 in main battery may be re-chosen.
     const six = facts({ maxMainGunUm: 6 * 25_400 });
     expect(ids(six, { ...six, maxMainGunUm: 5 * 25_400 })).toEqual([]);
+  });
+
+  it("does not change secondary guns above 6 in", () => {
+    const eight = facts({ maxSecondaryGunUm: 8 * 25_400 });
+    expect(ids(eight, { ...eight })).toEqual([]);
+    expect(ids(eight, { ...eight, maxSecondaryGunUm: 7 * 25_400 })).toContain(
+      "REVISION_SECONDARY_GUN_LIMIT",
+    );
   });
 });

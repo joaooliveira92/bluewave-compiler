@@ -57,7 +57,7 @@ describe("dockyard project status model (DESIGN-23 section 2)", () => {
   it("refuses an illegal transition and changes no state", () => {
     expect(canTransitionConstructionProject("COMPLETED", "ACTIVE")).toBe(false);
     expect(canTransitionConstructionProject("CANCELLED", "ACTIVE")).toBe(false);
-    expect(canTransitionConstructionProject("PLANNED", "COMPLETED")).toBe(false);
+    expect(canTransitionConstructionProject("PLANNED", "IMPOUNDED")).toBe(false);
     expect(() => assertConstructionProjectTransition("COMPLETED", "ACTIVE")).toThrow(
       ConstructionProjectTransitionError,
     );
@@ -91,5 +91,17 @@ describe("dockyard project status model (DESIGN-23 section 2)", () => {
     expect(() =>
       transitionConstructionProject({ id: "p1", status: "COMPLETED" as const }, "ACTIVE"),
     ).toThrow(ConstructionProjectTransitionError);
+  });
+
+  it("is deterministic and pure: repeated transitions serialize identically and mutate nothing", () => {
+    const project = { id: "p1", status: "ACTIVE" as const, completedWork: 7 };
+    const a = transitionConstructionProject(project, "HALTED");
+    const b = transitionConstructionProject(project, "HALTED");
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+    expect(project.status).toBe("ACTIVE");
+    // A transition to an unrelated project does not change another status's serialization of that project.
+    expect(JSON.stringify(transitionConstructionProject(a, "ACTIVE"))).toBe(
+      JSON.stringify(transitionConstructionProject(b, "ACTIVE")),
+    );
   });
 });
