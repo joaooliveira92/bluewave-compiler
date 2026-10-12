@@ -1,4 +1,5 @@
 import type { SafeInt } from "@bluewave/contracts";
+import { EmptyFormulaIdentifierError, NonFiniteNumberError } from "./errors.js";
 
 export interface ExplanationTree {
   readonly formulaId: string;
@@ -12,7 +13,7 @@ export interface ExplanationTree {
 
 function assertFiniteNumber(name: string, value: number): void {
   if (!Number.isFinite(value)) {
-    throw new TypeError(`${name} must be a finite number`);
+    throw new NonFiniteNumberError({ valueName: name, message: `${name} must be a finite number` });
   }
 }
 
@@ -41,7 +42,9 @@ export class ExplanationBuilder {
 
   constructor(formulaId: string, formulaVersion: string) {
     if (formulaId.trim().length === 0 || formulaVersion.trim().length === 0) {
-      throw new TypeError("formulaId and formulaVersion must be non-empty");
+      throw new EmptyFormulaIdentifierError({
+        message: "formulaId and formulaVersion must be non-empty",
+      });
     }
     this.formulaId = formulaId;
     this.formulaVersion = formulaVersion;

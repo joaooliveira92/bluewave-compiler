@@ -1,9 +1,9 @@
 # 20 — Foundation: `events` remainder on Effect `Data`/typed errors
 
 **Type:** implementation
-**Status:** open
+**Status:** done
 **Blocked by:** none (15 done)
-**Frontier:** yes
+**Frontier:** no
 
 ## What to build
 
@@ -21,10 +21,10 @@ unchanged.
 
 ## Acceptance criteria
 
-- [ ] Event construction/envelope modules use Effect `Data`/`Schema`/tagged
+- [x] Event construction/envelope modules use Effect `Data`/`Schema`/tagged
       errors where appropriate; envelope wire format unchanged (`MIG-WIRE-3`).
-- [ ] Runtime-free: no `Effect`/`Layer`/`ManagedRuntime`.
-- [ ] Existing event tests green; `pnpm --filter @bluewave/events test` green;
+- [x] Runtime-free: no `Effect`/`Layer`/`ManagedRuntime`.
+- [x] Existing event tests green; `pnpm --filter @bluewave/events test` green;
       `pnpm typecheck` green.
 
 ## Notes
@@ -42,3 +42,27 @@ Remaining plain throws: `ledger.ts:22,28` (`Error`: duplicate/ordering),
 (runtime-free, `_tag` = existing code/message prefix; the message text must stay
 identical for callers that match it). Envelope wire format unchanged.
 Blocked-by corrected: 16–19 are closed, so this follows the Wave 2 exit directly.
+
+### Evidence (2026-10-12)
+
+Added `packages/events/src/errors.ts` with four runtime-free `Data.TaggedError`
+classes (`DuplicateEventIdError`, `EventSequenceNotIncreasingError`,
+`NonFiniteNumberError`, `EmptyFormulaIdentifierError`), re-exported from the
+barrel. `ledger.ts` and `explanation.ts` throw them with the `message` text
+carried verbatim from the old plain `Error`/`TypeError`; `envelope.ts` /
+`validation.ts` are untouched (`MIG-WIRE-3`). Only `{ Data }` is imported
+(`MIG-RUNTIME-1`).
+
+| Check | Result |
+| --- | --- |
+| `pnpm --filter @bluewave/events test` | 5 files / 40 tests passed (new `errors.test.ts` asserts `_tag`, `name`, fields and exact messages) |
+| `pnpm typecheck` | 37/37 |
+| `pnpm lint:effect` | 0 errors; no `events` warnings |
+| `pnpm check` | EXIT 0 end-to-end; desktop e2e 33 passed |
+
+Reviewer verdict APPROVE (no BLOCKER/HIGH); its MEDIUM finding (the
+`NonFiniteNumberError` field named `name` shadowed `Error.name`) was fixed by
+renaming the field to `valueName`, and the test now asserts `name`/`_tag` and
+exact message strings. Compatibility note: `instanceof TypeError` for the two
+explanation preconditions becomes `false` (they are now tagged `Error`s); no
+repo consumer matches on `TypeError` or `error.name` for these sites.

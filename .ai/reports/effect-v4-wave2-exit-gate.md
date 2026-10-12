@@ -14,12 +14,12 @@ remainder) is the frontier.
 
 ## Requirements evidence
 
-| Requirement    | Evidence                                                                                                                                                     |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| MIG-WAVE2-ENTRY | Wave 1 exit met (ticket 07 PASS, `.ai/reports/effect-v4-wave1-exit-gate.md`)                                                                                |
-| MIG-WAVE2-EXIT  | Every plan.md §4.1 boundary on Effect Schema (tickets 08–13); parity suites green; wire parity green                                                          |
+| Requirement     | Evidence                                                                                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| MIG-WAVE2-ENTRY | Wave 1 exit met (ticket 07 PASS, `.ai/reports/effect-v4-wave1-exit-gate.md`)                                                                                 |
+| MIG-WAVE2-EXIT  | Every plan.md §4.1 boundary on Effect Schema (tickets 08–13); parity suites green; wire parity green                                                         |
 | MIG-ZOD-1       | No boundary keeps both: `rg "from ['\"]zod"` over `apps`, `packages`, `scripts` → zero                                                                       |
-| MIG-ZOD-2       | ticket 00 §2 classified 08–13 against the code; all six boundaries on `Schema`                                                                              |
+| MIG-ZOD-2       | ticket 00 §2 classified 08–13 against the code; all six boundaries on `Schema`                                                                               |
 | MIG-ZOD-3       | `rg '"zod"'` in any workspace `package.json` → zero; `pnpm why zod` empty; `pnpm install --frozen-lockfile` green                                            |
 | MIG-WIRE-2      | `content-schema` / `content-compiler` fixture accept/reject parity suites green (`test:run` EXIT 0)                                                          |
 | MIG-WIRE-3      | Desktop IPC envelope + `@bluewave/events` envelope serialization suites green (`test:run` EXIT 0)                                                            |

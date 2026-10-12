@@ -1,6 +1,7 @@
 import type { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { DomainEventBody, DomainEventEnvelope } from "./envelope.js";
+import { DuplicateEventIdError, EventSequenceNotIncreasingError } from "./errors.js";
 import { parseDomainEventEnvelope } from "./validation.js";
 
 function aggregateKey(event: DomainEventEnvelope): string {
@@ -19,16 +20,24 @@ export class EventLedger {
   append(event: DomainEventEnvelope<DomainEventBody>): void {
     const validated = parseDomainEventEnvelope(event);
     if (this.eventIds.has(validated.eventId)) {
-      throw new Error(`Duplicate eventId: ${validated.eventId}`);
+      throw new DuplicateEventIdError({
+        eventId: validated.eventId,
+        message: `Duplicate eventId: ${validated.eventId}`,
+      });
     }
 
     const key = aggregateKey(validated);
     const previousSequence = this.lastSequenceByAggregate.get(key);
     if (previousSequence !== undefined && validated.sequenceNumber <= previousSequence) {
-      throw new Error(
-        `sequenceNumber must increase for ${validated.aggregateType}/${validated.aggregateId}: ` +
+      throw new EventSequenceNotIncreasingError({
+        aggregateType: validated.aggregateType,
+        aggregateId: validated.aggregateId,
+        sequenceNumber: validated.sequenceNumber,
+        previousSequence,
+        message:
+          `sequenceNumber must increase for ${validated.aggregateType}/${validated.aggregateId}: ` +
           `${String(validated.sequenceNumber)} <= ${String(previousSequence)}`,
-      );
+      });
     }
 
     this.events.push(validated);

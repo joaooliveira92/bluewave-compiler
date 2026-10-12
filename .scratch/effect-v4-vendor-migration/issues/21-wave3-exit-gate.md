@@ -2,8 +2,8 @@
 
 **Type:** gate
 **Status:** open
-**Blocked by:** 20 (`events` remainder)
-**Frontier:** no
+**Blocked by:** none (20 done)
+**Frontier:** yes
 
 ## What to build
 

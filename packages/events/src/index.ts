@@ -16,6 +16,12 @@ export type {
 } from "./envelope.js";
 export type { ExplanationTree } from "./explanation.js";
 export { ExplanationBuilder } from "./explanation.js";
+export {
+  DuplicateEventIdError,
+  EmptyFormulaIdentifierError,
+  EventSequenceNotIncreasingError,
+  NonFiniteNumberError,
+} from "./errors.js";
 export { formatExplanation } from "./format.js";
 export { EventLedger } from "./ledger.js";
 export {
