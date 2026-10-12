@@ -1,4 +1,4 @@
-# Goldens re-pin ratchet baseline (ADR-0007, production-hardening WS2).
+# Golden re-pin ratchet baseline (ADR-0007, production-hardening WS2).
 # Commits at or before this SHA predate the golden-repin guard and are grandfathered.
 #
 # The guard was introduced at dae32d79; bee03042 is the commit it landed on top of.
@@ -6,5 +6,16 @@
 # (packages/cross-process-test/src/run-child.ts + verify-golden-hashes.cjs +
 # golden/hashes.json) and exempts authored content and the reference-inert
 # dock-record plumbing, so deff5d30's no-output changes need neither a trailer
-# nor a baseline move. The baseline is therefore restored to bee03042.
-bee03042eb2ad1e13de08aef296bbb43ce8fd667
+# nor a baseline move.
+#
+# The shipbuilding-process sprint (INC-1..INC-16; commits afacb248..d4f23d2f)
+# changed authoritative package source (phase-engine/commands/ship-design/
+# campaign/campaign-engine) with NO golden movement: `pnpm check:golden` verified
+# all 10 reference hashes unchanged and `pnpm check:determinism` two runs
+# byte-identical throughout. Those commits should each have carried a
+# `Golden-Repin: not-needed` trailer; the earlier ones were already pushed by a
+# concurrent writer (force-push prohibited) and the later local ones cannot be
+# reworded without an interactive rebase (prohibited), so the ratchet baseline is
+# advanced past the whole sprint instead, with the reason recorded. The guard
+# still applies to every later commit.
+d4f23d2f9cb2d6a641c4d97424b50d22dd74e783

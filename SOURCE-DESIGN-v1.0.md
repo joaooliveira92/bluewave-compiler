@@ -1,11 +1,11 @@
-BLUEWAVE GAME DESIGN SCRIPT
+# BLUEWAVE GAME DESIGN SCRIPT
+
 Version: 1.0
 Status: Canonical Design Baseline
 Simulation Scope: 1880–1970
 Strategic Resolution: Monthly
 Tactical Resolution: Discrete one-minute turns
 Game Mode: Offline, single-player, deterministic when seeded
-
 
 1. GAME VISION
 
@@ -49,8 +49,7 @@ Core Design Principles:
   must support deterministic auto-resolution.
 - No campaign may begin unless all start-readiness gates pass.
 
- 2. PLAYER IDENTITY AND CAMPAIGN CONTINUITY
-
+ 1. PLAYER IDENTITY AND CAMPAIGN CONTINUITY
 
 Player Role:
 
@@ -96,8 +95,7 @@ Non-Terminal Major Outcomes:
 - Government change.
 - Treaty-imposed naval restrictions.
 
- 3. CAMPAIGN CONFIGURATION
-
+ 1. CAMPAIGN CONFIGURATION
 
 Supported Historical Start Scenarios:
 
@@ -167,8 +165,7 @@ Historical Continuity Modes:
   - Uses explicit scenario definitions rather than procedural substitutions.
 - No AI-only nation may silently replace a canonical playable slot.
 
- 4. CANONICAL PLAYABLE SLOTS
-
+ 1. CANONICAL PLAYABLE SLOTS
 
 Playable Slots:
 
@@ -231,8 +228,7 @@ Nation Identity Layers:
 - war_participant:
   - Membership in a specific war and side.
 
- 5. CANONICAL CONTENT AND RULESETS
-
+ 1. CANONICAL CONTENT AND RULESETS
 
 Content Pack:
 
@@ -297,8 +293,7 @@ Provenance Labels:
 Localized text is presentation-only.
 Simulation logic uses stable identifiers, never localized strings.
 
- 6. AUTHORITATIVE STATE MODEL
-
+ 1. AUTHORITATIVE STATE MODEL
 
 Campaign Aggregate:
 
@@ -374,8 +369,7 @@ Stable State Invariants:
 - Every financial posting balances against a source and category.
 - Every random outcome records a stable random-stream key.
 
- 7. NUMERIC AND TEMPORAL CONTRACT
-
+ 1. NUMERIC AND TEMPORAL CONTRACT
 
 Authoritative Arithmetic:
 
@@ -406,8 +400,7 @@ Rounding:
 - Classification and treaty checks use unrounded canonical values.
 - UI values may be rounded for display but must expose detailed breakdowns.
 
- 8. DETERMINISM AND RANDOMNESS
-
+ 1. DETERMINISM AND RANDOMNESS
 
 Determinism Requirement:
 
@@ -459,8 +452,7 @@ Save/Reload Rule:
   authoritative randomness.
 - AI decisions are deterministic and included in replay verification.
 
- 9. CAMPAIGN COMPILATION
-
+ 1. CAMPAIGN COMPILATION
 
 Compiler Inputs:
 
@@ -549,8 +541,7 @@ Manual 1900 Legacy Construction:
   - subsidy;
   - remaining liability.
 
- 10. STRATEGIC MONTHLY TURN PIPELINE
-
+  1. STRATEGIC MONTHLY TURN PIPELINE
 
 Stable Snapshots:
 
@@ -564,29 +555,29 @@ Stable Snapshots:
 
 Authoritative Phase Order:
 
-0.  Validate Previous Snapshot
+1. Validate Previous Snapshot
 
 - Verify hashes, invariants, and phase cursor.
 
-1.  Open Month
+1. Open Month
 
 - Advance scheduled calendar effects.
 - Update elapsed war, service, project, and training months.
 
-2.  Apply Scheduled Global Events
+1. Apply Scheduled Global Events
 
 - Canal completion or disruption.
 - Scenario events.
 - Treaty expiration.
 - Government transitions already scheduled.
 
-3.  Apply Scheduled National Events
+1. Apply Scheduled National Events
 
 - Political mandates.
 - Economic changes.
 - Officer and institutional events.
 
-4.  Present Mandatory Player Decisions
+1. Present Mandatory Player Decisions
 
 - Event choices.
 - Peace offers.
@@ -594,26 +585,26 @@ Authoritative Phase Order:
 - Insolvency interventions.
 - Required political responses.
 
-5.  Generate AI Strategic Plans
+1. Generate AI Strategic Plans
 
 - AI observes only information legally available at MonthOpeningSnapshot.
 
-6.  Collect Player Commands
+1. Collect Player Commands
 
 - Player issues budget, design, construction, movement, policy, and other orders.
 
-7.  Validate and Reserve Commands
+1. Validate and Reserve Commands
 
 - Validate legality.
 - Reserve treasury and capacity.
 - Produce accepted or rejected command records.
 
-8.  Lock All Commands
+1. Lock All Commands
 
 - Player and AI commands become immutable for the month.
 - Produce CommandLockSnapshot.
 
-9.  Resolve Diplomacy
+1. Resolve Diplomacy
 
 - Alliances.
 - Incidents.
@@ -622,34 +613,34 @@ Authoritative Phase Order:
 - Access rights.
 - Canal permissions.
 
-10. Resolve Political and Budget Changes
+ 1. Resolve Political and Budget Changes
 
 - Appropriation changes.
 - Mandates.
 - Confidence and unrest effects that apply before spending.
 
-11. Post Monthly Revenue
+ 1. Post Monthly Revenue
 
 - Naval appropriation.
 - Possession income.
 - Reparations.
 - Scheduled grants.
 
-12. Pay Mandatory Obligations
+ 1. Pay Mandatory Obligations
 
 - Maintenance.
 - Existing project commitments.
 - Contractual payments.
 - Required personnel and support costs.
 
-13. Resolve Insolvency Allocation
+ 1. Resolve Insolvency Allocation
 
 - Apply payment priority.
 - Pause or reduce non-mandatory spending.
 - Record arrears where permitted.
 - Apply morale and confidence effects.
 
-14. Resolve Projects
+ 1. Resolve Projects
 
 - Design studies.
 - Construction.
@@ -658,14 +649,14 @@ Authoritative Phase Order:
 - Aircraft development.
 - Radar and equipment production.
 
-15. Resolve Research
+ 1. Resolve Research
 
 - Apply paid research allocation.
 - Progress fields.
 - Discover technologies.
 - Schedule installations or adoption requirements.
 
-16. Resolve Personnel and Readiness
+ 1. Resolve Personnel and Readiness
 
 - Working up.
 - Mobilization.
@@ -675,14 +666,14 @@ Authoritative Phase Order:
 - Crew recovery.
 - Squadron re-equipment.
 
-17. Resolve Strategic Movement
+ 1. Resolve Strategic Movement
 
 - Validate routes against current diplomacy.
 - Resolve one monthly movement edge or ruleset-defined movement allowance.
 - Resolve fuel, breakdown, and interdiction conditions.
 - Produce PostMovementSnapshot.
 
-18. Resolve Pre-Battle Operational Effects
+ 1. Resolve Pre-Battle Operational Effects
 
 - Mine preparation.
 - Reconnaissance.
@@ -690,19 +681,19 @@ Authoritative Phase Order:
 - Surprise conditions.
 - Air and submarine availability.
 
-19. Generate Tactical Engagements
+ 1. Generate Tactical Engagements
 
 - Determine eligible battles.
 - Select forces through constraints.
 - Produce BattleEligibilitySnapshot.
 
-20. Resolve Battles
+ 1. Resolve Battles
 
 - Player may fight or auto-resolve.
 - Apply tactical results immediately to participating assets.
 - A ship cannot enter a second battle unless explicitly allowed by the ruleset.
 
-21. Apply Battle Consequences
+ 1. Apply Battle Consequences
 
 - Damage.
 - Losses.
@@ -711,19 +702,19 @@ Authoritative Phase Order:
 - Political effects.
 - Reports.
 
-22. Resolve Amphibious Operations
+ 1. Resolve Amphibious Operations
 
 - Launch prepared invasions.
 - Resolve invasion battle or abstraction.
 - Establish occupation where successful.
 
-23. Resolve Blockade
+ 1. Resolve Blockade
 
 - Use PostBattleSnapshot.
 - Establish, maintain, weaken, or break blockades.
 - Produce BlockadeSnapshot.
 
-24. Resolve Trade Warfare
+ 1. Resolve Trade Warfare
 
 - Trade protection.
 - Raiders.
@@ -732,14 +723,14 @@ Authoritative Phase Order:
 - Operational mines.
 - Neutral incidents.
 
-25. Resolve Supply and Fuel
+ 1. Resolve Supply and Fuel
 
 - Local base support.
 - Wartime oil shortages.
 - Remote deployment penalties.
 - Merchant-import consequences.
 
-26. Resolve Political End-of-Month Effects
+ 1. Resolve Political End-of-Month Effects
 
 - Unrest.
 - War exhaustion.
@@ -748,33 +739,33 @@ Authoritative Phase Order:
 - Revolution checks.
 - Institutional confidence.
 
-27. Resolve Peace Negotiations
+ 1. Resolve Peace Negotiations
 
 - Evaluate war state.
 - Draft and validate settlement terms.
 - Apply accepted settlements atomically.
 
-28. Resolve Compliance
+ 1. Resolve Compliance
 
 - Treaty compliance.
 - Foreign-station obligations.
 - Political mandates.
 - Construction restrictions.
 
-29. End-of-Month AI Administration
+ 1. End-of-Month AI Administration
 
 - Fill eligible command vacancies.
 - Update plans.
 - Generate non-authoritative recommendations.
 
-30. Evaluate Terminal Conditions
+ 1. Evaluate Terminal Conditions
 
 - Dismissal.
 - Unsupported national collapse.
 - Scenario termination.
 - End date.
 
-31. Generate Reports
+ 1. Generate Reports
 
 - Financial.
 - Construction.
@@ -785,29 +776,28 @@ Authoritative Phase Order:
 - War.
 - Compliance.
 
-32. Canonicalize State
+ 1. Canonicalize State
 
 - Normalize ordering.
 - Rebuild required projections.
 - Validate invariants.
 
-33. Compute Hashes
+ 1. Compute Hashes
 
 - Aggregate hashes.
 - Snapshot hash.
 - Command/event ledger hash.
 - RNG manifest hash.
 
-34. Persist Autosave
+ 1. Persist Autosave
 
 - Save atomically at MonthClosingSnapshot.
 
-35. Close Month
+ 1. Close Month
 
 - MonthClosingSnapshot becomes next MonthOpeningSnapshot.
 
- 11. COMMAND MODEL
-
+  1. COMMAND MODEL
 
 Command Lifecycle:
 
@@ -859,8 +849,7 @@ Examples of Reason Codes:
 - DIVISION_LOCATION_CONFLICT
 - POLITICAL_AUTHORIZATION_DENIED
 
- 12. NATIONS AND GOVERNMENTS
-
+  1. NATIONS AND GOVERNMENTS
 
 Nation State:
 
@@ -961,8 +950,7 @@ Trait Activation:
   - applicable scenarios;
   - whether it belongs to nation, regime, or temporary state.
 
- 13. ECONOMY AND ACCOUNTING
-
+  1. ECONOMY AND ACCOUNTING
 
 Economic State:
 
@@ -1056,8 +1044,7 @@ Wartime Costs:
 - Mobilized personnel, fuel, ammunition, repairs, and operations add costs.
 - Exact multipliers are ruleset constants and must be explainable in reports.
 
- 14. WORLD GEOGRAPHY
-
+  1. WORLD GEOGRAPHY
 
 World Entities:
 
@@ -1118,8 +1105,7 @@ Choke Points:
   are met.
 - Choke-point restrictions are explicit route predicates.
 
- 15. POSSESSIONS AND TERRITORIAL CONTROL
-
+  1. POSSESSIONS AND TERRITORIAL CONTROL
 
 Possession State:
 
@@ -1180,8 +1166,7 @@ Decolonization:
 - Independence is an explicit political process.
 - Local unrest and occupation can accelerate it.
 
- 16. BASES AND INFRASTRUCTURE
-
+  1. BASES AND INFRASTRUCTURE
 
 Infrastructure Types:
 
@@ -1234,8 +1219,7 @@ Foreign Construction:
 - A delivery-guarantee treaty prevents discretionary impoundment but not physical
   impossibility caused by occupation or destruction.
 
- 17. DIPLOMACY
-
+  1. DIPLOMACY
 
 Diplomatic Relation:
 
@@ -1291,8 +1275,7 @@ War Entry:
 - War is never triggered from tension alone unless the ruleset explicitly defines
   a threshold event.
 
- 18. POLITICS, CONFIDENCE, AND UNREST
-
+  1. POLITICS, CONFIDENCE, AND UNREST
 
 Political State:
 
@@ -1378,8 +1361,7 @@ Political Mandates:
 - Negotiation options.
 - Expiration.
 
- 19. STRATEGIC OBJECTIVES
-
+  1. STRATEGIC OBJECTIVES
 
 Objective Types:
 
@@ -1412,8 +1394,7 @@ Player Relationship:
 - Player may influence priorities through political capital and event choices.
 - Objectives guide AI plans and final career evaluation.
 
- 20. RESEARCH AND TECHNOLOGY
-
+  1. RESEARCH AND TECHNOLOGY
 
 Technology Definition:
 
@@ -1490,8 +1471,7 @@ Technology Variation:
 - Prerequisite structure remains valid.
 - A varied technology cannot precede mandatory prerequisites.
 
- 21. SHIP DESIGN
-
+  1. SHIP DESIGN
 
 Design Layers:
 
@@ -1573,8 +1553,7 @@ Aesthetic Data:
 - Superstructure drawings, visual decoration, and cosmetic arrangement are
   presentation-only unless mapped to a mechanical component.
 
- 22. SHIP CLASSIFICATION
-
+  1. SHIP CLASSIFICATION
 
 Classification Policy:
 
@@ -1663,8 +1642,7 @@ Reclassification:
   ruleset explicitly requires it.
 - Classification cache must always match the current compiled design version.
 
- 23. CONSTRUCTION, REPAIR, AND REBUILD
-
+  1. CONSTRUCTION, REPAIR, AND REBUILD
 
 Unified Dockyard Project:
 
@@ -1743,8 +1721,7 @@ Scrapping:
 - Removes future maintenance.
 - Treaty-required scrapping follows treaty deadlines and inspection rules.
 
- 24. FLEET MANAGEMENT
-
+  1. FLEET MANAGEMENT
 
 Ship State Dimensions:
 
@@ -1817,8 +1794,7 @@ Maintenance Warning:
 - Derived from support, location, status, and infrastructure.
 - Never stored as independent authority.
 
- 25. DEPLOYMENT AND LOGISTICS
-
+  1. DEPLOYMENT AND LOGISTICS
 
 Deployment:
 
@@ -1869,8 +1845,7 @@ Movement Resolution:
   - breakdown result;
   - failure reason.
 
- 26. DIVISIONS AND FORMATIONS
-
+  1. DIVISIONS AND FORMATIONS
 
 Permanent Division:
 
@@ -1934,8 +1909,7 @@ Eligibility:
 - Destroyers scout only if all ships meet the ruleset displacement threshold,
   nominally above 1,500 tons.
 
- 27. OFFICERS AND PERSONNEL
-
+  1. OFFICERS AND PERSONNEL
 
 Officer:
 
@@ -2031,8 +2005,7 @@ Personnel Pools:
 - Pilot pool.
 - New construction cannot become fully operational without adequate personnel.
 
- 28. CREW, TRAINING, AND MORALE
-
+  1. CREW, TRAINING, AND MORALE
 
 Crew Performance Layers:
 
@@ -2087,8 +2060,7 @@ Aircrew:
 - Elite training improves quality but is difficult to sustain in wartime.
 - Air-sea rescue improves pilot survival.
 
- 29. INTELLIGENCE AND KNOWLEDGE
-
+  1. INTELLIGENCE AND KNOWLEDGE
 
 Intelligence Program:
 
@@ -2144,8 +2116,7 @@ AI Fog of War:
 - AI does not receive player truth unless an explicit difficulty modifier grants
   defined information assistance.
 
- 30. TREATIES
-
+  1. TREATIES
 
 Treaty:
 
@@ -2202,8 +2173,7 @@ Validation:
   - monthly compliance;
   - ship completion.
 
- 31. WAR AND PEACE
-
+  1. WAR AND PEACE
 
 War:
 
@@ -2269,8 +2239,7 @@ Revolutionary Defeat:
 - Uses explicit revolution and peace logic.
 - Is not an arbitrary direct mutation.
 
- 32. BLOCKADE
-
+  1. BLOCKADE
 
 Blockade State:
 
@@ -2320,8 +2289,7 @@ Multiple Home Areas:
 - Blockade is evaluated per blockade theater.
 - National blockade effect is derived from theater coverage and economic access.
 
- 33. TRADE, RAIDING, AND MERCHANT SHIPPING
-
+  1. TRADE, RAIDING, AND MERCHANT SHIPPING
 
 Merchant State:
 
@@ -2373,8 +2341,7 @@ Q-Ships:
 - Require technology.
 - Permit eligible AMCs to surprise submarines.
 
- 34. SUBMARINES
-
+  1. SUBMARINES
 
 Strategic Representation:
 
@@ -2446,8 +2413,7 @@ Friendly-Fire Risk:
 - Friendly submarines can create mistaken-identification incidents.
 - Knowledge and identification rules apply.
 
- 35. MINE WARFARE
-
+  1. MINE WARFARE
 
 Mine Pressure:
 
@@ -2496,8 +2462,7 @@ Persistence:
 - Ownership change does not automatically remove minefields.
 - Friendly-fire risk is possible where knowledge is incomplete.
 
- 36. AMPHIBIOUS OPERATIONS
-
+  1. AMPHIBIOUS OPERATIONS
 
 Invasion Plan:
 
@@ -2554,8 +2519,7 @@ Blitzkrieg Invasion:
 - Most likely near war opening.
 - Uses an explicit operation and cannot transfer possession without resolution.
 
- 37. BATTLE GENERATION
-
+  1. BATTLE GENERATION
 
 Battle Generation Inputs:
 
@@ -2630,8 +2594,7 @@ Support Forces:
 - Their information and command remain limited.
 - They obey their own AI and command structure.
 
- 38. TACTICAL COMBAT
-
+  1. TACTICAL COMBAT
 
 Resolution:
 
@@ -2737,8 +2700,7 @@ Auto-Resolution:
 - Uses the same campaign inputs.
 - Must be statistically validated against tactical simulation.
 
- 39. GUNNERY
-
+  1. GUNNERY
 
 Gunnery State:
 
@@ -2836,8 +2798,7 @@ Target Allocation:
 - Ammunition conservation.
 - Manual orders constrain this evaluation.
 
- 40. TORPEDOES
-
+  1. TORPEDOES
 
 Torpedo State:
 
@@ -2885,8 +2846,7 @@ Damage:
 - Turret or system loss.
 - Underwater-tube hits can cause severe flooding.
 
- 41. DAMAGE, FIRE, AND FLOODING
-
+  1. DAMAGE, FIRE, AND FLOODING
 
 Damage Resolution Pipeline:
 
@@ -2969,8 +2929,7 @@ Survivors:
 - Rescue may provide battle score.
 - Requires eligible friendly ships and acceptable enemy threat.
 
- 42. WEATHER, VISIBILITY, AND SMOKE
-
+  1. WEATHER, VISIBILITY, AND SMOKE
 
 Strategic Weather:
 
@@ -3029,8 +2988,7 @@ Smoke Floats and Generators:
 - Light cruisers may carry approximately three to five smoke floats.
 - Later technology replaces floats with generators.
 
- 43. AIRCRAFT
-
+  1. AIRCRAFT
 
 Aircraft Definitions:
 
@@ -3109,8 +3067,7 @@ Aircraft Roles:
 - Helicopters:
   - ASW, radar extension, and modern utility roles.
 
- 44. CARRIER OPERATIONS
-
+  1. CARRIER OPERATIONS
 
 Carrier State:
 
@@ -3211,8 +3168,7 @@ Ordnance:
 - Unused weapons from stood-down aircraft return to storage.
 - Jettisoned airborne weapons are lost.
 
- 45. AIR DEFENSE
-
+  1. AIR DEFENSE
 
 Defense Layers:
 
@@ -3279,8 +3235,7 @@ Attack-Layer Matching:
 - Bombing and rockets against applicable AA layers.
 - Torpedo, skip, and dive bombing against terminal AA layers.
 
- 46. RADAR, ELECTRONICS, AND ELECTRONIC WARFARE
-
+  1. RADAR, ELECTRONICS, AND ELECTRONIC WARFARE
 
 Ship Electronics:
 
@@ -3331,8 +3286,7 @@ Electronic Warfare:
 - If a detailed EW model is disabled, these remain compact opposed modifiers,
   not omitted effects.
 
- 47. MISSILES
-
+  1. MISSILES
 
 Missile Categories:
 
@@ -3408,8 +3362,7 @@ Damage:
   - superstructure damage.
 - Special missile torpedoes and diving missiles use their dedicated damage rules.
 
- 48. COASTAL DEFENSE
-
+  1. COASTAL DEFENSE
 
 Possession Defenses:
 
@@ -3454,8 +3407,7 @@ Land-Target Damage:
 - Destroyed.
 - Consequences apply to campaign infrastructure after battle.
 
- 49. EVENTS
-
+  1. EVENTS
 
 Event Definition:
 
@@ -3507,8 +3459,7 @@ Event Rules:
   - tests.
 - Event text never defines mechanics independently of typed effects.
 
- 50. AI ARCHITECTURE
-
+  1. AI ARCHITECTURE
 
 AI Components:
 
@@ -3553,8 +3504,7 @@ AI Planning:
 - Maintains multi-year force-structure goals.
 - Can revise plans after failed validation or changed circumstances.
 
- 51. UI AND PLAYER INTERACTION
-
+  1. UI AND PLAYER INTERACTION
 
 Monthly Player Loop:
 
@@ -3621,8 +3571,7 @@ Logs:
 - Human-readable logs are generated from structured domain events.
 - Logs are never authoritative state.
 
- 52. SAVE, LOAD, REPLAY, AND PERSISTENCE
-
+  1. SAVE, LOAD, REPLAY, AND PERSISTENCE
 
 Stable Save Boundaries:
 
@@ -3694,8 +3643,7 @@ Ruleset Compatibility:
 - Migration to a changed ruleset requires an explicit supported migration.
 - Silent formula changes to an existing campaign are prohibited.
 
- 53. VALIDATION, NORMALIZATION, AND REPAIR
-
+  1. VALIDATION, NORMALIZATION, AND REPAIR
 
 Validation:
 
@@ -3731,8 +3679,7 @@ Repairable Errors:
 - Missing report index.
 - Non-authoritative duplicate UI metadata.
 
- 54. TESTING AND ACCEPTANCE
-
+  1. TESTING AND ACCEPTANCE
 
 Required Test Classes:
 
@@ -3783,8 +3730,7 @@ Start-Readiness Gates:
 
 A campaign is not start-ready merely because schema and seed rows exist.
 
- 55. RELEASE SCOPE AND IMPLEMENTATION ORDER
-
+  1. RELEASE SCOPE AND IMPLEMENTATION ORDER
 
 Milestone 1 — Strategic Campaign Kernel:
 
@@ -3846,8 +3792,7 @@ Milestone Rule:
   complete, but no scenario is declared fully supported until all required
   systems for its expected era pass acceptance.
 
- 56. FINAL CAREER EVALUATION
-
+  1. FINAL CAREER EVALUATION
 
 Evaluation Dimensions:
 
@@ -3886,8 +3831,7 @@ Success:
 - Does not require becoming the world's largest navy.
 - Does not use final institutional confidence as the sole score.
 
- 57. NON-NEGOTIABLE ARCHITECTURAL RULES
-
+  1. NON-NEGOTIABLE ARCHITECTURAL RULES
 
 - Campaign setup must be deterministic.
 - Scenario compilation must be reproducible.
