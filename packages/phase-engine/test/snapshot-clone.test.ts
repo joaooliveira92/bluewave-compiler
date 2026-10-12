@@ -211,6 +211,9 @@ function makeRichSnapshot(): CampaignSnapshot {
       buildTimeMultiplierBp: 9300,
       newConstructionReservedMassKg: 2_000_000,
       accelerationPremiumAppliedAtWorkPosition: SafeInt(50),
+      elapsedActiveMonths: 3,
+      dockExpansionDurationMonths: 12,
+      dockExpansionStepKg: 1_000_000,
     },
   ];
   gbr.aircraft = {} as any;
@@ -220,6 +223,16 @@ function makeRichSnapshot(): CampaignSnapshot {
     maximumMajorRepairMassKg: 13_000_000,
     maximumRebuildMassKg: 13_000_000,
     maximumConversionMassKg: 13_000_000,
+  };
+  gbr.dockExpansion = {
+    possessions: [
+      {
+        possessionId: "gbr-lon",
+        eligible: true,
+        utilization: [{ month: "1880-01", utilizationBp: 8_000 }],
+      },
+    ],
+    lastOpportunityMonth: "1880-01",
   };
   gbr.procurementIntents = [
     {

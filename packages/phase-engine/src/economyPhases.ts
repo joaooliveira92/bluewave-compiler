@@ -17,6 +17,7 @@ import {
   resolveAccelerationCapacityPressure,
 } from "./constructionAcceleration.js";
 import { fundDesignStudies } from "./designStudies.js";
+import { resolvePrivateDockExpansion } from "./dockExpansion.js";
 import { budgetChangedEvent, constructionDelayedEvent, makeLedgerEntry } from "./events.js";
 import type { MonthContext } from "./monthContext.js";
 
@@ -366,6 +367,20 @@ export function runAppropriationPhase(ctx: MonthContext): void {
         );
       }
     }
+  }
+
+  // DESIGN-16 section 6 (SB3-R17): resolve the private dock-expansion opportunity after funding, so a new project is
+  // funded from the next month. It draws only for a nation with explicit eligibility whose trailing utilisation clears
+  // the `7_500` bp threshold and whose cooldown/one-active rules allow it, so a run with no dock-expansion content
+  // consumes no randomness and records no decision (the reference golden run stays byte-identical).
+  if (accelerationRng !== null) {
+    const privateExpansion = resolvePrivateDockExpansion({
+      snapshot: ctx.currentSnapshot,
+      campaignMonth,
+      randomEngine: accelerationRng,
+      randomLedger: ctx.randomLedger,
+    });
+    ctx.currentSnapshot = privateExpansion.snapshot;
   }
 }
 

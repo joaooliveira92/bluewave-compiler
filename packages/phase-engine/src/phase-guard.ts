@@ -82,10 +82,11 @@ export const PHASE_FOOTPRINTS: Readonly<Record<string, PhaseFootprint>> = {
     usesRng: false,
   },
   appropriation: {
-    reads: [PhaseResource.TREASURY, PhaseResource.CONSTRUCTIONS],
-    writes: [PhaseResource.TREASURY, PhaseResource.CONSTRUCTIONS],
+    reads: [PhaseResource.TREASURY, PhaseResource.CONSTRUCTIONS, PhaseResource.NATIONS],
+    writes: [PhaseResource.TREASURY, PhaseResource.CONSTRUCTIONS, PhaseResource.NATIONS],
     // INC-4/SB3-R9: the appropriation phase draws the keyed acceleration capacity-pressure delay decisions over the
-    // `appropriation`-scoped engine (no draw occurs when no project is accelerated).
+    // `appropriation`-scoped engine (no draw occurs when no project is accelerated). SB3-R17: it also resolves the
+    // private dock-expansion event (no draw occurs without explicit dock-expansion eligibility).
     usesRng: true,
   },
   maintenance: {
@@ -99,8 +100,8 @@ export const PHASE_FOOTPRINTS: Readonly<Record<string, PhaseFootprint>> = {
     usesRng: false,
   },
   construction_processing: {
-    reads: [PhaseResource.CONSTRUCTIONS, PhaseResource.FLEETS],
-    writes: [PhaseResource.CONSTRUCTIONS, PhaseResource.FLEETS],
+    reads: [PhaseResource.CONSTRUCTIONS, PhaseResource.FLEETS, PhaseResource.NATIONS],
+    writes: [PhaseResource.CONSTRUCTIONS, PhaseResource.FLEETS, PhaseResource.NATIONS],
     usesRng: false,
   },
   resolve_diplomacy: {

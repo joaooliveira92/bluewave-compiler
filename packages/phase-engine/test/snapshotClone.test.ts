@@ -77,6 +77,15 @@ function minimalSnapshot(): CampaignSnapshot {
             maximumRebuildMassKg: 1,
             maximumConversionMassKg: 1,
           },
+          dockExpansion: {
+            possessions: [
+              {
+                possessionId: "n1-home",
+                eligible: true,
+                utilization: [{ month: "1880-01", utilizationBp: 8_000 }],
+              },
+            ],
+          },
           isPlayable: true,
           isAI: false,
         } as any,

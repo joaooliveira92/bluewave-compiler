@@ -80,8 +80,10 @@ export class PhaseRegistry {
       // "budget" resource is expressed as constructions. INC-4/SB3-R9: it also
       // draws the keyed acceleration capacity-pressure delay decisions, so it is
       // an rngAllowed phase (no draw occurs without an accelerated project).
-      readPermissions: ["treasury", "constructions"],
-      writePermissions: ["treasury", "constructions"],
+      // SB3-R17: it also resolves the private dock-expansion event, which reads/writes
+      // nation dock-expansion state and adds an INFRASTRUCTURE project.
+      readPermissions: ["treasury", "constructions", "nations"],
+      writePermissions: ["treasury", "constructions", "nations"],
       rngAllowed: true,
     },
     {
@@ -104,8 +106,10 @@ export class PhaseRegistry {
       id: "construction_processing",
       name: "Construction Processing",
       order: 6,
-      readPermissions: ["constructions", "fleets"],
-      writePermissions: ["constructions", "fleets"],
+      // SB3-R16: it also advances dock-expansion elapsed months and raises the nation's dock limits on completion, so
+      // it reads/writes the nations resource (the dock limits) as well as constructions/fleets.
+      readPermissions: ["constructions", "fleets", "nations"],
+      writePermissions: ["constructions", "fleets", "nations"],
       rngAllowed: false,
     },
     {

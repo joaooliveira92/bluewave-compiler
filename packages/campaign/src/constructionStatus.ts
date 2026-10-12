@@ -29,7 +29,7 @@ export const isTerminalConstructionProjectStatus = (s: ConstructionProjectStatus
   TERMINAL_CONSTRUCTION_PROJECT_STATUSES.includes(s);
 
 /** The dockyard project kinds DESIGN-23 section 1 distinguishes (`ConstructionProject.projectType`). */
-export type ConstructionProjectKind = "NEW_CONSTRUCTION" | "REBUILD";
+export type ConstructionProjectKind = "NEW_CONSTRUCTION" | "REBUILD" | "INFRASTRUCTURE";
 
 /**
  * DESIGN-13 section 11.3 / DESIGN-23 section 8: whether a project type declares `accelerationAllowed: true`. The
@@ -40,6 +40,7 @@ export const CONSTRUCTION_ACCELERATION_ALLOWED: Readonly<Record<ConstructionProj
   {
     NEW_CONSTRUCTION: true,
     REBUILD: false,
+    INFRASTRUCTURE: false,
   };
 
 /** Whether a project kind may be accelerated (DESIGN-13 section 11.3 `accelerationAllowed`). */

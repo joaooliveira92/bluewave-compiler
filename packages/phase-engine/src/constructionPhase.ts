@@ -2,8 +2,20 @@
 // Phase 7: construction_processing — advance construction projects, complete
 // finished projects into fleet ships, and emit construction-progressed events.
 import { KNOTS_TO_UMS, MM_TO_UM, transitionConstructionProject } from "@bluewave/campaign";
-import type { CompiledDesignVersion, FleetState, NationState, Ship } from "@bluewave/campaign";
+import type {
+  CompiledDesignVersion,
+  FleetState,
+  NationDockState,
+  NationState,
+  Ship,
+} from "@bluewave/campaign";
 import { SafeInt } from "@bluewave/contracts";
+import { raiseDockLimitsByStep } from "@bluewave/ship-design";
+import {
+  dockExpansionCompletes,
+  dockExpansionMonthIsActive,
+  isDockExpansionProject,
+} from "./dockExpansion.js";
 import { constructionProgressedEvent, shipRebuiltEvent } from "./events.js";
 import type { MonthContext } from "./monthContext.js";
 
@@ -19,6 +31,8 @@ function applyConstructionToNation(ctx: MonthContext, nationId: string, nation: 
 
   let updatedProjects = [...nation["constructionProjects"]];
   let updatedFleets = [...nation["fleets"]];
+  let updatedDock: NationDockState | undefined = nation["dock"];
+  let dockChanged = false;
   let hasChanges = false;
 
   for (const project of nation["constructionProjects"]) {
@@ -40,6 +54,52 @@ function applyConstructionToNation(ctx: MonthContext, nationId: string, nation: 
         p["id"] === project["id"] ? { ...p, completedWork: clampedWork } : p,
       );
       hasChanges = true;
+    }
+
+    // Dock expansion (DESIGN-16 section 5, SB3-R16): an ACTIVE month advances the elapsed-active-month counter; a
+    // halted or delayed month contributes zero. The project completes only when BOTH that counter reaches the stored
+    // duration AND paid work reaches total work, and only then does it raise the nation's dock limits by the locked
+    // era step. It never spawns a ship and never increases dock size on elapsed time alone.
+    if (
+      isDockExpansionProject(project) &&
+      project["status"] !== "COMPLETED" &&
+      project["status"] !== "CANCELLED"
+    ) {
+      const elapsedBefore = project["elapsedActiveMonths"] ?? 0;
+      const elapsedAfter = dockExpansionMonthIsActive(project["status"])
+        ? elapsedBefore + 1
+        : elapsedBefore;
+      const withElapsed: NationState["constructionProjects"][number] =
+        elapsedAfter === elapsedBefore
+          ? project
+          : { ...project, elapsedActiveMonths: elapsedAfter };
+      if (elapsedAfter !== elapsedBefore) {
+        updatedProjects = updatedProjects.map((p) => (p["id"] === project["id"] ? withElapsed : p));
+        hasChanges = true;
+      }
+      if (dockExpansionCompletes(withElapsed)) {
+        updatedProjects = updatedProjects.map((p) =>
+          p["id"] === project["id"]
+            ? {
+                ...transitionConstructionProject(withElapsed, "COMPLETED"),
+                paidWork: withElapsed["totalWork"],
+                elapsedActiveMonths: elapsedAfter,
+              }
+            : p,
+        );
+        hasChanges = true;
+        const stepKg = withElapsed["dockExpansionStepKg"];
+        if (updatedDock !== undefined && stepKg !== undefined) {
+          updatedDock = raiseDockLimitsByStep(updatedDock, stepKg);
+          dockChanged = true;
+        } else if (stepKg !== undefined) {
+          collector.addError(
+            "DOCK_EXPANSION_DOCK_MISSING",
+            `Dock expansion ${project["id"]} completed but nation ${nationId} has no materialised dock; no limits raised`,
+            { stage: "construction-processing" },
+          );
+        }
+      }
     }
 
     // Check for completion. Only new construction completes into a new ship; a finished REBUILD is handled by the rebuild
@@ -127,6 +187,7 @@ function applyConstructionToNation(ctx: MonthContext, nationId: string, nation: 
       ...nation,
       constructionProjects: updatedProjects,
       fleets: updatedFleets,
+      ...(dockChanged ? { dock: updatedDock } : {}),
     };
     const updatedNations = new Map(ctx.currentSnapshot["nations"]);
     updatedNations.set(nationId, updatedNation);

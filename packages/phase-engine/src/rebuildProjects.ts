@@ -12,8 +12,10 @@ export function rebuildProjectProblems(nation: NationState): string[] {
   const claimed = new Map<string, string>();
   for (const project of nation["constructionProjects"]) {
     const id = project["id"];
-    if (project["projectType"] === "NEW_CONSTRUCTION") {
-      if (project["targetShipId"] !== undefined)
+    // Only REBUILD projects are judged here. New construction names no target ship; an INFRASTRUCTURE (dock-expansion)
+    // project targets a possession and carries no hull, so neither is a rebuild consistency concern (SB3-R16).
+    if (project["projectType"] !== "REBUILD") {
+      if (project["projectType"] === "NEW_CONSTRUCTION" && project["targetShipId"] !== undefined)
         problems.push(
           `project ${id} is new construction but names target ship ${project["targetShipId"]}`,
         );

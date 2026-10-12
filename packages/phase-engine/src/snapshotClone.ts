@@ -217,6 +217,9 @@ const F = {
     "buildTimeMultiplierBp",
     "newConstructionReservedMassKg",
     "accelerationPremiumAppliedAtWorkPosition",
+    "elapsedActiveMonths",
+    "dockExpansionDurationMonths",
+    "dockExpansionStepKg",
   ),
   ConstructionMonthUsage: fields<ConstructionMonthUsage>()("month", "used", "startDone"),
   ConstructionPackage: fields<ConstructionPackage>()(
@@ -268,6 +271,7 @@ const F = {
     "research",
     "constructionProjects",
     "dock",
+    "dockExpansion",
     "designStudies",
     "procurementIntents",
     "aircraft",

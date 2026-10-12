@@ -31,7 +31,7 @@ export const CAPACITY_POOL_PRIORITY: Readonly<Record<ConstructionCapacityPool, n
 export const INSUFFICIENT_PROJECT_CAPACITY = "INSUFFICIENT_PROJECT_CAPACITY" as const;
 
 /** The project kinds campaign state stores; mirrored here so ship-design keeps no campaign dependency. */
-export type CapacityProjectKind = "NEW_CONSTRUCTION" | "REBUILD";
+export type CapacityProjectKind = "NEW_CONSTRUCTION" | "REBUILD" | "INFRASTRUCTURE";
 
 /**
  * DESIGN-16 section 8: the shipped project-to-pool mapping. Surface and submarine new construction both book to
@@ -41,7 +41,9 @@ export type CapacityProjectKind = "NEW_CONSTRUCTION" | "REBUILD";
 export function constructionPoolForProjectKind(
   kind: CapacityProjectKind,
 ): ConstructionCapacityPool {
-  return kind === "REBUILD" ? "REFIT_REBUILD" : "NEW_CONSTRUCTION";
+  if (kind === "REBUILD") return "REFIT_REBUILD";
+  if (kind === "INFRASTRUCTURE") return "INFRASTRUCTURE";
+  return "NEW_CONSTRUCTION";
 }
 
 /**

@@ -291,6 +291,36 @@ export interface NationDockState {
   maximumConversionMassKg: number;
 }
 
+/** One explicit monthly dock-utilisation record (DESIGN-16 section 6; SB3-R17), in basis points `0..10_000`. */
+export interface DockUtilizationMonth {
+  /** Campaign month id (`YYYY-MM`). */
+  month: string;
+  utilizationBp: number;
+}
+
+/**
+ * DESIGN-16 section 6 (SB3-R17): one possession's explicit eligibility for the private dock-expansion event. A
+ * possession with no entry — or one marked `eligible: false` — receives no inferred private development. The
+ * utilisation history is authored/recorded explicitly, never derived from ship names or UI categories.
+ */
+export interface PossessionDockExpansionEligibility {
+  possessionId: string;
+  eligible: boolean;
+  /** Ascending monthly utilisation records; the trailing-12-month window is read from these. */
+  utilization: DockUtilizationMonth[];
+}
+
+/**
+ * The private dock-expansion event state DESIGN-16 section 6 requires a nation to carry: explicit per-possession
+ * eligibility and the month of the last opportunity event (for the `60`-month cooldown). "At most one active event per
+ * nation" is enforced by the engine against the nation's in-flight expansion projects, so it is not duplicated here.
+ */
+export interface NationDockExpansionState {
+  possessions: PossessionDockExpansionEligibility[];
+  /** Campaign month id of the last fired private opportunity, or absent when none has fired. */
+  lastOpportunityMonth?: string;
+}
+
 export interface NationState {
   id: string;
   name: string;
@@ -313,6 +343,12 @@ export interface NationState {
    * dependency on the ship-design package.
    */
   dock?: NationDockState;
+  /**
+   * The private dock-expansion event state (DESIGN-16 section 6, SB3-R17). Absent until content explicitly declares
+   * eligibility, so an un-authored nation receives no inferred private development and the field never perturbs
+   * existing save hashes.
+   */
+  dockExpansion?: NationDockExpansionState;
   /** Design studies (DESIGN-21 section 3, ADR-0085); absent until the nation submits its first design. */
   designStudies?: DesignStudy[];
   /** The nation's persisted AI procurement lifecycle (ADR-0091); absent until an AI nation plans its first order. */
@@ -440,9 +476,10 @@ export interface ConstructionProject {
   type: "ship" | "building" | "technology";
   /**
    * NEW_CONSTRUCTION builds a new ship; REBUILD works on an existing, completed ship, which is unavailable for the whole
-   * project (DESIGN-23 sections 20-22, ADR-0078).
+   * project (DESIGN-23 sections 20-22, ADR-0078). INFRASTRUCTURE is a dock-expansion project (DESIGN-16 section 5): its
+   * completion requires both elapsed active months and paid work, and it raises the nation's dock limits (SB3-R16).
    */
-  projectType: "NEW_CONSTRUCTION" | "REBUILD";
+  projectType: "NEW_CONSTRUCTION" | "REBUILD" | "INFRASTRUCTURE";
   /** For a REBUILD: the ship being rebuilt. Absent for new construction. */
   targetShipId?: string;
   targetId: string;
@@ -488,6 +525,16 @@ export interface ConstructionProject {
    * acceleration without progressing work must not charge the premium again for the same remaining-work segment.
    */
   accelerationPremiumAppliedAtWorkPosition?: SafeInt;
+  /**
+   * Dock-expansion projects only (DESIGN-16 section 5, SB3-R16). `dockExpansionStepKg` is the era step locked in at
+   * authorization; `dockExpansionDurationMonths` is the clamped final duration; `elapsedActiveMonths` counts months the
+   * project was actually ACTIVE (a halted or delayed month contributes zero). A completed step requires BOTH elapsed
+   * months reaching the duration AND paid work reaching total work. Absent on every non-expansion project, so the
+   * field never perturbs existing save hashes.
+   */
+  elapsedActiveMonths?: number;
+  dockExpansionDurationMonths?: number;
+  dockExpansionStepKg?: number;
 }
 
 export interface WorldState {
