@@ -111,8 +111,10 @@ export {
   type ConstructionOrderResult,
 } from "./constructionOrder.js";
 export {
+  DOCK_EXPANSION_BASE_DURATION_MONTHS,
   DOCK_EXPANSION_BASE_TOTAL_WORK_UNITS,
   DOCK_EXPANSION_COST_FORMULA_ID,
+  DOCK_EXPANSION_NEUTRAL_DURATION_MULTIPLIER_BP,
   DOCK_EXPANSION_PROJECT_TYPE,
   PRIVATE_DOCK_EXPANSION_COOLDOWN_MONTHS,
   PRIVATE_DOCK_EXPANSION_EVENT_ID,
@@ -125,6 +127,8 @@ export {
   applyDockExpansionStep,
   authorizeDockExpansion,
   dockExpansionCompletes,
+  dockExpansionEraStepForMonth,
+  dockExpansionFinalDurationMonths,
   dockExpansionMonthIsActive,
   dockExpansionProjectFor,
   hasActivePrivateDockExpansion,
@@ -144,8 +148,10 @@ export {
 export {
   INSUFFICIENT_PROJECT_CAPACITY,
   committedNewConstructionMassKg,
+  constructionCapacityUtilization,
   designNewConstructionReservedMassKg,
   nationalConstructionCapacity,
+  type ConstructionCapacityUtilization,
   type NationalConstructionCapacity,
 } from "./newConstructionCapacity.js";
 export {

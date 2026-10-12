@@ -9,6 +9,7 @@ import {
   CommandTable,
   ConstructionWizard,
   DesignPicker,
+  DockCapacityPanel,
   LoadErrorCard,
   ProjectsCard,
   StatsPanel,
@@ -34,6 +35,7 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
     halt,
     resume,
     setAcceleration,
+    authorizeDockExpansion,
   } = useConstructionScreen(sessionId);
   const [activeTab, setActiveTab] = useState("overview");
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -101,6 +103,17 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
         <TabsContent value="overview">
           <div className="space-y-4">
             <StatsPanel economy={state.economy} workspace={state.workspace} />
+            <DockCapacityPanel
+              dockMaxBuildDisplacementKg={state.economy.dockMaxBuildDisplacementKg}
+              maxConcurrentConstructionMassKg={state.economy.maxConcurrentConstructionMassKg}
+              committedNewConstructionMassKg={state.economy.committedNewConstructionMassKg}
+              exemptNewConstructionMassKg={state.economy.exemptNewConstructionMassKg}
+              dockExpansionDurationMonths={state.economy.dockExpansionDurationMonths}
+              dockExpansionNextStepKg={state.economy.dockExpansionNextStepKg}
+              dockPossessions={state.economy.dockPossessions}
+              pending={busy}
+              onAuthorizeDockExpansion={authorizeDockExpansion}
+            />
             {state.notice !== null && (
               <p role="status" className="text-sm whitespace-pre-line text-muted-foreground">
                 {state.notice}

@@ -19,6 +19,15 @@ import {
 /** The project type a dock expansion is stored as (DESIGN-16 section 5; SB3-R16). */
 export const DOCK_EXPANSION_PROJECT_TYPE = "INFRASTRUCTURE" as const;
 
+// Re-exported so the desktop projection can read the compiled duration and era step from `@bluewave/phase-engine`
+// without a second ship-design import (SB3-R33).
+export {
+  DOCK_EXPANSION_BASE_DURATION_MONTHS,
+  DOCK_EXPANSION_NEUTRAL_DURATION_MULTIPLIER_BP,
+  dockExpansionEraStepForMonth,
+  dockExpansionFinalDurationMonths,
+} from "@bluewave/ship-design";
+
 /** The stable cost-formula identifier recorded for the shipped work model (DESIGN-16 section 5.1). */
 export const DOCK_EXPANSION_COST_FORMULA_ID = "dock_expansion_work_v1" as const;
 

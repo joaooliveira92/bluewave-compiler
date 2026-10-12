@@ -48,6 +48,52 @@ export function designNewConstructionReservedMassKg(
   return reservedNewConstructionMassKg({ hullType, displacementKg }, capacity.exemptions);
 }
 
+/**
+ * DESIGN-16 section 9 (SB3-R19): the compiled capacity readout a screen shows — the cap, the non-exempt mass that
+ * competes against it, and the exempt AMC/small-corvette mass that sits outside it. Every field is derived here, never
+ * authored by the UI.
+ */
+export interface ConstructionCapacityUtilization {
+  /** The national concurrency cap (`maxConcurrentMassKg`), in kilograms. */
+  readonly maxConcurrentMassKg: number;
+  /** Non-exempt `NEW_CONSTRUCTION` mass already committed (competes with the cap). */
+  readonly committedMassKg: number;
+  /** Exempt AMC/small-corvette mass under construction (outside the cap). */
+  readonly exemptMassKg: number;
+}
+
+/**
+ * DESIGN-16 sections 7-9: a nation's `NEW_CONSTRUCTION` capacity utilisation, split into the normal-pool mass that
+ * competes with the cap and the exempt AMC/small-corvette share layered outside it. `committedMassKg` is exactly
+ * `committedNewConstructionMassKg` (so it matches the order-time reservation); `exemptMassKg` is the non-terminal
+ * projects' exempt share `displacement - designNewConstructionReservedMassKg`, clamped at zero. Pure and deterministic.
+ */
+export function constructionCapacityUtilization(
+  snapshot: CampaignSnapshot,
+  nationId: string,
+  capacity: NationalConstructionCapacity,
+): ConstructionCapacityUtilization {
+  const committedMassKg = committedNewConstructionMassKg(snapshot, nationId, capacity);
+  const nation = snapshot["nations"].get(nationId);
+  if (!nation) {
+    return { maxConcurrentMassKg: capacity.maxConcurrentMassKg, committedMassKg, exemptMassKg: 0 };
+  }
+  let exemptMassKg = 0;
+  for (const p of nation["constructionProjects"]) {
+    if (p.projectType !== "NEW_CONSTRUCTION") continue;
+    if (isTerminalConstructionProjectStatus(p.status)) continue;
+    // A foreign-contract project is funded and built by its BUILDER (DESIGN-16 section 13.3); its displacement must
+    // never count against the ordering nation's pools, exempt or otherwise.
+    if (p["foreignContractId"] !== undefined) continue;
+    const design = snapshot["designs"].get(p.designVersionId);
+    if (!design) continue;
+    const displacementKg = Number(design.normalizedDisplacementKg);
+    const reserved = designNewConstructionReservedMassKg(design.hullType, displacementKg, capacity);
+    exemptMassKg += Math.max(0, displacementKg - reserved);
+  }
+  return { maxConcurrentMassKg: capacity.maxConcurrentMassKg, committedMassKg, exemptMassKg };
+}
+
 /** The displacement reserved by one in-flight project: its stored reservation, else recomputed from its design. */
 function projectReservedMassKg(
   snapshot: CampaignSnapshot,
@@ -82,6 +128,8 @@ export function committedNewConstructionMassKg(
   for (const p of nation["constructionProjects"]) {
     if (p.projectType !== "NEW_CONSTRUCTION") continue;
     if (isTerminalConstructionProjectStatus(p.status)) continue;
+    // A foreign-contract project books to its BUILDER (DESIGN-16 section 13.3), never the ordering nation's cap.
+    if (p["foreignContractId"] !== undefined) continue;
     if (p.id === excludedProjectId) continue;
     total += projectReservedMassKg(snapshot, p, capacity);
   }

@@ -17,6 +17,20 @@ export interface ConstructionScreenProjection {
     readonly treasury: number;
     readonly monthlyAppropriation: number;
     readonly shipyardCapacity: number;
+    /** The nation's compiled dock size — the largest new-construction displacement it may build (SB3-R15). */
+    readonly dockMaxBuildDisplacementKg: number | null;
+    /** The national concurrency cap: `multipleBp × dock size` (SB3-R18). */
+    readonly maxConcurrentConstructionMassKg: number;
+    /** Non-exempt `NEW_CONSTRUCTION` mass already committed, competing with the cap (SB3-R18/R19). */
+    readonly committedNewConstructionMassKg: number;
+    /** Exempt AMC / small-corvette mass under construction, outside the cap (SB3-R19). */
+    readonly exemptNewConstructionMassKg: number;
+    /** The shipped dock-expansion duration, in completed months (SB3-R16). */
+    readonly dockExpansionDurationMonths: number;
+    /** The next era step an expansion authorized this month would lock, or `null` when the month has no era step. */
+    readonly dockExpansionNextStepKg: number | null;
+    /** The nation's ports (expansion targets), ascending by id. */
+    readonly dockPossessions: readonly { readonly id: string; readonly name: string }[];
   };
   readonly designs: readonly CompiledDesignVersion[];
   /** The nation's real construction projects (authored starting builds AND

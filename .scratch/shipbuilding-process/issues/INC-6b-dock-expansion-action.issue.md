@@ -1,6 +1,6 @@
 # INC-6b — Dock-expansion action
 
-**State:** READY_FOR_AGENT · **Frontier:** yes · **Blocked by:** INC-6
+**State:** done · **Frontier:** no · **Blocked by:** INC-6
 **Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R16) · **ADR:** none new
 **Parent:** `INC-6-dock-expansion-and-private-expansion.issue.md` (engine slice landed)
 
@@ -11,9 +11,9 @@ next era step, with the duration and the era step disclosed as compiled values.
 
 ## Acceptance criteria
 
-- [ ] A dock-expansion action on the construction screen issues the expansion (through a command or
+- [x] A dock-expansion action on the construction screen issues the expansion (through a command or
       the existing bridge) and shows the 12-month duration and the next era step.
-- [ ] Desktop render test + `pnpm snap` (screenshot + `aria.yaml`, console clean, no churn warning).
+- [x] Desktop render test + `pnpm snap` (screenshot + `aria.yaml`, console clean, no churn warning).
 
 ## Notes for implementator
 

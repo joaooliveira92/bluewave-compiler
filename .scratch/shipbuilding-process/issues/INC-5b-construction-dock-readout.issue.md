@@ -1,6 +1,6 @@
 # INC-5b — Construction dock-size readout (UI slice of INC-5)
 
-**State:** READY_FOR_AGENT · **Frontier:** yes · **Blocked by:** none
+**State:** done · **Frontier:** no · **Blocked by:** none
 **Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R15, SB3-R33) · **ADR:** none (presentation of a compiled value)
 
 ## What to build
@@ -10,10 +10,12 @@ the UI half of SB3-R15 that INC-5's engine slice left deferred.
 
 ## Acceptance criteria
 
-- [ ] The Construction economy projection carries `dockMaxBuildDisplacementKg` (the nation's authored
-      `maxPracticalDisplacementKg` at the campaign month), derived — never an authored constant in the UI.
-- [ ] The Construction screen shows "Dock size (max build displacement)" beside Shipyard Capacity.
-- [ ] `pnpm snap` of the Construction screen with `aria.yaml` assertions by role + accessible name, console
+- [x] The Construction economy projection carries `dockMaxBuildDisplacementKg` (the nation's authored
+      **dock record** `maximumNewConstructionMassKg` at the campaign month — ADR-0135: never
+      `maxPracticalDisplacementKg`, which is a production/throughput figure), derived — never an authored
+      constant in the UI.
+- [x] The Construction screen shows "Dock size" beside Shipyard Capacity.
+- [x] `pnpm snap` of the Construction screen with `aria.yaml` assertions by role + accessible name, console
       clean, no churn warning; a render test on the new readout.
 
 ## Notes for implementator

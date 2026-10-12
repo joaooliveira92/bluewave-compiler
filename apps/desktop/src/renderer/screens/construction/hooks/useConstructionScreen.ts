@@ -31,6 +31,7 @@ export interface UseConstructionScreenReturn {
   readonly halt: (projectId: string) => void;
   readonly resume: (projectId: string) => void;
   readonly setAcceleration: (projectId: string, accelerated: boolean) => void;
+  readonly authorizeDockExpansion: (possessionId: string) => void;
 }
 
 export function useConstructionScreen(sessionId: string): UseConstructionScreenReturn {
@@ -148,6 +149,23 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
     [bridge, execute, sessionId],
   );
 
+  // DESIGN-16 sections 5-6 (SB3-R16): the dock-expansion authorization queues a real engine envelope that applies on the
+  // next `commitMonth`; the era step is locked by the engine at authorization time.
+  const authorizeDockExpansion = useCallback(
+    (possessionId: string) => {
+      if (!bridge) return;
+      void execute("authorize-dock-expansion", ({ expectedRevision, transportRequestId }) =>
+        bridge.campaign.execute("authorizeDockExpansionCommand", {
+          sessionId,
+          possessionId,
+          expectedRevision,
+          transportRequestId,
+        }),
+      );
+    },
+    [bridge, execute, sessionId],
+  );
+
   return {
     state: workflow.state,
     loadError: workflow.loadError,
@@ -161,5 +179,6 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
     halt,
     resume,
     setAcceleration,
+    authorizeDockExpansion,
   };
 }
