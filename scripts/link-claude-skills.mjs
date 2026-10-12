@@ -13,7 +13,7 @@
 // Runnable directly; `--check` verifies without modifying.
 
 import { lstatSync, mkdirSync, readdirSync, readlinkSync, rmSync, symlinkSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const AGENTS_SKILLS = ".agents/skills";
@@ -51,7 +51,10 @@ export function syncSkillLinks(options = {}) {
 
   for (const name of names) {
     const linkPath = join(claudeDir, name);
-    const expectedTarget = relative(claudeDir, join(agentsDir, name));
+    // POSIX-style target so the link (and its stored text) is identical on every
+    // OS; Windows resolves "/" in symlink targets, and the cross-OS gate compares
+    // the raw target string.
+    const expectedTarget = relative(claudeDir, join(agentsDir, name)).split(sep).join("/");
 
     let stats;
     try {
