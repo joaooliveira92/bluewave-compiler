@@ -88,6 +88,18 @@ export const GATE_SETS = {
       needs: ["git-state"],
       args: ["scripts/verify-version-coherence.mjs"],
     },
+    {
+      id: "check-parity",
+      label: "check↔CI parity",
+      needs: ["git-state"],
+      args: ["scripts/verify-check-parity.mjs"],
+    },
+    {
+      id: "tsgo-integration",
+      label: "tsgo integration",
+      needs: ["git-state"],
+      args: ["scripts/verify-tsgo-integration.mjs"],
+    },
   ],
 };
 

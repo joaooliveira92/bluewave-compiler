@@ -33,6 +33,10 @@ jobs:
       - run: pnpm preflight
       - run: pnpm format
       - run: pnpm lint
+      # The Effect type-aware Oxlint gate (ADR-0100/0101, oxlint.effect.json):
+      # `duplicatePackage` as an error plus the determinism/outdatedApi rules.
+      # Part of `pnpm check`; this step is what makes it a CI gate too.
+      - run: pnpm lint:effect
       - run: pnpm test:scripts
       # Fails a commit that changes authoritative source without re-pinning
       # `golden/hashes.json` in the same commit (or recording a

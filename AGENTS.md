@@ -116,23 +116,30 @@ workspace and the graph is protected by a hard single-copy guard
 (`scripts/assert-single-effect.mjs`, wired into `pnpm preflight`).
 
 Effect code is additionally linted by the type-aware `@effect/tsgo` Oxlint gate
-(`pnpm lint:effect`, config `oxlint.effect.json`; part of `pnpm check`). It
-extends `@effect/tsgo/oxlint-presets/recommended.json`, runs `duplicatePackage`
-as an error to reinforce the single-copy invariant, and surfaces the determinism
-rules (`globalRandom`/`globalDate`/`cryptoRandomUUID`/`processEnv`/
-`nodeBuiltinImport`) as warnings per the runtime-usage policy. `@effect/tsgo` is
-a pinned **exact** devDependency **external** to `vendor/` — never vendor it; the
-standalone `oxlint`/`oxlint-tsgolint` invoker is pinned exact to the versions
-`vite-plus` resolves. See ADR-0100/ADR-0101 (adoption, vendoring).
+(`pnpm lint:effect`, config `oxlint.effect.json`), which runs in `pnpm check`,
+CI, and the `pre-push` hook. It runs `duplicatePackage` as an error to reinforce
+single-copy and surfaces the determinism rules
+(`globalRandom`/`globalDate`/`cryptoRandomUUID`/`processEnv`/`nodeBuiltinImport`)
+as warnings. `@effect/tsgo` patches both integrations at install via the root
+`prepare` script (`effect-tsgo patch --typescript --oxlint`); Oxlint is the sole
+Effect-diagnostics authority (`@effect/language-service` stays `diagnostics:false`),
+and the editor needs the TypeScript 7 extension plus the `.vscode` tsdk settings
+(ADR-0139). `@effect/tsgo` is a pinned **exact** devDependency **external** to
+`vendor/` — never vendor it; the standalone `oxlint`/`oxlint-tsgolint` invoker is
+pinned exact to the versions `vite-plus` resolves. See ADR-0100/ADR-0101.
 
-Three `pnpm preflight` gates freeze qualities that would otherwise only decay
+Several `pnpm preflight` gates freeze qualities that would otherwise only decay
 (ADR-0106): `scripts/verify-no-unknown-casts.mjs` ratchets `as unknown`
 assertions out of the authored source against
 `scripts/no-unknown-casts.baseline.json`, `scripts/verify-doc-budgets.mjs`
 enforces word ceilings from `scripts/doc-budgets.manifest.json`, and
-`docs-check.cjs` validates Markdown `#fragment` anchors. Their fixtures live in
-`scripts/test/` (`pnpm test:scripts`, part of `pnpm check`). `scripts/change-scope.mjs`
-(`pnpm change-scope`) prints a JSON change scope for change-based CI filtering
+`docs-check.cjs` validates Markdown `#fragment` anchors.
+`scripts/verify-check-parity.mjs` requires every `pnpm check` step to be invoked
+by CI or allowlisted, and `scripts/verify-tsgo-integration.mjs` checks the pinned
+Effect toolchain against the installed `@effect/tsgo` matrix and its install-time
+patch (ADR-0140). Their fixtures live in `scripts/test/` (`pnpm test:scripts`,
+part of `pnpm check`). `scripts/change-scope.mjs` (`pnpm change-scope`) prints a
+JSON change scope for change-based CI filtering
 ([usage](docs/agents/change-scope.md)). The runtime-usage boundary is frozen by
 `scripts/assert-runtime-free.mjs` (ADR-0100 §2, ADR-0128), which fails closed on
 any Effect-runtime import in the pure packages or `apps/desktop/src/main`
