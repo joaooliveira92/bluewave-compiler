@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, renameSync } from "node:fs";
-import { resolve, normalize, isAbsolute } from "node:path";
+import { resolve, normalize, isAbsolute, relative } from "node:path";
 import { canonicalSerialize } from "@bluewave/deterministic";
 
 export const PROJECT_FILE_EXT = ".bluewave";
@@ -158,5 +158,9 @@ function safeRelative(filename: string): void {
 }
 
 function isFileWithin(fullPath: string, contentDir: string): boolean {
-  return normalize(fullPath).startsWith(normalize(contentDir) + "/");
+  // `relative` is separator-aware on every platform: the previous
+  // `startsWith(normalize(dir) + "/")` check never matched on Windows, where
+  // `normalize` yields backslashes, so every content file looked "not found".
+  const rel = relative(contentDir, fullPath);
+  return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
 }

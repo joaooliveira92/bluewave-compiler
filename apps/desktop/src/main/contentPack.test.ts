@@ -1,3 +1,5 @@
+import { join } from "node:path";
+
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { resolveGeneratedContentDir } from "./contentPack.js";
 
@@ -31,7 +33,7 @@ describe("content path resolution", () => {
     proc.resourcesPath = "/Applications/Bluewave.app/Contents/Resources";
 
     expect(resolveGeneratedContentDir()).toBe(
-      "/Applications/Bluewave.app/Contents/Resources/content/generated/1880",
+      join("/Applications/Bluewave.app/Contents/Resources", "content", "generated", "1880"),
     );
   });
 

@@ -35,7 +35,9 @@ describe("renderer content boundary (CRI-IPC-3/5)", () => {
           !file.endsWith(".test.ts") &&
           !file.endsWith(".test.tsx") &&
           // Build-time data generators run under node, not in the app bundle.
-          !/(?:^|\/)bake-[^/]+\.ts$/u.test(file),
+          // Match either separator: `readdirSync(..., { recursive: true })`
+          // returns backslash-joined paths on Windows.
+          !/(?:^|[\\/])bake-[^\\/]+\.ts$/u.test(file),
       );
     expect(files.length).toBeGreaterThan(0);
     for (const file of files) {
