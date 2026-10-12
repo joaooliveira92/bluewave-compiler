@@ -27,9 +27,9 @@ import { classifyShip, roleEligibility } from "@bluewave/combat";
 import { SafeInt } from "@bluewave/contracts";
 import { DESIGN_22_EARLY } from "@bluewave/ship-design";
 import { MonthExecutor, placeConstructionOrder } from "../src/index.js";
-import { ATTACKER_NATION, makeBattleSnapshot } from "./battle-fixtures.js";
+import { ATTACKER_NATION, makeBattleSnapshot, makeDesign, makeNation } from "./battle-fixtures.js";
 
-import { readReferenceDesignEntries } from "./helpers/contentFiles.js";
+import { readNavalProfileEntries, readReferenceDesignEntries } from "./helpers/contentFiles.js";
 
 const root = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -58,6 +58,11 @@ const data: ShipBuildingData = {
 // Without study rules a submitted design is approved the same month, which these tests rely on; studies themselves are
 // covered in design-study.test.ts (ADR-0085).
 const content = { ...buildShipBuildingContent(data), study: null };
+// The same content with the authored naval profiles, so the national dock ceiling (ADR-0135) can be exercised.
+const profileContent = {
+  ...buildShipBuildingContent({ ...data, navalProfiles: readNavalProfileEntries() }),
+  study: null,
+};
 const reference = readReferenceDesignEntries();
 const draftOf = (id: string): Record<string, unknown> => ({
   ...reference.find((d) => d.id === id)!.draft,
@@ -389,5 +394,55 @@ describe("the AMC's auxiliary contract in fleet organisation (DESIGN-26 section 
     expect(roleEligibility("INDEPENDENT", "AMC")).toBe(true);
     for (const role of ["CORE", "SUPPORT", "SCOUT", "SCREEN"] as const)
       expect(roleEligibility(role, "AMC")).toBe(false);
+  });
+});
+
+describe("the national dock ceiling gates domestic orders (DESIGN-16 section 4, ADR-0135)", () => {
+  const ukDesign = (displacementKg: number): Design => ({
+    ...makeDesign("dv-uk", "uk"),
+    normalizedDisplacementKg: SafeInt(displacementKg),
+  });
+  const ukSnapshot = (design: Design): CampaignSnapshot => {
+    const base = makeBattleSnapshot({ areas: ["a-1"], wars: [] });
+    return {
+      ...base,
+      nations: new Map([["uk", makeNation("uk", [])]]),
+      designs: new Map([[design.designVersionId, design]]),
+    };
+  };
+  const ukOrder = (snapshot: CampaignSnapshot) =>
+    placeConstructionOrder(
+      snapshot,
+      { nationId: "uk", commandId: "cmd-uk", designVersionId: "dv-uk", month: MONTH },
+      profileContent,
+    );
+
+  it("orders a real domestic reference design at the UK dock (12,679 t < 13,000 t)", () => {
+    expect(ukOrder(ukSnapshot(ukDesign(12_679_499))).ok).toBe(true);
+  });
+
+  it("refuses an oversized design with SHIP_EXCEEDS_DOMESTIC_DOCK_LIMIT", () => {
+    expect(ukOrder(ukSnapshot(ukDesign(13_000_001)))).toMatchObject({
+      ok: false,
+      reason: "SHIP_EXCEEDS_DOMESTIC_DOCK_LIMIT",
+    });
+  });
+
+  it("a materialised nation dock overrides the content-derived dock", () => {
+    const snapshot = ukSnapshot(ukDesign(1_500_000));
+    const uk = snapshot.nations.get("uk")!;
+    snapshot.nations.set("uk", {
+      ...uk,
+      dock: {
+        maximumNewConstructionMassKg: 1_000_000,
+        maximumMajorRepairMassKg: 1_000_000,
+        maximumRebuildMassKg: 1_000_000,
+        maximumConversionMassKg: 1_000_000,
+      },
+    });
+    expect(ukOrder(snapshot)).toMatchObject({
+      ok: false,
+      reason: "SHIP_EXCEEDS_DOMESTIC_DOCK_LIMIT",
+    });
   });
 });
