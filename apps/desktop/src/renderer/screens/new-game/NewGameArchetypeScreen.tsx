@@ -5,10 +5,9 @@ import {
   type ArchetypeDimension,
   type ArchetypeSelection,
 } from "@bluewave/campaign-engine";
-import { Compass, RotateCcw, Wand2 } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { RotateCcw, Wand2 } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "../../components/ui/button.js";
-import { CardContent, CardHeader, CardTitle } from "../../components/ui/card.js";
 import {
   Dialog,
   DialogContent,
@@ -17,18 +16,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog.js";
-import { GlassCard } from "../../components/ui/glass-card.js";
 import type { SetPrimaryAction } from "../../shell/primary-action.js";
 import { usePrimaryAction } from "../../shell/usePrimaryAction.js";
 import { buildArchetypeConsequence } from "./archetype-consequence.js";
 import { ArchetypeConsequencePanel } from "./ArchetypeConsequencePanel.js";
 import {
+  ARCHETYPE_DECK_ENTRIES,
   ArchetypeAllocationEditor,
-  ArchetypeCustomCard,
-  ArchetypeEmptyPreview,
-  ArchetypePresetCard,
+  ArchetypeDeckPane,
+  ArchetypeDetailPanel,
+  CUSTOM_ARCHETYPE_ID,
 } from "./components/archetype/index.js";
-import { ScreenHeader } from "./components/ScreenHeader.js";
 import { NewGameScreenLayout } from "./components/NewGameScreenLayout.js";
 import {
   type ArchetypeEditorState,
@@ -50,6 +48,17 @@ export interface NewGameArchetypeScreenProps {
   readonly onPrimaryActionChange: SetPrimaryAction;
 }
 
+/** The deck slot id an editor state has applied: a preset id, `custom`, or nothing yet. */
+function appliedSlotId(state: ArchetypeEditorState): string | null {
+  return state.mode === "custom" ? CUSTOM_ARCHETYPE_ID : state.selectedPresetId;
+}
+
+function slotIdAt(index: number): string | null {
+  const entry = ARCHETYPE_DECK_ENTRIES[index];
+  if (entry === undefined) return null;
+  return entry.kind === "custom" ? CUSTOM_ARCHETYPE_ID : entry.id;
+}
+
 export function NewGameArchetypeScreen({
   initialArchetype,
   onBack,
@@ -60,62 +69,101 @@ export function NewGameArchetypeScreen({
     restoreArchetypeEditorState(initialArchetype),
   );
   const [modalOpen, setModalOpen] = useState(false);
-  const [draft, setDraft] = useState<ArchetypeEditorState>(() => createCustomArchetype());
-
-  const consequence = useMemo(
-    () => buildArchetypeConsequence(state.allocation),
-    [state.allocation],
+  const [draft, setDraft] = useState<ArchetypeEditorState>(() =>
+    state.mode === "custom" ? state : createCustomArchetype(),
   );
+
+  // The slot the player has previewed but not applied. The primary action
+  // applies it. Presentation state only: never the selection, never persisted.
+  const [pendingSlotId, setPendingSlotId] = useState<string | null>(null);
+
+  // Which deck card is previewed: until the player moves focus it is the
+  // applied slot (or the first card while nothing is applied).
+  const [focusOverride, setFocusOverride] = useState<number | null>(null);
+  const appliedId = appliedSlotId(state);
+  const appliedIndex = ARCHETYPE_DECK_ENTRIES.findIndex((entry) =>
+    entry.kind === "custom" ? appliedId === CUSTOM_ARCHETYPE_ID : entry.id === appliedId,
+  );
+  const focusedIndex = focusOverride ?? Math.max(0, appliedIndex);
+  const focusedEntry = ARCHETYPE_DECK_ENTRIES[focusedIndex] ?? ARCHETYPE_DECK_ENTRIES[0];
+  const focusedPreset =
+    focusedEntry?.kind === "preset"
+      ? ARCHETYPE_PRESETS.find((preset) => preset.id === focusedEntry.id)
+      : undefined;
+  const focusedIsCustom = focusedEntry?.kind === "custom";
+  const focusedSlotId = focusedIsCustom ? CUSTOM_ARCHETYPE_ID : (focusedPreset?.id ?? null);
+
+  const hasSelection = appliedId !== null;
+  const needsSelect = pendingSlotId !== null && pendingSlotId !== appliedId;
+  const draftValid = isAllocationValid(draft);
+
+  const appliedName =
+    state.mode === "preset"
+      ? (ARCHETYPE_PRESETS.find((preset) => preset.id === state.selectedPresetId)?.name ?? "Custom")
+      : "Custom";
+
   const draftConsequence = useMemo(
     () => buildArchetypeConsequence(draft.allocation),
     [draft.allocation],
   );
 
-  const hasSelection = state.mode === "preset" ? state.selectedPresetId !== null : true;
-
-  const stateRef = useRef(state);
-  const onNextRef = useRef(onNext);
-
-  stateRef.current = state;
-  onNextRef.current = onNext;
-
-  const handleChooseNation = useCallback(() => {
-    const currentState = stateRef.current;
-    if (!isAllocationValid(currentState)) return;
-    onNextRef.current(editorToSelection(currentState));
-  }, []);
-
-  const primaryAction = useMemo(
-    () => ({ label: "Choose Nation", disabled: !hasSelection, onTrigger: handleChooseNation }),
-    [hasSelection, handleChooseNation],
-  );
-  usePrimaryAction(primaryAction, onPrimaryActionChange);
-
-  const handlePresetClick = useCallback((id: string) => {
-    setState((current) => selectPreset(current, id));
+  const onFocusIndex = useCallback((index: number) => {
+    setFocusOverride(index);
+    setPendingSlotId(slotIdAt(index));
   }, []);
 
   const openCustomEditor = useCallback(() => {
-    setDraft(
-      state.mode === "custom"
-        ? {
-            mode: "custom",
-            selectedPresetId: null,
-            allocation: { ...state.allocation },
-          }
-        : createCustomArchetype(),
-    );
+    setDraft((current) => (state.mode === "custom" ? state : current));
     setModalOpen(true);
-  }, [state.mode, state.allocation]);
+  }, [state]);
+
+  const onActivateIndex = useCallback(
+    (index: number) => {
+      const entry = ARCHETYPE_DECK_ENTRIES[index];
+      if (entry === undefined) return;
+      setFocusOverride(index);
+      if (entry.kind === "custom") {
+        setPendingSlotId(CUSTOM_ARCHETYPE_ID);
+        openCustomEditor();
+        return;
+      }
+      setPendingSlotId(null);
+      setState((current) => selectPreset(current, entry.id));
+    },
+    [openCustomEditor],
+  );
 
   const commitCustom = useCallback(() => {
-    setState({
-      mode: "custom",
-      selectedPresetId: null,
-      allocation: { ...draft.allocation },
-    });
+    setState({ ...createCustomArchetype(), allocation: { ...draft.allocation } });
+    setPendingSlotId(null);
     setModalOpen(false);
   }, [draft.allocation]);
+
+  const handleNext = useCallback(() => {
+    if (needsSelect && pendingSlotId !== null) {
+      if (pendingSlotId === CUSTOM_ARCHETYPE_ID) {
+        if (!draftValid) return;
+        setState({ ...createCustomArchetype(), allocation: { ...draft.allocation } });
+      } else {
+        setState((current) => selectPreset(current, pendingSlotId));
+      }
+      setPendingSlotId(null);
+      return;
+    }
+    if (!hasSelection || !isAllocationValid(state)) return;
+    onNext(editorToSelection(state));
+  }, [needsSelect, pendingSlotId, draftValid, draft.allocation, hasSelection, state, onNext]);
+
+  const customBlocked = needsSelect && pendingSlotId === CUSTOM_ARCHETYPE_ID && !draftValid;
+  const primaryAction = useMemo(
+    () => ({
+      label: needsSelect ? "Select" : "Choose Nation",
+      disabled: (!hasSelection && !needsSelect) || customBlocked,
+      onTrigger: handleNext,
+    }),
+    [needsSelect, hasSelection, customBlocked, handleNext],
+  );
+  usePrimaryAction(primaryAction, onPrimaryActionChange);
 
   const handleReset = useCallback(() => {
     setDraft((current) => resetCustomAllocation(current));
@@ -126,53 +174,49 @@ export function NewGameArchetypeScreen({
     setDraft((current) => setDimension(current, dimension, clamped));
   }, []);
 
-  const draftValid = isAllocationValid(draft);
+  const customApplied = state.mode === "custom";
+  const customAllocation = customApplied ? state.allocation : null;
+  const panelAllocation = focusedPreset?.allocation ?? customAllocation ?? draft.allocation;
+  const panelApplied = focusedSlotId !== null && focusedSlotId === appliedId;
 
   return (
-    <NewGameScreenLayout>
-      <ScreenHeader
-        icon={<Compass className="h-5 w-5" />}
-        title="Choose your archetype"
-        description="Pick a playstyle, or build your own with 20 points across three engine-backed attributes."
-      />
+    <NewGameScreenLayout fullBleed>
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:overflow-hidden">
+        <ArchetypeDeckPane
+          focusedIndex={focusedIndex}
+          onFocusIndex={onFocusIndex}
+          onActivateIndex={onActivateIndex}
+          appliedPresetId={state.mode === "preset" ? state.selectedPresetId : null}
+          customApplied={customApplied}
+          customAllocation={customAllocation}
+        />
 
-      <section aria-label="Archetype choices">
-        <GlassCard glassVariant="liquid-refract">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Archetypes</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {ARCHETYPE_PRESETS.map((preset) => (
-                <ArchetypePresetCard
-                  key={preset.id}
-                  preset={preset}
-                  active={state.mode === "preset" && state.selectedPresetId === preset.id}
-                  onSelect={() => handlePresetClick(preset.id)}
-                />
-              ))}
-              <ArchetypeCustomCard
-                selected={state.mode === "custom"}
-                allocation={state.mode === "custom" ? state.allocation : null}
-                onSelect={openCustomEditor}
-              />
+        <section
+          aria-label="Archetype details"
+          className="themed-scrollbar relative z-10 min-w-0 flex-1 lg:h-full lg:overflow-y-auto"
+        >
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6 lg:p-8">
+            <p role="status" className="text-sm text-muted-foreground">
+              Current archetype: <span className="font-medium text-foreground">{appliedName}</span>
+            </p>
+
+            <ArchetypeDetailPanel
+              key={focusedSlotId ?? "none"}
+              entry={focusedPreset === undefined ? {} : { preset: focusedPreset }}
+              allocation={panelAllocation}
+              applied={panelApplied}
+              pending={
+                focusedSlotId !== null && pendingSlotId === focusedSlotId && !panelApplied
+              }
+            />
+
+            <div className="flex justify-between">
+              <Button type="button" variant="outline" onClick={onBack}>
+                Back to Preferences
+              </Button>
             </div>
-          </CardContent>
-        </GlassCard>
-      </section>
-
-      <section aria-label="Consequence preview">
-        {hasSelection ? (
-          <ArchetypeConsequencePanel consequence={consequence} />
-        ) : (
-          <ArchetypeEmptyPreview />
-        )}
-      </section>
-
-      <div className="flex justify-between">
-        <Button type="button" variant="outline" onClick={onBack}>
-          Back to Preferences
-        </Button>
+          </div>
+        </section>
       </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
