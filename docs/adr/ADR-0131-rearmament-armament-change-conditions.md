@@ -37,24 +37,37 @@ is the one armament-change rule set, called from `evaluateRefit` when the kind i
 
 ### Mount style
 
-The component model does not carry a casemate/turret flag (`COMPONENTS.md` /
-`components.yaml` distinguish them only in display text). Until content authors a
-mount-style attribute, the rule reads a **single-barrel** mounting as a
-casemate/broadside and a **multi-barrel** one as a turret. This is deterministic
-and is recorded here rather than invented per call site.
+The manual's casemate-vs-turret condition needs a mount style per gun. It is
+**authored once**, as `defaultMountType` on the first-class armament content
+(`gun-families.yaml`, ADR-0093), keyed by the same id as the legacy component.
+`gunChangeOf` reads it from `ctx.armamentContent`; only an enclosed `TURRET` is a
+turret, and every other mounting (casemate, barbette, deck, broadside battery) is
+the manual's casemate case. A pack with no armament content falls back to the
+barrel-count approximation (a single-barrel mounting is a casemate/broadside, a
+multi-barrel one a turret).
+
+*Amended 2026-10-12 (INC-13b):* the approximation is now only the fallback. The
+mount style was already authored in the armament content; duplicating it on
+`ComponentDef` would have created a second source of truth, so the rule reads the
+existing authored value instead. The armament content's legacy-compatibility
+drift checks (`lintArmamentContent`) already keep it consistent with the
+component catalogue.
 
 ## Consequences
 
 - The manual's conditions are enforced in the refit path with stable reason codes;
   an incompatible change fails and changes nothing.
-- The mount-style inference is explicit and replaceable: when content gains a
-  mount-style attribute, the rule reads it instead of inferring from barrel count.
-- No new refit kind or engine command is introduced.
+- A single-barrel turret above 6 in is refused; a casemate of any permitted
+  calibre is allowed. No new refit kind or engine command is introduced.
+- The mount style has one authored source (the armament content); the barrel-count
+  rule survives only as the no-armament-content fallback.
 
 ## Alternatives considered
 
-- **Add a mount-style attribute to every gun component now.** Deferred: it is a
-  content-wide authoring change well beyond this rebuild-validation ticket; the
-  inference is deterministic and documented.
+- **Add a mount-style attribute to `ComponentDef` and author it on the whole gun
+  catalogue.** Rejected (INC-13b): the mount style is already authored as
+  `defaultMountType` in the first-class armament content (ADR-0093); a second
+  copy on the legacy component would drift. Reading the authored value closes the
+  trap with one source of truth.
 - **Forbid all calibre changes outright.** Rejected: the manual explicitly permits
   the barrel-count-against-calibre trade (its own worked examples).

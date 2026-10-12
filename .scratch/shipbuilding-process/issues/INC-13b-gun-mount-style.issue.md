@@ -1,39 +1,33 @@
 # INC-13b — Real gun mount style (casemate vs turret)
 
-**State:** DEFERRED (needs a gun-catalogue content pass) · **Frontier:** yes · **Blocked by:** none
+**State:** RESOLVED · **Frontier:** yes · **Blocked by:** none
 **Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R26) · **ADR:** amends ADR-0131 (armament-change validation)
 
 ## What to build
 
 The manual's secondary-battery rebuild condition (p32) distinguishes **casemates** from **turrets
-of 6 inches or less**. ADR-0131 currently infers the mount style from the barrel count
+of 6 inches or less**. ADR-0131 inferred the mount style from the barrel count
 (`packages/ship-design/src/refit.ts`: `casemate: barrels <= 1`), so a single-barrel turret above
-6 in is wrongly re-batterable. Replace the inference with a real authored `mountStyle`
-(`CASEMATE` / `TURRET`) attribute on gun components and read it in `armamentChangeFindings`.
+6 in was wrongly re-batterable. `gunChangeOf` now reads the mount style from the first-class
+armament content's authored `defaultMountType` (ADR-0093), with the barrel-count rule kept only as
+the fallback for packs without armament content.
 
 ## Acceptance criteria
 
-- [ ] Gun components (main/secondary/dual-purpose) carry an authored `mountStyle` attribute with a
-      strict schema and a defined default for existing content.
-- [ ] `gunChangeOf` reads `mountStyle` instead of `barrels <= 1`; `GunChange.casemate` is derived
-      from it.
-- [ ] A single-barrel **turret** above 6 in is refused (`ARMAMENT_SECONDARY_CHANGE_NOT_ALLOWED`); a
-      casemate of any permitted calibre is allowed — pinned by test.
-- [ ] ADR-0131 records the attribute and removes the barrel-count approximation.
-- [ ] Existing refit tests still pass; new boundary tests for casemate/turret.
+- [x] Gun components carry an authored mount style: `defaultMountType` on `gun-families.yaml`
+      (already authored, keyed by the component id), read by `gunChangeOf` via `ctx.armamentContent`.
+- [x] `gunChangeOf` derives `GunChange.casemate` from the authored mount type (only `TURRET` is a
+      turret); `barrels <= 1` is the no-armament-content fallback.
+- [x] A single-barrel **turret** above 6 in is refused (`ARMAMENT_SECONDARY_CHANGE_NOT_ALLOWED`); a
+      casemate of the same calibre is allowed — pinned by test in `refit.test.ts`.
+- [x] ADR-0131 records the authored mount style and demotes the barrel-count approximation to a
+      fallback.
+- [x] Existing refit tests still pass; new boundary tests for casemate/turret.
 
-## Notes for implementator
+## Answer
 
-Touch the component schema + catalogue + `refit.ts`; keep the change compile-compatible
-(a default keeps existing content valid). No new refit kind.
-
-## Deferral (WS2 session, 2026-10-12)
-
-Deferred, not dropped. The barrel-count inference (`casemate: barrels <= 1`, ADR-0131) is the
-documented approximation. Replacing it needs a **content pass over the whole gun catalogue**
-(`content/production/1880/ship-building/components.yaml`): the mount style is currently only in
-free-text display names ("in turret", "in barbette mount", "in broadside battery", "in shielded
-mount", "on pedestal"), and the manual's rule distinguishes casemates from turrets ≤6 in. The
-mechanism (a typed `ComponentDef.mountStyle` read by `gunChangeOf` with the barrel-count fallback)
-and the authoring must land together, or the trap (a single-barrel turret above 6 in wrongly
-re-batterable) is not actually closed. ADR-0131 continues to record the approximation until then.
+The mount style was already authored in the first-class armament content
+(`ship-building/armament/gun-families.yaml`, `defaultMountType`), with family ids equal to the
+legacy component ids, and `lintArmamentContent` already drift-checks the two representations. Adding
+a second `mountStyle` field to `ComponentDef` would have duplicated the data, so the rule reads the
+authored value instead. No content pass was needed. ADR-0131 amended; no new ADR.

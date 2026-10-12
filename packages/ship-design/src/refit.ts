@@ -400,13 +400,18 @@ export function evaluateRefit(
       if (def === undefined) return null;
       if (!["MAIN_GUN", "SECONDARY_GUN", "DUAL_PURPOSE_GUN"].includes(def.category)) return null;
       const barrels = p.params?.["barrels"] ?? 1;
+      // The authored mount style is the first-class armament content's `defaultMountType` (ADR-0093), keyed by the
+      // same component id; a pack without armament content falls back to the barrel-count approximation (ADR-0131).
+      // Only an enclosed TURRET is a turret for the manual's casemate-vs-turret condition; every other mounting
+      // (casemate, barbette, deck, broadside battery) is treated as the casemate case.
+      const mountType = ctx.armamentContent?.gunFamilies.find(
+        (f) => f.id === def.id,
+      )?.defaultMountType;
       return {
         role: def.category === "MAIN_GUN" ? "MAIN" : "SECONDARY",
         caliberUm: Number(def.attributes?.["caliberUm"] ?? 0),
         barrels,
-        // The model does not carry a mount style; a single-barrel mounting is a broadside/casemate, a multi-barrel
-        // one is a turret (recorded in ADR-0131).
-        casemate: barrels <= 1,
+        casemate: mountType !== undefined ? mountType !== "TURRET" : barrels <= 1,
       };
     };
     const removedGuns = ship.design.placements

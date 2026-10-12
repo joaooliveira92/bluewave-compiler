@@ -12,6 +12,7 @@ import {
   type ShipState,
 } from "../src/index.js";
 import { ctx as baseCtx, draft, costBalance, refitBalance } from "./fixtures/gunboat.js";
+import { armamentContent } from "./helpers/armamentContext.js";
 
 const director: ComponentDef = {
   id: "director_mk1",
@@ -121,6 +122,67 @@ describe("REARMAMENT armament-change conditions (RTW3 manual pp31-32)", () => {
     const r = run(plan, { ...ship, growthBudgetKg: 40_000 });
     expect(r.projectType).toBe("REBUILD");
     expect(r.findings.map((x) => x.id)).not.toContain("ARMAMENT_SECONDARY_CHANGE_NOT_ALLOWED");
+  });
+
+  // ADR-0131 (amended): the mount style is the first-class armament content's `defaultMountType`, not the barrel
+  // count. A single-barrel turret above 6 in is refused; a casemate of the same calibre is allowed.
+  describe("mount style from the authored armament content", () => {
+    const base = baseCtx.catalogue.find((c) => c.id === "qf_47in")!;
+    const bigSecondary: ComponentDef = {
+      ...base,
+      id: "big_secondary",
+      displayName: "8 in secondary",
+      attributes: { ...base.attributes, caliberUm: "203200" },
+    };
+    const withFamily = (mountType: "TURRET" | "CASEMATE"): ShipContext => ({
+      ...ctx,
+      catalogue: [...ctx.catalogue, bigSecondary],
+      armamentContent: {
+        gunFamilies: [
+          ...armamentContent.gunFamilies,
+          {
+            id: "big_secondary",
+            designation: "8 in secondary",
+            category: "SECONDARY_GUN",
+            defaultMountType: mountType,
+            provenance: armamentContent.gunFamilies[0]!.provenance,
+          },
+        ],
+        gunModels: armamentContent.gunModels,
+        gunMounts: armamentContent.gunMounts,
+        ammunition: armamentContent.ammunition,
+      },
+    });
+    const turretShip: ShipState = {
+      ...ship,
+      design: {
+        ...draft,
+        placements: draft.placements.map((p) =>
+          p.instanceId === "a_gun_fwd" ? { ...p, componentId: "big_secondary" } : p,
+        ),
+      },
+    };
+    const swap: RefitPlan = {
+      kind: "REARMAMENT",
+      removeInstanceIds: ["a_gun_fwd"],
+      add: [
+        {
+          instanceId: "new_gun",
+          componentId: "qf_47in",
+          zoneId: "FORECASTLE",
+          stationPermille: 40,
+          params: { barrels: 1, rounds: 100 },
+        },
+      ],
+    };
+    it("refuses a single-barrel 8 in turret secondary", () => {
+      const r = run(swap, { ...turretShip, growthBudgetKg: 40_000 }, withFamily("TURRET"));
+      expect(r.findings.map((x) => x.id)).toContain("ARMAMENT_SECONDARY_CHANGE_NOT_ALLOWED");
+    });
+    it("allows an 8 in casemate secondary of the same calibre", () => {
+      const r = run(swap, { ...turretShip, growthBudgetKg: 40_000 }, withFamily("CASEMATE"));
+      expect(r.findings.map((x) => x.id)).not.toContain("ARMAMENT_SECONDARY_CHANGE_NOT_ALLOWED");
+    });
   });
 });
 
