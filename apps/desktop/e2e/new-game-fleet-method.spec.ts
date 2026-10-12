@@ -23,8 +23,11 @@ test("Starting-fleet method: three cards in a deck, a detail panel that follows 
   await expect(panel.getByText(/operational-but-aging navy/)).toBeVisible();
   await expect(panel.getByText(/Detailed fleet construction isn't available yet/)).toHaveCount(0);
 
-  // Selecting the manual-build card is allowed and updates the detail panel.
-  await manual.click();
+  // The deck's cards overlap, so a centre-click lands on the top card. Step the
+  // listbox to the manual-build card and confirm with Enter, as the archetype
+  // step does; the detail panel then follows the applied method.
+  await listbox.press("ArrowRight");
+  await listbox.press("Enter");
   await expect(manual).toHaveAttribute("aria-selected", "true");
   await expect(inherit).toHaveAttribute("aria-selected", "false");
   await expect(panel.getByText(/Automatic generation is switched off/)).toBeVisible();
