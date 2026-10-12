@@ -39,10 +39,9 @@ const { values } = parseArgs({
 
 // Console `error`s that are known-benign and self-caught. Each entry must be a
 // narrow match with a reason; a broad pattern here would hide real renderer
-// faults. (The renderer configures Zod jitless so its `new Function` eval probe
-// no longer runs — src/renderer/zodJitless.ts — but any library that
-// feature-detects `unsafe-eval` inside a try/catch would emit the same Chromium
-// CSP note, which is harmless because the throw is swallowed.)
+// faults. (Any library that feature-detects `unsafe-eval` inside a try/catch
+// would emit the same Chromium CSP note, which is harmless because the throw is
+// swallowed.)
 const BENIGN_CONSOLE_ERRORS = [
   /Note that 'script-src' was not explicitly set, so 'default-src' is used as a fallback\./,
 ];

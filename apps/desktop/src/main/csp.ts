@@ -9,11 +9,10 @@
  * placeholder/unset image uniforms from an inline `data:image/gif` pixel,
  * not just same-origin files.
  *
- * Under this strict policy a library that feature-detects `unsafe-eval`
- * (Zod's `allowsEval`) would log a CSP console error even though it swallows
- * the throw. The renderer disables that probe explicitly — see
- * `src/renderer/zodJitless.ts` — so the packaged smoke's console check stays a
- * true signal. Keep the two in step.
+ * Under this strict policy a library that feature-detects `unsafe-eval` would
+ * log a CSP console error even though it swallows the throw. The renderer ships
+ * no such library (validation lives in the main process), so the packaged
+ * smoke's console check stays a true signal; keep it that way.
  */
 export const CONTENT_SECURITY_POLICY =
   "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:";

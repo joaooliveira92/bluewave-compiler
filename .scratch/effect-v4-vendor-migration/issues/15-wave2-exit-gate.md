@@ -2,8 +2,8 @@
 
 **Type:** gate
 **Status:** open
-**Blocked by:** 14 (zod removed)
-**Frontier:** no
+**Blocked by:** none (14 done)
+**Frontier:** yes
 
 ## What to build
 

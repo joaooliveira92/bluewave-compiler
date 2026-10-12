@@ -4,16 +4,19 @@
  *
  * The renderer is presentational: it must not ship `yaml` or `effect` (ADR-0105
  * `MIG-EXCL-1`, ticket 04 / CRI-IPC-3). Source scans can miss a transitive
- * import, so this checks the actual built bundle. The markers survive bundling
- * and minification: `YAMLParseError` is unique to the `yaml` package and
- * `EffectTypeId` to `effect`. Run after `electron-vite build` (wired into the
- * desktop `build` scripts).
+ * import, so this checks the actual built bundle. `YAMLParseError` is unique to
+ * the `yaml` package; `effect` is detected by its `~effect/` namespace string
+ * literals, which survive minification (`EffectTypeId` is a property name that
+ * minifiers mangle, so it is kept only as a belt-and-braces unminified check).
+ * Run after `electron-vite build` (wired into the desktop `build` scripts).
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const rendererOut = resolve(import.meta.dirname, "../out/renderer");
-const MARKERS = ["YAMLParseError", "EffectTypeId"];
+// `EffectTypeId` is a property name and is mangled away by minification; the
+// `~effect/` namespace strings are string literals and survive it.
+const MARKERS = ["YAMLParseError", "EffectTypeId", "~effect/"];
 
 let files;
 try {

@@ -166,9 +166,6 @@ importers:
       yaml:
         specifier: ^2.9.1
         version: 2.9.1
-      zod:
-        specifier: ^4.6.5
-        version: 4.6.5
     devDependencies:
       '@bluewave/test-support':
         specifier: workspace:*
@@ -4288,9 +4285,6 @@ packages:
   yuku-parser@0.9.5:
     resolution: {integrity: sha512-IBnAdNVMswWbJcM7woPluOudectJzFjJ1N8jVRxP9Uq4CIv5hZdBIcdmtRbFDYF/Ph2j2gVup4YJ4N9mh0jYFA==}
 
-  zod@4.6.5:
-    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
-
 snapshots:
 
   '@asamuzakjp/css-color@7.1.4':
@@ -7627,5 +7621,3 @@ snapshots:
       '@yuku-parser/binding-linux-x64-musl': 0.9.5
       '@yuku-parser/binding-win32-arm64': 0.9.5
       '@yuku-parser/binding-win32-x64': 0.9.5
-
-  zod@4.6.5: {}

@@ -1,9 +1,9 @@
 # 14 — Remove `zod` from every `package.json` and the root devDependency
 
 **Type:** implementation
-**Status:** open
+**Status:** done
 **Blocked by:** none (08–13 all done)
-**Frontier:** yes
+**Frontier:** no
 
 ## What to build
 
@@ -19,14 +19,14 @@ and transitive consumer has migrated. No Zod definition may remain anywhere.
 
 ## Acceptance criteria
 
-- [ ] No `zod` import or `ZodSchema`/`z.*` reference remains in `packages/*` or
+- [x] No `zod` import or `ZodSchema`/`z.*` reference remains in `packages/*` or
       `apps/*` (a repo-wide search returns zero) (`MIG-ZOD-2`).
-- [ ] `zod` removed from every `package.json`, including the root
+- [x] `zod` removed from every `package.json`, including the root
       `devDependencies` (`MIG-ZOD-3`).
-- [ ] `pnpm why zod` reports no resolution; `pnpm install --frozen-lockfile`
+- [x] `pnpm why zod` reports no resolution; `pnpm install --frozen-lockfile`
       green (`MIG-ZOD-3`).
-- [ ] No boundary retains a parallel Zod definition (`MIG-ZOD-1`).
-- [ ] `pnpm check` green.
+- [x] No boundary retains a parallel Zod definition (`MIG-ZOD-1`).
+- [x] `pnpm check` green **except three failures that predate this ticket** (see evidence).
 
 ## Notes
 
@@ -64,3 +64,31 @@ Leave historical "previously Zod" comments in tests/schemas (parity
 provenance) and `scripts/test/verify-package-dependencies.test.mjs:15` (a
 fixture string). The root `package.json` has no `zod`; only `@bluewave/desktop`
 does.
+
+### Evidence (2026-10-12)
+
+**Changed files:** deleted `apps/desktop/src/renderer/zodJitless.ts`; edited
+`apps/desktop/src/renderer/main.tsx`, `apps/desktop/tsconfig.web.json`,
+`apps/desktop/package.json` (`zod` removed), `pnpm-lock.yaml` (exactly the 8 zod
+lines), `apps/desktop/src/main/csp.ts` and `apps/desktop/scripts/packaged-smoke.mjs`
+(comments only), and `apps/desktop/scripts/check-renderer-bundle.mjs` (step 7:
+`"~effect/"` marker added, docblock corrected).
+
+| Check | Result |
+| --- | --- |
+| `rg "from ['\"]zod"` over `apps`, `packages`, `scripts` | no matches |
+| `pnpm why zod` | empty |
+| `pnpm install` (lockfile rewritten) | ok; diff is only the zod entries |
+| `pnpm preflight` / `format` / `lint` / `lint:effect` / `test:scripts` / `check:licenses` | green |
+| `pnpm typecheck` | 37/37 |
+| `pnpm build` (incl. hardened bundle guard) | 20/20; "renderer bundle clean: no yaml/effect across 20 chunk(s)" |
+| Guard seeded with a `~effect/` chunk | exit 1 (fails as intended); exit 0 once removed |
+| `pnpm test:run` | 1774/1775 desktop; **1 failure** `RulesOfTheNavalAgeScreen.test.tsx` "applies the previewed preset when Next is pressed" — reproduced on a clean `HEAD` with these changes stashed, so pre-existing |
+| `pnpm check:balance-reports` | ok |
+| `pnpm test:e2e` | 31 passed, **2 failed**: `new-game-fleet-method.spec.ts`, `theme.spec.ts` "Fleet Dispatch surface…" — the two already recorded as red on `dev`; not re-run on a clean `HEAD` |
+| `electron-builder --mac --dir` + `pnpm --filter @bluewave/desktop smoke:packaged` | all PASS incl. "no unexpected console errors" (the benign-error list is unchanged) |
+
+**Residual:** none for Zod. `pnpm check` is therefore not literally green: the
+`&&` chain stops at the first red `test:run`; the later stages were run
+separately above.
+
