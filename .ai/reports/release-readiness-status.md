@@ -44,7 +44,7 @@ re-pinned, and recorded old→new in `.ai/reports/release-readiness-golden-repin
   (`// test-focus-allow-skip: <reason>`). The one legitimate Electron-conditional
   skip is annotated. Fixtures + `pnpm test:scripts` (67) green.
 - **NOT DONE:** the base-ui HoverCard `act()` warning flood (~103 lines per
-  drawing-board test file) is *diagnosed, not fixed*: base-ui `PreviewCard`
+  drawing-board test file) is _diagnosed, not fixed_: base-ui `PreviewCard`
   open/close timers (`SECTION_OPEN_DELAY`/`SECTION_CLOSE_DELAY`) and floating-ui
   rAF updates fire after the tests' synchronous `fireEvent`. Recommended fix:
   per-file `vi.useFakeTimers` advanced inside `act` for the hover-card tests
@@ -100,21 +100,21 @@ Blocked, precisely:
 
 ## Validation evidence (this session)
 
-| Gate | Result |
-| --- | --- |
-| `pnpm preflight` | **11/11** (incl. the new test-focus gate) |
-| `pnpm format` | green (after `076d7adf` formatted 8 files) |
-| `pnpm typecheck` | **37/37** at HEAD |
-| `pnpm build --force` | **20/20** |
-| `pnpm check:licenses` | ok (167 deps, 10 licences) |
-| `pnpm check:balance-reports` | ok |
-| `pnpm test:run` | 1782 passed pre-boundary-fix; after the boundary fix the only full-run failure is a **load-flake** in the other writer's 21s AI-procurement suite (passes in isolation: ship-design 887/887) |
-| `node scripts/verify-golden-hashes.cjs` | all 10 match |
+| Gate                                    | Result                                                                                                                                                                                       |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm preflight`                        | **11/11** (incl. the new test-focus gate)                                                                                                                                                    |
+| `pnpm format`                           | green (after `076d7adf` formatted 8 files)                                                                                                                                                   |
+| `pnpm typecheck`                        | **37/37** at HEAD                                                                                                                                                                            |
+| `pnpm build --force`                    | **20/20**                                                                                                                                                                                    |
+| `pnpm check:licenses`                   | ok (167 deps, 10 licences)                                                                                                                                                                   |
+| `pnpm check:balance-reports`            | ok                                                                                                                                                                                           |
+| `pnpm test:run`                         | 1782 passed pre-boundary-fix; after the boundary fix the only full-run failure is a **load-flake** in the other writer's 21s AI-procurement suite (passes in isolation: ship-design 887/887) |
+| `node scripts/verify-golden-hashes.cjs` | all 10 match                                                                                                                                                                                 |
 
 ## Remaining, in leverage order
 
 1. **Cut the release** once the behaviour sprint freezes (golden re-pin + CHANGELOG
-   + version + `v*` tag → draft release; verify signed artifacts).
+   - version + `v*` tag → draft release; verify signed artifacts).
 2. **WS4 content audit** — annotate the owning DESIGN docs for the behaviour-changing
    ADRs listed in `.scratch/doc-reconciliation/issues/01`.
 3. **WS6 act-warnings** — fake timers flushed in `act` for the drawing-board hover tests.
