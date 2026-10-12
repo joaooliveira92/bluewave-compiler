@@ -211,6 +211,45 @@ export const RESUME_CONSTRUCTION_COMMAND_DEFINITION: CommandTypeDefinition =
 budgetProjectRegistry.register(HALT_CONSTRUCTION_COMMAND_DEFINITION);
 budgetProjectRegistry.register(RESUME_CONSTRUCTION_COMMAND_DEFINITION);
 
+export const SET_ACCELERATION_COMMAND_TYPE_ID = "SetAcceleration" as const;
+export const SET_ACCELERATION_COMMAND_SCHEMA_VERSION = "1.0.0" as const;
+
+/**
+ * The modeled definition of the `SetAcceleration` command (DESIGN-23 section 8; DESIGN-13 section 11.3): like halt
+ * and resume it is a locked status write with no reservation, but it additionally applies the one-time
+ * remaining-work premium when the month runs the command.
+ */
+export const SET_ACCELERATION_COMMAND_DEFINITION: CommandTypeDefinition = {
+  commandTypeId: SET_ACCELERATION_COMMAND_TYPE_ID,
+  commandSchemaVersion: SET_ACCELERATION_COMMAND_SCHEMA_VERSION,
+  allowedIssuerClasses: ["PLAYER", "AI"],
+  targetAggregateType: "construction",
+  submissionPhaseId: "command_collection",
+  authorizationPolicyId: "player_nation_self",
+  validationPolicyId: "acceleration_validation",
+  reservationPolicyId: "none",
+  lockPhaseId: "command_collection_lock",
+  irreversiblePhaseId: "command_collection",
+  resolutionPhaseId: "command_collection_resolution",
+  cancellationPolicyId: "UNTIL_IRREVERSIBLE_PHASE",
+  settlementPolicyId: "dockyard_status_settlement",
+  resultSchemaId: "dockyard_status_acceptance_result",
+  reasonCodeNamespace: "construction",
+  idempotencyScope: `campaign:${SET_ACCELERATION_COMMAND_TYPE_ID}`,
+  owningDesignContractId: "bluewave:construction-acceleration:v1",
+  handlerImplementationId: "phase-engine/construction-acceleration-commands/v1",
+  handlerVersion: "1.0.0",
+  testVectorIds: [],
+  contentHash: sha256Hex(
+    canonicalSerialize({
+      commandTypeId: SET_ACCELERATION_COMMAND_TYPE_ID,
+      version: SET_ACCELERATION_COMMAND_SCHEMA_VERSION,
+    }),
+  ),
+};
+
+budgetProjectRegistry.register(SET_ACCELERATION_COMMAND_DEFINITION);
+
 /** Canonical settlement branch id this module walks through on completion. */
 export const BUDGET_COMPLETION_BRANCH_ID: SettlementBranchId = "completion";
 

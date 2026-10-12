@@ -19,6 +19,7 @@ import {
   type MoveFleetCommand,
   type RelieveOfficerCommand,
   type ResumeConstructionCommand,
+  type SetAccelerationCommand,
   type SetBudgetAllocationCommand,
   type SetResearchPriorityCommand,
   type ReviseProjectCommand,
@@ -32,6 +33,7 @@ import {
   applyMoveFleet,
   applyOfficerCommand,
   applyResumeConstruction,
+  applySetAcceleration,
   applySetBudgetAllocation,
   applySetResearchPriority,
   applySubmitDesign,
@@ -261,6 +263,15 @@ function applyConstructionCommand(ctx: MonthContext, body: CommandBody): void {
     ctx.currentSnapshot = applyResumeConstruction(
       ctx.currentSnapshot,
       body as ResumeConstructionCommand,
+      collector,
+    );
+    return;
+  }
+
+  if (body["type"] === "SetAcceleration") {
+    ctx.currentSnapshot = applySetAcceleration(
+      ctx.currentSnapshot,
+      body as SetAccelerationCommand,
       collector,
     );
     return;

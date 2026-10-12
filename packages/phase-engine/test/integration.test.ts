@@ -550,6 +550,7 @@ describe("Full-slice integration", () => {
     expect(rngPhases.map((p) => p.id).sort()).toEqual([
       "ai_planning",
       "ai_procurement",
+      "appropriation",
       "battle_generation",
       "battle_resolution",
       "resolve_aircraft_development",

@@ -8,6 +8,7 @@ import {
   type LineId,
   type PackageProgress,
 } from "@bluewave/ship-design";
+import { accelerateCapacityUnits, constructionWorkStatus } from "./constructionAcceleration.js";
 
 /** The ship-design plan view of a project's stored packages. */
 export function planOf(packages: readonly ConstructionPackage[]): ConstructionPlan {
@@ -50,7 +51,7 @@ export function fundConstructionProject(
   // National build-time (ADR-0090): a nation that builds faster does more work per month for the same yard capacity.
   // Persisted on the project at order time, so a later profile change never re-paces an existing project.
   const buildTimeBp = project["buildTimeMultiplierBp"];
-  const effectiveCapacity =
+  const baseCapacity =
     capacityUnits === undefined || buildTimeBp === undefined || buildTimeBp === 10_000
       ? capacityUnits
       : (Object.fromEntries(
@@ -59,6 +60,11 @@ export function fundConstructionProject(
             Math.floor((v * 10_000) / buildTimeBp),
           ]),
         ) as Readonly<Record<string, number>>);
+  // DESIGN-13 section 11.3.2: a paid accelerated month uses `floor(baseEffectiveCapacity * 11_000 / 10_000)`.
+  const effectiveCapacity =
+    baseCapacity !== undefined && project["status"] === "ACCELERATED"
+      ? accelerateCapacityUnits(baseCapacity)
+      : baseCapacity;
   const plan = planOf(packages);
   const usage = project["monthUsage"];
   const sameMonth = usage !== undefined && usage["month"] === month;
@@ -94,7 +100,10 @@ export function fundConstructionProject(
     dependsOn: [...p["dependsOn"]],
   }));
   const completed = nextPackages.reduce((a, p) => a + (p["doneWork"] as number), 0);
-  const advanced = applied > 0 ? transitionConstructionProject(project, "ACTIVE") : project;
+  const advanced =
+    applied > 0
+      ? transitionConstructionProject(project, constructionWorkStatus(project["status"]))
+      : project;
   return {
     applied,
     project: {

@@ -209,6 +209,7 @@ function makeRichSnapshot(): CampaignSnapshot {
       nationalProfileId: "uk",
       costMultiplierBp: 9800,
       buildTimeMultiplierBp: 9300,
+      accelerationPremiumAppliedAtWorkPosition: SafeInt(50),
     },
   ];
   gbr.aircraft = {} as any;

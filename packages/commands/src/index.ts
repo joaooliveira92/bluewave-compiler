@@ -28,6 +28,7 @@ export type {
   ReviseProjectCommand,
   StartRebuildCommand,
   RelieveOfficerCommand,
+  SetAccelerationCommand,
   SetBudgetAllocationCommand,
   SetResearchPriorityCommand,
 } from "./envelope.js";

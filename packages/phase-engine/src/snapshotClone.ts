@@ -215,6 +215,7 @@ const F = {
     "nationalProfileId",
     "costMultiplierBp",
     "buildTimeMultiplierBp",
+    "accelerationPremiumAppliedAtWorkPosition",
   ),
   ConstructionMonthUsage: fields<ConstructionMonthUsage>()("month", "used", "startDone"),
   ConstructionPackage: fields<ConstructionPackage>()(

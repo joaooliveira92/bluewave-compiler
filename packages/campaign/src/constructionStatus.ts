@@ -28,6 +28,25 @@ export const TERMINAL_CONSTRUCTION_PROJECT_STATUSES: readonly ConstructionProjec
 export const isTerminalConstructionProjectStatus = (s: ConstructionProjectStatus): boolean =>
   TERMINAL_CONSTRUCTION_PROJECT_STATUSES.includes(s);
 
+/** The dockyard project kinds DESIGN-23 section 1 distinguishes (`ConstructionProject.projectType`). */
+export type ConstructionProjectKind = "NEW_CONSTRUCTION" | "REBUILD";
+
+/**
+ * DESIGN-13 section 11.3 / DESIGN-23 section 8: whether a project type declares `accelerationAllowed: true`. The
+ * shipped policy allows new construction only; a rebuild has its own retained-hull rules and the manual's
+ * acceleration is a new-build mechanic. Versioned here, so the command validator and the phase engine share it.
+ */
+export const CONSTRUCTION_ACCELERATION_ALLOWED: Readonly<Record<ConstructionProjectKind, boolean>> =
+  {
+    NEW_CONSTRUCTION: true,
+    REBUILD: false,
+  };
+
+/** Whether a project kind may be accelerated (DESIGN-13 section 11.3 `accelerationAllowed`). */
+export function constructionAccelerationAllowed(projectType: ConstructionProjectKind): boolean {
+  return CONSTRUCTION_ACCELERATION_ALLOWED[projectType] === true;
+}
+
 /**
  * The legal transition table, keyed by the current status. `PLANNED -> ACTIVE` is retained because a queued project
  * funded before an explicit authorization step still activates (the authorization gate arrives with the batch order).

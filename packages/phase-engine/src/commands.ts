@@ -20,6 +20,7 @@ import type {
   MoveFleetCommand,
   RelieveOfficerCommand,
   ResumeConstructionCommand,
+  SetAccelerationCommand,
   SetBudgetAllocationCommand,
   SubmitDesignCommand,
 } from "@bluewave/commands";
@@ -38,6 +39,12 @@ import {
   constructionResumeTarget,
   type ConstructionResumeTarget,
 } from "./constructionHaltResume.js";
+import {
+  ACCELERATION_NOT_ALLOWED,
+  applyAccelerationPremium,
+  constructionAccelerationAllowed,
+  constructionWorkStatus,
+} from "./constructionAcceleration.js";
 import { EventLedger } from "@bluewave/events";
 import type { FinancialLedger } from "./financial-ledger.js";
 import { budgetChangedEvent, makeLedgerEntry } from "./events.js";
@@ -289,7 +296,7 @@ export function applyBudgetProject(
       p["id"] !== body["projectId"]
         ? p
         : (fundedProject ?? {
-            ...transitionConstructionProject(p, "ACTIVE"),
+            ...transitionConstructionProject(p, constructionWorkStatus(p["status"])),
             completedWork: clampedWork,
             paidWork: SafeInt.add(p["paidWork"], budget),
           }),
@@ -528,4 +535,66 @@ export function applyResumeConstruction(
       entityId: body["projectId"],
     });
   return next;
+}
+
+/**
+ * Canonical application of a `SetAcceleration` command (DESIGN-23 section 8; DESIGN-13 section 11.3). Enabling
+ * applies the one-time `10_500` bp remaining-work premium exactly once per remaining-work segment and moves the
+ * project to `ACCELERATED`; disabling returns it to `ACTIVE`. Only `ACTIVE` <-> `ACCELERATED` is legal, so a
+ * terminal, halted, delayed, awaiting-capacity or impounded project is refused. Repeating the current state is a
+ * no-op, so no premium can be charged twice for the same segment. Pure except for the collector.
+ */
+export function applySetAcceleration(
+  currentSnapshot: CampaignSnapshot,
+  body: SetAccelerationCommand,
+  collector: DiagnosticCollector,
+): CampaignSnapshot {
+  const found = dockyardProject(currentSnapshot, body["nationId"], body["projectId"], collector);
+  if (found === undefined) return currentSnapshot;
+  const { nation, project } = found;
+  if (body["accelerated"] && !constructionAccelerationAllowed(project["projectType"])) {
+    collector.addError(
+      ACCELERATION_NOT_ALLOWED,
+      `Project ${body["projectId"]} is a ${project["projectType"]} project and cannot be accelerated`,
+      { stage: "command_collection", entityId: body["projectId"] },
+    );
+    return currentSnapshot;
+  }
+  if (project["status"] !== "ACTIVE" && project["status"] !== "ACCELERATED") {
+    collector.addError(
+      "INVALID_DOCKYARD_PROJECT_TRANSITION",
+      `Project ${body["projectId"]} cannot change acceleration from ${project["status"]}`,
+      { stage: "command_collection", entityId: body["projectId"] },
+    );
+    return currentSnapshot;
+  }
+  if (body["accelerated"] === (project["status"] === "ACCELERATED")) return currentSnapshot;
+
+  let updated: ConstructionProject;
+  if (body["accelerated"]) {
+    const premium = applyAccelerationPremium(project);
+    updated = transitionConstructionProject(premium.project, "ACCELERATED");
+    collector.addInfo(
+      "CONSTRUCTION_ACCELERATED",
+      `Project ${body["projectId"]} accelerated (premium ${String(premium.premiumWork)} work)`,
+      { stage: "command_collection", entityId: body["projectId"] },
+    );
+  } else {
+    updated = transitionConstructionProject(project, "ACTIVE");
+    collector.addInfo(
+      "CONSTRUCTION_ACCELERATION_DISABLED",
+      `Project ${body["projectId"]} acceleration disabled`,
+      { stage: "command_collection", entityId: body["projectId"] },
+    );
+  }
+
+  const updatedNation: NationState = {
+    ...nation,
+    constructionProjects: nation["constructionProjects"].map((p) =>
+      p["id"] === project["id"] ? updated : p,
+    ),
+  };
+  const updatedNations = new Map(currentSnapshot["nations"]);
+  updatedNations.set(nation["id"], updatedNation);
+  return { ...currentSnapshot, nations: updatedNations };
 }

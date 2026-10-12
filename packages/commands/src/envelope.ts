@@ -15,6 +15,7 @@ export type CommandBody =
   | BudgetProjectCommand
   | HaltConstructionCommand
   | ResumeConstructionCommand
+  | SetAccelerationCommand
   | SetResearchPriorityCommand
   | SetBudgetAllocationCommand
   | MoveFleetCommand
@@ -61,6 +62,18 @@ export interface ResumeConstructionCommand {
   type: "ResumeConstruction";
   nationId: string;
   projectId: string;
+}
+/**
+ * Toggles engine-side construction acceleration for a dockyard project (DESIGN-23 section 8; DESIGN-13 section
+ * 11.3; RTW3 manual p. 31: 10% faster, +5% cost). Enabling applies the one-time remaining-work premium exactly once
+ * per remaining-work segment; the status only moves `ACTIVE` <-> `ACCELERATED`, through the shared transition table.
+ * `accelerated` is explicit rather than a blind toggle so a repeated command is idempotent.
+ */
+export interface SetAccelerationCommand {
+  type: "SetAcceleration";
+  nationId: string;
+  projectId: string;
+  accelerated: boolean;
 }
 export interface SetResearchPriorityCommand {
   type: "SetResearchPriority";

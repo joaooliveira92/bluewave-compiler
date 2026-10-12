@@ -84,7 +84,9 @@ export const PHASE_FOOTPRINTS: Readonly<Record<string, PhaseFootprint>> = {
   appropriation: {
     reads: [PhaseResource.TREASURY, PhaseResource.CONSTRUCTIONS],
     writes: [PhaseResource.TREASURY, PhaseResource.CONSTRUCTIONS],
-    usesRng: false,
+    // INC-4/SB3-R9: the appropriation phase draws the keyed acceleration capacity-pressure delay decisions over the
+    // `appropriation`-scoped engine (no draw occurs when no project is accelerated).
+    usesRng: true,
   },
   maintenance: {
     reads: [PhaseResource.TREASURY, PhaseResource.FLEETS],

@@ -10,6 +10,12 @@ import {
 } from "@bluewave/ship-design";
 import { fundConstructionProject } from "./constructionFunding.js";
 import { constructionResumeTarget } from "./constructionHaltResume.js";
+import {
+  ACCELERATION_CAPACITY_PRESSURE_DELAY,
+  constructionWorkStatus,
+  projectConstructionDemand,
+  resolveAccelerationCapacityPressure,
+} from "./constructionAcceleration.js";
 import { fundDesignStudies } from "./designStudies.js";
 import { budgetChangedEvent, constructionDelayedEvent, makeLedgerEntry } from "./events.js";
 import type { MonthContext } from "./monthContext.js";
@@ -114,20 +120,68 @@ export function runAppropriationPhase(ctx: MonthContext): void {
   const { campaignMonth, eventLedger, financialLedger, nextSeq, collector } = ctx;
   const shipBuilding = ctx.engineOptions?.shipBuilding;
 
+  // ADR-0036/INC-4: the appropriation phase now draws the keyed acceleration-pressure delay decisions; obtain the
+  // phase-scoped engine through the guard. With no accelerated project nothing is drawn, so a run without
+  // acceleration consumes no randomness and its hashes are unchanged.
+  const accelerationRng = ctx.phaseGuard.rng("appropriation", ctx.randomSeed);
+
   for (const [nationId, nation] of ctx.currentSnapshot["nations"]) {
     if (!nation["isPlayable"] && !nation["isAI"]) continue;
 
+    const designs = ctx.currentSnapshot["designs"];
     const projects = nation["constructionProjects"];
     const haltedProjects = projects.filter((p) => p["status"] === "HALTED");
-    const delayedProjects = projects.filter((p) => p["status"] === "DELAYED");
+    const delayedAtStart = projects.filter((p) => p["status"] === "DELAYED");
 
-    // One explicit delay record per delayed project, whatever funds are available (DESIGN-23 section 7).
+    // SB3-R9: acceleration capacity pressure (DESIGN-13 section 11.3.3; DESIGN-23 section 9). The pool is the
+    // nation's monthly construction cap (the same cap the appropriation allocates within); demand is each live
+    // project's monthly construction-plan capacity. An accelerated project's demand is weighted 12_500 bp; once the
+    // pool's pressure exceeds 9_000 bp, each eligible accelerated project is checked, in ascending project id order,
+    // on the keyed stream and delayed exactly one month on a successful check.
+    const acceleratedProjects = projects.filter((p) => p["status"] === "ACCELERATED");
+    let delayedByPressure = new Set<string>();
+    if (acceleratedProjects.length > 0 && accelerationRng !== null) {
+      let normalDemand = 0;
+      let acceleratedDemand = 0;
+      for (const project of projects) {
+        if (
+          project["status"] === "HALTED" ||
+          project["status"] === "DELAYED" ||
+          project["status"] === "COMPLETED"
+        )
+          continue;
+        const demand = projectConstructionDemand(project, capacityOf(designs, project));
+        if (project["status"] === "ACCELERATED") acceleratedDemand += demand;
+        else normalDemand += demand;
+      }
+      const pressure = resolveAccelerationCapacityPressure({
+        nationId,
+        campaignMonth,
+        normalDemand,
+        acceleratedDemand,
+        availableCapacity: Number(computeConstructionCap(nation)),
+        acceleratedProjects,
+        randomEngine: accelerationRng,
+        randomLedger: ctx.randomLedger,
+      });
+      delayedByPressure = new Set(pressure.delayedProjectIds);
+    }
+
+    const delayedAtStartIds = new Set(delayedAtStart.map((p) => p["id"]));
+    const delayedProjects = projects.filter(
+      (p) => p["status"] === "DELAYED" || delayedByPressure.has(p["id"]),
+    );
+
+    // One explicit delay record per delayed project, whatever funds are available (DESIGN-23 section 7). A
+    // capacity-pressure delay additionally carries the `ACCELERATION_CAPACITY_PRESSURE_DELAY` reason.
     for (const project of delayedProjects)
       eventLedger.append(
         constructionDelayedEvent(
           project["id"],
           nationId,
-          PROJECT_DELAYED_ZERO_WORK,
+          delayedByPressure.has(project["id"])
+            ? ACCELERATION_CAPACITY_PRESSURE_DELAY
+            : PROJECT_DELAYED_ZERO_WORK,
           nextSeq(),
           campaignMonth,
         ),
@@ -148,13 +202,17 @@ export function runAppropriationPhase(ctx: MonthContext): void {
     }
 
     let updatedProjects = projects;
+    if (delayedByPressure.size > 0)
+      updatedProjects = projects.map((p) =>
+        delayedByPressure.has(p["id"]) ? transitionConstructionProject(p, "DELAYED") : p,
+      );
     let totalDelta = SafeInt.ZERO;
 
     const expenseReserve = nation["expenses"];
     const available = SafeInt.sub(nation["treasury"], expenseReserve);
     const fundable =
       (available as number) > 0
-        ? projects.filter(
+        ? updatedProjects.filter(
             (p) =>
               (p["completedWork"] as number) < (p["totalWork"] as number) &&
               p["status"] !== "COMPLETED" &&
@@ -171,7 +229,7 @@ export function runAppropriationPhase(ctx: MonthContext): void {
         const constructionCap = computeConstructionCap(nation);
         let remainingFunds = available;
         let remainingCap = constructionCap;
-        updatedProjects = [...projects];
+        updatedProjects = [...updatedProjects];
 
         for (const project of fundable) {
           if ((remainingCap as number) <= 0) break;
@@ -210,7 +268,7 @@ export function runAppropriationPhase(ctx: MonthContext): void {
           updatedProjects = updatedProjects.map((p) =>
             p["id"] === project["id"]
               ? {
-                  ...transitionConstructionProject(p, "ACTIVE"),
+                  ...transitionConstructionProject(p, constructionWorkStatus(p["status"])),
                   completedWork: SafeInt.add(p["completedWork"], clampedAlloc),
                   paidWork: SafeInt.add(p["paidWork"], clampedAlloc),
                 }
@@ -231,11 +289,13 @@ export function runAppropriationPhase(ctx: MonthContext): void {
       }
     }
 
-    // A delayed project resumes the following month: the delay lasts exactly one month (DESIGN-23 section 9).
-    if (delayedProjects.length > 0) {
-      const designs = ctx.currentSnapshot["designs"];
+    // A project delayed at the start of the month resumes now: the delay lasts exactly one month (DESIGN-23
+    // section 9). A project delayed this month by acceleration capacity pressure is NOT resumed here — it stays
+    // DELAYED for the month (zero work, zero charge) and resumes at the start of the next one, so a pressure delay
+    // is exactly one month and its premium is preserved.
+    if (delayedAtStart.length > 0) {
       updatedProjects = updatedProjects.map((p) =>
-        p["status"] === "DELAYED"
+        p["status"] === "DELAYED" && delayedAtStartIds.has(p["id"])
           ? transitionConstructionProject(
               p,
               constructionResumeTarget(designs.get(p["designVersionId"])).status,
@@ -359,7 +419,7 @@ function applyLeftoverFunding(
     projects: projects.map((p) =>
       p["id"] === firstIncomplete["id"]
         ? {
-            ...transitionConstructionProject(p, "ACTIVE"),
+            ...transitionConstructionProject(p, constructionWorkStatus(p["status"])),
             completedWork: SafeInt.add(p["completedWork"], cappedExtra),
             paidWork: SafeInt.add(p["paidWork"], cappedExtra),
           }

@@ -77,10 +77,12 @@ export class PhaseRegistry {
       name: "Appropriation",
       order: 3,
       // ADR-0036: appropriation reads and advances constructionProjects, so the
-      // "budget" resource is expressed as constructions.
+      // "budget" resource is expressed as constructions. INC-4/SB3-R9: it also
+      // draws the keyed acceleration capacity-pressure delay decisions, so it is
+      // an rngAllowed phase (no draw occurs without an accelerated project).
       readPermissions: ["treasury", "constructions"],
       writePermissions: ["treasury", "constructions"],
-      rngAllowed: false,
+      rngAllowed: true,
     },
     {
       id: "maintenance",

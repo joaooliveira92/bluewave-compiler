@@ -5,6 +5,7 @@ import {
   RESEARCH_BUDGET_MAX,
   RESEARCH_BUDGET_MIN,
   canTransitionConstructionProject,
+  constructionAccelerationAllowed,
   fleetMoveProblem,
   isTerminalConstructionProjectStatus,
   isShipOperational,
@@ -85,6 +86,7 @@ export function validatePayloadRules(
     return validateDockyardStatusCommand(envelope, snapshot, "HaltConstruction");
   if (envelope.body.type === "ResumeConstruction")
     return validateDockyardStatusCommand(envelope, snapshot, "ResumeConstruction");
+  if (envelope.body.type === "SetAcceleration") return validateSetAcceleration(envelope, snapshot);
   if (envelope.body.type !== "budget_project") {
     return rejectValidation(
       envelope,
@@ -157,6 +159,50 @@ function validateDockyardStatusCommand(
     return reject(
       DOCKYARD_STATUS_TRANSITION_REJECTION,
       `Project ${body.projectId} cannot be resumed from ${project.status}`,
+    );
+  return { ok: true };
+}
+
+const ACCELERATION_NOT_ALLOWED = "ACCELERATION_NOT_ALLOWED";
+
+/**
+ * Issue-time rules for `SetAcceleration` (DESIGN-23 section 8; DESIGN-13 section 11.3): the project must exist, belong
+ * to the issuing nation, allow its type to be accelerated, and be `ACTIVE` or already `ACCELERATED`. Only
+ * `ACTIVE` <-> `ACCELERATED` is legal, so a terminal, halted, delayed, awaiting-capacity or impounded project is
+ * refused with a stable code before anything is charged. The one-time premium is applied when the month runs the
+ * command, never at issue time.
+ */
+function validateSetAcceleration(
+  envelope: CommandEnvelope<CommandBody>,
+  snapshot: CampaignSnapshot,
+): LifecycleStepResult {
+  const body = envelope.body as Extract<CommandBody, { type: "SetAcceleration" }>;
+  const reject = (code: string, message: string): LifecycleStepResult =>
+    rejectValidation(envelope, snapshot, code, message);
+  if (typeof body.accelerated !== "boolean")
+    return reject("INVALID_COMMAND_PAYLOAD", "accelerated must be a boolean");
+  const nation = snapshot.nations.get(body.nationId);
+  if (!nation) return reject("INVALID_NATION_ID", `Nation ${body.nationId} not found`);
+  const project = nation.constructionProjects.find((p) => p.id === body.projectId);
+  if (!project)
+    return reject(
+      DOCKYARD_PROJECT_REJECTION,
+      `Project ${body.projectId} is not ${body.nationId}'s`,
+    );
+  if (isTerminalConstructionProjectStatus(project.status))
+    return reject(
+      DOCKYARD_STATUS_TRANSITION_REJECTION,
+      `Project ${body.projectId} is ${project.status} and cannot be steered`,
+    );
+  if (body.accelerated && !constructionAccelerationAllowed(project.projectType))
+    return reject(
+      ACCELERATION_NOT_ALLOWED,
+      `Project ${body.projectId} is a ${project.projectType} project and cannot be accelerated`,
+    );
+  if (project.status !== "ACTIVE" && project.status !== "ACCELERATED")
+    return reject(
+      DOCKYARD_STATUS_TRANSITION_REJECTION,
+      `Project ${body.projectId} cannot change acceleration from ${project.status}`,
     );
   return { ok: true };
 }

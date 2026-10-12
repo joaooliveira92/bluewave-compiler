@@ -1,6 +1,6 @@
 # INC-4 — Accelerate + capacity-pressure delay
 
-**State:** READY_FOR_AGENT · **Frontier:** no · **Blocked by:** INC-2, INC-3
+**State:** RESOLVED (engine slice; UI surface split to INC-4b) · **Frontier:** yes · **Blocked by:** INC-2, INC-3
 **Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R8, R9, R10, R32) · **ADR:** none new (uses the DESIGN-23 §8 shipped policy)
 
 ## What to build

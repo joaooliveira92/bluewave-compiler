@@ -193,3 +193,37 @@ describe("Carrier operations cross-process determinism", () => {
     expect(r1.initialSnapshotHash).toBe(r2.initialSnapshotHash);
   });
 });
+
+describe("Acceleration capacity-pressure cross-process determinism (SB3-R9)", () => {
+  const accelerationChildScript = resolve(thisDir, "..", "dist", "run-acceleration-child.js");
+
+  interface AccelerationChildOutput {
+    snapshotHash: string;
+    randomLedgerHash: string;
+    decisions: { streamId: string; entityKey: string; draw: number; outcome: string }[];
+    success: boolean;
+    error?: string;
+  }
+
+  function runAccelerationChild(): AccelerationChildOutput {
+    const stdout = execFileSync(process.execPath, [accelerationChildScript], {
+      encoding: "utf8",
+      timeout: 30000,
+      env: { ...process.env, NODE_OPTIONS: "" },
+    });
+    const lines = stdout.trim().split("\n");
+    return JSON.parse(lines[lines.length - 1]!) as AccelerationChildOutput;
+  }
+
+  it("two clean child processes produce identical acceleration-pressure decisions and hashes", () => {
+    const r1 = runAccelerationChild();
+    const r2 = runAccelerationChild();
+    expect(r1.error).toBeUndefined();
+    expect(r1.success).toBe(true);
+    expect(r2.success).toBe(true);
+    expect(r1.decisions.length).toBeGreaterThan(0);
+    expect(r1.decisions).toEqual(r2.decisions);
+    expect(r1.randomLedgerHash).toBe(r2.randomLedgerHash);
+    expect(r1.snapshotHash).toBe(r2.snapshotHash);
+  });
+});

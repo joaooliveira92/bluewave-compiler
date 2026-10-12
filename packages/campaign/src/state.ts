@@ -475,6 +475,12 @@ export interface ConstructionProject {
   buildTimeMultiplierBp?: number;
   /** Capacity and starting progress of the month last funded; only on projects with `packages`. */
   monthUsage?: ConstructionMonthUsage;
+  /**
+   * The `completedWork` position at which the one-time acceleration premium was last applied (DESIGN-13 section
+   * 11.3.1). Optional so saves written before engine-side acceleration stay valid; once set, re-enabling
+   * acceleration without progressing work must not charge the premium again for the same remaining-work segment.
+   */
+  accelerationPremiumAppliedAtWorkPosition?: SafeInt;
 }
 
 export interface WorldState {

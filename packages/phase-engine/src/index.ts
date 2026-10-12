@@ -13,6 +13,9 @@ export {
   RESUME_CONSTRUCTION_COMMAND_DEFINITION,
   RESUME_CONSTRUCTION_COMMAND_SCHEMA_VERSION,
   RESUME_CONSTRUCTION_COMMAND_TYPE_ID,
+  SET_ACCELERATION_COMMAND_DEFINITION,
+  SET_ACCELERATION_COMMAND_SCHEMA_VERSION,
+  SET_ACCELERATION_COMMAND_TYPE_ID,
 } from "./commandLifecycle.js";
 export type { BudgetProjectLifecycleOutcome } from "./commandLifecycle.js";
 export {
@@ -27,6 +30,37 @@ export {
   constructionProjectReadout,
   type ConstructionProjectReadout,
 } from "./constructionReadout.js";
+export {
+  ACCELERATION_CAPACITY_PRESSURE_DELAY,
+  ACCELERATION_CAPACITY_PRESSURE_WEIGHT_BP,
+  ACCELERATION_DELAY_PROBABILITY_CAP_BP,
+  ACCELERATION_DELAY_THRESHOLD_BP,
+  ACCELERATION_NOT_ALLOWED,
+  ACCELERATION_PREMIUM_ALREADY_APPLIED,
+  ACCELERATION_PRESSURE_CONTINUED,
+  ACCELERATION_STREAM_FAMILY,
+  ACCELERATION_TOTAL_WORK_MULTIPLIER_BP,
+  ACCELERATION_WORK_RATE_MULTIPLIER_BP,
+  CONSTRUCTION_ACCELERATION_POLICY_ID,
+  accelerateCapacityUnits,
+  acceleratedRemainingWork,
+  accelerationDelayEligible,
+  accelerationDelayProbabilityBp,
+  accelerationExcessPressureBp,
+  accelerationPremiumAlreadyApplied,
+  accelerationPremiumWork,
+  applyAccelerationPremium,
+  constructionAccelerationAllowed,
+  constructionCapacityPressureBp,
+  constructionWorkStatus,
+  drawAccelerationDelayBp,
+  projectConstructionDemand,
+  resolveAccelerationCapacityPressure,
+  weightedConstructionDemand,
+  type AccelerationPremiumResult,
+  type AccelerationPressureInput,
+  type AccelerationPressureOutcome,
+} from "./constructionAcceleration.js";
 export type {
   MonthExecutorEngineOptions,
   MonthResult,
