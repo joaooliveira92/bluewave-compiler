@@ -1,7 +1,7 @@
 # INC-17 — Foreign-order command must derive contract terms server-side
 
-**State:** deferred · **Frontier:** no · **Blocked by:** INC-9b (owns the builder-flow + terms derivation)
-**Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R20) · **ADR:** none yet
+**State:** done · **Frontier:** no · **Blocked by:** none
+**Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R20) · **ADR:** none (decision in this ticket; BALANCE TARGET instalment policy)
 **Origin:** the shipbuilding-sprint code review (spec axis, HIGH).
 
 ## The finding
@@ -32,9 +32,9 @@ reachable only from tests/e2e.
 
 ## Acceptance criteria
 
-- [ ] `terms`/`capability` are derived server-side from authoritative content, not accepted from the renderer.
-- [ ] A fabricated `totalPriceUnits`/schedule/capability payload is rejected (test).
-- [ ] Golden/determinism unchanged (no foreign contract in the reference run).
+- [x] `terms`/`capability` are derived server-side from authoritative content, not accepted from the renderer.
+- [x] A fabricated `totalPriceUnits`/schedule/capability payload is rejected (test).
+- [x] Golden/determinism unchanged (no foreign contract in the reference run).
 
 ## Decision (orchestrator, 2026-10-12)
 
