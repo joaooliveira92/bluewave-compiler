@@ -6,6 +6,14 @@
 // Draft state, autosave and the content seam.
 export { useDrawingBoard } from "./useDrawingBoard.js";
 export { useDraftAutosave } from "./useDraftAutosave.js";
+export { useRestoredDraftToast } from "./useRestoredDraftToast.js";
+export { handleUndoShortcut, SHORTCUT_MOD, SHORTCUT_SHIFT } from "./undoShortcut.js";
+export {
+  TECHNOLOGY_MONTHS,
+  technologyMonths,
+  useDesignSession,
+  type DesignSession,
+} from "./useDesignSession.js";
 export { loadDrawingBoardContent, setDrawingBoardContent } from "./content.js";
 export { useDrawingBoardContentSource } from "./useDrawingBoardContent.js";
 export type { RevisionProject } from "./revisionPreview.js";
@@ -43,5 +51,5 @@ export { RequirementChip } from "./RequirementChip.js";
 export { SelectField } from "./fields.js";
 export { batteryCards, mountNameMap } from "./batteryView.js";
 export { shipTypeIcon } from "./ship-type-icon.js";
-export { shipTypeRole } from "./shipTypes.js";
+export { shipTypeChoices, shipTypeRole, type ShipTypeChoice } from "./shipTypes.js";
 export { plural } from "./plural.js";

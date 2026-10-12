@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { Ship } from "lucide-react";
+import { ShipbuildingDialog } from "../screens/shipbuilding/ShipbuildingDialog.js";
 import { DEBUG_MODE } from "./debug-flag.js";
 import { cn } from "../lib/utils.js";
 import { CAMPAIGN_NAVIGATION_SECTIONS, showsCampaignNavigation } from "./campaign-navigation.js";
@@ -7,6 +10,8 @@ export interface BottomNavProps {
   readonly screen: Screen;
   readonly onSelect: (screen: Screen) => void;
   readonly footer?: string;
+  /** The campaign session the Shipbuilding workspace saves its working design to. */
+  readonly sessionId?: string;
 }
 
 /**
@@ -14,7 +19,8 @@ export interface BottomNavProps {
  * `campaign-navigation.ts` and selects through the shell's `onSelect`. It is an in-flow footer of the app frame, so it never covers
  * page content, and it pads for display insets.
  */
-export function BottomNav({ screen, onSelect, footer }: BottomNavProps) {
+export function BottomNav({ screen, onSelect, footer, sessionId }: BottomNavProps) {
+  const [shipbuildingOpen, setShipbuildingOpen] = useState(false);
   if (!showsCampaignNavigation(screen)) return null;
 
   return (
@@ -47,7 +53,29 @@ export function BottomNav({ screen, onSelect, footer }: BottomNavProps) {
             </li>
           );
         })}
+        {/* Not a screen: opens the Shipbuilding modal over whichever screen is current. */}
+        <li className="min-w-16 flex-1">
+          <button
+            type="button"
+            title="Shipbuilding"
+            aria-label="Shipbuilding"
+            aria-haspopup="dialog"
+            onClick={() => setShipbuildingOpen(true)}
+            className={cn(
+              "flex min-h-11 w-full flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1 text-xs leading-tight outline-none",
+              "hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring",
+            )}
+          >
+            <Ship className="size-4 shrink-0" aria-hidden="true" />
+            <span className="max-w-full whitespace-nowrap">Shipbuilding</span>
+          </button>
+        </li>
       </ul>
+      <ShipbuildingDialog
+        open={shipbuildingOpen}
+        onOpenChange={setShipbuildingOpen}
+        sessionId={sessionId}
+      />
       {/* The footer is the engine session id: debug builds only (ADR-0058). */}
       {DEBUG_MODE && footer !== undefined && (
         <span className="block truncate px-3 pb-1 font-mono text-[12px] text-muted-foreground">

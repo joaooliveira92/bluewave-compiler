@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0141).
+highest existing number + 1 (the next number is ADR-0142).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -188,6 +188,7 @@ Electron boundary, renderer screens, UX, and presentation.
 | 0126 | [ADR-0126-unified-hover-card.md](ADR-0126-unified-hover-card.md) | One hover popover — the ReUI hover card (Base UI PreviewCard) replaces the tooltip | accepted | — |
 | 0127 | [ADR-0127-shared-master-detail-primitives.md](ADR-0127-shared-master-detail-primitives.md) | Shared master/detail primitives — card deck and slide panel | accepted | — |
 | 0133 | [ADR-0133-crash-error-observability.md](ADR-0133-crash-error-observability.md) | Crash and error observability — a local-only support bundle | accepted | — |
+| 0141 | [ADR-0141-shipbuilding-workspace.md](ADR-0141-shipbuilding-workspace.md) | Shipbuilding workspace beside the Drawing Board | accepted | — |
 
 ## Process & documentation
 

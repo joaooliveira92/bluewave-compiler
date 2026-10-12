@@ -26,7 +26,14 @@ export function useDraftAutosave({
   readonly presetId: string;
   readonly log: EditLog;
   readonly restore: (presetId: string, log: EditLog) => boolean;
-}): { readonly restored: Restored | null; readonly dismiss: () => void } {
+}): {
+  readonly restored: Restored | null;
+  readonly dismiss: () => void;
+  /** True inside a campaign, where the working design is kept on disk. */
+  readonly enabled: boolean;
+  /** Writes the working design now instead of after the autosave delay; false when there is nowhere to save. */
+  readonly saveNow: () => boolean;
+} {
   const bridge = useBridge();
   const enabled = bridge !== undefined && sessionId !== undefined;
   const [restored, setRestored] = useState<Restored | null>(null);
@@ -87,5 +94,14 @@ export function useDraftAutosave({
     return registerAppFlush(() => writeRef.current());
   }, [enabled]);
 
-  return { restored, dismiss: () => setRestored(null) };
+  const latest = useRef({ presetId, log, loaded });
+  latest.current = { presetId, log, loaded };
+  const saveNow = () => {
+    if (!enabled || !latest.current.loaded) return false;
+    pending.current = { presetId: latest.current.presetId, log: latest.current.log };
+    writeRef.current();
+    return true;
+  };
+
+  return { restored, dismiss: () => setRestored(null), enabled, saveNow };
 }

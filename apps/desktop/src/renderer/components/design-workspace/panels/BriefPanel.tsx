@@ -1,17 +1,8 @@
-import {
-  evaluateShipTypeAvailability,
-  isShipTypeId,
-  SHIP_TYPE_LIST,
-  SHIP_TYPES,
-  type DesignDraft,
-  type ShipContext,
-  type WorkshopView,
-} from "@bluewave/ship-design";
-import type { ReactNode } from "react";
+import type { DesignDraft, ShipContext, WorkshopView } from "@bluewave/ship-design";
 import { Badge } from "../../ui/badge.js";
 import { shipTypeIcon } from "../ship-type-icon.js";
 import { NumberField, SelectField } from "../fields.js";
-import { CATEGORY_LABEL } from "../shipTypes.js";
+import { shipTypeChoices } from "../shipTypes.js";
 import { Panel } from "./Panel.js";
 import type { Edit } from "./types.js";
 
@@ -33,37 +24,8 @@ export function BriefPanel({
     const Icon = shipTypeIcon(t);
     return <Icon className="h-4 w-4" aria-hidden="true" />;
   };
-  // Only the types the campaign allows now are offered (the application convention omits what is unavailable). A
-  // type outside that set (an authored brief, a stale draft) stays listed and marked, so the control never lies
-  // about the draft and the finding next to it explains why it cannot be built.
-  const offered = SHIP_TYPE_LIST.filter(
-    (t) =>
-      evaluateShipTypeAvailability(t.id, {
-        month: ctx.month,
-        unlockedTechs: ctx.unlockedTechs,
-        capabilities: ctx.capabilities,
-        restrictedTypes: ctx.restrictedShipTypes,
-      }).available,
-  );
-  const options: {
-    readonly value: string;
-    readonly label: string;
-    readonly icon: ReactNode;
-    readonly description?: string;
-  }[] = offered.map((t) => ({
-    value: t.id,
-    label: `${t.id} · ${t.name}`,
-    icon: icon(t.id),
-    description: `${CATEGORY_LABEL[t.category]}. ${t.recommendedUse}`,
-  }));
-  if (!offered.some((t) => t.id === r.category))
-    options.unshift({
-      value: r.category,
-      label: isShipTypeId(r.category)
-        ? `${r.category} · ${SHIP_TYPES[r.category].name} (not available)`
-        : `${r.category} (unknown type)`,
-      icon: icon(r.category),
-    });
+  // The finding next to an unavailable type explains why it cannot be built (see `shipTypeChoices`).
+  const options = shipTypeChoices(ctx, r.category).map((c) => ({ ...c, icon: icon(c.value) }));
   // Findings about the brief itself (type unavailable, classification) sit next to the control that fixes them.
   const briefFindings = [
     ...view.findingsBySeverity.BLOCKING,

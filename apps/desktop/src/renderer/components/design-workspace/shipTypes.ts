@@ -1,10 +1,49 @@
 import {
+  evaluateShipTypeAvailability,
   isShipTypeId,
+  SHIP_TYPE_LIST,
   SHIP_TYPES,
   type Range,
+  type ShipContext,
   type ShipTypeCategory,
   type ShipTypeId,
 } from "@bluewave/ship-design";
+
+export interface ShipTypeChoice {
+  readonly value: string;
+  readonly label: string;
+  readonly description?: string;
+}
+
+/**
+ * The ship types a brief may choose under the rules context: only the types the campaign allows now (the application
+ * convention omits what is unavailable). A current type outside that set (an authored brief, a stale draft) stays
+ * listed first and marked, so the control never lies about the draft.
+ */
+export function shipTypeChoices(ctx: ShipContext, current: string): ShipTypeChoice[] {
+  const offered = SHIP_TYPE_LIST.filter(
+    (t) =>
+      evaluateShipTypeAvailability(t.id, {
+        month: ctx.month,
+        unlockedTechs: ctx.unlockedTechs,
+        capabilities: ctx.capabilities,
+        restrictedTypes: ctx.restrictedShipTypes,
+      }).available,
+  );
+  const choices: ShipTypeChoice[] = offered.map((t) => ({
+    value: t.id,
+    label: `${t.id} · ${t.name}`,
+    description: `${CATEGORY_LABEL[t.category]}. ${t.recommendedUse}`,
+  }));
+  if (!offered.some((t) => t.id === current))
+    choices.unshift({
+      value: current,
+      label: isShipTypeId(current)
+        ? `${current} · ${SHIP_TYPES[current].name} (not available)`
+        : `${current} (unknown type)`,
+    });
+  return choices;
+}
 
 /** Display names and one-line roles come from the domain registry (`SHIP_TYPES`); nothing is restated here. */
 export const shipTypeName = (id: ShipTypeId): string => SHIP_TYPES[id].name;

@@ -62,14 +62,21 @@ export function SubmitPanel({
   sessionId,
   draft,
   valid,
+  name,
+  onNameChange,
 }: {
   readonly sessionId: string;
   readonly draft: DesignDraft;
   readonly valid: boolean;
+  /** The class name, when a host owns it (the Shipbuilding top bar); the panel keeps its own otherwise. */
+  readonly name?: string;
+  readonly onNameChange?: (name: string) => void;
 }) {
   const revision = useCampaignRevision();
   const bridge = useBridge();
-  const [className, setClassName] = useState("");
+  const [ownName, setOwnName] = useState("");
+  const className = name ?? ownName;
+  const setClassName = onNameChange ?? setOwnName;
   const [result, setResult] = useState<{
     readonly tone: "ok" | "bad";
     readonly lines: readonly string[];

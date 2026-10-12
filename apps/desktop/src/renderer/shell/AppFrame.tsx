@@ -93,7 +93,12 @@ export function AppFrame({
           />
         )}
         {campaignSessionId !== null && (
-          <BottomNav screen={screen} onSelect={onSelectScreen} footer={campaignSessionId} />
+          <BottomNav
+            screen={screen}
+            onSelect={onSelectScreen}
+            footer={campaignSessionId}
+            sessionId={campaignSessionId}
+          />
         )}
       </div>
     </SidebarProvider>

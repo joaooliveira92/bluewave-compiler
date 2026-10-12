@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 const debugFlag = vi.hoisted(() => ({ on: false }));
@@ -20,11 +20,13 @@ describe("BottomNav (proof of concept)", () => {
     const labels = within(nav)
       .getAllByRole("button")
       .map((button) => button.textContent);
-    expect(labels).toEqual(
-      CAMPAIGN_NAVIGATION_SECTIONS.flatMap((section) =>
+    // The sidebar's screens, then the Shipbuilding modal trigger (not a screen).
+    expect(labels).toEqual([
+      ...CAMPAIGN_NAVIGATION_SECTIONS.flatMap((section) =>
         section.items.map((item) => item.shortLabel),
       ),
-    );
+      "Shipbuilding",
+    ]);
   });
 
   it("marks only the current screen with aria-current and gives every entry a tooltip", () => {
@@ -32,9 +34,10 @@ describe("BottomNav (proof of concept)", () => {
     const current = screen.getAllByRole("button").filter((b) => b.ariaCurrent === "page");
     expect(current.map((b) => b.textContent)).toEqual(["Treasury"]);
     const items = CAMPAIGN_NAVIGATION_SECTIONS.flatMap((section) => section.items);
-    for (const [index, button] of screen.getAllByRole("button").entries()) {
-      expect(button.getAttribute("title")).toBe(items[index]?.label);
-      expect(button.getAttribute("aria-label")).toBe(items[index]?.label);
+    for (const [index, item] of items.entries()) {
+      const button = screen.getAllByRole("button")[index];
+      expect(button?.getAttribute("title")).toBe(item.label);
+      expect(button?.getAttribute("aria-label")).toBe(item.label);
     }
   });
 
@@ -55,6 +58,15 @@ describe("BottomNav (proof of concept)", () => {
     render(<BottomNav screen="overview" onSelect={onSelect} />);
     screen.getByRole("button", { name: "Fleet" }).click();
     expect(onSelect).toHaveBeenCalledWith("fleet");
+  });
+
+  it("opens the Shipbuilding workspace modal from the bottom bar without navigating", () => {
+    const onSelect = vi.fn();
+    render(<BottomNav screen="overview" onSelect={onSelect} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Shipbuilding" }));
+    expect(within(screen.getByRole("dialog")).getByText("Shipbuilding")).toBeTruthy();
+    expect(onSelect).not.toHaveBeenCalled();
   });
 
   it("renders nothing outside the campaign (new-game wizard, file picker)", () => {

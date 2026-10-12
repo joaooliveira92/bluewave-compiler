@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { armourMaterialOptions } from "@bluewave/ship-design";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   CalendarClock,
   Gauge,
@@ -22,7 +21,6 @@ import {
 } from "../../../components/ui/hover-card.js";
 import { Separator } from "../../../components/ui/separator.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs.js";
-import { dismissToast, toast } from "../../../components/ui/toast.js";
 import {
   AlternativesPanel,
   ArmourPanel,
@@ -56,10 +54,6 @@ import {
   ShipWorkspace,
   SubmitPanel,
   TopsidePanel,
-  batteryCards,
-  boardFindings,
-  createSelectionStore,
-  entityExists,
   findDrawingControl,
   linkedEntities,
   mountNameMap,
@@ -69,10 +63,15 @@ import {
   shipTypeIcon,
   shipTypeRole,
   useDraftAutosave,
-  useDrawingBoard,
   useFindingsView,
   useFormNavigation,
   useHullPlanEditing,
+  useRestoredDraftToast,
+  useDesignSession,
+  technologyMonths,
+  SHORTCUT_MOD,
+  SHORTCUT_SHIFT,
+  handleUndoShortcut,
   type BoardTab,
   type EntityContext,
   type PlanTool,
@@ -94,16 +93,6 @@ const TABS: readonly { value: BoardTab; label: string; Icon: LucideIcon }[] = [
 /** Two columns once the tab pane (not the window) is wide enough: the pane shares the window with the ship view. */
 const TAB_GRID = "grid grid-cols-1 items-start gap-4 @4xl:grid-cols-2";
 
-const IS_MAC = typeof navigator !== "undefined" && /Mac/.test(navigator.platform);
-/** Shortcut labels in the platform's own notation. */
-const MOD = IS_MAC ? "⌘" : "Ctrl+";
-const SHIFT = IS_MAC ? "⇧" : "Shift+";
-
-const MONTHS = ["1885-01", "1890-01", "1893-06", "1895-06", "1896-01", "1899-12"];
-
-/** Stable id so re-restoring the same draft updates the toast instead of stacking another. */
-const RESTORED_TOAST_ID = "drawing-board-restored";
-
 /**
  * Component-level ship designer (SB-18 v1). Local to the renderer: edits an undoable draft and shows the live
  * compile result. Submitting a design to the engine arrives with the command wiring (SB-14).
@@ -113,7 +102,22 @@ export function DrawingBoard({
   projects = [],
 }: { readonly sessionId?: string; readonly projects?: readonly RevisionProject[] } = {}) {
   const campaignMonth = useCampaignMonthId();
-  const { state, actions } = useDrawingBoard(campaignMonth);
+  const {
+    state,
+    actions,
+    env: boardEnv,
+    zones,
+    batteries,
+    findings,
+    selection,
+    loadPreset,
+    loadDraft,
+    requestPreset,
+    pendingPreset,
+    setPendingPreset,
+    starters,
+    armourMaterials,
+  } = useDesignSession(campaignMonth);
   const { draft, view, content } = state;
   const autosave = useDraftAutosave({
     sessionId,
@@ -121,24 +125,6 @@ export function DrawingBoard({
     log: state.log,
     restore: actions.restore,
   });
-  const batteries = batteryCards(view, draft);
-  const boardEnv = useMemo(() => content.environmentFor(state.month), [content, state.month]);
-  const starters = useMemo(
-    () =>
-      content.references.flatMap((r) =>
-        r.starterFor === undefined
-          ? []
-          : [{ id: r.id, name: r.name, month: r.month, starterFor: r.starterFor, draft: r.draft }],
-      ),
-    [content],
-  );
-  const armourEnv = boardEnv.ctx;
-  const armourMaterials = armourMaterialOptions(
-    armourEnv.balance.armour,
-    state.month,
-    armourEnv.unlockedTechs,
-  );
-  const [pendingPreset, setPendingPreset] = useState<string | null>(null);
   const [tab, setTabState] = useState<BoardTab>("hull");
   // A tab's panels mount the first time it is opened and then stay mounted (typed values and scroll survive a switch).
   // Mounting all five up front made the board's DOM five times larger than what the player sees.
@@ -152,12 +138,6 @@ export function DrawingBoard({
   // Plan display preferences live in the toolbar too, so the drawing and its controls share one source.
   const [showArcs, setShowArcs] = useState(true);
   const [findingsView, setFindingsView] = useFindingsView();
-  const zones = content.hullForms.find((f) => f.id === draft.hull.hullFormId)?.zones ?? [];
-  // One finding list per compile, shared by the drawing, the inspector and the Analysis tab.
-  const findings = useMemo(
-    () => boardFindings(view, draft, batteryCards(view, draft)),
-    [view, draft],
-  );
   const shownFindings = useMemo(
     () => findings.filter((f) => passesFilter(f.severity, findingsView.filter)),
     [findings, findingsView.filter],
@@ -180,14 +160,6 @@ export function DrawingBoard({
     onTool: setPlanTool,
   });
   const entityCtx: EntityContext = { draft, view, content, zones, batteries, findings };
-  // Presentation selection (pinned, form-linked, hover preview): one store for the board, never design state.
-  const [selection] = useState(createSelectionStore);
-  useEffect(() => selection.prune((e) => entityExists(e, draft, zones)), [selection, draft, zones]);
-  // A resolved finding drops out of the selection; its entity stays pinned while it exists.
-  useEffect(
-    () => selection.pruneFinding((key) => findings.some((f) => f.key === key)),
-    [selection, findings],
-  );
   const rootRef = useRef<HTMLDivElement>(null);
   const goTo = useFormNavigation(setTab, rootRef);
   const clearSelection = () => {
@@ -195,67 +167,19 @@ export function DrawingBoard({
     selection.clear();
     if (was && rootRef.current) findDrawingControl(rootRef.current, was)?.focus();
   };
-  // Another ship replaces everything the selection could point at.
-  const loadPreset = (id: string) => {
-    selection.clear();
-    actions.loadPreset(id);
-  };
-  const loadDraft: typeof actions.loadDraft = (d) => {
-    selection.clear();
-    actions.loadDraft(d);
-  };
   // A restored draft is announced as a bottom-right toast (not a page banner) carrying the same two choices.
-  const restoredRef = useRef({ loadPreset, dismiss: autosave.dismiss, presetId: state.preset.id });
-  restoredRef.current = { loadPreset, dismiss: autosave.dismiss, presetId: state.preset.id };
-  useEffect(() => {
-    if (autosave.restored === null) return;
-    const { loadPreset: restoreDesign, dismiss, presetId } = restoredRef.current;
-    const id = toast(
-      `Your unsubmitted design was restored, with its edit history (last changed ${new Date(
-        autosave.restored.savedAt,
-      ).toLocaleString()}). Changes are saved as you work.`,
-      {
-        id: RESTORED_TOAST_ID,
-        duration: 0,
-        onClose: dismiss,
-        cancel: { label: "Keep working", onClick: () => {} },
-        action: {
-          label: "Start over",
-          onClick: () => {
-            dismiss();
-            restoreDesign(presetId);
-          },
-        },
-      },
-    );
-    return () => dismissToast(id);
-  }, [autosave.restored]);
+  useRestoredDraftToast({
+    restored: autosave.restored,
+    dismiss: autosave.dismiss,
+    startOver: () => loadPreset(state.preset.id),
+  });
   return (
     <ShipSelectionProvider store={selection}>
       <div
         ref={rootRef}
         className="flex h-full min-h-0 flex-col gap-2 overflow-hidden bg-background p-2 @3xl:p-4"
         data-testid="drawing-board"
-        onKeyDown={(e) => {
-          // Undo/redo for the design: ⌘Z / Ctrl+Z, ⇧⌘Z / Ctrl+Shift+Z / Ctrl+Y. A text field keeps its own undo.
-          if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
-          const t = e.target;
-          if (
-            t instanceof HTMLElement &&
-            (t.isContentEditable ||
-              (t instanceof HTMLInputElement && t.type !== "checkbox") ||
-              t instanceof HTMLTextAreaElement)
-          )
-            return;
-          const key = e.key.toLowerCase();
-          const redo = (key === "z" && e.shiftKey) || (key === "y" && !e.shiftKey);
-          if (key === "z" && !e.shiftKey) {
-            if (state.canUndo) actions.undo();
-          } else if (redo) {
-            if (state.canRedo) actions.redo();
-          } else return;
-          e.preventDefault();
-        }}
+        onKeyDown={(e) => handleUndoShortcut(e, { ...state, ...actions })}
         onKeyDownCapture={(e) => {
           // Escape, one step per press, from the drawing or the inspector: an open preview (hover card or
           // finding marker) closes itself first; then the opened finding; then the pinned entity; only then does
@@ -299,7 +223,7 @@ export function DrawingBoard({
                   disabled: notYet,
                 };
               })}
-              onChange={(id) => (state.editCount > 0 ? setPendingPreset(id) : loadPreset(id))}
+              onChange={requestPreset}
             />
             {campaignMonth !== null ? (
               // In a campaign the rules date is the campaign month (the engine uses the same), so it is shown, not chosen.
@@ -326,9 +250,7 @@ export function DrawingBoard({
                 label="Technology as of"
                 shortLabel="Technology"
                 value={state.month}
-                options={[...new Set([...MONTHS, state.month])]
-                  .sort()
-                  .map((m) => ({ value: m, label: m }))}
+                options={technologyMonths(state.month).map((m) => ({ value: m, label: m }))}
                 onChange={actions.setMonth}
               />
             )}
@@ -355,7 +277,8 @@ export function DrawingBoard({
                     <Icon aria-hidden="true" />
                   </HoverCardTrigger>
                   <HoverCardContent className="w-auto max-w-64 px-3 py-1.5 text-xs">
-                    {name} ({name === "Undo" ? `${MOD}Z` : `${SHIFT}${MOD}Z`})
+                    {name} (
+                    {name === "Undo" ? `${SHORTCUT_MOD}Z` : `${SHORTCUT_SHIFT}${SHORTCUT_MOD}Z`})
                   </HoverCardContent>
                 </HoverCard>
               ))}
@@ -472,9 +395,7 @@ export function DrawingBoard({
                         env={boardEnv}
                         starters={starters}
                         currentCategory={draft.requirement.category}
-                        onStart={(id) =>
-                          state.editCount > 0 ? setPendingPreset(id) : loadPreset(id)
-                        }
+                        onStart={requestPreset}
                       />
                       <BriefPanel
                         draft={draft}
