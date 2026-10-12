@@ -33,6 +33,12 @@ export const GATE_SETS = {
       needs: ["single-copy-self-test"],
       args: ["scripts/assert-single-effect.mjs"],
     },
+    {
+      id: "claude-skill-links",
+      label: "claude skill links",
+      needs: ["git-state"],
+      args: ["scripts/link-claude-skills.mjs"],
+    },
     { id: "docs", label: "docs hygiene", needs: ["git-state"], args: ["scripts/docs-check.cjs"] },
     {
       id: "doc-budgets",

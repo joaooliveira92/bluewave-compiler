@@ -8,7 +8,7 @@
   "packageManager": "pnpm@11.21.0",
   "scripts": {
     "build": "turbo run build",
-    "prepare": "node scripts/install-hooks.mjs",
+    "prepare": "node scripts/install-hooks.mjs && node scripts/link-claude-skills.mjs",
     "hooks:install": "node scripts/install-hooks.mjs",
     "preflight": "node scripts/run-gates.mjs preflight",
     "adr:index": "node scripts/adr-index.cjs",

@@ -20,6 +20,7 @@ that gate and generate repository artefacts.
 | --- | --- | --- |
 | `run-gates.mjs` | `pnpm preflight` | Scheduler: bounded concurrency, `needs` edges, per-gate timeout (`BLUEWAVE_GATE_CONCURRENCY` / `_TIMEOUT_MS` / `_FAIL_FAST`). |
 | `preflight.cjs` | (gate) | Fail fast on an in-progress merge/rebase or conflict markers. |
+| `link-claude-skills.mjs` | (gate, `prepare`) | Recreate the `.claude/skills` → `.agents/skills` symlinks Claude Code discovers. |
 | `assert-single-effect.mjs` | (gate) | `effect` single-copy invariant: `--self-test` (9 fixtures) then the lockfile. |
 | `verify-package-dependencies.mjs` | `pnpm check:dependencies` (gate) | Dependency policy: no floating specs, `effect` is `workspace:*`, internal deps use `workspace:`, toolchain pinned exact. |
 | `docs-check.cjs` | (gate) | Markdown links + `#fragment` anchors, ADR index/status/supersession, deferrals ledger, DESIGN amendments. |
