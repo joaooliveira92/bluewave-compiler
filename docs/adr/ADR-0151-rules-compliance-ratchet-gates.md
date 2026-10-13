@@ -7,7 +7,7 @@ Accepted (2026-10-13). Extends
 ratchet-gate family), follows
 [ADR-0150](ADR-0150-authoritative-determinism-gate.md) (the determinism gate),
 runs under [ADR-0107](ADR-0107-verification-hardening.md) (the gate runner), and
-executes [ADR-0004](ADR-0004-compiler-stages.md) (stages do no ambient I/O),
+executes [ADR-0004](archive/ADR-0004-compiler-stages.md) (stages do no ambient I/O),
 ADR-0105 (strict boundary decode) and [RULES.md](../../RULES.md).
 
 ## Context

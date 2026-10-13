@@ -4,7 +4,7 @@
 
 Accepted (2026-10-13). Amends [ADR-0128](ADR-0128-effect-v4-runtime-wave-not-warranted.md) §1
 and extends ADR-0128's runtime-free error idiom; executes [RULES.md](../../RULES.md)
-"Errors" together with [MIG-EXCL-1](ADR-0125-renderer-content-ipc.md).
+"Errors" together with [MIG-EXCL-1](archive/ADR-0125-renderer-content-ipc.md).
 
 ## Context
 

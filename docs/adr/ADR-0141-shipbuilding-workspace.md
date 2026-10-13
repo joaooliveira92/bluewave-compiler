@@ -4,6 +4,8 @@
 
 Accepted (2026-10-12).
 
+Superseded by: ADR-0153 (the bottom-bar workspace is the app's only designer; the Drawing Board tab is removed).
+
 ## Context
 
 The Drawing Board (Construction screen) lays the designer out as five task tabs beside a

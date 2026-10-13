@@ -108,26 +108,42 @@ for (const file of LINK_SCOPE) {
 // ---- 2. ADR index is exactly the generator's output ----
 // The index is a build artefact of the ADR corpus (scripts/adr-index.cjs), so a
 // drift in titles, status, or supersession shows up here rather than silently.
-const adrFiles = fs
-  .readdirSync(path.join(root, "docs/adr"))
-  .filter((f) => /^ADR-\d{4}-.*\.md$/.test(f))
-  .map((f) => ({ f: `docs/adr/${f}`, n: f.match(/ADR-(\d{4})/)[1] }));
+// Active ADRs live in docs/adr/; archived ones under docs/adr/archive/. Both are
+// indexed and both feed every check below (status, supersession, deferrals,
+// amendments), so an archived record is still fully validated.
+const adrDirs = [
+  { dir: "docs/adr", prefix: "" },
+  { dir: "docs/adr/archive", prefix: "archive/" },
+];
+const adrFiles = adrDirs.flatMap(({ dir, prefix }) => {
+  const abs = path.join(root, dir);
+  if (!fs.existsSync(abs)) return [];
+  return fs
+    .readdirSync(abs)
+    .filter((f) => /^ADR-\d{4}-.*\.md$/.test(f))
+    .map((f) => ({ f: `${dir}/${f}`, link: `${prefix}${f}`, n: f.match(/ADR-(\d{4})/)[1] }));
+});
 const adrNums = new Set(adrFiles.map((x) => x.n));
 const adrText = new Map(adrFiles.map((x) => [x.n, fs.readFileSync(path.join(root, x.f), "utf8")]));
 const readAdr = (n) => adrText.get(n);
 
-const adrReadmePath = path.join(root, "docs/adr/README.md");
 // Compare with normalized line endings: the generator emits LF, but a Windows
 // checkout (core.autocrlf) can present the committed file with CRLF, which would
 // otherwise read as a spurious "stale" index (ADR-0107 cross-OS gate).
 const normalizeEol = (s) => s.replace(/\r\n/g, "\n");
 try {
-  const { buildIndex } = require("./adr-index.cjs");
-  const expected = buildIndex();
-  if (!fs.existsSync(adrReadmePath)) {
-    problems.push("docs/adr/README.md is missing (run `pnpm adr:index`)");
-  } else if (normalizeEol(fs.readFileSync(adrReadmePath, "utf8")) !== normalizeEol(expected)) {
-    problems.push("docs/adr/README.md is stale (run `pnpm adr:index`)");
+  const { buildIndex, buildArchiveIndex } = require("./adr-index.cjs");
+  const indexes = [
+    { path: path.join(root, "docs/adr/README.md"), expected: buildIndex() },
+    { path: path.join(root, "docs/adr/archive/README.md"), expected: buildArchiveIndex() },
+  ];
+  for (const { path: p, expected } of indexes) {
+    const rel = path.relative(root, p);
+    if (!fs.existsSync(p)) {
+      problems.push(`${rel} is missing (run \`pnpm adr:index\`)`);
+    } else if (normalizeEol(fs.readFileSync(p, "utf8")) !== normalizeEol(expected)) {
+      problems.push(`${rel} is stale (run \`pnpm adr:index\`)`);
+    }
   }
 } catch (err) {
   problems.push(`ADR index could not be generated: ${err.message}`);

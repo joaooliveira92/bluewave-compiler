@@ -1,10 +1,18 @@
 #!/usr/bin/env node
-// Generate docs/adr/README.md from the ADR files themselves (ADR-0095).
+// Generate docs/adr/README.md and docs/adr/archive/README.md from the ADR files
+// themselves (ADR-0095).
 //
-// The index is a build artefact of the ADR corpus: titles come from each file's
+// The indexes are build artefacts of the ADR corpus: titles come from each file's
 // H1, the Status cell from its `## Status` lead keyword, and the Superseded-by
-// cell from its `Superseded by:` line. docs-check fails when the committed index
+// cell from its `Superseded by:` line. docs-check fails when a committed index
 // differs from this generator's output, so the two cannot drift.
+//
+// Active vs archived: ARCHIVED below names the records kept as historical
+// provenance only. Archived files live under docs/adr/archive/ and are indexed in
+// docs/adr/archive/README.md; active ADRs stay in docs/adr/ and are indexed in
+// docs/adr/README.md. Every ADR is in exactly one place — a misfiled record (in
+// ARCHIVED but still top-level, or vice versa) fails the generator, and therefore
+// preflight, rather than landing unlisted.
 //
 // Curated input: the AREAS map below. Every ADR must be assigned to exactly one
 // area; a new ADR without a home makes the generator (and therefore preflight)
@@ -19,6 +27,7 @@ const path = require("node:path");
 
 const ROOT = path.resolve(__dirname, "..");
 const ADR_DIR = path.join(ROOT, "docs/adr");
+const ARCHIVE_DIR = path.join(ADR_DIR, "archive");
 
 // Closed vocabulary of index sections, in display order.
 const AREAS = [
@@ -65,7 +74,7 @@ const AREAS = [
     blurb: "Electron boundary, renderer screens, UX, and presentation.",
     nums: [
       23, 24, 28, 29, 30, 38, 55, 57, 58, 59, 69, 79, 82, 84, 87, 115, 118, 120, 121, 125, 126, 127,
-      133, 141, 142, 148, 149,
+      133, 141, 142, 148, 149, 153,
     ],
   },
   {
@@ -75,32 +84,65 @@ const AREAS = [
   },
 ];
 
+// Records kept as historical provenance only: moved to docs/adr/archive/ and
+// listed in docs/adr/archive/README.md instead of the active index. Chosen per
+// area by live-reference count (the current wave and governance anchors are
+// protected), so the active index stays within each area's readable range while
+// every decision is still on disk and searchable.
+const ARCHIVED = new Set([
+  2, 4, 5, 6, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 23, 24, 27, 28, 30, 31, 33, 34, 35, 39, 40,
+  41, 42, 44, 45, 48, 49, 50, 51, 52, 53, 56, 58, 59, 63, 64, 68, 69, 72, 74, 76, 79, 80, 81, 82,
+  84, 87, 90, 96, 97, 99, 108, 110, 111, 112, 115, 116, 117, 118, 120, 124, 125, 126, 127, 129, 130,
+  131, 137, 138, 142,
+]);
+
 const STATUS_OK = new Set(["accepted", "proposed", "deprecated", "superseded"]);
 const pad = (n) => String(n).padStart(4, "0");
 
-function buildIndex() {
-  const files = fs
-    .readdirSync(ADR_DIR)
-    .filter((f) => /^ADR-\d{4}-.*\.md$/.test(f))
-    .sort();
+function parseAdr(file, text) {
+  const h1 = text.match(/^# (.*)$/m);
+  if (!h1) throw new Error(`${file}: missing H1 title`);
+  const sm = text.match(/^## Status\s*\n+([^\n]+)/m);
+  if (!sm) throw new Error(`${file}: missing "## Status" section`);
+  const kw = (sm[1].trim().match(/^([a-z]+)/i) || [])[1]?.toLowerCase();
+  if (!STATUS_OK.has(kw)) throw new Error(`${file}: status "${kw ?? "?"}" is not canonical`);
+  const sup = text.match(/^Superseded by:\s*(ADR-\d{4})/m);
+  return {
+    file,
+    title: h1[1].replace(/^ADR-\d{4}:\s*/, ""),
+    status: kw,
+    supersededBy: sup ? sup[1] : null,
+  };
+}
 
-  const adrs = new Map();
-  for (const f of files) {
-    const n = Number(f.match(/ADR-(\d{4})/)[1]);
-    const text = fs.readFileSync(path.join(ADR_DIR, f), "utf8");
-    const h1 = text.match(/^# (.*)$/m);
-    if (!h1) throw new Error(`${f}: missing H1 title`);
-    const sm = text.match(/^## Status\s*\n+([^\n]+)/m);
-    if (!sm) throw new Error(`${f}: missing "## Status" section`);
-    const kw = (sm[1].trim().match(/^([a-z]+)/i) || [])[1]?.toLowerCase();
-    if (!STATUS_OK.has(kw)) throw new Error(`${f}: status "${kw ?? "?"}" is not canonical`);
-    const sup = text.match(/^Superseded by:\s*(ADR-\d{4})/m);
-    adrs.set(n, {
-      file: f,
-      title: h1[1].replace(/^ADR-\d{4}:\s*/, ""),
-      status: kw,
-      supersededBy: sup ? sup[1] : null,
-    });
+function scanDir(dir, location) {
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => /^ADR-\d{4}-.*\.md$/.test(f))
+    .sort()
+    .map((f) => ({
+      n: Number(f.match(/ADR-(\d{4})/)[1]),
+      location,
+      ...parseAdr(f, fs.readFileSync(path.join(dir, f), "utf8")),
+    }));
+}
+
+let cache = null;
+function load() {
+  if (cache) return cache;
+  const records = [...scanDir(ADR_DIR, "active"), ...scanDir(ARCHIVE_DIR, "archived")];
+  const adrs = new Map(records.map((r) => [r.n, r]));
+
+  // Every ADR sits in exactly the location its ARCHIVED membership implies.
+  for (const r of records) {
+    const want = ARCHIVED.has(r.n) ? "archived" : "active";
+    if (r.location !== want) {
+      throw new Error(
+        `ADR-${pad(r.n)} is in the ${r.location} set but ARCHIVED says it should be ${want} ` +
+          `(move it under docs/adr/archive/ or fix ARCHIVED in scripts/adr-index.cjs)`,
+      );
+    }
   }
 
   // The area map must be a partition of the ADR set.
@@ -115,6 +157,14 @@ function buildIndex() {
     );
   }
 
+  cache = { adrs, records };
+  return cache;
+}
+
+function buildIndex() {
+  const { adrs, records } = load();
+  const active = records.filter((r) => r.location === "active");
+  const archived = records.filter((r) => r.location === "archived");
   const max = Math.max(...adrs.keys());
   const out = [
     "# Architecture decision records",
@@ -125,6 +175,7 @@ function buildIndex() {
     "(ADR-0043 was never written; the sequence intentionally continues at 0044.)",
     "See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.",
     "Work an ADR records as deferred is tracked in [DEFERRALS](../DEFERRALS.md).",
+    "Older records kept as provenance are listed in [archive/README.md](archive/README.md).",
     "",
     "Rows are grouped by area; the Status and Superseded-by cells mirror each ADR's",
     "own `## Status` / `Superseded by:` lines (`pnpm preflight` fails when either",
@@ -133,6 +184,7 @@ function buildIndex() {
   ];
 
   for (const { name, blurb, nums } of AREAS) {
+    const rows = nums.filter((n) => !ARCHIVED.has(n));
     out.push(
       `## ${name}`,
       "",
@@ -141,7 +193,7 @@ function buildIndex() {
       "| # | File | Title | Status | Superseded by |",
       "| --- | --- | --- | --- | --- |",
     );
-    for (const n of nums) {
+    for (const n of rows) {
       const { file, title, status, supersededBy } = adrs.get(n);
       out.push(
         `| ${pad(n)} | [${file}](${file}) | ${title} | ${status} | ${supersededBy ?? "—"} |`,
@@ -150,13 +202,46 @@ function buildIndex() {
     out.push("");
   }
 
+  out.push(
+    "## Archive",
+    "",
+    `${archived.length} records retained for provenance (older or absorbed decisions).`,
+    "They stay on disk and searchable, but are not part of the active index; find",
+    "them with titles and links in [archive/README.md](archive/README.md).",
+    "",
+  );
+
   return out.join("\n");
 }
 
-module.exports = { buildIndex };
+function buildArchiveIndex() {
+  const { records } = load();
+  const archived = records.filter((r) => r.location === "archived").sort((a, b) => a.n - b.n);
+  const out = [
+    "# Archived architecture decision records",
+    "",
+    "Historical ADRs kept for provenance. Each remains the decision of its time, but",
+    "is no longer part of the active index; current decisions live in",
+    "[../README.md](../README.md). Regenerate both indexes with `pnpm adr:index`.",
+    "",
+    "| # | File | Title | Status | Superseded by |",
+    "| --- | --- | --- | --- | --- |",
+  ];
+  for (const { n, file, title, status, supersededBy } of archived) {
+    out.push(`| ${pad(n)} | [${file}](${file}) | ${title} | ${status} | ${supersededBy ?? "—"} |`);
+  }
+  out.push("");
+  return out.join("\n");
+}
+
+module.exports = { buildIndex, buildArchiveIndex };
 
 if (require.main === module) {
-  const target = path.join(ADR_DIR, "README.md");
-  fs.writeFileSync(target, buildIndex());
-  console.log(`adr-index: wrote ${path.relative(ROOT, target)}`);
+  const mainTarget = path.join(ADR_DIR, "README.md");
+  const archiveTarget = path.join(ARCHIVE_DIR, "README.md");
+  fs.writeFileSync(mainTarget, buildIndex());
+  fs.writeFileSync(archiveTarget, buildArchiveIndex());
+  console.log(
+    `adr-index: wrote ${path.relative(ROOT, mainTarget)} and ${path.relative(ROOT, archiveTarget)}`,
+  );
 }
