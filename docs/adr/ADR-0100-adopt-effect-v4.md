@@ -48,12 +48,17 @@ demotion is ADR-0103.
    filesystem-bound (`stages/parse.ts`, `fullSurface.ts`, `artifact.ts`,
    `shipBuildingDiscovery.ts`) and is now listed as an IO package.
    `commands`/`content-schema`/`diagnostics` were added to the runtime-free row
-   (`Data`/`Schema` only). `campaign` remains a pure-derivation package; the
-   amendment-time policy debt — its `campaignInput.ts` performed a filesystem read
-   inside an otherwise pure package — was resolved by CAH-LEG-1 (commit
-   `37ca7384`), which moved the raw-file/parse boundary to the `content-compiler`
-   IO package, so `campaignInput.ts` now owns only the coercion contract and the
-   package is genuinely IO-free.
+   (`Data`/`Schema` only). `campaign` remains a pure-derivation package, but its
+   `campaignInput.ts` performs a filesystem read inside an otherwise pure package
+   — an acknowledged policy debt (whether to move it to the
+   `content-compiler`/main boundary) that is not itself an Effect gap.
+
+   **Resolution (2026-10-13).** That debt is closed. CAH-LEG-1 (the
+   content-authoring-hardening removal of the legacy raw-input compile path),
+   commit `37ca7384` / `rules-compliance` 04/05, moved the raw-file/parse boundary
+   to the `content-compiler` IO package; `campaignInput.ts` now owns only the
+   coercion contract and `campaign` is genuinely IO-free. No reclassification was
+   needed and no new ADR is raised.
 
 3. **The runtime is introduced where an effect is run**, not inside pure
    derivations. In-process domain errors are `Data.TaggedError`; serializable/wire

@@ -38,8 +38,8 @@ package.** Durable note:
   `toStr` plus the `CampaignFileData` interface. No `node:fs`, `node:path` or
   `yaml` import, no loader, no path guard (verified: the only `node:fs` users
   left in the package are `test/*.test.ts` fixtures, which are outside the gate's
-  `*/src` scope). Commit `37ca7384` (`rules-compliance` 04/05) removed 95 lines
-  and the header now records the move.
+  `*/src` scope). Commit `37ca7384` (`rules-compliance` 04/05) removed the loader
+  (4 insertions / 91 deletions in this file) and the header now records the move.
 - **Gate status / why it passes.** `assert-runtime-free.mjs` *does* scan
   `packages/campaign/src` (it is in `RUNTIME_FREE_ROOTS`), so the file is
   covered — but that gate is an Effect-runtime import allowlist: it detects only
@@ -52,20 +52,21 @@ package.** Durable note:
   so it neither covered the old debt nor covers this file.
 
 **Boundary-class verdict.** `campaignInput.ts` was an IO-shaped loader sitting in
-the wrong class. The IO now lives at the `content-compiler` boundary
-(`buildContentBundleArtifact`, `packages/content-compiler/src/artifact.ts:229`),
-which is an IO package per ADR-0100 §2; the CLI (`apps/compiler-cli/src/commands.ts`)
-and `packages/campaign/src/compiler.ts:34` consume only a verified, decoded
-`ContentBundle` ("validated content is the only thing that runs"). The
-classification is now correct on both sides: the IO is at an IO boundary and
-`campaign` is genuinely runtime-free.
+the wrong class. The IO now lives at the `content-compiler` boundary — entry
+point `buildContentBundleArtifact` (`packages/content-compiler/src/artifact.ts:229`),
+with the loader read at `packages/content-compiler/src/compiler.ts:91`
+(`fullSurface.ts:146` for manifests) — an IO package per ADR-0100 §2; the CLI
+(`apps/compiler-cli/src/commands.ts`) and `packages/campaign/src/compiler.ts:34`
+consume only a verified, decoded `ContentBundle` ("validated content is the only
+thing that runs"). The classification is now correct on both sides: the IO is at
+an IO boundary and `campaign` is genuinely runtime-free.
 
 **Remedy (with rationale).** Of the three options, **move the IO to a boundary**
-is the one taken, and it is the right one: the coercion contract is pure and
-belongs with the builders, while file reading/parsing is a boundary concern
-already owned by `content-compiler`. "Reclassify the package" was wrong — it
-would have dragged an entire pure-derivation package into the IO row to
-accommodate one loader. "Accept-and-document" is moot — there is nothing left to
-accept. No ADR escalation is warranted because the package is *not* reclassified;
-ADR-0100 §2's amendment note, which still described the debt as live, is
-corrected to record the resolution.
+was chosen and already applied: the coercion contract is pure and belongs with
+the builders, while file reading/parsing is a boundary concern already owned by
+`content-compiler`. Reclassification was wrong (it would drag a pure-derivation
+package into the IO row for one loader) and accept-and-document is moot (nothing
+is left to accept). No ADR escalation — the package is not reclassified; ADR-0100
+§2's amendment records the resolution in a correctly-dated paragraph rather than
+rewriting the original. Full rationale:
+`docs/research/effect-conformance-07-campaigninput-fs.md`.

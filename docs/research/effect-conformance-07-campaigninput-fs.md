@@ -59,9 +59,9 @@ so this module owns just the coercion contract." The only `node:fs` users remain
 package are `test/*.test.ts` fixtures (outside the gate's `*/src` scope).
 
 Commit `37ca7384` (`feat(rules): enforce RULES.md with fail-closed compliance gates`,
-2026-10-13, `rules-compliance` 04/05) removed 95 lines — `loadCampaignFiles`,
-`loadAllCampaignData`, `parseYamlFile`, `isInside`, `CampaignFiles`, and the `node:fs` /
-`node:path` / `yaml` imports.
+2026-10-13, `rules-compliance` 04/05) removed the loader — 4 insertions / 91 deletions in
+this file — taking `loadCampaignFiles`, `loadAllCampaignData`, `parseYamlFile`, `isInside`,
+`CampaignFiles`, and the `node:fs` / `node:path` / `yaml` imports with it.
 
 ### 2.4 Gate status — why `assert-runtime-free` passes
 
@@ -82,9 +82,10 @@ nor applies to this file.
 `campaignInput.ts` was an IO-shaped loader in the wrong class. The IO now lives where the
 policy puts it — the `content-compiler` boundary:
 
-- `buildContentBundleArtifact` (`packages/content-compiler/src/artifact.ts:229`) reads the
-  raw files, parses/validates/normalizes and compiles them; `content-compiler` is an IO
-  package per ADR-0100 §2.
+- `buildContentBundleArtifact` (`packages/content-compiler/src/artifact.ts:229`) is the
+  entry point that reads the raw files, parses/validates/normalizes and compiles them; the
+  actual loader read now lives at `packages/content-compiler/src/compiler.ts:91`
+  (`fullSurface.ts:146` for manifests). `content-compiler` is an IO package per ADR-0100 §2.
 - The CLI (`apps/compiler-cli/src/commands.ts`) and `packages/campaign/src/compiler.ts:34`
   consume only the verified, decoded `ContentBundle` — "validated content is the only thing
   that runs".
@@ -94,16 +95,14 @@ runtime-free.
 
 ## 4. Remedy
 
-Of the three options, **move the IO to a boundary** is the one taken, and it is right:
-
-1. The coercion contract is pure and belongs with the builders; file reading/parsing is a
-   boundary concern already owned by `content-compiler`.
-2. **Reclassify the package** was wrong — it would drag an entire pure-derivation package
-   into the IO row for a single loader.
-3. **Accept-and-document** is moot — there is nothing left to accept.
-
-No ADR escalation: the package is not reclassified. ADR-0100 §2's amendment note, which
-still described the debt as live, was corrected to record the resolution.
+Of the three options, **move the IO to a boundary** is the one taken, and it is right: the
+coercion contract is pure and belongs with the builders, while file reading/parsing is a
+boundary concern already owned by `content-compiler`. Reclassifying the package would drag
+a pure-derivation package into the IO row for a single loader; accept-and-document is moot
+because there is nothing left to accept. No ADR escalation — the package is not
+reclassified. ADR-0100 §2's amendment keeps the original 2026-10-12 text and records the
+resolution in a new dated paragraph. The decision of record is the ticket's `## Answer`
+(`.scratch/effect-conformance/issues/07-campaigninput-fs-in-pure.md`).
 
 ## 5. References
 
@@ -114,5 +113,5 @@ still described the debt as live, was corrected to record the resolution.
 - Gates: `scripts/assert-runtime-free.mjs` (`RUNTIME_FREE_ROOTS`),
   `scripts/assert-no-stage-io.mjs` (`STAGE_ROOT`)
 - Boundary implementation: `packages/content-compiler/src/artifact.ts:229`,
-  `packages/campaign/src/compiler.ts:34`
+  `packages/content-compiler/src/compiler.ts:91`, `packages/campaign/src/compiler.ts:34`
 - Sibling notes: `docs/research/effect-conformance-0{1,2,3,4,5,6}-*.md`
