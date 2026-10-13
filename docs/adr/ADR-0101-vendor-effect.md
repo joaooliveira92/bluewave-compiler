@@ -65,7 +65,10 @@ as read-only reference so coding agents can read real usage patterns.
    versions `vite-plus` already resolves (`1.87.0` / `7.0.2003`) so the
    standalone invoker never conflicts with `vp lint`. The
    `@effect/language-service` plugin is configured `diagnostics: false` so the
-   LSP and Oxlint never double-report.
+   LSP and Oxlint never double-report. **Amended by ADR-0139:** the patch now runs
+   from the `prepare` lifecycle with both integrations (`--typescript --oxlint`)
+   so a fresh install wires the LSP and Oxlint once; Oxlint remains the sole
+   Effect-diagnostics authority and this no-double-report invariant is retained.
 8. **tsconfig policy.** `skipLibCheck: true` is retained — it is load-bearing for
    Effect (`Channel.d.ts` DOM globals) and is the sole reason the zero-patch
    default holds. **`erasableSyntaxOnly` is not enabled** for consumer code: the

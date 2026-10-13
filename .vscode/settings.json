@@ -9,5 +9,9 @@
     "repos/**": true
   },
   "typescript.preferences.autoImportFileExcludePatterns": ["vendor/**", "repos/**"],
-  "javascript.preferences.autoImportFileExcludePatterns": ["vendor/**", "repos/**"]
+  "javascript.preferences.autoImportFileExcludePatterns": ["vendor/**", "repos/**"],
+  "js/ts.tsdk.additionalLocations": ["./node_modules/typescript/bin"],
+  "js/ts.tsdk.promptToUseWorkspaceVersion": true,
+  "js/ts.tsdk.path": "./node_modules/typescript/bin",
+  "js/ts.experimental.useTsgo": true
 }
