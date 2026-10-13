@@ -73,4 +73,13 @@ Tests: `test/foreign-war-settlement.test.ts` (pure postings for each outcome, ba
 monthly paid-impound transfer, and the one-month-only idempotency). `check:golden`/determinism unchanged
 (no foreign contract in the reference run); no new persisted field.
 
+## Deferred (owner: diplomacy/treaty subsystem)
+
+INC-17 made the contract terms server-derived and the terms builder never sets `deliveryGuaranteeClauseId`
+(no treaty/clause source exists), so on the command path every contract has
+`FOREIGN_DELIVERY_GUARANTEE_NONE` and `isDeliveryGuaranteeActive` is always false — the §14 delivery
+guarantee (which turns a discretionary `IMPOUND` into `DELAY`) is enforced but unreachable from a real
+order. The pure `placeForeignConstructionOrder` path and its tests still exercise it. Reached once a
+treaty/contract-clause source exists; recorded here rather than leaving it silently inert.
+
 
