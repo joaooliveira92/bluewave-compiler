@@ -43,9 +43,10 @@ shape (`campaign.json`, `campaign.sig.json`, `metadata.json`, `pointer.json`,
 3. **`Schema.Struct` excess-key parity is empirically verified, not assumed.**
    In `effect@4.0.2` a `Schema.Struct` **strips** unmodeled keys on decode by
    default (it does not reject them), matching the non-strict `z.object` default
-   the package used. A focused parity test locks this in. (The spec/idiom note
-   "Struct is closed by default" describes the JSON-Schema emission default, not
-   the decoder; the decoder's real behavior is what the parity test pins.)
+   the package used. A focused parity test locks this in. (The earlier spec/idiom
+   note "Struct is closed by default" was false for both the decoder and the
+   JSON-Schema emission default — both are `onExcessProperty: "ignore"`, open;
+   ADR-0102 §4 and `RULES.md` were corrected to match.)
 4. **Mutable decoded types are preserved.** Effect Schema's `.Type` is deeply
    readonly, but Zod's `z.infer` produced mutable shapes and an existing caller
    tampers a parsed `SigFile`. The exported aliases (`SaveMetadata`, `SigFile`,

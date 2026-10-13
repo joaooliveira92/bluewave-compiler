@@ -37,19 +37,28 @@ formats must stay byte-compatible** (ADR-0023, ADR-0024).
    carries a **parity test built from the existing Zod fixtures**, because
    default/optional/strict semantics differ subtly between Zod and Schema (e.g.
    default arrays, excess-property rejection, refinement ordering).
-   `Schema.Struct` is closed by default in v4; parity with Zod `.strict()` is
-   verified per schema, not assumed.
-5. **Conceptual API mapping** (v4 names): `z.object`→`Schema.Struct`;
+   `Schema.Struct` **strips** excess keys by default in v4
+   (`onExcessProperty: "ignore"`, matching non-strict `z.object`); rejection
+   requires passing `{ onExcessProperty: "error" }` at decode. Parity is
+   verified per schema (see ADR-0104 §3, ADR-0105 §2), not assumed.
+5. **Conceptual API mapping** (Zod → v4 names; conceptual only, not a 1:1
+   function export — the corrected `.default` and refinement/filter forms are in
+   ADR-0104 §2 and ADR-0105 §6): `z.object`→`Schema.Struct`;
    `z.array`/`z.record`→`Schema.Array`/`Schema.Record`;
    `z.literal`/`z.enum`→`Schema.Literal`/`Schema.Literals`;
-   `.optional`/`.nullable`/`.default`→`Schema.optional`/`Schema.NullOr`/
-   `Schema.optionalWith`; `.regex`/`.min`/`.max`/`.int`→`Schema.pattern`/
-   `Schema.int`/`Schema.between`; `.transform`/`.refine`/`.superRefine`→
-   `Schema.transform`/`Schema.filter`; `z.discriminatedUnion`→`Schema.Union` of
-   tagged `Schema.Struct`s; `safeParse`→`Schema.decodeUnknownResult`;
-   `parse`→`Schema.decodeUnknownSync`; `z.infer`→`typeof S.Type` (the v4 idiom);
-   the `ZodSchema` type→`Schema.Schema<A, I, R>`. In-process errors stay
-   `Data.TaggedError`; wire errors become `Schema.TaggedError`.
+   `.optional`/`.nullable`→`Schema.optional`/`Schema.NullOr`;
+   `.default(v)`→`Schema.withDecodingDefaultType(Effect.succeed(v))` (v4 removed
+   `optionalWith({ default })`); `.regex`→`Schema.isPattern`;
+   `.int`→`Schema.isInt` (or the `Schema.Int` constant); string `.min`/`.max`→
+   `Schema.isMinLength`/`Schema.isMaxLength`; numeric `.min`/`.max`→
+   `Schema.isBetween`/`Schema.isGreaterThan`/`Schema.isGreaterThanOrEqualTo`
+   attached with `.check(...)`; `.transform`/`.refine`/`.superRefine`→
+   `Schema.decodeTo`/`Schema.encodeTo` plus `Schema.makeFilter`;
+   `z.discriminatedUnion`→`Schema.Union` of tagged `Schema.Struct`s;
+   `safeParse`→`Schema.decodeUnknownResult`; `parse`→`Schema.decodeUnknownSync`;
+   `z.infer`→`typeof S.Type` (the v4 idiom); the `ZodSchema` type→
+   `Schema.Schema<A, I, R>`. In-process errors stay `Data.TaggedError`; wire
+   errors become `Schema.TaggedError`.
 6. **`zod` is removed last.** The root `zod` devDependency and every package
    `zod` dependency are deleted only after the final boundary and all transitive
    consumers migrate.

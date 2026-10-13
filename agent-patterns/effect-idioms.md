@@ -23,10 +23,13 @@ Pure/deterministic packages (`combat`, `ship-design`, `campaign`, `random`,
 
 - Define with `Schema.Struct`, `Schema.String`/`Number`/`Boolean`/`Unknown`,
   `Schema.Array`, `Schema.Record`, `Schema.Literal`/`Schema.Literals`,
-  `Schema.optional`, `Schema.NullOr`, `Schema.optionalWith`, `Schema.Union`.
+  `Schema.optional`, `Schema.NullOr`, `Schema.Union`, and
+  `Schema.withDecodingDefaultType` for input defaults.
 - Decode at boundaries: `Schema.decodeUnknownSync(s)(x)` (parse) or
-  `Schema.decodeUnknownResult(s)(x)` (safe parse). `Schema.Struct` is closed by
-  default (excess keys rejected), matching Zod `.strict()`.
+  `Schema.decodeUnknownResult(s)(x)` (safe parse). `Schema.Struct` **strips**
+  excess keys by default (`onExcessProperty: "ignore"`), matching non-strict
+  `z.object`; reject them only by passing `{ onExcessProperty: "error" }` at
+  decode (ADR-0104 §3, ADR-0105 §2).
 - Type is `typeof S.Type` (preferred over `Schema.Schema.Type<typeof S>`).
 - Wire formats are frozen: every schema change carries a parity test built from
   the existing fixture; never dual-maintain Zod + Schema.

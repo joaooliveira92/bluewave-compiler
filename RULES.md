@@ -71,7 +71,9 @@ contract wins; fix this file in the same change.
 ## Schema and boundaries
 
 - Effect Schema is the single validator at every boundary (Zod was replaced,
-  ADR-0102/0105). Schemas are closed by default; excess keys are rejected.
+  ADR-0102/0105). `Schema.Struct` **strips** excess keys by default
+  (`onExcessProperty: "ignore"`, matching non-strict `z.object`); reject them by
+  decoding with `{ onExcessProperty: "error" }` (ADR-0104 §3, ADR-0105 §2).
 - Never trust an external boundary: decode compiled YAML, saves, IPC/event
   envelopes, and file contents with a strict schema before use.
 - Wire formats are frozen. Every schema change carries a parity test built from
