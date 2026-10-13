@@ -3,7 +3,7 @@
  * suite drives). Launches the real binary, starts a FRESH game (this is the path
  * that reads the shipped content artifact from app resources — not a repo-root
  * walk), and checks what packaging can break: file:// loading, the lazy
- * coastline chunk, the artifact-backed drawing board content, the debug gate and
+ * coastline chunk, the artifact-backed shipbuilding content, the debug gate and
  * the map's canvas actually painting. Exits non-zero on failure.
  *
  *   pnpm --filter @bluewave/desktop build
@@ -11,7 +11,7 @@
  *     electron-builder --mac --dir --config electron-builder.yml
  *   pnpm --filter @bluewave/desktop run smoke:packaged [--app BINARY] [--shot OUT.png] [--save DIR]
  *
- * `--shot` overrides the drawing-board screenshot path; it defaults to
+ * `--shot` overrides the shipbuilding screenshot path; it defaults to
  * `test-results/packaged-smoke.png` and is captured on every run (CI uploads
  * it). `--save` is only the (stubbed) destination for the fresh campaign's
  * package; it defaults to a temp dir. The default `--app` path is the macOS
@@ -158,27 +158,27 @@ try {
     (await homeMap.locator('path[role="button"]').count()) === 36,
   );
 
-  // --- The drawing board renders the artifact-backed ship-building content ---
+  // --- The Shipbuilding workspace renders the artifact-backed ship-building content ---
   await page
     .getByTestId("bottom-nav")
     .getByRole("button", { name: "Construction", exact: true })
     .click();
-  await page.getByRole("tab", { name: "Drawing Board" }).click();
-  await page.getByRole("button", { name: "Open Drawing Board" }).click();
-  const board = page.getByRole("dialog", { name: "Drawing Board" });
-  await board.getByRole("tab", { name: /Hull and machinery/ }).waitFor({ timeout: 15_000 });
-  check("drawing board opens on the shipped content", true);
+  await page.getByTestId("bottom-nav").getByRole("button", { name: "Shipbuilding" }).click();
+  const workspace = page.getByTestId("shipbuilding-dialog");
+  await workspace.getByRole("img", { name: /Top-down plan/ }).waitFor({ timeout: 15_000 });
+  check("shipbuilding workspace opens on the shipped content", true);
   check(
-    "drawing board loads the ship-building catalogue",
-    (await board.getByRole("group", { name: "Hull sections" }).getByRole("button").count()) === 8,
+    "shipbuilding workspace loads the ship-building catalogue",
+    (await workspace.getByRole("group", { name: "Hull sections" }).getByRole("button").count()) ===
+      8,
   );
   // The plan is drawn from the catalogue (a non-empty SVG), not an error card.
   check(
-    "drawing board renders the ship plan",
-    (await board.getByRole("img", { name: /Top-down plan/ }).count()) === 1,
+    "shipbuilding workspace renders the ship plan",
+    (await workspace.getByRole("img", { name: /Top-down plan/ }).count()) === 1,
   );
   await page.screenshot({ path: shotPath });
-  check("drawing-board screenshot captured", (await stat(shotPath)).size > 0, shotPath);
+  check("shipbuilding screenshot captured", (await stat(shotPath)).size > 0, shotPath);
 
   check("no uncaught renderer exceptions", pageErrors.length === 0, pageErrors[0]?.slice(0, 200));
   const unexpectedConsoleErrors = consoleErrors.filter(

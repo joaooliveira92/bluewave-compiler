@@ -61,6 +61,11 @@ spans all bands. Presentation only: no engine, compiler, or authoritative-state 
 
 Spec: [spec.md](spec.md) · ADR: [ADR-0148](../../docs/adr/ADR-0148-ship-visual-part-catalog.md)
 
+## Paused
+
+- INC-4 and the catalog YAML restructure wait for the ship-part-model P0 contract (interfaces/1,
+  visual-traits/1); see `.scratch/ship-part-model/proposal.md` §8 and decision D7.
+
 ## Not yet specified
 
 <!-- in-scope fog not yet sharp enough to ticket -->

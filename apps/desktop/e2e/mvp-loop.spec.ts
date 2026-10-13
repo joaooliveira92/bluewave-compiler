@@ -2,7 +2,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SEED, test, expect, copyFixturePackage } from "./fixtures.js";
-import { advanceMonths, dismissTour, startNewCampaign } from "./flows.js";
+import { advanceMonths, dismissTour, openShipbuilding, startNewCampaign } from "./flows.js";
 
 // Serial create-side narrative (matrix rows 1-6). One compiled campaign is
 // shared across the specs IN THIS FILE via `sharedSaveDir`; strict per-test
@@ -168,358 +168,13 @@ test("row 6: Fleet renders the honest compiled state", async ({ e2e }) => {
   await expect(e2e.page.getByText("No movement commands")).toBeVisible();
 });
 
-test("row 6f: the Drawing Board edits the hull plan, batteries and armour in the real app", async ({
-  e2e,
-}) => {
-  await e2e.retargetDialog(sharedSaveDir);
-  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
-  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
-    timeout: 30_000,
-  });
-  await navigateTo(e2e.page, "Construction");
-  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
-  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
-  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
-  await expect(board.getByRole("tab", { name: /Hull and machinery/ })).toBeVisible();
-
-  // Hull plan: move a fitting with the keyboard-reachable buttons, then place one by clicking the real drawing.
-  await board.getByRole("button", { name: "Move on plan", exact: true }).click();
-  await e2e.page.getByLabel("Fitting to move").click();
-  await e2e.page.getByRole("option").nth(1).click();
-  await board.getByRole("button", { name: /Move 10 permille toward the stern/ }).click();
-  await expect(board.getByRole("status").filter({ hasText: /toward the stern/ })).toBeVisible();
-  await board.getByRole("button", { name: "Place on plan", exact: true }).click();
-  await e2e.page.getByLabel("Component to place").click();
-  await e2e.page.getByRole("option").nth(1).click();
-  await board.getByTestId("plan-click-layer").click();
-  await expect(board.getByRole("status").filter({ hasText: /^Placed / })).toBeVisible();
-
-  // Arrangement: the batteries panel and the armour panel are present and editable.
-  await board.getByRole("tab", { name: /Arrangement/ }).click();
-  await expect(board.getByRole("region", { name: "Batteries" })).toBeVisible();
-  await expect(board.getByRole("region", { name: "Protection" })).toBeVisible();
-
-  // History records both plan edits as separate, undoable steps.
-  await board.getByRole("tab", { name: /History and files/ }).click();
-  const history = board.getByRole("region", { name: "Edit history" });
-  await expect(history.getByText(/Move /)).toBeVisible();
-  await expect(history.getByText(/Add /)).toBeVisible();
-});
-
-test("row 6g: the Drawing Board keeps the ship view in sight on every tab, wide and narrow", async ({
-  e2e,
-}) => {
-  await e2e.retargetDialog(sharedSaveDir);
-  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
-  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
-    timeout: 30_000,
-  });
-  await navigateTo(e2e.page, "Construction");
-  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
-  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
-  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
-  const ship = board.getByRole("region", { name: "Ship view" });
-  const plan = ship.getByRole("img", { name: /Top-down plan/ });
-  await expect(plan).toBeInViewport();
-
-  // Mark the drawing's DOM node: a remount on tab switch would drop the mark.
-  await plan.evaluate((el) => el.setAttribute("data-e2e-mark", "kept"));
-  for (const tab of [
-    "Arrangement",
-    "Analysis",
-    "Build",
-    "History and files",
-    "Hull and machinery",
-  ]) {
-    await board.getByRole("tab", { name: new RegExp(tab) }).click();
-    await expect(plan).toBeInViewport();
-    await expect(plan).toHaveAttribute("data-e2e-mark", "kept");
-  }
-
-  // The tab pane scrolls on its own; the ship view stays put.
-  await board.getByRole("tab", { name: /Arrangement/ }).click();
-  const pane = board.getByTestId("tab-pane");
-  const scrolled = await pane.evaluate((el) => {
-    el.scrollTop = el.scrollHeight;
-    return el.scrollTop;
-  });
-  expect(scrolled).toBeGreaterThan(0);
-  await expect(plan).toBeInViewport();
-  await expect(board.getByRole("region", { name: "Protection" })).toBeInViewport();
-
-  // The divider is a keyboard-operable splitter that widens the ship view.
-  const divider = board.getByRole("separator", { name: "Resize ship view" });
-  await divider.focus();
-  // From the left limit, two steps right: a fixed target that does not track the stored default.
-  await e2e.page.keyboard.press("Home");
-  const before = (await ship.boundingBox())!.width;
-  await e2e.page.keyboard.press("ArrowRight");
-  await e2e.page.keyboard.press("ArrowRight");
-  await expect(divider).toHaveAttribute("aria-valuenow", "34");
-  expect((await ship.boundingBox())!.width).toBeGreaterThan(before);
-
-  // Narrow window: the panes stack, the splitter goes, and the ship view folds without unmounting.
-  await e2e.app.evaluate(({ BrowserWindow }) =>
-    BrowserWindow.getAllWindows()[0]!.setSize(960, 760),
-  );
-  await expect(divider).toBeHidden();
-  const toggle = board.getByRole("button", { name: "Hide ship view" });
-  await expect(toggle).toBeVisible();
-  await toggle.click();
-  await expect(plan).toBeHidden();
-  await board.getByRole("button", { name: "Show ship view" }).click();
-  await expect(plan).toBeVisible();
-  await expect(plan).toHaveAttribute("data-e2e-mark", "kept");
-});
-
-test("row 6h: hull-section labels open a detailed hover card without flicker or clipping", async ({
-  e2e,
-}) => {
-  await e2e.retargetDialog(sharedSaveDir);
-  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
-  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
-    timeout: 30_000,
-  });
-  // The first-month guided tour is also a dialog and can appear over the board; dismiss it for a stable board.
-  await dismissTour(e2e.page);
-  await navigateTo(e2e.page, "Construction");
-  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
-  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
-  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
-  const strip = board.getByRole("group", { name: "Hull sections" });
-  await expect(strip.getByRole("button")).toHaveCount(8);
-  const card = e2e.page.getByTestId("section-card");
-  const highlight = board.getByTestId("section-highlight");
-
-  // Hover opens the card after a short delay; the plan highlights the same section.
-  await strip.getByRole("button", { name: "Forecastle" }).hover();
-  await expect(card).toHaveAttribute("data-section", "forecastle");
-  await expect(card.getByRole("img", { name: /Detailed drawing of the forecastle/ })).toBeVisible();
-  await expect(highlight).toHaveAttribute("data-zone", "FORECASTLE");
-
-  // Moving to the neighbouring label swaps the content inside the same popup: no close/re-open flicker.
-  await e2e.page.evaluate(() =>
-    document
-      .querySelector("[data-testid='section-card']")
-      ?.parentElement?.setAttribute("data-e2e-mark", "same"),
-  );
-  await strip.getByRole("button", { name: "Forward magazine" }).hover();
-  await expect(card).toHaveAttribute("data-section", "forward-magazine");
-  const samePopup = await e2e.page.evaluate(() =>
-    Boolean(document.querySelector("[data-e2e-mark='same'] [data-section='forward-magazine']")),
-  );
-  expect(samePopup).toBe(true);
-  await expect(highlight).toHaveAttribute("data-zone", "FWD_MAGAZINE");
-
-  // The pointer can travel from a label into the card (beside the drawing) without it closing.
-  await strip.getByRole("button", { name: "Quarterdeck" }).hover();
-  await expect(card).toHaveAttribute("data-section", "quarterdeck");
-  const box = (await card.boundingBox())!;
-  // Move straight into the card (no traversal across the gap): the pointer never leaves the label/card region, so
-  // the close delay cannot fire under load. This proves the pointer can rest in the card without it closing.
-  await e2e.page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await e2e.page.waitForTimeout(600);
-  await expect(card).toHaveAttribute("data-section", "quarterdeck");
-
-  // The card fits the window and is not clipped by the dialog or the ship pane: its centre is its own pixel.
-  const viewport = await e2e.page.evaluate(() => ({ w: innerWidth, h: innerHeight }));
-  expect(box.x).toBeGreaterThanOrEqual(0);
-  expect(box.y).toBeGreaterThanOrEqual(0);
-  expect(box.x + box.width).toBeLessThanOrEqual(viewport.w);
-  expect(box.y + box.height).toBeLessThanOrEqual(viewport.h);
-  const ownsCentre = await card.evaluate((el) => {
-    const r = el.getBoundingClientRect();
-    return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
-  });
-  expect(ownsCentre).toBe(true);
-
-  // Leaving both closes the card and clears the highlight.
-  await e2e.page.mouse.move(5, 5, { steps: 6 });
-  await expect(card).toBeHidden();
-  await expect(highlight).toHaveCount(0);
-
-  // The wider ship view still leaves the tab pane its minimum, even at the widest stored share.
-  await e2e.app.evaluate(({ BrowserWindow }) =>
-    BrowserWindow.getAllWindows()[0]!.setSize(1100, 800),
-  );
-  const divider = board.getByRole("separator", { name: "Resize ship view" });
-  await divider.focus();
-  await e2e.page.keyboard.press("End");
-  const tabPane = (await board.getByTestId("tab-pane").boundingBox())!;
-  expect(tabPane.width).toBeGreaterThanOrEqual(34 * 16 - 1);
-  const overflow = await board.evaluate((el) => el.scrollWidth - el.clientWidth);
-  expect(overflow).toBeLessThanOrEqual(0);
-});
-
-test("row 6i: the ship drawing selects sections and fittings and links them to the forms", async ({
-  e2e,
-}) => {
-  await e2e.retargetDialog(sharedSaveDir);
-  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
-  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
-    timeout: 30_000,
-  });
-  await dismissTour(e2e.page);
-  await navigateTo(e2e.page, "Construction");
-  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
-  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
-  // By name: the first-month guided tour is also a dialog and can appear while the board is open.
-  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
-  const strip = board.getByRole("group", { name: "Hull sections" });
-  const inspector = board.getByTestId("selection-inspector");
-  const card = e2e.page.getByTestId("section-card");
-
-  // Keyboard: Enter on a focused label pins the section; the pin outlives the preview card.
-  await strip.getByRole("button", { name: "Central machinery" }).focus();
-  await e2e.page.keyboard.press("Enter");
-  await expect(strip.getByRole("button", { name: "Central machinery" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expect(inspector.getByRole("heading", { name: "Central machinery" })).toBeVisible();
-  await expect(card).toBeHidden();
-  await expect(board.getByTestId("section-selected")).toHaveAttribute(
-    "data-zone",
-    "CENTRAL_MACHINERY",
-  );
-
-  // A mouse click pins too, and the pending hover preview does not reappear over the inspector.
-  await strip.getByRole("button", { name: "Aft service" }).click();
-  await e2e.page.waitForTimeout(600);
-  await expect(card).toBeHidden();
-  await expect(inspector.getByRole("heading", { name: "Aft service" })).toBeVisible();
-  await strip.getByRole("button", { name: "Central machinery" }).click();
-  await expect(inspector.getByRole("heading", { name: "Central machinery" })).toBeVisible();
-
-  // Hover elsewhere previews without moving the pin.
-  await strip.getByRole("button", { name: "Quarterdeck" }).hover();
-  await expect(card).toHaveAttribute("data-section", "quarterdeck");
-  await e2e.page.mouse.move(5, 5);
-  await expect(card).toBeHidden();
-  await expect(inspector.getByRole("heading", { name: "Central machinery" })).toBeVisible();
-
-  // Escape clears the pin but leaves the dialog open; the next Escape closes the dialog as before.
-  await strip.getByRole("button", { name: "Forward service" }).focus();
-  await e2e.page.keyboard.press("Tab");
-  await expect(strip.getByRole("button", { name: "Central machinery" })).toBeFocused();
-  await expect(card).toBeVisible();
-  await e2e.page.keyboard.press("Escape");
-  await expect(card).toBeHidden();
-  await e2e.page.keyboard.press("Escape");
-  await expect(inspector).toHaveCount(0);
-  await expect(board).toBeVisible();
-
-  // A fitting's hit target sits exactly on its drawn marker, and a click selects it. The campaign's starting
-  // design depends on the date, so the gun (a fitting with a mount name) and a second fitting are looked up.
-  const ids = await board.evaluate((root) =>
-    [...root.querySelectorAll('[role="toolbar"] [data-target]')].map((el) => [
-      el.getAttribute("data-target")!,
-      el.getAttribute("aria-label")!,
-    ]),
-  );
-  const gunId = ids.find(([, name]) => name.includes("(mount "))![0];
-  const otherId = ids.find(([id, name]) => id !== gunId && !name.includes("(mount "))![0];
-  const gunTarget = board.locator(`[data-target="${gunId}"]`);
-  const gunDot = board.locator(`[data-fitting="${gunId}"]`);
-  const [t, d] = [(await gunTarget.boundingBox())!, (await gunDot.boundingBox())!];
-  expect(Math.abs(t.x + t.width / 2 - (d.x + d.width / 2))).toBeLessThan(1.5);
-  expect(Math.abs(t.y + t.height / 2 - (d.y + d.height / 2))).toBeLessThan(1.5);
-  await gunTarget.click();
-  await expect(gunTarget).toHaveAttribute("aria-pressed", "true");
-  await expect(inspector.getByText("Selected fitting")).toBeVisible();
-
-  // Go to settings: the battery card opens on its tab, scrolled into view, focused and outlined.
-  await inspector.getByRole("button", { name: "Go to battery settings" }).click();
-  await expect(board.getByRole("tab", { name: /Arrangement/ })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
-  const focused = e2e.page.locator(":focus");
-  await expect(focused).toHaveAttribute("aria-label", /^Rounds per gun, /);
-  await expect(focused).toBeInViewport();
-  await expect(board.locator("[data-battery][data-nav-flash]")).toHaveCount(1);
-  await expect(gunTarget).toHaveAttribute("aria-pressed", "true");
-
-  // Form to drawing: focus in another fitting's row lights it; leaving the form clears that, not the pin.
-  await board.getByLabel(new RegExp(`^Station of ${otherId} `)).focus();
-  await expect(board.locator(`[data-target="${otherId}"]`)).toHaveAttribute("data-state", "linked");
-  await expect(gunTarget).toHaveAttribute("data-state", "selected");
-  await strip.getByRole("button", { name: "Forecastle" }).focus();
-  await expect(board.locator(`[data-target="${otherId}"]`)).toHaveAttribute(
-    "data-state",
-    "default",
-  );
-
-  // Narrow window: the stacked layout keeps the selection and its inspector.
-  await e2e.app.evaluate(({ BrowserWindow }) =>
-    BrowserWindow.getAllWindows()[0]!.setSize(960, 760),
-  );
-  await expect(board.getByRole("button", { name: "Hide ship view" })).toBeVisible();
-  await expect(gunTarget).toHaveAttribute("aria-pressed", "true");
-  await expect(inspector.getByText("Selected fitting")).toBeAttached();
-});
-
-test("row 6j: a finding on the ship leads to its fix, and the fix clears it", async ({ e2e }) => {
-  await e2e.retargetDialog(sharedSaveDir);
-  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
-  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
-    timeout: 30_000,
-  });
-  await dismissTour(e2e.page);
-  await navigateTo(e2e.page, "Construction");
-  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
-  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
-  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
-  const inspector = board.getByTestId("selection-inspector");
-
-  // The bow-most gun (fittings are listed bow to stern) and its station, read from the design's own form.
-  const gunId = await board.evaluate((root) =>
-    [...root.querySelectorAll('[role="toolbar"][aria-label="Fittings on the plan"] [data-target]')]
-      .find((el) => el.getAttribute("aria-label")!.includes("(mount "))!
-      .getAttribute("data-target")!,
-  );
-  await board.getByRole("tab", { name: /Arrangement/ }).click();
-  const station = board.getByLabel(new RegExp(`^Station of ${gunId} `));
-  const original = await station.inputValue();
-
-  // A known finding: the gun's station moved outside its zone (blocking).
-  await station.fill("500");
-  await station.press("Enter");
-  const marker = board.locator(`[data-marker="f:${gunId}"]`);
-  await expect(marker).toHaveAttribute("data-severity", "BLOCKING");
-  await expect(marker).toHaveAttribute("aria-label", /^Blocking: .*outside zone/);
-
-  // Activate the marker: the gun is pinned and the finding opens in the inspector.
-  await board.getByRole("tab", { name: /Build/ }).click();
-  await marker.click();
-  await expect(board.locator(`[data-target="${gunId}"]`)).toHaveAttribute("aria-pressed", "true");
-  const entry = inspector.locator('[data-inspector-finding^="ARR-STATION-OUT-OF-ZONE|"]');
-  await expect(entry).toHaveAttribute("aria-current", "true");
-  await expect(entry).toContainText("BLOCKING");
-
-  // Go to fix: the Arrangement tab opens with the gun's station field focused.
-  await entry.getByRole("button", { name: "Go to fix" }).click();
-  await expect(board.getByRole("tab", { name: /Arrangement/ })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
-  await expect(station).toBeFocused();
-  await expect(station).toBeInViewport();
-
-  // Correct it: the blocking marker goes, the gun stays pinned, and the fix is noted.
-  await station.fill(original);
-  await station.press("Enter");
-  await expect(marker).not.toHaveAttribute("data-severity", "BLOCKING");
-  await expect(board.locator('[data-marker^="s:"]')).toHaveCount(0);
-  await expect(board.locator(`[data-target="${gunId}"]`)).toHaveAttribute("aria-pressed", "true");
-  await expect(board.getByTestId("resolved-note")).toContainText("Resolved:");
-});
-
 // Rows 6k-6l share one copy of the campaign: 6k submits a design and closes the app, 6l is a fresh app instance on the
 // same package, so the queued design must have survived the restart (ADR-0082) before the month builds it.
 let designCopy = "";
 
-test("row 6k: a valid design is submitted from the Drawing Board and queued", async ({ e2e }) => {
+test("row 6k: a valid design is submitted from the Shipbuilding workspace and queued", async ({
+  e2e,
+}) => {
   // Not e2e.scratch: that is removed when this test's app closes, and 6l needs the package after the restart.
   designCopy = await copyFixturePackage(
     sharedSaveDir,
@@ -531,26 +186,27 @@ test("row 6k: a valid design is submitted from the Drawing Board and queued", as
     timeout: 30_000,
   });
   await dismissTour(e2e.page);
-  await navigateTo(e2e.page, "Construction");
-  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
-  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
-  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
-  // Earlier rows autosaved edits to the shared campaign's board; the board
-  // restores them and offers "Start over" in the restoration notification
-  // (a global Notifications region, not the Drawing Board dialog). Click it to
-  // return to the clean reference design before submitting.
+  const workspace = await openShipbuilding(e2e.page);
+  // Earlier rows autosaved edits to the shared campaign's working design; the
+  // workspace restores them and offers "Start over" in the restoration
+  // notification (a global Notifications region, not the workspace dialog).
+  // Click it to return to the clean reference design before submitting.
   const startOver = e2e.page
     .getByRole("region", { name: "Notifications" })
     .getByRole("button", { name: "Start over" });
   if (await startOver.isVisible().catch(() => false)) await startOver.click();
-  await expect(board.getByText("Can be submitted")).toBeVisible();
-  await board.getByRole("tab", { name: /Build/ }).click();
-  await board.getByLabel("Class name").fill("Arethusa E2E");
-  await board.getByRole("button", { name: "Submit design" }).click();
+  await expect(workspace.getByText("Can be submitted")).toBeVisible();
+  // Name the class in the top command bar, then finish: the Submit panel shows the same name.
+  await workspace
+    .getByRole("group", { name: "Design commands" })
+    .getByRole("textbox", { name: "Class name" })
+    .fill("Arethusa E2E");
+  await workspace.getByRole("button", { name: "Finish design" }).click();
+  await workspace.getByRole("button", { name: "Submit design" }).click();
   // Submitting now starts a design study (DESIGN-21): the queued notice says the
   // study starts on the next month advance and names the class separately.
-  await expect(board.getByText(/Design queued\./)).toBeVisible({ timeout: 15_000 });
-  await expect(board.getByRole("button", { name: "Queued" })).toBeDisabled();
+  await expect(workspace.getByText(/Design queued\./)).toBeVisible({ timeout: 15_000 });
+  await expect(workspace.getByRole("button", { name: "Queued" })).toBeDisabled();
 });
 
 test("row 6l: after a restart the queued design is still there, and the month adds it to the catalog", async ({
@@ -569,60 +225,6 @@ test("row 6l: after a restart the queued design is still there, and the month ad
   await navigateTo(e2e.page, "Construction");
   await e2e.page.getByRole("tab", { name: /Design Catalog/ }).click();
   await expect(e2e.page.getByText("Arethusa E2E").first()).toBeVisible({ timeout: 15_000 });
-});
-
-test("row 6m: the designed class is ordered, then revised from the Drawing Board while it is building", async ({
-  e2e,
-}) => {
-  expect(designCopy).not.toBe("");
-  await e2e.retargetDialog(designCopy);
-  await e2e.page.getByRole("button", { name: "Open Campaign" }).click();
-  await expect(e2e.page.getByRole("heading", { name: "Campaign Overview" })).toBeVisible({
-    timeout: 30_000,
-  });
-  await dismissTour(e2e.page);
-  await navigateTo(e2e.page, "Construction");
-  await e2e.page.getByRole("tab", { name: /Design Catalog/ }).click();
-  await e2e.page.getByRole("radio", { name: /Arethusa E2E/ }).click();
-  await e2e.page.getByRole("button", { name: "Submit Construction Command" }).click();
-  await e2e.page.getByRole("button", { name: "Confirm order" }).click();
-  await expect(e2e.page.getByText(/Command \S+ is submitted/)).toBeVisible();
-  await advanceMonths(e2e.page, 1);
-
-  await navigateTo(e2e.page, "Construction");
-  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
-  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
-  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
-  // Earlier rows autosaved a draft, so the board restores it and shows a persistent
-  // restoration toast that intercepts pointer events. Dismiss it ("Keep working")
-  // before editing; this row loads the ordered ship's own design next anyway.
-  const notifications = e2e.page.getByRole("region", { name: "Notifications" });
-  const keepWorking = notifications.getByRole("button", { name: "Keep working" });
-  await keepWorking.waitFor({ state: "visible", timeout: 3_000 }).catch(() => {});
-  if (await keepWorking.isVisible().catch(() => false)) await keepWorking.click();
-  await board.getByRole("tab", { name: /Build/ }).click();
-  await board.getByLabel("If applied to project").click();
-  await e2e.page.getByRole("option", { name: /Arethusa E2E/ }).click();
-  await board.getByRole("button", { name: "Load this ship's design into the board" }).click();
-  // Loading a ship's design over a draft opens a replace confirmation; wait for
-  // it (it renders a beat after the click) instead of racing isVisible().
-  const replace = e2e.page.getByRole("button", { name: "Replace my design" });
-  await replace.waitFor({ state: "visible", timeout: 4_000 }).catch(() => {});
-  if (await replace.isVisible().catch(() => false)) await replace.click();
-  // A small change: a little more installed power. The Base UI number field is
-  // controlled, so `fill` is overwritten by React and typed digits then append to
-  // the old value (23,002,400 kW). Select all with the keyboard and type over it.
-  await board.getByRole("tab", { name: /Hull and machinery/ }).click();
-  const power = board.getByLabel(/Installed power/);
-  const kw = Number((await power.inputValue()).replace(/[^0-9.-]/g, ""));
-  await power.click();
-  await power.press("ControlOrMeta+a");
-  await power.pressSequentially(String(kw + 100));
-  await power.press("Enter");
-  await board.getByRole("tab", { name: /Build/ }).click();
-  await board.getByRole("button", { name: "Apply revision to this ship" }).click();
-  await e2e.page.getByRole("button", { name: "Queue the revision" }).click();
-  await expect(board.getByText(/Revision queued/)).toBeVisible({ timeout: 15_000 });
 });
 
 test("row 6e: a fleet ordered to sail moves one hop when the month advances", async ({ e2e }) => {

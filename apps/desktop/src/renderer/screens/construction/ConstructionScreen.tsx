@@ -25,7 +25,6 @@ import { useConstructionScreen } from "./hooks/useConstructionScreen.js";
 import { CollapsibleSection } from "../../components/shared/CollapsibleSection.js";
 import { DeferredFeaturesPanel } from "../../components/shared/DeferredFeaturesPanel.js";
 import { DEFERRED_CONSTRUCTION_ITEMS } from "./construction-screen-state.js";
-import { DrawingBoardDialog } from "./drawing-board/DrawingBoardDialog.js";
 
 export function ConstructionScreen({ sessionId }: { readonly sessionId: string }) {
   const {
@@ -174,7 +173,6 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
         <TabsList>
           <TabsTrigger value="overview">Shipyard Ledger</TabsTrigger>
           <TabsTrigger value="catalog">Design Catalog</TabsTrigger>
-          <TabsTrigger value="drawing-board">Drawing Board</TabsTrigger>
           <TabsTrigger value="commands">
             Command Ledger
             {submittedCount > 0 && (
@@ -263,10 +261,6 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
               onCancelWizard={closeWizard}
             />
           )}
-        </TabsContent>
-
-        <TabsContent value="drawing-board">
-          <DrawingBoardDialog sessionId={sessionId} projects={state.projects} />
         </TabsContent>
 
         <TabsContent value="commands">

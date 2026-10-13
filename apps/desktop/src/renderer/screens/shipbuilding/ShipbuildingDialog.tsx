@@ -16,7 +16,7 @@ export interface ShipbuildingDialogProps {
 
 /**
  * The Shipbuilding workspace opens from the bottom bar in a near full-screen modal, over whichever screen is current.
- * It lives beside, and does not replace, the Drawing Board on the Construction screen.
+ * It is the app's only designer; the Construction screen's Drawing Board tab was removed (ADR-0153).
  */
 export function ShipbuildingDialog({ open, onOpenChange, sessionId }: ShipbuildingDialogProps) {
   return (

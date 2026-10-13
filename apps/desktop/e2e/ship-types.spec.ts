@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Page } from "@playwright/test";
 import { SEED, test, expect } from "./fixtures.js";
-import { advanceMonths, dismissTour, startNewCampaign } from "./flows.js";
+import { advanceMonths, dismissTour, openShipbuilding, startNewCampaign } from "./flows.js";
 
 // ADR-0088 critical path: the pre-dreadnought roster at the 1880 start, a Pre-dreadnought battleship edited into an
 // invalid configuration and corrected, submitted, studied, ordered, and still there after the app is reopened.
@@ -34,21 +34,20 @@ test("the opening roster offers the six pre-dreadnought types, and a battleship 
     timeout: 30_000,
   });
   await dismissTour(e2e.page);
-  await navigateTo(e2e.page, "Construction");
-  await e2e.page.getByRole("tab", { name: "Drawing Board" }).click();
-  await e2e.page.getByRole("button", { name: "Open Drawing Board" }).click();
-  const board = e2e.page.getByRole("dialog", { name: "Drawing Board" });
+  const workspace = await openShipbuilding(e2e.page);
 
-  // 1. The initial roster: six types in five groups, the armed merchant cruiser under auxiliaries, nothing later.
-  const roster = board.getByRole("region", { name: "Ship types" });
-  await expect(roster.getByRole("heading", { level: 3 })).toHaveText([
-    "Capital ships",
-    "Cruisers",
-    "Light combatants",
-    "Colonial vessels",
-    "Auxiliaries and special projects",
-  ]);
-  await expect(roster.getByRole("heading", { level: 4 })).toHaveText([
+  // 1. The reference-design roster offers exactly the six pre-dreadnought types
+  // (in roster order), and nothing later: no battlecruiser, aircraft, carrier or
+  // submarine card, and the dialog says more kinds arrive later.
+  await workspace.getByRole("button", { name: "More design actions" }).click();
+  await e2e.page.getByRole("menuitem", { name: /^Start from a reference design/ }).click();
+  const startDialog = e2e.page.getByRole("dialog", { name: "Start from a reference design" });
+  const roster = startDialog.getByRole("listbox", { name: "Ship types" });
+  await expect(roster.getByRole("option")).toHaveCount(6);
+  const labels = await roster
+    .getByRole("option")
+    .evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
+  expect(labels).toEqual([
     "Pre-dreadnought battleship (B)",
     "Armoured cruiser (CA)",
     "Protected cruiser (CL)",
@@ -56,46 +55,58 @@ test("the opening roster offers the six pre-dreadnought types, and a battleship 
     "Corvette / colonial gunboat (KE)",
     "Armed merchant cruiser (AMC)",
   ]);
-  await expect(roster).not.toContainText(/battlecruiser|aircraft|carrier|submarine/i);
+  await expect(startDialog).not.toContainText(/battlecruiser|aircraft|carrier|submarine/i);
+  await e2e.page.keyboard.press("Escape");
 
-  // 2. No later type can be declared from the brief either.
-  await board.getByRole("combobox", { name: "Ship type", exact: true }).click();
+  // 2. No later type can be declared from the top bar's type selector either.
+  await workspace.getByRole("combobox", { name: "Ship type", exact: true }).click();
   const options = e2e.page.getByRole("option");
   await expect(options).toHaveCount(6);
   await expect(options.filter({ hasText: /Battlecruiser|Dreadnought battleship/ })).toHaveCount(0);
   await e2e.page.keyboard.press("Escape");
 
-  // 3. Start from the battleship's starter design (a confirmation appears only if the board holds edits).
-  await roster
-    .getByRole("listitem")
-    .filter({ hasText: "Pre-dreadnought battleship" })
-    .getByRole("button", { name: /^Start from/ })
-    .click();
-  const replace = board.getByRole("button", { name: "Replace my design" });
+  // 3. Start from the battleship's starter design (a confirmation appears only if the design holds edits).
+  // The deck's cards overlap, so step the listbox to the type and confirm with Enter (as the new-game flow does).
+  await workspace.getByRole("button", { name: "More design actions" }).click();
+  await e2e.page.getByRole("menuitem", { name: /^Start from a reference design/ }).click();
+  const targetId = await e2e.page
+    .getByRole("option", { name: "Pre-dreadnought battleship (B)" })
+    .getAttribute("id");
+  await roster.focus();
+  for (let step = 0; step < 6; step++) {
+    if ((await roster.getAttribute("aria-activedescendant")) === targetId) break;
+    await roster.press("ArrowRight");
+  }
+  await roster.press("Enter");
+  const replace = e2e.page.getByRole("button", { name: "Replace my design" });
   if (await replace.isVisible().catch(() => false)) await replace.click();
-  await expect(board.getByText("Can be submitted", { exact: true })).toBeVisible();
+  await expect(workspace.getByText("Can be submitted")).toBeVisible();
 
   // 4. Thin the belt below 6 inches: the design stops qualifying as a battleship and cannot be built.
-  await board.getByRole("tab", { name: /Arrangement/ }).click();
-  const belt = board.getByLabel(/^Thickness of BELT_MAIN/);
+  await workspace.getByRole("button", { name: /^Protection, / }).click();
+  await workspace.getByRole("tab", { name: "Armour" }).click();
+  const belt = workspace.getByRole("textbox", { name: "Thickness of BELT_MAIN (mm)" });
   const original = await belt.inputValue();
   await belt.fill("100");
   await belt.press("Enter");
-  await expect(board.getByText("Cannot be built", { exact: true })).toBeVisible();
+  await expect(workspace.getByText("Cannot be built")).toBeVisible();
 
   // 5. Correct it: the finding clears and the design can be submitted again.
   await belt.fill(original);
   await belt.press("Enter");
-  await expect(board.getByText("Can be submitted", { exact: true })).toBeVisible();
+  await expect(workspace.getByText("Can be submitted")).toBeVisible();
 
   // 6. Submit the design; it is queued once and the button cannot send it twice.
-  await board.getByRole("tab", { name: /Build/ }).click();
-  await board.getByLabel("Class name").fill(CLASS_NAME);
-  await board.getByRole("button", { name: "Submit design" }).click();
-  await expect(board.getByText(new RegExp(`Design queued\\. .*"${CLASS_NAME}"`))).toBeVisible({
+  await workspace
+    .getByRole("group", { name: "Design commands" })
+    .getByRole("textbox", { name: "Class name" })
+    .fill(CLASS_NAME);
+  await workspace.getByRole("button", { name: "Finish design" }).click();
+  await workspace.getByRole("button", { name: "Submit design" }).click();
+  await expect(workspace.getByText(new RegExp(`Design queued\\. .*"${CLASS_NAME}"`))).toBeVisible({
     timeout: 15_000,
   });
-  await expect(board.getByRole("button", { name: "Queued" })).toBeDisabled();
+  await expect(workspace.getByRole("button", { name: "Queued" })).toBeDisabled();
 });
 
 test("once its study is done the design is ordered for construction", async ({ e2e }) => {

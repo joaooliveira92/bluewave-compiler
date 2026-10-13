@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 export interface NewCampaignOptions {
   readonly nation?: string;
@@ -74,6 +74,18 @@ export async function advanceMonths(page: Page, count: number): Promise<void> {
     await page.getByRole("dialog", { name: "Pre-turn review" }).waitFor({ state: "hidden" });
     await page.waitForTimeout(500);
   }
+}
+
+/**
+ * Opens the Shipbuilding workspace from the bottom bar. It is a modal over the
+ * current screen, not a screen of its own, so there is nothing to navigate to;
+ * returns the dialog once its ship-building content has loaded.
+ */
+export async function openShipbuilding(page: Page): Promise<Locator> {
+  await page.getByTestId("bottom-nav").getByRole("button", { name: "Shipbuilding" }).click();
+  const dialog = page.getByTestId("shipbuilding-dialog");
+  await dialog.getByTestId("shipbuilding-workspace").waitFor({ timeout: 15_000 });
+  return dialog;
 }
 
 /**
