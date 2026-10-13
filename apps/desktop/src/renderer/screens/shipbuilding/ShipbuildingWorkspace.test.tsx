@@ -59,12 +59,17 @@ describe("Shipbuilding workspace shell", () => {
       content.environmentFor(ref.month, ref.draft.nationId),
     );
     expect(statusOf("displacement")).toContain(
-      `${Math.round(view.totalKg / 1000).toLocaleString("en-US")} t`,
+      Math.round(view.totalKg / 1000).toLocaleString("en-US"),
+    );
+    expect(statusOf("displacement")).toContain(
+      Math.round(view.buoyantKg / 1000).toLocaleString("en-US"),
     );
     expect(statusOf("cost")).toContain(
       `£${Math.round(view.forecast.costMicro / 1_000_000).toLocaleString("en-US")}`,
     );
-    expect(statusOf("validity")).toContain(view.valid ? "Valid" : "blocking");
+    expect(within(commands()).getByRole("status").textContent).toContain(
+      view.valid ? "Can be submitted" : "Cannot be built",
+    );
   });
 
   it("edits the hull from the inspector, updates the strip, and undoes the edit", () => {
@@ -204,5 +209,65 @@ describe("Design map and inspector routing", () => {
     fireEvent.click(within(commands()).getByRole("button", { name: /Finish design/ }));
     const finish = within(localTabs()).getByRole("tab", { name: "Finish" });
     expect(finish.getAttribute("aria-selected")).toBe("true");
+  });
+});
+
+describe("Engineering status strip", () => {
+  const strip = () => screen.getByRole("region", { name: "Engineering status" });
+  const item = (id: string) => strip().querySelector<HTMLElement>(`[data-status="${id}"]`)!;
+  const trigger = (id: string) => item(id).querySelector<HTMLElement>("button, a")!;
+
+  it("shows displacement, cost, speed, range, stability, topside load and warnings", () => {
+    render(<ShipbuildingWorkspace />);
+    for (const id of [
+      "displacement",
+      "cost",
+      "speed",
+      "range",
+      "stability",
+      "topside",
+      "remaining",
+      "warnings",
+    ])
+      expect(item(id)).toBeTruthy();
+    // A sound design stays neutral; only the warning count turns amber.
+    expect(item("displacement").getAttribute("data-tone")).toBe("neutral");
+    expect(item("warnings").getAttribute("data-tone")).toBe("warn");
+  });
+
+  it("opens a weight breakdown, whose groups add up to current, on clicking displacement", () => {
+    render(<ShipbuildingWorkspace />);
+    fireEvent.click(trigger("displacement"));
+    const title = screen.getByText("Weight breakdown");
+    const body = title.parentElement!;
+    expect(within(body).getByText("Hull")).toBeTruthy();
+    expect(within(body).getByText("Machinery")).toBeTruthy();
+    expect(within(body).getByText("Current")).toBeTruthy();
+    expect(within(body).getByText("Capacity")).toBeTruthy();
+    expect(within(body).getByText("Remaining")).toBeTruthy();
+  });
+
+  it("opens a cost breakdown on clicking cost", () => {
+    render(<ShipbuildingWorkspace />);
+    fireEvent.click(trigger("cost"));
+    const body = screen.getByText("Cost breakdown").parentElement!;
+    expect(within(body).getByText("Hull")).toBeTruthy();
+    expect(within(body).getByText("Total")).toBeTruthy();
+  });
+
+  it("opens the stability causes on clicking stability", () => {
+    render(<ShipbuildingWorkspace />);
+    fireEvent.click(trigger("stability"));
+    const body = screen.getByText("Stability causes").parentElement!;
+    expect(within(body).getByText("GM")).toBeTruthy();
+  });
+
+  it("distinguishes committed from reserved weight when available weight is hovered", () => {
+    render(<ShipbuildingWorkspace />);
+    fireEvent.mouseEnter(trigger("remaining"));
+    const body = screen.getByText("Available weight").parentElement!;
+    expect(within(body).getByText("Committed")).toBeTruthy();
+    expect(within(body).getByText("Reserved")).toBeTruthy();
+    expect(within(body).getByText("Free")).toBeTruthy();
   });
 });

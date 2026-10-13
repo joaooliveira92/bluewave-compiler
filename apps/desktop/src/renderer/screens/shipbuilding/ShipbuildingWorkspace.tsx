@@ -48,7 +48,6 @@ import {
   NotAvailable,
   ShipStage,
   WorkspaceDialog,
-  type StatusValue,
 } from "./components/index.js";
 import {
   SECTIONS,
@@ -57,13 +56,11 @@ import {
   type DesignSectionId,
   type InspectorPlace,
 } from "./design-sections.js";
+import { engineeringStatus } from "./engineering-status.js";
 import { sectionStatuses } from "./section-status.js";
 
 /** How long "Saved" shows after an explicit save. */
 const SAVED_FLASH_MS = 2000;
-
-const tonnes = (kg: number) => `${Math.round(kg / 1000).toLocaleString("en-US")} t`;
-const pounds = (micro: number) => `£${Math.round(micro / 1_000_000).toLocaleString("en-US")}`;
 
 type OverflowDialog = "start" | "file" | "history" | "alternatives";
 
@@ -147,28 +144,7 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
     tone: view.valid ? ("ok" as const) : ("bad" as const),
     detail: `${view.counts.BLOCKING} blocking · ${view.counts.CRITICAL} critical · ${plural(view.counts.WARNING, "warning")}`,
   };
-  const warnings = view.counts.CRITICAL + view.counts.WARNING;
-  const statusValues: StatusValue[] = [
-    {
-      id: "validity",
-      label: "Design",
-      value: view.valid ? "Valid" : `${plural(view.counts.BLOCKING, "blocking finding")}`,
-      tone: view.valid ? "neutral" : "bad",
-    },
-    {
-      id: "displacement",
-      label: "Displacement",
-      value: tonnes(view.totalKg),
-      tone: view.metrics.find((m) => m.id === "displacement")?.tone === "bad" ? "bad" : "neutral",
-    },
-    { id: "cost", label: "Cost", value: pounds(view.forecast.costMicro), tone: "neutral" },
-    {
-      id: "warnings",
-      label: "Warnings",
-      value: String(warnings),
-      tone: warnings > 0 ? "warn" : "neutral",
-    },
-  ];
+  const readouts = useMemo(() => engineeringStatus(view), [view]);
 
   const fittings = useMemo(() => {
     const category = new Map(content.components.map((c) => [c.id, c.category]));
@@ -394,7 +370,7 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
             {body}
           </Inspector>
         </div>
-        <EngineeringStatusBar values={statusValues} />
+        <EngineeringStatusBar readouts={readouts} />
         <ConfirmDialog
           open={pendingPreset !== null}
           onOpenChange={(open) => !open && setPendingPreset(null)}

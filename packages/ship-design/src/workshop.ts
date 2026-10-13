@@ -11,7 +11,7 @@ import {
   type LineId,
 } from "./construction.js";
 import { classCode } from "./classification.js";
-import { computeCost, type CostBalance, type CostContext } from "./cost.js";
+import { computeCost, type CostBalance, type CostBreakdown, type CostContext } from "./cost.js";
 import { computeCve, CVE_LABEL, type CveBalance } from "./cve.js";
 import type { Finding, Severity } from "./findings.js";
 import { LEDGER_CATEGORIES, type LedgerCategory } from "./ledger.js";
@@ -87,6 +87,8 @@ export interface WorkshopView {
     /** Every yard in ascending capacity: whether it can hold the hull and how long it would take. Empty until the design is valid. */
     readonly yards: readonly YardOption[];
     readonly note: string | null;
+    /** Line-by-line cost, so a readout can show where the total comes from without recomputing it. */
+    readonly costBreakdown: CostBreakdown;
   };
   readonly cve: { readonly label: string; readonly cveBp: number };
   readonly compiled: CompiledDesign;
@@ -254,6 +256,7 @@ export function buildWorkshopView(draft: DesignDraft, env: WorkshopEnvironment):
       yardId,
       yards: yardOptions,
       note,
+      costBreakdown: cost,
     },
     cve: { label: CVE_LABEL, cveBp: cve.cveBp },
     compiled: c,
