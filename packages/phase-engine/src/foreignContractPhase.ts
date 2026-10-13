@@ -500,6 +500,8 @@ function demandFor(
   contract: ForeignConstructionContract,
 ): { lengthMm: number; beamMm: number; displacementKg: number; heaviestKg: number } {
   const design = snapshot["designs"].get(contract["designVersionId"]);
+  // INC-16: the compiled design carries no length/beam, so the monthly builder-capability dock revalidation judges only
+  // the mass ceiling. Recorded deferral owned by ship-design/campaign content.
   return {
     lengthMm: 0,
     beamMm: 0,

@@ -21,6 +21,13 @@ the drawing-board compile path (SB-1/SB-2) and the content schema. It is out of 
 EARLY-band delta scope and belongs with the design-model work; inventing the values would violate the
 "no fabricated values" rule.
 
+## Status (2026-10-12)
+
+The deferral is **recorded, not silently inert**: every site that supplies `lengthMm: 0, beamMm: 0` to
+`newConstructionDockEligibility`/the builder-capability demand now carries an `INC-16` comment
+(`packages/phase-engine/src/orderEligibility.ts`, `foreignConstruction.ts`, `foreignContractPhase.ts`) pointing
+here. No behavioural change; the mass ceiling remains enforced and tested. This ticket stays the owner.
+
 ## Acceptance criteria (for whoever picks this up)
 
 - [ ] `CompiledDesignVersion` carries persisted length/beam (or a derived dimension predicate), with a

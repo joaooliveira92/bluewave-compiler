@@ -177,6 +177,9 @@ export function constructionOrderEligibility(
         ? dockRecordFor(profile)
         : null;
   if (dockRecord !== null) {
+    // INC-16: `CompiledDesignVersion` persists no length/beam, so the dock's dimension predicate is inert here (only
+    // the mass ceiling is enforced). Recorded deferral owned by the ship-design/campaign-content work — see
+    // `.scratch/shipbuilding-process/issues/INC-16-ship-dimension-dock-predicate.issue.md`.
     const dock = newConstructionDockEligibility(dockRecord, {
       lengthMm: 0,
       beamMm: 0,

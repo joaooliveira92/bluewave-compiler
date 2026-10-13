@@ -443,6 +443,8 @@ export function placeForeignConstructionOrder(
 
   const monthIdValue = monthId(request.month.year, request.month.month);
   const displacementKg = Number(design.normalizedDisplacementKg);
+  // INC-16: `CompiledDesignVersion` carries no length/beam, so the builder's dock dimension predicate is inert (only
+  // the mass/displacement ceiling is judged). Recorded deferral owned by ship-design/campaign content.
   const demand: YardDemand = {
     lengthMm: 0,
     beamMm: 0,
