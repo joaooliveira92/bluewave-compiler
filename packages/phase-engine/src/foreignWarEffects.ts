@@ -150,6 +150,57 @@ export const FOREIGN_WAR_OUTCOME_EFFECTS: Readonly<
   },
 };
 
+// ---------------------------------------------------------------------------------------------------------------
+// DESIGN-16 section 13.6/13.7: the settlement money an outcome moves
+// ---------------------------------------------------------------------------------------------------------------
+
+/** The versioned settlement policy the refund/compensation postings follow (no manual formula; DECISION 2026-10-12). */
+export const FOREIGN_SETTLEMENT_POLICY_ID = "foreign_contract_settlement_v1" as const;
+export const FOREIGN_SETTLEMENT_CATEGORY_ID = "foreign_contract_settlement" as const;
+
+/** One balanced leg of an outcome's settlement. `direction` names whether the nation pays or is paid. */
+export interface ForeignSettlementPosting {
+  readonly nationId: string;
+  readonly direction: "OUTFLOW" | "INFLOW";
+  readonly categoryId: string;
+  readonly amountUnits: number;
+  readonly reason: string;
+}
+
+/**
+ * DESIGN-16 sections 13.6/13.7: the money the declared outcome moves, as a balanced pair. The shipped settlement
+ * (`foreign_contract_settlement_v1`, DECISION 2026-10-12): for a refund effect, the BUILDER returns to the ORDERING
+ * nation the cumulative amount already paid on the abandoned/impounded contract (the ordering nation paid for work it
+ * does not receive). `FORFEIT_OR_COMPENSATION` with nothing paid is a pure forfeiture — no money moves. A `NONE`
+ * refund (CONTINUE/DELAY/SUSPEND) and a zero paid amount both return no postings. Pure and deterministic.
+ */
+export function foreignWarSettlementPostings(
+  contract: ForeignConstructionContract,
+  outcome: ForeignContractWarOutcome,
+  paidAmountUnits: number,
+): readonly ForeignSettlementPosting[] {
+  if (FOREIGN_WAR_OUTCOME_EFFECTS[outcome].refund === "NONE") return [];
+  const paid = Number.isSafeInteger(paidAmountUnits) && paidAmountUnits > 0 ? paidAmountUnits : 0;
+  if (paid <= 0) return [];
+  const reason = `foreign_contract_settlement:${contract.contractId}:${outcome}`;
+  return [
+    {
+      nationId: contract.builderNationId,
+      direction: "OUTFLOW",
+      categoryId: FOREIGN_SETTLEMENT_CATEGORY_ID,
+      amountUnits: paid,
+      reason,
+    },
+    {
+      nationId: contract.orderingNationId,
+      direction: "INFLOW",
+      categoryId: FOREIGN_SETTLEMENT_CATEGORY_ID,
+      amountUnits: paid,
+      reason,
+    },
+  ];
+}
+
 /** DESIGN-16 section 14: a guarantee is present when the contract carries a clause other than `NONE`. */
 export function isDeliveryGuaranteeActive(contract: ForeignConstructionContract): boolean {
   return (

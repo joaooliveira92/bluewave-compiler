@@ -641,16 +641,15 @@ export interface ForeignPaymentLedgerOptions {
 }
 
 /**
- * DESIGN-16 section 13.4: the balanced `FinancialLedger` entries for one paid instalment. Each leg is internally
+ * DESIGN-16 section 13.4/13.6: the balanced `FinancialLedger` entries for a posting pair. Each leg is internally
  * balanced (`debit === credit`), so the invariant the ledger enforces holds; the direction is carried in the posting.
  */
-export function foreignPaymentLedgerEntries(
-  contract: ForeignConstructionContract,
-  installment: ForeignContractPaymentInstallment,
+export function foreignPostingLedgerEntries(
+  postings: readonly ForeignPaymentPosting[],
   options: ForeignPaymentLedgerOptions,
 ): readonly LedgerTransactionInput[] {
   const balances = options.balances;
-  return foreignPaymentPostings(contract, installment).map((posting) => {
+  return postings.map((posting) => {
     const rawPrevious = balances[posting.nationId];
     const previous = Number.isSafeInteger(rawPrevious) ? (rawPrevious as number) : 0;
     const delta = posting.direction === "OUTFLOW" ? -posting.amountUnits : posting.amountUnits;
@@ -667,6 +666,18 @@ export function foreignPaymentLedgerEntries(
       options.campaignMonth,
     );
   });
+}
+
+/**
+ * DESIGN-16 section 13.4: the balanced `FinancialLedger` entries for one paid instalment. Each leg is internally
+ * balanced (`debit === credit`), so the invariant the ledger enforces holds; the direction is carried in the posting.
+ */
+export function foreignPaymentLedgerEntries(
+  contract: ForeignConstructionContract,
+  installment: ForeignContractPaymentInstallment,
+  options: ForeignPaymentLedgerOptions,
+): readonly LedgerTransactionInput[] {
+  return foreignPostingLedgerEntries(foreignPaymentPostings(contract, installment), options);
 }
 
 export interface ForeignPaymentMonthInput {

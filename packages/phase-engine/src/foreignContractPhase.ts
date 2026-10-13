@@ -33,6 +33,7 @@ import {
   foreignBuilderCommittedMassKg,
   foreignContractReservedMassKg,
   foreignPaymentLedgerEntries,
+  foreignPostingLedgerEntries,
   foreignUnlockedWork,
   isForeignPaymentDefaultProject,
   verifyForeignContractHash,
@@ -51,6 +52,7 @@ import type { MonthContext } from "./monthContext.js";
 import type { RandomEngine } from "@bluewave/random";
 import {
   authorizeForeignImpoundment,
+  foreignWarSettlementPostings,
   isDeliveryGuaranteeActive,
   resolveForeignWarPolicy,
   type ForeignWarPolicyResolution,
@@ -145,8 +147,19 @@ export function runForeignContractPhase(
     for (const project0 of [...foreignProjects].sort((a, b) => byContractThenId(contracts, a, b))) {
       const contractId = project0["foreignContractId"]!;
       const contract = contracts.get(contractId);
-      // INC-9e NIT: a terminal foreign project has no month left to resolve.
-      if (project0["status"] === "COMPLETED" || project0["status"] === "CANCELLED") continue;
+      // A foreign project that has reached a terminal outcome has no month left to resolve. `IMPOUNDED` is terminal
+      // for the monthly step (DESIGN-16 section 13.7: custody has transferred and future delivery is not eligible), so
+      // it is never re-resolved — which also keeps a once-only settlement from being posted again every month. It must
+      // still be excluded from the ordinary appropriation (a skip entry), or the work phase would fund and reactivate a
+      // hull in another nation's custody.
+      if (
+        project0["status"] === "COMPLETED" ||
+        project0["status"] === "CANCELLED" ||
+        project0["status"] === "IMPOUNDED"
+      ) {
+        skipIds.add(project0["id"]);
+        continue;
+      }
 
       if (contract === undefined) {
         ctx.collector.addError(
@@ -185,6 +198,10 @@ export function runForeignContractPhase(
       const war = foreignWarResolution(ctx, nationId, contract, campaignMonth, warRng);
       if (war.outcome !== "CONTINUE") {
         const paidAmountUnits = paidAmountOf(contract, records.get(contractId) ?? []);
+        // DESIGN-16 sections 13.6-13.7 (SB3-R23): the settlement money the outcome declares. For a refund effect
+        // (`SETTLEMENT` / `FORFEIT_OR_COMPENSATION`) the BUILDER returns the cumulative paid amount to the ORDERING
+        // nation; a zero-paid forfeiture moves nothing (see `foreignWarSettlementPostings`).
+        const settlement = foreignWarSettlementPostings(contract, war.outcome, paidAmountUnits);
         const currentNation = nations.get(nationId)!;
         const impound =
           war.outcome === "IMPOUND"
@@ -198,6 +215,7 @@ export function runForeignContractPhase(
                 custodyNationId: contract["builderNationId"],
               })
             : null;
+        let appliedStatus: "IMPOUNDED" | "CANCELLED" | "DELAYED" | null = null;
         if (impound !== null && impound.ok) {
           nations.set(nationId, impound.nation);
           updatedById.set(
@@ -205,7 +223,7 @@ export function runForeignContractPhase(
             impound.nation["constructionProjects"].find((p) => p["id"] === project0["id"])!,
           );
           capabilityDelayed.add(project0["id"]);
-          changed = true;
+          appliedStatus = "IMPOUNDED";
         } else {
           const target = war.outcome === "CANCEL_WITH_SETTLEMENT" ? "CANCELLED" : "DELAYED";
           if (canTransitionConstructionProject(project0["status"], target)) {
@@ -217,9 +235,60 @@ export function runForeignContractPhase(
             });
             // A war-held DELAYED project must not be unwound by the same-month auto-resume (like a capability delay).
             if (target === "DELAYED") capabilityDelayed.add(project0["id"]);
-            changed = true;
+            appliedStatus = target;
           }
         }
+        // Money moves only when the outcome's effect actually applied (the impoundment took custody, or the refund
+        // outcome reached its state): a refused/illegal impoundment posts nothing. It can never post twice, because an
+        // `IMPOUNDED`/`CANCELLED` project is terminal and skipped on later months.
+        const settledByOutcome =
+          impound !== null ? impound.ok : settlement.length > 0 && appliedStatus !== null;
+        if (settledByOutcome) {
+          const builder = nations.get(contract["builderNationId"]);
+          const orderingNow = nations.get(nationId)!;
+          if (builder === undefined) {
+            ctx.collector.addError(
+              "FOREIGN_CONTRACT_BUILDER_NATION_MISSING",
+              `Builder ${contract["builderNationId"]} for contract ${contractId} is not in the campaign; the war settlement is not posted`,
+              { stage: "appropriation", entityId: project0["id"] },
+            );
+          } else {
+            // The compensation is limited by the builder's means: the transfer is clamped to its available treasury so
+            // the ledger never records a balance the obligation phase would later floor (DECISION 2026-10-12).
+            const owed = settlement.reduce(
+              (sum, p) => sum + (p.direction === "OUTFLOW" ? p.amountUnits : 0),
+              0,
+            );
+            const affordable = Math.min(owed, Math.max(0, Number(builder["treasury"])));
+            if (affordable > 0) {
+              const clamped = settlement.map((p) => ({ ...p, amountUnits: affordable }));
+              for (const entry of foreignPostingLedgerEntries(clamped, {
+                campaignMonth,
+                phaseId: "appropriation",
+                balances: {
+                  [nationId]: Number(orderingNow["treasury"]),
+                  [contract["builderNationId"]]: Number(builder["treasury"]),
+                },
+              }))
+                ctx.financialLedger.append(entry);
+              const deltas = new Map<string, number>();
+              for (const p of clamped)
+                deltas.set(
+                  p.nationId,
+                  (deltas.get(p.nationId) ?? 0) +
+                    (p.direction === "OUTFLOW" ? -p.amountUnits : p.amountUnits),
+                );
+              for (const [id, delta] of deltas) {
+                const nation = nations.get(id)!;
+                nations.set(id, {
+                  ...nation,
+                  treasury: SafeInt(Number(nation["treasury"]) + delta),
+                });
+              }
+            }
+          }
+        }
+        if (settledByOutcome || appliedStatus !== null) changed = true;
         // A war-resolved contract is always excluded from ordinary appropriation this month.
         skipIds.add(project0["id"]);
         continue;
