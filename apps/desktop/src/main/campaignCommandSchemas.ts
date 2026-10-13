@@ -1,6 +1,10 @@
 import { CANONICAL_SCENARIO_IDS, FLEET_SIZE_IDS, RESEARCH_IDS } from "@bluewave/campaign";
 import { CANONICAL_RESEARCH_FIELD_IDS } from "@bluewave/campaign-engine";
 import { Schema } from "effect";
+import {
+  INSPECTOR_MAX_WIDTH_PX,
+  INSPECTOR_MIN_WIDTH_PX,
+} from "../shared/campaign-command-contract.js";
 
 /**
  * ENGINEERING-CONTRACT.md's Electron boundary rule requires IPC requests to be
@@ -366,7 +370,10 @@ export const FirstMonthInspectionSchema = Schema.Struct({
 
 /** The shipbuilding inspector layout (ADR-0038): presentation-only pane state, never authoritative. */
 export const InspectorLayoutSchema = Schema.Struct({
-  widthPx: Schema.Finite,
+  widthPx: Schema.Finite.check(
+    Schema.isInt(),
+    Schema.isBetween({ minimum: INSPECTOR_MIN_WIDTH_PX, maximum: INSPECTOR_MAX_WIDTH_PX }),
+  ),
   collapsed: Schema.Boolean,
 });
 

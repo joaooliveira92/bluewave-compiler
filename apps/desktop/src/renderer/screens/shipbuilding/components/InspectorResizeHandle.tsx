@@ -64,6 +64,10 @@ export function InspectorResizeHandle({
         if (e.currentTarget.hasPointerCapture(e.pointerId)) track(e);
       }}
       onPointerUp={(e) => e.currentTarget.releasePointerCapture(e.pointerId)}
+      onPointerCancel={(e) => {
+        if (e.currentTarget.hasPointerCapture(e.pointerId))
+          e.currentTarget.releasePointerCapture(e.pointerId);
+      }}
       onDoubleClick={() => onChange(INSPECTOR_DEFAULT_PX)}
       className={`group relative cursor-col-resize touch-none outline-none focus-visible:ring-2 focus-visible:ring-ring ${className ?? ""}`}
     >

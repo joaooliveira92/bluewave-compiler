@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { UiStateFirstMonthInspection } from "../../shared/campaign-command-contract.js";
 import type { BluewaveDesktopBridge } from "../../preload/index.js";
 import { useBridge } from "../lib/bridge-context.js";
+import { writeUiStatePatch } from "../lib/uiStateSidecar.js";
 import {
   GUIDED_STEP_COUNT,
   dismissedInspectionState,
@@ -45,18 +46,8 @@ async function writeInspection(
   sessionId: string,
   inspection: UiStateFirstMonthInspection,
 ): Promise<UiStateFirstMonthInspection | undefined> {
-  if (bridge === undefined) return undefined;
-  // Merge semantics: writeUiState carries dismissedFingerprints (empty for now) + inspection
-  const readBefore = await bridge.campaign.execute("readUiState", sessionId);
-  const dismissed =
-    readBefore.outcome === "success" ? [...readBefore.value.uiState.dismissedFingerprints] : [];
-  const result = await bridge.campaign.execute("writeUiState", {
-    sessionId,
-    dismissedFingerprints: dismissed,
-    firstMonthInspection: inspection,
-  });
-  if (result.outcome !== "success") return undefined;
-  return result.value.uiState.firstMonthInspection;
+  const uiState = await writeUiStatePatch(bridge, sessionId, { firstMonthInspection: inspection });
+  return uiState?.firstMonthInspection;
 }
 
 export function useGuidedInspection(

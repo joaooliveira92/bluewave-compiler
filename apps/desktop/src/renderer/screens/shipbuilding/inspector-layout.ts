@@ -1,4 +1,8 @@
 import type { UiStateInspectorLayout } from "../../../shared/campaign-command-contract.js";
+import {
+  INSPECTOR_MAX_WIDTH_PX,
+  INSPECTOR_MIN_WIDTH_PX,
+} from "../../../shared/campaign-command-contract.js";
 
 /**
  * The shipbuilding inspector's layout vocabulary: the width bounds and the tolerant decode of the
@@ -9,9 +13,9 @@ import type { UiStateInspectorLayout } from "../../../shared/campaign-command-co
 export type InspectorLayout = UiStateInspectorLayout;
 
 /** Narrowest the inspector may get: its forms and tab strip stay usable. */
-export const INSPECTOR_MIN_PX = 360;
+export const INSPECTOR_MIN_PX = INSPECTOR_MIN_WIDTH_PX;
 /** Widest the inspector may get before it starts crowding out the ship. */
-export const INSPECTOR_MAX_PX = 560;
+export const INSPECTOR_MAX_PX = INSPECTOR_MAX_WIDTH_PX;
 /** The width the inspector opens at, inside the 400–480 recommendation band. */
 export const INSPECTOR_DEFAULT_PX = 440;
 /** The restore strip the inspector folds down to. */

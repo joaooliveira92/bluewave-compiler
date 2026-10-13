@@ -58,4 +58,22 @@ describe("useInspectorLayout", () => {
     await new Promise((resolve) => setTimeout(resolve, 400));
     expect(execute).not.toHaveBeenCalled();
   });
+
+  it("flushes a resize that lands just before unmount, so the last change is remembered", async () => {
+    const execute = vi.fn(async (command: string) =>
+      command === "readUiState" ? uiState(undefined, []) : uiState(),
+    );
+    const { result, unmount } = renderHook(() => useInspectorLayout("ses_1"), {
+      wrapper: wrapper(execute),
+    });
+    act(() => result.current.setWidth(500));
+    unmount();
+    await waitFor(() =>
+      expect(execute).toHaveBeenCalledWith("writeUiState", {
+        sessionId: "ses_1",
+        dismissedFingerprints: [],
+        inspector: { widthPx: 500, collapsed: false },
+      }),
+    );
+  });
 });

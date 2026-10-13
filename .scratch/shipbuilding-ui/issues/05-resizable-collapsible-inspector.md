@@ -54,3 +54,23 @@ malformed rejection).
 `vp lint`/`vp fmt --check` → clean; `pnpm snap` (expanded: handle + "Hide inspector" visible) and
 `pnpm snap --click "Hide inspector"` (collapsed strip: "Show inspector" + vertical "Overview") →
 `idle mutations/s: structural=0 attributes=0`, console clean.
+
+### Review follow-ups (folded in)
+
+The two-axis review (Standards + Spec) returned APPROVE with follow-ups; all substantive findings landed:
+
+- **AC2 unmount flush** — closing the dialog unmounts the hook, so the pending debounced write is now
+  flushed on cleanup (a resize/collapse in the last 300 ms is remembered).
+- **Mount-read race** — a stored layout no longer clobbers a width the player set while the async read
+  was in flight (an `edited` guard).
+- **Boundary strictness** — `InspectorLayoutSchema.widthPx` is now a bounded integer (`isInt` +
+  `isBetween`), with the bounds shared from `INSPECTOR_MIN_WIDTH_PX`/`INSPECTOR_MAX_WIDTH_PX` so the
+  renderer and the wire schema cannot drift.
+- **Duplication** — the read-before-write sidecar merge is extracted to `renderer/lib/uiStateSidecar.ts`
+  and shared with `useGuidedInspection`.
+- **Pointer cancel** — the splitter releases pointer capture on `pointercancel`.
+- **ADR drift** — ADR-0038's Shape line now records the `inspector` field.
+
+Not folded in (recorded): `InspectorResizeHandle` still mirrors `SplitDivider`'s splitter markup; the
+two differ in unit (px vs %) and sign and extracting one primitive would reach into the Drawing Board's
+splitter — a standalone refactor, not this ticket's AC.

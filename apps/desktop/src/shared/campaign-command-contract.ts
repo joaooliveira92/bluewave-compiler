@@ -216,6 +216,10 @@ export interface UiStateInspectorLayout {
   readonly collapsed: boolean;
 }
 
+/** The inspector pane's width bounds, in CSS pixels — one source for the wire schema and the renderer. */
+export const INSPECTOR_MIN_WIDTH_PX = 360;
+export const INSPECTOR_MAX_WIDTH_PX = 560;
+
 export interface UiState {
   /** The turn the sidecar was last written at. */
   readonly turnNumber: number;

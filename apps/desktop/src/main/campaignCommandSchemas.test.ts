@@ -328,6 +328,17 @@ describe("UiStateSchema / FirstMonthInspectionSchema", () => {
       dismissedFingerprints: [],
       inspector: { widthPx: "wide", collapsed: false },
     });
+    // Out of the supported range or non-integer is rejected at the boundary.
+    expectFailure(UiStateSchema, {
+      turnNumber: 1,
+      dismissedFingerprints: [],
+      inspector: { widthPx: 300, collapsed: false },
+    });
+    expectFailure(UiStateSchema, {
+      turnNumber: 1,
+      dismissedFingerprints: [],
+      inspector: { widthPx: 440.5, collapsed: false },
+    });
   });
 
   it("bounds lastCompletedStep to 0..6", () => {
