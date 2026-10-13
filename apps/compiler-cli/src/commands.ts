@@ -3,8 +3,12 @@ import {
   CONTENT_LOCK_FILENAME,
   buildContentBundleArtifact,
   buildFullSurfaceInput,
+  countConfidence,
   verifyContentLock,
   writeContentBundleArtifact,
+  checkPlaceholderGate,
+  type ConfidenceCounts,
+  type PlaceholderAllowlistEntry,
 } from "@bluewave/content-compiler";
 import type { CompilerInput } from "@bluewave/content-compiler";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
@@ -16,11 +20,7 @@ import {
   createEnvelope,
   verifyEnvelope,
 } from "@bluewave/deterministic";
-import {
-  CampaignCompiler,
-  type CampaignCompilerInput,
-  type CampaignFiles,
-} from "@bluewave/campaign/compiler";
+import { CampaignCompiler, type CampaignCompilerInput } from "@bluewave/campaign/compiler";
 import { SaveStore, CURRENT_COMPATIBILITY_VERSION } from "@bluewave/persistence";
 import type {
   CampaignState,
@@ -291,13 +291,19 @@ interface GunneryResolveShotFile {
 
 export function runCampaignCompile(options: CampaignCliOptions): ExitCategory {
   const collector = new DiagnosticCollector();
-  const compilerInput = buildInput(options, collector);
-  if (!compilerInput) return "usage-error";
-  const campaignFiles = buildCampaignFiles(options, collector);
-  if (!campaignFiles) return "usage-error";
+  // The decoded-bundle path (CAH-LEG-1): build the verified content bundle and
+  // hand it to the campaign compiler, so the CLI campaign compile reads no raw
+  // campaign YAML at runtime.
+  const input = buildContentSurfaceInput(options, collector);
+  if (!input) return "usage-error";
+  const artifact = buildContentBundleArtifact(input, new AbortController().signal, collector);
+  if (collector.hasErrors || !artifact) {
+    printDiagnostics(collector, options.outputMode);
+    return collector.hasErrors ? "validation-error" : "compile-error";
+  }
   const campaignInput: CampaignCompilerInput = {
-    compilerInput,
-    campaignFiles,
+    contentBundle: artifact.bundle,
+    contentHash: artifact.envelope.bodyHash,
     rulesetVersion: "1.0.0",
     compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
   };
@@ -948,40 +954,6 @@ export function buildInput(
   };
 }
 
-export function buildCampaignFiles(
-  options: CliOptions,
-  collector: DiagnosticCollector,
-): CampaignFiles | undefined {
-  const manifestPath = resolve(options.manifest);
-  const contentDir = resolve(options.contentDir);
-  if (!existsSync(manifestPath)) {
-    collector.addError("USAGE", `Manifest not found: ${manifestPath}`);
-    return undefined;
-  }
-  let manifest: { files?: Record<string, string[]> };
-  try {
-    const manifestContent = readFileSync(manifestPath, "utf8");
-    manifest = JSON.parse(manifestContent);
-  } catch {
-    collector.addError("USAGE", `Failed to parse manifest: ${manifestPath}`);
-    return undefined;
-  }
-  const toAbsolute = (file: string) => resolve(contentDir, file);
-  const safeCheck = (file: string) => {
-    safePath(file);
-    return file;
-  };
-  const files = manifest.files ?? {};
-  return {
-    fleetFiles: (files.fleets ?? []).map(safeCheck).map(toAbsolute).map(safePath),
-    economyFiles: (files.economies ?? []).map(safeCheck).map(toAbsolute).map(safePath),
-    constructionFiles: (files.constructions ?? []).map(safeCheck).map(toAbsolute).map(safePath),
-    diplomacyFiles: (files.diplomacy ?? []).map(safeCheck).map(toAbsolute).map(safePath),
-    researchFiles: (files.research ?? []).map(safeCheck).map(toAbsolute).map(safePath),
-    designFiles: (files.designs ?? []).map(safeCheck).map(toAbsolute).map(safePath),
-  };
-}
-
 export function buildContentSurfaceInput(
   options: CliOptions,
   collector: DiagnosticCollector,
@@ -1008,12 +980,15 @@ export function runContentCheck(options: CliOptions): ExitCategory {
   if (collector.hasErrors) return "validation-error";
   if (!artifact) return "compile-error";
   const contentHash = artifact.manifest.bodyHash;
+  const confidence = countConfidence(artifact.bundle);
   if (options.outputMode === "json") {
     printResult(
       JSON.stringify({
         contentVersion: artifact.contentVersion,
         contentHash,
         shipBuilding: artifact.bundle.shipBuilding !== undefined,
+        confidence: confidence.collections,
+        confidenceTotal: confidence.total,
       }),
       "human",
     );
@@ -1025,6 +1000,124 @@ export function runContentCheck(options: CliOptions): ExitCategory {
       `  Ship-building catalogue: ${artifact.bundle.shipBuilding ? "included" : "absent"}`,
       "human",
     );
+    printConfidenceReport(confidence.collections, confidence.total);
+  }
+  return "success";
+}
+
+/**
+ * The per-collection confidence report (CAH-PROV-2). Collections with at least
+ * one provenance record are listed; the total covers the whole bundle.
+ */
+function printConfidenceReport(
+  collections: ReadonlyArray<{ collection: string; counts: ConfidenceCounts }>,
+  total: ConfidenceCounts,
+): void {
+  const labelled = collections.filter((entry) => entry.counts.total > 0);
+  printResult("  Confidence:", "human");
+  for (const { collection, counts } of labelled) {
+    printResult(
+      `    ${collection}: HIGH ${counts.HIGH}, MEDIUM ${counts.MEDIUM}, LOW ${counts.LOW}`,
+      "human",
+    );
+  }
+  printResult(`    (total: HIGH ${total.HIGH}, MEDIUM ${total.MEDIUM}, LOW ${total.LOW})`, "human");
+}
+
+/**
+ * The committed placeholder allowlist read by `content:gate` (CAH-PROV-3): a
+ * small JSON file naming each admitted placeholder and why. Absent file = empty
+ * allowlist.
+ */
+export const CONTENT_PLACEHOLDER_ALLOWLIST_FILENAME = "placeholder-allowlist.json";
+
+/**
+ * `content:gate` — the release gate (CAH-PROV-3). Rebuilds the whole authored
+ * surface and fails a shipping (production) pack that still carries an
+ * unresolved `PLACEHOLDER` value, unless the exact collection/record/field is on
+ * the recorded, justified allowlist. Non-production packs are skipped.
+ */
+export function runContentGate(options: CliOptions): ExitCategory {
+  const collector = new DiagnosticCollector();
+  const input = buildContentSurfaceInput(options, collector);
+  if (!input) {
+    printDiagnostics(collector, options.outputMode);
+    return "usage-error";
+  }
+  const artifact = buildContentBundleArtifact(input, new AbortController().signal, collector);
+  if (collector.hasErrors || !artifact) {
+    printDiagnostics(collector, options.outputMode);
+    return collector.hasErrors ? "validation-error" : "compile-error";
+  }
+
+  const manifest = artifact.bundle.manifest as { type?: unknown };
+  if (manifest.type !== "production") {
+    if (options.outputMode === "json") {
+      printResult(
+        JSON.stringify({ skipped: true, reason: "not a shipping (production) pack" }),
+        "human",
+      );
+    } else {
+      printResult("Content gate skipped: not a shipping (production) pack", "human");
+    }
+    return "success";
+  }
+
+  const allowlistPath = resolve(options.contentDir, CONTENT_PLACEHOLDER_ALLOWLIST_FILENAME);
+  let allowlist: PlaceholderAllowlistEntry[] = [];
+  if (existsSync(allowlistPath)) {
+    try {
+      const parsed = JSON.parse(readFileSync(allowlistPath, "utf8")) as { allow?: unknown };
+      if (Array.isArray(parsed.allow)) allowlist = parsed.allow as PlaceholderAllowlistEntry[];
+    } catch {
+      collector.addError(
+        "PLACEHOLDER-ALLOWLIST",
+        `Failed to parse placeholder allowlist: ${allowlistPath}`,
+        { stage: "validate" },
+      );
+      printDiagnostics(collector, options.outputMode);
+      return "usage-error";
+    }
+  }
+
+  const result = checkPlaceholderGate(artifact.bundle, allowlist);
+  for (const entry of result.invalidAllowlist) {
+    collector.addError("PLACEHOLDER-ALLOWLIST", entry, {
+      stage: "validate",
+      sourceLocation: { path: CONTENT_PLACEHOLDER_ALLOWLIST_FILENAME, line: 1 },
+      remediation: "Give the allowlist entry a justification, or remove it",
+    });
+  }
+  for (const violation of result.violations) {
+    collector.addError(
+      "PLACEHOLDER",
+      `Unresolved placeholder in ${violation.collection} '${violation.recordId}' at ${violation.field}`,
+      {
+        stage: "validate",
+        entityId: violation.recordId,
+        remediation: "Source the value or add a justified allowlist entry",
+      },
+    );
+  }
+  printDiagnostics(collector, options.outputMode);
+  if (!result.ok) return "validation-error";
+
+  if (options.outputMode === "json") {
+    printResult(
+      JSON.stringify({
+        contentVersion: artifact.contentVersion,
+        contentHash: artifact.manifest.bodyHash,
+        placeholders: 0,
+        allowed: result.allowed.length,
+      }),
+      "human",
+    );
+  } else {
+    printResult("Content gate passed: no unresolved placeholders", "human");
+    printResult(`  Content version: ${artifact.contentVersion}`, "human");
+    if (result.allowed.length > 0) {
+      printResult(`  Allowlisted placeholders: ${result.allowed.length}`, "human");
+    }
   }
   return "success";
 }

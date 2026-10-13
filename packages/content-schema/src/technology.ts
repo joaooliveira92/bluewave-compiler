@@ -1,5 +1,7 @@
 import { Schema } from "effect";
 
+import { ProvenanceSchema } from "./provenance.js";
+
 export const TechPrerequisiteSchema = Schema.Struct({
   techId: Schema.NonEmptyString,
 });
@@ -20,6 +22,7 @@ export const TechnologyPrerequisiteChainSchema = Schema.Struct({
   year: Schema.optional(
     Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 1880, maximum: 1970 })),
   ),
+  provenance: Schema.optional(ProvenanceSchema),
 });
 
 export type TechnologyPrerequisite = typeof TechnologyPrerequisiteChainSchema.Type;

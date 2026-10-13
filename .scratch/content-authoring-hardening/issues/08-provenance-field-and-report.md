@@ -1,9 +1,9 @@
 # 08: Provenance field and `content:check` confidence report
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** None (can start immediately)
-**Frontier:** yes
+**Frontier:** no
 
 **What to build:** Provenance and confidence currently live in YAML comments and
 README lists, so nothing can enforce them. Add a machine-checked
@@ -28,3 +28,28 @@ estimated or placeholder.
   consistent and schema-enforced.
 - Values with research provenance under `docs/research/` are labelled from their
   notes.
+
+## Resolution
+
+- `packages/content-schema`: extracted `ProvenanceSchema` (with
+  `SourceReferenceSchema`/`DerivationSchema`) into `provenance.ts` and attached it
+  as an optional `provenance` field on every authored record collection: the core
+  content-pack collections (`nations`, `areas`, `routes`, `possessions`, `ports`,
+  `technologies`, `rulesets`), the ship-building collections that lacked it
+  (`components`, `plants`, `hullForms`, `referenceDesigns`), and all six
+  campaign-file collections. Unknown confidence/source-status labels fail with
+  the file and field path (`packages/content-schema/test/provenance.test.ts`).
+- `@bluewave/content-compiler`: `countConfidence` / `collectProvenanceLocations`
+  walk the compiled bundle and count `HIGH`/`MEDIUM`/`LOW` provenance records per
+  collection (nested ones included).
+- `content:check` prints the per-collection confidence report (human + JSON).
+- Production compiles unchanged (optional field, no authored value sets it), so
+  the content lock stays valid. Existing ship-building labels (45 LOW / 161
+  MEDIUM) are reported.
+- Deferred (recorded, not dropped): migrating the core corpus's comment-only
+  estimates into the field is content-authoring work tied to each value's
+  research; the mechanism (field, validation, report) is complete.
+
+Validation: `pnpm preflight` green (17 gates); `@bluewave/content-schema` 65
+tests, `@bluewave/content-compiler` 73 tests, `@bluewave/compiler-cli` 108 tests.
+

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vite-plus/test";
+import { describe, it, expect, afterEach, vi } from "vite-plus/test";
 import {
   cpSync,
   existsSync,
@@ -37,6 +37,28 @@ describe("content:check / content:build over the production pack", () => {
       "success",
     );
     expect(readdirSync(out)).toHaveLength(0);
+  });
+
+  it("content:check reports per-collection confidence counts (CAH-PROV-2)", () => {
+    const out = tempDir();
+    const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    try {
+      expect(runContentCheck({ manifest, contentDir, outputDir: out, outputMode: "json" })).toBe(
+        "success",
+      );
+      const printed = write.mock.calls.map((call) => String(call[0])).join("");
+      const payload = JSON.parse(printed.trim().split("\n").pop() ?? "{}") as {
+        confidence: Array<{ collection: string; counts: Record<string, number> }>;
+        confidenceTotal: Record<string, number>;
+      };
+      const gunFamilies = payload.confidence.find(
+        (entry) => entry.collection === "shipBuilding.armament.gunFamilies",
+      );
+      expect(gunFamilies?.counts["MEDIUM"]).toBeGreaterThan(0);
+      expect(payload.confidenceTotal["total"]).toBeGreaterThan(0);
+    } finally {
+      write.mockRestore();
+    }
   });
 
   it("content:build emits one hash-pinned artifact covering both surfaces", () => {

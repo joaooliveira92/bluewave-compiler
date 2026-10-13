@@ -2,12 +2,10 @@ import { Schema } from "effect";
 import { CANONICAL_RESEARCH_FIELD_IDS } from "./research-fields.js";
 import {
   COMPONENT_ACCESS_STATUSES_SCHEMA,
-  CONFIDENCE_LEVELS_SCHEMA,
   NAVAL_POSTURES_SCHEMA,
-  PROVENANCE_KINDS_SCHEMA,
-  SOURCE_STATUSES_SCHEMA,
   SHIP_TYPE_ID_VALUES,
 } from "./naval-profile-vocab.js";
+import { ProvenanceSchema, SourceReferenceSchema } from "./provenance.js";
 
 /**
  * Content schema for `content/production/<scenario>/ship-building/naval-profiles/<nation>.yaml` (NationNavalProfile).
@@ -16,43 +14,10 @@ import {
  * change here cannot silently widen what a nation may build.
  */
 
-const int = Schema.Finite.check(Schema.isInt());
 const nonNegativeInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
 const positiveInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThan(0));
 const bp = Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 0, maximum: 10_000 }));
 const priority = Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 4 }));
-
-const SourceReferenceSchema = Schema.Struct({
-  sourceId: Schema.optional(Schema.String),
-  title: Schema.NonEmptyString,
-  author: Schema.optional(Schema.String),
-  year: Schema.optional(int),
-  page: Schema.optional(Schema.String),
-  section: Schema.optional(Schema.String),
-  archiveOrUrl: Schema.optional(Schema.String),
-  accessedAt: Schema.optional(Schema.String),
-});
-
-const DerivationSchema = Schema.Struct({
-  sourceValue: Schema.String,
-  sourceUnit: Schema.String,
-  conversion: Schema.String,
-  gameValue: Schema.String,
-  roundingRule: Schema.optional(Schema.String),
-  originalValue: Schema.optional(Schema.String),
-  originalUnit: Schema.optional(Schema.String),
-  convertedValue: Schema.optional(Schema.String),
-  convertedUnit: Schema.optional(Schema.String),
-});
-
-export const ProvenanceSchema = Schema.Struct({
-  sourceStatus: SOURCE_STATUSES_SCHEMA,
-  confidence: CONFIDENCE_LEVELS_SCHEMA,
-  kind: PROVENANCE_KINDS_SCHEMA,
-  sources: Schema.Array(SourceReferenceSchema),
-  derivation: Schema.optional(DerivationSchema),
-  note: Schema.optional(Schema.String),
-});
 
 const ComponentAccessSchema = Schema.Struct({
   status: COMPONENT_ACCESS_STATUSES_SCHEMA,

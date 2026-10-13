@@ -1,5 +1,7 @@
 import { Schema } from "effect";
 
+import { ProvenanceSchema } from "./provenance.js";
+
 export const PortSchema = Schema.Struct({
   id: Schema.NonEmptyString,
   name: Schema.NonEmptyString,
@@ -8,6 +10,7 @@ export const PortSchema = Schema.Struct({
   level: Schema.optional(
     Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 10 })),
   ),
+  provenance: Schema.optional(ProvenanceSchema),
 });
 
 export type Port = typeof PortSchema.Type;

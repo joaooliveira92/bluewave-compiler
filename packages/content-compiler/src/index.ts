@@ -129,6 +129,24 @@ export {
 export { NormalizeStage } from "./stages/normalize.js";
 export { ParseStage } from "./stages/parse.js";
 export { ValidateStage } from "./stages/validate.js";
+export {
+  CONFIDENCE_LEVELS,
+  collectProvenanceLocations,
+  countConfidence,
+  type CollectionConfidence,
+  type ConfidenceCounts,
+  type ConfidenceLevel,
+  type ConfidenceReport,
+  type ProvenanceLocation,
+} from "./confidence.js";
+export {
+  PLACEHOLDER_SOURCE_STATUS,
+  checkPlaceholderGate,
+  collectPlaceholders,
+  type PlaceholderAllowlistEntry,
+  type PlaceholderGateResult,
+  type PlaceholderViolation,
+} from "./releaseGate.js";
 export { safePath } from "./safePath.js";
 export { discoverShipBuildingFiles, type ShipBuildingFileGroups } from "./shipBuildingDiscovery.js";
 export { buildFullSurfaceInput } from "./fullSurface.js";

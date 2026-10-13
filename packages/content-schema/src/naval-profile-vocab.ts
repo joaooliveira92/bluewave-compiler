@@ -5,14 +5,16 @@ import { Schema } from "effect";
  * unions in `@bluewave/ship-design`'s `nationProfile.ts` cannot drift independently (a parity test pins them).
  */
 
-export const SOURCE_STATUSES_SCHEMA = Schema.Literals([
+export const SOURCE_STATUSES = [
   "VERIFIED",
   "DERIVED",
   "ESTIMATE",
   "BALANCE_TARGET",
   "PLACEHOLDER",
-]);
-export const CONFIDENCE_LEVELS_SCHEMA = Schema.Literals(["HIGH", "MEDIUM", "LOW"]);
+] as const;
+export const SOURCE_STATUSES_SCHEMA = Schema.Literals(SOURCE_STATUSES);
+export const CONFIDENCE_LEVELS = ["HIGH", "MEDIUM", "LOW"] as const;
+export const CONFIDENCE_LEVELS_SCHEMA = Schema.Literals(CONFIDENCE_LEVELS);
 export const PROVENANCE_KINDS_SCHEMA = Schema.Literals([
   "historical_fact",
   "game_conversion",

@@ -1,5 +1,7 @@
 import { Schema } from "effect";
 
+import { ProvenanceSchema } from "./provenance.js";
+
 /** Mirrors `COMPONENT_CATEGORIES` in `@bluewave/ship-design` (a test keeps the two lists identical). */
 export const SHIP_COMPONENT_CATEGORIES = [
   "HULL_FORM",
@@ -100,6 +102,7 @@ export const ShipComponentSchema = Schema.Struct({
   maintenanceMonthlyBp: Schema.optional(nonNegativeInt),
   buildWorkMicro: Schema.optional(formula),
   productionLine: Schema.optional(Schema.NonEmptyString),
+  provenance: Schema.optional(ProvenanceSchema),
 });
 
 export const ShipComponentCatalogueSchema = Schema.Struct({
@@ -119,6 +122,7 @@ export const PropulsionPlantSchema = Schema.Struct({
   maxKw: int.check(Schema.isGreaterThanOrEqualTo(1)),
   introduction: IntroductionSchema,
   requires: Schema.Array(stableId),
+  provenance: Schema.optional(ProvenanceSchema),
 }).check(Schema.makeFilter((p) => (p.minKw <= p.maxKw ? undefined : "minKw must be <= maxKw")));
 
 export const PropulsionPlantCatalogueSchema = Schema.Struct({
@@ -165,6 +169,7 @@ export const ShipHullFormSchema = Schema.Struct({
     Schema.Array(Schema.Literals(SHIP_HULL_TRAITS)).check(Schema.isMaxLength(4)),
   ),
   zones: Schema.Array(ShipZoneSchema).check(Schema.isMinLength(9), Schema.isMaxLength(9)),
+  provenance: Schema.optional(ProvenanceSchema),
 })
   .check(
     Schema.makeFilter((h) =>

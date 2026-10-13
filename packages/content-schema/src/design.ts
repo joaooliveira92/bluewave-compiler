@@ -1,5 +1,7 @@
 import { Schema } from "effect";
 
+import { ProvenanceSchema } from "./provenance.js";
+
 export const MainGunsSchema = Schema.Struct({
   caliber: Schema.Finite.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)),
   count: Schema.Finite.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)),
@@ -38,6 +40,7 @@ export const DesignTemplateSchema = Schema.Struct({
   torpedoArmament: Schema.optional(Schema.Array(TorpedoMountSchema).check(Schema.isMinLength(1))),
   designFamilyId: Schema.optional(Schema.NonEmptyString),
   contentVersion: Schema.optional(Schema.NonEmptyString),
+  provenance: Schema.optional(ProvenanceSchema),
 });
 
 export type DesignTemplate = typeof DesignTemplateSchema.Type;

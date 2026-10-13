@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { ProvenanceSchema } from "./naval-profile.js";
+import { ProvenanceSchema } from "./provenance.js";
 
 /**
  * Content schema for the first-class armament catalogue (ADR-0093, national armament integration

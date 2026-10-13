@@ -1,5 +1,6 @@
 import { Schema } from "effect";
 
+import { ProvenanceSchema } from "./provenance.js";
 import { SHIP_ZONE_IDS } from "./ship-component.js";
 
 /**
@@ -132,6 +133,7 @@ export const ReferenceDesignSchema = Schema.Struct({
   month,
   starterFor: Schema.optional(Schema.NonEmptyString),
   draft: DesignDraftSchema,
+  provenance: Schema.optional(ProvenanceSchema),
 });
 
 export type ReferenceDesign = typeof ReferenceDesignSchema.Type;

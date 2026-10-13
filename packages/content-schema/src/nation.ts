@@ -1,5 +1,7 @@
 import { Schema } from "effect";
 
+import { ProvenanceSchema } from "./provenance.js";
+
 // ══════════════════════════════════════════════════════════════════════
 // Nation IDs — 24 canonical nations, January 1880
 // ══════════════════════════════════════════════════════════════════════
@@ -428,6 +430,7 @@ export const NationSchema = Schema.Struct({
   coreAnxiety: CoreAnxietySchema,
   gameplayFeel: GameplayFeelSchema,
   historicalAssumptions: Schema.Array(Schema.String),
+  provenance: Schema.optional(ProvenanceSchema),
 }).annotate({ description: "Canonical nation definition, January 1880" });
 
 // ══════════════════════════════════════════════════════════════════════

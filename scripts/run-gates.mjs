@@ -106,6 +106,12 @@ export const GATE_SETS = {
       needs: ["git-state"],
       args: ["scripts/verify-content-lock.mjs"],
     },
+    {
+      id: "content-placeholder-gate",
+      label: "content placeholder gate",
+      needs: ["content-lock"],
+      args: ["scripts/verify-content-gate.mjs"],
+    },
   ],
 };
 

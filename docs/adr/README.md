@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0147).
+highest existing number + 1 (the next number is ADR-0148).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -162,6 +162,7 @@ National naval profiles, the content pipeline, and AI procurement.
 | 0143 | [ADR-0143-content-schema-coverage-and-decode-at-boundary.md](ADR-0143-content-schema-coverage-and-decode-at-boundary.md) | Complete content-schema coverage and decode the artifact at its boundary | accepted | — |
 | 0144 | [ADR-0144-one-manifest-authority.md](ADR-0144-one-manifest-authority.md) | One manifest authority for the loaded surface, with a build-only ship-building declaration | accepted | — |
 | 0145 | [ADR-0145-committed-content-lock-and-verify.md](ADR-0145-committed-content-lock-and-verify.md) | A committed content lock and `content:verify` | accepted | — |
+| 0147 | [ADR-0147-machine-checked-provenance-and-placeholder-gate.md](ADR-0147-machine-checked-provenance-and-placeholder-gate.md) | Machine-checked provenance and a placeholder release gate | accepted | — |
 
 ## Desktop & UI
 

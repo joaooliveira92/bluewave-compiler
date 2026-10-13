@@ -10,6 +10,7 @@ import {
   runContentCheck,
   runContentBuild,
   runContentVerify,
+  runContentGate,
   runCampaignCompile,
   runCampaignSave,
   runCampaignLoad,
@@ -39,6 +40,8 @@ Commands:
                      content artifact + manifest
   content:verify     Rebuild in memory and verify against the committed
                      content lock (fails on drift or tamper)
+  content:gate       Fail a shipping (production) pack that still carries an
+                     unresolved placeholder value (unless allowlisted)
   inspect            Inspect compiled artifact and envelope
   verify             Verify compiled artifact against envelope
   compare            Compare compiled artifact hash against envelope
@@ -133,6 +136,7 @@ function main(): void {
     "content:check",
     "content:build",
     "content:verify",
+    "content:gate",
   ];
   const newCommands = [
     "campaign:compile",
@@ -192,6 +196,9 @@ function main(): void {
       break;
     case "content:verify":
       exitCategory = runContentVerify(options);
+      break;
+    case "content:gate":
+      exitCategory = runContentGate(options);
       break;
     case "campaign:compile": {
       const co = options as CampaignCliOptions;

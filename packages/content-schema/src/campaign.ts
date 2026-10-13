@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 
 import { DesignTemplateSchema } from "./design.js";
+import { ProvenanceSchema } from "./provenance.js";
 import { CANONICAL_RESEARCH_FIELD_IDS } from "./research-fields.js";
 
 /**
@@ -50,6 +51,7 @@ export const CampaignFleetSchema = Schema.Struct({
   name: Schema.NonEmptyString,
   locationAreaId: Schema.NonEmptyString,
   ships: Schema.Array(FleetShipSchema),
+  provenance: Schema.optional(ProvenanceSchema),
 });
 
 export const CampaignEconomySchema = Schema.Struct({
@@ -57,6 +59,7 @@ export const CampaignEconomySchema = Schema.Struct({
   treasury: nonNegativeInt,
   income: nonNegativeInt,
   expenses: nonNegativeInt,
+  provenance: Schema.optional(ProvenanceSchema),
 });
 
 export const CampaignConstructionSchema = Schema.Struct({
@@ -70,6 +73,7 @@ export const CampaignConstructionSchema = Schema.Struct({
   paidWork: nonNegativeInt,
   status: Schema.Literals(["PLANNED", "AUTHORIZED", "ACTIVE", "COMPLETED"]),
   startedAt: month,
+  provenance: Schema.optional(ProvenanceSchema),
 });
 
 const TechnologyProgressSchema = Schema.Struct({
@@ -93,6 +97,7 @@ export const CampaignResearchSchema = Schema.Struct({
   technologies: Schema.Array(TechnologyProgressSchema),
   activeCandidates: Schema.optional(Schema.Record(Schema.String, Schema.String)),
   discoveredTechs: Schema.optional(Schema.Array(Schema.String)),
+  provenance: Schema.optional(ProvenanceSchema),
 });
 
 export const CampaignDiplomacySchema = Schema.Struct({
@@ -104,6 +109,7 @@ export const CampaignDiplomacySchema = Schema.Struct({
   ),
   nap: Schema.optional(Schema.Boolean),
   since: Schema.optional(month),
+  provenance: Schema.optional(ProvenanceSchema),
 });
 
 export type CampaignDesign = typeof CampaignDesignSchema.Type;

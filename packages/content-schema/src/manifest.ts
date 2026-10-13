@@ -1,5 +1,7 @@
 import { Schema } from "effect";
 
+import { ProvenanceSchema } from "./provenance.js";
+
 export const PackManifestSchema = Schema.Struct({
   name: Schema.NonEmptyString,
   version: Schema.NonEmptyString,
@@ -19,6 +21,7 @@ export const RulesetManifestSchema = Schema.Struct({
   id: Schema.NonEmptyString,
   name: Schema.NonEmptyString,
   version: Schema.NonEmptyString,
+  provenance: Schema.optional(ProvenanceSchema),
 });
 
 export interface ContentPack {

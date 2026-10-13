@@ -30,10 +30,16 @@ vi.mock("@bluewave/deterministic", async (importOriginal) => ({
 }));
 
 const compilerMock = vi.hoisted(() => ({ compile: vi.fn() }));
+const contentSurfaceMocks = vi.hoisted(() => ({
+  buildFullSurfaceInput: vi.fn(),
+  buildContentBundleArtifact: vi.fn(),
+}));
 vi.mock("@bluewave/content-compiler", () => ({
   Compiler: class {
     compile = compilerMock.compile;
   },
+  buildFullSurfaceInput: contentSurfaceMocks.buildFullSurfaceInput,
+  buildContentBundleArtifact: contentSurfaceMocks.buildContentBundleArtifact,
 }));
 
 const campaignMocks = vi.hoisted(() => ({ compile: vi.fn() }));
@@ -150,6 +156,36 @@ beforeEach(() => {
     pack: { manifest: { id: "m" } },
     rawHash: "rh",
     envelopeHash: "eh",
+  });
+  contentSurfaceMocks.buildFullSurfaceInput.mockReturnValue({
+    manifestPath: "/tmp/pack.json",
+    contentDir: "/tmp/c",
+  });
+  contentSurfaceMocks.buildContentBundleArtifact.mockReturnValue({
+    bundle: {
+      generatedBy: "x",
+      manifest: { name: "m" },
+      rulesets: [],
+      nations: [],
+      areas: [],
+      routes: [],
+      possessions: [],
+      ports: [],
+      technologies: [],
+      campaign: {
+        fleets: [],
+        economies: [],
+        constructions: [],
+        diplomacy: [],
+        research: [],
+        designs: [],
+      },
+    },
+    envelope: { algorithm: "sha256", bodyHash: "bh" },
+    manifest: { bodyHash: "bh" },
+    contentVersion: "0.4.0",
+    artifactJson: "",
+    manifestJson: "",
   });
   campaignMocks.compile.mockReturnValue({
     state: { snapshot: campaignSnapshot, rawHash: "rh", envelope: { bodyHash: "eh" } },
@@ -538,6 +574,12 @@ describe("Campaign", () => {
       expect.anything(),
       expect.anything(),
     );
+    // CAH-LEG-1: the campaign compile consumes the decoded bundle, reading no
+    // raw campaign YAML (no campaignFiles/compilerInput on the request).
+    const request = campaignMocks.compile.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(request["contentBundle"]).toBeDefined();
+    expect("campaignFiles" in request).toBe(false);
+    expect("compilerInput" in request).toBe(false);
     expect(fsMocks.writeFileSync).toHaveBeenCalledWith(
       expect.stringContaining("campaign-state.json"),
       expect.anything(),
