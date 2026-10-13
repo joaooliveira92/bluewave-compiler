@@ -57,8 +57,8 @@ symbols in the profile and the plan from the compiled design only.
   funnels → mounts → waterline. Each mount symbol carries `data-testid="profile-mount"`,
   `data-instance`, `data-part` (the catalog entry id) and a `<title>` with class, calibre
   and gun count.
-- **SV-R9** Masts are drawn per the convention in ticket 07 and are height-clamped to the
-  drawing's top pad.
+- **SV-R9** Masts are drawn per the convention in ticket 07 and are shrunk as a whole (never
+  distorted) so the masthead stays under the drawing's top pad.
 - **SV-R10** The plan draws a top-down glyph per gun mount at its `fittingPoint` (body
   shape + one barrel per gun), under the fitting dots, when the footprint overlay is on.
 - **SV-R11** The legend gains a `mixed` chip for mounts (style, era, fallback count) and a

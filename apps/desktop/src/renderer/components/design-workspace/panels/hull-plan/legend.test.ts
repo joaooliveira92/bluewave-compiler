@@ -86,4 +86,23 @@ describe("accessible names", () => {
       /1 funnel, no superstructure zone/,
     );
   });
+
+  it("explains masts as a drawing convention in the design's style and era", () => {
+    const masts = legendEntries({
+      ...base(facts()),
+      masts: { count: 2, style: "B", era: "VICTORIAN", partId: "x-victorian-mast", step: 2 },
+    }).find((e) => e.id === "masts")!;
+    expect(masts.source).toBe("convention");
+    expect(masts.label).toBe("Masts: 2");
+    expect(masts.rows).toEqual([
+      ["Style", "B (British)"],
+      ["Era", "Victorian (to 1895)"],
+      ["Drawing", "x-victorian-mast (universal)"],
+    ]);
+    expect(masts.note).toMatch(/bridge.*aft end of the superstructure/);
+  });
+
+  it("omits the masts chip when none is drawn", () => {
+    expect(legendEntries(base(facts())).some((e) => e.id === "masts")).toBe(false);
+  });
 });

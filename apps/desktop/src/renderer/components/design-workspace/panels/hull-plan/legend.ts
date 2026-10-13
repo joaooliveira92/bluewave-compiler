@@ -1,6 +1,8 @@
 import type { DrawingFacts } from "./describe.js";
 import type { BowStyle, SternStyle } from "./geometry.js";
 import { displaySheerRise, type FunnelInput } from "./profile-geometry.js";
+import type { MastSummary } from "./profile-masts.js";
+import { STYLE_NAME, eraName } from "./visual-names.js";
 
 /** Where a drawn quantity comes from; shown as a badge so schematic conventions are never mistaken for data. */
 export type LegendSource = "data" | "convention" | "mixed";
@@ -24,6 +26,8 @@ export interface LegendInput {
   readonly lcbPermille: number | undefined;
   readonly sheerBp: number | undefined;
   readonly funnels: readonly FunnelInput[];
+  /** The masts drawn in the profile; absent when none is. */
+  readonly masts?: MastSummary;
 }
 
 const BOW_NAME: Record<BowStyle, string> = { ram: "Ram", spoon: "Spoon", plumb: "Plumb" };
@@ -151,6 +155,26 @@ export function legendEntries(input: LegendInput): LegendEntry[] {
       : [],
     note: "The hull form's zone sets where it sits. The stepped lower house and bridge are drawing conventions, not component data.",
   });
+
+  if (input.masts) {
+    const m = input.masts;
+    entries.push({
+      id: "masts",
+      label: `Masts: ${m.count}`,
+      tooltip: "Masts drawn from the superstructure",
+      title: "Masts",
+      source: "convention",
+      rows: [
+        ["Style", `${m.style} (${STYLE_NAME[m.style]})`],
+        ["Era", eraName(m.era)],
+        [
+          "Drawing",
+          `${m.partId}${m.step === 1 ? "" : m.step === 2 ? " (universal)" : " (dreadnought default)"}`,
+        ],
+      ],
+      note: "A foremast stands at the bridge and a mainmast at the aft end of the superstructure, in the designing nation's style for the design year. Masts are not design components; their position and height are drawing conventions.",
+    });
+  }
 
   return entries;
 }

@@ -2079,5 +2079,130 @@ export const PART_CATALOG: PartCatalog = {
       },
     },
   ],
-  masts: [],
+  masts: [
+    {
+      id: "x-victorian-mast",
+      key: {
+        style: "X",
+        era: "VICTORIAN",
+      },
+      profile: {
+        heightM: 28,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -0.3 0 L -0.25 -28 L 0.25 -28 L 0.3 0 Z",
+          },
+          {
+            tone: "gun",
+            d: "M -4.5 -24 L 4.5 -24 L 4.5 -23.6 L -4.5 -23.6 Z",
+          },
+          {
+            tone: "gun",
+            d: "M -3.5 -14 L 3.5 -14 L 3.5 -13.6 L -3.5 -13.6 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -1.8 -20 L 1.8 -20 L 1.4 -18.6 L -1.4 -18.6 Z",
+          },
+        ],
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title: "Rule the Waves 3 manual, Appendix 5: creating turret files",
+            page: "139-142",
+          },
+        ],
+        note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+    {
+      id: "x-pre-dreadnought-mast",
+      key: {
+        style: "X",
+        era: "PRE_DREADNOUGHT",
+      },
+      profile: {
+        heightM: 28,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -0.2 -18 L -0.15 -28 L 0.15 -28 L 0.2 -18 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -0.8 0 L -0.6 -18 L 0.6 -18 L 0.8 0 Z",
+          },
+          {
+            tone: "gun",
+            d: "M -3 -22 L 3 -22 L 3 -21.6 L -3 -21.6 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -2 -12 L 2 -12 L 1.6 -10.4 L -1.6 -10.4 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -1.8 -18.4 L 1.8 -18.4 L 1.4 -16.8 L -1.4 -16.8 Z",
+          },
+        ],
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title: "Rule the Waves 3 manual, Appendix 5: creating turret files",
+            page: "139-142",
+          },
+        ],
+        note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+    {
+      id: "x-dreadnought-mast",
+      key: {
+        style: "X",
+        era: "DREADNOUGHT",
+      },
+      profile: {
+        heightM: 28,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -4 0 L -3.6 0 L -0.1 -22 L -0.4 -22 Z",
+          },
+          {
+            tone: "structure",
+            d: "M 4 0 L 3.6 0 L 0.1 -22 L 0.4 -22 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -0.3 0 L -0.2 -28 L 0.2 -28 L 0.3 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -2.2 -24 L 2.2 -24 L 2.2 -21.4 L -2.2 -21.4 Z",
+          },
+        ],
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title: "Rule the Waves 3 manual, Appendix 5: creating turret files",
+            page: "139-142",
+          },
+        ],
+        note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+  ],
 };

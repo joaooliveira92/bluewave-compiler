@@ -11,6 +11,7 @@ import type { FunnelInput } from "./profile-structures.js";
 import { SECTIONS, type ZoneRange } from "./sections.js";
 import type { VisualMountInput } from "@bluewave/ship-visual";
 import { type VisualLook, visualLook, visualMountInputs } from "./visualMounts.js";
+import { type MastSummary, mastSummary } from "./profile-masts.js";
 
 /**
  * Everything the hull-plan view renders, derived once from the draft, its compile and the catalogue. Pure and
@@ -35,6 +36,8 @@ export interface PlanModel {
   /** The compiled placements as the ship-visual catalog reads them, and the look they are drawn in. */
   readonly visualMounts: readonly VisualMountInput[];
   readonly look: VisualLook;
+  /** The masts the profile draws, for the legend; undefined when none is. */
+  readonly masts: MastSummary | undefined;
   readonly facts: DrawingFacts;
   readonly warns: (entity: ShipEntity) => boolean;
   readonly entityName: (entity: ShipEntity) => string;
@@ -76,6 +79,7 @@ export function planModel(
   );
   const superstructure = zones.find((z) => z.id === "SUPERSTRUCTURE");
   const placedFunnels = funnelPlacements(draft, content);
+  const look = visualLook(draft.nationId, month);
   const facts: DrawingFacts = {
     hullFormId: form?.id,
     lengthM: frame.lengthM,
@@ -116,7 +120,8 @@ export function planModel(
     superstructure,
     placedFunnels,
     visualMounts: visualMountInputs(draft, view),
-    look: visualLook(draft.nationId, month),
+    look,
+    masts: mastSummary(look, superstructure !== undefined),
     facts,
     warns: (entity) => entityWarns(entity, findings),
     entityName,

@@ -52,7 +52,7 @@ export function profileMounts(
 export const mountTitle = (m: PlacedMount): string =>
   `${CLASS_NAME[m.mountClass]}, ${m.gunCount} × ${wholeInches(m.caliberUm)} in @ ${m.stationPermille}‰`;
 
-function ShapePath({ shape }: { readonly shape: Shape }) {
+export function ShapePath({ shape }: { readonly shape: Shape }) {
   return (
     <path
       d={shape.d}

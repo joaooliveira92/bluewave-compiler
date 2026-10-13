@@ -48,4 +48,11 @@ describe("the generated catalog", () => {
     );
     expect(missing).toEqual([]);
   });
+
+  it("has universal masts for the dreadnought default and both EARLY eras", () => {
+    const universal = PART_CATALOG.masts.filter((m) => m.key.style === "X").map((m) => m.key.era);
+    expect(universal).toEqual(
+      expect.arrayContaining(["VICTORIAN", "PRE_DREADNOUGHT", "DREADNOUGHT"]),
+    );
+  });
 });

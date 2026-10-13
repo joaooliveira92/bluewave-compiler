@@ -269,6 +269,7 @@ export function HullPlanPanel({
           lcbPermille: form?.lcbPermille,
           sheerBp: form?.sheerBp,
           funnels: placedFunnels,
+          masts: model.masts,
         })}
       />
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

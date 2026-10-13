@@ -118,4 +118,27 @@ describe("ProfileView", () => {
       victorian.map((s) => s.split("=")[0]),
     );
   });
+
+  it("stands a foremast at the bridge and a mainmast at the superstructure's aft end, behind the hull", () => {
+    const { container } = draw(model.superstructure);
+    const masts = [...container.querySelectorAll("[data-testid='profile-mast']")];
+    expect(masts).toHaveLength(2);
+    const stations = masts.map((m) => Number(m.getAttribute("data-station")));
+    const zone = model.superstructure!;
+    expect(stations[0]).toBeGreaterThan(zone.startPermille);
+    expect(stations[0]).toBeLessThan(zone.endPermille);
+    expect(stations[1]).toBe(zone.endPermille);
+    // A British 1895 design: the universal Victorian mast.
+    expect(masts.map((m) => m.getAttribute("data-part"))).toEqual([
+      "x-victorian-mast",
+      "x-victorian-mast",
+    ]);
+    const hull = container.querySelector("[data-testid='profile-hull']")!;
+    expect(masts[1]!.compareDocumentPosition(hull) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("draws no masts without a superstructure", () => {
+    const { container } = draw(undefined);
+    expect(container.querySelectorAll("[data-testid='profile-mast']")).toHaveLength(0);
+  });
 });

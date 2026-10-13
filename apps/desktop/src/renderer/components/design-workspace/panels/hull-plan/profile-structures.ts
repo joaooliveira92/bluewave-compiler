@@ -23,6 +23,8 @@ export interface HouseMasses {
   readonly upper: readonly Point[];
   readonly startPermille: number;
   readonly endPermille: number;
+  /** Where the bridge (the upper mass) begins: the foremast stands here. */
+  readonly bridgeStartPermille: number;
   /** y of the structure's top at a station fraction, inside the lower mass; used to seat funnels. */
   readonly lowerTopY: (t: number) => number;
 }
@@ -75,6 +77,7 @@ export function houseMasses(
     upper: [...upperBottom, ...upperTop],
     startPermille: start,
     endPermille: end,
+    bridgeStartPermille: upperStart,
     lowerTopY,
   };
 }
