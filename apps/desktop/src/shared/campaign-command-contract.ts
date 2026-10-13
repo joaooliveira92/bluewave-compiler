@@ -205,6 +205,17 @@ export interface UiStateFirstMonthInspection {
   readonly lastCompletedStep: number;
 }
 
+/**
+ * The shipbuilding inspector's remembered layout — the pane's width and whether it is folded away.
+ * Presentation-only (ADR-0038): it never influences simulation and is never read by `MonthExecutor`.
+ */
+export interface UiStateInspectorLayout {
+  /** The pane's chosen width in CSS pixels; the renderer clamps it to the supported range. */
+  readonly widthPx: number;
+  /** Whether the pane is collapsed to its restore strip. */
+  readonly collapsed: boolean;
+}
+
 export interface UiState {
   /** The turn the sidecar was last written at. */
   readonly turnNumber: number;
@@ -213,6 +224,8 @@ export interface UiState {
   readonly dismissedFingerprints: readonly string[];
   /** Guided first-month inspection state (§8) — persists across turns. */
   readonly firstMonthInspection?: UiStateFirstMonthInspection;
+  /** Shipbuilding inspector layout — persists per campaign, never authoritative. */
+  readonly inspector?: UiStateInspectorLayout;
 }
 
 export interface ReadUiStateResult {
@@ -232,6 +245,8 @@ export interface WriteUiStatePayload {
   readonly sessionId: string;
   readonly dismissedFingerprints: readonly string[];
   readonly firstMonthInspection?: UiStateFirstMonthInspection;
+  /** Shipbuilding inspector layout; absent means carried forward from the stored sidecar. */
+  readonly inspector?: UiStateInspectorLayout;
 }
 
 export interface WriteUiStateResult {

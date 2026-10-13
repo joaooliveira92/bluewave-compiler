@@ -312,6 +312,24 @@ describe("UiStateSchema / FirstMonthInspectionSchema", () => {
     });
   });
 
+  it("accepts an optional inspector layout and rejects a malformed one", () => {
+    expectSuccess(UiStateSchema, {
+      turnNumber: 1,
+      dismissedFingerprints: [],
+      inspector: { widthPx: 440, collapsed: false },
+    });
+    expectFailure(UiStateSchema, {
+      turnNumber: 1,
+      dismissedFingerprints: [],
+      inspector: { widthPx: 440 },
+    });
+    expectFailure(UiStateSchema, {
+      turnNumber: 1,
+      dismissedFingerprints: [],
+      inspector: { widthPx: "wide", collapsed: false },
+    });
+  });
+
   it("bounds lastCompletedStep to 0..6", () => {
     expectSuccess(FirstMonthInspectionSchema, { status: "completed", lastCompletedStep: 6 });
     expectFailure(FirstMonthInspectionSchema, { status: "completed", lastCompletedStep: 7 });
@@ -337,6 +355,14 @@ describe("UiStateSchema / FirstMonthInspectionSchema", () => {
 describe("WriteUiStatePayloadSchema", () => {
   it("treats firstMonthInspection as optional", () => {
     expectSuccess(WriteUiStatePayloadSchema, { sessionId: "s", dismissedFingerprints: [] });
+  });
+
+  it("treats the inspector layout as optional", () => {
+    expectSuccess(WriteUiStatePayloadSchema, {
+      sessionId: "s",
+      dismissedFingerprints: [],
+      inspector: { widthPx: 500, collapsed: true },
+    });
   });
 
   it("rejects a missing dismissedFingerprints", () => {

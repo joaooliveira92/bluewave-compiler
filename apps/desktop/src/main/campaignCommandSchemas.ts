@@ -364,11 +364,18 @@ export const FirstMonthInspectionSchema = Schema.Struct({
   ),
 });
 
+/** The shipbuilding inspector layout (ADR-0038): presentation-only pane state, never authoritative. */
+export const InspectorLayoutSchema = Schema.Struct({
+  widthPx: Schema.Finite,
+  collapsed: Schema.Boolean,
+});
+
 /** The full on-disk `ui-state.json` shape (also the read command's result). */
 export const UiStateSchema = Schema.Struct({
   turnNumber: nonNegativeInt,
   dismissedFingerprints: Schema.Array(boundedString(1, 256)).check(Schema.isMaxLength(64)),
   firstMonthInspection: Schema.optional(FirstMonthInspectionSchema),
+  inspector: Schema.optional(InspectorLayoutSchema),
 });
 
 /**
@@ -386,6 +393,7 @@ export const WriteUiStatePayloadSchema = Schema.Struct({
   sessionId: nonEmptyString,
   dismissedFingerprints: Schema.Array(boundedString(1, 256)).check(Schema.isMaxLength(64)),
   firstMonthInspection: Schema.optional(FirstMonthInspectionSchema),
+  inspector: Schema.optional(InspectorLayoutSchema),
 });
 
 /** Tactical Sandbox payloads (debug-only; ADR-0057). */

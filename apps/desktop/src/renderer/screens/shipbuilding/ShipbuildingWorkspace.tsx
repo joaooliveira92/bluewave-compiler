@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { flushSync } from "react-dom";
 import type { BatteryRole, ComponentCategory } from "@bluewave/ship-design";
 import { Alert } from "../../components/ui/alert.js";
@@ -57,6 +65,7 @@ import {
   DesignMap,
   EngineeringStatusBar,
   Inspector,
+  InspectorResizeHandle,
   NotAvailable,
   ShipStage,
   ViewToolbar,
@@ -70,8 +79,10 @@ import {
   type InspectorPlace,
 } from "./design-sections.js";
 import { engineeringStatus } from "./engineering-status.js";
+import { INSPECTOR_COLLAPSED_PX } from "./inspector-layout.js";
 import { sectionStatuses } from "./section-status.js";
 import { focusEntityControl, placeForEntity } from "./selection.js";
+import { useInspectorLayout } from "./useInspectorLayout.js";
 
 /** How long "Saved" shows after an explicit save. */
 const SAVED_FLASH_MS = 2000;
@@ -120,6 +131,12 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
     overlaysOf(DEFAULT_VIEW),
   );
   const [planTool, setPlanTool] = useState<PlanTool>(IDLE_TOOL);
+  const {
+    layout: inspectorLayout,
+    setWidth: setInspectorWidth,
+    toggleCollapsed: toggleInspector,
+  } = useInspectorLayout(sessionId);
+  const inspectorId = useId();
   const [selectedEntity, setSelectedEntity] = useState<ShipEntity | null>(null);
   const inspectorBodyRef = useRef<HTMLDivElement>(null);
   const changeView = (next: ShipView) => {
@@ -349,6 +366,12 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
         className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-lg border bg-background"
         onKeyDown={(e) => handleUndoShortcut(e, { ...state, ...actions })}
         onKeyDownCapture={(e) => {
+          // ⌘/Ctrl+B folds the inspector away and restores it, wherever focus is on the screen.
+          if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "b") {
+            e.preventDefault();
+            toggleInspector();
+            return;
+          }
           // Escape clears a pinned ship element from the drawing or the inspector, one step per press.
           if (e.key !== "Escape") return;
           const s = selection.get();
@@ -397,7 +420,17 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
             },
           ]}
         />
-        <div className="grid min-h-0 grid-cols-[3.5rem_minmax(0,1fr)_24rem] xl:grid-cols-[13rem_minmax(0,1fr)_27.5rem]">
+        <div
+          data-testid="workspace-grid"
+          className="grid min-h-0 grid-cols-[3.5rem_minmax(0,1fr)_var(--inspector-width)] xl:grid-cols-[13rem_minmax(0,1fr)_var(--inspector-width)]"
+          style={
+            {
+              "--inspector-width": `${
+                inspectorLayout.collapsed ? INSPECTOR_COLLAPSED_PX : inspectorLayout.widthPx
+              }px`,
+            } as CSSProperties
+          }
+        >
           <DesignMap
             active={place.section}
             statuses={statuses}
@@ -440,42 +473,61 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
               />
             </ShipViewBoundary>
           </ShipStage>
-          <Inspector
-            title={section.label}
-            breadcrumb={[shipClassName.trim() || state.preset.name, section.label, tab.label]}
-            tabs={section.tabs}
-            tab={tab.id}
-            onTab={(t) => openSection(place.section, t)}
-          >
-            <div
-              ref={inspectorBodyRef}
-              data-selection-scope=""
-              className="space-y-3"
-              // Inspector → drawing: focus in a form group about ship elements lights them on the drawing.
-              onFocus={(e) => selection.setLinked(linkedEntities(e.target, entityCtx))}
-              onBlur={(e) => {
-                if (!(e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)))
-                  selection.setLinked([]);
-              }}
+          <div id={inspectorId} className="relative min-h-0">
+            {!inspectorLayout.collapsed && (
+              <InspectorResizeHandle
+                widthPx={inspectorLayout.widthPx}
+                onChange={setInspectorWidth}
+                controls={inspectorId}
+                className="absolute inset-y-0 -left-2 z-10 w-4"
+              />
+            )}
+            <Inspector
+              title={section.label}
+              breadcrumb={[shipClassName.trim() || state.preset.name, section.label, tab.label]}
+              tabs={section.tabs}
+              tab={tab.id}
+              onTab={(t) => openSection(place.section, t)}
+              collapsed={inspectorLayout.collapsed}
+              onToggleCollapsed={toggleInspector}
             >
-              {selectedEntity !== null && (
-                <div
-                  data-testid="selection-banner"
-                  className="flex items-center justify-between gap-2 rounded-md border border-primary/40 bg-card px-2 py-1.5 text-xs"
-                >
-                  <span>
-                    <span className="text-muted-foreground">Selected on ship: </span>
-                    {model.entityName(selectedEntity)}
-                  </span>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => selection.clear()}>
-                    Clear
-                  </Button>
-                </div>
-              )}
-              {state.editError !== null && <Alert variant="destructive">{state.editError}</Alert>}
-              {body}
-            </div>
-          </Inspector>
+              <div
+                ref={inspectorBodyRef}
+                data-selection-scope=""
+                className="space-y-3"
+                // Inspector → drawing: focus in a form group about ship elements lights them on the drawing.
+                onFocus={(e) => selection.setLinked(linkedEntities(e.target, entityCtx))}
+                onBlur={(e) => {
+                  if (
+                    !(e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget))
+                  )
+                    selection.setLinked([]);
+                }}
+              >
+                {selectedEntity !== null && (
+                  <div
+                    data-testid="selection-banner"
+                    className="flex items-center justify-between gap-2 rounded-md border border-primary/40 bg-card px-2 py-1.5 text-xs"
+                  >
+                    <span>
+                      <span className="text-muted-foreground">Selected on ship: </span>
+                      {model.entityName(selectedEntity)}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => selection.clear()}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+                {state.editError !== null && <Alert variant="destructive">{state.editError}</Alert>}
+                {body}
+              </div>
+            </Inspector>
+          </div>
         </div>
         <EngineeringStatusBar readouts={readouts} />
         <ConfirmDialog

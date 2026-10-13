@@ -382,3 +382,52 @@ describe("Engineering status strip", () => {
     expect(within(body).getByText("Free")).toBeTruthy();
   });
 });
+
+describe("Inspector layout", () => {
+  const workspace = () => screen.getByTestId("shipbuilding-workspace");
+  const grid = () => screen.getByTestId("workspace-grid");
+  const handle = () => screen.getByRole("separator", { name: "Resize inspector" });
+  const width = () => grid().style.getPropertyValue("--inspector-width");
+
+  it("opens the inspector at the default width, with a resize handle", () => {
+    render(<ShipbuildingWorkspace />);
+    expect(width()).toBe("440px");
+    expect(handle().getAttribute("aria-valuenow")).toBe("440");
+  });
+
+  it("resizes the inspector from the keyboard, within bounds", () => {
+    render(<ShipbuildingWorkspace />);
+    fireEvent.keyDown(handle(), { key: "ArrowLeft" });
+    expect(width()).toBe("456px");
+    fireEvent.keyDown(handle(), { key: "ArrowRight" });
+    expect(width()).toBe("440px");
+    fireEvent.keyDown(handle(), { key: "End" });
+    expect(width()).toBe("560px");
+    fireEvent.keyDown(handle(), { key: "Home" });
+    expect(width()).toBe("360px");
+    fireEvent.keyDown(handle(), { key: "Enter" });
+    expect(width()).toBe("440px");
+  });
+
+  it("collapses and restores the inspector with the keyboard shortcut", () => {
+    render(<ShipbuildingWorkspace />);
+    fireEvent.keyDown(workspace(), { key: "b", metaKey: true });
+    expect(width()).toBe("36px");
+    expect(screen.getByRole("button", { name: "Show inspector" })).toBeTruthy();
+    expect(screen.queryByRole("separator", { name: "Resize inspector" })).toBeNull();
+    expect(screen.queryByRole("tablist", { name: /tabs$/ })).toBeNull();
+
+    fireEvent.keyDown(workspace(), { key: "b", metaKey: true });
+    expect(width()).toBe("440px");
+    expect(screen.getByRole("button", { name: "Hide inspector" })).toBeTruthy();
+    expect(screen.queryByRole("separator", { name: "Resize inspector" })).not.toBeNull();
+  });
+
+  it("restores the inspector from the collapsed strip's button", () => {
+    render(<ShipbuildingWorkspace />);
+    fireEvent.click(screen.getByRole("button", { name: "Hide inspector" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show inspector" }));
+    expect(screen.getByRole("complementary", { name: /^Inspector/ })).toBeTruthy();
+    expect(width()).toBe("440px");
+  });
+});

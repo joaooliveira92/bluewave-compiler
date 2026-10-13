@@ -166,6 +166,34 @@ describe("ui-state sidecar", () => {
     expect(read.value.uiState).toEqual(dismissalOnly.value.uiState);
   });
 
+  it("round-trips the inspector layout and merge-preserves it across a dismissal-only write", async () => {
+    const saveDir = join(saveRoot, "inspector");
+    registerProductionSession("session-inspector", saveDir);
+
+    const write = await writeUiState({
+      sessionId: "session-inspector",
+      dismissedFingerprints: [],
+      inspector: { widthPx: 512, collapsed: true },
+    });
+    expect(write.outcome).toBe("success");
+    if (write.outcome !== "success") return;
+    expect(write.value.uiState.inspector).toEqual({ widthPx: 512, collapsed: true });
+
+    // A later writer that carries no inspector (a dismissal-only write) must not erase it.
+    const dismissalOnly = await writeUiState({
+      sessionId: "session-inspector",
+      dismissedFingerprints: ["fp-a"],
+    });
+    expect(dismissalOnly.outcome).toBe("success");
+    if (dismissalOnly.outcome !== "success") return;
+    expect(dismissalOnly.value.uiState.inspector).toEqual({ widthPx: 512, collapsed: true });
+
+    const read = await readUiState("session-inspector");
+    expect(read.outcome).toBe("success");
+    if (read.outcome !== "success") return;
+    expect(read.value.uiState.inspector).toEqual({ widthPx: 512, collapsed: true });
+  });
+
   it("explicit not_started/0 write resets the stored inspection state", async () => {
     const saveDir = join(saveRoot, "reset");
     registerProductionSession("session-reset", saveDir);

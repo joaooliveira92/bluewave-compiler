@@ -51,6 +51,7 @@ export function resolveUiState(stored: UiState, currentTurnNumber: number): UiSt
     turnNumber: currentTurnNumber,
     dismissedFingerprints: expired ? [] : [...stored.dismissedFingerprints],
     firstMonthInspection: stored.firstMonthInspection,
+    inspector: stored.inspector,
   };
 }
 
@@ -161,6 +162,11 @@ export async function writeUiState(
       ? { firstMonthInspection: { ...payload.firstMonthInspection } }
       : stored.firstMonthInspection !== undefined
         ? { firstMonthInspection: { ...stored.firstMonthInspection } }
+        : {}),
+    ...(payload.inspector !== undefined
+      ? { inspector: { ...payload.inspector } }
+      : stored.inspector !== undefined
+        ? { inspector: { ...stored.inspector } }
         : {}),
   };
   try {
