@@ -382,6 +382,42 @@ describe("Armament master-detail editor", () => {
   });
 });
 
+describe("Review section", () => {
+  const validation = () => screen.getByRole("region", { name: "Validation" });
+
+  it("groups findings into blocking, warning and advisory classes", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Review");
+    const classes = ["Blocking errors", "Warnings", "Advisory observations"];
+    const present = classes.filter((n) => within(validation()).queryByRole("region", { name: n }));
+    expect(present.length).toBeGreaterThan(0);
+    // Every finding shown sits inside a class region, and none sits outside them.
+    const all = validation().querySelectorAll("[data-finding-key]").length;
+    const grouped = classes.reduce(
+      (n, name) =>
+        n +
+        (within(validation())
+          .queryByRole("region", { name })
+          ?.querySelectorAll("[data-finding-key]").length ?? 0),
+      0,
+    );
+    expect(grouped).toBe(all);
+    expect(all).toBeGreaterThan(0);
+  });
+
+  it("reaches finish from the Review section", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Review");
+    const inspector = screen.getByRole("complementary", { name: /^Inspector/ });
+    const tabs = within(inspector).getByRole("tablist", { name: /tabs$/ });
+    fireEvent.click(within(tabs).getByRole("tab", { name: "Finish" }));
+    expect(within(tabs).getByRole("tab", { name: "Finish" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
+    expect(within(inspector).getByText(/Finishing: not available/)).toBeTruthy();
+  });
+});
+
 describe("Overview summary section", () => {
   const panel = () => screen.getByRole("region", { name: "Overview" });
 

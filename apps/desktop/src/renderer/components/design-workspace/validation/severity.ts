@@ -57,6 +57,26 @@ export const SEVERITY_STYLE: { readonly [S in Severity]: SeverityStyle } = {
 /** Lower is more severe. */
 export const severityRank = (s: Severity): number => SEVERITY_ORDER.indexOf(s);
 
+/**
+ * The three classes findings are grouped into: blocking errors (BLOCKING and CRITICAL), warnings, and advisory
+ * observations. Only blocking-class findings prevent submission.
+ */
+export const FINDING_CLASSES = ["blocking", "warning", "advisory"] as const;
+export type FindingClass = (typeof FINDING_CLASSES)[number];
+
+export const CLASS_OF: { readonly [S in Severity]: FindingClass } = {
+  BLOCKING: "blocking",
+  CRITICAL: "blocking",
+  WARNING: "warning",
+  ADVISORY: "advisory",
+};
+
+export const CLASS_LABEL: { readonly [C in FindingClass]: string } = {
+  blocking: "Blocking errors",
+  warning: "Warnings",
+  advisory: "Advisory observations",
+};
+
 /** Which severities the drawing shows. View state only. */
 export const SEVERITY_FILTERS = ["all", "serious", "warning", "advisory"] as const;
 export type SeverityFilter = (typeof SEVERITY_FILTERS)[number];

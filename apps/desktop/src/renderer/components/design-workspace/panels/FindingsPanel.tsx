@@ -21,7 +21,14 @@ import { cn } from "../../../lib/utils.js";
 import { Panel } from "./Panel.js";
 import { findingAttrs } from "../selection/navigation.js";
 import type { BoardFinding } from "../validation/boardFindings.js";
-import { SEVERITY_ORDER, SEVERITY_STYLE } from "../validation/severity.js";
+import {
+  CLASS_LABEL,
+  CLASS_OF,
+  FINDING_CLASSES,
+  SEVERITY_ORDER,
+  SEVERITY_STYLE,
+  type FindingClass,
+} from "../validation/severity.js";
 import { plural } from "../plural.js";
 
 /** The rule id, with the computed evidence behind the finding on hover. */
@@ -127,6 +134,31 @@ function FindingItem({
   );
 }
 
+/** Findings grouped by class, most severe class first; each class is its own labelled region. */
+function FindingGroup({
+  klass,
+  items,
+  onShowOnShip,
+}: {
+  readonly klass: FindingClass;
+  readonly items: readonly BoardFinding[];
+  readonly onShowOnShip: (f: BoardFinding) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <section aria-label={CLASS_LABEL[klass]} className="space-y-2">
+      <h3 className="text-sm font-medium">
+        {CLASS_LABEL[klass]} ({items.length})
+      </h3>
+      <Accordion multiple className="space-y-2" aria-label={`${CLASS_LABEL[klass]} findings`}>
+        {items.map((bf) => (
+          <FindingItem key={bf.key} bf={bf} onShowOnShip={onShowOnShip} />
+        ))}
+      </Accordion>
+    </section>
+  );
+}
+
 function Verdict({
   view,
   order,
@@ -203,11 +235,16 @@ export function FindingsPanel({
       {total === 0 ? (
         <p className="text-sm text-muted-foreground">No findings.</p>
       ) : (
-        <Accordion multiple className="space-y-2" aria-label="Findings">
-          {findings.map((bf) => (
-            <FindingItem key={bf.key} bf={bf} onShowOnShip={onShowOnShip} />
+        <div className="space-y-4">
+          {FINDING_CLASSES.map((klass) => (
+            <FindingGroup
+              key={klass}
+              klass={klass}
+              items={findings.filter((bf) => CLASS_OF[bf.severity] === klass)}
+              onShowOnShip={onShowOnShip}
+            />
           ))}
-        </Accordion>
+        </div>
       )}
       {serious && (
         <div className="space-y-2 border-t pt-3">
