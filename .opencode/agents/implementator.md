@@ -27,7 +27,8 @@ chain resolved) — no more, no less. You write code + tests and prove them.
   narrow but complete path through every layer, verifiable on its own).
 - Preserve package dependency direction; keep domain logic pure and
   platform-independent; use branded integers + explicit rounding for
-  authoritative arithmetic; use strict Zod boundaries; use domain-separated
+  authoritative arithmetic; decode every boundary with a strict Effect `Schema`
+  (`scripts/assert-boundary-decode.mjs`); use domain-separated
   random decisions only where the ticket authorizes randomness.
 - Add the smallest tests that prove each acceptance criterion, incl. invalid and
   boundary cases. Do not skip, loosen, or regenerate goldens to go green.

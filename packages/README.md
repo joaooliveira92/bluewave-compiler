@@ -18,7 +18,7 @@ phase engine composing them; import only a package's public `exports`
 | `deterministic` | Canonical JSON, SHA-256, hash contexts, envelopes, fixed-point math. |
 | `armament` | Platform-independent authoritative armament domain + resolver (ADR-0093). |
 | `random` | Domain-separated seeded PRNG with an audit ledger. |
-| `content-schema` | Zod schemas + safe YAML parser for packs, rulesets, entities. |
+| `content-schema` | Effect `Schema` definitions + safe YAML parser for packs, rulesets, entities. |
 | `content-compiler` | Parse → validate → normalize → compile stages with diagnostics. |
 | `campaign` | Campaign compiler and state aggregates (world, nations, fleets, war…). |
 | `ship-design` | Component-level ship compiler (DESIGN-21/63). |

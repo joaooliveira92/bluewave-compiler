@@ -39,7 +39,7 @@ Write a concise dependency-ordered plan. Identify authoritative contracts, bound
 - Preserve package dependency direction.
 - Keep domain logic pure and platform-independent.
 - Use immutable typed transitions.
-- Validate untrusted boundaries with Zod and domain legality with explicit validators.
+- Decode untrusted boundaries with a strict Effect `Schema` and domain legality with explicit validators.
 - Use branded integers and explicit rounding for authoritative arithmetic.
 - Use domain-separated named random decisions only where the brief authorizes randomness.
 - Return structured diagnostic and explanation data, not mechanics hidden in strings.

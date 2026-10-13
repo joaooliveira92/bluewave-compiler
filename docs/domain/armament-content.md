@@ -17,7 +17,7 @@ compatibility path (a nation with no armament content, or a design with no snaps
 | `gun-mounts.yaml` | `GunMountDef` | The mount catalogue, kept separate from the gun model. |
 | `ammunition.yaml` | `AmmunitionPattern` | National shell patterns. |
 
-The Zod schemas live in `packages/content-schema/src/armament.ts`; the domain types live in
+The Effect `Schema` definitions live in `packages/content-schema/src/armament.ts`; the domain types live in
 `packages/armament/src/model.ts`.
 
 ## Canonical units

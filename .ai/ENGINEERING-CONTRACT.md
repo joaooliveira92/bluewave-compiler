@@ -74,7 +74,7 @@ Use hierarchical, domain-separated random decisions. Do not expose a generic glo
 - Author normal content in YAML and compile it to canonical artifacts.
 - Parse YAML without executable tags or arbitrary object construction.
 - Use strict boundary schemas and reject unknown fields by default.
-- Use Zod for untrusted boundaries and serialization contracts. Keep semantic rules and aggregate invariants in explicit domain code.
+- Decode untrusted boundaries and serialization contracts with Effect `Schema` (Zod was replaced, ADR-0102/0105). Decode, never assert: a boundary `JSON.parse(...) as T` cast is rejected by `scripts/assert-boundary-decode.mjs` in the scopes it guards. Keep semantic rules and aggregate invariants in explicit domain code.
 - Ordinary content must not execute JavaScript, TypeScript, shell, arbitrary expressions, or database scripts.
 - The pack manifest explicitly declares roots, collections, dependencies, versions, localization, and fixture or production classification.
 - Namespaced editor metadata cannot affect mechanics unless promoted into a versioned authoritative contract.
@@ -99,7 +99,7 @@ Use hierarchical, domain-separated random decisions. Do not expose a generic glo
 - Use explicit `main`, `preload`, and `renderer` boundaries.
 - Renderer code must not import authoritative engine packages or filesystem capabilities.
 - Use context isolation, disable renderer Node integration, sandbox where compatible, and expose narrow capability-specific preload methods.
-- Validate IPC requests and responses with Zod.
+- Decode IPC requests and responses at the boundary with a strict Effect `Schema`; never trust a `JSON.parse(...) as T` cast (ADR-0102/0105, `scripts/assert-boundary-decode.mjs`).
 - Do not expose unrestricted IPC, arbitrary channels, shell execution, broad filesystem access, remote code, or raw internal errors.
 - Use restrictive navigation, popup, and Content Security Policy controls.
 
