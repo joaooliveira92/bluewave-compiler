@@ -38,8 +38,8 @@ Resolved autonomously.
   YAML again and fails if the committed module differs.
 - **Entry shape:** each catalog section holds entries with `id` (unique), a `key`, drawings,
   and `provenance` (required).
-  - `mounts[]`: `key: { style, era, size, mountClass, guns? }`, where omitting `guns` makes a
-    count-agnostic entry. Drawings are `profile: { shapes[], barrel }` and `plan: { body,
+  - `mounts[]`: `key: { style, era, sizes, mountClass, guns? }`, where `sizes` lists the bands one
+    drawing serves (amended in INC-2) and omitting `guns` makes a count-agnostic entry. Drawings are `profile: { shapes[], barrel }` and `plan: { body,
     diameterM, barrel }`.
   - `masts[]`: `key: { style, era }` with `profile: { heightM, shapes[] }`.
   - Shapes are `{ tone, d }` with SVG path data in **metres at the 12-inch reference**, origin

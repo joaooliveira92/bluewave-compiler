@@ -8,7 +8,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "LARGE",
+        sizes: ["LARGE"],
         mountClass: "TURRET",
       },
       profile: {
@@ -61,7 +61,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "MEDIUM",
+        sizes: ["MEDIUM"],
         mountClass: "TURRET",
       },
       profile: {
@@ -110,7 +110,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "SMALL",
+        sizes: ["SMALL"],
         mountClass: "TURRET",
       },
       profile: {
@@ -155,7 +155,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "LARGE",
+        sizes: ["LARGE"],
         mountClass: "BARBETTE",
       },
       profile: {
@@ -204,7 +204,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "MEDIUM",
+        sizes: ["MEDIUM"],
         mountClass: "BARBETTE",
       },
       profile: {
@@ -253,7 +253,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "SMALL",
+        sizes: ["SMALL"],
         mountClass: "BARBETTE",
       },
       profile: {
@@ -302,7 +302,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "LARGE",
+        sizes: ["LARGE"],
         mountClass: "SHIELDED",
       },
       profile: {
@@ -351,7 +351,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "MEDIUM",
+        sizes: ["MEDIUM"],
         mountClass: "SHIELDED",
       },
       profile: {
@@ -400,7 +400,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "SMALL",
+        sizes: ["SMALL"],
         mountClass: "SHIELDED",
       },
       profile: {
@@ -449,7 +449,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "LARGE",
+        sizes: ["LARGE"],
         mountClass: "OPEN",
       },
       profile: {
@@ -498,7 +498,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "MEDIUM",
+        sizes: ["MEDIUM"],
         mountClass: "OPEN",
       },
       profile: {
@@ -547,7 +547,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "SMALL",
+        sizes: ["SMALL"],
         mountClass: "OPEN",
       },
       profile: {
@@ -596,7 +596,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "LARGE",
+        sizes: ["LARGE"],
         mountClass: "CASEMATE",
       },
       profile: {
@@ -645,7 +645,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "MEDIUM",
+        sizes: ["MEDIUM"],
         mountClass: "CASEMATE",
       },
       profile: {
@@ -694,7 +694,7 @@ export const PART_CATALOG: PartCatalog = {
       key: {
         style: "X",
         era: "DREADNOUGHT",
-        size: "SMALL",
+        sizes: ["SMALL"],
         mountClass: "CASEMATE",
       },
       profile: {
@@ -736,6 +736,1346 @@ export const PART_CATALOG: PartCatalog = {
           },
         ],
         note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+    {
+      id: "x-victorian-turret",
+      key: {
+        style: "X",
+        era: "VICTORIAN",
+        sizes: ["LARGE", "MEDIUM", "SMALL"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 8.4,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -4.2 0 L -4.2 -3 L 4.2 -3 L 4.2 0 Z",
+          },
+          {
+            tone: "void",
+            d: "M -4.2 -2.5 L 4.2 -2.5 L 4.2 -2.3 L -4.2 -2.3 Z",
+          },
+        ],
+        barrel: {
+          x: -4,
+          y: -1.6,
+          lengthM: 8,
+          boreM: 0.6,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 8.4,
+        barrel: {
+          lengthM: 8,
+          boreM: 0.6,
+          spacingM: 2.6,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title: "Rule the Waves 3 manual, Appendix 5: creating turret files",
+            page: "139-142",
+          },
+        ],
+        note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+    {
+      id: "x-victorian-barbette",
+      key: {
+        style: "X",
+        era: "VICTORIAN",
+        sizes: ["LARGE", "MEDIUM", "SMALL"],
+        mountClass: "BARBETTE",
+      },
+      profile: {
+        widthM: 8.8,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -4.4 0 L -4.2 -2 L 4.2 -2 L 4.4 0 Z",
+          },
+          {
+            tone: "gun",
+            d: "M -2.4 -2 L -2 -3 L 2 -3 L 2.4 -2 Z",
+          },
+        ],
+        barrel: {
+          x: -2,
+          y: -2.6,
+          lengthM: 8,
+          boreM: 0.6,
+        },
+      },
+      plan: {
+        body: "RING",
+        diameterM: 8.8,
+        barrel: {
+          lengthM: 8,
+          boreM: 0.6,
+          spacingM: 2.6,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title: "Rule the Waves 3 manual, Appendix 5: creating turret files",
+            page: "139-142",
+          },
+        ],
+        note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+    {
+      id: "x-victorian-shielded",
+      key: {
+        style: "X",
+        era: "VICTORIAN",
+        sizes: ["LARGE", "MEDIUM", "SMALL"],
+        mountClass: "SHIELDED",
+      },
+      profile: {
+        widthM: 3.2,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -0.6 0 L 0.6 0 L 0.5 -1.4 L -0.5 -1.4 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -1.6 -1.2 L 1 -1.2 L 1 -2.8 L -1.6 -2.8 Z",
+          },
+        ],
+        barrel: {
+          x: -1.4,
+          y: -2,
+          lengthM: 7,
+          boreM: 0.4,
+        },
+      },
+      plan: {
+        body: "SHIELD",
+        diameterM: 3.2,
+        barrel: {
+          lengthM: 7,
+          boreM: 0.4,
+          spacingM: 1.8,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title: "Rule the Waves 3 manual, Appendix 5: creating turret files",
+            page: "139-142",
+          },
+        ],
+        note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+    {
+      id: "x-victorian-open",
+      key: {
+        style: "X",
+        era: "VICTORIAN",
+        sizes: ["LARGE", "MEDIUM", "SMALL"],
+        mountClass: "OPEN",
+      },
+      profile: {
+        widthM: 2.6,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -1.2 0 L 1.2 0 L 0.9 -1.4 L -0.9 -1.4 Z",
+          },
+          {
+            tone: "gun",
+            d: "M -1.4 -1.3 L 1.2 -1.3 L 1.2 -2.1 L -1.4 -2.1 Z",
+          },
+        ],
+        barrel: {
+          x: -1.2,
+          y: -1.7,
+          lengthM: 7,
+          boreM: 0.4,
+        },
+      },
+      plan: {
+        body: "PEDESTAL",
+        diameterM: 2.6,
+        barrel: {
+          lengthM: 7,
+          boreM: 0.4,
+          spacingM: 1.8,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title: "Rule the Waves 3 manual, Appendix 5: creating turret files",
+            page: "139-142",
+          },
+        ],
+        note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+    {
+      id: "x-victorian-casemate",
+      key: {
+        style: "X",
+        era: "VICTORIAN",
+        sizes: ["LARGE", "MEDIUM", "SMALL"],
+        mountClass: "CASEMATE",
+      },
+      profile: {
+        widthM: 3.6,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -1.8 0.2 L 1.8 0.2 L 1.8 3.2 L -1.8 3.2 Z",
+          },
+          {
+            tone: "void",
+            d: "M -0.8 1.1 L 0.8 1.1 L 0.8 2.3 L -0.8 2.3 Z",
+          },
+        ],
+        barrel: {
+          x: -0.4,
+          y: 1.7,
+          lengthM: 2.4,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "CASEMATE",
+        diameterM: 3.6,
+        barrel: {
+          lengthM: 7,
+          boreM: 0.5,
+          spacingM: 1.8,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title: "Rule the Waves 3 manual, Appendix 5: creating turret files",
+            page: "139-142",
+          },
+        ],
+        note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+    {
+      id: "x-pre-dreadnought-turret",
+      key: {
+        style: "X",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM", "SMALL"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 7.6,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.8 0 L -3.8 -1.2 L 3.8 -1.2 L 3.8 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3.6 -1.2 Q -4 -3.4 -2 -3.6 L 3.2 -3.6 L 3.6 -1.2 Z",
+          },
+        ],
+        barrel: {
+          x: -3.4,
+          y: -2.3,
+          lengthM: 11,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 8,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.55,
+          spacingM: 2.2,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title: "Rule the Waves 3 manual, Appendix 5: creating turret files",
+            page: "139-142",
+          },
+        ],
+        note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+    {
+      id: "x-pre-dreadnought-barbette",
+      key: {
+        style: "X",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM", "SMALL"],
+        mountClass: "BARBETTE",
+      },
+      profile: {
+        widthM: 7.2,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.6 0 L -3.6 -2 L 3.6 -2 L 3.6 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3.4 -2 L -3 -3.4 L 3.2 -3.4 L 3.4 -2 Z",
+          },
+        ],
+        barrel: {
+          x: -3,
+          y: -2.7,
+          lengthM: 11,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "RING",
+        diameterM: 8.4,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.55,
+          spacingM: 2.2,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title: "Rule the Waves 3 manual, Appendix 5: creating turret files",
+            page: "139-142",
+          },
+        ],
+        note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+    {
+      id: "x-pre-dreadnought-shielded",
+      key: {
+        style: "X",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM", "SMALL"],
+        mountClass: "SHIELDED",
+      },
+      profile: {
+        widthM: 4.2,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -0.8 0 L 0.8 0 L 0.6 -1.5 L -0.6 -1.5 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -2.1 -1.3 Q -2.2 -3.3 -0.6 -3.3 L 1.8 -3.3 L 1.8 -1.3 Z",
+          },
+        ],
+        barrel: {
+          x: -1.8,
+          y: -2.3,
+          lengthM: 11,
+          boreM: 0.45,
+        },
+      },
+      plan: {
+        body: "SHIELD",
+        diameterM: 4.2,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.45,
+          spacingM: 1.9,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title: "Rule the Waves 3 manual, Appendix 5: creating turret files",
+            page: "139-142",
+          },
+        ],
+        note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+    {
+      id: "x-pre-dreadnought-open",
+      key: {
+        style: "X",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM", "SMALL"],
+        mountClass: "OPEN",
+      },
+      profile: {
+        widthM: 2.8,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -0.8 0 L 0.8 0 L 0.5 -1.7 L -0.5 -1.7 Z",
+          },
+          {
+            tone: "gun",
+            d: "M -1.4 -1.5 L 1.2 -1.5 L 1.2 -2.5 L -1.4 -2.5 Z",
+          },
+        ],
+        barrel: {
+          x: -1.2,
+          y: -2,
+          lengthM: 11,
+          boreM: 0.45,
+        },
+      },
+      plan: {
+        body: "PEDESTAL",
+        diameterM: 2.8,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.45,
+          spacingM: 1.9,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title: "Rule the Waves 3 manual, Appendix 5: creating turret files",
+            page: "139-142",
+          },
+        ],
+        note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+    {
+      id: "x-pre-dreadnought-casemate",
+      key: {
+        style: "X",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM", "SMALL"],
+        mountClass: "CASEMATE",
+      },
+      profile: {
+        widthM: 4.4,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -2.2 0.2 L 2.2 0.2 L 2.2 3.6 L -2.2 3.6 Q -2.6 1.9 -2.2 0.2 Z",
+          },
+          {
+            tone: "void",
+            d: "M -1.3 1.2 L 0.3 1.2 L 0.3 2.6 L -1.3 2.6 Z",
+          },
+        ],
+        barrel: {
+          x: -0.8,
+          y: 1.9,
+          lengthM: 2.8,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "CASEMATE",
+        diameterM: 4.4,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.5,
+          spacingM: 2,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title: "Rule the Waves 3 manual, Appendix 5: creating turret files",
+            page: "139-142",
+          },
+        ],
+        note: "Schematic drawing authored to the manual's turret-file key (nationality x era x size x type x guns) at the 12-inch reference; proportions are illustrative, not traced from a plan.",
+      },
+    },
+    {
+      id: "b-victorian-barbette",
+      key: {
+        style: "B",
+        era: "VICTORIAN",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "BARBETTE",
+      },
+      profile: {
+        widthM: 8.8,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -4.4 0 L -4.2 -2 L 4.2 -2 L 4.4 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3 -2 Q -3 -3.4 -1.4 -3.6 L 3 -3.6 L 3.2 -2 Z",
+          },
+        ],
+        barrel: {
+          x: -2.8,
+          y: -2.8,
+          lengthM: 9,
+          boreM: 0.6,
+        },
+      },
+      plan: {
+        body: "RING",
+        diameterM: 8.8,
+        barrel: {
+          lengthM: 9,
+          boreM: 0.6,
+          spacingM: 2.6,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "b-pre-dreadnought-turret",
+      key: {
+        style: "B",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 8,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.8 0 L -3.8 -1.2 L 3.8 -1.2 L 3.8 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3.6 -1.2 L -3 -3.2 L 3 -3.6 Q 4 -3.6 4 -2.4 L 4 -1.2 Z",
+          },
+        ],
+        barrel: {
+          x: -3.3,
+          y: -2.2,
+          lengthM: 11,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 8,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.55,
+          spacingM: 2.2,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "g-victorian-barbette",
+      key: {
+        style: "G",
+        era: "VICTORIAN",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "BARBETTE",
+      },
+      profile: {
+        widthM: 8.8,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -4.4 0 L -4.2 -2 L 4.2 -2 L 4.4 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3 -2 Q -3 -3.4 -1.4 -3.6 L 3 -3.6 L 3.2 -2 Z",
+          },
+        ],
+        barrel: {
+          x: -2.8,
+          y: -2.8,
+          lengthM: 9,
+          boreM: 0.6,
+        },
+      },
+      plan: {
+        body: "RING",
+        diameterM: 8.8,
+        barrel: {
+          lengthM: 9,
+          boreM: 0.6,
+          spacingM: 2.6,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "g-pre-dreadnought-turret",
+      key: {
+        style: "G",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 7.6,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.8 0 L -3.8 -1 L 3.8 -1 L 3.8 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3.8 -1 L -3.8 -2.6 Q -3.8 -3.8 -2.4 -3.8 L 2.4 -3.8 Q 3.8 -3.8 3.8 -2.6 L 3.8 -1 Z",
+          },
+        ],
+        barrel: {
+          x: -3.6,
+          y: -2.3,
+          lengthM: 11,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 7.6,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.55,
+          spacingM: 2.2,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "q-victorian-barbette",
+      key: {
+        style: "Q",
+        era: "VICTORIAN",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "BARBETTE",
+      },
+      profile: {
+        widthM: 8.8,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -4.4 0 L -4.2 -2 L 4.2 -2 L 4.4 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3 -2 Q -3 -3.4 -1.4 -3.6 L 3 -3.6 L 3.2 -2 Z",
+          },
+        ],
+        barrel: {
+          x: -2.8,
+          y: -2.8,
+          lengthM: 9,
+          boreM: 0.6,
+        },
+      },
+      plan: {
+        body: "RING",
+        diameterM: 8.8,
+        barrel: {
+          lengthM: 9,
+          boreM: 0.6,
+          spacingM: 2.6,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "q-pre-dreadnought-turret",
+      key: {
+        style: "Q",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 7.6,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.8 0 L -3.8 -1 L 3.8 -1 L 3.8 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3.8 -1 L -3.8 -2.6 Q -3.8 -3.8 -2.4 -3.8 L 2.4 -3.8 Q 3.8 -3.8 3.8 -2.6 L 3.8 -1 Z",
+          },
+        ],
+        barrel: {
+          x: -3.6,
+          y: -2.3,
+          lengthM: 11,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 7.6,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.55,
+          spacingM: 2.2,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "f-victorian-turret",
+      key: {
+        style: "F",
+        era: "VICTORIAN",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 8.8,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.6 0 L -3.6 -3 L 3.6 -3 L 3.6 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -4.4 -3 L -4 -3.8 L 4 -3.8 L 4.4 -3 Z",
+          },
+        ],
+        barrel: {
+          x: -3.4,
+          y: -1.9,
+          lengthM: 8.5,
+          boreM: 0.6,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 8.8,
+        barrel: {
+          lengthM: 8.5,
+          boreM: 0.6,
+          spacingM: 2.6,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "f-victorian-barbette",
+      key: {
+        style: "F",
+        era: "VICTORIAN",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "BARBETTE",
+      },
+      profile: {
+        widthM: 8,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -4 0 L -4 -2.8 L 4 -2.8 L 4 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3.2 -2.8 L -2.8 -3.8 L 2.8 -3.8 L 3.2 -2.8 Z",
+          },
+        ],
+        barrel: {
+          x: -2.8,
+          y: -3.3,
+          lengthM: 9,
+          boreM: 0.6,
+        },
+      },
+      plan: {
+        body: "RING",
+        diameterM: 8.4,
+        barrel: {
+          lengthM: 9,
+          boreM: 0.6,
+          spacingM: 2.6,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "f-pre-dreadnought-turret",
+      key: {
+        style: "F",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 7.6,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.8 0 L -3.8 -1 L 3.8 -1 L 3.8 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3.8 -1 L -3.8 -3.4 L 3.4 -3.4 L 3.4 -1 Z",
+          },
+        ],
+        barrel: {
+          x: -3.6,
+          y: -2.2,
+          lengthM: 11,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 7.8,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.55,
+          spacingM: 2.2,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "r-victorian-turret",
+      key: {
+        style: "R",
+        era: "VICTORIAN",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 8.8,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.6 0 L -3.6 -3 L 3.6 -3 L 3.6 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -4.4 -3 L -4 -3.8 L 4 -3.8 L 4.4 -3 Z",
+          },
+        ],
+        barrel: {
+          x: -3.4,
+          y: -1.9,
+          lengthM: 8.5,
+          boreM: 0.6,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 8.8,
+        barrel: {
+          lengthM: 8.5,
+          boreM: 0.6,
+          spacingM: 2.6,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "r-pre-dreadnought-turret",
+      key: {
+        style: "R",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 7.6,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.8 0 L -3.8 -1 L 3.8 -1 L 3.8 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3.8 -1 L -3.8 -3.4 L 3.4 -3.4 L 3.4 -1 Z",
+          },
+        ],
+        barrel: {
+          x: -3.6,
+          y: -2.2,
+          lengthM: 11,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 7.8,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.55,
+          spacingM: 2.2,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "s-victorian-turret",
+      key: {
+        style: "S",
+        era: "VICTORIAN",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 8.8,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.6 0 L -3.6 -3 L 3.6 -3 L 3.6 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -4.4 -3 L -4 -3.8 L 4 -3.8 L 4.4 -3 Z",
+          },
+        ],
+        barrel: {
+          x: -3.4,
+          y: -1.9,
+          lengthM: 8.5,
+          boreM: 0.6,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 8.8,
+        barrel: {
+          lengthM: 8.5,
+          boreM: 0.6,
+          spacingM: 2.6,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "s-pre-dreadnought-turret",
+      key: {
+        style: "S",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 7.6,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.8 0 L -3.8 -1 L 3.8 -1 L 3.8 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3.8 -1 L -3.8 -3.4 L 3.4 -3.4 L 3.4 -1 Z",
+          },
+        ],
+        barrel: {
+          x: -3.6,
+          y: -2.2,
+          lengthM: 11,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 7.8,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.55,
+          spacingM: 2.2,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "u-pre-dreadnought-turret",
+      key: {
+        style: "U",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 7.6,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.8 0 L -3.8 -1 L 3.8 -1 L 3.8 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3.8 -1 L -3.8 -3.4 L 3.4 -3.4 L 3.4 -1 Z",
+          },
+        ],
+        barrel: {
+          x: -3.6,
+          y: -2.2,
+          lengthM: 11,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 7.8,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.55,
+          spacingM: 2.2,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "j-pre-dreadnought-turret",
+      key: {
+        style: "J",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 8,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.8 0 L -3.8 -1.2 L 3.8 -1.2 L 3.8 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3.6 -1.2 L -3 -3.2 L 3 -3.6 Q 4 -3.6 4 -2.4 L 4 -1.2 Z",
+          },
+        ],
+        barrel: {
+          x: -3.3,
+          y: -2.2,
+          lengthM: 11,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 8,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.55,
+          spacingM: 2.2,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "a-pre-dreadnought-turret",
+      key: {
+        style: "A",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 7.6,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.8 0 L -3.8 -1 L 3.8 -1 L 3.8 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3.8 -1 L -3.8 -2.6 Q -3.8 -3.8 -2.4 -3.8 L 2.4 -3.8 Q 3.8 -3.8 3.8 -2.6 L 3.8 -1 Z",
+          },
+        ],
+        barrel: {
+          x: -3.6,
+          y: -2.3,
+          lengthM: 11,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 7.6,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.55,
+          spacingM: 2.2,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
+      },
+    },
+    {
+      id: "i-pre-dreadnought-turret",
+      key: {
+        style: "I",
+        era: "PRE_DREADNOUGHT",
+        sizes: ["LARGE", "MEDIUM"],
+        mountClass: "TURRET",
+      },
+      profile: {
+        widthM: 7.6,
+        shapes: [
+          {
+            tone: "structure",
+            d: "M -3.8 0 L -3.8 -1 L 3.8 -1 L 3.8 0 Z",
+          },
+          {
+            tone: "structure",
+            d: "M -3.8 -1 L -3.8 -2.6 Q -3.8 -3.8 -2.4 -3.8 L 2.4 -3.8 Q 3.8 -3.8 3.8 -2.6 L 3.8 -1 Z",
+          },
+        ],
+        barrel: {
+          x: -3.6,
+          y: -2.3,
+          lengthM: 11,
+          boreM: 0.5,
+        },
+      },
+      plan: {
+        body: "ROUND",
+        diameterM: 7.6,
+        barrel: {
+          lengthM: 11,
+          boreM: 0.55,
+          spacingM: 2.2,
+        },
+      },
+      provenance: {
+        sourceStatus: "ESTIMATE",
+        confidence: "LOW",
+        kind: "game_conversion",
+        sources: [
+          {
+            title:
+              "Rule the Waves 3 manual, Appendix 5: creating turret files (national identifiers)",
+            page: "139-140",
+          },
+        ],
+        note: "National silhouette after period practice (French tall drum turrets and barbettes; hooded barbettes of the British Admirals, German and Chinese 1880s ships; pear, domed and round pre-dreadnought gunhouses). The manual sanctions a national look per style but draws none; the shapes are illustrative, not traced.",
       },
     },
   ],

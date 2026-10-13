@@ -51,7 +51,7 @@ function firstInChain<P>(
 
 /**
  * The drawing for a mount: the first fallback step with a match on size and class, where an entry for the exact gun
- * count beats a count-agnostic one. Size and class never fall back. Null only when the catalog has no drawing at all
+ * count beats a count-agnostic one. An entry serves every size band it lists; size and class never fall back. Null only when the catalog has no drawing at all
  * for this size and class (the catalog test forbids that for the universal default).
  */
 export function resolveMount(
@@ -63,7 +63,7 @@ export function resolveMount(
       (p) =>
         p.key.style === style &&
         p.key.era === era &&
-        p.key.size === query.size &&
+        p.key.sizes.includes(query.size) &&
         p.key.mountClass === query.mountClass,
     );
     return (

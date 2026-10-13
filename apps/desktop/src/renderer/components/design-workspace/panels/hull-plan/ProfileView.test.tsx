@@ -59,7 +59,8 @@ describe("ProfileView", () => {
       mounts.map((m) => m.getAttribute("data-instance") ?? "").sort((a, b) => a.localeCompare(b)),
     ).toEqual(guns);
     for (const m of mounts) {
-      expect(m.getAttribute("data-part")).toMatch(/^x-dreadnought-small-open$/);
+      // A British 1895 design has no national open mount, so it draws the universal Victorian one.
+      expect(m.getAttribute("data-part")).toBe("x-victorian-open");
       expect(m.querySelector("title")?.textContent).toMatch(/Open mount, 1 × [23] in/);
     }
   });
@@ -85,5 +86,36 @@ describe("ProfileView", () => {
     const stbd = container.querySelector("[data-instance='gun_6pdr_b']")!;
     expect(port.getAttribute("data-far")).toBe("true");
     expect(stbd.getAttribute("data-far")).toBeNull();
+  });
+
+  it("restyles the same compiled mounts when the design month moves from 1890 to 1898 (AC-4)", () => {
+    const partsIn = (month: string) => {
+      const m = planModel(reference.draft, content, view, month);
+      const { container } = render(
+        <ProfileView
+          draft={reference.draft}
+          content={content}
+          sheerBp={form.sheerBp}
+          bow={frame.bow}
+          stern={frame.stern}
+          lcbPermille={frame.lcbPermille}
+          superstructure={m.superstructure}
+          facts={m.facts}
+          mounts={m.visualMounts}
+          look={m.look}
+        />,
+      );
+      return [...container.querySelectorAll("[data-testid='profile-mount']")].map(
+        (el) => `${el.getAttribute("data-instance")}=${el.getAttribute("data-part")}`,
+      );
+    };
+    const victorian = partsIn("1890-01");
+    const preDreadnought = partsIn("1898-01");
+    expect(victorian).toContain("gun_12pdr=x-victorian-open");
+    expect(preDreadnought).toContain("gun_12pdr=x-pre-dreadnought-open");
+    // Same mounts, same instances: only the drawing changed.
+    expect(preDreadnought.map((s) => s.split("=")[0])).toEqual(
+      victorian.map((s) => s.split("=")[0]),
+    );
   });
 });

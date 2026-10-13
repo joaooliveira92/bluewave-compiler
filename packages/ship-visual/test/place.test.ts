@@ -13,7 +13,12 @@ const surface: ProfileSurface = {
 const all = catalog(
   (["SMALL", "MEDIUM", "LARGE"] as const).flatMap((size) =>
     (["TURRET", "BARBETTE", "SHIELDED", "OPEN", "CASEMATE"] as const).map((mountClass) =>
-      mount(`x-d-${size}-${mountClass}`, { style: "X", era: "DREADNOUGHT", size, mountClass }),
+      mount(`x-d-${size}-${mountClass}`, {
+        style: "X",
+        era: "DREADNOUGHT",
+        sizes: [size],
+        mountClass,
+      }),
     ),
   ),
 );

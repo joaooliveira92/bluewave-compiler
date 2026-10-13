@@ -49,7 +49,7 @@ export const ShipVisualMountSchema = Schema.Struct({
   key: Schema.Struct({
     style: Schema.Literals(SHIP_VISUAL_STYLES),
     era: Schema.Literals(SHIP_VISUAL_ERAS),
-    size: Schema.Literals(SHIP_VISUAL_SIZES),
+    sizes: Schema.Array(Schema.Literals(SHIP_VISUAL_SIZES)).check(Schema.isMinLength(1)),
     mountClass: Schema.Literals(SHIP_VISUAL_MOUNT_CLASSES),
     guns: Schema.optional(Schema.Literals([1, 2, 3, 4])),
   }),

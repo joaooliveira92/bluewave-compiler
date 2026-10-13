@@ -38,9 +38,9 @@ content values carry machine-checked provenance (ADR-0147).
 4. **Selection key and fallback.** A mount's key is the designing nation's style ×
    `VisualEra` × size band (calibre rounded to whole inches: ≤ 5 small, 6–11 medium,
    ≥ 12 large) × mount class (from the authoritative `ArmamentMountType`) × gun count
-   (optional in the key). The fallback order is: exact; universal style; same style in the
-   dreadnought era; universal in the dreadnought era. At each step an exact gun count wins
-   over a count-agnostic entry. `X × DREADNOUGHT` must cover every size × class, and a test
+   (optional in the key). One entry may serve several size bands (`sizes`). The fallback
+   order is: exact; universal style; same style in the dreadnought era; universal in the
+   dreadnought era. At each step an exact gun count wins over a count-agnostic entry. `X × DREADNOUGHT` must cover every size × class, and a test
    enforces it, so resolution always yields a drawing.
 5. **Symbols are path data in metres at the 12-inch reference**, placed by an SVG
    transform and scaled by calibre ÷ 12 in (clamped), the manual's auto-resize. Tones map to

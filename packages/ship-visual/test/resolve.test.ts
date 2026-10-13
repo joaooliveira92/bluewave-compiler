@@ -13,7 +13,7 @@ const query: MountQuery = {
 const universalDefault = mount("x-d-large-turret", {
   style: "X",
   era: "DREADNOUGHT",
-  size: "LARGE",
+  sizes: ["LARGE"],
   mountClass: "TURRET",
 });
 
@@ -21,7 +21,7 @@ describe("resolveMount fallback chain (ADR-0148 §4)", () => {
   it("step 1: the exact style and era", () => {
     const c = catalog([
       universalDefault,
-      mount("b-v", { style: "B", era: "VICTORIAN", size: "LARGE", mountClass: "TURRET" }),
+      mount("b-v", { style: "B", era: "VICTORIAN", sizes: ["LARGE"], mountClass: "TURRET" }),
     ]);
     expect(resolveMount(c, query)).toMatchObject({ part: { id: "b-v" }, step: 1 });
   });
@@ -29,7 +29,7 @@ describe("resolveMount fallback chain (ADR-0148 §4)", () => {
   it("step 2: the universal style in the same era", () => {
     const c = catalog([
       universalDefault,
-      mount("x-v", { style: "X", era: "VICTORIAN", size: "LARGE", mountClass: "TURRET" }),
+      mount("x-v", { style: "X", era: "VICTORIAN", sizes: ["LARGE"], mountClass: "TURRET" }),
     ]);
     expect(resolveMount(c, query)).toMatchObject({ part: { id: "x-v" }, step: 2 });
   });
@@ -37,7 +37,7 @@ describe("resolveMount fallback chain (ADR-0148 §4)", () => {
   it("step 3: the nation's dreadnought-era drawing before the universal one", () => {
     const c = catalog([
       universalDefault,
-      mount("b-d", { style: "B", era: "DREADNOUGHT", size: "LARGE", mountClass: "TURRET" }),
+      mount("b-d", { style: "B", era: "DREADNOUGHT", sizes: ["LARGE"], mountClass: "TURRET" }),
     ]);
     expect(resolveMount(c, query)).toMatchObject({ part: { id: "b-d" }, step: 3 });
   });
@@ -51,11 +51,11 @@ describe("resolveMount fallback chain (ADR-0148 §4)", () => {
 
   it("prefers an exact gun count over a count-agnostic entry at the same step", () => {
     const c = catalog([
-      mount("x-v-any", { style: "X", era: "VICTORIAN", size: "LARGE", mountClass: "TURRET" }),
+      mount("x-v-any", { style: "X", era: "VICTORIAN", sizes: ["LARGE"], mountClass: "TURRET" }),
       mount("x-v-2", {
         style: "X",
         era: "VICTORIAN",
-        size: "LARGE",
+        sizes: ["LARGE"],
         mountClass: "TURRET",
         guns: 2,
       }),
@@ -66,11 +66,11 @@ describe("resolveMount fallback chain (ADR-0148 §4)", () => {
 
   it("an exact gun count never outranks an earlier step", () => {
     const c = catalog([
-      mount("b-v-any", { style: "B", era: "VICTORIAN", size: "LARGE", mountClass: "TURRET" }),
+      mount("b-v-any", { style: "B", era: "VICTORIAN", sizes: ["LARGE"], mountClass: "TURRET" }),
       mount("x-v-2", {
         style: "X",
         era: "VICTORIAN",
-        size: "LARGE",
+        sizes: ["LARGE"],
         mountClass: "TURRET",
         guns: 2,
       }),
@@ -80,15 +80,35 @@ describe("resolveMount fallback chain (ADR-0148 §4)", () => {
 
   it("never matches across size or mount class", () => {
     const c = catalog([
-      mount("x-d-medium", { style: "X", era: "DREADNOUGHT", size: "MEDIUM", mountClass: "TURRET" }),
+      mount("x-d-medium", {
+        style: "X",
+        era: "DREADNOUGHT",
+        sizes: ["MEDIUM"],
+        mountClass: "TURRET",
+      }),
       mount("x-d-barbette", {
         style: "X",
         era: "DREADNOUGHT",
-        size: "LARGE",
+        sizes: ["LARGE"],
         mountClass: "BARBETTE",
       }),
     ]);
     expect(resolveMount(c, query)).toBeNull();
+  });
+
+  it("one entry serves every size band it lists", () => {
+    const c = catalog([
+      mount("x-v-mid-small", {
+        style: "X",
+        era: "VICTORIAN",
+        sizes: ["MEDIUM", "SMALL"],
+        mountClass: "OPEN",
+      }),
+    ]);
+    const open = { ...query, mountClass: "OPEN" } as const;
+    expect(resolveMount(c, { ...open, size: "SMALL" })?.part.id).toBe("x-v-mid-small");
+    expect(resolveMount(c, { ...open, size: "MEDIUM" })?.part.id).toBe("x-v-mid-small");
+    expect(resolveMount(c, { ...open, size: "LARGE" })).toBeNull();
   });
 
   it("a gun-count entry for another count does not match", () => {
@@ -96,7 +116,7 @@ describe("resolveMount fallback chain (ADR-0148 §4)", () => {
       mount("x-d-3", {
         style: "X",
         era: "DREADNOUGHT",
-        size: "LARGE",
+        sizes: ["LARGE"],
         mountClass: "TURRET",
         guns: 3,
       }),

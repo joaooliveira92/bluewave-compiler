@@ -22,8 +22,10 @@ describe("the generated catalog", () => {
   });
 
   it("has unique keys, so resolution never depends on authoring order", () => {
-    const keys = PART_CATALOG.mounts.map((p) =>
-      [p.key.style, p.key.era, p.key.size, p.key.mountClass, p.key.guns ?? "*"].join("/"),
+    const keys = PART_CATALOG.mounts.flatMap((p) =>
+      p.key.sizes.map((size) =>
+        [p.key.style, p.key.era, size, p.key.mountClass, p.key.guns ?? "*"].join("/"),
+      ),
     );
     expect(keys.length).toBe(new Set(keys).size);
     const mastKeys = PART_CATALOG.masts.map((p) => `${p.key.style}/${p.key.era}`);
@@ -38,7 +40,7 @@ describe("the generated catalog", () => {
             (p) =>
               p.key.style === "X" &&
               p.key.era === "DREADNOUGHT" &&
-              p.key.size === size &&
+              p.key.sizes.includes(size) &&
               p.key.mountClass === mountClass &&
               p.key.guns === undefined,
           ),

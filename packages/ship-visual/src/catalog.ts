@@ -26,7 +26,8 @@ export type PlanBody = (typeof PLAN_BODIES)[number];
 export interface MountKey {
   readonly style: NationStyle;
   readonly era: VisualEra;
-  readonly size: SizeBand;
+  /** The size bands this drawing serves (non-empty); the calibre resize distinguishes them. */
+  readonly sizes: readonly SizeBand[];
   readonly mountClass: MountClass;
   /** Absent: the drawing serves any gun count. */
   readonly guns?: number;
