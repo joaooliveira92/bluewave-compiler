@@ -161,6 +161,19 @@ export const PlaceForeignConstructionCommandPayloadSchema = Schema.Struct({
 });
 
 /**
+ * The read-only foreign-order preview (SB3-R20/R23/R34; INC-9b). Carries the player's choices only; the engine derives
+ * the candidate builders, the capability verdict and the contract terms. `builderNationId`/`plannedDeliveryMonth` are
+ * optional — the builder list is returned without them.
+ */
+export const PreviewForeignConstructionCommandPayloadSchema = Schema.Struct({
+  sessionId: nonEmptyString,
+  designVersionId: nonEmptyString,
+  quantity: positiveInt,
+  builderNationId: Schema.optional(nonEmptyString),
+  plannedDeliveryMonth: Schema.optional(monthString),
+});
+
+/**
  * Wire shape for `setResearchPriorityCommand` (desktop-engine-feature-gate
  * INC-2): the `CommandEnvelope` triple plus strict field priorities. The wire
  * boundary enforces integer values and caps the record at the canonical field

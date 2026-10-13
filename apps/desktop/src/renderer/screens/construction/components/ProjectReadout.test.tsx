@@ -88,6 +88,28 @@ describe("ProjectReadout", () => {
     expect(screen.queryByText("complete")).toBeNull();
   });
 
+  it("shows the payment-default reason for a foreign contract in default (INC-9b)", () => {
+    render(
+      <ProjectReadout
+        row={row({
+          status: "DELAYED",
+          isForeign: true,
+          readout: {
+            totalCostUnits: 640,
+            monthlyInstalmentUnits: 0,
+            remainingMonths: 0,
+            launchMonth: null,
+            scheduleBasis: "UNAVAILABLE",
+            scheduleUnavailableReason: "DELAYED",
+            delayReasonCode: "PAYMENT_DEFAULT_DELAYED",
+            haltedCarryingCostUnits: null,
+          },
+        })}
+      />,
+    );
+    expect(screen.getByText("not building (payment default)")).toBeTruthy();
+  });
+
   it("renders the contract schedule a foreign row's readout carries", () => {
     render(
       <ProjectReadout

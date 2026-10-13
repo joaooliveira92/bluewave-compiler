@@ -245,6 +245,9 @@ export function constructionProjectQueueWithReadouts(
       ...entry,
       readout: {
         ...readout,
+        ...(project.delayReasonCode === undefined
+          ? {}
+          : { delayReasonCode: project.delayReasonCode }),
         haltedCarryingCostUnits: project.status === "HALTED" ? haltedCarryingCostUnits : null,
       },
     };

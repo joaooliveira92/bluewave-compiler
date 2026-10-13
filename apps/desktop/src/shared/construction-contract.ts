@@ -3,7 +3,7 @@ import type {
   ConstructionCommand,
   ConstructionProjectQueueEntry,
 } from "@bluewave/campaign-engine";
-import type { ConstructionBatchPreview } from "@bluewave/phase-engine";
+import type { ConstructionBatchPreview, ForeignConstructionPreview } from "@bluewave/phase-engine";
 import type { CommandEnvelope } from "./bridge-contract.js";
 
 /**
@@ -127,3 +127,22 @@ export interface ConstructionCommandQueuedOutcome {
   readonly bodyType: string;
   readonly appliedOnNextTurn: true;
 }
+
+/**
+ * The read-only foreign-order preview (SB3-R20/R23/R34; INC-9b). Carries the player's choices only — design, quantity,
+ * an optional builder and delivery month — and the engine returns the candidate builders (dock ceiling, free
+ * `NEW_CONSTRUCTION` capacity, capability verdict, impoundment risk, delivery guarantee) and, when a builder is
+ * chosen, the contract terms the order would form. It mutates and reserves nothing.
+ */
+export interface PreviewForeignConstructionCommandPayload {
+  readonly sessionId: string;
+  readonly designVersionId: string;
+  readonly quantity: number;
+  readonly builderNationId?: string;
+  readonly plannedDeliveryMonth?: string;
+}
+
+/** The preview outcome: the engine's compiled preview, or its own reason code (never a UI-invented one). */
+export type ForeignConstructionPreviewOutcome =
+  | { readonly ok: true; readonly preview: ForeignConstructionPreview }
+  | { readonly ok: false; readonly reason: string; readonly diagnostics: readonly string[] };

@@ -148,16 +148,28 @@ export interface ForeignBuilderCapabilityResolutionInput {
   readonly dock: Partial<DockRecord> | null;
 }
 
-/** The ordering↔builder diplomatic relation, matching `nationA`/`nationB` in either order; `null` when none. */
-function relationBetween(
+/** The ordering↔builder diplomatic relation and tension, matching `nationA`/`nationB` in either order. */
+export interface DiplomaticRelationAndTension {
+  /** `null` when no relation is recorded. */
+  readonly relation: DiplomaticRelation["relation"] | null;
+  readonly tension: number;
+}
+
+/**
+ * The ordering↔builder diplomatic relation and tension, or `{ relation: null, tension: 0 }` when none is recorded. The
+ * one shared reader for the preview, the capability resolver and the monthly step, so they can never disagree. Pure.
+ */
+export function relationAndTension(
   snapshot: CampaignSnapshot,
   a: string,
   b: string,
-): DiplomaticRelation["relation"] | null {
+): DiplomaticRelationAndTension {
   const rel = snapshot["politics"].relations.find(
     (r) => (r["nationA"] === a && r["nationB"] === b) || (r["nationA"] === b && r["nationB"] === a),
   );
-  return rel === undefined ? null : rel["relation"];
+  return rel === undefined
+    ? { relation: null, tension: 0 }
+    : { relation: rel["relation"], tension: rel["tension"] };
 }
 
 /**
@@ -174,7 +186,8 @@ export function resolveForeignBuilderCapability(
 ): ForeignBuilderCapabilityConditions {
   const profile = content?.navalProfileFor(input.builderNationId, input.campaignMonth) ?? null;
   const atWar =
-    relationBetween(snapshot, input.orderingNationId, input.builderNationId) === "at_war";
+    relationAndTension(snapshot, input.orderingNationId, input.builderNationId).relation ===
+    "at_war";
   const shipType = shipTypeForHullType(input.design.hullType);
   return {
     shipyardCapabilitySatisfied: input.dock !== null,

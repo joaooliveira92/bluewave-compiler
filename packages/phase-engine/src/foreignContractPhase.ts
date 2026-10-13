@@ -47,6 +47,7 @@ import {
   mergeForeignInsightAwardRecord,
 } from "./foreignInsight.js";
 import { researchCostOf } from "./research.js";
+import { relationAndTension } from "./foreignTerms.js";
 import { nationalConstructionCapacity } from "./newConstructionCapacity.js";
 import type { MonthContext } from "./monthContext.js";
 import type { RandomEngine } from "@bluewave/random";
@@ -537,19 +538,6 @@ function availableBuilderCapacityKg(
 /** Re-exported for tests: the volatile-capability default the INC-9 monthly step applies. */
 export { FOREIGN_BUILDER_CONDITIONS_SATISFIED };
 
-/** The ordering↔builder diplomatic relation and tension, or `null`/`0` when none is recorded. */
-function relationBetween(
-  snapshot: CampaignSnapshot,
-  a: string,
-  b: string,
-): { relation: "neutral" | "allied" | "at_war" | "trade_agreement" | null; tension: number } {
-  const rel = snapshot["politics"].relations.find(
-    (r) => (r["nationA"] === a && r["nationB"] === b) || (r["nationA"] === b && r["nationB"] === a),
-  );
-  if (rel === undefined) return { relation: null, tension: 0 };
-  return { relation: rel["relation"], tension: rel["tension"] };
-}
-
 /**
  * DESIGN-16 section 13.6: resolve a contract's war policy from the current snapshot. Occupation/destruction, embargo
  * and co-belligerence predicates are not yet modelled (they default to their non-triggering values and are a recorded
@@ -562,7 +550,11 @@ function foreignWarResolution(
   campaignMonth: string,
   warRng: RandomEngine | null,
 ): ForeignWarPolicyResolution {
-  const rel = relationBetween(ctx.currentSnapshot, orderingNationId, contract["builderNationId"]);
+  const rel = relationAndTension(
+    ctx.currentSnapshot,
+    orderingNationId,
+    contract["builderNationId"],
+  );
   return resolveForeignWarPolicy({
     contract,
     campaignMonth,

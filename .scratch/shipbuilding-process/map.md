@@ -102,6 +102,19 @@ and armament-change validation) plus the player surface. Hand off to `to-spec` �
   schedule unavailable with the reason (never a misleading instalment/launch), and foreign rows derive
   their instalment/launch from the contract schedule; golden/determinism unchanged.
 
+### Deferred player surfaces closed (2026-10-13)
+
+- **INC-9b** foreign-builder surface landed on the Construction screen's build dialog: a new read-only
+  `previewForeignConstruction` engine projection (candidate builders, dock ceiling, free `NEW_CONSTRUCTION`
+  capacity, §13.2 capability verdict, tension-scaled impoundment risk, delivery-guarantee status) behind a new
+  `previewForeignConstructionCommand` bridge command, a `ForeignContractPanel`, and `previewForeign`/
+  `placeForeignOrder` in `useConstructionScreen`. Render tests, an e2e (`construction-foreign`) and a `pnpm snap`
+  of the dialog with `Builder = French Republic` back it.
+- **INC-12b / INC-15b** rebuild surfaces were already delivered by the shared design-workspace `RebuildPanel`
+  (BULGE blister mass + protection/speed projection, armament change, standard rebuild; no CV/CVL or BC→BB
+  conversions); the tickets are marked resolved against it rather than deferred.
+
+
 
 ## Not yet specified
 

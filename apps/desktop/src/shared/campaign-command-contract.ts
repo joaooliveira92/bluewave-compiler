@@ -45,10 +45,12 @@ import type {
   ConstructionCommandOutcome,
   ConstructionCommandQueuedOutcome,
   ConstructionScreenProjection,
+  ForeignConstructionPreviewOutcome,
   HaltConstructionCommandPayload,
   OrderConstructionBatchCommandPayload,
   PlaceForeignConstructionCommandPayload,
   PreviewConstructionBatchCommandPayload,
+  PreviewForeignConstructionCommandPayload,
   ReplaceConstructionCommandPayload,
   ResumeConstructionCommandPayload,
   SetAccelerationCommandPayload,
@@ -300,6 +302,7 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "previewConstructionBatchCommand",
   "authorizeDockExpansionCommand",
   "placeForeignConstructionCommand",
+  "previewForeignConstructionCommand",
   "inspectFleetScreen",
   "submitMovementCommand",
   "replaceMovementCommand",
@@ -451,6 +454,10 @@ export interface CampaignCommandClient {
     command: "placeForeignConstructionCommand",
     payload: PlaceForeignConstructionCommandPayload,
   ): Promise<BridgeResult<ConstructionCommandQueuedOutcome>>;
+  execute(
+    command: "previewForeignConstructionCommand",
+    payload: PreviewForeignConstructionCommandPayload,
+  ): Promise<BridgeResult<ForeignConstructionPreviewOutcome>>;
   execute(
     command: "inspectFleetScreen",
     payload: string,

@@ -42,6 +42,14 @@ const SCHEDULE_UNAVAILABLE_LABEL: Readonly<
 export const ProjectReadout = memo(function ProjectReadout({ row }: ProjectReadoutProps) {
   const readout = row.readout;
   const unavailableReason = readout?.scheduleUnavailableReason ?? null;
+  // DESIGN-16 section 13.4 (INC-9b): a foreign contract in payment default holds the same `DELAYED` status, but the
+  // reason code says why — show it instead of a generic "delayed" so the player knows the hold is a payment default.
+  const reasonLabel =
+    unavailableReason === "DELAYED" && readout?.delayReasonCode === "PAYMENT_DEFAULT_DELAYED"
+      ? "payment default"
+      : unavailableReason === null
+        ? "unavailable"
+        : (SCHEDULE_UNAVAILABLE_LABEL[unavailableReason] ?? unavailableReason);
   return (
     <ul
       className="grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2 lg:grid-cols-4"
@@ -51,14 +59,7 @@ export const ProjectReadout = memo(function ProjectReadout({ row }: ProjectReado
         <ReadoutItem label="Schedule" value="unavailable" />
       ) : readout.scheduleBasis === "UNAVAILABLE" ? (
         <>
-          <ReadoutItem
-            label="Schedule"
-            value={`not building (${
-              unavailableReason === null
-                ? "unavailable"
-                : (SCHEDULE_UNAVAILABLE_LABEL[unavailableReason] ?? unavailableReason)
-            })`}
-          />
+          <ReadoutItem label="Schedule" value={`not building (${reasonLabel})`} />
           <ReadoutItem label="Total cost" value={readout.totalCostUnits.toLocaleString()} />
           {readout.haltedCarryingCostUnits !== null && (
             <ReadoutItem

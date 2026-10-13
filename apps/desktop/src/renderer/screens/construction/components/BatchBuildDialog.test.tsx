@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import type { CompiledDesignVersion } from "@bluewave/campaign-engine";
 import { axeViolations } from "../../../lib/axe.js";
 import type { ConstructionBatchPreviewOutcome } from "../../../../shared/construction-contract.js";
+import type { ForeignConstructionPreviewOutcome } from "../../../../shared/construction-contract.js";
 import { BatchBuildDialog, type BatchBuildDialogProps } from "./BatchBuildDialog.js";
 
 afterEach(cleanup);
@@ -50,6 +51,9 @@ const props = (over: Partial<BatchBuildDialogProps> = {}): BatchBuildDialogProps
   quantity: 2,
   onQuantityChange: () => {},
   preview: okPreview,
+  foreignPreview: null,
+  builderNationId: null,
+  onSelectBuilder: () => {},
   busy: false,
   notice: null,
   onConfirm: () => {},
@@ -147,5 +151,109 @@ describe("BatchBuildDialog (SB3-R30/R33)", () => {
   it("has no accessibility violations", async () => {
     const { container } = render(<BatchBuildDialog {...props()} />);
     expect(await axeViolations(container)).toEqual([]);
+  });
+});
+
+const foreignPreview: ForeignConstructionPreviewOutcome = {
+  ok: true,
+  preview: {
+    designVersionId: "d1",
+    quantity: 2,
+    designDisplacementKg: 11_880_000,
+    builders: [
+      {
+        nationId: "france",
+        name: "France",
+        tag: "F",
+        relation: "neutral",
+        tension: 0,
+        dockCeilingKg: 12_000_000,
+        reservedMassKg: 23_760_000,
+        availableNewConstructionMassKg: 10_000_000,
+        fitsDock: true,
+        capabilitySatisfied: true,
+        capabilityReasons: [],
+        capabilityFailureCode: null,
+        impoundmentRiskBp: 0,
+        deliveryGuarantee: false,
+      },
+    ],
+    contract: {
+      quantity: 2,
+      totalWorkPerUnit: 119,
+      totalPriceUnits: 238,
+      paymentSchedule: [
+        { dueMonth: "1880-01", amountUnits: 119, workShareBp: 5_000 },
+        { dueMonth: "1880-02", amountUnits: 119, workShareBp: 5_000 },
+      ],
+      capacityReservationSchedule: [
+        { month: "1880-01", reservedMassKg: 23_760_000, pool: "NEW_CONSTRUCTION" },
+      ],
+      paymentGraceMonths: 1,
+      plannedKeelMonth: "1880-01",
+      plannedDeliveryMonth: "1880-06",
+      reservedMassKg: 23_760_000,
+      capabilitySatisfied: true,
+      capabilityReasons: [],
+      capabilityFailureCode: null,
+    },
+  },
+};
+
+describe("BatchBuildDialog foreign builder (SB3-R20/R34, INC-9b)", () => {
+  it("offers the nation's yards and the candidate foreign builders", () => {
+    render(<BatchBuildDialog {...props({ foreignPreview })} />);
+    const builder = screen.getByRole("combobox", { name: "Builder" }) as HTMLSelectElement;
+    const labels = [...builder.querySelectorAll("option")].map((o) => o.textContent ?? "");
+    expect(labels).toContain("Your own yards");
+    expect(labels.some((l) => l.startsWith("France"))).toBe(true);
+  });
+
+  it("renders the contract panel and routes confirm to the foreign order", () => {
+    const onConfirm = vi.fn();
+    render(
+      <BatchBuildDialog {...props({ foreignPreview, builderNationId: "france", onConfirm })} />,
+    );
+    const panel = screen.getByTestId("foreign-contract-panel");
+    expect(panel.textContent).toContain("France");
+    expect(screen.getByTestId("foreign-total-price").textContent).toContain("238");
+    expect(screen.getByRole("table", { name: "Foreign payment schedule" })).toBeTruthy();
+    const confirm = screen.getByRole("button", { name: "Order from foreign yard" });
+    expect(confirm).toHaveProperty("disabled", false);
+    confirm.click();
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables confirm and shows the engine refusal when the builder is incapable", () => {
+    const incapable: ForeignConstructionPreviewOutcome = {
+      ok: true,
+      preview: {
+        ...foreignPreview.preview,
+        builders: [
+          {
+            ...foreignPreview.preview.builders[0]!,
+            capabilitySatisfied: false,
+            capabilityReasons: ["DOCK: The hull exceeds the builder's dock."],
+            capabilityFailureCode: "FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT",
+          },
+        ],
+        contract: {
+          ...foreignPreview.preview.contract!,
+          capabilitySatisfied: false,
+          capabilityReasons: ["DOCK: The hull exceeds the builder's dock."],
+          capabilityFailureCode: "FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT",
+        },
+      },
+    };
+    render(
+      <BatchBuildDialog {...props({ foreignPreview: incapable, builderNationId: "france" })} />,
+    );
+    expect(screen.getByTestId("foreign-refusal").textContent).toContain(
+      "FOREIGN_BUILDER_CAPABILITY_INSUFFICIENT",
+    );
+    expect(screen.getByRole("button", { name: "Order from foreign yard" })).toHaveProperty(
+      "disabled",
+      true,
+    );
   });
 });

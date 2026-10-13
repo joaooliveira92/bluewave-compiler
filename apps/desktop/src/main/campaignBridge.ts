@@ -34,6 +34,7 @@ import {
   PreviewConstructionBatchCommandPayloadSchema,
   AuthorizeDockExpansionCommandPayloadSchema,
   PlaceForeignConstructionCommandPayloadSchema,
+  PreviewForeignConstructionCommandPayloadSchema,
 } from "./campaignCommandSchemas.js";
 import {
   generateBattle,
@@ -52,6 +53,7 @@ import {
   cancelConstructionCommand,
   inspectConstructionScreen,
   previewConstructionBatchCommand,
+  previewForeignConstructionCommand,
   replaceConstructionCommand,
   submitConstructionCommand,
 } from "./commands/constructionCommands.js";
@@ -251,6 +253,10 @@ export const defaultCommandRegistry: CommandRegistry = {
   placeForeignConstructionCommand: withStrictSchema(
     PlaceForeignConstructionCommandPayloadSchema,
     (payload) => placeForeignConstructionCommand(payload),
+  ),
+  previewForeignConstructionCommand: withSchema(
+    PreviewForeignConstructionCommandPayloadSchema,
+    (payload) => previewForeignConstructionCommand(payload),
   ),
   inspectFleetScreen: withSchema(SessionIdPayloadSchema, (sessionId) =>
     inspectFleetScreen(sessionId),

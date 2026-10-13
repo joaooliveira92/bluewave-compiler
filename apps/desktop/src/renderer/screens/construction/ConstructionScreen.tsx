@@ -16,7 +16,10 @@ import {
   ProjectsCard,
   StatsPanel,
 } from "./components/index.js";
-import type { ConstructionBatchPreviewOutcome } from "../../../shared/construction-contract.js";
+import type {
+  ConstructionBatchPreviewOutcome,
+  ForeignConstructionPreviewOutcome,
+} from "../../../shared/construction-contract.js";
 import { projectRows } from "./project-progress.js";
 import { useConstructionScreen } from "./hooks/useConstructionScreen.js";
 import { CollapsibleSection } from "../../components/shared/CollapsibleSection.js";
@@ -40,6 +43,8 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
     setAcceleration,
     orderBatch,
     previewBatch,
+    previewForeign,
+    placeForeignOrder,
     authorizeDockExpansion,
   } = useConstructionScreen(sessionId);
   const [activeTab, setActiveTab] = useState("overview");
@@ -47,6 +52,9 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
   const [batchOpen, setBatchOpen] = useState(false);
   const [batchQuantity, setBatchQuantity] = useState(1);
   const [batchPreview, setBatchPreview] = useState<ConstructionBatchPreviewOutcome | null>(null);
+  const [batchForeignPreview, setBatchForeignPreview] =
+    useState<ForeignConstructionPreviewOutcome | null>(null);
+  const [batchBuilderNationId, setBatchBuilderNationId] = useState<string | null>(null);
   const [batchFetching, setBatchFetching] = useState(false);
   const selectedDesign = useMemo(
     () => state.designs.find((d) => d.designId === selectedDesignId) ?? null,
@@ -58,6 +66,8 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
   const closeWizard = useCallback(() => setWizardOpen(false), []);
   const openBatch = useCallback(() => {
     setBatchPreview(null);
+    setBatchForeignPreview(null);
+    setBatchBuilderNationId(null);
     setBatchOpen(true);
   }, []);
   const closeBatch = useCallback(() => setBatchOpen(false), []);
@@ -72,6 +82,7 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
   useEffect(() => {
     if (
       !batchOpen ||
+      batchBuilderNationId !== null ||
       selectedDesignId === null ||
       !(Number.isInteger(batchQuantity) && batchQuantity >= 1)
     ) {
@@ -89,13 +100,43 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
     return () => {
       cancelled = true;
     };
-  }, [batchOpen, selectedDesignId, batchQuantity, previewBatch]);
+  }, [batchOpen, batchBuilderNationId, selectedDesignId, batchQuantity, previewBatch]);
+
+  // The foreign builder list and (when one is chosen) the contract terms (SB3-R20/R34). Fetched whenever the dialog is
+  // open so the builder selector can offer foreign yards; the engine derives every figure, including the refusal.
+  useEffect(() => {
+    if (
+      !batchOpen ||
+      selectedDesignId === null ||
+      !(Number.isInteger(batchQuantity) && batchQuantity >= 1)
+    ) {
+      setBatchForeignPreview(null);
+      return;
+    }
+    let cancelled = false;
+    void previewForeign(selectedDesignId, batchQuantity, batchBuilderNationId ?? undefined).then(
+      (result) => {
+        if (!cancelled) setBatchForeignPreview(result);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [batchOpen, selectedDesignId, batchQuantity, batchBuilderNationId, previewForeign]);
 
   const confirmBatch = useCallback(() => {
     if (selectedDesignId === null) return;
-    orderBatch(selectedDesignId, batchQuantity);
+    if (batchBuilderNationId === null) orderBatch(selectedDesignId, batchQuantity);
+    else placeForeignOrder(selectedDesignId, batchBuilderNationId, batchQuantity);
     closeBatch();
-  }, [orderBatch, selectedDesignId, batchQuantity, closeBatch]);
+  }, [
+    orderBatch,
+    placeForeignOrder,
+    selectedDesignId,
+    batchBuilderNationId,
+    batchQuantity,
+    closeBatch,
+  ]);
 
   if (loadError !== null) {
     return (
@@ -181,6 +222,9 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
               quantity={batchQuantity}
               onQuantityChange={setBatchQuantity}
               preview={batchPreview}
+              foreignPreview={batchForeignPreview}
+              builderNationId={batchBuilderNationId}
+              onSelectBuilder={setBatchBuilderNationId}
               busy={busy || batchFetching}
               notice={state.notice}
               onConfirm={confirmBatch}

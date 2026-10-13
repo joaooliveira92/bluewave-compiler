@@ -5,6 +5,7 @@ import type {
   ConstructionCommandOutcome,
   ConstructionCommandQueuedOutcome,
   ConstructionScreenProjection,
+  ForeignConstructionPreviewOutcome,
 } from "../../../../shared/construction-contract.js";
 import { useCommandScreenWorkflow } from "../../../lib/command-screen-workflow.js";
 import { useCampaignRevision } from "../../../shell/CampaignShellContext.js";
@@ -37,6 +38,16 @@ export interface UseConstructionScreenReturn {
     designVersionId: string,
     quantity: number,
   ) => Promise<ConstructionBatchPreviewOutcome | null>;
+  readonly previewForeign: (
+    designVersionId: string,
+    quantity: number,
+    builderNationId?: string,
+  ) => Promise<ForeignConstructionPreviewOutcome | null>;
+  readonly placeForeignOrder: (
+    designVersionId: string,
+    builderNationId: string,
+    quantity: number,
+  ) => void;
   readonly authorizeDockExpansion: (possessionId: string) => void;
 }
 
@@ -197,6 +208,52 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
     [bridge, sessionId],
   );
 
+  // SB3-R20/R34: the foreign-order preview, straight from the engine through the bridge. It lists candidate builders
+  // (dock ceiling, free capacity, capability verdict, impoundment risk, delivery guarantee) and, when a builder is
+  // chosen, the contract terms. A refusal carries the engine's own reason (never a UI-invented code); a transport
+  // failure is surfaced the same way.
+  const previewForeign = useCallback(
+    async (
+      designVersionId: string,
+      quantity: number,
+      builderNationId?: string,
+    ): Promise<ForeignConstructionPreviewOutcome | null> => {
+      if (!bridge) return null;
+      try {
+        const result = await bridge.campaign.execute("previewForeignConstructionCommand", {
+          sessionId,
+          designVersionId,
+          quantity,
+          ...(builderNationId === undefined ? {} : { builderNationId }),
+        });
+        if (result.outcome === "success") return result.value;
+        return { ok: false, reason: result.reason, diagnostics: result.diagnostics };
+      } catch (error) {
+        return { ok: false, reason: "PREVIEW_FAILED", diagnostics: [String(error)] };
+      }
+    },
+    [bridge, sessionId],
+  );
+
+  // SB3-R20: order a hull from a foreign yard. The engine derives the contract server-side (INC-17); the payload carries
+  // only the player's choices, and the command applies on the next `commitMonth` like the other steering commands.
+  const placeForeignOrder = useCallback(
+    (designVersionId: string, builderNationId: string, quantity: number) => {
+      if (!bridge) return;
+      void execute("order-foreign", ({ expectedRevision, transportRequestId }) =>
+        bridge.campaign.execute("placeForeignConstructionCommand", {
+          sessionId,
+          designVersionId,
+          builderNationId,
+          quantity,
+          expectedRevision,
+          transportRequestId,
+        }),
+      );
+    },
+    [bridge, execute, sessionId],
+  );
+
   // DESIGN-16 sections 5-6 (SB3-R16): the dock-expansion authorization queues a real engine envelope that applies on the
   // next `commitMonth`; the era step is locked by the engine at authorization time.
   const authorizeDockExpansion = useCallback(
@@ -229,6 +286,8 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
     setAcceleration,
     orderBatch,
     previewBatch,
+    previewForeign,
+    placeForeignOrder,
     authorizeDockExpansion,
   };
 }

@@ -10,6 +10,7 @@ export type RequestKind =
   | "resume"
   | "accelerate"
   | "order-batch"
+  | "order-foreign"
   | "authorize-dock-expansion";
 
 export interface PendingRequest {

@@ -210,6 +210,11 @@ export interface ConstructionProjectReadoutView {
   readonly scheduleBasis: ConstructionScheduleBasis;
   /** The held/terminal status, revision hold or missing contract that leaves no running schedule; null when one runs. */
   readonly scheduleUnavailableReason: ConstructionScheduleUnavailableReason | null;
+  /**
+   * The project's stable delay reason code when it is held by a specific cause (e.g. `PAYMENT_DEFAULT_DELAYED` for a
+   * foreign contract in payment default, DESIGN-16 section 13.4); absent when the project carries none. Display only.
+   */
+  readonly delayReasonCode?: string;
   /** The half-mothball carrying cost a HALTED project pays each month; null for a non-halted project. */
   readonly haltedCarryingCostUnits: number | null;
 }

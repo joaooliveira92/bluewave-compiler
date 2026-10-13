@@ -232,6 +232,14 @@ export {
   type ForeignContractTermsInput,
 } from "./foreignTerms.js";
 export {
+  previewForeignConstruction,
+  type ForeignBuilderCandidate,
+  type ForeignConstructionPreview,
+  type ForeignConstructionPreviewOptions,
+  type ForeignConstructionPreviewResult,
+  type ForeignContractTermsPreview,
+} from "./foreignBuilderPreview.js";
+export {
   DELIVERY_GUARANTEE_ACTIVE,
   FOREIGN_CONTRACT_DELIVERY_DELAYED,
   FOREIGN_CONTRACT_IMPOUNDMENT_NOT_AUTHORIZED,

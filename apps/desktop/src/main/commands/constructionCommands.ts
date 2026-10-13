@@ -5,6 +5,7 @@ import {
 import {
   constructionProjectQueueWithReadouts,
   previewConstructionBatch,
+  previewForeignConstruction,
 } from "@bluewave/phase-engine";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
@@ -12,7 +13,9 @@ import type {
   ConstructionBatchPreviewOutcome,
   ConstructionCommandOutcome,
   ConstructionScreenProjection,
+  ForeignConstructionPreviewOutcome,
   PreviewConstructionBatchCommandPayload,
+  PreviewForeignConstructionCommandPayload,
   ReplaceConstructionCommandPayload,
   SubmitConstructionCommandPayload,
 } from "../../shared/construction-contract.js";
@@ -131,6 +134,48 @@ export async function previewConstructionBatchCommand(
     loadShipBuildingContent(),
     campaignMonthKey(record),
   );
+  return { outcome: "success", value, diagnostics: [] };
+}
+
+// ---------------------------------------------------------------------------
+// previewForeignConstructionCommand
+// ---------------------------------------------------------------------------
+
+/**
+ * The read-only preview for the foreign-order dialog (SB3-R20/R23/R34; INC-9b): resolves the session's snapshot, the
+ * compiled ship-building content and the campaign month, then asks the engine's `previewForeignConstruction` for the
+ * candidate builders (dock ceiling, free capacity, capability verdict, impoundment risk, delivery guarantee) and, when a
+ * builder is chosen, the contract terms. It mutates nothing and reserves nothing — a refused quantity comes back as the
+ * engine's own `reason` (e.g. `FOREIGN_CONSTRUCTION_QUANTITY_INVALID`), never a desktop-invented code.
+ */
+export async function previewForeignConstructionCommand(
+  payload: PreviewForeignConstructionCommandPayload,
+): Promise<BridgeResult<ForeignConstructionPreviewOutcome>> {
+  const record = getCampaignSession(payload.sessionId);
+  if (!record) {
+    return {
+      outcome: "error",
+      reason: "SESSION_NOT_FOUND",
+      diagnostics: [`No active campaign session ${payload.sessionId}`],
+    };
+  }
+  const result = previewForeignConstruction(
+    record.state.snapshot,
+    record.playerSlotId,
+    payload.designVersionId,
+    payload.quantity,
+    loadShipBuildingContent(),
+    campaignMonthKey(record),
+    {
+      ...(payload.builderNationId === undefined
+        ? {}
+        : { builderNationId: payload.builderNationId }),
+      ...(payload.plannedDeliveryMonth === undefined
+        ? {}
+        : { plannedDeliveryMonth: payload.plannedDeliveryMonth }),
+    },
+  );
+  const value: ForeignConstructionPreviewOutcome = result;
   return { outcome: "success", value, diagnostics: [] };
 }
 
