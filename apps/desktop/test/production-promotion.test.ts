@@ -1,14 +1,8 @@
 import { describe, it, expect } from "vite-plus/test";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { readFileSync } from "node:fs";
-import { CampaignCompiler } from "@bluewave/campaign/compiler";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { InvalidShipType, promoteTacticalUnit } from "@bluewave/combat";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, "../../..");
-const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
+import { compileProductionCampaignFromArtifact } from "../src/main/compiler.js";
+import { resolveGeneratedContentDir } from "../src/main/contentPack.js";
 
 // AC-1/AC-14: the promotion mechanism is deterministic and carries the design
 // data the tactical layer needs. This test proves the mechanism end-to-end on
@@ -20,39 +14,11 @@ const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
 // CONTENT-track work (see docs/research/content-5-1880-pack-audit-2026-08-17.md).
 describe("production-pack ship promotion (AC-1/AC-14)", () => {
   it("deterministically promotes any ship carrying a resolvable designVersionId", () => {
-    const pack = JSON.parse(readFileSync(resolve(PRODUCTION_PACK, "pack.json"), "utf8")) as {
-      files?: Record<string, string[]>;
-    };
-    const files = pack.files ?? {};
-
-    const compiler = new CampaignCompiler();
     const collector = new DiagnosticCollector();
     const signal = new AbortController().signal;
 
-    const output = compiler.compile(
-      {
-        compilerInput: {
-          manifestPath: resolve(PRODUCTION_PACK, "pack.json"),
-          contentDir: PRODUCTION_PACK,
-          rulesetFiles: (files.rulesets ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          countryFiles: (files.countries ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          areaFiles: (files.areas ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          routeFiles: (files.routes ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          possessionFiles: (files.possessions ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          portFiles: (files.ports ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          technologyFiles: (files.technologies ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        },
-        campaignFiles: {
-          fleetFiles: (files.fleets ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          economyFiles: (files.economies ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          constructionFiles: (files.constructions ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          diplomacyFiles: (files.diplomacy ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          researchFiles: (files.research ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          designFiles: (files.designs ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        },
-        rulesetVersion: "1.0",
-        compatibilityVersion: "1.2.0",
-      },
+    const output = compileProductionCampaignFromArtifact(
+      resolveGeneratedContentDir(),
       signal,
       collector,
     );
@@ -125,39 +91,11 @@ describe("production-pack ship promotion (AC-1/AC-14)", () => {
   });
 
   it("reports the ship->design linkage gap explicitly rather than fabricating it", () => {
-    const pack = JSON.parse(readFileSync(resolve(PRODUCTION_PACK, "pack.json"), "utf8")) as {
-      files?: Record<string, string[]>;
-    };
-    const files = pack.files ?? {};
-
-    const compiler = new CampaignCompiler();
     const collector = new DiagnosticCollector();
     const signal = new AbortController().signal;
 
-    const output = compiler.compile(
-      {
-        compilerInput: {
-          manifestPath: resolve(PRODUCTION_PACK, "pack.json"),
-          contentDir: PRODUCTION_PACK,
-          rulesetFiles: (files.rulesets ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          countryFiles: (files.countries ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          areaFiles: (files.areas ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          routeFiles: (files.routes ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          possessionFiles: (files.possessions ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          portFiles: (files.ports ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          technologyFiles: (files.technologies ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        },
-        campaignFiles: {
-          fleetFiles: (files.fleets ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          economyFiles: (files.economies ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          constructionFiles: (files.constructions ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          diplomacyFiles: (files.diplomacy ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          researchFiles: (files.research ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-          designFiles: (files.designs ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        },
-        rulesetVersion: "1.0",
-        compatibilityVersion: "1.2.0",
-      },
+    const output = compileProductionCampaignFromArtifact(
+      resolveGeneratedContentDir(),
       signal,
       collector,
     );

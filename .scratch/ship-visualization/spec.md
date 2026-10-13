@@ -48,9 +48,11 @@ symbols in the profile and the plan from the compiled design only.
   preferred at each step; the result records which step matched. `X × DREADNOUGHT` covers
   every size × class (test-enforced).
 - **SV-R7** Placement is pure and deterministic, per ticket 07: station x; facing bow/stern
-  by station; casemate seat below the deck edge; house-top seat inside `SUPERSTRUCTURE`;
-  single-gun classes repeat per gun at 1.15 × width pitch; scale `px/m × clamp(cal/12in,
-  0.3, 1.5)` with a 4 px floor.
+  by station; a casemate hangs from the deck edge (its drawing lies below the seat);
+  house-top seat inside `SUPERSTRUCTURE`; single-gun classes repeat per gun at 1.15 × width
+  pitch (at most 8 drawn); multi-gun mounts draw 1–4 guns; scale `px/m × clamp(cal/12in,
+  0.3, 1.5)`, floored so a body is at least 4 px wide; draw order is side (port, centre,
+  starboard), then station, then instance id, with port mounts muted as the far side.
 - **SV-R8** The profile draws, back to front: reference → masts → hull → superstructure +
   funnels → mounts → waterline. Each mount symbol carries `data-testid="profile-mount"`,
   `data-instance`, `data-part` (the catalog entry id) and a `<title>` with class, calibre

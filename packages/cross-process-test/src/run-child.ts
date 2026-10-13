@@ -40,9 +40,9 @@ const FIXTURE = {
   technologies: `- id: "basic_steam"\n  name: "Basic Steam Turbine"\n  category: "propulsion"\n  cost: 100\n  year: 1880\n- id: "advanced_steam"\n  name: "Advanced Steam Turbine"\n  category: "propulsion"\n  prerequisites:\n    - { techId: "basic_steam" }\n  cost: 200\n  year: 1900\n`,
   fleets: `- id: "fleet-gbr-home"\n  nationId: "uk"\n  name: "Home Fleet"\n  locationAreaId: "lon"\n  ships:\n    - id: "ship-hms-dreadnought"\n      name: "HMS Dreadnought"\n      classId: "battleship"\n      hitPoints: 100\n      maxHitPoints: 100\n      speed: 21\n      firepower: 10\n      armor: 12\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n    - id: "ship-hms-invincible"\n      name: "HMS Invincible"\n      classId: "battlecruiser"\n      hitPoints: 80\n      maxHitPoints: 80\n      speed: 25\n      firepower: 8\n      armor: 6\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n- id: "fleet-fra-atlantic"\n  nationId: "france"\n  name: "Atlantic Fleet"\n  locationAreaId: "par"\n  ships:\n    - id: "ship-fs-courbet"\n      name: "FS Courbet"\n      classId: "battleship"\n      hitPoints: 90\n      maxHitPoints: 90\n      speed: 20\n      firepower: 9\n      armor: 11\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n`,
   economies: `- nationId: "uk"\n  treasury: 800\n  income: 150\n  expenses: 75\n- nationId: "france"\n  treasury: 600\n  income: 120\n  expenses: 60\n`,
-  constructions: `- id: "con-gbr-ship-battleship2"\n  nationId: "uk"\n  type: "ship"\n  targetId: "ship-hms-thunderer"\n  totalWork: 200\n  completedWork: 50\n  startedAt: "1880-01"\n`,
+  constructions: `- id: "con-gbr-ship-battleship2"\n  nationId: "uk"\n  type: "ship"\n  targetId: "ship-hms-thunderer"\n  totalWork: 200\n  completedWork: 50\n  paidWork: 0\n  status: "PLANNED"\n  startedAt: "1880-01"\n`,
   diplomacy: `- nationA: "uk"\n  nationB: "france"\n  relation: "neutral"\n  since: "1880-01"\n`,
-  research: `- nationId: "uk"\n  currentProjectTechId: "basic_steam"\n  technologies:\n    - { techId: "basic_steam", investedPoints: 30, completed: false }\n- nationId: "france"\n  technologies: []\n`,
+  research: `- nationId: "uk"\n  researchBudget: 0\n  currentProjectTechId: "basic_steam"\n  technologies:\n    - { techId: "basic_steam", investedPoints: 30, completed: false }\n- nationId: "france"\n  researchBudget: 0\n  technologies: []\n`,
 };
 
 function writeFile(base: string, rel: string, content: string): void {
@@ -68,30 +68,36 @@ function writeAllFixtureFiles(fixturePath: string): void {
 }
 
 function compileCampaign(fixtureDir: string): { state: CampaignState; contentHash: string } {
-  const compiler = new CampaignCompiler();
   const collector = new DiagnosticCollector();
   const signal = new AbortController().signal;
-  const output = compiler.compile(
+  const artifact = buildContentBundleArtifact(
     {
-      compilerInput: {
-        manifestPath: "pack.json",
-        contentDir: fixtureDir,
-        rulesetFiles: ["rulesets.yaml"],
-        countryFiles: ["countries.yaml"],
-        areaFiles: ["areas.yaml"],
-        routeFiles: ["routes.yaml"],
-        possessionFiles: ["possessions.yaml"],
-        portFiles: ["ports.yaml"],
-        technologyFiles: ["technologies.yaml"],
-      },
-      campaignFiles: {
-        fleetFiles: ["fleets.yaml"],
-        economyFiles: ["economies.yaml"],
-        constructionFiles: ["constructions.yaml"],
-        diplomacyFiles: ["diplomacy.yaml"],
-        researchFiles: ["research.yaml"],
-        designFiles: [],
-      },
+      manifestPath: "pack.json",
+      contentDir: fixtureDir,
+      rulesetFiles: ["rulesets.yaml"],
+      countryFiles: ["countries.yaml"],
+      areaFiles: ["areas.yaml"],
+      routeFiles: ["routes.yaml"],
+      possessionFiles: ["possessions.yaml"],
+      portFiles: ["ports.yaml"],
+      technologyFiles: ["technologies.yaml"],
+      fleetFiles: ["fleets.yaml"],
+      economyFiles: ["economies.yaml"],
+      constructionFiles: ["constructions.yaml"],
+      diplomacyFiles: ["diplomacy.yaml"],
+      researchFiles: ["research.yaml"],
+      designFiles: [],
+    },
+    signal,
+    collector,
+  );
+  if (!artifact || collector.hasErrors) {
+    throw new Error(`Compilation failed`);
+  }
+  const output = new CampaignCompiler().compile(
+    {
+      contentBundle: artifact.bundle,
+      contentHash: artifact.envelope.bodyHash,
       rulesetVersion: "1.0",
       compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
     },
@@ -113,8 +119,10 @@ function compileCampaign(fixtureDir: string): { state: CampaignState; contentHas
  */
 function contentBundleHash(fixtureDir: string): string {
   const collector = new DiagnosticCollector();
+  const surfaceInput = buildFullSurfaceInput(resolve(fixtureDir, "pack.json"), fixtureDir);
+  if (!surfaceInput) throw new Error("Content surface input failed");
   const artifact = buildContentBundleArtifact(
-    buildFullSurfaceInput(resolve(fixtureDir, "pack.json"), fixtureDir),
+    surfaceInput,
     new AbortController().signal,
     collector,
   );

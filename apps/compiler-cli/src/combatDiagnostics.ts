@@ -1,5 +1,5 @@
 //apps/compiler-cli/src/combatDiagnostics.ts
-import { BluewaveError } from "@bluewave/contracts";
+import { isBluewaveError, type BluewaveError } from "@bluewave/contracts";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 
 export type CombatOperationResult<T> =
@@ -40,7 +40,7 @@ export function runCombatOperation<T>(
   try {
     return { outcome: "success", value: fn() };
   } catch (err) {
-    if (err instanceof BluewaveError) {
+    if (isBluewaveError(err)) {
       reportBluewaveError(err, collector, stage);
       return { outcome: "validation-error" };
     }

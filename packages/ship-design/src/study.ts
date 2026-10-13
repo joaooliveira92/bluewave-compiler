@@ -21,6 +21,8 @@ export interface StudyBalance {
 }
 
 export class StudyContractError extends Error {
+  /** Stable discriminator (RULES.md "Errors"): recover by `_tag`, not `instanceof`. */
+  readonly _tag = "StudyContractError";
   constructor(
     readonly code: "DERIVED_DESIGN_DISCOUNT_CONTRACT_MISSING",
     message: string,

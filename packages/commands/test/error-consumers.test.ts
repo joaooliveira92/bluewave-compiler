@@ -72,7 +72,15 @@ describe("CommandError consumer paths (ticket 24 regression)", () => {
 
     let caught: unknown;
     try {
-      transitionRecord(record, "COMPLETED", "submission", "GBR", "COMPLETED", "0".repeat(64));
+      transitionRecord(
+        record,
+        "COMPLETED",
+        "submission",
+        "GBR",
+        "COMPLETED",
+        "0".repeat(64),
+        "1910-01-01T00:00:00.000Z",
+      );
     } catch (error) {
       caught = error;
     }

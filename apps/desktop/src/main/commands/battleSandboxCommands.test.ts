@@ -14,7 +14,7 @@ import {
   registerCampaignSession,
 } from "../campaignSessions.js";
 import { commitMonth } from "./commitMonth.js";
-import { compileProductionCampaign } from "../compiler.js";
+import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { toSaveableState } from "../saveHelpers.js";
 import {
   clearBattleSandboxForTest,
@@ -29,7 +29,7 @@ import {
 } from "./battleSandboxCommands.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PRODUCTION_PACK = resolve(__dirname, "../../../../..", "content", "production", "1880");
+const GENERATED_ARTIFACT = resolve(__dirname, "../../../../..", "content", "generated", "1880");
 
 const ON: BattleSandboxDeps = { debugEnabled: () => true };
 const OFF: BattleSandboxDeps = { debugEnabled: () => false };
@@ -68,8 +68,8 @@ describe("battle sandbox commands (ADR-0057)", () => {
     sessionId: string,
     patch?: (snapshot: CampaignSnapshot) => void,
   ): CampaignState {
-    const output = compileProductionCampaign(
-      PRODUCTION_PACK,
+    const output = compileProductionCampaignFromArtifact(
+      GENERATED_ARTIFACT,
       new AbortController().signal,
       new DiagnosticCollector(),
     );
@@ -189,8 +189,8 @@ describe("battle sandbox commands (ADR-0057)", () => {
 
   describe("excludeUndesignedShips", () => {
     it("treats ships with no compiled design as unavailable on a copy and reports them", () => {
-      const output = compileProductionCampaign(
-        PRODUCTION_PACK,
+      const output = compileProductionCampaignFromArtifact(
+        GENERATED_ARTIFACT,
         new AbortController().signal,
         new DiagnosticCollector(),
       );
@@ -210,8 +210,8 @@ describe("battle sandbox commands (ADR-0057)", () => {
 
   describe("colocateWarSides", () => {
     function snapshotOf(): CampaignSnapshot {
-      const output = compileProductionCampaign(
-        PRODUCTION_PACK,
+      const output = compileProductionCampaignFromArtifact(
+        GENERATED_ARTIFACT,
         new AbortController().signal,
         new DiagnosticCollector(),
       );

@@ -4,7 +4,6 @@ import { funnelPlacements } from "./funnelPlacements.js";
 import { planModel } from "./planModel.js";
 import { ProfileView } from "./ProfileView.js";
 import { content, frame, hullForm as form, reference, view } from "./test-fixtures.js";
-import { visualLook, visualMountInputs } from "./visualMounts.js";
 
 const model = planModel(reference.draft, content, view, reference.month);
 const draw = (superstructure: typeof model.superstructure) =>
@@ -18,8 +17,8 @@ const draw = (superstructure: typeof model.superstructure) =>
       lcbPermille={frame.lcbPermille}
       superstructure={superstructure}
       facts={model.facts}
-      mounts={visualMountInputs(reference.draft, view)}
-      look={visualLook(reference.draft.nationId, reference.month)}
+      mounts={model.visualMounts}
+      look={model.look}
     />,
   );
 
@@ -54,9 +53,11 @@ describe("ProfileView", () => {
     const guns = reference.draft.placements
       .filter((p) => content.components.find((c) => c.id === p.componentId)?.tags.includes("gun"))
       .map((p) => p.instanceId)
-      .sort();
+      .sort((a, b) => a.localeCompare(b));
     const mounts = [...container.querySelectorAll("[data-testid='profile-mount']")];
-    expect(mounts.map((m) => m.getAttribute("data-instance")).sort()).toEqual(guns);
+    expect(
+      mounts.map((m) => m.getAttribute("data-instance") ?? "").sort((a, b) => a.localeCompare(b)),
+    ).toEqual(guns);
     for (const m of mounts) {
       expect(m.getAttribute("data-part")).toMatch(/^x-dreadnought-small-open$/);
       expect(m.querySelector("title")?.textContent).toMatch(/Open mount, 1 × [23] in/);

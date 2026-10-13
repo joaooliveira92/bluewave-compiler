@@ -29,13 +29,13 @@ Resolved autonomously.
 - **Auto-placement (pure, deterministic):**
   - **Mounts:** x from the placement station. Each mount faces the bow when its station is
     < 500‰ and the stern otherwise.
-  - **Seat:** a casemate seats into the hull side below the deck edge. Any other mount seats
+  - **Seat:** a casemate hangs in the hull side from the deck edge (amended after the INC-1 snap). Any other mount seats
     on the lower house top inside the `SUPERSTRUCTURE` zone, otherwise on the deck, exactly as
     funnels do.
   - **Single-gun rows:** single-gun classes draw *n* symbols in a row centred on the station,
     at pitch 1.15 × the symbol width.
-  - **Order:** draw order is (station, instanceId), and port-side mounts draw before
-    starboard ones.
+  - **Order:** draw order is side (port, centre, starboard), then station, then instanceId;
+    port mounts draw first and muted, as the far side.
   - **Plan:** glyphs sit at the existing `fittingPoint`, so the plan and the profile agree on
     station and side.
   - **Masts:** the foremast sits at the bridge's forward end and the mainmast at the zone's

@@ -15,7 +15,7 @@ const contentDir = resolve(repoRoot, "content", "production", "1880");
 function buildProductionBundle(): ContentBundle {
   const collector = new DiagnosticCollector();
   const input = buildFullSurfaceInput(resolve(contentDir, "pack.json"), contentDir, collector);
-  const output = new Compiler().compile(input, new AbortController().signal, collector);
+  const output = new Compiler().compile(input!, new AbortController().signal, collector);
   expect(collector.hasErrors).toBe(false);
   expect(output).toBeDefined();
   return output!.bundle;

@@ -9,6 +9,16 @@ export const DESIGN_FILE_FORMAT = "bwdesign";
 export const DESIGN_SCHEMA_VERSION = 1;
 
 export class PersistenceError extends Error {
+  /** Stable discriminator (RULES.md "Errors"): recover by `_tag`, not `instanceof`. */
+  readonly _tag = "PersistenceError";
+  /** `_tag`-based narrowing without `instanceof`. */
+  static is(value: unknown): value is PersistenceError {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      (value as { readonly _tag?: unknown })._tag === "PersistenceError"
+    );
+  }
   constructor(
     readonly code:
       | "BAD_FORMAT"

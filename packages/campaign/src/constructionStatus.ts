@@ -96,6 +96,16 @@ export function canTransitionConstructionProject(
 export const INVALID_DOCKYARD_PROJECT_TRANSITION = "INVALID_DOCKYARD_PROJECT_TRANSITION" as const;
 
 export class ConstructionProjectTransitionError extends Error {
+  /** Stable discriminator (RULES.md "Errors"): recover by `_tag`, not `instanceof`. */
+  readonly _tag = "ConstructionProjectTransitionError";
+  /** `_tag`-based narrowing without `instanceof`. */
+  static is(value: unknown): value is ConstructionProjectTransitionError {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      (value as { readonly _tag?: unknown })._tag === "ConstructionProjectTransitionError"
+    );
+  }
   readonly code = INVALID_DOCKYARD_PROJECT_TRANSITION;
   constructor(
     readonly from: ConstructionProjectStatus,

@@ -177,7 +177,7 @@ export function lintCatalogue(
             break;
           }
         } catch (e) {
-          add(d.id, "FORMULA_EVAL", `${f}: ${e instanceof FormulaError ? e.message : String(e)}`);
+          add(d.id, "FORMULA_EVAL", `${f}: ${FormulaError.is(e) ? e.message : String(e)}`);
           break;
         }
       }

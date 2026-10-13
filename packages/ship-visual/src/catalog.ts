@@ -2,8 +2,9 @@ import type { MountClass, NationStyle, SizeBand, VisualEra } from "./vocabulary.
 
 /**
  * The part catalog's runtime shape (ADR-0148). Authored in `content/ship-visual/parts.yaml`, decoded by
- * `ShipVisualCatalogSchema` in `@bluewave/content-schema`, and generated into `catalog.generated.ts`; the sync test
- * pins this shape to the schema.
+ * `ShipVisualCatalogSchema` in `@bluewave/content-schema`, and generated into `catalog.generated.ts`. The sync test
+ * pins the generated VALUES to the decoded YAML, and the generated module is typed `PartCatalog`, so a decoded field
+ * this shape lacks fails the typecheck; keep the two vocabularies in step by hand when adding a literal.
  *
  * Drawings are SVG path data in METRES AT THE 12-INCH REFERENCE (manual p142): origin at the seat centre, y down, the
  * bow to the left (barrels point to −x). The renderer places them with a transform, so path strings are never parsed.

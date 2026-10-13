@@ -12,12 +12,12 @@ import type {
 } from "../shared/construction-contract.js";
 import { dispatchCampaignCommand } from "./campaignBridge.js";
 import { clearCampaignSessionsForTest, registerCampaignSession } from "./campaignSessions.js";
-import { compileProductionCampaign } from "./compiler.js";
+import { compileProductionCampaignFromArtifact } from "./compiler.js";
 import { toSaveableState } from "./saveHelpers.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../..");
-const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
+const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
 
 const IMPLEMENTED_COMMANDS = new Set([
   // Tactical Sandbox (ADR-0057): routed, but debug-gated inside the handler.
@@ -545,7 +545,7 @@ describe("dispatchCampaignCommand", () => {
       const saveDir = resolve(saveRoot, "save");
       const signal = new AbortController().signal;
       const collector = new DiagnosticCollector();
-      const output = compileProductionCampaign(PRODUCTION_PACK, signal, collector);
+      const output = compileProductionCampaignFromArtifact(GENERATED_ARTIFACT, signal, collector);
       if (!output) throw new Error("production pack failed to compile");
       const state = toSaveableState(output.state);
       new SaveStore().save(state, saveDir);
@@ -633,7 +633,7 @@ describe("dispatchCampaignCommand", () => {
       const saveDir = resolve(saveRoot, "save");
       const signal = new AbortController().signal;
       const collector = new DiagnosticCollector();
-      const output = compileProductionCampaign(PRODUCTION_PACK, signal, collector);
+      const output = compileProductionCampaignFromArtifact(GENERATED_ARTIFACT, signal, collector);
       if (!output) throw new Error("production pack failed to compile");
       const state = toSaveableState(output.state);
       new SaveStore().save(state, saveDir);
@@ -729,7 +729,7 @@ describe("dispatchCampaignCommand", () => {
       saveDir = resolve(saveRoot, "save");
       const signal = new AbortController().signal;
       const collector = new DiagnosticCollector();
-      const output = compileProductionCampaign(PRODUCTION_PACK, signal, collector);
+      const output = compileProductionCampaignFromArtifact(GENERATED_ARTIFACT, signal, collector);
       if (!output) throw new Error("production pack failed to compile");
       const state = toSaveableState(output.state);
       new SaveStore().save(state, saveDir);

@@ -12,7 +12,7 @@ import {
   type CampaignConfiguration,
 } from "@bluewave/campaign-engine";
 import { setResearchPriorityCommand } from "./researchCommands.js";
-import { compileProductionCampaign } from "../compiler.js";
+import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { clearCampaignSessionsForTest, getCampaignSession } from "../campaignSessions.js";
 import { clearConstructionWorkspacesForTest } from "../constructionWorkspace.js";
 import { toSaveableState } from "../saveHelpers.js";
@@ -34,7 +34,6 @@ import { readReferenceDesigns } from "../referenceDesigns.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
-const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
 const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
 
 /**
@@ -617,8 +616,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     // slot / seed / scenario cannot be reconstructed.
     const saveDir = resolve(saveRoot, "save-h");
     const collector = new DiagnosticCollector();
-    const output = compileProductionCampaign(
-      PRODUCTION_PACK,
+    const output = compileProductionCampaignFromArtifact(
+      GENERATED_ARTIFACT,
       new AbortController().signal,
       collector,
     );

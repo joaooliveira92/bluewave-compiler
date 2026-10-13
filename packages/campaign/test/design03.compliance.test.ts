@@ -4,6 +4,7 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { buildContentBundleArtifact } from "@bluewave/content-compiler";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { nationYaml } from "@bluewave/test-support";
 import { describe, expect, it } from "vite-plus/test";
@@ -876,9 +877,10 @@ describe("CampaignCompiler DESIGN-03 configuration gate", () => {
   }
 
   function compilerInput(dir: string) {
-    return {
-      compilerInput: {
-        manifestPath: "pack.json",
+    const collector = new DiagnosticCollector();
+    const artifact = buildContentBundleArtifact(
+      {
+        manifestPath: resolve(dir, "pack.json"),
         contentDir: dir,
         rulesetFiles: [],
         countryFiles: ["countries.yaml"],
@@ -887,8 +889,6 @@ describe("CampaignCompiler DESIGN-03 configuration gate", () => {
         possessionFiles: [],
         portFiles: [],
         technologyFiles: [],
-      },
-      campaignFiles: {
         fleetFiles: [],
         economyFiles: [],
         constructionFiles: [],
@@ -896,6 +896,17 @@ describe("CampaignCompiler DESIGN-03 configuration gate", () => {
         researchFiles: [],
         designFiles: [],
       },
+      new AbortController().signal,
+      collector,
+    );
+    if (!artifact || collector.hasErrors) {
+      throw new Error(
+        `fixture bundle build failed: ${collector.all.map((d) => d.message).join("; ")}`,
+      );
+    }
+    return {
+      contentBundle: artifact.bundle,
+      contentHash: artifact.envelope.bodyHash,
       rulesetVersion: "1.0",
       compatibilityVersion: "0.1.0",
       scenarios: CANONICAL_SCENARIOS,

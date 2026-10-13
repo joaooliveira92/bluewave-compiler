@@ -4,10 +4,10 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { Compiler } from "@bluewave/content-compiler";
+import { buildContentBundleArtifact, type CompilerInput } from "@bluewave/content-compiler";
 import { nationsYaml, nationYaml } from "@bluewave/test-support";
 import { describe, expect, it } from "vite-plus/test";
-import { CampaignCompiler } from "../src/compiler-public.js";
+import { CampaignCompiler, type CampaignCompilerInput } from "../src/compiler-public.js";
 
 function createFixtureDir(): { path: string; cleanup: () => void } {
   const dir = resolve(tmpdir(), `bw-campaign-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -40,10 +40,16 @@ function writeContentFixture(fixturePath: string): void {
   writeFile(fixturePath, "research.yaml", FIXTURE.research);
 }
 
-const FULL_INPUT = {
-  compilerInput: {
-    manifestPath: "pack.json",
-    contentDir: "FIXTURE_DIR",
+/**
+ * The full-surface `CompilerInput` for the standard fixture layout. CAH-LEG-1:
+ * the campaign compiler consumes only a verified bundle, so every test builds
+ * one from these explicit file lists (`buildContentBundleArtifact`) before
+ * compiling the campaign — the same producer path the CLI uses.
+ */
+function baseInput(fixturePath: string): CompilerInput {
+  return {
+    manifestPath: resolve(fixturePath, "pack.json"),
+    contentDir: fixturePath,
     rulesetFiles: ["rulesets.yaml"],
     countryFiles: ["countries.yaml"],
     areaFiles: ["areas.yaml"],
@@ -51,18 +57,39 @@ const FULL_INPUT = {
     possessionFiles: ["possessions.yaml"],
     portFiles: ["ports.yaml"],
     technologyFiles: ["technologies.yaml"],
-  },
-  campaignFiles: {
     fleetFiles: ["fleets.yaml"],
     economyFiles: ["economies.yaml"],
     constructionFiles: ["constructions.yaml"],
     diplomacyFiles: ["diplomacy.yaml"],
     researchFiles: ["research.yaml"],
     designFiles: [],
-  },
-  rulesetVersion: "1.0",
-  compatibilityVersion: "0.1.0",
-};
+  };
+}
+
+function compileFixture(
+  fixturePath: string,
+  collector: DiagnosticCollector,
+  signal: AbortSignal,
+  options: { input?: Partial<CompilerInput>; compiler?: Partial<CampaignCompilerInput> } = {},
+) {
+  const artifact = buildContentBundleArtifact(
+    { ...baseInput(fixturePath), ...options.input },
+    signal,
+    collector,
+  );
+  if (!artifact) return undefined;
+  return new CampaignCompiler().compile(
+    {
+      contentBundle: artifact.bundle,
+      contentHash: artifact.envelope.bodyHash,
+      rulesetVersion: "1.0",
+      compatibilityVersion: "0.1.0",
+      ...options.compiler,
+    },
+    signal,
+    collector,
+  );
+}
 
 const FIXTURE = {
   pack: JSON.stringify({
@@ -249,24 +276,16 @@ const FIXTURE = {
 `,
 };
 
-function minimalInput(fixturePath: string) {
-  return {
-    ...FULL_INPUT,
-    compilerInput: { ...FULL_INPUT.compilerInput, contentDir: fixturePath },
-  };
-}
-
 describe("CampaignCompiler", () => {
   it("compiles a valid 1880 campaign fixture", () => {
     const fixture = createFixtureDir();
     try {
       writeContentFixture(fixture.path);
 
-      const compiler = new CampaignCompiler();
       const collector = new DiagnosticCollector();
       const signal = new AbortController().signal;
 
-      const output = compiler.compile(minimalInput(fixture.path), signal, collector);
+      const output = compileFixture(fixture.path, collector, signal);
 
       expect(collector.hasErrors).toBe(false);
       expect(output).toBeDefined();
@@ -347,35 +366,26 @@ describe("CampaignCompiler", () => {
         nationYaml({ id: "france", tag: "FRA", name: "France", isPlayable: true }),
       );
 
-      const compiler = new CampaignCompiler();
       const collector = new DiagnosticCollector();
       const signal = new AbortController().signal;
 
-      const output = compiler.compile(
-        {
-          ...FULL_INPUT,
-          compilerInput: {
-            ...FULL_INPUT.compilerInput,
-            contentDir: fixture.path,
-            rulesetFiles: [],
-            areaFiles: [],
-            routeFiles: [],
-            possessionFiles: [],
-            portFiles: [],
-            technologyFiles: [],
-          },
-          campaignFiles: {
-            fleetFiles: [],
-            economyFiles: [],
-            constructionFiles: [],
-            diplomacyFiles: [],
-            researchFiles: [],
-            designFiles: [],
-          },
+      const output = compileFixture(fixture.path, collector, signal, {
+        input: {
+          rulesetFiles: [],
+          countryFiles: ["countries.yaml"],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [],
+          fleetFiles: [],
+          economyFiles: [],
+          constructionFiles: [],
+          diplomacyFiles: [],
+          researchFiles: [],
+          designFiles: [],
         },
-        signal,
-        collector,
-      );
+      });
 
       expect(collector.hasErrors).toBe(false);
       expect(output).toBeDefined();
@@ -413,35 +423,26 @@ describe("CampaignCompiler", () => {
 `,
       );
 
-      const compiler = new CampaignCompiler();
       const collector = new DiagnosticCollector();
       const signal = new AbortController().signal;
 
-      const output = compiler.compile(
-        {
-          ...FULL_INPUT,
-          compilerInput: {
-            ...FULL_INPUT.compilerInput,
-            contentDir: fixture.path,
-            rulesetFiles: [],
-            areaFiles: [],
-            routeFiles: [],
-            possessionFiles: [],
-            portFiles: [],
-            technologyFiles: [],
-          },
-          campaignFiles: {
-            fleetFiles: [],
-            economyFiles: [],
-            constructionFiles: [],
-            diplomacyFiles: [],
-            researchFiles: [],
-            designFiles: [],
-          },
+      const output = compileFixture(fixture.path, collector, signal, {
+        input: {
+          rulesetFiles: [],
+          countryFiles: ["countries.yaml"],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [],
+          fleetFiles: [],
+          economyFiles: [],
+          constructionFiles: [],
+          diplomacyFiles: [],
+          researchFiles: [],
+          designFiles: [],
         },
-        signal,
-        collector,
-      );
+      });
 
       expect(output).toBeUndefined();
       expect(collector.hasErrors).toBe(true);
@@ -455,12 +456,11 @@ describe("CampaignCompiler", () => {
     try {
       writeContentFixture(fixture.path);
 
-      const compiler = new CampaignCompiler();
       const signal = new AbortController().signal;
 
       const run = () => {
         const collector = new DiagnosticCollector();
-        return compiler.compile(minimalInput(fixture.path), signal, collector);
+        return compileFixture(fixture.path, collector, signal);
       };
 
       const out1 = run();
@@ -489,36 +489,26 @@ describe("CampaignCompiler", () => {
         }),
       );
 
-      const compiler = new CampaignCompiler();
       const collector = new DiagnosticCollector();
       const signal = new AbortController().signal;
 
-      const output = compiler.compile(
-        {
-          ...FULL_INPUT,
-          compilerInput: {
-            ...FULL_INPUT.compilerInput,
-            contentDir: fixture.path,
-            rulesetFiles: [],
-            countryFiles: [],
-            areaFiles: [],
-            routeFiles: [],
-            possessionFiles: [],
-            portFiles: [],
-            technologyFiles: [],
-          },
-          campaignFiles: {
-            fleetFiles: [],
-            economyFiles: [],
-            constructionFiles: [],
-            diplomacyFiles: [],
-            researchFiles: [],
-            designFiles: [],
-          },
+      const output = compileFixture(fixture.path, collector, signal, {
+        input: {
+          rulesetFiles: [],
+          countryFiles: [],
+          areaFiles: [],
+          routeFiles: [],
+          possessionFiles: [],
+          portFiles: [],
+          technologyFiles: [],
+          fleetFiles: [],
+          economyFiles: [],
+          constructionFiles: [],
+          diplomacyFiles: [],
+          researchFiles: [],
+          designFiles: [],
         },
-        signal,
-        collector,
-      );
+      });
 
       expect(output).toBeUndefined();
       expect(collector.hasErrors).toBe(true);
@@ -532,12 +522,11 @@ describe("CampaignCompiler", () => {
     try {
       writeContentFixture(fixture.path);
 
-      const compiler = new CampaignCompiler();
       const collector = new DiagnosticCollector();
       const controller = new AbortController();
       controller.abort();
 
-      const output = compiler.compile(minimalInput(fixture.path), controller.signal, collector);
+      const output = compileFixture(fixture.path, collector, controller.signal);
 
       expect(output).toBeUndefined();
     } finally {
@@ -554,6 +543,7 @@ describe("CampaignCompiler", () => {
         "designs.yaml",
         `
 - designId: "uk-dreadnought-v1"
+  designVersionId: "uk-dreadnought-v1"
   designFamilyId: "dreadnought"
   nationId: "uk"
   className: "Dreadnought-class"
@@ -566,6 +556,7 @@ describe("CampaignCompiler", () => {
   hitPoints: 120
   crewComplement: 800
 - designId: "fra-courbet-v1"
+  designVersionId: "fra-courbet-v1"
   designFamilyId: "courbet"
   nationId: "france"
   className: "Courbet-class"
@@ -580,21 +571,12 @@ describe("CampaignCompiler", () => {
         `,
       );
 
-      const compiler = new CampaignCompiler();
       const collector = new DiagnosticCollector();
       const signal = new AbortController().signal;
 
-      const output = compiler.compile(
-        {
-          ...minimalInput(fixture.path),
-          campaignFiles: {
-            ...minimalInput(fixture.path).campaignFiles,
-            designFiles: ["designs.yaml"],
-          },
-        },
-        signal,
-        collector,
-      );
+      const output = compileFixture(fixture.path, collector, signal, {
+        input: { designFiles: ["designs.yaml"] },
+      });
 
       expect(collector.hasErrors).toBe(false);
       expect(output).toBeDefined();
@@ -632,6 +614,7 @@ describe("CampaignCompiler", () => {
           "designs.yaml",
           `
 - designId: "uk-inflexible-v1"
+  designVersionId: "uk-inflexible-v1"
   designFamilyId: "inflexible"
   nationId: "uk"
   className: "Inflexible"
@@ -646,17 +629,9 @@ describe("CampaignCompiler", () => {
 ${extra}`,
         );
         const collector = new DiagnosticCollector();
-        const output = new CampaignCompiler().compile(
-          {
-            ...minimalInput(fixture.path),
-            campaignFiles: {
-              ...minimalInput(fixture.path).campaignFiles,
-              designFiles: ["designs.yaml"],
-            },
-          },
-          new AbortController().signal,
-          collector,
-        );
+        const output = compileFixture(fixture.path, collector, new AbortController().signal, {
+          input: { designFiles: ["designs.yaml"] },
+        });
         expect(collector.hasErrors).toBe(false);
         return output!.state.snapshot.designs.get("uk-inflexible-v1")!;
       } finally {
@@ -698,6 +673,7 @@ ${extra}`,
         "designs.yaml",
         `
 - designId: "uk-dreadnought-v1"
+  designVersionId: "uk-dreadnought-v1"
   designFamilyId: "dreadnought"
   nationId: "uk"
   className: "Dreadnought-class"
@@ -735,22 +711,12 @@ ${extra}`,
         `,
       );
 
-      const compiler = new CampaignCompiler();
       const collector = new DiagnosticCollector();
       const signal = new AbortController().signal;
 
-      const output = compiler.compile(
-        {
-          ...minimalInput(fixture.path),
-          campaignFiles: {
-            ...minimalInput(fixture.path).campaignFiles,
-            fleetFiles: ["fleets.yaml"],
-            designFiles: ["designs.yaml"],
-          },
-        },
-        signal,
-        collector,
-      );
+      const output = compileFixture(fixture.path, collector, signal, {
+        input: { fleetFiles: ["fleets.yaml"], designFiles: ["designs.yaml"] },
+      });
 
       expect(collector.hasErrors).toBe(false);
       expect(output).toBeDefined();
@@ -766,47 +732,26 @@ ${extra}`,
   });
 });
 
-describe("CampaignCompiler decoded-bundle path (ticket 07)", () => {
+describe("CampaignCompiler decoded-bundle path (ticket 07 / CAH-LEG-1)", () => {
   function buildFixtureBundle(fixturePath: string) {
     const collector = new DiagnosticCollector();
-    const output = new Compiler().compile(
-      {
-        manifestPath: resolve(fixturePath, "pack.json"),
-        contentDir: fixturePath,
-        rulesetFiles: ["rulesets.yaml"],
-        countryFiles: ["countries.yaml"],
-        areaFiles: ["areas.yaml"],
-        routeFiles: ["routes.yaml"],
-        possessionFiles: ["possessions.yaml"],
-        portFiles: ["ports.yaml"],
-        technologyFiles: ["technologies.yaml"],
-        fleetFiles: ["fleets.yaml"],
-        economyFiles: ["economies.yaml"],
-        constructionFiles: ["constructions.yaml"],
-        diplomacyFiles: ["diplomacy.yaml"],
-        researchFiles: ["research.yaml"],
-        designFiles: [],
-      },
+    const artifact = buildContentBundleArtifact(
+      baseInput(fixturePath),
       new AbortController().signal,
       collector,
     );
     expect(collector.hasErrors).toBe(false);
-    expect(output).toBeDefined();
-    return output!.bundle;
+    expect(artifact).toBeDefined();
+    return artifact!.bundle;
   }
 
-  it("produces the same snapshot from the decoded bundle as from raw files", () => {
+  it("compiles the decoded bundle with the supplied content identity", () => {
     const fixture = createFixtureDir();
     try {
       writeContentFixture(fixture.path);
       const bundle = buildFixtureBundle(fixture.path);
       const signal = new AbortController().signal;
 
-      const raw = new CampaignCompiler().compile(
-        minimalInput(fixture.path),
-        signal,
-        new DiagnosticCollector(),
-      );
       const decoded = new CampaignCompiler().compile(
         {
           contentBundle: bundle,
@@ -818,11 +763,21 @@ describe("CampaignCompiler decoded-bundle path (ticket 07)", () => {
         new DiagnosticCollector(),
       );
 
-      expect(raw).toBeDefined();
       expect(decoded).toBeDefined();
-      expect(decoded!.state.rawHash).toBe(raw!.state.rawHash);
       expect(decoded!.contentHash).toBe("a".repeat(64));
       expect(decoded!.state.snapshot.nations.size).toBe(2);
+      // Identical inputs produce identical snapshot hashes (determinism).
+      const again = new CampaignCompiler().compile(
+        {
+          contentBundle: bundle,
+          contentHash: "a".repeat(64),
+          rulesetVersion: "1.0",
+          compatibilityVersion: "0.1.0",
+        },
+        signal,
+        new DiagnosticCollector(),
+      );
+      expect(again!.state.rawHash).toBe(decoded!.state.rawHash);
     } finally {
       fixture.cleanup();
     }
@@ -858,16 +813,5 @@ describe("CampaignCompiler decoded-bundle path (ticket 07)", () => {
     } finally {
       fixture.cleanup();
     }
-  });
-
-  it("fails closed when neither a bundle nor raw inputs are supplied", () => {
-    const collector = new DiagnosticCollector();
-    const output = new CampaignCompiler().compile(
-      { rulesetVersion: "1.0", compatibilityVersion: "0.1.0" },
-      new AbortController().signal,
-      collector,
-    );
-    expect(output).toBeUndefined();
-    expect(collector.all.some((d) => d.code === "CAMPAIGN-CONTENT")).toBe(true);
   });
 });

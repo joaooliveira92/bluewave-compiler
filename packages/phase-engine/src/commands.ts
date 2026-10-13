@@ -508,7 +508,7 @@ function setProjectStatus(
   try {
     updated = transitionConstructionProject(project, to);
   } catch (error) {
-    if (error instanceof ConstructionProjectTransitionError) {
+    if (ConstructionProjectTransitionError.is(error)) {
       collector.addError("INVALID_DOCKYARD_PROJECT_TRANSITION", error.message, {
         stage: "command_collection",
         entityId: project["id"],

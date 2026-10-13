@@ -6,6 +6,16 @@ export type Expr =
   | { readonly k: "call"; readonly fn: string; readonly args: readonly Expr[] };
 
 export class FormulaError extends Error {
+  /** Stable discriminator (RULES.md "Errors"): recover by `_tag`, not `instanceof`. */
+  readonly _tag = "FormulaError";
+  /** `_tag`-based narrowing without `instanceof`. */
+  static is(value: unknown): value is FormulaError {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      (value as { readonly _tag?: unknown })._tag === "FormulaError"
+    );
+  }
   constructor(message: string) {
     super(message);
     this.name = "FormulaError";

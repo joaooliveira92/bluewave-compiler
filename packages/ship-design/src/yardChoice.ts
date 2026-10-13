@@ -79,7 +79,7 @@ export function chooseYard(
       // Yards are ascending in capacity, so a strict improvement keeps the smallest yard on a tie.
       if (best === null || months < best.months) best = { yard, schedule, months };
     } catch (e) {
-      if (!(e instanceof ConstructionPlanError) || e.code !== "CONSTRUCTION_STALLED") throw e;
+      if (!ConstructionPlanError.is(e) || e.code !== "CONSTRUCTION_STALLED") throw e;
     }
   }
   return { fitting, historicalMonths, monthsByYard, best };

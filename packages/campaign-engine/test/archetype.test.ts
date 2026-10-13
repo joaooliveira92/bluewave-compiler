@@ -127,4 +127,19 @@ describe("defaultArchetypeSelection / serializeArchetypeSelection", () => {
     };
     expect(serializeArchetypeSelection(selection)).toContain(preset.id);
   });
+
+  it("serializes canonically, independent of key insertion order", () => {
+    const selection = {
+      kind: "custom" as const,
+      allocation: { economy: 7, industry: 7, combat: 6 },
+    };
+    const reordered = {
+      allocation: { combat: 6, industry: 7, economy: 7 },
+      kind: "custom" as const,
+    };
+    expect(serializeArchetypeSelection(selection)).toBe(serializeArchetypeSelection(reordered));
+    expect(serializeArchetypeSelection(selection)).toBe(
+      '{"allocation":{"combat":6,"economy":7,"industry":7},"kind":"custom"}',
+    );
+  });
 });

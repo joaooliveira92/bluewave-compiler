@@ -38,6 +38,7 @@ Campaign and engine:
 Boundary and support:
 
 - `packages/campaign-engine` — desktop read-only projections over the compiled snapshot plus the `campaign:execute` bridge commands.
+- `packages/ship-visual` — era- and nation-aware ship visual part catalog and resolver (ADR-0148): maps a design's mounts to visual parts. Pure data/resolution; holds no authoritative state.
 - `packages/test-support` — fixture helpers and valid/invalid fixture definitions.
 - `packages/cross-process-test` — cross-process determinism proof harness (child-process runners for the full pipeline and battle subsystems).
 
@@ -54,6 +55,7 @@ Applications:
 - `ship-design` depends on `contracts`, `deterministic`, `random`, `armament`; `events` depends on `campaign`, `contracts`, `deterministic`, `diagnostics`.
 - `commands` depends on `contracts`, `deterministic`, `diagnostics`, `campaign`, `content-schema`, `ship-design`; `combat` depends on `contracts`, `deterministic`, `diagnostics`, `campaign`, `random`, `events`.
 - `ai` and `persistence` depend on the campaign/command layer; `campaign-engine` depends on `campaign` + `content-schema`.
+- `ship-visual` depends on `content-schema` + `diagnostics` — pure visual resolution, no authoritative state; the desktop renderer consumes its part types and resolver.
 - `phase-engine` composes the domain packages (campaign, commands, combat, events, persistence, random, ship-design, ai, campaign-engine, content-schema, contracts, deterministic, diagnostics) and owns the authoritative turn loop.
 - `apps/*` depend on the packages and own the CLI entry point and platform adapters. The desktop renderer never imports engine packages or filesystem APIs; the Electron main process resolves built workspace packages (ADR-0008, ADR-0030).
 

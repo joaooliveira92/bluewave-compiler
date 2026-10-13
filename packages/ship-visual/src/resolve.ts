@@ -35,6 +35,20 @@ function chain(style: NationStyle, era: VisualEra): readonly (readonly [NationSt
   ];
 }
 
+/** The first fallback step at which `pick` finds a part, with that step. */
+function firstInChain<P>(
+  style: NationStyle,
+  era: VisualEra,
+  pick: (style: NationStyle, era: VisualEra) => P | undefined,
+): Resolution<P> | null {
+  const steps = chain(style, era);
+  for (let i = 0; i < steps.length; i++) {
+    const part = pick(...steps[i]!);
+    if (part !== undefined) return { part, step: (i + 1) as FallbackStep };
+  }
+  return null;
+}
+
 /**
  * The drawing for a mount: the first fallback step with a match on size and class, where an entry for the exact gun
  * count beats a count-agnostic one. Size and class never fall back. Null only when the catalog has no drawing at all
@@ -44,9 +58,7 @@ export function resolveMount(
   catalog: PartCatalog,
   query: MountQuery,
 ): Resolution<MountPart> | null {
-  const steps = chain(query.style, query.era);
-  for (let i = 0; i < steps.length; i++) {
-    const [style, era] = steps[i]!;
+  return firstInChain(query.style, query.era, (style, era) => {
     const candidates = catalog.mounts.filter(
       (p) =>
         p.key.style === style &&
@@ -54,12 +66,11 @@ export function resolveMount(
         p.key.size === query.size &&
         p.key.mountClass === query.mountClass,
     );
-    const part =
+    return (
       candidates.find((p) => p.key.guns === query.guns) ??
-      candidates.find((p) => p.key.guns === undefined);
-    if (part) return { part, step: (i + 1) as FallbackStep };
-  }
-  return null;
+      candidates.find((p) => p.key.guns === undefined)
+    );
+  });
 }
 
 /** The drawing for a mast, by the same style/era chain. */
@@ -68,11 +79,7 @@ export function resolveMast(
   style: NationStyle,
   era: VisualEra,
 ): Resolution<MastPart> | null {
-  const steps = chain(style, era);
-  for (let i = 0; i < steps.length; i++) {
-    const [s, e] = steps[i]!;
-    const part = catalog.masts.find((p) => p.key.style === s && p.key.era === e);
-    if (part) return { part, step: (i + 1) as FallbackStep };
-  }
-  return null;
+  return firstInChain(style, era, (s, e) =>
+    catalog.masts.find((p) => p.key.style === s && p.key.era === e),
+  );
 }

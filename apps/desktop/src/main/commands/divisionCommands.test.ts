@@ -12,7 +12,7 @@ import {
   getCampaignSession,
   registerCampaignSession,
 } from "../campaignSessions.js";
-import { compileProductionCampaign } from "../compiler.js";
+import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { clearPendingWorkspacesForTest, pendingEnvelopesForExecution } from "../pendingCommands.js";
 import { toSaveableState } from "../saveHelpers.js";
 import type {
@@ -23,7 +23,7 @@ import { commitMonth } from "./commitMonth.js";
 import { inspectDivisionScreen, newDivisionId, submitDivisionCommand } from "./divisionCommands.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PRODUCTION_PACK = resolve(__dirname, "../../../../..", "content", "production", "1880");
+const GENERATED_ARTIFACT = resolve(__dirname, "../../../../..", "content", "generated", "1880");
 const DIVISION_TYPES = new Set([
   "CreateDivision",
   "AddShipToDivision",
@@ -52,8 +52,8 @@ describe("division commands", () => {
 
   function registerSession(sessionId: string): CampaignState {
     const collector = new DiagnosticCollector();
-    const output = compileProductionCampaign(
-      PRODUCTION_PACK,
+    const output = compileProductionCampaignFromArtifact(
+      GENERATED_ARTIFACT,
       new AbortController().signal,
       collector,
     );

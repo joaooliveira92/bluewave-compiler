@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, renameSync } from "node:fs";
 import { resolve, normalize, isAbsolute, relative } from "node:path";
+import { decodeStrict, PackManifestSchema } from "@bluewave/content-schema";
 import { canonicalSerialize } from "@bluewave/deterministic";
 
 export const PROJECT_FILE_EXT = ".bluewave";
@@ -10,7 +11,7 @@ export interface ProjectManifest {
   name?: string;
   version?: string;
   type?: string;
-  files?: Record<string, string[]>;
+  files?: Record<string, readonly string[]>;
   [key: string]: unknown;
 }
 
@@ -23,6 +24,8 @@ export interface BluewaveProject {
 }
 
 export class ProjectFormatError extends Error {
+  /** Stable discriminator (RULES.md "Errors"): recover by `_tag`, not `instanceof`. */
+  readonly _tag = "ProjectFormatError";
   constructor(message: string) {
     super(message);
     this.name = "ProjectFormatError";
@@ -32,13 +35,15 @@ export class ProjectFormatError extends Error {
 export function loadContentDirectory(contentDir: string): BluewaveProject {
   const manifestPath = resolve(contentDir, "pack.json");
   if (!existsSync(manifestPath)) {
-    throw new Error(`No pack.json found in ${contentDir}`);
+    throw new ProjectFormatError(`No pack.json found in ${contentDir}`);
   }
   let manifest: ProjectManifest;
   try {
-    manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as ProjectManifest;
-  } catch {
-    throw new Error(`Failed to parse ${manifestPath}`);
+    manifest = decodeStrict(PackManifestSchema, JSON.parse(readFileSync(manifestPath, "utf8")));
+  } catch (err) {
+    throw new ProjectFormatError(
+      `Failed to parse ${manifestPath}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
   const files: Record<string, string> = {};

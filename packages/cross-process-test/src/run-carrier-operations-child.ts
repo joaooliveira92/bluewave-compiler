@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import type { CampaignSnapshot, CampaignState, NationState } from "@bluewave/campaign";
 import { CampaignCompiler } from "@bluewave/campaign/compiler";
+import { buildContentBundleArtifact } from "@bluewave/content-compiler";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { CURRENT_COMPATIBILITY_VERSION } from "@bluewave/persistence";
@@ -31,11 +32,11 @@ const FIXTURE = {
   possessions: `- id: "gbr-lon"\n  nationId: "uk"\n  areaId: "lon"\n`,
   ports: `- id: "port-lon"\n  name: "Port of London"\n  areaId: "lon"\n  nationId: "uk"\n  level: 5\n`,
   technologies: `- id: "basic_steam"\n  name: "Basic Steam Turbine"\n  category: "propulsion"\n  cost: 100\n  year: 1880\n`,
-  fleets: `- id: "fleet-gbr-home"\n  nationId: "uk"\n  name: "Home Fleet"\n  locationAreaId: "lon"\n  ships:\n    - id: "ship-hms-carrier"\n      name: "HMS Carrier"\n      classId: "carrier"\n      hitPoints: 100\n      maxHitPoints: 100\n      speed: 21\n      firepower: 2\n      armor: 6\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n      compiledAircraftCapacity: 24\n`,
+  fleets: `- id: "fleet-gbr-home"\n  nationId: "uk"\n  name: "Home Fleet"\n  locationAreaId: "lon"\n  ships:\n    - id: "ship-hms-carrier"\n      name: "HMS Carrier"\n      classId: "carrier"\n      hitPoints: 100\n      maxHitPoints: 100\n      speed: 21\n      firepower: 2\n      armor: 6\n      isUnderConstruction: false\n      constructionProgress: 0\n      constructionTotalWork: 0\n`,
   economies: `- nationId: "uk"\n  treasury: 800\n  income: 150\n  expenses: 75\n`,
-  constructions: `- id: "con-gbr-ship-carrier2"\n  nationId: "uk"\n  type: "ship"\n  targetId: "ship-hms-carrier2"\n  totalWork: 200\n  completedWork: 50\n  startedAt: "1880-01"\n`,
+  constructions: `- id: "con-gbr-ship-carrier2"\n  nationId: "uk"\n  type: "ship"\n  targetId: "ship-hms-carrier2"\n  totalWork: 200\n  completedWork: 50\n  paidWork: 0\n  status: "PLANNED"\n  startedAt: "1880-01"\n`,
   diplomacy: ``,
-  research: `- nationId: "uk"\n  technologies: []\n`,
+  research: `- nationId: "uk"\n  researchBudget: 0\n  technologies: []\n`,
 };
 
 function writeFile(base: string, rel: string, content: string): void {
@@ -61,30 +62,36 @@ function writeAllFixtureFiles(fixturePath: string): void {
 }
 
 function compileCampaign(fixtureDir: string): { state: CampaignState; contentHash: string } {
-  const compiler = new CampaignCompiler();
   const collector = new DiagnosticCollector();
   const signal = new AbortController().signal;
-  const output = compiler.compile(
+  const artifact = buildContentBundleArtifact(
     {
-      compilerInput: {
-        manifestPath: "pack.json",
-        contentDir: fixtureDir,
-        rulesetFiles: ["rulesets.yaml"],
-        countryFiles: ["countries.yaml"],
-        areaFiles: ["areas.yaml"],
-        routeFiles: ["routes.yaml"],
-        possessionFiles: ["possessions.yaml"],
-        portFiles: ["ports.yaml"],
-        technologyFiles: ["technologies.yaml"],
-      },
-      campaignFiles: {
-        fleetFiles: ["fleets.yaml"],
-        economyFiles: ["economies.yaml"],
-        constructionFiles: ["constructions.yaml"],
-        diplomacyFiles: [],
-        researchFiles: ["research.yaml"],
-        designFiles: [],
-      },
+      manifestPath: "pack.json",
+      contentDir: fixtureDir,
+      rulesetFiles: ["rulesets.yaml"],
+      countryFiles: ["countries.yaml"],
+      areaFiles: ["areas.yaml"],
+      routeFiles: ["routes.yaml"],
+      possessionFiles: ["possessions.yaml"],
+      portFiles: ["ports.yaml"],
+      technologyFiles: ["technologies.yaml"],
+      fleetFiles: ["fleets.yaml"],
+      economyFiles: ["economies.yaml"],
+      constructionFiles: ["constructions.yaml"],
+      diplomacyFiles: [],
+      researchFiles: ["research.yaml"],
+      designFiles: [],
+    },
+    signal,
+    collector,
+  );
+  if (!artifact || collector.hasErrors) {
+    throw new Error(`Compilation failed`);
+  }
+  const output = new CampaignCompiler().compile(
+    {
+      contentBundle: artifact.bundle,
+      contentHash: artifact.envelope.bodyHash,
       rulesetVersion: "1.0",
       compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
     },

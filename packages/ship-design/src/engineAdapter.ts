@@ -47,6 +47,8 @@ export interface EngineAdapterOptions {
 }
 
 export class EngineAdapterError extends Error {
+  /** Stable discriminator (RULES.md "Errors"): recover by `_tag`, not `instanceof`. */
+  readonly _tag = "EngineAdapterError";
   constructor(message: string) {
     super(message);
     this.name = "EngineAdapterError";

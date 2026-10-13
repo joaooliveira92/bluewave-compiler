@@ -23,6 +23,10 @@ const outDir = resolve(repoRoot, "content", "generated", "1880");
 
 const collector = new DiagnosticCollector();
 const input = buildFullSurfaceInput(manifestPath, contentDir);
+if (!input) {
+  process.stderr.write(collector.toHuman() || "Content build failed to load the surface.\n");
+  process.exit(1);
+}
 const artifact = buildContentBundleArtifact(input, new AbortController().signal, collector);
 if (!artifact) {
   process.stderr.write(collector.toHuman() || "Content build failed.\n");

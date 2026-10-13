@@ -8,6 +8,7 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { buildContentBundleArtifact } from "@bluewave/content-compiler";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { nationsYaml } from "@bluewave/test-support";
@@ -96,7 +97,7 @@ function writeFixture(fixturePath: string, areasYaml: string, routesYaml = DEFAU
   writeFile(
     fixturePath,
     "constructions.yaml",
-    `- id: "con-uk-a"\n  nationId: "uk"\n  type: "ship"\n  targetId: "x"\n  totalWork: 200\n  completedWork: 50\n  startedAt: "1880-01"\n`,
+    `- id: "con-uk-a"\n  nationId: "uk"\n  type: "ship"\n  targetId: "x"\n  totalWork: 200\n  completedWork: 50\n  paidWork: 0\n  status: "PLANNED"\n  startedAt: "1880-01"\n`,
   );
   writeFile(
     fixturePath,
@@ -106,7 +107,7 @@ function writeFixture(fixturePath: string, areasYaml: string, routesYaml = DEFAU
   writeFile(
     fixturePath,
     "research.yaml",
-    `- nationId: "uk"\n  currentProjectTechId: "basic_steam"\n  technologies:\n    - { techId: "basic_steam", investedPoints: 30, completed: false }\n- nationId: "france"\n  technologies: []\n`,
+    `- nationId: "uk"\n  researchBudget: 0\n  currentProjectTechId: "basic_steam"\n  technologies:\n    - { techId: "basic_steam", investedPoints: 30, completed: false }\n- nationId: "france"\n  researchBudget: 0\n  technologies: []\n`,
   );
 }
 
@@ -114,30 +115,36 @@ function compileFixture(
   fixturePath: string,
   overrides: { campaignStart?: { startYear: number; startMonth: number } } = {},
 ): { snapshot: CampaignSnapshot; rawHash: string } {
-  const compiler = new CampaignCompiler();
   const collector = new DiagnosticCollector();
   const signal = new AbortController().signal;
-  const output = compiler.compile(
+  const artifact = buildContentBundleArtifact(
     {
-      compilerInput: {
-        manifestPath: "pack.json",
-        contentDir: fixturePath,
-        rulesetFiles: ["rulesets.yaml"],
-        countryFiles: ["countries.yaml"],
-        areaFiles: ["areas.yaml"],
-        routeFiles: ["routes.yaml"],
-        possessionFiles: ["possessions.yaml"],
-        portFiles: ["ports.yaml"],
-        technologyFiles: ["technologies.yaml"],
-      },
-      campaignFiles: {
-        fleetFiles: ["fleets.yaml"],
-        economyFiles: ["economies.yaml"],
-        constructionFiles: ["constructions.yaml"],
-        diplomacyFiles: ["diplomacy.yaml"],
-        researchFiles: ["research.yaml"],
-        designFiles: [],
-      },
+      manifestPath: resolve(fixturePath, "pack.json"),
+      contentDir: fixturePath,
+      rulesetFiles: ["rulesets.yaml"],
+      countryFiles: ["countries.yaml"],
+      areaFiles: ["areas.yaml"],
+      routeFiles: ["routes.yaml"],
+      possessionFiles: ["possessions.yaml"],
+      portFiles: ["ports.yaml"],
+      technologyFiles: ["technologies.yaml"],
+      fleetFiles: ["fleets.yaml"],
+      economyFiles: ["economies.yaml"],
+      constructionFiles: ["constructions.yaml"],
+      diplomacyFiles: ["diplomacy.yaml"],
+      researchFiles: ["research.yaml"],
+      designFiles: [],
+    },
+    signal,
+    collector,
+  );
+  if (!artifact) {
+    throw new Error(`Compilation failed: ${collector.all.map((d) => d.message).join("; ")}`);
+  }
+  const output = new CampaignCompiler().compile(
+    {
+      contentBundle: artifact.bundle,
+      contentHash: artifact.envelope.bodyHash,
       rulesetVersion: "1.0",
       compatibilityVersion: "1.0.0",
       campaignStart: overrides.campaignStart,
@@ -183,30 +190,34 @@ describe("B-6 strategic weather snapshot surface (campaign)", () => {
     const fixture = createFixtureDir();
     try {
       writeFixture(fixture.path, AREAS_3);
-      const compiler = new CampaignCompiler();
       const collector = new DiagnosticCollector();
       const signal = new AbortController().signal;
-      compiler.compile(
+      const artifact = buildContentBundleArtifact(
         {
-          compilerInput: {
-            manifestPath: "pack.json",
-            contentDir: fixture.path,
-            rulesetFiles: ["rulesets.yaml"],
-            countryFiles: ["countries.yaml"],
-            areaFiles: ["areas.yaml"],
-            routeFiles: ["routes.yaml"],
-            possessionFiles: ["possessions.yaml"],
-            portFiles: ["ports.yaml"],
-            technologyFiles: ["technologies.yaml"],
-          },
-          campaignFiles: {
-            fleetFiles: ["fleets.yaml"],
-            economyFiles: ["economies.yaml"],
-            constructionFiles: ["constructions.yaml"],
-            diplomacyFiles: ["diplomacy.yaml"],
-            researchFiles: ["research.yaml"],
-            designFiles: [],
-          },
+          manifestPath: resolve(fixture.path, "pack.json"),
+          contentDir: fixture.path,
+          rulesetFiles: ["rulesets.yaml"],
+          countryFiles: ["countries.yaml"],
+          areaFiles: ["areas.yaml"],
+          routeFiles: ["routes.yaml"],
+          possessionFiles: ["possessions.yaml"],
+          portFiles: ["ports.yaml"],
+          technologyFiles: ["technologies.yaml"],
+          fleetFiles: ["fleets.yaml"],
+          economyFiles: ["economies.yaml"],
+          constructionFiles: ["constructions.yaml"],
+          diplomacyFiles: ["diplomacy.yaml"],
+          researchFiles: ["research.yaml"],
+          designFiles: [],
+        },
+        signal,
+        collector,
+      );
+      expect(artifact).toBeDefined();
+      new CampaignCompiler().compile(
+        {
+          contentBundle: artifact!.bundle,
+          contentHash: artifact!.envelope.bodyHash,
           rulesetVersion: "1.0",
           compatibilityVersion: "1.0.0",
           campaignStart: { startYear: 1900, startMonth: 13 },

@@ -2,16 +2,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { decodeStrict, PackManifestSchema, type PackManifest } from "@bluewave/content-schema";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 
 import type { CompilerInput } from "./index.js";
 import { safePath } from "./safePath.js";
 import { discoverShipBuildingFiles, type ShipBuildingFileGroups } from "./shipBuildingDiscovery.js";
-
-interface SurfaceManifest {
-  files?: Record<string, string[]>;
-  shipBuilding?: Record<string, string[]>;
-}
 
 /**
  * The ship-building catalogue collections: the `pack.json` `files` key that
@@ -109,7 +105,7 @@ export function buildFullSurfaceInput(
   manifestPath: string,
   contentDir: string,
   collector?: DiagnosticCollector,
-): CompilerInput {
+): CompilerInput | undefined {
   const resolvedManifest = resolve(manifestPath);
   const resolvedContentDir = resolve(contentDir);
   if (!existsSync(resolvedManifest)) {
@@ -118,17 +114,6 @@ export function buildFullSurfaceInput(
   if (!existsSync(resolvedContentDir)) {
     throw new Error(`Content directory not found: ${resolvedContentDir}`);
   }
-
-  let manifest: SurfaceManifest;
-  try {
-    manifest = JSON.parse(readFileSync(resolvedManifest, "utf8")) as SurfaceManifest;
-  } catch {
-    throw new Error(`Failed to parse manifest: ${resolvedManifest}`);
-  }
-
-  const files = manifest.files ?? {};
-  const shipBuilding = manifest.shipBuilding ?? {};
-  const toAbsolute = (file: string) => resolve(resolvedContentDir, safePath(file));
 
   const report = (message: string, path: string, remediation?: string): void => {
     if (collector) {
@@ -141,6 +126,24 @@ export function buildFullSurfaceInput(
       throw new Error(message);
     }
   };
+
+  let manifest: PackManifest;
+  let manifestText: string;
+  try {
+    manifestText = readFileSync(resolvedManifest, "utf8");
+    manifest = decodeStrict(PackManifestSchema, JSON.parse(manifestText));
+  } catch (err) {
+    report(
+      `Invalid pack manifest ${resolvedManifest}: ${err instanceof Error ? err.message : String(err)}`,
+      "pack.json",
+      "Fix the manifest to match the pack-manifest schema (name, version, type, files, shipBuilding).",
+    );
+    return undefined;
+  }
+
+  const files = manifest.files ?? {};
+  const shipBuilding = manifest.shipBuilding ?? {};
+  const toAbsolute = (file: string) => resolve(resolvedContentDir, safePath(file));
 
   assertDeclaredFilesExist(files, "files", resolvedContentDir, report);
   assertDeclaredFilesExist(shipBuilding, "shipBuilding", resolvedContentDir, report);
@@ -187,7 +190,7 @@ export function buildFullSurfaceInput(
 
 /** Every file the manifest declares must exist on disk (CAH-MAN-2). */
 function assertDeclaredFilesExist(
-  declarations: Record<string, string[]>,
+  declarations: Readonly<Record<string, readonly string[]>>,
   section: string,
   contentDir: string,
   report: (message: string, path: string, remediation?: string) => void,

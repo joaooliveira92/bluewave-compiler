@@ -3,12 +3,12 @@ import { fileURLToPath } from "node:url";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { clearCampaignSessionsForTest, registerCampaignSession } from "../campaignSessions.js";
-import { compileProductionCampaign } from "../compiler.js";
+import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { inspectCampaign } from "./inspectCampaign.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
-const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
+const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
 
 describe("inspectCampaign", () => {
   afterEach(() => {
@@ -25,7 +25,7 @@ describe("inspectCampaign", () => {
   it("returns real, non-placeholder treasury/fleet/technologies/ports/strategic areas for the compiled campaign", async () => {
     const signal = new AbortController().signal;
     const collector = new DiagnosticCollector();
-    const output = compileProductionCampaign(PRODUCTION_PACK, signal, collector);
+    const output = compileProductionCampaignFromArtifact(GENERATED_ARTIFACT, signal, collector);
     expect(collector.hasErrors).toBe(false);
     expect(output).toBeDefined();
     if (!output) return;

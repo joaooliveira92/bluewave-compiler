@@ -13,6 +13,7 @@
   "dependencies": {
     "@bluewave/campaign": "workspace:*",
     "@bluewave/content-schema": "workspace:*",
+    "@bluewave/deterministic": "workspace:*",
     "effect": "workspace:*"
   },
   "devDependencies": {

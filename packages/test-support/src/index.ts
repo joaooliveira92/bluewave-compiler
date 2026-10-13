@@ -1,5 +1,11 @@
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
+import {
+  buildContentBundleArtifact,
+  type CompilerInput,
+  type ContentBundle,
+} from "@bluewave/content-compiler";
+import type { DiagnosticCollector } from "@bluewave/diagnostics";
 
 export interface FixtureDir {
   path: string;
@@ -290,4 +296,24 @@ export function createInvalidFixture(basePath: string, name: string): FixtureDir
     writeFixture(fixture.path, file, content);
   }
   return fixture;
+}
+
+/**
+ * Builds a verified `ContentBundle` from an explicit full-surface `CompilerInput`
+ * — the producer path `CampaignCompiler` consumes (CAH-LEG-1). Tests that drive
+ * the campaign compiler over a fixture call this first; `CampaignCompiler` has no
+ * raw-input branch, so the bundle is the only way in.
+ */
+export function buildFixtureContentBundle(
+  input: CompilerInput,
+  signal: AbortSignal,
+  collector: DiagnosticCollector,
+): { bundle: ContentBundle; contentHash: string } {
+  const artifact = buildContentBundleArtifact(input, signal, collector);
+  if (!artifact) {
+    throw new Error(
+      `fixture content bundle build failed: ${collector.all.map((d) => d.message).join("; ")}`,
+    );
+  }
+  return { bundle: artifact.bundle, contentHash: artifact.envelope.bodyHash };
 }

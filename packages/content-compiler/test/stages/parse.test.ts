@@ -1,17 +1,29 @@
 import { describe, expect, it, vi, beforeEach } from "vite-plus/test";
 
-vi.mock("node:fs", () => ({
-  readFileSync: vi.fn(),
-}));
-
 vi.mock("@bluewave/content-schema", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   parseYamlSafe: vi.fn(),
 }));
 
-import { readFileSync } from "node:fs";
 import { parseYamlSafe } from "@bluewave/content-schema";
 import { ParseStage } from "@bluewave/content-compiler";
+
+/** A `CompilerInput` carrying an in-memory name→text map (no filesystem). */
+function inputWith(files: Record<string, string>, extra: Record<string, unknown> = {}) {
+  return {
+    contentDir: "/content",
+    manifestPath: "manifest.yaml",
+    fileContents: files,
+    countryFiles: [],
+    rulesetFiles: [],
+    areaFiles: [],
+    routeFiles: [],
+    possessionFiles: [],
+    portFiles: [],
+    technologyFiles: [],
+    ...extra,
+  };
+}
 
 describe("ParseStage", () => {
   const collector = {
@@ -23,9 +35,7 @@ describe("ParseStage", () => {
     vi.clearAllMocks();
   });
 
-  it("loads manifest and collection documents", () => {
-    vi.mocked(readFileSync).mockReturnValue("yaml");
-
+  it("parses the manifest and collection documents from the input's content map", () => {
     vi.mocked(parseYamlSafe)
       .mockReturnValueOnce({
         success: true,
@@ -39,17 +49,12 @@ describe("ParseStage", () => {
     const stage = new ParseStage();
 
     const result = stage.run(
-      {
-        contentDir: "/content",
-        manifestPath: "manifest.yaml",
-        countryFiles: ["countries.yaml"],
-        rulesetFiles: [],
-        areaFiles: [],
-        routeFiles: [],
-        possessionFiles: [],
-        portFiles: [],
-        technologyFiles: [],
-      },
+      inputWith(
+        { "manifest.yaml": "manifest", "countries.yaml": "countries" },
+        {
+          countryFiles: ["countries.yaml"],
+        },
+      ) as never,
       new AbortController().signal,
       collector as never,
     );
@@ -65,17 +70,7 @@ describe("ParseStage", () => {
     const stage = new ParseStage();
 
     const result = stage.run(
-      {
-        contentDir: ".",
-        manifestPath: "manifest.yaml",
-        countryFiles: [],
-        rulesetFiles: [],
-        areaFiles: [],
-        routeFiles: [],
-        possessionFiles: [],
-        portFiles: [],
-        technologyFiles: [],
-      },
+      inputWith({ "manifest.yaml": "manifest" }) as never,
       controller.signal,
       collector as never,
     );
@@ -83,32 +78,14 @@ describe("ParseStage", () => {
     expect(result).toBeUndefined();
   });
 
-  it("reports file read failures", () => {
-    vi.mocked(readFileSync).mockImplementation(() => {
-      throw new Error("boom");
-    });
-
+  it("reports a file absent from the in-memory content map", () => {
     const stage = new ParseStage();
 
-    stage.run(
-      {
-        contentDir: ".",
-        manifestPath: "manifest.yaml",
-        countryFiles: [],
-        rulesetFiles: [],
-        areaFiles: [],
-        routeFiles: [],
-        possessionFiles: [],
-        portFiles: [],
-        technologyFiles: [],
-      },
-      new AbortController().signal,
-      collector as never,
-    );
+    stage.run(inputWith({}) as never, new AbortController().signal, collector as never);
 
     expect(collector.addError).toHaveBeenCalledWith(
       "FILE-READ",
-      expect.stringContaining("boom"),
+      expect.stringContaining("manifest.yaml"),
       expect.any(Object),
     );
   });

@@ -42,6 +42,16 @@ export type DraftEdit =
   | { readonly kind: "set_armour_regions"; readonly regions: readonly ArmourRegion[] };
 
 export class EditError extends Error {
+  /** Stable discriminator (RULES.md "Errors"): recover by `_tag`, not `instanceof`. */
+  readonly _tag = "EditError";
+  /** `_tag`-based narrowing without `instanceof`. */
+  static is(value: unknown): value is EditError {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      (value as { readonly _tag?: unknown })._tag === "EditError"
+    );
+  }
   constructor(message: string) {
     super(message);
     this.name = "EditError";

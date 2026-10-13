@@ -12,8 +12,8 @@
   },
   "devDependencies": {
     "@bluewave/content-schema": "workspace:*",
-    "effect": "workspace:*",
-    "yaml": "^2.9.1"
+    "@bluewave/diagnostics": "workspace:*",
+    "effect": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

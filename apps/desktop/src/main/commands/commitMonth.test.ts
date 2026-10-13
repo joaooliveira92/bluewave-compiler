@@ -18,14 +18,14 @@ import {
   getCampaignSession,
   registerCampaignSession,
 } from "../campaignSessions.js";
-import { compileProductionCampaign } from "../compiler.js";
+import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { toSaveableState } from "../saveHelpers.js";
 import { commitMonth } from "./commitMonth.js";
 import { mapBattleOutcome } from "./commitMonth/battleOutcomes.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
-const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
+const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
 
 describe("commitMonth", () => {
   let saveRoot: string;
@@ -54,7 +54,7 @@ describe("commitMonth", () => {
     function registerProductionSession(sessionId: string, saveDir: string): CampaignState {
       const signal = new AbortController().signal;
       const collector = new DiagnosticCollector();
-      const output = compileProductionCampaign(PRODUCTION_PACK, signal, collector);
+      const output = compileProductionCampaignFromArtifact(GENERATED_ARTIFACT, signal, collector);
       expect(collector.hasErrors).toBe(false);
       if (!output) throw new Error("production pack failed to compile");
 

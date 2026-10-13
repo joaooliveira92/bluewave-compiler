@@ -10,6 +10,8 @@
  * implementing that command, not this module.
  */
 
+import { canonicalSerialize } from "@bluewave/deterministic";
+
 export type ArchetypeDimension = "economy" | "industry" | "combat";
 
 export interface ArchetypeAllocation {
@@ -150,5 +152,7 @@ export function defaultArchetypeSelection(): ArchetypeSelection {
 }
 
 export function serializeArchetypeSelection(selection: ArchetypeSelection): string {
-  return JSON.stringify(selection);
+  // Canonical serialization, not insertion order: the byte shape is defined by
+  // the versioned serializer's key ordering (RULES.md "Determinism").
+  return canonicalSerialize(selection);
 }

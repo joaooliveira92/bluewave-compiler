@@ -1,6 +1,4 @@
 //packages/content-compiler/src/stages/parse.ts
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { parseYamlSafe } from "@bluewave/content-schema";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 
@@ -84,27 +82,29 @@ export class ParseStage implements CompilerStage<CompilerInput, ParseOutput> {
     for (const [group, files] of Object.entries(fileGroups)) {
       if (signal.aborted) return undefined;
       for (const file of files) {
-        const fullPath = resolve(input.contentDir, file);
-        try {
-          const content = readFileSync(fullPath, "utf8");
-          const result = parseYamlSafe(content, file, collector);
-          if (result.success && result.data !== undefined) {
-            this.collect(group, file, result.data, {
-              manifest: (value) => {
-                manifest = value;
-              },
-              collectionDocs,
-              sourcePaths,
-              objectDocs,
-              objectSourcePaths,
-              collector,
-            });
-          }
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          collector.addError("FILE-READ", `Failed to read file: ${message}`, {
-            stage: "parse",
-            sourceLocation: { path: file, line: 1 },
+        const content = input.fileContents?.[file];
+        if (content === undefined) {
+          collector.addError(
+            "FILE-READ",
+            `Failed to read file: ${file} is absent from the compiler input`,
+            {
+              stage: "parse",
+              sourceLocation: { path: file, line: 1 },
+            },
+          );
+          continue;
+        }
+        const result = parseYamlSafe(content, file, collector);
+        if (result.success && result.data !== undefined) {
+          this.collect(group, file, result.data, {
+            manifest: (value) => {
+              manifest = value;
+            },
+            collectionDocs,
+            sourcePaths,
+            objectDocs,
+            objectSourcePaths,
+            collector,
           });
         }
       }

@@ -84,7 +84,7 @@ export async function writeDrawingBoardDraft(
     return {
       outcome: "rejected",
       reason: "INVALID_COMMAND_PAYLOAD",
-      diagnostics: [err instanceof PersistenceError ? err.message : "not an edit log"],
+      diagnostics: [PersistenceError.is(err) ? err.message : "not an edit log"],
     };
   }
   const stored = {

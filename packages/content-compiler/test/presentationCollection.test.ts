@@ -197,7 +197,7 @@ describe("presentation collections through the compiler (CAH-PRES-1/CAH-PRES-2)"
         fixture.path,
         new DiagnosticCollector(),
       );
-      expect(input.presentationFiles).toEqual([resolve(fixture.path, "presentation.yaml")]);
+      expect(input!.presentationFiles).toEqual([resolve(fixture.path, "presentation.yaml")]);
     } finally {
       fixture.cleanup();
     }

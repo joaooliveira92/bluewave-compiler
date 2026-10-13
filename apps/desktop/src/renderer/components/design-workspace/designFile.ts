@@ -33,10 +33,9 @@ export function importDesign(text: string, catalogue: readonly ComponentDef[]): 
   } catch (e) {
     return {
       ok: false,
-      error:
-        e instanceof PersistenceError
-          ? `Cannot open design: ${e.message}`
-          : "Cannot open design file.",
+      error: PersistenceError.is(e)
+        ? `Cannot open design: ${e.message}`
+        : "Cannot open design file.",
     };
   }
 }

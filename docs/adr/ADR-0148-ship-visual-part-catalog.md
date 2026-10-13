@@ -49,8 +49,10 @@ content values carry machine-checked provenance (ADR-0147).
 
 ## Consequences
 
-- New nations, eras or mount classes are YAML edits plus a regenerate, with no renderer
-  change. The four EARLY-band nations without a manual style draw the universal set.
+- A new drawing, or a national or era variant of one, is a YAML edit plus a regenerate,
+  with no renderer change. The vocabulary itself (nation → style, era bounds, mount type →
+  class) lives in `@bluewave/ship-visual`, so a new style, era or mount class is a
+  package change and a ruleset bump. The four EARLY-band nations without a manual style draw the universal set.
 - A player override of the nation style, sponsons, torpedo/aviation/electronics parts,
   accessories and damage colouring are deferred; the tone type reserves the damage path.
 - The generated module is a committed derivative. Editing the YAML without regenerating

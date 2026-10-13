@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { decodeStrict, ShipVisualCatalogSchema } from "@bluewave/content-schema";
-import { parse } from "yaml";
+import { decodeStrict, parseYamlSafe, ShipVisualCatalogSchema } from "@bluewave/content-schema";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { describe, expect, it } from "vite-plus/test";
 import { MOUNT_CLASSES, PART_CATALOG, SIZE_BANDS } from "../src/index.js";
 
@@ -9,7 +9,10 @@ const YAML_PATH = resolve(import.meta.dirname, "../../../content/ship-visual/par
 
 describe("the generated catalog", () => {
   it("is exactly the schema-decoded content YAML (regenerate with `catalog:generate`)", () => {
-    const decoded = decodeStrict(ShipVisualCatalogSchema, parse(readFileSync(YAML_PATH, "utf8")));
+    const diagnostics = new DiagnosticCollector();
+    const parsed = parseYamlSafe(readFileSync(YAML_PATH, "utf8"), YAML_PATH, diagnostics);
+    expect(diagnostics.toHuman()).toBe("");
+    const decoded = decodeStrict(ShipVisualCatalogSchema, parsed.data);
     expect(PART_CATALOG).toEqual(decoded);
   });
 

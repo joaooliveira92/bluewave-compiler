@@ -257,12 +257,13 @@ describe("campaign-file collections through the compiler", () => {
       }
 
       const input = buildFullSurfaceInput(resolve(fixture.path, "pack.json"), fixture.path);
-      expect(input.fleetFiles).toHaveLength(1);
-      expect(input.economyFiles).toHaveLength(1);
-      expect(input.constructionFiles).toHaveLength(1);
-      expect(input.diplomacyFiles).toHaveLength(1);
-      expect(input.researchFiles).toHaveLength(1);
-      expect(input.designFiles).toHaveLength(1);
+      expect(input).toBeDefined();
+      expect(input!.fleetFiles).toHaveLength(1);
+      expect(input!.economyFiles).toHaveLength(1);
+      expect(input!.constructionFiles).toHaveLength(1);
+      expect(input!.diplomacyFiles).toHaveLength(1);
+      expect(input!.researchFiles).toHaveLength(1);
+      expect(input!.designFiles).toHaveLength(1);
     } finally {
       fixture.cleanup();
     }

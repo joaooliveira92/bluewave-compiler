@@ -3,25 +3,12 @@
 // compilation request/response contracts and the statically ordered pipeline;
 // each materialization stage lives in its own focused module.
 
-import {
-  Compiler,
-  contentPackFromArtifact,
-  type CompilerInput,
-  type ContentBundle,
-} from "@bluewave/content-compiler";
+import { contentPackFromArtifact, type ContentBundle } from "@bluewave/content-compiler";
 import type { ContentPack } from "@bluewave/content-schema";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
-import {
-  DiagnosticCollector,
-  type DiagnosticCollector as DiagnosticCollectorType,
-} from "@bluewave/diagnostics";
-import {
-  loadAllCampaignData,
-  toStr,
-  type CampaignFileData,
-  type CampaignFiles,
-} from "./campaignInput.js";
+import { type DiagnosticCollector as DiagnosticCollectorType } from "@bluewave/diagnostics";
+import { toStr, type CampaignFileData } from "./campaignInput.js";
 import { validateCampaignPreconditions } from "./campaignSession.js";
 import {
   assertFleetDesignLinks,
@@ -35,20 +22,16 @@ import type { CampaignSnapshot, CampaignState } from "./state.js";
 import { DEFAULT_CAMPAIGN_START_MONTH, DEFAULT_CAMPAIGN_START_YEAR } from "./timeline.js";
 import { buildWorldState } from "./worldCompilation.js";
 
-export type { CampaignFiles };
-
 export interface CampaignCompilerInput {
-  // Raw-input path: read + compile the content pack and campaign files. Required
-  // unless `contentBundle` is supplied.
-  compilerInput?: CompilerInput;
-  campaignFiles?: CampaignFiles;
   /**
-   * Decoded-content path (ticket 07): a verified `ContentBundle` whose
-   * content-pack collections and campaign-file collections are already parsed,
-   * validated, normalized and compiled. When present the compiler reads no raw
-   * content files at all — "validated content is the only thing that runs".
+   * The verified `ContentBundle` whose content-pack collections and
+   * campaign-file collections are already parsed, validated, normalized and
+   * compiled (ticket 07 / CAH-LEG-1). The compiler reads no raw content files:
+   * "validated content is the only thing that runs". Callers that authored raw
+   * files build the bundle first (`buildContentBundleArtifact`) — the CLI
+   * campaign compile and every test/cross-process caller do exactly this.
    */
-  contentBundle?: ContentBundle;
+  contentBundle: ContentBundle;
   /**
    * The artifact-derived content identity for `contentBundle` (its verified
    * manifest body hash). Falls back to the canonical bundle hash when omitted.
@@ -115,12 +98,6 @@ function validateCampaignStart(
 }
 
 export class CampaignCompiler {
-  private contentCompiler: Compiler;
-
-  constructor() {
-    this.contentCompiler = new Compiler();
-  }
-
   compile(
     input: CampaignCompilerInput,
     signal: AbortSignal,
@@ -144,53 +121,15 @@ export class CampaignCompiler {
       if (signal.aborted) return undefined;
     }
 
-    // Step 1+2: Resolve the content the campaign runs on. Either consume the
-    // already-decoded, already-verified compiled bundle (no raw files read) or
-    // run the content compiler and parse the campaign YAML (the raw-input path).
-    let pack: ContentPack;
-    let data: CampaignFileData;
-    let contentHash: string;
-
-    if (input.contentBundle !== undefined) {
-      pack = contentPackFromBundle(input.contentBundle);
-      data = campaignDataFromBundle(input.contentBundle);
-      // Artifact-derived identity: the bundle's verified body hash (or a
-      // canonical hash of the same bundle), never the raw file bytes.
-      contentHash = input.contentHash ?? sha256Hex(canonicalSerialize(input.contentBundle));
-    } else {
-      if (input.compilerInput === undefined || input.campaignFiles === undefined) {
-        collector.addError(
-          "CAMPAIGN-CONTENT",
-          "CampaignCompiler requires either a compiled contentBundle or raw compilerInput + campaignFiles.",
-          { stage: "campaign-compile" },
-        );
-        return undefined;
-      }
-      const contentCollector = new DiagnosticCollector();
-      const contentOutput = this.contentCompiler.compile(
-        input.compilerInput,
-        signal,
-        contentCollector,
-      );
-
-      for (const d of contentCollector.all) {
-        collector.add(d);
-      }
-
-      if (!contentOutput) return undefined;
-      if (signal.aborted) return undefined;
-
-      pack = contentOutput.pack;
-      contentHash = contentOutput.rawHash;
-
-      // Step 2: Parse campaign-specific YAML
-      data = loadAllCampaignData(
-        input.campaignFiles,
-        input.compilerInput.contentDir,
-        collector,
-        signal,
-      );
-    }
+    // Step 1+2: Resolve the content the campaign runs on from the already-decoded,
+    // already-verified compiled bundle — no raw files are read. The bundle root is
+    // exactly the content-pack artifact shape the compile stage emits, so no field
+    // is derived or dropped (CAH-LEG-1).
+    const pack: ContentPack = contentPackFromBundle(input.contentBundle);
+    const data: CampaignFileData = campaignDataFromBundle(input.contentBundle);
+    // Artifact-derived identity: the bundle's verified body hash (or a canonical
+    // hash of the same bundle), never the raw file bytes.
+    const contentHash = input.contentHash ?? sha256Hex(canonicalSerialize(input.contentBundle));
 
     if (collector.hasErrors || signal.aborted) return undefined;
 

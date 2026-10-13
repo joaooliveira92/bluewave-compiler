@@ -8,14 +8,14 @@ import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { clearCampaignSessionsForTest, registerCampaignSession } from "../campaignSessions.js";
-import { compileProductionCampaign } from "../compiler.js";
+import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { clearPendingWorkspacesForTest } from "../pendingCommands.js";
 import { toSaveableState } from "../saveHelpers.js";
 import { commitMonth } from "./commitMonth.js";
 import { inspectBudgetScreen, submitBudgetAllocation } from "./budgetCommands.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PRODUCTION_PACK = resolve(__dirname, "../../../../..", "content", "production", "1880");
+const GENERATED_ARTIFACT = resolve(__dirname, "../../../../..", "content", "generated", "1880");
 /**
  * Budget allocation (ADR-0060) against the real production pack: the engine's own
  * validator decides at issue time and only `commitMonth` mutates the nation.
@@ -34,8 +34,8 @@ describe("budget allocation", () => {
 
   function registerSession(sessionId: string): CampaignState {
     const collector = new DiagnosticCollector();
-    const output = compileProductionCampaign(
-      PRODUCTION_PACK,
+    const output = compileProductionCampaignFromArtifact(
+      GENERATED_ARTIFACT,
       new AbortController().signal,
       collector,
     );

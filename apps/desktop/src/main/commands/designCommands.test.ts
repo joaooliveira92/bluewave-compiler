@@ -11,14 +11,14 @@ import {
   getCampaignSession,
   registerCampaignSession,
 } from "../campaignSessions.js";
-import { compileProductionCampaign } from "../compiler.js";
+import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { clearPendingWorkspacesForTest } from "../pendingCommands.js";
 import { toSaveableState } from "../saveHelpers.js";
 import { SafeInt } from "@bluewave/contracts";
 import { commitMonth } from "./commitMonth.js";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../..");
-const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
+const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
 
 /**
  * Commits months until `designVersionId`'s study completes and the design joins the catalog (ADR-0085), so the wiring
@@ -151,8 +151,8 @@ describe("submitDesignCommand (ADR-0066)", () => {
   beforeEach(() => {
     saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-design-"));
     const collector = new DiagnosticCollector();
-    const output = compileProductionCampaign(
-      PRODUCTION_PACK,
+    const output = compileProductionCampaignFromArtifact(
+      GENERATED_ARTIFACT,
       new AbortController().signal,
       collector,
     );
@@ -274,8 +274,8 @@ describe("reviseProjectCommand and loadProjectDraft (ADR-0070)", () => {
   beforeEach(() => {
     saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-revise-"));
     const collector = new DiagnosticCollector();
-    const output = compileProductionCampaign(
-      PRODUCTION_PACK,
+    const output = compileProductionCampaignFromArtifact(
+      GENERATED_ARTIFACT,
       new AbortController().signal,
       collector,
     );
@@ -445,8 +445,8 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
   beforeEach(() => {
     saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-rebuild-"));
     const collector = new DiagnosticCollector();
-    const output = compileProductionCampaign(
-      PRODUCTION_PACK,
+    const output = compileProductionCampaignFromArtifact(
+      GENERATED_ARTIFACT,
       new AbortController().signal,
       collector,
     );

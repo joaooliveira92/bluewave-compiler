@@ -99,7 +99,7 @@ export function useDrawingBoard(fixedMonth: string | null = null): {
         commit(pushEdit(logRef.current, e));
         setEditError(null);
       } catch (err) {
-        setEditError(err instanceof EditError ? err.message : String(err));
+        setEditError(EditError.is(err) ? err.message : String(err));
       }
     },
     [commit],

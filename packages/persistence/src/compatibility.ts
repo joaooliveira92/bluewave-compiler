@@ -33,6 +33,8 @@ export class CompatibilityChecker {
 }
 
 export class CompatibilityError extends Error {
+  /** Stable discriminator (RULES.md "Errors"): recover by `_tag`, not `instanceof`. */
+  readonly _tag = "CompatibilityError";
   readonly code: DiagnosticCode = COMPATIBILITY_MISMATCH_CODE;
   readonly severity = "error" as const;
   readonly stage = "persistence.load";

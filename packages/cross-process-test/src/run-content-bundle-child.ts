@@ -38,8 +38,10 @@ function run(): void {
     writeFileSync(resolve(dir, "pack.json"), PACK, "utf8");
     writeFileSync(resolve(dir, "areas.yaml"), AREAS, "utf8");
     const collector = new DiagnosticCollector();
+    const surfaceInput = buildFullSurfaceInput(resolve(dir, "pack.json"), dir);
+    if (!surfaceInput) throw new Error("content surface input failed");
     const artifact = buildContentBundleArtifact(
-      buildFullSurfaceInput(resolve(dir, "pack.json"), dir),
+      surfaceInput,
       new AbortController().signal,
       collector,
     );

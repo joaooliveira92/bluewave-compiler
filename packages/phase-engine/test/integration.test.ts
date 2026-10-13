@@ -9,7 +9,7 @@ import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
-import { nationsYaml } from "@bluewave/test-support";
+import { buildFixtureContentBundle, nationsYaml } from "@bluewave/test-support";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 import { MonthExecutor, PhaseRegistry, ReplayVerifier } from "../src/index.js";
 
@@ -50,11 +50,11 @@ const FIXTURE = {
 
   economies: `- nationId: "uk"\n  treasury: 800\n  income: 150\n  expenses: 75\n- nationId: "france"\n  treasury: 600\n  income: 120\n  expenses: 60\n`,
 
-  constructions: `- id: "con-gbr-ship-battleship2"\n  nationId: "uk"\n  type: "ship"\n  targetId: "ship-hms-thunderer"\n  totalWork: 200\n  completedWork: 50\n  startedAt: "1880-01"\n`,
+  constructions: `- id: "con-gbr-ship-battleship2"\n  nationId: "uk"\n  type: "ship"\n  targetId: "ship-hms-thunderer"\n  totalWork: 200\n  completedWork: 50\n  paidWork: 0\n  status: "PLANNED"\n  startedAt: "1880-01"\n`,
 
   diplomacy: `- nationA: "uk"\n  nationB: "france"\n  relation: "neutral"\n  since: "1880-01"\n`,
 
-  research: `- nationId: "uk"\n  currentProjectTechId: "basic_steam"\n  researchBudget: 100\n  fieldPriorities:\n    MACHINERY: 4\n    HULL_CONSTRUCTION: 2\n    GUNNERY: 1\n  technologies:\n    - { techId: "basic_steam", investedPoints: 30, completed: false }\n- nationId: "france"\n  technologies: []\n`,
+  research: `- nationId: "uk"\n  currentProjectTechId: "basic_steam"\n  researchBudget: 100\n  fieldPriorities:\n    MACHINERY: 4\n    HULL_CONSTRUCTION: 2\n    GUNNERY: 1\n  technologies:\n    - { techId: "basic_steam", investedPoints: 30, completed: false }\n- nationId: "france"\n  researchBudget: 0\n  technologies: []\n`,
 };
 
 function createFixtureDir(): { path: string; cleanup: () => void } {
@@ -89,30 +89,33 @@ function writeAllFixtureFiles(fixturePath: string): void {
 }
 
 function compileCampaign(fixtureDir: string): CampaignState {
-  const compiler = new CampaignCompiler();
   const collector = new DiagnosticCollector();
   const signal = new AbortController().signal;
-  const output = compiler.compile(
+  const { bundle, contentHash } = buildFixtureContentBundle(
     {
-      compilerInput: {
-        manifestPath: "pack.json",
-        contentDir: fixtureDir,
-        rulesetFiles: ["rulesets.yaml"],
-        countryFiles: ["countries.yaml"],
-        areaFiles: ["areas.yaml"],
-        routeFiles: ["routes.yaml"],
-        possessionFiles: ["possessions.yaml"],
-        portFiles: ["ports.yaml"],
-        technologyFiles: ["technologies.yaml"],
-      },
-      campaignFiles: {
-        fleetFiles: ["fleets.yaml"],
-        economyFiles: ["economies.yaml"],
-        constructionFiles: ["constructions.yaml"],
-        diplomacyFiles: ["diplomacy.yaml"],
-        researchFiles: ["research.yaml"],
-        designFiles: [],
-      },
+      manifestPath: resolve(fixtureDir, "pack.json"),
+      contentDir: fixtureDir,
+      rulesetFiles: ["rulesets.yaml"],
+      countryFiles: ["countries.yaml"],
+      areaFiles: ["areas.yaml"],
+      routeFiles: ["routes.yaml"],
+      possessionFiles: ["possessions.yaml"],
+      portFiles: ["ports.yaml"],
+      technologyFiles: ["technologies.yaml"],
+      fleetFiles: ["fleets.yaml"],
+      economyFiles: ["economies.yaml"],
+      constructionFiles: ["constructions.yaml"],
+      diplomacyFiles: ["diplomacy.yaml"],
+      researchFiles: ["research.yaml"],
+      designFiles: [],
+    },
+    signal,
+    collector,
+  );
+  const output = new CampaignCompiler().compile(
+    {
+      contentBundle: bundle,
+      contentHash,
       rulesetVersion: "1.0",
       compatibilityVersion: "1.2.0",
     },

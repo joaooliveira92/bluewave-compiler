@@ -11,7 +11,7 @@
 //   Stage 6 (SECONDARY_HAZARD) — wired INC-5 (magazine hazard only)
 //   Stage 8 (TERMINAL_SEAM) — wired INC-5
 //   Stages 7, 10 — no-op placeholders (deferred)
-import { BluewaveError } from "@bluewave/contracts";
+import { isBluewaveError } from "@bluewave/contracts";
 import { type ShipDamageState, type FireSourceRecord, type FloodingSourceRecord } from "./state.js";
 import { DAMAGE_PIPELINE_STAGES, type DamagePipelineStage } from "./constants.js";
 import {
@@ -194,7 +194,7 @@ export function runDamagePipeline(
           description: `hit resolved: compartment=${hitResult.primaryCompartmentId}, zone=${hitResult.hitZoneId} (${hitResult.hitZoneType})`,
         };
       } catch (e) {
-        if (e instanceof BluewaveError) {
+        if (isBluewaveError(e)) {
           return { ok: false, description: e.message, errorCode: e.message };
         }
         throw e;
@@ -222,7 +222,7 @@ export function runDamagePipeline(
           description: `protection resolved: outcome=${protResult.outcome}, margin=${protResult.penetrationMargin}µm`,
         };
       } catch (e) {
-        if (e instanceof BluewaveError) {
+        if (isBluewaveError(e)) {
           return { ok: false, description: e.message, errorCode: e.message };
         }
         throw e;

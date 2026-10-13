@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0150).
+highest existing number + 1 (the next number is ADR-0153).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -214,3 +214,6 @@ Repo process, docs/ADR authority, and release gates.
 | 0136 | [ADR-0136-golden-repin-guard-scope.md](ADR-0136-golden-repin-guard-scope.md) | Scope the golden re-pin guard to the reference run's real inputs | accepted | — |
 | 0139 | [ADR-0139-effect-tsgo-install-patch.md](ADR-0139-effect-tsgo-install-patch.md) | Effect Language Service (tsgo) — patch at install and enable the TypeScript integration | accepted | — |
 | 0140 | [ADR-0140-check-ci-parity-guard.md](ADR-0140-check-ci-parity-guard.md) | Enforce every `pnpm check` step in CI, and the Effect toolchain at preflight | accepted | — |
+| 0150 | [ADR-0150-authoritative-determinism-gate.md](ADR-0150-authoritative-determinism-gate.md) | The authoritative-determinism ratchet gate | accepted | — |
+| 0151 | [ADR-0151-rules-compliance-ratchet-gates.md](ADR-0151-rules-compliance-ratchet-gates.md) | The RULES.md compliance ratchet gates | accepted | — |
+| 0152 | [ADR-0152-errors-by-reachability.md](ADR-0152-errors-by-reachability.md) | Errors are tagged by reachability — `Data.TaggedError` inside, `readonly _tag` at the renderer boundary | accepted | — |

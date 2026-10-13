@@ -928,8 +928,9 @@ export function buildInput(
     return undefined;
   }
   let manifest: { files?: Record<string, string[]> };
+  let manifestContent = "";
   try {
-    const manifestContent = readFileSync(manifestPath, "utf8");
+    manifestContent = readFileSync(manifestPath, "utf8");
     manifest = JSON.parse(manifestContent);
   } catch {
     collector.addError("USAGE", `Failed to parse manifest: ${manifestPath}`);

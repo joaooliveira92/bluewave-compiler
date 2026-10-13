@@ -30,6 +30,8 @@ export interface HullFormRecord {
 }
 
 export class ContentError extends Error {
+  /** Stable discriminator (RULES.md "Errors"): recover by `_tag`, not `instanceof`. */
+  readonly _tag = "ContentError";
   constructor(message: string) {
     super(message);
     this.name = "ContentError";

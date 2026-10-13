@@ -18,6 +18,7 @@ const LAYER: Record<string, number> = {
   "@bluewave/random": 2,
   "@bluewave/content-compiler": 3,
   "@bluewave/ship-design": 3,
+  "@bluewave/ship-visual": 3,
   "@bluewave/campaign": 4,
   "@bluewave/test-support": 4,
   "@bluewave/commands": 5,

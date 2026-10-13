@@ -6,6 +6,15 @@ import type { DiagnosticCollector } from "@bluewave/diagnostics";
 export interface CompilerInput {
   manifestPath: string;
   contentDir: string;
+  /**
+   * The immutable name→text map of every source the compiler loads, keyed by the
+   * same resolved path string used in `manifestPath` and the `*Files` arrays.
+   * `ParseStage` parses only these contents — it performs no ambient filesystem
+   * I/O (ADR-0004). `Compiler.compile` reads the files and injects the map when a
+   * caller supplies only paths, so the stage is also drivable from an in-memory
+   * input.
+   */
+  fileContents?: Readonly<Record<string, string>>;
   rulesetFiles: string[];
   countryFiles: string[];
   areaFiles: string[];

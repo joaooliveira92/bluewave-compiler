@@ -1,7 +1,6 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import {
   CANONICAL_RESEARCH_FIELD_IDS,
   RESEARCH_FIELD_PRIORITY_WEIGHTS,
@@ -10,7 +9,8 @@ import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { SaveStore } from "@bluewave/persistence";
 import { registerCampaignSession } from "../campaignSessions.js";
-import { compileProductionCampaign } from "../compiler.js";
+import { compileProductionCampaignFromArtifact } from "../compiler.js";
+import { resolveGeneratedContentDir } from "../contentPack.js";
 import { clearResearchWorkspacesForTest } from "../researchWorkspace.js";
 import { toSaveableState } from "../saveHelpers.js";
 import { commitMonth } from "./commitMonth.js";
@@ -31,10 +31,6 @@ import { setResearchPriorityCommand } from "./researchCommands.js";
  * byte-identical output — proving the desktop slice adds no ambient
  * determinism leak to an already cross-process-proven authoritative chain.
  */
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, "../../../../../");
-const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
 
 function fullPriorities(): Record<string, number> {
   const all: Record<string, number> = {};
@@ -58,7 +54,11 @@ async function run(): Promise<void> {
   try {
     const signal = new AbortController().signal;
     const collector = new DiagnosticCollector();
-    const output = compileProductionCampaign(PRODUCTION_PACK, signal, collector);
+    const output = compileProductionCampaignFromArtifact(
+      resolveGeneratedContentDir(),
+      signal,
+      collector,
+    );
     if (!output || collector.hasErrors) {
       throw new Error(`compile failed: ${collector.errors.map((d) => d.message).join("; ")}`);
     }

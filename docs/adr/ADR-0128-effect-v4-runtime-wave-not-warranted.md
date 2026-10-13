@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted (2026-10-12).
+Accepted (2026-10-12). Amended by
+[ADR-0152](ADR-0152-errors-by-reachability.md) §1 (the errors-by-reachability
+split: renderer-reachable packages keep plain classes with a `readonly _tag`
+rather than `Data.TaggedError`).
 
 ## Context
 

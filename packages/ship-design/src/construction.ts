@@ -288,6 +288,16 @@ export function planConstruction(
 }
 
 export class ConstructionPlanError extends Error {
+  /** Stable discriminator (RULES.md "Errors"): recover by `_tag`, not `instanceof`. */
+  readonly _tag = "ConstructionPlanError";
+  /** `_tag`-based narrowing without `instanceof`. */
+  static is(value: unknown): value is ConstructionPlanError {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      (value as { readonly _tag?: unknown })._tag === "ConstructionPlanError"
+    );
+  }
   constructor(
     readonly code: string,
     message: string,

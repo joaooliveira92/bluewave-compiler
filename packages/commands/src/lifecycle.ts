@@ -49,6 +49,15 @@ export function canTransition(
   return true;
 }
 
+/**
+ * Build a hash-chained status-transition record.
+ *
+ * `timestamp` is an explicit input, never the ambient clock: the record is
+ * hashed, so an ambient `new Date()` here would make identical command inputs
+ * hash differently across runs (RULES.md "Determinism"). Callers supply a
+ * deterministic campaign-time value, exactly as the desktop construction
+ * workspace and the phase-engine full-lifecycle path already do.
+ */
 export function transitionRecord(
   rec: CommandRecord,
   to: CommandStatus,
@@ -56,6 +65,7 @@ export function transitionRecord(
   actorId: string,
   reasonCode: string,
   previousHash: string,
+  timestamp: string,
 ): CommandStatusTransitionRecord {
   if (!canTransition(rec.status, to)) {
     throw new CommandError({
@@ -78,7 +88,7 @@ export function transitionRecord(
     reasonCode,
     previousHash,
     recordHash: "",
-    timestamp: new Date().toISOString(),
+    timestamp,
   };
   return { ...tr, recordHash: sha256Hex(canonicalSerialize(tr)) };
 }

@@ -64,7 +64,7 @@ describe("manifest authority for the loaded surface", () => {
       );
 
       expect(collector.hasErrors).toBe(false);
-      expect(input.shipComponentFiles).toEqual([
+      expect(input!.shipComponentFiles).toEqual([
         resolve(fixture.path, "ship-building/components.yaml"),
       ]);
     } finally {
@@ -126,6 +126,30 @@ describe("manifest authority for the loaded surface", () => {
     }
   });
 
+  it("rejects a malformed manifest with a MANIFEST diagnostic naming the file", () => {
+    const fixture = createFixtureDir();
+    try {
+      // Missing the required `version`/`type` and carrying an excess key: the
+      // strict PackManifestSchema decode must reject it (never a cast).
+      writeFixture(fixture.path, "pack.json", JSON.stringify({ name: "x", files: {}, extra: 1 }));
+
+      const collector = new DiagnosticCollector();
+      const result = buildFullSurfaceInput(
+        resolve(fixture.path, "pack.json"),
+        fixture.path,
+        collector,
+      );
+
+      expect(result).toBeUndefined();
+      const error = collector.errors.find((d) => d.code === "MANIFEST");
+      expect(error).toBeDefined();
+      expect(error!.message).toContain("pack.json");
+      expect(error!.sourceLocation?.path).toBe("pack.json");
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
   it("excludes the build-only shipBuilding declaration from the artifact manifest", () => {
     const fixture = createFixtureDir();
     try {
@@ -149,7 +173,7 @@ describe("manifest authority for the loaded surface", () => {
 
       const input = buildFullSurfaceInput(resolve(fixture.path, "pack.json"), fixture.path);
       const collector = new DiagnosticCollector();
-      const output = new Compiler().compile(input, new AbortController().signal, collector);
+      const output = new Compiler().compile(input!, new AbortController().signal, collector);
 
       expect(collector.hasErrors).toBe(false);
       const manifest = output!.bundle.manifest as Record<string, unknown>;

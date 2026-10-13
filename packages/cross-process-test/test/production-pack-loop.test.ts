@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vite-plus/test";
-import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SafeInt } from "@bluewave/contracts";
+import { buildContentBundleArtifact, buildFullSurfaceInput } from "@bluewave/content-compiler";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { CampaignCompiler } from "@bluewave/campaign/compiler";
@@ -74,36 +74,24 @@ const REPO_ROOT = resolve(thisDir, "..", "..", "..");
 const PRODUCTION_PACK = resolve(REPO_ROOT, "content", "production", "1880");
 
 function compileProductionPack(): { state: CampaignState; contentHash: string } {
-  const pack = JSON.parse(readFileSync(resolve(PRODUCTION_PACK, "pack.json"), "utf8")) as {
-    files?: Record<string, string[]>;
-  };
-  const files = pack.files ?? {};
-
-  const compiler = new CampaignCompiler();
   const collector = new DiagnosticCollector();
   const signal = new AbortController().signal;
+  const input = buildFullSurfaceInput(
+    resolve(PRODUCTION_PACK, "pack.json"),
+    PRODUCTION_PACK,
+    collector,
+  );
+  const artifact = input ? buildContentBundleArtifact(input, signal, collector) : undefined;
+  if (!artifact || collector.hasErrors) {
+    throw new Error(
+      `Production pack compilation failed: ${collector.all.map((d) => d.message).join("; ")}`,
+    );
+  }
 
-  const output = compiler.compile(
+  const output = new CampaignCompiler().compile(
     {
-      compilerInput: {
-        manifestPath: resolve(PRODUCTION_PACK, "pack.json"),
-        contentDir: PRODUCTION_PACK,
-        rulesetFiles: (files.rulesets ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        countryFiles: (files.countries ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        areaFiles: (files.areas ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        routeFiles: (files.routes ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        possessionFiles: (files.possessions ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        portFiles: (files.ports ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        technologyFiles: (files.technologies ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-      },
-      campaignFiles: {
-        fleetFiles: (files.fleets ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        economyFiles: (files.economies ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        constructionFiles: (files.constructions ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        diplomacyFiles: (files.diplomacy ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        researchFiles: (files.research ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-        designFiles: (files.designs ?? []).map((f) => resolve(PRODUCTION_PACK, f)),
-      },
+      contentBundle: artifact.bundle,
+      contentHash: artifact.envelope.bodyHash,
       rulesetVersion: "1.0",
       compatibilityVersion: "1.2.0",
     },

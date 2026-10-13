@@ -328,6 +328,9 @@ importers:
       '@bluewave/content-schema':
         specifier: workspace:*
         version: link:../content-schema
+      '@bluewave/deterministic':
+        specifier: workspace:*
+        version: link:../deterministic
       effect:
         specifier: workspace:*
         version: link:../../vendor/effect
@@ -611,12 +614,12 @@ importers:
       '@bluewave/content-schema':
         specifier: workspace:*
         version: link:../content-schema
+      '@bluewave/diagnostics':
+        specifier: workspace:*
+        version: link:../diagnostics
       effect:
         specifier: workspace:*
         version: link:../../vendor/effect
-      yaml:
-        specifier: ^2.9.1
-        version: 2.9.1
 
   packages/test-support:
     dependencies:

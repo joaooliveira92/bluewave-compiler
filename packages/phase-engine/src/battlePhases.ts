@@ -8,7 +8,7 @@ import {
   INVALID_BATTLE_WEATHER_INITIALIZATION,
   resolveBattleAuto,
 } from "@bluewave/combat";
-import { BluewaveError } from "@bluewave/contracts";
+import { isBluewaveError } from "@bluewave/contracts";
 import type { RandomEngine } from "@bluewave/random";
 import {
   applyBattleConsequences,
@@ -288,7 +288,7 @@ function resolveViaTacticalAuto(
     // BEFORE any consequence is applied. Record the diagnostic and resolve via
     // the accepted M1 legacy path — never crash, never a partial mutation.
     const ctxCode =
-      e instanceof BluewaveError && typeof e.context?.["code"] === "string"
+      isBluewaveError(e) && typeof e.context?.["code"] === "string"
         ? (e.context["code"] as string)
         : "";
     const code = ctxCode.length > 0 ? ctxCode : BATTLE_AUTO_RESOLUTION_FAILED;

@@ -16,6 +16,8 @@ export const UM_PER_KNOT = 514_444;
 export const UM_PER_INCH = 25_400;
 
 export class UnitError extends Error {
+  /** Stable discriminator (RULES.md "Errors"): recover by `_tag`, not `instanceof`. */
+  readonly _tag = "UnitError";
   constructor(
     readonly unit: string,
     readonly value: number,
