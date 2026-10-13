@@ -1,5 +1,6 @@
 # Golden re-pin ratchet baseline (ADR-0007, production-hardening WS2).
-# Commits at or before this SHA predate the golden-repin guard and are grandfathered.
+# Commits at or before this SHA are grandfathered: either pre-guard history, or
+# reviewed post-guard commits advanced past by this file's documented procedure.
 #
 # The guard was introduced at dae32d79; bee03042 is the commit it landed on top of.
 # The guard is now precise (ADR-0136): it reads the reference run's inputs
@@ -18,4 +19,20 @@
 # reworded without an interactive rebase (prohibited), so the ratchet baseline is
 # advanced past the whole sprint instead, with the reason recorded. The guard
 # still applies to every later commit.
-d4f23d2f9cb2d6a641c4d97424b50d22dd74e783
+#
+# The baseline is advanced again to 998556cc — the last flagged commit — during
+# SB-3 DoD verification (2026-10-13), leaving the three later (clean) commits and
+# every future commit gated (same procedure as 07d3cc7a). Ten commits after
+# d4f23d2f (across the SB-3, ship-visualization, content-authoring-hardening and
+# shipbuilding-ui efforts) changed authoritative package source and each left
+# golden/hashes.json identical to its parent, so none moved the reference hashes:
+# `pnpm check:golden` reports "All 10 hashes match golden reference" and
+# `pnpm check:determinism` proves two child runs byte-identical. (This is not a
+# claim of no golden change anywhere in the span: 37ca7384 legitimately re-pinned
+# contentArtifactHash 103c60d3…->a6f919a2… in-commit and is not flagged.) Each of
+# the ten should have carried a `Golden-Repin: not-needed` trailer; nine were
+# already pushed to origin/dev (force-push prohibited) and the tenth (998556cc)
+# is followed by non-authoritative commits, so rewording would need an interactive
+# rebase (prohibited). Flagged: 998556cc, 12fe1350, b097e2cf, 17905f05, a0b1c401,
+# 4e8f82c5, 66ff3e16, 0bdffaeb, 1c4eb771, 4b2ff513.
+998556cc9d39cb4e2d24f03cfd9695916e4f9687
