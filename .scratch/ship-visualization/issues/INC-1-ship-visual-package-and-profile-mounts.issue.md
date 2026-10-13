@@ -43,3 +43,13 @@ The tracer slice, end to end:
   - `assert-runtime-free` passes with 16 roots.
   - `pnpm snap` of the Drawing Board (torpedo gunboat, then Alexandra) had a clean console, and the renderer bundle
     contains no yaml/effect.
+
+## Comments
+
+- 2026-10-13: Code review (standards + spec) findings were addressed:
+  - catalog YAML is parsed through `parseYamlSafe`;
+  - ADR-0148's consequences and SV-R7 / ticket 07 wording now match the code;
+  - the resolver has a shared fallback walk.
+
+  Because another session committed from the shared index, these fixes landed inside commit `37ca7384`
+  (`feat(rules): …`), not in a ship-visual commit. The INC-1 implementation itself is `17905f05`.
