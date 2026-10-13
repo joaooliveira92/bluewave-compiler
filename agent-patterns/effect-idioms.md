@@ -15,7 +15,7 @@ consumers declare `"effect": "workspace:*"` against `vendor/effect`.
 ## Runtime-free subset (pure packages)
 
 Pure/deterministic packages (`combat`, `ship-design`, `campaign`, `random`,
-`deterministic`, `contracts`, `armament`) use only `Schema`, `Data`,
+`deterministic`, `contracts`, `armament`) use only `Schema`/`SchemaIssue`, `Data`,
 `Data.TaggedError`, `Result`, `Option`, `Predicate`, `Equal`/`Hash` — no
 `Effect`/`Layer`/runtime.
 

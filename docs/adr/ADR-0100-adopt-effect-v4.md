@@ -35,7 +35,7 @@ demotion is ADR-0103.
 
    | Layer | Adopt | Do **not** add |
    | --- | --- | --- |
-   | Pure synchronous computation (`combat` math, `ship-design`, `campaign` derivations, `random`, `deterministic`, `contracts`, `armament`, `events` validation, `commands`, `ai`, `phase-engine`, `content-schema`, `diagnostics`) | Runtime-free subset: `Schema` (sync decode/encode), `Data`/`Data.TaggedError`, `Result`, `Option`, `Predicate`, `Equal`/`Hash` | `Effect`/`Layer`/`ManagedRuntime`, fibers, live services |
+   | Pure synchronous computation (`combat` math, `ship-design`, `ship-visual`, `campaign` derivations, `campaign-engine` (renderer-reachable), `random`, `deterministic`, `contracts`, `armament`, `events` validation, `commands`, `ai`, `phase-engine`, `content-schema`, `diagnostics`) | Runtime-free subset: `Schema`/`SchemaIssue` (sync decode/encode/format), `Data`/`Data.TaggedError`, `Result`, `Option`, `Predicate`, `Equal`/`Hash` | `Effect`/`Layer`/`ManagedRuntime`, fibers, live services |
    | IO / async / orchestration (`persistence`, desktop `src/main`, `compiler-cli`, `content-compiler`) | Full Effect: `Effect`, `Layer`, `Context.Service`, `ManagedRuntime`, cancellation via `Scope`, typed `Cause` | Blind wrapping of pure functions in `Effect` |
    | React renderer (`apps/desktop/src/renderer/**`) | Nothing — talks over IPC | Any Effect import |
 
