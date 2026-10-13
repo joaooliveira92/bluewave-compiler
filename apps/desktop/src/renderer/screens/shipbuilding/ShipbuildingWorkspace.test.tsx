@@ -382,6 +382,49 @@ describe("Armament master-detail editor", () => {
   });
 });
 
+describe("Systems section", () => {
+  const openSystemTab = (name: string) => {
+    openMap("Systems");
+    const tabs = within(screen.getByRole("complementary", { name: /^Inspector/ })).getByRole(
+      "tablist",
+      { name: /tabs$/ },
+    );
+    fireEvent.click(within(tabs).getByRole("tab", { name }));
+  };
+  const panel = () => screen.getByRole("region", { name: "Systems" });
+
+  it("gates installations by technology, with the unavailable filter off by default", () => {
+    render(<ShipbuildingWorkspace />);
+    openSystemTab("Accommodation");
+    const filter = within(panel()).getByRole("checkbox", { name: "Show unavailable technology" });
+    expect(filter.getAttribute("aria-checked") ?? filter.getAttribute("data-state")).toMatch(
+      /false|unchecked/,
+    );
+    // An available installation is offered for fitting.
+    expect(within(panel()).getAllByRole("button", { name: /^Add / }).length).toBeGreaterThan(0);
+  });
+
+  it("adds an available installation and undoes it", () => {
+    render(<ShipbuildingWorkspace />);
+    openSystemTab("Accommodation");
+    const before = statusOf("displacement");
+    fireEvent.click(within(panel()).getAllByRole("button", { name: /^Add / })[0]!);
+    expect(statusOf("displacement")).not.toBe(before);
+    fireEvent.click(within(commands()).getByRole("button", { name: "Undo" }));
+    expect(statusOf("displacement")).toBe(before);
+  });
+
+  it("reveals locked technology with a reason when the filter is turned on", () => {
+    render(<ShipbuildingWorkspace />);
+    openSystemTab("Fire control");
+    // At 1880 the optical rangefinder is not yet available; it is hidden until the filter is on.
+    const filter = within(panel()).getByRole("checkbox", { name: "Show unavailable technology" });
+    expect(within(panel()).queryAllByText(/Unavailable until/)).toHaveLength(0);
+    fireEvent.click(filter);
+    expect(within(panel()).getAllByText(/Unavailable until|Requires /).length).toBeGreaterThan(0);
+  });
+});
+
 describe("Review section", () => {
   const validation = () => screen.getByRole("region", { name: "Validation" });
 

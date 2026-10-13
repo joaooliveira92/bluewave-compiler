@@ -70,6 +70,7 @@ import {
   NotAvailable,
   OverviewPanel,
   ShipStage,
+  SystemsPanel,
   ViewToolbar,
   WorkspaceDialog,
   type PriorityLevel,
@@ -77,6 +78,7 @@ import {
 import { armamentEntries } from "./armament.js";
 import { machineryModel } from "./machinery-view.js";
 import { overviewModel, type PriorityId } from "./overview.js";
+import { addSystemEdit, systemsModel } from "./systems-view.js";
 import {
   SECTIONS,
   categoriesOf,
@@ -174,6 +176,8 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
     useState<Readonly<Record<PriorityId, PriorityLevel>>>(DEFAULT_PRIORITIES);
   const setPriority = (id: PriorityId, level: PriorityLevel) =>
     setPriorities((p) => ({ ...p, [id]: level }));
+  // The Systems "show unavailable technology" filter is off by default: an early design is not overwhelmed.
+  const [showSystemsUnavailable, setShowSystemsUnavailable] = useState(false);
   const [dialog, setDialog] = useState<OverflowDialog | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   useEffect(() => {
@@ -349,7 +353,27 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
         );
       }
       case "systems":
-        return fittingsOnly(at);
+        return (
+          <>
+            <SystemsPanel
+              groups={systemsModel(
+                categoriesOf(at),
+                draft,
+                content,
+                state.month,
+                env.ctx.unlockedTechs,
+                showSystemsUnavailable,
+              )}
+              showUnavailable={showSystemsUnavailable}
+              onShowUnavailable={setShowSystemsUnavailable}
+              onAdd={(id) => {
+                const e = addSystemEdit(id, draft, content);
+                if (e) actions.edit(e);
+              }}
+            />
+            {fittingsPanel(at)}
+          </>
+        );
       case "review":
         return at.tab === "findings" ? (
           <FindingsPanel
