@@ -1,7 +1,12 @@
 # INC-12b — Rebuild surface offers the BULGE action (UI slice of INC-12)
 
-**State:** READY_FOR_AGENT · **Frontier:** yes · **Blocked by:** none
+**State:** deferred · **Frontier:** no · **Blocked by:** none
 **Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R25, SB3-R34) · **ADR:** none (presentation of a domain action)
+
+> **Deferred (2026-10-12):** the rebuild surface is being replaced with the new shipbuilding screen (work
+> in progress under `apps/desktop/src/renderer/screens/shipbuilding/`). The `BULGE` domain slice (INC-12)
+> and the armament-change rule set (INC-13) are complete; only the player surface moves. Recorded, not
+> dropped.
 
 ## What to build
 

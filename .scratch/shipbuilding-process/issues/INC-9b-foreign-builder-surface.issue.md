@@ -1,8 +1,13 @@
 # INC-9b — Foreign builder selection surface (build dialog + impoundment/treaty display)
 
-**State:** READY_FOR_AGENT · **Frontier:** yes · **Blocked by:** INC-9
+**State:** deferred · **Frontier:** no · **Blocked by:** none
 **Spec:** `.scratch/shipbuilding-process/spec.md` (SB3-R20, SB3-R23, SB3-R24) · **ADR:** none new
 **Parent:** `INC-9-foreign-contract-capability-payment.issue.md` (engine slice landed)
+
+> **Deferred (2026-10-12):** the Construction screen this surface targets is being replaced by a new
+> shipbuilding screen (work in progress under `apps/desktop/src/renderer/screens/shipbuilding/`), so no
+> UI is built against it. The engine path is complete (INC-9/INC-17); this UI surface moves to the new
+> screen's effort. Recorded, not dropped.
 
 ## What to build
 
