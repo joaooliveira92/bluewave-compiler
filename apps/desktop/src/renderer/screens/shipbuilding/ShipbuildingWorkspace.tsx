@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import type { BatteryRole, ComponentCategory } from "@bluewave/ship-design";
 import { Alert } from "../../components/ui/alert.js";
 import {
   AlternativesPanel,
@@ -9,17 +10,21 @@ import {
   ConfirmDialog,
   FilePanel,
   FindingsPanel,
+  ForecastPanel,
   HistoryPanel,
   HullPanel,
   HullPlanPanel,
   IDLE_TOOL,
+  LedgerPanel,
   MachineryPanel,
+  MetricsPanel,
   PlacementsPanel,
   PlanModeButtons,
   ShipSelectionProvider,
   ShipTypePanel,
   ShipViewBoundary,
   SubmitPanel,
+  TopsidePanel,
   handleUndoShortcut,
   mountNameMap,
   planModel,
@@ -40,11 +45,19 @@ import {
   DesignMap,
   EngineeringStatusBar,
   Inspector,
+  NotAvailable,
   ShipStage,
   WorkspaceDialog,
   type StatusValue,
 } from "./components/index.js";
-import { SECTIONS, placeOf, type DesignSectionId, type InspectorPlace } from "./design-sections.js";
+import {
+  SECTIONS,
+  categoriesOf,
+  placeOf,
+  type DesignSectionId,
+  type InspectorPlace,
+} from "./design-sections.js";
+import { sectionStatuses } from "./section-status.js";
 
 /** How long "Saved" shows after an explicit save. */
 const SAVED_FLASH_MS = 2000;
@@ -53,6 +66,13 @@ const tonnes = (kg: number) => `${Math.round(kg / 1000).toLocaleString("en-US")}
 const pounds = (micro: number) => `£${Math.round(micro / 1_000_000).toLocaleString("en-US")}`;
 
 type OverflowDialog = "start" | "file" | "history" | "alternatives";
+
+/** The battery each Armament tab shows; "other" holds no battery. */
+const TAB_BATTERY: { readonly [tab: string]: BatteryRole } = {
+  main: "MAIN",
+  secondary: "SECONDARY",
+  torpedoes: "TORPEDO",
+};
 
 /**
  * The Shipbuilding workspace: navigate by ship system (the design map), edit through a contextual inspector, and
@@ -150,69 +170,136 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
     },
   ];
 
-  const section = SECTIONS[place.section];
-  const body = sectionBody(place.section);
+  const fittings = useMemo(() => {
+    const category = new Map(content.components.map((c) => [c.id, c.category]));
+    return new Map(
+      draft.placements.flatMap((p): [string, ComponentCategory][] => {
+        const c = category.get(p.componentId);
+        return c === undefined ? [] : [[p.instanceId, c]];
+      }),
+    );
+  }, [draft, content]);
+  const statuses = useMemo(() => sectionStatuses(findings, fittings), [findings, fittings]);
 
-  function sectionBody(id: DesignSectionId): ReactNode {
-    switch (id) {
+  const section = SECTIONS[place.section];
+  const tab = section.tabs.find((t) => t.id === place.tab) ?? section.tabs[0]!;
+  const body = tabBody(place);
+
+  /** The tab's own fittings (listed, edited and added there); null when the tab holds none and none exist. */
+  function fittingsPanel(at: InspectorPlace): ReactNode {
+    const categories = categoriesOf(at);
+    const hasFittings =
+      [...fittings.values()].some((c) => categories.has(c)) ||
+      content.components.some((c) => categories.has(c.category));
+    if (!hasFittings) return null;
+    return (
+      <PlacementsPanel
+        title={`${tab.label} fittings`}
+        categories={categories}
+        names={mountNameMap(batteries)}
+        draft={draft}
+        content={content}
+        month={state.month}
+        view={view}
+        edit={actions.edit}
+      />
+    );
+  }
+
+  /** A tab made only of fittings: the fittings, or a plain not-available note when there are none to fit. */
+  function fittingsOnly(at: InspectorPlace): ReactNode {
+    return (
+      fittingsPanel(at) ?? (
+        <NotAvailable title={`${tab.label}: not available`}>
+          Nothing of this kind can be fitted to this design yet.
+        </NotAvailable>
+      )
+    );
+  }
+
+  function tabBody(at: InspectorPlace): ReactNode {
+    switch (at.section) {
       case "overview":
-        return <BriefPanel draft={draft} view={view} edit={actions.edit} ctx={env.ctx} />;
-      case "hull":
-        return <HullPanel draft={draft} content={content} edit={actions.edit} />;
-      case "machinery":
-        return <MachineryPanel draft={draft} content={content} edit={actions.edit} />;
-      case "protection":
-        return (
-          <ArmourPanel draft={draft} view={view} materials={armourMaterials} edit={actions.edit} />
-        );
-      case "armament":
-        return (
+        return at.tab === "brief" ? (
+          <BriefPanel draft={draft} view={view} edit={actions.edit} ctx={env.ctx} />
+        ) : (
           <>
-            <BatteryPanel cards={batteries} draft={draft} content={content} edit={actions.edit} />
-            <PlacementsPanel
-              names={mountNameMap(batteries)}
+            <MetricsPanel view={view} />
+            <LedgerPanel view={view} />
+            <ForecastPanel view={view} treasuryUnitMicro={content.treasuryUnitMicro} />
+          </>
+        );
+      case "hull":
+        return at.tab === "stability" ? (
+          <TopsidePanel view={view} />
+        ) : (
+          <>
+            <HullPanel draft={draft} content={content} edit={actions.edit} />
+            {fittingsPanel(at)}
+          </>
+        );
+      case "machinery":
+        return at.tab === "performance" ? (
+          <MetricsPanel view={view} />
+        ) : (
+          <>
+            <MachineryPanel draft={draft} content={content} edit={actions.edit} />
+            {fittingsPanel(at)}
+          </>
+        );
+      case "protection":
+        return at.tab === "armour" ? (
+          <>
+            <ArmourPanel
               draft={draft}
-              content={content}
-              month={state.month}
               view={view}
+              materials={armourMaterials}
               edit={actions.edit}
             />
+            {fittingsPanel(at)}
           </>
+        ) : (
+          fittingsOnly(at)
         );
-      case "systems":
-        return (
-          <PlacementsPanel
-            names={mountNameMap(batteries)}
-            draft={draft}
-            content={content}
-            month={state.month}
-            view={view}
-            edit={actions.edit}
-          />
-        );
-      case "review":
+      case "armament": {
+        const role = TAB_BATTERY[at.tab];
+        const cards = batteries.filter((b) => b.row.role === role);
         return (
           <>
-            <FindingsPanel
-              view={view}
-              findings={findings}
-              suggest={actions.suggest}
-              onApply={actions.edit}
-              onShowOnShip={(f) => {
-                const target = f.entities[0];
-                if (target) selection.select(target, f.key);
-              }}
-            />
-            {sessionId !== undefined && (
-              <SubmitPanel
-                sessionId={sessionId}
-                draft={draft}
-                valid={view.valid}
-                name={shipClassName}
-                onNameChange={setShipClassName}
-              />
+            {cards.length > 0 && (
+              <BatteryPanel cards={cards} draft={draft} content={content} edit={actions.edit} />
             )}
+            {fittingsOnly(at)}
           </>
+        );
+      }
+      case "systems":
+        return fittingsOnly(at);
+      case "review":
+        return at.tab === "findings" ? (
+          <FindingsPanel
+            view={view}
+            findings={findings}
+            suggest={actions.suggest}
+            onApply={actions.edit}
+            onShowOnShip={(f) => {
+              const target = f.entities[0];
+              if (target) selection.select(target, f.key);
+            }}
+          />
+        ) : sessionId !== undefined ? (
+          <SubmitPanel
+            sessionId={sessionId}
+            draft={draft}
+            valid={view.valid}
+            name={shipClassName}
+            onNameChange={setShipClassName}
+          />
+        ) : (
+          <NotAvailable title="Finishing: not available">
+            A design is finished into a campaign; open the Shipbuilding workspace from a campaign to
+            submit it.
+          </NotAvailable>
         );
     }
   }
@@ -261,8 +348,12 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
             },
           ]}
         />
-        <div className="grid min-h-0 grid-cols-[13rem_minmax(0,1fr)_27.5rem]">
-          <DesignMap active={place.section} onSelect={(id) => openSection(id)} />
+        <div className="grid min-h-0 grid-cols-[3.5rem_minmax(0,1fr)_24rem] xl:grid-cols-[13rem_minmax(0,1fr)_27.5rem]">
+          <DesignMap
+            active={place.section}
+            statuses={statuses}
+            onSelect={(id) => openSection(id)}
+          />
           <ShipStage
             toolbar={
               <PlanModeButtons
@@ -294,7 +385,10 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
           </ShipStage>
           <Inspector
             title={section.label}
-            breadcrumb={[shipClassName.trim() || state.preset.name, section.label]}
+            breadcrumb={[shipClassName.trim() || state.preset.name, section.label, tab.label]}
+            tabs={section.tabs}
+            tab={tab.id}
+            onTab={(t) => openSection(place.section, t)}
           >
             {state.editError !== null && <Alert variant="destructive">{state.editError}</Alert>}
             {body}

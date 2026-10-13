@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 import {
   ZONE_IDS,
+  type ComponentCategory,
   type ComponentDef,
   type DesignDraft,
   type MountSide,
@@ -120,6 +121,8 @@ export function PlacementsPanel({
   view,
   names,
   edit,
+  categories,
+  title = "Components and arrangement",
 }: {
   readonly draft: DesignDraft;
   readonly content: DrawingBoardContent;
@@ -128,8 +131,16 @@ export function PlacementsPanel({
   /** Conventional mount names (A, B, X, Y...) by instance id; guns and tubes only. */
   readonly names: ReadonlyMap<string, string>;
   readonly edit: Edit;
+  /** Only fittings of these categories are listed and offered; all of them when omitted. */
+  readonly categories?: ReadonlySet<ComponentCategory>;
+  /** The panel's heading and region name. */
+  readonly title?: string;
 }) {
   const defs = new Map(content.components.map((c) => [c.id, c]));
+  const shown = (def: ComponentDef | undefined) =>
+    categories === undefined || (def !== undefined && categories.has(def.category));
+  const placements = draft.placements.filter((p) => shown(defs.get(p.componentId)));
+  const catalogue = content.components.filter((c) => shown(c));
   const [zoneId, setZoneId] = useState<ZoneId>("SUPERSTRUCTURE");
   const nextId = (componentId: string) => {
     let n = 1;
@@ -163,7 +174,7 @@ export function PlacementsPanel({
   const remove = (p: PlacementSpec) => edit({ kind: "remove_placement", instanceId: p.instanceId });
 
   return (
-    <Panel title="Components and arrangement">
+    <Panel title={title}>
       <div className="overflow-x-auto">
         <table className="w-full table-fixed text-sm">
           <thead>
@@ -178,7 +189,7 @@ export function PlacementsPanel({
             </tr>
           </thead>
           <tbody>
-            {draft.placements.map((p) => {
+            {placements.map((p) => {
               const d = defs.get(p.componentId);
               const otherZones = zonesFor(d).filter((z) => z !== p.zoneId);
               return (
@@ -330,7 +341,7 @@ export function PlacementsPanel({
             Add component
           </DropdownMenuTrigger>
           <DropdownMenuContent className="max-h-96 overflow-y-auto">
-            {componentsByCategory(content.components).map((g, i) => (
+            {componentsByCategory(catalogue).map((g, i) => (
               <DropdownMenuGroup key={g.category}>
                 {i > 0 && <DropdownMenuSeparator />}
                 <DropdownMenuLabel>{g.category}</DropdownMenuLabel>

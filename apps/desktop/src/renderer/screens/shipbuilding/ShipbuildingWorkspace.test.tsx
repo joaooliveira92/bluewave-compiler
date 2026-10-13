@@ -107,3 +107,102 @@ describe("Shipbuilding workspace shell", () => {
     expect(save.disabled).toBe(true);
   });
 });
+
+describe("Design map and inspector routing", () => {
+  const map = () => screen.getByRole("navigation", { name: "Design map" });
+  const inspector = () => screen.getByRole("complementary", { name: /^Inspector/ });
+  const localTabs = () => within(inspector()).getByRole("tablist", { name: /tabs$/ });
+  const openTab = (name: string) => fireEvent.click(within(localTabs()).getByRole("tab", { name }));
+
+  it("lists the seven sections, each announcing its status", () => {
+    render(<ShipbuildingWorkspace />);
+    const names = within(map())
+      .getAllByRole("button")
+      .map((b) => b.getAttribute("aria-label") ?? "");
+    expect(names.map((n) => n.split(",")[0])).toEqual([
+      "Overview",
+      "Hull",
+      "Machinery",
+      "Protection",
+      "Armament",
+      "Systems",
+      "Review",
+    ]);
+    for (const n of names)
+      expect(n).toMatch(/, (valid|\d+ warnings?|\d+ unresolved issues?|not configured)$/);
+  });
+
+  it("gives every section two to four local tabs in one flat row, and swaps them with the section", () => {
+    render(<ShipbuildingWorkspace />);
+    for (const section of [
+      "Overview",
+      "Hull",
+      "Machinery",
+      "Protection",
+      "Armament",
+      "Systems",
+      "Review",
+    ]) {
+      openMap(section);
+      expect(screen.getByRole("complementary", { name: `Inspector: ${section}` })).toBeTruthy();
+      expect(within(inspector()).getAllByRole("tablist")).toHaveLength(1);
+      const tabs = within(localTabs()).getAllByRole("tab");
+      expect(tabs.length).toBeGreaterThanOrEqual(2);
+      expect(tabs.length).toBeLessThanOrEqual(4);
+    }
+  });
+
+  it("swaps the inspector content with the local tab", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Hull");
+    expect(screen.getByRole("region", { name: "Hull and displacement" })).toBeTruthy();
+    openTab("Stability");
+    expect(screen.queryByRole("region", { name: "Hull and displacement" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Topside load" })).toBeTruthy();
+  });
+
+  it("lists only the tab's own fittings under Armament", () => {
+    // The starting design (a Havock-like destroyer) carries three light guns, tubes, magazines and auxiliaries.
+    render(<ShipbuildingWorkspace />);
+    openMap("Armament");
+    const rows = () =>
+      within(screen.getByRole("region", { name: /fittings$/ }))
+        .getAllByRole("rowheader")
+        .map((r) => r.textContent ?? "");
+    openTab("Secondary");
+    expect(rows().map((r) => r.match(/gun_\w+/)?.[0])).toEqual([
+      "gun_12pdr",
+      "gun_6pdr_a",
+      "gun_6pdr_b",
+    ]);
+    openTab("Torpedoes");
+    expect(rows()).toHaveLength(1);
+    expect(rows()[0]).toMatch(/tubes/);
+  });
+
+  it("still edits the draft from a relocated editor, with undo", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Protection");
+    openTab("Magazines");
+    const before = statusOf("displacement");
+    const region = screen.getByRole("region", { name: /Magazines/ });
+    fireEvent.click(within(region).getAllByRole("button", { name: /^Remove / })[0]!);
+    expect(statusOf("displacement")).not.toBe(before);
+    fireEvent.click(within(commands()).getByRole("button", { name: "Undo" }));
+    expect(statusOf("displacement")).toBe(before);
+  });
+
+  it("renders a tab with nothing available as not configured rather than failing", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Systems");
+    openTab("Aviation");
+    expect(within(inspector()).getByText(/not available/i)).toBeTruthy();
+  });
+
+  it("sends Finish to the Review section's Finish tab", () => {
+    render(<ShipbuildingWorkspace />);
+    fireEvent.click(within(commands()).getByRole("button", { name: /Finish design/ }));
+    const finish = within(localTabs()).getByRole("tab", { name: "Finish" });
+    expect(finish.getAttribute("aria-selected")).toBe("true");
+  });
+});

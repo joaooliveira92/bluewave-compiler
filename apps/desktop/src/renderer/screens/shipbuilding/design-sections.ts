@@ -8,6 +8,7 @@ import {
   Shield,
   type LucideIcon,
 } from "lucide-react";
+import { COMPONENT_CATEGORIES, type ComponentCategory } from "@bluewave/ship-design";
 
 /** The design map's sections, in navigation order: navigate by ship system. */
 export const DESIGN_SECTIONS = [
@@ -41,7 +42,7 @@ export const SECTIONS: { readonly [K in DesignSectionId]: DesignSection & { read
     icon: LayoutDashboard,
     tabs: [
       { id: "summary", label: "Summary" },
-      { id: "priorities", label: "Priorities" },
+      { id: "brief", label: "Brief" },
     ],
   },
   hull: {
@@ -50,8 +51,7 @@ export const SECTIONS: { readonly [K in DesignSectionId]: DesignSection & { read
     icon: Anchor,
     tabs: [
       { id: "dimensions", label: "Dimensions" },
-      { id: "seakeeping", label: "Seakeeping" },
-      { id: "capacity", label: "Capacity" },
+      { id: "stability", label: "Stability" },
     ],
   },
   machinery: {
@@ -59,8 +59,8 @@ export const SECTIONS: { readonly [K in DesignSectionId]: DesignSection & { read
     label: "Machinery",
     icon: Cog,
     tabs: [
-      { id: "performance", label: "Performance" },
       { id: "propulsion", label: "Propulsion" },
+      { id: "performance", label: "Performance" },
     ],
   },
   protection: {
@@ -70,7 +70,7 @@ export const SECTIONS: { readonly [K in DesignSectionId]: DesignSection & { read
     tabs: [
       { id: "armour", label: "Armour" },
       { id: "underwater", label: "Underwater" },
-      { id: "structural", label: "Structural" },
+      { id: "magazines", label: "Magazines" },
     ],
   },
   armament: {
@@ -113,6 +113,50 @@ export const SECTION_ORDER: readonly DesignSection[] = DESIGN_SECTIONS.map((id) 
 export interface InspectorPlace {
   readonly section: DesignSectionId;
   readonly tab: string;
+}
+
+/**
+ * The inspector tab that holds each kind of fitting: a fitting is listed, added and judged there. Exhaustive over
+ * the domain's categories, so every fitting a design can carry stays reachable from exactly one tab.
+ */
+export const CATEGORY_PLACE: { readonly [K in ComponentCategory]: InspectorPlace } = {
+  HULL_FORM: { section: "hull", tab: "dimensions" },
+  MATERIAL: { section: "hull", tab: "dimensions" },
+  BOILER: { section: "machinery", tab: "propulsion" },
+  ENGINE: { section: "machinery", tab: "propulsion" },
+  SHAFT_PROPELLER: { section: "machinery", tab: "propulsion" },
+  FUEL_BUNKER: { section: "machinery", tab: "propulsion" },
+  GENERATOR: { section: "machinery", tab: "propulsion" },
+  MAIN_GUN: { section: "armament", tab: "main" },
+  SECONDARY_GUN: { section: "armament", tab: "secondary" },
+  DUAL_PURPOSE_GUN: { section: "armament", tab: "secondary" },
+  TORPEDO_TUBE: { section: "armament", tab: "torpedoes" },
+  AA_WEAPON: { section: "armament", tab: "other" },
+  MINE_GEAR: { section: "armament", tab: "other" },
+  MISSILE_LAUNCHER: { section: "armament", tab: "other" },
+  MOUNT: { section: "armament", tab: "other" },
+  ARMOUR_SCHEME: { section: "protection", tab: "armour" },
+  UNDERWATER_PROTECTION: { section: "protection", tab: "underwater" },
+  DAMAGE_CONTROL: { section: "protection", tab: "underwater" },
+  MAGAZINE: { section: "protection", tab: "magazines" },
+  AMMUNITION: { section: "protection", tab: "magazines" },
+  DIRECTOR: { section: "systems", tab: "fire-control" },
+  RANGEFINDER: { section: "systems", tab: "fire-control" },
+  RADAR: { section: "systems", tab: "sensors" },
+  SONAR: { section: "systems", tab: "sensors" },
+  COMMS: { section: "systems", tab: "sensors" },
+  AIRCRAFT_FACILITY: { section: "systems", tab: "aviation" },
+  ACCOMMODATION: { section: "systems", tab: "accommodation" },
+  SPECIAL_EQUIPMENT: { section: "systems", tab: "accommodation" },
+};
+
+/** The fitting categories a tab holds; empty for tabs that hold no fittings. */
+export function categoriesOf(place: InspectorPlace): ReadonlySet<ComponentCategory> {
+  return new Set(
+    COMPONENT_CATEGORIES.filter(
+      (c) => CATEGORY_PLACE[c].section === place.section && CATEGORY_PLACE[c].tab === place.tab,
+    ),
+  );
 }
 
 /** The section's first local tab: where selecting a section in the map lands. */
