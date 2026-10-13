@@ -27,6 +27,7 @@
     "apps/desktop/src/renderer/**",
     "apps/desktop/src/preload/**",
     "apps/desktop/scripts/**",
+    "scripts/**",
     "packages/cross-process-test/**",
     "packages/test-support/**"
   ]
