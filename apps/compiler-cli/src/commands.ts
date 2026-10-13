@@ -1,7 +1,9 @@
 import {
   Compiler,
+  CONTENT_LOCK_FILENAME,
   buildContentBundleArtifact,
   buildFullSurfaceInput,
+  verifyContentLock,
   writeContentBundleArtifact,
 } from "@bluewave/content-compiler";
 import type { CompilerInput } from "@bluewave/content-compiler";
@@ -985,7 +987,7 @@ export function buildContentSurfaceInput(
   collector: DiagnosticCollector,
 ): CompilerInput | undefined {
   try {
-    return buildFullSurfaceInput(resolve(options.manifest), resolve(options.contentDir));
+    return buildFullSurfaceInput(resolve(options.manifest), resolve(options.contentDir), collector);
   } catch (err) {
     collector.addError("USAGE", err instanceof Error ? err.message : String(err));
     return undefined;
@@ -1061,6 +1063,73 @@ export function runContentBuild(options: CliOptions): ExitCategory {
     printResult(`  Artifact: ${artifactPath} (SHA-256: ${artifact.envelope.bodyHash})`, "human");
     printResult(`  Manifest: ${manifestPath}`, "human");
     printResult(`  Content version: ${artifact.contentVersion}`, "human");
+  }
+  return "success";
+}
+
+/**
+ * `content:verify` — rebuilds the whole authored surface in memory and fails
+ * when the artifact diverges from the committed content lock (content drift or
+ * tamper), naming the two hashes (CAH-LOCK-2). Part of the preflight/CI gate so
+ * local green implies CI green (CAH-LOCK-3).
+ */
+export function runContentVerify(options: CliOptions): ExitCategory {
+  const collector = new DiagnosticCollector();
+  const input = buildContentSurfaceInput(options, collector);
+  if (!input) return "usage-error";
+  const artifact = buildContentBundleArtifact(input, new AbortController().signal, collector);
+  printDiagnostics(collector, options.outputMode);
+  if (collector.hasErrors) return "validation-error";
+  if (!artifact) return "compile-error";
+
+  const lockPath = resolve(options.contentDir, CONTENT_LOCK_FILENAME);
+  if (!existsSync(lockPath)) {
+    collector.addError("CONTENT-LOCK", `Content lock not found: ${lockPath}`, {
+      stage: "validate",
+    });
+    printDiagnostics(collector, options.outputMode);
+    return "usage-error";
+  }
+  let lock: unknown;
+  try {
+    lock = JSON.parse(readFileSync(lockPath, "utf8"));
+  } catch {
+    collector.addError("CONTENT-LOCK", `Failed to parse content lock: ${lockPath}`, {
+      stage: "validate",
+    });
+    printDiagnostics(collector, options.outputMode);
+    return "usage-error";
+  }
+
+  const verification = verifyContentLock(artifact, lock);
+  if (!verification.ok) {
+    collector.addError("CONTENT-LOCK", verification.message, {
+      stage: "validate",
+      sourceLocation: { path: CONTENT_LOCK_FILENAME, line: 1 },
+      remediation:
+        verification.code === "CONTENT_LOCK_HASH_MISMATCH"
+          ? "If the content change is deliberate, update content-lock.json to the new hash"
+          : undefined,
+    });
+    printDiagnostics(collector, options.outputMode);
+    return "validation-error";
+  }
+
+  if (options.outputMode === "json") {
+    printResult(
+      JSON.stringify({
+        contentVersion: artifact.contentVersion,
+        contentHash: artifact.envelope.bodyHash,
+        lockPath,
+        verified: true,
+      }),
+      "human",
+    );
+  } else {
+    printResult("Content lock verified", "human");
+    printResult(`  Content version: ${artifact.contentVersion}`, "human");
+    printResult(`  Content hash: ${artifact.envelope.bodyHash}`, "human");
+    printResult(`  Lock: ${lockPath}`, "human");
   }
   return "success";
 }

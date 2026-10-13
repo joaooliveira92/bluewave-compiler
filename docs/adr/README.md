@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0143).
+highest existing number + 1 (the next number is ADR-0147).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -35,6 +35,7 @@ Core engine geometry, determinism, persistence, and the compiler pipeline.
 | 0122 | [ADR-0122-compiled-content-bundle.md](ADR-0122-compiled-content-bundle.md) | Compiled content bundle — one hash-pinned artifact for the full authored surface | accepted | — |
 | 0123 | [ADR-0123-content-identity-artifact-derived.md](ADR-0123-content-identity-artifact-derived.md) | Content identity derives from the compiled artifact | accepted | — |
 | 0124 | [ADR-0124-campaign-collections-through-artifact.md](ADR-0124-campaign-collections-through-artifact.md) | Campaign-file collections are compiled into the artifact and consumed decoded at runtime | accepted | — |
+| 0146 | [ADR-0146-codepoint-ordering-in-the-compiler.md](ADR-0146-codepoint-ordering-in-the-compiler.md) | Codepoint ordering for the compiler's canonical content order | accepted | — |
 
 ## Effect adoption
 
@@ -158,6 +159,9 @@ National naval profiles, the content pipeline, and AI procurement.
 | 0114 | [ADR-0114-domestic-vs-imported-gun-ceiling.md](ADR-0114-domestic-vs-imported-gun-ceiling.md) | Domestic vs imported gun ceiling, and the coast-defence starter blocker | accepted | — |
 | 0117 | [ADR-0117-promote-us-coast-defence-monitor.md](ADR-0117-promote-us-coast-defence-monitor.md) | Promote the US coast-defence monitor and model smoothbore ordnance | accepted | — |
 | 0119 | [ADR-0119-promote-1880-coast-defence-casemate-starters.md](ADR-0119-promote-1880-coast-defence-casemate-starters.md) | Promote the remaining 1880 coast-defence / casemate capital starters | accepted | — |
+| 0143 | [ADR-0143-content-schema-coverage-and-decode-at-boundary.md](ADR-0143-content-schema-coverage-and-decode-at-boundary.md) | Complete content-schema coverage and decode the artifact at its boundary | accepted | — |
+| 0144 | [ADR-0144-one-manifest-authority.md](ADR-0144-one-manifest-authority.md) | One manifest authority for the loaded surface, with a build-only ship-building declaration | accepted | — |
+| 0145 | [ADR-0145-committed-content-lock-and-verify.md](ADR-0145-committed-content-lock-and-verify.md) | A committed content lock and `content:verify` | accepted | — |
 
 ## Desktop & UI
 

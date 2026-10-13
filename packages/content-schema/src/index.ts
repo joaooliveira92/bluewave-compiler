@@ -7,6 +7,30 @@ export {
   TorpedoMountSchema,
   TORPEDO_MOUNT_TYPE_VALUES,
 } from "./design.js";
+export type { DesignDraft, ReferenceDesign } from "./reference-design.js";
+export {
+  ACCOMMODATION_STANDARDS,
+  ARMOUR_REGION_IDS,
+  MOUNT_SIDES,
+  ReferenceDesignSchema,
+} from "./reference-design.js";
+export type {
+  CampaignConstruction,
+  CampaignDesign,
+  CampaignDiplomacy,
+  CampaignEconomy,
+  CampaignFleet,
+  CampaignResearch,
+} from "./campaign.js";
+export {
+  CampaignConstructionSchema,
+  CampaignDesignSchema,
+  CampaignDiplomacySchema,
+  CampaignEconomySchema,
+  CampaignFleetSchema,
+  CampaignResearchSchema,
+} from "./campaign.js";
+export { ContentBundleSchema, type CompiledContentBundle } from "./content-bundle.js";
 export type { ContentPack, PackManifest, RulesetManifest } from "./manifest.js";
 export { PackManifestSchema, RulesetManifestSchema } from "./manifest.js";
 export type {

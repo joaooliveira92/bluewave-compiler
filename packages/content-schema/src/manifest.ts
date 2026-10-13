@@ -5,6 +5,13 @@ export const PackManifestSchema = Schema.Struct({
   version: Schema.NonEmptyString,
   type: Schema.Literals(["production", "fixture", "mod"]),
   files: Schema.optional(Schema.Record(Schema.String, Schema.Array(Schema.String))),
+  /**
+   * Build-time declaration of the ship-building subtree (components, plants,
+   * hull forms, balance, armament, naval profiles, reference designs). The
+   * manifest is the single authority for what the compiler loads; these keys are
+   * loading declarations, not part of the compiled artifact's content identity.
+   */
+  shipBuilding: Schema.optional(Schema.Record(Schema.String, Schema.Array(Schema.String))),
   dependencies: Schema.optional(Schema.Record(Schema.String, Schema.String)),
 });
 
@@ -22,7 +29,7 @@ export interface ContentPack {
   routes: RouteEdge[];
   possessions: Possession[];
   ports: Port[];
-  technologyChains: TechnologyPrerequisite[];
+  technologies: TechnologyPrerequisite[];
 }
 
 export type PackManifest = typeof PackManifestSchema.Type;

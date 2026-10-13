@@ -1,7 +1,11 @@
 # Ship-building content (EARLY band, 1880-1899)
 
-Authored data for `@bluewave/ship-design` (spec: `.scratch/ship-building/spec.md`). Not yet listed in `pack.json`:
-the content compiler does not load these files until SB-14 wires them, so the shipped 1880 pack and its goldens are unchanged.
+Authored data for `@bluewave/ship-design` (spec: `.scratch/ship-building/spec.md`).
+The subtree is loaded by the content compiler: `pack.json`'s `shipBuilding` map is
+the single declaration of every file below, and `content:check`/`content:build`
+fail closed if a discovered file is undeclared or a declared file is missing
+(CAH-MAN-1/2). `shipBuilding` is a build-time loading declaration and is not part
+of the compiled artifact's content identity.
 
 | File | Contents |
 |---|---|

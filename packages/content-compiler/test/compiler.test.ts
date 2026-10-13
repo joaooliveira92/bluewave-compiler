@@ -105,6 +105,56 @@ function shipBuildingInput(fixturePath: string): Record<string, string[]> {
   };
 }
 
+/** A strict-ReferenceDesignSchema-compliant design with the given dangling references. */
+function referenceDesignYaml(id: string, hullFormId: string, plantId: string): string {
+  return `
+designs:
+  - id: "${id}"
+    name: "Reference ${id}"
+    month: "1880-01"
+    draft:
+      nationId: "uk"
+      requirement:
+        category: "B"
+        requiredSpeedMilliKnots: 15000
+        cruiseSpeedMilliKnots: 8000
+        requiredRangeNm: 3000
+        designThreatId: "rml_10in"
+        modernizationExpectation: "MINOR"
+        crewQualityBp: 10000
+        accommodationStandard: "STANDARD"
+      hull:
+        hullFormId: "${hullFormId}"
+        lengthWl: 90000
+        beam: 18000
+        draught: 7000
+        depthToMainDeck: 9000
+        blockCoeffBp: 6000
+        materialId: "iron"
+        structuralSchemeId: "mixed"
+        subdivisionGrade: 2
+        targetDisplacementKg: 9000000
+        limitDisplacementKg: null
+        designMarginBp: 300
+        growthReserveBp: 0
+      machinery:
+        plantId: "${plantId}"
+        installedKw: 5000
+        zoneId: "CENTRAL_MACHINERY"
+        stationPermille: 400
+        fuelCapacityKg: 500000
+        fuelZoneId: "CENTRAL_MACHINERY"
+        fuelStationPermille: 450
+        foulingBp: 0
+      armour:
+        regions: []
+        citadelLengthMm: 0
+        torpedoWarheadKg: 20
+        bunkerProtectionBp: 0
+      placements: []
+`;
+}
+
 describe("Compiler", () => {
   it("compiles the full ship-building surface into one bundled artifact", () => {
     const fixture = createFixtureDir();
@@ -237,15 +287,7 @@ describe("Compiler", () => {
       writeFixture(
         fixture.path,
         "ship-building/reference-designs/uk/starters.yaml",
-        `
-designs:
-  - id: "rd_1"
-    name: "Reference One"
-    month: "1880-01"
-    draft:
-      hull: { hullFormId: "missing_form" }
-      machinery: { plantId: "missing_plant" }
-`,
+        referenceDesignYaml("rd_1", "missing_form", "missing_plant"),
       );
 
       const collector = new DiagnosticCollector();

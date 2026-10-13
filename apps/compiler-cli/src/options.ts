@@ -74,6 +74,10 @@ export function parseOptions(
         rulesetVersion = argv[++i] ?? rulesetVersion;
         break;
       case "--content-version":
+        // Retained deliberately: consumed only by `battle:generate` (it is passed
+        // to `generateBattles`). The content commands derive the version from the
+        // manifest, so the flag is not part of their `CliOptions` and is ignored
+        // for them (CAH-LEG-1).
         contentVersion = argv[++i] ?? contentVersion;
         break;
       case "--json":

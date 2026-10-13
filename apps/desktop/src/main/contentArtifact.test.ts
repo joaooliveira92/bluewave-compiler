@@ -6,10 +6,14 @@ import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import {
   CONTENT_ARTIFACT_FILENAME,
+  CONTENT_BUNDLE_ARTIFACT_KIND,
+  CONTENT_BUNDLE_COMPATIBILITY_VERSION,
   CONTENT_MANIFEST_FILENAME,
   buildContentBundleArtifact,
   writeContentBundleArtifact,
 } from "@bluewave/content-compiler";
+
+import { canonicalSerialize, createEnvelope } from "@bluewave/deterministic";
 
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 
@@ -104,6 +108,33 @@ describe("compiled content artifact loader (ticket 03)", () => {
     manifest.doNotEdit = "";
     writeFileSync(manifestPath, JSON.stringify(manifest), "utf8");
     expect(expectError(() => readContentArtifact(dir)).code).toBe("CONTENT_ARTIFACT_INVALID");
+  });
+
+  it("fails closed when the bundle hash-verifies but violates its content schema", () => {
+    const dir = copyArtifact();
+    const artifactPath = join(dir, CONTENT_ARTIFACT_FILENAME);
+    const manifestPath = join(dir, CONTENT_MANIFEST_FILENAME);
+
+    const bundle = JSON.parse(readFileSync(artifactPath, "utf8")) as Record<string, unknown>;
+    const nations = bundle.nations as Record<string, unknown>[];
+    nations[0] = { ...nations[0], __schemaDrift: true };
+
+    // Re-pin the manifest to the tampered bundle so the hash check passes and
+    // only the schema decode can catch the drift (CAH-SCH-3).
+    const envelope = createEnvelope(
+      CONTENT_BUNDLE_ARTIFACT_KIND,
+      CONTENT_BUNDLE_COMPATIBILITY_VERSION,
+      bundle,
+    );
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
+    manifest.bodyHash = envelope.bodyHash;
+    manifest.bodyLength = envelope.bodyLength;
+    writeFileSync(artifactPath, canonicalSerialize(bundle), "utf8");
+    writeFileSync(manifestPath, canonicalSerialize(manifest), "utf8");
+
+    const error = expectError(() => readContentArtifact(dir));
+    expect(error.code).toBe("CONTENT_ARTIFACT_INVALID");
+    expect(error.reason).toBe("CONTENT_ARTIFACT_SCHEMA_MISMATCH");
   });
 });
 

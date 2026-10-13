@@ -9,6 +9,7 @@ import {
   runCompare,
   runContentCheck,
   runContentBuild,
+  runContentVerify,
   runCampaignCompile,
   runCampaignSave,
   runCampaignLoad,
@@ -36,6 +37,8 @@ Commands:
                      ship-building catalogue) without writing
   content:build      Compile the whole authored surface to a generated
                      content artifact + manifest
+  content:verify     Rebuild in memory and verify against the committed
+                     content lock (fails on drift or tamper)
   inspect            Inspect compiled artifact and envelope
   verify             Verify compiled artifact against envelope
   compare            Compare compiled artifact hash against envelope
@@ -129,6 +132,7 @@ function main(): void {
     "compare",
     "content:check",
     "content:build",
+    "content:verify",
   ];
   const newCommands = [
     "campaign:compile",
@@ -185,6 +189,9 @@ function main(): void {
       break;
     case "content:build":
       exitCategory = runContentBuild(options);
+      break;
+    case "content:verify":
+      exitCategory = runContentVerify(options);
       break;
     case "campaign:compile": {
       const co = options as CampaignCliOptions;

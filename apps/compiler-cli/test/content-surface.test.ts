@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
-import { runContentCheck, runContentBuild } from "../src/commands.js";
+import { runContentCheck, runContentBuild, runContentVerify } from "../src/commands.js";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const repoRoot = resolve(here, "..", "..", "..");
@@ -123,6 +123,80 @@ designs:
       runContentBuild({
         manifest: brokenManifest,
         contentDir: broken,
+        outputDir: tempDir(),
+        outputMode: "json",
+      }),
+    ).toBe("validation-error");
+  });
+});
+
+describe("content:verify over the production pack (CAH-LOCK)", () => {
+  it("verifies the production pack against the committed content lock", () => {
+    expect(
+      runContentVerify({ manifest, contentDir, outputDir: tempDir(), outputMode: "json" }),
+    ).toBe("success");
+  });
+
+  it("fails on content drift naming both hashes, and succeeds once the lock is refreshed", () => {
+    const dir = tempDir();
+    cpSync(contentDir, dir, { recursive: true });
+    const localManifest = resolve(dir, "pack.json");
+
+    const lockPath = resolve(dir, "content-lock.json");
+    const lock = JSON.parse(readFileSync(lockPath, "utf8")) as { bodyHash: string };
+
+    // Drift an authored collection without touching the lock.
+    const areasPath = resolve(dir, "areas.yaml");
+    writeFileSync(
+      areasPath,
+      `${readFileSync(areasPath, "utf8")}\n- id: "cah_drift_area"\n  name: "Drift Area"\n  type: "land"\n`,
+      "utf8",
+    );
+    expect(
+      runContentVerify({
+        manifest: localManifest,
+        contentDir: dir,
+        outputDir: tempDir(),
+        outputMode: "json",
+      }),
+    ).toBe("validation-error");
+
+    // Refresh the lock to the rebuilt hash: verification succeeds.
+    const fresh = tempDir();
+    runContentBuild({
+      manifest: localManifest,
+      contentDir: dir,
+      outputDir: fresh,
+      outputMode: "json",
+    });
+    const manifestJson = JSON.parse(
+      readFileSync(resolve(fresh, "content-manifest.json"), "utf8"),
+    ) as { bodyHash: string };
+    writeFileSync(
+      lockPath,
+      JSON.stringify({ ...lock, bodyHash: manifestJson.bodyHash }, null, 2),
+      "utf8",
+    );
+    expect(
+      runContentVerify({
+        manifest: localManifest,
+        contentDir: dir,
+        outputDir: tempDir(),
+        outputMode: "json",
+      }),
+    ).toBe("success");
+  });
+
+  it("fails on a tampered lock naming both hashes", () => {
+    const dir = tempDir();
+    cpSync(contentDir, dir, { recursive: true });
+    const lockPath = resolve(dir, "content-lock.json");
+    const lock = JSON.parse(readFileSync(lockPath, "utf8")) as Record<string, unknown>;
+    writeFileSync(lockPath, JSON.stringify({ ...lock, bodyHash: "0".repeat(64) }, null, 2), "utf8");
+    expect(
+      runContentVerify({
+        manifest: resolve(dir, "pack.json"),
+        contentDir: dir,
         outputDir: tempDir(),
         outputMode: "json",
       }),

@@ -2,7 +2,17 @@
 
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
-import type { ContentPack } from "@bluewave/content-schema";
+import type {
+  Area,
+  ContentPack,
+  Nation,
+  PackManifest,
+  Port,
+  Possession,
+  RouteEdge,
+  RulesetManifest,
+  TechnologyPrerequisite,
+} from "@bluewave/content-schema";
 
 import type {
   CampaignCollections,
@@ -35,9 +45,39 @@ export interface ContentPackArtifact {
   technologies: unknown[];
 }
 
-/** Presents a content-pack artifact as the runtime `ContentPack` view. */
+/**
+ * Presents a content-pack artifact as the runtime `ContentPack` view. The
+ * artifact's collections are re-typed here (not `as unknown`); the artifact
+ * boundary (`verifyContentBundleArtifact`) is where a bundle is decoded through
+ * the schemas, so this view is built from already-decoded collections.
+ */
 export function contentPackFromArtifact(artifact: ContentPackArtifact): ContentPack {
-  return artifact as unknown as ContentPack;
+  return {
+    manifest: artifact.manifest as PackManifest,
+    rulesets: artifact.rulesets as RulesetManifest[],
+    nations: artifact.nations as Nation[],
+    areas: artifact.areas as Area[],
+    routes: artifact.routes as RouteEdge[],
+    possessions: artifact.possessions as Possession[],
+    ports: artifact.ports as Port[],
+    technologies: artifact.technologies as TechnologyPrerequisite[],
+  };
+}
+
+/**
+ * The manifest identity recorded in the compiled artifact: the pack's `name`,
+ * `version`, `type` and its content-pack/campaign `files` declaration. The
+ * build-only `shipBuilding` loading declaration is excluded so the manifest
+ * authority is hash-neutral (CAH-MAN-1): declaring which ship-building files to
+ * load does not change the artifact body hash. The declaration is still
+ * validated and enforced by `buildFullSurfaceInput`.
+ */
+function artifactManifest(manifest: unknown): unknown {
+  if (typeof manifest !== "object" || manifest === null || Array.isArray(manifest)) {
+    return manifest;
+  }
+  const { shipBuilding: _shipBuilding, ...identity } = manifest as Record<string, unknown>;
+  return identity;
 }
 
 export class CompileStage implements CompilerStage<NormalizeOutput, CompilerOutput> {
@@ -49,7 +89,7 @@ export class CompileStage implements CompilerStage<NormalizeOutput, CompilerOutp
     _collector: DiagnosticCollector,
   ): CompilerOutput {
     const artifact = {
-      manifest: input.manifest,
+      manifest: artifactManifest(input.manifest),
       rulesets: input.rulesets,
       nations: input.countries,
       areas: input.areas,

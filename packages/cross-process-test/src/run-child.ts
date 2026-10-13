@@ -5,6 +5,7 @@ import type { CampaignSnapshot, CampaignState, NationState } from "@bluewave/cam
 import { CampaignCompiler } from "@bluewave/campaign/compiler";
 import { generateBattles } from "@bluewave/combat";
 import type { BudgetProjectCommand, CommandEnvelope } from "@bluewave/commands";
+import { buildContentBundleArtifact, buildFullSurfaceInput } from "@bluewave/content-compiler";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
@@ -102,6 +103,25 @@ function compileCampaign(fixtureDir: string): { state: CampaignState; contentHas
     throw new Error(`Compilation failed`);
   }
   return { state: output.state, contentHash: output.contentHash };
+}
+
+/**
+ * Hashes the full-surface content bundle the compiler produces (the compiler's
+ * canonical order, plus any ship-building/campaign surface the manifest
+ * declares). Part of the cross-process determinism proof so a locale-dependent
+ * ordering in the compiler surfaces as a two-process mismatch (CAH-DET-1).
+ */
+function contentBundleHash(fixtureDir: string): string {
+  const collector = new DiagnosticCollector();
+  const artifact = buildContentBundleArtifact(
+    buildFullSurfaceInput(resolve(fixtureDir, "pack.json"), fixtureDir),
+    new AbortController().signal,
+    collector,
+  );
+  if (!artifact || collector.hasErrors) {
+    throw new Error("Content bundle build failed");
+  }
+  return artifact.envelope.bodyHash;
 }
 
 function snapshotToHashable(snapshot: CampaignSnapshot): unknown {
@@ -298,10 +318,12 @@ function run(): void {
       : "REPLAY_MISMATCH";
 
     const generatedBattleHash = battleGenerationHash(snapshot);
+    const generatedContentBundleHash = contentBundleHash(fixtureDir);
 
     // Output all hashes as JSON
     const output = {
       contentArtifactHash,
+      contentBundleHash: generatedContentBundleHash,
       initialSnapshotHash,
       closingSnapshotHash,
       commandLedgerHash,

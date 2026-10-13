@@ -14,7 +14,6 @@ import { Button } from "../../components/ui/button.js";
 import {
   AlternativesPanel,
   ArmourPanel,
-  BatteryPanel,
   BriefPanel,
   ComparePanel,
   ConfirmDialog,
@@ -61,6 +60,7 @@ import {
 import { sameEntity, type ShipEntity } from "../../components/design-workspace/selection/store.js";
 import { useCampaignMonthId } from "../../shell/CampaignShellContext.js";
 import {
+  ArmamentEditor,
   CommandBar,
   DesignMap,
   EngineeringStatusBar,
@@ -71,6 +71,7 @@ import {
   ViewToolbar,
   WorkspaceDialog,
 } from "./components/index.js";
+import { armamentEntries } from "./armament.js";
 import {
   SECTIONS,
   categoriesOf,
@@ -311,20 +312,21 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
         );
       case "armament": {
         const role = TAB_BATTERY[at.tab];
-        const cards = batteries.filter((b) => b.row.role === role);
+        if (role === undefined) return fittingsOnly(at);
+        const entries = armamentEntries(role, batteries, draft, view, content);
         return (
           <>
-            {cards.length > 0 && (
-              <BatteryPanel
-                cards={cards}
-                draft={draft}
-                content={content}
-                edit={actions.edit}
-                onSelect={selection.select}
-                selectedInstanceId={selectedInstanceId}
-              />
-            )}
-            {fittingsOnly(at)}
+            <ArmamentEditor
+              entries={entries}
+              draft={draft}
+              content={content}
+              findings={findings}
+              month={state.month}
+              edit={actions.edit}
+              onSelect={selection.select}
+              selectedInstanceId={selectedInstanceId}
+            />
+            {fittingsPanel(at)}
           </>
         );
       }

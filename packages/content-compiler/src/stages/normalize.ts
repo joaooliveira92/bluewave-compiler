@@ -1,4 +1,5 @@
 //packages/content-compiler/src/stages/normalize.ts
+import { compareCodePoints } from "@bluewave/deterministic";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 
 import type { CompilerStage } from "../index.js";
@@ -36,7 +37,9 @@ function sortByField<T extends Record<string, unknown>>(items: T[], field: strin
     const aId = a[field];
     const bId = b[field];
     if (typeof aId === "string" && typeof bId === "string") {
-      return aId.localeCompare(bId);
+      // Codepoint comparison, never `localeCompare`: the artifact body hash must
+      // be reproducible by rule, not by the host locale (CAH-DET-1).
+      return compareCodePoints(aId, bId);
     }
     return 0;
   });

@@ -8,10 +8,15 @@ Authored game content, compiled by `@bluewave/content-compiler` through
 content/
   production/
     1880/                 # the 1880 scenario pack
-      pack.json           # manifest the compiler loads
+      pack.json           # the one manifest: declares the whole loaded surface
       *.yaml              # nations, areas, ports, routes, fleets, research, …
       ship-building/      # component-level ship data (see its README)
 ```
+
+`pack.json` is the single authority for the loaded surface: `files` declares the
+pack/campaign collections, `shipBuilding` the ship-building subtree. A file
+discovered but undeclared, or declared but missing, fails
+`content:check`/`content:build`.
 
 - **Authoring a nation** — [adding a nation](../docs/agents/adding-a-nation.md); scaffold with `node scripts/new-nation.mjs`.
 - **Ship-building subtree** — [`1880/ship-building/README.md`](production/1880/ship-building/README.md) records its sourced/placeholder values.

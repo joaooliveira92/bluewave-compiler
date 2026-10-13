@@ -3,6 +3,12 @@
 import {
   AmmunitionPatternSchema,
   AreaSchema,
+  CampaignConstructionSchema,
+  CampaignDesignSchema,
+  CampaignDiplomacySchema,
+  CampaignEconomySchema,
+  CampaignFleetSchema,
+  CampaignResearchSchema,
   GunFamilySchema,
   GunModelSchema,
   GunMountSchema,
@@ -12,6 +18,7 @@ import {
   PortSchema,
   PossessionSchema,
   PropulsionPlantSchema,
+  ReferenceDesignSchema,
   RouteEdgeSchema,
   RulesetManifestSchema,
   ShipComponentSchema,
@@ -85,9 +92,9 @@ interface ValidatedCatalogue {
 
 /**
  * The ship-building catalogue collections and their structural schemas, in the
- * order they are validated. `referenceDesigns` has no content schema yet (its
- * draft is the drawing board's domain shape); it is still duplicate-ID checked
- * and cross-referenced, and its full invariant validation is owned by ticket 06.
+ * order they are validated. Every collection — reference designs included
+ * (CAH-SCH-1) — is validated through the strict validator; duplicate ids and
+ * cross-file references are checked afterwards.
  */
 const SHIP_BUILDING_COLLECTIONS: readonly ShipBuildingCollection[] = [
   { key: "shipComponents", schema: ShipComponentSchema, label: "ShipComponent", idField: "id" },
@@ -108,25 +115,46 @@ const SHIP_BUILDING_COLLECTIONS: readonly ShipBuildingCollection[] = [
     label: "NationNavalProfile",
     idField: "nationId",
   },
-  { key: "referenceDesigns", label: "ReferenceDesign", idField: "id" },
+  {
+    key: "referenceDesigns",
+    schema: ReferenceDesignSchema,
+    label: "ReferenceDesign",
+    idField: "id",
+  },
 ];
 
 /**
- * The campaign-file collections and the field that identifies a record within
- * each (ticket 07). These have no content schemas yet; they are duplicate-ID
- * checked, cross-referenced, and carried into the bundle.
+ * The campaign-file collections, each validated by a content schema through the
+ * strict validator (CAH-SCH-2) before it is duplicate-ID checked, cross-
+ * referenced, and carried into the bundle.
  */
 const CAMPAIGN_COLLECTIONS: readonly CampaignCollection[] = [
-  { key: "fleets", label: "Fleet", idField: "id" },
-  { key: "economies", label: "Economy", idField: "nationId" },
-  { key: "constructions", label: "Construction", idField: "id" },
-  { key: "research", label: "Research programme", idField: "nationId" },
-  { key: "designs", label: "Design", idField: "designId" },
-  { key: "diplomacy", label: "Diplomacy record", idField: "id" },
+  { key: "fleets", schema: CampaignFleetSchema, label: "Fleet", idField: "id" },
+  { key: "economies", schema: CampaignEconomySchema, label: "Economy", idField: "nationId" },
+  {
+    key: "constructions",
+    schema: CampaignConstructionSchema,
+    label: "Construction",
+    idField: "id",
+  },
+  {
+    key: "research",
+    schema: CampaignResearchSchema,
+    label: "Research programme",
+    idField: "nationId",
+  },
+  { key: "designs", schema: CampaignDesignSchema, label: "Design", idField: "designId" },
+  {
+    key: "diplomacy",
+    schema: CampaignDiplomacySchema,
+    label: "Diplomacy record",
+    idField: "id",
+  },
 ];
 
 interface CampaignCollection {
   key: keyof ValidateOutput;
+  schema: ContentSchema;
   label: string;
   idField: string;
 }
@@ -222,9 +250,10 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
 }
 
 /**
- * Duplicate-ID checks the campaign-file collections and validates their
- * cross-file references (nation, technology, and design-version links), each
- * failure naming the source file and the offending field path (ticket 07).
+ * Structurally validates each campaign-file collection through the strict
+ * validator (CAH-SCH-2), duplicate-ID checks the raw records (naming the source
+ * file), and validates their cross-file references (nation, technology, and
+ * design-version links).
  */
 function validateCampaignCollections(
   core: Record<string, unknown[]>,
@@ -234,8 +263,15 @@ function validateCampaignCollections(
   const out: Partial<Record<keyof ValidateOutput, unknown[]>> = {};
   for (const spec of CAMPAIGN_COLLECTIONS) {
     const items = input.collectionDocs.get(spec.key) ?? [];
-    out[spec.key] = [...items];
     const sources = input.sourcePaths.get(spec.key) ?? [];
+    const validated: unknown[] = [];
+    items.forEach((item, index) => {
+      const sourcePath = sources[index] ?? `${String(spec.key)}.yaml`;
+      const result = validateAgainstSchema(item, spec.schema, spec.label, sourcePath, collector);
+      if (result !== undefined) validated.push(result);
+    });
+    out[spec.key] = validated;
+
     const seen = new Set<string>();
     items.forEach((item, index) => {
       const id = (item as Record<string, unknown>)[spec.idField];
@@ -243,7 +279,7 @@ function validateCampaignCollections(
       if (seen.has(id)) {
         collector.addError("DUP-ID", `Duplicate ${spec.label} id '${id}'`, {
           stage: "validate",
-          sourceLocation: { path: sources[index] ?? `${spec.key}.yaml`, line: 1 },
+          sourceLocation: { path: sources[index] ?? `${String(spec.key)}.yaml`, line: 1 },
           entityId: id,
           remediation: `Give each ${spec.label} a unique '${spec.idField}'`,
         });

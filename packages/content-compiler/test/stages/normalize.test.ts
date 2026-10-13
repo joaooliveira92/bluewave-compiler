@@ -51,4 +51,49 @@ describe("NormalizeStage", () => {
 
     expect(result.manifest).toBe(manifest);
   });
+
+  it("orders by codepoint, not by the host locale (uppercase sorts before lowercase)", () => {
+    const stage = new NormalizeStage();
+
+    // `localeCompare` orders "a" before "Z" in most locales; codepoint ordering
+    // must keep "Z" (90) before "a" (97). A future locale-dependent sort fails here.
+    const result = stage.run(
+      {
+        manifest: { version: "1" },
+        rulesets: [{ id: "a" }, { id: "Z" }, { id: "A" }, { id: "z" }],
+        countries: [],
+        areas: [],
+        routes: [],
+        possessions: [],
+        ports: [],
+        technologies: [],
+      },
+      new AbortController().signal,
+      {} as never,
+    );
+
+    expect(result.rulesets.map((x) => x["id"])).toEqual(["A", "Z", "a", "z"]);
+  });
+
+  it("orders per-nation campaign collections by nationId using the codepoint rule", () => {
+    const stage = new NormalizeStage();
+
+    const result = stage.run(
+      {
+        manifest: { version: "1" },
+        rulesets: [],
+        countries: [],
+        areas: [],
+        routes: [],
+        possessions: [],
+        ports: [],
+        technologies: [],
+        economies: [{ nationId: "uk" }, { nationId: "France" }, { nationId: "france" }],
+      },
+      new AbortController().signal,
+      {} as never,
+    );
+
+    expect(result.economies.map((x) => x["nationId"])).toEqual(["France", "france", "uk"]);
+  });
 });

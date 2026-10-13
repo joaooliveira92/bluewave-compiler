@@ -25,7 +25,7 @@ const AREAS = [
   {
     name: "Foundations",
     blurb: "Core engine geometry, determinism, persistence, and the compiler pipeline.",
-    nums: [1, 2, 3, 4, 5, 6, 7, 8, 9, 32, 34, 35, 36, 37, 113, 122, 123, 124],
+    nums: [1, 2, 3, 4, 5, 6, 7, 8, 9, 32, 34, 35, 36, 37, 113, 122, 123, 124, 146],
   },
   {
     name: "Effect adoption",
@@ -58,7 +58,7 @@ const AREAS = [
   {
     name: "National content",
     blurb: "National naval profiles, the content pipeline, and AI procurement.",
-    nums: [89, 90, 91, 92, 108, 109, 110, 111, 114, 117, 119],
+    nums: [89, 90, 91, 92, 108, 109, 110, 111, 114, 117, 119, 143, 144, 145],
   },
   {
     name: "Desktop & UI",

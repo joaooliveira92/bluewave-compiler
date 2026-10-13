@@ -5,6 +5,7 @@ import {
   createEnvelope,
   verifyEnvelope,
   hashWithContext,
+  compareCodePoints,
 } from "../src/index.js";
 
 describe("canonicalSerialize", () => {
@@ -75,5 +76,19 @@ describe("hashWithContext", () => {
     const a = hashWithContext("data", "domain-a");
     const b = hashWithContext("data", "domain-b");
     expect(a).not.toBe(b);
+  });
+});
+
+describe("compareCodePoints", () => {
+  it("orders by codepoint, not by the host locale", () => {
+    // "Z" (90) before "a" (97): `localeCompare` would reverse these in most locales.
+    expect(compareCodePoints("Z", "a")).toBeLessThan(0);
+    expect(["Z", "a", "A", "z"].sort(compareCodePoints)).toEqual(["A", "Z", "a", "z"]);
+  });
+
+  it("returns 0 for equal strings and breaks ties by length", () => {
+    expect(compareCodePoints("abc", "abc")).toBe(0);
+    expect(compareCodePoints("ab", "abc")).toBeLessThan(0);
+    expect(compareCodePoints("abc", "ab")).toBeGreaterThan(0);
   });
 });

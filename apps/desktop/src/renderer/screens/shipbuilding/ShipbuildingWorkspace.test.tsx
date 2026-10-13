@@ -323,6 +323,65 @@ describe("Selection synchronization", () => {
   }
 });
 
+describe("Armament master-detail editor", () => {
+  const battery = () => screen.getByRole("region", { name: "Batteries" });
+  const mountButtons = () => within(battery()).getAllByRole("button", { name: /^Select mount / });
+  const openSecondary = () => {
+    openMap("Armament");
+    const tabs = within(screen.getByRole("complementary", { name: /^Inspector/ })).getByRole(
+      "tablist",
+      { name: /tabs$/ },
+    );
+    fireEvent.click(within(tabs).getByRole("tab", { name: "Secondary" }));
+  };
+
+  it("opens a selected mount's editor with its editable properties and readouts", () => {
+    render(<ShipbuildingWorkspace />);
+    openSecondary();
+    expect(mountButtons().length).toBeGreaterThan(0);
+    const chosen = mountButtons()[0]!;
+    fireEvent.click(chosen);
+    expect(chosen.getAttribute("aria-pressed")).toBe("true");
+    // Editable: barrel count, ammunition per gun, zone, station and side (scoped to the editor, not the
+    // fittings table below, which repeats the station field).
+    expect(within(battery()).getByLabelText(/^Barrel count/)).toBeTruthy();
+    expect(within(battery()).getByLabelText(/^Ammunition per gun/)).toBeTruthy();
+    expect(within(battery()).getByLabelText(/^Zone/)).toBeTruthy();
+    expect(within(battery()).getByLabelText(/^Station/)).toBeTruthy();
+    expect(within(battery()).getByLabelText(/^Side/)).toBeTruthy();
+    // Readouts came from the compiled design.
+    expect(within(battery()).getByText("Mount type")).toBeTruthy();
+    expect(within(battery()).getByText(/Placement conflicts/)).toBeTruthy();
+  });
+
+  it("commits a mount position edit to the draft and undoes it", () => {
+    render(<ShipbuildingWorkspace />);
+    openSecondary();
+    fireEvent.click(mountButtons()[0]!);
+    const field = within(battery()).getByLabelText(/^Station/) as HTMLInputElement;
+    const original = field.value;
+    const next = String(Number(original) + 10);
+    fireEvent.change(field, { target: { value: next } });
+    fireEvent.blur(field);
+    expect((within(battery()).getByLabelText(/^Station/) as HTMLInputElement).value).toBe(next);
+    fireEvent.click(within(commands()).getByRole("button", { name: "Undo" }));
+    expect((within(battery()).getByLabelText(/^Station/) as HTMLInputElement).value).toBe(original);
+  });
+
+  it("duplicates a mount on demand, updating the displacement, and undoes it", () => {
+    render(<ShipbuildingWorkspace />);
+    openSecondary();
+    fireEvent.click(mountButtons()[0]!);
+    const before = statusOf("displacement");
+    const count = mountButtons().length;
+    fireEvent.click(within(battery()).getByRole("button", { name: "Duplicate" }));
+    expect(mountButtons().length).toBe(count + 1);
+    expect(statusOf("displacement")).not.toBe(before);
+    fireEvent.click(within(commands()).getByRole("button", { name: "Undo" }));
+    expect(statusOf("displacement")).toBe(before);
+  });
+});
+
 describe("Engineering status strip", () => {
   const strip = () => screen.getByRole("region", { name: "Engineering status" });
   const item = (id: string) => strip().querySelector<HTMLElement>(`[data-status="${id}"]`)!;

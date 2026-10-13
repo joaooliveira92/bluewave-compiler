@@ -2,16 +2,16 @@
 import { mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import {
+  ContentBundleSchema,
+  validateAgainstSchema,
+  type CompiledContentBundle,
+} from "@bluewave/content-schema";
 import { canonicalSerialize, createEnvelope, verifyEnvelope } from "@bluewave/deterministic";
-import type { DiagnosticCollector } from "@bluewave/diagnostics";
+import { DiagnosticCollector } from "@bluewave/diagnostics";
 
 import { Compiler } from "./compiler.js";
-import type {
-  CampaignCollections,
-  CompilerInput,
-  ContentBundle,
-  ShipBuildingCatalogue,
-} from "./index.js";
+import type { CompilerInput, ContentBundle } from "./index.js";
 import { BUNDLE_GENERATED_BY } from "./stages/compile.js";
 
 /**
@@ -27,6 +27,8 @@ export const CONTENT_BUNDLE_COMPATIBILITY_VERSION = "0.1.0";
 export const CONTENT_BUNDLE_MANIFEST_VERSION = 1;
 export const CONTENT_ARTIFACT_FILENAME = "content-artifact.json";
 export const CONTENT_MANIFEST_FILENAME = "content-manifest.json";
+/** The committed content lock: the artifact's semantic version + body hash. */
+export const CONTENT_LOCK_FILENAME = "content-lock.json";
 
 export interface ContentBundleManifest {
   readonly manifestVersion: number;
@@ -65,25 +67,155 @@ export type ContentBundleVerification =
   | { readonly ok: false; readonly code: string; readonly message: string };
 
 /**
- * Presents a verified (marker + hash checked) bundle value as the typed
- * `ContentBundle`. The optional sections are asserted individually rather than
- * through an `unknown` cast; each is structurally validated by the compiler that
- * produced it (the hash check guarantees the value is that exact serialization).
+ * The committed content lock (ticket 03): a small file that pins the artifact
+ * identity CI validated — the semantic content version and the SHA-256 body
+ * hash — without committing the large generated artifact. A content update is
+ * an expected new lock, never a divergence.
  */
-function asContentBundle(value: Record<string, unknown>): ContentBundle {
-  return {
-    generatedBy: value.generatedBy as string,
-    manifest: value.manifest,
-    rulesets: value.rulesets as unknown[],
-    nations: value.nations as unknown[],
-    areas: value.areas as unknown[],
-    routes: value.routes as unknown[],
-    possessions: value.possessions as unknown[],
-    ports: value.ports as unknown[],
-    technologies: value.technologies as unknown[],
-    shipBuilding: value.shipBuilding as ShipBuildingCatalogue | undefined,
-    campaign: value.campaign as CampaignCollections | undefined,
+export interface ContentLock {
+  readonly contentVersion: string;
+  readonly bodyHash: string;
+  readonly algorithm: string;
+}
+
+export type ContentLockVerification =
+  | { readonly ok: true }
+  | {
+      readonly ok: false;
+      readonly code: string;
+      readonly message: string;
+      readonly expected?: string;
+      readonly actual?: string;
+    };
+
+/**
+ * Verifies a rebuilt artifact against the committed lock. Returns a fail-closed
+ * result naming both hashes when the artifact diverges (content drift) or was
+ * tampered. The lock is deliberately refreshed by a content-changing commit; a
+ * mismatch means the committed bytes CI validated are not the bytes this build
+ * produced (CAH-LOCK-2).
+ */
+export function verifyContentLock(
+  artifact: ContentBundleArtifact,
+  lock: unknown,
+): ContentLockVerification {
+  if (!isRecord(lock)) {
+    return {
+      ok: false,
+      code: "CONTENT_LOCK_INVALID",
+      message: "The content lock is not an object.",
+    };
+  }
+  const { contentVersion, bodyHash, algorithm } = lock;
+  if (
+    typeof contentVersion !== "string" ||
+    typeof bodyHash !== "string" ||
+    typeof algorithm !== "string"
+  ) {
+    return {
+      ok: false,
+      code: "CONTENT_LOCK_INVALID",
+      message:
+        "The content lock must carry string 'contentVersion', 'bodyHash' and 'algorithm' fields.",
+    };
+  }
+  if (algorithm !== artifact.envelope.algorithm) {
+    return {
+      ok: false,
+      code: "CONTENT_LOCK_ALGORITHM_MISMATCH",
+      message: `The content lock uses '${algorithm}' but the artifact uses '${artifact.envelope.algorithm}'.`,
+      expected: algorithm,
+      actual: artifact.envelope.algorithm,
+    };
+  }
+  const actualHash = artifact.envelope.bodyHash;
+  if (actualHash !== bodyHash) {
+    return {
+      ok: false,
+      code: "CONTENT_LOCK_HASH_MISMATCH",
+      message: `Content hash drift: the lock records '${bodyHash}' but the rebuilt artifact has '${actualHash}'. Rebuild and refresh the lock if the content changed deliberately.`,
+      expected: bodyHash,
+      actual: actualHash,
+    };
+  }
+  if (artifact.contentVersion !== contentVersion) {
+    return {
+      ok: false,
+      code: "CONTENT_LOCK_VERSION_MISMATCH",
+      message: `Content version mismatch: the lock records '${contentVersion}' but the reconstructed artifact declares '${artifact.contentVersion}'.`,
+      expected: contentVersion,
+      actual: artifact.contentVersion,
+    };
+  }
+  return { ok: true };
+}
+
+/**
+ * Decodes a verified bundle through the bundle schema (CAH-SCH-3). The hash
+ * check guarantees the bytes are the compiler's; decoding gives the boundary its
+ * type honestly and turns schema/artifact drift into a fail-closed error rather
+ * than a silent cast.
+ */
+function decodeContentBundle(
+  value: Record<string, unknown>,
+): { ok: true; bundle: ContentBundle } | { ok: false; message: string } {
+  const collector = new DiagnosticCollector();
+  const decoded = validateAgainstSchema(
+    value,
+    ContentBundleSchema,
+    "ContentBundle",
+    CONTENT_ARTIFACT_FILENAME,
+    collector,
+  );
+  if (decoded === undefined) {
+    const first = collector.errors[0]?.message ?? "the bundle does not match its schema";
+    return { ok: false, message: first };
+  }
+  return { ok: true, bundle: toMutableBundle(decoded) };
+}
+
+/** Rebuilds the mutable `ContentBundle` view from the decoded (readonly) schema type. */
+function toMutableBundle(decoded: CompiledContentBundle): ContentBundle {
+  const bundle: ContentBundle = {
+    generatedBy: decoded.generatedBy,
+    manifest: decoded.manifest,
+    rulesets: [...decoded.rulesets],
+    nations: [...decoded.nations],
+    areas: [...decoded.areas],
+    routes: [...decoded.routes],
+    possessions: [...decoded.possessions],
+    ports: [...decoded.ports],
+    technologies: [...decoded.technologies],
   };
+  if (decoded.shipBuilding !== undefined) {
+    const catalogue = decoded.shipBuilding;
+    bundle.shipBuilding = {
+      components: [...catalogue.components],
+      plants: [...catalogue.plants],
+      hullForms: [...catalogue.hullForms],
+      balance: catalogue.balance,
+      navalProfiles: [...catalogue.navalProfiles],
+      armament: {
+        gunFamilies: [...catalogue.armament.gunFamilies],
+        gunModels: [...catalogue.armament.gunModels],
+        gunMounts: [...catalogue.armament.gunMounts],
+        ammunition: [...catalogue.armament.ammunition],
+      },
+      referenceDesigns: [...catalogue.referenceDesigns],
+    };
+  }
+  if (decoded.campaign !== undefined) {
+    const campaign = decoded.campaign;
+    bundle.campaign = {
+      fleets: [...campaign.fleets],
+      economies: [...campaign.economies],
+      constructions: [...campaign.constructions],
+      diplomacy: [...campaign.diplomacy],
+      research: [...campaign.research],
+      designs: [...campaign.designs],
+    };
+  }
+  return bundle;
 }
 
 /**
@@ -284,5 +416,13 @@ export function verifyContentBundleArtifact(
       message: "The content artifact does not match its recorded SHA-256 body hash.",
     };
   }
-  return { ok: true, bundle: asContentBundle(bundleValue), manifest };
+  const decoded = decodeContentBundle(bundleValue);
+  if (!decoded.ok) {
+    return {
+      ok: false,
+      code: "CONTENT_ARTIFACT_SCHEMA_MISMATCH",
+      message: `The content artifact matches its recorded hash but does not match its content schema: ${decoded.message}. Rebuild with \`pnpm content:build\`.`,
+    };
+  }
+  return { ok: true, bundle: decoded.bundle, manifest };
 }

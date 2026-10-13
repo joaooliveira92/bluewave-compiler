@@ -9,6 +9,7 @@ const childScript = resolve(thisDir, "..", "dist", "run-child.js");
 
 interface ChildOutput {
   contentArtifactHash: string;
+  contentBundleHash: string;
   initialSnapshotHash: string;
   closingSnapshotHash: string;
   commandLedgerHash: string;
@@ -40,6 +41,7 @@ describe("Cross-process determinism", () => {
     expect(r2.success).toBe(true);
 
     expect(r1.contentArtifactHash).toBe(r2.contentArtifactHash);
+    expect(r1.contentBundleHash).toBe(r2.contentBundleHash);
     expect(r1.initialSnapshotHash).toBe(r2.initialSnapshotHash);
     expect(r1.closingSnapshotHash).toBe(r2.closingSnapshotHash);
     expect(r1.commandLedgerHash).toBe(r2.commandLedgerHash);
@@ -67,6 +69,25 @@ describe("Cross-process determinism", () => {
     expect(r.financialLedgerHash).toBe(golden.financialLedgerHash);
     expect(r.randomDecisionLedgerHash).toBe(golden.randomDecisionLedgerHash);
     expect(r.replayVerificationHash).toBe(golden.replayVerificationHash);
+  });
+});
+
+describe("Compiler canonical order is locale-independent (CAH-DET-1)", () => {
+  const localeChildScript = resolve(thisDir, "..", "dist", "run-content-bundle-child.js");
+
+  function runWithLocale(locale: string): string {
+    const stdout = execFileSync(process.execPath, [localeChildScript], {
+      encoding: "utf8",
+      timeout: 30000,
+      env: { ...process.env, LC_ALL: locale, LANG: locale, NODE_OPTIONS: "" },
+    });
+    const lines = stdout.trim().split("\n");
+    return (JSON.parse(lines[lines.length - 1]!) as { contentBundleHash: string })
+      .contentBundleHash;
+  }
+
+  it("builds a byte-identical content bundle under different host locales", () => {
+    expect(runWithLocale("en_US.UTF-8")).toBe(runWithLocale("tr_TR.UTF-8"));
   });
 });
 

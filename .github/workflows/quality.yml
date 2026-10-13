@@ -67,6 +67,10 @@ jobs:
       # effect of the desktop build and the desktop vitest global setup).
       - name: Build the compiled content artifact
         run: pnpm content:build
+      # Verify the rebuilt artifact against the committed content lock, so a
+      # stale or tampered artifact fails CI exactly as it does in `pnpm check`.
+      - name: Verify the committed content lock
+        run: pnpm content:verify
       # A deterministic fixed-seed month-advance over the production pack. Gated
       # behind BLUEWAVE_PERF so it is a dedicated step, not timing flake in the
       # default suite; a 3x-baseline ceiling catches order-of-magnitude

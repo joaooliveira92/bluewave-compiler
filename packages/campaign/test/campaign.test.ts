@@ -225,6 +225,8 @@ const FIXTURE = {
   targetId: "ship-hms-thunderer"
   totalWork: 200
   completedWork: 50
+  paidWork: 0
+  status: "ACTIVE"
   startedAt: "1880-01"
 `,
 
@@ -237,10 +239,12 @@ const FIXTURE = {
 
   research: `
 - nationId: "uk"
+  researchBudget: 30
   currentProjectTechId: "basic_steam"
   technologies:
     - { techId: "basic_steam", investedPoints: 30, completed: false }
 - nationId: "france"
+  researchBudget: 0
   technologies: []
 `,
 };

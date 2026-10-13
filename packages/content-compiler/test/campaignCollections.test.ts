@@ -54,6 +54,15 @@ const DESIGN_A = `
   designFamilyId: "fam_a"
   nationId: "uk"
   className: "Alpha"
+  hullType: "ironclad_turret_ship"
+  displacementKg: 9000000
+  speedUms: 8
+  armorBeltUm: 300
+  mainGuns: { caliber: 305, count: 4, mounts: 2 }
+  machineryType: "reciprocating_compound"
+  hitPoints: 40
+  crewComplement: 400
+  familyCreationMonth: "1880-01"
 `;
 
 const FLEET_A = `
@@ -62,7 +71,18 @@ const FLEET_A = `
   name: "Home Fleet"
   locationAreaId: "eng"
   ships:
-    - { id: "ship_a", designVersionId: "des_a" }
+    - id: "ship_a"
+      name: "Ship A"
+      classId: "Alpha"
+      designVersionId: "des_a"
+      hitPoints: 40
+      maxHitPoints: 40
+      speed: 15
+      firepower: 24
+      armor: 24
+      isUnderConstruction: false
+      constructionProgress: 0
+      constructionTotalWork: 0
 `;
 
 describe("campaign-file collections through the compiler", () => {
@@ -176,8 +196,22 @@ describe("campaign-file collections through the compiler", () => {
         `
 - id: "con_b"
   nationId: "uk"
+  type: "ship"
+  targetId: "ship_b"
+  totalWork: 100
+  completedWork: 0
+  paidWork: 0
+  status: "ACTIVE"
+  startedAt: "1880-01"
 - id: "con_a"
   nationId: "uk"
+  type: "ship"
+  targetId: "ship_a"
+  totalWork: 100
+  completedWork: 0
+  paidWork: 0
+  status: "ACTIVE"
+  startedAt: "1880-01"
 `,
       );
       const { output } = compile(fixture.path, {
