@@ -30,6 +30,7 @@ export interface NormalizeOutput {
   diplomacy: Record<string, unknown>[];
   research: Record<string, unknown>[];
   designs: Record<string, unknown>[];
+  presentation?: unknown;
 }
 
 function sortByField<T extends Record<string, unknown>>(items: T[], field: string): T[] {
@@ -91,6 +92,12 @@ export class NormalizeStage implements CompilerStage<ValidateOutput, NormalizeOu
       diplomacy: sortById((input.diplomacy ?? []) as Record<string, unknown>[]),
       research: sortByField((input.research ?? []) as Record<string, unknown>[], "nationId"),
       designs: sortByField((input.designs ?? []) as Record<string, unknown>[], "designId"),
+      // Presentation keeps its authored order: the nation and region arrays are
+      // meaningful slot/display order, not an id-keyed collection to canonicalize
+      // (like the reference-design discovery order). `canonicalSerialize` still
+      // sorts the map/region record keys, so the body hash stays reproducible by
+      // rule (CAH-DET-1).
+      ...(input.presentation !== undefined ? { presentation: input.presentation } : {}),
     };
   }
 }

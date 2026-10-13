@@ -14,7 +14,8 @@
     "economies": ["economies.yaml"],
     "constructions": ["constructions.yaml"],
     "research": ["research.yaml"],
-    "designs": ["designs.yaml"]
+    "designs": ["designs.yaml"],
+    "presentation": ["presentation.yaml"]
   },
   "shipBuilding": {
     "shipComponents": ["ship-building/components.yaml"],

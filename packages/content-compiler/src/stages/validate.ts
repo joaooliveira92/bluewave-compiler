@@ -17,6 +17,7 @@ import {
   PackManifestSchema,
   PortSchema,
   PossessionSchema,
+  PresentationContentSchema,
   PropulsionPlantSchema,
   ReferenceDesignSchema,
   RouteEdgeSchema,
@@ -57,6 +58,7 @@ export interface ValidateOutput {
   diplomacy?: unknown[];
   research?: unknown[];
   designs?: unknown[];
+  presentation?: unknown;
 }
 
 const COLLECTION_KEYS = [
@@ -232,6 +234,8 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
 
     const campaign = validateCampaignCollections(validated, input, collector);
 
+    const presentation = validatePresentation(input, collector);
+
     if (collector.hasErrors) return undefined;
 
     return {
@@ -245,8 +249,28 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
       technologies: validated["technologies"] ?? [],
       ...catalogue,
       ...campaign,
+      ...(presentation !== undefined ? { presentation } : {}),
     };
   }
+}
+
+/**
+ * Structurally validates the presentation content (CAH-PRES-1/CAH-PRES-2)
+ * through the strict validator. Absent from a pack is not a false positive: a
+ * content-pack-only or presentation-less build skips it, keeping the artifact
+ * byte-compatible.
+ */
+function validatePresentation(input: ParseOutput, collector: DiagnosticCollector): unknown {
+  const raw = input.objectDocs.get("presentation");
+  if (raw === undefined) return undefined;
+  const sourcePath = input.objectSourcePaths.get("presentation") ?? "presentation.yaml";
+  return validateAgainstSchema(
+    raw,
+    PresentationContentSchema,
+    "PresentationContent",
+    sourcePath,
+    collector,
+  );
 }
 
 /**

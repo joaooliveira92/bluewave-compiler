@@ -44,7 +44,10 @@ import {
 } from "./commands/battleSandboxCommands.js";
 import { commitMonth } from "./commands/commitMonth.js";
 import { compileCampaign, defaultCompileCampaignDeps } from "./commands/compileCampaign.js";
-import { inspectDrawingBoardContent } from "./commands/contentCommands.js";
+import {
+  inspectDrawingBoardContent,
+  inspectPresentationContent,
+} from "./commands/contentCommands.js";
 import {
   cancelConstructionCommand,
   inspectConstructionScreen,
@@ -212,6 +215,7 @@ export const defaultCommandRegistry: CommandRegistry = {
     inspectPriorities(sessionId),
   ),
   inspectDrawingBoardContent: payloadless(() => inspectDrawingBoardContent()),
+  inspectPresentationContent: payloadless(() => inspectPresentationContent()),
   commitMonth: withSchema(CommandEnvelopePayloadSchema, (payload) => commitMonth(payload)),
   inspectConstructionScreen: withSchema(SessionIdPayloadSchema, (sessionId) =>
     inspectConstructionScreen(sessionId),

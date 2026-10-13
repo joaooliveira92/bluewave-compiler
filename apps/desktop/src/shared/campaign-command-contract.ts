@@ -54,7 +54,7 @@ import type {
   SetAccelerationCommandPayload,
   SubmitConstructionCommandPayload,
 } from "./construction-contract.js";
-import type { DrawingBoardContentDto } from "./content-contract.js";
+import type { DrawingBoardContentDto, PresentationContentDto } from "./content-contract.js";
 import type {
   CancelMovementCommandPayload,
   FleetScreenProjection,
@@ -274,6 +274,7 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "inspectBattleHistory",
   "inspectPriorities",
   "inspectDrawingBoardContent",
+  "inspectPresentationContent",
   "closeCampaign",
   "saveCampaign",
   "copyCampaign",
@@ -358,6 +359,10 @@ export interface CampaignCommandClient {
     command: "inspectDrawingBoardContent",
     payload: undefined,
   ): Promise<BridgeResult<DrawingBoardContentDto>>;
+  execute(
+    command: "inspectPresentationContent",
+    payload: undefined,
+  ): Promise<BridgeResult<PresentationContentDto>>;
   execute(command: "closeCampaign", payload: string): Promise<BridgeResult<unknown>>;
   execute(command: "saveCampaign", payload: string): Promise<BridgeResult<SaveCampaignResult>>;
   execute(command: "copyCampaign", payload: string): Promise<BridgeResult<CopyCampaignResult>>;

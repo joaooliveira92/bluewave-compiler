@@ -1,6 +1,6 @@
 //packages/content-compiler/src/index.ts
 
-import type { ContentPack } from "@bluewave/content-schema";
+import type { ContentPack, PresentationContent } from "@bluewave/content-schema";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 
 export interface CompilerInput {
@@ -42,6 +42,15 @@ export interface CompilerInput {
   diplomacyFiles?: string[];
   researchFiles?: string[];
   designFiles?: string[];
+  /**
+   * Presentation content (the nation-facing corpus: coordinates, flavor,
+   * dossier, slot mapping, area→region grouping and the campaign-map join).
+   * Optional like the other full-surface groups: a content-pack-only `bwc
+   * compile` leaves it undefined and its artifact stays byte-compatible;
+   * `content:build`/`content:check` supply it so it lands in the bundle
+   * (CAH-PRES-1, CAH-PRES-2).
+   */
+  presentationFiles?: string[];
 }
 
 /**
@@ -97,6 +106,7 @@ export interface ContentBundle {
   technologies: unknown[];
   shipBuilding?: ShipBuildingCatalogue;
   campaign?: CampaignCollections;
+  presentation?: PresentationContent;
 }
 
 export interface CompilerOutput {

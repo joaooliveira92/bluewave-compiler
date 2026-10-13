@@ -1,6 +1,10 @@
 import type { BridgeResult } from "../../shared/bridge-contract.js";
-import type { DrawingBoardContentDto } from "../../shared/content-contract.js";
+import type {
+  DrawingBoardContentDto,
+  PresentationContentDto,
+} from "../../shared/content-contract.js";
 import { ContentArtifactError } from "../contentArtifact.js";
+import { loadPresentationContent } from "../presentationContent.js";
 import { loadShipBuildingData } from "../shipBuildingContent.js";
 
 /**
@@ -17,6 +21,24 @@ export function inspectDrawingBoardContent(): BridgeResult<DrawingBoardContentDt
       value: { catalogue: loadShipBuildingData() },
       diagnostics: [],
     };
+  } catch (err) {
+    if (err instanceof ContentArtifactError) {
+      return { outcome: "error", reason: err.code, diagnostics: [err.message] };
+    }
+    const message = err instanceof Error ? err.message : String(err);
+    return { outcome: "error", reason: "CONTENT_UNAVAILABLE", diagnostics: [message] };
+  }
+}
+
+/**
+ * Serves the decoded presentation corpus over the narrow content-query IPC
+ * (CAH-PRES-3). Same fail-closed behaviour as the drawing-board content path:
+ * an artifact that is missing or carries no presentation corpus returns a
+ * stable error reason rather than a partial DTO.
+ */
+export function inspectPresentationContent(): BridgeResult<PresentationContentDto> {
+  try {
+    return { outcome: "success", value: loadPresentationContent(), diagnostics: [] };
   } catch (err) {
     if (err instanceof ContentArtifactError) {
       return { outcome: "error", reason: err.code, diagnostics: [err.message] };

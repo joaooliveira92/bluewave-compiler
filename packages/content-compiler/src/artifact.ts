@@ -215,6 +215,9 @@ function toMutableBundle(decoded: CompiledContentBundle): ContentBundle {
       designs: [...campaign.designs],
     };
   }
+  if (decoded.presentation !== undefined) {
+    bundle.presentation = decoded.presentation;
+  }
   return bundle;
 }
 

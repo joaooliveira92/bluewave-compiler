@@ -14,6 +14,8 @@ export interface ParseOutput {
   sourcePaths: Map<string, string[]>;
   /** Single-document collections (e.g. the ship-building balance mapping). */
   objectDocs: Map<string, unknown>;
+  /** The source file each `objectDocs` entry came from. */
+  objectSourcePaths: Map<string, string>;
 }
 
 /**
@@ -34,7 +36,7 @@ const WRAPPED_GROUPS: Readonly<Record<string, string>> = {
 };
 
 /** Collections whose files are a single mapping, kept whole (e.g. balance.yaml). */
-const OBJECT_GROUPS = ["shipBalance"] as const;
+const OBJECT_GROUPS = ["shipBalance", "presentation"] as const;
 
 export class ParseStage implements CompilerStage<CompilerInput, ParseOutput> {
   readonly name = "parse";
@@ -47,6 +49,7 @@ export class ParseStage implements CompilerStage<CompilerInput, ParseOutput> {
     const collectionDocs = new Map<string, unknown[]>();
     const sourcePaths = new Map<string, string[]>();
     const objectDocs = new Map<string, unknown>();
+    const objectSourcePaths = new Map<string, string>();
 
     const fileGroups: Record<string, string[]> = {
       manifest: [input.manifestPath],
@@ -73,6 +76,7 @@ export class ParseStage implements CompilerStage<CompilerInput, ParseOutput> {
       diplomacy: input.diplomacyFiles ?? [],
       research: input.researchFiles ?? [],
       designs: input.designFiles ?? [],
+      presentation: input.presentationFiles ?? [],
     };
 
     let manifest: unknown = undefined;
@@ -92,6 +96,7 @@ export class ParseStage implements CompilerStage<CompilerInput, ParseOutput> {
               collectionDocs,
               sourcePaths,
               objectDocs,
+              objectSourcePaths,
               collector,
             });
           }
@@ -106,7 +111,7 @@ export class ParseStage implements CompilerStage<CompilerInput, ParseOutput> {
     }
 
     if (collector.hasErrors) return undefined;
-    return { manifest, collectionDocs, sourcePaths, objectDocs };
+    return { manifest, collectionDocs, sourcePaths, objectDocs, objectSourcePaths };
   }
 
   private collect(
@@ -118,6 +123,7 @@ export class ParseStage implements CompilerStage<CompilerInput, ParseOutput> {
       collectionDocs: Map<string, unknown[]>;
       sourcePaths: Map<string, string[]>;
       objectDocs: Map<string, unknown>;
+      objectSourcePaths: Map<string, string>;
       collector: DiagnosticCollector;
     },
   ): void {
@@ -128,6 +134,7 @@ export class ParseStage implements CompilerStage<CompilerInput, ParseOutput> {
 
     if (OBJECT_GROUPS.includes(group as (typeof OBJECT_GROUPS)[number])) {
       sink.objectDocs.set(group, data);
+      sink.objectSourcePaths.set(group, file);
       return;
     }
 

@@ -15,6 +15,7 @@ function makeInput(overrides: Partial<ParseOutput> = {}): ParseOutput {
     collectionDocs: new Map<string, unknown[]>(),
     sourcePaths: new Map<string, string[]>(),
     objectDocs: new Map<string, unknown>(),
+    objectSourcePaths: new Map<string, string>(),
     ...overrides,
   };
 }

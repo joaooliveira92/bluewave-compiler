@@ -9,6 +9,7 @@ import type {
   PackManifest,
   Port,
   Possession,
+  PresentationContent,
   RouteEdge,
   RulesetManifest,
   TechnologyPrerequisite,
@@ -120,6 +121,9 @@ export class CompileStage implements CompilerStage<NormalizeOutput, CompilerOutp
       ...artifact,
       ...(shipBuilding !== undefined ? { shipBuilding } : {}),
       ...(campaign !== undefined ? { campaign } : {}),
+      ...(input.presentation !== undefined
+        ? { presentation: input.presentation as PresentationContent }
+        : {}),
     };
 
     const manifestVersion = (input.manifest as { version?: unknown } | undefined)?.version;

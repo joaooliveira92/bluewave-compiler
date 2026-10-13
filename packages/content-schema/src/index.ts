@@ -107,6 +107,26 @@ export {
 } from "./decode.js";
 export type { Port } from "./port.js";
 export { PortSchema } from "./port.js";
+export type {
+  MapJoin,
+  NationCoordinates,
+  NationDossier,
+  NationFlavor,
+  NationPresentationRecord,
+  PresentationContent,
+  Region,
+  RegionGrouping,
+} from "./presentation.js";
+export {
+  MapJoinSchema,
+  NationCoordinatesSchema,
+  NationDossierSchema,
+  NationFlavorSchema,
+  NationPresentationRecordSchema,
+  PresentationContentSchema,
+  RegionGroupingSchema,
+  RegionSchema,
+} from "./presentation.js";
 export type { Possession } from "./possession.js";
 export { PossessionSchema } from "./possession.js";
 export type { ResearchFieldId } from "./research-fields.js";

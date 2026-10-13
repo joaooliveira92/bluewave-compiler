@@ -19,6 +19,7 @@ import { PackManifestSchema, RulesetManifestSchema } from "./manifest.js";
 import { NationNavalProfileSchema } from "./naval-profile.js";
 import { NationSchema } from "./nation.js";
 import { PortSchema } from "./port.js";
+import { PresentationContentSchema } from "./presentation.js";
 import { PossessionSchema } from "./possession.js";
 import { ReferenceDesignSchema } from "./reference-design.js";
 import { RouteEdgeSchema } from "./route.js";
@@ -72,6 +73,7 @@ export const ContentBundleSchema = Schema.Struct({
   technologies: Schema.Array(TechnologyPrerequisiteChainSchema),
   shipBuilding: Schema.optional(ShipBuildingCatalogueSchema),
   campaign: Schema.optional(CampaignCollectionsSchema),
+  presentation: Schema.optional(PresentationContentSchema),
 });
 
 export type CompiledContentBundle = typeof ContentBundleSchema.Type;
