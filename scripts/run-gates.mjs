@@ -94,6 +94,12 @@ export const GATE_SETS = {
       args: ["scripts/assert-boundary-decode.mjs", "--scope", "desktop"],
     },
     {
+      id: "boundary-decode-cli",
+      label: "boundary decode (cli)",
+      needs: ["boundary-decode-self-test"],
+      args: ["scripts/assert-boundary-decode.mjs", "--scope", "cli"],
+    },
+    {
       id: "stage-io-self-test",
       label: "no-stage-io guard self-test",
       needs: ["git-state"],

@@ -1,12 +1,15 @@
 // Tests for scripts/assert-boundary-decode.mjs — the boundary-cast gate over the
-// content loader and desktop main (RULES.md "Schema and boundaries"). Covers the
-// rejected shapes (`as T`, parens, double assertion), the required decode shape,
-// the fail-closed parse path, and the guarded scopes.
+// content loader, desktop main and the bwc CLI entry point (RULES.md "Schema and
+// boundaries"). Covers the rejected shapes (`as T`, parens, double assertion),
+// the required decode shape, the fail-closed parse path, the reviewed allowlist
+// (including its occurrence-count ratchet), and the guarded scopes.
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  ALLOWLIST,
   SCOPES,
+  filterAllowlisted,
   findBoundaryDecodeCasts,
   scanBoundaryDecodeCasts,
 } from "../assert-boundary-decode.mjs";
@@ -48,9 +51,63 @@ void test("fails closed on a parse error", () => {
   );
 });
 
-void test("the real tree passes both scopes", () => {
+void test("reports the whitespace-normalised cast source as the allowlist key", () => {
+  const [finding] = findBoundaryDecodeCasts("a.ts", "const x = JSON.parse( s ) as\n  Foo;");
+  assert.equal(finding.snippet, "JSON.parse( s ) as Foo");
+});
+
+void test("an allowlist entry drops only its own finding", () => {
+  const findings = [
+    { file: "a.ts", line: 1, snippet: "JSON.parse(s) as Foo" },
+    { file: "a.ts", line: 2, snippet: "JSON.parse(t) as Bar" },
+    { file: "b.ts", line: 3, snippet: "JSON.parse(u) as Baz" },
+  ];
+  const kept = filterAllowlisted(findings, {
+    "a.ts": { "JSON.parse(s) as Foo": { count: 1, reason: "why" } },
+  });
+  assert.deepEqual(
+    kept.map((f) => `${f.file}:${String(f.line)}`),
+    ["a.ts:2", "b.ts:3"],
+  );
+});
+
+void test("a duplicate cast beyond its occurrence allowance is kept", () => {
+  const snippet = "JSON.parse(s) as Foo";
+  const findings = [
+    { file: "a.ts", line: 1, snippet },
+    { file: "a.ts", line: 9, snippet },
+  ];
+  const kept = filterAllowlisted(findings, { "a.ts": { [snippet]: { count: 1, reason: "why" } } });
+  assert.deepEqual(
+    kept.map((f) => f.line),
+    [9],
+  );
+});
+
+void test("the real tree passes every scope (allowlisted sites excluded)", () => {
   const repoRoot = new URL("../..", import.meta.url).pathname;
   for (const roots of Object.values(SCOPES)) {
     assert.deepEqual(scanBoundaryDecodeCasts(repoRoot, roots), []);
   }
+});
+
+void test("the cli scope is load-bearing: every allowlisted site is a real cast", () => {
+  const repoRoot = new URL("../..", import.meta.url).pathname;
+  const raw = scanBoundaryDecodeCasts(repoRoot, SCOPES.cli, {});
+  assert.ok(raw.length > 0, "the cli scope must guard at least one site");
+  const observed = new Map();
+  for (const finding of raw) {
+    observed.set(
+      `${finding.file}#${finding.snippet}`,
+      (observed.get(`${finding.file}#${finding.snippet}`) ?? 0) + 1,
+    );
+  }
+  const allowed = new Map();
+  for (const [file, entries] of Object.entries(ALLOWLIST)) {
+    for (const [snippet, entry] of Object.entries(entries)) {
+      allowed.set(`${file}#${snippet}`, entry.count);
+    }
+  }
+  assert.deepEqual(observed, allowed);
+  assert.deepEqual(scanBoundaryDecodeCasts(repoRoot, SCOPES.cli), []);
 });

@@ -35,11 +35,17 @@ extends that family to the remaining `RULES.md` rules.
      `class … extends Error` with no `_tag` in the in-process error roots
      (engine: `contracts`, `combat`, `armament`; surface: `ship-design`,
      `campaign`, `persistence`); the reviewed allowlist is inline and justified.
-   - `scripts/assert-boundary-decode.mjs --scope compiler|desktop` — fails on a
-     `JSON.parse(...) as T` boundary cast in the content loader
-     (`packages/content-compiler/src`) or the desktop main loaders
-     (`apps/desktop/src/main`); a parse into an `unknown` binding that is then
-     schema-decoded is the required shape.
+   - `scripts/assert-boundary-decode.mjs --scope compiler|desktop|cli` — fails
+     on a `JSON.parse(...) as T` boundary cast in the content loader
+     (`packages/content-compiler/src`), the desktop main loaders
+     (`apps/desktop/src/main`), or the `bwc` entry point
+     (`apps/compiler-cli/src`); a parse into an `unknown` binding that is then
+     schema-decoded is the required shape. The `cli` sites are the entry-point
+     reads the alternatives below protect: `bwc` re-reads its own written
+     artifacts and hand-authored debug fixtures whose contents the engine
+     validates downstream, so the eight known sites are a reviewed, justified
+     inline allowlist (§2) rather than an unexamined scope gap; the scope still
+     ratchets, and a new cast in `compiler-cli` fails closed.
    - `scripts/assert-no-stage-io.mjs` — fails on any `node:fs` /
      `node:child_process` import under `packages/content-compiler/src/stages`,
      executing ADR-0004.

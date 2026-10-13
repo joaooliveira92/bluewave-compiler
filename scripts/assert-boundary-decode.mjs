@@ -9,13 +9,23 @@
 //
 //   --scope compiler  packages/content-compiler/src  (the content loader)
 //   --scope desktop   apps/desktop/src/main          (project/pack loaders)
+//   --scope cli       apps/compiler-cli/src          (the bwc entry point)
 //
 // A site is a boundary cast when a `JSON.parse(...)` call (possibly wrapped in
 // parens or a further `as unknown`) is asserted to a named type. `JSON.parse`
 // into an `unknown` binding that is then schema-decoded is the required shape and
 // is not flagged.
 //
-// Usage: `node scripts/assert-boundary-decode.mjs [--scope compiler|desktop|all] [--self-test]`
+// The `cli` scope is the developer entry point ADR-0151 §Alternatives protects:
+// every file `bwc` reads is either its own written artifact (campaign state,
+// command ledger, final hash) or a hand-authored debug fixture whose contents
+// the engine validates downstream (CommandLifecycle, ReplayVerifier, the combat
+// invariants). Decoding them at the CLI would duplicate fast-evolving domain
+// schemas, so each of the known sites is a reviewed, justified ALLOWLIST entry
+// (ADR-0151 §2) rather than an unexamined scope gap: the scope still ratchets,
+// and a NEW `JSON.parse(...) as T` in `compiler-cli` fails closed.
+//
+// Usage: `node scripts/assert-boundary-decode.mjs [--scope compiler|desktop|cli|all] [--self-test]`
 //
 // Wired into `pnpm preflight` (one self-test, then one gate per scope).
 
@@ -30,6 +40,72 @@ const root = resolve(import.meta.dirname, "..");
 export const SCOPES = {
   compiler: ["packages/content-compiler/src"],
   desktop: ["apps/desktop/src/main"],
+  cli: ["apps/compiler-cli/src"],
+};
+
+/**
+ * Reviewed exceptions, keyed by file then by the whitespace-normalised source of
+ * the cast expression, each with the number of occurrences the exception covers
+ * and a one-line justification (ADR-0151 §2). The count keeps the ratchet
+ * honest: the same cast appearing once more than its allowance is a new finding.
+ * Entries here only ever shrink; a rewritten cast is treated as new and must be
+ * re-reviewed.
+ *
+ * These are the `bwc` entry point's file→state reads, which F3 showed are not
+ * display-only but which cannot be honestly decoded at the CLI: their formats
+ * (`CommandEnvelope<CommandBody>`, `TacticalBattleState`, `GunneryAccuracyFactors`,
+ * the CLI's own `campaign-state.json`) have no schema, and the one that does
+ * (`StorableCampaignStateSchema`) is deliberately shallow, so decoding it would
+ * need the same `as unknown as` narrow `packages/persistence/src/store.ts:447`
+ * already carries. The engine validates every read downstream, so these are
+ * recorded exceptions, not an unexamined scope gap.
+ * @type {Readonly<Record<string, Readonly<Record<string, {count: number, reason: string}>>>>}
+ */
+export const ALLOWLIST = {
+  "apps/compiler-cli/src/commands.ts": {
+    'JSON.parse(readFileSync(statePath, "utf8")) as CampaignState': {
+      count: 1,
+      reason:
+        "bwc campaign:save re-reads the campaign-state.json its own campaign:compile wrote; SaveStore re-hashes it and any later load re-decodes it through StorableCampaignStateSchema.",
+    },
+    'JSON.parse(readFileSync(resolvedPath, "utf8")) as BattleAdvanceMinuteFile': {
+      count: 1,
+      reason:
+        "bwc battle:advance-minute reads a hand-authored debug fixture; advanceMinute validates the tactical invariants downstream (TACTICAL_STATE_INVARIANT_FAILED).",
+    },
+    'JSON.parse(readFileSync(resolvedPath, "utf8")) as GunneryResolveShotFile': {
+      count: 1,
+      reason:
+        "bwc gunnery:resolve-shot reads a hand-authored debug fixture; the gunnery primitives validate the factors downstream (GUNNERY_ACCURACY_FACTOR_MISSING).",
+    },
+    'JSON.parse(readFileSync(commandsPath, "utf8")) as CommandEnvelope<CommandBody>[]': {
+      count: 1,
+      reason:
+        "bwc replay re-reads the commands.json its own turn:execute wrote; ReplayVerifier re-runs each command through CommandLifecycle (no CommandBody schema exists to decode it).",
+    },
+    'JSON.parse(readFileSync(ledgerPath, "utf8")) as unknown[]': {
+      count: 1,
+      reason:
+        "bwc replay re-reads its own command-ledger.json and feeds it to CommandLedger; each outcome is re-added and re-hashed by ReplayVerifier.",
+    },
+    'JSON.parse(readFileSync(finalHashPath, "utf8")) as { finalSnapshotHash: string; }': {
+      count: 1,
+      reason:
+        "bwc replay re-reads its own final-hash.json; ReplayVerifier recomputes and compares the hash rather than trusting the file.",
+    },
+    'JSON.parse(readFileSync(allowlistPath, "utf8")) as { allow?: unknown }': {
+      count: 1,
+      reason:
+        "bwc content:gate reads the authored placeholder allowlist; only the `allow` array is read and each entry is validated by checkPlaceholderGate.",
+    },
+  },
+  "apps/compiler-cli/src/main.ts": {
+    "JSON.parse(raw) as CommandEnvelope<CommandBody>[]": {
+      count: 1,
+      reason:
+        "bwc turn:execute reads the caller's --commands file; each envelope runs through CommandLifecycle.validate at issue time (no CommandBody schema exists to decode it).",
+    },
+  },
 };
 
 const SOURCE_RE = /\.(?:[cm]?[jt]s|[jt]sx)$/u;
@@ -41,6 +117,11 @@ function lineAt(text, offset) {
     if (text.charCodeAt(i) === 10) line += 1;
   }
   return line;
+}
+
+/** Whitespace-normalised source text, so an allowlist key survives reformatting. */
+function normalize(text) {
+  return text.replace(/\s+/gu, " ").trim();
 }
 
 function isJsonProperty(node) {
@@ -77,7 +158,7 @@ function unwrap(node) {
  * Find `JSON.parse(...) as T` boundary casts in one source file.
  * @param {string} file repository-relative path (forward slashes)
  * @param {string} text source contents
- * @returns {Array<{file: string, line: number}>}
+ * @returns {Array<{file: string, line: number, snippet: string}>}
  */
 export function findBoundaryDecodeCasts(file, text) {
   const normalized = file.replaceAll("\\", "/");
@@ -101,7 +182,11 @@ export function findBoundaryDecodeCasts(file, text) {
       const base = unwrap(node.expression);
       if (isJsonParseCall(base) && !seenCalls.has(base.start)) {
         seenCalls.add(base.start);
-        findings.push({ file: normalized, line: lineAt(text, base.start) });
+        findings.push({
+          file: normalized,
+          line: lineAt(text, base.start),
+          snippet: normalize(text.slice(node.start, node.end)),
+        });
       }
     }
     for (const key of Object.keys(node)) {
@@ -115,12 +200,40 @@ export function findBoundaryDecodeCasts(file, text) {
 }
 
 /**
- * Scan the authored (non-test) source under the given roots for boundary casts.
+ * Drop the findings a reviewed allowlist entry covers, keyed by file then
+ * whitespace-normalised cast source, consuming one unit of each entry's
+ * occurrence allowance per match (ADR-0151 §2). A duplicate cast beyond its
+ * allowance is kept, so a new assertion is never silently admitted.
+ * @param {ReadonlyArray<{file: string, line: number, snippet: string}>} findings
+ * @param {Readonly<Record<string, Readonly<Record<string, {count: number}>>>>} allowlist
+ * @returns {Array<{file: string, line: number, snippet: string}>}
+ */
+export function filterAllowlisted(findings, allowlist) {
+  const remaining = new Map(
+    Object.entries(allowlist).map(([file, entries]) => [
+      file,
+      new Map(Object.entries(entries).map(([snippet, entry]) => [snippet, entry.count])),
+    ]),
+  );
+  const kept = [];
+  for (const finding of findings) {
+    const byFile = remaining.get(finding.file);
+    const left = byFile?.get(finding.snippet) ?? 0;
+    if (left > 0) byFile.set(finding.snippet, left - 1);
+    else kept.push(finding);
+  }
+  return kept;
+}
+
+/**
+ * Scan the authored (non-test) source under the given roots for boundary casts,
+ * dropping the sites a reviewed allowlist entry covers.
  * @param {string} repoRoot
  * @param {readonly string[]} roots source prefixes
- * @returns {Array<{file: string, line: number}>}
+ * @param {Readonly<Record<string, Readonly<Record<string, {count: number}>>>>} allowlist
+ * @returns {Array<{file: string, line: number, snippet: string}>}
  */
-export function scanBoundaryDecodeCasts(repoRoot, roots) {
+export function scanBoundaryDecodeCasts(repoRoot, roots, allowlist = ALLOWLIST) {
   const isGuarded = (file) =>
     SOURCE_RE.test(file) &&
     !TEST_RE.test(file) &&
@@ -152,8 +265,11 @@ export function scanBoundaryDecodeCasts(repoRoot, roots) {
     }
   }
 
-  return present.flatMap((file) =>
-    findBoundaryDecodeCasts(file, readFileSync(resolve(repoRoot, file), "utf8")),
+  return filterAllowlisted(
+    present.flatMap((file) =>
+      findBoundaryDecodeCasts(file, readFileSync(resolve(repoRoot, file), "utf8")),
+    ),
+    allowlist,
   );
 }
 
@@ -227,7 +343,7 @@ function main() {
   for (const scope of scopesFromArgs(args)) {
     const findings = scanBoundaryDecodeCasts(root, SCOPES[scope]);
     if (findings.length > 0) {
-      const detail = findings.map((f) => `  ${f.file}:${String(f.line)}`).join("\n");
+      const detail = findings.map((f) => `  ${f.file}:${String(f.line)} — ${f.snippet}`).join("\n");
       throw new Error(
         `assert-boundary-decode (${scope}): decode every external boundary with a strict schema ` +
           '(RULES.md "Schema and boundaries"); `JSON.parse(...) as T` is forbidden.\n' +

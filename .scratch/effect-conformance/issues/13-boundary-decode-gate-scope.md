@@ -1,7 +1,7 @@
 # Boundary-decode gate scope: cover apps/compiler-cli?
 
 **Type:** task
-**Status:** open
+**Status:** resolved
 **Blocked by:** none
 
 ## Question
@@ -22,4 +22,46 @@ Feeds ticket 11.
 
 ## Answer
 
-_(empty)_
+Resolved. Verdict: **widen the gate with a `cli` scope, and record the eight
+sites as a reviewed, justified allowlist — not as an unexamined scope gap.**
+
+- **Scope added.** `SCOPES` in `scripts/assert-boundary-decode.mjs` gains
+  `cli: ["apps/compiler-cli/src"]`, and `scripts/run-gates.mjs` gains a
+  `boundary-decode-cli` gate. The gate is load-bearing: with an empty allowlist
+  it finds exactly the eight F3 sites, so a new `JSON.parse(...) as T` in
+  `compiler-cli` now fails closed.
+- **Why an allowlist, not a decode, for these sites.** F3 is right that these are
+  file→state boundaries, not display, and the rule's first choice is to decode
+  them. That is not honestly available here. Four formats have no schema at all
+  (`CommandEnvelope<CommandBody>` at `main.ts:251` / `commands.ts:827`,
+  `TacticalBattleState` at `:510`, `GunneryAccuracyFactors` at `:589`, and the
+  CLI's own `campaign-state.json` at `:371`); building them would duplicate
+  fast-evolving domain types, and a `CommandBody` union schema does not exist
+  anywhere (the desktop's `campaignCommandSchemas.ts` holds IPC wire payloads,
+  not `CommandBody`). The one format that *does* have a schema —
+  `StorableCampaignStateSchema` (`packages/persistence/src/schemas.ts:92`) — is
+  deliberately shallow (`nations`/`designs` are `Record<string, unknown>`), so
+  decoding it here would still need the same `as unknown as` narrow that
+  `store.ts:447` already carries, i.e. a net-new unknown-cast rather than a
+  removed one. Every read is validated downstream: `SaveStore` re-hashes the
+  state and any later load re-decodes it; `CommandLifecycle.validate` runs each
+  envelope; `ReplayVerifier` re-runs and re-hashes the commands/ledger/final-hash
+  rather than trusting them; and the debug tests deliberately assert
+  `TACTICAL_STATE_INVARIANT_FAILED` / `GUNNERY_ACCURACY_FACTOR_MISSING` reach the
+  adapter. So the deterministic resolution is a reviewed allowlist with that
+  evidence, not a decode.
+- **Allowlist shape (ADR-0151 §2).** Keyed by file then whitespace-normalised
+  cast source, each entry carrying an occurrence count and a one-line
+  justification; entries may only shrink, a rewritten cast is treated as new, and
+  a duplicate cast beyond its count is kept (the ratchet cannot be widened by
+  copying an existing cast). A new `filterAllowlisted` export + tests
+  (`scripts/test/assert-boundary-decode.test.mjs`) cover the drop, the count and
+  the load-bearing property; ADR-0151 §1 records the third scope and the
+  rationale.
+- **F4 (decode-then-`as`-nominal)** is unchanged: those bytes are already
+  validated, so they are not a boundary-cast breach; their remedy stays with
+  ticket 11 as recorded in the ticket-03 note.
+- Gate green: `node scripts/assert-boundary-decode.mjs` (all three scopes) and
+  `node --test scripts/test/assert-boundary-decode.test.mjs` (11/11).
+
+Feeds ticket 11.
