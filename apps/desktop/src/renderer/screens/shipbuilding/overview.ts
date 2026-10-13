@@ -87,6 +87,11 @@ export function overviewModel(
     { id: "armament", label: "Main armament", value: mainSummary },
     { id: "crew", label: "Crew", value: metric(view, "crew") },
     {
+      id: "accommodation",
+      label: "Accommodation",
+      value: `${words(draft.requirement.accommodationStandard)} standard`,
+    },
+    {
       id: "technology",
       label: "Technology",
       value: `${words(draft.requirement.modernizationExpectation)} modernization · threat ${words(

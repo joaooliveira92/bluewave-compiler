@@ -23,6 +23,7 @@ describe("overview view model", () => {
     );
     expect(value("year")).toBe(ref.month.slice(0, 4));
     expect(value("type")).toContain(view.classCode);
+    expect(value("accommodation")).not.toBe("");
     if (view.compiled.armour !== null) {
       expect(value("armour")).toContain((view.compiled.armour.coverageBp / 100).toFixed(0));
     }

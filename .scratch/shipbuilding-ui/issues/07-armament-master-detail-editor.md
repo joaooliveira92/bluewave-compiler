@@ -62,3 +62,15 @@ and `ShipbuildingWorkspace.test.tsx` ("Armament master-detail editor": opens the
 fields and readouts, commits a station edit with undo, duplicates a mount and restores displacement).
 **Commands:** desktop shipbuilding + armament suites → 36 passed; `pnpm typecheck` → clean;
 `vp lint`/`vp fmt --check` on the changed files → clean.
+
+### Deviation: grouping by tab, not one list
+
+The domain models exactly three battery roles (main, secondary, torpedo) — there is no "tertiary" role, and
+unmounted AA/mine/missile fittings are not batteries. Rather than invent a fourth role, the Armament section keeps its
+per-role local tabs (Main battery / Secondary / Torpedoes) and each tab's editor lists that role's batteries, which
+is the same grouping expressed through the existing navigation spine. The "Other" tab (AA, mines, `MOUNT`) keeps the
+fittings table, since those installations are not batteries and carry no mount-name/arc identity to master-detail.
+
+The link toggle is likewise modelled on what the domain can express: barrel count, ammunition and station are
+per-placement values, so linking batches those. Calibre is component identity (not a placement parameter) and
+per-mount armour is not authored, so neither is a linked edit here (see the deferral note above).
