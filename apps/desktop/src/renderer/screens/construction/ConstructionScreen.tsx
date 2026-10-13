@@ -1,11 +1,13 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Hammer } from "lucide-react";
 import { PageHeader } from "../../components/shared/PageHeader.js";
 import { Badge } from "../../components/ui/badge.js";
+import { Button } from "../../components/ui/button.js";
 import { debugRevisionActions } from "../../components/shared/debugRevisionActions.js";
 import { Skeleton } from "../../components/ui/skeleton.js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs.js";
 import {
+  BatchBuildDialog,
   CommandTable,
   ConstructionWizard,
   DesignPicker,
@@ -14,6 +16,7 @@ import {
   ProjectsCard,
   StatsPanel,
 } from "./components/index.js";
+import type { ConstructionBatchPreviewOutcome } from "../../../shared/construction-contract.js";
 import { projectRows } from "./project-progress.js";
 import { useConstructionScreen } from "./hooks/useConstructionScreen.js";
 import { CollapsibleSection } from "../../components/shared/CollapsibleSection.js";
@@ -35,10 +38,16 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
     halt,
     resume,
     setAcceleration,
+    orderBatch,
+    previewBatch,
     authorizeDockExpansion,
   } = useConstructionScreen(sessionId);
   const [activeTab, setActiveTab] = useState("overview");
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchQuantity, setBatchQuantity] = useState(1);
+  const [batchPreview, setBatchPreview] = useState<ConstructionBatchPreviewOutcome | null>(null);
+  const [batchFetching, setBatchFetching] = useState(false);
   const selectedDesign = useMemo(
     () => state.designs.find((d) => d.designId === selectedDesignId) ?? null,
     [state.designs, selectedDesignId],
@@ -47,11 +56,46 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
   // Stable handlers so the memo()'d catalog and wizard only re-render on real changes.
   const openWizard = useCallback(() => setWizardOpen(true), []);
   const closeWizard = useCallback(() => setWizardOpen(false), []);
+  const openBatch = useCallback(() => {
+    setBatchPreview(null);
+    setBatchOpen(true);
+  }, []);
+  const closeBatch = useCallback(() => setBatchOpen(false), []);
   const refresh = useCallback(() => void loadScreen(), [loadScreen]);
   const confirmOrder = useCallback(() => {
     submit();
     closeWizard();
   }, [submit, closeWizard]);
+
+  // The batch dialog previews the engine's names/dock fit for the current design and quantity (SB3-R30/R33). The
+  // wire schema only carries a positive quantity; the engine decides `1..12` and reports its own reason otherwise.
+  useEffect(() => {
+    if (
+      !batchOpen ||
+      selectedDesignId === null ||
+      !(Number.isInteger(batchQuantity) && batchQuantity >= 1)
+    ) {
+      setBatchPreview(null);
+      setBatchFetching(false);
+      return;
+    }
+    let cancelled = false;
+    setBatchFetching(true);
+    void previewBatch(selectedDesignId, batchQuantity).then((result) => {
+      if (cancelled) return;
+      setBatchPreview(result);
+      setBatchFetching(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [batchOpen, selectedDesignId, batchQuantity, previewBatch]);
+
+  const confirmBatch = useCallback(() => {
+    if (selectedDesignId === null) return;
+    orderBatch(selectedDesignId, batchQuantity);
+    closeBatch();
+  }, [orderBatch, selectedDesignId, batchQuantity, closeBatch]);
 
   if (loadError !== null) {
     return (
@@ -129,18 +173,41 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
         </TabsContent>
 
         <TabsContent value="catalog">
-          {!wizardOpen ? (
-            <DesignPicker
+          {batchOpen ? (
+            <BatchBuildDialog
               designs={state.designs}
               selectedDesignId={selectedDesignId}
               onSelectDesign={setSelectedDesignId}
-              onSubmit={openWizard}
-              onRefresh={refresh}
-              busy={busy}
-              hasPendingRequest={request.outcomeUnknown}
-              onRetry={request.outcomeUnknown ? request.retry : undefined}
+              quantity={batchQuantity}
+              onQuantityChange={setBatchQuantity}
+              preview={batchPreview}
+              busy={busy || batchFetching}
               notice={state.notice}
+              onConfirm={confirmBatch}
+              onCancel={closeBatch}
             />
+          ) : !wizardOpen ? (
+            <div className="space-y-4">
+              <DesignPicker
+                designs={state.designs}
+                selectedDesignId={selectedDesignId}
+                onSelectDesign={setSelectedDesignId}
+                onSubmit={openWizard}
+                onRefresh={refresh}
+                busy={busy}
+                hasPendingRequest={request.outcomeUnknown}
+                onRetry={request.outcomeUnknown ? request.retry : undefined}
+                notice={state.notice}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openBatch}
+                disabled={state.designs.length === 0}
+              >
+                Order a class batch (1–12)
+              </Button>
+            </div>
           ) : (
             <ConstructionWizard
               design={selectedDesign}

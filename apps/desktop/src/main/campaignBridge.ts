@@ -31,6 +31,7 @@ import {
   ResumeConstructionCommandPayloadSchema,
   SetAccelerationCommandPayloadSchema,
   OrderConstructionBatchCommandPayloadSchema,
+  PreviewConstructionBatchCommandPayloadSchema,
   AuthorizeDockExpansionCommandPayloadSchema,
   PlaceForeignConstructionCommandPayloadSchema,
 } from "./campaignCommandSchemas.js";
@@ -47,6 +48,7 @@ import { inspectDrawingBoardContent } from "./commands/contentCommands.js";
 import {
   cancelConstructionCommand,
   inspectConstructionScreen,
+  previewConstructionBatchCommand,
   replaceConstructionCommand,
   submitConstructionCommand,
 } from "./commands/constructionCommands.js";
@@ -234,6 +236,10 @@ export const defaultCommandRegistry: CommandRegistry = {
   ),
   orderConstructionBatchCommand: withSchema(OrderConstructionBatchCommandPayloadSchema, (payload) =>
     orderConstructionBatchCommand(payload),
+  ),
+  previewConstructionBatchCommand: withSchema(
+    PreviewConstructionBatchCommandPayloadSchema,
+    (payload) => previewConstructionBatchCommand(payload),
   ),
   authorizeDockExpansionCommand: withSchema(AuthorizeDockExpansionCommandPayloadSchema, (payload) =>
     authorizeDockExpansionCommand(payload),

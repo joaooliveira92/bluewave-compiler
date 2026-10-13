@@ -6,6 +6,7 @@ import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
 import { describe, expect, it, beforeEach, afterEach } from "vite-plus/test";
 import { CAMPAIGN_COMMAND_NAMES } from "../shared/campaign-command-contract.js";
+import type { ConstructionBatchPreviewOutcome } from "../shared/construction-contract.js";
 import { dispatchCampaignCommand } from "./campaignBridge.js";
 import { clearCampaignSessionsForTest, registerCampaignSession } from "./campaignSessions.js";
 import { compileProductionCampaign } from "./compiler.js";
@@ -39,6 +40,7 @@ const IMPLEMENTED_COMMANDS = new Set([
   "resumeConstructionCommand",
   "setAccelerationCommand",
   "orderConstructionBatchCommand",
+  "previewConstructionBatchCommand",
   "authorizeDockExpansionCommand",
   "placeForeignConstructionCommand",
   "inspectFleetScreen",
@@ -526,6 +528,94 @@ describe("dispatchCampaignCommand", () => {
     expect(result.outcome).toBe("error");
     if (result.outcome !== "error") return;
     expect(result.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  describe("previewConstructionBatchCommand (SB3-R30/R33)", () => {
+    let saveRoot: string;
+    let sessionId: string;
+
+    beforeEach(() => {
+      sessionId = "session-batch-preview";
+      saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-bridge-batch-preview-"));
+      const saveDir = resolve(saveRoot, "save");
+      const signal = new AbortController().signal;
+      const collector = new DiagnosticCollector();
+      const output = compileProductionCampaign(PRODUCTION_PACK, signal, collector);
+      if (!output) throw new Error("production pack failed to compile");
+      const state = toSaveableState(output.state);
+      new SaveStore().save(state, saveDir);
+      registerCampaignSession({
+        sessionId,
+        saveDir,
+        playerSlotId: "uk",
+        campaignSeed: "a".repeat(32),
+        month: { month: 1, year: 1880 },
+        state,
+      });
+    });
+
+    afterEach(() => {
+      rmSync(saveRoot, { recursive: true, force: true });
+      clearCampaignSessionsForTest();
+    });
+
+    it("previews names and dock fit for a real UK design through the bridge", async () => {
+      const result = await dispatchCampaignCommand("previewConstructionBatchCommand", {
+        sessionId,
+        designVersionId: "des_gbr_inflexible",
+        quantity: 3,
+      });
+      expect(result.outcome).toBe("success");
+      if (result.outcome !== "success") return;
+      const value = result.value as ConstructionBatchPreviewOutcome;
+      expect(value).toMatchObject({
+        ok: true,
+        preview: {
+          designVersionId: "des_gbr_inflexible",
+          quantity: 3,
+          dockCeilingKg: 13_000_000,
+          fitsDock: true,
+        },
+      });
+      if (!value.ok) return;
+      expect(value.preview.names).toHaveLength(3);
+      for (const allocation of value.preview.names) {
+        expect(allocation.name.length).toBeGreaterThan(0);
+      }
+      expect(value.preview.designDisplacementKg).toBeGreaterThan(0);
+    });
+
+    it("returns the engine's CONSTRUCTION_BATCH_LIMIT_EXCEEDED reason for a quantity above 12", async () => {
+      const result = await dispatchCampaignCommand("previewConstructionBatchCommand", {
+        sessionId,
+        designVersionId: "des_gbr_inflexible",
+        quantity: 13,
+      });
+      expect(result.outcome).toBe("success");
+      if (result.outcome !== "success") return;
+      expect(result.value).toMatchObject({
+        ok: false,
+        reason: "CONSTRUCTION_BATCH_LIMIT_EXCEEDED",
+      });
+    });
+
+    it("rejects a non-positive quantity at the wire boundary", async () => {
+      const result = await dispatchCampaignCommand("previewConstructionBatchCommand", {
+        sessionId,
+        designVersionId: "des_gbr_inflexible",
+        quantity: 0,
+      });
+      expect(result).toMatchObject({ outcome: "error", reason: "INVALID_PAYLOAD" });
+    });
+
+    it("returns SESSION_NOT_FOUND for an unknown session", async () => {
+      const result = await dispatchCampaignCommand("previewConstructionBatchCommand", {
+        sessionId: "no-such-session",
+        designVersionId: "des_gbr_inflexible",
+        quantity: 1,
+      });
+      expect(result).toMatchObject({ outcome: "error", reason: "SESSION_NOT_FOUND" });
+    });
   });
 
   describe("ui-state dispatch happy paths", () => {

@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useBridge } from "../../../lib/bridge-context.js";
 import type {
+  ConstructionBatchPreviewOutcome,
   ConstructionCommandOutcome,
   ConstructionCommandQueuedOutcome,
   ConstructionScreenProjection,
@@ -31,6 +32,11 @@ export interface UseConstructionScreenReturn {
   readonly halt: (projectId: string) => void;
   readonly resume: (projectId: string) => void;
   readonly setAcceleration: (projectId: string, accelerated: boolean) => void;
+  readonly orderBatch: (designVersionId: string, quantity: number) => void;
+  readonly previewBatch: (
+    designVersionId: string,
+    quantity: number,
+  ) => Promise<ConstructionBatchPreviewOutcome | null>;
   readonly authorizeDockExpansion: (possessionId: string) => void;
 }
 
@@ -149,6 +155,48 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
     [bridge, execute, sessionId],
   );
 
+  // DESIGN-23 sections 3-5 (SB3-R11/R30): order `1..12` ships of one approved compiled design in a single engine
+  // command (mirrors `halt`); the engine reserves the whole batch on the next `commitMonth`.
+  const orderBatch = useCallback(
+    (designVersionId: string, quantity: number) => {
+      if (!bridge) return;
+      void execute("order-batch", ({ expectedRevision, transportRequestId }) =>
+        bridge.campaign.execute("orderConstructionBatchCommand", {
+          sessionId,
+          designVersionId,
+          quantity,
+          expectedRevision,
+          transportRequestId,
+        }),
+      );
+    },
+    [bridge, execute, sessionId],
+  );
+
+  // SB3-R30/R33: the build dialog's read-only preview, straight from the engine through the bridge. A refused batch
+  // comes back with the engine's own reason (never a UI-invented code); a transport failure is surfaced the same way.
+  const previewBatch = useCallback(
+    async (
+      designVersionId: string,
+      quantity: number,
+    ): Promise<ConstructionBatchPreviewOutcome | null> => {
+      if (!bridge) return null;
+      try {
+        const result = await bridge.campaign.execute("previewConstructionBatchCommand", {
+          sessionId,
+          designVersionId,
+          quantity,
+        });
+        if (result.outcome === "success") return result.value;
+        return { ok: false, reason: result.reason, diagnostics: result.diagnostics };
+      } catch (error) {
+        // A rejected bridge call must not leave the dialog stuck busy: surface it as a refusal.
+        return { ok: false, reason: "PREVIEW_FAILED", diagnostics: [String(error)] };
+      }
+    },
+    [bridge, sessionId],
+  );
+
   // DESIGN-16 sections 5-6 (SB3-R16): the dock-expansion authorization queues a real engine envelope that applies on the
   // next `commitMonth`; the era step is locked by the engine at authorization time.
   const authorizeDockExpansion = useCallback(
@@ -179,6 +227,8 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
     halt,
     resume,
     setAcceleration,
+    orderBatch,
+    previewBatch,
     authorizeDockExpansion,
   };
 }

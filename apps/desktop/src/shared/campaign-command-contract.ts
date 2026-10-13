@@ -41,12 +41,14 @@ import type { NewGameOptions } from "./new-game-contract.js";
 import type {
   AuthorizeDockExpansionCommandPayload,
   CancelConstructionCommandPayload,
+  ConstructionBatchPreviewOutcome,
   ConstructionCommandOutcome,
   ConstructionCommandQueuedOutcome,
   ConstructionScreenProjection,
   HaltConstructionCommandPayload,
   OrderConstructionBatchCommandPayload,
   PlaceForeignConstructionCommandPayload,
+  PreviewConstructionBatchCommandPayload,
   ReplaceConstructionCommandPayload,
   ResumeConstructionCommandPayload,
   SetAccelerationCommandPayload,
@@ -275,6 +277,7 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "resumeConstructionCommand",
   "setAccelerationCommand",
   "orderConstructionBatchCommand",
+  "previewConstructionBatchCommand",
   "authorizeDockExpansionCommand",
   "placeForeignConstructionCommand",
   "inspectFleetScreen",
@@ -412,6 +415,10 @@ export interface CampaignCommandClient {
     command: "orderConstructionBatchCommand",
     payload: OrderConstructionBatchCommandPayload,
   ): Promise<BridgeResult<ConstructionCommandQueuedOutcome>>;
+  execute(
+    command: "previewConstructionBatchCommand",
+    payload: PreviewConstructionBatchCommandPayload,
+  ): Promise<BridgeResult<ConstructionBatchPreviewOutcome>>;
   execute(
     command: "authorizeDockExpansionCommand",
     payload: AuthorizeDockExpansionCommandPayload,

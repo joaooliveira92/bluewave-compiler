@@ -3,6 +3,7 @@ import type {
   ConstructionCommand,
   ConstructionProjectQueueEntry,
 } from "@bluewave/campaign-engine";
+import type { ConstructionBatchPreview } from "@bluewave/phase-engine";
 import type { CommandEnvelope } from "./bridge-contract.js";
 
 /**
@@ -87,6 +88,20 @@ export interface OrderConstructionBatchCommandPayload extends CommandEnvelope {
   readonly designVersionId: string;
   readonly quantity: number;
 }
+
+/**
+ * The read-only build-dialog preview (SB3-R30/R33). Carries the player's choices only; the engine resolves the names,
+ * the dock ceiling and the fit. A refused quantity is reported as the engine's `reason` — the dialog never invents one.
+ */
+export interface PreviewConstructionBatchCommandPayload {
+  readonly sessionId: string;
+  readonly designVersionId: string;
+  readonly quantity: number;
+}
+
+export type ConstructionBatchPreviewOutcome =
+  | { readonly ok: true; readonly preview: ConstructionBatchPreview }
+  | { readonly ok: false; readonly reason: string; readonly diagnostics: readonly string[] };
 
 /** The dock-expansion authorization (DESIGN-16 sections 5-6; SB3-R16): a twelve-month step for one possession. */
 export interface AuthorizeDockExpansionCommandPayload extends CommandEnvelope {

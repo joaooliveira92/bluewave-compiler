@@ -75,3 +75,94 @@ describe("useConstructionScreen dock expansion (SB3-R16)", () => {
     );
   });
 });
+
+describe("useConstructionScreen batch order and preview (SB3-R11/R30)", () => {
+  it("issues orderConstructionBatchCommand with the chosen design and quantity", async () => {
+    mocks.execute.mockImplementation(async (command: string) => {
+      if (command === "inspectConstructionScreen")
+        return { outcome: "success", value: projection, diagnostics: [] };
+      if (command === "orderConstructionBatchCommand")
+        return {
+          outcome: "success",
+          value: {
+            commandId: "cmd-batch",
+            bodyType: "OrderConstruction",
+            appliedOnNextTurn: true,
+          },
+          diagnostics: [],
+        };
+      throw new Error(`unexpected command ${command}`);
+    });
+
+    const { result } = renderHook(() => useConstructionScreen("ses_1"));
+    await waitFor(() => expect(result.current.state.revision).toBe(3));
+
+    await act(async () => {
+      result.current.orderBatch("d1", 4);
+    });
+
+    await waitFor(() =>
+      expect(mocks.execute).toHaveBeenCalledWith(
+        "orderConstructionBatchCommand",
+        expect.objectContaining({
+          sessionId: "ses_1",
+          designVersionId: "d1",
+          quantity: 4,
+          expectedRevision: 3,
+        }),
+      ),
+    );
+    await waitFor(() => expect(result.current.state.notice).toMatch(/OrderConstruction queued/));
+  });
+
+  it("fetches the engine preview through the read-only bridge command", async () => {
+    const enginePreview = {
+      ok: true,
+      preview: {
+        designVersionId: "d1",
+        quantity: 2,
+        names: [{ name: "Devastation", pool: "name_pool:uk:B", ordinal: 1 }],
+        namePoolExhausted: false,
+        dockCeilingKg: 13_000_000,
+        designDisplacementKg: 11_880_000,
+        fitsDock: true,
+        yardId: "yard-uk-1",
+      },
+    };
+    mocks.execute.mockImplementation(async (command: string) => {
+      if (command === "inspectConstructionScreen")
+        return { outcome: "success", value: projection, diagnostics: [] };
+      if (command === "previewConstructionBatchCommand")
+        return { outcome: "success", value: enginePreview, diagnostics: [] };
+      throw new Error(`unexpected command ${command}`);
+    });
+
+    const { result } = renderHook(() => useConstructionScreen("ses_1"));
+    await waitFor(() => expect(result.current.state.revision).toBe(3));
+
+    const preview = await result.current.previewBatch("d1", 2);
+
+    expect(preview).toEqual(enginePreview);
+    expect(mocks.execute).toHaveBeenCalledWith("previewConstructionBatchCommand", {
+      sessionId: "ses_1",
+      designVersionId: "d1",
+      quantity: 2,
+    });
+  });
+
+  it("surfaces a bridge error as an ok:false preview with the engine's reason", async () => {
+    mocks.execute.mockImplementation(async (command: string) => {
+      if (command === "inspectConstructionScreen")
+        return { outcome: "success", value: projection, diagnostics: [] };
+      if (command === "previewConstructionBatchCommand")
+        return { outcome: "error", reason: "SESSION_NOT_FOUND", diagnostics: ["gone"] };
+      throw new Error(`unexpected command ${command}`);
+    });
+
+    const { result } = renderHook(() => useConstructionScreen("ses_1"));
+    await waitFor(() => expect(result.current.state.revision).toBe(3));
+
+    const preview = await result.current.previewBatch("d1", 2);
+    expect(preview).toEqual({ ok: false, reason: "SESSION_NOT_FOUND", diagnostics: ["gone"] });
+  });
+});

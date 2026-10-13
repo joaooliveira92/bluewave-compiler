@@ -21,6 +21,7 @@ import {
   type ShipNameAllocation,
 } from "@bluewave/ship-design";
 import { constructionOrderEligibility } from "./orderEligibility.js";
+import { builderDockRecord } from "./foreignConstruction.js";
 
 /**
  * The per-package state a new project starts with (ADR-0077), from the design's construction plan: every package with no
@@ -441,5 +442,91 @@ export function placeConstructionBatch(
     batchId,
     namedClassId,
     batchHash,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Read-only preview for the build dialog (SB3-R30/R33): names, dock fit and ceiling, no mutation, no reservation
+// ---------------------------------------------------------------------------------------------------------------
+
+/**
+ * What the build dialog shows before the player orders: the names the engine's naming policy would assign, whether
+ * the name pool is exhausted, the ordering nation's dock ceiling, the design's displacement and whether it fits.
+ *
+ * `yardId` is the yard that would build the batch — the design's own `constructionPlan.yardId` (a domestic batch has
+ * no separate builder field; explicit builder / per-ship allocation is deferred). It is added to the
+ * otherwise-prompted shape so the dialog can name the yard in the per-yard fit readout.
+ */
+export interface ConstructionBatchPreview {
+  readonly designVersionId: string;
+  readonly quantity: number;
+  readonly names: readonly ShipNameAllocation[];
+  readonly namePoolExhausted: boolean;
+  readonly dockCeilingKg: number | null;
+  readonly designDisplacementKg: number;
+  readonly fitsDock: boolean;
+  readonly yardId: string | null;
+}
+
+export type ConstructionBatchPreviewResult =
+  | { readonly ok: true; readonly preview: ConstructionBatchPreview }
+  | { readonly ok: false; readonly reason: string; readonly diagnostics: readonly string[] };
+
+/**
+ * Preview a class-order batch (DESIGN-23 sections 3-5, SB3-R30/R33) WITHOUT mutating the snapshot or reserving
+ * anything: it reuses the same target guard and naming policy as `placeConstructionBatch`, reads the design's own
+ * `normalizedDisplacementKg`, and resolves the ordering nation's dock ceiling from `builderDockRecord`. A quantity
+ * outside `1..12` is refused with the same `CONSTRUCTION_BATCH_LIMIT_EXCEEDED` code the command path uses. Pure and
+ * deterministic: the renderer's preview can never disagree with what the command would allocate.
+ */
+export function previewConstructionBatch(
+  snapshot: CampaignSnapshot,
+  nationId: string,
+  designVersionId: string,
+  quantity: number,
+  content: ShipBuildingContent | undefined,
+  month: string,
+): ConstructionBatchPreviewResult {
+  if (
+    !Number.isInteger(quantity) ||
+    quantity < CONSTRUCTION_BATCH_MIN_QUANTITY ||
+    quantity > CONSTRUCTION_BATCH_MAX_QUANTITY
+  )
+    return {
+      ok: false,
+      reason: CONSTRUCTION_BATCH_LIMIT_EXCEEDED,
+      diagnostics: [
+        `A class order is 1..${String(CONSTRUCTION_BATCH_MAX_QUANTITY)} ships; got ${String(quantity)}. A second batch needs a second command.`,
+      ],
+    };
+  const targets = resolveOrderTargets(snapshot, nationId, designVersionId);
+  if (!targets.ok) return { ok: false, reason: targets.reason, diagnostics: targets.diagnostics };
+  const { design } = targets;
+  const shipType = shipTypeForHullType(design["hullType"]);
+  const profile = content?.navalProfileFor(nationId, month) ?? null;
+  const stems =
+    (shipType !== null ? profile?.namingPolicy.stems[shipType] : undefined) ??
+    ([] as readonly string[]);
+  const naming = allocateShipNames({
+    pool: { poolId: `name_pool:${nationId}:${shipType ?? design["hullType"]}`, stems },
+    count: quantity,
+    taken: takenShipNames(snapshot, nationId),
+    placeholderStem: design["className"],
+  });
+  const dockCeilingKg =
+    builderDockRecord(snapshot, nationId, content, month)?.maximumNewConstructionMassKg ?? null;
+  const designDisplacementKg = Number(design["normalizedDisplacementKg"]);
+  return {
+    ok: true,
+    preview: {
+      designVersionId,
+      quantity,
+      names: naming.allocations,
+      namePoolExhausted: naming.exhausted,
+      dockCeilingKg,
+      designDisplacementKg,
+      fitsDock: dockCeilingKg !== null && designDisplacementKg <= dockCeilingKg,
+      yardId: design["constructionPlan"]?.yardId ?? null,
+    },
   };
 }

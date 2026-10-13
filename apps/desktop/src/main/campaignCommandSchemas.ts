@@ -118,6 +118,16 @@ export const OrderConstructionBatchCommandPayloadSchema = Schema.Struct({
   quantity: positiveInt,
 });
 
+/**
+ * The read-only batch preview (SB3-R30/R33): a positive integer quantity. The engine enforces the exact `1..12` bound
+ * and returns `CONSTRUCTION_BATCH_LIMIT_EXCEEDED`, so no bound lives here.
+ */
+export const PreviewConstructionBatchCommandPayloadSchema = Schema.Struct({
+  sessionId: nonEmptyString,
+  designVersionId: nonEmptyString,
+  quantity: positiveInt,
+});
+
 /** The dock-expansion authorization (DESIGN-16 sections 5-6; SB3-R16). */
 export const AuthorizeDockExpansionCommandPayloadSchema = Schema.Struct({
   ...CommandEnvelopePayloadSchema.fields,

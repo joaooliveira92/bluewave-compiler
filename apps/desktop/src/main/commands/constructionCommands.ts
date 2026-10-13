@@ -2,12 +2,17 @@ import {
   buildConstructionDesignCatalog,
   type ConstructionCommandStatus,
 } from "@bluewave/campaign-engine";
-import { constructionProjectQueueWithReadouts } from "@bluewave/phase-engine";
+import {
+  constructionProjectQueueWithReadouts,
+  previewConstructionBatch,
+} from "@bluewave/phase-engine";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
   CancelConstructionCommandPayload,
+  ConstructionBatchPreviewOutcome,
   ConstructionCommandOutcome,
   ConstructionScreenProjection,
+  PreviewConstructionBatchCommandPayload,
   ReplaceConstructionCommandPayload,
   SubmitConstructionCommandPayload,
 } from "../../shared/construction-contract.js";
@@ -95,6 +100,38 @@ export async function inspectConstructionScreen(
   };
 
   return { outcome: "success", value: projection, diagnostics: [] };
+}
+
+// ---------------------------------------------------------------------------
+// previewConstructionBatchCommand
+// ---------------------------------------------------------------------------
+
+/**
+ * The read-only preview for the build dialog (SB3-R30/R33): resolves the session's snapshot, the compiled
+ * ship-building content and the campaign month, then asks the engine's `previewConstructionBatch` for the names, the
+ * dock ceiling and the fit. It mutates nothing and reserves nothing — a refused quantity comes back as the engine's
+ * own `reason` (e.g. `CONSTRUCTION_BATCH_LIMIT_EXCEEDED`), never a desktop-invented code.
+ */
+export async function previewConstructionBatchCommand(
+  payload: PreviewConstructionBatchCommandPayload,
+): Promise<BridgeResult<ConstructionBatchPreviewOutcome>> {
+  const record = getCampaignSession(payload.sessionId);
+  if (!record) {
+    return {
+      outcome: "error",
+      reason: "SESSION_NOT_FOUND",
+      diagnostics: [`No active campaign session ${payload.sessionId}`],
+    };
+  }
+  const value = previewConstructionBatch(
+    record.state.snapshot,
+    record.playerSlotId,
+    payload.designVersionId,
+    payload.quantity,
+    loadShipBuildingContent(),
+    campaignMonthKey(record),
+  );
+  return { outcome: "success", value, diagnostics: [] };
 }
 
 // ---------------------------------------------------------------------------
