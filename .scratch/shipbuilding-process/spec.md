@@ -1,6 +1,10 @@
 # SB-3: Building-ships process manual parity (EARLY band)
 
-**Status:** sliced — implementation tickets `INC-1..INC-15` in `.scratch/shipbuilding-process/issues/` (frontier: INC-1, INC-2, INC-5, INC-12, INC-13, INC-14)
+**Status:** implemented — implementation tickets `INC-1..INC-17` in `.scratch/shipbuilding-process/issues/`; all
+resolved except two, which carry no open frontier: **INC-11** (foreign tech-insight, blocked on content-technology
+materialisation; owner `.scratch/content-runtime-integrity/`) and **INC-16** (ship-dimension dock predicate, deferred
+because `CompiledDesignVersion` persists no length/beam; owner ship-design / campaign content). The player surfaces
+closed on 2026-10-13 (INC-9b foreign builder, INC-12b/INC-15b rebuild) and INC-17 server-derived foreign terms landed.
 **Source:** `docs/manual.pdf` — **BUILDING SHIPS** (printed p30–33) and **APPENDIX 1** ship-type
 definitions (printed p131–134). Grounding notes: `docs/research/manual-building-ships-rules.md`
 (p30–36) and `docs/research/manual-appendix-1-ship-type-definitions.md` (p131–134).
