@@ -16,16 +16,17 @@
 // into an `unknown` binding that is then schema-decoded is the required shape and
 // is not flagged.
 //
-// The `cli` scope is the developer entry point ADR-0151 §Alternatives protects:
-// every file `bwc` reads is either its own written artifact (campaign state,
-// command ledger, final hash) or a hand-authored debug fixture whose contents
-// the engine validates downstream (CommandLifecycle, ReplayVerifier, the combat
-// invariants). Decoding them at the CLI would duplicate fast-evolving domain
-// schemas, so each of the known sites is a reviewed, justified ALLOWLIST entry
-// (ADR-0151 §2) rather than an unexamined scope gap: the scope still ratchets,
-// and a NEW `JSON.parse(...) as T` in `compiler-cli` fails closed.
+// The `cli` scope is the developer entry point ADR-0151 §Alternatives protects.
+// Its file→state reads are decoded where an honest schema exists — campaign
+// state (`StorableCampaignStateSchema`), the command ledger, the final hash and
+// the placeholder allowlist — and the rest are a reviewed, justified ALLOWLIST
+// (ADR-0151 §2): `CommandEnvelope<CommandBody>` (no `CommandBody` schema exists
+// anywhere) and the two hand-authored debug fixtures whose malformed contents
+// the combat engine is meant to reject downstream. The scope still ratchets: a
+// NEW `JSON.parse(...) as T` in `compiler-cli` fails closed.
 //
-// Usage: `node scripts/assert-boundary-decode.mjs [--scope compiler|desktop|cli|all] [--self-test]`
+// Usage: `node scripts/assert-boundary-decode.mjs [--scope compiler|desktop|cli|all] [--self-test] [--strict]`
+//   (`--strict` fails on a stale allowlist entry; CI is always strict)
 //
 // Wired into `pnpm preflight` (one self-test, then one gate per scope).
 
@@ -51,23 +52,23 @@ export const SCOPES = {
  * Entries here only ever shrink; a rewritten cast is treated as new and must be
  * re-reviewed.
  *
- * These are the `bwc` entry point's file→state reads, which F3 showed are not
- * display-only but which cannot be honestly decoded at the CLI: their formats
- * (`CommandEnvelope<CommandBody>`, `TacticalBattleState`, `GunneryAccuracyFactors`,
- * the CLI's own `campaign-state.json`) have no schema, and the one that does
- * (`StorableCampaignStateSchema`) is deliberately shallow, so decoding it would
- * need the same `as unknown as` narrow `packages/persistence/src/store.ts:447`
- * already carries. The engine validates every read downstream, so these are
- * recorded exceptions, not an unexamined scope gap.
+ * The key is the raw normalised cast source rather than ADR-0106 §1's hashed
+ * fingerprint: ADR-0151 §2 requires the allowlist to be human-visible, and these
+ * few entry-point exceptions read better spelled out than hashed. ADR-0151 §2
+ * records this as the one deviation from the hashed-fingerprint convention.
+ *
+ * Only the genuinely unmodelled reads remain. `CommandEnvelope<CommandBody>` at
+ * `main.ts:251` / `commands.ts:827` has no schema anywhere (the desktop's
+ * `campaignCommandSchemas.ts` holds IPC wire payloads, not `CommandBody`), and
+ * the `BattleAdvanceMinuteFile` / `GunneryResolveShotFile` fixtures are
+ * hand-authored debug inputs whose malformed contents the combat engine is meant
+ * to reject downstream (the tests assert `TACTICAL_STATE_INVARIANT_FAILED` /
+ * `GUNNERY_ACCURACY_FACTOR_MISSING` reach the adapter). Decoding them at the CLI
+ * would change behaviour. Every other `bwc` file→state read is decoded.
  * @type {Readonly<Record<string, Readonly<Record<string, {count: number, reason: string}>>>>}
  */
 export const ALLOWLIST = {
   "apps/compiler-cli/src/commands.ts": {
-    'JSON.parse(readFileSync(statePath, "utf8")) as CampaignState': {
-      count: 1,
-      reason:
-        "bwc campaign:save re-reads the campaign-state.json its own campaign:compile wrote; SaveStore re-hashes it and any later load re-decodes it through StorableCampaignStateSchema.",
-    },
     'JSON.parse(readFileSync(resolvedPath, "utf8")) as BattleAdvanceMinuteFile': {
       count: 1,
       reason:
@@ -82,21 +83,6 @@ export const ALLOWLIST = {
       count: 1,
       reason:
         "bwc replay re-reads the commands.json its own turn:execute wrote; ReplayVerifier re-runs each command through CommandLifecycle (no CommandBody schema exists to decode it).",
-    },
-    'JSON.parse(readFileSync(ledgerPath, "utf8")) as unknown[]': {
-      count: 1,
-      reason:
-        "bwc replay re-reads its own command-ledger.json and feeds it to CommandLedger; each outcome is re-added and re-hashed by ReplayVerifier.",
-    },
-    'JSON.parse(readFileSync(finalHashPath, "utf8")) as { finalSnapshotHash: string; }': {
-      count: 1,
-      reason:
-        "bwc replay re-reads its own final-hash.json; ReplayVerifier recomputes and compares the hash rather than trusting the file.",
-    },
-    'JSON.parse(readFileSync(allowlistPath, "utf8")) as { allow?: unknown }': {
-      count: 1,
-      reason:
-        "bwc content:gate reads the authored placeholder allowlist; only the `allow` array is read and each entry is validated by checkPlaceholderGate.",
     },
   },
   "apps/compiler-cli/src/main.ts": {
@@ -200,15 +186,17 @@ export function findBoundaryDecodeCasts(file, text) {
 }
 
 /**
- * Drop the findings a reviewed allowlist entry covers, keyed by file then
- * whitespace-normalised cast source, consuming one unit of each entry's
- * occurrence allowance per match (ADR-0151 §2). A duplicate cast beyond its
- * allowance is kept, so a new assertion is never silently admitted.
+ * Split the findings into those no allowlist entry covers (`kept`) and the
+ * allowlist entries whose occurrence allowance was not fully consumed (`stale`),
+ * keyed by file then whitespace-normalised cast source, consuming one unit of
+ * each entry's occurrence allowance per match (ADR-0151 §2). A duplicate cast
+ * beyond its allowance is kept, so a new assertion is never silently admitted; a
+ * fully-unused entry is stale, so a removed assertion must shrink the allowlist.
  * @param {ReadonlyArray<{file: string, line: number, snippet: string}>} findings
  * @param {Readonly<Record<string, Readonly<Record<string, {count: number}>>>>} allowlist
- * @returns {Array<{file: string, line: number, snippet: string}>}
+ * @returns {{kept: Array<{file: string, line: number, snippet: string}>, stale: Array<{file: string, snippet: string, remaining: number}>}}
  */
-export function filterAllowlisted(findings, allowlist) {
+export function partitionAllowlist(findings, allowlist) {
   const remaining = new Map(
     Object.entries(allowlist).map(([file, entries]) => [
       file,
@@ -222,18 +210,53 @@ export function filterAllowlisted(findings, allowlist) {
     if (left > 0) byFile.set(finding.snippet, left - 1);
     else kept.push(finding);
   }
-  return kept;
+  const stale = [];
+  for (const [file, entries] of remaining) {
+    for (const [snippet, left] of entries) {
+      if (left > 0) stale.push({ file, snippet, remaining: left });
+    }
+  }
+  return { kept, stale };
+}
+
+/**
+ * Drop the findings a reviewed allowlist entry covers (see
+ * {@link partitionAllowlist}). Kept for callers that only need the surviving
+ * findings; the gate itself uses `partitionAllowlist` so it can also fail closed
+ * on stale entries.
+ * @param {ReadonlyArray<{file: string, line: number, snippet: string}>} findings
+ * @param {Readonly<Record<string, Readonly<Record<string, {count: number}>>>>} allowlist
+ * @returns {Array<{file: string, line: number, snippet: string}>}
+ */
+export function filterAllowlisted(findings, allowlist) {
+  return partitionAllowlist(findings, allowlist).kept;
+}
+
+/**
+ * True when the run should treat stale allowlist entries as fatal. CI is the
+ * authority on the committed tree, so it is strict; a local run only warns,
+ * because a concurrent editor removing a cast elsewhere must not block an
+ * unrelated commit (ADR-0107). `--strict` opts a local run in. Mirrors
+ * `verify-no-unknown-casts.mjs`.
+ * @returns {boolean}
+ */
+export function isStrictEnvironment(env = process.env) {
+  const value = env.CI;
+  return value !== undefined && value !== "" && value !== "0" && value.toLowerCase() !== "false";
 }
 
 /**
  * Scan the authored (non-test) source under the given roots for boundary casts,
- * dropping the sites a reviewed allowlist entry covers.
+ * dropping the sites a reviewed allowlist entry covers. Fails closed on a stale
+ * allowlist entry (one whose cast was removed) when `strict`, and warns
+ * otherwise (ADR-0151 §2: entries may only shrink).
  * @param {string} repoRoot
  * @param {readonly string[]} roots source prefixes
  * @param {Readonly<Record<string, Readonly<Record<string, {count: number}>>>>} allowlist
+ * @param {boolean} strict treat stale allowlist entries as fatal
  * @returns {Array<{file: string, line: number, snippet: string}>}
  */
-export function scanBoundaryDecodeCasts(repoRoot, roots, allowlist = ALLOWLIST) {
+export function scanBoundaryDecodeCasts(repoRoot, roots, allowlist = ALLOWLIST, strict = false) {
   const isGuarded = (file) =>
     SOURCE_RE.test(file) &&
     !TEST_RE.test(file) &&
@@ -265,12 +288,28 @@ export function scanBoundaryDecodeCasts(repoRoot, roots, allowlist = ALLOWLIST) 
     }
   }
 
-  return filterAllowlisted(
-    present.flatMap((file) =>
-      findBoundaryDecodeCasts(file, readFileSync(resolve(repoRoot, file), "utf8")),
-    ),
-    allowlist,
+  const raw = present.flatMap((file) =>
+    findBoundaryDecodeCasts(file, readFileSync(resolve(repoRoot, file), "utf8")),
   );
+  const scopedAllowlist = Object.fromEntries(
+    Object.entries(allowlist).filter(([file]) =>
+      roots.some((prefix) => file.startsWith(`${prefix}/`)),
+    ),
+  );
+  const { kept, stale } = partitionAllowlist(raw, scopedAllowlist);
+  if (stale.length > 0) {
+    const detail = stale
+      .map((entry) => `  ${entry.file} — ${entry.snippet} (${String(entry.remaining)} unused)`)
+      .join("\n");
+    const message =
+      "assert-boundary-decode: stale allowlist entr" +
+      (stale.length === 1 ? "y" : "ies") +
+      " — the cast was removed, so remove the entry (ADR-0151 §2: entries may only shrink).\n" +
+      detail;
+    if (strict) throw new Error(message);
+    console.warn(message);
+  }
+  return kept;
 }
 
 // ---- embedded self-test fixtures ------------------------------------------
@@ -340,8 +379,9 @@ function main() {
     return;
   }
 
+  const strict = args.includes("--strict") || isStrictEnvironment();
   for (const scope of scopesFromArgs(args)) {
-    const findings = scanBoundaryDecodeCasts(root, SCOPES[scope]);
+    const findings = scanBoundaryDecodeCasts(root, SCOPES[scope], ALLOWLIST, strict);
     if (findings.length > 0) {
       const detail = findings.map((f) => `  ${f.file}:${String(f.line)} — ${f.snippet}`).join("\n");
       throw new Error(

@@ -16,6 +16,7 @@
     "@bluewave/contracts": "workspace:*",
     "@bluewave/diagnostics": "workspace:*",
     "@bluewave/deterministic": "workspace:*",
+    "effect": "workspace:*",
     "@bluewave/content-schema": "workspace:*",
     "@bluewave/content-compiler": "workspace:*",
     "@bluewave/campaign": "workspace:*",

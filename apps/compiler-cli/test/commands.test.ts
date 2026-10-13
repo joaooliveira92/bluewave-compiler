@@ -67,7 +67,8 @@ const saveStoreMocks = vi.hoisted(() => ({
   getActiveSaveId: vi.fn<(saveDir: string) => string | null>(() => "save-1"),
   getPreviousSaveId: vi.fn<(saveDir: string) => string | null>(() => "save-0"),
 }));
-vi.mock("@bluewave/persistence", () => ({
+vi.mock("@bluewave/persistence", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   SaveStore: class {
     save = saveStoreMocks.save;
     load = saveStoreMocks.load;
@@ -133,6 +134,47 @@ const campaignSnapshot: any = {
   intelligence: { shells: {} },
   rulesetVersion: "0.1.0",
   compatibilityVersion: "0.1.0",
+};
+
+/**
+ * The on-disk `campaign-state.json` shape `runCampaignSave` reads: a
+ * `StorableCampaignState` (the Map-valued snapshot fields written as records by
+ * `campaign:compile`). `runCampaignSave` now decodes it with
+ * `StorableCampaignStateSchema`, so the fixture must be structurally valid.
+ */
+const storableCampaignState: any = {
+  snapshot: {
+    version: "0.1.0",
+    turnNumber: 1,
+    campaignId: "c1",
+    startYear: 1880,
+    startMonth: 1,
+    slots: [{ nationId: "GBR", type: "playable" }],
+    world: { areas: [{ id: "a1" }], routes: [], ports: [] },
+    nations: {},
+    wars: {
+      wars: [],
+      battles: [],
+      participantMemberships: [],
+      blockadeState: [],
+      battleManifests: [],
+    },
+    politics: { relations: [], shells: {} },
+    intelligence: { shells: {} },
+    designs: {},
+    designFamilies: {},
+    strategicWeather: [],
+    rulesetVersion: "0.1.0",
+    compatibilityVersion: "0.1.0",
+  },
+  envelope: {
+    algorithm: "sha256",
+    artifactKind: "campaign-state",
+    compatibilityVersion: "0.1.0",
+    bodyHash: "bh",
+    bodyLength: 2,
+  },
+  rawHash: "rh",
 };
 
 beforeEach(() => {
@@ -634,7 +676,7 @@ describe("Campaign", () => {
   });
   it("runCampaignSave success json/human", () => {
     fsMocks.existsSync.mockReturnValue(true);
-    fsMocks.readFileSync.mockReturnValue(JSON.stringify(campaignSnapshot));
+    fsMocks.readFileSync.mockReturnValue(JSON.stringify(storableCampaignState));
     const spy = stdoutSpy();
     expect(
       runCampaignSave(
@@ -666,7 +708,7 @@ describe("Campaign", () => {
   });
   it("runCampaignSave internal-error on save throw", () => {
     fsMocks.existsSync.mockReturnValue(true);
-    fsMocks.readFileSync.mockReturnValue(JSON.stringify(campaignSnapshot));
+    fsMocks.readFileSync.mockReturnValue(JSON.stringify(storableCampaignState));
     saveStoreMocks.save.mockImplementationOnce(() => {
       throw new Error("disk full");
     });
@@ -1041,7 +1083,18 @@ describe("runReplay", () => {
   beforeEach(() => {
     fsMocks.existsSync.mockReturnValue(true);
     fsMocks.readFileSync.mockImplementation((p: string) => {
-      if (String(p).includes("commands.json")) return JSON.stringify([{ commandId: "cmd-1" }]);
+      if (String(p).includes("commands.json")) {
+        return JSON.stringify([
+          {
+            commandId: "cmd-1",
+            version: "0.1.0",
+            expectedSnapshotHash: "rh",
+            idempotencyKey: "idem-1",
+            timestamp: "1880-01",
+            body: { type: "budget_project", nationId: "GBR", projectId: "p1", budget: 1 },
+          },
+        ]);
+      }
       if (String(p).includes("command-ledger.json")) return JSON.stringify([{ hash: "h1" }]);
       if (String(p).includes("final-hash.json")) return JSON.stringify({ finalSnapshotHash: "rh" });
       return "{}";

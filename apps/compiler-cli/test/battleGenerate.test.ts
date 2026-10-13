@@ -5,7 +5,8 @@ import type { CampaignSnapshot, NationState, Ship } from "@bluewave/campaign";
 const saveStoreMocks = vi.hoisted(() => ({
   load: vi.fn(),
 }));
-vi.mock("@bluewave/persistence", () => ({
+vi.mock("@bluewave/persistence", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   SaveStore: class {
     load = saveStoreMocks.load;
   },

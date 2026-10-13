@@ -65,3 +65,33 @@ sites as a reviewed, justified allowlist — not as an unexamined scope gap.**
   `node --test scripts/test/assert-boundary-decode.test.mjs` (11/11).
 
 Feeds ticket 11.
+
+## Remediation (follow-up)
+
+The original answer over-allowlisted: four of the eight sites were honestly
+decodable, and the gate silently ignored a removed cast. Follow-up fixes:
+
+- **Decoded** `commands.ts:371` (campaign state via the newly-exported
+  `StorableCampaignStateSchema` + `fromStorableSnapshot`), `:834` (command
+  ledger, `Schema.Array(Schema.Unknown)`), `:841` (final hash,
+  `Schema.Struct({ finalSnapshotHash: Schema.String })`) and `:1071`
+  (placeholder allowlist, optional `allow` array). `effect` is now a
+  `compiler-cli` dependency (ADR-0100 §2 IO boundary).
+  The allowlist shrank to the four genuinely unmodelled reads: `main.ts:251`,
+  `commands.ts:827` (`CommandEnvelope<CommandBody>`, no schema exists) and
+  `commands.ts:510,:589` (hand-authored debug fixtures the combat engine rejects
+  downstream).
+- **Fail-closed stale entries.** `partitionAllowlist` reports an entry whose cast
+  was removed; `scanBoundaryDecodeCasts` throws in CI/`--strict` and warns
+  locally, mirroring `verify-no-unknown-casts.mjs`.
+- **Key convention.** ADR-0151 §2 now records that this allowlist keys by raw
+  normalised cast source, the one deliberate deviation from ADR-0106 §1's hash.
+- **Gate-family de-duplication (deferred, judgement).** The shared helpers
+  (`normalize`, `lineAt`, `SOURCE_RE`/`TEST_RE`, the git-discovery/symlink guard,
+  `runSelfTest`) are in fact copied across **seven** gate scripts (the four named
+  plus `assert-authoritative-determinism`, `assert-no-library-console`,
+  `assert-no-stage-io`, `assert-runtime-free`, `assert-single-effect`), and their
+  discovery/coverage semantics differ (trailing-slash roots vs `AREAS`, with vs
+  without `TEST_RE`). A scoped extraction for four of them would leave the family
+  half-refactored and risk the fail-closed semantics the constraint protects, so
+  it is deferred to a dedicated refactor rather than folded into a defect fix.

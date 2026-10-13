@@ -11,6 +11,7 @@ import {
   SCOPES,
   filterAllowlisted,
   findBoundaryDecodeCasts,
+  partitionAllowlist,
   scanBoundaryDecodeCasts,
 } from "../assert-boundary-decode.mjs";
 
@@ -81,6 +82,41 @@ void test("a duplicate cast beyond its occurrence allowance is kept", () => {
   assert.deepEqual(
     kept.map((f) => f.line),
     [9],
+  );
+});
+
+void test("partitionAllowlist reports an entry whose cast was removed as stale", () => {
+  const allowlist = {
+    "a.ts": {
+      "JSON.parse(s) as Foo": { count: 1, reason: "why" },
+      "JSON.parse(t) as Bar": { count: 1, reason: "gone" },
+    },
+  };
+  const findings = [{ file: "a.ts", line: 1, snippet: "JSON.parse(s) as Foo" }];
+  const { kept, stale } = partitionAllowlist(findings, allowlist);
+  assert.deepEqual(kept, []);
+  assert.deepEqual(stale, [{ file: "a.ts", snippet: "JSON.parse(t) as Bar", remaining: 1 }]);
+});
+
+void test("partitionAllowlist reports no stale entry when every count is consumed", () => {
+  const snippet = "JSON.parse(s) as Foo";
+  const findings = [
+    { file: "a.ts", line: 1, snippet },
+    { file: "a.ts", line: 2, snippet },
+  ];
+  const { kept, stale } = partitionAllowlist(findings, {
+    "a.ts": { [snippet]: { count: 2, reason: "why" } },
+  });
+  assert.deepEqual(kept, []);
+  assert.deepEqual(stale, []);
+});
+
+void test("scanBoundaryDecodeCasts fails closed on a stale entry when strict", () => {
+  const repoRoot = new URL("../..", import.meta.url).pathname;
+  const stale = { "apps/compiler-cli/src/commands.ts": { "JSON.parse(x) as Gone": { count: 1 } } };
+  assert.throws(
+    () => scanBoundaryDecodeCasts(repoRoot, SCOPES.cli, stale, true),
+    /stale allowlist entr.*commands\.ts.*JSON\.parse\(x\) as Gone/su,
   );
 });
 

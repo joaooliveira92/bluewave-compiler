@@ -21,7 +21,14 @@ import {
   verifyEnvelope,
 } from "@bluewave/deterministic";
 import { CampaignCompiler, type CampaignCompilerInput } from "@bluewave/campaign/compiler";
-import { SaveStore, CURRENT_COMPATIBILITY_VERSION } from "@bluewave/persistence";
+import {
+  SaveStore,
+  CURRENT_COMPATIBILITY_VERSION,
+  StorableCampaignStateSchema,
+  fromStorableSnapshot,
+  type StorableCampaignSnapshot,
+} from "@bluewave/persistence";
+import { Schema } from "effect";
 import type {
   CampaignState,
   CampaignSnapshot,
@@ -360,6 +367,19 @@ export function runCampaignCompile(options: CampaignCliOptions): ExitCategory {
   return "success";
 }
 
+/**
+ * Narrows a schema-decoded storable snapshot to `StorableCampaignSnapshot` so
+ * `fromStorableSnapshot` can revive its Map-valued fields. The schema models the
+ * record fields as `Record<string, unknown>` on purpose (it does not mirror the
+ * fast-evolving `@bluewave/campaign` types), so the decoded snapshot is not
+ * structurally assignable to the domain type — the same narrow
+ * `packages/persistence/src/store.ts` carries before calling
+ * `fromStorableSnapshot`. The value has already been validated by the schema.
+ */
+function asStorableSnapshot(snapshot: unknown): StorableCampaignSnapshot {
+  return snapshot as StorableCampaignSnapshot;
+}
+
 export function runCampaignSave(options: CampaignCliOptions, saveDir: string): ExitCategory {
   const statePath = resolve(options.outputDir, "campaign-state.json");
   if (!existsSync(statePath)) {
@@ -368,7 +388,13 @@ export function runCampaignSave(options: CampaignCliOptions, saveDir: string): E
   }
   let state: CampaignState;
   try {
-    state = JSON.parse(readFileSync(statePath, "utf8")) as CampaignState;
+    const decoded = Schema.decodeUnknownSync(StorableCampaignStateSchema)(
+      JSON.parse(readFileSync(statePath, "utf8")),
+    );
+    state = {
+      ...decoded,
+      snapshot: fromStorableSnapshot(asStorableSnapshot(decoded.snapshot)),
+    };
   } catch {
     printResult(`Failed to parse campaign state at ${statePath}`, "human");
     return "internal-error";
@@ -829,18 +855,20 @@ export function runReplay(options: CampaignCliOptions, saveDir: string): ExitCat
     printResult(`Failed to parse commands file: ${commandsPath}`, "human");
     return "internal-error";
   }
-  let originalLedgerData: unknown[];
+  let originalLedgerData: ReadonlyArray<unknown>;
   try {
-    originalLedgerData = JSON.parse(readFileSync(ledgerPath, "utf8")) as unknown[];
+    originalLedgerData = Schema.decodeUnknownSync(Schema.Array(Schema.Unknown))(
+      JSON.parse(readFileSync(ledgerPath, "utf8")),
+    );
   } catch {
     printResult(`Failed to parse command ledger file: ${ledgerPath}`, "human");
     return "internal-error";
   }
   let expectedFinalHash: string;
   try {
-    const finalHashData = JSON.parse(readFileSync(finalHashPath, "utf8")) as {
-      finalSnapshotHash: string;
-    };
+    const finalHashData = Schema.decodeUnknownSync(
+      Schema.Struct({ finalSnapshotHash: Schema.String }),
+    )(JSON.parse(readFileSync(finalHashPath, "utf8")));
     expectedFinalHash = finalHashData.finalSnapshotHash;
   } catch {
     printResult(`Failed to parse final hash file: ${finalHashPath}`, "human");
@@ -1033,6 +1061,15 @@ function printConfidenceReport(
 export const CONTENT_PLACEHOLDER_ALLOWLIST_FILENAME = "placeholder-allowlist.json";
 
 /**
+ * The allowlist file's outer shape: an optional `allow` array whose entries stay
+ * `unknown` so `checkPlaceholderGate` keeps owning entry-level validation (an
+ * entry without a justification is reported, not rejected at decode time).
+ */
+const PlaceholderAllowlistFileSchema = Schema.Struct({
+  allow: Schema.optional(Schema.Array(Schema.Unknown)),
+});
+
+/**
  * `content:gate` — the release gate (CAH-PROV-3). Rebuilds the whole authored
  * surface and fails a shipping (production) pack that still carries an
  * unresolved `PLACEHOLDER` value, unless the exact collection/record/field is on
@@ -1068,7 +1105,9 @@ export function runContentGate(options: CliOptions): ExitCategory {
   let allowlist: PlaceholderAllowlistEntry[] = [];
   if (existsSync(allowlistPath)) {
     try {
-      const parsed = JSON.parse(readFileSync(allowlistPath, "utf8")) as { allow?: unknown };
+      const parsed = Schema.decodeUnknownSync(PlaceholderAllowlistFileSchema)(
+        JSON.parse(readFileSync(allowlistPath, "utf8")),
+      );
       if (Array.isArray(parsed.allow)) allowlist = parsed.allow as PlaceholderAllowlistEntry[];
     } catch {
       collector.addError(

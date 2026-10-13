@@ -17,5 +17,8 @@ export {
 } from "./errors.js";
 export type { PersistenceError, PersistenceErrorFields } from "./errors.js";
 export { cleanup, RecoveryManager } from "./recovery.js";
+export { StorableCampaignStateSchema } from "./schemas.js";
+export { fromStorableSnapshot } from "./snapshotSerialization.js";
+export type { StorableCampaignSnapshot } from "./snapshotSerialization.js";
 export type { MonthInputLoad, SaveExtras, SaveMetadata, SaveResult } from "./store.js";
 export { SaveStore } from "./store.js";

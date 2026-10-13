@@ -35,17 +35,19 @@ extends that family to the remaining `RULES.md` rules.
      `class … extends Error` with no `_tag` in the in-process error roots
      (engine: `contracts`, `combat`, `armament`; surface: `ship-design`,
      `campaign`, `persistence`); the reviewed allowlist is inline and justified.
-   - `scripts/assert-boundary-decode.mjs --scope compiler|desktop|cli` — fails
-     on a `JSON.parse(...) as T` boundary cast in the content loader
-     (`packages/content-compiler/src`), the desktop main loaders
-     (`apps/desktop/src/main`), or the `bwc` entry point
-     (`apps/compiler-cli/src`); a parse into an `unknown` binding that is then
-     schema-decoded is the required shape. The `cli` sites are the entry-point
-     reads the alternatives below protect: `bwc` re-reads its own written
-     artifacts and hand-authored debug fixtures whose contents the engine
-     validates downstream, so the eight known sites are a reviewed, justified
-     inline allowlist (§2) rather than an unexamined scope gap; the scope still
-     ratchets, and a new cast in `compiler-cli` fails closed.
+    - `scripts/assert-boundary-decode.mjs --scope compiler|desktop|cli` — fails
+      on a `JSON.parse(...) as T` boundary cast in the content loader
+      (`packages/content-compiler/src`), the desktop main loaders
+      (`apps/desktop/src/main`), or the `bwc` entry point
+      (`apps/compiler-cli/src`); a parse into an `unknown` binding that is then
+      schema-decoded is the required shape. The `cli` sites that have an honest
+      schema are decoded — campaign state via `StorableCampaignStateSchema`, the
+      command ledger, the final hash and the placeholder allowlist — and the
+      remainder are a reviewed, justified inline allowlist (§2): the
+      `CommandEnvelope<CommandBody>` reads (no `CommandBody` schema exists
+      anywhere) and the two hand-authored debug fixtures whose malformed
+      contents the engine rejects downstream. The scope still ratchets, and a
+      new cast in `compiler-cli` fails closed.
    - `scripts/assert-no-stage-io.mjs` — fails on any `node:fs` /
      `node:child_process` import under `packages/content-compiler/src/stages`,
      executing ADR-0004.
@@ -58,7 +60,13 @@ extends that family to the remaining `RULES.md` rules.
      reviewed per-site allowlist.
 2. **Allowlists are visible and justified.** Each entry states, in one line, why
    the site is allowed; entries may only shrink, matching ADR-0106's ratchet
-   baselines.
+   baselines. The boundary-decode allowlist keys each entry by the
+   whitespace-normalised cast source rather than ADR-0106 §1's hashed syntax
+   fingerprint: the entries are few and a spelled-out cast keeps the exception
+   legible in review, trading the hash's collision-proofing for that visibility.
+   This is the one deliberate deviation from ADR-0106 §1; the gate still treats a
+   rewritten cast as new and fails closed on a stale entry (an entry whose cast
+   was removed) in CI.
 3. **The compiler loader owns I/O; the stage does not.** `Compiler.compile`
    reads every source the first stage parses into an immutable name→text map and
    hands it to `ParseStage`; a caller may supply `fileContents` directly to drive
