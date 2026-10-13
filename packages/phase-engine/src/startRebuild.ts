@@ -20,6 +20,11 @@ import {
   type ShipBuildingContent,
 } from "@bluewave/ship-design";
 import { buildDesignVersion, pricingFor } from "./designVersion.js";
+import {
+  REBUILD_BULGE_REQUIRED,
+  rebuildArmamentFindings,
+  rebuildBulgeRequired,
+} from "./refitRules.js";
 
 /**
  * Canonical application of a StartRebuild command (ADR-0078, DESIGN-23 sections 17-22). The new draft is compiled
@@ -84,6 +89,23 @@ export function applyStartRebuild(
   const categories = new Map(content.components.map((c) => [c.id, c.category]));
   if (draftChangeKinds(oldDraft, draft, (id) => categories.get(id)).length === 0)
     return fail("REBUILD_REJECTED", "The rebuild changes nothing");
+
+  // The manual's armament-change conditions (SB3-R26): a rebuild may only re-batter guns the way the
+  // reference allows, and a bulge (SB3-R25) must actually grow the hull. Both are validated before the
+  // rebuild report, so a gun swapped illegally or a bulge without a blister is refused atomically.
+  const armamentBlocking = rebuildArmamentFindings(oldDraft, draft, content, month).filter(
+    (f) => f.severity === "BLOCKING" || f.severity === "CRITICAL",
+  );
+  if (armamentBlocking.length > 0)
+    return fail(
+      "REBUILD_REJECTED",
+      `Ship ${ship.name} cannot be rebuilt to ${body.newDesignVersionId}: ${armamentBlocking.map((f) => f.id).join(", ")}`,
+    );
+  if (body.rebuildKind === "BULGE" && rebuildBulgeRequired(oldDraft, draft))
+    return fail(
+      REBUILD_BULGE_REQUIRED,
+      `Ship ${ship.name} cannot be rebuilt with a bulge: the rebuild does not grow the hull, so no blister was added`,
+    );
 
   const report = validateRebuild(
     rebuildFactsOf(compileDesign(oldDraft, env.ctx), oldDraft),

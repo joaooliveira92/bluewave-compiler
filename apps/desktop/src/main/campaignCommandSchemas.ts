@@ -318,6 +318,7 @@ export const RebuildCheckPayloadSchema = Schema.Struct({
   sessionId: nonEmptyString,
   shipId: nonEmptyString,
   draft: DraftObjectSchema,
+  rebuildKind: Schema.optional(Schema.Literals(["BULGE"])),
 });
 
 /** Wire shape for `startRebuildCommand`. */
@@ -325,6 +326,7 @@ export const StartRebuildCommandPayloadSchema = Schema.Struct({
   ...CommandEnvelopePayloadSchema.fields,
   shipId: nonEmptyString,
   draft: DraftObjectSchema,
+  rebuildKind: Schema.optional(Schema.Literals(["BULGE"])),
 });
 
 export const LoadProjectDraftPayloadSchema = Schema.Struct({

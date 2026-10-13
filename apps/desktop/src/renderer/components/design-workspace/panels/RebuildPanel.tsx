@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DesignDraft } from "@bluewave/ship-design";
+import { kg, type DesignDraft } from "@bluewave/ship-design";
 import { Ship } from "lucide-react";
 import { useBridge } from "../../../lib/bridge-context.js";
 import { Alert } from "../../ui/alert.js";
@@ -15,11 +15,20 @@ import type { RebuildableShipView, RebuildCheckView } from "../../../../shared/d
 import { useCampaignRevision } from "../../../shell/CampaignShellContext.js";
 import type { DrawingBoardContent } from "../content.js";
 import { ConfirmAction } from "../ConfirmAction.js";
-import { SelectField } from "../fields.js";
+import { NumberField, SelectField } from "../fields.js";
 import { limitRows } from "../rebuildView.js";
 import { Panel } from "./Panel.js";
 
 let rebuildCounter = 0;
+
+/** The rebuild actions the early band offers. CV/CVL conversion and BC→BB reclassification stay deferred. */
+type RebuildAction = "STANDARD" | "REARMAMENT" | "BULGE";
+
+const REBUILD_ACTIONS: readonly { readonly value: RebuildAction; readonly label: string }[] = [
+  { value: "STANDARD", label: "Standard rebuild" },
+  { value: "REARMAMENT", label: "Armament change" },
+  { value: "BULGE", label: "Bulge (add torpedo blister)" },
+];
 
 /**
  * Rebuild a completed ship with a changed design (ADR-0078, DESIGN-23 sections 17-22). Pick one of your ships, load its real
@@ -48,9 +57,25 @@ export function RebuildPanel({
   const [check, setCheck] = useState<RebuildCheckView | null>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
+  const [action, setAction] = useState<RebuildAction>("STANDARD");
+  const [blisterMassKg, setBlisterMassKg] = useState(0);
   const ship = ships.find((s) => s.shipId === chosen) ?? ships[0];
   const shipId = ship?.shipId;
-  const draftJson = JSON.stringify(draft);
+  // A bulge is added hull mass (ADR-0130 section 2): the chosen blister grows the draft's target
+  // displacement, so the compile re-derives displacement, stability and the achievable speed.
+  const bulgeMassKg = action === "BULGE" ? Math.max(0, Math.floor(blisterMassKg)) : 0;
+  const checkedDraft: DesignDraft =
+    bulgeMassKg > 0
+      ? {
+          ...draft,
+          hull: {
+            ...draft.hull,
+            targetDisplacementKg: kg(draft.hull.targetDisplacementKg + bulgeMassKg),
+          },
+        }
+      : draft;
+  const rebuildKind = action === "BULGE" ? ("BULGE" as const) : undefined;
+  const checkedDraftJson = JSON.stringify(checkedDraft);
 
   useEffect(() => {
     setShips([]);
@@ -64,7 +89,8 @@ export function RebuildPanel({
     };
   }, [bridge, sessionId]);
 
-  // The check runs on the board's current design whenever it changes, once this ship's design has been loaded.
+  // The check runs on the board's current design whenever it changes, once this ship's design has been loaded. A bulge
+  // is checked on the bulged draft, so its measures are the compiled displacement and speed the blister produces.
   useEffect(() => {
     setCheck(null);
     if (!bridge || sessionId === undefined || shipId === undefined) return;
@@ -74,7 +100,8 @@ export function RebuildPanel({
       .execute("checkRebuild", {
         sessionId,
         shipId,
-        draft: JSON.parse(draftJson) as Record<string, unknown>,
+        draft: JSON.parse(checkedDraftJson) as Record<string, unknown>,
+        ...(rebuildKind === undefined ? {} : { rebuildKind }),
       })
       .then((r) => {
         if (live && r.outcome === "success") setCheck(r.value);
@@ -82,7 +109,7 @@ export function RebuildPanel({
     return () => {
       live = false;
     };
-  }, [bridge, sessionId, shipId, loaded, draftJson]);
+  }, [bridge, sessionId, shipId, loaded, checkedDraftJson, rebuildKind]);
 
   const rules = content.rebuild;
   if (rules === null) {
@@ -140,7 +167,8 @@ export function RebuildPanel({
         expectedRevision: revision,
         transportRequestId: `rebuild-${Date.now().toString(36)}-${rebuildCounter}`,
         shipId: ship.shipId,
-        draft: draft as unknown as Record<string, unknown>,
+        draft: checkedDraft as unknown as Record<string, unknown>,
+        ...(rebuildKind === undefined ? {} : { rebuildKind }),
       });
       setResult(
         r.outcome === "success"
@@ -178,6 +206,24 @@ export function RebuildPanel({
           <AttachmentDescription>{ship.className} · design on file</AttachmentDescription>
         </AttachmentContent>
       </Attachment>
+      <label className="block space-y-1 text-xs text-muted-foreground">
+        <span>Rebuild action</span>
+        <select
+          aria-label="Rebuild action"
+          className="block h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-sm"
+          value={action}
+          onChange={(event) => {
+            setAction(event.target.value as RebuildAction);
+            setResult(null);
+          }}
+        >
+          {REBUILD_ACTIONS.map((a) => (
+            <option key={a.value} value={a.value}>
+              {a.label}
+            </option>
+          ))}
+        </select>
+      </label>
       <ConfirmAction
         variant="outline"
         confirm={dirty}
@@ -188,6 +234,18 @@ export function RebuildPanel({
       >
         Load this ship&apos;s design to rebuild it
       </ConfirmAction>
+
+      {isLoaded && action === "BULGE" && (
+        <NumberField
+          label="Blister mass"
+          unit="kg"
+          value={blisterMassKg}
+          min={0}
+          step={1000}
+          onCommit={setBlisterMassKg}
+          className="max-w-48"
+        />
+      )}
 
       {!isLoaded ? (
         <p className="text-sm text-muted-foreground">
@@ -207,6 +265,40 @@ export function RebuildPanel({
               </span>
             )}
           </p>
+          {action === "BULGE" && (
+            <div className="rounded-md border p-2 text-xs" aria-label="Bulge projection">
+              <p className="font-medium">Bulge (torpedo blister)</p>
+              <p className="text-muted-foreground">
+                A bulge is added hull mass: it raises torpedo protection at a price in speed.
+              </p>
+              <dl className="mt-1 grid grid-cols-2 gap-x-3">
+                <dt className="text-muted-foreground">Blister mass</dt>
+                <dd className="text-right tabular-nums">
+                  {bulgeMassKg.toLocaleString("en-US")} kg
+                </dd>
+                {check.bulgeProtectionGainBp !== null && (
+                  <>
+                    <dt className="text-muted-foreground">Torpedo protection</dt>
+                    <dd className="text-right tabular-nums">
+                      +{(check.bulgeProtectionGainBp / 100).toFixed(1)} %
+                    </dd>
+                  </>
+                )}
+                {check.measures !== null && (
+                  <>
+                    <dt className="text-muted-foreground">Speed</dt>
+                    <dd className="text-right tabular-nums">
+                      {(check.measures.speedChangeMilliKnots / 1000).toFixed(1)} kn
+                    </dd>
+                    <dt className="text-muted-foreground">Displacement</dt>
+                    <dd className="text-right tabular-nums">
+                      {(check.measures.displacementChangeBp / 100).toFixed(1)} %
+                    </dd>
+                  </>
+                )}
+              </dl>
+            </div>
+          )}
           {check.measures !== null && (
             <table className="w-full text-xs" aria-label="Rebuild limits">
               <thead>

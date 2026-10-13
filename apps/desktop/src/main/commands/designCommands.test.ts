@@ -591,6 +591,45 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
     expect(r).toMatchObject({ outcome: "success", value: { legal: false, changesNothing: true } });
   });
 
+  // INC-13 (SB3-R26): the manual's armament-change rules run in the live check, not only in the engine.
+  const illegalSwap = {
+    ...cruiser,
+    placements: cruiser.placements.map((p) =>
+      p.instanceId === "mg_fwd" ? { ...p, componentId: "gun_rml_7in_7ton" } : p,
+    ),
+  };
+
+  it("returns the armament finding for an illegal gun swap and marks the check illegal", async () => {
+    const { shipId } = await builtShip();
+    const r = await check(shipId, illegalSwap);
+    expect(r.outcome).toBe("success");
+    if (r.outcome !== "success") return;
+    const view = r.value as { legal: boolean; findings: { id: string }[] };
+    expect(view.findings.map((f) => f.id)).toContain("ARMAMENT_SECONDARY_TOO_LARGE");
+    expect(view.legal).toBe(false);
+  });
+
+  // INC-12 (SB3-R25): a BULGE rebuild must grow the hull, and the check reports the versioned gain.
+  it("requires a blister on a BULGE rebuild whose hull did not grow", async () => {
+    const { shipId } = await builtShip();
+    const r = await dispatchCampaignCommand("checkRebuild", {
+      sessionId: "rb",
+      shipId,
+      draft: faster,
+      rebuildKind: "BULGE",
+    });
+    expect(r.outcome).toBe("success");
+    if (r.outcome !== "success") return;
+    const view = r.value as {
+      legal: boolean;
+      findings: { id: string }[];
+      bulgeProtectionGainBp: number | null;
+    };
+    expect(view.findings.map((f) => f.id)).toContain("REBUILD_BULGE_REQUIRED");
+    expect(view.legal).toBe(false);
+    expect(view.bulgeProtectionGainBp).toBeGreaterThan(0);
+  });
+
   it("queues a legal rebuild, and committing the month makes the ship unavailable on a REBUILD project", async () => {
     const { shipId } = await builtShip();
     const r = await start(shipId, faster);

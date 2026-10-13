@@ -182,6 +182,12 @@ export interface StartRebuildCommand {
   projectId: string;
   /** Id of the new design version the ship becomes when the rebuild completes. */
   newDesignVersionId: string;
+  /**
+   * The rebuild action chosen. `BULGE` is the manual's "add bulges" rebuild (ADR-0130, SB3-R25); it
+   * must grow the hull by the blister's mass, else `REBUILD_BULGE_REQUIRED`. Absent for a standard
+   * rebuild. The armament-change conditions (SB3-R26) apply to every rebuild that changes guns.
+   */
+  rebuildKind?: "BULGE";
   draft: unknown;
 }
 export interface AssignOfficerCommand {

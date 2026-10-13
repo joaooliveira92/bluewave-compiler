@@ -10,6 +10,7 @@ import {
   validateRebuild,
   yardDemandOf,
   type DesignDraft,
+  type Finding,
 } from "@bluewave/ship-design";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
@@ -21,6 +22,7 @@ import type {
   RebuildCheckPayload,
   RebuildCheckView,
   RebuildCommandOutcome,
+  RebuildFindingView,
   ReviseCommandOutcome,
   ReviseProjectCommandPayload,
   ShipDraftView,
@@ -32,10 +34,13 @@ import {
   buildDesignVersion,
   planDesignStudy,
   pricingFor,
+  REBUILD_BULGE_REQUIRED,
+  rebuildArmamentFindings,
+  rebuildBulgeRequired,
   studyExists,
 } from "@bluewave/phase-engine";
 import { getCampaignSession } from "../campaignSessions.js";
-import { loadShipBuildingContent } from "../shipBuildingContent.js";
+import { loadShipBuildingContent, loadShipBuildingData } from "../shipBuildingContent.js";
 import { submitPlayerCommand } from "./playerCommandSupport.js";
 
 function slug(name: string): string {
@@ -409,6 +414,43 @@ export async function loadShipDraft(
   };
 }
 
+/** A `Finding` as the renderer's `RebuildFindingView`. */
+const findingView = (f: Finding): RebuildFindingView => ({
+  id: f.id,
+  what: f.what,
+  why: f.why,
+  consequence: f.consequence,
+  remedies: f.remedies.map((r) => r.description),
+});
+
+/** The bulge requirement as a view finding, using the phase engine's own reason code. */
+const bulgeRequiredView: RebuildFindingView = {
+  id: REBUILD_BULGE_REQUIRED,
+  what: "A bulge rebuild needs a blister.",
+  why: "The rebuilt design does not increase the hull's displacement, so no blister mass was added.",
+  consequence: "The rebuild would not raise torpedo protection the way a bulge should.",
+  remedies: [
+    "Enter the blister's added mass.",
+    "Choose a standard rebuild instead.",
+    "Drop the bulge from the design.",
+  ],
+};
+
+/**
+ * The authored, versioned BULGE torpedo-protection gain (ADR-0130 section 3), read from the
+ * already-parsed ship-building balance. The `refit` section is not yet part of the decoded
+ * `ShipBuildingContent` (INC-12 authored it but did not plumb it through), so it is read through a
+ * narrow lens and accepted only as a safe, non-negative integer; null simply hides the readout. The
+ * value is never invented in the renderer.
+ */
+function authoredBulgeProtectionGainBp(): number | null {
+  const balance = loadShipBuildingData().balance as {
+    refit?: { bulgeProtectionGainBp?: unknown };
+  };
+  const gain = balance.refit?.bulgeProtectionGainBp;
+  return typeof gain === "number" && Number.isSafeInteger(gain) && gain >= 0 ? gain : null;
+}
+
 /**
  * Checks a changed design as a rebuild of `shipId`: compiles it, compares it with the ship's current design against the
  * retained-hull limits and the dock, and answers with the findings and how far each measure goes. Nothing is queued. The same
@@ -419,6 +461,7 @@ function rebuildCheck(
   record: SessionRecord,
   shipId: string,
   draftIn: Record<string, unknown>,
+  rebuildKind?: "BULGE",
 ): BridgeResult<{ view: RebuildCheckView; draft: DesignDraft }> {
   const found = rebuildableShip(record, shipId);
   if (!found.ok)
@@ -434,7 +477,8 @@ function rebuildCheck(
       diagnostics: ["The ship-building content has no rebuild rules"],
     };
   const draft = { ...(draftIn as unknown as DesignDraft), nationId: record.playerSlotId };
-  const env = content.environmentFor(monthIdOf(record));
+  const month = monthIdOf(record);
+  const env = content.environmentFor(month);
   let compiled;
   let current;
   try {
@@ -459,18 +503,28 @@ function rebuildCheck(
     content.rebuild,
     { demand: yardDemandOf(compiled, draft), yards: env.yards },
   );
+  // The manual's armament-change conditions (SB3-R26), the exact rule set the engine applies; and the
+  // BULGE requirement (SB3-R25), checked only when the player chose a bulge rebuild.
+  const armamentFindings = rebuildArmamentFindings(found.draft, draft, content, month).filter(
+    (f) => f.severity === "BLOCKING" || f.severity === "CRITICAL",
+  );
+  const bulgeRequired = rebuildKind === "BULGE" && rebuildBulgeRequired(found.draft, draft);
   const view: RebuildCheckView = {
-    legal: report.legal && compiled.valid && !changesNothing,
-    findings: report.findings.map((f) => ({
-      id: f.id,
-      what: f.what,
-      why: f.why,
-      consequence: f.consequence,
-      remedies: f.remedies.map((r) => r.description),
-    })),
+    legal:
+      report.legal &&
+      compiled.valid &&
+      !changesNothing &&
+      armamentFindings.length === 0 &&
+      !bulgeRequired,
+    findings: [
+      ...report.findings.map(findingView),
+      ...armamentFindings.map(findingView),
+      ...(bulgeRequired ? [bulgeRequiredView] : []),
+    ],
     designProblems,
     changesNothing,
     measures: report.measures,
+    bulgeProtectionGainBp: rebuildKind === "BULGE" ? authoredBulgeProtectionGainBp() : null,
   };
   return { outcome: "success", value: { view, draft }, diagnostics: [] };
 }
@@ -480,7 +534,7 @@ export async function checkRebuild(
 ): Promise<BridgeResult<RebuildCheckView>> {
   const record = getCampaignSession(payload.sessionId);
   if (!record) return sessionMissing(payload.sessionId);
-  const result = rebuildCheck(record, payload.shipId, payload.draft);
+  const result = rebuildCheck(record, payload.shipId, payload.draft, payload.rebuildKind);
   if (result.outcome !== "success") return result;
   return { outcome: "success", value: result.value.view, diagnostics: [] };
 }
@@ -501,7 +555,7 @@ export async function startRebuildCommand(
 ): Promise<BridgeResult<RebuildCommandOutcome>> {
   const record = getCampaignSession(payload.sessionId);
   if (!record) return sessionMissing(payload.sessionId);
-  const checked = rebuildCheck(record, payload.shipId, payload.draft);
+  const checked = rebuildCheck(record, payload.shipId, payload.draft, payload.rebuildKind);
   if (checked.outcome !== "success") return checked;
   const { view, draft } = checked.value;
   if (!view.legal)
@@ -533,6 +587,7 @@ export async function startRebuildCommand(
         projectId,
         newDesignVersionId,
         draft: { ...draft, nationId: rec.playerSlotId },
+        ...(payload.rebuildKind === undefined ? {} : { rebuildKind: payload.rebuildKind }),
       },
       discriminator: `${payload.shipId}/${newDesignVersionId}`,
     }),

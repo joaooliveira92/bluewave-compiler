@@ -455,6 +455,8 @@ function validateStartRebuild(
     return reject("INVALID_COMMAND_PAYLOAD", `Design draft is malformed: ${problems.join("; ")}`);
   if ((body.draft as { nationId?: unknown }).nationId !== body.nationId)
     return reject("INVALID_COMMAND_PAYLOAD", "The draft belongs to a different nation");
+  if (body.rebuildKind !== undefined && body.rebuildKind !== "BULGE")
+    return reject("INVALID_COMMAND_PAYLOAD", "rebuildKind must be BULGE when given");
   return { ok: true };
 }
 

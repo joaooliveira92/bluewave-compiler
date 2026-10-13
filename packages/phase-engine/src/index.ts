@@ -149,12 +149,21 @@ export {
   type PrivateDockExpansionTrigger,
 } from "./dockExpansion.js";
 export {
+  FOREIGN_CONTRACT_PRIORITY_DEFERRED,
+  FOREIGN_CONTRACT_PRIORITY_POLICY_ID,
+  FOREIGN_CONTRACT_PRIORITY_RANKS,
   INSUFFICIENT_PROJECT_CAPACITY,
+  allocateBuilderCapacity,
   committedNewConstructionMassKg,
   constructionCapacityUtilization,
   designNewConstructionReservedMassKg,
+  foreignContractClaims,
+  foreignContractsCommittedMassKg,
   nationalConstructionCapacity,
+  type BuilderCapacityAllocation,
+  type BuilderCapacityClaim,
   type ConstructionCapacityUtilization,
+  type ForeignContractPriorityRank,
   type NationalConstructionCapacity,
 } from "./newConstructionCapacity.js";
 export {
@@ -274,3 +283,12 @@ export {
   type ForeignInsightResolveInput,
 } from "./foreignInsight.js";
 export { researchCostOf } from "./research.js";
+export {
+  REBUILD_BULGE_REQUIRED,
+  gunDiffOf,
+  rebuildArmamentFindings,
+  rebuildBulgeRequired,
+  type GunDiff,
+  type MountStyleContent,
+  type RefitCatalogueEntry,
+} from "./refitRules.js";
