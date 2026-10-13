@@ -2,8 +2,8 @@
 
 **Type:** implementation
 **Status:** open
-**Blocked by:** 10 — Expand — presentation collection and IPC DTO path
-**Frontier:** no
+**Blocked by:** 10 — Expand — presentation collection and IPC DTO path (resolved)
+**Frontier:** yes
 
 **What to build:** Move the nation-selection, globe and dossier consumers to read
 presentation from the IPC DTOs instead of the local tables. The screens must look

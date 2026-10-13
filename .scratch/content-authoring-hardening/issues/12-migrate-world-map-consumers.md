@@ -2,8 +2,8 @@
 
 **Type:** implementation
 **Status:** open
-**Blocked by:** 10 — Expand — presentation collection and IPC DTO path
-**Frontier:** no
+**Blocked by:** 10 — Expand — presentation collection and IPC DTO path (resolved)
+**Frontier:** yes
 
 **What to build:** Move the area tree and campaign map to read the region grouping
 and map-join data from the IPC DTOs instead of the local tables. A new area that
