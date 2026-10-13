@@ -34,7 +34,6 @@ function capture(fn: () => unknown): PhaseEngineError {
 describe("PhaseEngineError", () => {
   it("is a tagged, in-process Error subclass", () => {
     const error = new PhaseEngineError({ message: "boom" });
-    expect(error).toBeInstanceOf(PhaseEngineError);
     expect(error).toBeInstanceOf(Error);
     expect(error._tag).toBe("PhaseEngineError");
     expect(error.message).toBe("boom");

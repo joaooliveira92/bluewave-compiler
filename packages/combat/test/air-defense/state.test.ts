@@ -3,7 +3,7 @@
 // Tests for AirDefenseState with all required fields and deterministic hash computation.
 
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt, isBluewaveError } from "@bluewave/contracts";
 import {
   createAirDefenseState,
   computeAirDefenseStateHash,
@@ -816,7 +816,7 @@ describe("AirDefenseState", () => {
       } catch (e) {
         caught = e;
       }
-      expect(caught).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(caught)).toBe(true);
       expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
     });
 
@@ -844,7 +844,7 @@ describe("AirDefenseState", () => {
       } catch (e) {
         caught = e;
       }
-      expect(caught).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(caught)).toBe(true);
       expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
     });
   });

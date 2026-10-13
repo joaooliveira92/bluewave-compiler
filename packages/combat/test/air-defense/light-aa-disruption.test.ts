@@ -3,7 +3,7 @@
 // eligible light-AA system receives at least one disruption check of one authoritative
 // substep; the opportunity does NOT guarantee ammunition, hit, damage, or abort.
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt, isBluewaveError } from "@bluewave/contracts";
 import {
   AttackType,
   Category,
@@ -129,7 +129,7 @@ function thrownCode(fn: () => void): string {
   try {
     fn();
   } catch (error) {
-    expect(error).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(error)).toBe(true);
     return (error as BluewaveError).context.code as string;
   }
   throw new Error("expected a BluewaveError, none was thrown");

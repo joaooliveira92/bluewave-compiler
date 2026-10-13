@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import {
   calculateCoastalArtilleryMinePressure,
   coastalArtilleryMinePressureHash,
@@ -31,7 +31,7 @@ describe("calculateCoastalArtilleryMinePressure", () => {
     try {
       calculateCoastalArtilleryMinePressure("area_north_sea", -1);
     } catch (e) {
-      if (e instanceof BluewaveError) {
+      if (isBluewaveError(e)) {
         expect(e.message).toContain(COASTAL_ARTILLERY_MINE_PRESSURE_MISSING);
       }
     }

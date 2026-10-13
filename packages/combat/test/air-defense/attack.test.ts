@@ -3,7 +3,7 @@
 // safe-int rejection, bearing 0..360, unknown-field rejection.
 
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt, isBluewaveError } from "@bluewave/contracts";
 import {
   AttackType,
   ATTACK_TYPES,
@@ -255,7 +255,7 @@ describe("AirDefenseAttack", () => {
       } catch (e) {
         caught = e;
       }
-      expect(caught).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(caught)).toBe(true);
       expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_ATTACK);
     });
 
@@ -269,7 +269,7 @@ describe("AirDefenseAttack", () => {
       } catch (e) {
         caught = e;
       }
-      expect(caught).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(caught)).toBe(true);
       expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_ATTACK);
     });
   });
@@ -346,7 +346,7 @@ describe("AirDefenseAttack default-merging parity", () => {
     } catch (error) {
       caught = error;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     const errors = (caught as BluewaveError).context.errors as ReadonlyArray<{
       path: string;
       message: string;

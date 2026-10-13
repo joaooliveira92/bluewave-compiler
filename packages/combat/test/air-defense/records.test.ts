@@ -2,7 +2,7 @@
 // AC-15 (INC-5): AirDefenseEngagementRecord per DESIGN-45 §26 — immutable, hashed, kind
 // coverage, and the AC-7 guaranteed light-AA disruption opportunity record factory.
 import { describe, expect, it } from "vite-plus/test";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt, isBluewaveError } from "@bluewave/contracts";
 import {
   AttackType,
   createAirDefenseEngagementRecord,
@@ -121,7 +121,7 @@ describe("AC-15: AirDefenseEngagementRecord (§26)", () => {
     } catch (error) {
       caught = error as BluewaveError;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect(caught?.context.code).toBe(AIR_DEFENSE_INVARIANT_FAILED);
   });
 
@@ -273,7 +273,7 @@ describe("AC-15: AirDefenseEngagementRecord (§26)", () => {
       } catch (error) {
         caught = error as BluewaveError;
       }
-      expect(caught).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(caught)).toBe(true);
       expect(caught?.context.code).toBe(AIR_DEFENSE_INVARIANT_FAILED);
     });
   });

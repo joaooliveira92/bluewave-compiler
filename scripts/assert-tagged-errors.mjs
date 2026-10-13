@@ -18,6 +18,13 @@
 // is on the reviewed allowlist below with a one-line justification. The
 // allowlist is deliberately inline so the exception is visible in review.
 //
+// `extends Error` detection covers the bare `Error` identifier, the
+// `globalThis.Error`/`global.Error` member forms, and a local import alias of
+// `Error` (`import { Error as E } from "…"`; G4). It deliberately does not chase
+// a locally-declared non-import alias (`const E = Error`), which no authored
+// class uses; `Data.TaggedError`/`Schema.TaggedError` subclasses are invisible
+// because they carry a `_tag` by construction.
+//
 // Usage: `node scripts/assert-tagged-errors.mjs [--scope engine|surface|all] [--self-test]`
 //
 // Wired into `pnpm preflight` (one self-test, then one gate per scope).
@@ -35,14 +42,14 @@ const root = resolve(import.meta.dirname, "..");
  * "Renderer-reachable" means the renderer **value-imports** the root (directly,
  * or transitively through another renderer-reachable root); a type-only import
  * (`import type`, or an all-type `export … from`) is erased by the bundler and
- * does not count — so `persistence` (only `import type { SaveMetadata }`) and
- * `phase-engine` (only `import type { ForeignConstructionPreview }`) sit in
- * `engine`. The renderer also touches a wider module graph through the
- * value-imported packages (`armament`, `deterministic`, `random`,
- * `content-schema`, `content-compiler`, `diagnostics`; ADR-0128 §Context), but
- * none of those declare a renderer-facing plain `Error` subclass, so `surface`
- * lists the roots that do: `contracts`, `ship-design`, `campaign`,
- * `campaign-engine` and `ship-visual`.
+ * does not count — so `persistence` (only `import type { SaveMetadata }`),
+ * `phase-engine` (only `import type { ForeignConstructionPreview }`) and
+ * `diagnostics` (only `import type { DiagnosticCollector }` on the renderer's
+ * value path) sit in `engine`. The renderer also value-reaches `armament`,
+ * `deterministic`, `random` and `content-schema` (ADR-0128 §Context), but none
+ * of those declares a renderer-facing plain `Error` subclass, so `surface`
+ * lists the value-imported roots that do: `contracts`, `ship-design`,
+ * `campaign`, `campaign-engine` and `ship-visual`.
  *
  * Both scopes enforce the same rule; the lists exist so the split is a reviewed
  * decision, and together they cover every first-party source root, so an
@@ -121,9 +128,61 @@ function classHasTag(node) {
   });
 }
 
-/** True when a class extends the global `Error` identifier. */
-function extendsError(node) {
-  return node.superClass?.type === "Identifier" && node.superClass.name === "Error";
+/**
+ * Collect the local names that alias the global `Error` via an import, e.g.
+ * `import { Error as E } from "…"` binds `E`. A class extending such a name is
+ * a plain `Error` subclass the gate must guard; without this it would be
+ * invisible (G4, ADR-0152).
+ * @param {any} program
+ * @returns {Set<string>}
+ */
+function importedErrorAliases(program) {
+  const aliases = new Set();
+  const visit = (node) => {
+    if (node === null || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      for (const child of node) visit(child);
+      return;
+    }
+    if (typeof node.type !== "string") return;
+    if (node.type === "ImportDeclaration") {
+      for (const specifier of node.specifiers ?? []) {
+        if (specifier?.type !== "ImportSpecifier") continue;
+        if (keyName(specifier.imported) === "Error" && specifier.local?.name) {
+          aliases.add(specifier.local.name);
+        }
+      }
+    }
+    for (const key of Object.keys(node)) {
+      if (key === "type" || key === "start" || key === "end" || key === "range") continue;
+      const value = node[key];
+      if (value !== null && typeof value === "object") visit(value);
+    }
+  };
+  visit(program);
+  return aliases;
+}
+
+/**
+ * True when a class superclass names the global `Error`: the bare `Error`
+ * identifier, `globalThis.Error`/`global.Error`, or a local import alias of
+ * `Error` (G4).
+ * @param {any} node the class declaration/expression
+ * @param {ReadonlySet<string>} errorAliases
+ */
+function extendsError(node, errorAliases) {
+  const superClass = node.superClass;
+  if (superClass?.type === "Identifier") {
+    return superClass.name === "Error" || errorAliases.has(superClass.name);
+  }
+  if (superClass?.type === "MemberExpression" && !superClass.computed) {
+    return (
+      superClass.object?.type === "Identifier" &&
+      (superClass.object.name === "globalThis" || superClass.object.name === "global") &&
+      keyName(superClass.property) === "Error"
+    );
+  }
+  return false;
 }
 
 /**
@@ -142,6 +201,7 @@ export function findUntaggedErrors(file, text) {
     );
   }
   const findings = [];
+  const errorAliases = importedErrorAliases(program);
   const visit = (node) => {
     if (node === null || typeof node !== "object") return;
     if (Array.isArray(node)) {
@@ -151,7 +211,7 @@ export function findUntaggedErrors(file, text) {
     if (typeof node.type !== "string") return;
     if (
       (node.type === "ClassDeclaration" || node.type === "ClassExpression") &&
-      extendsError(node) &&
+      extendsError(node, errorAliases) &&
       !classHasTag(node)
     ) {
       findings.push({
@@ -240,6 +300,26 @@ const FIXTURES = [
   {
     name: "extends a non-Error base passes",
     source: "class E extends Base {}",
+    expect: 0,
+  },
+  {
+    name: "untagged globalThis.Error fails",
+    source: "class E extends globalThis.Error {}",
+    expect: 1,
+  },
+  {
+    name: "tagged globalThis.Error passes",
+    source: 'class E extends globalThis.Error { readonly _tag = "E"; }',
+    expect: 0,
+  },
+  {
+    name: "untagged imported Error alias fails",
+    source: 'import { Error as E } from "./base.js";\nclass C extends E {}',
+    expect: 1,
+  },
+  {
+    name: "tagged imported Error alias passes",
+    source: 'import { Error as E } from "./base.js";\nclass C extends E { readonly _tag = "C"; }',
     expect: 0,
   },
   {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import {
   decideBattleEnd,
   isShipNonViable,
@@ -112,7 +112,7 @@ describe("AC-6/AC-7: battle-end precedence + viability (DESIGN-38 §32)", () => 
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(TACTICAL_STATE_INVARIANT_FAILED);
   });
 

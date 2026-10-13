@@ -28,19 +28,31 @@ there is a retained side effect that bundles `effect` into the renderer
 or transitively through another renderer-reachable package. A type-only import
 (`import type`, or an all-type `export … from`) is erased by the bundler and does
 **not** make a package renderer-reachable — which is why `persistence` (only
-`import type { SaveMetadata }`) and `phase-engine` (only
-`import type { ForeignConstructionPreview }`) are not. The renderer-reachable
-packages whose error classes the renderer can reach are `contracts`,
-`ship-design`, `campaign`, `campaign-engine` and `ship-visual`. ADR-0128 §Context
-records the wider module graph the renderer also touches (`armament`,
-`deterministic`, `random`, `content-schema`, `content-compiler`, `diagnostics`),
-none of which declares a renderer-facing plain `Error` subclass.
+`import type { SaveMetadata }`), `phase-engine` (only
+`import type { ForeignConstructionPreview }`) and `diagnostics` (only
+`import type { DiagnosticCollector }` on the renderer's value path) are not. The
+renderer-reachable packages whose error classes the renderer can reach are
+`contracts`, `ship-design`, `campaign`, `campaign-engine` and `ship-visual`. The
+renderer also **value**-reaches `armament`, `deterministic`, `random` and
+`content-schema` (ADR-0128 §Context), but none of those declares an error class.
+
+ADR-0128 §Context's module-graph list also names `persistence`,
+`content-compiler` and `diagnostics`. Those are only *type*-reached (erased at
+bundle time; `content-compiler`/`diagnostics` enter the renderer's value path
+only through all-type re-exports), so they sit in the `engine` scope. In
+particular `@bluewave/diagnostics` declares `DiagnosticError` as a
+`Data.TaggedError`; because diagnostics is not value-reachable that is
+conformant, and resolving this was ticket 02's G2 follow-up.
 
 ## Decision
 
-1. **Not renderer-reachable → `Data.TaggedError`.** Packages the renderer cannot
-   reach (`combat`, `commands`, `ai`, `events`, `phase-engine`, `persistence`)
-   keep ADR-0128 §1's in-process `Data.TaggedError` with a stable `_tag`.
+1. **Not renderer-reachable → `Data.TaggedError` is the default.** Packages the
+   renderer cannot reach (`combat`, `commands`, `ai`, `events`, `phase-engine`,
+   `persistence`, `diagnostics`) keep ADR-0128 §1's in-process `Data.TaggedError`
+   with a stable `_tag`. An existing plain `readonly _tag` class is equally
+   conformant in either scope — the gate (§4) requires a stable `_tag`, not a
+   particular base class — so the app roots' `ContentArtifactError` and
+   `ProjectFormatError` (`apps/desktop/src/main`) need no migration.
    `@bluewave/combat`'s `instanceof BluewaveError` sites move to `_tag` handling;
    no shared error transformer or guard that probes the failure channel is added.
 2. **Renderer-reachable → plain class with `readonly _tag`.** `contracts`,
@@ -71,6 +83,14 @@ none of which declares a renderer-facing plain `Error` subclass.
    field in either scope. `CompatibilityError` is a standalone compatibility
    checker error, not part of the `PersistenceError` `Data.TaggedError` channel,
    so it is left as-is rather than migrated.
+6. **Tests discriminate by `_tag` too.** Test code narrows a caught value with
+   `isBluewaveError` (`@bluewave/contracts`) or a local structural `_tag` guard,
+   never `instanceof`/`toBeInstanceOf(SomeDomainError)`. The single sanctioned
+   class-based form is the matcher argument `expect(fn).toThrow(ErrorClass)` /
+   `toThrowError(ErrorClass)`: it is an expectation-boundary type assertion, not
+   a call-site narrowing, and production code never relies on it. This is the
+   recorded test-narrowing exception (ticket 02's G1 follow-up); the global
+   `expect(x).toBeInstanceOf(Error)` is out of scope.
 
 ## Consequences
 
@@ -81,6 +101,9 @@ none of which declares a renderer-facing plain `Error` subclass.
   stay green because no Effect import is added to a renderer-reachable package.
 - Behaviour is unchanged: error messages, codes and control flow are identical;
   `instanceof` and `_tag` are equivalent for values this codebase constructs.
+- Tests no longer discriminate domain errors with `instanceof`/`toBeInstanceOf`;
+  the only class-based test form left is the documented `toThrow(ErrorClass)`
+  matcher (§6).
 
 ## Alternatives considered
 

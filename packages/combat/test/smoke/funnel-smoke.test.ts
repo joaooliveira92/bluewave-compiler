@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import {
   computeFunnelSmokeDensity,
   FUNNEL_SMOKE_BASE_DENSITY,
@@ -94,7 +94,7 @@ describe("computeFunnelSmokeDensity", () => {
     try {
       computeFunnelSmokeDensity({ fuelType: "hydrogen", powerSettingBp: 9_500 });
     } catch (e) {
-      expect(e).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(e)).toBe(true);
       expect((e as BluewaveError).context.code).toBe(WEATHER_SMOKE_STATE_INVARIANT_FAILED);
     }
   });

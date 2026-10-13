@@ -22,13 +22,17 @@ The migration audit (`.scratch/effect-v4-vendor-migration/issues/00-…`, ticket
 unsupportable:
 
 - The renderer value-imports `@bluewave/ship-design`, `@bluewave/campaign` and
-  `@bluewave/campaign-engine`, transitively reaching `contracts`, `armament`,
-  `deterministic`, `persistence`, `diagnostics`, `random`, `content-compiler` and
-  `content-schema`. A public surface on any of those packages that exposes an
-  Effect type (e.g. a top-level `Data.TaggedError`) is a retained side effect
-  that bundles `effect` into the renderer — directly contradicting `MIG-EXCL-1`
-  and ADR-0125. This was confirmed by experiment, not assumed (esbuild 0.25.12
-  against `vendor/effect`: `~effect/` retained, ≈13.6 KB minified).
+  `@bluewave/campaign-engine`, transitively **value**-reaching `contracts`,
+  `armament`, `deterministic`, `random` and `content-schema`. `persistence`,
+  `diagnostics` and `content-compiler` are also in the renderer's module graph
+  but only via **type-only** imports (erased by the bundler); ADR-0152 refines
+  "renderer-reachable" to the value-import closure and places those three in the
+  `engine` error scope. A public surface on any value-reached package that
+  exposes an Effect type (e.g. a top-level `Data.TaggedError`) is a retained side
+  effect that bundles `effect` into the renderer — directly contradicting
+  `MIG-EXCL-1` and ADR-0125. This was confirmed by experiment, not assumed
+  (esbuild 0.25.12 against `vendor/effect`: `~effect/` retained, ≈13.6 KB
+  minified).
 - `packages/persistence`'s `SaveStore` is synchronous **by contract** (ADR-0104
   §6); `content-compiler`, `commands`, `ai` and `phase-engine` are synchronous
   pure pipelines. ADR-0100 §2 forbids "blind wrapping of pure functions in

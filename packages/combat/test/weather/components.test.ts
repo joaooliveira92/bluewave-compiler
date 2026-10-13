@@ -3,7 +3,7 @@
 // canonical integer units; non-integers rejected with
 // INVALID_TACTICAL_WEATHER_STATE; BattleWeatherComponents carries a state hash.
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import {
   withTacticalWeatherComponentsHash,
   assertFixedPointTacticalWeather,
@@ -43,7 +43,7 @@ function codeOf(fn: () => void): string | undefined {
     fn();
     return undefined;
   } catch (e) {
-    if (e instanceof BluewaveError) {
+    if (isBluewaveError(e)) {
       const ctx = (e as BluewaveError).context ?? {};
       return ctx["code"] as string | undefined;
     }

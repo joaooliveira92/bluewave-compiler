@@ -9,7 +9,7 @@
 // no randomness, clock, env, or locale — string keys use codepoint comparisons only.
 
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt, isBluewaveError } from "@bluewave/contracts";
 import {
   AA_DIRECTOR_NORMAL_SCALING_CAP_REACHED,
   AIR_DEFENSE_DIRECTOR_UNAVAILABLE,
@@ -116,7 +116,7 @@ describe("AC-8: §12 director scaling table", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
 
     let caughtMarkers: unknown;
@@ -125,7 +125,7 @@ describe("AC-8: §12 director scaling table", () => {
     } catch (e) {
       caughtMarkers = e;
     }
-    expect(caughtMarkers).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caughtMarkers)).toBe(true);
     expect((caughtMarkers as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
   });
 
@@ -457,7 +457,7 @@ describe("AC-8: fail-closed guards (INVALID_AIR_DEFENSE_STATE)", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
   }
 

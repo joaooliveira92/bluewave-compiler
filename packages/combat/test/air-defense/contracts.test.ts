@@ -9,7 +9,7 @@
 // public-surface parity (12-F1); a bare decode strips excess keys instead of failing closed.
 import { describe, expect, it } from "vite-plus/test";
 import { Schema } from "effect";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
 import {
   validateAirDefenseContract,
@@ -152,7 +152,7 @@ describe("AC-17: versioned air-defense contracts", () => {
       } catch (error) {
         caught = error as BluewaveError;
       }
-      expect(caught).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(caught)).toBe(true);
       expect(caught?.context.code).toBe(AIR_DEFENSE_INVARIANT_FAILED);
     });
   });

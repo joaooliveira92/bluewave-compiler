@@ -10,6 +10,14 @@ ran an empirical probe against `vendor/effect/dist/index.js` (the byte-identical
 published artifact; `vendor/effect/package.json` → `"name":"effect"`,
 `"version":"4.0.2"`, `"type":"module"`).
 
+> **Resolution:** every decision-request below is now closed. Ticket 12 fixed
+> F4/F5/F6 and moved the three test helpers (F2); `.scratch/effect-conformance/
+> issues/14-tagged-error-residual-gaps.md` closes the residual test `instanceof`
+> backlog (G1), confirms `diagnostics` is **not** value-reachable so
+> `DiagnosticError` correctly stays `Data.TaggedError` (G2), and adds the F3
+> serialization regression test (G5). ADR-0152 and ADR-0128 §Context are the
+> policy of record.
+
 ---
 
 ## 1. Question

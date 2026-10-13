@@ -5,7 +5,7 @@
 // insufficient-reserve consumption (Repair LOW-5), immutability, and state-hash recomputation.
 
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt, isBluewaveError } from "@bluewave/contracts";
 import {
   AirDefenseState,
   Category,
@@ -127,7 +127,7 @@ describe("AC-13: consumption (§20)", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
     expect((caught as BluewaveError).context).toMatchObject({ systemId: "sys_001" });
     // The original state is untouched by the failed consumption.
@@ -175,7 +175,7 @@ describe("AC-13: consumption (§20)", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
   });
 });
 

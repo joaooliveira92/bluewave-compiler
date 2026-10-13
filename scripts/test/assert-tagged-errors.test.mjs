@@ -29,6 +29,29 @@ void test("admits a non-Error base class", () => {
   assert.equal(count("class E extends Base {}"), 0);
 });
 
+void test("rejects an untagged globalThis.Error subclass (G4)", () => {
+  assert.equal(count("class E extends globalThis.Error {}"), 1);
+});
+
+void test("admits a tagged globalThis.Error subclass (G4)", () => {
+  assert.equal(count('class E extends globalThis.Error { readonly _tag = "E"; }'), 0);
+});
+
+void test("rejects an untagged class extending an imported Error alias (G4)", () => {
+  assert.equal(count('import { Error as E } from "./base.js";\nclass C extends E {}'), 1);
+});
+
+void test("admits a tagged class extending an imported Error alias (G4)", () => {
+  assert.equal(
+    count('import { Error as E } from "./base.js";\nclass C extends E { readonly _tag = "C"; }'),
+    0,
+  );
+});
+
+void test("does not treat an unrelated imported alias as Error (G4)", () => {
+  assert.equal(count('import { Base as E } from "./base.js";\nclass C extends E {}'), 0);
+});
+
 void test("reports the offending source line and name", () => {
   const findings = findUntaggedErrors("a.ts", "const a = 1;\nclass E extends Error {}\n");
   assert.equal(findings.length, 1);

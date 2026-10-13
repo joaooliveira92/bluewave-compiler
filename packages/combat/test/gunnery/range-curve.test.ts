@@ -11,7 +11,7 @@
 // and prove the multiplier reproduces the fallback table's 8 band edges exactly
 // through the neutral base 4_000 (the auto-resolver's authored accuracy).
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import {
   perRoundHitProbabilityBp,
   rangeMultiplierBp,
@@ -85,7 +85,7 @@ describe("gunnery_range_v1 (P-1 ticket 06) — range accuracy curve", () => {
       } catch (e) {
         caught = e;
       }
-      expect(caught).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(caught)).toBe(true);
       expect((caught as BluewaveError).message).toBe(INVALID_GUNNERY_STATE);
     }
   });

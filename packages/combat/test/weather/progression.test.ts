@@ -4,7 +4,7 @@
 // Sea state ±1 max per interval. Wind direction per climate band. Each transition
 // creates a WeatherTransitionRecord.
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import { RandomLedger } from "@bluewave/random";
 import {
   withTacticalWeatherComponentsHash,
@@ -249,7 +249,7 @@ describe("AC-5: tactical weather progression", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(WEATHER_PROFILE_INCOMPLETE);
   });
 
@@ -266,7 +266,7 @@ describe("AC-5: tactical weather progression", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(WEATHER_PROFILE_INCOMPLETE);
   });
 
@@ -277,7 +277,7 @@ describe("AC-5: tactical weather progression", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(WEATHER_PROFILE_INCOMPLETE);
   });
 

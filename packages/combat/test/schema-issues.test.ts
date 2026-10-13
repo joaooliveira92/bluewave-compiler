@@ -5,7 +5,7 @@
 // the application contract (stable shape, `.`-joined nested/array paths) rather
 // than leak Effect formatter internals.
 import { describe, expect, it } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import { Result, Schema } from "effect";
 import { formatContractIssues } from "../src/schema-issues.js";
 import { validateAirDefenseSystemDefinition } from "../src/air-defense/index.js";
@@ -105,7 +105,7 @@ describe("formatContractIssues", () => {
     } catch (error) {
       caught = error;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     const context = (caught as BluewaveError).context as {
       errors?: ReadonlyArray<{ path: string; message: string }>;
     };

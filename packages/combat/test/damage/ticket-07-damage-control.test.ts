@@ -10,7 +10,7 @@
 //   4. advanceMinutes threads per-ship contexts minute-to-minute: a torpedo
 //      flood founders a ship over time (fire decays, flooding accumulates).
 import { describe, expect, it } from "vite-plus/test";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt, isBluewaveError } from "@bluewave/contracts";
 import { advanceMinute, advanceMinutes } from "../../src/simulation/engine.js";
 import type { DamageContext, DamageTargetContext } from "../../src/battleResolution/damage.js";
 import { hpOfState, initialDamageState } from "../../src/battleResolution/damage.js";
@@ -181,7 +181,7 @@ describe("P-1 ticket 07: per-ship damage control", () => {
       } catch (e) {
         caught = e;
       }
-      expect(caught).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(caught)).toBe(true);
       expect((caught as BluewaveError).message).toBe(INVALID_SHIP_DAMAGE_STATE);
       expect((caught as BluewaveError).context).toMatchObject({ battleId: "b1", shipId: "a1" });
     });

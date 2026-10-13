@@ -46,6 +46,7 @@ execution is a later effort off the handoff spec/tickets.
 - [Data.TaggedError + error-handling conformance](issues/02-tagged-errors-conformance.md): 14 classes conform; **Major gate gap** — `apps/**` uncovered by `assert-tagged-errors`, live `instanceof` in `contentArtifact.ts`; ADR-0152 self-inconsistent.
 - [Result + decode-at-boundary conformance](issues/03-result-boundary-decode-conformance.md): `Result` + boundary idiom conform; **Major gate gap** — `compiler-cli` `as T` casts un-gated by `assert-boundary-decode`.
 - [Error-gate scope](issues/12-error-gate-scope.md): **resolved, applied** — `ContentArtifactError` gains `_tag` + `static is`; `assert-tagged-errors` `SCOPES` widened to every first-party root (apps + all packages) split by value-reachability; ADR-0152 §1/§2/§5 aligned and "renderer-reachable" defined as value-import reachability (persistence → `engine`); the three test `instanceof` helpers moved to `_tag`.
+- [Tagged-error residual gaps](issues/14-tagged-error-residual-gaps.md): **resolved, applied** — all remaining test `instanceof`/`toBeInstanceOf` narrowings moved to `_tag`/`isBluewaveError`; `diagnostics` confirmed **not** value-reachable (so `DiagnosticError` stays `Data.TaggedError` in `engine`; ADR-0128 §Context split value vs type reachability); ADR-0152 §1/§6 and `RULES.md` §Errors record the `toThrow(Class)`-only test exception; gate detects `globalThis.Error` + imported `Error` aliases with fixtures; events gains the `JSON.stringify`-vs-`structuredClone` `_tag` regression test.
 
 ## Not yet specified
 

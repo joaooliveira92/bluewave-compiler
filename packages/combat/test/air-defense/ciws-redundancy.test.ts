@@ -9,7 +9,7 @@
 // rounds once. Markers: 5..6 → DIMINISHING, 7+ → STRONG_REDUNDANCY. Pure + deterministic.
 
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import {
   CIWS_DIMINISHING_RETURNS_ACTIVE,
   CIWS_STRONG_REDUNDANCY_ACTIVE,
@@ -115,7 +115,7 @@ describe("AC-10: §16 CIWS redundancy factor schedule", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
 
     expect(() => computeCiwsSaturationFactorBp(1.5)).toThrow(BluewaveError);

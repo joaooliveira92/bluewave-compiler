@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import { projectBattle } from "../../src/battleResolution/project.js";
 import { BATTLE_AUTO_RESOLUTION_FAILED } from "../../src/battleResolution/reasonCodes.js";
 import { TACTICAL_UNIT_PROMOTION_INVALID } from "../../src/tactical/unit.js";
@@ -107,7 +107,7 @@ describe("AC-4: tactical projection (manifest + committed ships -> TacticalBattl
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(TACTICAL_UNIT_PROMOTION_INVALID);
   });
 
@@ -126,7 +126,7 @@ describe("AC-4: tactical projection (manifest + committed ships -> TacticalBattl
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(BATTLE_AUTO_RESOLUTION_FAILED);
     const ctx = (caught as BluewaveError).context as Record<string, string>;
     expect(ctx.assetId).toBe("ghost");

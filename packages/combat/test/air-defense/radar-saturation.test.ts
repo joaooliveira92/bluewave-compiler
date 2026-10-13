@@ -7,7 +7,7 @@
 // formula rounds once. Markers: 5..8 → DIMINISHING, 9+ → REDUNDANT. Pure + deterministic.
 
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import {
   computeRadarFactorBp,
   INVALID_AIR_DEFENSE_STATE,
@@ -117,7 +117,7 @@ describe("AC-9: §14 radar saturation factor schedule", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
 
     expect(() => computeRadarFactorBp(1.5)).toThrow(BluewaveError);

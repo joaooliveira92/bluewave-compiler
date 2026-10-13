@@ -3,7 +3,7 @@
 // date/location/tactical time/daylight profile; each state supplies explicit
 // optical visibility, identification, gunnery, air-op, and illumination policies.
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import {
   resolveTimeAndSolarGeometry,
   daylightVisibilityMultiplierBp,
@@ -210,7 +210,7 @@ describe("AC-10: night/twilight model (§27)", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(WEATHER_PROFILE_INCOMPLETE);
   });
 
@@ -293,7 +293,7 @@ describe("AC-10: night/twilight model (§27)", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(WEATHER_PROFILE_INCOMPLETE);
   });
 });

@@ -31,7 +31,6 @@ describe("events tagged errors", () => {
 
     const thrown = capture(() => ledger.append(budgetEvent()));
 
-    expect(thrown).toBeInstanceOf(DuplicateEventIdError);
     expect(thrown).toBeInstanceOf(Error);
     const tagged = thrown as DuplicateEventIdError;
     expect(tagged._tag).toBe("DuplicateEventIdError");
@@ -48,7 +47,6 @@ describe("events tagged errors", () => {
       ledger.append(budgetEvent({ eventId: "evt-2", sequenceNumber: asSafeInt(1) })),
     );
 
-    expect(thrown).toBeInstanceOf(EventSequenceNotIncreasingError);
     const tagged = thrown as EventSequenceNotIncreasingError;
     expect(tagged._tag).toBe("EventSequenceNotIncreasingError");
     expect(tagged.name).toBe("EventSequenceNotIncreasingError");
@@ -62,7 +60,6 @@ describe("events tagged errors", () => {
   it("tags a non-finite explanation value and preserves the message verbatim", () => {
     const thrown = capture(() => new ExplanationBuilder("formula", "1").withResult(Number.NaN));
 
-    expect(thrown).toBeInstanceOf(NonFiniteNumberError);
     const tagged = thrown as NonFiniteNumberError;
     expect(tagged._tag).toBe("NonFiniteNumberError");
     expect(tagged.name).toBe("NonFiniteNumberError");
@@ -73,10 +70,28 @@ describe("events tagged errors", () => {
   it("tags an empty formula identifier and preserves the message verbatim", () => {
     const thrown = capture(() => new ExplanationBuilder("", "1"));
 
-    expect(thrown).toBeInstanceOf(EmptyFormulaIdentifierError);
     const tagged = thrown as EmptyFormulaIdentifierError;
     expect(tagged._tag).toBe("EmptyFormulaIdentifierError");
     expect(tagged.name).toBe("EmptyFormulaIdentifierError");
     expect(tagged.message).toBe("formulaId and formulaVersion must be non-empty");
+  });
+});
+
+// Ticket 02 F3: `Data.TaggedError` is only recoverable by `_tag` *before* it is
+// serialized. `JSON.stringify` round-trips the tag (the vendored class defines
+// `toJSON`, `vendor/effect/src/internal/core.ts`), but `structuredClone` drops
+// the own `_tag` property, so a clone no longer matches `Effect.catchTag`
+// (which keys strictly on `_tag`). Recover by `_tag`/`catchTag` before any
+// stringify/clone.
+describe("tagged error serialization hazard", () => {
+  it("JSON.stringify preserves _tag while structuredClone drops it", () => {
+    const error = new DuplicateEventIdError({ eventId: "evt-1", message: "duplicate" });
+
+    const viaJson = JSON.parse(JSON.stringify(error)) as { readonly _tag?: unknown };
+    expect(viaJson._tag).toBe("DuplicateEventIdError");
+
+    const viaClone = structuredClone(error) as { readonly _tag?: unknown };
+    expect(viaClone).not.toBe(error);
+    expect(viaClone._tag).toBeUndefined();
   });
 });

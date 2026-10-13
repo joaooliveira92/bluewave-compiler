@@ -1,6 +1,6 @@
 //packages/campaign/test/division.test.ts
 
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt, isBluewaveError } from "@bluewave/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import {
   applyDivisionCommand,
@@ -210,7 +210,7 @@ describe("PermanentDivision aggregate (AC-2)", () => {
       assertDivisionInvariants(d, [asset("a", "BB"), asset("b", "DD")]);
       expect(true).toBe(false);
     } catch (e) {
-      expect(e).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(e)).toBe(true);
       expect((e as BluewaveError).message).toContain(DIVISION_SHIP_TYPE_INCOMPATIBLE);
     }
   });

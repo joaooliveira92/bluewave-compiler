@@ -4,7 +4,7 @@
 // resolveEngagement entry point (§19/§20/§21).
 
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt, isBluewaveError } from "@bluewave/contracts";
 import { RandomEngine, RandomStream } from "@bluewave/random";
 import {
   AirDefenseAttack,
@@ -189,7 +189,7 @@ describe("AC-11: engagement formula (§19)", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
   });
 
@@ -230,7 +230,7 @@ describe("AC-11: engagement formula (§19)", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
     expect((caught as BluewaveError).context.slot).toBe("director");
   });
@@ -323,7 +323,7 @@ describe("AC-11: two-class factor bound policy (INC-4 repair, §14/§16 saturati
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
   });
 
@@ -596,7 +596,7 @@ describe("AC-11: resolveEngagement entry point (§19/§20)", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).context.code).toBe(INVALID_AIR_DEFENSE_STATE);
   });
 

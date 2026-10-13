@@ -6,7 +6,7 @@
 // same strategic weather source; local variation only via versioned keyed
 // decision (UI/autoresolve never rerolls weather).
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import { RandomLedger } from "@bluewave/random";
 import {
   initializeBattleWeather,
@@ -219,7 +219,7 @@ describe("AC-3: BattleWeatherInitialization", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(INVALID_BATTLE_WEATHER_INITIALIZATION);
   });
 
@@ -234,7 +234,7 @@ describe("AC-3: BattleWeatherInitialization", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(INVALID_BATTLE_WEATHER_INITIALIZATION);
   });
 
@@ -245,7 +245,7 @@ describe("AC-3: BattleWeatherInitialization", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(INVALID_BATTLE_WEATHER_INITIALIZATION);
   });
 
@@ -264,7 +264,7 @@ describe("AC-3: BattleWeatherInitialization", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(INVALID_BATTLE_WEATHER_INITIALIZATION);
   });
 

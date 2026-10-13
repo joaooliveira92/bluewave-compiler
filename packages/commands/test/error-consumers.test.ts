@@ -85,7 +85,6 @@ describe("CommandError consumer paths (ticket 24 regression)", () => {
       caught = error;
     }
 
-    expect(caught).toBeInstanceOf(CommandError);
     expect(caught).toBeInstanceOf(Error);
     const tagged = caught as CommandError;
     expect(tagged.code).toBe("INVALID_COMMAND_STATUS_TRANSITION");
@@ -100,7 +99,6 @@ describe("CommandError consumer paths (ticket 24 regression)", () => {
       caught = error;
     }
 
-    expect(caught).toBeInstanceOf(CommandError);
     const tagged = caught as CommandError;
     expect(tagged.code).toBe("INCOMPLETE_COMMAND_SETTLEMENT_POLICY");
     expect(tagged.message).toBe(
@@ -116,7 +114,6 @@ describe("CommandError consumer paths (ticket 24 regression)", () => {
       caught = error;
     }
 
-    expect(caught).toBeInstanceOf(CommandError);
     const tagged = caught as CommandError;
     expect(tagged.message).toBe("INCOMPLETE_COMMAND_SETTLEMENT_POLICY: amounts must be integers");
     expect(tagged.code).toBeUndefined();
@@ -130,7 +127,6 @@ describe("CommandError consumer paths (ticket 24 regression)", () => {
       caught = error;
     }
 
-    expect(caught).toBeInstanceOf(CommandError);
     expect((caught as CommandError).code).toBe("INVALID_COMMAND_TYPE_DEFINITION");
   });
 });

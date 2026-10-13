@@ -4,7 +4,7 @@
 // out-of-range values rejected with INVALID_STRATEGIC_WEATHER_STATE or
 // WEATHER_STATE_INVARIANT_FAILED.
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import {
   withStrategicWeatherStateHash,
   assertFixedPointStrategicWeather,
@@ -46,7 +46,7 @@ function codeOf(fn: () => void): string | undefined {
     fn();
     return undefined;
   } catch (e) {
-    if (e instanceof BluewaveError) {
+    if (isBluewaveError(e)) {
       const ctx = (e as BluewaveError).context ?? {};
       return ctx["code"] as string | undefined;
     }

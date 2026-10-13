@@ -4,7 +4,7 @@
 // when cause-estimation confidence is below the AUTHORED certain threshold.
 // Pure/deterministic: no wall-clock/env/locale (times are campaign-month ints).
 import { describe, expect, it } from "vite-plus/test";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt, isBluewaveError } from "@bluewave/contracts";
 import {
   type AreaMinePressureRecord,
   buildMineIncidentReport,
@@ -211,7 +211,7 @@ describe("AC-13: Mine Incident Report (INC-6, §19)", () => {
       expect.unreachable();
     } catch (error) {
       const err = error as BluewaveError;
-      expect(err).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(err)).toBe(true);
       expect((err.context as Record<string, unknown>).code).toBe(INVALID_MINE_PRESSURE_STATE);
     }
   });

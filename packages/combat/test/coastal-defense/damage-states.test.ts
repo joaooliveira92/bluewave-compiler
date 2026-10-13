@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import {
   LAND_TARGET_DAMAGE_STATES,
   DAMAGE_EVENT_TYPES,
@@ -62,7 +62,7 @@ describe("applyLandTargetDamage (INC-3)", () => {
     try {
       applyLandTargetDamage("DESTROYED", "BOMBARDMENT");
     } catch (e) {
-      if (e instanceof BluewaveError) {
+      if (isBluewaveError(e)) {
         expect(e.message).toContain(INVALID_DAMAGE_STATE_TRANSITION);
       }
     }

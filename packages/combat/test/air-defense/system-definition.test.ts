@@ -3,7 +3,7 @@
 // Tests for AirDefenseSystemDefinition with valid and invalid cases.
 
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt, isBluewaveError } from "@bluewave/contracts";
 import {
   createAirDefenseSystemDefinition,
   validateAirDefenseSystemDefinition,
@@ -446,7 +446,7 @@ describe("AirDefenseSystemDefinition", () => {
       } catch (e) {
         caught = e;
       }
-      expect(caught).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(caught)).toBe(true);
       const err = caught as BluewaveError;
       expect(err.context.code).toBe(INVALID_AIR_DEFENSE_SYSTEM_DEFINITION);
     });
@@ -461,7 +461,7 @@ describe("AirDefenseSystemDefinition", () => {
       } catch (e) {
         caught = e;
       }
-      expect(caught).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(caught)).toBe(true);
       const err = caught as BluewaveError;
       expect(err.context.code).toBe(INVALID_AIR_DEFENSE_SYSTEM_DEFINITION);
     });
@@ -538,7 +538,7 @@ describe("AirDefenseSystemDefinition default-merging parity", () => {
     } catch (error) {
       caught = error;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     const errors = (caught as BluewaveError).context.errors as ReadonlyArray<{
       path: string;
       message: string;

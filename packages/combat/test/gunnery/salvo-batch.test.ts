@@ -4,7 +4,7 @@
 // Applied to the single keyed hit draw so `salvoCount` changes hit outcomes
 // without changing the one-draw-per-battery-per-minute shape.
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import { salvoBatchAccuracyBp, SALVO_BATCH_VERSION } from "../../src/gunnery/index.js";
 import { INVALID_GUNNERY_STATE } from "../../src/gunnery/reasonCodes.js";
 
@@ -67,7 +67,7 @@ describe("gunnery_salvo_batch_v1 (P-1 ticket 06) — salvo count sensitivity", (
       } catch (e) {
         caught = e;
       }
-      expect(caught, `q=${q} N=${n}`).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(caught), `q=${q} N=${n}`).toBe(true);
       expect((caught as BluewaveError).message).toBe(INVALID_GUNNERY_STATE);
     }
   });

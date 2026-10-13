@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import { resolveBattleAuto } from "../../src/battleResolution/resolve.js";
 import { BATTLE_END_PRECEDENCE, DEFAULT_MAX_BATTLE_MINUTES } from "../../src/battleEnd.js";
 import { AUTO_RESOLUTION_UNAVAILABLE } from "../../src/generation/reasonCodes.js";
@@ -147,7 +147,7 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(AUTO_RESOLUTION_UNAVAILABLE);
   });
 
@@ -166,7 +166,7 @@ describe("AC-5: resolveBattleAuto orchestrator (end-to-end)", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
   });
 
   it("maxMinutes caps the battle at the configured limit", () => {

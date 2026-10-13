@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError } from "@bluewave/contracts";
+import { BluewaveError, isBluewaveError } from "@bluewave/contracts";
 import { buildBattleWeather } from "../../src/battleResolution/weather.js";
 import {
   INVALID_BATTLE_WEATHER_INITIALIZATION,
@@ -68,7 +68,7 @@ describe("AC-3: battle weather initialization from the committed strategic state
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).message).toBe(INVALID_BATTLE_WEATHER_INITIALIZATION);
   });
 
@@ -93,7 +93,7 @@ describe("AC-3: battle weather initialization from the committed strategic state
       } catch (e) {
         caught = e;
       }
-      expect(caught).toBeInstanceOf(BluewaveError);
+      expect(isBluewaveError(caught)).toBe(true);
       expect((caught as BluewaveError).message).toBe(WEATHER_PROFILE_INCOMPLETE);
     }
   });

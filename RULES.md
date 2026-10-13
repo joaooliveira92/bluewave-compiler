@@ -67,6 +67,11 @@ contract wins; fix this file in the same change.
   `Effect.orDie` or equivalent — select the branch and `Effect.die(error)` only
   where recovery is intentional. Preserve interruption and structured context;
   keep `unknown` out of error and requirement channels.
+- Tests discriminate by `_tag` too (`isBluewaveError`, or a local structural
+  `_tag` guard), never `instanceof`/`toBeInstanceOf(SomeDomainError)`. The one
+  sanctioned class-based test form is the matcher `expect(fn).toThrow(ErrorClass)`
+  / `toThrowError(ErrorClass)` (ADR-0152 §6); `expect(x).toBeInstanceOf(Error)`
+  (the global `Error`) is out of scope.
 
 ## Schema and boundaries
 

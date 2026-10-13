@@ -5,7 +5,7 @@
 // multiplication with one floor.
 
 import { describe, it, expect } from "vite-plus/test";
-import { BluewaveError, SafeInt } from "@bluewave/contracts";
+import { BluewaveError, SafeInt, isBluewaveError } from "@bluewave/contracts";
 import {
   AIR_DEFENSE_INVARIANT_FAILED,
   DisruptionRecord,
@@ -168,7 +168,7 @@ describe("AC-12: cross-layer stacking with one floor (§6 line 125)", () => {
     } catch (e) {
       caught = e;
     }
-    expect(caught).toBeInstanceOf(BluewaveError);
+    expect(isBluewaveError(caught)).toBe(true);
     expect((caught as BluewaveError).context.code).toBe(AIR_DEFENSE_INVARIANT_FAILED);
     expect((caught as BluewaveError).context).toMatchObject({ layer: Layer.HEAVY_AA });
   });

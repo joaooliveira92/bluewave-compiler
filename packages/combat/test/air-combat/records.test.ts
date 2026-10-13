@@ -127,7 +127,6 @@ describe("AC-17: AirCombatRecord", () => {
       thrown = error;
     }
 
-    expect(thrown).toBeInstanceOf(CombatInvariantError);
     expect(thrown).toBeInstanceOf(Error);
     const tagged = thrown as CombatInvariantError;
     expect(tagged._tag).toBe("CombatInvariantError");
