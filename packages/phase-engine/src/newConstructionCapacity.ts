@@ -135,3 +135,172 @@ export function committedNewConstructionMassKg(
   }
   return total;
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// DESIGN-16 section 13.3: the builder's declared contract-priority policy (SB3-R21)
+// ---------------------------------------------------------------------------------------------------------------
+
+/** The versioned builder contract-priority policy (DESIGN-16 section 13.3). */
+export const FOREIGN_CONTRACT_PRIORITY_POLICY_ID = "foreign_contract_priority_v1" as const;
+
+/**
+ * The stable reason a new discretionary domestic project is refused because accepted foreign contracts (which
+ * outrank it) already hold the builder's free `NEW_CONSTRUCTION` capacity.
+ */
+export const FOREIGN_CONTRACT_PRIORITY_DEFERRED = "FOREIGN_CONTRACT_PRIORITY_DEFERRED" as const;
+
+/**
+ * DESIGN-16 section 13.3: the shipped rank order for a builder's `NEW_CONSTRUCTION` capacity. Earlier ranks are
+ * allocated first; a claim that cannot fit after the higher ranks take their share is deferred, never silently
+ * admitted. `MANDATORY_DOMESTIC` is the rank legally mandatory domestic work occupies; no in-flight project is
+ * classified as mandatory in the shipped EARLY content, so it is an authored input to the allocator.
+ */
+export const FOREIGN_CONTRACT_PRIORITY_RANKS = [
+  "MANDATORY_DOMESTIC",
+  "ACCEPTED_FOREIGN_CONTRACT",
+  "DISCRETIONARY_DOMESTIC",
+] as const;
+export type ForeignContractPriorityRank = (typeof FOREIGN_CONTRACT_PRIORITY_RANKS)[number];
+
+const RANK_ORDER: Readonly<Record<ForeignContractPriorityRank, number>> = {
+  MANDATORY_DOMESTIC: 0,
+  ACCEPTED_FOREIGN_CONTRACT: 1,
+  DISCRETIONARY_DOMESTIC: 2,
+};
+
+/** One reservation competing for a builder's free `NEW_CONSTRUCTION` capacity. */
+export interface BuilderCapacityClaim {
+  /** Stable identifier of the claim (project id, contract id, or the new order's id). */
+  readonly id: string;
+  readonly rank: ForeignContractPriorityRank;
+  readonly massKg: number;
+  /**
+   * The deterministic tie-break within a rank: builder nation, builder shipyard, authorization month, then the
+   * claim's own id (DESIGN-16 section 13.3). A short tuple, compared lexicographically.
+   */
+  readonly tieBreak: readonly (string | number)[];
+}
+
+export interface BuilderCapacityAllocation {
+  /** Claim ids admitted, in allocation order. */
+  readonly admitted: readonly string[];
+  /** Claim ids refused once the cap is reached, each with the stable reason. */
+  readonly deferred: readonly { readonly id: string; readonly reason: string }[];
+}
+
+const cmpTuple = (a: readonly (string | number)[], b: readonly (string | number)[]): number => {
+  const n = Math.max(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (x === y) continue;
+    if (x === undefined) return -1;
+    if (y === undefined) return 1;
+    return x < y ? -1 : 1;
+  }
+  return 0;
+};
+
+/**
+ * DESIGN-16 section 13.3: allocate a builder's free `NEW_CONSTRUCTION` capacity across competing claims in rank order,
+ * with the documented deterministic tie-break, never selling the same capacity twice. Claims are sorted by (rank,
+ * tie-break, id) so database/insertion order can never change the result; each is admitted while the running total
+ * stays within the cap, and every later claim is deferred with `FOREIGN_CONTRACT_PRIORITY_DEFERRED`. Pure.
+ */
+export function allocateBuilderCapacity(
+  claims: readonly BuilderCapacityClaim[],
+  maxConcurrentMassKg: number,
+): BuilderCapacityAllocation {
+  const ordered = [...claims].sort(
+    (a, b) =>
+      RANK_ORDER[a.rank] - RANK_ORDER[b.rank] ||
+      cmpTuple(a.tieBreak, b.tieBreak) ||
+      (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  );
+  const admitted: string[] = [];
+  const deferred: { id: string; reason: string }[] = [];
+  let used = 0;
+  const cap = Number.isSafeInteger(maxConcurrentMassKg) ? maxConcurrentMassKg : 0;
+  for (const claim of ordered) {
+    const mass = Number.isSafeInteger(claim.massKg) && claim.massKg > 0 ? claim.massKg : 0;
+    if (used + mass <= cap) {
+      used += mass;
+      admitted.push(claim.id);
+    } else {
+      deferred.push({ id: claim.id, reason: FOREIGN_CONTRACT_PRIORITY_DEFERRED });
+    }
+  }
+  return { admitted, deferred };
+}
+
+/** The reserved mass of one contract's capacity schedule, safe-integer clamped. */
+function contractReservedMassKg(contract: {
+  readonly capacityReservationSchedule: readonly { readonly reservedMassKg: number }[];
+}): number {
+  let total = 0;
+  for (const reservation of contract.capacityReservationSchedule)
+    if (Number.isSafeInteger(reservation.reservedMassKg) && reservation.reservedMassKg > 0)
+      total += reservation.reservedMassKg;
+  return total;
+}
+
+/** Whether a stored foreign contract still reserves capacity: its ordering nation has a non-terminal project for it. */
+function isLiveForeignContract(
+  snapshot: CampaignSnapshot,
+  contract: { readonly orderingNationId: string; readonly contractId: string },
+): boolean {
+  const nation = snapshot["nations"].get(contract.orderingNationId);
+  return (
+    nation !== undefined &&
+    nation["constructionProjects"].some(
+      (p) =>
+        p["foreignContractId"] === contract.contractId &&
+        !isTerminalConstructionProjectStatus(p.status),
+    )
+  );
+}
+
+/**
+ * DESIGN-16 section 13.3: every LIVE accepted foreign contract placed with `builderNationId`, as capacity claims in
+ * the `ACCEPTED_FOREIGN_CONTRACT` rank, with the documented tie-break (builder nation, shipyard, authorization month,
+ * contract id). A terminal (completed/cancelled) contract has released the builder's capacity and is not a claim.
+ * Pure and deterministic.
+ */
+export function foreignContractClaims(
+  snapshot: CampaignSnapshot,
+  builderNationId: string,
+): BuilderCapacityClaim[] {
+  const claims: BuilderCapacityClaim[] = [];
+  for (const nation of snapshot["nations"].values())
+    for (const contract of nation["foreignContracts"] ?? []) {
+      if (contract.builderNationId !== builderNationId) continue;
+      if (!isLiveForeignContract(snapshot, contract)) continue;
+      claims.push({
+        id: contract.contractId,
+        rank: "ACCEPTED_FOREIGN_CONTRACT",
+        massKg: contractReservedMassKg(contract),
+        tieBreak: [
+          contract.builderNationId,
+          contract.builderShipyardId,
+          contract.authorizationMonth,
+          contract.contractId,
+        ],
+      });
+    }
+  return claims;
+}
+
+/**
+ * The mass committed to a builder by every nation's LIVE accepted foreign contracts placed with it (DESIGN-16 section
+ * 13.3). A foreign contract books to its BUILDER, so it competes with the builder's own domestic work for its cap; a
+ * completed or cancelled contract releases it. Pure and deterministic.
+ */
+export function foreignContractsCommittedMassKg(
+  snapshot: CampaignSnapshot,
+  builderNationId: string,
+): number {
+  return foreignContractClaims(snapshot, builderNationId).reduce(
+    (sum, claim) => sum + claim.massKg,
+    0,
+  );
+}

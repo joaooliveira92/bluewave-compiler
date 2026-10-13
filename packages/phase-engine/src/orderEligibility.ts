@@ -16,8 +16,11 @@ import {
   type ShipBuildingContent,
 } from "@bluewave/ship-design";
 import {
+  allocateBuilderCapacity,
   committedNewConstructionMassKg,
   designNewConstructionReservedMassKg,
+  foreignContractClaims,
+  foreignContractsCommittedMassKg,
   nationalConstructionCapacity,
 } from "./newConstructionCapacity.js";
 
@@ -28,6 +31,7 @@ export type OrderRejectionCode =
   | "DESIGN_REVALIDATION_UNAVAILABLE"
   | "SHIP_EXCEEDS_DOMESTIC_DOCK_LIMIT"
   | "INSUFFICIENT_PROJECT_CAPACITY"
+  | "FOREIGN_CONTRACT_PRIORITY_DEFERRED"
   | "DOCK_LIMIT_MISSING";
 
 export interface OrderRejection {
@@ -196,18 +200,49 @@ export function constructionOrderEligibility(
       Number(design.normalizedDisplacementKg),
       capacity,
     );
-    const committed = committedNewConstructionMassKg(
+    const ownCommitted = committedNewConstructionMassKg(
       snapshot,
       design.nationId,
       capacity,
       replacingProjectId,
     );
+    // DESIGN-16 section 13.3 (SB3-R21): accepted foreign contracts placed with this nation as BUILDER hold its
+    // capacity and outrank a new discretionary domestic project. The new order competes for what is left after the
+    // already-admitted domestic work, ranked against the live foreign contracts by the shipped priority policy
+    // (`allocateBuilderCapacity`): the foreign rank is admitted first, so a discretionary domestic order that does not
+    // fit the remainder is deferred with a stable reason.
     const batchReservation = newConstructionReservedMassKg * batchQuantity;
-    if (committed + batchReservation > capacity.maxConcurrentMassKg)
-      rejections.push({
-        code: "INSUFFICIENT_PROJECT_CAPACITY",
-        message: `Reserving ${batchReservation} kg for ${batchQuantity === 1 ? design.designVersionId : `${String(batchQuantity)} x ${design.designVersionId}`} would put ${committed + batchReservation} kg under construction, above the nation's cap of ${capacity.maxConcurrentMassKg} kg.`,
-      });
+    const newClaimId = `new:${design.designVersionId}`;
+    const allocation = allocateBuilderCapacity(
+      [
+        ...foreignContractClaims(snapshot, design.nationId),
+        {
+          id: newClaimId,
+          rank: "DISCRETIONARY_DOMESTIC",
+          massKg: batchReservation,
+          tieBreak: [design.nationId, "", "", design.designVersionId],
+        },
+      ],
+      Math.max(0, capacity.maxConcurrentMassKg - ownCommitted),
+    );
+    if (!allocation.admitted.includes(newClaimId)) {
+      const foreignCommitted = foreignContractsCommittedMassKg(snapshot, design.nationId);
+      // The priority reason only when foreign work is the actual constraint: without the foreign contracts the order
+      // would fit. Otherwise the builder's own domestic work alone already exceeds the cap.
+      const foreignBinding =
+        foreignCommitted > 0 && ownCommitted + batchReservation <= capacity.maxConcurrentMassKg;
+      rejections.push(
+        foreignBinding
+          ? {
+              code: "FOREIGN_CONTRACT_PRIORITY_DEFERRED",
+              message: `Accepted foreign contracts already hold ${foreignCommitted} kg of ${design.nationId}'s capacity; reserving ${batchReservation} kg more would put ${ownCommitted + foreignCommitted + batchReservation} kg under construction, above the builder's cap of ${capacity.maxConcurrentMassKg} kg.`,
+            }
+          : {
+              code: "INSUFFICIENT_PROJECT_CAPACITY",
+              message: `Reserving ${batchReservation} kg for ${batchQuantity === 1 ? design.designVersionId : `${String(batchQuantity)} x ${design.designVersionId}`} would put ${ownCommitted + batchReservation} kg under construction, above the nation's cap of ${capacity.maxConcurrentMassKg} kg.`,
+            },
+      );
+    }
   }
   return {
     eligible: rejections.length === 0,

@@ -48,6 +48,7 @@ import { researchCostOf } from "./research.js";
 import {
   committedNewConstructionMassKg,
   designNewConstructionReservedMassKg,
+  foreignContractsCommittedMassKg,
   nationalConstructionCapacity,
   type NationalConstructionCapacity,
 } from "./newConstructionCapacity.js";
@@ -285,12 +286,12 @@ export function foreignBuilderCommittedMassKg(
   builderNationId: string,
   capacity: NationalConstructionCapacity,
 ): number {
-  let foreign = 0;
-  for (const nation of snapshot["nations"].values())
-    for (const contract of nation["foreignContracts"] ?? [])
-      if (contract.builderNationId === builderNationId)
-        foreign += foreignContractReservedMassKg(contract);
-  return committedNewConstructionMassKg(snapshot, builderNationId, capacity) + foreign;
+  // `foreignContractsCommittedMassKg` counts only LIVE accepted contracts (a completed/cancelled contract releases the
+  // builder's capacity), so a lingering terminal contract never inflates the committed mass on either path.
+  return (
+    committedNewConstructionMassKg(snapshot, builderNationId, capacity) +
+    foreignContractsCommittedMassKg(snapshot, builderNationId)
+  );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
