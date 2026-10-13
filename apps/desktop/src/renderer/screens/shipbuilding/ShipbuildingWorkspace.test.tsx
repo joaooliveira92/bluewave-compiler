@@ -382,6 +382,41 @@ describe("Armament master-detail editor", () => {
   });
 });
 
+describe("Overview summary section", () => {
+  const panel = () => screen.getByRole("region", { name: "Overview" });
+
+  it("shows a design summary and the same warnings as Review", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Overview");
+    const summary = within(panel()).getByTestId("overview-summary").textContent ?? "";
+    for (const label of [
+      "Type and role",
+      "Displacement",
+      "Cost",
+      "Armour",
+      "Main armament",
+      "Crew",
+    ])
+      expect(summary).toContain(label);
+    const warnings = within(panel()).getByRole("region", { name: "Design warnings" });
+    expect(warnings.textContent).toMatch(/blocking/i);
+    expect(within(warnings).getByText(/Advisories never prevent submission/)).toBeTruthy();
+  });
+
+  it("records design priorities without modifying the design", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Overview");
+    const before = statusOf("displacement");
+    const priorities = within(panel()).getByRole("region", { name: "Design priorities" });
+    // All five priorities are settable and displayed, defaulting to Normal.
+    for (const label of ["Speed", "Protection", "Firepower", "Range", "Cost"])
+      expect(within(priorities).getByLabelText(`${label} priority`)).toBeTruthy();
+    expect(within(priorities).getAllByText("Normal").length).toBe(5);
+    expect(within(priorities).getByText(/does not modify the design/)).toBeTruthy();
+    expect(statusOf("displacement")).toBe(before);
+  });
+});
+
 describe("Machinery outcomes-first section", () => {
   const panel = () => screen.getByRole("region", { name: "Machinery, fuel and range" });
 

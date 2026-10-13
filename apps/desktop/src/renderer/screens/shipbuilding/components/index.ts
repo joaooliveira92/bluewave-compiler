@@ -6,6 +6,7 @@ export { Inspector } from "./Inspector.js";
 export { InspectorResizeHandle } from "./InspectorResizeHandle.js";
 export { MachineryEditor } from "./MachineryEditor.js";
 export { NotAvailable } from "./NotAvailable.js";
+export { OverviewPanel, DEFAULT_PRIORITIES, type PriorityLevel } from "./OverviewPanel.js";
 export { ShipStage } from "./ShipStage.js";
 export { ViewToolbar } from "./ViewToolbar.js";
 export { WorkspaceDialog } from "./WorkspaceDialog.js";

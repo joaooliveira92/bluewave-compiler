@@ -62,17 +62,21 @@ import {
   ArmamentEditor,
   CommandBar,
   DesignMap,
+  DEFAULT_PRIORITIES,
   EngineeringStatusBar,
   Inspector,
   InspectorResizeHandle,
   MachineryEditor,
   NotAvailable,
+  OverviewPanel,
   ShipStage,
   ViewToolbar,
   WorkspaceDialog,
+  type PriorityLevel,
 } from "./components/index.js";
 import { armamentEntries } from "./armament.js";
 import { machineryModel } from "./machinery-view.js";
+import { overviewModel, type PriorityId } from "./overview.js";
 import {
   SECTIONS,
   categoriesOf,
@@ -165,6 +169,11 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
   const [place, setPlace] = useState<InspectorPlace>(() => placeOf("overview"));
   const openSection = (section: DesignSectionId, tab?: string) => setPlace(placeOf(section, tab));
   const [shipClassName, setShipClassName] = useState("");
+  // Design priorities are the player's recorded intent: presentation-only, never written to the design.
+  const [priorities, setPriorities] =
+    useState<Readonly<Record<PriorityId, PriorityLevel>>>(DEFAULT_PRIORITIES);
+  const setPriority = (id: PriorityId, level: PriorityLevel) =>
+    setPriorities((p) => ({ ...p, [id]: level }));
   const [dialog, setDialog] = useState<OverflowDialog | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   useEffect(() => {
@@ -274,6 +283,11 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
           <BriefPanel draft={draft} view={view} edit={actions.edit} ctx={env.ctx} />
         ) : (
           <>
+            <OverviewPanel
+              model={overviewModel(draft, view, batteries, state.month)}
+              priorities={priorities}
+              onPriority={setPriority}
+            />
             <MetricsPanel view={view} />
             <LedgerPanel view={view} />
             <ForecastPanel view={view} treasuryUnitMicro={content.treasuryUnitMicro} />
