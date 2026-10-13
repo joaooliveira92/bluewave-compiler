@@ -520,6 +520,52 @@ describe("Machinery outcomes-first section", () => {
     expect(outputs).toMatch(/Machinery weight/);
     expect(outputs).toMatch(/Reliability/);
   });
+
+  it("previews what an alternative plant would change, without committing it", () => {
+    render(<ShipbuildingWorkspace />);
+    // Move to a date where another plant exists, so there is an alternative to preview.
+    fireEvent.click(screen.getByRole("combobox", { name: "Technology as of" }));
+    fireEvent.click(screen.getByRole("option", { name: "1885-01" }));
+    openMap("Machinery");
+    const before = statusOf("displacement");
+    fireEvent.click(within(panel()).getByRole("combobox", { name: "Propulsion plant" }));
+    const alternative = document.querySelector(
+      '[role="option"][data-value="triple_expansion_cylindrical"]',
+    )!;
+    fireEvent.pointerMove(alternative);
+    const preview = within(panel()).getByTestId("delta-preview");
+    expect(preview.textContent).toMatch(/Reliability/);
+    expect(preview.textContent).toMatch(/Required/);
+    expect(preview.textContent).toMatch(/1885-01/);
+    // Hovering previews only: nothing is committed.
+    expect(statusOf("displacement")).toBe(before);
+  });
+
+  it("keeps the supporting fuel detail behind a closed Advanced disclosure", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Machinery");
+    const fuel = within(panel()).getByLabelText(/^Fuel capacity/);
+    const details = fuel.closest("details") as HTMLDetailsElement;
+    expect(details).not.toBeNull();
+    expect(details.open).toBe(false);
+  });
+
+  it("resets a target to the recommended value", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Machinery");
+    const speed = () => screen.getByLabelText(/^Target speed/) as HTMLInputElement;
+    const original = speed().value;
+    // No reset is offered while the value is the recommended one.
+    expect(
+      within(panel()).queryByRole("button", { name: "Reset Target speed to recommended" }),
+    ).toBeNull();
+    commit(/^Target speed/, "20");
+    expect(speed().value).not.toBe(original);
+    fireEvent.click(
+      within(panel()).getByRole("button", { name: "Reset Target speed to recommended" }),
+    );
+    expect(speed().value).toBe(original);
+  });
 });
 
 describe("Engineering status strip", () => {
@@ -628,5 +674,61 @@ describe("Inspector layout", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show inspector" }));
     expect(screen.getByRole("complementary", { name: /^Inspector/ })).toBeTruthy();
     expect(width()).toBe("440px");
+  });
+});
+
+describe("Protection armour section", () => {
+  const panel = () => screen.getByRole("region", { name: "Protection" });
+
+  it("groups a fitted region spatially and shows its compiled readouts", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Protection");
+    // The starting design carries no armour: the section says so and offers to add a region.
+    expect(within(panel()).getByText(/No armour fitted/)).toBeTruthy();
+    fireEvent.click(within(panel()).getByRole("button", { name: "Add region" }));
+    // The added region (the first free one) is grouped under its spatial heading and shows its readouts.
+    expect(within(panel()).getByRole("region", { name: "Belt" })).toBeTruthy();
+    expect(
+      within(panel()).getByRole("button", { name: "Select Main belt on the ship" }),
+    ).toBeTruthy();
+    for (const label of [
+      "Thickness",
+      "Length coverage",
+      "Weight",
+      "Protected area",
+      "Effectiveness",
+    ])
+      expect(within(panel()).getByText(label)).toBeTruthy();
+  });
+
+  it("edits a region's thickness, updating the compiled displacement, and undoes it", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Protection");
+    fireEvent.click(within(panel()).getByRole("button", { name: "Add region" }));
+    const before = statusOf("displacement");
+    commit(/^Thickness of BELT_MAIN/, "200");
+    expect(statusOf("displacement")).not.toBe(before);
+    fireEvent.click(within(commands()).getByRole("button", { name: "Undo" }));
+    expect(statusOf("displacement")).toBe(before);
+  });
+
+  it("highlights the selected armour region on the ship plan", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Protection");
+    fireEvent.click(within(panel()).getByRole("button", { name: "Add region" }));
+    fireEvent.click(within(panel()).getByRole("button", { name: "Select Main belt on the ship" }));
+    const highlight = document.querySelector("[data-testid='armour-highlight']");
+    expect(highlight).not.toBeNull();
+    expect(highlight!.getAttribute("data-region")).toBe("BELT_MAIN");
+  });
+
+  it("keeps the specialist armour fields behind a closed Advanced disclosure", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Protection");
+    fireEvent.click(within(panel()).getByRole("button", { name: "Add region" }));
+    const details = within(panel()).getByText("Advanced").closest("details") as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    // The specialist material control is reachable inside the disclosure.
+    expect(within(details).getByLabelText(/^Material of/)).toBeTruthy();
   });
 });

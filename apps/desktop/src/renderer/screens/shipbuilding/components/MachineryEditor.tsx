@@ -1,20 +1,40 @@
+import { useState } from "react";
 import type { DraftEdit } from "@bluewave/ship-design";
+import { Advanced } from "../../../components/design-workspace/Advanced.js";
+import { DeltaPreview } from "../../../components/design-workspace/DeltaPreview.js";
 import { Panel } from "../../../components/design-workspace/panels/Panel.js";
 import { NumberField, SelectField } from "../../../components/design-workspace/fields.js";
+import type { Delta } from "../../../components/design-workspace/optionDelta.js";
 import type { MachineryModel } from "../machinery-view.js";
+
+/** The starting design's targets, offered as a reset for a field the player has moved away from. */
+export interface MachineryRecommended {
+  readonly targetSpeedMilliKnots: number;
+  readonly cruiseSpeedMilliKnots: number;
+  readonly rangeNm: number;
+}
 
 /**
  * The Machinery section, outcomes first: the editable performance targets and propulsion configuration on one
- * side, the calculated results they produce on the other. No value is both an input and an output.
+ * side, the calculated results they produce on the other. No value is both an input and an output. Fuel bunkerage
+ * — a supporting detail rather than a target — sits behind an Advanced disclosure, and hovering a plant previews
+ * what choosing it would change before it is committed.
  */
 export function MachineryEditor({
   model,
   edit,
+  previewDeltas,
+  recommended,
 }: {
   readonly model: MachineryModel;
   readonly edit: (e: DraftEdit) => void;
+  /** Per plant, what choosing it would change; absent where no preview is available. */
+  readonly previewDeltas?: ReadonlyMap<string, readonly Delta[]>;
+  readonly recommended?: MachineryRecommended;
 }) {
   const { inputs, outputs, notes } = model;
+  const [previewPlant, setPreviewPlant] = useState<string | null>(null);
+  const plantPreview = previewPlant === null ? [] : (previewDeltas?.get(previewPlant) ?? []);
   return (
     <Panel title="Machinery, fuel and range">
       <div className="grid gap-4 md:grid-cols-2">
@@ -29,6 +49,7 @@ export function MachineryEditor({
               scale={1000}
               decimals={1}
               step={0.5}
+              recommended={recommended?.targetSpeedMilliKnots}
               onCommit={(v) =>
                 edit({ kind: "set_requirement", patch: { requiredSpeedMilliKnots: v } })
               }
@@ -41,6 +62,7 @@ export function MachineryEditor({
               scale={1000}
               decimals={1}
               step={0.5}
+              recommended={recommended?.cruiseSpeedMilliKnots}
               onCommit={(v) =>
                 edit({ kind: "set_requirement", patch: { cruiseSpeedMilliKnots: v } })
               }
@@ -51,6 +73,7 @@ export function MachineryEditor({
               unit="nm"
               value={inputs.rangeNm}
               step={50}
+              recommended={recommended?.rangeNm}
               onCommit={(v) => edit({ kind: "set_requirement", patch: { requiredRangeNm: v } })}
             />
             <SelectField
@@ -63,6 +86,7 @@ export function MachineryEditor({
                 disabled: p.disabled,
               }))}
               onChange={(v) => edit({ kind: "set_machinery", patch: { plantId: v } })}
+              onActiveValueChange={setPreviewPlant}
             />
             <NumberField
               label="Installed power"
@@ -72,15 +96,20 @@ export function MachineryEditor({
               step={100}
               onCommit={(v) => edit({ kind: "set_machinery", patch: { installedKw: v } })}
             />
-            <NumberField
-              label="Fuel capacity"
-              shortLabel="Fuel capacity"
-              unit="t"
-              value={inputs.fuelCapacityKg}
-              scale={1000}
-              onCommit={(v) => edit({ kind: "set_machinery", patch: { fuelCapacityKg: v } })}
-            />
           </div>
+          <DeltaPreview deltas={plantPreview} label="Effect of the highlighted plant" />
+          <Advanced>
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField
+                label="Fuel capacity"
+                shortLabel="Fuel capacity"
+                unit="t"
+                value={inputs.fuelCapacityKg}
+                scale={1000}
+                onCommit={(v) => edit({ kind: "set_machinery", patch: { fuelCapacityKg: v } })}
+              />
+            </div>
+          </Advanced>
         </section>
 
         <section aria-label="Calculated results" className="space-y-3">

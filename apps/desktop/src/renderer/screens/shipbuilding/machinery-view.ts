@@ -1,5 +1,6 @@
-import type { DesignDraft, WorkshopView } from "@bluewave/ship-design";
+import type { DesignDraft, WorkshopEnvironment, WorkshopView } from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../components/design-workspace/content.js";
+import { previewOptionDeltas, type Delta } from "../../components/design-workspace/optionDelta.js";
 
 /**
  * The Machinery section's outcomes-first view model. Pure: the editable performance targets and propulsion
@@ -44,6 +45,46 @@ export interface MachineryModel {
 const words = (s: string) => s.replaceAll("_", " ").toLowerCase();
 const kn = (milliKnots: number) => (milliKnots / 1000).toFixed(1);
 const tonnes = (kg: number) => (kg / 1000).toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+/**
+ * Comparison before commitment for the propulsion plant: per plant, what choosing it would change (the compiled
+ * speed, displacement, cost and stability deltas, plus its reliability and the year it requires). Pure; the current
+ * plant previews as no change. Computed on demand, so the many compiles this costs are never run per render.
+ */
+export function plantDeltas(
+  draft: DesignDraft,
+  env: WorkshopEnvironment,
+  view: WorkshopView,
+  content: DrawingBoardContent,
+): ReadonlyMap<string, readonly Delta[]> {
+  const current = content.plants.find((p) => p.id === draft.machinery.plantId);
+  const map = new Map<string, readonly Delta[]>();
+  for (const p of content.plants) {
+    if (p.id === draft.machinery.plantId) {
+      map.set(p.id, []);
+      continue;
+    }
+    const base = previewOptionDeltas(draft, env, view, {
+      kind: "set_machinery",
+      patch: { plantId: p.id },
+    });
+    if (base === null) continue;
+    const deltas = [...base];
+    const dReliability = p.reliabilityBp - (current?.reliabilityBp ?? 0);
+    if (dReliability !== 0)
+      deltas.push({
+        id: "reliability",
+        label: "Reliability",
+        text: `${dReliability > 0 ? "+" : "\u2212"}${Math.abs(dReliability / 100).toFixed(0)}%`,
+        direction: dReliability > 0 ? "up" : "down",
+      });
+    const from = p.introduction?.fromMonth;
+    if (from !== undefined && from !== current?.introduction?.fromMonth)
+      deltas.push({ id: "year", label: "Required", text: `from ${from}`, direction: "flat" });
+    map.set(p.id, deltas);
+  }
+  return map;
+}
 
 /**
  * The propulsion configuration and the calculated results for a draft. `month` and `unlockedTechs` gate the plant

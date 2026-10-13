@@ -1,4 +1,4 @@
-import type { DesignDraft } from "@bluewave/ship-design";
+import type { ArmourRegionId, DesignDraft } from "@bluewave/ship-design";
 import { machineryRooms } from "../../selection/facts.js";
 import { LABEL_FONT, NON_SCALING, STROKE } from "./drafting.js";
 import { PLAN_MID, type PlanFrame } from "./geometry.js";
@@ -43,14 +43,24 @@ function band(
 export function ArmourZoneLayer({
   frame,
   draft,
+  highlight,
 }: {
   readonly frame: PlanFrame;
   readonly draft: DesignDraft;
+  /** The region the Protection editor has selected, highlighted over the scheme (presentation only). */
+  readonly highlight?: ArmourRegionId | null;
 }) {
   const lengthWlMm = Number(draft.hull.lengthWl);
   const citadelPermille = permilleOf(draft.armour.citadelLengthMm, lengthWlMm);
   const beltPermille = permilleOf(beltLengthMm(draft), lengthWlMm);
-  if (citadelPermille <= 0 && beltPermille <= 0) return null;
+  const region =
+    highlight == null ? undefined : draft.armour.regions.find((r) => r.region === highlight);
+  const regionPermille = region === undefined ? 0 : permilleOf(region.lengthMm, lengthWlMm);
+  const highlightBand =
+    regionPermille > 0
+      ? band(frame, (1000 - regionPermille) / 2, (1000 + regionPermille) / 2)
+      : undefined;
+  if (citadelPermille <= 0 && beltPermille <= 0 && highlightBand === undefined) return null;
   const citadel = band(frame, (1000 - citadelPermille) / 2, (1000 + citadelPermille) / 2);
   const belt = band(frame, (1000 - beltPermille) / 2, (1000 + beltPermille) / 2);
   return (
@@ -86,6 +96,24 @@ export function ArmourZoneLayer({
           data-testid="armour-belt"
         >
           <title>{`Main belt (${Math.round(beltPermille)}‰ of length; amidships is a convention)`}</title>
+        </rect>
+      )}
+      {highlightBand !== undefined && region !== undefined && (
+        <rect
+          x={highlightBand.x}
+          width={highlightBand.width}
+          y={BAND.y(frame)}
+          height={BAND.h(frame)}
+          className="pointer-events-none fill-primary stroke-primary"
+          fillOpacity={0.4}
+          strokeOpacity={1}
+          strokeWidth={STROKE.structure}
+          strokeDasharray="3 2"
+          {...NON_SCALING}
+          data-testid="armour-highlight"
+          data-region={region.region}
+        >
+          <title>{`${region.region.replaceAll("_", " ").toLowerCase()} (${Math.round(regionPermille)}‰ of length; amidships is a convention)`}</title>
         </rect>
       )}
     </g>

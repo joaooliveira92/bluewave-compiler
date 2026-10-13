@@ -36,6 +36,7 @@ export function NumberField({
   max,
   step,
   unit,
+  recommended,
   onCommit,
   className,
   shortLabel,
@@ -50,6 +51,8 @@ export function NumberField({
   readonly max?: number;
   readonly step?: number;
   readonly unit?: string;
+  /** The recommended value, in internal units: when the current value differs, a reset control offers it. */
+  readonly recommended?: number;
   readonly onCommit: (internal: number) => void;
   readonly className?: string;
 }) {
@@ -58,12 +61,27 @@ export function NumberField({
   const stepBy = step ?? (decimals > 0 ? Number((1 / 10 ** decimals).toFixed(decimals)) : 1);
   const clampShown = (n: number) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, n));
   const accessibleName = `${label}${unit ? ` (${unit})` : ""}`;
+  const resetValue =
+    recommended === undefined ? null : Math.round(clampShown(recommended / scale) * scale);
+  const showReset = resetValue !== null && recommended !== value;
   return (
     <div className={cn("space-y-1", className)}>
-      <label htmlFor={id} className="block text-xs text-muted-foreground">
-        {shortLabel ?? label}
-        {unit ? ` (${unit})` : ""}
-      </label>
+      <div className="flex items-center justify-between gap-2">
+        <label htmlFor={id} className="block text-xs text-muted-foreground">
+          {shortLabel ?? label}
+          {unit ? ` (${unit})` : ""}
+        </label>
+        {showReset && (
+          <button
+            type="button"
+            className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+            aria-label={`Reset ${label} to recommended`}
+            onClick={() => resetValue !== null && onCommit(resetValue)}
+          >
+            Reset
+          </button>
+        )}
+      </div>
       <NumberFieldBase
         id={id}
         value={shown}
@@ -71,6 +89,8 @@ export function NumberField({
         max={max}
         step={stepBy}
         locale="en-US"
+        // Scrub with the mouse wheel only while the field is focused; an unfocused field ignores the wheel.
+        allowWheelScrub
         format={{
           useGrouping: false,
           minimumFractionDigits: decimals,
@@ -108,6 +128,8 @@ export function SelectField({
   value,
   options,
   onChange,
+  onActiveValueChange,
+  onOpenChange,
   className,
   inline = false,
 }: {
@@ -127,6 +149,9 @@ export function SelectField({
     readonly disabled?: boolean;
   }[];
   readonly onChange: (value: string) => void;
+  /** Called whenever the highlighted option changes (hovered or keyboard-active); null when none is highlighted. */
+  readonly onActiveValueChange?: (value: string | null) => void;
+  readonly onOpenChange?: (open: boolean) => void;
   readonly className?: string;
 }) {
   const id = useId();
@@ -138,7 +163,13 @@ export function SelectField({
       >
         {shortLabel ?? label}
       </label>
-      <Select value={value} onValueChange={onChange} className="w-full">
+      <Select
+        value={value}
+        onValueChange={onChange}
+        onActiveValueChange={onActiveValueChange}
+        onOpenChange={onOpenChange}
+        className="w-full"
+      >
         <SelectTrigger
           id={id}
           aria-label={shortLabel === undefined ? undefined : label}

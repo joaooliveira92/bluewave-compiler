@@ -191,6 +191,9 @@ export interface SelectProps {
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
 
+  /** Called whenever the highlighted (hovered or keyboard-active) option changes; null when none is highlighted. */
+  onActiveValueChange?: (value: SelectValue) => void;
+
   name?: string;
   form?: string;
   required?: boolean;
@@ -207,6 +210,7 @@ export function Select({
   open: controlledOpen,
   defaultOpen = false,
   onOpenChange,
+  onActiveValueChange,
   name,
   form,
   required = false,
@@ -631,6 +635,11 @@ export function Select({
       }
     };
   }, []);
+
+  // The highlighted option, so a host can preview a choice before it is committed.
+  useEffect(() => {
+    onActiveValueChange?.(activeValue);
+  }, [activeValue, onActiveValueChange]);
 
   const contextValue = useMemo<SelectContextValue>(
     () => ({

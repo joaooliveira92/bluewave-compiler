@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { DesignDraft, WorkshopView } from "@bluewave/ship-design";
+import type { ArmourRegionId, DesignDraft, WorkshopView } from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../content.js";
 import { Checkbox } from "../../../ui/checkbox.js";
 import { Panel } from "../Panel.js";
@@ -66,6 +66,7 @@ export function HullPlanPanel({
   onFindingsView,
   shipView: givenShipView,
   overlays: givenOverlays,
+  armourHighlight,
 }: {
   readonly draft: DesignDraft;
   readonly content: DrawingBoardContent;
@@ -94,6 +95,8 @@ export function HullPlanPanel({
   readonly shipView?: ShipView;
   /** The overlays switched on. Omitted, every layer is drawn (the Drawing Board's behaviour). */
   readonly overlays?: ReadonlySet<ShipOverlay>;
+  /** The armour region the Protection editor has selected, highlighted on the plan (presentation only). */
+  readonly armourHighlight?: ArmourRegionId | null;
 }) {
   // Display preferences are lifted to the board toolbar; the plan falls back to its own state when shown on its own.
   const [localShowArcs, setLocalShowArcs] = useState(true);
@@ -171,7 +174,9 @@ export function HullPlanPanel({
             <SelectionLayer frame={frame} zones={zones} draft={draft} warns={model.warns} />
             <HullZoneLayer frame={frame} zones={zones} />
             {viewDef.id === "compartments" && <CompartmentLayer frame={frame} zones={zones} />}
-            {on("armour") && <ArmourZoneLayer frame={frame} draft={draft} />}
+            {on("armour") && (
+              <ArmourZoneLayer frame={frame} draft={draft} highlight={armourHighlight} />
+            )}
             {on("topside") && (
               <HullTopsideLayer frame={frame} draft={draft} content={content} zones={zones} />
             )}

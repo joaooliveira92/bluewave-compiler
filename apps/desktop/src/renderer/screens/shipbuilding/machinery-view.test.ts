@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import { buildWorkshopView } from "@bluewave/ship-design";
 import { loadDrawingBoardContent } from "../../components/design-workspace/index.js";
-import { machineryModel } from "./machinery-view.js";
+import { machineryModel, plantDeltas } from "./machinery-view.js";
 
 const content = loadDrawingBoardContent();
 const ref = content.references[0]!;
@@ -52,6 +52,30 @@ describe("machinery view model", () => {
     const model = machineryModel(ref.draft, view, content, "1880-01", new Set());
     for (const p of model.inputs.plantOptions) {
       if (p.disabled) expect(p.reason).not.toBeNull();
+    }
+  });
+});
+
+describe("plant deltas", () => {
+  const current = content.plants.find((p) => p.id === ref.draft.machinery.plantId)!;
+
+  it("previews what each alternative plant would change, and nothing for the chosen one", () => {
+    const map = plantDeltas(ref.draft, env, view, content);
+    expect(map.size).toBe(content.plants.length);
+    expect(map.get(current.id)).toEqual([]);
+
+    const alternative = content.plants.find((p) => p.reliabilityBp !== current.reliabilityBp)!;
+    const deltas = map.get(alternative.id)!;
+    const reliability = deltas.find((d) => d.id === "reliability");
+    expect(reliability).toBeDefined();
+    expect(reliability!.direction).toBe(
+      alternative.reliabilityBp > current.reliabilityBp ? "up" : "down",
+    );
+    // Every other plant has a different introduction date, so the required year is previewed too.
+    const year = deltas.find((d) => d.id === "year");
+    if (alternative.introduction?.fromMonth !== current.introduction?.fromMonth) {
+      expect(year).toBeDefined();
+      expect(year!.text).toContain(alternative.introduction!.fromMonth);
     }
   });
 });

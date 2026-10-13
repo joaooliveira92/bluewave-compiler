@@ -8,12 +8,11 @@ import {
   type ReactNode,
 } from "react";
 import { flushSync } from "react-dom";
-import type { BatteryRole, ComponentCategory } from "@bluewave/ship-design";
+import type { ArmourRegionId, BatteryRole, ComponentCategory } from "@bluewave/ship-design";
 import { Alert } from "../../components/ui/alert.js";
 import { Button } from "../../components/ui/button.js";
 import {
   AlternativesPanel,
-  ArmourPanel,
   BriefPanel,
   ComparePanel,
   ConfirmDialog,
@@ -69,6 +68,7 @@ import {
   MachineryEditor,
   NotAvailable,
   OverviewPanel,
+  ProtectionEditor,
   ShipStage,
   SystemsPanel,
   ViewToolbar,
@@ -76,8 +76,9 @@ import {
   type PriorityLevel,
 } from "./components/index.js";
 import { armamentEntries } from "./armament.js";
-import { machineryModel } from "./machinery-view.js";
+import { machineryModel, plantDeltas } from "./machinery-view.js";
 import { overviewModel, type PriorityId } from "./overview.js";
+import { protectionModel } from "./protection-view.js";
 import { addSystemEdit, systemsModel } from "./systems-view.js";
 import {
   SECTIONS,
@@ -178,6 +179,13 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
     setPriorities((p) => ({ ...p, [id]: level }));
   // The Systems "show unavailable technology" filter is off by default: an early design is not overwhelmed.
   const [showSystemsUnavailable, setShowSystemsUnavailable] = useState(false);
+  // The armour region the Protection editor has selected, highlighted on the plan (presentation only).
+  const [armourHighlight, setArmourHighlight] = useState<ArmourRegionId | null>(null);
+  const selectArmourRegion = (region: ArmourRegionId | null) => {
+    setArmourHighlight(region);
+    // Reveal the armour zones so the highlight is visible even from the default top view.
+    if (region !== null) setOverlays((current) => new Set(current).add("armour"));
+  };
   const [dialog, setDialog] = useState<OverflowDialog | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   useEffect(() => {
@@ -213,6 +221,17 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
     );
   }, [draft, content]);
   const statuses = useMemo(() => sectionStatuses(findings, fittings), [findings, fittings]);
+
+  // Comparison before commitment: each plant's preview is compiled against the same nation-aware environment the
+  // view was built with, and only while the Machinery section is open (each preview is a full compile).
+  const previewEnv = useMemo(
+    () => content.environmentFor(state.month, draft.nationId),
+    [content, state.month, draft.nationId],
+  );
+  const machineryDeltas = useMemo(
+    () => (place.section === "machinery" ? plantDeltas(draft, previewEnv, view, content) : null),
+    [place.section, draft, previewEnv, view, content],
+  );
 
   const entityCtx: EntityContext = {
     draft,
@@ -314,6 +333,12 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
             <MachineryEditor
               model={machineryModel(draft, view, content, state.month, env.ctx.unlockedTechs)}
               edit={actions.edit}
+              previewDeltas={machineryDeltas ?? undefined}
+              recommended={{
+                targetSpeedMilliKnots: state.preset.draft.requirement.requiredSpeedMilliKnots,
+                cruiseSpeedMilliKnots: state.preset.draft.requirement.cruiseSpeedMilliKnots,
+                rangeNm: state.preset.draft.requirement.requiredRangeNm,
+              }}
             />
             {fittingsPanel(at)}
           </>
@@ -321,11 +346,11 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
       case "protection":
         return at.tab === "armour" ? (
           <>
-            <ArmourPanel
-              draft={draft}
-              view={view}
-              materials={armourMaterials}
+            <ProtectionEditor
+              model={protectionModel(draft, view, armourMaterials)}
               edit={actions.edit}
+              onSelectRegion={selectArmourRegion}
+              selectedRegion={armourHighlight}
             />
             {fittingsPanel(at)}
           </>
@@ -512,6 +537,7 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
                 editing={editing}
                 shipView={shipView}
                 overlays={overlays}
+                armourHighlight={armourHighlight}
                 findingsView={findingsView}
                 onFindingsView={setFindingsView}
               />

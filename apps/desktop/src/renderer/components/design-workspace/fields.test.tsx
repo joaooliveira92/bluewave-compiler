@@ -24,12 +24,14 @@ function Host({
   decimals,
   min,
   max,
+  recommended,
 }: {
   readonly initial: number;
   readonly scale?: number;
   readonly decimals?: number;
   readonly min?: number;
   readonly max?: number;
+  readonly recommended?: number;
 }) {
   const [value, setValue] = useState(initial);
   return (
@@ -41,6 +43,7 @@ function Host({
       decimals={decimals}
       min={min}
       max={max}
+      recommended={recommended}
       onCommit={setValue}
     />
   );
@@ -66,5 +69,21 @@ describe("NumberField", () => {
     fireEvent.change(input, { target: { value: "9" } });
     fireEvent.blur(input);
     expect(input.value).toBe("3"); // clamped to max
+  });
+
+  it("offers a reset to the recommended value, and only when the value differs from it", () => {
+    render(<Host initial={17_000} scale={1000} decimals={1} recommended={16_000} />);
+    const reset = screen.getByRole("button", { name: "Reset Top speed to recommended" });
+    fireEvent.click(reset);
+    expect((screen.getByLabelText("Top speed (kn)") as HTMLInputElement).value).toBe("16.0");
+    // At the recommended value there is nothing to reset.
+    expect(screen.queryByRole("button", { name: "Reset Top speed to recommended" })).toBeNull();
+  });
+
+  it("ignores the mouse wheel while the field is unfocused", () => {
+    render(<Host initial={2} min={1} max={5} />);
+    const input = screen.getByLabelText("Top speed (kn)") as HTMLInputElement;
+    fireEvent.wheel(input, { deltaY: -1 });
+    expect(input.value).toBe("2");
   });
 });
