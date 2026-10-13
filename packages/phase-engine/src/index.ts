@@ -29,6 +29,7 @@ export {
 export {
   constructionProjectQueueWithReadouts,
   constructionProjectReadout,
+  type ConstructionProjectForeignSchedule,
   type ConstructionProjectReadout,
 } from "./constructionReadout.js";
 export {

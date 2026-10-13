@@ -98,6 +98,9 @@ and armament-change validation) plus the player surface. Hand off to `to-spec` â
 - **Remaining frontier:** cost/time readouts (INC-3b), dock/capacity/batch/foreign surfaces
   (INC-5b..INC-9b), rebuild surfaces (INC-12b/INC-15b), builder priority (INC-9c), and INC-11
   (blocked on content-technology materialisation; owner `.scratch/content-runtime-integrity/`).
+- **INC-3c** status-aware construction readout landed: held/delayed/impounded/on-hold rows report the
+  schedule unavailable with the reason (never a misleading instalment/launch), and foreign rows derive
+  their instalment/launch from the contract schedule; golden/determinism unchanged.
 
 
 ## Not yet specified

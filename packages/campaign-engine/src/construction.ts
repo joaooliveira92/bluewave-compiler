@@ -3,6 +3,7 @@ import {
   type CampaignSnapshot,
   type CompiledDesignVersion as CompiledEngineDesignVersion,
   type ConstructionProject,
+  type ConstructionProjectStatus,
 } from "@bluewave/campaign";
 import type { CompiledDesignVersion } from "./design.js";
 
@@ -176,16 +177,39 @@ export function constructionBatchProjectIdForCommand(commandId: string, ordinal:
 }
 
 /**
+ * Which funding path a project's readout describes (SB3-R31 / INC-3c):
+ * - `YARD_CAPACITY`: an ordinary domestic project, funded by its yard's line capacity.
+ * - `FOREIGN_CONTRACT`: a foreign order, funded by its contract's instalment schedule.
+ * - `UNAVAILABLE`: the project is not accruing ordinary schedule work (halted, delayed, awaiting capacity,
+ *   impounded, cancelled, or on a revision hold), so no instalment/launch is authored for it.
+ */
+export type ConstructionScheduleBasis = "YARD_CAPACITY" | "FOREIGN_CONTRACT" | "UNAVAILABLE";
+
+/**
+ * Why a project has no running readout schedule: one of the held/terminal DESIGN-23 section 2 statuses, a revision hold
+ * (ADR-0070), or a foreign order whose contract the snapshot cannot resolve.
+ */
+export type ConstructionScheduleUnavailableReason =
+  | ConstructionProjectStatus
+  | "REVISION_HOLD"
+  | "FOREIGN_CONTRACT_MISSING";
+
+/**
  * Compiled display readouts for one construction project, projected into a queue entry so the renderer can show the
  * instalment, schedule and cost without deriving any figure itself (SB3-R31): the monthly instalment, remaining months,
  * total cost, launch month and — for a `HALTED` project only — the half-mothball carrying cost it pays each month
- * (DESIGN-23 section 7). Every value is compiled by the engine; the UI renders them verbatim.
+ * (DESIGN-23 section 7). The `scheduleBasis` says which funding path the figures describe and
+ * `scheduleUnavailableReason` names the status/hold when there is no running schedule (INC-3c). Every value is compiled
+ * by the engine; the UI renders them verbatim.
  */
 export interface ConstructionProjectReadoutView {
   readonly totalCostUnits: number;
   readonly monthlyInstalmentUnits: number;
   readonly remainingMonths: number;
   readonly launchMonth: string | null;
+  readonly scheduleBasis: ConstructionScheduleBasis;
+  /** The held/terminal status, revision hold or missing contract that leaves no running schedule; null when one runs. */
+  readonly scheduleUnavailableReason: ConstructionScheduleUnavailableReason | null;
   /** The half-mothball carrying cost a HALTED project pays each month; null for a non-halted project. */
   readonly haltedCarryingCostUnits: number | null;
 }

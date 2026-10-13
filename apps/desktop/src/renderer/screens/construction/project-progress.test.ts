@@ -115,6 +115,8 @@ describe("projectRow", () => {
       monthlyInstalmentUnits: 120,
       remainingMonths: 6,
       launchMonth: "1880-07",
+      scheduleBasis: "YARD_CAPACITY" as const,
+      scheduleUnavailableReason: null,
       haltedCarryingCostUnits: 3,
     };
     const row = projectRow(entry({ readout }));

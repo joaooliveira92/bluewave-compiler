@@ -19,6 +19,8 @@ const row = (over: Partial<ProjectRow> = {}): ProjectRow => ({
     monthlyInstalmentUnits: 120,
     remainingMonths: 6,
     launchMonth: "1880-07",
+    scheduleBasis: "YARD_CAPACITY",
+    scheduleUnavailableReason: null,
     haltedCarryingCostUnits: null,
   },
   ...over,
@@ -39,23 +41,73 @@ describe("ProjectReadout", () => {
     expect(screen.queryByText("Carrying cost")).toBeNull();
   });
 
-  it("shows the half-mothball carrying cost only on a halted row", () => {
+  it("shows the half-mothball carrying cost and the hold, not a misleading instalment, on a halted row", () => {
     render(
       <ProjectReadout
         row={row({
           status: "HALTED",
           readout: {
             totalCostUnits: 640,
-            monthlyInstalmentUnits: 120,
-            remainingMonths: 6,
-            launchMonth: "1880-07",
+            monthlyInstalmentUnits: 0,
+            remainingMonths: 0,
+            launchMonth: null,
+            scheduleBasis: "UNAVAILABLE",
+            scheduleUnavailableReason: "HALTED",
             haltedCarryingCostUnits: 3,
           },
         })}
       />,
     );
+    expect(screen.getByText("not building (halted)")).toBeTruthy();
     expect(screen.getByText("Carrying cost")).toBeTruthy();
     expect(screen.getByText("3/mo")).toBeTruthy();
+    // A held row must not claim an instalment or a launch.
+    expect(screen.queryByText("Instalment")).toBeNull();
+    expect(screen.queryByText("Launch")).toBeNull();
+    expect(screen.queryByText("complete")).toBeNull();
+  });
+
+  it("shows a delayed row's hold instead of a completion", () => {
+    render(
+      <ProjectReadout
+        row={row({
+          status: "DELAYED",
+          readout: {
+            totalCostUnits: 640,
+            monthlyInstalmentUnits: 0,
+            remainingMonths: 0,
+            launchMonth: null,
+            scheduleBasis: "UNAVAILABLE",
+            scheduleUnavailableReason: "DELAYED",
+            haltedCarryingCostUnits: null,
+          },
+        })}
+      />,
+    );
+    expect(screen.getByText("not building (delayed)")).toBeTruthy();
+    expect(screen.queryByText("complete")).toBeNull();
+  });
+
+  it("renders the contract schedule a foreign row's readout carries", () => {
+    render(
+      <ProjectReadout
+        row={row({
+          isForeign: true,
+          readout: {
+            totalCostUnits: 600,
+            monthlyInstalmentUnits: 100,
+            remainingMonths: 5,
+            launchMonth: "1880-08",
+            scheduleBasis: "FOREIGN_CONTRACT",
+            scheduleUnavailableReason: null,
+            haltedCarryingCostUnits: null,
+          },
+        })}
+      />,
+    );
+    expect(screen.getByText("100/mo")).toBeTruthy();
+    expect(screen.getByText("5")).toBeTruthy();
+    expect(screen.getByText("1880-08")).toBeTruthy();
   });
 
   it('labels the readout by role and name, and says "complete" when there is no launch month', () => {
@@ -67,6 +119,8 @@ describe("ProjectReadout", () => {
             monthlyInstalmentUnits: 0,
             remainingMonths: 0,
             launchMonth: null,
+            scheduleBasis: "YARD_CAPACITY",
+            scheduleUnavailableReason: null,
             haltedCarryingCostUnits: null,
           },
         })}
