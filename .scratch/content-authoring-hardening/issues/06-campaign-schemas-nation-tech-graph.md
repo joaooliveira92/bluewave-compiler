@@ -1,7 +1,7 @@
 # 06: Campaign-file schemas — economies, research, diplomacy
 
 **Type:** implementation
-**Status:** done
+**Status:** resolved
 **Blocked by:** None (can start immediately)
 **Frontier:** no
 

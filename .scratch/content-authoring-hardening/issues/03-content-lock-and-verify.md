@@ -1,7 +1,7 @@
 # 03: Committed content lock and `content:verify`
 
 **Type:** implementation
-**Status:** done
+**Status:** resolved
 **Blocked by:** 02 — Codepoint ordering in the compiler
 **Frontier:** no
 

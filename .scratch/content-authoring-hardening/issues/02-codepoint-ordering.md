@@ -1,7 +1,7 @@
 # 02: Codepoint ordering in the compiler
 
 **Type:** implementation
-**Status:** done
+**Status:** resolved
 **Blocked by:** None (can start immediately)
 **Frontier:** no
 

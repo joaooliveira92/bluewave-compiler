@@ -1,7 +1,7 @@
 # 01: Manifest authority for the loaded surface
 
 **Type:** implementation
-**Status:** done
+**Status:** resolved
 **Blocked by:** None (can start immediately)
 **Frontier:** no
 

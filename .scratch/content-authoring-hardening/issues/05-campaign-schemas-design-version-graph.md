@@ -1,7 +1,7 @@
 # 05: Campaign-file schemas — fleets, constructions, designs
 
 **Type:** implementation
-**Status:** done
+**Status:** resolved
 **Blocked by:** None (can start immediately)
 **Frontier:** no
 

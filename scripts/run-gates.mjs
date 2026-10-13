@@ -100,6 +100,12 @@ export const GATE_SETS = {
       needs: ["git-state"],
       args: ["scripts/verify-tsgo-integration.mjs"],
     },
+    {
+      id: "content-lock",
+      label: "content lock verify",
+      needs: ["git-state"],
+      args: ["scripts/verify-content-lock.mjs"],
+    },
   ],
 };
 

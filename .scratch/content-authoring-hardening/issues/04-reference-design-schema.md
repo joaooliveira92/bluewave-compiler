@@ -1,7 +1,7 @@
 # 04: Reference-design content schema and strict validation
 
 **Type:** implementation
-**Status:** done
+**Status:** resolved
 **Blocked by:** None (can start immediately)
 **Frontier:** no
 

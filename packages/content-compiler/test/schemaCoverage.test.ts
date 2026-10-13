@@ -221,19 +221,74 @@ describe("content schema coverage — reference designs (CAH-SCH-1/4)", () => {
 });
 
 describe("content schema coverage — campaign-file collections (CAH-SCH-2/4)", () => {
-  const cases: ReadonlyArray<{ rel: string; group: keyof CompilerInput; valid: string }> = [
-    { rel: "fleets.yaml", group: "fleetFiles", valid: FLEET },
-    { rel: "economies.yaml", group: "economyFiles", valid: ECONOMY },
-    { rel: "constructions.yaml", group: "constructionFiles", valid: CONSTRUCTION },
-    { rel: "research.yaml", group: "researchFiles", valid: RESEARCH },
-    { rel: "designs.yaml", group: "designFiles", valid: DESIGN },
-    { rel: "diplomacy.yaml", group: "diplomacyFiles", valid: DIPLOMACY },
+  const cases: ReadonlyArray<{
+    rel: string;
+    group: keyof CompilerInput;
+    valid: string;
+    missing: [string, string];
+    typed: [string, string];
+  }> = [
+    {
+      rel: "fleets.yaml",
+      group: "fleetFiles",
+      valid: FLEET,
+      missing: ['  name: "Home Fleet"\n', ""],
+      typed: ['  name: "Home Fleet"', "  name: 123"],
+    },
+    {
+      rel: "economies.yaml",
+      group: "economyFiles",
+      valid: ECONOMY,
+      missing: ["  treasury: 1000\n", ""],
+      typed: ["  treasury: 1000", '  treasury: "lots"'],
+    },
+    {
+      rel: "constructions.yaml",
+      group: "constructionFiles",
+      valid: CONSTRUCTION,
+      missing: ['  status: "ACTIVE"\n', ""],
+      typed: ["  totalWork: 100", '  totalWork: "many"'],
+    },
+    {
+      rel: "research.yaml",
+      group: "researchFiles",
+      valid: RESEARCH,
+      missing: ["  researchBudget: 60\n", ""],
+      typed: ["  technologies: []", '  technologies: "none"'],
+    },
+    {
+      rel: "designs.yaml",
+      group: "designFiles",
+      valid: DESIGN,
+      missing: ['  className: "Alpha"\n', ""],
+      typed: ["  hitPoints: 40", '  hitPoints: "many"'],
+    },
+    {
+      rel: "diplomacy.yaml",
+      group: "diplomacyFiles",
+      valid: DIPLOMACY,
+      missing: ['  relation: "neutral"\n', ""],
+      typed: ['  relation: "neutral"', "  relation: 5"],
+    },
   ];
 
-  for (const { rel, group, valid } of cases) {
+  for (const { rel, group, valid, missing, typed } of cases) {
     it(`accepts a schema-complete ${rel} record (positive control)`, () => {
       const collector = compileFile(rel, valid, group);
       expect(collector.hasErrors).toBe(false);
+    });
+
+    it(`rejects a missing required field on a ${rel} record naming the file and field path`, () => {
+      const collector = compileFile(rel, valid.replace(missing[0], missing[1]), group);
+      const error = firstSchemaError(collector);
+      expect(error.path).toContain(rel);
+      expect(error.message).toContain("Missing key");
+    });
+
+    it(`rejects a wrong-typed field on a ${rel} record naming the file and field path`, () => {
+      const collector = compileFile(rel, valid.replace(typed[0], typed[1]), group);
+      const error = firstSchemaError(collector);
+      expect(error.path).toContain(rel);
     });
 
     it(`rejects an excess key on a ${rel} record naming the file and field path`, () => {

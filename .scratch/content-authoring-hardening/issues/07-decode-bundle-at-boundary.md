@@ -1,7 +1,7 @@
 # 07: Decode the verified bundle at the artifact boundary
 
 **Type:** implementation
-**Status:** done
+**Status:** resolved
 **Blocked by:** 04 — Reference-design content schema and strict validation; 05 — Campaign-file schemas — fleets, constructions, designs; 06 — Campaign-file schemas — economies, research, diplomacy
 **Frontier:** no
 
