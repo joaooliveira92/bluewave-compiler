@@ -148,16 +148,19 @@ function, or `Schema.satisfies`/`.check`), then delete the assertion. At minimum
 one-line justification comment at each cast naming the structural divergence, so the
 baseline entries are self-explaining.
 
-### F5 — Excess-key strictness is inconsistent across decoders (adjacent to ticket 04) — **Minor**
+### F5 — Excess-key strictness varies by use site, and that is deliberate pre-migration parity — **Info (accept, corrected by ticket 04)**
 
 Vendored truth: `Schema.Struct` **strips** unknown keys by default; rejection requires
 `onExcessProperty: "error"` (`vendor/effect/src/SchemaAST.ts:490–495` — *"`onExcessProperty`
 — `"ignore"` (default) strips unknown object keys"*; `repos/effect/packages/effect/SCHEMA.md:1039–1044`).
 
-This contradicts the repo policy of record (`RULES.md:74` — *"Schemas are closed by
-default; excess keys are rejected"*; `agent-patterns/effect-idioms.md:28–29`), which is
-exactly **ticket 04's** subject. Its *use-site* consequences surface in this ticket's
-boundaries:
+At the time of this ticket the repo policy of record claimed the opposite
+(`RULES.md:74` — *"Schemas are closed by default; excess keys are rejected"*;
+`agent-patterns/effect-idioms.md:28–29`), which was exactly **ticket 04's** subject.
+**Ticket 01 corrected those docs** (and `ADR-0102 §4`) to "strips by default; pass
+`{ onExcessProperty: "error" }` to reject"; **ticket 04 confirmed the corrected
+policy executably** and withdrew this ticket's proposed remedy (see below). The
+use-site strictness *varies*, and the variation is deliberate pre-migration parity:
 
 - `apps/desktop/src/main/campaignBridge.ts:158` — the default IPC decoder passes **no**
   options, so extra payload keys are stripped, not rejected; only `withStrictSchema` (`:178`)
@@ -169,12 +172,17 @@ boundaries:
 - Content boundaries are uniformly strict (`content-schema/src/decode.ts:9`,
   `schema-validator.ts:6`).
 
-**Do not resolve the contradiction here** — ticket 04 owns the disposition. Cross-reference
-only: if ticket 04 concludes "closed requires the explicit option", then F5's strip-not-reject
-sites (and `campaignBridge`'s default IPC decoder) are the code fixes it implies.
-
-**Remedy (deferred to 04):** once 04 settles the rule, align every boundary decoder to one
-policy constant (mirroring `CONTENT_DECODE_OPTIONS`) and add a gate/parity assertion.
+**Remedy withdrawn (ticket 04, 2026-10-13): no code change.** The apparent
+inconsistency is faithful migration parity, not a divergence: the pre-migration
+Zod schemas carried `.strict()` **only** at the air-defense sites (which now pass
+the option) and were open `z.object` at air-combat / aircraft / carrier-operations
+(0 `.strict()` at `5df46569^`) and at the desktop IPC decoder `campaignBridge` +
+`campaignCommandSchemas` (0 `.strict()` at `0c7370d4^`, the main-process IPC
+migration) — the latter now strip via the default `withSchema`. "Align every
+boundary decoder to one policy constant" would therefore *break* parity (weaken
+the `.strict()` boundaries or newly reject at formerly-open ones), the opposite
+of conformance. The lever is per-schema parity, documented at each site. See
+`effect-conformance-04-schema-struct-excess-key.md`.
 
 ### F6 — Error surfacing is consistent and idiomatic — **Info (with one Minor nit)**
 

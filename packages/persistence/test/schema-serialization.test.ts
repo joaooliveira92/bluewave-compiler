@@ -106,7 +106,7 @@ describe("Effect Schema save-boundary serialization (MIG-WIRE-4)", () => {
     expect(loaded!.snapshot.campaignId).toBe("schema-roundtrip");
   });
 
-  it("preserves Zod default/excess-key accept semantics (closed Struct strips unmodeled keys)", () => {
+  it("preserves Zod default/excess-key accept semantics (open Struct strips unmodeled keys)", () => {
     const minimal = {
       snapshot: {
         version: "1.0.0",

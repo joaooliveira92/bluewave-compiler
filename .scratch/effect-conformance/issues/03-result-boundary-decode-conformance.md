@@ -45,8 +45,13 @@ Resolved. Evidence: `docs/research/effect-conformance-03-result-boundary.md`.
 - **F4 (Minor):** decode-then-`as`-nominal at `monthInput.ts:46`, `pendingCommands.ts:134`,
   `store.ts:447`, `air-defense-system-definition.ts:260`, `air-defense/attack.ts:204`,
   `campaignBridge.ts:333`.
-- **F5 (Minor):** excess-key strictness is inconsistent — `campaignBridge.ts:158` strips
-  while `air-defense/*` + content boundaries reject. Deferred to ticket 04.
+- **F5 (Info, accept — corrected):** excess-key strictness *varies* by use site
+  (`campaignBridge.ts:158` strips while `air-defense/*` + content boundaries reject),
+  but the variation is **faithful pre-migration parity**, not a divergence: the old Zod
+  schemas were `.strict()` only at the air-defense sites and open `z.object` at the
+  strip sites (verified against `5df46569^`). Ticket 04 settled the rule executably and
+  **withdrew the "align to one policy constant" remedy** — it would break parity. No code
+  change. See `effect-conformance-03-result-boundary.md` §F5.
 - **F6 (Info, accept):** error surfacing is consistent; nit —
   `schema-validator.ts:23` uses raw `_tag` where siblings use `Result.isFailure`.
 - **F7 (Info, accept):** unused `Option`/`Predicate` are permissions, not gaps; allowlist
